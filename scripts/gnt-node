@@ -1,0 +1,156 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+import sys
+from optparse import make_option
+
+from ganeti.cli import *
+from ganeti import opcodes
+from ganeti import logger
+from ganeti import utils
+
+
+def AddNode(opts, args):
+  """Add node cli-to-processor bridge."""
+  op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip)
+  SubmitOpCode(op)
+
+
+def ListNodes(opts, args):
+  """List nodes and their properties.
+
+  """
+  if opts.output is None:
+    selected_fields = ["name", "dtotal", "dfree",
+                       "mtotal", "mnode", "mfree",
+                       "pinst", "sinst"]
+  else:
+    selected_fields = opts.output.split(",")
+
+  op = opcodes.OpQueryNodes(output_fields=selected_fields)
+  output = SubmitOpCode(op)
+
+  mlens = [0 for name in selected_fields]
+  format_fields = []
+  unitformat_fields = ("dtotal", "dfree", "mtotal", "mnode", "mfree")
+  for field in selected_fields:
+    if field in ("dtotal", "dfree", "mtotal", "mnode",
+                 "mfree", "pinst", "sinst"):
+      format_fields.append("%*s")
+    else:
+      format_fields.append("%-*s")
+
+  separator = opts.separator
+  if "%" in separator:
+    separator = separator.replace("%", "%%")
+  format = separator.join(format_fields)
+
+  for row in output:
+    for idx, val in enumerate(row):
+      if opts.human_readable and selected_fields[idx] in unitformat_fields:
+        try:
+          val = int(val)
+        except ValueError:
+          pass
+        else:
+          val = row[idx] = utils.FormatUnit(val)
+      mlens[idx] = max(mlens[idx], len(val))
+
+  if not opts.no_headers:
+    header_list = {"name": "Node", "pinst": "Pinst", "sinst": "Sinst",
+                   "pip": "PrimaryIP", "sip": "SecondaryIP",
+                   "dtotal": "DTotal", "dfree": "DFree",
+                   "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree"}
+    args = []
+    for idx, name in enumerate(selected_fields):
+      hdr = header_list[name]
+      mlens[idx] = max(mlens[idx], len(hdr))
+      args.append(mlens[idx])
+      args.append(hdr)
+    logger.ToStdout(format % tuple(args))
+
+  for row in output:
+    args = []
+    for idx, val in enumerate(row):
+      args.append(mlens[idx])
+      args.append(val)
+    logger.ToStdout(format % tuple(args))
+
+  return 0
+
+
+def ShowNodeConfig(opts, args):
+  """Show node information.
+
+  """
+  op = opcodes.OpQueryNodeData(nodes=args)
+  result = SubmitOpCode(op)
+
+  for name, primary_ip, secondary_ip, pinst, sinst in result:
+    logger.ToStdout("Node name: %s" % name)
+    logger.ToStdout("  primary ip: %s" % primary_ip)
+    logger.ToStdout("  secondary ip: %s" % secondary_ip)
+    if pinst:
+      logger.ToStdout("  primary for instances:")
+      for iname in pinst:
+        logger.ToStdout("    - %s" % iname)
+    else:
+      logger.ToStdout("  primary for no instances")
+    if sinst:
+      logger.ToStdout("  secondary for instances:")
+      for iname in sinst:
+        logger.ToStdout("    - %s" % iname)
+    else:
+      logger.ToStdout("  secondary for no instances")
+
+  return 0
+
+
+def RemoveNode(opts, args):
+  """Remove node cli-to-processor bridge."""
+  op = opcodes.OpRemoveNode(node_name=args[0])
+  SubmitOpCode(op)
+
+
+commands = {
+  'add': (AddNode, ARGS_ONE,
+          [DEBUG_OPT,
+           make_option("-s", "--secondary-ip", dest="secondary_ip",
+                       help="Specify the secondary ip for the node",
+                       metavar="ADDRESS", default=None),],
+          "<node_name>", "Add a node to the cluster"),
+  'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
+           "[<node_name>...]", "Show information about the node(s)"),
+  'list': (ListNodes, ARGS_NONE,
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT,
+            make_option("-o", "--output", dest="output", action="store",
+                        type="string", help="Select output fields",
+                        metavar="FIELDS")
+            ],
+           "", "Lists the nodes in the cluster"),
+  'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
+             "<node_name>", "Removes a node from the cluster"),
+  }
+
+
+if __name__ == '__main__':
+  retcode = GenericMain(commands)
+  sys.exit(retcode)

@@ -1,0 +1,770 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Program which configures LVM on the Ganeti nodes.
+
+This program wipes disks and creates a volume group on top of them. It
+can also show disk information to help you decide which disks you want
+to wipe.
+
+The error handling is done by raising our own exceptions from most of
+the functions; these exceptions then handled globally in the main()
+function. The exceptions that each function can raise are not
+documented individually, since almost every error path ends in a
+raise.
+
+Another two exceptions that are handled globally are IOError and
+OSError. The idea behind this is, since we run as root, we should
+usually not get these errors, but if we do it's most probably a system
+error, so they should be handled and the user instructed to report
+them.
+"""
+
+
+import os
+import sys
+import optparse
+import time
+
+from ganeti.utils import RunCmd
+from ganeti import constants
+
+USAGE = ("\tlvmstrap.py diskinfo\n"
+         "\tlvmstrap.py [--vgname=NAME] { --alldisks | --disks DISKLIST }"
+         " create")
+
+verbose_flag = False
+
+
+class Error(Exception):
+  """Generic exception"""
+  pass
+
+
+class ProgrammingError(Error):
+  """Exception denoting invalid assumptions in programming.
+
+  This should catch sysfs tree changes, or otherwise incorrect
+  assumptions about the contents of the /sys/block/... directories.
+  """
+  pass
+
+
+class SysconfigError(Error):
+  """Exception denoting invalid system configuration.
+
+  If the system configuration is somehow wrong (e.g. /dev files
+  missing, or having mismatched major/minor numbers relative to
+  /sys/block devices), this exception will be raised.
+
+  This should usually mean that the installation of the Xen node
+  failed in some steps.
+  """
+  pass
+
+
+class PrereqError(Error):
+  """Exception denoting invalid prerequisites.
+
+  If the node does not meet the requirements for cluster membership, this
+  exception will be raised. Things like wrong kernel version, or no
+  free disks, etc. belong here.
+
+  This should usually mean that the build steps for the Xen node were
+  not followed correctly.
+  """
+  pass
+
+
+class OperationalError(Error):
+  """Exception denoting actual errors.
+
+  Errors during the bootstrapping are signaled using this exception.
+  """
+  pass
+
+
+class ParameterError(Error):
+  """Exception denoting invalid input from user.
+
+  Wrong disks given as parameters will be signaled using this
+  exception.
+  """
+  pass
+
+def Usage():
+  """Shows program usage information and exits the program."""
+
+  print >> sys.stderr, "Usage:"
+  print >> sys.stderr, USAGE
+  sys.exit(2)
+
+
+def ParseOptions():
+  """Parses the command line options.
+
+  In case of command line errors, it will show the usage and exit the
+  program.
+
+  Returns:
+    (options, args), as returned by OptionParser.parse_args
+  """
+  global verbose_flag
+
+  parser = optparse.OptionParser(usage="\n%s" % USAGE,
+                                 version="%%prog (ganeti) %s" %
+                                 constants.RELEASE_VERSION)
+
+  parser.add_option("--alldisks", dest="alldisks",
+                    help="erase ALL disks", action="store_true",
+                    default=False)
+  parser.add_option("-d", "--disks", dest="disks",
+                    help="Choose disks (e.g. hda,hdg)",
+                    metavar="DISKLIST")
+  parser.add_option("-v", "--verbose",
+                    action="store_true", dest="verbose", default=False,
+                    help="print command execution messages to stdout")
+  parser.add_option("-g", "--vg-name", type="string",
+                    dest="vgname", default="xenvg", metavar="NAME",
+                    help="the volume group to be created [default: xenvg]")
+
+
+  options, args = parser.parse_args()
+  if len(args) != 1:
+    Usage()
+
+  verbose_flag = options.verbose
+
+  return options, args
+
+
+def ExecCommand(command):
+  """Executes a command.
+
+  This is just a wrapper around commands.getstatusoutput, with the
+  difference that if the command line argument -v has been given, it
+  will print the command line and the command output on stdout.
+
+  Args:
+    the command line
+  Returns:
+    (status, output) where status is the exit status and output the
+      stdout and stderr of the command together
+  """
+
+  if verbose_flag:
+    print command
+  result = RunCmd(command)
+  if verbose_flag:
+    print result.output
+  return result
+
+
+def CheckPrereq():
+  """Check the prerequisites of this program.
+
+  It check that it runs on Linux 2.6, and that /sys is mounted and the
+  fact that /sys/block is a directory.
+  """
+
+  if os.getuid() != 0:
+    raise PrereqError("This tool runs as root only. Really.")
+
+  osname, nodename, release, version, arch = os.uname()
+  if osname != 'Linux':
+    raise PrereqError("This tool only runs on Linux "
+                      "(detected OS: %s)." % osname)
+
+  if not release.startswith("2.6."):
+    raise PrereqError("Wrong major kernel version (detected %s, needs "
+                      "2.6.*)" % release)
+
+  if not os.path.ismount("/sys"):
+    raise PrereqError("Can't find a filesystem mounted at /sys. "
+                      "Please mount /sys.")
+
+  if not os.path.isdir("/sys/block"):
+    raise SysconfigError("Can't find /sys/block directory. Has the "
+                         "layout of /sys changed?")
+
+  if not os.path.ismount("/proc"):
+    raise PrereqError("Can't find a filesystem mounted at /proc. "
+                      "Please mount /proc.")
+
+  if not os.path.exists("/proc/mounts"):
+    raise SysconfigError("Can't find /proc/mounts")
+
+
+def CheckVGExists(vgname):
+  """Checks to see if a volume group exists.
+
+  Args:
+    vgname: the volume group name
+
+  Returns:
+    a four-tuple (exists, lv_count, vg_size, vg_free), where:
+      exists: True if the volume exists, otherwise False; if False,
+        all other members of the tuple are None
+      lv_count: The number of logical volumes in the volume group
+      vg_size: The total size of the volume group (in gibibytes)
+      vg_free: The available space in the volume group
+  """
+
+  result = ExecCommand("vgs --nohead -o lv_count,vg_size,"
+                       "vg_free --nosuffix --units g "
+                       "--ignorelockingfailure %s" % vgname)
+  if not result.failed:
+    try:
+      lv_count, vg_size, vg_free = result.stdout.strip().split()
+    except ValueError:
+      # This means the output of vgdisplay can't be parsed
+      raise PrereqError("cannot parse output of vgs (%s)" % result.stdout)
+  else:
+    lv_count = vg_size = vg_free = None
+
+  return not result.failed, lv_count, vg_size, vg_free
+
+
+def CheckSysDev(name, devnum):
+  """Checks consistency between /sys and /dev trees.
+
+  In /sys/block/<name>/dev and /sys/block/<name>/<part>/dev are the
+  kernel-known device numbers. The /dev/<name> block/char devices are
+  created by userspace and thus could differ from the kernel
+  view. This function checks the consistency between the device number
+  read from /sys and the actual device number in /dev.
+
+  Note that since the system could be using udev which removes and
+  recreates the device nodes on partition table rescan, we need to do
+  some retries here. Since we only do a stat, we can afford to do many
+  short retries.
+
+  Args:
+   name: the device name, e.g. 'sda'
+   devnum: the device number, e.g. 0x803 (2051 in decimal) for sda3
+
+  Returns:
+    None; failure of the check is signalled by raising a
+      SysconfigError exception
+  """
+
+  path = "/dev/%s" % name
+  for retries in range(40):
+    if os.path.exists(path):
+      break
+    time.sleep(0.250)
+  else:
+    raise SysconfigError("the device file %s does not exist, but the block "
+                         "device exists in the /sys/block tree" % path)
+  rdev = os.stat(path).st_rdev
+  if devnum != rdev:
+    raise SysconfigError("For device %s, the major:minor in /dev is %04x "
+                         "while the major:minor in sysfs is %s" %
+                         (path, rdev, devnum))
+
+
+def ReadDev(syspath):
+  """Reads the device number from a sysfs path.
+
+  The device number is given in sysfs under a block device directory
+  in a file named 'dev' which contains major:minor (in ASCII). This
+  function reads that file and converts the major:minor pair to a dev
+  number.
+
+  Args:
+    syspath: the path to a block device dir in sysfs, e.g. /sys/block/sda
+
+  Returns:
+    the device number
+  """
+
+  if not os.path.exists("%s/dev" % syspath):
+    raise ProgrammingError("Invalid path passed to ReadDev: %s" % syspath)
+  f = open("%s/dev" % syspath)
+  data = f.read().strip()
+  f.close()
+  major, minor = data.split(":", 1)
+  major = int(major)
+  minor = int(minor)
+  dev = os.makedev(major, minor)
+  return dev
+
+
+def ReadSize(syspath):
+  """Reads the size from a sysfs path.
+
+  The size is given in sysfs under a block device directory in a file
+  named 'size' which contains the number of sectors (in ASCII). This
+  function reads that file and converts the number in sectors to the
+  size in bytes.
+
+  Args:
+    syspath: the path to a block device dir in sysfs, e.g. /sys/block/sda
+
+  Returns:
+    the device size in bytes
+  """
+
+  if not os.path.exists("%s/size" % syspath):
+    raise ProgrammingError("Invalid path passed to ReadSize: %s" % syspath)
+  f = open("%s/size" % syspath)
+  data = f.read().strip()
+  f.close()
+  size = 512L * int(data)
+  return size
+
+
+def ReadPV(name):
+  """Reads physical volume information.
+
+  This function tries to see if a block device is a physical volume.
+
+  Args:
+    dev: the device name (e.g. sda)
+  Returns:
+    The name of the volume group to which this PV belongs, or
+    "" if this PV is not in use, or
+    None if this is not a PV
+  """
+
+  result = ExecCommand("pvdisplay -c /dev/%s" % name)
+  if result.failed:
+    return None
+  vgname = result.stdout.strip().split(":")[1]
+  return vgname
+
+
+def GetDiskList():
+  """Computes the block device list for this system.
+
+  This function examines the /sys/block tree and using information
+  therein, computes the status of the block device.
+
+  Returns:
+    [(name, size, dev, partitions, inuse), ...]
+  where:
+    name is the block device name (e.g. sda)
+    size the size in bytes
+    dev  the device number (e.g. 8704 for hdg)
+    partitions is [(name, size, dev), ...] mirroring the disk list data
+    inuse is a boolean showing the in-use status of the disk, computed as the
+      possibility of re-reading the partition table (the meaning of the
+      operation varies with the kernel version, but is usually accurate;
+      a mounted disk/partition or swap-area or PV with active LVs on it
+      is busy)
+  """
+
+  dlist = []
+  for name in os.listdir("/sys/block"):
+    if (not name.startswith("hd") and
+        not name.startswith("sd") and
+	not name.startswith("ubd")):
+      continue
+
+    size = ReadSize("/sys/block/%s" % name)
+
+    f = open("/sys/block/%s/removable" % name)
+    removable = int(f.read().strip())
+    f.close()
+
+    if removable:
+      continue
+
+    dev = ReadDev("/sys/block/%s" % name)
+    CheckSysDev(name, dev)
+    inuse = not CheckReread(name)
+    # Enumerate partitions of the block device
+    partitions = []
+    for partname in os.listdir("/sys/block/%s" % name):
+      if not partname.startswith(name):
+        continue
+      partdev = ReadDev("/sys/block/%s/%s" % (name, partname))
+      partsize = ReadSize("/sys/block/%s/%s" % (name, partname))
+      CheckSysDev(partname, partdev)
+      partitions.append((partname, partsize, partdev))
+    partitions.sort()
+    dlist.append((name, size, dev, partitions, inuse))
+  dlist.sort()
+  return dlist
+
+
+def GetMountInfo():
+  """Reads /proc/mounts and computes the mountpoint-devnum mapping.
+
+  This function reads /proc/mounts, finds the mounted filesystems
+  (excepting a hard-coded blacklist of network and virtual
+  filesystems) and does a stat on these mountpoints. The st_dev number
+  of the results is memorised for later matching against the
+  /sys/block devices.
+
+  Returns:
+   a mountpoint: device number dictionary
+  """
+
+  f = open("/proc/mounts", "r")
+  mountlines = f.readlines()
+  f.close()
+  mounts = {}
+  for line in mountlines:
+    device, mountpoint, fstype, rest = line.split(None, 3)
+    # fs type blacklist
+    if fstype in ["nfs", "nfs4", "autofs", "tmpfs", "proc", "sysfs"]:
+      continue
+    try:
+      dev = os.stat(mountpoint).st_dev
+    except OSError, err:
+      # this should be a fairly rare error, since we are blacklisting
+      # network filesystems; with this in mind, we'll ignore it,
+      # since the rereadpt check catches in-use filesystems,
+      # and this is used for disk information only
+      print >> sys.stderr, ("Can't stat mountpoint '%s': %s" %
+                            (mountpoint, err))
+      print >> sys.stderr, "Ignoring."
+      continue
+    mounts[dev] = mountpoint
+  return mounts
+
+
+def DevInfo(name, dev, mountinfo):
+  """Computes miscellaneous informations about a block device.
+
+  Args:
+    name: the device name, e.g. sda
+
+  Returns:
+    (mpath, whatvg, fileinfo), where
+    mpath is the mount path where this device is mounted or None
+    whatvg is the result of the ReadPV function
+    fileinfo is the output of file -bs on the device
+  """
+
+  if dev in mountinfo:
+    mpath = mountinfo[dev]
+  else:
+    mpath = None
+
+  whatvg = ReadPV(name)
+
+  result = ExecCommand("file -bs /dev/%s" % name)
+  if result.failed:
+    fileinfo = "<error: %s>" % result.stderr
+  fileinfo = result.stdout[:45]
+  return mpath, whatvg, fileinfo
+
+
+def ShowDiskInfo():
+  """Shows a nicely formatted block device list for this system.
+
+  This function shows the user a table with the informations gathered
+  by the other functions defined, in order to help the user make a
+  choice about which disks should be allocated to our volume group.
+
+  """
+  mounts = GetMountInfo()
+  dlist = GetDiskList()
+
+  print "------- Disk information -------"
+  print ("%5s %7s %4s %5s %-10s %s" %
+         ("Name", "Size[M]", "Used", "Mount", "LVM?", "Info"))
+
+  flatlist = []
+  # Flatten the [(disk, [partition,...]), ...] list
+  for name, size, dev, parts, inuse in dlist:
+    if inuse:
+      str_inuse = "yes"
+    else:
+      str_inuse = "no"
+    flatlist.append((name, size, dev, str_inuse))
+    for partname, partsize, partdev in parts:
+      flatlist.append((partname, partsize, partdev, ""))
+
+  for name, size, dev, in_use in flatlist:
+    mp, vgname, fileinfo = DevInfo(name, dev, mounts)
+    if mp is None:
+      mp = "-"
+    if vgname is None:
+      lvminfo = "-"
+    elif vgname == "":
+      lvminfo = "yes,free"
+    else:
+      lvminfo = "in %s" % vgname
+
+    if len(name) > 3:
+      # Indent partitions
+      name = " %s" % name
+    print ("%-5s %7.2f %-4s %-5s %-10s %s" %
+           (name, float(size) / 1024 / 1024, in_use, mp, lvminfo, fileinfo))
+
+
+def CheckReread(name):
+  """Check to see if a block device is in use.
+
+  Uses blockdev to reread the partition table of a block device, and
+  thus compute the in-use status. See the discussion in GetDiskList
+  about the meaning of 'in use'.
+
+  Returns:
+    boolean, the in-use status of the device
+  """
+
+  for retries in range(3):
+    result = ExecCommand("blockdev --rereadpt /dev/%s" % name)
+    if not result.failed:
+      break
+    time.sleep(2)
+
+  return not result.failed
+
+
+def WipeDisk(name):
+  """Wipes a block device.
+
+  This function wipes a block device, by clearing and re-reading the
+  partition table. If not successful, it writes back the old partition
+  data, and leaves the cleanup to the user.
+
+  Args:
+    the device name (e.g. sda)
+  """
+
+  if not CheckReread(name):
+    raise OperationalError("CRITICAL: disk %s you selected seems to be in "
+                           "use. ABORTING!" % name)
+
+  fd = os.open("/dev/%s" % name, os.O_RDWR | os.O_SYNC)
+  olddata = os.read(fd, 512)
+  if len(olddata) != 512:
+    raise OperationalError("CRITICAL: Can't read partition table information "
+                           "from /dev/%s (needed 512 bytes, got %d" %
+                           (name, len(olddata)))
+  newdata = "\0" * 512
+  os.lseek(fd, 0, 0)
+  bytes_written = os.write(fd, newdata)
+  os.close(fd)
+  if bytes_written != 512:
+    raise OperationalError("CRITICAL: Can't write partition table information"
+                           " to /dev/%s (tried to write 512 bytes, written "
+                           "%d. I don't know how to cleanup. Sorry." %
+                           (name, bytes_written))
+
+  if not CheckReread(name):
+    fd = os.open("/dev/%s" % name, os.O_RDWR | os.O_SYNC)
+    os.write(fd, olddata)
+    os.close(fd)
+    raise OperationalError("CRITICAL: disk %s which I have just wiped cannot "
+                           "reread partition table. Most likely, it is "
+                           "in use. You have to clean after this yourself. "
+                           "I tried to restore the old partition table, "
+                           "but I cannot guarantee nothing has broken." %
+                           name)
+
+
+def PartitionDisk(name):
+  """Partitions a disk.
+
+  This function creates a single partition spanning the entire disk,
+  by means of fdisk.
+
+  Args:
+    the device name, e.g. sda
+  """
+  result = ExecCommand(
+    'echo ,,8e, | sfdisk /dev/%s' % name)
+  if result.failed:
+    raise OperationalError("CRITICAL: disk %s which I have just partitioned "
+                           "cannot reread its partition table, or there "
+                           "is some other sfdisk error. Likely, it is in "
+                           "use. You have to clean this yourself. Error "
+                           "message from sfdisk: %s" %
+                           (name, result.output))
+
+
+def CreatePVOnDisk(name):
+  """Creates a physical volume on a block device.
+
+  This function creates a physical volume on a block device, overriding
+  all warnings. So it can wipe existing PVs and PVs which are in a VG.
+
+  Args:
+    the device name, e.g. sda
+
+  """
+  result = ExecCommand("pvcreate -yff /dev/%s1 " % name)
+  if result.failed:
+    raise OperationalError("I cannot create a physical volume on "
+                           "partition /dev/%s1. Error message: %s. "
+                           "Please clean up yourself." %
+                           (name, result.output))
+
+
+def CreateVG(vgname, disks):
+  """Creates the volume group.
+
+  This function creates a volume group named `vgname` on the disks
+  given as parameters. The physical extent size is set to 64MB.
+
+  Args:
+    disks: a list of disk names, e.g. ['sda','sdb']
+
+  """
+  pnames = ["'/dev/%s1'" % disk for disk in disks]
+  result = ExecCommand("vgcreate -s 64MB '%s' %s" % (vgname, " ".join(pnames)))
+  if result.failed:
+    raise OperationalError("I cannot create the volume group %s from "
+                           "disks %s. Error message: %s. Please clean up "
+                           "yourself." %
+                           (vgname, " ".join(disks), result.output))
+
+
+def ValidateDiskList(options):
+  """Validates or computes the disk list for create.
+
+  This function either computes the available disk list (if the user
+  gave --alldisks option), or validates the user-given disk list (by
+  using the --disks option) such that all given disks are present and
+  not in use.
+
+  Args:
+    the options returned from OptParser.parse_options
+
+  Returns:
+    a list of disk names, e.g. ['sda', 'sdb']
+  """
+
+  sysdisks = GetDiskList()
+  if not sysdisks:
+    raise PrereqError("no disks found (I looked for "
+                      "non-removable block devices).")
+  sysd_free = []
+  sysd_used = []
+  for name, size, dev, part, used in sysdisks:
+    if used:
+      sysd_used.append(name)
+    else:
+      sysd_free.append(name)
+
+  if not sysd_free:
+    raise PrereqError("no free disks found! (%d in-use disks)" %
+                      len(sysd_used))
+  if options.alldisks:
+    disklist = sysd_free
+  elif options.disks:
+    disklist = options.disks.split(",")
+    for name in disklist:
+      if name in sysd_used:
+        raise ParameterError("disk %s is in use, cannot wipe!" % name)
+      if name not in sysd_free:
+        raise ParameterError("cannot find disk %s!" % name)
+  else:
+    raise ParameterError("Please use either --alldisks or --disks!")
+
+  return disklist
+
+def BootStrap():
+  """Actual main routine."""
+
+  CheckPrereq()
+
+  options, args = ParseOptions()
+  vgname = options.vgname
+  command = args.pop(0)
+  if command == "diskinfo":
+    ShowDiskInfo()
+    return
+  if command != "create":
+    Usage()
+
+  exists, lv_count, vg_size, vg_free = CheckVGExists(vgname)
+  if exists:
+    raise PrereqError("It seems volume group '%s' already exists:\n"
+                      "  LV count: %s, size: %s, free: %s." %
+                      (vgname, lv_count, vg_size, vg_free))
+
+
+  disklist = ValidateDiskList(options)
+
+  for disk in disklist:
+    WipeDisk(disk)
+    PartitionDisk(disk)
+  for disk in disklist:
+    CreatePVOnDisk(disk)
+  CreateVG(vgname, disklist)
+
+  status, lv_count, size, free = CheckVGExists(vgname)
+  if status:
+    print "Done! %s: size %s GiB, disks: %s" % (vgname, size,
+                                                ",".join(disklist))
+  else:
+    raise OperationalError("Although everything seemed ok, the volume "
+                           "group did not get created.")
+
+
+def main():
+  """application entry point.
+
+  This is just a wrapper over BootStrap, to handle our own exceptions.
+  """
+
+  try:
+    BootStrap()
+  except PrereqError, err:
+    print >> sys.stderr, "The prerequisites for running this tool are not met."
+    print >> sys.stderr, ("Please make sure you followed all the steps in "
+                          "the build document.")
+    print >> sys.stderr, "Description: %s" % str(err)
+    sys.exit(1)
+  except SysconfigError, err:
+    print >> sys.stderr, ("This system's configuration seems wrong, at "
+                          "least is not what I expect.")
+    print >> sys.stderr, ("Please check that the installation didn't fail "
+                          "at some step.")
+    print >> sys.stderr, "Description: %s" % str(err)
+    sys.exit(1)
+  except ParameterError, err:
+    print >> sys.stderr, ("Some parameters you gave to the program or the "
+                          "invocation is wrong. ")
+    print >> sys.stderr, "Description: %s" % str(err)
+    Usage()
+  except OperationalError, err:
+    print >> sys.stderr, ("A serious error has happened while modifying "
+                          "the system's configuration.")
+    print >> sys.stderr, ("Please review the error message below and make "
+                          "sure you clean up yourself.")
+    print >> sys.stderr, ("It is most likely that the system configuration "
+                          "has been partially altered.")
+    print >> sys.stderr, str(err)
+    sys.exit(1)
+  except ProgrammingError, err:
+    print >> sys.stderr, ("Internal application error. Please signal this "
+                          "to xencluster-team.")
+    print >> sys.stderr, "Error description: %s" % str(err)
+    sys.exit(1)
+  except Error, err:
+    print >> sys.stderr, "Unhandled application error: %s" % err
+    sys.exit(1)
+  except (IOError, OSError), err:
+    print >> sys.stderr, "I/O error detected, please report."
+    print >> sys.stderr, "Description: %s" % str(err)
+    sys.exit(1)
+
+
+if __name__ == "__main__":
+  main()

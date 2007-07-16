@@ -1,0 +1,28 @@
+Installation of the software
+============================
+
+Before installing, please verify that you have the following programs:
+  - lvm 2
+  - ssh
+  - fping
+  - python twisted library (the core is enough)
+  - python openssl bindings
+
+To install, simply do ./configure && make && make install
+
+This will install the software under /usr/local. You then need to copy
+ganeti.init to /etc/init.d and integrate it into your boot sequence
+(``chkconfig``, ``update-rc.d``, etc.).
+
+Cluster initialisation
+======================
+
+Before initialising the cluster, on each node you need to create the following
+directories:
+
+  - /etc/ganeti
+  - /var/log/ganeti
+  - /var/lib/ganeti
+  - /srv/ganeti and /srv/ganeti/os
+
+After this, use ``gnt-cluster init``.

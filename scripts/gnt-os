@@ -1,0 +1,139 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+import sys
+from optparse import make_option
+
+from ganeti.cli import *
+from ganeti import opcodes
+from ganeti import logger
+from ganeti import objects
+from ganeti import utils
+from ganeti import errors
+
+def ListOS(opts, args):
+  """List the OSes existing on this node.
+
+  """
+  op = opcodes.OpDiagnoseOS()
+  result = SubmitOpCode(op)
+
+  if not result:
+    logger.ToStdout("Can't get the OS list")
+    return 1
+
+  # filter non-valid OS-es
+  oses = {}
+  for node_name in result:
+    oses[node_name] = [obj for obj in result[node_name]
+                       if isinstance(obj, objects.OS)]
+
+  fnode = oses.keys()[0]
+  os_set = set([os_inst.name for os_inst in oses[fnode]])
+  del oses[fnode]
+  for node in oses:
+    os_set &= set([os_inst.name for os_inst in oses[node]])
+
+  format = "%s"
+
+  if not opts.no_headers:
+    logger.ToStdout(format % 'Name')
+
+  for os_name in os_set:
+    logger.ToStdout(format % os_name)
+
+  return 0
+
+def DiagnoseOS(opts, args):
+  """Analyse all OSes on this cluster.
+
+  """
+  op = opcodes.OpDiagnoseOS()
+  result = SubmitOpCode(op)
+
+  if not result:
+    logger.ToStdout("Can't get the OS list")
+    return 1
+
+  format = "%-*s %-*s %s"
+
+  node_data = result
+  all_os = {}
+  for node_name in node_data:
+    nr = node_data[node_name]
+    if nr:
+      for obj in nr:
+        if isinstance(obj, objects.OS):
+          os_name = obj.name
+        else:
+          os_name = obj.args[0]
+        if os_name not in all_os:
+          all_os[os_name] = {}
+        all_os[os_name][node_name] = obj
+
+  max_name = len('Name')
+  if all_os:
+    max_name = max(max_name, max([len(name) for name in all_os]))
+
+  max_node = len('Status/Node')
+  max_node = max(max_node, max([len(name) for name in node_data]))
+
+  logger.ToStdout(format % (max_name, 'Name', max_node, 'Status/Node',
+                            'Details'))
+
+  for os_name in all_os:
+    nodes_valid = []
+    nodes_bad = {}
+    for node_name in node_data:
+      nos = all_os[os_name].get(node_name, None)
+      if isinstance(nos, objects.OS):
+        nodes_valid.append(node_name)
+      elif isinstance(nos, errors.InvalidOS):
+        nodes_bad[node_name] = nos.args[1]
+      else:
+        nodes_bad[node_name] = "os dir not found"
+
+    if nodes_valid and not nodes_bad:
+      status = "valid"
+    elif not nodes_valid and nodes_bad:
+      status = "invalid"
+    else:
+      status = "partial valid"
+    logger.ToStdout(format % (max_name, os_name, max_node, status, ""))
+    nodes_valid = utils.NiceSort(nodes_valid)
+    for node_name in nodes_valid:
+      logger.ToStdout(format % (max_name, "", max_node, node_name, "valid"))
+    nbk = utils.NiceSort(nodes_bad.keys())
+    for node_name in nbk:
+      logger.ToStdout(format % (max_name, "", max_node,
+                                node_name, nodes_bad[node_name]))
+
+
+commands = {
+  'list': (ListOS, ARGS_NONE, [DEBUG_OPT, NOHDR_OPT], "",
+           "Lists all valid OSes on the master"),
+  'diagnose': (DiagnoseOS, ARGS_NONE, [DEBUG_OPT], "",
+               "Diagnose all OSes"),
+  }
+
+if __name__ == '__main__':
+  retcode = GenericMain(commands)
+  sys.exit(retcode)

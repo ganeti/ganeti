@@ -1,0 +1,47 @@
+# Cluster name
+name: xen-test
+
+# System to use
+os: debian-edgy
+os-size: 10G
+swap-size: 1G
+mem: 512M
+
+# Nodes to use
+nodes:
+# Master node
+- primary: xen-test-0
+  secondary: 192.168.1.1
+
+# Other nodes
+- primary: xen-test-1
+  secondary: 192.168.1.2
+
+# Instance names to use
+instances:
+- name: xen-test-inst1
+- name: xen-test-inst2
+
+# Tests to run
+tests:
+  env: True
+
+  cluster-verify: True
+  cluster-burnin: True
+  cluster-master-failover: True
+  cluster-destroy: True
+
+  instance-add-plain-disk: True
+  instance-add-local-mirror-disk: True
+  instance-add-remote-raid-disk: True
+  instance-failover: True
+
+  # This test takes up to 6 minutes to complete
+  instance-automatic-restart: False
+
+  # This test takes at least 35 minutes to complete
+  instance-consecutive-failures: False
+
+# Other settings
+options:
+  burnin-instances: 2

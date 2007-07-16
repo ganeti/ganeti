@@ -1,0 +1,333 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Tool to restart erronously downed virtual machines.
+
+This program and set of classes implement a watchdog to restart
+virtual machines in a Ganeti cluster that have crashed or been killed
+by a node reboot.  Run from cron or similar.
+"""
+
+
+LOGFILE = '/var/log/ganeti/watcher.log'
+MAXTRIES = 5
+BAD_STATES = ['stopped']
+HELPLESS_STATES = ['(node down)']
+NOTICE = 'NOTICE'
+ERROR = 'ERROR'
+
+import os
+import sys
+import time
+import fcntl
+import errno
+from optparse import OptionParser
+
+
+from ganeti import utils
+from ganeti import constants
+
+
+class Error(Exception):
+  """Generic custom error class."""
+  pass
+
+
+def Indent(s, prefix='| '):
+  """Indent a piece of text with a given prefix before each line.
+
+  Args:
+    s: The string to indent
+    prefix: The string to prepend each line.
+  """
+  return "%s%s\n" % (prefix, ('\n' + prefix).join(s.splitlines()))
+
+
+def DoCmd(cmd):
+  """Run a shell command.
+
+  Args:
+    cmd: the command to run.
+
+  Raises CommandError with verbose commentary on error.
+  """
+  res = utils.RunCmd(cmd)
+
+  if res.failed:
+    raise Error("Command %s failed:\n%s\nstdout:\n%sstderr:\n%s" %
+                (repr(cmd),
+                 Indent(res.fail_reason),
+                 Indent(res.stdout),
+                 Indent(res.stderr)))
+
+  return res
+
+
+class RestarterState(object):
+  """Interface to a state file recording restart attempts.
+
+  Methods:
+    Open(): open, lock, read and parse the file.
+            Raises StandardError on lock contention.
+
+    NumberOfAttempts(name): returns the number of times in succession
+                            a restart has been attempted of the named instance.
+
+    RecordAttempt(name, when): records one restart attempt of name at
+                               time in when.
+
+    Remove(name): remove record given by name, if exists.
+
+    Save(name): saves all records to file, releases lock and closes file.
+  """
+  def __init__(self):
+    # The two-step dance below is necessary to allow both opening existing
+    # file read/write and creating if not existing.  Vanilla open will truncate
+    # an existing file -or- allow creating if not existing.
+    f = os.open(constants.WATCHER_STATEFILE, os.O_RDWR | os.O_CREAT)
+    f = os.fdopen(f, 'w+')
+
+    try:
+      fcntl.flock(f.fileno(), fcntl.LOCK_EX|fcntl.LOCK_NB)
+    except IOError, x:
+      if x.errno == errno.EAGAIN:
+        raise StandardError('State file already locked')
+      raise
+
+    self.statefile = f
+    self.inst_map = {}
+
+    for line in f:
+      name, when, count = line.rstrip().split(':')
+
+      when = int(when)
+      count = int(count)
+
+      self.inst_map[name] = (when, count)
+
+  def NumberOfAttempts(self, instance):
+    """Returns number of previous restart attempts.
+
+    Args:
+      instance - the instance to look up.
+    """
+    assert self.statefile
+
+    if instance.name in self.inst_map:
+      return self.inst_map[instance.name][1]
+
+    return 0
+
+  def RecordAttempt(self, instance):
+    """Record a restart attempt.
+
+    Args:
+      instance - the instance being restarted
+    """
+    assert self.statefile
+
+    when = time.time()
+
+    self.inst_map[instance.name] = (when, 1 + self.NumberOfAttempts(instance))
+
+  def Remove(self, instance):
+    """Update state to reflect that a machine is running, i.e. remove record
+
+    Args:
+      instance - the instance to remove from books
+
+    This method removes the record for a named instance
+    """
+    assert self.statefile
+
+    if instance.name in self.inst_map:
+      del self.inst_map[instance.name]
+
+  def Save(self):
+    """Save records to file, then unlock and close file.
+    """
+    assert self.statefile
+
+    self.statefile.seek(0)
+    self.statefile.truncate()
+
+    for name in self.inst_map:
+      print >> self.statefile, "%s:%d:%d" % ((name,) + self.inst_map[name])
+
+    fcntl.flock(self.statefile.fileno(), fcntl.LOCK_UN)
+
+    self.statefile.close()
+    self.statefile = None
+
+
+class Instance(object):
+  """Abstraction for a Virtual Machine instance.
+
+  Methods:
+    Restart(): issue a command to restart the represented machine.
+  """
+  def __init__(self, name, state):
+    self.name = name
+    self.state = state
+
+  def Restart(self):
+    DoCmd(['gnt-instance', 'startup', '--lock-retries=15', self.name])
+
+
+class InstanceList(object):
+  """The set of Virtual Machine instances on a cluster.
+  """
+  cmd = ['gnt-instance', 'list', '--lock-retries=15',
+         '-o', 'name,admin_state,oper_state', '--no-headers', '--separator=:']
+
+  def __init__(self):
+    res = DoCmd(self.cmd)
+
+    lines = res.stdout.splitlines()
+
+    self.instances = []
+    for line in lines:
+      fields = [fld.strip() for fld in line.split(':')]
+
+      if len(fields) != 3:
+        continue
+      if fields[1] == "no": #no autostart, we don't care about this instance
+        continue
+      name, status = fields[0], fields[2]
+
+      self.instances.append(Instance(name, status))
+
+  def __iter__(self):
+    return self.instances.__iter__()
+
+
+class Message(object):
+  """Encapsulation of a notice or error message.
+  """
+  def __init__(self, level, msg):
+    self.level = level
+    self.msg = msg
+    self.when = time.time()
+
+  def __str__(self):
+    return self.level + ' ' + time.ctime(self.when) + '\n' + Indent(self.msg)
+
+
+class Restarter(object):
+  """Encapsulate the logic for restarting erronously halted virtual machines.
+
+  The calling program should periodically instantiate me and call Run().
+  This will traverse the list of instances, and make up to MAXTRIES attempts
+  to restart machines that are down.
+  """
+  def __init__(self):
+    self.instances = InstanceList()
+    self.messages = []
+
+  def Run(self):
+    """Make a pass over the list of instances, restarting downed ones.
+    """
+    notepad = RestarterState()
+
+    for instance in self.instances:
+      if instance.state in BAD_STATES:
+        n = notepad.NumberOfAttempts(instance)
+
+        if n > MAXTRIES:
+          # stay quiet.
+          continue
+        elif n < MAXTRIES:
+          last = " (Attempt #%d)" % (n + 1)
+        else:
+          notepad.RecordAttempt(instance)
+          self.messages.append(Message(ERROR, "Could not restart %s for %d"
+                                       " times, giving up..." %
+                                       (instance.name, MAXTRIES)))
+          continue
+        try:
+          self.messages.append(Message(NOTICE,
+                                       "Restarting %s%s." %
+                                       (instance.name, last)))
+          instance.Restart()
+        except Error, x:
+          self.messages.append(Message(ERROR, str(x)))
+
+        notepad.RecordAttempt(instance)
+      elif instance.state in HELPLESS_STATES:
+        if notepad.NumberOfAttempts(instance):
+          notepad.Remove(instance)
+      else:
+        if notepad.NumberOfAttempts(instance):
+          notepad.Remove(instance)
+          msg = Message(NOTICE,
+                        "Restart of %s succeeded." % instance.name)
+          self.messages.append(msg)
+
+    notepad.Save()
+
+  def WriteReport(self, logfile):
+    """
+    Log all messages to file.
+
+    Args:
+      logfile: file object open for writing (the log file)
+    """
+    for msg in self.messages:
+      print >> logfile, str(msg)
+
+
+def ParseOptions():
+  """Parse the command line options.
+
+  Returns:
+    (options, args) as from OptionParser.parse_args()
+
+  """
+  parser = OptionParser(description="Ganeti cluster watcher",
+                        usage="%prog [-d]",
+                        version="%%prog (ganeti) %s" %
+                        constants.RELEASE_VERSION)
+
+  parser.add_option("-d", "--debug", dest="debug",
+                    help="Don't redirect messages to the log file",
+                    default=False, action="store_true")
+  options, args = parser.parse_args()
+  return options, args
+
+
+def main():
+  """Main function.
+
+  """
+  options, args = ParseOptions()
+
+  if not options.debug:
+    sys.stderr = sys.stdout = open(LOGFILE, 'a')
+
+  try:
+    restarter = Restarter()
+    restarter.Run()
+    restarter.WriteReport(sys.stdout)
+  except Error, err:
+    print err
+
+if __name__ == '__main__':
+  main()

@@ -1,0 +1,243 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+import sys
+from optparse import make_option
+import pprint
+
+from ganeti.cli import *
+from ganeti import opcodes
+
+
+def InitCluster(opts, args):
+  """Initialize the cluster.
+
+  Args:
+    opts - class with options as members
+    args - list of arguments, expected to be [clustername]
+
+  """
+  op = opcodes.OpInitCluster(cluster_name=args[0],
+                             secondary_ip=opts.secondary_ip,
+                             hypervisor_type=opts.hypervisor_type,
+                             vg_name=opts.vg_name,
+                             mac_prefix=opts.mac_prefix,
+                             def_bridge=opts.def_bridge)
+  SubmitOpCode(op)
+  return 0
+
+
+def DestroyCluster(opts, args):
+  """Destroy the cluster.
+
+  Args:
+    opts - class with options as members
+  """
+  if not opts.yes_do_it:
+    print ("Destroying a cluster is irreversibly. If you really want destroy"
+           "this cluster, supply the --yes-do-it option.")
+    return 1
+
+  op = opcodes.OpDestroyCluster()
+  SubmitOpCode(op)
+  return 0
+
+
+def ShowClusterVersion(opts, args):
+  """Write version of ganeti software to the standard output.
+
+  Args:
+    opts - class with options as members
+
+  """
+  op = opcodes.OpQueryClusterInfo()
+  result = SubmitOpCode(op)
+  print ("Software version: %s" % result["software_version"])
+  print ("Internode protocol: %s" % result["protocol_version"])
+  print ("Configuration format: %s" % result["config_version"])
+  print ("OS api version: %s" % result["os_api_version"])
+  print ("Export interface: %s" % result["export_version"])
+  return 0
+
+
+def ShowClusterMaster(opts, args):
+  """Write name of master node to the standard output.
+
+  Args:
+    opts - class with options as members
+
+  """
+  op = opcodes.OpQueryClusterInfo()
+  result = SubmitOpCode(op)
+  print (result["master"])
+  return 0
+
+
+def ShowClusterConfig(opts, args):
+  """Shows cluster information.
+
+  """
+  op = opcodes.OpQueryClusterInfo()
+  result = SubmitOpCode(op)
+
+  print ("Cluster name: %s" % result["name"])
+
+  print ("Architecture: %s (%s)" %
+            (result["architecture"][0], result["architecture"][1]))
+
+  print ("Master node: %s" % result["master"])
+
+  print ("Instances:")
+  for name, node in result["instances"]:
+    print ("  - %s (on %s)" % (name, node))
+  print ("Nodes:")
+  for name in result["nodes"]:
+    print ("  - %s" % name)
+
+  return 0
+
+
+def ClusterCopyFile(opts, args):
+  """Copy a file from master to some nodes.
+
+  Args:
+    opts - class with options as members
+    args - list containing a single element, the file name
+  Opts used:
+    nodes - list containing the name of target nodes; if empty, all nodes
+
+  """
+  op = opcodes.OpClusterCopyFile(filename=args[0], nodes=opts.nodes)
+  SubmitOpCode(op)
+  return 0
+
+
+def RunClusterCommand(opts, args):
+  """Run a command on some nodes.
+
+  Args:
+    opts - class with options as members
+    args - the command list as a list
+  Opts used:
+    nodes: list containing the name of target nodes; if empty, all nodes
+
+  """
+  command = " ".join(args)
+  nodes = opts.nodes
+  op = opcodes.OpRunClusterCommand(command=command, nodes=nodes)
+  result = SubmitOpCode(op)
+  for node, sshcommand, output, exit_code in result:
+    print ("------------------------------------------------")
+    print ("node: %s" % node)
+    print ("command: %s" % sshcommand)
+    print ("%s" % output)
+    print ("return code = %s" % exit_code)
+
+
+def VerifyCluster(opts, args):
+  """Verify integrity of cluster, performing various test on nodes.
+
+  Args:
+    opts - class with options as members
+
+  """
+  op = opcodes.OpVerifyCluster()
+  result = SubmitOpCode(op)
+  return result
+
+
+def MasterFailover(opts, args):
+  """Failover the master node.
+
+  This command, when run on a non-master node, will cause the current
+  master to cease being master, and the non-master to become new
+  master.
+
+  """
+  op = opcodes.OpMasterFailover()
+  SubmitOpCode(op)
+
+
+# this is an option common to more than one command, so we declare
+# it here and reuse it
+node_option = make_option("-n", "--node", action="append", dest="nodes",
+                          help="Node to copy to (if not given, all nodes)"
+                          ", can be given multiple times", metavar="<node>",
+                          default=[])
+
+commands = {
+  'init': (InitCluster, ARGS_ONE,
+           [DEBUG_OPT,
+            make_option("-s", "--secondary-ip", dest="secondary_ip",
+                        help="Specify the secondary ip for this node;"
+                        " if given, the entire cluster must have secondary"
+                        " addresses",
+                        metavar="ADDRESS", default=None),
+            make_option("-t", "--hypervisor-type", dest="hypervisor_type",
+                        help="Specify the hypervisor type (xen-3.0, fake)",
+                        metavar="TYPE", choices=["xen-3.0", "fake"],
+                        default="xen-3.0",),
+            make_option("-m", "--mac-prefix", dest="mac_prefix",
+                        help="Specify the mac prefix for the instance IP"
+                        " addresses, in the format XX:XX:XX",
+                        metavar="PREFIX",
+                        default="aa:00:00",),
+            make_option("-g", "--vg-name", dest="vg_name",
+                        help="Specify the volume group name "
+                        " (cluster-wide) for disk allocation [xenvg]",
+                        metavar="VG",
+                        default="xenvg",),
+            make_option("-b", "--bridge", dest="def_bridge",
+                        help="Specify the default bridge name (cluster-wide)"
+                        " to connect the instances to [xen-br0]",
+                        metavar="BRIDGE",
+                        default="xen-br0",),
+            ],
+           "[opts...] <cluster_name>",
+           "Initialises a new cluster configuration"),
+  'destroy': (DestroyCluster, ARGS_NONE,
+              [DEBUG_OPT,
+               make_option("--yes-do-it", dest="yes_do_it",
+                           help="Destroy cluster",
+                           action="store_true"),
+              ],
+              "", "Destroy cluster"),
+  'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT],
+             "", "Does a check on the cluster configuration"),
+  'masterfailover': (MasterFailover, ARGS_NONE, [DEBUG_OPT],
+                     "", "Makes the current node the master"),
+  'version': (ShowClusterVersion, ARGS_NONE, [DEBUG_OPT],
+              "", "Shows the cluster version"),
+  'getmaster': (ShowClusterMaster, ARGS_NONE, [DEBUG_OPT],
+                "", "Shows the cluster master"),
+  'copyfile': (ClusterCopyFile, ARGS_ONE, [DEBUG_OPT, node_option],
+               "[-n node...] <filename>",
+               "Copies a file to all (or only some) nodes"),
+  'command': (RunClusterCommand, ARGS_ATLEAST(1), [DEBUG_OPT, node_option],
+              "[-n node...] <command>",
+              "Runs a command on all (or only some) nodes"),
+  'info': (ShowClusterConfig, ARGS_NONE, [DEBUG_OPT],
+                 "", "Show cluster configuration"),
+  }
+
+if __name__ == '__main__':
+  retcode = GenericMain(commands)
+  sys.exit(retcode)

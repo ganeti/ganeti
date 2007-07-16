@@ -1,0 +1,108 @@
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+
+  <!-- Fill in your name for FIRSTNAME and SURNAME. -->
+  <!-- Please adjust the date whenever revising the manpage. -->
+  <!ENTITY dhdate      "<date>June 20, 2007</date>">
+  <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
+       allowed: see man(7), man(1). -->
+  <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
+  <!ENTITY dhucpackage "<refentrytitle>ganeti-watcher</refentrytitle>">
+  <!ENTITY dhpackage   "ganeti-watcher">
+
+  <!ENTITY debian      "<productname>Debian</productname>">
+  <!ENTITY gnu         "<acronym>GNU</acronym>">
+  <!ENTITY gpl         "&gnu; <acronym>GPL</acronym>">
+  <!ENTITY footer SYSTEM "footer.sgml">
+]>
+
+<refentry>
+  <refentryinfo>
+    <copyright>
+      <year>2007</year>
+      <holder>Google Inc.</holder>
+    </copyright>
+    &dhdate;
+  </refentryinfo>
+  <refmeta>
+    &dhucpackage;
+
+    &dhsection;
+    <refmiscinfo>ganeti 1.2</refmiscinfo>
+  </refmeta>
+  <refnamediv>
+    <refname>&dhpackage;</refname>
+
+    <refpurpose>ganeti cluster watcher</refpurpose>
+  </refnamediv>
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>&dhpackage; </command>
+
+    </cmdsynopsis>
+  </refsynopsisdiv>
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+      The <command>&dhpackage;</command> is a periodically run script
+      which is responsible for keeping the instances in the correct
+      status.
+    </para>
+
+    <para>
+      Its function is to try to keep running all instances which are
+      marked as <emphasis>up</emphasis> in the configuration file, by
+      trying to start them a limited number of times.
+    </para>
+
+    <para>In order to prevent piling up commands, all the
+    <emphasis>gnt-*</emphasis> commands executed by ganeti-watcher are
+    run with a timeout of 15 seconds.
+    </para>
+
+    <para>
+      The command has a state file located at
+      <filename>/var/lib/ganeti/restart_state</filename> and a log
+      file at
+      <filename>/var/log/ganeti/watcher.log</filename>. Removal of
+      either file will not affect correct operation; the removal of
+      the state file will just cause the restart counters for the
+      instances to reset to zero.
+    </para>
+
+  </refsect1>
+
+  <refsect1>
+    <title>KNOWN BUGS</title>
+
+    <para>
+      Due to the way we initialize DRBD peers, restarting a secondary
+      node for an instance will cause the DRBD endpoints on that node
+      to disappear, thus all instances which have that node as a
+      secondary will lose redundancy. The watcher does not detect this
+      situation. The workaround is to manually run
+      <command>gnt-instance activate-disks</command> for all the
+      affected instances.
+    </para>
+  </refsect1>
+
+  &footer;
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->

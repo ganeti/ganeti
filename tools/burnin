@@ -1,0 +1,162 @@
+#!/usr/bin/python
+#
+
+import sys
+import optparse
+
+from ganeti import opcodes
+from ganeti import mcpu
+from ganeti import objects
+from ganeti import constants
+from ganeti import cli
+from ganeti import logger
+
+USAGE = ("\tburnin [options] instance_name ...")
+
+def Usage():
+  """Shows program usage information and exits the program."""
+
+  print >> sys.stderr, "Usage:"
+  print >> sys.stderr, USAGE
+  sys.exit(2)
+
+
+def Feedback(msg):
+    print msg
+
+
+def ParseOptions():
+  """Parses the command line options.
+
+  In case of command line errors, it will show the usage and exit the
+  program.
+
+  Returns:
+    (options, args), as returned by OptionParser.parse_args
+  """
+
+  parser = optparse.OptionParser(usage="\n%s" % USAGE,
+                                 version="%%prog (ganeti) %s" %
+                                 constants.RELEASE_VERSION,
+                                 option_class=cli.CliOption)
+
+  parser.add_option("-o", "--os", dest="os", default=None,
+                    help="OS to use during burnin",
+                    metavar="<OS>")
+  parser.add_option("--os-size", dest="os_size", help="Disk size",
+                    default=4 * 1024, type="unit", metavar="<size>")
+  parser.add_option("--swap-size", dest="swap_size", help="Swap size",
+                    default=4 * 1024, type="unit", metavar="<size>")
+  parser.add_option("-v", "--verbose",
+                    action="store_true", dest="verbose", default=False,
+                    help="print command execution messages to stdout")
+
+  options, args = parser.parse_args()
+  if len(args) < 1:
+    Usage()
+
+  return options, args
+
+
+def BurninCluster(opts, args):
+  """Test a cluster intensively.
+
+  This will create instances and then start/stop/failover them.
+  It is safe for existing instances but could impact performance.
+
+  """
+
+  logger.SetupLogging(debug=True, program="ganeti/burnin")
+  proc = mcpu.Processor()
+  result = proc.ExecOpCode(opcodes.OpQueryNodes(output_fields=["name"]),
+                             Feedback)
+  nodelist = [data[0] for data in result]
+
+  Feedback("- Testing global parameters")
+
+  result = proc.ExecOpCode(opcodes.OpDiagnoseOS(), Feedback)
+
+  if not result:
+    Feedback("Can't get the OS list")
+    return 1
+
+  # filter non-valid OS-es
+  oses = {}
+  for node_name in result:
+    oses[node_name] = [obj for obj in result[node_name]
+                       if isinstance(obj, objects.OS)]
+
+  fnode = oses.keys()[0]
+  os_set = set([os_inst.name for os_inst in oses[fnode]])
+  del oses[fnode]
+  for node in oses:
+    os_set &= set([os_inst.name for os_inst in oses[node]])
+
+  if opts.os not in os_set:
+    Feedback("OS not found")
+    return 1
+
+  to_remove = []
+  try:
+    idx = 0
+    for instance_name in args:
+      next_idx = idx + 1
+      if next_idx >= len(nodelist):
+        next_idx = 0
+      pnode = nodelist[idx]
+      snode = nodelist[next_idx]
+      if len(nodelist) > 1:
+        tplate = constants.DT_REMOTE_RAID1
+      else:
+        tplate = constants.DT_PLAIN
+
+      op = opcodes.OpCreateInstance(instance_name=instance_name, mem_size=128,
+                                    disk_size=opts.os_size,
+                                    swap_size=opts.swap_size,
+                                    disk_template=tplate,
+                                    mode=constants.INSTANCE_CREATE,
+                                    os_type=opts.os, pnode=pnode,
+                                    snode=snode, vcpus=1,
+                                    start=True,
+                                    wait_for_sync=True)
+      Feedback("- Add instance %s on node %s" % (instance_name, pnode))
+      result = proc.ExecOpCode(op, Feedback)
+      to_remove.append(instance_name)
+      idx = next_idx
+
+
+    if len(nodelist) > 1:
+      # failover
+      for instance_name in args:
+        op = opcodes.OpFailoverInstance(instance_name=instance_name,
+                                        ignore_consistency=True)
+
+        Feedback("- Failover instance %s" % (instance_name))
+        result = proc.ExecOpCode(op, Feedback)
+
+    # stop / start
+    for instance_name in args:
+      op = opcodes.OpShutdownInstance(instance_name=instance_name)
+      Feedback("- Shutdown instance %s" % instance_name)
+      result = proc.ExecOpCode(op, Feedback)
+      op = opcodes.OpStartupInstance(instance_name=instance_name, force=False)
+      Feedback("- Start instance %s" % instance_name)
+      result = proc.ExecOpCode(op, Feedback)
+
+  finally:
+    # remove
+    for instance_name in to_remove:
+      op = opcodes.OpRemoveInstance(instance_name=instance_name)
+      Feedback("- Remove instance %s" % instance_name)
+      result = proc.ExecOpCode(op, Feedback)
+
+  return 0
+
+def main():
+    """Main function"""
+
+    opts, args = ParseOptions()
+    return BurninCluster(opts, args)
+
+if __name__ == "__main__":
+    main()

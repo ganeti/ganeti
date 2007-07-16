@@ -1,0 +1,229 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""OpCodes module
+
+This module implements the data structures which define the cluster
+operations - the so-called opcodes.
+
+
+This module implements the logic for doing operations in the cluster. There
+are two kinds of classes defined:
+  - opcodes, which are small classes only holding data for the task at hand
+  - logical units, which know how to deal with their specific opcode only
+
+"""
+
+# this are practically structures, so disable the message about too
+# few public methods:
+# pylint: disable-msg=R0903
+
+class OpCode(object):
+  """Abstract OpCode"""
+  OP_ID = "OP_ABSTRACT"
+  __slots__ = []
+
+  def __init__(self, **kwargs):
+    for key in kwargs:
+      if key not in self.__slots__:
+        raise TypeError, ("OpCode %s doesn't support the parameter '%s'" %
+                          (self.__class__.__name__, key))
+      setattr(self, key, kwargs[key])
+
+
+class OpInitCluster(OpCode):
+  """Initialise the cluster."""
+  OP_ID = "OP_CLUSTER_INIT"
+  __slots__ = ["cluster_name", "secondary_ip", "hypervisor_type",
+               "vg_name", "mac_prefix", "def_bridge"]
+
+
+class OpDestroyCluster(OpCode):
+  """Destroy the cluster."""
+  OP_ID = "OP_CLUSTER_DESTROY"
+  __slots__ = []
+
+
+class OpQueryClusterInfo(OpCode):
+  """Initialise the cluster."""
+  OP_ID = "OP_CLUSTER_QUERY"
+  __slots__ = []
+
+
+class OpClusterCopyFile(OpCode):
+  """Initialise the cluster."""
+  OP_ID = "OP_CLUSTER_COPYFILE"
+  __slots__ = ["nodes", "filename"]
+
+
+class OpRunClusterCommand(OpCode):
+  """Initialise the cluster."""
+  OP_ID = "OP_CLUSTER_RUNCOMMAND"
+  __slots__ = ["nodes", "command"]
+
+
+class OpVerifyCluster(OpCode):
+  """Initialise the cluster."""
+  OP_ID = "OP_CLUSTER_VERIFY"
+  __slots__ = []
+
+
+class OpMasterFailover(OpCode):
+  """Initialise the cluster."""
+  OP_ID = "OP_CLUSTER_MASTERFAILOVER"
+  __slots__ = []
+
+
+class OpDumpClusterConfig(OpCode):
+  """Initialise the cluster."""
+  OP_ID = "OP_CLUSTER_DUMPCONFIG"
+  __slots__ = []
+
+
+class OpRemoveNode(OpCode):
+  """Remove a node."""
+  OP_ID = "OP_NODE_REMOVE"
+  __slots__ = ["node_name"]
+
+
+class OpAddNode(OpCode):
+  """Add a node."""
+  OP_ID = "OP_NODE_ADD"
+  __slots__ = ["node_name", "primary_ip", "secondary_ip"]
+
+
+class OpQueryNodes(OpCode):
+  """Compute the list of nodes."""
+  OP_ID = "OP_NODE_QUERY"
+  __slots__ = ["output_fields"]
+
+
+class OpQueryNodeData(OpCode):
+  """Compute the node info."""
+  OP_ID = "OP_NODE_INFO"
+  __slots__ = ["nodes"]
+
+
+# instance opcodes
+
+class OpCreateInstance(OpCode):
+  """Compute the list of instances."""
+  OP_ID = "OP_INSTANCE_CREATE"
+  __slots__ = ["instance_name", "mem_size", "disk_size", "os_type", "pnode",
+               "disk_template", "snode", "swap_size", "mode",
+               "vcpus", "ip", "bridge", "src_node", "src_path", "start",
+               "wait_for_sync"]
+
+
+class OpRemoveInstance(OpCode):
+  """Remove an instance."""
+  OP_ID = "OP_INSTANCE_REMOVE"
+  __slots__ = ["instance_name"]
+
+
+class OpStartupInstance(OpCode):
+  """Remove an instance."""
+  OP_ID = "OP_INSTANCE_STARTUP"
+  __slots__ = ["instance_name", "force", "extra_args"]
+
+
+class OpShutdownInstance(OpCode):
+  """Remove an instance."""
+  OP_ID = "OP_INSTANCE_SHUTDOWN"
+  __slots__ = ["instance_name"]
+
+
+class OpAddMDDRBDComponent(OpCode):
+  """Add a MD-DRBD component."""
+  OP_ID = "OP_INSTANCE_ADD_MDDRBD"
+  __slots__ = ["instance_name", "remote_node", "disk_name"]
+
+
+class OpRemoveMDDRBDComponent(OpCode):
+  """Remove a MD-DRBD component."""
+  OP_ID = "OP_INSTANCE_REMOVE_MDDRBD"
+  __slots__ = ["instance_name", "disk_name", "disk_id"]
+
+
+class OpReplaceDisks(OpCode):
+  """Replace disks of an instance."""
+  OP_ID = "OP_INSTANCE_REPLACE_DISKS"
+  __slots__ = ["instance_name", "remote_node"]
+
+
+class OpFailoverInstance(OpCode):
+  """Failover an instance."""
+  OP_ID = "OP_INSTANCE_FAILOVER"
+  __slots__ = ["instance_name", "ignore_consistency"]
+
+
+class OpConnectConsole(OpCode):
+  """Failover an instance."""
+  OP_ID = "OP_INSTANCE_CONSOLE"
+  __slots__ = ["instance_name"]
+
+
+class OpActivateInstanceDisks(OpCode):
+  """Remove an instance."""
+  OP_ID = "OP_INSTANCE_ACTIVATE_DISKS"
+  __slots__ = ["instance_name"]
+
+
+class OpDeactivateInstanceDisks(OpCode):
+  """Remove an instance."""
+  OP_ID = "OP_INSTANCE_DEACTIVATE_DISKS"
+  __slots__ = ["instance_name"]
+
+
+class OpQueryInstances(OpCode):
+  """Compute the list of instances."""
+  OP_ID = "OP_INSTANCE_QUERY"
+  __slots__ = ["output_fields"]
+
+
+class OpQueryInstanceData(OpCode):
+  """Compute the run-time status of instances."""
+  OP_ID = "OP_INSTANCE_QUERY_DATA"
+  __slots__ = ["instances"]
+
+
+class OpSetInstanceParms(OpCode):
+  """Change the parameters of an instance."""
+  OP_ID = "OP_INSTANCE_SET_PARMS"
+  __slots__ = ["instance_name", "mem", "vcpus", "ip", "bridge"]
+
+
+# OS opcodes
+class OpDiagnoseOS(OpCode):
+  """Compute the list of guest operating systems."""
+  OP_ID = "OP_OS_DIAGNOSE"
+  __slots__ = []
+
+# Exports opcodes
+class OpQueryExports(OpCode):
+  """Compute the list of exported images."""
+  OP_ID = "OP_BACKUP_QUERY"
+  __slots__ = ["nodes"]
+
+class OpExportInstance(OpCode):
+  """Export an instance."""
+  OP_ID = "OP_BACKUP_EXPORT"
+  __slots__ = ["instance_name", "target_node", "shutdown"]
