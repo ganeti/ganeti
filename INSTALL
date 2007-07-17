@@ -4,6 +4,7 @@ Installation of the software
 Before installing, please verify that you have the following programs:
   - lvm 2
   - ssh
+  - drbd (kernel module and userspace utils)
   - fping
   - python twisted library (the core is enough)
   - python openssl bindings
