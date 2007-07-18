@@ -10,8 +10,10 @@ from ganeti import objects
 from ganeti import constants
 from ganeti import cli
 from ganeti import logger
+from ganeti import errors
+from ganeti import utils
 
-USAGE = ("\tburnin [options] instance_name ...")
+USAGE = ("\tburnin -o OS_NAME [options...] instance_name ...")
 
 def Usage():
   """Shows program usage information and exits the program."""
@@ -50,9 +52,18 @@ def ParseOptions():
   parser.add_option("-v", "--verbose",
                     action="store_true", dest="verbose", default=False,
                     help="print command execution messages to stdout")
+  parser.add_option("--do-replace1", dest="do_replace1",
+                    help="Do disk replacement with the same secondary",
+                    action="store_false", default=True)
+  parser.add_option("--do-replace2", dest="do_replace2",
+                    help="Do disk replacement with a different secondary",
+                    action="store_false", default=True)
+  parser.add_option("--do-failover", dest="do_failover",
+                    help="Do instance failovers", action="store_false",
+                    default=True)
 
   options, args = parser.parse_args()
-  if len(args) < 1:
+  if len(args) < 1 or options.os is None:
     Usage()
 
   return options, args
@@ -93,7 +104,7 @@ def BurninCluster(opts, args):
     os_set &= set([os_inst.name for os_inst in oses[node]])
 
   if opts.os not in os_set:
-    Feedback("OS not found")
+    Feedback("OS '%s' not found" % opts.os)
     return 1
 
   to_remove = []
@@ -125,14 +136,29 @@ def BurninCluster(opts, args):
       idx = next_idx
 
 
-    if len(nodelist) > 1:
-      # failover
-      for instance_name in args:
-        op = opcodes.OpFailoverInstance(instance_name=instance_name,
-                                        ignore_consistency=True)
+    if opts.do_replace1:
+      if len(nodelist) > 1:
+        # failover
+        for instance_name in args:
+          op = opcodes.OpReplaceDisks(instance_name=instance_name,
+                                      remote_node=None)
 
-        Feedback("- Failover instance %s" % (instance_name))
-        result = proc.ExecOpCode(op, Feedback)
+          Feedback("- Replace disks for instance %s" % (instance_name))
+          result = proc.ExecOpCode(op, Feedback)
+      else:
+        Feedback("- Can't run replace1, not enough nodes")
+
+    if opts.do_failover:
+      if len(nodelist) > 1:
+        # failover
+        for instance_name in args:
+          op = opcodes.OpFailoverInstance(instance_name=instance_name,
+                                          ignore_consistency=True)
+
+          Feedback("- Failover instance %s" % (instance_name))
+          result = proc.ExecOpCode(op, Feedback)
+      else:
+        Feedback("- Can't run failovers, not enough nodes")
 
     # stop / start
     for instance_name in args:
@@ -156,7 +182,17 @@ def main():
     """Main function"""
 
     opts, args = ParseOptions()
-    return BurninCluster(opts, args)
+    try:
+      utils.Lock('cmd', max_retries=15, debug=True)
+    except errors.LockError, err:
+      logger.ToStderr(str(err))
+      return 1
+    try:
+      retval = BurninCluster(opts, args)
+    finally:
+      utils.Unlock('cmd')
+      utils.LockCleanup()
+    return retval
 
 if __name__ == "__main__":
     main()
