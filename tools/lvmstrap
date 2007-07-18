@@ -376,7 +376,7 @@ def GetDiskList():
   for name in os.listdir("/sys/block"):
     if (not name.startswith("hd") and
         not name.startswith("sd") and
-	not name.startswith("ubd")):
+        not name.startswith("ubd")):
       continue
 
     size = ReadSize("/sys/block/%s" % name)

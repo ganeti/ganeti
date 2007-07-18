@@ -21,6 +21,6 @@ AM_PATH_PYTHON(2.4)
 # Checks for library functions.
 
 AC_CONFIG_FILES([Makefile man/Makefile docs/Makefile 
-		testing/Makefile tools/Makefile
-		lib/Makefile scripts/Makefile daemons/Makefile])
+  testing/Makefile tools/Makefile
+  lib/Makefile scripts/Makefile daemons/Makefile])
 AC_OUTPUT
