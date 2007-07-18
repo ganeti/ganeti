@@ -1,19 +1,32 @@
-Installation of the software
-============================
+Software Requirements
+=====================
 
 Before installing, please verify that you have the following programs:
-  - lvm 2
-  - ssh
-  - drbd (kernel module and userspace utils)
+  - LVM2
+    http://sourceware.org/lvm2/
+  - OpenSSH
+    http://www.openssh.com/portable.html
+  - DRBD (kernel module and userspace utils)
+    http://www.drbd.org/
   - fping
-  - python twisted library (the core is enough)
-  - python openssl bindings
+    http://fping.sourceforge.net/
+  - Python Twisted library (the core is enough)
+    http://twistedmatrix.com/
+  - Python OpenSSL bindings
+    http://pyopenssl.sourceforge.net/
+
+For testing, you also need the YAML module for Python, http://pyyaml.org/.
+
+
+Installation of the software
+============================
 
 To install, simply do ./configure && make && make install
 
 This will install the software under /usr/local. You then need to copy
 ganeti.init to /etc/init.d and integrate it into your boot sequence
 (``chkconfig``, ``update-rc.d``, etc.).
+
 
 Cluster initialisation
 ======================
