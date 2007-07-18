@@ -3,6 +3,7 @@
 
 AC_PREREQ(2.59)
 AC_INIT(ganeti, 1.2a, ganeti@googlegroups.com)
+AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE(foreign)
 
 # Checks for programs.
