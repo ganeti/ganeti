@@ -2434,6 +2434,35 @@ class LUCreateInstance(LogicalUnit):
                                      " the primary node.")
       self.secondaries.append(snode_name)
 
+    # Check lv size requirements
+    nodenames = [pnode.name] + self.secondaries
+    nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName())
+
+    # Required free disk space as a function of disk and swap space
+    req_size_dict = {
+      constants.DT_DISKLESS: 0,
+      constants.DT_PLAIN: self.op.disk_size + self.op.swap_size,
+      constants.DT_LOCAL_RAID1: (self.op.disk_size + self.op.swap_size) * 2,
+      # 256 MB are added for drbd metadata, 128MB for each drbd device
+      constants.DT_REMOTE_RAID1: self.op.disk_size + self.op.swap_size + 256,
+    }
+
+    if self.op.disk_template not in req_size_dict:
+      raise errors.ProgrammerError, ("Disk template '%s' size requirement"
+                                     " is unknown" %  self.op.disk_template)
+
+    req_size = req_size_dict[self.op.disk_template]
+
+    for node in nodenames:
+      info = nodeinfo.get(node, None)
+      if not info:
+        raise errors.OpPrereqError, ("Cannot get current information"
+                                     " from node '%s'" % nodeinfo)
+      if req_size > info['vg_free']:
+        raise errors.OpPrereqError, ("Not enough disk space on target node %s."
+                                     " %d MB available, %d MB required" %
+                                     (node, info['vg_free'], req_size))
+
     # os verification
     os_obj = rpc.call_os_get([pnode.name], self.op.os_type)[pnode.name]
     if not isinstance(os_obj, objects.OS):
