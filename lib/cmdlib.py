@@ -2059,6 +2059,19 @@ class LUFailoverInstance(LogicalUnit):
       raise errors.OpPrereqError, ("Instance '%s' not known" %
                                    self.op.instance_name)
 
+    # check memory requirements on the secondary node
+    target_node = instance.secondary_nodes[0]
+    nodeinfo = rpc.call_node_info([target_node], self.cfg.GetVGName())
+    info = nodeinfo.get(target_node, None)
+    if not info:
+      raise errors.OpPrereqError, ("Cannot get current information"
+                                   " from node '%s'" % nodeinfo)
+    if instance.memory > info['memory_free']:
+      raise errors.OpPrereqError, ("Not enough memory on target node %s."
+                                   " %d MB available, %d MB required" %
+                                   (target_node, info['memory_free'],
+                                    instance.memory))
+
     # check bridge existance
     brlist = [nic.bridge for nic in instance.nics]
     if not rpc.call_bridges_exist(instance.primary_node, brlist):
