@@ -8,7 +8,7 @@ fi
 set -e
 
 rm -rf config.cache autom4te.cache
-mkdir -p config
+mkdir -p autotools
 
 aclocal-1.9
 autoconf
