@@ -53,7 +53,7 @@ def DestroyCluster(opts, args):
   """
   if not opts.yes_do_it:
     print ("Destroying a cluster is irreversibly. If you really want destroy"
-           "this cluster, supply the --yes-do-it option.")
+           " this cluster, supply the --yes-do-it option.")
     return 1
 
   op = opcodes.OpDestroyCluster()
