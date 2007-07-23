@@ -297,12 +297,17 @@ class LogicalVolume(BlockDev):
                                       vg_name)
     pvs_info.sort()
     pvs_info.reverse()
-    free_size, pv_name = pvs_info[0]
+
+    pvlist = [ pv[1] for pv in pvs_info ]
+    free_size = sum([ pv[0] for pv in pvs_info ])
+
+    # The size constraint should have been checked from the master before
+    # calling the create function.
     if free_size < size:
       raise errors.BlockDeviceError, ("Not enough free space: required %s,"
                                       " available %s" % (size, free_size))
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-n%s" % lv_name,
-                           vg_name, pv_name])
+                           vg_name] + pvlist)
     if result.failed:
       raise errors.BlockDeviceError(result.fail_reason)
     return LogicalVolume(unique_id, children)
