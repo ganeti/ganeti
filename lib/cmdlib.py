@@ -335,8 +335,8 @@ def _HasValidVG(vglist, vgname):
   if vgsize is None:
     return "volume group '%s' missing" % vgname
   elif vgsize < 20480:
-    return ("volume group '%s' too small (20480MiB required, %dMib found" %
-            vgname, vgsize)
+    return ("volume group '%s' too small (20480MiB required, %dMib found)" %
+            (vgname, vgsize))
   return None
 
 
