@@ -32,7 +32,6 @@ EXPORT_VERSION = 0
 # file paths
 DATA_DIR = "/var/lib/ganeti"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
-CLUSTER_NAME_FILE = DATA_DIR + "/cluster-name"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 HYPERCONF_FILE = DATA_DIR + "/hypervisor"
 WATCHER_STATEFILE = DATA_DIR + "/restart_state"
@@ -46,8 +45,7 @@ NODE_INITD_NAME = "ganeti"
 DEFAULT_NODED_PORT = 1811
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
-MASTER_INITD_SCRIPT = "/etc/init.d/ganeti-master"
-MASTER_INITD_NAME = "ganeti-master"
+MASTER_SCRIPT = "ganeti-master"
 
 LOG_DIR = "/var/log/ganeti"
 LOG_OS_DIR = LOG_DIR + "/os"
@@ -101,8 +99,7 @@ CLUSTER_CONF_FILES = ["/etc/hosts",
                       MASTER_CRON_FILE,
                       ]
 
-MASTER_CONFIGFILES = [MASTER_CRON_LINK,
-                      "/etc/rc2.d/S21%s" % MASTER_INITD_NAME]
+MASTER_CONFIGFILES = [MASTER_CRON_LINK,]
 
 NODE_CONFIGFILES = [NODE_INITD_SCRIPT,
                     "/etc/rc2.d/S20%s" % NODE_INITD_NAME,

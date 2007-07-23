@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Module implementing the commands used by gnt-* programs."""
+"""Module implementing the master-side code."""
 
 # pylint: disable-msg=W0613,W0201
 
@@ -84,7 +84,7 @@ class LogicalUnit(object):
         raise errors.OpPrereqError, ("Cluster not initialized yet,"
                                      " use 'gnt-cluster init' first.")
       if self.REQ_MASTER:
-        master = cfg.GetMaster()
+        master = sstore.GetMasterNode()
         if master != socket.gethostname():
           raise errors.OpPrereqError, ("Commands must be run on the master"
                                        " node %s" % master)
@@ -406,55 +406,6 @@ def _InitGanetiServerSetup(ss):
                                (result.cmd, result.exit_code, result.output))
 
 
-def _InitClusterInterface(fullname, name, ip):
-  """Initialize the master startup script.
-
-  """
-  f = file(constants.CLUSTER_NAME_FILE, 'w')
-  f.write("%s\n" % fullname)
-  f.close()
-
-  f = file(constants.MASTER_INITD_SCRIPT, 'w')
-  f.write ("#!/bin/sh\n")
-  f.write ("\n")
-  f.write ("# Start Ganeti Master Virtual Address\n")
-  f.write ("\n")
-  f.write ("DESC=\"Ganeti Master IP\"\n")
-  f.write ("MASTERNAME=\"%s\"\n" % name)
-  f.write ("MASTERIP=\"%s\"\n" % ip)
-  f.write ("case \"$1\" in\n")
-  f.write ("  start)\n")
-  f.write ("    if fping -q -c 3 ${MASTERIP} &>/dev/null; then\n")
-  f.write ("        echo \"$MASTERNAME no-go - there is already a master.\"\n")
-  f.write ("        rm -f %s\n" % constants.MASTER_CRON_LINK)
-  f.write ("        scp ${MASTERNAME}:%s %s\n" %
-           (constants.CLUSTER_CONF_FILE, constants.CLUSTER_CONF_FILE))
-  f.write ("    else\n")
-  f.write ("        echo -n \"Starting $DESC: \"\n")
-  f.write ("        ip address add ${MASTERIP}/32 dev xen-br0"
-           " label xen-br0:0\n")
-  f.write ("        arping -q -U -c 3 -I xen-br0 -s ${MASTERIP} ${MASTERIP}\n")
-  f.write ("        echo \"$MASTERNAME.\"\n")
-  f.write ("    fi\n")
-  f.write ("    ;;\n")
-  f.write ("  stop)\n")
-  f.write ("    echo -n \"Stopping $DESC: \"\n")
-  f.write ("    ip address del ${MASTERIP}/32 dev xen-br0\n")
-  f.write ("    echo \"$MASTERNAME.\"\n")
-  f.write ("    ;;\n")
-  f.write ("  *)\n")
-  f.write ("    echo \"Usage: $0 {start|stop}\" >&2\n")
-  f.write ("    exit 1\n")
-  f.write ("    ;;\n")
-  f.write ("esac\n")
-  f.write ("\n")
-  f.write ("exit 0\n")
-  f.flush()
-  os.fsync(f.fileno())
-  f.close()
-  os.chmod(constants.MASTER_INITD_SCRIPT, 0755)
-
-
 class LUInitCluster(LogicalUnit):
   """Initialise the cluster.
 
@@ -462,7 +413,7 @@ class LUInitCluster(LogicalUnit):
   HPATH = "cluster-init"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = ["cluster_name", "hypervisor_type", "vg_name", "mac_prefix",
-              "def_bridge"]
+              "def_bridge", "master_netdev"]
   REQ_CLUSTER = False
 
   def BuildHooksEnv(self):
@@ -474,7 +425,7 @@ class LUInitCluster(LogicalUnit):
     """
 
     env = {"CLUSTER": self.op.cluster_name,
-           "MASTER": self.hostname}
+           "MASTER": self.hostname['hostname_full']}
     return env, [], [self.hostname['hostname_full']]
 
   def CheckPrereq(self):
@@ -528,6 +479,11 @@ class LUInitCluster(LogicalUnit):
       raise errors.OpPrereqError, ("Invalid hypervisor type given '%s'" %
                                    self.op.hypervisor_type)
 
+    result = utils.RunCmd(["ip", "link", "show", "dev", self.op.master_netdev])
+    if result.failed:
+      raise errors.OpPrereqError, ("Invalid master netdev given (%s): '%s'" %
+                                   (self.op.master_netdev, result.output))
+
   def Exec(self, feedback_fn):
     """Initialize the cluster.
 
@@ -535,14 +491,12 @@ class LUInitCluster(LogicalUnit):
     clustername = self.clustername
     hostname = self.hostname
 
-    # adds the cluste name file and master startup script
-    _InitClusterInterface(clustername['hostname_full'],
-                          clustername['hostname'],
-                          clustername['ip'])
-
     # set up the simple store
     ss = ssconf.SimpleStore()
     ss.SetKey(ss.SS_HYPERVISOR, self.op.hypervisor_type)
+    ss.SetKey(ss.SS_MASTER_NODE, hostname['hostname_full'])
+    ss.SetKey(ss.SS_MASTER_IP, clustername['ip'])
+    ss.SetKey(ss.SS_MASTER_NETDEV, self.op.master_netdev)
 
     # set up the inter-node password and certificate
     _InitGanetiServerSetup(ss)
@@ -590,12 +544,12 @@ class LUDestroyCluster(NoHooksLU):
     Any errors are signalled by raising errors.OpPrereqError.
 
     """
-    master = self.cfg.GetMaster()
+    master = self.sstore.GetMasterNode()
 
     nodelist = self.cfg.GetNodeList()
     if len(nodelist) > 0 and nodelist != [master]:
-        raise errors.OpPrereqError, ("There are still %d node(s) in "
-                                     "this cluster." % (len(nodelist) - 1))
+      raise errors.OpPrereqError, ("There are still %d node(s) in "
+                                   "this cluster." % (len(nodelist) - 1))
 
   def Exec(self, feedback_fn):
     """Destroys the cluster.
@@ -603,7 +557,7 @@ class LUDestroyCluster(NoHooksLU):
     """
     utils.CreateBackup('/root/.ssh/id_dsa')
     utils.CreateBackup('/root/.ssh/id_dsa.pub')
-    rpc.call_node_leave_cluster(self.cfg.GetMaster())
+    rpc.call_node_leave_cluster(self.sstore.GetMasterNode())
 
 
 class LUVerifyCluster(NoHooksLU):
@@ -795,7 +749,7 @@ class LUVerifyCluster(NoHooksLU):
     feedback_fn("* Verifying global settings")
     self.cfg.VerifyConfig()
 
-    master = self.cfg.GetMaster()
+    master = self.sstore.GetMasterNode()
     vg_name = self.cfg.GetVGName()
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
@@ -1029,7 +983,7 @@ class LURemoveNode(LogicalUnit):
 
     instance_list = self.cfg.GetInstanceList()
 
-    masternode = self.cfg.GetMaster()
+    masternode = self.sstore.GetMasterNode()
     if node.name == masternode:
       raise errors.OpPrereqError, ("Node is the master node,"
                                    " you need to failover first.")
@@ -1253,7 +1207,7 @@ class LUAddNode(LogicalUnit):
 
     # check that the type of the node (single versus dual homed) is the
     # same as for the master
-    myself = cfg.GetNodeInfo(cfg.GetMaster())
+    myself = cfg.GetNodeInfo(self.sstore.GetMasterNode())
     master_singlehomed = myself.secondary_ip == myself.primary_ip
     newbie_singlehomed = secondary_ip == primary_ip
     if master_singlehomed != newbie_singlehomed:
@@ -1378,7 +1332,7 @@ class LUAddNode(LogicalUnit):
 
     # Distribute updated /etc/hosts and known_hosts to all nodes,
     # including the node just added
-    myself = self.cfg.GetNodeInfo(self.cfg.GetMaster())
+    myself = self.cfg.GetNodeInfo(self.sstore.GetMasterNode())
     dist_nodes = self.cfg.GetNodeList() + [node]
     if myself.name in dist_nodes:
       dist_nodes.remove(myself.name)
@@ -1391,9 +1345,7 @@ class LUAddNode(LogicalUnit):
           logger.Error("copy of file %s to node %s failed" %
                        (fname, to_node))
 
-    to_copy = [constants.MASTER_CRON_FILE,
-               constants.MASTER_INITD_SCRIPT,
-               constants.CLUSTER_NAME_FILE]
+    to_copy = [constants.MASTER_CRON_FILE]
     to_copy.extend(ss.GetFileList())
     for fname in to_copy:
       if not ssh.CopyFileToNode(node, fname):
@@ -1435,7 +1387,7 @@ class LUMasterFailover(LogicalUnit):
     """
     self.new_master = socket.gethostname()
 
-    self.old_master = self.cfg.GetMaster()
+    self.old_master = self.sstore.GetMasterNode()
 
     if self.old_master == self.new_master:
       raise errors.OpPrereqError, ("This commands must be run on the node"
@@ -1460,11 +1412,19 @@ class LUMasterFailover(LogicalUnit):
       logger.Error("could disable the master role on the old master"
                    " %s, please disable manually" % self.old_master)
 
+    ss = self.sstore
+    ss.SetKey(ss.SS_MASTER_NODE, self.new_master)
+    if not rpc.call_upload_file(self.cfg.GetNodeList(),
+                                ss.KeyToFilename(ss.SS_MASTER_NODE)):
+      logger.Error("could not distribute the new simple store master file"
+                   " to the other nodes, please check.")
+
     if not rpc.call_node_start_master(self.new_master):
       logger.Error("could not start the master role on the new master"
                    " %s, please check" % self.new_master)
+      feedback_fn("Error in activating the master IP on the new master,\n"
+                  "please fix manually.")
 
-    self.cfg.SetMaster(self.new_master)
 
 
 class LUQueryClusterInfo(NoHooksLU):
@@ -1492,7 +1452,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": constants.OS_API_VERSION,
       "export_version": constants.EXPORT_VERSION,
-      "master": self.cfg.GetMaster(),
+      "master": self.sstore.GetMasterNode(),
       "architecture": (platform.architecture()[0], platform.machine()),
       "instances": [(instance.name, instance.primary_node)
                     for instance in instances],
@@ -1748,7 +1708,7 @@ class LUStartupInstance(LogicalUnit):
       "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
       "FORCE": self.op.force,
       }
-    nl = ([self.cfg.GetMaster(), self.instance.primary_node] +
+    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -1833,7 +1793,7 @@ class LUShutdownInstance(LogicalUnit):
       "INSTANCE_PRIMARY": self.instance.primary_node,
       "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
       }
-    nl = ([self.cfg.GetMaster(), self.instance.primary_node] +
+    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -1882,7 +1842,7 @@ class LURemoveInstance(LogicalUnit):
       "INSTANCE_PRIMARY": self.instance.primary_node,
       "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
       }
-    nl = ([self.cfg.GetMaster(), self.instance.primary_node] +
+    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -2044,7 +2004,7 @@ class LUFailoverInstance(LogicalUnit):
       "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       }
-    nl = [self.cfg.GetMaster()] + list(self.instance.secondary_nodes)
+    nl = [self.sstore.GetMasterNode()] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -2367,7 +2327,7 @@ class LUCreateInstance(LogicalUnit):
     if self.inst_ip:
       env["INSTANCE_IP"] = self.inst_ip
 
-    nl = ([self.cfg.GetMaster(), self.op.pnode] +
+    nl = ([self.sstore.GetMasterNode(), self.op.pnode] +
           self.secondaries)
     return env, nl, nl
 
@@ -2675,7 +2635,7 @@ class LUAddMDDRBDComponent(LogicalUnit):
       "NEW_SECONDARY": self.op.remote_node,
       "DISK_NAME": self.op.disk_name,
       }
-    nl = [self.cfg.GetMaster(), self.instance.primary_node,
+    nl = [self.sstore.GetMasterNode(), self.instance.primary_node,
           self.op.remote_node,] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
@@ -2787,7 +2747,7 @@ class LURemoveMDDRBDComponent(LogicalUnit):
       "DISK_ID": self.op.disk_id,
       "OLD_SECONDARY": self.old_secondary,
       }
-    nl = [self.cfg.GetMaster(),
+    nl = [self.sstore.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
@@ -2872,7 +2832,7 @@ class LUReplaceDisks(LogicalUnit):
       "NEW_SECONDARY": self.op.remote_node,
       "OLD_SECONDARY": self.instance.secondary_nodes[0],
       }
-    nl = [self.cfg.GetMaster(),
+    nl = [self.sstore.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
@@ -2920,10 +2880,11 @@ class LUReplaceDisks(LogicalUnit):
     # start of work
     remote_node = self.op.remote_node
     cfg = self.cfg
+    vgname = cfg.GetVGName()
     for dev in instance.disks:
       size = dev.size
-      new_drbd = _GenerateMDDRBDBranch(cfg, self.cfg.GetVGName(),
-                                       instance.primary_node, remote_node, size,
+      new_drbd = _GenerateMDDRBDBranch(cfg, vgname, instance.primary_node,
+                                       remote_node, size,
                                        "%s-%s" % (instance.name, dev.iv_name))
       iv_names[dev.iv_name] = (dev, dev.children[0], new_drbd)
       logger.Info("adding new mirror component on secondary for %s" %
@@ -2948,7 +2909,7 @@ class LUReplaceDisks(LogicalUnit):
       # call the primary node to add the mirror to md
       logger.Info("adding new mirror component to md")
       if not rpc.call_blockdev_addchild(instance.primary_node, dev,
-                                             new_drbd):
+                                        new_drbd):
         logger.Error("Can't add mirror compoment to md!")
         cfg.SetDiskID(new_drbd, remote_node)
         if not rpc.call_blockdev_remove(remote_node, new_drbd):
@@ -3172,7 +3133,7 @@ class LUSetInstanceParms(LogicalUnit):
     if self.bridge:
       env["BRIDGE"] = self.bridge
 
-    nl = [self.cfg.GetMaster(),
+    nl = [self.sstore.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
 
     return env, nl, nl
@@ -3295,7 +3256,7 @@ class LUExportInstance(LogicalUnit):
       "EXPORT_NODE": self.op.target_node,
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
       }
-    nl = [self.cfg.GetMaster(), self.instance.primary_node,
+    nl = [self.sstore.GetMasterNode(), self.instance.primary_node,
           self.op.target_node]
     return env, nl, nl
 

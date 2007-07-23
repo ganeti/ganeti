@@ -57,7 +57,11 @@ class SimpleStore:
   _SS_FILEPREFIX = "ssconf_"
   SS_HYPERVISOR = "hypervisor"
   SS_NODED_PASS = "node_pass"
-  _VALID_KEYS = (SS_HYPERVISOR, SS_NODED_PASS,)
+  SS_MASTER_NODE = "master_node"
+  SS_MASTER_IP = "master_ip"
+  SS_MASTER_NETDEV = "master_netdev"
+  _VALID_KEYS = (SS_HYPERVISOR, SS_NODED_PASS, SS_MASTER_NODE, SS_MASTER_IP,
+                 SS_MASTER_NETDEV)
   _MAX_SIZE = 4096
 
   def __init__(self, cfg_location=None):
@@ -127,6 +131,24 @@ class SimpleStore:
 
     """
     return self._ReadFile(self.SS_NODED_PASS)
+
+  def GetMasterNode(self):
+    """Get the hostname of the master node for this cluster.
+
+    """
+    return self._ReadFile(self.SS_MASTER_NODE)
+
+  def GetMasterIP(self):
+    """Get the IP of the master node for this cluster.
+
+    """
+    return self._ReadFile(self.SS_MASTER_IP)
+
+  def GetMasterNetdev(self):
+    """Get the netdev to which we'll add the master ip.
+
+    """
+    return self._ReadFile(self.SS_MASTER_NETDEV)
 
   def SetKey(self, key, value):
     """Set the value of a key.

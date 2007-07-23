@@ -40,7 +40,8 @@ def InitCluster(opts, args):
                              hypervisor_type=opts.hypervisor_type,
                              vg_name=opts.vg_name,
                              mac_prefix=opts.mac_prefix,
-                             def_bridge=opts.def_bridge)
+                             def_bridge=opts.def_bridge,
+                             master_netdev=opts.master_netdev)
   SubmitOpCode(op)
   return 0
 
@@ -209,6 +210,12 @@ commands = {
                         help="Specify the default bridge name (cluster-wide)"
                         " to connect the instances to [xen-br0]",
                         metavar="BRIDGE",
+                        default="xen-br0",),
+            make_option("--master-netdev", dest="master_netdev",
+                        help="Specify the node interface (cluster-wide)"
+                        " on which the master IP address will be added "
+                        " [xen-br0]",
+                        metavar="NETDEV",
                         default="xen-br0",),
             ],
            "[opts...] <cluster_name>",

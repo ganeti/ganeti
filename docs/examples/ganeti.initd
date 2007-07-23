@@ -2,7 +2,7 @@
 # ganeti node daemon starter script
 # based on skeleton from Debian GNU/Linux
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 DAEMON=/usr/local/sbin/ganeti-noded
 NAME=ganeti-noded
 SCRIPTNAME=/etc/init.d/ganeti

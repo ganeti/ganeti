@@ -516,25 +516,3 @@ class ConfigWriter:
     self._OpenConfig()
     self._ReleaseLock()
     return self._config_data.cluster.mac_prefix
-
-  def GetMaster(self):
-    """Get the name of the master.
-
-    """
-    self._OpenConfig()
-    self._ReleaseLock()
-    return self._config_data.cluster.master_node
-
-  def SetMaster(self, master_node):
-    """Change the master of the cluster.
-
-    As with all changes, the configuration data will be distributed to
-    all nodes.
-
-    This function is used for manual master failover.
-
-    """
-    self._OpenConfig()
-    self._config_data.cluster.master_node = master_node
-    self._WriteConfig()
-    self._ReleaseLock()

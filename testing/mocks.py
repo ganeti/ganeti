@@ -37,3 +37,10 @@ class FakeConfig:
 
     def GetMaster(self):
         return socket.gethostname()
+
+
+class FakeSStore:
+    """Fake simplestore object"""
+
+    def GetMasterNode(self):
+        return socket.gethostname()

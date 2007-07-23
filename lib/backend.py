@@ -40,6 +40,7 @@ from ganeti import hypervisor
 from ganeti import constants
 from ganeti import bdev
 from ganeti import objects
+from ganeti import ssconf
 
 
 def ListConfigFiles():
@@ -63,23 +64,15 @@ def StartMaster():
   """Activate local node as master node.
 
   There are two needed steps for this:
-    - register the master init script, and also run it now
+    - run the master script
     - register the cron script
 
   """
-  result = utils.RunCmd(["update-rc.d", constants.MASTER_INITD_NAME,
-                         "defaults", "21", "79"])
-
-  if result.failed:
-    logger.Error("could not register the master init.d script with command"
-                 " %s, error %s" % (result.cmd, result.output))
-    return False
-
-  result = utils.RunCmd([constants.MASTER_INITD_SCRIPT, "start"])
+  result = utils.RunCmd([constants.MASTER_SCRIPT, "-d", "start"])
 
   if result.failed:
     logger.Error("could not activate cluster interface with command %s,"
-                 " error %s" % (result.cmd, result.output))
+                 " error: '%s'" % (result.cmd, result.output))
     return False
 
   utils.RemoveFile(constants.MASTER_CRON_LINK)
@@ -91,22 +84,15 @@ def StopMaster():
   """Deactivate this node as master.
 
   This does two things:
-    - remove links to master's startup script
+    - run the master stop script
     - remove link to master cron script.
 
   """
-  result = utils.RunCmd(["update-rc.d", "-f",
-                          constants.MASTER_INITD_NAME, "remove"])
-  if result.failed:
-    logger.Error("could not unregister the master script with command"
-                 " %s, error %s" % (result.cmd, result.output))
-    return False
-
-  output = utils.RunCmd([constants.MASTER_INITD_SCRIPT, "stop"])
+  result = utils.RunCmd([constants.MASTER_SCRIPT, "-d", "stop"])
 
   if result.failed:
     logger.Error("could not deactivate cluster interface with command %s,"
-                 " error %s" % (result.cmd, result.output))
+                 " error: '%s'" % (result.cmd, result.output))
     return False
 
   utils.RemoveFile(constants.MASTER_CRON_LINK)
@@ -170,7 +156,6 @@ def LeaveCluster():
       if dirpath == constants.DATA_DIR:
         for i in filenames:
           os.unlink(os.path.join(dirpath, i))
-  utils.RemoveFile(constants.CLUSTER_NAME_FILE)
 
   f = open('/root/.ssh/id_dsa.pub', 'r')
   try:
@@ -794,8 +779,10 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                  file_name)
     return False
 
-  if file_name not in [constants.CLUSTER_CONF_FILE, "/etc/hosts",
-                       "/etc/ssh/ssh_known_hosts"]:
+  allowed_files = [constants.CLUSTER_CONF_FILE, "/etc/hosts",
+                   "/etc/ssh/ssh_known_hosts"]
+  allowed_files.extend(ssconf.SimpleStore().GetFileList())
+  if file_name not in allowed_files:
     logger.Error("Filename passed to UploadFile not in allowed"
                  " upload targets: '%s'" % file_name)
     return False
