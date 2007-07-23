@@ -2147,7 +2147,7 @@ class LUFailoverInstance(LogicalUnit):
     if not rpc.call_instance_start(target_node, instance, None):
       _ShutdownInstanceDisks(instance, self.cfg)
       raise errors.OpExecError("Could not start instance %s on node %s." %
-                               (instance, target_node))
+                               (instance.name, target_node))
 
 
 def _CreateBlockDevOnPrimary(cfg, node, device):
