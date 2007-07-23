@@ -103,7 +103,7 @@
         <para>
           The <option>-b</option> option specifies the bridge to which the
           instance will be connected. (defaults to the cluster-wide default
-          bridge specified at cluster intialization time).
+          bridge specified at cluster initialization time).
         </para>
 
         <para>

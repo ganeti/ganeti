@@ -130,6 +130,7 @@
     <cmdsynopsis>
       <command>init</command>
       <arg>-s <replaceable>secondary_ip</replaceable></arg>
+      <arg>-b <replaceable>bridge</replaceable></arg>
       <arg choice="req"><replaceable>clustername</replaceable></arg>
     </cmdsynopsis>
     <para>
@@ -161,6 +162,11 @@
       is actually a separate physical network, or is done using
       tunneling, etc. For performance reasons, it's recommended to use
       a separate network, of course.
+    </para>
+
+    <para>
+      The <option>-b</option> option specifies the default bridge for
+      instances.
     </para>
 
     <cmdsynopsis>
