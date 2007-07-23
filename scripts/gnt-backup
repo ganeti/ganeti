@@ -1,0 +1,160 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+import sys
+from optparse import make_option
+
+from ganeti.cli import *
+from ganeti import cmdlib
+from ganeti import opcodes
+from ganeti import constants
+
+def PrintExportList(opts, args):
+  """Prints a list of all the exported system images.
+
+  Args:
+   opts - class with options as members (should be empty)
+   args - should be empty
+
+  Returns:
+    nothing
+
+  """
+
+  op = opcodes.OpQueryExports(nodes=opts.nodes)
+  exports = SubmitOpCode(op)
+  for node in exports:
+    print ("Node: %s" % node)
+    print ("Exports:")
+    for instance_name in exports[node]:
+      print ("\t%s" % instance_name)
+
+
+def ExportInstance(opts, args):
+  """Export an instance to an image in the cluster.
+
+  Args:
+   opts - class with options as members
+   args - list with a single element, the instance name
+
+  Returns:
+    1 in case of error, 0 otherwise
+
+  """
+  op = opcodes.OpExportInstance(instance_name=args[0],
+                                target_node=opts.node,
+                                shutdown=opts.shutdown)
+
+  SubmitOpCode(op)
+
+def ImportInstance(opts, args):
+  """Add an instance to the cluster.
+
+  Args:
+   opts - class with options as members
+   args - list with a single element, the new instance name
+  Opts used:
+   memory - amount of memory to allocate to instance (MiB)
+   size - amount of disk space to allocate to instance (MiB)
+   os - which OS to run on instance
+   node - node to run new instance on
+   src_node - node containing the export
+   src_dir - directory on the old node with the export in it
+
+  Returns:
+    1 in case of error, 0 otherwise
+
+  """
+
+  instance = args[0]
+
+  op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
+                                disk_size=opts.size, swap_size=opts.swap,
+                                disk_template=opts.disk_template,
+                                mode=constants.INSTANCE_IMPORT, pnode=opts.node,
+                                snode=opts.snode, vcpus=opts.vcpus,
+                                ip=opts.ip, bridge=opts.bridge, start=False,
+                                src_node=opts.src_node, src_path=opts.src_dir,
+                                wait_for_sync=opts.wait_for_sync)
+  SubmitOpCode(op)
+  return 0
+
+
+# options used in more than one cmd
+node_opt = make_option("-n", "--node", dest="node", help="Target node",
+                       metavar="<node>")
+force_opt = make_option("-f", "--force", dest="force", action="store_true",
+                        default=False, help="Force the operation")
+
+# this is defined separately due to readability only
+import_opts = [
+  DEBUG_OPT,
+  node_opt,
+  cli_option("-s", "--os-size", dest="size", help="Disk size",
+             default=20 * 1024, type="unit", metavar="<size>"),
+  cli_option("--swap-size", dest="swap", help="Swap size",
+             default=4 * 1024, type="unit", metavar="<size>"),
+  cli_option("-m", "--memory", dest="mem", help="Memory size",
+             default=128, type="unit", metavar="<mem>"),
+  make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
+              default=1, type="int", metavar="<PROC>"),
+  make_option("-t", "--disk-template", dest="disk_template",
+              help="Custom disk setup (diskless, plain, local_raid1 or"
+              " remote_raid1)", default=None, metavar="TEMPL"),
+  make_option("-i", "--ip", dest="ip",
+              help="IP address ('none' [default], 'auto', or specify address)",
+              default='none', type="string", metavar="<ADDRESS>"),
+  make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
+              action="store_false", help="Don't wait for sync (DANGEROUS!)"),
+  make_option("--secondary-node", dest="snode",
+              help="Secondary node for remote_raid1 disk layout",
+              metavar="<node>"),
+  make_option("-b", "--bridge", dest="bridge",
+              help="Bridge to connect this instance to",
+              default=None, metavar="<bridge>"),
+  make_option("--src-node", dest="src_node", help="Source node",
+              metavar="<node>"),
+  make_option("--src-dir", dest="src_dir", help="Source directory",
+              metavar="<dir>"),
+  ]
+
+
+commands = {
+  'list': (PrintExportList, ARGS_NONE,
+           [DEBUG_OPT,
+            make_option("--nodes", dest="nodes", default=[], action="append",
+                        help="List only backups stored on these nodes"),
+            ],
+           "", "Lists instance exports available in the ganeti cluster"),
+  'export': (ExportInstance, ARGS_ONE,
+             [node_opt, DEBUG_OPT, force_opt,
+              make_option("","--noshutdown", dest="shutdown",
+                          action="store_false", default=True,
+                          help="Don't shutdown the instance (unsafe)"), ],
+             "[opts...] <name>",
+             "Exports an instance to an image"),
+  'import': (ImportInstance, ARGS_ONE, import_opts, "[opts...] <name>",
+             "Imports an instance from an exported image"),
+  }
+
+if __name__ == '__main__':
+  retcode = GenericMain(commands)
+  sys.exit(retcode)
