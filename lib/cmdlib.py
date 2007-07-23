@@ -2725,8 +2725,9 @@ class LUAddMDDRBDComponent(LogicalUnit):
     instance = self.instance
 
     remote_node = self.remote_node
-    new_drbd = _GenerateMDDRBDBranch(self.cfg, instance.primary_node,
-                                     remote_node, disk.size, "%s-%s" %
+    new_drbd = _GenerateMDDRBDBranch(self.cfg, self.cfg.GetVGName(),
+                                     instance.primary_node, remote_node,
+                                     disk.size, "%s-%s" %
                                      (instance.name, self.op.disk_name))
 
     logger.Info("adding new mirror component on secondary")
@@ -2921,8 +2922,8 @@ class LUReplaceDisks(LogicalUnit):
     cfg = self.cfg
     for dev in instance.disks:
       size = dev.size
-      new_drbd = _GenerateMDDRBDBranch(cfg, instance.primary_node,
-                                       remote_node, size,
+      new_drbd = _GenerateMDDRBDBranch(cfg, self.cfg.GetVGName(),
+                                       instance.primary_node, remote_node, size,
                                        "%s-%s" % (instance.name, dev.iv_name))
       iv_names[dev.iv_name] = (dev, dev.children[0], new_drbd)
       logger.Info("adding new mirror component on secondary for %s" %
