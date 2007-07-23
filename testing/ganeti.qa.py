@@ -286,6 +286,8 @@ def TestClusterInit():
   cmd = ['gnt-cluster', 'init']
   if master.get('secondary', None):
     cmd.append('--secondary-ip=%s' % master['secondary'])
+  if cfg.get('bridge', None):
+    cmd.append('--bridge=%s' % cfg['bridge'])
   cmd.append(cfg['name'])
 
   AssertEqual(StartSSH(master['primary'],
