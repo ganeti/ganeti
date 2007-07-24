@@ -165,6 +165,12 @@ class NoHooksLU(LogicalUnit):
 
 
 def _GetWantedNodes(lu, nodes):
+  """Returns list of checked and expanded nodes.
+
+  Args:
+    nodes: List of nodes (strings) or None for all
+
+  """
   if nodes is not None and not isinstance(nodes, list):
     raise errors.OpPrereqError, "Invalid argument type 'nodes'"
 
@@ -183,15 +189,22 @@ def _GetWantedNodes(lu, nodes):
 
 
 def _CheckOutputFields(static, dynamic, selected):
-    static_fields = frozenset(static)
-    dynamic_fields = frozenset(dynamic)
+  """Checks whether all selected fields are valid.
 
-    all_fields = static_fields | dynamic_fields
+  Args:
+    static: Static fields
+    dynamic: Dynamic fields
 
-    if not all_fields.issuperset(selected):
-      raise errors.OpPrereqError, ("Unknown output fields selected: %s"
-                                   % ",".join(frozenset(selected).
-                                              difference(all_fields)))
+  """
+  static_fields = frozenset(static)
+  dynamic_fields = frozenset(dynamic)
+
+  all_fields = static_fields | dynamic_fields
+
+  if not all_fields.issuperset(selected):
+    raise errors.OpPrereqError, ("Unknown output fields selected: %s"
+                                 % ",".join(frozenset(selected).
+                                            difference(all_fields)))
 
 
 def _UpdateEtcHosts(fullnode, ip):
