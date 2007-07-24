@@ -1,0 +1,72 @@
+Security in Ganeti
+~~~~~~~~~~~~~~~~~~
+
+Ganeti was developed to run on internal, trusted systems. As such, the
+security model is all-or-nothing.
+
+All the Ganeti code runs as root, because all the operations that Ganeti
+is doing require privileges: creating logical volumes, md arrays,
+starting instances, etc. Running as root does not mean setuid, but that
+you need to be root to run the cluster commands.
+
+Host issues
+-----------
+
+For a host on which the Ganeti software has been installed but which has
+not been joined in a cluster, there are no changes to the system.
+
+For a host that has been joined to the cluster, there are very important
+changes:
+  - the host will have its ssh host key replaced with the one of the
+    cluster (which is the one the initial node had at the cluster
+    creation)
+  - root will have added to its authorized_keys file a public key which
+    grants access to all other nodes in the cluster, and furthermore it
+    will also get the private part of this key, which will allow it to
+    login to the other nodes in the cluster (its previous private key
+    will be backed up)
+  - the Ganeti node daemon will accept RPC requests from any host which
+    has the cluster shared secret, and the operations it will do as a
+    result of these requests are:
+      - running commands under the /etc/ganeti/hooks directory
+      - creating DRBD disks between it and the IP it has been told
+      - overwrite a defined list of files on the host
+
+As you can see, as soon as a node is joined, it becomes equal to all
+other nodes in the cluster, and the security of the cluster is
+determined by the weakest node.
+
+Note that only the ssh key will allow other machines to run random
+commands on this node; the RPC method will run only:
+  - well defined commands to create, remove, activate logical volumes,
+    DRBD disks, md arrays, start/stop instances, etc;
+  - run ssh commands on other nodes in the cluster, again well-defined
+  - scripts under the /etc/ganeti/hooks directory
+
+It is therefore important to make sure that the contents of the
+/etc/ganeti/hooks directory is supervised and only trusted sources can
+populate it.
+
+Cluster issues
+--------------
+
+As told above, there are multiple ways of communication between cluster
+nodes:
+  - ssh-based, for high-volume traffic (image dumps) or for low-level
+    command (restart the Ganeti node daemon)
+  - python-twisted based, for the usual operation
+  - DRBD traffic, for real-time disk replication traffic
+
+The ssh traffic is protected (after the initial login to a new node) by
+the cluster-wide shared ssh key.
+
+The python-twisted traffic is secured by SSL and two pre-conditions: the
+client will refuse to connect to servers which don't have the
+cluster-wide shared SSL certificate, and server will not allow clients
+which don't have the cluster-wide shared secret.
+
+The DRBD traffic is not protected by anything, as the version of DRBD we
+require (0.7) does not have any protections. It's therefore recommended
+to implement host-level firewalling or to use a separate range of IP
+addresses for the DRBD traffic (this is supported in Ganeti) which is
+not routed outside the cluster.
