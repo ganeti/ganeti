@@ -45,52 +45,26 @@ def ListInstances(opts, args):
   op = opcodes.OpQueryInstances(output_fields=selected_fields)
   output = SubmitOpCode(op)
 
-  mlens = [0 for name in selected_fields]
-
-  format_fields = []
-  unitformat_fields = ("admin_ram", "oper_ram")
-  for field in selected_fields:
-    if field in ("admin_ram", "oper_ram"):
-      format_fields.append("%*s")
-    else:
-      format_fields.append("%-*s")
-  separator = opts.separator
-  if "%" in separator:
-    separator = separator.replace("%", "%%")
-  format = separator.join(format_fields)
-
-  for row in output:
-    for idx, val in enumerate(row):
-      if opts.human_readable and selected_fields[idx] in unitformat_fields:
-        try:
-          val = int(val)
-        except ValueError:
-          pass
-        else:
-          val = row[idx] = utils.FormatUnit(val)
-      mlens[idx] = max(mlens[idx], len(val))
-
   if not opts.no_headers:
-    header_list = {"name": "Instance", "os": "OS", "pnode": "Primary_node",
-                   "snodes": "Secondary_Nodes", "admin_state": "Autostart",
-                   "oper_state": "Status", "admin_ram": "Configured_memory",
-                   "oper_ram": "Memory", "disk_template": "Disk_template",
-                   "ip": "IP Address", "mac": "MAC Address",
-                   "bridge": "Bridge"}
-    args = []
-    for idx, name in enumerate(selected_fields):
-      hdr = header_list[name]
-      mlens[idx] = max(mlens[idx], len(hdr))
-      args.append(mlens[idx])
-      args.append(hdr)
-    logger.ToStdout(format % tuple(args))
+    headers = {"name": "Instance", "os": "OS", "pnode": "Primary_node",
+               "snodes": "Secondary_Nodes", "admin_state": "Autostart",
+               "oper_state": "Status", "admin_ram": "Configured_memory",
+               "oper_ram": "Memory", "disk_template": "Disk_template",
+               "ip": "IP Address", "mac": "MAC Address",
+               "bridge": "Bridge"}
+  else:
+    headers = None
 
-  for line in output:
-    args = []
-    for idx in range(len(selected_fields)):
-      args.append(mlens[idx])
-      args.append(line[idx])
-    logger.ToStdout(format % tuple(args))
+  if opts.human_readable:
+    unitfields = ["admin_ram", "oper_ram"]
+  else:
+    unitfields = None
+
+  numfields = ["admin_ram", "oper_ram"]
+
+  OutputTable(separator=opts.separator, headers=headers,
+      fields=selected_fields, unitfields=unitfields,
+      numfields=numfields, data=output)
 
   return 0
 

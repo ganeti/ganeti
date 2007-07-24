@@ -48,51 +48,24 @@ def ListNodes(opts, args):
   op = opcodes.OpQueryNodes(output_fields=selected_fields)
   output = SubmitOpCode(op)
 
-  mlens = [0 for name in selected_fields]
-  format_fields = []
-  unitformat_fields = ("dtotal", "dfree", "mtotal", "mnode", "mfree")
-  for field in selected_fields:
-    if field in ("dtotal", "dfree", "mtotal", "mnode",
-                 "mfree", "pinst", "sinst"):
-      format_fields.append("%*s")
-    else:
-      format_fields.append("%-*s")
-
-  separator = opts.separator
-  if "%" in separator:
-    separator = separator.replace("%", "%%")
-  format = separator.join(format_fields)
-
-  for row in output:
-    for idx, val in enumerate(row):
-      if opts.human_readable and selected_fields[idx] in unitformat_fields:
-        try:
-          val = int(val)
-        except ValueError:
-          pass
-        else:
-          val = row[idx] = utils.FormatUnit(val)
-      mlens[idx] = max(mlens[idx], len(val))
-
   if not opts.no_headers:
-    header_list = {"name": "Node", "pinst": "Pinst", "sinst": "Sinst",
-                   "pip": "PrimaryIP", "sip": "SecondaryIP",
-                   "dtotal": "DTotal", "dfree": "DFree",
-                   "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree"}
-    args = []
-    for idx, name in enumerate(selected_fields):
-      hdr = header_list[name]
-      mlens[idx] = max(mlens[idx], len(hdr))
-      args.append(mlens[idx])
-      args.append(hdr)
-    logger.ToStdout(format % tuple(args))
+    headers = {"name": "Node", "pinst": "Pinst", "sinst": "Sinst",
+               "pip": "PrimaryIP", "sip": "SecondaryIP",
+               "dtotal": "DTotal", "dfree": "DFree",
+               "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree"}
+  else:
+    headers = None
 
-  for row in output:
-    args = []
-    for idx, val in enumerate(row):
-      args.append(mlens[idx])
-      args.append(val)
-    logger.ToStdout(format % tuple(args))
+  if opts.human_readable:
+    unitfields = ["dtotal", "dfree", "mtotal", "mnode", "mfree"]
+  else:
+    unitfields = None
+
+  numfields = ["dtotal", "dfree", "mtotal", "mnode", "mfree", "pinst", "sinst"]
+
+  OutputTable(separator=opts.separator, headers=headers,
+      fields=selected_fields, unitfields=unitfields,
+      numfields=numfields, data=output)
 
   return 0
 
@@ -143,49 +116,23 @@ def ListVolumes(opts, args):
   op = opcodes.OpQueryNodeVolumes(nodes=args, output_fields=selected_fields)
   output = SubmitOpCode(op)
 
-  mlens = [0 for name in selected_fields]
-  format_fields = []
-  unitformat_fields = ("size",)
-  for field in selected_fields:
-    if field in unitformat_fields:
-      format_fields.append("%*s")
-    else:
-      format_fields.append("%-*s")
-
-  separator = opts.separator
-  if "%" in separator:
-    separator = separator.replace("%", "%%")
-  format = separator.join(format_fields)
-
-  for row in output:
-    for idx, val in enumerate(row):
-      if opts.human_readable and selected_fields[idx] in unitformat_fields:
-        try:
-          val = int(val)
-        except ValueError:
-          pass
-        else:
-          val = row[idx] = utils.FormatUnit(val)
-      mlens[idx] = max(mlens[idx], len(val))
-
   if not opts.no_headers:
-    header_list = {"node": "Node", "phys": "PhysDev",
-                   "vg": "VG", "name": "Name",
-                   "size": "Size", "instance": "Instance"}
-    args = []
-    for idx, name in enumerate(selected_fields):
-      hdr = header_list[name]
-      mlens[idx] = max(mlens[idx], len(hdr))
-      args.append(mlens[idx])
-      args.append(hdr)
-    logger.ToStdout(format % tuple(args))
+    headers = {"node": "Node", "phys": "PhysDev",
+               "vg": "VG", "name": "Name",
+               "size": "Size", "instance": "Instance"}
+  else:
+    headers = None
 
-  for row in output:
-    args = []
-    for idx, val in enumerate(row):
-      args.append(mlens[idx])
-      args.append(val)
-    logger.ToStdout(format % tuple(args))
+  if opts.human_readable:
+    unitfields = ["size"]
+  else:
+    unitfields = None
+
+  numfields = ["size"]
+
+  OutputTable(separator=opts.separator, headers=headers,
+      fields=selected_fields, unitfields=unitfields,
+      numfields=numfields, data=output)
 
   return 0
 

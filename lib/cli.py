@@ -37,7 +37,7 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError, SUPPRESS_HELP)
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
-           "cli_option",
+           "cli_option", "OutputTable",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT"]
 
@@ -49,7 +49,7 @@ NOHDR_OPT = make_option("--no-headers", default=False,
                         action="store_true", dest="no_headers",
                         help="Don't display column headers")
 
-SEP_OPT = make_option("--separator", default=" ",
+SEP_OPT = make_option("--separator", default=None,
                       action="store", dest="separator",
                       help="Separator between output fields"
                       " (defaults to one space)")
@@ -274,3 +274,67 @@ def GenericMain(commands):
     utils.LockCleanup()
 
   return result
+
+
+def OutputTable(headers, fields, separator, data,
+                numfields=None, unitfields=None):
+  """Prints a table with headers and different fields.
+
+  Args:
+    headers: Dict of header titles or None if no headers should be shown
+    fields: List of fields to show
+    separator: String used to separate fields or None for spaces
+    data: Data to be printed
+    numfields: List of fields to be aligned to right
+    unitfields: List of fields to be formatted as units
+
+  """
+  if numfields is None:
+    numfields = []
+  if unitfields is None:
+    unitfields = []
+
+  format_fields = []
+  for field in fields:
+    if separator is not None:
+      format_fields.append("%s")
+    elif field in numfields:
+      format_fields.append("%*s")
+    else:
+      format_fields.append("%-*s")
+
+  if separator is None:
+    mlens = [0 for name in fields]
+    format = ' '.join(format_fields)
+  else:
+    format = separator.replace("%", "%%").join(format_fields)
+
+  for row in data:
+    for idx, val in enumerate(row):
+      if fields[idx] in unitfields:
+        try:
+          val = int(val)
+        except ValueError:
+          pass
+        else:
+          val = row[idx] = utils.FormatUnit(val)
+      if separator is None:
+        mlens[idx] = max(mlens[idx], len(val))
+
+  if headers:
+    args = []
+    for idx, name in enumerate(fields):
+      hdr = headers[name]
+      if separator is None:
+        mlens[idx] = max(mlens[idx], len(hdr))
+        args.append(mlens[idx])
+      args.append(hdr)
+    logger.ToStdout(format % tuple(args))
+
+  for line in data:
+    args = []
+    for idx in xrange(len(fields)):
+      if separator is None:
+        args.append(mlens[idx])
+      args.append(line[idx])
+    logger.ToStdout(format % tuple(args))
