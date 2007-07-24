@@ -122,6 +122,12 @@ class OpQueryNodeData(OpCode):
   __slots__ = ["nodes"]
 
 
+class OpQueryNodeVolumes(OpCode):
+  """Get list of volumes on node."""
+  OP_ID = "OP_NODE_QUERYVOLS"
+  __slots__ = ["nodes", "output_fields"]
+
+
 # instance opcodes
 
 class OpCreateInstance(OpCode):

@@ -261,6 +261,30 @@
       </para>
     </refsect2>
 
+    <refsect2>
+      <title>VOLUMES</title>
+
+      <cmdsynopsis>
+        <command>volumes</command>
+        <arg rep="repeat"><replaceable>node</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Lists all logical volumes and their physical disks from the node(s)
+        provided.
+      </para>
+
+      <para>
+        Example:
+        <screen>
+# gnt-node volumes node5.example.com
+Node              PhysDev   VG    Name                                 Size Instance
+node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11000.meta 128  instance1.example.com
+node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  instance1.example.com
+        </screen>
+      </para>
+    </refsect2>
+
   </refsect1>
 
   &footer;

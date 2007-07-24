@@ -235,6 +235,9 @@ class ServerObject(pb.Avatar):
   def perspective_node_leave_cluster(self, params):
     return backend.LeaveCluster()
 
+  def perspective_node_volumes(self, params):
+    return backend.NodeVolumes()
+
   # cluster --------------------------
 
   def perspective_version(self,params):

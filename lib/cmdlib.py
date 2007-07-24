@@ -164,6 +164,36 @@ class NoHooksLU(LogicalUnit):
     return
 
 
+def _GetWantedNodes(lu, nodes):
+  if nodes is not None and not isinstance(nodes, list):
+    raise errors.OpPrereqError, "Invalid argument type 'nodes'"
+
+  if nodes:
+    wanted_nodes = []
+
+    for name in nodes:
+      node = lu.cfg.GetNodeInfo(lu.cfg.ExpandNodeName(name))
+      if node is None:
+        raise errors.OpPrereqError, ("No such node name '%s'" % name)
+    wanted_nodes.append(node)
+
+    return wanted_nodes
+  else:
+    return [lu.cfg.GetNodeInfo(name) for name in lu.cfg.GetNodeList()]
+
+
+def _CheckOutputFields(static, dynamic, selected):
+    static_fields = frozenset(static)
+    dynamic_fields = frozenset(dynamic)
+
+    all_fields = static_fields | dynamic_fields
+
+    if not all_fields.issuperset(selected):
+      raise errors.OpPrereqError, ("Unknown output fields selected: %s"
+                                   % ",".join(frozenset(selected).
+                                              difference(all_fields)))
+
+
 def _UpdateEtcHosts(fullnode, ip):
   """Ensure a node has a correct entry in /etc/hosts.
 
@@ -1028,15 +1058,12 @@ class LUQueryNodes(NoHooksLU):
     This checks that the fields required are valid output fields.
 
     """
-    self.static_fields = frozenset(["name", "pinst", "sinst", "pip", "sip"])
     self.dynamic_fields = frozenset(["dtotal", "dfree",
                                      "mtotal", "mnode", "mfree"])
-    self.all_fields = self.static_fields | self.dynamic_fields
 
-    if not self.all_fields.issuperset(self.op.output_fields):
-      raise errors.OpPrereqError, ("Unknown output fields selected: %s"
-                                   % ",".join(frozenset(self.op.output_fields).
-                                              difference(self.all_fields)))
+    _CheckOutputFields(static=["name", "pinst", "sinst", "pip", "sip"],
+                       dynamic=self.dynamic_fields,
+                       selected=self.op.output_fields)
 
 
   def Exec(self, feedback_fn):
@@ -1102,6 +1129,73 @@ class LUQueryNodes(NoHooksLU):
         val = str(val)
         node_output.append(val)
       output.append(node_output)
+
+    return output
+
+
+class LUQueryNodeVolumes(NoHooksLU):
+  """Logical unit for getting volumes on node(s).
+
+  """
+  _OP_REQP = ["nodes", "output_fields"]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the fields required are valid output fields.
+
+    """
+    self.nodes = _GetWantedNodes(self, self.op.nodes)
+
+    _CheckOutputFields(static=["node"],
+                       dynamic=["phys", "vg", "name", "size", "instance"],
+                       selected=self.op.output_fields)
+
+
+  def Exec(self, feedback_fn):
+    """Computes the list of nodes and their attributes.
+
+    """
+    nodenames = utils.NiceSort([node.name for node in self.nodes])
+    volumes = rpc.call_node_volumes(nodenames)
+
+    ilist = [self.cfg.GetInstanceInfo(iname) for iname
+             in self.cfg.GetInstanceList()]
+
+    lv_by_node = dict([(inst, inst.MapLVsByNode()) for inst in ilist])
+
+    output = []
+    for node in nodenames:
+      node_vols = volumes[node][:]
+      node_vols.sort(key=lambda vol: vol['dev'])
+
+      for vol in node_vols:
+        node_output = []
+        for field in self.op.output_fields:
+          if field == "node":
+            val = node
+          elif field == "phys":
+            val = vol['dev']
+          elif field == "vg":
+            val = vol['vg']
+          elif field == "name":
+            val = vol['name']
+          elif field == "size":
+            val = int(float(vol['size']))
+          elif field == "instance":
+            for inst in ilist:
+              if node not in lv_by_node[inst]:
+                continue
+              if vol['name'] in lv_by_node[inst][node]:
+                val = inst.name
+                break
+            else:
+              val = '-'
+          else:
+            raise errors.ParameterError, field
+          node_output.append(str(val))
+
+        output.append(node_output)
 
     return output
 
@@ -1477,16 +1571,8 @@ class LUClusterCopyFile(NoHooksLU):
     """
     if not os.path.exists(self.op.filename):
       raise errors.OpPrereqError("No such filename '%s'" % self.op.filename)
-    if self.op.nodes:
-      nodes = self.op.nodes
-    else:
-      nodes = self.cfg.GetNodeList()
-    self.nodes = []
-    for node in nodes:
-      nname = self.cfg.ExpandNodeName(node)
-      if nname is None:
-        raise errors.OpPrereqError, ("Node '%s' is unknown." % node)
-      self.nodes.append(nname)
+
+    self.nodes = _GetWantedNodes(self, self.op.nodes)
 
   def Exec(self, feedback_fn):
     """Copy a file from master to some nodes.
@@ -1540,16 +1626,7 @@ class LURunClusterCommand(NoHooksLU):
     It checks that the given list of nodes is valid.
 
     """
-    if self.op.nodes:
-      nodes = self.op.nodes
-    else:
-      nodes = self.cfg.GetNodeList()
-    self.nodes = []
-    for node in nodes:
-      nname = self.cfg.ExpandNodeName(node)
-      if nname is None:
-        raise errors.OpPrereqError, ("Node '%s' is unknown." % node)
-      self.nodes.append(nname)
+    self.nodes = _GetWantedNodes(self, self.op.nodes)
 
   def Exec(self, feedback_fn):
     """Run a command on some nodes.
@@ -1557,8 +1634,8 @@ class LURunClusterCommand(NoHooksLU):
     """
     data = []
     for node in self.nodes:
-      result = utils.RunCmd(["ssh", node, self.op.command])
-      data.append((node, result.cmd, result.output, result.exit_code))
+      result = utils.RunCmd(["ssh", node.name, self.op.command])
+      data.append((node.name, result.cmd, result.output, result.exit_code))
 
     return data
 
@@ -1884,7 +1961,7 @@ class LUQueryInstances(NoHooksLU):
   """Logical unit for querying instances.
 
   """
-  OP_REQP = ["output_fields"]
+  _OP_REQP = ["output_fields"]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1892,17 +1969,12 @@ class LUQueryInstances(NoHooksLU):
     This checks that the fields required are valid output fields.
 
     """
-
-    self.static_fields = frozenset(["name", "os", "pnode", "snodes",
-                                    "admin_state", "admin_ram",
-                                    "disk_template", "ip", "mac", "bridge"])
     self.dynamic_fields = frozenset(["oper_state", "oper_ram"])
-    self.all_fields = self.static_fields | self.dynamic_fields
-
-    if not self.all_fields.issuperset(self.op.output_fields):
-      raise errors.OpPrereqError, ("Unknown output fields selected: %s"
-                                   % ",".join(frozenset(self.op.output_fields).
-                                              difference(self.all_fields)))
+    _CheckOutputFields(static=["name", "os", "pnode", "snodes",
+                               "admin_state", "admin_ram",
+                               "disk_template", "ip", "mac", "bridge"],
+                       dynamic=self.dynamic_fields,
+                       selected=self.op.output_fields)
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
@@ -3074,20 +3146,7 @@ class LUQueryNodeData(NoHooksLU):
     This only checks the optional node list against the existing names.
 
     """
-    if not isinstance(self.op.nodes, list):
-      raise errors.OpPrereqError, "Invalid argument type 'nodes'"
-    if self.op.nodes:
-      self.wanted_nodes = []
-      names = self.op.nodes
-      for name in names:
-        node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(name))
-        if node is None:
-          raise errors.OpPrereqError, ("No such node name '%s'" % name)
-      self.wanted_nodes.append(node)
-    else:
-      self.wanted_nodes = [self.cfg.GetNodeInfo(name) for name
-                           in self.cfg.GetNodeList()]
-    return
+    self.wanted_nodes = _GetWantedNodes(self, self.op.nodes)
 
   def Exec(self, feedback_fn):
     """Compute and return the list of nodes.
@@ -3214,18 +3273,9 @@ class LUQueryExports(NoHooksLU):
     """Check that the nodelist contains only existing nodes.
 
     """
-    nodes = getattr(self.op, "nodes", None)
-    if not nodes:
-      self.op.nodes = self.cfg.GetNodeList()
-    else:
-      expnodes = [self.cfg.ExpandNodeName(node) for node in nodes]
-      if expnodes.count(None) > 0:
-        raise errors.OpPrereqError, ("At least one of the given nodes %s"
-                                     " is unknown" % self.op.nodes)
-      self.op.nodes = expnodes
+    self.nodes = _GetWantedNodes(self, getattr(self.op, "nodes", None))
 
   def Exec(self, feedback_fn):
-
     """Compute the list of all the exported system images.
 
     Returns:
@@ -3234,7 +3284,7 @@ class LUQueryExports(NoHooksLU):
       that node.
 
     """
-    return rpc.call_export_list(self.op.nodes)
+    return rpc.call_export_list([node.name for node in self.nodes])
 
 
 class LUExportInstance(LogicalUnit):

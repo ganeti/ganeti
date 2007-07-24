@@ -762,3 +762,15 @@ def call_node_leave_cluster(node):
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
+
+
+def call_node_volumes(node_list):
+  """Gets all volumes on node(s).
+
+  This is a multi-node call.
+
+  """
+  c = Client("node_volumes", [])
+  c.connect_list(node_list)
+  c.run()
+  return c.getresult()

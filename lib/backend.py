@@ -260,6 +260,35 @@ def ListVolumeGroups():
   return utils.ListVolumeGroups()
 
 
+def NodeVolumes():
+  """List all volumes on this node.
+
+  """
+  result = utils.RunCmd(["lvs", "--noheadings", "--units=m", "--nosuffix",
+                         "--separator=|",
+                         "--options=lv_name,lv_size,devices,vg_name"])
+  if result.failed:
+    logger.Error("Failed to list logical volumes, lvs output: %s" %
+                 result.output)
+    return {}
+
+  def parse_dev(dev):
+    if '(' in dev:
+      return dev.split('(')[0]
+    else:
+      return dev
+
+  def map_line(line):
+    return {
+      'name': line[0].strip(),
+      'size': line[1].strip(),
+      'dev': parse_dev(line[2].strip()),
+      'vg': line[3].strip(),
+    }
+
+  return [map_line(line.split('|')) for line in result.output.splitlines()]
+
+
 def BridgesExist(bridges_list):
   """Check if a list of bridges exist on the current node
 

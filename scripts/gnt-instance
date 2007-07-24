@@ -489,11 +489,7 @@ commands = {
   'info': (ShowInstanceConfig, ARGS_ANY, [DEBUG_OPT], "[<instance>...]",
            "Show information on the specified instance"),
   'list': (ListInstances, ARGS_NONE,
-           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT,
-            make_option("-o", "--output", dest="output", action="store",
-                        type="string", help="Select output fields",
-                        metavar="FIELDS")
-            ],
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
            "", "Lists the instances and their status"),
   'remove': (RemoveInstance, ARGS_ONE, [DEBUG_OPT, force_opt],
              "[-f] <instance>", "Shuts down the instance and removes it"),

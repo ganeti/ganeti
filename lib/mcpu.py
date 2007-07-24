@@ -59,6 +59,7 @@ class Processor(object):
     opcodes.OpAddNode: cmdlib.LUAddNode,
     opcodes.OpQueryNodes: cmdlib.LUQueryNodes,
     opcodes.OpQueryNodeData: cmdlib.LUQueryNodeData,
+    opcodes.OpQueryNodeVolumes: cmdlib.LUQueryNodeVolumes,
     opcodes.OpRemoveNode: cmdlib.LURemoveNode,
     # instance lu
     opcodes.OpCreateInstance: cmdlib.LUCreateInstance,
