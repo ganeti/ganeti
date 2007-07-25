@@ -255,7 +255,7 @@ def TestGanetiCommands():
            ['ganeti-noded', '--version'],
            ['ganeti-watcher', '--version'] )
 
-  cmd = ' && '.join(map(utils.ShellQuoteArgs, cmds))
+  cmd = ' && '.join([utils.ShellQuoteArgs(i) for i in cmds])
 
   for node in cfg['nodes']:
     AssertEqual(StartSSH(node['primary'], cmd).wait(), 0)
@@ -273,7 +273,7 @@ def TestIcmpPing():
         check.append(i['secondary'])
 
     ping = lambda ip: utils.ShellQuoteArgs(['ping', '-w', '3', '-c', '1', ip])
-    cmd = ' && '.join(map(ping, check))
+    cmd = ' && '.join([ping(i) for i in check])
 
     AssertEqual(StartSSH(node['primary'], cmd).wait(), 0)
 # }}}
@@ -288,6 +288,7 @@ def TestClusterInit():
     cmd.append('--secondary-ip=%s' % master['secondary'])
   if cfg.get('bridge', None):
     cmd.append('--bridge=%s' % cfg['bridge'])
+    cmd.append('--master-netdev=%s' % cfg['bridge'])
   cmd.append(cfg['name'])
 
   AssertEqual(StartSSH(master['primary'],
@@ -328,7 +329,7 @@ def TestClusterBurnin():
     script = UploadFile(master['primary'], '../tools/burnin')
     try:
       cmd = [script, '--os=%s' % cfg['os']]
-      cmd += map(lambda inst: inst['name'], instances)
+      cmd += [inst['name'] for inst in instances]
       AssertEqual(StartSSH(master['primary'],
                            utils.ShellQuoteArgs(cmd)).wait(), 0)
     finally:
@@ -400,6 +401,13 @@ def TestNodeRemoveAll():
   for node in cfg['nodes']:
     if node != master:
       _NodeRemove(node)
+
+
+def TestNodeInfo():
+  """gnt-node info"""
+  cmd = ['gnt-node', 'info']
+  AssertEqual(StartSSH(GetMasterNode()['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
 # }}}
 
 # {{{ Instance tests
@@ -462,6 +470,13 @@ def TestInstanceShutdown(instance):
 def TestInstanceFailover(instance):
   """gnt-instance failover"""
   cmd = ['gnt-instance', 'failover', '--force', instance['name']]
+  AssertEqual(StartSSH(GetMasterNode()['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestInstanceInfo(instance):
+  """gnt-instance info"""
+  cmd = ['gnt-instance', 'info', instance['name']]
   AssertEqual(StartSSH(GetMasterNode()['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 # }}}
@@ -633,9 +648,14 @@ if __name__ == '__main__':
 
   if TestEnabled('cluster-verify'):
     RunTest(TestClusterVerify)
+
+  if TestEnabled('cluster-info'):
     RunTest(TestClusterInfo)
 
   RunTest(TestNodeAddAll)
+
+  if TestEnabled('node-info'):
+    RunTest(TestNodeInfo)
 
   if TestEnabled('cluster-burnin'):
     RunTest(TestClusterBurnin)
@@ -650,6 +670,9 @@ if __name__ == '__main__':
       RunTest(TestInstanceShutdown, instance)
       RunTest(TestInstanceStartup, instance)
 
+      if TestEnabled('instance-info'):
+        RunTest(TestInstanceInfo, instance)
+
       if TestEnabled('instance-automatic-restart'):
         RunTest(TestInstanceAutomaticRestart, node, instance)
 
@@ -663,6 +686,10 @@ if __name__ == '__main__':
       instance = RunTest(TestInstanceAddWithLocalMirrorDisk, node)
       RunTest(TestInstanceShutdown, instance)
       RunTest(TestInstanceStartup, instance)
+
+      if TestEnabled('instance-info'):
+        RunTest(TestInstanceInfo, instance)
+
       RunTest(TestInstanceRemove, instance)
       del instance
 
@@ -672,6 +699,9 @@ if __name__ == '__main__':
         instance = RunTest(TestInstanceAddWithRemoteRaidDisk, node, node2)
         RunTest(TestInstanceShutdown, instance)
         RunTest(TestInstanceStartup, instance)
+
+        if TestEnabled('instance-info'):
+          RunTest(TestInstanceInfo, instance)
 
         if TestEnabled('instance-failover'):
           RunTest(TestInstanceFailover, instance)
