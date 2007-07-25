@@ -1181,42 +1181,6 @@ class LUQueryNodeVolumes(NoHooksLU):
     return output
 
 
-def _CheckNodesDirs(node_list, paths):
-  """Verify if the given nodes have the same files.
-
-  Args:
-    node_list: the list of node names to check
-    paths: the list of directories to checksum and compare
-
-  Returns:
-    list of (node, different_file, message); if empty, the files are in sync
-
-  """
-  file_names = []
-  for dir_name in paths:
-    flist = [os.path.join(dir_name, name) for name in os.listdir(dir_name)]
-    flist = [name for name in flist if os.path.isfile(name)]
-    file_names.extend(flist)
-
-  local_checksums = utils.FingerprintFiles(file_names)
-
-  results = []
-  verify_params = {'filelist': file_names}
-  all_node_results = rpc.call_node_verify(node_list, verify_params)
-  for node_name in node_list:
-    node_result = all_node_results.get(node_name, False)
-    if not node_result or 'filelist' not in node_result:
-      results.append((node_name, "'all files'", "node communication error"))
-      continue
-    remote_checksums = node_result['filelist']
-    for fname in local_checksums:
-      if fname not in remote_checksums:
-        results.append((node_name, fname, "missing file"))
-      elif remote_checksums[fname] != local_checksums[fname]:
-        results.append((node_name, fname, "wrong checksum"))
-  return results
-
-
 class LUAddNode(LogicalUnit):
   """Logical unit for adding node to the cluster.
 
