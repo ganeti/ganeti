@@ -738,7 +738,6 @@ class LUVerifyCluster(NoHooksLU):
           bad = True
     return bad
 
-
   def _VerifyOrphanInstances(self, instancelist, node_instance, feedback_fn):
     """Verify the list of running instances.
 
@@ -752,28 +751,6 @@ class LUVerifyCluster(NoHooksLU):
           feedback_fn("  - ERROR: instance %s on node %s should not exist" %
                           (runninginstance, node))
           bad = True
-    return bad
-
-  def _VerifyNodeConfigFiles(self, ismaster, node, file_list, feedback_fn):
-    """Verify the list of node config files"""
-
-    bad = False
-    for file_name in constants.MASTER_CONFIGFILES:
-      if ismaster and file_name not in file_list:
-        feedback_fn("  - ERROR: master config file %s missing from master"
-                    " node %s" % (file_name, node))
-        bad = True
-      elif not ismaster and file_name in file_list:
-        feedback_fn("  - ERROR: master config file %s should not exist"
-                    " on non-master node %s" % (file_name, node))
-        bad = True
-
-    for file_name in constants.NODE_CONFIGFILES:
-      if file_name not in file_list:
-        feedback_fn("  - ERROR: config file %s missing from node %s" %
-                    (file_name, node))
-        bad = True
-
     return bad
 
   def CheckPrereq(self):
@@ -801,11 +778,12 @@ class LUVerifyCluster(NoHooksLU):
 
     # FIXME: verify OS list
     # do local checksums
-    file_names = constants.CLUSTER_CONF_FILES
+    file_names = list(self.sstore.GetFileList())
+    file_names.append(constants.SSL_CERT_FILE)
+    file_names.append(constants.CLUSTER_CONF_FILE)
     local_checksums = utils.FingerprintFiles(file_names)
 
     feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
-    all_configfile = rpc.call_configfile_list(nodelist)
     all_volumeinfo = rpc.call_volume_list(nodelist, vg_name)
     all_instanceinfo = rpc.call_instance_list(nodelist)
     all_vglist = rpc.call_vg_list(nodelist)
@@ -823,16 +801,6 @@ class LUVerifyCluster(NoHooksLU):
                                 all_vglist[node], all_nvinfo[node],
                                 all_rversion[node], feedback_fn)
       bad = bad or result
-      # node_configfile
-      nodeconfigfile = all_configfile[node]
-
-      if not nodeconfigfile:
-        feedback_fn("  - ERROR: connection to %s failed" % (node))
-        bad = True
-        continue
-
-      bad = bad or self._VerifyNodeConfigFiles(node==master, node,
-                                               nodeconfigfile, feedback_fn)
 
       # node_volume
       volumeinfo = all_volumeinfo[node]
@@ -1452,8 +1420,7 @@ class LUAddNode(LogicalUnit):
           logger.Error("copy of file %s to node %s failed" %
                        (fname, to_node))
 
-    to_copy = [constants.MASTER_CRON_FILE]
-    to_copy.extend(ss.GetFileList())
+    to_copy = ss.GetFileList()
     for fname in to_copy:
       if not ssh.CopyFileToNode(node, fname):
         logger.Error("could not copy file %s to node %s" % (fname, node))

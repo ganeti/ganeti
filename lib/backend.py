@@ -43,23 +43,6 @@ from ganeti import objects
 from ganeti import ssconf
 
 
-def ListConfigFiles():
-  """Return a list of the config files present on the local node.
-  """
-
-  configfiles = []
-
-  for testfile in constants.MASTER_CONFIGFILES:
-    if os.path.exists(testfile):
-      configfiles.append(testfile)
-
-  for testfile in constants.NODE_CONFIGFILES:
-    if os.path.exists(testfile):
-      configfiles.append(testfile)
-
-  return configfiles
-
-
 def StartMaster():
   """Activate local node as master node.
 
@@ -75,8 +58,6 @@ def StartMaster():
                  " error: '%s'" % (result.cmd, result.output))
     return False
 
-  utils.RemoveFile(constants.MASTER_CRON_LINK)
-  os.symlink(constants.MASTER_CRON_FILE, constants.MASTER_CRON_LINK)
   return True
 
 
@@ -94,8 +75,6 @@ def StopMaster():
     logger.Error("could not deactivate cluster interface with command %s,"
                  " error: '%s'" % (result.cmd, result.output))
     return False
-
-  utils.RemoveFile(constants.MASTER_CRON_LINK)
 
   return True
 

@@ -33,15 +33,9 @@ EXPORT_VERSION = 0
 DATA_DIR = "/var/lib/ganeti"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
-HYPERCONF_FILE = DATA_DIR + "/hypervisor"
 WATCHER_STATEFILE = DATA_DIR + "/restart_state"
 
-ETC_DIR = "/etc/ganeti"
-
-MASTER_CRON_FILE = ETC_DIR + "/master-cron"
-MASTER_CRON_LINK = "/etc/cron.d/ganeti-master-cron"
 NODE_INITD_SCRIPT = "/etc/init.d/ganeti"
-NODE_INITD_NAME = "ganeti"
 DEFAULT_NODED_PORT = 1811
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
@@ -83,27 +77,6 @@ INSTANCE_IMPORT = "import"
 
 DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN,
                             DT_LOCAL_RAID1, DT_REMOTE_RAID1])
-
-# file groups
-CLUSTER_CONF_FILES = ["/etc/hosts",
-                      "/etc/ssh/ssh_known_hosts",
-                      "/etc/ssh/ssh_host_dsa_key",
-                      "/etc/ssh/ssh_host_dsa_key.pub",
-                      "/etc/ssh/ssh_host_rsa_key",
-                      "/etc/ssh/ssh_host_rsa_key.pub",
-                      "/root/.ssh/authorized_keys",
-                      "/root/.ssh/id_dsa",
-                      "/root/.ssh/id_dsa.pub",
-                      CLUSTER_CONF_FILE,
-                      SSL_CERT_FILE,
-                      MASTER_CRON_FILE,
-                      ]
-
-MASTER_CONFIGFILES = [MASTER_CRON_LINK,]
-
-NODE_CONFIGFILES = [NODE_INITD_SCRIPT,
-                    "/etc/rc2.d/S20%s" % NODE_INITD_NAME,
-                    "/etc/rc0.d/K80%s" % NODE_INITD_NAME]
 
 # import/export config options
 INISECT_EXP = "export"

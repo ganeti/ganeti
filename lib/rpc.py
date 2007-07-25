@@ -451,17 +451,6 @@ def call_version(node_list):
   return c.getresult()
 
 
-def call_configfile_list(node_list):
-  """Return list of existing configuration files.
-
-  This is a multi-node call.
-
-  """
-  c = Client("configfile_list", [])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
-
 def call_blockdev_create(node, bdev, size, on_primary):
   """Request creation of a given block device.
 

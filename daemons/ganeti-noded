@@ -243,9 +243,6 @@ class ServerObject(pb.Avatar):
   def perspective_version(self, params):
     return constants.PROTOCOL_VERSION
 
-  def perspective_configfile_list(self, params):
-    return backend.ListConfigFiles()
-
   def perspective_upload_file(self, params):
     return backend.UploadFile(*params)
 
