@@ -108,3 +108,6 @@ NODE_CONFIGFILES = [NODE_INITD_SCRIPT,
 # import/export config options
 INISECT_EXP = "export"
 INISECT_INS = "instance"
+
+# common exit codes
+EXIT_NOTMASTER = 11
