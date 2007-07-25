@@ -27,14 +27,18 @@ tests:
   env: True
 
   cluster-verify: True
+  cluster-info: True
   cluster-burnin: True
   cluster-master-failover: True
   cluster-destroy: True
+
+  node-info: True
 
   instance-add-plain-disk: True
   instance-add-local-mirror-disk: True
   instance-add-remote-raid-disk: True
   instance-failover: True
+  instance-info: True
 
   # This test takes up to 6 minutes to complete
   instance-automatic-restart: False
