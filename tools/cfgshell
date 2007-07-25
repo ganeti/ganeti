@@ -186,7 +186,8 @@ class ConfigShell(cmd.Cmd):
   def do_cd(self, line):
     """Changes the current path.
 
-    Valid arguments: either .. or a child of the current object.
+    Valid arguments: either .., /, "" (no argument) or a child of the current
+    object.
 
     """
     if line == "..":
@@ -197,6 +198,10 @@ class ConfigShell(cmd.Cmd):
       else:
         print "Already at top level"
         return False
+    elif len(line) == 0 or line == "/":
+      self.parents = self.parents[0:1]
+      self.path = []
+      return False
 
     pointer = self.parents[-1]
     dirs, entries = self._get_entries(pointer)
@@ -316,6 +321,7 @@ class ConfigShell(cmd.Cmd):
     """
     print
     return True
+
 
 class Error(Exception):
   """Generic exception"""
