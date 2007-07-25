@@ -53,6 +53,8 @@ class ConfigWriter:
   def __init__(self, cfg_file=None, offline=False):
     self._config_data = None
     self._config_time = None
+    self._config_size = None
+    self._config_inode = None
     self._offline = offline
     if cfg_file is None:
       self._cfg_file = constants.CLUSTER_CONF_FILE
@@ -167,6 +169,22 @@ class ConfigWriter:
       disk.physical_id = disk.logical_id
     return
 
+  def AddTcpIpPort(self, port):
+    if not isinstance(port, int):
+      raise errors.ProgrammerError("Invalid type passed for port")
+
+    self._OpenConfig()
+    self._config_data.tcpudp_port_pool.add(port)
+    self._WriteConfig()
+
+  def GetPortList():
+    """Returns a copy of the current port list.
+
+    """
+    self._OpenConfig()
+    self._ReleaseLock()
+    return self._config_data.tcpudp_port_pool.copy()
+
   def AllocatePort(self):
     """Allocate a port.
 
@@ -175,12 +193,16 @@ class ConfigWriter:
     """
     self._OpenConfig()
 
-    self._config_data.cluster.highest_used_port += 1
-    if self._config_data.cluster.highest_used_port >= constants.LAST_DRBD_PORT:
-      raise errors.ConfigurationError, ("The highest used port is greater"
-                                        " than %s. Aborting." %
-                                        constants.LAST_DRBD_PORT)
-    port = self._config_data.cluster.highest_used_port
+    # If there are TCP/IP ports configured, we use them first.
+    if self._config_data.tcpudp_port_pool:
+      port = self._config_data.tcpudp_port_pool.pop()
+    else:
+      port = self._config_data.cluster.highest_used_port + 1
+      if port >= constants.LAST_DRBD_PORT:
+        raise errors.ConfigurationError, ("The highest used port is greater"
+                                          " than %s. Aborting." %
+                                          constants.LAST_DRBD_PORT)
+      self._config_data.cluster.highest_used_port = port
 
     self._WriteConfig()
     return port
@@ -377,7 +399,9 @@ class ConfigWriter:
       raise errors.ConfigurationError, "Can't stat config file: %s" % err
     if (self._config_data is not None and
         self._config_time is not None and
-        self._config_time == st.st_mtime):
+        self._config_time == st.st_mtime and
+        self._config_size == st.st_size and
+        self._config_inode == st.st_ino):
       # data is current, so skip loading of config file
       return
     f = open(self._cfg_file, 'r')
@@ -399,6 +423,8 @@ class ConfigWriter:
                                          constants.CONFIG_VERSION))
     self._config_data = data
     self._config_time = st.st_mtime
+    self._config_size = st.st_size
+    self._config_inode = st.st_ino
 
   def _ReleaseLock(self):
     """xxxx
@@ -464,8 +490,8 @@ class ConfigWriter:
       secondary_ip: the secondary IP of the current host or None
       clustername: the name of the cluster
       hostkeypub: the public hostkey of this host
-    """
 
+    """
     hu_port = constants.FIRST_DRBD_PORT - 1
     globalconfig = objects.Cluster(config_version=constants.CONFIG_VERSION,
                                    serial_no=1, master_node=node,
@@ -482,7 +508,8 @@ class ConfigWriter:
 
     self._config_data = objects.ConfigData(nodes={node: nodeconfig},
                                            instances={},
-                                           cluster=globalconfig)
+                                           cluster=globalconfig,
+                                           tcpudp_port_pool=set())
     self._WriteConfig()
 
   def GetClusterName(self):

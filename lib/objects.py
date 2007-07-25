@@ -100,6 +100,9 @@ class ConfigObject(object):
         cls = Node
       elif name == "Cluster":
         cls = Cluster
+    elif module == "__builtin__":
+      if name == "set":
+        cls = set
     if cls is None:
       raise cPickle.UnpicklingError, ("Class %s.%s not allowed due to"
                                       " security concerns" % (module, name))
@@ -140,7 +143,7 @@ class ConfigObject(object):
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
-  __slots__ = ["cluster", "nodes", "instances"]
+  __slots__ = ["cluster", "nodes", "instances", "tcpudp_port_pool"]
 
 
 class NIC(ConfigObject):
