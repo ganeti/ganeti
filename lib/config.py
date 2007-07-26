@@ -499,7 +499,7 @@ class ConfigWriter:
     """
     hu_port = constants.FIRST_DRBD_PORT - 1
     globalconfig = objects.Cluster(config_version=constants.CONFIG_VERSION,
-                                   serial_no=1, master_node=node,
+                                   serial_no=1,
                                    name=clustername,
                                    rsahostkeypub=hostkeypub,
                                    highest_used_port=hu_port,
