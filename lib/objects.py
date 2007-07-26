@@ -143,7 +143,7 @@ class ConfigObject(object):
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
-  __slots__ = ["cluster", "nodes", "instances", "tcpudp_port_pool"]
+  __slots__ = ["cluster", "nodes", "instances"]
 
 
 class NIC(ConfigObject):
@@ -343,10 +343,10 @@ class Cluster(ConfigObject):
   __slots__ = [
     "config_version",
     "serial_no",
-    "master_node",
     "name",
     "rsahostkeypub",
     "highest_used_port",
+    "tcpudp_port_pool",
     "mac_prefix",
     "volume_group_name",
     "default_bridge",

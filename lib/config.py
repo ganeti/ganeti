@@ -169,33 +169,38 @@ class ConfigWriter:
       disk.physical_id = disk.logical_id
     return
 
-  def AddTcpIpPort(self, port):
+  def AddTcpUdpPort(self, port):
+    """Adds a new port to the available port pool.
+
+    """
     if not isinstance(port, int):
-      raise errors.ProgrammerError("Invalid type passed for port")
+      raise errors.ProgrammerError, ("Invalid type passed for port")
 
     self._OpenConfig()
-    self._config_data.tcpudp_port_pool.add(port)
+    self._config_data.cluster.tcpudp_port_pool.add(port)
     self._WriteConfig()
 
-  def GetPortList():
+  def GetPortList(self):
     """Returns a copy of the current port list.
 
     """
     self._OpenConfig()
     self._ReleaseLock()
-    return self._config_data.tcpudp_port_pool.copy()
+    return self._config_data.cluster.tcpudp_port_pool.copy()
 
   def AllocatePort(self):
     """Allocate a port.
 
-    The port will be recorded in the cluster config.
+    The port will be taken from the available port pool or from the
+    default port range (and in this case we increase
+    highest_used_port).
 
     """
     self._OpenConfig()
 
     # If there are TCP/IP ports configured, we use them first.
-    if self._config_data.tcpudp_port_pool:
-      port = self._config_data.tcpudp_port_pool.pop()
+    if self._config_data.cluster.tcpudp_port_pool:
+      port = self._config_data.cluster.tcpudp_port_pool.pop()
     else:
       port = self._config_data.cluster.highest_used_port + 1
       if port >= constants.LAST_DRBD_PORT:
@@ -500,7 +505,8 @@ class ConfigWriter:
                                    highest_used_port=hu_port,
                                    mac_prefix=mac_prefix,
                                    volume_group_name=vg_name,
-                                   default_bridge=def_bridge)
+                                   default_bridge=def_bridge,
+                                   tcpudp_port_pool=set())
     if secondary_ip is None:
       secondary_ip = primary_ip
     nodeconfig = objects.Node(name=node, primary_ip=primary_ip,
@@ -508,8 +514,7 @@ class ConfigWriter:
 
     self._config_data = objects.ConfigData(nodes={node: nodeconfig},
                                            instances={},
-                                           cluster=globalconfig,
-                                           tcpudp_port_pool=set())
+                                           cluster=globalconfig)
     self._WriteConfig()
 
   def GetClusterName(self):
