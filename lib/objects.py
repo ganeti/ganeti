@@ -285,7 +285,6 @@ class Instance(ConfigObject):
       Otherwise, { 'nodename' : ['volume1', 'volume2', ...], ... }
 
     """
-
     if node == None:
       node = self.primary_node
 

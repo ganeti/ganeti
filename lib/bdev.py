@@ -80,7 +80,6 @@ class BlockDev(object):
   after assembly we'll have our correct major/minor.
 
   """
-
   STATUS_UNKNOWN = 0
   STATUS_EXISTING = 1
   STATUS_STANDBY = 2
@@ -321,6 +320,7 @@ class LogicalVolume(BlockDev):
 
     Returns:
       list of (free_space, name) with free_space in mebibytes
+
     """
     command = ["pvs", "--noheadings", "--nosuffix", "--units=m",
                "-opv_name,vg_name,pv_free,pv_attr", "--unbuffered",
@@ -451,7 +451,6 @@ class LogicalVolume(BlockDev):
     """Create a snapshot copy of an lvm block device.
 
     """
-
     snap_name = self._lv_name + ".snap"
 
     # remove existing snapshot if found

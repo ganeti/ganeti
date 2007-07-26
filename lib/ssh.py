@@ -45,7 +45,6 @@ def SSHCall(hostname, user, command, batch=True, ask_key=False):
     `utils.RunResult` as for `utils.RunCmd()`
 
   """
-
   argv = ["ssh", "-q", "-oEscapeChar=none"]
   if batch:
     argv.append("-oBatchMode=yes")

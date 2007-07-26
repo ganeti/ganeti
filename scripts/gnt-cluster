@@ -51,6 +51,7 @@ def DestroyCluster(opts, args):
 
   Args:
     opts - class with options as members
+
   """
   if not opts.yes_do_it:
     print ("Destroying a cluster is irreversibly. If you really want destroy"

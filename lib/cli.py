@@ -107,6 +107,7 @@ def _ParseArgs(argv, commands):
 
     commands: dictionary with special contents, see the design doc for
     cmdline handling
+
   """
   if len(argv) == 0:
     binary = "<command>"

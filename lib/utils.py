@@ -156,8 +156,9 @@ def Lock(name, max_retries=None, debug=False):
 
 
 def Unlock(name):
-  """Unlock a given subsystem."""
+  """Unlock a given subsystem.
 
+  """
   lockfile = _GetLockFile(name)
 
   try:
@@ -182,8 +183,9 @@ def Unlock(name):
 
 
 def LockCleanup():
-  """Remove all locks."""
+  """Remove all locks.
 
+  """
   for lock in _locksheld:
     Unlock(lock)
 
@@ -401,8 +403,8 @@ def LookupHostname(hostname):
     - ip: IP addr
     - hostname_full: hostname fully qualified
     - hostname: hostname fully qualified (historic artifact)
-  """
 
+  """
   try:
     (fqdn, dummy, ipaddrs) = socket.gethostbyname_ex(hostname)
     ipaddr = ipaddrs[0]
@@ -452,7 +454,6 @@ def BridgeExists(bridge):
      True if it does, false otherwise.
 
   """
-
   return os.path.isdir("/sys/class/net/%s/bridge" % bridge)
 
 

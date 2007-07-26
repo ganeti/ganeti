@@ -30,8 +30,9 @@ import os
 from twisted.internet.pollreactor import PollReactor
 
 class ReReactor(PollReactor):
-  """A re-startable Reactor implementation"""
+  """A re-startable Reactor implementation.
 
+  """
   def run(self, installSignalHandlers=1):
     """Custom run method.
 

@@ -63,8 +63,8 @@ class ServerObject(pb.Avatar):
 
     to handle the method; subclasses of Avatar are expected to
     implement methods of this naming convention.
-    """
 
+    """
     args = broker.unserialize(args, self)
     kw = broker.unserialize(kw, self)
     method = getattr(self, "perspective_%s" % message)
@@ -346,6 +346,7 @@ def main():
 def createDaemon():
   """Detach a process from the controlling terminal and run it in the
   background as a daemon.
+
   """
   UMASK = 077
   WORKDIR = "/"

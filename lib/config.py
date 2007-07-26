@@ -48,8 +48,9 @@ from ganeti import objects
 
 
 class ConfigWriter:
-  """The interface to the cluster configuration"""
+  """The interface to the cluster configuration.
 
+  """
   def __init__(self, cfg_file=None, offline=False):
     self._config_data = None
     self._config_time = None
@@ -267,7 +268,6 @@ class ConfigWriter:
     """Mark the status of an instance to down in the configuration.
 
     """
-
     self._OpenConfig()
 
     if instance_name not in self._config_data.instances:

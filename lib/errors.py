@@ -129,10 +129,12 @@ class OpPrereqError(GenericError):
 
   """
 
+
 class OpExecError(GenericError):
   """Error during OpCode execution.
 
   """
+
 
 class OpCodeUnknown(GenericError):
   """Unknown opcode submitted.
@@ -142,12 +144,14 @@ class OpCodeUnknown(GenericError):
 
   """
 
+
 class HooksFailure(GenericError):
   """A generic hook failure.
 
   This signifies usually a setup misconfiguration.
 
   """
+
 
 class HooksAbort(HooksFailure):
   """A required hook has failed.
@@ -158,6 +162,7 @@ class HooksAbort(HooksFailure):
     - script: the name of the script which aborted the run
 
   """
+
 
 class UnitParseError(GenericError):
   """Unable to parse size unit.

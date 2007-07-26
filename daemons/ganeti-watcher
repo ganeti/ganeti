@@ -195,6 +195,7 @@ class Instance(object):
 
   Methods:
     Restart(): issue a command to restart the represented machine.
+
   """
   def __init__(self, name, state):
     self.name = name

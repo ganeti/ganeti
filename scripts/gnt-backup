@@ -38,7 +38,6 @@ def PrintExportList(opts, args):
     nothing
 
   """
-
   op = opcodes.OpQueryExports(nodes=opts.nodes)
   exports = SubmitOpCode(op)
   for node in exports:
@@ -83,14 +82,14 @@ def ImportInstance(opts, args):
     1 in case of error, 0 otherwise
 
   """
-
   instance = args[0]
 
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
-                                mode=constants.INSTANCE_IMPORT, pnode=opts.node,
-                                snode=opts.snode, vcpus=opts.vcpus,
+                                mode=constants.INSTANCE_IMPORT,
+                                pnode=opts.node, snode=opts.snode,
+                                vcpus=opts.vcpus,
                                 ip=opts.ip, bridge=opts.bridge, start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
                                 wait_for_sync=opts.wait_for_sync)
@@ -135,7 +134,6 @@ import_opts = [
   make_option("--src-dir", dest="src_dir", help="Source directory",
               metavar="<dir>"),
   ]
-
 
 commands = {
   'list': (PrintExportList, ARGS_NONE,

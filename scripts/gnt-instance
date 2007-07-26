@@ -82,7 +82,6 @@ def AddInstance(opts, args):
     node - node to run new instance on
 
   """
-
   instance = args[0]
 
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
@@ -333,7 +332,6 @@ def ShowInstanceConfig(opts, args):
   """Compute instance run-time status.
 
   """
-
   retcode = 0
   op = opcodes.OpQueryInstanceData(instances=args)
   result = SubmitOpCode(op)
@@ -434,7 +432,6 @@ add_opts = [
               help="Bridge to connect this instance to",
               default=None, metavar="<bridge>")
   ]
-
 
 commands = {
   'add': (AddInstance, ARGS_ONE, add_opts,

@@ -85,8 +85,8 @@ def AddNode(dsa, dsapub, rsa, rsapub, ssh, sshpub):
       - adds the ssh-key
       - sets the node id
       - sets the node status to installed
-  """
 
+  """
   f = open("/etc/ssh/ssh_host_rsa_key", 'w')
   f.write(rsa)
   f.close()
@@ -159,8 +159,8 @@ def GetNodeInfo(vgname):
     memory_dom0 is the memory allocated for domain0 in MiB
     memory_free is the currently available (free) ram in MiB
     memory_total is the total number of ram in MiB
-  """
 
+  """
   outputarray = {}
   vginfo = _GetVGInfo(vgname)
   outputarray['vg_size'] = vginfo['vg_size']
@@ -192,7 +192,6 @@ def VerifyNode(what):
     by ssh-execution of 'hostname', result compared against name in list.
 
   """
-
   result = {}
 
   if 'hypervisor' in what:
@@ -289,8 +288,8 @@ def GetInstanceList():
     A list of all running instances on the current node
     - instance1.example.com
     - instance2.example.com
-  """
 
+  """
   try:
     names = hypervisor.GetHypervisor().ListInstances()
   except errors.HypervisorError, err:
@@ -313,8 +312,8 @@ def GetInstanceInfo(instance):
     memory: memory size of instance (int)
     state: xen state of instance (string)
     time: cpu time of instance (float)
-  """
 
+  """
   output = {}
 
   iinfo = hypervisor.GetHypervisor().GetInstanceInfo(instance)
@@ -341,8 +340,8 @@ def GetAllInstancesInfo():
     state: xen state of instance (string)
     time: cpu time of instance (float)
     vcpus: the number of cpus
-  """
 
+  """
   output = {}
 
   iinfo = hypervisor.GetHypervisor().GetAllInstancesInfo()
@@ -471,8 +470,8 @@ def StartInstance(instance, extra_args):
 
   Args:
     instance - name of instance to start.
-  """
 
+  """
   running_instances = GetInstanceList()
 
   if instance.name in running_instances:
@@ -495,8 +494,8 @@ def ShutdownInstance(instance):
 
   Args:
     instance - name of instance to shutdown.
-  """
 
+  """
   running_instances = GetInstanceList()
 
   if instance.name not in running_instances:
@@ -958,8 +957,8 @@ def SnapshotBlockDevice(disk):
 
   Returns:
     a config entry for the actual lvm device snapshotted.
-  """
 
+  """
   if disk.children:
     if len(disk.children) == 1:
       # only one child, let's recurse on it
@@ -993,8 +992,8 @@ def ExportSnapshot(disk, dest_node, instance):
 
   Returns:
     True if successful, False otherwise.
-  """
 
+  """
   inst_os = OSFromDisk(instance.os)
   export_script = inst_os.export_script
 
@@ -1050,8 +1049,8 @@ def FinalizeExport(instance, snap_disks):
 
   Returns:
     False in case of error, True otherwise.
-  """
 
+  """
   destdir = os.path.join(constants.EXPORT_DIR, instance.name + ".new")
   finaldestdir = os.path.join(constants.EXPORT_DIR, instance.name)
 
@@ -1108,7 +1107,6 @@ def ExportInfo(dest):
     A serializable config file containing the export info.
 
   """
-
   cff = os.path.join(dest, constants.EXPORT_CONF_FILE)
 
   config = objects.SerializableConfigParser()
@@ -1135,7 +1133,6 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
     False in case of error, True otherwise.
 
   """
-
   inst_os = OSFromDisk(instance.os)
   import_script = inst_os.import_script
 
@@ -1195,6 +1192,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
 
 def ListExports():
   """Return a list of exports currently available on this machine.
+
   """
   if os.path.isdir(constants.EXPORT_DIR):
     return os.listdir(constants.EXPORT_DIR)
@@ -1210,8 +1208,8 @@ def RemoveExport(export):
 
   Returns:
     False in case of error, True otherwise.
-  """
 
+  """
   target = os.path.join(constants.EXPORT_DIR, export)
 
   shutil.rmtree(target)

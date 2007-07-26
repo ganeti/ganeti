@@ -466,7 +466,6 @@ class LUInitCluster(LogicalUnit):
     ourselves in the post-run node list.
 
     """
-
     env = {"CLUSTER": self.op.cluster_name,
            "MASTER": self.hostname['hostname_full']}
     return env, [], [self.hostname['hostname_full']]
@@ -623,6 +622,7 @@ class LUVerifyCluster(NoHooksLU):
       node: name of the node to check
       file_list: required list of files
       local_cksum: dictionary of local files and their checksums
+
     """
     # compares ganeti version
     local_version = constants.PROTOCOL_VERSION
@@ -913,7 +913,6 @@ def _CheckDiskConsistency(cfgw, dev, node, on_primary):
   """Check that mirrors are not degraded.
 
   """
-
   cfgw.SetDiskID(dev, node)
 
   result = True
@@ -986,7 +985,6 @@ class LURemoveNode(LogicalUnit):
     Any errors are signalled by raising errors.OpPrereqError.
 
     """
-
     node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.node_name))
     if node is None:
       logger.Error("Error: Node '%s' is unknown." % self.op.node_name)
@@ -1441,7 +1439,6 @@ class LUMasterFailover(LogicalUnit):
     master.
 
     """
-
     #TODO: do not rely on gethostname returning the FQDN
     logger.Info("setting master to %s, old master: %s" %
                 (self.new_master, self.old_master))
@@ -1924,7 +1921,6 @@ class LUQueryInstances(NoHooksLU):
     """Computes the list of nodes and their attributes.
 
     """
-
     instance_names = utils.NiceSort(self.cfg.GetInstanceList())
     instance_list = [self.cfg.GetInstanceInfo(iname) for iname
                      in instance_names]
@@ -2132,7 +2128,6 @@ def _CreateBlockDevOnPrimary(cfg, node, device):
   This always creates all devices.
 
   """
-
   if device.children:
     for child in device.children:
       if not _CreateBlockDevOnPrimary(cfg, node, child):
@@ -3044,7 +3039,6 @@ class LUQueryInstanceData(NoHooksLU):
 
   def Exec(self, feedback_fn):
     """Gather and return data"""
-
     result = {}
     for instance in self.wanted_instances:
       remote_info = rpc.call_instance_info(instance.primary_node,
@@ -3096,7 +3090,6 @@ class LUQueryNodeData(NoHooksLU):
     """Compute and return the list of nodes.
 
     """
-
     ilist = [self.cfg.GetInstanceInfo(iname) for iname
              in self.cfg.GetInstanceList()]
     result = []
