@@ -100,8 +100,6 @@ def ImportInstance(opts, args):
 # options used in more than one cmd
 node_opt = make_option("-n", "--node", dest="node", help="Target node",
                        metavar="<node>")
-force_opt = make_option("-f", "--force", dest="force", action="store_true",
-                        default=False, help="Force the operation")
 
 # this is defined separately due to readability only
 import_opts = [
@@ -143,7 +141,7 @@ commands = {
             ],
            "", "Lists instance exports available in the ganeti cluster"),
   'export': (ExportInstance, ARGS_ONE,
-             [node_opt, DEBUG_OPT, force_opt,
+             [node_opt, DEBUG_OPT, FORCE_OPT,
               make_option("","--noshutdown", dest="shutdown",
                           action="store_false", default=True,
                           help="Don't shutdown the instance (unsafe)"), ],

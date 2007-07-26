@@ -39,7 +39,7 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
            "cli_option", "OutputTable",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
-           "USEUNITS_OPT", "FIELDS_OPT"]
+           "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT"]
 
 DEBUG_OPT = make_option("-d", "--debug", default=False,
                         action="store_true",
@@ -61,6 +61,9 @@ USEUNITS_OPT = make_option("--human-readable", default=False,
 FIELDS_OPT = make_option("-o", "--output", dest="output", action="store",
                          type="string", help="Select output fields",
                          metavar="FIELDS")
+
+FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
+                        default=False, help="Force the operation")
 
 _LOCK_OPT = make_option("--lock-retries", default=None,
                         type="int", help=SUPPRESS_HELP)

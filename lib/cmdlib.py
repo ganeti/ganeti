@@ -1648,6 +1648,17 @@ def _AssembleInstanceDisks(instance, cfg, ignore_secondaries=False):
   return disks_ok, device_info
 
 
+def _StartInstanceDisks(cfg, instance, force):
+  disks_ok, dummy = _AssembleInstanceDisks(instance, cfg,
+                                           ignore_secondaries=force)
+  if not disks_ok:
+    _ShutdownInstanceDisks(instance, cfg)
+    if force is not None and not force:
+      logger.Error("If the message above refers to a secondary node,"
+                   " you can retry the operation using '--force'.")
+    raise errors.OpExecError, ("Disk consistency error")
+
+
 class LUDeactivateInstanceDisks(NoHooksLU):
   """Shutdown an instance's disks.
 
@@ -1776,14 +1787,7 @@ class LUStartupInstance(LogicalUnit):
                                  (instance.name, node_current, memory,
                                   freememory))
 
-    disks_ok, dummy = _AssembleInstanceDisks(instance, self.cfg,
-                                             ignore_secondaries=force)
-    if not disks_ok:
-      _ShutdownInstanceDisks(instance, self.cfg)
-      if not force:
-        logger.Error("If the message above refers to a secondary node,"
-                     " you can retry the operation using '--force'.")
-      raise errors.OpExecError, ("Disk consistency error")
+    _StartInstanceDisks(self.cfg, instance, force)
 
     if not rpc.call_instance_start(node_current, instance, extra_args):
       _ShutdownInstanceDisks(instance, self.cfg)
@@ -1839,6 +1843,70 @@ class LUShutdownInstance(LogicalUnit):
 
     self.cfg.MarkInstanceDown(instance.name)
     _ShutdownInstanceDisks(instance, self.cfg)
+
+
+class LUReinstallInstance(LogicalUnit):
+  """Reinstall an instance.
+
+  """
+  HPATH = "instance-reinstall"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name"]
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on master, primary and secondary nodes of the instance.
+
+    """
+    env = {
+      "INSTANCE_NAME": self.op.instance_name,
+      "INSTANCE_PRIMARY": self.instance.primary_node,
+      "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
+      }
+    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+          list(self.instance.secondary_nodes))
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster and is not running.
+
+    """
+    instance = self.cfg.GetInstanceInfo(
+      self.cfg.ExpandInstanceName(self.op.instance_name))
+    if instance is None:
+      raise errors.OpPrereqError, ("Instance '%s' not known" %
+                                   self.op.instance_name)
+    if instance.disk_template == constants.DT_DISKLESS:
+      raise errors.OpPrereqError, ("Instance '%s' has no disks" %
+                                   self.op.instance_name)
+    if instance.status != "down":
+      raise errors.OpPrereqError, ("Instance '%s' is marked to be up" %
+                                   self.op.instance_name)
+    remote_info = rpc.call_instance_info(instance.primary_node, instance.name)
+    if remote_info:
+      raise errors.OpPrereqError, ("Instance '%s' is running on the node %s" %
+                                   (self.op.instance_name,
+                                    instance.primary_node))
+    self.instance = instance
+
+  def Exec(self, feedback_fn):
+    """Reinstall the instance.
+
+    """
+    inst = self.instance
+
+    _StartInstanceDisks(self.cfg, inst, None)
+    try:
+      feedback_fn("Running the instance OS create scripts...")
+      if not rpc.call_instance_os_add(inst.primary_node, inst, "sda", "sdb"):
+        raise errors.OpExecError, ("Could not install OS for instance %s "
+                                   "on node %s" %
+                                   (inst.name, inst.primary_node))
+    finally:
+      _ShutdownInstanceDisks(inst, self.cfg)
 
 
 class LURemoveInstance(LogicalUnit):
@@ -2395,7 +2463,7 @@ class LUCreateInstance(LogicalUnit):
     # check primary node
     pnode = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.pnode))
     if pnode is None:
-      raise errors.OpPrereqError, ("Primary node '%s' is uknown" %
+      raise errors.OpPrereqError, ("Primary node '%s' is unknown" %
                                    self.op.pnode)
     self.op.pnode = pnode.name
     self.pnode = pnode
@@ -3264,7 +3332,7 @@ class LUExportInstance(LogicalUnit):
     self.dst_node = self.cfg.GetNodeInfo(dst_node_short)
 
     if self.dst_node is None:
-      raise errors.OpPrereqError, ("Destination node '%s' is uknown." %
+      raise errors.OpPrereqError, ("Destination node '%s' is unknown." %
                                    self.op.target_node)
     self.op.target_node = self.dst_node.name
 

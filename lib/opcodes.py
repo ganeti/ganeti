@@ -139,6 +139,12 @@ class OpCreateInstance(OpCode):
                "wait_for_sync"]
 
 
+class OpReinstallInstance(OpCode):
+  """Reinstall an instance."""
+  OP_ID = "OP_INSTANCE_REINSTALL"
+  __slots__ = ["instance_name"]
+
+
 class OpRemoveInstance(OpCode):
   """Remove an instance."""
   OP_ID = "OP_INSTANCE_REMOVE"

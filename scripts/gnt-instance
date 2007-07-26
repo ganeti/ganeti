@@ -22,7 +22,6 @@
 import sys
 import os
 from optparse import make_option
-import textwrap
 from cStringIO import StringIO
 
 from ganeti.cli import *
@@ -93,6 +92,28 @@ def AddInstance(opts, args):
                                 ip=opts.ip, bridge=opts.bridge, start=True,
                                 wait_for_sync=opts.wait_for_sync)
   SubmitOpCode(op)
+  return 0
+
+
+def ReinstallInstance(opts, args):
+  """Reinstall an instance.
+
+  Args:
+    opts - class with options as members
+    args - list containing a single element, the instance name
+
+  """
+  instance_name = args[0]
+
+  if not opts.force:
+    usertext = ("This will reinstall the instance %s and remove "
+                "all data. Continue?") % instance_name
+    if not opts._ask_user(usertext):
+      return 1
+
+  op = opcodes.OpReinstallInstance(instance_name=instance_name)
+  SubmitOpCode(op)
+
   return 0
 
 
@@ -244,7 +265,6 @@ def FailoverInstance(opts, args):
     usertext = ("Failover will happen to image %s."
                 " This requires a shutdown of the instance. Continue?" %
                 (instance_name,))
-    usertext = textwrap.fill(usertext)
     if not opts._ask_user(usertext):
       return 1
 
@@ -400,8 +420,6 @@ def SetInstanceParms(opts, args):
 # options used in more than one cmd
 node_opt = make_option("-n", "--node", dest="node", help="Target node",
                        metavar="<node>")
-force_opt = make_option("-f", "--force", dest="force", action="store_true",
-                        default=False, help="Force the operation")
 
 # this is defined separately due to readability only
 add_opts = [
@@ -448,7 +466,7 @@ commands = {
               "<instance>",
               "Opens a console on the specified instance"),
   'failover': (FailoverInstance, ARGS_ONE,
-               [DEBUG_OPT, force_opt,
+               [DEBUG_OPT, FORCE_OPT,
                 make_option("--ignore-consistency", dest="ignore_consistency",
                             action="store_true", default=False,
                             help="Ignore the consistency of the disks on"
@@ -462,7 +480,9 @@ commands = {
   'list': (ListInstances, ARGS_NONE,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
            "", "Lists the instances and their status"),
-  'remove': (RemoveInstance, ARGS_ONE, [DEBUG_OPT, force_opt],
+  'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
+                "[-f] <instance>", "Reinstall the instance"),
+  'remove': (RemoveInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
              "[-f] <instance>", "Shuts down the instance and removes it"),
   'remove-mirror': (RemoveMDDRBDComponent, ARGS_ONE,
                    [DEBUG_OPT, node_opt,
@@ -484,9 +504,8 @@ commands = {
                                        " change the secondary)"))],
                     "[-n NODE] <instance>",
                     "Replaces all disks for the instance"),
-
   'modify': (SetInstanceParms, ARGS_ONE,
-             [DEBUG_OPT, force_opt,
+             [DEBUG_OPT, FORCE_OPT,
               cli_option("-m", "--memory", dest="mem",
                          help="Memory size",
                          default=None, type="unit", metavar="<mem>"),
@@ -504,7 +523,7 @@ commands = {
   'shutdown': (ShutdownInstance, ARGS_ONE, [DEBUG_OPT],
                "<instance>", "Stops an instance"),
   'startup': (StartupInstance, ARGS_ONE,
-              [DEBUG_OPT, force_opt,
+              [DEBUG_OPT, FORCE_OPT,
                make_option("-e", "--extra", dest="extra_args",
                            help="Extra arguments for the instance's kernel",
                            default=None, type="string", metavar="<PARAMS>"),
