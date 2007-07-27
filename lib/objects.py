@@ -342,7 +342,6 @@ class Cluster(ConfigObject):
   __slots__ = [
     "config_version",
     "serial_no",
-    "name",
     "rsahostkeypub",
     "highest_used_port",
     "tcpudp_port_pool",

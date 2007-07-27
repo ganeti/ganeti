@@ -483,7 +483,7 @@ class ConfigWriter:
     self._DistributeConfig()
 
   def InitConfig(self, node, primary_ip, secondary_ip,
-                 clustername, hostkeypub, mac_prefix, vg_name, def_bridge):
+                 hostkeypub, mac_prefix, vg_name, def_bridge):
     """Create the initial cluster configuration.
 
     It will contain the current node, which will also be the master
@@ -493,14 +493,12 @@ class ConfigWriter:
       node: the nodename of the initial node
       primary_ip: the IP address of the current host
       secondary_ip: the secondary IP of the current host or None
-      clustername: the name of the cluster
       hostkeypub: the public hostkey of this host
 
     """
     hu_port = constants.FIRST_DRBD_PORT - 1
     globalconfig = objects.Cluster(config_version=constants.CONFIG_VERSION,
                                    serial_no=1,
-                                   name=clustername,
                                    rsahostkeypub=hostkeypub,
                                    highest_used_port=hu_port,
                                    mac_prefix=mac_prefix,
@@ -516,14 +514,6 @@ class ConfigWriter:
                                            instances={},
                                            cluster=globalconfig)
     self._WriteConfig()
-
-  def GetClusterName(self):
-    """Return the cluster name.
-
-    """
-    self._OpenConfig()
-    self._ReleaseLock()
-    return self._config_data.cluster.name
 
   def GetVGName(self):
     """Return the volume group name.

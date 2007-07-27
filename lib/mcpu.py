@@ -201,9 +201,8 @@ class HooksMaster(object):
       for key in lu_env:
         env["GANETI_" + key] = lu_env[key]
 
-    if self.cfg is not None:
-      env["GANETI_CLUSTER"] = self.cfg.GetClusterName()
     if self.sstore is not None:
+      env["GANETI_CLUSTER"] = self.sstore.GetClusterName()
       env["GANETI_MASTER"] = self.sstore.GetMasterNode()
 
     for key in env:

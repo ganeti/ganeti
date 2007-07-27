@@ -539,6 +539,7 @@ class LUInitCluster(LogicalUnit):
     ss.SetKey(ss.SS_MASTER_NODE, hostname['hostname_full'])
     ss.SetKey(ss.SS_MASTER_IP, clustername['ip'])
     ss.SetKey(ss.SS_MASTER_NETDEV, self.op.master_netdev)
+    ss.SetKey(ss.SS_CLUSTER_NAME, clustername['hostname'])
 
     # set up the inter-node password and certificate
     _InitGanetiServerSetup(ss)
@@ -568,7 +569,7 @@ class LUInitCluster(LogicalUnit):
     # init of cluster config file
     cfgw = config.ConfigWriter()
     cfgw.InitConfig(hostname['hostname'], hostname['ip'], self.secondary_ip,
-                    clustername['hostname'], sshkey, self.op.mac_prefix,
+                    sshkey, self.op.mac_prefix,
                     self.op.vg_name, self.op.def_bridge)
 
 
@@ -1481,7 +1482,7 @@ class LUQueryClusterInfo(NoHooksLU):
     instances = [self.cfg.GetInstanceInfo(name)
                  for name in self.cfg.GetInstanceList()]
     result = {
-      "name": self.cfg.GetClusterName(),
+      "name": self.sstore.GetClusterName(),
       "software_version": constants.RELEASE_VERSION,
       "protocol_version": constants.PROTOCOL_VERSION,
       "config_version": constants.CONFIG_VERSION,

@@ -29,9 +29,6 @@ class FakeConfig:
     def IsCluster(self):
         return True
 
-    def GetClusterName(self):
-        return "test.cluster"
-
     def GetNodeList(self):
         return ["a", "b", "c"]
 
@@ -41,6 +38,9 @@ class FakeConfig:
 
 class FakeSStore:
     """Fake simplestore object"""
+
+    def GetClusterName(self):
+        return "test.cluster"
 
     def GetMasterNode(self):
         return socket.gethostname()

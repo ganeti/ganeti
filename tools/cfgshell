@@ -63,7 +63,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     cmd.Cmd.__init__(self)
-    self.cfg = self.cluster_name = None
+    self.cfg = None
     self.parents = []
     self.path = []
     if cfg_file:
@@ -133,7 +133,7 @@ class ConfigShell(cmd.Cmd):
     if self.cfg is None:
       self.prompt = "(#no config) "
     else:
-      self.prompt = "(%s:/%s) " % (self.cluster_name, "/".join(self.path))
+      self.prompt = "(/%s) " % ("/".join(self.path),)
     return stop
 
   def do_load(self, line):
@@ -155,7 +155,6 @@ class ConfigShell(cmd.Cmd):
       self.cfg._OpenConfig()
       self.parents = [self.cfg._config_data]
       self.path = []
-      self.cluster_name = self.cfg.GetClusterName()
     except errors.ConfigurationError, err:
       print "Error: %s" % str(err)
     return False
