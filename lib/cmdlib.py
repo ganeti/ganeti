@@ -45,7 +45,7 @@ from ganeti import opcodes
 from ganeti import ssconf
 
 class LogicalUnit(object):
-  """Logical Unit base class..
+  """Logical Unit base class.
 
   Subclasses must follow these rules:
     - implement CheckPrereq which also fills in the opcode instance
@@ -205,6 +205,51 @@ def _CheckOutputFields(static, dynamic, selected):
     raise errors.OpPrereqError, ("Unknown output fields selected: %s"
                                  % ",".join(frozenset(selected).
                                             difference(all_fields)))
+
+
+def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os, status,
+                          memory, vcpus, nics):
+  """
+  """
+  env = {
+    "INSTANCE_NAME": name,
+    "INSTANCE_PRIMARY": primary_node,
+    "INSTANCE_SECONDARIES": " ".join(secondary_nodes),
+    "INSTANCE_OS": os,
+    "INSTANCE_STATUS": status,
+    "INSTANCE_MEMORY": memory,
+    "INSTANCE_VCPUS": vcpus,
+  }
+
+  if nics:
+    nic_count = len(nics)
+    for idx, (ip, bridge) in enumerate(nics):
+      if ip is None:
+        ip = ""
+      env["INSTANCE_NIC%d_IP" % idx] = ip
+      env["INSTANCE_NIC%d_BRIDGE" % idx] = bridge
+  else:
+    nic_count = 0
+
+  env["INSTANCE_NIC_COUNT"] = nic_count
+
+  return env
+
+
+def _BuildInstanceHookEnvByObject(instance, override=None):
+  args = {
+    'name': instance.name,
+    'primary_node': instance.primary_node,
+    'secondary_nodes': instance.secondary_nodes,
+    'os': instance.os,
+    'status': instance.os,
+    'memory': instance.memory,
+    'vcpus': instance.vcpus,
+    'nics': [(nic.ip, nic.bridge) for nic in instance.nics],
+  }
+  if override:
+    args.update(override)
+  return _BuildInstanceHookEnv(**args)
 
 
 def _UpdateEtcHosts(fullnode, ip):
@@ -466,8 +511,10 @@ class LUInitCluster(LogicalUnit):
     ourselves in the post-run node list.
 
     """
-    env = {"CLUSTER": self.op.cluster_name,
-           "MASTER": self.hostname['hostname_full']}
+    env = {
+      "CLUSTER": self.op.cluster_name,
+      "MASTER": self.hostname['hostname_full'],
+      }
     return env, [], [self.hostname['hostname_full']]
 
   def CheckPrereq(self):
@@ -975,9 +1022,12 @@ class LURemoveNode(LogicalUnit):
     node would not allows itself to run.
 
     """
+    env = {
+      "NODE_NAME": self.op.node_name,
+      }
     all_nodes = self.cfg.GetNodeList()
     all_nodes.remove(self.op.node_name)
-    return {"NODE_NAME": self.op.node_name}, all_nodes, all_nodes
+    return env, all_nodes, all_nodes
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1733,11 +1783,9 @@ class LUStartupInstance(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_NAME": self.op.instance_name,
-      "INSTANCE_PRIMARY": self.instance.primary_node,
-      "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
       "FORCE": self.op.force,
       }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -1811,11 +1859,7 @@ class LUShutdownInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = {
-      "INSTANCE_NAME": self.op.instance_name,
-      "INSTANCE_PRIMARY": self.instance.primary_node,
-      "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
-      }
+    env = _BuildInstanceHookEnvByObject(self.instance)
     nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -1860,11 +1904,7 @@ class LUReinstallInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = {
-      "INSTANCE_NAME": self.op.instance_name,
-      "INSTANCE_PRIMARY": self.instance.primary_node,
-      "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
-      }
+    env = _BuildInstanceHookEnvByObject(self.instance)
     nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -1943,11 +1983,7 @@ class LURemoveInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = {
-      "INSTANCE_NAME": self.op.instance_name,
-      "INSTANCE_PRIMARY": self.instance.primary_node,
-      "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
-      }
+    env = _BuildInstanceHookEnvByObject(self.instance)
     nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -2099,11 +2135,9 @@ class LUFailoverInstance(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_NAME": self.op.instance_name,
-      "INSTANCE_PRIMARY": self.instance.primary_node,
-      "INSTANCE_SECONDARIES": " ".join(self.instance.secondary_nodes),
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = [self.sstore.GetMasterNode()] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
@@ -2408,23 +2442,25 @@ class LUCreateInstance(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_NAME": self.op.instance_name,
-      "INSTANCE_PRIMARY": self.op.pnode,
-      "INSTANCE_SECONDARIES": " ".join(self.secondaries),
-      "DISK_TEMPLATE": self.op.disk_template,
-      "MEM_SIZE": self.op.mem_size,
-      "DISK_SIZE": self.op.disk_size,
-      "SWAP_SIZE": self.op.swap_size,
-      "VCPUS": self.op.vcpus,
-      "BRIDGE": self.op.bridge,
+      "INSTANCE_DISK_TEMPLATE": self.op.disk_template,
+      "INSTANCE_DISK_SIZE": self.op.disk_size,
+      "INSTANCE_SWAP_SIZE": self.op.swap_size,
       "INSTANCE_ADD_MODE": self.op.mode,
       }
     if self.op.mode == constants.INSTANCE_IMPORT:
-      env["SRC_NODE"] = self.op.src_node
-      env["SRC_PATH"] = self.op.src_path
-      env["SRC_IMAGE"] = self.src_image
-    if self.inst_ip:
-      env["INSTANCE_IP"] = self.inst_ip
+      env["INSTANCE_SRC_NODE"] = self.op.src_node
+      env["INSTANCE_SRC_PATH"] = self.op.src_path
+      env["INSTANCE_SRC_IMAGE"] = self.src_image
+
+    env.update(_BuildInstanceHookEnv(name=self.op.instance_name,
+      primary_node=self.op.pnode,
+      secondary_nodes=self.secondaries,
+      status=self.instance_status,
+      os=self.op.os_type,
+      memory=self.op.mem_size,
+      vcpus=self.op.vcpus,
+      nics=[(self.inst_ip, self.op.bridge)],
+    ))
 
     nl = ([self.sstore.GetMasterNode(), self.op.pnode] +
           self.secondaries)
@@ -2730,10 +2766,10 @@ class LUAddMDDRBDComponent(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_NAME": self.op.instance_name,
       "NEW_SECONDARY": self.op.remote_node,
       "DISK_NAME": self.op.disk_name,
       }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = [self.sstore.GetMasterNode(), self.instance.primary_node,
           self.op.remote_node,] + list(self.instance.secondary_nodes)
     return env, nl, nl
@@ -2841,11 +2877,11 @@ class LURemoveMDDRBDComponent(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_NAME": self.op.instance_name,
       "DISK_NAME": self.op.disk_name,
       "DISK_ID": self.op.disk_id,
       "OLD_SECONDARY": self.old_secondary,
       }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = [self.sstore.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
     return env, nl, nl
@@ -2927,10 +2963,10 @@ class LUReplaceDisks(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_NAME": self.op.instance_name,
       "NEW_SECONDARY": self.op.remote_node,
       "OLD_SECONDARY": self.instance.secondary_nodes[0],
       }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = [self.sstore.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
     return env, nl, nl
@@ -3205,21 +3241,24 @@ class LUSetInstanceParms(LogicalUnit):
     This runs on the master, primary and secondaries.
 
     """
-    env = {
-      "INSTANCE_NAME": self.op.instance_name,
-      }
+    args = dict()
     if self.mem:
-      env["MEM_SIZE"] = self.mem
+      args['memory'] = self.mem
     if self.vcpus:
-      env["VCPUS"] = self.vcpus
-    if self.do_ip:
-      env["INSTANCE_IP"] = self.ip
-    if self.bridge:
-      env["BRIDGE"] = self.bridge
-
+      args['vcpus'] = self.vcpus
+    if self.do_ip or self.do_bridge:
+      if self.do_ip:
+        ip = self.ip
+      else:
+        ip = self.instance.nics[0].ip
+      if self.bridge:
+        bridge = self.bridge
+      else:
+        bridge = self.instance.nics[0].bridge
+      args['nics'] = [(ip, bridge)]
+    env = _BuildInstanceHookEnvByObject(self.instance, override=args)
     nl = [self.sstore.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
-
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -3327,10 +3366,10 @@ class LUExportInstance(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_NAME": self.op.instance_name,
       "EXPORT_NODE": self.op.target_node,
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
       }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = [self.sstore.GetMasterNode(), self.instance.primary_node,
           self.op.target_node]
     return env, nl, nl
