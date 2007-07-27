@@ -46,19 +46,20 @@ def ListOS(opts, args):
     oses[node_name] = [obj for obj in result[node_name]
                        if isinstance(obj, objects.OS)]
 
+  # Get intersection of all OSes
   fnode = oses.keys()[0]
   os_set = set([os_inst.name for os_inst in oses[fnode]])
   del oses[fnode]
   for node in oses:
     os_set &= set([os_inst.name for os_inst in oses[node]])
 
-  format = "%s"
-
   if not opts.no_headers:
-    logger.ToStdout(format % 'Name')
+    headers = {"name": "Name"}
+  else:
+    headers = None
 
-  for os_name in os_set:
-    logger.ToStdout(format % os_name)
+  OutputTable(separator=None, headers=headers, fields=["name"],
+    data=[[os] for os in os_set])
 
   return 0
 
