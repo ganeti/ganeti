@@ -377,6 +377,24 @@
         </para>
       </refsect3>
 
+      <refsect3>
+        <title>REINSTALL</title>
+
+        <cmdsynopsis>
+          <command>reinstall</command>
+          <arg choice="opt">-o <replaceable>os-type</replaceable></arg>
+          <arg choice="opt">-f <replaceable>force</replaceable></arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Reinstalls the operating system on the given instance. The instance
+          must be stopped when running this command. If the
+          <option>--os-type</option> is specified, the operating system is
+          changed.
+        </para>
+      </refsect3>
+
     </refsect2>
 
     <refsect2>

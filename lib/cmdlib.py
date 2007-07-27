@@ -1887,6 +1887,20 @@ class LUReinstallInstance(LogicalUnit):
       raise errors.OpPrereqError, ("Instance '%s' is running on the node %s" %
                                    (self.op.instance_name,
                                     instance.primary_node))
+
+    self.op.os_type = getattr(self.op, "os_type", None)
+    if self.op.os_type is not None:
+      # OS verification
+      pnode = self.cfg.GetNodeInfo(
+        self.cfg.ExpandNodeName(instance.primary_node))
+      if pnode is None:
+        raise errors.OpPrereqError, ("Primary node '%s' is unknown" %
+                                     self.op.pnode)
+      os_obj = rpc.call_os_get([pnode.name], self.op.os_type)[pnode.name]
+      if not isinstance(os_obj, objects.OS):
+        raise errors.OpPrereqError, ("OS '%s' not in supported OS list for"
+                                     " primary node"  % self.op.os_type)
+
     self.instance = instance
 
   def Exec(self, feedback_fn):
@@ -1894,6 +1908,11 @@ class LUReinstallInstance(LogicalUnit):
 
     """
     inst = self.instance
+
+    if self.op.os_type is not None:
+      feedback_fn("Changing OS to '%s'..." % self.op.os_type)
+      inst.os = self.op.os_type
+      self.cfg.AddInstance(inst)
 
     _StartInstanceDisks(self.cfg, inst, None)
     try:

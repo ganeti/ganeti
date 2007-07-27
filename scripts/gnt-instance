@@ -111,7 +111,8 @@ def ReinstallInstance(opts, args):
     if not opts._ask_user(usertext):
       return 1
 
-  op = opcodes.OpReinstallInstance(instance_name=instance_name)
+  op = opcodes.OpReinstallInstance(instance_name=instance_name,
+                                   os_type=opts.os)
   SubmitOpCode(op)
 
   return 0
@@ -421,6 +422,9 @@ def SetInstanceParms(opts, args):
 node_opt = make_option("-n", "--node", dest="node", help="Target node",
                        metavar="<node>")
 
+os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
+                    metavar="<os>"),
+
 # this is defined separately due to readability only
 add_opts = [
   DEBUG_OPT,
@@ -429,8 +433,7 @@ add_opts = [
              default=20 * 1024, type="unit", metavar="<size>"),
   cli_option("--swap-size", dest="swap", help="Swap size",
              default=4 * 1024, type="unit", metavar="<size>"),
-  cli_option("-o", "--os-type", dest="os", help="What OS to run",
-             metavar="<os>"),
+  os_opt,
   cli_option("-m", "--memory", dest="mem", help="Memory size",
               default=128, type="unit", metavar="<mem>"),
   make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
@@ -480,7 +483,7 @@ commands = {
   'list': (ListInstances, ARGS_NONE,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
            "", "Lists the instances and their status"),
-  'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
+  'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, os_opt],
                 "[-f] <instance>", "Reinstall the instance"),
   'remove': (RemoveInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
              "[-f] <instance>", "Shuts down the instance and removes it"),

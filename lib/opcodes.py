@@ -142,7 +142,7 @@ class OpCreateInstance(OpCode):
 class OpReinstallInstance(OpCode):
   """Reinstall an instance."""
   OP_ID = "OP_INSTANCE_REINSTALL"
-  __slots__ = ["instance_name"]
+  __slots__ = ["instance_name", "os_type"]
 
 
 class OpRemoveInstance(OpCode):
