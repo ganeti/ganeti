@@ -102,17 +102,10 @@ def ShowClusterConfig(opts, args):
 
   print ("Cluster name: %s" % result["name"])
 
-  print ("Architecture: %s (%s)" %
-            (result["architecture"][0], result["architecture"][1]))
-
   print ("Master node: %s" % result["master"])
 
-  print ("Instances:")
-  for name, node in result["instances"]:
-    print ("  - %s (on %s)" % (name, node))
-  print ("Nodes:")
-  for name in result["nodes"]:
-    print ("  - %s" % name)
+  print ("Architecture (this node): %s (%s)" %
+         (result["architecture"][0], result["architecture"][1]))
 
   return 0
 

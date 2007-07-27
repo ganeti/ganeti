@@ -1468,6 +1468,7 @@ class LUQueryClusterInfo(NoHooksLU):
 
   """
   _OP_REQP = []
+  REQ_MASTER = False
 
   def CheckPrereq(self):
     """No prerequsites needed for this LU.
@@ -1479,8 +1480,6 @@ class LUQueryClusterInfo(NoHooksLU):
     """Return cluster config.
 
     """
-    instances = [self.cfg.GetInstanceInfo(name)
-                 for name in self.cfg.GetInstanceList()]
     result = {
       "name": self.sstore.GetClusterName(),
       "software_version": constants.RELEASE_VERSION,
@@ -1490,9 +1489,6 @@ class LUQueryClusterInfo(NoHooksLU):
       "export_version": constants.EXPORT_VERSION,
       "master": self.sstore.GetMasterNode(),
       "architecture": (platform.architecture()[0], platform.machine()),
-      "instances": [(instance.name, instance.primary_node)
-                    for instance in instances],
-      "nodes": self.cfg.GetNodeList(),
       }
 
     return result
