@@ -590,9 +590,13 @@ class LUDestroyCluster(NoHooksLU):
     master = self.sstore.GetMasterNode()
 
     nodelist = self.cfg.GetNodeList()
-    if len(nodelist) > 0 and nodelist != [master]:
+    if len(nodelist) != 1 or nodelist[0] != master:
       raise errors.OpPrereqError, ("There are still %d node(s) in "
                                    "this cluster." % (len(nodelist) - 1))
+    instancelist = self.cfg.GetInstanceList()
+    if instancelist:
+      raise errors.OpPrereqError, ("There are still %d instance(s) in "
+                                   "this cluster." % len(instancelist))
 
   def Exec(self, feedback_fn):
     """Destroys the cluster.
