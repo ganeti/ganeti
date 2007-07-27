@@ -423,7 +423,7 @@ node_opt = make_option("-n", "--node", dest="node", help="Target node",
                        metavar="<node>")
 
 os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
-                    metavar="<os>"),
+                    metavar="<os>")
 
 # this is defined separately due to readability only
 add_opts = [
