@@ -207,15 +207,18 @@ def _CheckOutputFields(static, dynamic, selected):
                                             difference(all_fields)))
 
 
-def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os, status,
+def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           memory, vcpus, nics):
-  """
+  """Builds instance related env variables for hooks from single variables.
+
+  Args:
+    secondary_nodes: List of secondary nodes as strings
   """
   env = {
     "INSTANCE_NAME": name,
     "INSTANCE_PRIMARY": primary_node,
     "INSTANCE_SECONDARIES": " ".join(secondary_nodes),
-    "INSTANCE_OS": os,
+    "INSTANCE_OS_TYPE": os_type,
     "INSTANCE_STATUS": status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
@@ -237,11 +240,17 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os, status,
 
 
 def _BuildInstanceHookEnvByObject(instance, override=None):
+  """Builds instance related env variables for hooks from an object.
+
+  Args:
+    instance: objects.Instance object of instance
+    override: dict of values to override
+  """
   args = {
     'name': instance.name,
     'primary_node': instance.primary_node,
     'secondary_nodes': instance.secondary_nodes,
-    'os': instance.os,
+    'os_type': instance.os,
     'status': instance.os,
     'memory': instance.memory,
     'vcpus': instance.vcpus,
@@ -2456,7 +2465,7 @@ class LUCreateInstance(LogicalUnit):
       primary_node=self.op.pnode,
       secondary_nodes=self.secondaries,
       status=self.instance_status,
-      os=self.op.os_type,
+      os_type=self.op.os_type,
       memory=self.op.mem_size,
       vcpus=self.op.vcpus,
       nics=[(self.inst_ip, self.op.bridge)],
@@ -3292,6 +3301,7 @@ class LUSetInstanceParms(LogicalUnit):
           raise errors.OpPrereqError, ("Invalid IP address '%s'." % self.ip)
     else:
       self.do_ip = False
+    self.do_bridge = (self.bridge is not None)
 
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
