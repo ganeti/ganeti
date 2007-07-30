@@ -1,0 +1,304 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.2//EN" [
+]>
+  <article class="specification">
+  <articleinfo>
+    <title>Ganeti node/cluster installation tutorial</title>
+  </articleinfo>
+  <para>Documents Ganeti version 1.2</para>
+
+  <sect1>
+    <title>Introduction</title>
+
+    <para>Ganeti is a cluster virtualization management system. This document
+    explains how to bootstrap a Ganeti node and create a running cluster. You
+    need to repeat most of the steps in this document for every node you want to
+    install, but of course we recommend creating some semi-automatic procedure
+    if you plan to deploy Ganeti on a medium/large scale.
+    </para>
+
+    <para>This document is divided into two main sections:
+
+      <itemizedlist>
+        <listitem>
+          <simpara>Installation of the core system and base components</simpara>
+        </listitem>
+        <listitem>
+          <simpara>Configuration of the environment for Ganeti</simpara>
+        </listitem>
+      </itemizedlist>
+
+    Each of these is divided into sub-sections. While a full Ganeti system will
+    need all of the steps specified, some are not strictly required for every
+    environment. Which ones they are, and why, is specified in the
+    corresponding sections.
+    </para>
+
+    <para>While Ganeti itself is distribution-agnostic most of the examples in
+      this document will be targeted at Debian or debian derived distributions.
+      You are expected to be familiar with your distribution, its package
+      management system, and Xen before trying to use Ganeti.
+    </para>
+
+  </sect1>
+
+  <sect1>
+    <title>Installing the system and base components</title>
+
+    <sect2>
+      <title>Installing the base system</title>
+
+      <para>Mandatory.
+      </para>
+
+      <para>Please install your operating system as you would normally do. The
+        only requirement you need to be aware of at this stage is to partition
+        leaving enough space for a big LVM volume group which will then host
+        your instance file systems. You can even create the volume group at
+        installation time, of course: the default volume group name Ganeti 1.2
+        uses is "xenvg" but you may name it differently should you wish to, as
+        long as the name is the same for all the nodes in the cluster.
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>Installing Xen</title>
+
+      <para>Mandatory: While Ganeti is developed with the ability to modularly
+      run on different virtualization environments in mind the only one
+      currently useable on a live system is Xen.
+      </para>
+
+      <para>Please follow your distribution's recommended way to install and set
+      up Xen, or install Xen from the upstream source, if you wish, following
+      their manual.
+      </para>
+
+      <para>For example under Debian 4.0 or 3.1+backports you can install the
+      relevant xen-linux-system package, which will pull in both the hypervisor
+      and the relevant kernel. On Ubuntu (from Gutsy on) the package is called
+      ubuntu-xen-server.
+      </para>
+
+      <para>After installing Xen you need to reboot into your xenified dom0
+      system. Again on some distributions this might involve configuring GRUB
+      appropriately.
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>Installing DRBD</title>
+
+      <para>Recommended: DRBD is required if you want to use the high
+        availability (HA) features of Ganeti, but optional if you don't require
+        HA or only run Ganeti on single-node clusters. You can upgrade a non-HA
+        cluster to an HA one later, but you might need to export and reimport
+        all your instances to take advantage of the new features.
+      </para>
+
+      <para>Now the bad news: unless your distribution already provides it
+      installing DRBD might involve recompiling your kernel or anyway fiddling
+      with it. Hopefully at least the xenified kernel source to start from will
+      be provided.
+      </para>
+
+      <para>Under Debian you can just install the drbd0.7-module-source and
+      drbd0.7-utils packages, and your kernel source, and then run
+      module-assistant to compile the drbd0.7 module. The commands:
+
+      <programlisting>
+m-a update
+m-a a-i drbd0.7
+      </programlisting>
+
+      should do it for you.
+      </para>
+
+      <para>The good news is that you don't need to configure DRBD at all.
+      Ganeti will do it for you for every instance you set up.  If you have the
+      DRBD utils installed and the module in your kernel you're fine. Please
+      check that your system is configured to load the module at every boot.
+      </para>
+
+    </sect2>
+
+  </sect1>
+
+
+  <sect1>
+    <title>Setting up the environment for Ganeti</title>
+
+    <sect2>
+      <title>Configuring the network</title>
+
+      <para>Ganeti relies on Xen running in "bridge mode", which means the
+      instances network interfaces will be attached to a software bridge
+      running in dom0. Xen by default creates such a bridge at startup, but
+      your distribution might have a different way to do things.
+      </para>
+
+      <para>
+      In Debian, in order to enable the default Xen behaviour, you have to edit
+      /etc/xen/xend-config.sxp and replace (network-script network-dummy) with
+      (network-script network-bridge). The recommended Debian way to configure
+      things, though, is to edit your /etc/network/interfaces file and
+      substitute your normal ethernet stanza with something like:
+
+      <programlisting>
+auto br0
+iface br0 inet static
+        address YOUR_IP_ADDRESS
+        netmask YOUR_NETMASK
+        network YOUR_NETWORK
+        broadcast YOUR_BROADCAST_ADDRSS
+        gateway YOUR_GATEWAY
+        # dns-* options are implemented by the resolvconf package, if installed
+        dns-nameservers YOUR_DNS_SERVERS
+        dns-search YOUR_SEARCH_PATH
+        bridge_ports eth0
+        bridge_stp off
+        bridge_fd 0
+      </programlisting>
+
+    </para>
+
+    <para>
+      Beware that the default name Ganeti uses is xen-br0 (which was used in
+      Xen 2.0) while Xen 3.0 uses xenbr0 by default. The default bridge your
+      cluster will use for new instances can be specified at cluster
+      initialization time.
+    </para>
+
+    </sect2>
+
+    <sect2>
+      <title>Configuring LVM</title>
+
+      <para>
+        If you haven't configured your LVM volume group at install time you need
+        to do it before trying to initialize the Ganeti cluster. This is done by
+        formatting the devices/partitions you want to use for it and then adding
+        them to the relevant volume group:
+
+       <programlisting>
+pvcreate /dev/sda4
+pvcreate /dev/sdb
+pvcreate /dev/sdc1
+vgcreate xenvg /dev/sda4 /dev/sdb /dev/sdc1
+       </programlisting>
+      </para>
+
+      <para>
+        If you want to add a device later you can do so with the vgextend(8)
+        command.
+        <programlisting>
+pvcreate /dev/sdd
+vgextend xenvg /dev/sdd
+        </programlisting>
+      </para>
+
+      <para>
+        As said before you may choose a different name for the volume group,
+        as long as you stick to the same name on all the nodes of a cluster.
+      </para>
+    </sect2>
+
+    <sect2>
+      <title>Installing Ganeti</title>
+
+      <para>It's now time to install the Ganeti software itself if you haven't
+        done it yet. You can do it from source, with the usual steps:
+
+        <programlisting>
+./configure
+make
+make install
+        </programlisting>
+
+        or you can install the package relevant to your distribution, for
+        example in Debian/Ubuntu:
+
+        <programlisting>
+dpkg -i ganeti_VERSION_all.deb
+        </programlisting>
+
+        or, if you have a source repository that holds the Ganeti software:
+
+        <programlisting>
+apt-get install ganeti
+        </programlisting>
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>Installing the Operating System support packages</title>
+
+      <para>Another important component for Ganeti is the OS support packages,
+        which let different operating systems be used as instances. You can
+        install them by installing the relevant ganeti-instance-OS package.
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>Initializing the cluster</title>
+
+      <para>Mandatory: only on one node per cluster.
+      </para>
+
+
+      <para>The last step is to initialize the cluster. After you've repeated
+        the above process or some semi-automatic form of it on all of your
+        nodes choose one as the master, and execute:
+
+        <programlisting>
+gnt-cluster init CLUSTERNAME
+        </programlisting>
+
+        Options you can pass to gnt-cluster init include the default bridge
+        name (-b), the cluster-wide name for the volume group (-g) and the
+        secondary ip address for the initial node should you wish to keep the
+        data replication network separate. Invoke it with --help to see all the
+        possibilities.
+      </para>
+
+      <para>The cluster name must exist in DNS. You must choose a name
+        different from any of the nodes names for a multi-node cluster. In
+        general the best choice is to have a completely unique name for each
+        cluster.
+      </para>
+    </sect2>
+
+    <sect2>
+      <title>Joining the nodes to the cluster.</title>
+
+      <para>Mandatory: for all the other nodes.
+      </para>
+
+      <para>
+        If you have already initialized your cluster you need to join the other
+        nodes to it. You can do so by executing the following command on the
+        master node:
+        <programlisting>
+gnt-node add NODENAME
+        </programlisting>
+
+        The only option is (-s), which sets the node's secondary ip address for
+        replication purposes, if you are using a separate replication network.
+      </para>
+    </sect2>
+
+  </sect1>
+
+  <sect1>
+    <title>This is it!</title>
+
+    <para>Now you can follow the "admin guide" to use your new Ganeti cluster.
+    </para>
+
+  </sect1>
+
+
+  </article>
