@@ -22,7 +22,7 @@
 """Module holding different constants."""
 
 # various versions
-CONFIG_VERSION = 2
+CONFIG_VERSION = 3
 PROTOCOL_VERSION = 2
 RELEASE_VERSION = "1.2a1"
 OS_API_VERSION = 4

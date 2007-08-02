@@ -1,0 +1,211 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Tool to upgrade the configuration file.
+
+The upgrade is done by unpickling the configuration file into custom classes
+derivating from dict. We then update the configuration by modifying these
+dicts. To save the configuration, it's pickled into a buffer and unpickled
+again using the Ganeti objects before being finally pickled into a file.
+
+Not using the custom classes wouldn't allow us to rename or remove attributes
+between versions without loosing their values.
+
+"""
+
+
+import os
+import os.path
+import sys
+import optparse
+import cPickle
+import tempfile
+from cStringIO import StringIO
+
+from ganeti import objects
+
+class Error(Exception):
+  """Generic exception"""
+  pass
+
+
+def _BaseFindGlobal(module, name):
+  """Helper function for the other FindGlobal functions.
+
+  """
+  return getattr(sys.modules[module], name)
+
+
+# Internal config representation
+class UpgradeDict(dict):
+  """Base class for internal config classes.
+
+  """
+  def __setstate__(self, state):
+    self.update(state)
+
+  def __getstate__(self):
+    return self.copy()
+
+
+class UpgradeConfigData(UpgradeDict): pass
+class UpgradeCluster(UpgradeDict): pass
+class UpgradeNode(UpgradeDict): pass
+class UpgradeInstance(UpgradeDict): pass
+class UpgradeDisk(UpgradeDict): pass
+class UpgradeNIC(UpgradeDict): pass
+class UpgradeOS(UpgradeDict): pass
+
+
+_ClassMap = {
+  objects.ConfigData: UpgradeConfigData,
+  objects.Cluster: UpgradeCluster,
+  objects.Node: UpgradeNode,
+  objects.Instance: UpgradeInstance,
+  objects.Disk: UpgradeDisk,
+  objects.NIC: UpgradeNIC,
+  objects.OS: UpgradeOS,
+}
+
+# Build mapping dicts
+WriteMapping = dict()
+ReadMapping = dict()
+for key, value in _ClassMap.iteritems():
+  WriteMapping[value.__name__] = key
+  ReadMapping[key.__name__] = value
+
+
+# Read config
+def _ReadFindGlobal(module, name):
+  """Wraps Ganeti config classes to internal ones.
+
+  """
+  if module == "ganeti.objects" and name in ReadMapping:
+    return ReadMapping[name]
+
+  return _BaseFindGlobal(module, name)
+
+
+def ReadConfig(path):
+  """Reads configuration file.
+
+  """
+  f = open(path, 'r')
+  try:
+    loader = cPickle.Unpickler(f)
+    loader.find_global = _ReadFindGlobal
+    data = loader.load()
+  finally:
+    f.close()
+
+  return data
+
+
+# Write config
+def _WriteFindGlobal(module, name):
+  """Maps our internal config classes to Ganeti's.
+
+  """
+  if module == "__main__" and name in WriteMapping:
+    return WriteMapping[name]
+
+  return _BaseFindGlobal(module, name)
+
+
+def WriteConfig(path, data):
+  """Writes the configuration file.
+
+  """
+  buf = StringIO()
+
+  # Write intermediate representation
+  dumper = cPickle.Pickler(buf, cPickle.HIGHEST_PROTOCOL)
+  dumper.dump(data)
+  del dumper
+
+  # Convert back to Ganeti objects
+  buf.seek(0)
+  loader = cPickle.Unpickler(buf)
+  loader.find_global = _WriteFindGlobal
+  data = loader.load()
+
+  # Write target file
+  (fd, name) = tempfile.mkstemp(dir=os.path.dirname(path))
+  f = os.fdopen(fd, 'w')
+  try:
+    try:
+      dumper = cPickle.Pickler(f, cPickle.HIGHEST_PROTOCOL)
+      dumper.dump(data)
+      f.flush()
+      os.rename(name, path)
+    except:
+      os.unlink(name)
+      raise
+  finally:
+    f.close()
+
+
+def UpdateFromVersion2To3(cfg):
+  """Updates the configuration from version 2 to 3.
+
+  """
+  if cfg['cluster']['config_version'] != 2:
+    return
+
+  # Add port pool
+  if 'tcpudp_port_pool' not in cfg['cluster']:
+    cfg['cluster']['tcpudp_port_pool'] = set()
+
+  # Add bridge settings
+  if 'default_bridge' not in cfg['cluster']:
+    cfg['cluster']['default_bridge'] = 'xen-br0'
+  for inst in cfg['instances'].values():
+    for nic in inst['nics']:
+      if 'bridge' not in nic:
+        nic['bridge'] = None
+
+  cfg['cluster']['config_version'] = 3
+
+
+# Main program
+if __name__ == "__main__":
+  # Option parsing
+  parser = optparse.OptionParser()
+  parser.add_option('--verbose', dest='verbose',
+                    action="store_true",
+                    help="Verbose output")
+  (options, args) = parser.parse_args()
+
+  # Option checking
+  if args:
+    cfg_file = args[0]
+  else:
+    raise Error, ("Configuration file not specified")
+
+  config = ReadConfig(cfg_file)
+
+  UpdateFromVersion2To3(config)
+
+  if options.verbose:
+    import pprint
+    pprint.pprint(config)
+
+  WriteConfig(cfg_file, config)
