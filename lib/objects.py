@@ -63,6 +63,11 @@ class ConfigObject(object):
                              (type(self).__name__, name))
     return None
 
+  def __setitem__(self, key, value):
+    if key not in self.__slots__:
+      raise KeyError, key
+    setattr(self, key, value)
+
   def __getstate__(self):
     state = {}
     for name in self.__slots__:
