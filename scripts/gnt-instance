@@ -216,7 +216,7 @@ def AddMDDRBDComponent(opts, args):
 
 
 def RemoveMDDRBDComponent(opts, args):
-  """Connect to the console of an instance
+  """Remove a component from a remote_raid1 disk.
 
   Args:
     opts - class with options as members
