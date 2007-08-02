@@ -84,3 +84,6 @@ INISECT_INS = "instance"
 
 # common exit codes
 EXIT_NOTMASTER = 11
+
+# others
+DEFAULT_BRIDGE = "xen-br0"
