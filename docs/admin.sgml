@@ -130,8 +130,43 @@ gnt-instance add -n TARGET_NODE -o OS_TYPE -t DISK_TEMPLATE INSTANCE_NAME
 	  want to use the default one</simpara>
         </listitem>
       </itemizedlist>
-      If you want to create an highly available instance use the remote_raid1
-      disk template:
+      </para>
+
+      <para>There are four types of disk template you can choose from:
+
+      <variablelist>
+        <varlistentry>
+          <term>diskless</term>
+	  <listitem><para>The instance has no disks. Only used for special
+	  purpouse operating systems or for testing.</para></listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term>plain</term>
+	  <listitem><para>The instance will use LVM devices as backend for its
+	  disks. No redundancy is provided.</para></listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term>local_raid1</term>
+	  <listitem><para>A local mirror is set between LVM devices to back the
+	  instance. This provides some redundancy for the instance's
+	  data.</para></listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term>remote_raid1</term>
+	  <listitem><para>A mirror is set between the local node and a remote
+	  one, which must be specified with the --secondary-node option. Use
+	  this option to obtain a highly available instance that can be failed
+	  over to a remote node should the primary one fail.
+	  </para></listitem>
+        </varlistentry>
+
+      </variablelist>
+
+      For example if you want to create an highly available instance use the
+      remote_raid1 disk template:
       <programlisting>
 gnt-instance add -n TARGET_NODE -o OS_TYPE -t remote_raid1 \
   --secondary-node=SECONDARY_NODE INSTANCE_NAME
@@ -169,6 +204,14 @@ gnt-instance shutdown INSTANCE_NAME
 gnt-instance list
       </programlisting>
       </para>
+
+      <para>Do not use the xen commands to stop instances. If you run for
+      example xm shutdown or xm destroy on an instance Ganeti will
+      automatically restart it (via the
+      <citerefentry><refentrytitle>ganeti-watcher</refentrytitle>
+      <manvolnum>8</manvolnum></citerefentry>)
+      </para>
+
     </sect2>
 
     <sect2>

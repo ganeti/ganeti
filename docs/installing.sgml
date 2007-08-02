@@ -195,8 +195,9 @@ vgcreate xenvg /dev/sda4 /dev/sdb /dev/sdc1
       </para>
 
       <para>
-        If you want to add a device later you can do so with the vgextend(8)
-        command.
+	If you want to add a device later you can do so with the 
+	<citerefentry><refentrytitle>vgextend</refentrytitle>
+	<manvolnum>8</manvolnum></citerefentry> command.
         <programlisting>
 pvcreate /dev/sdd
 vgextend xenvg /dev/sdd
