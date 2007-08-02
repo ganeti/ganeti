@@ -39,6 +39,11 @@
       management system, and Xen before trying to use Ganeti.
     </para>
 
+    <para>A basic Ganeti terminology glossary is provided in the introductory
+      section of the "admin guide". Please refer to that if you are uncertain
+      about the terms we are using.
+    </para>
+
   </sect1>
 
   <sect1>
