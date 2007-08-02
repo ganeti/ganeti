@@ -130,7 +130,7 @@ def _WriteFindGlobal(module, name):
   return _BaseFindGlobal(module, name)
 
 
-def WriteConfig(path, data):
+def WriteConfig(path, data, dry_run):
   """Writes the configuration file.
 
   """
@@ -155,7 +155,10 @@ def WriteConfig(path, data):
       dumper = cPickle.Pickler(f, cPickle.HIGHEST_PROTOCOL)
       dumper.dump(data)
       f.flush()
-      os.rename(name, path)
+      if dry_run:
+        os.unlink(name)
+      else:
+        os.rename(name, path)
     except:
       os.unlink(name)
       raise
@@ -189,6 +192,10 @@ def UpdateFromVersion2To3(cfg):
 if __name__ == "__main__":
   # Option parsing
   parser = optparse.OptionParser()
+  parser.add_option('--dry-run', dest='dry_run',
+                    action="store_true",
+                    help="Try to do the conversion, but don't write "
+                      "output file")
   parser.add_option('--verbose', dest='verbose',
                     action="store_true",
                     help="Verbose output")
@@ -208,4 +215,4 @@ if __name__ == "__main__":
     import pprint
     pprint.pprint(config)
 
-  WriteConfig(cfg_file, config)
+  WriteConfig(cfg_file, config, options.dry_run)
