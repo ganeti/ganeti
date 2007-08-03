@@ -545,6 +545,15 @@ class ConfigWriter:
       f.close()
     # we don't need to do os.close(fd) as f.close() did it
     os.rename(name, destination)
+    # re-set our cache as not to re-read the config file
+    try:
+      st = os.stat(destination)
+    except OSError, err:
+      raise errors.ConfigurationError, "Can't stat config file: %s" % err
+    self._config_time = st.st_mtime
+    self._config_size = st.st_size
+    self._config_inode = st.st_ino
+    # and redistribute the config file
     self._DistributeConfig()
 
   def InitConfig(self, node, primary_ip, secondary_ip,
