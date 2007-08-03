@@ -534,7 +534,7 @@ def ShutdownInstance(instance):
   return True
 
 
-def CreateBlockDevice(disk, size, on_primary):
+def CreateBlockDevice(disk, size, on_primary, info):
   """Creates a block device for an instance.
 
   Args:
@@ -578,6 +578,9 @@ def CreateBlockDevice(disk, size, on_primary):
     device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       device.Open(force=True)
+
+  device.SetInfo(info)
+
   physical_id = device.unique_id
   return physical_id
 

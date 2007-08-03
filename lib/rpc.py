@@ -452,13 +452,13 @@ def call_version(node_list):
   return c.getresult()
 
 
-def call_blockdev_create(node, bdev, size, on_primary):
+def call_blockdev_create(node, bdev, size, on_primary, info):
   """Request creation of a given block device.
 
   This is a single-node call.
 
   """
-  params = [bdev.Dumps(), size, on_primary]
+  params = [bdev.Dumps(), size, on_primary, info]
   c = Client("blockdev_create", params)
   c.connect(node)
   c.run()

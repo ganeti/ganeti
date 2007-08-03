@@ -2253,7 +2253,7 @@ class LUFailoverInstance(LogicalUnit):
                                (instance.name, target_node))
 
 
-def _CreateBlockDevOnPrimary(cfg, node, device):
+def _CreateBlockDevOnPrimary(cfg, node, device, info):
   """Create a tree of block devices on the primary node.
 
   This always creates all devices.
@@ -2261,11 +2261,11 @@ def _CreateBlockDevOnPrimary(cfg, node, device):
   """
   if device.children:
     for child in device.children:
-      if not _CreateBlockDevOnPrimary(cfg, node, child):
+      if not _CreateBlockDevOnPrimary(cfg, node, child, info):
         return False
 
   cfg.SetDiskID(device, node)
-  new_id = rpc.call_blockdev_create(node, device, device.size, True)
+  new_id = rpc.call_blockdev_create(node, device, device.size, True, info)
   if not new_id:
     return False
   if device.physical_id is None:
@@ -2273,7 +2273,7 @@ def _CreateBlockDevOnPrimary(cfg, node, device):
   return True
 
 
-def _CreateBlockDevOnSecondary(cfg, node, device, force):
+def _CreateBlockDevOnSecondary(cfg, node, device, force, info):
   """Create a tree of block devices on a secondary node.
 
   If this device type has to be created on secondaries, create it and
@@ -2286,13 +2286,13 @@ def _CreateBlockDevOnSecondary(cfg, node, device, force):
     force = True
   if device.children:
     for child in device.children:
-      if not _CreateBlockDevOnSecondary(cfg, node, child, force):
+      if not _CreateBlockDevOnSecondary(cfg, node, child, force, info):
         return False
 
   if not force:
     return True
   cfg.SetDiskID(device, node)
-  new_id = rpc.call_blockdev_create(node, device, device.size, False)
+  new_id = rpc.call_blockdev_create(node, device, device.size, False, info)
   if not new_id:
     return False
   if device.physical_id is None:
@@ -2394,6 +2394,10 @@ def _GenerateDiskTemplate(cfg, template_name,
   return disks
 
 
+def _GetInstanceInfoText(instance):
+  return "originstname+%s" % instance.name
+
+
 def _CreateDisks(cfg, instance):
   """Create all disks for an instance.
 
@@ -2406,17 +2410,20 @@ def _CreateDisks(cfg, instance):
     True or False showing the success of the creation process
 
   """
+  info = _GetInstanceInfoText(instance)
+
   for device in instance.disks:
     logger.Info("creating volume %s for instance %s" %
               (device.iv_name, instance.name))
     #HARDCODE
     for secondary_node in instance.secondary_nodes:
-      if not _CreateBlockDevOnSecondary(cfg, secondary_node, device, False):
+      if not _CreateBlockDevOnSecondary(cfg, secondary_node, device, False,
+                                        info):
         logger.Error("failed to create volume %s (%s) on secondary node %s!" %
                      (device.iv_name, device, secondary_node))
         return False
     #HARDCODE
-    if not _CreateBlockDevOnPrimary(cfg, instance.primary_node, device):
+    if not _CreateBlockDevOnPrimary(cfg, instance.primary_node, device, info):
       logger.Error("failed to create volume %s on primary!" %
                    device.iv_name)
       return False
@@ -2854,13 +2861,15 @@ class LUAddMDDRBDComponent(LogicalUnit):
 
     logger.Info("adding new mirror component on secondary")
     #HARDCODE
-    if not _CreateBlockDevOnSecondary(self.cfg, remote_node, new_drbd, False):
+    if not _CreateBlockDevOnSecondary(self.cfg, remote_node, new_drbd, False,
+                                      _GetInstanceInfoText(instance)):
       raise errors.OpExecError, ("Failed to create new component on secondary"
                                  " node %s" % remote_node)
 
     logger.Info("adding new mirror component on primary")
     #HARDCODE
-    if not _CreateBlockDevOnPrimary(self.cfg, instance.primary_node, new_drbd):
+    if not _CreateBlockDevOnPrimary(self.cfg, instance.primary_node, new_drbd,
+                                    _GetInstanceInfoText(instance)):
       # remove secondary dev
       self.cfg.SetDiskID(new_drbd, remote_node)
       rpc.call_blockdev_remove(remote_node, new_drbd)
@@ -3053,7 +3062,8 @@ class LUReplaceDisks(LogicalUnit):
       logger.Info("adding new mirror component on secondary for %s" %
                   dev.iv_name)
       #HARDCODE
-      if not _CreateBlockDevOnSecondary(cfg, remote_node, new_drbd, False):
+      if not _CreateBlockDevOnSecondary(cfg, remote_node, new_drbd, False,
+                                        _GetInstanceInfoText(instance)):
         raise errors.OpExecError, ("Failed to create new component on"
                                    " secondary node %s\n"
                                    "Full abort, cleanup manually!" %
@@ -3061,7 +3071,8 @@ class LUReplaceDisks(LogicalUnit):
 
       logger.Info("adding new mirror component on primary")
       #HARDCODE
-      if not _CreateBlockDevOnPrimary(cfg, instance.primary_node, new_drbd):
+      if not _CreateBlockDevOnPrimary(cfg, instance.primary_node, new_drbd,
+                                      _GetInstanceInfoText(instance)):
         # remove secondary dev
         cfg.SetDiskID(new_drbd, remote_node)
         rpc.call_blockdev_remove(remote_node, new_drbd)

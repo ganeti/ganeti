@@ -258,6 +258,16 @@ class BlockDev(object):
     return min_percent, max_time, is_degraded
 
 
+  def SetInfo(self, text):
+    """Update metadata with info text.
+
+    Only supported for some device types.
+
+    """
+    for child in self._children:
+      child.SetInfo(text)
+
+
   def __repr__(self):
     return ("<%s: unique_id: %s, children: %s, %s:%s, %s>" %
             (self.__class__, self.unique_id, self._children,
@@ -475,6 +485,26 @@ class LogicalVolume(BlockDev):
                                       (result.cmd, result.fail_reason))
 
     return snap_name
+
+
+  def SetInfo(self, text):
+    """Update metadata with info text.
+
+    """
+    BlockDev.SetInfo(self, text)
+
+    # Replace invalid characters
+    text = re.sub('^[^A-Za-z0-9_+.]', '_', text)
+    text = re.sub('[^-A-Za-z0-9_+.]', '_', text)
+
+    # Only up to 128 characters are allowed
+    text = text[:128]
+
+    result = utils.RunCmd(["lvchange", "--addtag", text,
+                           self.dev_path])
+    if result.failed:
+      raise errors.BlockDeviceError, ("Command: %s error: %s" %
+                                      (result.cmd, result.fail_reason))
 
 
 class MDRaid1(BlockDev):

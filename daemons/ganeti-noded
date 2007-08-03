@@ -80,18 +80,16 @@ class ServerObject(pb.Avatar):
   # the new block devices  --------------------------
 
   def perspective_blockdev_create(self, params):
-    bdev_s, size, on_primary = params
+    bdev_s, size, on_primary, info = params
     bdev = objects.ConfigObject.Loads(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.CreateBlockDevice(bdev, size, on_primary)
-
+    return backend.CreateBlockDevice(bdev, size, on_primary, info)
 
   def perspective_blockdev_remove(self, params):
     bdev_s = params[0]
     bdev = objects.ConfigObject.Loads(bdev_s)
     return backend.RemoveBlockDevice(bdev)
-
 
   def perspective_blockdev_assemble(self, params):
     bdev_s, on_primary = params
@@ -100,14 +98,12 @@ class ServerObject(pb.Avatar):
       raise ValueError("can't unserialize data!")
     return backend.AssembleBlockDevice(bdev, on_primary)
 
-
   def perspective_blockdev_shutdown(self, params):
     bdev_s = params[0]
     bdev = objects.ConfigObject.Loads(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
     return backend.ShutdownBlockDevice(bdev)
-
 
   def perspective_blockdev_addchild(self, params):
     bdev_s, ndev_s = params
@@ -116,7 +112,6 @@ class ServerObject(pb.Avatar):
     if bdev is None or ndev is None:
       raise ValueError("can't unserialize data!")
     return backend.MirrorAddChild(bdev, ndev)
-
 
   def perspective_blockdev_removechild(self, params):
     bdev_s, ndev_s = params
