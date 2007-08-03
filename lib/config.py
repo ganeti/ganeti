@@ -603,3 +603,15 @@ class ConfigWriter:
     self._OpenConfig()
     self._ReleaseLock()
     return self._config_data.cluster.mac_prefix
+
+  def GetClusterInfo(self):
+    """Returns informations about the cluster
+
+    Returns:
+      the cluster object
+
+    """
+    self._OpenConfig()
+    self._ReleaseLock()
+
+    return self._config_data.cluster
