@@ -46,6 +46,22 @@ from ganeti import constants
 from ganeti import rpc
 from ganeti import objects
 
+def _my_uuidgen():
+  """Poor-man's uuidgen using the uuidgen binary.
+
+  """
+  result = utils.RunCmd(["uuidgen", "-r"])
+  if result.failed:
+    return None
+  return result.stdout.rstrip('\n')
+
+
+try:
+  import uuid
+  _uuidgen = uuid.uuid4
+except ImportError:
+  _uuidgen = _my_uuidgen
+
 
 class ConfigWriter:
   """The interface to the cluster configuration.
@@ -61,6 +77,7 @@ class ConfigWriter:
       self._cfg_file = constants.CLUSTER_CONF_FILE
     else:
       self._cfg_file = cfg_file
+    self._temporary_ids = set()
 
   # this method needs to be static, so that we can call it on the class
   @staticmethod
@@ -92,6 +109,52 @@ class ConfigWriter:
     else:
       raise errors.ConfigurationError, ("Can't generate unique MAC")
     return mac
+
+  def _ComputeAllLVs(self):
+    """Compute the list of all LVs.
+
+    """
+    self._OpenConfig()
+    self._ReleaseLock()
+    lvnames = set()
+    for instance in self._config_data.instances.values():
+      node_data = instance.MapLVsByNode()
+      for lv_list in node_data.values():
+        lvnames.update(lv_list)
+    return lvnames
+
+  def GenerateUniqueID(self, exceptions=None):
+    """Generate an unique disk name.
+
+    This checks the current node, instances and disk names for
+    duplicates.
+
+    Args:
+      - exceptions: a list with some other names which should be checked
+                    for uniqueness (used for example when you want to get
+                    more than one id at one time without adding each one in
+                    turn to the config file
+
+    Returns: the unique id as a string
+
+    """
+    existing = set()
+    existing.update(self._temporary_ids)
+    existing.update(self._ComputeAllLVs())
+    existing.update(self._config_data.instances.keys())
+    existing.update(self._config_data.nodes.keys())
+    if exceptions is not None:
+      existing.update(exceptions)
+    retries = 64
+    while retries > 0:
+      unique_id = _uuidgen()
+      if unique_id not in existing and unique_id is not None:
+        break
+    else:
+      raise errors.ConfigurationError, ("Not able generate an unique ID"
+                                        " (last tried ID: %s" % unique_id)
+    self._temporary_ids.add(unique_id)
+    return unique_id
 
   def _AllMACs(self):
     """Return all MACs present in the config.
@@ -132,7 +195,6 @@ class ConfigWriter:
         else:
           seen_macs.append(nic.mac)
     return result
-
 
   def SetDiskID(self, disk, node_name):
     """Convert the unique ID to the ID needed on the target nodes.
@@ -234,6 +296,9 @@ class ConfigWriter:
     """
     if not isinstance(instance, objects.Instance):
       raise errors.ProgrammerError("Invalid type passed to AddInstance")
+
+    all_lvs = instance.MapLVsByNode()
+    logger.Info("Instance '%s' DISK_LAYOUT: %s" % (instance.name, all_lvs))
 
     self._OpenConfig()
     self._config_data.instances[instance.name] = instance

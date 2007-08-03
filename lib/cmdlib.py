@@ -2300,23 +2300,36 @@ def _CreateBlockDevOnSecondary(cfg, node, device, force):
   return True
 
 
-def _GenerateMDDRBDBranch(cfg, vgname, primary, secondary, size, base):
+def _GenerateUniqueNames(cfg, exts):
+  """Generate a suitable LV name.
+
+  This will generate a logical volume name for the given instance.
+
+  """
+  results = []
+  for val in exts:
+    new_id = cfg.GenerateUniqueID()
+    results.append("%s%s" % (new_id, val))
+  return results
+
+
+def _GenerateMDDRBDBranch(cfg, primary, secondary, size, names):
   """Generate a drbd device complete with its children.
 
   """
   port = cfg.AllocatePort()
-  base = "%s_%s" % (base, port)
+  vgname = cfg.GetVGName()
   dev_data = objects.Disk(dev_type="lvm", size=size,
-                          logical_id=(vgname, "%s.data" % base))
+                          logical_id=(vgname, names[0]))
   dev_meta = objects.Disk(dev_type="lvm", size=128,
-                          logical_id=(vgname, "%s.meta" % base))
+                          logical_id=(vgname, names[1]))
   drbd_dev = objects.Disk(dev_type="drbd", size=size,
                           logical_id = (primary, secondary, port),
                           children = [dev_data, dev_meta])
   return drbd_dev
 
 
-def _GenerateDiskTemplate(cfg, vgname, template_name,
+def _GenerateDiskTemplate(cfg, template_name,
                           instance_name, primary_node,
                           secondary_nodes, disk_sz, swap_sz):
   """Generate the entire disk layout for a given template type.
@@ -2324,34 +2337,39 @@ def _GenerateDiskTemplate(cfg, vgname, template_name,
   """
   #TODO: compute space requirements
 
+  vgname = cfg.GetVGName()
   if template_name == "diskless":
     disks = []
   elif template_name == "plain":
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
+
+    names = _GenerateUniqueNames(cfg, [".sda", ".sdb"])
     sda_dev = objects.Disk(dev_type="lvm", size=disk_sz,
-                           logical_id=(vgname, "%s.os" % instance_name),
+                           logical_id=(vgname, names[0]),
                            iv_name = "sda")
     sdb_dev = objects.Disk(dev_type="lvm", size=swap_sz,
-                           logical_id=(vgname, "%s.swap" % instance_name),
+                           logical_id=(vgname, names[1]),
                            iv_name = "sdb")
     disks = [sda_dev, sdb_dev]
   elif template_name == "local_raid1":
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
+
+
+    names = _GenerateUniqueNames(cfg, [".sda_m1", ".sda_m2",
+                                       ".sdb_m1", ".sdb_m2"])
     sda_dev_m1 = objects.Disk(dev_type="lvm", size=disk_sz,
-                              logical_id=(vgname, "%s.os_m1" % instance_name))
+                              logical_id=(vgname, names[0]))
     sda_dev_m2 = objects.Disk(dev_type="lvm", size=disk_sz,
-                              logical_id=(vgname, "%s.os_m2" % instance_name))
+                              logical_id=(vgname, names[1]))
     md_sda_dev = objects.Disk(dev_type="md_raid1", iv_name = "sda",
                               size=disk_sz,
                               children = [sda_dev_m1, sda_dev_m2])
     sdb_dev_m1 = objects.Disk(dev_type="lvm", size=swap_sz,
-                              logical_id=(vgname, "%s.swap_m1" %
-                                          instance_name))
+                              logical_id=(vgname, names[2]))
     sdb_dev_m2 = objects.Disk(dev_type="lvm", size=swap_sz,
-                              logical_id=(vgname, "%s.swap_m2" %
-                                          instance_name))
+                              logical_id=(vgname, names[3]))
     md_sdb_dev = objects.Disk(dev_type="md_raid1", iv_name = "sdb",
                               size=swap_sz,
                               children = [sdb_dev_m1, sdb_dev_m2])
@@ -2360,14 +2378,14 @@ def _GenerateDiskTemplate(cfg, vgname, template_name,
     if len(secondary_nodes) != 1:
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node = secondary_nodes[0]
-    drbd_sda_dev = _GenerateMDDRBDBranch(cfg, vgname,
-                                         primary_node, remote_node, disk_sz,
-                                         "%s-sda" % instance_name)
+    names = _GenerateUniqueNames(cfg, [".sda_data", ".sda_meta",
+                                       ".sdb_data", ".sdb_meta"])
+    drbd_sda_dev = _GenerateMDDRBDBranch(cfg, primary_node, remote_node,
+                                         disk_sz, names[0:2])
     md_sda_dev = objects.Disk(dev_type="md_raid1", iv_name="sda",
                               children = [drbd_sda_dev], size=disk_sz)
-    drbd_sdb_dev = _GenerateMDDRBDBranch(cfg, vgname,
-                                         primary_node, remote_node, swap_sz,
-                                         "%s-sdb" % instance_name)
+    drbd_sdb_dev = _GenerateMDDRBDBranch(cfg, primary_node, remote_node,
+                                         swap_sz, names[2:4])
     md_sdb_dev = objects.Disk(dev_type="md_raid1", iv_name="sdb",
                               children = [drbd_sdb_dev], size=swap_sz)
     disks = [md_sda_dev, md_sdb_dev]
@@ -2644,7 +2662,7 @@ class LUCreateInstance(LogicalUnit):
     if self.inst_ip is not None:
       nic.ip = self.inst_ip
 
-    disks = _GenerateDiskTemplate(self.cfg, self.cfg.GetVGName(),
+    disks = _GenerateDiskTemplate(self.cfg,
                                   self.op.disk_template,
                                   instance, pnode_name,
                                   self.secondaries, self.op.disk_size,
@@ -2829,10 +2847,10 @@ class LUAddMDDRBDComponent(LogicalUnit):
     instance = self.instance
 
     remote_node = self.remote_node
-    new_drbd = _GenerateMDDRBDBranch(self.cfg, self.cfg.GetVGName(),
-                                     instance.primary_node, remote_node,
-                                     disk.size, "%s-%s" %
-                                     (instance.name, self.op.disk_name))
+    lv_names = [".%s_%s" % (disk.iv_name, suf) for suf in ["data", "meta"]]
+    names = _GenerateUniqueNames(self.cfg, lv_names)
+    new_drbd = _GenerateMDDRBDBranch(self.cfg, instance.primary_node,
+                                     remote_node, disk.size, names)
 
     logger.Info("adding new mirror component on secondary")
     #HARDCODE
@@ -3027,9 +3045,10 @@ class LUReplaceDisks(LogicalUnit):
     vgname = cfg.GetVGName()
     for dev in instance.disks:
       size = dev.size
-      new_drbd = _GenerateMDDRBDBranch(cfg, vgname, instance.primary_node,
-                                       remote_node, size,
-                                       "%s-%s" % (instance.name, dev.iv_name))
+      lv_names = [".%s_%s" % (dev.iv_name, suf) for suf in ["data", "meta"]]
+      names = _GenerateUniqueNames(cfg, lv_names)
+      new_drbd = _GenerateMDDRBDBranch(cfg, instance.primary_node,
+                                       remote_node, size, names)
       iv_names[dev.iv_name] = (dev, dev.children[0], new_drbd)
       logger.Info("adding new mirror component on secondary for %s" %
                   dev.iv_name)
