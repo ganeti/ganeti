@@ -297,8 +297,9 @@ class ConfigWriter:
     if not isinstance(instance, objects.Instance):
       raise errors.ProgrammerError("Invalid type passed to AddInstance")
 
-    all_lvs = instance.MapLVsByNode()
-    logger.Info("Instance '%s' DISK_LAYOUT: %s" % (instance.name, all_lvs))
+    if instance.disk_template != constants.DT_DISKLESS:
+      all_lvs = instance.MapLVsByNode()
+      logger.Info("Instance '%s' DISK_LAYOUT: %s" % (instance.name, all_lvs))
 
     self._OpenConfig()
     self._config_data.instances[instance.name] = instance
@@ -624,3 +625,30 @@ class ConfigWriter:
     self._ReleaseLock()
 
     return self._config_data.cluster
+
+  def Update(self, target):
+    """Notify function to be called after updates.
+
+    This function must be called when an object (as returned by
+    GetInstanceInfo, GetNodeInfo, GetCluster) has been updated and the
+    caller wants the modifications saved to the backing store. Note
+    that all modified objects will be saved, but the target argument
+    is the one the caller wants to ensure that it's saved.
+
+    """
+    if self._config_data is None:
+      raise errors.ProgrammerError, ("Configuration file not read,"
+                                     " cannot save.")
+    if isinstance(target, objects.Cluster):
+      test = target == self._config_data.cluster
+    elif isinstance(target, objects.Node):
+      test = target in self._config_data.nodes.values()
+    elif isinstance(target, objects.Instance):
+      test = target in self._config_data.instances.values()
+    else:
+      raise errors.ProgrammerError, ("Invalid object type (%s) passed to"
+                                     " ConfigWriter.Update" % type(target))
+    if not test:
+      raise errors.ConfigurationError, ("Configuration updated since object"
+                                        " has been read or unknown object")
+    self._WriteConfig()
