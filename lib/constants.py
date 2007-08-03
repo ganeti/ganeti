@@ -87,3 +87,4 @@ EXIT_NOTMASTER = 11
 
 # others
 DEFAULT_BRIDGE = "xen-br0"
+SYNC_SPEED = 30 * 1024

@@ -575,7 +575,7 @@ def CreateBlockDevice(disk, size, on_primary):
                      (disk, size))
   if on_primary or disk.AssembleOnSecondary():
     device.Assemble()
-    device.SetSyncSpeed(30*1024)
+    device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       device.Open(force=True)
   physical_id = device.unique_id
@@ -630,7 +630,7 @@ def _RecursiveAssembleBD(disk, as_primary):
 
   if as_primary or disk.AssembleOnSecondary():
     r_dev = bdev.AttachOrAssemble(disk.dev_type, disk.physical_id, children)
-    r_dev.SetSyncSpeed(30*1024)
+    r_dev.SetSyncSpeed(constants.SYNC_SPEED)
     result = r_dev
     if as_primary or disk.OpenOnSecondary():
       r_dev.Open()
