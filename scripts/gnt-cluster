@@ -25,6 +25,7 @@ import pprint
 
 from ganeti.cli import *
 from ganeti import opcodes
+from ganeti import constants
 
 
 def InitCluster(opts, args):
