@@ -1209,6 +1209,9 @@ class LUQueryNodeVolumes(NoHooksLU):
 
     output = []
     for node in nodenames:
+      if node not in volumes or not volumes[node]:
+        continue
+
       node_vols = volumes[node][:]
       node_vols.sort(key=lambda vol: vol['dev'])
 
