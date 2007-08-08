@@ -136,6 +136,12 @@ class OpExecError(GenericError):
   """
 
 
+class OpRetryError(OpExecError):
+  """Error during OpCode execution, action can be retried.
+
+  """
+
+
 class OpCodeUnknown(GenericError):
   """Unknown opcode submitted.
 
@@ -172,4 +178,12 @@ class UnitParseError(GenericError):
 
 class SshKeyError(GenericError):
   """Invalid SSH key.
+  """
+
+
+class TagError(GenericError):
+  """Generic tag error.
+
+  The argument to this exception will show the exact error.
+
   """

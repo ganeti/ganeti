@@ -30,8 +30,10 @@ pass to and from external parties.
 import cPickle
 from cStringIO import StringIO
 import ConfigParser
+import re
 
 from ganeti import errors
+from ganeti import constants
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
@@ -146,6 +148,59 @@ class ConfigObject(object):
     return ConfigObject.Load(StringIO(data))
 
 
+class TaggableObject(object):
+  """An generic class supporting tags.
+
+  """
+  @staticmethod
+  def ValidateTag(tag):
+    """Check if a tag is valid.
+
+    If the tag is invalid, an errors.TagError will be raised. The
+    function has no return value.
+
+    """
+    if not isinstance(tag, basestring):
+      raise errors.TagError, ("Invalid tag type (not a string)")
+    if len(tag) > constants.MAX_TAG_LEN:
+      raise errors.TagError, ("Tag too long (>%d)" %
+                              constants.MAX_TAG_LEN)
+    if not tag:
+      raise errors.TagError, ("Tags cannot be empty")
+    if not re.match("^[ \w.+*/:-]+$", tag):
+      raise errors.TagError, ("Tag contains invalid characters")
+
+  def GetTags(self):
+    """Return the tags list.
+
+    """
+    tags = getattr(self, "tags", None)
+    if tags is None:
+      tags = self.tags = set()
+    return tags
+
+  def AddTag(self, tag):
+    """Add a new tag.
+
+    """
+    self.ValidateTag(tag)
+    tags = self.GetTags()
+    if len(tags) >= constants.MAX_TAGS_PER_OBJ:
+      raise errors.TagError, ("Too many tags")
+    self.GetTags().add(tag)
+
+  def RemoveTag(self, tag):
+    """Remove a tag.
+
+    """
+    self.ValidateTag(tag)
+    tags = self.GetTags()
+    try:
+      tags.remove(tag)
+    except KeyError:
+      raise errors.TagError, ("Tag not found")
+
+
 class ConfigData(ConfigObject):
   """Top-level config object."""
   __slots__ = ["cluster", "nodes", "instances"]
@@ -231,7 +286,7 @@ class Disk(ConfigObject):
     return result
 
 
-class Instance(ConfigObject):
+class Instance(ConfigObject, TaggableObject):
   """Config object representing an instance."""
   __slots__ = [
     "name",
@@ -243,6 +298,7 @@ class Instance(ConfigObject):
     "nics",
     "disks",
     "disk_template",
+    "tags",
     ]
 
   def _ComputeSecondaryNodes(self):
@@ -337,12 +393,12 @@ class OS(ConfigObject):
     ]
 
 
-class Node(ConfigObject):
+class Node(ConfigObject, TaggableObject):
   """Config object representing a node."""
-  __slots__ = ["name", "primary_ip", "secondary_ip"]
+  __slots__ = ["name", "primary_ip", "secondary_ip", "tags"]
 
 
-class Cluster(ConfigObject):
+class Cluster(ConfigObject, TaggableObject):
   """Config object representing the cluster."""
   __slots__ = [
     "config_version",
@@ -353,7 +409,9 @@ class Cluster(ConfigObject):
     "mac_prefix",
     "volume_group_name",
     "default_bridge",
+    "tags",
     ]
+
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
   """Simple wrapper over ConfigParse that allows serialization.

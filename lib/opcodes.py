@@ -239,3 +239,22 @@ class OpExportInstance(OpCode):
   """Export an instance."""
   OP_ID = "OP_BACKUP_EXPORT"
   __slots__ = ["instance_name", "target_node", "shutdown"]
+
+
+# Tags opcodes
+class OpGetTags(OpCode):
+  """Returns the tags of the given object."""
+  OP_ID = "OP_TAGS_GET"
+  __slots__ = ["kind", "name"]
+
+
+class OpSetTag(OpCode):
+  """Sets the value of a tag on a given object."""
+  OP_ID = "OP_TAGS_SET"
+  __slots__ = ["kind", "name", "tag"]
+
+
+class OpDelTag(OpCode):
+  """Remove a tag from a given object."""
+  OP_ID = "OP_TAGS_DEL"
+  __slots__ = ["kind", "name", "tag"]

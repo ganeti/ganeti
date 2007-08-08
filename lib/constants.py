@@ -85,6 +85,13 @@ INISECT_INS = "instance"
 # common exit codes
 EXIT_NOTMASTER = 11
 
+# tags
+TAG_CLUSTER = "cluster"
+TAG_NODE = "node"
+TAG_INSTANCE = "instance"
+MAX_TAG_LEN = 128
+MAX_TAGS_PER_OBJ = 4096
+
 # others
 DEFAULT_BRIDGE = "xen-br0"
 SYNC_SPEED = 30 * 1024

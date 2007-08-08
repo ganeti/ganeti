@@ -3506,3 +3506,108 @@ class LUExportInstance(LogicalUnit):
           if not rpc.call_export_remove(node, instance.name):
             logger.Error("could not remove older export for instance %s"
                          " on node %s" % (instance.name, node))
+
+
+class TagsLU(NoHooksLU):
+  """Generic tags LU.
+
+  This is an abstract class which is the parent of all the other tags LUs.
+
+  """
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    if self.op.kind == constants.TAG_CLUSTER:
+      self.target = self.cfg.GetClusterInfo()
+    elif self.op.kind == constants.TAG_NODE:
+      name = self.cfg.ExpandNodeName(self.op.name)
+      if name is None:
+        raise errors.OpPrereqError, ("Invalid node name (%s)" %
+                                     (self.op.name,))
+      self.op.name = name
+      self.target = self.cfg.GetNodeInfo(name)
+    elif self.op.kind == constants.TAG_INSTANCE:
+      name = self.cfg.ExpandInstanceName(name)
+      if name is None:
+        raise errors.OpPrereqError, ("Invalid instance name (%s)" %
+                                     (self.op.name,))
+      self.op.name = name
+      self.target = self.cfg.GetInstanceInfo(name)
+    else:
+      raise errors.OpPrereqError, ("Wrong tag type requested (%s)" %
+                                   str(self.op.kind))
+
+
+class LUGetTags(TagsLU):
+  """Returns the tags of a given object.
+
+  """
+  _OP_REQP = ["kind", "name"]
+
+  def Exec(self, feedback_fn):
+    """Returns the tag list.
+
+    """
+    return self.target.GetTags()
+
+
+class LUAddTag(TagsLU):
+  """Sets a tag on a given object.
+
+  """
+  _OP_REQP = ["kind", "name", "tag"]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks the type and length of the tag name and value.
+
+    """
+    TagsLU.CheckPrereq(self)
+    objects.TaggableObject.ValidateTag(self.op.tag)
+
+  def Exec(self, feedback_fn):
+    """Sets the tag.
+
+    """
+    try:
+      self.target.AddTag(self.op.tag)
+    except errors.TagError, err:
+      raise errors.OpExecError, ("Error while setting tag: %s" % str(err))
+    try:
+      self.cfg.Update(self.target)
+    except errors.ConfigurationError:
+      raise errors.OpRetryError, ("There has been a modification to the"
+                                  " config file and the operation has been"
+                                  " aborted. Please retry.")
+
+
+class LUDelTag(TagsLU):
+  """Delete a tag from a given object.
+
+  """
+  _OP_REQP = ["kind", "name", "tag"]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that we have the given tag.
+
+    """
+    TagsLU.CheckPrereq(self)
+    objects.TaggableObject.ValidateTag(self.op.tag)
+    if self.op.tag not in self.target.GetTags():
+      raise errors.OpPrereqError, ("Tag not found")
+
+  def Exec(self, feedback_fn):
+    """Remove the tag from the object.
+
+    """
+    self.target.RemoveTag(self.op.tag)
+    try:
+      self.cfg.Update(self.target)
+    except errors.ConfigurationError:
+      raise errors.OpRetryError, ("There has been a modification to the"
+                                  " config file and the operation has been"
+                                  " aborted. Please retry.")

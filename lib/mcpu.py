@@ -82,6 +82,10 @@ class Processor(object):
     # exports lu
     opcodes.OpQueryExports: cmdlib.LUQueryExports,
     opcodes.OpExportInstance: cmdlib.LUExportInstance,
+    # tags lu
+    opcodes.OpGetTags: cmdlib.LUGetTags,
+    opcodes.OpSetTag: cmdlib.LUAddTag,
+    opcodes.OpDelTag: cmdlib.LUDelTag,
     }
 
 
