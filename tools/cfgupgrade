@@ -205,7 +205,7 @@ if __name__ == "__main__":
   if args:
     cfg_file = args[0]
   else:
-    raise Error, ("Configuration file not specified")
+    raise Error("Configuration file not specified")
 
   config = ReadConfig(cfg_file)
 

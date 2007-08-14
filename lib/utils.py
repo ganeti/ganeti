@@ -116,32 +116,32 @@ def Lock(name, max_retries=None, debug=False):
       break
     except OSError, creat_err:
       if creat_err.errno != EEXIST:
-        raise errors.LockError, ("Can't create the lock file. Error '%s'." %
-                                 str(creat_err))
+        raise errors.LockError("Can't create the lock file. Error '%s'." %
+                               str(creat_err))
 
       try:
         pf = open(lockfile, 'r')
       except IOError, open_err:
         errcount += 1
         if errcount >= 5:
-          raise errors.LockError, ("Lock file exists but cannot be opened."
-                                   " Error: '%s'." % str(open_err))
+          raise errors.LockError("Lock file exists but cannot be opened."
+                                 " Error: '%s'." % str(open_err))
         time.sleep(1)
         continue
 
       try:
         pid = int(pf.read())
       except ValueError:
-        raise errors.LockError('Invalid pid string in %s' %
+        raise errors.LockError("Invalid pid string in %s" %
                                (lockfile,))
 
       if not IsProcessAlive(pid):
-        raise errors.LockError, ('Stale lockfile %s for pid %d?' %
-                                 (lockfile, pid))
+        raise errors.LockError("Stale lockfile %s for pid %d?" %
+                               (lockfile, pid))
 
       if max_retries and max_retries <= retries:
-        raise errors.LockError, ("Can't acquire lock during the specified"
-                                 " time, aborting.")
+        raise errors.LockError("Can't acquire lock during the specified"
+                               " time, aborting.")
       if retries == 5 and (debug or sys.stdin.isatty()):
         logger.ToStderr("Waiting for '%s' lock from pid %d..." % (name, pid))
 
@@ -596,8 +596,8 @@ def BuildShellCmd(template, *args):
   """
   for word in args:
     if not IsValidShellParam(word):
-      raise errors.ProgrammerError, ("Shell argument '%s' contains"
-                                     " invalid characters" % word)
+      raise errors.ProgrammerError("Shell argument '%s' contains"
+                                   " invalid characters" % word)
   return template % args
 
 
@@ -626,7 +626,7 @@ def ParseUnit(input_string):
   """
   m = re.match('^([.\d]+)\s*([a-zA-Z]+)?$', input_string)
   if not m:
-    raise errors.UnitParseError, ("Invalid format")
+    raise errors.UnitParseError("Invalid format")
 
   value = float(m.groups()[0])
 
@@ -647,7 +647,7 @@ def ParseUnit(input_string):
     value *= 1024 * 1024
 
   else:
-    raise errors.UnitParseError, ("Unknown unit: %s" % unit)
+    raise errors.UnitParseError("Unknown unit: %s" % unit)
 
   # Make sure we round up
   if int(value) < value:
@@ -722,8 +722,8 @@ def CreateBackup(file_name):
 
   """
   if not os.path.isfile(file_name):
-    raise errors.ProgrammerError, ("Can't make a backup of a non-file '%s'" %
-                                   file_name)
+    raise errors.ProgrammerError("Can't make a backup of a non-file '%s'" %
+                                file_name)
 
   # Warning: the following code contains a race condition when we create more
   # than one backup of the same file in a second.
@@ -734,7 +734,7 @@ def CreateBackup(file_name):
 
 def ShellQuote(value):
   """Quotes shell argument according to POSIX.
-  
+
   """
   if _re_shell_unquoted.match(value):
     return value

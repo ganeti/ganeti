@@ -50,7 +50,7 @@ def GetHypervisor():
   elif ht_kind == _HT_FAKE:
     cls = FakeHypervisor
   else:
-    raise HypervisorError, "Unknown hypervisor type '%s'" % ht_kind
+    raise HypervisorError("Unknown hypervisor type '%s'" % ht_kind)
   return cls()
 
 

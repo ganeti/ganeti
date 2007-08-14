@@ -39,7 +39,6 @@ import socket
 
 from optparse import OptionParser
 
-from ganeti import logger
 from ganeti import constants
 from ganeti import errors
 from ganeti import ssconf
@@ -111,7 +110,7 @@ def StartMaster(master_netdev, master_ip, debug):
   result = utils.RunCmd(["fping", "-q", master_ip])
   if not result.failed:
     r2 = utils.RunCmd(["fping", "-q", "-S127.0.0.1", master_ip])
-    if not result.failed:
+    if not r2.failed:
       # we already have the ip:
       if debug:
         sys.stderr.write("Notice: already started.\n")
@@ -168,9 +167,9 @@ def main():
   else:
     fn = StopMaster
 
-  return fn(master_netdev, master_ip, debug)
+  result = fn(master_netdev, master_ip, debug)
+  sys.exit(result)
 
 
-if __name__=='__main__':
-  exit_code = main()
-  sys.exit(exit_code)
+if __name__ == '__main__':
+  main()

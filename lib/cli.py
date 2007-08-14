@@ -88,7 +88,7 @@ def check_unit(option, opt, value):
   try:
     return utils.ParseUnit(value)
   except errors.UnitParseError, err:
-    raise OptionValueError, ("option %s: %s" % (opt, err))
+    raise OptionValueError("option %s: %s" % (opt, err))
 
 
 class CliOption(Option):

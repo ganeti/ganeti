@@ -29,14 +29,8 @@ are two kinds of classes defined:
 """
 
 
-import os
-import os.path
-import time
-
 from ganeti import opcodes
-from ganeti import logger
 from ganeti import constants
-from ganeti import utils
 from ganeti import errors
 from ganeti import rpc
 from ganeti import cmdlib
@@ -107,12 +101,12 @@ class Processor(object):
 
     """
     if not isinstance(op, opcodes.OpCode):
-      raise errors.ProgrammerError, ("Non-opcode instance passed"
-                                     " to ExecOpcode")
+      raise errors.ProgrammerError("Non-opcode instance passed"
+                                   " to ExecOpcode")
 
     lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
     if lu_class is None:
-      raise errors.OpCodeUnknown, "Unknown opcode"
+      raise errors.OpCodeUnknown("Unknown opcode")
 
     if lu_class.REQ_CLUSTER and self.cfg is None:
       self.cfg = config.ConfigWriter()
@@ -140,12 +134,12 @@ class Processor(object):
 
     """
     if not isinstance(op, opcodes.OpCode):
-      raise errors.ProgrammerError, ("Non-opcode instance passed"
-                                     " to ExecOpcode")
+      raise errors.ProgrammerError("Non-opcode instance passed"
+                                   " to ExecOpcode")
 
     lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
     if lu_class is None:
-      raise errors.OpCodeUnknown, "Unknown opcode"
+      raise errors.OpCodeUnknown("Unknown opcode")
 
     if lu_class.REQ_CLUSTER and self.cfg is None:
       self.cfg = config.ConfigWriter()
@@ -231,15 +225,15 @@ class HooksMaster(object):
     if phase == constants.HOOKS_PHASE_PRE:
       errs = []
       if not results:
-        raise errors.HooksFailure, "Communication failure"
+        raise errors.HooksFailure("Communication failure")
       for node_name in results:
         res = results[node_name]
         if res is False or not isinstance(res, list):
-          raise errors.HooksFailure, ("Communication failure to node %s" %
-                                      node_name)
+          raise errors.HooksFailure("Communication failure to node %s" %
+                                    node_name)
         for script, hkr, output in res:
           if hkr == constants.HKR_FAIL:
             output = output.strip().encode("string_escape")
             errs.append((node_name, script, output))
       if errs:
-        raise errors.HooksAbort, errs
+        raise errors.HooksAbort(errs)

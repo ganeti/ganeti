@@ -160,8 +160,8 @@ class MirrorContextFactory:
       finally:
         fd.close()
     except EnvironmentError, err:
-      raise errors.ConfigurationError, ("missing SSL certificate: %s" %
-                                        str(err))
+      raise errors.ConfigurationError("missing SSL certificate: %s" %
+                                      str(err))
     self.mycert = crypto.load_certificate(crypto.FILETYPE_PEM, data)
     self.mypem = crypto.dump_certificate(crypto.FILETYPE_PEM, self.mycert)
     self.mydigest = self.mycert.digest('SHA')
@@ -597,8 +597,8 @@ def call_os_diagnose(node_list):
           elif isinstance(data, tuple) and len(data) == 2:
             nr.append(errors.InvalidOS(data[0], data[1]))
           else:
-            raise errors.ProgrammerError, ("Invalid data from"
-                                           " xcserver.os_diagnose")
+            raise errors.ProgrammerError("Invalid data from"
+                                         " xcserver.os_diagnose")
     new_result[node_name] = nr
   return new_result
 

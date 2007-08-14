@@ -23,11 +23,11 @@
 
 """
 
+# functions in this module need to have a given name structure, so:
+# pylint: disable-msg=C0103
 
-import os
-import sys
+
 import optparse
-import time
 import cmd
 
 try:
@@ -311,6 +311,9 @@ class ConfigShell(cmd.Cmd):
         print "Invalid node name"
 
   def do_EOF(self, line):
+    """Exit the application.
+
+    """
     print
     return True
 

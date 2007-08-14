@@ -94,7 +94,7 @@ def AssertEqual(first, second, msg=None):
 
   """
   if not first == second:
-    raise Error, (msg or '%r == %r' % (first, second))
+    raise Error(msg or '%r == %r' % (first, second))
 
 
 def GetSSHCommand(node, cmd, strict=True):
@@ -174,7 +174,7 @@ def AcquireInstance():
   del tmp_flt
 
   if len(instances) == 0:
-    raise OutOfInstancesError, ("No instances left")
+    raise OutOfInstancesError("No instances left")
 
   inst = instances[0]
   inst['_used'] = True
@@ -203,7 +203,7 @@ def AcquireNode(exclude=None):
   del tmp_flt
 
   if len(nodes) == 0:
-    raise OutOfNodesError, ("No nodes left")
+    raise OutOfNodesError("No nodes left")
 
   # Get node with least number of uses
   def compare(a, b):
@@ -229,9 +229,9 @@ def TestConfig():
 
   """
   if len(cfg['nodes']) < 1:
-    raise Error, ("Need at least one node")
+    raise Error("Need at least one node")
   if len(cfg['instances']) < 1:
-    raise Error, ("Need at least one instance")
+    raise Error("Need at least one instance")
   # TODO: Add more checks
 
 
@@ -322,7 +322,7 @@ def TestClusterBurnin():
     print "Not enough instances, continuing anyway."
 
   if len(instances) < 1:
-    raise Error, ("Burnin needs at least one instance")
+    raise Error("Burnin needs at least one instance")
 
   # Run burnin
   try:
@@ -368,7 +368,7 @@ def TestClusterDestroy():
 # {{{ Node tests
 def _NodeAdd(node):
   if node.get('_added', False):
-    raise Error, ("Node %s already in cluster" % node['primary'])
+    raise Error("Node %s already in cluster" % node['primary'])
 
   cmd = ['gnt-node', 'add']
   if node.get('secondary', None):
@@ -529,7 +529,7 @@ def _XmShutdownInstance(node, name):
       break
     time.sleep(5)
   else:
-    raise Error, ("xm shutdown failed")
+    raise Error("xm shutdown failed")
 
 
 def _ResetWatcherDaemon(node):
@@ -563,7 +563,7 @@ def TestInstanceAutomaticRestart(node, instance):
       break
     time.sleep(15)
   else:
-    raise Error, ("Daemon didn't restart instance in time")
+    raise Error("Daemon didn't restart instance in time")
 
   cmd = ['gnt-instance', 'info', inst_name]
   AssertEqual(StartSSH(master['primary'],
@@ -593,7 +593,7 @@ def TestInstanceConsecutiveFailures(node, instance):
   check_until = time.time() + 330
   while time.time() <= check_until:
     if _InstanceRunning(node, inst_name):
-      raise Error, ("Instance started when it shouldn't")
+      raise Error("Instance started when it shouldn't")
     time.sleep(30)
 
   cmd = ['gnt-instance', 'info', inst_name]
@@ -623,7 +623,7 @@ if __name__ == '__main__':
   if len(args) == 1:
     config_file = args[0]
   else:
-    raise SyntaxError, ("Exactly one configuration file is expected")
+    raise Error("Exactly one configuration file is expected")
 
   if not options.yes_do_it:
     print ("Executing this script irreversibly destroys any Ganeti\n"

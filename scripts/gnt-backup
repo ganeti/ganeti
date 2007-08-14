@@ -152,5 +152,4 @@ commands = {
   }
 
 if __name__ == '__main__':
-  retcode = GenericMain(commands)
-  sys.exit(retcode)
+  sys.exit(GenericMain(commands))

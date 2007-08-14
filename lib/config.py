@@ -107,7 +107,7 @@ class ConfigWriter:
         break
       retries -= 1
     else:
-      raise errors.ConfigurationError, ("Can't generate unique MAC")
+      raise errors.ConfigurationError("Can't generate unique MAC")
     return mac
 
   def _ComputeAllLVs(self):
@@ -151,8 +151,8 @@ class ConfigWriter:
       if unique_id not in existing and unique_id is not None:
         break
     else:
-      raise errors.ConfigurationError, ("Not able generate an unique ID"
-                                        " (last tried ID: %s" % unique_id)
+      raise errors.ConfigurationError("Not able generate an unique ID"
+                                      " (last tried ID: %s" % unique_id)
     self._temporary_ids.add(unique_id)
     return unique_id
 
@@ -215,8 +215,8 @@ class ConfigWriter:
     if disk.dev_type == "drbd":
       pnode, snode, port = disk.logical_id
       if node_name not in (pnode, snode):
-        raise errors.ConfigurationError, ("DRBD device not knowing node %s" %
-                                          node_name)
+        raise errors.ConfigurationError("DRBD device not knowing node %s" %
+                                        node_name)
       pnode_info = self.GetNodeInfo(pnode)
       snode_info = self.GetNodeInfo(snode)
       if pnode_info is None or snode_info is None:
@@ -237,7 +237,7 @@ class ConfigWriter:
 
     """
     if not isinstance(port, int):
-      raise errors.ProgrammerError, ("Invalid type passed for port")
+      raise errors.ProgrammerError("Invalid type passed for port")
 
     self._OpenConfig()
     self._config_data.cluster.tcpudp_port_pool.add(port)
@@ -267,9 +267,9 @@ class ConfigWriter:
     else:
       port = self._config_data.cluster.highest_used_port + 1
       if port >= constants.LAST_DRBD_PORT:
-        raise errors.ConfigurationError, ("The highest used port is greater"
-                                          " than %s. Aborting." %
-                                          constants.LAST_DRBD_PORT)
+        raise errors.ConfigurationError("The highest used port is greater"
+                                        " than %s. Aborting." %
+                                        constants.LAST_DRBD_PORT)
       self._config_data.cluster.highest_used_port = port
 
     self._WriteConfig()
@@ -312,8 +312,8 @@ class ConfigWriter:
     self._OpenConfig()
 
     if instance_name not in self._config_data.instances:
-      raise errors.ConfigurationError, ("Unknown instance '%s'" %
-                                        instance_name)
+      raise errors.ConfigurationError("Unknown instance '%s'" %
+                                      instance_name)
     instance = self._config_data.instances[instance_name]
     instance.status = "up"
     self._WriteConfig()
@@ -325,8 +325,7 @@ class ConfigWriter:
     self._OpenConfig()
 
     if instance_name not in self._config_data.instances:
-      raise errors.ConfigurationError, ("Unknown instance '%s'" %
-                                        instance_name)
+      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
     del self._config_data.instances[instance_name]
     self._WriteConfig()
 
@@ -337,8 +336,7 @@ class ConfigWriter:
     self._OpenConfig()
 
     if instance_name not in self._config_data.instances:
-      raise errors.ConfigurationError, ("Unknown instance '%s'" %
-                                        instance_name)
+      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
     instance = self._config_data.instances[instance_name]
     instance.status = "down"
     self._WriteConfig()
@@ -404,7 +402,7 @@ class ConfigWriter:
     """
     self._OpenConfig()
     if node_name not in self._config_data.nodes:
-      raise errors.ConfigurationError, ("Unknown node '%s'" % node_name)
+      raise errors.ConfigurationError("Unknown node '%s'" % node_name)
 
     del self._config_data.nodes[node_name]
     self._WriteConfig()
@@ -467,7 +465,7 @@ class ConfigWriter:
     try:
       st = os.stat(self._cfg_file)
     except OSError, err:
-      raise errors.ConfigurationError, "Can't stat config file: %s" % err
+      raise errors.ConfigurationError("Can't stat config file: %s" % err)
     if (self._config_data is not None and
         self._config_time is not None and
         self._config_time == st.st_mtime and
@@ -480,18 +478,18 @@ class ConfigWriter:
       try:
         data = objects.ConfigObject.Load(f)
       except Exception, err:
-        raise errors.ConfigurationError, err
+        raise errors.ConfigurationError(err)
     finally:
       f.close()
     if (not hasattr(data, 'cluster') or
         not hasattr(data.cluster, 'config_version')):
-      raise errors.ConfigurationError, ("Incomplete configuration"
-                                        " (missing cluster.config_version)")
+      raise errors.ConfigurationError("Incomplete configuration"
+                                      " (missing cluster.config_version)")
     if data.cluster.config_version != constants.CONFIG_VERSION:
-      raise errors.ConfigurationError, ("Cluster configuration version"
-                                        " mismatch, got %s instead of %s" %
-                                        (data.cluster.config_version,
-                                         constants.CONFIG_VERSION))
+      raise errors.ConfigurationError("Cluster configuration version"
+                                      " mismatch, got %s instead of %s" %
+                                      (data.cluster.config_version,
+                                       constants.CONFIG_VERSION))
     self._config_data = data
     self._config_time = st.st_mtime
     self._config_size = st.st_size
@@ -550,7 +548,7 @@ class ConfigWriter:
     try:
       st = os.stat(destination)
     except OSError, err:
-      raise errors.ConfigurationError, "Can't stat config file: %s" % err
+      raise errors.ConfigurationError("Can't stat config file: %s" % err)
     self._config_time = st.st_mtime
     self._config_size = st.st_size
     self._config_inode = st.st_ino
@@ -637,8 +635,8 @@ class ConfigWriter:
 
     """
     if self._config_data is None:
-      raise errors.ProgrammerError, ("Configuration file not read,"
-                                     " cannot save.")
+      raise errors.ProgrammerError("Configuration file not read,"
+                                   " cannot save.")
     if isinstance(target, objects.Cluster):
       test = target == self._config_data.cluster
     elif isinstance(target, objects.Node):
@@ -646,9 +644,9 @@ class ConfigWriter:
     elif isinstance(target, objects.Instance):
       test = target in self._config_data.instances.values()
     else:
-      raise errors.ProgrammerError, ("Invalid object type (%s) passed to"
-                                     " ConfigWriter.Update" % type(target))
+      raise errors.ProgrammerError("Invalid object type (%s) passed to"
+                                   " ConfigWriter.Update" % type(target))
     if not test:
-      raise errors.ConfigurationError, ("Configuration updated since object"
-                                        " has been read or unknown object")
+      raise errors.ConfigurationError("Configuration updated since object"
+                                      " has been read or unknown object")
     self._WriteConfig()

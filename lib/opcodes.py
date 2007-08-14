@@ -44,8 +44,8 @@ class OpCode(object):
   def __init__(self, **kwargs):
     for key in kwargs:
       if key not in self.__slots__:
-        raise TypeError, ("OpCode %s doesn't support the parameter '%s'" %
-                          (self.__class__.__name__, key))
+        raise TypeError("OpCode %s doesn't support the parameter '%s'" %
+                        (self.__class__.__name__, key))
       setattr(self, key, kwargs[key])
 
 

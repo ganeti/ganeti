@@ -346,7 +346,7 @@ def GetAllInstancesInfo():
 
   iinfo = hypervisor.GetHypervisor().GetAllInstancesInfo()
   if iinfo:
-    for name, id, memory, vcpus, state, times in iinfo:
+    for name, inst_id, memory, vcpus, state, times in iinfo:
       output[name] = {
         'memory': memory,
         'vcpus': vcpus,
@@ -729,7 +729,7 @@ def GetMirrorStatus(disks):
   for dsk in disks:
     rbd = _RecursiveFindBD(dsk)
     if rbd is None:
-      raise errors.BlockDeviceError, "Can't find device %s" % str(dsk)
+      raise errors.BlockDeviceError("Can't find device %s" % str(dsk))
     stats.append(rbd.CombinedSyncStatus())
   return stats
 
@@ -847,12 +847,12 @@ def _OSOndiskVersion(name, os_dir=None):
   try:
     st = os.stat(api_file)
   except EnvironmentError, err:
-    raise errors.InvalidOS, (name, "'ganeti_api_version' file not"
-                             " found (%s)" % _ErrnoOrStr(err))
+    raise errors.InvalidOS(name, "'ganeti_api_version' file not"
+                           " found (%s)" % _ErrnoOrStr(err))
 
   if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-    raise errors.InvalidOS, (name, "'ganeti_api_version' file is not"
-                             " a regular file")
+    raise errors.InvalidOS(name, "'ganeti_api_version' file is not"
+                           " a regular file")
 
   try:
     f = open(api_file)
@@ -861,15 +861,14 @@ def _OSOndiskVersion(name, os_dir=None):
     finally:
       f.close()
   except EnvironmentError, err:
-    raise errors.InvalidOS, (name, "error while reading the"
-                             " API version (%s)" % _ErrnoOrStr(err))
+    raise errors.InvalidOS(name, "error while reading the"
+                           " API version (%s)" % _ErrnoOrStr(err))
 
   api_version = api_version.strip()
   try:
     api_version = int(api_version)
   except (TypeError, ValueError), err:
-    raise errors.InvalidOS, (name, "API version is not integer (%s)" %
-                             str(err))
+    raise errors.InvalidOS(name, "API version is not integer (%s)" % str(err))
 
   return api_version
 
@@ -920,8 +919,8 @@ def OSFromDisk(name, os_dir=None):
   api_version = _OSOndiskVersion(name, os_dir)
 
   if api_version != constants.OS_API_VERSION:
-    raise errors.InvalidOS, (name, "API version mismatch (found %s want %s)"
-                             % (api_version, constants.OS_API_VERSION))
+    raise errors.InvalidOS(name, "API version mismatch (found %s want %s)"
+                           % (api_version, constants.OS_API_VERSION))
 
   # OS Scripts dictionary, we will populate it with the actual script names
   os_scripts = {'create': '', 'export': '', 'import': ''}
@@ -932,14 +931,14 @@ def OSFromDisk(name, os_dir=None):
     try:
       st = os.stat(os_scripts[script])
     except EnvironmentError, err:
-      raise errors.InvalidOS, (name, "'%s' script missing (%s)" %
-                               (script, _ErrnoOrStr(err)))
+      raise errors.InvalidOS(name, "'%s' script missing (%s)" %
+                             (script, _ErrnoOrStr(err)))
 
     if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
-      raise errors.InvalidOS, (name, "'%s' script not executable" % script)
+      raise errors.InvalidOS(name, "'%s' script not executable" % script)
 
     if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-      raise errors.InvalidOS, (name, "'%s' is not a regular file" % script)
+      raise errors.InvalidOS(name, "'%s' is not a regular file" % script)
 
 
   return objects.OS(name=name, path=os_dir,
@@ -980,9 +979,9 @@ def SnapshotBlockDevice(disk):
     else:
       return None
   else:
-    raise errors.ProgrammerError, ("Cannot snapshot non-lvm block device"
-                                   "'%s' of type '%s'" %
-                                   (disk.unique_id, disk.dev_type))
+    raise errors.ProgrammerError("Cannot snapshot non-lvm block device"
+                                 "'%s' of type '%s'" %
+                                 (disk.unique_id, disk.dev_type))
 
 
 def ExportSnapshot(disk, dest_node, instance):
@@ -1155,14 +1154,14 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
 
   real_os_dev = _RecursiveFindBD(os_device)
   if real_os_dev is None:
-    raise errors.BlockDeviceError, ("Block device '%s' is not set up" %
-                                    str(os_device))
+    raise errors.BlockDeviceError("Block device '%s' is not set up" %
+                                  str(os_device))
   real_os_dev.Open()
 
   real_swap_dev = _RecursiveFindBD(swap_device)
   if real_swap_dev is None:
-    raise errors.BlockDeviceError, ("Block device '%s' is not set up" %
-                                    str(swap_device))
+    raise errors.BlockDeviceError("Block device '%s' is not set up" %
+                                  str(swap_device))
   real_swap_dev.Open()
 
   logfile = "%s/import-%s-%s-%s.log" % (constants.LOG_OS_DIR, instance.os,
@@ -1302,7 +1301,7 @@ class HooksRunner(object):
     elif phase == constants.HOOKS_PHASE_POST:
       suffix = "post"
     else:
-      raise errors.ProgrammerError, ("Unknown hooks phase: '%s'" % phase)
+      raise errors.ProgrammerError("Unknown hooks phase: '%s'" % phase)
     rr = []
 
     subdir = "%s-%s.d" % (hpath, suffix)

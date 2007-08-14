@@ -61,13 +61,13 @@ class ConfigObject(object):
 
   def __getattr__(self, name):
     if name not in self.__slots__:
-      raise AttributeError, ("Invalid object attribute %s.%s" %
-                             (type(self).__name__, name))
+      raise AttributeError("Invalid object attribute %s.%s" %
+                           (type(self).__name__, name))
     return None
 
   def __setitem__(self, key, value):
     if key not in self.__slots__:
-      raise KeyError, key
+      raise KeyError(key)
     setattr(self, key, value)
 
   def __getstate__(self):
@@ -111,8 +111,8 @@ class ConfigObject(object):
       if name == "set":
         cls = set
     if cls is None:
-      raise cPickle.UnpicklingError, ("Class %s.%s not allowed due to"
-                                      " security concerns" % (module, name))
+      raise cPickle.UnpicklingError("Class %s.%s not allowed due to"
+                                    " security concerns" % (module, name))
     return cls
 
   def Dump(self, fobj):
@@ -161,14 +161,13 @@ class TaggableObject(object):
 
     """
     if not isinstance(tag, basestring):
-      raise errors.TagError, ("Invalid tag type (not a string)")
+      raise errors.TagError("Invalid tag type (not a string)")
     if len(tag) > constants.MAX_TAG_LEN:
-      raise errors.TagError, ("Tag too long (>%d)" %
-                              constants.MAX_TAG_LEN)
+      raise errors.TagError("Tag too long (>%d)" % constants.MAX_TAG_LEN)
     if not tag:
-      raise errors.TagError, ("Tags cannot be empty")
+      raise errors.TagError("Tags cannot be empty")
     if not re.match("^[ \w.+*/:-]+$", tag):
-      raise errors.TagError, ("Tag contains invalid characters")
+      raise errors.TagError("Tag contains invalid characters")
 
   def GetTags(self):
     """Return the tags list.
@@ -186,7 +185,7 @@ class TaggableObject(object):
     self.ValidateTag(tag)
     tags = self.GetTags()
     if len(tags) >= constants.MAX_TAGS_PER_OBJ:
-      raise errors.TagError, ("Too many tags")
+      raise errors.TagError("Too many tags")
     self.GetTags().add(tag)
 
   def RemoveTag(self, tag):
@@ -198,7 +197,7 @@ class TaggableObject(object):
     try:
       tags.remove(tag)
     except KeyError:
-      raise errors.TagError, ("Tag not found")
+      raise errors.TagError("Tag not found")
 
 
 class ConfigData(ConfigObject):
@@ -242,9 +241,9 @@ class Disk(ConfigObject):
     elif self.dev_type == "drbd":
       result = [self.logical_id[0], self.logical_id[1]]
       if node not in result:
-        raise errors.ConfigurationError, ("DRBD device passed unknown node")
+        raise errors.ConfigurationError("DRBD device passed unknown node")
     else:
-      raise errors.ProgrammerError, "Unhandled device type %s" % self.dev_type
+      raise errors.ProgrammerError("Unhandled device type %s" % self.dev_type)
     return result
 
   def ComputeNodeTree(self, parent_node):

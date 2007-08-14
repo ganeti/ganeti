@@ -77,17 +77,17 @@ class LogicalUnit(object):
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)
       if attr_val is None:
-        raise errors.OpPrereqError, ("Required parameter '%s' missing" %
-                                     attr_name)
+        raise errors.OpPrereqError("Required parameter '%s' missing" %
+                                   attr_name)
     if self.REQ_CLUSTER:
       if not cfg.IsCluster():
-        raise errors.OpPrereqError, ("Cluster not initialized yet,"
-                                     " use 'gnt-cluster init' first.")
+        raise errors.OpPrereqError("Cluster not initialized yet,"
+                                   " use 'gnt-cluster init' first.")
       if self.REQ_MASTER:
         master = sstore.GetMasterNode()
         if master != socket.gethostname():
-          raise errors.OpPrereqError, ("Commands must be run on the master"
-                                       " node %s" % master)
+          raise errors.OpPrereqError("Commands must be run on the master"
+                                     " node %s" % master)
 
   def CheckPrereq(self):
     """Check prerequisites for this LU.
@@ -172,7 +172,7 @@ def _GetWantedNodes(lu, nodes):
 
   """
   if nodes is not None and not isinstance(nodes, list):
-    raise errors.OpPrereqError, "Invalid argument type 'nodes'"
+    raise errors.OpPrereqError("Invalid argument type 'nodes'")
 
   if nodes:
     wanted_nodes = []
@@ -180,7 +180,7 @@ def _GetWantedNodes(lu, nodes):
     for name in nodes:
       node = lu.cfg.GetNodeInfo(lu.cfg.ExpandNodeName(name))
       if node is None:
-        raise errors.OpPrereqError, ("No such node name '%s'" % name)
+        raise errors.OpPrereqError("No such node name '%s'" % name)
     wanted_nodes.append(node)
 
     return wanted_nodes
@@ -202,9 +202,9 @@ def _CheckOutputFields(static, dynamic, selected):
   all_fields = static_fields | dynamic_fields
 
   if not all_fields.issuperset(selected):
-    raise errors.OpPrereqError, ("Unknown output fields selected: %s"
-                                 % ",".join(frozenset(selected).
-                                            difference(all_fields)))
+    raise errors.OpPrereqError("Unknown output fields selected: %s"
+                               % ",".join(frozenset(selected).
+                                          difference(all_fields)))
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
@@ -462,8 +462,8 @@ def _InitSSHSetup(node):
                          "-f", "/root/.ssh/id_dsa",
                          "-q", "-N", ""])
   if result.failed:
-    raise errors.OpExecError, ("could not generate ssh keypair, error %s" %
-                               result.output)
+    raise errors.OpExecError("Could not generate ssh keypair, error %s" %
+                             result.output)
 
   f = open('/root/.ssh/id_dsa.pub', 'r')
   try:
@@ -489,18 +489,18 @@ def _InitGanetiServerSetup(ss):
                          "-keyout", constants.SSL_CERT_FILE,
                          "-out", constants.SSL_CERT_FILE, "-batch"])
   if result.failed:
-    raise errors.OpExecError, ("could not generate server ssl cert, command"
-                               " %s had exitcode %s and error message %s" %
-                               (result.cmd, result.exit_code, result.output))
+    raise errors.OpExecError("could not generate server ssl cert, command"
+                             " %s had exitcode %s and error message %s" %
+                             (result.cmd, result.exit_code, result.output))
 
   os.chmod(constants.SSL_CERT_FILE, 0400)
 
   result = utils.RunCmd([constants.NODE_INITD_SCRIPT, "restart"])
 
   if result.failed:
-    raise errors.OpExecError, ("could not start the node daemon, command %s"
-                               " had exitcode %s and error %s" %
-                               (result.cmd, result.exit_code, result.output))
+    raise errors.OpExecError("Could not start the node daemon, command %s"
+                             " had exitcode %s and error %s" %
+                             (result.cmd, result.exit_code, result.output))
 
 
 class LUInitCluster(LogicalUnit):
@@ -531,56 +531,56 @@ class LUInitCluster(LogicalUnit):
 
     """
     if config.ConfigWriter.IsCluster():
-      raise errors.OpPrereqError, ("Cluster is already initialised")
+      raise errors.OpPrereqError("Cluster is already initialised")
 
     hostname_local = socket.gethostname()
     self.hostname = hostname = utils.LookupHostname(hostname_local)
     if not hostname:
-      raise errors.OpPrereqError, ("Cannot resolve my own hostname ('%s')" %
-                                   hostname_local)
+      raise errors.OpPrereqError("Cannot resolve my own hostname ('%s')" %
+                                 hostname_local)
 
     self.clustername = clustername = utils.LookupHostname(self.op.cluster_name)
     if not clustername:
-      raise errors.OpPrereqError, ("Cannot resolve given cluster name ('%s')"
-                                   % self.op.cluster_name)
+      raise errors.OpPrereqError("Cannot resolve given cluster name ('%s')"
+                                 % self.op.cluster_name)
 
     result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", hostname['ip']])
     if result.failed:
-      raise errors.OpPrereqError, ("Inconsistency: this host's name resolves"
-                                   " to %s,\nbut this ip address does not"
-                                   " belong to this host."
-                                   " Aborting." % hostname['ip'])
+      raise errors.OpPrereqError("Inconsistency: this host's name resolves"
+                                 " to %s,\nbut this ip address does not"
+                                 " belong to this host."
+                                 " Aborting." % hostname['ip'])
 
     secondary_ip = getattr(self.op, "secondary_ip", None)
     if secondary_ip and not utils.IsValidIP(secondary_ip):
-      raise errors.OpPrereqError, ("Invalid secondary ip given")
+      raise errors.OpPrereqError("Invalid secondary ip given")
     if secondary_ip and secondary_ip != hostname['ip']:
       result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", secondary_ip])
       if result.failed:
-        raise errors.OpPrereqError, ("You gave %s as secondary IP,\n"
-                                     "but it does not belong to this host." %
-                                     secondary_ip)
+        raise errors.OpPrereqError("You gave %s as secondary IP,\n"
+                                   "but it does not belong to this host." %
+                                   secondary_ip)
     self.secondary_ip = secondary_ip
 
     # checks presence of the volume group given
     vgstatus = _HasValidVG(utils.ListVolumeGroups(), self.op.vg_name)
 
     if vgstatus:
-      raise errors.OpPrereqError, ("Error: %s" % vgstatus)
+      raise errors.OpPrereqError("Error: %s" % vgstatus)
 
     if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$",
                     self.op.mac_prefix):
-      raise errors.OpPrereqError, ("Invalid mac prefix given '%s'" %
-                                   self.op.mac_prefix)
+      raise errors.OpPrereqError("Invalid mac prefix given '%s'" %
+                                 self.op.mac_prefix)
 
     if self.op.hypervisor_type not in hypervisor.VALID_HTYPES:
-      raise errors.OpPrereqError, ("Invalid hypervisor type given '%s'" %
-                                   self.op.hypervisor_type)
+      raise errors.OpPrereqError("Invalid hypervisor type given '%s'" %
+                                 self.op.hypervisor_type)
 
     result = utils.RunCmd(["ip", "link", "show", "dev", self.op.master_netdev])
     if result.failed:
-      raise errors.OpPrereqError, ("Invalid master netdev given (%s): '%s'" %
-                                   (self.op.master_netdev, result.output))
+      raise errors.OpPrereqError("Invalid master netdev given (%s): '%s'" %
+                                 (self.op.master_netdev, result.output))
 
   def Exec(self, feedback_fn):
     """Initialize the cluster.
@@ -647,12 +647,12 @@ class LUDestroyCluster(NoHooksLU):
 
     nodelist = self.cfg.GetNodeList()
     if len(nodelist) != 1 or nodelist[0] != master:
-      raise errors.OpPrereqError, ("There are still %d node(s) in "
-                                   "this cluster." % (len(nodelist) - 1))
+      raise errors.OpPrereqError("There are still %d node(s) in"
+                                 " this cluster." % (len(nodelist) - 1))
     instancelist = self.cfg.GetInstanceList()
     if instancelist:
-      raise errors.OpPrereqError, ("There are still %d instance(s) in "
-                                   "this cluster." % len(instancelist))
+      raise errors.OpPrereqError("There are still %d instance(s) in"
+                                 " this cluster." % len(instancelist))
 
   def Exec(self, feedback_fn):
     """Destroys the cluster.
@@ -932,8 +932,8 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
       logger.ToStderr("Can't get any data from node %s" % node)
       retries += 1
       if retries >= 10:
-        raise errors.RemoteError, ("Can't contact node %s for mirror data,"
-                                   " aborting." % node)
+        raise errors.RemoteError("Can't contact node %s for mirror data,"
+                                 " aborting." % node)
       time.sleep(6)
       continue
     retries = 0
@@ -1012,7 +1012,7 @@ class LUDiagnoseOS(NoHooksLU):
     node_list = self.cfg.GetNodeList()
     node_data = rpc.call_os_diagnose(node_list)
     if node_data == False:
-      raise errors.OpExecError, "Can't gather the list of OSes"
+      raise errors.OpExecError("Can't gather the list of OSes")
     return node_data
 
 
@@ -1058,17 +1058,17 @@ class LURemoveNode(LogicalUnit):
 
     masternode = self.sstore.GetMasterNode()
     if node.name == masternode:
-      raise errors.OpPrereqError, ("Node is the master node,"
-                                   " you need to failover first.")
+      raise errors.OpPrereqError("Node is the master node,"
+                                 " you need to failover first.")
 
     for instance_name in instance_list:
       instance = self.cfg.GetInstanceInfo(instance_name)
       if node.name == instance.primary_node:
-        raise errors.OpPrereqError, ("Instance %s still running on the node,"
-                                     " please remove first." % instance_name)
+        raise errors.OpPrereqError("Instance %s still running on the node,"
+                                   " please remove first." % instance_name)
       if node.name in instance.secondary_nodes:
-        raise errors.OpPrereqError, ("Instance %s has node as a secondary,"
-                                     " please remove first." % instance_name)
+        raise errors.OpPrereqError("Instance %s has node as a secondary,"
+                                   " please remove first." % instance_name)
     self.op.node_name = node.name
     self.node = node
 
@@ -1168,7 +1168,7 @@ class LUQueryNodes(NoHooksLU):
         elif field in self.dynamic_fields:
           val = live_data[node.name].get(field, "?")
         else:
-          raise errors.ParameterError, field
+          raise errors.ParameterError(field)
         val = str(val)
         node_output.append(val)
       output.append(node_output)
@@ -1238,7 +1238,7 @@ class LUQueryNodeVolumes(NoHooksLU):
             else:
               val = '-'
           else:
-            raise errors.ParameterError, field
+            raise errors.ParameterError(field)
           node_output.append(str(val))
 
         output.append(node_output)
@@ -1285,7 +1285,7 @@ class LUAddNode(LogicalUnit):
 
     dns_data = utils.LookupHostname(node_name)
     if not dns_data:
-      raise errors.OpPrereqError, ("Node %s is not resolvable" % node_name)
+      raise errors.OpPrereqError("Node %s is not resolvable" % node_name)
 
     node = dns_data['hostname']
     primary_ip = self.op.primary_ip = dns_data['ip']
@@ -1293,12 +1293,12 @@ class LUAddNode(LogicalUnit):
     if secondary_ip is None:
       secondary_ip = primary_ip
     if not utils.IsValidIP(secondary_ip):
-      raise errors.OpPrereqError, ("Invalid secondary IP given")
+      raise errors.OpPrereqError("Invalid secondary IP given")
     self.op.secondary_ip = secondary_ip
     node_list = cfg.GetNodeList()
     if node in node_list:
-      raise errors.OpPrereqError, ("Node %s is already in the configuration"
-                                   % node)
+      raise errors.OpPrereqError("Node %s is already in the configuration"
+                                 % node)
 
     for existing_node_name in node_list:
       existing_node = cfg.GetNodeInfo(existing_node_name)
@@ -1306,8 +1306,8 @@ class LUAddNode(LogicalUnit):
           existing_node.secondary_ip == primary_ip or
           existing_node.primary_ip == secondary_ip or
           existing_node.secondary_ip == secondary_ip):
-        raise errors.OpPrereqError, ("New node ip address(es) conflict with"
-                                     " existing node %s" % existing_node.name)
+        raise errors.OpPrereqError("New node ip address(es) conflict with"
+                                   " existing node %s" % existing_node.name)
 
     # check that the type of the node (single versus dual homed) is the
     # same as for the master
@@ -1316,24 +1316,24 @@ class LUAddNode(LogicalUnit):
     newbie_singlehomed = secondary_ip == primary_ip
     if master_singlehomed != newbie_singlehomed:
       if master_singlehomed:
-        raise errors.OpPrereqError, ("The master has no private ip but the"
-                                     " new node has one")
+        raise errors.OpPrereqError("The master has no private ip but the"
+                                   " new node has one")
       else:
-        raise errors.OpPrereqError ("The master has a private ip but the"
-                                    " new node doesn't have one")
+        raise errors.OpPrereqError("The master has a private ip but the"
+                                   " new node doesn't have one")
 
     # checks reachablity
     command = ["fping", "-q", primary_ip]
     result = utils.RunCmd(command)
     if result.failed:
-      raise errors.OpPrereqError, ("Node not reachable by ping")
+      raise errors.OpPrereqError("Node not reachable by ping")
 
     if not newbie_singlehomed:
       # check reachability from my secondary ip to newbie's secondary ip
       command = ["fping", "-S%s" % myself.secondary_ip, "-q", secondary_ip]
       result = utils.RunCmd(command)
       if result.failed:
-        raise errors.OpPrereqError, ("Node secondary ip not reachable by ping")
+        raise errors.OpPrereqError("Node secondary ip not reachable by ping")
 
     self.new_node = objects.Node(name=node,
                                  primary_ip=primary_ip,
@@ -1349,7 +1349,7 @@ class LUAddNode(LogicalUnit):
     # set up inter-node password and certificate and restarts the node daemon
     gntpass = self.sstore.GetNodeDaemonPassword()
     if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
-      raise errors.OpExecError, ("ganeti password corruption detected")
+      raise errors.OpExecError("ganeti password corruption detected")
     f = open(constants.SSL_CERT_FILE)
     try:
       gntpem = f.read(8192)
@@ -1360,9 +1360,9 @@ class LUAddNode(LogicalUnit):
     # cert doesn't contain this, the here-document will be correctly
     # parsed by the shell sequence below
     if re.search('^!EOF\.', gntpem, re.MULTILINE):
-      raise errors.OpExecError, ("invalid PEM encoding in the SSL certificate")
+      raise errors.OpExecError("invalid PEM encoding in the SSL certificate")
     if not gntpem.endswith("\n"):
-      raise errors.OpExecError, ("PEM must end with newline")
+      raise errors.OpExecError("PEM must end with newline")
     logger.Info("copy cluster pass to %s and starting the node daemon" % node)
 
     # remove first the root's known_hosts file
@@ -1381,9 +1381,9 @@ class LUAddNode(LogicalUnit):
 
     result = ssh.SSHCall(node, 'root', mycommand, batch=False, ask_key=True)
     if result.failed:
-      raise errors.OpExecError, ("Remote command on node %s, error: %s,"
-                                 " output: %s" %
-                                 (node, result.fail_reason, result.output))
+      raise errors.OpExecError("Remote command on node %s, error: %s,"
+                               " output: %s" %
+                               (node, result.fail_reason, result.output))
 
     # check connectivity
     time.sleep(4)
@@ -1394,11 +1394,11 @@ class LUAddNode(LogicalUnit):
         logger.Info("communication to node %s fine, sw version %s match" %
                     (node, result))
       else:
-        raise errors.OpExecError, ("Version mismatch master version %s,"
-                                   " node version %s" %
-                                   (constants.PROTOCOL_VERSION, result))
+        raise errors.OpExecError("Version mismatch master version %s,"
+                                 " node version %s" %
+                                 (constants.PROTOCOL_VERSION, result))
     else:
-      raise errors.OpExecError, ("Cannot get version from the new node")
+      raise errors.OpExecError("Cannot get version from the new node")
 
     # setup ssh on node
     logger.Info("copy ssh key to node %s" % node)
@@ -1418,7 +1418,7 @@ class LUAddNode(LogicalUnit):
                                keyarray[3], keyarray[4], keyarray[5])
 
     if not result:
-      raise errors.OpExecError, ("Cannot transfer ssh keys to the new node")
+      raise errors.OpExecError("Cannot transfer ssh keys to the new node")
 
     # Add node to our /etc/hosts, and add key to known_hosts
     _UpdateEtcHosts(new_node.name, new_node.primary_ip)
@@ -1429,10 +1429,10 @@ class LUAddNode(LogicalUnit):
       result = ssh.SSHCall(node, "root",
                            "fping -S 127.0.0.1 -q %s" % new_node.secondary_ip)
       if result.failed:
-        raise errors.OpExecError, ("Node claims it doesn't have the"
-                                   " secondary ip you gave (%s).\n"
-                                   "Please fix and re-run this command." %
-                                   new_node.secondary_ip)
+        raise errors.OpExecError("Node claims it doesn't have the"
+                                 " secondary ip you gave (%s).\n"
+                                 "Please fix and re-run this command." %
+                                 new_node.secondary_ip)
 
     # Distribute updated /etc/hosts and known_hosts to all nodes,
     # including the node just added
@@ -1493,10 +1493,10 @@ class LUMasterFailover(LogicalUnit):
     self.old_master = self.sstore.GetMasterNode()
 
     if self.old_master == self.new_master:
-      raise errors.OpPrereqError, ("This commands must be run on the node"
-                                   " where you want the new master to be.\n"
-                                   "%s is already the master" %
-                                   self.old_master)
+      raise errors.OpPrereqError("This commands must be run on the node"
+                                 " where you want the new master to be.\n"
+                                 "%s is already the master" %
+                                 self.old_master)
 
   def Exec(self, feedback_fn):
     """Failover the master node.
@@ -1659,8 +1659,8 @@ class LUActivateInstanceDisks(NoHooksLU):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
 
@@ -1670,7 +1670,7 @@ class LUActivateInstanceDisks(NoHooksLU):
     """
     disks_ok, disks_info = _AssembleInstanceDisks(self.instance, self.cfg)
     if not disks_ok:
-      raise errors.OpExecError, ("Cannot activate block devices")
+      raise errors.OpExecError("Cannot activate block devices")
 
     return disks_info
 
@@ -1712,6 +1712,9 @@ def _AssembleInstanceDisks(instance, cfg, ignore_secondaries=False):
 
 
 def _StartInstanceDisks(cfg, instance, force):
+  """Start the disks of an instance.
+
+  """
   disks_ok, dummy = _AssembleInstanceDisks(instance, cfg,
                                            ignore_secondaries=force)
   if not disks_ok:
@@ -1719,7 +1722,7 @@ def _StartInstanceDisks(cfg, instance, force):
     if force is not None and not force:
       logger.Error("If the message above refers to a secondary node,"
                    " you can retry the operation using '--force'.")
-    raise errors.OpExecError, ("Disk consistency error")
+    raise errors.OpExecError("Disk consistency error")
 
 
 class LUDeactivateInstanceDisks(NoHooksLU):
@@ -1737,8 +1740,8 @@ class LUDeactivateInstanceDisks(NoHooksLU):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
   def Exec(self, feedback_fn):
@@ -1749,12 +1752,12 @@ class LUDeactivateInstanceDisks(NoHooksLU):
     ins_l = rpc.call_instance_list([instance.primary_node])
     ins_l = ins_l[instance.primary_node]
     if not type(ins_l) is list:
-      raise errors.OpExecError, ("Can't contact node '%s'" %
-                                 instance.primary_node)
+      raise errors.OpExecError("Can't contact node '%s'" %
+                               instance.primary_node)
 
     if self.instance.name in ins_l:
-      raise errors.OpExecError, ("Instance is running, can't shutdown"
-                                 " block devices.")
+      raise errors.OpExecError("Instance is running, can't shutdown"
+                               " block devices.")
 
     _ShutdownInstanceDisks(instance, self.cfg)
 
@@ -1811,15 +1814,15 @@ class LUStartupInstance(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
 
     # check bridges existance
     brlist = [nic.bridge for nic in instance.nics]
     if not rpc.call_bridges_exist(instance.primary_node, brlist):
-      raise errors.OpPrereqError, ("one or more target bridges %s does not"
-                                   " exist on destination node '%s'" %
-                                   (brlist, instance.primary_node))
+      raise errors.OpPrereqError("one or more target bridges %s does not"
+                                 " exist on destination node '%s'" %
+                                 (brlist, instance.primary_node))
 
     self.instance = instance
     self.op.instance_name = instance.name
@@ -1836,23 +1839,23 @@ class LUStartupInstance(LogicalUnit):
 
     nodeinfo = rpc.call_node_info([node_current], self.cfg.GetVGName())
     if not nodeinfo:
-      raise errors.OpExecError, ("Could not contact node %s for infos" %
-                                 (node_current))
+      raise errors.OpExecError("Could not contact node %s for infos" %
+                               (node_current))
 
     freememory = nodeinfo[node_current]['memory_free']
     memory = instance.memory
     if memory > freememory:
-      raise errors.OpExecError, ("Not enough memory to start instance"
-                                 " %s on node %s"
-                                 " needed %s MiB, available %s MiB" %
-                                 (instance.name, node_current, memory,
-                                  freememory))
+      raise errors.OpExecError("Not enough memory to start instance"
+                               " %s on node %s"
+                               " needed %s MiB, available %s MiB" %
+                               (instance.name, node_current, memory,
+                                freememory))
 
     _StartInstanceDisks(self.cfg, instance, force)
 
     if not rpc.call_instance_start(node_current, instance, extra_args):
       _ShutdownInstanceDisks(instance, self.cfg)
-      raise errors.OpExecError, ("Could not start instance")
+      raise errors.OpExecError("Could not start instance")
 
     self.cfg.MarkInstanceUp(instance.name)
 
@@ -1885,8 +1888,8 @@ class LUShutdownInstance(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
   def Exec(self, feedback_fn):
@@ -1930,19 +1933,19 @@ class LUReinstallInstance(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     if instance.disk_template == constants.DT_DISKLESS:
-      raise errors.OpPrereqError, ("Instance '%s' has no disks" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' has no disks" %
+                                 self.op.instance_name)
     if instance.status != "down":
-      raise errors.OpPrereqError, ("Instance '%s' is marked to be up" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' is marked to be up" %
+                                 self.op.instance_name)
     remote_info = rpc.call_instance_info(instance.primary_node, instance.name)
     if remote_info:
-      raise errors.OpPrereqError, ("Instance '%s' is running on the node %s" %
-                                   (self.op.instance_name,
-                                    instance.primary_node))
+      raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
+                                 (self.op.instance_name,
+                                  instance.primary_node))
 
     self.op.os_type = getattr(self.op, "os_type", None)
     if self.op.os_type is not None:
@@ -1950,12 +1953,12 @@ class LUReinstallInstance(LogicalUnit):
       pnode = self.cfg.GetNodeInfo(
         self.cfg.ExpandNodeName(instance.primary_node))
       if pnode is None:
-        raise errors.OpPrereqError, ("Primary node '%s' is unknown" %
-                                     self.op.pnode)
+        raise errors.OpPrereqError("Primary node '%s' is unknown" %
+                                   self.op.pnode)
       os_obj = rpc.call_os_get([pnode.name], self.op.os_type)[pnode.name]
       if not isinstance(os_obj, objects.OS):
-        raise errors.OpPrereqError, ("OS '%s' not in supported OS list for"
-                                     " primary node"  % self.op.os_type)
+        raise errors.OpPrereqError("OS '%s' not in supported OS list for"
+                                   " primary node"  % self.op.os_type)
 
     self.instance = instance
 
@@ -1974,9 +1977,9 @@ class LUReinstallInstance(LogicalUnit):
     try:
       feedback_fn("Running the instance OS create scripts...")
       if not rpc.call_instance_os_add(inst.primary_node, inst, "sda", "sdb"):
-        raise errors.OpExecError, ("Could not install OS for instance %s "
-                                   "on node %s" %
-                                   (inst.name, inst.primary_node))
+        raise errors.OpExecError("Could not install OS for instance %s "
+                                 "on node %s" %
+                                 (inst.name, inst.primary_node))
     finally:
       _ShutdownInstanceDisks(inst, self.cfg)
 
@@ -2009,8 +2012,8 @@ class LURemoveInstance(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
   def Exec(self, feedback_fn):
@@ -2022,8 +2025,8 @@ class LURemoveInstance(LogicalUnit):
                 (instance.name, instance.primary_node))
 
     if not rpc.call_instance_shutdown(instance.primary_node, instance):
-      raise errors.OpExecError, ("Could not shutdown instance %s on node %s" %
-                                 (instance.name, instance.primary_node))
+      raise errors.OpExecError("Could not shutdown instance %s on node %s" %
+                               (instance.name, instance.primary_node))
 
     logger.Info("removing block devices for instance %s" % instance.name)
 
@@ -2124,7 +2127,7 @@ class LUQueryInstances(NoHooksLU):
         elif field == "mac":
           val = instance.nics[0].mac
         else:
-          raise errors.ParameterError, field
+          raise errors.ParameterError(field)
         val = str(val)
         iout.append(val)
       output.append(iout)
@@ -2162,28 +2165,28 @@ class LUFailoverInstance(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
 
     # check memory requirements on the secondary node
     target_node = instance.secondary_nodes[0]
     nodeinfo = rpc.call_node_info([target_node], self.cfg.GetVGName())
     info = nodeinfo.get(target_node, None)
     if not info:
-      raise errors.OpPrereqError, ("Cannot get current information"
-                                   " from node '%s'" % nodeinfo)
+      raise errors.OpPrereqError("Cannot get current information"
+                                 " from node '%s'" % nodeinfo)
     if instance.memory > info['memory_free']:
-      raise errors.OpPrereqError, ("Not enough memory on target node %s."
-                                   " %d MB available, %d MB required" %
-                                   (target_node, info['memory_free'],
-                                    instance.memory))
+      raise errors.OpPrereqError("Not enough memory on target node %s."
+                                 " %d MB available, %d MB required" %
+                                 (target_node, info['memory_free'],
+                                  instance.memory))
 
     # check bridge existance
     brlist = [nic.bridge for nic in instance.nics]
     if not rpc.call_bridges_exist(instance.primary_node, brlist):
-      raise errors.OpPrereqError, ("one or more target bridges %s does not"
-                                   " exist on destination node '%s'" %
-                                   (brlist, instance.primary_node))
+      raise errors.OpPrereqError("One or more target bridges %s does not"
+                                 " exist on destination node '%s'" %
+                                 (brlist, instance.primary_node))
 
     self.instance = instance
 
@@ -2204,23 +2207,23 @@ class LUFailoverInstance(LogicalUnit):
       # for remote_raid1, these are md over drbd
       if not _CheckDiskConsistency(self.cfg, dev, target_node, False):
         if not self.op.ignore_consistency:
-          raise errors.OpExecError, ("Disk %s is degraded on target node,"
-                                     " aborting failover." % dev.iv_name)
+          raise errors.OpExecError("Disk %s is degraded on target node,"
+                                   " aborting failover." % dev.iv_name)
 
     feedback_fn("* checking target node resource availability")
     nodeinfo = rpc.call_node_info([target_node], self.cfg.GetVGName())
 
     if not nodeinfo:
-      raise errors.OpExecError, ("Could not contact target node %s." %
-                                 target_node)
+      raise errors.OpExecError("Could not contact target node %s." %
+                               target_node)
 
     free_memory = int(nodeinfo[target_node]['memory_free'])
     memory = instance.memory
     if memory > free_memory:
-      raise errors.OpExecError, ("Not enough memory to create instance %s on"
-                                 " node %s. needed %s MiB, available %s MiB" %
-                                 (instance.name, target_node, memory,
-                                  free_memory))
+      raise errors.OpExecError("Not enough memory to create instance %s on"
+                               " node %s. needed %s MiB, available %s MiB" %
+                               (instance.name, target_node, memory,
+                                free_memory))
 
     feedback_fn("* shutting down instance on source node")
     logger.Info("Shutting down instance %s on node %s" %
@@ -2233,7 +2236,7 @@ class LUFailoverInstance(LogicalUnit):
 
     feedback_fn("* deactivating the instance's disks on source node")
     if not _ShutdownInstanceDisks(instance, self.cfg, ignore_primary=True):
-      raise errors.OpExecError, ("Can't shut down the instance's disks.")
+      raise errors.OpExecError("Can't shut down the instance's disks.")
 
     instance.primary_node = target_node
     # distribute new instance config to the other nodes
@@ -2247,7 +2250,7 @@ class LUFailoverInstance(LogicalUnit):
                                              ignore_secondaries=True)
     if not disks_ok:
       _ShutdownInstanceDisks(instance, self.cfg)
-      raise errors.OpExecError, ("Can't activate the instance's disks")
+      raise errors.OpExecError("Can't activate the instance's disks")
 
     feedback_fn("* starting the instance on the target node")
     if not rpc.call_instance_start(target_node, instance, None):
@@ -2398,6 +2401,9 @@ def _GenerateDiskTemplate(cfg, template_name,
 
 
 def _GetInstanceInfoText(instance):
+  """Compute that text that should be added to the disk's metadata.
+
+  """
   return "originstname+%s" % instance.name
 
 
@@ -2510,39 +2516,39 @@ class LUCreateInstance(LogicalUnit):
     """
     if self.op.mode not in (constants.INSTANCE_CREATE,
                             constants.INSTANCE_IMPORT):
-      raise errors.OpPrereqError, ("Invalid instance creation mode '%s'" %
-                                   self.op.mode)
+      raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
+                                 self.op.mode)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       src_node = getattr(self.op, "src_node", None)
       src_path = getattr(self.op, "src_path", None)
       if src_node is None or src_path is None:
-        raise errors.OpPrereqError, ("Importing an instance requires source"
-                                     " node and path options")
+        raise errors.OpPrereqError("Importing an instance requires source"
+                                   " node and path options")
       src_node_full = self.cfg.ExpandNodeName(src_node)
       if src_node_full is None:
-        raise errors.OpPrereqError, ("Unknown source node '%s'" % src_node)
+        raise errors.OpPrereqError("Unknown source node '%s'" % src_node)
       self.op.src_node = src_node = src_node_full
 
       if not os.path.isabs(src_path):
-        raise errors.OpPrereqError, ("The source path must be absolute")
+        raise errors.OpPrereqError("The source path must be absolute")
 
       export_info = rpc.call_export_info(src_node, src_path)
 
       if not export_info:
-        raise errors.OpPrereqError, ("No export found in dir %s" % src_path)
+        raise errors.OpPrereqError("No export found in dir %s" % src_path)
 
       if not export_info.has_section(constants.INISECT_EXP):
-        raise errors.ProgrammerError, ("Corrupted export config")
+        raise errors.ProgrammerError("Corrupted export config")
 
       ei_version = export_info.get(constants.INISECT_EXP, 'version')
       if (int(ei_version) != constants.EXPORT_VERSION):
-        raise errors.OpPrereqError, ("Wrong export version %s (wanted %d)" %
-                                     (ei_version, constants.EXPORT_VERSION))
+        raise errors.OpPrereqError("Wrong export version %s (wanted %d)" %
+                                   (ei_version, constants.EXPORT_VERSION))
 
       if int(export_info.get(constants.INISECT_INS, 'disk_count')) > 1:
-        raise errors.OpPrereqError, ("Can't import instance with more than"
-                                     " one data disk")
+        raise errors.OpPrereqError("Can't import instance with more than"
+                                   " one data disk")
 
       # FIXME: are the old os-es, disk sizes, etc. useful?
       self.op.os_type = export_info.get(constants.INISECT_EXP, 'os')
@@ -2551,32 +2557,32 @@ class LUCreateInstance(LogicalUnit):
       self.src_image = diskimage
     else: # INSTANCE_CREATE
       if getattr(self.op, "os_type", None) is None:
-        raise errors.OpPrereqError, ("No guest OS specified")
+        raise errors.OpPrereqError("No guest OS specified")
 
     # check primary node
     pnode = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.pnode))
     if pnode is None:
-      raise errors.OpPrereqError, ("Primary node '%s' is unknown" %
-                                   self.op.pnode)
+      raise errors.OpPrereqError("Primary node '%s' is unknown" %
+                                 self.op.pnode)
     self.op.pnode = pnode.name
     self.pnode = pnode
     self.secondaries = []
     # disk template and mirror node verification
     if self.op.disk_template not in constants.DISK_TEMPLATES:
-      raise errors.OpPrereqError, ("Invalid disk template name")
+      raise errors.OpPrereqError("Invalid disk template name")
 
     if self.op.disk_template == constants.DT_REMOTE_RAID1:
       if getattr(self.op, "snode", None) is None:
-        raise errors.OpPrereqError, ("The 'remote_raid1' disk template needs"
-                                     " a mirror node")
+        raise errors.OpPrereqError("The 'remote_raid1' disk template needs"
+                                   " a mirror node")
 
       snode_name = self.cfg.ExpandNodeName(self.op.snode)
       if snode_name is None:
-        raise errors.OpPrereqError, ("Unknown secondary node '%s'" %
-                                     self.op.snode)
+        raise errors.OpPrereqError("Unknown secondary node '%s'" %
+                                   self.op.snode)
       elif snode_name == pnode.name:
-        raise errors.OpPrereqError, ("The secondary node cannot be"
-                                     " the primary node.")
+        raise errors.OpPrereqError("The secondary node cannot be"
+                                   " the primary node.")
       self.secondaries.append(snode_name)
 
     # Check lv size requirements
@@ -2593,38 +2599,38 @@ class LUCreateInstance(LogicalUnit):
     }
 
     if self.op.disk_template not in req_size_dict:
-      raise errors.ProgrammerError, ("Disk template '%s' size requirement"
-                                     " is unknown" %  self.op.disk_template)
+      raise errors.ProgrammerError("Disk template '%s' size requirement"
+                                   " is unknown" %  self.op.disk_template)
 
     req_size = req_size_dict[self.op.disk_template]
 
     for node in nodenames:
       info = nodeinfo.get(node, None)
       if not info:
-        raise errors.OpPrereqError, ("Cannot get current information"
-                                     " from node '%s'" % nodeinfo)
+        raise errors.OpPrereqError("Cannot get current information"
+                                   " from node '%s'" % nodeinfo)
       if req_size > info['vg_free']:
-        raise errors.OpPrereqError, ("Not enough disk space on target node %s."
-                                     " %d MB available, %d MB required" %
-                                     (node, info['vg_free'], req_size))
+        raise errors.OpPrereqError("Not enough disk space on target node %s."
+                                   " %d MB available, %d MB required" %
+                                   (node, info['vg_free'], req_size))
 
     # os verification
     os_obj = rpc.call_os_get([pnode.name], self.op.os_type)[pnode.name]
     if not isinstance(os_obj, objects.OS):
-      raise errors.OpPrereqError, ("OS '%s' not in supported os list for"
-                                   " primary node"  % self.op.os_type)
+      raise errors.OpPrereqError("OS '%s' not in supported os list for"
+                                 " primary node"  % self.op.os_type)
 
     # instance verification
     hostname1 = utils.LookupHostname(self.op.instance_name)
     if not hostname1:
-      raise errors.OpPrereqError, ("Instance name '%s' not found in dns" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance name '%s' not found in dns" %
+                                 self.op.instance_name)
 
     self.op.instance_name = instance_name = hostname1['hostname']
     instance_list = self.cfg.GetInstanceList()
     if instance_name in instance_list:
-      raise errors.OpPrereqError, ("Instance '%s' is already in the cluster" %
-                                   instance_name)
+      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
+                                 instance_name)
 
     ip = getattr(self.op, "ip", None)
     if ip is None or ip.lower() == "none":
@@ -2633,16 +2639,16 @@ class LUCreateInstance(LogicalUnit):
       inst_ip = hostname1['ip']
     else:
       if not utils.IsValidIP(ip):
-        raise errors.OpPrereqError, ("given IP address '%s' doesn't look"
-                                     " like a valid IP" % ip)
+        raise errors.OpPrereqError("given IP address '%s' doesn't look"
+                                   " like a valid IP" % ip)
       inst_ip = ip
     self.inst_ip = inst_ip
 
     command = ["fping", "-q", hostname1['ip']]
     result = utils.RunCmd(command)
     if not result.failed:
-      raise errors.OpPrereqError, ("IP %s of instance %s already in use" %
-                                   (hostname1['ip'], instance_name))
+      raise errors.OpPrereqError("IP %s of instance %s already in use" %
+                                 (hostname1['ip'], instance_name))
 
     # bridge verification
     bridge = getattr(self.op, "bridge", None)
@@ -2652,9 +2658,9 @@ class LUCreateInstance(LogicalUnit):
       self.op.bridge = bridge
 
     if not rpc.call_bridges_exist(self.pnode.name, [self.op.bridge]):
-      raise errors.OpPrereqError, ("target bridge '%s' does not exist on"
-                                   " destination node '%s'" %
-                                   (self.op.bridge, pnode.name))
+      raise errors.OpPrereqError("target bridge '%s' does not exist on"
+                                 " destination node '%s'" %
+                                 (self.op.bridge, pnode.name))
 
     if self.op.start:
       self.instance_status = 'up'
@@ -2690,7 +2696,7 @@ class LUCreateInstance(LogicalUnit):
     feedback_fn("* creating instance disks...")
     if not _CreateDisks(self.cfg, iobj):
       _RemoveDisks(iobj, self.cfg)
-      raise errors.OpExecError, ("Device creation failed, reverting...")
+      raise errors.OpExecError("Device creation failed, reverting...")
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
@@ -2709,8 +2715,8 @@ class LUCreateInstance(LogicalUnit):
     if disk_abort:
       _RemoveDisks(iobj, self.cfg)
       self.cfg.RemoveInstance(iobj.name)
-      raise errors.OpExecError, ("There are some degraded disks for"
-                                      " this instance")
+      raise errors.OpExecError("There are some degraded disks for"
+                               " this instance")
 
     feedback_fn("creating os for instance %s on node %s" %
                 (instance, pnode_name))
@@ -2719,9 +2725,9 @@ class LUCreateInstance(LogicalUnit):
       if self.op.mode == constants.INSTANCE_CREATE:
         feedback_fn("* running the instance OS create scripts...")
         if not rpc.call_instance_os_add(pnode_name, iobj, "sda", "sdb"):
-          raise errors.OpExecError, ("could not add os for instance %s"
-                                          " on node %s" %
-                                          (instance, pnode_name))
+          raise errors.OpExecError("could not add os for instance %s"
+                                   " on node %s" %
+                                   (instance, pnode_name))
 
       elif self.op.mode == constants.INSTANCE_IMPORT:
         feedback_fn("* running the instance OS import scripts...")
@@ -2729,19 +2735,19 @@ class LUCreateInstance(LogicalUnit):
         src_image = self.src_image
         if not rpc.call_instance_os_import(pnode_name, iobj, "sda", "sdb",
                                                 src_node, src_image):
-          raise errors.OpExecError, ("Could not import os for instance"
-                                          " %s on node %s" %
-                                          (instance, pnode_name))
+          raise errors.OpExecError("Could not import os for instance"
+                                   " %s on node %s" %
+                                   (instance, pnode_name))
       else:
         # also checked in the prereq part
-        raise errors.ProgrammerError, ("Unknown OS initialization mode '%s'"
-                                       % self.op.mode)
+        raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
+                                     % self.op.mode)
 
     if self.op.start:
       logger.Info("starting instance %s on node %s" % (instance, pnode_name))
       feedback_fn("* starting instance...")
       if not rpc.call_instance_start(pnode_name, iobj, None):
-        raise errors.OpExecError, ("Could not start instance")
+        raise errors.OpExecError("Could not start instance")
 
 
 class LUConnectConsole(NoHooksLU):
@@ -2763,8 +2769,8 @@ class LUConnectConsole(NoHooksLU):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
   def Exec(self, feedback_fn):
@@ -2776,10 +2782,10 @@ class LUConnectConsole(NoHooksLU):
 
     node_insts = rpc.call_instance_list([node])[node]
     if node_insts is False:
-      raise errors.OpExecError, ("Can't connect to node %s." % node)
+      raise errors.OpExecError("Can't connect to node %s." % node)
 
     if instance.name not in node_insts:
-      raise errors.OpExecError, ("Instance %s is not running." % instance.name)
+      raise errors.OpExecError("Instance %s is not running." % instance.name)
 
     logger.Debug("connecting to console of %s on %s" % (instance.name, node))
 
@@ -2820,33 +2826,33 @@ class LUAddMDDRBDComponent(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
     remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
     if remote_node is None:
-      raise errors.OpPrereqError, ("Node '%s' not known" % self.op.remote_node)
+      raise errors.OpPrereqError("Node '%s' not known" % self.op.remote_node)
     self.remote_node = remote_node
 
     if remote_node == instance.primary_node:
-      raise errors.OpPrereqError, ("The specified node is the primary node of"
-                                   " the instance.")
+      raise errors.OpPrereqError("The specified node is the primary node of"
+                                 " the instance.")
 
     if instance.disk_template != constants.DT_REMOTE_RAID1:
-      raise errors.OpPrereqError, ("Instance's disk layout is not"
-                                   " remote_raid1.")
+      raise errors.OpPrereqError("Instance's disk layout is not"
+                                 " remote_raid1.")
     for disk in instance.disks:
       if disk.iv_name == self.op.disk_name:
         break
     else:
-      raise errors.OpPrereqError, ("Can't find this device ('%s') in the"
-                                   " instance." % self.op.disk_name)
+      raise errors.OpPrereqError("Can't find this device ('%s') in the"
+                                 " instance." % self.op.disk_name)
     if len(disk.children) > 1:
-      raise errors.OpPrereqError, ("The device already has two slave"
-                                   " devices.\n"
-                                   "This would create a 3-disk raid1"
-                                   " which we don't allow.")
+      raise errors.OpPrereqError("The device already has two slave"
+                                 " devices.\n"
+                                 "This would create a 3-disk raid1"
+                                 " which we don't allow.")
     self.disk = disk
 
   def Exec(self, feedback_fn):
@@ -2866,8 +2872,8 @@ class LUAddMDDRBDComponent(LogicalUnit):
     #HARDCODE
     if not _CreateBlockDevOnSecondary(self.cfg, remote_node, new_drbd, False,
                                       _GetInstanceInfoText(instance)):
-      raise errors.OpExecError, ("Failed to create new component on secondary"
-                                 " node %s" % remote_node)
+      raise errors.OpExecError("Failed to create new component on secondary"
+                               " node %s" % remote_node)
 
     logger.Info("adding new mirror component on primary")
     #HARDCODE
@@ -2876,7 +2882,7 @@ class LUAddMDDRBDComponent(LogicalUnit):
       # remove secondary dev
       self.cfg.SetDiskID(new_drbd, remote_node)
       rpc.call_blockdev_remove(remote_node, new_drbd)
-      raise errors.OpExecError, ("Failed to create volume on primary")
+      raise errors.OpExecError("Failed to create volume on primary")
 
     # the device exists now
     # call the primary node to add the mirror to md
@@ -2890,7 +2896,7 @@ class LUAddMDDRBDComponent(LogicalUnit):
       self.cfg.SetDiskID(new_drbd, instance.primary_node)
       if not rpc.call_blockdev_remove(instance.primary_node, new_drbd):
         logger.Error("Can't rollback on primary")
-      raise errors.OpExecError, "Can't add mirror component to md array"
+      raise errors.OpExecError("Can't add mirror component to md array")
 
     disk.children.append(new_drbd)
 
@@ -2934,28 +2940,28 @@ class LURemoveMDDRBDComponent(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
     if instance.disk_template != constants.DT_REMOTE_RAID1:
-      raise errors.OpPrereqError, ("Instance's disk layout is not"
-                                   " remote_raid1.")
+      raise errors.OpPrereqError("Instance's disk layout is not"
+                                 " remote_raid1.")
     for disk in instance.disks:
       if disk.iv_name == self.op.disk_name:
         break
     else:
-      raise errors.OpPrereqError, ("Can't find this device ('%s') in the"
-                                   " instance." % self.op.disk_name)
+      raise errors.OpPrereqError("Can't find this device ('%s') in the"
+                                 " instance." % self.op.disk_name)
     for child in disk.children:
       if child.dev_type == "drbd" and child.logical_id[2] == self.op.disk_id:
         break
     else:
-      raise errors.OpPrereqError, ("Can't find the device with this port.")
+      raise errors.OpPrereqError("Can't find the device with this port.")
 
     if len(disk.children) < 2:
-      raise errors.OpPrereqError, ("Cannot remove the last component from"
-                                   " a mirror.")
+      raise errors.OpPrereqError("Cannot remove the last component from"
+                                 " a mirror.")
     self.disk = disk
     self.child = child
     if self.child.logical_id[0] == instance.primary_node:
@@ -2975,7 +2981,7 @@ class LURemoveMDDRBDComponent(LogicalUnit):
     self.cfg.SetDiskID(disk, instance.primary_node)
     if not rpc.call_blockdev_removechild(instance.primary_node,
                                               disk, child):
-      raise errors.OpExecError, ("Can't remove child from mirror.")
+      raise errors.OpExecError("Can't remove child from mirror.")
 
     for node in child.logical_id[:2]:
       self.cfg.SetDiskID(child, node)
@@ -3019,18 +3025,18 @@ class LUReplaceDisks(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not known" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
     self.instance = instance
 
     if instance.disk_template != constants.DT_REMOTE_RAID1:
-      raise errors.OpPrereqError, ("Instance's disk layout is not"
-                                   " remote_raid1.")
+      raise errors.OpPrereqError("Instance's disk layout is not"
+                                 " remote_raid1.")
 
     if len(instance.secondary_nodes) != 1:
-      raise errors.OpPrereqError, ("The instance has a strange layout,"
-                                   " expected one secondary but found %d" %
-                                   len(instance.secondary_nodes))
+      raise errors.OpPrereqError("The instance has a strange layout,"
+                                 " expected one secondary but found %d" %
+                                 len(instance.secondary_nodes))
 
     remote_node = getattr(self.op, "remote_node", None)
     if remote_node is None:
@@ -3038,11 +3044,11 @@ class LUReplaceDisks(LogicalUnit):
     else:
       remote_node = self.cfg.ExpandNodeName(remote_node)
       if remote_node is None:
-        raise errors.OpPrereqError, ("Node '%s' not known" %
-                                     self.op.remote_node)
+        raise errors.OpPrereqError("Node '%s' not known" %
+                                   self.op.remote_node)
     if remote_node == instance.primary_node:
-      raise errors.OpPrereqError, ("The specified node is the primary node of"
-                                   " the instance.")
+      raise errors.OpPrereqError("The specified node is the primary node of"
+                                 " the instance.")
     self.op.remote_node = remote_node
 
   def Exec(self, feedback_fn):
@@ -3067,10 +3073,10 @@ class LUReplaceDisks(LogicalUnit):
       #HARDCODE
       if not _CreateBlockDevOnSecondary(cfg, remote_node, new_drbd, False,
                                         _GetInstanceInfoText(instance)):
-        raise errors.OpExecError, ("Failed to create new component on"
-                                   " secondary node %s\n"
-                                   "Full abort, cleanup manually!" %
-                                   remote_node)
+        raise errors.OpExecError("Failed to create new component on"
+                                 " secondary node %s\n"
+                                 "Full abort, cleanup manually!" %
+                                 remote_node)
 
       logger.Info("adding new mirror component on primary")
       #HARDCODE
@@ -3094,7 +3100,7 @@ class LUReplaceDisks(LogicalUnit):
         cfg.SetDiskID(new_drbd, instance.primary_node)
         if not rpc.call_blockdev_remove(instance.primary_node, new_drbd):
           logger.Error("Can't rollback on primary")
-        raise errors.OpExecError, ("Full abort, cleanup manually!!")
+        raise errors.OpExecError("Full abort, cleanup manually!!")
 
       dev.children.append(new_drbd)
       cfg.AddInstance(instance)
@@ -3110,11 +3116,11 @@ class LUReplaceDisks(LogicalUnit):
       cfg.SetDiskID(dev, instance.primary_node)
       is_degr = rpc.call_blockdev_find(instance.primary_node, dev)[5]
       if is_degr:
-        raise errors.OpExecError, ("MD device %s is degraded!" % name)
+        raise errors.OpExecError("MD device %s is degraded!" % name)
       cfg.SetDiskID(new_drbd, instance.primary_node)
       is_degr = rpc.call_blockdev_find(instance.primary_node, new_drbd)[5]
       if is_degr:
-        raise errors.OpExecError, ("New drbd device %s is degraded!" % name)
+        raise errors.OpExecError("New drbd device %s is degraded!" % name)
 
     for name in iv_names:
       dev, child, new_drbd = iv_names[name]
@@ -3151,14 +3157,14 @@ class LUQueryInstanceData(NoHooksLU):
 
     """
     if not isinstance(self.op.instances, list):
-      raise errors.OpPrereqError, "Invalid argument type 'instances'"
+      raise errors.OpPrereqError("Invalid argument type 'instances'")
     if self.op.instances:
       self.wanted_instances = []
       names = self.op.instances
       for name in names:
         instance = self.cfg.GetInstanceInfo(self.cfg.ExpandInstanceName(name))
         if instance is None:
-          raise errors.OpPrereqError, ("No such instance name '%s'" % name)
+          raise errors.OpPrereqError("No such instance name '%s'" % name)
       self.wanted_instances.append(instance)
     else:
       self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
@@ -3314,24 +3320,24 @@ class LUSetInstanceParms(LogicalUnit):
     self.ip = getattr(self.op, "ip", None)
     self.bridge = getattr(self.op, "bridge", None)
     if [self.mem, self.vcpus, self.ip, self.bridge].count(None) == 4:
-      raise errors.OpPrereqError, ("No changes submitted")
+      raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
       try:
         self.mem = int(self.mem)
       except ValueError, err:
-        raise errors.OpPrereqError, ("Invalid memory size: %s" % str(err))
+        raise errors.OpPrereqError("Invalid memory size: %s" % str(err))
     if self.vcpus is not None:
       try:
         self.vcpus = int(self.vcpus)
       except ValueError, err:
-        raise errors.OpPrereqError, ("Invalid vcpus number: %s" % str(err))
+        raise errors.OpPrereqError("Invalid vcpus number: %s" % str(err))
     if self.ip is not None:
       self.do_ip = True
       if self.ip.lower() == "none":
         self.ip = None
       else:
         if not utils.IsValidIP(self.ip):
-          raise errors.OpPrereqError, ("Invalid IP address '%s'." % self.ip)
+          raise errors.OpPrereqError("Invalid IP address '%s'." % self.ip)
     else:
       self.do_ip = False
     self.do_bridge = (self.bridge is not None)
@@ -3339,8 +3345,8 @@ class LUSetInstanceParms(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
-      raise errors.OpPrereqError, ("No such instance name '%s'" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("No such instance name '%s'" %
+                                 self.op.instance_name)
     self.op.instance_name = instance.name
     self.instance = instance
     return
@@ -3426,16 +3432,16 @@ class LUExportInstance(LogicalUnit):
     instance_name = self.cfg.ExpandInstanceName(self.op.instance_name)
     self.instance = self.cfg.GetInstanceInfo(instance_name)
     if self.instance is None:
-      raise errors.OpPrereqError, ("Instance '%s' not found" %
-                                   self.op.instance_name)
+      raise errors.OpPrereqError("Instance '%s' not found" %
+                                 self.op.instance_name)
 
     # node verification
     dst_node_short = self.cfg.ExpandNodeName(self.op.target_node)
     self.dst_node = self.cfg.GetNodeInfo(dst_node_short)
 
     if self.dst_node is None:
-      raise errors.OpPrereqError, ("Destination node '%s' is unknown." %
-                                   self.op.target_node)
+      raise errors.OpPrereqError("Destination node '%s' is unknown." %
+                                 self.op.target_node)
     self.op.target_node = self.dst_node.name
 
   def Exec(self, feedback_fn):
@@ -3523,20 +3529,20 @@ class TagsLU(NoHooksLU):
     elif self.op.kind == constants.TAG_NODE:
       name = self.cfg.ExpandNodeName(self.op.name)
       if name is None:
-        raise errors.OpPrereqError, ("Invalid node name (%s)" %
-                                     (self.op.name,))
+        raise errors.OpPrereqError("Invalid node name (%s)" %
+                                   (self.op.name,))
       self.op.name = name
       self.target = self.cfg.GetNodeInfo(name)
     elif self.op.kind == constants.TAG_INSTANCE:
       name = self.cfg.ExpandInstanceName(name)
       if name is None:
-        raise errors.OpPrereqError, ("Invalid instance name (%s)" %
-                                     (self.op.name,))
+        raise errors.OpPrereqError("Invalid instance name (%s)" %
+                                   (self.op.name,))
       self.op.name = name
       self.target = self.cfg.GetInstanceInfo(name)
     else:
-      raise errors.OpPrereqError, ("Wrong tag type requested (%s)" %
-                                   str(self.op.kind))
+      raise errors.OpPrereqError("Wrong tag type requested (%s)" %
+                                 str(self.op.kind))
 
 
 class LUGetTags(TagsLU):
@@ -3574,13 +3580,13 @@ class LUAddTag(TagsLU):
     try:
       self.target.AddTag(self.op.tag)
     except errors.TagError, err:
-      raise errors.OpExecError, ("Error while setting tag: %s" % str(err))
+      raise errors.OpExecError("Error while setting tag: %s" % str(err))
     try:
       self.cfg.Update(self.target)
     except errors.ConfigurationError:
-      raise errors.OpRetryError, ("There has been a modification to the"
-                                  " config file and the operation has been"
-                                  " aborted. Please retry.")
+      raise errors.OpRetryError("There has been a modification to the"
+                                " config file and the operation has been"
+                                " aborted. Please retry.")
 
 
 class LUDelTag(TagsLU):
@@ -3598,7 +3604,7 @@ class LUDelTag(TagsLU):
     TagsLU.CheckPrereq(self)
     objects.TaggableObject.ValidateTag(self.op.tag)
     if self.op.tag not in self.target.GetTags():
-      raise errors.OpPrereqError, ("Tag not found")
+      raise errors.OpPrereqError("Tag not found")
 
   def Exec(self, feedback_fn):
     """Remove the tag from the object.
@@ -3608,6 +3614,6 @@ class LUDelTag(TagsLU):
     try:
       self.cfg.Update(self.target)
     except errors.ConfigurationError:
-      raise errors.OpRetryError, ("There has been a modification to the"
-                                  " config file and the operation has been"
-                                  " aborted. Please retry.")
+      raise errors.OpRetryError("There has been a modification to the"
+                                " config file and the operation has been"
+                                " aborted. Please retry.")

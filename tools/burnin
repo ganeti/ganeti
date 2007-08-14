@@ -24,7 +24,10 @@ def Usage():
 
 
 def Feedback(msg):
-    print msg
+  """Simple function that prints out its argument.
+
+  """
+  print msg
 
 
 def ParseOptions():
@@ -179,20 +182,20 @@ def BurninCluster(opts, args):
   return 0
 
 def main():
-    """Main function"""
+  """Main function"""
 
-    opts, args = ParseOptions()
-    try:
-      utils.Lock('cmd', max_retries=15, debug=True)
-    except errors.LockError, err:
-      logger.ToStderr(str(err))
-      return 1
-    try:
-      retval = BurninCluster(opts, args)
-    finally:
-      utils.Unlock('cmd')
-      utils.LockCleanup()
-    return retval
+  opts, args = ParseOptions()
+  try:
+    utils.Lock('cmd', max_retries=15, debug=True)
+  except errors.LockError, err:
+    logger.ToStderr(str(err))
+    return 1
+  try:
+    retval = BurninCluster(opts, args)
+  finally:
+    utils.Unlock('cmd')
+    utils.LockCleanup()
+  return retval
 
 if __name__ == "__main__":
-    main()
+  main()

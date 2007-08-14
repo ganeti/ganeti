@@ -117,7 +117,7 @@ class RestarterState(object):
       fcntl.flock(f.fileno(), fcntl.LOCK_EX|fcntl.LOCK_NB)
     except IOError, x:
       if x.errno == errno.EAGAIN:
-        raise StandardError('State file already locked')
+        raise StandardError("State file already locked")
       raise
 
     self.statefile = f
@@ -202,6 +202,12 @@ class Instance(object):
     self.state = state
 
   def Restart(self):
+    """Encapsulates the start of an instance.
+
+    This is currently done using the command line interface and not
+    the Ganeti modules.
+
+    """
     DoCmd(['gnt-instance', 'startup', '--lock-retries=15', self.name])
 
 
@@ -258,7 +264,7 @@ class Restarter(object):
     sstore = ssconf.SimpleStore()
     master = sstore.GetMasterNode()
     if master != socket.gethostname():
-      raise NotMasterError, ("This is not the master node")
+      raise NotMasterError("This is not the master node")
     self.instances = InstanceList()
     self.messages = []
 

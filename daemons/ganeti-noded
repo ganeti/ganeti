@@ -21,6 +21,9 @@
 
 """Ganeti node daemon"""
 
+# functions in this module need to have a given name structure, so:
+# pylint: disable-msg=C0103
+
 import os
 import sys
 import resource
@@ -43,26 +46,35 @@ from OpenSSL import SSL
 
 
 class ServerContextFactory:
-  def getContext(self):
+  """SSL context factory class that uses a given certificate.
+
+  """
+  @staticmethod
+  def getContext():
+    """Return a customized context.
+
+    The context will be set to use our certificate.
+
+    """
     ctx = SSL.Context(SSL.TLSv1_METHOD)
     ctx.use_certificate_file(constants.SSL_CERT_FILE)
     ctx.use_privatekey_file(constants.SSL_CERT_FILE)
     return ctx
 
 class ServerObject(pb.Avatar):
+  """The server implementation.
+
+  This class holds all methods exposed over the RPC interface.
+
+  """
   def __init__(self, name):
     self.name = name
 
   def perspectiveMessageReceived(self, broker, message, args, kw):
-    """This method is called when a network message is received.
+    """Custom message dispatching function.
 
-    I will call::
-
-      |  self.perspective_%(message)s(*broker.unserialize(args),
-      |                               **broker.unserialize(kw))
-
-    to handle the method; subclasses of Avatar are expected to
-    implement methods of this naming convention.
+    This function overrides the pb.Avatar function in order to provide
+    a simple form of exception passing (as text only).
 
     """
     args = broker.unserialize(args, self)
@@ -79,33 +91,56 @@ class ServerObject(pb.Avatar):
 
   # the new block devices  --------------------------
 
-  def perspective_blockdev_create(self, params):
+  @staticmethod
+  def perspective_blockdev_create(params):
+    """Create a block device.
+
+    """
     bdev_s, size, on_primary, info = params
     bdev = objects.ConfigObject.Loads(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
     return backend.CreateBlockDevice(bdev, size, on_primary, info)
 
-  def perspective_blockdev_remove(self, params):
+  @staticmethod
+  def perspective_blockdev_remove(params):
+    """Remove a block device.
+
+    """
     bdev_s = params[0]
     bdev = objects.ConfigObject.Loads(bdev_s)
     return backend.RemoveBlockDevice(bdev)
 
-  def perspective_blockdev_assemble(self, params):
+  @staticmethod
+  def perspective_blockdev_assemble(params):
+    """Assemble a block device.
+
+    """
     bdev_s, on_primary = params
     bdev = objects.ConfigObject.Loads(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
     return backend.AssembleBlockDevice(bdev, on_primary)
 
-  def perspective_blockdev_shutdown(self, params):
+  @staticmethod
+  def perspective_blockdev_shutdown(params):
+    """Shutdown a block device.
+
+    """
     bdev_s = params[0]
     bdev = objects.ConfigObject.Loads(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
     return backend.ShutdownBlockDevice(bdev)
 
-  def perspective_blockdev_addchild(self, params):
+  @staticmethod
+  def perspective_blockdev_addchild(params):
+    """Add a child to a mirror device.
+
+    Note: this is only valid for mirror devices. It's the caller's duty
+    to send a correct disk, otherwise we raise an error.
+
+    """
     bdev_s, ndev_s = params
     bdev = objects.ConfigObject.Loads(bdev_s)
     ndev = objects.ConfigObject.Loads(ndev_s)
@@ -113,7 +148,14 @@ class ServerObject(pb.Avatar):
       raise ValueError("can't unserialize data!")
     return backend.MirrorAddChild(bdev, ndev)
 
-  def perspective_blockdev_removechild(self, params):
+  @staticmethod
+  def perspective_blockdev_removechild(params):
+    """Remove a child from a mirror device.
+
+    This is only valid for mirror devices, of course. It's the callers
+    duty to send a correct disk, otherwise we raise an error.
+
+    """
     bdev_s, ndev_s = params
     bdev = objects.ConfigObject.Loads(bdev_s)
     ndev = objects.ConfigObject.Loads(ndev_s)
@@ -121,130 +163,258 @@ class ServerObject(pb.Avatar):
       raise ValueError("can't unserialize data!")
     return backend.MirrorRemoveChild(bdev, ndev)
 
-  def perspective_blockdev_getmirrorstatus(self, params):
+  @staticmethod
+  def perspective_blockdev_getmirrorstatus(params):
+    """Return the mirror status for a list of disks.
+
+    """
     disks = [objects.ConfigObject.Loads(dsk_s)
             for dsk_s in params]
     return backend.GetMirrorStatus(disks)
 
-  def perspective_blockdev_find(self, params):
+  @staticmethod
+  def perspective_blockdev_find(params):
+    """Expose the FindBlockDevice functionality for a disk.
+
+    This will try to find but not activate a disk.
+
+    """
     disk = objects.ConfigObject.Loads(params[0])
     return backend.FindBlockDevice(disk)
 
-  def perspective_blockdev_snapshot(self, params):
+  @staticmethod
+  def perspective_blockdev_snapshot(params):
+    """Create a snapshot device.
+
+    Note that this is only valid for LVM disks, if we get passed
+    something else we raise an exception. The snapshot device can be
+    remove by calling the generic block device remove call.
+
+    """
     cfbd = objects.ConfigObject.Loads(params[0])
     return backend.SnapshotBlockDevice(cfbd)
 
   # export/import  --------------------------
 
-  def perspective_snapshot_export(self, params):
+  @staticmethod
+  def perspective_snapshot_export(params):
+    """Export a given snapshot.
+
+    """
     disk = objects.ConfigObject.Loads(params[0])
     dest_node = params[1]
     instance = objects.ConfigObject.Loads(params[2])
-    return backend.ExportSnapshot(disk,dest_node,instance)
+    return backend.ExportSnapshot(disk, dest_node, instance)
 
-  def perspective_finalize_export(self, params):
+  @staticmethod
+  def perspective_finalize_export(params):
+    """Expose the finalize export functionality.
+
+    """
     instance = objects.ConfigObject.Loads(params[0])
     snap_disks = [objects.ConfigObject.Loads(str_data)
                   for str_data in params[1]]
     return backend.FinalizeExport(instance, snap_disks)
 
-  def perspective_export_info(self, params):
-    dir = params[0]
-    einfo = backend.ExportInfo(dir)
+  @staticmethod
+  def perspective_export_info(params):
+    """Query information about an existing export on this node.
+
+    The given path may not contain an export, in which case we return
+    None.
+
+    """
+    path = params[0]
+    einfo = backend.ExportInfo(path)
     if einfo is None:
       return einfo
     return einfo.Dumps()
 
-  def perspective_export_list(self, params):
+  @staticmethod
+  def perspective_export_list(params):
+    """List the available exports on this node.
+
+    Note that as opposed to export_info, which may query data about an
+    export in any path, this only queries the standard Ganeti path
+    (constants.EXPORT_DIR).
+
+    """
     return backend.ListExports()
 
-  def perspective_export_remove(self, params):
+  @staticmethod
+  def perspective_export_remove(params):
+    """Remove an export.
+
+    """
     export = params[0]
     return backend.RemoveExport(export)
 
   # volume  --------------------------
 
-  def perspective_volume_list(self, params):
+  @staticmethod
+  def perspective_volume_list(params):
+    """Query the list of logical volumes in a given volume group.
+
+    """
     vgname = params[0]
     return backend.GetVolumeList(vgname)
 
-  def perspective_vg_list(self, params):
+  @staticmethod
+  def perspective_vg_list(params):
+    """Query the list of volume groups.
+
+    """
     return backend.ListVolumeGroups()
 
   # bridge  --------------------------
 
-  def perspective_bridges_exist(self, params):
+  @staticmethod
+  def perspective_bridges_exist(params):
+    """Check if all bridges given exist on this node.
+
+    """
     bridges_list = params[0]
     return backend.BridgesExist(bridges_list)
 
   # instance  --------------------------
 
-  def perspective_instance_os_add(self, params):
+  @staticmethod
+  def perspective_instance_os_add(params):
+    """Install an OS on a given instance.
+
+    """
     inst_s, os_disk, swap_disk = params
     inst = objects.ConfigObject.Loads(inst_s)
     return backend.AddOSToInstance(inst, os_disk, swap_disk)
 
-  def perspective_instance_os_import(self, params):
+  @staticmethod
+  def perspective_instance_os_import(params):
+    """Run the import function of an OS onto a given instance.
+
+    """
     inst_s, os_disk, swap_disk, src_node, src_image = params
     inst = objects.ConfigObject.Loads(inst_s)
     return backend.ImportOSIntoInstance(inst, os_disk, swap_disk,
                                         src_node, src_image)
 
-  def perspective_instance_shutdown(self, params):
+  @staticmethod
+  def perspective_instance_shutdown(params):
+    """Shutdown an instance.
+
+    """
     instance = objects.ConfigObject.Loads(params[0])
     return backend.ShutdownInstance(instance)
 
-  def perspective_instance_start(self, params):
+  @staticmethod
+  def perspective_instance_start(params):
+    """Start an instance.
+
+    """
     instance = objects.ConfigObject.Loads(params[0])
     extra_args = params[1]
     return backend.StartInstance(instance, extra_args)
 
-  def perspective_instance_info(self, params):
+  @staticmethod
+  def perspective_instance_info(params):
+    """Query instance information.
+
+    """
     return backend.GetInstanceInfo(params[0])
 
-  def perspective_all_instances_info(self, params):
+  @staticmethod
+  def perspective_all_instances_info(params):
+    """Query information about all instances.
+
+    """
     return backend.GetAllInstancesInfo()
 
-  def perspective_instance_list(self, params):
+  @staticmethod
+  def perspective_instance_list(params):
+    """Query the list of running instances.
+
+    """
     return backend.GetInstanceList()
 
   # node --------------------------
 
-  def perspective_node_info(self, params):
+  @staticmethod
+  def perspective_node_info(params):
+    """Query node information.
+
+    """
     vgname = params[0]
     return backend.GetNodeInfo(vgname)
 
-  def perspective_node_add(self, params):
+  @staticmethod
+  def perspective_node_add(params):
+    """Complete the registration of this node in the cluster.
+
+    """
     return backend.AddNode(params[0], params[1], params[2],
                            params[3], params[4], params[5])
 
-  def perspective_node_verify(self, params):
+  @staticmethod
+  def perspective_node_verify(params):
+    """Run a verify sequence on this node.
+
+    """
     return backend.VerifyNode(params[0])
 
-  def perspective_node_start_master(self, params):
+  @staticmethod
+  def perspective_node_start_master(params):
+    """Promote this node to master status.
+
+    """
     return backend.StartMaster()
 
-  def perspective_node_stop_master(self, params):
+  @staticmethod
+  def perspective_node_stop_master(params):
+    """Demote this node from master status.
+
+    """
     return backend.StopMaster()
 
-  def perspective_node_leave_cluster(self, params):
+  @staticmethod
+  def perspective_node_leave_cluster(params):
+    """Cleanup after leaving a cluster.
+
+    """
     return backend.LeaveCluster()
 
-  def perspective_node_volumes(self, params):
+  @staticmethod
+  def perspective_node_volumes(params):
+    """Query the list of all logical volume groups.
+
+    """
     return backend.NodeVolumes()
 
   # cluster --------------------------
 
-  def perspective_version(self, params):
+  @staticmethod
+  def perspective_version(params):
+    """Query version information.
+
+    """
     return constants.PROTOCOL_VERSION
 
-  def perspective_upload_file(self, params):
+  @staticmethod
+  def perspective_upload_file(params):
+    """Upload a file.
+
+    Note that the backend implementation imposes strict rules on which
+    files are accepted.
+
+    """
     return backend.UploadFile(*params)
 
 
   # os -----------------------
 
-  def perspective_os_diagnose(self, params):
+  @staticmethod
+  def perspective_os_diagnose(params):
+    """Query detailed information about existing OSes.
+
+    """
     os_list = backend.DiagnoseOS()
     if not os_list:
       # this catches also return values of 'False',
@@ -257,31 +427,46 @@ class ServerObject(pb.Avatar):
       elif isinstance(data, errors.InvalidOS):
         result.append(data.args)
       else:
-        raise errors.ProgrammerError, ("Invalid result from backend.DiagnoseOS"
-                                       " (class %s, %s)" %
-                                       (str(data.__class__), data))
+        raise errors.ProgrammerError("Invalid result from backend.DiagnoseOS"
+                                     " (class %s, %s)" %
+                                     (str(data.__class__), data))
 
     return result
 
-  def perspective_os_get(self, params):
+  @staticmethod
+  def perspective_os_get(params):
+    """Query information about a given OS.
+
+    """
     name = params[0]
     try:
-      os = backend.OSFromDisk(name).Dumps()
+      os_obj = backend.OSFromDisk(name).Dumps()
     except errors.InvalidOS, err:
-      os = err.args
-    return os
+      os_obj = err.args
+    return os_obj
 
   # hooks -----------------------
 
-  def perspective_hooks_runner(self, params):
+  @staticmethod
+  def perspective_hooks_runner(params):
+    """Run hook scripts.
+
+    """
     hpath, phase, env = params
     hr = backend.HooksRunner()
     return hr.RunHooks(hpath, phase, env)
 
 
 class MyRealm:
+  """Simple realm that forwards all requests to a ServerObject.
+
+  """
   __implements__ = portal.IRealm
+
   def requestAvatar(self, avatarId, mind, *interfaces):
+    """Return an avatar based on our ServerObject class.
+
+    """
     if pb.IPerspective not in interfaces:
       raise NotImplementedError
     return pb.IPerspective, ServerObject(avatarId), lambda:None
@@ -310,6 +495,9 @@ def ParseOptions():
 
 
 def main():
+  """Main function for the node daemon.
+
+  """
   options, args = ParseOptions()
   for fname in (constants.SSL_CERT_FILE,):
     if not os.path.isfile(fname):
@@ -361,13 +549,13 @@ def createDaemon():
   try:
     pid = os.fork()
   except OSError, e:
-    raise Exception, "%s [%d]" % (e.strerror, e.errno)
+    raise Exception("%s [%d]" % (e.strerror, e.errno))
   if (pid == 0):  # The first child.
     os.setsid()
     try:
       pid = os.fork() # Fork a second child.
     except OSError, e:
-      raise Exception, "%s [%d]" % (e.strerror, e.errno)
+      raise Exception("%s [%d]" % (e.strerror, e.errno))
     if (pid == 0):  # The second child.
       os.chdir(WORKDIR)
       os.umask(UMASK)
@@ -393,5 +581,5 @@ def createDaemon():
   return(0)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
   main()

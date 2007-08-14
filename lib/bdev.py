@@ -302,8 +302,8 @@ class LogicalVolume(BlockDev):
     vg_name, lv_name = unique_id
     pvs_info = cls.GetPVInfo(vg_name)
     if not pvs_info:
-      raise errors.BlockDeviceError, ("Can't compute PV info for vg %s" %
-                                      vg_name)
+      raise errors.BlockDeviceError("Can't compute PV info for vg %s" %
+                                    vg_name)
     pvs_info.sort()
     pvs_info.reverse()
 
@@ -313,8 +313,8 @@ class LogicalVolume(BlockDev):
     # The size constraint should have been checked from the master before
     # calling the create function.
     if free_size < size:
-      raise errors.BlockDeviceError, ("Not enough free space: required %s,"
-                                      " available %s" % (size, free_size))
+      raise errors.BlockDeviceError("Not enough free space: required %s,"
+                                    " available %s" % (size, free_size))
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-n%s" % lv_name,
                            vg_name] + pvlist)
     if result.failed:
@@ -469,20 +469,20 @@ class LogicalVolume(BlockDev):
 
     pvs_info = self.GetPVInfo(self._vg_name)
     if not pvs_info:
-      raise errors.BlockDeviceError, ("Can't compute PV info for vg %s" %
-                                      self._vg_name)
+      raise errors.BlockDeviceError("Can't compute PV info for vg %s" %
+                                    self._vg_name)
     pvs_info.sort()
     pvs_info.reverse()
     free_size, pv_name = pvs_info[0]
     if free_size < size:
-      raise errors.BlockDeviceError, ("Not enough free space: required %s,"
-                                      " available %s" % (size, free_size))
+      raise errors.BlockDeviceError("Not enough free space: required %s,"
+                                    " available %s" % (size, free_size))
 
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-s",
                            "-n%s" % snap_name, self.dev_path])
     if result.failed:
-      raise errors.BlockDeviceError, ("command: %s error: %s" %
-                                      (result.cmd, result.fail_reason))
+      raise errors.BlockDeviceError("command: %s error: %s" %
+                                    (result.cmd, result.fail_reason))
 
     return snap_name
 
@@ -503,8 +503,8 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvchange", "--addtag", text,
                            self.dev_path])
     if result.failed:
-      raise errors.BlockDeviceError, ("Command: %s error: %s" %
-                                      (result.cmd, result.fail_reason))
+      raise errors.BlockDeviceError("Command: %s error: %s" %
+                                    (result.cmd, result.fail_reason))
 
 
 class MDRaid1(BlockDev):
@@ -659,18 +659,18 @@ class MDRaid1(BlockDev):
 
     """
     if self.minor is None and not self.Attach():
-      raise errors.BlockDeviceError, "Can't attach to device"
+      raise errors.BlockDeviceError("Can't attach to device")
     if device.dev_path is None:
-      raise errors.BlockDeviceError, "New child is not initialised"
+      raise errors.BlockDeviceError("New child is not initialised")
     result = utils.RunCmd(["mdadm", "-a", self.dev_path, device.dev_path])
     if result.failed:
-      raise errors.BlockDeviceError, ("Failed to add new device to array: %s" %
-                                      result.output)
+      raise errors.BlockDeviceError("Failed to add new device to array: %s" %
+                                    result.output)
     new_len = len(self._children) + 1
     result = utils.RunCmd(["mdadm", "--grow", self.dev_path, "-n", new_len])
     if result.failed:
-      raise errors.BlockDeviceError, ("Can't grow md array: %s" %
-                                      result.output)
+      raise errors.BlockDeviceError("Can't grow md array: %s" %
+                                    result.output)
     self._children.append(device)
 
 
@@ -679,33 +679,33 @@ class MDRaid1(BlockDev):
 
     """
     if self.minor is None and not self.Attach():
-      raise errors.BlockDeviceError, "Can't attach to device"
+      raise errors.BlockDeviceError("Can't attach to device")
     if len(self._children) == 1:
-      raise errors.BlockDeviceError, ("Can't reduce member when only one"
-                                      " child left")
+      raise errors.BlockDeviceError("Can't reduce member when only one"
+                                    " child left")
     for device in self._children:
       if device.dev_path == dev_path:
         break
     else:
-      raise errors.BlockDeviceError, "Can't find child with this path"
+      raise errors.BlockDeviceError("Can't find child with this path")
     new_len = len(self._children) - 1
     result = utils.RunCmd(["mdadm", "-f", self.dev_path, dev_path])
     if result.failed:
-      raise errors.BlockDeviceError, ("Failed to mark device as failed: %s" %
-                                      result.output)
+      raise errors.BlockDeviceError("Failed to mark device as failed: %s" %
+                                    result.output)
 
     # it seems here we need a short delay for MD to update its
     # superblocks
     time.sleep(0.5)
     result = utils.RunCmd(["mdadm", "-r", self.dev_path, dev_path])
     if result.failed:
-      raise errors.BlockDeviceError, ("Failed to remove device from array:"
-                                      " %s" % result.output)
+      raise errors.BlockDeviceError("Failed to remove device from array:"
+                                        " %s" % result.output)
     result = utils.RunCmd(["mdadm", "--grow", "--force", self.dev_path,
                            "-n", new_len])
     if result.failed:
-      raise errors.BlockDeviceError, ("Can't shrink md array: %s" %
-                                      result.output)
+      raise errors.BlockDeviceError("Can't shrink md array: %s" %
+                                    result.output)
     self._children.remove(device)
 
 
@@ -1218,7 +1218,7 @@ class DRBDev(BlockDev):
 
     minor = self._FindUnusedMinor()
     if minor is None:
-      raise errors.BlockDeviceError, "Not enough free minors for DRBD!"
+      raise errors.BlockDeviceError("Not enough free minors for DRBD!")
     need_localdev_teardown = False
     if self._children[0]:
       result = self._AssembleLocal(minor, self._children[0].dev_path,

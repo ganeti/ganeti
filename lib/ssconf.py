@@ -77,8 +77,8 @@ class SimpleStore:
 
     """
     if key not in self._VALID_KEYS:
-      raise errors.ProgrammerError, ("Invalid key requested from SSConf: '%s'"
-                                     % str(key))
+      raise errors.ProgrammerError("Invalid key requested from SSConf: '%s'"
+                                   % str(key))
 
     filename = self._cfg_dir + '/' + self._SS_FILEPREFIX + key
     return filename
@@ -101,8 +101,8 @@ class SimpleStore:
       finally:
         fh.close()
     except EnvironmentError, err:
-      raise errors.ConfigurationError, ("Can't read from the ssconf file:"
-                                        " '%s'" % str(err))
+      raise errors.ConfigurationError("Can't read from the ssconf file:"
+                                      " '%s'" % str(err))
     self._cache[key] = data
     return data
 

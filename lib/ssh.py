@@ -50,7 +50,7 @@ def SSHCall(hostname, user, command, batch=True, ask_key=False):
     argv.append("-oBatchMode=yes")
     # if we are in batch mode, we can't ask the key
     if ask_key:
-      raise errors.ProgrammerError, ("SSH call requested conflicting options")
+      raise errors.ProgrammerError("SSH call requested conflicting options")
   if ask_key:
     argv.append("-oStrictHostKeyChecking=ask")
   else:
