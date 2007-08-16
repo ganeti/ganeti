@@ -580,7 +580,8 @@ class LUInitCluster(LogicalUnit):
     result = utils.RunCmd(["ip", "link", "show", "dev", self.op.master_netdev])
     if result.failed:
       raise errors.OpPrereqError("Invalid master netdev given (%s): '%s'" %
-                                 (self.op.master_netdev, result.output))
+                                 (self.op.master_netdev,
+                                  result.output.strip()))
 
   def Exec(self, feedback_fn):
     """Initialize the cluster.

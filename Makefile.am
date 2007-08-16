@@ -15,3 +15,6 @@ depgraph.ps: depgraph.dot
 depgraph.dot: ganeti/*.py
 	pylint.python2.4 --indent-string '  ' --rcfile=/dev/null \
 	  --reports y --int-import-graph $@ --persistent n ganeti >/dev/null
+
+install-exec-local:
+	@mkdir_p@ ${localstatedir}/lib/ganeti ${localstatedir}/log/ganeti
