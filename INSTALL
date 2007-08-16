@@ -2,30 +2,46 @@ Software Requirements
 =====================
 
 Before installing, please verify that you have the following programs:
-  - LVM2
-    http://sourceware.org/lvm2/
-  - OpenSSH
-    http://www.openssh.com/portable.html
+  - Xen virtualization (version 3.0.x or 3.1)
+    http://xen.xensource.com/
   - DRBD (kernel module and userspace utils)
     http://www.drbd.org/
+  - LVM2
+    http://sourceware.org/lvm2/
+  - OpenSSL
+    http://www.openssl.org/
+  - OpenSSH
+    http://www.openssh.com/portable.html
+  - bridge utilities
+    http://bridge.sourceforge.net/
   - fping
     http://fping.sourceforge.net/
+  - iproute2
+    http://developer.osdl.org/dev/iproute2
+  - arping (part of iputils package)
+    ftp://ftp.inr.ac.ru/ip-routing/iputils-current.tar.gz
+  - mdadm (Linux Software Raid tools)
+    http://www.kernel.org/pub/linux/utils/raid/mdadm/
+  - Python 2.4
+    http://www.python.org
   - Python Twisted library (the core is enough)
     http://twistedmatrix.com/
   - Python OpenSSL bindings
     http://pyopenssl.sourceforge.net/
 
-For testing, you also need the YAML module for Python, http://pyyaml.org/.
+For testing, you also need the YAML module for Python (http://pyyaml.org/).
 
 
 Installation of the software
 ============================
 
-To install, simply do ./configure && make && make install
+To install, simply do ``./configure --localstatedir=/var && make && make install``
 
 This will install the software under /usr/local. You then need to copy
 ganeti.init to /etc/init.d and integrate it into your boot sequence
 (``chkconfig``, ``update-rc.d``, etc.).
+
+More details about the installation process are in the docs/installing.pdf file.
 
 
 Cluster initialisation

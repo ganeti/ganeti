@@ -81,7 +81,8 @@
         <emphasis role="strong">Mandatory:</emphasis> While Ganeti is
         developed with the ability to modularly run on different
         virtualization environments in mind the only one currently
-        useable on a live system is Xen.
+        useable on a live system is <ulink
+        url="http://xen.xensource.com/">Xen</ulink>.
       </para>
 
       <para>
@@ -109,12 +110,13 @@
       <title>Installing DRBD</title>
 
       <para>
-        Recommended: DRBD is required if you want to use the high
-        availability (HA) features of Ganeti, but optional if you
-        don't require HA or only run Ganeti on single-node
-        clusters. You can upgrade a non-HA cluster to an HA one later,
-        but you might need to export and reimport all your instances
-        to take advantage of the new features.
+        Recommended: <ulink url="http://www.drbd.org/">DRBD</ulink>
+        is required if you want to use the high availability (HA)
+        features of Ganeti, but optional if you don't require HA or
+        only run Ganeti on single-node clusters. You can upgrade a
+        non-HA cluster to an HA one later, but you might need to
+        export and reimport all your instances to take advantage of
+        the new features.
       </para>
 
       <para>
@@ -144,6 +146,74 @@ m-a a-i drbd0.7
         configured to load the module at every boot.
       </para>
 
+    </sect2>
+
+    <sect2>
+      <title>Other required software</title>
+
+      <para>Besides Xen and DRBD, you will need to install the
+      following:</para>
+
+      <itemizedlist>
+        <listitem>
+          <simpara><ulink url="http://sourceware.org/lvm2/">LVM
+          version 2</ulink></simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://www.openssl.org/">OpenSSL</ulink></simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://www.openssh.com/portable.html">OpenSSH</ulink></simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink url="http://bridge.sourceforge.net/">Bridge
+          utilities</ulink></simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://fping.sourceforge.net/">fping</ulink></simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://developer.osdl.org/dev/iproute2">iproute2</ulink></simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink
+          url="ftp://ftp.inr.ac.ru/ip-routing/iputils-current.tar.gz">arping</ulink>
+          (part of iputils package)</simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://www.kernel.org/pub/linux/utils/raid/mdadm/">mdadm</ulink>
+          (Linux Software Raid tools)</simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink url="http://www.python.org">Python 2.4</ulink></simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink url="http://twistedmatrix.com/">Python
+          Twisted library</ulink> - the core library is
+          enough</simpara>
+        </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://pyopenssl.sourceforge.net/">Python OpenSSL
+          bindings</ulink></simpara>
+        </listitem>
+      </itemizedlist>
+
+      <para>These programs are supplied as part of most Linux
+      distributions, so usually they can be installed via apt or
+      similar methods. Also many of them will already be installed on
+      a standard machine. On Debian Etch you can use this command line
+      to install all of them:</para>
+
+      <screen>
+# apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
+> fping python2.4 python-twisted-core python-pyopenssl openssl
+      </screen>
     </sect2>
 
   </sect1>
@@ -263,9 +333,21 @@ apt-get install ganeti
     <sect2>
       <title>Installing the Operating System support packages</title>
 
-      <para>Another important component for Ganeti is the OS support packages,
-        which let different operating systems be used as instances. You can
-        install them by installing the relevant ganeti-instance-OS package.
+      <para>
+        Another important component for Ganeti are the OS support
+        packages, which let different operating systems be used as
+        instances. You can grab a simple package that allows
+        installing Debian Etch instances on the project web site
+        (after download, untar it and follow the instructions in the
+        <filename>README</filename> file).
+      </para>
+
+      <para>
+        Alternatively, you can create your own OS definitions, see
+        <citerefentry>
+        <refentrytitle>ganeti-os-interface</refentrytitle>
+        <manvolnum>8</manvolnum>
+        </citerefentry>.
       </para>
 
     </sect2>
