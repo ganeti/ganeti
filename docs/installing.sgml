@@ -303,30 +303,27 @@ vgextend xenvg /dev/sdd
     <sect2>
       <title>Installing Ganeti</title>
 
-      <para>It's now time to install the Ganeti software itself if you
-      haven't done it yet. You can do it from source, with the usual
-      steps (note that the <option>localstatedir</option> options must
-      be set to <filename class="directory">/var</filename>):
+      <para>
+        It's now time to install the Ganeti software itself. You can
+        do it from source, with the usual steps (note that the
+        <option>localstatedir</option> options must be set to
+        <filename class="directory">/var</filename>):
+      </para>
 
         <screen>
 ./configure --localstatedir=/var
 make
 make install
+mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
         </screen>
 
-        or you can install the package relevant to your distribution, for
-        example in Debian/Ubuntu:
-
-        <screen>
-dpkg -i ganeti_VERSION_all.deb
-        </screen>
-
-        or, if you have a source repository that holds the Ganeti software:
-
-        <screen>
-apt-get install ganeti
-        </screen>
+      <para>
+        You also need to copy from the source archive the file
+        <filename>docs/examples/ganeti.initd</filename> to
+        <filename>/etc/init.d/ganeti</filename> and register it into
+        your distribution's startup scripts, for example in Debian:
       </para>
+      <screen>update-rc.d ganeti defaults 20 80</screen>
 
     </sect2>
 
@@ -369,19 +366,32 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
       </screen>
 
       <para>
-        Options you can pass to <command>gnt-cluster init</command>
-        include the default bridge name (<option>-b</option>), the
-        cluster-wide name for the volume group (<option>-g</option>)
-        and the secondary ip address for the initial node should you
-        wish to keep the data replication network separate. Invoke it
-        with <option>--help</option> to see all the possibilities.
+        If the node's network interface which will be used for access
+        from outside the cluster is not named
+        <hardware>xen-br0</hardware>, you need to use the
+        <option>--master-netdev=<replaceable>IFNAME</replaceable></option>
+        option, replacing <replaceable>IFNAME</replaceable> with the
+        correct one for your case (e.g. <hardware>xenbr0</hardware>,
+        <hardware>eth0</hardware>, etc.). Usually this will be the
+        same as the default bridge name (see below).
+      </para>
+
+      <para>
+        Other options you can pass to <command>gnt-cluster
+        init</command> include the default bridge name
+        (<option>-b</option>), the cluster-wide name for the volume
+        group (<option>-g</option>) and the secondary ip address for
+        the initial node should you wish to keep the data replication
+        network separate. Invoke it with <option>--help</option> to
+        see all the possibilities.
       </para>
 
       <para>
         Note that the cluster name must exist in DNS. You must choose
         a name different from any of the nodes names for a multi-node
         cluster. In general the best choice is to have a unique name
-        for a cluster, even if it consists of only one machine.
+        for a cluster, even if it consists of only one machine, as you
+        will be able to expand it later without any problem.
       </para>
     </sect2>
 

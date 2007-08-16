@@ -38,7 +38,7 @@ Installation of the software
 To install, simply do ``./configure --localstatedir=/var && make && make install``
 
 This will install the software under /usr/local. You then need to copy
-ganeti.init to /etc/init.d and integrate it into your boot sequence
+ganeti.init to /etc/init.d/ganeti and integrate it into your boot sequence
 (``chkconfig``, ``update-rc.d``, etc.).
 
 More details about the installation process are in the docs/installing.pdf file.
@@ -51,8 +51,6 @@ Before initialising the cluster, on each node you need to create the following
 directories:
 
   - /etc/ganeti
-  - /var/log/ganeti
-  - /var/lib/ganeti
-  - /srv/ganeti and /srv/ganeti/os
+  - /srv/ganeti, /srv/ganeti/os, /srv/ganeti/export
 
 After this, use ``gnt-cluster init``.
