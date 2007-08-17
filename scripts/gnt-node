@@ -63,9 +63,11 @@ def ListNodes(opts, args):
 
   numfields = ["dtotal", "dfree", "mtotal", "mnode", "mfree", "pinst", "sinst"]
 
-  OutputTable(separator=opts.separator, headers=headers,
-      fields=selected_fields, unitfields=unitfields,
-      numfields=numfields, data=output)
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=selected_fields, unitfields=unitfields,
+                       numfields=numfields, data=output)
+  for line in data:
+    logger.ToStdout(line)
 
   return 0
 
@@ -130,9 +132,12 @@ def ListVolumes(opts, args):
 
   numfields = ["size"]
 
-  OutputTable(separator=opts.separator, headers=headers,
-      fields=selected_fields, unitfields=unitfields,
-      numfields=numfields, data=output)
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=selected_fields, unitfields=unitfields,
+                       numfields=numfields, data=output)
+
+  for line in data:
+    logger.ToStdout(line)
 
   return 0
 

@@ -58,8 +58,11 @@ def ListOS(opts, args):
   else:
     headers = None
 
-  OutputTable(separator=None, headers=headers, fields=["name"],
-    data=[[os] for os in os_set])
+  data = GenerateTable(separator=None, headers=headers, fields=["name"],
+                       data=[[os] for os in os_set])
+
+  for line in data:
+    logger.ToStdout(line)
 
   return 0
 

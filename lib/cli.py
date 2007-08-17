@@ -37,7 +37,7 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError, SUPPRESS_HELP)
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
-           "cli_option", "OutputTable",
+           "cli_option", "GenerateTable",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT"]
 
@@ -280,8 +280,8 @@ def GenericMain(commands):
   return result
 
 
-def OutputTable(headers, fields, separator, data,
-                numfields=None, unitfields=None):
+def GenerateTable(headers, fields, separator, data,
+                  numfields=None, unitfields=None):
   """Prints a table with headers and different fields.
 
   Args:
@@ -325,6 +325,7 @@ def OutputTable(headers, fields, separator, data,
       if separator is None:
         mlens[idx] = max(mlens[idx], len(val))
 
+  result = []
   if headers:
     args = []
     for idx, name in enumerate(fields):
@@ -333,7 +334,7 @@ def OutputTable(headers, fields, separator, data,
         mlens[idx] = max(mlens[idx], len(hdr))
         args.append(mlens[idx])
       args.append(hdr)
-    logger.ToStdout(format % tuple(args))
+    result.append(format % tuple(args))
 
   for line in data:
     args = []
@@ -341,4 +342,6 @@ def OutputTable(headers, fields, separator, data,
       if separator is None:
         args.append(mlens[idx])
       args.append(line[idx])
-    logger.ToStdout(format % tuple(args))
+    result.append(format % tuple(args))
+
+  return result

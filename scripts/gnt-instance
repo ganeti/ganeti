@@ -61,9 +61,12 @@ def ListInstances(opts, args):
 
   numfields = ["admin_ram", "oper_ram"]
 
-  OutputTable(separator=opts.separator, headers=headers,
-      fields=selected_fields, unitfields=unitfields,
-      numfields=numfields, data=output)
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=selected_fields, unitfields=unitfields,
+                       numfields=numfields, data=output)
+
+  for line in data:
+    logger.ToStdout(line)
 
   return 0
 
