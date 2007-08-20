@@ -212,8 +212,30 @@ m-a a-i drbd0.7
 
       <screen>
 # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-> fping python2.4 python-twisted-core python-pyopenssl openssl
+  fping python2.4 python-twisted-core python-pyopenssl openssl
       </screen>
+
+      <para>
+        When installing from source, you will also need the following:
+      </para>
+      <itemizedlist>
+        <listitem>
+          <simpara>make</simpara>
+        </listitem>
+        <listitem>
+          <simpara>tar</simpara>
+        </listitem>
+        <listitem>
+          <simpara>gzip or bzip2</simpara>
+        </listitem>
+      </itemizedlist>
+
+      <para>
+        Again, these are available in most if not all linux distributions. For Debian, do:
+      <screen>
+# apt-get install make tar gzip bzip2
+      </screen>
+      </para>
     </sect2>
 
   </sect1>
