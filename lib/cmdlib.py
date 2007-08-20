@@ -1052,8 +1052,7 @@ class LURemoveNode(LogicalUnit):
     """
     node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.node_name))
     if node is None:
-      logger.Error("Error: Node '%s' is unknown." % self.op.node_name)
-      return 1
+      raise errors.OpPrereqError, ("Node '%s' is unknown." % self.op.node_name)
 
     instance_list = self.cfg.GetInstanceList()
 
