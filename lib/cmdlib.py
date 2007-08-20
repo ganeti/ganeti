@@ -2052,7 +2052,8 @@ class LUQueryInstances(NoHooksLU):
     self.dynamic_fields = frozenset(["oper_state", "oper_ram"])
     _CheckOutputFields(static=["name", "os", "pnode", "snodes",
                                "admin_state", "admin_ram",
-                               "disk_template", "ip", "mac", "bridge"],
+                               "disk_template", "ip", "mac", "bridge",
+                               "sda_size", "sdb_size"],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
@@ -2126,6 +2127,12 @@ class LUQueryInstances(NoHooksLU):
           val = instance.nics[0].bridge
         elif field == "mac":
           val = instance.nics[0].mac
+        elif field == "sda_size" or field == "sdb_size":
+          disk = instance.FindDisk(field[:3])
+          if disk is None:
+            val = "N/A"
+          else:
+            val = disk.size
         else:
           raise errors.ParameterError(field)
         val = str(val)

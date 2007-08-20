@@ -379,6 +379,18 @@ class Instance(ConfigObject, TaggableObject):
 
     return ret
 
+  def FindDisk(self, name):
+    """Find a disk given having a specified name.
+
+    This will return the disk which has the given iv_name.
+
+    """
+    for disk in self.disks:
+      if disk.iv_name == name:
+        return disk
+
+    return None
+
 
 class OS(ConfigObject):
   """Config object representing an operating system."""

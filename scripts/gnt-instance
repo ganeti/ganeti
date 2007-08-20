@@ -50,16 +50,17 @@ def ListInstances(opts, args):
                "oper_state": "Status", "admin_ram": "Configured_memory",
                "oper_ram": "Memory", "disk_template": "Disk_template",
                "ip": "IP Address", "mac": "MAC Address",
-               "bridge": "Bridge"}
+               "bridge": "Bridge",
+               "sda_size": "Disk/0", "sdb_size": "Disk/1"}
   else:
     headers = None
 
   if opts.human_readable:
-    unitfields = ["admin_ram", "oper_ram"]
+    unitfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size"]
   else:
     unitfields = None
 
-  numfields = ["admin_ram", "oper_ram"]
+  numfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size"]
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,
