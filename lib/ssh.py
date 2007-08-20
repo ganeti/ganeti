@@ -53,6 +53,7 @@ def SSHCall(hostname, user, command, batch=True, ask_key=False):
       raise errors.ProgrammerError("SSH call requested conflicting options")
   if ask_key:
     argv.append("-oStrictHostKeyChecking=ask")
+    argv.append("-oHashKnownHosts=no")
   else:
     argv.append("-oStrictHostKeyChecking=yes")
   argv.extend(["%s@%s" % (user, hostname), command])
