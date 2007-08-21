@@ -101,7 +101,7 @@ class TestRunCmd(unittest.TestCase):
     self.magic = time.ctime() + " ganeti test"
 
   def testOk(self):
-    """Test successfull exit code"""
+    """Test successful exit code"""
     result = RunCmd("/bin/sh -c 'exit 0'")
     self.assertEqual(result.exit_code, 0)
 

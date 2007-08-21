@@ -91,7 +91,7 @@ class NodeController:
       reactor.stop()
 
   def cb_call(self, obj):
-    """Callback for successfull connect.
+    """Callback for successful connect.
 
     If the connect and login sequence succeeded, we proceed with
     making the actual call.
