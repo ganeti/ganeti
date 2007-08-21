@@ -43,7 +43,7 @@ This will install the software under /usr/local. You then need to copy
 ganeti.init to /etc/init.d/ganeti and integrate it into your boot sequence
 (``chkconfig``, ``update-rc.d``, etc.).
 
-More details about the installation process are in the docs/installing.pdf file.
+More details about the installation process are in the docs/install.pdf file.
 
 
 Cluster initialisation
