@@ -1592,7 +1592,7 @@ class LUClusterCopyFile(NoHooksLU):
 
     myname = socket.gethostname()
 
-    for node in self.nodes:
+    for node in [node.name for node in self.nodes]:
       if node == myname:
         continue
       if not ssh.CopyFileToNode(node, filename):
