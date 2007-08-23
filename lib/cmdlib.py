@@ -1638,8 +1638,8 @@ class LURunClusterCommand(NoHooksLU):
     """
     data = []
     for node in self.nodes:
-      result = utils.RunCmd(["ssh", node.name, self.op.command])
-      data.append((node.name, result.cmd, result.output, result.exit_code))
+      result = ssh.SSHCall(node.name, "root", self.op.command)
+      data.append((node.name, result.output, result.exit_code))
 
     return data
 

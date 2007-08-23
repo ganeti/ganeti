@@ -140,10 +140,9 @@ def RunClusterCommand(opts, args):
   nodes = opts.nodes
   op = opcodes.OpRunClusterCommand(command=command, nodes=nodes)
   result = SubmitOpCode(op)
-  for node, sshcommand, output, exit_code in result:
+  for node, output, exit_code in result:
     print ("------------------------------------------------")
     print ("node: %s" % node)
-    print ("command: %s" % sshcommand)
     print ("%s" % output)
     print ("return code = %s" % exit_code)
 
