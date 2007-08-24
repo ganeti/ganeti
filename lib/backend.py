@@ -122,7 +122,6 @@ def AddNode(dsa, dsapub, rsa, rsapub, ssh, sshpub):
 
   utils.RunCmd(["/etc/init.d/ssh", "restart"])
 
-  utils.RemoveFile("/root/.ssh/known_hosts")
   return True
 
 
@@ -790,7 +789,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
     return False
 
   allowed_files = [constants.CLUSTER_CONF_FILE, "/etc/hosts",
-                   "/etc/ssh/ssh_known_hosts"]
+                   constants.SSH_KNOWN_HOSTS_FILE]
   allowed_files.extend(ssconf.SimpleStore().GetFileList())
   if file_name not in allowed_files:
     logger.Error("Filename passed to UploadFile not in allowed"

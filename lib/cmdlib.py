@@ -350,10 +350,10 @@ def _UpdateKnownHosts(fullnode, ip, pubkey):
     pubkey   - the public key of the cluster
 
   """
-  if os.path.exists('/etc/ssh/ssh_known_hosts'):
-    f = open('/etc/ssh/ssh_known_hosts', 'r+')
+  if os.path.exists(constants.SSH_KNOWN_HOSTS_FILE):
+    f = open(constants.SSH_KNOWN_HOSTS_FILE, 'r+')
   else:
-    f = open('/etc/ssh/ssh_known_hosts', 'w+')
+    f = open(constants.SSH_KNOWN_HOSTS_FILE, 'w+')
 
   inthere = False
 
@@ -405,12 +405,15 @@ def _UpdateKnownHosts(fullnode, ip, pubkey):
     save_lines = save_lines + add_lines
 
     # Write a new file and replace old.
-    fd, tmpname = tempfile.mkstemp('tmp', 'ssh_known_hosts_', '/etc/ssh')
+    fd, tmpname = tempfile.mkstemp('.tmp', 'known_hosts.',
+                                   constants.DATA_DIR)
     newfile = os.fdopen(fd, 'w')
-    newfile.write(''.join(save_lines))
-    newfile.close()
+    try:
+      newfile.write(''.join(save_lines))
+    finally:
+      newfile.close()
     logger.Debug("Wrote new known_hosts.")
-    os.rename(tmpname, '/etc/ssh/ssh_known_hosts')
+    os.rename(tmpname, constants.SSH_KNOWN_HOSTS_FILE)
 
   elif add_lines:
     # Simply appending a new line will do the trick.
@@ -448,8 +451,6 @@ def _InitSSHSetup(node):
     node: the name of this host as a fqdn
 
   """
-  utils.RemoveFile('/root/.ssh/known_hosts')
-
   if os.path.exists('/root/.ssh/id_dsa'):
     utils.CreateBackup('/root/.ssh/id_dsa')
   if os.path.exists('/root/.ssh/id_dsa.pub'):
@@ -1365,8 +1366,6 @@ class LUAddNode(LogicalUnit):
       raise errors.OpExecError("PEM must end with newline")
     logger.Info("copy cluster pass to %s and starting the node daemon" % node)
 
-    # remove first the root's known_hosts file
-    utils.RemoveFile("/root/.ssh/known_hosts")
     # and then connect with ssh to set password and start ganeti-noded
     # note that all the below variables are sanitized at this point,
     # either by being constants or by the checks above
@@ -1442,7 +1441,7 @@ class LUAddNode(LogicalUnit):
       dist_nodes.remove(myself.name)
 
     logger.Debug("Copying hosts and known_hosts to all nodes")
-    for fname in ("/etc/hosts", "/etc/ssh/ssh_known_hosts"):
+    for fname in ("/etc/hosts", constants.SSH_KNOWN_HOSTS_FILE):
       result = rpc.call_upload_file(dist_nodes, fname)
       for to_node in dist_nodes:
         if not result[to_node]:
@@ -2798,7 +2797,13 @@ class LUConnectConsole(NoHooksLU):
 
     hyper = hypervisor.GetHypervisor()
     console_cmd = hyper.GetShellCommandForConsole(instance.name)
-    return node, console_cmd
+    # build ssh cmdline
+    argv = ["ssh", "-q", "-t"]
+    argv.extend(ssh.KNOWN_HOSTS_OPTS)
+    argv.extend(ssh.BATCH_MODE_OPTS)
+    argv.append(node)
+    argv.append(console_cmd)
+    return "ssh", argv
 
 
 class LUAddMDDRBDComponent(LogicalUnit):

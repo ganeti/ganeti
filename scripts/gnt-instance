@@ -290,14 +290,14 @@ def ConnectToInstanceConsole(opts, args):
   instance_name = args[0]
 
   op = opcodes.OpConnectConsole(instance_name=instance_name)
-  node, console_cmd = SubmitOpCode(op)
+  cmd, argv = SubmitOpCode(op)
   # drop lock and exec so other commands can run while we have console
   utils.Unlock("cmd")
   try:
-    os.execv("/usr/bin/ssh", ["ssh", "-qt", node, console_cmd])
+    os.execvp(cmd, argv)
   finally:
-    sys.stderr.write("Can't run console command %s on node %s" %
-                     (console_cmd, node))
+    sys.stderr.write("Can't run console command %s with arguments:\n'%s'" %
+                     (cmd, " ".join(argv)))
     os._exit(1)
 
 

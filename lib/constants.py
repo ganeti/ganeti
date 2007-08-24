@@ -34,6 +34,7 @@ DATA_DIR = "/var/lib/ganeti"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 WATCHER_STATEFILE = DATA_DIR + "/restart_state"
+SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 
 NODE_INITD_SCRIPT = "/etc/init.d/ganeti"
 DEFAULT_NODED_PORT = 1811

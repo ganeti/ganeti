@@ -29,6 +29,31 @@ import os
 from ganeti import logger
 from ganeti import utils
 from ganeti import errors
+from ganeti import constants
+
+
+__all__ = ["SSHCall", "CopyFileToNode", "VerifyNodeHostname",
+           "KNOWN_HOSTS_OPTS", "BATCH_MODE_OPTS", "ASK_KEY_OPTS"]
+
+
+KNOWN_HOSTS_OPTS = [
+  "-oGlobalKnownHostsFile=%s" % constants.SSH_KNOWN_HOSTS_FILE,
+  "-oUserKnownHostsFile=/dev/null",
+  ]
+
+# Note: BATCH_MODE conflicts with ASK_KEY
+BATCH_MODE_OPTS = [
+  "-oEscapeChar=none",
+  "-oBatchMode=yes",
+  "-oStrictHostKeyChecking=yes",
+  ]
+
+ASK_KEY_OPTS = [
+  "-oStrictHostKeyChecking=ask",
+  "-oEscapeChar=none",
+  "-oHashKnownHosts=no",
+  ]
+
 
 def SSHCall(hostname, user, command, batch=True, ask_key=False):
   """Execute a command on a remote node.
@@ -40,22 +65,23 @@ def SSHCall(hostname, user, command, batch=True, ask_key=False):
     hostname: the target host, string
     user: user to auth as
     command: the command
+    batch: if true, ssh will run in batch mode with no prompting
+    ask_key: if true, ssh will run with StrictHostKeyChecking=ask, so that
+             we can connect to an unknown host (not valid in batch mode)
 
   Returns:
     `utils.RunResult` as for `utils.RunCmd()`
 
   """
-  argv = ["ssh", "-q", "-oEscapeChar=none"]
+  argv = ["ssh", "-q"]
+  argv.extend(KNOWN_HOSTS_OPTS)
   if batch:
-    argv.append("-oBatchMode=yes")
     # if we are in batch mode, we can't ask the key
     if ask_key:
       raise errors.ProgrammerError("SSH call requested conflicting options")
-  if ask_key:
-    argv.append("-oStrictHostKeyChecking=ask")
-    argv.append("-oHashKnownHosts=no")
-  else:
-    argv.append("-oStrictHostKeyChecking=yes")
+    argv.extend(BATCH_MODE_OPTS)
+  elif ask_key:
+    argv.extend(ASK_KEY_OPTS)
   argv.extend(["%s@%s" % (user, hostname), command])
   return utils.RunCmd(argv)
 
@@ -79,8 +105,11 @@ def CopyFileToNode(node, filename):
     logger.Error("file %s must be an absolute path" % (filename))
     return False
 
-  command = ["scp", "-q", "-p", "-oStrictHostKeyChecking=yes",
-             "-oBatchMode=yes", filename, "%s:%s" % (node, filename)]
+  command = ["scp", "-q", "-p"]
+  command.extend(KNOWN_HOSTS_OPTS)
+  command.extend(BATCH_MODE_OPTS)
+  command.append(filename)
+  command.append("%s:%s" % (node, filename))
 
   result = utils.RunCmd(command)
 
