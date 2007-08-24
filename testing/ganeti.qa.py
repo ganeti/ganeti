@@ -108,6 +108,8 @@ def GetSSHCommand(node, cmd, strict=True):
   else:
     tmp = 'no'
   args.append('-oStrictHostKeyChecking=%s' % tmp)
+  args.append('-oClearAllForwardings=yes')
+  args.append('-oForwardAgent=yes')
   args.append(node)
 
   if options.dry_run:
