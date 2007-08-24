@@ -19,7 +19,13 @@
 # 02110-1301, USA.
 
 
-"""Script for doing Q&A on Ganeti"""
+"""Script for doing Q&A on Ganeti
+
+You can create the required known_hosts file using ssh-keyscan. It's mandatory
+to use the full name of a node (FQDN). For security reasons, verify the keys
+before using them.
+Example: ssh-keyscan -t rsa node{1,2,3,4}.example.com > known_hosts
+"""
 
 import os
 import re
@@ -625,10 +631,31 @@ def TestInstanceConsecutiveFailures(node, instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 # }}}
 
+# {{{ Other tests
+def TestUploadKnownHostsFile(localpath):
+  """Uploading known_hosts file.
+
+  """
+  master = GetMasterNode()
+
+  tmpfile = UploadFile(master['primary'], localpath)
+  try:
+    cmd = ['mv', tmpfile, constants.SSH_KNOWN_HOSTS_FILE]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  except:
+    cmd = ['rm', '-f', tmpfile]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+    raise
+
+# }}}
+
 # {{{ Main program
 if __name__ == '__main__':
   # {{{ Option parsing
-  parser = OptionParser(usage="%prog [options] <configfile>")
+  parser = OptionParser(usage="%prog [options] <config-file> "
+                              "<known-hosts-file>")
   parser.add_option('--dry-run', dest='dry_run',
       action="store_true",
       help="Show what would be done")
@@ -638,10 +665,10 @@ if __name__ == '__main__':
   (options, args) = parser.parse_args()
   # }}}
 
-  if len(args) == 1:
-    config_file = args[0]
+  if len(args) == 2:
+    (config_file, known_hosts_file) = args
   else:
-    raise Error("Exactly one configuration file is expected")
+    parser.error("Not enough arguments.")
 
   if not options.yes_do_it:
     print ("Executing this script irreversibly destroys any Ganeti\n"
@@ -656,6 +683,8 @@ if __name__ == '__main__':
     f.close()
 
   RunTest(TestConfig)
+
+  RunTest(TestUploadKnownHostsFile, known_hosts_file)
 
   if TestEnabled('env'):
     RunTest(TestSshConnection)
