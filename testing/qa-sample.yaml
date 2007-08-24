@@ -29,6 +29,7 @@ tests:
   cluster-verify: True
   cluster-info: True
   cluster-burnin: True
+  cluster-copyfile: True
   cluster-master-failover: True
   cluster-destroy: True
 

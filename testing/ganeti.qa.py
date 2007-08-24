@@ -26,7 +26,7 @@ import re
 import sys
 import yaml
 import time
-
+import tempfile
 from datetime import datetime
 from optparse import OptionParser
 
@@ -117,8 +117,7 @@ def GetSSHCommand(node, cmd, strict=True):
 
   args.append(prefix + cmd)
 
-  if options.verbose:
-    print 'SSH:', utils.ShellQuoteArgs(args)
+  print 'SSH:', utils.ShellQuoteArgs(args)
 
   return args
 
@@ -134,14 +133,13 @@ def StartSSH(node, cmd, strict=True):
 def UploadFile(node, file):
   """Uploads a file to a node and returns the filename.
 
-  Caller needs to remove the file when it's not needed anymore.
+  Caller needs to remove the returned file on the node when it's not needed
+  anymore.
   """
-  if os.stat(file).st_mode & 0100:
-    mode = '0700'
-  else:
-    mode = '0600'
+  # Make sure nobody else has access to it while preserving local permissions
+  mode = os.stat(file).st_mode & 0700
 
-  cmd = ('tmp=$(tempfile --mode %s --prefix gnt) && '
+  cmd = ('tmp=$(tempfile --mode %o --prefix gnt) && '
          '[[ -f "${tmp}" ]] && '
          'cat > "${tmp}" && '
          'echo "${tmp}"') % mode
@@ -152,9 +150,8 @@ def UploadFile(node, file):
                          stdout=subprocess.PIPE)
     AssertEqual(p.wait(), 0)
 
-    name = p.stdout.read().strip()
-
-    return name
+    # Return temporary filename
+    return p.stdout.read().strip()
   finally:
     f.close()
 # }}}
@@ -356,6 +353,31 @@ def TestClusterMasterFailover():
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
   finally:
     ReleaseNode(failovermaster)
+
+
+def TestClusterCopyfile():
+  """gnt-cluster copyfile"""
+  master = GetMasterNode()
+
+  # Create temporary file
+  f = tempfile.NamedTemporaryFile()
+  f.write("I'm a testfile.\n")
+  f.flush()
+  f.seek(0)
+
+  # Upload file to master node
+  testname = UploadFile(master['primary'], f.name)
+  try:
+    # Copy file to all nodes
+    cmd = ['gnt-cluster', 'copyfile', testname]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  finally:
+    # Remove file from all nodes
+    for node in cfg['nodes']:
+      cmd = ['rm', '-f', testname]
+      AssertEqual(StartSSH(node['primary'],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
 def TestClusterDestroy():
@@ -605,15 +627,9 @@ def TestInstanceConsecutiveFailures(node, instance):
 if __name__ == '__main__':
   # {{{ Option parsing
   parser = OptionParser(usage="%prog [options] <configfile>")
-  parser.add_option('--cleanup', dest='cleanup',
-      action="store_true",
-      help="Clean up cluster after testing?")
   parser.add_option('--dry-run', dest='dry_run',
       action="store_true",
       help="Show what would be done")
-  parser.add_option('--verbose', dest='verbose',
-      action="store_true",
-      help="Verbose output")
   parser.add_option('--yes-do-it', dest='yes_do_it',
       action="store_true",
       help="Really execute the tests")
@@ -646,13 +662,16 @@ if __name__ == '__main__':
 
   RunTest(TestClusterInit)
 
+  RunTest(TestNodeAddAll)
+
   if TestEnabled('cluster-verify'):
     RunTest(TestClusterVerify)
 
   if TestEnabled('cluster-info'):
     RunTest(TestClusterInfo)
 
-  RunTest(TestNodeAddAll)
+  if TestEnabled('cluster-copyfile'):
+    RunTest(TestClusterCopyfile)
 
   if TestEnabled('node-info'):
     RunTest(TestNodeInfo)
