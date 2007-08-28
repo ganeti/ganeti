@@ -35,50 +35,67 @@
     </para>
 
     <sect2>
-      <title>Ganeti Terminology</title>
+
+      <title>Ganeti terminology</title>
 
       <para>This section provides a small introduction to Ganeti terminology,
       which might be useful to read the rest of the document.
 
-      <variablelist>
-        <varlistentry>
-          <term>Cluster</term>
-	  <listitem><para>A set of machines (nodes) that cooperate to offer a
-	  coherent highly available virtualization service.</para></listitem>
-        </varlistentry>
-
-        <varlistentry>
-          <term>Node</term>
-	  <listitem><para>A physical machine which is member of a cluster.
-	  Nodes are the basic cluster infrastructure, and are not fault
-	  tolerant.</para></listitem>
-        </varlistentry>
-
-        <varlistentry>
-          <term>Master Node</term>
-	  <listitem><para>The node which controls the Cluster, from which all
-	  Ganeti commands must be given.</para></listitem>
-        </varlistentry>
-
-        <varlistentry>
-          <term>Instance</term>
-	  <listitem><para>A virtual machine which runs on a cluster. It can be
-	  a fault tolerant highly available entity.</para></listitem>
-        </varlistentry>
-
-        <varlistentry>
-          <term>Pool</term>
-	  <listitem><para>A pool is a set of clusters sharing the same
-	  network.</para></listitem>
-        </varlistentry>
-
-        <varlistentry>
-          <term>Meta-Cluster</term>
-	  <listitem><para>Anything that concerns more than one
-	  cluster.</para></listitem>
-        </varlistentry>
-
-      </variablelist>
+      <glosslist>
+          <glossentry>
+            <glossterm>Cluster</glossterm>
+            <glossdef>
+              <simpara>
+                A set of machines (nodes) that cooperate to offer a
+                coherent highly available virtualization service.
+              </simpara>
+            </glossdef>
+          </glossentry>
+          <glossentry>
+            <glossterm>Node</glossterm>
+            <glossdef>
+              <simpara>
+                A physical machine which is member of a cluster.
+                Nodes are the basic cluster infrastructure, and are
+                not fault tolerant.
+              </simpara>
+            </glossdef>
+          </glossentry>
+          <glossentry>
+            <glossterm>Master node</glossterm>
+            <glossdef>
+              <simpara>
+                The node which controls the Cluster, from which all
+                Ganeti commands must be given.
+              </simpara>
+            </glossdef>
+          </glossentry>
+          <glossentry>
+            <glossterm>Instance</glossterm>
+            <glossdef>
+              <simpara>
+                A virtual machine which runs on a cluster. It can be a
+                fault tolerant highly available entity.
+              </simpara>
+            </glossdef>
+          </glossentry>
+          <glossentry>
+            <glossterm>Pool</glossterm>
+            <glossdef>
+              <simpara>
+                A pool is a set of clusters sharing the same network.
+              </simpara>
+            </glossdef>
+          </glossentry>
+          <glossentry>
+            <glossterm>Meta-Cluster</glossterm>
+            <glossdef>
+              <simpara>
+                Anything that concerns more than one cluster.
+              </simpara>
+            </glossdef>
+          </glossentry>
+      </glosslist>
 
       </para>
     </sect2>
@@ -86,9 +103,11 @@
     <sect2>
       <title>Prerequisites</title>
 
-      <para>You need to have your Ganeti cluster installed and configured
-      before you try any of the commands in this document. Please follow the
-      "installing tutorial" for instructions on how to do that.
+      <para>
+        You need to have your Ganeti cluster installed and configured
+        before you try any of the commands in this document. Please
+        follow the <emphasis>Ganeti installation tutorial</emphasis>
+        for instructions on how to do that.
       </para>
     </sect2>
 
@@ -100,39 +119,43 @@
     <sect2>
       <title>Adding/Removing an instance</title>
 
-      <para>Adding a new virtual instance to your Ganeti cluster is really
-      easy. The command is:
-      <programlisting>
-gnt-instance add -n TARGET_NODE -o OS_TYPE -t DISK_TEMPLATE INSTANCE_NAME
-      </programlisting>
-      The instance name must exist in dns and of course map to an address in
-      the same subnet as the cluster itself. Options you can give to this
-      command include:
+      <para>
+        Adding a new virtual instance to your Ganeti cluster is really
+        easy. The command is:
+
+      <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable> -o <replaceable>OS_TYPE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        The instance name must be resolvable (e.g. exist in DNS) and
+        of course map to an address in the same subnet as the cluster
+        itself. Options you can give to this command include:
+
       <itemizedlist>
         <listitem>
-          <simpara>The disk size (-s)</simpara>
+          <simpara>The disk size (<option>-s</option>)</simpara>
         </listitem>
         <listitem>
-          <simpara>The swap size (--swap-size)</simpara>
+          <simpara>The swap size (<option>--swap-size</option>)</simpara>
         </listitem>
         <listitem>
-          <simpara>The memory size (-m)</simpara>
+          <simpara>The memory size (<option>-m</option>)</simpara>
         </listitem>
         <listitem>
-          <simpara>The number of virtual CPUs (-p)</simpara>
+          <simpara>The number of virtual CPUs (<option>-p</option>)</simpara>
         </listitem>
         <listitem>
-	  <simpara>The instance ip address (-i) (use -i auto to make Ganeti
-	  record the address from dns)</simpara>
+	  <simpara>The instance ip address (<option>-i</option>) (use
+	  the value <literal>auto</literal> to make Ganeti record the
+	  address from dns)</simpara>
         </listitem>
         <listitem>
-	  <simpara>The bridge to connect the instance to (-b), if you don't
-	  want to use the default one</simpara>
+	  <simpara>The bridge to connect the instance to
+	  (<option>-b</option>), if you don't want to use the default
+	  one</simpara>
         </listitem>
       </itemizedlist>
       </para>
 
-      <para>There are four types of disk template you can choose from:
+      <para>There are four types of disk template you can choose from:</para>
 
       <variablelist>
         <varlistentry>
@@ -156,60 +179,71 @@ gnt-instance add -n TARGET_NODE -o OS_TYPE -t DISK_TEMPLATE INSTANCE_NAME
 
         <varlistentry>
           <term>remote_raid1</term>
-	  <listitem><para>A mirror is set between the local node and a remote
-	  one, which must be specified with the --secondary-node option. Use
-	  this option to obtain a highly available instance that can be failed
-	  over to a remote node should the primary one fail.
-	  </para></listitem>
+	  <listitem>
+            <simpara><emphasis role="strong">Note:</emphasis> This is
+            only valid for multi-node clusters.</simpara>
+            <simpara>
+                A mirror is set between the local node and a remote
+                one, which must be specified with the --secondary-node
+                option. Use this option to obtain a highly available
+                instance that can be failed over to a remote node
+                should the primary one fail.
+	      </simpara>
+            </listitem>
         </varlistentry>
 
       </variablelist>
 
-      For example if you want to create an highly available instance use the
-      remote_raid1 disk template:
-      <programlisting>
-gnt-instance add -n TARGET_NODE -o OS_TYPE -t remote_raid1 \
-  --secondary-node=SECONDARY_NODE INSTANCE_NAME
-      </programlisting>
-      To know which operating systems your cluster supports you can use:
-      <programlisting>
-gnt-os list
-      </programlisting>
+      <para>
+        For example if you want to create an highly available instance
+        use the remote_raid1 disk template:
+      <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable> -o <replaceable>OS_TYPE</replaceable> -t remote_raid1 \
+  --secondary-node=<replaceable>SECONDARY_NODE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+      <para>
+        To know which operating systems your cluster supports you can use:
+
+        <synopsis>gnt-os list</synopsis>
+
       </para>
 
       <para>
-      Removing an instance is even easier than creating one. This operation is
-      non-reversible and destroys all the contents of your instance. Use with
-      care:
-      <programlisting>
-gnt-instance remove INSTANCE_NAME
-      </programlisting>
+        Removing an instance is even easier than creating one. This
+        operation is non-reversible and destroys all the contents of
+        your instance. Use with care:
+
+      <synopsis>gnt-instance remove <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
       </para>
     </sect2>
 
     <sect2>
       <title>Starting/Stopping an instance</title>
 
-      <para>Instances are automatically started at instance creation time. To
-      manually start one which is currently stopped you can run:
-      <programlisting>
-gnt-instance startup INSTANCE_NAME
-      </programlisting>
-      While the command to stop one is:
-      <programlisting>
-gnt-instance shutdown INSTANCE_NAME
-      </programlisting>
-      The command to see all the instances configured and their status is:
-      <programlisting>
-gnt-instance list
-      </programlisting>
+      <para>
+        Instances are automatically started at instance creation
+        time. To manually start one which is currently stopped you can
+        run:
+
+      <synopsis>gnt-instance startup <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        While the command to stop one is:
+
+      <synopsis>gnt-instance shutdown <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        The command to see all the instances configured and their
+        status is:
+
+      <synopsis>gnt-instance list</synopsis>
+
       </para>
 
-      <para>Do not use the xen commands to stop instances. If you run for
-      example xm shutdown or xm destroy on an instance Ganeti will
-      automatically restart it (via the
-      <citerefentry><refentrytitle>ganeti-watcher</refentrytitle>
-      <manvolnum>8</manvolnum></citerefentry>)
+      <para>
+        Do not use the xen commands to stop instances. If you run for
+        example xm shutdown or xm destroy on an instance Ganeti will
+        automatically restart it (via the
+        <citerefentry><refentrytitle>ganeti-watcher</refentrytitle>
+        <manvolnum>8</manvolnum></citerefentry>)
       </para>
 
     </sect2>
@@ -217,27 +251,33 @@ gnt-instance list
     <sect2>
       <title>Exporting/Importing an instance</title>
 
-      <para>You can create a snapshot of an instance disk and Ganeti
-      configuration, which then you can backup, or import into another cluster.
-      The way to export an instance is:
-      <programlisting>
-gnt-backup export -n TARGET_NODE INSTANCE_NAME
-      </programlisting>
-      The target node can be any node in the cluster with enough space under
-      /srv/ganeti to hold the instance image. Use the --noshutdown option to
-      snapshot an instance without rebooting it. Any previous snapshot of the
-      same instance existing cluster-wide under /srv/ganeti will be removed by
-      this operation: if you want to keep them move them out of the Ganeti
-      exports directory.
+      <para>
+        You can create a snapshot of an instance disk and Ganeti
+        configuration, which then you can backup, or import into
+        another cluster.  The way to export an instance is:
+
+      <synopsis>gnt-backup export -n <replaceable>TARGET_NODE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        The target node can be any node in the cluster with enough
+        space under <filename class="directory">/srv/ganeti</filename>
+        to hold the instance image. Use the
+        <option>--noshutdown</option> option to snapshot an instance
+        without rebooting it. Any previous snapshot of the same
+        instance existing cluster-wide under <filename
+        class="directory">/srv/ganeti</filename> will be removed by
+        this operation: if you want to keep them move them out of the
+        Ganeti exports directory.
       </para>
 
-      <para>Importing an instance is as easy as creating a new one. The command
-      is:
-      <programlisting>
-gnt-backup import -n TRGT_NODE -t DISK_TMPL --src-node=NODE --src-dir=DIR INST_NAME
-      </programlisting>
-      Most of the options available for gnt-instance add are supported here
-      too.
+      <para>
+        Importing an instance is similar to creating a new one. The
+        command is:
+
+      <synopsis>gnt-backup import -n <replaceable>TARGET_NODE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> --src-node=<replaceable>NODE</replaceable> --src-dir=DIR INSTANCE_NAME</synopsis>
+
+        Most of the options available for the command
+        <emphasis>gnt-instance add</emphasis> are supported here too.
+
       </para>
     </sect2>
 
@@ -247,59 +287,74 @@ gnt-backup import -n TRGT_NODE -t DISK_TMPL --src-node=NODE --src-dir=DIR INST_N
   <sect1>
     <title>High availability features</title>
 
+    <note>
+      <simpara>This section only applies to multi-node clusters.</simpara>
+    </note>
+
     <sect2>
       <title>Failing over an instance</title>
 
-      <para>If an instance is built in highly available mode you can at any
-      time fail it over to its secondary node, even if the primary has somehow
-      failed and it's not up anymore. Doing it is really easy, on the master
-      node you can just run:
-      <programlisting>
-gnt-instance failover INSTANCE_NAME
-      </programlisting>
-      That's it. After the command completes the secondary node is now the
-      primary, and vice versa.
+      <para>
+        If an instance is built in highly available mode you can at
+        any time fail it over to its secondary node, even if the
+        primary has somehow failed and it's not up anymore. Doing it
+        is really easy, on the master node you can just run:
+
+      <synopsis>gnt-instance failover <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        That's it. After the command completes the secondary node is
+        now the primary, and vice versa.
       </para>
     </sect2>
+
     <sect2>
       <title>Replacing an instance disks</title>
 
-      <para>So what if instead the secondary node for an instance has failed,
-      or you plan to remove a node from your cluster, and you failed over all
-      its instances, but it's still secondary for some? The solution here is to
-      replace the instance disks, changing the secondary node:
-      <programlisting>
-gnt-instance replace-disks -n NEW_SECONDARY INSTANCE_NAME
-      </programlisting>
-      This process is a bit longer, but involves no instance downtime, and at
-      the end of it the instance has changed its secondary node, to which it
-      can if necessary be failed over.
+      <para>
+        So what if instead the secondary node for an instance has
+        failed, or you plan to remove a node from your cluster, and
+        you failed over all its instances, but it's still secondary
+        for some? The solution here is to replace the instance disks,
+        changing the secondary node:
+
+      <synopsis>gnt-instance replace-disks -n <replaceable>NEW_SECONDARY</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        This process is a bit longer, but involves no instance
+        downtime, and at the end of it the instance has changed its
+        secondary node, to which it can if necessary be failed over.
       </para>
     </sect2>
     <sect2>
       <title>Failing over the master node</title>
 
-      <para>This is all good as long as the Ganeti Master Node is up. Should it
-      go down, or should you wish to decommission it, just run on any other node
-      the command:
-      <programlisting>
-gnt-cluster masterfailover
-      </programlisting>
-      and the node you ran it on is now the new master.
+      <para>
+        This is all good as long as the Ganeti Master Node is
+        up. Should it go down, or should you wish to decommission it,
+        just run on any other node the command:
+
+      <synopsis>gnt-cluster masterfailover</synopsis>
+
+        and the node you ran it on is now the new master.
       </para>
     </sect2>
     <sect2>
       <title>Adding/Removing nodes</title>
 
-      <para>And of course, now that you know how to move instances around, it's
-      easy to free up a node, and then you can remove it from the cluster:
-      <programlisting>
-gnt-node remove NODE_NAME
-      </programlisting>
-      and maybe add a new one:
-      <programlisting>
-gnt-node add [--secondary-ip=ADDRESS] NODE_NAME
-      </programlisting>
+      <para>
+        And of course, now that you know how to move instances around,
+        it's easy to free up a node, and then you can remove it from
+        the cluster:
+
+      <synopsis>
+gnt-node remove <replaceable>NODE_NAME</replaceable>
+      </synopsis>
+
+        and maybe add a new one:
+
+      <synopsis>
+gnt-node add <optional><option>--secondary-ip=<replaceable>ADDRESS</replaceable></option></optional> <replaceable>NODE_NAME</replaceable>
+
+      </synopsis>
       </para>
     </sect2>
   </sect1>
@@ -307,46 +362,53 @@ gnt-node add [--secondary-ip=ADDRESS] NODE_NAME
   <sect1>
     <title>Debugging Features</title>
 
-    <para>At some point you might need to do some debugging operations on your
-    cluster or on your instances. This section will help you with the most used
-    debugging functionalities.
+    <para>
+      At some point you might need to do some debugging operations on
+      your cluster or on your instances. This section will help you
+      with the most used debugging functionalities.
     </para>
 
     <sect2>
       <title>Accessing an instance's disks</title>
 
-      <para>From an instance's primary node you have access to its disks. Never
-      ever mount the underlying logical volume manually on a fault tolerant
-      instance, though or you risk breaking replication. The correct way to
-      access them is to run the command:
-      <programlisting>
-gnt-instance activate-disks INSTANCE_NAME
-      </programlisting>
-      And then access the device that gets created.  Of course after you've
-      finished you can deactivate them with the deactivate-disks command, which
-      works in the same way.
+      <para>
+        From an instance's primary node you have access to its
+        disks. Never ever mount the underlying logical volume manually
+        on a fault tolerant instance, or you risk breaking
+        replication. The correct way to access them is to run the
+        command:
+
+      <synopsis> gnt-instance activate-disks <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        And then access the device that gets created.  After you've
+        finished you can deactivate them with the deactivate-disks
+        command, which works in the same way.
       </para>
     </sect2>
 
     <sect2>
       <title>Accessing an instance's console</title>
 
-      <para>The command to access a running instance's console is:
-      <programlisting>
-gnt-instance console INSTANCE_NAME
-      </programlisting>
-      Use the console normally and then type ^] when done, to exit.
+      <para>
+        The command to access a running instance's console is:
+
+      <synopsis>gnt-instance console <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        Use the console normally and then type
+        <userinput>^]</userinput> when done, to exit.
       </para>
     </sect2>
 
     <sect2>
       <title>Instance Operating System Debugging</title>
 
-      <para>Should you have any problems with operating systems support the
-      command to ran to see a complete status for all your nodes is:
-      <programlisting>
-gnt-os diagnose
-      </programlisting>
+      <para>
+        Should you have any problems with operating systems support
+        the command to ran to see a complete status for all your nodes
+        is:
+
+      <synopsis>gnt-os diagnose</synopsis>
+
       </para>
 
     </sect2>
@@ -354,16 +416,22 @@ gnt-os diagnose
     <sect2>
       <title>Cluster-wide debugging</title>
 
-      <para>The gnt-cluster command offers several options to run tests or
-      execute cluster-wide operations. For example:
-      <programlisting>
+      <para>
+        The gnt-cluster command offers several options to run tests or
+        execute cluster-wide operations. For example:
+
+      <screen>
 gnt-cluster command
 gnt-cluster copyfile
 gnt-cluster verify
 gnt-cluster getmaster
 gnt-cluster version
-      </programlisting>
-      See the respective help to know more about their usage.
+      </screen>
+
+        See the man page <citerefentry>
+        <refentrytitle>gnt-cluster</refentrytitle>
+        <manvolnum>8</manvolnum> </citerefentry> to know more about
+        their usage.
       </para>
     </sect2>
 
