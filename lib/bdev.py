@@ -611,6 +611,49 @@ class MDRaid1(BlockDev):
     return None
 
 
+  @staticmethod
+  def _ZeroSuperblock(dev_path):
+    """Zero the possible locations for an MD superblock.
+
+    The zero-ing can't be done via ``mdadm --zero-superblock`` as that
+    fails in versions 2.x with the same error code as non-writable
+    device.
+
+    The superblocks are located at (negative values are relative to
+    the end of the block device):
+      - -128k to end for version 0.90 superblock
+      - -8k to -12k for version 1.0 superblock (included in the above)
+      - 0k to 4k for version 1.1 superblock
+      - 4k to 8k for version 1.2 superblock
+
+    To cover all situations, the zero-ing will be:
+      - 0k to 128k
+      - -128k to end
+
+    As such, the minimum device size must be 128k, otherwise we'll get
+    I/O errors.
+
+    Note that this function depends on the fact that one can open,
+    read and write block devices normally.
+
+    """
+    overwrite_size = 128 * 1024
+    empty_buf = '\0' * overwrite_size
+    fd = open(dev_path, "r+")
+    try:
+      fd.seek(0, 0)
+      p1 = fd.tell()
+      fd.write(empty_buf)
+      p2 = fd.tell()
+      logger.Debug("Zeroed %s from %d to %d" % (dev_path, p1, p2))
+      fd.seek(-overwrite_size, 2)
+      p1 = fd.tell()
+      fd.write(empty_buf)
+      p2 = fd.tell()
+      logger.Debug("Zeroed %s from %d to %d" % (dev_path, p1, p2))
+    finally:
+      fd.close()
+
   @classmethod
   def Create(cls, unique_id, children, size):
     """Create a new MD raid1 array.
@@ -623,10 +666,11 @@ class MDRaid1(BlockDev):
       if not isinstance(i, BlockDev):
         raise ValueError("Invalid member in MDRaid1 dev: %s" % type(i))
     for i in children:
-      result = utils.RunCmd(["mdadm", "--zero-superblock", "--force",
-                             i.dev_path])
-      if result.failed:
-        logger.Error("Can't zero superblock: %s" % result.fail_reason)
+      try:
+        cls._ZeroSuperblock(i.dev_path)
+      except EnvironmentError, err:
+        logger.Error("Can't zero superblock for %s: %s" %
+                     (i.dev_path, str(err)))
         return None
     minor = cls._FindUnusedMinor()
     result = utils.RunCmd(["mdadm", "--create", "/dev/md%d" % minor,
@@ -635,7 +679,8 @@ class MDRaid1(BlockDev):
                           [dev.dev_path for dev in children])
 
     if result.failed:
-      logger.Error("Can't create md: %s" % result.fail_reason)
+      logger.Error("Can't create md: %s: %s" % (result.fail_reason,
+                                                result.output))
       return None
     info = cls._GetDevInfo(minor)
     if not info or not "uuid" in info:
