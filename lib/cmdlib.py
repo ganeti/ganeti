@@ -540,6 +540,12 @@ class LUInitCluster(LogicalUnit):
       raise errors.OpPrereqError("Cannot resolve my own hostname ('%s')" %
                                  hostname_local)
 
+    if hostname["hostname_full"] != hostname_local:
+      raise errors.OpPrereqError("My own hostname (%s) does not match the"
+                                 " resolver (%s): probably not using FQDN"
+                                 " for hostname." %
+                                 (hostname_local, hostname["hostname_full"]))
+
     self.clustername = clustername = utils.LookupHostname(self.op.cluster_name)
     if not clustername:
       raise errors.OpPrereqError("Cannot resolve given cluster name ('%s')"
@@ -1432,6 +1438,13 @@ class LUAddNode(LogicalUnit):
                                  " secondary ip you gave (%s).\n"
                                  "Please fix and re-run this command." %
                                  new_node.secondary_ip)
+
+    success, msg = ssh.VerifyNodeHostname(node)
+    if not success:
+      raise errors.OpExecError("Node '%s' claims it has a different hostname"
+                               " than the one the resolver gives: %s.\n"
+                               "Please fix and re-run this command." %
+                               (node, msg))
 
     # Distribute updated /etc/hosts and known_hosts to all nodes,
     # including the node just added
