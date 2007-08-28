@@ -47,8 +47,9 @@
 
     <para>
       A basic Ganeti terminology glossary is provided in the
-      introductory section of the "admin guide". Please refer to that
-      if you are uncertain about the terms we are using.
+      introductory section of the <emphasis>Ganeti administrator's
+      guide</emphasis>. Please refer to that document if you are
+      uncertain about the terms we are using.
     </para>
 
   </sect1>
@@ -59,17 +60,33 @@
     <sect2>
       <title>Installing the base system</title>
 
-      <para><emphasis role="strong">Mandatory.</emphasis></para>
+      <para>
+        <emphasis role="strong">Mandatory</emphasis> on all nodes.
+      </para>
 
       <para>
-        Please install your operating system as you would normally
-        do. The only requirement you need to be aware of at this stage
-        is to partition leaving enough space for a big LVM volume
-        group which will then host your instance file systems. You can
-        even create the volume group at installation time, of course:
-        the default volume group name Ganeti 1.2 uses is "xenvg" but
-        you may name it differently should you wish to, as long as the
-        name is the same for all the nodes in the cluster.
+        It is advised to start with a clean, minimal install of the
+        operating system. The only requirement you need to be aware of
+        at this stage is to partition leaving enough space for a big
+        LVM volume group which will then host your instance
+        filesystems. You can even create the volume group at
+        installation time, of course: the default volume group name
+        Ganeti 1.2 uses is <emphasis>xenvg</emphasis> but you may name
+        it differently should you wish to, as long as the name is the
+        same for all the nodes in the cluster.
+      </para>
+
+      <para>
+        While you can use an exiting system, please note that the
+        Ganeti installation is intrusive in terms of changes to the
+        system configuration, and it's best to use a newly-installed
+        system without important data on it.
+      </para>
+
+      <para>
+        Also, for best results, it's advised that the nodes have as
+        much as possible the same hardware and software
+        configuration. This will make administration much easier.
       </para>
 
     </sect2>
@@ -78,11 +95,15 @@
       <title>Installing Xen</title>
 
       <para>
-        <emphasis role="strong">Mandatory:</emphasis> While Ganeti is
-        developed with the ability to modularly run on different
-        virtualization environments in mind the only one currently
-        useable on a live system is <ulink
-        url="http://xen.xensource.com/">Xen</ulink>.
+        <emphasis role="strong">Mandatory</emphasis> on all nodes.
+        While Ganeti is developed with the ability to modularly run on
+        different virtualization environments in mind the only one
+        currently useable on a live system is <ulink
+        url="http://xen.xensource.com/">Xen</ulink>. Supported
+        versions are: <simplelist type="inline">
+        <member><literal>3.0.3</literal></member>
+        <member><literal>3.0.4</literal></member>
+        <member><literal>3.1</literal></member> </simplelist>.
       </para>
 
       <para>
@@ -100,8 +121,9 @@
 
       <para>
         After installing Xen you need to reboot into your xenified
-        dom0 system. Again on some distributions this might involve
-        configuring GRUB appropriately.
+        dom0 system. On some distributions this might involve
+        configuring GRUB appropriately, whereas others will configure
+        it automatically when you install Xen from a package.
       </para>
 
     </sect2>
@@ -110,13 +132,21 @@
       <title>Installing DRBD</title>
 
       <para>
-        Recommended: <ulink url="http://www.drbd.org/">DRBD</ulink>
-        is required if you want to use the high availability (HA)
-        features of Ganeti, but optional if you don't require HA or
-        only run Ganeti on single-node clusters. You can upgrade a
-        non-HA cluster to an HA one later, but you might need to
-        export and reimport all your instances to take advantage of
-        the new features.
+        Recommended on all nodes: <ulink
+        url="http://www.drbd.org/">DRBD</ulink> is required if you
+        want to use the high availability (HA) features of Ganeti, but
+        optional if you don't require HA or only run Ganeti on
+        single-node clusters. You can upgrade a non-HA cluster to an
+        HA one later, but you might need to export and reimport all
+        your instances to take advantage of the new features.
+      </para>
+
+      <para>
+        Supported DRBD version: the <literal>0.7</literal>
+        series. It's recommended to have at least version
+        <literal>0.7.24</literal> if you use <command>udev</command>
+        since older versions have a bug related to device discovery
+        which can be triggered in cases of harddrive failure.
       </para>
 
       <para>
@@ -152,7 +182,7 @@ m-a a-i drbd0.7
       <title>Other required software</title>
 
       <para>Besides Xen and DRBD, you will need to install the
-      following:</para>
+      following (on all nodes):</para>
 
       <itemizedlist>
         <listitem>
@@ -247,6 +277,8 @@ m-a a-i drbd0.7
     <sect2>
       <title>Configuring the network</title>
 
+      <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
+
       <para>Ganeti relies on Xen running in "bridge mode", which means the
       instances network interfaces will be attached to a software bridge
       running in dom0. Xen by default creates such a bridge at startup, but
@@ -290,6 +322,8 @@ iface br0 inet static
     <sect2>
       <title>Configuring LVM</title>
 
+      <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
+
       <para>
         If you haven't configured your LVM volume group at install
         time you need to do it before trying to initialize the Ganeti
@@ -325,6 +359,8 @@ vgextend xenvg /dev/sdd
     <sect2>
       <title>Installing Ganeti</title>
 
+      <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
+
       <para>
         It's now time to install the Ganeti software itself. You can
         do it from source, with the usual steps (note that the
@@ -352,6 +388,8 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
     <sect2>
       <title>Installing the Operating System support packages</title>
 
+      <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
+
       <para>
         Another important component for Ganeti are the OS support
         packages, which let different operating systems be used as
@@ -362,7 +400,8 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
       </para>
 
       <para>
-        Alternatively, you can create your own OS definitions, see
+        Alternatively, you can create your own OS definitions, see the
+        manpage
         <citerefentry>
         <refentrytitle>ganeti-os-interface</refentrytitle>
         <manvolnum>8</manvolnum>
@@ -388,6 +427,17 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
       </screen>
 
       <para>
+        The <replaceable>CLUSTERNAME</replaceable> is a hostname,
+        which must be resolvable (e.g. it must exist in DNS or in
+        <filename>/etc/hosts</filename>) by all the nodes in the
+        cluster. You must choose a name different from any of the
+        nodes names for a multi-node cluster. In general the best
+        choice is to have a unique name for a cluster, even if it
+        consists of only one machine, as you will be able to expand it
+        later without any problems.
+      </para>
+
+      <para>
         If the node's network interface which will be used for access
         from outside the cluster is not named
         <hardware>xen-br0</hardware>, you need to use the
@@ -395,7 +445,7 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
         option, replacing <replaceable>IFNAME</replaceable> with the
         correct one for your case (e.g. <hardware>xenbr0</hardware>,
         <hardware>eth0</hardware>, etc.). Usually this will be the
-        same as the default bridge name (see below).
+        same as the default bridge name (see next paragraph).
       </para>
 
       <para>
@@ -404,16 +454,13 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
         (<option>-b</option>), the cluster-wide name for the volume
         group (<option>-g</option>) and the secondary ip address for
         the initial node should you wish to keep the data replication
-        network separate. Invoke it with <option>--help</option> to
+        network separate (see the administrator's manual for details
+        about this feature). Invoke it with <option>--help</option> to
         see all the possibilities.
       </para>
 
       <para>
-        Note that the cluster name must exist in DNS. You must choose
-        a name different from any of the nodes names for a multi-node
-        cluster. In general the best choice is to have a unique name
-        for a cluster, even if it consists of only one machine, as you
-        will be able to expand it later without any problem.
+        It is required that the cluster name exists in DNS.
       </para>
     </sect2>
 
@@ -426,9 +473,9 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
       </para>
 
       <para>
-        If you have already initialized your cluster you need to join the other
-        nodes to it. You can do so by executing the following command on the
-        master node:
+        After you have initialized your cluster you need to join the
+        other nodes to it. You can do so by executing the following
+        command on the master node:
         <screen>
 gnt-node add <replaceable>NODENAME</replaceable>
         </screen>
