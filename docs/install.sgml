@@ -10,19 +10,37 @@
     <title>Introduction</title>
 
     <para>
-      Ganeti is a cluster virtualization management system. This
-      document explains how to bootstrap a Ganeti node and create a
-      running cluster. You need to repeat most of the steps in this
-      document for every node you want to install, but of course we
-      recommend creating some semi-automatic procedure if you plan to
-      deploy Ganeti on a medium/large scale.
+      Ganeti is a cluster virtualization management system based on
+      Xen. This document explains how to bootstrap a Ganeti node (Xen
+      <literal>dom0</literal>), create a running cluster and install
+      virtual instance (Xen <literal>domU</literal>).  You need to
+      repeat most of the steps in this document for every node you
+      want to install, but of course we recommend creating some
+      semi-automatic procedure if you plan to deploy Ganeti on a
+      medium/large scale.
+    </para>
+
+    <para>
+      A basic Ganeti terminology glossary is provided in the
+      introductory section of the <emphasis>Ganeti administrator's
+      guide</emphasis>. Please refer to that document if you are
+      uncertain about the terms we are using.
+    </para>
+
+    <para>
+      Ganeti has been developed for Linux and is
+      distribution-agnostic.  This documentation will use Debian Etch
+      as an example system but the examples can easily be translated
+      to any other distribution.  You are expected to be familiar with
+      your distribution, its package management system, and Xen before
+      trying to use Ganeti.
     </para>
 
     <para>This document is divided into two main sections:
 
       <itemizedlist>
         <listitem>
-          <simpara>Installation of the core system and base
+          <simpara>Installation of the base system and base
           components</simpara>
         </listitem>
         <listitem>
@@ -37,25 +55,27 @@
     specified in the corresponding sections.
     </para>
 
-    <para>
-      While Ganeti itself is distribution-agnostic most of the
-      examples in this document will be targeted at Debian or
-      Debian-derived distributions. You are expected to be familiar
-      with your distribution, its package management system, and Xen
-      before trying to use Ganeti.
-    </para>
-
-    <para>
-      A basic Ganeti terminology glossary is provided in the
-      introductory section of the <emphasis>Ganeti administrator's
-      guide</emphasis>. Please refer to that document if you are
-      uncertain about the terms we are using.
-    </para>
-
   </sect1>
 
   <sect1>
-    <title>Installing the system and base components</title>
+    <title>Installing the base system and base components</title>
+
+    <sect2>
+      <title>Hardware requirements</title>
+
+      <para>
+         Any system supported by your Linux distribution is fine.
+         64-bit systems are better as they can support more memory.
+      </para>
+
+      <para>
+         Any disk drive recognized by Linux
+         (<literal>IDE</literal>/<literal>SCSI</literal>/<literal>SATA</literal>/etc.)
+         is supported in Ganeti. Note that no shared storage
+         (e.g. <literal>SAN</literal>) is needed to get high-availability features. It is
+         highly recommended to use more than one disk drive to improve
+         speed. But Ganeti also works with one disk per machine.
+      </para>
 
     <sect2>
       <title>Installing the base system</title>
@@ -69,12 +89,16 @@
         operating system. The only requirement you need to be aware of
         at this stage is to partition leaving enough space for a big
         LVM volume group which will then host your instance
-        filesystems. You can even create the volume group at
-        installation time, of course: the default volume group name
-        Ganeti 1.2 uses is <emphasis>xenvg</emphasis> but you may name
-        it differently should you wish to, as long as the name is the
-        same for all the nodes in the cluster.
+        filesystems. The volume group name Ganeti 1.2 uses is
+        <emphasis>xenvg</emphasis>.
       </para>
+
+      <note>
+        <simpara>
+          You need to use a fully-qualified name for the hostname of
+          the nodes.
+        </simpara>
+      </note>
 
       <para>
         While you can use an exiting system, please note that the
@@ -96,6 +120,9 @@
 
       <para>
         <emphasis role="strong">Mandatory</emphasis> on all nodes.
+      </para>
+
+      <para>
         While Ganeti is developed with the ability to modularly run on
         different virtualization environments in mind the only one
         currently useable on a live system is <ulink
@@ -113,18 +140,19 @@
       </para>
 
       <para>
-        For example under Debian 4.0 or 3.1+backports you can install
-        the relevant xen-linux-system package, which will pull in both
-        the hypervisor and the relevant kernel. On Ubuntu (from Gutsy
-        on) the package is called ubuntu-xen-server.
-      </para>
-
-      <para>
         After installing Xen you need to reboot into your xenified
         dom0 system. On some distributions this might involve
         configuring GRUB appropriately, whereas others will configure
         it automatically when you install Xen from a package.
       </para>
+
+      <formalpara><title>Debian</title>
+      <para>
+        Under Debian Etch or Sarge+backports you can install the
+        relevant xen-linux-system package, which will pull in both the
+        hypervisor and the relevant kernel.
+      </para>
+      </formalpara>
 
     </sect2>
 
@@ -137,7 +165,7 @@
         want to use the high availability (HA) features of Ganeti, but
         optional if you don't require HA or only run Ganeti on
         single-node clusters. You can upgrade a non-HA cluster to an
-        HA one later, but you might need to export and reimport all
+        HA one later, but you might need to export and re-import all
         your instances to take advantage of the new features.
       </para>
 
@@ -146,7 +174,7 @@
         series. It's recommended to have at least version
         <literal>0.7.24</literal> if you use <command>udev</command>
         since older versions have a bug related to device discovery
-        which can be triggered in cases of harddrive failure.
+        which can be triggered in cases of hard drive failure.
       </para>
 
       <para>
@@ -157,24 +185,25 @@
       </para>
 
       <para>
-        Under Debian you can just install the drbd0.7-module-source
-        and drbd0.7-utils packages, and your kernel source, and then
-        run module-assistant to compile the drbd0.7 module. The
-        following commands should do it:
-      </para>
-
-      <screen>
-m-a update
-m-a a-i drbd0.7
-      </screen>
-
-      <para>
         The good news is that you don't need to configure DRBD at all.
         Ganeti will do it for you for every instance you set up.  If
         you have the DRBD utils installed and the module in your
         kernel you're fine. Please check that your system is
         configured to load the module at every boot.
       </para>
+
+      <formalpara><title>Debian</title>
+        <para>
+         You can just install (build) the DRBD 0.7 module with the
+         following command:
+        </para>
+      </formalpara>
+
+      <screen>
+apt-get install drbd0.7-module-source drbd0.7-utils
+m-a update
+m-a a-i drbd0.7
+      </screen>
 
     </sect2>
 
@@ -234,38 +263,24 @@ m-a a-i drbd0.7
         </listitem>
       </itemizedlist>
 
-      <para>These programs are supplied as part of most Linux
-      distributions, so usually they can be installed via apt or
-      similar methods. Also many of them will already be installed on
-      a standard machine. On Debian Etch you can use this command line
-      to install all of them:</para>
+      <para>
+        These programs are supplied as part of most Linux
+        distributions, so usually they can be installed via apt or
+        similar methods. Also many of them will already be installed
+        on a standard machine.
+      </para>
 
+
+      <formalpara><title>Debian</title>
+
+      <para>You can use this command line to install all of them:</para>
+
+      </formalpara>
       <screen>
 # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
   fping python2.4 python-twisted-core python-pyopenssl openssl
       </screen>
 
-      <para>
-        When installing from source, you will also need the following:
-      </para>
-      <itemizedlist>
-        <listitem>
-          <simpara>make</simpara>
-        </listitem>
-        <listitem>
-          <simpara>tar</simpara>
-        </listitem>
-        <listitem>
-          <simpara>gzip or bzip2</simpara>
-        </listitem>
-      </itemizedlist>
-
-      <para>
-        Again, these are available in most if not all linux distributions. For Debian, do:
-      <screen>
-# apt-get install make tar gzip bzip2
-      </screen>
-      </para>
     </sect2>
 
   </sect1>
@@ -279,48 +294,75 @@ m-a a-i drbd0.7
 
       <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
 
-      <para>Ganeti relies on Xen running in "bridge mode", which means the
-      instances network interfaces will be attached to a software bridge
-      running in dom0. Xen by default creates such a bridge at startup, but
-      your distribution might have a different way to do things.
+      <para>
+        Ganeti relies on Xen running in "bridge mode", which means the
+        instances network interfaces will be attached to a software bridge
+        running in dom0. Xen by default creates such a bridge at startup, but
+        your distribution might have a different way to do things.
       </para>
 
       <para>
-      In Debian, in order to enable the default Xen behaviour, you
-      have to edit <filename>/etc/xen/xend-config.sxp</filename> and
-      replace <computeroutput>(network-script
-      network-dummy)</computeroutput> with
-      <computeroutput>(network-script
-      network-bridge)</computeroutput>. The recommended Debian way to
-      configure things, though, is to edit your
-      <filename>/etc/network/interfaces</filename> file and substitute
-      your normal ethernet stanza with something like:</para>
+        Beware that the default name Ganeti uses is
+        <hardware>xen-br0</hardware> (which was used in Xen 2.0)
+        while Xen 3.0 uses <hardware>xenbr0</hardware> by
+        default. The default bridge your Ganeti cluster will use for new
+        instances can be specified at cluster initialization time.
+      </para>
 
-      <screen>
-auto br0
-iface br0 inet static
+      <formalpara><title>Debian</title>
+        <para>
+          The recommended Debian way to configure the xen bridge is to
+          edit your <filename>/etc/network/interfaces</filename> file
+          and substitute your normal Ethernet stanza with the
+          following snippet:
+
+        <screen>
+auto xen-br0
+iface xen-br0 inet static
         address <replaceable>YOUR_IP_ADDRESS</replaceable>
         netmask <replaceable>YOUR_NETMASK</replaceable>
         network <replaceable>YOUR_NETWORK</replaceable>
         broadcast <replaceable>YOUR_BROADCAST_ADDRESS</replaceable>
         gateway <replaceable>YOUR_GATEWAY</replaceable>
-        bridge_ports <replaceable>eth0</replaceable>
+        bridge_ports eth0
         bridge_stp off
         bridge_fd 0
+        </screen>
+        </para>
+      </formalpara>
+
+     <para>
+The following commands need to be executed on the local console
+     </para>
+      <screen>
+ifdown eth0
+ifup xen-br0
       </screen>
 
-    <para>
-      Beware that the default name Ganeti uses is
-      <hardware>xen-br0</hardware> (which was used in Xen 2.0)
-      while Xen 3.0 uses <hardware>xenbr0</hardware> by
-      default. The default bridge your cluster will use for new
-      instances can be specified at cluster initialization time.
-    </para>
+      <para>
+        To check if the bridge is setup, use <command>ip</command>
+        and <command>brctl show</command>:
+      <para>
+
+      <screen>
+# ip a show xen-br0
+9: xen-br0: &lt;BROADCAST,MULTICAST,UP,10000&gt; mtu 1500 qdisc noqueue
+    link/ether 00:20:fc:1e:d5:5d brd ff:ff:ff:ff:ff:ff
+    inet 10.1.1.200/24 brd 10.1.1.255 scope global xen-br0
+    inet6 fe80::220:fcff:fe1e:d55d/64 scope link
+       valid_lft forever preferred_lft forever
+
+# brctl show xen-br0
+bridge name     bridge id               STP enabled     interfaces
+xen-br0         8000.0020fc1ed55d       no              eth0
+      </screen>
+
 
     </sect2>
 
     <sect2>
       <title>Configuring LVM</title>
+
 
       <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
 
@@ -330,14 +372,18 @@ iface br0 inet static
         cluster. This is done by formatting the devices/partitions you
         want to use for it and then adding them to the relevant volume
         group:
-       </para>
 
        <screen>
-pvcreate /dev/sda4
-pvcreate /dev/sdb
-pvcreate /dev/sdc1
-vgcreate xenvg /dev/sda4 /dev/sdb /dev/sdc1
+pvcreate /dev/sda3
+vgcreate xenvg /dev/sda3
        </screen>
+or
+       <screen>
+pvcreate /dev/sdb1
+pvcreate /dev/sdc1
+vgcreate xenvg /dev/sdb1 /dev/sdc1
+       </screen>
+      </para>
 
       <para>
 	If you want to add a device later you can do so with the
@@ -346,14 +392,9 @@ vgcreate xenvg /dev/sda4 /dev/sdb /dev/sdc1
       </para>
 
       <screen>
-pvcreate /dev/sdd
-vgextend xenvg /dev/sdd
+pvcreate /dev/sdd1
+vgextend xenvg /dev/sdd1
       </screen>
-
-      <para>
-        As said before you may choose a different name for the volume group,
-        as long as you stick to the same name on all the nodes of a cluster.
-      </para>
     </sect2>
 
     <sect2>
@@ -362,13 +403,14 @@ vgextend xenvg /dev/sdd
       <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
 
       <para>
-        It's now time to install the Ganeti software itself. You can
-        do it from source, with the usual steps (note that the
-        <option>localstatedir</option> options must be set to
-        <filename class="directory">/var</filename>):
+        It's now time to install the Ganeti software itself.  Download
+        the source from <ulink
+        url="http://code.google.com/p/ganeti/"></ulink>.
       </para>
 
         <screen>
+tar xvzf ganeti-1.2b1.tar.gz
+cd ganeti-1.2b1
 ./configure --localstatedir=/var
 make
 make install
@@ -376,9 +418,10 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
         </screen>
 
       <para>
-        You also need to copy from the source archive the file
-        <filename>docs/examples/ganeti.initd</filename> to
-        <filename>/etc/init.d/ganeti</filename> and register it into
+        You also need to copy the file
+        <filename>docs/examples/ganeti.initd</filename>
+        from the source archive to
+        <filename>/etc/init.d/ganeti</filename> and register it with
         your distribution's startup scripts, for example in Debian:
       </para>
       <screen>update-rc.d ganeti defaults 20 80</screen>
@@ -391,16 +434,22 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
       <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
 
       <para>
-        Another important component for Ganeti are the OS support
-        packages, which let different operating systems be used as
-        instances. You can grab a simple package that allows
-        installing Debian Etch instances on the project web site
-        (after download, untar it and follow the instructions in the
-        <filename>README</filename> file).
+        To be able to install instances you need to have an Operating
+        System installation script. An example for Debian Etch is
+        provided on the project web site.  Download it from <ulink
+        url="http://code.google.com/p/ganeti/"></ulink> and follow the
+        instructions in the <filename>README</filename> file.  Here is
+        the installation procedure:
       </para>
 
+      <screen>
+cd /srv/ganeti/os
+tar xvf instance-debian-etch-0.1.tar
+mv instance-debian-etch-0.1 debian-etch
+      </screen>
+
       <para>
-        Alternatively, you can create your own OS definitions, see the
+        Alternatively, you can create your own OS definitions. See the
         manpage
         <citerefentry>
         <refentrytitle>ganeti-os-interface</refentrytitle>
@@ -418,8 +467,7 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
 
 
       <para>The last step is to initialize the cluster. After you've repeated
-        the above process or some semi-automatic form of it on all of your
-        nodes choose one as the master, and execute:
+        the above process on all of your nodes, choose one as the master, and execute:
       </para>
 
       <screen>
@@ -438,34 +486,33 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
       </para>
 
       <para>
-        If the node's network interface which will be used for access
-        from outside the cluster is not named
-        <hardware>xen-br0</hardware>, you need to use the
-        <option>--master-netdev=<replaceable>IFNAME</replaceable></option>
-        option, replacing <replaceable>IFNAME</replaceable> with the
-        correct one for your case (e.g. <hardware>xenbr0</hardware>,
-        <hardware>eth0</hardware>, etc.). Usually this will be the
-        same as the default bridge name (see next paragraph).
+        If the bridge name you are using is not
+        <literal>xen-br0</literal>, use the <option>-b
+        <replaceable>BRIDGENAME</replaceable></option> option to
+        specify the bridge name. In this case, you should also use the
+        <option>--master-netdev
+        <replaceable>BRIDGENAME</replaceable></option> option with the
+        same <replaceable>BRIDGENAME</replaceable> argument.
       </para>
 
       <para>
-        Other options you can pass to <command>gnt-cluster
-        init</command> include the default bridge name
-        (<option>-b</option>), the cluster-wide name for the volume
-        group (<option>-g</option>) and the secondary ip address for
-        the initial node should you wish to keep the data replication
-        network separate (see the administrator's manual for details
-        about this feature). Invoke it with <option>--help</option> to
-        see all the possibilities.
+        You can use a different name than <literal>xenvg</literal> for
+        the volume group (but note that the name must be identical on
+        all nodes). In this case you need to specify it by passing the
+        <option>-g <replaceable>VGNAME</replaceable></option> option
+        to <computeroutput>gnt-cluster init</computeroutput>.
       </para>
 
       <para>
-        It is required that the cluster name exists in DNS.
+        You can also invoke the command with the
+        <option>--help</option> option in order to see all the
+        possibilities.
       </para>
+
     </sect2>
 
     <sect2>
-      <title>Joining the nodes to the cluster.</title>
+      <title>Joining the nodes to the cluster</title>
 
       <para>
         <emphasis role="strong">Mandatory:</emphasis> for all the
@@ -476,27 +523,148 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
         After you have initialized your cluster you need to join the
         other nodes to it. You can do so by executing the following
         command on the master node:
+      </para>
         <screen>
 gnt-node add <replaceable>NODENAME</replaceable>
         </screen>
+    </sect2>
 
-        The only option is <option>-s</option>, which sets the node's
-        secondary ip address for replication purposes, if you are
-        using a separate replication network.
+    <sect2>
+      <title>Separate replication network</title>
+
+      <para><emphasis role="strong">Optional</emphasis></para>
+      <para>
+        Ganeti uses DRBD to mirror the disk of the virtual instances
+        between nodes. To use a dedicated network interface for this
+        (in order to improve performance or to enhance security) you
+        need to configure an additional interface for each node.  Use
+        the <option>-s</option> option with
+        <computeroutput>gnt-cluster init</computeroutput> and
+        <computeroutput>gnt-node add</computeroutput> to specify the
+        IP address of this secondary inteface to use for each
+        node. Note that if you specified this option at cluster setup
+        time, you must afterwards use it for every node add operation.
       </para>
     </sect2>
 
-  </sect1>
+    <sect2>
+      <title>Testing the setup</title>
+
+      <para>
+
+        Execute the <computeroutput>gnt-node list</computeroutput>
+        command to see all nodes in the cluster:
+      <screen>
+# gnt-node list
+Node              DTotal  DFree MTotal MNode MFree Pinst Sinst
+node1.example.com 197404 197404   2047  1896   125     0     0
+      </screen>
+    </para>
+  </sect2>
 
   <sect1>
-    <title>This is it!</title>
+    <title>Setting up and managing virtual instances</title>
+    <sect2>
+      <title>Setting up virtual instances</title>
+      <para>
+        This step shows how to setup a virtual instance with either
+        non-mirrored disks (<computeroutput>plain</computeroutput>) or
+        with network mirrored disks
+        (<computeroutput>remote_raid1</computeroutput>).  All commands
+        need to be executed on the Ganeti master node (the one on
+        which <computeroutput>gnt-cluster init</computeroutput> was
+        run).  Verify that the OS scripts are present on all cluster
+        nodes with <computeroutput>gnt-os list</computeroutput>.
+      </para>
+      <para>
+        To create a virtual instance, you need a hostname which is
+        resolvable (DNS or <filename>/etc/hosts</filename> on all
+        nodes). The following command will create a non-mirrored
+        instance for you:
+      </para>
+      <screen>
+gnt-instance add --node=node1 -o debian-etch -t plain inst1.example.com
+* creating instance disks...
+adding instance inst1.example.com to cluster config
+Waiting for instance inst1.example.com to sync disks.
+Instance inst1.example.com's disks are in sync.
+creating os for instance inst1.example.com on node node1.example.com
+* running the instance OS create scripts...
+      </screen>
 
-    <para>
-      Now you can follow the admin guide to use your new Ganeti
-      cluster.
-    </para>
+      <para>
+        The above instance will have no network interface enabled.
+        You can access it over the virtual console with
+        <computeroutput>gnt-instance console
+        <literal>inst1</literal></computeroutput>. There is no
+        password for root.  As this is a Debian instance, you can
+        modifiy the <filename>/etc/network/interfaces</filename> file
+        to setup the network interface (<literal>eth0</literal> is the
+        name of the interface provided to the instance).
+      </para>
+
+      <para>
+        To create a network mirrored instance, change the argument to
+        the <option>-t</option> option from <literal>plain</literal>
+        to <literal>remote_raid1</literal> and specify the node on
+        which the mirror should reside with the
+        <option>--secondary-node</option> option, like this:
+      </para>
+
+      <screen>
+# gnt-instance add -t remote_raid1 --secondary-node node1 \
+  -n node2 -o debian-etch instance2
+* creating instance disks...
+adding instance instance2 to cluster config
+Waiting for instance instance1 to sync disks.
+- device sdb:  3.50% done, 304 estimated seconds remaining
+- device sdb: 21.70% done, 270 estimated seconds remaining
+- device sdb: 39.80% done, 247 estimated seconds remaining
+- device sdb: 58.10% done, 121 estimated seconds remaining
+- device sdb: 76.30% done, 72 estimated seconds remaining
+- device sdb: 94.80% done, 18 estimated seconds remaining
+Instance instance2's disks are in sync.
+creating os for instance instance2 on node node2.example.com
+* running the instance OS create scripts...
+* starting instance...
+      </screen>
+
+    </sect2>
+
+    <sect2>
+      <title>Managing virtual instances</title>
+      <para>
+        All commands need to be executed on the Ganeti master node
+      </para>
+
+      <para>
+        To access the console of an instance, use
+        <computeroutput>gnt-instance console
+        <replaceable>INSTANCENAME</replaceable></computeroutput>.
+      </para>
+
+      <para>
+        To shutdown an instance, use <computeroutput>gnt-instance
+        shutdown
+        <replaceable>INSTANCENAME</replaceable></computeroutput>. To
+        startup an instance, use <computeroutput>gnt-instance startup
+        <replaceable>INSTANCENAME</replaceable></computeroutput>.
+      </para>
+
+      <para>
+        To failover an instance to its secondary node (only possible
+        in <literal>remote_raid1</literal> setup), use
+        <computeroutput>gnt-instance failover
+        <replaceable>INSTANCENAME</replaceable></computeroutput>.
+      </para>
+
+      <para>
+        For more instance and cluster administration details, see the
+        <emphasis>Ganeti administrator's guide</emphasis>.
+      </para>
+
+    </sect2>
 
   </sect1>
-
 
   </article>
