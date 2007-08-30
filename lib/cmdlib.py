@@ -2192,8 +2192,17 @@ class LUFailoverInstance(LogicalUnit):
       raise errors.OpPrereqError("Instance '%s' not known" %
                                  self.op.instance_name)
 
+    if instance.disk_template != constants.DT_REMOTE_RAID1:
+      raise errors.OpPrereqError("Instance's disk layout is not"
+                                 " remote_raid1.")
+
+    secondary_nodes = instance.secondary_nodes
+    if not secondary_nodes:
+      raise errors.ProgrammerError("no secondary node but using "
+                                   "DT_REMOTE_RAID1 template")
+
     # check memory requirements on the secondary node
-    target_node = instance.secondary_nodes[0]
+    target_node = secondary_nodes[0]
     nodeinfo = rpc.call_node_info([target_node], self.cfg.GetVGName())
     info = nodeinfo.get(target_node, None)
     if not info:
@@ -2404,7 +2413,7 @@ def _GenerateDiskTemplate(cfg, template_name,
                               size=swap_sz,
                               children = [sdb_dev_m1, sdb_dev_m2])
     disks = [md_sda_dev, md_sdb_dev]
-  elif template_name == "remote_raid1":
+  elif template_name == constants.DT_REMOTE_RAID1:
     if len(secondary_nodes) != 1:
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node = secondary_nodes[0]
@@ -2728,7 +2737,7 @@ class LUCreateInstance(LogicalUnit):
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self.cfg, iobj)
-    elif iobj.disk_template == "remote_raid1":
+    elif iobj.disk_template == constants.DT_REMOTE_RAID1:
       # make sure the disks are not degraded (still sync-ing is ok)
       time.sleep(15)
       feedback_fn("* checking mirrors status")
