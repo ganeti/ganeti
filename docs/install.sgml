@@ -88,8 +88,10 @@
         It is advised to start with a clean, minimal install of the
         operating system. The only requirement you need to be aware of
         at this stage is to partition leaving enough space for a big
-        LVM volume group which will then host your instance
-        filesystems. The volume group name Ganeti 1.2 uses is
+        (<emphasis role="strong">minimum
+        <constant>20GiB</constant></emphasis>) LVM volume group which
+        will then host your instance filesystems. The volume group
+        name Ganeti 1.2 uses (by default) is
         <emphasis>xenvg</emphasis>.
       </para>
 
@@ -101,7 +103,7 @@
       </note>
 
       <para>
-        While you can use an exiting system, please note that the
+        While you can use an existing system, please note that the
         Ganeti installation is intrusive in terms of changes to the
         system configuration, and it's best to use a newly-installed
         system without important data on it.
@@ -149,10 +151,41 @@
       <formalpara><title>Debian</title>
       <para>
         Under Debian Etch or Sarge+backports you can install the
-        relevant xen-linux-system package, which will pull in both the
-        hypervisor and the relevant kernel.
+        relevant <literal>xen-linux-system</literal> package, which
+        will pull in both the hypervisor and the relevant kernel.
       </para>
       </formalpara>
+
+      <sect3>
+        <title>Selecting the instance kernel</title>
+
+        <para>
+          After you have installed xen, you need to tell Ganeti
+          exactly what kernel to use for the instances it will
+          create. This is done by creating a
+          <emphasis>symlink</emphasis> from your actual kernel to
+          <filename>/boot/vmlinuz-2.6-xenU</filename>, and one from
+          your initrd to
+          <filename>/boot/initrd-2.6-xenU</filename>. Note that if you
+          don't use an initrd for the <literal>domU</literal> kernel,
+          you don't need to create the initrd symlink.
+        </para>
+
+        <formalpara>
+          <title>Debian</title>
+          <para>
+            After installation of the
+            <literal>xen-linux-system</literal> package, you need to
+            run (replace the exact version number with the one you
+            have):
+            <screen>
+cd /boot
+ln -s vmlinuz-2.6.18-5-xen-686 vmlinuz-2.6-xenU
+ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
+            </screen>
+          </para>
+        </formalpara>
+      </sect3>
 
     </sect2>
 
@@ -366,6 +399,10 @@ xen-br0         8000.0020fc1ed55d       no              eth0
 
       <para><emphasis role="strong">Mandatory</emphasis> on all nodes.</para>
 
+      <note>
+        <simpara>The volume group is required to be at least
+        <constant>20GiB</constant>.</simpara>
+      </note>
       <para>
         If you haven't configured your LVM volume group at install
         time you need to do it before trying to initialize the Ganeti
@@ -447,6 +484,23 @@ cd /srv/ganeti/os
 tar xvf instance-debian-etch-0.1.tar
 mv instance-debian-etch-0.1 debian-etch
       </screen>
+
+      <para>
+        In order to use this OS definition, you need to have internet
+        access from your nodes and have <citerefentry>
+        <refentrytitle>debootstrap</refentrytitle>
+        <manvolnum>8</manvolnum> </citerefentry> installed on all the
+        nodes.
+      </para>
+      <formalpara>
+        <title>Debian</title>
+        <para>
+          Use this command on all nodes to install
+          <computeroutput>debootstrap</computeroutput>:
+
+          <screen>apt-get install debootstrap</screen>
+        </para>
+      </formalpara>
 
       <para>
         Alternatively, you can create your own OS definitions. See the
