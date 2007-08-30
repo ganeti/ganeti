@@ -215,7 +215,7 @@
         <formalpara>
           <title>Debian</title>
           <para>
-            Besides the balloning change which you need to set in
+            Besides the ballooning change which you need to set in
             <filename>/etc/xen/xend-config.sxp</filename>, you need to
             set the memory and nosmp parameters in the file
             <filename>/boot/grub/menu.lst</filename>. You need to
@@ -715,7 +715,7 @@ gnt-node add <replaceable>NODENAME</replaceable>
         the <option>-s</option> option with
         <computeroutput>gnt-cluster init</computeroutput> and
         <computeroutput>gnt-node add</computeroutput> to specify the
-        IP address of this secondary inteface to use for each
+        IP address of this secondary interface to use for each
         node. Note that if you specified this option at cluster setup
         time, you must afterwards use it for every node add operation.
       </para>
@@ -772,7 +772,7 @@ creating os for instance inst1.example.com on node node1.example.com
         <computeroutput>gnt-instance console
         <literal>inst1</literal></computeroutput>. There is no
         password for root.  As this is a Debian instance, you can
-        modifiy the <filename>/etc/network/interfaces</filename> file
+        modify the <filename>/etc/network/interfaces</filename> file
         to setup the network interface (<literal>eth0</literal> is the
         name of the interface provided to the instance).
       </para>
