@@ -193,6 +193,58 @@
       </formalpara>
 
       <sect3>
+        <title>Xen settings</title>
+
+        <para>
+          It's recommended that dom0 is restricted to a low amount of
+          memory (<constant>512MiB</constant> is reasonable) and that
+          memory ballooning is disabled in the file
+          <filename>/etc/xen/xend-config.sxp</filename> by setting the
+          value <literal>dom0-min-mem</literal> to
+          <constant>0</constant>, like this:
+          <computeroutput>(dom0-min-mem 0)</computeroutput>
+        </para>
+
+        <para>
+          For optimum performance when running both CPU and I/O
+          intensive instances, it's also recommended that the dom0 is
+          restricted to one CPU only, for example by booting with the
+          kernel parameter <literal>nosmp</literal>.
+        </para>
+
+        <formalpara>
+          <title>Debian</title>
+          <para>
+            Besides the balloning change which you need to set in
+            <filename>/etc/xen/xend-config.sxp</filename>, you need to
+            set the memory and nosmp parameters in the file
+            <filename>/boot/grub/menu.lst</filename>. You need to
+            modify the variable <literal>xenhopt</literal> to add
+            <userinput>dom0_mem=512M</userinput> like this:
+<screen>
+## Xen hypervisor options to use with the default Xen boot option
+# xenhopt=dom0_mem=512M
+</screen>
+            and the <literal>xenkopt</literal> needs to include the
+            <userinput>nosmp</userinput> option like this:
+<screen>
+## Xen Linux kernel options to use with the default Xen boot option
+# xenkopt=nosmp
+</screen>
+
+          Any existing parameters can be left in place: it's ok to
+          have <computeroutput>xenkopt=console=tty0
+          nosmp</computeroutput>, for example. After modifying the
+          files, you need to run:
+<screen>
+/sbin/update-grub
+</screen>
+          </para>
+        </formalpara>
+
+      </sect3>
+
+      <sect3>
         <title>Selecting the instance kernel</title>
 
         <para>
