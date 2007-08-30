@@ -174,7 +174,7 @@
       </para>
 
       <para>
-        After installing Xen you need to reboot into your xenified
+        After installing Xen you need to reboot into your Xen-ified
         dom0 system. On some distributions this might involve
         configuring GRUB appropriately, whereas others will configure
         it automatically when you install Xen from a package.
@@ -248,7 +248,7 @@
         <title>Selecting the instance kernel</title>
 
         <para>
-          After you have installed xen, you need to tell Ganeti
+          After you have installed Xen, you need to tell Ganeti
           exactly what kernel to use for the instances it will
           create. This is done by creating a
           <emphasis>symlink</emphasis> from your actual kernel to
@@ -301,7 +301,7 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
       <para>
         Now the bad news: unless your distribution already provides it
         installing DRBD might involve recompiling your kernel or
-        anyway fiddling with it. Hopefully at least the xenified
+        anyway fiddling with it. Hopefully at least the Xen-ified
         kernel source to start from will be provided.
       </para>
 
@@ -439,7 +439,7 @@ modprobe drbd minor_count=64
 
       <formalpara><title>Debian</title>
         <para>
-          The recommended Debian way to configure the xen bridge is to
+          The recommended Debian way to configure the Xen bridge is to
           edit your <filename>/etc/network/interfaces</filename> file
           and substitute your normal Ethernet stanza with the
           following snippet:
