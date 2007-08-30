@@ -527,6 +527,21 @@ vgcreate xenvg /dev/sdb1 /dev/sdc1
 pvcreate /dev/sdd1
 vgextend xenvg /dev/sdd1
       </screen>
+
+      <formalpara>
+        <title>Optional</title>
+        <para>
+          It is recommended to configure LVM not to scan the DRBD
+          devices for physical volumes. This can be accomplished by
+          editing <filename>/etc/lvm/lvm.conf</filename> and adding
+          the <literal>/dev/drbd[0-9]+</literal> regular expression to
+          the <literal>filter</literal> variable, like this:
+<screen>
+    filter = [ "r|/dev/cdrom|", "r|/dev/drbd[0-9]+|" ]
+</screen>
+        </para>
+      </formalpara>
+
     </sect2>
 
     <sect2>
