@@ -269,6 +269,7 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
 apt-get install drbd0.7-module-source drbd0.7-utils
 m-a update
 m-a a-i drbd0.7
+modprobe drbd
       </screen>
 
     </sect2>
