@@ -1,0 +1,2 @@
+# restart failed instances
+*/5 * * * * root /usr/local/sbin/ganeti-watcher

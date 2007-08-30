@@ -1,7 +1,7 @@
 # standard automake rules
 
 SUBDIRS = man lib scripts daemons docs testing tools
-EXTRA_DIST = docs/examples/ganeti.initd
+EXTRA_DIST = docs/examples/ganeti.initd docs/examples/ganeti.cron
 
 # custom rules
 depgraph: depgraph.png

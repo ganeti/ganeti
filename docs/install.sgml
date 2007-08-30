@@ -184,7 +184,11 @@
       <para>
         Under Debian Etch or Sarge+backports you can install the
         relevant <literal>xen-linux-system</literal> package, which
-        will pull in both the hypervisor and the relevant kernel.
+        will pull in both the hypervisor and the relevant
+        kernel. Also, if you are installing a 32-bit Etch, you should
+        install the <computeroutput>lib6-xen</computeroutput> package
+        (run <computeroutput>apt-get install
+        libc6-xen</computeroutput>).
       </para>
       </formalpara>
 
@@ -254,7 +258,10 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
         Ganeti will do it for you for every instance you set up.  If
         you have the DRBD utils installed and the module in your
         kernel you're fine. Please check that your system is
-        configured to load the module at every boot.
+        configured to load the module at every boot, and that it
+        passes the following option to the module:
+        <computeroutput>minor_count=64</computeroutput> (this will
+        allow you to use up to 32 instances per node).
       </para>
 
       <formalpara><title>Debian</title>
@@ -269,7 +276,8 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
 apt-get install drbd0.7-module-source drbd0.7-utils
 m-a update
 m-a a-i drbd0.7
-modprobe drbd
+echo drbd minor_count=64 >> /etc/modules
+modprobe drbd minor_count=64
       </screen>
 
     </sect2>
@@ -497,6 +505,16 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
         your distribution's startup scripts, for example in Debian:
       </para>
       <screen>update-rc.d ganeti defaults 20 80</screen>
+
+      <para>
+        In order to automatically restart failed instances, you need
+        to setup a cron job run the
+        <computeroutput>ganeti-watcher</computeroutput> program. A
+        sample cron file is provided in the source at
+        <filename>docs/examples/ganeti.cron</filename> and you can
+        copy that (eventually altering the path) to
+        <filename>/etc/cron.d/ganeti</filename>
+      </para>
 
     </sect2>
 
