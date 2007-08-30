@@ -333,7 +333,10 @@ def TestClusterBurnin():
   try:
     script = UploadFile(master['primary'], '../tools/burnin')
     try:
-      cmd = [script, '--os=%s' % cfg['os']]
+      cmd = [script,
+             '--os=%s' % cfg['os'],
+             '--os-size=%s' % cfg['os-size'],
+             '--swap-size=%s' % cfg['swap-size']]
       cmd += [inst['name'] for inst in instances]
       AssertEqual(StartSSH(master['primary'],
                            utils.ShellQuoteArgs(cmd)).wait(), 0)
