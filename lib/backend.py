@@ -400,7 +400,7 @@ def AddOSToInstance(instance, os_disk, swap_disk):
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  command = utils.BuildShellCmd("cd %s; %s -i %s -b %s -s %s &>%s",
+  command = utils.BuildShellCmd("cd %s && %s -i %s -b %s -s %s &>%s",
                                 inst_os.path, create_script, instance.name,
                                 real_os_dev.dev_path, real_swap_dev.dev_path,
                                 logfile)
