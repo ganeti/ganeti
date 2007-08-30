@@ -573,7 +573,7 @@ class MDRaid1(BlockDev):
       kv = line.split(" : ", 1)
       if kv:
         if kv[0] == "UUID":
-          retval["uuid"] = kv[1]
+          retval["uuid"] = kv[1].split()[0]
         elif kv[0] == "State":
           retval["state"] = kv[1].split(", ")
     return retval
@@ -799,7 +799,8 @@ class MDRaid1(BlockDev):
                            self.unique_id, "/dev/md%d" % free_minor] +
                           [bdev.dev_path for bdev in self._children])
     if result.failed:
-      logger.Error("Can't assemble MD array: %s" % result.fail_reason)
+      logger.Error("Can't assemble MD array: %s: %s" %
+                   (result.fail_reason, result.output))
       self.minor = None
     else:
       self.minor = free_minor
