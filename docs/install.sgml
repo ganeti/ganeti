@@ -186,7 +186,7 @@
         relevant <literal>xen-linux-system</literal> package, which
         will pull in both the hypervisor and the relevant
         kernel. Also, if you are installing a 32-bit Etch, you should
-        install the <computeroutput>lib6-xen</computeroutput> package
+        install the <computeroutput>libc6-xen</computeroutput> package
         (run <computeroutput>apt-get install
         libc6-xen</computeroutput>).
       </para>
