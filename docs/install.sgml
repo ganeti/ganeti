@@ -260,7 +260,8 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
       <formalpara><title>Debian</title>
         <para>
          You can just install (build) the DRBD 0.7 module with the
-         following command:
+         following commands (make sure you are running the Xen
+         kernel):
         </para>
       </formalpara>
 
