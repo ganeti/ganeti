@@ -95,13 +95,6 @@
         <emphasis>xenvg</emphasis>.
       </para>
 
-      <note>
-        <simpara>
-          You need to use a fully-qualified name for the hostname of
-          the nodes.
-        </simpara>
-      </note>
-
       <para>
         While you can use an existing system, please note that the
         Ganeti installation is intrusive in terms of changes to the
@@ -114,6 +107,45 @@
         much as possible the same hardware and software
         configuration. This will make administration much easier.
       </para>
+
+      <sect3>
+        <title>Hostname issues</title>
+        <para>
+          Note that Ganeti requires the hostnames of the systems
+          (i.e. what the <computeroutput>hostname</computeroutput>
+          command outputs to be a fully-qualified name, not a short
+          name. In other words, you should use
+          <literal>node1.example.com</literal> as a hostname and not
+          just <literal>node1</literal>.
+        </para>
+
+        <formalpara>
+          <title>Debian</title>
+          <para>
+            Note that Debian Etch configures the hostname differently
+            than you need it for Ganeti. For example, this is what
+            Etch puts in <filename>/etc/hosts</filename> in certain
+            situations:
+<screen>
+127.0.0.1       localhost
+127.0.1.1       node1.example.com node1
+</screen>
+
+          but for Ganeti you need to have:
+<screen>
+127.0.0.1       localhost
+192.168.1.1     node1.example.com node1
+</screen>
+            replacing <literal>192.168.1.1</literal> with your node's
+            address. Also, the file <filename>/etc/hostname</filename>
+            which configures the hostname of the system should contain
+            <literal>node1.example.com</literal> and not just
+            <literal>node1</literal> (you need to run the command
+            <computeroutput>/etc/init.d/hostname.sh
+            start</computeroutput> after changing the file).
+          </para>
+        </formalpara>
+      </sect3>
 
     </sect2>
 
