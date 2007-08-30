@@ -343,7 +343,8 @@ m-a a-i drbd0.7
       </formalpara>
       <screen>
 # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-  fping python2.4 python-twisted-core python-pyopenssl openssl
+  fping python2.4 python-twisted-core python-pyopenssl openssl \
+  mdadm
       </screen>
 
     </sect2>
