@@ -546,6 +546,11 @@ class LUInitCluster(LogicalUnit):
                                  " for hostname." %
                                  (hostname_local, hostname["hostname_full"]))
 
+    if hostname["ip"].startswith("127."):
+      raise errors.OpPrereqError("This host's IP resolves to the private"
+                                 " range (%s). Please fix DNS or /etc/hosts." %
+                                 (hostname["ip"],))
+
     self.clustername = clustername = utils.LookupHostname(self.op.cluster_name)
     if not clustername:
       raise errors.OpPrereqError("Cannot resolve given cluster name ('%s')"
@@ -3085,7 +3090,6 @@ class LUReplaceDisks(LogicalUnit):
     # start of work
     remote_node = self.op.remote_node
     cfg = self.cfg
-    vgname = cfg.GetVGName()
     for dev in instance.disks:
       size = dev.size
       lv_names = [".%s_%s" % (dev.iv_name, suf) for suf in ["data", "meta"]]
