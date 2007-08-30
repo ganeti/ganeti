@@ -62,10 +62,11 @@
         <title>ADD</title>
         <cmdsynopsis>
           <command>add</command>
-          <arg choice="req">-n <replaceable>node</replaceable></arg>
           <arg>-s <replaceable>disksize</replaceable></arg>
-          <arg>-o <replaceable>os-type</replaceable></arg>
+          <arg>--swap-size <replaceable>disksize</replaceable></arg>
           <arg>-m <replaceable>memsize</replaceable></arg>
+          <sbr>
+          <arg>-o <replaceable>os-type</replaceable></arg>
           <arg>-b <replaceable>bridge</replaceable></arg>
           <sbr>
           <arg choice="req">-t<group>
@@ -75,6 +76,8 @@
               <arg>remote_raid1</arg>
             </group>
           </arg>
+          <sbr>
+          <arg choice="req">-n <replaceable>node</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
         <para>
@@ -86,18 +89,32 @@
 
         <para>
           The <option>-s</option> option specifies the disk size for
-          the instance, in gigibytes (defaults to 20 GiB).
+          the instance, in mebibytes (defaults to
+          <constant>20480MiB</constant> =
+          <constant>20GiB</constant>). You can also use one of the
+          suffixes <literal>m</literal>, <literal>g</literal> or
+          <literal>t</literal> to specificy the exact the units used;
+          these suffixes map to mebibytes, gibibytes and tebibytes.
+        </para>
+
+        <para>
+          The <option>--swap-size</option> option specifies the swap
+          disk size (in mebibytes) for the instance (the one presented
+          as <filename class="devicefile">/dev/sdb</filename>). The
+          default is <constant>4096MiB</constant>. As for the disk
+          size, you can specify other suffixes.
+        </para>
+
+        <para>
+          The <option>-m</option> option specifies the memory size for
+          the instance, in mebibytes (defaults to 128 MiB). Again, you
+          can use other suffixes (e.g. <userinput>2g</userinput>).
         </para>
 
         <para>
           The <option>-o</option> options specifies the operating
           system to be installed. The available operating systems can
           be listed with <command>gnt-os list</command>.
-        </para>
-
-        <para>
-          The <option>-m</option> option specifies the memory size for
-          the instance, in megibytes (defaults to 128 MiB).
         </para>
 
         <para>
@@ -164,10 +181,11 @@
         <para>
           Example:
           <screen>
-# gnt-instance add -t plain -s 30 -m 512 -n node1.example.com \
-> instance1.example.com
+# gnt-instance add -t plain -s 30g -m 512 -o debian-etch \
+  -n node1.example.com instance1.example.com
 # gnt-instance add -t remote_raid1 --secondary-node node3.example.com \
-> -s 30 -m 512 -n node1.example.com instance2.example.com
+  -s 30g -m 512 -o debian-etch \
+  -n node1.example.com instance2.example.com
           </screen>
         </para>
 

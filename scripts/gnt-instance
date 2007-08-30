@@ -433,12 +433,14 @@ os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
 add_opts = [
   DEBUG_OPT,
   node_opt,
-  cli_option("-s", "--os-size", dest="size", help="Disk size",
+  cli_option("-s", "--os-size", dest="size", help="Disk size, in MiB unless"
+             " a suffix is used",
              default=20 * 1024, type="unit", metavar="<size>"),
-  cli_option("--swap-size", dest="swap", help="Swap size",
+  cli_option("--swap-size", dest="swap", help="Swap size, in MiB unless a"
+             " suffix is used",
              default=4 * 1024, type="unit", metavar="<size>"),
   os_opt,
-  cli_option("-m", "--memory", dest="mem", help="Memory size",
+  cli_option("-m", "--memory", dest="mem", help="Memory size (in MiB)",
               default=128, type="unit", metavar="<mem>"),
   make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
               default=1, type="int", metavar="<PROC>"),
