@@ -1,2 +1,3 @@
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 # restart failed instances
 */5 * * * * root /usr/local/sbin/ganeti-watcher
