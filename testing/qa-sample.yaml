@@ -34,6 +34,7 @@ tests:
   cluster-destroy: True
 
   node-info: True
+  node-volumes: True
 
   instance-add-plain-disk: True
   instance-add-local-mirror-disk: True

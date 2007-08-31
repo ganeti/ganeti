@@ -441,6 +441,13 @@ def TestNodeInfo():
   cmd = ['gnt-node', 'info']
   AssertEqual(StartSSH(GetMasterNode()['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestNodeVolumes():
+  """gnt-node volumes"""
+  cmd = ['gnt-node', 'volumes']
+  AssertEqual(StartSSH(GetMasterNode()['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
 # }}}
 
 # {{{ Instance tests
@@ -651,7 +658,6 @@ def TestUploadKnownHostsFile(localpath):
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
     raise
-
 # }}}
 
 # {{{ Main program
@@ -732,6 +738,9 @@ if __name__ == '__main__':
       if TestEnabled('instance-consecutive-failures'):
         RunTest(TestInstanceConsecutiveFailures, node, instance)
 
+      if TestEnabled('node-volumes'):
+        RunTest(TestNodeVolumes)
+
       RunTest(TestInstanceRemove, instance)
       del instance
 
@@ -742,6 +751,9 @@ if __name__ == '__main__':
 
       if TestEnabled('instance-info'):
         RunTest(TestInstanceInfo, instance)
+
+      if TestEnabled('node-volumes'):
+        RunTest(TestNodeVolumes)
 
       RunTest(TestInstanceRemove, instance)
       del instance
@@ -758,6 +770,9 @@ if __name__ == '__main__':
 
         if TestEnabled('instance-failover'):
           RunTest(TestInstanceFailover, instance)
+
+        if TestEnabled('node-volumes'):
+          RunTest(TestNodeVolumes)
 
         RunTest(TestInstanceRemove, instance)
         del instance
