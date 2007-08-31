@@ -332,6 +332,25 @@ echo drbd minor_count=64 >> /etc/modules
 modprobe drbd minor_count=64
       </screen>
 
+      <para>
+        It is also recommended that you comment out the default
+        resources in the <filename>/etc/dbrd.conf</filename> file, so
+        that the init script doesn't try to configure any drbd
+        devices. You can do this by prefixing all
+        <literal>resource</literal> lines in the file with the keyword
+        <literal>skip</literal>, like this:
+      </para>
+
+      <screen>
+skip resource r0 {
+...
+}
+
+skip resource "r1" {
+...
+}
+      </screen>
+
     </sect2>
 
     <sect2>
