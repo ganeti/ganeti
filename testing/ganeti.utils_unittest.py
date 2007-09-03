@@ -136,6 +136,19 @@ class TestRunCmd(unittest.TestCase):
     result = RunCmd("/bin/sh -c 'kill -15 $$'")
     self.assertEqual(result.signal, 15)
 
+  def testListRun(self):
+    """Test list runs"""
+    result = RunCmd(["true"])
+    self.assertEqual(result.signal, None)
+    self.assertEqual(result.exit_code, 0)
+    result = RunCmd(["/bin/sh", "-c", "exit 1"])
+    self.assertEqual(result.signal, None)
+    self.assertEqual(result.exit_code, 1)
+    result = RunCmd(["echo", "-n", self.magic])
+    self.assertEqual(result.signal, None)
+    self.assertEqual(result.exit_code, 0)
+    self.assertEqual(result.stdout, self.magic)
+
 
 class TestRemoveFile(unittest.TestCase):
   """Test case for the RemoveFile function"""
