@@ -21,10 +21,12 @@
 
 """Module holding different constants."""
 
+from ganeti import version
+
 # various versions
 CONFIG_VERSION = 3
 PROTOCOL_VERSION = 2
-RELEASE_VERSION = "1.2a1"
+RELEASE_VERSION = version.RELEASE_VERSION
 OS_API_VERSION = 4
 EXPORT_VERSION = 0
 
