@@ -27,7 +27,7 @@ import sys
 import os
 import sha
 import time
-import popen2
+import subprocess
 import re
 import socket
 import tempfile
@@ -204,26 +204,28 @@ def RunCmd(cmd):
   """
   if isinstance(cmd, list):
     cmd = [str(val) for val in cmd]
-  child = popen2.Popen3(cmd, capturestderr=True)
+    strcmd = " ".join(cmd)
+    shell = False
+  else:
+    strcmd = cmd
+    shell = True
+  child = subprocess.Popen(cmd, shell=shell,
+                           stderr=subprocess.PIPE,
+                           stdout=subprocess.PIPE,
+                           stdin=subprocess.PIPE,
+                           close_fds=True)
 
-  child.tochild.close()
-  out = child.fromchild.read()
-  err = child.childerr.read()
+  child.stdin.close()
+  out = child.stdout.read()
+  err = child.stderr.read()
 
   status = child.wait()
-  if os.WIFSIGNALED(status):
-    signal = os.WTERMSIG(status)
-  else:
+  if status >= 0:
+    exitcode = status
     signal = None
-  if os.WIFEXITED(status):
-    exitcode = os.WEXITSTATUS(status)
   else:
     exitcode = None
-
-  if isinstance(cmd, list):
-    strcmd = " ".join(cmd)
-  else:
-    strcmd = str(cmd)
+    signal = -status
 
   return RunResult(exitcode, signal, out, err, strcmd)
 
