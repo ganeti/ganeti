@@ -1,6 +1,8 @@
 docdir = $(datadir)/doc/$(PACKAGE)
 
-dist_doc_DATA = hooks.html hooks.pdf install.html install.pdf admin.html admin.pdf
+SUBDIRS = examples
+dist_doc_DATA = hooks.html hooks.pdf install.html install.pdf admin.html \
+  admin.pdf
 EXTRA_DIST = hooks.sgml install.sgml admin.sgml
 
 %.html: %.sgml

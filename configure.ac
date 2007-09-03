@@ -19,8 +19,9 @@ then
   AC_MSG_WARN([docbook2man not found.])
 fi
 
-AC_CONFIG_FILES([Makefile man/Makefile docs/Makefile 
+AC_CONFIG_FILES([Makefile man/Makefile doc/Makefile
   testing/Makefile tools/Makefile
-  lib/Makefile scripts/Makefile daemons/Makefile])
+  lib/Makefile scripts/Makefile daemons/Makefile
+  doc/examples/Makefile])
 
 AC_OUTPUT
