@@ -577,7 +577,7 @@ vgextend xenvg /dev/sdd1
         <screen>
 tar xvzf ganeti-1.2b1.tar.gz
 cd ganeti-1.2b1
-./configure --localstatedir=/var
+./configure --localstatedir=/var --sysconfdir=/etc
 make
 make install
 mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
@@ -585,7 +585,7 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
 
       <para>
         You also need to copy the file
-        <filename>docs/examples/ganeti.initd</filename>
+        <filename>doc/examples/ganeti.initd</filename>
         from the source archive to
         <filename>/etc/init.d/ganeti</filename> and register it with
         your distribution's startup scripts, for example in Debian:
@@ -597,7 +597,7 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
         to setup a cron job run the
         <computeroutput>ganeti-watcher</computeroutput> program. A
         sample cron file is provided in the source at
-        <filename>docs/examples/ganeti.cron</filename> and you can
+        <filename>doc/examples/ganeti.cron</filename> and you can
         copy that (eventually altering the path) to
         <filename>/etc/cron.d/ganeti</filename>
       </para>

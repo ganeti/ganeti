@@ -45,7 +45,8 @@ For building from source, you also need tar, gzip or bzip2 and make.
 Installation of the software
 ============================
 
-To install, simply do ``./configure --localstatedir=/var && make && make install``
+To install, simply do ``./configure --localstatedir=/var --sysconfdir=/etc && \
+make && make install``
 
 This will install the software under /usr/local. You then need to copy
 ganeti.init to /etc/init.d/ganeti and integrate it into your boot sequence
