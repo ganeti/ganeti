@@ -19,11 +19,16 @@ then
   AC_MSG_WARN([docbook2man not found.])
 fi
 
-AC_SUBST(PACKAGE_VERSION)
-
-AC_CONFIG_FILES([Makefile man/Makefile doc/Makefile
-  testing/Makefile tools/Makefile
-  lib/Makefile scripts/Makefile daemons/Makefile
-  doc/examples/Makefile lib/version.py])
+AC_CONFIG_FILES([
+  Makefile
+  daemons/Makefile
+  doc/Makefile
+  doc/examples/Makefile
+  lib/Makefile
+  man/Makefile
+  scripts/Makefile
+  testing/Makefile
+  tools/Makefile
+])
 
 AC_OUTPUT

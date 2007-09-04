@@ -21,30 +21,30 @@
 
 """Module holding different constants."""
 
-from ganeti import version
+from ganeti import _autoconf
 
 # various versions
 CONFIG_VERSION = 3
 PROTOCOL_VERSION = 2
-RELEASE_VERSION = version.RELEASE_VERSION
+RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_VERSION = 4
 EXPORT_VERSION = 0
 
 
 # file paths
-DATA_DIR = "/var/lib/ganeti"
+DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 WATCHER_STATEFILE = DATA_DIR + "/restart_state"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 
-NODE_INITD_SCRIPT = "/etc/init.d/ganeti"
+NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 DEFAULT_NODED_PORT = 1811
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
 MASTER_SCRIPT = "ganeti-master"
 
-LOG_DIR = "/var/log/ganeti"
+LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti"
 LOG_OS_DIR = LOG_DIR + "/os"
 LOG_NODESERVER = LOG_DIR + "/node-daemon.log"
 
@@ -54,7 +54,7 @@ EXPORT_DIR = "/srv/ganeti/export"
 EXPORT_CONF_FILE = "config.ini"
 
 # hooks-related constants
-HOOKS_BASE_DIR = "/etc/ganeti/hooks"
+HOOKS_BASE_DIR = _autoconf.SYSCONFDIR + "/ganeti/hooks"
 HOOKS_PHASE_PRE = "pre"
 HOOKS_PHASE_POST = "post"
 HOOKS_VERSION = 1
