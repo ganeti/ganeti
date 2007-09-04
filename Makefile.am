@@ -16,4 +16,5 @@ depgraph.dot: ganeti/*.py
 	  --reports y --int-import-graph $@ --persistent n ganeti >/dev/null
 
 install-exec-local:
-	@mkdir_p@ ${localstatedir}/lib/ganeti ${localstatedir}/log/ganeti
+	@mkdir_p@ "$(DESTDIR)${localstatedir}/lib/ganeti" \
+	  "$(DESTDIR)${localstatedir}/log/ganeti"
