@@ -1,20 +1,23 @@
-#! /bin/sh
+#!/bin/sh
 # ganeti node daemon starter script
 # based on skeleton from Debian GNU/Linux
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
-NODED=/usr/local/sbin/ganeti-noded
-MASTER=/usr/local/sbin/ganeti-master
-NAME=ganeti-noded
-SCRIPTNAME=/etc/init.d/ganeti
 DESC="Ganeti cluster"
+NAME=ganeti-noded
+NODED=@PREFIX@/sbin/ganeti-noded
+MASTER=@PREFIX@/sbin/ganeti-master
+SCRIPTNAME=@SYSCONFDIR@/init.d/ganeti
 
 test -f $NODED || exit 0
 
 . /lib/lsb/init-functions
 
 check_config() {
-    for fname in /var/lib/ganeti/ssconf_node_pass /var/lib/ganeti/server.pem; do
+    for fname in \
+        "@LOCALSTATEDIR@/lib/ganeti/ssconf_node_pass" \
+        "@LOCALSTATEDIR@/lib/ganeti/server.pem"
+    do
         if ! [ -f "$fname" ]; then
             log_end_msg 0
             log_warning_msg "Config $fname not there, will not run."
