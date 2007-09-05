@@ -32,7 +32,7 @@ import ganeti
 from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
-     ShellQuote, ShellQuoteArgs
+     ShellQuote, ShellQuoteArgs, _ParseIpOutput
 from ganeti.errors import LockError, UnitParseError
 
 class TestIsProcessAlive(unittest.TestCase):
@@ -422,6 +422,32 @@ class TestShellQuoting(unittest.TestCase):
     self.assertEqual(ShellQuoteArgs(['a', 'b', 'c']), "a b c")
     self.assertEqual(ShellQuoteArgs(['a', 'b"', 'c']), "a 'b\"' c")
     self.assertEqual(ShellQuoteArgs(['a', 'b\'', 'c']), "a 'b'\\\''' c")
+
+
+class TestIpAdressList(unittest.TestCase):
+  """Test case for local IP addresses"""
+
+  def _test(self, output, required):
+    ips = _ParseIpOutput(output)
+
+    # Sort the output, so our check below works in all cases
+    ips.sort()
+    required.sort()
+
+    self.assertEqual(required, ips)
+
+  def testSingleIpAddress(self):
+    output = \
+      ("3: lo    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo\n"
+       "5: eth0    inet 10.0.0.1/24 brd 172.30.15.127 scope global eth0\n")
+    self._test(output, ['127.0.0.1', '10.0.0.1'])
+
+  def testMultipleIpAddresses(self):
+    output = \
+      ("3: lo    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo\n"
+       "5: eth0    inet 10.0.0.1/24 brd 172.30.15.127 scope global eth0\n"
+       "5: eth0    inet 1.2.3.4/8 brd 1.255.255.255 scope global eth0:test\n")
+    self._test(output, ['127.0.0.1', '10.0.0.1', '1.2.3.4'])
 
 
 if __name__ == '__main__':

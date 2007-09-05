@@ -749,3 +749,38 @@ def ShellQuoteArgs(args):
 
   """
   return ' '.join([ShellQuote(i) for i in args])
+
+
+def _ParseIpOutput(output):
+  """Parsing code for GetLocalIPAddresses().
+
+  This function is split out, so we can unit test it.
+
+  """
+  re_ip = re.compile('^(\d+\.\d+\.\d+\.\d+)(?:/\d+)$')
+
+  ips = []
+  for line in output.splitlines(False):
+    fields = line.split()
+    if len(line) < 4:
+      continue
+    m = re_ip.match(fields[3])
+    if m:
+      ips.append(m.group(1))
+
+  return ips
+
+
+def GetLocalIPAddresses():
+  """Gets a list of all local IP addresses.
+
+  Should this break one day, a small Python module written in C could
+  use the API call getifaddrs().
+
+  """
+  result = RunCmd(["ip", "-family", "inet", "-oneline", "addr", "show"])
+  if result.failed:
+    raise errors.OpExecError("Command '%s' failed, error: %s,"
+      " output: %s" % (result.cmd, result.fail_reason, result.output))
+
+  return _ParseIpOutput(result.output)
