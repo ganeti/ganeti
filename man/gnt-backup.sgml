@@ -82,7 +82,7 @@
       <para>
         Example:
         <screen>
-# gnt-instance export -n node1.example.com instance3.example.com
+# gnt-backup export -n node1.example.com instance3.example.com
         </screen>
       </para>
     </refsect2>
@@ -188,7 +188,7 @@
       </para>
 
       <para>
-        If you do not want gnt-instance to wait for the disk mirror
+        If you do not want gnt-backup to wait for the disk mirror
         to be synced, use the <option>--no-wait-for-sync</option>
         option.
       </para>
