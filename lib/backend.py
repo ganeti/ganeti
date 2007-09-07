@@ -1022,13 +1022,14 @@ def ExportSnapshot(disk, dest_node, instance):
 
   comprcmd = "gzip"
 
-  remotecmd = utils.BuildShellCmd("ssh -q -oStrictHostKeyChecking=yes"
-                                  " -oBatchMode=yes -oEscapeChar=none"
-                                  " %s 'mkdir -p %s; cat > %s/%s'",
-                                  dest_node, destdir, destdir, destfile)
+  destcmd = utils.BuildShellCmd("mkdir -p %s; cat > %s/%s", 
+                                destdir, destdir, destfile)
+  remotecmd = ssh.BuildSSHCmd(dest_node, 'root', destcmd)
+  
+  
 
   # all commands have been checked, so we're safe to combine them
-  command = '|'.join([expcmd, comprcmd, remotecmd])
+  command = '|'.join([expcmd, comprcmd, ' '.join(remotecmd)])
 
   result = utils.RunCmd(command)
 
@@ -1168,9 +1169,8 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  remotecmd = utils.BuildShellCmd("ssh -q -oStrictHostKeyChecking=yes"
-                                  " -oBatchMode=yes -oEscapeChar=none"
-                                  " %s 'cat %s'", src_node, src_image)
+  destcmd = utils.BuildShellCmd('cat %s', src_image)
+  remotecmd = ssh.BuildSSHCmd(src_node, 'root', destcmd)
 
   comprcmd = "gunzip"
   impcmd = utils.BuildShellCmd("(cd %s; %s -i %s -b %s -s %s &>%s)",
@@ -1178,7 +1178,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
                                real_os_dev.dev_path, real_swap_dev.dev_path,
                                logfile)
 
-  command = '|'.join([remotecmd, comprcmd, impcmd])
+  command = '|'.join([' '.join(remotecmd), comprcmd, impcmd])
 
   result = utils.RunCmd(command)
 

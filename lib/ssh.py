@@ -54,6 +54,33 @@ ASK_KEY_OPTS = [
   "-oHashKnownHosts=no",
   ]
 
+def BuildSSHCmd(hostname, user, command, batch=True, ask_key=False):
+  """Build an ssh string to execute a command on a remote node.
+
+  Args:
+    hostname: the target host, string
+    user: user to auth as
+    command: the command
+    batch: if true, ssh will run in batch mode with no prompting
+    ask_key: if true, ssh will run with StrictHostKeyChecking=ask, so that
+             we can connect to an unknown host (not valid in batch mode)
+
+  Returns:
+    The ssh call to run 'command' on the remote host.
+
+  """
+  argv = ["ssh", "-q"]
+  argv.extend(KNOWN_HOSTS_OPTS)
+  if batch:
+    # if we are in batch mode, we can't ask the key
+    if ask_key:
+      raise errors.ProgrammerError("SSH call requested conflicting options")
+    argv.extend(BATCH_MODE_OPTS)
+  elif ask_key:
+    argv.extend(ASK_KEY_OPTS)
+  argv.extend(["%s@%s" % (user, hostname), "'%s'" % command])
+  return argv
+
 
 def SSHCall(hostname, user, command, batch=True, ask_key=False):
   """Execute a command on a remote node.
@@ -73,17 +100,7 @@ def SSHCall(hostname, user, command, batch=True, ask_key=False):
     `utils.RunResult` as for `utils.RunCmd()`
 
   """
-  argv = ["ssh", "-q"]
-  argv.extend(KNOWN_HOSTS_OPTS)
-  if batch:
-    # if we are in batch mode, we can't ask the key
-    if ask_key:
-      raise errors.ProgrammerError("SSH call requested conflicting options")
-    argv.extend(BATCH_MODE_OPTS)
-  elif ask_key:
-    argv.extend(ASK_KEY_OPTS)
-  argv.extend(["%s@%s" % (user, hostname), command])
-  return utils.RunCmd(argv)
+  return utils.RunCmd(BuildSSHCmd(hostname, user, command, batch=batch, ask_key=ask_key))
 
 
 def CopyFileToNode(node, filename):
