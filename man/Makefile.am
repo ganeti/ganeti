@@ -7,6 +7,7 @@ EXTRA_DIST = ganeti-os-interface.sgml gnt-cluster.sgml gnt-node.sgml \
 	     ganeti-watcher.sgml ganeti.sgml gnt-instance.sgml gnt-os.sgml \
 	     gnt-backup.sgml ganeti-noded.sgml \
 	     footer.sgml $(man_MANS)
+MAINTAINERCLEANFILES = *.[78]
 
 %.7 %.8: %.sgml footer.sgml
 	docbook2man $<

@@ -3,7 +3,7 @@
 AC_PREREQ(2.59)
 AC_INIT(ganeti, 1.2b2, ganeti@googlegroups.com)
 AC_CONFIG_AUX_DIR(autotools)
-AM_INIT_AUTOMAKE([foreign tar-ustar dist-bzip2])
+AM_INIT_AUTOMAKE([foreign tar-ustar])
 
 # Check common programs
 AC_PROG_INSTALL
