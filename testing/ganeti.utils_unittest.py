@@ -149,6 +149,16 @@ class TestRunCmd(unittest.TestCase):
     self.assertEqual(result.exit_code, 0)
     self.assertEqual(result.stdout, self.magic)
 
+  def testLang(self):
+    """Test locale environment"""
+    os.environ["LANG"] = "en_US.UTF-8"
+    os.environ["LC_ALL"] = "en_US.UTF-8"
+    result = RunCmd(["env"])
+    for line in result.output.splitlines():
+      key, val = line.split("=", 1)
+      if key.startswith("LC_") or key == "LANG":
+        self.fail("Unexpected language variable '%s' = '%s'" % (key, val))
+
 
 class TestRemoveFile(unittest.TestCase):
   """Test case for the RemoveFile function"""

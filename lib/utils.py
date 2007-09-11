@@ -209,11 +209,13 @@ def RunCmd(cmd):
   else:
     strcmd = cmd
     shell = True
+  new_env = dict([(key, val) for (key, val) in os.environ.items()
+                  if not (key == "LANG" or key.startswith("LC_"))])
   child = subprocess.Popen(cmd, shell=shell,
                            stderr=subprocess.PIPE,
                            stdout=subprocess.PIPE,
                            stdin=subprocess.PIPE,
-                           close_fds=True)
+                           close_fds=True, env=new_env)
 
   child.stdin.close()
   out = child.stdout.read()
