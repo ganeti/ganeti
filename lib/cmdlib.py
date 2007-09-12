@@ -171,21 +171,46 @@ def _GetWantedNodes(lu, nodes):
     nodes: List of nodes (strings) or None for all
 
   """
-  if nodes is not None and not isinstance(nodes, list):
+  if not isinstance(nodes, list):
     raise errors.OpPrereqError("Invalid argument type 'nodes'")
 
   if nodes:
-    wanted_nodes = []
+    wanted = []
 
     for name in nodes:
       node = lu.cfg.GetNodeInfo(lu.cfg.ExpandNodeName(name))
       if node is None:
         raise errors.OpPrereqError("No such node name '%s'" % name)
-    wanted_nodes.append(node)
+      wanted.append(node)
 
-    return wanted_nodes
   else:
-    return [lu.cfg.GetNodeInfo(name) for name in lu.cfg.GetNodeList()]
+    wanted = [lu.cfg.GetNodeInfo(name) for name in lu.cfg.GetNodeList()]
+  return wanted
+
+
+def _GetWantedInstances(lu, instances):
+  """Returns list of checked and expanded instances.
+
+  Args:
+    instances: List of instances (strings) or None for all
+
+  """
+  if not isinstance(instances, list):
+    raise errors.OpPrereqError("Invalid argument type 'instances'")
+
+  if instances:
+    wanted = []
+
+    for name in instances:
+      instance = lu.cfg.GetInstanceInfo(lu.cfg.ExpandInstanceName(name))
+      if instance is None:
+        raise errors.OpPrereqError("No such instance name '%s'" % name)
+      wanted.append(instance)
+
+  else:
+    wanted = [lu.cfg.GetInstanceInfo(name)
+              for name in lu.cfg.GetInstanceList()]
+  return wanted
 
 
 def _CheckOutputFields(static, dynamic, selected):
