@@ -63,37 +63,37 @@ class OpDestroyCluster(OpCode):
 
 
 class OpQueryClusterInfo(OpCode):
-  """Initialise the cluster."""
+  """Query cluster information."""
   OP_ID = "OP_CLUSTER_QUERY"
   __slots__ = []
 
 
 class OpClusterCopyFile(OpCode):
-  """Initialise the cluster."""
+  """Copy a file to multiple nodes."""
   OP_ID = "OP_CLUSTER_COPYFILE"
   __slots__ = ["nodes", "filename"]
 
 
 class OpRunClusterCommand(OpCode):
-  """Initialise the cluster."""
+  """Run a command on multiple nodes."""
   OP_ID = "OP_CLUSTER_RUNCOMMAND"
   __slots__ = ["nodes", "command"]
 
 
 class OpVerifyCluster(OpCode):
-  """Initialise the cluster."""
+  """Verify the cluster state."""
   OP_ID = "OP_CLUSTER_VERIFY"
   __slots__ = []
 
 
 class OpMasterFailover(OpCode):
-  """Initialise the cluster."""
+  """Do a master failover."""
   OP_ID = "OP_CLUSTER_MASTERFAILOVER"
   __slots__ = []
 
 
 class OpDumpClusterConfig(OpCode):
-  """Initialise the cluster."""
+  """Dump the cluster configuration."""
   OP_ID = "OP_CLUSTER_DUMPCONFIG"
   __slots__ = []
 
@@ -131,7 +131,7 @@ class OpQueryNodeVolumes(OpCode):
 # instance opcodes
 
 class OpCreateInstance(OpCode):
-  """Compute the list of instances."""
+  """Create an instance."""
   OP_ID = "OP_INSTANCE_CREATE"
   __slots__ = ["instance_name", "mem_size", "disk_size", "os_type", "pnode",
                "disk_template", "snode", "swap_size", "mode",
@@ -140,7 +140,7 @@ class OpCreateInstance(OpCode):
 
 
 class OpReinstallInstance(OpCode):
-  """Reinstall an instance."""
+  """Reinstall an instance's OS."""
   OP_ID = "OP_INSTANCE_REINSTALL"
   __slots__ = ["instance_name", "os_type"]
 
@@ -152,13 +152,13 @@ class OpRemoveInstance(OpCode):
 
 
 class OpStartupInstance(OpCode):
-  """Remove an instance."""
+  """Startup an instance."""
   OP_ID = "OP_INSTANCE_STARTUP"
   __slots__ = ["instance_name", "force", "extra_args"]
 
 
 class OpShutdownInstance(OpCode):
-  """Remove an instance."""
+  """Shutdown an instance."""
   OP_ID = "OP_INSTANCE_SHUTDOWN"
   __slots__ = ["instance_name"]
 
@@ -176,7 +176,7 @@ class OpRemoveMDDRBDComponent(OpCode):
 
 
 class OpReplaceDisks(OpCode):
-  """Replace disks of an instance."""
+  """Replace the disks of an instance."""
   OP_ID = "OP_INSTANCE_REPLACE_DISKS"
   __slots__ = ["instance_name", "remote_node"]
 
@@ -188,19 +188,19 @@ class OpFailoverInstance(OpCode):
 
 
 class OpConnectConsole(OpCode):
-  """Failover an instance."""
+  """Connect to an instance's console."""
   OP_ID = "OP_INSTANCE_CONSOLE"
   __slots__ = ["instance_name"]
 
 
 class OpActivateInstanceDisks(OpCode):
-  """Remove an instance."""
+  """Activate an instance's disks."""
   OP_ID = "OP_INSTANCE_ACTIVATE_DISKS"
   __slots__ = ["instance_name"]
 
 
 class OpDeactivateInstanceDisks(OpCode):
-  """Remove an instance."""
+  """Deactivate an instance's disks."""
   OP_ID = "OP_INSTANCE_DEACTIVATE_DISKS"
   __slots__ = ["instance_name"]
 
