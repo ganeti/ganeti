@@ -1,6 +1,5 @@
 # standard automake rules
-
-SUBDIRS = man lib scripts daemons doc testing tools
+SUBDIRS = man lib scripts daemons doc testing tools qa
 
 # custom rules
 depgraph: depgraph.png

@@ -6,5 +6,5 @@ ganeti:
 	rm -f ganeti
 	ln -s $(top_srcdir)/lib ganeti
 
-EXTRA_DIST = $(TESTS) mocks.py ganeti.qa.py qa-sample.yaml
+EXTRA_DIST = $(TESTS) mocks.py
 MAINTAINERCLEANFILES = ganeti

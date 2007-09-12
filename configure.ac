@@ -26,6 +26,7 @@ AC_CONFIG_FILES([
   doc/examples/Makefile
   lib/Makefile
   man/Makefile
+  qa/Makefile
   scripts/Makefile
   testing/Makefile
   tools/Makefile
