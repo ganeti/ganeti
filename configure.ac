@@ -28,7 +28,7 @@ AC_CONFIG_FILES([
   man/Makefile
   qa/Makefile
   scripts/Makefile
-  testing/Makefile
+  test/Makefile
   tools/Makefile
 ])
 
