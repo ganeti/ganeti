@@ -151,13 +151,20 @@ class TestRunCmd(unittest.TestCase):
 
   def testLang(self):
     """Test locale environment"""
-    os.environ["LANG"] = "en_US.UTF-8"
-    os.environ["LC_ALL"] = "en_US.UTF-8"
-    result = RunCmd(["env"])
-    for line in result.output.splitlines():
-      key, val = line.split("=", 1)
-      if key.startswith("LC_") or key == "LANG":
-        self.fail("Unexpected language variable '%s' = '%s'" % (key, val))
+    old_env = os.environ.copy()
+    try:
+      os.environ["LANG"] = "en_US.UTF-8"
+      os.environ["LC_ALL"] = "en_US.UTF-8"
+      result = RunCmd(["locale"])
+      for line in result.output.splitlines():
+        key, value = line.split("=", 1)
+        # Ignore these variables, they're overridden by LC_ALL
+        if key == "LANG" or key == "LANGUAGE":
+          continue
+        self.failIf(value and value != "C" and value != '"C"',
+            "Variable %s is set to the invalid value '%s'" % (key, value))
+    finally:
+      os.environ = old_env
 
 
 class TestRemoveFile(unittest.TestCase):
