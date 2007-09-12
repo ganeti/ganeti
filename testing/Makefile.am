@@ -7,4 +7,5 @@ ganeti:
 	ln -s $(top_srcdir)/lib ganeti
 
 EXTRA_DIST = $(TESTS) mocks.py
+CLEANFILES = *.py[co]
 MAINTAINERCLEANFILES = ganeti
