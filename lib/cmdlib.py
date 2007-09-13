@@ -2138,25 +2138,19 @@ class LUQueryInstances(NoHooksLU):
         elif field == "pnode":
           val = instance.primary_node
         elif field == "snodes":
-          val = ",".join(instance.secondary_nodes) or "-"
+          val = list(instance.secondary_nodes)
         elif field == "admin_state":
-          if instance.status == "down":
-            val = "no"
-          else:
-            val = "yes"
+          val = (instance.status != "down")
         elif field == "oper_state":
           if instance.primary_node in bad_nodes:
-            val = "(node down)"
+            val = None
           else:
-            if live_data.get(instance.name):
-              val = "running"
-            else:
-              val = "stopped"
+            val = bool(live_data.get(instance.name))
         elif field == "admin_ram":
           val = instance.memory
         elif field == "oper_ram":
           if instance.primary_node in bad_nodes:
-            val = "(node down)"
+            val = None
           elif instance.name in live_data:
             val = live_data[instance.name].get("memory", "?")
           else:
@@ -2172,12 +2166,11 @@ class LUQueryInstances(NoHooksLU):
         elif field == "sda_size" or field == "sdb_size":
           disk = instance.FindDisk(field[:3])
           if disk is None:
-            val = "N/A"
+            val = None
           else:
             val = disk.size
         else:
           raise errors.ParameterError(field)
-        val = str(val)
         iout.append(val)
       output.append(iout)
 

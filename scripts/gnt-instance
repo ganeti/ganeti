@@ -62,6 +62,32 @@ def ListInstances(opts, args):
 
   numfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size"]
 
+  # change raw values to nicer strings
+  for row in output:
+    for idx, field in enumerate(selected_fields):
+      val = row[idx]
+      if field == "snodes":
+        val = ",".join(val) or "-"
+      elif field == "admin_state":
+        if val:
+          val = "yes"
+        else:
+          val = "no"
+      elif field == "oper_state":
+        if val is None:
+          val = "(node down)"
+        elif val: # True
+          val = "running"
+        else:
+          val = "stopped"
+      elif field == "oper_ram":
+        if val is None:
+          val = "(node down)"
+      elif field == "sda_size" or field == "sdb_size":
+        if val is None:
+          val = "N/A"
+      row[idx] = str(val)
+
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,
                        numfields=numfields, data=output)
