@@ -54,6 +54,7 @@ ASK_KEY_OPTS = [
   "-oHashKnownHosts=no",
   ]
 
+
 def BuildSSHCmd(hostname, user, command, batch=True, ask_key=False):
   """Build an ssh string to execute a command on a remote node.
 
@@ -78,7 +79,7 @@ def BuildSSHCmd(hostname, user, command, batch=True, ask_key=False):
     argv.extend(BATCH_MODE_OPTS)
   elif ask_key:
     argv.extend(ASK_KEY_OPTS)
-  argv.extend(["%s@%s" % (user, hostname), "'%s'" % command])
+  argv.extend(["%s@%s" % (user, hostname), command])
   return argv
 
 

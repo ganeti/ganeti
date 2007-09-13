@@ -1022,14 +1022,14 @@ def ExportSnapshot(disk, dest_node, instance):
 
   comprcmd = "gzip"
 
-  destcmd = utils.BuildShellCmd("mkdir -p %s; cat > %s/%s", 
+  destcmd = utils.BuildShellCmd("mkdir -p %s && cat > %s/%s",
                                 destdir, destdir, destfile)
   remotecmd = ssh.BuildSSHCmd(dest_node, 'root', destcmd)
-  
-  
+
+
 
   # all commands have been checked, so we're safe to combine them
-  command = '|'.join([expcmd, comprcmd, ' '.join(remotecmd)])
+  command = '|'.join([expcmd, comprcmd, utils.ShellQuoteArgs(remotecmd)])
 
   result = utils.RunCmd(command)
 
@@ -1178,7 +1178,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
                                real_os_dev.dev_path, real_swap_dev.dev_path,
                                logfile)
 
-  command = '|'.join([' '.join(remotecmd), comprcmd, impcmd])
+  command = '|'.join([utils.ShellQuoteArgs(remotecmd), comprcmd, impcmd])
 
   result = utils.RunCmd(command)
 
