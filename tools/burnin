@@ -82,8 +82,8 @@ def BurninCluster(opts, args):
 
   logger.SetupLogging(debug=True, program="ganeti/burnin")
   proc = mcpu.Processor()
-  result = proc.ExecOpCode(opcodes.OpQueryNodes(output_fields=["name"]),
-                             Feedback)
+  result = proc.ExecOpCode(opcodes.OpQueryNodes(output_fields=["name"],
+                                                names=[]), Feedback)
   nodelist = [data[0] for data in result]
 
   Feedback("- Testing global parameters")

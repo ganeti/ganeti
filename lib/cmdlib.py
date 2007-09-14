@@ -1129,7 +1129,7 @@ class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
 
   """
-  _OP_REQP = ["output_fields", "nodes"]
+  _OP_REQP = ["output_fields", "names"]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1146,13 +1146,13 @@ class LUQueryNodes(NoHooksLU):
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
-    self.wanted_nodes = _GetWantedNodes(self, self.op.nodes)
+    self.wanted = _GetWantedNodes(self, self.op.names)
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
-    nodenames = self.wanted_nodes
+    nodenames = self.wanted
     nodelist = [self.cfg.GetNodeInfo(name) for name in nodenames]
 
     # begin data gathering

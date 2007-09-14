@@ -45,7 +45,7 @@ def ListNodes(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  op = opcodes.OpQueryNodes(output_fields=selected_fields, nodes=[])
+  op = opcodes.OpQueryNodes(output_fields=selected_fields, names=[])
   output = SubmitOpCode(op)
 
   if not opts.no_headers:
@@ -93,7 +93,7 @@ def ShowNodeConfig(opts, args):
   """
   op = opcodes.OpQueryNodes(output_fields=["name", "pip", "sip",
                                            "pinst_list", "sinst_list"],
-                            nodes=args)
+                            names=args)
   result = SubmitOpCode(op)
 
   for name, primary_ip, secondary_ip, pinst, sinst in result:
