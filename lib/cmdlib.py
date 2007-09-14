@@ -1129,7 +1129,7 @@ class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
 
   """
-  _OP_REQP = ["output_fields"]
+  _OP_REQP = ["output_fields", "nodes"]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1140,18 +1140,20 @@ class LUQueryNodes(NoHooksLU):
     self.dynamic_fields = frozenset(["dtotal", "dfree",
                                      "mtotal", "mnode", "mfree"])
 
-    _CheckOutputFields(static=["name", "pinst", "sinst", "pip", "sip"],
+    _CheckOutputFields(static=["name", "pinst_cnt", "sinst_cnt",
+                               "pinst_list", "sinst_list",
+                               "pip", "sip"],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
+    self.wanted_nodes = _GetWantedNodes(self, self.op.nodes)
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
-    nodenames = utils.NiceSort(self.cfg.GetNodeList())
+    nodenames = self.wanted_nodes
     nodelist = [self.cfg.GetNodeInfo(name) for name in nodenames]
-
 
     # begin data gathering
 
@@ -1173,17 +1175,21 @@ class LUQueryNodes(NoHooksLU):
     else:
       live_data = dict.fromkeys(nodenames, {})
 
-    node_to_primary = dict.fromkeys(nodenames, 0)
-    node_to_secondary = dict.fromkeys(nodenames, 0)
+    node_to_primary = dict([(name, set()) for name in nodenames])
+    node_to_secondary = dict([(name, set()) for name in nodenames])
 
-    if "pinst" in self.op.output_fields or "sinst" in self.op.output_fields:
+    inst_fields = frozenset(("pinst_cnt", "pinst_list",
+                             "sinst_cnt", "sinst_list"))
+    if inst_fields & frozenset(self.op.output_fields):
       instancelist = self.cfg.GetInstanceList()
 
-      for instance in instancelist:
-        instanceinfo = self.cfg.GetInstanceInfo(instance)
-        node_to_primary[instanceinfo.primary_node] += 1
-        for secnode in instanceinfo.secondary_nodes:
-          node_to_secondary[secnode] += 1
+      for instance_name in instancelist:
+        inst = self.cfg.GetInstanceInfo(instance_name)
+        if inst.primary_node in node_to_primary:
+          node_to_primary[inst.primary_node].add(inst.name)
+        for secnode in inst.secondary_nodes:
+          if secnode in node_to_secondary:
+            node_to_secondary[secnode].add(inst.name)
 
     # end data gathering
 
@@ -1193,19 +1199,22 @@ class LUQueryNodes(NoHooksLU):
       for field in self.op.output_fields:
         if field == "name":
           val = node.name
-        elif field == "pinst":
-          val = node_to_primary[node.name]
-        elif field == "sinst":
-          val = node_to_secondary[node.name]
+        elif field == "pinst_list":
+          val = list(node_to_primary[node.name])
+        elif field == "sinst_list":
+          val = list(node_to_secondary[node.name])
+        elif field == "pinst_cnt":
+          val = len(node_to_primary[node.name])
+        elif field == "sinst_cnt":
+          val = len(node_to_secondary[node.name])
         elif field == "pip":
           val = node.primary_ip
         elif field == "sip":
           val = node.secondary_ip
         elif field in self.dynamic_fields:
-          val = live_data[node.name].get(field, "?")
+          val = live_data[node.name].get(field, None)
         else:
           raise errors.ParameterError(field)
-        val = str(val)
         node_output.append(val)
       output.append(node_output)
 

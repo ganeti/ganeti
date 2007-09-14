@@ -41,15 +41,16 @@ def ListNodes(opts, args):
   if opts.output is None:
     selected_fields = ["name", "dtotal", "dfree",
                        "mtotal", "mnode", "mfree",
-                       "pinst", "sinst"]
+                       "pinst_cnt", "sinst_cnt"]
   else:
     selected_fields = opts.output.split(",")
 
-  op = opcodes.OpQueryNodes(output_fields=selected_fields)
+  op = opcodes.OpQueryNodes(output_fields=selected_fields, nodes=[])
   output = SubmitOpCode(op)
 
   if not opts.no_headers:
-    headers = {"name": "Node", "pinst": "Pinst", "sinst": "Sinst",
+    headers = {"name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
+               "pinst_list": "PriInstances", "sinst_list": "SecInstances",
                "pip": "PrimaryIP", "sip": "SecondaryIP",
                "dtotal": "DTotal", "dfree": "DFree",
                "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree"}
@@ -61,7 +62,21 @@ def ListNodes(opts, args):
   else:
     unitfields = None
 
-  numfields = ["dtotal", "dfree", "mtotal", "mnode", "mfree", "pinst", "sinst"]
+  numfields = ["dtotal", "dfree",
+               "mtotal", "mnode", "mfree",
+               "pinst_cnt", "sinst_cnt"]
+
+  # change raw values to nicer strings
+  for row in output:
+    for idx, field in enumerate(selected_fields):
+      val = row[idx]
+      if field == "pinst_list":
+        val = ",".join(val)
+      elif field == "sinst_list":
+        val = ",".join(val)
+      elif val is None:
+        val = "?"
+      row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,

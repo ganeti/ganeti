@@ -113,7 +113,7 @@ class OpAddNode(OpCode):
 class OpQueryNodes(OpCode):
   """Compute the list of nodes."""
   OP_ID = "OP_NODE_QUERY"
-  __slots__ = ["output_fields"]
+  __slots__ = ["output_fields", "nodes"]
 
 
 class OpQueryNodeData(OpCode):
