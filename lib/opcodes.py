@@ -202,7 +202,7 @@ class OpDeactivateInstanceDisks(OpCode):
 class OpQueryInstances(OpCode):
   """Compute the list of instances."""
   OP_ID = "OP_INSTANCE_QUERY"
-  __slots__ = ["output_fields"]
+  __slots__ = ["output_fields", "names"]
 
 
 class OpQueryInstanceData(OpCode):

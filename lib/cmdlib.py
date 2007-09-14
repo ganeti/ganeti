@@ -2091,7 +2091,7 @@ class LUQueryInstances(NoHooksLU):
   """Logical unit for querying instances.
 
   """
-  _OP_REQP = ["output_fields"]
+  _OP_REQP = ["output_fields", "names"]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -2107,11 +2107,13 @@ class LUQueryInstances(NoHooksLU):
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
+    self.wanted = _GetWantedInstances(self, self.op.names)
+
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
-    instance_names = utils.NiceSort(self.cfg.GetInstanceList())
+    instance_names = self.wanted
     instance_list = [self.cfg.GetInstanceInfo(iname) for iname
                      in instance_names]
 

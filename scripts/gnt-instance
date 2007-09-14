@@ -41,7 +41,7 @@ def ListInstances(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  op = opcodes.OpQueryInstances(output_fields=selected_fields)
+  op = opcodes.OpQueryInstances(output_fields=selected_fields, names=[])
   output = SubmitOpCode(op)
 
   if not opts.no_headers:
