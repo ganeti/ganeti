@@ -165,7 +165,7 @@ class NoHooksLU(LogicalUnit):
 
 
 def _GetWantedNodes(lu, nodes):
-  """Returns list of checked and expanded nodes.
+  """Returns list of checked and expanded node names.
 
   Args:
     nodes: List of nodes (strings) or None for all
@@ -178,18 +178,18 @@ def _GetWantedNodes(lu, nodes):
     wanted = []
 
     for name in nodes:
-      node = lu.cfg.GetNodeInfo(lu.cfg.ExpandNodeName(name))
+      node = lu.cfg.ExpandNodeName(name)
       if node is None:
         raise errors.OpPrereqError("No such node name '%s'" % name)
       wanted.append(node)
 
   else:
-    wanted = [lu.cfg.GetNodeInfo(name) for name in lu.cfg.GetNodeList()]
-  return wanted
+    wanted = lu.cfg.GetNodeList()
+  return utils.NiceSort(wanted)
 
 
 def _GetWantedInstances(lu, instances):
-  """Returns list of checked and expanded instances.
+  """Returns list of checked and expanded instance names.
 
   Args:
     instances: List of instances (strings) or None for all
@@ -202,15 +202,14 @@ def _GetWantedInstances(lu, instances):
     wanted = []
 
     for name in instances:
-      instance = lu.cfg.GetInstanceInfo(lu.cfg.ExpandInstanceName(name))
+      instance = lu.cfg.ExpandInstanceName(name)
       if instance is None:
         raise errors.OpPrereqError("No such instance name '%s'" % name)
       wanted.append(instance)
 
   else:
-    wanted = [lu.cfg.GetInstanceInfo(name)
-              for name in lu.cfg.GetInstanceList()]
-  return wanted
+    wanted = lu.cfg.GetInstanceList()
+  return utils.NiceSort(wanted)
 
 
 def _CheckOutputFields(static, dynamic, selected):
@@ -1236,7 +1235,7 @@ class LUQueryNodeVolumes(NoHooksLU):
     """Computes the list of nodes and their attributes.
 
     """
-    nodenames = utils.NiceSort([node.name for node in self.nodes])
+    nodenames = self.nodes
     volumes = rpc.call_node_volumes(nodenames)
 
     ilist = [self.cfg.GetInstanceInfo(iname) for iname
@@ -1634,7 +1633,7 @@ class LUClusterCopyFile(NoHooksLU):
 
     myname = socket.gethostname()
 
-    for node in [node.name for node in self.nodes]:
+    for node in self.nodes:
       if node == myname:
         continue
       if not ssh.CopyFileToNode(node, filename):
@@ -1680,8 +1679,8 @@ class LURunClusterCommand(NoHooksLU):
     """
     data = []
     for node in self.nodes:
-      result = ssh.SSHCall(node.name, "root", self.op.command)
-      data.append((node.name, result.output, result.exit_code))
+      result = ssh.SSHCall(node, "root", self.op.command)
+      data.append((node, result.output, result.exit_code))
 
     return data
 
@@ -3321,7 +3320,7 @@ class LUQueryNodeData(NoHooksLU):
     ilist = [self.cfg.GetInstanceInfo(iname) for iname
              in self.cfg.GetInstanceList()]
     result = []
-    for node in self.wanted_nodes:
+    for node in [self.cfg.GetNodeInfo(name) for name in self.wanted_nodes]:
       result.append((node.name, node.primary_ip, node.secondary_ip,
                      [inst.name for inst in ilist
                       if inst.primary_node == node.name],
@@ -3453,7 +3452,7 @@ class LUQueryExports(NoHooksLU):
       that node.
 
     """
-    return rpc.call_export_list([node.name for node in self.nodes])
+    return rpc.call_export_list(self.nodes)
 
 
 class LUExportInstance(LogicalUnit):
