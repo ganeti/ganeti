@@ -116,12 +116,6 @@ class OpQueryNodes(OpCode):
   __slots__ = ["output_fields", "nodes"]
 
 
-class OpQueryNodeData(OpCode):
-  """Compute the node info."""
-  OP_ID = "OP_NODE_INFO"
-  __slots__ = ["nodes"]
-
-
 class OpQueryNodeVolumes(OpCode):
   """Get list of volumes on node."""
   OP_ID = "OP_NODE_QUERYVOLS"

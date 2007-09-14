@@ -3308,37 +3308,6 @@ class LUQueryInstanceData(NoHooksLU):
     return result
 
 
-class LUQueryNodeData(NoHooksLU):
-  """Logical unit for querying node data.
-
-  """
-  _OP_REQP = ["nodes"]
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This only checks the optional node list against the existing names.
-
-    """
-    self.wanted_nodes = _GetWantedNodes(self, self.op.nodes)
-
-  def Exec(self, feedback_fn):
-    """Compute and return the list of nodes.
-
-    """
-    ilist = [self.cfg.GetInstanceInfo(iname) for iname
-             in self.cfg.GetInstanceList()]
-    result = []
-    for node in [self.cfg.GetNodeInfo(name) for name in self.wanted_nodes]:
-      result.append((node.name, node.primary_ip, node.secondary_ip,
-                     [inst.name for inst in ilist
-                      if inst.primary_node == node.name],
-                     [inst.name for inst in ilist
-                      if node.name in inst.secondary_nodes],
-                     ))
-    return result
-
-
 class LUSetInstanceParms(LogicalUnit):
   """Modifies an instances's parameters.
 

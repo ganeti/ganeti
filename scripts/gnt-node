@@ -91,7 +91,9 @@ def ShowNodeConfig(opts, args):
   """Show node information.
 
   """
-  op = opcodes.OpQueryNodeData(nodes=args)
+  op = opcodes.OpQueryNodes(output_fields=["name", "pip", "sip",
+                                           "pinst_list", "sinst_list"],
+                            nodes=args)
   result = SubmitOpCode(op)
 
   for name, primary_ip, secondary_ip, pinst, sinst in result:
