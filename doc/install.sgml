@@ -626,18 +626,22 @@ mv instance-debian-etch-0.1 debian-etch
 
       <para>
         In order to use this OS definition, you need to have internet
-        access from your nodes and have <citerefentry>
+        access from your nodes and have the <citerefentry>
         <refentrytitle>debootstrap</refentrytitle>
-        <manvolnum>8</manvolnum> </citerefentry> installed on all the
-        nodes.
+        <manvolnum>8</manvolnum></citerefentry>, <citerefentry>
+        <refentrytitle>dump</refentrytitle><manvolnum>8</manvolnum>
+        </citerefentry> and <citerefentry>
+        <refentrytitle>restore</refentrytitle>
+        <manvolnum>8</manvolnum> </citerefentry> commands installed on
+        all nodes.
       </para>
       <formalpara>
         <title>Debian</title>
         <para>
-          Use this command on all nodes to install
-          <computeroutput>debootstrap</computeroutput>:
+          Use this command on all nodes to install the required
+          packages:
 
-          <screen>apt-get install debootstrap</screen>
+          <screen>apt-get install debootstrap dump</screen>
         </para>
       </formalpara>
 
