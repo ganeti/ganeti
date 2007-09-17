@@ -21,6 +21,7 @@
 
 import sys
 import os
+import itertools
 from optparse import make_option
 from cStringIO import StringIO
 
@@ -29,6 +30,73 @@ from ganeti import opcodes
 from ganeti import logger
 from ganeti import constants
 from ganeti import utils
+from ganeti import errors
+
+
+_SHUTDOWN_CLUSTER = "cluster"
+_SHUTDOWN_NODES_BOTH = "nodes"
+_SHUTDOWN_NODES_PRI = "nodes-pri"
+_SHUTDOWN_NODES_SEC = "nodes-sec"
+_SHUTDOWN_INSTANCES = "instances"
+
+def _ExpandMultiNames(mode, names):
+  """Expand the given names using the passed mode.
+
+  Args:
+    - mode, which can be one of _SHUTDOWN_CLUSTER, _SHUTDOWN_NODES_BOTH,
+      _SHUTDOWN_NODES_PRI, _SHUTDOWN_NODES_SEC or _SHUTDOWN_INSTANCES
+    - names, which is a list of names; for cluster, it must be empty,
+      and for node and instance it must be a list of valid item
+      names (short names are valid as usual, e.g. node1 instead of
+      node1.example.com)
+
+  For _SHUTDOWN_CLUSTER, all instances will be returned. For
+  _SHUTDOWN_NODES_PRI/SEC, all instances having those nodes as
+  primary/secondary will be shutdown. For _SHUTDOWN_NODES_BOTH, all
+  instances having those nodes as either primary or secondary will be
+  returned. For _SHUTDOWN_INSTANCES, the given instances will be
+  returned.
+
+  """
+  if mode == _SHUTDOWN_CLUSTER:
+    if names:
+      raise errors.OpPrereqError("Cluster filter mode takes no arguments")
+    op = opcodes.OpQueryInstances(output_fields=["name"], names=[])
+    idata = SubmitOpCode(op)
+    inames = [row[0] for row in idata]
+
+  elif mode in (_SHUTDOWN_NODES_BOTH,
+                _SHUTDOWN_NODES_PRI,
+                _SHUTDOWN_NODES_SEC):
+    if not names:
+      raise errors.OpPrereqError("No node names passed")
+    op = opcodes.OpQueryNodes(output_fields=["name", "pinst_list",
+                                             "sinst_list"], names=names)
+    ndata = SubmitOpCode(op)
+    ipri = [row[1] for row in ndata]
+    pri_names = list(itertools.chain(*ipri))
+    isec = [row[2] for row in ndata]
+    sec_names = list(itertools.chain(*isec))
+    if mode == _SHUTDOWN_NODES_BOTH:
+      inames = pri_names + sec_names
+    elif mode == _SHUTDOWN_NODES_PRI:
+      inames = pri_names
+    elif mode == _SHUTDOWN_NODES_SEC:
+      inames = sec_names
+    else:
+      raise errors.ProgrammerError("Unhandled shutdown type")
+
+  elif mode == _SHUTDOWN_INSTANCES:
+    if not names:
+      raise errors.OpPrereqError("No instance names passed")
+    op = opcodes.OpQueryInstances(output_fields=["name"], names=names)
+    idata = SubmitOpCode(op)
+    inames = [row[0] for row in idata]
+
+  else:
+    raise errors.OpPrereqError("Unknown mode '%s'" % mode)
+
+  return inames
 
 
 def ListInstances(opts, args):
@@ -209,10 +277,17 @@ def StartupInstance(opts, args):
     args - list containing a single element, the instance name
 
   """
-  instance_name = args[0]
-  op = opcodes.OpStartupInstance(instance_name=instance_name, force=opts.force,
-                                 extra_args=opts.extra_args)
-  SubmitOpCode(op)
+  if opts.multi_mode is None:
+    opts.multi_mode = _SHUTDOWN_INSTANCES
+  inames = _ExpandMultiNames(opts.multi_mode, args)
+  multi_on = len(inames) > 1
+  for name in inames:
+    op = opcodes.OpStartupInstance(instance_name=name,
+                                   force=opts.force,
+                                   extra_args=opts.extra_args)
+    if multi_on:
+      logger.ToStdout("Starting up %s" % name)
+    SubmitOpCode(op)
   return 0
 
 
@@ -224,9 +299,15 @@ def ShutdownInstance(opts, args):
     args - list containing a single element, the instance name
 
   """
-  instance_name = args[0]
-  op = opcodes.OpShutdownInstance(instance_name=instance_name)
-  SubmitOpCode(op)
+  if opts.multi_mode is None:
+    opts.multi_mode = _SHUTDOWN_INSTANCES
+  inames = _ExpandMultiNames(opts.multi_mode, args)
+  multi_on = len(inames) > 1
+  for name in inames:
+    op = opcodes.OpShutdownInstance(instance_name=name)
+    if multi_on:
+      logger.ToStdout("Shutting down %s" % name)
+    SubmitOpCode(op)
   return 0
 
 
@@ -455,6 +536,28 @@ node_opt = make_option("-n", "--node", dest="node", help="Target node",
 os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>")
 
+# multi-instance selection options
+m_pri_node_opt = make_option("--primary", dest="multi_mode",
+                             help="Filter by nodes (primary only)",
+                             const=_SHUTDOWN_NODES_PRI, action="store_const")
+
+m_sec_node_opt = make_option("--secondary", dest="multi_mode",
+                             help="Filter by nodes (secondary only)",
+                             const=_SHUTDOWN_NODES_SEC, action="store_const")
+
+m_node_opt = make_option("--node", dest="multi_mode",
+                         help="Filter by nodes (primary and secondary)",
+                         const=_SHUTDOWN_NODES_BOTH, action="store_const")
+
+m_clust_opt = make_option("--all", dest="multi_mode",
+                          help="Select all instances in the cluster",
+                          const=_SHUTDOWN_CLUSTER, action="store_const")
+
+m_inst_opt = make_option("--instance", dest="multi_mode",
+                         help="Filter by instance name [default]",
+                         const=_SHUTDOWN_INSTANCES, action="store_const")
+
+
 # this is defined separately due to readability only
 add_opts = [
   DEBUG_OPT,
@@ -555,13 +658,17 @@ commands = {
                           default=None, type="string", metavar="<bridge>")
               ],
              "<instance>", "Alters the parameters of an instance"),
-  'shutdown': (ShutdownInstance, ARGS_ONE, [DEBUG_OPT],
+  'shutdown': (ShutdownInstance, ARGS_ANY,
+               [DEBUG_OPT, m_node_opt, m_pri_node_opt, m_sec_node_opt,
+                m_clust_opt, m_inst_opt],
                "<instance>", "Stops an instance"),
-  'startup': (StartupInstance, ARGS_ONE,
+  'startup': (StartupInstance, ARGS_ANY,
               [DEBUG_OPT, FORCE_OPT,
                make_option("-e", "--extra", dest="extra_args",
                            help="Extra arguments for the instance's kernel",
                            default=None, type="string", metavar="<PARAMS>"),
+               m_node_opt, m_pri_node_opt, m_sec_node_opt,
+               m_clust_opt, m_inst_opt,
                ],
             "<instance>", "Starts an instance"),
   'activate-disks': (ActivateDisks, ARGS_ONE, [DEBUG_OPT],

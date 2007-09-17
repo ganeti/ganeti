@@ -424,12 +424,69 @@
         <cmdsynopsis>
           <command>startup</command>
           <arg>--extra=<replaceable>PARAMS</replaceable></arg>
-          <arg choice="req"><replaceable>instance</replaceable></arg>
+          <sbr>
+          <group choice="opt">
+            <arg>--instance</arg>
+            <arg>--node</arg>
+            <arg>--primary</arg>
+            <arg>--secondary</arg>
+            <arg>--all</arg>
+          </group>
+          <sbr>
+          <arg choice="opt"
+          rep="repeat"><replaceable>name</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Starts an instance. The node where to start the instance is
-          taken from the configuration.
+          Starts one or more instances, depending on the
+          <option>--by-*</option> mode. The four available modes are:
+          <variablelist>
+            <varlistentry>
+              <term><option>--instance</option></term>
+              <listitem>
+                <simpara>will start the instances given as arguments
+                (at least one argument required); this is the default
+                selection</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>--node</term>
+              <listitem>
+                <simpara>will start the instances who have the given
+                node as either primary or secondary</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><option>--primary</option></term>
+              <listitem>
+                <simpara>will start all instances whose primary node
+                is in the list of nodes passed as arguments (at least
+                one node required)</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><option>--secondary</option></term>
+              <listitem>
+                <simpara>will start all instances whose secondary node
+                is in the list of nodes passed as arguments (at least
+                one node required)</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>--all</term>
+              <listitem>
+                <simpara>will start all instances in the cluster (no
+                arguments accepted)</simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+
+        <para>
+          Note that although you can pass more than one
+          <option>--by-</option> option, the last one wins, so in
+          order to guarantee the desired result, don't pass more than
+          one such option.
         </para>
 
         <para>
@@ -446,6 +503,8 @@
           <screen>
 # gnt-instance start instance1.example.com
 # gnt-instance start --extra single test1.example.com
+# gnt-instance start --by-node node1.example.com node2.example.com
+# gnt-instance start --by-cluster
           </screen>
         </para>
       </refsect3>
@@ -455,20 +514,40 @@
 
         <cmdsynopsis>
           <command>shutdown</command>
-          <arg choice="req"><replaceable>instance</replaceable></arg>
+          <sbr>
+          <group choice="opt">
+            <arg>--instance</arg>
+            <arg>--node</arg>
+            <arg>--primary</arg>
+            <arg>--secondary</arg>
+            <arg>--all</arg>
+          </group>
+          <sbr>
+
+          <arg choice="opt"
+          rep="repeat"><replaceable>name</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Stops the instance. If the instance cannot be cleanly
-          stopped during a hardcoded interval (currently 2 minutes),
-          it will forcibly stop the instance (equivalent to switching
-          off the power on a physical machine).
+          Stops one or more instances. If the instance cannot be
+          cleanly stopped during a hardcoded interval (currently 2
+          minutes), it will forcibly stop the instance (equivalent to
+          switching off the power on a physical machine).
+        </para>
+
+        <para>
+          The <option>--instance</option>, <option>--node</option>,
+          <option>--primary</option>, <option>--secondary</option> and
+          <option>--all</option> options are similar as for the
+          <command>startup</command> command and they influence the
+          actual instances being shutodnw.
         </para>
 
         <para>
           Example:
           <screen>
 # gnt-instance shutdown instance1.example.com
+# gnt-instance shutdown --by-cluster
           </screen>
         </para>
       </refsect3>
