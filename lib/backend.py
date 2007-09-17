@@ -416,6 +416,64 @@ def AddOSToInstance(instance, os_disk, swap_disk):
   return True
 
 
+def RunRenameInstance(instance, old_name, os_disk, swap_disk):
+  """Run the OS rename script for an instance.
+
+  Args:
+    instance: the instance object
+    old_name: the old name of the instance
+    os_disk: the instance-visible name of the os device
+    swap_disk: the instance-visible name of the swap device
+
+  """
+  inst_os = OSFromDisk(instance.os)
+
+  script = inst_os.rename_script
+
+  os_device = instance.FindDisk(os_disk)
+  if os_device is None:
+    logger.Error("Can't find this device-visible name '%s'" % os_disk)
+    return False
+
+  swap_device = instance.FindDisk(swap_disk)
+  if swap_device is None:
+    logger.Error("Can't find this device-visible name '%s'" % swap_disk)
+    return False
+
+  real_os_dev = _RecursiveFindBD(os_device)
+  if real_os_dev is None:
+    raise errors.BlockDeviceError("Block device '%s' is not set up" %
+                                  str(os_device))
+  real_os_dev.Open()
+
+  real_swap_dev = _RecursiveFindBD(swap_device)
+  if real_swap_dev is None:
+    raise errors.BlockDeviceError("Block device '%s' is not set up" %
+                                  str(swap_device))
+  real_swap_dev.Open()
+
+  logfile = "%s/rename-%s-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
+                                           old_name,
+                                           instance.name, int(time.time()))
+  if not os.path.exists(constants.LOG_OS_DIR):
+    os.mkdir(constants.LOG_OS_DIR, 0750)
+
+  command = utils.BuildShellCmd("cd %s && %s -o %s -n %s -b %s -s %s &>%s",
+                                inst_os.path, script, old_name, instance.name,
+                                real_os_dev.dev_path, real_swap_dev.dev_path,
+                                logfile)
+
+  result = utils.RunCmd(command)
+
+  if result.failed:
+    logger.Error("os create command '%s' returned error: %s"
+                 " output: %s" %
+                 (command, result.fail_reason, result.output))
+    return False
+
+  return True
+
+
 def _GetVGInfo(vg_name):
   """Get informations about the volume group.
 

@@ -239,6 +239,22 @@ def RemoveInstance(opts, args):
   return 0
 
 
+def RenameInstance(opts, args):
+  """Reinstall an instance.
+
+  Args:
+    opts - class with options as members
+    args - list containing two elements, the instance name and the new name
+
+  """
+  op = opcodes.OpRenameInstance(instance_name=args[0],
+                                new_name=args[1],
+                                ignore_ip=opts.ignore_ip)
+  SubmitOpCode(op)
+
+  return 0
+
+
 def ActivateDisks(opts, args):
   """Activate an instance's disks.
 
@@ -270,7 +286,7 @@ def DeactivateDisks(opts, args):
 
 
 def StartupInstance(opts, args):
-  """Shutdown an instance.
+  """Startup an instance.
 
   Args:
     opts - class with options as members
@@ -634,6 +650,14 @@ commands = {
                     ],
                    "-b disk -p port <instance>",
                    "Removes a mirror from the instance"),
+  'rename': (RenameInstance, ARGS_FIXED(2),
+             [DEBUG_OPT,
+              make_option("--no-ip-check", dest="ignore_ip",
+                          help="Do not check that the IP of the new name"
+                          " is alive",
+                          default=False, action="store_true"),
+              ],
+             "<instance> <new_name>", "Rename the instance"),
   'replace-disks': (ReplaceDisks, ARGS_ONE,
                     [DEBUG_OPT,
                      make_option("-n", "--new-secondary", dest="new_secondary",
@@ -655,7 +679,7 @@ commands = {
                           default=None, type="string", metavar="<ADDRESS>"),
               make_option("-b", "--bridge", dest="bridge",
                           help="Bridge to connect this instance to",
-                          default=None, type="string", metavar="<bridge>")
+                          default=None, type="string", metavar="<bridge>"),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,

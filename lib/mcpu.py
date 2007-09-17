@@ -58,6 +58,7 @@ class Processor(object):
     opcodes.OpCreateInstance: cmdlib.LUCreateInstance,
     opcodes.OpReinstallInstance: cmdlib.LUReinstallInstance,
     opcodes.OpRemoveInstance: cmdlib.LURemoveInstance,
+    opcodes.OpRenameInstance: cmdlib.LURenameInstance,
     opcodes.OpActivateInstanceDisks: cmdlib.LUActivateInstanceDisks,
     opcodes.OpShutdownInstance: cmdlib.LUShutdownInstance,
     opcodes.OpStartupInstance: cmdlib.LUStartupInstance,

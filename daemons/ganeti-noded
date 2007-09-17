@@ -288,6 +288,15 @@ class ServerObject(pb.Avatar):
     return backend.AddOSToInstance(inst, os_disk, swap_disk)
 
   @staticmethod
+  def perspective_instance_run_rename(params):
+    """Runs the OS rename script for an instance.
+
+    """
+    inst_s, old_name, os_disk, swap_disk = params
+    inst = objects.ConfigObject.Loads(inst_s)
+    return backend.RunRenameInstance(inst, old_name, os_disk, swap_disk)
+
+  @staticmethod
   def perspective_instance_os_import(params):
     """Run the import function of an OS onto a given instance.
 

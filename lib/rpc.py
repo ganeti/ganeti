@@ -324,6 +324,19 @@ def call_instance_os_add(node, inst, osdev, swapdev):
   return c.getresult().get(node, False)
 
 
+def call_instance_run_rename(node, inst, old_name, osdev, swapdev):
+  """Run the OS rename script for an instance.
+
+  This is a single-node call.
+
+  """
+  params = [inst.Dumps(), old_name, osdev, swapdev]
+  c = Client("instance_run_rename", params)
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_instance_info(node, instance):
   """Returns information about a single instance.
 

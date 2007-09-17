@@ -145,6 +145,12 @@ class OpRemoveInstance(OpCode):
   __slots__ = ["instance_name"]
 
 
+class OpRenameInstance(OpCode):
+  """Rename an instance."""
+  OP_ID = "OP_INSTANCE_RENAME"
+  __slots__ = ["instance_name", "ignore_ip", "new_name"]
+
+
 class OpStartupInstance(OpCode):
   """Startup an instance."""
   OP_ID = "OP_INSTANCE_STARTUP"

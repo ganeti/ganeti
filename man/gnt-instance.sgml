@@ -413,6 +413,27 @@
         </para>
       </refsect3>
 
+      <refsect3>
+        <title>RENAME</title>
+
+        <cmdsynopsis>
+          <command>rename</command>
+          <arg>--no-ip-check</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+          <arg choice="req"><replaceable>new_name</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Renames the given instance. The instance must be stopped
+          when running this command. The requirements for the new name
+          are the same as for adding an instance: the new name must be
+          resolvable and the IP it resolves to must not be reachable
+          (in order to prevent duplicate IPs the next time the
+          instance is started). The IP test can be skipped if the
+          <option>--no-ip-check</option> option is passed.
+        </para>
+      </refsect3>
+
     </refsect2>
 
     <refsect2>

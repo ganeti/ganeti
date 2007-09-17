@@ -2034,6 +2034,87 @@ class LUReinstallInstance(LogicalUnit):
       _ShutdownInstanceDisks(inst, self.cfg)
 
 
+class LURenameInstance(LogicalUnit):
+  """Rename an instance.
+
+  """
+  HPATH = "instance-rename"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name", "new_name"]
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on master, primary and secondary nodes of the instance.
+
+    """
+    env = _BuildInstanceHookEnvByObject(self.instance)
+    env["INSTANCE_NEW_NAME"] = self.op.new_name
+    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+          list(self.instance.secondary_nodes))
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster and is not running.
+
+    """
+    instance = self.cfg.GetInstanceInfo(
+      self.cfg.ExpandInstanceName(self.op.instance_name))
+    if instance is None:
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
+    if instance.status != "down":
+      raise errors.OpPrereqError("Instance '%s' is marked to be up" %
+                                 self.op.instance_name)
+    remote_info = rpc.call_instance_info(instance.primary_node, instance.name)
+    if remote_info:
+      raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
+                                 (self.op.instance_name,
+                                  instance.primary_node))
+    self.instance = instance
+
+    # new name verification
+    hostname1 = utils.LookupHostname(self.op.new_name)
+    if not hostname1:
+      raise errors.OpPrereqError("New instance name '%s' not found in dns" %
+                                 self.op.new_name)
+
+    self.op.new_name = new_name = hostname1['hostname']
+    if not getattr(self.op, "ignore_ip", False):
+      command = ["fping", "-q", hostname1['ip']]
+      result = utils.RunCmd(command)
+      if not result.failed:
+        raise errors.OpPrereqError("IP %s of instance %s already in use" %
+                                   (hostname1['ip'], new_name))
+
+
+  def Exec(self, feedback_fn):
+    """Reinstall the instance.
+
+    """
+    inst = self.instance
+    old_name = inst.name
+
+    self.cfg.RenameInstance(inst.name, self.op.new_name)
+
+    # re-read the instance from the configuration after rename
+    inst = self.cfg.GetInstanceInfo(self.op.new_name)
+
+    _StartInstanceDisks(self.cfg, inst, None)
+    try:
+      if not rpc.call_instance_run_rename(inst.primary_node, inst, old_name,
+                                          "sda", "sdb"):
+        msg = ("Could run OS rename script for instance %s\n"
+               "on node %s\n"
+               "(but the instance has been renamed in Ganeti)" %
+               (inst.name, inst.primary_node))
+        logger.Error(msg)
+    finally:
+      _ShutdownInstanceDisks(inst, self.cfg)
+
+
 class LURemoveInstance(LogicalUnit):
   """Remove an instance.
 
