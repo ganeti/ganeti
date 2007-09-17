@@ -79,7 +79,7 @@ def StopMaster():
   return True
 
 
-def AddNode(dsa, dsapub, rsa, rsapub, ssh, sshpub):
+def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
   """ adds the node to the cluster
       - updates the hostkey
       - adds the ssh-key
@@ -107,7 +107,7 @@ def AddNode(dsa, dsapub, rsa, rsapub, ssh, sshpub):
     os.mkdir("/root/.ssh")
 
   f = open("/root/.ssh/id_dsa", 'w')
-  f.write(ssh)
+  f.write(sshkey)
   f.close()
 
   f = open("/root/.ssh/id_dsa.pub", 'w')
@@ -369,17 +369,13 @@ def AddOSToInstance(instance, os_disk, swap_disk):
 
   create_script = inst_os.create_script
 
-  for os_device in instance.disks:
-    if os_device.iv_name == os_disk:
-      break
-  else:
+  os_device = instance.FindDisk(os_disk)
+  if os_device is None:
     logger.Error("Can't find this device-visible name '%s'" % os_disk)
     return False
 
-  for swap_device in instance.disks:
-    if swap_device.iv_name == swap_disk:
-      break
-  else:
+  swap_device = instance.FindDisk(swap_disk)
+  if swap_device is None:
     logger.Error("Can't find this device-visible name '%s'" % swap_disk)
     return False
 
@@ -1199,17 +1195,13 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
   inst_os = OSFromDisk(instance.os)
   import_script = inst_os.import_script
 
-  for os_device in instance.disks:
-    if os_device.iv_name == os_disk:
-      break
-  else:
+  os_device = instance.FindDisk(os_disk)
+  if os_device is None:
     logger.Error("Can't find this device-visible name '%s'" % os_disk)
     return False
 
-  for swap_device in instance.disks:
-    if swap_device.iv_name == swap_disk:
-      break
-  else:
+  swap_device = instance.FindDisk(swap_disk)
+  if swap_device is None:
     logger.Error("Can't find this device-visible name '%s'" % swap_disk)
     return False
 
