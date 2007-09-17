@@ -28,7 +28,7 @@ import tempfile
 import os.path
 import md5
 import socket
-from errno import EADDRNOTAVAIL
+
 
 import ganeti
 from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \

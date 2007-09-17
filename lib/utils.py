@@ -32,7 +32,7 @@ import re
 import socket
 import tempfile
 import shutil
-from errno import ENOENT, ENOTDIR, EISDIR, EEXIST, EADDRNOTAVAIL, ECONNREFUSED
+import errno
 
 from ganeti import logger
 from ganeti import errors
@@ -115,7 +115,7 @@ def Lock(name, max_retries=None, debug=False):
       fd = os.open(lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR | os.O_SYNC)
       break
     except OSError, creat_err:
-      if creat_err.errno != EEXIST:
+      if creat_err.errno != errno.EEXIST:
         raise errors.LockError("Can't create the lock file. Error '%s'." %
                                str(creat_err))
 
@@ -266,7 +266,7 @@ def RemoveFile(filename):
   try:
     os.unlink(filename)
   except OSError, err:
-    if err.errno not in (ENOENT, EISDIR):
+    if err.errno not in (errno.ENOENT, errno.EISDIR):
       raise
 
 
@@ -355,7 +355,7 @@ def IsProcessAlive(pid):
   try:
     f = open("/proc/%d/status" % pid)
   except IOError, err:
-    if err.errno in (ENOENT, ENOTDIR):
+    if err.errno in (errno.ENOENT, errno.ENOTDIR):
       return False
 
   alive = True
@@ -804,7 +804,7 @@ def TcpPing(source, target, port, timeout=10, live_port_needed=True):
   try:
     sock.bind((source, 0))
   except socket.error, (errcode, errstring):
-    if errcode == EADDRNOTAVAIL:
+    if errcode == errno.EADDRNOTAVAIL:
       success = False
 
   sock.settimeout(timeout)
@@ -816,6 +816,6 @@ def TcpPing(source, target, port, timeout=10, live_port_needed=True):
   except socket.timeout:
     success = False
   except socket.error, (errcode, errstring):
-    success = (not live_port_needed) and (errcode == ECONNREFUSED)
+    success = (not live_port_needed) and (errcode == errno.ECONNREFUSED)
 
   return success
