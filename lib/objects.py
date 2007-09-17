@@ -400,7 +400,8 @@ class OS(ConfigObject):
     "api_version",
     "create_script",
     "export_script",
-    "import_script"
+    "import_script",
+    "rename_script",
     ]
 
 

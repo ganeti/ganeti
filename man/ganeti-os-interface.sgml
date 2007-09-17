@@ -53,10 +53,10 @@
     <title>REFERENCE</title>
 
     <para>
-      There are four required files: <filename>create</filename>,
-      <filename>import</filename>, <filename>export</filename>
-      (executables) and <filename>ganeti_api_version</filename> (text
-      file).
+      There are five required files: <filename>create</filename>,
+      <filename>import</filename>, <filename>export</filename>,
+      <filename>rename</filename> (executables) and
+      <filename>ganeti_api_version</filename> (text file).
     </para>
 
     <refsect2>
@@ -81,7 +81,7 @@
       denote the block devices which will be visible in the instance
       as <emphasis>sda</emphasis> and <emphasis>sdb</emphasis>. The
       <emphasis>sda</emphasis> block device should be used for the
-      root disk (and will be passed as the root device for linux
+      root disk (and will be passed as the root device for Linux
       kernels). The <emphasis>sdb</emphasis> device should be setup
       for swap usage.</para>
 
@@ -132,13 +132,47 @@
     </refsect2>
 
     <refsect2>
+      <title>rename</title>
+      <cmdsynopsis>
+        <command>rename</command>
+        <arg choice="req">-o <replaceable>old_name</replaceable></arg>
+        <arg choice="req">-n <replaceable>new_name</replaceable></arg>
+        <arg choice="req">-b <replaceable>blockdev_sda</replaceable></arg>
+        <arg choice="req">-s <replaceable>blockdev_sdb</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        This command is used in order to perform a rename at the
+        instance OS level, after the instance has been renamed in
+        Ganeti. The command should do whatever steps are required to
+        ensure that the instance is updated to use the new name, if
+        the operating system supports it.
+      </para>
+
+      <para>
+        Note that it is acceptable for the rename script to do nothing
+        at all, however be warned that in this case, there will be a
+        desynchronization between what <computeroutput>gnt-instance
+        list</computeroutput> shows you and the actual hostname of the
+        instance.
+      </para>
+
+      <para>
+        A very simple rename script should at least change the
+        hostname and IP address of the instance, leaving the
+        administrator to update the other services.
+        </screen>
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>ganeti_api_version</title>
       <para>
         The <filename>ganeti_api_version</filename> file is a plain
         text file containing the version of the guest OS api that this
         OS definition complies with. The version documented by this
-        man page is 4, so this file must contain 4 followed by a
-        newline.
+        man page is 5, so this file must contain the number 5 followed
+        by a newline.
       </para>
     </refsect2>
 
@@ -154,12 +188,36 @@
 
     </refsect2>
 
+    <refsect2>
+      <title>Upgrading from old versions</title>
+      <refsect3>
+        <title>Version 4 to 5</title>
+        <para>
+          The <filename>rename</filename> script has been added. If
+          you don't want to do any changes on the instances after a
+          rename, you can migrate the OS definition to version 5 by
+          creating the <filename>rename</filename> script simply as:
+          <screen>
+#!/bin/sh
+
+exit 0
+          </screen>
+        </para>
+
+        <para>Note that the script must be executable.</para>
+      </refsect3>
+    </refsect2>
+
     <!--
     <refsect2>
 
       <title>Export/import format</title>
 
-      <para>It is up to the export and import scripts to define the format they use. It is only required for these two to work together. It is not recommended that </para>
+      <para>
+        It is up to the export and import scripts to define the format
+        they use. It is only required for these two to work
+        together. It is not recommended that
+      </para>
 
     </refsect2>
     -->

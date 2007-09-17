@@ -812,6 +812,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
     utils.RemoveFile(new_name)
   return True
 
+
 def _ErrnoOrStr(err):
   """Format an EnvironmentError exception.
 
@@ -871,6 +872,7 @@ def _OSOndiskVersion(name, os_dir=None):
 
   return api_version
 
+
 def DiagnoseOS(top_dir=None):
   """Compute the validity for all OSes.
 
@@ -922,7 +924,7 @@ def OSFromDisk(name, os_dir=None):
                            % (api_version, constants.OS_API_VERSION))
 
   # OS Scripts dictionary, we will populate it with the actual script names
-  os_scripts = {'create': '', 'export': '', 'import': ''}
+  os_scripts = {'create': '', 'export': '', 'import': '', 'rename': ''}
 
   for script in os_scripts:
     os_scripts[script] = os.path.sep.join([os_dir, script])
@@ -944,6 +946,7 @@ def OSFromDisk(name, os_dir=None):
                     create_script=os_scripts['create'],
                     export_script=os_scripts['export'],
                     import_script=os_scripts['import'],
+                    rename_script=os_scripts['rename'],
                     api_version=api_version)
 
 
