@@ -32,7 +32,7 @@ import re
 import socket
 import tempfile
 import shutil
-from errno import ENOENT, ENOTDIR, EISDIR, EEXIST
+from errno import ENOENT, ENOTDIR, EISDIR, EEXIST, EADDRNOTAVAIL, ECONNREFUSED
 
 from ganeti import logger
 from ganeti import errors
@@ -786,3 +786,36 @@ def GetLocalIPAddresses():
       " output: %s" % (result.cmd, result.fail_reason, result.output))
 
   return _ParseIpOutput(result.output)
+
+
+def TcpPing(source, target, port, timeout=10, live_port_needed=True):
+  """Simple ping implementation using TCP connect(2).
+
+  Try to do a TCP connect(2) from the specified source IP to the specified
+  target IP and the specified target port. If live_port_needed is set to true,
+  requires the remote end to accept the connection. The timeout is specified
+  in seconds and defaults to 10 seconds
+
+  """
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+  sucess = False
+
+  try:
+    sock.bind((source, 0))
+  except socket.error, (errcode, errstring):
+    if errcode == EADDRNOTAVAIL:
+      success = False
+
+  sock.settimeout(timeout)
+
+  try:
+    sock.connect((target, port))
+    sock.close()
+    success = True
+  except socket.timeout:
+    success = False
+  except socket.error, (errcode, errstring):
+    success = (not live_port_needed) and (errcode == ECONNREFUSED)
+
+  return success
