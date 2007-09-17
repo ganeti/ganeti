@@ -329,6 +329,23 @@ class ConfigWriter:
     del self._config_data.instances[instance_name]
     self._WriteConfig()
 
+  def RenameInstance(self, old_name, new_name):
+    """Rename an instance.
+
+    This needs to be done in ConfigWriter and not by RemoveInstance
+    combined with AddInstance as only we can guarantee an atomic
+    rename.
+
+    """
+    self._OpenConfig()
+    if old_name not in self._config_data.instances:
+      raise errors.ConfigurationError("Unknown instance '%s'" % old_name)
+    inst = self._config_data.instances[old_name]
+    del self._config_data.instances[old_name]
+    inst.name = new_name
+    self._config_data.instances[inst.name] = inst
+    self._WriteConfig()
+
   def MarkInstanceDown(self, instance_name):
     """Mark the status of an instance to down in the configuration.
 
