@@ -240,7 +240,7 @@ def RemoveInstance(opts, args):
 
 
 def RenameInstance(opts, args):
-  """Reinstall an instance.
+  """Rename an instance.
 
   Args:
     opts - class with options as members
