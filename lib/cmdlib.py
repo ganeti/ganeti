@@ -944,6 +944,87 @@ class LUVerifyCluster(NoHooksLU):
     return int(bad)
 
 
+class LURenameCluster(LogicalUnit):
+  """Rename the cluster.
+
+  """
+  HPATH = "cluster-rename"
+  HTYPE = constants.HTYPE_CLUSTER
+  _OP_REQP = ["name"]
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {
+      "NEW_NAME": self.op.name,
+      }
+    mn = self.sstore.GetMasterNode()
+    return env, [mn], [mn]
+
+  def CheckPrereq(self):
+    """Verify that the passed name is a valid one.
+
+    """
+    hostname = utils.LookupHostname(self.op.name)
+    if not hostname:
+      raise errors.OpPrereqError("Cannot resolve the new cluster name ('%s')" %
+                                 self.op.name)
+
+    new_name = hostname["hostname"]
+    self.ip = new_ip = hostname["ip"]
+    old_name = self.sstore.GetClusterName()
+    old_ip = self.sstore.GetMasterIP()
+    if new_name == old_name and new_ip == old_ip:
+      raise errors.OpPrereqError("Neither the name nor the IP address of the"
+                                 " cluster has changed")
+    if new_ip != old_ip:
+      result = utils.RunCmd(["fping", "-q", new_ip])
+      if not result.failed:
+        raise errors.OpPrereqError("The given cluster IP address (%s) is"
+                                   " reachable on the network. Aborting." %
+                                   new_ip)
+
+    self.op.name = new_name
+
+  def Exec(self, feedback_fn):
+    """Rename the cluster.
+
+    """
+    clustername = self.op.name
+    ip = self.ip
+    ss = self.sstore
+
+    # shutdown the master IP
+    master = ss.GetMasterNode()
+    if not rpc.call_node_stop_master(master):
+      raise errors.OpExecError("Could not disable the master role")
+
+    try:
+      # modify the sstore
+      ss.SetKey(ss.SS_MASTER_IP, ip)
+      ss.SetKey(ss.SS_CLUSTER_NAME, clustername)
+
+      # Distribute updated ss config to all nodes
+      myself = self.cfg.GetNodeInfo(master)
+      dist_nodes = self.cfg.GetNodeList()
+      if myself.name in dist_nodes:
+        dist_nodes.remove(myself.name)
+
+      logger.Debug("Copying updated ssconf data to all nodes")
+      for keyname in [ss.SS_CLUSTER_NAME, ss.SS_MASTER_IP]:
+        fname = ss.KeyToFilename(keyname)
+        result = rpc.call_upload_file(dist_nodes, fname)
+        for to_node in dist_nodes:
+          if not result[to_node]:
+            logger.Error("copy of file %s to node %s failed" %
+                         (fname, to_node))
+    finally:
+      if not rpc.call_node_start_master(master):
+        logger.Error("Could not re-enable the master role on the master,\n"
+                     "please restart manually.")
+
+
 def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
   """Sleep and poll for an instance's disk to sync.
 

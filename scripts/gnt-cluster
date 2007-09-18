@@ -64,6 +64,28 @@ def DestroyCluster(opts, args):
   return 0
 
 
+def RenameCluster(opts, args):
+  """Rename the cluster.
+
+  Args:
+    opts - class with options as members, we use force only
+    args - list of arguments, expected to be [new_name]
+
+  """
+  name = args[0]
+  if not opts.force:
+    usertext = ("This will rename the cluster to '%s'. If you are connected"
+                " over the network to the cluster name, the operation is very"
+                " dangerous as the IP address will be removed from the node"
+                " and the change may not go through. Continue?") % name
+    if not opts._ask_user(usertext):
+      return 1
+
+  op = opcodes.OpRenameCluster(name=name)
+  SubmitOpCode(op)
+  return 0
+
+
 def ShowClusterVersion(opts, args):
   """Write version of ganeti software to the standard output.
 
@@ -222,6 +244,9 @@ commands = {
                            action="store_true"),
               ],
               "", "Destroy cluster"),
+  'rename': (RenameCluster, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
+               "<new_name>",
+               "Renames the cluster"),
   'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT],
              "", "Does a check on the cluster configuration"),
   'masterfailover': (MasterFailover, ARGS_NONE, [DEBUG_OPT],

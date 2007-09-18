@@ -98,6 +98,14 @@ class OpDumpClusterConfig(OpCode):
   __slots__ = []
 
 
+class OpRenameCluster(OpCode):
+  """Rename the cluster."""
+  OP_ID = "OP_CLUSTER_RENAME"
+  __slots__ = ["name"]
+
+
+# node opcodes
+
 class OpRemoveNode(OpCode):
   """Remove a node."""
   OP_ID = "OP_NODE_REMOVE"

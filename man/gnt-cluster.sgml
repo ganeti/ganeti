@@ -111,6 +111,15 @@
     </para>
 
     <cmdsynopsis>
+      <command>destroy</command>
+    </cmdsynopsis>
+
+    <para>
+      Remove all configuration files related to the cluster, so that a
+      <command>gnt-cluster init</command> can be done again afterwards.
+    </para>
+
+    <cmdsynopsis>
       <command>getmaster</command>
     </cmdsynopsis>
 
@@ -178,12 +187,22 @@
     </para>
 
     <cmdsynopsis>
-      <command>destroy</command>
+      <command>rename</command>
+      <arg>-f</arg>
+      <arg choice="req"><replaceable>name</replaceable></arg>
     </cmdsynopsis>
 
     <para>
-      Remove all configuration files related to the cluster, so that a
-      <command>gnt-cluster init</command> can be done again afterwards.
+      Renames the cluster and in the process updates the master IP
+      address to the one the new name resolves to. At least one of
+      either the name or the IP address must be different, otherwise
+      the operation will be aborted.
+    </para>
+
+    <para>
+      Note that since this command can be dangerous (especially when
+      run over SSH), the command will require confirmation unless run
+      with the <option>-f</option> option.
     </para>
 
     <cmdsynopsis>
