@@ -396,6 +396,22 @@ def MatchNameComponent(key, name_list):
   return names_filtered[0]
 
 
+class HostInfo:
+  """Class holding host info as returned by gethostbyname
+
+  """
+  def __init__(self, name, aliases, ipaddrs):
+    """Initialize the host name object.
+
+    Arguments are the same as returned by socket.gethostbyname_ex()
+
+    """
+    self.name = name
+    self.aliases = aliases
+    self.ipaddrs = ipaddrs
+    self.ip = self.ipaddrs[0]
+
+
 def LookupHostname(hostname):
   """Look up hostname
 
@@ -403,26 +419,16 @@ def LookupHostname(hostname):
     hostname: hostname to look up, can be also be a non FQDN
 
   Returns:
-    Dictionary with keys:
-    - ip: IP addr
-    - hostname_full: hostname fully qualified
-    - hostname: hostname fully qualified (historic artifact)
+    a HostInfo object
 
   """
   try:
-    (fqdn, dummy, ipaddrs) = socket.gethostbyname_ex(hostname)
-    ipaddr = ipaddrs[0]
+    (name, aliases, ipaddrs) = socket.gethostbyname_ex(hostname)
   except socket.gaierror:
     # hostname not found in DNS
     return None
 
-  returnhostname = {
-    "ip": ipaddr,
-    "hostname_full": fqdn,
-    "hostname": fqdn,
-    }
-
-  return returnhostname
+  return HostInfo(name, aliases, ipaddrs)
 
 
 def ListVolumeGroups():

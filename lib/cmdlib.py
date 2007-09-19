@@ -547,9 +547,9 @@ class LUInitCluster(LogicalUnit):
     """
     env = {
       "CLUSTER": self.op.cluster_name,
-      "MASTER": self.hostname['hostname_full'],
+      "MASTER": self.hostname.name,
       }
-    return env, [], [self.hostname['hostname_full']]
+    return env, [], [self.hostname.name]
 
   def CheckPrereq(self):
     """Verify that the passed name is a valid one.
@@ -564,33 +564,33 @@ class LUInitCluster(LogicalUnit):
       raise errors.OpPrereqError("Cannot resolve my own hostname ('%s')" %
                                  hostname_local)
 
-    if hostname["hostname_full"] != hostname_local:
+    if hostname.name != hostname_local:
       raise errors.OpPrereqError("My own hostname (%s) does not match the"
                                  " resolver (%s): probably not using FQDN"
                                  " for hostname." %
-                                 (hostname_local, hostname["hostname_full"]))
+                                 (hostname_local, hostname.name))
 
-    if hostname["ip"].startswith("127."):
+    if hostname.ip.startswith("127."):
       raise errors.OpPrereqError("This host's IP resolves to the private"
                                  " range (%s). Please fix DNS or /etc/hosts." %
-                                 (hostname["ip"],))
+                                 (hostname.ip,))
 
     self.clustername = clustername = utils.LookupHostname(self.op.cluster_name)
     if not clustername:
       raise errors.OpPrereqError("Cannot resolve given cluster name ('%s')"
                                  % self.op.cluster_name)
 
-    result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", hostname['ip']])
+    result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", hostname.ip])
     if result.failed:
       raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                  " to %s,\nbut this ip address does not"
                                  " belong to this host."
-                                 " Aborting." % hostname['ip'])
+                                 " Aborting." % hostname.ip)
 
     secondary_ip = getattr(self.op, "secondary_ip", None)
     if secondary_ip and not utils.IsValidIP(secondary_ip):
       raise errors.OpPrereqError("Invalid secondary ip given")
-    if secondary_ip and secondary_ip != hostname['ip']:
+    if secondary_ip and secondary_ip != hostname.ip:
       result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", secondary_ip])
       if result.failed:
         raise errors.OpPrereqError("You gave %s as secondary IP,\n"
@@ -629,16 +629,16 @@ class LUInitCluster(LogicalUnit):
     # set up the simple store
     ss = ssconf.SimpleStore()
     ss.SetKey(ss.SS_HYPERVISOR, self.op.hypervisor_type)
-    ss.SetKey(ss.SS_MASTER_NODE, hostname['hostname_full'])
-    ss.SetKey(ss.SS_MASTER_IP, clustername['ip'])
+    ss.SetKey(ss.SS_MASTER_NODE, hostname.name)
+    ss.SetKey(ss.SS_MASTER_IP, clustername.ip)
     ss.SetKey(ss.SS_MASTER_NETDEV, self.op.master_netdev)
-    ss.SetKey(ss.SS_CLUSTER_NAME, clustername['hostname'])
+    ss.SetKey(ss.SS_CLUSTER_NAME, clustername.name)
 
     # set up the inter-node password and certificate
     _InitGanetiServerSetup(ss)
 
     # start the master ip
-    rpc.call_node_start_master(hostname['hostname_full'])
+    rpc.call_node_start_master(hostname.name)
 
     # set up ssh config and /etc/hosts
     f = open('/etc/ssh/ssh_host_rsa_key.pub', 'r')
@@ -648,20 +648,15 @@ class LUInitCluster(LogicalUnit):
       f.close()
     sshkey = sshline.split(" ")[1]
 
-    _UpdateEtcHosts(hostname['hostname_full'],
-                    hostname['ip'],
-                    )
+    _UpdateEtcHosts(hostname.name, hostname.ip)
 
-    _UpdateKnownHosts(hostname['hostname_full'],
-                      hostname['ip'],
-                      sshkey,
-                      )
+    _UpdateKnownHosts(hostname.name, hostname.ip, sshkey)
 
-    _InitSSHSetup(hostname['hostname'])
+    _InitSSHSetup(hostname.name)
 
     # init of cluster config file
     cfgw = config.ConfigWriter()
-    cfgw.InitConfig(hostname['hostname'], hostname['ip'], self.secondary_ip,
+    cfgw.InitConfig(hostname.name, hostname.ip, self.secondary_ip,
                     sshkey, self.op.mac_prefix,
                     self.op.vg_name, self.op.def_bridge)
 
@@ -971,8 +966,8 @@ class LURenameCluster(LogicalUnit):
       raise errors.OpPrereqError("Cannot resolve the new cluster name ('%s')" %
                                  self.op.name)
 
-    new_name = hostname["hostname"]
-    self.ip = new_ip = hostname["ip"]
+    new_name = hostname.name
+    self.ip = new_ip = hostname.ip
     old_name = self.sstore.GetClusterName()
     old_ip = self.sstore.GetMasterIP()
     if new_name == old_name and new_ip == old_ip:
@@ -1413,8 +1408,8 @@ class LUAddNode(LogicalUnit):
     if not dns_data:
       raise errors.OpPrereqError("Node %s is not resolvable" % node_name)
 
-    node = dns_data['hostname']
-    primary_ip = self.op.primary_ip = dns_data['ip']
+    node = dns_data.name
+    primary_ip = self.op.primary_ip = dns_data.ip
     secondary_ip = getattr(self.op, "secondary_ip", None)
     if secondary_ip is None:
       secondary_ip = primary_ip
@@ -2162,13 +2157,13 @@ class LURenameInstance(LogicalUnit):
       raise errors.OpPrereqError("New instance name '%s' not found in dns" %
                                  self.op.new_name)
 
-    self.op.new_name = new_name = hostname1['hostname']
+    self.op.new_name = new_name = hostname1.name
     if not getattr(self.op, "ignore_ip", False):
-      command = ["fping", "-q", hostname1['ip']]
+      command = ["fping", "-q", hostname1.ip]
       result = utils.RunCmd(command)
       if not result.failed:
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (hostname1['ip'], new_name))
+                                   (hostname1.ip, new_name))
 
 
   def Exec(self, feedback_fn):
@@ -2849,7 +2844,7 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Instance name '%s' not found in dns" %
                                  self.op.instance_name)
 
-    self.op.instance_name = instance_name = hostname1['hostname']
+    self.op.instance_name = instance_name = hostname1.name
     instance_list = self.cfg.GetInstanceList()
     if instance_name in instance_list:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
@@ -2859,7 +2854,7 @@ class LUCreateInstance(LogicalUnit):
     if ip is None or ip.lower() == "none":
       inst_ip = None
     elif ip.lower() == "auto":
-      inst_ip = hostname1['ip']
+      inst_ip = hostname1.ip
     else:
       if not utils.IsValidIP(ip):
         raise errors.OpPrereqError("given IP address '%s' doesn't look"
@@ -2867,11 +2862,11 @@ class LUCreateInstance(LogicalUnit):
       inst_ip = ip
     self.inst_ip = inst_ip
 
-    command = ["fping", "-q", hostname1['ip']]
+    command = ["fping", "-q", hostname1.ip]
     result = utils.RunCmd(command)
     if not result.failed:
       raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                 (hostname1['ip'], instance_name))
+                                 (hostname1.ip, instance_name))
 
     # bridge verification
     bridge = getattr(self.op, "bridge", None)
