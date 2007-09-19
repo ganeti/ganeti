@@ -138,7 +138,7 @@ class OpCreateInstance(OpCode):
   __slots__ = ["instance_name", "mem_size", "disk_size", "os_type", "pnode",
                "disk_template", "snode", "swap_size", "mode",
                "vcpus", "ip", "bridge", "src_node", "src_path", "start",
-               "wait_for_sync"]
+               "wait_for_sync", "ip_check"]
 
 
 class OpReinstallInstance(OpCode):

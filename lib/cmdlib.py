@@ -2694,7 +2694,7 @@ class LUCreateInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mem_size", "disk_size", "pnode",
               "disk_template", "swap_size", "mode", "start", "vcpus",
-              "wait_for_sync"]
+              "wait_for_sync", "ip_check"]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2862,11 +2862,16 @@ class LUCreateInstance(LogicalUnit):
       inst_ip = ip
     self.inst_ip = inst_ip
 
-    command = ["fping", "-q", hostname1.ip]
-    result = utils.RunCmd(command)
-    if not result.failed:
-      raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                 (hostname1.ip, instance_name))
+    if self.op.start and not self.op.ip_check:
+      raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
+                                 " adding an instance in start mode")
+
+    if self.op.ip_check:
+      command = ["fping", "-q", hostname1.ip]
+      result = utils.RunCmd(command)
+      if not result.failed:
+        raise errors.OpPrereqError("IP address %s of instance %s already"
+                                   " in use" % (hostname1.ip, instance_name))
 
     # bridge verification
     bridge = getattr(self.op, "bridge", None)

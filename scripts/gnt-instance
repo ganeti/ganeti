@@ -187,7 +187,8 @@ def AddInstance(opts, args):
                                 mode=constants.INSTANCE_CREATE,
                                 os_type=opts.os, pnode=opts.node,
                                 snode=opts.snode, vcpus=opts.vcpus,
-                                ip=opts.ip, bridge=opts.bridge, start=True,
+                                ip=opts.ip, bridge=opts.bridge,
+                                start=opts.start, ip_check=opts.ip_check,
                                 wait_for_sync=opts.wait_for_sync)
   SubmitOpCode(op)
   return 0
@@ -602,7 +603,13 @@ add_opts = [
               metavar="<node>"),
   make_option("-b", "--bridge", dest="bridge",
               help="Bridge to connect this instance to",
-              default=None, metavar="<bridge>")
+              default=None, metavar="<bridge>"),
+  make_option("--no-start", dest="start", default=True,
+              action="store_false", help="Don't start the instance after"
+              " creation"),
+  make_option("--no-ip-check", dest="ip_check", default=True,
+              action="store_false", help="Don't check that the instance's IP"
+              " is alive (only valid with --no-start)"),
   ]
 
 commands = {

@@ -131,6 +131,9 @@ import_opts = [
               metavar="<node>"),
   make_option("--src-dir", dest="src_dir", help="Source directory",
               metavar="<dir>"),
+  make_option("--no-ip-check", dest="ip_check", default=True,
+              action="store_false", help="Don't check that the instance's IP"
+              " is alive"),
   ]
 
 commands = {
