@@ -207,7 +207,7 @@ def ReinstallInstance(opts, args):
   if not opts.force:
     usertext = ("This will reinstall the instance %s and remove "
                 "all data. Continue?") % instance_name
-    if not opts._ask_user(usertext):
+    if not AskUser(usertext):
       return 1
 
   op = opcodes.OpReinstallInstance(instance_name=instance_name,
@@ -232,7 +232,7 @@ def RemoveInstance(opts, args):
     usertext = ("This will remove the volumes of the instance %s"
                 " (including mirrors), thus removing all the data"
                 " of the instance. Continue?") % instance_name
-    if not opts._ask_user(usertext):
+    if not AskUser(usertext):
       return 1
 
   op = opcodes.OpRemoveInstance(instance_name=instance_name)
@@ -394,7 +394,7 @@ def FailoverInstance(opts, args):
     usertext = ("Failover will happen to image %s."
                 " This requires a shutdown of the instance. Continue?" %
                 (instance_name,))
-    if not opts._ask_user(usertext):
+    if not AskUser(usertext):
       return 1
 
   op = opcodes.OpFailoverInstance(instance_name=instance_name,

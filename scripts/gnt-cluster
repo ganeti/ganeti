@@ -78,7 +78,7 @@ def RenameCluster(opts, args):
                 " over the network to the cluster name, the operation is very"
                 " dangerous as the IP address will be removed from the node"
                 " and the change may not go through. Continue?") % name
-    if not opts._ask_user(usertext):
+    if not AskUser(usertext):
       return 1
 
   op = opcodes.OpRenameCluster(name=name)

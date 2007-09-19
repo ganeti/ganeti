@@ -37,7 +37,7 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError, SUPPRESS_HELP)
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
-           "cli_option", "GenerateTable",
+           "cli_option", "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT"]
 
@@ -170,27 +170,59 @@ def _ParseArgs(argv, commands):
   return func, options, args
 
 
-def _AskUser(text):
-  """Ask the user a yes/no question.
+def AskUser(text, choices=None):
+  """Ask the user a question.
 
   Args:
-    questionstring - the question to ask.
+    text - the question to ask.
 
-  Returns:
-    True or False depending on answer (No for False is default).
+    choices - list with elements tuples (input_char, return_value,
+    description); if not given, it will default to: [('y', True,
+    'Perform the operation'), ('n', False, 'Do no do the operation')];
+    note that the '?' char is reserved for help
+
+  Returns: one of the return values from the choices list; if input is
+  not possible (i.e. not running with a tty, we return the last entry
+  from the list
 
   """
+  if choices is None:
+    choices = [('y', True, 'Perform the operation'),
+               ('n', False, 'Do not perform the operation')]
+  if not choices or not isinstance(choices, list):
+    raise errors.ProgrammerError("Invalid choiches argument to AskUser")
+  for entry in choices:
+    if not isinstance(entry, tuple) or len(entry) < 3 or entry[0] == '?':
+      raise errors.ProgrammerError("Invalid choiches element to AskUser")
+
+  answer = choices[-1][1]
+  new_text = []
+  for line in text.splitlines():
+    new_text.append(textwrap.fill(line, 70, replace_whitespace=False))
+  text = "\n".join(new_text)
   try:
     f = file("/dev/tty", "r+")
   except IOError:
-    return False
-  answer = False
+    return answer
   try:
-    f.write(textwrap.fill(text))
-    f.write('\n')
-    f.write("y/[n]: ")
-    line = f.readline(16).strip().lower()
-    answer = line in ('y', 'yes')
+    chars = [entry[0] for entry in choices]
+    chars[-1] = "[%s]" % chars[-1]
+    chars.append('?')
+    maps = dict([(entry[0], entry[1]) for entry in choices])
+    while True:
+      f.write(text)
+      f.write('\n')
+      f.write("/".join(chars))
+      f.write(": ")
+      line = f.readline(2).strip().lower()
+      if line in maps:
+        answer = maps[line]
+        break
+      elif line == '?':
+        for entry in choices:
+          f.write(" %s - %s\n" % (entry[0], entry[2]))
+        f.write("\n")
+        continue
   finally:
     f.close()
   return answer
@@ -230,8 +262,6 @@ def GenericMain(commands):
   func, options, args = _ParseArgs(sys.argv, commands)
   if func is None: # parse error
     return 1
-
-  options._ask_user = _AskUser
 
   logger.SetupLogging(debug=options.debug, program=binary)
 
