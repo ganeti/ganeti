@@ -99,6 +99,41 @@ def _ExpandMultiNames(mode, names):
   return inames
 
 
+def _ConfirmOperation(inames, text):
+  """Ask the user to confirm an operation on a list of instances.
+
+  This function is used to request confirmation for doing an operation
+  on a given list of instances.
+
+  The inames argument is what the selection algorithm computed, and
+  the text argument is the operation we should tell the user to
+  confirm (e.g. 'shutdown' or 'startup').
+
+  Returns: boolean depending on user's confirmation.
+
+  """
+  count = len(inames)
+  msg = ("The %s will operate on %d instances.\n"
+         "Do you want to continue?" % (text, count))
+  affected = ("\nAffected instances:\n" +
+              "\n".join(["  %s" % name for name in inames]))
+
+  choices = [('y', True, 'Yes, execute the %s' % text),
+             ('n', False, 'No, abort the %s' % text)]
+
+  if count > 20:
+    choices.insert(1, ('v', 'v', 'View the list of affected instances'))
+    ask = msg
+  else:
+    ask = msg + affected
+
+  choice = AskUser(ask, choices)
+  if choice == 'v':
+    choices.pop(1)
+    choice = AskUser(choices, msg + affected)
+  return choice
+
+
 def ListInstances(opts, args):
   """List nodes and their properties.
 
@@ -297,7 +332,10 @@ def StartupInstance(opts, args):
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
   inames = _ExpandMultiNames(opts.multi_mode, args)
-  multi_on = len(inames) > 1
+  multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
+  if not (opts.force_multi or not multi_on
+          or _ConfirmOperation(inames, "startup")):
+    return 1
   for name in inames:
     op = opcodes.OpStartupInstance(instance_name=name,
                                    force=opts.force,
@@ -319,7 +357,10 @@ def ShutdownInstance(opts, args):
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
   inames = _ExpandMultiNames(opts.multi_mode, args)
-  multi_on = len(inames) > 1
+  multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
+  if not (opts.force_multi or not multi_on
+          or _ConfirmOperation(inames, "shutdown")):
+    return 1
   for name in inames:
     op = opcodes.OpShutdownInstance(instance_name=name)
     if multi_on:
@@ -554,6 +595,11 @@ os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>")
 
 # multi-instance selection options
+m_force_multi = make_option("--force-multiple", dest="force_multi",
+                            help="Do not ask for confirmation when more than"
+                            " one instance is affected",
+                            action="store_true", default=False)
+
 m_pri_node_opt = make_option("--primary", dest="multi_mode",
                              help="Filter by nodes (primary only)",
                              const=_SHUTDOWN_NODES_PRI, action="store_const")
@@ -691,10 +737,10 @@ commands = {
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,
                [DEBUG_OPT, m_node_opt, m_pri_node_opt, m_sec_node_opt,
-                m_clust_opt, m_inst_opt],
+                m_clust_opt, m_inst_opt, m_force_multi],
                "<instance>", "Stops an instance"),
   'startup': (StartupInstance, ARGS_ANY,
-              [DEBUG_OPT, FORCE_OPT,
+              [DEBUG_OPT, FORCE_OPT, m_force_multi,
                make_option("-e", "--extra", dest="extra_args",
                            help="Extra arguments for the instance's kernel",
                            default=None, type="string", metavar="<PARAMS>"),
