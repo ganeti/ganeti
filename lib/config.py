@@ -35,7 +35,6 @@ we reverted to pickle using custom Unpicklers.
 """
 
 import os
-import socket
 import tempfile
 import random
 
@@ -78,6 +77,11 @@ class ConfigWriter:
     else:
       self._cfg_file = cfg_file
     self._temporary_ids = set()
+    # Note: in order to prevent errors when resolving our name in
+    # _DistributeConfig, we compute it here once and reuse it; it's
+    # better to raise an error before starting to modify the config
+    # file than after it was modified
+    self._my_hostname = utils.HostInfo().name
 
   # this method needs to be static, so that we can call it on the class
   @staticmethod
@@ -527,7 +531,7 @@ class ConfigWriter:
       return True
     bad = False
     nodelist = self.GetNodeList()
-    myhostname = socket.gethostname()
+    myhostname = self._my_hostname
 
     tgt_list = []
     for node in nodelist:

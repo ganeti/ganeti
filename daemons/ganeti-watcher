@@ -39,13 +39,13 @@ import sys
 import time
 import fcntl
 import errno
-import socket
 from optparse import OptionParser
 
 
 from ganeti import utils
 from ganeti import constants
 from ganeti import ssconf
+from ganeti import errors
 
 
 class Error(Exception):
@@ -263,7 +263,7 @@ class Restarter(object):
   def __init__(self):
     sstore = ssconf.SimpleStore()
     master = sstore.GetMasterNode()
-    if master != socket.gethostname():
+    if master != utils.HostInfo().name:
       raise NotMasterError("This is not the master node")
     self.instances = InstanceList()
     self.messages = []
@@ -357,6 +357,9 @@ def main():
     if options.debug:
       sys.stderr.write("Not master, exiting.\n")
     sys.exit(constants.EXIT_NOTMASTER)
+  except errors.ResolverError, err:
+    sys.stderr.write("Cannot resolve hostname '%s', exiting.\n" % err.args[0])
+    sys.exit(constants.EXIT_NODESETUP_ERROR)
   except Error, err:
     print err
 

@@ -22,6 +22,7 @@
 """Module implementing a fake ConfigWriter"""
 
 import socket
+from ganeti import utils
 
 class FakeConfig:
     """Fake configuration object"""
@@ -33,7 +34,7 @@ class FakeConfig:
         return ["a", "b", "c"]
 
     def GetMaster(self):
-        return socket.gethostname()
+        return utils.HostInfo().name
 
 
 class FakeSStore:
@@ -43,4 +44,4 @@ class FakeSStore:
         return "test.cluster"
 
     def GetMasterNode(self):
-        return socket.gethostname()
+        return utils.HostInfo().name

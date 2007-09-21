@@ -397,38 +397,51 @@ def MatchNameComponent(key, name_list):
 
 
 class HostInfo:
-  """Class holding host info as returned by gethostbyname
+  """Class implementing resolver and hostname functionality
 
   """
-  def __init__(self, name, aliases, ipaddrs):
+  def __init__(self, name=None):
     """Initialize the host name object.
 
-    Arguments are the same as returned by socket.gethostbyname_ex()
+    If the name argument is not passed, it will use this system's
+    name.
 
     """
-    self.name = name
-    self.aliases = aliases
-    self.ipaddrs = ipaddrs
+    if name is None:
+      name = self.SysName()
+
+    self.query = name
+    self.name, self.aliases, self.ipaddrs = self.LookupHostname(name)
     self.ip = self.ipaddrs[0]
 
+  @staticmethod
+  def SysName():
+    """Return the current system's name.
 
-def LookupHostname(hostname):
-  """Look up hostname
+    This is simply a wrapper over socket.gethostname()
 
-  Args:
-    hostname: hostname to look up, can be also be a non FQDN
+    """
+    return socket.gethostname()
 
-  Returns:
-    a HostInfo object
+  @staticmethod
+  def LookupHostname(hostname):
+    """Look up hostname
 
-  """
-  try:
-    (name, aliases, ipaddrs) = socket.gethostbyname_ex(hostname)
-  except socket.gaierror:
-    # hostname not found in DNS
-    return None
+    Args:
+      hostname: hostname to look up
 
-  return HostInfo(name, aliases, ipaddrs)
+    Returns:
+      a tuple (name, aliases, ipaddrs) as returned by socket.gethostbyname_ex
+      in case of errors in resolving, we raise a ResolverError
+
+    """
+    try:
+      result = socket.gethostbyname_ex(hostname)
+    except socket.gaierror, err:
+      # hostname not found in DNS
+      raise errors.ResolverError(hostname, err.args[0], err.args[1])
+
+    return result
 
 
 def ListVolumeGroups():

@@ -35,7 +35,6 @@ generic errors as other python code can cause exit with code 1.
 
 import os
 import sys
-import socket
 
 from optparse import OptionParser
 
@@ -150,6 +149,12 @@ def main():
   """
   options, args = ParseOptions()
   debug = options.debug
+  try:
+    myself = utils.HostInfo()
+  except errors.ResolverError, err:
+    sys.stderr.write("Cannot resolve my own name (%s)\n" % err.args[0])
+    return EXIT_NODESETUP_ERROR
+
   result = CheckNodeSetup(debug)
   if not result:
     if debug:
@@ -157,7 +162,7 @@ def main():
     return EXIT_NODESETUP_ERROR
 
   master_node, master_netdev, master_ip = result
-  if socket.gethostname() != master_node and args[0] == "start":
+  if myself.name != master_node and args[0] == "start":
     if debug:
       sys.stderr.write("Not master, ignoring request.\n")
     return EXIT_NOTMASTER

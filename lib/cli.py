@@ -296,6 +296,14 @@ def GenericMain(commands):
     except errors.HooksFailure, err:
       logger.ToStderr("Failure: hooks general failure: %s" % str(err))
       result = 1
+    except errors.ResolverError, err:
+      this_host = utils.HostInfo.SysName()
+      if err.args[0] == this_host:
+        msg = "Failure: can't resolve my own hostname ('%s')"
+      else:
+        msg = "Failure: can't resolve hostname '%s'"
+      logger.ToStderr(msg % err.args[0])
+      result = 1
     except errors.OpPrereqError, err:
       logger.ToStderr("Failure: prerequisites not met for this"
                       " operation:\n%s" % str(err))

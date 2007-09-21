@@ -85,7 +85,7 @@ class LogicalUnit(object):
                                    " use 'gnt-cluster init' first.")
       if self.REQ_MASTER:
         master = sstore.GetMasterNode()
-        if master != socket.gethostname():
+        if master != utils.HostInfo().name:
           raise errors.OpPrereqError("Commands must be run on the master"
                                      " node %s" % master)
 
@@ -558,27 +558,14 @@ class LUInitCluster(LogicalUnit):
     if config.ConfigWriter.IsCluster():
       raise errors.OpPrereqError("Cluster is already initialised")
 
-    hostname_local = socket.gethostname()
-    self.hostname = hostname = utils.LookupHostname(hostname_local)
-    if not hostname:
-      raise errors.OpPrereqError("Cannot resolve my own hostname ('%s')" %
-                                 hostname_local)
-
-    if hostname.name != hostname_local:
-      raise errors.OpPrereqError("My own hostname (%s) does not match the"
-                                 " resolver (%s): probably not using FQDN"
-                                 " for hostname." %
-                                 (hostname_local, hostname.name))
+    self.hostname = hostname = utils.HostInfo()
 
     if hostname.ip.startswith("127."):
       raise errors.OpPrereqError("This host's IP resolves to the private"
                                  " range (%s). Please fix DNS or /etc/hosts." %
                                  (hostname.ip,))
 
-    self.clustername = clustername = utils.LookupHostname(self.op.cluster_name)
-    if not clustername:
-      raise errors.OpPrereqError("Cannot resolve given cluster name ('%s')"
-                                 % self.op.cluster_name)
+    self.clustername = clustername = utils.HostInfo(self.op.cluster_name)
 
     result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", hostname.ip])
     if result.failed:
@@ -961,10 +948,7 @@ class LURenameCluster(LogicalUnit):
     """Verify that the passed name is a valid one.
 
     """
-    hostname = utils.LookupHostname(self.op.name)
-    if not hostname:
-      raise errors.OpPrereqError("Cannot resolve the new cluster name ('%s')" %
-                                 self.op.name)
+    hostname = utils.HostInfo(self.op.name)
 
     new_name = hostname.name
     self.ip = new_ip = hostname.ip
@@ -1404,9 +1388,7 @@ class LUAddNode(LogicalUnit):
     node_name = self.op.node_name
     cfg = self.cfg
 
-    dns_data = utils.LookupHostname(node_name)
-    if not dns_data:
-      raise errors.OpPrereqError("Node %s is not resolvable" % node_name)
+    dns_data = utils.HostInfo(node_name)
 
     node = dns_data.name
     primary_ip = self.op.primary_ip = dns_data.ip
@@ -1614,8 +1596,7 @@ class LUMasterFailover(LogicalUnit):
     This checks that we are not already the master.
 
     """
-    self.new_master = socket.gethostname()
-
+    self.new_master = utils.HostInfo().name
     self.old_master = self.sstore.GetMasterNode()
 
     if self.old_master == self.new_master:
@@ -1716,7 +1697,7 @@ class LUClusterCopyFile(NoHooksLU):
     """
     filename = self.op.filename
 
-    myname = socket.gethostname()
+    myname = utils.HostInfo().name
 
     for node in self.nodes:
       if node == myname:
@@ -2152,18 +2133,15 @@ class LURenameInstance(LogicalUnit):
     self.instance = instance
 
     # new name verification
-    hostname1 = utils.LookupHostname(self.op.new_name)
-    if not hostname1:
-      raise errors.OpPrereqError("New instance name '%s' not found in dns" %
-                                 self.op.new_name)
+    name_info = utils.HostInfo(self.op.new_name)
 
-    self.op.new_name = new_name = hostname1.name
+    self.op.new_name = new_name = name_info.name
     if not getattr(self.op, "ignore_ip", False):
-      command = ["fping", "-q", hostname1.ip]
+      command = ["fping", "-q", name_info.ip]
       result = utils.RunCmd(command)
       if not result.failed:
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (hostname1.ip, new_name))
+                                   (name_info.ip, new_name))
 
 
   def Exec(self, feedback_fn):
@@ -2839,10 +2817,7 @@ class LUCreateInstance(LogicalUnit):
                                  " primary node"  % self.op.os_type)
 
     # instance verification
-    hostname1 = utils.LookupHostname(self.op.instance_name)
-    if not hostname1:
-      raise errors.OpPrereqError("Instance name '%s' not found in dns" %
-                                 self.op.instance_name)
+    hostname1 = utils.HostInfo(self.op.instance_name)
 
     self.op.instance_name = instance_name = hostname1.name
     instance_list = self.cfg.GetInstanceList()

@@ -151,6 +151,19 @@ class OpCodeUnknown(GenericError):
   """
 
 
+class ResolverError(GenericError):
+  """Host name cannot be resolved.
+
+  This is not a normal situation for Ganeti, as we rely on having a
+  working resolver.
+
+  The non-resolvable hostname is available as the first element of the
+  args tuple; the other two elements of the tuple are the first two
+  args of the socket.gaierror exception (error code and description).
+
+  """
+
+
 class HooksFailure(GenericError):
   """A generic hook failure.
 
