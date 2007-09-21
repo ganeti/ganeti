@@ -148,11 +148,11 @@ class ConfigObject(object):
     return ConfigObject.Load(StringIO(data))
 
 
-class TaggableObject(object):
+class TaggableObject(ConfigObject):
   """An generic class supporting tags.
 
   """
-  __slots__ = []
+  __slots__ = ConfigObject.__slots__ + ["tags"]
 
   @staticmethod
   def ValidateTag(tag):
@@ -287,9 +287,9 @@ class Disk(ConfigObject):
     return result
 
 
-class Instance(ConfigObject, TaggableObject):
+class Instance(TaggableObject):
   """Config object representing an instance."""
-  __slots__ = [
+  __slots__ = TaggableObject.__slots__ + [
     "name",
     "primary_node",
     "os",
@@ -299,7 +299,6 @@ class Instance(ConfigObject, TaggableObject):
     "nics",
     "disks",
     "disk_template",
-    "tags",
     ]
 
   def _ComputeSecondaryNodes(self):
@@ -407,14 +406,18 @@ class OS(ConfigObject):
     ]
 
 
-class Node(ConfigObject, TaggableObject):
+class Node(TaggableObject):
   """Config object representing a node."""
-  __slots__ = ["name", "primary_ip", "secondary_ip", "tags"]
+  __slots__ = TaggableObject.__slots__ + [
+    "name",
+    "primary_ip",
+    "secondary_ip",
+    ]
 
 
-class Cluster(ConfigObject, TaggableObject):
+class Cluster(TaggableObject):
   """Config object representing the cluster."""
-  __slots__ = [
+  __slots__ = TaggableObject.__slots__ + [
     "config_version",
     "serial_no",
     "rsahostkeypub",
@@ -423,7 +426,6 @@ class Cluster(ConfigObject, TaggableObject):
     "mac_prefix",
     "volume_group_name",
     "default_bridge",
-    "tags",
     ]
 
 
