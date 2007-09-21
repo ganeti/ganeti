@@ -152,6 +152,8 @@ class TaggableObject(object):
   """An generic class supporting tags.
 
   """
+  __slots__ = []
+
   @staticmethod
   def ValidateTag(tag):
     """Check if a tag is valid.
