@@ -87,6 +87,7 @@ INISECT_INS = "instance"
 
 # common exit codes
 EXIT_NOTMASTER = 11
+EXIT_NODESETUP_ERROR = 12
 
 # tags
 TAG_CLUSTER = "cluster"
