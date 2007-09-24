@@ -15,7 +15,6 @@ MAINTAINERCLEANFILES = *.in
 # Wrapper around docbook2man to control the output's filename
 %.in: %.sgml footer.sgml
 	tmpdir=`mktemp -d "./manbuildXXXXXX"` && \
-	mkdir "$$tmpdir" && \
 	docbook2man -o "$$tmpdir" $< && \
 	ok= && \
 	for check in `basename $< .sgml`.{7,8}; do \
