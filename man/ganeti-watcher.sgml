@@ -62,9 +62,9 @@
 
     <para>
       The command has a state file located at
-      <filename>/var/lib/ganeti/restart_state</filename> and a log
+      <filename>@LOCALSTATEDIR@/lib/ganeti/restart_state</filename> and a log
       file at
-      <filename>/var/log/ganeti/watcher.log</filename>. Removal of
+      <filename>@LOCALSTATEDIR@/log/ganeti/watcher.log</filename>. Removal of
       either file will not affect correct operation; the removal of
       the state file will just cause the restart counters for the
       instances to reset to zero.
