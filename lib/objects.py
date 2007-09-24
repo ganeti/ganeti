@@ -147,6 +147,80 @@ class ConfigObject(object):
     """Load data from a string."""
     return ConfigObject.Load(StringIO(data))
 
+  def ToDict(self):
+    """Convert to a dict holding only standard python types.
+
+    The generic routine just dumps all of this object's attributes in
+    a dict. It does not work if the class has children who are
+    ConfigObjects themselves (e.g. the nics list in an Instance), in
+    which case the object should subclass the function in order to
+    make sure all objects returned are only standard python types.
+
+    """
+    return dict([(k, getattr(self, k, None)) for k in self.__slots__])
+
+  @classmethod
+  def FromDict(cls, val):
+    """Create an object from a dictionary.
+
+    This generic routine takes a dict, instantiates a new instance of
+    the given class, and sets attributes based on the dict content.
+
+    As for `ToDict`, this does not work if the class has children
+    who are ConfigObjects themselves (e.g. the nics list in an
+    Instance), in which case the object should subclass the function
+    and alter the objects.
+
+    """
+    if not isinstance(val, dict):
+      raise errors.ConfigurationError("Invalid object passed to FromDict:"
+                                      " expected dict, got %s" % type(val))
+    obj = cls(**val)
+    return obj
+
+  @staticmethod
+  def _ContainerToDicts(container):
+    """Convert the elements of a container to standard python types.
+
+    This method converts a container with elements derived from
+    ConfigData to standard python types. If the container is a dict,
+    we don't touch the keys, only the values.
+
+    """
+    if isinstance(container, dict):
+      ret = dict([(k, v.ToDict()) for k, v in container.iteritems()])
+    elif isinstance(container, (list, tuple, set, frozenset)):
+      ret = [elem.ToDict() for elem in container]
+    else:
+      raise TypeError("Invalid type %s passed to _ContainerToDicts" %
+                      type(container))
+    return ret
+
+  @staticmethod
+  def _ContainerFromDicts(source, c_type, e_type):
+    """Convert a container from standard python types.
+
+    This method converts a container with standard python types to
+    ConfigData objects. If the container is a dict, we don't touch the
+    keys, only the values.
+
+    """
+    if not isinstance(c_type, type):
+      raise TypeError("Container type %s passed to _ContainerFromDicts is"
+                      " not a type" % type(c_type))
+    if c_type is dict:
+      ret = dict([(k, e_type.FromDict(v)) for k, v in source.iteritems()])
+    elif c_type in (list, tuple, set, frozenset):
+      ret = c_type([e_type.FromDict(elem) for elem in source])
+    else:
+      raise TypeError("Invalid container type %s passed to"
+                      " _ContainerFromDicts" % c_type)
+    return ret
+
+  def __repr__(self):
+    """Implement __repr__ for ConfigObjects."""
+    return repr(self.ToDict())
+
 
 class TaggableObject(ConfigObject):
   """An generic class supporting tags.
@@ -201,10 +275,58 @@ class TaggableObject(ConfigObject):
     except KeyError:
       raise errors.TagError("Tag not found")
 
+  def ToDict(self):
+    """Taggable-object-specific conversion to standard python types.
+
+    This replaces the tags set with a list.
+
+    """
+    bo = super(TaggableObject, self).ToDict()
+
+    tags = bo.get("tags", None)
+    if isinstance(tags, set):
+      bo["tags"] = list(tags)
+    return bo
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for instances.
+
+    """
+    obj = super(TaggableObject, cls).FromDict(val)
+    if hasattr(obj, "tags") and isinstance(obj.tags, list):
+      obj.tags = set(obj.tags)
+    return obj
+
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
   __slots__ = ["cluster", "nodes", "instances"]
+
+  def ToDict(self):
+    """Custom function for top-level config data.
+
+    This just replaces the list of instances, nodes and the cluster
+    with standard python types.
+
+    """
+    mydict = super(ConfigData, self).ToDict()
+    mydict["cluster"] = mydict["cluster"].ToDict()
+    for key in "nodes", "instances":
+      mydict[key] = self._ContainerToDicts(mydict[key])
+
+    return mydict
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for top-level config data
+
+    """
+    obj = super(ConfigData, cls).FromDict(val)
+    obj.cluster = Cluster.FromDict(obj.cluster)
+    obj.nodes = cls._ContainerFromDicts(obj.nodes, dict, Node)
+    obj.instances = cls._ContainerFromDicts(obj.instances, dict, Instance)
+    return obj
 
 
 class NIC(ConfigObject):
@@ -285,6 +407,35 @@ class Disk(ConfigObject):
             # entry (but probably the other results in the list will
             # be different)
     return result
+
+  def ToDict(self):
+    """Disk-specific conversion to standard python types.
+
+    This replaces the children lists of objects with lists of
+    standard python types.
+
+    """
+    bo = super(Disk, self).ToDict()
+
+    for attr in ("children",):
+      alist = bo.get(attr, None)
+      if alist:
+        bo[attr] = self._ContainerToDicts(alist)
+    return bo
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for Disks
+
+    """
+    obj = super(Disk, cls).FromDict(val)
+    if obj.children:
+      obj.children = cls._ContainerFromDicts(obj.children, list, Disk)
+    if obj.logical_id and isinstance(obj.logical_id, list):
+      obj.logical_id = tuple(obj.logical_id)
+    if obj.physical_id and isinstance(obj.physical_id, list):
+      obj.physical_id = tuple(obj.physical_id)
+    return obj
 
 
 class Instance(TaggableObject):
@@ -391,6 +542,34 @@ class Instance(TaggableObject):
         return disk
 
     return None
+
+  def ToDict(self):
+    """Instance-specific conversion to standard python types.
+
+    This replaces the children lists of objects with lists of standard
+    python types.
+
+    """
+    bo = super(Instance, self).ToDict()
+
+    for attr in "nics", "disks":
+      alist = bo.get(attr, None)
+      if alist:
+        nlist = self._ContainerToDicts(alist)
+      else:
+        nlist = []
+      bo[attr] = nlist
+    return bo
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for instances.
+
+    """
+    obj = super(Instance, cls).FromDict(val)
+    obj.nics = cls._ContainerFromDicts(obj.nics, list, NIC)
+    obj.disks = cls._ContainerFromDicts(obj.disks, list, Disk)
+    return obj
 
 
 class OS(ConfigObject):
