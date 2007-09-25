@@ -5,6 +5,15 @@ AC_INIT(ganeti, 1.2b2, ganeti@googlegroups.com)
 AC_CONFIG_AUX_DIR(autotools)
 AM_INIT_AUTOMAKE([foreign tar-ustar])
 
+# --with-ssh-initscript=...
+AC_ARG_WITH([ssh-initscript],
+  [AS_HELP_STRING([--with-ssh-initscript],
+    [SSH init script to use (default is /etc/init.d/ssh)]
+  )],
+  [initd_ssh="$withval"],
+  [initd_ssh="/etc/init.d/ssh"])
+AC_SUBST(INITD_SSH, $initd_ssh)
+
 # Check common programs
 AC_PROG_INSTALL
 
