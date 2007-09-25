@@ -41,7 +41,6 @@ from ganeti import constants
 from ganeti import bdev
 from ganeti import objects
 from ganeti import ssconf
-from ganeti import _autoconf
 
 
 def StartMaster():
@@ -121,7 +120,7 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
   finally:
     f.close()
 
-  utils.RunCmd([_autoconf.INITD_SSH, "restart"])
+  utils.RunCmd([constants.SSH_INITD_SCRIPT, "restart"])
 
   return True
 

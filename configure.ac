@@ -10,9 +10,9 @@ AC_ARG_WITH([ssh-initscript],
   [AS_HELP_STRING([--with-ssh-initscript],
     [SSH init script to use (default is /etc/init.d/ssh)]
   )],
-  [initd_ssh="$withval"],
-  [initd_ssh="/etc/init.d/ssh"])
-AC_SUBST(INITD_SSH, $initd_ssh)
+  [ssh_initd_script="$withval"],
+  [ssh_initd_script="/etc/init.d/ssh"])
+AC_SUBST(SSH_INITD_SCRIPT, $ssh_initd_script)
 
 # Check common programs
 AC_PROG_INSTALL

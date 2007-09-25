@@ -1,6 +1,6 @@
-CLEANFILES = $(nodist_pkgpython_PYTHON) *.py[oc]
+SSH_INITD_SCRIPT = @SSH_INITD_SCRIPT@
 
-INITD_SSH = @INITD_SSH@
+CLEANFILES = $(nodist_pkgpython_PYTHON) *.py[oc]
 
 nodist_pkgpython_PYTHON = _autoconf.py
 pkgpython_PYTHON = __init__.py backend.py cli.py cmdlib.py config.py \
@@ -15,5 +15,5 @@ _autoconf.py: Makefile
 	  echo "PACKAGE_VERSION = '$(PACKAGE_VERSION)'"; \
 	  echo "LOCALSTATEDIR = '$(localstatedir)'"; \
 	  echo "SYSCONFDIR = '$(sysconfdir)'"; \
-	  echo "INITD_SSH = '$(INITD_SSH)'"; \
+	  echo "SSH_INITD_SCRIPT = '$(SSH_INITD_SCRIPT)'"; \
 	} > $@
