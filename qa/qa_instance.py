@@ -21,10 +21,18 @@
 """
 
 from ganeti import utils
+from ganeti import constants
 
 import qa_config
+import qa_utils
 
 from qa_utils import AssertEqual, StartSSH
+
+
+def _GetGenericAddParameters():
+  return ['--os-size=%s' % qa_config.get('os-size'),
+          '--swap-size=%s' % qa_config.get('swap-size'),
+          '--memory=%s' % qa_config.get('mem')]
 
 
 def _DiskTest(node, args):
@@ -32,12 +40,10 @@ def _DiskTest(node, args):
 
   instance = qa_config.AcquireInstance()
   try:
-    cmd = ['gnt-instance', 'add',
-           '--os-type=%s' % qa_config.get('os'),
-           '--os-size=%s' % qa_config.get('os-size'),
-           '--swap-size=%s' % qa_config.get('swap-size'),
-           '--memory=%s' % qa_config.get('mem'),
-           '--node=%s' % node['primary']]
+    cmd = (['gnt-instance', 'add',
+            '--os-type=%s' % qa_config.get('os'),
+            '--node=%s' % node['primary']] +
+           _GetGenericAddParameters())
     if args:
       cmd += args
     cmd.append(instance['name'])
@@ -110,5 +116,32 @@ def TestInstanceInfo(instance):
   master = qa_config.GetMasterNode()
 
   cmd = ['gnt-instance', 'info', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestInstanceExport(instance, node):
+  """gnt-backup export"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-backup', 'export', '-n', node['primary'], instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  return qa_utils.ResolveInstanceName(instance)
+
+
+def TestInstanceImport(node, newinst, expnode, name):
+  """gnt-backup import"""
+  master = qa_config.GetMasterNode()
+
+  cmd = (['gnt-backup', 'import',
+          '--disk-template=plain',
+          '--no-ip-check',
+          '--src-node=%s' % expnode['primary'],
+          '--src-dir=%s/%s' % (constants.EXPORT_DIR, name),
+          '--node=%s' % node['primary']] +
+         _GetGenericAddParameters())
+  cmd.append(newinst['name'])
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)

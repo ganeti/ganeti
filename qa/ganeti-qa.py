@@ -119,8 +119,10 @@ def main():
   try:
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, node)
-      RunTest(qa_instance.TestInstanceShutdown, instance)
-      RunTest(qa_instance.TestInstanceStartup, instance)
+
+      if qa_config.TestEnabled('instance-shutdown'):
+        RunTest(qa_instance.TestInstanceShutdown, instance)
+        RunTest(qa_instance.TestInstanceStartup, instance)
 
       if qa_config.TestEnabled('instance-info'):
         RunTest(qa_instance.TestInstanceInfo, instance)
@@ -131,6 +133,22 @@ def main():
       if qa_config.TestEnabled('instance-consecutive-failures'):
         RunTest(qa_daemon.TestInstanceConsecutiveFailures, node, instance)
 
+      if qa_config.TestEnabled('instance-export'):
+        expnode = qa_config.AcquireNode(exclude=node)
+        try:
+          name = RunTest(qa_instance.TestInstanceExport, instance, expnode)
+
+          if qa_config.TestEnabled('instance-import'):
+            newinst = qa_config.AcquireInstance()
+            try:
+              RunTest(qa_instance.TestInstanceImport, node, newinst,
+                      expnode, name)
+              RunTest(qa_instance.TestInstanceRemove, newinst)
+            finally:
+              qa_config.ReleaseInstance(newinst)
+        finally:
+          qa_config.ReleaseNode(expnode)
+
       if qa_config.TestEnabled('node-volumes'):
         RunTest(qa_node.TestNodeVolumes)
 
@@ -139,8 +157,10 @@ def main():
 
     if qa_config.TestEnabled('instance-add-local-mirror-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithLocalMirrorDisk, node)
-      RunTest(qa_instance.TestInstanceShutdown, instance)
-      RunTest(qa_instance.TestInstanceStartup, instance)
+
+      if qa_config.TestEnabled('instance-shutdown'):
+        RunTest(qa_instance.TestInstanceShutdown, instance)
+        RunTest(qa_instance.TestInstanceStartup, instance)
 
       if qa_config.TestEnabled('instance-info'):
         RunTest(qa_instance.TestInstanceInfo, instance)
@@ -156,8 +176,10 @@ def main():
       try:
         instance = RunTest(qa_instance.TestInstanceAddWithRemoteRaidDisk,
                            node, node2)
-        RunTest(qa_instance.TestInstanceShutdown, instance)
-        RunTest(qa_instance.TestInstanceStartup, instance)
+
+        if qa_config.TestEnabled('instance-shutdown'):
+          RunTest(qa_instance.TestInstanceShutdown, instance)
+          RunTest(qa_instance.TestInstanceStartup, instance)
 
         if qa_config.TestEnabled('instance-info'):
           RunTest(qa_instance.TestInstanceInfo, instance)

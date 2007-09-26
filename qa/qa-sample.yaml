@@ -41,6 +41,9 @@ tests:
   instance-add-remote-raid-disk: True
   instance-failover: True
   instance-info: True
+  instance-export: True
+  instance-import: True
+  instance-shutdown: True
 
   # This test takes up to 6 minutes to complete
   instance-automatic-restart: False

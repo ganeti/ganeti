@@ -21,7 +21,6 @@
 """
 
 import time
-import subprocess
 
 from ganeti import utils
 from ganeti import constants
@@ -31,23 +30,6 @@ import qa_utils
 import qa_error
 
 from qa_utils import AssertEqual, StartSSH
-
-
-def _ResolveInstanceName(instance):
-  """Gets the full Xen name of an instance.
-
-  """
-  master = qa_config.GetMasterNode()
-
-  info_cmd = utils.ShellQuoteArgs(['gnt-instance', 'info', instance['name']])
-  sed_cmd = utils.ShellQuoteArgs(['sed', '-n', '-e', 's/^Instance name: *//p'])
-
-  cmd = '%s | %s' % (info_cmd, sed_cmd)
-  ssh_cmd = qa_utils.GetSSHCommand(master['primary'], cmd)
-  p = subprocess.Popen(ssh_cmd, shell=False, stdout=subprocess.PIPE)
-  AssertEqual(p.wait(), 0)
-
-  return p.stdout.read().strip()
 
 
 def _InstanceRunning(node, name):
@@ -72,7 +54,7 @@ def _XmShutdownInstance(node, name):
   master = qa_config.GetMasterNode()
 
   cmd = ['xm', 'shutdown', name]
-  AssertEqual(StartSSH(master['primary'],
+  AssertEqual(StartSSH(node['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
   # Wait up to a minute
@@ -102,7 +84,7 @@ def TestInstanceAutomaticRestart(node, instance):
   Note: takes up to 6 minutes to complete.
   """
   master = qa_config.GetMasterNode()
-  inst_name = _ResolveInstanceName(instance)
+  inst_name = qa_utils.ResolveInstanceName(instance)
 
   _ResetWatcherDaemon(node)
   _XmShutdownInstance(node, inst_name)
@@ -129,7 +111,7 @@ def TestInstanceConsecutiveFailures(node, instance):
   Note: takes at least 35 minutes to complete.
   """
   master = qa_config.GetMasterNode()
-  inst_name = _ResolveInstanceName(instance)
+  inst_name = qa_utils.ResolveInstanceName(instance)
 
   _ResetWatcherDaemon(node)
   _XmShutdownInstance(node, inst_name)

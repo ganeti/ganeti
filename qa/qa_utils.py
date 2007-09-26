@@ -96,4 +96,20 @@ def UploadFile(node, src):
     return p.stdout.read().strip()
   finally:
     f.close()
-# }}}
+
+
+def ResolveInstanceName(instance):
+  """Gets the full name of an instance.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  info_cmd = utils.ShellQuoteArgs(['gnt-instance', 'info', instance['name']])
+  sed_cmd = utils.ShellQuoteArgs(['sed', '-n', '-e', 's/^Instance name: *//p'])
+
+  cmd = '%s | %s' % (info_cmd, sed_cmd)
+  ssh_cmd = GetSSHCommand(master['primary'], cmd)
+  p = subprocess.Popen(ssh_cmd, shell=False, stdout=subprocess.PIPE)
+  AssertEqual(p.wait(), 0)
+
+  return p.stdout.read().strip()
