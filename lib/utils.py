@@ -748,10 +748,20 @@ def CreateBackup(file_name):
     raise errors.ProgrammerError("Can't make a backup of a non-file '%s'" %
                                 file_name)
 
-  # Warning: the following code contains a race condition when we create more
-  # than one backup of the same file in a second.
-  backup_name = file_name + '.backup-%d' % int(time.time())
-  shutil.copyfile(file_name, backup_name)
+  prefix = '%s.backup-%d.' % (os.path.basename(file_name), int(time.time()))
+  dir = os.path.dirname(file_name)
+
+  fsrc = open(file_name, 'rb')
+  try:
+    (fd, backup_name) = tempfile.mkstemp(prefix=prefix, dir=dir)
+    fdst = os.fdopen(fd, 'wb')
+    try:
+      shutil.copyfileobj(fsrc, fdst)
+    finally:
+      fdst.close()
+  finally:
+    fsrc.close()
+
   return backup_name
 
 
