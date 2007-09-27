@@ -103,6 +103,12 @@ def main():
   if qa_config.TestEnabled('cluster-info'):
     RunTest(qa_cluster.TestClusterInfo)
 
+  if qa_config.TestEnabled('cluster-getmaster'):
+    RunTest(qa_cluster.TestClusterGetmaster)
+
+  if qa_config.TestEnabled('cluster-version'):
+    RunTest(qa_cluster.TestClusterVersion)
+
   if qa_config.TestEnabled('cluster-copyfile'):
     RunTest(qa_cluster.TestClusterCopyfile)
 
@@ -124,6 +130,9 @@ def main():
         RunTest(qa_instance.TestInstanceShutdown, instance)
         RunTest(qa_instance.TestInstanceStartup, instance)
 
+      if qa_config.TestEnabled('instance-list'):
+        RunTest(qa_instance.TestInstanceList)
+
       if qa_config.TestEnabled('instance-info'):
         RunTest(qa_instance.TestInstanceInfo, instance)
 
@@ -138,6 +147,8 @@ def main():
         try:
           name = RunTest(qa_instance.TestInstanceExport, instance, expnode)
 
+          RunTest(qa_instance.TestBackupList, expnode)
+
           if qa_config.TestEnabled('instance-import'):
             newinst = qa_config.AcquireInstance()
             try:
@@ -148,6 +159,11 @@ def main():
               qa_config.ReleaseInstance(newinst)
         finally:
           qa_config.ReleaseNode(expnode)
+
+      if qa_config.TestEnabled('instance-reinstall'):
+        RunTest(qa_instance.TestInstanceShutdown, instance)
+        RunTest(qa_instance.TestInstanceReinstall, instance)
+        RunTest(qa_instance.TestInstanceStartup, instance)
 
       if qa_config.TestEnabled('node-volumes'):
         RunTest(qa_node.TestNodeVolumes)

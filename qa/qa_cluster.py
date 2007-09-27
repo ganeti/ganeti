@@ -53,18 +53,36 @@ def TestClusterInit():
 
 def TestClusterVerify():
   """gnt-cluster verify"""
-  cmd = ['gnt-cluster', 'verify']
   master = qa_config.GetMasterNode()
 
+  cmd = ['gnt-cluster', 'verify']
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
 def TestClusterInfo():
   """gnt-cluster info"""
-  cmd = ['gnt-cluster', 'info']
   master = qa_config.GetMasterNode()
 
+  cmd = ['gnt-cluster', 'info']
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestClusterGetmaster():
+  """gnt-cluster getmaster"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-cluster', 'getmaster']
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestClusterVersion():
+  """gnt-cluster version"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-cluster', 'version']
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
@@ -149,8 +167,8 @@ def TestClusterCopyfile():
 
 def TestClusterDestroy():
   """gnt-cluster destroy"""
-  cmd = ['gnt-cluster', 'destroy', '--yes-do-it']
   master = qa_config.GetMasterNode()
 
+  cmd = ['gnt-cluster', 'destroy', '--yes-do-it']
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)

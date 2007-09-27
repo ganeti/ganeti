@@ -102,6 +102,15 @@ def TestInstanceShutdown(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+def TestInstanceReinstall(instance):
+  """gnt-instance reinstall"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-instance', 'reinstall', '-f', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 def TestInstanceFailover(instance):
   """gnt-instance failover"""
   master = qa_config.GetMasterNode()
@@ -116,6 +125,15 @@ def TestInstanceInfo(instance):
   master = qa_config.GetMasterNode()
 
   cmd = ['gnt-instance', 'info', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestInstanceList():
+  """gnt-instance list"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-instance', 'list']
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
@@ -143,5 +161,14 @@ def TestInstanceImport(node, newinst, expnode, name):
           '--node=%s' % node['primary']] +
          _GetGenericAddParameters())
   cmd.append(newinst['name'])
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestBackupList(expnode):
+  """gnt-backup list"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-backup', 'list', '--nodes=%s' % expnode['primary']]
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)

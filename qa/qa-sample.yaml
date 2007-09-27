@@ -28,6 +28,8 @@ tests:
 
   cluster-verify: True
   cluster-info: True
+  cluster-getmaster: True
+  cluster-version: True
   cluster-burnin: True
   cluster-copyfile: True
   cluster-master-failover: True
@@ -39,10 +41,12 @@ tests:
   instance-add-plain-disk: True
   instance-add-local-mirror-disk: True
   instance-add-remote-raid-disk: True
+  instance-list: True
   instance-failover: True
   instance-info: True
   instance-export: True
   instance-import: True
+  instance-reinstall: True
   instance-shutdown: True
 
   # This test takes up to 6 minutes to complete
