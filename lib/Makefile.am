@@ -16,4 +16,5 @@ _autoconf.py: Makefile
 	  echo "LOCALSTATEDIR = '$(localstatedir)'"; \
 	  echo "SYSCONFDIR = '$(sysconfdir)'"; \
 	  echo "SSH_INITD_SCRIPT = '$(SSH_INITD_SCRIPT)'"; \
+	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	} > $@

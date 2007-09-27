@@ -14,6 +14,15 @@ AC_ARG_WITH([ssh-initscript],
   [ssh_initd_script="/etc/init.d/ssh"])
 AC_SUBST(SSH_INITD_SCRIPT, $ssh_initd_script)
 
+# --with-export-dir=...
+AC_ARG_WITH([export-dir],
+  [AS_HELP_STRING([--with-export-dir=DIR],
+    [directory to use by default for instance image exports (default is /srv/ganeti/export)]
+  )],
+  [export_dir="$withval"],
+  [export_dir="/srv/ganeti/export"])
+AC_SUBST(EXPORT_DIR, $export_dir)
+
 # Check common programs
 AC_PROG_INSTALL
 

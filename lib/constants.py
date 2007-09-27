@@ -50,7 +50,7 @@ LOG_OS_DIR = LOG_DIR + "/os"
 LOG_NODESERVER = LOG_DIR + "/node-daemon.log"
 
 OS_DIR = "/srv/ganeti/os"
-EXPORT_DIR = "/srv/ganeti/export"
+EXPORT_DIR = _autoconf.EXPORT_DIR
 
 EXPORT_CONF_FILE = "config.ini"
 
