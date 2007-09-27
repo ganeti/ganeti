@@ -89,7 +89,7 @@ def ImportInstance(opts, args):
                                 disk_template=opts.disk_template,
                                 mode=constants.INSTANCE_IMPORT,
                                 pnode=opts.node, snode=opts.snode,
-                                vcpus=opts.vcpus,
+                                vcpus=opts.vcpus, ip_check=opts.ip_check,
                                 ip=opts.ip, bridge=opts.bridge, start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
                                 wait_for_sync=opts.wait_for_sync)
