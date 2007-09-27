@@ -7,7 +7,7 @@ AM_INIT_AUTOMAKE([foreign tar-ustar])
 
 # --with-ssh-initscript=...
 AC_ARG_WITH([ssh-initscript],
-  [AS_HELP_STRING([--with-ssh-initscript],
+  [AS_HELP_STRING([--with-ssh-initscript=SCRIPT],
     [SSH init script to use (default is /etc/init.d/ssh)]
   )],
   [ssh_initd_script="$withval"],
