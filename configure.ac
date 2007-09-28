@@ -23,6 +23,16 @@ AC_ARG_WITH([export-dir],
   [export_dir="/srv/ganeti/export"])
 AC_SUBST(EXPORT_DIR, $export_dir)
 
+# --with-os-search-path=...
+# do a bit of black sed magic to for quoting of the strings in the list
+AC_ARG_WITH([os-search-path],
+  [AS_HELP_STRING([--with-os-search-path=LIST],
+    [comma separated list of directories to search for OS images (default is /srv/ganeti/os)]
+  )],
+  [os_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/'\1'/g"`],
+  [os_search_path="'/srv/ganeti/os'"])
+AC_SUBST(OS_SEARCH_PATH, $os_search_path)
+
 # Check common programs
 AC_PROG_INSTALL
 

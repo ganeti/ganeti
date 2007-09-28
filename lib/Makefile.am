@@ -17,4 +17,5 @@ _autoconf.py: Makefile
 	  echo "SYSCONFDIR = '$(sysconfdir)'"; \
 	  echo "SSH_INITD_SCRIPT = '$(SSH_INITD_SCRIPT)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
+	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
 	} > $@

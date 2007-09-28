@@ -886,15 +886,24 @@ def _OSOndiskVersion(name, os_dir=None):
   """Compute and return the api version of a given OS.
 
   This function will try to read the api version of the os given by
-  the 'name' parameter. By default, it wil use the constants.OS_DIR
-  as top-level directory for OSes, but this can be overriden by the
-  use of the os_dir parameter. Return value will be either an
-  integer denoting the version or None in the case when this is not
-  a valid OS name.
+  the 'name' parameter and residing in the 'os_dir' directory.
+
+  By default if os_dir is not given it will search for a matching name in all
+  the constants.OS_SEARCH_PATH directories. 
+
+  Return value will be either an integer denoting the version or None in the
+  case when this is not a valid OS name.
 
   """
   if os_dir is None:
-    os_dir = os.path.sep.join([constants.OS_DIR, name])
+    for base_dir in constants.OS_SEARCH_PATH:
+      t_os_dir = os.path.sep.join([base_dir, name])
+      if os.path.isdir(t_os_dir):
+        os_dir = t_os_dir
+        break
+  
+  if os_dir is None:
+    raise errors.InvalidOS(name, "OS dir not found in search path")
 
   api_file = os.path.sep.join([os_dir, "ganeti_api_version"])
 
@@ -927,11 +936,11 @@ def _OSOndiskVersion(name, os_dir=None):
   return api_version
 
 
-def DiagnoseOS(top_dir=None):
+def DiagnoseOS(top_dirs=None):
   """Compute the validity for all OSes.
 
-  For each name in the give top_dir parameter (if not given, defaults
-  to constants.OS_DIR), it will return an object. If this is a valid
+  For each name in all the given top directories (if not given defaults i
+  to constants.OS_SEARCH_PATH it will return an object. If this is a valid
   os, the object will be an instance of the object.OS class. If not,
   it will be an instance of errors.InvalidOS and this signifies that
   this name does not correspond to a valid OS.
@@ -940,21 +949,23 @@ def DiagnoseOS(top_dir=None):
     list of objects
 
   """
-  if top_dir is None:
-    top_dir = constants.OS_DIR
+  if top_dirs is None:
+    top_dirs = constants.OS_SEARCH_PATH
 
-  try:
-    f_names = os.listdir(top_dir)
-  except EnvironmentError, err:
-    logger.Error("Can't list the OS directory: %s" % str(err))
-    return False
   result = []
-  for name in f_names:
-    try:
-      os_inst = OSFromDisk(name, os.path.sep.join([top_dir, name]))
-      result.append(os_inst)
-    except errors.InvalidOS, err:
-      result.append(err)
+  for dir in top_dirs:
+    if os.path.isdir(dir):
+      try:
+        f_names = os.listdir(dir)
+      except EnvironmentError, err:
+        logger.Error("Can't list the OS directory %s: %s" % (dir,str(err)))
+        break
+      for name in f_names:
+        try:
+          os_inst = OSFromDisk(name, os_dir=os.path.sep.join([dir, name]))
+          result.append(os_inst)
+        except errors.InvalidOS, err:
+          result.append(err)
 
   return result
 
@@ -967,11 +978,23 @@ def OSFromDisk(name, os_dir=None):
   `errors.InvalidOS` exception, detailing why this is not a valid
   OS.
 
-  """
-  if os_dir is None:
-    os_dir = os.path.sep.join([constants.OS_DIR, name])
+  Args:
+    os_dir: Directory containing the OS scripts. Defaults to a search
+            in all the OS_SEARCH_PATH directories.
 
-  api_version = _OSOndiskVersion(name, os_dir)
+  """
+
+  if os_dir is None:
+    for base_dir in constants.OS_SEARCH_PATH:
+      t_os_dir = os.path.sep.join([base_dir, name])
+      if os.path.isdir(t_os_dir):
+        os_dir = t_os_dir
+        break
+
+  if os_dir is None:
+    raise errors.InvalidOS(name, "OS dir not found in search path")
+
+  api_version = _OSOndiskVersion(name, os_dir=os_dir)
 
   if api_version != constants.OS_API_VERSION:
     raise errors.InvalidOS(name, "API version mismatch (found %s want %s)"
