@@ -33,6 +33,7 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import config
 from ganeti import objects
+from ganeti import utils
 
 
 class TestConfigRunner(unittest.TestCase):
