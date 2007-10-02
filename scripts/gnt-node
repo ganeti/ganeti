@@ -30,6 +30,10 @@ from ganeti import utils
 
 def AddNode(opts, args):
   """Add node cli-to-processor bridge."""
+  logger.ToStderr("-- WARNING -- \n"
+    "Performing this operation is going to replace the ssh daemon keypair\n"
+    "on the target machine (%s) with the ones of the current one\n"
+    "and grant full intra-cluster ssh root access to/from it\n" % args[0])
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip)
   SubmitOpCode(op)
 
