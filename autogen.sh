@@ -12,6 +12,6 @@ mkdir -p autotools
 
 aclocal-1.9
 autoconf
-automake-1.9 --add-missing
+automake-1.9 --add-missing -Wall -Wno-portability
 
 rm -rf autom4te.cache
