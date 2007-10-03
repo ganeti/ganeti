@@ -881,6 +881,27 @@ def _ErrnoOrStr(err):
     detail = str(err)
   return detail
 
+def _OSSearch(name, search_path=None):
+  """Search for OSes with the given name in the search_path.
+
+  Args:
+    name: The name of the OS to look for
+    search_path: List of dirs to search (defaults to constants.OS_SEARCH_PATH)
+    
+  Returns:
+    The base_dir the OS resides in
+
+  """
+
+  if search_path is None:
+    search_path = constants.OS_SEARCH_PATH
+
+  for dir in search_path:
+    t_os_dir = os.path.sep.join([dir, name])
+    if os.path.isdir(t_os_dir):
+        return dir
+
+  return None
 
 def _OSOndiskVersion(name, os_dir):
   """Compute and return the api version of a given OS.
@@ -950,7 +971,7 @@ def DiagnoseOS(top_dirs=None):
         break
       for name in f_names:
         try:
-          os_inst = OSFromDisk(name, os_dir=os.path.sep.join([dir, name]))
+          os_inst = OSFromDisk(name, base_dir=dir)
           result.append(os_inst)
         except errors.InvalidOS, err:
           result.append(err)
@@ -958,7 +979,7 @@ def DiagnoseOS(top_dirs=None):
   return result
 
 
-def OSFromDisk(name, os_dir=None):
+def OSFromDisk(name, base_dir=None):
   """Create an OS instance from disk.
 
   This function will return an OS instance if the given name is a
@@ -972,16 +993,16 @@ def OSFromDisk(name, os_dir=None):
 
   """
 
-  if os_dir is None:
-    for base_dir in constants.OS_SEARCH_PATH:
-      t_os_dir = os.path.sep.join([base_dir, name])
-      if os.path.isdir(t_os_dir):
-        os_dir = t_os_dir
-        break
+  if base_dir is None:
+    base_dir = _OSSearch(name)
+  else:
+    if not os.path.isdir(os.path.sep.join([base_dir, name])):
+      raise errors.InvalidOS(name, "OS not found in base dir %s" % base_dir)
 
-  if os_dir is None:
+  if base_dir is None:
     raise errors.InvalidOS(name, "OS dir not found in search path")
 
+  os_dir = os.path.sep.join([base_dir, name])
   api_version = _OSOndiskVersion(name, os_dir)
 
   if api_version != constants.OS_API_VERSION:
