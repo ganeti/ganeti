@@ -882,28 +882,16 @@ def _ErrnoOrStr(err):
   return detail
 
 
-def _OSOndiskVersion(name, os_dir=None):
+def _OSOndiskVersion(name, os_dir):
   """Compute and return the api version of a given OS.
 
   This function will try to read the api version of the os given by
   the 'name' parameter and residing in the 'os_dir' directory.
 
-  By default if os_dir is not given it will search for a matching name in all
-  the constants.OS_SEARCH_PATH directories. 
-
   Return value will be either an integer denoting the version or None in the
   case when this is not a valid OS name.
 
   """
-  if os_dir is None:
-    for base_dir in constants.OS_SEARCH_PATH:
-      t_os_dir = os.path.sep.join([base_dir, name])
-      if os.path.isdir(t_os_dir):
-        os_dir = t_os_dir
-        break
-  
-  if os_dir is None:
-    raise errors.InvalidOS(name, "OS dir not found in search path")
 
   api_file = os.path.sep.join([os_dir, "ganeti_api_version"])
 
@@ -994,7 +982,7 @@ def OSFromDisk(name, os_dir=None):
   if os_dir is None:
     raise errors.InvalidOS(name, "OS dir not found in search path")
 
-  api_version = _OSOndiskVersion(name, os_dir=os_dir)
+  api_version = _OSOndiskVersion(name, os_dir)
 
   if api_version != constants.OS_API_VERSION:
     raise errors.InvalidOS(name, "API version mismatch (found %s want %s)"
