@@ -407,6 +407,11 @@ skip resource "r1" {
           url="http://pyopenssl.sourceforge.net/">Python OpenSSL
           bindings</ulink></simpara>
         </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://www.undefined.org/python/#simplejson">simplejson Python
+          module</ulink></simpara>
+        </listitem>
       </itemizedlist>
 
       <para>

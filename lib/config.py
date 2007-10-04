@@ -21,16 +21,13 @@
 
 """Configuration management for Ganeti
 
-This module provides the interface to the ganeti cluster configuration.
+This module provides the interface to the Ganeti cluster configuration.
 
+The configuration data is stored on every node but is updated on the master
+only. After each update, the master distributes the data to the other nodes.
 
-The configuration data is stored on every node but is updated on the
-master only. After each update, the master distributes the data to the
-other nodes.
-
-Currently the data storage format is pickle as yaml was initially not
-available, then we used it but it was a memory-eating slow beast, so
-we reverted to pickle using custom Unpicklers.
+Currently, the data storage format is JSON. YAML was slow and consuming too
+much memory.
 
 """
 
@@ -44,6 +41,7 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import rpc
 from ganeti import objects
+
 
 def _my_uuidgen():
   """Poor-man's uuidgen using the uuidgen binary.
@@ -497,8 +495,9 @@ class ConfigWriter:
     f = open(self._cfg_file, 'r')
     try:
       try:
-        data = objects.ConfigObject.Load(f)
+        data = objects.ConfigData.Load(f)
       except Exception, err:
+        raise
         raise errors.ConfigurationError(err)
     finally:
       f.close()

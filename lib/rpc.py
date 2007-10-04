@@ -293,7 +293,7 @@ def call_instance_start(node, instance, extra_args):
   This is a single-node call.
 
   """
-  c = Client("instance_start", [instance.Dumps(), extra_args])
+  c = Client("instance_start", [instance.ToDict(), extra_args])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
@@ -305,7 +305,7 @@ def call_instance_shutdown(node, instance):
   This is a single-node call.
 
   """
-  c = Client("instance_shutdown", [instance.Dumps()])
+  c = Client("instance_shutdown", [instance.ToDict()])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
@@ -317,7 +317,7 @@ def call_instance_os_add(node, inst, osdev, swapdev):
   This is a single-node call.
 
   """
-  params = [inst.Dumps(), osdev, swapdev]
+  params = [inst.ToDict(), osdev, swapdev]
   c = Client("instance_os_add", params)
   c.connect(node)
   c.run()
@@ -330,7 +330,7 @@ def call_instance_run_rename(node, inst, old_name, osdev, swapdev):
   This is a single-node call.
 
   """
-  params = [inst.Dumps(), old_name, osdev, swapdev]
+  params = [inst.ToDict(), old_name, osdev, swapdev]
   c = Client("instance_run_rename", params)
   c.connect(node)
   c.run()
@@ -471,7 +471,7 @@ def call_blockdev_create(node, bdev, size, on_primary, info):
   This is a single-node call.
 
   """
-  params = [bdev.Dumps(), size, on_primary, info]
+  params = [bdev.ToDict(), size, on_primary, info]
   c = Client("blockdev_create", params)
   c.connect(node)
   c.run()
@@ -484,7 +484,7 @@ def call_blockdev_remove(node, bdev):
   This is a single-node call.
 
   """
-  c = Client("blockdev_remove", [bdev.Dumps()])
+  c = Client("blockdev_remove", [bdev.ToDict()])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
@@ -496,7 +496,7 @@ def call_blockdev_assemble(node, disk, on_primary):
   This is a single-node call.
 
   """
-  params = [disk.Dumps(), on_primary]
+  params = [disk.ToDict(), on_primary]
   c = Client("blockdev_assemble", params)
   c.connect(node)
   c.run()
@@ -509,7 +509,7 @@ def call_blockdev_shutdown(node, disk):
   This is a single-node call.
 
   """
-  c = Client("blockdev_shutdown", [disk.Dumps()])
+  c = Client("blockdev_shutdown", [disk.ToDict()])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
@@ -521,7 +521,7 @@ def call_blockdev_addchild(node, bdev, ndev):
   This is a single-node call.
 
   """
-  params = [bdev.Dumps(), ndev.Dumps()]
+  params = [bdev.ToDict(), ndev.ToDict()]
   c = Client("blockdev_addchild", params)
   c.connect(node)
   c.run()
@@ -534,7 +534,7 @@ def call_blockdev_removechild(node, bdev, ndev):
   This is a single-node call.
 
   """
-  params = [bdev.Dumps(), ndev.Dumps()]
+  params = [bdev.ToDict(), ndev.ToDict()]
   c = Client("blockdev_removechild", params)
   c.connect(node)
   c.run()
@@ -547,7 +547,7 @@ def call_blockdev_getmirrorstatus(node, disks):
   This is a single-node call.
 
   """
-  params = [dsk.Dumps() for dsk in disks]
+  params = [dsk.ToDict() for dsk in disks]
   c = Client("blockdev_getmirrorstatus", params)
   c.connect(node)
   c.run()
@@ -560,7 +560,7 @@ def call_blockdev_find(node, disk):
   This is a single-node call.
 
   """
-  c = Client("blockdev_find", [disk.Dumps()])
+  c = Client("blockdev_find", [disk.ToDict()])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
@@ -605,8 +605,8 @@ def call_os_diagnose(node_list):
     if result[node_name]:
       for data in result[node_name]:
         if data:
-          if isinstance(data, basestring):
-            nr.append(objects.ConfigObject.Loads(data))
+          if isinstance(data, dict):
+            nr.append(objects.OS.FromDict(data))
           elif isinstance(data, tuple) and len(data) == 2:
             nr.append(errors.InvalidOS(data[0], data[1]))
           else:
@@ -629,8 +629,8 @@ def call_os_get(node_list, name):
   new_result = {}
   for node_name in result:
     data = result[node_name]
-    if isinstance(data, basestring):
-      new_result[node_name] = objects.ConfigObject.Loads(data)
+    if isinstance(data, dict):
+      new_result[node_name] = objects.OS.FromDict(data)
     elif isinstance(data, tuple) and len(data) == 2:
       new_result[node_name] = errors.InvalidOS(data[0], data[1])
     else:
@@ -662,7 +662,7 @@ def call_blockdev_snapshot(node, cf_bdev):
   This is a single-node call.
 
   """
-  c = Client("blockdev_snapshot", [cf_bdev.Dumps()])
+  c = Client("blockdev_snapshot", [cf_bdev.ToDict()])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
@@ -674,7 +674,7 @@ def call_snapshot_export(node, snap_bdev, dest_node, instance):
   This is a single-node call.
 
   """
-  params = [snap_bdev.Dumps(), dest_node, instance.Dumps()]
+  params = [snap_bdev.ToDict(), dest_node, instance.ToDict()]
   c = Client("snapshot_export", params)
   c.connect(node)
   c.run()
@@ -691,8 +691,8 @@ def call_finalize_export(node, instance, snap_disks):
   """
   flat_disks = []
   for disk in snap_disks:
-    flat_disks.append(disk.Dumps())
-  params = [instance.Dumps(), flat_disks]
+    flat_disks.append(disk.ToDict())
+  params = [instance.ToDict(), flat_disks]
   c = Client("finalize_export", params)
   c.connect(node)
   c.run()
@@ -720,7 +720,7 @@ def call_instance_os_import(node, inst, osdev, swapdev, src_node, src_image):
   This is a single-node call.
 
   """
-  params = [inst.Dumps(), osdev, swapdev, src_node, src_image]
+  params = [inst.ToDict(), osdev, swapdev, src_node, src_image]
   c = Client("instance_os_import", params)
   c.connect(node)
   c.run()

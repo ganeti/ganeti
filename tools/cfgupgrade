@@ -21,13 +21,9 @@
 
 """Tool to upgrade the configuration file.
 
-The upgrade is done by unpickling the configuration file into custom classes
-derivating from dict. We then update the configuration by modifying these
-dicts. To save the configuration, it's pickled into a buffer and unpickled
-again using the Ganeti objects before being finally pickled into a file.
-
-Not using the custom classes wouldn't allow us to rename or remove attributes
-between versions without loosing their values.
+This code handles only the types supported by simplejson. As an example, "set"
+is a "list". Old Pickle based configurations files are converted to JSON during
+the process.
 
 """
 
@@ -35,26 +31,25 @@ between versions without loosing their values.
 import os
 import os.path
 import sys
+import re
 import optparse
-import cPickle
 import tempfile
-from cStringIO import StringIO
+import simplejson
 
-from ganeti import objects
+from ganeti import utils
+from ganeti.cli import AskUser, FORCE_OPT
+
+
+options = None
+args = None
+
 
 class Error(Exception):
   """Generic exception"""
   pass
 
 
-def _BaseFindGlobal(module, name):
-  """Helper function for the other FindGlobal functions.
-
-  """
-  return getattr(sys.modules[module], name)
-
-
-# Internal config representation
+# {{{ Support for old Pickle files
 class UpgradeDict(dict):
   """Base class for internal config classes.
 
@@ -66,42 +61,48 @@ class UpgradeDict(dict):
     return self.copy()
 
 
-class UpgradeConfigData(UpgradeDict): pass
-class UpgradeCluster(UpgradeDict): pass
-class UpgradeNode(UpgradeDict): pass
-class UpgradeInstance(UpgradeDict): pass
-class UpgradeDisk(UpgradeDict): pass
-class UpgradeNIC(UpgradeDict): pass
-class UpgradeOS(UpgradeDict): pass
-
-
-_ClassMap = {
-  objects.ConfigData: UpgradeConfigData,
-  objects.Cluster: UpgradeCluster,
-  objects.Node: UpgradeNode,
-  objects.Instance: UpgradeInstance,
-  objects.Disk: UpgradeDisk,
-  objects.NIC: UpgradeNIC,
-  objects.OS: UpgradeOS,
-}
-
-# Build mapping dicts
-WriteMapping = dict()
-ReadMapping = dict()
-for key, value in _ClassMap.iteritems():
-  WriteMapping[value.__name__] = key
-  ReadMapping[key.__name__] = value
-
-
-# Read config
-def _ReadFindGlobal(module, name):
+def FindGlobal(module, name):
   """Wraps Ganeti config classes to internal ones.
 
-  """
-  if module == "ganeti.objects" and name in ReadMapping:
-    return ReadMapping[name]
+  This function may only return types supported by simplejson.
 
-  return _BaseFindGlobal(module, name)
+  """
+  if module == "ganeti.objects":
+    return UpgradeDict
+  elif module == "__builtin__" and name == "set":
+    return list
+
+  return getattr(sys.modules[module], name)
+
+
+def ReadPickleFile(f):
+  """Reads an old Pickle configuration.
+
+  """
+  import cPickle
+
+  loader = cPickle.Unpickler(f)
+  loader.find_global = FindGlobal
+  return loader.load()
+
+
+def IsPickleFile(f):
+  """Checks whether a file is using the Pickle format.
+
+  """
+  magic = f.read(128)
+  try:
+    return not re.match('^\s*\{', magic)
+  finally:
+    f.seek(-len(magic), 1)
+# }}}
+
+
+def ReadJsonFile(f):
+  """Reads a JSON file.
+
+  """
+  return simplejson.load(f)
 
 
 def ReadConfig(path):
@@ -110,52 +111,28 @@ def ReadConfig(path):
   """
   f = open(path, 'r')
   try:
-    loader = cPickle.Unpickler(f)
-    loader.find_global = _ReadFindGlobal
-    data = loader.load()
+    if IsPickleFile(f):
+      return ReadPickleFile(f)
+    else:
+      return ReadJsonFile(f)
   finally:
     f.close()
 
-  return data
 
-
-# Write config
-def _WriteFindGlobal(module, name):
-  """Maps our internal config classes to Ganeti's.
-
-  """
-  if module == "__main__" and name in WriteMapping:
-    return WriteMapping[name]
-
-  return _BaseFindGlobal(module, name)
-
-
-def WriteConfig(path, data, dry_run):
+def WriteConfig(path, data):
   """Writes the configuration file.
 
   """
-  buf = StringIO()
+  if not options.dry_run:
+    utils.CreateBackup(path)
 
-  # Write intermediate representation
-  dumper = cPickle.Pickler(buf, cPickle.HIGHEST_PROTOCOL)
-  dumper.dump(data)
-  del dumper
-
-  # Convert back to Ganeti objects
-  buf.seek(0)
-  loader = cPickle.Unpickler(buf)
-  loader.find_global = _WriteFindGlobal
-  data = loader.load()
-
-  # Write target file
   (fd, name) = tempfile.mkstemp(dir=os.path.dirname(path))
   f = os.fdopen(fd, 'w')
   try:
     try:
-      dumper = cPickle.Pickler(f, cPickle.HIGHEST_PROTOCOL)
-      dumper.dump(data)
+      simplejson.dump(data, f)
       f.flush()
-      if dry_run:
+      if options.dry_run:
         os.unlink(name)
       else:
         os.rename(name, path)
@@ -175,7 +152,7 @@ def UpdateFromVersion2To3(cfg):
 
   # Add port pool
   if 'tcpudp_port_pool' not in cfg['cluster']:
-    cfg['cluster']['tcpudp_port_pool'] = set()
+    cfg['cluster']['tcpudp_port_pool'] = []
 
   # Add bridge settings
   if 'default_bridge' not in cfg['cluster']:
@@ -190,12 +167,15 @@ def UpdateFromVersion2To3(cfg):
 
 # Main program
 if __name__ == "__main__":
+  program = os.path.basename(sys.argv[0])
+
   # Option parsing
   parser = optparse.OptionParser()
   parser.add_option('--dry-run', dest='dry_run',
                     action="store_true",
                     help="Try to do the conversion, but don't write "
                       "output file")
+  parser.add_option(FORCE_OPT)
   parser.add_option('--verbose', dest='verbose',
                     action="store_true",
                     help="Verbose output")
@@ -207,12 +187,31 @@ if __name__ == "__main__":
   else:
     raise Error("Configuration file not specified")
 
+  if not options.force:
+    usertext = ("%s MUST run on the master node. Is this the master "
+                "node?" % program)
+    if not AskUser(usertext):
+      sys.exit(1)
+
   config = ReadConfig(cfg_file)
+
+  if options.verbose:
+    import pprint
+    print "Before upgrade:"
+    pprint.pprint(config)
+    print
 
   UpdateFromVersion2To3(config)
 
   if options.verbose:
-    import pprint
+    print "After upgrade:"
     pprint.pprint(config)
+    print
 
-  WriteConfig(cfg_file, config, options.dry_run)
+  WriteConfig(cfg_file, config)
+
+  print "The configuration file has been updated successfully. Please run"
+  print "  gnt-cluster copyfile %s" % cfg_file
+  print "now."
+
+# vim: set foldmethod=marker :

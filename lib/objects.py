@@ -27,7 +27,7 @@ pass to and from external parties.
 """
 
 
-import cPickle
+import simplejson
 from cStringIO import StringIO
 import ConfigParser
 import re
@@ -56,8 +56,8 @@ class ConfigObject(object):
   __slots__ = []
 
   def __init__(self, **kwargs):
-    for i in kwargs:
-      setattr(self, i, kwargs[i])
+    for k, v in kwargs.iteritems():
+      setattr(self, k, v)
 
   def __getattr__(self, name):
     if name not in self.__slots__:
@@ -82,70 +82,29 @@ class ConfigObject(object):
       if name in self.__slots__:
         setattr(self, name, state[name])
 
-  @staticmethod
-  def FindGlobal(module, name):
-    """Function filtering the allowed classes to be un-pickled.
-
-    Currently, we only allow the classes from this module which are
-    derived from ConfigObject.
-
-    """
-    # Also support the old module name (ganeti.config)
-    cls = None
-    if module == "ganeti.config" or module == "ganeti.objects":
-      if name == "ConfigData":
-        cls = ConfigData
-      elif name == "NIC":
-        cls = NIC
-      elif name == "Disk" or name == "BlockDev":
-        cls = Disk
-      elif name == "Instance":
-        cls = Instance
-      elif name == "OS":
-        cls = OS
-      elif name == "Node":
-        cls = Node
-      elif name == "Cluster":
-        cls = Cluster
-    elif module == "__builtin__":
-      if name == "set":
-        cls = set
-    if cls is None:
-      raise cPickle.UnpicklingError("Class %s.%s not allowed due to"
-                                    " security concerns" % (module, name))
-    return cls
-
   def Dump(self, fobj):
-    """Dump this instance to a file object.
-
-    Note that we use the HIGHEST_PROTOCOL, as it brings benefits for
-    the new classes.
+    """Dump to a file object.
 
     """
-    dumper = cPickle.Pickler(fobj, cPickle.HIGHEST_PROTOCOL)
-    dumper.dump(self)
+    simplejson.dump(self.ToDict(), fobj)
 
-  @staticmethod
-  def Load(fobj):
-    """Unpickle data from the given stream.
-
-    This uses the `FindGlobal` function to filter the allowed classes.
+  @classmethod
+  def Load(cls, fobj):
+    """Load data from the given stream.
 
     """
-    loader = cPickle.Unpickler(fobj)
-    loader.find_global = ConfigObject.FindGlobal
-    return loader.load()
+    return cls.FromDict(simplejson.load(fobj))
 
   def Dumps(self):
-    """Dump this instance and return the string representation."""
+    """Dump and return the string representation."""
     buf = StringIO()
     self.Dump(buf)
     return buf.getvalue()
 
-  @staticmethod
-  def Loads(data):
+  @classmethod
+  def Loads(cls, data):
     """Load data from a string."""
-    return ConfigObject.Load(StringIO(data))
+    return cls.Load(StringIO(data))
 
   def ToDict(self):
     """Convert to a dict holding only standard python types.
@@ -175,7 +134,8 @@ class ConfigObject(object):
     if not isinstance(val, dict):
       raise errors.ConfigurationError("Invalid object passed to FromDict:"
                                       " expected dict, got %s" % type(val))
-    obj = cls(**val)
+    val_str = dict([(str(k), v) for k, v in val.iteritems()])
+    obj = cls(**val_str)
     return obj
 
   @staticmethod
@@ -239,7 +199,8 @@ class TaggableObject(ConfigObject):
     if not isinstance(tag, basestring):
       raise errors.TagError("Invalid tag type (not a string)")
     if len(tag) > constants.MAX_TAG_LEN:
-      raise errors.TagError("Tag too long (>%d)" % constants.MAX_TAG_LEN)
+      raise errors.TagError("Tag too long (>%d characters)" %
+                            constants.MAX_TAG_LEN)
     if not tag:
       raise errors.TagError("Tags cannot be empty")
     if not re.match("^[ \w.+*/:-]+$", tag):
@@ -606,6 +567,24 @@ class Cluster(TaggableObject):
     "volume_group_name",
     "default_bridge",
     ]
+
+  def ToDict(self):
+    """Custom function for cluster.
+
+    """
+    mydict = super(TaggableObject, self).ToDict()
+    mydict["tcpudp_port_pool"] = list(self.tcpudp_port_pool)
+    return mydict
+
+  @classmethod
+  def FromDict(cls, val):
+    """Custom function for cluster.
+
+    """
+    obj = super(TaggableObject, cls).FromDict(val)
+    if not isinstance(obj.tcpudp_port_pool, set):
+      obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
+    return obj
 
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):

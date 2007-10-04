@@ -97,7 +97,7 @@ class ServerObject(pb.Avatar):
 
     """
     bdev_s, size, on_primary, info = params
-    bdev = objects.ConfigObject.Loads(bdev_s)
+    bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
     return backend.CreateBlockDevice(bdev, size, on_primary, info)
@@ -108,7 +108,7 @@ class ServerObject(pb.Avatar):
 
     """
     bdev_s = params[0]
-    bdev = objects.ConfigObject.Loads(bdev_s)
+    bdev = objects.Disk.FromDict(bdev_s)
     return backend.RemoveBlockDevice(bdev)
 
   @staticmethod
@@ -117,7 +117,7 @@ class ServerObject(pb.Avatar):
 
     """
     bdev_s, on_primary = params
-    bdev = objects.ConfigObject.Loads(bdev_s)
+    bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
     return backend.AssembleBlockDevice(bdev, on_primary)
@@ -128,7 +128,7 @@ class ServerObject(pb.Avatar):
 
     """
     bdev_s = params[0]
-    bdev = objects.ConfigObject.Loads(bdev_s)
+    bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
     return backend.ShutdownBlockDevice(bdev)
@@ -142,8 +142,8 @@ class ServerObject(pb.Avatar):
 
     """
     bdev_s, ndev_s = params
-    bdev = objects.ConfigObject.Loads(bdev_s)
-    ndev = objects.ConfigObject.Loads(ndev_s)
+    bdev = objects.Disk.FromDict(bdev_s)
+    ndev = objects.Disk.FromDict(ndev_s)
     if bdev is None or ndev is None:
       raise ValueError("can't unserialize data!")
     return backend.MirrorAddChild(bdev, ndev)
@@ -157,8 +157,8 @@ class ServerObject(pb.Avatar):
 
     """
     bdev_s, ndev_s = params
-    bdev = objects.ConfigObject.Loads(bdev_s)
-    ndev = objects.ConfigObject.Loads(ndev_s)
+    bdev = objects.Disk.FromDict(bdev_s)
+    ndev = objects.Disk.FromDict(ndev_s)
     if bdev is None or ndev is None:
       raise ValueError("can't unserialize data!")
     return backend.MirrorRemoveChild(bdev, ndev)
@@ -168,7 +168,7 @@ class ServerObject(pb.Avatar):
     """Return the mirror status for a list of disks.
 
     """
-    disks = [objects.ConfigObject.Loads(dsk_s)
+    disks = [objects.Disk.FromDict(dsk_s)
             for dsk_s in params]
     return backend.GetMirrorStatus(disks)
 
@@ -179,7 +179,7 @@ class ServerObject(pb.Avatar):
     This will try to find but not activate a disk.
 
     """
-    disk = objects.ConfigObject.Loads(params[0])
+    disk = objects.Disk.FromDict(params[0])
     return backend.FindBlockDevice(disk)
 
   @staticmethod
@@ -191,7 +191,7 @@ class ServerObject(pb.Avatar):
     remove by calling the generic block device remove call.
 
     """
-    cfbd = objects.ConfigObject.Loads(params[0])
+    cfbd = objects.Disk.FromDict(params[0])
     return backend.SnapshotBlockDevice(cfbd)
 
   # export/import  --------------------------
@@ -201,9 +201,9 @@ class ServerObject(pb.Avatar):
     """Export a given snapshot.
 
     """
-    disk = objects.ConfigObject.Loads(params[0])
+    disk = objects.Disk.FromDict(params[0])
     dest_node = params[1]
-    instance = objects.ConfigObject.Loads(params[2])
+    instance = objects.Instance.FromDict(params[2])
     return backend.ExportSnapshot(disk, dest_node, instance)
 
   @staticmethod
@@ -211,8 +211,8 @@ class ServerObject(pb.Avatar):
     """Expose the finalize export functionality.
 
     """
-    instance = objects.ConfigObject.Loads(params[0])
-    snap_disks = [objects.ConfigObject.Loads(str_data)
+    instance = objects.Instance.FromDict(params[0])
+    snap_disks = [objects.Disk.FromDict(str_data)
                   for str_data in params[1]]
     return backend.FinalizeExport(instance, snap_disks)
 
@@ -284,7 +284,7 @@ class ServerObject(pb.Avatar):
 
     """
     inst_s, os_disk, swap_disk = params
-    inst = objects.ConfigObject.Loads(inst_s)
+    inst = objects.Instance.FromDict(inst_s)
     return backend.AddOSToInstance(inst, os_disk, swap_disk)
 
   @staticmethod
@@ -293,7 +293,7 @@ class ServerObject(pb.Avatar):
 
     """
     inst_s, old_name, os_disk, swap_disk = params
-    inst = objects.ConfigObject.Loads(inst_s)
+    inst = objects.Instance.FromDict(inst_s)
     return backend.RunRenameInstance(inst, old_name, os_disk, swap_disk)
 
   @staticmethod
@@ -302,7 +302,7 @@ class ServerObject(pb.Avatar):
 
     """
     inst_s, os_disk, swap_disk, src_node, src_image = params
-    inst = objects.ConfigObject.Loads(inst_s)
+    inst = objects.Instance.FromDict(inst_s)
     return backend.ImportOSIntoInstance(inst, os_disk, swap_disk,
                                         src_node, src_image)
 
@@ -311,7 +311,7 @@ class ServerObject(pb.Avatar):
     """Shutdown an instance.
 
     """
-    instance = objects.ConfigObject.Loads(params[0])
+    instance = objects.Instance.FromDict(params[0])
     return backend.ShutdownInstance(instance)
 
   @staticmethod
@@ -319,7 +319,7 @@ class ServerObject(pb.Avatar):
     """Start an instance.
 
     """
-    instance = objects.ConfigObject.Loads(params[0])
+    instance = objects.Instance.FromDict(params[0])
     extra_args = params[1]
     return backend.StartInstance(instance, extra_args)
 
@@ -432,7 +432,7 @@ class ServerObject(pb.Avatar):
     result = []
     for data in os_list:
       if isinstance(data, objects.OS):
-        result.append(data.Dumps())
+        result.append(data.ToDict())
       elif isinstance(data, errors.InvalidOS):
         result.append(data.args)
       else:
@@ -449,7 +449,7 @@ class ServerObject(pb.Avatar):
     """
     name = params[0]
     try:
-      os_obj = backend.OSFromDisk(name).Dumps()
+      os_obj = backend.OSFromDisk(name).ToDict()
     except errors.InvalidOS, err:
       os_obj = err.args
     return os_obj
