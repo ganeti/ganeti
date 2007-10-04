@@ -91,7 +91,9 @@ def DiagnoseOS(opts, args):
           os_name = obj.args[0]
         if os_name not in all_os:
           all_os[os_name] = {}
-        all_os[os_name][node_name] = obj
+        if node_name not in all_os[os_name]:
+          all_os[os_name][node_name] = []
+        all_os[os_name][node_name].append(obj)
 
   max_name = len('Name')
   if all_os:
@@ -107,11 +109,12 @@ def DiagnoseOS(opts, args):
     nodes_valid = []
     nodes_bad = {}
     for node_name in node_data:
-      nos = all_os[os_name].get(node_name, None)
-      if isinstance(nos, objects.OS):
-        nodes_valid.append(node_name)
-      elif isinstance(nos, errors.InvalidOS):
-        nodes_bad[node_name] = nos.args[1]
+      if node_name in all_os[os_name]:
+       nos = all_os[os_name][node_name]
+       if isinstance(nos[0], objects.OS):
+         nodes_valid.append(node_name)
+       elif isinstance(nos[0], errors.InvalidOS):
+         nodes_bad[node_name] = nos[0].args[1]
       else:
         nodes_bad[node_name] = "os dir not found"
 
@@ -121,10 +124,12 @@ def DiagnoseOS(opts, args):
       status = "invalid"
     else:
       status = "partial valid"
+
     logger.ToStdout(format % (max_name, os_name, max_node, status, ""))
     nodes_valid = utils.NiceSort(nodes_valid)
     for node_name in nodes_valid:
-      logger.ToStdout(format % (max_name, "", max_node, node_name, "valid"))
+      logger.ToStdout(format % (max_name, "", max_node, node_name, 
+                      "valid (%s)" % all_os[os_name][node_name][0].path))
     nbk = utils.NiceSort(nodes_bad.keys())
     for node_name in nbk:
       logger.ToStdout(format % (max_name, "", max_node,
