@@ -1,6 +1,8 @@
 # standard automake rules
 SUBDIRS = man lib scripts daemons doc test tools qa
 
+EXTRA_DIST = NEWS
+
 # custom rules
 depgraph: depgraph.png
 

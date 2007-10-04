@@ -1,0 +1,8 @@
+News for Ganeti
+===============
+
+This file lists major changes between versions.
+
+1.2b2:
+  * Change configuration file format from Python's Pickle to JSON.
+    Upgrading is possible using the cfgupgrade utility.
