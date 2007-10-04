@@ -607,8 +607,8 @@ def call_os_diagnose(node_list):
         if data:
           if isinstance(data, dict):
             nr.append(objects.OS.FromDict(data))
-          elif isinstance(data, tuple) and len(data) == 2:
-            nr.append(errors.InvalidOS(data[0], data[1]))
+          elif isinstance(data, tuple) and len(data) == 3:
+            nr.append(errors.InvalidOS(data[0], data[1], data[2]))
           else:
             raise errors.ProgrammerError("Invalid data from"
                                          " xcserver.os_diagnose")
@@ -631,8 +631,8 @@ def call_os_get(node_list, name):
     data = result[node_name]
     if isinstance(data, dict):
       new_result[node_name] = objects.OS.FromDict(data)
-    elif isinstance(data, tuple) and len(data) == 2:
-      new_result[node_name] = errors.InvalidOS(data[0], data[1])
+    elif isinstance(data, tuple) and len(data) == 3:
+      new_result[node_name] = errors.InvalidOS(data[0], data[1], data[2])
     else:
       new_result[node_name] = data
   return new_result

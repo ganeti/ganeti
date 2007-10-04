@@ -887,7 +887,7 @@ def _OSSearch(name, search_path=None):
   Args:
     name: The name of the OS to look for
     search_path: List of dirs to search (defaults to constants.OS_SEARCH_PATH)
-    
+
   Returns:
     The base_dir the OS resides in
 
@@ -919,11 +919,11 @@ def _OSOndiskVersion(name, os_dir):
   try:
     st = os.stat(api_file)
   except EnvironmentError, err:
-    raise errors.InvalidOS(name, "'ganeti_api_version' file not"
+    raise errors.InvalidOS(name, os_dir, "'ganeti_api_version' file not"
                            " found (%s)" % _ErrnoOrStr(err))
 
   if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-    raise errors.InvalidOS(name, "'ganeti_api_version' file is not"
+    raise errors.InvalidOS(name, os_dir, "'ganeti_api_version' file is not"
                            " a regular file")
 
   try:
@@ -933,14 +933,15 @@ def _OSOndiskVersion(name, os_dir):
     finally:
       f.close()
   except EnvironmentError, err:
-    raise errors.InvalidOS(name, "error while reading the"
+    raise errors.InvalidOS(name, os_dir, "error while reading the"
                            " API version (%s)" % _ErrnoOrStr(err))
 
   api_version = api_version.strip()
   try:
     api_version = int(api_version)
   except (TypeError, ValueError), err:
-    raise errors.InvalidOS(name, "API version is not integer (%s)" % str(err))
+    raise errors.InvalidOS(name, os_dir,
+                           "API version is not integer (%s)" % str(err))
 
   return api_version
 
@@ -1000,13 +1001,14 @@ def OSFromDisk(name, base_dir=None):
       raise errors.InvalidOS(name, "OS not found in base dir %s" % base_dir)
 
   if base_dir is None:
-    raise errors.InvalidOS(name, "OS dir not found in search path")
+    raise errors.InvalidOS(name, None, "OS dir not found in search path")
 
   os_dir = os.path.sep.join([base_dir, name])
   api_version = _OSOndiskVersion(name, os_dir)
 
   if api_version != constants.OS_API_VERSION:
-    raise errors.InvalidOS(name, "API version mismatch (found %s want %s)"
+    raise errors.InvalidOS(name, os_dir, "API version mismatch"
+                           " (found %s want %s)"
                            % (api_version, constants.OS_API_VERSION))
 
   # OS Scripts dictionary, we will populate it with the actual script names
@@ -1018,14 +1020,16 @@ def OSFromDisk(name, base_dir=None):
     try:
       st = os.stat(os_scripts[script])
     except EnvironmentError, err:
-      raise errors.InvalidOS(name, "'%s' script missing (%s)" %
+      raise errors.InvalidOS(name, os_dir, "'%s' script missing (%s)" %
                              (script, _ErrnoOrStr(err)))
 
     if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
-      raise errors.InvalidOS(name, "'%s' script not executable" % script)
+      raise errors.InvalidOS(name, os_dir, "'%s' script not executable" %
+                             script)
 
     if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-      raise errors.InvalidOS(name, "'%s' is not a regular file" % script)
+      raise errors.InvalidOS(name, os_dir, "'%s' is not a regular file" %
+                             script)
 
 
   return objects.OS(name=name, path=os_dir,
