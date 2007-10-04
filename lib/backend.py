@@ -996,9 +996,6 @@ def OSFromDisk(name, base_dir=None):
 
   if base_dir is None:
     base_dir = _OSSearch(name)
-  else:
-    if not os.path.isdir(os.path.sep.join([base_dir, name])):
-      raise errors.InvalidOS(name, "OS not found in base dir %s" % base_dir)
 
   if base_dir is None:
     raise errors.InvalidOS(name, None, "OS dir not found in search path")
