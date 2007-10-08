@@ -240,11 +240,15 @@ def SubmitOpCode(op):
   return proc.ExecOpCode(op, logger.ToStdout)
 
 
-def GenericMain(commands):
+def GenericMain(commands, override=None):
   """Generic main function for all the gnt-* commands.
 
-  Argument: a dictionary with a special structure, see the design doc
-  for command line handling.
+  Arguments:
+    - commands: a dictionary with a special structure, see the design doc
+                for command line handling.
+    - override: if not None, we expect a dictionary with keys that will
+                override command line options; this can be used to pass
+                options from the scripts to generic functions
 
   """
   # save the program name and the entire command line for later logging
@@ -262,6 +266,10 @@ def GenericMain(commands):
   func, options, args = _ParseArgs(sys.argv, commands)
   if func is None: # parse error
     return 1
+
+  if override is not None:
+    for key, val in override.iteritems():
+      setattr(options, key, val)
 
   logger.SetupLogging(debug=options.debug, program=binary)
 
