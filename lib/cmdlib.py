@@ -3706,7 +3706,7 @@ class TagsLU(NoHooksLU):
       self.op.name = name
       self.target = self.cfg.GetNodeInfo(name)
     elif self.op.kind == constants.TAG_INSTANCE:
-      name = self.cfg.ExpandInstanceName(name)
+      name = self.cfg.ExpandInstanceName(self.op.name)
       if name is None:
         raise errors.OpPrereqError("Invalid instance name (%s)" %
                                    (self.op.name,))
