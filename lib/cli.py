@@ -32,6 +32,7 @@ from ganeti import logger
 from ganeti import errors
 from ganeti import mcpu
 from ganeti import constants
+from ganeti import opcodes
 
 from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError, SUPPRESS_HELP)
@@ -39,7 +40,81 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
            "cli_option", "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
-           "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT"]
+           "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
+           "ListTags", "AddTags", "RemoveTags",
+           ]
+
+
+def _ExtractTagsObject(opts, args):
+  """Extract the tag type object.
+
+  Note that this function will modify its args parameter.
+
+  """
+  if not hasattr(opts, "tag_type"):
+    raise errors.ProgrammerError("tag_type not passed to _ExtractTagsObject")
+  kind = opts.tag_type
+  if kind == constants.TAG_CLUSTER:
+    retval = kind, kind
+  elif kind == constants.TAG_NODE or kind == constants.TAG_INSTANCE:
+    if not args:
+      raise errors.OpPrereq("no arguments passed to the command")
+    name = args.pop(0)
+    retval = kind, name
+  else:
+    raise errors.ProgrammerError("Unhandled tag type '%s'" % kind)
+  return retval
+
+
+def ListTags(opts, args):
+  """List the tags on a given object.
+
+  This is a generic implementation that knows how to deal with all
+  three cases of tag objects (cluster, node, instance). The opts
+  argument is expected to contain a tag_type field denoting what
+  object type we work on.
+
+  """
+  kind, name = _ExtractTagsObject(opts, args)
+  op = opcodes.OpGetTags(kind=kind, name=name)
+  result = SubmitOpCode(op)
+  result = list(result)
+  result.sort()
+  for tag in result:
+    print tag
+
+
+def AddTags(opts, args):
+  """Add tags on a given object.
+
+  This is a generic implementation that knows how to deal with all
+  three cases of tag objects (cluster, node, instance). The opts
+  argument is expected to contain a tag_type field denoting what
+  object type we work on.
+
+  """
+  kind, name = _ExtractTagsObject(opts, args)
+  if not args:
+    raise errors.OpPrereqError("No tags to be added")
+  op = opcodes.OpAddTags(kind=kind, name=name, tags=args)
+  SubmitOpCode(op)
+
+
+def RemoveTags(opts, args):
+  """Remove tags from a given object.
+
+  This is a generic implementation that knows how to deal with all
+  three cases of tag objects (cluster, node, instance). The opts
+  argument is expected to contain a tag_type field denoting what
+  object type we work on.
+
+  """
+  kind, name = _ExtractTagsObject(opts, args)
+  if not args:
+    raise errors.OpPrereqError("No tags to be removed")
+  op = opcodes.OpDelTags(kind=kind, name=name, tags=args)
+  SubmitOpCode(op)
+
 
 DEBUG_OPT = make_option("-d", "--debug", default=False,
                         action="store_true",
@@ -67,7 +142,6 @@ FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
 
 _LOCK_OPT = make_option("--lock-retries", default=None,
                         type="int", help=SUPPRESS_HELP)
-
 
 def ARGS_FIXED(val):
   """Macro-like function denoting a fixed number of arguments"""

@@ -754,7 +754,14 @@ commands = {
   'deactivate-disks': (DeactivateDisks, ARGS_ONE, [DEBUG_OPT],
                        "<instance>",
                        "Deactivate an instance's disks"),
+  'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
+                "<node_name>", "List the tags of the given instance"),
+  'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+               "<node_name> tag...", "Add tags to the given instance"),
+  'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+                  "<node_name> tag...", "Remove tags from given instance"),
   }
 
 if __name__ == '__main__':
-  sys.exit(GenericMain(commands))
+  sys.exit(GenericMain(commands,
+                       override={"tag_type": constants.TAG_INSTANCE}))

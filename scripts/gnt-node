@@ -26,6 +26,7 @@ from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import logger
 from ganeti import utils
+from ganeti import constants
 
 
 def AddNode(opts, args):
@@ -180,8 +181,14 @@ commands = {
   'volumes': (ListVolumes, ARGS_ANY,
               [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
               "[<node_name>...]", "List logical volumes on node(s)"),
+  'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
+                "<node_name>", "List the tags of the given node"),
+  'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+               "<node_name> tag...", "Add tags to the given node"),
+  'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+                  "<node_name> tag...", "Remove tags from the given node"),
   }
 
 
 if __name__ == '__main__':
-  sys.exit(GenericMain(commands))
+  sys.exit(GenericMain(commands, override={"tag_type": constants.TAG_NODE}))
