@@ -10,7 +10,7 @@ EXTRA_DIST = ganeti-os-interface.sgml gnt-cluster.sgml gnt-node.sgml \
 	     gnt-backup.sgml ganeti-noded.sgml \
 	     footer.sgml $(maninput)
 CLEANFILES = *.[78]
-MAINTAINERCLEANFILES = *.in
+MAINTAINERCLEANFILES = $(maninput)
 
 # Wrapper around docbook2man to control the output's filename
 %.in: %.sgml footer.sgml
