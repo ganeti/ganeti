@@ -1,8 +1,8 @@
 # Configure script for Ganeti
-
 AC_PREREQ(2.59)
 AC_INIT(ganeti, 1.2b2, ganeti@googlegroups.com)
 AC_CONFIG_AUX_DIR(autotools)
+AC_CONFIG_SRCDIR(configure)
 AM_INIT_AUTOMAKE([foreign tar-ustar])
 
 # --with-ssh-initscript=...
@@ -35,6 +35,7 @@ AC_SUBST(OS_SEARCH_PATH, $os_search_path)
 
 # Check common programs
 AC_PROG_INSTALL
+AC_PROG_LN_S
 
 # Check for Python
 AM_PATH_PYTHON(2.4)

@@ -19,3 +19,8 @@ _autoconf.py: Makefile
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
 	} > $@
+
+pre-check: all
+	for i in $(pkgpython_PYTHON); do \
+		if test ! -f $$i; then $(LN_S) $(srcdir)/$$i $$i; fi; \
+	done
