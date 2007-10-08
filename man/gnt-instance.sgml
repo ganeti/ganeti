@@ -758,6 +758,7 @@ node1.example.com:sdb:/dev/md1
 
         <cmdsynopsis>
           <command>add-tags</command>
+          <arg choice="opt">--from <replaceable>file</replaceable></arg>
           <arg choice="req"><replaceable>instancename</replaceable></arg>
           <arg choice="req"
             rep="repeat"><replaceable>tag</replaceable></arg>
@@ -766,6 +767,13 @@ node1.example.com:sdb:/dev/md1
         <para>
           Add tags to the given instance. If any of the tags contains
           invalid characters, the entire operation will abort.
+        </para>
+        <para>
+          If the <option>--from</option> option is given, the list of
+          tags will be extended with the contents of that file (each
+          line becomes a tag). In this case, there is not need to pass
+          tags on the command line (if you do, both sources will be
+          used). A file name of - will be interpreted as stdin.
         </para>
       </refsect3>
 
@@ -784,6 +792,7 @@ node1.example.com:sdb:/dev/md1
         <title>REMOVE-TAGS</title>
         <cmdsynopsis>
           <command>remove-tags</command>
+          <arg choice="opt">--from <replaceable>file</replaceable></arg>
           <arg choice="req"><replaceable>instancename</replaceable></arg>
           <arg choice="req"
             rep="repeat"><replaceable>tag</replaceable></arg>
@@ -792,6 +801,14 @@ node1.example.com:sdb:/dev/md1
         <para>
           Remove tags from the given instance. If any of the tags are
           not existing on the node, the entire operation will abort.
+        </para>
+
+        <para>
+          If the <option>--from</option> option is given, the list of
+          tags will be extended with the contents of that file (each
+          line becomes a tag). In this case, there is not need to pass
+          tags on the command line (if you do, both sources will be
+          used). A file name of - will be interpreted as stdin.
         </para>
       </refsect3>
 

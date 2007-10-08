@@ -183,9 +183,9 @@ commands = {
               "[<node_name>...]", "List logical volumes on node(s)"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
                 "<node_name>", "List the tags of the given node"),
-  'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+  'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
                "<node_name> tag...", "Add tags to the given node"),
-  'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+  'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
                   "<node_name> tag...", "Remove tags from the given node"),
   }
 

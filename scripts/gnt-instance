@@ -756,9 +756,9 @@ commands = {
                        "Deactivate an instance's disks"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
                 "<node_name>", "List the tags of the given instance"),
-  'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+  'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
                "<node_name> tag...", "Add tags to the given instance"),
-  'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT],
+  'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
                   "<node_name> tag...", "Remove tags from given instance"),
   }
 

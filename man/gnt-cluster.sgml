@@ -60,6 +60,7 @@
 
       <cmdsynopsis>
         <command>add-tags</command>
+        <arg choice="opt">--from <replaceable>file</replaceable></arg>
         <arg choice="req"
         rep="repeat"><replaceable>tag</replaceable></arg>
       </cmdsynopsis>
@@ -67,6 +68,14 @@
       <para>
         Add tags to the cluster. If any of the tags contains invalid
         characters, the entire operation will abort.
+      </para>
+
+      <para>
+        If the <option>--from</option> option is given, the list of
+        tags will be extended with the contents of that file (each
+        line becomes a tag). In this case, there is not need to pass
+        tags on the command line (if you do, both sources will be
+        used). A file name of - will be interpreted as stdin.
       </para>
     </refsect2>
 
@@ -250,6 +259,7 @@
 
       <cmdsynopsis>
         <command>remove-tags</command>
+        <arg choice="opt">--from <replaceable>file</replaceable></arg>
         <arg choice="req"
         rep="repeat"><replaceable>tag</replaceable></arg>
       </cmdsynopsis>
@@ -257,6 +267,14 @@
       <para>
         Remove tags from the cluster. If any of the tags are not
         existing on the cluster, the entire operation will abort.
+      </para>
+
+      <para>
+        If the <option>--from</option> option is given, the list of
+        tags will be extended with the contents of that file (each
+        line becomes a tag). In this case, there is not need to pass
+        tags on the command line (if you do, both sources will be
+        used). A file name of - will be interpreted as stdin.
       </para>
     </refsect2>
 

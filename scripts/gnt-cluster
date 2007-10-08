@@ -265,9 +265,9 @@ commands = {
                  "", "Show cluster configuration"),
   'list-tags': (ListTags, ARGS_NONE,
                 [DEBUG_OPT], "", "List the tags of the cluster"),
-  'add-tags': (AddTags, ARGS_ANY, [DEBUG_OPT],
+  'add-tags': (AddTags, ARGS_ANY, [DEBUG_OPT, TAG_SRC_OPT],
                "tag...", "Add tags to the cluster"),
-  'remove-tags': (RemoveTags, ARGS_ANY, [DEBUG_OPT],
+  'remove-tags': (RemoveTags, ARGS_ANY, [DEBUG_OPT, TAG_SRC_OPT],
                   "tag...", "Remove tags from the cluster"),
   }
 

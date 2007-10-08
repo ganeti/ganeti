@@ -41,7 +41,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
            "cli_option", "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
-           "ListTags", "AddTags", "RemoveTags",
+           "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            ]
 
 
@@ -64,6 +64,35 @@ def _ExtractTagsObject(opts, args):
   else:
     raise errors.ProgrammerError("Unhandled tag type '%s'" % kind)
   return retval
+
+
+def _ExtendTags(opts, args):
+  """Extend the args if a source file has been given.
+
+  This function will extend the tags with the contents of the file
+  passed in the 'tags_source' attribute of the opts parameter. A file
+  named '-' will be replaced by stdin.
+
+  """
+  fname = opts.tags_source
+  if fname is None:
+    return
+  if fname == "-":
+    new_fh = sys.stdin
+  else:
+    new_fh = open(fname, "r")
+  new_data = []
+  try:
+    # we don't use the nice 'new_data = [line.strip() for line in fh]'
+    # because of python bug 1633941
+    while True:
+      line = new_fh.readline()
+      if not line:
+        break
+      new_data.append(line.strip())
+  finally:
+    new_fh.close()
+  args.extend(new_data)
 
 
 def ListTags(opts, args):
@@ -94,6 +123,7 @@ def AddTags(opts, args):
 
   """
   kind, name = _ExtractTagsObject(opts, args)
+  _ExtendTags(opts, args)
   if not args:
     raise errors.OpPrereqError("No tags to be added")
   op = opcodes.OpAddTags(kind=kind, name=name, tags=args)
@@ -110,6 +140,7 @@ def RemoveTags(opts, args):
 
   """
   kind, name = _ExtractTagsObject(opts, args)
+  _ExtendTags(opts, args)
   if not args:
     raise errors.OpPrereqError("No tags to be removed")
   op = opcodes.OpDelTags(kind=kind, name=name, tags=args)
@@ -142,6 +173,9 @@ FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
 
 _LOCK_OPT = make_option("--lock-retries", default=None,
                         type="int", help=SUPPRESS_HELP)
+
+TAG_SRC_OPT = make_option("--from", dest="tags_source",
+                          default=None, help="File with tag names")
 
 def ARGS_FIXED(val):
   """Macro-like function denoting a fixed number of arguments"""
