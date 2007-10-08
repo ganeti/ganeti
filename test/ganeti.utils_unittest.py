@@ -28,13 +28,14 @@ import tempfile
 import os.path
 import md5
 import socket
-
+import shutil
 
 import ganeti
 from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
-     ShellQuote, ShellQuoteArgs, _ParseIpOutput, TcpPing
+     ShellQuote, ShellQuoteArgs, _ParseIpOutput, TcpPing, \
+     ListVisibleFiles
 from ganeti.errors import LockError, UnitParseError
 
 
@@ -520,6 +521,48 @@ class TestTcpPingDeaf(unittest.TestCase):
                          timeout=10, # timeout for blocking operations
                          live_port_needed=False), # ECONNREFUSED is OK
                  "failed to ping alive host on deaf port")
+
+
+class TestListVisibleFiles(unittest.TestCase):
+  """Test case for ListVisibleFiles"""
+
+  def setUp(self):
+    self.path = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.path)
+
+  def _test(self, files, expected):
+    # Sort a copy
+    expected = expected[:]
+    expected.sort()
+
+    for name in files:
+      f = open(os.path.join(self.path, name), 'w')
+      try:
+        f.write("Test\n")
+      finally:
+        f.close()
+
+    found = ListVisibleFiles(self.path)
+    found.sort()
+
+    self.assertEqual(found, expected)
+
+  def testAllVisible(self):
+    files = ["a", "b", "c"]
+    expected = files
+    self._test(files, expected)
+
+  def testNoneVisible(self):
+    files = [".a", ".b", ".c"]
+    expected = []
+    self._test(files, expected)
+
+  def testSomeVisible(self):
+    files = ["a", "b", ".c"]
+    expected = ["a", "b"]
+    self._test(files, expected)
 
 
 if __name__ == '__main__':

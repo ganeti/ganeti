@@ -966,7 +966,7 @@ def DiagnoseOS(top_dirs=None):
   for dir in top_dirs:
     if os.path.isdir(dir):
       try:
-        f_names = os.listdir(dir)
+        f_names = utils.ListVisibleFiles(dir)
       except EnvironmentError, err:
         logger.Error("Can't list the OS directory %s: %s" % (dir,str(err)))
         break
@@ -1282,7 +1282,7 @@ def ListExports():
 
   """
   if os.path.isdir(constants.EXPORT_DIR):
-    return os.listdir(constants.EXPORT_DIR)
+    return utils.ListVisibleFiles(constants.EXPORT_DIR)
   else:
     return []
 
@@ -1392,7 +1392,7 @@ class HooksRunner(object):
     subdir = "%s-%s.d" % (hpath, suffix)
     dir_name = "%s/%s" % (self._BASE_DIR, subdir)
     try:
-      dir_contents = os.listdir(dir_name)
+      dir_contents = utils.ListVisibleFiles(dir_name)
     except OSError, err:
       # must log
       return rr

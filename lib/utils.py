@@ -848,3 +848,10 @@ def TcpPing(source, target, port, timeout=10, live_port_needed=True):
     success = (not live_port_needed) and (errcode == errno.ECONNREFUSED)
 
   return success
+
+
+def ListVisibleFiles(path):
+  """Returns a list of all visible files in a directory.
+
+  """
+  return [i for i in os.listdir(path) if not i.startswith(".")]
