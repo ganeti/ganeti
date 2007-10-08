@@ -101,6 +101,22 @@
     </refsect2>
 
     <refsect2>
+      <title>ADD-TAGS</title>
+
+      <cmdsynopsis>
+        <command>add-tags</command>
+        <arg choice="req"><replaceable>nodename</replaceable></arg>
+        <arg choice="req"
+        rep="repeat"><replaceable>tag</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Add tags to the given node. If any of the tags contains
+        invalid characters, the entire operation will abort.
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>INFO</title>
 
       <cmdsynopsis>
@@ -241,6 +257,17 @@
     </refsect2>
 
     <refsect2>
+      <title>LIST-TAGS</title>
+
+      <cmdsynopsis>
+        <command>list-tags</command>
+        <arg choice="req"><replaceable>nodename</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>List the tags of the given node.</para>
+    </refsect2>
+
+    <refsect2>
       <title>REMOVE</title>
 
       <cmdsynopsis>
@@ -258,6 +285,21 @@
         <screen>
 # gnt-node remove node5.example.com
         </screen>
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>REMOVE-TAGS</title>
+      <cmdsynopsis>
+        <command>remove-tags</command>
+        <arg choice="req"><replaceable>nodename</replaceable></arg>
+        <arg choice="req"
+        rep="repeat"><replaceable>tag</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Remove tags from the given node. If any of the tags are not
+        existing on the node, the entire operation will abort.
       </para>
     </refsect2>
 

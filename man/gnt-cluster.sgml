@@ -56,6 +56,21 @@
     <title>COMMANDS</title>
 
     <refsect2>
+      <title>ADD-TAGS</title>
+
+      <cmdsynopsis>
+        <command>add-tags</command>
+        <arg choice="req"
+        rep="repeat"><replaceable>tag</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Add tags to the cluster. If any of the tags contains invalid
+        characters, the entire operation will abort.
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>COMMAND</title>
 
       <cmdsynopsis>
@@ -209,6 +224,16 @@
     </refsect2>
 
     <refsect2>
+      <title>LIST-TAGS</title>
+
+      <cmdsynopsis>
+        <command>list-tags</command>
+      </cmdsynopsis>
+
+      <para>List the tags of the cluster.</para>
+    </refsect2>
+
+    <refsect2>
       <title>MASTERFAILOVER</title>
 
       <cmdsynopsis>
@@ -217,6 +242,21 @@
 
       <para>
         Failover the master role to the current node.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>REMOVE-TAGS</title>
+
+      <cmdsynopsis>
+        <command>remove-tags</command>
+        <arg choice="req"
+        rep="repeat"><replaceable>tag</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Remove tags from the cluster. If any of the tags are not
+        existing on the cluster, the entire operation will abort.
       </para>
     </refsect2>
 

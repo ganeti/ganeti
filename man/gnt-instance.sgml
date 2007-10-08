@@ -750,6 +750,53 @@ node1.example.com:sdb:/dev/md1
 
     </refsect2>
 
+    <refsect2>
+      <title>TAGS</title>
+
+    <refsect3>
+        <title>ADD-TAGS</title>
+
+        <cmdsynopsis>
+          <command>add-tags</command>
+          <arg choice="req"><replaceable>instancename</replaceable></arg>
+          <arg choice="req"
+            rep="repeat"><replaceable>tag</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Add tags to the given instance. If any of the tags contains
+          invalid characters, the entire operation will abort.
+        </para>
+      </refsect3>
+
+      <refsect3>
+        <title>LIST-TAGS</title>
+
+        <cmdsynopsis>
+          <command>list-tags</command>
+          <arg choice="req"><replaceable>instancename</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>List the tags of the given instance.</para>
+      </refsect3>
+
+      <refsect3>
+        <title>REMOVE-TAGS</title>
+        <cmdsynopsis>
+          <command>remove-tags</command>
+          <arg choice="req"><replaceable>instancename</replaceable></arg>
+          <arg choice="req"
+            rep="repeat"><replaceable>tag</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Remove tags from the given instance. If any of the tags are
+          not existing on the node, the entire operation will abort.
+        </para>
+      </refsect3>
+
+    </refsect2>
+
   </refsect1>
 
   &footer;
