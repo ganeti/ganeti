@@ -584,7 +584,7 @@ class Cluster(TaggableObject):
     """Custom function for cluster.
 
     """
-    mydict = super(TaggableObject, self).ToDict()
+    mydict = super(Cluster, self).ToDict()
     mydict["tcpudp_port_pool"] = list(self.tcpudp_port_pool)
     return mydict
 
@@ -593,7 +593,7 @@ class Cluster(TaggableObject):
     """Custom function for cluster.
 
     """
-    obj = super(TaggableObject, cls).FromDict(val)
+    obj = super(Cluster, cls).FromDict(val)
     if not isinstance(obj.tcpudp_port_pool, set):
       obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
     return obj
