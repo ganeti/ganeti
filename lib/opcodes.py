@@ -256,13 +256,13 @@ class OpGetTags(OpCode):
   __slots__ = ["kind", "name"]
 
 
-class OpSetTag(OpCode):
-  """Sets the value of a tag on a given object."""
+class OpAddTags(OpCode):
+  """Add a list of tags on a given object."""
   OP_ID = "OP_TAGS_SET"
-  __slots__ = ["kind", "name", "tag"]
+  __slots__ = ["kind", "name", "tags"]
 
 
-class OpDelTag(OpCode):
-  """Remove a tag from a given object."""
+class OpDelTags(OpCode):
+  """Remove a list of tags from a given object."""
   OP_ID = "OP_TAGS_DEL"
-  __slots__ = ["kind", "name", "tag"]
+  __slots__ = ["kind", "name", "tags"]

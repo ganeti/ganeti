@@ -3730,11 +3730,11 @@ class LUGetTags(TagsLU):
     return self.target.GetTags()
 
 
-class LUAddTag(TagsLU):
+class LUAddTags(TagsLU):
   """Sets a tag on a given object.
 
   """
-  _OP_REQP = ["kind", "name", "tag"]
+  _OP_REQP = ["kind", "name", "tags"]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -3743,14 +3743,16 @@ class LUAddTag(TagsLU):
 
     """
     TagsLU.CheckPrereq(self)
-    objects.TaggableObject.ValidateTag(self.op.tag)
+    for tag in self.op.tags:
+      objects.TaggableObject.ValidateTag(tag)
 
   def Exec(self, feedback_fn):
     """Sets the tag.
 
     """
     try:
-      self.target.AddTag(self.op.tag)
+      for tag in self.op.tags:
+        self.target.AddTag(tag)
     except errors.TagError, err:
       raise errors.OpExecError("Error while setting tag: %s" % str(err))
     try:
@@ -3761,11 +3763,11 @@ class LUAddTag(TagsLU):
                                 " aborted. Please retry.")
 
 
-class LUDelTag(TagsLU):
-  """Delete a tag from a given object.
+class LUDelTags(TagsLU):
+  """Delete a list of tags from a given object.
 
   """
-  _OP_REQP = ["kind", "name", "tag"]
+  _OP_REQP = ["kind", "name", "tags"]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -3774,15 +3776,23 @@ class LUDelTag(TagsLU):
 
     """
     TagsLU.CheckPrereq(self)
-    objects.TaggableObject.ValidateTag(self.op.tag)
-    if self.op.tag not in self.target.GetTags():
-      raise errors.OpPrereqError("Tag not found")
+    for tag in self.op.tags:
+      objects.TaggableObject.ValidateTag(tag)
+    del_tags = frozenset(self.op.tags)
+    cur_tags = self.target.GetTags()
+    if not del_tags <= cur_tags:
+      diff_tags = del_tags - cur_tags
+      diff_names = ["'%s'" % tag for tag in diff_tags]
+      diff_names.sort()
+      raise errors.OpPrereqError("Tag(s) %s not found" %
+                                 (",".join(diff_names)))
 
   def Exec(self, feedback_fn):
     """Remove the tag from the object.
 
     """
-    self.target.RemoveTag(self.op.tag)
+    for tag in self.op.tags:
+      self.target.RemoveTag(tag)
     try:
       self.cfg.Update(self.target)
     except errors.ConfigurationError:
