@@ -427,6 +427,9 @@ def GenericMain(commands, override=None):
     except errors.OpExecError, err:
       logger.ToStderr("Failure: command execution error:\n%s" % str(err))
       result = 1
+    except errors.TagError, err:
+      logger.ToStderr("Failure: invalid tag(s) given:\n%s" % str(err))
+      result = 1
   finally:
     utils.Unlock('cmd')
     utils.LockCleanup()
