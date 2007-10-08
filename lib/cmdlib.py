@@ -1198,7 +1198,8 @@ class LUQueryNodes(NoHooksLU):
 
     """
     self.dynamic_fields = frozenset(["dtotal", "dfree",
-                                     "mtotal", "mnode", "mfree"])
+                                     "mtotal", "mnode", "mfree",
+                                     "bootid"])
 
     _CheckOutputFields(static=["name", "pinst_cnt", "sinst_cnt",
                                "pinst_list", "sinst_list",
@@ -1229,6 +1230,7 @@ class LUQueryNodes(NoHooksLU):
             "mfree": utils.TryConvert(int, nodeinfo['memory_free']),
             "dtotal": utils.TryConvert(int, nodeinfo['vg_size']),
             "dfree": utils.TryConvert(int, nodeinfo['vg_free']),
+            "bootid": nodeinfo['bootid'],
             }
         else:
           live_data[name] = {}

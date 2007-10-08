@@ -170,6 +170,12 @@ def GetNodeInfo(vgname):
   if hyp_info is not None:
     outputarray.update(hyp_info)
 
+  f = open("/proc/sys/kernel/random/boot_id", 'r')
+  try:
+    outputarray["bootid"] = f.read(128).rstrip("\n")
+  finally:
+    f.close()
+
   return outputarray
 
 

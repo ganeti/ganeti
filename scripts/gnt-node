@@ -58,7 +58,8 @@ def ListNodes(opts, args):
                "pinst_list": "PriInstances", "sinst_list": "SecInstances",
                "pip": "PrimaryIP", "sip": "SecondaryIP",
                "dtotal": "DTotal", "dfree": "DFree",
-               "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree"}
+               "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
+               "bootid": "BootID"}
   else:
     headers = None
 
