@@ -55,173 +55,219 @@
   <refsect1>
     <title>COMMANDS</title>
 
-    <cmdsynopsis>
-      <command>command</command>
-      <arg>-n <replaceable>node</replaceable></arg>
-      <arg choice="req"><replaceable>command</replaceable></arg>
-    </cmdsynopsis>
+    <refsect2>
+      <title>COMMAND</title>
 
-    <para>
-      Executes a command on all nodes. If the option
-      <option>-n</option> is not given, the command will be executed
-      on all nodes, otherwise it will be executed only on the node(s)
-      specified. Use the option multiple times for running it on
-      multiple nodes, like:
+      <cmdsynopsis>
+        <command>command</command>
+        <arg>-n <replaceable>node</replaceable></arg>
+        <arg choice="req"><replaceable>command</replaceable></arg>
+      </cmdsynopsis>
 
-      <screen>
-        # gnt-cluster command -n node1.example.com -n node2.example.com date
-      </screen>
+      <para>
+        Executes a command on all nodes. If the option
+        <option>-n</option> is not given, the command will be executed
+        on all nodes, otherwise it will be executed only on the
+        node(s) specified. Use the option multiple times for running
+        it on multiple nodes, like:
 
-    </para>
+        <screen>
+          # gnt-cluster command -n node1.example.com -n node2.example.com date
+        </screen>
 
-    <para>The command is constructed by concatenating all other
-    command line arguments. For example, to list the contents of the
-    <filename class="directory">/etc</filename> directory on all
-    nodes, run:
+      </para>
 
-      <screen>
-        # gnt-cluster command ls -l /etc
-      </screen>
+      <para>
+        The command is constructed by concatenating all other command
+        line arguments. For example, to list the contents of the
+        <filename class="directory">/etc</filename> directory on all
+        nodes, run:
 
-      and the command which will be executed will be
-      <computeroutput>"ls -l /etc"</computeroutput>
-    </para>
+        <screen>
+          # gnt-cluster command ls -l /etc
+        </screen>
 
+        and the command which will be executed will be
+        <computeroutput>"ls -l /etc"</computeroutput>
+      </para>
+    </refsect2>
 
-    <cmdsynopsis>
-      <command>copyfile</command>
-      <arg>-n <replaceable>node</replaceable></arg>
-      <arg choice="req"><replaceable>file</replaceable></arg>
-    </cmdsynopsis>
+    <refsect2>
+      <title>COPYFILE</title>
 
-    <para>
-      Copies a file to all or to some nodes. The argument specifies
-      the source file (on the current system), the <option>-n</option>
-      argument specifies the target node, or nodes if the option is
-      given multiple times. If <option>-n</option> is not given at
-      all, the file will be copied to all nodes.
+      <cmdsynopsis>
+        <command>copyfile</command>
+        <arg>-n <replaceable>node</replaceable></arg>
+        <arg choice="req"><replaceable>file</replaceable></arg>
+      </cmdsynopsis>
 
-      Example:
-      <screen>
-        # gnt-cluster -n node1.example.com -n node2.example.com copyfile /tmp/test
-      </screen>
+      <para>
+        Copies a file to all or to some nodes. The argument specifies
+        the source file (on the current system), the
+        <option>-n</option> argument specifies the target node, or
+        nodes if the option is given multiple times. If
+        <option>-n</option> is not given at all, the file will be
+        copied to all nodes.
 
-      This will copy the file <filename>/tmp/test</filename> from the
-      current node to the two named nodes.
-    </para>
+        Example:
+        <screen>
+          # gnt-cluster -n node1.example.com -n node2.example.com copyfile /tmp/test
+        </screen>
 
-    <cmdsynopsis>
-      <command>destroy</command>
-    </cmdsynopsis>
+        This will copy the file <filename>/tmp/test</filename> from
+        the current node to the two named nodes.
+      </para>
+    </refsect2>
 
-    <para>
-      Remove all configuration files related to the cluster, so that a
-      <command>gnt-cluster init</command> can be done again afterwards.
-    </para>
+    <refsect2>
+      <title>DESTROY</title>
 
-    <cmdsynopsis>
-      <command>getmaster</command>
-    </cmdsynopsis>
+      <cmdsynopsis>
+        <command>destroy</command>
+      </cmdsynopsis>
 
-    <para>
-      Displays the current master node.
-    </para>
+      <para>
+        Remove all configuration files related to the cluster, so that
+        a <command>gnt-cluster init</command> can be done again
+        afterwards.
+      </para>
+    </refsect2>
 
-    <cmdsynopsis>
-      <command>info</command>
-    </cmdsynopsis>
+    <refsect2>
+      <title>GETMASTER</title>
 
-    <para>
-      Shows runtime cluster information: cluster name, architecture
-      (32 or 64 bit), master node, node list and instance list.
-    </para>
+      <cmdsynopsis>
+        <command>getmaster</command>
+      </cmdsynopsis>
 
-    <cmdsynopsis>
-      <command>init</command>
-      <arg>-s <replaceable>secondary_ip</replaceable></arg>
-      <arg>-b <replaceable>bridge</replaceable></arg>
-      <arg choice="req"><replaceable>clustername</replaceable></arg>
-    </cmdsynopsis>
-    <para>
-      This commands is only run once initially on the first node of
-      the cluster. It will initialize the cluster configuration and
-      setup ssh-keys and more.
-    </para>
+      <para>
+        Displays the current master node.
+      </para>
+    </refsect2>
 
-    <para>
-      Note that the <replaceable>clustername</replaceable> is not any
-      random name. It has to be resolvable to an IP address using DNS,
-      and it is best if you give the fully-qualified domain name.
-    </para>
+    <refsect2>
+      <title>INFO</title>
 
-    <para>
-      The cluster can run in two modes: single-home or dual-homed. In
-      the first case, all traffic (both public traffic, inter-node
-      traffic and data replication traffic) goes over the same
-      interface. In the dual-homed case, the data replication traffic
-      goes over the second network. The <option>-s</option> option
-      here marks the cluster as dual-homed and its parameter
-      represents this node's address on the second network. If you
-      initialise the cluster with <option>-s</option>, all nodes added
-      must have a secondary IP as well.
-    </para>
+      <cmdsynopsis>
+        <command>info</command>
+      </cmdsynopsis>
 
-    <para>
-      Note that for Ganeti it doesn't matter if the secondary network
-      is actually a separate physical network, or is done using
-      tunneling, etc. For performance reasons, it's recommended to use
-      a separate network, of course.
-    </para>
+      <para>
+        Shows runtime cluster information: cluster name, architecture
+        (32 or 64 bit), master node, node list and instance list.
+      </para>
+    </refsect2>
 
-    <para>
-      The <option>-b</option> option specifies the default bridge for
-      instances.
-    </para>
+    <refsect2>
+      <title>INIT</title>
 
-    <cmdsynopsis>
-      <command>masterfailover</command>
-    </cmdsynopsis>
+      <cmdsynopsis>
+        <command>init</command>
+        <arg>-s <replaceable>secondary_ip</replaceable></arg>
+        <arg>-b <replaceable>bridge</replaceable></arg>
+        <arg choice="req"><replaceable>clustername</replaceable></arg>
+      </cmdsynopsis>
 
-    <para>
-      Failover the master role to the current node.
-    </para>
+      <para>
+        This commands is only run once initially on the first node of
+        the cluster. It will initialize the cluster configuration and
+        setup ssh-keys and more.
+      </para>
 
-    <cmdsynopsis>
-      <command>rename</command>
-      <arg>-f</arg>
-      <arg choice="req"><replaceable>name</replaceable></arg>
-    </cmdsynopsis>
+      <para>
+        Note that the <replaceable>clustername</replaceable> is not
+        any random name. It has to be resolvable to an IP address
+        using DNS, and it is best if you give the fully-qualified
+        domain name.
+      </para>
 
-    <para>
-      Renames the cluster and in the process updates the master IP
-      address to the one the new name resolves to. At least one of
-      either the name or the IP address must be different, otherwise
-      the operation will be aborted.
-    </para>
+      <para>
+        The cluster can run in two modes: single-home or
+        dual-homed. In the first case, all traffic (both public
+        traffic, inter-node traffic and data replication traffic) goes
+        over the same interface. In the dual-homed case, the data
+        replication traffic goes over the second network. The
+        <option>-s</option> option here marks the cluster as
+        dual-homed and its parameter represents this node's address on
+        the second network. If you initialise the cluster with
+        <option>-s</option>, all nodes added must have a secondary IP
+        as well.
+      </para>
 
-    <para>
-      Note that since this command can be dangerous (especially when
-      run over SSH), the command will require confirmation unless run
-      with the <option>-f</option> option.
-    </para>
+      <para>
+        Note that for Ganeti it doesn't matter if the secondary
 
-    <cmdsynopsis>
-      <command>verify</command>
-    </cmdsynopsis>
+        network is actually a separate physical network, or is done
+        using tunneling, etc. For performance reasons, it's
+        recommended to use a separate network, of course.
+      </para>
 
-    <para>
-      Verify correctness of cluster configuration. This is safe with
-      respect to running instances, and incurs no downtime of the
-      instances.
-    </para>
+      <para>
+        The <option>-b</option> option specifies the default bridge
+        for instances.
+      </para>
+    </refsect2>
 
-    <cmdsynopsis>
-      <command>version</command>
-    </cmdsynopsis>
+    <refsect2>
+      <title>MASTERFAILOVER</title>
 
-    <para>
-      Show the cluster version.
-    </para>
+      <cmdsynopsis>
+        <command>masterfailover</command>
+      </cmdsynopsis>
+
+      <para>
+        Failover the master role to the current node.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>RENAME</title>
+
+      <cmdsynopsis>
+        <command>rename</command>
+        <arg>-f</arg>
+        <arg choice="req"><replaceable>name</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Renames the cluster and in the process updates the master IP
+        address to the one the new name resolves to. At least one of
+        either the name or the IP address must be different, otherwise
+        the operation will be aborted.
+      </para>
+
+      <para>
+        Note that since this command can be dangerous (especially when
+        run over SSH), the command will require confirmation unless
+        run with the <option>-f</option> option.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>VERIFY</title>
+
+      <cmdsynopsis>
+        <command>verify</command>
+      </cmdsynopsis>
+
+      <para>
+        Verify correctness of cluster configuration. This is safe with
+        respect to running instances, and incurs no downtime of the
+        instances.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>VERSION</title>
+
+      <cmdsynopsis>
+        <command>version</command>
+      </cmdsynopsis>
+
+      <para>
+        Show the cluster version.
+      </para>
+    </refsect2>
 
   </refsect1>
 
