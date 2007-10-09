@@ -336,7 +336,7 @@ def AskUser(text, choices=None):
   return answer
 
 
-def SubmitOpCode(op):
+def SubmitOpCode(op, proc=None, feedback_fn=None):
   """Function to submit an opcode.
 
   This is just a simple wrapper over the construction of the processor
@@ -344,8 +344,11 @@ def SubmitOpCode(op):
   interaction functions.
 
   """
-  proc = mcpu.Processor()
-  return proc.ExecOpCode(op, logger.ToStdout)
+  if proc is None:
+    proc = mcpu.Processor()
+  if feedback_fn is None:
+    feedback_fn = logger.ToStdout
+  return proc.ExecOpCode(op, feedback_fn)
 
 
 def GenericMain(commands, override=None):
