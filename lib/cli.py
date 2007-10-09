@@ -26,6 +26,7 @@ import sys
 import textwrap
 import os.path
 import copy
+from cStringIO import StringIO
 
 from ganeti import utils
 from ganeti import logger
@@ -42,6 +43,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
+           "FormatError",
            ]
 
 
@@ -351,6 +353,55 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   return proc.ExecOpCode(op, feedback_fn)
 
 
+def FormatError(err):
+  """Return a formatted error message for a given error.
+
+  This function takes an exception instance and returns a tuple
+  consisting of two values: first, the recommended exit code, and
+  second, a string describing the error message (not
+  newline-terminated).
+
+  """
+  retcode = 1
+  obuf = StringIO()
+  if isinstance(err, errors.ConfigurationError):
+    msg = "Corrupt configuration file: %s" % err
+    logger.Error(msg)
+    obuf.write(msg + "\n")
+    obuf.write("Aborting.")
+    retcode = 2
+  elif isinstance(err, errors.HooksAbort):
+    obuf.write("Failure: hooks execution failed:\n")
+    for node, script, out in err.args[0]:
+      if out:
+        obuf.write("  node: %s, script: %s, output: %s\n" %
+                   (node, script, out))
+      else:
+        obuf.write("  node: %s, script: %s (no output)\n" %
+                   (node, script))
+  elif isinstance(err, errors.HooksFailure):
+    obuf.write("Failure: hooks general failure: %s" % str(err))
+  elif isinstance(err, errors.ResolverError):
+    this_host = utils.HostInfo.SysName()
+    if err.args[0] == this_host:
+      msg = "Failure: can't resolve my own hostname ('%s')"
+    else:
+      msg = "Failure: can't resolve hostname '%s'"
+    obuf.write(msg % err.args[0])
+  elif isinstance(err, errors.OpPrereqError):
+    obuf.write("Failure: prerequisites not met for this"
+               " operation:\n%s" % str(err))
+  elif isinstance(err, errors.OpExecError):
+    obuf.write("Failure: command execution error:\n%s" % str(err))
+  elif isinstance(err, errors.TagError):
+    obuf.write("Failure: invalid tag(s) given:\n%s" % str(err))
+  elif isinstance(err, errors.GenericError):
+    obuf.write("Unhandled Ganeti error: %s" % str(err))
+  else:
+    obuf.write("Unhandled exception: %s" % str(err))
+  return retcode, obuf.getvalue().rstrip('\n')
+
+
 def GenericMain(commands, override=None):
   """Generic main function for all the gnt-* commands.
 
@@ -398,41 +449,9 @@ def GenericMain(commands, override=None):
   try:
     try:
       result = func(options, args)
-    except errors.ConfigurationError, err:
-      logger.Error("Corrupt configuration file: %s" % err)
-      logger.ToStderr("Aborting.")
-      result = 2
-    except errors.HooksAbort, err:
-      logger.ToStderr("Failure: hooks execution failed:")
-      for node, script, out in err.args[0]:
-        if out:
-          logger.ToStderr("  node: %s, script: %s, output: %s" %
-                          (node, script, out))
-        else:
-          logger.ToStderr("  node: %s, script: %s (no output)" %
-                          (node, script))
-      result = 1
-    except errors.HooksFailure, err:
-      logger.ToStderr("Failure: hooks general failure: %s" % str(err))
-      result = 1
-    except errors.ResolverError, err:
-      this_host = utils.HostInfo.SysName()
-      if err.args[0] == this_host:
-        msg = "Failure: can't resolve my own hostname ('%s')"
-      else:
-        msg = "Failure: can't resolve hostname '%s'"
-      logger.ToStderr(msg % err.args[0])
-      result = 1
-    except errors.OpPrereqError, err:
-      logger.ToStderr("Failure: prerequisites not met for this"
-                      " operation:\n%s" % str(err))
-      result = 1
-    except errors.OpExecError, err:
-      logger.ToStderr("Failure: command execution error:\n%s" % str(err))
-      result = 1
-    except errors.TagError, err:
-      logger.ToStderr("Failure: invalid tag(s) given:\n%s" % str(err))
-      result = 1
+    except errors.GenericError, err:
+      result, err_msg = FormatError(err)
+      logger.ToStderr(err_msg)
   finally:
     utils.Unlock('cmd')
     utils.LockCleanup()
