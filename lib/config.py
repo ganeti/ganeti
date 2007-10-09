@@ -497,7 +497,6 @@ class ConfigWriter:
       try:
         data = objects.ConfigData.Load(f)
       except Exception, err:
-        raise
         raise errors.ConfigurationError(err)
     finally:
       f.close()
