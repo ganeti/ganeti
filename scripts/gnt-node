@@ -27,6 +27,7 @@ from ganeti import opcodes
 from ganeti import logger
 from ganeti import utils
 from ganeti import constants
+from ganeti import errors
 
 
 def AddNode(opts, args):
@@ -91,6 +92,53 @@ def ListNodes(opts, args):
     logger.ToStdout(line)
 
   return 0
+
+
+def FailoverNode(opts, args):
+  """Failover all primary instance on a node.
+
+  """
+  force = opts.force
+  selected_fields = ["name", "pinst_list"]
+
+  op = opcodes.OpQueryNodes(output_fields=selected_fields, names=args)
+  result = SubmitOpCode(op)
+  node, pinst = result[0]
+
+  if not pinst:
+    logger.ToStderr("No primary instances on node %s, exiting." % node)
+    return 0
+
+  pinst = utils.NiceSort(pinst)
+
+  retcode = 0
+
+  if not force and not AskUser("Fail over instance(s) %s?" %
+                               (",".join("'%s'" % name for name in pinst))):
+    return 2
+
+  good_cnt = bad_cnt = 0
+  for iname in pinst:
+    op = opcodes.OpFailoverInstance(instance_name=iname,
+                                    ignore_consistency=opts.ignore_consistency)
+    try:
+      logger.ToStdout("Failing over instance %s" % iname)
+      SubmitOpCode(op)
+      logger.ToStdout("Instance %s has been failed over" % iname)
+      good_cnt += 1
+    except errors.GenericError, err:
+      nret, msg = FormatError(err)
+      retcode |= nret
+      logger.ToStderr("Error failing over instance %s: %s" % (iname, msg))
+      bad_cnt += 1
+
+  if retcode == 0:
+    logger.ToStdout("All %d instance(s) failed over successfully." % good_cnt)
+  else:
+    logger.ToStdout("There were errors during the failover:\n"
+                    "%d error(s) out of %d instance(s)." %
+                    (bad_cnt, good_cnt + bad_cnt))
+  return retcode
 
 
 def ShowNodeConfig(opts, args):
@@ -172,6 +220,16 @@ commands = {
                        help="Specify the secondary ip for the node",
                        metavar="ADDRESS", default=None),],
           "<node_name>", "Add a node to the cluster"),
+  'failover': (FailoverNode, ARGS_ONE,
+               [DEBUG_OPT, FORCE_OPT,
+                make_option("--ignore-consistency", dest="ignore_consistency",
+                            action="store_true", default=False,
+                            help="Ignore the consistency of the disks on"
+                            " the secondary"),
+                ],
+               "[-f] <node>",
+               "Stops the primary instances on a node and start them on their"
+               " secondary node (only for instances of type remote_raid1)"),
   'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
            "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,

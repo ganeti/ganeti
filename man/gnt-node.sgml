@@ -126,6 +126,37 @@
     </refsect2>
 
     <refsect2>
+      <title>FAILOVER</title>
+
+      <cmdsynopsis>
+        <command>failover</command>
+        <arg>-f</arg>
+        <arg>--ignore-consistency</arg>
+        <arg choice="req"><replaceable>node</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        This command will fail over all instances having the given
+        node as primary to their secondary nodes. This works only for
+        instances having a remote raid disk layout.
+      </para>
+
+      <para>
+        Normally the failover will check the consistency of the disks
+        before failing over the instance. If you are trying to migrate
+        instances off a dead node, this will fail. Use the
+        <option>--ignore-consistency</option> option for this purpose.
+      </para>
+
+      <para>
+        Example:
+        <screen>
+          # gnt-node failover node1.example.com
+        </screen>
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>INFO</title>
 
       <cmdsynopsis>
