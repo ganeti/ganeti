@@ -60,7 +60,7 @@ def _ExtractTagsObject(opts, args):
     retval = kind, kind
   elif kind == constants.TAG_NODE or kind == constants.TAG_INSTANCE:
     if not args:
-      raise errors.OpPrereq("no arguments passed to the command")
+      raise errors.OpPrereqError("no arguments passed to the command")
     name = args.pop(0)
     retval = kind, name
   else:
