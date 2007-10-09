@@ -1,7 +1,7 @@
 EXTRA_DIST = ganeti.initd.in ganeti.cron
 CLEANFILES = $(nodist_bin_SCRIPTS)
 
-nodist_bin_SCRIPTS = ganeti.initd
+nodist_EXTRA_DATA = ganeti.initd
 
 all-local: ganeti.initd
 ganeti.initd: ganeti.initd.in
