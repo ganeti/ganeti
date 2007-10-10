@@ -479,6 +479,9 @@ def GenerateTable(headers, fields, separator, data,
 
   format_fields = []
   for field in fields:
+    if headers and field not in headers:
+      raise errors.ProgrammerError("Missing header description for field '%s'"
+                                   % field)
     if separator is not None:
       format_fields.append("%s")
     elif field in numfields:
@@ -501,6 +504,7 @@ def GenerateTable(headers, fields, separator, data,
           pass
         else:
           val = row[idx] = utils.FormatUnit(val)
+      val = row[idx] = str(val)
       if separator is None:
         mlens[idx] = max(mlens[idx], len(val))
 
