@@ -55,6 +55,9 @@ EXPORT_DIR = _autoconf.EXPORT_DIR
 
 EXPORT_CONF_FILE = "config.ini"
 
+XEN_KERNEL = _autoconf.XEN_KERNEL
+XEN_INITRD = _autoconf.XEN_INITRD
+
 # hooks-related constants
 HOOKS_BASE_DIR = _autoconf.SYSCONFDIR + "/ganeti/hooks"
 HOOKS_PHASE_PRE = "pre"

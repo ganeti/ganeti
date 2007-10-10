@@ -17,7 +17,8 @@ AC_SUBST(SSH_INITD_SCRIPT, $ssh_initd_script)
 # --with-export-dir=...
 AC_ARG_WITH([export-dir],
   [AS_HELP_STRING([--with-export-dir=DIR],
-    [directory to use by default for instance image exports (default is /srv/ganeti/export)]
+    [directory to use by default for instance image]
+    [ exports (default is /srv/ganeti/export)]
   )],
   [export_dir="$withval"],
   [export_dir="/srv/ganeti/export"])
@@ -27,11 +28,30 @@ AC_SUBST(EXPORT_DIR, $export_dir)
 # do a bit of black sed magic to for quoting of the strings in the list
 AC_ARG_WITH([os-search-path],
   [AS_HELP_STRING([--with-os-search-path=LIST],
-    [comma separated list of directories to search for OS images (default is /srv/ganeti/os)]
+    [comma separated list of directories to]
+    [ search for OS images (default is /srv/ganeti/os)]
   )],
   [os_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/'\1'/g"`],
   [os_search_path="'/srv/ganeti/os'"])
 AC_SUBST(OS_SEARCH_PATH, $os_search_path)
+
+# --with-xen-kernel=...
+AC_ARG_WITH([xen-kernel],
+  [AS_HELP_STRING([--with-xen-kernel=PATH],
+    [DomU kernel image for Xen hypervisor (default is /boot/vmlinuz-2.6-xenU)]
+  )],
+  [xen_kernel="$withval"],
+  [xen_kernel="/boot/vmlinuz-2.6-xenU"])
+AC_SUBST(XEN_KERNEL, $xen_kernel)
+
+# --with-xen-initrd=...
+AC_ARG_WITH([xen-initrd],
+  [AS_HELP_STRING([--with-xen-initrd=PATH],
+    [DomU initrd image for Xen hypervisor (default is /boot/initrd-2.6-xenU)]
+  )],
+  [xen_initrd="$withval"],
+  [xen_initrd="/boot/initrd-2.6-xenU"])
+AC_SUBST(XEN_INITRD, $xen_initrd)
 
 # Check common programs
 AC_PROG_INSTALL

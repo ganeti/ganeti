@@ -1,5 +1,3 @@
-SSH_INITD_SCRIPT = @SSH_INITD_SCRIPT@
-
 CLEANFILES = $(nodist_pkgpython_PYTHON) *.py[oc]
 
 nodist_pkgpython_PYTHON = _autoconf.py
@@ -19,6 +17,8 @@ _autoconf.py: Makefile
 	  echo "SSH_INITD_SCRIPT = '$(SSH_INITD_SCRIPT)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
+	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
+	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	} > $@
 
 pre-check: all
