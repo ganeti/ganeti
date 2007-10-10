@@ -1,5 +1,5 @@
 SUBDIRS = man lib scripts daemons doc test tools qa
-EXTRA_DIST = NEWS
+EXTRA_DIST = NEWS DEVNOTES
 
 .PHONY: ganeti
 ganeti:

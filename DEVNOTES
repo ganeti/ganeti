@@ -1,0 +1,9 @@
+Developer notes
+===============
+
+Configuring for development
+---------------------------
+
+sh autogen.sh && \
+./configure --enable-maintainer-mode \
+  --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
