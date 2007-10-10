@@ -126,6 +126,31 @@
     </refsect2>
 
     <refsect2>
+      <title>EVACUATE</title>
+
+      <cmdsynopsis>
+        <command>evacuate</command>
+        <arg>-f</arg>
+        <arg choice="req"><replaceable>source_node</replaceable></arg>
+        <arg choice="req"><replaceable>destination_node</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        This command will change the secondary node from the source
+        node to the destination node for all instances having the
+        source node as secondary. It works only for instances having
+        a remote raid disk layout.
+      </para>
+
+      <para>
+        Example:
+        <screen>
+          # gnt-node evacuate node1.example.com node2.example.com
+        </screen>
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>FAILOVER</title>
 
       <cmdsynopsis>

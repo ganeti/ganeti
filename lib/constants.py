@@ -91,8 +91,10 @@ INISECT_EXP = "export"
 INISECT_INS = "instance"
 
 # common exit codes
+EXIT_SUCCESS = 0
 EXIT_NOTMASTER = 11
 EXIT_NODESETUP_ERROR = 12
+EXIT_CONFIRMATION = 13 # need user confirmation
 
 # tags
 TAG_CLUSTER = "cluster"

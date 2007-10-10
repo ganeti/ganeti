@@ -94,6 +94,65 @@ def ListNodes(opts, args):
   return 0
 
 
+def EvacuateNode(opts, args):
+  """Relocate all secondary instance from a node.
+
+  """
+  force = opts.force
+  selected_fields = ["name", "sinst_list"]
+  src_node, dst_node = args
+
+  op = opcodes.OpQueryNodes(output_fields=selected_fields, names=[src_node])
+  result = SubmitOpCode(op)
+  src_node, sinst = result[0]
+  op = opcodes.OpQueryNodes(output_fields=["name"], names=[dst_node])
+  result = SubmitOpCode(op)
+  dst_node = result[0][0]
+
+  if src_node == dst_node:
+    raise errors.OpPrereqError("Evacuate node needs different source and"
+                               " target nodes (node %s given twice)" %
+                               src_node)
+
+  if not sinst:
+    logger.ToStderr("No secondary instances on node %s, exiting." % src_node)
+    return constants.EXIT_SUCCESS
+
+  sinst = utils.NiceSort(sinst)
+
+  retcode = constants.EXIT_SUCCESS
+
+  if not force and not AskUser("Relocate instance(s) %s from node\n"
+                               " %s to node\n %s?" %
+                               (",".join("'%s'" % name for name in sinst),
+                               src_node, dst_node)):
+    return constants.EXIT_CONFIRMATION
+
+  good_cnt = bad_cnt = 0
+  for iname in sinst:
+    op = opcodes.OpReplaceDisks(instance_name=iname,
+                                remote_node=dst_node)
+    try:
+      logger.ToStdout("Replacing disks for instance %s" % iname)
+      SubmitOpCode(op)
+      logger.ToStdout("Instance %s has been relocated" % iname)
+      good_cnt += 1
+    except errors.GenericError, err:
+      nret, msg = FormatError(err)
+      retcode |= nret
+      logger.ToStderr("Error replacing disks for instance %s: %s" %
+                      (iname, msg))
+      bad_cnt += 1
+
+  if retcode == constants.EXIT_SUCCESS:
+    logger.ToStdout("All %d instance(s) relocated successfully." % good_cnt)
+  else:
+    logger.ToStdout("There were errors during the relocation:\n"
+                    "%d error(s) out of %d instance(s)." %
+                    (bad_cnt, good_cnt + bad_cnt))
+  return retcode
+
+
 def FailoverNode(opts, args):
   """Failover all primary instance on a node.
 
@@ -220,6 +279,11 @@ commands = {
                        help="Specify the secondary ip for the node",
                        metavar="ADDRESS", default=None),],
           "<node_name>", "Add a node to the cluster"),
+  'evacuate': (EvacuateNode, ARGS_FIXED(2),
+               [DEBUG_OPT, FORCE_OPT],
+               "[-f] <src_node> <dst_node>",
+               "Relocate the secondary instances from the first node"
+               " to the second one (only for instances of type remote_raid1)"),
   'failover': (FailoverNode, ARGS_ONE,
                [DEBUG_OPT, FORCE_OPT,
                 make_option("--ignore-consistency", dest="ignore_consistency",
