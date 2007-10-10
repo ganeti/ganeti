@@ -373,6 +373,18 @@ def call_instance_list(node_list):
   return c.getresult()
 
 
+def call_node_tcp_ping(node, source, target, port, timeout, live_port_needed):
+  """Do a TcpPing on the remote node
+
+  This is a single-node call.
+  """
+  c = Client("node_tcp_ping", [source, target, port, timeout,
+                               live_port_needed])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_node_info(node_list, vg_name):
   """Return node information.
 

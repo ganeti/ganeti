@@ -567,8 +567,8 @@ class LUInitCluster(LogicalUnit):
 
     self.clustername = clustername = utils.HostInfo(self.op.cluster_name)
 
-    result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", hostname.ip])
-    if result.failed:
+    if not utils.TcpPing(constants.LOCALHOST_IP_ADDRESS, hostname.ip,
+                         constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                  " to %s,\nbut this ip address does not"
                                  " belong to this host."
@@ -577,12 +577,13 @@ class LUInitCluster(LogicalUnit):
     secondary_ip = getattr(self.op, "secondary_ip", None)
     if secondary_ip and not utils.IsValidIP(secondary_ip):
       raise errors.OpPrereqError("Invalid secondary ip given")
-    if secondary_ip and secondary_ip != hostname.ip:
-      result = utils.RunCmd(["fping", "-S127.0.0.1", "-q", secondary_ip])
-      if result.failed:
-        raise errors.OpPrereqError("You gave %s as secondary IP,\n"
-                                   "but it does not belong to this host." %
-                                   secondary_ip)
+    if (secondary_ip and
+        secondary_ip != hostname.ip and
+        (not utils.TcpPing(constants.LOCALHOST_IP_ADDRESS, secondary_ip,
+                           constants.DEFAULT_NODED_PORT))):
+      raise errors.OpPrereqError("You gave %s as secondary IP,\n"
+                                 "but it does not belong to this host." %
+                                 secondary_ip)
     self.secondary_ip = secondary_ip
 
     # checks presence of the volume group given
@@ -1428,17 +1429,18 @@ class LUAddNode(LogicalUnit):
                                    " new node doesn't have one")
 
     # checks reachablity
-    command = ["fping", "-q", primary_ip]
-    result = utils.RunCmd(command)
-    if result.failed:
+    if not utils.TcpPing(utils.HostInfo().name,
+                         primary_ip,
+                         constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Node not reachable by ping")
 
     if not newbie_singlehomed:
       # check reachability from my secondary ip to newbie's secondary ip
-      command = ["fping", "-S%s" % myself.secondary_ip, "-q", secondary_ip]
-      result = utils.RunCmd(command)
-      if result.failed:
-        raise errors.OpPrereqError("Node secondary ip not reachable by ping")
+      if not utils.TcpPing(myself.secondary_ip,
+                           secondary_ip,
+                           constants.DEFAULT_NODED_PORT):
+        raise errors.OpPrereqError(
+          "Node secondary ip not reachable by TCP based ping to noded port")
 
     self.new_node = objects.Node(name=node,
                                  primary_ip=primary_ip,
@@ -1529,9 +1531,11 @@ class LUAddNode(LogicalUnit):
                       self.cfg.GetHostKey())
 
     if new_node.secondary_ip != new_node.primary_ip:
-      result = ssh.SSHCall(node, "root",
-                           "fping -S 127.0.0.1 -q %s" % new_node.secondary_ip)
-      if result.failed:
+      if not rpc.call_node_tcp_ping(new_node.name,
+                                    constants.LOCALHOST_IP_ADDRESS,
+                                    new_node.secondary_ip,
+                                    constants.DEFAULT_NODED_PORT,
+                                    10, False):
         raise errors.OpExecError("Node claims it doesn't have the"
                                  " secondary ip you gave (%s).\n"
                                  "Please fix and re-run this command." %
@@ -2844,11 +2848,10 @@ class LUCreateInstance(LogicalUnit):
                                  " adding an instance in start mode")
 
     if self.op.ip_check:
-      command = ["fping", "-q", hostname1.ip]
-      result = utils.RunCmd(command)
-      if not result.failed:
-        raise errors.OpPrereqError("IP address %s of instance %s already"
-                                   " in use" % (hostname1.ip, instance_name))
+      if utils.TcpPing(utils.HostInfo().name, hostname1.ip,
+                       constants.DEFAULT_NODED_PORT):
+        raise errors.OpPrereqError("IP %s of instance %s already in use" %
+                                   (hostname1.ip, instance_name))
 
     # bridge verification
     bridge = getattr(self.op, "bridge", None)

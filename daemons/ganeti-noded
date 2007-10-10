@@ -38,6 +38,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import errors
 from ganeti import ssconf
+from ganeti import utils
 
 from twisted.spread import pb
 from twisted.internet import reactor
@@ -345,6 +346,14 @@ class ServerObject(pb.Avatar):
     return backend.GetInstanceList()
 
   # node --------------------------
+
+  @staticmethod
+  def perspective_node_tcp_ping(params):
+    """Do a TcpPing on the remote node.
+
+    """
+    return utils.TcpPing(params[0], params[1], params[2],
+                         timeout=params[3], live_port_needed=params[4])
 
   @staticmethod
   def perspective_node_info(params):

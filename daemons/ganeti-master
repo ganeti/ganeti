@@ -106,10 +106,10 @@ def StartMaster(master_netdev, master_ip, debug):
   """Starts the master.
 
   """
-  result = utils.RunCmd(["fping", "-q", master_ip])
-  if not result.failed:
-    r2 = utils.RunCmd(["fping", "-q", "-S127.0.0.1", master_ip])
-    if not r2.failed:
+  if utils.TcpPing(utils.HostInfo().name, master_ip,
+                   constants.DEFAULT_NODED_PORT):
+    if utils.TcpPing(constants.LOCALHOST_IP_ADDRESS, master_ip,
+                     constants.DEFAULT_NODED_PORT):
       # we already have the ip:
       if debug:
         sys.stderr.write("Notice: already started.\n")

@@ -378,10 +378,6 @@ skip resource "r1" {
         </listitem>
         <listitem>
           <simpara><ulink
-          url="http://fping.sourceforge.net/">fping</ulink></simpara>
-        </listitem>
-        <listitem>
-          <simpara><ulink
           url="http://developer.osdl.org/dev/iproute2">iproute2</ulink></simpara>
         </listitem>
         <listitem>
@@ -429,7 +425,7 @@ skip resource "r1" {
       </formalpara>
       <screen>
 # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-  fping python2.4 python-twisted-core python-pyopenssl openssl \
+  python2.4 python-twisted-core python-pyopenssl openssl \
   mdadm
       </screen>
 

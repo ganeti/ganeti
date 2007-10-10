@@ -31,11 +31,11 @@ import socket
 import shutil
 
 import ganeti
+from ganeti import constants
 from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
-     ShellQuote, ShellQuoteArgs, _ParseIpOutput, TcpPing, \
-     ListVisibleFiles
+     ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles
 from ganeti.errors import LockError, UnitParseError
 
 
@@ -445,38 +445,12 @@ class TestShellQuoting(unittest.TestCase):
     self.assertEqual(ShellQuoteArgs(['a', 'b\'', 'c']), "a 'b'\\\''' c")
 
 
-class TestIpAdressList(unittest.TestCase):
-  """Test case for local IP addresses"""
-
-  def _test(self, output, required):
-    ips = _ParseIpOutput(output)
-
-    # Sort the output, so our check below works in all cases
-    ips.sort()
-    required.sort()
-
-    self.assertEqual(required, ips)
-
-  def testSingleIpAddress(self):
-    output = \
-      ("3: lo    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo\n"
-       "5: eth0    inet 10.0.0.1/24 brd 172.30.15.127 scope global eth0\n")
-    self._test(output, ['127.0.0.1', '10.0.0.1'])
-
-  def testMultipleIpAddresses(self):
-    output = \
-      ("3: lo    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo\n"
-       "5: eth0    inet 10.0.0.1/24 brd 172.30.15.127 scope global eth0\n"
-       "5: eth0    inet 1.2.3.4/8 brd 1.255.255.255 scope global eth0:test\n")
-    self._test(output, ['127.0.0.1', '10.0.0.1', '1.2.3.4'])
-
-
 class TestTcpPing(unittest.TestCase):
   """Testcase for TCP version of ping - against listen(2)ing port"""
 
   def setUp(self):
     self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.listener.bind(("127.0.0.1", 0))
+    self.listener.bind((constants.LOCALHOST_IP_ADDRESS, 0))
     self.listenerport = self.listener.getsockname()[1]
     self.listener.listen(1)
 
@@ -486,8 +460,8 @@ class TestTcpPing(unittest.TestCase):
     del self.listenerport
 
   def testTcpPingToLocalHostAccept(self):
-    self.assert_(TcpPing("127.0.0.1",
-                         "127.0.0.1",
+    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+                         constants.LOCALHOST_IP_ADDRESS,
                          self.listenerport,
                          timeout=10,
                          live_port_needed=True),
@@ -499,7 +473,7 @@ class TestTcpPingDeaf(unittest.TestCase):
 
   def setUp(self):
     self.deaflistener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.deaflistener.bind(("127.0.0.1", 0))
+    self.deaflistener.bind((constants.LOCALHOST_IP_ADDRESS, 0))
     self.deaflistenerport = self.deaflistener.getsockname()[1]
 
   def tearDown(self):
@@ -507,18 +481,18 @@ class TestTcpPingDeaf(unittest.TestCase):
     del self.deaflistenerport
 
   def testTcpPingToLocalHostAcceptDeaf(self):
-    self.failIf(TcpPing("127.0.0.1",
-                        "127.0.0.1",
+    self.failIf(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+                        constants.LOCALHOST_IP_ADDRESS,
                         self.deaflistenerport,
-                        timeout=10,  # timeout for blocking operations
+                        timeout=constants.TCP_PING_TIMEOUT,
                         live_port_needed=True), # need successful connect(2)
                 "successfully connected to deaf listener")
 
   def testTcpPingToLocalHostNoAccept(self):
-    self.assert_(TcpPing("127.0.0.1",
-                         "127.0.0.1",
+    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+                         constants.LOCALHOST_IP_ADDRESS,
                          self.deaflistenerport,
-                         timeout=10, # timeout for blocking operations
+                         timeout=constants.TCP_PING_TIMEOUT,
                          live_port_needed=False), # ECONNREFUSED is OK
                  "failed to ping alive host on deaf port")
 

@@ -22,8 +22,6 @@ Before installing, please verify that you have the following programs:
     http://www.openssh.com/portable.html
   - bridge utilities
     http://bridge.sourceforge.net/
-  - fping
-    http://fping.sourceforge.net/
   - iproute2
     http://developer.osdl.org/dev/iproute2
   - arping (part of iputils package)

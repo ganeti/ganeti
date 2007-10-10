@@ -55,8 +55,9 @@ class TestConfigRunner(unittest.TestCase):
 
   def _init_cluster(self, cfg):
     """Initializes the cfg object"""
-    cfg.InitConfig(utils.HostInfo().name, '127.0.0.1', None, '', 'aa:00:00',
-                   'xenvg', constants.DEFAULT_BRIDGE)
+    cfg.InitConfig(utils.HostInfo().name, constants.LOCALHOST_IP_ADDRESS,
+                   None, '', 'aa:00:00', 'xenvg',
+                   constants.DEFAULT_BRIDGE)
 
   def _create_instance(self):
     """Create and return an instance object"""
