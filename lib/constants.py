@@ -35,7 +35,7 @@ EXPORT_VERSION = 0
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
-WATCHER_STATEFILE = DATA_DIR + "/restart_state"
+WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
@@ -48,6 +48,7 @@ MASTER_SCRIPT = "ganeti-master"
 LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti"
 LOG_OS_DIR = LOG_DIR + "/os"
 LOG_NODESERVER = LOG_DIR + "/node-daemon.log"
+LOG_WATCHER = LOG_DIR + "/watcher.log"
 
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 EXPORT_DIR = _autoconf.EXPORT_DIR
