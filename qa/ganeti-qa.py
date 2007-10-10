@@ -136,11 +136,19 @@ def main():
       if qa_config.TestEnabled('instance-info'):
         RunTest(qa_instance.TestInstanceInfo, instance)
 
-      if qa_config.TestEnabled('instance-automatic-restart'):
-        RunTest(qa_daemon.TestInstanceAutomaticRestart, node, instance)
+      automatic_restart = \
+        qa_config.TestEnabled('instance-automatic-restart')
+      consecutive_failures = \
+        qa_config.TestEnabled('instance-consecutive-failures')
 
-      if qa_config.TestEnabled('instance-consecutive-failures'):
-        RunTest(qa_daemon.TestInstanceConsecutiveFailures, node, instance)
+      if automatic_restart or consecutive_failures:
+        qa_daemon.PrintCronWarning()
+
+        if automatic_restart:
+          RunTest(qa_daemon.TestInstanceAutomaticRestart, node, instance)
+
+        if consecutive_failures:
+          RunTest(qa_daemon.TestInstanceConsecutiveFailures, node, instance)
 
       if qa_config.TestEnabled('instance-export'):
         expnode = qa_config.AcquireNode(exclude=node)

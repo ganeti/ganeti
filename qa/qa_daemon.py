@@ -78,6 +78,15 @@ def _ResetWatcherDaemon(node):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+def PrintCronWarning():
+  """Shows a warning about the required cron job.
+
+  """
+  print
+  qa_utils.PrintWarning("The following tests require the cron script for"
+                        " ganeti-watcher to be set up.")
+
+
 def TestInstanceAutomaticRestart(node, instance):
   """Test automatic restart of instance by ganeti-watcher.
 

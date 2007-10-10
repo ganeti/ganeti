@@ -21,12 +21,44 @@
 """
 
 import os
+import sys
 import subprocess
 
 from ganeti import utils
 
 import qa_config
 import qa_error
+
+
+_INFO_SEQ = None
+_WARNING_SEQ = None
+_ERROR_SEQ = None
+_RESET_SEQ = None
+
+
+def _SetupColours():
+  """Initializes the colour constants.
+
+  """
+  global _INFO_SEQ, _WARNING_SEQ, _ERROR_SEQ, _RESET_SEQ
+
+  try:
+    import curses
+  except ImportError:
+    # Don't use colours if curses module can't be imported
+    return
+
+  curses.setupterm()
+
+  _RESET_SEQ = curses.tigetstr("op")
+
+  setaf = curses.tigetstr("setaf")
+  _INFO_SEQ = curses.tparm(setaf, curses.COLOR_GREEN)
+  _WARNING_SEQ = curses.tparm(setaf, curses.COLOR_YELLOW)
+  _ERROR_SEQ = curses.tparm(setaf, curses.COLOR_RED)
+
+
+_SetupColours()
 
 
 def AssertEqual(first, second, msg=None):
@@ -113,3 +145,31 @@ def ResolveInstanceName(instance):
   AssertEqual(p.wait(), 0)
 
   return p.stdout.read().strip()
+
+
+def _PrintWithColor(text, seq):
+  f = sys.stdout
+
+  if not f.isatty():
+    seq = None
+
+  if seq:
+    f.write(seq)
+
+  f.write(text)
+  f.write("\n")
+
+  if seq:
+    f.write(_RESET_SEQ)
+
+
+def PrintWarning(text):
+  return _PrintWithColor(text, _WARNING_SEQ)
+
+
+def PrintError(f, text):
+  return _PrintWithColor(text, _ERROR_SEQ)
+
+
+def PrintInfo(f, text):
+  return _PrintWithColor(text, _INFO_SEQ)
