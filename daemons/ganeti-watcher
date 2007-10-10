@@ -457,7 +457,11 @@ def main():
     sys.stderr = sys.stdout = open(constants.LOG_WATCHER, 'a')
 
   try:
-    watcher = Watcher()
+    try:
+      watcher = Watcher()
+    except errors.ConfigurationError:
+      # Just exit if there's no configuration
+      sys.exit(constants.EXIT_SUCCESS)
     watcher.Run()
     watcher.WriteReport(sys.stdout)
   except NotMasterError:
