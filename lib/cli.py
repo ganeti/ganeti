@@ -311,7 +311,7 @@ def AskUser(text, choices=None):
     new_text.append(textwrap.fill(line, 70, replace_whitespace=False))
   text = "\n".join(new_text)
   try:
-    f = file("/dev/tty", "r+")
+    f = file("/dev/tty", "a+")
   except IOError:
     return answer
   try:
