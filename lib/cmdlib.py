@@ -545,11 +545,7 @@ class LUInitCluster(LogicalUnit):
     ourselves in the post-run node list.
 
     """
-    env = {
-      "CLUSTER": self.op.cluster_name,
-      "MASTER": self.hostname.name,
-      }
-    return env, [], [self.hostname.name]
+    return {}, [], [self.hostname.name]
 
   def CheckPrereq(self):
     """Verify that the passed name is a valid one.
@@ -615,7 +611,7 @@ class LUInitCluster(LogicalUnit):
     hostname = self.hostname
 
     # set up the simple store
-    ss = ssconf.SimpleStore()
+    self.sstore = ss = ssconf.SimpleStore()
     ss.SetKey(ss.SS_HYPERVISOR, self.op.hypervisor_type)
     ss.SetKey(ss.SS_MASTER_NODE, hostname.name)
     ss.SetKey(ss.SS_MASTER_IP, clustername.ip)
@@ -643,7 +639,7 @@ class LUInitCluster(LogicalUnit):
     _InitSSHSetup(hostname.name)
 
     # init of cluster config file
-    cfgw = config.ConfigWriter()
+    self.cfg = cfgw = config.ConfigWriter()
     cfgw.InitConfig(hostname.name, hostname.ip, self.secondary_ip,
                     sshkey, self.op.mac_prefix,
                     self.op.vg_name, self.op.def_bridge)

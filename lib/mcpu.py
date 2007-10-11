@@ -170,9 +170,7 @@ class HooksMaster(object):
     self.callfn = callfn
     self.lu = lu
     self.op = lu.op
-    self.hpath = self.lu.HPATH
     self.env, node_list_pre, node_list_post = self._BuildEnv()
-
     self.node_list = {constants.HOOKS_PHASE_PRE: node_list_pre,
                       constants.HOOKS_PHASE_POST: node_list_post}
 
@@ -198,15 +196,24 @@ class HooksMaster(object):
     else:
       lu_nodes_pre = lu_nodes_post = []
 
+    return env, frozenset(lu_nodes_pre), frozenset(lu_nodes_post)
+
+  def _RunWrapper(self, node_list, hpath, phase):
+    """Simple wrapper over self.callfn.
+
+    This method fixes the environment before doing the rpc call.
+
+    """
+    env = self.env.copy()
+    env["GANETI_HOOKS_PHASE"] = phase
+    env["GANETI_HOOKS_PATH"] = hpath
     if self.lu.sstore is not None:
       env["GANETI_CLUSTER"] = self.lu.sstore.GetClusterName()
       env["GANETI_MASTER"] = self.lu.sstore.GetMasterNode()
 
-    for key in env:
-      if not isinstance(env[key], str):
-        env[key] = str(env[key])
+    env = dict([(str(key), str(val)) for key, val in env.iteritems()])
 
-    return env, frozenset(lu_nodes_pre), frozenset(lu_nodes_post)
+    return self.callfn(node_list, hpath, phase, env)
 
   def RunPhase(self, phase):
     """Run all the scripts for a phase.
@@ -219,8 +226,8 @@ class HooksMaster(object):
       # we're in the cluster init phase and the rpc client part can't
       # even attempt to run, or this LU doesn't do hooks at all
       return
-    self.env["GANETI_HOOKS_PHASE"] = str(phase)
-    results = self.callfn(self.node_list[phase], self.hpath, phase, self.env)
+    hpath = self.lu.HPATH
+    results = self._RunWrapper(self.node_list[phase], hpath, phase)
     if phase == constants.HOOKS_PHASE_PRE:
       errs = []
       if not results:
