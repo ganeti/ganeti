@@ -135,7 +135,7 @@ def _ConfirmOperation(inames, text):
 
 
 def ListInstances(opts, args):
-  """List nodes and their properties.
+  """List instances and their properties.
 
   """
   if opts.output is None:
