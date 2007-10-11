@@ -161,7 +161,7 @@ class NoHooksLU(LogicalUnit):
     This is a no-op, since we don't run hooks.
 
     """
-    return
+    return {}, [], []
 
 
 def _GetWantedNodes(lu, nodes):
@@ -239,6 +239,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     secondary_nodes: List of secondary nodes as strings
   """
   env = {
+    "OP_TARGET": name,
     "INSTANCE_NAME": name,
     "INSTANCE_PRIMARY": primary_node,
     "INSTANCE_SECONDARIES": " ".join(secondary_nodes),
@@ -545,7 +546,8 @@ class LUInitCluster(LogicalUnit):
     ourselves in the post-run node list.
 
     """
-    return {}, [], [self.hostname.name]
+    env = {"OP_TARGET": self.op.cluster_name}
+    return env, [], [self.hostname.name]
 
   def CheckPrereq(self):
     """Verify that the passed name is a valid one.
@@ -936,6 +938,7 @@ class LURenameCluster(LogicalUnit):
 
     """
     env = {
+      "OP_TARGET": self.op.sstore.GetClusterName(),
       "NEW_NAME": self.op.name,
       }
     mn = self.sstore.GetMasterNode()
@@ -1126,6 +1129,7 @@ class LURemoveNode(LogicalUnit):
 
     """
     env = {
+      "OP_TARGET": self.op.node_name,
       "NODE_NAME": self.op.node_name,
       }
     all_nodes = self.cfg.GetNodeList()
@@ -1365,6 +1369,7 @@ class LUAddNode(LogicalUnit):
 
     """
     env = {
+      "OP_TARGET": self.op.node_name,
       "NODE_NAME": self.op.node_name,
       "NODE_PIP": self.op.primary_ip,
       "NODE_SIP": self.op.secondary_ip,
@@ -1587,6 +1592,7 @@ class LUMasterFailover(LogicalUnit):
 
     """
     env = {
+      "OP_TARGET": self.new_master,
       "NEW_MASTER": self.new_master,
       "OLD_MASTER": self.old_master,
       }
