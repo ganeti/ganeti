@@ -73,6 +73,10 @@ class BaseHypervisor(object):
     """Stop an instance."""
     raise NotImplementedError
 
+  def RebootInstance(self, instance):
+    """Reboot an instance."""
+    raise NotImplementedError
+
   def ListInstances(self):
     """Get the list of running instances."""
     raise NotImplementedError
@@ -277,6 +281,14 @@ class XenHypervisor(BaseHypervisor):
       raise HypervisorError("Failed to stop instance %s: %s" %
                             (instance.name, result.fail_reason))
 
+  def RebootInstance(self, instance):
+    """Reboot an instance."""
+    result = utils.RunCmd(["xm", "reboot", instance.name])
+
+    if result.failed:
+      raise HypervisorError("Failed to reboot instance %s: %s" %
+                            (instance.name, result.fail_reason))
+
   def GetNodeInfo(self):
     """Return information about the node.
 
@@ -437,6 +449,14 @@ class FakeHypervisor(BaseHypervisor):
       raise HypervisorError("Failed to stop instance %s: %s" %
                             (instance.name, "not running"))
     utils.RemoveFile(file_name)
+
+  def RebootInstance(self, instance):
+    """Reboot an instance.
+
+    For the fake hypervisor, this does nothing.
+
+    """
+    return
 
   def GetNodeInfo(self):
     """Return information about the node.
