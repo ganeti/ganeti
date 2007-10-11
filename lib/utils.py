@@ -33,6 +33,7 @@ import socket
 import tempfile
 import shutil
 import errno
+import pwd
 
 from ganeti import logger
 from ganeti import errors
@@ -822,3 +823,14 @@ def ListVisibleFiles(path):
 
   """
   return [i for i in os.listdir(path) if not i.startswith(".")]
+
+
+def GetHomeDir(uid, default=None):
+  """Try to get the homedir of the given user id.
+
+  """
+  try:
+    result = pwd.getpwuid(uid)
+  except KeyError:
+    return default
+  return result.pw_dir
