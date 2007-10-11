@@ -116,7 +116,7 @@ class Processor(object):
     lu.CheckPrereq()
     do_hooks = lu_class.HPATH is not None
     if do_hooks:
-      hm = HooksMaster(rpc.call_hooks_runner, self.cfg, self.sstore, lu)
+      hm = HooksMaster(rpc.call_hooks_runner, lu)
       hm.RunPhase(constants.HOOKS_PHASE_PRE)
     result = lu.Exec(feedback_fn)
     if do_hooks:
@@ -145,11 +145,11 @@ class Processor(object):
     if lu_class.REQ_CLUSTER and self.cfg is None:
       self.cfg = config.ConfigWriter()
       self.sstore = ssconf.SimpleStore()
-    do_hooks = lu_class.HPATH is not None
+    #do_hooks = lu_class.HPATH is not None
     lu = lu_class(self, op, self.cfg, self.sstore)
     lu.CheckPrereq()
     #if do_hooks:
-    #  hm = HooksMaster(rpc.call_hooks_runner, self.cfg, self.sstore, lu)
+    #  hm = HooksMaster(rpc.call_hooks_runner, lu)
     #  hm.RunPhase(constants.HOOKS_PHASE_PRE)
     result = lu.Exec(feedback_fn)
     #if do_hooks:
@@ -169,10 +169,8 @@ class HooksMaster(object):
   which behaves the same works.
 
   """
-  def __init__(self, callfn, cfg, sstore, lu):
+  def __init__(self, callfn, lu):
     self.callfn = callfn
-    self.cfg = cfg
-    self.sstore = sstore
     self.lu = lu
     self.op = lu.op
     self.hpath = self.lu.HPATH
@@ -200,9 +198,9 @@ class HooksMaster(object):
       for key in lu_env:
         env["GANETI_" + key] = lu_env[key]
 
-    if self.sstore is not None:
-      env["GANETI_CLUSTER"] = self.sstore.GetClusterName()
-      env["GANETI_MASTER"] = self.sstore.GetMasterNode()
+    if self.lu.sstore is not None:
+      env["GANETI_CLUSTER"] = self.lu.sstore.GetClusterName()
+      env["GANETI_MASTER"] = self.lu.sstore.GetMasterNode()
 
     for key in env:
       if not isinstance(env[key], str):
