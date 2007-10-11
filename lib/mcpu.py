@@ -112,12 +112,23 @@ class Processor(object):
     if lu_class.REQ_CLUSTER and self.cfg is None:
       self.cfg = config.ConfigWriter()
       self.sstore = ssconf.SimpleStore()
+    if self.cfg is not None:
+      write_count = self.cfg.write_count
+    else:
+      write_count = 0
     lu = lu_class(self, op, self.cfg, self.sstore)
     lu.CheckPrereq()
     hm = HooksMaster(rpc.call_hooks_runner, lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
     result = lu.Exec(feedback_fn)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
+    if lu.cfg is not None:
+      # we use lu.cfg and not self.cfg as for init cluster, self.cfg
+      # is None but lu.cfg has been recently initialized in the
+      # lu.Exec method
+      if write_count != lu.cfg.write_count:
+        hm.RunConfigUpdate()
+
     return result
 
   def ChainOpCode(self, op, feedback_fn):
@@ -186,6 +197,7 @@ class HooksMaster(object):
       "GANETI_HOOKS_VERSION": constants.HOOKS_VERSION,
       "GANETI_OP_CODE": self.op.OP_ID,
       "GANETI_OBJECT_TYPE": self.lu.HTYPE,
+      "GANETI_DATA_DIR": constants.DATA_DIR,
       }
 
     if self.lu.HPATH is not None:
@@ -243,3 +255,17 @@ class HooksMaster(object):
             errs.append((node_name, script, output))
       if errs:
         raise errors.HooksAbort(errs)
+
+  def RunConfigUpdate(self):
+    """Run the special configuration update hook
+
+    This is a special hook that runs only on the master after each
+    top-level LI if the configuration has been updated.
+
+    """
+    phase = constants.HOOKS_PHASE_POST
+    hpath = constants.HOOKS_NAME_CFGUPDATE
+    if self.lu.sstore is None:
+      raise errors.ProgrammerError("Null sstore on config update hook")
+    nodes = [self.lu.sstore.GetMasterNode()]
+    results = self._RunWrapper(nodes, hpath, phase)

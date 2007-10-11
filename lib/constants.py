@@ -62,6 +62,7 @@ XEN_INITRD = _autoconf.XEN_INITRD
 HOOKS_BASE_DIR = _autoconf.SYSCONFDIR + "/ganeti/hooks"
 HOOKS_PHASE_PRE = "pre"
 HOOKS_PHASE_POST = "post"
+HOOKS_NAME_CFGUPDATE = "config-update"
 HOOKS_VERSION = 1
 
 # hooks subject type (what object type does the LU deal with)
