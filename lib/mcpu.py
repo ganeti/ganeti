@@ -114,13 +114,10 @@ class Processor(object):
       self.sstore = ssconf.SimpleStore()
     lu = lu_class(self, op, self.cfg, self.sstore)
     lu.CheckPrereq()
-    do_hooks = lu_class.HPATH is not None
-    if do_hooks:
-      hm = HooksMaster(rpc.call_hooks_runner, lu)
-      hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    hm = HooksMaster(rpc.call_hooks_runner, lu)
+    hm.RunPhase(constants.HOOKS_PHASE_PRE)
     result = lu.Exec(feedback_fn)
-    if do_hooks:
-      hm.RunPhase(constants.HOOKS_PHASE_POST)
+    hm.RunPhase(constants.HOOKS_PHASE_POST)
     return result
 
   def ChainOpCode(self, op, feedback_fn):
@@ -193,10 +190,13 @@ class HooksMaster(object):
       "GANETI_OBJECT_TYPE": self.lu.HTYPE,
       }
 
-    lu_env, lu_nodes_pre, lu_nodes_post = self.lu.BuildHooksEnv()
-    if lu_env:
-      for key in lu_env:
-        env["GANETI_" + key] = lu_env[key]
+    if self.lu.HPATH is not None:
+      lu_env, lu_nodes_pre, lu_nodes_post = self.lu.BuildHooksEnv()
+      if lu_env:
+        for key in lu_env:
+          env["GANETI_" + key] = lu_env[key]
+    else:
+      lu_nodes_pre = lu_nodes_post = []
 
     if self.lu.sstore is not None:
       env["GANETI_CLUSTER"] = self.lu.sstore.GetClusterName()
@@ -215,9 +215,9 @@ class HooksMaster(object):
 
     """
     if not self.node_list[phase]:
-      # empty node list, we should not attempt to run this
-      # as most probably we're in the cluster init phase and the rpc client
-      # part can't even attempt to run
+      # empty node list, we should not attempt to run this as either
+      # we're in the cluster init phase and the rpc client part can't
+      # even attempt to run, or this LU doesn't do hooks at all
       return
     self.env["GANETI_HOOKS_PHASE"] = str(phase)
     results = self.callfn(self.node_list[phase], self.hpath, phase, self.env)
