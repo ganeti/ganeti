@@ -48,6 +48,7 @@ class ConfigWriter:
 
   """
   def __init__(self, cfg_file=None, offline=False):
+    self.write_count = 0
     self._config_data = None
     self._config_time = None
     self._config_size = None
@@ -546,6 +547,7 @@ class ConfigWriter:
       f.close()
     # we don't need to do os.close(fd) as f.close() did it
     os.rename(name, destination)
+    self.write_count += 1
     # re-set our cache as not to re-read the config file
     try:
       st = os.stat(destination)
