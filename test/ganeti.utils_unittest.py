@@ -29,9 +29,11 @@ import os.path
 import md5
 import socket
 import shutil
+import re
 
 import ganeti
 from ganeti import constants
+from ganeti import utils
 from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
@@ -537,6 +539,16 @@ class TestListVisibleFiles(unittest.TestCase):
     files = ["a", "b", ".c"]
     expected = ["a", "b"]
     self._test(files, expected)
+
+
+class TestGetUUID(unittest.TestCase):
+  """Test case for GetUUID"""
+
+  _re_uuid = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
+                        '[a-f0-9]{4}-[a-f0-9]{12}$')
+
+  def runTest(self):
+    self.failUnless(self._re_uuid.match(utils.GetUUID()))
 
 
 if __name__ == '__main__':

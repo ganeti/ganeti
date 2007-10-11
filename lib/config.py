@@ -43,23 +43,6 @@ from ganeti import rpc
 from ganeti import objects
 
 
-def _my_uuidgen():
-  """Poor-man's uuidgen using the uuidgen binary.
-
-  """
-  result = utils.RunCmd(["uuidgen", "-r"])
-  if result.failed:
-    return None
-  return result.stdout.rstrip('\n')
-
-
-try:
-  import uuid
-  _uuidgen = uuid.uuid4
-except ImportError:
-  _uuidgen = _my_uuidgen
-
-
 class ConfigWriter:
   """The interface to the cluster configuration.
 
@@ -149,7 +132,7 @@ class ConfigWriter:
       existing.update(exceptions)
     retries = 64
     while retries > 0:
-      unique_id = _uuidgen()
+      unique_id = utils.GetUUID()
       if unique_id not in existing and unique_id is not None:
         break
     else:

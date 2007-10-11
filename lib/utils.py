@@ -834,3 +834,14 @@ def GetHomeDir(uid, default=None):
   except KeyError:
     return default
   return result.pw_dir
+
+
+def GetUUID():
+  """Returns a random UUID.
+
+  """
+  f = open("/proc/sys/kernel/random/uuid", "r")
+  try:
+    return f.read(128).rstrip("\n")
+  finally:
+    f.close()
