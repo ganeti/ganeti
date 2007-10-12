@@ -855,3 +855,54 @@ def GetUUID():
     return f.read(128).rstrip("\n")
   finally:
     f.close()
+
+
+def WriteFile(file_name, fn=None, data=None,
+              mode=None, uid=-1, gid=-1,
+              atime=None, mtime=None):
+  """(Over)write a file atomically.
+
+  The file_name and either fn (a function taking one argument, the
+  file descriptor, and which should write the data to it) or data (the
+  contents of the file) must be passed. The other arguments are
+  optional and allow setting the file mode, owner and group, and the
+  mtime/atime of the file.
+
+  If the function doesn't raise an exception, it has succeeded and the
+  target file has the new contents. If the file has raised an
+  exception, an existing target file should be unmodified and the
+  temporary file should be removed.
+
+  """
+  if not os.path.isabs(file_name):
+    raise errors.ProgrammerError("Path passed to WriteFile is not"
+                                 " absolute: '%s'" % file_name)
+
+  if [fn, data].count(None) != 1:
+    raise errors.ProgrammerError("fn or data required")
+
+  if [atime, mtime].count(None) == 1:
+    raise errors.ProgrammerError("Both atime and mtime must be either"
+                                 " set or None")
+
+
+  dir_name, base_name = os.path.split(file_name)
+  fd, new_name = tempfile.mkstemp('.new', base_name, dir_name)
+  # here we need to make sure we remove the temp file, if any error
+  # leaves it in place
+  try:
+    if uid != -1 or gid != -1:
+      os.chown(new_name, uid, gid)
+    if mode:
+      os.chmod(new_name, mode)
+    if data is not None:
+      os.write(fd, data)
+    else:
+      fn(fd)
+    os.fsync(fd)
+    if atime is not None and mtime is not None:
+      os.utime(new_name, (atime, mtime))
+    os.rename(new_name, file_name)
+  finally:
+    os.close(fd)
+    RemoveFile(new_name)
