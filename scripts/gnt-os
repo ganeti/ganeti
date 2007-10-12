@@ -29,7 +29,58 @@ from ganeti import objects
 from ganeti import utils
 from ganeti import errors
 
-def _GetAllOS(rlist):
+
+def _DiagnoseOSValid(obj):
+  """Verify whether an OS diagnose object represents a valid OS
+
+    Args:
+      obj: an diagnostic object as returned by OpDiagnoseOS
+
+    Returns:
+      bool: OS validity status
+  """
+
+  if isinstance(obj, objects.OS):
+    return True
+  elif isinstance(obj, errors.InvalidOS):
+    return False
+  else:
+    raise errors.ProgrammerError('unknown OS diagnose type')
+
+
+def _DiagnoseOSName(obj):
+  """Generate a status message for an OS diagnose object.
+
+    Args:
+      obj: an diagnostic object as returned by OpDiagnoseOS
+
+    Returns:
+      string: the name of the OS in question
+  """
+
+  if _DiagnoseOSValid(obj):
+    return obj.name
+  else:
+    return obj.args[0]
+
+
+def _DiagnoseOSStatus(obj):
+  """Generate a status message for an OS diagnose object.
+
+    Args:
+      obj: an diagnostic object as returned by OpDiagnoseOS
+
+    Returns:
+      string: a description of the OS status
+  """
+
+  if _DiagnoseOSValid(obj):
+    return "valid (path: %s)" % obj.path
+  else:
+    return "%s (path: %s)" % (obj.args[2], obj.args[1])
+
+
+def _DiagnoseByOS(rlist):
   """Remap an OpDiagnoseOS() return list into an a per-os per-node dictionary
 
     Args:
@@ -46,10 +97,7 @@ def _GetAllOS(rlist):
     if not nr:
       continue
     for obj in nr:
-      if _DiagnoseOSValid(obj):
-        os_name = obj.name
-      else:
-        os_name = obj.args[0]
+      os_name = _DiagnoseOSName(obj)
       if os_name not in all_os:
         all_os[os_name] = {}
       if node_name not in all_os[os_name]:
@@ -57,6 +105,7 @@ def _GetAllOS(rlist):
       all_os[os_name][node_name].append(obj)
 
   return all_os
+
 
 def ListOS(opts, args):
   """List the OSes existing on this node.
@@ -71,7 +120,7 @@ def ListOS(opts, args):
 
   node_data = result
   num_nodes = len(node_data)
-  all_os = _GetAllOS(node_data)
+  all_os = _DiagnoseByOS(node_data)
 
   valid_os = []
   for os_name, os_node_data in all_os.iteritems():
@@ -98,37 +147,6 @@ def ListOS(opts, args):
 
   return 0
 
-def _DiagnoseOSValid(obj):
-  """Verify whether an OS diagnose object represents a valid OS
-
-    Args:
-      obj: an diagnostic object as returned by OpDiagnoseOS
-
-    Returns:
-      bool: OS validity status
-  """
-
-  if isinstance(obj, objects.OS):
-    return True
-  elif isinstance(obj, errors.InvalidOS):
-    return False
-  else:
-    raise errors.ProgrammerError('unknown OS diagnose type')
-
-def _DiagnoseOSStatus(obj):
-  """Generate a status message for an OS diagnose object.
-
-    Args:
-      obj: an diagnostic object as returned by OpDiagnoseOS
-
-    Returns:
-      string: a description of the OS status
-  """
-
-  if _DiagnoseOSValid(obj):
-    return "valid (path: %s)" % obj.path
-  else:
-    return "%s (path: %s)" % (obj.args[2], obj.args[1])
 
 def DiagnoseOS(opts, args):
   """Analyse all OSes on this cluster.
@@ -142,7 +160,7 @@ def DiagnoseOS(opts, args):
     return 1
 
   node_data = result
-  all_os = _GetAllOS(node_data)
+  all_os = _DiagnoseByOS(node_data)
 
   format = "%-*s %-*s %s"
 
