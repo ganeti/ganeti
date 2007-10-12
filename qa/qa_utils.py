@@ -100,8 +100,18 @@ def StartSSH(node, cmd, strict=True):
   """Starts SSH.
 
   """
-  args = GetSSHCommand(node, cmd, strict=strict)
-  return subprocess.Popen(args, shell=False)
+  return subprocess.Popen(GetSSHCommand(node, cmd, strict=strict),
+                          shell=False)
+
+
+def GetCommandOutput(node, cmd):
+  """Returns the output of a command executed on the given node.
+
+  """
+  p = subprocess.Popen(GetSSHCommand(node, cmd),
+                       shell=False, stdout=subprocess.PIPE)
+  AssertEqual(p.wait(), 0)
+  return p.stdout.read()
 
 
 def UploadFile(node, src):
@@ -130,21 +140,57 @@ def UploadFile(node, src):
     f.close()
 
 
-def ResolveInstanceName(instance):
-  """Gets the full name of an instance.
+def _ResolveName(cmd, key):
+  """Helper function.
 
   """
   master = qa_config.GetMasterNode()
 
-  info_cmd = utils.ShellQuoteArgs(['gnt-instance', 'info', instance['name']])
-  sed_cmd = utils.ShellQuoteArgs(['sed', '-n', '-e', 's/^Instance name: *//p'])
+  output = GetCommandOutput(master['primary'], utils.ShellQuoteArgs(cmd))
+  for line in output.splitlines():
+    (lkey, lvalue) = line.split(':', 1)
+    if lkey == key:
+      return lvalue.lstrip()
+  raise KeyError("Key not found")
 
-  cmd = '%s | %s' % (info_cmd, sed_cmd)
-  ssh_cmd = GetSSHCommand(master['primary'], cmd)
-  p = subprocess.Popen(ssh_cmd, shell=False, stdout=subprocess.PIPE)
-  AssertEqual(p.wait(), 0)
 
-  return p.stdout.read().strip()
+def ResolveInstanceName(instance):
+  """Gets the full name of an instance.
+
+  """
+  return _ResolveName(['gnt-instance', 'info', instance['info']],
+                      'Instance name')
+
+
+def ResolveNodeName(node):
+  """Gets the full name of a node.
+
+  """
+  return _ResolveName(['gnt-node', 'info', node['primary']],
+                      'Node name')
+
+
+def GetNodeInstances(node, secondaries=False):
+  """Gets a list of instances on a node.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  node_name = ResolveNodeName(node)
+
+  # Get list of all instances
+  cmd = ['gnt-instance', 'list', '--separator=:', '--no-headers',
+         '--output=name,pnode,snodes']
+  output = GetCommandOutput(master['primary'], utils.ShellQuoteArgs(cmd))
+
+  instances = []
+  for line in output.splitlines():
+    (name, pnode, snodes) = line.split(':', 2)
+    if ((not secondaries and pnode == node_name) or
+        (secondaries and node_name in snodes.split(','))):
+      instances.append(name)
+
+  return instances
 
 
 def _PrintWithColor(text, seq):

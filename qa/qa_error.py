@@ -35,3 +35,10 @@ class OutOfInstancesError(Error):
 
   """
   pass
+
+
+class UnusableNodeError(Error):
+  """Unusable node.
+
+  """
+  pass

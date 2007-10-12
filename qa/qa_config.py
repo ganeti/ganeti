@@ -96,6 +96,8 @@ def AcquireNode(exclude=None):
   # TODO: Maybe combine filters
   if exclude is None:
     nodes = cfg['nodes'][:]
+  elif isinstance(exclude, (list, tuple)):
+    nodes = filter(lambda node: node not in exclude, cfg['nodes'])
   else:
     nodes = filter(lambda node: node != exclude, cfg['nodes'])
 

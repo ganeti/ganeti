@@ -20,6 +20,7 @@ from ganeti import utils
 
 import qa_config
 import qa_error
+import qa_utils
 
 from qa_utils import AssertEqual, StartSSH
 
@@ -81,3 +82,47 @@ def TestNodeVolumes():
   cmd = ['gnt-node', 'volumes']
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestNodeFailover(node, node2):
+  """gnt-node failover"""
+  master = qa_config.GetMasterNode()
+
+  if qa_utils.GetNodeInstances(node2):
+    raise qa_errors.UnusableNodeError("Secondary node has at least one "
+                                      "primary instance. This test requires "
+                                      "it to have no primary instances.")
+
+  # Fail over to secondary node
+  cmd = ['gnt-node', 'failover', '-f', node['primary']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # ... and back again.
+  cmd = ['gnt-node', 'failover', '-f', node2['primary']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestNodeEvacuate(node, node2):
+  """gnt-node evacuate"""
+  master = qa_config.GetMasterNode()
+
+  node3 = qa_config.AcquireNode(exclude=[node, node2])
+  try:
+    if qa_utils.GetNodeInstances(node3):
+      raise qa_errors.UnusableNodeError("Evacuation node has at least one "
+                                        "secondary instance. This test requires "
+                                        "it to have no secondary instances.")
+
+    # Evacuate all secondary instances
+    cmd = ['gnt-node', 'evacuate', '-f', node2['primary'], node3['primary']]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    # ... and back again.
+    cmd = ['gnt-node', 'evacuate', '-f', node3['primary'], node2['primary']]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  finally:
+    qa_config.ReleaseNode(node3)

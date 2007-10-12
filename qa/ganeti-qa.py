@@ -211,6 +211,12 @@ def main():
         if qa_config.TestEnabled('instance-failover'):
           RunTest(qa_instance.TestInstanceFailover, instance)
 
+        if qa_config.TestEnabled('node-evacuate'):
+          RunTest(qa_node.TestNodeEvacuate, node, node2)
+
+        if qa_config.TestEnabled('node-failover'):
+          RunTest(qa_node.TestNodeFailover, node, node2)
+
         if qa_config.TestEnabled('node-volumes'):
           RunTest(qa_node.TestNodeVolumes)
 

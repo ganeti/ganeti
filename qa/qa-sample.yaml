@@ -38,6 +38,10 @@ tests:
   node-info: True
   node-volumes: True
 
+  # These tests need at least three nodes
+  node-evacuate: False
+  node-failover: False
+
   instance-add-plain-disk: True
   instance-add-local-mirror-disk: True
   instance-add-remote-raid-disk: True
