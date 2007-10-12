@@ -129,11 +129,11 @@ def LeaveCluster():
   """Cleans up the current node and prepares it to be removed from the cluster.
 
   """
-  if os.path.exists(constants.DATA_DIR):
-    for dirpath, dirnames, filenames in os.walk(constants.DATA_DIR):
-      if dirpath == constants.DATA_DIR:
-        for i in filenames:
-          os.unlink(os.path.join(dirpath, i))
+  if os.path.isdir(constants.DATA_DIR):
+    for rel_name in utils.ListVisibleFiles(constants.DATA_DIR):
+      full_name = os.path.join(constants.DATA_DIR, rel_name)
+      if os.path.isfile(full_name) and not os.path.islink(full_name):
+        utils.RemoveFile(full_name)
 
   f = open('/root/.ssh/id_dsa.pub', 'r')
   try:
