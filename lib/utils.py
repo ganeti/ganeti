@@ -825,12 +825,22 @@ def ListVisibleFiles(path):
   return [i for i in os.listdir(path) if not i.startswith(".")]
 
 
-def GetHomeDir(uid, default=None):
-  """Try to get the homedir of the given user id.
+def GetHomeDir(user, default=None):
+  """Try to get the homedir of the given user.
+
+  The user can be passed either as a string (denoting the name) or as
+  an integer (denoting the user id). If the user is not found, the
+  'default' argument is returned, which defaults to None.
 
   """
   try:
-    result = pwd.getpwuid(uid)
+    if isinstance(user, basestring):
+      result = pwd.getpwnam(user)
+    elif isinstance(user, (int, long)):
+      result = pwd.getpwuid(user)
+    else:
+      raise errors.ProgrammerError("Invalid type passed to GetHomeDir (%s)" %
+                                   type(user))
   except KeyError:
     return default
   return result.pw_dir
