@@ -38,8 +38,10 @@ tests:
   node-info: True
   node-volumes: True
 
-  # These tests need at least three nodes
+  # This test needs at least three nodes
   node-evacuate: False
+
+  # This test needs at least two nodes
   node-failover: False
 
   instance-add-plain-disk: True
