@@ -80,45 +80,36 @@ def StopMaster():
 
 
 def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
-  """ adds the node to the cluster
-      - updates the hostkey
-      - adds the ssh-key
-      - sets the node id
-      - sets the node status to installed
+  """Joins this node to the cluster.
+
+  This does the following:
+      - updates the hostkeys of the machine (rsa and dsa)
+      - adds the ssh private key to the user
+      - adds the ssh public key to the users' authorized_keys file
 
   """
-  f = open("/etc/ssh/ssh_host_rsa_key", 'w')
-  f.write(rsa)
-  f.close()
+  user_dir = utils.GetHomeDir(constants.GANETI_RUNAS)
+  if not user_dir:
+    logger.Error("Cannot find home of run-as user %s" % constants.GANETI_RUNAS)
+    return False
 
-  f = open("/etc/ssh/ssh_host_rsa_key.pub", 'w')
-  f.write(rsapub)
-  f.close()
+  sshd_keys =  [("ssh_host_rsa_key", rsa, 0600),
+                ("ssh_host_rsa_key.pub", rsapub, 0644),
+                ("ssh_host_dsa_key", dsa, 0600),
+                ("ssh_host_dsa_key.pub",  dsapub, 0644)]
+  for name, content, mode in sshd_keys:
+    utils.WriteFile(os.path.join(constants.SSH_CONFIG_DIR, name),
+                    data=content, mode=mode)
 
-  f = open("/etc/ssh/ssh_host_dsa_key", 'w')
-  f.write(dsa)
-  f.close()
+  user_ssh_dir = os.path.join(user_dir, ".ssh")
 
-  f = open("/etc/ssh/ssh_host_dsa_key.pub", 'w')
-  f.write(dsapub)
-  f.close()
+  if not os.path.isdir(user_ssh_dir):
+    os.mkdir(user_ssh_dir)
 
-  if not os.path.isdir("/root/.ssh"):
-    os.mkdir("/root/.ssh")
+  for name, content in [("id_dsa", sshkey), ("id_dsa.pub", sshpub)]:
+    utils.WriteFile(os.path.join(user_ssh_dir, name), data=content, mode=0600)
 
-  f = open("/root/.ssh/id_dsa", 'w')
-  f.write(sshkey)
-  f.close()
-
-  f = open("/root/.ssh/id_dsa.pub", 'w')
-  f.write(sshpub)
-  f.close()
-
-  f = open('/root/.ssh/id_dsa.pub', 'r')
-  try:
-    utils.AddAuthorizedKey('/root/.ssh/authorized_keys', f.read(8192))
-  finally:
-    f.close()
+  utils.AddAuthorizedKey(os.path.join(user_ssh_dir, "authorized_keys"), sshpub)
 
   utils.RunCmd([constants.SSH_INITD_SCRIPT, "restart"])
 
@@ -135,14 +126,27 @@ def LeaveCluster():
       if os.path.isfile(full_name) and not os.path.islink(full_name):
         utils.RemoveFile(full_name)
 
-  f = open('/root/.ssh/id_dsa.pub', 'r')
+  user_dir = utils.GetHomeDir(constants.GANETI_RUNAS)
+  if not user_dir:
+    logger.Error("Cannot find home of run-as user %s" % constants.GANETI_RUNAS)
+    return
+
+  user_ssh_dir = os.path.join(user_dir, ".ssh")
+
+  if not os.path.isdir(user_ssh_dir):
+    logger.Error("User's ssh dir '%s' does not exist?!" % user_ssh_dir)
+    return
+
+  f = open(os.path.join(user_ssh_dir, "id_dsa.pub"), 'r')
   try:
-    utils.RemoveAuthorizedKey('/root/.ssh/authorized_keys', f.read(8192))
+    utils.RemoveAuthorizedKey(os.path.join(user_ssh_dir, "authorized_keys"),
+                              f.read(8192))
   finally:
     f.close()
 
-  utils.RemoveFile('/root/.ssh/id_dsa')
-  utils.RemoveFile('/root/.ssh/id_dsa.pub')
+
+  utils.RemoveFile(os.path.join(user_ssh_dir, "id_dsa"))
+  utils.RemoveFile(os.path.join(user_ssh_dir, "id_dsa.pub"))
 
 
 def GetNodeInfo(vgname):
@@ -1120,7 +1124,7 @@ def ExportSnapshot(disk, dest_node, instance):
 
   destcmd = utils.BuildShellCmd("mkdir -p %s && cat > %s/%s",
                                 destdir, destdir, destfile)
-  remotecmd = ssh.BuildSSHCmd(dest_node, 'root', destcmd)
+  remotecmd = ssh.BuildSSHCmd(dest_node, constants.GANETI_RUNAS, destcmd)
 
 
 
@@ -1262,7 +1266,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
   destcmd = utils.BuildShellCmd('cat %s', src_image)
-  remotecmd = ssh.BuildSSHCmd(src_node, 'root', destcmd)
+  remotecmd = ssh.BuildSSHCmd(src_node, constants.GANETI_RUNAS, destcmd)
 
   comprcmd = "gunzip"
   impcmd = utils.BuildShellCmd("(cd %s; %s -i %s -b %s -s %s &>%s)",
