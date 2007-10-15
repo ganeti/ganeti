@@ -213,9 +213,9 @@ def PrintWarning(text):
   return _PrintWithColor(text, _WARNING_SEQ)
 
 
-def PrintError(f, text):
+def PrintError(text):
   return _PrintWithColor(text, _ERROR_SEQ)
 
 
-def PrintInfo(f, text):
+def PrintInfo(text):
   return _PrintWithColor(text, _INFO_SEQ)
