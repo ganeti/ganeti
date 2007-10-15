@@ -187,7 +187,7 @@ class MirrorContextFactory:
 class Client:
   """RPC Client class.
 
-  This class, given a (remote) ethod name, a list of parameters and a
+  This class, given a (remote) method name, a list of parameters and a
   list of nodes, will contact (in parallel) all nodes, and return a
   dict of results (key: node name, value: result).
 
@@ -288,7 +288,7 @@ def call_bridges_exist(node, bridges_list):
 
 
 def call_instance_start(node, instance, extra_args):
-  """Stars an instance.
+  """Starts an instance.
 
   This is a single-node call.
 

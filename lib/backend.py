@@ -150,8 +150,7 @@ def LeaveCluster():
 
 
 def GetNodeInfo(vgname):
-  """ gives back a hash with different informations
-  about the node
+  """Gives back a hash with different informations about the node.
 
   Returns:
     { 'vg_size' : xxx,  'vg_free' : xxx, 'memory_domain0': xxx,
@@ -238,7 +237,7 @@ def GetVolumeList(vg_name):
 
 
 def ListVolumeGroups():
-  """List the volume groups and their size
+  """List the volume groups and their size.
 
   Returns:
     Dictionary with keys volume name and values the size of the volume
@@ -277,7 +276,7 @@ def NodeVolumes():
 
 
 def BridgesExist(bridges_list):
-  """Check if a list of bridges exist on the current node
+  """Check if a list of bridges exist on the current node.
 
   Returns:
     True if all of them exist, false otherwise
@@ -291,7 +290,7 @@ def BridgesExist(bridges_list):
 
 
 def GetInstanceList():
-  """ provides a list of instances
+  """Provides a list of instances.
 
   Returns:
     A list of all running instances on the current node
@@ -309,8 +308,7 @@ def GetInstanceList():
 
 
 def GetInstanceInfo(instance):
-  """ gives back the informations about an instance
-  as a dictonary
+  """Gives back the informations about an instance as a dictionary.
 
   Args:
     instance: name of the instance (ex. instance1.example.com)
@@ -367,7 +365,7 @@ def GetAllInstancesInfo():
 
 
 def AddOSToInstance(instance, os_disk, swap_disk):
-  """Add an os to an instance.
+  """Add an OS to an instance.
 
   Args:
     instance: the instance object
@@ -914,9 +912,9 @@ def _OSSearch(name, search_path=None):
   return None
 
 def _OSOndiskVersion(name, os_dir):
-  """Compute and return the api version of a given OS.
+  """Compute and return the API version of a given OS.
 
-  This function will try to read the api version of the os given by
+  This function will try to read the API version of the os given by
   the 'name' parameter and residing in the 'os_dir' directory.
 
   Return value will be either an integer denoting the version or None in the
