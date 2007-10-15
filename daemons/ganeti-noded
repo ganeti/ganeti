@@ -592,7 +592,7 @@ def createDaemon():
       os.close(fd)
     except OSError: # ERROR, fd wasn't open to begin with (ignored)
       pass
-  os.open(REDIRECT_TO, os.O_RDWR|os.O_CREAT|os.O_APPEND) # standard input (0)
+  os.open(REDIRECT_TO, os.O_RDWR|os.O_CREAT|os.O_APPEND, 0600)
   # Duplicate standard input to standard output and standard error.
   os.dup2(0, 1)     # standard output (1)
   os.dup2(0, 2)     # standard error (2)
