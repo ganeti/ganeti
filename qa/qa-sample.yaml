@@ -26,6 +26,8 @@ instances:
 tests:
   env: True
 
+  os: True
+
   cluster-verify: True
   cluster-info: True
   cluster-getmaster: True

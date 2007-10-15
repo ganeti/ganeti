@@ -37,6 +37,7 @@ import qa_daemon
 import qa_env
 import qa_instance
 import qa_node
+import qa_os
 import qa_other
 
 
@@ -120,6 +121,13 @@ def main():
 
   if qa_config.TestEnabled('cluster-master-failover'):
     RunTest(qa_cluster.TestClusterMasterFailover)
+
+  if qa_config.TestEnabled('os'):
+    RunTest(qa_os.TestOsList)
+    RunTest(qa_os.TestOsDiagnose)
+    RunTest(qa_os.TestOsValid)
+    RunTest(qa_os.TestOsInvalid)
+    RunTest(qa_os.TestOsPartiallyValid)
 
   node = qa_config.AcquireNode()
   try:
