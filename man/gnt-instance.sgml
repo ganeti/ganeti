@@ -571,7 +571,7 @@
           <option>--primary</option>, <option>--secondary</option> and
           <option>--all</option> options are similar as for the
           <command>startup</command> command and they influence the
-          actual instances being shutodnw.
+          actual instances being shutdown.
         </para>
 
         <para>
