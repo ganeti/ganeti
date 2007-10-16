@@ -55,6 +55,41 @@ ASK_KEY_OPTS = [
   ]
 
 
+def GetUserFiles(user, mkdir=False):
+  """Return the paths of a user's ssh files.
+
+  The function will return a triplet (priv_key_path, pub_key_path,
+  auth_key_path) that are used for ssh authentication. Currently, the
+  keys used are DSA keys, so this function will return:
+  (~user/.ssh/id_dsa, ~user/.ssh/id_dsa.pub,
+  ~user/.ssh/authorized_keys).
+
+  If the optional parameter mkdir is True, the ssh directory will be
+  created if it doesn't exist.
+
+  Regardless of the mkdir parameters, the script will raise an error
+  if ~user/.ssh is not a directory.
+
+  """
+  user_dir = utils.GetHomeDir(user)
+  if not user_dir:
+    raise errors.OpExecError("Cannot resolve home of user %s" % user)
+
+  ssh_dir = os.path.join(user_dir, ".ssh")
+  if not os.path.lexists(ssh_dir):
+    if mkdir:
+      try:
+        os.mkdir(ssh_dir, 0700)
+      except EnvironmentError, err:
+        raise errors.OpExecError("Can't create .ssh dir for user %s: %s" %
+                                 (user, str(err)))
+  elif not os.path.isdir(ssh_dir):
+    raise errors.OpExecError("path ~%s/.ssh is not a directory" % user)
+
+  return [os.path.join(ssh_dir, base)
+          for base in ["id_dsa", "id_dsa.pub", "authorized_keys"]]
+
+
 def BuildSSHCmd(hostname, user, command, batch=True, ask_key=False):
   """Build an ssh string to execute a command on a remote node.
 

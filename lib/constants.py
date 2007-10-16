@@ -110,6 +110,10 @@ LOCALHOST_IP_ADDRESS="127.0.0.1"
 TCP_PING_TIMEOUT = 10
 GANETI_RUNAS = "root"
 
-# external utilities
+# ssh constants
 SSH_INITD_SCRIPT = _autoconf.SSH_INITD_SCRIPT
-SSH_CONFIG_DIR = "/etc/ssh"
+SSH_CONFIG_DIR = "/etc/ssh/"
+SSH_HOST_DSA_PRIV = SSH_CONFIG_DIR + "ssh_host_dsa_key"
+SSH_HOST_DSA_PUB = SSH_HOST_DSA_PRIV + ".pub"
+SSH_HOST_RSA_PRIV = SSH_CONFIG_DIR + "ssh_host_rsa_key"
+SSH_HOST_RSA_PUB = SSH_HOST_RSA_PRIV + ".pub"

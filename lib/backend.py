@@ -88,28 +88,24 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
       - adds the ssh public key to the users' authorized_keys file
 
   """
-  user_dir = utils.GetHomeDir(constants.GANETI_RUNAS)
-  if not user_dir:
-    logger.Error("Cannot find home of run-as user %s" % constants.GANETI_RUNAS)
+  sshd_keys =  [(constants.SSH_HOST_RSA_PRIV, rsa, 0600),
+                (constants.SSH_HOST_RSA_PUB, rsapub, 0644),
+                (constants.SSH_HOST_DSA_PRIV, dsa, 0600),
+                (constants.SSH_HOST_DSA_PUB, dsapub, 0644)]
+  for name, content, mode in sshd_keys:
+    utils.WriteFile(name, data=content, mode=mode)
+
+  try:
+    priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS,
+                                                    mkdir=True)
+  except errors.OpExecError, err:
+    logger.Error("Error while processing user ssh files: %s" % err)
     return False
 
-  sshd_keys =  [("ssh_host_rsa_key", rsa, 0600),
-                ("ssh_host_rsa_key.pub", rsapub, 0644),
-                ("ssh_host_dsa_key", dsa, 0600),
-                ("ssh_host_dsa_key.pub",  dsapub, 0644)]
-  for name, content, mode in sshd_keys:
-    utils.WriteFile(os.path.join(constants.SSH_CONFIG_DIR, name),
-                    data=content, mode=mode)
+  for name, content in [(priv_key, sshkey), (pub_key, sshpub)]:
+    utils.WriteFile(name, data=content, mode=0600)
 
-  user_ssh_dir = os.path.join(user_dir, ".ssh")
-
-  if not os.path.isdir(user_ssh_dir):
-    os.mkdir(user_ssh_dir)
-
-  for name, content in [("id_dsa", sshkey), ("id_dsa.pub", sshpub)]:
-    utils.WriteFile(os.path.join(user_ssh_dir, name), data=content, mode=0600)
-
-  utils.AddAuthorizedKey(os.path.join(user_ssh_dir, "authorized_keys"), sshpub)
+  utils.AddAuthorizedKey(auth_keys, sshpub)
 
   utils.RunCmd([constants.SSH_INITD_SCRIPT, "restart"])
 
@@ -126,27 +122,21 @@ def LeaveCluster():
       if os.path.isfile(full_name) and not os.path.islink(full_name):
         utils.RemoveFile(full_name)
 
-  user_dir = utils.GetHomeDir(constants.GANETI_RUNAS)
-  if not user_dir:
-    logger.Error("Cannot find home of run-as user %s" % constants.GANETI_RUNAS)
-    return
 
-  user_ssh_dir = os.path.join(user_dir, ".ssh")
-
-  if not os.path.isdir(user_ssh_dir):
-    logger.Error("User's ssh dir '%s' does not exist?!" % user_ssh_dir)
-    return
-
-  f = open(os.path.join(user_ssh_dir, "id_dsa.pub"), 'r')
   try:
-    utils.RemoveAuthorizedKey(os.path.join(user_ssh_dir, "authorized_keys"),
-                              f.read(8192))
+    priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
+  except errors.OpExecError, err:
+    logger.Error("Error while processing ssh files: %s" % err)
+    return
+
+  f = open(pub_key, 'r')
+  try:
+    utils.RemoveAuthorizedKey(auth_keys, f.read(8192))
   finally:
     f.close()
 
-
-  utils.RemoveFile(os.path.join(user_ssh_dir, "id_dsa"))
-  utils.RemoveFile(os.path.join(user_ssh_dir, "id_dsa.pub"))
+  utils.RemoveFile(priv_key)
+  utils.RemoveFile(pub_key)
 
 
 def GetNodeInfo(vgname):

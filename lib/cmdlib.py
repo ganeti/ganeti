@@ -476,24 +476,23 @@ def _InitSSHSetup(node):
     node: the name of this host as a fqdn
 
   """
-  if os.path.exists('/root/.ssh/id_dsa'):
-    utils.CreateBackup('/root/.ssh/id_dsa')
-  if os.path.exists('/root/.ssh/id_dsa.pub'):
-    utils.CreateBackup('/root/.ssh/id_dsa.pub')
+  priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
 
-  utils.RemoveFile('/root/.ssh/id_dsa')
-  utils.RemoveFile('/root/.ssh/id_dsa.pub')
+  for name in priv_key, pub_key:
+    if os.path.exists(name):
+      utils.CreateBackup(name)
+    utils.RemoveFile(name)
 
   result = utils.RunCmd(["ssh-keygen", "-t", "dsa",
-                         "-f", "/root/.ssh/id_dsa",
+                         "-f", priv_key,
                          "-q", "-N", ""])
   if result.failed:
     raise errors.OpExecError("Could not generate ssh keypair, error %s" %
                              result.output)
 
-  f = open('/root/.ssh/id_dsa.pub', 'r')
+  f = open(pub_key, 'r')
   try:
-    utils.AddAuthorizedKey('/root/.ssh/authorized_keys', f.read(8192))
+    utils.AddAuthorizedKey(auth_keys, f.read(8192))
   finally:
     f.close()
 
@@ -627,7 +626,7 @@ class LUInitCluster(LogicalUnit):
     rpc.call_node_start_master(hostname.name)
 
     # set up ssh config and /etc/hosts
-    f = open('/etc/ssh/ssh_host_rsa_key.pub', 'r')
+    f = open(constants.SSH_HOST_RSA_PUB, 'r')
     try:
       sshline = f.read()
     finally:
@@ -676,8 +675,9 @@ class LUDestroyCluster(NoHooksLU):
     """Destroys the cluster.
 
     """
-    utils.CreateBackup('/root/.ssh/id_dsa')
-    utils.CreateBackup('/root/.ssh/id_dsa.pub')
+    priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
+    utils.CreateBackup(priv_key)
+    utils.CreateBackup(pub_key)
     rpc.call_node_leave_cluster(self.sstore.GetMasterNode())
 
 
@@ -1508,10 +1508,11 @@ class LUAddNode(LogicalUnit):
 
     # setup ssh on node
     logger.Info("copy ssh key to node %s" % node)
+    priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
     keyarray = []
-    keyfiles = ["/etc/ssh/ssh_host_dsa_key", "/etc/ssh/ssh_host_dsa_key.pub",
-                "/etc/ssh/ssh_host_rsa_key", "/etc/ssh/ssh_host_rsa_key.pub",
-                "/root/.ssh/id_dsa", "/root/.ssh/id_dsa.pub"]
+    keyfiles = [constants.SSH_HOST_DSA_PRIV, constants.SSH_HOST_DSA_PUB,
+                constants.SSH_HOST_RSA_PRIV, constants.SSH_HOST_RSA_PUB,
+                priv_key, pub_key]
 
     for i in keyfiles:
       f = open(i, 'r')
