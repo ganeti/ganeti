@@ -3454,6 +3454,7 @@ class LUQueryInstanceData(NoHooksLU):
         "memory": instance.memory,
         "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
         "disks": disks,
+        "vcpus": instance.vcpus,
         }
 
       result[instance.name] = idict

@@ -543,6 +543,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
     buf.write("  Hardware:\n")
+    buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])
     buf.write("    - NICs: %s\n" %
         ", ".join(["{MAC: %s, IP: %s, bridge: %s}" %
