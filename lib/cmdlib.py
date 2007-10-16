@@ -798,7 +798,7 @@ class LUVerifyCluster(NoHooksLU):
                           (instance, node))
           bad = True
 
-    return not bad
+    return bad
 
   def _VerifyOrphanVolumes(self, node_vol_should, node_vol_is, feedback_fn):
     """Verify if there are any unknown volumes in the cluster.
