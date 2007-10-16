@@ -270,7 +270,8 @@ def RemoveInstance(opts, args):
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpRemoveInstance(instance_name=instance_name)
+  op = opcodes.OpRemoveInstance(instance_name=instance_name,
+                                ignore_failures=opts.ignore_failures)
   SubmitOpCode(op)
   return 0
 
@@ -689,7 +690,14 @@ commands = {
            "", "Lists the instances and their status"),
   'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, os_opt],
                 "[-f] <instance>", "Reinstall the instance"),
-  'remove': (RemoveInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
+  'remove': (RemoveInstance, ARGS_ONE,
+             [DEBUG_OPT, FORCE_OPT,
+              make_option("--ignore-failures", dest="ignore_failures",
+                          action="store_true", default=False,
+                          help=("Remove the instance from the cluster even"
+                                " if there are failures during the removal"
+                                " process (shutdown, disk removal, etc.)")),
+              ],
              "[-f] <instance>", "Shuts down the instance and removes it"),
   'remove-mirror': (RemoveMDDRBDComponent, ARGS_ONE,
                    [DEBUG_OPT, node_opt,

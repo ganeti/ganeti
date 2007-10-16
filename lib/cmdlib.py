@@ -2193,8 +2193,7 @@ class LURemoveInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self.instance)
-    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
-          list(self.instance.secondary_nodes))
+    nl = [self.sstore.GetMasterNode()]
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -2219,12 +2218,19 @@ class LURemoveInstance(LogicalUnit):
                 (instance.name, instance.primary_node))
 
     if not rpc.call_instance_shutdown(instance.primary_node, instance):
-      raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                               (instance.name, instance.primary_node))
+      if self.op.ignore_failures:
+        feedback_fn("Warning: can't shutdown instance")
+      else:
+        raise errors.OpExecError("Could not shutdown instance %s on node %s" %
+                                 (instance.name, instance.primary_node))
 
     logger.Info("removing block devices for instance %s" % instance.name)
 
-    _RemoveDisks(instance, self.cfg)
+    if not _RemoveDisks(instance, self.cfg):
+      if self.op.ignore_failures:
+        feedback_fn("Warning: can't remove instance's disks")
+      else:
+        raise errors.OpExecError("Can't remove instance's disks")
 
     logger.Info("removing instance %s out of cluster config" % instance.name)
 
@@ -2649,7 +2655,7 @@ def _RemoveDisks(instance, cfg):
 
   This abstracts away some work from `AddInstance()` and
   `RemoveInstance()`. Note that in case some of the devices couldn't
-  be remove, the removal will continue with the other ones (compare
+  be removed, the removal will continue with the other ones (compare
   with `_CreateDisks()`).
 
   Args:

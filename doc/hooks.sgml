@@ -256,6 +256,7 @@
               <entry>Remove an instance</entry>
               <entry><computeroutput>gnt-instance remove</computeroutput></entry>
               <entry><constant>INSTANCE_NAME</constant>, <constant>INSTANCE_PRIMARY</constant>, <constant>INSTANCE_SECONDARIES</constant></entry>
+              <entry spanname="bothhooks">master node</entry>
             </row>
             <row>
               <entry>OP_INSTANCE_ADD_MDDRBD</entry>

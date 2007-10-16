@@ -150,7 +150,7 @@ class OpReinstallInstance(OpCode):
 class OpRemoveInstance(OpCode):
   """Remove an instance."""
   OP_ID = "OP_INSTANCE_REMOVE"
-  __slots__ = ["instance_name"]
+  __slots__ = ["instance_name", "ignore_failures"]
 
 
 class OpRenameInstance(OpCode):

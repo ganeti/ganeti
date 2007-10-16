@@ -196,6 +196,7 @@
 
         <cmdsynopsis>
           <command>remove</command>
+          <arg>--ignore-failures</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -205,6 +206,15 @@
           you are not sure if you use an instance again, use
           <command>shutdown</command> first and leave it in the
           shutdown state for a while.
+
+        </para>
+
+        <para>
+          The <option>--ignore-failures</option> option will cause the
+          removal to proceed even in the presence of errors during the
+          removal of the instance (e.g. during the shutdown or the
+          disk removal). If this option is not given, the command will
+          stop at the first error.
         </para>
 
         <para>
