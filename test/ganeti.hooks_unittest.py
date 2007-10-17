@@ -231,7 +231,7 @@ class TestHooksMaster(unittest.TestCase):
     sstore = FakeSStore()
     op = opcodes.OpCode()
     lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_false, cfg, sstore, lu)
+    hm = mcpu.HooksMaster(self._call_false, lu)
     self.failUnlessRaises(errors.HooksFailure,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
@@ -242,7 +242,7 @@ class TestHooksMaster(unittest.TestCase):
     sstore = FakeSStore()
     op = opcodes.OpCode()
     lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_nodes_false, cfg, sstore, lu)
+    hm = mcpu.HooksMaster(self._call_nodes_false, lu)
     self.failUnlessRaises(errors.HooksFailure,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
@@ -253,7 +253,7 @@ class TestHooksMaster(unittest.TestCase):
     op = opcodes.OpCode()
     sstore = FakeSStore()
     lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_script_fail, cfg, sstore, lu)
+    hm = mcpu.HooksMaster(self._call_script_fail, lu)
     self.failUnlessRaises(errors.HooksAbort,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
@@ -264,7 +264,7 @@ class TestHooksMaster(unittest.TestCase):
     op = opcodes.OpCode()
     sstore = FakeSStore()
     lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_script_succeed, cfg, sstore, lu)
+    hm = mcpu.HooksMaster(self._call_script_succeed, lu)
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
       hm.RunPhase(phase)
 
