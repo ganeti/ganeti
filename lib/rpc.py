@@ -311,6 +311,18 @@ def call_instance_shutdown(node, instance):
   return c.getresult().get(node, False)
 
 
+def call_instance_reboot(node, instance, reboot_type, extra_args):
+  """Reboots an instance.
+
+  This is a single-node call.
+
+  """
+  c = Client("instance_reboot", [instance.ToDict(), reboot_type, extra_args])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_instance_os_add(node, inst, osdev, swapdev):
   """Installs an OS on the given instance.
 

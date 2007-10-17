@@ -585,6 +585,41 @@ def ShutdownInstance(instance):
   return True
 
 
+def RebootInstance(instance, reboot_type, extra_args):
+  """Reboot an instance.
+
+  Args:
+    instance    - name of instance to reboot
+    reboot_type - how to reboot [soft,hard,full]
+
+  """
+  running_instances = GetInstanceList()
+
+  if instance.name not in running_instances:
+    logger.Error("Cannot reboot instance that is not running")
+    return False
+
+  hyper = hypervisor.GetHypervisor()
+  if reboot_type == constants.INSTANCE_REBOOT_SOFT:
+    try:
+      hyper.RebootInstance(instance)
+    except errors.HypervisorError, err:
+      logger.Error("Failed to soft reboot instance: %s" % err)
+      return False
+  elif reboot_type == constants.INSTANCE_REBOOT_HARD:
+    try:
+      ShutdownInstance(instance)
+      StartInstance(instance, extra_args)
+    except errors.HypervisorError, err:
+      logger.Error("Failed to hard reboot instance: %s" % err)
+      return False
+  else:
+    raise errors.ParameterError("reboot_type invalid")
+
+
+  return True
+
+
 def CreateBlockDevice(disk, size, on_primary, info):
   """Creates a block device for an instance.
 
