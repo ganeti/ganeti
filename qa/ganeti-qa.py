@@ -228,6 +228,12 @@ def main():
         if qa_config.TestEnabled('node-volumes'):
           RunTest(qa_node.TestNodeVolumes)
 
+        if qa_config.TestEnabled('instance-disk-failure'):
+          RunTest(qa_instance.TestInstanceMasterDiskFailure,
+                  instance, node, node2)
+          RunTest(qa_instance.TestInstanceSecondaryDiskFailure,
+                  instance, node, node2)
+
         RunTest(qa_instance.TestInstanceRemove, instance)
         del instance
       finally:

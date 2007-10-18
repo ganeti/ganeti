@@ -57,6 +57,11 @@ tests:
   instance-reinstall: True
   instance-shutdown: True
 
+  # Make sure not to include the disk(s) required for Dom0 to be included in
+  # the volume group used for instances. Otherwise the whole system may stop
+  # working until restarted.
+  instance-disk-failure: False
+
   # This test takes up to 6 minutes to complete
   instance-automatic-restart: False
 

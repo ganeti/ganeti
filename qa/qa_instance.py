@@ -20,13 +20,21 @@
 
 """
 
+import re
+import time
+
 from ganeti import utils
 from ganeti import constants
 
 import qa_config
 import qa_utils
+import qa_error
 
-from qa_utils import AssertEqual, StartSSH
+from qa_utils import AssertEqual, AssertNotEqual, StartSSH
+
+
+def _GetDiskStatePath(disk):
+  return "/sys/block/%s/device/state" % disk
 
 
 def _GetGenericAddParameters():
@@ -172,3 +180,118 @@ def TestBackupList(expnode):
   cmd = ['gnt-backup', 'list', '--nodes=%s' % expnode['primary']]
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def _TestInstanceDiskFailure(instance, node, node2, onmaster):
+  """Testing disk failure."""
+  master = qa_config.GetMasterNode()
+  sq = utils.ShellQuoteArgs
+
+  instance_full = qa_utils.ResolveInstanceName(instance)
+  node_full = qa_utils.ResolveNodeName(node)
+  node2_full = qa_utils.ResolveNodeName(node2)
+
+  cmd = ['gnt-node', 'volumes', '--separator=|', '--no-headers',
+         '--output=node,phys,instance',
+         node['primary'], node2['primary']]
+  output = qa_utils.GetCommandOutput(master['primary'], sq(cmd))
+
+  # Get physical disk names
+  re_disk = re.compile(r'^/dev/([a-z]+)\d+$')
+  node2disk = {}
+  for line in output.splitlines():
+    (node_name, phys, inst) = line.split('|')
+    if inst == instance_full:
+      if node_name not in node2disk:
+        node2disk[node_name] = []
+
+      m = re_disk.match(phys)
+      if not m:
+        raise qa_error.Error("Unknown disk name format: %s" % disk)
+
+      name = m.group(1)
+      if name not in node2disk[node_name]:
+        node2disk[node_name].append(name)
+
+  if [node2_full, node_full][int(onmaster)] not in node2disk:
+    raise qa_error.Error("Couldn't find physical disks used on "
+                         "%s node" % ["secondary", "master"][int(onmaster)])
+
+  # Check whether nodes have ability to stop disks
+  for node_name, disks in node2disk.iteritems():
+    cmds = []
+    for disk in disks:
+      cmds.append(sq(["test", "-f", _GetDiskStatePath(disk)]))
+    AssertEqual(StartSSH(node_name, ' && '.join(cmds)).wait(), 0)
+
+  # Get device paths
+  cmd = ['gnt-instance', 'activate-disks', instance['name']]
+  output = qa_utils.GetCommandOutput(master['primary'], sq(cmd))
+  devpath = []
+  for line in output.splitlines():
+    (_, _, tmpdevpath) = line.split(':')
+    devpath.append(tmpdevpath)
+
+  # Get drbd device paths
+  cmd = ['gnt-instance', 'info', instance['name']]
+  output = qa_utils.GetCommandOutput(master['primary'], sq(cmd))
+  pattern = (r'\s+-\s+type:\s+drbd,\s+.*$'
+             r'\s+primary:\s+(/dev/drbd\d+)\s+')
+  drbddevs = re.findall(pattern, output, re.M)
+
+  # Deactivate disks on secondary node
+  halted_disks = []
+  cmds = []
+  for name in node2disk[[node2_full, node_full][int(onmaster)]]:
+    halted_disks.append(name)
+    cmds.append(sq(["echo", "offline"]) + " >%s" % _GetDiskStatePath(name))
+  AssertEqual(StartSSH([node2, node][int(onmaster)]['primary'],
+                       '; '.join(cmds)).wait(), 0)
+  try:
+    # Write something to the disks and give some time to notice the problem
+    cmds = []
+    for disk in devpath:
+      cmds.append(sq(["dd", "count=1", "bs=512", "conv=notrunc",
+                      "if=%s" % disk, "of=%s" % disk]))
+    for _ in (0, 1, 2):
+      AssertEqual(StartSSH(node['primary'], ' && '.join(cmds)).wait(), 0)
+      time.sleep(3)
+
+    # For manual checks
+    cmd = ['gnt-instance', 'info', instance['name']]
+    AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+
+  finally:
+    # Activate disks again
+    cmds = []
+    for name in halted_disks:
+      cmds.append(sq(["echo", "running"]) + " >%s" % _GetDiskStatePath(name))
+    AssertEqual(StartSSH([node2, node][int(onmaster)]['primary'],
+                         '; '.join(cmds)).wait(), 0)
+
+  # Restart instance
+  cmd = ['gnt-instance', 'shutdown', instance['name']]
+  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+
+  cmd = ['gnt-instance', 'startup', '--force', instance['name']]
+  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+
+  # Make sure disks are up again
+  cmd = ['gnt-instance', 'activate-disks', instance['name']]
+  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+
+  cmd = ['gnt-cluster', 'verify']
+  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+
+
+def TestInstanceMasterDiskFailure(instance, node, node2):
+  """Testing disk failure on master node."""
+  qa_utils.PrintError("Disk failure on primary node cannot be "
+                      "tested due to potential crashes.")
+  # The following can cause crashes, thus it's disabled until fixed
+  #return _TestInstanceDiskFailure(instance, node, node2, True)
+
+
+def TestInstanceSecondaryDiskFailure(instance, node, node2):
+  """Testing disk failure on secondary node."""
+  return _TestInstanceDiskFailure(instance, node, node2, False)

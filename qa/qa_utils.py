@@ -61,12 +61,20 @@ def _SetupColours():
 _SetupColours()
 
 
-def AssertEqual(first, second, msg=None):
+def AssertEqual(first, second):
   """Raises an error when values aren't equal.
 
   """
   if not first == second:
-    raise qa_error.Error(msg or '%r == %r' % (first, second))
+    raise qa_error.Error('%r == %r' % (first, second))
+
+
+def AssertNotEqual(first, second):
+  """Raises an error when values are equal.
+
+  """
+  if not first != second:
+    raise qa_error.Error('%r != %r' % (first, second))
 
 
 def GetSSHCommand(node, cmd, strict=True):
@@ -158,7 +166,7 @@ def ResolveInstanceName(instance):
   """Gets the full name of an instance.
 
   """
-  return _ResolveName(['gnt-instance', 'info', instance['info']],
+  return _ResolveName(['gnt-instance', 'info', instance['name']],
                       'Instance name')
 
 
