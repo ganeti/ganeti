@@ -528,6 +528,18 @@ def _InitGanetiServerSetup(ss):
                              (result.cmd, result.exit_code, result.output))
 
 
+def _CheckInstanceBridgesExist(instance):
+  """Check that the brigdes needed by an instance exist.
+
+  """
+  # check bridges existance
+  brlist = [nic.bridge for nic in instance.nics]
+  if not rpc.call_bridges_exist(instance.primary_node, brlist):
+    raise errors.OpPrereqError("one or more target bridges %s does not"
+                               " exist on destination node '%s'" %
+                               (brlist, instance.primary_node))
+
+
 class LUInitCluster(LogicalUnit):
   """Initialise the cluster.
 
@@ -1934,11 +1946,7 @@ class LUStartupInstance(LogicalUnit):
                                  self.op.instance_name)
 
     # check bridges existance
-    brlist = [nic.bridge for nic in instance.nics]
-    if not rpc.call_bridges_exist(instance.primary_node, brlist):
-      raise errors.OpPrereqError("one or more target bridges %s does not"
-                                 " exist on destination node '%s'" %
-                                 (brlist, instance.primary_node))
+    _CheckInstanceBridgesExist(instance)
 
     self.instance = instance
     self.op.instance_name = instance.name
@@ -1972,6 +1980,82 @@ class LUStartupInstance(LogicalUnit):
     if not rpc.call_instance_start(node_current, instance, extra_args):
       _ShutdownInstanceDisks(instance, self.cfg)
       raise errors.OpExecError("Could not start instance")
+
+    self.cfg.MarkInstanceUp(instance.name)
+
+
+class LURebootInstance(LogicalUnit):
+  """Reboot an instance.
+
+  """
+  HPATH = "instance-reboot"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name", "ignore_secondaries", "reboot_type"]
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on master, primary and secondary nodes of the instance.
+
+    """
+    env = {
+      "IGNORE_SECONDARIES": self.op.ignore_secondaries,
+      }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+          list(self.instance.secondary_nodes))
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster.
+
+    """
+    instance = self.cfg.GetInstanceInfo(
+      self.cfg.ExpandInstanceName(self.op.instance_name))
+    if instance is None:
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
+
+    # check bridges existance
+    _CheckInstanceBridgesExist(instance)
+
+    self.instance = instance
+    self.op.instance_name = instance.name
+
+  def Exec(self, feedback_fn):
+    """Reboot the instance.
+
+    """
+    instance = self.instance
+    ignore_secondaries = self.op.ignore_secondaries
+    reboot_type = self.op.reboot_type
+    extra_args = getattr(self.op, "extra_args", "")
+
+    node_current = instance.primary_node
+
+    if reboot_type not in [constants.INSTANCE_REBOOT_SOFT,
+                           constants.INSTANCE_REBOOT_HARD,
+                           constants.INSTANCE_REBOOT_FULL]:
+      raise errors.ParameterError("reboot type not in [%s, %s, %s]" %
+                                  (constants.INSTANCE_REBOOT_SOFT,
+                                   constants.INSTANCE_REBOOT_HARD,
+                                   constants.INSTANCE_REBOOT_FULL))
+
+    if reboot_type in [constants.INSTANCE_REBOOT_SOFT,
+                       constants.INSTANCE_REBOOT_HARD]:
+      if not rpc.call_instance_reboot(node_current, instance,
+                                      reboot_type, extra_args):
+        raise errors.OpExecError("Could not reboot instance")
+    else:
+      if not rpc.call_instance_shutdown(node_current, instance):
+        raise errors.OpExecError("could not shutdown instance for full reboot")
+      _ShutdownInstanceDisks(instance, self.cfg)
+      _StartInstanceDisks(self.cfg, instance, ignore_secondaries)
+      if not rpc.call_instance_start(node_current, instance, extra_args):
+        _ShutdownInstanceDisks(instance, self.cfg)
+        raise errors.OpExecError("Could not start instance for full reboot")
 
     self.cfg.MarkInstanceUp(instance.name)
 

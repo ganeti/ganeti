@@ -63,6 +63,7 @@ class Processor(object):
     opcodes.OpActivateInstanceDisks: cmdlib.LUActivateInstanceDisks,
     opcodes.OpShutdownInstance: cmdlib.LUShutdownInstance,
     opcodes.OpStartupInstance: cmdlib.LUStartupInstance,
+    opcodes.OpRebootInstance: cmdlib.LURebootInstance,
     opcodes.OpDeactivateInstanceDisks: cmdlib.LUDeactivateInstanceDisks,
     opcodes.OpAddMDDRBDComponent: cmdlib.LUAddMDDRBDComponent,
     opcodes.OpRemoveMDDRBDComponent: cmdlib.LURemoveMDDRBDComponent,

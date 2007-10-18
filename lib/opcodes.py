@@ -171,6 +171,13 @@ class OpShutdownInstance(OpCode):
   __slots__ = ["instance_name"]
 
 
+class OpRebootInstance(OpCode):
+  """Reboot an instance."""
+  OP_ID = "OP_INSTANCE_STARTUP"
+  __slots__ = ["instance_name", "reboot_type", "extra_args",
+               "ignore_secondaries" ]
+
+
 class OpAddMDDRBDComponent(OpCode):
   """Add a MD-DRBD component."""
   OP_ID = "OP_INSTANCE_ADD_MDDRBD"
