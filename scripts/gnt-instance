@@ -346,6 +346,28 @@ def StartupInstance(opts, args):
     SubmitOpCode(op)
   return 0
 
+def RebootInstance(opts, args):
+  """Reboot an instance
+
+  Args:
+    opts - class with options as members
+    args - list containing a single element, the instance name
+
+  """
+  if opts.multi_mode is None:
+    opts.multi_mode = _SHUTDOWN_INSTANCES
+  inames = _ExpandMultiNames(opts.multi_mode, args)
+  multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
+  if not (opts.force_multi or not multi_on
+          or _ConfirmOperation(inames, "reboot")):
+    return 1
+  for name in inames:
+    op = opcodes.OpRebootInstance(instance_name=name,
+                                  reboot_type=opts.reboot_type,
+                                  ignore_secondaries=opts.ignore_secondaries)
+
+    SubmitOpCode(op)
+  return 0
 
 def ShutdownInstance(opts, args):
   """Shutdown an instance.
@@ -757,6 +779,23 @@ commands = {
                m_clust_opt, m_inst_opt,
                ],
             "<instance>", "Starts an instance"),
+
+  'reboot': (RebootInstance, ARGS_ANY,
+              [DEBUG_OPT, m_force_multi,
+               make_option("-e", "--extra", dest="extra_args",
+                           help="Extra arguments for the instance's kernel",
+                           default=None, type="string", metavar="<PARAMS>"),
+               make_option("-t", "--type", dest="reboot_type",
+                           help="Type of reboot: soft/hard/full",
+                           default=constants.INSTANCE_REBOOT_SOFT,
+                           type="string", metavar="<REBOOT>"),
+               make_option("--ignore-secondaries", dest="ignore_secondaries",
+                           default=False, action="store_true",
+                           help="Ignore errors from secondaries"),
+               m_node_opt, m_pri_node_opt, m_sec_node_opt,
+               m_clust_opt, m_inst_opt,
+               ],
+            "<instance>", "Reboots an instance"),
   'activate-disks': (ActivateDisks, ARGS_ONE, [DEBUG_OPT],
                      "<instance>",
                      "Activate an instance's disks"),

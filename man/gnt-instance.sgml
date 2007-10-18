@@ -584,6 +584,72 @@
       </refsect3>
 
       <refsect3>
+        <title>REBOOT</title>
+
+        <cmdsynopsis>
+          <command>reboot</command>
+          <sbr>
+          <arg>--extra=<replaceable>PARAMS</replaceable></arg>
+          <sbr>
+          <arg>--type=<replaceable>REBOOT-TYPE</replaceable></arg>
+          <sbr>
+          <arg>--ignore-secondaries</arg>
+          <sbr>
+          <arg>--force-multiple</arg>
+          <sbr>
+          <group choice="opt">
+            <arg>--instance</arg>
+            <arg>--node</arg>
+            <arg>--primary</arg>
+            <arg>--secondary</arg>
+            <arg>--all</arg>
+          </group>
+          <sbr>
+
+          <arg choice="opt"
+          rep="repeat"><replaceable>name</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Reboots one or more instances. The type of reboot depends on
+          the value of <option>--type</option>. A soft reboot does a
+          hypervisor reboot, a hard reboot does a instance stop,
+          recreates the hypervisor config for the instance and
+          starts the instance. A full reboot does the equivalent
+          of <command>gnt-instance shutdown &amp;&amp; gnt-instance
+          startup</command>. The default is soft reboot.
+        </para>
+
+        <para>
+          For the hard reboot the option
+          <option>--ignore-secondaries</option> ignores errors for the
+          secondary node while re-assembling the instance disks.
+        </para>
+
+        <para>
+          The <option>--instance</option>, <option>--node</option>,
+          <option>--primary</option>, <option>--secondary</option> and
+          <option>--all</option> options are similar as for the
+          <command>startup</command> command and they influence the
+          actual instances being rebooted.
+        </para>
+        
+        <para>
+          Use the <option>--force-multiple</option> to keep
+          gnt-instance from asking for confirmation when more than one
+          instance is affected.
+        </para>
+
+        <para>
+          Example:
+          <screen>
+# gnt-instance reboot instance1.example.com
+# gnt-instance reboot --type=full instance1.example.com
+          </screen>
+        </para>
+      </refsect3>
+
+      <refsect3>
         <title>CONSOLE</title>
         <cmdsynopsis>
           <command>console</command>
