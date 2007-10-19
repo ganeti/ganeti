@@ -908,8 +908,48 @@ class MDRaid1(BlockDev):
     return True
 
 
+class BaseDRBD(BlockDev):
+  """Base DRBD class.
 
-class DRBDev(BlockDev):
+  This class contains a few bits of common functionality between the
+  0.7 and 8.x versions of DRBD.
+
+  """
+  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)"
+                           r" \(api:(\d+)/proto:(\d+)\)")
+  _DRBD_KVER = 0
+
+  @staticmethod
+  def _GetProcData():
+    """Return data from /proc/drbd.
+
+    """
+    stat = open("/proc/drbd", "r")
+    try:
+      data = stat.read().splitlines()
+    finally:
+      stat.close()
+    if not data:
+      raise errors.BlockDeviceError("Can't read any data from /proc/drbd")
+    return data
+
+  @classmethod
+  def _GetVersion(cls):
+    """Return the DRBD version.
+
+    This will return a list [k_major, k_minor, k_point, api, proto].
+
+    """
+    proc_data = cls._GetProcData()
+    first_line = proc_data[0].strip()
+    version = cls._VERSION_RE.match(first_line)
+    if not version:
+      raise errors.BlockDeviceError("Can't parse DRBD version from '%s'" %
+                                    first_line)
+    return [int(val) for val in version.groups()]
+
+
+class DRBDev(BaseDRBD):
   """DRBD block device.
 
   This implements the local host part of the DRBD device, i.e. it
@@ -930,6 +970,12 @@ class DRBDev(BlockDev):
   def __init__(self, unique_id, children):
     super(DRBDev, self).__init__(unique_id, children)
     self.major = self._DRBD_MAJOR
+    [kmaj, kmin, kfix, api, proto] = self._GetVersion()
+    if kmaj != 0 and kmin != 7:
+      raise errors.BlockDeviceError("Mismatch in DRBD kernel version and"
+                                    " requested ganeti usage: kernel is"
+                                    " %s.%s, ganeti wants 0.7" % (kmaj, kmin))
+
     if len(children) != 2:
       raise ValueError("Invalid configuration data %s" % str(children))
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 4:
@@ -943,17 +989,6 @@ class DRBDev(BlockDev):
 
     """
     return "/dev/drbd%d" % minor
-
-  @staticmethod
-  def _GetProcData():
-    """Return data from /proc/drbd.
-
-    """
-    stat = open("/proc/drbd", "r")
-    data = stat.read().splitlines()
-    stat.close()
-    return data
-
 
   @classmethod
   def _GetUsedDevs(cls):
