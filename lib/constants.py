@@ -79,6 +79,11 @@ DT_PLAIN = "plain"
 DT_LOCAL_RAID1 = "local_raid1"
 DT_REMOTE_RAID1 = "remote_raid1"
 
+# logical disk types
+LD_LV = "lvm"
+LD_MD_R1 = "md_raid1"
+LD_DRBD7 = "drbd"
+
 # instance creation modem
 INSTANCE_CREATE = "create"
 INSTANCE_IMPORT = "import"

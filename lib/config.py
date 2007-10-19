@@ -198,7 +198,7 @@ class ConfigWriter:
 
     if disk.logical_id is None and disk.physical_id is not None:
       return
-    if disk.dev_type == "drbd":
+    if disk.dev_type == constants.LD_DRBD7:
       pnode, snode, port = disk.logical_id
       if node_name not in (pnode, snode):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %

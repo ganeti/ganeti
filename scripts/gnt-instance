@@ -503,7 +503,7 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
     else:
       (path, major, minor, syncp, estt, degr) = status
       buf.write("%s (%d:%d)" % (path, major, minor))
-      if dtype in ("md_raid1", "drbd"):
+      if dtype in (constants.LD_MD_R1, constants.LD_DRBD7):
         if syncp is not None:
           sync_text = "*RECOVERING* %5.2f%%," % syncp
           if estt:

@@ -2620,11 +2620,11 @@ def _GenerateMDDRBDBranch(cfg, primary, secondary, size, names):
   """
   port = cfg.AllocatePort()
   vgname = cfg.GetVGName()
-  dev_data = objects.Disk(dev_type="lvm", size=size,
+  dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                           logical_id=(vgname, names[0]))
-  dev_meta = objects.Disk(dev_type="lvm", size=128,
+  dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
                           logical_id=(vgname, names[1]))
-  drbd_dev = objects.Disk(dev_type="drbd", size=size,
+  drbd_dev = objects.Disk(dev_type=constants.LD_DRBD7, size=size,
                           logical_id = (primary, secondary, port),
                           children = [dev_data, dev_meta])
   return drbd_dev
@@ -2646,10 +2646,10 @@ def _GenerateDiskTemplate(cfg, template_name,
       raise errors.ProgrammerError("Wrong template configuration")
 
     names = _GenerateUniqueNames(cfg, [".sda", ".sdb"])
-    sda_dev = objects.Disk(dev_type="lvm", size=disk_sz,
+    sda_dev = objects.Disk(dev_type=constants.LD_LV, size=disk_sz,
                            logical_id=(vgname, names[0]),
                            iv_name = "sda")
-    sdb_dev = objects.Disk(dev_type="lvm", size=swap_sz,
+    sdb_dev = objects.Disk(dev_type=constants.LD_LV, size=swap_sz,
                            logical_id=(vgname, names[1]),
                            iv_name = "sdb")
     disks = [sda_dev, sdb_dev]
@@ -2660,18 +2660,18 @@ def _GenerateDiskTemplate(cfg, template_name,
 
     names = _GenerateUniqueNames(cfg, [".sda_m1", ".sda_m2",
                                        ".sdb_m1", ".sdb_m2"])
-    sda_dev_m1 = objects.Disk(dev_type="lvm", size=disk_sz,
+    sda_dev_m1 = objects.Disk(dev_type=constants.LD_LV, size=disk_sz,
                               logical_id=(vgname, names[0]))
-    sda_dev_m2 = objects.Disk(dev_type="lvm", size=disk_sz,
+    sda_dev_m2 = objects.Disk(dev_type=constants.LD_LV, size=disk_sz,
                               logical_id=(vgname, names[1]))
-    md_sda_dev = objects.Disk(dev_type="md_raid1", iv_name = "sda",
+    md_sda_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name = "sda",
                               size=disk_sz,
                               children = [sda_dev_m1, sda_dev_m2])
-    sdb_dev_m1 = objects.Disk(dev_type="lvm", size=swap_sz,
+    sdb_dev_m1 = objects.Disk(dev_type=constants.LD_LV, size=swap_sz,
                               logical_id=(vgname, names[2]))
-    sdb_dev_m2 = objects.Disk(dev_type="lvm", size=swap_sz,
+    sdb_dev_m2 = objects.Disk(dev_type=constants.LD_LV, size=swap_sz,
                               logical_id=(vgname, names[3]))
-    md_sdb_dev = objects.Disk(dev_type="md_raid1", iv_name = "sdb",
+    md_sdb_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name = "sdb",
                               size=swap_sz,
                               children = [sdb_dev_m1, sdb_dev_m2])
     disks = [md_sda_dev, md_sdb_dev]
@@ -2683,11 +2683,11 @@ def _GenerateDiskTemplate(cfg, template_name,
                                        ".sdb_data", ".sdb_meta"])
     drbd_sda_dev = _GenerateMDDRBDBranch(cfg, primary_node, remote_node,
                                          disk_sz, names[0:2])
-    md_sda_dev = objects.Disk(dev_type="md_raid1", iv_name="sda",
+    md_sda_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name="sda",
                               children = [drbd_sda_dev], size=disk_sz)
     drbd_sdb_dev = _GenerateMDDRBDBranch(cfg, primary_node, remote_node,
                                          swap_sz, names[2:4])
-    md_sdb_dev = objects.Disk(dev_type="md_raid1", iv_name="sdb",
+    md_sdb_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name="sdb",
                               children = [drbd_sdb_dev], size=swap_sz)
     disks = [md_sda_dev, md_sdb_dev]
   else:
@@ -3256,7 +3256,8 @@ class LURemoveMDDRBDComponent(LogicalUnit):
       raise errors.OpPrereqError("Can't find this device ('%s') in the"
                                  " instance." % self.op.disk_name)
     for child in disk.children:
-      if child.dev_type == "drbd" and child.logical_id[2] == self.op.disk_id:
+      if (child.dev_type == constants.LD_DRBD7 and
+          child.logical_id[2] == self.op.disk_id):
         break
     else:
       raise errors.OpPrereqError("Can't find the device with this port.")
@@ -3479,7 +3480,7 @@ class LUQueryInstanceData(NoHooksLU):
     """
     self.cfg.SetDiskID(dev, instance.primary_node)
     dev_pstatus = rpc.call_blockdev_find(instance.primary_node, dev)
-    if dev.dev_type == "drbd":
+    if dev.dev_type == constants.LD_DRBD7:
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
         snode = dev.logical_id[1]
@@ -3741,7 +3742,7 @@ class LUExportInstance(LogicalUnit):
             logger.Error("could not snapshot block device %s on node %s" %
                          (disk.logical_id[1], src_node))
           else:
-            new_dev = objects.Disk(dev_type="lvm", size=disk.size,
+            new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
                                       logical_id=(vgname, new_dev_name),
                                       physical_id=(vgname, new_dev_name),
                                       iv_name=disk.iv_name)

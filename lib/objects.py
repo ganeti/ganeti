@@ -314,15 +314,15 @@ class Disk(ConfigObject):
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
-    return self.dev_type in ("drbd", "lvm")
+    return self.dev_type in (constants.LD_DRBD7, constants.LD_LV)
 
   def AssembleOnSecondary(self):
     """Test if this device needs to be assembled on a secondary node."""
-    return self.dev_type in ("drbd", "lvm")
+    return self.dev_type in (constants.LD_DRBD7, constants.LD_LV)
 
   def OpenOnSecondary(self):
     """Test if this device needs to be opened on a secondary node."""
-    return self.dev_type in ("lvm",)
+    return self.dev_type in (constants.LD_LV,)
 
   def GetNodes(self, node):
     """This function returns the nodes this device lives on.
@@ -333,9 +333,9 @@ class Disk(ConfigObject):
     devices needs to (or can) be assembled.
 
     """
-    if self.dev_type == "lvm" or self.dev_type == "md_raid1":
+    if self.dev_type == constants.LD_LV or self.dev_type == constants.LD_MD_R1:
       result = [node]
-    elif self.dev_type == "drbd":
+    elif self.dev_type == constants.LD_DRBD7:
       result = [self.logical_id[0], self.logical_id[1]]
       if node not in result:
         raise errors.ConfigurationError("DRBD device passed unknown node")
@@ -436,7 +436,7 @@ class Instance(TaggableObject):
     """
     def _Helper(primary, sec_nodes, device):
       """Recursively computes secondary nodes given a top device."""
-      if device.dev_type == 'drbd':
+      if device.dev_type == constants.LD_DRBD7:
         nodea, nodeb, dummy = device.logical_id
         if nodea == primary:
           candidate = nodeb
@@ -485,10 +485,10 @@ class Instance(TaggableObject):
       devs = self.disks
 
     for dev in devs:
-      if dev.dev_type == "lvm":
+      if dev.dev_type == constants.LD_LV:
         lvmap[node].append(dev.logical_id[1])
 
-      elif dev.dev_type == "drbd":
+      elif dev.dev_type == constants.LD_DRBD7:
         if dev.logical_id[0] not in lvmap:
           lvmap[dev.logical_id[0]] = []
 

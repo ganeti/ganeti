@@ -28,6 +28,7 @@ import errno
 from ganeti import utils
 from ganeti import logger
 from ganeti import errors
+from ganeti import constants
 
 
 class BlockDev(object):
@@ -1522,9 +1523,9 @@ class DRBDev(BlockDev):
 
 
 DEV_MAP = {
-  "lvm": LogicalVolume,
-  "md_raid1": MDRaid1,
-  "drbd": DRBDev,
+  constants.LD_LV: LogicalVolume,
+  constants.LD_MD_R1: MDRaid1,
+  constants.LD_DRBD7: DRBDev,
   }
 
 

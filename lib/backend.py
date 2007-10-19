@@ -1093,7 +1093,7 @@ def SnapshotBlockDevice(disk):
         if child.size == disk.size:
           # return implies breaking the loop
           return SnapshotBlockDevice(child)
-  elif disk.dev_type == "lvm":
+  elif disk.dev_type == constants.LD_LV:
     r_dev = _RecursiveFindBD(disk)
     if r_dev is not None:
       # let's stay on the safe side and ask for the full size, for now
