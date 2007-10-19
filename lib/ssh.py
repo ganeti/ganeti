@@ -136,7 +136,8 @@ def SSHCall(hostname, user, command, batch=True, ask_key=False):
     `utils.RunResult` as for `utils.RunCmd()`
 
   """
-  return utils.RunCmd(BuildSSHCmd(hostname, user, command, batch=batch, ask_key=ask_key))
+  return utils.RunCmd(BuildSSHCmd(hostname, user, command,
+                                  batch=batch, ask_key=ask_key))
 
 
 def CopyFileToNode(node, filename):
