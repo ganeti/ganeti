@@ -503,7 +503,7 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
     else:
       (path, major, minor, syncp, estt, degr) = status
       buf.write("%s (%d:%d)" % (path, major, minor))
-      if dtype in (constants.LD_MD_R1, constants.LD_DRBD7):
+      if dtype in (constants.LD_MD_R1, constants.LD_DRBD7, constants.LD_DRBD8):
         if syncp is not None:
           sync_text = "*RECOVERING* %5.2f%%," % syncp
           if estt:
@@ -661,8 +661,8 @@ add_opts = [
   make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
               default=1, type="int", metavar="<PROC>"),
   make_option("-t", "--disk-template", dest="disk_template",
-              help="Custom disk setup (diskless, plain, local_raid1 or"
-              " remote_raid1)", default=None, metavar="TEMPL"),
+              help="Custom disk setup (diskless, plain, local_raid1,"
+              " remote_raid1 or drbd)", default=None, metavar="TEMPL"),
   make_option("-i", "--ip", dest="ip",
               help="IP address ('none' [default], 'auto', or specify address)",
               default='none', type="string", metavar="<ADDRESS>"),

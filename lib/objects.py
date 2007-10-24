@@ -314,11 +314,13 @@ class Disk(ConfigObject):
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
-    return self.dev_type in (constants.LD_DRBD7, constants.LD_LV)
+    return self.dev_type in (constants.LD_DRBD7, constants.LD_DRBD8,
+                             constants.LD_LV)
 
   def AssembleOnSecondary(self):
     """Test if this device needs to be assembled on a secondary node."""
-    return self.dev_type in (constants.LD_DRBD7, constants.LD_LV)
+    return self.dev_type in (constants.LD_DRBD7, constants.LD_DRBD8,
+                             constants.LD_LV)
 
   def OpenOnSecondary(self):
     """Test if this device needs to be opened on a secondary node."""
@@ -335,7 +337,7 @@ class Disk(ConfigObject):
     """
     if self.dev_type == constants.LD_LV or self.dev_type == constants.LD_MD_R1:
       result = [node]
-    elif self.dev_type == constants.LD_DRBD7:
+    elif self.dev_type in constants.LDS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]
       if node not in result:
         raise errors.ConfigurationError("DRBD device passed unknown node")
@@ -436,7 +438,7 @@ class Instance(TaggableObject):
     """
     def _Helper(primary, sec_nodes, device):
       """Recursively computes secondary nodes given a top device."""
-      if device.dev_type == constants.LD_DRBD7:
+      if device.dev_type in constants.LDS_DRBD:
         nodea, nodeb, dummy = device.logical_id
         if nodea == primary:
           candidate = nodeb
@@ -488,7 +490,7 @@ class Instance(TaggableObject):
       if dev.dev_type == constants.LD_LV:
         lvmap[node].append(dev.logical_id[1])
 
-      elif dev.dev_type == constants.LD_DRBD7:
+      elif dev.dev_type in constants.LDS_DRBD:
         if dev.logical_id[0] not in lvmap:
           lvmap[dev.logical_id[0]] = []
 

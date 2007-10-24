@@ -2086,6 +2086,7 @@ DEV_MAP = {
   constants.LD_LV: LogicalVolume,
   constants.LD_MD_R1: MDRaid1,
   constants.LD_DRBD7: DRBDev,
+  constants.LD_DRBD8: DRBD8,
   }
 
 

@@ -2460,9 +2460,9 @@ class LUFailoverInstance(LogicalUnit):
       raise errors.OpPrereqError("Instance '%s' not known" %
                                  self.op.instance_name)
 
-    if instance.disk_template != constants.DT_REMOTE_RAID1:
+    if instance.disk_template not in constants.DTS_NET_MIRROR:
       raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " remote_raid1.")
+                                 " network mirrored, cannot failover.")
 
     secondary_nodes = instance.secondary_nodes
     if not secondary_nodes:
@@ -2636,6 +2636,22 @@ def _GenerateMDDRBDBranch(cfg, primary, secondary, size, names):
   return drbd_dev
 
 
+def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name):
+  """Generate a drbd8 device complete with its children.
+
+  """
+  port = cfg.AllocatePort()
+  vgname = cfg.GetVGName()
+  dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
+                          logical_id=(vgname, names[0]))
+  dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
+                          logical_id=(vgname, names[1]))
+  drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
+                          logical_id = (primary, secondary, port),
+                          children = [dev_data, dev_meta],
+                          iv_name=iv_name)
+  return drbd_dev
+
 def _GenerateDiskTemplate(cfg, template_name,
                           instance_name, primary_node,
                           secondary_nodes, disk_sz, swap_sz):
@@ -2696,6 +2712,17 @@ def _GenerateDiskTemplate(cfg, template_name,
     md_sdb_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name="sdb",
                               children = [drbd_sdb_dev], size=swap_sz)
     disks = [md_sda_dev, md_sdb_dev]
+  elif template_name == constants.DT_DRBD8:
+    if len(secondary_nodes) != 1:
+      raise errors.ProgrammerError("Wrong template configuration")
+    remote_node = secondary_nodes[0]
+    names = _GenerateUniqueNames(cfg, [".sda_data", ".sda_meta",
+                                       ".sdb_data", ".sdb_meta"])
+    drbd_sda_dev = _GenerateDRBD8Branch(cfg, primary_node, remote_node,
+                                         disk_sz, names[0:2], "sda")
+    drbd_sdb_dev = _GenerateDRBD8Branch(cfg, primary_node, remote_node,
+                                         swap_sz, names[2:4], "sdb")
+    disks = [drbd_sda_dev, drbd_sdb_dev]
   else:
     raise errors.ProgrammerError("Invalid disk template '%s'" % template_name)
   return disks
@@ -2872,9 +2899,9 @@ class LUCreateInstance(LogicalUnit):
     if self.op.disk_template not in constants.DISK_TEMPLATES:
       raise errors.OpPrereqError("Invalid disk template name")
 
-    if self.op.disk_template == constants.DT_REMOTE_RAID1:
+    if self.op.disk_template in constants.DTS_NET_MIRROR:
       if getattr(self.op, "snode", None) is None:
-        raise errors.OpPrereqError("The 'remote_raid1' disk template needs"
+        raise errors.OpPrereqError("The networked disk templates need"
                                    " a mirror node")
 
       snode_name = self.cfg.ExpandNodeName(self.op.snode)
@@ -2897,6 +2924,7 @@ class LUCreateInstance(LogicalUnit):
       constants.DT_LOCAL_RAID1: (self.op.disk_size + self.op.swap_size) * 2,
       # 256 MB are added for drbd metadata, 128MB for each drbd device
       constants.DT_REMOTE_RAID1: self.op.disk_size + self.op.swap_size + 256,
+      constants.DT_DRBD8: self.op.disk_size + self.op.swap_size + 256,
     }
 
     if self.op.disk_template not in req_size_dict:
@@ -3006,7 +3034,7 @@ class LUCreateInstance(LogicalUnit):
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self.cfg, iobj)
-    elif iobj.disk_template == constants.DT_REMOTE_RAID1:
+    elif iobj.disk_template in constants.DTS_NET_MIRROR:
       # make sure the disks are not degraded (still sync-ing is ok)
       time.sleep(15)
       feedback_fn("* checking mirrors status")
@@ -3486,7 +3514,7 @@ class LUQueryInstanceData(NoHooksLU):
     """
     self.cfg.SetDiskID(dev, instance.primary_node)
     dev_pstatus = rpc.call_blockdev_find(instance.primary_node, dev)
-    if dev.dev_type == constants.LD_DRBD7:
+    if dev.dev_type in constants.LDS_DRBD:
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
         snode = dev.logical_id[1]
