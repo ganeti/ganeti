@@ -1836,6 +1836,12 @@ def _AssembleInstanceDisks(instance, cfg, ignore_secondaries=False):
     device_info.append((instance.primary_node, inst_disk.iv_name,
                         master_result))
 
+  # leave the disks configured for the primary node
+  # this is a workaround that would be fixed better by
+  # improving the logical/physical id handling
+  for disk in instance.disks:
+    cfg.SetDiskID(disk, instance.primary_node)
+
   return disks_ok, device_info
 
 
