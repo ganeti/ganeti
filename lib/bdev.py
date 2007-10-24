@@ -936,6 +936,32 @@ class BaseDRBD(BlockDev):
       raise errors.BlockDeviceError("Can't read any data from /proc/drbd")
     return data
 
+  @staticmethod
+  def _MassageProcData(data):
+    """Transform the output of _GetProdData into a nicer form.
+
+    Returns:
+      a dictionary of minor: joined lines from /proc/drbd for that minor
+
+    """
+    lmatch = re.compile("^ *([0-9]+):.*$")
+    results = {}
+    old_minor = old_line = None
+    for line in data:
+      lresult = lmatch.match(line)
+      if lresult is not None:
+        if old_minor is not None:
+          results[old_minor] = old_line
+        old_minor = int(lresult.group(1))
+        old_line = line
+      else:
+        if old_minor is not None:
+          old_line += " " + line.strip()
+    # add last line
+    if old_minor is not None:
+      results[old_minor] = old_line
+    return results
+
   @classmethod
   def _GetVersion(cls):
     """Return the DRBD version.
@@ -978,6 +1004,18 @@ class BaseDRBD(BlockDev):
       used_devs[minor] = state, line
 
     return used_devs
+
+  def _SetFromMinor(self, minor):
+    """Set our parameters based on the given minor.
+
+    This sets our minor variable and our dev_path.
+
+    """
+    if minor is None:
+      self.minor = self.dev_path = None
+    else:
+      self.minor = minor
+      self.dev_path = self._DevPath(minor)
 
 
 class DRBDev(BaseDRBD):
@@ -1253,19 +1291,6 @@ class DRBDev(BaseDRBD):
     return not result.failed
 
 
-  def _SetFromMinor(self, minor):
-    """Set our parameters based on the given minor.
-
-    This sets our minor variable and our dev_path.
-
-    """
-    if minor is None:
-      self.minor = self.dev_path = None
-    else:
-      self.minor = minor
-      self.dev_path = self._DevPath(minor)
-
-
   def Assemble(self):
     """Assemble the drbd.
 
@@ -1449,31 +1474,6 @@ class DRBDev(BaseDRBD):
     return sync_percent, est_time, is_degraded
 
 
-  @staticmethod
-  def _MassageProcData(data):
-    """Transform the output of _GetProdData into a nicer form.
-
-    Returns:
-      a dictionary of minor: joined lines from /proc/drbd for that minor
-
-    """
-    lmatch = re.compile("^ *([0-9]+):.*$")
-    results = {}
-    old_minor = old_line = None
-    for line in data:
-      lresult = lmatch.match(line)
-      if lresult is not None:
-        if old_minor is not None:
-          results[old_minor] = old_line
-        old_minor = int(lresult.group(1))
-        old_line = line
-      else:
-        if old_minor is not None:
-          old_line += " " + line.strip()
-    # add last line
-    if old_minor is not None:
-      results[old_minor] = old_line
-    return results
 
 
   def GetStatus(self):
