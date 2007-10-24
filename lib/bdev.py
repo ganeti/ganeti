@@ -1017,6 +1017,32 @@ class BaseDRBD(BlockDev):
       self.minor = minor
       self.dev_path = self._DevPath(minor)
 
+  @staticmethod
+  def _CheckMetaSize(meta_device):
+    """Check if the given meta device looks like a valid one.
+
+    This currently only check the size, which must be around
+    128MiB.
+
+    """
+    result = utils.RunCmd(["blockdev", "--getsize", meta_device])
+    if result.failed:
+      logger.Error("Failed to get device size: %s" % result.fail_reason)
+      return False
+    try:
+      sectors = int(result.stdout)
+    except ValueError:
+      logger.Error("Invalid output from blockdev: '%s'" % result.stdout)
+      return False
+    bytes = sectors * 512
+    if bytes < 128 * 1024 * 1024: # less than 128MiB
+      logger.Error("Meta device too small (%.2fMib)" % (bytes / 1024 / 1024))
+      return False
+    if bytes > (128 + 32) * 1024 * 1024: # account for an extra (big) PE on LVM
+      logger.Error("Meta device too big (%.2fMiB)" % (bytes / 1024 / 1024))
+      return False
+    return True
+
 
 class DRBDev(BaseDRBD):
   """DRBD block device.
@@ -1168,33 +1194,6 @@ class DRBDev(BaseDRBD):
     return retval
 
 
-  @staticmethod
-  def _IsValidMeta(meta_device):
-    """Check if the given meta device looks like a valid one.
-
-    This currently only check the size, which must be around
-    128MiB.
-
-    """
-    result = utils.RunCmd(["blockdev", "--getsize", meta_device])
-    if result.failed:
-      logger.Error("Failed to get device size: %s" % result.fail_reason)
-      return False
-    try:
-      sectors = int(result.stdout)
-    except ValueError:
-      logger.Error("Invalid output from blockdev: '%s'" % result.stdout)
-      return False
-    bytes = sectors * 512
-    if bytes < 128*1024*1024: # less than 128MiB
-      logger.Error("Meta device too small (%.2fMib)" % (bytes/1024/1024))
-      return False
-    if bytes > (128+32)*1024*1024: # account for an extra (big) PE on LVM
-      logger.Error("Meta device too big (%.2fMiB)" % (bytes/1024/1024))
-      return False
-    return True
-
-
   @classmethod
   def _AssembleLocal(cls, minor, backend, meta):
     """Configure the local part of a DRBD device.
@@ -1203,7 +1202,7 @@ class DRBDev(BaseDRBD):
     device. And it must be done only once.
 
     """
-    if not cls._IsValidMeta(meta):
+    if not cls._CheckMetaSize(meta):
       return False
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disk",
                            backend, meta, "0", "-e", "detach"])
@@ -1536,7 +1535,7 @@ class DRBDev(BaseDRBD):
     meta.Assemble()
     if not meta.Attach():
       raise errors.BlockDeviceError("Can't attach to meta device")
-    if not cls._IsValidMeta(meta.dev_path):
+    if not cls._CheckMetaSize(meta.dev_path):
       raise errors.BlockDeviceError("Invalid meta device")
     logger.Info("Started zeroing device %s" % meta.dev_path)
     cls._ZeroDevice(meta.dev_path)
