@@ -36,6 +36,8 @@ Before installing, please verify that you have the following programs:
     http://pyopenssl.sourceforge.net/
   - simplejson Python module
     http://www.undefined.org/python/#simplejson
+  - pyparsing Python module
+    http://pyparsing.wikispaces.com/
 
 For testing, you also need the YAML module for Python (http://pyyaml.org/).
 

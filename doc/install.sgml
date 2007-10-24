@@ -408,6 +408,11 @@ skip resource "r1" {
           url="http://www.undefined.org/python/#simplejson">simplejson Python
           module</ulink></simpara>
         </listitem>
+        <listitem>
+          <simpara><ulink
+          url="http://pyparsing.wikispaces.com/">pyparsing Python
+          module</ulink></simpara>
+        </listitem>
       </itemizedlist>
 
       <para>

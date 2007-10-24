@@ -24,6 +24,7 @@
 import re
 import time
 import errno
+import pyparsing as pyp
 
 from ganeti import utils
 from ganeti import logger
@@ -1548,6 +1549,535 @@ class DRBDev(BaseDRBD):
 
     """
     return self.Shutdown()
+
+class DRBD8(BaseDRBD):
+  """DRBD v8.x block device.
+
+  This implements the local host part of the DRBD device, i.e. it
+  doesn't do anything to the supposed peer. If you need a fully
+  connected DRBD pair, you need to use this class on both hosts.
+
+  The unique_id for the drbd device is the (local_ip, local_port,
+  remote_ip, remote_port) tuple, and it must have two children: the
+  data device and the meta_device. The meta device is checked for
+  valid size and is zeroed on create.
+
+  """
+  _DRBD_MAJOR = 147
+  _MAX_MINORS = 255
+  _PARSE_SHOW = None
+
+  def __init__(self, unique_id, children):
+    super(DRBD8, self).__init__(unique_id, children)
+    self.major = self._DRBD_MAJOR
+    [kmaj, kmin, kfix, api, proto] = self._GetVersion()
+    if kmaj != 8:
+      raise errors.BlockDeviceError("Mismatch in DRBD kernel version and"
+                                    " requested ganeti usage: kernel is"
+                                    " %s.%s, ganeti wants 8.x" % (kmaj, kmin))
+
+    if len(children) != 2:
+      raise ValueError("Invalid configuration data %s" % str(children))
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 4:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    self._lhost, self._lport, self._rhost, self._rport = unique_id
+    self.Attach()
+
+  @classmethod
+  def _InitMeta(cls, minor, dev_path):
+    """Initialize a meta device.
+
+    This will not work if the given minor is in use.
+
+    """
+    result = utils.RunCmd(["drbdmeta", "--force", cls._DevPath(minor),
+                           "v08", dev_path, "0", "create-md"])
+    if result.failed:
+      raise errors.BlockDeviceError("Can't initialize meta device: %s" %
+                                    result.output)
+
+  @classmethod
+  def _FindUnusedMinor(cls):
+    """Find an unused DRBD device.
+
+    This is specific to 8.x as the minors are allocated dynamically,
+    so non-existing numbers up to a max minor count are actually free.
+
+    """
+    data = cls._GetProcData()
+
+    unused_line = re.compile("^ *([0-9]+): cs:Unconfigured$")
+    used_line = re.compile("^ *([0-9]+): cs:")
+    highest = None
+    for line in data:
+      match = unused_line.match(line)
+      if match:
+        return int(match.group(1))
+      match = used_line.match(line)
+      if match:
+        minor = int(match.group(1))
+        highest = max(highest, minor)
+    if highest is None: # there are no minors in use at all
+      return 0
+    if highest >= cls._MAX_MINORS:
+      logger.Error("Error: no free drbd minors!")
+      raise errors.BlockDeviceError("Can't find a free DRBD minor")
+    return highest + 1
+
+  @classmethod
+  def _IsValidMeta(cls, meta_device):
+    """Check if the given meta device looks like a valid one.
+
+    """
+    minor = cls._FindUnusedMinor()
+    minor_path = cls._DevPath(minor)
+    result = utils.RunCmd(["drbdmeta", minor_path,
+                           "v08", meta_device, "0",
+                           "dstate"])
+    if result.failed:
+      logger.Error("Invalid meta device %s: %s" % (meta_device, result.output))
+      return False
+    return True
+
+  @classmethod
+  def _GetShowParser(cls):
+    """Return a parser for `drbd show` output.
+
+    This will either create or return an already-create parser for the
+    output of the command `drbd show`.
+
+    """
+    if cls._PARSE_SHOW is not None:
+      return cls._PARSE_SHOW
+
+    # pyparsing setup
+    lbrace = pyp.Literal("{").suppress()
+    rbrace = pyp.Literal("}").suppress()
+    semi = pyp.Literal(";").suppress()
+    # this also converts the value to an int
+    number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t:(l, [int(t[0])]))
+
+    comment = pyp.Literal ("#") + pyp.Optional(pyp.restOfLine)
+    defa = pyp.Literal("_is_default").suppress()
+    dbl_quote = pyp.Literal('"').suppress()
+
+    keyword = pyp.Word(pyp.alphanums + '-')
+
+    # value types
+    value = pyp.Word(pyp.alphanums + '_-/.:')
+    quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
+    addr_port = (pyp.Word(pyp.nums + '.') + pyp.Literal(':').suppress() +
+                 number)
+    # meta device, extended syntax
+    meta_value = ((value ^ quoted) + pyp.Literal('[').suppress() +
+                  number + pyp.Word(']').suppress())
+
+    # a statement
+    stmt = (~rbrace + keyword + ~lbrace +
+            (addr_port ^ value ^ quoted ^ meta_value) +
+            pyp.Optional(defa) + semi +
+            pyp.Optional(pyp.restOfLine).suppress())
+
+    # an entire section
+    section_name = pyp.Word(pyp.alphas + '_')
+    section = section_name + lbrace + pyp.ZeroOrMore(pyp.Group(stmt)) + rbrace
+
+    bnf = pyp.ZeroOrMore(pyp.Group(section ^ stmt))
+    bnf.ignore(comment)
+
+    cls._PARSE_SHOW = bnf
+
+    return bnf
+
+  @classmethod
+  def _GetDevInfo(cls, minor):
+    """Get details about a given DRBD minor.
+
+    This return, if available, the local backing device (as a path)
+    and the local and remote (ip, port) information.
+
+    """
+    data = {}
+    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "show"])
+    if result.failed:
+      logger.Error("Can't display the drbd config: %s" % result.fail_reason)
+      return data
+    out = result.stdout
+    if not out:
+      return data
+
+    bnf = cls._GetShowParser()
+    # run pyparse
+
+    try:
+      results = bnf.parseString(out)
+    except pyp.ParseException, err:
+      raise errors.BlockDeviceError("Can't parse drbdsetup show output: %s" %
+                                    str(err))
+
+    # and massage the results into our desired format
+    for section in results:
+      sname = section[0]
+      if sname == "_this_host":
+        for lst in section[1:]:
+          if lst[0] == "disk":
+            data["local_dev"] = lst[1]
+          elif lst[0] == "meta-disk":
+            data["meta_dev"] = lst[1]
+            data["meta_index"] = lst[2]
+          elif lst[0] == "address":
+            data["local_addr"] = tuple(lst[1:])
+      elif sname == "_remote_host":
+        for lst in section[1:]:
+          if lst[0] == "address":
+            data["remote_addr"] = tuple(lst[1:])
+    return data
+
+  def _MatchesLocal(self, info):
+    """Test if our local config matches with an existing device.
+
+    The parameter should be as returned from `_GetDevInfo()`. This
+    method tests if our local backing device is the same as the one in
+    the info parameter, in effect testing if we look like the given
+    device.
+
+    """
+    backend = self._children[0]
+    if backend is not None:
+      retval = (info["local_dev"] == backend.dev_path)
+    else:
+      retval = ("local_dev" not in info)
+    meta = self._children[1]
+    if meta is not None:
+      retval = retval and (info["meta_dev"] == meta.dev_path)
+      retval = retval and (info["meta_index"] == 0)
+    else:
+      retval = retval and ("meta_dev" not in info and
+                           "meta_index" not in info)
+    return retval
+
+  def _MatchesNet(self, info):
+    """Test if our network config matches with an existing device.
+
+    The parameter should be as returned from `_GetDevInfo()`. This
+    method tests if our network configuration is the same as the one
+    in the info parameter, in effect testing if we look like the given
+    device.
+
+    """
+    if (((self._lhost is None and not ("local_addr" in info)) and
+         (self._rhost is None and not ("remote_addr" in info)))):
+      return True
+
+    if self._lhost is None:
+      return False
+
+    if not ("local_addr" in info and
+            "remote_addr" in info):
+      return False
+
+    retval = (info["local_addr"] == (self._lhost, self._lport))
+    retval = (retval and
+              info["remote_addr"] == (self._rhost, self._rport))
+    return retval
+
+  @classmethod
+  def _AssembleLocal(cls, minor, backend, meta):
+    """Configure the local part of a DRBD device.
+
+    This is the first thing that must be done on an unconfigured DRBD
+    device. And it must be done only once.
+
+    """
+    if not cls._IsValidMeta(meta):
+      return False
+    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disk",
+                           backend, meta, "0", "-e", "detach",
+                           "--create-device"])
+    if result.failed:
+      logger.Error("Can't attach local disk: %s" % result.output)
+    return not result.failed
+
+  @classmethod
+  def _AssembleNet(cls, minor, net_info, protocol,
+                   dual_pri=False, hmac=None, secret=None):
+    """Configure the network part of the device.
+
+    """
+    lhost, lport, rhost, rport = net_info
+    args = ["drbdsetup", cls._DevPath(minor), "net",
+            "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport),
+            protocol]
+    if dual_pri:
+      args.append("-m")
+    if hmac and secret:
+      args.extend(["-a", hmac, "-x", secret])
+    result = utils.RunCmd(args)
+    if result.failed:
+      logger.Error("Can't setup network for dbrd device: %s" %
+                   result.fail_reason)
+      return False
+
+    timeout = time.time() + 10
+    ok = False
+    while time.time() < timeout:
+      info = cls._GetDevInfo(minor)
+      if not "local_addr" in info or not "remote_addr" in info:
+        time.sleep(1)
+        continue
+      if (info["local_addr"] != (lhost, lport) or
+          info["remote_addr"] != (rhost, rport)):
+        time.sleep(1)
+        continue
+      ok = True
+      break
+    if not ok:
+      logger.Error("Timeout while configuring network")
+      return False
+    return True
+
+  def SetSyncSpeed(self, kbytes):
+    """Set the speed of the DRBD syncer.
+
+    """
+    children_result = super(DRBD8, self).SetSyncSpeed(kbytes)
+    if self.minor is None:
+      logger.Info("Instance not attached to a device")
+      return False
+    result = utils.RunCmd(["drbdsetup", self.dev_path, "syncer", "-r", "%d" %
+                           kbytes])
+    if result.failed:
+      logger.Error("Can't change syncer rate: %s " % result.fail_reason)
+    return not result.failed and children_result
+
+  def GetSyncStatus(self):
+    """Returns the sync status of the device.
+
+    Returns:
+     (sync_percent, estimated_time)
+
+    If sync_percent is None, it means all is ok
+    If estimated_time is None, it means we can't esimate
+    the time needed, otherwise it's the time left in seconds
+
+    """
+    if self.minor is None and not self.Attach():
+      raise errors.BlockDeviceError("Can't attach to device in GetSyncStatus")
+    proc_info = self._MassageProcData(self._GetProcData())
+    if self.minor not in proc_info:
+      raise errors.BlockDeviceError("Can't find myself in /proc (minor %d)" %
+                                    self.minor)
+    line = proc_info[self.minor]
+    match = re.match("^.*sync'ed: *([0-9.]+)%.*"
+                     " finish: ([0-9]+):([0-9]+):([0-9]+) .*$", line)
+    if match:
+      sync_percent = float(match.group(1))
+      hours = int(match.group(2))
+      minutes = int(match.group(3))
+      seconds = int(match.group(4))
+      est_time = hours * 3600 + minutes * 60 + seconds
+    else:
+      sync_percent = None
+      est_time = None
+    match = re.match("^ *[0-9]+: cs:([^ ]+).*$", line)
+    if not match:
+      raise errors.BlockDeviceError("Can't find my data in /proc (minor %d)" %
+                                    self.minor)
+    client_state = match.group(1)
+    is_degraded = client_state != "Connected"
+    return sync_percent, est_time, is_degraded
+
+  def GetStatus(self):
+    """Compute the status of the DRBD device
+
+    Note that DRBD devices don't have the STATUS_EXISTING state.
+
+    """
+    if self.minor is None and not self.Attach():
+      return self.STATUS_UNKNOWN
+
+    data = self._GetProcData()
+    match = re.compile("^ *%d: cs:[^ ]+ st:(Primary|Secondary)/.*$" %
+                       self.minor)
+    for line in data:
+      mresult = match.match(line)
+      if mresult:
+        break
+    else:
+      logger.Error("Can't find myself!")
+      return self.STATUS_UNKNOWN
+
+    state = mresult.group(2)
+    if state == "Primary":
+      result = self.STATUS_ONLINE
+    else:
+      result = self.STATUS_STANDBY
+
+    return result
+
+  def Open(self, force=False):
+    """Make the local state primary.
+
+    If the 'force' parameter is given, the '--do-what-I-say' parameter
+    is given. Since this is a pottentialy dangerous operation, the
+    force flag should be only given after creation, when it actually
+    has to be given.
+
+    """
+    if self.minor is None and not self.Attach():
+      logger.Error("DRBD cannot attach to a device during open")
+      return False
+    cmd = ["drbdsetup", self.dev_path, "primary"]
+    if force:
+      cmd.append("-o")
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      logger.Error("Can't make drbd device primary: %s" % result.output)
+      return False
+    return True
+
+  def Close(self):
+    """Make the local state secondary.
+
+    This will, of course, fail if the device is in use.
+
+    """
+    if self.minor is None and not self.Attach():
+      logger.Info("Instance not attached to a device")
+      raise errors.BlockDeviceError("Can't find device")
+    result = utils.RunCmd(["drbdsetup", self.dev_path, "secondary"])
+    if result.failed:
+      logger.Error("Can't switch drbd device to secondary: %s" % result.output)
+      raise errors.BlockDeviceError("Can't switch drbd device to secondary")
+
+  def Attach(self):
+    """Find a DRBD device which matches our config and attach to it.
+
+    In case of partially attached (local device matches but no network
+    setup), we perform the network attach. If successful, we re-test
+    the attach if can return success.
+
+    """
+    for minor in self._GetUsedDevs():
+      info = self._GetDevInfo(minor)
+      match_l = self._MatchesLocal(info)
+      match_r = self._MatchesNet(info)
+      if match_l and match_r:
+        break
+      if match_l and not match_r and "local_addr" not in info:
+        res_r = self._AssembleNet(minor,
+                                  (self._lhost, self._lport,
+                                   self._rhost, self._rport),
+                                  "C")
+        if res_r and self._MatchesNet(self._GetDevInfo(minor)):
+          break
+    else:
+      minor = None
+
+    self._SetFromMinor(minor)
+    return minor is not None
+
+  def Assemble(self):
+    """Assemble the drbd.
+
+    Method:
+      - if we have a local backing device, we bind to it by:
+        - checking the list of used drbd devices
+        - check if the local minor use of any of them is our own device
+        - if yes, abort?
+        - if not, bind
+      - if we have a local/remote net info:
+        - redo the local backing device step for the remote device
+        - check if any drbd device is using the local port,
+          if yes abort
+        - check if any remote drbd device is using the remote
+          port, if yes abort (for now)
+        - bind our net port
+        - bind the remote net port
+
+    """
+    self.Attach()
+    if self.minor is not None:
+      logger.Info("Already assembled")
+      return True
+
+    result = super(DRBD8, self).Assemble()
+    if not result:
+      return result
+
+    minor = self._FindUnusedMinor()
+    need_localdev_teardown = False
+    if self._children[0]:
+      result = self._AssembleLocal(minor, self._children[0].dev_path,
+                                   self._children[1].dev_path)
+      if not result:
+        return False
+      need_localdev_teardown = True
+    if self._lhost and self._lport and self._rhost and self._rport:
+      result = self._AssembleNet(minor,
+                                 (self._lhost, self._lport,
+                                  self._rhost, self._rport),
+                                 "C")
+      if not result:
+        if need_localdev_teardown:
+          # we will ignore failures from this
+          logger.Error("net setup failed, tearing down local device")
+          self._ShutdownAll(minor)
+        return False
+    self._SetFromMinor(minor)
+    return True
+
+  @classmethod
+  def _ShutdownAll(cls, minor):
+    """Deactivate the device.
+
+    This will, of course, fail if the device is in use.
+
+    """
+    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "down"])
+    if result.failed:
+      logger.Error("Can't shutdown drbd device: %s" % result.output)
+    return not result.failed
+
+  def Shutdown(self):
+    """Shutdown the DRBD device.
+
+    """
+    if self.minor is None and not self.Attach():
+      logger.Info("DRBD device not attached to a device during Shutdown")
+      return True
+    if not self._ShutdownAll(self.minor):
+      return False
+    self.minor = None
+    self.dev_path = None
+    return True
+
+  def Remove(self):
+    """Stub remove for DRBD devices.
+
+    """
+    return self.Shutdown()
+
+  @classmethod
+  def Create(cls, unique_id, children, size):
+    """Create a new DRBD8 device.
+
+    Since DRBD devices are not created per se, just assembled, this
+    function only initializes the metadata.
+
+    """
+    if len(children) != 2:
+      raise errors.ProgrammerError("Invalid setup for the drbd device")
+    meta = children[1]
+    meta.Assemble()
+    if not meta.Attach():
+      raise errors.BlockDeviceError("Can't attach to meta device")
+    if not cls._CheckMetaSize(meta.dev_path):
+      raise errors.BlockDeviceError("Invalid meta device size")
+    cls._InitMeta(cls._FindUnusedMinor(), meta.dev_path)
+    if not cls._IsValidMeta(meta.dev_path):
+      raise errors.BlockDeviceError("Cannot initalize meta device")
+    return cls(unique_id, children)
 
 
 DEV_MAP = {
