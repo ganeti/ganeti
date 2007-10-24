@@ -1806,8 +1806,10 @@ class DRBD8(BaseDRBD):
     """
     lhost, lport, rhost, rport = net_info
     args = ["drbdsetup", cls._DevPath(minor), "net",
-            "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport),
-            protocol]
+            "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport), protocol,
+            "-A", "discard-zero-changes",
+            "-B", "consensus",
+            ]
     if dual_pri:
       args.append("-m")
     if hmac and secret:
