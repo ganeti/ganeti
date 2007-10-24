@@ -595,7 +595,7 @@ class MDRaid1(BlockDev):
       i += 1
     if i == 256:
       logger.Error("Critical: Out of md minor numbers.")
-      return None
+      raise errors.BlockDeviceError("Can't find a free MD minor")
     return i
 
 
@@ -1022,8 +1022,7 @@ class DRBDev(BaseDRBD):
       if match:
         return int(match.group(1))
     logger.Error("Error: no free drbd minors!")
-    return None
-
+    raise errors.BlockDeviceError("Can't find a free DRBD minor")
 
   @classmethod
   def _GetDevInfo(cls, minor):
@@ -1296,8 +1295,6 @@ class DRBDev(BaseDRBD):
       return result
 
     minor = self._FindUnusedMinor()
-    if minor is None:
-      raise errors.BlockDeviceError("Not enough free minors for DRBD!")
     need_localdev_teardown = False
     if self._children[0]:
       result = self._AssembleLocal(minor, self._children[0].dev_path,
