@@ -917,7 +917,10 @@ class BaseDRBD(BlockDev):
   """
   _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)"
                            r" \(api:(\d+)/proto:(\d+)\)")
-  _DRBD_KVER = 0
+  _DRBD_MAJOR = 147
+  _ST_UNCONFIGURED = "Unconfigured"
+  _ST_WFCONNECTION = "WFConnection"
+  _ST_CONNECTED = "Connected"
 
   @staticmethod
   def _GetProcData():
@@ -948,41 +951,6 @@ class BaseDRBD(BlockDev):
                                     first_line)
     return [int(val) for val in version.groups()]
 
-
-class DRBDev(BaseDRBD):
-  """DRBD block device.
-
-  This implements the local host part of the DRBD device, i.e. it
-  doesn't do anything to the supposed peer. If you need a fully
-  connected DRBD pair, you need to use this class on both hosts.
-
-  The unique_id for the drbd device is the (local_ip, local_port,
-  remote_ip, remote_port) tuple, and it must have two children: the
-  data device and the meta_device. The meta device is checked for
-  valid size and is zeroed on create.
-
-  """
-  _DRBD_MAJOR = 147
-  _ST_UNCONFIGURED = "Unconfigured"
-  _ST_WFCONNECTION = "WFConnection"
-  _ST_CONNECTED = "Connected"
-
-  def __init__(self, unique_id, children):
-    super(DRBDev, self).__init__(unique_id, children)
-    self.major = self._DRBD_MAJOR
-    [kmaj, kmin, kfix, api, proto] = self._GetVersion()
-    if kmaj != 0 and kmin != 7:
-      raise errors.BlockDeviceError("Mismatch in DRBD kernel version and"
-                                    " requested ganeti usage: kernel is"
-                                    " %s.%s, ganeti wants 0.7" % (kmaj, kmin))
-
-    if len(children) != 2:
-      raise ValueError("Invalid configuration data %s" % str(children))
-    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 4:
-      raise ValueError("Invalid configuration data %s" % str(unique_id))
-    self._lhost, self._lport, self._rhost, self._rport = unique_id
-    self.Attach()
-
   @staticmethod
   def _DevPath(minor):
     """Return the path to a drbd device for a given minor.
@@ -1011,6 +979,35 @@ class DRBDev(BaseDRBD):
 
     return used_devs
 
+
+class DRBDev(BaseDRBD):
+  """DRBD block device.
+
+  This implements the local host part of the DRBD device, i.e. it
+  doesn't do anything to the supposed peer. If you need a fully
+  connected DRBD pair, you need to use this class on both hosts.
+
+  The unique_id for the drbd device is the (local_ip, local_port,
+  remote_ip, remote_port) tuple, and it must have two children: the
+  data device and the meta_device. The meta device is checked for
+  valid size and is zeroed on create.
+
+  """
+  def __init__(self, unique_id, children):
+    super(DRBDev, self).__init__(unique_id, children)
+    self.major = self._DRBD_MAJOR
+    [kmaj, kmin, kfix, api, proto] = self._GetVersion()
+    if kmaj != 0 and kmin != 7:
+      raise errors.BlockDeviceError("Mismatch in DRBD kernel version and"
+                                    " requested ganeti usage: kernel is"
+                                    " %s.%s, ganeti wants 0.7" % (kmaj, kmin))
+
+    if len(children) != 2:
+      raise ValueError("Invalid configuration data %s" % str(children))
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 4:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    self._lhost, self._lport, self._rhost, self._rport = unique_id
+    self.Attach()
 
   @classmethod
   def _FindUnusedMinor(cls):
