@@ -3223,8 +3223,8 @@ class LUAddMDDRBDComponent(LogicalUnit):
     # the device exists now
     # call the primary node to add the mirror to md
     logger.Info("adding new mirror component to md")
-    if not rpc.call_blockdev_addchild(instance.primary_node,
-                                           disk, new_drbd):
+    if not rpc.call_blockdev_addchildren(instance.primary_node,
+                                         disk, [new_drbd]):
       logger.Error("Can't add mirror compoment to md!")
       self.cfg.SetDiskID(new_drbd, remote_node)
       if not rpc.call_blockdev_remove(remote_node, new_drbd):
@@ -3316,8 +3316,8 @@ class LURemoveMDDRBDComponent(LogicalUnit):
     child = self.child
     logger.Info("remove mirror component")
     self.cfg.SetDiskID(disk, instance.primary_node)
-    if not rpc.call_blockdev_removechild(instance.primary_node,
-                                              disk, child):
+    if not rpc.call_blockdev_removechildren(instance.primary_node,
+                                            disk, [child]):
       raise errors.OpExecError("Can't remove child from mirror.")
 
     for node in child.logical_id[:2]:
@@ -3427,8 +3427,8 @@ class LUReplaceDisks(LogicalUnit):
       # the device exists now
       # call the primary node to add the mirror to md
       logger.Info("adding new mirror component to md")
-      if not rpc.call_blockdev_addchild(instance.primary_node, dev,
-                                        new_drbd):
+      if not rpc.call_blockdev_addchildren(instance.primary_node, dev,
+                                           [new_drbd]):
         logger.Error("Can't add mirror compoment to md!")
         cfg.SetDiskID(new_drbd, remote_node)
         if not rpc.call_blockdev_remove(remote_node, new_drbd):
@@ -3462,8 +3462,8 @@ class LUReplaceDisks(LogicalUnit):
       dev, child, new_drbd = iv_names[name]
       logger.Info("remove mirror %s component" % name)
       cfg.SetDiskID(dev, instance.primary_node)
-      if not rpc.call_blockdev_removechild(instance.primary_node,
-                                                dev, child):
+      if not rpc.call_blockdev_removechildren(instance.primary_node,
+                                              dev, [child]):
         logger.Error("Can't remove child from mirror, aborting"
                      " *this device cleanup*.\nYou need to cleanup manually!!")
         continue

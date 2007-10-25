@@ -539,27 +539,27 @@ def call_blockdev_shutdown(node, disk):
   return c.getresult().get(node, False)
 
 
-def call_blockdev_addchild(node, bdev, ndev):
-  """Request adding a new child to a (mirroring) device.
+def call_blockdev_addchildren(node, bdev, ndevs):
+  """Request adding a list of children to a (mirroring) device.
 
   This is a single-node call.
 
   """
-  params = [bdev.ToDict(), ndev.ToDict()]
-  c = Client("blockdev_addchild", params)
+  params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
+  c = Client("blockdev_addchildren", params)
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
 
 
-def call_blockdev_removechild(node, bdev, ndev):
-  """Request removing a new child from a (mirroring) device.
+def call_blockdev_removechildren(node, bdev, ndevs):
+  """Request removing a list of children from a (mirroring) device.
 
   This is a single-node call.
 
   """
-  params = [bdev.ToDict(), ndev.ToDict()]
-  c = Client("blockdev_removechild", params)
+  params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
+  c = Client("blockdev_removechildren", params)
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)

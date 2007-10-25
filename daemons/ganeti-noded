@@ -135,7 +135,7 @@ class ServerObject(pb.Avatar):
     return backend.ShutdownBlockDevice(bdev)
 
   @staticmethod
-  def perspective_blockdev_addchild(params):
+  def perspective_blockdev_addchildren(params):
     """Add a child to a mirror device.
 
     Note: this is only valid for mirror devices. It's the caller's duty
@@ -144,13 +144,13 @@ class ServerObject(pb.Avatar):
     """
     bdev_s, ndev_s = params
     bdev = objects.Disk.FromDict(bdev_s)
-    ndev = objects.Disk.FromDict(ndev_s)
-    if bdev is None or ndev is None:
+    ndevs = [objects.Disk.FromDict(disk_s) for disk_s in ndev_s]
+    if bdev is None or ndevs.count(None) > 0:
       raise ValueError("can't unserialize data!")
-    return backend.MirrorAddChild(bdev, ndev)
+    return backend.MirrorAddChildren(bdev, ndevs)
 
   @staticmethod
-  def perspective_blockdev_removechild(params):
+  def perspective_blockdev_removechildren(params):
     """Remove a child from a mirror device.
 
     This is only valid for mirror devices, of course. It's the callers
@@ -159,10 +159,10 @@ class ServerObject(pb.Avatar):
     """
     bdev_s, ndev_s = params
     bdev = objects.Disk.FromDict(bdev_s)
-    ndev = objects.Disk.FromDict(ndev_s)
-    if bdev is None or ndev is None:
+    ndevs = [objects.Disk.FromDict(disk_s) for disk_s in ndev_s]
+    if bdev is None or ndevs.count(None) > 0:
       raise ValueError("can't unserialize data!")
-    return backend.MirrorRemoveChild(bdev, ndev)
+    return backend.MirrorRemoveChildren(bdev, ndevs)
 
   @staticmethod
   def perspective_blockdev_getmirrorstatus(params):

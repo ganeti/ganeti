@@ -768,35 +768,33 @@ def ShutdownBlockDevice(disk):
   return result
 
 
-def MirrorAddChild(md_cdev, new_cdev):
-  """Extend an MD raid1 array.
+def MirrorAddChildren(parent_cdev, new_cdevs):
+  """Extend a mirrored block device.
 
   """
-  md_bdev = _RecursiveFindBD(md_cdev, allow_partial=True)
-  if md_bdev is None:
-    logger.Error("Can't find md device")
+  parent_bdev = _RecursiveFindBD(parent_cdev, allow_partial=True)
+  if parent_bdev is None:
+    logger.Error("Can't find parent device")
     return False
-  new_bdev = _RecursiveFindBD(new_cdev)
-  if new_bdev is None:
-    logger.Error("Can't find new device to add")
+  new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
+  if new_bdevs.count(None) > 0:
+    logger.Error("Can't find new device(s) to add")
     return False
-  new_bdev.Open()
-  md_bdev.AddChild(new_bdev)
+  parent_bdev.AddChildren(new_bdevs)
   return True
 
 
-def MirrorRemoveChild(md_cdev, new_cdev):
-  """Reduce an MD raid1 array.
+def MirrorRemoveChildren(parent_cdev, new_cdevs):
+  """Shrink a mirrored block device.
 
   """
-  md_bdev = _RecursiveFindBD(md_cdev)
-  if md_bdev is None:
+  parent_bdev = _RecursiveFindBD(parent_cdev)
+  if parent_bdev is None:
     return False
-  new_bdev = _RecursiveFindBD(new_cdev)
-  if new_bdev is None:
+  new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
+  if new_bdevs.count(None) > 0:
     return False
-  new_bdev.Open()
-  md_bdev.RemoveChild(new_bdev.dev_path)
+  parent_bdev.RemoveChildren(new_bdevs)
   return True
 
 

@@ -701,59 +701,71 @@ class MDRaid1(BlockDev):
     return self.Shutdown()
 
 
-  def AddChild(self, device):
-    """Add a new member to the md raid1.
+  def AddChildren(self, devices):
+    """Add new member(s) to the md raid1.
 
     """
     if self.minor is None and not self.Attach():
       raise errors.BlockDeviceError("Can't attach to device")
-    if device.dev_path is None:
-      raise errors.BlockDeviceError("New child is not initialised")
-    result = utils.RunCmd(["mdadm", "-a", self.dev_path, device.dev_path])
+
+    args = ["mdadm", "-a", self.dev_path]
+    for dev in devices:
+      if dev.dev_path is None:
+        raise errors.BlockDeviceError("Child '%s' is not initialised" % dev)
+      dev.Open()
+      args.append(dev.dev_path)
+    result = utils.RunCmd(args)
     if result.failed:
       raise errors.BlockDeviceError("Failed to add new device to array: %s" %
                                     result.output)
-    new_len = len(self._children) + 1
+    new_len = len(self._children) + len(devices)
     result = utils.RunCmd(["mdadm", "--grow", self.dev_path, "-n", new_len])
     if result.failed:
       raise errors.BlockDeviceError("Can't grow md array: %s" %
                                     result.output)
-    self._children.append(device)
+    self._children.extend(devices)
 
 
-  def RemoveChild(self, dev_path):
-    """Remove member from the md raid1.
+  def RemoveChildren(self, devices):
+    """Remove member(s) from the md raid1.
 
     """
     if self.minor is None and not self.Attach():
       raise errors.BlockDeviceError("Can't attach to device")
-    if len(self._children) == 1:
-      raise errors.BlockDeviceError("Can't reduce member when only one"
-                                    " child left")
-    for device in self._children:
-      if device.dev_path == dev_path:
-        break
-    else:
-      raise errors.BlockDeviceError("Can't find child with this path")
-    new_len = len(self._children) - 1
-    result = utils.RunCmd(["mdadm", "-f", self.dev_path, dev_path])
+    new_len = len(self._children) - len(devices)
+    if new_len < 1:
+      raise errors.BlockDeviceError("Can't reduce to less than one child")
+    args = ["mdadm", "-f", self.dev_path]
+    orig_devs = []
+    for dev in devices:
+      args.append(dev.dev_path)
+      for c in self._children:
+        if c.dev_path == dev.dev_path:
+          orig_devs.append(c)
+          break
+      else:
+        raise errors.BlockDeviceError("Can't find device '%s' for removal" %
+                                      dev)
+    result = utils.RunCmd(args)
     if result.failed:
-      raise errors.BlockDeviceError("Failed to mark device as failed: %s" %
+      raise errors.BlockDeviceError("Failed to mark device(s) as failed: %s" %
                                     result.output)
 
     # it seems here we need a short delay for MD to update its
     # superblocks
     time.sleep(0.5)
-    result = utils.RunCmd(["mdadm", "-r", self.dev_path, dev_path])
+    args[1] = "-r"
+    result = utils.RunCmd(args)
     if result.failed:
-      raise errors.BlockDeviceError("Failed to remove device from array:"
-                                        " %s" % result.output)
+      raise errors.BlockDeviceError("Failed to remove device(s) from array:"
+                                    " %s" % result.output)
     result = utils.RunCmd(["mdadm", "--grow", "--force", self.dev_path,
                            "-n", new_len])
     if result.failed:
       raise errors.BlockDeviceError("Can't shrink md array: %s" %
                                     result.output)
-    self._children.remove(device)
+    for dev in orig_devs:
+      self._children.remove(dev)
 
 
   def GetStatus(self):
