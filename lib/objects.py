@@ -412,6 +412,37 @@ class Disk(ConfigObject):
       obj.physical_id = tuple(obj.physical_id)
     return obj
 
+  def __str__(self):
+    """Custom str() formatter for disks.
+
+    """
+    if self.dev_type == constants.LD_LV:
+      val =  "<LogicalVolume(/dev/%s/%s" % self.logical_id
+    elif self.dev_type in constants.LDS_DRBD:
+      if self.dev_type == constants.LD_DRBD7:
+        val = "<DRBD7("
+      else:
+        val = "<DRBD8("
+      val += ("hosts=%s-%s, port=%s, configured as %s:%s %s:%s, " %
+              (self.logical_id[0], self.logical_id[1], self.logical_id[2],
+               self.physical_id[0], self.physical_id[1],
+               self.physical_id[2], self.physical_id[3]))
+      if self.children and self.children.count(None) == 0:
+        val += "backend=%s, metadev=%s" % (self.children[0], self.children[1])
+      else:
+        val += "no local storage"
+    elif self.dev_type == constants.LD_MD_R1:
+      val = "<MD_R1(uuid=%s, children=%s" % (self.physical_id, self.children)
+    else:
+      val = ("<Disk(type=%s, logical_id=%s, physical_id=%s, children=%s" %
+             (self.dev_type, self.logical_id, self.physical_id, self.children))
+    if self.iv_name is None:
+      val += ", not visible"
+    else:
+      val += ", visible as /dev/%s" % self.iv_name
+    val += ", size=%dm)>" % self.size
+    return val
+
 
 class Instance(TaggableObject):
   """Config object representing an instance."""
