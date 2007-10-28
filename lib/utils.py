@@ -34,6 +34,7 @@ import tempfile
 import shutil
 import errno
 import pwd
+import itertools
 
 from ganeti import logger
 from ganeti import errors
@@ -906,3 +907,17 @@ def WriteFile(file_name, fn=None, data=None,
   finally:
     os.close(fd)
     RemoveFile(new_name)
+
+
+def all(seq, pred=bool):
+  "Returns True if pred(x) is True for every element in the iterable"
+  for elem in itertools.ifilterfalse(pred, seq):
+    return False
+  return True
+
+
+def any(seq, pred=bool):
+  "Returns True if pred(x) is True for at least one element in the iterable"
+  for elem in itertools.ifilter(pred, seq):
+    return True
+  return False
