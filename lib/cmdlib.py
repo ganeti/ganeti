@@ -4027,7 +4027,7 @@ class LUExportInstance(LogicalUnit):
     # shutdown the instance, unless requested not to do so
     if self.op.shutdown:
       op = opcodes.OpShutdownInstance(instance_name=instance.name)
-      self.processor.ChainOpCode(op, feedback_fn)
+      self.processor.ChainOpCode(op)
 
     vgname = self.cfg.GetVGName()
 
@@ -4053,7 +4053,7 @@ class LUExportInstance(LogicalUnit):
       if self.op.shutdown:
         op = opcodes.OpStartupInstance(instance_name=instance.name,
                                        force=False)
-        self.processor.ChainOpCode(op, feedback_fn)
+        self.processor.ChainOpCode(op)
 
     # TODO: check for size
 
@@ -4079,7 +4079,7 @@ class LUExportInstance(LogicalUnit):
     # substitutes an empty list with the full cluster node list.
     if nodelist:
       op = opcodes.OpQueryExports(nodes=nodelist)
-      exportlist = self.processor.ChainOpCode(op, feedback_fn)
+      exportlist = self.processor.ChainOpCode(op)
       for node in exportlist:
         if instance.name in exportlist[node]:
           if not rpc.call_export_remove(node, instance.name):

@@ -81,14 +81,14 @@ def BurninCluster(opts, args):
   """
 
   logger.SetupLogging(debug=True, program="ganeti/burnin")
-  proc = mcpu.Processor()
+  proc = mcpu.Processor(feedback=Feedback)
   result = proc.ExecOpCode(opcodes.OpQueryNodes(output_fields=["name"],
-                                                names=[]), Feedback)
+                                                names=[]))
   nodelist = [data[0] for data in result]
 
   Feedback("- Testing global parameters")
 
-  result = proc.ExecOpCode(opcodes.OpDiagnoseOS(), Feedback)
+  result = proc.ExecOpCode(opcodes.OpDiagnoseOS())
 
   if not result:
     Feedback("Can't get the OS list")
@@ -135,7 +135,7 @@ def BurninCluster(opts, args):
                                     ip_check=True,
                                     wait_for_sync=True)
       Feedback("- Add instance %s on node %s" % (instance_name, pnode))
-      result = proc.ExecOpCode(op, Feedback)
+      result = proc.ExecOpCode(op)
       to_remove.append(instance_name)
       idx = next_idx
 
@@ -148,7 +148,7 @@ def BurninCluster(opts, args):
                                       remote_node=None)
 
           Feedback("- Replace disks for instance %s" % (instance_name))
-          result = proc.ExecOpCode(op, Feedback)
+          result = proc.ExecOpCode(op)
       else:
         Feedback("- Can't run replace1, not enough nodes")
 
@@ -160,7 +160,7 @@ def BurninCluster(opts, args):
                                           ignore_consistency=True)
 
           Feedback("- Failover instance %s" % (instance_name))
-          result = proc.ExecOpCode(op, Feedback)
+          result = proc.ExecOpCode(op)
       else:
         Feedback("- Can't run failovers, not enough nodes")
 
@@ -168,17 +168,17 @@ def BurninCluster(opts, args):
     for instance_name in args:
       op = opcodes.OpShutdownInstance(instance_name=instance_name)
       Feedback("- Shutdown instance %s" % instance_name)
-      result = proc.ExecOpCode(op, Feedback)
+      result = proc.ExecOpCode(op)
       op = opcodes.OpStartupInstance(instance_name=instance_name, force=False)
       Feedback("- Start instance %s" % instance_name)
-      result = proc.ExecOpCode(op, Feedback)
+      result = proc.ExecOpCode(op)
 
   finally:
     # remove
     for instance_name in to_remove:
       op = opcodes.OpRemoveInstance(instance_name=instance_name)
       Feedback("- Remove instance %s" % instance_name)
-      result = proc.ExecOpCode(op, Feedback)
+      result = proc.ExecOpCode(op)
 
   return 0
 

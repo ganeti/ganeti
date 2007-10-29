@@ -346,11 +346,11 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   interaction functions.
 
   """
-  if proc is None:
-    proc = mcpu.Processor()
   if feedback_fn is None:
     feedback_fn = logger.ToStdout
-  return proc.ExecOpCode(op, feedback_fn)
+  if proc is None:
+    proc = mcpu.Processor(feedback=feedback_fn)
+  return proc.ExecOpCode(op)
 
 
 def FormatError(err):
