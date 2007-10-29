@@ -1628,7 +1628,7 @@ class DRBD8(BaseDRBD):
                                     " requested ganeti usage: kernel is"
                                     " %s.%s, ganeti wants 8.x" % (kmaj, kmin))
 
-    if len(children) != 2:
+    if len(children) not in (0, 2):
       raise ValueError("Invalid configuration data %s" % str(children))
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 4:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
@@ -1794,15 +1794,21 @@ class DRBD8(BaseDRBD):
     device.
 
     """
-    backend = self._children[0]
+    if self._children:
+      backend, meta = self._children
+    else:
+      backend = meta = None
+
     if backend is not None:
-      retval = (info["local_dev"] == backend.dev_path)
+      retval = ("local_dev" in info and info["local_dev"] == backend.dev_path)
     else:
       retval = ("local_dev" not in info)
-    meta = self._children[1]
+
     if meta is not None:
-      retval = retval and (info["meta_dev"] == meta.dev_path)
-      retval = retval and (info["meta_index"] == 0)
+      retval = retval and ("meta_dev" in info and
+                           info["meta_dev"] == meta.dev_path)
+      retval = retval and ("meta_index" in info and
+                           info["meta_index"] == 0)
     else:
       retval = retval and ("meta_dev" not in info and
                            "meta_index" not in info)
@@ -1889,6 +1895,54 @@ class DRBD8(BaseDRBD):
       logger.Error("Timeout while configuring network")
       return False
     return True
+
+  def AddChildren(self, devices):
+    """Add a disk to the DRBD device.
+
+    """
+    if self.minor is None:
+      raise errors.BlockDeviceError("Can't attach to dbrd8 during AddChildren")
+
+    if len(devices) != 2:
+      raise errors.BlockDeviceError("Need two devices for AddChildren")
+    if self._children:
+      raise errors.BlockDeviceError("DRBD8 already attached to a local disk")
+    backend, meta = devices
+    if backend.dev_path is None or meta.dev_path is None:
+      raise errors.BlockDeviceError("Children not ready during AddChildren")
+    backend.Open()
+    meta.Open()
+    if not self._CheckMetaSize(meta.dev_path):
+      raise errors.BlockDeviceError("Invalid meta device size")
+    self._InitMeta(self._FindUnusedMinor(), meta.dev_path)
+    if not self._IsValidMeta(meta.dev_path):
+      raise errors.BlockDeviceError("Cannot initalize meta device")
+
+    if not self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path):
+      raise errors.BlockDeviceError("Can't attach to local storage")
+    self._children = devices
+
+  def RemoveChildren(self, devices):
+    """Detach the drbd device from local storage.
+
+    """
+    if self.minor is None:
+      raise errors.BlockDeviceError("Can't attach to drbd8 during"
+                                    " RemoveChildren")
+    if len(self._children) != 2:
+      raise errors.BlockDeviceError("We don't have two children: %s" %
+                                    self._children)
+
+    if len(devices) != 2:
+      raise errors.BlockDeviceError("We need two children in RemoveChildren")
+    for idx, dev in enumerate(devices):
+      if dev.dev_path != self._children[idx].dev_path:
+        raise errors.BlockDeviceError("Mismatch in local storage (%d) in"
+                                      " RemoveChildren" % idx)
+
+    if not self._ShutdownLocal(self.minor):
+      raise errors.BlockDeviceError("Can't detach from local storage")
+    self._children = []
 
   def SetSyncSpeed(self, kbytes):
     """Set the speed of the DRBD syncer.
@@ -2080,6 +2134,19 @@ class DRBD8(BaseDRBD):
         return False
     self._SetFromMinor(minor)
     return True
+
+  @classmethod
+  def _ShutdownLocal(cls, minor):
+    """Detach from the local device.
+
+    I/Os will continue to be served from the remote device. If we
+    don't have a remote device, this operation will fail.
+
+    """
+    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "detach"])
+    if result.failed:
+      logger.Error("Can't detach local device: %s" % result.output)
+    return not result.failed
 
   @classmethod
   def _ShutdownNet(cls, minor):
