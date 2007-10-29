@@ -795,7 +795,7 @@ def MirrorRemoveChildren(parent_cdev, new_cdevs):
     return False
   new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
   if new_bdevs.count(None) > 0:
-    logger.Error("Can't find some devices while doing remove children: %s %s" %
+    logger.Error("Can't find some devices while removing children: %s %s" %
                  (new_cdevs, new_bdevs))
     return False
   parent_bdev.RemoveChildren(new_bdevs)
