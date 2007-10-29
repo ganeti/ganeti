@@ -3336,7 +3336,7 @@ class LUReplaceDisks(LogicalUnit):
   """
   HPATH = "mirrors-replace"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = ["instance_name", "mode", "disks"]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3345,6 +3345,7 @@ class LUReplaceDisks(LogicalUnit):
 
     """
     env = {
+      "MODE": self.op.mode,
       "NEW_SECONDARY": self.op.remote_node,
       "OLD_SECONDARY": self.instance.secondary_nodes[0],
       }
@@ -3366,36 +3367,72 @@ class LUReplaceDisks(LogicalUnit):
                                  self.op.instance_name)
     self.instance = instance
 
-    if instance.disk_template != constants.DT_REMOTE_RAID1:
+    if instance.disk_template not in constants.DTS_NET_MIRROR:
       raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " remote_raid1.")
+                                 " network mirrored.")
 
     if len(instance.secondary_nodes) != 1:
       raise errors.OpPrereqError("The instance has a strange layout,"
                                  " expected one secondary but found %d" %
                                  len(instance.secondary_nodes))
 
+    self.sec_node = instance.secondary_nodes[0]
+
     remote_node = getattr(self.op, "remote_node", None)
-    if remote_node is None:
-      remote_node = instance.secondary_nodes[0]
-    else:
+    if remote_node is not None:
       remote_node = self.cfg.ExpandNodeName(remote_node)
       if remote_node is None:
         raise errors.OpPrereqError("Node '%s' not known" %
                                    self.op.remote_node)
+      self.remote_node_info = self.cfg.GetNodeInfo(remote_node)
+    else:
+      self.remote_node_info = None
     if remote_node == instance.primary_node:
       raise errors.OpPrereqError("The specified node is the primary node of"
                                  " the instance.")
+    elif remote_node == self.sec_node:
+      # the user gave the current secondary, switch to
+      # 'no-replace-secondary' mode
+      remote_node = None
+    if (instance.disk_template == constants.DT_REMOTE_RAID1 and
+        self.op.mode != constants.REPLACE_DISK_ALL):
+      raise errors.OpPrereqError("Template 'remote_raid1' only allows all"
+                                 " disks replacement, not individual ones")
+    if instance.disk_template == constants.DT_DRBD8:
+      if self.op.mode == constants.REPLACE_DISK_ALL:
+        raise errors.OpPrereqError("Template 'drbd8' only allows primary or"
+                                   " secondary disk replacement, not"
+                                   " both at once")
+      elif self.op.mode == constants.REPLACE_DISK_PRI:
+        if remote_node is not None:
+          raise errors.OpPrereqError("Template 'drbd8' does not allow changing"
+                                     " the secondary while doing a primary"
+                                     " node disk replacement")
+        self.tgt_node = instance.primary_node
+      elif self.op.mode == constants.REPLACE_DISK_SEC:
+        self.new_node = remote_node # this can be None, in which case
+                                    # we don't change the secondary
+        self.tgt_node = instance.secondary_nodes[0]
+      else:
+        raise errors.ProgrammerError("Unhandled disk replace mode")
+
+    for name in self.op.disks:
+      if instance.FindDisk(name) is None:
+        raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
+                                   (name, instance.name))
     self.op.remote_node = remote_node
 
-  def Exec(self, feedback_fn):
+  def _ExecRR1(self, feedback_fn):
     """Replace the disks of an instance.
 
     """
     instance = self.instance
     iv_names = {}
     # start of work
-    remote_node = self.op.remote_node
+    if self.op.remote_node is None:
+      remote_node = self.sec_node
+    else:
+      remote_node = self.op.remote_node
     cfg = self.cfg
     for dev in instance.disks:
       size = dev.size
@@ -3478,6 +3515,236 @@ class LUReplaceDisks(LogicalUnit):
       dev.children.remove(child)
 
       cfg.AddInstance(instance)
+
+  def _ExecD8DiskOnly(self, feedback_fn):
+    """Replace a disk on the primary or secondary for dbrd8.
+
+    The algorithm for replace is quite complicated:
+      - for each disk to be replaced:
+        - create new LVs on the target node with unique names
+        - detach old LVs from the drbd device
+        - rename old LVs to name_replaced.<time_t>
+        - rename new LVs to old LVs
+        - attach the new LVs (with the old names now) to the drbd device
+      - wait for sync across all devices
+      - for each modified disk:
+        - remove old LVs (which have the name name_replaces.<time_t>)
+
+    Failures are not very well handled.
+    """
+    instance = self.instance
+    iv_names = {}
+    vgname = self.cfg.GetVGName()
+    # start of work
+    cfg = self.cfg
+    tgt_node = self.tgt_node
+    for dev in instance.disks:
+      if not dev.iv_name in self.op.disks:
+        continue
+      size = dev.size
+      cfg.SetDiskID(dev, tgt_node)
+      lv_names = [".%s_%s" % (dev.iv_name, suf) for suf in ["data", "meta"]]
+      names = _GenerateUniqueNames(cfg, lv_names)
+      lv_data = objects.Disk(dev_type=constants.LD_LV, size=size,
+                             logical_id=(vgname, names[0]))
+      lv_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
+                             logical_id=(vgname, names[1]))
+      new_lvs = [lv_data, lv_meta]
+      old_lvs = dev.children
+      iv_names[dev.iv_name] = (dev, old_lvs, new_lvs)
+      logger.Info("adding new local storage on %s for %s" %
+                  (tgt_node, dev.iv_name))
+      # since we *always* want to create this LV, we use the
+      # _Create...OnPrimary (which forces the creation), even if we
+      # are talking about the secondary node
+      for new_lv in new_lvs:
+        if not _CreateBlockDevOnPrimary(cfg, tgt_node, new_lv,
+                                        _GetInstanceInfoText(instance)):
+          raise errors.OpExecError("Failed to create new LV named '%s' on"
+                                   " node '%s'" %
+                                   (new_lv.logical_id[1], tgt_node))
+
+      if not rpc.call_blockdev_removechildren(tgt_node, dev, old_lvs):
+        raise errors.OpExecError("Can't detach drbd from local storage on node"
+                                 " %s for device %s" % (tgt_node, dev.iv_name))
+      dev.children = []
+      cfg.Update(instance)
+
+      # ok, we created the new LVs, so now we know we have the needed
+      # storage; as such, we proceed on the target node to rename
+      # old_lv to _old, and new_lv to old_lv; note that we rename LVs
+      # using the assumption than logical_id == physical_id (which in
+      # turn is the unique_id on that node)
+      temp_suffix = int(time.time())
+      logger.Info("renaming the old LVs on the target node")
+      ren_fn = lambda d, suff: (d.physical_id[0],
+                                d.physical_id[1] + "_replaced-%s" % suff)
+      rlist = [(disk, ren_fn(disk, temp_suffix)) for disk in old_lvs]
+      if not rpc.call_blockdev_rename(tgt_node, rlist):
+        logger.Error("Can't rename old LVs on node %s" % tgt_node)
+        do_change_old = False
+      else:
+        do_change_old = True
+      # now we rename the new LVs to the old LVs
+      logger.Info("renaming the new LVs on the target node")
+      rlist = [(new, old.physical_id) for old, new in zip(old_lvs, new_lvs)]
+      if not rpc.call_blockdev_rename(tgt_node, rlist):
+        logger.Error("Can't rename new LVs on node %s" % tgt_node)
+      else:
+        for old, new in zip(old_lvs, new_lvs):
+          new.logical_id = old.logical_id
+          cfg.SetDiskID(new, tgt_node)
+
+      if do_change_old:
+        for disk in old_lvs:
+          disk.logical_id = ren_fn(disk, temp_suffix)
+          cfg.SetDiskID(disk, tgt_node)
+
+      # now that the new lvs have the old name, we can add them to the device
+      logger.Info("adding new mirror component on %s" % tgt_node)
+      if not rpc.call_blockdev_addchildren(tgt_node, dev, new_lvs):
+        logger.Error("Can't add local storage to drbd!")
+        for new_lv in new_lvs:
+          if not rpc.call_blockdev_remove(tgt_node, new_lv):
+            logger.Error("Can't rollback device %s")
+        return
+
+      dev.children = new_lvs
+      cfg.Update(instance)
+
+
+    # this can fail as the old devices are degraded and _WaitForSync
+    # does a combined result over all disks, so we don't check its
+    # return value
+    logger.Info("Done changing drbd configs, waiting for sync")
+    _WaitForSync(cfg, instance, unlock=True)
+
+    # so check manually all the devices
+    for name, (dev, old_lvs, new_lvs) in iv_names.iteritems():
+      cfg.SetDiskID(dev, instance.primary_node)
+      is_degr = rpc.call_blockdev_find(instance.primary_node, dev)[5]
+      if is_degr:
+        raise errors.OpExecError("DRBD device %s is degraded!" % name)
+
+    for name, (dev, old_lvs, new_lvs) in iv_names.iteritems():
+      logger.Info("remove logical volumes for %s" % name)
+      for lv in old_lvs:
+        cfg.SetDiskID(lv, tgt_node)
+        if not rpc.call_blockdev_remove(tgt_node, lv):
+          logger.Error("Can't cleanup child device, skipping. You need to"
+                       " fix manually!")
+          continue
+
+  def _ExecD8Secondary(self, feedback_fn):
+    """Replace the secondary node for drbd8.
+
+    The algorithm for replace is quite complicated:
+      - for all disks of the instance:
+        - create new LVs on the new node with same names
+        - shutdown the drbd device on the old secondary
+        - disconnect the drbd network on the primary
+        - create the drbd device on the new secondary
+        - network attach the drbd on the primary, using an artifice:
+          the drbd code for Attach() will connect to the network if it
+          finds a device which is connected to the good local disks but
+          not network enabled
+      - wait for sync across all devices
+      - remove all disks from the old secondary
+
+    Failures are not very well handled.
+    """
+    instance = self.instance
+    iv_names = {}
+    vgname = self.cfg.GetVGName()
+    # start of work
+    cfg = self.cfg
+    old_node = self.tgt_node
+    new_node = self.new_node
+    pri_node = instance.primary_node
+    for dev in instance.disks:
+      size = dev.size
+      logger.Info("adding new local storage on %s for %s" %
+                  (new_node, dev.iv_name))
+      # since we *always* want to create this LV, we use the
+      # _Create...OnPrimary (which forces the creation), even if we
+      # are talking about the secondary node
+      for new_lv in dev.children:
+        if not _CreateBlockDevOnPrimary(cfg, new_node, new_lv,
+                                        _GetInstanceInfoText(instance)):
+          raise errors.OpExecError("Failed to create new LV named '%s' on"
+                                   " node '%s'" %
+                                   (new_lv.logical_id[1], new_node))
+
+      # create new devices on new_node
+      new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
+                              logical_id=(pri_node, new_node,
+                                          dev.logical_id[2]),
+                              children=dev.children)
+      if not _CreateBlockDevOnSecondary(cfg, new_node, new_drbd, False,
+                                      _GetInstanceInfoText(instance)):
+        raise errors.OpExecError("Failed to create new DRBD on"
+                                 " node '%s'" % new_node)
+
+      # we have new devices, shutdown the drbd on the old secondary
+      cfg.SetDiskID(dev, old_node)
+      if not rpc.call_blockdev_shutdown(old_node, dev):
+        raise errors.OpExecError("Failed to shutdown DRBD on old node")
+
+      # we have new storage, we 'rename' the network on the primary
+      cfg.SetDiskID(dev, pri_node)
+      # rename to the ip of the new node
+      new_uid = list(dev.physical_id)
+      new_uid[2] = self.remote_node_info.secondary_ip
+      rlist = [(dev, tuple(new_uid))]
+      if not rpc.call_blockdev_rename(pri_node, rlist):
+        raise errors.OpExecError("Can't detach re-attach drbd %s on node"
+                                 " %s from %s to %s" %
+                                 (dev.iv_name, pri_node, old_node, new_node))
+      dev.logical_id = (pri_node, new_node, dev.logical_id[2])
+      cfg.SetDiskID(dev, pri_node)
+      cfg.Update(instance)
+
+      iv_names[dev.iv_name] = (dev, dev.children)
+
+    # this can fail as the old devices are degraded and _WaitForSync
+    # does a combined result over all disks, so we don't check its
+    # return value
+    logger.Info("Done changing drbd configs, waiting for sync")
+    _WaitForSync(cfg, instance, unlock=True)
+
+    # so check manually all the devices
+    for name, (dev, old_lvs) in iv_names.iteritems():
+      cfg.SetDiskID(dev, pri_node)
+      is_degr = rpc.call_blockdev_find(pri_node, dev)[5]
+      if is_degr:
+        raise errors.OpExecError("DRBD device %s is degraded!" % name)
+
+    for name, (dev, old_lvs) in iv_names.iteritems():
+      logger.Info("remove logical volumes for %s" % name)
+      for lv in old_lvs:
+        cfg.SetDiskID(lv, old_node)
+        if not rpc.call_blockdev_remove(old_node, lv):
+          logger.Error("Can't cleanup child device, skipping. You need to"
+                       " fix manually!")
+          continue
+
+  def Exec(self, feedback_fn):
+    """Execute disk replacement.
+
+    This dispatches the disk replacement to the appropriate handler.
+
+    """
+    instance = self.instance
+    if instance.disk_template == constants.DT_REMOTE_RAID1:
+      fn = self._ExecRR1
+    elif instance.disk_template == constants.DT_DRBD8:
+      if self.op.remote_node is None:
+        fn = self._ExecD8DiskOnly
+      else:
+        fn = self._ExecD8Secondary
+    else:
+      raise errors.ProgrammerError("Unhandled disk replacement case")
+    return fn(feedback_fn)
 
 
 class LUQueryInstanceData(NoHooksLU):

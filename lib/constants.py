@@ -25,7 +25,7 @@ from ganeti import _autoconf
 
 # various versions
 CONFIG_VERSION = 3
-PROTOCOL_VERSION = 3
+PROTOCOL_VERSION = 4
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_VERSION = 5
 EXPORT_VERSION = 0
@@ -91,6 +91,11 @@ LD_DRBD8 = "drbd8"
 
 # the set of drbd-like disk types
 LDS_DRBD = frozenset([LD_DRBD7, LD_DRBD8])
+
+# disk replacement mode
+REPLACE_DISK_PRI = "replace_primary"
+REPLACE_DISK_SEC = "replace_secondary"
+REPLACE_DISK_ALL = "replace_all"
 
 # instance creation modem
 INSTANCE_CREATE = "create"

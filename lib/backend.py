@@ -778,7 +778,8 @@ def MirrorAddChildren(parent_cdev, new_cdevs):
     return False
   new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
   if new_bdevs.count(None) > 0:
-    logger.Error("Can't find new device(s) to add")
+    logger.Error("Can't find new device(s) to add: %s:%s" %
+                 (new_bdevs, new_cdevs))
     return False
   parent_bdev.AddChildren(new_bdevs)
   return True
@@ -790,9 +791,12 @@ def MirrorRemoveChildren(parent_cdev, new_cdevs):
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
   if parent_bdev is None:
+    logger.Error("Can't find parent in remove children: %s" % parent_cdev)
     return False
   new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
   if new_bdevs.count(None) > 0:
+    logger.Error("Can't find some devices while doing remove children: %s %s" %
+                 (new_cdevs, new_bdevs))
     return False
   parent_bdev.RemoveChildren(new_bdevs)
   return True
