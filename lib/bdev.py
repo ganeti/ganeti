@@ -94,14 +94,12 @@ class BlockDev(object):
     STATUS_ONLINE: "online",
     }
 
-
   def __init__(self, unique_id, children):
     self._children = children
     self.dev_path = None
     self.unique_id = unique_id
     self.major = None
     self.minor = None
-
 
   def Assemble(self):
     """Assemble the device from its components.
@@ -131,20 +129,17 @@ class BlockDev(object):
         child.Shutdown()
     return status
 
-
   def Attach(self):
     """Find a device which matches our config and attach to it.
 
     """
     raise NotImplementedError
 
-
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
 
     """
     raise NotImplementedError
-
 
   @classmethod
   def Create(cls, unique_id, children, size):
@@ -160,7 +155,6 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
-
   def Remove(self):
     """Remove this device.
 
@@ -171,7 +165,6 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
-
   def Rename(self, new_id):
     """Rename this device.
 
@@ -180,13 +173,11 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
-
   def GetStatus(self):
     """Return the status of the device.
 
     """
     raise NotImplementedError
-
 
   def Open(self, force=False):
     """Make the device ready for use.
@@ -200,7 +191,6 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
-
   def Shutdown(self):
     """Shut down the device, freeing its children.
 
@@ -210,7 +200,6 @@ class BlockDev(object):
 
     """
     raise NotImplementedError
-
 
   def SetSyncSpeed(self, speed):
     """Adjust the sync speed of the mirror.
@@ -223,7 +212,6 @@ class BlockDev(object):
       for child in self._children:
         result = result and child.SetSyncSpeed(speed)
     return result
-
 
   def GetSyncStatus(self):
     """Returns the sync status of the device.
@@ -415,7 +403,6 @@ class LogicalVolume(BlockDev):
         return True
     return False
 
-
   def Assemble(self):
     """Assemble the device.
 
@@ -425,7 +412,6 @@ class LogicalVolume(BlockDev):
     """
     return True
 
-
   def Shutdown(self):
     """Shutdown the device.
 
@@ -434,7 +420,6 @@ class LogicalVolume(BlockDev):
 
     """
     return True
-
 
   def GetStatus(self):
     """Return the status of the device.
@@ -464,7 +449,6 @@ class LogicalVolume(BlockDev):
 
     return retval
 
-
   def Open(self, force=False):
     """Make the device ready for I/O.
 
@@ -473,7 +457,6 @@ class LogicalVolume(BlockDev):
     """
     return True
 
-
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
 
@@ -481,7 +464,6 @@ class LogicalVolume(BlockDev):
 
     """
     return True
-
 
   def Snapshot(self, size):
     """Create a snapshot copy of an lvm block device.
@@ -512,7 +494,6 @@ class LogicalVolume(BlockDev):
 
     return snap_name
 
-
   def SetInfo(self, text):
     """Update metadata with info text.
 
@@ -542,7 +523,6 @@ class MDRaid1(BlockDev):
     self.major = 9
     self.Attach()
 
-
   def Attach(self):
     """Find an array which matches our config and attach to it.
 
@@ -557,7 +537,6 @@ class MDRaid1(BlockDev):
       self.dev_path = None
 
     return (minor is not None)
-
 
   @staticmethod
   def _GetUsedDevs():
@@ -581,7 +560,6 @@ class MDRaid1(BlockDev):
 
     return used_md
 
-
   @staticmethod
   def _GetDevInfo(minor):
     """Get info about a MD device.
@@ -604,7 +582,6 @@ class MDRaid1(BlockDev):
           retval["state"] = kv[1].split(", ")
     return retval
 
-
   @staticmethod
   def _FindUnusedMinor():
     """Compute an unused MD minor.
@@ -623,7 +600,6 @@ class MDRaid1(BlockDev):
       raise errors.BlockDeviceError("Can't find a free MD minor")
     return i
 
-
   @classmethod
   def _FindMDByUUID(cls, uuid):
     """Find the minor of an MD array with a given UUID.
@@ -635,7 +611,6 @@ class MDRaid1(BlockDev):
       if info and info["uuid"] == uuid:
         return minor
     return None
-
 
   @staticmethod
   def _ZeroSuperblock(dev_path):
@@ -714,7 +689,6 @@ class MDRaid1(BlockDev):
       return None
     return MDRaid1(info["uuid"], children)
 
-
   def Remove(self):
     """Stub remove function for MD RAID 1 arrays.
 
@@ -755,7 +729,6 @@ class MDRaid1(BlockDev):
       raise errors.BlockDeviceError("Can't grow md array: %s" %
                                     result.output)
     self._children.extend(devices)
-
 
   def RemoveChildren(self, devices):
     """Remove member(s) from the md raid1.
@@ -798,7 +771,6 @@ class MDRaid1(BlockDev):
     for dev in orig_devs:
       self._children.remove(dev)
 
-
   def GetStatus(self):
     """Return the status of the device.
 
@@ -810,7 +782,6 @@ class MDRaid1(BlockDev):
       retval = self.STATUS_ONLINE
     return retval
 
-
   def _SetFromMinor(self, minor):
     """Set our parameters based on the given minor.
 
@@ -819,7 +790,6 @@ class MDRaid1(BlockDev):
     """
     self.minor = minor
     self.dev_path = "/dev/md%d" % minor
-
 
   def Assemble(self):
     """Assemble the MD device.
@@ -851,7 +821,6 @@ class MDRaid1(BlockDev):
       self.minor = free_minor
     return not result.failed
 
-
   def Shutdown(self):
     """Tear down the MD array.
 
@@ -870,7 +839,6 @@ class MDRaid1(BlockDev):
     self.minor = None
     self.dev_path = None
     return True
-
 
   def SetSyncSpeed(self, kbytes):
     """Set the maximum sync speed for the MD array.
@@ -891,7 +859,6 @@ class MDRaid1(BlockDev):
     finally:
       f.close()
     return result
-
 
   def GetSyncStatus(self):
     """Returns the sync status of the device.
@@ -931,7 +898,6 @@ class MDRaid1(BlockDev):
       time_est = (sync_total - sync_done) / 2 / sync_speed_k
     return sync_percent, time_est, not is_clean
 
-
   def Open(self, force=False):
     """Make the device ready for I/O.
 
@@ -940,7 +906,6 @@ class MDRaid1(BlockDev):
 
     """
     return True
-
 
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
@@ -1191,7 +1156,6 @@ class DRBDev(BaseDRBD):
           continue
     return data
 
-
   def _MatchesLocal(self, info):
     """Test if our local config matches with an existing device.
 
@@ -1219,7 +1183,6 @@ class DRBDev(BaseDRBD):
                            info["meta_index"] == -1)
     return retval
 
-
   def _MatchesNet(self, info):
     """Test if our network config matches with an existing device.
 
@@ -1245,7 +1208,6 @@ class DRBDev(BaseDRBD):
               info["remote_addr"] == (self._rhost, self._rport))
     return retval
 
-
   @classmethod
   def _AssembleLocal(cls, minor, backend, meta):
     """Configure the local part of a DRBD device.
@@ -1262,7 +1224,6 @@ class DRBDev(BaseDRBD):
       logger.Error("Can't attach local disk: %s" % result.output)
     return not result.failed
 
-
   @classmethod
   def _ShutdownLocal(cls, minor):
     """Detach from the local device.
@@ -1276,7 +1237,6 @@ class DRBDev(BaseDRBD):
       logger.Error("Can't detach local device: %s" % result.output)
     return not result.failed
 
-
   @staticmethod
   def _ShutdownAll(minor):
     """Deactivate the device.
@@ -1288,7 +1248,6 @@ class DRBDev(BaseDRBD):
     if result.failed:
       logger.Error("Can't shutdown drbd device: %s" % result.output)
     return not result.failed
-
 
   @classmethod
   def _AssembleNet(cls, minor, net_info, protocol):
@@ -1329,7 +1288,6 @@ class DRBDev(BaseDRBD):
       return False
     return True
 
-
   @classmethod
   def _ShutdownNet(cls, minor):
     """Disconnect from the remote peer.
@@ -1340,7 +1298,6 @@ class DRBDev(BaseDRBD):
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disconnect"])
     logger.Error("Can't shutdown network: %s" % result.output)
     return not result.failed
-
 
   def Assemble(self):
     """Assemble the drbd.
@@ -1392,7 +1349,6 @@ class DRBDev(BaseDRBD):
     self._SetFromMinor(minor)
     return True
 
-
   def Shutdown(self):
     """Shutdown the DRBD device.
 
@@ -1405,7 +1361,6 @@ class DRBDev(BaseDRBD):
     self.minor = None
     self.dev_path = None
     return True
-
 
   def Attach(self):
     """Find a DRBD device which matches our config and attach to it.
@@ -1434,7 +1389,6 @@ class DRBDev(BaseDRBD):
     self._SetFromMinor(minor)
     return minor is not None
 
-
   def Open(self, force=False):
     """Make the local state primary.
 
@@ -1456,7 +1410,6 @@ class DRBDev(BaseDRBD):
       return False
     return True
 
-
   def Close(self):
     """Make the local state secondary.
 
@@ -1471,7 +1424,6 @@ class DRBDev(BaseDRBD):
       logger.Error("Can't switch drbd device to secondary: %s" % result.output)
       raise errors.BlockDeviceError("Can't switch drbd device to secondary")
 
-
   def SetSyncSpeed(self, kbytes):
     """Set the speed of the DRBD syncer.
 
@@ -1485,7 +1437,6 @@ class DRBDev(BaseDRBD):
     if result.failed:
       logger.Error("Can't change syncer rate: %s " % result.fail_reason)
     return not result.failed and children_result
-
 
   def GetSyncStatus(self):
     """Returns the sync status of the device.
@@ -1524,9 +1475,6 @@ class DRBDev(BaseDRBD):
     is_degraded = client_state != "Connected"
     return sync_percent, est_time, is_degraded
 
-
-
-
   def GetStatus(self):
     """Compute the status of the DRBD device
 
@@ -1555,7 +1503,6 @@ class DRBDev(BaseDRBD):
 
     return result
 
-
   @staticmethod
   def _ZeroDevice(device):
     """Zero a device.
@@ -1571,7 +1518,6 @@ class DRBDev(BaseDRBD):
     except IOError, err:
       if err.errno != errno.ENOSPC:
         raise
-
 
   @classmethod
   def Create(cls, unique_id, children, size):
@@ -1593,7 +1539,6 @@ class DRBDev(BaseDRBD):
     cls._ZeroDevice(meta.dev_path)
     logger.Info("Done zeroing device %s" % meta.dev_path)
     return cls(unique_id, children)
-
 
   def Remove(self):
     """Stub remove for DRBD devices.
