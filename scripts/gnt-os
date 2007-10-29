@@ -45,7 +45,7 @@ def _DiagnoseOSValid(obj):
   elif isinstance(obj, errors.InvalidOS):
     return False
   else:
-    raise errors.ProgrammerError('unknown OS diagnose type')
+    raise errors.ProgrammerError("unknown OS diagnose type: '%s'" % type(obj))
 
 
 def _DiagnoseOSName(obj):
@@ -126,12 +126,8 @@ def ListOS(opts, args):
   for os_name, os_node_data in all_os.iteritems():
     if len(os_node_data) != num_nodes:
       continue
-    valid = True
-    for l in os_node_data.values():
-      if not _DiagnoseOSValid(l[0]):
-        valid = False
-        break
-    if valid:
+
+    if utils.all(os_node_data.values(), lambda l: _DiagnoseOSValid(l[0])):
       valid_os.append(os_name)
 
   if not opts.no_headers:
