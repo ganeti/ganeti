@@ -172,6 +172,15 @@ class BlockDev(object):
     raise NotImplementedError
 
 
+  def Rename(self, new_id):
+    """Rename this device.
+
+    This may or may not make sense for a given device type.
+
+    """
+    raise NotImplementedError
+
+
   def GetStatus(self):
     """Return the status of the device.
 
@@ -368,6 +377,21 @@ class LogicalVolume(BlockDev):
 
     return not result.failed
 
+  def Rename(self, new_id):
+    """Rename this logical volume.
+
+    """
+    if not isinstance(new_id, (tuple, list)) or len(new_id) != 2:
+      raise errors.ProgrammerError("Invalid new logical id '%s'" % new_id)
+    new_vg, new_name = new_id
+    if new_vg != self._vg_name:
+      raise errors.ProgrammerError("Can't move a logical volume across"
+                                   " volume groups (from %s to to %s)" %
+                                   (self._vg_name, new_vg))
+    result = utils.RunCmd(["lvrename", new_vg, self._lv_name, new_name])
+    if result.failed:
+      raise errors.BlockDeviceError("Failed to rename the logical volume: %s" %
+                                    result.output)
 
   def Attach(self):
     """Attach to an existing LV.
@@ -700,6 +724,13 @@ class MDRaid1(BlockDev):
     #TODO: maybe zero superblock on child devices?
     return self.Shutdown()
 
+  def Rename(self, new_id):
+    """Rename a device.
+
+    This is not supported for md raid1 devices.
+
+    """
+    raise errors.ProgrammerError("Can't rename a md raid1 device")
 
   def AddChildren(self, devices):
     """Add new member(s) to the md raid1.
@@ -1055,6 +1086,14 @@ class BaseDRBD(BlockDev):
       logger.Error("Meta device too big (%.2fMiB)" % (bytes / 1024 / 1024))
       return False
     return True
+
+  def Rename(self, new_id):
+    """Rename a device.
+
+    This is not supported for drbd devices.
+
+    """
+    raise errors.ProgrammerError("Can't rename a drbd device")
 
 
 class DRBDev(BaseDRBD):
@@ -1562,6 +1601,7 @@ class DRBDev(BaseDRBD):
     """
     return self.Shutdown()
 
+
 class DRBD8(BaseDRBD):
   """DRBD v8.x block device.
 
@@ -2042,6 +2082,17 @@ class DRBD8(BaseDRBD):
     return True
 
   @classmethod
+  def _ShutdownNet(cls, minor):
+    """Disconnect from the remote peer.
+
+    This fails if we don't have a local device.
+
+    """
+    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disconnect"])
+    logger.Error("Can't shutdown network: %s" % result.output)
+    return not result.failed
+
+  @classmethod
   def _ShutdownAll(cls, minor):
     """Deactivate the device.
 
@@ -2065,6 +2116,27 @@ class DRBD8(BaseDRBD):
     self.minor = None
     self.dev_path = None
     return True
+
+  def Rename(self, new_uid):
+    """Re-connect this device to another peer.
+
+    """
+    if self.minor is None:
+      raise errors.BlockDeviceError("Device not attached during rename")
+    if self._rhost is not None:
+      # this means we did have a host when we attached, so we are connected
+      if not self._ShutdownNet(self.minor):
+        raise errors.BlockDeviceError("Can't disconnect from remote peer")
+      old_id = self.unique_id
+    else:
+      old_id = None
+    self.unique_id = new_uid
+    if not self._AssembleNet(self.minor, self.unique_id, "C"):
+      logger.Error("Can't attach to new peer!")
+      if self.old_id is not None:
+        self._AssembleNet(self.minor, old_id, "C")
+      self.unique_id = old_id
+      raise errors.BlockDeviceError("Can't attach to new peer")
 
   def Remove(self):
     """Stub remove for DRBD devices.

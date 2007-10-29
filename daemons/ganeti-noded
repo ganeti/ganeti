@@ -113,6 +113,14 @@ class ServerObject(pb.Avatar):
     return backend.RemoveBlockDevice(bdev)
 
   @staticmethod
+  def perspective_blockdev_rename(params):
+    """Remove a block device.
+
+    """
+    devlist = [(objects.Disk.FromDict(ds), uid) for ds, uid in params]
+    return backend.RenameBlockDevices(devlist)
+
+  @staticmethod
   def perspective_blockdev_assemble(params):
     """Assemble a block device.
 

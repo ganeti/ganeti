@@ -514,6 +514,19 @@ def call_blockdev_remove(node, bdev):
   return c.getresult().get(node, False)
 
 
+def call_blockdev_rename(node, devlist):
+  """Request rename of the given block devices.
+
+  This is a single-node call.
+
+  """
+  params = [(d.ToDict(), uid) for d, uid in devlist]
+  c = Client("blockdev_rename", params)
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_blockdev_assemble(node, disk, on_primary):
   """Request assembling of a given block device.
 

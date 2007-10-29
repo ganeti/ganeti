@@ -1337,6 +1337,29 @@ def RemoveExport(export):
   return True
 
 
+def RenameBlockDevices(devlist):
+  """Rename a list of block devices.
+
+  The devlist argument is a list of tuples (disk, new_logical,
+  new_physical). The return value will be a combined boolean result
+  (True only if all renames succeeded).
+
+  """
+  result = True
+  for disk, unique_id in devlist:
+    dev = _RecursiveFindBD(disk)
+    if dev is None:
+      result = False
+      continue
+    try:
+      dev.Rename(unique_id)
+    except errors.BlockDeviceError, err:
+      logger.Error("Can't rename device '%s' to '%s': %s" %
+                   (dev, unique_id, err))
+      result = False
+  return result
+
+
 class HooksRunner(object):
   """Hook runner.
 
