@@ -1560,7 +1560,6 @@ class DRBD8(BaseDRBD):
   valid size and is zeroed on create.
 
   """
-  _DRBD_MAJOR = 147
   _MAX_MINORS = 255
   _PARSE_SHOW = None
 
