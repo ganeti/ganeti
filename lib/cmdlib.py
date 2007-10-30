@@ -386,39 +386,35 @@ def _UpdateKnownHosts(fullnode, ip, pubkey):
   add_lines = []
   removed = False
 
-  while True:
-    rawline = f.readline()
+  for rawline in f:
     logger.Debug('read %s' % (repr(rawline),))
 
-    if not rawline:
-      # End of file
-      break
+    parts = rawline.rstrip('\r\n').split()
 
-    line = rawline.split('\n')[0]
+    # Ignore unwanted lines
+    if len(parts) >= 3 and not rawline.lstrip()[0] == '#':
+      fields = parts[0].split(',')
+      key = parts[2]
 
-    parts = line.split(' ')
-    fields = parts[0].split(',')
-    key = parts[2]
+      haveall = True
+      havesome = False
+      for spec in [ ip, fullnode ]:
+        if spec not in fields:
+          haveall = False
+        if spec in fields:
+          havesome = True
 
-    haveall = True
-    havesome = False
-    for spec in [ ip, fullnode ]:
-      if spec not in fields:
-        haveall = False
-      if spec in fields:
-        havesome = True
+      logger.Debug("key, pubkey = %s." % (repr((key, pubkey)),))
+      if haveall and key == pubkey:
+        inthere = True
+        save_lines.append(rawline)
+        logger.Debug("Keeping known_hosts '%s'." % (repr(rawline),))
+        continue
 
-    logger.Debug("key, pubkey = %s." % (repr((key, pubkey)),))
-    if haveall and key == pubkey:
-      inthere = True
-      save_lines.append(rawline)
-      logger.Debug("Keeping known_hosts '%s'." % (repr(rawline),))
-      continue
-
-    if havesome and (not haveall or key != pubkey):
-      removed = True
-      logger.Debug("Discarding known_hosts '%s'." % (repr(rawline),))
-      continue
+      if havesome and (not haveall or key != pubkey):
+        removed = True
+        logger.Debug("Discarding known_hosts '%s'." % (repr(rawline),))
+        continue
 
     save_lines.append(rawline)
 
