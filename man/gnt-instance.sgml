@@ -813,7 +813,10 @@ node1.example.com:sdb:/dev/md1
           disks before failing over the instance. If you are trying to
           migrate instances off a dead node, this will fail. Use the
           <option>--ignore-consistency</option> option for this
-          purpose.
+          purpose. Note that this option can be dangerous as errors in
+          shutting down the instance will be ignored, resulting in
+          possibly having the instance running on two machines in
+          parallel (on disconnected DRBD drives).
         </para>
 
         <para>

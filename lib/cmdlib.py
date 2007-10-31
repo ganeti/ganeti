@@ -2527,9 +2527,13 @@ class LUFailoverInstance(LogicalUnit):
                 (instance.name, source_node))
 
     if not rpc.call_instance_shutdown(source_node, instance):
-      logger.Error("Could not shutdown instance %s on node %s. Proceeding"
-                   " anyway. Please make sure node %s is down"  %
-                   (instance.name, source_node, source_node))
+      if self.op.ignore_consistency:
+        logger.Error("Could not shutdown instance %s on node %s. Proceeding"
+                     " anyway. Please make sure node %s is down"  %
+                     (instance.name, source_node, source_node))
+      else:
+        raise errors.OpExecError("Could not shutdown instance %s on node %s" %
+                                 (instance.name, source_node))
 
     feedback_fn("* deactivating the instance's disks on source node")
     if not _ShutdownInstanceDisks(instance, self.cfg, ignore_primary=True):
