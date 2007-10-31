@@ -131,7 +131,9 @@ def EvacuateNode(opts, args):
   good_cnt = bad_cnt = 0
   for iname in sinst:
     op = opcodes.OpReplaceDisks(instance_name=iname,
-                                remote_node=dst_node)
+                                remote_node=dst_node,
+                                mode=constants.REPLACE_DISK_ALL,
+                                disks=["sda", "sdb"])
     try:
       logger.ToStdout("Replacing disks for instance %s" % iname)
       SubmitOpCode(op)
