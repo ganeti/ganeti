@@ -333,6 +333,8 @@ def StartupInstance(opts, args):
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
   inames = _ExpandMultiNames(opts.multi_mode, args)
+  if not inames:
+    raise errors.OpPrereqError("Selection filter does not match any instances")
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if not (opts.force_multi or not multi_on
           or _ConfirmOperation(inames, "startup")):
@@ -357,6 +359,8 @@ def RebootInstance(opts, args):
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
   inames = _ExpandMultiNames(opts.multi_mode, args)
+  if not inames:
+    raise errors.OpPrereqError("Selection filter does not match any instances")
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if not (opts.force_multi or not multi_on
           or _ConfirmOperation(inames, "reboot")):
@@ -380,6 +384,8 @@ def ShutdownInstance(opts, args):
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
   inames = _ExpandMultiNames(opts.multi_mode, args)
+  if not inames:
+    raise errors.OpPrereqError("Selection filter does not match any instances")
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if not (opts.force_multi or not multi_on
           or _ConfirmOperation(inames, "shutdown")):
@@ -469,8 +475,7 @@ def FailoverInstance(opts, args):
     opts.multi_mode = _SHUTDOWN_INSTANCES
   inames = _ExpandMultiNames(opts.multi_mode, args)
   if not inames:
-    logger.ToStderr("No instances match the selected options")
-    return 1
+    raise errors.OpPrereqError("Selection filter does not match any instances")
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if not (opts.force_multi or not multi_on
           or _ConfirmOperation(inames, "failover (including shutdown)")):

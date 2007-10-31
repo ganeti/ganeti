@@ -469,8 +469,8 @@
         </cmdsynopsis>
 
         <para>
-          Starts one or more instances, depending on the
-          <option>--by-*</option> mode. The four available modes are:
+          Starts one or more instances, depending on the following
+          options. The four available modes are:
           <variablelist>
             <varlistentry>
               <term><option>--instance</option></term>
@@ -514,10 +514,9 @@
         </para>
 
         <para>
-          Note that although you can pass more than one
-          <option>--by-</option> option, the last one wins, so in
-          order to guarantee the desired result, don't pass more than
-          one such option.
+          Note that although you can pass more than one selection
+          option, the last one wins, so in order to guarantee the
+          desired result, don't pass more than one such option.
         </para>
 
         <para>
@@ -534,8 +533,8 @@
           <screen>
 # gnt-instance start instance1.example.com
 # gnt-instance start --extra single test1.example.com
-# gnt-instance start --by-node node1.example.com node2.example.com
-# gnt-instance start --by-cluster
+# gnt-instance start --node node1.example.com node2.example.com
+# gnt-instance start --all
           </screen>
         </para>
       </refsect3>
@@ -578,7 +577,7 @@
           Example:
           <screen>
 # gnt-instance shutdown instance1.example.com
-# gnt-instance shutdown --by-cluster
+# gnt-instance shutdown --all
           </screen>
         </para>
       </refsect3>
