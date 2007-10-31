@@ -2480,10 +2480,10 @@ class LUFailoverInstance(LogicalUnit):
 
     # check bridge existance
     brlist = [nic.bridge for nic in instance.nics]
-    if not rpc.call_bridges_exist(instance.primary_node, brlist):
+    if not rpc.call_bridges_exist(target_node, brlist):
       raise errors.OpPrereqError("One or more target bridges %s does not"
                                  " exist on destination node '%s'" %
-                                 (brlist, instance.primary_node))
+                                 (brlist, target_node))
 
     self.instance = instance
 
