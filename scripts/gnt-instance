@@ -465,20 +465,31 @@ def FailoverInstance(opts, args):
     force - whether to failover without asking questions.
 
   """
-  instance_name = args[0]
-  force = opts.force
+  if opts.multi_mode is None:
+    opts.multi_mode = _SHUTDOWN_INSTANCES
+  inames = _ExpandMultiNames(opts.multi_mode, args)
+  if not inames:
+    logger.ToStderr("No instances match the selected options")
+    return 1
+  multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
+  if not (opts.force_multi or not multi_on
+          or _ConfirmOperation(inames, "failover (including shutdown)")):
+    return 1
 
-  if not force:
-    usertext = ("Failover will happen to image %s."
-                " This requires a shutdown of the instance. Continue?" %
-                (instance_name,))
-    if not AskUser(usertext):
-      return 1
+  result = 0
+  for name in inames:
+    op = opcodes.OpFailoverInstance(instance_name=name,
+                                    ignore_consistency=opts.ignore_consistency)
+    if multi_on:
+      logger.ToStdout("Failing over instance %s" % name)
+    try:
+      SubmitOpCode(op)
+    except errors.OpExecError, err:
+      result = 1
+      _, err_msg = FormatError(err)
+      logger.ToStderr(err_msg)
 
-  op = opcodes.OpFailoverInstance(instance_name=instance_name,
-                                  ignore_consistency=opts.ignore_consistency)
-  SubmitOpCode(op)
-  return 0
+  return result
 
 
 def ConnectToInstanceConsole(opts, args):
@@ -710,12 +721,13 @@ commands = {
   'console': (ConnectToInstanceConsole, ARGS_ONE, [DEBUG_OPT],
               "<instance>",
               "Opens a console on the specified instance"),
-  'failover': (FailoverInstance, ARGS_ONE,
+  'failover': (FailoverInstance, ARGS_ATLEAST(1),
                [DEBUG_OPT, FORCE_OPT,
                 make_option("--ignore-consistency", dest="ignore_consistency",
                             action="store_true", default=False,
                             help="Ignore the consistency of the disks on"
                             " the secondary"),
+                m_pri_node_opt, m_sec_node_opt, m_inst_opt, m_force_multi,
                 ],
                "[-f] <instance>",
                "Stops the instance and starts it on the backup node, using"

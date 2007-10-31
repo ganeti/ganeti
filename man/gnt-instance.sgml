@@ -633,7 +633,7 @@
           <command>startup</command> command and they influence the
           actual instances being rebooted.
         </para>
-        
+
         <para>
           Use the <option>--force-multiple</option> to keep
           gnt-instance from asking for confirmation when more than one
@@ -799,18 +799,56 @@ node1.example.com:sdb:/dev/md1
           <command>failover</command>
           <arg>-f</arg>
           <arg>--ignore-consistency</arg>
-          <arg choice="req"><replaceable>instance</replaceable></arg>
+          <sbr>
+          <group choice="opt">
+            <arg>--instance</arg>
+            <arg>--primary</arg>
+            <arg>--secondary</arg>
+          </group>
+          <sbr>
+          <arg choice="req" rep="repeat"><replaceable>name</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Failover will fail the instance over its secondary
+          Failover will fail the selected instances to their secondary
           node. This works only for instances having a remote raid
           disk layout.
         </para>
 
         <para>
+          The selection of which instances to failover is done via the
+          following options:
+          <variablelist>
+            <varlistentry>
+              <term><option>--instance</option></term>
+              <listitem>
+                <simpara>will select the instances given as arguments
+                (at least one argument required); this is the default
+                selection</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><option>--primary</option></term>
+              <listitem>
+                <simpara>will select all instances whose primary node
+                is in the list of nodes passed as arguments (at least
+                one node required)</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><option>--secondary</option></term>
+              <listitem>
+                <simpara>will select all instances whose secondary
+                node is in the list of nodes passed as arguments (at
+                least one node required)</simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+
+        <para>
           Normally the failover will check the consistency of the
-          disks before failing over the instance. If you are trying to
+          disks before failing over an instance. If you are trying to
           migrate instances off a dead node, this will fail. Use the
           <option>--ignore-consistency</option> option for this
           purpose. Note that this option can be dangerous as errors in
@@ -823,6 +861,7 @@ node1.example.com:sdb:/dev/md1
           Example:
           <screen>
 # gnt-instance failover instance1.example.com
+# gnt-instance failover --primary node4.example.com
           </screen>
         </para>
       </refsect3>
