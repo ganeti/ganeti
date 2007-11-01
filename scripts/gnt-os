@@ -75,9 +75,25 @@ def _DiagnoseOSStatus(obj):
   """
 
   if _DiagnoseOSValid(obj):
-    return "valid (path: %s)" % obj.path
+    return "valid"
   else:
-    return "%s (path: %s)" % (obj.args[2], obj.args[1])
+    return obj.args[2]
+
+
+def _DiagnoseOSPath(obj):
+  """Get the path out of an OS diagnose object.
+
+    Args:
+      obj: an diagnostic object as returned by OpDiagnoseOS
+
+    Returns:
+      string: the OS path
+
+  """
+  if _DiagnoseOSValid(obj):
+    return obj.path
+  else:
+    return obj.args[1]
 
 
 def _DiagnoseByOS(rlist):
