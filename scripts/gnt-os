@@ -38,8 +38,8 @@ def _DiagnoseOSValid(obj):
 
     Returns:
       bool: OS validity status
-  """
 
+  """
   if isinstance(obj, objects.OS):
     return True
   elif isinstance(obj, errors.InvalidOS):
@@ -56,8 +56,8 @@ def _DiagnoseOSName(obj):
 
     Returns:
       string: the name of the OS in question
-  """
 
+  """
   if _DiagnoseOSValid(obj):
     return obj.name
   else:
@@ -72,8 +72,8 @@ def _DiagnoseOSStatus(obj):
 
     Returns:
       string: a description of the OS status
-  """
 
+  """
   if _DiagnoseOSValid(obj):
     return "valid"
   else:
@@ -106,8 +106,8 @@ def _DiagnoseByOS(rlist):
       map: a map with osnames as keys and as value another map, with nodes as
            keys and diagnoseobjects as values
            e.g. {"debian-etch": {"node1": <object>, "node2": <object>}}
-  """
 
+  """
   all_os = {}
   for node_name, nr in rlist.iteritems():
     if not nr:
