@@ -203,13 +203,13 @@ def DiagnoseOS(opts, args):
 
     def _OutputNodeHiddenOSStatus(dobj_list):
       for dobj in dobj_list:
-        logger.ToStdout("    [hidden] path: %s, status: %s" % 
+        logger.ToStdout("    [hidden] path: %s, status: %s" %
                         (_DiagnoseOSPath(dobj), _DiagnoseOSStatus(dobj)))
 
     def _OutputPerNodeOSStatus(msg_map):
       map_k = utils.NiceSort(msg_map.keys())
       for node_name in map_k:
-        logger.ToStdout("  Node: %s, status: %s" % 
+        logger.ToStdout("  Node: %s, status: %s" %
                         (node_name, msg_map[node_name]))
         if node_name in all_os[os_name]:
           _OutputNodeHiddenOSStatus(all_os[os_name][node_name])
