@@ -217,6 +217,7 @@ def DiagnoseOS(opts, args):
     logger.ToStdout("OS: %s [global status: %s]" % (os_name, status))
     _OutputPerNodeOSStatus(nodes_valid)
     _OutputPerNodeOSStatus(nodes_bad)
+    logger.ToStdout("")
 
   return int(has_bad)
 
