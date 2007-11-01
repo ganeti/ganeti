@@ -42,6 +42,10 @@ def _SetupColours():
   """
   global _INFO_SEQ, _WARNING_SEQ, _ERROR_SEQ, _RESET_SEQ
 
+  # Don't use colours if stdout isn't a terminal
+  if not sys.stdout.isatty():
+    return
+
   try:
     import curses
   except ImportError:
@@ -201,29 +205,12 @@ def GetNodeInstances(node, secondaries=False):
   return instances
 
 
-def _PrintWithColor(text, seq):
-  f = sys.stdout
-
-  if not f.isatty():
-    seq = None
-
-  if seq:
-    f.write(seq)
-
-  f.write(text)
-  f.write("\n")
-
-  if seq:
-    f.write(_RESET_SEQ)
+def _FormatWithColor(text, seq):
+  if not seq:
+    return text
+  return "%s%s%s" % (seq, text, _RESET_SEQ)
 
 
-def PrintWarning(text):
-  return _PrintWithColor(text, _WARNING_SEQ)
-
-
-def PrintError(text):
-  return _PrintWithColor(text, _ERROR_SEQ)
-
-
-def PrintInfo(text):
-  return _PrintWithColor(text, _INFO_SEQ)
+FormatWarning = lambda text: _FormatWithColor(text, _WARNING_SEQ)
+FormatError = lambda text: _FormatWithColor(text, _ERROR_SEQ)
+FormatInfo = lambda text: _FormatWithColor(text, _INFO_SEQ)

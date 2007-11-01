@@ -83,8 +83,8 @@ def PrintCronWarning():
 
   """
   print
-  qa_utils.PrintWarning("The following tests require the cron script for"
-                        " ganeti-watcher to be set up.")
+  print qa_utils.FormatWarning("The following tests require the cron script "
+                               "for ganeti-watcher to be set up.")
 
 
 def TestInstanceAutomaticRestart(node, instance):

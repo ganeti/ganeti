@@ -301,10 +301,10 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
 
 def TestInstanceMasterDiskFailure(instance, node, node2):
   """Testing disk failure on master node."""
-  qa_utils.PrintError("Disk failure on primary node cannot be "
-                      "tested due to potential crashes.")
+  print qa_utils.FormatError("Disk failure on primary node cannot be "
+                             "tested due to potential crashes.")
   # The following can cause crashes, thus it's disabled until fixed
-  return _TestInstanceDiskFailure(instance, node, node2, True)
+  #return _TestInstanceDiskFailure(instance, node, node2, True)
 
 
 def TestInstanceSecondaryDiskFailure(instance, node, node2):

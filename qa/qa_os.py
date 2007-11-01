@@ -74,8 +74,9 @@ def _SetupTempOs(node, dir, valid):
 
   cmd = ' && '.join(parts)
 
-  qa_utils.PrintInfo("Setting up %s with %s OS definition" %
-                     (node["primary"], ["an invalid", "a valid"][int(valid)]))
+  print qa_utils.FormatInfo("Setting up %s with %s OS definition" %
+                            (node["primary"],
+                             ["an invalid", "a valid"][int(valid)]))
 
   AssertEqual(StartSSH(node['primary'], cmd).wait(), 0)
 
