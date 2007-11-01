@@ -916,6 +916,7 @@ def _ErrnoOrStr(err):
     detail = str(err)
   return detail
 
+
 def _OSSearch(name, search_path=None):
   """Search for OSes with the given name in the search_path.
 
@@ -927,7 +928,6 @@ def _OSSearch(name, search_path=None):
     The base_dir the OS resides in
 
   """
-
   if search_path is None:
     search_path = constants.OS_SEARCH_PATH
 
@@ -937,6 +937,7 @@ def _OSSearch(name, search_path=None):
         return dir
 
   return None
+
 
 def _OSOndiskVersion(name, os_dir):
   """Compute and return the API version of a given OS.
@@ -948,7 +949,6 @@ def _OSOndiskVersion(name, os_dir):
   case when this is not a valid OS name.
 
   """
-
   api_file = os.path.sep.join([os_dir, "ganeti_api_version"])
 
   try:
