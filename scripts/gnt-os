@@ -194,11 +194,13 @@ def DiagnoseOS(opts, args):
     for node_name in node_data:
       if node_name in all_os[os_name]:
         first_os = all_os[os_name][node_name].pop(0)
-        first_os_status = _DiagnoseOSStatus(first_os)
+        first_os_msg = ("%s (path: %s)" %
+                        (_DiagnoseOSStatus(first_os),
+                         _DiagnoseOSPath(first_os)))
         if _DiagnoseOSValid(first_os):
-          nodes_valid[node_name] = first_os_status
+          nodes_valid[node_name] = first_os_msg
         else:
-          nodes_bad[node_name] = first_os_status
+          nodes_bad[node_name] = first_os_msg
       else:
         nodes_bad[node_name] = "OS not found"
 
@@ -217,11 +219,11 @@ def DiagnoseOS(opts, args):
                                   "[hidden] %s" %
                                   _DiagnoseOSStatus(dobj)))
 
-    def _OutputPerNodeOSStatus(status_map):
-      map_k = utils.NiceSort(status_map.keys())
+    def _OutputPerNodeOSStatus(msg_map):
+      map_k = utils.NiceSort(msg_map.keys())
       for node_name in map_k:
         logger.ToStdout(format % (max_name, "", max_node,
-                                  node_name, status_map[node_name]))
+                                  node_name, msg_map[node_name]))
         if node_name in all_os[os_name]:
           _OutputNodeHiddenOSStatus(all_os[os_name][node_name])
 
