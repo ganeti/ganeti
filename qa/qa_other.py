@@ -25,7 +25,7 @@ import qa_utils
 from qa_utils import AssertEqual, StartSSH
 
 
-def TestUploadKnownHostsFile(localpath):
+def UploadKnownHostsFile(localpath):
   """Uploading known_hosts file.
 
   """

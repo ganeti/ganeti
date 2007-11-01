@@ -89,9 +89,9 @@ def TestNodeFailover(node, node2):
   master = qa_config.GetMasterNode()
 
   if qa_utils.GetNodeInstances(node2, secondaries=False):
-    raise qa_errors.UnusableNodeError("Secondary node has at least one "
-                                      "primary instance. This test requires "
-                                      "it to have no primary instances.")
+    raise qa_error.UnusableNodeError("Secondary node has at least one "
+                                     "primary instance. This test requires "
+                                     "it to have no primary instances.")
 
   # Fail over to secondary node
   cmd = ['gnt-node', 'failover', '-f', node['primary']]
@@ -111,9 +111,9 @@ def TestNodeEvacuate(node, node2):
   node3 = qa_config.AcquireNode(exclude=[node, node2])
   try:
     if qa_utils.GetNodeInstances(node3, secondaries=True):
-      raise qa_errors.UnusableNodeError("Evacuation node has at least one "
-                                        "secondary instance. This test requires "
-                                        "it to have no secondary instances.")
+      raise qa_error.UnusableNodeError("Evacuation node has at least one "
+                                       "secondary instance. This test requires "
+                                       "it to have no secondary instances.")
 
     # Evacuate all secondary instances
     cmd = ['gnt-node', 'evacuate', '-f', node2['primary'], node3['primary']]
