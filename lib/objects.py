@@ -427,8 +427,8 @@ class Disk(ConfigObject):
         phy = "unconfigured"
       else:
         phy = ("configured as %s:%s %s:%s" %
-               self.physical_id[0], self.physical_id[1],
-               self.physical_id[2], self.physical_id[3])
+               (self.physical_id[0], self.physical_id[1],
+                self.physical_id[2], self.physical_id[3]))
 
       val += ("hosts=%s-%s, port=%s, %s, " %
               (self.logical_id[0], self.logical_id[1], self.logical_id[2],
