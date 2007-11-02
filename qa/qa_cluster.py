@@ -31,6 +31,26 @@ import qa_error
 from qa_utils import AssertEqual, StartSSH
 
 
+def _RemoveFileFromAllNodes(filename):
+  """Removes a file from all nodes.
+
+  """
+  for node in qa_config.get('nodes'):
+    cmd = ['rm', '-f', filename]
+    AssertEqual(StartSSH(node['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def _CheckFileOnAllNodes(filename, content):
+  """Verifies the content of the given file on all nodes.
+
+  """
+  cmd = utils.ShellQuoteArgs(["cat", filename])
+  for node in qa_config.get('nodes'):
+    AssertEqual(qa_utils.GetCommandOutput(node['primary'], cmd),
+                content)
+
+
 def TestClusterInit():
   """gnt-cluster init"""
   master = qa_config.GetMasterNode()
@@ -144,9 +164,11 @@ def TestClusterCopyfile():
   """gnt-cluster copyfile"""
   master = qa_config.GetMasterNode()
 
+  uniqueid = utils.GetUUID()
+
   # Create temporary file
   f = tempfile.NamedTemporaryFile()
-  f.write("I'm a testfile.\n")
+  f.write(uniqueid)
   f.flush()
   f.seek(0)
 
@@ -157,12 +179,26 @@ def TestClusterCopyfile():
     cmd = ['gnt-cluster', 'copyfile', testname]
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+    _CheckFileOnAllNodes(testname, uniqueid)
   finally:
-    # Remove file from all nodes
-    for node in qa_config.get('nodes'):
-      cmd = ['rm', '-f', testname]
-      AssertEqual(StartSSH(node['primary'],
-                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+    _RemoveFileFromAllNodes(testname)
+
+
+def TestClusterCommand():
+  """gnt-cluster command"""
+  master = qa_config.GetMasterNode()
+
+  uniqueid = utils.GetUUID()
+  rfile = "/tmp/gnt%s" % utils.GetUUID()
+  rcmd = utils.ShellQuoteArgs(['echo', '-n', uniqueid])
+  cmd = utils.ShellQuoteArgs(['gnt-cluster', 'command',
+                              "%s >%s" % (rcmd, rfile)])
+
+  try:
+    AssertEqual(StartSSH(master['primary'], cmd).wait(), 0)
+    _CheckFileOnAllNodes(rfile, uniqueid)
+  finally:
+    _RemoveFileFromAllNodes(rfile)
 
 
 def TestClusterDestroy():

@@ -33,6 +33,7 @@ tests:
   cluster-getmaster: True
   cluster-version: True
   cluster-burnin: True
+  cluster-command: True
   cluster-copyfile: True
   cluster-master-failover: True
   cluster-destroy: True

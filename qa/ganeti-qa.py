@@ -101,6 +101,9 @@ def RunClusterTests():
   if qa_config.TestEnabled('cluster-copyfile'):
     RunTest(qa_cluster.TestClusterCopyfile)
 
+  if qa_config.TestEnabled('cluster-command'):
+    RunTest(qa_cluster.TestClusterCommand)
+
   if qa_config.TestEnabled('cluster-burnin'):
     RunTest(qa_cluster.TestClusterBurnin)
 
