@@ -290,7 +290,6 @@ class LogicalVolume(BlockDev):
     self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
     self.Attach()
 
-
   @classmethod
   def Create(cls, unique_id, children, size):
     """Create a new logical volume.
@@ -380,6 +379,9 @@ class LogicalVolume(BlockDev):
     if result.failed:
       raise errors.BlockDeviceError("Failed to rename the logical volume: %s" %
                                     result.output)
+    self._lv_name = new_name
+    self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
+
 
   def Attach(self):
     """Attach to an existing LV.
