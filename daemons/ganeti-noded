@@ -97,11 +97,11 @@ class ServerObject(pb.Avatar):
     """Create a block device.
 
     """
-    bdev_s, size, on_primary, info = params
+    bdev_s, size, owner, on_primary, info = params
     bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.CreateBlockDevice(bdev, size, on_primary, info)
+    return backend.CreateBlockDevice(bdev, size, owner, on_primary, info)
 
   @staticmethod
   def perspective_blockdev_remove(params):
@@ -125,11 +125,11 @@ class ServerObject(pb.Avatar):
     """Assemble a block device.
 
     """
-    bdev_s, on_primary = params
+    bdev_s, owner, on_primary = params
     bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.AssembleBlockDevice(bdev, on_primary)
+    return backend.AssembleBlockDevice(bdev, owner, on_primary)
 
   @staticmethod
   def perspective_blockdev_shutdown(params):

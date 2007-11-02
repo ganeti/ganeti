@@ -489,13 +489,13 @@ def call_version(node_list):
   return c.getresult()
 
 
-def call_blockdev_create(node, bdev, size, on_primary, info):
+def call_blockdev_create(node, bdev, size, owner, on_primary, info):
   """Request creation of a given block device.
 
   This is a single-node call.
 
   """
-  params = [bdev.ToDict(), size, on_primary, info]
+  params = [bdev.ToDict(), size, owner, on_primary, info]
   c = Client("blockdev_create", params)
   c.connect(node)
   c.run()
@@ -527,13 +527,13 @@ def call_blockdev_rename(node, devlist):
   return c.getresult().get(node, False)
 
 
-def call_blockdev_assemble(node, disk, on_primary):
+def call_blockdev_assemble(node, disk, owner, on_primary):
   """Request assembling of a given block device.
 
   This is a single-node call.
 
   """
-  params = [disk.ToDict(), on_primary]
+  params = [disk.ToDict(), owner, on_primary]
   c = Client("blockdev_assemble", params)
   c.connect(node)
   c.run()

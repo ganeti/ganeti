@@ -620,7 +620,7 @@ def RebootInstance(instance, reboot_type, extra_args):
   return True
 
 
-def CreateBlockDevice(disk, size, on_primary, info):
+def CreateBlockDevice(disk, size, owner, on_primary, info):
   """Creates a block device for an instance.
 
   Args:
@@ -638,7 +638,7 @@ def CreateBlockDevice(disk, size, on_primary, info):
   clist = []
   if disk.children:
     for child in disk.children:
-      crdev = _RecursiveAssembleBD(child, on_primary)
+      crdev = _RecursiveAssembleBD(child, owner, on_primary)
       if on_primary or disk.AssembleOnSecondary():
         # we need the children open in case the device itself has to
         # be assembled
@@ -664,6 +664,8 @@ def CreateBlockDevice(disk, size, on_primary, info):
     device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       device.Open(force=True)
+    DevCacheManager.UpdateCache(device.dev_path, owner,
+                                on_primary, disk.iv_name)
 
   device.SetInfo(info)
 
@@ -686,7 +688,10 @@ def RemoveBlockDevice(disk):
     logger.Info("Can't attach to device %s in remove" % disk)
     rdev = None
   if rdev is not None:
+    r_path = rdev.dev_path
     result = rdev.Remove()
+    if result:
+      DevCacheManager.RemoveCache(r_path)
   else:
     result = True
   if disk.children:
@@ -695,7 +700,7 @@ def RemoveBlockDevice(disk):
   return result
 
 
-def _RecursiveAssembleBD(disk, as_primary):
+def _RecursiveAssembleBD(disk, owner, as_primary):
   """Activate a block device for an instance.
 
   This is run on the primary and secondary nodes for an instance.
@@ -715,7 +720,7 @@ def _RecursiveAssembleBD(disk, as_primary):
   children = []
   if disk.children:
     for chld_disk in disk.children:
-      children.append(_RecursiveAssembleBD(chld_disk, as_primary))
+      children.append(_RecursiveAssembleBD(chld_disk, owner, as_primary))
 
   if as_primary or disk.AssembleOnSecondary():
     r_dev = bdev.AttachOrAssemble(disk.dev_type, disk.physical_id, children)
@@ -725,12 +730,15 @@ def _RecursiveAssembleBD(disk, as_primary):
       r_dev.Open()
     else:
       r_dev.Close()
+    DevCacheManager.UpdateCache(r_dev.dev_path, owner,
+                                as_primary, disk.iv_name)
+
   else:
     result = True
   return result
 
 
-def AssembleBlockDevice(disk, as_primary):
+def AssembleBlockDevice(disk, owner, as_primary):
   """Activate a block device for an instance.
 
   This is a wrapper over _RecursiveAssembleBD.
@@ -740,7 +748,7 @@ def AssembleBlockDevice(disk, as_primary):
     True for secondary nodes
 
   """
-  result = _RecursiveAssembleBD(disk, as_primary)
+  result = _RecursiveAssembleBD(disk, owner, as_primary)
   if isinstance(result, bdev.BlockDev):
     result = result.dev_path
   return result
@@ -759,7 +767,10 @@ def ShutdownBlockDevice(disk):
   """
   r_dev = _RecursiveFindBD(disk)
   if r_dev is not None:
+    r_path = r_dev.dev_path
     result = r_dev.Shutdown()
+    if result:
+      DevCacheManager.RemoveCache(r_path)
   else:
     result = True
   if disk.children:
@@ -1356,7 +1367,16 @@ def RenameBlockDevices(devlist):
       result = False
       continue
     try:
+      old_rpath = dev.dev_path
       dev.Rename(unique_id)
+      new_rpath = dev.dev_path
+      if old_rpath != new_rpath:
+        DevCacheManager.RemoveCache(old_rpath)
+        # FIXME: we should add the new cache information here, like:
+        # DevCacheManager.UpdateCache(new_rpath, owner, ...)
+        # but we don't have the owner here - maybe parse from existing
+        # cache? for now, we only lose lvm data when we rename, which
+        # is less critical than DRBD or MD
     except errors.BlockDeviceError, err:
       logger.Error("Can't rename device '%s' to '%s': %s" %
                    (dev, unique_id, err))
@@ -1473,3 +1493,56 @@ class HooksRunner(object):
       rr.append(("%s/%s" % (subdir, relname), rrval, output))
 
     return rr
+
+
+class DevCacheManager(object):
+  """Simple class for managing a chache of block device information.
+
+  """
+  _DEV_PREFIX = "/dev/"
+  _ROOT_DIR = constants.BDEV_CACHE_DIR
+
+  @classmethod
+  def _ConvertPath(cls, dev_path):
+    """Converts a /dev/name path to the cache file name.
+
+    This replaces slashes with underscores and strips the /dev
+    prefix. It then returns the full path to the cache file
+
+    """
+    if dev_path.startswith(cls._DEV_PREFIX):
+      dev_path = dev_path[len(cls._DEV_PREFIX):]
+    dev_path = dev_path.replace("/", "_")
+    fpath = "%s/bdev_%s" % (cls._ROOT_DIR, dev_path)
+    return fpath
+
+  @classmethod
+  def UpdateCache(cls, dev_path, owner, on_primary, iv_name):
+    """Updates the cache information for a given device.
+
+    """
+    fpath = cls._ConvertPath(dev_path)
+    if on_primary:
+      state = "primary"
+    else:
+      state = "secondary"
+    if iv_name is None:
+      iv_name = "not_visible"
+    fdata = "%s %s %s\n" % (str(owner), state, iv_name)
+    try:
+      utils.WriteFile(fpath, data=fdata)
+    except EnvironmentError, err:
+      logger.Error("Can't update bdev cache for %s, error %s" %
+                   (dev_path, str(err)))
+
+  @classmethod
+  def RemoveCache(cls, dev_path):
+    """Remove data for a dev_path.
+
+    """
+    fpath = cls._ConvertPath(dev_path)
+    try:
+      utils.RemoveFile(fpath)
+    except EnvironmentError, err:
+      logger.Error("Can't update bdev cache for %s, error %s" %
+                   (dev_path, str(err)))
