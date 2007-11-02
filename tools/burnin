@@ -55,15 +55,19 @@ def ParseOptions():
   parser.add_option("-v", "--verbose",
                     action="store_true", dest="verbose", default=False,
                     help="print command execution messages to stdout")
-  parser.add_option("--do-replace1", dest="do_replace1",
+  parser.add_option("--no-replace1", dest="do_replace1",
                     help="Do disk replacement with the same secondary",
                     action="store_false", default=True)
-  parser.add_option("--do-replace2", dest="do_replace2",
+  parser.add_option("--no-replace2", dest="do_replace2",
                     help="Do disk replacement with a different secondary",
                     action="store_false", default=True)
-  parser.add_option("--do-failover", dest="do_failover",
+  parser.add_option("--no-failover", dest="do_failover",
                     help="Do instance failovers", action="store_false",
                     default=True)
+  parser.add_option("-t", "--disk-template", dest="disk_template",
+                    choices=("remote_raid1", "drbd8"), default="remote_raid1",
+                    help="Template type for network mirroring (remote_raid1"
+                    " or drbd8) [remote_raid1]")
 
   options, args = parser.parse_args()
   if len(args) < 1 or options.os is None:
@@ -111,6 +115,13 @@ def BurninCluster(opts, args):
     return 1
 
   to_remove = []
+  if opts.disk_template == "remote_raid1":
+    disk_template = constants.DT_REMOTE_RAID1
+  elif opts.disk_template == "drbd8":
+    disk_template = constants.DT_DRBD8
+  else:
+    Feedback("Unknown disk template '%s'" % opts.disk_template)
+    return 1
   try:
     idx = 0
     for instance_name in args:
@@ -120,7 +131,7 @@ def BurninCluster(opts, args):
       pnode = nodelist[idx]
       snode = nodelist[next_idx]
       if len(nodelist) > 1:
-        tplate = constants.DT_REMOTE_RAID1
+        tplate = disk_template
       else:
         tplate = constants.DT_PLAIN
 
