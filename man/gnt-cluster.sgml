@@ -302,6 +302,42 @@
     </refsect2>
 
     <refsect2>
+      <title>SEARCH-TAGS</title>
+
+      <cmdsynopsis>
+        <command>search-tags</command>
+        <arg choice="req"><replaceable>pattern</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Searches the tags on all objects in the cluster (the cluster
+        itself, the nodes and the instances) for a given pattern. The
+        pattern is interpreted as a regular expression and a search
+        will be done on it (i.e. the given pattern is not anchored to
+        the beggining of the string; if you want that, prefix the
+        pattern with <literal>^</literal>).
+      </para>
+
+      <para>
+        If no tags are matching the pattern, the exit code of the
+        command will be one. If there is at least one match, the exit
+        code will be zero. Each match is listed on one line, the
+        object and the tag separated by a space. The cluster will be
+        listed as <filename>/cluster</filename>, a node will be listed
+        as
+        <filename>/nodes/<replaceable>name</replaceable></filename>,
+        and an instance as
+        <filename>/instances/<replaceable>name</replaceable></filename>.
+        Example:
+      </para>
+<screen>
+# gnt-cluster search time
+/cluster ctime:2007-09-01
+/nodes/node1.example.com mtime:2007-10-04
+</screen>
+    </refsect2>
+
+    <refsect2>
       <title>VERIFY</title>
 
       <cmdsynopsis>

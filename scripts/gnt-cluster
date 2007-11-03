@@ -193,6 +193,20 @@ def MasterFailover(opts, args):
   SubmitOpCode(op)
 
 
+def SearchTags(opts, args):
+  """Searches the tags on all the cluster.
+
+  """
+  op = opcodes.OpSearchTags(pattern=args[0])
+  result = SubmitOpCode(op)
+  if not result:
+    return 1
+  result = list(result)
+  result.sort()
+  for path, tag in result:
+    print "%s %s" % (path, tag)
+
+
 # this is an option common to more than one command, so we declare
 # it here and reuse it
 node_option = make_option("-n", "--node", action="append", dest="nodes",
@@ -269,6 +283,9 @@ commands = {
                "tag...", "Add tags to the cluster"),
   'remove-tags': (RemoveTags, ARGS_ANY, [DEBUG_OPT, TAG_SRC_OPT],
                   "tag...", "Remove tags from the cluster"),
+  'search-tags': (SearchTags, ARGS_ONE,
+                  [DEBUG_OPT], "", "Searches the tags on all objects on"
+                  " the cluster for a given pattern (regex)"),
   }
 
 if __name__ == '__main__':

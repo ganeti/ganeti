@@ -263,6 +263,12 @@ class OpGetTags(OpCode):
   __slots__ = ["kind", "name"]
 
 
+class OpSearchTags(OpCode):
+  """Searches the tags in the cluster for a given pattern."""
+  OP_ID = "OP_TAGS_SEARCH"
+  __slots__ = ["pattern"]
+
+
 class OpAddTags(OpCode):
   """Add a list of tags on a given object."""
   OP_ID = "OP_TAGS_SET"

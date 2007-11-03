@@ -4141,6 +4141,42 @@ class LUGetTags(TagsLU):
     return self.target.GetTags()
 
 
+class LUSearchTags(NoHooksLU):
+  """Searches the tags for a given pattern.
+
+  """
+  _OP_REQP = ["pattern"]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks the pattern passed for validity by compiling it.
+
+    """
+    try:
+      self.re = re.compile(self.op.pattern)
+    except re.error, err:
+      raise errors.OpPrereqError("Invalid search pattern '%s': %s" %
+                                 (self.op.pattern, err))
+
+  def Exec(self, feedback_fn):
+    """Returns the tag list.
+
+    """
+    cfg = self.cfg
+    tgts = [("/cluster", cfg.GetClusterInfo())]
+    ilist = [cfg.GetInstanceInfo(name) for name in cfg.GetInstanceList()]
+    tgts.extend([("/instances/%s" % i.name, i) for i in ilist])
+    nlist = [cfg.GetNodeInfo(name) for name in cfg.GetNodeList()]
+    tgts.extend([("/nodes/%s" % n.name, n) for n in nlist])
+    results = []
+    for path, target in tgts:
+      for tag in target.GetTags():
+        if self.re.search(tag):
+          results.append((path, tag))
+    return results
+
+
 class LUAddTags(TagsLU):
   """Sets a tag on a given object.
 
