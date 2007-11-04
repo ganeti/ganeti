@@ -995,8 +995,8 @@ def _OSOndiskVersion(name, os_dir):
 def DiagnoseOS(top_dirs=None):
   """Compute the validity for all OSes.
 
-  For each name in all the given top directories (if not given defaults i
-  to constants.OS_SEARCH_PATH it will return an object. If this is a valid
+  For each name in all the given top directories (if not given defaults
+  to constants.OS_SEARCH_PATH) it will return an object. If this is a valid
   os, the object will be an instance of the object.OS class. If not,
   it will be an instance of errors.InvalidOS and this signifies that
   this name does not correspond to a valid OS.
