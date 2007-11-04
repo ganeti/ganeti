@@ -653,25 +653,24 @@ def call_os_diagnose(node_list):
   return new_result
 
 
-def call_os_get(node_list, name):
+def call_os_get(node, name):
   """Returns an OS definition.
 
-  This is a multi-node call.
+  This is a single-node call.
 
   """
   c = Client("os_get", [name])
-  c.connect_list(node_list)
+  c.connect(node)
   c.run()
-  result = c.getresult()
-  new_result = {}
-  for node_name in result:
-    data = result[node_name]
-    if isinstance(data, dict):
-      new_result[node_name] = objects.OS.FromDict(data)
-    elif isinstance(data, tuple) and len(data) == 3:
-      new_result[node_name] = errors.InvalidOS(data[0], data[1], data[2])
-    else:
-      new_result[node_name] = data
+  result = c.getresult().get(node, False)
+
+  if isinstance(result, dict):
+    new_result = objects.OS.FromDict(result)
+  elif isinstance(result, tuple) and len(data) == 3:
+    new_result = errors.InvalidOS(result[0], result[1], result[2])
+  else:
+    new_result = result
+
   return new_result
 
 

@@ -2158,7 +2158,7 @@ class LUReinstallInstance(LogicalUnit):
       if pnode is None:
         raise errors.OpPrereqError("Primary node '%s' is unknown" %
                                    self.op.pnode)
-      os_obj = rpc.call_os_get([pnode.name], self.op.os_type)[pnode.name]
+      os_obj = rpc.call_os_get(pnode.name, self.op.os_type)
       if not isinstance(os_obj, objects.OS):
         raise errors.OpPrereqError("OS '%s' not in supported OS list for"
                                    " primary node"  % self.op.os_type)
@@ -2949,7 +2949,7 @@ class LUCreateInstance(LogicalUnit):
                                    (node, info['vg_free'], req_size))
 
     # os verification
-    os_obj = rpc.call_os_get([pnode.name], self.op.os_type)[pnode.name]
+    os_obj = rpc.call_os_get(pnode.name, self.op.os_type)
     if not isinstance(os_obj, objects.OS):
       raise errors.OpPrereqError("OS '%s' not in supported os list for"
                                  " primary node"  % self.op.os_type)
