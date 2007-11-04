@@ -68,6 +68,9 @@ def ParseOptions():
                     choices=("remote_raid1", "drbd8"), default="remote_raid1",
                     help="Template type for network mirroring (remote_raid1"
                     " or drbd8) [remote_raid1]")
+  parser.add_option("-n", "--nodes", dest="nodes", default="",
+                    help="Comma separated list of nodes to perform the burnin"
+                    " on (defaults to all nodes)")
 
   options, args = parser.parse_args()
   if len(args) < 1 or options.os is None:
@@ -86,8 +89,17 @@ def BurninCluster(opts, args):
 
   logger.SetupLogging(debug=True, program="ganeti/burnin")
   proc = mcpu.Processor(feedback=Feedback)
-  result = proc.ExecOpCode(opcodes.OpQueryNodes(output_fields=["name"],
-                                                names=[]))
+  if opts.nodes:
+    names = opts.nodes.split(",")
+  else:
+    names = []
+  try:
+    result = proc.ExecOpCode(opcodes.OpQueryNodes(output_fields=["name"],
+                                                  names=names))
+  except errors.GenericError, err:
+    err_code, msg = cli.FormatError(err)
+    Feedback(msg)
+    return err_code
   nodelist = [data[0] for data in result]
 
   Feedback("- Testing global parameters")
