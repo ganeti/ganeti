@@ -30,72 +30,6 @@ from ganeti import utils
 from ganeti import errors
 
 
-def _DiagnoseOSValid(obj):
-  """Verify whether an OS diagnose object represents a valid OS
-
-    Args:
-      obj: an diagnostic object as returned by OpDiagnoseOS
-
-    Returns:
-      bool: OS validity status
-
-  """
-  if isinstance(obj, objects.OS):
-    return True
-  elif isinstance(obj, errors.InvalidOS):
-    return False
-  else:
-    raise errors.ProgrammerError("unknown OS diagnose type: '%s'" % type(obj))
-
-
-def _DiagnoseOSName(obj):
-  """Generate a status message for an OS diagnose object.
-
-    Args:
-      obj: an diagnostic object as returned by OpDiagnoseOS
-
-    Returns:
-      string: the name of the OS in question
-
-  """
-  if _DiagnoseOSValid(obj):
-    return obj.name
-  else:
-    return obj.args[0]
-
-
-def _DiagnoseOSStatus(obj):
-  """Generate a status message for an OS diagnose object.
-
-    Args:
-      obj: an diagnostic object as returned by OpDiagnoseOS
-
-    Returns:
-      string: a description of the OS status
-
-  """
-  if _DiagnoseOSValid(obj):
-    return "valid"
-  else:
-    return obj.args[2]
-
-
-def _DiagnoseOSPath(obj):
-  """Get the path out of an OS diagnose object.
-
-    Args:
-      obj: an diagnostic object as returned by OpDiagnoseOS
-
-    Returns:
-      string: the OS path
-
-  """
-  if _DiagnoseOSValid(obj):
-    return obj.path
-  else:
-    return obj.args[1]
-
-
 def _DiagnoseByOS(rlist):
   """Remap an OpDiagnoseOS() return list into an a per-os per-node dictionary
 
@@ -112,13 +46,12 @@ def _DiagnoseByOS(rlist):
   for node_name, nr in rlist.iteritems():
     if not nr:
       continue
-    for obj in nr:
-      os_name = _DiagnoseOSName(obj)
-      if os_name not in all_os:
-        all_os[os_name] = {}
-      if node_name not in all_os[os_name]:
-        all_os[os_name][node_name] = []
-      all_os[os_name][node_name].append(obj)
+    for os in nr:
+      if os.name not in all_os:
+        all_os[os.name] = {}
+      if node_name not in all_os[os.name]:
+        all_os[os.name][node_name] = []
+      all_os[os.name][node_name].append(os)
 
   return all_os
 
@@ -143,7 +76,7 @@ def ListOS(opts, args):
     if len(os_node_data) != num_nodes:
       continue
 
-    if utils.all(os_node_data.values(), lambda l: _DiagnoseOSValid(l[0])):
+    if utils.all(os_node_data.values(), lambda l: l[0]):
       valid_os.append(os_name)
 
   if not opts.no_headers:
@@ -183,9 +116,8 @@ def DiagnoseOS(opts, args):
       if node_name in all_os[os_name]:
         first_os = all_os[os_name][node_name].pop(0)
         first_os_msg = ("%s (path: %s)" %
-                        (_DiagnoseOSStatus(first_os),
-                         _DiagnoseOSPath(first_os)))
-        if _DiagnoseOSValid(first_os):
+                        (first_os.status, first_os.path))
+        if first_os:
           nodes_valid[node_name] = first_os_msg
         else:
           nodes_bad[node_name] = first_os_msg
@@ -204,7 +136,7 @@ def DiagnoseOS(opts, args):
     def _OutputNodeHiddenOSStatus(dobj_list):
       for dobj in dobj_list:
         logger.ToStdout("    [hidden] path: %s, status: %s" %
-                        (_DiagnoseOSPath(dobj), _DiagnoseOSStatus(dobj)))
+                        (dobj.path, dobj.status))
 
     def _OutputPerNodeOSStatus(msg_map):
       map_k = utils.NiceSort(msg_map.keys())

@@ -995,14 +995,11 @@ def _OSOndiskVersion(name, os_dir):
 def DiagnoseOS(top_dirs=None):
   """Compute the validity for all OSes.
 
-  For each name in all the given top directories (if not given defaults
-  to constants.OS_SEARCH_PATH) it will return an object. If this is a valid
-  os, the object will be an instance of the object.OS class. If not,
-  it will be an instance of errors.InvalidOS and this signifies that
-  this name does not correspond to a valid OS.
+  Returns an OS object for each name in all the given top directories
+  (if not given defaults to constants.OS_SEARCH_PATH)
 
   Returns:
-    list of objects
+    list of OS objects
 
   """
   if top_dirs is None:
@@ -1021,7 +1018,7 @@ def DiagnoseOS(top_dirs=None):
           os_inst = OSFromDisk(name, base_dir=dir)
           result.append(os_inst)
         except errors.InvalidOS, err:
-          result.append(err)
+          result.append(objects.OS.FromInvalidOS(err))
 
   return result
 
@@ -1075,7 +1072,7 @@ def OSFromDisk(name, base_dir=None):
                              script)
 
 
-  return objects.OS(name=name, path=os_dir,
+  return objects.OS(name=name, path=os_dir, status=constants.OS_VALID_STATUS,
                     create_script=os_scripts['create'],
                     export_script=os_scripts['export'],
                     import_script=os_scripts['import'],
