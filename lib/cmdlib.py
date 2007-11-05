@@ -611,6 +611,11 @@ class LUInitCluster(LogicalUnit):
                                  (self.op.master_netdev,
                                   result.output.strip()))
 
+    if not os.path.exists(constants.NODE_INITD_SCRIPT):
+      raise errors.OpPrereqError("Missing init.d script '%s'. Please reinstall"
+                                 " or install the script manually." %
+                                 constants.NODE_INITD_SCRIPT)
+
   def Exec(self, feedback_fn):
     """Initialize the cluster.
 
