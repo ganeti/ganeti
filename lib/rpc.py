@@ -638,17 +638,10 @@ def call_os_diagnose(node_list):
   result = c.getresult()
   new_result = {}
   for node_name in result:
-    nr = []
     if result[node_name]:
-      for data in result[node_name]:
-        if data:
-          if isinstance(data, dict):
-            nr.append(objects.OS.FromDict(data))
-          elif isinstance(data, tuple) and len(data) == 3:
-            nr.append(errors.InvalidOS(data[0], data[1], data[2]))
-          else:
-            raise errors.ProgrammerError("Invalid data from"
-                                         " xcserver.os_diagnose")
+      nr = [objects.OS.FromDict(oss) for oss in result[node_name]]
+    else:
+      nr = []
     new_result[node_name] = nr
   return new_result
 

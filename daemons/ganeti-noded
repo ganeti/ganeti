@@ -451,23 +451,7 @@ class ServerObject(pb.Avatar):
     """Query detailed information about existing OSes.
 
     """
-    os_list = backend.DiagnoseOS()
-    if not os_list:
-      # this catches also return values of 'False',
-      # for which we can't iterate over
-      return os_list
-    result = []
-    for data in os_list:
-      if isinstance(data, objects.OS):
-        result.append(data.ToDict())
-      elif isinstance(data, errors.InvalidOS):
-        result.append(data.args)
-      else:
-        raise errors.ProgrammerError("Invalid result from backend.DiagnoseOS"
-                                     " (class %s, %s)" %
-                                     (str(data.__class__), data))
-
-    return result
+    return [os.ToDict() for os in backend.DiagnoseOS()]
 
   @staticmethod
   def perspective_os_get(params):
