@@ -589,6 +589,7 @@ class OS(ConfigObject):
   __slots__ = [
     "name",
     "path",
+    "status",
     "api_version",
     "create_script",
     "export_script",
@@ -596,6 +597,10 @@ class OS(ConfigObject):
     "rename_script",
     ]
 
+  def __nonzero__(self):
+    return self.status == constants.OS_VALID_STATUS
+
+  __bool__ = __nonzero__
 
 class Node(TaggableObject):
   """Config object representing a node."""

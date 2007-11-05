@@ -130,6 +130,9 @@ LOCALHOST_IP_ADDRESS = "127.0.0.1"
 TCP_PING_TIMEOUT = 10
 GANETI_RUNAS = "root"
 
+# valid os status
+OS_VALID_STATUS = "VALID"
+
 # ssh constants
 SSH_INITD_SCRIPT = _autoconf.SSH_INITD_SCRIPT
 SSH_CONFIG_DIR = "/etc/ssh/"
