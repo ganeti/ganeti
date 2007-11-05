@@ -541,14 +541,14 @@ class TestListVisibleFiles(unittest.TestCase):
     self._test(files, expected)
 
 
-class TestGetUUID(unittest.TestCase):
-  """Test case for GetUUID"""
+class TestNewUUID(unittest.TestCase):
+  """Test case for NewUUID"""
 
   _re_uuid = re.compile('^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
                         '[a-f0-9]{4}-[a-f0-9]{12}$')
 
   def runTest(self):
-    self.failUnless(self._re_uuid.match(utils.GetUUID()))
+    self.failUnless(self._re_uuid.match(utils.NewUUID()))
 
 
 if __name__ == '__main__':

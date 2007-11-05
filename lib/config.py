@@ -133,7 +133,7 @@ class ConfigWriter:
       existing.update(exceptions)
     retries = 64
     while retries > 0:
-      unique_id = utils.GetUUID()
+      unique_id = utils.NewUUID()
       if unique_id not in existing and unique_id is not None:
         break
     else:

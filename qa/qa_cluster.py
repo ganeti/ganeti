@@ -164,7 +164,7 @@ def TestClusterCopyfile():
   """gnt-cluster copyfile"""
   master = qa_config.GetMasterNode()
 
-  uniqueid = utils.GetUUID()
+  uniqueid = utils.NewUUID()
 
   # Create temporary file
   f = tempfile.NamedTemporaryFile()
@@ -188,8 +188,8 @@ def TestClusterCommand():
   """gnt-cluster command"""
   master = qa_config.GetMasterNode()
 
-  uniqueid = utils.GetUUID()
-  rfile = "/tmp/gnt%s" % utils.GetUUID()
+  uniqueid = utils.NewUUID()
+  rfile = "/tmp/gnt%s" % utils.NewUUID()
   rcmd = utils.ShellQuoteArgs(['echo', '-n', uniqueid])
   cmd = utils.ShellQuoteArgs(['gnt-cluster', 'command',
                               "%s >%s" % (rcmd, rfile)])

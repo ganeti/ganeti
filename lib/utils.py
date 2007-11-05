@@ -847,7 +847,7 @@ def GetHomeDir(user, default=None):
   return result.pw_dir
 
 
-def GetUUID():
+def NewUUID():
   """Returns a random UUID.
 
   """
