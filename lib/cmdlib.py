@@ -26,7 +26,6 @@
 import os
 import os.path
 import sha
-import socket
 import time
 import tempfile
 import re
@@ -856,7 +855,6 @@ class LUVerifyCluster(NoHooksLU):
     feedback_fn("* Verifying global settings")
     self.cfg.VerifyConfig()
 
-    master = self.sstore.GetMasterNode()
     vg_name = self.cfg.GetVGName()
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())

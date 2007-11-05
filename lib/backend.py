@@ -942,10 +942,10 @@ def _OSSearch(name, search_path=None):
   if search_path is None:
     search_path = constants.OS_SEARCH_PATH
 
-  for dir in search_path:
-    t_os_dir = os.path.sep.join([dir, name])
+  for dir_name in search_path:
+    t_os_dir = os.path.sep.join([dir_name, name])
     if os.path.isdir(t_os_dir):
-        return dir
+      return dir_name
 
   return None
 
@@ -1006,16 +1006,17 @@ def DiagnoseOS(top_dirs=None):
     top_dirs = constants.OS_SEARCH_PATH
 
   result = []
-  for dir in top_dirs:
-    if os.path.isdir(dir):
+  for dir_name in top_dirs:
+    if os.path.isdir(dir_name):
       try:
-        f_names = utils.ListVisibleFiles(dir)
+        f_names = utils.ListVisibleFiles(dir_name)
       except EnvironmentError, err:
-        logger.Error("Can't list the OS directory %s: %s" % (dir,str(err)))
+        logger.Error("Can't list the OS directory %s: %s" %
+                     (dir_name, str(err)))
         break
       for name in f_names:
         try:
-          os_inst = OSFromDisk(name, base_dir=dir)
+          os_inst = OSFromDisk(name, base_dir=dir_name)
           result.append(os_inst)
         except errors.InvalidOS, err:
           result.append(objects.OS.FromInvalidOS(err))

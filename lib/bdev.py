@@ -2146,7 +2146,7 @@ class DRBD8(BaseDRBD):
     self.unique_id = new_uid
     if not self._AssembleNet(self.minor, self.unique_id, "C"):
       logger.Error("Can't attach to new peer!")
-      if self.old_id is not None:
+      if old_id is not None:
         self._AssembleNet(self.minor, old_id, "C")
       self.unique_id = old_id
       raise errors.BlockDeviceError("Can't attach to new peer")

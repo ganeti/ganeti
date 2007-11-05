@@ -195,6 +195,9 @@ ARGS_ANY = ARGS_ATLEAST(0)
 
 
 def check_unit(option, opt, value):
+  """OptParsers custom converter for units.
+
+  """
   try:
     return utils.ParseUnit(value)
   except errors.UnitParseError, err:
@@ -202,6 +205,9 @@ def check_unit(option, opt, value):
 
 
 class CliOption(Option):
+  """Custom option class for optparse.
+
+  """
   TYPES = Option.TYPES + ("unit",)
   TYPE_CHECKER = copy.copy(Option.TYPE_CHECKER)
   TYPE_CHECKER["unit"] = check_unit

@@ -752,11 +752,11 @@ def CreateBackup(file_name):
                                 file_name)
 
   prefix = '%s.backup-%d.' % (os.path.basename(file_name), int(time.time()))
-  dir = os.path.dirname(file_name)
+  dir_name = os.path.dirname(file_name)
 
   fsrc = open(file_name, 'rb')
   try:
-    (fd, backup_name) = tempfile.mkstemp(prefix=prefix, dir=dir)
+    (fd, backup_name) = tempfile.mkstemp(prefix=prefix, dir=dir_name)
     fdst = os.fdopen(fd, 'wb')
     try:
       shutil.copyfileobj(fsrc, fdst)
