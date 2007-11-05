@@ -370,10 +370,11 @@ def FormatError(err):
   """
   retcode = 1
   obuf = StringIO()
+  msg = str(err)
   if isinstance(err, errors.ConfigurationError):
-    msg = "Corrupt configuration file: %s" % err
-    logger.Error(msg)
-    obuf.write(msg + "\n")
+    txt = "Corrupt configuration file: %s" % msg
+    logger.Error(txt)
+    obuf.write(txt + "\n")
     obuf.write("Aborting.")
     retcode = 2
   elif isinstance(err, errors.HooksAbort):
@@ -386,7 +387,7 @@ def FormatError(err):
         obuf.write("  node: %s, script: %s (no output)\n" %
                    (node, script))
   elif isinstance(err, errors.HooksFailure):
-    obuf.write("Failure: hooks general failure: %s" % str(err))
+    obuf.write("Failure: hooks general failure: %s" % msg)
   elif isinstance(err, errors.ResolverError):
     this_host = utils.HostInfo.SysName()
     if err.args[0] == this_host:
@@ -396,15 +397,15 @@ def FormatError(err):
     obuf.write(msg % err.args[0])
   elif isinstance(err, errors.OpPrereqError):
     obuf.write("Failure: prerequisites not met for this"
-               " operation:\n%s" % str(err))
+               " operation:\n%s" % msg)
   elif isinstance(err, errors.OpExecError):
-    obuf.write("Failure: command execution error:\n%s" % str(err))
+    obuf.write("Failure: command execution error:\n%s" % msg)
   elif isinstance(err, errors.TagError):
-    obuf.write("Failure: invalid tag(s) given:\n%s" % str(err))
+    obuf.write("Failure: invalid tag(s) given:\n%s" % msg)
   elif isinstance(err, errors.GenericError):
-    obuf.write("Unhandled Ganeti error: %s" % str(err))
+    obuf.write("Unhandled Ganeti error: %s" % msg)
   else:
-    obuf.write("Unhandled exception: %s" % str(err))
+    obuf.write("Unhandled exception: %s" % msg)
   return retcode, obuf.getvalue().rstrip('\n')
 
 
