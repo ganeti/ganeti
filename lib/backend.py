@@ -660,7 +660,10 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
     raise ValueError("Can't create child device for %s, %s" %
                      (disk, size))
   if on_primary or disk.AssembleOnSecondary():
-    device.Assemble()
+    if not device.Assemble():
+      raise errors.BlockDeviceError("Can't assemble device after creation,"
+                                    " very unusual event - check the node"
+                                    " daemon logs")
     device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       device.Open(force=True)
@@ -1519,6 +1522,9 @@ class DevCacheManager(object):
     """Updates the cache information for a given device.
 
     """
+    if dev_path is None:
+      logger.Error("DevCacheManager.UpdateCache got a None dev_path")
+      return
     fpath = cls._ConvertPath(dev_path)
     if on_primary:
       state = "primary"
@@ -1538,6 +1544,9 @@ class DevCacheManager(object):
     """Remove data for a dev_path.
 
     """
+    if dev_path is None:
+      logger.Error("DevCacheManager.RemoveCache got a None dev_path")
+      return
     fpath = cls._ConvertPath(dev_path)
     try:
       utils.RemoveFile(fpath)
