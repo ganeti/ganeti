@@ -25,8 +25,8 @@ instances:
 # Tests to run
 tests:
   env: True
-
   os: True
+  tags: True
 
   cluster-verify: True
   cluster-info: True

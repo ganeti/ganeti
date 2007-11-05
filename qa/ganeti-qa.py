@@ -39,6 +39,7 @@ import qa_instance
 import qa_node
 import qa_os
 import qa_other
+import qa_tags
 
 
 def RunTest(fn, *args):
@@ -140,6 +141,9 @@ def RunCommonInstanceTests(instance):
     RunTest(qa_instance.TestInstanceReinstall, instance)
     RunTest(qa_instance.TestInstanceStartup, instance)
 
+  if qa_config.TestEnabled('tags'):
+    RunTest(qa_tags.TestInstanceTags, instance)
+
   if qa_config.TestEnabled('node-volumes'):
     RunTest(qa_node.TestNodeVolumes)
 
@@ -240,8 +244,14 @@ def main():
   RunClusterTests()
   RunOsTests()
 
+  if qa_config.TestEnabled('tags'):
+    RunTest(qa_tags.TestClusterTags)
+
   pnode = qa_config.AcquireNode()
   try:
+    if qa_config.TestEnabled('tags'):
+      RunTest(qa_tags.TestNodeTags, pnode)
+
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
       RunCommonInstanceTests(instance)
