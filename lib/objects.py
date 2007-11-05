@@ -597,6 +597,20 @@ class OS(ConfigObject):
     "rename_script",
     ]
 
+  @classmethod
+  def FromInvalidOS(cls, err):
+    """Create an OS from an InvalidOS error.
+
+    This routine knows how to convert an InvalidOS error to an OS
+    object representing the broken OS with a meaningful error message.
+
+    """
+    if not isinstance(err, errors.InvalidOS):
+      raise errors.ProgrammerError("Trying to initialize an OS from an"
+                                   " invalid object of type %s" % type(err))
+
+    return cls(name=err.args[0], path=err.args[1], status=err.args[2])
+
   def __nonzero__(self):
     return self.status == constants.OS_VALID_STATUS
 
