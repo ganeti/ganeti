@@ -460,10 +460,10 @@ class ServerObject(pb.Avatar):
     """
     name = params[0]
     try:
-      os_obj = backend.OSFromDisk(name).ToDict()
+      os_obj = backend.OSFromDisk(name)
     except errors.InvalidOS, err:
-      os_obj = err.args
-    return os_obj
+      os_obj = objects.OS.FromInvalidOS(err)
+    return os_obj.ToDict()
 
   # hooks -----------------------
 

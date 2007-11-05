@@ -656,15 +656,10 @@ def call_os_get(node, name):
   c.connect(node)
   c.run()
   result = c.getresult().get(node, False)
-
   if isinstance(result, dict):
-    new_result = objects.OS.FromDict(result)
-  elif isinstance(result, tuple) and len(data) == 3:
-    new_result = errors.InvalidOS(result[0], result[1], result[2])
+    return objects.OS.FromDict(result)
   else:
-    new_result = result
-
-  return new_result
+    return result
 
 
 def call_hooks_runner(node_list, hpath, phase, env):
