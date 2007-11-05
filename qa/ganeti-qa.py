@@ -90,13 +90,9 @@ def RunClusterTests():
     RunTest(qa_cluster.TestClusterVerify)
 
   if qa_config.TestEnabled('cluster-info'):
-    RunTest(qa_cluster.TestClusterInfo)
-
-  if qa_config.TestEnabled('cluster-getmaster'):
-    RunTest(qa_cluster.TestClusterGetmaster)
-
-  if qa_config.TestEnabled('cluster-version'):
     RunTest(qa_cluster.TestClusterVersion)
+    RunTest(qa_cluster.TestClusterInfo)
+    RunTest(qa_cluster.TestClusterGetmaster)
 
   if qa_config.TestEnabled('cluster-copyfile'):
     RunTest(qa_cluster.TestClusterCopyfile)

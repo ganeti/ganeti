@@ -30,8 +30,6 @@ tests:
 
   cluster-verify: True
   cluster-info: True
-  cluster-getmaster: True
-  cluster-version: True
   cluster-burnin: True
   cluster-command: True
   cluster-copyfile: True
