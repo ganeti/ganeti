@@ -326,6 +326,18 @@ class Disk(ConfigObject):
     """Test if this device needs to be opened on a secondary node."""
     return self.dev_type in (constants.LD_LV,)
 
+  def StaticDevPath(self):
+    """Return the device path if this device type has a static one.
+
+    Some devices (LVM for example) live always at the same /dev/ path,
+    irrespective of their status. For such devices, we return this
+    path, for others we return None.
+
+    """
+    if self.dev_type == constants.LD_LV:
+      return "/dev/%s/%s" % (self.logical_id[0], self.logical_id[1])
+    return None
+
   def GetNodes(self, node):
     """This function returns the nodes this device lives on.
 
