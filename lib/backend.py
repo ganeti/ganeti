@@ -807,12 +807,20 @@ def MirrorRemoveChildren(parent_cdev, new_cdevs):
   if parent_bdev is None:
     logger.Error("Can't find parent in remove children: %s" % parent_cdev)
     return False
-  new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
-  if new_bdevs.count(None) > 0:
-    logger.Error("Can't find some devices while removing children: %s %s" %
-                 (new_cdevs, new_bdevs))
-    return False
-  parent_bdev.RemoveChildren(new_bdevs)
+  devs = []
+  for disk in new_cdevs:
+    rpath = disk.StaticDevPath()
+    if rpath is None:
+      bd = _RecursiveFindBD(disk)
+      if bd is None:
+        logger.Error("Can't find dynamic device %s while removing children" %
+                     disk)
+        return False
+      else:
+        devs.append(bd.dev_path)
+    else:
+      devs.append(rpath)
+  parent_bdev.RemoveChildren(devs)
   return True
 
 

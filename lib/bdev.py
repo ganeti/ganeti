@@ -744,9 +744,9 @@ class MDRaid1(BlockDev):
     args = ["mdadm", "-f", self.dev_path]
     orig_devs = []
     for dev in devices:
-      args.append(dev.dev_path)
+      args.append(dev)
       for c in self._children:
-        if c.dev_path == dev.dev_path:
+        if c.dev_path == dev:
           orig_devs.append(c)
           break
       else:
@@ -1878,13 +1878,16 @@ class DRBD8(BaseDRBD):
     if len(self._children) != 2:
       raise errors.BlockDeviceError("We don't have two children: %s" %
                                     self._children)
-
+    if self._children.count(None) == 2: # we don't actually have children :)
+      logger.Error("Requested detach while detached")
+      return
     if len(devices) != 2:
       raise errors.BlockDeviceError("We need two children in RemoveChildren")
-    for idx, dev in enumerate(devices):
-      if dev.dev_path != self._children[idx].dev_path:
-        raise errors.BlockDeviceError("Mismatch in local storage (%d) in"
-                                      " RemoveChildren" % idx)
+    for child, dev in zip(self._children, devices):
+      if dev != child.dev_path:
+        raise errors.BlockDeviceError("Mismatch in local storage"
+                                      " (%s != %s) in RemoveChildren" %
+                                      (dev, child.dev_path))
 
     if not self._ShutdownLocal(self.minor):
       raise errors.BlockDeviceError("Can't detach from local storage")
