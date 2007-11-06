@@ -36,6 +36,7 @@ from ganeti import rpc
 from ganeti import cmdlib
 from ganeti import config
 from ganeti import ssconf
+from ganeti import logger
 
 class Processor(object):
   """Object which runs OpCodes"""
@@ -164,6 +165,28 @@ class Processor(object):
     #if do_hooks:
     #  hm.RunPhase(constants.HOOKS_PHASE_POST)
     return result
+
+  def LogStep(self, current, total, message):
+    """Log a change in LU execution progress.
+
+    """
+    logger.Debug("Step %d/%d %s" % (current, total, message))
+    self._feedback_fn("STEP %d/%d %s" % (current, total, message))
+
+  def LogWarning(self, message, hint):
+    """Log a warning to the logs and the user.
+
+    """
+    logger.Error(message)
+    self._feedback_fn(" - WARNING: %s" % message)
+    self._feedback_fn("      Hint: %s" % hint)
+
+  def LogInfo(self, message):
+    """Log an informational message to the logs and the user.
+
+    """
+    logger.Info(message)
+    self._feedback_fn(" - INFO: %s" % message)
 
 
 class HooksMaster(object):
