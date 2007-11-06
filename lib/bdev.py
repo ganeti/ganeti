@@ -866,7 +866,7 @@ class MDRaid1(BlockDev):
     """Returns the sync status of the device.
 
     Returns:
-     (sync_percent, estimated_time)
+     (sync_percent, estimated_time, is_degraded)
 
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't esimate
@@ -1444,7 +1444,7 @@ class DRBDev(BaseDRBD):
     """Returns the sync status of the device.
 
     Returns:
-     (sync_percent, estimated_time)
+     (sync_percent, estimated_time, is_degraded)
 
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't esimate
@@ -1911,7 +1911,7 @@ class DRBD8(BaseDRBD):
     """Returns the sync status of the device.
 
     Returns:
-     (sync_percent, estimated_time)
+     (sync_percent, estimated_time, is_degraded)
 
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't esimate
@@ -1936,12 +1936,14 @@ class DRBD8(BaseDRBD):
     else:
       sync_percent = None
       est_time = None
-    match = re.match("^ *[0-9]+: cs:([^ ]+).*$", line)
+    match = re.match("^ *\d+: cs:(\w+).*ds:(\w+)/(\w+).*$", line)
     if not match:
       raise errors.BlockDeviceError("Can't find my data in /proc (minor %d)" %
                                     self.minor)
     client_state = match.group(1)
-    is_degraded = client_state != "Connected"
+    local_disk_state = match.group(2)
+    is_degraded = (client_state != "Connected" or
+                   local_disk_state != "UpToDate")
     return sync_percent, est_time, is_degraded
 
   def GetStatus(self):
