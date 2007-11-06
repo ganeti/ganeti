@@ -1850,10 +1850,10 @@ class DRBD8(BaseDRBD):
     """
     if self.minor is None:
       raise errors.BlockDeviceError("Can't attach to dbrd8 during AddChildren")
-
     if len(devices) != 2:
       raise errors.BlockDeviceError("Need two devices for AddChildren")
-    if self._children:
+    info = self._GetDevInfo(self.minor)
+    if "local_dev" in info:
       raise errors.BlockDeviceError("DRBD8 already attached to a local disk")
     backend, meta = devices
     if backend.dev_path is None or meta.dev_path is None:
@@ -1877,6 +1877,10 @@ class DRBD8(BaseDRBD):
     if self.minor is None:
       raise errors.BlockDeviceError("Can't attach to drbd8 during"
                                     " RemoveChildren")
+    # early return if we don't actually have backing storage
+    info = self._GetDevInfo(self.minor)
+    if "local_dev" not in info:
+      return
     if len(self._children) != 2:
       raise errors.BlockDeviceError("We don't have two children: %s" %
                                     self._children)
