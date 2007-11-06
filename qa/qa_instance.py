@@ -43,17 +43,16 @@ def _GetGenericAddParameters():
           '--memory=%s' % qa_config.get('mem')]
 
 
-def _DiskTest(node, args):
+def _DiskTest(node, disk_template):
   master = qa_config.GetMasterNode()
 
   instance = qa_config.AcquireInstance()
   try:
     cmd = (['gnt-instance', 'add',
             '--os-type=%s' % qa_config.get('os'),
-            '--node=%s' % node['primary']] +
+            '--disk-template=%s' % disk_template,
+            '--node=%s' % node] +
            _GetGenericAddParameters())
-    if args:
-      cmd += args
     cmd.append(instance['name'])
 
     AssertEqual(StartSSH(master['primary'],
@@ -66,19 +65,18 @@ def _DiskTest(node, args):
 
 def TestInstanceAddWithPlainDisk(node):
   """gnt-instance add -t plain"""
-  return _DiskTest(node, ['--disk-template=plain'])
+  return _DiskTest(node['primary'], 'plain')
 
 
 def TestInstanceAddWithLocalMirrorDisk(node):
   """gnt-instance add -t local_raid1"""
-  return _DiskTest(node, ['--disk-template=local_raid1'])
+  return _DiskTest(node['primary'], 'local_raid1')
 
 
 def TestInstanceAddWithRemoteRaidDisk(node, node2):
   """gnt-instance add -t remote_raid1"""
-  return _DiskTest(node,
-                   ['--disk-template=remote_raid1',
-                    '--secondary-node=%s' % node2['primary']])
+  return _DiskTest("%s:%s" % (node['primary'], node2['primary']),
+                   'remote_raid1')
 
 
 def TestInstanceRemove(instance):
