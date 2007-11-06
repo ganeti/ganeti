@@ -43,7 +43,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
-           "FormatError",
+           "FormatError", "SplitNodeOption"
            ]
 
 
@@ -179,6 +179,7 @@ _LOCK_OPT = make_option("--lock-retries", default=None,
 TAG_SRC_OPT = make_option("--from", dest="tags_source",
                           default=None, help="File with tag names")
 
+
 def ARGS_FIXED(val):
   """Macro-like function denoting a fixed number of arguments"""
   return -val
@@ -284,6 +285,16 @@ def _ParseArgs(argv, commands):
     return None, None, None
 
   return func, options, args
+
+
+def SplitNodeOption(value):
+  """Splits the value of a --node option.
+
+  """
+  if value and ':' in value:
+    return value.split(':', 1)
+  else:
+    return (value, None)
 
 
 def AskUser(text, choices=None):

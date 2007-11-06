@@ -64,6 +64,7 @@ def ExportInstance(opts, args):
 
   SubmitOpCode(op)
 
+
 def ImportInstance(opts, args):
   """Add an instance to the cluster.
 
@@ -84,11 +85,13 @@ def ImportInstance(opts, args):
   """
   instance = args[0]
 
+  (pnode, snode) = SplitNodeOption(opts.node)
+
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
                                 mode=constants.INSTANCE_IMPORT,
-                                pnode=opts.node, snode=opts.snode,
+                                pnode=pnode, snode=snode,
                                 vcpus=opts.vcpus, ip_check=opts.ip_check,
                                 ip=opts.ip, bridge=opts.bridge, start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
@@ -97,14 +100,12 @@ def ImportInstance(opts, args):
   return 0
 
 
-# options used in more than one cmd
-node_opt = make_option("-n", "--node", dest="node", help="Target node",
-                       metavar="<node>")
-
 # this is defined separately due to readability only
 import_opts = [
   DEBUG_OPT,
-  node_opt,
+  make_option("-n", "--node", dest="node",
+              help="Target node and optional secondary node",
+              metavar="<pnode>[:<snode>]"),
   cli_option("-s", "--os-size", dest="size", help="Disk size",
              default=20 * 1024, type="unit", metavar="<size>"),
   cli_option("--swap-size", dest="swap", help="Swap size",
@@ -121,9 +122,6 @@ import_opts = [
               default='none', type="string", metavar="<ADDRESS>"),
   make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
               action="store_false", help="Don't wait for sync (DANGEROUS!)"),
-  make_option("--secondary-node", dest="snode",
-              help="Secondary node for remote_raid1 disk layout",
-              metavar="<node>"),
   make_option("-b", "--bridge", dest="bridge",
               help="Bridge to connect this instance to",
               default=None, metavar="<bridge>"),
@@ -144,7 +142,9 @@ commands = {
             ],
            "", "Lists instance exports available in the ganeti cluster"),
   'export': (ExportInstance, ARGS_ONE,
-             [node_opt, DEBUG_OPT, FORCE_OPT,
+             [DEBUG_OPT, FORCE_OPT,
+              make_option("-n", "--node", dest="node", help="Target node",
+                          metavar="<node>"),
               make_option("","--noshutdown", dest="shutdown",
                           action="store_false", default=True,
                           help="Don't shutdown the instance (unsafe)"), ],
