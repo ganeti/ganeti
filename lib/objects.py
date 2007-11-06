@@ -338,6 +338,22 @@ class Disk(ConfigObject):
       return "/dev/%s/%s" % (self.logical_id[0], self.logical_id[1])
     return None
 
+  def ChildrenNeeded(self):
+    """Compute the needed number of children for activation.
+
+    This method will return either -1 (all children) or a positive
+    number denoting the minimum number of children needed for
+    activation (only mirrored devices will usually return >=0).
+
+    Currently, only DRBD8 supports diskless activation (therefore we
+    return 0), for all other we keep the previous semantics and return
+    -1.
+
+    """
+    if self.dev_type == constants.LD_DRBD8:
+      return 0
+    return -1
+
   def GetNodes(self, node):
     """This function returns the nodes this device lives on.
 

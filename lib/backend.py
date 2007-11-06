@@ -722,8 +722,20 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
   """
   children = []
   if disk.children:
+    mcn = disk.ChildrenNeeded()
+    if mcn == -1:
+      mcn = 0 # max number of Nones allowed
+    else:
+      mcn = len(disk.children) - mcn # max number of Nones
     for chld_disk in disk.children:
-      children.append(_RecursiveAssembleBD(chld_disk, owner, as_primary))
+      try:
+        cdev = _RecursiveAssembleBD(chld_disk, owner, as_primary)
+      except errors.BlockDeviceError, err:
+        if children.count(None) > mcn:
+          raise
+        cdev = None
+        logger.Debug("Error in child activation: %s" % str(err))
+      children.append(cdev)
 
   if as_primary or disk.AssembleOnSecondary():
     r_dev = bdev.AttachOrAssemble(disk.dev_type, disk.physical_id, children)

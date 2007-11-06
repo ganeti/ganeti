@@ -1566,6 +1566,8 @@ class DRBD8(BaseDRBD):
   _PARSE_SHOW = None
 
   def __init__(self, unique_id, children):
+    if children and children.count(None) > 0:
+      children = []
     super(DRBD8, self).__init__(unique_id, children)
     self.major = self._DRBD_MAJOR
     [kmaj, kmin, kfix, api, proto] = self._GetVersion()
@@ -2030,6 +2032,10 @@ class DRBD8(BaseDRBD):
                                   "C")
         if res_r and self._MatchesNet(self._GetDevInfo(minor)):
           break
+      # the weakest case: we find something that is only net attached
+      # even though we were passed some children at init time
+      if match_r and "local_dev" not in info:
+        break
     else:
       minor = None
 
@@ -2066,7 +2072,7 @@ class DRBD8(BaseDRBD):
 
     minor = self._FindUnusedMinor()
     need_localdev_teardown = False
-    if self._children[0]:
+    if self._children and self._children[0] and self._children[1]:
       result = self._AssembleLocal(minor, self._children[0].dev_path,
                                    self._children[1].dev_path)
       if not result:
