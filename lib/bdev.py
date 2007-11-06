@@ -451,6 +451,38 @@ class LogicalVolume(BlockDev):
 
     return retval
 
+  def GetSyncStatus(self):
+    """Returns the sync status of the device.
+
+    If this device is a mirroring device, this function returns the
+    status of the mirror.
+
+    Returns:
+     (sync_percent, estimated_time, is_degraded)
+
+    For logical volumes, sync_percent and estimated_time are always
+    None (no recovery in progress, as we don't handle the mirrored LV
+    case).
+
+    For the is_degraded parameter, we check if the logical volume has
+    the 'virtual' type, which means it's not backed by existing
+    storage anymore (read from it return I/O error). This happens
+    after a physical disk failure and subsequent 'vgreduce
+    --removemissing' on the volume group.
+
+    """
+    result = utils.RunCmd(["lvs", "--noheadings", "-olv_attr", self.dev_path])
+    if result.failed:
+      logger.Error("Can't display lv: %s" % result.fail_reason)
+      return None, None, True
+    out = result.stdout.strip()
+    # format: type/permissions/alloc/fixed_minor/state/open
+    if len(out) != 6:
+      return None, None, True
+    is_degraded = out[0] == 'v' # virtual volume, i.e. doesn't have
+                                # backing storage
+    return None, None, is_degraded
+
   def Open(self, force=False):
     """Make the device ready for I/O.
 

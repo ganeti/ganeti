@@ -537,6 +537,12 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
         else:
           degr_text = "ok"
         buf.write(" %s, status %s" % (sync_text, degr_text))
+      elif dtype == constants.LD_LV:
+        if degr:
+          degr_text = " *DEGRADED* (failed drive?)"
+        else:
+          degr_text = ""
+        buf.write(degr_text)
       buf.write("\n")
 
   if dev["iv_name"] is not None:
