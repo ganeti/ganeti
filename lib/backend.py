@@ -895,8 +895,7 @@ def FindBlockDevice(disk):
   rbd = _RecursiveFindBD(disk)
   if rbd is None:
     return rbd
-  sync_p, est_t, is_degr = rbd.GetSyncStatus()
-  return rbd.dev_path, rbd.major, rbd.minor, sync_p, est_t, is_degr
+  return (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus()
 
 
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):

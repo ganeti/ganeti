@@ -523,7 +523,7 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
     if not status:
       buf.write("not active\n")
     else:
-      (path, major, minor, syncp, estt, degr) = status
+      (path, major, minor, syncp, estt, degr, ldisk) = status
       buf.write("%s (%d:%d)" % (path, major, minor))
       if dtype in (constants.LD_MD_R1, constants.LD_DRBD7, constants.LD_DRBD8):
         if syncp is not None:
@@ -538,13 +538,17 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
           degr_text = "*DEGRADED*"
         else:
           degr_text = "ok"
-        buf.write(" %s, status %s" % (sync_text, degr_text))
-      elif dtype == constants.LD_LV:
-        if degr:
-          degr_text = " *DEGRADED* (failed drive?)"
+        if ldisk:
+          ldisk_text = " *MISSING DISK*"
         else:
-          degr_text = ""
-        buf.write(degr_text)
+          ldisk_text = ""
+        buf.write(" %s, status %s%s" % (sync_text, degr_text, ldisk_text))
+      elif dtype == constants.LD_LV:
+        if ldisk:
+          ldisk_text = " *FAILED* (failed drive?)"
+        else:
+          ldisk_text = ""
+        buf.write(ldisk_text)
       buf.write("\n")
 
   if dev["iv_name"] is not None:

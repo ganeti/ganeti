@@ -220,17 +220,23 @@ class BlockDev(object):
     status of the mirror.
 
     Returns:
-     (sync_percent, estimated_time, is_degraded)
+     (sync_percent, estimated_time, is_degraded, ldisk)
 
-    If sync_percent is None, it means all is ok
+    If sync_percent is None, it means the device is not syncing.
+
     If estimated_time is None, it means we can't estimate
-    the time needed, otherwise it's the time left in seconds
+    the time needed, otherwise it's the time left in seconds.
+
     If is_degraded is True, it means the device is missing
     redundancy. This is usually a sign that something went wrong in
     the device setup, if sync_percent is None.
 
+    The ldisk parameter represents the degradation of the local
+    data. This is only valid for some devices, the rest will always
+    return False (not degraded).
+
     """
-    return None, None, False
+    return None, None, False, False
 
 
   def CombinedSyncStatus(self):
@@ -241,10 +247,10 @@ class BlockDev(object):
     children.
 
     """
-    min_percent, max_time, is_degraded = self.GetSyncStatus()
+    min_percent, max_time, is_degraded, ldisk = self.GetSyncStatus()
     if self._children:
       for child in self._children:
-        c_percent, c_time, c_degraded = child.GetSyncStatus()
+        c_percent, c_time, c_degraded, c_ldisk = child.GetSyncStatus()
         if min_percent is None:
           min_percent = c_percent
         elif c_percent is not None:
@@ -254,7 +260,8 @@ class BlockDev(object):
         elif c_time is not None:
           max_time = max(max_time, c_time)
         is_degraded = is_degraded or c_degraded
-    return min_percent, max_time, is_degraded
+        ldisk = ldisk or c_ldisk
+    return min_percent, max_time, is_degraded, ldisk
 
 
   def SetInfo(self, text):
@@ -458,30 +465,32 @@ class LogicalVolume(BlockDev):
     status of the mirror.
 
     Returns:
-     (sync_percent, estimated_time, is_degraded)
+     (sync_percent, estimated_time, is_degraded, ldisk)
 
     For logical volumes, sync_percent and estimated_time are always
     None (no recovery in progress, as we don't handle the mirrored LV
-    case).
+    case). The is_degraded parameter is the inverse of the ldisk
+    parameter.
 
-    For the is_degraded parameter, we check if the logical volume has
-    the 'virtual' type, which means it's not backed by existing
-    storage anymore (read from it return I/O error). This happens
-    after a physical disk failure and subsequent 'vgreduce
-    --removemissing' on the volume group.
+    For the ldisk parameter, we check if the logical volume has the
+    'virtual' type, which means it's not backed by existing storage
+    anymore (read from it return I/O error). This happens after a
+    physical disk failure and subsequent 'vgreduce --removemissing' on
+    the volume group.
 
     """
     result = utils.RunCmd(["lvs", "--noheadings", "-olv_attr", self.dev_path])
     if result.failed:
       logger.Error("Can't display lv: %s" % result.fail_reason)
-      return None, None, True
+      return None, None, True, True
     out = result.stdout.strip()
     # format: type/permissions/alloc/fixed_minor/state/open
     if len(out) != 6:
-      return None, None, True
-    is_degraded = out[0] == 'v' # virtual volume, i.e. doesn't have
-                                # backing storage
-    return None, None, is_degraded
+      logger.Debug("Error in lvs output: attrs=%s, len != 6" % out)
+      return None, None, True, True
+    ldisk = out[0] == 'v' # virtual volume, i.e. doesn't have
+                          # backing storage
+    return None, None, ldisk, ldisk
 
   def Open(self, force=False):
     """Make the device ready for I/O.
@@ -898,11 +907,13 @@ class MDRaid1(BlockDev):
     """Returns the sync status of the device.
 
     Returns:
-     (sync_percent, estimated_time, is_degraded)
+     (sync_percent, estimated_time, is_degraded, ldisk)
 
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't esimate
-    the time needed, otherwise it's the time left in seconds
+    the time needed, otherwise it's the time left in seconds.
+
+    The ldisk parameter is always true for MD devices.
 
     """
     if self.minor is None and not self.Attach():
@@ -916,12 +927,12 @@ class MDRaid1(BlockDev):
     sync_status = f.readline().strip()
     f.close()
     if sync_status == "idle":
-      return None, None, not is_clean
+      return None, None, not is_clean, False
     f = file(sys_path + "sync_completed")
     sync_completed = f.readline().strip().split(" / ")
     f.close()
     if len(sync_completed) != 2:
-      return 0, None, not is_clean
+      return 0, None, not is_clean, False
     sync_done, sync_total = [float(i) for i in sync_completed]
     sync_percent = 100.0*sync_done/sync_total
     f = file(sys_path + "sync_speed")
@@ -930,7 +941,7 @@ class MDRaid1(BlockDev):
       time_est = None
     else:
       time_est = (sync_total - sync_done) / 2 / sync_speed_k
-    return sync_percent, time_est, not is_clean
+    return sync_percent, time_est, not is_clean, False
 
   def Open(self, force=False):
     """Make the device ready for I/O.
@@ -1476,11 +1487,14 @@ class DRBDev(BaseDRBD):
     """Returns the sync status of the device.
 
     Returns:
-     (sync_percent, estimated_time, is_degraded)
+     (sync_percent, estimated_time, is_degraded, ldisk)
 
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't esimate
-    the time needed, otherwise it's the time left in seconds
+    the time needed, otherwise it's the time left in seconds.
+
+    The ldisk parameter will be returned as True, since the DRBD7
+    devices have not been converted.
 
     """
     if self.minor is None and not self.Attach():
@@ -1507,7 +1521,7 @@ class DRBDev(BaseDRBD):
                                     self.minor)
     client_state = match.group(1)
     is_degraded = client_state != "Connected"
-    return sync_percent, est_time, is_degraded
+    return sync_percent, est_time, is_degraded, False
 
   def GetStatus(self):
     """Compute the status of the DRBD device
@@ -1953,7 +1967,14 @@ class DRBD8(BaseDRBD):
 
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't esimate
-    the time needed, otherwise it's the time left in seconds
+    the time needed, otherwise it's the time left in seconds.
+
+
+    We set the is_degraded parameter to True on two conditions:
+    network not connected or local disk missing.
+
+    We compute the ldisk parameter based on wheter we have a local
+    disk or not.
 
     """
     if self.minor is None and not self.Attach():
@@ -1980,9 +2001,9 @@ class DRBD8(BaseDRBD):
                                     self.minor)
     client_state = match.group(1)
     local_disk_state = match.group(2)
-    is_degraded = (client_state != "Connected" or
-                   local_disk_state != "UpToDate")
-    return sync_percent, est_time, is_degraded
+    ldisk = local_disk_state != "UpToDate"
+    is_degraded = client_state != "Connected"
+    return sync_percent, est_time, is_degraded or ldisk, ldisk
 
   def GetStatus(self):
     """Compute the status of the DRBD device

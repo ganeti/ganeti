@@ -1051,7 +1051,8 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
         logger.ToStderr("Can't compute data for node %s/%s" %
                         (node, instance.disks[i].iv_name))
         continue
-      perc_done, est_time, is_degraded = mstat
+      # we ignore the ldisk parameter
+      perc_done, est_time, is_degraded, _ = mstat
       cumul_degraded = cumul_degraded or (is_degraded and perc_done is None)
       if perc_done is not None:
         done = False
@@ -1078,11 +1079,19 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
   return not cumul_degraded
 
 
-def _CheckDiskConsistency(cfgw, dev, node, on_primary):
+def _CheckDiskConsistency(cfgw, dev, node, on_primary, ldisk=False):
   """Check that mirrors are not degraded.
+
+  The ldisk parameter, if True, will change the test from the
+  is_degraded attribute (which represents overall non-ok status for
+  the device(s)) to the ldisk (representing the local storage status).
 
   """
   cfgw.SetDiskID(dev, node)
+  if ldisk:
+    idx = 6
+  else:
+    idx = 5
 
   result = True
   if on_primary or dev.AssembleOnSecondary():
@@ -1091,7 +1100,7 @@ def _CheckDiskConsistency(cfgw, dev, node, on_primary):
       logger.ToStderr("Can't get any data from node %s" % node)
       result = False
     else:
-      result = result and (not rstats[5])
+      result = result and (not rstats[idx])
   if dev.children:
     for child in dev.children:
       result = result and _CheckDiskConsistency(cfgw, child, node, on_primary)
@@ -3360,8 +3369,12 @@ class LUReplaceDisks(LogicalUnit):
       "OLD_SECONDARY": self.instance.secondary_nodes[0],
       }
     env.update(_BuildInstanceHookEnvByObject(self.instance))
-    nl = [self.sstore.GetMasterNode(),
-          self.instance.primary_node] + list(self.instance.secondary_nodes)
+    nl = [
+      self.sstore.GetMasterNode(),
+      self.instance.primary_node,
+      ]
+    if self.op.remote_node is not None:
+      nl.append(self.op.remote_node)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -3401,8 +3414,13 @@ class LUReplaceDisks(LogicalUnit):
       raise errors.OpPrereqError("The specified node is the primary node of"
                                  " the instance.")
     elif remote_node == self.sec_node:
+      if self.op.mode == constants.REPLACE_DISK_SEC:
+        # this is for DRBD8, where we can't execute the same mode of
+        # replacement as for drbd7 (no different port allocated)
+        raise errors.OpPrereqError("Same secondary given, cannot execute"
+                                   " replacement")
       # the user gave the current secondary, switch to
-      # 'no-replace-secondary' mode
+      # 'no-replace-secondary' mode for drbd7
       remote_node = None
     if (instance.disk_template == constants.DT_REMOTE_RAID1 and
         self.op.mode != constants.REPLACE_DISK_ALL):
@@ -3717,7 +3735,10 @@ class LUReplaceDisks(LogicalUnit):
       - remove all disks from the old secondary
 
     Failures are not very well handled.
+
     """
+    steps_total = 6
+    warning, info = (self.processor.LogWarning, self.processor.LogInfo)
     instance = self.instance
     iv_names = {}
     vgname = self.cfg.GetVGName()
@@ -3726,10 +3747,44 @@ class LUReplaceDisks(LogicalUnit):
     old_node = self.tgt_node
     new_node = self.new_node
     pri_node = instance.primary_node
+
+    # Step: check device activation
+    self.processor.LogStep(1, steps_total, "check device existence")
+    info("checking volume groups")
+    my_vg = cfg.GetVGName()
+    results = rpc.call_vg_list([pri_node, new_node])
+    if not results:
+      raise errors.OpExecError("Can't list volume groups on the nodes")
+    for node in pri_node, new_node:
+      res = results.get(node, False)
+      if not res or my_vg not in res:
+        raise errors.OpExecError("Volume group '%s' not found on %s" %
+                                 (my_vg, node))
+    for dev in instance.disks:
+      if not dev.iv_name in self.op.disks:
+        continue
+      info("checking %s on %s" % (dev.iv_name, pri_node))
+      cfg.SetDiskID(dev, pri_node)
+      if not rpc.call_blockdev_find(pri_node, dev):
+        raise errors.OpExecError("Can't find device %s on node %s" %
+                                 (dev.iv_name, pri_node))
+
+    # Step: check other node consistency
+    self.processor.LogStep(2, steps_total, "check peer consistency")
+    for dev in instance.disks:
+      if not dev.iv_name in self.op.disks:
+        continue
+      info("checking %s consistency on %s" % (dev.iv_name, pri_node))
+      if not _CheckDiskConsistency(self.cfg, dev, pri_node, True, ldisk=True):
+        raise errors.OpExecError("Primary node (%s) has degraded storage,"
+                                 " unsafe to replace the secondary" %
+                                 pri_node)
+
+    # Step: create new storage
+    self.processor.LogStep(3, steps_total, "allocate new storage")
     for dev in instance.disks:
       size = dev.size
-      logger.Info("adding new local storage on %s for %s" %
-                  (new_node, dev.iv_name))
+      info("adding new local storage on %s for %s" % (new_node, dev.iv_name))
       # since we *always* want to create this LV, we use the
       # _Create...OnPrimary (which forces the creation), even if we
       # are talking about the secondary node
@@ -3740,6 +3795,12 @@ class LUReplaceDisks(LogicalUnit):
                                    " node '%s'" %
                                    (new_lv.logical_id[1], new_node))
 
+      iv_names[dev.iv_name] = (dev, dev.children)
+
+    self.processor.LogStep(4, steps_total, "changing drbd configuration")
+    for dev in instance.disks:
+      size = dev.size
+      info("activating a new drbd on %s for %s" % (new_node, dev.iv_name))
       # create new devices on new_node
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
                               logical_id=(pri_node, new_node,
@@ -3751,31 +3812,34 @@ class LUReplaceDisks(LogicalUnit):
         raise errors.OpExecError("Failed to create new DRBD on"
                                  " node '%s'" % new_node)
 
+    for dev in instance.disks:
       # we have new devices, shutdown the drbd on the old secondary
+      info("shutting down drbd for %s on old node" % dev.iv_name)
       cfg.SetDiskID(dev, old_node)
       if not rpc.call_blockdev_shutdown(old_node, dev):
-        raise errors.OpExecError("Failed to shutdown DRBD on old node")
+        warning("Failed to shutdown drbd for %s on old node" % dev.iv_name,
+                "Please cleanup this device manuall as soon as possible")
 
       # we have new storage, we 'rename' the network on the primary
+      info("switching primary drbd for %s to new secondary node" % dev.iv_name)
       cfg.SetDiskID(dev, pri_node)
       # rename to the ip of the new node
       new_uid = list(dev.physical_id)
       new_uid[2] = self.remote_node_info.secondary_ip
       rlist = [(dev, tuple(new_uid))]
       if not rpc.call_blockdev_rename(pri_node, rlist):
-        raise errors.OpExecError("Can't detach re-attach drbd %s on node"
+        raise errors.OpExecError("Can't detach & re-attach drbd %s on node"
                                  " %s from %s to %s" %
                                  (dev.iv_name, pri_node, old_node, new_node))
       dev.logical_id = (pri_node, new_node, dev.logical_id[2])
       cfg.SetDiskID(dev, pri_node)
       cfg.Update(instance)
 
-      iv_names[dev.iv_name] = (dev, dev.children)
 
     # this can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its
     # return value
-    logger.Info("Done changing drbd configs, waiting for sync")
+    self.processor.LogStep(5, steps_total, "sync devices")
     _WaitForSync(cfg, instance, unlock=True)
 
     # so check manually all the devices
@@ -3785,14 +3849,14 @@ class LUReplaceDisks(LogicalUnit):
       if is_degr:
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
+    self.processor.LogStep(6, steps_total, "removing old storage")
     for name, (dev, old_lvs) in iv_names.iteritems():
-      logger.Info("remove logical volumes for %s" % name)
+      info("remove logical volumes for %s" % name)
       for lv in old_lvs:
         cfg.SetDiskID(lv, old_node)
         if not rpc.call_blockdev_remove(old_node, lv):
-          logger.Error("Can't cleanup child device, skipping. You need to"
-                       " fix manually!")
-          continue
+          warning("Can't remove LV on old secondary",
+                  "Cleanup stale volumes by hand")
 
   def Exec(self, feedback_fn):
     """Execute disk replacement.
