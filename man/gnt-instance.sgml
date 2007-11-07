@@ -77,7 +77,7 @@
             </group>
           </arg>
           <sbr>
-          <arg choice="req">-n <replaceable>node</replaceable></arg>
+          <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
         <para>
@@ -155,10 +155,10 @@
               <term>remote_raid1</term>
               <listitem>
                 <para>
-                  Disk devices will be md raid1 arrays with one
-                  component (so it's not actually raid1): a drbd device
-                  between the instance's primary node and the node given
-                  by the option <option>--secondary-node</option>.
+                  Disk devices will be md raid1 arrays with one component (so
+                  it's not actually raid1): a drbd device between the
+                  instance's primary node and the node given by the second
+                  value of the <option>--node</option> option.
                 </para>
               </listitem>
             </varlistentry>
@@ -166,9 +166,8 @@
         </para>
 
         <para>
-          The <option>--secondary-node</option> option is used with
-          the remote raid disk template type and specifies the remote
-          node.
+          The optional second value of the <option>--node</option> is used for
+          the remote raid template type and specifies the remote node.
         </para>
 
         <para>
@@ -177,18 +176,15 @@
           option.
         </para>
 
-
         <para>
           Example:
           <screen>
 # gnt-instance add -t plain -s 30g -m 512 -o debian-etch \
   -n node1.example.com instance1.example.com
-# gnt-instance add -t remote_raid1 --secondary-node node3.example.com \
-  -s 30g -m 512 -o debian-etch \
-  -n node1.example.com instance2.example.com
+# gnt-instance add -t remote_raid1 -s 30g -m 512 -o debian-etch \
+  -n node1.example.com:node2.example.com instance2.example.com
           </screen>
         </para>
-
       </refsect3>
 
       <refsect3>
@@ -275,7 +271,7 @@
             <varlistentry>
               <term>snodes</term>
               <listitem>
-                <simpara>comma-separated list of secondary-nodes for the
+                <simpara>comma-separated list of secondary nodes for the
                   instance; usually this will be just one node</simpara>
               </listitem>
             </varlistentry>

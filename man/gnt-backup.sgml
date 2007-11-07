@@ -91,7 +91,7 @@
       <title>IMPORT</title>
       <cmdsynopsis>
         <command>import</command>
-        <arg choice="req">-n <replaceable>node</replaceable></arg>
+        <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
         <arg>-s <replaceable>disksize</replaceable></arg>
         <arg>-o <replaceable>os-type</replaceable></arg>
         <arg>-m <replaceable>memsize</replaceable></arg>
@@ -171,10 +171,10 @@
             <term>remote_raid1</term>
             <listitem>
               <para>
-                Disk devices will be md raid1 arrays with one
-                component (so it's not actually raid1): a drbd device
-                between the instance's primary node and the node given
-                by the option <option>--secondary-node</option>.
+                Disk devices will be md raid1 arrays with one component (so
+                it's not actually raid1): a drbd device between the instance's
+                primary node and the node given by the second value of the
+                <option>--node</option> option.
               </para>
             </listitem>
           </varlistentry>
@@ -182,17 +182,10 @@
       </para>
 
       <para>
-        The <option>--secondary-node</option> option is used with
-        the remote raid disk template type and specifies the remote
-        node.
-      </para>
-
-      <para>
         If you do not want gnt-backup to wait for the disk mirror
         to be synced, use the <option>--no-wait-for-sync</option>
         option.
       </para>
-
 
       <para>
         Example:

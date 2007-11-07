@@ -183,11 +183,10 @@
             <simpara><emphasis role="strong">Note:</emphasis> This is
             only valid for multi-node clusters.</simpara>
             <simpara>
-                A mirror is set between the local node and a remote
-                one, which must be specified with the --secondary-node
-                option. Use this option to obtain a highly available
-                instance that can be failed over to a remote node
-                should the primary one fail.
+              A mirror is set between the local node and a remote one, which
+              must be specified with the second value of the --node option. Use
+              this option to obtain a highly available instance that can be
+              failed over to a remote node should the primary one fail.
 	      </simpara>
             </listitem>
         </varlistentry>
@@ -197,8 +196,8 @@
       <para>
         For example if you want to create an highly available instance
         use the remote_raid1 disk template:
-      <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable> -o <replaceable>OS_TYPE</replaceable> -t remote_raid1 \
-  --secondary-node=<replaceable>SECONDARY_NODE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable><optional>:<replaceable>SECONDARY_NODE</replaceable></optional> -o <replaceable>OS_TYPE</replaceable> -t remote_raid1 \
+  <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
       <para>
         To know which operating systems your cluster supports you can use:

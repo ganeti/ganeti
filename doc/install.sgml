@@ -810,13 +810,12 @@ creating os for instance inst1.example.com on node node1.example.com
         To create a network mirrored instance, change the argument to
         the <option>-t</option> option from <literal>plain</literal>
         to <literal>remote_raid1</literal> and specify the node on
-        which the mirror should reside with the
-        <option>--secondary-node</option> option, like this:
+        which the mirror should reside with the second value of the
+        <option>--node</option> option, like this:
       </para>
 
       <screen>
-# gnt-instance add -t remote_raid1 --secondary-node node1 \
-  -n node2 -o debian-etch instance2
+# gnt-instance add -t remote_raid1 -n node1:node2 -o debian-etch instance2
 * creating instance disks...
 adding instance instance2 to cluster config
 Waiting for instance instance1 to sync disks.
@@ -827,7 +826,7 @@ Waiting for instance instance1 to sync disks.
 - device sdb: 76.30% done, 72 estimated seconds remaining
 - device sdb: 94.80% done, 18 estimated seconds remaining
 Instance instance2's disks are in sync.
-creating os for instance instance2 on node node2.example.com
+creating os for instance instance2 on node node1.example.com
 * running the instance OS create scripts...
 * starting instance...
       </screen>
