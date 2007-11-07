@@ -41,18 +41,18 @@
       <itemizedlist>
         <listitem>
           <simpara>Installation of the base system and base
-          components</simpara>
+            components</simpara>
         </listitem>
         <listitem>
           <simpara>Configuration of the environment for
-          Ganeti</simpara>
+            Ganeti</simpara>
         </listitem>
       </itemizedlist>
 
-    Each of these is divided into sub-sections. While a full Ganeti
-    system will need all of the steps specified, some are not strictly
-    required for every environment. Which ones they are, and why, is
-    specified in the corresponding sections.
+      Each of these is divided into sub-sections. While a full Ganeti system
+      will need all of the steps specified, some are not strictly required for
+      every environment. Which ones they are, and why, is specified in the
+      corresponding sections.
     </para>
 
   </sect1>
@@ -64,17 +64,17 @@
       <title>Hardware requirements</title>
 
       <para>
-         Any system supported by your Linux distribution is fine.
-         64-bit systems are better as they can support more memory.
+        Any system supported by your Linux distribution is fine.  64-bit
+        systems are better as they can support more memory.
       </para>
 
       <para>
-         Any disk drive recognized by Linux
-         (<literal>IDE</literal>/<literal>SCSI</literal>/<literal>SATA</literal>/etc.)
-         is supported in Ganeti. Note that no shared storage
-         (e.g. <literal>SAN</literal>) is needed to get high-availability features. It is
-         highly recommended to use more than one disk drive to improve
-         speed. But Ganeti also works with one disk per machine.
+        Any disk drive recognized by Linux
+        (<literal>IDE</literal>/<literal>SCSI</literal>/<literal>SATA</literal>/etc.)
+        is supported in Ganeti. Note that no shared storage (e.g.
+        <literal>SAN</literal>) is needed to get high-availability features. It
+        is highly recommended to use more than one disk drive to improve speed.
+        But Ganeti also works with one disk per machine.
       </para>
 
     <sect2>
@@ -754,7 +754,6 @@ gnt-node add <replaceable>NODENAME</replaceable>
       <title>Testing the setup</title>
 
       <para>
-
         Execute the <computeroutput>gnt-node list</computeroutput>
         command to see all nodes in the cluster:
       <screen>

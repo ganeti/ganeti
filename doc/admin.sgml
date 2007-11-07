@@ -35,13 +35,13 @@
     </para>
 
     <sect2>
-
       <title>Ganeti terminology</title>
 
-      <para>This section provides a small introduction to Ganeti terminology,
-      which might be useful to read the rest of the document.
+      <para>
+        This section provides a small introduction to Ganeti terminology, which
+        might be useful to read the rest of the document.
 
-      <glosslist>
+        <glosslist>
           <glossentry>
             <glossterm>Cluster</glossterm>
             <glossdef>
@@ -95,8 +95,7 @@
               </simpara>
             </glossdef>
           </glossentry>
-      </glosslist>
-
+        </glosslist>
       </para>
     </sect2>
 
@@ -104,10 +103,10 @@
       <title>Prerequisites</title>
 
       <para>
-        You need to have your Ganeti cluster installed and configured
-        before you try any of the commands in this document. Please
-        follow the <emphasis>Ganeti installation tutorial</emphasis>
-        for instructions on how to do that.
+        You need to have your Ganeti cluster installed and configured before
+        you try any of the commands in this document. Please follow the
+        <emphasis>Ganeti installation tutorial</emphasis> for instructions on
+        how to do that.
       </para>
     </sect2>
 
@@ -120,10 +119,10 @@
       <title>Adding/Removing an instance</title>
 
       <para>
-        Adding a new virtual instance to your Ganeti cluster is really
-        easy. The command is:
+        Adding a new virtual instance to your Ganeti cluster is really easy.
+        The command is:
 
-      <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable> -o <replaceable>OS_TYPE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable> -o <replaceable>OS_TYPE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         The instance name must be resolvable (e.g. exist in DNS) and
         of course map to an address in the same subnet as the cluster
@@ -143,14 +142,13 @@
           <simpara>The number of virtual CPUs (<option>-p</option>)</simpara>
         </listitem>
         <listitem>
-	  <simpara>The instance ip address (<option>-i</option>) (use
-	  the value <literal>auto</literal> to make Ganeti record the
-	  address from dns)</simpara>
+          <simpara>The instance ip address (<option>-i</option>) (use the value
+            <literal>auto</literal> to make Ganeti record the address from
+            dns)</simpara>
         </listitem>
         <listitem>
-	  <simpara>The bridge to connect the instance to
-	  (<option>-b</option>), if you don't want to use the default
-	  one</simpara>
+          <simpara>The bridge to connect the instance to (<option>-b</option>),
+            if you don't want to use the default one</simpara>
         </listitem>
       </itemizedlist>
       </para>
@@ -160,59 +158,62 @@
       <variablelist>
         <varlistentry>
           <term>diskless</term>
-	  <listitem><para>The instance has no disks. Only used for special
-	  purpouse operating systems or for testing.</para></listitem>
+          <listitem>
+            <para>The instance has no disks. Only used for special purpouse
+              operating systems or for testing.</para>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
           <term>plain</term>
-	  <listitem><para>The instance will use LVM devices as backend for its
-	  disks. No redundancy is provided.</para></listitem>
+          <listitem>
+            <para>The instance will use LVM devices as backend for its disks.
+              No redundancy is provided.</para>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
           <term>local_raid1</term>
-	  <listitem><para>A local mirror is set between LVM devices to back the
-	  instance. This provides some redundancy for the instance's
-	  data.</para></listitem>
+          <listitem>
+            <para>A local mirror is set between LVM devices to back the
+              instance. This provides some redundancy for the instance's
+              data.</para>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
           <term>remote_raid1</term>
-	  <listitem>
-            <simpara><emphasis role="strong">Note:</emphasis> This is
-            only valid for multi-node clusters.</simpara>
+          <listitem>
+            <simpara><emphasis role="strong">Note:</emphasis> This is only
+              valid for multi-node clusters.</simpara>
             <simpara>
               A mirror is set between the local node and a remote one, which
               must be specified with the second value of the --node option. Use
               this option to obtain a highly available instance that can be
               failed over to a remote node should the primary one fail.
-	      </simpara>
-            </listitem>
+            </simpara>
+          </listitem>
         </varlistentry>
 
       </variablelist>
 
       <para>
-        For example if you want to create an highly available instance
-        use the remote_raid1 disk template:
+        For example if you want to create an highly available instance use the
+        remote_raid1 disk template:
         <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable><optional>:<replaceable>SECONDARY_NODE</replaceable></optional> -o <replaceable>OS_TYPE</replaceable> -t remote_raid1 \
   <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
       <para>
-        To know which operating systems your cluster supports you can use:
-
+        To know which operating systems your cluster supports you can use
         <synopsis>gnt-os list</synopsis>
-
       </para>
 
       <para>
-        Removing an instance is even easier than creating one. This
-        operation is non-reversible and destroys all the contents of
-        your instance. Use with care:
+        Removing an instance is even easier than creating one. This operation
+        is non-reversible and destroys all the contents of your instance. Use
+        with care:
 
-      <synopsis>gnt-instance remove <replaceable>INSTANCE_NAME</replaceable></synopsis>
-
+        <synopsis>gnt-instance remove <replaceable>INSTANCE_NAME</replaceable></synopsis>
       </para>
     </sect2>
 
@@ -220,20 +221,18 @@
       <title>Starting/Stopping an instance</title>
 
       <para>
-        Instances are automatically started at instance creation
-        time. To manually start one which is currently stopped you can
-        run:
+        Instances are automatically started at instance creation time. To
+        manually start one which is currently stopped you can run:
 
-      <synopsis>gnt-instance startup <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance startup <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         While the command to stop one is:
 
-      <synopsis>gnt-instance shutdown <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance shutdown <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
-        The command to see all the instances configured and their
-        status is:
+        The command to see all the instances configured and their status is:
 
-      <synopsis>gnt-instance list</synopsis>
+        <synopsis>gnt-instance list</synopsis>
 
       </para>
 
@@ -253,9 +252,9 @@
       <para>
         You can create a snapshot of an instance disk and Ganeti
         configuration, which then you can backup, or import into
-        another cluster.  The way to export an instance is:
+        another cluster. The way to export an instance is:
 
-      <synopsis>gnt-backup export -n <replaceable>TARGET_NODE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-backup export -n <replaceable>TARGET_NODE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         The target node can be any node in the cluster with enough
         space under <filename class="directory">/srv/ganeti</filename>
@@ -269,10 +268,9 @@
       </para>
 
       <para>
-        Importing an instance is similar to creating a new one. The
-        command is:
+        Importing an instance is similar to creating a new one. The command is:
 
-      <synopsis>gnt-backup import -n <replaceable>TARGET_NODE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> --src-node=<replaceable>NODE</replaceable> --src-dir=DIR INSTANCE_NAME</synopsis>
+        <synopsis>gnt-backup import -n <replaceable>TARGET_NODE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> --src-node=<replaceable>NODE</replaceable> --src-dir=DIR INSTANCE_NAME</synopsis>
 
         Most of the options available for the command
         <emphasis>gnt-instance add</emphasis> are supported here too.
@@ -299,7 +297,7 @@
         primary has somehow failed and it's not up anymore. Doing it
         is really easy, on the master node you can just run:
 
-      <synopsis>gnt-instance failover <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance failover <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         That's it. After the command completes the secondary node is
         now the primary, and vice versa.
@@ -316,7 +314,7 @@
         for some? The solution here is to replace the instance disks,
         changing the secondary node:
 
-      <synopsis>gnt-instance replace-disks -n <replaceable>NEW_SECONDARY</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance replace-disks -n <replaceable>NEW_SECONDARY</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         This process is a bit longer, but involves no instance
         downtime, and at the end of it the instance has changed its
@@ -331,7 +329,7 @@
         up. Should it go down, or should you wish to decommission it,
         just run on any other node the command:
 
-      <synopsis>gnt-cluster masterfailover</synopsis>
+        <synopsis>gnt-cluster masterfailover</synopsis>
 
         and the node you ran it on is now the new master.
       </para>
@@ -344,14 +342,11 @@
         it's easy to free up a node, and then you can remove it from
         the cluster:
 
-      <synopsis>
-gnt-node remove <replaceable>NODE_NAME</replaceable>
-      </synopsis>
+        <synopsis>gnt-node remove <replaceable>NODE_NAME</replaceable></synopsis>
 
         and maybe add a new one:
 
-      <synopsis>
-gnt-node add <optional><option>--secondary-ip=<replaceable>ADDRESS</replaceable></option></optional> <replaceable>NODE_NAME</replaceable>
+        <synopsis>gnt-node add <optional><option>--secondary-ip=<replaceable>ADDRESS</replaceable></option></optional> <replaceable>NODE_NAME</replaceable>
 
       </synopsis>
       </para>
@@ -377,7 +372,7 @@ gnt-node add <optional><option>--secondary-ip=<replaceable>ADDRESS</replaceable>
         replication. The correct way to access them is to run the
         command:
 
-      <synopsis> gnt-instance activate-disks <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance activate-disks <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         And then access the device that gets created.  After you've
         finished you can deactivate them with the deactivate-disks
@@ -391,7 +386,7 @@ gnt-node add <optional><option>--secondary-ip=<replaceable>ADDRESS</replaceable>
       <para>
         The command to access a running instance's console is:
 
-      <synopsis>gnt-instance console <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance console <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         Use the console normally and then type
         <userinput>^]</userinput> when done, to exit.
@@ -406,7 +401,7 @@ gnt-node add <optional><option>--secondary-ip=<replaceable>ADDRESS</replaceable>
         the command to ran to see a complete status for all your nodes
         is:
 
-      <synopsis>gnt-os diagnose</synopsis>
+        <synopsis>gnt-os diagnose</synopsis>
 
       </para>
 

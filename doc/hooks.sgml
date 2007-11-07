@@ -21,7 +21,6 @@
 
     </section>
 
-
     <section>
       <title>Organisation</title>
 
@@ -111,29 +110,29 @@
 
         <para>The scripts will be run as follows:
           <itemizedlist>
-          <listitem>
-            <simpara>no command line arguments</simpara>
-          </listitem>
+            <listitem>
+              <simpara>no command line arguments</simpara>
+            </listitem>
             <listitem>
               <simpara>no controlling <acronym>tty</acronym></simpara>
             </listitem>
             <listitem>
               <simpara><varname>stdin</varname> is
-              actually <filename>/dev/null</filename></simpara>
+                actually <filename>/dev/null</filename></simpara>
             </listitem>
             <listitem>
               <simpara><varname>stdout</varname> and
-              <varname>stderr</varname> are directed to
-              files</simpara>
+                <varname>stderr</varname> are directed to
+                files</simpara>
             </listitem>
-          <listitem>
-            <simpara>the <varname>PATH</varname> is reset to
-            <literal>/sbin:/bin:/usr/sbin:/usr/bin</literal></simpara>
-          </listitem>
-          <listitem>
-            <simpara>the environment is cleared, and only
-            ganeti-specific variables will be left</simpara>
-          </listitem>
+            <listitem>
+              <simpara>the <varname>PATH</varname> is reset to
+                <literal>/sbin:/bin:/usr/sbin:/usr/bin</literal></simpara>
+            </listitem>
+            <listitem>
+              <simpara>the environment is cleared, and only
+                ganeti-specific variables will be left</simpara>
+            </listitem>
           </itemizedlist>
 
         </para>
