@@ -1,12 +1,14 @@
 #!/usr/bin/python
 #
 
+"""Burnin program"""
+
 import sys
 import optparse
+from itertools import izip, islice, cycle
 
 from ganeti import opcodes
 from ganeti import mcpu
-from ganeti import objects
 from ganeti import constants
 from ganeti import cli
 from ganeti import logger
@@ -22,202 +24,262 @@ def Usage():
   print >> sys.stderr, USAGE
   sys.exit(2)
 
-
 def Feedback(msg):
   """Simple function that prints out its argument.
 
   """
   print msg
 
+class Burner(object):
+  """Burner class."""
 
-def ParseOptions():
-  """Parses the command line options.
+  def __init__(self):
+    """Constructor."""
+    logger.SetupLogging(debug=True, program="ganeti/burnin")
+    self.proc = mcpu.Processor(feedback=Feedback)
+    self.nodes = []
+    self.instances = []
+    self.to_rem = []
+    self.opts = None
+    self.ParseOptions()
+    self.GetState()
 
-  In case of command line errors, it will show the usage and exit the
-  program.
+  def ParseOptions(self):
+    """Parses the command line options.
 
-  Returns:
-    (options, args), as returned by OptionParser.parse_args
-  """
+    In case of command line errors, it will show the usage and exit the
+    program.
 
-  parser = optparse.OptionParser(usage="\n%s" % USAGE,
-                                 version="%%prog (ganeti) %s" %
-                                 constants.RELEASE_VERSION,
-                                 option_class=cli.CliOption)
+    """
 
-  parser.add_option("-o", "--os", dest="os", default=None,
-                    help="OS to use during burnin",
-                    metavar="<OS>")
-  parser.add_option("--os-size", dest="os_size", help="Disk size",
-                    default=4 * 1024, type="unit", metavar="<size>")
-  parser.add_option("--swap-size", dest="swap_size", help="Swap size",
-                    default=4 * 1024, type="unit", metavar="<size>")
-  parser.add_option("-v", "--verbose",
-                    action="store_true", dest="verbose", default=False,
-                    help="print command execution messages to stdout")
-  parser.add_option("--no-replace1", dest="do_replace1",
-                    help="Do disk replacement with the same secondary",
-                    action="store_false", default=True)
-  parser.add_option("--no-replace2", dest="do_replace2",
-                    help="Do disk replacement with a different secondary",
-                    action="store_false", default=True)
-  parser.add_option("--no-failover", dest="do_failover",
-                    help="Do instance failovers", action="store_false",
-                    default=True)
-  parser.add_option("-t", "--disk-template", dest="disk_template",
-                    choices=("remote_raid1", "drbd8"), default="remote_raid1",
-                    help="Template type for network mirroring (remote_raid1"
-                    " or drbd8) [remote_raid1]")
-  parser.add_option("-n", "--nodes", dest="nodes", default="",
-                    help="Comma separated list of nodes to perform the burnin"
-                    " on (defaults to all nodes)")
+    parser = optparse.OptionParser(usage="\n%s" % USAGE,
+                                   version="%%prog (ganeti) %s" %
+                                   constants.RELEASE_VERSION,
+                                   option_class=cli.CliOption)
 
-  options, args = parser.parse_args()
-  if len(args) < 1 or options.os is None:
-    Usage()
+    parser.add_option("-o", "--os", dest="os", default=None,
+                      help="OS to use during burnin",
+                      metavar="<OS>")
+    parser.add_option("--os-size", dest="os_size", help="Disk size",
+                      default=4 * 1024, type="unit", metavar="<size>")
+    parser.add_option("--swap-size", dest="swap_size", help="Swap size",
+                      default=4 * 1024, type="unit", metavar="<size>")
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose", default=False,
+                      help="print command execution messages to stdout")
+    parser.add_option("--no-replace1", dest="do_replace1",
+                      help="Skip disk replacement with the same secondary",
+                      action="store_false", default=True)
+    parser.add_option("--no-replace2", dest="do_replace2",
+                      help="Skip disk replacement with a different secondary",
+                      action="store_false", default=True)
+    parser.add_option("--no-failover", dest="do_failover",
+                      help="Skip instance failovers", action="store_false",
+                      default=True)
+    parser.add_option("-t", "--disk-template", dest="disk_template",
+                      choices=("remote_raid1", "drbd8"),
+                      default="remote_raid1",
+                      help="Template type for network mirroring (remote_raid1"
+                      " or drbd8) [remote_raid1]")
+    parser.add_option("-n", "--nodes", dest="nodes", default="",
+                      help="Comma separated list of nodes to perform"
+                      " the burnin on (defaults to all nodes)")
 
-  return options, args
+    options, args = parser.parse_args()
+    if len(args) < 1 or options.os is None:
+      Usage()
 
+    if options.disk_template == "plain":
+      disk_template = constants.DT_PLAIN
+    elif options.disk_template == "remote_raid1":
+      disk_template = constants.DT_REMOTE_RAID1
+    elif options.disk_template == "drbd8":
+      disk_template = constants.DT_DRBD8
+    else:
+      Feedback("Unknown disk template '%s'" % options.disk_template)
+      sys.exit(1)
 
-def BurninCluster(opts, args):
-  """Test a cluster intensively.
+    options.disk_template = disk_template
+    self.opts = options
+    self.instances = args
 
-  This will create instances and then start/stop/failover them.
-  It is safe for existing instances but could impact performance.
+  def GetState(self):
+    """Read the cluster state from the config."""
+    if self.opts.nodes:
+      names = self.opts.nodes.split(",")
+    else:
+      names = []
+    try:
+      op = opcodes.OpQueryNodes(output_fields=["name"], names=names)
+      result = self.proc.ExecOpCode(op)
+    except errors.GenericError, err:
+      err_code, msg = cli.FormatError(err)
+      Feedback(msg)
+      sys.exit(err_code)
+    self.nodes = [data[0] for data in result]
 
-  """
+    result = self.proc.ExecOpCode(opcodes.OpDiagnoseOS())
 
-  logger.SetupLogging(debug=True, program="ganeti/burnin")
-  proc = mcpu.Processor(feedback=Feedback)
-  if opts.nodes:
-    names = opts.nodes.split(",")
-  else:
-    names = []
-  try:
-    result = proc.ExecOpCode(opcodes.OpQueryNodes(output_fields=["name"],
-                                                  names=names))
-  except errors.GenericError, err:
-    err_code, msg = cli.FormatError(err)
-    Feedback(msg)
-    return err_code
-  nodelist = [data[0] for data in result]
+    if not result:
+      Feedback("Can't get the OS list")
+      sys.exit(1)
 
-  Feedback("- Testing global parameters")
+    # filter non-valid OS-es
+    oses = {}
+    for node_name in result:
+      oses[node_name] = [obj for obj in result[node_name] if obj]
 
-  result = proc.ExecOpCode(opcodes.OpDiagnoseOS())
+    fnode = oses.keys()[0]
+    os_set = set([os_inst.name for os_inst in oses[fnode]])
+    del oses[fnode]
+    for node in oses:
+      os_set &= set([os_inst.name for os_inst in oses[node]])
 
-  if not result:
-    Feedback("Can't get the OS list")
-    return 1
+    if self.opts.os not in os_set:
+      Feedback("OS '%s' not found" % self.opts.os)
+      sys.exit(1)
 
-  # filter non-valid OS-es
-  oses = {}
-  for node_name in result:
-    oses[node_name] = [obj for obj in result[node_name]
-                       if isinstance(obj, objects.OS)]
+  def CreateInstances(self):
+    """Create the given instances.
 
-  fnode = oses.keys()[0]
-  os_set = set([os_inst.name for os_inst in oses[fnode]])
-  del oses[fnode]
-  for node in oses:
-    os_set &= set([os_inst.name for os_inst in oses[node]])
-
-  if opts.os not in os_set:
-    Feedback("OS '%s' not found" % opts.os)
-    return 1
-
-  to_remove = []
-  if opts.disk_template == "remote_raid1":
-    disk_template = constants.DT_REMOTE_RAID1
-  elif opts.disk_template == "drbd8":
-    disk_template = constants.DT_DRBD8
-  else:
-    Feedback("Unknown disk template '%s'" % opts.disk_template)
-    return 1
-  try:
-    idx = 0
-    for instance_name in args:
-      next_idx = idx + 1
-      if next_idx >= len(nodelist):
-        next_idx = 0
-      pnode = nodelist[idx]
-      snode = nodelist[next_idx]
-      if len(nodelist) > 1:
-        tplate = disk_template
-      else:
-        tplate = constants.DT_PLAIN
-
-      op = opcodes.OpCreateInstance(instance_name=instance_name, mem_size=128,
-                                    disk_size=opts.os_size,
-                                    swap_size=opts.swap_size,
-                                    disk_template=tplate,
+    """
+    self.to_rem = []
+    mytor = izip(cycle(self.nodes),
+                 islice(cycle(self.nodes), 1, None),
+                 self.instances)
+    for pnode, snode, instance in mytor:
+      op = opcodes.OpCreateInstance(instance_name=instance,
+                                    mem_size=128,
+                                    disk_size=self.opts.os_size,
+                                    swap_size=self.opts.swap_size,
+                                    disk_template=self.opts.disk_template,
                                     mode=constants.INSTANCE_CREATE,
-                                    os_type=opts.os, pnode=pnode,
-                                    snode=snode, vcpus=1,
+                                    os_type=self.opts.os,
+                                    pnode=pnode,
+                                    snode=snode,
+                                    vcpus=1,
                                     start=True,
                                     ip_check=True,
                                     wait_for_sync=True)
-      Feedback("- Add instance %s on node %s" % (instance_name, pnode))
-      result = proc.ExecOpCode(op)
-      to_remove.append(instance_name)
-      idx = next_idx
+      Feedback("- Add instance %s on node %s" % (instance, pnode))
+      self.proc.ExecOpCode(op)
+      self.to_rem.append(instance)
 
+  def ReplaceDisks1R1(self):
+    """Replace disks with the same secondary for rr1."""
+    # replace all, both disks
+    for instance in self.instances:
+      op = opcodes.OpReplaceDisks(instance_name=instance,
+                                  remote_node=None,
+                                  mode=constants.REPLACE_DISK_ALL,
+                                  disks=["sda", "sdb"])
 
-    if opts.do_replace1:
-      if len(nodelist) > 1:
-        # failover
-        for instance_name in args:
-          op = opcodes.OpReplaceDisks(instance_name=instance_name,
-                                      remote_node=None,
-                                      mode=constants.REPLACE_DISK_ALL,
-                                      disks=["sda", "sdb"])
+      Feedback("- Replace disks for instance %s" % (instance))
+      self.proc.ExecOpCode(op)
 
-          Feedback("- Replace disks for instance %s" % (instance_name))
-          result = proc.ExecOpCode(op)
-      else:
-        Feedback("- Can't run replace1, not enough nodes")
+  def ReplaceDisks1D8(self):
+    """Replace disks on primary and secondary for drbd8."""
+    for instance in self.instances:
+      for mode in constants.REPLACE_DISK_SEC, constants.REPLACE_DISK_PRI:
+        op = opcodes.OpReplaceDisks(instance_name=instance,
+                                    mode=mode,
+                                    disks=["sda", "sdb"])
+        Feedback("- Replace disks (%s) for instance %s" % (mode, instance))
+        self.proc.ExecOpCode(op)
 
-    if opts.do_failover:
-      if len(nodelist) > 1:
-        # failover
-        for instance_name in args:
-          op = opcodes.OpFailoverInstance(instance_name=instance_name,
-                                          ignore_consistency=True)
+  def ReplaceDisks2(self):
+    """Replace secondary node."""
+    if self.opts.disk_template == constants.DT_REMOTE_RAID1:
+      mode = constants.REPLACE_DISK_ALL
+    else:
+      mode = constants.REPLACE_DISK_SEC
 
-          Feedback("- Failover instance %s" % (instance_name))
-          result = proc.ExecOpCode(op)
-      else:
-        Feedback("- Can't run failovers, not enough nodes")
+    mytor = izip(islice(cycle(self.nodes), 2, None),
+                 self.instances)
+    for tnode, instance in mytor:
+      op = opcodes.OpReplaceDisks(instance_name=instance,
+                                  mode=mode,
+                                  remote_node=tnode,
+                                  disks=["sda", "sdb"])
+      Feedback("- Replace secondary (%s) for instance %s" % (mode, instance))
+      self.proc.ExecOpCode(op)
 
-    # stop / start
-    for instance_name in args:
-      op = opcodes.OpShutdownInstance(instance_name=instance_name)
-      Feedback("- Shutdown instance %s" % instance_name)
-      result = proc.ExecOpCode(op)
-      op = opcodes.OpStartupInstance(instance_name=instance_name, force=False)
-      Feedback("- Start instance %s" % instance_name)
-      result = proc.ExecOpCode(op)
+  def Failover(self):
+    """Failover the instances."""
 
-  finally:
-    # remove
-    for instance_name in to_remove:
-      op = opcodes.OpRemoveInstance(instance_name=instance_name)
-      Feedback("- Remove instance %s" % instance_name)
-      result = proc.ExecOpCode(op)
+    for instance in self.instances:
+      op = opcodes.OpFailoverInstance(instance_name=instance,
+                                      ignore_consistency=False)
 
-  return 0
+      Feedback("- Failover instance %s" % (instance))
+      self.proc.ExecOpCode(op)
+
+  def StopStart(self):
+    """Stop/start the instances."""
+    for instance in self.instances:
+      op = opcodes.OpShutdownInstance(instance_name=instance)
+      Feedback("- Shutdown instance %s" % instance)
+      self.proc.ExecOpCode(op)
+      op = opcodes.OpStartupInstance(instance_name=instance, force=False)
+      Feedback("- Start instance %s" % instance)
+      self.proc.ExecOpCode(op)
+
+  def Remove(self):
+    """Remove the instances."""
+    for instance in self.to_rem:
+      op = opcodes.OpRemoveInstance(instance_name=instance)
+      Feedback("- Remove instance %s" % instance)
+      self.proc.ExecOpCode(op)
+
+  def BurninCluster(self):
+    """Test a cluster intensively.
+
+    This will create instances and then start/stop/failover them.
+    It is safe for existing instances but could impact performance.
+
+    """
+
+    opts = self.opts
+
+    Feedback("- Testing global parameters")
+
+    if len(self.nodes) == 1 and opts.disk_template != constants.DT_PLAIN:
+      Feedback("When one node is available/selected the disk template must"
+               " be 'plain'")
+      sys.exit(1)
+
+    try:
+      self.CreateInstances()
+      if opts.do_replace1 and opts.disk_template in constants.DTS_NET_MIRROR:
+        if opts.disk_template == constants.DT_REMOTE_RAID1:
+          self.ReplaceDisks1R1()
+        elif opts.disk_template == constants.DT_DRBD8:
+          self.ReplaceDisks1D8()
+      if (opts.do_replace2 and len(self.nodes) > 2 and
+          opts.disk_template in constants.DTS_NET_MIRROR) :
+        self.ReplaceDisks2()
+
+      if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
+        self.Failover()
+
+      self.StopStart()
+
+    finally:
+      self.Remove()
+
+    return 0
 
 def main():
   """Main function"""
 
-  opts, args = ParseOptions()
+  burner = Burner()
   try:
     utils.Lock('cmd', max_retries=15, debug=True)
   except errors.LockError, err:
     logger.ToStderr(str(err))
     return 1
   try:
-    retval = BurninCluster(opts, args)
+    retval = burner.BurninCluster()
   finally:
     utils.Unlock('cmd')
     utils.LockCleanup()
