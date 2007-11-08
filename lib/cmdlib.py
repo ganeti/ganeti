@@ -69,7 +69,7 @@ class LogicalUnit(object):
     validity.
 
     """
-    self.processor = processor
+    self.proc = processor
     self.op = op
     self.cfg = cfg
     self.sstore = sstore
@@ -1015,7 +1015,7 @@ class LURenameCluster(LogicalUnit):
                      "please restart manually.")
 
 
-def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
+def _WaitForSync(cfgw, instance, proc, oneshot=False, unlock=False):
   """Sleep and poll for an instance's disk to sync.
 
   """
@@ -1023,7 +1023,7 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
     return True
 
   if not oneshot:
-    logger.ToStdout("Waiting for instance %s to sync disks." % instance.name)
+    proc.LogInfo("Waiting for instance %s to sync disks." % instance.name)
 
   node = instance.primary_node
 
@@ -1037,7 +1037,7 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
     cumul_degraded = False
     rstats = rpc.call_blockdev_getmirrorstatus(node, instance.disks)
     if not rstats:
-      logger.ToStderr("Can't get any data from node %s" % node)
+      proc.LogWarning("Can't get any data from node %s" % node)
       retries += 1
       if retries >= 10:
         raise errors.RemoteError("Can't contact node %s for mirror data,"
@@ -1048,7 +1048,7 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
     for i in range(len(rstats)):
       mstat = rstats[i]
       if mstat is None:
-        logger.ToStderr("Can't compute data for node %s/%s" %
+        proc.LogWarning("Can't compute data for node %s/%s" %
                         (node, instance.disks[i].iv_name))
         continue
       # we ignore the ldisk parameter
@@ -1061,8 +1061,8 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
           max_time = est_time
         else:
           rem_time = "no time estimate"
-        logger.ToStdout("- device %s: %5.2f%% done, %s" %
-                        (instance.disks[i].iv_name, perc_done, rem_time))
+        proc.LogInfo("- device %s: %5.2f%% done, %s" %
+                     (instance.disks[i].iv_name, perc_done, rem_time))
     if done or oneshot:
       break
 
@@ -1075,7 +1075,7 @@ def _WaitForSync(cfgw, instance, oneshot=False, unlock=False):
         utils.Lock('cmd')
 
   if done:
-    logger.ToStdout("Instance %s's disks are in sync." % instance.name)
+    proc.LogInfo("Instance %s's disks are in sync." % instance.name)
   return not cumul_degraded
 
 
@@ -3050,12 +3050,12 @@ class LUCreateInstance(LogicalUnit):
     self.cfg.AddInstance(iobj)
 
     if self.op.wait_for_sync:
-      disk_abort = not _WaitForSync(self.cfg, iobj)
+      disk_abort = not _WaitForSync(self.cfg, iobj, self.proc)
     elif iobj.disk_template in constants.DTS_NET_MIRROR:
       # make sure the disks are not degraded (still sync-ing is ok)
       time.sleep(15)
       feedback_fn("* checking mirrors status")
-      disk_abort = not _WaitForSync(self.cfg, iobj, oneshot=True)
+      disk_abort = not _WaitForSync(self.cfg, iobj, self.proc, oneshot=True)
     else:
       disk_abort = False
 
@@ -3257,7 +3257,7 @@ class LUAddMDDRBDComponent(LogicalUnit):
 
     self.cfg.AddInstance(instance)
 
-    _WaitForSync(self.cfg, instance)
+    _WaitForSync(self.cfg, instance, self.proc)
 
     return 0
 
@@ -3513,7 +3513,7 @@ class LUReplaceDisks(LogicalUnit):
     # this can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its
     # return value
-    _WaitForSync(cfg, instance, unlock=True)
+    _WaitForSync(cfg, instance, self.proc, unlock=True)
 
     # so check manually all the devices
     for name in iv_names:
@@ -3566,7 +3566,7 @@ class LUReplaceDisks(LogicalUnit):
 
     """
     steps_total = 6
-    warning, info = (self.processor.LogWarning, self.processor.LogInfo)
+    warning, info = (self.proc.LogWarning, self.proc.LogInfo)
     instance = self.instance
     iv_names = {}
     vgname = self.cfg.GetVGName()
@@ -3576,7 +3576,7 @@ class LUReplaceDisks(LogicalUnit):
     oth_node = self.oth_node
 
     # Step: check device activation
-    self.processor.LogStep(1, steps_total, "check device existence")
+    self.proc.LogStep(1, steps_total, "check device existence")
     info("checking volume groups")
     my_vg = cfg.GetVGName()
     results = rpc.call_vg_list([oth_node, tgt_node])
@@ -3598,7 +3598,7 @@ class LUReplaceDisks(LogicalUnit):
                                    (dev.iv_name, node))
 
     # Step: check other node consistency
-    self.processor.LogStep(2, steps_total, "check peer consistency")
+    self.proc.LogStep(2, steps_total, "check peer consistency")
     for dev in instance.disks:
       if not dev.iv_name in self.op.disks:
         continue
@@ -3610,7 +3610,7 @@ class LUReplaceDisks(LogicalUnit):
                                  (oth_node, tgt_node))
 
     # Step: create new storage
-    self.processor.LogStep(3, steps_total, "allocate new storage")
+    self.proc.LogStep(3, steps_total, "allocate new storage")
     for dev in instance.disks:
       if not dev.iv_name in self.op.disks:
         continue
@@ -3638,7 +3638,7 @@ class LUReplaceDisks(LogicalUnit):
                                    (new_lv.logical_id[1], tgt_node))
 
     # Step: for each lv, detach+rename*2+attach
-    self.processor.LogStep(4, steps_total, "change drbd configuration")
+    self.proc.LogStep(4, steps_total, "change drbd configuration")
     for dev, old_lvs, new_lvs in iv_names.itervalues():
       info("detaching %s drbd from local storage" % dev.iv_name)
       if not rpc.call_blockdev_removechildren(tgt_node, dev, old_lvs):
@@ -3698,8 +3698,8 @@ class LUReplaceDisks(LogicalUnit):
     # this can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its
     # return value
-    self.processor.LogStep(5, steps_total, "sync devices")
-    _WaitForSync(cfg, instance, unlock=True)
+    self.proc.LogStep(5, steps_total, "sync devices")
+    _WaitForSync(cfg, instance, self.proc, unlock=True)
 
     # so check manually all the devices
     for name, (dev, old_lvs, new_lvs) in iv_names.iteritems():
@@ -3709,7 +3709,7 @@ class LUReplaceDisks(LogicalUnit):
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
     # Step: remove old storage
-    self.processor.LogStep(6, steps_total, "removing old storage")
+    self.proc.LogStep(6, steps_total, "removing old storage")
     for name, (dev, old_lvs, new_lvs) in iv_names.iteritems():
       info("remove logical volumes for %s" % name)
       for lv in old_lvs:
@@ -3738,7 +3738,7 @@ class LUReplaceDisks(LogicalUnit):
 
     """
     steps_total = 6
-    warning, info = (self.processor.LogWarning, self.processor.LogInfo)
+    warning, info = (self.proc.LogWarning, self.proc.LogInfo)
     instance = self.instance
     iv_names = {}
     vgname = self.cfg.GetVGName()
@@ -3749,7 +3749,7 @@ class LUReplaceDisks(LogicalUnit):
     pri_node = instance.primary_node
 
     # Step: check device activation
-    self.processor.LogStep(1, steps_total, "check device existence")
+    self.proc.LogStep(1, steps_total, "check device existence")
     info("checking volume groups")
     my_vg = cfg.GetVGName()
     results = rpc.call_vg_list([pri_node, new_node])
@@ -3770,7 +3770,7 @@ class LUReplaceDisks(LogicalUnit):
                                  (dev.iv_name, pri_node))
 
     # Step: check other node consistency
-    self.processor.LogStep(2, steps_total, "check peer consistency")
+    self.proc.LogStep(2, steps_total, "check peer consistency")
     for dev in instance.disks:
       if not dev.iv_name in self.op.disks:
         continue
@@ -3781,7 +3781,7 @@ class LUReplaceDisks(LogicalUnit):
                                  pri_node)
 
     # Step: create new storage
-    self.processor.LogStep(3, steps_total, "allocate new storage")
+    self.proc.LogStep(3, steps_total, "allocate new storage")
     for dev in instance.disks:
       size = dev.size
       info("adding new local storage on %s for %s" % (new_node, dev.iv_name))
@@ -3797,7 +3797,7 @@ class LUReplaceDisks(LogicalUnit):
 
       iv_names[dev.iv_name] = (dev, dev.children)
 
-    self.processor.LogStep(4, steps_total, "changing drbd configuration")
+    self.proc.LogStep(4, steps_total, "changing drbd configuration")
     for dev in instance.disks:
       size = dev.size
       info("activating a new drbd on %s for %s" % (new_node, dev.iv_name))
@@ -3839,8 +3839,8 @@ class LUReplaceDisks(LogicalUnit):
     # this can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its
     # return value
-    self.processor.LogStep(5, steps_total, "sync devices")
-    _WaitForSync(cfg, instance, unlock=True)
+    self.proc.LogStep(5, steps_total, "sync devices")
+    _WaitForSync(cfg, instance, self.proc, unlock=True)
 
     # so check manually all the devices
     for name, (dev, old_lvs) in iv_names.iteritems():
@@ -3849,7 +3849,7 @@ class LUReplaceDisks(LogicalUnit):
       if is_degr:
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
-    self.processor.LogStep(6, steps_total, "removing old storage")
+    self.proc.LogStep(6, steps_total, "removing old storage")
     for name, (dev, old_lvs) in iv_names.iteritems():
       info("remove logical volumes for %s" % name)
       for lv in old_lvs:
@@ -4157,7 +4157,7 @@ class LUExportInstance(LogicalUnit):
     # shutdown the instance, unless requested not to do so
     if self.op.shutdown:
       op = opcodes.OpShutdownInstance(instance_name=instance.name)
-      self.processor.ChainOpCode(op)
+      self.proc.ChainOpCode(op)
 
     vgname = self.cfg.GetVGName()
 
@@ -4183,7 +4183,7 @@ class LUExportInstance(LogicalUnit):
       if self.op.shutdown:
         op = opcodes.OpStartupInstance(instance_name=instance.name,
                                        force=False)
-        self.processor.ChainOpCode(op)
+        self.proc.ChainOpCode(op)
 
     # TODO: check for size
 
@@ -4209,7 +4209,7 @@ class LUExportInstance(LogicalUnit):
     # substitutes an empty list with the full cluster node list.
     if nodelist:
       op = opcodes.OpQueryExports(nodes=nodelist)
-      exportlist = self.processor.ChainOpCode(op)
+      exportlist = self.proc.ChainOpCode(op)
       for node in exportlist:
         if instance.name in exportlist[node]:
           if not rpc.call_export_remove(node, instance.name):

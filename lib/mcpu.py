@@ -173,13 +173,14 @@ class Processor(object):
     logger.Debug("Step %d/%d %s" % (current, total, message))
     self._feedback_fn("STEP %d/%d %s" % (current, total, message))
 
-  def LogWarning(self, message, hint):
+  def LogWarning(self, message, hint=None):
     """Log a warning to the logs and the user.
 
     """
     logger.Error(message)
     self._feedback_fn(" - WARNING: %s" % message)
-    self._feedback_fn("      Hint: %s" % hint)
+    if hint:
+      self._feedback_fn("      Hint: %s" % hint)
 
   def LogInfo(self, message):
     """Log an informational message to the logs and the user.
