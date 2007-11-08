@@ -70,3 +70,6 @@ tests:
 # Other settings
 options:
   burnin-instances: 2
+
+  # Directory containing QA hooks
+  #hooks-dir: hooks/

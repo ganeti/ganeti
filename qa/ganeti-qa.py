@@ -40,6 +40,7 @@ import qa_node
 import qa_os
 import qa_other
 import qa_tags
+import qa_utils
 
 
 def RunTest(fn, *args):
@@ -236,6 +237,7 @@ def main():
     sys.exit(1)
 
   qa_config.Load(config_file)
+  qa_utils.LoadHooks()
 
   RunTest(qa_other.UploadKnownHostsFile, known_hosts_file)
 

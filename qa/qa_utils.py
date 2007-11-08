@@ -36,6 +36,10 @@ _ERROR_SEQ = None
 _RESET_SEQ = None
 
 
+# List of all hooks
+_hooks = []
+
+
 def _SetupColours():
   """Initializes the colour constants.
 
@@ -214,3 +218,81 @@ def _FormatWithColor(text, seq):
 FormatWarning = lambda text: _FormatWithColor(text, _WARNING_SEQ)
 FormatError = lambda text: _FormatWithColor(text, _ERROR_SEQ)
 FormatInfo = lambda text: _FormatWithColor(text, _INFO_SEQ)
+
+
+def LoadHooks():
+  """Load all QA hooks.
+
+  """
+  hooks_dir = qa_config.get('options', {}).get('hooks-dir', None)
+  if not hooks_dir:
+    return
+  if hooks_dir not in sys.path:
+    sys.path.insert(0, hooks_dir)
+  for name in utils.ListVisibleFiles(hooks_dir):
+    if name.endswith('.py'):
+      # Load and instanciate hook
+      _hooks.append(__import__(name[:-3], None, None, ['']).hook())
+
+
+class QaHookContext:
+  name = None
+  phase = None
+  success = None
+  args = None
+  kwargs = None
+
+
+def _CallHooks(ctx):
+  """Calls all hooks with the given context.
+
+  """
+  if not _hooks:
+    return
+
+  name = "%s-%s" % (ctx.phase, ctx.name)
+  if ctx.success is not None:
+    msg = "%s (success=%s)" % (name, ctx.success)
+  else:
+    msg = name
+  print FormatInfo("Begin %s" % msg)
+  for hook in _hooks:
+    hook.run(ctx)
+  print FormatInfo("End %s" % name)
+
+
+def DefineHook(name):
+  """Wraps a function with calls to hooks.
+
+  Usage: prefix function with @qa_utils.DefineHook(...)
+
+  """
+  def wrapper(fn):
+    def new_f(*args, **kwargs):
+      # Create context
+      ctx = QaHookContext()
+      ctx.name = name
+      ctx.phase = 'pre'
+      ctx.args = args
+      ctx.kwargs = kwargs
+
+      _CallHooks(ctx)
+      try:
+        ctx.phase = 'post'
+        ctx.success = True
+        try:
+          # Call real function
+          return fn(*args, **kwargs)
+        except:
+          ctx.success = False
+          raise
+      finally:
+        _CallHooks(ctx)
+
+    # Override function metadata
+    new_f.func_name = fn.func_name
+    new_f.func_doc = fn.func_doc
+
+    return new_f
+
+  return wrapper
