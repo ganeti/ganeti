@@ -25,6 +25,7 @@ import qa_utils
 from qa_utils import AssertEqual, StartSSH
 
 
+@qa_utils.DefineHook('node-add')
 def _NodeAdd(node):
   master = qa_config.GetMasterNode()
 
@@ -41,6 +42,7 @@ def _NodeAdd(node):
   node['_added'] = True
 
 
+@qa_utils.DefineHook('node-remove')
 def _NodeRemove(node):
   master = qa_config.GetMasterNode()
 
@@ -66,6 +68,7 @@ def TestNodeRemoveAll():
       _NodeRemove(node)
 
 
+@qa_utils.DefineHook('node-info')
 def TestNodeInfo():
   """gnt-node info"""
   master = qa_config.GetMasterNode()
@@ -75,6 +78,7 @@ def TestNodeInfo():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('node-volumes')
 def TestNodeVolumes():
   """gnt-node volumes"""
   master = qa_config.GetMasterNode()
@@ -84,6 +88,7 @@ def TestNodeVolumes():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('node-failover')
 def TestNodeFailover(node, node2):
   """gnt-node failover"""
   master = qa_config.GetMasterNode()
@@ -104,6 +109,7 @@ def TestNodeFailover(node, node2):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('node-evacuate')
 def TestNodeEvacuate(node, node2):
   """gnt-node evacuate"""
   master = qa_config.GetMasterNode()

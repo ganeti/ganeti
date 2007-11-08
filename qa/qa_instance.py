@@ -63,22 +63,26 @@ def _DiskTest(node, disk_template):
     raise
 
 
+@qa_utils.DefineHook('instance-add-plain-disk')
 def TestInstanceAddWithPlainDisk(node):
   """gnt-instance add -t plain"""
   return _DiskTest(node['primary'], 'plain')
 
 
+@qa_utils.DefineHook('instance-add-local-mirror-disk')
 def TestInstanceAddWithLocalMirrorDisk(node):
   """gnt-instance add -t local_raid1"""
   return _DiskTest(node['primary'], 'local_raid1')
 
 
+@qa_utils.DefineHook('instance-add-remote-raid-disk')
 def TestInstanceAddWithRemoteRaidDisk(node, node2):
   """gnt-instance add -t remote_raid1"""
   return _DiskTest("%s:%s" % (node['primary'], node2['primary']),
                    'remote_raid1')
 
 
+@qa_utils.DefineHook('instance-remove')
 def TestInstanceRemove(instance):
   """gnt-instance remove"""
   master = qa_config.GetMasterNode()
@@ -90,6 +94,7 @@ def TestInstanceRemove(instance):
   qa_config.ReleaseInstance(instance)
 
 
+@qa_utils.DefineHook('instance-startup')
 def TestInstanceStartup(instance):
   """gnt-instance startup"""
   master = qa_config.GetMasterNode()
@@ -99,6 +104,7 @@ def TestInstanceStartup(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-shutdown')
 def TestInstanceShutdown(instance):
   """gnt-instance shutdown"""
   master = qa_config.GetMasterNode()
@@ -108,6 +114,7 @@ def TestInstanceShutdown(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-reinstall')
 def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
   master = qa_config.GetMasterNode()
@@ -117,6 +124,7 @@ def TestInstanceReinstall(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-failover')
 def TestInstanceFailover(instance):
   """gnt-instance failover"""
   master = qa_config.GetMasterNode()
@@ -126,6 +134,7 @@ def TestInstanceFailover(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-info')
 def TestInstanceInfo(instance):
   """gnt-instance info"""
   master = qa_config.GetMasterNode()
@@ -135,6 +144,7 @@ def TestInstanceInfo(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-list')
 def TestInstanceList():
   """gnt-instance list"""
   master = qa_config.GetMasterNode()
@@ -144,6 +154,7 @@ def TestInstanceList():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('backup-export')
 def TestInstanceExport(instance, node):
   """gnt-backup export"""
   master = qa_config.GetMasterNode()
@@ -155,6 +166,7 @@ def TestInstanceExport(instance, node):
   return qa_utils.ResolveInstanceName(instance)
 
 
+@qa_utils.DefineHook('backup-import')
 def TestInstanceImport(node, newinst, expnode, name):
   """gnt-backup import"""
   master = qa_config.GetMasterNode()
@@ -171,6 +183,7 @@ def TestInstanceImport(node, newinst, expnode, name):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('backup-list')
 def TestBackupList(expnode):
   """gnt-backup list"""
   master = qa_config.GetMasterNode()
