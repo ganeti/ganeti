@@ -1,3 +1,4 @@
+SUBDIRS = hooks
 EXTRA_DIST = ganeti-qa.py qa-sample.yaml \
 	qa_cluster.py \
 	qa_config.py \

@@ -76,6 +76,7 @@ AC_CONFIG_FILES([
   lib/Makefile
   man/Makefile
   qa/Makefile
+  qa/hooks/Makefile
   scripts/Makefile
   test/Makefile
   tools/Makefile
