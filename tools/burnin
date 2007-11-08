@@ -6,6 +6,7 @@
 import sys
 import optparse
 from itertools import izip, islice, cycle
+from cStringIO import StringIO
 
 from ganeti import opcodes
 from ganeti import mcpu
@@ -24,7 +25,7 @@ def Usage():
   print >> sys.stderr, USAGE
   sys.exit(2)
 
-def Feedback(msg):
+def Log(msg):
   """Simple function that prints out its argument.
 
   """
@@ -35,14 +36,33 @@ class Burner(object):
 
   def __init__(self):
     """Constructor."""
-    logger.SetupLogging(debug=True, program="ganeti/burnin")
-    self.proc = mcpu.Processor(feedback=Feedback)
+    logger.SetupLogging(debug=False, program="ganeti/burnin")
+    self._feed_buf = StringIO()
+    self.proc = mcpu.Processor(feedback=self.Feedback)
     self.nodes = []
     self.instances = []
     self.to_rem = []
     self.opts = None
     self.ParseOptions()
     self.GetState()
+
+  def ClearFeedbackBuf(self):
+    """Clear the feedback buffer."""
+    self._feed_buf.truncate(0)
+
+  def GetFeedbackBuf(self):
+    """Return the contents of the buffer."""
+    return self._feed_buf.getvalue()
+
+  def Feedback(self, msg):
+    """Acumulate feedback in our buffer."""
+    self._feed_buf.write(msg)
+    self._feed_buf.write("\n")
+
+  def ExecOp(self, op):
+    """Execute an opcode and manage the exec buffer."""
+    self.ClearFeedbackBuf()
+    return self.proc.ExecOpCode(op)
 
   def ParseOptions(self):
     """Parses the command line options.
@@ -96,7 +116,7 @@ class Burner(object):
     elif options.disk_template == "drbd8":
       disk_template = constants.DT_DRBD8
     else:
-      Feedback("Unknown disk template '%s'" % options.disk_template)
+      Log("Unknown disk template '%s'" % options.disk_template)
       sys.exit(1)
 
     options.disk_template = disk_template
@@ -111,17 +131,17 @@ class Burner(object):
       names = []
     try:
       op = opcodes.OpQueryNodes(output_fields=["name"], names=names)
-      result = self.proc.ExecOpCode(op)
+      result = self.ExecOp(op)
     except errors.GenericError, err:
       err_code, msg = cli.FormatError(err)
-      Feedback(msg)
+      Log(msg)
       sys.exit(err_code)
     self.nodes = [data[0] for data in result]
 
-    result = self.proc.ExecOpCode(opcodes.OpDiagnoseOS())
+    result = self.ExecOp(opcodes.OpDiagnoseOS())
 
     if not result:
-      Feedback("Can't get the OS list")
+      Log("Can't get the OS list")
       sys.exit(1)
 
     # filter non-valid OS-es
@@ -136,7 +156,7 @@ class Burner(object):
       os_set &= set([os_inst.name for os_inst in oses[node]])
 
     if self.opts.os not in os_set:
-      Feedback("OS '%s' not found" % self.opts.os)
+      Log("OS '%s' not found" % self.opts.os)
       sys.exit(1)
 
   def CreateInstances(self):
@@ -161,8 +181,8 @@ class Burner(object):
                                     start=True,
                                     ip_check=True,
                                     wait_for_sync=True)
-      Feedback("- Add instance %s on node %s" % (instance, pnode))
-      self.proc.ExecOpCode(op)
+      Log("- Add instance %s on node %s" % (instance, pnode))
+      self.ExecOp(op)
       self.to_rem.append(instance)
 
   def ReplaceDisks1R1(self):
@@ -174,8 +194,8 @@ class Burner(object):
                                   mode=constants.REPLACE_DISK_ALL,
                                   disks=["sda", "sdb"])
 
-      Feedback("- Replace disks for instance %s" % (instance))
-      self.proc.ExecOpCode(op)
+      Log("- Replace disks for instance %s" % (instance))
+      self.ExecOp(op)
 
   def ReplaceDisks1D8(self):
     """Replace disks on primary and secondary for drbd8."""
@@ -184,8 +204,8 @@ class Burner(object):
         op = opcodes.OpReplaceDisks(instance_name=instance,
                                     mode=mode,
                                     disks=["sda", "sdb"])
-        Feedback("- Replace disks (%s) for instance %s" % (mode, instance))
-        self.proc.ExecOpCode(op)
+        Log("- Replace disks (%s) for instance %s" % (mode, instance))
+        self.ExecOp(op)
 
   def ReplaceDisks2(self):
     """Replace secondary node."""
@@ -201,8 +221,8 @@ class Burner(object):
                                   mode=mode,
                                   remote_node=tnode,
                                   disks=["sda", "sdb"])
-      Feedback("- Replace secondary (%s) for instance %s" % (mode, instance))
-      self.proc.ExecOpCode(op)
+      Log("- Replace secondary (%s) for instance %s" % (mode, instance))
+      self.ExecOp(op)
 
   def Failover(self):
     """Failover the instances."""
@@ -211,25 +231,25 @@ class Burner(object):
       op = opcodes.OpFailoverInstance(instance_name=instance,
                                       ignore_consistency=False)
 
-      Feedback("- Failover instance %s" % (instance))
-      self.proc.ExecOpCode(op)
+      Log("- Failover instance %s" % (instance))
+      self.ExecOp(op)
 
   def StopStart(self):
     """Stop/start the instances."""
     for instance in self.instances:
       op = opcodes.OpShutdownInstance(instance_name=instance)
-      Feedback("- Shutdown instance %s" % instance)
-      self.proc.ExecOpCode(op)
+      Log("- Shutdown instance %s" % instance)
+      self.ExecOp(op)
       op = opcodes.OpStartupInstance(instance_name=instance, force=False)
-      Feedback("- Start instance %s" % instance)
-      self.proc.ExecOpCode(op)
+      Log("- Start instance %s" % instance)
+      self.ExecOp(op)
 
   def Remove(self):
     """Remove the instances."""
     for instance in self.to_rem:
       op = opcodes.OpRemoveInstance(instance_name=instance)
-      Feedback("- Remove instance %s" % instance)
-      self.proc.ExecOpCode(op)
+      Log("- Remove instance %s" % instance)
+      self.ExecOp(op)
 
   def BurninCluster(self):
     """Test a cluster intensively.
@@ -241,13 +261,14 @@ class Burner(object):
 
     opts = self.opts
 
-    Feedback("- Testing global parameters")
+    Log("- Testing global parameters")
 
     if len(self.nodes) == 1 and opts.disk_template != constants.DT_PLAIN:
-      Feedback("When one node is available/selected the disk template must"
+      Log("When one node is available/selected the disk template must"
                " be 'plain'")
       sys.exit(1)
 
+    has_err = True
     try:
       self.CreateInstances()
       if opts.do_replace1 and opts.disk_template in constants.DTS_NET_MIRROR:
@@ -263,8 +284,12 @@ class Burner(object):
         self.Failover()
 
       self.StopStart()
-
+      has_err = False
     finally:
+      if has_err:
+        Log("Error detected: opcode buffer follows:\n\n")
+        Log(self.GetFeedbackBuf())
+        Log("\n\n")
       self.Remove()
 
     return 0
