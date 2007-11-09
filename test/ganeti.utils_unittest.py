@@ -37,7 +37,8 @@ from ganeti import utils
 from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
-     ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles
+     ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
+     AddEtcHostsEntry, RemoveEtcHostsEntry
 from ganeti.errors import LockError, UnitParseError
 
 
@@ -425,6 +426,92 @@ class TestSshKeys(unittest.TestCase):
       try:
         self.assertEqual(md5.new(f.read(8192)).hexdigest(),
                          '4e612764808bd46337eb0f575415fc30')
+      finally:
+        f.close()
+    finally:
+      os.unlink(tmpname)
+
+
+class TestEtcHosts(unittest.TestCase):
+  """Test functions modifying /etc/hosts"""
+
+  def writeTestFile(self):
+    (fd, tmpname) = tempfile.mkstemp(prefix = 'ganeti-test')
+    f = os.fdopen(fd, 'w')
+    try:
+      f.write('# This is a test file for /etc/hosts\n')
+      f.write('127.0.0.1\tlocalhost\n')
+      f.write('192.168.1.1 router gw\n')
+    finally:
+      f.close()
+
+    return tmpname
+
+  def testAddingNewIp(self):
+    tmpname = self.writeTestFile()
+    try:
+      AddEtcHostsEntry(tmpname, 'myhost.domain.tld', '1.2.3.4')
+
+      f = open(tmpname, 'r')
+      try:
+        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
+                         '00e0e88250482e7449743c89a49e9349')
+      finally:
+        f.close()
+    finally:
+      os.unlink(tmpname)
+
+  def testAddingExistingIp(self):
+    tmpname = self.writeTestFile()
+    try:
+      AddEtcHostsEntry(tmpname, 'myhost.domain.tld', '192.168.1.1')
+
+      f = open(tmpname, 'r')
+      try:
+        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
+                         '4dc04c0acdd247175e0b980c6beea822')
+      finally:
+        f.close()
+    finally:
+      os.unlink(tmpname)
+
+  def testRemovingExistingHost(self):
+    tmpname = self.writeTestFile()
+    try:
+      RemoveEtcHostsEntry(tmpname, 'router')
+
+      f = open(tmpname, 'r')
+      try:
+        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
+                         '7d1e7a559eedbc25e0dff67d33ccac84')
+      finally:
+        f.close()
+    finally:
+      os.unlink(tmpname)
+
+  def testRemovingSingleExistingHost(self):
+    tmpname = self.writeTestFile()
+    try:
+      RemoveEtcHostsEntry(tmpname, 'localhost')
+
+      f = open(tmpname, 'r')
+      try:
+        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
+                         'ec4e4589b56f82fdb88db5675de011b1')
+      finally:
+        f.close()
+    finally:
+      os.unlink(tmpname)
+
+  def testRemovingNonExistingHost(self):
+    tmpname = self.writeTestFile()
+    try:
+      RemoveEtcHostsEntry(tmpname, 'myhost')
+
+      f = open(tmpname, 'r')
+      try:
+        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
+                         'aa005bddc6d9ee399c296953f194929e')
       finally:
         f.close()
     finally:

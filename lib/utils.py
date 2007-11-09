@@ -20,6 +20,7 @@
 
 
 """Ganeti small utilities
+
 """
 
 
@@ -733,6 +734,68 @@ def RemoveAuthorizedKey(file_name, key):
           # Ignore whitespace changes while comparing lines
           if line.split() != key_fields:
             out.write(line)
+
+        out.flush()
+        os.rename(tmpname, file_name)
+      finally:
+        f.close()
+    finally:
+      out.close()
+  except:
+    RemoveFile(tmpname)
+    raise
+
+
+def AddEtcHostsEntry(file_name, hostname, ip):
+  """
+
+  """
+  f = open(file_name, 'a+')
+  try:
+    nl = True
+    for line in f:
+      fields = line.split()
+      if len(fields) < 2 or fields[0].startswith('#'):
+        continue
+      if fields[0] == ip and hostname in fields[1:]:
+        break
+      nl = line.endswith('\n')
+    else:
+      if not nl:
+        f.write("\n")
+      f.write(ip)
+      f.write(' ')
+      f.write(hostname)
+      f.write("\n")
+      f.flush()
+  finally:
+    f.close()
+
+
+def RemoveEtcHostsEntry(file_name, hostname):
+  """
+
+  """
+  fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
+  try:
+    out = os.fdopen(fd, 'w')
+    try:
+      f = open(file_name, 'r')
+      try:
+        for line in f:
+          fields = line.split()
+          if len(fields) > 1 and not fields[0].startswith('#'):
+            names = fields[1:]
+            if hostname in names:
+              while hostname in names:
+                names.remove(hostname)
+              if names:
+                out.write(fields[0])
+                out.write(' ')
+                out.write(' '.join(names))
+              continue
+
+          out.write(line)
 
         out.flush()
         os.rename(tmpname, file_name)
