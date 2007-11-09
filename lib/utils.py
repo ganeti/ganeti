@@ -724,21 +724,25 @@ def RemoveAuthorizedKey(file_name, key):
   key_fields = key.split()
 
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
-  out = os.fdopen(fd, 'w')
   try:
-    f = open(file_name, 'r')
+    out = os.fdopen(fd, 'w')
     try:
-      for line in f:
-        # Ignore whitespace changes while comparing lines
-        if line.split() != key_fields:
-          out.write(line)
+      f = open(file_name, 'r')
+      try:
+        for line in f:
+          # Ignore whitespace changes while comparing lines
+          if line.split() != key_fields:
+            out.write(line)
 
-      out.flush()
-      os.rename(tmpname, file_name)
+        out.flush()
+        os.rename(tmpname, file_name)
+      finally:
+        f.close()
     finally:
-      f.close()
-  finally:
-    out.close()
+      out.close()
+  except:
+    RemoveFile(tmpname)
+    raise
 
 
 def CreateBackup(file_name):
