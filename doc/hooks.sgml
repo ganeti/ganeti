@@ -60,6 +60,18 @@
         the script(s) run again with exactly the same
         parameters.</para>
 
+      <para>
+        Note that if a node is unreachable at the time a hooks is run,
+        this will not be interpreted as a deny for the execution. In
+        other words, only an actual error returned from a script will
+        cause abort, and not an unreachable node.
+      </para>
+
+      <para>
+        Therefore, if you want to guarantee that a hook script is run
+        and denies an action, it's best to put it on the master node.
+      </para>
+
       </section>
 
       <section>

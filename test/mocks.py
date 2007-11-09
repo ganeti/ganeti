@@ -45,3 +45,13 @@ class FakeSStore:
 
     def GetMasterNode(self):
         return utils.HostInfo().name
+
+
+class FakeProc:
+    """Fake processor object"""
+
+    def LogWarning(self, msg):
+        pass
+
+    def LogInfo(self, msg):
+        pass

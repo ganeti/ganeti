@@ -122,7 +122,7 @@ class Processor(object):
       write_count = 0
     lu = lu_class(self, op, self.cfg, self.sstore)
     lu.CheckPrereq()
-    hm = HooksMaster(rpc.call_hooks_runner, lu)
+    hm = HooksMaster(rpc.call_hooks_runner, self, lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
     result = lu.Exec(self._feedback_fn)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
@@ -159,7 +159,7 @@ class Processor(object):
     lu = lu_class(self, op, self.cfg, self.sstore)
     lu.CheckPrereq()
     #if do_hooks:
-    #  hm = HooksMaster(rpc.call_hooks_runner, lu)
+    #  hm = HooksMaster(rpc.call_hooks_runner, self, lu)
     #  hm.RunPhase(constants.HOOKS_PHASE_PRE)
     result = lu.Exec(self._feedback_fn)
     #if do_hooks:
@@ -202,8 +202,9 @@ class HooksMaster(object):
   which behaves the same works.
 
   """
-  def __init__(self, callfn, lu):
+  def __init__(self, callfn, proc, lu):
     self.callfn = callfn
+    self.proc = proc
     self.lu = lu
     self.op = lu.op
     self.env, node_list_pre, node_list_post = self._BuildEnv()
@@ -272,8 +273,8 @@ class HooksMaster(object):
       for node_name in results:
         res = results[node_name]
         if res is False or not isinstance(res, list):
-          raise errors.HooksFailure("Communication failure to node %s" %
-                                    node_name)
+          self.proc.LogWarning("Communication failure to node %s" % node_name)
+          continue
         for script, hkr, output in res:
           if hkr == constants.HKR_FAIL:
             output = output.strip().encode("string_escape")
