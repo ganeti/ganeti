@@ -163,6 +163,15 @@ class NoHooksLU(LogicalUnit):
     return {}, [], []
 
 
+def _RemoveHostFromEtcHosts(hostname):
+  """Wrapper around utils.RemoteEtcHostsEntry.
+
+  """
+  hi = utils.HostInfo(name=hostname)
+  utils.RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.name)
+  utils.RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName())
+
+
 def _GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
 
@@ -283,86 +292,6 @@ def _BuildInstanceHookEnvByObject(instance, override=None):
   if override:
     args.update(override)
   return _BuildInstanceHookEnv(**args)
-
-
-def _UpdateEtcHosts(fullnode, ip):
-  """Ensure a node has a correct entry in /etc/hosts.
-
-  Args:
-    fullnode - Fully qualified domain name of host. (str)
-    ip       - IPv4 address of host (str)
-
-  """
-  node = fullnode.split(".", 1)[0]
-
-  f = open('/etc/hosts', 'r+')
-
-  inthere = False
-
-  save_lines = []
-  add_lines = []
-  removed = False
-
-  while True:
-    rawline = f.readline()
-
-    if not rawline:
-      # End of file
-      break
-
-    line = rawline.split('\n')[0]
-
-    # Strip off comments
-    line = line.split('#')[0]
-
-    if not line:
-      # Entire line was comment, skip
-      save_lines.append(rawline)
-      continue
-
-    fields = line.split()
-
-    haveall = True
-    havesome = False
-    for spec in [ ip, fullnode, node ]:
-      if spec not in fields:
-        haveall = False
-      if spec in fields:
-        havesome = True
-
-    if haveall:
-      inthere = True
-      save_lines.append(rawline)
-      continue
-
-    if havesome and not haveall:
-      # Line (old, or manual?) which is missing some.  Remove.
-      removed = True
-      continue
-
-    save_lines.append(rawline)
-
-  if not inthere:
-    add_lines.append('%s\t%s %s\n' % (ip, fullnode, node))
-
-  if removed:
-    if add_lines:
-      save_lines = save_lines + add_lines
-
-    # We removed a line, write a new file and replace old.
-    fd, tmpname = tempfile.mkstemp('tmp', 'hosts_', '/etc')
-    newfile = os.fdopen(fd, 'w')
-    newfile.write(''.join(save_lines))
-    newfile.close()
-    os.rename(tmpname, '/etc/hosts')
-
-  elif add_lines:
-    # Simply appending a new line will do the trick.
-    f.seek(0, 2)
-    for add in add_lines:
-      f.write(add)
-
-  f.close()
 
 
 def _UpdateKnownHosts(fullnode, ip, pubkey):
@@ -645,7 +574,10 @@ class LUInitCluster(LogicalUnit):
       f.close()
     sshkey = sshline.split(" ")[1]
 
-    _UpdateEtcHosts(hostname.name, hostname.ip)
+    hi = utils.HostInfo(name=hostname.name)
+    utils.AddEtcHostsEntry(constants.ETC_HOSTS, hostname.name, hi.ip)
+    utils.AddEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName(), hi.ip)
+    del hi
 
     _UpdateKnownHosts(hostname.name, hostname.ip, sshkey)
 
@@ -687,10 +619,12 @@ class LUDestroyCluster(NoHooksLU):
     """Destroys the cluster.
 
     """
+    master = self.sstore.GetMasterNode()
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
     utils.CreateBackup(priv_key)
     utils.CreateBackup(pub_key)
-    rpc.call_node_leave_cluster(self.sstore.GetMasterNode())
+    rpc.call_node_leave_cluster(master)
+    _RemoveHostFromEtcHosts(master)
 
 
 class LUVerifyCluster(NoHooksLU):
@@ -1205,6 +1139,8 @@ class LURemoveNode(LogicalUnit):
 
     self.cfg.RemoveNode(node.name)
 
+    _RemoveHostFromEtcHosts(node.name)
+
 
 class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
@@ -1548,7 +1484,11 @@ class LUAddNode(LogicalUnit):
       raise errors.OpExecError("Cannot transfer ssh keys to the new node")
 
     # Add node to our /etc/hosts, and add key to known_hosts
-    _UpdateEtcHosts(new_node.name, new_node.primary_ip)
+    hi = utils.HostInfo(name=new_node.name)
+    utils.AddEtcHostsEntry(constants.ETC_HOSTS, new_node.name, hi.ip)
+    utils.AddEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName(), hi.ip)
+    del hi
+
     _UpdateKnownHosts(new_node.name, new_node.primary_ip,
                       self.cfg.GetHostKey())
 

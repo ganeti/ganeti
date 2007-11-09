@@ -38,6 +38,7 @@ CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
+ETC_HOSTS = "/etc/hosts"
 
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 DEFAULT_NODED_PORT = 1811

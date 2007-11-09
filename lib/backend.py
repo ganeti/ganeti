@@ -122,7 +122,6 @@ def LeaveCluster():
       if os.path.isfile(full_name) and not os.path.islink(full_name):
         utils.RemoveFile(full_name)
 
-
   try:
     priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
   except errors.OpExecError, err:

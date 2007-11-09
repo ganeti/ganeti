@@ -418,6 +418,12 @@ class HostInfo:
     self.name, self.aliases, self.ipaddrs = self.LookupHostname(name)
     self.ip = self.ipaddrs[0]
 
+  def ShortName(self):
+    """Returns the hostname without domain.
+
+    """
+    return self.name.split('.')[0]
+
   @staticmethod
   def SysName():
     """Return the current system's name.
