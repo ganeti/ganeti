@@ -1,5 +1,5 @@
 EXTRA_DIST = ganeti.initd.in ganeti.cron
-CLEANFILES = $(nodist_bin_SCRIPTS)
+CLEANFILES = $(nodist_EXTRA_DATA)
 
 nodist_EXTRA_DATA = ganeti.initd
 
