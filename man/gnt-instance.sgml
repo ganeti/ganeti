@@ -688,23 +688,50 @@
 
         <cmdsynopsis>
           <command>replace-disks</command>
+          <arg choice="opt">--new-secondary <replaceable>NODE</replaceable></arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <cmdsynopsis>
+          <command>replace-disks</command>
+          <arg choice="req">-s</arg>
           <arg choice="req">--new-secondary <replaceable>NODE</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
+        <cmdsynopsis>
+          <command>replace-disks</command>
+          <group>
+          <arg choice="req">-s</arg>
+          <arg choice="req">-p</arg>
+          </group>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
         <para>
-          This command does a full add and replace for both disks of
-          an instance.  It basically does an
-          <command>addmirror</command> and
-          <command>removemirror</command> for both disks of the
-          instance.
+          This command is a generalized form for adding and replacing
+          disks.
         </para>
 
         <para>
-          If you also want to replace the secondary node during this
-          process (for example to fix a broken secondary node), you
-          can do so using the <option>--new-secondary</option> option.
+          The first form is usable with the
+          <literal>remote_raid1</literal> disk template. This will
+          replace the disks on both the primary and secondary node,
+          and optionally will change the secondary node to a new one
+          if you pass the <option>--new-secondary</option> option.
         </para>
+
+        <para>
+          The second and third forms are usable with the
+          <literal>drbd</literal> disk template. The second form will
+          do a secondary replacement, but as opposed to the
+          <literal>remote_raid1</literal> will not replace the disks
+          on the primary, therefore it will execute faster. The third
+          form will replace the disks on either the primary
+          (<option>-p</option>) or the secondary (<option>-s</option>)
+          node of the instance only, without changing the node.
+        </para>
+
       </refsect3>
 
       <refsect3>
