@@ -66,9 +66,10 @@
       </cmdsynopsis>
 
       <para>
-        Exports an instance to the target node. All the instance
-        data and its configuration will be exported under the
-        /srv/ganeti/exports/instance directory on the target node.
+        Exports an instance to the target node. All the instance data
+        and its configuration will be exported under the
+        /srv/ganeti/exports/<replaceable>instance</replaceable>
+        directory on the target node.
       </para>
 
       <para>
@@ -102,8 +103,10 @@
             <arg>plain</arg>
             <arg>local_raid1</arg>
             <arg>remote_raid1</arg>
+            <arg>drbd</arg>
           </group>
         </arg>
+        <sbr>
         <arg choice="req">--src-node=<replaceable>source-node</replaceable></arg>
         <arg choice="req">--src-dir=<replaceable>source-dir</replaceable></arg>
         <arg choice="req"><replaceable>instance</replaceable></arg>
@@ -119,7 +122,7 @@
 
       <para>
         The <option>-s</option> option specifies the disk size for
-        the instance, in gigibytes (defaults to 20 GiB).
+        the instance, in gibibytes (defaults to 20 GiB).
       </para>
 
       <para>
@@ -130,7 +133,7 @@
 
       <para>
         The <option>-m</option> option specifies the memory size for
-        the instance, in megibytes (defaults to 128 MiB).
+        the instance, in mebibytes (defaults to 128 MiB).
       </para>
 
       <para>
@@ -171,10 +174,23 @@
             <term>remote_raid1</term>
             <listitem>
               <para>
-                Disk devices will be md raid1 arrays with one component (so
-                it's not actually raid1): a drbd device between the instance's
-                primary node and the node given by the second value of the
+                Disk devices will be md raid1 arrays with one
+                component (so it's not actually raid1): a drbd (0.7.x)
+                device between the instance's primary node and the
+                node given by the second value of the
                 <option>--node</option> option.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>drbd</term>
+            <listitem>
+              <para>
+                Disk devices will be drbd (version 8.x) on top of lvm
+                volumes. They are equivalent in functionality to
+                <replaceable>remote_raid1</replaceable>, but are
+                recommended for new instances (if you have drbd 8.x
+                installed).
               </para>
             </listitem>
           </varlistentry>
@@ -208,11 +224,18 @@
       </cmdsynopsis>
 
       <para>
-        Lists the exports currently available in the default directory in all
-        the nodes of the current cluster, or optionally only a subset of them
-        specified by the <option>--nodes</option> option.
+        Lists the exports currently available in the default directory
+        in all the nodes of the current cluster, or optionally only a
+        subset of them specified by the <option>--nodes</option>
+        option (use this option multiple times to select multiple
+        nodes).
       </para>
 
+      <para>
+      Example:
+<screen>
+# gnt-backup list --nodes node1 --nodes node2
+</screen>
     </refsect2>
 
   </refsect1>

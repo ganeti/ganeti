@@ -74,6 +74,7 @@
               <arg>plain</arg>
               <arg>local_raid1</arg>
               <arg>remote_raid1</arg>
+              <arg>drbd</arg>
             </group>
           </arg>
           <sbr>
@@ -155,10 +156,23 @@
               <term>remote_raid1</term>
               <listitem>
                 <para>
-                  Disk devices will be md raid1 arrays with one component (so
-                  it's not actually raid1): a drbd device between the
-                  instance's primary node and the node given by the second
-                  value of the <option>--node</option> option.
+                  Disk devices will be md raid1 arrays with one
+                  component (so it's not actually raid1): a drbd
+                  (0.7.x) device between the instance's primary node
+                  and the node given by the second value of the
+                  <option>--node</option> option.
+                </para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>drbd</term>
+              <listitem>
+                <para>
+                  Disk devices will be drbd (version 8.x) on top of
+                  lvm volumes. They are equivalent in functionality to
+                  <replaceable>remote_raid1</replaceable>, but are
+                  recommended for new instances (if you have drbd 8.x
+                  installed).
                 </para>
               </listitem>
             </varlistentry>

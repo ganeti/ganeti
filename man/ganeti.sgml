@@ -51,7 +51,7 @@
     <para>
       The ganeti software manages physical nodes and virtual instances
       of a cluster based on a virtualization software. The current
-      version (1.2) supports Xen 3.0.
+      version (1.2) supports Xen 3.0 (also tested with 3.1).
     </para>
 
   </refsect1>

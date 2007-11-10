@@ -50,9 +50,15 @@
     </para>
 
     <para>
-      Its function is to try to keep running all instances which are
-      marked as <emphasis>up</emphasis> in the configuration file, by
-      trying to start them a limited number of times.
+      Its primary function is to try to keep running all instances
+      which are marked as <emphasis>up</emphasis> in the configuration
+      file, by trying to start them a limited number of times.
+    </para>
+
+    <para>
+      Its other function is to <quote>repair</quote> DRBD links by
+      reactivating the block devices of instances which have
+      secondaries on nodes that have been rebooted.
     </para>
 
     <para>In order to prevent piling up commands, all the
@@ -70,20 +76,6 @@
       instances to reset to zero.
     </para>
 
-  </refsect1>
-
-  <refsect1>
-    <title>KNOWN BUGS</title>
-
-    <para>
-      Due to the way we initialize DRBD peers, restarting a secondary
-      node for an instance will cause the DRBD endpoints on that node
-      to disappear, thus all instances which have that node as a
-      secondary will lose redundancy. The watcher does not detect this
-      situation. The workaround is to manually run
-      <command>gnt-instance activate-disks</command> for all the
-      affected instances.
-    </para>
   </refsect1>
 
   &footer;

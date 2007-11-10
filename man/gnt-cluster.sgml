@@ -148,12 +148,18 @@
 
       <cmdsynopsis>
         <command>destroy</command>
+        <arg choice="req">--yes-do-it</arg>
       </cmdsynopsis>
 
       <para>
         Remove all configuration files related to the cluster, so that
         a <command>gnt-cluster init</command> can be done again
         afterwards.
+      </para>
+
+      <para>
+        Since this is a dangerous command, you are required to pass
+        the argument <replaceable>--yes-do-it.</replaceable>
       </para>
     </refsect2>
 
