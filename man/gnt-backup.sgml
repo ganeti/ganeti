@@ -220,15 +220,14 @@
 
       <cmdsynopsis>
         <command>list</command>
-        <arg>--nodes=<replaceable>NODE-LIST</replaceable></arg>
+        <arg>--node=<replaceable>NODE</replaceable></arg>
       </cmdsynopsis>
 
       <para>
         Lists the exports currently available in the default directory
         in all the nodes of the current cluster, or optionally only a
-        subset of them specified by the <option>--nodes</option>
-        option (use this option multiple times to select multiple
-        nodes).
+        subset of them specified using the <option>--node</option>
+        option (which can be used multiple times)
       </para>
 
       <para>
