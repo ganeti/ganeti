@@ -3329,6 +3329,7 @@ class LUReplaceDisks(LogicalUnit):
       raise errors.OpPrereqError("Instance '%s' not known" %
                                  self.op.instance_name)
     self.instance = instance
+    self.op.instance_name = instance.name
 
     if instance.disk_template not in constants.DTS_NET_MIRROR:
       raise errors.OpPrereqError("Instance's disk layout is not"
@@ -3367,6 +3368,11 @@ class LUReplaceDisks(LogicalUnit):
       raise errors.OpPrereqError("Template 'remote_raid1' only allows all"
                                  " disks replacement, not individual ones")
     if instance.disk_template == constants.DT_DRBD8:
+      if (self.op.mode == constants.REPLACE_DISK_ALL and
+          remote_node is not None):
+        # switch to replace secondary mode
+        self.op.mode = constants.REPLACE_DISK_SEC
+
       if self.op.mode == constants.REPLACE_DISK_ALL:
         raise errors.OpPrereqError("Template 'drbd8' only allows primary or"
                                    " secondary disk replacement, not"
