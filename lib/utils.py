@@ -753,7 +753,7 @@ def RemoveAuthorizedKey(file_name, key):
 
 
 def AddEtcHostsEntry(file_name, hostname, ip):
-  """
+  """Adds an IP address and hostname to /etc/hosts.
 
   """
   f = open(file_name, 'a+')
@@ -779,8 +779,9 @@ def AddEtcHostsEntry(file_name, hostname, ip):
 
 
 def RemoveEtcHostsEntry(file_name, hostname):
-  """
+  """Removes a hostname from /etc/hosts.
 
+  IP addresses without hostnames are removed from the file.
   """
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
