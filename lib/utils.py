@@ -775,6 +775,7 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
         out.write('\n')
 
         out.flush()
+        os.fsync(out)
         os.rename(tmpname, file_name)
       finally:
         f.close()
@@ -810,6 +811,7 @@ def RemoveEtcHostsEntry(file_name, hostname):
           out.write(line)
 
         out.flush()
+        os.fsync(out)
         os.rename(tmpname, file_name)
       finally:
         f.close()
