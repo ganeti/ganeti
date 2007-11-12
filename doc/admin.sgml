@@ -185,7 +185,7 @@
           <term>remote_raid1</term>
           <listitem>
             <simpara><emphasis role="strong">Note:</emphasis> This is only
-              valid for multi-node clusters.</simpara>
+              valid for multi-node clusters using drbd 0.7.</simpara>
             <simpara>
               A mirror is set between the local node and a remote one, which
               must be specified with the second value of the --node option. Use
@@ -195,11 +195,28 @@
           </listitem>
         </varlistentry>
 
+        <varlistentry>
+          <term>drbd</term>
+          <listitem>
+            <simpara><emphasis role="strong">Note:</emphasis> This is only
+              valid for multi-node clusters using drbd 8.0.</simpara>
+            <simpara>
+              This is similar to the
+              <replaceable>remote_raid1</replaceable> option, but uses
+              new features in drbd 8 to simplify the device
+              stack. From a user's point of view, this will improve
+              the speed of the <command>replace-disks</command>
+              command and (in future versions) provide more
+              functionality.
+            </simpara>
+          </listitem>
+        </varlistentry>
+
       </variablelist>
 
       <para>
         For example if you want to create an highly available instance use the
-        remote_raid1 disk template:
+        remote_raid1 or drbd disk templates:
         <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable><optional>:<replaceable>SECONDARY_NODE</replaceable></optional> -o <replaceable>OS_TYPE</replaceable> -t remote_raid1 \
   <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
@@ -312,9 +329,12 @@
         failed, or you plan to remove a node from your cluster, and
         you failed over all its instances, but it's still secondary
         for some? The solution here is to replace the instance disks,
-        changing the secondary node:
+        changing the secondary node. This is done in two ways, depending on the disk template type. For <literal>remote_raid1</literal>:
 
-        <synopsis>gnt-instance replace-disks -n <replaceable>NEW_SECONDARY</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance replace-disks <option>-n <replaceable>NEW_SECONDARY</replaceable></option> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+        and for <literal>drbd</literal>:
+        <synopsis>gnt-instance replace-disks <option>-s</option> <option>-n <replaceable>NEW_SECONDARY</replaceable></option> <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         This process is a bit longer, but involves no instance
         downtime, and at the end of it the instance has changed its
@@ -394,7 +414,7 @@
     </sect2>
 
     <sect2>
-      <title>Instance Operating System Debugging</title>
+      <title>Instance OS definitions Debugging</title>
 
       <para>
         Should you have any problems with operating systems support

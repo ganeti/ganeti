@@ -12,7 +12,7 @@ Software Requirements
 Before installing, please verify that you have the following programs:
   - Xen virtualization (version 3.0.x or 3.1)
     http://xen.xensource.com/
-  - DRBD (kernel module and userspace utils)
+  - DRBD (kernel module and userspace utils), version 0.7.x or 8.0.x
     http://www.drbd.org/
   - LVM2
     http://sourceware.org/lvm2/
@@ -26,7 +26,7 @@ Before installing, please verify that you have the following programs:
     http://developer.osdl.org/dev/iproute2
   - arping (part of iputils package)
     ftp://ftp.inr.ac.ru/ip-routing/iputils-current.tar.gz
-  - mdadm (Linux Software Raid tools)
+  - mdadm (Linux Software Raid tools) (needed only with drbd 0.7.x)
     http://www.kernel.org/pub/linux/utils/raid/mdadm/
   - Python 2.4
     http://www.python.org

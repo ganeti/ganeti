@@ -1,8 +1,24 @@
-News for Ganeti
-===============
-
-This file lists major changes between versions.
-
-1.2b2:
-  * Change configuration file format from Python's Pickle to JSON.
+Version 1.2b2
+  - Change configuration file format from Python's Pickle to JSON.
     Upgrading is possible using the cfgupgrade utility.
+  - Add support for DRBD 8.0 (new disk template `drbd`) which allows for
+    faster replace disks and is more stable (DRBD 8 has many
+    improvements compared to DRBD 0.7)
+  - Added command line tags support (see man pages for gnt-instance,
+    gnt-node, gnt-cluster)
+  - Added instance rename support
+  - Added multi-instance startup/shutdown
+  - Added cluster rename support
+  - Added `gnt-node evacuate` to simplify some node operations
+  - Added instance reboot operation that can speedup reboot as compared
+    to stop and start
+  - Soften the requirement that hostnames are in FQDN format
+  - The ganeti-watcher now activates drbd pairs after secondary node
+    reboots
+  - Removed dependency on debian's patched fping that uses the
+    non-standard -S option
+  - Now the OS definitions are searched for in multiple, configurable
+    paths (easier for distros to package)
+  - Some changes to the hooks infrastructure (especially the new
+    post-configuration update hook)
+  - Other small bugfixes

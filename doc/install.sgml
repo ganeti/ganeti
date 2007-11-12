@@ -291,11 +291,13 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
       </para>
 
       <para>
-        Supported DRBD version: the <literal>0.7</literal>
-        series. It's recommended to have at least version
-        <literal>0.7.24</literal> if you use <command>udev</command>
-        since older versions have a bug related to device discovery
-        which can be triggered in cases of hard drive failure.
+        Supported DRBD versions: the <literal>0.7</literal> series
+        <emphasis role="strong">or</emphasis>
+        <literal>8.0.x</literal>. It's recommended to have at least
+        version <literal>0.7.24</literal> if you use
+        <command>udev</command> since older versions have a bug
+        related to device discovery which can be triggered in cases of
+        hard drive failure.
       </para>
 
       <para>
@@ -311,9 +313,14 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
         you have the DRBD utils installed and the module in your
         kernel you're fine. Please check that your system is
         configured to load the module at every boot, and that it
-        passes the following option to the module:
+        passes the following option to the module (for
+        <literal>0.7.x</literal>:
         <computeroutput>minor_count=64</computeroutput> (this will
-        allow you to use up to 32 instances per node).
+        allow you to use up to 32 instances per node) or for
+        <literal>8.0.x</literal> you can use up to
+        <constant>255</constant>
+        (i.e. <computeroutput>minor_count=255</computeroutput>, but
+        for most clusters <constant>128</constant> should be enough).
       </para>
 
       <formalpara><title>Debian</title>
@@ -330,6 +337,15 @@ m-a update
 m-a a-i drbd0.7
 echo drbd minor_count=64 >> /etc/modules
 modprobe drbd minor_count=64
+      </screen>
+      <para>or for using DRBD <literal>8.x</literal> from the etch
+      backports:</para>
+      <screen>
+apt-get install -t etch-backports drbd8-module-source drbd8-utils
+m-a update
+m-a a-i drbd8
+echo drbd minor_count=128 >> /etc/modules
+modprobe drbd minor_count=128
       </screen>
 
       <para>
@@ -772,11 +788,13 @@ node1.example.com 197404 197404   2047  1896   125     0     0
         This step shows how to setup a virtual instance with either
         non-mirrored disks (<computeroutput>plain</computeroutput>) or
         with network mirrored disks
-        (<computeroutput>remote_raid1</computeroutput>).  All commands
-        need to be executed on the Ganeti master node (the one on
-        which <computeroutput>gnt-cluster init</computeroutput> was
-        run).  Verify that the OS scripts are present on all cluster
-        nodes with <computeroutput>gnt-os list</computeroutput>.
+        (<computeroutput>remote_raid1</computeroutput> for drbd 0.7
+        and <computeroutput>drbd</computeroutput> for drbd 8.x).  All
+        commands need to be executed on the Ganeti master node (the
+        one on which <computeroutput>gnt-cluster init</computeroutput>
+        was run).  Verify that the OS scripts are present on all
+        cluster nodes with <computeroutput>gnt-os
+        list</computeroutput>.
       </para>
       <para>
         To create a virtual instance, you need a hostname which is
@@ -808,7 +826,8 @@ creating os for instance inst1.example.com on node node1.example.com
       <para>
         To create a network mirrored instance, change the argument to
         the <option>-t</option> option from <literal>plain</literal>
-        to <literal>remote_raid1</literal> and specify the node on
+        to <literal>remote_raid1</literal> (drbd 0.7) or
+        <literal>drbd</literal> (drbd 8.0) and specify the node on
         which the mirror should reside with the second value of the
         <option>--node</option> option, like this:
       </para>
@@ -854,8 +873,8 @@ creating os for instance instance2 on node node1.example.com
 
       <para>
         To failover an instance to its secondary node (only possible
-        in <literal>remote_raid1</literal> setup), use
-        <computeroutput>gnt-instance failover
+        in <literal>remote_raid1</literal> or <literal>drbd</literal>
+        disk templates), use <computeroutput>gnt-instance failover
         <replaceable>INSTANCENAME</replaceable></computeroutput>.
       </para>
 
