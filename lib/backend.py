@@ -730,7 +730,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
       try:
         cdev = _RecursiveAssembleBD(chld_disk, owner, as_primary)
       except errors.BlockDeviceError, err:
-        if children.count(None) > mcn:
+        if children.count(None) >= mcn:
           raise
         cdev = None
         logger.Debug("Error in child activation: %s" % str(err))
