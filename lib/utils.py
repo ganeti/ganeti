@@ -815,47 +815,6 @@ def RemoveEtcHostsEntry(file_name, hostname):
     raise
 
 
-def _SplitKnownHostsHosts(hosts):
-  """Parses the first field of a known_hosts file.
-
-  TODO: Support other formats.
-  """
-  return hosts.split(',')
-
-
-def AddKnownHost(file_name, hostname, pubkey):
-  """Adds a new known host to a known_hosts file.
-
-  """
-  f = open(file_name, 'a+')
-  try:
-    nl = True
-    for line in f:
-      fields = line.split()
-      if (len(fields) < 3 or
-          fields[0].startswith('#') or
-          fields[1] != 'ssh-rsa'):
-        continue
-      hosts = _SplitKnownHostsHosts(fields[0])
-      if hostname in hosts and fields[2] == pubkey:
-        break
-      nl = line.endswith('\n')
-    else:
-      if not nl:
-        f.write("\n")
-      f.write(hostname)
-      f.write(' ssh-rsa ')
-      f.write(pubkey)
-      f.write("\n")
-      f.flush()
-  finally:
-    f.close()
-
-
-def RemoveKnownHost(file_name, hostname):
-  pass
-
-
 def CreateBackup(file_name):
   """Creates a backup of a file.
 
