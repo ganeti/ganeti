@@ -163,8 +163,16 @@ class NoHooksLU(LogicalUnit):
     return {}, [], []
 
 
+def _AddHostToEtcHosts(hostname):
+  """Wrapper around utils.SetEtcHostsEntry.
+
+  """
+  hi = utils.HostInfo(name=hostname)
+  utils.SetEtcHostsEntry(constants.ETC_HOSTS, hi.ip, hi.name, [hi.ShortName()])
+
+
 def _RemoveHostFromEtcHosts(hostname):
-  """Wrapper around utils.RemoteEtcHostsEntry.
+  """Wrapper around utils.RemoveEtcHostsEntry.
 
   """
   hi = utils.HostInfo(name=hostname)
@@ -574,10 +582,7 @@ class LUInitCluster(LogicalUnit):
       f.close()
     sshkey = sshline.split(" ")[1]
 
-    hi = utils.HostInfo(name=hostname.name)
-    utils.AddEtcHostsEntry(constants.ETC_HOSTS, hostname.name, hi.ip)
-    utils.AddEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName(), hi.ip)
-    del hi
+    _AddHostToEtcHosts(hostname.name)
 
     _UpdateKnownHosts(hostname.name, hostname.ip, sshkey)
 
@@ -1484,10 +1489,7 @@ class LUAddNode(LogicalUnit):
       raise errors.OpExecError("Cannot transfer ssh keys to the new node")
 
     # Add node to our /etc/hosts, and add key to known_hosts
-    hi = utils.HostInfo(name=new_node.name)
-    utils.AddEtcHostsEntry(constants.ETC_HOSTS, new_node.name, hi.ip)
-    utils.AddEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName(), hi.ip)
-    del hi
+    _AddHostToEtcHosts(new_node.name)
 
     _UpdateKnownHosts(new_node.name, new_node.primary_ip,
                       self.cfg.GetHostKey())

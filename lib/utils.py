@@ -752,36 +752,43 @@ def RemoveAuthorizedKey(file_name, key):
     raise
 
 
-def AddEtcHostsEntry(file_name, hostname, ip):
-  """Adds an IP address and hostname to /etc/hosts.
+def SetEtcHostsEntry(file_name, ip, hostname, aliases):
+  """Sets the name of an IP address and hostname in /etc/hosts.
 
   """
-  f = open(file_name, 'a+')
+  fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
-    nl = True
-    for line in f:
-      fields = line.split()
-      if len(fields) < 2 or fields[0].startswith('#'):
-        continue
-      if fields[0] == ip and hostname in fields[1:]:
-        break
-      nl = line.endswith('\n')
-    else:
-      if not nl:
-        f.write("\n")
-      f.write(ip)
-      f.write(' ')
-      f.write(hostname)
-      f.write("\n")
-      f.flush()
-  finally:
-    f.close()
+    out = os.fdopen(fd, 'w')
+    try:
+      f = open(file_name, 'r')
+      try:
+        written = False
+        for line in f:
+          fields = line.split()
+          if not fields[0].startswith('#') and ip == fields[0]:
+            continue
+          out.write(line)
+
+        out.write("%s %s" % (ip, hostname))
+        if aliases:
+          out.write(" %s" % ' '.join(aliases))
+        out.write('\n')
+
+        out.flush()
+        os.rename(tmpname, file_name)
+      finally:
+        f.close()
+    finally:
+      out.close()
+  except:
+    RemoveFile(tmpname)
+    raise
 
 
 def RemoveEtcHostsEntry(file_name, hostname):
   """Removes a hostname from /etc/hosts.
 
-  IP addresses without hostnames are removed from the file.
+  IP addresses without names are removed from the file.
   """
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
@@ -797,9 +804,7 @@ def RemoveEtcHostsEntry(file_name, hostname):
               while hostname in names:
                 names.remove(hostname)
               if names:
-                out.write(fields[0])
-                out.write(' ')
-                out.write(' '.join(names))
+                out.write("%s %s\n" % (fields[0], ' '.join(names)))
               continue
 
           out.write(line)
