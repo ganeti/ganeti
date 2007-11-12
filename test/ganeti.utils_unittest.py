@@ -38,7 +38,8 @@ from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
-     AddEtcHostsEntry, RemoveEtcHostsEntry
+     AddEtcHostsEntry, RemoveEtcHostsEntry, \
+     AddKnownHost, RemoveKnownHost
 from ganeti.errors import LockError, UnitParseError
 
 
@@ -516,6 +517,51 @@ class TestEtcHosts(unittest.TestCase):
         f.close()
     finally:
       os.unlink(tmpname)
+
+
+class TestKnownHosts(unittest.TestCase):
+  """Test functions modifying known_hosts files"""
+
+  def writeTestFile(self):
+    (fd, tmpname) = tempfile.mkstemp(prefix = 'ganeti-test')
+    f = os.fdopen(fd, 'w')
+    try:
+      f.write('node1.tld,node1\tssh-rsa AAAA1234567890=\n')
+      f.write('node2,node2.tld ssh-rsa AAAA1234567890=\n')
+    finally:
+      f.close()
+
+    return tmpname
+
+  def testAddingNewHost(self):
+    tmpname = self.writeTestFile()
+    try:
+      AddKnownHost(tmpname, 'node3.tld', 'AAAA0987654321=')
+
+      f = open(tmpname, 'r')
+      try:
+        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
+                         '86cf3c7c7983a3bd5c475c4c1a3e5678')
+      finally:
+        f.close()
+    finally:
+      os.unlink(tmpname)
+
+  def testAddingOldHost(self):
+    tmpname = self.writeTestFile()
+    try:
+      AddKnownHost(tmpname, 'node2.tld', 'AAAA0987654321=')
+
+      f = open(tmpname, 'r')
+      try:
+        os.system("vim %s" % tmpname)
+        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
+                         '86cf3c7c7983a3bd5c475c4c1a3e5678')
+      finally:
+        f.close()
+    finally:
+      os.unlink(tmpname)
+
 
 
 class TestShellQuoting(unittest.TestCase):
