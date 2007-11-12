@@ -765,11 +765,11 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
         written = False
         for line in f:
           fields = line.split()
-          if not fields[0].startswith('#') and ip == fields[0]:
+          if fields and not fields[0].startswith('#') and ip == fields[0]:
             continue
           out.write(line)
 
-        out.write("%s %s" % (ip, hostname))
+        out.write("%s\t%s" % (ip, hostname))
         if aliases:
           out.write(" %s" % ' '.join(aliases))
         out.write('\n')
