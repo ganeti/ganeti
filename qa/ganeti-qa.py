@@ -188,7 +188,7 @@ def RunDaemonTests(instance, pnode):
       RunTest(qa_daemon.TestInstanceAutomaticRestart, pnode, instance)
 
     if consecutive_failures:
-      RunTest(qa_daemon.TestInstanceConsecutiveFailures, node, instance)
+      RunTest(qa_daemon.TestInstanceConsecutiveFailures, pnode, instance)
 
 
 def RunHardwareFailureTests(instance, pnode, snode):
