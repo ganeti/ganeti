@@ -137,7 +137,7 @@ import_opts = [
 commands = {
   'list': (PrintExportList, ARGS_NONE,
            [DEBUG_OPT,
-            make_option("--node", dest="node", default=[], action="append",
+            make_option("--node", dest="nodes", default=[], action="append",
                         help="List only backups stored on this node"
                              " (can be used multiple times)"),
             ],

@@ -188,7 +188,7 @@ def TestBackupList(expnode):
   """gnt-backup list"""
   master = qa_config.GetMasterNode()
 
-  cmd = ['gnt-backup', 'list', '--nodes=%s' % expnode['primary']]
+  cmd = ['gnt-backup', 'list', '--node=%s' % expnode['primary']]
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
