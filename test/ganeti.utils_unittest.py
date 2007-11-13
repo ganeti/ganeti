@@ -455,7 +455,7 @@ class TestEtcHosts(unittest.TestCase):
       f = open(tmpname, 'r')
       try:
         self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '410c141dcafffd505f662a41713d2eab')
+                         '284c3454c158d4c4284eeb59910ab00b')
       finally:
         f.close()
     finally:
@@ -469,7 +469,7 @@ class TestEtcHosts(unittest.TestCase):
       f = open(tmpname, 'r')
       try:
         self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         'bbf60c542dec949f3968b59522ec0d7b')
+                         '1486c19f1fcb626f893c243e3ce38c8d')
       finally:
         f.close()
     finally:
