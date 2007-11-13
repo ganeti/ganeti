@@ -67,47 +67,55 @@ def _XmShutdownInstance(node, name):
     raise qa_error.Error("xm shutdown failed")
 
 
-def _ResetWatcherDaemon(node):
+def _ResetWatcherDaemon():
   """Removes the watcher daemon's state file.
 
   Args:
     node: Node to be reset
   """
+  master = qa_config.GetMasterNode()
+
   cmd = ['rm', '-f', constants.WATCHER_STATEFILE]
-  AssertEqual(StartSSH(node['primary'],
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def _RunWatcherDaemon():
+  """Runs the ganeti-watcher daemon on the master node.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  cmd = ['ganeti-watcher', '-d']
+  AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
 def PrintCronWarning():
-  """Shows a warning about the required cron job.
+  """Shows a warning about the cron job.
 
   """
+  msg = ("For the following tests it's recommended to turn off the "
+         "ganeti-watcher cronjob.")
   print
-  print qa_utils.FormatWarning("The following tests require the cron script "
-                               "for ganeti-watcher to be set up.")
+  print qa_utils.FormatWarning(msg)
 
 
 def TestInstanceAutomaticRestart(node, instance):
   """Test automatic restart of instance by ganeti-watcher.
 
-  Note: takes up to 6 minutes to complete.
   """
   master = qa_config.GetMasterNode()
   inst_name = qa_utils.ResolveInstanceName(instance)
 
-  _ResetWatcherDaemon(node)
+  _ResetWatcherDaemon()
   _XmShutdownInstance(node, inst_name)
 
-  # Give it a bit more than five minutes to start again
-  restart_at = time.time() + 330
+  _RunWatcherDaemon()
+  time.sleep(5)
 
-  # Wait until it's running again
-  while time.time() <= restart_at:
-    if _InstanceRunning(node, inst_name):
-      break
-    time.sleep(15)
-  else:
-    raise qa_error.Error("Daemon didn't restart instance in time")
+  if not _InstanceRunning(node, inst_name):
+    raise qa_error.Error("Daemon didn't restart instance")
 
   cmd = ['gnt-instance', 'info', inst_name]
   AssertEqual(StartSSH(master['primary'],
@@ -117,28 +125,23 @@ def TestInstanceAutomaticRestart(node, instance):
 def TestInstanceConsecutiveFailures(node, instance):
   """Test five consecutive instance failures.
 
-  Note: takes at least 35 minutes to complete.
   """
   master = qa_config.GetMasterNode()
   inst_name = qa_utils.ResolveInstanceName(instance)
 
-  _ResetWatcherDaemon(node)
-  _XmShutdownInstance(node, inst_name)
+  _ResetWatcherDaemon()
 
-  # Do shutdowns for 30 minutes
-  finished_at = time.time() + (35 * 60)
+  for should_start in ([True] * 5) + [False]:
+    _XmShutdownInstance(node, inst_name)
+    _RunWatcherDaemon()
+    time.sleep(5)
 
-  while time.time() <= finished_at:
-    if _InstanceRunning(node, inst_name):
-      _XmShutdownInstance(node, inst_name)
-    time.sleep(30)
-
-  # Check for some time whether the instance doesn't start again
-  check_until = time.time() + 330
-  while time.time() <= check_until:
-    if _InstanceRunning(node, inst_name):
-      raise qa_error.Error("Instance started when it shouldn't")
-    time.sleep(30)
+    if bool(_InstanceRunning(node, inst_name)) != should_start:
+      if should_start:
+        msg = "Instance not started when it should"
+      else:
+        msg = "Instance started when it shouldn't"
+      raise qa_error.Error(msg)
 
   cmd = ['gnt-instance', 'info', inst_name]
   AssertEqual(StartSSH(master['primary'],
