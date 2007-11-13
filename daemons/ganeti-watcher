@@ -47,6 +47,9 @@ BAD_STATES = ['stopped']
 HELPLESS_STATES = ['(node down)']
 NOTICE = 'NOTICE'
 ERROR = 'ERROR'
+KEY_RESTART_COUNT = "restart_count"
+KEY_RESTART_WHEN = "restart_when"
+KEY_BOOT_ID = "bootid"
 
 
 class Error(Exception):
@@ -151,8 +154,8 @@ class WatcherState(object):
     """
     ndata = self.data["node"]
 
-    if name in ndata and "bootid" in ndata[name]:
-      return ndata[name]["bootid"]
+    if name in ndata and KEY_BOOT_ID in ndata[name]:
+      return ndata[name][KEY_BOOT_ID]
     return None
 
   def SetNodeBootID(self, name, bootid):
@@ -166,7 +169,7 @@ class WatcherState(object):
     if name not in ndata:
       ndata[name] = {}
 
-    ndata[name]["bootid"] = bootid
+    ndata[name][KEY_BOOT_ID] = bootid
 
   def NumberOfRestartAttempts(self, instance):
     """Returns number of previous restart attempts.
@@ -178,7 +181,7 @@ class WatcherState(object):
     idata = self.data["instance"]
 
     if instance.name in idata:
-      return idata[instance.name]["restart_count"]
+      return idata[instance.name][KEY_RESTART_COUNT]
 
     return 0
 
@@ -196,8 +199,8 @@ class WatcherState(object):
     else:
       inst = idata[instance.name]
 
-    inst["restart_when"] = time.time()
-    inst["restart_count"] = idata.get("restart_count", 0) + 1
+    inst[KEY_RESTART_WHEN] = time.time()
+    inst[KEY_RESTART_COUNT] = inst.get(KEY_RESTART_COUNT, 0) + 1
 
   def RemoveInstance(self, instance):
     """Update state to reflect that a machine is running, i.e. remove record.
