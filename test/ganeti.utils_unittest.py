@@ -42,6 +42,18 @@ from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
 from ganeti.errors import LockError, UnitParseError
 
 
+class GanetiTestCase(unittest.TestCase):
+  def assertFileContent(self, file_name, content):
+    """Checks the content of a file.
+
+    """
+    handle = open(file_name, 'r')
+    try:
+      self.assertEqual(handle.read(), content)
+    finally:
+      handle.close()
+
+
 class TestIsProcessAlive(unittest.TestCase):
   """Testing case for IsProcessAlive"""
   def setUp(self):
@@ -334,15 +346,12 @@ class TestParseUnit(unittest.TestCase):
       self.assertRaises(UnitParseError, ParseUnit, '1,3' + suffix)
 
 
-class TestSshKeys(unittest.TestCase):
+class TestSshKeys(GanetiTestCase):
   """Test case for the AddAuthorizedKey function"""
 
   KEY_A = 'ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a'
   KEY_B = ('command="/usr/bin/fooserver -t --verbose",from="1.2.3.4" '
            'ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b')
-
-  # NOTE: The MD5 sums below were calculated after manually
-  #       checking the output files.
 
   def writeTestFile(self):
     (fd, tmpname) = tempfile.mkstemp(prefix = 'ganeti-test')
@@ -362,12 +371,11 @@ class TestSshKeys(unittest.TestCase):
     try:
       AddAuthorizedKey(tmpname, 'ssh-dss AAAAB3NzaC1kc3MAAACB root@test')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         'ccc71523108ca6e9d0343797dc3e9f16')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+        "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
     finally:
       os.unlink(tmpname)
 
@@ -377,12 +385,11 @@ class TestSshKeys(unittest.TestCase):
       AddAuthorizedKey(tmpname,
           'ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         'f2c939d57addb5b3a6846884be896b46')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test\n")
     finally:
       os.unlink(tmpname)
 
@@ -392,12 +399,10 @@ class TestSshKeys(unittest.TestCase):
       AddAuthorizedKey(tmpname,
           'ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '4e612764808bd46337eb0f575415fc30')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
     finally:
       os.unlink(tmpname)
 
@@ -407,12 +412,9 @@ class TestSshKeys(unittest.TestCase):
       RemoveAuthorizedKey(tmpname,
           'ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '77516d987fca07f70e30b830b3e4f2ed')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
     finally:
       os.unlink(tmpname)
 
@@ -422,17 +424,15 @@ class TestSshKeys(unittest.TestCase):
       RemoveAuthorizedKey(tmpname,
           'ssh-dss  AAAAB3Nsdfj230xxjxJjsjwjsjdjU   root@test')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '4e612764808bd46337eb0f575415fc30')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
     finally:
       os.unlink(tmpname)
 
 
-class TestEtcHosts(unittest.TestCase):
+class TestEtcHosts(GanetiTestCase):
   """Test functions modifying /etc/hosts"""
 
   def writeTestFile(self):
@@ -452,12 +452,11 @@ class TestEtcHosts(unittest.TestCase):
     try:
       SetEtcHostsEntry(tmpname, '1.2.3.4', 'myhost.domain.tld', ['myhost'])
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '284c3454c158d4c4284eeb59910ab00b')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "# This is a test file for /etc/hosts\n"
+        "127.0.0.1\tlocalhost\n"
+        "192.168.1.1 router gw\n"
+        "1.2.3.4\tmyhost.domain.tld myhost\n")
     finally:
       os.unlink(tmpname)
 
@@ -466,12 +465,10 @@ class TestEtcHosts(unittest.TestCase):
     try:
       SetEtcHostsEntry(tmpname, '192.168.1.1', 'myhost.domain.tld', ['myhost'])
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '1486c19f1fcb626f893c243e3ce38c8d')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "# This is a test file for /etc/hosts\n"
+        "127.0.0.1\tlocalhost\n"
+        "192.168.1.1\tmyhost.domain.tld myhost\n")
     finally:
       os.unlink(tmpname)
 
@@ -480,12 +477,10 @@ class TestEtcHosts(unittest.TestCase):
     try:
       RemoveEtcHostsEntry(tmpname, 'router')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '8b09207a23709d60240674601a3548b2')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "# This is a test file for /etc/hosts\n"
+        "127.0.0.1\tlocalhost\n"
+        "192.168.1.1 gw\n")
     finally:
       os.unlink(tmpname)
 
@@ -494,12 +489,9 @@ class TestEtcHosts(unittest.TestCase):
     try:
       RemoveEtcHostsEntry(tmpname, 'localhost')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         'ec4e4589b56f82fdb88db5675de011b1')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "# This is a test file for /etc/hosts\n"
+        "192.168.1.1 router gw\n")
     finally:
       os.unlink(tmpname)
 
@@ -508,12 +500,10 @@ class TestEtcHosts(unittest.TestCase):
     try:
       RemoveEtcHostsEntry(tmpname, 'myhost')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         'aa005bddc6d9ee399c296953f194929e')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "# This is a test file for /etc/hosts\n"
+        "127.0.0.1\tlocalhost\n"
+        "192.168.1.1 router gw\n")
     finally:
       os.unlink(tmpname)
 
@@ -522,12 +512,10 @@ class TestEtcHosts(unittest.TestCase):
     try:
       RemoveEtcHostsEntry(tmpname, 'gw')
 
-      f = open(tmpname, 'r')
-      try:
-        self.assertEqual(md5.new(f.read(8192)).hexdigest(),
-                         '156dd3980a17b2ef934e2d0bf670aca2')
-      finally:
-        f.close()
+      self.assertFileContent(tmpname,
+        "# This is a test file for /etc/hosts\n"
+        "127.0.0.1\tlocalhost\n"
+        "192.168.1.1 router\n")
     finally:
       os.unlink(tmpname)
 
