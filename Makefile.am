@@ -23,4 +23,5 @@ depgraph.dot: ganeti/*.py
 
 install-exec-local:
 	@mkdir_p@ "$(DESTDIR)${localstatedir}/lib/ganeti" \
-	  "$(DESTDIR)${localstatedir}/log/ganeti"
+	  "$(DESTDIR)${localstatedir}/log/ganeti" \
+	  "$(DESTDIR)${localstatedir}/run/ganeti"
