@@ -354,171 +354,138 @@ class TestSshKeys(GanetiTestCase):
   KEY_B = ('command="/usr/bin/fooserver -t --verbose",from="1.2.3.4" '
            'ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b')
 
-  def writeTestFile(self):
-    (fd, tmpname) = tempfile.mkstemp(prefix = 'ganeti-test')
-    f = os.fdopen(fd, 'w')
+  def setUp(self):
+    (fd, self.tmpname) = tempfile.mkstemp(prefix='ganeti-test')
     try:
-      f.write(TestSshKeys.KEY_A)
-      f.write("\n")
-      f.write(TestSshKeys.KEY_B)
-      f.write("\n")
-    finally:
-      f.close()
+      handle = os.fdopen(fd, 'w')
+      try:
+        handle.write("%s\n" % TestSshKeys.KEY_A)
+        handle.write("%s\n" % TestSshKeys.KEY_B)
+      finally:
+        handle.close()
+    except:
+      utils.RemoveFile(self.tmpname)
+      raise
 
-    return tmpname
+  def tearDown(self):
+    utils.RemoveFile(self.tmpname)
+    del self.tmpname
 
   def testAddingNewKey(self):
-    tmpname = self.writeTestFile()
-    try:
-      AddAuthorizedKey(tmpname, 'ssh-dss AAAAB3NzaC1kc3MAAACB root@test')
+    AddAuthorizedKey(self.tmpname, 'ssh-dss AAAAB3NzaC1kc3MAAACB root@test')
 
-      self.assertFileContent(tmpname,
-        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
-        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
-        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
-        "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
 
   def testAddingAlmostButNotCompletlyTheSameKey(self):
-    tmpname = self.writeTestFile()
-    try:
-      AddAuthorizedKey(tmpname,
-          'ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test')
+    AddAuthorizedKey(self.tmpname,
+        'ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test')
 
-      self.assertFileContent(tmpname,
-        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
-        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
-        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
-        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test\n")
 
   def testAddingExistingKeyWithSomeMoreSpaces(self):
-    tmpname = self.writeTestFile()
-    try:
-      AddAuthorizedKey(tmpname,
-          'ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a')
+    AddAuthorizedKey(self.tmpname,
+        'ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a')
 
-      self.assertFileContent(tmpname,
-        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
-        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
-        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
 
   def testRemovingExistingKeyWithSomeMoreSpaces(self):
-    tmpname = self.writeTestFile()
-    try:
-      RemoveAuthorizedKey(tmpname,
-          'ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a')
+    RemoveAuthorizedKey(self.tmpname,
+        'ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a')
 
-      self.assertFileContent(tmpname,
-        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
-        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
 
   def testRemovingNonExistingKey(self):
-    tmpname = self.writeTestFile()
-    try:
-      RemoveAuthorizedKey(tmpname,
-          'ssh-dss  AAAAB3Nsdfj230xxjxJjsjwjsjdjU   root@test')
+    RemoveAuthorizedKey(self.tmpname,
+        'ssh-dss  AAAAB3Nsdfj230xxjxJjsjwjsjdjU   root@test')
 
-      self.assertFileContent(tmpname,
-        "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
-        'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
-        " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="1.2.3.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
 
 
 class TestEtcHosts(GanetiTestCase):
   """Test functions modifying /etc/hosts"""
 
-  def writeTestFile(self):
-    (fd, tmpname) = tempfile.mkstemp(prefix = 'ganeti-test')
-    f = os.fdopen(fd, 'w')
+  def setUp(self):
+    (fd, self.tmpname) = tempfile.mkstemp(prefix='ganeti-test')
     try:
-      f.write('# This is a test file for /etc/hosts\n')
-      f.write('127.0.0.1\tlocalhost\n')
-      f.write('192.168.1.1 router gw\n')
-    finally:
-      f.close()
+      handle = os.fdopen(fd, 'w')
+      try:
+        handle.write('# This is a test file for /etc/hosts\n')
+        handle.write('127.0.0.1\tlocalhost\n')
+        handle.write('192.168.1.1 router gw\n')
+      finally:
+        handle.close()
+    except:
+      utils.RemoveFile(self.tmpname)
+      raise
 
-    return tmpname
+  def tearDown(self):
+    utils.RemoveFile(self.tmpname)
+    del self.tmpname
 
   def testSettingNewIp(self):
-    tmpname = self.writeTestFile()
-    try:
-      SetEtcHostsEntry(tmpname, '1.2.3.4', 'myhost.domain.tld', ['myhost'])
+    SetEtcHostsEntry(self.tmpname, '1.2.3.4', 'myhost.domain.tld', ['myhost'])
 
-      self.assertFileContent(tmpname,
-        "# This is a test file for /etc/hosts\n"
-        "127.0.0.1\tlocalhost\n"
-        "192.168.1.1 router gw\n"
-        "1.2.3.4\tmyhost.domain.tld myhost\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "127.0.0.1\tlocalhost\n"
+      "192.168.1.1 router gw\n"
+      "1.2.3.4\tmyhost.domain.tld myhost\n")
 
   def testSettingExistingIp(self):
-    tmpname = self.writeTestFile()
-    try:
-      SetEtcHostsEntry(tmpname, '192.168.1.1', 'myhost.domain.tld', ['myhost'])
+    SetEtcHostsEntry(self.tmpname, '192.168.1.1', 'myhost.domain.tld',
+                     ['myhost'])
 
-      self.assertFileContent(tmpname,
-        "# This is a test file for /etc/hosts\n"
-        "127.0.0.1\tlocalhost\n"
-        "192.168.1.1\tmyhost.domain.tld myhost\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "127.0.0.1\tlocalhost\n"
+      "192.168.1.1\tmyhost.domain.tld myhost\n")
 
   def testRemovingExistingHost(self):
-    tmpname = self.writeTestFile()
-    try:
-      RemoveEtcHostsEntry(tmpname, 'router')
+    RemoveEtcHostsEntry(self.tmpname, 'router')
 
-      self.assertFileContent(tmpname,
-        "# This is a test file for /etc/hosts\n"
-        "127.0.0.1\tlocalhost\n"
-        "192.168.1.1 gw\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "127.0.0.1\tlocalhost\n"
+      "192.168.1.1 gw\n")
 
   def testRemovingSingleExistingHost(self):
-    tmpname = self.writeTestFile()
-    try:
-      RemoveEtcHostsEntry(tmpname, 'localhost')
+    RemoveEtcHostsEntry(self.tmpname, 'localhost')
 
-      self.assertFileContent(tmpname,
-        "# This is a test file for /etc/hosts\n"
-        "192.168.1.1 router gw\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "192.168.1.1 router gw\n")
 
   def testRemovingNonExistingHost(self):
-    tmpname = self.writeTestFile()
-    try:
-      RemoveEtcHostsEntry(tmpname, 'myhost')
+    RemoveEtcHostsEntry(self.tmpname, 'myhost')
 
-      self.assertFileContent(tmpname,
-        "# This is a test file for /etc/hosts\n"
-        "127.0.0.1\tlocalhost\n"
-        "192.168.1.1 router gw\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "127.0.0.1\tlocalhost\n"
+      "192.168.1.1 router gw\n")
 
   def testRemovingAlias(self):
-    tmpname = self.writeTestFile()
-    try:
-      RemoveEtcHostsEntry(tmpname, 'gw')
+    RemoveEtcHostsEntry(self.tmpname, 'gw')
 
-      self.assertFileContent(tmpname,
-        "# This is a test file for /etc/hosts\n"
-        "127.0.0.1\tlocalhost\n"
-        "192.168.1.1 router\n")
-    finally:
-      os.unlink(tmpname)
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "127.0.0.1\tlocalhost\n"
+      "192.168.1.1 router\n")
 
 
 class TestShellQuoting(unittest.TestCase):
