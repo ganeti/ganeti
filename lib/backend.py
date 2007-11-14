@@ -660,9 +660,10 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
                      (disk, size))
   if on_primary or disk.AssembleOnSecondary():
     if not device.Assemble():
-      raise errors.BlockDeviceError("Can't assemble device after creation,"
-                                    " very unusual event - check the node"
-                                    " daemon logs")
+      errorstring = "Can't assemble device after creation"
+      logger.Error(errorstring)
+      raise errors.BlockDeviceError("%s, very unusual event - check the node"
+                                    " daemon logs" % errorstring)
     device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       device.Open(force=True)
