@@ -335,7 +335,8 @@ class TestParseUnit(unittest.TestCase):
     for sep in ('', ' ', '   ', "\t", "\t "):
       for suffix, scale in TestParseUnit.SCALES:
         for func in (lambda x: x, str.lower, str.upper):
-          self.assertEqual(ParseUnit('1024' + sep + func(suffix)), 1024 * scale)
+          self.assertEqual(ParseUnit('1024' + sep + func(suffix)),
+                           1024 * scale)
 
   def testInvalidInput(self):
     for sep in ('-', '_', ',', 'a'):
