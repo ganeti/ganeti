@@ -400,8 +400,8 @@ class LogicalVolume(BlockDev):
     """
     result = utils.RunCmd(["lvdisplay", self.dev_path])
     if result.failed:
-      logger.Error("Can't find LV %s: %s" %
-                   (self.dev_path, result.fail_reason))
+      logger.Error("Can't find LV %s: %s, %s" %
+                   (self.dev_path, result.fail_reason, result.output))
       return False
     match = re.compile("^ *Block device *([0-9]+):([0-9]+).*$")
     for line in result.stdout.splitlines():
