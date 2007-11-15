@@ -212,6 +212,14 @@
           kernel parameter <literal>nosmp</literal>.
         </para>
 
+	<para>
+	  It is recommended that you disable xen's automatic save of virtual
+	  machines at system shutdown and subsequent restore of them at reboot.
+	  To obtain this make sure the variable
+	  <listeral>XENDOMAINS_SAVE</literal> in the file
+	  <literal>/etc/default/xendomains</literal> is set to an empty value.
+	</para>
+
         <formalpara>
           <title>Debian</title>
           <para>
