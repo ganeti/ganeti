@@ -447,7 +447,7 @@ skip resource "r1" {
       <screen>
 # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
   python2.4 python-twisted-core python-pyopenssl openssl \
-  mdadm
+  mdadm python-pyparsing python-simplejson
       </screen>
 
     </sect2>
