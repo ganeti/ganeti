@@ -629,7 +629,6 @@ class LUDestroyCluster(NoHooksLU):
     utils.CreateBackup(priv_key)
     utils.CreateBackup(pub_key)
     rpc.call_node_leave_cluster(master)
-    _RemoveHostFromEtcHosts(master)
 
 
 class LUVerifyCluster(NoHooksLU):
