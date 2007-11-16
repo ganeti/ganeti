@@ -3765,7 +3765,7 @@ class LUReplaceDisks(LogicalUnit):
       cfg.SetDiskID(dev, old_node)
       if not rpc.call_blockdev_shutdown(old_node, dev):
         warning("Failed to shutdown drbd for %s on old node" % dev.iv_name,
-                "Please cleanup this device manuall as soon as possible")
+                "Please cleanup this device manually as soon as possible")
 
       # we have new storage, we 'rename' the network on the primary
       info("switching primary drbd for %s to new secondary node" % dev.iv_name)
