@@ -380,7 +380,7 @@ class TestSshKeys(GanetiTestCase):
       " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
       "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
 
-  def testAddingAlmostButNotCompletlyTheSameKey(self):
+  def testAddingAlmostButNotCompletelyTheSameKey(self):
     AddAuthorizedKey(self.tmpname,
         'ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test')
 
