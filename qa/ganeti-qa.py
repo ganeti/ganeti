@@ -269,18 +269,25 @@ def main():
       RunTest(qa_instance.TestInstanceRemove, instance)
       del instance
 
-    if qa_config.TestEnabled('instance-add-remote-raid-disk'):
-      snode = qa_config.AcquireNode(exclude=pnode)
-      try:
-        instance = RunTest(qa_instance.TestInstanceAddWithRemoteRaidDisk,
-                           pnode, snode)
-        RunCommonInstanceTests(instance)
-        RunExportImportTests(instance, pnode)
-        RunHardwareFailureTests(instance, pnode, snode)
-        RunTest(qa_instance.TestInstanceRemove, instance)
-        del instance
-      finally:
-        qa_config.ReleaseNode(snode)
+    multinode_tests = [
+      ('instance-add-remote-raid-disk',
+       qa_instance.TestInstanceAddWithRemoteRaidDisk),
+      ('instance-add-drbd-disk',
+       qa_instance.TestInstanceAddWithDrbdDisk),
+    ]
+
+    for name, func in multinode_tests:
+      if qa_config.TestEnabled(name):
+        snode = qa_config.AcquireNode(exclude=pnode)
+        try:
+          instance = RunTest(func, pnode, snode)
+          RunCommonInstanceTests(instance)
+          RunExportImportTests(instance, pnode)
+          RunHardwareFailureTests(instance, pnode, snode)
+          RunTest(qa_instance.TestInstanceRemove, instance)
+          del instance
+        finally:
+          qa_config.ReleaseNode(snode)
 
   finally:
     qa_config.ReleaseNode(pnode)

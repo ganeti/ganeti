@@ -48,6 +48,7 @@ tests:
   instance-add-plain-disk: True
   instance-add-local-mirror-disk: True
   instance-add-remote-raid-disk: True
+  instance-add-drbd-disk: False
   instance-list: True
   instance-failover: True
   instance-info: True

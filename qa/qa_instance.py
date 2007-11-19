@@ -82,6 +82,13 @@ def TestInstanceAddWithRemoteRaidDisk(node, node2):
                    'remote_raid1')
 
 
+@qa_utils.DefineHook('instance-add-drbd-disk')
+def TestInstanceAddWithDrbdDisk(node, node2):
+  """gnt-instance add -t drbd"""
+  return _DiskTest("%s:%s" % (node['primary'], node2['primary']),
+                   'drbd')
+
+
 @qa_utils.DefineHook('instance-remove')
 def TestInstanceRemove(instance):
   """gnt-instance remove"""
