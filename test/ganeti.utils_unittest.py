@@ -608,5 +608,28 @@ class TestNewUUID(unittest.TestCase):
     self.failUnless(self._re_uuid.match(utils.NewUUID()))
 
 
+class TestUniqueSequence(unittest.TestCase):
+  """Test case for UniqueSequence"""
+
+  def _test(self, input, expected):
+    self.assertEqual(utils.UniqueSequence(input), expected)
+
+  def runTest(self):
+    # Ordered input
+    self._test([1, 2, 3], [1, 2, 3])
+    self._test([1, 1, 2, 2, 3, 3], [1, 2, 3])
+    self._test([1, 2, 2, 3], [1, 2, 3])
+    self._test([1, 2, 3, 3], [1, 2, 3])
+
+    # Unordered input
+    self._test([1, 2, 3, 1, 2, 3], [1, 2, 3])
+    self._test([1, 1, 2, 3, 3, 1, 2], [1, 2, 3])
+
+    # Strings
+    self._test(["a", "a"], ["a"])
+    self._test(["a", "b"], ["a", "b"])
+    self._test(["a", "b", "a"], ["a", "b"])
+
+
 if __name__ == '__main__':
   unittest.main()

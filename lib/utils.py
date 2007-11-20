@@ -1002,3 +1002,12 @@ def any(seq, pred=bool):
   for elem in itertools.ifilter(pred, seq):
     return True
   return False
+
+
+def UniqueSequence(seq):
+  """Returns a list with unique elements.
+
+  Element order is preserved.
+  """
+  seen = set()
+  return [i for i in seq if i not in seen and not seen.add(i)]
