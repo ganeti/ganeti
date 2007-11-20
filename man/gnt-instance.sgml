@@ -465,6 +465,7 @@
         <cmdsynopsis>
           <command>startup</command>
           <arg>--extra=<replaceable>PARAMS</replaceable></arg>
+          <arg>--force</arg>
           <sbr>
           <group choice="opt">
             <arg>--instance</arg>
@@ -537,6 +538,10 @@
           not apply to all virtualization types.
         </para>
 
+        <para>
+          Use <option>--force</option> to start even if secondary disks are
+          failing.
+        </para>
 
         <para>
           Example:
@@ -644,7 +649,7 @@
         </para>
 
         <para>
-          Use the <option>--force-multiple</option> to keep
+          Use the <option>--force-multiple</option> option to keep
           gnt-instance from asking for confirmation when more than one
           instance is affected.
         </para>
