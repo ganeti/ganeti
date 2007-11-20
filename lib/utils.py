@@ -756,6 +756,9 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
   """Sets the name of an IP address and hostname in /etc/hosts.
 
   """
+  # Ensure aliases are unique
+  aliases = UniqueSequence([hostname] + aliases)[1:]
+
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
     out = os.fdopen(fd, 'w')

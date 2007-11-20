@@ -456,6 +456,15 @@ class TestEtcHosts(GanetiTestCase):
       "127.0.0.1\tlocalhost\n"
       "192.168.1.1\tmyhost.domain.tld myhost\n")
 
+  def testSettingDuplicateName(self):
+    SetEtcHostsEntry(self.tmpname, '1.2.3.4', 'myhost', ['myhost'])
+
+    self.assertFileContent(self.tmpname,
+      "# This is a test file for /etc/hosts\n"
+      "127.0.0.1\tlocalhost\n"
+      "192.168.1.1 router gw\n"
+      "1.2.3.4\tmyhost\n")
+
   def testRemovingExistingHost(self):
     RemoveEtcHostsEntry(self.tmpname, 'router')
 
