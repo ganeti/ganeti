@@ -53,6 +53,7 @@ def Log(msg):
 
   """
   print msg
+  sys.stdout.flush()
 
 
 class Burner(object):
