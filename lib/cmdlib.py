@@ -3375,12 +3375,12 @@ class LUReplaceDisks(LogicalUnit):
         self.op.mode = constants.REPLACE_DISK_SEC
 
       if self.op.mode == constants.REPLACE_DISK_ALL:
-        raise errors.OpPrereqError("Template 'drbd8' only allows primary or"
+        raise errors.OpPrereqError("Template 'drbd' only allows primary or"
                                    " secondary disk replacement, not"
                                    " both at once")
       elif self.op.mode == constants.REPLACE_DISK_PRI:
         if remote_node is not None:
-          raise errors.OpPrereqError("Template 'drbd8' does not allow changing"
+          raise errors.OpPrereqError("Template 'drbd' does not allow changing"
                                      " the secondary while doing a primary"
                                      " node disk replacement")
         self.tgt_node = instance.primary_node

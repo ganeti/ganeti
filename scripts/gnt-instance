@@ -781,11 +781,11 @@ commands = {
                      make_option("-p", "--on-primary", dest="on_primary",
                                  default=False, action="store_true",
                                  help=("Replace the disk(s) on the primary"
-                                       " node (only for the drbd8 template)")),
+                                       " node (only for the drbd template)")),
                      make_option("-s", "--on-secondary", dest="on_secondary",
                                  default=False, action="store_true",
                                  help=("Replace the disk(s) on the secondary"
-                                       " node (only for the drbd8 template)")),
+                                       " node (only for the drbd template)")),
                      make_option("--disks", dest="disks", default=None,
                                  help=("Comma-separated list of disks"
                                        " to replace (e.g. sda) (optional,"

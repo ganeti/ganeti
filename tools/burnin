@@ -121,10 +121,10 @@ class Burner(object):
                       help="Skip instance failovers", action="store_false",
                       default=True)
     parser.add_option("-t", "--disk-template", dest="disk_template",
-                      choices=("remote_raid1", "drbd8"),
+                      choices=("remote_raid1", "drbd"),
                       default="remote_raid1",
                       help="Template type for network mirroring (remote_raid1"
-                      " or drbd8) [remote_raid1]")
+                      " or drbd) [remote_raid1]")
     parser.add_option("-n", "--nodes", dest="nodes", default="",
                       help="Comma separated list of nodes to perform"
                       " the burnin on (defaults to all nodes)")
@@ -133,17 +133,12 @@ class Burner(object):
     if len(args) < 1 or options.os is None:
       Usage()
 
-    if options.disk_template == "plain":
-      disk_template = constants.DT_PLAIN
-    elif options.disk_template == "remote_raid1":
-      disk_template = constants.DT_REMOTE_RAID1
-    elif options.disk_template == "drbd8":
-      disk_template = constants.DT_DRBD8
-    else:
+    supported_disk_templates = (constants.DT_PLAIN, constants.DT_REMOTE_RAID1,
+                                constants.DT_DRBD8)
+    if options.disk_template not in supported_disk_templates:
       Log("Unknown disk template '%s'" % options.disk_template)
       sys.exit(1)
 
-    options.disk_template = disk_template
     self.opts = options
     self.instances = args
 
