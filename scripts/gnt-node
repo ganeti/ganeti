@@ -280,7 +280,7 @@ commands = {
            make_option("-s", "--secondary-ip", dest="secondary_ip",
                        help="Specify the secondary ip for the node",
                        metavar="ADDRESS", default=None),],
-          "[-s] <node_name>", "Add a node to the cluster"),
+          "[-s ip] <node_name>", "Add a node to the cluster"),
   'evacuate': (EvacuateNode, ARGS_FIXED(2),
                [DEBUG_OPT, FORCE_OPT],
                "[-f] <src_node> <dst_node>",
