@@ -1341,7 +1341,8 @@ class DRBDev(BaseDRBD):
 
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disconnect"])
-    logger.Error("Can't shutdown network: %s" % result.output)
+    if result.failed:
+      logger.Error("Can't shutdown network: %s" % result.output)
     return not result.failed
 
   def Assemble(self):
@@ -2170,7 +2171,8 @@ class DRBD8(BaseDRBD):
 
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disconnect"])
-    logger.Error("Can't shutdown network: %s" % result.output)
+    if result.failed:
+      logger.Error("Can't shutdown network: %s" % result.output)
     return not result.failed
 
   @classmethod
