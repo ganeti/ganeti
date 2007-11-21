@@ -1,7 +1,27 @@
 #!/usr/bin/python
 #
 
-"""Burnin program"""
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Burnin program
+
+"""
 
 import sys
 import optparse
@@ -16,7 +36,9 @@ from ganeti import logger
 from ganeti import errors
 from ganeti import utils
 
+
 USAGE = ("\tburnin -o OS_NAME [options...] instance_name ...")
+
 
 def Usage():
   """Shows program usage information and exits the program."""
@@ -25,11 +47,13 @@ def Usage():
   print >> sys.stderr, USAGE
   sys.exit(2)
 
+
 def Log(msg):
   """Simple function that prints out its argument.
 
   """
   print msg
+
 
 class Burner(object):
   """Burner class."""
@@ -294,6 +318,7 @@ class Burner(object):
 
     return 0
 
+
 def main():
   """Main function"""
 
@@ -309,6 +334,7 @@ def main():
     utils.Unlock('cmd')
     utils.LockCleanup()
   return retval
+
 
 if __name__ == "__main__":
   main()
