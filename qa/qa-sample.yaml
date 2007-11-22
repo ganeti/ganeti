@@ -76,3 +76,6 @@ options:
 
   # Directory containing QA hooks
   #hooks-dir: hooks/
+
+  # Logfile for loghook.py
+  hook-logfile: /tmp/qa.log
