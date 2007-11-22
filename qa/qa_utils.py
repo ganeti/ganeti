@@ -232,6 +232,7 @@ def LoadHooks():
   for name in utils.ListVisibleFiles(hooks_dir):
     if name.endswith('.py'):
       # Load and instanciate hook
+      print "Loading hook %s" % name
       _hooks.append(__import__(name[:-3], None, None, ['']).hook())
 
 
