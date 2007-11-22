@@ -1,13 +1,14 @@
 # Build man pages
 
 man_MANS = ganeti.7 ganeti-os-interface.7 gnt-cluster.8 gnt-node.8 gnt-os.8 \
-	   gnt-instance.8 ganeti-noded.8 ganeti-watcher.8 gnt-backup.8
+	   gnt-instance.8 ganeti-noded.8 ganeti-watcher.8 gnt-backup.8 \
+	   ganeti-master.8
 
 maninput = $(patsubst %.7,%.in,$(patsubst %.8,%.in,$(man_MANS)))
 
 EXTRA_DIST = ganeti-os-interface.sgml gnt-cluster.sgml gnt-node.sgml \
 	     ganeti-watcher.sgml ganeti.sgml gnt-instance.sgml gnt-os.sgml \
-	     gnt-backup.sgml ganeti-noded.sgml \
+	     gnt-backup.sgml ganeti-noded.sgml ganeti-master.sgml \
 	     footer.sgml $(maninput)
 CLEANFILES = *.[78]
 MAINTAINERCLEANFILES = $(maninput)

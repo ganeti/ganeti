@@ -53,7 +53,11 @@
       <citerefentry>
         <refentrytitle>ganeti-noded</refentrytitle>
         <manvolnum>8</manvolnum>
-      </citerefentry> (node daemon).
+      </citerefentry> (node daemon),
+      <citerefentry>
+        <refentrytitle>ganeti-master</refentrytitle>
+        <manvolnum>8</manvolnum>
+      </citerefentry> (the master startup script).
     </para>
 
   </refsect1>
