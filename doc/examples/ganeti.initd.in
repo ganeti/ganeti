@@ -17,6 +17,7 @@ NAME=ganeti-noded
 NODED=@PREFIX@/sbin/ganeti-noded
 MASTER=@PREFIX@/sbin/ganeti-master
 SCRIPTNAME=@SYSCONFDIR@/init.d/ganeti
+RUNDIR="@LOCALSTATEDIR@/run/ganeti"
 
 test -f $NODED || exit 0
 
@@ -55,6 +56,7 @@ case "$1" in
     start)
         log_daemon_msg "Starting $DESC" "$NAME"
         check_config
+        test -e "$RUNDIR" || mkdir -p "$RUNDIR"
         if start-stop-daemon --start --quiet --exec $NODED; then
             log_end_msg 0
         else
