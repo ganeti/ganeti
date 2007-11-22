@@ -907,7 +907,9 @@ def ListVisibleFiles(path):
   """Returns a list of all visible files in a directory.
 
   """
-  return [i for i in os.listdir(path) if not i.startswith(".")]
+  files = [i for i in os.listdir(path) if not i.startswith(".")]
+  files.sort()
+  return files
 
 
 def GetHomeDir(user, default=None):
