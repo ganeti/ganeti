@@ -23,10 +23,12 @@
 from ganeti import utils
 
 import qa_config
+import qa_utils
 
 from qa_utils import AssertEqual, StartSSH
 
 
+@qa_utils.DefineHook('env-ssh-connection')
 def TestSshConnection():
   """Test SSH connection.
 
@@ -35,6 +37,7 @@ def TestSshConnection():
     AssertEqual(StartSSH(node['primary'], 'exit').wait(), 0)
 
 
+@qa_utils.DefineHook('env-ganeti-commands')
 def TestGanetiCommands():
   """Test availibility of Ganeti commands.
 
@@ -53,6 +56,7 @@ def TestGanetiCommands():
     AssertEqual(StartSSH(node['primary'], cmd).wait(), 0)
 
 
+@qa_utils.DefineHook('env-icmp-ping')
 def TestIcmpPing():
   """ICMP ping each node.
 

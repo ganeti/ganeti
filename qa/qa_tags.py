@@ -55,16 +55,19 @@ def _TestTags(cmdfn):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('tags-cluster')
 def TestClusterTags():
   """gnt-cluster tags"""
   _TestTags(lambda subcmd: ['gnt-cluster', subcmd])
 
 
+@qa_utils.DefineHook('tags-node')
 def TestNodeTags(node):
   """gnt-node tags"""
   _TestTags(lambda subcmd: ['gnt-node', subcmd, node['primary']])
 
 
+@qa_utils.DefineHook('tags-instance')
 def TestInstanceTags(instance):
   """gnt-instance tags"""
   _TestTags(lambda subcmd: ['gnt-instance', subcmd, instance['name']])

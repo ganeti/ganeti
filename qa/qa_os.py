@@ -36,6 +36,7 @@ _TEMP_OS_NAME = "TEMP-Ganeti-QA-OS"
 _TEMP_OS_PATH = os.path.join(constants.OS_SEARCH_PATH[0], _TEMP_OS_NAME)
 
 
+@qa_utils.DefineHook('os-list')
 def TestOsList():
   """gnt-os list"""
   master = qa_config.GetMasterNode()
@@ -45,6 +46,7 @@ def TestOsList():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('os-diagnose')
 def TestOsDiagnose():
   """gnt-os diagnose"""
   master = qa_config.GetMasterNode()
@@ -123,16 +125,19 @@ def _TestOs(mode):
       _RemoveTempOs(node, dir)
 
 
+@qa_utils.DefineHook('os-valid')
 def TestOsValid():
   """Testing valid OS definition"""
   return _TestOs(1)
 
 
+@qa_utils.DefineHook('os-invalid')
 def TestOsInvalid():
   """Testing invalid OS definition"""
   return _TestOs(0)
 
 
+@qa_utils.DefineHook('os-partially-valid')
 def TestOsPartiallyValid():
   """Testing partially valid OS definition"""
   return _TestOs(2)
