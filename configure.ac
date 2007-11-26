@@ -60,6 +60,13 @@ AC_PROG_LN_S
 # Check for Python
 AM_PATH_PYTHON(2.4)
 
+AC_PYTHON_MODULE(twisted.internet, t)
+AC_PYTHON_MODULE(twisted.cred, t)
+AC_PYTHON_MODULE(twisted.spread, t)
+AC_PYTHON_MODULE(OpenSSL, t)
+AC_PYTHON_MODULE(simplejson, t)
+AC_PYTHON_MODULE(pyparsing, t)
+
 # Check for docbook2man
 found_docbook2man=
 AC_CHECK_PROG(found_docbook2man, [docbook2man], [yes])

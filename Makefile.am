@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I autotools
+
 SUBDIRS = man lib scripts daemons doc test tools qa
 EXTRA_DIST = NEWS DEVNOTES
 
