@@ -1,3 +1,5 @@
+docdir = $(datadir)/doc/$(PACKAGE)
+
 SUBDIRS = examples
 dist_doc_DATA = \
   hooks.html hooks.pdf \
