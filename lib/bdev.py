@@ -1858,6 +1858,11 @@ class DRBD8(BaseDRBD):
 
     """
     lhost, lport, rhost, rport = net_info
+    if None in net_info:
+      # we don't want network connection and actually want to make
+      # sure its shutdown
+      return cls._ShutdownNet(minor)
+
     args = ["drbdsetup", cls._DevPath(minor), "net",
             "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport), protocol,
             "-A", "discard-zero-changes",
