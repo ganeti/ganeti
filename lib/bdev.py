@@ -2223,27 +2223,6 @@ class DRBD8(BaseDRBD):
     self.dev_path = None
     return True
 
-  def Rename(self, new_uid):
-    """Re-connect this device to another peer.
-
-    """
-    if self.minor is None:
-      raise errors.BlockDeviceError("Device not attached during rename")
-    if self._rhost is not None:
-      # this means we did have a host when we attached, so we are connected
-      if not self._ShutdownNet(self.minor):
-        raise errors.BlockDeviceError("Can't disconnect from remote peer")
-      old_id = self.unique_id
-    else:
-      old_id = None
-    self.unique_id = new_uid
-    if not self._AssembleNet(self.minor, self.unique_id, "C"):
-      logger.Error("Can't attach to new peer!")
-      if old_id is not None:
-        self._AssembleNet(self.minor, old_id, "C")
-      self.unique_id = old_id
-      raise errors.BlockDeviceError("Can't attach to new peer")
-
   def Remove(self):
     """Stub remove for DRBD devices.
 
