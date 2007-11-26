@@ -2099,6 +2099,24 @@ class DRBD8(BaseDRBD):
       # even though we were passed some children at init time
       if match_r and "local_dev" not in info:
         break
+      if match_l and not match_r and "local_addr" in info:
+        # strange case - the device network part points to somewhere
+        # else, even though its local storage is ours; as we own the
+        # drbd space, we try to disconnect from the remote peer and
+        # reconnect to our correct one
+        if not self._ShutdownNet(minor):
+          raise errors.BlockDeviceError("Device has correct local storage,"
+                                        " wrong remote peer and is unable to"
+                                        " disconnect in order to attach to"
+                                        " the correct peer")
+        # note: _AssembleNet also handles the case when we don't want
+        # local storage (i.e. one or more of the _[lr](host|port) is
+        # None)
+        if (self._AssembleNet(minor, (self._lhost, self._lport,
+                                      self._rhost, self._rport), "C") and
+            self._MatchesNet(self._GetDevInfo(minor))):
+          break
+
     else:
       minor = None
 
