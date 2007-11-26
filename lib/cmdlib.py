@@ -3767,21 +3767,45 @@ class LUReplaceDisks(LogicalUnit):
         warning("Failed to shutdown drbd for %s on old node" % dev.iv_name,
                 "Please cleanup this device manually as soon as possible")
 
-      # we have new storage, we 'rename' the network on the primary
-      info("switching primary drbd for %s to new secondary node" % dev.iv_name)
+    info("detaching primary drbds from the network (=> standalone)")
+    done = 0
+    for dev in instance.disks:
       cfg.SetDiskID(dev, pri_node)
-      # rename to the ip of the new node
-      new_uid = list(dev.physical_id)
-      new_uid[2] = self.remote_node_info.secondary_ip
-      rlist = [(dev, tuple(new_uid))]
-      if not rpc.call_blockdev_rename(pri_node, rlist):
-        raise errors.OpExecError("Can't detach & re-attach drbd %s on node"
-                                 " %s from %s to %s" %
-                                 (dev.iv_name, pri_node, old_node, new_node))
-      dev.logical_id = (pri_node, new_node, dev.logical_id[2])
-      cfg.SetDiskID(dev, pri_node)
-      cfg.Update(instance)
+      # set the physical (unique in bdev terms) id to None, meaning
+      # detach from network
+      dev.physical_id = (None,) * len(dev.physical_id)
+      # and 'find' the device, which will 'fix' it to match the
+      # standalone state
+      if rpc.call_blockdev_find(pri_node, dev):
+        done += 1
+      else:
+        warning("Failed to detach drbd %s from network, unusual case" %
+                dev.iv_name)
 
+    if not done:
+      # no detaches succeeded (very unlikely)
+      raise errors.OpExecError("Can't detach at least one DRBD from old node")
+
+    # if we managed to detach at least one, we update all the disks of
+    # the instance to point to the new secondary
+    info("updating instance configuration")
+    for dev in instance.disks:
+      dev.logical_id = (pri_node, new_node) + dev.logical_id[2:]
+      cfg.SetDiskID(dev, pri_node)
+    cfg.Update(instance)
+
+    # and now perform the drbd attach
+    info("attaching primary drbds to new secondary (standalone => connected)")
+    failures = []
+    for dev in instance.disks:
+      info("attaching primary drbd for %s to new secondary node" % dev.iv_name)
+      # since the attach is smart, it's enough to 'find' the device,
+      # it will automatically activate the network, if the physical_id
+      # is correct
+      cfg.SetDiskID(dev, pri_node)
+      if not rpc.call_blockdev_find(pri_node, dev):
+        warning("can't attach drbd %s to new secondary!" % dev.iv_name,
+                "please do a gnt-instance info to see the status of disks")
 
     # this can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its
