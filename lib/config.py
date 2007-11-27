@@ -168,15 +168,15 @@ class ConfigWriter:
     for instance_name in data.instances:
       instance = data.instances[instance_name]
       if instance.primary_node not in data.nodes:
-        result.append("Instance '%s' has invalid primary node '%s'" %
+        result.append("instance '%s' has invalid primary node '%s'" %
                       (instance_name, instance.primary_node))
       for snode in instance.secondary_nodes:
         if snode not in data.nodes:
-          result.append("Instance '%s' has invalid secondary node '%s'" %
+          result.append("instance '%s' has invalid secondary node '%s'" %
                         (instance_name, snode))
       for idx, nic in enumerate(instance.nics):
         if nic.mac in seen_macs:
-          result.append("Instance '%s' has NIC %d mac %s duplicate" %
+          result.append("instance '%s' has NIC %d mac %s duplicate" %
                         (instance_name, idx, nic.mac))
         else:
           seen_macs.append(nic.mac)

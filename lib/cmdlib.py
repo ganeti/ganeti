@@ -796,7 +796,8 @@ class LUVerifyCluster(NoHooksLU):
     """
     bad = False
     feedback_fn("* Verifying global settings")
-    self.cfg.VerifyConfig()
+    for msg in self.cfg.VerifyConfig():
+      feedback_fn("  - ERROR: %s" % msg)
 
     vg_name = self.cfg.GetVGName()
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
