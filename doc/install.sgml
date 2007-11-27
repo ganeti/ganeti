@@ -645,13 +645,15 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
         provided on the project web site.  Download it from <ulink
         url="http://code.google.com/p/ganeti/"></ulink> and follow the
         instructions in the <filename>README</filename> file.  Here is
-        the installation procedure:
+        the installation procedure (replace <constant>0.2</constant>
+        with the latest version that is compatible with your ganeti
+        version):
       </para>
 
       <screen>
 cd /srv/ganeti/os
-tar xvf instance-debian-etch-0.2.tar
-mv instance-debian-etch-0.2 debian-etch
+tar xvf ganeti-instance-debian-etch-0.2.tar
+mv ganeti-instance-debian-etch-0.2 debian-etch
       </screen>
 
       <para>
