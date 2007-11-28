@@ -605,8 +605,8 @@ vgextend xenvg /dev/sdd1
       </para>
 
         <screen>
-tar xvzf ganeti-1.2b2.tar.gz
-cd ganeti-1.2b2
+tar xvzf ganeti-1.2b3.tar.gz
+cd ganeti-1.2b3
 ./configure --localstatedir=/var --sysconfdir=/etc
 make
 make install
@@ -652,8 +652,8 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
 
       <screen>
 cd /srv/ganeti/os
-tar xvf ganeti-instance-debian-etch-0.2.tar
-mv ganeti-instance-debian-etch-0.2 debian-etch
+tar xvf ganeti-instance-debian-etch-0.3.tar
+mv ganeti-instance-debian-etch-0.3 debian-etch
       </screen>
 
       <para>

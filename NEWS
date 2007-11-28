@@ -1,3 +1,10 @@
+Version 1.2b3
+  - Another round of updates to the DRBD 8 code to deal with more
+    failures in the replace secondary node operation
+  - Some more logging of failures in disk operations (lvm, drbd)
+  - A few documentation updates
+  - QA updates
+
 Version 1.2b2
   - Change configuration file format from Python's Pickle to JSON.
     Upgrading is possible using the cfgupgrade utility.
