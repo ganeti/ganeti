@@ -31,7 +31,7 @@
     <refmiscinfo>ganeti 1.2</refmiscinfo>
   </refmeta>
   <refnamediv>
-    <refname>ganeti guest OS interface</refname>
+    <refname>ganeti-os-interface</refname>
 
     <refpurpose>specifications for guest OS types
     </refpurpose>
