@@ -34,6 +34,7 @@ EXPORT_VERSION = 0
 # file paths
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
 BDEV_CACHE_DIR = _autoconf.LOCALSTATEDIR + "/run/ganeti"
+LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"

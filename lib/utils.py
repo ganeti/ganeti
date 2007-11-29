@@ -39,6 +39,7 @@ import itertools
 
 from ganeti import logger
 from ganeti import errors
+from ganeti import constants
 
 
 _locksheld = []
@@ -95,7 +96,7 @@ class RunResult(object):
 
 def _GetLockFile(subsystem):
   """Compute the file name for a given lock name."""
-  return "/var/lock/ganeti_lock_%s" % subsystem
+  return "%s/ganeti_lock_%s" % (constants.LOCK_DIR, subsystem)
 
 
 def Lock(name, max_retries=None, debug=False):
