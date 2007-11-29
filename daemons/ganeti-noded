@@ -519,6 +519,7 @@ def main():
 
   """
   options, args = ParseOptions()
+  utils.debug = options.debug
   for fname in (constants.SSL_CERT_FILE,):
     if not os.path.isfile(fname):
       print "config %s not there, will not run." % fname

@@ -44,6 +44,8 @@ from ganeti import errors
 _locksheld = []
 _re_shell_unquoted = re.compile('^[-.,=:/_+@A-Za-z0-9]+$')
 
+debug = False
+
 class RunResult(object):
   """Simple class for holding the result of running external programs.
 
@@ -77,6 +79,10 @@ class RunResult(object):
       self.fail_reason = "exited with exit code %s" % self.exit_code
     else:
       self.fail_reason = "unable to determine termination reason"
+
+    if debug and self.failed:
+      logger.Debug("Command '%s' failed (%s); output: %s" %
+                   (self.cmd, self.fail_reason, self.output))
 
   def _GetOutput(self):
     """Returns the combined stdout and stderr for easier usage.

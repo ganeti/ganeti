@@ -453,6 +453,7 @@ def GenericMain(commands, override=None):
 
   logger.SetupLogging(debug=options.debug, program=binary)
 
+  utils.debug = options.debug
   try:
     utils.Lock('cmd', max_retries=options.lock_retries, debug=options.debug)
   except errors.LockError, err:
