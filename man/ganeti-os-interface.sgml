@@ -161,7 +161,6 @@
         A very simple rename script should at least change the
         hostname and IP address of the instance, leaving the
         administrator to update the other services.
-        </screen>
       </para>
     </refsect2>
 
