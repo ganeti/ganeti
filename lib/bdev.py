@@ -1702,7 +1702,7 @@ class DRBD8(BaseDRBD):
     rbrace = pyp.Literal("}").suppress()
     semi = pyp.Literal(";").suppress()
     # this also converts the value to an int
-    number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t:(l, [int(t[0])]))
+    number = pyp.Word(pyp.nums).setParseAction(lambda s, l, t: int(t[0]))
 
     comment = pyp.Literal ("#") + pyp.Optional(pyp.restOfLine)
     defa = pyp.Literal("_is_default").suppress()
