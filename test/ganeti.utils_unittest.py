@@ -26,6 +26,7 @@ import os
 import time
 import tempfile
 import os.path
+import os
 import md5
 import socket
 import shutil
@@ -89,6 +90,21 @@ class TestIsProcessAlive(unittest.TestCase):
 
 class TestLocking(unittest.TestCase):
   """Testing case for the Lock/Unlock functions"""
+
+  def setUp(self):
+    lock_dir = tempfile.mkdtemp(prefix="ganeti.unittest.",
+                                suffix=".locking")
+    self.old_lock_dir = constants.LOCK_DIR
+    constants.LOCK_DIR = lock_dir
+
+  def tearDown(self):
+    try:
+      ganeti.utils.Unlock("unittest")
+    except LockError:
+      pass
+    shutil.rmtree(constants.LOCK_DIR, ignore_errors=True)
+    constants.LOCK_DIR = self.old_lock_dir
+
   def clean_lock(self, name):
     try:
       ganeti.utils.Unlock("unittest")
@@ -105,7 +121,6 @@ class TestLocking(unittest.TestCase):
     self.clean_lock("unittest")
     ganeti.utils.Lock("unittest")
     self.assertEqual(None, Unlock("unittest"))
-
 
   def testDoubleLock(self):
     self.clean_lock("unittest")
