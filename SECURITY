@@ -65,8 +65,8 @@ client will refuse to connect to servers which don't have the
 cluster-wide shared SSL certificate, and server will not allow clients
 which don't have the cluster-wide shared secret.
 
-The DRBD traffic is not protected by anything, as the version of DRBD we
-require (0.7) does not have any protections. It's therefore recommended
-to implement host-level firewalling or to use a separate range of IP
-addresses for the DRBD traffic (this is supported in Ganeti) which is
-not routed outside the cluster.
+The DRBD traffic is not protected by anything. DRBD does not support
+traffic encryption. It's therefore recommended to implement host-level
+firewalling or to use a separate range of IP addresses for the DRBD
+traffic (this is supported in Ganeti) which is not routed outside the
+cluster.
