@@ -267,6 +267,8 @@ def DefineHook(name):
 
   Usage: prefix function with @qa_utils.DefineHook(...)
 
+  This based on PEP 318, "Decorators for Functions and Methods".
+
   """
   def wrapper(fn):
     def new_f(*args, **kwargs):
