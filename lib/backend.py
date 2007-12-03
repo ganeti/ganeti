@@ -1135,7 +1135,7 @@ def SnapshotBlockDevice(disk):
       return None
   else:
     raise errors.ProgrammerError("Cannot snapshot non-lvm block device"
-                                 "'%s' of type '%s'" %
+                                 " '%s' of type '%s'" %
                                  (disk.unique_id, disk.dev_type))
 
 

@@ -232,8 +232,8 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
         node2disk[node_name].append(name)
 
   if [node2_full, node_full][int(onmaster)] not in node2disk:
-    raise qa_error.Error("Couldn't find physical disks used on "
-                         "%s node" % ["secondary", "master"][int(onmaster)])
+    raise qa_error.Error("Couldn't find physical disks used on"
+                         " %s node" % ["secondary", "master"][int(onmaster)])
 
   # Check whether nodes have ability to stop disks
   for node_name, disks in node2disk.iteritems():
@@ -319,8 +319,8 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
 
 def TestInstanceMasterDiskFailure(instance, node, node2):
   """Testing disk failure on master node."""
-  print qa_utils.FormatError("Disk failure on primary node cannot be "
-                             "tested due to potential crashes.")
+  print qa_utils.FormatError("Disk failure on primary node cannot be"
+                             " tested due to potential crashes.")
   # The following can cause crashes, thus it's disabled until fixed
   #return _TestInstanceDiskFailure(instance, node, node2, True)
 

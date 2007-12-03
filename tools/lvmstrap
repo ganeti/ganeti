@@ -190,24 +190,24 @@ def CheckPrereq():
 
   osname, nodename, release, version, arch = os.uname()
   if osname != 'Linux':
-    raise PrereqError("This tool only runs on Linux "
-                      "(detected OS: %s)." % osname)
+    raise PrereqError("This tool only runs on Linux"
+                      " (detected OS: %s)." % osname)
 
   if not release.startswith("2.6."):
-    raise PrereqError("Wrong major kernel version (detected %s, needs "
-                      "2.6.*)" % release)
+    raise PrereqError("Wrong major kernel version (detected %s, needs"
+                      " 2.6.*)" % release)
 
   if not os.path.ismount("/sys"):
-    raise PrereqError("Can't find a filesystem mounted at /sys. "
-                      "Please mount /sys.")
+    raise PrereqError("Can't find a filesystem mounted at /sys."
+                      " Please mount /sys.")
 
   if not os.path.isdir("/sys/block"):
-    raise SysconfigError("Can't find /sys/block directory. Has the "
-                         "layout of /sys changed?")
+    raise SysconfigError("Can't find /sys/block directory. Has the"
+                         " layout of /sys changed?")
 
   if not os.path.ismount("/proc"):
-    raise PrereqError("Can't find a filesystem mounted at /proc. "
-                      "Please mount /proc.")
+    raise PrereqError("Can't find a filesystem mounted at /proc."
+                      " Please mount /proc.")
 
   if not os.path.exists("/proc/mounts"):
     raise SysconfigError("Can't find /proc/mounts")
@@ -228,9 +228,9 @@ def CheckVGExists(vgname):
       vg_free: The available space in the volume group
   """
 
-  result = ExecCommand("vgs --nohead -o lv_count,vg_size,"
-                       "vg_free --nosuffix --units g "
-                       "--ignorelockingfailure %s" % vgname)
+  result = ExecCommand("vgs --nohead -o lv_count,vg_size,vg_free"
+                       " --nosuffix --units g"
+                       " --ignorelockingfailure %s" % vgname)
   if not result.failed:
     try:
       lv_count, vg_size, vg_free = result.stdout.strip().split()
@@ -272,12 +272,12 @@ def CheckSysDev(name, devnum):
       break
     time.sleep(0.250)
   else:
-    raise SysconfigError("the device file %s does not exist, but the block "
-                         "device exists in the /sys/block tree" % path)
+    raise SysconfigError("the device file %s does not exist, but the block"
+                         " device exists in the /sys/block tree" % path)
   rdev = os.stat(path).st_rdev
   if devnum != rdev:
-    raise SysconfigError("For device %s, the major:minor in /dev is %04x "
-                         "while the major:minor in sysfs is %s" %
+    raise SysconfigError("For device %s, the major:minor in /dev is %04x"
+                         " while the major:minor in sysfs is %s" %
                          (path, rdev, devnum))
 
 
@@ -546,14 +546,14 @@ def WipeDisk(name):
   """
 
   if not CheckReread(name):
-    raise OperationalError("CRITICAL: disk %s you selected seems to be in "
-                           "use. ABORTING!" % name)
+    raise OperationalError("CRITICAL: disk %s you selected seems to be in"
+                           " use. ABORTING!" % name)
 
   fd = os.open("/dev/%s" % name, os.O_RDWR | os.O_SYNC)
   olddata = os.read(fd, 512)
   if len(olddata) != 512:
-    raise OperationalError("CRITICAL: Can't read partition table information "
-                           "from /dev/%s (needed 512 bytes, got %d" %
+    raise OperationalError("CRITICAL: Can't read partition table information"
+                           " from /dev/%s (needed 512 bytes, got %d" %
                            (name, len(olddata)))
   newdata = "\0" * 512
   os.lseek(fd, 0, 0)
@@ -561,19 +561,19 @@ def WipeDisk(name):
   os.close(fd)
   if bytes_written != 512:
     raise OperationalError("CRITICAL: Can't write partition table information"
-                           " to /dev/%s (tried to write 512 bytes, written "
-                           "%d. I don't know how to cleanup. Sorry." %
+                           " to /dev/%s (tried to write 512 bytes, written"
+                           " %d. I don't know how to cleanup. Sorry." %
                            (name, bytes_written))
 
   if not CheckReread(name):
     fd = os.open("/dev/%s" % name, os.O_RDWR | os.O_SYNC)
     os.write(fd, olddata)
     os.close(fd)
-    raise OperationalError("CRITICAL: disk %s which I have just wiped cannot "
-                           "reread partition table. Most likely, it is "
-                           "in use. You have to clean after this yourself. "
-                           "I tried to restore the old partition table, "
-                           "but I cannot guarantee nothing has broken." %
+    raise OperationalError("CRITICAL: disk %s which I have just wiped cannot"
+                           " reread partition table. Most likely, it is"
+                           " in use. You have to clean after this yourself."
+                           " I tried to restore the old partition table,"
+                           " but I cannot guarantee nothing has broken." %
                            name)
 
 
@@ -589,11 +589,11 @@ def PartitionDisk(name):
   result = ExecCommand(
     'echo ,,8e, | sfdisk /dev/%s' % name)
   if result.failed:
-    raise OperationalError("CRITICAL: disk %s which I have just partitioned "
-                           "cannot reread its partition table, or there "
-                           "is some other sfdisk error. Likely, it is in "
-                           "use. You have to clean this yourself. Error "
-                           "message from sfdisk: %s" %
+    raise OperationalError("CRITICAL: disk %s which I have just partitioned"
+                           " cannot reread its partition table, or there"
+                           " is some other sfdisk error. Likely, it is in"
+                           " use. You have to clean this yourself. Error"
+                           " message from sfdisk: %s" %
                            (name, result.output))
 
 
@@ -609,9 +609,9 @@ def CreatePVOnDisk(name):
   """
   result = ExecCommand("pvcreate -yff /dev/%s1 " % name)
   if result.failed:
-    raise OperationalError("I cannot create a physical volume on "
-                           "partition /dev/%s1. Error message: %s. "
-                           "Please clean up yourself." %
+    raise OperationalError("I cannot create a physical volume on"
+                           " partition /dev/%s1. Error message: %s."
+                           " Please clean up yourself." %
                            (name, result.output))
 
 
@@ -628,9 +628,9 @@ def CreateVG(vgname, disks):
   pnames = ["'/dev/%s1'" % disk for disk in disks]
   result = ExecCommand("vgcreate -s 64MB '%s' %s" % (vgname, " ".join(pnames)))
   if result.failed:
-    raise OperationalError("I cannot create the volume group %s from "
-                           "disks %s. Error message: %s. Please clean up "
-                           "yourself." %
+    raise OperationalError("I cannot create the volume group %s from"
+                           " disks %s. Error message: %s. Please clean up"
+                           " yourself." %
                            (vgname, " ".join(disks), result.output))
 
 
@@ -651,8 +651,8 @@ def ValidateDiskList(options):
 
   sysdisks = GetDiskList()
   if not sysdisks:
-    raise PrereqError("no disks found (I looked for "
-                      "non-removable block devices).")
+    raise PrereqError("no disks found (I looked for"
+                      " non-removable block devices).")
   sysd_free = []
   sysd_used = []
   for name, size, dev, part, used in sysdisks:
@@ -677,6 +677,7 @@ def ValidateDiskList(options):
     raise ParameterError("Please use either --alldisks or --disks!")
 
   return disklist
+
 
 def BootStrap():
   """Actual main routine."""
@@ -711,10 +712,10 @@ def BootStrap():
   status, lv_count, size, free = CheckVGExists(vgname)
   if status:
     print "Done! %s: size %s GiB, disks: %s" % (vgname, size,
-                                                ",".join(disklist))
+                                              ",".join(disklist))
   else:
-    raise OperationalError("Although everything seemed ok, the volume "
-                           "group did not get created.")
+    raise OperationalError("Although everything seemed ok, the volume"
+                           " group did not get created.")
 
 
 def main():
@@ -727,34 +728,34 @@ def main():
     BootStrap()
   except PrereqError, err:
     print >> sys.stderr, "The prerequisites for running this tool are not met."
-    print >> sys.stderr, ("Please make sure you followed all the steps in "
-                          "the build document.")
+    print >> sys.stderr, ("Please make sure you followed all the steps in"
+                          " the build document.")
     print >> sys.stderr, "Description: %s" % str(err)
     sys.exit(1)
   except SysconfigError, err:
-    print >> sys.stderr, ("This system's configuration seems wrong, at "
-                          "least is not what I expect.")
-    print >> sys.stderr, ("Please check that the installation didn't fail "
-                          "at some step.")
+    print >> sys.stderr, ("This system's configuration seems wrong, at"
+                          " least is not what I expect.")
+    print >> sys.stderr, ("Please check that the installation didn't fail"
+                          " at some step.")
     print >> sys.stderr, "Description: %s" % str(err)
     sys.exit(1)
   except ParameterError, err:
-    print >> sys.stderr, ("Some parameters you gave to the program or the "
-                          "invocation is wrong. ")
+    print >> sys.stderr, ("Some parameters you gave to the program or the"
+                          " invocation is wrong. ")
     print >> sys.stderr, "Description: %s" % str(err)
     Usage()
   except OperationalError, err:
-    print >> sys.stderr, ("A serious error has happened while modifying "
-                          "the system's configuration.")
-    print >> sys.stderr, ("Please review the error message below and make "
-                          "sure you clean up yourself.")
-    print >> sys.stderr, ("It is most likely that the system configuration "
-                          "has been partially altered.")
+    print >> sys.stderr, ("A serious error has happened while modifying"
+                          " the system's configuration.")
+    print >> sys.stderr, ("Please review the error message below and make"
+                          " sure you clean up yourself.")
+    print >> sys.stderr, ("It is most likely that the system configuration"
+                          " has been partially altered.")
     print >> sys.stderr, str(err)
     sys.exit(1)
   except ProgrammingError, err:
-    print >> sys.stderr, ("Internal application error. Please signal this "
-                          "to xencluster-team.")
+    print >> sys.stderr, ("Internal application error. Please signal this"
+                          " to xencluster-team.")
     print >> sys.stderr, "Error description: %s" % str(err)
     sys.exit(1)
   except Error, err:

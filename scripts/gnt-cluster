@@ -210,9 +210,9 @@ def SearchTags(opts, args):
 # this is an option common to more than one command, so we declare
 # it here and reuse it
 node_option = make_option("-n", "--node", action="append", dest="nodes",
-                          help="Node to copy to (if not given, all nodes)"
-                          ", can be given multiple times", metavar="<node>",
-                          default=[])
+                          help="Node to copy to (if not given, all nodes),"
+                               " can be given multiple times",
+                          metavar="<node>", default=[])
 
 commands = {
   'init': (InitCluster, ARGS_ONE,

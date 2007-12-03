@@ -215,8 +215,8 @@ def main():
   """Main program.
 
   """
-  parser = OptionParser(usage="%prog [options] <config-file> "
-                              "<known-hosts-file>")
+  parser = OptionParser(usage="%prog [options] <config-file>"
+                              " <known-hosts-file>")
   parser.add_option('--dry-run', dest='dry_run',
       action="store_true",
       help="Show what would be done")

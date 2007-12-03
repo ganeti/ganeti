@@ -122,8 +122,8 @@ class WatcherState(object):
     except Exception, msg:
       # Ignore errors while loading the file and treat it as empty
       self.data = {}
-      sys.stderr.write("Empty or invalid state file. "
-          "Using defaults. Error message: %s\n" % msg)
+      sys.stderr.write("Empty or invalid state file."
+                       " Using defaults. Error message: %s\n" % msg)
 
     if "instance" not in self.data:
       self.data["instance"] = {}
@@ -367,9 +367,8 @@ class Watcher(object):
       # secondary node.
       for instance in GetInstanceList(with_secondaries=check_nodes):
         try:
-          self.messages.append(Message(NOTICE,
-                                       "Activating disks for %s." %
-                                       instance.name))
+          self.messages.append(Message(NOTICE, ("Activating disks for %s." %
+                                                instance.name)))
           instance.ActivateDisks()
         except Error, x:
           self.messages.append(Message(ERROR, str(x)))
@@ -402,9 +401,8 @@ class Watcher(object):
                                        (instance.name, MAXTRIES)))
           continue
         try:
-          self.messages.append(Message(NOTICE,
-                                       "Restarting %s%s." %
-                                       (instance.name, last)))
+          self.messages.append(Message(NOTICE, ("Restarting %s%s." %
+                                                (instance.name, last))))
           instance.Restart()
         except Error, x:
           self.messages.append(Message(ERROR, str(x)))
@@ -416,8 +414,7 @@ class Watcher(object):
       else:
         if notepad.NumberOfRestartAttempts(instance):
           notepad.RemoveInstance(instance)
-          msg = Message(NOTICE,
-                        "Restart of %s succeeded." % instance.name)
+          msg = Message(NOTICE, "Restart of %s succeeded." % instance.name)
           self.messages.append(msg)
 
   def WriteReport(self, logfile):

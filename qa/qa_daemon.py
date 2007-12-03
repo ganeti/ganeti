@@ -95,8 +95,8 @@ def PrintCronWarning():
   """Shows a warning about the cron job.
 
   """
-  msg = ("For the following tests it's recommended to turn off the "
-         "ganeti-watcher cronjob.")
+  msg = ("For the following tests it's recommended to turn off the"
+         " ganeti-watcher cronjob.")
   print
   print qa_utils.FormatWarning(msg)
 

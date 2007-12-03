@@ -522,8 +522,8 @@ class LUInitCluster(LogicalUnit):
         secondary_ip != hostname.ip and
         (not utils.TcpPing(constants.LOCALHOST_IP_ADDRESS, secondary_ip,
                            constants.DEFAULT_NODED_PORT))):
-      raise errors.OpPrereqError("You gave %s as secondary IP,\n"
-                                 "but it does not belong to this host." %
+      raise errors.OpPrereqError("You gave %s as secondary IP,"
+                                 " but it does not belong to this host." %
                                  secondary_ip)
     self.secondary_ip = secondary_ip
 
@@ -550,8 +550,8 @@ class LUInitCluster(LogicalUnit):
 
     if not (os.path.isfile(constants.NODE_INITD_SCRIPT) and
             os.access(constants.NODE_INITD_SCRIPT, os.X_OK)):
-      raise errors.OpPrereqError("Init.d script '%s' missing or not "
-                                 "executable." % constants.NODE_INITD_SCRIPT)
+      raise errors.OpPrereqError("Init.d script '%s' missing or not"
+                                 " executable." % constants.NODE_INITD_SCRIPT)
 
   def Exec(self, feedback_fn):
     """Initialize the cluster.
@@ -950,8 +950,8 @@ class LURenameCluster(LogicalUnit):
                          (fname, to_node))
     finally:
       if not rpc.call_node_start_master(master):
-        logger.Error("Could not re-enable the master role on the master,\n"
-                     "please restart manually.")
+        logger.Error("Could not re-enable the master role on the master,"
+                     " please restart manually.")
 
 
 def _WaitForSync(cfgw, instance, proc, oneshot=False, unlock=False):
@@ -1401,8 +1401,8 @@ class LUAddNode(LogicalUnit):
       if not utils.TcpPing(myself.secondary_ip,
                            secondary_ip,
                            constants.DEFAULT_NODED_PORT):
-        raise errors.OpPrereqError(
-          "Node secondary ip not reachable by TCP based ping to noded port")
+        raise errors.OpPrereqError("Node secondary ip not reachable by TCP"
+                                   " based ping to noded port")
 
     self.new_node = objects.Node(name=node,
                                  primary_ip=primary_ip,
@@ -1500,16 +1500,15 @@ class LUAddNode(LogicalUnit):
                                     new_node.secondary_ip,
                                     constants.DEFAULT_NODED_PORT,
                                     10, False):
-        raise errors.OpExecError("Node claims it doesn't have the"
-                                 " secondary ip you gave (%s).\n"
-                                 "Please fix and re-run this command." %
-                                 new_node.secondary_ip)
+        raise errors.OpExecError("Node claims it doesn't have the secondary ip"
+                                 " you gave (%s). Please fix and re-run this"
+                                 " command." % new_node.secondary_ip)
 
     success, msg = ssh.VerifyNodeHostname(node)
     if not success:
       raise errors.OpExecError("Node '%s' claims it has a different hostname"
-                               " than the one the resolver gives: %s.\n"
-                               "Please fix and re-run this command." %
+                               " than the one the resolver gives: %s."
+                               " Please fix and re-run this command." %
                                (node, msg))
 
     # Distribute updated /etc/hosts and known_hosts to all nodes,
@@ -1572,8 +1571,8 @@ class LUMasterFailover(LogicalUnit):
 
     if self.old_master == self.new_master:
       raise errors.OpPrereqError("This commands must be run on the node"
-                                 " where you want the new master to be.\n"
-                                 "%s is already the master" %
+                                 " where you want the new master to be."
+                                 " %s is already the master" %
                                  self.old_master)
 
   def Exec(self, feedback_fn):
@@ -1602,8 +1601,8 @@ class LUMasterFailover(LogicalUnit):
     if not rpc.call_node_start_master(self.new_master):
       logger.Error("could not start the master role on the new master"
                    " %s, please check" % self.new_master)
-      feedback_fn("Error in activating the master IP on the new master,\n"
-                  "please fix manually.")
+      feedback_fn("Error in activating the master IP on the new master,"
+                  " please fix manually.")
 
 
 
@@ -1778,8 +1777,9 @@ def _AssembleInstanceDisks(instance, cfg, ignore_secondaries=False):
       result = rpc.call_blockdev_assemble(node, node_disk,
                                           instance.name, is_primary)
       if not result:
-        logger.Error("could not prepare block device %s on node %s (is_pri"
-                     "mary=%s)" % (inst_disk.iv_name, node, is_primary))
+        logger.Error("could not prepare block device %s on node %s"
+                     " (is_primary=%s)" %
+                     (inst_disk.iv_name, node, is_primary))
         if is_primary or not ignore_secondaries:
           disks_ok = False
       if is_primary:
@@ -2134,8 +2134,8 @@ class LUReinstallInstance(LogicalUnit):
     try:
       feedback_fn("Running the instance OS create scripts...")
       if not rpc.call_instance_os_add(inst.primary_node, inst, "sda", "sdb"):
-        raise errors.OpExecError("Could not install OS for instance %s "
-                                 "on node %s" %
+        raise errors.OpExecError("Could not install OS for instance %s"
+                                 " on node %s" %
                                  (inst.name, inst.primary_node))
     finally:
       _ShutdownInstanceDisks(inst, self.cfg)
@@ -2210,9 +2210,8 @@ class LURenameInstance(LogicalUnit):
     try:
       if not rpc.call_instance_run_rename(inst.primary_node, inst, old_name,
                                           "sda", "sdb"):
-        msg = ("Could run OS rename script for instance %s\n"
-               "on node %s\n"
-               "(but the instance has been renamed in Ganeti)" %
+        msg = ("Could run OS rename script for instance %s on node %s (but the"
+               " instance has been renamed in Ganeti)" %
                (inst.name, inst.primary_node))
         logger.Error(msg)
     finally:
@@ -3144,10 +3143,9 @@ class LUAddMDDRBDComponent(LogicalUnit):
       raise errors.OpPrereqError("Can't find this device ('%s') in the"
                                  " instance." % self.op.disk_name)
     if len(disk.children) > 1:
-      raise errors.OpPrereqError("The device already has two slave"
-                                 " devices.\n"
-                                 "This would create a 3-disk raid1"
-                                 " which we don't allow.")
+      raise errors.OpPrereqError("The device already has two slave devices."
+                                 " This would create a 3-disk raid1 which we"
+                                 " don't allow.")
     self.disk = disk
 
   def Exec(self, feedback_fn):
@@ -3425,9 +3423,8 @@ class LUReplaceDisks(LogicalUnit):
       if not _CreateBlockDevOnSecondary(cfg, remote_node, instance,
                                         new_drbd, False,
                                         _GetInstanceInfoText(instance)):
-        raise errors.OpExecError("Failed to create new component on"
-                                 " secondary node %s\n"
-                                 "Full abort, cleanup manually!" %
+        raise errors.OpExecError("Failed to create new component on secondary"
+                                 " node %s. Full abort, cleanup manually!" %
                                  remote_node)
 
       logger.Info("adding new mirror component on primary")
@@ -3438,8 +3435,8 @@ class LUReplaceDisks(LogicalUnit):
         # remove secondary dev
         cfg.SetDiskID(new_drbd, remote_node)
         rpc.call_blockdev_remove(remote_node, new_drbd)
-        raise errors.OpExecError("Failed to create volume on primary!\n"
-                                 "Full abort, cleanup manually!!")
+        raise errors.OpExecError("Failed to create volume on primary!"
+                                 " Full abort, cleanup manually!!")
 
       # the device exists now
       # call the primary node to add the mirror to md

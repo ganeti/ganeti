@@ -173,8 +173,8 @@ if __name__ == "__main__":
   parser = optparse.OptionParser()
   parser.add_option('--dry-run', dest='dry_run',
                     action="store_true",
-                    help="Try to do the conversion, but don't write "
-                      "output file")
+                    help="Try to do the conversion, but don't write"
+                         " output file")
   parser.add_option(FORCE_OPT)
   parser.add_option('--verbose', dest='verbose',
                     action="store_true",
@@ -188,8 +188,8 @@ if __name__ == "__main__":
     raise Error("Configuration file not specified")
 
   if not options.force:
-    usertext = ("%s MUST run on the master node. Is this the master "
-                "node?" % program)
+    usertext = ("%s MUST run on the master node. Is this the master"
+                " node?" % program)
     if not AskUser(usertext):
       sys.exit(1)
 
