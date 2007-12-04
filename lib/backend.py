@@ -399,11 +399,10 @@ def AddOSToInstance(instance, os_disk, swap_disk):
                                 logfile)
 
   result = utils.RunCmd(command)
-
   if result.failed:
-    logger.Error("os create command '%s' returned error: %s"
+    logger.Error("os create command '%s' returned error: %s, logfile: %s,"
                  " output: %s" %
-                 (command, result.fail_reason, result.output))
+                 (command, result.fail_reason, logfile, result.output))
     return False
 
   return True
