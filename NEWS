@@ -1,3 +1,10 @@
+Version 1.2.0
+  - Log the ‘xm create’ output to the node daemon log on failure (to
+    help diagnosing the error)
+  - In debug mode, log all external commands output if failed to the
+    logs
+  - Change parsing of lvm commands to ignore stderr
+
 Version 1.2b3
   - Another round of updates to the DRBD 8 code to deal with more
     failures in the replace secondary node operation

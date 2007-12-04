@@ -605,8 +605,8 @@ vgextend xenvg /dev/sdd1
       </para>
 
         <screen>
-tar xvzf ganeti-1.2b3.tar.gz
-cd ganeti-1.2b3
+tar xvzf ganeti-1.2.0.tar.gz
+cd ganeti-1.2.0
 ./configure --localstatedir=/var --sysconfdir=/etc
 make
 make install
