@@ -221,7 +221,7 @@ def GetVolumeList(vg_name):
                  result.output)
     return {}
 
-  lvlist = [line.split() for line in result.output.splitlines()]
+  lvlist = [line.split() for line in result.stdout.splitlines()]
   return dict(lvlist)
 
 
