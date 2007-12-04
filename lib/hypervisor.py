@@ -265,8 +265,8 @@ class XenHypervisor(BaseHypervisor):
     result = utils.RunCmd(["xm", "create", instance.name])
 
     if result.failed:
-      raise HypervisorError("Failed to start instance %s: %s" %
-                            (instance.name, result.fail_reason))
+      raise HypervisorError("Failed to start instance %s: %s (%s)" %
+                            (instance.name, result.fail_reason, result.output))
 
   def StopInstance(self, instance, force=False):
     """Stop an instance."""
