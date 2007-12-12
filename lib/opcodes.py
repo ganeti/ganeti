@@ -86,6 +86,28 @@ class OpVerifyCluster(OpCode):
   __slots__ = []
 
 
+class OpVerifyDisks(OpCode):
+  """Verify the cluster disks.
+
+  Parameters: none
+
+  Result: two lists:
+    - list of node names with bad data returned (unreachable, etc.)
+    - list of instances with degraded disks (that should be activated)
+
+  In normal operation, both lists should be empty. A non-empty
+  instance list is still ok (errors were fixed) but non-empty node
+  list means some node is down, and probably there are unfixable drbd
+  errors.
+
+  Note that only instances that are drbd-based are taken into
+  consideration. This might need to be revisited in the future.
+
+  """
+  OP_ID = "OP_CLUSTER_VERIFY_DISKS"
+  __slots__ = []
+
+
 class OpMasterFailover(OpCode):
   """Do a master failover."""
   OP_ID = "OP_CLUSTER_MASTERFAILOVER"
