@@ -26,6 +26,7 @@ import pprint
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
+from ganeti import errors
 
 
 def InitCluster(opts, args):
@@ -181,6 +182,39 @@ def VerifyCluster(opts, args):
   return result
 
 
+def VerifyDisks(opts, args):
+  """Verify integrity of cluster disks.
+
+  Args:
+    opts - class with options as members
+
+  """
+  op = opcodes.OpVerifyDisks()
+  result = SubmitOpCode(op)
+  if not isinstance(result, tuple) or len(result) != 2:
+    raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
+
+  nodes, instances = result
+  if nodes:
+    print "Nodes unreachable or with bad data:"
+    for name in nodes:
+      print "\t%s" % name
+  retcode = constants.EXIT_SUCCESS
+  if instances:
+    for iname in instances:
+      op = opcodes.OpActivateInstanceDisks(instance_name=iname)
+      try:
+        print "Activating disks for instance '%s'" % iname
+        SubmitOpCode(op)
+      except errors.GenericError, err:
+        nret, msg = FormatError(err)
+        retcode |= nret
+        print >>sys.stderr, ("Error activating disks for instance %s: %s" %
+                             (iname, msg))
+
+  return retcode
+
+
 def MasterFailover(opts, args):
   """Failover the master node.
 
@@ -263,6 +297,8 @@ commands = {
                "Renames the cluster"),
   'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT],
              "", "Does a check on the cluster configuration"),
+  'verify-disks': (VerifyDisks, ARGS_NONE, [DEBUG_OPT],
+                   "", "Does a check on the cluster disk status"),
   'masterfailover': (MasterFailover, ARGS_NONE, [DEBUG_OPT],
                      "", "Makes the current node the master"),
   'version': (ShowClusterVersion, ARGS_NONE, [DEBUG_OPT],
