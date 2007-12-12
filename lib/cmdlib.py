@@ -875,6 +875,68 @@ class LUVerifyCluster(NoHooksLU):
     return int(bad)
 
 
+class LUVerifyDisks(NoHooksLU):
+  """Verifies the cluster disks status.
+
+  """
+  _OP_REQP = []
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This has no prerequisites.
+
+    """
+    pass
+
+  def Exec(self, feedback_fn):
+    """Verify integrity of cluster disks.
+
+    """
+    result = res_nodes, res_instances = [], []
+
+    vg_name = self.cfg.GetVGName()
+    nodes = utils.NiceSort(self.cfg.GetNodeList())
+    instances = [self.cfg.GetInstanceInfo(name)
+                 for name in self.cfg.GetInstanceList()]
+
+    nv_dict = {}
+    for inst in instances:
+      inst_lvs = {}
+      if (inst.status != "up" or
+          inst.disk_template not in constants.DTS_NET_MIRROR):
+        continue
+      inst.MapLVsByNode(inst_lvs)
+      # transform { iname: {node: [vol,],},} to {(node, vol): iname}
+      for node, vol_list in inst_lvs.iteritems():
+        for vol in vol_list:
+          nv_dict[(node, vol)] = inst
+
+    if not nv_dict:
+      return result
+
+    node_lvs = rpc.call_volume_list(nodes, vg_name)
+
+    to_act = set()
+    for node in nodes:
+      # node_volume
+      lvs = node_lvs[node]
+
+      if not isinstance(lvs, dict):
+        logger.Info("connection to node %s failed or invalid data returned" %
+                    (node,))
+        res_nodes.append(node)
+        continue
+
+      for lv_name, (_, lv_inactive, lv_online) in lvs.iteritems():
+        if not lv_online:
+          inst = nv_dict.get((node, lv_name), None)
+          if inst is not None and inst.name not in res_instances:
+            res_instances.append(inst.name)
+
+    return result
+
+
 class LURenameCluster(LogicalUnit):
   """Rename the cluster.
 
