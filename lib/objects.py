@@ -490,6 +490,7 @@ class Instance(TaggableObject):
     "nics",
     "disks",
     "disk_template",
+    "network_port",
     ]
 
   def _ComputeSecondaryNodes(self):

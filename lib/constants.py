@@ -25,7 +25,7 @@ from ganeti import _autoconf
 
 # various versions
 CONFIG_VERSION = 3
-PROTOCOL_VERSION = 8
+PROTOCOL_VERSION = 9
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_VERSION = 5
 EXPORT_VERSION = 0

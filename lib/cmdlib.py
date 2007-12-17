@@ -3028,6 +3028,8 @@ class LUCreateInstance(LogicalUnit):
     if self.inst_ip is not None:
       nic.ip = self.inst_ip
 
+    network_port = None  # placeholder assignment for later
+
     disks = _GenerateDiskTemplate(self.cfg,
                                   self.op.disk_template,
                                   instance, pnode_name,
@@ -3041,6 +3043,7 @@ class LUCreateInstance(LogicalUnit):
                             nics=[nic], disks=disks,
                             disk_template=self.op.disk_template,
                             status=self.instance_status,
+                            network_port=network_port,
                             )
 
     feedback_fn("* creating instance disks...")
@@ -4001,6 +4004,7 @@ class LUQueryInstanceData(NoHooksLU):
         "memory": instance.memory,
         "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
         "disks": disks,
+        "network_port": instance.network_port,
         "vcpus": instance.vcpus,
         }
 

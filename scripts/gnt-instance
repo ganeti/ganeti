@@ -596,6 +596,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - primary: %s\n" % instance["pnode"])
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
+    buf.write("  Allocated network port: %s\n" % instance["network_port"])
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])
