@@ -301,7 +301,7 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
       <para>
         Supported DRBD versions: the <literal>0.7</literal> series
         <emphasis role="strong">or</emphasis>
-        <literal>8.0.x</literal>. It's recommended to have at least
+        <literal>8.0.7</literal>. It's recommended to have at least
         version <literal>0.7.24</literal> if you use
         <command>udev</command> since older versions have a bug
         related to device discovery which can be triggered in cases of
@@ -346,8 +346,11 @@ m-a a-i drbd0.7
 echo drbd minor_count=64 >> /etc/modules
 modprobe drbd minor_count=64
       </screen>
-      <para>or for using DRBD <literal>8.x</literal> from the etch
-      backports:</para>
+      <para>
+        or for using DRBD <literal>8.x</literal> from the etch
+        backports (note: you need at least 8.0.7, older version have
+        a bug that breaks ganeti's usage of drbd):
+      </para>
       <screen>
 apt-get install -t etch-backports drbd8-module-source drbd8-utils
 m-a update

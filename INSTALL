@@ -12,7 +12,7 @@ Software Requirements
 Before installing, please verify that you have the following programs:
   - Xen virtualization (version 3.0.x or 3.1)
     http://xen.xensource.com/
-  - DRBD (kernel module and userspace utils), version 0.7.x or 8.0.x
+  - DRBD (kernel module and userspace utils), version 0.7.x or 8.0.7+
     http://www.drbd.org/
   - LVM2
     http://sourceware.org/lvm2/
