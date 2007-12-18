@@ -3696,7 +3696,7 @@ class LUReplaceDisks(LogicalUnit):
       if not rpc.call_blockdev_addchildren(tgt_node, dev, new_lvs):
         for new_lv in new_lvs:
           if not rpc.call_blockdev_remove(tgt_node, new_lv):
-            warning("Can't rollback device %s", "manually cleanup unused"
+            warning("Can't rollback device %s", hint="manually cleanup unused"
                     " logical volumes")
         raise errors.OpExecError("Can't add local storage to drbd")
 
@@ -3725,7 +3725,7 @@ class LUReplaceDisks(LogicalUnit):
       for lv in old_lvs:
         cfg.SetDiskID(lv, tgt_node)
         if not rpc.call_blockdev_remove(tgt_node, lv):
-          warning("Can't remove old LV", "manually remove unused LVs")
+          warning("Can't remove old LV", hint="manually remove unused LVs")
           continue
 
   def _ExecD8Secondary(self, feedback_fn):
@@ -3828,7 +3828,7 @@ class LUReplaceDisks(LogicalUnit):
       cfg.SetDiskID(dev, old_node)
       if not rpc.call_blockdev_shutdown(old_node, dev):
         warning("Failed to shutdown drbd for %s on old node" % dev.iv_name,
-                "Please cleanup this device manually as soon as possible")
+                hint="Please cleanup this device manually as soon as possible")
 
     info("detaching primary drbds from the network (=> standalone)")
     done = 0
@@ -3890,7 +3890,7 @@ class LUReplaceDisks(LogicalUnit):
         cfg.SetDiskID(lv, old_node)
         if not rpc.call_blockdev_remove(old_node, lv):
           warning("Can't remove LV on old secondary",
-                  "Cleanup stale volumes by hand")
+                  hint="Cleanup stale volumes by hand")
 
   def Exec(self, feedback_fn):
     """Execute disk replacement.
