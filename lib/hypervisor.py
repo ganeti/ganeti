@@ -110,7 +110,7 @@ class BaseHypervisor(object):
     raise NotImplementedError
 
   @staticmethod
-  def GetShellCommandForConsole(instance_name):
+  def GetShellCommandForConsole(instance):
     """Return a command for connecting to the console of an instance.
 
     """
@@ -320,11 +320,11 @@ class XenHypervisor(BaseHypervisor):
     return result
 
   @staticmethod
-  def GetShellCommandForConsole(instance_name):
+  def GetShellCommandForConsole(instance):
     """Return a command for connecting to the console of an instance.
 
     """
-    return "xm console %s" % instance_name
+    return "xm console %s" % instance.name
 
 
   def Verify(self):
@@ -496,7 +496,7 @@ class FakeHypervisor(BaseHypervisor):
     return result
 
   @staticmethod
-  def GetShellCommandForConsole(instance_name):
+  def GetShellCommandForConsole(instance):
     """Return a command for connecting to the console of an instance.
 
     """

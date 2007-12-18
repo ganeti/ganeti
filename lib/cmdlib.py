@@ -3143,7 +3143,7 @@ class LUConnectConsole(NoHooksLU):
     logger.Debug("connecting to console of %s on %s" % (instance.name, node))
 
     hyper = hypervisor.GetHypervisor()
-    console_cmd = hyper.GetShellCommandForConsole(instance.name)
+    console_cmd = hyper.GetShellCommandForConsole(instance)
     # build ssh cmdline
     argv = ["ssh", "-q", "-t"]
     argv.extend(ssh.KNOWN_HOSTS_OPTS)
