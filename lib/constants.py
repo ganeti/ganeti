@@ -147,3 +147,9 @@ SSH_HOST_RSA_PUB = SSH_HOST_RSA_PRIV + ".pub"
 INSTANCE_REBOOT_SOFT = "soft"
 INSTANCE_REBOOT_HARD = "hard"
 INSTANCE_REBOOT_FULL = "full"
+
+# Hypervisor constants
+HT_XEN30 = "xen-3.0"
+HT_FAKE = "fake"
+
+HYPER_TYPES = frozenset([HT_XEN30, HT_FAKE])

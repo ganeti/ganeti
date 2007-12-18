@@ -538,7 +538,7 @@ class LUInitCluster(LogicalUnit):
       raise errors.OpPrereqError("Invalid mac prefix given '%s'" %
                                  self.op.mac_prefix)
 
-    if self.op.hypervisor_type not in hypervisor.VALID_HTYPES:
+    if self.op.hypervisor_type not in constants.HYPER_TYPES:
       raise errors.OpPrereqError("Invalid hypervisor type given '%s'" %
                                  self.op.hypervisor_type)
 

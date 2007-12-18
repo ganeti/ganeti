@@ -33,10 +33,6 @@ from ganeti import ssconf
 from ganeti import constants
 from ganeti.errors import HypervisorError
 
-_HT_XEN30 = "xen-3.0"
-_HT_FAKE = "fake"
-
-VALID_HTYPES = (_HT_XEN30, _HT_FAKE)
 
 def GetHypervisor():
   """Return a Hypervisor instance.
@@ -46,9 +42,9 @@ def GetHypervisor():
 
   """
   ht_kind = ssconf.SimpleStore().GetHypervisorType()
-  if ht_kind == _HT_XEN30:
+  if ht_kind == constants.HT_XEN30:
     cls = XenHypervisor
-  elif ht_kind == _HT_FAKE:
+  elif ht_kind == constants.HT_FAKE:
     cls = FakeHypervisor
   else:
     raise HypervisorError("Unknown hypervisor type '%s'" % ht_kind)
