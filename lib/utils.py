@@ -36,6 +36,10 @@ import shutil
 import errno
 import pwd
 import itertools
+import select
+import fcntl
+
+from cStringIO import StringIO
 
 from ganeti import logger
 from ganeti import errors
@@ -222,6 +226,7 @@ def RunCmd(cmd):
     shell = True
   env = os.environ.copy()
   env["LC_ALL"] = "C"
+  poller = select.poll()
   child = subprocess.Popen(cmd, shell=shell,
                            stderr=subprocess.PIPE,
                            stdout=subprocess.PIPE,
@@ -229,8 +234,35 @@ def RunCmd(cmd):
                            close_fds=True, env=env)
 
   child.stdin.close()
-  out = child.stdout.read()
-  err = child.stderr.read()
+  poller.register(child.stdout, select.POLLIN)
+  poller.register(child.stderr, select.POLLIN)
+  out = StringIO()
+  err = StringIO()
+  fdmap = {
+    child.stdout.fileno(): (out, child.stdout),
+    child.stderr.fileno(): (err, child.stderr),
+    }
+  for fd in fdmap:
+    status = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, status | os.O_NONBLOCK)
+
+  while fdmap:
+    for fd, event in poller.poll():
+      if event & select.POLLIN or event & select.POLLPRI:
+        data = fdmap[fd][1].read()
+        # no data from read signifies EOF (the same as POLLHUP)
+        if not data:
+          poller.unregister(fd)
+          del fdmap[fd]
+          continue
+        fdmap[fd][0].write(data)
+      if (event & select.POLLNVAL or event & select.POLLHUP or
+          event & select.POLLERR):
+        poller.unregister(fd)
+        del fdmap[fd]
+
+  out = out.getvalue()
+  err = err.getvalue()
 
   status = child.wait()
   if status >= 0:
