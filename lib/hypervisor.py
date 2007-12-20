@@ -347,9 +347,15 @@ class XenPvmHypervisor(XenHypervisor):
       config.write("extra = '%s'\n" % extra_args)
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
-    f = open("/etc/xen/%s" % instance.name, "w")
-    f.write(config.getvalue())
-    f.close()
+    try:
+      f = open("/etc/xen/%s" % instance.name, "w")
+      try:
+        f.write(config.getvalue())
+      finally:
+        f.close()
+    except IOError, err:
+      raise errors.OpExecError("Cannot write Xen instance confile"
+                               " file /etc/xen/%s: %s" % (instance.name, err))
     return True
 
   @staticmethod
