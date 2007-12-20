@@ -151,5 +151,9 @@ INSTANCE_REBOOT_FULL = "full"
 # Hypervisor constants
 HT_XEN_PVM30 = "xen-3.0"
 HT_FAKE = "fake"
+HT_XEN_HVM31 = "xen-hvm-3.1"
+HYPER_TYPES = frozenset([HT_XEN_PVM30, HT_FAKE, HT_XEN_HVM31])
+HTS_REQ_PORT = frozenset([HT_XEN_HVM31])
 
-HYPER_TYPES = frozenset([HT_XEN_PVM30, HT_FAKE])
+HT_HVM_VNC_BASE_PORT = 5900
+VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"

@@ -499,6 +499,12 @@ class LUInitCluster(LogicalUnit):
     if config.ConfigWriter.IsCluster():
       raise errors.OpPrereqError("Cluster is already initialised")
 
+    if self.op.hypervisor_type == constants.HT_XEN_HVM31:
+      if not os.path.exists(constants.VNC_PASSWORD_FILE):
+        raise errors.OpPrereqError("Please prepare the cluster VNC"
+                                   "password file %s" %
+                                   constants.VNC_PASSWORD_FILE)
+
     self.hostname = hostname = utils.HostInfo()
 
     if hostname.ip.startswith("127."):
@@ -1470,6 +1476,11 @@ class LUAddNode(LogicalUnit):
                                  primary_ip=primary_ip,
                                  secondary_ip=secondary_ip)
 
+    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+      if not os.path.exists(constants.VNC_PASSWORD_FILE):
+        raise errors.OpPrereqError("Cluster VNC password file %s missing" %
+                                   constants.VNC_PASSWORD_FILE)
+
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
@@ -1589,6 +1600,8 @@ class LUAddNode(LogicalUnit):
                        (fname, to_node))
 
     to_copy = ss.GetFileList()
+    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+      to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
       if not ssh.CopyFileToNode(node, fname):
         logger.Error("could not copy file %s to node %s" % (fname, node))
@@ -3028,7 +3041,11 @@ class LUCreateInstance(LogicalUnit):
     if self.inst_ip is not None:
       nic.ip = self.inst_ip
 
-    network_port = None  # placeholder assignment for later
+    ht_kind = self.sstore.GetHypervisorType()
+    if ht_kind in constants.HTS_REQ_PORT:
+      network_port = self.cfg.AllocatePort()
+    else:
+      network_port = None
 
     disks = _GenerateDiskTemplate(self.cfg,
                                   self.op.disk_template,
