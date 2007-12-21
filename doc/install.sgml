@@ -249,6 +249,21 @@
 </screen>
           </para>
         </formalpara>
+        <para>
+          If you want to test the experimental HVM support
+          with Ganeti and want VNC access to the console of your
+          instances, set the following two entries in
+          <filename>/etc/xen/xend-config.sxp</filename>:
+<screen>
+(vnc-listen '0.0.0.0')
+(vncpasswd '')
+</screen>
+          You need to restart the Xen daemon for these settings to
+          take effect:
+<screen>
+/etc/init.d/xend restart
+</screen>
+        </para>
 
       </sect3>
 
@@ -733,6 +748,24 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
         all nodes). In this case you need to specify it by passing the
         <option>-g <replaceable>VGNAME</replaceable></option> option
         to <computeroutput>gnt-cluster init</computeroutput>.
+      </para>
+
+      <para>
+        To set up the cluster as an HVM cluster, use the
+        <option>--hypervisor=xen-hvm3.1</option> option to use
+        the Xen 3.1 HVM hypervisor. Note that with the
+        experimental HVM support, you will only be able to create
+        HVM instances in a cluster set to this hypervisor type. Mixed
+        PVM/HVM clusters are not supported by the Ganeti 1.2
+        experimental HVM support. You will also need to create the VNC
+        cluster password  file
+        <filename>/etc/ganeti/vnc-cluster-password</filename>
+        which contains one line with the default VNC password for the
+        cluster. Finally, you need to provide an installation ISO
+        image for HVM instance which will not only be mapped to the
+        first CDROM of the instance, but which the instance will also
+        boot from. This ISO image is expected at
+        <filename>/srv/ganeti/iso/hvm-install.iso</filename>.
       </para>
 
       <para>
