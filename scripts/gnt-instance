@@ -226,7 +226,7 @@ def AddInstance(opts, args):
                                 snode=snode, vcpus=opts.vcpus,
                                 ip=opts.ip, bridge=opts.bridge,
                                 start=opts.start, ip_check=opts.ip_check,
-                                wait_for_sync=opts.wait_for_sync)
+                                wait_for_sync=opts.wait_for_sync, mac=opts.mac)
   SubmitOpCode(op)
   return 0
 
@@ -624,15 +624,16 @@ def SetInstanceParms(opts, args):
   Opts used:
     memory - the new memory size
     vcpus - the new number of cpus
+    mac - the new MAC address of the instance
 
   """
-  if not opts.mem and not opts.vcpus and not opts.ip and not opts.bridge:
+  if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
 
   op = opcodes.OpSetInstanceParms(instance_name=args[0], mem=opts.mem,
                                   vcpus=opts.vcpus, ip=opts.ip,
-                                  bridge=opts.bridge)
+                                  bridge=opts.bridge, mac=opts.mac)
   result = SubmitOpCode(op)
 
   if result:
@@ -701,6 +702,9 @@ add_opts = [
   make_option("-i", "--ip", dest="ip",
               help="IP address ('none' [default], 'auto', or specify address)",
               default='none', type="string", metavar="<ADDRESS>"),
+  make_option("--mac", dest="mac",
+              help="MAC address ('auto' [default], or specify address)",
+              default='auto', type="string", metavar="<MACADDRESS>"),
   make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
               action="store_false", help="Don't wait for sync (DANGEROUS!)"),
   make_option("-b", "--bridge", dest="bridge",
@@ -808,6 +812,9 @@ commands = {
               make_option("-b", "--bridge", dest="bridge",
                           help="Bridge to connect this instance to",
                           default=None, type="string", metavar="<bridge>"),
+              make_option("--mac", dest="mac",
+                          help="MAC address", default=None,
+                          type="string", metavar="<MACADDRESS>"),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,

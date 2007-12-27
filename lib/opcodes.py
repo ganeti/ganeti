@@ -160,7 +160,7 @@ class OpCreateInstance(OpCode):
   __slots__ = ["instance_name", "mem_size", "disk_size", "os_type", "pnode",
                "disk_template", "snode", "swap_size", "mode",
                "vcpus", "ip", "bridge", "src_node", "src_path", "start",
-               "wait_for_sync", "ip_check"]
+               "wait_for_sync", "ip_check", "mac"]
 
 
 class OpReinstallInstance(OpCode):
@@ -257,7 +257,7 @@ class OpQueryInstanceData(OpCode):
 class OpSetInstanceParms(OpCode):
   """Change the parameters of an instance."""
   OP_ID = "OP_INSTANCE_SET_PARMS"
-  __slots__ = ["instance_name", "mem", "vcpus", "ip", "bridge"]
+  __slots__ = ["instance_name", "mem", "vcpus", "ip", "bridge", "mac"]
 
 
 # OS opcodes

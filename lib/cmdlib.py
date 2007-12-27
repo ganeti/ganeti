@@ -2837,7 +2837,7 @@ class LUCreateInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mem_size", "disk_size", "pnode",
               "disk_template", "swap_size", "mode", "start", "vcpus",
-              "wait_for_sync", "ip_check"]
+              "wait_for_sync", "ip_check", "mac"]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3013,6 +3013,12 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (hostname1.ip, instance_name))
 
+    # MAC address verification
+    if self.op.mac != "auto":
+      if not utils.IsValidMac(self.op.mac.lower()):
+        raise errors.OpPrereqError("invalid MAC address specified: %s" %
+                                   self.op.mac)
+
     # bridge verification
     bridge = getattr(self.op, "bridge", None)
     if bridge is None:
@@ -3037,7 +3043,12 @@ class LUCreateInstance(LogicalUnit):
     instance = self.op.instance_name
     pnode_name = self.pnode.name
 
-    nic = objects.NIC(bridge=self.op.bridge, mac=self.cfg.GenerateMAC())
+    if self.op.mac == "auto":
+      mac_address=self.cfg.GenerateMAC()
+    else:
+      mac_address=self.op.mac
+
+    nic = objects.NIC(bridge=self.op.bridge, mac=mac_address)
     if self.inst_ip is not None:
       nic.ip = self.inst_ip
 
@@ -4073,8 +4084,9 @@ class LUSetInstanceParms(LogicalUnit):
     self.mem = getattr(self.op, "mem", None)
     self.vcpus = getattr(self.op, "vcpus", None)
     self.ip = getattr(self.op, "ip", None)
+    self.mac = getattr(self.op, "mac", None)
     self.bridge = getattr(self.op, "bridge", None)
-    if [self.mem, self.vcpus, self.ip, self.bridge].count(None) == 4:
+    if [self.mem, self.vcpus, self.ip, self.bridge, self.mac].count(None) == 5:
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
       try:
@@ -4096,6 +4108,12 @@ class LUSetInstanceParms(LogicalUnit):
     else:
       self.do_ip = False
     self.do_bridge = (self.bridge is not None)
+    if self.mac is not None:
+      if self.cfg.IsMacInUse(self.mac):
+        raise errors.OpPrereqError('MAC address %s already in use in cluster' %
+                                   self.mac)
+      if not utils.IsValidMac(self.mac):
+        raise errors.OpPrereqError('Invalid MAC address %s' % self.mac)
 
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
@@ -4125,6 +4143,9 @@ class LUSetInstanceParms(LogicalUnit):
     if self.bridge:
       instance.nics[0].bridge = self.bridge
       result.append(("bridge", self.bridge))
+    if self.mac:
+      instance.nics[0].mac = self.mac
+      result.append(("mac", self.mac))
 
     self.cfg.AddInstance(instance)
 

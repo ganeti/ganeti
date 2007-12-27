@@ -1055,3 +1055,13 @@ def UniqueSequence(seq):
   """
   seen = set()
   return [i for i in seq if i not in seen and not seen.add(i)]
+
+
+def IsValidMac(mac):
+  """Predicate to check if a MAC address is valid.
+
+  Checks wether the supplied MAC address is formally correct, only
+  accepts colon separated format.
+  """
+  mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$")
+  return mac_check.match(mac) is not None
