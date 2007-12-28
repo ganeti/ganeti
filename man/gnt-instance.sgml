@@ -68,6 +68,7 @@
           <sbr>
           <arg>-o <replaceable>os-type</replaceable></arg>
           <arg>-b <replaceable>bridge</replaceable></arg>
+          <arg>--mac <replaceable>MAC-address</replaceable></arg>
           <sbr>
           <arg choice="req">-t<group>
               <arg>diskless</arg>
@@ -122,6 +123,15 @@
           The <option>-b</option> option specifies the bridge to which the
           instance will be connected. (defaults to the cluster-wide default
           bridge specified at cluster initialization time).
+        </para>
+
+        <para>
+          The <option>--mac</option> option specifies the MAC address
+          of the ethernet interface for the instance. If this option
+          is not specified, a new MAC address is generated randomly with
+          the configured MAC prefix. The randomly generated MAC
+          address is guaranteed to be unique among the instances of
+          this cluster.
         </para>
 
         <para>
@@ -395,12 +405,13 @@
           <arg choice="opt">-p <replaceable>vcpus</replaceable></arg>
           <arg choice="opt">-i <replaceable>ip</replaceable></arg>
           <arg choice="opt">-b <replaceable>bridge</replaceable></arg>
+          <arg chioce="opt">--mac <replaceable>MAC-address</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Modify the memory size, number of vcpus, ip address and/or bridge
-          for an instance.
+          Modify the memory size, number of vcpus, ip address, MAC
+          address and/or bridge for an instance.
         </para>
 
         <para>
