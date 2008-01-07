@@ -223,7 +223,7 @@ def GetVolumeList(vg_name):
   if result.failed:
     logger.Error("Failed to list logical volumes, lvs output: %s" %
                  result.output)
-    return lvs
+    return result.output
 
   for line in result.stdout.splitlines():
     line = line.strip().rstrip(sep)

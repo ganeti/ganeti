@@ -840,12 +840,17 @@ class LUVerifyCluster(NoHooksLU):
       # node_volume
       volumeinfo = all_volumeinfo[node]
 
-      if type(volumeinfo) != dict:
+      if isinstance(volumeinfo, basestring):
+        feedback_fn("  - ERROR: LVM problem on node %s: %s" %
+                    (node, volumeinfo[-400:].encode('string_escape')))
+        bad = True
+        node_volume[node] = {}
+      elif not isinstance(volumeinfo, dict):
         feedback_fn("  - ERROR: connection to %s failed" % (node,))
         bad = True
         continue
-
-      node_volume[node] = volumeinfo
+      else:
+        node_volume[node] = volumeinfo
 
       # node_instance
       nodeinstance = all_instanceinfo[node]
@@ -899,7 +904,7 @@ class LUVerifyDisks(NoHooksLU):
     """Verify integrity of cluster disks.
 
     """
-    result = res_nodes, res_instances = [], []
+    result = res_nodes, res_nlvm, res_instances, res_missing = [], {}, [], {}
 
     vg_name = self.cfg.GetVGName()
     nodes = utils.NiceSort(self.cfg.GetNodeList())
@@ -928,17 +933,27 @@ class LUVerifyDisks(NoHooksLU):
       # node_volume
       lvs = node_lvs[node]
 
-      if not isinstance(lvs, dict):
+      if isinstance(lvs, basestring):
+        logger.Info("error enumerating LVs on node %s: %s" % (node, lvs))
+        res_nlvm[node] = lvs
+      elif not isinstance(lvs, dict):
         logger.Info("connection to node %s failed or invalid data returned" %
                     (node,))
         res_nodes.append(node)
         continue
 
       for lv_name, (_, lv_inactive, lv_online) in lvs.iteritems():
-        if not lv_online:
-          inst = nv_dict.get((node, lv_name), None)
-          if inst is not None and inst.name not in res_instances:
+        inst = nv_dict.pop((node, lv_name), None)
+        if (not lv_online and inst is not None
+            and inst.name not in res_instances):
             res_instances.append(inst.name)
+
+    # any leftover items in nv_dict are missing LVs, let's arrange the
+    # data better
+    for key, inst in nv_dict.iteritems():
+      if inst.name not in res_missing:
+        res_missing[inst.name] = []
+      res_missing[inst.name].append(key)
 
     return result
 

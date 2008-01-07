@@ -27,6 +27,7 @@ from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
 from ganeti import errors
+from ganeti import utils
 
 
 def InitCluster(opts, args):
@@ -191,17 +192,28 @@ def VerifyDisks(opts, args):
   """
   op = opcodes.OpVerifyDisks()
   result = SubmitOpCode(op)
-  if not isinstance(result, tuple) or len(result) != 2:
+  if not isinstance(result, tuple) or len(result) != 4:
     raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
 
-  nodes, instances = result
+  nodes, nlvm, instances, missing = result
+
   if nodes:
     print "Nodes unreachable or with bad data:"
     for name in nodes:
       print "\t%s" % name
   retcode = constants.EXIT_SUCCESS
+
+  if nlvm:
+    for node, text in nlvm.iteritems():
+      print ("Error on node %s: LVM error: %s" %
+             (node, text[-400:].encode('string_escape')))
+      retcode |= 1
+      print "You need to fix these nodes first before fixing instances"
+
   if instances:
     for iname in instances:
+      if iname in missing:
+        continue
       op = opcodes.OpActivateInstanceDisks(instance_name=iname)
       try:
         print "Activating disks for instance '%s'" % iname
@@ -209,8 +221,26 @@ def VerifyDisks(opts, args):
       except errors.GenericError, err:
         nret, msg = FormatError(err)
         retcode |= nret
-        print >>sys.stderr, ("Error activating disks for instance %s: %s" %
-                             (iname, msg))
+        print >> sys.stderr, ("Error activating disks for instance %s: %s" %
+                              (iname, msg))
+
+  if missing:
+    for iname, ival in missing.iteritems():
+      all_missing = utils.all(ival, lambda x: x[0] in nlvm)
+      if all_missing:
+        print ("Instance %s cannot be verified as it lives on"
+               " broken nodes" % iname)
+      else:
+        print "Instance %s has missing logical volumes:" % iname
+        ival.sort()
+        for node, vol in ival:
+          if node in nlvm:
+            print ("\tbroken node %s /dev/xenvg/%s" % (node, vol))
+          else:
+            print ("\t%s /dev/xenvg/%s" % (node, vol))
+    print ("You need to run replace_disks for all the above"
+           " instances, if this message persist after fixing nodes.")
+    retcode |= 1
 
   return retcode
 

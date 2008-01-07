@@ -93,12 +93,15 @@ class OpVerifyDisks(OpCode):
 
   Result: two lists:
     - list of node names with bad data returned (unreachable, etc.)
+    - dist of node names with broken volume groups (values: error msg)
     - list of instances with degraded disks (that should be activated)
+    - dict of instances with missing logical volumes (values: (node, vol)
+      pairs with details about the missing volumes)
 
-  In normal operation, both lists should be empty. A non-empty
-  instance list is still ok (errors were fixed) but non-empty node
-  list means some node is down, and probably there are unfixable drbd
-  errors.
+  In normal operation, all lists should be empty. A non-empty instance
+  list (3rd element of the result) is still ok (errors were fixed) but
+  non-empty node list means some node is down, and probably there are
+  unfixable drbd errors.
 
   Note that only instances that are drbd-based are taken into
   consideration. This might need to be revisited in the future.
