@@ -415,11 +415,15 @@ class LogicalVolume(BlockDev):
   def Assemble(self):
     """Assemble the device.
 
-    This is a no-op for the LV device type. Eventually, we could
-    lvchange -ay here if we see that the LV is not active.
+    We alway run `lvchange -ay` on the LV to ensure it's active before
+    use, as there were cases when xenvg was not active after boot
+    (also possibly after disk issues).
 
     """
-    return True
+    result = utils.RunCmd(["lvchange", "-ay", self.dev_path])
+    if result.failed:
+      logger.Error("Can't activate lv %s: %s" % (self.dev_path, result.output))
+    return not result.failed
 
   def Shutdown(self):
     """Shutdown the device.
