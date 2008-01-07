@@ -405,7 +405,7 @@
           <arg choice="opt">-p <replaceable>vcpus</replaceable></arg>
           <arg choice="opt">-i <replaceable>ip</replaceable></arg>
           <arg choice="opt">-b <replaceable>bridge</replaceable></arg>
-          <arg chioce="opt">--mac <replaceable>MAC-address</replaceable></arg>
+          <arg choice="opt">--mac <replaceable>MAC-address</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
