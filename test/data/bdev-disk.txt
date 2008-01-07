@@ -1,0 +1,15 @@
+disk {
+	size            	0s _is_default; # bytes
+	on-io-error     	detach;
+	fencing         	dont-care _is_default;
+}
+syncer {
+	rate            	250k _is_default; # bytes/second
+	after           	-1 _is_default;
+	al-extents      	257;
+}
+_this_host {
+	device			"/dev/drbd58";
+	disk			"/dev/xenvg/test.data";
+	meta-disk		"/dev/xenvg/test.meta" [ 0 ];
+}
