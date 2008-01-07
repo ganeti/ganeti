@@ -11,5 +11,5 @@ check-am: do-pre-check
 do-pre-check:
 	$(MAKE) -C $(top_builddir) pre-check
 
-EXTRA_DIST = $(TESTS) mocks.py
+EXTRA_DIST = $(TESTS) mocks.py data
 CLEANFILES = *.py[co]

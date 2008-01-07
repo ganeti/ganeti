@@ -22,6 +22,7 @@
 """Script for unittesting the bdev module"""
 
 
+import os
 import unittest
 
 from ganeti import bdev
@@ -44,6 +45,21 @@ class TestDRBD8Runner(unittest.TestCase):
     return retval
 
   @staticmethod
+  def _get_contents(name):
+    """Returns the contents of a file"""
+
+    prefix = os.environ.get("srcdir", None)
+    if prefix:
+      name = prefix + "/" + name
+    fh = open(name, "r")
+    try:
+      data = fh.read()
+    finally:
+      fh.close()
+    return data
+
+
+  @staticmethod
   def _has_net(data, local, remote):
     """Check network connection parameters"""
     retval = (
@@ -60,7 +76,7 @@ class TestDRBD8Runner(unittest.TestCase):
 
   def testParserBoth(self):
     """Test drbdsetup show parser for disk and network"""
-    data = open("data/bdev-both.txt").read()
+    data = self._get_contents("data/bdev-both.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
@@ -71,7 +87,7 @@ class TestDRBD8Runner(unittest.TestCase):
 
   def testParserNet(self):
     """Test drbdsetup show parser for disk and network"""
-    data = open("data/bdev-net.txt").read()
+    data = self._get_contents("data/bdev-net.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
@@ -83,7 +99,7 @@ class TestDRBD8Runner(unittest.TestCase):
 
   def testParserDisk(self):
     """Test drbdsetup show parser for disk and network"""
-    data = open("data/bdev-disk.txt").read()
+    data = self._get_contents("data/bdev-disk.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
