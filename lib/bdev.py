@@ -2295,10 +2295,10 @@ def AttachOrAssemble(dev_type, unique_id, children):
   device = DEV_MAP[dev_type](unique_id, children)
   if not device.Attach():
     device.Assemble()
-  if not device.Attach():
-    raise errors.BlockDeviceError("Can't find a valid block device for"
-                                  " %s/%s/%s" %
-                                  (dev_type, unique_id, children))
+    if not device.Attach():
+      raise errors.BlockDeviceError("Can't find a valid block device for"
+                                    " %s/%s/%s" %
+                                    (dev_type, unique_id, children))
   return device
 
 
