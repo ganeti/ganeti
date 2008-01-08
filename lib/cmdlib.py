@@ -2997,6 +2997,9 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("OS '%s' not in supported os list for"
                                  " primary node"  % self.op.os_type)
 
+    if self.op.kernel_path == constants.VALUE_NONE:
+      raise errors.OpPrereqError("Can't set instance kernel to none")
+
     # instance verification
     hostname1 = utils.HostInfo(self.op.instance_name)
 
@@ -3087,6 +3090,8 @@ class LUCreateInstance(LogicalUnit):
                             disk_template=self.op.disk_template,
                             status=self.instance_status,
                             network_port=network_port,
+                            kernel_path=self.op.kernel_path,
+                            initrd_path=self.op.initrd_path,
                             )
 
     feedback_fn("* creating instance disks...")

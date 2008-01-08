@@ -241,6 +241,9 @@ def AddInstance(opts, args):
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
+  kernel_path = _TransformPath(opts.kernel_path)
+  initrd_path = _TransformPath(opts.initrd_path)
+
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
@@ -249,7 +252,10 @@ def AddInstance(opts, args):
                                 snode=snode, vcpus=opts.vcpus,
                                 ip=opts.ip, bridge=opts.bridge,
                                 start=opts.start, ip_check=opts.ip_check,
-                                wait_for_sync=opts.wait_for_sync, mac=opts.mac)
+                                wait_for_sync=opts.wait_for_sync,
+                                mac=opts.mac,
+                                kernel_path=kernel_path,
+                                initrd_path=initrd_path)
   SubmitOpCode(op)
   return 0
 
@@ -745,6 +751,14 @@ add_opts = [
   make_option("--no-ip-check", dest="ip_check", default=True,
               action="store_false", help="Don't check that the instance's IP"
               " is alive (only valid with --no-start)"),
+  make_option("--kernel", dest="kernel_path",
+              help="Path to the instances' kernel (or 'default')",
+              default=None,
+              type="string", metavar="<FILENAME>"),
+  make_option("--initrd", dest="initrd_path",
+              help="Path to the instances' initrd (or 'none', or 'default')",
+              default=None,
+              type="string", metavar="<FILENAME>"),
   ]
 
 commands = {

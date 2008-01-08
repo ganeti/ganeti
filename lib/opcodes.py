@@ -160,10 +160,13 @@ class OpQueryNodeVolumes(OpCode):
 class OpCreateInstance(OpCode):
   """Create an instance."""
   OP_ID = "OP_INSTANCE_CREATE"
-  __slots__ = ["instance_name", "mem_size", "disk_size", "os_type", "pnode",
-               "disk_template", "snode", "swap_size", "mode",
-               "vcpus", "ip", "bridge", "src_node", "src_path", "start",
-               "wait_for_sync", "ip_check", "mac"]
+  __slots__ = [
+    "instance_name", "mem_size", "disk_size", "os_type", "pnode",
+    "disk_template", "snode", "swap_size", "mode",
+    "vcpus", "ip", "bridge", "src_node", "src_path", "start",
+    "wait_for_sync", "ip_check", "mac",
+    "kernel_path", "initrd_path",
+    ]
 
 
 class OpReinstallInstance(OpCode):
