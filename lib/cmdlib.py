@@ -4101,7 +4101,11 @@ class LUSetInstanceParms(LogicalUnit):
     self.ip = getattr(self.op, "ip", None)
     self.mac = getattr(self.op, "mac", None)
     self.bridge = getattr(self.op, "bridge", None)
-    if [self.mem, self.vcpus, self.ip, self.bridge, self.mac].count(None) == 5:
+    self.kernel_path = getattr(self.op, "kernel_path", None)
+    self.initrd_path = getattr(self.op, "initrd_path", None)
+    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
+                 self.kernel_path, self.initrd_path]
+    if all_parms.count(None) == len(all_parms):
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
       try:
@@ -4129,6 +4133,24 @@ class LUSetInstanceParms(LogicalUnit):
                                    self.mac)
       if not utils.IsValidMac(self.mac):
         raise errors.OpPrereqError('Invalid MAC address %s' % self.mac)
+
+    if self.kernel_path is not None:
+      self.do_kernel_path = True
+      if self.kernel_path == constants.VALUE_NONE:
+        raise errors.OpPrereqError("Can't set instance to no kernel")
+
+      if self.kernel_path != constants.VALUE_DEFAULT:
+        if not os.path.isabs(self.kernel_path):
+          raise errors.OpPrereError("The kernel path must be an absolute"
+                                    " filename")
+
+    if self.initrd_path is not None:
+      self.do_initrd_path = True
+      if self.initrd_path not in (constants.VALUE_NONE,
+                                  constants.VALUE_DEFAULT):
+        if not os.path.isabs(self.kernel_path):
+          raise errors.OpPrereError("The initrd path must be an absolute"
+                                    " filename")
 
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
@@ -4161,6 +4183,12 @@ class LUSetInstanceParms(LogicalUnit):
     if self.mac:
       instance.nics[0].mac = self.mac
       result.append(("mac", self.mac))
+    if self.do_kernel_path:
+      instance.kernel_path = self.kernel_path
+      result.append(("kernel_path", self.kernel_path))
+    if self.do_initrd_path:
+      instance.initrd_path = self.initrd_path
+      result.append(("initrd_path", self.initrd_path))
 
     self.cfg.AddInstance(instance)
 

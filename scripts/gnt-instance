@@ -134,6 +134,29 @@ def _ConfirmOperation(inames, text):
   return choice
 
 
+def _TransformPath(user_input):
+  """Transform a user path into a canonical value.
+
+  This function transforms the a path passed as textual information
+  into the constants that the LU code expects.
+
+  """
+  if user_input:
+    if user_input.lower() == "default":
+      result_path = constants.VALUE_DEFAULT
+    elif user_input.lower() == "none":
+      result_path = constants.VALUE_NONE
+    else:
+      if not os.path.isabs(user_input):
+        raise errors.OpPrereqError("Path '%s' is not an absolute filename" %
+                                   user_input)
+      result_path = user_input
+  else:
+    result_path = constants.VALUE_DEFAULT
+
+  return result_path
+
+
 def ListInstances(opts, args):
   """List instances and their properties.
 
@@ -627,13 +650,19 @@ def SetInstanceParms(opts, args):
     mac - the new MAC address of the instance
 
   """
-  if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac):
+  if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac or
+          opts.kernel_path or opts.initrd_path):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
 
+  kernel_path = _TransformPath(opts.kernel_path)
+  initrd_path = _TransformPath(opts.initrd_path)
+
   op = opcodes.OpSetInstanceParms(instance_name=args[0], mem=opts.mem,
                                   vcpus=opts.vcpus, ip=opts.ip,
-                                  bridge=opts.bridge, mac=opts.mac)
+                                  bridge=opts.bridge, mac=opts.mac,
+                                  kernel_path=opts.kernel_path,
+                                  initrd_path=opts.initrd_path)
   result = SubmitOpCode(op)
 
   if result:
@@ -815,6 +844,14 @@ commands = {
               make_option("--mac", dest="mac",
                           help="MAC address", default=None,
                           type="string", metavar="<MACADDRESS>"),
+              make_option("--kernel", dest="kernel_path",
+                          help="Path to the instances' kernel (or"
+                          " 'default')", default=None,
+                          type="string", metavar="<FILENAME>"),
+              make_option("--initrd", dest="initrd_path",
+                          help="Path to the instances' initrd (or 'none', or"
+                          " 'default')", default=None,
+                          type="string", metavar="<FILENAME>"),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,

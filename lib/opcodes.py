@@ -260,7 +260,10 @@ class OpQueryInstanceData(OpCode):
 class OpSetInstanceParms(OpCode):
   """Change the parameters of an instance."""
   OP_ID = "OP_INSTANCE_SET_PARMS"
-  __slots__ = ["instance_name", "mem", "vcpus", "ip", "bridge", "mac"]
+  __slots__ = [
+    "instance_name", "mem", "vcpus", "ip", "bridge", "mac",
+    "kernel_path", "initrd_path",
+    ]
 
 
 # OS opcodes
