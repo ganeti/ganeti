@@ -4054,6 +4054,8 @@ class LUQueryInstanceData(NoHooksLU):
         "disks": disks,
         "network_port": instance.network_port,
         "vcpus": instance.vcpus,
+        "kernel_path": instance.kernel_path,
+        "initrd_path": instance.initrd_path,
         }
 
       result[instance.name] = idict

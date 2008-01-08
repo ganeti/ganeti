@@ -626,6 +626,18 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
     buf.write("  Allocated network port: %s\n" % instance["network_port"])
+    if instance["kernel_path"] in (None, constants.VALUE_DEFAULT):
+      kpath = "(default: %s)" % constants.XEN_KERNEL
+    else:
+      kpath = instance["kernel_path"]
+    buf.write("  Kernel path: %s\n" % kpath)
+    if instance["initrd_path"] in (None, constants.VALUE_DEFAULT):
+      initrd = "(default: %s)" % constants.XEN_INITRD
+    elif instance["initrd_path"] == constants.VALUE_NONE:
+      initrd = "(none)"
+    else:
+      initrd = instance["initrd_path"]
+    buf.write("       initrd: %s\n" % initrd)
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])
