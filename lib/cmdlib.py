@@ -4150,6 +4150,8 @@ class LUSetInstanceParms(LogicalUnit):
         if not os.path.isabs(self.kernel_path):
           raise errors.OpPrereError("The kernel path must be an absolute"
                                     " filename")
+    else:
+      self.do_kernel_path = False
 
     if self.initrd_path is not None:
       self.do_initrd_path = True
@@ -4158,6 +4160,8 @@ class LUSetInstanceParms(LogicalUnit):
         if not os.path.isabs(self.kernel_path):
           raise errors.OpPrereError("The initrd path must be an absolute"
                                     " filename")
+    else:
+      self.do_initrd_path = False
 
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
