@@ -491,6 +491,8 @@ class Instance(TaggableObject):
     "disks",
     "disk_template",
     "network_port",
+    "kernel_path",
+    "initrd_path",
     ]
 
   def _ComputeSecondaryNodes(self):
