@@ -493,6 +493,7 @@ class Instance(TaggableObject):
     "network_port",
     "kernel_path",
     "initrd_path",
+    "hvm_boot_order",
     ]
 
   def _ComputeSecondaryNodes(self):
