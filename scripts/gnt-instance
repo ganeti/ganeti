@@ -134,6 +134,29 @@ def _ConfirmOperation(inames, text):
   return choice
 
 
+def _TransformPath(user_input):
+  """Transform a user path into a canonical value.
+
+  This function transforms the a path passed as textual information
+  into the constants that the LU code expects.
+
+  """
+  if user_input:
+    if user_input.lower() == "default":
+      result_path = constants.VALUE_DEFAULT
+    elif user_input.lower() == "none":
+      result_path = constants.VALUE_NONE
+    else:
+      if not os.path.isabs(user_input):
+        raise errors.OpPrereqError("Path '%s' is not an absolute filename" %
+                                   user_input)
+      result_path = user_input
+  else:
+    result_path = constants.VALUE_DEFAULT
+
+  return result_path
+
+
 def ListInstances(opts, args):
   """List instances and their properties.
 
@@ -218,6 +241,9 @@ def AddInstance(opts, args):
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
+  kernel_path = _TransformPath(opts.kernel_path)
+  initrd_path = _TransformPath(opts.initrd_path)
+
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
@@ -226,7 +252,10 @@ def AddInstance(opts, args):
                                 snode=snode, vcpus=opts.vcpus,
                                 ip=opts.ip, bridge=opts.bridge,
                                 start=opts.start, ip_check=opts.ip_check,
-                                wait_for_sync=opts.wait_for_sync)
+                                wait_for_sync=opts.wait_for_sync,
+                                mac=opts.mac,
+                                kernel_path=kernel_path,
+                                initrd_path=initrd_path)
   SubmitOpCode(op)
   return 0
 
@@ -596,6 +625,19 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - primary: %s\n" % instance["pnode"])
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
+    buf.write("  Allocated network port: %s\n" % instance["network_port"])
+    if instance["kernel_path"] in (None, constants.VALUE_DEFAULT):
+      kpath = "(default: %s)" % constants.XEN_KERNEL
+    else:
+      kpath = instance["kernel_path"]
+    buf.write("  Kernel path: %s\n" % kpath)
+    if instance["initrd_path"] in (None, constants.VALUE_DEFAULT):
+      initrd = "(default: %s)" % constants.XEN_INITRD
+    elif instance["initrd_path"] == constants.VALUE_NONE:
+      initrd = "(none)"
+    else:
+      initrd = instance["initrd_path"]
+    buf.write("       initrd: %s\n" % initrd)
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])
@@ -623,15 +665,22 @@ def SetInstanceParms(opts, args):
   Opts used:
     memory - the new memory size
     vcpus - the new number of cpus
+    mac - the new MAC address of the instance
 
   """
-  if not opts.mem and not opts.vcpus and not opts.ip and not opts.bridge:
+  if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac or
+          opts.kernel_path or opts.initrd_path):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
 
+  kernel_path = _TransformPath(opts.kernel_path)
+  initrd_path = _TransformPath(opts.initrd_path)
+
   op = opcodes.OpSetInstanceParms(instance_name=args[0], mem=opts.mem,
                                   vcpus=opts.vcpus, ip=opts.ip,
-                                  bridge=opts.bridge)
+                                  bridge=opts.bridge, mac=opts.mac,
+                                  kernel_path=opts.kernel_path,
+                                  initrd_path=opts.initrd_path)
   result = SubmitOpCode(op)
 
   if result:
@@ -700,6 +749,9 @@ add_opts = [
   make_option("-i", "--ip", dest="ip",
               help="IP address ('none' [default], 'auto', or specify address)",
               default='none', type="string", metavar="<ADDRESS>"),
+  make_option("--mac", dest="mac",
+              help="MAC address ('auto' [default], or specify address)",
+              default='auto', type="string", metavar="<MACADDRESS>"),
   make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
               action="store_false", help="Don't wait for sync (DANGEROUS!)"),
   make_option("-b", "--bridge", dest="bridge",
@@ -711,6 +763,14 @@ add_opts = [
   make_option("--no-ip-check", dest="ip_check", default=True,
               action="store_false", help="Don't check that the instance's IP"
               " is alive (only valid with --no-start)"),
+  make_option("--kernel", dest="kernel_path",
+              help="Path to the instances' kernel (or 'default')",
+              default=None,
+              type="string", metavar="<FILENAME>"),
+  make_option("--initrd", dest="initrd_path",
+              help="Path to the instances' initrd (or 'none', or 'default')",
+              default=None,
+              type="string", metavar="<FILENAME>"),
   ]
 
 commands = {
@@ -807,6 +867,17 @@ commands = {
               make_option("-b", "--bridge", dest="bridge",
                           help="Bridge to connect this instance to",
                           default=None, type="string", metavar="<bridge>"),
+              make_option("--mac", dest="mac",
+                          help="MAC address", default=None,
+                          type="string", metavar="<MACADDRESS>"),
+              make_option("--kernel", dest="kernel_path",
+                          help="Path to the instances' kernel (or"
+                          " 'default')", default=None,
+                          type="string", metavar="<FILENAME>"),
+              make_option("--initrd", dest="initrd_path",
+                          help="Path to the instances' initrd (or 'none', or"
+                          " 'default')", default=None,
+                          type="string", metavar="<FILENAME>"),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,

@@ -96,6 +96,18 @@ class ConfigWriter:
       raise errors.ConfigurationError("Can't generate unique MAC")
     return mac
 
+  def IsMacInUse(self, mac):
+    """Predicate: check if the specified MAC is in use in the Ganeti cluster.
+
+    This only checks instances managed by this cluster, it does not
+    check for potential collisions elsewhere.
+
+    """
+    self._OpenConfig()
+    self._ReleaseLock()
+    all_macs = self._AllMACs()
+    return mac in all_macs
+
   def _ComputeAllLVs(self):
     """Compute the list of all LVs.
 

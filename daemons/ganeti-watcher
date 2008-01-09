@@ -349,6 +349,7 @@ class Watcher(object):
     notepad = WatcherState()
     self.CheckInstances(notepad)
     self.CheckDisks(notepad)
+    self.VerifyDisks()
     notepad.Save()
 
   def CheckDisks(self, notepad):
@@ -416,6 +417,14 @@ class Watcher(object):
           notepad.RemoveInstance(instance)
           msg = Message(NOTICE, "Restart of %s succeeded." % instance.name)
           self.messages.append(msg)
+
+  def VerifyDisks(self):
+    """Run gnt-cluster verify-disks.
+
+    """
+    result = DoCmd(['gnt-cluster', 'verify-disks', '--lock-retries=15'])
+    if result.output:
+      self.messages.append(Message(NOTICE, result.output))
 
   def WriteReport(self, logfile):
     """Log all messages to file.

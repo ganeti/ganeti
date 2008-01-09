@@ -499,6 +499,12 @@ class LUInitCluster(LogicalUnit):
     if config.ConfigWriter.IsCluster():
       raise errors.OpPrereqError("Cluster is already initialised")
 
+    if self.op.hypervisor_type == constants.HT_XEN_HVM31:
+      if not os.path.exists(constants.VNC_PASSWORD_FILE):
+        raise errors.OpPrereqError("Please prepare the cluster VNC"
+                                   "password file %s" %
+                                   constants.VNC_PASSWORD_FILE)
+
     self.hostname = hostname = utils.HostInfo()
 
     if hostname.ip.startswith("127."):
@@ -538,7 +544,7 @@ class LUInitCluster(LogicalUnit):
       raise errors.OpPrereqError("Invalid mac prefix given '%s'" %
                                  self.op.mac_prefix)
 
-    if self.op.hypervisor_type not in hypervisor.VALID_HTYPES:
+    if self.op.hypervisor_type not in constants.HYPER_TYPES:
       raise errors.OpPrereqError("Invalid hypervisor type given '%s'" %
                                  self.op.hypervisor_type)
 
@@ -834,12 +840,17 @@ class LUVerifyCluster(NoHooksLU):
       # node_volume
       volumeinfo = all_volumeinfo[node]
 
-      if type(volumeinfo) != dict:
+      if isinstance(volumeinfo, basestring):
+        feedback_fn("  - ERROR: LVM problem on node %s: %s" %
+                    (node, volumeinfo[-400:].encode('string_escape')))
+        bad = True
+        node_volume[node] = {}
+      elif not isinstance(volumeinfo, dict):
         feedback_fn("  - ERROR: connection to %s failed" % (node,))
         bad = True
         continue
-
-      node_volume[node] = volumeinfo
+      else:
+        node_volume[node] = volumeinfo
 
       # node_instance
       nodeinstance = all_instanceinfo[node]
@@ -873,6 +884,78 @@ class LUVerifyCluster(NoHooksLU):
     bad = bad or result
 
     return int(bad)
+
+
+class LUVerifyDisks(NoHooksLU):
+  """Verifies the cluster disks status.
+
+  """
+  _OP_REQP = []
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This has no prerequisites.
+
+    """
+    pass
+
+  def Exec(self, feedback_fn):
+    """Verify integrity of cluster disks.
+
+    """
+    result = res_nodes, res_nlvm, res_instances, res_missing = [], {}, [], {}
+
+    vg_name = self.cfg.GetVGName()
+    nodes = utils.NiceSort(self.cfg.GetNodeList())
+    instances = [self.cfg.GetInstanceInfo(name)
+                 for name in self.cfg.GetInstanceList()]
+
+    nv_dict = {}
+    for inst in instances:
+      inst_lvs = {}
+      if (inst.status != "up" or
+          inst.disk_template not in constants.DTS_NET_MIRROR):
+        continue
+      inst.MapLVsByNode(inst_lvs)
+      # transform { iname: {node: [vol,],},} to {(node, vol): iname}
+      for node, vol_list in inst_lvs.iteritems():
+        for vol in vol_list:
+          nv_dict[(node, vol)] = inst
+
+    if not nv_dict:
+      return result
+
+    node_lvs = rpc.call_volume_list(nodes, vg_name)
+
+    to_act = set()
+    for node in nodes:
+      # node_volume
+      lvs = node_lvs[node]
+
+      if isinstance(lvs, basestring):
+        logger.Info("error enumerating LVs on node %s: %s" % (node, lvs))
+        res_nlvm[node] = lvs
+      elif not isinstance(lvs, dict):
+        logger.Info("connection to node %s failed or invalid data returned" %
+                    (node,))
+        res_nodes.append(node)
+        continue
+
+      for lv_name, (_, lv_inactive, lv_online) in lvs.iteritems():
+        inst = nv_dict.pop((node, lv_name), None)
+        if (not lv_online and inst is not None
+            and inst.name not in res_instances):
+            res_instances.append(inst.name)
+
+    # any leftover items in nv_dict are missing LVs, let's arrange the
+    # data better
+    for key, inst in nv_dict.iteritems():
+      if inst.name not in res_missing:
+        res_missing[inst.name] = []
+      res_missing[inst.name].append(key)
+
+    return result
 
 
 class LURenameCluster(LogicalUnit):
@@ -1408,6 +1491,11 @@ class LUAddNode(LogicalUnit):
                                  primary_ip=primary_ip,
                                  secondary_ip=secondary_ip)
 
+    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+      if not os.path.exists(constants.VNC_PASSWORD_FILE):
+        raise errors.OpPrereqError("Cluster VNC password file %s missing" %
+                                   constants.VNC_PASSWORD_FILE)
+
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
@@ -1527,6 +1615,8 @@ class LUAddNode(LogicalUnit):
                        (fname, to_node))
 
     to_copy = ss.GetFileList()
+    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+      to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
       if not ssh.CopyFileToNode(node, fname):
         logger.Error("could not copy file %s to node %s" % (fname, node))
@@ -2762,7 +2852,7 @@ class LUCreateInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mem_size", "disk_size", "pnode",
               "disk_template", "swap_size", "mode", "start", "vcpus",
-              "wait_for_sync", "ip_check"]
+              "wait_for_sync", "ip_check", "mac"]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2907,6 +2997,9 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("OS '%s' not in supported os list for"
                                  " primary node"  % self.op.os_type)
 
+    if self.op.kernel_path == constants.VALUE_NONE:
+      raise errors.OpPrereqError("Can't set instance kernel to none")
+
     # instance verification
     hostname1 = utils.HostInfo(self.op.instance_name)
 
@@ -2938,6 +3031,12 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (hostname1.ip, instance_name))
 
+    # MAC address verification
+    if self.op.mac != "auto":
+      if not utils.IsValidMac(self.op.mac.lower()):
+        raise errors.OpPrereqError("invalid MAC address specified: %s" %
+                                   self.op.mac)
+
     # bridge verification
     bridge = getattr(self.op, "bridge", None)
     if bridge is None:
@@ -2962,9 +3061,20 @@ class LUCreateInstance(LogicalUnit):
     instance = self.op.instance_name
     pnode_name = self.pnode.name
 
-    nic = objects.NIC(bridge=self.op.bridge, mac=self.cfg.GenerateMAC())
+    if self.op.mac == "auto":
+      mac_address=self.cfg.GenerateMAC()
+    else:
+      mac_address=self.op.mac
+
+    nic = objects.NIC(bridge=self.op.bridge, mac=mac_address)
     if self.inst_ip is not None:
       nic.ip = self.inst_ip
+
+    ht_kind = self.sstore.GetHypervisorType()
+    if ht_kind in constants.HTS_REQ_PORT:
+      network_port = self.cfg.AllocatePort()
+    else:
+      network_port = None
 
     disks = _GenerateDiskTemplate(self.cfg,
                                   self.op.disk_template,
@@ -2979,6 +3089,9 @@ class LUCreateInstance(LogicalUnit):
                             nics=[nic], disks=disks,
                             disk_template=self.op.disk_template,
                             status=self.instance_status,
+                            network_port=network_port,
+                            kernel_path=self.op.kernel_path,
+                            initrd_path=self.op.initrd_path,
                             )
 
     feedback_fn("* creating instance disks...")
@@ -3078,7 +3191,7 @@ class LUConnectConsole(NoHooksLU):
     logger.Debug("connecting to console of %s on %s" % (instance.name, node))
 
     hyper = hypervisor.GetHypervisor()
-    console_cmd = hyper.GetShellCommandForConsole(instance.name)
+    console_cmd = hyper.GetShellCommandForConsole(instance)
     # build ssh cmdline
     argv = ["ssh", "-q", "-t"]
     argv.extend(ssh.KNOWN_HOSTS_OPTS)
@@ -3631,7 +3744,7 @@ class LUReplaceDisks(LogicalUnit):
       if not rpc.call_blockdev_addchildren(tgt_node, dev, new_lvs):
         for new_lv in new_lvs:
           if not rpc.call_blockdev_remove(tgt_node, new_lv):
-            warning("Can't rollback device %s", "manually cleanup unused"
+            warning("Can't rollback device %s", hint="manually cleanup unused"
                     " logical volumes")
         raise errors.OpExecError("Can't add local storage to drbd")
 
@@ -3660,7 +3773,7 @@ class LUReplaceDisks(LogicalUnit):
       for lv in old_lvs:
         cfg.SetDiskID(lv, tgt_node)
         if not rpc.call_blockdev_remove(tgt_node, lv):
-          warning("Can't remove old LV", "manually remove unused LVs")
+          warning("Can't remove old LV", hint="manually remove unused LVs")
           continue
 
   def _ExecD8Secondary(self, feedback_fn):
@@ -3763,7 +3876,7 @@ class LUReplaceDisks(LogicalUnit):
       cfg.SetDiskID(dev, old_node)
       if not rpc.call_blockdev_shutdown(old_node, dev):
         warning("Failed to shutdown drbd for %s on old node" % dev.iv_name,
-                "Please cleanup this device manually as soon as possible")
+                hint="Please cleanup this device manually as soon as possible")
 
     info("detaching primary drbds from the network (=> standalone)")
     done = 0
@@ -3825,7 +3938,7 @@ class LUReplaceDisks(LogicalUnit):
         cfg.SetDiskID(lv, old_node)
         if not rpc.call_blockdev_remove(old_node, lv):
           warning("Can't remove LV on old secondary",
-                  "Cleanup stale volumes by hand")
+                  hint="Cleanup stale volumes by hand")
 
   def Exec(self, feedback_fn):
     """Execute disk replacement.
@@ -3939,7 +4052,10 @@ class LUQueryInstanceData(NoHooksLU):
         "memory": instance.memory,
         "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
         "disks": disks,
+        "network_port": instance.network_port,
         "vcpus": instance.vcpus,
+        "kernel_path": instance.kernel_path,
+        "initrd_path": instance.initrd_path,
         }
 
       result[instance.name] = idict
@@ -3990,8 +4106,13 @@ class LUSetInstanceParms(LogicalUnit):
     self.mem = getattr(self.op, "mem", None)
     self.vcpus = getattr(self.op, "vcpus", None)
     self.ip = getattr(self.op, "ip", None)
+    self.mac = getattr(self.op, "mac", None)
     self.bridge = getattr(self.op, "bridge", None)
-    if [self.mem, self.vcpus, self.ip, self.bridge].count(None) == 4:
+    self.kernel_path = getattr(self.op, "kernel_path", None)
+    self.initrd_path = getattr(self.op, "initrd_path", None)
+    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
+                 self.kernel_path, self.initrd_path]
+    if all_parms.count(None) == len(all_parms):
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
       try:
@@ -4013,6 +4134,34 @@ class LUSetInstanceParms(LogicalUnit):
     else:
       self.do_ip = False
     self.do_bridge = (self.bridge is not None)
+    if self.mac is not None:
+      if self.cfg.IsMacInUse(self.mac):
+        raise errors.OpPrereqError('MAC address %s already in use in cluster' %
+                                   self.mac)
+      if not utils.IsValidMac(self.mac):
+        raise errors.OpPrereqError('Invalid MAC address %s' % self.mac)
+
+    if self.kernel_path is not None:
+      self.do_kernel_path = True
+      if self.kernel_path == constants.VALUE_NONE:
+        raise errors.OpPrereqError("Can't set instance to no kernel")
+
+      if self.kernel_path != constants.VALUE_DEFAULT:
+        if not os.path.isabs(self.kernel_path):
+          raise errors.OpPrereError("The kernel path must be an absolute"
+                                    " filename")
+    else:
+      self.do_kernel_path = False
+
+    if self.initrd_path is not None:
+      self.do_initrd_path = True
+      if self.initrd_path not in (constants.VALUE_NONE,
+                                  constants.VALUE_DEFAULT):
+        if not os.path.isabs(self.kernel_path):
+          raise errors.OpPrereError("The initrd path must be an absolute"
+                                    " filename")
+    else:
+      self.do_initrd_path = False
 
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
@@ -4042,6 +4191,15 @@ class LUSetInstanceParms(LogicalUnit):
     if self.bridge:
       instance.nics[0].bridge = self.bridge
       result.append(("bridge", self.bridge))
+    if self.mac:
+      instance.nics[0].mac = self.mac
+      result.append(("mac", self.mac))
+    if self.do_kernel_path:
+      instance.kernel_path = self.kernel_path
+      result.append(("kernel_path", self.kernel_path))
+    if self.do_initrd_path:
+      instance.initrd_path = self.initrd_path
+      result.append(("initrd_path", self.initrd_path))
 
     self.cfg.AddInstance(instance)
 

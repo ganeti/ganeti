@@ -415,11 +415,15 @@ class LogicalVolume(BlockDev):
   def Assemble(self):
     """Assemble the device.
 
-    This is a no-op for the LV device type. Eventually, we could
-    lvchange -ay here if we see that the LV is not active.
+    We alway run `lvchange -ay` on the LV to ensure it's active before
+    use, as there were cases when xenvg was not active after boot
+    (also possibly after disk issues).
 
     """
-    return True
+    result = utils.RunCmd(["lvchange", "-ay", self.dev_path])
+    if result.failed:
+      logger.Error("Can't activate lv %s: %s" % (self.dev_path, result.output))
+    return not result.failed
 
   def Shutdown(self):
     """Shutdown the device.
@@ -1737,19 +1741,27 @@ class DRBD8(BaseDRBD):
     return bnf
 
   @classmethod
-  def _GetDevInfo(cls, minor):
-    """Get details about a given DRBD minor.
-
-    This return, if available, the local backing device (as a path)
-    and the local and remote (ip, port) information.
+  def _GetShowData(cls, minor):
+    """Return the `drbdsetup show` data for a minor.
 
     """
-    data = {}
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "show"])
     if result.failed:
       logger.Error("Can't display the drbd config: %s" % result.fail_reason)
-      return data
-    out = result.stdout
+      return None
+    return result.stdout
+
+  @classmethod
+  def _GetDevInfo(cls, out):
+    """Parse details about a given DRBD minor.
+
+    This return, if available, the local backing device (as a path)
+    and the local and remote (ip, port) information from a string
+    containing the output of the `drbdsetup show` command as returned
+    by _GetShowData.
+
+    """
+    data = {}
     if not out:
       return data
 
@@ -1881,7 +1893,7 @@ class DRBD8(BaseDRBD):
     timeout = time.time() + 10
     ok = False
     while time.time() < timeout:
-      info = cls._GetDevInfo(minor)
+      info = cls._GetDevInfo(cls._GetShowData(minor))
       if not "local_addr" in info or not "remote_addr" in info:
         time.sleep(1)
         continue
@@ -1904,7 +1916,7 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("Can't attach to dbrd8 during AddChildren")
     if len(devices) != 2:
       raise errors.BlockDeviceError("Need two devices for AddChildren")
-    info = self._GetDevInfo(self.minor)
+    info = self._GetDevInfo(self._GetShowData(self.minor))
     if "local_dev" in info:
       raise errors.BlockDeviceError("DRBD8 already attached to a local disk")
     backend, meta = devices
@@ -1930,7 +1942,7 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("Can't attach to drbd8 during"
                                     " RemoveChildren")
     # early return if we don't actually have backing storage
-    info = self._GetDevInfo(self.minor)
+    info = self._GetDevInfo(self._GetShowData(self.minor))
     if "local_dev" not in info:
       return
     if len(self._children) != 2:
@@ -2083,7 +2095,7 @@ class DRBD8(BaseDRBD):
 
     """
     for minor in self._GetUsedDevs():
-      info = self._GetDevInfo(minor)
+      info = self._GetDevInfo(self._GetShowData(minor))
       match_l = self._MatchesLocal(info)
       match_r = self._MatchesNet(info)
       if match_l and match_r:
@@ -2093,8 +2105,9 @@ class DRBD8(BaseDRBD):
                                   (self._lhost, self._lport,
                                    self._rhost, self._rport),
                                   "C")
-        if res_r and self._MatchesNet(self._GetDevInfo(minor)):
-          break
+        if res_r:
+          if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
+            break
       # the weakest case: we find something that is only net attached
       # even though we were passed some children at init time
       if match_r and "local_dev" not in info:
@@ -2114,7 +2127,7 @@ class DRBD8(BaseDRBD):
         # None)
         if (self._AssembleNet(minor, (self._lhost, self._lport,
                                       self._rhost, self._rport), "C") and
-            self._MatchesNet(self._GetDevInfo(minor))):
+            self._MatchesNet(self._GetDevInfo(self._GetShowData(minor)))):
           break
 
     else:
@@ -2286,10 +2299,10 @@ def AttachOrAssemble(dev_type, unique_id, children):
   device = DEV_MAP[dev_type](unique_id, children)
   if not device.Attach():
     device.Assemble()
-  if not device.Attach():
-    raise errors.BlockDeviceError("Can't find a valid block device for"
-                                  " %s/%s/%s" %
-                                  (dev_type, unique_id, children))
+    if not device.Attach():
+      raise errors.BlockDeviceError("Can't find a valid block device for"
+                                    " %s/%s/%s" %
+                                    (dev_type, unique_id, children))
   return device
 
 

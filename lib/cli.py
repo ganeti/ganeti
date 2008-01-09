@@ -459,6 +459,9 @@ def GenericMain(commands, override=None):
   except errors.LockError, err:
     logger.ToStderr(str(err))
     return 1
+  except KeyboardInterrupt:
+    logger.ToStderr("Aborting.")
+    return 1
 
   if old_cmdline:
     logger.Info("run with arguments '%s'" % old_cmdline)

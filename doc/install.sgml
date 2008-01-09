@@ -249,6 +249,21 @@
 </screen>
           </para>
         </formalpara>
+        <para>
+          If you want to test the experimental HVM support
+          with Ganeti and want VNC access to the console of your
+          instances, set the following two entries in
+          <filename>/etc/xen/xend-config.sxp</filename>:
+<screen>
+(vnc-listen '0.0.0.0')
+(vncpasswd '')
+</screen>
+          You need to restart the Xen daemon for these settings to
+          take effect:
+<screen>
+/etc/init.d/xend restart
+</screen>
+        </para>
 
       </sect3>
 
@@ -301,7 +316,7 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
       <para>
         Supported DRBD versions: the <literal>0.7</literal> series
         <emphasis role="strong">or</emphasis>
-        <literal>8.0.x</literal>. It's recommended to have at least
+        <literal>8.0.7</literal>. It's recommended to have at least
         version <literal>0.7.24</literal> if you use
         <command>udev</command> since older versions have a bug
         related to device discovery which can be triggered in cases of
@@ -346,8 +361,11 @@ m-a a-i drbd0.7
 echo drbd minor_count=64 >> /etc/modules
 modprobe drbd minor_count=64
       </screen>
-      <para>or for using DRBD <literal>8.x</literal> from the etch
-      backports:</para>
+      <para>
+        or for using DRBD <literal>8.x</literal> from the etch
+        backports (note: you need at least 8.0.7, older version have
+        a bug that breaks ganeti's usage of drbd):
+      </para>
       <screen>
 apt-get install -t etch-backports drbd8-module-source drbd8-utils
 m-a update
@@ -730,6 +748,24 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
         all nodes). In this case you need to specify it by passing the
         <option>-g <replaceable>VGNAME</replaceable></option> option
         to <computeroutput>gnt-cluster init</computeroutput>.
+      </para>
+
+      <para>
+        To set up the cluster as an HVM cluster, use the
+        <option>--hypervisor=xen-hvm3.1</option> option to use
+        the Xen 3.1 HVM hypervisor. Note that with the
+        experimental HVM support, you will only be able to create
+        HVM instances in a cluster set to this hypervisor type. Mixed
+        PVM/HVM clusters are not supported by the Ganeti 1.2
+        experimental HVM support. You will also need to create the VNC
+        cluster password  file
+        <filename>/etc/ganeti/vnc-cluster-password</filename>
+        which contains one line with the default VNC password for the
+        cluster. Finally, you need to provide an installation ISO
+        image for HVM instance which will not only be mapped to the
+        first CDROM of the instance, but which the instance will also
+        boot from. This ISO image is expected at
+        <filename>/srv/ganeti/iso/hvm-install.iso</filename>.
       </para>
 
       <para>

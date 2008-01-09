@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>June 20, 2007</date>">
+  <!ENTITY dhdate      "<date>December 12, 2007</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -236,6 +236,17 @@
         The <option>-b</option> option specifies the default bridge
         for instances.
       </para>
+      <para>
+        The <option>-t</option> allows to set the hypervisor type of
+        the cluster. Available hypervisor types are: xen-3.0, fake and
+        xen-hvm3.1. The default is the xen-3.0 hypervisor.
+        Note that if you init the cluster with hypervisor-type
+        xen-hvm3.1 you also need to provide the cluster VNC password
+        file <filename>/etc/ganeti/vnc-cluster-password</filename> and
+        the HVM boot ISO image
+        <filename>/srv/ganeti/iso/hvm-install.iso</filename> because
+        instances created by the experimental HVM support require them.
+      </para>
     </refsect2>
 
     <refsect2>
@@ -354,6 +365,26 @@
         Verify correctness of cluster configuration. This is safe with
         respect to running instances, and incurs no downtime of the
         instances.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>VERIFY-DISKS</title>
+
+      <cmdsynopsis>
+        <command>verify-disks</command>
+      </cmdsynopsis>
+
+      <para>
+        The command checks which instances have degraded DRBD disks
+        and activates the disks of those instances.
+      </para>
+
+      <para>
+        This command is run from the <command>ganeti-watcher</command>
+        tool, which also has a different, complementary algorithm for
+        doing this check. Together, these two should ensure that DRBD
+        disks are kept consistent.
       </para>
     </refsect2>
 

@@ -86,6 +86,31 @@ class OpVerifyCluster(OpCode):
   __slots__ = []
 
 
+class OpVerifyDisks(OpCode):
+  """Verify the cluster disks.
+
+  Parameters: none
+
+  Result: two lists:
+    - list of node names with bad data returned (unreachable, etc.)
+    - dist of node names with broken volume groups (values: error msg)
+    - list of instances with degraded disks (that should be activated)
+    - dict of instances with missing logical volumes (values: (node, vol)
+      pairs with details about the missing volumes)
+
+  In normal operation, all lists should be empty. A non-empty instance
+  list (3rd element of the result) is still ok (errors were fixed) but
+  non-empty node list means some node is down, and probably there are
+  unfixable drbd errors.
+
+  Note that only instances that are drbd-based are taken into
+  consideration. This might need to be revisited in the future.
+
+  """
+  OP_ID = "OP_CLUSTER_VERIFY_DISKS"
+  __slots__ = []
+
+
 class OpMasterFailover(OpCode):
   """Do a master failover."""
   OP_ID = "OP_CLUSTER_MASTERFAILOVER"
@@ -135,10 +160,13 @@ class OpQueryNodeVolumes(OpCode):
 class OpCreateInstance(OpCode):
   """Create an instance."""
   OP_ID = "OP_INSTANCE_CREATE"
-  __slots__ = ["instance_name", "mem_size", "disk_size", "os_type", "pnode",
-               "disk_template", "snode", "swap_size", "mode",
-               "vcpus", "ip", "bridge", "src_node", "src_path", "start",
-               "wait_for_sync", "ip_check"]
+  __slots__ = [
+    "instance_name", "mem_size", "disk_size", "os_type", "pnode",
+    "disk_template", "snode", "swap_size", "mode",
+    "vcpus", "ip", "bridge", "src_node", "src_path", "start",
+    "wait_for_sync", "ip_check", "mac",
+    "kernel_path", "initrd_path",
+    ]
 
 
 class OpReinstallInstance(OpCode):
@@ -235,7 +263,10 @@ class OpQueryInstanceData(OpCode):
 class OpSetInstanceParms(OpCode):
   """Change the parameters of an instance."""
   OP_ID = "OP_INSTANCE_SET_PARMS"
-  __slots__ = ["instance_name", "mem", "vcpus", "ip", "bridge"]
+  __slots__ = [
+    "instance_name", "mem", "vcpus", "ip", "bridge", "mac",
+    "kernel_path", "initrd_path",
+    ]
 
 
 # OS opcodes

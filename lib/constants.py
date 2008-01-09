@@ -25,7 +25,7 @@ from ganeti import _autoconf
 
 # various versions
 CONFIG_VERSION = 3
-PROTOCOL_VERSION = 7
+PROTOCOL_VERSION = 10
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_VERSION = 5
 EXPORT_VERSION = 0
@@ -59,6 +59,9 @@ EXPORT_CONF_FILE = "config.ini"
 
 XEN_KERNEL = _autoconf.XEN_KERNEL
 XEN_INITRD = _autoconf.XEN_INITRD
+
+VALUE_DEFAULT = "default"
+VALUE_NONE = "none"
 
 # hooks-related constants
 HOOKS_BASE_DIR = _autoconf.SYSCONFDIR + "/ganeti/hooks"
@@ -147,3 +150,13 @@ SSH_HOST_RSA_PUB = SSH_HOST_RSA_PRIV + ".pub"
 INSTANCE_REBOOT_SOFT = "soft"
 INSTANCE_REBOOT_HARD = "hard"
 INSTANCE_REBOOT_FULL = "full"
+
+# Hypervisor constants
+HT_XEN_PVM30 = "xen-3.0"
+HT_FAKE = "fake"
+HT_XEN_HVM31 = "xen-hvm-3.1"
+HYPER_TYPES = frozenset([HT_XEN_PVM30, HT_FAKE, HT_XEN_HVM31])
+HTS_REQ_PORT = frozenset([HT_XEN_HVM31])
+
+HT_HVM_VNC_BASE_PORT = 5900
+VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"

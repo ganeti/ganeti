@@ -200,7 +200,10 @@ class Burner(object):
                                     vcpus=1,
                                     start=True,
                                     ip_check=True,
-                                    wait_for_sync=True)
+                                    wait_for_sync=True,
+                                    mac="auto",
+                                    kernel_path=None,
+                                    initrd_path=None)
       Log("- Add instance %s on node %s" % (instance, pnode))
       self.ExecOp(op)
       self.to_rem.append(instance)

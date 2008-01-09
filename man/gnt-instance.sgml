@@ -68,6 +68,18 @@
           <sbr>
           <arg>-o <replaceable>os-type</replaceable></arg>
           <arg>-b <replaceable>bridge</replaceable></arg>
+          <arg>--mac <replaceable>MAC-address</replaceable></arg>
+          <sbr>
+          <arg>--kernel <group choice="req">
+              <arg>default</arg>
+              <arg><replaceable>kernel_path</replaceable></arg>
+            </group></arg>
+          <sbr>
+          <arg>--initrd <group choice="req">
+              <arg>default</arg>
+              <arg>none</arg>
+              <arg><replaceable>initrd_path</replaceable></arg>
+            </group> </arg>
           <sbr>
           <arg choice="req">-t<group>
               <arg>diskless</arg>
@@ -81,6 +93,7 @@
           <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
+
         <para>
           Creates a new instance on the specified
           host. <replaceable>instance</replaceable> must be in DNS and
@@ -122,6 +135,36 @@
           The <option>-b</option> option specifies the bridge to which the
           instance will be connected. (defaults to the cluster-wide default
           bridge specified at cluster initialization time).
+        </para>
+
+        <para>
+          The <option>--mac</option> option specifies the MAC address
+          of the ethernet interface for the instance. If this option
+          is not specified, a new MAC address is generated randomly with
+          the configured MAC prefix. The randomly generated MAC
+          address is guaranteed to be unique among the instances of
+          this cluster.
+        </para>
+
+        <para>
+          The <option>--kernel</option> options allows the instance to
+          use a custom kernel (if a filename is passed) or to use the
+          default kernel (<filename>@CUSTOM_XEN_KERNEL@</filename>), if the
+          string <constant>default</constant> is passed.
+        </para>
+
+        <para>
+          The <option>--initrd</option> option is similar: it allows
+          the instance to use a custom initrd (if a filename is
+          passed) or to use the default initrd
+          (<filename>@CUSTOM_XEN_INITRD@</filename>), if the string
+          <constant>default</constant> is passed, or to disable the
+          use of an initrd, if the string <constant>none</constant> is
+          passed. Note that in the case the instance is set to use the
+          default initrd and it doesn't exist, it will be silently
+          ignored; if the instance is set to use a custom initrd and
+          it doesn't exist, this will be treated as an error and will
+          prevent the startup of the instance.
         </para>
 
         <para>
@@ -395,18 +438,36 @@
           <arg choice="opt">-p <replaceable>vcpus</replaceable></arg>
           <arg choice="opt">-i <replaceable>ip</replaceable></arg>
           <arg choice="opt">-b <replaceable>bridge</replaceable></arg>
+          <arg choice="opt">--mac <replaceable>MAC-address</replaceable></arg>
+          <sbr>
+          <arg>--kernel <group choice="req">
+              <arg>default</arg>
+              <arg><replaceable>kernel_path</replaceable></arg>
+            </group></arg>
+          <sbr>
+          <arg>--initrd <group choice="req">
+              <arg>default</arg>
+              <arg>none</arg>
+              <arg><replaceable>initrd_path</replaceable></arg>
+            </group> </arg>
+          <sbr>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Modify the memory size, number of vcpus, ip address and/or bridge
-          for an instance.
+          Modify the memory size, number of vcpus, ip address, MAC
+          address and/or bridge for an instance.
         </para>
 
         <para>
           The memory size is given in MiB. Note that you need to give
           at least one of the arguments, otherwise the command
           complains.
+        </para>
+
+        <para>
+          The <option>--kernel</option> and <option>--initrd</option>
+          options are described in the <command>add</command> command.
         </para>
 
         <para>

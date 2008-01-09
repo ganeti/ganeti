@@ -210,19 +210,31 @@ def GetVolumeList(vg_name):
   """Compute list of logical volumes and their size.
 
   Returns:
-    dictionary of all partions (key) with their size:
-    test1: 20.06MiB
+    dictionary of all partions (key) with their size (in MiB), inactive
+    and online status:
+    {'test1': ('20.06', True, True)}
 
   """
-  result = utils.RunCmd(["lvs", "--noheadings", "--units=m",
-                         "-oname,size", vg_name])
+  lvs = {}
+  sep = '|'
+  result = utils.RunCmd(["lvs", "--noheadings", "--units=m", "--nosuffix",
+                         "--separator=%s" % sep,
+                         "-olv_name,lv_size,lv_attr", vg_name])
   if result.failed:
     logger.Error("Failed to list logical volumes, lvs output: %s" %
                  result.output)
-    return {}
+    return result.output
 
-  lvlist = [line.split() for line in result.stdout.splitlines()]
-  return dict(lvlist)
+  for line in result.stdout.splitlines():
+    line = line.strip().rstrip(sep)
+    name, size, attr = line.split(sep)
+    if len(attr) != 6:
+      attr = '------'
+    inactive = attr[4] == '-'
+    online = attr[5] == 'o'
+    lvs[name] = (size, inactive, online)
+
+  return lvs
 
 
 def ListVolumeGroups():

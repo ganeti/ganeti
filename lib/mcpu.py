@@ -51,6 +51,7 @@ class Processor(object):
     opcodes.OpMasterFailover: cmdlib.LUMasterFailover,
     opcodes.OpDumpClusterConfig: cmdlib.LUDumpClusterConfig,
     opcodes.OpRenameCluster: cmdlib.LURenameCluster,
+    opcodes.OpVerifyDisks: cmdlib.LUVerifyDisks,
     # node lu
     opcodes.OpAddNode: cmdlib.LUAddNode,
     opcodes.OpQueryNodes: cmdlib.LUQueryNodes,

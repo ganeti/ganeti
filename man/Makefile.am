@@ -32,4 +32,7 @@ MAINTAINERCLEANFILES = $(maninput)
 	rm -rf "$$tmpdir"
 
 %.7 %.8: %.in Makefile
-	sed -e 's#@LOCALSTATEDIR@#$(localstatedir)#g' < $< > $@
+	sed -e 's#@LOCALSTATEDIR@#$(localstatedir)#g' \
+	    -e 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g' \
+	    -e 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g' \
+	    < $< > $@

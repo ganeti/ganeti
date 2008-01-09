@@ -490,6 +490,10 @@ class Instance(TaggableObject):
     "nics",
     "disks",
     "disk_template",
+    "network_port",
+    "kernel_path",
+    "initrd_path",
+    "hvm_boot_order",
     ]
 
   def _ComputeSecondaryNodes(self):

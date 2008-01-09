@@ -26,6 +26,8 @@ import pprint
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
+from ganeti import errors
+from ganeti import utils
 
 
 def InitCluster(opts, args):
@@ -181,6 +183,68 @@ def VerifyCluster(opts, args):
   return result
 
 
+def VerifyDisks(opts, args):
+  """Verify integrity of cluster disks.
+
+  Args:
+    opts - class with options as members
+
+  """
+  op = opcodes.OpVerifyDisks()
+  result = SubmitOpCode(op)
+  if not isinstance(result, tuple) or len(result) != 4:
+    raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
+
+  nodes, nlvm, instances, missing = result
+
+  if nodes:
+    print "Nodes unreachable or with bad data:"
+    for name in nodes:
+      print "\t%s" % name
+  retcode = constants.EXIT_SUCCESS
+
+  if nlvm:
+    for node, text in nlvm.iteritems():
+      print ("Error on node %s: LVM error: %s" %
+             (node, text[-400:].encode('string_escape')))
+      retcode |= 1
+      print "You need to fix these nodes first before fixing instances"
+
+  if instances:
+    for iname in instances:
+      if iname in missing:
+        continue
+      op = opcodes.OpActivateInstanceDisks(instance_name=iname)
+      try:
+        print "Activating disks for instance '%s'" % iname
+        SubmitOpCode(op)
+      except errors.GenericError, err:
+        nret, msg = FormatError(err)
+        retcode |= nret
+        print >> sys.stderr, ("Error activating disks for instance %s: %s" %
+                              (iname, msg))
+
+  if missing:
+    for iname, ival in missing.iteritems():
+      all_missing = utils.all(ival, lambda x: x[0] in nlvm)
+      if all_missing:
+        print ("Instance %s cannot be verified as it lives on"
+               " broken nodes" % iname)
+      else:
+        print "Instance %s has missing logical volumes:" % iname
+        ival.sort()
+        for node, vol in ival:
+          if node in nlvm:
+            print ("\tbroken node %s /dev/xenvg/%s" % (node, vol))
+          else:
+            print ("\t%s /dev/xenvg/%s" % (node, vol))
+    print ("You need to run replace_disks for all the above"
+           " instances, if this message persist after fixing nodes.")
+    retcode |= 1
+
+  return retcode
+
+
 def MasterFailover(opts, args):
   """Failover the master node.
 
@@ -223,8 +287,11 @@ commands = {
                         " addresses",
                         metavar="ADDRESS", default=None),
             make_option("-t", "--hypervisor-type", dest="hypervisor_type",
-                        help="Specify the hypervisor type (xen-3.0, fake)",
-                        metavar="TYPE", choices=["xen-3.0", "fake"],
+                        help="Specify the hypervisor type "
+                        "(xen-3.0, fake, xen-hvm-3.1)",
+                        metavar="TYPE", choices=["xen-3.0",
+                                                 "fake",
+                                                 "xen-hvm-3.1"],
                         default="xen-3.0",),
             make_option("-m", "--mac-prefix", dest="mac_prefix",
                         help="Specify the mac prefix for the instance IP"
@@ -263,6 +330,8 @@ commands = {
                "Renames the cluster"),
   'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT],
              "", "Does a check on the cluster configuration"),
+  'verify-disks': (VerifyDisks, ARGS_NONE, [DEBUG_OPT],
+                   "", "Does a check on the cluster disk status"),
   'masterfailover': (MasterFailover, ARGS_NONE, [DEBUG_OPT],
                      "", "Makes the current node the master"),
   'version': (ShowClusterVersion, ARGS_NONE, [DEBUG_OPT],

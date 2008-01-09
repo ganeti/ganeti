@@ -1,0 +1,35 @@
+disk {
+	size            	0s _is_default; # bytes
+	on-io-error     	detach;
+	fencing         	dont-care _is_default;
+}
+net {
+	timeout         	60 _is_default; # 1/10 seconds
+	max-epoch-size  	16384;
+	max-buffers     	16384;
+	unplug-watermark	128 _is_default;
+	connect-int     	10 _is_default; # seconds
+	ping-int        	10 _is_default; # seconds
+	sndbuf-size     	8388608; # bytes
+	ko-count        	0 _is_default;
+	after-sb-0pri   	disconnect _is_default;
+	after-sb-1pri   	disconnect _is_default;
+	after-sb-2pri   	disconnect _is_default;
+	rr-conflict     	disconnect _is_default;
+	ping-timeout    	5 _is_default; # 1/10 seconds
+}
+syncer {
+	rate            	30720k; # bytes/second
+	after           	-1 _is_default;
+	al-extents      	257;
+}
+protocol A;
+_this_host {
+	device			"/dev/drbd63";
+	disk			"/dev/xenvg/test.data";
+	meta-disk		"/dev/xenvg/test.meta" [ 0 ];
+	address			192.168.1.1:11000;
+}
+_remote_host {
+	address			192.168.1.2:11000;
+}
