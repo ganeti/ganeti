@@ -122,7 +122,12 @@
 
       <para>
         The <option>-s</option> option specifies the disk size for
-        the instance, in gibibytes (defaults to 20 GiB).
+        the instance, in mebibytes (defaults to
+        <constant>20480MiB</constant> =
+        <constant>20GiB</constant>). You can also use one of the
+        suffixes <literal>m</literal>, <literal>g</literal> or
+        <literal>t</literal> to specificy the exact the units used;
+        these suffixes map to mebibytes, gibibytes and tebibytes.
       </para>
 
       <para>
