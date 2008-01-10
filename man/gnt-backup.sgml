@@ -94,7 +94,7 @@
         <command>import</command>
         <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
         <arg>-s <replaceable>disksize</replaceable></arg>
-        <arg>-o <replaceable>os-type</replaceable></arg>
+        <arg>--swap-size <replaceable>disksize</replaceable></arg>
         <arg>-m <replaceable>memsize</replaceable></arg>
         <arg>-b <replaceable>bridge</replaceable></arg>
         <sbr>
@@ -122,18 +122,26 @@
 
       <para>
         The <option>-s</option> option specifies the disk size for
-        the instance, in gibibytes (defaults to 20 GiB).
+        the instance, in mebibytes (defaults to
+        <constant>20480MiB</constant> =
+        <constant>20GiB</constant>). You can also use one of the
+        suffixes <literal>m</literal>, <literal>g</literal> or
+        <literal>t</literal> to specificy the exact the units used;
+        these suffixes map to mebibytes, gibibytes and tebibytes.
       </para>
 
       <para>
-        The <option>-o</option> options specifies the operating
-        system to be installed. The available operating systems can
-        be listed with <command>gnt-os list</command>.
+        The <option>--swap-size</option> option specifies the swap
+        disk size (in mebibytes) for the instance (the one presented
+        as <filename class="devicefile">/dev/sdb</filename>). The
+        default is <constant>4096MiB</constant>. As for the disk
+        size, you can specify other suffixes.
       </para>
 
       <para>
         The <option>-m</option> option specifies the memory size for
-        the instance, in mebibytes (defaults to 128 MiB).
+        the instance, in mebibytes (defaults to 128 MiB). Again, you
+        can use other suffixes (e.g. <userinput>2g</userinput>).
       </para>
 
       <para>
@@ -195,6 +203,11 @@
             </listitem>
           </varlistentry>
         </variablelist>
+      </para>
+
+      <para>
+        The optional second value of the <option>--node</option> is used for
+        the remote raid template type and specifies the remote node.
       </para>
 
       <para>
