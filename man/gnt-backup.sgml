@@ -94,6 +94,7 @@
         <command>import</command>
         <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
         <arg>-s <replaceable>disksize</replaceable></arg>
+        <arg>--swap-size <replaceable>disksize</replaceable></arg>
         <arg>-m <replaceable>memsize</replaceable></arg>
         <arg>-b <replaceable>bridge</replaceable></arg>
         <sbr>
@@ -127,6 +128,14 @@
         suffixes <literal>m</literal>, <literal>g</literal> or
         <literal>t</literal> to specificy the exact the units used;
         these suffixes map to mebibytes, gibibytes and tebibytes.
+      </para>
+
+      <para>
+        The <option>--swap-size</option> option specifies the swap
+        disk size (in mebibytes) for the instance (the one presented
+        as <filename class="devicefile">/dev/sdb</filename>). The
+        default is <constant>4096MiB</constant>. As for the disk
+        size, you can specify other suffixes.
       </para>
 
       <para>
