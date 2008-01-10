@@ -94,7 +94,6 @@
         <command>import</command>
         <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
         <arg>-s <replaceable>disksize</replaceable></arg>
-        <arg>-o <replaceable>os-type</replaceable></arg>
         <arg>-m <replaceable>memsize</replaceable></arg>
         <arg>-b <replaceable>bridge</replaceable></arg>
         <sbr>
@@ -128,12 +127,6 @@
         suffixes <literal>m</literal>, <literal>g</literal> or
         <literal>t</literal> to specificy the exact the units used;
         these suffixes map to mebibytes, gibibytes and tebibytes.
-      </para>
-
-      <para>
-        The <option>-o</option> options specifies the operating
-        system to be installed. The available operating systems can
-        be listed with <command>gnt-os list</command>.
       </para>
 
       <para>
