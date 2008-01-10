@@ -206,6 +206,11 @@
       </para>
 
       <para>
+        The optional second value of the <option>--node</option> is used for
+        the remote raid template type and specifies the remote node.
+      </para>
+
+      <para>
         If you do not want gnt-backup to wait for the disk mirror
         to be synced, use the <option>--no-wait-for-sync</option>
         option.
