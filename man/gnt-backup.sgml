@@ -140,7 +140,8 @@
 
       <para>
         The <option>-m</option> option specifies the memory size for
-        the instance, in mebibytes (defaults to 128 MiB).
+        the instance, in mebibytes (defaults to 128 MiB). Again, you
+        can use other suffixes (e.g. <userinput>2g</userinput>).
       </para>
 
       <para>
