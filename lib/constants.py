@@ -159,4 +159,5 @@ HYPER_TYPES = frozenset([HT_XEN_PVM30, HT_FAKE, HT_XEN_HVM31])
 HTS_REQ_PORT = frozenset([HT_XEN_HVM31])
 
 HT_HVM_VNC_BASE_PORT = 5900
+HT_HVM_DEFAULT_BOOT_ORDER = 'dc'
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"

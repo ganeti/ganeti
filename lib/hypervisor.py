@@ -596,7 +596,10 @@ class XenHvmHypervisor(XenHypervisor):
       config.write("device_model = '/usr/lib64/xen/bin/qemu-dm'\n")
     else:
       config.write("device_model = '/usr/lib/xen/bin/qemu-dm'\n")
-    config.write("boot = 'dc'\n")
+    if instance.hvm_boot_order is None:
+      config.write("boot = '%s'\n" % constants.HT_HVM_DEFAULT_BOOT_ORDER)
+    else:
+      config.write("boot = '%s'\n" % instance.hvm_boot_order)
     config.write("sdl = 0\n")
     config.write("vnc = 1\n")
     config.write("vnclisten = '0.0.0.0'\n")

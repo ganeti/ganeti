@@ -3049,6 +3049,12 @@ class LUCreateInstance(LogicalUnit):
                                  " destination node '%s'" %
                                  (self.op.bridge, pnode.name))
 
+    # boot order verification
+    if self.op.hvm_boot_order is not None:
+      if len(self.op.hvm_boot_order.strip("acdn")) != 0:
+             raise errors.OpPrereqError("invalid boot order specified,"
+                                        " must be one or more of [acdn]")
+
     if self.op.start:
       self.instance_status = 'up'
     else:
@@ -3092,6 +3098,7 @@ class LUCreateInstance(LogicalUnit):
                             network_port=network_port,
                             kernel_path=self.op.kernel_path,
                             initrd_path=self.op.initrd_path,
+                            hvm_boot_order=self.op.hvm_boot_order,
                             )
 
     feedback_fn("* creating instance disks...")
@@ -4110,8 +4117,9 @@ class LUSetInstanceParms(LogicalUnit):
     self.bridge = getattr(self.op, "bridge", None)
     self.kernel_path = getattr(self.op, "kernel_path", None)
     self.initrd_path = getattr(self.op, "initrd_path", None)
+    self.hvm_boot_order = getattr(self.op, "hvm_boot_order", None)
     all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
-                 self.kernel_path, self.initrd_path]
+                 self.kernel_path, self.initrd_path, self.hvm_boot_order]
     if all_parms.count(None) == len(all_parms):
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
@@ -4163,6 +4171,14 @@ class LUSetInstanceParms(LogicalUnit):
     else:
       self.do_initrd_path = False
 
+    # boot order verification
+    if self.hvm_boot_order is not None:
+      if self.hvm_boot_order != constants.VALUE_DEFAULT:
+        if len(self.hvm_boot_order.strip("acdn")) != 0:
+          raise errors.OpPrereqError("invalid boot order specified,"
+                                     " must be one or more of [acdn]"
+                                     " or 'default'")
+
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
@@ -4200,6 +4216,12 @@ class LUSetInstanceParms(LogicalUnit):
     if self.do_initrd_path:
       instance.initrd_path = self.initrd_path
       result.append(("initrd_path", self.initrd_path))
+    if self.hvm_boot_order:
+      if self.hvm_boot_order == constants.VALUE_DEFAULT:
+        instance.hvm_boot_order = None
+      else:
+        instance.hvm_boot_order = self.hvm_boot_order
+      result.append(("hvm_boot_order", self.hvm_boot_order))
 
     self.cfg.AddInstance(instance)
 
