@@ -203,7 +203,8 @@ class Burner(object):
                                     wait_for_sync=True,
                                     mac="auto",
                                     kernel_path=None,
-                                    initrd_path=None)
+                                    initrd_path=None,
+                                    hvm_boot_order=None)
       Log("- Add instance %s on node %s" % (instance, pnode))
       self.ExecOp(op)
       self.to_rem.append(instance)

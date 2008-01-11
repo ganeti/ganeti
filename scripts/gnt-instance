@@ -255,7 +255,8 @@ def AddInstance(opts, args):
                                 wait_for_sync=opts.wait_for_sync,
                                 mac=opts.mac,
                                 kernel_path=kernel_path,
-                                initrd_path=initrd_path)
+                                initrd_path=initrd_path,
+                                hvm_boot_order=opts.hvm_boot_order)
   SubmitOpCode(op)
   return 0
 
@@ -669,18 +670,23 @@ def SetInstanceParms(opts, args):
 
   """
   if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac or
-          opts.kernel_path or opts.initrd_path):
+          opts.kernel_path or opts.initrd_path or opts.hvm_boot_order):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
 
   kernel_path = _TransformPath(opts.kernel_path)
   initrd_path = _TransformPath(opts.initrd_path)
+  if opts.hvm_boot_order.lower() == 'default':
+    hvm_boot_order = constants.VALUE_DEFAULT
+  else:
+    hvm_boot_order = opts.hvm_boot_order
 
   op = opcodes.OpSetInstanceParms(instance_name=args[0], mem=opts.mem,
                                   vcpus=opts.vcpus, ip=opts.ip,
                                   bridge=opts.bridge, mac=opts.mac,
                                   kernel_path=opts.kernel_path,
-                                  initrd_path=opts.initrd_path)
+                                  initrd_path=opts.initrd_path,
+                                  hvm_boot_order=hvm_boot_order)
   result = SubmitOpCode(op)
 
   if result:
@@ -771,6 +777,9 @@ add_opts = [
               help="Path to the instances' initrd (or 'none', or 'default')",
               default=None,
               type="string", metavar="<FILENAME>"),
+  make_option("--hvm-boot-order", dest="hvm_boot_order",
+              help="boot device order for HVM (one or more of [acdn])",
+              default=None, type="string", metavar="<BOOTORDER>"),
   ]
 
 commands = {
@@ -878,6 +887,10 @@ commands = {
                           help="Path to the instances' initrd (or 'none', or"
                           " 'default')", default=None,
                           type="string", metavar="<FILENAME>"),
+              make_option("--hvm-boot-order", dest="hvm_boot_order",
+                          help="boot device order for HVM"
+                          "(either one or more of [acdn] or 'default')",
+                          default=None, type="string", metavar="<BOOTORDER>"),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,

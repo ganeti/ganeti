@@ -165,7 +165,7 @@ class OpCreateInstance(OpCode):
     "disk_template", "snode", "swap_size", "mode",
     "vcpus", "ip", "bridge", "src_node", "src_path", "start",
     "wait_for_sync", "ip_check", "mac",
-    "kernel_path", "initrd_path",
+    "kernel_path", "initrd_path", "hvm_boot_order",
     ]
 
 
@@ -265,7 +265,7 @@ class OpSetInstanceParms(OpCode):
   OP_ID = "OP_INSTANCE_SET_PARMS"
   __slots__ = [
     "instance_name", "mem", "vcpus", "ip", "bridge", "mac",
-    "kernel_path", "initrd_path",
+    "kernel_path", "initrd_path", "hvm_boot_order",
     ]
 
 
