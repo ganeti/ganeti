@@ -125,6 +125,9 @@ class Burner(object):
     parser.add_option("--no-importexport", dest="do_importexport",
                       help="Skip instance export/import", action="store_false",
                       default=True)
+    parser.add_option("--no-startstop", dest="do_startstop",
+                      help="Skip instance stop/start", action="store_false",
+                      default=True)
     parser.add_option("-t", "--disk-template", dest="disk_template",
                       choices=("plain", "remote_raid1", "drbd"),
                       default="remote_raid1",
@@ -359,7 +362,9 @@ class Burner(object):
       if opts.do_importexport:
         self.ImportExport()
 
-      self.StopStart()
+      if opts.do_startstop:
+        self.StopStart()
+
       has_err = False
     finally:
       if has_err:
