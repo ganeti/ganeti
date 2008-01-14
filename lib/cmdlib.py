@@ -2890,6 +2890,10 @@ class LUCreateInstance(LogicalUnit):
     """Check prerequisites.
 
     """
+    for attr in ["kernel_path", "initrd_path", "hvm_boot_order"]:
+      if not hasattr(self.op, attr):
+        setattr(self.op, attr, None)
+
     if self.op.mode not in (constants.INSTANCE_CREATE,
                             constants.INSTANCE_IMPORT):
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
