@@ -122,7 +122,7 @@ class Burner(object):
                       help="Skip instance failovers", action="store_false",
                       default=True)
     parser.add_option("-t", "--disk-template", dest="disk_template",
-                      choices=("remote_raid1", "drbd"),
+                      choices=("plain", "remote_raid1", "drbd"),
                       default="remote_raid1",
                       help="Template type for network mirroring (remote_raid1"
                       " or drbd) [remote_raid1]")
