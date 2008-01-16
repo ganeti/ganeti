@@ -23,6 +23,7 @@
 
 """
 
+import os
 import sys
 import optparse
 from itertools import izip, islice, cycle
@@ -121,8 +122,14 @@ class Burner(object):
     parser.add_option("--no-failover", dest="do_failover",
                       help="Skip instance failovers", action="store_false",
                       default=True)
+    parser.add_option("--no-importexport", dest="do_importexport",
+                      help="Skip instance export/import", action="store_false",
+                      default=True)
+    parser.add_option("--no-startstop", dest="do_startstop",
+                      help="Skip instance stop/start", action="store_false",
+                      default=True)
     parser.add_option("-t", "--disk-template", dest="disk_template",
-                      choices=("remote_raid1", "drbd"),
+                      choices=("plain", "remote_raid1", "drbd"),
                       default="remote_raid1",
                       help="Template type for network mirroring (remote_raid1"
                       " or drbd) [remote_raid1]")
@@ -258,6 +265,51 @@ class Burner(object):
       Log("- Failover instance %s" % (instance))
       self.ExecOp(op)
 
+  def ImportExport(self):
+    """Export the instance, delete it, and import it back.
+
+    """
+
+    mytor = izip(cycle(self.nodes),
+                 islice(cycle(self.nodes), 1, None),
+                 islice(cycle(self.nodes), 2, None),
+                 self.instances)
+
+    for pnode, snode, enode, instance in mytor:
+      exp_op = opcodes.OpExportInstance(instance_name=instance,
+                                           target_node=enode,
+                                           shutdown=True)
+      rem_op = opcodes.OpRemoveInstance(instance_name=instance)
+      nam_op = opcodes.OpQueryInstances(output_fields=["name"],
+                                           names=[instance])
+      full_name = self.ExecOp(nam_op)[0][0]
+      imp_dir = os.path.join(constants.EXPORT_DIR, full_name)
+      imp_op = opcodes.OpCreateInstance(instance_name=instance,
+                                        mem_size=128,
+                                        disk_size=self.opts.os_size,
+                                        swap_size=self.opts.swap_size,
+                                        disk_template=self.opts.disk_template,
+                                        mode=constants.INSTANCE_IMPORT,
+                                        src_node=enode,
+                                        src_path=imp_dir,
+                                        pnode=pnode,
+                                        snode=snode,
+                                        vcpus=1,
+                                        start=True,
+                                        ip_check=True,
+                                        wait_for_sync=True,
+                                        mac="auto")
+
+      Log("- Export instance %s to node %s" % (instance, enode))
+      self.ExecOp(exp_op)
+      Log("- Remove instance %s" % (instance))
+      self.ExecOp(rem_op)
+      self.to_rem.remove(instance)
+      Log("- Import instance %s from node %s to node %s" %
+          (instance, enode, pnode))
+      self.ExecOp(imp_op)
+      self.to_rem.append(instance)
+
   def StopStart(self):
     """Stop/start the instances."""
     for instance in self.instances:
@@ -307,7 +359,12 @@ class Burner(object):
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
         self.Failover()
 
-      self.StopStart()
+      if opts.do_importexport:
+        self.ImportExport()
+
+      if opts.do_startstop:
+        self.StopStart()
+
       has_err = False
     finally:
       if has_err:

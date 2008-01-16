@@ -2890,6 +2890,10 @@ class LUCreateInstance(LogicalUnit):
     """Check prerequisites.
 
     """
+    for attr in ["kernel_path", "initrd_path", "hvm_boot_order"]:
+      if not hasattr(self.op, attr):
+        setattr(self.op, attr, None)
+
     if self.op.mode not in (constants.INSTANCE_CREATE,
                             constants.INSTANCE_IMPORT):
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
@@ -3068,9 +3072,9 @@ class LUCreateInstance(LogicalUnit):
     pnode_name = self.pnode.name
 
     if self.op.mac == "auto":
-      mac_address=self.cfg.GenerateMAC()
+      mac_address = self.cfg.GenerateMAC()
     else:
-      mac_address=self.op.mac
+      mac_address = self.op.mac
 
     nic = objects.NIC(bridge=self.op.bridge, mac=mac_address)
     if self.inst_ip is not None:
@@ -4156,7 +4160,7 @@ class LUSetInstanceParms(LogicalUnit):
 
       if self.kernel_path != constants.VALUE_DEFAULT:
         if not os.path.isabs(self.kernel_path):
-          raise errors.OpPrereError("The kernel path must be an absolute"
+          raise errors.OpPrereqError("The kernel path must be an absolute"
                                     " filename")
     else:
       self.do_kernel_path = False
@@ -4166,7 +4170,7 @@ class LUSetInstanceParms(LogicalUnit):
       if self.initrd_path not in (constants.VALUE_NONE,
                                   constants.VALUE_DEFAULT):
         if not os.path.isabs(self.kernel_path):
-          raise errors.OpPrereError("The initrd path must be an absolute"
+          raise errors.OpPrereqError("The initrd path must be an absolute"
                                     " filename")
     else:
       self.do_initrd_path = False
