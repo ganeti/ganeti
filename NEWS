@@ -1,3 +1,19 @@
+Version 1.2.1
+  - experimental HWM support, read the install document, section
+    "Initializing the cluster"
+  - allow for the PVM hypervisor per-instance kernel and initrd paths
+  - add a new command ‘gnt-cluster verify-disks’ which uses a new
+    algorithm to improve the reconnection of the DRBD pairs if the
+    device on the secondary node has gone away
+  - make logical volume code auto-activate LVs at disk activation time
+  - slightly improve the speed of activating disks
+  - allow specification of the MAC address at instance creation time,
+    and changing it later via ‘gnt-instance modify’
+  - fix handling of external commands that generate lots of output on
+    stderr
+  - update documentation with regard to minimum version of DRBD8
+    supported
+
 Version 1.2.0
   - Log the ‘xm create’ output to the node daemon log on failure (to
     help diagnosing the error)
