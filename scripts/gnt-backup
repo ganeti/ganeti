@@ -95,7 +95,7 @@ def ImportInstance(opts, args):
                                 vcpus=opts.vcpus, ip_check=opts.ip_check,
                                 ip=opts.ip, bridge=opts.bridge, start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
-                                wait_for_sync=opts.wait_for_sync,mac="auto")
+                                wait_for_sync=opts.wait_for_sync, mac="auto")
   SubmitOpCode(op)
   return 0
 
