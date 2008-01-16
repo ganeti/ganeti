@@ -639,6 +639,7 @@ def ShowInstanceConfig(opts, args):
     else:
       initrd = instance["initrd_path"]
     buf.write("       initrd: %s\n" % initrd)
+    buf.write("  HVM boot order: %s\n" % instance["hvm_boot_order"])
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])

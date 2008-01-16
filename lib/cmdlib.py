@@ -4067,6 +4067,7 @@ class LUQueryInstanceData(NoHooksLU):
         "vcpus": instance.vcpus,
         "kernel_path": instance.kernel_path,
         "initrd_path": instance.initrd_path,
+        "hvm_boot_order": instance.hvm_boot_order,
         }
 
       result[instance.name] = idict
