@@ -1455,7 +1455,7 @@ class HooksRunner(object):
       fdstdin = open("/dev/null", "r")
       child = subprocess.Popen([script], stdin=fdstdin, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, close_fds=True,
-                               shell=False, cwd="/",env=env)
+                               shell=False, cwd="/", env=env)
       output = ""
       try:
         output = child.stdout.read(4096)
