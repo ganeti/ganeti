@@ -1,5 +1,5 @@
 Version 1.2.1
-  - experimental HWM support, read the install document, section
+  - experimental HVM support, read the install document, section
     "Initializing the cluster"
   - allow for the PVM hypervisor per-instance kernel and initrd paths
   - add a new command ‘gnt-cluster verify-disks’ which uses a new
