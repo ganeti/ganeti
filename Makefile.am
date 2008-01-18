@@ -10,6 +10,13 @@ ganeti:
 pre-check: ganeti
 	$(MAKE) -C lib $@
 
+# a dist hook rule for catching revision control directories
+distcheck-hook:
+	if find $(top_distdir) | grep -F -e '.svn' -e '.git'; then \
+		echo "Found revision control files in final archive" 1>&2 ; \
+		exit 1; \
+	fi
+
 # custom rules
 depgraph: depgraph.png
 
