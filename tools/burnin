@@ -129,7 +129,7 @@ class Burner(object):
                       help="Skip instance stop/start", action="store_false",
                       default=True)
     parser.add_option("-t", "--disk-template", dest="disk_template",
-                      choices=("plain", "remote_raid1", "drbd"),
+                      choices=("diskless", "plain", "remote_raid1", "drbd"),
                       default="remote_raid1",
                       help="Template type for network mirroring (remote_raid1"
                       " or drbd) [remote_raid1]")
@@ -141,7 +141,8 @@ class Burner(object):
     if len(args) < 1 or options.os is None:
       Usage()
 
-    supported_disk_templates = (constants.DT_PLAIN, constants.DT_REMOTE_RAID1,
+    supported_disk_templates = (constants.DT_DISKLESS, constants.DT_PLAIN,
+                                constants.DT_REMOTE_RAID1,
                                 constants.DT_DRBD8)
     if options.disk_template not in supported_disk_templates:
       Log("Unknown disk template '%s'" % options.disk_template)
@@ -339,9 +340,10 @@ class Burner(object):
 
     Log("- Testing global parameters")
 
-    if len(self.nodes) == 1 and opts.disk_template != constants.DT_PLAIN:
+    if (len(self.nodes) == 1 and
+        opts.disk_template not in (constants.DT_DISKLESS, constants.DT_PLAIN)):
       Log("When one node is available/selected the disk template must"
-               " be 'plain'")
+               " be 'plain' or 'diskless'")
       sys.exit(1)
 
     has_err = True
