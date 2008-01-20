@@ -6,9 +6,9 @@
 # Required-Start:    $syslog $remote_fs xend
 # Required-Stop:     $syslog $remote_fs xend
 # Default-Start:     2 3 4 5
-# Default-Stop:      S 0 1 6
+# Default-Stop:      0 1 6
 # Short-Description: Ganeti Xen Cluster Manager
-# Description:       Ganeti Xen Cluster Manager 
+# Description:       Ganeti Xen Cluster Manager
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
