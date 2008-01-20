@@ -1958,6 +1958,36 @@ def _ShutdownInstanceDisks(instance, cfg, ignore_primary=False):
   return result
 
 
+def _CheckNodeFreeMemory(cfg, node, reason, requested):
+  """Checks if a node has enough free memory.
+
+  This function check if a given node has the needed amount of free
+  memory. In case the node has less memory or we cannot get the
+  information from the node, this function raise an OpPrereqError
+  exception.
+
+  Args:
+    - cfg: a ConfigWriter instance
+    - node: the node name
+    - reason: string to use in the error message
+    - requested: the amount of memory in MiB
+
+  """
+  nodeinfo = rpc.call_node_info([node], cfg.GetVGName())
+  if not nodeinfo or not isinstance(nodeinfo, dict):
+    raise errors.OpPrereqError("Could not contact node %s for resource"
+                             " information" % (node,))
+
+  free_mem = nodeinfo[node].get('memory_free')
+  if not isinstance(free_mem, int):
+    raise errors.OpPrereqError("Can't compute free memory on node %s, result"
+                             " was '%s'" % (node, free_mem))
+  if requested > free_mem:
+    raise errors.OpPrereqError("Not enough memory on node %s for %s:"
+                             " needed %s MiB, available %s MiB" %
+                             (node, reason, requested, free_mem))
+
+
 class LUStartupInstance(LogicalUnit):
   """Starts an instance.
 
@@ -1995,6 +2025,10 @@ class LUStartupInstance(LogicalUnit):
     # check bridges existance
     _CheckInstanceBridgesExist(instance)
 
+    _CheckNodeFreeMemory(self.cfg, instance.primary_node,
+                         "starting instance %s" % instance.name,
+                         instance.memory)
+
     self.instance = instance
     self.op.instance_name = instance.name
 
@@ -2007,20 +2041,6 @@ class LUStartupInstance(LogicalUnit):
     extra_args = getattr(self.op, "extra_args", "")
 
     node_current = instance.primary_node
-
-    nodeinfo = rpc.call_node_info([node_current], self.cfg.GetVGName())
-    if not nodeinfo:
-      raise errors.OpExecError("Could not contact node %s for infos" %
-                               (node_current))
-
-    freememory = nodeinfo[node_current]['memory_free']
-    memory = instance.memory
-    if memory > freememory:
-      raise errors.OpExecError("Not enough memory to start instance"
-                               " %s on node %s"
-                               " needed %s MiB, available %s MiB" %
-                               (instance.name, node_current, memory,
-                                freememory))
 
     _StartInstanceDisks(self.cfg, instance, force)
 
@@ -2509,18 +2529,10 @@ class LUFailoverInstance(LogicalUnit):
       raise errors.ProgrammerError("no secondary node but using "
                                    "DT_REMOTE_RAID1 template")
 
-    # check memory requirements on the secondary node
     target_node = secondary_nodes[0]
-    nodeinfo = rpc.call_node_info([target_node], self.cfg.GetVGName())
-    info = nodeinfo.get(target_node, None)
-    if not info:
-      raise errors.OpPrereqError("Cannot get current information"
-                                 " from node '%s'" % nodeinfo)
-    if instance.memory > info['memory_free']:
-      raise errors.OpPrereqError("Not enough memory on target node %s."
-                                 " %d MB available, %d MB required" %
-                                 (target_node, info['memory_free'],
-                                  instance.memory))
+    # check memory requirements on the secondary node
+    _CheckNodeFreeMemory(self.cfg, target_node, "failing over instance %s" %
+                         instance.name, instance.memory)
 
     # check bridge existance
     brlist = [nic.bridge for nic in instance.nics]
@@ -2550,21 +2562,6 @@ class LUFailoverInstance(LogicalUnit):
         if not self.op.ignore_consistency:
           raise errors.OpExecError("Disk %s is degraded on target node,"
                                    " aborting failover." % dev.iv_name)
-
-    feedback_fn("* checking target node resource availability")
-    nodeinfo = rpc.call_node_info([target_node], self.cfg.GetVGName())
-
-    if not nodeinfo:
-      raise errors.OpExecError("Could not contact target node %s." %
-                               target_node)
-
-    free_memory = int(nodeinfo[target_node]['memory_free'])
-    memory = instance.memory
-    if memory > free_memory:
-      raise errors.OpExecError("Not enough memory to create instance %s on"
-                               " node %s. needed %s MiB, available %s MiB" %
-                               (instance.name, target_node, memory,
-                                free_memory))
 
     feedback_fn("* shutting down instance on source node")
     logger.Info("Shutting down instance %s on node %s" %
