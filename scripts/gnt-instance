@@ -938,6 +938,10 @@ commands = {
                   "<node_name> tag...", "Remove tags from given instance"),
   }
 
+aliases = {
+  'activate_block_devs': 'activate-disks',
+  }
+
 if __name__ == '__main__':
-  sys.exit(GenericMain(commands,
+  sys.exit(GenericMain(commands, aliases=aliases,
                        override={"tag_type": constants.TAG_INSTANCE}))
