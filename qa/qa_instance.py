@@ -313,13 +313,6 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
   cmd = ['gnt-instance', 'startup', instance['name']]
   AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
 
-  # Verify that aliases have not been broken
-  cmd = ['gnt-instance', 'stop', instance['name']]
-  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
-
-  cmd = ['gnt-instance', 'start', instance['name']]
-  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
-
   cmd = ['gnt-cluster', 'verify']
   AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
 
