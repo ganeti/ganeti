@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# This is a test script to ease development and testing on test clusters.
+# It should not be used to update production environments.
+
+# Usage: upload.sh node-{1,2,3}
+# it will upload the python libraries to
+# $prefix/lib/python2.4/site-packages/ganeti and the command line utils to
+# $prefix/bin. It needs passwordless root login to the nodes.
+
+set -e
+TXD=`mktemp -d`
+trap 'rm -rf $TXD' EXIT
+
+# install ganeti as a real tree
+make install DESTDIR="$TXD"
+
+echo ---
+
+( cd "$TXD" && find; )
+
+echo ---
+
+PREFIX=$(cat Makefile | grep '^prefix' | sed -e 's/.*= //')
+
+# and now put it under $prefix on the target node(s)
+for host; do
+  echo Uploading code to ${host}...
+  rsync -v -rlDc --exclude="*.py[oc]" --exclude="*.pdf" --exclude="*.html" \
+    "$TXD/$PREFIX/" \
+    root@${host}:$PREFIX/ &
+done
+wait
+
+for host; do
+  echo Uploading init script to ${host}...
+  scp doc/examples/ganeti.initd root@${host}:/etc/init.d/ganeti &
+done
+wait
+
+if [ -f ganeti-master-cron ]; then
+  for host; do
+    echo Uploading cron files to ${host}...
+    scp ganeti-master-cron root@${host}:/etc/ganeti/master-cron &
+  done
+fi
+wait
+
+for host; do
+  echo Restarting ganeti-noded on ${host}...
+  ssh root@${host} /etc/init.d/ganeti restart &
+done
+wait
