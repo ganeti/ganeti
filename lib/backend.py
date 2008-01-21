@@ -504,7 +504,7 @@ def _GetVGInfo(vg_name):
     errmsg = "volume group %s not present" % vg_name
     logger.Error(errmsg)
     return retdic
-  valarr = retval.stdout.strip().split(':')
+  valarr = retval.stdout.strip().rstrip(':').split(':')
   if len(valarr) == 3:
     try:
       retdic = {
