@@ -218,7 +218,7 @@ class CliOption(Option):
 cli_option = CliOption
 
 
-def _ParseArgs(argv, commands):
+def _ParseArgs(argv, commands, aliases):
   """Parses the command line and return the function which must be
   executed together with its arguments
 
@@ -227,6 +227,7 @@ def _ParseArgs(argv, commands):
 
     commands: dictionary with special contents, see the design doc for
     cmdline handling
+    aliases: dictionary with command aliases {'alias': 'target, ...}
 
   """
   if len(argv) == 0:
@@ -240,7 +241,8 @@ def _ParseArgs(argv, commands):
     # argument. optparse.py does it the same.
     sys.exit(0)
 
-  if len(argv) < 2 or argv[1] not in commands.keys():
+  if len(argv) < 2 or not (argv[1] in commands or
+                           argv[1] in aliases:
     # let's do a nice thing
     sortedcmds = commands.keys()
     sortedcmds.sort()
@@ -262,7 +264,20 @@ def _ParseArgs(argv, commands):
         print "%-*s   %s" % (mlen, "", line)
     print
     return None, None, None
+
+  # get command, unalias it, and look it up in commands
   cmd = argv.pop(1)
+  if cmd in aliases:
+    if cmd in commands:
+      raise errors.ProgrammerError("Alias '%s' overrides an existing"
+                                   " command" % cmd)
+
+    if aliases[cmd] not in commands:
+      raise errors.ProgrammerError("Alias '%s' maps to non-existing"
+                                   " command '%s'" % (cmd, aliases[cmd]))
+
+    cmd = aliases[cmd]
+
   func, nargs, parser_opts, usage, description = commands[cmd]
   parser_opts.append(_LOCK_OPT)
   parser = OptionParser(option_list=parser_opts,
@@ -420,7 +435,7 @@ def FormatError(err):
   return retcode, obuf.getvalue().rstrip('\n')
 
 
-def GenericMain(commands, override=None):
+def GenericMain(commands, override=None, aliases=None):
   """Generic main function for all the gnt-* commands.
 
   Arguments:
@@ -429,6 +444,7 @@ def GenericMain(commands, override=None):
     - override: if not None, we expect a dictionary with keys that will
                 override command line options; this can be used to pass
                 options from the scripts to generic functions
+    - aliases: dictionary with command aliases {'alias': 'target, ...}
 
   """
   # save the program name and the entire command line for later logging
@@ -443,7 +459,10 @@ def GenericMain(commands, override=None):
     binary = "<unknown program>"
     old_cmdline = ""
 
-  func, options, args = _ParseArgs(sys.argv, commands)
+  if aliases is None:
+    aliases = {}
+
+  func, options, args = _ParseArgs(sys.argv, commands, aliases)
   if func is None: # parse error
     return 1
 
