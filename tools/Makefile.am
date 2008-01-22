@@ -1,1 +1,2 @@
-dist_pkgdata_SCRIPTS = lvmstrap burnin cfgshell cfgupgrade
+toolsdir = $(pkglibdir)/tools
+dist_tools_SCRIPTS = lvmstrap burnin cfgshell cfgupgrade
