@@ -677,7 +677,7 @@ def SetInstanceParms(opts, args):
 
   kernel_path = _TransformPath(opts.kernel_path)
   initrd_path = _TransformPath(opts.initrd_path)
-  if opts.hvm_boot_order.lower() == 'default':
+  if opts.hvm_boot_order == 'default':
     hvm_boot_order = constants.VALUE_DEFAULT
   else:
     hvm_boot_order = opts.hvm_boot_order
