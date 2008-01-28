@@ -300,7 +300,11 @@ commands = {
            "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
-           "", "Lists the nodes in the cluster"),
+           "", "Lists the nodes in the cluster. The available fields"
+           " are (see the man page for details): name, pinst_cnt, pinst_list,"
+           " sinst_cnt, sinst_list, pip, sip, dtotal, dfree, mtotal, mnode,"
+           " mfree, bootid. The default field list is (in order): name,"
+           " dtotal, dfree, mtotal, mnode, mfree, pinst_cnt, sinst_cnt."),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
              "<node_name>", "Removes a node from the cluster"),
   'volumes': (ListVolumes, ARGS_ANY,

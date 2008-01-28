@@ -167,7 +167,8 @@ USEUNITS_OPT = make_option("--human-readable", default=False,
                            help="Print sizes in human readable format")
 
 FIELDS_OPT = make_option("-o", "--output", dest="output", action="store",
-                         type="string", help="Select output fields",
+                         type="string", help="Comma separated list of"
+                         " output fields",
                          metavar="FIELDS")
 
 FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",

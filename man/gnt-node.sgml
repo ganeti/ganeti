@@ -232,17 +232,31 @@
             </listitem>
           </varlistentry>
           <varlistentry>
-            <term>pinst</term>
+            <term>pinst_cnt</term>
             <listitem>
               <simpara>the number of instances having this node as
               primary</simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
-            <term>sinst</term>
+            <term>pinst_list</term>
+            <listitem>
+              <simpara>the list of instances having this node as
+              primary, comma separated</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>sinst_cnt</term>
             <listitem>
               <simpara>the number of instances having this node as a
               secondary node</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>sinst_list</term>
+            <listitem>
+              <simpara>the list of instances having this node as a
+              secondary node, comma separated</simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
@@ -294,6 +308,15 @@
             <listitem>
               <simpara>memory available for instance
               allocations</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>bootid</term>
+            <listitem>
+              <simpara>the node bootid value; this is a linux specific
+              feature that assigns a new UUID to the node at each boot
+              and can be use to detect node reboots (by tracking
+              changes in this value)</simpara>
             </listitem>
           </varlistentry>
         </variablelist>
