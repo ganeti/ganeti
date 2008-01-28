@@ -940,6 +940,8 @@ commands = {
 
 aliases = {
   'activate_block_devs': 'activate-disks',
+  'start': 'startup',
+  'stop': 'shutdown',
   }
 
 if __name__ == '__main__':
