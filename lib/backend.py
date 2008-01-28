@@ -921,8 +921,11 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                  file_name)
     return False
 
-  allowed_files = [constants.CLUSTER_CONF_FILE, "/etc/hosts",
-                   constants.SSH_KNOWN_HOSTS_FILE]
+  allowed_files = [
+    constants.CLUSTER_CONF_FILE,
+    constants.ETC_HOSTS,
+    constants.SSH_KNOWN_HOSTS_FILE,
+    ]
   allowed_files.extend(ssconf.SimpleStore().GetFileList())
   if file_name not in allowed_files:
     logger.Error("Filename passed to UploadFile not in allowed"
