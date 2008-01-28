@@ -1,8 +1,9 @@
 # Cluster name
 name: xen-test
+hypervisor-type: xen-3.0
 
 # System to use
-os: debian-edgy
+os: debian-etch
 os-size: 10G
 swap-size: 1G
 mem: 512M
