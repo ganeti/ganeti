@@ -491,20 +491,32 @@ def _GetVGInfo(vg_name):
     vg_free is the free size of the volume group in MiB
     pv_count are the number of physical disks in that vg
 
+  If an error occurs during gathering of data, we return the same dict
+  with keys all set to None.
+
   """
+  retdic = dict.fromkeys(["vg_size", "vg_free", "pv_count"])
+
   retval = utils.RunCmd(["vgs", "-ovg_size,vg_free,pv_count", "--noheadings",
                          "--nosuffix", "--units=m", "--separator=:", vg_name])
 
   if retval.failed:
     errmsg = "volume group %s not present" % vg_name
     logger.Error(errmsg)
-    raise errors.LVMError(errmsg)
+    return retdic
   valarr = retval.stdout.strip().split(':')
-  retdic = {
-    "vg_size": int(round(float(valarr[0]), 0)),
-    "vg_free": int(round(float(valarr[1]), 0)),
-    "pv_count": int(valarr[2]),
-    }
+  if len(valarr) == 3:
+    try:
+      retdic = {
+        "vg_size": int(round(float(valarr[0]), 0)),
+        "vg_free": int(round(float(valarr[1]), 0)),
+        "pv_count": int(valarr[2]),
+        }
+    except ValueError, err:
+      logger.Error("Fail to parse vgs output: %s" % str(err))
+  else:
+    logger.Error("vgs output has the wrong number of fields (expected"
+                 " three): %s" % str(valarr))
   return retdic
 
 
