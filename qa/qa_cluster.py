@@ -66,6 +66,10 @@ def TestClusterInit():
     cmd.append('--bridge=%s' % bridge)
     cmd.append('--master-netdev=%s' % bridge)
 
+  htype = qa_config.get('hypervisor-type', None)
+  if htype:
+    cmd.append('--hypervisor-type=%s' % htype)
+
   cmd.append(qa_config.get('name'))
 
   AssertEqual(StartSSH(master['primary'],
