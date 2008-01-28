@@ -2962,13 +2962,9 @@ class LUCreateInstance(LogicalUnit):
                                    " the primary node.")
       self.secondaries.append(snode_name)
 
-    # Check lv size requirements
-    nodenames = [pnode.name] + self.secondaries
-    nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName())
-
     # Required free disk space as a function of disk and swap space
     req_size_dict = {
-      constants.DT_DISKLESS: 0,
+      constants.DT_DISKLESS: None,
       constants.DT_PLAIN: self.op.disk_size + self.op.swap_size,
       constants.DT_LOCAL_RAID1: (self.op.disk_size + self.op.swap_size) * 2,
       # 256 MB are added for drbd metadata, 128MB for each drbd device
@@ -2982,15 +2978,23 @@ class LUCreateInstance(LogicalUnit):
 
     req_size = req_size_dict[self.op.disk_template]
 
-    for node in nodenames:
-      info = nodeinfo.get(node, None)
-      if not info:
-        raise errors.OpPrereqError("Cannot get current information"
-                                   " from node '%s'" % nodeinfo)
-      if req_size > info['vg_free']:
-        raise errors.OpPrereqError("Not enough disk space on target node %s."
-                                   " %d MB available, %d MB required" %
-                                   (node, info['vg_free'], req_size))
+    # Check lv size requirements
+    if req_size is not None:
+      nodenames = [pnode.name] + self.secondaries
+      nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName())
+      for node in nodenames:
+        info = nodeinfo.get(node, None)
+        if not info:
+          raise errors.OpPrereqError("Cannot get current information"
+                                     " from node '%s'" % nodeinfo)
+        vg_free = info.get('vg_free', None)
+        if not isinstance(vg_free, int):
+          raise errors.OpPrereqError("Can't compute free disk space on"
+                                     " node %s" % node)
+        if req_size > info['vg_free']:
+          raise errors.OpPrereqError("Not enough disk space on target node %s."
+                                     " %d MB available, %d MB required" %
+                                     (node, info['vg_free'], req_size))
 
     # os verification
     os_obj = rpc.call_os_get(pnode.name, self.op.os_type)
