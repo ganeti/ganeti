@@ -404,7 +404,7 @@ class FakeHypervisor(BaseHypervisor):
   a real virtualisation software installed.
 
   """
-  _ROOT_DIR = "/var/run/ganeti-fake-hypervisor"
+  _ROOT_DIR = constants.RUN_DIR + "/ganeti-fake-hypervisor"
 
   def __init__(self):
     BaseHypervisor.__init__(self)
