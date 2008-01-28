@@ -4171,7 +4171,7 @@ class LUSetInstanceParms(LogicalUnit):
       self.do_initrd_path = True
       if self.initrd_path not in (constants.VALUE_NONE,
                                   constants.VALUE_DEFAULT):
-        if not os.path.isabs(self.kernel_path):
+        if not os.path.isabs(self.initrd_path):
           raise errors.OpPrereqError("The initrd path must be an absolute"
                                     " filename")
     else:
