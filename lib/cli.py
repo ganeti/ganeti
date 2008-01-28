@@ -242,7 +242,7 @@ def _ParseArgs(argv, commands, aliases):
     sys.exit(0)
 
   if len(argv) < 2 or not (argv[1] in commands or
-                           argv[1] in aliases:
+                           argv[1] in aliases):
     # let's do a nice thing
     sortedcmds = commands.keys()
     sortedcmds.sort()
