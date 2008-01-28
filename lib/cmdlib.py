@@ -2403,7 +2403,7 @@ class LUQueryInstances(NoHooksLU):
     _CheckOutputFields(static=["name", "os", "pnode", "snodes",
                                "admin_state", "admin_ram",
                                "disk_template", "ip", "mac", "bridge",
-                               "sda_size", "sdb_size"],
+                               "sda_size", "sdb_size", "vcpus"],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
@@ -2479,6 +2479,8 @@ class LUQueryInstances(NoHooksLU):
             val = None
           else:
             val = disk.size
+        elif field == "vcpus":
+          val = instance.vcpus
         else:
           raise errors.ParameterError(field)
         iout.append(val)
