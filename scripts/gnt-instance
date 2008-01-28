@@ -811,7 +811,12 @@ commands = {
            "Show information on the specified instance"),
   'list': (ListInstances, ARGS_NONE,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
-           "", "Lists the instances and their status"),
+           "", "Lists the instances and their status. The available fields"
+           " are (see the man page for details): oper_state, oper_ram,"
+           " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
+           " ip, mac, bridge, sda_size, sdb_size, vcpus. The default field"
+           " list is (in order): name, os, pnode, admin_state, oper_state,"
+           " oper_ram."),
   'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, os_opt],
                 "[-f] <instance>", "Reinstall the instance"),
   'remove': (RemoveInstance, ARGS_ONE,

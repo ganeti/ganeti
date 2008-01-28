@@ -436,6 +436,25 @@
                 </simpara>
               </listitem>
             </varlistentry>
+            <varlistentry>
+              <term>sda_size</term>
+              <listitem>
+                <simpara>the size of the instance's first disk</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>sdb_size</term>
+              <listitem>
+                <simpara>the size of the instance's second disk</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>vcpus</term>
+              <listitem>
+                <simpara>the number of VCPUs allocated to the
+                instance</simpara>
+              </listitem>
+            </varlistentry>
           </variablelist>
         </para>
 
