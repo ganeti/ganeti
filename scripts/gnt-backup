@@ -43,8 +43,11 @@ def PrintExportList(opts, args):
   for node in exports:
     print ("Node: %s" % node)
     print ("Exports:")
-    for instance_name in exports[node]:
-      print ("\t%s" % instance_name)
+    if isinstance(exports[node], list):
+      for instance_name in exports[node]:
+        print ("\t%s" % instance_name)
+    else:
+      print ("  Could not get exports list")
 
 
 def ExportInstance(opts, args):
