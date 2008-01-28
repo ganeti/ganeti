@@ -58,6 +58,7 @@ tests:
   instance-list: True
   instance-failover: True
   instance-info: True
+  instance-modify: True
   instance-export: True
   instance-import: True
   instance-reinstall: True

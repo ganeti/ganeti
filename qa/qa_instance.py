@@ -151,6 +151,39 @@ def TestInstanceInfo(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-modify')
+def TestInstanceModify(instance):
+  """gnt-instance modify"""
+  master = qa_config.GetMasterNode()
+
+  orig_memory = qa_config.get('mem')
+  orig_bridge = qa_config.get('bridge', 'xen-br0')
+  args = [
+    ["--memory", "128"],
+    ["--memory", str(orig_memory)],
+    ["--cpu", "2"],
+    ["--cpu", "1"],
+    ["--bridge", "xen-br1"],
+    ["--bridge", orig_bridge],
+    ["--kernel", "/dev/null"],
+    ["--kernel", "default"],
+    ["--initrd", "/dev/null"],
+    ["--initrd", "none"],
+    ["--initrd", "default"],
+    ["--hvm-boot-order", "acn"],
+    ["--hvm-boot-order", "default"],
+    ]
+  for alist in args:
+    cmd = ['gnt-instance', 'modify'] + alist + [instance['name']]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # check no-modify
+  cmd = ['gnt-instance', 'modify', instance['name']]
+  AssertNotEqual(StartSSH(master['primary'],
+                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 @qa_utils.DefineHook('instance-list')
 def TestInstanceList():
   """gnt-instance list"""
