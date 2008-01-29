@@ -1,3 +1,17 @@
+Version 1.2.2
+  - fix ‘gnt-instance modify’ breakage introduced in 1.2.1 with the HVM
+    support (issue 23)
+  - add command aliases infrastructure and a few aliases
+  - allow listing of VCPUs in the gnt-instance list and improve the man
+    pages and the --help option of gnt-node/gnt-instance list
+  - fix gnt-backup list with down nodes (issue 21)
+  - change the tools location (move from $pkgdatadir to
+    $pkglibdir/tools)
+  - fix the dist archive and add a check for including svn/git files in
+    the future
+  - some developer-related changes: improve the burnin and the QA
+    suite, add an upload script for testing during development
+
 Version 1.2.1
   - experimental HVM support, read the install document, section
     "Initializing the cluster"
