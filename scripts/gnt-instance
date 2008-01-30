@@ -549,7 +549,7 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
 
   """
   def helper(buf, dtype, status):
-    """Format one line for phsyical device status."""
+    """Format one line for physical device status."""
     if not status:
       buf.write("not active\n")
     else:
