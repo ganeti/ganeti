@@ -267,11 +267,12 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   if nics:
     nic_count = len(nics)
-    for idx, (ip, bridge) in enumerate(nics):
+    for idx, (ip, bridge, mac) in enumerate(nics):
       if ip is None:
         ip = ""
       env["INSTANCE_NIC%d_IP" % idx] = ip
       env["INSTANCE_NIC%d_BRIDGE" % idx] = bridge
+      env["INSTANCE_NIC%d_HWADDR" % idx] = mac
   else:
     nic_count = 0
 
@@ -295,7 +296,7 @@ def _BuildInstanceHookEnvByObject(instance, override=None):
     'status': instance.os,
     'memory': instance.memory,
     'vcpus': instance.vcpus,
-    'nics': [(nic.ip, nic.bridge) for nic in instance.nics],
+    'nics': [(nic.ip, nic.bridge, nic.mac) for nic in instance.nics],
   }
   if override:
     args.update(override)
