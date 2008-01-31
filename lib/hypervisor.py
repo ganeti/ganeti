@@ -601,6 +601,8 @@ class XenHvmHypervisor(XenHypervisor):
     else:
       config.write("boot = '%s'\n" % instance.hvm_boot_order)
     config.write("sdl = 0\n")
+    config.write("usb = 1\n");
+    config.write("usbdevice = 'tablet'\n");
     config.write("vnc = 1\n")
     config.write("vnclisten = '0.0.0.0'\n")
 
