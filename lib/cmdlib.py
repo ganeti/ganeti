@@ -947,7 +947,7 @@ class LUVerifyDisks(NoHooksLU):
         inst = nv_dict.pop((node, lv_name), None)
         if (not lv_online and inst is not None
             and inst.name not in res_instances):
-            res_instances.append(inst.name)
+          res_instances.append(inst.name)
 
     # any leftover items in nv_dict are missing LVs, let's arrange the
     # data better
@@ -3060,8 +3060,8 @@ class LUCreateInstance(LogicalUnit):
     # boot order verification
     if self.op.hvm_boot_order is not None:
       if len(self.op.hvm_boot_order.strip("acdn")) != 0:
-             raise errors.OpPrereqError("invalid boot order specified,"
-                                        " must be one or more of [acdn]")
+        raise errors.OpPrereqError("invalid boot order specified,"
+                                   " must be one or more of [acdn]")
 
     if self.op.start:
       self.instance_status = 'up'
