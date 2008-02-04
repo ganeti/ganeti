@@ -1,0 +1,184 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""DRBD8 upgrade tool
+
+"""
+
+import sys
+
+from ganeti import constants
+from ganeti import cli
+from ganeti import logger
+from ganeti import errors
+from ganeti import utils
+from ganeti import config
+from ganeti import ssh
+
+
+def Log(msg):
+  """Simple function that prints out its argument.
+
+  """
+  print msg
+  sys.stdout.flush()
+
+
+def LogIndented(level, msg):
+  """Log a message indented."""
+  for line in msg.splitlines():
+    Log(" " * 4 * level + line)
+
+
+def CheckInstanceConfig(instance):
+  """Check if the instance has a correct configuration.
+
+  This checks that MD devices have only one child (the single DRBD
+  pair).
+
+  """
+  if instance.disk_template != constants.DT_REMOTE_RAID1:
+    return
+  for disk in instance.disks:
+    if len(disk.children) != 1:
+      raise errors.ConfigurationError("Instance %s drive %s has >1 mirrors" %
+                                      (instance.name, disk.iv_name))
+
+def CheckNodeStatus(node):
+  """Check node status.
+
+  This checks that there are no active DRBD devices on the node
+
+  """
+  result = ssh.SSHCall(node.name, "root", "cat /proc/drbd")
+  if result.failed:
+    raise errors.OpExecError("Can't read /proc/drbd on node %s" % node.name)
+  for line in result.stdout.splitlines():
+    if "cs:" in line and "cs:Unconfigured" not in line:
+      raise errors.OpExecError("Active drbd? /proc/drbd entry: %s" % line)
+
+  result = ssh.SSHCall(node.name, "root", "drbdmeta")
+  if result.failed:
+    raise errors.OpExecError("Failed to run drbdmeta on node %s" % node.name)
+
+
+def ConvertMetaOnNode(node, meta_dev):
+  """Convert a meta device on a node."""
+
+  LogIndented(2, "Updating %s:%s" % (node, meta_dev))
+  lv_name = meta_dev.replace("/dev/", "").replace("/", "_")
+
+  result = ssh.SSHCall(node, "root",
+                       "drbdmeta /dev/drbd0 v07 %s 0 dump-md" % meta_dev)
+
+  if result.failed:
+    raise errors.OpExecError("Can't dump meta device %s" % meta_dev)
+  try:
+    bk_fh = open("metadump-%s-%s" % (node, lv_name), "w")
+    bk_fh.write(result.stdout)
+    bk_fh.close()
+  except EnvironmentError:
+    Log("Can't write meta dump!")
+    raise
+  result = ssh.SSHCall(node, "root", "drbdmeta --force /dev/drbd0 v08 %s 0"
+                       " create-md" % meta_dev)
+  if result.failed:
+    raise errors.OpExecError("upgrading metadata for %s failed: %s" %
+                             (meta_dev, result.output))
+  LogIndented(2, "Updated metadata:")
+  LogIndented(3, "%s%s" % (result.stderr, result.stdout))
+
+
+def ConvertDiskStorage(disk):
+  """Convert disk storage for a drbd disk.
+
+  """
+  for node in disk.logical_id[:2]:
+    meta_disk = disk.children[1]
+    meta_dev = meta_disk.StaticDevPath()
+    if meta_dev is None:
+      raise errors.OpPrereqError("Can't upgrade disk %s: can't find meta in"
+                                 " config?" % meta_disk)
+    ConvertMetaOnNode(node, meta_dev)
+  disk.dev_type = constants.LD_DRBD8
+
+
+def ConvertInstance(instance):
+  """Conver the instance to drbd8.
+
+  """
+  if instance.disk_template != constants.DT_REMOTE_RAID1:
+    return False
+  Log("Working on %s" % instance.name)
+  new_disks = []
+  for disk in instance.disks:
+    LogIndented(1, "Disk %s" % disk.iv_name)
+    drbd_disk = disk.children[0]
+    ConvertDiskStorage(drbd_disk)
+    drbd_disk.iv_name = disk.iv_name
+    new_disks.append(drbd_disk)
+  instance.disk_template = constants.DT_DRBD8
+  instance.disks = new_disks
+  return True
+
+def LockedMain():
+  """Main under lock."""
+
+  cfg = config.ConfigWriter()
+  ilist = [cfg.GetInstanceInfo(name) for name in cfg.GetInstanceList()]
+  for instance in ilist:
+    CheckInstanceConfig(instance)
+  nlist = [cfg.GetNodeInfo(name) for name in cfg.GetNodeList()]
+  for node in nlist:
+    CheckNodeStatus(node)
+  bkname = utils.CreateBackup(constants.CLUSTER_CONF_FILE)
+  Log("Created initial backup as %s" % bkname)
+  #for node in nlist:
+  #  UpgradeNode(node)
+  for instance in ilist:
+    ConvertInstance(instance)
+    cfg.Update(instance)
+  Log("Done")
+  return 0
+
+def main():
+  """Main function."""
+
+  logger.SetupLogging(debug=False, program="ganeti/drbd8-upgrade")
+  try:
+    utils.Lock('cmd', max_retries=15, debug=True)
+  except errors.LockError, err:
+    logger.ToStderr(str(err))
+    return 1
+  try:
+    try:
+      retval = LockedMain()
+    except errors.GenericError, err:
+      retval, msg = cli.FormatError(err)
+      Log(msg)
+  finally:
+    utils.Unlock('cmd')
+    utils.LockCleanup()
+  return retval
+
+
+if __name__ == "__main__":
+  main()

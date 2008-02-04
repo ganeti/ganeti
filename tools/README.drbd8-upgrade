@@ -1,0 +1,28 @@
+The DRBD0.7 to DRBD8 upgrade script is just for converting the actual
+metadata format and Ganeti configuration.
+
+Before running the script, the following steps need to be done:
+  - make sure all disks (remote_raid1) are fully synced and working
+    correctly
+  - shutdown all instances and make sure no operations on the cluster
+    will be done until the end of the upgrade
+  - remove the drbd 0.7 kernel module and userspace tools
+  - install the drbd8 kernel module and userspace tools
+  - run the upgrade script (no arguments)
+
+After the upgrade, it is recommended to run ‘gnt-instance
+activate-disks’ for all instances and make sure the disks have started
+correctly.
+
+Currently there are some race conditions in the activate-disks that are
+triggered by the metadata conversion process. We're investigating these,
+but there is no data loss or risk; activating drbd manually (as
+secondaries on both sides) is enough to give the peers the chance to
+reestablish connections and sync fully.
+
+The script also saves the metadata from each device on the master under
+the path it's run from as files named "metadump-$node-$lv_name". In case
+of script failure, it should be possible to restore the original state
+of the cluster by formatting and restoring the metadata on the drbd
+devices and using the save copy of the config file. For this, it is
+recommended to save the output of the script.
