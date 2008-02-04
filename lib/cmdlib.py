@@ -2878,7 +2878,7 @@ class LUCreateInstance(LogicalUnit):
       os_type=self.op.os_type,
       memory=self.op.mem_size,
       vcpus=self.op.vcpus,
-      nics=[(self.inst_ip, self.op.bridge)],
+      nics=[(self.inst_ip, self.op.bridge, self.op.mac)],
     ))
 
     nl = ([self.sstore.GetMasterNode(), self.op.pnode] +
