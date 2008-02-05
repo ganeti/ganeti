@@ -122,7 +122,13 @@ class BlockDev(object):
       status = status and child.Assemble()
       if not status:
         break
-      status = status and child.Open()
+
+      try:
+        child.Open()
+      except errors.BlockDeviceError:
+        for child in self._children:
+          child.Shutdown()
+        raise
 
     if not status:
       for child in self._children:
@@ -502,7 +508,7 @@ class LogicalVolume(BlockDev):
     This is a no-op for the LV device type.
 
     """
-    return True
+    pass
 
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
@@ -510,7 +516,7 @@ class LogicalVolume(BlockDev):
     This is a no-op for the LV device type.
 
     """
-    return True
+    pass
 
   def Snapshot(self, size):
     """Create a snapshot copy of an lvm block device.
@@ -954,7 +960,7 @@ class MDRaid1(BlockDev):
     the 2.6.18's new array_state thing.
 
     """
-    return True
+    pass
 
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
@@ -963,7 +969,7 @@ class MDRaid1(BlockDev):
     `Open()`.
 
     """
-    return True
+    pass
 
 
 class BaseDRBD(BlockDev):
@@ -1456,9 +1462,9 @@ class DRBDev(BaseDRBD):
       cmd.append("--do-what-I-say")
     result = utils.RunCmd(cmd)
     if result.failed:
-      logger.Error("Can't make drbd device primary: %s" % result.output)
-      return False
-    return True
+      msg = ("Can't make drbd device primary: %s" % result.output)
+      logger.Error(msg)
+      raise errors.BlockDeviceError(msg)
 
   def Close(self):
     """Make the local state secondary.
@@ -1471,8 +1477,10 @@ class DRBDev(BaseDRBD):
       raise errors.BlockDeviceError("Can't find device")
     result = utils.RunCmd(["drbdsetup", self.dev_path, "secondary"])
     if result.failed:
-      logger.Error("Can't switch drbd device to secondary: %s" % result.output)
-      raise errors.BlockDeviceError("Can't switch drbd device to secondary")
+      msg = ("Can't switch drbd device to"
+             " secondary: %s" % result.output)
+      logger.Error(msg)
+      raise errors.BlockDeviceError(msg)
 
   def SetSyncSpeed(self, kbytes):
     """Set the speed of the DRBD syncer.
@@ -2068,9 +2076,9 @@ class DRBD8(BaseDRBD):
       cmd.append("-o")
     result = utils.RunCmd(cmd)
     if result.failed:
-      logger.Error("Can't make drbd device primary: %s" % result.output)
-      return False
-    return True
+      msg = ("Can't make drbd device primary: %s" % result.output)
+      logger.Error(msg)
+      raise errors.BlockDeviceError(msg)
 
   def Close(self):
     """Make the local state secondary.
@@ -2083,8 +2091,10 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("Can't find device")
     result = utils.RunCmd(["drbdsetup", self.dev_path, "secondary"])
     if result.failed:
-      logger.Error("Can't switch drbd device to secondary: %s" % result.output)
-      raise errors.BlockDeviceError("Can't switch drbd device to secondary")
+      msg = ("Can't switch drbd device to"
+             " secondary: %s" % result.output)
+      logger.Error(msg)
+      raise errors.BlockDeviceError(msg)
 
   def Attach(self):
     """Find a DRBD device which matches our config and attach to it.

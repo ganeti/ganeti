@@ -1860,23 +1860,41 @@ def _AssembleInstanceDisks(instance, cfg, ignore_secondaries=False):
   """
   device_info = []
   disks_ok = True
+  iname = instance.name
+  # With the two passes mechanism we try to reduce the window of
+  # opportunity for the race condition of switching DRBD to primary
+  # before handshaking occured, but we do not eliminate it
+
+  # The proper fix would be to wait (with some limits) until the
+  # connection has been made and drbd transitions from WFConnection
+  # into any other network-connected state (Connected, SyncTarget,
+  # SyncSource, etc.)
+
+  # 1st pass, assemble on all nodes in secondary mode
   for inst_disk in instance.disks:
-    master_result = None
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
       cfg.SetDiskID(node_disk, node)
-      is_primary = node == instance.primary_node
-      result = rpc.call_blockdev_assemble(node, node_disk,
-                                          instance.name, is_primary)
+      result = rpc.call_blockdev_assemble(node, node_disk, iname, False)
       if not result:
         logger.Error("could not prepare block device %s on node %s"
-                     " (is_primary=%s)" %
-                     (inst_disk.iv_name, node, is_primary))
-        if is_primary or not ignore_secondaries:
+                     " (is_primary=False, pass=1)" % (inst_disk.iv_name, node))
+        if not ignore_secondaries:
           disks_ok = False
-      if is_primary:
-        master_result = result
-    device_info.append((instance.primary_node, inst_disk.iv_name,
-                        master_result))
+
+  # FIXME: race condition on drbd migration to primary
+
+  # 2nd pass, do only the primary node
+  for inst_disk in instance.disks:
+    for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
+      if node != instance.primary_node:
+        continue
+      cfg.SetDiskID(node_disk, node)
+      result = rpc.call_blockdev_assemble(node, node_disk, iname, True)
+      if not result:
+        logger.Error("could not prepare block device %s on node %s"
+                     " (is_primary=True, pass=2)" % (inst_disk.iv_name, node))
+        disks_ok = False
+    device_info.append((instance.primary_node, inst_disk.iv_name, result))
 
   # leave the disks configured for the primary node
   # this is a workaround that would be fixed better by
