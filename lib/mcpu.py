@@ -85,6 +85,8 @@ class Processor(object):
     opcodes.OpSearchTags: cmdlib.LUSearchTags,
     opcodes.OpAddTags: cmdlib.LUAddTags,
     opcodes.OpDelTags: cmdlib.LUDelTags,
+    # test lu
+    opcodes.OpTestDelay: cmdlib.LUTestDelay,
     }
 
   def __init__(self, feedback=None):
