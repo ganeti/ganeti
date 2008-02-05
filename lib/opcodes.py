@@ -310,3 +310,29 @@ class OpDelTags(OpCode):
   """Remove a list of tags from a given object."""
   OP_ID = "OP_TAGS_DEL"
   __slots__ = ["kind", "name", "tags"]
+
+
+# Test opcodes
+class OpTestDelay(OpCode):
+  """Sleeps for a configured amount of time.
+
+  This is used just for debugging and testing.
+
+  Parameters:
+    - duration: the time to sleep
+    - on_master: if true, sleep on the master
+    - on_nodes: list of nodes in which to sleep
+
+  If the on_master parameter is true, it will execute a sleep on the
+  master (before any node sleep).
+
+  If the on_nodes list is not empty, it will sleep on those nodes
+  (after the sleep on the master, if that is enabled).
+
+  As an additional feature, the case of duration < 0 will be reported
+  as an execution error, so this opcode can be used as a failure
+  generator. The case of duration == 0 will not be treated specially.
+
+  """
+  OP_ID = "OP_TEST_DELAY"
+  __slots__ = ["duration", "on_master", "on_nodes"]

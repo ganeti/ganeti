@@ -801,3 +801,15 @@ def call_node_volumes(node_list):
   c.connect_list(node_list)
   c.run()
   return c.getresult()
+
+
+def call_test_delay(node_list, duration):
+  """Sleep for a fixed time on given node(s).
+
+  This is a multi-node call.
+
+  """
+  c = Client("test_delay", [duration])
+  c.connect_list(node_list)
+  c.run()
+  return c.getresult()

@@ -476,6 +476,16 @@ class ServerObject(pb.Avatar):
     hr = backend.HooksRunner()
     return hr.RunHooks(hpath, phase, env)
 
+  # test -----------------------
+
+  @staticmethod
+  def perspective_test_delay(params):
+    """Run test delay.
+
+    """
+    duration = params[0]
+    return utils.TestDelay(duration)
+
 
 class MyRealm:
   """Simple realm that forwards all requests to a ServerObject.

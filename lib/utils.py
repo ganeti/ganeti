@@ -1065,3 +1065,13 @@ def IsValidMac(mac):
   """
   mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$")
   return mac_check.match(mac) is not None
+
+
+def TestDelay(duration):
+  """Sleep for a fixed amount of time.
+
+  """
+  if duration < 0:
+    return False
+  time.sleep(duration)
+  return True

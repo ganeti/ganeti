@@ -4542,3 +4542,39 @@ class LUDelTags(TagsLU):
       raise errors.OpRetryError("There has been a modification to the"
                                 " config file and the operation has been"
                                 " aborted. Please retry.")
+
+class LUTestDelay(NoHooksLU):
+  """Sleep for a specified amount of time.
+
+  This LU sleeps on the master and/or nodes for a specified amoutn of
+  time.
+
+  """
+  _OP_REQP = ["duration", "on_master", "on_nodes"]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that we have a good list of nodes and/or the duration
+    is valid.
+
+    """
+
+    if self.op.on_nodes:
+      self.op.on_nodes = _GetWantedNodes(self, self.op.on_nodes)
+
+  def Exec(self, feedback_fn):
+    """Do the actual sleep.
+
+    """
+    if self.op.on_master:
+      if not utils.TestDelay(self.op.duration):
+        raise errors.OpExecError("Error during master delay test")
+    if self.op.on_nodes:
+      result = rpc.call_test_delay(self.op.on_nodes, self.op.duration)
+      if not result:
+        raise errors.OpExecError("Complete failure from rpc call")
+      for node, node_result in result.items():
+        if not node_result:
+          raise errors.OpExecError("Failure during rpc call to node %s,"
+                                   " result: %s" % (node, node_result))
