@@ -201,7 +201,7 @@ class OpShutdownInstance(OpCode):
 
 class OpRebootInstance(OpCode):
   """Reboot an instance."""
-  OP_ID = "OP_INSTANCE_STARTUP"
+  OP_ID = "OP_INSTANCE_REBOOT"
   __slots__ = ["instance_name", "reboot_type", "extra_args",
                "ignore_secondaries" ]
 
