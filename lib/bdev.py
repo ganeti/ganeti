@@ -980,7 +980,8 @@ class BaseDRBD(BlockDev):
 
   """
   _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)"
-                           r" \(api:(\d+)/proto:(\d+)\)")
+                           r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
+
   _DRBD_MAJOR = 147
   _ST_UNCONFIGURED = "Unconfigured"
   _ST_WFCONNECTION = "WFConnection"
@@ -1030,7 +1031,13 @@ class BaseDRBD(BlockDev):
   def _GetVersion(cls):
     """Return the DRBD version.
 
-    This will return a list [k_major, k_minor, k_point, api, proto].
+    This will return a dict with keys:
+      k_major,
+      k_minor,
+      k_point,
+      api,
+      proto,
+      proto2 (only on drbd > 8.2.X)
 
     """
     proc_data = cls._GetProcData()
@@ -1039,7 +1046,18 @@ class BaseDRBD(BlockDev):
     if not version:
       raise errors.BlockDeviceError("Can't parse DRBD version from '%s'" %
                                     first_line)
-    return [int(val) for val in version.groups()]
+
+    values = version.groups()
+    retval = {'k_major': int(values[0]),
+              'k_minor': int(values[1]),
+              'k_point': int(values[2]),
+              'api': int(values[3]),
+              'proto': int(values[4]),
+             }
+    if values[5] is not None:
+      retval['proto2'] = values[5]
+
+    return retval
 
   @staticmethod
   def _DevPath(minor):
@@ -1132,12 +1150,12 @@ class DRBDev(BaseDRBD):
   def __init__(self, unique_id, children):
     super(DRBDev, self).__init__(unique_id, children)
     self.major = self._DRBD_MAJOR
-    [kmaj, kmin, kfix, api, proto] = self._GetVersion()
-    if kmaj != 0 and kmin != 7:
+    version = self._GetVersion()
+    if version['k_major'] != 0 and version['k_minor'] != 7:
       raise errors.BlockDeviceError("Mismatch in DRBD kernel version and"
                                     " requested ganeti usage: kernel is"
-                                    " %s.%s, ganeti wants 0.7" % (kmaj, kmin))
-
+                                    " %s.%s, ganeti wants 0.7" %
+                                    (version['k_major'], version['k_minor']))
     if len(children) != 2:
       raise ValueError("Invalid configuration data %s" % str(children))
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 4:
@@ -1629,11 +1647,12 @@ class DRBD8(BaseDRBD):
       children = []
     super(DRBD8, self).__init__(unique_id, children)
     self.major = self._DRBD_MAJOR
-    [kmaj, kmin, kfix, api, proto] = self._GetVersion()
-    if kmaj != 8:
+    version = self._GetVersion()
+    if version['k_major'] != 8 :
       raise errors.BlockDeviceError("Mismatch in DRBD kernel version and"
                                     " requested ganeti usage: kernel is"
-                                    " %s.%s, ganeti wants 8.x" % (kmaj, kmin))
+                                    " %s.%s, ganeti wants 8.x" %
+                                    (version['k_major'], version['k_minor']))
 
     if len(children) not in (0, 2):
       raise ValueError("Invalid configuration data %s" % str(children))
