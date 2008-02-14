@@ -28,8 +28,8 @@ Example: ssh-keyscan -t rsa node{1,2,3,4}.example.com > known_hosts
 """
 
 import sys
-from datetime import datetime
-from optparse import OptionParser
+import datetime
+import optparse
 
 import qa_cluster
 import qa_config
@@ -52,7 +52,7 @@ def RunTest(fn, *args):
   else:
     desc = '%r' % fn
 
-  now = str(datetime.now())
+  now = str(datetime.datetime.now())
 
   print
   print '---', now, ('-' * (55 - len(now)))
@@ -218,8 +218,8 @@ def main():
   """Main program.
 
   """
-  parser = OptionParser(usage="%prog [options] <config-file>"
-                              " <known-hosts-file>")
+  parser = optparse.OptionParser(usage="%prog [options] <config-file>"
+                                       " <known-hosts-file>")
   parser.add_option('--dry-run', dest='dry_run',
       action="store_true",
       help="Show what would be done")

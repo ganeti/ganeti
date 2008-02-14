@@ -1,3 +1,6 @@
+#
+#
+
 # Copyright (C) 2007 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -87,6 +90,11 @@ def AssertNotEqual(first, second):
 
 def GetSSHCommand(node, cmd, strict=True):
   """Builds SSH command to be executed.
+
+  Args:
+  - node: Node the command should run on
+  - cmd: Command to be executed as a list with all parameters
+  - strict: Whether to enable strict host key checking
 
   """
   args = [ 'ssh', '-oEscapeChar=none', '-oBatchMode=yes', '-l', 'root' ]
@@ -191,7 +199,6 @@ def GetNodeInstances(node, secondaries=False):
 
   """
   master = qa_config.GetMasterNode()
-
   node_name = ResolveNodeName(node)
 
   # Get list of all instances
@@ -237,6 +244,9 @@ def LoadHooks():
 
 
 class QaHookContext:
+  """Definition of context passed to hooks.
+
+  """
   name = None
   phase = None
   success = None
@@ -267,7 +277,7 @@ def DefineHook(name):
 
   Usage: prefix function with @qa_utils.DefineHook(...)
 
-  This based on PEP 318, "Decorators for Functions and Methods".
+  This is based on PEP 318, "Decorators for Functions and Methods".
 
   """
   def wrapper(fn):
