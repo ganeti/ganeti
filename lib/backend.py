@@ -665,8 +665,6 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
         # we need the children open in case the device itself has to
         # be assembled
         crdev.Open()
-      else:
-        crdev.Close()
       clist.append(crdev)
   try:
     device = bdev.FindDevice(disk.dev_type, disk.physical_id, clist)
@@ -766,8 +764,6 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
     result = r_dev
     if as_primary or disk.OpenOnSecondary():
       r_dev.Open()
-    else:
-      r_dev.Close()
     DevCacheManager.UpdateCache(r_dev.dev_path, owner,
                                 as_primary, disk.iv_name)
 
