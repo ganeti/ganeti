@@ -162,8 +162,7 @@ def ListInstances(opts, args):
 
   """
   if opts.output is None:
-    selected_fields = ["name", "os", "pnode", "admin_state",
-                       "oper_state", "oper_ram"]
+    selected_fields = ["name", "os", "pnode", "status", "oper_ram"]
   else:
     selected_fields = opts.output.split(",")
 
@@ -171,13 +170,16 @@ def ListInstances(opts, args):
   output = SubmitOpCode(op)
 
   if not opts.no_headers:
-    headers = {"name": "Instance", "os": "OS", "pnode": "Primary_node",
-               "snodes": "Secondary_Nodes", "admin_state": "Autostart",
-               "oper_state": "Status", "admin_ram": "Configured_memory",
-               "oper_ram": "Memory", "disk_template": "Disk_template",
-               "ip": "IP Address", "mac": "MAC Address",
-               "bridge": "Bridge", "vcpus": "VCPUs",
-               "sda_size": "Disk/0", "sdb_size": "Disk/1"}
+    headers = {
+      "name": "Instance", "os": "OS", "pnode": "Primary_node",
+      "snodes": "Secondary_Nodes", "admin_state": "Autostart",
+      "oper_state": "Running", "admin_ram": "Configured_memory",
+      "oper_ram": "Memory", "disk_template": "Disk_template",
+      "ip": "IP Address", "mac": "MAC Address",
+      "bridge": "Bridge", "vcpus": "VCPUs",
+      "sda_size": "Disk/0", "sdb_size": "Disk/1",
+      "status": "Status",
+      }
   else:
     headers = None
 
@@ -810,12 +812,12 @@ commands = {
   'info': (ShowInstanceConfig, ARGS_ANY, [DEBUG_OPT], "[<instance>...]",
            "Show information on the specified instance"),
   'list': (ListInstances, ARGS_NONE,
-           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
-           "", "Lists the instances and their status. The available fields"
-           " are (see the man page for details): oper_state, oper_ram,"
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT], "",
+           "Lists the instances and their status. The available fields are"
+           " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
            " ip, mac, bridge, sda_size, sdb_size, vcpus. The default field"
-           " list is (in order): name, os, pnode, admin_state, oper_state,"
+           " list is (in order): name, os, pnode, status,"
            " oper_ram."),
   'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, os_opt],
                 "[-f] <instance>", "Reinstall the instance"),
