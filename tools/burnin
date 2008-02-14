@@ -84,6 +84,8 @@ class Burner(object):
     """Acumulate feedback in our buffer."""
     self._feed_buf.write(msg)
     self._feed_buf.write("\n")
+    if self.opts.verbose:
+      Log(msg)
 
   def ExecOp(self, op):
     """Execute an opcode and manage the exec buffer."""
@@ -213,7 +215,7 @@ class Burner(object):
                                     kernel_path=None,
                                     initrd_path=None,
                                     hvm_boot_order=None)
-      Log("- Add instance %s on node %s" % (instance, pnode))
+      Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
       self.ExecOp(op)
       self.to_rem.append(instance)
 
