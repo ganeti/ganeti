@@ -405,8 +405,27 @@
             <varlistentry>
               <term>oper_state</term>
               <listitem>
-                <simpara>the actual state of the instance; can take of
-                  the values "running", "stopped", "(node down)"</simpara>
+                <simpara>the actual state of the instance; can be
+                one of the values "running", "stopped", "(node
+                down)"</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>status</term>
+              <listitem>
+                <simpara>combined form of admin_state and oper_stat;
+                this can be one of:
+                <computeroutput>ERROR_nodedown</computeroutput> if the
+                node of the instance is down,
+                <computeroutput>ERROR_down</computeroutput> if the
+                instance should run but is down,
+                <computeroutput>ERROR_up</computeroutput> if the
+                instance should be stopped but is actually running,
+                <computeroutput>ADMIN_down</computeroutput> if the
+                instance has been stopped (and is stopped) and
+                <computeroutput>running</computeroutput> if the
+                instance is set to be running (and is
+                running)</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>

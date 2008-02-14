@@ -2418,7 +2418,7 @@ class LUQueryInstances(NoHooksLU):
     This checks that the fields required are valid output fields.
 
     """
-    self.dynamic_fields = frozenset(["oper_state", "oper_ram"])
+    self.dynamic_fields = frozenset(["oper_state", "oper_ram", "status"])
     _CheckOutputFields(static=["name", "os", "pnode", "snodes",
                                "admin_state", "admin_ram",
                                "disk_template", "ip", "mac", "bridge",
@@ -2475,6 +2475,21 @@ class LUQueryInstances(NoHooksLU):
             val = None
           else:
             val = bool(live_data.get(instance.name))
+        elif field == "status":
+          if instance.primary_node in bad_nodes:
+            val = "ERROR_nodedown"
+          else:
+            running = bool(live_data.get(instance.name))
+            if running:
+              if instance.status != "down":
+                val = "running"
+              else:
+                val = "ERROR_up"
+            else:
+              if instance.status != "down":
+                val = "ERROR_down"
+              else:
+                val = "ADMIN_down"
         elif field == "admin_ram":
           val = instance.memory
         elif field == "oper_ram":
