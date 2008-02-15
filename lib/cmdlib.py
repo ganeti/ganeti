@@ -4131,7 +4131,7 @@ class LUSetInstanceParms(LogicalUnit):
       args['memory'] = self.mem
     if self.vcpus:
       args['vcpus'] = self.vcpus
-    if self.do_ip or self.do_bridge:
+    if self.do_ip or self.do_bridge or self.mac:
       if self.do_ip:
         ip = self.ip
       else:
@@ -4140,7 +4140,11 @@ class LUSetInstanceParms(LogicalUnit):
         bridge = self.bridge
       else:
         bridge = self.instance.nics[0].bridge
-      args['nics'] = [(ip, bridge)]
+      if self.mac:
+        mac = self.mac
+      else:
+        mac = self.instance.nics[0].mac
+      args['nics'] = [(ip, bridge, mac)]
     env = _BuildInstanceHookEnvByObject(self.instance, override=args)
     nl = [self.sstore.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
