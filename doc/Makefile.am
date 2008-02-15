@@ -8,8 +8,11 @@ dist_doc_DATA = \
 EXTRA_DIST = hooks.sgml install.sgml admin.sgml
 MAINTAINERCLEANFILES = *.html *.pdf
 
-%.html: %.sgml
+%.sgmltmp: %.sgml
+	sed -e 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g' < $< > $@
+
+%.html: %.sgmltmp
 	docbook2html --nochunks $<
 
-%.pdf: %.sgml
+%.pdf: %.sgmltmp
 	docbook2pdf $<
