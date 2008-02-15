@@ -43,9 +43,11 @@ def Log(msg):
 
 
 def LogIndented(level, msg):
-  """Log a message indented."""
+  """Log a message indented.
+
+  """
   for line in msg.splitlines():
-    Log(" " * 4 * level + line)
+    Log((" " * (4 * level)) + line)
 
 
 def CheckInstanceConfig(instance):
@@ -61,6 +63,7 @@ def CheckInstanceConfig(instance):
     if len(disk.children) != 1:
       raise errors.ConfigurationError("Instance %s drive %s has >1 mirrors" %
                                       (instance.name, disk.iv_name))
+
 
 def CheckNodeStatus(node):
   """Check node status.
@@ -81,8 +84,9 @@ def CheckNodeStatus(node):
 
 
 def ConvertMetaOnNode(node, meta_dev):
-  """Convert a meta device on a node."""
+  """Convert a meta device on a node.
 
+  """
   LogIndented(2, "Updating %s:%s" % (node, meta_dev))
   lv_name = meta_dev.replace("/dev/", "").replace("/", "_")
 
@@ -139,9 +143,11 @@ def ConvertInstance(instance):
   instance.disks = new_disks
   return True
 
-def LockedMain():
-  """Main under lock."""
 
+def LockedMain():
+  """Main under lock.
+
+  """
   cfg = config.ConfigWriter()
   ilist = [cfg.GetInstanceInfo(name) for name in cfg.GetInstanceList()]
   for instance in ilist:
@@ -159,9 +165,11 @@ def LockedMain():
   Log("Done")
   return 0
 
-def main():
-  """Main function."""
 
+def main():
+  """Main function.
+
+  """
   logger.SetupLogging(debug=False, program="ganeti/drbd8-upgrade")
   try:
     utils.Lock('cmd', max_retries=15, debug=True)
