@@ -4028,7 +4028,7 @@ class LUQueryInstanceData(NoHooksLU):
         instance = self.cfg.GetInstanceInfo(self.cfg.ExpandInstanceName(name))
         if instance is None:
           raise errors.OpPrereqError("No such instance name '%s'" % name)
-      self.wanted_instances.append(instance)
+        self.wanted_instances.append(instance)
     else:
       self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
                                in self.cfg.GetInstanceList()]
