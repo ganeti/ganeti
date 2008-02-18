@@ -1,3 +1,14 @@
+Version 1.2.3
+  - more tweaks to the disk activation code (especially helpful for DRBD)
+  - change the default ‘gnt-instance list’ output format, now there is
+    one combined status field (see the manpage for the exact values this
+    field will have)
+  - some more fixes for the mac export to hooks change
+  - make Ganeti not break with DRBD 8.2.x (which changed the version
+    format in /proc/drbd) (issue 24)
+  - add an upgrade tool from ‘remote_raid1’ disk template to ‘drbd’ disk
+    template, allowing migration from DRBD0.7+MD to DRBD8
+
 Version 1.2.2
   - fix ‘gnt-instance modify’ breakage introduced in 1.2.1 with the HVM
     support (issue 23)
