@@ -139,7 +139,7 @@
         This command will change the secondary node from the source
         node to the destination node for all instances having the
         source node as secondary. It works only for instances having
-        a remote raid disk layout.
+        a remote_raid1 or drbd disk layout.
       </para>
 
       <para>
