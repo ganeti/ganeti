@@ -32,7 +32,7 @@ from threading import Thread
 
 
 class TestSharedLock(unittest.TestCase):
-  """Shared lock tests"""
+  """SharedLock tests"""
 
   def setUp(self):
     self.sl = locking.SharedLock()

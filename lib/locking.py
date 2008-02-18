@@ -38,7 +38,7 @@ class SharedLock:
 
   """
   def __init__(self):
-    """Construct a new Shared Lock"""
+    """Construct a new SharedLock"""
     # we have two conditions, c_shr and c_exc, sharing the same lock.
     self.__lock = threading.Lock()
     self.__turn_shr = threading.Condition(self.__lock)
