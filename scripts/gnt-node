@@ -285,7 +285,8 @@ commands = {
                [DEBUG_OPT, FORCE_OPT],
                "[-f] <src_node> <dst_node>",
                "Relocate the secondary instances from the first node"
-               " to the second one (only for instances of type remote_raid1)"),
+               " to the second one (only for instances of type remote_raid1"
+               " drbd)"),
   'failover': (FailoverNode, ARGS_ONE,
                [DEBUG_OPT, FORCE_OPT,
                 make_option("--ignore-consistency", dest="ignore_consistency",
