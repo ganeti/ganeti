@@ -28,6 +28,7 @@ import time
 import Queue
 
 from ganeti import locking
+from ganeti import errors
 from threading import Thread
 
 
@@ -86,14 +87,28 @@ class TestSharedLock(unittest.TestCase):
   # helper functions: called in a separate thread they acquire the lock, send
   # their identifier on the done queue, then release it.
   def _doItSharer(self):
-    self.sl.acquire(shared=1)
-    self.done.put('SHR')
-    self.sl.release()
+    try:
+      self.sl.acquire(shared=1)
+      self.done.put('SHR')
+      self.sl.release()
+    except errors.LockError:
+      self.done.put('ERR')
 
   def _doItExclusive(self):
-    self.sl.acquire()
-    self.done.put('EXC')
-    self.sl.release()
+    try:
+      self.sl.acquire()
+      self.done.put('EXC')
+      self.sl.release()
+    except errors.LockError:
+      self.done.put('ERR')
+
+  def _doItDelete(self):
+    try:
+      self.sl.acquire()
+      self.done.put('DEL')
+      self.sl.release()
+    except errors.LockError:
+      self.done.put('ERR')
 
   def testSharersCanCoexist(self):
     self.sl.acquire(shared=1)
@@ -104,6 +119,14 @@ class TestSharedLock(unittest.TestCase):
   def testExclusiveBlocksExclusive(self):
     self.sl.acquire()
     Thread(target=self._doItExclusive).start()
+    # give it a bit of time to check that it's not actually doing anything
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.sl.release()
+    self.assert_(self.done.get(True, 1))
+
+  def testExclusiveBlocksDelete(self):
+    self.sl.acquire()
+    Thread(target=self._doItDelete).start()
     # give it a bit of time to check that it's not actually doing anything
     self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
     self.sl.release()
@@ -120,6 +143,14 @@ class TestSharedLock(unittest.TestCase):
   def testSharerBlocksExclusive(self):
     self.sl.acquire(shared=1)
     Thread(target=self._doItExclusive).start()
+    time.sleep(0.05)
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.sl.release()
+    self.assert_(self.done.get(True, 1))
+
+  def testSharerBlocksDelete(self):
+    self.sl.acquire(shared=1)
+    Thread(target=self._doItDelete).start()
     time.sleep(0.05)
     self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
     self.sl.release()
@@ -152,6 +183,47 @@ class TestSharedLock(unittest.TestCase):
     # The sharer passed before
     self.assertEqual(self.done.get(True, 1), 'SHR')
     self.assertEqual(self.done.get(True, 1), 'EXC')
+
+  def testNoNonBlocking(self):
+    self.assertRaises(NotImplementedError, self.sl.acquire, blocking=0)
+    self.assertRaises(NotImplementedError, self.sl.delete, blocking=0)
+    self.sl.acquire()
+    self.sl.delete(blocking=0) # Fine, because the lock is already acquired
+
+  def testDelete(self):
+    self.sl.delete()
+    self.assertRaises(errors.LockError, self.sl.acquire)
+    self.assertRaises(errors.LockError, self.sl.delete)
+
+  def testDeletePendingSharersExclusiveDelete(self):
+    self.sl.acquire()
+    Thread(target=self._doItSharer).start()
+    Thread(target=self._doItSharer).start()
+    time.sleep(0.05)
+    Thread(target=self._doItExclusive).start()
+    Thread(target=self._doItDelete).start()
+    time.sleep(0.05)
+    self.sl.delete()
+    # The two threads who were pending return both ERR
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+
+  def testDeletePendingDeleteExclusiveSharers(self):
+    self.sl.acquire()
+    Thread(target=self._doItDelete).start()
+    Thread(target=self._doItExclusive).start()
+    time.sleep(0.05)
+    Thread(target=self._doItSharer).start()
+    Thread(target=self._doItSharer).start()
+    time.sleep(0.05)
+    self.sl.delete()
+    # The two threads who were pending return both ERR
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
 
 
 if __name__ == '__main__':
