@@ -104,9 +104,8 @@ class TestSharedLock(unittest.TestCase):
 
   def _doItDelete(self):
     try:
-      self.sl.acquire()
+      self.sl.delete()
       self.done.put('DEL')
-      self.sl.release()
     except errors.LockError:
       self.done.put('ERR')
 
