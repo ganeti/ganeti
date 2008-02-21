@@ -192,7 +192,12 @@ class TestSharedLock(unittest.TestCase):
   def testDelete(self):
     self.sl.delete()
     self.assertRaises(errors.LockError, self.sl.acquire)
+    self.assertRaises(errors.LockError, self.sl.acquire, shared=1)
     self.assertRaises(errors.LockError, self.sl.delete)
+
+  def testNoDeleteIfSharer(self):
+    self.sl.acquire(shared=1)
+    self.assertRaises(AssertionError, self.sl.delete)
 
   def testDeletePendingSharersExclusiveDelete(self):
     self.sl.acquire()
