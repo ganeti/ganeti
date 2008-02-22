@@ -649,9 +649,8 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
    disk: a ganeti.objects.Disk object
    size: the size of the physical underlying device
    owner: a string with the name of the instance
-   on_primary: a boolean indicating if it will be created on the primary
-     node or not
-   info: string 
+   on_primary: a boolean indicating if it is the primary node or not
+   info: string that will be sent to the physical device creation
 
   Returns:
     the new unique_id of the device (this can sometime be
