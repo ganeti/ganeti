@@ -26,43 +26,10 @@
 # pylint: disable-msg=C0103
 
 import os
+import socket
+import httplib
 
-from twisted.internet.pollreactor import PollReactor
-
-class ReReactor(PollReactor):
-  """A re-startable Reactor implementation.
-
-  """
-  def run(self, installSignalHandlers=1):
-    """Custom run method.
-
-    This is customized run that, before calling Reactor.run, will
-    reinstall the shutdown events and re-create the threadpool in case
-    these are not present (as will happen on the second run of the
-    reactor).
-
-    """
-    if not 'shutdown' in self._eventTriggers:
-      # the shutdown queue has been killed, we are most probably
-      # at the second run, thus recreate the queue
-      self.addSystemEventTrigger('during', 'shutdown', self.crash)
-      self.addSystemEventTrigger('during', 'shutdown', self.disconnectAll)
-    if self.threadpool is not None and self.threadpool.joined == 1:
-      # in case the threadpool has been stopped, re-start it
-      # and add a trigger to stop it at reactor shutdown
-      self.threadpool.start()
-      self.addSystemEventTrigger('during', 'shutdown', self.threadpool.stop)
-
-    return PollReactor.run(self, installSignalHandlers)
-
-
-import twisted.internet.main
-twisted.internet.main.installReactor(ReReactor())
-
-from twisted.spread import pb
-from twisted.internet import reactor
-from twisted.cred import credentials
-from OpenSSL import SSL, crypto
+import simplejson
 
 from ganeti import logger
 from ganeti import utils
@@ -82,107 +49,41 @@ class NodeController:
   def __init__(self, parent, node):
     self.parent = parent
     self.node = node
+    self.failed = False
 
-  def _check_end(self):
-    """Stop the reactor if we got all the results.
-
-    """
-    if len(self.parent.results) == len(self.parent.nc):
-      reactor.stop()
-
-  def cb_call(self, obj):
-    """Callback for successful connect.
-
-    If the connect and login sequence succeeded, we proceed with
-    making the actual call.
-
-    """
-    deferred = obj.callRemote(self.parent.procedure, self.parent.args)
-    deferred.addCallbacks(self.cb_done, self.cb_err2)
-
-  def cb_done(self, result):
-    """Callback for successful call.
-
-    When we receive the result from a call, we check if it was an
-    error and if so we raise a generic RemoteError (we can't pass yet
-    the actual exception over). If there was no error, we store the
-    result.
-
-    """
-    tb, self.parent.results[self.node] = result
-    self._check_end()
-    if tb:
-      raise errors.RemoteError("Remote procedure error calling %s on %s:"
-                               "\n%s" % (self.parent.procedure,
-                                         self.node,
-                                         tb))
-
-  def cb_err1(self, reason):
-    """Error callback for unsuccessful connect.
-
-    """
-    logger.Error("caller_connect: could not connect to remote host %s,"
-                 " reason %s" % (self.node, reason))
-    self.parent.results[self.node] = False
-    self._check_end()
-
-  def cb_err2(self, reason):
-    """Error callback for unsuccessful call.
-
-    This is when the call didn't return anything, not even an error,
-    or when it time out, etc.
-
-    """
-    logger.Error("caller_call: could not call %s on node %s,"
-                 " reason %s" % (self.parent.procedure, self.node, reason))
-    self.parent.results[self.node] = False
-    self._check_end()
-
-
-class MirrorContextFactory:
-  """Certificate verifier factory.
-
-  This factory creates contexts that verify if the remote end has a
-  specific certificate (i.e. our own certificate).
-
-  The checks we do are that the PEM dump of the certificate is the
-  same as our own and (somewhat redundantly) that the SHA checksum is
-  the same.
-
-  """
-  isClient = 1
-
-  def __init__(self):
+    self.http_conn = hc = httplib.HTTPConnection(node, self.parent.port)
     try:
-      fd = open(constants.SSL_CERT_FILE, 'r')
-      try:
-        data = fd.read(16384)
-      finally:
-        fd.close()
-    except EnvironmentError, err:
-      raise errors.ConfigurationError("missing SSL certificate: %s" %
-                                      str(err))
-    self.mycert = crypto.load_certificate(crypto.FILETYPE_PEM, data)
-    self.mypem = crypto.dump_certificate(crypto.FILETYPE_PEM, self.mycert)
-    self.mydigest = self.mycert.digest('SHA')
+      hc.connect()
+      hc.putrequest('PUT', "/%s" % self.parent.procedure,
+                    skip_accept_encoding=True)
+      hc.putheader('Content-Length', str(len(parent.body)))
+      hc.endheaders()
+      hc.send(parent.body)
+    except socket.error, err:
+      logger.Error("Error connecting to %s: %s" % (node, str(err)))
+      self.failed = True
 
-  def verifier(self, conn, x509, errno, err_depth, retcode):
-    """Certificate verify method.
+  def get_response(self):
+    """Try to process the response from the node.
 
     """
-    if self.mydigest != x509.digest('SHA'):
+    if self.failed:
+      # we already failed in connect
       return False
-    if crypto.dump_certificate(crypto.FILETYPE_PEM, x509) != self.mypem:
+    resp = self.http_conn.getresponse()
+    if resp.status != 200:
       return False
-    return True
+    try:
+      length = int(resp.getheader('Content-Length', '0'))
+    except ValueError:
+      return False
+    if not length:
+      logger.Error("Zero-length reply from %s" % self.node)
+      return False
+    payload = resp.read(length)
+    unload = simplejson.loads(payload)
+    return unload
 
-  def getContext(self):
-    """Context generator.
-
-    """
-    context = SSL.Context(SSL.TLSv1_METHOD)
-    context.set_verify(SSL.VERIFY_PEER, self.verifier)
-    return context
 
 class Client:
   """RPC Client class.
@@ -208,6 +109,7 @@ class Client:
     self.results = {}
     self.procedure = procedure
     self.args = args
+    self.body = simplejson.dumps(args)
 
   #--- generic connector -------------
 
@@ -222,13 +124,7 @@ class Client:
     """Add a node to the target list.
 
     """
-    factory = pb.PBClientFactory()
     self.nc[connect_node] = nc = NodeController(self, connect_node)
-    reactor.connectSSL(connect_node, self.port, factory,
-                       MirrorContextFactory())
-    #d = factory.getRootObject()
-    d = factory.login(credentials.UsernamePassword("master_node", self.nodepw))
-    d.addCallbacks(nc.cb_call, nc.cb_err1)
 
   def getresult(self):
     """Return the results of the call.
@@ -243,8 +139,8 @@ class Client:
     queued, otherwise it does nothing.
 
     """
-    if self.nc:
-      reactor.run()
+    for node, nc in self.nc.items():
+      self.results[node] = nc.get_response()
 
 
 def call_volume_list(node_list, vg_name):

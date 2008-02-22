@@ -28,6 +28,8 @@ import os
 import sys
 import resource
 import traceback
+import BaseHTTPServer
+import simplejson
 
 from optparse import OptionParser
 
@@ -40,55 +42,61 @@ from ganeti import errors
 from ganeti import ssconf
 from ganeti import utils
 
-from twisted.spread import pb
-from twisted.internet import reactor
-from twisted.cred import checkers, portal
-from OpenSSL import SSL
 
-
-class ServerContextFactory:
-  """SSL context factory class that uses a given certificate.
-
-  """
-  @staticmethod
-  def getContext():
-    """Return a customized context.
-
-    The context will be set to use our certificate.
-
-    """
-    ctx = SSL.Context(SSL.TLSv1_METHOD)
-    ctx.use_certificate_file(constants.SSL_CERT_FILE)
-    ctx.use_privatekey_file(constants.SSL_CERT_FILE)
-    return ctx
-
-class ServerObject(pb.Avatar):
+class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
   """The server implementation.
 
   This class holds all methods exposed over the RPC interface.
 
   """
-  def __init__(self, name):
-    self.name = name
-
-  def perspectiveMessageReceived(self, broker, message, args, kw):
-    """Custom message dispatching function.
-
-    This function overrides the pb.Avatar function in order to provide
-    a simple form of exception passing (as text only).
+  def do_PUT(self):
+    """Handle a post request.
 
     """
-    args = broker.unserialize(args, self)
-    kw = broker.unserialize(kw, self)
-    method = getattr(self, "perspective_%s" % message)
-    tb = None
-    state = None
-    try:
-      state = method(*args, **kw)
-    except:
-      tb = traceback.format_exc()
+    path = self.path
+    if path.startswith("/"):
+      path = path[1:]
+    mname = "perspective_%s" % path
+    if not hasattr(self, mname):
+      self.send_error(404)
+      return False
 
-    return broker.serialize((tb, state), self, method, args, kw)
+    method = getattr(self, mname)
+    try:
+      body_length = int(self.headers.get('Content-Length', '0'))
+    except ValueError:
+      self.send_error(400, 'No Content-Length header or invalid format')
+      return False
+
+    try:
+      body = self.rfile.read(body_length)
+    except socket.error, err:
+      logger.Error("Socket error while reading: %s" % str(err))
+      return
+    try:
+      params = simplejson.loads(body)
+      result = method(params)
+      payload = simplejson.dumps(result)
+    except Exception, err:
+      self.send_error(500, "Error: %s" % str(err))
+      return False
+    self.send_response(200)
+    self.send_header('Content-Length', str(len(payload)))
+    self.end_headers()
+    self.wfile.write(payload)
+    return True
+
+  def log_message(self, format, *args):
+    """Log a request to the log.
+
+    This is the same as the parent, we just log somewhere else.
+
+    """
+    msg = ("%s - - [%s] %s\n" %
+           (self.address_string(),
+            self.log_date_time_string(),
+            format % args))
+    logger.Debug(msg)
 
   # the new block devices  --------------------------
 
@@ -487,21 +495,6 @@ class ServerObject(pb.Avatar):
     return utils.TestDelay(duration)
 
 
-class MyRealm:
-  """Simple realm that forwards all requests to a ServerObject.
-
-  """
-  __implements__ = portal.IRealm
-
-  def requestAvatar(self, avatarId, mind, *interfaces):
-    """Return an avatar based on our ServerObject class.
-
-    """
-    if pb.IPerspective not in interfaces:
-      raise NotImplementedError
-    return pb.IPerspective, ServerObject(avatarId), lambda:None
-
-
 def ParseOptions():
   """Parse the command line options.
 
@@ -550,11 +543,8 @@ def main():
   logger.SetupLogging(twisted_workaround=True, debug=options.debug,
                       program="ganeti-noded")
 
-  p = portal.Portal(MyRealm())
-  p.registerChecker(
-    checkers.InMemoryUsernamePasswordDatabaseDontUse(master_node=pwdata))
-  reactor.listenSSL(port, pb.PBServerFactory(p), ServerContextFactory())
-  reactor.run()
+  httpd = BaseHTTPServer.HTTPServer(('', port), ServerObject)
+  httpd.serve_forever()
 
 
 def createDaemon():
