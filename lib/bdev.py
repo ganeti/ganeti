@@ -395,12 +395,11 @@ class LogicalVolume(BlockDev):
     self._lv_name = new_name
     self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
 
-
   def Attach(self):
     """Attach to an existing LV.
 
     This method will try to see if an existing and active LV exists
-    which matches the our name. If so, its major/minor will be
+    which matches our name. If so, its major/minor will be
     recorded.
 
     """

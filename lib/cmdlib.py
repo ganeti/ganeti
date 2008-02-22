@@ -3756,7 +3756,7 @@ class LUReplaceDisks(LogicalUnit):
       # ok, we created the new LVs, so now we know we have the needed
       # storage; as such, we proceed on the target node to rename
       # old_lv to _old, and new_lv to old_lv; note that we rename LVs
-      # using the assumption than logical_id == physical_id (which in
+      # using the assumption that logical_id == physical_id (which in
       # turn is the unique_id on that node)
 
       # FIXME(iustin): use a better name for the replaced LVs
