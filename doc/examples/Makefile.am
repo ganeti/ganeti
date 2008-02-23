@@ -1,12 +1,13 @@
-EXTRA_DIST = ganeti.initd.in ganeti.cron
+EXTRA_DIST = ganeti.initd.in ganeti.cron.in
 CLEANFILES = $(nodist_EXTRA_DATA)
 
-nodist_EXTRA_DATA = ganeti.initd
+nodist_EXTRA_DATA = ganeti.initd ganeti.cron
 
-all-local: ganeti.initd
-ganeti.initd: ganeti.initd.in
+all-local: ganeti.initd ganeti.cron
+ganeti.%: ganeti.%.in
 	sed \
 	  -e "s#@PREFIX@#$(prefix)#g" \
 	  -e "s#@SYSCONFDIR@#$(sysconfdir)#g" \
 	  -e "s#@LOCALSTATEDIR@#$(localstatedir)#g" \
+	  -e "s#@SBINDIR@#$(sbindir)#g" \
 	< $< > $@
