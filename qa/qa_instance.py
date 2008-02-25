@@ -245,6 +245,7 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
   node_full = qa_utils.ResolveNodeName(node)
   node2_full = qa_utils.ResolveNodeName(node2)
 
+  print qa_utils.FormatInfo("Getting physical disk names")
   cmd = ['gnt-node', 'volumes', '--separator=|', '--no-headers',
          '--output=node,phys,instance',
          node['primary'], node2['primary']]
@@ -271,31 +272,34 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
     raise qa_error.Error("Couldn't find physical disks used on"
                          " %s node" % ["secondary", "master"][int(onmaster)])
 
-  # Check whether nodes have ability to stop disks
+  print qa_utils.FormatInfo("Checking whether nodes have ability to stop"
+                            " disks")
   for node_name, disks in node2disk.iteritems():
     cmds = []
     for disk in disks:
       cmds.append(sq(["test", "-f", _GetDiskStatePath(disk)]))
     AssertEqual(StartSSH(node_name, ' && '.join(cmds)).wait(), 0)
 
-  # Get device paths
+  print qa_utils.FormatInfo("Getting device paths")
   cmd = ['gnt-instance', 'activate-disks', instance['name']]
   output = qa_utils.GetCommandOutput(master['primary'], sq(cmd))
   devpath = []
   for line in output.splitlines():
     (_, _, tmpdevpath) = line.split(':')
     devpath.append(tmpdevpath)
+  print devpath
 
-  # Get drbd device paths
+  print qa_utils.FormatInfo("Getting drbd device paths")
   cmd = ['gnt-instance', 'info', instance['name']]
   output = qa_utils.GetCommandOutput(master['primary'], sq(cmd))
-  pattern = (r'\s+-\s+type:\s+drbd,\s+.*$'
+  pattern = (r'\s+-\s+sd[a-z]+,\s+type:\s+drbd8?,\s+.*$'
              r'\s+primary:\s+(/dev/drbd\d+)\s+')
   drbddevs = re.findall(pattern, output, re.M)
+  print drbddevs
 
   halted_disks = []
   try:
-    # Deactivate disks
+    print qa_utils.FormatInfo("Deactivating disks")
     cmds = []
     for name in node2disk[[node2_full, node_full][int(onmaster)]]:
       halted_disks.append(name)
@@ -303,7 +307,8 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
     AssertEqual(StartSSH([node2, node][int(onmaster)]['primary'],
                          ' && '.join(cmds)).wait(), 0)
 
-    # Write something to the disks and give some time to notice the problem
+    print qa_utils.FormatInfo("Write to disks and give some time to notice"
+                              " to notice the problem")
     cmds = []
     for disk in devpath:
       cmds.append(sq(["dd", "count=1", "bs=512", "conv=notrunc",
@@ -312,16 +317,16 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
       AssertEqual(StartSSH(node['primary'], ' && '.join(cmds)).wait(), 0)
       time.sleep(3)
 
+    print qa_utils.FormatInfo("Debugging info")
     for name in drbddevs:
       cmd = ['drbdsetup', name, 'show']
       AssertEqual(StartSSH(node['primary'], sq(cmd)).wait(), 0)
 
-    # For manual checks
     cmd = ['gnt-instance', 'info', instance['name']]
     AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
 
   finally:
-    # Activate disks again
+    print qa_utils.FormatInfo("Activating disks again")
     cmds = []
     for name in halted_disks:
       cmds.append(sq(["echo", "running"]) + " >%s" % _GetDiskStatePath(name))
@@ -337,15 +342,19 @@ def _TestInstanceDiskFailure(instance, node, node2, onmaster):
       cmd = ['drbdsetup', name, 'disconnect']
       AssertEqual(StartSSH(node2['primary'], sq(cmd)).wait(), 0)
 
-  # Make sure disks are up again
-  #cmd = ['gnt-instance', 'activate-disks', instance['name']]
-  #AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+  # TODO
+  #cmd = ['vgs']
+  #AssertEqual(StartSSH([node2, node][int(onmaster)]['primary'],
+  #                     sq(cmd)).wait(), 0)
 
-  # Restart instance
+  print qa_utils.FormatInfo("Making sure disks are up again")
+  cmd = ['gnt-instance', 'replace-disks', instance['name']]
+  AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
+
+  print qa_utils.FormatInfo("Restarting instance")
   cmd = ['gnt-instance', 'shutdown', instance['name']]
   AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
 
-  #cmd = ['gnt-instance', 'startup', '--force', instance['name']]
   cmd = ['gnt-instance', 'startup', instance['name']]
   AssertEqual(StartSSH(master['primary'], sq(cmd)).wait(), 0)
 
