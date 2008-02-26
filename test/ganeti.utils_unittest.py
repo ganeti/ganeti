@@ -33,6 +33,7 @@ import shutil
 import re
 
 import ganeti
+import testutils
 from ganeti import constants
 from ganeti import utils
 from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
@@ -41,18 +42,6 @@ from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry
 from ganeti.errors import LockError, UnitParseError
-
-
-class GanetiTestCase(unittest.TestCase):
-  def assertFileContent(self, file_name, content):
-    """Checks the content of a file.
-
-    """
-    handle = open(file_name, 'r')
-    try:
-      self.assertEqual(handle.read(), content)
-    finally:
-      handle.close()
 
 
 class TestIsProcessAlive(unittest.TestCase):
@@ -362,7 +351,7 @@ class TestParseUnit(unittest.TestCase):
       self.assertRaises(UnitParseError, ParseUnit, '1,3' + suffix)
 
 
-class TestSshKeys(GanetiTestCase):
+class TestSshKeys(testutils.GanetiTestCase):
   """Test case for the AddAuthorizedKey function"""
 
   KEY_A = 'ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a'
@@ -432,7 +421,7 @@ class TestSshKeys(GanetiTestCase):
       " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
 
 
-class TestEtcHosts(GanetiTestCase):
+class TestEtcHosts(testutils.GanetiTestCase):
   """Test functions modifying /etc/hosts"""
 
   def setUp(self):
