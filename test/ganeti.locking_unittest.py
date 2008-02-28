@@ -230,6 +230,188 @@ class TestSharedLock(unittest.TestCase):
     self.assertEqual(self.done.get(True, 1), 'ERR')
 
 
+class TestLockSet(unittest.TestCase):
+  """LockSet tests"""
+
+  def setUp(self):
+    self.resources = ['one', 'two', 'three']
+    self.ls = locking.LockSet(self.resources)
+    # helper threads use the 'done' queue to tell the master they finished.
+    self.done = Queue.Queue(0)
+
+  def testResources(self):
+    self.assertEquals(self.ls._names(), set(self.resources))
+    newls = locking.LockSet()
+    self.assertEquals(newls._names(), set())
+
+  def testAcquireRelease(self):
+    self.ls.acquire('one')
+    self.assertEquals(self.ls._list_owned(), set(['one']))
+    self.ls.release()
+    self.assertEquals(self.ls._list_owned(), set())
+    self.ls.acquire(['one'])
+    self.assertEquals(self.ls._list_owned(), set(['one']))
+    self.ls.release()
+    self.assertEquals(self.ls._list_owned(), set())
+    self.ls.acquire(['one', 'two', 'three'])
+    self.assertEquals(self.ls._list_owned(), set(['one', 'two', 'three']))
+    self.ls.release('one')
+    self.assertEquals(self.ls._list_owned(), set(['two', 'three']))
+    self.ls.release(['three'])
+    self.assertEquals(self.ls._list_owned(), set(['two']))
+    self.ls.release()
+    self.assertEquals(self.ls._list_owned(), set())
+    self.ls.acquire(['one', 'three'])
+    self.assertEquals(self.ls._list_owned(), set(['one', 'three']))
+    self.ls.release()
+    self.assertEquals(self.ls._list_owned(), set())
+
+  def testNoDoubleAcquire(self):
+    self.ls.acquire('one')
+    self.assertRaises(AssertionError, self.ls.acquire, 'one')
+    self.assertRaises(AssertionError, self.ls.acquire, ['two'])
+    self.assertRaises(AssertionError, self.ls.acquire, ['two', 'three'])
+    self.ls.release()
+    self.ls.acquire(['one', 'three'])
+    self.ls.release('one')
+    self.assertRaises(AssertionError, self.ls.acquire, ['two'])
+    self.ls.release('three')
+
+  def testNoWrongRelease(self):
+    self.assertRaises(AssertionError, self.ls.release)
+    self.ls.acquire('one')
+    self.assertRaises(AssertionError, self.ls.release, 'two')
+
+  def testAddRemove(self):
+    self.ls.add('four')
+    self.assertEquals(self.ls._list_owned(), set())
+    self.assert_('four' in self.ls._names())
+    self.ls.add(['five', 'six', 'seven'], acquired=1)
+    self.assert_('five' in self.ls._names())
+    self.assert_('six' in self.ls._names())
+    self.assert_('seven' in self.ls._names())
+    self.assertEquals(self.ls._list_owned(), set(['five', 'six', 'seven']))
+    self.ls.remove(['five', 'six'])
+    self.assert_('five' not in self.ls._names())
+    self.assert_('six' not in self.ls._names())
+    self.assertEquals(self.ls._list_owned(), set(['seven']))
+    self.ls.add('eight', acquired=1, shared=1)
+    self.assert_('eight' in self.ls._names())
+    self.assertEquals(self.ls._list_owned(), set(['seven', 'eight']))
+    self.ls.remove('seven')
+    self.assert_('seven' not in self.ls._names())
+    self.assertEquals(self.ls._list_owned(), set(['eight']))
+    self.ls.release()
+    self.ls.remove(['two'])
+    self.assert_('two' not in self.ls._names())
+    self.ls.acquire('three')
+    self.ls.remove(['three'])
+    self.assert_('three' not in self.ls._names())
+    self.assertEquals(self.ls.remove('three'), ['three'])
+    self.assertEquals(self.ls.remove(['one', 'three', 'six']), ['three', 'six'])
+    self.assert_('one' not in self.ls._names())
+
+  def testRemoveNonBlocking(self):
+    self.assertRaises(NotImplementedError, self.ls.remove, 'one', blocking=0)
+    self.ls.acquire('one')
+    self.assertEquals(self.ls.remove('one', blocking=0), [])
+    self.ls.acquire(['two', 'three'])
+    self.assertEquals(self.ls.remove(['two', 'three'], blocking=0), [])
+
+  def testNoDoubleAdd(self):
+    self.assertRaises(errors.LockError, self.ls.add, 'two')
+    self.ls.add('four')
+    self.assertRaises(errors.LockError, self.ls.add, 'four')
+
+  def testNoWrongRemoves(self):
+    self.ls.acquire(['one', 'three'], shared=1)
+    # Cannot remove 'two' while holding something which is not a superset
+    self.assertRaises(AssertionError, self.ls.remove, 'two')
+    # Cannot remove 'three' as we are sharing it
+    self.assertRaises(AssertionError, self.ls.remove, 'three')
+
+  def _doLockSet(self, set, shared):
+    try:
+      self.ls.acquire(set, shared=shared)
+      self.done.put('DONE')
+      self.ls.release()
+    except errors.LockError:
+      self.done.put('ERR')
+
+  def _doRemoveSet(self, set):
+    self.done.put(self.ls.remove(set))
+
+  def testConcurrentSharedAcquire(self):
+    self.ls.acquire(['one', 'two'], shared=1)
+    Thread(target=self._doLockSet, args=(['one', 'two'], 1)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    Thread(target=self._doLockSet, args=(['one', 'two', 'three'], 1)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    Thread(target=self._doLockSet, args=('three', 1)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    Thread(target=self._doLockSet, args=(['one', 'two'], 0)).start()
+    Thread(target=self._doLockSet, args=(['two', 'three'], 0)).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+
+  def testConcurrentExclusiveAcquire(self):
+    self.ls.acquire(['one', 'two'])
+    Thread(target=self._doLockSet, args=('three', 1)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    Thread(target=self._doLockSet, args=('three', 0)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    Thread(target=self._doLockSet, args=(['one', 'two'], 0)).start()
+    Thread(target=self._doLockSet, args=(['one', 'two'], 1)).start()
+    Thread(target=self._doLockSet, args=('one', 0)).start()
+    Thread(target=self._doLockSet, args=('one', 1)).start()
+    Thread(target=self._doLockSet, args=(['two', 'three'], 0)).start()
+    Thread(target=self._doLockSet, args=(['two', 'three'], 1)).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+
+  def testConcurrentRemove(self):
+    self.ls.add('four')
+    self.ls.acquire(['one', 'two', 'four'])
+    Thread(target=self._doLockSet, args=(['one', 'four'], 0)).start()
+    Thread(target=self._doLockSet, args=(['one', 'four'], 1)).start()
+    Thread(target=self._doLockSet, args=(['one', 'two'], 0)).start()
+    Thread(target=self._doLockSet, args=(['one', 'two'], 1)).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.ls.remove('one')
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.assertEqual(self.done.get(True, 1), 'ERR')
+    self.ls.add(['five', 'six'], acquired=1)
+    Thread(target=self._doLockSet, args=(['three', 'six'], 1)).start()
+    Thread(target=self._doLockSet, args=(['three', 'six'], 0)).start()
+    Thread(target=self._doLockSet, args=(['four', 'six'], 1)).start()
+    Thread(target=self._doLockSet, args=(['four', 'six'], 0)).start()
+    self.ls.remove('five')
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.ls.acquire(['three', 'four'])
+    Thread(target=self._doRemoveSet, args=(['four', 'six'], )).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.ls.remove('four')
+    self.assertEqual(self.done.get(True, 1), ['four'])
+    Thread(target=self._doRemoveSet, args=(['two'])).start()
+    self.assertEqual(self.done.get(True, 1), [])
+    self.ls.release()
+
+
 if __name__ == '__main__':
   unittest.main()
   #suite = unittest.TestLoader().loadTestsFromTestCase(TestSharedLock)
