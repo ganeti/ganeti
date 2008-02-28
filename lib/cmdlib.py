@@ -510,8 +510,8 @@ class LUInitCluster(LogicalUnit):
 
     if hostname.ip.startswith("127."):
       raise errors.OpPrereqError("This host's IP resolves to the private"
-                                 " range (%s). Please fix DNS or /etc/hosts." %
-                                 (hostname.ip,))
+                                 " range (%s). Please fix DNS or %s." %
+                                 (hostname.ip, constants.ETC_HOSTS))
 
     self.clustername = clustername = utils.HostInfo(self.op.cluster_name)
 
@@ -1608,7 +1608,7 @@ class LUAddNode(LogicalUnit):
       dist_nodes.remove(myself.name)
 
     logger.Debug("Copying hosts and known_hosts to all nodes")
-    for fname in ("/etc/hosts", constants.SSH_KNOWN_HOSTS_FILE):
+    for fname in (constants.ETC_HOSTS, constants.SSH_KNOWN_HOSTS_FILE):
       result = rpc.call_upload_file(dist_nodes, fname)
       for to_node in dist_nodes:
         if not result[to_node]:
