@@ -646,10 +646,12 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
   """Creates a block device for an instance.
 
   Args:
-   bdev: a ganeti.objects.Disk object
-   size: the size of the physical underlying devices
-   do_open: if the device should be `Assemble()`-d and
-            `Open()`-ed after creation
+   disk: a ganeti.objects.Disk object
+   size: the size of the physical underlying device
+   owner: a string with the name of the instance
+   on_primary: a boolean indicating if it will be created on the primary
+     node or not
+   info: string 
 
   Returns:
     the new unique_id of the device (this can sometime be
@@ -1539,7 +1541,7 @@ class HooksRunner(object):
 
 
 class DevCacheManager(object):
-  """Simple class for managing a chache of block device information.
+  """Simple class for managing a cache of block device information.
 
   """
   _DEV_PREFIX = "/dev/"

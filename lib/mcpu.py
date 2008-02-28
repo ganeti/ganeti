@@ -104,8 +104,7 @@ class Processor(object):
     """Execute an opcode.
 
     Args:
-     - cfg: the configuration in which we execute this opcode
-     - opcode: the opcode to be executed
+      op: the opcode to be executed
 
     """
     if not isinstance(op, opcodes.OpCode):
