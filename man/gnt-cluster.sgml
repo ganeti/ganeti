@@ -195,6 +195,10 @@
         <command>init</command>
         <arg>-s <replaceable>secondary_ip</replaceable></arg>
         <arg>-b <replaceable>bridge</replaceable></arg>
+        <arg>-t <replaceable>hypervisor-type</replaceable></arg>
+        <arg>-g <replaceable>vg-name</replaceable></arg>
+        <arg>--master-netdev <replaceable>vg-name</replaceable></arg>
+        <arg>-m <replaceable>mac-prefix</replaceable></arg>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -208,7 +212,8 @@
         Note that the <replaceable>clustername</replaceable> is not
         any random name. It has to be resolvable to an IP address
         using DNS, and it is best if you give the fully-qualified
-        domain name.
+        domain name. Also it is advisable to reserve a per-cluster
+        unique name, and not try to reuse one of the nodes' names.
       </para>
 
       <para>
@@ -226,7 +231,6 @@
 
       <para>
         Note that for Ganeti it doesn't matter if the secondary
-
         network is actually a separate physical network, or is done
         using tunneling, etc. For performance reasons, it's
         recommended to use a separate network, of course.
@@ -236,6 +240,7 @@
         The <option>-b</option> option specifies the default bridge
         for instances.
       </para>
+
       <para>
         The <option>-t</option> allows to set the hypervisor type of
         the cluster. Available hypervisor types are: xen-3.0, fake and
@@ -247,6 +252,27 @@
         <filename>/srv/ganeti/iso/hvm-install.iso</filename> because
         instances created by the experimental HVM support require them.
       </para>
+
+      <para>
+        The <option>-g</option> option will let you specify a volume group
+        different than xenvg for ganeti to use when creating instance disks.
+        This volume group must have the same name on all nodes.
+      </para>
+
+      <para>
+        The <option>--master-netdev</option> option is useful for specifying a
+        different interface on which the master will activate its IP address.
+        It's important that all nodes have this interface because you'll need
+        it for a master failover.
+      </para>
+
+      <para>
+        The <option>-m</option> option will let you specify a three byte prefix
+        under which the virtual MAC addresses of your instances will be
+        generated. The prefix must be specified in the format XX:XX:XX and the
+        default is aa:00:00.
+      </para>
+
     </refsect2>
 
     <refsect2>
