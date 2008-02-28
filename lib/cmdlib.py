@@ -2315,6 +2315,11 @@ class LURenameInstance(LogicalUnit):
     name_info = utils.HostInfo(self.op.new_name)
 
     self.op.new_name = new_name = name_info.name
+    instance_list = self.cfg.GetInstanceList()
+    if new_name in instance_list:
+      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
+                                 instance_name)
+
     if not getattr(self.op, "ignore_ip", False):
       command = ["fping", "-q", name_info.ip]
       result = utils.RunCmd(command)
