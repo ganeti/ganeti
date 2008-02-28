@@ -2746,9 +2746,9 @@ def _GenerateDiskTemplate(cfg, template_name,
   #TODO: compute space requirements
 
   vgname = cfg.GetVGName()
-  if template_name == "diskless":
+  if template_name == constants.DT_DISKLESS:
     disks = []
-  elif template_name == "plain":
+  elif template_name == constants.DT_PLAIN:
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
 
@@ -2760,7 +2760,7 @@ def _GenerateDiskTemplate(cfg, template_name,
                            logical_id=(vgname, names[1]),
                            iv_name = "sdb")
     disks = [sda_dev, sdb_dev]
-  elif template_name == "local_raid1":
+  elif template_name == constants.DT_LOCAL_RAID1:
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
 
