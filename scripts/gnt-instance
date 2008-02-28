@@ -820,7 +820,7 @@ commands = {
            " list is (in order): name, os, pnode, status,"
            " oper_ram."),
   'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, os_opt],
-                "[-f] <instance>", "Reinstall the instance"),
+                "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (RemoveInstance, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
               make_option("--ignore-failures", dest="ignore_failures",
