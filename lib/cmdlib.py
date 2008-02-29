@@ -632,6 +632,8 @@ class LUDestroyCluster(NoHooksLU):
 
     """
     master = self.sstore.GetMasterNode()
+    if not rpc.call_node_stop_master(master):
+      raise errors.OpExecError("Could not disable the master role")
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
     utils.CreateBackup(priv_key)
     utils.CreateBackup(pub_key)

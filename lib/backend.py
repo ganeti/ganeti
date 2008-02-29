@@ -64,9 +64,7 @@ def StartMaster():
 def StopMaster():
   """Deactivate this node as master.
 
-  This does two things:
-    - run the master stop script
-    - remove link to master cron script.
+  This runs the master stop script.
 
   """
   result = utils.RunCmd([constants.MASTER_SCRIPT, "-d", "stop"])
