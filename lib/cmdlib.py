@@ -972,7 +972,7 @@ class LURenameCluster(LogicalUnit):
 
     """
     env = {
-      "OP_TARGET": self.op.sstore.GetClusterName(),
+      "OP_TARGET": self.sstore.GetClusterName(),
       "NEW_NAME": self.op.name,
       }
     mn = self.sstore.GetMasterNode()
