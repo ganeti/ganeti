@@ -76,6 +76,37 @@ def TestClusterInit():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('cluster-rename')
+def TestClusterRename():
+  """gnt-cluster rename"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-cluster', 'rename', '-f']
+
+  original_name = qa_config.get('name')
+  rename_target = qa_config.get('rename', None)
+  if rename_target is None:
+    print qa_utils.FormatError('"rename" entry is missing')
+    return
+
+  cmd_1 = cmd + [rename_target]
+  cmd_2 = cmd + [original_name]
+
+  cmd_verify = ['gnt-cluster', 'verify']
+
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd_1)).wait(), 0)
+
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd_verify)).wait(), 0)
+
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd_2)).wait(), 0)
+
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd_verify)).wait(), 0)
+
+
 @qa_utils.DefineHook('cluster-verify')
 def TestClusterVerify():
   """gnt-cluster verify"""

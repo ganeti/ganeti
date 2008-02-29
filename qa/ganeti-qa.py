@@ -91,6 +91,9 @@ def RunClusterTests():
   if qa_config.TestEnabled('cluster-verify'):
     RunTest(qa_cluster.TestClusterVerify)
 
+  if qa_config.TestEnabled('cluster-rename'):
+    RunTest(qa_cluster.TestClusterRename)
+
   if qa_config.TestEnabled('cluster-info'):
     RunTest(qa_cluster.TestClusterVersion)
     RunTest(qa_cluster.TestClusterInfo)

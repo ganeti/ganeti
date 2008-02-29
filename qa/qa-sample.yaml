@@ -1,5 +1,6 @@
 # Cluster name
 name: xen-test
+rename: xen-test-rename
 hypervisor-type: xen-3.0
 
 # System to use
@@ -36,6 +37,7 @@ tests:
   cluster-copyfile: True
   cluster-master-failover: True
   cluster-destroy: True
+  cluster-rename: True
 
   node-info: True
   node-volumes: True
