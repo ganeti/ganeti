@@ -235,7 +235,7 @@ class TestLockSet(unittest.TestCase):
 
   def setUp(self):
     self.resources = ['one', 'two', 'three']
-    self.ls = locking.LockSet(self.resources)
+    self.ls = locking.LockSet(members=self.resources)
     # helper threads use the 'done' queue to tell the master they finished.
     self.done = Queue.Queue(0)
 
@@ -496,7 +496,8 @@ class TestGanetiLockManager(unittest.TestCase):
   def testLockNames(self):
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(self.nodes))
-    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set(self.instances))
+    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),
+                     set(self.instances))
     self.assertEqual(self.GL._names(locking.LEVEL_CONFIG), set(['config']))
 
   def testInitAndResources(self):
@@ -518,7 +519,8 @@ class TestGanetiLockManager(unittest.TestCase):
     self.GL = locking.GanetiLockManager(instances=self.instances)
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
-    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set(self.instances))
+    self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),
+                     set(self.instances))
     self.assertEqual(self.GL._names(locking.LEVEL_CONFIG), set(['config']))
 
   def testAcquireRelease(self):

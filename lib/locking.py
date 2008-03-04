@@ -93,13 +93,13 @@ class SharedLock:
     """
     self.__lock.acquire()
     try:
-      result = self.__is_owned(shared)
+      result = self.__is_owned(shared=shared)
     finally:
       self.__lock.release()
 
     return result
 
-  def __wait(self,c):
+  def __wait(self, c):
     """Wait on the given condition, and raise an exception if the current lock
     is declared deleted in the meantime.
 
@@ -132,7 +132,6 @@ class SharedLock:
       self.__exc = threading.currentThread()
     finally:
       self.__nwait_exc -= 1
-
 
   def acquire(self, blocking=1, shared=0):
     """Acquire a shared lock.
@@ -210,8 +209,8 @@ class SharedLock:
 
         # If there are shared holders waiting there *must* be an exclusive holder
         # waiting as well; otherwise what were they waiting for?
-        assert (self.__nwait_shr == 0 or self.__nwait_exc > 0,
-                "Lock sharers waiting while no exclusive is queueing")
+        assert self.__nwait_shr == 0 or self.__nwait_exc > 0, \
+               "Lock sharers waiting while no exclusive is queueing"
 
         # If there are no more shared holders and some exclusive holders are
         # waiting let's wake one up.
@@ -337,6 +336,7 @@ class LockSet:
     """Return a copy of the current set of elements.
 
     Used only for debugging purposes.
+
     """
     self.__lock.acquire(shared=1)
     try:
@@ -460,7 +460,6 @@ class LockSet:
              (defaults to all the locks acquired at that level).
 
     """
-
     assert self._is_owned(), "release() on lock set while not owner"
 
     # Support passing in a single resource to release rather than many
@@ -812,5 +811,4 @@ class GanetiLockManager:
     assert self._is_owned(level) or not self._upper_owned(level), (
            "Cannot remove locks at a level while not owning it or"
            " owning some at a greater one")
-    return self.__keyring[level].remove(names, blocking)
-
+    return self.__keyring[level].remove(names, blocking=blocking)
