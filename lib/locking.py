@@ -389,6 +389,8 @@ class LockSet:
       except (KeyError):
         raise errors.LockError('non-existing lock in set (%s)' % lname)
 
+    # This will hold the locknames we effectively acquired.
+    acquired = set()
     # Now acquire_list contains a sorted list of resources and locks we want.
     # In order to get them we loop on this (private) list and acquire() them.
     # We gave no real guarantee they will still exist till this is done but
@@ -399,6 +401,7 @@ class LockSet:
         try:
           # now the lock cannot be deleted, we have it!
           self._add_owned(lname)
+          acquired.add(lname)
         except:
           # We shouldn't have problems adding the lock to the owners list, but
           # if we did we'll try to release this lock and re-raise exception.
@@ -413,7 +416,7 @@ class LockSet:
           self._del_owned(lname)
         raise errors.LockError('non-existing lock in set (%s)' % name_fail)
 
-    return True
+    return acquired
 
   def release(self, names=None):
     """Release a set of resource locks, at the same level.

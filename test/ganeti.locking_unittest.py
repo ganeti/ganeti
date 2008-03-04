@@ -245,11 +245,11 @@ class TestLockSet(unittest.TestCase):
     self.assertEquals(newls._names(), set())
 
   def testAcquireRelease(self):
-    self.ls.acquire('one')
+    self.assert_(self.ls.acquire('one'))
     self.assertEquals(self.ls._list_owned(), set(['one']))
     self.ls.release()
     self.assertEquals(self.ls._list_owned(), set())
-    self.ls.acquire(['one'])
+    self.assertEquals(self.ls.acquire(['one']), set(['one']))
     self.assertEquals(self.ls._list_owned(), set(['one']))
     self.ls.release()
     self.assertEquals(self.ls._list_owned(), set())
@@ -261,7 +261,7 @@ class TestLockSet(unittest.TestCase):
     self.assertEquals(self.ls._list_owned(), set(['two']))
     self.ls.release()
     self.assertEquals(self.ls._list_owned(), set())
-    self.ls.acquire(['one', 'three'])
+    self.assertEquals(self.ls.acquire(['one', 'three']), set(['one', 'three']))
     self.assertEquals(self.ls._list_owned(), set(['one', 'three']))
     self.ls.release()
     self.assertEquals(self.ls._list_owned(), set())
