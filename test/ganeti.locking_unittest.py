@@ -331,9 +331,30 @@ class TestLockSet(unittest.TestCase):
     # Cannot remove 'three' as we are sharing it
     self.assertRaises(AssertionError, self.ls.remove, 'three')
 
+  def testAcquireSetLock(self):
+    # acquire the set-lock exclusively
+    self.assertEquals(self.ls.acquire(None), set(['one', 'two', 'three']))
+    # I can still add/remove elements...
+    self.assertEquals(self.ls.remove(['two', 'three']), ['two', 'three'])
+    self.assert_(self.ls.add('six'))
+    self.ls.release()
+    # share the set-lock
+    self.assertEquals(self.ls.acquire(None, shared=1), set(['one', 'six']))
+    # adding new elements is not possible
+    self.assertRaises(AssertionError, self.ls.add, 'five')
+    self.ls.release()
+
   def _doLockSet(self, set, shared):
     try:
       self.ls.acquire(set, shared=shared)
+      self.done.put('DONE')
+      self.ls.release()
+    except errors.LockError:
+      self.done.put('ERR')
+
+  def _doAddSet(self, set):
+    try:
+      self.ls.add(set, acquired=1)
       self.done.put('DONE')
       self.ls.release()
     except errors.LockError:
@@ -411,6 +432,42 @@ class TestLockSet(unittest.TestCase):
     Thread(target=self._doRemoveSet, args=(['two'])).start()
     self.assertEqual(self.done.get(True, 1), ['two'])
     self.ls.release()
+
+  def testConcurrentSharedSetLock(self):
+    # share the set-lock...
+    self.ls.acquire(None, shared=1)
+    # ...another thread can share it too
+    Thread(target=self._doLockSet, args=(None, 1)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    # ...or just share some elements
+    Thread(target=self._doLockSet, args=(['one', 'three'], 1)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    # ...but not add new ones or remove any
+    Thread(target=self._doAddSet, args=(['nine'])).start()
+    Thread(target=self._doRemoveSet, args=(['two'], )).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    # this just releases the set-lock
+    self.ls.release([])
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    # release the lock on the actual elements so remove() can proceed too
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), ['two'])
+
+  def testConcurrentExclusiveSetLock(self):
+    # acquire the set-lock...
+    self.ls.acquire(None, shared=0)
+    # ...no one can do anything else
+    Thread(target=self._doLockSet, args=(None, 1)).start()
+    Thread(target=self._doLockSet, args=(None, 0)).start()
+    Thread(target=self._doLockSet, args=(['three'], 0)).start()
+    Thread(target=self._doLockSet, args=(['two'], 1)).start()
+    Thread(target=self._doAddSet, args=(['nine'])).start()
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
 
 
 class TestGanetiLockManager(unittest.TestCase):

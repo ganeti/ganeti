@@ -372,11 +372,25 @@ class LockSet:
     # Check we don't already own locks at this level
     assert not self._is_owned(), "Cannot acquire locks in the same set twice"
 
+    if names is None:
+      # If no names are given acquire the whole set by not letting new names
+      # being added before we release, and getting the current list of names.
+      # Some of them may then be deleted later, but we'll cope with this.
+      #
+      # We'd like to acquire this lock in a shared way, as it's nice if
+      # everybody else can use the instances at the same time. If are acquiring
+      # them exclusively though they won't be able to do this anyway, though,
+      # so we'll get the list lock exclusively as well in order to be able to
+      # do add() on the set while owning it.
+      self.__lock.acquire(shared=shared)
+
     try:
       # Support passing in a single resource to acquire rather than many
       if isinstance(names, basestring):
         names = [names]
       else:
+        if names is None:
+          names = self.__names()
         names.sort()
 
       acquire_list = []
@@ -388,7 +402,12 @@ class LockSet:
           lock = self.__lockdict[lname] # raises KeyError if the lock is not there
           acquire_list.append((lname, lock))
         except (KeyError):
-          raise errors.LockError('non-existing lock in set (%s)' % lname)
+          if self.__lock._is_owned():
+            # We are acquiring all the set, it doesn't matter if this particular
+            # element is not there anymore.
+            continue
+          else:
+            raise errors.LockError('non-existing lock in set (%s)' % lname)
 
       # This will hold the locknames we effectively acquired.
       acquired = set()
@@ -411,13 +430,21 @@ class LockSet:
             raise
 
         except (errors.LockError):
-          name_fail = lname
-          for lname in self._list_owned():
-            self.__lockdict[lname].release()
-            self._del_owned(lname)
-          raise errors.LockError('non-existing lock in set (%s)' % name_fail)
+          if self.__lock._is_owned():
+            # We are acquiring all the set, it doesn't matter if this particular
+            # element is not there anymore.
+            continue
+          else:
+            name_fail = lname
+            for lname in self._list_owned():
+              self.__lockdict[lname].release()
+              self._del_owned(lname)
+            raise errors.LockError('non-existing lock in set (%s)' % name_fail)
 
     except:
+      # If something went wrong and we had the set-lock let's release it...
+      if self.__lock._is_owned():
+        self.__lock.release()
       raise
 
     return acquired
@@ -448,6 +475,11 @@ class LockSet:
                "release() on unheld resources %s" %
                names.difference(self._list_owned()))
 
+    # First of all let's release the "all elements" lock, if set.
+    # After this 'add' can work again
+    if self.__lock._is_owned():
+      self.__lock.release()
+
     for lockname in names:
       # If we are sure the lock doesn't leave __lockdict without being
       # exclusively held we can do this...
@@ -463,13 +495,21 @@ class LockSet:
       shared: is the pre-acquisition shared?
 
     """
+
+    assert not self.__lock._is_owned(shared=1), (
+           "Cannot add new elements while sharing the set-lock")
+
     # Support passing in a single resource to add rather than many
     if isinstance(names, basestring):
       names = [names]
 
-    # Acquire the internal lock in an exclusive way, so there cannot be a
-    # conflicting add()
-    self.__lock.acquire()
+    # If we don't already own the set-level lock acquire it in an exclusive way
+    # we'll get it and note we need to release it later.
+    release_lock = False
+    if not self.__lock._is_owned():
+      release_lock = True
+      self.__lock.acquire()
+
     try:
       invalid_names = set(self.__names()).intersection(names)
       if invalid_names:
@@ -499,7 +539,9 @@ class LockSet:
         self.__lockdict[lockname] = lock
 
     finally:
-      self.__lock.release()
+      # Only release __lock if we were not holding it previously.
+      if release_lock:
+        self.__lock.release()
 
     return True
 
