@@ -331,7 +331,7 @@ class LockSet:
     result after releasing the lock.
 
     """
-    return set(self.__lockdict.keys())
+    return self.__lockdict.keys()
 
   def _names(self):
     """Return a copy of the current set of elements.
@@ -343,7 +343,7 @@ class LockSet:
       result = self.__names()
     finally:
       self.__lock.release()
-    return result
+    return set(result)
 
   def acquire(self, names, blocking=1, shared=0):
     """Acquire a set of resource locks.
@@ -467,7 +467,7 @@ class LockSet:
     # conflicting add()
     self.__lock.acquire()
     try:
-      invalid_names = self.__names().intersection(names)
+      invalid_names = set(self.__names()).intersection(names)
       if invalid_names:
         # This must be an explicit raise, not an assert, because assert is
         # turned off when using optimization, and this can happen because of
