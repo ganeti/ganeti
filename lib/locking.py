@@ -382,19 +382,19 @@ class LockSet:
     # First we look the locks up on __lockdict. We have no way of being sure
     # they will still be there after, but this makes it a lot faster should
     # just one of them be the already wrong
-    try:
-      for lname in names:
+    for lname in names:
+      try:
         lock = self.__lockdict[lname] # raises KeyError if the lock is not there
         acquire_list.append((lname, lock))
-    except (KeyError):
-      raise errors.LockError('non-existing lock in set (%s)' % lname)
+      except (KeyError):
+        raise errors.LockError('non-existing lock in set (%s)' % lname)
 
     # Now acquire_list contains a sorted list of resources and locks we want.
     # In order to get them we loop on this (private) list and acquire() them.
     # We gave no real guarantee they will still exist till this is done but
     # .acquire() itself is safe and will alert us if the lock gets deleted.
-    try:
-      for (lname, lock) in acquire_list:
+    for (lname, lock) in acquire_list:
+      try:
         lock.acquire(shared=shared) # raises LockError if the lock is deleted
         try:
           # now the lock cannot be deleted, we have it!
@@ -406,12 +406,12 @@ class LockSet:
           lock.release()
           raise
 
-    except (errors.LockError):
-      name_fail = lname
-      for lname in self._list_owned():
-        self.__lockdict[lname].release()
-        self._del_owned(lname)
-      raise errors.LockError('non-existing lock in set (%s)' % name_fail)
+      except (errors.LockError):
+        name_fail = lname
+        for lname in self._list_owned():
+          self.__lockdict[lname].release()
+          self._del_owned(lname)
+        raise errors.LockError('non-existing lock in set (%s)' % name_fail)
 
     return True
 
