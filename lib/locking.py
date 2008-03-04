@@ -297,18 +297,27 @@ class LockSet:
     """Is the current thread a current level owner?"""
     return threading.currentThread() in self.__owners
 
-  def _add_owned(self, name):
+  def _add_owned(self, name=None):
     """Note the current thread owns the given lock"""
-    if self._is_owned():
-      self.__owners[threading.currentThread()].add(name)
+    if name is None:
+      if not self._is_owned():
+        self.__owners[threading.currentThread()] = set()
     else:
-       self.__owners[threading.currentThread()] = set([name])
+      if self._is_owned():
+        self.__owners[threading.currentThread()].add(name)
+      else:
+        self.__owners[threading.currentThread()] = set([name])
 
-  def _del_owned(self, name):
+
+  def _del_owned(self, name=None):
     """Note the current thread owns the given lock"""
-    self.__owners[threading.currentThread()].remove(name)
 
-    if not self.__owners[threading.currentThread()]:
+    if name is not None:
+      self.__owners[threading.currentThread()].remove(name)
+
+    # Only remove the key if we don't hold the set-lock as well
+    if (not self.__lock._is_owned() and
+        not self.__owners[threading.currentThread()]):
       del self.__owners[threading.currentThread()]
 
   def _list_owned(self):
@@ -378,14 +387,22 @@ class LockSet:
       # so we'll get the list lock exclusively as well in order to be able to
       # do add() on the set while owning it.
       self.__lock.acquire(shared=shared)
+      try:
+        # note we own the set-lock
+        self._add_owned()
+        names = self.__names()
+      except:
+        # We shouldn't have problems adding the lock to the owners list, but
+        # if we did we'll try to release this lock and re-raise exception.
+        # Of course something is going to be really wrong, after this.
+        self.__lock.release()
+        raise
 
     try:
       # Support passing in a single resource to acquire rather than many
       if isinstance(names, basestring):
         names = [names]
       else:
-        if names is None:
-          names = self.__names()
         names.sort()
 
       acquire_list = []
@@ -414,7 +431,7 @@ class LockSet:
         try:
           lock.acquire(shared=shared) # raises LockError if the lock is deleted
           # now the lock cannot be deleted, we have it!
-          self._add_owned(lname)
+          self._add_owned(name=lname)
           acquired.add(lname)
         except (errors.LockError):
           if self.__lock._is_owned():
@@ -425,7 +442,7 @@ class LockSet:
             name_fail = lname
             for lname in self._list_owned():
               self.__lockdict[lname].release()
-              self._del_owned(lname)
+              self._del_owned(name=lname)
             raise errors.LockError('non-existing lock in set (%s)' % name_fail)
         except:
           # We shouldn't have problems adding the lock to the owners list, but
@@ -472,12 +489,13 @@ class LockSet:
     # After this 'add' can work again
     if self.__lock._is_owned():
       self.__lock.release()
+      self._del_owned()
 
     for lockname in names:
       # If we are sure the lock doesn't leave __lockdict without being
       # exclusively held we can do this...
       self.__lockdict[lockname].release()
-      self._del_owned(lockname)
+      self._del_owned(name=lockname)
 
   def add(self, names, acquired=0, shared=0):
     """Add a new set of elements to the set
@@ -518,7 +536,7 @@ class LockSet:
           lock.acquire(shared=shared)
           # now the lock cannot be deleted, we have it!
           try:
-            self._add_owned(lockname)
+            self._add_owned(name=lockname)
           except:
             # We shouldn't have problems adding the lock to the owners list,
             # but if we did we'll try to release this lock and re-raise
@@ -594,7 +612,7 @@ class LockSet:
         del self.__lockdict[lname]
         # And let's remove it from our private list if we owned it.
         if self._is_owned():
-          self._del_owned(lname)
+          self._del_owned(name=lname)
 
     return removed
 

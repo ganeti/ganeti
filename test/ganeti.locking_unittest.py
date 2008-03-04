@@ -470,6 +470,32 @@ class TestLockSet(unittest.TestCase):
     self.assertEqual(self.done.get(True, 1), 'DONE')
     self.assertEqual(self.done.get(True, 1), 'DONE')
 
+  def testEmptyLockSet(self):
+    # get the set-lock
+    self.assertEqual(self.ls.acquire(None), set(['one', 'two', 'three']))
+    # now empty it...
+    self.ls.remove(['one', 'two', 'three'])
+    # and adds/locks by another thread still wait
+    Thread(target=self._doAddSet, args=(['nine'])).start()
+    Thread(target=self._doLockSet, args=(None, 1)).start()
+    Thread(target=self._doLockSet, args=(None, 0)).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    # empty it again...
+    self.assertEqual(self.ls.remove(['nine']), ['nine'])
+    # now share it...
+    self.assertEqual(self.ls.acquire(None, shared=1), set())
+    # other sharers can go, adds still wait
+    Thread(target=self._doLockSet, args=(None, 1)).start()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+    Thread(target=self._doAddSet, args=(['nine'])).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
+    self.ls.release()
+    self.assertEqual(self.done.get(True, 1), 'DONE')
+
 
 class TestGanetiLockManager(unittest.TestCase):
 
