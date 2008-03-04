@@ -462,6 +462,7 @@ class TestLockSet(unittest.TestCase):
     Thread(target=self._doLockSet, args=(['three'], 0)).start()
     Thread(target=self._doLockSet, args=(['two'], 1)).start()
     Thread(target=self._doAddSet, args=(['nine'])).start()
+    self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
     self.ls.release()
     self.assertEqual(self.done.get(True, 1), 'DONE')
     self.assertEqual(self.done.get(True, 1), 'DONE')
