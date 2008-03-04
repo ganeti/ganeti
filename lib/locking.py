@@ -372,49 +372,53 @@ class LockSet:
     # Check we don't already own locks at this level
     assert not self._is_owned(), "Cannot acquire locks in the same set twice"
 
-    # Support passing in a single resource to acquire rather than many
-    if isinstance(names, basestring):
-      names = [names]
-    else:
-      names.sort()
+    try:
+      # Support passing in a single resource to acquire rather than many
+      if isinstance(names, basestring):
+        names = [names]
+      else:
+        names.sort()
 
-    acquire_list = []
-    # First we look the locks up on __lockdict. We have no way of being sure
-    # they will still be there after, but this makes it a lot faster should
-    # just one of them be the already wrong
-    for lname in names:
-      try:
-        lock = self.__lockdict[lname] # raises KeyError if the lock is not there
-        acquire_list.append((lname, lock))
-      except (KeyError):
-        raise errors.LockError('non-existing lock in set (%s)' % lname)
-
-    # This will hold the locknames we effectively acquired.
-    acquired = set()
-    # Now acquire_list contains a sorted list of resources and locks we want.
-    # In order to get them we loop on this (private) list and acquire() them.
-    # We gave no real guarantee they will still exist till this is done but
-    # .acquire() itself is safe and will alert us if the lock gets deleted.
-    for (lname, lock) in acquire_list:
-      try:
-        lock.acquire(shared=shared) # raises LockError if the lock is deleted
+      acquire_list = []
+      # First we look the locks up on __lockdict. We have no way of being sure
+      # they will still be there after, but this makes it a lot faster should
+      # just one of them be the already wrong
+      for lname in names:
         try:
-          # now the lock cannot be deleted, we have it!
-          self._add_owned(lname)
-          acquired.add(lname)
-        except:
-          # We shouldn't have problems adding the lock to the owners list, but
-          # if we did we'll try to release this lock and re-raise exception.
-          # Of course something is going to be really wrong, after this.
-          lock.release()
-          raise
+          lock = self.__lockdict[lname] # raises KeyError if the lock is not there
+          acquire_list.append((lname, lock))
+        except (KeyError):
+          raise errors.LockError('non-existing lock in set (%s)' % lname)
 
-      except (errors.LockError):
-        name_fail = lname
-        for lname in self._list_owned():
-          self.__lockdict[lname].release()
-          self._del_owned(lname)
-        raise errors.LockError('non-existing lock in set (%s)' % name_fail)
+      # This will hold the locknames we effectively acquired.
+      acquired = set()
+      # Now acquire_list contains a sorted list of resources and locks we want.
+      # In order to get them we loop on this (private) list and acquire() them.
+      # We gave no real guarantee they will still exist till this is done but
+      # .acquire() itself is safe and will alert us if the lock gets deleted.
+      for (lname, lock) in acquire_list:
+        try:
+          lock.acquire(shared=shared) # raises LockError if the lock is deleted
+          try:
+            # now the lock cannot be deleted, we have it!
+            self._add_owned(lname)
+            acquired.add(lname)
+          except:
+            # We shouldn't have problems adding the lock to the owners list, but
+            # if we did we'll try to release this lock and re-raise exception.
+            # Of course something is going to be really wrong, after this.
+            lock.release()
+            raise
+
+        except (errors.LockError):
+          name_fail = lname
+          for lname in self._list_owned():
+            self.__lockdict[lname].release()
+            self._del_owned(lname)
+          raise errors.LockError('non-existing lock in set (%s)' % name_fail)
+
+    except:
+      raise
 
     return acquired
 
