@@ -413,17 +413,9 @@ class LockSet:
       for (lname, lock) in acquire_list:
         try:
           lock.acquire(shared=shared) # raises LockError if the lock is deleted
-          try:
-            # now the lock cannot be deleted, we have it!
-            self._add_owned(lname)
-            acquired.add(lname)
-          except:
-            # We shouldn't have problems adding the lock to the owners list, but
-            # if we did we'll try to release this lock and re-raise exception.
-            # Of course something is going to be really wrong, after this.
-            lock.release()
-            raise
-
+          # now the lock cannot be deleted, we have it!
+          self._add_owned(lname)
+          acquired.add(lname)
         except (errors.LockError):
           if self.__lock._is_owned():
             # We are acquiring all the set, it doesn't matter if this particular
@@ -435,6 +427,13 @@ class LockSet:
               self.__lockdict[lname].release()
               self._del_owned(lname)
             raise errors.LockError('non-existing lock in set (%s)' % name_fail)
+        except:
+          # We shouldn't have problems adding the lock to the owners list, but
+          # if we did we'll try to release this lock and re-raise exception.
+          # Of course something is going to be really wrong, after this.
+          if lock._is_owned():
+            lock.release()
+            raise
 
     except:
       # If something went wrong and we had the set-lock let's release it...
