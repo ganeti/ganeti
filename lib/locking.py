@@ -207,11 +207,6 @@ class SharedLock:
       elif self.__is_sharer():
         self.__shr.remove(threading.currentThread())
 
-        # If there are shared holders waiting there *must* be an exclusive holder
-        # waiting as well; otherwise what were they waiting for?
-        assert self.__nwait_shr == 0 or self.__nwait_exc > 0, \
-               "Lock sharers waiting while no exclusive is queueing"
-
         # If there are no more shared holders and some exclusive holders are
         # waiting let's wake one up.
         if len(self.__shr) == 0 and self.__nwait_exc > 0:
