@@ -512,8 +512,8 @@ class LockSet:
                 you are already holding exclusively the locks.
 
     Returns:
-      A list of lock which we failed to delete. The list is always empty if we
-      were holding all the locks exclusively.
+      A list of lock which we removed. The list is always equal to the names
+      list if we were holding all the locks exclusively.
 
     """
     if not blocking and not self._is_owned():
@@ -530,7 +530,7 @@ class LockSet:
     assert not self._is_owned() or self._list_owned().issuperset(names), (
       "remove() on acquired lockset while not owning all elements")
 
-    delete_failed=[]
+    removed = []
 
     for lname in names:
       # Calling delete() acquires the lock exclusively if we don't already own
@@ -540,8 +540,8 @@ class LockSet:
       # everything we want to delete, or we hold none.
       try:
         self.__lockdict[lname].delete()
+        removed.append(lname)
       except (KeyError, errors.LockError):
-        delete_failed.append(lname)
         # This cannot happen if we were already holding it, verify:
         assert not self._is_owned(), "remove failed while holding lockset"
       else:
@@ -557,7 +557,7 @@ class LockSet:
         if self._is_owned():
           self._del_owned(lname)
 
-    return delete_failed
+    return removed
 
 
 # Locking levels, must be acquired in increasing order.

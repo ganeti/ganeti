@@ -291,7 +291,7 @@ class TestLockSet(unittest.TestCase):
     self.assert_('six' in self.ls._names())
     self.assert_('seven' in self.ls._names())
     self.assertEquals(self.ls._list_owned(), set(['five', 'six', 'seven']))
-    self.ls.remove(['five', 'six'])
+    self.assertEquals(self.ls.remove(['five', 'six']), ['five', 'six'])
     self.assert_('five' not in self.ls._names())
     self.assert_('six' not in self.ls._names())
     self.assertEquals(self.ls._list_owned(), set(['seven']))
@@ -305,18 +305,19 @@ class TestLockSet(unittest.TestCase):
     self.ls.remove(['two'])
     self.assert_('two' not in self.ls._names())
     self.ls.acquire('three')
-    self.ls.remove(['three'])
+    self.assertEquals(self.ls.remove(['three']), ['three'])
     self.assert_('three' not in self.ls._names())
-    self.assertEquals(self.ls.remove('three'), ['three'])
-    self.assertEquals(self.ls.remove(['one', 'three', 'six']), ['three', 'six'])
+    self.assertEquals(self.ls.remove('three'), [])
+    self.assertEquals(self.ls.remove(['one', 'three', 'six']), ['one'])
     self.assert_('one' not in self.ls._names())
 
   def testRemoveNonBlocking(self):
     self.assertRaises(NotImplementedError, self.ls.remove, 'one', blocking=0)
     self.ls.acquire('one')
-    self.assertEquals(self.ls.remove('one', blocking=0), [])
+    self.assertEquals(self.ls.remove('one', blocking=0), ['one'])
     self.ls.acquire(['two', 'three'])
-    self.assertEquals(self.ls.remove(['two', 'three'], blocking=0), [])
+    self.assertEquals(self.ls.remove(['two', 'three'], blocking=0),
+                      ['two', 'three'])
 
   def testNoDoubleAdd(self):
     self.assertRaises(errors.LockError, self.ls.add, 'two')
@@ -406,9 +407,9 @@ class TestLockSet(unittest.TestCase):
     Thread(target=self._doRemoveSet, args=(['four', 'six'], )).start()
     self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
     self.ls.remove('four')
-    self.assertEqual(self.done.get(True, 1), ['four'])
+    self.assertEqual(self.done.get(True, 1), ['six'])
     Thread(target=self._doRemoveSet, args=(['two'])).start()
-    self.assertEqual(self.done.get(True, 1), [])
+    self.assertEqual(self.done.get(True, 1), ['two'])
     self.ls.release()
 
 
