@@ -51,6 +51,7 @@ _re_shell_unquoted = re.compile('^[-.,=:/_+@A-Za-z0-9]+$')
 
 debug = False
 
+
 class RunResult(object):
   """Simple class for holding the result of running external programs.
 

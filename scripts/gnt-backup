@@ -27,6 +27,7 @@ from ganeti import cmdlib
 from ganeti import opcodes
 from ganeti import constants
 
+
 def PrintExportList(opts, args):
   """Prints a list of all the exported system images.
 

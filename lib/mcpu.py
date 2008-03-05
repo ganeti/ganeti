@@ -38,6 +38,7 @@ from ganeti import config
 from ganeti import ssconf
 from ganeti import logger
 
+
 class Processor(object):
   """Object which runs OpCodes"""
   DISPATCH_TABLE = {

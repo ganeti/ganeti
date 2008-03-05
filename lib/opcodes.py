@@ -275,11 +275,13 @@ class OpDiagnoseOS(OpCode):
   OP_ID = "OP_OS_DIAGNOSE"
   __slots__ = []
 
+
 # Exports opcodes
 class OpQueryExports(OpCode):
   """Compute the list of exported images."""
   OP_ID = "OP_BACKUP_QUERY"
   __slots__ = ["nodes"]
+
 
 class OpExportInstance(OpCode):
   """Export an instance."""

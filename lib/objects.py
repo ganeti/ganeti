@@ -648,6 +648,7 @@ class OS(ConfigObject):
 
   __bool__ = __nonzero__
 
+
 class Node(TaggableObject):
   """Config object representing a node."""
   __slots__ = TaggableObject.__slots__ + [

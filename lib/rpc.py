@@ -38,6 +38,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import ssconf
 
+
 class NodeController:
   """Node-handling class.
 

@@ -39,6 +39,7 @@ _SHUTDOWN_NODES_PRI = "nodes-pri"
 _SHUTDOWN_NODES_SEC = "nodes-sec"
 _SHUTDOWN_INSTANCES = "instances"
 
+
 def _ExpandMultiNames(mode, names):
   """Expand the given names using the passed mode.
 
@@ -382,6 +383,7 @@ def StartupInstance(opts, args):
     SubmitOpCode(op)
   return 0
 
+
 def RebootInstance(opts, args):
   """Reboot an instance
 
@@ -406,6 +408,7 @@ def RebootInstance(opts, args):
 
     SubmitOpCode(op)
   return 0
+
 
 def ShutdownInstance(opts, args):
   """Shutdown an instance.

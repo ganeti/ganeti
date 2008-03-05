@@ -43,6 +43,7 @@ from ganeti import objects
 from ganeti import opcodes
 from ganeti import ssconf
 
+
 class LogicalUnit(object):
   """Logical Unit base class.
 
@@ -2738,6 +2739,7 @@ def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name):
                           children = [dev_data, dev_meta],
                           iv_name=iv_name)
   return drbd_dev
+
 
 def _GenerateDiskTemplate(cfg, template_name,
                           instance_name, primary_node,
