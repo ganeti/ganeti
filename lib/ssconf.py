@@ -26,13 +26,11 @@ configuration data, which is mostly static and available to all nodes.
 
 """
 
-import os
-import tempfile
-import errno
 import socket
 
 from ganeti import errors
 from ganeti import constants
+from ganeti import utils
 
 
 class SimpleStore:
@@ -164,24 +162,9 @@ class SimpleStore:
 
     """
     file_name = self.KeyToFilename(key)
-    dir_name, small_name = os.path.split(file_name)
-    fd, new_name = tempfile.mkstemp('.new', small_name, dir_name)
-    # here we need to make sure we remove the temp file, if any error
-    # leaves it in place
-    try:
-      os.chown(new_name, 0, 0)
-      os.chmod(new_name, 0400)
-      os.write(fd, "%s\n" % str(value))
-      os.fsync(fd)
-      os.rename(new_name, file_name)
-      self._cache[key] = value
-    finally:
-      os.close(fd)
-      try:
-        os.unlink(new_name)
-      except OSError, err:
-        if err.errno != errno.ENOENT:
-          raise
+    utils.WriteFile(file_name, data="%s\n" % str(value),
+                    uid=0, gid=0, mode=0400)
+    self._cache[key] = value
 
   def GetFileList(self):
     """Return the lis of all config files.

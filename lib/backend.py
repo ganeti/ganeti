@@ -26,7 +26,6 @@ import os
 import os.path
 import shutil
 import time
-import tempfile
 import stat
 import errno
 import re
@@ -939,20 +938,8 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                  " upload targets: '%s'" % file_name)
     return False
 
-  dir_name, small_name = os.path.split(file_name)
-  fd, new_name = tempfile.mkstemp('.new', small_name, dir_name)
-  # here we need to make sure we remove the temp file, if any error
-  # leaves it in place
-  try:
-    os.chown(new_name, uid, gid)
-    os.chmod(new_name, mode)
-    os.write(fd, data)
-    os.fsync(fd)
-    os.utime(new_name, (atime, mtime))
-    os.rename(new_name, file_name)
-  finally:
-    os.close(fd)
-    utils.RemoveFile(new_name)
+  utils.WriteFile(file_name, data=data, mode=mode, uid=uid, gid=gid,
+                  atime=atime, mtime=mtime)
   return True
 
 
