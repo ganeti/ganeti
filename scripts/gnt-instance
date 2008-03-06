@@ -871,7 +871,7 @@ commands = {
                                        " to replace (e.g. sda) (optional,"
                                        " defaults to all disks")),
                      ],
-                    "[-n NODE] <instance>",
+                    "[-s|-p|-n NODE] <instance>",
                     "Replaces all disks for the instance"),
   'modify': (SetInstanceParms, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
