@@ -370,8 +370,8 @@ class ServerObject(pb.Avatar):
     """Do a TcpPing on the remote node.
 
     """
-    return utils.TcpPing(params[0], params[1], params[2],
-                         timeout=params[3], live_port_needed=params[4])
+    return utils.TcpPing(params[1], params[2], timeout=params[3],
+                         live_port_needed=params[4], source=params[0])
 
   @staticmethod
   def perspective_node_info(params):

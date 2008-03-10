@@ -908,25 +908,29 @@ def ShellQuoteArgs(args):
   return ' '.join([ShellQuote(i) for i in args])
 
 
-
-def TcpPing(source, target, port, timeout=10, live_port_needed=False):
+def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   """Simple ping implementation using TCP connect(2).
 
-  Try to do a TCP connect(2) from the specified source IP to the specified
-  target IP and the specified target port. If live_port_needed is set to true,
-  requires the remote end to accept the connection. The timeout is specified
-  in seconds and defaults to 10 seconds
+  Try to do a TCP connect(2) from an optional source IP to the
+  specified target IP and the specified target port. If the optional
+  parameter live_port_needed is set to true, requires the remote end
+  to accept the connection. The timeout is specified in seconds and
+  defaults to 10 seconds. If the source optional argument is not
+  passed, the source address selection is left to the kernel,
+  otherwise we try to connect using the passed address (failures to
+  bind other than EADDRNOTAVAIL will be ignored).
 
   """
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
   sucess = False
 
-  try:
-    sock.bind((source, 0))
-  except socket.error, (errcode, errstring):
-    if errcode == errno.EADDRNOTAVAIL:
-      success = False
+  if source is not None:
+    try:
+      sock.bind((source, 0))
+    except socket.error, (errcode, errstring):
+      if errcode == errno.EADDRNOTAVAIL:
+        success = False
 
   sock.settimeout(timeout)
 

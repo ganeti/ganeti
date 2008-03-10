@@ -106,10 +106,9 @@ def StartMaster(master_netdev, master_ip, debug):
   """Starts the master.
 
   """
-  if utils.TcpPing(utils.HostInfo().name, master_ip,
-                   constants.DEFAULT_NODED_PORT):
-    if utils.TcpPing(constants.LOCALHOST_IP_ADDRESS, master_ip,
-                     constants.DEFAULT_NODED_PORT):
+  if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+    if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT,
+                     source=constants.LOCALHOST_IP_ADDRESS):
       # we already have the ip:
       if debug:
         sys.stderr.write("Notice: already started.\n")
