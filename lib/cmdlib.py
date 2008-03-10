@@ -513,14 +513,18 @@ class LUInitCluster(LogicalUnit):
                                  " range (%s). Please fix DNS or %s." %
                                  (hostname.ip, constants.ETC_HOSTS))
 
-    self.clustername = clustername = utils.HostInfo(self.op.cluster_name)
-
     if not utils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT,
                          source=constants.LOCALHOST_IP_ADDRESS):
       raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                  " to %s,\nbut this ip address does not"
                                  " belong to this host."
                                  " Aborting." % hostname.ip)
+
+    self.clustername = clustername = utils.HostInfo(self.op.cluster_name)
+
+    if utils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
+                     timeout=5):
+      raise errors.OpPrereqError("Cluster IP already active. Aborting.")
 
     secondary_ip = getattr(self.op, "secondary_ip", None)
     if secondary_ip and not utils.IsValidIP(secondary_ip):
