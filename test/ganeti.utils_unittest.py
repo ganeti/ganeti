@@ -533,11 +533,19 @@ class TestTcpPing(unittest.TestCase):
 
   def testTcpPingToLocalHostAccept(self):
     self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
-                         constants.LOCALHOST_IP_ADDRESS,
                          self.listenerport,
                          timeout=10,
-                         live_port_needed=True),
+                         live_port_needed=True,
+                         source=constants.LOCALHOST_IP_ADDRESS,
+                         ),
                  "failed to connect to test listener")
+
+    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+                         self.listenerport,
+                         timeout=10,
+                         live_port_needed=True,
+                         ),
+                 "failed to connect to test listener (no source)")
 
 
 class TestTcpPingDeaf(unittest.TestCase):
@@ -554,19 +562,35 @@ class TestTcpPingDeaf(unittest.TestCase):
 
   def testTcpPingToLocalHostAcceptDeaf(self):
     self.failIf(TcpPing(constants.LOCALHOST_IP_ADDRESS,
-                        constants.LOCALHOST_IP_ADDRESS,
                         self.deaflistenerport,
                         timeout=constants.TCP_PING_TIMEOUT,
-                        live_port_needed=True), # need successful connect(2)
+                        live_port_needed=True,
+                        source=constants.LOCALHOST_IP_ADDRESS,
+                        ), # need successful connect(2)
                 "successfully connected to deaf listener")
+
+    self.failIf(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+                        self.deaflistenerport,
+                        timeout=constants.TCP_PING_TIMEOUT,
+                        live_port_needed=True,
+                        ), # need successful connect(2)
+                "successfully connected to deaf listener (no source addr)")
 
   def testTcpPingToLocalHostNoAccept(self):
     self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
-                         constants.LOCALHOST_IP_ADDRESS,
                          self.deaflistenerport,
                          timeout=constants.TCP_PING_TIMEOUT,
-                         live_port_needed=False), # ECONNREFUSED is OK
+                         live_port_needed=False,
+                         source=constants.LOCALHOST_IP_ADDRESS,
+                         ), # ECONNREFUSED is OK
                  "failed to ping alive host on deaf port")
+
+    self.assert_(TcpPing(constants.LOCALHOST_IP_ADDRESS,
+                         self.deaflistenerport,
+                         timeout=constants.TCP_PING_TIMEOUT,
+                         live_port_needed=False,
+                         ), # ECONNREFUSED is OK
+                 "failed to ping alive host on deaf port (no source addr)")
 
 
 class TestListVisibleFiles(unittest.TestCase):

@@ -516,8 +516,8 @@ class LUInitCluster(LogicalUnit):
 
     self.clustername = clustername = utils.HostInfo(self.op.cluster_name)
 
-    if not utils.TcpPing(constants.LOCALHOST_IP_ADDRESS, hostname.ip,
-                         constants.DEFAULT_NODED_PORT):
+    if not utils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT,
+                         source=constants.LOCALHOST_IP_ADDRESS):
       raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                  " to %s,\nbut this ip address does not"
                                  " belong to this host."
@@ -528,8 +528,8 @@ class LUInitCluster(LogicalUnit):
       raise errors.OpPrereqError("Invalid secondary ip given")
     if (secondary_ip and
         secondary_ip != hostname.ip and
-        (not utils.TcpPing(constants.LOCALHOST_IP_ADDRESS, secondary_ip,
-                           constants.DEFAULT_NODED_PORT))):
+        (not utils.TcpPing(secondary_ip, constants.DEFAULT_NODED_PORT,
+                           source=constants.LOCALHOST_IP_ADDRESS))):
       raise errors.OpPrereqError("You gave %s as secondary IP,"
                                  " but it does not belong to this host." %
                                  secondary_ip)
@@ -1478,16 +1478,13 @@ class LUAddNode(LogicalUnit):
                                    " new node doesn't have one")
 
     # checks reachablity
-    if not utils.TcpPing(utils.HostInfo().name,
-                         primary_ip,
-                         constants.DEFAULT_NODED_PORT):
+    if not utils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Node not reachable by ping")
 
     if not newbie_singlehomed:
       # check reachability from my secondary ip to newbie's secondary ip
-      if not utils.TcpPing(myself.secondary_ip,
-                           secondary_ip,
-                           constants.DEFAULT_NODED_PORT):
+      if not utils.TcpPing(secondary_ip, constants.DEFAULT_NODED_PORT,
+                           source=myself.secondary_ip):
         raise errors.OpPrereqError("Node secondary ip not reachable by TCP"
                                    " based ping to noded port")
 
@@ -3076,8 +3073,7 @@ class LUCreateInstance(LogicalUnit):
                                  " adding an instance in start mode")
 
     if self.op.ip_check:
-      if utils.TcpPing(utils.HostInfo().name, hostname1.ip,
-                       constants.DEFAULT_NODED_PORT):
+      if utils.TcpPing(hostname1.ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (hostname1.ip, instance_name))
 
