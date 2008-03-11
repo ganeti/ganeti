@@ -855,7 +855,7 @@
 
         <cmdsynopsis>
           <command>replace-disks</command>
-          <arg choice="req">-s</arg>
+          <arg choice="opt">-s</arg>
           <arg choice="req">--new-secondary <replaceable>NODE</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
