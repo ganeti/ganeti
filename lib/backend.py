@@ -42,6 +42,10 @@ from ganeti import objects
 from ganeti import ssconf
 
 
+def _GetSshRunner():
+  return ssh.SshRunner()
+
+
 def StartMaster():
   """Activate local node as master node.
 
@@ -197,7 +201,7 @@ def VerifyNode(what):
   if 'nodelist' in what:
     result['nodelist'] = {}
     for node in what['nodelist']:
-      success, message = ssh.VerifyNodeHostname(node)
+      success, message = _GetSshRunner().VerifyNodeHostname(node)
       if not success:
         result['nodelist'][node] = message
   return result
@@ -1188,9 +1192,8 @@ def ExportSnapshot(disk, dest_node, instance):
 
   destcmd = utils.BuildShellCmd("mkdir -p %s && cat > %s/%s",
                                 destdir, destdir, destfile)
-  remotecmd = ssh.BuildSSHCmd(dest_node, constants.GANETI_RUNAS, destcmd)
-
-
+  remotecmd = _GetSshRunner().BuildCmd(dest_node, constants.GANETI_RUNAS,
+                                       destcmd)
 
   # all commands have been checked, so we're safe to combine them
   command = '|'.join([expcmd, comprcmd, utils.ShellQuoteArgs(remotecmd)])
@@ -1331,7 +1334,8 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
   destcmd = utils.BuildShellCmd('cat %s', src_image)
-  remotecmd = ssh.BuildSSHCmd(src_node, constants.GANETI_RUNAS, destcmd)
+  remotecmd = _GetSshRunner().BuildCmd(src_node, constants.GANETI_RUNAS,
+                                       destcmd)
 
   comprcmd = "gunzip"
   impcmd = utils.BuildShellCmd("(cd %s; %s -i %s -b %s -s %s &>%s)",

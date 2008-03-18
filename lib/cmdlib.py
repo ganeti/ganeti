@@ -74,6 +74,8 @@ class LogicalUnit(object):
     self.op = op
     self.cfg = cfg
     self.sstore = sstore
+    self.__ssh = None
+
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)
       if attr_val is None:
@@ -88,6 +90,16 @@ class LogicalUnit(object):
         if master != utils.HostInfo().name:
           raise errors.OpPrereqError("Commands must be run on the master"
                                      " node %s" % master)
+
+  def __GetSSH(self):
+    """Returns the SshRunner object
+
+    """
+    if not self.__ssh:
+      self.__ssh = ssh.SshRunner()
+    return self.__ssh
+
+  ssh = property(fget=__GetSSH)
 
   def CheckPrereq(self):
     """Check prerequisites for this LU.
@@ -1229,7 +1241,7 @@ class LURemoveNode(LogicalUnit):
 
     rpc.call_node_leave_cluster(node.name)
 
-    ssh.SSHCall(node.name, 'root', "%s stop" % constants.NODE_INITD_SCRIPT)
+    self.ssh.Run(node.name, 'root', "%s stop" % constants.NODE_INITD_SCRIPT)
 
     logger.Info("Removing node %s from config" % node.name)
 
@@ -1539,7 +1551,7 @@ class LUAddNode(LogicalUnit):
                   constants.SSL_CERT_FILE, gntpem,
                   constants.NODE_INITD_SCRIPT))
 
-    result = ssh.SSHCall(node, 'root', mycommand, batch=False, ask_key=True)
+    result = self.ssh.Run(node, 'root', mycommand, batch=False, ask_key=True)
     if result.failed:
       raise errors.OpExecError("Remote command on node %s, error: %s,"
                                " output: %s" %
@@ -1597,7 +1609,7 @@ class LUAddNode(LogicalUnit):
                                  " you gave (%s). Please fix and re-run this"
                                  " command." % new_node.secondary_ip)
 
-    success, msg = ssh.VerifyNodeHostname(node)
+    success, msg = self.ssh.VerifyNodeHostname(node)
     if not success:
       raise errors.OpExecError("Node '%s' claims it has a different hostname"
                                " than the one the resolver gives: %s."
@@ -1623,7 +1635,7 @@ class LUAddNode(LogicalUnit):
     if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
       to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
-      if not ssh.CopyFileToNode(node, fname):
+      if not self.ssh.CopyFileToNode(node, fname):
         logger.Error("could not copy file %s to node %s" % (fname, node))
 
     logger.Info("adding node %s to cluster.conf" % node)
@@ -1767,7 +1779,7 @@ class LUClusterCopyFile(NoHooksLU):
     for node in self.nodes:
       if node == myname:
         continue
-      if not ssh.CopyFileToNode(node, filename):
+      if not self.ssh.CopyFileToNode(node, filename):
         logger.Error("Copy of file %s to node %s failed" % (filename, node))
 
 
@@ -1810,7 +1822,7 @@ class LURunClusterCommand(NoHooksLU):
     """
     data = []
     for node in self.nodes:
-      result = ssh.SSHCall(node, "root", self.op.command)
+      result = self.ssh.Run(node, "root", self.op.command)
       data.append((node, result.output, result.exit_code))
 
     return data
