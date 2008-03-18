@@ -90,7 +90,8 @@ class SshRunner:
   """Wrapper for SSH commands.
 
   """
-  def BuildCmd(self, hostname, user, command, batch=True, ask_key=False):
+  def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
+               tty=False):
     """Build an ssh command to execute a command on a remote node.
 
     Args:
@@ -114,6 +115,8 @@ class SshRunner:
       argv.extend(BATCH_MODE_OPTS)
     elif ask_key:
       argv.extend(ASK_KEY_OPTS)
+    if tty:
+      argv.append("-t")
     argv.extend(["%s@%s" % (user, hostname), command])
     return argv
 
