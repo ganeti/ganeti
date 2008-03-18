@@ -778,7 +778,7 @@ class GanetiLockManager:
             "You must own the Big Ganeti Lock before acquiring any other")
 
     # Check we don't own locks at the same or upper levels.
-    assert not self._upper_owned(level), ("Cannot acquire locks at a level" 
+    assert not self._upper_owned(level), ("Cannot acquire locks at a level"
            " while owning some at a greater one")
 
     # Acquire the locks in the set.
