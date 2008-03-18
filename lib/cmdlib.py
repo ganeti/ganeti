@@ -96,7 +96,7 @@ class LogicalUnit(object):
 
     """
     if not self.__ssh:
-      self.__ssh = ssh.SshRunner()
+      self.__ssh = ssh.SshRunner(self.sstore)
     return self.__ssh
 
   ssh = property(fget=__GetSSH)

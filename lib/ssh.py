@@ -30,6 +30,7 @@ from ganeti import logger
 from ganeti import utils
 from ganeti import errors
 from ganeti import constants
+from ganeti import ssconf
 
 
 KNOWN_HOSTS_OPTS = [
@@ -90,6 +91,15 @@ class SshRunner:
   """Wrapper for SSH commands.
 
   """
+  def __init__(self, sstore=None):
+    if sstore is None:
+      self.sstore = ssconf.SimpleStore()
+    else:
+      self.sstore = sstore
+
+  def _GetHostKeyAliasOption(self):
+    return "-oHostKeyAlias=%s" % self.sstore.GetClusterName()
+
   def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
                tty=False):
     """Build an ssh command to execute a command on a remote node.
@@ -108,6 +118,7 @@ class SshRunner:
     """
     argv = ["ssh", "-q"]
     argv.extend(KNOWN_HOSTS_OPTS)
+    argv.append(self._GetHostKeyAliasOption())
     if batch:
       # if we are in batch mode, we can't ask the key
       if ask_key:
@@ -163,6 +174,7 @@ class SshRunner:
     command = ["scp", "-q", "-p"]
     command.extend(KNOWN_HOSTS_OPTS)
     command.extend(BATCH_MODE_OPTS)
+    command.append(self._GetHostKeyAliasOption())
     command.append(filename)
     command.append("%s:%s" % (node, filename))
 
