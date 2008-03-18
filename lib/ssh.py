@@ -116,7 +116,7 @@ class SshRunner:
       The ssh call to run 'command' on the remote host.
 
     """
-    argv = ["ssh", "-q"]
+    argv = [constants.SSH, "-q"]
     argv.extend(KNOWN_HOSTS_OPTS)
     argv.append(self._GetHostKeyAliasOption())
     if batch:
@@ -171,7 +171,7 @@ class SshRunner:
       logger.Error("file %s must be an absolute path" % (filename))
       return False
 
-    command = ["scp", "-q", "-p"]
+    command = [constants.SCP, "-q", "-p"]
     command.extend(KNOWN_HOSTS_OPTS)
     command.extend(BATCH_MODE_OPTS)
     command.append(self._GetHostKeyAliasOption())

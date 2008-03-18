@@ -146,6 +146,8 @@ SSH_HOST_DSA_PRIV = SSH_CONFIG_DIR + "ssh_host_dsa_key"
 SSH_HOST_DSA_PUB = SSH_HOST_DSA_PRIV + ".pub"
 SSH_HOST_RSA_PRIV = SSH_CONFIG_DIR + "ssh_host_rsa_key"
 SSH_HOST_RSA_PUB = SSH_HOST_RSA_PRIV + ".pub"
+SSH = "ssh"
+SCP = "scp"
 
 # reboot types
 INSTANCE_REBOOT_SOFT = "soft"
