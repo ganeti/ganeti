@@ -39,15 +39,15 @@ KNOWN_HOSTS_OPTS = [
 
 # Note: BATCH_MODE conflicts with ASK_KEY
 BATCH_MODE_OPTS = [
-  "-oEscapeChar=none",
   "-oBatchMode=yes",
+  "-oEscapeChar=none",
   "-oStrictHostKeyChecking=yes",
   ]
 
 ASK_KEY_OPTS = [
-  "-oStrictHostKeyChecking=ask",
   "-oEscapeChar=none",
   "-oHashKnownHosts=no",
+  "-oStrictHostKeyChecking=ask",
   ]
 
 
