@@ -55,6 +55,7 @@ class SharedLock:
     # lock waiters
     self.__nwait_exc = 0
     self.__nwait_shr = 0
+    self.__npass_shr = 0
 
     # is this lock in the deleted state?
     self.__deleted = False
@@ -133,6 +134,8 @@ class SharedLock:
     finally:
       self.__nwait_exc -= 1
 
+    assert self.__npass_shr == 0, "SharedLock: internal fairness violation"
+
   def acquire(self, blocking=1, shared=0):
     """Acquire a shared lock.
 
@@ -154,25 +157,35 @@ class SharedLock:
 
       # We cannot acquire the lock if we already have it
       assert not self.__is_owned(), "double acquire() on a non-recursive lock"
+      assert self.__npass_shr >= 0, "Internal fairness condition weirdness"
 
       if shared:
         self.__nwait_shr += 1
         try:
+          wait = False
           # If there is an exclusive holder waiting we have to wait.  We'll
           # only do this once, though, when we start waiting for the lock. Then
           # we'll just wait while there are no exclusive holders.
           if self.__nwait_exc > 0:
             # TODO: if !blocking...
+            wait = True
             self.__wait(self.__turn_shr)
 
           while self.__exc is not None:
+            wait = True
             # TODO: if !blocking...
             self.__wait(self.__turn_shr)
 
           self.__shr.add(threading.currentThread())
+
+          # If we were waiting note that we passed
+          if wait:
+            self.__npass_shr -= 1
+
         finally:
           self.__nwait_shr -= 1
 
+        assert self.__npass_shr >= 0, "Internal fairness condition weirdness"
       else:
         # TODO: if !blocking...
         # (or modify __exclusive_acquire for non-blocking mode)
@@ -192,6 +205,7 @@ class SharedLock:
     """
     self.__lock.acquire()
     try:
+      assert self.__npass_shr >= 0, "Internal fairness condition weirdness"
       # Autodetect release type
       if self.__is_exclusive():
         self.__exc = None
@@ -200,6 +214,8 @@ class SharedLock:
         # mode if there are shared holders waiting. Otherwise wake up the next
         # exclusive holder.
         if self.__nwait_shr > 0:
+          # Make sure at least the ones which were blocked pass.
+          self.__npass_shr = self.__nwait_shr
           self.__turn_shr.notifyAll()
         elif self.__nwait_exc > 0:
          self.__turn_exc.notify()
@@ -207,9 +223,18 @@ class SharedLock:
       elif self.__is_sharer():
         self.__shr.remove(threading.currentThread())
 
-        # If there are no more shared holders and some exclusive holders are
-        # waiting let's wake one up.
-        if len(self.__shr) == 0 and self.__nwait_exc > 0:
+        # If there are shared holders waiting (and not just scheduled to pass)
+        # there *must* be an exclusive holder waiting as well; otherwise what
+        # were they waiting for?
+        assert (self.__nwait_exc > 0 or self.__npass_shr > 0 or
+                self.__nwait_shr == 0), \
+               "Lock sharers waiting while no exclusive is queueing"
+
+        # If there are no more shared holders either in or scheduled to pass,
+        # and some exclusive holders are waiting let's wake one up.
+        if (len(self.__shr) == 0 and
+            self.__nwait_exc > 0 and
+            not self.__npass_shr > 0):
           self.__turn_exc.notify()
 
       else:
