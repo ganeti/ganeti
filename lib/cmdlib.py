@@ -3261,13 +3261,10 @@ class LUConnectConsole(NoHooksLU):
 
     hyper = hypervisor.GetHypervisor()
     console_cmd = hyper.GetShellCommandForConsole(instance)
+
     # build ssh cmdline
-    argv = ["ssh", "-q", "-t"]
-    argv.extend(ssh.KNOWN_HOSTS_OPTS)
-    argv.extend(ssh.BATCH_MODE_OPTS)
-    argv.append(node)
-    argv.append(console_cmd)
-    return "ssh", argv
+    cmd = self.ssh.BuildCmd(node, "root", console_cmd, batch=True, tty=True)
+    return cmd[0], cmd
 
 
 class LUAddMDDRBDComponent(LogicalUnit):
