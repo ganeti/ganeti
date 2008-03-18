@@ -21,8 +21,17 @@
 
 """Module implementing a fake ConfigWriter"""
 
-import socket
 from ganeti import utils
+
+
+FAKE_CLUSTER_KEY = ("AAAAB3NzaC1yc2EAAAABIwAAAQEAsuGLw70et3eApJ/ZEJkAVZogIrm"
+                    "EYPQJvb1ll52Ti0nr80Wztxibaa8bYGzY22rQIAloIlePeTGcJceAYK"
+                    "PZgm0I/Mp2EUGg2NVsQZIzasz6cW0vYuiUbF9GkVlROmvOAykT58RfM"
+                    "L8RhPrjrQxZc+NXgZtgDugYSZcXHDLUyWM1xKUoYy0MqYG6ZXCC/Zno"
+                    "RThhmjOJgEmvwrMcTWQjmzH3NeJAxaBsEHR8tiVZ/Y23C/ULWLyNT6R"
+                    "fB+DE7IovsMQaS+83AK1Teg7RWNyQczachatf/JT8VjUqFYjJepPjMb"
+                    "vYdB2nQds7/+Bf40C/OpbvnAxna1kVtgFHAo18cQ==")
+
 
 class FakeConfig:
     """Fake configuration object"""
@@ -35,6 +44,9 @@ class FakeConfig:
 
     def GetMaster(self):
         return utils.HostInfo().name
+
+    def GetHostKey(self):
+        return FAKE_CLUSTER_KEY
 
 
 class FakeSStore:

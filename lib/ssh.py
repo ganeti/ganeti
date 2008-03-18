@@ -212,3 +212,12 @@ def VerifyNodeHostname(node):
     return False, "hostname mismatch, got %s" % remotehostname
 
   return True, "host matches"
+
+
+def WriteKnownHostsFile(cfg, sstore, file_name):
+  """Writes the cluster-wide equally known_hosts file.
+
+  """
+  utils.WriteFile(file_name, mode=0700,
+                  data="%s ssh-rsa %s\n" % (sstore.GetClusterName(),
+                                            cfg.GetHostKey()))
