@@ -316,85 +316,6 @@ def _BuildInstanceHookEnvByObject(instance, override=None):
   return _BuildInstanceHookEnv(**args)
 
 
-def _UpdateKnownHosts(fullnode, ip, pubkey):
-  """Ensure a node has a correct known_hosts entry.
-
-  Args:
-    fullnode - Fully qualified domain name of host. (str)
-    ip       - IPv4 address of host (str)
-    pubkey   - the public key of the cluster
-
-  """
-  if os.path.exists(constants.SSH_KNOWN_HOSTS_FILE):
-    f = open(constants.SSH_KNOWN_HOSTS_FILE, 'r+')
-  else:
-    f = open(constants.SSH_KNOWN_HOSTS_FILE, 'w+')
-
-  inthere = False
-
-  save_lines = []
-  add_lines = []
-  removed = False
-
-  for rawline in f:
-    logger.Debug('read %s' % (repr(rawline),))
-
-    parts = rawline.rstrip('\r\n').split()
-
-    # Ignore unwanted lines
-    if len(parts) >= 3 and not rawline.lstrip()[0] == '#':
-      fields = parts[0].split(',')
-      key = parts[2]
-
-      haveall = True
-      havesome = False
-      for spec in [ ip, fullnode ]:
-        if spec not in fields:
-          haveall = False
-        if spec in fields:
-          havesome = True
-
-      logger.Debug("key, pubkey = %s." % (repr((key, pubkey)),))
-      if haveall and key == pubkey:
-        inthere = True
-        save_lines.append(rawline)
-        logger.Debug("Keeping known_hosts '%s'." % (repr(rawline),))
-        continue
-
-      if havesome and (not haveall or key != pubkey):
-        removed = True
-        logger.Debug("Discarding known_hosts '%s'." % (repr(rawline),))
-        continue
-
-    save_lines.append(rawline)
-
-  if not inthere:
-    add_lines.append('%s,%s ssh-rsa %s\n' % (fullnode, ip, pubkey))
-    logger.Debug("Adding known_hosts '%s'." % (repr(add_lines[-1]),))
-
-  if removed:
-    save_lines = save_lines + add_lines
-
-    # Write a new file and replace old.
-    fd, tmpname = tempfile.mkstemp('.tmp', 'known_hosts.',
-                                   constants.DATA_DIR)
-    newfile = os.fdopen(fd, 'w')
-    try:
-      newfile.write(''.join(save_lines))
-    finally:
-      newfile.close()
-    logger.Debug("Wrote new known_hosts.")
-    os.rename(tmpname, constants.SSH_KNOWN_HOSTS_FILE)
-
-  elif add_lines:
-    # Simply appending a new line will do the trick.
-    f.seek(0, 2)
-    for add in add_lines:
-      f.write(add)
-
-  f.close()
-
-
 def _HasValidVG(vglist, vgname):
   """Checks if the volume group list is valid.
 
@@ -607,9 +528,6 @@ class LUInitCluster(LogicalUnit):
     sshkey = sshline.split(" ")[1]
 
     _AddHostToEtcHosts(hostname.name)
-
-    _UpdateKnownHosts(hostname.name, hostname.ip, sshkey)
-
     _InitSSHSetup(hostname.name)
 
     # init of cluster config file
@@ -617,6 +535,8 @@ class LUInitCluster(LogicalUnit):
     cfgw.InitConfig(hostname.name, hostname.ip, self.secondary_ip,
                     sshkey, self.op.mac_prefix,
                     self.op.vg_name, self.op.def_bridge)
+
+    ssh.WriteKnownHostsFile(cfgw, ss, constants.SSH_KNOWN_HOSTS_FILE)
 
 
 class LUDestroyCluster(NoHooksLU):
@@ -1595,9 +1515,6 @@ class LUAddNode(LogicalUnit):
 
     # Add node to our /etc/hosts, and add key to known_hosts
     _AddHostToEtcHosts(new_node.name)
-
-    _UpdateKnownHosts(new_node.name, new_node.primary_ip,
-                      self.cfg.GetHostKey())
 
     if new_node.secondary_ip != new_node.primary_ip:
       if not rpc.call_node_tcp_ping(new_node.name,
