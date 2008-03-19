@@ -44,7 +44,8 @@ def InitCluster(opts, args):
                              vg_name=opts.vg_name,
                              mac_prefix=opts.mac_prefix,
                              def_bridge=opts.def_bridge,
-                             master_netdev=opts.master_netdev)
+                             master_netdev=opts.master_netdev,
+                             file_storage_dir=opts.file_storage_dir)
   SubmitOpCode(op)
   return 0
 
@@ -315,6 +316,12 @@ commands = {
                           " [%s]" % constants.DEFAULT_BRIDGE,
                         metavar="NETDEV",
                         default=constants.DEFAULT_BRIDGE,),
+            make_option("--file-storage-dir", dest="file_storage_dir",
+                        help="Specify the default directory (cluster-wide)"
+                             " for storing the file-based disks [%s]" %
+                             constants.DEFAULT_FILE_STORAGE_DIR,
+                        metavar="DIR",
+                        default=constants.DEFAULT_FILE_STORAGE_DIR,),
             ],
            "[opts...] <cluster_name>",
            "Initialises a new cluster configuration"),
