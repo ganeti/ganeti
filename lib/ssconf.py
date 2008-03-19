@@ -59,8 +59,9 @@ class SimpleStore:
   SS_MASTER_IP = "master_ip"
   SS_MASTER_NETDEV = "master_netdev"
   SS_CLUSTER_NAME = "cluster_name"
+  SS_FILE_STORAGE_DIR = "file_storage_dir"
   _VALID_KEYS = (SS_HYPERVISOR, SS_NODED_PASS, SS_MASTER_NODE, SS_MASTER_IP,
-                 SS_MASTER_NETDEV, SS_CLUSTER_NAME)
+                 SS_MASTER_NETDEV, SS_CLUSTER_NAME, SS_FILE_STORAGE_DIR)
   _MAX_SIZE = 4096
 
   def __init__(self, cfg_location=None):
@@ -154,6 +155,12 @@ class SimpleStore:
 
     """
     return self._ReadFile(self.SS_CLUSTER_NAME)
+
+  def GetFileStorageDir(self):
+    """Get the file storage dir.
+
+    """
+    return self._ReadFile(self.SS_FILE_STORAGE_DIR)
 
   def SetKey(self, key, value):
     """Set the value of a key.
