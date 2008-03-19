@@ -53,6 +53,16 @@ AC_ARG_WITH([xen-initrd],
   [xen_initrd="/boot/initrd-2.6-xenU"])
 AC_SUBST(XEN_INITRD, $xen_initrd)
 
+# --with-file-storage-dir=...
+AC_ARG_WITH([file-storage-dir],
+  [AS_HELP_STRING([--with-file-storage-dir=PATH],
+    [directory to store files for file-based backend]
+    [ (default is /srv/ganeti/file-storage)]
+  )],
+  [file_storage_dir="$withval"],
+  [file_storage_dir="/srv/ganeti/file-storage"])
+AC_SUBST(FILE_STORAGE_DIR, $file_storage_dir)
+
 # Check common programs
 AC_PROG_INSTALL
 AC_PROG_LN_S
