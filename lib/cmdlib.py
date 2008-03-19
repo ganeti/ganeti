@@ -414,7 +414,7 @@ class LUInitCluster(LogicalUnit):
   HPATH = "cluster-init"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = ["cluster_name", "hypervisor_type", "vg_name", "mac_prefix",
-              "def_bridge", "master_netdev"]
+              "def_bridge", "master_netdev", "file_storage_dir"]
   REQ_CLUSTER = False
 
   def BuildHooksEnv(self):
@@ -478,6 +478,15 @@ class LUInitCluster(LogicalUnit):
     if vgstatus:
       raise errors.OpPrereqError("Error: %s" % vgstatus)
 
+    if not os.path.isabs(self.op.file_storage_dir):
+      raise errors.OpPrereqError("The file storage directory you have is"
+                                 " not an absolute path.")
+
+    if not os.path.exists(self.op.file_storage_dir):
+      raise errors.OpPrereqError("Default file storage directory '%s' does "
+                                 "not exist. Please create." %
+                                 self.op.file_storage_dir)
+
     if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$",
                     self.op.mac_prefix):
       raise errors.OpPrereqError("Invalid mac prefix given '%s'" %
@@ -512,6 +521,7 @@ class LUInitCluster(LogicalUnit):
     ss.SetKey(ss.SS_MASTER_IP, clustername.ip)
     ss.SetKey(ss.SS_MASTER_NETDEV, self.op.master_netdev)
     ss.SetKey(ss.SS_CLUSTER_NAME, clustername.name)
+    ss.SetKey(ss.SS_FILE_STORAGE_DIR, self.op.file_storage_dir)
 
     # set up the inter-node password and certificate
     _InitGanetiServerSetup(ss)
