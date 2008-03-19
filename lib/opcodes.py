@@ -53,7 +53,8 @@ class OpInitCluster(OpCode):
   """Initialise the cluster."""
   OP_ID = "OP_CLUSTER_INIT"
   __slots__ = ["cluster_name", "secondary_ip", "hypervisor_type",
-               "vg_name", "mac_prefix", "def_bridge", "master_netdev"]
+               "vg_name", "mac_prefix", "def_bridge", "master_netdev",
+               "file_storage_dir"]
 
 
 class OpDestroyCluster(OpCode):
