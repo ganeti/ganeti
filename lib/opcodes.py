@@ -36,17 +36,111 @@ are two kinds of classes defined:
 # few public methods:
 # pylint: disable-msg=R0903
 
-class OpCode(object):
-  """Abstract OpCode"""
-  OP_ID = "OP_ABSTRACT"
+
+class BaseJO(object):
+  """A simple serializable object.
+
+  This object serves as a parent class for both OpCode and Job since
+  they are serialized in the same way.
+
+  """
   __slots__ = []
 
   def __init__(self, **kwargs):
     for key in kwargs:
       if key not in self.__slots__:
-        raise TypeError("OpCode %s doesn't support the parameter '%s'" %
+        raise TypeError("Object %s doesn't support the parameter '%s'" %
                         (self.__class__.__name__, key))
       setattr(self, key, kwargs[key])
+
+  def __getstate__(self):
+    state = {}
+    for name in self.__slots__:
+      if hasattr(self, name):
+        state[name] = getattr(self, name)
+    return state
+
+  def __setstate__(self, state):
+    if not isinstance(state, dict):
+      raise ValueError("Invalid data to __setstate__: expected dict, got %s" %
+                       type(state))
+
+    for name in self.__slots__:
+      if name not in state:
+        delattr(self, name)
+
+    for name in state:
+      setattr(self, name, state[name])
+
+
+class Job(BaseJO):
+  """Job definition structure"""
+  STATUS_PENDING = 1
+  STATUS_RUNNING = 2
+  STATUS_FINISHED = 3
+  RESULT_OK = 1
+  RESULT_FAIL = 2
+  RESULT_ABORT = 3
+
+  __slots__ = ["job_id", "op_list", "status", "result"]
+
+  def __getstate__(self):
+    """Specialized getstate for jobs
+
+    """
+    data = BaseJO.__getstate__(self)
+    if "op_list" in data:
+      data["op_list"] = [op.__getstate__() for op in data["op_list"]]
+    return data
+
+  def __setstate__(self, state):
+    """Specialized setstate for jobs
+
+    """
+    BaseJO.__setstate__(self, state)
+    if "op_list" in state:
+      self.op_list = [OpCode.LoadOpcode(op) for op in state["op_list"]]
+
+
+class OpCode(BaseJO):
+  """Abstract OpCode"""
+  OP_ID = "OP_ABSTRACT"
+  __slots__ = []
+
+  def __getstate__(self):
+    """Specialized getstate for opcodes.
+
+    """
+    data = BaseJO.__getstate__(self)
+    data["OP_ID"] = self.OP_ID
+    return data
+
+  @classmethod
+  def LoadOpcode(cls, data):
+    """Generic load opcode method.
+
+    """
+    if not isinstance(data, dict):
+      raise ValueError("Invalid data to LoadOpCode (%s)" % type(data))
+    if "OP_ID" not in data:
+      raise ValueError("Invalid data to LoadOpcode, missing OP_ID")
+    op_id = data["OP_ID"]
+    op_class = None
+    for item in globals().values():
+      if (isinstance(item, type) and
+          issubclass(item, cls) and
+          hasattr(item, "OP_ID") and
+          getattr(item, "OP_ID") == op_id):
+        op_class = item
+        break
+    if op_class is None:
+      raise ValueError("Invalid data to LoadOpCode: OP_ID %s unsupported" %
+                       op_id)
+    op = op_class()
+    new_data = data.copy()
+    del new_data["OP_ID"]
+    op.__setstate__(new_data)
+    return op
 
 
 class OpInitCluster(OpCode):
