@@ -478,14 +478,23 @@ class LUInitCluster(LogicalUnit):
     if vgstatus:
       raise errors.OpPrereqError("Error: %s" % vgstatus)
 
+    self.op.file_storage_dir = os.path.normpath(self.op.file_storage_dir)
+
     if not os.path.isabs(self.op.file_storage_dir):
       raise errors.OpPrereqError("The file storage directory you have is"
                                  " not an absolute path.")
 
     if not os.path.exists(self.op.file_storage_dir):
-      raise errors.OpPrereqError("Default file storage directory '%s' does "
-                                 "not exist. Please create." %
-                                 self.op.file_storage_dir)
+      try:
+        os.makedirs(self.op.file_storage_dir, 0750)
+      except OSError, err:
+        raise errors.OpPrereqError("Cannot create file storage directory"
+                                   " '%s': %s" %
+                                   (self.op.file_storage_dir, err))
+
+    if not os.path.isdir(self.op.file_storage_dir):
+      raise errors.OpPrereqError("The file storage directory '%s' is not"
+                                 " a directory." % self.op.file_storage_dir)
 
     if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$",
                     self.op.mac_prefix):
