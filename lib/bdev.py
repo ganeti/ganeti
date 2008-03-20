@@ -53,10 +53,6 @@ class BlockDev(object):
     - md arrays are created or assembled and used
     - drbd devices are attached to a local disk/remote peer and made primary
 
-  The status of the device can be examined by `GetStatus()`, which
-  returns a numerical value, depending on the position in the
-  transition stack of the device.
-
   A block device is identified by three items:
     - the /dev path of the device (dynamic)
     - a unique ID of the device (static)
@@ -82,18 +78,6 @@ class BlockDev(object):
   after assembly we'll have our correct major/minor.
 
   """
-  STATUS_UNKNOWN = 0
-  STATUS_EXISTING = 1
-  STATUS_STANDBY = 2
-  STATUS_ONLINE = 3
-
-  STATUS_MAP = {
-    STATUS_UNKNOWN: "unknown",
-    STATUS_EXISTING: "existing",
-    STATUS_STANDBY: "ready for use",
-    STATUS_ONLINE: "online",
-    }
-
   def __init__(self, unique_id, children):
     self._children = children
     self.dev_path = None
@@ -175,12 +159,6 @@ class BlockDev(object):
     """Rename this device.
 
     This may or may not make sense for a given device type.
-
-    """
-    raise NotImplementedError
-
-  def GetStatus(self):
-    """Return the status of the device.
 
     """
     raise NotImplementedError
@@ -438,34 +416,6 @@ class LogicalVolume(BlockDev):
 
     """
     return True
-
-  def GetStatus(self):
-    """Return the status of the device.
-
-    Logical volumes will can be in all four states, although we don't
-    deactivate (lvchange -an) them when shutdown, so STATUS_EXISTING
-    should not be seen for our devices.
-
-    """
-    result = utils.RunCmd(["lvs", "--noheadings", "-olv_attr", self.dev_path])
-    if result.failed:
-      logger.Error("Can't display lv: %s" % result.fail_reason)
-      return self.STATUS_UNKNOWN
-    out = result.stdout.strip()
-    # format: type/permissions/alloc/fixed_minor/state/open
-    if len(out) != 6:
-      return self.STATUS_UNKNOWN
-    #writable = (out[1] == "w")
-    active = (out[4] == "a")
-    online = (out[5] == "o")
-    if online:
-      retval = self.STATUS_ONLINE
-    elif active:
-      retval = self.STATUS_STANDBY
-    else:
-      retval = self.STATUS_EXISTING
-
-    return retval
 
   def GetSyncStatus(self):
     """Returns the sync status of the device.
@@ -822,17 +772,6 @@ class MDRaid1(BlockDev):
                                     result.output)
     for dev in orig_devs:
       self._children.remove(dev)
-
-  def GetStatus(self):
-    """Return the status of the device.
-
-    """
-    self.Attach()
-    if self.minor is None:
-      retval = self.STATUS_UNKNOWN
-    else:
-      retval = self.STATUS_ONLINE
-    return retval
 
   def _SetFromMinor(self, minor):
     """Set our parameters based on the given minor.
@@ -1553,34 +1492,6 @@ class DRBDev(BaseDRBD):
     is_degraded = client_state != "Connected"
     return sync_percent, est_time, is_degraded, False
 
-  def GetStatus(self):
-    """Compute the status of the DRBD device
-
-    Note that DRBD devices don't have the STATUS_EXISTING state.
-
-    """
-    if self.minor is None and not self.Attach():
-      return self.STATUS_UNKNOWN
-
-    data = self._GetProcData()
-    match = re.compile("^ *%d: cs:[^ ]+ st:(Primary|Secondary)/.*$" %
-                       self.minor)
-    for line in data:
-      mresult = match.match(line)
-      if mresult:
-        break
-    else:
-      logger.Error("Can't find myself!")
-      return self.STATUS_UNKNOWN
-
-    state = mresult.group(2)
-    if state == "Primary":
-      result = self.STATUS_ONLINE
-    else:
-      result = self.STATUS_STANDBY
-
-    return result
-
   @staticmethod
   def _ZeroDevice(device):
     """Zero a device.
@@ -2048,34 +1959,6 @@ class DRBD8(BaseDRBD):
     ldisk = local_disk_state != "UpToDate"
     is_degraded = client_state != "Connected"
     return sync_percent, est_time, is_degraded or ldisk, ldisk
-
-  def GetStatus(self):
-    """Compute the status of the DRBD device
-
-    Note that DRBD devices don't have the STATUS_EXISTING state.
-
-    """
-    if self.minor is None and not self.Attach():
-      return self.STATUS_UNKNOWN
-
-    data = self._GetProcData()
-    match = re.compile("^ *%d: cs:[^ ]+ st:(Primary|Secondary)/.*$" %
-                       self.minor)
-    for line in data:
-      mresult = match.match(line)
-      if mresult:
-        break
-    else:
-      logger.Error("Can't find myself!")
-      return self.STATUS_UNKNOWN
-
-    state = mresult.group(2)
-    if state == "Primary":
-      result = self.STATUS_ONLINE
-    else:
-      result = self.STATUS_STANDBY
-
-    return result
 
   def Open(self, force=False):
     """Make the local state primary.
