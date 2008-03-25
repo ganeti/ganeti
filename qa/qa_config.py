@@ -54,11 +54,6 @@ def Validate():
   if len(cfg['instances']) < 1:
     raise qa_error.Error("Need at least one instance")
 
-  if (TestEnabled('instance-add-remote-raid-disk') and
-      TestEnabled('instance-add-drbd-disk')):
-    raise qa_error.Error('Tests for disk templates remote_raid1 and drbd'
-                         ' cannot be enabled at the same time.')
-
 
 def get(name, default=None):
   return cfg.get(name, default)

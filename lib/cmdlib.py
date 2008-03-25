@@ -2713,43 +2713,6 @@ def _GenerateDiskTemplate(cfg, template_name,
                            logical_id=(vgname, names[1]),
                            iv_name = "sdb")
     disks = [sda_dev, sdb_dev]
-  elif template_name == constants.DT_LOCAL_RAID1:
-    if len(secondary_nodes) != 0:
-      raise errors.ProgrammerError("Wrong template configuration")
-
-
-    names = _GenerateUniqueNames(cfg, [".sda_m1", ".sda_m2",
-                                       ".sdb_m1", ".sdb_m2"])
-    sda_dev_m1 = objects.Disk(dev_type=constants.LD_LV, size=disk_sz,
-                              logical_id=(vgname, names[0]))
-    sda_dev_m2 = objects.Disk(dev_type=constants.LD_LV, size=disk_sz,
-                              logical_id=(vgname, names[1]))
-    md_sda_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name = "sda",
-                              size=disk_sz,
-                              children = [sda_dev_m1, sda_dev_m2])
-    sdb_dev_m1 = objects.Disk(dev_type=constants.LD_LV, size=swap_sz,
-                              logical_id=(vgname, names[2]))
-    sdb_dev_m2 = objects.Disk(dev_type=constants.LD_LV, size=swap_sz,
-                              logical_id=(vgname, names[3]))
-    md_sdb_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name = "sdb",
-                              size=swap_sz,
-                              children = [sdb_dev_m1, sdb_dev_m2])
-    disks = [md_sda_dev, md_sdb_dev]
-  elif template_name == constants.DT_REMOTE_RAID1:
-    if len(secondary_nodes) != 1:
-      raise errors.ProgrammerError("Wrong template configuration")
-    remote_node = secondary_nodes[0]
-    names = _GenerateUniqueNames(cfg, [".sda_data", ".sda_meta",
-                                       ".sdb_data", ".sdb_meta"])
-    drbd_sda_dev = _GenerateMDDRBDBranch(cfg, primary_node, remote_node,
-                                         disk_sz, names[0:2])
-    md_sda_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name="sda",
-                              children = [drbd_sda_dev], size=disk_sz)
-    drbd_sdb_dev = _GenerateMDDRBDBranch(cfg, primary_node, remote_node,
-                                         swap_sz, names[2:4])
-    md_sdb_dev = objects.Disk(dev_type=constants.LD_MD_R1, iv_name="sdb",
-                              children = [drbd_sdb_dev], size=swap_sz)
-    disks = [md_sda_dev, md_sdb_dev]
   elif template_name == constants.DT_DRBD8:
     if len(secondary_nodes) != 1:
       raise errors.ProgrammerError("Wrong template configuration")
@@ -2960,9 +2923,7 @@ class LUCreateInstance(LogicalUnit):
     req_size_dict = {
       constants.DT_DISKLESS: None,
       constants.DT_PLAIN: self.op.disk_size + self.op.swap_size,
-      constants.DT_LOCAL_RAID1: (self.op.disk_size + self.op.swap_size) * 2,
       # 256 MB are added for drbd metadata, 128MB for each drbd device
-      constants.DT_REMOTE_RAID1: self.op.disk_size + self.op.swap_size + 256,
       constants.DT_DRBD8: self.op.disk_size + self.op.swap_size + 256,
     }
 

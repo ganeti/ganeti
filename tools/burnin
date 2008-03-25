@@ -131,10 +131,9 @@ class Burner(object):
                       help="Skip instance stop/start", action="store_false",
                       default=True)
     parser.add_option("-t", "--disk-template", dest="disk_template",
-                      choices=("diskless", "plain", "remote_raid1", "drbd"),
-                      default="remote_raid1",
-                      help="Template type for network mirroring (remote_raid1"
-                      " or drbd) [remote_raid1]")
+                      choices=("diskless", "plain", "drbd"),
+                      default="drbd",
+                      help="Disk template (diskless, plain or drbd) [drbd]")
     parser.add_option("-n", "--nodes", dest="nodes", default="",
                       help="Comma separated list of nodes to perform"
                       " the burnin on (defaults to all nodes)")
@@ -143,8 +142,8 @@ class Burner(object):
     if len(args) < 1 or options.os is None:
       Usage()
 
-    supported_disk_templates = (constants.DT_DISKLESS, constants.DT_PLAIN,
-                                constants.DT_REMOTE_RAID1,
+    supported_disk_templates = (constants.DT_DISKLESS,
+                                constants.DT_PLAIN,
                                 constants.DT_DRBD8)
     if options.disk_template not in supported_disk_templates:
       Log("Unknown disk template '%s'" % options.disk_template)
@@ -219,18 +218,6 @@ class Burner(object):
       self.ExecOp(op)
       self.to_rem.append(instance)
 
-  def ReplaceDisks1R1(self):
-    """Replace disks with the same secondary for rr1."""
-    # replace all, both disks
-    for instance in self.instances:
-      op = opcodes.OpReplaceDisks(instance_name=instance,
-                                  remote_node=None,
-                                  mode=constants.REPLACE_DISK_ALL,
-                                  disks=["sda", "sdb"])
-
-      Log("- Replace disks for instance %s" % (instance))
-      self.ExecOp(op)
-
   def ReplaceDisks1D8(self):
     """Replace disks on primary and secondary for drbd8."""
     for instance in self.instances:
@@ -243,10 +230,7 @@ class Burner(object):
 
   def ReplaceDisks2(self):
     """Replace secondary node."""
-    if self.opts.disk_template == constants.DT_REMOTE_RAID1:
-      mode = constants.REPLACE_DISK_ALL
-    else:
-      mode = constants.REPLACE_DISK_SEC
+    mode = constants.REPLACE_DISK_SEC
 
     mytor = izip(islice(cycle(self.nodes), 2, None),
                  self.instances)
@@ -352,10 +336,7 @@ class Burner(object):
     try:
       self.CreateInstances()
       if opts.do_replace1 and opts.disk_template in constants.DTS_NET_MIRROR:
-        if opts.disk_template == constants.DT_REMOTE_RAID1:
-          self.ReplaceDisks1R1()
-        elif opts.disk_template == constants.DT_DRBD8:
-          self.ReplaceDisks1D8()
+        self.ReplaceDisks1D8()
       if (opts.do_replace2 and len(self.nodes) > 2 and
           opts.disk_template in constants.DTS_NET_MIRROR) :
         self.ReplaceDisks2()

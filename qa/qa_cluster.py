@@ -156,7 +156,7 @@ def TestClusterBurnin():
   master = qa_config.GetMasterNode()
 
   disk_template = (qa_config.get('options', {}).
-                   get('burnin-disk-template', 'remote_raid1'))
+                   get('burnin-disk-template', 'drbd'))
 
   # Get as many instances as we need
   instances = []

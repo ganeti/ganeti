@@ -85,8 +85,6 @@
           <arg choice="req">-t<group>
               <arg>diskless</arg>
               <arg>plain</arg>
-              <arg>local_raid1</arg>
-              <arg>remote_raid1</arg>
               <arg>drbd</arg>
             </group>
           </arg>
@@ -237,35 +235,11 @@
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>local_raid1</term>
-              <listitem>
-                <para>
-                  Disk devices will be md raid1 arrays over two local
-                  logical volumes.
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>remote_raid1</term>
-              <listitem>
-                <para>
-                  Disk devices will be md raid1 arrays with one
-                  component (so it's not actually raid1): a drbd
-                  (0.7.x) device between the instance's primary node
-                  and the node given by the second value of the
-                  <option>--node</option> option.
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
               <term>drbd</term>
               <listitem>
                 <para>
                   Disk devices will be drbd (version 8.x) on top of
-                  lvm volumes. They are equivalent in functionality to
-                  <replaceable>remote_raid1</replaceable>, but are
-                  recommended for new instances (if you have drbd 8.x
-                  installed).
+                  lvm volumes.
                 </para>
               </listitem>
             </varlistentry>
@@ -288,7 +262,7 @@
           <screen>
 # gnt-instance add -t plain -s 30g -m 512 -o debian-etch \
   -n node1.example.com instance1.example.com
-# gnt-instance add -t remote_raid1 -s 30g -m 512 -o debian-etch \
+# gnt-instance add -t drbd -s 30g -m 512 -o debian-etch \
   -n node1.example.com:node2.example.com instance2.example.com
           </screen>
         </para>

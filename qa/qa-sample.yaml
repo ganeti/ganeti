@@ -49,13 +49,9 @@ tests:
   node-failover: False
 
   instance-add-plain-disk: True
-  instance-add-local-mirror-disk: True
-
-  # Requires DRBD 0.7.x
-  instance-add-remote-raid-disk: True
 
   # Requires DRBD 8.x
-  instance-add-drbd-disk: False
+  instance-add-drbd-disk: True
 
   instance-list: True
   instance-failover: True
@@ -76,7 +72,7 @@ tests:
 # Other settings
 options:
   burnin-instances: 2
-  burnin-disk-template: remote_raid1
+  burnin-disk-template: drbd
 
   # Directory containing QA hooks
   #hooks-dir: hooks/

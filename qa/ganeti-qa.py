@@ -268,16 +268,7 @@ def main():
       RunTest(qa_instance.TestInstanceRemove, instance)
       del instance
 
-    if qa_config.TestEnabled('instance-add-local-mirror-disk'):
-      instance = RunTest(qa_instance.TestInstanceAddWithLocalMirrorDisk, pnode)
-      RunCommonInstanceTests(instance)
-      RunExportImportTests(instance, pnode)
-      RunTest(qa_instance.TestInstanceRemove, instance)
-      del instance
-
     multinode_tests = [
-      ('instance-add-remote-raid-disk',
-       qa_instance.TestInstanceAddWithRemoteRaidDisk),
       ('instance-add-drbd-disk',
        qa_instance.TestInstanceAddWithDrbdDisk),
     ]

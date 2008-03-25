@@ -72,19 +72,6 @@ def TestInstanceAddWithPlainDisk(node):
   return _DiskTest(node['primary'], 'plain')
 
 
-@qa_utils.DefineHook('instance-add-local-mirror-disk')
-def TestInstanceAddWithLocalMirrorDisk(node):
-  """gnt-instance add -t local_raid1"""
-  return _DiskTest(node['primary'], 'local_raid1')
-
-
-@qa_utils.DefineHook('instance-add-remote-raid-disk')
-def TestInstanceAddWithRemoteRaidDisk(node, node2):
-  """gnt-instance add -t remote_raid1"""
-  return _DiskTest("%s:%s" % (node['primary'], node2['primary']),
-                   'remote_raid1')
-
-
 @qa_utils.DefineHook('instance-add-drbd-disk')
 def TestInstanceAddWithDrbdDisk(node, node2):
   """gnt-instance add -t drbd"""
