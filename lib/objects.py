@@ -363,7 +363,8 @@ class Disk(ConfigObject):
     devices needs to (or can) be assembled.
 
     """
-    if self.dev_type == constants.LD_LV or self.dev_type == constants.LD_MD_R1:
+    if self.dev_type in [constants.LD_LV, constants.LD_MD_R1,
+                         constants.LD_FILE]:
       result = [node]
     elif self.dev_type in constants.LDS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]
