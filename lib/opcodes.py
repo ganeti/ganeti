@@ -301,18 +301,6 @@ class OpRebootInstance(OpCode):
                "ignore_secondaries" ]
 
 
-class OpAddMDDRBDComponent(OpCode):
-  """Add a MD-DRBD component."""
-  OP_ID = "OP_INSTANCE_ADD_MDDRBD"
-  __slots__ = ["instance_name", "remote_node", "disk_name"]
-
-
-class OpRemoveMDDRBDComponent(OpCode):
-  """Remove a MD-DRBD component."""
-  OP_ID = "OP_INSTANCE_REMOVE_MDDRBD"
-  __slots__ = ["instance_name", "disk_name", "disk_id"]
-
-
 class OpReplaceDisks(OpCode):
   """Replace the disks of an instance."""
   OP_ID = "OP_INSTANCE_REPLACE_DISKS"

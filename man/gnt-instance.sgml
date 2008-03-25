@@ -896,46 +896,6 @@
       </refsect3>
 
       <refsect3>
-        <title>ADD-MIRROR</title>
-        <cmdsynopsis>
-          <command>add-mirror</command>
-          <arg choice="req">-b <replaceable>sdX</replaceable></arg>
-          <arg choice="req">-n <replaceable>node</replaceable></arg>
-          <arg choice="req"><replaceable>instance</replaceable></arg>
-        </cmdsynopsis>
-        <para>
-          Adds a new mirror to the disk layout of the instance, if the
-          instance has a remote raid disk layout.
-
-          The new mirror member will be between the instance's primary
-          node and the node given with the <option>-n</option> option.
-        </para>
-      </refsect3>
-
-      <refsect3>
-        <title>REMOVE-MIRROR</title>
-
-        <cmdsynopsis>
-          <command>removemirror</command>
-          <arg choice="req">-b <replaceable>sdX</replaceable></arg>
-          <arg choice="req">-p <replaceable>id</replaceable></arg>
-          <arg choice="req"><replaceable>instance</replaceable></arg>
-        </cmdsynopsis>
-        <para>
-          Removes a mirror componenent from the disk layout of the
-          instance, if the instance has a remote raid disk layout.
-        </para>
-
-        <para>
-          You need to specifiy on which disk to act on using the
-          <option>-b</option> option (either <filename>sda</filename>
-          or <filename>sdb</filename>) and the mirror component, which
-          is identified by the <option>-p</option> option. You can
-          find the list of valid identifiers with the
-          <command>info</command> command.
-        </para>
-
-      <refsect3>
         <title>ACTIVATE-DISKS</title>
 
         <cmdsynopsis>

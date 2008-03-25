@@ -435,36 +435,6 @@ def ShutdownInstance(opts, args):
   return 0
 
 
-def AddMDDRBDComponent(opts, args):
-  """Add a new component to a remote_raid1 disk.
-
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
-
-  """
-  op = opcodes.OpAddMDDRBDComponent(instance_name=args[0],
-                                    disk_name=opts.disk,
-                                    remote_node=opts.node)
-  SubmitOpCode(op)
-  return 0
-
-
-def RemoveMDDRBDComponent(opts, args):
-  """Remove a component from a remote_raid1 disk.
-
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
-
-  """
-  op = opcodes.OpRemoveMDDRBDComponent(instance_name=args[0],
-                                       disk_name=opts.disk,
-                                       disk_id=opts.port)
-  SubmitOpCode(op)
-  return 0
-
-
 def ReplaceDisks(opts, args):
   """Replace the disks of an instance
 
@@ -792,13 +762,6 @@ commands = {
   'add': (AddInstance, ARGS_ONE, add_opts,
           "[opts...] <name>",
           "Creates and adds a new instance to the cluster"),
-  'add-mirror': (AddMDDRBDComponent, ARGS_ONE,
-                [DEBUG_OPT, node_opt,
-                 make_option("-b", "--disk", dest="disk", metavar="sdX",
-                             help=("The name of the instance disk for which to"
-                                   " add the mirror"))],
-                "-n node -b disk <instance>",
-                "Creates a new mirror for the instance"),
   'console': (ConnectToInstanceConsole, ARGS_ONE, [DEBUG_OPT],
               "<instance>",
               "Opens a console on the specified instance"),
@@ -833,18 +796,6 @@ commands = {
                                 " process (shutdown, disk removal, etc.)")),
               ],
              "[-f] <instance>", "Shuts down the instance and removes it"),
-  'remove-mirror': (RemoveMDDRBDComponent, ARGS_ONE,
-                   [DEBUG_OPT, node_opt,
-                    make_option("-b", "--disk", dest="disk", metavar="sdX",
-                                help=("The name of the instance disk"
-                                      " for which to add the mirror")),
-                    make_option("-p", "--port", dest="port", metavar="PORT",
-                                help=("The port of the drbd device"
-                                      " which to remove from the mirror"),
-                                type="int"),
-                    ],
-                   "-b disk -p port <instance>",
-                   "Removes a mirror from the instance"),
   'rename': (RenameInstance, ARGS_FIXED(2),
              [DEBUG_OPT,
               make_option("--no-ip-check", dest="ignore_ip",
