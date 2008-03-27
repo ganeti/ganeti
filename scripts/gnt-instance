@@ -506,14 +506,18 @@ def ConnectToInstanceConsole(opts, args):
 
   op = opcodes.OpConnectConsole(instance_name=instance_name)
   cmd = SubmitOpCode(op)
-  # drop lock and exec so other commands can run while we have console
-  utils.Unlock("cmd")
-  try:
-    os.execvp(cmd[0], cmd)
-  finally:
-    sys.stderr.write("Can't run console command %s with arguments:\n'%s'" %
-                     (cmd, " ".join(argv)))
-    os._exit(1)
+
+  if opts.show_command:
+    print utils.ShellQuoteArgs(cmd)
+  else:
+    # drop lock and exec so other commands can run while we have console
+    utils.Unlock("cmd")
+    try:
+      os.execvp(cmd[0], cmd)
+    finally:
+      sys.stderr.write("Can't run console command %s with arguments:\n'%s'" %
+                       (cmd, " ".join(argv)))
+      os._exit(1)
 
 
 def _FormatBlockDevInfo(buf, dev, indent_level):
@@ -762,8 +766,12 @@ commands = {
   'add': (AddInstance, ARGS_ONE, add_opts,
           "[opts...] <name>",
           "Creates and adds a new instance to the cluster"),
-  'console': (ConnectToInstanceConsole, ARGS_ONE, [DEBUG_OPT],
-              "<instance>",
+  'console': (ConnectToInstanceConsole, ARGS_ONE,
+              [DEBUG_OPT,
+               make_option("--show-cmd", dest="show_command",
+                           action="store_true", default=False,
+                           help=("Show command instead of executing it"))],
+              "[--show-cmd] <instance>",
               "Opens a console on the specified instance"),
   'failover': (FailoverInstance, ARGS_ONE,
                [DEBUG_OPT, FORCE_OPT,

@@ -797,12 +797,14 @@
         <title>CONSOLE</title>
         <cmdsynopsis>
           <command>console</command>
+          <arg choice="opt">--show-cmd</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <para>
           Connects to the console of the given instance. If the instance
-          is not up, an error is returned.
+          is not up, an error is returned. Use the <option>--show-cmd</option>
+          option to display the command instead of executing it.
         </para>
 
         <para>
