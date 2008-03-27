@@ -184,6 +184,16 @@ def TestInstanceList():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-console')
+def TestInstanceConsole(instance):
+  """gnt-instance console"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-instance', 'console', '--show-cmd', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 @qa_utils.DefineHook('backup-export')
 def TestInstanceExport(instance, node):
   """gnt-backup export"""

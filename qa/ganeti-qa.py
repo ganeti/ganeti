@@ -143,6 +143,9 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled('instance-modify'):
     RunTest(qa_instance.TestInstanceModify, instance)
 
+  if qa_config.TestEnabled('instance-console'):
+    RunTest(qa_instance.TestInstanceConsole, instance)
+
   if qa_config.TestEnabled('instance-reinstall'):
     RunTest(qa_instance.TestInstanceShutdown, instance)
     RunTest(qa_instance.TestInstanceReinstall, instance)

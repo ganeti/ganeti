@@ -64,6 +64,10 @@ tests:
   instance-automatic-restart: False
   instance-consecutive-failures: False
 
+  # This test might fail with certain hypervisor types, depending on whether
+  # they support the `gnt-instance console' command.
+  instance-console: False
+
   # Make sure not to include the disk(s) required for Dom0 to be included in
   # the volume group used for instances. Otherwise the whole system may stop
   # working until restarted.
