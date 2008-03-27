@@ -130,7 +130,7 @@ def _ConfirmOperation(inames, text):
   choice = AskUser(ask, choices)
   if choice == 'v':
     choices.pop(1)
-    choice = AskUser(choices, msg + affected)
+    choice = AskUser(msg + affected, choices)
   return choice
 
 
