@@ -3160,8 +3160,7 @@ class LUConnectConsole(NoHooksLU):
     console_cmd = hyper.GetShellCommandForConsole(instance)
 
     # build ssh cmdline
-    cmd = self.ssh.BuildCmd(node, "root", console_cmd, batch=True, tty=True)
-    return cmd[0], cmd
+    return self.ssh.BuildCmd(node, "root", console_cmd, batch=True, tty=True)
 
 
 class LUReplaceDisks(LogicalUnit):

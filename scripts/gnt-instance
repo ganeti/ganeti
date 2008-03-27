@@ -505,11 +505,11 @@ def ConnectToInstanceConsole(opts, args):
   instance_name = args[0]
 
   op = opcodes.OpConnectConsole(instance_name=instance_name)
-  cmd, argv = SubmitOpCode(op)
+  cmd = SubmitOpCode(op)
   # drop lock and exec so other commands can run while we have console
   utils.Unlock("cmd")
   try:
-    os.execvp(cmd, argv)
+    os.execvp(cmd[0], cmd)
   finally:
     sys.stderr.write("Can't run console command %s with arguments:\n'%s'" %
                      (cmd, " ".join(argv)))
