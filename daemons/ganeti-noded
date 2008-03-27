@@ -93,7 +93,7 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
     This is the same as the parent, we just log somewhere else.
 
     """
-    msg = ("%s - - [%s] %s\n" %
+    msg = ("%s - - [%s] %s" %
            (self.address_string(),
             self.log_date_time_string(),
             format % args))
