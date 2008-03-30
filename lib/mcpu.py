@@ -125,14 +125,16 @@ class Processor(object):
     lu.CheckPrereq()
     hm = HooksMaster(rpc.call_hooks_runner, self, lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
-    result = lu.Exec(self._feedback_fn)
-    hm.RunPhase(constants.HOOKS_PHASE_POST)
-    if lu.cfg is not None:
-      # we use lu.cfg and not self.cfg as for init cluster, self.cfg
-      # is None but lu.cfg has been recently initialized in the
-      # lu.Exec method
-      if write_count != lu.cfg.write_count:
-        hm.RunConfigUpdate()
+    try:
+      result = lu.Exec(self._feedback_fn)
+      hm.RunPhase(constants.HOOKS_PHASE_POST)
+    finally:
+      if lu.cfg is not None:
+        # we use lu.cfg and not self.cfg as for init cluster, self.cfg
+        # is None but lu.cfg has been recently initialized in the
+        # lu.Exec method
+        if write_count != lu.cfg.write_count:
+          hm.RunConfigUpdate()
 
     return result
 

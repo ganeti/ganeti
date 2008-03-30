@@ -2011,6 +2011,8 @@ class LUStartupInstance(LogicalUnit):
     force = self.op.force
     extra_args = getattr(self.op, "extra_args", "")
 
+    self.cfg.MarkInstanceUp(instance.name)
+
     node_current = instance.primary_node
 
     _StartInstanceDisks(self.cfg, instance, force)
@@ -2018,8 +2020,6 @@ class LUStartupInstance(LogicalUnit):
     if not rpc.call_instance_start(node_current, instance, extra_args):
       _ShutdownInstanceDisks(instance, self.cfg)
       raise errors.OpExecError("Could not start instance")
-
-    self.cfg.MarkInstanceUp(instance.name)
 
 
 class LURebootInstance(LogicalUnit):
@@ -2136,10 +2136,10 @@ class LUShutdownInstance(LogicalUnit):
     """
     instance = self.instance
     node_current = instance.primary_node
+    self.cfg.MarkInstanceDown(instance.name)
     if not rpc.call_instance_shutdown(node_current, instance):
       logger.Error("could not shutdown instance")
 
-    self.cfg.MarkInstanceDown(instance.name)
     _ShutdownInstanceDisks(instance, self.cfg)
 
 
