@@ -74,7 +74,7 @@ class Processor(object):
     opcodes.OpConnectConsole: cmdlib.LUConnectConsole,
     opcodes.OpQueryInstances: cmdlib.LUQueryInstances,
     opcodes.OpQueryInstanceData: cmdlib.LUQueryInstanceData,
-    opcodes.OpSetInstanceParms: cmdlib.LUSetInstanceParms,
+    opcodes.OpSetInstanceParams: cmdlib.LUSetInstanceParams,
     # os lu
     opcodes.OpDiagnoseOS: cmdlib.LUDiagnoseOS,
     # exports lu

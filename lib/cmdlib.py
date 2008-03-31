@@ -1042,7 +1042,6 @@ class LUSetClusterParams(LogicalUnit):
     if the given volume group is valid. 
 
     """
-
     if not self.op.vg_name:
       instances = [self.cfg.GetInstanceInfo(name)
                    for name in self.cfg.GetInstanceList()]
@@ -3907,7 +3906,7 @@ class LUQueryInstanceData(NoHooksLU):
     return result
 
 
-class LUSetInstanceParms(LogicalUnit):
+class LUSetInstanceParams(LogicalUnit):
   """Modifies an instances's parameters.
 
   """
@@ -3959,9 +3958,9 @@ class LUSetInstanceParms(LogicalUnit):
     self.kernel_path = getattr(self.op, "kernel_path", None)
     self.initrd_path = getattr(self.op, "initrd_path", None)
     self.hvm_boot_order = getattr(self.op, "hvm_boot_order", None)
-    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
-                 self.kernel_path, self.initrd_path, self.hvm_boot_order]
-    if all_parms.count(None) == len(all_parms):
+    all_params = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
+                  self.kernel_path, self.initrd_path, self.hvm_boot_order]
+    if all_params.count(None) == len(all_params):
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
       try:

@@ -635,7 +635,7 @@ def ShowInstanceConfig(opts, args):
   return retcode
 
 
-def SetInstanceParms(opts, args):
+def SetInstanceParams(opts, args):
   """Modifies an instance.
 
   All parameters take effect only at the next restart of the instance.
@@ -661,12 +661,12 @@ def SetInstanceParms(opts, args):
   else:
     hvm_boot_order = opts.hvm_boot_order
 
-  op = opcodes.OpSetInstanceParms(instance_name=args[0], mem=opts.mem,
-                                  vcpus=opts.vcpus, ip=opts.ip,
-                                  bridge=opts.bridge, mac=opts.mac,
-                                  kernel_path=opts.kernel_path,
-                                  initrd_path=opts.initrd_path,
-                                  hvm_boot_order=hvm_boot_order)
+  op = opcodes.OpSetInstanceParams(instance_name=args[0], mem=opts.mem,
+                                   vcpus=opts.vcpus, ip=opts.ip,
+                                   bridge=opts.bridge, mac=opts.mac,
+                                   kernel_path=opts.kernel_path,
+                                   initrd_path=opts.initrd_path,
+                                   hvm_boot_order=hvm_boot_order)
   result = SubmitOpCode(op)
 
   if result:
@@ -832,7 +832,7 @@ commands = {
                      ],
                     "[-s|-p|-n NODE] <instance>",
                     "Replaces all disks for the instance"),
-  'modify': (SetInstanceParms, ARGS_ONE,
+  'modify': (SetInstanceParams, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
               cli_option("-m", "--memory", dest="mem",
                          help="Memory size",
