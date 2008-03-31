@@ -612,6 +612,14 @@ class ConfigWriter:
     self._ReleaseLock()
     return self._config_data.cluster.volume_group_name
 
+  def SetVGName(self, vg_name):
+    """Set the volume group name.
+
+    """
+    self._OpenConfig()
+    self._config_data.cluster["volume_group_name"] = vg_name
+    self._WriteConfig()
+
   def GetDefBridge(self):
     """Return the default bridge.
 
