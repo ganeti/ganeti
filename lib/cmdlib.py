@@ -1807,6 +1807,12 @@ class LURunClusterCommand(NoHooksLU):
     """Run a command on some nodes.
 
     """
+    # put the master at the end of the nodes list
+    master_node = self.sstore.GetMasterNode()
+    if master_node in self.nodes:
+      self.nodes.remove(master_node)
+      self.nodes.append(master_node)
+
     data = []
     for node in self.nodes:
       result = ssh.SSHCall(node, "root", self.op.command)

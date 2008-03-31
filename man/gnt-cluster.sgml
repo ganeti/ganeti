@@ -102,6 +102,21 @@
       </para>
 
       <para>
+        The command is executed serially on the selected nodes. If the
+        master node is present in the list, the command will be
+        executed last on the master. Regarding the other nodes, the
+        execution order is somewhat alphabetic (it's smarter so that
+        node2.example.com will be earlier than node10.example.com but
+        after node1.example.com).
+      </para>
+
+      <para>
+        So given the node names node1, node2, node3, node10, node11,
+        with node3 being the master, the order will be: node1, node2,
+        node10, node11, node3.
+      </para>
+
+      <para>
         The command is constructed by concatenating all other command
         line arguments. For example, to list the contents of the
         <filename class="directory">/etc</filename> directory on all
