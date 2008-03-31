@@ -53,6 +53,7 @@ class Processor(object):
     opcodes.OpDumpClusterConfig: cmdlib.LUDumpClusterConfig,
     opcodes.OpRenameCluster: cmdlib.LURenameCluster,
     opcodes.OpVerifyDisks: cmdlib.LUVerifyDisks,
+    opcodes.OpSetClusterParams: cmdlib.LUSetClusterParams,
     # node lu
     opcodes.OpAddNode: cmdlib.LUAddNode,
     opcodes.OpQueryNodes: cmdlib.LUQueryNodes,
