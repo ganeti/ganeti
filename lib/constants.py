@@ -92,6 +92,9 @@ DT_FILE = "file"
 # the set of network-mirrored disk templates
 DTS_NET_MIRROR = frozenset([DT_REMOTE_RAID1, DT_DRBD8])
 
+# the set of non-lvm-based disk templates
+DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE])
+
 # logical disk types
 LD_LV = "lvm"
 LD_MD_R1 = "md_raid1"
@@ -144,6 +147,7 @@ SYNC_SPEED = 30 * 1024
 LOCALHOST_IP_ADDRESS = "127.0.0.1"
 TCP_PING_TIMEOUT = 10
 GANETI_RUNAS = "root"
+DEFAULT_VG = "xenvg"
 
 # valid os status
 OS_VALID_STATUS = "VALID"
