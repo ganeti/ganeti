@@ -996,6 +996,80 @@ class LURenameCluster(LogicalUnit):
                      " please restart manually.")
 
 
+def _RecursiveCheckIfLVMBased(disk):
+  """Check if the given disk or its children are lvm-based.
+
+  Args:
+    disk: ganeti.objects.Disk object
+
+  Returns:
+    boolean indicating whether a LD_LV dev_type was found or not
+
+  """
+  if disk.children:
+    for chdisk in disk.children:
+      if _RecursiveCheckIfLVMBased(chdisk):
+        return True
+  return disk.dev_type == constants.LD_LV
+
+
+class LUSetClusterParams(LogicalUnit):
+  """Change the parameters of the cluster.
+
+  """
+  HPATH = "cluster-modify"
+  HTYPE = constants.HTYPE_CLUSTER
+  _OP_REQP = []
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {
+      "OP_TARGET": self.sstore.GetClusterName(),
+      "NEW_VG_NAME": self.op.vg_name,
+      }
+    mn = self.sstore.GetMasterNode()
+    return env, [mn], [mn]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks whether the given params don't conflict and
+    if the given volume group is valid. 
+
+    """
+
+    if not self.op.vg_name:
+      instances = [self.cfg.GetInstanceInfo(name)
+                   for name in self.cfg.GetInstanceList()]
+      for inst in instances:
+        for disk in inst.disks:
+          if _RecursiveCheckIfLVMBased(disk):
+            raise errors.OpPrereqError("Cannot disable lvm storage while"
+                                       " lvm-based instances exist")
+
+    # if vg_name not None, checks given volume group on all nodes
+    if self.op.vg_name:
+      node_list = self.cfg.GetNodeList()
+      vglist = rpc.call_vg_list(node_list)
+      for node in node_list:
+        vgstatus = _HasValidVG(vglist[node], self.op.vg_name)
+        if vgstatus:
+          raise errors.OpPrereqError("Error on node '%s': %s" %
+                                     (node, vgstatus))
+
+  def Exec(self, feedback_fn):
+    """Change the parameters of the cluster.
+
+    """
+    if self.op.vg_name != self.cfg.GetVGName():
+      self.cfg.SetVGName(self.op.vg_name)
+    else:
+      feedback_fn("Cluster LVM configuration already in desired"
+                  " state, not changing")
+
+
 def _WaitForSync(cfgw, instance, proc, oneshot=False, unlock=False):
   """Sleep and poll for an instance's disk to sync.
 
