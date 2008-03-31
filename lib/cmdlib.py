@@ -2853,6 +2853,11 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
                                  self.op.mode)
 
+    if (not self.cfg.GetVGName() and
+        self.op.disk_template not in constants.DTS_NOT_LVM):
+      raise errors.OpPrereqError("Cluster does not support lvm-based"
+                                 " instances")
+
     if self.op.mode == constants.INSTANCE_IMPORT:
       src_node = getattr(self.op, "src_node", None)
       src_path = getattr(self.op, "src_path", None)
