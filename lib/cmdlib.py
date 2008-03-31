@@ -413,7 +413,7 @@ class LUInitCluster(LogicalUnit):
   """
   HPATH = "cluster-init"
   HTYPE = constants.HTYPE_CLUSTER
-  _OP_REQP = ["cluster_name", "hypervisor_type", "vg_name", "mac_prefix",
+  _OP_REQP = ["cluster_name", "hypervisor_type", "mac_prefix",
               "def_bridge", "master_netdev", "file_storage_dir"]
   REQ_CLUSTER = False
 
@@ -472,11 +472,14 @@ class LUInitCluster(LogicalUnit):
                                  secondary_ip)
     self.secondary_ip = secondary_ip
 
-    # checks presence of the volume group given
-    vgstatus = _HasValidVG(utils.ListVolumeGroups(), self.op.vg_name)
-
-    if vgstatus:
-      raise errors.OpPrereqError("Error: %s" % vgstatus)
+    if not hasattr(self.op, "vg_name"):
+      self.op.vg_name = None
+    # if vg_name not None, checks if volume group is valid
+    if self.op.vg_name:
+      vgstatus = _HasValidVG(utils.ListVolumeGroups(), self.op.vg_name)
+      if vgstatus:
+        raise errors.OpPrereqError("Error: %s\nspecify --no-lvm-storage if"
+                                   " you are not using lvm" % vgstatus)
 
     self.op.file_storage_dir = os.path.normpath(self.op.file_storage_dir)
 
