@@ -154,7 +154,7 @@ commands = {
               make_option("","--noshutdown", dest="shutdown",
                           action="store_false", default=True,
                           help="Don't shutdown the instance (unsafe)"), ],
-             "[opts...] <name>",
+             "-n <target_node> [opts...] <name>",
              "Exports an instance to an image"),
   'import': (ImportInstance, ARGS_ONE, import_opts, "[opts...] <name>",
              "Imports an instance from an exported image"),
