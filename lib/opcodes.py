@@ -224,6 +224,12 @@ class OpRenameCluster(OpCode):
   __slots__ = ["name"]
 
 
+class OpSetClusterParams(OpCode):
+  """Change the parameters of the cluster."""
+  OP_ID = "OP_CLUSTER_SET_PARAMS"
+  __slots__ = ["vg_name"]
+
+
 # node opcodes
 
 class OpRemoveNode(OpCode):
