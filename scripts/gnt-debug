@@ -1,0 +1,66 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+import sys
+import os
+import itertools
+from optparse import make_option
+from cStringIO import StringIO
+
+from ganeti.cli import *
+from ganeti import opcodes
+from ganeti import logger
+from ganeti import constants
+from ganeti import utils
+from ganeti import errors
+
+
+def Delay(opts, args):
+  """Sleeps for a while
+
+  """
+  delay = float(args[0])
+  op = opcodes.OpTestDelay(duration=delay,
+                           on_master=opts.on_master,
+                           on_nodes=opts.on_nodes)
+
+  job = opcodes.Job(op_list=[op])
+  jid = SubmitJob(job)
+  print "Job id", jid
+  return 0
+
+
+commands = {
+  'delay': (Delay, ARGS_ONE,
+            [DEBUG_OPT,
+             make_option("--no-master", dest="on_master", default=True,
+                         action="store_false",
+                         help="Do not sleep in the master code"),
+             make_option("-n", dest="on_nodes", default=[],
+                         action="append",
+                         help="Select nodes to sleep on"),
+             ],
+            "[opts...] <duration>", "Executes a TestDelay OpCode"),
+  }
+
+
+if __name__ == '__main__':
+  sys.exit(GenericMain(commands))
