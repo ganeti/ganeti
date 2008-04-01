@@ -34,11 +34,13 @@ from ganeti import errors
 from ganeti import mcpu
 from ganeti import constants
 from ganeti import opcodes
+from ganeti import luxi
 
 from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError, SUPPRESS_HELP)
 
-__all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain", "SubmitOpCode",
+__all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
+           "SubmitOpCode", "SubmitJob", "SubmitQuery",
            "cli_option", "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
@@ -384,6 +386,22 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   if proc is None:
     proc = mcpu.Processor(feedback=feedback_fn)
   return proc.ExecOpCode(op)
+
+
+def SubmitJob(job, cl=None):
+  if cl is None:
+    cl = luxi.Client()
+  jid = cl.SubmitJob(job)
+  return jid
+
+
+def SubmitQuery(data, cl=None):
+  if cl is None:
+    cl = luxi.Client()
+  result = cl.Query(data)
+  if not result['success']:
+    raise ValueError(result)
+  return result['result']
 
 
 def FormatError(err):

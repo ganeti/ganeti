@@ -35,6 +35,7 @@ import simplejson
 import time
 
 from ganeti import opcodes
+from ganeti import constants
 
 
 KEY_REQUEST = 'request'
@@ -216,7 +217,7 @@ class Client(object):
   implements data serialization/deserialization.
 
   """
-  def __init__(self, address, timeouts=None, transport=Transport):
+  def __init__(self, address=None, timeouts=None, transport=Transport):
     """Constructor for the Client class.
 
     Arguments:
@@ -229,6 +230,8 @@ class Client(object):
     class are used.
 
     """
+    if address is None:
+      address = constants.MASTER_SOCKET
     self.transport = transport(address, timeouts=timeouts)
 
   def SendRequest(self, request, data):
