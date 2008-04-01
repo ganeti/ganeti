@@ -103,7 +103,7 @@ def _GetLockFile(subsystem):
   return "%s/ganeti_lock_%s" % (constants.LOCK_DIR, subsystem)
 
 
-def Lock(name, max_retries=None, debug=False):
+def Lock(name, max_retries=None, debug=False, autoclean=True):
   """Lock a given subsystem.
 
   In case the lock is already held by an alive process, the function
@@ -123,6 +123,7 @@ def Lock(name, max_retries=None, debug=False):
     raise errors.LockError('Lock "%s" already held!' % (name,))
 
   errcount = 0
+  cleanupcount = 0
 
   retries = 0
   while True:
@@ -151,8 +152,17 @@ def Lock(name, max_retries=None, debug=False):
                                (lockfile,))
 
       if not IsProcessAlive(pid):
-        raise errors.LockError("Stale lockfile %s for pid %d?" %
-                               (lockfile, pid))
+        if autoclean:
+          cleanupcount += 1
+          if cleanupcount >= 5:
+            raise errors.LockError, ("Too many stale lock cleanups! Check"
+                                     " what process is dying.")
+          logger.Error('Stale lockfile %s for pid %d?' % (lockfile, pid))
+          RemoveFile(lockfile)
+          continue
+        else:
+          raise errors.LockError("Stale lockfile %s for pid %d?" %
+                                 (lockfile, pid))
 
       if max_retries and max_retries <= retries:
         raise errors.LockError("Can't acquire lock during the specified"
