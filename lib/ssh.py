@@ -163,12 +163,12 @@ class SshRunner:
       success: True/False
 
     """
-    if not os.path.isfile(filename):
-      logger.Error("file %s does not exist" % (filename))
-      return False
-
     if not os.path.isabs(filename):
       logger.Error("file %s must be an absolute path" % (filename))
+      return False
+
+    if not os.path.isfile(filename):
+      logger.Error("file %s does not exist" % (filename))
       return False
 
     command = [constants.SCP, "-q", "-p"]
