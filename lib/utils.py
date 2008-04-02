@@ -157,7 +157,8 @@ def Lock(name, max_retries=None, debug=False, autoclean=True):
           if cleanupcount >= 5:
             raise errors.LockError, ("Too many stale lock cleanups! Check"
                                      " what process is dying.")
-          logger.Error('Stale lockfile %s for pid %d?' % (lockfile, pid))
+          logger.Error('Stale lockfile %s for pid %d, autocleaned.' %
+                       (lockfile, pid))
           RemoveFile(lockfile)
           continue
         else:
