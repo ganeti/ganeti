@@ -2634,21 +2634,23 @@ class LUFailoverInstance(LogicalUnit):
     # distribute new instance config to the other nodes
     self.cfg.AddInstance(instance)
 
-    feedback_fn("* activating the instance's disks on target node")
-    logger.Info("Starting instance %s on node %s" %
-                (instance.name, target_node))
+    # Only start the instance if it's marked as up
+    if instance.status == "up":
+      feedback_fn("* activating the instance's disks on target node")
+      logger.Info("Starting instance %s on node %s" %
+                  (instance.name, target_node))
 
-    disks_ok, dummy = _AssembleInstanceDisks(instance, self.cfg,
-                                             ignore_secondaries=True)
-    if not disks_ok:
-      _ShutdownInstanceDisks(instance, self.cfg)
-      raise errors.OpExecError("Can't activate the instance's disks")
+      disks_ok, dummy = _AssembleInstanceDisks(instance, self.cfg,
+                                               ignore_secondaries=True)
+      if not disks_ok:
+        _ShutdownInstanceDisks(instance, self.cfg)
+        raise errors.OpExecError("Can't activate the instance's disks")
 
-    feedback_fn("* starting the instance on the target node")
-    if not rpc.call_instance_start(target_node, instance, None):
-      _ShutdownInstanceDisks(instance, self.cfg)
-      raise errors.OpExecError("Could not start instance %s on node %s." %
-                               (instance.name, target_node))
+      feedback_fn("* starting the instance on the target node")
+      if not rpc.call_instance_start(target_node, instance, None):
+        _ShutdownInstanceDisks(instance, self.cfg)
+        raise errors.OpExecError("Could not start instance %s on node %s." %
+                                 (instance.name, target_node))
 
 
 def _CreateBlockDevOnPrimary(cfg, node, instance, device, info):
