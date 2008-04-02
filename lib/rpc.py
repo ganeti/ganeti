@@ -632,7 +632,7 @@ def call_export_info(node, path):
   result = c.getresult().get(node, False)
   if not result:
     return result
-  return objects.SerializableConfigParser.Loads(result)
+  return objects.SerializableConfigParser.Loads(str(result))
 
 
 def call_instance_os_import(node, inst, osdev, swapdev, src_node, src_image):
