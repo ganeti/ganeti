@@ -1126,7 +1126,7 @@ def _CheckDiskConsistency(cfgw, dev, node, on_primary, ldisk=False):
   if on_primary or dev.AssembleOnSecondary():
     rstats = rpc.call_blockdev_find(node, dev)
     if not rstats:
-      logger.ToStderr("Can't get any data from node %s" % node)
+      logger.ToStderr("Disk degraded or not found on node %s" % node)
       result = False
     else:
       result = result and (not rstats[idx])
