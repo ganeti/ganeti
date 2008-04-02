@@ -4364,10 +4364,11 @@ class LUExportInstance(LogicalUnit):
     instance = self.instance
     dst_node = self.dst_node
     src_node = instance.primary_node
-    # shutdown the instance, unless requested not to do so
     if self.op.shutdown:
-      op = opcodes.OpShutdownInstance(instance_name=instance.name)
-      self.proc.ChainOpCode(op)
+      # shutdown the instance, but not the disks
+      if not rpc.call_instance_shutdown(src_node, instance):
+         raise errors.OpExecError("Could not shutdown instance %s on node %s" %
+                                 (instance.name, source_node))
 
     vgname = self.cfg.GetVGName()
 
@@ -4390,10 +4391,10 @@ class LUExportInstance(LogicalUnit):
             snap_disks.append(new_dev)
 
     finally:
-      if self.op.shutdown:
-        op = opcodes.OpStartupInstance(instance_name=instance.name,
-                                       force=False)
-        self.proc.ChainOpCode(op)
+      if self.op.shutdown and instance.status == "up":
+        if not rpc.call_instance_start(src_node, instance, None):
+          _ShutdownInstanceDisks(instance, self.cfg)
+          raise errors.OpExecError("Could not start instance")
 
     # TODO: check for size
 
