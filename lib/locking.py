@@ -142,8 +142,8 @@ class SharedLock:
     Args:
       shared: whether to acquire in shared mode. By default an exclusive lock
               will be acquired.
-      blocking: whether to block while trying to acquire or to operate in try-lock mode.
-                this locking mode is not supported yet.
+      blocking: whether to block while trying to acquire or to operate in
+                try-lock mode. this locking mode is not supported yet.
 
     """
     if not blocking:
@@ -382,8 +382,8 @@ class LockSet:
              (special lock names, or instance/node names)
       shared: whether to acquire in shared mode. By default an exclusive lock
               will be acquired.
-      blocking: whether to block while trying to acquire or to operate in try-lock mode.
-                this locking mode is not supported yet.
+      blocking: whether to block while trying to acquire or to operate in
+                try-lock mode.  this locking mode is not supported yet.
 
     Returns:
       True: when all the locks are successfully acquired
@@ -436,7 +436,7 @@ class LockSet:
       # just one of them be the already wrong
       for lname in names:
         try:
-          lock = self.__lockdict[lname] # raises KeyError if the lock is not there
+          lock = self.__lockdict[lname] # raises KeyError if lock is not there
           acquire_list.append((lname, lock))
         except (KeyError):
           if self.__lock._is_owned():
@@ -685,9 +685,8 @@ class GanetiLockManager:
   def __init__(self, nodes=None, instances=None):
     """Constructs a new GanetiLockManager object.
 
-    There should be only a
-    GanetiLockManager object at any time, so this function raises an error if this
-    is not the case.
+    There should be only a GanetiLockManager object at any time, so this
+    function raises an error if this is not the case.
 
     Args:
       nodes: list of node names
@@ -762,8 +761,8 @@ class GanetiLockManager:
              (special lock names, or instance/node names)
       shared: whether to acquire in shared mode. By default an exclusive lock
               will be acquired.
-      blocking: whether to block while trying to acquire or to operate in try-lock mode.
-                this locking mode is not supported yet.
+      blocking: whether to block while trying to acquire or to operate in
+                try-lock mode.  this locking mode is not supported yet.
 
     """
     assert level in LEVELS, "Invalid locking level %s" % level
