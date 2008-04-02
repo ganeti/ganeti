@@ -218,7 +218,7 @@ class SharedLock:
           self.__npass_shr = self.__nwait_shr
           self.__turn_shr.notifyAll()
         elif self.__nwait_exc > 0:
-         self.__turn_exc.notify()
+          self.__turn_exc.notify()
 
       elif self.__is_sharer():
         self.__shr.remove(threading.currentThread())
