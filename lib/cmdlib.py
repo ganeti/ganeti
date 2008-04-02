@@ -2609,7 +2609,7 @@ class LUFailoverInstance(LogicalUnit):
     for dev in instance.disks:
       # for remote_raid1, these are md over drbd
       if not _CheckDiskConsistency(self.cfg, dev, target_node, False):
-        if not self.op.ignore_consistency:
+        if instance.status == "up" and not self.op.ignore_consistency:
           raise errors.OpExecError("Disk %s is degraded on target node,"
                                    " aborting failover." % dev.iv_name)
 
