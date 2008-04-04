@@ -1,0 +1,101 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+import sys
+import os
+import itertools
+from optparse import make_option
+from cStringIO import StringIO
+
+from ganeti.cli import *
+from ganeti import opcodes
+from ganeti import logger
+from ganeti import constants
+from ganeti import utils
+from ganeti import errors
+
+
+def ListJobs(opts, args):
+  """List the jobs
+
+  """
+  if opts.output is None:
+    selected_fields = ["id", "status"]
+  else:
+    selected_fields = opts.output.split(",")
+
+  query = {
+    "object": "jobs",
+    "fields": selected_fields,
+    "names": [],
+    }
+
+  output = SubmitQuery(query)
+  if not opts.no_headers:
+    headers = {
+      "id": "ID",
+      "status": "Status",
+      "opcodes": "OpCodes",
+      }
+  else:
+    headers = None
+
+  # we don't have yet unitfields here
+  unitfields = None
+  numfields = ["id"]
+
+  # change raw values to nicer strings
+  for row in output:
+    for idx, field in enumerate(selected_fields):
+      val = row[idx]
+      if field == "status":
+        if val == opcodes.Job.STATUS_PENDING:
+          val = "pending"
+        elif val == opcodes.Job.STATUS_RUNNING:
+          val = "running"
+        elif val == opcodes.Job.STATUS_FINISHED:
+          val = "finished"
+        else:
+          raise errors.ProgrammerError("Unknown job status code '%s'" % val)
+
+      row[idx] = str(val)
+
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=selected_fields, unitfields=unitfields,
+                       numfields=numfields, data=output)
+  for line in data:
+    print line
+
+  return 0
+
+
+commands = {
+  'list': (ListJobs, ARGS_NONE,
+            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
+            "", "List the jobs and their status. The available fields are"
+           " (see the man page for details): id, status, opcodes."
+           " The default field"
+           " list is (in order): id, status."),
+  }
+
+
+if __name__ == '__main__':
+  sys.exit(GenericMain(commands))

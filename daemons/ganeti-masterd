@@ -166,9 +166,7 @@ class ClientOps:
     if operation == "submit":
       return self.put(args)
     elif operation == "query":
-      path = args["object"]
-      if path == "instances":
-        return self.query(args)
+      return self.query(args)
     else:
       raise ValueError("Invalid operation")
 
@@ -183,6 +181,9 @@ class ClientOps:
     names = args["names"]
     if path == "instances":
       opclass = opcodes.OpQueryInstances
+    elif path == "jobs":
+      # early exit because job query-ing is special (not via opcodes)
+      return self.query_jobs(fields, names)
     else:
       raise ValueError("Invalid object %s" % path)
 
@@ -191,10 +192,8 @@ class ClientOps:
     result = cpu.ExecOpCode(op)
     return result
 
-  def query_job(self, rid):
-    rid = int(data)
-    job = self.server.queue.query(rid)
-    return job
+  def query_jobs(self, fields, names):
+    return self.server.queue.query_jobs(fields, names)
 
 
 def JobRunner(proc, job):

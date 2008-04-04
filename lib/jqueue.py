@@ -25,6 +25,7 @@ import threading
 import Queue
 
 from ganeti import opcodes
+from ganeti import errors
 
 class JobObject:
   """In-memory job representation.
@@ -89,4 +90,32 @@ class QueueManager:
     self.lock.acquire()
     result = self.job_queue.get(rid, None)
     self.lock.release()
+    return result
+
+  def query_jobs(self, fields, names):
+    """Query all jobs.
+
+    The fields and names parameters are similar to the ones passed to
+    the OpQueryInstances.
+
+    """
+    result = []
+    self.lock.acquire()
+    try:
+      for jobj in self.job_queue.itervalues():
+        row = []
+        jdata = jobj.data
+        for fname in fields:
+          if fname == "id":
+            row.append(jdata.job_id)
+          elif fname == "status":
+            row.append(jdata.status)
+          elif fname == "opcodes":
+            row.append(",".join([op.OP_ID for op in jdata.op_list]))
+          else:
+            raise errors.OpExecError("Invalid job query field '%s'" %
+                                           fname)
+        result.append(row)
+    finally:
+      self.lock.release()
     return result
