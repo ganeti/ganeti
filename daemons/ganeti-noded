@@ -26,7 +26,6 @@
 
 import os
 import sys
-import resource
 import traceback
 import BaseHTTPServer
 import simplejson
@@ -554,68 +553,13 @@ def main():
 
   # become a daemon
   if options.fork:
-    createDaemon()
+    utils.Daemonize(logfile=constants.LOG_NODESERVER)
 
   logger.SetupLogging(twisted_workaround=True, debug=options.debug,
                       program="ganeti-noded")
 
   httpd = BaseHTTPServer.HTTPServer(('', port), ServerObject)
   httpd.serve_forever()
-
-
-def createDaemon():
-  """Detach a process from the controlling terminal and run it in the
-  background as a daemon.
-
-  """
-  UMASK = 077
-  WORKDIR = "/"
-  # Default maximum for the number of available file descriptors.
-  if 'SC_OPEN_MAX' in os.sysconf_names:
-    try:
-      MAXFD = os.sysconf('SC_OPEN_MAX')
-      if MAXFD < 0:
-        MAXFD = 1024
-    except OSError:
-      MAXFD = 1024
-  else:
-    MAXFD = 1024
-  # The standard I/O file descriptors are redirected to /dev/null by default.
-  #REDIRECT_TO = getattr(os, "devnull", "/dev/null")
-  REDIRECT_TO = constants.LOG_NODESERVER
-  try:
-    pid = os.fork()
-  except OSError, e:
-    raise Exception("%s [%d]" % (e.strerror, e.errno))
-  if (pid == 0):  # The first child.
-    os.setsid()
-    try:
-      pid = os.fork() # Fork a second child.
-    except OSError, e:
-      raise Exception("%s [%d]" % (e.strerror, e.errno))
-    if (pid == 0):  # The second child.
-      os.chdir(WORKDIR)
-      os.umask(UMASK)
-    else:
-      # exit() or _exit()?  See below.
-      os._exit(0) # Exit parent (the first child) of the second child.
-  else:
-    os._exit(0) # Exit parent of the first child.
-  maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-  if (maxfd == resource.RLIM_INFINITY):
-    maxfd = MAXFD
-
-  # Iterate through and close all file descriptors.
-  for fd in range(0, maxfd):
-    try:
-      os.close(fd)
-    except OSError: # ERROR, fd wasn't open to begin with (ignored)
-      pass
-  os.open(REDIRECT_TO, os.O_RDWR|os.O_CREAT|os.O_APPEND, 0600)
-  # Duplicate standard input to standard output and standard error.
-  os.dup2(0, 1)     # standard output (1)
-  os.dup2(0, 2)     # standard error (2)
-  return(0)
 
 
 if __name__ == '__main__':

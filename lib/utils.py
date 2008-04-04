@@ -38,6 +38,7 @@ import pwd
 import itertools
 import select
 import fcntl
+import resource
 
 from cStringIO import StringIO
 
@@ -1080,3 +1081,54 @@ def TestDelay(duration):
     return False
   time.sleep(duration)
   return True
+
+
+def Daemonize(logfile):
+  """Daemonize the current process.
+
+  This detaches the current process from the controlling terminal and
+  runs it in the background as a daemon.
+
+  """
+  UMASK = 077
+  WORKDIR = "/"
+  # Default maximum for the number of available file descriptors.
+  if 'SC_OPEN_MAX' in os.sysconf_names:
+    try:
+      MAXFD = os.sysconf('SC_OPEN_MAX')
+      if MAXFD < 0:
+        MAXFD = 1024
+    except OSError:
+      MAXFD = 1024
+  else:
+    MAXFD = 1024
+
+  # this might fail
+  pid = os.fork()
+  if (pid == 0):  # The first child.
+    os.setsid()
+    # this might fail
+    pid = os.fork() # Fork a second child.
+    if (pid == 0):  # The second child.
+      os.chdir(WORKDIR)
+      os.umask(UMASK)
+    else:
+      # exit() or _exit()?  See below.
+      os._exit(0) # Exit parent (the first child) of the second child.
+  else:
+    os._exit(0) # Exit parent of the first child.
+  maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
+  if (maxfd == resource.RLIM_INFINITY):
+    maxfd = MAXFD
+
+  # Iterate through and close all file descriptors.
+  for fd in range(0, maxfd):
+    try:
+      os.close(fd)
+    except OSError: # ERROR, fd wasn't open to begin with (ignored)
+      pass
+  os.open(logfile, os.O_RDWR|os.O_CREAT|os.O_APPEND, 0600)
+  # Duplicate standard input to standard output and standard error.
+  os.dup2(0, 1)     # standard output (1)
+  os.dup2(0, 2)     # standard error (2)
+  return 0
