@@ -617,7 +617,7 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._config_data.cluster["volume_group_name"] = vg_name
+    self._config_data.cluster.volume_group_name = vg_name
     self._WriteConfig()
 
   def GetDefBridge(self):
