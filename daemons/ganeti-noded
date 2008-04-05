@@ -494,6 +494,32 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
     duration = params[0]
     return utils.TestDelay(duration)
 
+  @staticmethod
+  def perspective_file_storage_dir_create(params):
+    """Create the file storage directory.
+
+    """
+    file_storage_dir = params[0]
+    return backend.CreateFileStorageDir(file_storage_dir)
+
+  @staticmethod
+  def perspective_file_storage_dir_remove(params):
+    """Remove the file storage directory.
+
+    """
+    file_storage_dir = params[0]
+    return backend.RemoveFileStorageDir(file_storage_dir)
+
+  @staticmethod
+  def perspective_file_storage_dir_rename(params):
+    """Rename the file storage directory.
+
+    """
+    old_file_storage_dir = params[0]
+    new_file_storage_dir = params[1]
+    return backend.RenameFileStorageDir(old_file_storage_dir,
+                                        new_file_storage_dir)
+
 
 def ParseOptions():
   """Parse the command line options.
