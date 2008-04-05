@@ -710,3 +710,42 @@ def call_test_delay(node_list, duration):
   c.connect_list(node_list)
   c.run()
   return c.getresult()
+
+
+def call_file_storage_dir_create(node, file_storage_dir):
+  """Create the given file storage directory.
+
+  This is a single-node call.
+
+  """
+  c = Client("file_storage_dir_create", [file_storage_dir])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
+def call_file_storage_dir_remove(node, file_storage_dir):
+  """Remove the given file storage directory.
+
+  This is a single-node call.
+
+  """
+  c = Client("file_storage_dir_remove", [file_storage_dir])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
+def call_file_storage_dir_rename(node, old_file_storage_dir,
+                                 new_file_storage_dir):
+  """Rename file storage directory.
+
+  This is a single-node call.
+
+  """
+  c = Client("file_storage_dir_rename",
+             [old_file_storage_dir, new_file_storage_dir])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
