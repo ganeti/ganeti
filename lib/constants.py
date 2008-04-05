@@ -54,6 +54,7 @@ LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti"
 LOG_OS_DIR = LOG_DIR + "/os"
 LOG_NODESERVER = LOG_DIR + "/node-daemon.log"
 LOG_WATCHER = LOG_DIR + "/watcher.log"
+LOG_MASTERDAEMON = LOG_DIR + "/master-daemon.log"
 
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 EXPORT_DIR = _autoconf.EXPORT_DIR
