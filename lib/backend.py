@@ -1417,6 +1417,130 @@ def RenameBlockDevices(devlist):
   return result
 
 
+def _TransformFileStorageDir(file_storage_dir):
+  """Checks whether given file_storage_dir is valid.
+
+  Checks wheter the given file_storage_dir is within the cluster-wide
+  default file_storage_dir stored in SimpleStore. Only paths under that
+  directory are allowed.
+
+  Args:
+    file_storage_dir: string with path
+  
+  Returns:
+    normalized file_storage_dir (string) if valid, None otherwise
+
+  """
+  file_storage_dir = os.path.normpath(file_storage_dir)
+  base_file_storage_dir = ssconf.SimpleStore().GetFileStorageDir()
+  if (not os.path.commonprefix([file_storage_dir, base_file_storage_dir]) ==
+      base_file_storage_dir):
+    logger.Error("file storage directory '%s' is not under base file"
+                 " storage directory '%s'" %
+                 (file_storage_dir, base_file_storage_dir))
+    return None
+  return file_storage_dir
+
+
+def CreateFileStorageDir(file_storage_dir):
+  """Create file storage directory.
+
+  Args:
+    file_storage_dir: string containing the path
+
+  Returns:
+    tuple with first element a boolean indicating wheter dir
+    creation was successful or not
+
+  """
+  file_storage_dir = _TransformFileStorageDir(file_storage_dir)
+  result = True,
+  if not file_storage_dir:
+    result = False,
+  else:
+    if os.path.exists(file_storage_dir):
+      if not os.path.isdir(file_storage_dir):
+        logger.Error("'%s' is not a directory" % file_storage_dir)
+        result = False,
+    else:
+      try:
+        os.makedirs(file_storage_dir, 0750)
+      except OSError, err:
+        logger.Error("Cannot create file storage directory '%s': %s" %
+                     (file_storage_dir, err))
+        result = False,
+  return result
+
+
+def RemoveFileStorageDir(file_storage_dir):
+  """Remove file storage directory.
+
+  Remove it only if it's empty. If not log an error and return.
+
+  Args:
+    file_storage_dir: string containing the path
+
+  Returns:
+    tuple with first element a boolean indicating wheter dir
+    removal was successful or not
+
+  """
+  file_storage_dir = _TransformFileStorageDir(file_storage_dir)
+  result = True,
+  if not file_storage_dir:
+    result = False,
+  else:
+    if os.path.exists(file_storage_dir):
+      if not os.path.isdir(file_storage_dir):
+        logger.Error("'%s' is not a directory" % file_storage_dir)
+        result = False,
+      # deletes dir only if empty, otherwise we want to return False
+      try:
+        os.rmdir(file_storage_dir)
+      except OSError, err:
+        logger.Error("Cannot remove file storage directory '%s': %s" %
+                     (file_storage_dir, err))
+        result = False,
+  return result
+
+
+def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
+  """Rename the file storage directory.
+
+  Args:
+    old_file_storage_dir: string containing the old path
+    new_file_storage_dir: string containing the new path
+
+  Returns:
+    tuple with first element a boolean indicating wheter dir
+    rename was successful or not
+
+  """
+  old_file_storage_dir = _TransformFileStorageDir(old_file_storage_dir)
+  new_file_storage_dir = _TransformFileStorageDir(new_file_storage_dir)
+  result = True,
+  if not old_file_storage_dir or not new_file_storage_dir:
+    result = False,
+  else:
+    if not os.path.exists(new_file_storage_dir):
+      if os.path.isdir(old_file_storage_dir):
+        try:
+          os.rename(old_file_storage_dir, new_file_storage_dir)
+        except OSError, err:
+          logger.Error("Cannot rename '%s' to '%s': %s"
+                       % (old_file_storage_dir, new_file_storage_dir, err))
+          result =  False,
+      else:
+        logger.Error("'%s' is not a directory" % old_file_storage_dir)
+        result = False,
+    else:
+      if os.path.exists(old_file_storage_dir):
+        logger.Error("Cannot rename '%s' to '%s'. Both locations exist." %
+                     old_file_storage_dir, new_file_storage_dir)
+        result = False,
+  return result
+
+
 class HooksRunner(object):
   """Hook runner.
 
