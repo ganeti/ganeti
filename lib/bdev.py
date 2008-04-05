@@ -25,6 +25,7 @@ import re
 import time
 import errno
 import pyparsing as pyp
+import os
 
 from ganeti import utils
 from ganeti import logger
@@ -2175,11 +2176,124 @@ class DRBD8(BaseDRBD):
     return cls(unique_id, children)
 
 
+class FileStorage(BlockDev):
+  """File device.
+  
+  This class represents the a file storage backend device.
+
+  The unique_id for the file device is a (file_driver, file_path) tuple.
+  
+  """
+  def __init__(self, unique_id, children):
+    """Initalizes a file device backend.
+
+    """
+    if children:
+      raise errors.BlockDeviceError("Invalid setup for file device")
+    super(FileStorage, self).__init__(unique_id, children)
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    self.driver = unique_id[0]
+    self.dev_path = unique_id[1]
+
+  def Assemble(self):
+    """Assemble the device.
+
+    Checks whether the file device exists, raises BlockDeviceError otherwise.
+
+    """
+    if not os.path.exists(self.dev_path):
+      raise errors.BlockDeviceError("File device '%s' does not exist." %
+                                    self.dev_path)
+    return True
+
+  def Shutdown(self):
+    """Shutdown the device.
+
+    This is a no-op for the file type, as we don't deacivate
+    the file on shutdown.
+
+    """
+    return True
+
+  def Open(self, force=False):
+    """Make the device ready for I/O.
+
+    This is a no-op for the file type.
+
+    """
+    pass
+
+  def Close(self):
+    """Notifies that the device will no longer be used for I/O.
+
+    This is a no-op for the file type.
+
+    """
+    pass
+
+  def Remove(self):
+    """Remove the file backing the block device.
+
+    Returns:
+      boolean indicating wheter removal of file was successful or not.
+
+    """
+    if not os.path.exists(self.dev_path):
+      return True
+    try:
+      os.remove(self.dev_path)
+      return True
+    except OSError, err:
+      logger.Error("Can't remove file '%s': %s"
+                   % (self.dev_path, err))
+      return False
+
+  def Attach(self):
+    """Attach to an existing file.
+
+    Check if this file already exists.
+
+    Returns:
+      boolean indicating if file exists or not.
+
+    """
+    if os.path.exists(self.dev_path):
+      return True
+    return False
+
+  @classmethod
+  def Create(cls, unique_id, children, size):
+    """Create a new file.
+
+    Args:
+      children:
+      size: integer size of file in MiB
+
+    Returns:
+      A ganeti.bdev.FileStorage object.
+
+    """
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    dev_path = unique_id[1]
+    try:
+      f = open(dev_path, 'w')
+    except IOError, err:
+      raise BlockDeviceError("Could not create '%'" % err)
+    else:
+      f.truncate(size * 1024 * 1024)
+      f.close()
+
+    return FileStorage(unique_id, children)
+
+
 DEV_MAP = {
   constants.LD_LV: LogicalVolume,
   constants.LD_MD_R1: MDRaid1,
   constants.LD_DRBD7: DRBDev,
   constants.LD_DRBD8: DRBD8,
+  constants.LD_FILE: FileStorage,
   }
 
 
