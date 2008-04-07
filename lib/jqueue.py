@@ -101,8 +101,12 @@ class QueueManager:
     """
     result = []
     self.lock.acquire()
+    if names:
+      values = [self.job_queue[j_id] for j_id in names]
+    else:
+      values = self.job_queue.itervalues()
     try:
-      for jobj in self.job_queue.itervalues():
+      for jobj in values:
         row = []
         jdata = jobj.data
         for fname in fields:
