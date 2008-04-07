@@ -244,6 +244,10 @@ class Client(object):
       data = simplejson.loads(result)
     except Exception, err:
       raise ProtocolError("Error while deserializing response: %s" % str(err))
+    if (not isinstance(data, dict) or
+        'success' not in data or
+        'result' not in data):
+      raise DecodingError("Invalid response from server: %s" % str(data))
     return data
 
   def SubmitJob(self, job):

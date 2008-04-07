@@ -391,17 +391,13 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
 def SubmitJob(job, cl=None):
   if cl is None:
     cl = luxi.Client()
-  jid = cl.SubmitJob(job)
-  return jid
+  return cl.SubmitJob(job)
 
 
 def SubmitQuery(data, cl=None):
   if cl is None:
     cl = luxi.Client()
-  result = cl.Query(data)
-  if not result['success']:
-    raise ValueError(result)
-  return result['result']
+  return cl.Query(data)
 
 
 def FormatError(err):
