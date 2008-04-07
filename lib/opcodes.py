@@ -99,7 +99,7 @@ class Job(BaseJO):
     """
     BaseJO.__setstate__(self, state)
     if "op_list" in state:
-      self.op_list = [OpCode.LoadOpcode(op) for op in state["op_list"]]
+      self.op_list = [OpCode.LoadOpCode(op) for op in state["op_list"]]
 
 
 class OpCode(BaseJO):
@@ -116,7 +116,7 @@ class OpCode(BaseJO):
     return data
 
   @classmethod
-  def LoadOpcode(cls, data):
+  def LoadOpCode(cls, data):
     """Generic load opcode method.
 
     """
