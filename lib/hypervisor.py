@@ -310,12 +310,45 @@ class XenHypervisor(BaseHypervisor):
     if not utils.CheckDaemonAlive('/var/run/xend.pid', 'xend'):
       return "xend daemon is not running"
 
+  @staticmethod
+  def _GetConfigFileDiskData(disk_template, block_devices):
+    """Get disk directive for xen config file.
+
+    This method builds the xen config disk directive according to the
+    given disk_template and block_devices.
+
+    Args:
+      disk_template: String containing instance disk template
+      block_devices: List[tuple1,tuple2,...]
+        tuple: (cfdev, rldev)
+          cfdev: dict containing ganeti config disk part
+          rldev: ganeti.bdev.BlockDev object
+
+    Returns:
+      String containing disk directive for xen instance config file
+
+    """
+    FILE_DRIVER_MAP = {
+      constants.FD_LOOP: "file",
+      constants.FD_BLKTAP: "tap:aio",
+      }
+    disk_data = []
+    for cfdev, rldev in block_devices:
+      if cfdev.dev_type == constants.LD_FILE:
+        line = "'%s:%s,%s,w'" % (FILE_DRIVER_MAP[cfdev.physical_id[0]],
+                                 rldev.dev_path, cfdev.iv_name)
+      else:
+        line = "'phy:%s,%s,w'" % (rldev.dev_path, cfdev.iv_name)
+      disk_data.append(line)
+
+    return disk_data
+
 
 class XenPvmHypervisor(XenHypervisor):
   """Xen PVM hypervisor interface"""
 
-  @staticmethod
-  def _WriteConfigFile(instance, block_devices, extra_args):
+  @classmethod
+  def _WriteConfigFile(cls, instance, block_devices, extra_args):
     """Write the Xen config file for the instance.
 
     """
@@ -365,11 +398,9 @@ class XenPvmHypervisor(XenHypervisor):
       vif_data.append("'%s'" % nic_str)
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
-
-    disk_data = ["'phy:%s,%s,w'" % (rldev.dev_path, cfdev.iv_name)
-                 for cfdev, rldev in block_devices]
-    config.write("disk = [%s]\n" % ",".join(disk_data))
-
+    config.write("disk = [%s]\n" % ",".join(
+                 cls._GetConfigFileDiskData(instance.disk_template,
+                                            block_devices)))
     config.write("root = '/dev/sda ro'\n")
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
@@ -576,8 +607,8 @@ class FakeHypervisor(BaseHypervisor):
 class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
 
-  @staticmethod
-  def _WriteConfigFile(instance, block_devices, extra_args):
+  @classmethod
+  def _WriteConfigFile(cls, instance, block_devices, extra_args):
     """Create a Xen 3.1 HVM config file.
 
     """
@@ -638,13 +669,10 @@ class XenHvmHypervisor(XenHypervisor):
       vif_data.append("'%s'" % nic_str)
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
-
-    disk_data = ["'phy:%s,%s,w'" %
-                 (rldev.dev_path, cfdev.iv_name.replace("sd", "ioemu:hd"))
-                 for cfdev, rldev in block_devices]
     iso = "'file:/srv/ganeti/iso/hvm-install.iso,hdc:cdrom,r'"
-    config.write("disk = [%s, %s]\n" % (",".join(disk_data), iso) )
-
+    config.write("disk = [%s, %s]\n" % (",".join(
+                 cls._GetConfigFileDiskData(instance.disk_template,
+                                            block_devices)), iso))
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
     config.write("on_crash = 'restart'\n")
