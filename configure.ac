@@ -1,9 +1,24 @@
 # Configure script for Ganeti
+m4_define([gnt_version_major], [1])
+m4_define([gnt_version_minor], [2])
+m4_define([gnt_version_revision], [3])
+m4_define([gnt_version_suffix], [])
+m4_define([gnt_version_full],
+          m4_format([%d.%d.%d%s],
+                    gnt_version_major, gnt_version_minor,
+                    gnt_version_revision, gnt_version_suffix))
+
 AC_PREREQ(2.59)
-AC_INIT(ganeti, 1.2.3, ganeti@googlegroups.com)
+AC_INIT(ganeti, gnt_version_full, ganeti@googlegroups.com)
 AC_CONFIG_AUX_DIR(autotools)
 AC_CONFIG_SRCDIR(configure)
 AM_INIT_AUTOMAKE([foreign tar-ustar])
+
+AC_SUBST([VERSION_MAJOR], gnt_version_major)
+AC_SUBST([VERSION_MINOR], gnt_version_minor)
+AC_SUBST([VERSION_REVISION], gnt_version_revision)
+AC_SUBST([VERSION_SUFFIX], gnt_version_suffix)
+AC_SUBST([VERSION_FULL], gnt_version_full)
 
 # --with-ssh-initscript=...
 AC_ARG_WITH([ssh-initscript],
