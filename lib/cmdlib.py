@@ -2776,7 +2776,8 @@ def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name):
 
 def _GenerateDiskTemplate(cfg, template_name,
                           instance_name, primary_node,
-                          secondary_nodes, disk_sz, swap_sz):
+                          secondary_nodes, disk_sz, swap_sz,
+                          file_storage_dir, file_driver):
   """Generate the entire disk layout for a given template type.
 
   """
@@ -2808,6 +2809,17 @@ def _GenerateDiskTemplate(cfg, template_name,
     drbd_sdb_dev = _GenerateDRBD8Branch(cfg, primary_node, remote_node,
                                          swap_sz, names[2:4], "sdb")
     disks = [drbd_sda_dev, drbd_sdb_dev]
+  elif template_name == constants.DT_FILE:
+    if len(secondary_nodes) != 0:
+      raise errors.ProgrammerError("Wrong template configuration")
+
+    file_sda_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk_sz,
+                                iv_name="sda", logical_id=(file_driver,
+                                "%s/sda" % file_storage_dir))
+    file_sdb_dev = objects.Disk(dev_type=constants.LD_FILE, size=swap_sz,
+                                iv_name="sdb", logical_id=(file_driver,
+                                "%s/sdb" % file_storage_dir))
+    disks = [file_sda_dev, file_sdb_dev]
   else:
     raise errors.ProgrammerError("Invalid disk template '%s'" % template_name)
   return disks
@@ -2833,6 +2845,19 @@ def _CreateDisks(cfg, instance):
 
   """
   info = _GetInstanceInfoText(instance)
+
+  if instance.disk_template == constants.DT_FILE:
+    file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
+    result = rpc.call_file_storage_dir_create(instance.primary_node,
+                                              file_storage_dir)
+
+    if not result:
+      logger.Error("Could not connect to node '%s'" % inst.primary_node)
+      return False
+
+    if not result[0]:
+      logger.Error("failed to create directory '%s'" % file_storage_dir)
+      return False
 
   for device in instance.disks:
     logger.Info("creating volume %s for instance %s" %
@@ -2879,6 +2904,14 @@ def _RemoveDisks(instance, cfg):
                      " continuing anyway" %
                      (device.iv_name, node))
         result = False
+
+  if instance.disk_template == constants.DT_FILE:
+    file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
+    if not rpc.call_file_storage_dir_remove(instance.primary_node,
+                                            file_storage_dir):
+      logger.Error("could not remove directory '%s'" % file_storage_dir)
+      result = False
+
   return result
 
 
@@ -2994,6 +3027,15 @@ class LUCreateInstance(LogicalUnit):
     if self.op.disk_template not in constants.DISK_TEMPLATES:
       raise errors.OpPrereqError("Invalid disk template name")
 
+    if (self.op.file_driver and
+        not self.op.file_driver in constants.FILE_DRIVER):
+      raise errors.OpPrereqError("Invalid file driver name '%s'" %
+                                 self.op.file_driver)
+
+    if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
+        raise errors.OpPrereqError("File storage directory not a relative"
+                                   " path")
+
     if self.op.disk_template in constants.DTS_NET_MIRROR:
       if getattr(self.op, "snode", None) is None:
         raise errors.OpPrereqError("The networked disk templates need"
@@ -3014,6 +3056,7 @@ class LUCreateInstance(LogicalUnit):
       constants.DT_PLAIN: self.op.disk_size + self.op.swap_size,
       # 256 MB are added for drbd metadata, 128MB for each drbd device
       constants.DT_DRBD8: self.op.disk_size + self.op.swap_size + 256,
+      constants.DT_FILE: None,
     }
 
     if self.op.disk_template not in req_size_dict:
@@ -3130,11 +3173,19 @@ class LUCreateInstance(LogicalUnit):
     else:
       network_port = None
 
+    # build the full file storage dir path
+    file_storage_dir = os.path.normpath(os.path.join(
+                                        self.sstore.GetFileStorageDir(),
+                                        self.op.file_storage_dir, instance))
+
+
     disks = _GenerateDiskTemplate(self.cfg,
                                   self.op.disk_template,
                                   instance, pnode_name,
                                   self.secondaries, self.op.disk_size,
-                                  self.op.swap_size)
+                                  self.op.swap_size,
+                                  file_storage_dir,
+                                  self.op.file_driver)
 
     iobj = objects.Instance(name=instance, os=self.op.os_type,
                             primary_node=pnode_name,
