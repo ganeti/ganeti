@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2008 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ import tempfile
 import simplejson
 
 from ganeti import utils
-from ganeti.cli import AskUser, FORCE_OPT
+from ganeti import cli
 
 
 options = None
@@ -175,7 +175,7 @@ if __name__ == "__main__":
                     action="store_true",
                     help="Try to do the conversion, but don't write"
                          " output file")
-  parser.add_option(FORCE_OPT)
+  parser.add_option(cli.FORCE_OPT)
   parser.add_option('--verbose', dest='verbose',
                     action="store_true",
                     help="Verbose output")
@@ -190,7 +190,7 @@ if __name__ == "__main__":
   if not options.force:
     usertext = ("%s MUST run on the master node. Is this the master"
                 " node?" % program)
-    if not AskUser(usertext):
+    if not cli.AskUser(usertext):
       sys.exit(1)
 
   config = ReadConfig(cfg_file)
