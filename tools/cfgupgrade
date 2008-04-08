@@ -22,8 +22,7 @@
 """Tool to upgrade the configuration file.
 
 This code handles only the types supported by simplejson. As an example, "set"
-is a "list". Old Pickle based configurations files are converted to JSON during
-the process.
+is a "list".
 
 """
 
@@ -31,7 +30,6 @@ the process.
 import os
 import os.path
 import sys
-import re
 import optparse
 import tempfile
 import simplejson
@@ -49,72 +47,13 @@ class Error(Exception):
   pass
 
 
-# {{{ Support for old Pickle files
-class UpgradeDict(dict):
-  """Base class for internal config classes.
-
-  """
-  def __setstate__(self, state):
-    self.update(state)
-
-  def __getstate__(self):
-    return self.copy()
-
-
-def FindGlobal(module, name):
-  """Wraps Ganeti config classes to internal ones.
-
-  This function may only return types supported by simplejson.
-
-  """
-  if module == "ganeti.objects":
-    return UpgradeDict
-  elif module == "__builtin__" and name == "set":
-    return list
-
-  return getattr(sys.modules[module], name)
-
-
-def ReadPickleFile(f):
-  """Reads an old Pickle configuration.
-
-  """
-  import cPickle
-
-  loader = cPickle.Unpickler(f)
-  loader.find_global = FindGlobal
-  return loader.load()
-
-
-def IsPickleFile(f):
-  """Checks whether a file is using the Pickle format.
-
-  """
-  magic = f.read(128)
-  try:
-    return not re.match('^\s*\{', magic)
-  finally:
-    f.seek(-len(magic), 1)
-# }}}
-
-
-def ReadJsonFile(f):
-  """Reads a JSON file.
-
-  """
-  return simplejson.load(f)
-
-
 def ReadConfig(path):
   """Reads configuration file.
 
   """
   f = open(path, 'r')
   try:
-    if IsPickleFile(f):
-      return ReadPickleFile(f)
-    else:
-      return ReadJsonFile(f)
+    return simplejson.load(f)
   finally:
     f.close()
 
