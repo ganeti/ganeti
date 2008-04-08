@@ -2369,10 +2369,32 @@ class LURenameInstance(LogicalUnit):
     inst = self.instance
     old_name = inst.name
 
+    if inst.disk_template == constants.DT_FILE:
+      old_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
+
     self.cfg.RenameInstance(inst.name, self.op.new_name)
 
     # re-read the instance from the configuration after rename
     inst = self.cfg.GetInstanceInfo(self.op.new_name)
+
+    if inst.disk_template == constants.DT_FILE:
+      new_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
+      result = rpc.call_file_storage_dir_rename(inst.primary_node,
+                                                old_file_storage_dir,
+                                                new_file_storage_dir)
+
+      if not result:
+        raise errors.OpExecError("Could not connect to node '%s' to rename"
+                                 " directory '%s' to '%s' (but the instance"
+                                 " has been renamed in Ganeti)" % (
+                                 inst.primary_node, old_file_storage_dir,
+                                 new_file_storage_dir))
+
+      if not result[0]:
+        raise errors.OpExecError("Could not rename directory '%s' to '%s'"
+                                 " (but the instance has been renamed in"
+                                 " Ganeti)" % (old_file_storage_dir,
+                                               new_file_storage_dir))
 
     _StartInstanceDisks(self.cfg, inst, None)
     try:

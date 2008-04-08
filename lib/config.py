@@ -34,6 +34,7 @@ much memory.
 import os
 import tempfile
 import random
+import re
 
 from ganeti import errors
 from ganeti import logger
@@ -341,6 +342,16 @@ class ConfigWriter:
     inst = self._config_data.instances[old_name]
     del self._config_data.instances[old_name]
     inst.name = new_name
+
+    for disk in inst.disks:
+      if disk.dev_type == constants.LD_FILE:
+        # rename the file paths in logical and physical id
+        file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
+        disk.physical_id = disk.logical_id = (disk.logical_id[0],
+                                              os.path.join(file_storage_dir,
+                                                           inst.name,
+                                                           disk.iv_name))
+
     self._config_data.instances[inst.name] = inst
     self._WriteConfig()
 
