@@ -170,7 +170,7 @@ if __name__ == "__main__":
   program = os.path.basename(sys.argv[0])
 
   # Option parsing
-  parser = optparse.OptionParser()
+  parser = optparse.OptionParser(usage="%prog [options] <config-file>")
   parser.add_option('--dry-run', dest='dry_run',
                     action="store_true",
                     help="Try to do the conversion, but don't write"
