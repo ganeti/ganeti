@@ -2883,7 +2883,7 @@ def _CreateDisks(cfg, instance):
 
   for device in instance.disks:
     logger.Info("creating volume %s for instance %s" %
-              (device.iv_name, instance.name))
+                (device.iv_name, instance.name))
     #HARDCODE
     for secondary_node in instance.secondary_nodes:
       if not _CreateBlockDevOnSecondary(cfg, secondary_node, instance,
@@ -2897,6 +2897,7 @@ def _CreateDisks(cfg, instance):
       logger.Error("failed to create volume %s on primary!" %
                    device.iv_name)
       return False
+
   return True
 
 
