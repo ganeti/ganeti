@@ -259,7 +259,9 @@ def AddInstance(opts, args):
                                 mac=opts.mac,
                                 kernel_path=kernel_path,
                                 initrd_path=initrd_path,
-                                hvm_boot_order=opts.hvm_boot_order)
+                                hvm_boot_order=opts.hvm_boot_order,
+                                file_storage_dir = opts.file_storage_dir,
+                                file_driver = opts.file_driver)
   SubmitOpCode(op)
   return 0
 
@@ -730,7 +732,7 @@ add_opts = [
   make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
               default=1, type="int", metavar="<PROC>"),
   make_option("-t", "--disk-template", dest="disk_template",
-              help="Custom disk setup (diskless, plain, or drbd)",
+              help="Custom disk setup (diskless, file, plain or drbd)",
               default=None, metavar="TEMPL"),
   make_option("-i", "--ip", dest="ip",
               help="IP address ('none' [default], 'auto', or specify address)",
@@ -760,6 +762,12 @@ add_opts = [
   make_option("--hvm-boot-order", dest="hvm_boot_order",
               help="boot device order for HVM (one or more of [acdn])",
               default=None, type="string", metavar="<BOOTORDER>"),
+  make_option("--file-storage-dir", dest="file_storage_dir",
+              help="Relative path under default cluster-wide file storage dir"
+              " to store file-based disks", default=None,
+              metavar="<DIR>"),
+  make_option("--file-driver", dest="file_driver", help="Driver to use"
+              " for image files", default="loop", metavar="<DRIVER>")
   ]
 
 commands = {
