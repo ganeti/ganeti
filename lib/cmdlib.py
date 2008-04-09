@@ -3196,10 +3196,16 @@ class LUCreateInstance(LogicalUnit):
     else:
       network_port = None
 
+    # this is needed because os.path.join does not accept None arguments
+    if self.op.file_storage_dir is None:
+      string_file_storage_dir = ""
+    else:
+      string_file_storage_dir = self.op.file_storage_dir
+
     # build the full file storage dir path
     file_storage_dir = os.path.normpath(os.path.join(
                                         self.sstore.GetFileStorageDir(),
-                                        self.op.file_storage_dir, instance))
+                                        string_file_storage_dir, instance))
 
 
     disks = _GenerateDiskTemplate(self.cfg,
