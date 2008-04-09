@@ -162,3 +162,9 @@ HTS_REQ_PORT = frozenset([HT_XEN_HVM31])
 HT_HVM_VNC_BASE_PORT = 5900
 HT_HVM_DEFAULT_BOOT_ORDER = 'dc'
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
+
+# Allocator framework constants
+ALF_DIR_IN = "in"
+ALF_DIR_OUT = "out"
+ALF_MODE_ALLOC = "allocate"
+ALF_MODE_RELOC = "relocate"

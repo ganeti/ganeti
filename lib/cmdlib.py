@@ -30,6 +30,7 @@ import time
 import tempfile
 import re
 import platform
+import simplejson
 
 from ganeti import rpc
 from ganeti import ssh
@@ -42,6 +43,15 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import ssconf
+
+
+# Check whether the simplejson module supports indentation
+_JSON_INDENT = 2
+try:
+  simplejson.dumps(1, indent=_JSON_INDENT)
+except TypeError:
+  _JSON_INDENT = None
+
 
 class LogicalUnit(object):
   """Logical Unit base class.
@@ -4613,3 +4623,194 @@ class LUTestDelay(NoHooksLU):
         if not node_result:
           raise errors.OpExecError("Failure during rpc call to node %s,"
                                    " result: %s" % (node, node_result))
+
+
+def _AllocatorGetClusterData(cfg, sstore):
+  """Compute the generic allocator input data.
+
+  This is the data that is independent of the actual operation.
+
+  """
+  # cluster data
+  data = {
+    "version": 1,
+    "cluster_name": sstore.GetClusterName(),
+    "cluster_tags": list(cfg.GetClusterInfo().GetTags()),
+    # we don't have job IDs
+    }
+
+  # node data
+  node_results = {}
+  node_list = cfg.GetNodeList()
+  node_data = rpc.call_node_info(node_list, cfg.GetVGName())
+  for nname in node_list:
+    ninfo = cfg.GetNodeInfo(nname)
+    if nname not in node_data or not isinstance(node_data[nname], dict):
+      raise errors.OpExecError("Can't get data for node %s" % nname)
+    remote_info = node_data[nname]
+    for attr in ['memory_total', 'memory_free',
+                 'vg_size', 'vg_free']:
+      if attr not in remote_info:
+        raise errors.OpExecError("Node '%s' didn't return attribute '%s'" %
+                                 (nname, attr))
+      try:
+        int(remote_info[attr])
+      except ValueError, err:
+        raise errors.OpExecError("Node '%s' returned invalid value for '%s':"
+                                 " %s" % (nname, attr, str(err)))
+    pnr = {
+      "tags": list(ninfo.GetTags()),
+      "total_memory": utils.TryConvert(int, remote_info['memory_total']),
+      "free_memory": utils.TryConvert(int, remote_info['memory_free']),
+      "total_disk": utils.TryConvert(int, remote_info['vg_size']),
+      "free_disk": utils.TryConvert(int, remote_info['vg_free']),
+      "primary_ip": ninfo.primary_ip,
+      "secondary_ip": ninfo.secondary_ip,
+      }
+    node_results[nname] = pnr
+  data["nodes"] = node_results
+
+  # instance data
+  instance_data = {}
+  i_list = cfg.GetInstanceList()
+  for iname in i_list:
+    iinfo = cfg.GetInstanceInfo(iname)
+    nic_data = [{"mac": n.mac, "ip": n.ip, "bridge": n.bridge}
+                for n in iinfo.nics]
+    pir = {
+      "tags": list(iinfo.GetTags()),
+      "should_run": iinfo.status == "up",
+      "vcpus": iinfo.vcpus,
+      "memory": iinfo.memory,
+      "os": iinfo.os,
+      "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
+      "nics": nic_data,
+      "disks": [{"size": dsk.size, "mode": "w"} for dsk in iinfo.disks],
+      "disk_template": iinfo.disk_template,
+      }
+    instance_data[iname] = pir
+
+  data["instances"] = instance_data
+
+  return data
+
+
+def _AllocatorAddNewInstance(data, op):
+  """Add new instance data to allocator structure.
+
+  This in combination with _AllocatorGetClusterData will create the
+  correct structure needed as input for the allocator.
+
+  The checks for the completeness of the opcode must have already been
+  done.
+
+  """
+  request = {
+    "type": "allocate",
+    "name": op.name,
+    "disk_template": op.disk_template,
+    "tags": op.tags,
+    "os": op.os,
+    "vcpus": op.vcpus,
+    "memory": op.mem_size,
+    "disks": op.disks,
+    "nics": op.nics,
+    }
+  data["request"] = request
+
+
+def _AllocatorAddRelocateInstance(data, op):
+  """Add relocate instance data to allocator structure.
+
+  This in combination with _AllocatorGetClusterData will create the
+  correct structure needed as input for the allocator.
+
+  The checks for the completeness of the opcode must have already been
+  done.
+
+  """
+  request = {
+    "type": "replace_secondary",
+    "name": op.name,
+    }
+  data["request"] = request
+
+
+class LUTestAllocator(NoHooksLU):
+  """Run allocator tests.
+
+  This LU runs the allocator tests
+
+  """
+  _OP_REQP = ["direction", "mode", "name"]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks the opcode parameters depending on the director and mode test.
+
+    """
+    if self.op.mode == constants.ALF_MODE_ALLOC:
+      for attr in ["name", "mem_size", "disks", "disk_template",
+                   "os", "tags", "nics", "vcpus"]:
+        if not hasattr(self.op, attr):
+          raise errors.OpPrereqError("Missing attribute '%s' on opcode input" %
+                                     attr)
+      iname = self.cfg.ExpandInstanceName(self.op.name)
+      if iname is not None:
+        raise errors.OpPrereqError("Instance '%s' already in the cluster" %
+                                   iname)
+      if not isinstance(self.op.nics, list):
+        raise errors.OpPrereqError("Invalid parameter 'nics'")
+      for row in self.op.nics:
+        if (not isinstance(row, dict) or
+            "mac" not in row or
+            "ip" not in row or
+            "bridge" not in row):
+          raise errors.OpPrereqError("Invalid contents of the"
+                                     " 'nics' parameter")
+      if not isinstance(self.op.disks, list):
+        raise errors.OpPrereqError("Invalid parameter 'disks'")
+      for row in self.op.disks:
+        if (not isinstance(row, dict) or
+            "size" not in row or
+            not isinstance(row["size"], int) or
+            "mode" not in row or
+            row["mode"] not in ['r', 'w']):
+          raise errors.OpPrereqError("Invalid contents of the"
+                                     " 'disks' parameter")
+    elif self.op.mode == constants.ALF_MODE_RELOC:
+      if not hasattr(self.op, "name"):
+        raise errors.OpPrereqError("Missing attribute 'name' on opcode input")
+      fname = self.cfg.ExpandInstanceName(self.op.name)
+      if fname is None:
+        raise errors.OpPrereqError("Instance '%s' not found for relocation" %
+                                   self.op.name)
+      self.op.name = fname
+    else:
+      raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
+                                 self.op.mode)
+
+    if self.op.direction == constants.ALF_DIR_OUT:
+      if not hasattr(self.op, "allocator"):
+        raise errors.OpPrereqError("Missing allocator name")
+      raise errors.OpPrereqError("Allocator out mode not supported yet")
+    elif self.op.direction != constants.ALF_DIR_IN:
+      raise errors.OpPrereqError("Wrong allocator test '%s'" %
+                                 self.op.direction)
+
+  def Exec(self, feedback_fn):
+    """Run the allocator test.
+
+    """
+    data = _AllocatorGetClusterData(self.cfg, self.sstore)
+    if self.op.mode == constants.ALF_MODE_ALLOC:
+      _AllocatorAddNewInstance(data, self.op)
+    else:
+      _AllocatorAddRelocateInstance(data, self.op)
+
+    if _JSON_INDENT is None:
+      text = simplejson.dumps(data)
+    else:
+      text = simplejson.dumps(data, indent=_JSON_INDENT)
+    return text

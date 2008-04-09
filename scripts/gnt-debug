@@ -46,6 +46,47 @@ def Delay(opts, args):
   return 0
 
 
+def TestAllocator(opts, args):
+  """Runs the test allocator opcode"""
+
+  try:
+    disks = [{"size": utils.ParseUnit(val), "mode": 'w'}
+             for val in opts.disks.split(",")]
+  except errors.UnitParseError, err:
+    print >> sys.stderr, "Invalid disks parameter '%s': %s" % (opts.disks, err)
+    return 1
+
+  nics = [val.split("/") for val in opts.nics.split(",")]
+  for row in nics:
+    while len(row) < 3:
+      row.append(None)
+    for i in range(3):
+      if row[i] == '':
+        row[i] = None
+  nic_dict = [{"mac": v[0], "ip": v[1], "bridge": v[2]} for v in nics]
+
+  if opts.tags is None:
+    opts.tags = []
+  else:
+    opts.tags = opts.tags.split(",")
+
+  op = opcodes.OpTestAllocator(mode=opts.mode,
+                               name=args[0],
+                               mem_size=opts.mem,
+                               disks=disks,
+                               disk_template=opts.disk_template,
+                               nics=nic_dict,
+                               os=opts.os_type,
+                               vcpus=opts.vcpus,
+                               tags=opts.tags,
+                               direction=opts.direction,
+                               allocator=opts.allocator,
+                               )
+  result = SubmitOpCode(op)
+  print result
+  return 0
+
+
 commands = {
   'delay': (Delay, ARGS_ONE,
             [DEBUG_OPT,
@@ -57,6 +98,37 @@ commands = {
                          help="Select nodes to sleep on"),
              ],
             "[opts...] <duration>", "Executes a TestDelay OpCode"),
+  'allocator': (TestAllocator, ARGS_ONE,
+                [DEBUG_OPT,
+                 make_option("--dir", dest="direction",
+                             default="in", choices=["in", "out"],
+                             help="Show allocator input (in) or allocator"
+                             " results (out)"),
+                 make_option("--algorithm", dest="allocator",
+                             default=None,
+                             help="Allocator algorithm name"),
+                 make_option("-m", "--mode", default="relocate",
+                             choices=["relocate", "allocate"],
+                             help="Request mode, either allocate or"
+                             "relocate"),
+                 cli_option("--mem", default=128, type="unit",
+                            help="Memory size for the instance (MiB)"),
+                 make_option("--disks", default="4096,4096",
+                             help="Comma separated list of disk sizes (MiB)"),
+                 make_option("-t", "--disk-template", default="drbd",
+                             help="Select the disk template"),
+                 make_option("--nics", default="00:11:22:33:44:55",
+                             help="Comma separated list of nics, each nic"
+                             " definition is of form mac/ip/bridge, if"
+                             " missing values are replace by None"),
+                 make_option("-o", "--os-type", default=None,
+                             help="Select os for the instance"),
+                 make_option("-p", "--vcpus", default=1, type="int",
+                             help="Select number of VCPUs for the instance"),
+                 make_option("--tags", default=None,
+                             help="Comma separated list of tags"),
+                 ],
+                "{opts...} <instance>", "Executes a TestAllocator OpCode"),
   }
 
 
