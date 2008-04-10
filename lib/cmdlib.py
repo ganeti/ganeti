@@ -767,6 +767,7 @@ class LUVerifyCluster(NoHooksLU):
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
     node_volume = {}
     node_instance = {}
+    node_info = {}
 
     # FIXME: verify OS list
     # do local checksums
@@ -786,6 +787,7 @@ class LUVerifyCluster(NoHooksLU):
       }
     all_nvinfo = rpc.call_node_verify(nodelist, node_verify_param)
     all_rversion = rpc.call_version(nodelist)
+    all_ninfo = rpc.call_node_info(nodelist, self.cfg.GetVGName())
 
     for node in nodelist:
       feedback_fn("* Verifying node %s" % node)
@@ -817,6 +819,23 @@ class LUVerifyCluster(NoHooksLU):
         continue
 
       node_instance[node] = nodeinstance
+
+      # node_info
+      nodeinfo = all_ninfo[node]
+      if not isinstance(nodeinfo, dict):
+        feedback_fn("  - ERROR: connection to %s failed" % (node,))
+        bad = True
+        continue
+
+      try:
+        node_info[node] = {
+          "mfree": int(nodeinfo['memory_free']),
+          "dfree": int(nodeinfo['vg_free']),
+        }
+      except ValueError:
+        feedback_fn("  - ERROR: invalid value returned from node %s" % (node,))
+        bad = True
+        continue
 
     node_vol_should = {}
 
