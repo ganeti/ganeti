@@ -759,7 +759,8 @@ class LUVerifyCluster(NoHooksLU):
           bad = True
 
     if not instanceconfig.status == 'down':
-      if not instance in node_instance[node_current]:
+      if (node_current not in node_instance or
+          not instance in node_instance[node_current]):
         feedback_fn("  - ERROR: instance %s not running on node %s" %
                         (instance, node_current))
         bad = True
