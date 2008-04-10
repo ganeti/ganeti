@@ -68,6 +68,19 @@ class DecodingError(ProtocolError):
   """Decoding failure on the receiving side"""
 
 
+class RequestError(ProtocolError):
+  """Error on request
+
+  This signifies an error in the request format or request handling,
+  but not (e.g.) an error in starting up an instance.
+
+  Some common conditions that can trigger this exception:
+    - job submission failed because the job data was wrong
+    - query failed because required fields were missing
+
+  """
+
+
 def SerializeJob(job):
   """Convert a job description to a string format.
 
@@ -252,8 +265,21 @@ class Client(object):
 
   def SubmitJob(self, job):
     """Submit a job"""
-    return self.SendRequest(REQ_SUBMIT, SerializeJob(job))
+    result = self.SendRequest(REQ_SUBMIT, SerializeJob(job))
+    if not result['success']:
+      raise RequestError(result['result'])
+    return result['result']
 
   def Query(self, data):
     """Make a query"""
-    return self.SendRequest(REQ_QUERY, data)
+    result = self.SendRequest(REQ_QUERY, data)
+    if not result['success']:
+      raise RequestError(result[result])
+    result = result['result']
+    if data["object"] == "jobs":
+      # custom job processing of query values
+      for row in result:
+        for idx, field in enumerate(data["fields"]):
+          if field == "op_list":
+            row[idx] = [opcodes.OpCode.LoadOpCode(i) for i in row[idx]]
+    return result
