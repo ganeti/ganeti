@@ -603,7 +603,7 @@ class LUVerifyCluster(NoHooksLU):
   """Verifies the cluster status.
 
   """
-  _OP_REQP = []
+  _OP_REQP = ["skip_checks"]
 
   def _VerifyNode(self, node, file_list, local_cksum, vglist, node_result,
                   remote_version, feedback_fn):
@@ -776,10 +776,13 @@ class LUVerifyCluster(NoHooksLU):
   def CheckPrereq(self):
     """Check prerequisites.
 
-    This has no prerequisites.
+    Transform the list of checks we're going to skip into a set and check that
+    all its members are valid.
 
     """
-    pass
+    self.skip_set = frozenset(self.op.skip_checks)
+    if not constants.VERIFY_OPTIONAL_CHECKS.issuperset(self.skip_set):
+      raise errors.OpPrereqError("Invalid checks to be skipped specified")
 
   def Exec(self, feedback_fn):
     """Verify integrity of cluster, performing various test on nodes.
@@ -928,9 +931,10 @@ class LUVerifyCluster(NoHooksLU):
                                          feedback_fn)
     bad = bad or result
 
-    feedback_fn("* Verifying N+1 Memory redundancy")
-    result = self._VerifyNPlusOneMemory(node_info, instance_cfg, feedback_fn)
-    bad = bad or result
+    if constants.VERIFY_NPLUSONE_MEM not in self.skip_set:
+      feedback_fn("* Verifying N+1 Memory redundancy")
+      result = self._VerifyNPlusOneMemory(node_info, instance_cfg, feedback_fn)
+      bad = bad or result
 
     feedback_fn("* Other Notes")
     if i_non_redundant:

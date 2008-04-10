@@ -187,7 +187,10 @@ def VerifyCluster(opts, args):
     opts - class with options as members
 
   """
-  op = opcodes.OpVerifyCluster()
+  skip_checks=[]
+  if opts.skip_nplusone_mem:
+    skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
+  op = opcodes.OpVerifyCluster(skip_checks=skip_checks)
   result = SubmitOpCode(op)
   return result
 
@@ -368,7 +371,12 @@ commands = {
   'rename': (RenameCluster, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
                "<new_name>",
                "Renames the cluster"),
-  'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT],
+  'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT,
+             make_option("--no-nplus1-mem", dest="skip_nplusone_mem",
+                         help="Skip N+1 memory redundancy tests",
+                         action="store_true",
+                         default=False,),
+             ],
              "", "Does a check on the cluster configuration"),
   'verify-disks': (VerifyDisks, ARGS_NONE, [DEBUG_OPT],
                    "", "Does a check on the cluster disk status"),
