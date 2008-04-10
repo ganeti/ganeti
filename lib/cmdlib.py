@@ -675,7 +675,8 @@ class LUVerifyCluster(NoHooksLU):
       feedback_fn("  - ERROR: hypervisor verify failure: '%s'" % hyp_result)
     return bad
 
-  def _VerifyInstance(self, instance, node_vol_is, node_instance, feedback_fn):
+  def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
+                      node_instance, feedback_fn):
     """Verify an instance.
 
     This function checks to see if the required block devices are
@@ -690,7 +691,6 @@ class LUVerifyCluster(NoHooksLU):
                       (instance, instancelist))
       bad = True
 
-    instanceconfig = self.cfg.GetInstanceInfo(instance)
     node_current = instanceconfig.primary_node
 
     node_vol_should = {}
@@ -828,11 +828,10 @@ class LUVerifyCluster(NoHooksLU):
 
     for instance in instancelist:
       feedback_fn("* Verifying instance %s" % instance)
-      result =  self._VerifyInstance(instance, node_volume, node_instance,
-                                     feedback_fn)
-      bad = bad or result
-
       inst_config = self.cfg.GetInstanceInfo(instance)
+      result =  self._VerifyInstance(instance, inst_config, node_volume,
+                                     node_instance, feedback_fn)
+      bad = bad or result
 
       inst_config.MapLVsByNode(node_vol_should)
 
