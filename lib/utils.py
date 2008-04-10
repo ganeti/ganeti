@@ -1093,7 +1093,7 @@ def TestDelay(duration):
   return True
 
 
-def Daemonize(logfile):
+def Daemonize(logfile, noclose_fds=None):
   """Daemonize the current process.
 
   This detaches the current process from the controlling terminal and
@@ -1133,6 +1133,8 @@ def Daemonize(logfile):
 
   # Iterate through and close all file descriptors.
   for fd in range(0, maxfd):
+    if noclose_fds and fd in noclose_fds:
+      continue
     try:
       os.close(fd)
     except OSError: # ERROR, fd wasn't open to begin with (ignored)
