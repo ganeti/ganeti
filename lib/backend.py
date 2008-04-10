@@ -988,7 +988,7 @@ def _OSSearch(name, search_path=None):
   for dir_name in search_path:
     t_os_dir = os.path.sep.join([dir_name, name])
     if os.path.isdir(t_os_dir):
-      return dir_name
+      return t_os_dir
 
   return None
 
@@ -1082,12 +1082,12 @@ def OSFromDisk(name, base_dir=None):
   """
 
   if base_dir is None:
-    base_dir = _OSSearch(name)
+    os_dir = _OSSearch(name)
+    if os_dir is None:
+      raise errors.InvalidOS(name, None, "OS dir not found in search path")
+  else:
+    os_dir = os.path.sep.join([base_dir, name])
 
-  if base_dir is None:
-    raise errors.InvalidOS(name, None, "OS dir not found in search path")
-
-  os_dir = os.path.sep.join([base_dir, name])
   api_version = _OSOndiskVersion(name, os_dir)
 
   if api_version != constants.OS_API_VERSION:
