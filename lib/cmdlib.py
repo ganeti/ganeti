@@ -820,6 +820,7 @@ class LUVerifyCluster(NoHooksLU):
     vg_name = self.cfg.GetVGName()
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
+    i_non_redundant = [] # Non redundant instances
     node_volume = {}
     node_instance = {}
     node_info = {}
@@ -886,6 +887,8 @@ class LUVerifyCluster(NoHooksLU):
         node_info[node] = {
           "mfree": int(nodeinfo['memory_free']),
           "dfree": int(nodeinfo['vg_free']),
+          "pinst": [],
+          "sinst": [],
         }
       except ValueError:
         feedback_fn("  - ERROR: invalid value returned from node %s" % (node,))
@@ -902,6 +905,32 @@ class LUVerifyCluster(NoHooksLU):
       bad = bad or result
 
       inst_config.MapLVsByNode(node_vol_should)
+
+      pnode = inst_config.primary_node
+      if pnode in node_info:
+        node_info[pnode]['pinst'].append(instance)
+      else:
+        feedback_fn("  - ERROR: instance %s, connection to primary node"
+                    " %s failed" % (instance, pnode))
+        bad = True
+
+      # If the instance is non-redundant we cannot survive losing its primary
+      # node, so we are not N+1 compliant. On the other hand we have no disk
+      # templates with more than one secondary so that situation is not well
+      # supported either.
+      # FIXME: does not support file-backed instances
+      if len(inst_config.secondary_nodes) == 0:
+        i_non_redundant.append(instance)
+      elif len(inst_config.secondary_nodes) > 1:
+        feedback_fn("  - WARNING: multiple secondaries for instance %s"
+                    % instance)
+
+      for snode in inst_config.secondary_nodes:
+        if snode in node_info:
+          node_info[snode]['sinst'].append(instance)
+        else:
+          feedback_fn("  - ERROR: instance %s, connection to secondary node"
+                      " %s failed" % (instance, snode))
 
     feedback_fn("* Verifying orphan volumes")
     result = self._VerifyOrphanVolumes(node_vol_should, node_volume,
