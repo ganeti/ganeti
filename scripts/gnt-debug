@@ -22,6 +22,9 @@
 import sys
 import os
 import itertools
+import simplejson
+import time
+
 from optparse import make_option
 from cStringIO import StringIO
 
@@ -48,6 +51,52 @@ def Delay(opts, args):
   return 0
 
 
+def GenericOpCodes(opts, args):
+  """Send any opcode to the master
+
+  """
+  fname = args[0]
+  op_data = simplejson.loads(open(fname).read())
+  op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
+  job = opcodes.Job(op_list=op_list)
+  jid = SubmitJob(job)
+  print "Job id:", jid
+  query = {
+    "object": "jobs",
+    "fields": ["status"],
+    "names": [jid],
+    }
+
+  # wait for job to complete (either by success or failure)
+  while True:
+    jdata = SubmitQuery(query)
+    if not jdata:
+      # job not found, gone away!
+      print "Job lost!"
+      return 1
+
+    status = jdata[0][0]
+    print status
+    if status in (opcodes.Job.STATUS_SUCCESS, opcodes.Job.STATUS_FAIL):
+      break
+
+    # sleep between checks
+    time.sleep(0.5)
+
+  # job has finished, get and process its results
+  query["fields"].extend(["op_list", "op_status", "op_result"])
+  jdata = SubmitQuery(query)
+  if not jdata:
+    # job not found, gone away!
+    print "Job lost!"
+    return 1
+  print jdata[0]
+  status, op_list, op_status, op_result = jdata[0]
+  for idx, op in enumerate(op_list):
+    print idx, op.OP_ID, op_status[idx], op_result[idx]
+  return 0
+
+
 commands = {
   'delay': (Delay, ARGS_ONE,
             [DEBUG_OPT,
@@ -59,6 +108,11 @@ commands = {
                          help="Select nodes to sleep on"),
              ],
             "[opts...] <duration>", "Executes a TestDelay OpCode"),
+  'submit-job': (GenericOpCodes, ARGS_ONE,
+                 [DEBUG_OPT,
+                  ],
+                 "<op_list_file>", "Submits a job built from a json-file"
+                 " with a list of serialized opcodes"),
   }
 
 
