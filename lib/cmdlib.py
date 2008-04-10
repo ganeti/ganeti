@@ -685,12 +685,6 @@ class LUVerifyCluster(NoHooksLU):
     """
     bad = False
 
-    instancelist = self.cfg.GetInstanceList()
-    if not instance in instancelist:
-      feedback_fn("  - ERROR: instance %s not in instance list %s" %
-                      (instance, instancelist))
-      bad = True
-
     node_current = instanceconfig.primary_node
 
     node_vol_should = {}
