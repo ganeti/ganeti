@@ -379,7 +379,7 @@ class OpSetInstanceParams(OpCode):
 class OpDiagnoseOS(OpCode):
   """Compute the list of guest operating systems."""
   OP_ID = "OP_OS_DIAGNOSE"
-  __slots__ = []
+  __slots__ = ["output_fields", "names"]
 
 
 # Exports opcodes

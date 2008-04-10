@@ -1163,7 +1163,7 @@ class LUDiagnoseOS(NoHooksLU):
   """Logical unit for OS diagnose/query.
 
   """
-  _OP_REQP = []
+  _OP_REQP = ["output_fields", "names"]
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1171,7 +1171,44 @@ class LUDiagnoseOS(NoHooksLU):
     This always succeeds, since this is a pure query LU.
 
     """
-    return
+    if self.op.names:
+      raise errors.OpPrereqError("Selective OS query not supported")
+
+    self.dynamic_fields = frozenset(["name", "valid", "node_status"])
+    _CheckOutputFields(static=[],
+                       dynamic=self.dynamic_fields,
+                       selected=self.op.output_fields)
+
+  @staticmethod
+  def _DiagnoseByOS(node_list, rlist):
+    """Remaps a per-node return list into an a per-os per-node dictionary
+
+      Args:
+        node_list: a list with the names of all nodes
+        rlist: a map with node names as keys and OS objects as values
+
+      Returns:
+        map: a map with osnames as keys and as value another map, with
+             nodes as
+             keys and list of OS objects as values
+             e.g. {"debian-etch": {"node1": [<object>,...],
+                                   "node2": [<object>,]}
+                  }
+
+    """
+    all_os = {}
+    for node_name, nr in rlist.iteritems():
+      if not nr:
+        continue
+      for os in nr:
+        if os.name not in all_os:
+          # build a list of nodes for this os containing empty lists
+          # for each node in node_list
+          all_os[os.name] = {}
+          for nname in node_list:
+            all_os[os.name][nname] = []
+        all_os[os.name][node_name].append(os)
+    return all_os
 
   def Exec(self, feedback_fn):
     """Compute the list of OSes.
@@ -1181,7 +1218,25 @@ class LUDiagnoseOS(NoHooksLU):
     node_data = rpc.call_os_diagnose(node_list)
     if node_data == False:
       raise errors.OpExecError("Can't gather the list of OSes")
-    return node_data
+    pol = self._DiagnoseByOS(node_list, node_data)
+    output = []
+    for os_name, os_data in pol.iteritems():
+      row = []
+      for field in self.op.output_fields:
+        if field == "name":
+          val = os_name
+        elif field == "valid":
+          val = utils.all([osl and osl[0] for osl in os_data.values()])
+        elif field == "node_status":
+          val = {}
+          for node_name, nos_list in os_data.iteritems():
+            val[node_name] = [(v.status, v.path) for v in nos_list]
+        else:
+          raise errors.ParameterError(field)
+        row.append(val)
+      output.append(row)
+
+    return output
 
 
 class LURemoveNode(LogicalUnit):
