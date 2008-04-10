@@ -116,7 +116,7 @@ REPLACE_DISK_PRI = "replace_primary"
 REPLACE_DISK_SEC = "replace_secondary"
 REPLACE_DISK_ALL = "replace_all"
 
-# instance creation modem
+# instance creation modes
 INSTANCE_CREATE = "create"
 INSTANCE_IMPORT = "import"
 
