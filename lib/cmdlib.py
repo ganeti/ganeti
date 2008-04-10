@@ -769,6 +769,7 @@ class LUVerifyCluster(NoHooksLU):
     node_volume = {}
     node_instance = {}
     node_info = {}
+    instance_cfg = {}
 
     # FIXME: verify OS list
     # do local checksums
@@ -857,6 +858,8 @@ class LUVerifyCluster(NoHooksLU):
       bad = bad or result
 
       inst_config.MapLVsByNode(node_vol_should)
+
+      instance_cfg[instance] = inst_config
 
       pnode = inst_config.primary_node
       if pnode in node_info:
