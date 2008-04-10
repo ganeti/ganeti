@@ -4,7 +4,7 @@ CLEANFILES = $(nodist_EXTRA_DATA)
 nodist_EXTRA_DATA = ganeti.initd ganeti.cron
 
 all-local: ganeti.initd ganeti.cron
-ganeti.%: ganeti.%.in
+ganeti.%: ganeti.%.in Makefile
 	sed \
 	  -e "s#@PREFIX@#$(prefix)#g" \
 	  -e "s#@SYSCONFDIR@#$(sysconfdir)#g" \
