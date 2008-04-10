@@ -834,6 +834,13 @@ class LUVerifyCluster(NoHooksLU):
           "dfree": int(nodeinfo['vg_free']),
           "pinst": [],
           "sinst": [],
+          # dictionary holding all instances this node is secondary for,
+          # grouped by their primary node. Each key is a cluster node, and each
+          # value is a list of instances which have the key as primary and the
+          # current node as secondary.  this is handy to calculate N+1 memory
+          # availability if you can only failover from a primary to its
+          # secondary.
+          "sinst-by-pnode": {},
         }
       except ValueError:
         feedback_fn("  - ERROR: invalid value returned from node %s" % (node,))
@@ -873,6 +880,9 @@ class LUVerifyCluster(NoHooksLU):
       for snode in inst_config.secondary_nodes:
         if snode in node_info:
           node_info[snode]['sinst'].append(instance)
+          if pnode not in node_info[snode]['sinst-by-pnode']:
+            node_info[snode]['sinst-by-pnode'][pnode] = []
+          node_info[snode]['sinst-by-pnode'][pnode].append(instance)
         else:
           feedback_fn("  - ERROR: instance %s, connection to secondary node"
                       " %s failed" % (instance, snode))
