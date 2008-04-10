@@ -745,6 +745,34 @@ class LUVerifyCluster(NoHooksLU):
           bad = True
     return bad
 
+  def _VerifyNPlusOneMemory(self, node_info, instance_cfg, feedback_fn):
+    """Verify N+1 Memory Resilience.
+
+    Check that if one single node dies we can still start all the instances it
+    was primary for.
+
+    """
+    bad = False
+
+    for node, nodeinfo in node_info.iteritems():
+      # This code checks that every node which is now listed as secondary has
+      # enough memory to host all instances it is supposed to should a single
+      # other node in the cluster fail.
+      # FIXME: not ready for failover to an arbitrary node
+      # FIXME: does not support file-backed instances
+      # WARNING: we currently take into account down instances as well as up
+      # ones, considering that even if they're down someone might want to start
+      # them even in the event of a node failure.
+      for prinode, instances in nodeinfo['sinst-by-pnode'].iteritems():
+        needed_mem = 0
+        for instance in instances:
+          needed_mem += instance_cfg[instance].memory
+        if nodeinfo['mfree'] < needed_mem:
+          feedback_fn("  - ERROR: not enough memory on node %s to accomodate"
+                      " failovers should node %s fail" % (node, prinode))
+          bad = True
+    return bad
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -899,6 +927,15 @@ class LUVerifyCluster(NoHooksLU):
     result = self._VerifyOrphanInstances(instancelist, node_instance,
                                          feedback_fn)
     bad = bad or result
+
+    feedback_fn("* Verifying N+1 Memory redundancy")
+    result = self._VerifyNPlusOneMemory(node_info, instance_cfg, feedback_fn)
+    bad = bad or result
+
+    feedback_fn("* Other Notes")
+    if i_non_redundant:
+      feedback_fn("  - NOTICE: %d non-redundant instance(s) found."
+                  % len(i_non_redundant))
 
     return int(bad)
 
