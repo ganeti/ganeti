@@ -962,28 +962,6 @@ def _ErrnoOrStr(err):
   return detail
 
 
-def _OSSearch(name, search_path=None):
-  """Search for OSes with the given name in the search_path.
-
-  Args:
-    name: The name of the OS to look for
-    search_path: List of dirs to search (defaults to constants.OS_SEARCH_PATH)
-
-  Returns:
-    The base_dir the OS resides in
-
-  """
-  if search_path is None:
-    search_path = constants.OS_SEARCH_PATH
-
-  for dir_name in search_path:
-    t_os_dir = os.path.sep.join([dir_name, name])
-    if os.path.isdir(t_os_dir):
-      return t_os_dir
-
-  return None
-
-
 def _OSOndiskVersion(name, os_dir):
   """Compute and return the API version of a given OS.
 
@@ -1073,7 +1051,7 @@ def OSFromDisk(name, base_dir=None):
   """
 
   if base_dir is None:
-    os_dir = _OSSearch(name)
+    os_dir = utils.FindFile(name, constants.OS_SEARCH_PATH, os.path.isdir)
     if os_dir is None:
       raise errors.InvalidOS(name, None, "OS dir not found in search path")
   else:

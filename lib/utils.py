@@ -1134,3 +1134,27 @@ def Daemonize(logfile, noclose_fds=None):
   os.dup2(0, 1)     # standard output (1)
   os.dup2(0, 2)     # standard error (2)
   return 0
+
+
+def FindFile(name, search_path, test=os.path.exists):
+  """Look for a filesystem object in a given path.
+
+  This is an abstract method to search for filesystem object (files,
+  dirs) under a given search path.
+
+  Args:
+    - name: the name to look for
+    - search_path: list of directory names
+    - test: the test which the full path must satisfy
+      (defaults to os.path.exists)
+
+  Returns:
+    - full path to the item if found
+    - None otherwise
+
+  """
+  for dir_name in search_path:
+    item_name = os.path.sep.join([dir_name, name])
+    if test(item_name):
+      return item_name
+  return None
