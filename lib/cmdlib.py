@@ -4266,14 +4266,12 @@ class LUExportInstance(LogicalUnit):
     # TODO: check for size
 
     for dev in snap_disks:
-      if not rpc.call_snapshot_export(src_node, dev, dst_node.name,
-                                           instance):
-        logger.Error("could not export block device %s from node"
-                     " %s to node %s" %
-                     (dev.logical_id[1], src_node, dst_node.name))
+      if not rpc.call_snapshot_export(src_node, dev, dst_node.name, instance):
+        logger.Error("could not export block device %s from node %s to node %s"
+                     % (dev.logical_id[1], src_node, dst_node.name))
       if not rpc.call_blockdev_remove(src_node, dev):
-        logger.Error("could not remove snapshot block device %s from"
-                     " node %s" % (dev.logical_id[1], src_node))
+        logger.Error("could not remove snapshot block device %s from node %s" %
+                     (dev.logical_id[1], src_node))
 
     if not rpc.call_finalize_export(dst_node.name, instance, snap_disks):
       logger.Error("could not finalize export for instance %s on node %s" %
