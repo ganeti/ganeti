@@ -624,7 +624,7 @@ class LUVerifyCluster(NoHooksLU):
     # compares ganeti version
     local_version = constants.PROTOCOL_VERSION
     if not remote_version:
-      feedback_fn(" - ERROR: connection to %s failed" % (node))
+      feedback_fn("  - ERROR: connection to %s failed" % (node))
       return True
 
     if local_version != remote_version:
