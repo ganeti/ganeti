@@ -83,7 +83,7 @@ class OpRunClusterCommand(OpCode):
 class OpVerifyCluster(OpCode):
   """Verify the cluster state."""
   OP_ID = "OP_CLUSTER_VERIFY"
-  __slots__ = []
+  __slots__ = ["skip_checks"]
 
 
 class OpVerifyDisks(OpCode):

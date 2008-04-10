@@ -168,3 +168,8 @@ ALF_DIR_IN = "in"
 ALF_DIR_OUT = "out"
 ALF_MODE_ALLOC = "allocate"
 ALF_MODE_RELOC = "relocate"
+
+# Cluster Verify steps
+VERIFY_NPLUSONE_MEM = 'nplusone_mem'
+VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
+
