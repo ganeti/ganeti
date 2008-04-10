@@ -53,7 +53,9 @@ def ListJobs(opts, args):
     headers = {
       "id": "ID",
       "status": "Status",
-      "opcodes": "OpCodes",
+      "op_list": "OpCodes",
+      "op_status": "OpStatus",
+      "op_result": "OpResult",
       }
   else:
     headers = None
@@ -71,8 +73,12 @@ def ListJobs(opts, args):
           val = "pending"
         elif val == opcodes.Job.STATUS_RUNNING:
           val = "running"
-        elif val == opcodes.Job.STATUS_FINISHED:
+        elif val == opcodes.Job.STATUS_SUCCESS:
           val = "finished"
+        elif val == opcodes.Job.STATUS_FAIL:
+          val = "failed"
+        elif val == opcodes.Job.STATUS_ABORT:
+          val = "aborted"
         else:
           raise errors.ProgrammerError("Unknown job status code '%s'" % val)
 
@@ -91,7 +97,8 @@ commands = {
   'list': (ListJobs, ARGS_NONE,
             [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
             "", "List the jobs and their status. The available fields are"
-           " (see the man page for details): id, status, opcodes."
+           " (see the man page for details): id, status, op_list,"
+           " op_status, op_result."
            " The default field"
            " list is (in order): id, status."),
   }

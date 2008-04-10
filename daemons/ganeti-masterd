@@ -236,9 +236,20 @@ def JobRunner(proc, job):
 
   """
   job.SetStatus(opcodes.Job.STATUS_RUNNING)
-  for op in job.data.op_list:
-    proc.ExecOpCode(op)
-  job.SetStatus(opcodes.Job.STATUS_FINISHED, result=opcodes.Job.RESULT_OK)
+  fail = False
+  for idx, op in enumerate(job.data.op_list):
+    job.data.op_status[idx] = opcodes.Job.STATUS_RUNNING
+    try:
+      job.data.op_result[idx] = proc.ExecOpCode(op)
+      job.data.op_status[idx] = opcodes.Job.STATUS_SUCCESS
+    except (errors.OpPrereqError, errors.OpExecError), err:
+      fail = True
+      job.data.op_result[idx] = str(err)
+      job.data.op_status[idx] = opcodes.Job.STATUS_FAIL
+  if fail:
+    job.SetStatus(opcodes.Job.STATUS_FAIL)
+  else:
+    job.SetStatus(opcodes.Job.STATUS_SUCCESS)
 
 
 def PoolWorker(worker_id, incoming_queue):

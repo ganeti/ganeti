@@ -38,6 +38,8 @@ class JobObject:
     self.data = jdesc
     jdesc.status = opcodes.Job.STATUS_PENDING
     jdesc.job_id = jid
+    jdesc.op_status = [opcodes.Job.STATUS_PENDING for i in jdesc.op_list]
+    jdesc.op_result = [None for i in jdesc.op_list]
     self.lock = threading.Lock()
 
   def SetStatus(self, status, result=None):
@@ -114,8 +116,12 @@ class QueueManager:
             row.append(jdata.job_id)
           elif fname == "status":
             row.append(jdata.status)
-          elif fname == "opcodes":
-            row.append(",".join([op.OP_ID for op in jdata.op_list]))
+          elif fname == "op_list":
+            row.append([op.__getstate__() for op in jdata.op_list])
+          elif fname == "op_status":
+            row.append(jdata.op_status)
+          elif fname == "op_result":
+            row.append(jdata.op_result)
           else:
             raise errors.OpExecError("Invalid job query field '%s'" %
                                            fname)

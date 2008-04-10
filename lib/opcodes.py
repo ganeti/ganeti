@@ -74,15 +74,31 @@ class BaseJO(object):
 
 
 class Job(BaseJO):
-  """Job definition structure"""
+  """Job definition structure
+
+  The Job definitions has two sets of parameters:
+    - the parameters of the job itself (all filled by server):
+      - job_id,
+      - status: pending, running, successfull, failed, aborted
+    - opcode parameters:
+      - op_list, list of opcodes, clients creates this
+      - op_status, status for each opcode, server fills in
+      - op_result, result for each opcode, server fills in
+
+  """
   STATUS_PENDING = 1
   STATUS_RUNNING = 2
-  STATUS_FINISHED = 3
-  RESULT_OK = 1
-  RESULT_FAIL = 2
-  RESULT_ABORT = 3
+  STATUS_SUCCESS = 3
+  STATUS_FAIL = 4
+  STATUS_ABORT = 5
 
-  __slots__ = ["job_id", "op_list", "status", "result"]
+  __slots__ = [
+    "job_id",
+    "status",
+    "op_list",
+    "op_status",
+    "op_result",
+    ]
 
   def __getstate__(self):
     """Specialized getstate for jobs
