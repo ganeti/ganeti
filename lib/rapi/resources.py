@@ -101,7 +101,7 @@ class Mapper:
 
 
 class R_Generic(object):
-  """ Generic class for resources.
+  """Generic class for resources.
 
   """
 

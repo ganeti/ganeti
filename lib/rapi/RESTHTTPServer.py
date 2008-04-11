@@ -1,7 +1,5 @@
 #!/usr/bin/python
 #
-# Copyright (C) 2006, 2007 Google Inc.
-#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -62,7 +60,7 @@ class RESTHTTPServer(BaseHTTPServer.HTTPServer):
       HandlerClass - HTTPRequestHandler object
       options - Command-line options
     """
-    BaseHTTPServer.HTTPServer.__init__(self,server_address, HandlerClass)
+    BaseHTTPServer.HTTPServer.__init__(self, server_address, HandlerClass)
     if options.ssl:
       # Set up SSL
       context = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)

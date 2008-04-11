@@ -67,8 +67,8 @@ def ParseOptions():
 
   if options.ssl:
     if not (options.ssl_cert and options.ssl_key):
-      print >> sys.stderr, "For secure mode please provide " \
-                        "--ssl-key and --ssl-cert arguments"
+      print >> sys.stderr, ("For secure mode please provide "
+                           "--ssl-key and --ssl-cert arguments")
       sys.exit(1)
 
   return options, args
@@ -84,7 +84,7 @@ def Port2PID(port):
     PID number.
   """
 
-  _NET_STAT = ['/proc/net/tcp','/proc/net/udp']
+  _NET_STAT = ['/proc/net/tcp', '/proc/net/udp']
 
   inode2port = {}
   port2pid = {}
@@ -163,8 +163,8 @@ def StopAPI(options):
   try:
     pid = Port2PID(options.port)
     if pid:
-      print "Stopping Ganeti-RAPI PID: %d, port: %d... " \
-          % (pid, options.port),
+      print ("Stopping Ganeti-RAPI PID: %d, port: %d... "
+             % (pid, options.port)),
       os.kill(pid, 9)
       print "done."
     else:
