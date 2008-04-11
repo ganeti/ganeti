@@ -1,6 +1,5 @@
 #!/usr/bin/python
 #
-
 # Copyright (C) 2006, 2007 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -26,10 +25,7 @@ import BaseHTTPServer
 import OpenSSL
 import logging
 import logging.handlers
-import sys
-import os
 
-from optparse import OptionParser
 from ganeti.rapi import resources
 
 """RESTfull HTTPS Server module.
@@ -38,6 +34,7 @@ from ganeti.rapi import resources
 
 def OpenLog():
   """Set up logging to the syslog.
+
   """
   log = logging.getLogger('ganeti-rapi')
   slh = logging.handlers.SysLogHandler('/dev/log',
@@ -52,19 +49,20 @@ def OpenLog():
 
 
 class RESTHTTPServer(BaseHTTPServer.HTTPServer):
+  """The class to provide HTTP/HTTPS server.
+
+  """
   def __init__(self, server_address, HandlerClass, options):
-    """ REST Server Constructor.
+    """REST Server Constructor.
 
     Args:
       server_address - a touple with pair:
         ip - a string with IP address, localhost if null-string
         port - port number, integer
-      HandlerClass - HTTPRequestHandler object.
-      options: command-line options.
+      HandlerClass - HTTPRequestHandler object
+      options - Command-line options
     """
-
-
-    SocketServer.BaseServer.__init__(self, server_address, HandlerClass)
+    BaseHTTPServer.HTTPServer.__init__(self,server_address, HandlerClass)
     if options.ssl:
       # Set up SSL
       context = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
@@ -158,20 +156,17 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """
     controller = self.map.getController(uri)
     if controller:
-        return eval("resources.%s(self, %s, %s)" % controller)
+      return eval("resources.%s(self, %s, %s)" % controller)
     else:
       raise exceptions.AttribureError
 
 
 def start(options):
-  port = int(options.port)
-  httpd = RESTHTTPServer(("", port), RESTRequestHandler, options)
+  httpd = RESTHTTPServer(("", options.port), RESTRequestHandler, options)
   try:
     httpd.serve_forever()
   finally:
-    httpd.close()
-    del httpd
-    return 1
+    httpd.server_close()
 
 
 if __name__ == "__main__":

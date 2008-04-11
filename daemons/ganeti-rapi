@@ -49,7 +49,7 @@ def ParseOptions():
                     default=False, action="store_true")
   parser.add_option("-p", "--port", dest="port",
                     help="Port to run API",
-                    default=API_PORT)
+                    default=API_PORT, type="int")
   parser.add_option("-S", "--https", dest="ssl",
                     help="Secure HTTP protocol with SSL",
                     default=False, action="store_true")
@@ -62,12 +62,12 @@ def ParseOptions():
   options, args = parser.parse_args()
 
   if len(args) != 1 or args[0] not in ("start", "stop"):
-    print >>sys.stderr, "Usage: %s [-d] [-p port] start|stop\n" % sys.argv[0]
+    print >> sys.stderr, "Usage: %s [-d] [-p port] start|stop\n" % sys.argv[0]
     sys.exit(1)
 
   if options.ssl:
     if not (options.ssl_cert and options.ssl_key):
-      print >>sys.stderr, "For secure mode please provide " \
+      print >> sys.stderr, "For secure mode please provide " \
                         "--ssl-key and --ssl-cert arguments"
       sys.exit(1)
 
@@ -128,7 +128,6 @@ def StartAPI(options):
   Return:
     Exit code.
   """
-  port = int(options.port)
   # do the UNIX double-fork magic
   try:
     pid = os.fork()
@@ -136,7 +135,7 @@ def StartAPI(options):
       # exit first parent
       sys.exit(0)
   except OSError, e:
-    print >>sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
+    print >> sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
     return 1
 
   # decouple from parent environment
@@ -149,10 +148,10 @@ def StartAPI(options):
     pid = os.fork()
     if pid > 0:
       # exit from second parent, print eventual PID before
-      print "Ganeti-RAPI PID: %d port: %d" % (pid, port)
+      print "Ganeti-RAPI PID: %d port: %d" % (pid, options.port)
       return 0
   except OSError, e:
-    print >>sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
+    print >> sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
     return 1
 
   # start the daemon main loop
@@ -161,17 +160,19 @@ def StartAPI(options):
 
 def StopAPI(options):
   """Stop the API."""
-  port = int(options.port)
   try:
-    pid = Port2PID(port)
+    pid = Port2PID(options.port)
     if pid:
-      print "Stopping Ganeti-RAPI PID: %d, port: %d.... " % (pid, port),
+      print "Stopping Ganeti-RAPI PID: %d, port: %d... " \
+          % (pid, options.port),
       os.kill(pid, 9)
       print "done."
     else:
-      print >>sys.stderr, "Unable to locate running Ganeti-RAPI on port: %d" % port
+      print >> sys.stderr, "Unable to locate running Ganeti-RAPI on port: %d" \
+          % options.port
+
   except Exception, ex:
-    print >>sys.stderr, ex
+    print >> sys.stderr, ex
     return 1
   return 0
 

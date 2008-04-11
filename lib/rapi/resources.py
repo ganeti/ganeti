@@ -101,7 +101,9 @@ class Mapper:
 
 
 class R_Generic(object):
-  """ Generic class for resources. """
+  """ Generic class for resources.
+
+  """
 
   def __init__(self, dispatcher, items, args):
     """ Gentric resource constructor.
@@ -115,9 +117,12 @@ class R_Generic(object):
     self.items = items
     self.args = args
     self.code = 200
+    self.result = None
 
   def do_GET(self):
-    """Default GET flow."""
+    """Default GET flow.
+
+    """
     try:
       self._get()
       self.send(self.code, self.result)
@@ -131,6 +136,9 @@ class R_Generic(object):
       self.send_error(500, 'Internal Server Error: %s' % msg)
 
   def _get(self):
+    """ GET Stub.
+
+    """
     raise AttributeError("GET method is not implemented")
 
 
@@ -277,8 +285,8 @@ class R_os(R_Generic):
         if os.name not in self.valid_os_list:
           self.valid_os_list.append(os.name)
       else:
-        if os.name in valid_os_list:
-          self.valid_oslist.remove(os.name)
+        if os.name in self.valid_os_list:
+          self.valid_os_list.remove(os.name)
 
   def _get(self):
     request = ganeti.opcodes.OpDiagnoseOS()
