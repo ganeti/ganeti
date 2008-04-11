@@ -6,6 +6,9 @@ pkgpython_PYTHON = __init__.py backend.py cli.py cmdlib.py config.py \
 	bdev.py hypervisor.py opcodes.py mcpu.py constants.py \
 	ssconf.py
 
+nobase_pkgpython_PYTHON = rapi/__init__.py \
+	rapi/resources.py rapi/RESTHTTPServer.py
+
 all-local: _autoconf.py
 
 _autoconf.py: Makefile
