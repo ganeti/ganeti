@@ -16,6 +16,8 @@ DESC="Ganeti cluster"
 NAME=ganeti-noded
 NODED=@PREFIX@/sbin/ganeti-noded
 MASTER=@PREFIX@/sbin/ganeti-master
+MASTERD_NAME=ganeti-masterd
+MASTERD="@PREFIX@/sbin/$MASTERD_NAME"
 SCRIPTNAME=@SYSCONFDIR@/init.d/ganeti
 
 test -f $NODED || exit 0
@@ -61,7 +63,12 @@ case "$1" in
             log_end_msg 1
         fi
         master_action start
-    ;;
+        if start-stop-daemon --start --quiet --exec $MASTERD; then
+            log_end_msg 0
+        else
+            log_end_msg 1
+        fi
+     ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
         if start-stop-daemon --stop --quiet --name $NAME; then
@@ -69,13 +76,20 @@ case "$1" in
         else
             log_end_msg 1
         fi
-        master_action stop
+        if start-stop-daemon --stop --quiet --name $MASTERD_NAME; then
+            log_end_msg 0
+        else
+            log_end_msg 1
+        fi
+         master_action stop
     ;;
     restart|force-reload)
         log_daemon_msg "Reloading $DESC"
         start-stop-daemon --stop --quiet --oknodo --retry 30 --name $NAME
+        start-stop-daemon --stop --quiet --oknodo --retry 30 --name $MASTERD_NAME
         check_config
         start-stop-daemon --start --quiet --exec $NODED
+        start-stop-daemon --start --quiet --exec $MASTERD
         log_end_msg $?
 
         $MASTER stop
