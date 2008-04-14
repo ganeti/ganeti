@@ -156,7 +156,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if controller:
       return eval("resources.%s(self, %s, %s)" % controller)
     else:
-      raise exceptions.AttribureError
+      raise exceptions.AttributeError
 
 
 def start(options):
