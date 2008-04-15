@@ -131,9 +131,10 @@ class Burner(object):
                       help="Skip instance stop/start", action="store_false",
                       default=True)
     parser.add_option("-t", "--disk-template", dest="disk_template",
-                      choices=("diskless", "plain", "drbd"),
+                      choices=("diskless", "file", "plain", "drbd"),
                       default="drbd",
-                      help="Disk template (diskless, plain or drbd) [drbd]")
+                      help="Disk template (diskless, file, plain or drbd)"
+                            " [drbd]")
     parser.add_option("-n", "--nodes", dest="nodes", default="",
                       help="Comma separated list of nodes to perform"
                       " the burnin on (defaults to all nodes)")
@@ -143,6 +144,7 @@ class Burner(object):
       Usage()
 
     supported_disk_templates = (constants.DT_DISKLESS,
+                                constants.DT_FILE,
                                 constants.DT_PLAIN,
                                 constants.DT_DRBD8)
     if options.disk_template not in supported_disk_templates:
@@ -206,7 +208,9 @@ class Burner(object):
                                     mac="auto",
                                     kernel_path=None,
                                     initrd_path=None,
-                                    hvm_boot_order=None)
+                                    hvm_boot_order=None,
+                                    file_driver="loop",
+                                    file_storage_dir=None)
       Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
       self.ExecOp(op)
       self.to_rem.append(instance)
@@ -320,9 +324,10 @@ class Burner(object):
     Log("- Testing global parameters")
 
     if (len(self.nodes) == 1 and
-        opts.disk_template not in (constants.DT_DISKLESS, constants.DT_PLAIN)):
+        opts.disk_template not in (constants.DT_DISKLESS, constants.DT_PLAIN,
+                                   constants.DT_FILE)):
       Log("When one node is available/selected the disk template must"
-               " be 'plain' or 'diskless'")
+          " be 'diskless', 'file' or 'plain'")
       sys.exit(1)
 
     has_err = True
