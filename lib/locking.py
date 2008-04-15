@@ -226,8 +226,7 @@ class SharedLock:
         # If there are shared holders waiting (and not just scheduled to pass)
         # there *must* be an exclusive holder waiting as well; otherwise what
         # were they waiting for?
-        assert (self.__nwait_exc > 0 or self.__npass_shr > 0 or
-                self.__nwait_shr == 0), \
+        assert (self.__nwait_exc > 0 or self.__npass_shr == self.__nwait_shr), \
                "Lock sharers waiting while no exclusive is queueing"
 
         # If there are no more shared holders either in or scheduled to pass,
