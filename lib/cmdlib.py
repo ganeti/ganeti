@@ -3025,7 +3025,7 @@ def _CreateDisks(cfg, instance):
                                               file_storage_dir)
 
     if not result:
-      logger.Error("Could not connect to node '%s'" % inst.primary_node)
+      logger.Error("Could not connect to node '%s'" % instance.primary_node)
       return False
 
     if not result[0]:
@@ -4396,7 +4396,7 @@ class LUExportInstance(LogicalUnit):
       # shutdown the instance, but not the disks
       if not rpc.call_instance_shutdown(src_node, instance):
          raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                                 (instance.name, source_node))
+                                 (instance.name, src_node))
 
     vgname = self.cfg.GetVGName()
 

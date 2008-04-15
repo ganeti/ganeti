@@ -2280,7 +2280,7 @@ class FileStorage(BlockDev):
     try:
       f = open(dev_path, 'w')
     except IOError, err:
-      raise BlockDeviceError("Could not create '%'" % err)
+      raise errors.BlockDeviceError("Could not create '%'" % err)
     else:
       f.truncate(size * 1024 * 1024)
       f.close()
