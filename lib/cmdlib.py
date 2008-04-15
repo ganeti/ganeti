@@ -3089,6 +3089,28 @@ def _RemoveDisks(instance, cfg):
   return result
 
 
+def _ComputeDiskSize(disk_template, disk_size, swap_size):
+  """Compute disk size requirements in the volume group
+
+  This is currently hard-coded for the two-drive layout.
+
+  """
+  # Required free disk space as a function of disk and swap space
+  req_size_dict = {
+    constants.DT_DISKLESS: None,
+    constants.DT_PLAIN: disk_size + swap_size,
+    # 256 MB are added for drbd metadata, 128MB for each drbd device
+    constants.DT_DRBD8: disk_size + swap_size + 256,
+    constants.DT_FILE: None,
+  }
+
+  if disk_template not in req_size_dict:
+    raise errors.ProgrammerError("Disk template '%s' size requirement"
+                                 " is unknown" %  disk_template)
+
+  return req_size_dict[disk_template]
+
+
 class LUCreateInstance(LogicalUnit):
   """Create an instance.
 
@@ -3224,20 +3246,8 @@ class LUCreateInstance(LogicalUnit):
                                    " the primary node.")
       self.secondaries.append(snode_name)
 
-    # Required free disk space as a function of disk and swap space
-    req_size_dict = {
-      constants.DT_DISKLESS: None,
-      constants.DT_PLAIN: self.op.disk_size + self.op.swap_size,
-      # 256 MB are added for drbd metadata, 128MB for each drbd device
-      constants.DT_DRBD8: self.op.disk_size + self.op.swap_size + 256,
-      constants.DT_FILE: None,
-    }
-
-    if self.op.disk_template not in req_size_dict:
-      raise errors.ProgrammerError("Disk template '%s' size requirement"
-                                   " is unknown" %  self.op.disk_template)
-
-    req_size = req_size_dict[self.op.disk_template]
+    req_size = _ComputeDiskSize(self.op.disk_template,
+                                self.op.disk_size, self.op.swap_size)
 
     # Check lv size requirements
     if req_size is not None:
