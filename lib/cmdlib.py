@@ -3117,6 +3117,63 @@ class LUCreateInstance(LogicalUnit):
       if getattr(self.op, "os_type", None) is None:
         raise errors.OpPrereqError("No guest OS specified")
 
+    #### instance parameters check
+
+    # disk template and mirror node verification
+    if self.op.disk_template not in constants.DISK_TEMPLATES:
+      raise errors.OpPrereqError("Invalid disk template name")
+
+    # instance name verification
+    hostname1 = utils.HostInfo(self.op.instance_name)
+
+    self.op.instance_name = instance_name = hostname1.name
+    instance_list = self.cfg.GetInstanceList()
+    if instance_name in instance_list:
+      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
+                                 instance_name)
+
+    # ip validity checks
+    ip = getattr(self.op, "ip", None)
+    if ip is None or ip.lower() == "none":
+      inst_ip = None
+    elif ip.lower() == "auto":
+      inst_ip = hostname1.ip
+    else:
+      if not utils.IsValidIP(ip):
+        raise errors.OpPrereqError("given IP address '%s' doesn't look"
+                                   " like a valid IP" % ip)
+      inst_ip = ip
+    self.inst_ip = self.op.ip = inst_ip
+
+    if self.op.start and not self.op.ip_check:
+      raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
+                                 " adding an instance in start mode")
+
+    if self.op.ip_check:
+      if utils.TcpPing(hostname1.ip, constants.DEFAULT_NODED_PORT):
+        raise errors.OpPrereqError("IP %s of instance %s already in use" %
+                                   (hostname1.ip, instance_name))
+
+    # MAC address verification
+    if self.op.mac != "auto":
+      if not utils.IsValidMac(self.op.mac.lower()):
+        raise errors.OpPrereqError("invalid MAC address specified: %s" %
+                                   self.op.mac)
+
+    # bridge verification
+    bridge = getattr(self.op, "bridge", None)
+    if bridge is None:
+      self.op.bridge = self.cfg.GetDefBridge()
+    else:
+      self.op.bridge = bridge
+
+    # boot order verification
+    if self.op.hvm_boot_order is not None:
+      if len(self.op.hvm_boot_order.strip("acdn")) != 0:
+        raise errors.OpPrereqError("invalid boot order specified,"
+                                   " must be one or more of [acdn]")
+    #### node related checks
+
     # check primary node
     pnode = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.pnode))
     if pnode is None:
@@ -3125,10 +3182,8 @@ class LUCreateInstance(LogicalUnit):
     self.op.pnode = pnode.name
     self.pnode = pnode
     self.secondaries = []
-    # disk template and mirror node verification
-    if self.op.disk_template not in constants.DISK_TEMPLATES:
-      raise errors.OpPrereqError("Invalid disk template name")
 
+    # mirror node verification
     if self.op.disk_template in constants.DTS_NET_MIRROR:
       if getattr(self.op, "snode", None) is None:
         raise errors.OpPrereqError("The networked disk templates need"
@@ -3173,59 +3228,12 @@ class LUCreateInstance(LogicalUnit):
     if self.op.kernel_path == constants.VALUE_NONE:
       raise errors.OpPrereqError("Can't set instance kernel to none")
 
-    # instance verification
-    hostname1 = utils.HostInfo(self.op.instance_name)
 
-    self.op.instance_name = instance_name = hostname1.name
-    instance_list = self.cfg.GetInstanceList()
-    if instance_name in instance_list:
-      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 instance_name)
-
-    ip = getattr(self.op, "ip", None)
-    if ip is None or ip.lower() == "none":
-      inst_ip = None
-    elif ip.lower() == "auto":
-      inst_ip = hostname1.ip
-    else:
-      if not utils.IsValidIP(ip):
-        raise errors.OpPrereqError("given IP address '%s' doesn't look"
-                                   " like a valid IP" % ip)
-      inst_ip = ip
-    self.inst_ip = inst_ip
-
-    if self.op.start and not self.op.ip_check:
-      raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
-                                 " adding an instance in start mode")
-
-    if self.op.ip_check:
-      if utils.TcpPing(hostname1.ip, constants.DEFAULT_NODED_PORT):
-        raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (hostname1.ip, instance_name))
-
-    # MAC address verification
-    if self.op.mac != "auto":
-      if not utils.IsValidMac(self.op.mac.lower()):
-        raise errors.OpPrereqError("invalid MAC address specified: %s" %
-                                   self.op.mac)
-
-    # bridge verification
-    bridge = getattr(self.op, "bridge", None)
-    if bridge is None:
-      self.op.bridge = self.cfg.GetDefBridge()
-    else:
-      self.op.bridge = bridge
-
+    # bridge check on primary node
     if not rpc.call_bridges_exist(self.pnode.name, [self.op.bridge]):
       raise errors.OpPrereqError("target bridge '%s' does not exist on"
                                  " destination node '%s'" %
                                  (self.op.bridge, pnode.name))
-
-    # boot order verification
-    if self.op.hvm_boot_order is not None:
-      if len(self.op.hvm_boot_order.strip("acdn")) != 0:
-        raise errors.OpPrereqError("invalid boot order specified,"
-                                   " must be one or more of [acdn]")
 
     if self.op.start:
       self.instance_status = 'up'
