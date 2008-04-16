@@ -284,6 +284,7 @@ class OpCreateInstance(OpCode):
     "wait_for_sync", "ip_check", "mac",
     "kernel_path", "initrd_path", "hvm_boot_order",
     "file_storage_dir", "file_driver",
+    "iallocator",
     ]
 
 

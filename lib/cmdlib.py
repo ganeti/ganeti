@@ -3126,9 +3126,58 @@ class LUCreateInstance(LogicalUnit):
   """
   HPATH = "instance-add"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "mem_size", "disk_size", "pnode",
+  _OP_REQP = ["instance_name", "mem_size", "disk_size",
               "disk_template", "swap_size", "mode", "start", "vcpus",
               "wait_for_sync", "ip_check", "mac"]
+
+  def _RunAllocator(self):
+    """Run the allocator based on input opcode.
+
+    """
+    al_data = _IAllocatorGetClusterData(self.cfg, self.sstore)
+    disks = [{"size": self.op.disk_size, "mode": "w"},
+             {"size": self.op.swap_size, "mode": "w"}]
+    nics = [{"mac": self.op.mac, "ip": getattr(self.op, "ip", None),
+             "bridge": self.op.bridge}]
+    op = opcodes.OpTestAllocator(name=self.op.instance_name,
+                                 disk_template=self.op.disk_template,
+                                 tags=[],
+                                 os=self.op.os_type,
+                                 vcpus=self.op.vcpus,
+                                 mem_size=self.op.mem_size,
+                                 disks=disks,
+                                 nics=nics)
+
+    _IAllocatorAddNewInstance(al_data, op)
+
+    if _JSON_INDENT is None:
+      text = simplejson.dumps(al_data)
+    else:
+      text = simplejson.dumps(al_data, indent=_JSON_INDENT)
+
+    result = _IAllocatorRun(self.op.iallocator, text)
+
+    result = _IAllocatorValidateResult(result)
+
+    if not result["success"]:
+      raise errors.OpPrereqError("Can't compute nodes using"
+                                 " iallocator '%s': %s" % (self.op.iallocator,
+                                                           result["info"]))
+    req_nodes = 1
+    if self.op.disk_template in constants.DTS_NET_MIRROR:
+      req_nodes += 1
+
+    if len(result["nodes"]) != req_nodes:
+      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
+                                 " of nodes (%s), required %s" %
+                                 (len(result["nodes"]), req_nodes))
+    self.op.pnode = result["nodes"][0]
+    logger.ToStdout("Selected nodes for the instance: %s" %
+                    (", ".join(result["nodes"]),))
+    logger.Info("Selected nodes for instance %s via iallocator %s: %s" %
+                (self.op.instance_name, self.op.iallocator, result["nodes"]))
+    if req_nodes == 2:
+      self.op.snode = result["nodes"][1]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3166,7 +3215,9 @@ class LUCreateInstance(LogicalUnit):
     """Check prerequisites.
 
     """
-    for attr in ["kernel_path", "initrd_path", "hvm_boot_order"]:
+    # set optional parameters to none if they don't exist
+    for attr in ["kernel_path", "initrd_path", "hvm_boot_order", "pnode",
+                 "iallocator"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -3284,6 +3335,14 @@ class LUCreateInstance(LogicalUnit):
     if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
         raise errors.OpPrereqError("File storage directory not a relative"
                                    " path")
+    #### allocator run
+
+    if [self.op.iallocator, self.op.pnode].count(None) != 1:
+      raise errors.OpPrereqError("One and only one of iallocator and primary"
+                                 " node must be given")
+
+    if self.op.iallocator is not None:
+      self._RunAllocator()
 
     #### node related checks
 
@@ -4784,7 +4843,7 @@ def _IAllocatorRun(name, data):
   alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
                                 os.path.isfile)
   if alloc_script is None:
-    raise errors.OpExecError("Can't find allocator")
+    raise errors.OpExecError("Can't find allocator '%s'" % name)
 
   fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
   try:
@@ -4798,6 +4857,29 @@ def _IAllocatorRun(name, data):
   finally:
     os.unlink(fin_name)
   return result.stdout
+
+
+def _IAllocatorValidateResult(data):
+  """Process the allocator results.
+
+  """
+  try:
+    rdict = simplejson.loads(data)
+  except Exception, err:
+    raise errors.OpExecError("Can't parse iallocator results: %s" % str(err))
+
+  if not isinstance(rdict, dict):
+    raise errors.OpExecError("Can't parse iallocator results: not a dict")
+
+  for key in "success", "info", "nodes":
+    if key not in rdict:
+      raise errors.OpExecError("Can't parse iallocator results:"
+                               " missing key '%s'" % key)
+
+  if not isinstance(rdict["nodes"], list):
+    raise errors.OpExecError("Can't parse iallocator results: 'nodes' key"
+                             " is not a list")
+  return rdict
 
 
 class LUTestAllocator(NoHooksLU):

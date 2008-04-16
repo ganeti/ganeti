@@ -261,7 +261,8 @@ def AddInstance(opts, args):
                                 initrd_path=initrd_path,
                                 hvm_boot_order=opts.hvm_boot_order,
                                 file_storage_dir = opts.file_storage_dir,
-                                file_driver = opts.file_driver)
+                                file_driver = opts.file_driver,
+                                iallocator=opts.iallocator)
   SubmitOpCode(op)
   return 0
 
@@ -760,14 +761,17 @@ add_opts = [
               default=None,
               type="string", metavar="<FILENAME>"),
   make_option("--hvm-boot-order", dest="hvm_boot_order",
-              help="boot device order for HVM (one or more of [acdn])",
+              help="Boot device order for HVM (one or more of [acdn])",
               default=None, type="string", metavar="<BOOTORDER>"),
   make_option("--file-storage-dir", dest="file_storage_dir",
               help="Relative path under default cluster-wide file storage dir"
               " to store file-based disks", default=None,
               metavar="<DIR>"),
   make_option("--file-driver", dest="file_driver", help="Driver to use"
-              " for image files", default="loop", metavar="<DRIVER>")
+              " for image files", default="loop", metavar="<DRIVER>"),
+  make_option("--iallocator", metavar="<NAME>",
+              help="Select nodes for the instance automatically using the"
+              " <NAME> iallocator plugin", default=None, type="string"),
   ]
 
 commands = {
