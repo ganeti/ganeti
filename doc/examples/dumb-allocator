@@ -47,16 +47,17 @@ def SelectNode(nodes, request, to_skip):
   return selected
 
 
-def OutputError(text):
+def OutputError(text, exit_code=1):
   """Builds an error response with a given info message.
 
   """
   error = {
     "success": False,
     "info": text,
+    "nodes": [],
     }
   print simplejson.dumps(error, indent=2)
-  return 1
+  return exit_code
 
 
 def main():
@@ -78,14 +79,14 @@ def main():
 
   npri = SelectNode(nodes, request, [])
   if npri is None:
-    return OutputError("Can't find a suitable primary node")
+    return OutputError("Can't find a suitable primary node", exit_code=0)
 
   result_nodes = [npri]
   if request["disk_template"] == "drbd":
     nsec = SelectNode(nodes, request, result_nodes)
     if nsec is None:
       return OutputError("Can't find a suitable secondary node (%s selected"
-                         " as primary)" % npri)
+                         " as primary)" % npri, exit_code=0)
     result_nodes.append(nsec)
 
   result = {

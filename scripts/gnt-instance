@@ -258,7 +258,8 @@ def AddInstance(opts, args):
                                 mac=opts.mac,
                                 kernel_path=kernel_path,
                                 initrd_path=initrd_path,
-                                hvm_boot_order=opts.hvm_boot_order)
+                                hvm_boot_order=opts.hvm_boot_order,
+                                iallocator=opts.iallocator)
   SubmitOpCode(op)
   return 0
 
@@ -781,8 +782,11 @@ add_opts = [
               default=None,
               type="string", metavar="<FILENAME>"),
   make_option("--hvm-boot-order", dest="hvm_boot_order",
-              help="boot device order for HVM (one or more of [acdn])",
+              help="Boot device order for HVM (one or more of [acdn])",
               default=None, type="string", metavar="<BOOTORDER>"),
+  make_option("--iallocator", metavar="<NAME>",
+              help="Select nodes for the instance automatically using the"
+              " <NAME> iallocator plugin", default=None, type="string"),
   ]
 
 commands = {

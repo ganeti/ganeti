@@ -166,6 +166,7 @@ class OpCreateInstance(OpCode):
     "vcpus", "ip", "bridge", "src_node", "src_path", "start",
     "wait_for_sync", "ip_check", "mac",
     "kernel_path", "initrd_path", "hvm_boot_order",
+    "iallocator",
     ]
 
 

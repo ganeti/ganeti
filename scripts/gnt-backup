@@ -98,7 +98,8 @@ def ImportInstance(opts, args):
                                 vcpus=opts.vcpus, ip_check=opts.ip_check,
                                 ip=opts.ip, bridge=opts.bridge, start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
-                                wait_for_sync=opts.wait_for_sync, mac="auto")
+                                wait_for_sync=opts.wait_for_sync, mac="auto",
+                                iallocator=opts.iallocator)
   SubmitOpCode(op)
   return 0
 
@@ -136,6 +137,9 @@ import_opts = [
   make_option("--no-ip-check", dest="ip_check", default=True,
               action="store_false", help="Don't check that the instance's IP"
               " is alive"),
+  make_option("--iallocator", metavar="<NAME>",
+              help="Select nodes for the instance automatically using the"
+              " <NAME> iallocator plugin", default=None, type="string"),
   ]
 
 commands = {
