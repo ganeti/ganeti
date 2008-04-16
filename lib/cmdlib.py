@@ -4731,7 +4731,7 @@ class LUTestDelay(NoHooksLU):
                                    " result: %s" % (node, node_result))
 
 
-def _AllocatorGetClusterData(cfg, sstore):
+def _IAllocatorGetClusterData(cfg, sstore):
   """Compute the generic allocator input data.
 
   This is the data that is independent of the actual operation.
@@ -4801,7 +4801,7 @@ def _AllocatorGetClusterData(cfg, sstore):
   return data
 
 
-def _AllocatorAddNewInstance(data, op):
+def _IAllocatorAddNewInstance(data, op):
   """Add new instance data to allocator structure.
 
   This in combination with _AllocatorGetClusterData will create the
@@ -4811,6 +4811,12 @@ def _AllocatorAddNewInstance(data, op):
   done.
 
   """
+  if len(op.disks) != 2:
+    raise errors.OpExecError("Only two-disk configurations supported")
+
+  disk_space = _ComputeDiskSize(op.disk_template,
+                                op.disks[0]["size"], op.disks[1]["size"])
+
   request = {
     "type": "allocate",
     "name": op.name,
@@ -4820,15 +4826,16 @@ def _AllocatorAddNewInstance(data, op):
     "vcpus": op.vcpus,
     "memory": op.mem_size,
     "disks": op.disks,
+    "disk_space_total": disk_space,
     "nics": op.nics,
     }
   data["request"] = request
 
 
-def _AllocatorAddRelocateInstance(data, op):
+def _IAllocatorAddRelocateInstance(data, op):
   """Add relocate instance data to allocator structure.
 
-  This in combination with _AllocatorGetClusterData will create the
+  This in combination with _IAllocatorGetClusterData will create the
   correct structure needed as input for the allocator.
 
   The checks for the completeness of the opcode must have already been
@@ -4840,6 +4847,29 @@ def _AllocatorAddRelocateInstance(data, op):
     "name": op.name,
     }
   data["request"] = request
+
+
+def _IAllocatorRun(name, data):
+  """Run an instance allocator and return the results.
+
+  """
+  alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
+                                os.path.isfile)
+  if alloc_script is None:
+    raise errors.OpExecError("Can't find allocator")
+
+  fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
+  try:
+    os.write(fd, data)
+    os.close(fd)
+    result = utils.RunCmd([alloc_script, fin_name])
+    if result.failed:
+      raise errors.OpExecError("Instance allocator call failed: %s,"
+                               " output: %s" %
+                               (result.fail_reason, result.stdout))
+  finally:
+    os.unlink(fin_name)
+  return result.stdout
 
 
 class LUTestAllocator(NoHooksLU):
@@ -4856,7 +4886,7 @@ class LUTestAllocator(NoHooksLU):
     This checks the opcode parameters depending on the director and mode test.
 
     """
-    if self.op.mode == constants.ALF_MODE_ALLOC:
+    if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
       for attr in ["name", "mem_size", "disks", "disk_template",
                    "os", "tags", "nics", "vcpus"]:
         if not hasattr(self.op, attr):
@@ -4877,6 +4907,8 @@ class LUTestAllocator(NoHooksLU):
                                      " 'nics' parameter")
       if not isinstance(self.op.disks, list):
         raise errors.OpPrereqError("Invalid parameter 'disks'")
+      if len(self.op.disks) != 2:
+        raise errors.OpPrereqError("Only two-disk configurations supported")
       for row in self.op.disks:
         if (not isinstance(row, dict) or
             "size" not in row or
@@ -4885,7 +4917,7 @@ class LUTestAllocator(NoHooksLU):
             row["mode"] not in ['r', 'w']):
           raise errors.OpPrereqError("Invalid contents of the"
                                      " 'disks' parameter")
-    elif self.op.mode == constants.ALF_MODE_RELOC:
+    elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       if not hasattr(self.op, "name"):
         raise errors.OpPrereqError("Missing attribute 'name' on opcode input")
       fname = self.cfg.ExpandInstanceName(self.op.name)
@@ -4897,11 +4929,10 @@ class LUTestAllocator(NoHooksLU):
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode)
 
-    if self.op.direction == constants.ALF_DIR_OUT:
-      if not hasattr(self.op, "allocator"):
+    if self.op.direction == constants.IALLOCATOR_DIR_OUT:
+      if not hasattr(self.op, "allocator") or self.op.allocator is None:
         raise errors.OpPrereqError("Missing allocator name")
-      raise errors.OpPrereqError("Allocator out mode not supported yet")
-    elif self.op.direction != constants.ALF_DIR_IN:
+    elif self.op.direction != constants.IALLOCATOR_DIR_IN:
       raise errors.OpPrereqError("Wrong allocator test '%s'" %
                                  self.op.direction)
 
@@ -4909,14 +4940,18 @@ class LUTestAllocator(NoHooksLU):
     """Run the allocator test.
 
     """
-    data = _AllocatorGetClusterData(self.cfg, self.sstore)
-    if self.op.mode == constants.ALF_MODE_ALLOC:
-      _AllocatorAddNewInstance(data, self.op)
+    data = _IAllocatorGetClusterData(self.cfg, self.sstore)
+    if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
+      _IAllocatorAddNewInstance(data, self.op)
     else:
-      _AllocatorAddRelocateInstance(data, self.op)
+      _IAllocatorAddRelocateInstance(data, self.op)
 
     if _JSON_INDENT is None:
       text = simplejson.dumps(data)
     else:
       text = simplejson.dumps(data, indent=_JSON_INDENT)
-    return text
+    if self.op.direction == constants.IALLOCATOR_DIR_IN:
+      result = text
+    else:
+      result = _IAllocatorRun(self.op.allocator, text)
+    return result

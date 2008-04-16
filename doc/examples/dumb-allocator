@@ -1,0 +1,100 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2008 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+"""Simple first-fit allocator for ganeti instance allocation framework.
+
+This allocator just iterates over the nodes and selects the first one
+that fits in both memory and disk space, without any consideration for
+equal spread or VCPU oversubscription.
+
+"""
+import simplejson
+import sys
+
+
+def SelectNode(nodes, request, to_skip):
+  """Select a node for the given instance
+
+  """
+  disk_size = request["disk_space_total"]
+  selected = None
+  for nname, ninfo in nodes.iteritems():
+    if nname in to_skip:
+      continue
+    if request["memory"] > ninfo["free_memory"]:
+      continue
+    if disk_size > ninfo["free_disk"]:
+      continue
+    selected = nname
+    break
+  return selected
+
+
+def OutputError(text):
+  """Builds an error response with a given info message.
+
+  """
+  error = {
+    "success": False,
+    "info": text,
+    }
+  print simplejson.dumps(error, indent=2)
+  return 1
+
+
+def main():
+  """Main function.
+
+  """
+  if len(sys.argv) < 2:
+    print >> sys.stderr, "Usage: %s cluster.json" % (sys.argv[0])
+    return 1
+
+  data = simplejson.load(open(sys.argv[1]))
+
+  nodes =  data["nodes"]
+  request = data["request"]
+  req_type = request["type"]
+  if req_type != "allocate":
+    print >> sys.stderr, "Unsupported allocator mode '%s'" % req_type
+    return 1
+
+  npri = SelectNode(nodes, request, [])
+  if npri is None:
+    return OutputError("Can't find a suitable primary node")
+
+  result_nodes = [npri]
+  if request["disk_template"] == "drbd":
+    nsec = SelectNode(nodes, request, result_nodes)
+    if nsec is None:
+      return OutputError("Can't find a suitable secondary node (%s selected"
+                         " as primary)" % npri)
+    result_nodes.append(nsec)
+
+  result = {
+          "success": True,
+          "info": "Allocation successful",
+          "nodes": result_nodes,
+          }
+  print simplejson.dumps(result, indent=2)
+  return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

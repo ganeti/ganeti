@@ -35,6 +35,17 @@ AC_ARG_WITH([os-search-path],
   [os_search_path="'/srv/ganeti/os'"])
 AC_SUBST(OS_SEARCH_PATH, $os_search_path)
 
+# --with-iallocator-search-path=...
+# do a bit of black sed magic to for quoting of the strings in the list
+AC_ARG_WITH([iallocator-search-path],
+  [AS_HELP_STRING([--with-iallocator-search-path=LIST],
+    [comma separated list of directories to]
+    [ search for instance allocators (default is $libdir/ganeti/iallocators)]
+  )],
+  [iallocator_search_path=`echo -n "$withval" | sed -e "s/\([[^,]]*\)/'\1'/g"`],
+  [iallocator_search_path="'$libdir/$PACKAGE_NAME/iallocators'"])
+AC_SUBST(IALLOCATOR_SEARCH_PATH, $iallocator_search_path)
+
 # --with-xen-kernel=...
 AC_ARG_WITH([xen-kernel],
   [AS_HELP_STRING([--with-xen-kernel=PATH],

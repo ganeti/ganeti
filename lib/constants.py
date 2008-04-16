@@ -163,13 +163,13 @@ HT_HVM_VNC_BASE_PORT = 5900
 HT_HVM_DEFAULT_BOOT_ORDER = 'dc'
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
 
-# Allocator framework constants
-ALF_DIR_IN = "in"
-ALF_DIR_OUT = "out"
-ALF_MODE_ALLOC = "allocate"
-ALF_MODE_RELOC = "relocate"
-
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
 
+# Allocator framework constants
+IALLOCATOR_DIR_IN = "in"
+IALLOCATOR_DIR_OUT = "out"
+IALLOCATOR_MODE_ALLOC = "allocate"
+IALLOCATOR_MODE_RELOC = "relocate"
+IALLOCATOR_SEARCH_PATH = _autoconf.IALLOCATOR_SEARCH_PATH
