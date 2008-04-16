@@ -87,6 +87,7 @@ class Processor(object):
     opcodes.OpDelTags: cmdlib.LUDelTags,
     # test lu
     opcodes.OpTestDelay: cmdlib.LUTestDelay,
+    opcodes.OpTestAllocator: cmdlib.LUTestAllocator,
     }
 
   def __init__(self, feedback=None):

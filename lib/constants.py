@@ -184,3 +184,8 @@ VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
 
+# Allocator framework constants
+ALF_DIR_IN = "in"
+ALF_DIR_OUT = "out"
+ALF_MODE_ALLOC = "allocate"
+ALF_MODE_RELOC = "relocate"

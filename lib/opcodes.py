@@ -444,3 +444,22 @@ class OpTestDelay(OpCode):
   """
   OP_ID = "OP_TEST_DELAY"
   __slots__ = ["duration", "on_master", "on_nodes"]
+
+
+class OpTestAllocator(OpCode):
+  """Allocator framework testing.
+
+  This opcode has two modes:
+    - gather and return allocator input for a given mode (allocate new
+      or replace secondary) and a given instance definition (direction
+      'in')
+    - run a selected allocator for a given operation (as above) and
+      return the allocator output (direction 'out')
+
+  """
+  OP_ID = "OP_TEST_ALLOCATOR"
+  __slots__ = [
+    "direction", "mode", "allocator", "name",
+    "mem_size", "disks", "disk_template",
+    "os", "tags", "nics", "vcpus",
+    ]
