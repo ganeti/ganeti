@@ -263,6 +263,9 @@ def main():
     if qa_config.TestEnabled('tags'):
       RunTest(qa_tags.TestNodeTags, pnode)
 
+    if qa_config.TestEnabled('node-readd'):
+      RunTest(qa_node.TestNodeReadd, pnode)
+
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
       RunCommonInstanceTests(instance)

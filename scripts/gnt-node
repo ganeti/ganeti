@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,7 +36,8 @@ def AddNode(opts, args):
     "Performing this operation is going to replace the ssh daemon keypair\n"
     "on the target machine (%s) with the ones of the current one\n"
     "and grant full intra-cluster ssh root access to/from it\n" % args[0])
-  op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip)
+  op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip,
+                         readd=opts.readd)
   SubmitOpCode(op)
 
 
@@ -279,7 +280,11 @@ commands = {
           [DEBUG_OPT,
            make_option("-s", "--secondary-ip", dest="secondary_ip",
                        help="Specify the secondary ip for the node",
-                       metavar="ADDRESS", default=None),],
+                       metavar="ADDRESS", default=None),
+           make_option("--readd", dest="readd",
+                       default=False, action="store_true",
+                       help="Readd old node after replacing it"),
+           ],
           "[-s ip] <node_name>", "Add a node to the cluster"),
   'evacuate': (EvacuateNode, ARGS_FIXED(2),
                [DEBUG_OPT, FORCE_OPT],

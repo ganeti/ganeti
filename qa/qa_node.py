@@ -29,15 +29,19 @@ from qa_utils import AssertEqual, StartSSH
 
 
 @qa_utils.DefineHook('node-add')
-def _NodeAdd(node):
+def _NodeAdd(node, readd=False):
   master = qa_config.GetMasterNode()
 
-  if node.get('_added', False):
+  if not readd and node.get('_added', False):
     raise qa_error.Error("Node %s already in cluster" % node['primary'])
+  elif readd and not node.get('_added', False):
+    raise qa_error.Error("Node not yet %s in cluster" % node['primary'])
 
   cmd = ['gnt-node', 'add']
   if node.get('secondary', None):
     cmd.append('--secondary-ip=%s' % node['secondary'])
+  if readd:
+    cmd.append('--readd')
   cmd.append(node['primary'])
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
@@ -60,7 +64,7 @@ def TestNodeAddAll():
   master = qa_config.GetMasterNode()
   for node in qa_config.get('nodes'):
     if node != master:
-      _NodeAdd(node)
+      _NodeAdd(node, readd=False)
 
 
 def TestNodeRemoveAll():
@@ -69,6 +73,12 @@ def TestNodeRemoveAll():
   for node in qa_config.get('nodes'):
     if node != master:
       _NodeRemove(node)
+
+
+@qa_utils.DefineHook('node-readd')
+def TestNodeReadd(node):
+  """gnt-node add --readd"""
+  _NodeAdd(node, readd=True)
 
 
 @qa_utils.DefineHook('node-info')
