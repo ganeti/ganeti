@@ -21,30 +21,14 @@ import exceptions
 import SocketServer
 import BaseHTTPServer
 import OpenSSL
-import logging
-import logging.handlers
 
+from ganeti import constants
+from ganeti import logger
 from ganeti.rapi import resources
 
 """RESTfull HTTPS Server module.
 
 """
-
-def OpenLog():
-  """Set up logging to the syslog.
-
-  """
-  log = logging.getLogger('ganeti-rapi')
-  slh = logging.handlers.SysLogHandler('/dev/log',
-                            logging.handlers.SysLogHandler.LOG_DAEMON)
-  fmt = logging.Formatter('ganeti-rapi[%(process)d]:%(levelname)s: %(message)s')
-  slh.setFormatter(fmt)
-  log.addHandler(slh)
-  log.setLevel(logging.INFO)
-  log.debug("Logging initialized")
-
-  return log
-
 
 class RESTHTTPServer(BaseHTTPServer.HTTPServer):
   """The class to provide HTTP/HTTPS server.
@@ -60,6 +44,8 @@ class RESTHTTPServer(BaseHTTPServer.HTTPServer):
       HandlerClass - HTTPRequestHandler object
       options - Command-line options
     """
+    logger.SetupLogging(debug=options.debug, program='ganeti-rapi')
+
     BaseHTTPServer.HTTPServer.__init__(self, server_address, HandlerClass)
     if options.ssl:
       # Set up SSL
@@ -89,8 +75,6 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.rfile = socket._fileobject(self.request, "rb", self.rbufsize)
     self.wfile = socket._fileobject(self.request, "wb", self.wbufsize)
     self.map = resources.Mapper()
-    self.log = OpenLog()
-    self.log.debug("Request handler setup.")
 
   def handle_one_request(self):
     """Handle a single REST request. """
@@ -98,7 +82,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       self.raw_requestline = self.rfile.readline()
     except OpenSSL.SSL.Error, ex:
-      self.log.exception("Error in SSL: %s" % str(ex))
+      logger.Error("Error in SSL: %s" % str(ex))
     if not self.raw_requestline:
       self.close_connection = 1
       return
@@ -133,13 +117,12 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     every message.
 
     """
-    level = logging.INFO
+    logX = logger.Info
     # who is calling?
     origin = inspect.stack()[1][0].f_code.co_name
     if origin == "log_error":
-      level = logging.ERROR
-
-    self.log.log(level, "%s - - %s\n" %
+      logX = logger.Error
+    logX("%s - - %s" %
                      (self.address_string(),
                       format%args))
 

@@ -51,6 +51,7 @@ MASTER_SCRIPT = "ganeti-master"
 LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti"
 LOG_OS_DIR = LOG_DIR + "/os"
 LOG_NODESERVER = LOG_DIR + "/node-daemon.log"
+LOG_RAPISERVER = LOG_DIR + "/rapi-daemon.log"
 LOG_WATCHER = LOG_DIR + "/watcher.log"
 
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH

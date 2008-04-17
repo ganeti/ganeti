@@ -22,12 +22,13 @@
 """
 
 import glob
-import logging
 import optparse
 import sys
 import os
 
-import ganeti.rapi.RESTHTTPServer
+from ganeti import constants
+from ganeti import utils
+from ganeti.rapi import RESTHTTPServer
 
 RELEASE_VERSION = 0.01
 API_PORT = 5080
@@ -59,6 +60,10 @@ def ParseOptions():
   parser.add_option("-C", "--ssl-cert", dest="ssl_cert",
                     help="SSL certificate",
                     default=None, type="string")
+  parser.add_option("-f", "--foreground", dest="fork",
+                    help="Don't detach from the current terminal",
+                    default=True, action="store_false")
+
   options, args = parser.parse_args()
 
   if len(args) != 1 or args[0] not in ("start", "stop"):
@@ -128,34 +133,9 @@ def StartAPI(options):
   Return:
     Exit code.
   """
-  # do the UNIX double-fork magic
-  try:
-    pid = os.fork()
-    if pid > 0:
-      # exit first parent
-      sys.exit(0)
-  except OSError, e:
-    print >> sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
-    return 1
-
-  # decouple from parent environment
-  os.chdir("/")
-  os.setsid()
-  os.umask(0)
-
-  # do second fork
-  try:
-    pid = os.fork()
-    if pid > 0:
-      # exit from second parent, print eventual PID before
-      print "Ganeti-RAPI PID: %d port: %d" % (pid, options.port)
-      return 0
-  except OSError, e:
-    print >> sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
-    return 1
-
-  # start the daemon main loop
-  ganeti.rapi.RESTHTTPServer.start(options)
+  if options.fork:
+    utils.Daemonize(logfile=constants.LOG_RAPISERVER)
+  RESTHTTPServer.start(options)
 
 
 def StopAPI(options):
