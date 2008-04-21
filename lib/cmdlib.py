@@ -30,7 +30,6 @@ import time
 import tempfile
 import re
 import platform
-import simplejson
 
 from ganeti import rpc
 from ganeti import ssh
@@ -43,14 +42,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import ssconf
-
-
-# Check whether the simplejson module supports indentation
-_JSON_INDENT = 2
-try:
-  simplejson.dumps(1, indent=_JSON_INDENT)
-except TypeError:
-  _JSON_INDENT = None
+from ganeti import serializer
 
 
 class LogicalUnit(object):
@@ -3162,10 +3154,7 @@ class LUCreateInstance(LogicalUnit):
 
     _IAllocatorAddNewInstance(al_data, op)
 
-    if _JSON_INDENT is None:
-      text = simplejson.dumps(al_data)
-    else:
-      text = simplejson.dumps(al_data, indent=_JSON_INDENT)
+    text = serializer.Dump(al_data)
 
     result = _IAllocatorRun(self.op.iallocator, text)
 
@@ -4876,7 +4865,7 @@ def _IAllocatorValidateResult(data):
 
   """
   try:
-    rdict = simplejson.loads(data)
+    rdict = serializer.Load(data)
   except Exception, err:
     raise errors.OpExecError("Can't parse iallocator results: %s" % str(err))
 
@@ -4968,10 +4957,7 @@ class LUTestAllocator(NoHooksLU):
     else:
       _IAllocatorAddRelocateInstance(data, self.op)
 
-    if _JSON_INDENT is None:
-      text = simplejson.dumps(data)
-    else:
-      text = simplejson.dumps(data, indent=_JSON_INDENT)
+    text = serializer.Dump(data)
     if self.op.direction == constants.IALLOCATOR_DIR_IN:
       result = text
     else:
