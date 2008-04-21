@@ -304,18 +304,28 @@ class ConfigWriter:
     self._config_data.instances[instance.name] = instance
     self._WriteConfig()
 
-  def MarkInstanceUp(self, instance_name):
-    """Mark the instance status to up in the config.
+  def _SetInstanceStatus(self, instance_name, status):
+    """Set the instance's status to a given value.
 
     """
+    if status not in ("up", "down"):
+      raise errors.ProgrammerError("Invalid status '%s' passed to"
+                                   " ConfigWriter._SetInstanceStatus()" %
+                                   status)
     self._OpenConfig()
 
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" %
                                       instance_name)
     instance = self._config_data.instances[instance_name]
-    instance.status = "up"
+    instance.status = status
     self._WriteConfig()
+
+  def MarkInstanceUp(self, instance_name):
+    """Mark the instance status to up in the config.
+
+    """
+    self._SetInstanceStatus(instance_name, "up")
 
   def RemoveInstance(self, instance_name):
     """Remove the instance from the configuration.
@@ -349,13 +359,7 @@ class ConfigWriter:
     """Mark the status of an instance to down in the configuration.
 
     """
-    self._OpenConfig()
-
-    if instance_name not in self._config_data.instances:
-      raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
-    instance = self._config_data.instances[instance_name]
-    instance.status = "down"
-    self._WriteConfig()
+    self._SetInstanceStatus(instance_name, "down")
 
   def GetInstanceList(self):
     """Get the list of instances.
