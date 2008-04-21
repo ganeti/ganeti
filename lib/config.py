@@ -41,6 +41,7 @@ from ganeti import utils
 from ganeti import constants
 from ganeti import rpc
 from ganeti import objects
+from ganeti import serializer
 
 
 class ConfigWriter:
@@ -491,7 +492,7 @@ class ConfigWriter:
     f = open(self._cfg_file, 'r')
     try:
       try:
-        data = objects.ConfigData.Load(f)
+        data = objects.ConfigData.FromDict(serializer.Load(f.read()))
       except Exception, err:
         raise errors.ConfigurationError(err)
     finally:
@@ -549,11 +550,12 @@ class ConfigWriter:
     if destination is None:
       destination = self._cfg_file
     self._BumpSerialNo()
+    txt = serializer.Dump(self._config_data.ToDict())
     dir_name, file_name = os.path.split(destination)
     fd, name = tempfile.mkstemp('.newconfig', file_name, dir_name)
     f = os.fdopen(fd, 'w')
     try:
-      self._config_data.Dump(f)
+      f.write(txt)
       os.fsync(f.fileno())
     finally:
       f.close()

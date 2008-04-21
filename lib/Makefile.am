@@ -4,7 +4,7 @@ nodist_pkgpython_PYTHON = _autoconf.py
 pkgpython_PYTHON = __init__.py backend.py cli.py cmdlib.py config.py \
 	objects.py errors.py logger.py ssh.py utils.py rpc.py \
 	bdev.py hypervisor.py opcodes.py mcpu.py constants.py \
-	ssconf.py
+	ssconf.py serializer.py
 
 nobase_pkgpython_PYTHON = rapi/__init__.py \
 	rapi/resources.py rapi/RESTHTTPServer.py

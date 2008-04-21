@@ -27,7 +27,6 @@ pass to and from external parties.
 """
 
 
-import simplejson
 import ConfigParser
 import re
 from cStringIO import StringIO
@@ -38,14 +37,6 @@ from ganeti import constants
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
            "OS", "Node", "Cluster"]
-
-
-# Check whether the simplejson module supports indentation
-_JSON_INDENT = 2
-try:
-  simplejson.dumps(1, indent=_JSON_INDENT)
-except TypeError:
-  _JSON_INDENT = None
 
 
 class ConfigObject(object):
@@ -89,34 +80,6 @@ class ConfigObject(object):
     for name in state:
       if name in self.__slots__:
         setattr(self, name, state[name])
-
-  def Dump(self, fobj):
-    """Dump to a file object.
-
-    """
-    data = self.ToDict()
-    if _JSON_INDENT is None:
-      simplejson.dump(data, fobj)
-    else:
-      simplejson.dump(data, fobj, indent=_JSON_INDENT)
-
-  @classmethod
-  def Load(cls, fobj):
-    """Load data from the given stream.
-
-    """
-    return cls.FromDict(simplejson.load(fobj))
-
-  def Dumps(self):
-    """Dump and return the string representation."""
-    buf = StringIO()
-    self.Dump(buf)
-    return buf.getvalue()
-
-  @classmethod
-  def Loads(cls, data):
-    """Load data from a string."""
-    return cls.Load(StringIO(data))
 
   def ToDict(self):
     """Convert to a dict holding only standard python types.
