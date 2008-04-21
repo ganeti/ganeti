@@ -318,8 +318,9 @@ class ConfigWriter:
       raise errors.ConfigurationError("Unknown instance '%s'" %
                                       instance_name)
     instance = self._config_data.instances[instance_name]
-    instance.status = status
-    self._WriteConfig()
+    if instance.status != status:
+      instance.status = status
+      self._WriteConfig()
 
   def MarkInstanceUp(self, instance_name):
     """Mark the instance status to up in the config.
