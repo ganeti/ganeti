@@ -30,9 +30,6 @@ from ganeti import constants
 from ganeti import utils
 from ganeti.rapi import RESTHTTPServer
 
-RELEASE_VERSION = 0.01
-API_PORT = 5080
-
 
 def ParseOptions():
   """Parse the command line options.
@@ -43,14 +40,15 @@ def ParseOptions():
   """
   parser = optparse.OptionParser(description="Ganeti Remote API",
                     usage="%prog [-d] [-p port]",
-                    version="%%prog (ganeti) %s" % RELEASE_VERSION)
-
+                    version="%%prog (ganeti) %s" %
+                                 constants.RAPI_VERSION)
   parser.add_option("-d", "--debug", dest="debug",
                     help="Enable some debug messages",
                     default=False, action="store_true")
   parser.add_option("-p", "--port", dest="port",
-                    help="Port to run API",
-                    default=API_PORT, type="int")
+                    help="Port to run API (%s default)." %
+                                 constants.RAPI_PORT,
+                    default=constants.RAPI_PORT, type="int")
   parser.add_option("-S", "--https", dest="ssl",
                     help="Secure HTTP protocol with SSL",
                     default=False, action="store_true")
