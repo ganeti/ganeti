@@ -170,12 +170,8 @@ class XenHypervisor(BaseHypervisor):
       raise HypervisorError("xm list failed, retries exceeded (%s): %s" %
                             (result.fail_reason, result.stderr))
 
-    # skip over the heading and the domain 0 line (optional)
-    if include_node:
-      to_skip = 1
-    else:
-      to_skip = 2
-    lines = result.stdout.splitlines()[to_skip:]
+    # skip over the heading
+    lines = result.stdout.splitlines()[1:]
     result = []
     for line in lines:
       # The format of lines is:
@@ -192,7 +188,11 @@ class XenHypervisor(BaseHypervisor):
       except ValueError, err:
         raise HypervisorError("Can't parse output of xm list,"
                               " line: %s, error: %s" % (line, err))
-      result.append(data)
+
+      # skip the Domain-0 (optional)
+      if include_node or data[0] != 'Domain-0':
+        result.append(data)
+
     return result
 
   def ListInstances(self):
