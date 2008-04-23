@@ -287,6 +287,10 @@ class OpExportInstance(OpCode):
   OP_ID = "OP_BACKUP_EXPORT"
   __slots__ = ["instance_name", "target_node", "shutdown"]
 
+class OpRemoveExport(OpCode):
+  """Remove an instance's export."""
+  OP_ID = "OP_BACKUP_REMOVE"
+  __slots__ = ["instance_name"]
 
 # Tags opcodes
 class OpGetTags(OpCode):
