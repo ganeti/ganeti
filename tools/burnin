@@ -314,6 +314,7 @@ class Burner(object):
                                         ip_check=True,
                                         wait_for_sync=True,
                                         mac="auto")
+      erem_op = opcodes.OpRemoveExport(instance_name=instance)
 
       Log("- Export instance %s to node %s" % (instance, enode))
       self.ExecOp(exp_op)
@@ -323,6 +324,9 @@ class Burner(object):
       Log("- Import instance %s from node %s to node %s" %
           (instance, enode, pnode))
       self.ExecOp(imp_op)
+      Log("- Remove export of instance %s" % (instance))
+      self.ExecOp(erem_op)
+
       self.to_rem.append(instance)
 
   def StopStart(self):
