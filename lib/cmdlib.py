@@ -3159,20 +3159,16 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Can't compute nodes using"
                                  " iallocator '%s': %s" % (self.op.iallocator,
                                                            ial.info))
-    req_nodes = 1
-    if self.op.disk_template in constants.DTS_NET_MIRROR:
-      req_nodes += 1
-
-    if len(ial.nodes) != req_nodes:
+    if len(ial.nodes) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (len(ial.nodes), req_nodes))
+                                 (len(ial.nodes), ial.required_nodes))
     self.op.pnode = ial.nodes[0]
     logger.ToStdout("Selected nodes for the instance: %s" %
                     (", ".join(ial.nodes),))
     logger.Info("Selected nodes for instance %s via iallocator %s: %s" %
                 (self.op.instance_name, self.op.iallocator, ial.nodes))
-    if req_nodes == 2:
+    if ial.required_nodes == 2:
       self.op.snode = ial.nodes[1]
 
   def BuildHooksEnv(self):
@@ -4742,6 +4738,8 @@ class IAllocator(object):
     self.mode = self.name = None
     self.mem_size = self.disks = self.disk_template = None
     self.os = self.tags = self.nics = self.vcpus = None
+    # computed fields
+    self.required_nodes = None
     # init result fields
     self.success = self.info = self.nodes = None
     for key in kwargs:
@@ -4842,6 +4840,10 @@ class IAllocator(object):
     disk_space = _ComputeDiskSize(self.disk_template,
                                   self.disks[0]["size"], self.disks[1]["size"])
 
+    if self.disk_template in constants.DTS_NET_MIRROR:
+      self.required_nodes = 2
+    else:
+      self.required_nodes = 1
     request = {
       "type": "allocate",
       "name": self.name,
@@ -4853,6 +4855,7 @@ class IAllocator(object):
       "disks": self.disks,
       "disk_space_total": disk_space,
       "nics": self.nics,
+      "required_nodes": self.required_nodes,
       }
     data["request"] = request
 
@@ -4866,12 +4869,27 @@ class IAllocator(object):
     done.
 
     """
-    data = self.in_data
+    instance = self.cfg.GetInstanceInfo(self.name)
+    if instance is None:
+      raise errors.ProgrammerError("Unknown instance '%s' passed to"
+                                   " IAllocator" % self.name)
+
+    if instance.disk_template not in constants.DTS_NET_MIRROR:
+      raise errors.OpPrereqError("Can't relocate non-mirrored instances")
+
+    self.required_nodes = 1
+
+    disk_space = _ComputeDiskSize(instance.disk_template,
+                                  instance.disks[0].size,
+                                  instance.disks[1].size)
+
     request = {
       "type": "replace_secondary",
       "name": self.name,
+      "disk_space_total": disk_space,
+      "required_nodes": self.required_nodes,
       }
-    data["request"] = request
+    self.in_data["request"] = request
 
   def _BuildInputData(self):
     """Build input data structures.
@@ -4905,7 +4923,7 @@ class IAllocator(object):
       if result.failed:
         raise errors.OpExecError("Instance allocator call failed: %s,"
                                  " output: %s" %
-                                 (result.fail_reason, result.stdout))
+                                 (result.fail_reason, result.output))
     finally:
       os.unlink(fin_name)
     self.out_text = result.stdout
