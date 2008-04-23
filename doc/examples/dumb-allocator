@@ -74,20 +74,17 @@ def main():
   request = data["request"]
   req_type = request["type"]
   if req_type != "allocate":
-    print >> sys.stderr, "Unsupported allocator mode '%s'" % req_type
-    return 1
+    return OutputError("Unsupported allocator mode '%s'" % req_type)
 
-  npri = SelectNode(nodes, request, [])
-  if npri is None:
-    return OutputError("Can't find a suitable primary node", exit_code=0)
-
-  result_nodes = [npri]
-  if request["disk_template"] == "drbd":
-    nsec = SelectNode(nodes, request, result_nodes)
-    if nsec is None:
-      return OutputError("Can't find a suitable secondary node (%s selected"
-                         " as primary)" % npri, exit_code=0)
-    result_nodes.append(nsec)
+  result_nodes = []
+  while len(result_nodes) < request["required_nodes"]:
+    new_selection = SelectNode(nodes, request, result_nodes)
+    if new_selection is None:
+      return OutputError("Can't find a suitable node for position %s"
+                         " (already selected: %s)" %
+                         (len(result_nodes) + 1, ", ".join(result_nodes)),
+                         exit_code=0)
+    result_nodes.append(new_selection)
 
   result = {
           "success": True,
