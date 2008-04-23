@@ -130,6 +130,10 @@ class Burner(object):
     parser.add_option("--no-startstop", dest="do_startstop",
                       help="Skip instance stop/start", action="store_false",
                       default=True)
+    parser.add_option("--rename", dest="rename", default=None,
+                      help="Give one unused instance name which is taken"
+                           " to start the renaming sequence",
+                      metavar="<instance_name>")
     parser.add_option("-t", "--disk-template", dest="disk_template",
                       choices=("diskless", "file", "plain", "drbd"),
                       default="drbd",
@@ -306,15 +310,30 @@ class Burner(object):
       self.ExecOp(imp_op)
       self.to_rem.append(instance)
 
+  def StopInstance(self, instance):
+    """Stop given instance."""
+    op = opcodes.OpShutdownInstance(instance_name=instance)
+    Log("- Shutdown instance %s" % instance)
+    self.ExecOp(op)
+
+  def StartInstance(self, instance):
+    """Start given instance."""
+    op = opcodes.OpStartupInstance(instance_name=instance, force=False)
+    Log("- Start instance %s" % instance)
+    self.ExecOp(op)
+
+  def RenameInstance(self, instance, instance_new):
+    """Rename instance."""
+    op = opcodes.OpRenameInstance(instance_name=instance,
+                                  new_name=instance_new)
+    Log("- Rename instance %s to %s" % (instance, instance_new))
+    self.ExecOp(op)
+
   def StopStart(self):
     """Stop/start the instances."""
     for instance in self.instances:
-      op = opcodes.OpShutdownInstance(instance_name=instance)
-      Log("- Shutdown instance %s" % instance)
-      self.ExecOp(op)
-      op = opcodes.OpStartupInstance(instance_name=instance, force=False)
-      Log("- Start instance %s" % instance)
-      self.ExecOp(op)
+      self.StopInstance(instance)
+      self.StartInstance(instance)
 
   def Remove(self):
     """Remove the instances."""
@@ -322,6 +341,18 @@ class Burner(object):
       op = opcodes.OpRemoveInstance(instance_name=instance)
       Log("- Remove instance %s" % instance)
       self.ExecOp(op)
+
+
+  def Rename(self):
+    """Rename the instances."""
+    rename = self.opts.rename
+    for instance in self.instances:
+      self.StopInstance(instance)
+      self.RenameInstance(instance, rename)
+      self.StartInstance(rename)
+      self.StopInstance(rename)
+      self.RenameInstance(rename, instance)
+      self.StartInstance(instance)
 
   def BurninCluster(self):
     """Test a cluster intensively.
@@ -359,6 +390,9 @@ class Burner(object):
 
       if opts.do_startstop:
         self.StopStart()
+
+      if opts.rename:
+        self.Rename()
 
       has_err = False
     finally:
