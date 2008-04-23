@@ -209,6 +209,14 @@ class Burner(object):
     for pnode, snode, instance in mytor:
       if self.opts.iallocator:
         pnode = snode = None
+        Log("- Add instance %s (iallocator: %s)" %
+              (instance, self.opts.iallocator))
+      elif self.opts.disk_template not in constants.DTS_NET_MIRROR:
+        snode = None
+        Log("- Add instance %s on node %s" % (instance, pnode))
+      else:
+        Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
+
       op = opcodes.OpCreateInstance(instance_name=instance,
                                     mem_size=128,
                                     disk_size=self.opts.os_size,
@@ -227,7 +235,6 @@ class Burner(object):
                                     initrd_path=None,
                                     hvm_boot_order=None,
                                     iallocator=self.opts.iallocator)
-      Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
       self.ExecOp(op)
       self.to_rem.append(instance)
 
