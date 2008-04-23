@@ -3028,47 +3028,42 @@ class LUCreateInstance(LogicalUnit):
     """Run the allocator based on input opcode.
 
     """
-    al_data = _IAllocatorGetClusterData(self.cfg, self.sstore)
     disks = [{"size": self.op.disk_size, "mode": "w"},
              {"size": self.op.swap_size, "mode": "w"}]
     nics = [{"mac": self.op.mac, "ip": getattr(self.op, "ip", None),
              "bridge": self.op.bridge}]
-    op = opcodes.OpTestAllocator(name=self.op.instance_name,
-                                 disk_template=self.op.disk_template,
-                                 tags=[],
-                                 os=self.op.os_type,
-                                 vcpus=self.op.vcpus,
-                                 mem_size=self.op.mem_size,
-                                 disks=disks,
-                                 nics=nics)
+    ial = IAllocator(self.cfg, self.sstore,
+                     name=self.op.instance_name,
+                     disk_template=self.op.disk_template,
+                     tags=[],
+                     os=self.op.os_type,
+                     vcpus=self.op.vcpus,
+                     mem_size=self.op.mem_size,
+                     disks=disks,
+                     nics=nics,
+                     mode=constants.IALLOCATOR_MODE_ALLOC)
 
-    _IAllocatorAddNewInstance(al_data, op)
+    ial.Run(self.op.iallocator)
 
-    text = serializer.Dump(al_data)
-
-    result = _IAllocatorRun(self.op.iallocator, text)
-
-    result = _IAllocatorValidateResult(result)
-
-    if not result["success"]:
+    if not ial.success:
       raise errors.OpPrereqError("Can't compute nodes using"
                                  " iallocator '%s': %s" % (self.op.iallocator,
-                                                           result["info"]))
+                                                           ial.info))
     req_nodes = 1
     if self.op.disk_template in constants.DTS_NET_MIRROR:
       req_nodes += 1
 
-    if len(result["nodes"]) != req_nodes:
+    if len(ial.nodes) != req_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (len(result["nodes"]), req_nodes))
-    self.op.pnode = result["nodes"][0]
+                                 (len(ial.nodes), req_nodes))
+    self.op.pnode = ial.nodes[0]
     logger.ToStdout("Selected nodes for the instance: %s" %
-                    (", ".join(result["nodes"]),))
+                    (", ".join(ial.nodes),))
     logger.Info("Selected nodes for instance %s via iallocator %s: %s" %
-                (self.op.instance_name, self.op.iallocator, result["nodes"]))
+                (self.op.instance_name, self.op.iallocator, ial.nodes))
     if req_nodes == 2:
-      self.op.snode = result["nodes"][1]
+      self.op.snode = ial.nodes[1]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4788,168 +4783,229 @@ class LUTestDelay(NoHooksLU):
                                    " result: %s" % (node, node_result))
 
 
-def _IAllocatorGetClusterData(cfg, sstore):
-  """Compute the generic allocator input data.
+class IAllocator(object):
+  """IAllocator framework.
 
-  This is the data that is independent of the actual operation.
+  An IAllocator instance has three sets of attributes:
+    - cfg/sstore that are needed to query the cluster
+    - input data (all members of the _KEYS class attribute are required)
+    - four buffer attributes (in|out_data|text), that represent the
+      input (to the external script) in text and data structure format,
+      and the output from it, again in two formats
+    - the result variables from the script (success, info, nodes) for
+      easy usage
 
   """
-  # cluster data
-  data = {
-    "version": 1,
-    "cluster_name": sstore.GetClusterName(),
-    "cluster_tags": list(cfg.GetClusterInfo().GetTags()),
-    # we don't have job IDs
-    }
+  _KEYS = [
+    "mode", "name",
+    "mem_size", "disks", "disk_template",
+    "os", "tags", "nics", "vcpus",
+    ]
 
-  # node data
-  node_results = {}
-  node_list = cfg.GetNodeList()
-  node_data = rpc.call_node_info(node_list, cfg.GetVGName())
-  for nname in node_list:
-    ninfo = cfg.GetNodeInfo(nname)
-    if nname not in node_data or not isinstance(node_data[nname], dict):
-      raise errors.OpExecError("Can't get data for node %s" % nname)
-    remote_info = node_data[nname]
-    for attr in ['memory_total', 'memory_free',
-                 'vg_size', 'vg_free']:
-      if attr not in remote_info:
-        raise errors.OpExecError("Node '%s' didn't return attribute '%s'" %
-                                 (nname, attr))
-      try:
-        int(remote_info[attr])
-      except ValueError, err:
-        raise errors.OpExecError("Node '%s' returned invalid value for '%s':"
-                                 " %s" % (nname, attr, str(err)))
-    pnr = {
-      "tags": list(ninfo.GetTags()),
-      "total_memory": utils.TryConvert(int, remote_info['memory_total']),
-      "free_memory": utils.TryConvert(int, remote_info['memory_free']),
-      "total_disk": utils.TryConvert(int, remote_info['vg_size']),
-      "free_disk": utils.TryConvert(int, remote_info['vg_free']),
-      "primary_ip": ninfo.primary_ip,
-      "secondary_ip": ninfo.secondary_ip,
+  def __init__(self, cfg, sstore, **kwargs):
+    self.cfg = cfg
+    self.sstore = sstore
+    # init buffer variables
+    self.in_text = self.out_text = self.in_data = self.out_data = None
+    # init all input fields so that pylint is happy
+    self.mode = self.name = None
+    self.mem_size = self.disks = self.disk_template = None
+    self.os = self.tags = self.nics = self.vcpus = None
+    # init result fields
+    self.success = self.info = self.nodes = None
+    for key in kwargs:
+      if key not in self._KEYS:
+        raise errors.ProgrammerError("Invalid input parameter '%s' to"
+                                     " IAllocator" % key)
+      setattr(self, key, kwargs[key])
+    for key in self._KEYS:
+      if key not in kwargs:
+        raise errors.ProgrammerError("Missing input parameter '%s' to"
+                                     " IAllocator" % key)
+    self._BuildInputData()
+
+  def _ComputeClusterData(self):
+    """Compute the generic allocator input data.
+
+    This is the data that is independent of the actual operation.
+
+    """
+    cfg = self.cfg
+    # cluster data
+    data = {
+      "version": 1,
+      "cluster_name": self.sstore.GetClusterName(),
+      "cluster_tags": list(cfg.GetClusterInfo().GetTags()),
+      # we don't have job IDs
       }
-    node_results[nname] = pnr
-  data["nodes"] = node_results
 
-  # instance data
-  instance_data = {}
-  i_list = cfg.GetInstanceList()
-  for iname in i_list:
-    iinfo = cfg.GetInstanceInfo(iname)
-    nic_data = [{"mac": n.mac, "ip": n.ip, "bridge": n.bridge}
-                for n in iinfo.nics]
-    pir = {
-      "tags": list(iinfo.GetTags()),
-      "should_run": iinfo.status == "up",
-      "vcpus": iinfo.vcpus,
-      "memory": iinfo.memory,
-      "os": iinfo.os,
-      "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
-      "nics": nic_data,
-      "disks": [{"size": dsk.size, "mode": "w"} for dsk in iinfo.disks],
-      "disk_template": iinfo.disk_template,
+    # node data
+    node_results = {}
+    node_list = cfg.GetNodeList()
+    node_data = rpc.call_node_info(node_list, cfg.GetVGName())
+    for nname in node_list:
+      ninfo = cfg.GetNodeInfo(nname)
+      if nname not in node_data or not isinstance(node_data[nname], dict):
+        raise errors.OpExecError("Can't get data for node %s" % nname)
+      remote_info = node_data[nname]
+      for attr in ['memory_total', 'memory_free',
+                   'vg_size', 'vg_free']:
+        if attr not in remote_info:
+          raise errors.OpExecError("Node '%s' didn't return attribute '%s'" %
+                                   (nname, attr))
+        try:
+          int(remote_info[attr])
+        except ValueError, err:
+          raise errors.OpExecError("Node '%s' returned invalid value for '%s':"
+                                   " %s" % (nname, attr, str(err)))
+      pnr = {
+        "tags": list(ninfo.GetTags()),
+        "total_memory": utils.TryConvert(int, remote_info['memory_total']),
+        "free_memory": utils.TryConvert(int, remote_info['memory_free']),
+        "total_disk": utils.TryConvert(int, remote_info['vg_size']),
+        "free_disk": utils.TryConvert(int, remote_info['vg_free']),
+        "primary_ip": ninfo.primary_ip,
+        "secondary_ip": ninfo.secondary_ip,
+        }
+      node_results[nname] = pnr
+    data["nodes"] = node_results
+
+    # instance data
+    instance_data = {}
+    i_list = cfg.GetInstanceList()
+    for iname in i_list:
+      iinfo = cfg.GetInstanceInfo(iname)
+      nic_data = [{"mac": n.mac, "ip": n.ip, "bridge": n.bridge}
+                  for n in iinfo.nics]
+      pir = {
+        "tags": list(iinfo.GetTags()),
+        "should_run": iinfo.status == "up",
+        "vcpus": iinfo.vcpus,
+        "memory": iinfo.memory,
+        "os": iinfo.os,
+        "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
+        "nics": nic_data,
+        "disks": [{"size": dsk.size, "mode": "w"} for dsk in iinfo.disks],
+        "disk_template": iinfo.disk_template,
+        }
+      instance_data[iname] = pir
+
+    data["instances"] = instance_data
+
+    self.in_data = data
+
+  def _AddNewInstance(self):
+    """Add new instance data to allocator structure.
+
+    This in combination with _AllocatorGetClusterData will create the
+    correct structure needed as input for the allocator.
+
+    The checks for the completeness of the opcode must have already been
+    done.
+
+    """
+    data = self.in_data
+    if len(self.disks) != 2:
+      raise errors.OpExecError("Only two-disk configurations supported")
+
+    disk_space = _ComputeDiskSize(self.disk_template,
+                                  self.disks[0]["size"], self.disks[1]["size"])
+
+    request = {
+      "type": "allocate",
+      "name": self.name,
+      "disk_template": self.disk_template,
+      "tags": self.tags,
+      "os": self.os,
+      "vcpus": self.vcpus,
+      "memory": self.mem_size,
+      "disks": self.disks,
+      "disk_space_total": disk_space,
+      "nics": self.nics,
       }
-    instance_data[iname] = pir
+    data["request"] = request
 
-  data["instances"] = instance_data
+  def _AddRelocateInstance(self):
+    """Add relocate instance data to allocator structure.
 
-  return data
+    This in combination with _IAllocatorGetClusterData will create the
+    correct structure needed as input for the allocator.
 
+    The checks for the completeness of the opcode must have already been
+    done.
 
-def _IAllocatorAddNewInstance(data, op):
-  """Add new instance data to allocator structure.
+    """
+    data = self.in_data
+    request = {
+      "type": "replace_secondary",
+      "name": self.name,
+      }
+    data["request"] = request
 
-  This in combination with _AllocatorGetClusterData will create the
-  correct structure needed as input for the allocator.
+  def _BuildInputData(self):
+    """Build input data structures.
 
-  The checks for the completeness of the opcode must have already been
-  done.
+    """
+    self._ComputeClusterData()
 
-  """
-  if len(op.disks) != 2:
-    raise errors.OpExecError("Only two-disk configurations supported")
+    if self.mode == constants.IALLOCATOR_MODE_ALLOC:
+      self._AddNewInstance()
+    else:
+      self._AddRelocateInstance()
 
-  disk_space = _ComputeDiskSize(op.disk_template,
-                                op.disks[0]["size"], op.disks[1]["size"])
+    self.in_text = serializer.Dump(self.in_data)
 
-  request = {
-    "type": "allocate",
-    "name": op.name,
-    "disk_template": op.disk_template,
-    "tags": op.tags,
-    "os": op.os,
-    "vcpus": op.vcpus,
-    "memory": op.mem_size,
-    "disks": op.disks,
-    "disk_space_total": disk_space,
-    "nics": op.nics,
-    }
-  data["request"] = request
+  def Run(self, name, validate=True):
+    """Run an instance allocator and return the results.
 
+    """
+    data = self.in_text
 
-def _IAllocatorAddRelocateInstance(data, op):
-  """Add relocate instance data to allocator structure.
+    alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
+                                  os.path.isfile)
+    if alloc_script is None:
+      raise errors.OpExecError("Can't find allocator '%s'" % name)
 
-  This in combination with _IAllocatorGetClusterData will create the
-  correct structure needed as input for the allocator.
+    fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
+    try:
+      os.write(fd, data)
+      os.close(fd)
+      result = utils.RunCmd([alloc_script, fin_name])
+      if result.failed:
+        raise errors.OpExecError("Instance allocator call failed: %s,"
+                                 " output: %s" %
+                                 (result.fail_reason, result.stdout))
+    finally:
+      os.unlink(fin_name)
+    self.out_text = result.stdout
+    if validate:
+      self._ValidateResult()
 
-  The checks for the completeness of the opcode must have already been
-  done.
+  def _ValidateResult(self):
+    """Process the allocator results.
 
-  """
-  request = {
-    "type": "replace_secondary",
-    "name": op.name,
-    }
-  data["request"] = request
+    This will process and if successful save the result in
+    self.out_data and the other parameters.
 
+    """
+    try:
+      rdict = serializer.Load(self.out_text)
+    except Exception, err:
+      raise errors.OpExecError("Can't parse iallocator results: %s" % str(err))
 
-def _IAllocatorRun(name, data):
-  """Run an instance allocator and return the results.
+    if not isinstance(rdict, dict):
+      raise errors.OpExecError("Can't parse iallocator results: not a dict")
 
-  """
-  alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
-                                os.path.isfile)
-  if alloc_script is None:
-    raise errors.OpExecError("Can't find allocator '%s'" % name)
+    for key in "success", "info", "nodes":
+      if key not in rdict:
+        raise errors.OpExecError("Can't parse iallocator results:"
+                                 " missing key '%s'" % key)
+      setattr(self, key, rdict[key])
 
-  fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
-  try:
-    os.write(fd, data)
-    os.close(fd)
-    result = utils.RunCmd([alloc_script, fin_name])
-    if result.failed:
-      raise errors.OpExecError("Instance allocator call failed: %s,"
-                               " output: %s" %
-                               (result.fail_reason, result.stdout))
-  finally:
-    os.unlink(fin_name)
-  return result.stdout
-
-
-def _IAllocatorValidateResult(data):
-  """Process the allocator results.
-
-  """
-  try:
-    rdict = serializer.Load(data)
-  except Exception, err:
-    raise errors.OpExecError("Can't parse iallocator results: %s" % str(err))
-
-  if not isinstance(rdict, dict):
-    raise errors.OpExecError("Can't parse iallocator results: not a dict")
-
-  for key in "success", "info", "nodes":
-    if key not in rdict:
-      raise errors.OpExecError("Can't parse iallocator results:"
-                               " missing key '%s'" % key)
-
-  if not isinstance(rdict["nodes"], list):
-    raise errors.OpExecError("Can't parse iallocator results: 'nodes' key"
-                             " is not a list")
-  return rdict
+    if not isinstance(rdict["nodes"], list):
+      raise errors.OpExecError("Can't parse iallocator results: 'nodes' key"
+                               " is not a list")
+    self.out_data = rdict
 
 
 class LUTestAllocator(NoHooksLU):
@@ -5020,15 +5076,21 @@ class LUTestAllocator(NoHooksLU):
     """Run the allocator test.
 
     """
-    data = _IAllocatorGetClusterData(self.cfg, self.sstore)
-    if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
-      _IAllocatorAddNewInstance(data, self.op)
-    else:
-      _IAllocatorAddRelocateInstance(data, self.op)
+    ial = IAllocator(self.cfg, self.sstore,
+                     mode=self.op.mode,
+                     name=self.op.name,
+                     mem_size=self.op.mem_size,
+                     disks=self.op.disks,
+                     disk_template=self.op.disk_template,
+                     os=self.op.os,
+                     tags=self.op.tags,
+                     nics=self.op.nics,
+                     vcpus=self.op.vcpus,
+                     )
 
-    text = serializer.Dump(data)
     if self.op.direction == constants.IALLOCATOR_DIR_IN:
-      result = text
+      result = ial.in_text
     else:
-      result = _IAllocatorRun(self.op.allocator, text)
+      ial.Run(self.op.allocator, validate=False)
+      result = ial.out_text
     return result
