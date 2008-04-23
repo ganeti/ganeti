@@ -4436,7 +4436,7 @@ class LUExportInstance(LogicalUnit):
   def CheckPrereq(self):
     """Check prerequisites.
 
-    This checks that the instance name is a valid one.
+    This checks that the instance and node names are valid.
 
     """
     instance_name = self.cfg.ExpandInstanceName(self.op.instance_name)
@@ -4521,6 +4521,45 @@ class LUExportInstance(LogicalUnit):
           if not rpc.call_export_remove(node, instance.name):
             logger.Error("could not remove older export for instance %s"
                          " on node %s" % (instance.name, node))
+
+
+class LURemoveExport(NoHooksLU):
+  """Remove exports related to the named instance.
+
+  """
+  _OP_REQP = ["instance_name"]
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+    """
+    pass
+
+  def Exec(self, feedback_fn):
+    """Remove any export.
+
+    """
+    instance_name = self.cfg.ExpandInstanceName(self.op.instance_name)
+    # If the instance was not found we'll try with the name that was passed in.
+    # This will only work if it was an FQDN, though.
+    fqdn_warn = False
+    if not instance_name:
+      fqdn_warn = True
+      instance_name = self.op.instance_name
+
+    op = opcodes.OpQueryExports(nodes=[])
+    exportlist = self.proc.ChainOpCode(op)
+    found = False
+    for node in exportlist:
+      if instance_name in exportlist[node]:
+        found = True
+        if not rpc.call_export_remove(node, instance_name):
+          logger.Error("could not remove export for instance %s"
+                       " on node %s" % (instance_name, node))
+
+    if fqdn_warn and not found:
+      feedback_fn("Export not found. If trying to remove an export belonging"
+                  " to a deleted instance please use its Fully Qualified"
+                  " Domain Name.")
 
 
 class TagsLU(NoHooksLU):

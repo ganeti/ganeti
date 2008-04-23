@@ -105,6 +105,25 @@ def ImportInstance(opts, args):
   return 0
 
 
+def RemoveExport(opts, args):
+  """Remove an export from the cluster.
+
+  Args:
+   opts - class with options as members
+   args - list with a single element, the exported instance to remove
+  Opts used:
+
+  Returns:
+    1 in case of error, 0 otherwise
+
+  """
+  instance = args[0]
+  op = opcodes.OpRemoveExport(instance_name=args[0])
+
+  SubmitOpCode(op)
+  return 0
+
+
 # this is defined separately due to readability only
 import_opts = [
   DEBUG_OPT,
@@ -162,6 +181,10 @@ commands = {
              "Exports an instance to an image"),
   'import': (ImportInstance, ARGS_ONE, import_opts, "[opts...] <name>",
              "Imports an instance from an exported image"),
+  'remove': (RemoveExport, ARGS_ONE,
+             [DEBUG_OPT],
+             "<name>",
+             "Remove exports of named instance from the filesystem."),
   }
 
 if __name__ == '__main__':
