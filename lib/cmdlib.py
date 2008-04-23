@@ -4946,6 +4946,9 @@ class IAllocator(object):
     if instance.disk_template not in constants.DTS_NET_MIRROR:
       raise errors.OpPrereqError("Can't relocate non-mirrored instances")
 
+    if len(instance.secondary_nodes) != 1:
+      raise errors.OpPrereqError("Instance has not exactly one secondary node")
+
     self.required_nodes = 1
 
     disk_space = _ComputeDiskSize(instance.disk_template,
@@ -4953,10 +4956,11 @@ class IAllocator(object):
                                   instance.disks[1].size)
 
     request = {
-      "type": "replace_secondary",
+      "type": "relocate",
       "name": self.name,
       "disk_space_total": disk_space,
       "required_nodes": self.required_nodes,
+      "nodes": list(instance.secondary_nodes),
       }
     self.in_data["request"] = request
 

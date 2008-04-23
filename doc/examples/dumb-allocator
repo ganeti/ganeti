@@ -76,7 +76,7 @@ def main():
   if req_type == "allocate":
     forbidden_nodes = []
     inst_data = request
-  elif req_type == "replace_secondary":
+  elif req_type == "relocate":
     idict = data["instances"][request["name"]]
     forbidden_nodes = idict["nodes"]
     inst_data = idict
