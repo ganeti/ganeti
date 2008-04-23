@@ -138,6 +138,11 @@ class Burner(object):
     parser.add_option("-n", "--nodes", dest="nodes", default="",
                       help="Comma separated list of nodes to perform"
                       " the burnin on (defaults to all nodes)")
+    parser.add_option("--iallocator", dest="iallocator",
+                      default=None, type="string",
+                      help="Perform the allocation using an iallocator"
+                      " instead of fixed node spread (node restrictions no"
+                      " longer apply, therefore -n/--nodes must not be used")
 
     options, args = parser.parse_args()
     if len(args) < 1 or options.os is None:
@@ -148,6 +153,10 @@ class Burner(object):
                                 constants.DT_DRBD8)
     if options.disk_template not in supported_disk_templates:
       Log("Unknown disk template '%s'" % options.disk_template)
+      sys.exit(1)
+
+    if options.nodes and options.iallocator:
+      Log("Give either the nodes option or the iallocator option, not both")
       sys.exit(1)
 
     self.opts = options
@@ -198,6 +207,8 @@ class Burner(object):
                  islice(cycle(self.nodes), 1, None),
                  self.instances)
     for pnode, snode, instance in mytor:
+      if self.opts.iallocator:
+        pnode = snode = None
       op = opcodes.OpCreateInstance(instance_name=instance,
                                     mem_size=128,
                                     disk_size=self.opts.os_size,
@@ -214,7 +225,8 @@ class Burner(object):
                                     mac="auto",
                                     kernel_path=None,
                                     initrd_path=None,
-                                    hvm_boot_order=None)
+                                    hvm_boot_order=None,
+                                    iallocator=self.opts.iallocator)
       Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
       self.ExecOp(op)
       self.to_rem.append(instance)
