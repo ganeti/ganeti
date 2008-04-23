@@ -305,7 +305,9 @@ class Burner(object):
                                         start=True,
                                         ip_check=True,
                                         wait_for_sync=True,
-                                        mac="auto")
+                                        mac="auto",
+                                        file_storage_dir=None,
+                                        file_driver=None)
       erem_op = opcodes.OpRemoveExport(instance_name=instance)
 
       Log("- Export instance %s to node %s" % (instance, enode))
