@@ -73,12 +73,20 @@ def main():
   nodes =  data["nodes"]
   request = data["request"]
   req_type = request["type"]
-  if req_type != "allocate":
+  if req_type == "allocate":
+    forbidden_nodes = []
+    inst_data = request
+  elif req_type == "replace_secondary":
+    idict = data["instances"][request["name"]]
+    forbidden_nodes = idict["nodes"]
+    inst_data = idict
+    inst_data["disk_space_total"] = request["disk_space_total"]
+  else:
     return OutputError("Unsupported allocator mode '%s'" % req_type)
 
   result_nodes = []
   while len(result_nodes) < request["required_nodes"]:
-    new_selection = SelectNode(nodes, request, result_nodes)
+    new_selection = SelectNode(nodes, inst_data, result_nodes+forbidden_nodes)
     if new_selection is None:
       return OutputError("Can't find a suitable node for position %s"
                          " (already selected: %s)" %
