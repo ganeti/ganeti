@@ -4565,8 +4565,8 @@ class LUExportInstance(LogicalUnit):
     if self.op.shutdown:
       # shutdown the instance, but not the disks
       if not rpc.call_instance_shutdown(src_node, instance):
-         raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                                 (instance.name, source_node))
+        raise errors.OpExecError("Could not shutdown instance %s on node %s" %
+                                 (instance.name, src_node))
 
     vgname = self.cfg.GetVGName()
 

@@ -63,7 +63,7 @@ class RemoteAPIError(ganeti.errors.GenericError):
 class Mapper:
   """Map resource to method."""
 
-  def __init__(self,con=CONNECTOR):
+  def __init__(self, con=CONNECTOR):
     """Resource mapper constructor.
 
     Args:
@@ -150,7 +150,8 @@ class R_Generic(object):
       data - message body.
     """
     self.dispatcher.send_response(code)
-    self.dispatcher.send_header("Content-type", "application/json") # rfc4627.txt
+    # rfc4627.txt
+    self.dispatcher.send_header("Content-type", "application/json")
     self.dispatcher.end_headers()
     if data:
       self.dispatcher.wfile.write(simplejson.dumps(data))
@@ -231,7 +232,7 @@ class R_nodes_name(R_Generic):
     [r_list] = ganeti.cli.SubmitOpCode(request)
 
     for i in range(len(fields)):
-      result[fields[i]]=r_list[i]
+      result[fields[i]] = r_list[i]
 
     self.result = result
 

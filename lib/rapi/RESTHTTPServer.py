@@ -15,6 +15,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+"""RESTfull HTTPS Server module.
+
+"""
+
 import socket
 import inspect
 import exceptions
@@ -25,10 +29,6 @@ import OpenSSL
 from ganeti import constants
 from ganeti import logger
 from ganeti.rapi import resources
-
-"""RESTfull HTTPS Server module.
-
-"""
 
 class RESTHTTPServer(BaseHTTPServer.HTTPServer):
   """The class to provide HTTP/HTTPS server.
