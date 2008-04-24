@@ -3033,6 +3033,7 @@ class LUCreateInstance(LogicalUnit):
     nics = [{"mac": self.op.mac, "ip": getattr(self.op, "ip", None),
              "bridge": self.op.bridge}]
     ial = IAllocator(self.cfg, self.sstore,
+                     mode=constants.IALLOCATOR_MODE_ALLOC,
                      name=self.op.instance_name,
                      disk_template=self.op.disk_template,
                      tags=[],
@@ -3041,7 +3042,7 @@ class LUCreateInstance(LogicalUnit):
                      mem_size=self.op.mem_size,
                      disks=disks,
                      nics=nics,
-                     mode=constants.IALLOCATOR_MODE_ALLOC)
+                     )
 
     ial.Run(self.op.iallocator)
 
@@ -4831,31 +4832,42 @@ class IAllocator(object):
       easy usage
 
   """
-  _KEYS = [
-    "mode", "name",
+  _ALLO_KEYS = [
     "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus",
     ]
+  _RELO_KEYS = [
+    "relocate_from",
+    ]
 
-  def __init__(self, cfg, sstore, **kwargs):
+  def __init__(self, cfg, sstore, mode, name, **kwargs):
     self.cfg = cfg
     self.sstore = sstore
     # init buffer variables
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
-    self.mode = self.name = None
+    self.mode = mode
+    self.name = name
     self.mem_size = self.disks = self.disk_template = None
     self.os = self.tags = self.nics = self.vcpus = None
+    self.relocate_from = None
     # computed fields
     self.required_nodes = None
     # init result fields
     self.success = self.info = self.nodes = None
+    if self.mode == constants.IALLOCATOR_MODE_ALLOC:
+      keyset = self._ALLO_KEYS
+    elif self.mode == constants.IALLOCATOR_MODE_RELOC:
+      keyset = self._RELO_KEYS
+    else:
+      raise errors.ProgrammerError("Unknown mode '%s' passed to the"
+                                   " IAllocator" % self.mode)
     for key in kwargs:
-      if key not in self._KEYS:
+      if key not in keyset:
         raise errors.ProgrammerError("Invalid input parameter '%s' to"
                                      " IAllocator" % key)
       setattr(self, key, kwargs[key])
-    for key in self._KEYS:
+    for key in keyset:
       if key not in kwargs:
         raise errors.ProgrammerError("Missing input parameter '%s' to"
                                      " IAllocator" % key)
@@ -4999,7 +5011,7 @@ class IAllocator(object):
       "name": self.name,
       "disk_space_total": disk_space,
       "required_nodes": self.required_nodes,
-      "nodes": list(instance.secondary_nodes),
+      "relocate_from": self.relocate_from,
       }
     self.in_data["request"] = request
 
@@ -5122,6 +5134,7 @@ class LUTestAllocator(NoHooksLU):
         raise errors.OpPrereqError("Instance '%s' not found for relocation" %
                                    self.op.name)
       self.op.name = fname
+      self.relocate_from = self.cfg.GetInstanceInfo(fname).secondary_nodes
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode)
@@ -5137,17 +5150,24 @@ class LUTestAllocator(NoHooksLU):
     """Run the allocator test.
 
     """
-    ial = IAllocator(self.cfg, self.sstore,
-                     mode=self.op.mode,
-                     name=self.op.name,
-                     mem_size=self.op.mem_size,
-                     disks=self.op.disks,
-                     disk_template=self.op.disk_template,
-                     os=self.op.os,
-                     tags=self.op.tags,
-                     nics=self.op.nics,
-                     vcpus=self.op.vcpus,
-                     )
+    if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
+      ial = IAllocator(self.cfg, self.sstore,
+                       mode=self.op.mode,
+                       name=self.op.name,
+                       mem_size=self.op.mem_size,
+                       disks=self.op.disks,
+                       disk_template=self.op.disk_template,
+                       os=self.op.os,
+                       tags=self.op.tags,
+                       nics=self.op.nics,
+                       vcpus=self.op.vcpus,
+                       )
+    else:
+      ial = IAllocator(self.cfg, self.sstore,
+                       mode=self.op.mode,
+                       name=self.op.name,
+                       relocate_from=list(self.relocate_from),
+                       )
 
     if self.op.direction == constants.IALLOCATOR_DIR_IN:
       result = ial.in_text
