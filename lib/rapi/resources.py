@@ -278,29 +278,16 @@ class R_instances_name_tags(R_Generic):
 class R_os(R_Generic):
   """Class to povide list of valid OS."""
 
-  valid_os_list = []
-
-  def __valid_list(self, oslist):
-    for os in oslist:
-      if os.status == 'VALID':
-        if os.name not in self.valid_os_list:
-          self.valid_os_list.append(os.name)
-      else:
-        if os.name in self.valid_os_list:
-          self.valid_os_list.remove(os.name)
-
   def _get(self):
-    request = ganeti.opcodes.OpDiagnoseOS()
+    request = ganeti.opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
+                                          names=[])
     diagnose_data = ganeti.cli.SubmitOpCode(request)
-    result = []
-    if not diagnose_data:
+
+    if not isinstance(diagnose_data, list):
       self.code = 500
       raise RemoteAPIError("Can't get the OS list")
-    else:
-      for node_name in diagnose_data:
-        self.__valid_list(diagnose_data[node_name])
 
-    self.result = self.valid_os_list
+    self.result = [row[0] for row in diagnose_data if row[1]]
 
 
 def main():
