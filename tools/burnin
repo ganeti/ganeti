@@ -135,7 +135,7 @@ class Burner(object):
     parser.add_option("-t", "--disk-template", dest="disk_template",
                       choices=("diskless", "plain", "remote_raid1", "drbd"),
                       default="drbd",
-                      help="Template type (plain, diskless, drbd, remote_raid1)"
+                      help="Disk template (diskless, plain, drbd, remote_raid1)"
                       " [drbd]")
     parser.add_option("-n", "--nodes", dest="nodes", default="",
                       help="Comma separated list of nodes to perform"
