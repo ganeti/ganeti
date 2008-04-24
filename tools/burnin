@@ -112,6 +112,8 @@ class Burner(object):
                       default=4 * 1024, type="unit", metavar="<size>")
     parser.add_option("--swap-size", dest="swap_size", help="Swap size",
                       default=4 * 1024, type="unit", metavar="<size>")
+    parser.add_option("--mem-size", dest="mem_size", help="Memory size",
+                      default=128, type="unit", metavar="<size>")
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose", default=False,
                       help="print command execution messages to stdout")
@@ -218,7 +220,7 @@ class Burner(object):
         Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
 
       op = opcodes.OpCreateInstance(instance_name=instance,
-                                    mem_size=128,
+                                    mem_size=self.opts.mem_size,
                                     disk_size=self.opts.os_size,
                                     swap_size=self.opts.swap_size,
                                     disk_template=self.opts.disk_template,
