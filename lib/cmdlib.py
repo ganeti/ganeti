@@ -3638,6 +3638,29 @@ class LUReplaceDisks(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mode", "disks"]
 
+  def _RunAllocator(self):
+    """Compute a new secondary node using an IAllocator.
+
+    """
+    ial = IAllocator(self.cfg, self.sstore,
+                     mode=constants.IALLOCATOR_MODE_RELOC,
+                     name=self.op.instance_name,
+                     relocate_from=[self.sec_node])
+
+    ial.Run(self.op.iallocator)
+
+    if not ial.success:
+      raise errors.OpPrereqError("Can't compute nodes using"
+                                 " iallocator '%s': %s" % (self.op.iallocator,
+                                                           ial.info))
+    if len(ial.nodes) != ial.required_nodes:
+      raise errors.OpPrereqError("iallocator '%s' returned invalid number"
+                                 " of nodes (%s), required %s" %
+                                 (len(ial.nodes), ial.required_nodes))
+    self.op.remote_node = ial.nodes[0]
+    logger.ToStdout("Selected new secondary for the instance: %s" %
+                    self.op.remote_node)
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -3664,6 +3687,9 @@ class LUReplaceDisks(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
+
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
@@ -3683,7 +3709,14 @@ class LUReplaceDisks(LogicalUnit):
 
     self.sec_node = instance.secondary_nodes[0]
 
-    remote_node = getattr(self.op, "remote_node", None)
+    ia_name = getattr(self.op, "iallocator", None)
+    if ia_name is not None:
+      if self.op.remote_node is not None:
+        raise errors.OpPrereqError("Give either the iallocator or the new"
+                                   " secondary, not both")
+      self.op.remote_node = self._RunAllocator()
+
+    remote_node = self.op.remote_node
     if remote_node is not None:
       remote_node = self.cfg.ExpandNodeName(remote_node)
       if remote_node is None:
