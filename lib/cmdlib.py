@@ -1303,14 +1303,14 @@ class LUDiagnoseOS(NoHooksLU):
     for node_name, nr in rlist.iteritems():
       if not nr:
         continue
-      for os in nr:
-        if os.name not in all_os:
+      for os_obj in nr:
+        if os_obj.name not in all_os:
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
-          all_os[os.name] = {}
+          all_os[os_obj.name] = {}
           for nname in node_list:
-            all_os[os.name][nname] = []
-        all_os[os.name][node_name].append(os)
+            all_os[os_obj.name][nname] = []
+        all_os[os_obj.name][node_name].append(os_obj)
     return all_os
 
   def Exec(self, feedback_fn):
@@ -3326,8 +3326,8 @@ class LUCreateInstance(LogicalUnit):
                                  self.op.file_driver)
 
     if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
-        raise errors.OpPrereqError("File storage directory not a relative"
-                                   " path")
+      raise errors.OpPrereqError("File storage directory not a relative"
+                                 " path")
     #### allocator run
 
     if [self.op.iallocator, self.op.pnode].count(None) != 1:
@@ -4499,7 +4499,7 @@ class LUExportInstance(LogicalUnit):
       # shutdown the instance, but not the disks
       if not rpc.call_instance_shutdown(src_node, instance):
          raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                                 (instance.name, src_node))
+                                  (instance.name, src_node))
 
     vgname = self.cfg.GetVGName()
 
