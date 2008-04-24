@@ -179,22 +179,15 @@ class Burner(object):
       sys.exit(err_code)
     self.nodes = [data[0] for data in result]
 
-    result = self.ExecOp(opcodes.OpDiagnoseOS())
+    result = self.ExecOp(opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
+                                              names=[]))
 
     if not result:
       Log("Can't get the OS list")
       sys.exit(1)
 
     # filter non-valid OS-es
-    oses = {}
-    for node_name in result:
-      oses[node_name] = [obj for obj in result[node_name] if obj]
-
-    fnode = oses.keys()[0]
-    os_set = set([os_inst.name for os_inst in oses[fnode]])
-    del oses[fnode]
-    for node in oses:
-      os_set &= set([os_inst.name for os_inst in oses[node]])
+    os_set = [val[0] for val in result if val[1]]
 
     if self.opts.os not in os_set:
       Log("OS '%s' not found" % self.opts.os)
