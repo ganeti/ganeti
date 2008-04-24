@@ -328,7 +328,7 @@ class OpRebootInstance(OpCode):
 class OpReplaceDisks(OpCode):
   """Replace the disks of an instance."""
   OP_ID = "OP_INSTANCE_REPLACE_DISKS"
-  __slots__ = ["instance_name", "remote_node", "mode", "disks"]
+  __slots__ = ["instance_name", "remote_node", "mode", "disks", "iallocator"]
 
 
 class OpFailoverInstance(OpCode):

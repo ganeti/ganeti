@@ -257,9 +257,12 @@ class Burner(object):
     mytor = izip(islice(cycle(self.nodes), 2, None),
                  self.instances)
     for tnode, instance in mytor:
+      if self.opts.iallocator:
+        tnode = None
       op = opcodes.OpReplaceDisks(instance_name=instance,
                                   mode=mode,
                                   remote_node=tnode,
+                                  iallocator=self.opts.iallocator,
                                   disks=["sda", "sdb"])
       Log("- Replace secondary (%s) for instance %s" % (mode, instance))
       self.ExecOp(op)

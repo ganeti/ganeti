@@ -448,6 +448,7 @@ def ReplaceDisks(opts, args):
   """
   instance_name = args[0]
   new_2ndary = opts.new_secondary
+  iallocator = opts.iallocator
   if opts.disks is None:
     disks = ["sda", "sdb"]
   else:
@@ -456,14 +457,16 @@ def ReplaceDisks(opts, args):
     mode = constants.REPLACE_DISK_ALL
   elif opts.on_primary: # only on primary:
     mode = constants.REPLACE_DISK_PRI
-    if new_2ndary is not None:
+    if new_2ndary is not None or iallocator is not None:
       raise errors.OpPrereqError("Can't change secondary node on primary disk"
                                  " replacement")
-  elif opts.on_secondary is not None: # only on secondary
+  elif opts.on_secondary is not None or iallocator is not None:
+    # only on secondary
     mode = constants.REPLACE_DISK_SEC
 
   op = opcodes.OpReplaceDisks(instance_name=args[0], disks=disks,
-                              remote_node=new_2ndary, mode=mode)
+                              remote_node=new_2ndary, mode=mode,
+                              iallocator=iallocator)
   SubmitOpCode(op)
   return 0
 
@@ -841,6 +844,12 @@ commands = {
                                  help=("Comma-separated list of disks"
                                        " to replace (e.g. sda) (optional,"
                                        " defaults to all disks")),
+                     make_option("--iallocator", metavar="<NAME>",
+                                 help="Select new secondary for the instance"
+                                 " automatically using the"
+                                 " <NAME> iallocator plugin (enables"
+                                 " secondary node replacement)",
+                                 default=None, type="string"),
                      ],
                     "[-s|-p|-n NODE] <instance>",
                     "Replaces all disks for the instance"),
