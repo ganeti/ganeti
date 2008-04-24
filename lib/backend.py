@@ -1215,6 +1215,8 @@ def FinalizeExport(instance, snap_disks):
   config.set(constants.INISECT_INS, 'memory', '%d' % instance.memory)
   config.set(constants.INISECT_INS, 'vcpus', '%d' % instance.vcpus)
   config.set(constants.INISECT_INS, 'disk_template', instance.disk_template)
+
+  nic_count = 0
   for nic_count, nic in enumerate(instance.nics):
     config.set(constants.INISECT_INS, 'nic%d_mac' %
                nic_count, '%s' % nic.mac)
@@ -1223,6 +1225,7 @@ def FinalizeExport(instance, snap_disks):
   # TODO: redundant: on load can read nics until it doesn't exist
   config.set(constants.INISECT_INS, 'nic_count' , '%d' % nic_count)
 
+  disk_count = 0
   for disk_count, disk in enumerate(snap_disks):
     config.set(constants.INISECT_INS, 'disk%d_ivname' % disk_count,
                ('%s' % disk.iv_name))
