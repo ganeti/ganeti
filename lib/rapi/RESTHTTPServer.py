@@ -93,12 +93,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       return
     try:
       rname = self.R_Resource(self.path)
-      mname = 'do_' + self.command
-      if not hasattr(rname, mname):
-        self.send_error(501, "Unsupported method (%r)" % self.command)
-        return
-      method = getattr(rname, mname)
-      method()
+      rname.do_Request(self.command)
     except AttributeError, msg:
       self.send_error(501, "Resource is not available: %s" % msg)
 

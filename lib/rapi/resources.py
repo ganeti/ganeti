@@ -119,28 +119,22 @@ class R_Generic(object):
     self.code = 200
     self.result = None
 
-  def do_GET(self):
-    """Default GET flow.
+  def do_Request(self, request):
+    """Default request flow.
 
     """
     try:
-      self._get()
+      disp = getattr(self, '_%s' % request.lower())
+      disp()
       self.send(self.code, self.result)
     except RemoteAPIError, msg:
       self.send_error(self.code, str(msg))
     except ganeti.errors.OpPrereqError, msg:
       self.send_error(404, str(msg))
     except AttributeError, msg:
-      self.send_error(405, 'Method not Implemented: %s' % msg)
+      self.send_error(405, 'Method Not Implemented: %s' % msg)
     except Exception, msg:
       self.send_error(500, 'Internal Server Error: %s' % msg)
-
-  def _get(self):
-    """ GET Stub.
-
-    """
-    raise AttributeError("GET method is not implemented")
-
 
   def send(self, code, data=None):
     """ Printout data.
