@@ -4861,22 +4861,24 @@ class IAllocator(object):
       if nname not in node_data or not isinstance(node_data[nname], dict):
         raise errors.OpExecError("Can't get data for node %s" % nname)
       remote_info = node_data[nname]
-      for attr in ['memory_total', 'memory_free',
+      for attr in ['memory_total', 'memory_free', 'memory_dom0',
                    'vg_size', 'vg_free']:
         if attr not in remote_info:
           raise errors.OpExecError("Node '%s' didn't return attribute '%s'" %
                                    (nname, attr))
         try:
-          int(remote_info[attr])
+          remote_info[attr] = int(remote_info[attr])
         except ValueError, err:
           raise errors.OpExecError("Node '%s' returned invalid value for '%s':"
                                    " %s" % (nname, attr, str(err)))
+      # compute memory used by instances
       pnr = {
         "tags": list(ninfo.GetTags()),
-        "total_memory": utils.TryConvert(int, remote_info['memory_total']),
-        "free_memory": utils.TryConvert(int, remote_info['memory_free']),
-        "total_disk": utils.TryConvert(int, remote_info['vg_size']),
-        "free_disk": utils.TryConvert(int, remote_info['vg_free']),
+        "total_memory": remote_info['memory_total'],
+        "reserved_memory": remote_info['memory_dom0'],
+        "free_memory": remote_info['memory_free'],
+        "total_disk": remote_info['vg_size'],
+        "free_disk": remote_info['vg_free'],
         "primary_ip": ninfo.primary_ip,
         "secondary_ip": ninfo.secondary_ip,
         }
