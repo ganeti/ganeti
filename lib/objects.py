@@ -458,6 +458,10 @@ class Instance(TaggableObject):
     "kernel_path",
     "initrd_path",
     "hvm_boot_order",
+    "hvm_acpi",
+    "hvm_pae",
+    "hvm_cdrom_image_path",
+    "vnc_bind_address",
     ]
 
   def _ComputeSecondaryNodes(self):
