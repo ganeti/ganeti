@@ -991,7 +991,8 @@ def NewUUID():
 
 def WriteFile(file_name, fn=None, data=None,
               mode=None, uid=-1, gid=-1,
-              atime=None, mtime=None):
+              atime=None, mtime=None,
+              check_abspath=True, dry_run=False, backup=False):
   """(Over)write a file atomically.
 
   The file_name and either fn (a function taking one argument, the
@@ -1006,7 +1007,7 @@ def WriteFile(file_name, fn=None, data=None,
   temporary file should be removed.
 
   """
-  if not os.path.isabs(file_name):
+  if check_abspath and not os.path.isabs(file_name):
     raise errors.ProgrammerError("Path passed to WriteFile is not"
                                  " absolute: '%s'" % file_name)
 
@@ -1017,6 +1018,8 @@ def WriteFile(file_name, fn=None, data=None,
     raise errors.ProgrammerError("Both atime and mtime must be either"
                                  " set or None")
 
+  if backup and not dry_run and os.path.isfile(file_name):
+    CreateBackup(file_name)
 
   dir_name, base_name = os.path.split(file_name)
   fd, new_name = tempfile.mkstemp('.new', base_name, dir_name)
@@ -1034,7 +1037,8 @@ def WriteFile(file_name, fn=None, data=None,
     os.fsync(fd)
     if atime is not None and mtime is not None:
       os.utime(new_name, (atime, mtime))
-    os.rename(new_name, file_name)
+    if not dry_run:
+      os.rename(new_name, file_name)
   finally:
     os.close(fd)
     RemoveFile(new_name)
