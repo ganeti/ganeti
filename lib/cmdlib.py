@@ -4849,8 +4849,11 @@ class IAllocator(object):
       "version": 1,
       "cluster_name": self.sstore.GetClusterName(),
       "cluster_tags": list(cfg.GetClusterInfo().GetTags()),
+      "hypervisor_type": self.sstore.GetHypervisorType(),
       # we don't have job IDs
       }
+
+    i_list = [cfg.GetInstanceInfo(iname) for iname in cfg.GetInstanceList()]
 
     # node data
     node_results = {}
@@ -4871,12 +4874,22 @@ class IAllocator(object):
         except ValueError, err:
           raise errors.OpExecError("Node '%s' returned invalid value for '%s':"
                                    " %s" % (nname, attr, str(err)))
+      # compute memory used by primary instances
+      i_p_mem = i_p_up_mem = 0
+      for iinfo in i_list:
+        if iinfo.primary_node == nname:
+          i_p_mem += iinfo.memory
+          if iinfo.status == "up":
+            i_p_up_mem += iinfo.memory
+
       # compute memory used by instances
       pnr = {
         "tags": list(ninfo.GetTags()),
         "total_memory": remote_info['memory_total'],
         "reserved_memory": remote_info['memory_dom0'],
         "free_memory": remote_info['memory_free'],
+        "i_pri_memory": i_p_mem,
+        "i_pri_up_memory": i_p_up_mem,
         "total_disk": remote_info['vg_size'],
         "free_disk": remote_info['vg_free'],
         "primary_ip": ninfo.primary_ip,
@@ -4887,9 +4900,7 @@ class IAllocator(object):
 
     # instance data
     instance_data = {}
-    i_list = cfg.GetInstanceList()
-    for iname in i_list:
-      iinfo = cfg.GetInstanceInfo(iname)
+    for iinfo in i_list:
       nic_data = [{"mac": n.mac, "ip": n.ip, "bridge": n.bridge}
                   for n in iinfo.nics]
       pir = {
