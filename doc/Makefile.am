@@ -4,8 +4,10 @@ SUBDIRS = examples
 dist_doc_DATA = \
   hooks.html hooks.pdf \
   install.html install.pdf \
-  admin.html admin.pdf
-EXTRA_DIST = hooks.sgml install.sgml admin.sgml
+  admin.html admin.pdf \
+  iallocator.html iallocator.pdf
+
+EXTRA_DIST = hooks.sgml install.sgml admin.sgml iallocator.sgml
 MAINTAINERCLEANFILES = *.html *.pdf
 
 %.sgmltmp: %.sgml
