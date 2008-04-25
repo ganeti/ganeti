@@ -70,6 +70,13 @@
           <arg>-b <replaceable>bridge</replaceable></arg>
           <arg>--mac <replaceable>MAC-address</replaceable></arg>
           <arg>--hvm-boot-order <replaceable>boot-order</replaceable></arg>
+          <arg>--hvm-acpi <replaceable>ACPI-support</replaceable></arg>
+          <arg>--hvm-pae <replaceable>PAE-support</replaceable></arg>
+          <arg>--hvm-cdrom-image-path
+            <replaceable>cdrom-image-path</replaceable></arg>
+          <arg>--vnc-bind-address
+            <replaceable>vnc-bind-address</replaceable></arg>
+
           <sbr>
           <arg>--kernel <group choice="req">
               <arg>default</arg>
@@ -194,6 +201,33 @@
         <para>
           The option is only relevant for Xen HVM instances and
           ignored by all other instances types.
+        </para>
+
+        <para>
+          The <option>--hvm-acpi</option> option specifies if Xen
+          should enable ACPI support for this HVM instance. Valid
+          values are true or false.
+        </para>
+
+        <para>
+          The <option>--hvm-pae</option> option specifies if Xen
+          should enabled PAE support for this HVM instance. Valid
+          values are true or false.
+        </para>
+
+        <para>
+          The <option>--hvm-cdrom-image-path</option> specifies the
+          path to the file xen uses to emulate a virtual CDROM drive
+          for this HVM instance. Valid values are either an
+          absolute path to an existing file or None, which disables
+          virtual CDROM support for this instance.
+        </para>
+
+        <para>
+          The <option>--vnc-bind-address</option> specifies the
+          address that the VNC listener for this instance should bind
+          to. Valid values are IPv4 addresses. Use the address 0.0.0.0
+          to bind to all available interfaces.
         </para>
 
         <para>
@@ -528,6 +562,13 @@
           <arg choice="opt">-b <replaceable>bridge</replaceable></arg>
           <arg choice="opt">--mac <replaceable>MAC-address</replaceable></arg>
           <arg>--hvm-boot-order <replaceable>boot-order</replaceable></arg>
+          <arg>--hvm-acpi <replaceable>ACPI-support</replaceable></arg>
+          <arg>--hvm-pae <replaceable>PAE-support</replaceable></arg>
+          <arg>--hvm-cdrom-image-path
+            <replaceable>cdrom-image-path</replaceable></arg>
+          <arg>--vnc-bind-address
+            <replaceable>vnc-bind-address</replaceable></arg>
+
           <sbr>
           <arg>--kernel <group choice="req">
               <arg>default</arg>
@@ -563,6 +604,33 @@
         <para>
           Additionally, the HVM boot order can be reset to the default
           values by using <option>--hvm-boot-order=default</option>.
+        </para>
+
+        <para>
+          The <option>--hvm-acpi</option> option specifies if Xen
+          should enable ACPI support for this HVM instance. Valid
+          values are true or false.
+        </para>
+
+        <para>
+          The <option>--hvm-pae</option> option specifies if Xen
+          should enabled PAE support for this HVM instance. Valid
+          values are true or false.
+        </para>
+
+        <para>
+          The <option>--hvm-cdrom-image-path</option> specifies the
+          path to the file xen uses to emulate a virtual CDROM drive
+          for this HVM instance. Valid values are either an
+          absolute path to an existing file or None, which disables
+          virtual CDROM support for this instance.
+        </para>
+
+        <para>
+          The <option>--vnc-bind-address</option> specifies the
+          address that the VNC listener for this instance should bind
+          to. Valid values are IPv4 addresses. Use the address 0.0.0.0
+          to bind to all available interfaces.
         </para>
 
         <para>
