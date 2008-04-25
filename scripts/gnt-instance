@@ -630,6 +630,10 @@ def ShowInstanceConfig(opts, args):
   retcode = 0
   op = opcodes.OpQueryInstanceData(instances=args)
   result = SubmitOpCode(op)
+  hvm_parameters = ("hvm_acpi", "hvm_pae", "hvm_cdrom_image_path",
+                    "hvm_boot_order")
+
+  pvm_parameters = ("kernel_path", "initrd_path")
 
   if not result:
     logger.ToStdout("No instances.")
@@ -646,25 +650,29 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - primary: %s\n" % instance["pnode"])
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
-    buf.write("  Allocated network port: %s\n" % instance["network_port"])
-    if instance["kernel_path"] in (None, constants.VALUE_DEFAULT):
-      kpath = "(default: %s)" % constants.XEN_KERNEL
-    else:
-      kpath = instance["kernel_path"]
-    buf.write("  Kernel path: %s\n" % kpath)
-    if instance["initrd_path"] in (None, constants.VALUE_DEFAULT):
-      initrd = "(default: %s)" % constants.XEN_INITRD
-    elif instance["initrd_path"] == constants.VALUE_NONE:
-      initrd = "(none)"
-    else:
-      initrd = instance["initrd_path"]
-    buf.write("       initrd: %s\n" % initrd)
-    buf.write("  HVM:\n")
-    buf.write("    - boot order: %s\n" % instance["hvm_boot_order"])
-    buf.write("    - ACPI support: %s\n" % instance["hvm_acpi"])
-    buf.write("    - PAE support: %s\n" % instance["hvm_pae"])
-    buf.write("    - virtual CDROM: %s\n" % instance["hvm_cdrom_image_path"])
-    buf.write("  VNC bind address: %s\n" % instance["vnc_bind_address"])
+    if instance.has_key("network_port"):
+      buf.write("  Allocated network port: %s\n" % instance["network_port"])
+    if False not in map(instance.has_key, pvm_parameters):
+      if instance["kernel_path"] in (None, constants.VALUE_DEFAULT):
+        kpath = "(default: %s)" % constants.XEN_KERNEL
+      else:
+        kpath = instance["kernel_path"]
+      buf.write("  Kernel path: %s\n" % kpath)
+      if instance["initrd_path"] in (None, constants.VALUE_DEFAULT):
+        initrd = "(default: %s)" % constants.XEN_INITRD
+      elif instance["initrd_path"] == constants.VALUE_NONE:
+        initrd = "(none)"
+      else:
+        initrd = instance["initrd_path"]
+      buf.write("       initrd: %s\n" % initrd)
+    if False not in map(instance.has_key, hvm_parameters):
+      buf.write("  HVM:\n")
+      buf.write("    - boot order: %s\n" % instance["hvm_boot_order"])
+      buf.write("    - ACPI support: %s\n" % instance["hvm_acpi"])
+      buf.write("    - PAE support: %s\n" % instance["hvm_pae"])
+      buf.write("    - virtual CDROM: %s\n" % instance["hvm_cdrom_image_path"])
+    if instance.has_key("vnc_bind_address"):
+      buf.write("  VNC bind address: %s\n" % instance["vnc_bind_address"])
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])
