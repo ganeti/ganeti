@@ -4490,6 +4490,12 @@ class LUExportInstance(LogicalUnit):
                                  self.op.target_node)
     self.op.target_node = self.dst_node.name
 
+    # instance disk type verification
+    for disk in self.instance.disks:
+      if disk.dev_type == constants.LD_FILE:
+        raise errors.OpPrereqError("Export not supported for instances with"
+                                   " file-based disks")
+
   def Exec(self, feedback_fn):
     """Export an instance to an image in the cluster.
 
