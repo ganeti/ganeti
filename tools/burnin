@@ -90,7 +90,7 @@ class Burner(object):
   def ExecOp(self, op):
     """Execute an opcode and manage the exec buffer."""
     self.ClearFeedbackBuf()
-    return self.proc.ExecOpCode(op)
+    return cli.SubmitOpCode(op)
 
   def ParseOptions(self):
     """Parses the command line options.

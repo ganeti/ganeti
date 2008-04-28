@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -u
 #
 
 # Copyright (C) 2006, 2007 Google Inc.
@@ -264,7 +264,7 @@ def PoolWorker(worker_id, incoming_queue):
     if item is None:
       break
     print "worker %s processing job %s" % (worker_id, item.data.job_id)
-    utils.Lock('cmd')
+    #utils.Lock('cmd')
     try:
       proc = mcpu.Processor(feedback=lambda x: None)
       try:
@@ -272,8 +272,9 @@ def PoolWorker(worker_id, incoming_queue):
       except errors.GenericError, err:
         print "ganeti exception %s" % err
     finally:
-      utils.Unlock('cmd')
-      utils.LockCleanup()
+      #utils.Unlock('cmd')
+      #utils.LockCleanup()
+      pass
     print "worker %s finish job %s" % (worker_id, item.data.job_id)
   print "worker %s exiting" % worker_id
 

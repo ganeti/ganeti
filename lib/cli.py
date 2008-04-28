@@ -26,6 +26,7 @@ import sys
 import textwrap
 import os.path
 import copy
+import time
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -381,6 +382,36 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   interaction functions.
 
   """
+  cl = luxi.Client()
+  job = opcodes.Job(op_list=[op])
+  jid = SubmitJob(job)
+
+  query = {
+    "object": "jobs",
+    "fields": ["status"],
+    "names": [jid],
+    }
+
+  while True:
+    jdata = SubmitQuery(query)
+    if not jdata:
+      # job not found, go away!
+      raise errors.JobLost("Job with id %s lost" % jid)
+
+    status = jdata[0][0]
+    if status in (opcodes.Job.STATUS_SUCCESS, opcodes.Job.STATUS_FAIL):
+      break
+    time.sleep(1)
+
+  query["fields"].extend(["op_list", "op_status", "op_result"])
+  jdata = SubmitQuery(query)
+  if not jdata:
+    raise errors.JobLost("Job with id %s lost" % jid)
+  status, op_list, op_status, op_result = jdata[0]
+  if status != opcodes.Job.STATUS_SUCCESS:
+    raise errors.OpExecError(op_result[0])
+  return op_result[0]
+
   if feedback_fn is None:
     feedback_fn = logger.ToStdout
   if proc is None:

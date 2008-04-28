@@ -152,6 +152,15 @@ class OpCodeUnknown(GenericError):
   """
 
 
+class JobLost(GenericError):
+  """Submitted job lost.
+
+  The job was submitted but it cannot be found in the current job
+  list.
+
+  """
+
+
 class ResolverError(GenericError):
   """Host name cannot be resolved.
 
