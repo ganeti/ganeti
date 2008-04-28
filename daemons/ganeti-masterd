@@ -342,11 +342,23 @@ def main():
     utils.Daemonize(logfile=constants.LOG_MASTERDAEMON,
                     noclose_fds=[master.fileno()])
 
-  master.setup_processors()
   try:
-    master.serve_forever()
-  finally:
+    utils.Lock('cmd', debug=options.debug)
+  except errors.LockError, err:
+    print >> sys.stderr, str(err)
     master.server_cleanup()
+    return
+
+  try:
+    master.setup_processors()
+    try:
+      master.serve_forever()
+    finally:
+      master.server_cleanup()
+  finally:
+    utils.Unlock('cmd')
+    utils.LockCleanup()
+
 
 if __name__ == "__main__":
   main()

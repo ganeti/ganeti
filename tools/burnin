@@ -427,17 +427,7 @@ def main():
   """Main function"""
 
   burner = Burner()
-  try:
-    utils.Lock('cmd', max_retries=15, debug=True)
-  except errors.LockError, err:
-    logger.ToStderr(str(err))
-    return 1
-  try:
-    retval = burner.BurninCluster()
-  finally:
-    utils.Unlock('cmd')
-    utils.LockCleanup()
-  return retval
+  return burner.BurninCluster()
 
 
 if __name__ == "__main__":

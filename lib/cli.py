@@ -177,9 +177,6 @@ FIELDS_OPT = make_option("-o", "--output", dest="output", action="store",
 FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
                         default=False, help="Force the operation")
 
-_LOCK_OPT = make_option("--lock-retries", default=None,
-                        type="int", help=SUPPRESS_HELP)
-
 TAG_SRC_OPT = make_option("--from", dest="tags_source",
                           default=None, help="File with tag names")
 
@@ -283,7 +280,6 @@ def _ParseArgs(argv, commands, aliases):
     cmd = aliases[cmd]
 
   func, nargs, parser_opts, usage, description = commands[cmd]
-  parser_opts.append(_LOCK_OPT)
   parser = OptionParser(option_list=parser_opts,
                         description=description,
                         formatter=TitledHelpFormatter(),
@@ -519,14 +515,6 @@ def GenericMain(commands, override=None, aliases=None):
   logger.SetupLogging(debug=options.debug, program=binary)
 
   utils.debug = options.debug
-  try:
-    utils.Lock('cmd', max_retries=options.lock_retries, debug=options.debug)
-  except errors.LockError, err:
-    logger.ToStderr(str(err))
-    return 1
-  except KeyboardInterrupt:
-    logger.ToStderr("Aborting.")
-    return 1
 
   if old_cmdline:
     logger.Info("run with arguments '%s'" % old_cmdline)
@@ -534,14 +522,10 @@ def GenericMain(commands, override=None, aliases=None):
     logger.Info("run with no arguments")
 
   try:
-    try:
-      result = func(options, args)
-    except errors.GenericError, err:
-      result, err_msg = FormatError(err)
-      logger.ToStderr(err_msg)
-  finally:
-    utils.Unlock('cmd')
-    utils.LockCleanup()
+    result = func(options, args)
+  except errors.GenericError, err:
+    result, err_msg = FormatError(err)
+    logger.ToStderr(err_msg)
 
   return result
 
