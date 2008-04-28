@@ -4914,7 +4914,7 @@ class IAllocator(object):
         "disks": [{"size": dsk.size, "mode": "w"} for dsk in iinfo.disks],
         "disk_template": iinfo.disk_template,
         }
-      instance_data[iname] = pir
+      instance_data[iinfo.name] = pir
 
     data["instances"] = instance_data
 
