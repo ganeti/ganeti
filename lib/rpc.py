@@ -680,6 +680,24 @@ def call_hooks_runner(node_list, hpath, phase, env):
   return result
 
 
+def call_iallocator_runner(node, name, idata):
+  """Call an iallocator on a remote node
+
+  Args:
+    - name: the iallocator name
+    - input: the json-encoded input string
+
+  This is a single-node call.
+
+  """
+  params = [name, idata]
+  c = Client("iallocator_runner", params)
+  c.connect(node)
+  c.run()
+  result = c.getresult().get(node, False)
+  return result
+
+
 def call_blockdev_snapshot(node, cf_bdev):
   """Request a snapshot of the given block device.
 
