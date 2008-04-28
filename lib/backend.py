@@ -1633,6 +1633,42 @@ class HooksRunner(object):
     return rr
 
 
+class IAllocatorRunner(object):
+  """IAllocator runner.
+
+  This class is instantiated on the node side (ganeti-noded) and not on
+  the master side.
+
+  """
+  def Run(self, name, idata):
+    """Run an iallocator script.
+
+    Return value: tuple of:
+       - run status (one of the IARUN_ constants)
+       - stdout
+       - stderr
+       - fail reason (as from utils.RunResult)
+
+    """
+    alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
+                                  os.path.isfile)
+    if alloc_script is None:
+      return (constants.IARUN_NOTFOUND, None, None, None)
+
+    fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
+    try:
+      os.write(fd, idata)
+      os.close(fd)
+      result = utils.RunCmd([alloc_script, fin_name])
+      if result.failed:
+        return (constants.IARUN_FAILURE, result.stdout, result.stderr,
+                result.fail_reason)
+    finally:
+      os.unlink(fin_name)
+
+    return (constants.IARUN_SUCCESS, result.stdout, result.stderr, None)
+
+
 class DevCacheManager(object):
   """Simple class for managing a cache of block device information.
 

@@ -484,6 +484,17 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
     hr = backend.HooksRunner()
     return hr.RunHooks(hpath, phase, env)
 
+  # iallocator -----------------
+
+  @staticmethod
+  def perspective_iallocator_runner(params):
+    """Run an iallocator script.
+
+    """
+    name, idata = params
+    iar = backend.IAllocatorRunner()
+    return iar.Run(name, idata)
+
   # test -----------------------
 
   @staticmethod

@@ -5005,29 +5005,26 @@ class IAllocator(object):
 
     self.in_text = serializer.Dump(self.in_data)
 
-  def Run(self, name, validate=True):
+  def Run(self, name, validate=True, call_fn=rpc.call_iallocator_runner):
     """Run an instance allocator and return the results.
 
     """
     data = self.in_text
 
-    alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
-                                  os.path.isfile)
-    if alloc_script is None:
-      raise errors.OpExecError("Can't find allocator '%s'" % name)
+    result = call_fn(self.sstore.GetMasterNode(), name, self.in_text)
 
-    fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
-    try:
-      os.write(fd, data)
-      os.close(fd)
-      result = utils.RunCmd([alloc_script, fin_name])
-      if result.failed:
+    if not isinstance(result, tuple) or len(result) != 4:
+      raise errors.OpExecError("Invalid result from master iallocator runner")
+
+    rcode, stdout, stderr, fail = result
+
+    if rcode == constants.IARUN_NOTFOUND:
+      raise errors.OpExecError("Can't find allocator '%s'" % name)
+    elif rcode == constants.IARUN_FAILURE:
         raise errors.OpExecError("Instance allocator call failed: %s,"
                                  " output: %s" %
-                                 (result.fail_reason, result.output))
-    finally:
-      os.unlink(fin_name)
-    self.out_text = result.stdout
+                                 (fail, stdout+stderr))
+    self.out_text = stdout
     if validate:
       self._ValidateResult()
 
