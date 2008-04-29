@@ -60,8 +60,10 @@ class SimpleStore:
   SS_MASTER_NETDEV = "master_netdev"
   SS_CLUSTER_NAME = "cluster_name"
   SS_FILE_STORAGE_DIR = "file_storage_dir"
+  SS_CONFIG_VERSION = "config_version"
   _VALID_KEYS = (SS_HYPERVISOR, SS_NODED_PASS, SS_MASTER_NODE, SS_MASTER_IP,
-                 SS_MASTER_NETDEV, SS_CLUSTER_NAME, SS_FILE_STORAGE_DIR)
+                 SS_MASTER_NETDEV, SS_CLUSTER_NAME, SS_FILE_STORAGE_DIR,
+                 SS_CONFIG_VERSION)
   _MAX_SIZE = 4096
 
   def __init__(self, cfg_location=None):
@@ -162,6 +164,17 @@ class SimpleStore:
     """
     return self._ReadFile(self.SS_FILE_STORAGE_DIR)
 
+  def GetConfigVersion(self):
+    """Get the configuration version.
+
+    """
+    value = self._ReadFile(self.SS_CONFIG_VERSION)
+    try:
+      return int(value)
+    except (ValueError, TypeError), err:
+      raise errors.ConfigurationError("Failed to convert config version %s to"
+                                      " int: '%s'" % (value, str(err)))
+
   def SetKey(self, key, value):
     """Set the value of a key.
 
@@ -174,7 +187,7 @@ class SimpleStore:
     self._cache[key] = value
 
   def GetFileList(self):
-    """Return the lis of all config files.
+    """Return the list of all config files.
 
     This is used for computing node replication data.
 
