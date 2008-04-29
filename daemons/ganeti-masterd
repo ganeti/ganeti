@@ -332,6 +332,7 @@ def main():
 
   options, args = ParseOptions()
   utils.debug = options.debug
+  utils.no_fork = True
 
   CheckMaster(options.debug)
 

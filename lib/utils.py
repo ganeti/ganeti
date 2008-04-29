@@ -51,6 +51,7 @@ _locksheld = []
 _re_shell_unquoted = re.compile('^[-.,=:/_+@A-Za-z0-9]+$')
 
 debug = False
+no_fork = False
 
 
 class RunResult(object):
@@ -219,6 +220,9 @@ def RunCmd(cmd):
   Returns: `RunResult` instance
 
   """
+  if no_fork:
+    raise errors.ProgrammerError("utils.RunCmd() called with fork() disabled")
+
   if isinstance(cmd, list):
     cmd = [str(val) for val in cmd]
     strcmd = " ".join(cmd)
