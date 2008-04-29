@@ -82,8 +82,15 @@
               <arg><replaceable>initrd_path</replaceable></arg>
             </group> </arg>
           <sbr>
+          <arg>--file-storage-dir <replaceable>dir_path</replaceable></arg>
+          <arg>--file-driver <group choice="req">
+              <arg>loop</arg>
+              <arg>blktap</arg>
+            </group></arg>
+          <sbr>
           <arg choice="req">-t<group>
               <arg>diskless</arg>
+              <arg>file</arg>
               <arg>plain</arg>
               <arg>drbd</arg>
             </group>
@@ -229,6 +236,12 @@
               </listitem>
             </varlistentry>
             <varlistentry>
+              <term>file</term>
+              <listitem>
+                <para>Disk devices will be regular files.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
               <term>plain</term>
               <listitem>
                 <para>Disk devices will be logical volumes.</para>
@@ -258,8 +271,60 @@
         </para>
 
         <para>
+          The <option>--file-storage-dir</option> specifies the relative path
+          under the cluster-wide file storage directory to store file-based
+          disks. It is useful for having different subdirectories for
+          different instances. The full path of the directory where the disk
+          files are stored will consist of cluster-wide file storage directory
+          + optional subdirectory + instance name. Example:
+          /srv/ganeti/file-storage/mysubdir/instance1.example.com. This option
+          is only relevant for instances using the file storage backend.
+        </para>
+
+        <para>
+          The <option>--file-driver</option> specifies the driver to use for
+          file-based disks. Note that currently these drivers work with the
+          xen hypervisor only. This option is only relevant for instances using
+          the file storage backend. The available choices are:
+          <variablelist>
+            <varlistentry>
+              <term>loop</term>
+              <listitem>
+                <para>Kernel loopback driver.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>blktap</term>
+              <listitem>
+                <para>blktap driver.</para>
+              </listitem>
+            </varlistentry>
+          <variablelist>
+        </para>
+
+        <para>
+          The loop driver uses loopback devices to access the filesystem
+          within the file. However, running I/O intensive applications
+          in your instance using the loop driver might result in slowdowns.
+          Furthermore, if you use the loopback driver consider increasing
+          the maximum amount of loopback devices (on most systems it's 8)
+          using the max_loop param.
+        </para>
+
+        <para>
+          In order to be able to use the blktap driver you should check
+          if the 'blktapctrl' user space disk agent is running (usually
+          automatically started via xend). This user-level disk I/O
+          interface has the advantage of better performance. Especially
+          if you use a network file system (e.g. NFS) to store your instances
+          this is the recommended choice.
+        </para> 
+
+        <para>
           Example:
           <screen>
+# gnt-instance add -t file -s 30g -m 512 -o debian-etch \
+  -n node1.example.com --file-storage-dir=mysubdir instance1.example.com
 # gnt-instance add -t plain -s 30g -m 512 -o debian-etch \
   -n node1.example.com instance1.example.com
 # gnt-instance add -t drbd -s 30g -m 512 -o debian-etch \
