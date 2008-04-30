@@ -32,6 +32,7 @@ import re
 
 import ganeti.opcodes
 import ganeti.errors
+import ganeti.utils
 import ganeti.cli
 
 CONNECTOR = {
@@ -104,6 +105,7 @@ class R_Generic(object):
   """Generic class for resources.
 
   """
+  LOCK = 'cmd'
 
   def __init__(self, dispatcher, items, args):
     """ Gentric resource constructor.
@@ -124,15 +126,26 @@ class R_Generic(object):
 
     """
     try:
-      disp = getattr(self, '_%s' % request.lower())
-      disp()
+      fn = getattr(self, '_%s' % request.lower())
+      if self.LOCK:
+        ganeti.utils.Lock(self.LOCK, max_retries=15)
+        try:
+          fn()
+        finally:
+          ganeti.utils.Unlock(self.LOCK)
+          ganeti.utils.LockCleanup()
+      else:
+        fn()
       self.send(self.code, self.result)
+
     except RemoteAPIError, msg:
       self.send_error(self.code, str(msg))
     except ganeti.errors.OpPrereqError, msg:
       self.send_error(404, str(msg))
     except AttributeError, msg:
       self.send_error(405, 'Method Not Implemented: %s' % msg)
+    except ganeti.errors.LockError, msg:
+      self.send_error(503, 'Unable to acquire the lock: %s' % msg)
     except Exception, msg:
       self.send_error(500, 'Internal Server Error: %s' % msg)
 
@@ -156,6 +169,8 @@ class R_Generic(object):
 
 class R_instances(R_Generic):
   """Implementation of /instances resource"""
+  
+  LOCK = None
 
   def _get(self):
     """ Send back to client list of available instances.
@@ -172,6 +187,8 @@ class R_instances(R_Generic):
 
 class R_tags(R_Generic):
   """docstring for R_tag."""
+  
+  LOCK = None
 
   def _get(self):
     """docstring for _get."""
@@ -192,6 +209,8 @@ class R_info(R_Generic):
   """Cluster Info.
   """
 
+  LOCK = None
+
   def _get(self):
     request = ganeti.opcodes.OpQueryClusterInfo()
     self.result = ganeti.cli.SubmitOpCode(request)
@@ -199,6 +218,8 @@ class R_info(R_Generic):
 
 class R_nodes(R_Generic):
   """Class to dispatch /nodes requests."""
+
+  LOCK = None
 
   def _get(self):
     """Send back to cliet list of cluster nodes."""
@@ -233,6 +254,8 @@ class R_nodes_name(R_Generic):
 
 class R_nodes_name_tags(R_Generic):
   """docstring for R_nodes_name_tags."""
+  
+  LOCK = None
 
   def _get(self):
     """docstring for _get."""
@@ -242,12 +265,13 @@ class R_nodes_name_tags(R_Generic):
 
 
 class R_instances_name(R_Generic):
-
+  
   def _get(self):
     fields = ["name", "os", "pnode", "snodes",
               "admin_state", "admin_ram",
               "disk_template", "ip", "mac", "bridge",
-              "sda_size", "sdb_size", "vcpus"]
+              "sda_size", "sdb_size", "vcpus",
+              "oper_state", "status"]
 
     request = ganeti.opcodes.OpQueryInstances(output_fields=fields,
                                               names=self.items)
@@ -261,6 +285,8 @@ class R_instances_name(R_Generic):
 
 class R_instances_name_tags(R_Generic):
   """docstring for R_instances_name_tags."""
+  
+  LOCK = None
 
   def _get(self):
     """docstring for _get."""
