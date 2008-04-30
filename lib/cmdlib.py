@@ -164,14 +164,6 @@ class NoHooksLU(LogicalUnit):
   HPATH = None
   HTYPE = None
 
-  def BuildHooksEnv(self):
-    """Build hooks env.
-
-    This is a no-op, since we don't run hooks.
-
-    """
-    return {}, [], []
-
 
 def _AddHostToEtcHosts(hostname):
   """Wrapper around utils.SetEtcHostsEntry.
