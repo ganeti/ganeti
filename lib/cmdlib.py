@@ -652,10 +652,12 @@ class LUDestroyCluster(NoHooksLU):
     rpc.call_node_leave_cluster(master)
 
 
-class LUVerifyCluster(NoHooksLU):
+class LUVerifyCluster(LogicalUnit):
   """Verifies the cluster status.
 
   """
+  HPATH = "cluster-verify"
+  HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = ["skip_checks"]
 
   def _VerifyNode(self, node, file_list, local_cksum, vglist, node_result,
@@ -837,6 +839,18 @@ class LUVerifyCluster(NoHooksLU):
     if not constants.VERIFY_OPTIONAL_CHECKS.issuperset(self.skip_set):
       raise errors.OpPrereqError("Invalid checks to be skipped specified")
 
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    Cluster-Verify hooks just rone in the post phase and their failure makes
+    the output be logged in the verify output and the verification to fail.
+
+    """
+    all_nodes = self.cfg.GetNodeList()
+    # TODO: populate the environment with useful information for verify hooks
+    env = {}
+    return env, [], all_nodes
+
   def Exec(self, feedback_fn):
     """Verify integrity of cluster, performing various test on nodes.
 
@@ -995,6 +1009,47 @@ class LUVerifyCluster(NoHooksLU):
                   % len(i_non_redundant))
 
     return int(bad)
+
+  def HooksCallBack(self, phase, hooks_results, feedback_fn, lu_result):
+    """Analize the post-hooks' result, handle it, and send some
+    nicely-formatted feedback back to the user.
+
+    Args:
+      phase: the hooks phase that has just been run
+      hooks_results: the results of the multi-node hooks rpc call
+      feedback_fn: function to send feedback back to the caller
+      lu_result: previous Exec result
+
+    """
+    # We only really run POST phase hooks, and are only interested in their results
+    if phase == constants.HOOKS_PHASE_POST:
+      # Used to change hooks' output to proper indentation
+      indent_re = re.compile('^', re.M)
+      feedback_fn("* Hooks Results")
+      if not hooks_results:
+        feedback_fn("  - ERROR: general communication failure")
+        lu_result = 1
+      else:
+        for node_name in hooks_results:
+          show_node_header = True
+          res = hooks_results[node_name]
+          if res is False or not isinstance(res, list):
+            feedback_fn("    Communication failure")
+            lu_result = 1
+            continue
+          for script, hkr, output in res:
+            if hkr == constants.HKR_FAIL:
+              # The node header is only shown once, if there are
+              # failing hooks on that node
+              if show_node_header:
+                feedback_fn("  Node %s:" % node_name)
+                show_node_header = False
+              feedback_fn("    ERROR: Script %s failed, output:" % script)
+              output = indent_re.sub('      ', output)
+              feedback_fn("%s" % output)
+              lu_result = 1
+
+      return lu_result
 
 
 class LUVerifyDisks(NoHooksLU):
