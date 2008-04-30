@@ -133,11 +133,7 @@ class LogicalUnit(object):
     added by the hooks runner. If the LU doesn't define any
     environment, an empty dict (and not None) should be returned.
 
-    As for the node lists, the master should not be included in the
-    them, as it will be added by the hooks runner in case this LU
-    requires a cluster to run on (otherwise we don't have a node
-    list). No nodes should be returned as an empty list (and not
-    None).
+    No nodes should be returned as an empty list (and not None).
 
     Note that if the HPATH for a LU class is None, this function will
     not be called.
