@@ -127,10 +127,14 @@ class Processor(object):
     lu = lu_class(self, op, self.cfg, self.sstore)
     lu.CheckPrereq()
     hm = HooksMaster(rpc.call_hooks_runner, self, lu)
-    hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    lu.HooksCallBack(constants.HOOKS_PHASE_PRE,
+                     h_results, self._feedback_fn, None)
     try:
       result = lu.Exec(self._feedback_fn)
-      hm.RunPhase(constants.HOOKS_PHASE_POST)
+      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
+      result = lu.HooksCallBack(constants.HOOKS_PHASE_POST,
+                       h_results, self._feedback_fn, result)
     finally:
       if lu.cfg is not None:
         # we use lu.cfg and not self.cfg as for init cluster, self.cfg
@@ -166,10 +170,14 @@ class Processor(object):
     lu.CheckPrereq()
     #if do_hooks:
     #  hm = HooksMaster(rpc.call_hooks_runner, self, lu)
-    #  hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    #  h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    #  lu.HooksCallBack(constants.HOOKS_PHASE_PRE,
+    #                   h_results, self._feedback_fn, None)
     result = lu.Exec(self._feedback_fn)
     #if do_hooks:
-    #  hm.RunPhase(constants.HOOKS_PHASE_POST)
+    #  h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
+    #  result = lu.HooksCallBack(constants.HOOKS_PHASE_POST,
+    #                   h_results, self._feedback_fn, result)
     return result
 
   def LogStep(self, current, total, message):

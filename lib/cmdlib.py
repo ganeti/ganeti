@@ -141,6 +141,24 @@ class LogicalUnit(object):
     """
     raise NotImplementedError
 
+  def HooksCallBack(self, phase, hook_results, feedback_fn, lu_result):
+    """Notify the LU about the results of its hooks.
+
+    This method is called every time a hooks phase is executed, and notifies
+    the Logical Unit about the hooks' result. The LU can then use it to alter
+    its result based on the hooks.  By default the method does nothing and the
+    previous result is passed back unchanged but any LU can define it if it
+    wants to use the local cluster hook-scripts somehow.
+
+    Args:
+      phase: the hooks phase that has just been run
+      hooks_results: the results of the multi-node hooks rpc call
+      feedback_fn: function to send feedback back to the caller
+      lu_result: the previous result this LU had, or None in the PRE phase.
+
+    """
+    return lu_result
+
 
 class NoHooksLU(LogicalUnit):
   """Simple LU which runs no hooks.
