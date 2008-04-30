@@ -291,6 +291,15 @@
               <entry><constant>INSTANCE_NAME</constant>, <constant>OLD_SECONDARY</constant>, <constant>NEW_SECONDARY</constant></entry>
 
             </row>
+            <row>
+              <entry>OP_CLUSTER_VERIFY</entry>
+              <entry><filename class="directory">cluster-verify</filename></entry>
+              <entry>Verifies the cluster status</entry>
+              <entry><computeroutput>gnt-cluster verify</computeroutput></entry>
+              <entry><constant>CLUSTER</constant>, <constant>MASTER</constant></entry>
+              <entry>NONE</entry>
+              <entry>all nodes</entry>
+            </row>
           </tbody>
         </tgroup>
       </table>
