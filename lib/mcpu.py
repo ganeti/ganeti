@@ -264,6 +264,12 @@ class HooksMaster(object):
 
     This is the main function of the HookMaster.
 
+    Args:
+      phase: the hooks phase to run
+
+    Returns:
+      the result of the hooks multi-node rpc call
+
     """
     if not self.node_list[phase]:
       # empty node list, we should not attempt to run this as either
@@ -287,6 +293,7 @@ class HooksMaster(object):
             errs.append((node_name, script, output))
       if errs:
         raise errors.HooksAbort(errs)
+    return results
 
   def RunConfigUpdate(self):
     """Run the special configuration update hook
