@@ -4,7 +4,7 @@
   <articleinfo>
     <title>Ganeti administrator's guide</title>
   </articleinfo>
-  <para>Documents Ganeti version 1.2</para>
+  <para>Documents Ganeti version 1.3</para>
   <sect1>
     <title>Introduction</title>
 
@@ -173,19 +173,10 @@
         </varlistentry>
 
         <varlistentry>
-          <term>local_raid1</term>
-          <listitem>
-            <para>A local mirror is set between LVM devices to back the
-              instance. This provides some redundancy for the instance's
-              data.</para>
-          </listitem>
-        </varlistentry>
-
-        <varlistentry>
-          <term>remote_raid1</term>
+          <term>drbd</term>
           <listitem>
             <simpara><emphasis role="strong">Note:</emphasis> This is only
-              valid for multi-node clusters using drbd 0.7.</simpara>
+              valid for multi-node clusters using drbd 8.0.x</simpara>
             <simpara>
               A mirror is set between the local node and a remote one, which
               must be specified with the second value of the --node option. Use
@@ -195,29 +186,12 @@
           </listitem>
         </varlistentry>
 
-        <varlistentry>
-          <term>drbd</term>
-          <listitem>
-            <simpara><emphasis role="strong">Note:</emphasis> This is only
-              valid for multi-node clusters using drbd 8.0.</simpara>
-            <simpara>
-              This is similar to the
-              <replaceable>remote_raid1</replaceable> option, but uses
-              new features in drbd 8 to simplify the device
-              stack. From a user's point of view, this will improve
-              the speed of the <command>replace-disks</command>
-              command and (in future versions) provide more
-              functionality.
-            </simpara>
-          </listitem>
-        </varlistentry>
-
       </variablelist>
 
       <para>
         For example if you want to create an highly available instance use the
-        remote_raid1 or drbd disk templates:
-        <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable><optional>:<replaceable>SECONDARY_NODE</replaceable></optional> -o <replaceable>OS_TYPE</replaceable> -t remote_raid1 \
+        drbd disk templates:
+        <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable><optional>:<replaceable>SECONDARY_NODE</replaceable></optional> -o <replaceable>OS_TYPE</replaceable> -t drbd \
   <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
       <para>
@@ -329,14 +303,10 @@
         failed, or you plan to remove a node from your cluster, and
         you failed over all its instances, but it's still secondary
         for some? The solution here is to replace the instance disks,
-        changing the secondary node. This is done in two ways, depending on the disk template type. For <literal>remote_raid1</literal>:
+        changing the secondary node:
+        <synopsis>gnt-instance replace-disks <option>-s</option> <option>--new-secondary <replaceable>NODE</replaceable></option> <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
-        <synopsis>gnt-instance replace-disks <option>-n <replaceable>NEW_SECONDARY</replaceable></option> <replaceable>INSTANCE_NAME</replaceable></synopsis>
-
-        and for <literal>drbd</literal>:
-        <synopsis>gnt-instance replace-disks <option>-s</option> <option>-n <replaceable>NEW_SECONDARY</replaceable></option> <replaceable>INSTANCE_NAME</replaceable></synopsis>
-
-        This process is a bit longer, but involves no instance
+        This process is a bit long, but involves no instance
         downtime, and at the end of it the instance has changed its
         secondary node, to which it can if necessary be failed over.
       </para>

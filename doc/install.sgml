@@ -314,13 +314,8 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
       </para>
 
       <para>
-        Supported DRBD versions: the <literal>0.7</literal> series
-        <emphasis role="strong">or</emphasis>
-        <literal>8.0.7</literal>. It's recommended to have at least
-        version <literal>0.7.24</literal> if you use
-        <command>udev</command> since older versions have a bug
-        related to device discovery which can be triggered in cases of
-        hard drive failure.
+        Supported DRBD versions: <literal>8.0.x</literal>.
+        It's recommended to have at least version <literal>8.0.7</literal>.
       </para>
 
       <para>
@@ -336,36 +331,20 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
         you have the DRBD utils installed and the module in your
         kernel you're fine. Please check that your system is
         configured to load the module at every boot, and that it
-        passes the following option to the module (for
-        <literal>0.7.x</literal>:
-        <computeroutput>minor_count=64</computeroutput> (this will
-        allow you to use up to 32 instances per node) or for
-        <literal>8.0.x</literal> you can use up to
-        <constant>255</constant>
-        (i.e. <computeroutput>minor_count=255</computeroutput>, but
-        for most clusters <constant>128</constant> should be enough).
+        passes the following option to the module
+        <computeroutput>minor_count=255</computeroutput>. This will
+        allow you to use up to 128 instances per node (for most clusters
+        <constant>128 </constant> should be enough, though).
       </para>
 
       <formalpara><title>Debian</title>
         <para>
-         You can just install (build) the DRBD 0.7 module with the
+         You can just install (build) the DRBD 8.0.x module with the
          following commands (make sure you are running the Xen
          kernel):
         </para>
       </formalpara>
 
-      <screen>
-apt-get install drbd0.7-module-source drbd0.7-utils
-m-a update
-m-a a-i drbd0.7
-echo drbd minor_count=64 >> /etc/modules
-modprobe drbd minor_count=64
-      </screen>
-      <para>
-        or for using DRBD <literal>8.x</literal> from the etch
-        backports (note: you need at least 8.0.7, older version have
-        a bug that breaks ganeti's usage of drbd):
-      </para>
       <screen>
 apt-get install -t etch-backports drbd8-module-source drbd8-utils
 m-a update
@@ -376,7 +355,7 @@ modprobe drbd minor_count=128
 
       <para>
         It is also recommended that you comment out the default
-        resources in the <filename>/etc/dbrd.conf</filename> file, so
+        resources in the <filename>/etc/drbd.conf</filename> file, so
         that the init script doesn't try to configure any drbd
         devices. You can do this by prefixing all
         <literal>resource</literal> lines in the file with the keyword
@@ -428,17 +407,7 @@ skip resource "r1" {
           (part of iputils package)</simpara>
         </listitem>
         <listitem>
-          <simpara><ulink
-          url="http://www.kernel.org/pub/linux/utils/raid/mdadm/">mdadm</ulink>
-          (Linux Software Raid tools)</simpara>
-        </listitem>
-        <listitem>
           <simpara><ulink url="http://www.python.org">Python 2.4</ulink></simpara>
-        </listitem>
-        <listitem>
-          <simpara><ulink url="http://twistedmatrix.com/">Python
-          Twisted library</ulink> - the core library is
-          enough</simpara>
         </listitem>
         <listitem>
           <simpara><ulink
@@ -472,8 +441,7 @@ skip resource "r1" {
       </formalpara>
       <screen>
 # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-  python2.4 python-twisted-core python-pyopenssl openssl \
-  mdadm python-pyparsing python-simplejson
+  python2.4 python-pyopenssl openssl python-pyparsing python-simplejson
       </screen>
 
     </sect2>
@@ -834,8 +802,7 @@ node1.example.com 197404 197404   2047  1896   125     0     0
         This step shows how to setup a virtual instance with either
         non-mirrored disks (<computeroutput>plain</computeroutput>) or
         with network mirrored disks
-        (<computeroutput>remote_raid1</computeroutput> for drbd 0.7
-        and <computeroutput>drbd</computeroutput> for drbd 8.x).  All
+        (<computeroutput>drbd</computeroutput>).  All
         commands need to be executed on the Ganeti master node (the
         one on which <computeroutput>gnt-cluster init</computeroutput>
         was run).  Verify that the OS scripts are present on all
@@ -872,14 +839,13 @@ creating os for instance inst1.example.com on node node1.example.com
       <para>
         To create a network mirrored instance, change the argument to
         the <option>-t</option> option from <literal>plain</literal>
-        to <literal>remote_raid1</literal> (drbd 0.7) or
-        <literal>drbd</literal> (drbd 8.0) and specify the node on
+        to <literal>drbd</literal> and specify the node on
         which the mirror should reside with the second value of the
         <option>--node</option> option, like this:
       </para>
 
       <screen>
-# gnt-instance add -t remote_raid1 -n node1:node2 -o debian-etch instance2
+# gnt-instance add -t drbd -n node1:node2 -o debian-etch instance2
 * creating instance disks...
 adding instance instance2 to cluster config
 Waiting for instance instance1 to sync disks.
@@ -919,8 +885,8 @@ creating os for instance instance2 on node node1.example.com
 
       <para>
         To failover an instance to its secondary node (only possible
-        in <literal>remote_raid1</literal> or <literal>drbd</literal>
-        disk templates), use <computeroutput>gnt-instance failover
+        with <literal>drbd</literal> disk templates), use
+        <computeroutput>gnt-instance failover
         <replaceable>INSTANCENAME</replaceable></computeroutput>.
       </para>
 
