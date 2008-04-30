@@ -9,6 +9,7 @@ ganeti:
 
 pre-check: ganeti
 	$(MAKE) -C lib $@
+	$(MAKE) -C lib/rapi $@
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:

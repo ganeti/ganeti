@@ -92,6 +92,7 @@ AC_CONFIG_FILES([
   doc/Makefile
   doc/examples/Makefile
   lib/Makefile
+  lib/rapi/Makefile
   man/Makefile
   qa/Makefile
   qa/hooks/Makefile
