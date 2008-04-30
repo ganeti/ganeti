@@ -1420,9 +1420,6 @@ class HooksRunner(object):
     Args:
       - hooks_base_dir: if not None, this overrides the
         constants.HOOKS_BASE_DIR (useful for unittests)
-      - logs_base_dir: if not None, this overrides the
-        constants.LOG_HOOKS_DIR (useful for unittests)
-      - logging: enable or disable logging of script output
 
     """
     if hooks_base_dir is None:
@@ -1434,7 +1431,6 @@ class HooksRunner(object):
     """Exec one hook script.
 
     Args:
-     - phase: the phase
      - script: the full path to the script
      - env: the environment with which to exec the script
 
