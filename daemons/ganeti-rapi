@@ -68,8 +68,8 @@ def ParseOptions():
 
   options, args = parser.parse_args()
 
-  if len(args) != 1 or args[0] not in ("start", "stop"):
-    print >> sys.stderr, "Usage: %s [-d] [-p port] start|stop\n" % sys.argv[0]
+  if len(args) != 0:
+    print >> sys.stderr, "Usage: %s [-d] [-p port]" % sys.argv[0]
     sys.exit(1)
 
   if options.ssl:
@@ -81,95 +81,15 @@ def ParseOptions():
   return options, args
 
 
-def Port2PID(port):
-  """Map network port to PID.
-
-  Args:
-    port: A port number to map.
-
-  Return:
-    PID number.
-  """
-
-  _NET_STAT = ['/proc/net/tcp', '/proc/net/udp']
-
-  inode2port = {}
-  port2pid = {}
-
-  for file in _NET_STAT:
-    try:
-      try:
-        f = open(file)
-        for line in f.readlines()[1:]:
-          d = line.split()
-          inode2port[long(d[9])] = int(d[1].split(':')[1], 16)
-      finally:
-        f.close()
-    except EnvironmentError:
-      # Nothing can be done
-      pass
-
-  fdlist = glob.glob('/proc/[0-9]*/fd/*')
-  for fd in fdlist:
-    try:
-      pid = int(fd.split('/')[2])
-      inode = long(os.stat(fd)[1])
-      if inode in inode2port:
-        port2pid[inode2port[inode]] = pid
-    except EnvironmentError:
-      # Nothing can be done
-      pass
-
-  if port in port2pid:
-    return port2pid[port]
-  else:
-    return None
-
-
-def StartAPI(options):
-  """Start the API.
-
-  Args:
-    options: arguments.
-
-  Return:
-    Exit code.
-  """
-  if options.fork:
-    utils.Daemonize(logfile=constants.LOG_RAPISERVER)
-  RESTHTTPServer.start(options)
-
-
-def StopAPI(options):
-  """Stop the API."""
-  try:
-    pid = Port2PID(options.port)
-    if pid:
-      print ("Stopping Ganeti-RAPI PID: %d, port: %d... "
-             % (pid, options.port)),
-      os.kill(pid, 9)
-      print "done."
-    else:
-      print >> sys.stderr, "Unable to locate running Ganeti-RAPI on port: %d" \
-          % options.port
-
-  except Exception, ex:
-    print >> sys.stderr, ex
-    return 1
-  return 0
-
-
 def main():
   """Main function.
 
   """
-  result = 1
   options, args = ParseOptions()
-  if args[0] == "start":
-    result = StartAPI(options)
-  else:
-    result = StopAPI(options)
-  sys.exit(result)
+  if options.fork:
+    utils.Daemonize(logfile=constants.LOG_RAPISERVER)
+  RESTHTTPServer.start(options)
+  sys.exit(0)
 
 
 if __name__ == '__main__':
