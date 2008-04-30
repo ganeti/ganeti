@@ -25,6 +25,7 @@
 
 import time
 import os
+import re
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -287,6 +288,8 @@ class XenHypervisor(BaseHypervisor):
           result['memory_total'] = int(val)
         elif key == 'free_memory':
           result['memory_free'] = int(val)
+        elif key == 'nr_cpus':
+          result['cpu_total'] = int(val)
     dom0_info = self.GetInstanceInfo("Domain-0")
     if dom0_info is not None:
       result['memory_dom0'] = dom0_info[2]
@@ -551,8 +554,20 @@ class FakeHypervisor(BaseHypervisor):
           sum_free += int(val.split()[0])/1024
         elif key == 'Active':
           result['memory_dom0'] = int(val.split()[0])/1024
-
     result['memory_free'] = sum_free
+
+    cpu_total = 0
+    try:
+      fh = open("/proc/cpuinfo")
+      try:
+        cpu_total = len(re.findall("(?m)^processor\s*:\s*[0-9]+\s*$",
+                                   fh.read()))
+      finally:
+        fh.close()
+    except EnvironmentError, err:
+      raise HypervisorError("Failed to list node info: %s" % err)
+    result['cpu_total'] = cpu_total
+
     return result
 
   @staticmethod

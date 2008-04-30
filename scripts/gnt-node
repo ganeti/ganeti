@@ -55,12 +55,15 @@ def ListNodes(opts, args):
   output = SubmitOpCode(op)
 
   if not opts.no_headers:
-    headers = {"name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
-               "pinst_list": "PriInstances", "sinst_list": "SecInstances",
-               "pip": "PrimaryIP", "sip": "SecondaryIP",
-               "dtotal": "DTotal", "dfree": "DFree",
-               "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
-               "bootid": "BootID"}
+    headers = {
+      "name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
+      "pinst_list": "PriInstances", "sinst_list": "SecInstances",
+      "pip": "PrimaryIP", "sip": "SecondaryIP",
+      "dtotal": "DTotal", "dfree": "DFree",
+      "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
+      "bootid": "BootID",
+      "ctotal": "CTotal",
+      }
   else:
     headers = None
 
@@ -71,7 +74,8 @@ def ListNodes(opts, args):
 
   numfields = ["dtotal", "dfree",
                "mtotal", "mnode", "mfree",
-               "pinst_cnt", "sinst_cnt"]
+               "pinst_cnt", "sinst_cnt",
+               "ctotal"]
 
   # change raw values to nicer strings
   for row in output:
@@ -305,7 +309,8 @@ commands = {
            "", "Lists the nodes in the cluster. The available fields"
            " are (see the man page for details): name, pinst_cnt, pinst_list,"
            " sinst_cnt, sinst_list, pip, sip, dtotal, dfree, mtotal, mnode,"
-           " mfree, bootid. The default field list is (in order): name,"
+           " mfree, bootid, cpu_count. The default field list is"
+           " (in order): name,"
            " dtotal, dfree, mtotal, mnode, mfree, pinst_cnt, sinst_cnt."),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
              "<node_name>", "Removes a node from the cluster"),
