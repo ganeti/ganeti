@@ -8,6 +8,7 @@ pkgpython_PYTHON = __init__.py backend.py cli.py cmdlib.py config.py \
 
 nobase_pkgpython_PYTHON = rapi/__init__.py \
 	rapi/resources.py rapi/RESTHTTPServer.py
+python_files = $(pkgpython_PYTHON)
 
 all-local: _autoconf.py
 
@@ -25,7 +26,4 @@ _autoconf.py: Makefile
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	} > $@
 
-pre-check: all
-	for i in $(pkgpython_PYTHON); do \
-		if test ! -f $$i; then $(LN_S) $(srcdir)/$$i $$i; fi; \
-	done
+include $(srcdir)/Makefile.libcommon

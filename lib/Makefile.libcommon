@@ -1,0 +1,8 @@
+# We need to create symlinks because "make distcheck" will not install Python
+# files for building.
+pre-check: all
+	for i in $(python_files); do \
+		if test ! -f $$i; then \
+			$(LN_S) $(srcdir)/$$i $$i; \
+		fi; \
+	done
