@@ -66,6 +66,13 @@ class IOServer(SocketServer.UnixStreamServer):
   QUEUE_PROCESSOR_SIZE = 1
 
   def __init__(self, address, rqhandler):
+    """IOServer constructor
+
+    Args:
+      address: the address to bind this IOServer to
+      rqhandler: RequestHandler type object
+
+    """
     SocketServer.UnixStreamServer.__init__(self, address, rqhandler)
     self.do_quit = False
     self.queue = jqueue.QueueManager()
@@ -234,6 +241,10 @@ def JobRunner(proc, job):
   This functions processes a single job in the context of given
   processor instance.
 
+  Args:
+    proc: Ganeti Processor to run the job on
+    job: The job to run (unserialized format)
+
   """
   job.SetStatus(opcodes.Job.STATUS_RUNNING)
   fail = False
@@ -256,6 +267,10 @@ def PoolWorker(worker_id, incoming_queue):
   """A worker thread function.
 
   This is the actual processor of a single thread of Job execution.
+
+  Args:
+    worker_id: the unique id for this worker
+    incoming_queue: a queue to get jobs from
 
   """
   while True:
