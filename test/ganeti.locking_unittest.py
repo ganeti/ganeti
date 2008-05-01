@@ -517,7 +517,6 @@ class TestGanetiLockManager(unittest.TestCase):
       self.assertEqual(i, locking.LEVELS[i])
 
   def testDoubleGLFails(self):
-    # We are not passing test=True, so instantiating a new one should fail
     self.assertRaises(AssertionError, locking.GanetiLockManager)
 
   def testLockNames(self):
