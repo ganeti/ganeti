@@ -705,7 +705,7 @@ def SetInstanceParms(opts, args):
   """
   if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac or
           opts.kernel_path or opts.initrd_path or opts.hvm_boot_order or
-          opts.hvm_acpi or opts.hvm_acpi or opts.hvm_cdrom_image_path or
+          opts.hvm_acpi or opts.hvm_pae or opts.hvm_cdrom_image_path or
           opts.vnc_bind_address):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
