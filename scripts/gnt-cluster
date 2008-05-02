@@ -132,6 +132,8 @@ def ShowClusterConfig(opts, args):
   print ("Architecture (this node): %s (%s)" %
          (result["architecture"][0], result["architecture"][1]))
 
+  print ("Cluster hypervisor: %s" % result["hypervisor_type"])
+
   return 0
 
 
