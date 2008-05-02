@@ -178,7 +178,8 @@ class SimpleStore:
   def SetKey(self, key, value):
     """Set the value of a key.
 
-    This should be used only when adding a node to a cluster.
+    This should be used only when adding a node to a cluster, or in other
+    infrequent operations such as cluster-rename or master-failover.
 
     """
     file_name = self.KeyToFilename(key)
