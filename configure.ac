@@ -114,6 +114,7 @@ fi
 AC_CONFIG_FILES([
   Makefile
   daemons/Makefile
+  devel/Makefile
   doc/Makefile
   doc/examples/Makefile
   lib/Makefile

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright (C) 2006, 2007 Google Inc.
 #
@@ -38,7 +38,7 @@ echo ---
 
 echo ---
 
-PREFIX=$(cat Makefile | grep '^prefix' | sed -e 's/.*= //')
+PREFIX='@PREFIX@'
 
 # and now put it under $prefix on the target node(s)
 for host; do
