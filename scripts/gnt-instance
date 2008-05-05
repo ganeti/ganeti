@@ -41,6 +41,10 @@ _SHUTDOWN_INSTANCES = "instances"
 
 _VALUE_TRUE = "true"
 
+_LIST_DEF_FIELDS = [
+  "name", "os", "pnode", "status", "oper_ram",
+  ]
+
 def _ExpandMultiNames(mode, names):
   """Expand the given names using the passed mode.
 
@@ -163,7 +167,9 @@ def ListInstances(opts, args):
 
   """
   if opts.output is None:
-    selected_fields = ["name", "os", "pnode", "status", "oper_ram"]
+    selected_fields = _LIST_DEF_FIELDS
+  elif opts.output.startswith("+"):
+    selected_fields = _LIST_DEF_FIELDS + opts.output[1:].split(",")
   else:
     selected_fields = opts.output.split(",")
 
@@ -878,8 +884,8 @@ commands = {
            " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
            " ip, mac, bridge, sda_size, sdb_size, vcpus. The default field"
-           " list is (in order): name, os, pnode, status,"
-           " oper_ram."),
+           " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
+           ),
   'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, os_opt],
                 "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (RemoveInstance, ARGS_ONE,
