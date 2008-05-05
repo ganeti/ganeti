@@ -544,15 +544,10 @@ class ConfigWriter:
     nodelist = self.GetNodeList()
     myhostname = self._my_hostname
 
-    tgt_list = []
-    for node in nodelist:
-      nodeinfo = self.GetNodeInfo(node)
-      if nodeinfo.name == myhostname:
-        continue
-      tgt_list.append(node)
+    nodelist.remove(myhostname)
 
-    result = rpc.call_upload_file(tgt_list, self._cfg_file)
-    for node in tgt_list:
+    result = rpc.call_upload_file(nodelist, self._cfg_file)
+    for node in nodelist:
       if not result[node]:
         logger.Error("copy of file %s to node %s failed" %
                      (self._cfg_file, node))
