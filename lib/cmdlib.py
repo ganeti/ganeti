@@ -4938,7 +4938,7 @@ class IAllocator(object):
         raise errors.OpExecError("Can't get data for node %s" % nname)
       remote_info = node_data[nname]
       for attr in ['memory_total', 'memory_free', 'memory_dom0',
-                   'vg_size', 'vg_free']:
+                   'vg_size', 'vg_free', 'cpu_total']:
         if attr not in remote_info:
           raise errors.OpExecError("Node '%s' didn't return attribute '%s'" %
                                    (nname, attr))
@@ -4967,6 +4967,7 @@ class IAllocator(object):
         "free_disk": remote_info['vg_free'],
         "primary_ip": ninfo.primary_ip,
         "secondary_ip": ninfo.secondary_ip,
+        "total_cpus": remote_info['cpu_total'],
         }
       node_results[nname] = pnr
     data["nodes"] = node_results

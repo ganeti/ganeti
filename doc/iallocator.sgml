@@ -320,6 +320,15 @@
                 </listitem>
               </varlistentry>
               <varlistentry>
+                <term>total_cpus</term>
+                <listitem>
+                  <simpara>the physical number of CPUs present on the
+                  machine; depending on the hypervisor, this might or
+                  might not be equal to how many CPUs the node
+                  operating system sees;</simpara>
+                </listitem>
+              </varlistentry>
+              <varlistentry>
                 <term>primary_ip</term>
                 <listitem>
                   <simpara>the primary IP address of the
