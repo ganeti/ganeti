@@ -526,10 +526,10 @@
 
         <para>
           There is a subtle grouping about the available output
-          fields: all fields except for <option>oper_state</option>
-          and <option>oper_ram</option> are configuration value and
-          not run-time values. So if you don't select any of the
-          <option>oper_*</option> fields, the query will be satisfied
+          fields: all fields except for <option>oper_state</option>,
+          <option>oper_ram</option> and <option>status</option> are
+          configuration value and not run-time values. So if you don't
+          select any of the these fields, the query will be satisfied
           instantly from the cluster configuration, without having to
           ask the remote nodes for the data. This can be helpful for
           big clusters when you only want some data and it makes sense
