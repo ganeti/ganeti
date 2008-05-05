@@ -1492,9 +1492,12 @@ class LUQueryNodes(NoHooksLU):
     This checks that the fields required are valid output fields.
 
     """
-    self.dynamic_fields = frozenset(["dtotal", "dfree",
-                                     "mtotal", "mnode", "mfree",
-                                     "bootid"])
+    self.dynamic_fields = frozenset([
+      "dtotal", "dfree",
+      "mtotal", "mnode", "mfree",
+      "bootid",
+      "ctotal",
+      ])
 
     _CheckOutputFields(static=["name", "pinst_cnt", "sinst_cnt",
                                "pinst_list", "sinst_list",
@@ -1525,6 +1528,7 @@ class LUQueryNodes(NoHooksLU):
             "mfree": utils.TryConvert(int, nodeinfo['memory_free']),
             "dtotal": utils.TryConvert(int, nodeinfo['vg_size']),
             "dfree": utils.TryConvert(int, nodeinfo['vg_free']),
+            "ctotal": utils.TryConvert(int, nodeinfo['cpu_total']),
             "bootid": nodeinfo['bootid'],
             }
         else:

@@ -199,6 +199,8 @@ class XenHypervisor(BaseHypervisor.BaseHypervisor):
           result['memory_total'] = int(val)
         elif key == 'free_memory':
           result['memory_free'] = int(val)
+        elif key == 'nr_cpus':
+          result['cpu_total'] = int(val)
     dom0_info = self.GetInstanceInfo("Domain-0")
     if dom0_info is not None:
       result['memory_dom0'] = dom0_info[2]
