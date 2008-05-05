@@ -293,7 +293,7 @@ commands = {
           "[-s ip] <node_name>", "Add a node to the cluster"),
   'evacuate': (EvacuateNode, ARGS_FIXED(2),
                [DEBUG_OPT, FORCE_OPT],
-               "[-f] <src_node> <dst_node>",
+               "[-f] <src> <dst>",
                "Relocate the secondary instances from the first node"
                " to the second one (only for instances of type remote_raid1"
                " or drbd)"),
