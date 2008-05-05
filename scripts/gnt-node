@@ -30,6 +30,12 @@ from ganeti import constants
 from ganeti import errors
 
 
+_LIST_DEF_FIELDS = [
+  "name", "dtotal", "dfree",
+  "mtotal", "mnode", "mfree",
+  "pinst_cnt", "sinst_cnt",
+  ]
+
 def AddNode(opts, args):
   """Add node cli-to-processor bridge."""
   logger.ToStderr("-- WARNING -- \n"
@@ -46,9 +52,9 @@ def ListNodes(opts, args):
 
   """
   if opts.output is None:
-    selected_fields = ["name", "dtotal", "dfree",
-                       "mtotal", "mnode", "mfree",
-                       "pinst_cnt", "sinst_cnt"]
+    selected_fields = _LIST_DEF_FIELDS
+  elif opts.output.startswith("+"):
+    selected_fields = _LIST_DEF_FIELDS + opts.output[1:].split(",")
   else:
     selected_fields = opts.output.split(",")
 
@@ -314,8 +320,8 @@ commands = {
            " are (see the man page for details): name, pinst_cnt, pinst_list,"
            " sinst_cnt, sinst_list, pip, sip, dtotal, dfree, mtotal, mnode,"
            " mfree, bootid, cpu_count. The default field list is"
-           " (in order): name,"
-           " dtotal, dfree, mtotal, mnode, mfree, pinst_cnt, sinst_cnt."),
+           " (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
+           ),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
              "<node_name>", "Removes a node from the cluster"),
   'volumes': (ListVolumes, ARGS_ANY,
