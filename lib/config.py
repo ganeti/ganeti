@@ -544,7 +544,10 @@ class ConfigWriter:
     nodelist = self.GetNodeList()
     myhostname = self._my_hostname
 
-    nodelist.remove(myhostname)
+    try:
+      nodelist.remove(myhostname)
+    except ValueError:
+      pass
 
     result = rpc.call_upload_file(nodelist, self._cfg_file)
     for node in nodelist:
