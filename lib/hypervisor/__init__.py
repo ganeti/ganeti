@@ -31,6 +31,13 @@ from ganeti.hypervisor import hv_fake
 from ganeti.hypervisor import hv_xen
 
 
+_HYPERVISOR_MAP = {
+    constants.HT_XEN_PVM30: hv_xen.XenPvmHypervisor,
+    constants.HT_XEN_HVM31: hv_xen.XenHvmHypervisor,
+    constants.HT_FAKE: hv_fake.FakeHypervisor,
+    }
+
+
 def GetHypervisor():
   """Return a Hypervisor instance.
 
@@ -39,12 +46,9 @@ def GetHypervisor():
 
   """
   ht_kind = ssconf.SimpleStore().GetHypervisorType()
-  if ht_kind == constants.HT_XEN_PVM30:
-    cls = hv_xen.XenPvmHypervisor
-  elif ht_kind == constants.HT_XEN_HVM31:
-    cls = hv_xen.XenHvmHypervisor
-  elif ht_kind == constants.HT_FAKE:
-    cls = hv_fake.FakeHypervisor
-  else:
+
+  if ht_kind not in _HYPERVISOR_MAP:
     raise errors.HypervisorError("Unknown hypervisor type '%s'" % ht_kind)
+
+  cls = _HYPERVISOR_MAP[ht_kind]
   return cls()
