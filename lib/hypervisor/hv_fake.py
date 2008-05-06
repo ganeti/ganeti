@@ -30,10 +30,10 @@ import re
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
-from ganeti.hypervisor import BaseHypervisor
+from ganeti.hypervisor import hv_base
 
 
-class FakeHypervisor(BaseHypervisor.BaseHypervisor):
+class FakeHypervisor(hv_base.BaseHypervisor):
   """Fake hypervisor interface.
 
   This can be used for testing the ganeti code without having to have
@@ -43,7 +43,7 @@ class FakeHypervisor(BaseHypervisor.BaseHypervisor):
   _ROOT_DIR = constants.RUN_DIR + "/ganeti-fake-hypervisor"
 
   def __init__(self):
-    BaseHypervisor.__init__(self)
+    hv_base.BaseHypervisor.__init__(self)
     if not os.path.exists(self._ROOT_DIR):
       os.mkdir(self._ROOT_DIR)
 

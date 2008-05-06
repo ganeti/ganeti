@@ -27,8 +27,8 @@ from ganeti import ssconf
 from ganeti import constants
 from ganeti import errors
 
-from ganeti.hypervisor import FakeHypervisor
-from ganeti.hypervisor import XenHypervisor
+from ganeti.hypervisor import hv_fake
+from ganeti.hypervisor import hv_xen
 
 
 def GetHypervisor():
@@ -40,11 +40,11 @@ def GetHypervisor():
   """
   ht_kind = ssconf.SimpleStore().GetHypervisorType()
   if ht_kind == constants.HT_XEN_PVM30:
-    cls = XenHypervisor.XenPvmHypervisor
+    cls = hv_xen.XenPvmHypervisor
   elif ht_kind == constants.HT_XEN_HVM31:
-    cls = XenHypervisor.XenHvmHypervisor
+    cls = hv_xen.XenHvmHypervisor
   elif ht_kind == constants.HT_FAKE:
-    cls = FakeHypervisor.FakeHypervisor
+    cls = hv_fake.FakeHypervisor
   else:
     raise errors.HypervisorError("Unknown hypervisor type '%s'" % ht_kind)
   return cls()

@@ -32,10 +32,10 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import logger
 from ganeti import utils
-from ganeti.hypervisor import BaseHypervisor
+from ganeti.hypervisor import hv_base
 
 
-class XenHypervisor(BaseHypervisor.BaseHypervisor):
+class XenHypervisor(hv_base.BaseHypervisor):
   """Xen generic hypervisor interface
 
   This is the Xen base class used for both Xen PVM and HVM. It contains
