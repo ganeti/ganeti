@@ -43,6 +43,17 @@ from ganeti import constants
 from ganeti import rpc
 from ganeti import objects
 from ganeti import serializer
+from ganeti import ssconf
+
+
+def ValidateConfig():
+  sstore = ssconf.SimpleStore()
+
+  if sstore.GetConfigVersion() != constants.CONFIG_VERSION:
+    raise errors.ConfigurationError("Cluster configuration version"
+                                    " mismatch, got %s instead of %s" %
+                                    (sstore.GetConfigVersion(),
+                                     constants.CONFIG_VERSION))
 
 
 class ConfigWriter:
@@ -505,6 +516,10 @@ class ConfigWriter:
         self._config_inode == st.st_ino):
       # data is current, so skip loading of config file
       return
+
+    # Make sure the configuration has the right version
+    ValidateConfig()
+
     f = open(self._cfg_file, 'r')
     try:
       try:
@@ -514,14 +529,9 @@ class ConfigWriter:
     finally:
       f.close()
     if (not hasattr(data, 'cluster') or
-        not hasattr(data.cluster, 'config_version')):
+        not hasattr(data.cluster, 'rsahostkeypub')):
       raise errors.ConfigurationError("Incomplete configuration"
-                                      " (missing cluster.config_version)")
-    if data.cluster.config_version != constants.CONFIG_VERSION:
-      raise errors.ConfigurationError("Cluster configuration version"
-                                      " mismatch, got %s instead of %s" %
-                                      (data.cluster.config_version,
-                                       constants.CONFIG_VERSION))
+                                      " (missing cluster.rsahostkeypub)")
     self._config_data = data
     self._config_time = st.st_mtime
     self._config_size = st.st_size
@@ -602,8 +612,7 @@ class ConfigWriter:
 
     """
     hu_port = constants.FIRST_DRBD_PORT - 1
-    globalconfig = objects.Cluster(config_version=constants.CONFIG_VERSION,
-                                   serial_no=1,
+    globalconfig = objects.Cluster(serial_no=1,
                                    rsahostkeypub=hostkeypub,
                                    highest_used_port=hu_port,
                                    mac_prefix=mac_prefix,

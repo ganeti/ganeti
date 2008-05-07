@@ -541,6 +541,7 @@ class LUInitCluster(LogicalUnit):
     ss.SetKey(ss.SS_MASTER_NETDEV, self.op.master_netdev)
     ss.SetKey(ss.SS_CLUSTER_NAME, clustername.name)
     ss.SetKey(ss.SS_FILE_STORAGE_DIR, self.op.file_storage_dir)
+    ss.SetKey(ss.SS_CONFIG_VERSION, constants.CONFIG_VERSION)
 
     # set up the inter-node password and certificate
     _InitGanetiServerSetup(ss)

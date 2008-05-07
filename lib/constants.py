@@ -24,12 +24,27 @@
 from ganeti import _autoconf
 
 # various versions
-CONFIG_VERSION = 3
 PROTOCOL_VERSION = 12
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_VERSION = 5
 EXPORT_VERSION = 0
 
+# Format for CONFIG_VERSION:
+#   01 03 0123 = 01030123
+#   ^^ ^^ ^^^^
+#   |  |  + Configuration version/revision
+#   |  + Minor version
+#   + Major version
+#
+# It stored as an integer. Make sure not to write an octal number.
+#
+CONFIG_MAJOR = int(_autoconf.VERSION_MAJOR)
+CONFIG_MINOR = int(_autoconf.VERSION_MINOR)
+CONFIG_REVISION = 0
+CONFIG_VERSION = (
+  1000000 * CONFIG_MAJOR +
+    10000 * CONFIG_MINOR +
+        1 * CONFIG_REVISION)
 
 # file paths
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
