@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,8 +26,6 @@ resources.py
 
 import simplejson
 import cgi
-import sys
-import os
 import re
 
 import ganeti.opcodes
@@ -35,57 +33,61 @@ import ganeti.errors
 import ganeti.utils
 import ganeti.cli
 
+
 CONNECTOR = {
-    'R_instances_name':'^/instances/([\w\._-]+)$',
-    'R_tags':'^/tags$',
-    'R_status':'^/status$',
-    'R_os':'^/os$',
-    'R_info':'^/info$',
+    'R_instances_name': '^/instances/([\w\._-]+)$',
+    'R_tags': '^/tags$',
+    'R_status': '^/status$',
+    'R_os': '^/os$',
+    'R_info': '^/info$',
 
-    'R_instances':'^/instances$',
-    'R_instances_name_tags':'^/instances/([\w\._-]+)/tags$',
+    'R_instances': '^/instances$',
+    'R_instances_name_tags': '^/instances/([\w\._-]+)/tags$',
 
-    'R_nodes':'^/nodes$',
-    'R_nodes_name':'^/nodes/([\w\._-]+)$',
-    'R_nodes_name_tags':'^/nodes/([\w\._-]+)/tags$',
+    'R_nodes': '^/nodes$',
+    'R_nodes_name': '^/nodes/([\w\._-]+)$',
+    'R_nodes_name_tags': '^/nodes/([\w\._-]+)/tags$',
 
-    'R_jobs':'^/jobs$',
-    'R_jobs_id':'^/jobs/([\w\._-]+)$',
+    'R_jobs': '^/jobs$',
+    'R_jobs_id': '^/jobs/([\w\._-]+)$',
 
-    'R_index_html':'^/index.html$',
+    'R_index_html': '^/index.html$',
 }
 
 
 class RemoteAPIError(ganeti.errors.GenericError):
-  """ Remote API exception."""
-  pass
+  """Remote API exception.
+
+  """
 
 
 class Mapper:
-  """Map resource to method."""
+  """Map resource to method.
 
+  """
   def __init__(self, con=CONNECTOR):
     """Resource mapper constructor.
 
     Args:
-      con - a dictionary, mapping method name with URL path regexp.
+      con: a dictionary, mapping method name with URL path regexp
+
     """
     self._map = {}
     for methd in con:
       self._map[methd] = re.compile(con[methd])
 
   def getController(self, uri):
-    """Loking for a map of given path.
+    """Find method for a given URI.
 
     Args:
-      uri - string with URI.
+      uri: string with URI
 
     Returns:
-      A tuple with following fields:
-        methd - name of method mapped to URI.
-        items - a list of variable intems in the path.
-        args - a dictionary with additional parameters from URL.
-      None, if no method found.
+      None if no method is found or a tuple containing the following fields:
+        methd: name of method mapped to URI
+        items: a list of variable intems in the path
+        args: a dictionary with additional parameters from URL
+
     """
     result = None
     args = {}
@@ -108,12 +110,13 @@ class R_Generic(object):
   LOCK = 'cmd'
 
   def __init__(self, dispatcher, items, args):
-    """ Gentric resource constructor.
+    """Generic resource constructor.
 
     Args:
-      dispatcher - HTTPRequestHandler object.
-      items - a list with variables encoded in the URL.
-      args - a dictionary with additional options from URL.
+      dispatcher: HTTPRequestHandler object
+      items: a list with variables encoded in the URL
+      args: a dictionary with additional options from URL
+
     """
     self.dispatcher = dispatcher
     self.items = items
@@ -150,11 +153,12 @@ class R_Generic(object):
       self.send_error(500, 'Internal Server Error: %s' % msg)
 
   def send(self, code, data=None):
-    """ Printout data.
+    """Write data to client.
 
     Args:
-      code - int, the HTTP response code.
-      data - message body.
+      code: int, the HTTP response code
+      data: message body
+
     """
     self.dispatcher.send_response(code)
     # rfc4627.txt
@@ -164,79 +168,102 @@ class R_Generic(object):
       self.dispatcher.wfile.write(simplejson.dumps(data))
 
   def send_error(self, code, message):
+    """Send an error to the client.
+
+    Args:
+      code: HTTP response code (int)
+      message: Error message
+
+    """
     self.dispatcher.send_error(code, message)
 
 
 class R_instances(R_Generic):
-  """Implementation of /instances resource"""
-  
+  """/instances resource.
+
+  """
   LOCK = None
 
   def _get(self):
-    """ Send back to client list of available instances.
+    """Send a list of all available instances.
+
     """
     result = []
     request = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
     instancelist = ganeti.cli.SubmitOpCode(request)
     for instance in instancelist:
       result.append({
-        'name':instance[0],
-        'uri':'/instances/%s' % instance[0]})
+        'name': instance[0],
+        'uri': '/instances/%s' % instance[0],
+        })
     self.result = result
 
 
 class R_tags(R_Generic):
-  """docstring for R_tag."""
-  
+  """/tags resource.
+
+  """
   LOCK = None
 
   def _get(self):
-    """docstring for _get."""
+    """Send a list of all cluster tags."""
     request = ganeti.opcodes.OpDumpClusterConfig()
     config = ganeti.cli.SubmitOpCode(request)
     self.result = list(config.cluster.tags)
 
 
 class R_status(R_Generic):
-  """Docstring for R_status."""
+  """/status resource.
 
+  """
   def _get(self):
-    """docstring for _get"""
+    # TODO
     self.result = '{status}'
 
 
 class R_info(R_Generic):
-  """Cluster Info.
-  """
+  """Cluster info.
 
+  """
   LOCK = None
 
   def _get(self):
+    """Returns cluster information.
+
+    """
     request = ganeti.opcodes.OpQueryClusterInfo()
     self.result = ganeti.cli.SubmitOpCode(request)
 
 
 class R_nodes(R_Generic):
-  """Class to dispatch /nodes requests."""
+  """/nodes resource.
 
+  """
   LOCK = None
 
   def _get(self):
-    """Send back to cliet list of cluster nodes."""
+    """Send a list of all nodes.
+
+    """
     result = []
     request = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
     nodelist = ganeti.cli.SubmitOpCode(request)
     for node in nodelist:
       result.append({
-        'name':node[0],
-        'uri':'/nodes/%s' % node[0]})
+        'name': node[0],
+        'uri': '/nodes/%s' % node[0],
+        })
     self.result = result
 
 
 class R_nodes_name(R_Generic):
-  """Class to dispatch /nodes/[node_name] requests."""
+  """/nodes/[node_name] resources.
 
+  """
   def _get(self):
+    """Send information about a node.
+
+    """
     result = {}
     fields = ["dtotal", "dfree",
               "mtotal", "mnode", "mfree",
@@ -253,20 +280,28 @@ class R_nodes_name(R_Generic):
 
 
 class R_nodes_name_tags(R_Generic):
-  """docstring for R_nodes_name_tags."""
-  
+  """/nodes/[node_name]/tags resource.
+
+  """
   LOCK = None
 
   def _get(self):
-    """docstring for _get."""
+    """Send a list of node tags.
+
+    """
     op = ganeti.opcodes.OpGetTags(kind='node', name=self.items[0])
     tags = ganeti.cli.SubmitOpCode(op)
     self.result = list(tags)
 
 
 class R_instances_name(R_Generic):
-  
+  """/instances/[instance_name] resources.
+
+  """
   def _get(self):
+    """Send information about an instance.
+
+    """
     fields = ["name", "os", "pnode", "snodes",
               "admin_state", "admin_ram",
               "disk_template", "ip", "mac", "bridge",
@@ -284,21 +319,28 @@ class R_instances_name(R_Generic):
 
 
 class R_instances_name_tags(R_Generic):
-  """docstring for R_instances_name_tags."""
-  
+  """/instances/[instance_name]/tags resource.
+
+  """
   LOCK = None
 
   def _get(self):
-    """docstring for _get."""
+    """Send a list of instance tags.
+
+    """
     op = ganeti.opcodes.OpGetTags(kind='instance', name=self.items[0])
     tags = ganeti.cli.SubmitOpCode(op)
     self.result = list(tags)
 
 
 class R_os(R_Generic):
-  """Class to povide list of valid OS."""
+  """/os resource.
 
+  """
   def _get(self):
+    """Send a list of all OSes.
+
+    """
     request = ganeti.opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
                                           names=[])
     diagnose_data = ganeti.cli.SubmitOpCode(request)
@@ -308,11 +350,3 @@ class R_os(R_Generic):
       raise RemoteAPIError("Can't get the OS list")
 
     self.result = [row[0] for row in diagnose_data if row[1]]
-
-
-def main():
-  pass
-
-
-if __name__ == '__main__':
-  main()

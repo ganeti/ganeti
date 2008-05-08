@@ -72,11 +72,10 @@ def ParseOptions():
     print >> sys.stderr, "Usage: %s [-d] [-p port]" % sys.argv[0]
     sys.exit(1)
 
-  if options.ssl:
-    if not (options.ssl_cert and options.ssl_key):
-      print >> sys.stderr, ("For secure mode please provide "
-                           "--ssl-key and --ssl-cert arguments")
-      sys.exit(1)
+  if options.ssl and not (options.ssl_cert and options.ssl_key):
+    print >> sys.stderr, ("For secure mode please provide "
+                         "--ssl-key and --ssl-cert arguments")
+    sys.exit(1)
 
   return options, args
 

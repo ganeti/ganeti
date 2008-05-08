@@ -21,7 +21,6 @@
 
 import socket
 import inspect
-import exceptions
 import SocketServer
 import BaseHTTPServer
 import OpenSSL
@@ -30,19 +29,21 @@ from ganeti import constants
 from ganeti import logger
 from ganeti.rapi import resources
 
+
 class RESTHTTPServer(BaseHTTPServer.HTTPServer):
-  """The class to provide HTTP/HTTPS server.
+  """Class to provide an HTTP/HTTPS server.
 
   """
   def __init__(self, server_address, HandlerClass, options):
     """REST Server Constructor.
 
     Args:
-      server_address - a touple with pair:
-        ip - a string with IP address, localhost if null-string
-        port - port number, integer
-      HandlerClass - HTTPRequestHandler object
-      options - Command-line options
+      server_address: a touple containing:
+        ip: a string with IP address, localhost if empty string
+        port: port number, integer
+      HandlerClass: HTTPRequestHandler object
+      options: Command-line options
+
     """
     logger.SetupLogging(debug=options.debug, program='ganeti-rapi')
 
@@ -63,21 +64,28 @@ class RESTHTTPServer(BaseHTTPServer.HTTPServer):
 
 
 class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-  """REST Request Handler Class."""
+  """REST Request Handler Class.
 
+  """
   def authenticate(self):
-    """This method performs authentication check."""
+    """Perform authentication check.
+
+    """
     return True
 
   def setup(self):
-    """Setup secure read and write file objects."""
+    """Setup secure read and write file objects.
+
+    """
     self.connection = self.request
     self.rfile = socket._fileobject(self.request, "rb", self.rbufsize)
     self.wfile = socket._fileobject(self.request, "wb", self.wbufsize)
     self.map = resources.Mapper()
 
   def handle_one_request(self):
-    """Handle a single REST request. """
+    """Handle a single REST request.
+
+    """
     self.raw_requestline = None
     try:
       self.raw_requestline = self.rfile.readline()
@@ -89,7 +97,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if not self.parse_request(): # An error code has been sent, just exit
       return
     if not self.authenticate():
-      self.send_error(401, "Acces Denied")
+      self.send_error(401, "Access Denied")
       return
     try:
       rname = self.R_Resource(self.path)
@@ -112,29 +120,30 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     every message.
 
     """
-    logX = logger.Info
+    message = "%s - - %s" % (self.address_string(), format % args)
+
     # who is calling?
     origin = inspect.stack()[1][0].f_code.co_name
     if origin == "log_error":
-      logX = logger.Error
-    logX("%s - - %s" %
-                     (self.address_string(),
-                      format%args))
+      logger.Error(message)
+    else:
+      logger.Info(message)
 
   def R_Resource(self, uri):
     """Create controller from the URL.
 
     Args:
-      uri - a string with requested URL.
+      uri: a string with requested URL.
 
     Returns:
       R_Generic class inheritor.
+
     """
     controller = self.map.getController(uri)
     if controller:
       return eval("resources.%s(self, %s, %s)" % controller)
     else:
-      raise exceptions.AttributeError
+      raise AttributeError()
 
 
 def start(options):
@@ -143,7 +152,3 @@ def start(options):
     httpd.serve_forever()
   finally:
     httpd.server_close()
-
-
-if __name__ == "__main__":
-  pass
