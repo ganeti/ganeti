@@ -2140,7 +2140,13 @@ class DRBD8(BaseDRBD):
       # even though we were passed some children at init time
       if match_r and "local_dev" not in info:
         break
-      if match_l and not match_r and "local_addr" in info:
+
+      # this case must be considered only if we actually have local
+      # storage, i.e. not in diskless mode, because all diskless
+      # devices are equal from the point of view of local
+      # configuration
+      if (match_l and "local_dev" in info and
+          not match_r and "local_addr" in info):
         # strange case - the device network part points to somewhere
         # else, even though its local storage is ours; as we own the
         # drbd space, we try to disconnect from the remote peer and
