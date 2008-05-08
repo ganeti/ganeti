@@ -1964,10 +1964,10 @@ class DRBD8(BaseDRBD):
   def Open(self, force=False):
     """Make the local state primary.
 
-    If the 'force' parameter is given, the '--do-what-I-say' parameter
-    is given. Since this is a potentially dangerous operation, the
+    If the 'force' parameter is given, the '-o' option is passed to
+    drbdsetup. Since this is a potentially dangerous operation, the
     force flag should be only given after creation, when it actually
-    has to be given.
+    is mandatory.
 
     """
     if self.minor is None and not self.Attach():
