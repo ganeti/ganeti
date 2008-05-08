@@ -47,11 +47,6 @@ CONNECTOR = {
     'R_nodes': '^/nodes$',
     'R_nodes_name': '^/nodes/([\w\._-]+)$',
     'R_nodes_name_tags': '^/nodes/([\w\._-]+)/tags$',
-
-    'R_jobs': '^/jobs$',
-    'R_jobs_id': '^/jobs/([\w\._-]+)$',
-
-    'R_index_html': '^/index.html$',
 }
 
 
