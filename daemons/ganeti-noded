@@ -31,7 +31,6 @@ import errno
 
 from optparse import OptionParser
 
-
 from ganeti import backend
 from ganeti import logger
 from ganeti import constants
@@ -61,6 +60,7 @@ class ServerContextFactory:
     ctx.use_certificate_file(constants.SSL_CERT_FILE)
     ctx.use_privatekey_file(constants.SSL_CERT_FILE)
     return ctx
+
 
 class ServerObject(pb.Avatar):
   """The server implementation.

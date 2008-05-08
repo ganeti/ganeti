@@ -36,7 +36,8 @@ check_config() {
 }
 
 master_action() {
-    log_action_begin_msg "ganeti-master"; $MASTER "$1"
+    log_action_begin_msg "ganeti-master"
+    $MASTER "$1"
     RC=$?
     case $RC in
         0)
@@ -61,7 +62,7 @@ case "$1" in
             log_end_msg 1
         fi
         master_action start
-    ;;
+        ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
         if start-stop-daemon --stop --quiet --name $NAME; then
@@ -70,7 +71,7 @@ case "$1" in
             log_end_msg 1
         fi
         master_action stop
-    ;;
+        ;;
     restart|force-reload)
         log_daemon_msg "Reloading $DESC"
         start-stop-daemon --stop --quiet --oknodo --retry 30 --name $NAME
@@ -80,11 +81,11 @@ case "$1" in
 
         $MASTER stop
         master_action start
-     ;;
+        ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"
         exit 1
-    ;;
+        ;;
 esac
 
 exit 0
