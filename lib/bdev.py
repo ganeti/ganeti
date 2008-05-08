@@ -1465,10 +1465,10 @@ class DRBDev(BaseDRBD):
   def Open(self, force=False):
     """Make the local state primary.
 
-    If the 'force' parameter is given, the '--do-what-I-say' parameter
-    is given. Since this is a pottentialy dangerous operation, the
-    force flag should be only given after creation, when it actually
-    has to be given.
+    If the 'force' parameter is given, the '--do-what-I-say' option is
+    is passed to drbdsetup. Since this is a potentially dangerous operation,
+    the force flag should be only given after creation, when it actually
+    is mandatory.
 
     """
     if self.minor is None and not self.Attach():
