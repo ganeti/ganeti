@@ -6,4 +6,5 @@ Configuring for development
 
 sh autogen.sh && \
 ./configure --enable-maintainer-mode \
-  --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
+  --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var \
+  --enable-rapi

@@ -64,6 +64,21 @@ AC_ARG_WITH([xen-initrd],
   [xen_initrd="/boot/initrd-2.6-xenU"])
 AC_SUBST(XEN_INITRD, $xen_initrd)
 
+# --enable-rapi
+AC_ARG_ENABLE([rapi],
+  [AS_HELP_STRING([--enable-rapi],
+    [Whether to enable remote API daemon]
+  )])
+if test "$enable_rapi" = "yes"
+then
+  enable_rapi_py=True
+else
+  enable_rapi=no
+  enable_rapi_py=False
+fi
+AC_SUBST(PY_ENABLE_RAPI, $enable_rapi_py)
+
+
 # Check common programs
 AC_PROG_INSTALL
 AC_PROG_LN_S

@@ -22,6 +22,7 @@ _autoconf.py: Makefile
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
+	  echo "RAPI_ENABLE = $(PY_ENABLE_RAPI)"; \
 	} > $@
 
 include $(srcdir)/Makefile.libcommon
