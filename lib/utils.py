@@ -569,59 +569,6 @@ def NiceSort(name_list):
   return [tup[1] for tup in to_sort]
 
 
-def CheckDaemonAlive(pid_file, process_string):
-  """Check wether the specified daemon is alive.
-
-  Args:
-   - pid_file: file to read the daemon pid from, the file is
-               expected to contain only a single line containing
-               only the PID
-   - process_string: a substring that we expect to find in
-                     the command line of the daemon process
-
-  Returns:
-   - True if the daemon is judged to be alive (that is:
-      - the PID file exists, is readable and contains a number
-      - a process of the specified PID is running
-      - that process contains the specified string in its
-        command line
-      - the process is not in state Z (zombie))
-   - False otherwise
-
-  """
-  try:
-    pid_file = file(pid_file, 'r')
-    try:
-      pid = int(pid_file.readline())
-    finally:
-      pid_file.close()
-
-    cmdline_file_path = "/proc/%s/cmdline" % (pid)
-    cmdline_file = open(cmdline_file_path, 'r')
-    try:
-      cmdline = cmdline_file.readline()
-    finally:
-      cmdline_file.close()
-
-    if not process_string in cmdline:
-      return False
-
-    stat_file_path =  "/proc/%s/stat" % (pid)
-    stat_file = open(stat_file_path, 'r')
-    try:
-      process_state = stat_file.readline().split()[2]
-    finally:
-      stat_file.close()
-
-    if process_state == 'Z':
-      return False
-
-  except (IndexError, IOError, ValueError):
-    return False
-
-  return True
-
-
 def TryConvert(fn, val):
   """Try to convert a value ignoring errors.
 

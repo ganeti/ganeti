@@ -214,15 +214,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     raise NotImplementedError
 
-
   def Verify(self):
     """Verify the hypervisor.
 
     For Xen, this verifies that the xend process is running.
 
     """
-    if not utils.CheckDaemonAlive('/var/run/xend.pid', 'xend'):
-      return "xend daemon is not running"
+    result = utils.RunCmd(["xm", "info"])
+    if result.failed:
+      return "'xm info' failed: %s" % result.fail_reason
 
   @staticmethod
   def _GetConfigFileDiskData(disk_template, block_devices):
