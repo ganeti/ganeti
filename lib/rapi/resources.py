@@ -47,6 +47,7 @@ CONNECTOR = {
     'R_nodes': '^/nodes$',
     'R_nodes_name': '^/nodes/([\w\._-]+)$',
     'R_nodes_name_tags': '^/nodes/([\w\._-]+)/tags$',
+    'R_root': '^/$',
 }
 
 
@@ -171,6 +172,28 @@ class R_Generic(object):
 
     """
     self.dispatcher.send_error(code, message)
+
+
+class R_root(R_Generic):
+  """/ resource."""
+
+  LOCK = None
+
+  def _get(self):
+    """Show the list of mapped resources.
+
+    """
+    result = []
+    root_pattern = re.compile('^R_([a-zA-Z0-9]+)$')
+    for d in CONNECTOR.keys():
+      root_elem = root_pattern.match(d)
+      if root_elem:
+        match = root_elem.groups()[0] 
+        if match != 'root':
+          result.append({
+            'name': match,
+            'uri': '/%s' % match})
+    self.result = result
 
 
 class R_instances(R_Generic):
