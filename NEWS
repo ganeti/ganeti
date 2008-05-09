@@ -1,3 +1,8 @@
+Version 1.2.4
+  - Experimental readonly, REST-based remote API implementation; automatically
+    started on master node, TCP port 5080, if enabled by --enable-rapi
+    parameter to configure script.
+
 Version 1.2.3
   - more tweaks to the disk activation code (especially helpful for DRBD)
   - change the default ‘gnt-instance list’ output format, now there is
