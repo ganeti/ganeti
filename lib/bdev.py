@@ -1817,6 +1817,7 @@ class DRBD8(BaseDRBD):
             "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport), protocol,
             "-A", "discard-zero-changes",
             "-B", "consensus",
+            "--create-device",
             ]
     if dual_pri:
       args.append("-m")
