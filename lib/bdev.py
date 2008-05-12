@@ -308,7 +308,8 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-n%s" % lv_name,
                            vg_name] + pvlist)
     if result.failed:
-      raise errors.BlockDeviceError(result.fail_reason)
+      raise errors.BlockDeviceError("%s - %s" % (result.fail_reason,
+                                                result.output))
     return LogicalVolume(unique_id, children)
 
   @staticmethod
@@ -327,7 +328,8 @@ class LogicalVolume(BlockDev):
                "--separator=:"]
     result = utils.RunCmd(command)
     if result.failed:
-      logger.Error("Can't get the PV information: %s" % result.fail_reason)
+      logger.Error("Can't get the PV information: %s - %s" %
+                   (result.fail_reason, result.output))
       return None
     data = []
     for line in result.stdout.splitlines():
@@ -352,7 +354,8 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvremove", "-f", "%s/%s" %
                            (self._vg_name, self._lv_name)])
     if result.failed:
-      logger.Error("Can't lvremove: %s" % result.fail_reason)
+      logger.Error("Can't lvremove: %s - %s" %
+                   (result.fail_reason, result.output))
 
     return not result.failed
 
@@ -441,7 +444,8 @@ class LogicalVolume(BlockDev):
     """
     result = utils.RunCmd(["lvs", "--noheadings", "-olv_attr", self.dev_path])
     if result.failed:
-      logger.Error("Can't display lv: %s" % result.fail_reason)
+      logger.Error("Can't display lv: %s - %s" %
+                   (result.fail_reason, result.output))
       return None, None, True, True
     out = result.stdout.strip()
     # format: type/permissions/alloc/fixed_minor/state/open
@@ -492,8 +496,9 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-s",
                            "-n%s" % snap_name, self.dev_path])
     if result.failed:
-      raise errors.BlockDeviceError("command: %s error: %s" %
-                                    (result.cmd, result.fail_reason))
+      raise errors.BlockDeviceError("command: %s error: %s - %s" %
+                                    (result.cmd, result.fail_reason,
+                                     result.output))
 
     return snap_name
 
@@ -513,8 +518,9 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvchange", "--addtag", text,
                            self.dev_path])
     if result.failed:
-      raise errors.BlockDeviceError("Command: %s error: %s" %
-                                    (result.cmd, result.fail_reason))
+      raise errors.BlockDeviceError("Command: %s error: %s - %s" %
+                                    (result.cmd, result.fail_reason,
+                                     result.output))
 
 
 class MDRaid1(BlockDev):
@@ -572,7 +578,8 @@ class MDRaid1(BlockDev):
     """
     result = utils.RunCmd(["mdadm", "-D", "/dev/md%d" % minor])
     if result.failed:
-      logger.Error("Can't display md: %s" % result.fail_reason)
+      logger.Error("Can't display md: %s - %s" %
+                   (result.fail_reason, result.output))
       return None
     retval = {}
     for line in result.stdout.splitlines():
@@ -826,7 +833,8 @@ class MDRaid1(BlockDev):
 
     result = utils.RunCmd(["mdadm", "--stop", "/dev/md%d" % self.minor])
     if result.failed:
-      logger.Error("Can't stop MD array: %s" % result.fail_reason)
+      logger.Error("Can't stop MD array: %s - %s" %
+                   (result.fail_reason, result.output))
       return False
     self.minor = None
     self.dev_path = None
@@ -1048,7 +1056,8 @@ class BaseDRBD(BlockDev):
     """
     result = utils.RunCmd(["blockdev", "--getsize", meta_device])
     if result.failed:
-      logger.Error("Failed to get device size: %s" % result.fail_reason)
+      logger.Error("Failed to get device size: %s - %s" %
+                   (result.fail_reason, result.output))
       return False
     try:
       sectors = int(result.stdout)
@@ -1128,7 +1137,8 @@ class DRBDev(BaseDRBD):
     data = {}
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "show"])
     if result.failed:
-      logger.Error("Can't display the drbd config: %s" % result.fail_reason)
+      logger.Error("Can't display the drbd config: %s - %s" %
+                   (result.fail_reason, result.output))
       return data
     out = result.stdout
     if out == "Not configured\n":
@@ -1278,8 +1288,8 @@ class DRBDev(BaseDRBD):
                            "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport),
                            protocol])
     if result.failed:
-      logger.Error("Can't setup network for dbrd device: %s" %
-                   result.fail_reason)
+      logger.Error("Can't setup network for dbrd device: %s - %s" %
+                   (result.fail_reason, result.output))
       return False
 
     timeout = time.time() + 10
@@ -1450,7 +1460,8 @@ class DRBDev(BaseDRBD):
     result = utils.RunCmd(["drbdsetup", self.dev_path, "syncer", "-r", "%d" %
                            kbytes])
     if result.failed:
-      logger.Error("Can't change syncer rate: %s " % result.fail_reason)
+      logger.Error("Can't change syncer rate: %s - %s" %
+                   (result.fail_reason, result.output))
     return not result.failed and children_result
 
   def GetSyncStatus(self):
@@ -1685,7 +1696,8 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "show"])
     if result.failed:
-      logger.Error("Can't display the drbd config: %s" % result.fail_reason)
+      logger.Error("Can't display the drbd config: %s - %s" %
+                   (result.fail_reason, result.output))
       return None
     return result.stdout
 
@@ -1825,8 +1837,8 @@ class DRBD8(BaseDRBD):
       args.extend(["-a", hmac, "-x", secret])
     result = utils.RunCmd(args)
     if result.failed:
-      logger.Error("Can't setup network for dbrd device: %s" %
-                   result.fail_reason)
+      logger.Error("Can't setup network for dbrd device: %s - %s" %
+                   (result.fail_reason, result.output))
       return False
 
     timeout = time.time() + 10
@@ -1913,7 +1925,8 @@ class DRBD8(BaseDRBD):
     result = utils.RunCmd(["drbdsetup", self.dev_path, "syncer", "-r", "%d" %
                            kbytes])
     if result.failed:
-      logger.Error("Can't change syncer rate: %s " % result.fail_reason)
+      logger.Error("Can't change syncer rate: %s - %s" %
+                   (result.fail_reason, result.output))
     return not result.failed and children_result
 
   def GetSyncStatus(self):
