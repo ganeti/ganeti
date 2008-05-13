@@ -367,6 +367,12 @@ class Watcher(object):
       # Activate disks for all instances with any of the checked nodes as a
       # secondary node.
       for instance in GetInstanceList(with_secondaries=check_nodes):
+        if not instance.autostart:
+          self.messages.append(Message(NOTICE,
+                                       ("Skipping disk activation for"
+                                        " non-autostart instance '%s'." %
+                                        instance.name)))
+          continue
         try:
           self.messages.append(Message(NOTICE, ("Activating disks for %s." %
                                                 instance.name)))
