@@ -95,8 +95,8 @@ def ListJobs(opts, args):
 
 commands = {
   'list': (ListJobs, ARGS_NONE,
-            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
-            "", "List the jobs and their status. The available fields are"
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
+           "List the jobs and their status. The available fields are"
            " (see the man page for details): id, status, op_list,"
            " op_status, op_result."
            " The default field"

@@ -148,11 +148,11 @@ commands = {
                          action="append",
                          help="Select nodes to sleep on"),
              ],
-            "[opts...] <duration>", "Executes a TestDelay OpCode"),
+            "Executes a TestDelay OpCode"),
   'submit-job': (GenericOpCodes, ARGS_ONE,
                  [DEBUG_OPT,
                   ],
-                 "<op_list_file>", "Submits a job built from a json-file"
+                 "Submits a job built from a json-file"
                  " with a list of serialized opcodes"),
   'allocator': (TestAllocator, ARGS_ONE,
                 [DEBUG_OPT,
@@ -184,7 +184,7 @@ commands = {
                  make_option("--tags", default=None,
                              help="Comma separated list of tags"),
                  ],
-                "{opts...} <instance>", "Executes a TestAllocator OpCode"),
+                "Executes a TestAllocator OpCode"),
   }
 
 
