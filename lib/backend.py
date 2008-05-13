@@ -31,6 +31,7 @@ import stat
 import errno
 import re
 import subprocess
+import random
 
 from ganeti import logger
 from ganeti import errors
@@ -197,6 +198,7 @@ def VerifyNode(what):
 
   if 'nodelist' in what:
     result['nodelist'] = {}
+    random.shuffle(what['nodelist'])
     for node in what['nodelist']:
       success, message = ssh.VerifyNodeHostname(node)
       if not success:
