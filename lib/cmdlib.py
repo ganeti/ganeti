@@ -718,13 +718,24 @@ class LUVerifyCluster(LogicalUnit):
 
     if 'nodelist' not in node_result:
       bad = True
-      feedback_fn("  - ERROR: node hasn't returned node connectivity data")
+      feedback_fn("  - ERROR: node hasn't returned node ssh connectivity data")
     else:
       if node_result['nodelist']:
         bad = True
         for node in node_result['nodelist']:
-          feedback_fn("  - ERROR: communication with node '%s': %s" %
+          feedback_fn("  - ERROR: ssh communication with node '%s': %s" %
                           (node, node_result['nodelist'][node]))
+    if 'node-net-test' not in node_result:
+      bad = True
+      feedback_fn("  - ERROR: node hasn't returned node tcp connectivity data")
+    else:
+      if node_result['node-net-test']:
+        bad = True
+        nlist = utils.NiceSort(node_result['node-net-test'].keys())
+        for node in nlist:
+          feedback_fn("  - ERROR: tcp communication with node '%s': %s" %
+                          (node, node_result['node-net-test'][node]))
+
     hyp_result = node_result.get('hypervisor', None)
     if hyp_result is not None:
       feedback_fn("  - ERROR: hypervisor verify failure: '%s'" % hyp_result)
@@ -862,6 +873,7 @@ class LUVerifyCluster(LogicalUnit):
 
     vg_name = self.cfg.GetVGName()
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
+    nodeinfo = [self.cfg.GetNodeInfo(nname) for nname in nodelist]
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
     i_non_redundant = [] # Non redundant instances
     node_volume = {}
@@ -884,6 +896,8 @@ class LUVerifyCluster(LogicalUnit):
       'filelist': file_names,
       'nodelist': nodelist,
       'hypervisor': None,
+      'node-net-test': [(node.name, node.primary_ip, node.secondary_ip)
+                        for node in nodeinfo]
       }
     all_nvinfo = rpc.call_node_verify(nodelist, node_verify_param)
     all_rversion = rpc.call_version(nodelist)
