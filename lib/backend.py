@@ -206,6 +206,33 @@ def VerifyNode(what):
       success, message = _GetSshRunner().VerifyNodeHostname(node)
       if not success:
         result['nodelist'][node] = message
+  if 'node-net-test' in what:
+    result['node-net-test'] = {}
+    my_name = utils.HostInfo().name
+    my_pip = my_sip = None
+    for name, pip, sip in what['node-net-test']:
+      if name == my_name:
+        my_pip = pip
+        my_sip = sip
+        break
+    if not my_pip:
+      result['node-net-test'][my_name] = ("Can't find my own"
+                                          " primary/secondary IP"
+                                          " in the node list")
+    else:
+      port = ssconf.SimpleStore().GetNodeDaemonPort()
+      for name, pip, sip in what['node-net-test']:
+        fail = []
+        if not utils.TcpPing(pip, port, source=my_pip):
+          fail.append("primary")
+        if sip != pip:
+          if not utils.TcpPing(sip, port, source=my_sip):
+            fail.append("secondary")
+        if fail:
+          result['node-net-test'][name] = ("failure using the %s"
+                                           " interface(s)" %
+                                           " and ".join(fail))
+
   return result
 
 
