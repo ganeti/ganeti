@@ -254,15 +254,16 @@ def _ParseArgs(argv, commands, aliases):
            "\n%(bin)s <command> --help to see details, or"
            " man %(bin)s\n" % {"bin": binary})
     # compute the max line length for cmd + usage
-    mlen = max([len(" %s" % cmd) for cmd in commands])
+    mlen = max([len(" %s %s" % (cmd, commands[cmd][3])) for cmd in commands])
     mlen = min(60, mlen) # should not get here...
     # and format a nice command list
     print "Commands:"
     for cmd in sortedcmds:
-      cmdstr = " %s" % (cmd,)
-      help_text = commands[cmd][3]
+      cmdstr = " %s %s" % (cmd, commands[cmd][3])
+      help_text = commands[cmd][4]
       help_lines = textwrap.wrap(help_text, 79-3-mlen)
-      print "%-*s - %s" % (mlen, cmdstr, help_lines.pop(0))
+      print "%-*s - %s" % (mlen, cmdstr,
+                                          help_lines.pop(0))
       for line in help_lines:
         print "%-*s   %s" % (mlen, "", line)
     print

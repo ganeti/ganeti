@@ -97,7 +97,7 @@ commands = {
                          action="append",
                          help="Select nodes to sleep on"),
              ],
-            "Executes a TestDelay OpCode"),
+            "[opts...] <duration>", "Executes a TestDelay OpCode"),
   'allocator': (TestAllocator, ARGS_ONE,
                 [DEBUG_OPT,
                  make_option("--dir", dest="direction",
@@ -128,7 +128,7 @@ commands = {
                  make_option("--tags", default=None,
                              help="Comma separated list of tags"),
                  ],
-                "Executes a TestAllocator OpCode"),
+                "{opts...} <instance>", "Executes a TestAllocator OpCode"),
   }
 
 

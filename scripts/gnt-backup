@@ -168,7 +168,7 @@ commands = {
                         help="List only backups stored on this node"
                              " (can be used multiple times)"),
             ],
-           "Lists instance exports available in the ganeti cluster"),
+           "", "Lists instance exports available in the ganeti cluster"),
   'export': (ExportInstance, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
               make_option("-n", "--node", dest="node", help="Target node",
@@ -176,11 +176,13 @@ commands = {
               make_option("","--noshutdown", dest="shutdown",
                           action="store_false", default=True,
                           help="Don't shutdown the instance (unsafe)"), ],
+             "-n <target_node> [opts...] <name>",
              "Exports an instance to an image"),
-  'import': (ImportInstance, ARGS_ONE, import_opts,
+  'import': (ImportInstance, ARGS_ONE, import_opts, "[opts...] <name>",
              "Imports an instance from an exported image"),
   'remove': (RemoveExport, ARGS_ONE,
              [DEBUG_OPT],
+             "<name>",
              "Remove exports of named instance from the filesystem."),
   }
 
