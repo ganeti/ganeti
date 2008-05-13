@@ -140,7 +140,7 @@ class OpRemoveNode(OpCode):
 class OpAddNode(OpCode):
   """Add a node."""
   OP_ID = "OP_NODE_ADD"
-  __slots__ = ["node_name", "primary_ip", "secondary_ip"]
+  __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd"]
 
 
 class OpQueryNodes(OpCode):

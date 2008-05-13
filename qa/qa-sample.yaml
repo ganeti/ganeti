@@ -41,6 +41,7 @@ tests:
 
   node-info: True
   node-volumes: True
+  node-readd: True
 
   # This test needs at least three nodes
   node-evacuate: False

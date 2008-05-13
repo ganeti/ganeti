@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1671,13 +1671,24 @@ class LUAddNode(LogicalUnit):
     if not utils.IsValidIP(secondary_ip):
       raise errors.OpPrereqError("Invalid secondary IP given")
     self.op.secondary_ip = secondary_ip
+
     node_list = cfg.GetNodeList()
-    if node in node_list:
-      raise errors.OpPrereqError("Node %s is already in the configuration"
-                                 % node)
+    if not self.op.readd and node in node_list:
+      raise errors.OpPrereqError("Node %s is already in the configuration" %
+                                 node)
+    elif self.op.readd and node not in node_list:
+      raise errors.OpPrereqError("Node %s is not in the configuration" % node)
 
     for existing_node_name in node_list:
       existing_node = cfg.GetNodeInfo(existing_node_name)
+
+      if self.op.readd and node == existing_node_name:
+        if (existing_node.primary_ip != primary_ip or
+            existing_node.secondary_ip != secondary_ip):
+          raise errors.OpPrereqError("Readded node doesn't have the same IP"
+                                     " address configuration as before")
+        continue
+
       if (existing_node.primary_ip == primary_ip or
           existing_node.secondary_ip == primary_ip or
           existing_node.primary_ip == secondary_ip or
@@ -1824,7 +1835,9 @@ class LUAddNode(LogicalUnit):
     # Distribute updated /etc/hosts and known_hosts to all nodes,
     # including the node just added
     myself = self.cfg.GetNodeInfo(self.sstore.GetMasterNode())
-    dist_nodes = self.cfg.GetNodeList() + [node]
+    dist_nodes = self.cfg.GetNodeList()
+    if not self.op.readd:
+      dist_nodes.append(node)
     if myself.name in dist_nodes:
       dist_nodes.remove(myself.name)
 
@@ -1843,8 +1856,9 @@ class LUAddNode(LogicalUnit):
       if not ssh.CopyFileToNode(node, fname):
         logger.Error("could not copy file %s to node %s" % (fname, node))
 
-    logger.Info("adding node %s to cluster.conf" % node)
-    self.cfg.AddNode(new_node)
+    if not self.op.readd:
+      logger.Info("adding node %s to cluster.conf" % node)
+      self.cfg.AddNode(new_node)
 
 
 class LUMasterFailover(LogicalUnit):
