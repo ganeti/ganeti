@@ -344,6 +344,7 @@ class Watcher(object):
     self.instances = GetInstanceList()
     self.bootids = GetNodeBootIDs()
     self.messages = []
+    self.started_instances = set()
 
   def Run(self):
     notepad = WatcherState()
@@ -372,6 +373,10 @@ class Watcher(object):
                                        ("Skipping disk activation for"
                                         " non-autostart instance '%s'." %
                                         instance.name)))
+          continue
+        if instance.name in self.started_instances:
+          # we already tried to start the instance, which should have
+          # activated its drives (if they can be at all)
           continue
         try:
           self.messages.append(Message(NOTICE, ("Activating disks for %s." %
@@ -411,6 +416,7 @@ class Watcher(object):
           self.messages.append(Message(NOTICE, ("Restarting %s%s." %
                                                 (instance.name, last))))
           instance.Restart()
+          self.started_instances.add(instance.name)
         except Error, x:
           self.messages.append(Message(ERROR, str(x)))
 
