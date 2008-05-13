@@ -101,6 +101,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       return
     try:
       rname = self.R_Resource(self.path)
+      rname.set_headers(self.headers)
       rname.do_Request(self.command)
     except AttributeError, msg:
       self.send_error(501, "Resource is not available: %s" % msg)

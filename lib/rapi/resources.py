@@ -120,6 +120,14 @@ class R_Generic(object):
     self.code = 200
     self.result = None
 
+  def set_headers(self, headers):
+    """Pass headers to the resource class.
+
+    Args:
+      headers: a Message-like class used to parse headers
+    """
+    self.headers = headers
+
   def do_Request(self, request):
     """Default request flow.
 
