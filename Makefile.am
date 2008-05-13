@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I autotools
 
-SUBDIRS = man lib scripts daemons doc test tools qa
+SUBDIRS = man lib scripts daemons doc test tools qa devel
 EXTRA_DIST = NEWS DEVNOTES
 
 .PHONY: ganeti
