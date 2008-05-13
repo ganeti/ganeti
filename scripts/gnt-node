@@ -295,9 +295,10 @@ commands = {
                        default=False, action="store_true",
                        help="Readd old node after replacing it"),
            ],
-          "Add a node to the cluster"),
+          "[-s ip] <node_name>", "Add a node to the cluster"),
   'evacuate': (EvacuateNode, ARGS_FIXED(2),
                [DEBUG_OPT, FORCE_OPT],
+               "[-f] <src> <dst>",
                "Relocate the secondary instances from the first node"
                " to the second one (only for instances of type remote_raid1"
                " drbd)"),
@@ -308,29 +309,30 @@ commands = {
                             help="Ignore the consistency of the disks on"
                             " the secondary"),
                 ],
+               "[-f] <node>",
                "Stops the primary instances on a node and start them on their"
                " secondary node (only for instances of type remote_raid1)"),
   'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
-           "Show information about the node(s)"),
+           "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
-           "Lists the nodes in the cluster. The available fields"
+           "", "Lists the nodes in the cluster. The available fields"
            " are (see the man page for details): name, pinst_cnt, pinst_list,"
            " sinst_cnt, sinst_list, pip, sip, dtotal, dfree, mtotal, mnode,"
            " mfree, bootid, cpu_count. The default field list is"
            " (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
-             "Removes a node from the cluster"),
+             "<node_name>", "Removes a node from the cluster"),
   'volumes': (ListVolumes, ARGS_ANY,
               [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
-              "List logical volumes on node(s)"),
+              "[<node_name>...]", "List logical volumes on node(s)"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
-                "List the tags of the given node"),
+                "<node_name>", "List the tags of the given node"),
   'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
-               "Add tags to the given node"),
+               "<node_name> tag...", "Add tags to the given node"),
   'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
-                  "Remove tags from the given node"),
+                  "<node_name> tag...", "Remove tags from the given node"),
   }
 
 
