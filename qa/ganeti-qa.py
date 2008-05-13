@@ -258,13 +258,18 @@ def main():
   if qa_config.TestEnabled('tags'):
     RunTest(qa_tags.TestClusterTags)
 
+  if qa_config.TestEnabled('node-readd'):
+    master = qa_config.GetMasterNode()
+    pnode = qa_config.AcquireNode(exclude=master)
+    try:
+      RunTest(qa_node.TestNodeReadd, pnode)
+    finally:
+      qa_config.ReleaseNode(pnode)
+
   pnode = qa_config.AcquireNode()
   try:
     if qa_config.TestEnabled('tags'):
       RunTest(qa_tags.TestNodeTags, pnode)
-
-    if qa_config.TestEnabled('node-readd'):
-      RunTest(qa_node.TestNodeReadd, pnode)
 
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)

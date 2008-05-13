@@ -1862,7 +1862,9 @@ class LUAddNode(LogicalUnit):
     # Distribute updated /etc/hosts and known_hosts to all nodes,
     # including the node just added
     myself = self.cfg.GetNodeInfo(self.sstore.GetMasterNode())
-    dist_nodes = self.cfg.GetNodeList() + [node]
+    dist_nodes = self.cfg.GetNodeList()
+    if not self.op.readd:
+      dist_nodes.append(node)
     if myself.name in dist_nodes:
       dist_nodes.remove(myself.name)
 

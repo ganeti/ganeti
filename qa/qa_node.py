@@ -35,7 +35,7 @@ def _NodeAdd(node, readd=False):
   if not readd and node.get('_added', False):
     raise qa_error.Error("Node %s already in cluster" % node['primary'])
   elif readd and not node.get('_added', False):
-    raise qa_error.Error("Node not yet %s in cluster" % node['primary'])
+    raise qa_error.Error("Node %s not yet in cluster" % node['primary'])
 
   cmd = ['gnt-node', 'add']
   if node.get('secondary', None):
