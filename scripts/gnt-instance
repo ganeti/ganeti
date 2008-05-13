@@ -875,7 +875,8 @@ commands = {
                 ],
                "[-f] <instance>",
                "Stops the instance and starts it on the backup node, using"
-               " the remote mirror (only for instances of type drbd or remote_raid1)"),
+               " the remote mirror (only for instances of type drbd or"
+               " remote_raid1)"),
   'info': (ShowInstanceConfig, ARGS_ANY, [DEBUG_OPT], "[<instance>...]",
            "Show information on the specified instance"),
   'list': (ListInstances, ARGS_NONE,

@@ -180,7 +180,7 @@ def VerifyCluster(opts, args):
     opts - class with options as members
 
   """
-  skip_checks=[]
+  skip_checks = []
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
   op = opcodes.OpVerifyCluster(skip_checks=skip_checks)
