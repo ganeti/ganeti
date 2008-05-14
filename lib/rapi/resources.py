@@ -34,21 +34,8 @@ import ganeti.utils
 import ganeti.cli
 
 
-CONNECTOR = {
-    'R_instances_name': '^/instances/([\w\._-]+)$',
-    'R_tags': '^/tags$',
-    'R_status': '^/status$',
-    'R_os': '^/os$',
-    'R_info': '^/info$',
-
-    'R_instances': '^/instances$',
-    'R_instances_name_tags': '^/instances/([\w\._-]+)/tags$',
-
-    'R_nodes': '^/nodes$',
-    'R_nodes_name': '^/nodes/([\w\._-]+)$',
-    'R_nodes_name_tags': '^/nodes/([\w\._-]+)/tags$',
-    'R_root': '^/$',
-}
+# Initialized at the end of this file.
+_CONNECTOR = {}
 
 
 class RemoteAPIError(ganeti.errors.GenericError):
@@ -61,16 +48,14 @@ class Mapper:
   """Map resource to method.
 
   """
-  def __init__(self, con=CONNECTOR):
+  def __init__(self, connector=_CONNECTOR):
     """Resource mapper constructor.
 
     Args:
       con: a dictionary, mapping method name with URL path regexp
 
     """
-    self._map = {}
-    for methd in con:
-      self._map[methd] = re.compile(con[methd])
+    self._connector = connector
 
   def getController(self, uri):
     """Find method for a given URI.
@@ -85,17 +70,29 @@ class Mapper:
         args: a dictionary with additional parameters from URL
 
     """
+    if '?' in uri:
+      (path, query) = uri.split('?', 1)
+      args = cgi.parse_qs(query)
+    else:
+      path = uri
+      query = None
+      args = {}
+
     result = None
-    args = {}
-    d_uri = uri.split('?', 1)
-    if len(d_uri) > 1:
-      args = cgi.parse_qs(d_uri[1])
-    path = d_uri[0]
-    for methd in self._map:
-      items = self._map[methd].findall(path)
-      if items:
-        result = (methd, items, args)
+
+    for key, handler in self._connector.iteritems():
+      # Regex objects
+      if hasattr(key, "match"):
+        m = key.match(path)
+        if m:
+          result = (handler, list(m.groups()), args)
+          break
+
+      # String objects
+      elif key == path:
+        result = (handler, [], args)
         break
+
     return result
 
 
@@ -183,8 +180,9 @@ class R_Generic(object):
 
 
 class R_root(R_Generic):
-  """/ resource."""
+  """/ resource.
 
+  """
   LOCK = None
 
   def _get(self):
@@ -193,14 +191,15 @@ class R_root(R_Generic):
     """
     result = []
     root_pattern = re.compile('^R_([a-zA-Z0-9]+)$')
-    for d in CONNECTOR.keys():
-      root_elem = root_pattern.match(d)
+    for handler in _CONNECTOR.values():
+      root_elem = root_pattern.match(handler.__name__)
       if root_elem:
-        match = root_elem.groups()[0] 
+        match = root_elem.groups()[0]
         if match != 'root':
           result.append({
             'name': match,
             'uri': '/%s' % match})
+    result.sort(cmp=lambda a, b: cmp(a["name"], b["name"]))
     self.result = result
 
 
@@ -376,3 +375,22 @@ class R_os(R_Generic):
       raise RemoteAPIError("Can't get the OS list")
 
     self.result = [row[0] for row in diagnose_data if row[1]]
+
+
+_CONNECTOR.update({
+  "/": R_root,
+
+  "/tags": R_tags,
+  "/status": R_status,
+  "/info": R_info,
+
+  "/nodes": R_nodes,
+  re.compile(r'^/nodes/([\w\._-]+)$'): R_nodes_name,
+  re.compile(r'^/nodes/([\w\._-]+)/tags$'): R_nodes_name_tags,
+
+  "/instances": R_instances,
+  re.compile(r'^/instances/([\w\._-]+)$'): R_instances_name,
+  re.compile(r'^/instances/([\w\._-]+)/tags$'): R_instances_name_tags,
+
+  "/os": R_os,
+  })

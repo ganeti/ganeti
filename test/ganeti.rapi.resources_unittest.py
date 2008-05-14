@@ -29,50 +29,51 @@ from ganeti.rapi import resources
 
 
 class MapperTests(unittest.TestCase):
-
+  """"""
   def setUp(self):
-    self.con = resources.CONNECTOR
-    self.map = resources.Mapper(self.con)
-    
-  def testMapper(self):
-    """Testing for Mapper."""
-    
-    self.failUnless(self.map.getController('/tags') == 
-                    ('R_tags',
-                     ['/tags'],
-                     {}))
+    self.map = resources.Mapper()
 
-    self.failUnless(self.map.getController('/tag') == None)
-    
-    self.failUnless(self.map.getController('/instances/www.test.com') == 
-                    ('R_instances_name',
-                     ['www.test.com'],
-                     {}))
-    
-    self.failUnless(self.map.getController(
-        '/instances/www.test.com/tags?f=5&f=6&alt=html') == 
-                    ('R_instances_name_tags',
-                     ['www.test.com'],
-                     {'alt':['html'], 'f':['5', '6']}))
+  def _TestUri(self, uri, result):
+    self.assertEquals(self.map.getController(uri), result)
+
+  def testMapper(self):
+    """Testing resources.Mapper"""
+
+    self._TestUri("/tags", (resources.R_tags, [], {}))
+    self._TestUri("/tag", None)
+
+    self._TestUri('/instances/www.test.com',
+                  (resources.R_instances_name,
+                   ['www.test.com'],
+                   {}))
+
+    self._TestUri('/instances/www.test.com/tags?f=5&f=6&alt=html',
+                  (resources.R_instances_name_tags,
+                   ['www.test.com'],
+                   {'alt': ['html'],
+                    'f': ['5', '6'],
+                   }))
 
 
 class R_RootTests(unittest.TestCase):
   """Testing for R_root class."""
-  
+
   def setUp(self):
     self.root = resources.R_root(None, None, None)
     self.root.result = []
-  
+
   def testGet(self):
+    expected = [
+      {'name': 'info', 'uri': '/info'},
+      {'name': 'instances', 'uri': '/instances'},
+      {'name': 'nodes', 'uri': '/nodes'},
+      {'name': 'os', 'uri': '/os'},
+      {'name': 'status', 'uri': '/status'},
+      {'name': 'tags', 'uri': '/tags'},
+      ]
     self.root._get()
-    self.failUnless(self.root.result == 
-                    [{'name': 'instances', 'uri': '/instances'},
-                     {'name': 'info', 'uri': '/info'},
-                     {'name': 'os', 'uri': '/os'},
-                     {'name': 'status', 'uri': '/status'},
-                     {'name': 'tags', 'uri': '/tags'},
-                     {'name': 'nodes', 'uri': '/nodes'}])
-    
+    self.assertEquals(self.root.result, expected)
+
 
 if __name__ == '__main__':
   unittest.main()

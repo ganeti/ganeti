@@ -141,10 +141,12 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     """
     controller = self.map.getController(uri)
-    if controller:
-      return eval("resources.%s(self, %s, %s)" % controller)
-    else:
+    if not controller:
       raise AttributeError()
+
+    (handler, items, args) = controller
+
+    return handler(self, items, args)
 
 
 def start(options):
