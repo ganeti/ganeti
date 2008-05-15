@@ -178,7 +178,10 @@ commands = {
                           help="Don't shutdown the instance (unsafe)"), ],
              "-n <target_node> [opts...] <name>",
              "Exports an instance to an image"),
-  'import': (ImportInstance, ARGS_ONE, import_opts, "[opts...] <name>",
+  'import': (ImportInstance, ARGS_ONE, import_opts,
+             ("[...] -t disk-type -n node[:secondary-node]"
+              " --src-node node --src-dir dir"
+              " <name>"),
              "Imports an instance from an exported image"),
   'remove': (RemoveExport, ARGS_ONE,
              [DEBUG_OPT],

@@ -66,39 +66,52 @@
           <arg>--swap-size <replaceable>disksize</replaceable></arg>
           <arg>-m <replaceable>memsize</replaceable></arg>
           <sbr>
-          <arg>-o <replaceable>os-type</replaceable></arg>
+
           <arg>-b <replaceable>bridge</replaceable></arg>
           <arg>--mac <replaceable>MAC-address</replaceable></arg>
+          <sbr>
+
           <arg>--hvm-boot-order <replaceable>boot-order</replaceable></arg>
           <arg>--hvm-acpi <replaceable>ACPI-support</replaceable></arg>
+          <sbr>
+
           <arg>--hvm-pae <replaceable>PAE-support</replaceable></arg>
+          <sbr>
+
           <arg>--hvm-cdrom-image-path
             <replaceable>cdrom-image-path</replaceable></arg>
+          <sbr>
+
           <arg>--vnc-bind-address
             <replaceable>vnc-bind-address</replaceable></arg>
-
           <sbr>
-          <arg>--kernel <group choice="req">
+
+          <arg>--kernel<group choice="req">
               <arg>default</arg>
               <arg><replaceable>kernel_path</replaceable></arg>
             </group></arg>
           <sbr>
-          <arg>--initrd <group choice="req">
+
+          <arg>--initrd<group choice="req">
               <arg>default</arg>
               <arg>none</arg>
               <arg><replaceable>initrd_path</replaceable></arg>
-            </group> </arg>
+            </group></arg>
           <sbr>
-          <arg choice="req">-t<group>
+
+          <arg choice="req">-t<group choice="req">
               <arg>diskless</arg>
               <arg>plain</arg>
               <arg>local_raid1</arg>
               <arg>remote_raid1</arg>
               <arg>drbd</arg>
-            </group>
-          </arg>
+            </group></arg>
           <sbr>
+
           <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
+          <arg choice="req">-o <replaceable>os-type</replaceable></arg>
+          <sbr>
+
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
