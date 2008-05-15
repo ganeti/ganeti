@@ -432,12 +432,19 @@
 
       <cmdsynopsis>
         <command>verify</command>
+        <arg choice="opt">--no-nplus1-mem</arg>
       </cmdsynopsis>
 
       <para>
         Verify correctness of cluster configuration. This is safe with
         respect to running instances, and incurs no downtime of the
         instances.
+      </para>
+
+      <para>
+        If the <option>--no-nplus1-mem</option> option is given, ganeti won't
+        check whether if it loses a node it can restart all the instances on
+        their secondaries (and report an error otherwise).
       </para>
     </refsect2>
 
