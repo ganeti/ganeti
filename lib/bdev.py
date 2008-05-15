@@ -1895,9 +1895,9 @@ class DRBD8(BaseDRBD):
     """
     if not cls._IsValidMeta(meta):
       return False
-    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disk",
-                           backend, meta, "0", "-e", "detach",
-                           "--create-device"])
+    args = ["drbdsetup", cls._DevPath(minor), "disk",
+            backend, meta, "0", "-e", "detach", "--create-device"]
+    result = utils.RunCmd(args)
     if result.failed:
       logger.Error("Can't attach local disk: %s" % result.output)
     return not result.failed
