@@ -44,6 +44,7 @@ _LIST_DEF_FIELDS = [
   "name", "os", "pnode", "status", "oper_ram",
   ]
 
+
 def _ExpandMultiNames(mode, names):
   """Expand the given names using the passed mode.
 
@@ -795,7 +796,7 @@ add_opts = [
 
 commands = {
   'add': (AddInstance, ARGS_ONE, add_opts,
-          "[opts...] <name>",
+          "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
           "Creates and adds a new instance to the cluster"),
   'console': (ConnectToInstanceConsole, ARGS_ONE,
               [DEBUG_OPT,

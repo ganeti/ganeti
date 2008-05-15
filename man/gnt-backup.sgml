@@ -94,19 +94,22 @@
         <command>import</command>
         <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
         <arg>-s <replaceable>disksize</replaceable></arg>
+        <sbr>
+
         <arg>--swap-size <replaceable>disksize</replaceable></arg>
         <arg>-m <replaceable>memsize</replaceable></arg>
         <arg>-b <replaceable>bridge</replaceable></arg>
         <sbr>
+
         <arg choice="req">-t<group>
             <arg>diskless</arg>
             <arg>plain</arg>
             <arg>local_raid1</arg>
             <arg>remote_raid1</arg>
             <arg>drbd</arg>
-          </group>
-        </arg>
+          </group></arg>
         <sbr>
+
         <arg choice="req">--src-node=<replaceable>source-node</replaceable></arg>
         <arg choice="req">--src-dir=<replaceable>source-dir</replaceable></arg>
         <arg choice="req"><replaceable>instance</replaceable></arg>
