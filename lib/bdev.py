@@ -1763,7 +1763,7 @@ class DRBD8(BaseDRBD):
 
     # a statement
     stmt = (~rbrace + keyword + ~lbrace +
-            (addr_port ^ value ^ quoted ^ meta_value) +
+            pyp.Optional(addr_port ^ value ^ quoted ^ meta_value) +
             pyp.Optional(defa) + semi +
             pyp.Optional(pyp.restOfLine).suppress())
 
