@@ -237,15 +237,6 @@ class R_tags(R_Generic):
     self.result = list(config.cluster.tags)
 
 
-class R_status(R_Generic):
-  """/status resource.
-
-  """
-  def _get(self):
-    # TODO
-    self.result = '{status}'
-
-
 class R_info(R_Generic):
   """Cluster info.
 
@@ -381,7 +372,6 @@ _CONNECTOR.update({
   "/": R_root,
 
   "/tags": R_tags,
-  "/status": R_status,
   "/info": R_info,
 
   "/nodes": R_nodes,
