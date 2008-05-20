@@ -68,7 +68,6 @@ class R_RootTests(unittest.TestCase):
       {'name': 'instances', 'uri': '/instances'},
       {'name': 'nodes', 'uri': '/nodes'},
       {'name': 'os', 'uri': '/os'},
-      {'name': 'status', 'uri': '/status'},
       {'name': 'tags', 'uri': '/tags'},
       ]
     self.root._get()
