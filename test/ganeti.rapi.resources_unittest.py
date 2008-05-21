@@ -28,6 +28,7 @@ import tempfile
 import time
 
 from ganeti import errors
+from ganeti.rapi import httperror
 from ganeti.rapi import resources
 from ganeti.rapi import RESTHTTPServer
 
@@ -41,11 +42,13 @@ class MapperTests(unittest.TestCase):
   def _TestUri(self, uri, result):
     self.assertEquals(self.map.getController(uri), result)
 
+  def _TestFailingUri(self, uri):
+    self.failUnlessRaises(httperror.HTTPNotFound, self.map.getController, uri)
+
   def testMapper(self):
     """Testing resources.Mapper"""
 
     self._TestUri("/tags", (resources.R_tags, [], {}))
-    self._TestUri("/tag", None)
 
     self._TestUri('/instances/www.test.com',
                   (resources.R_instances_name,
@@ -59,13 +62,15 @@ class MapperTests(unittest.TestCase):
                     'f': ['5', '6'],
                    }))
 
+    self._TestFailingUri("/tag")
+    self._TestFailingUri("/instances/does/not/exist")
+
 
 class R_RootTests(unittest.TestCase):
   """Testing for R_root class."""
 
   def setUp(self):
     self.root = resources.R_root(None, None, None)
-    self.root.result = []
 
   def testGet(self):
     expected = [
@@ -74,9 +79,9 @@ class R_RootTests(unittest.TestCase):
       {'name': 'nodes', 'uri': '/nodes'},
       {'name': 'os', 'uri': '/os'},
       {'name': 'tags', 'uri': '/tags'},
+      {'name': 'version', 'uri': '/version'},
       ]
-    self.root._get()
-    self.assertEquals(self.root.result, expected)
+    self.assertEquals(self.root.GET(), expected)
 
 
 class HttpLogfileTests(unittest.TestCase):
