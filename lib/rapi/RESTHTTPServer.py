@@ -20,14 +20,84 @@
 """
 
 import socket
-import inspect
 import SocketServer
 import BaseHTTPServer
 import OpenSSL
+import time
 
 from ganeti import constants
+from ganeti import errors
 from ganeti import logger
 from ganeti.rapi import resources
+
+
+class HttpLogfile:
+  """Utility class to write HTTP server log files.
+
+  The written format is the "Common Log Format" as defined by Apache:
+  http://httpd.apache.org/docs/2.2/mod/mod_log_config.html#examples
+
+  """
+  MONTHNAME = [None,
+               'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+  def __init__(self, path):
+    self._fd = open(path, 'a', 1)
+
+  def __del__(self):
+    try:
+      self.Close()
+    except:
+      # Swallow exceptions
+      pass
+
+  def Close(self):
+    if self._fd is not None:
+      self._fd.close()
+      self._fd = None
+
+  def LogRequest(self, request, format, *args):
+    if self._fd is None:
+      raise errors.ProgrammerError("Logfile already closed")
+
+    request_time = self._FormatCurrentTime()
+
+    self._fd.write("%s %s %s [%s] %s\n" % (
+      # Remote host address
+      request.address_string(),
+
+      # RFC1413 identity (identd)
+      "-",
+
+      # Remote user
+      "-",
+
+      # Request time
+      request_time,
+
+      # Message
+      format % args,
+      ))
+
+  def _FormatCurrentTime(self):
+    """Formats current time in Common Log Format.
+
+    """
+    return self._FormatLogTime(time.time())
+
+  def _FormatLogTime(self, seconds):
+    """Formats time for Common Log Format.
+
+    All timestamps are logged in the UTC timezone.
+
+    Args:
+    - seconds: Time in seconds since the epoch
+
+    """
+    (_, month, _, _, _, _, _, _, _) = tm = time.gmtime(seconds)
+    format = "%d/" + self.MONTHNAME[month] + "/%Y:%H:%M:%S +0000"
+    return time.strftime(format, tm)
 
 
 class RESTHTTPServer(BaseHTTPServer.HTTPServer):
@@ -48,6 +118,8 @@ class RESTHTTPServer(BaseHTTPServer.HTTPServer):
 
     """
     logger.SetupLogging(debug=options.debug, program='ganeti-rapi')
+
+    self.httplog = HttpLogfile(constants.LOG_RAPIACCESS)
 
     BaseHTTPServer.HTTPServer.__init__(self, server_address, HandlerClass)
     if options.ssl:
@@ -119,18 +191,8 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     specified as subsequent arguments (it's just like
     printf!).
 
-    The client host and current date/time are prefixed to
-    every message.
-
     """
-    message = "%s - - %s" % (self.address_string(), format % args)
-
-    # who is calling?
-    origin = inspect.stack()[1][0].f_code.co_name
-    if origin == "log_error":
-      logger.Error(message)
-    else:
-      logger.Info(message)
+    self.server.httplog.LogRequest(self, format, *args)
 
   def R_Resource(self, uri):
     """Create controller from the URL.
