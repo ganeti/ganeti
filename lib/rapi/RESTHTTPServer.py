@@ -27,7 +27,6 @@ import time
 from ganeti import constants
 from ganeti import errors
 from ganeti import logger
-from ganeti import utils
 from ganeti import serializer
 from ganeti.rapi import resources
 from ganeti.rapi import httperror
@@ -185,18 +184,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         raise httperror.HTTPBadRequest()
 
       try:
-        if handler.LOCK:
-          utils.Lock(handler.LOCK, max_retries=15)
-          try:
-            result = fn()
-          finally:
-            utils.Unlock(handler.LOCK)
-            utils.LockCleanup()
-        else:
-          result = fn()
-
-      except errors.LockError, err:
-        raise httperror.HTTPServiceUnavailable(message=str(err))
+        result = fn()
 
       except errors.OpPrereqError, err:
         # TODO: "Not found" is not always the correct error. Ganeti's core must

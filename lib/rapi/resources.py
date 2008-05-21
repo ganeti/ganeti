@@ -28,10 +28,10 @@ import re
 
 import ganeti.opcodes
 import ganeti.errors
-import ganeti.utils
 import ganeti.cli
 
 from ganeti import constants
+from ganeti import utils
 from ganeti.rapi import httperror
 
 
@@ -83,6 +83,34 @@ def MapFields(names, data):
   if len(names) != len(data):
     raise AttributeError("Names and data must have the same length")
   return dict([(names[i], data[i]) for i in range(len(names))])
+
+
+def RequireLock(name='cmd'):
+  """Function decorator to automatically acquire locks.
+
+  PEP-318 style function decorator.
+
+  """
+  def wrapper(fn):
+    def new_f(*args, **kwargs):
+      try:
+        utils.Lock(name, max_retries=15)
+        try:
+          # Call real function
+          return fn(*args, **kwargs)
+        finally:
+          utils.Unlock(name)
+          utils.LockCleanup()
+      except errors.LockError, err:
+        raise httperror.HTTPServiceUnavailable(message=str(err))
+
+    # Override function metadata
+    new_f.func_name = fn.func_name
+    new_f.func_doc = fn.func_doc
+
+    return new_f
+
+  return wrapper
 
 
 class Mapper:
@@ -144,8 +172,6 @@ class R_Generic(object):
   """Generic class for resources.
 
   """
-  LOCK = 'cmd'
-
   def __init__(self, request, items, queryargs):
     """Generic resource constructor.
 
@@ -164,8 +190,6 @@ class R_root(R_Generic):
   """/ resource.
 
   """
-  LOCK = None
-
   def GET(self):
     """Show the list of mapped resources.
 
@@ -187,8 +211,6 @@ class R_version(R_Generic):
   """/version resource.
 
   """
-  LOCK = None
-
   def GET(self):
     """Returns the remote API version.
 
@@ -200,8 +222,6 @@ class R_instances(R_Generic):
   """/instances resource.
 
   """
-  LOCK = None
-
   def GET(self):
     """Send a list of all available instances.
 
@@ -216,8 +236,6 @@ class R_tags(R_Generic):
   """/tags resource.
 
   """
-  LOCK = None
-
   def GET(self):
     """Send a list of all cluster tags."""
     op = ganeti.opcodes.OpGetTags(kind=constants.TAG_CLUSTER)
@@ -229,8 +247,6 @@ class R_info(R_Generic):
   """Cluster info.
 
   """
-  LOCK = None
-
   def GET(self):
     """Returns cluster information.
 
@@ -243,8 +259,6 @@ class R_nodes(R_Generic):
   """/nodes resource.
 
   """
-  LOCK = None
-
   def GET(self):
     """Send a list of all nodes.
 
@@ -259,6 +273,7 @@ class R_nodes_name(R_Generic):
   """/nodes/[node_name] resources.
 
   """
+  @RequireLock()
   def GET(self):
     """Send information about a node.
 
@@ -279,8 +294,6 @@ class R_nodes_name_tags(R_Generic):
   """/nodes/[node_name]/tags resource.
 
   """
-  LOCK = None
-
   def GET(self):
     """Send a list of node tags.
 
@@ -294,6 +307,7 @@ class R_instances_name(R_Generic):
   """/instances/[instance_name] resources.
 
   """
+  @RequireLock()
   def GET(self):
     """Send information about an instance.
 
@@ -316,8 +330,6 @@ class R_instances_name_tags(R_Generic):
   """/instances/[instance_name]/tags resource.
 
   """
-  LOCK = None
-
   def GET(self):
     """Send a list of instance tags.
 
@@ -332,6 +344,7 @@ class R_os(R_Generic):
   """/os resource.
 
   """
+  @RequireLock()
   def GET(self):
     """Send a list of all OSes.
 
