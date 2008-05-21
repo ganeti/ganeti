@@ -34,6 +34,8 @@ class RESTHTTPServer(BaseHTTPServer.HTTPServer):
   """Class to provide an HTTP/HTTPS server.
 
   """
+  allow_reuse_address = True
+
   def __init__(self, server_address, HandlerClass, options):
     """REST Server Constructor.
 
