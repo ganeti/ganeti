@@ -249,6 +249,19 @@ class R_root(R_Generic):
     self.result = BuildUriList(rootlist, "/%s")
 
 
+class R_version(R_Generic):
+  """/version resource.
+
+  """
+  LOCK = None
+
+  def _get(self):
+    """Returns the remote API version.
+
+    """
+    self.result = constants.RAPI_VERSION
+
+
 class R_instances(R_Generic):
   """/instances resource.
 
@@ -404,6 +417,8 @@ class R_os(R_Generic):
 
 _CONNECTOR.update({
   "/": R_root,
+
+  "/version": R_version,
 
   "/tags": R_tags,
   "/info": R_info,
