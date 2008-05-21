@@ -141,12 +141,6 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """REST Request Handler Class.
 
   """
-  def authenticate(self):
-    """Perform authentication check.
-
-    """
-    return True
-
   def setup(self):
     """Setup secure read and write file objects.
 
@@ -169,9 +163,6 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.close_connection = 1
       return
     if not self.parse_request(): # An error code has been sent, just exit
-      return
-    if not self.authenticate():
-      self.send_error(401, "Access Denied")
       return
     try:
       rname = self.R_Resource(self.path)
