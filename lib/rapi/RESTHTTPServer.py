@@ -20,7 +20,6 @@
 """
 
 import socket
-import SocketServer
 import BaseHTTPServer
 import OpenSSL
 import time
@@ -28,7 +27,10 @@ import time
 from ganeti import constants
 from ganeti import errors
 from ganeti import logger
+from ganeti import utils
+from ganeti import serializer
 from ganeti.rapi import resources
+from ganeti.rapi import httperror
 
 
 class HttpLogfile:
@@ -137,6 +139,13 @@ class RESTHTTPServer(BaseHTTPServer.HTTPServer):
     self.server_activate()
 
 
+class JsonResponse:
+  CONTENT_TYPE = "application/json"
+
+  def Encode(self, data):
+    return serializer.DumpJson(data)
+
+
 class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """REST Request Handler Class.
 
@@ -148,7 +157,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.connection = self.request
     self.rfile = socket._fileobject(self.request, "rb", self.rbufsize)
     self.wfile = socket._fileobject(self.request, "wb", self.wbufsize)
-    self.map = resources.Mapper()
+    self._resmap = resources.Mapper()
 
   def handle_one_request(self):
     """Handle a single REST request.
@@ -164,12 +173,49 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       return
     if not self.parse_request(): # An error code has been sent, just exit
       return
+
     try:
-      rname = self.R_Resource(self.path)
-      rname.set_headers(self.headers)
-      rname.do_Request(self.command)
-    except AttributeError, msg:
-      self.send_error(501, "Resource is not available: %s" % msg)
+      (HandlerClass, items, args) = self._resmap.getController(self.path)
+      handler = HandlerClass(self, items, args)
+
+      command = self.command.upper()
+      try:
+        fn = getattr(handler, command)
+      except AttributeError, err:
+        raise httperror.HTTPBadRequest()
+
+      try:
+        if handler.LOCK:
+          utils.Lock(handler.LOCK, max_retries=15)
+          try:
+            result = fn()
+          finally:
+            utils.Unlock(handler.LOCK)
+            utils.LockCleanup()
+        else:
+          result = fn()
+
+      except errors.LockError, err:
+        raise httperror.HTTPServiceUnavailable(message=str(err))
+
+      except errors.OpPrereqError, err:
+        # TODO: "Not found" is not always the correct error. Ganeti's core must
+        # differentiate between different error types.
+        raise httperror.HTTPNotFound(message=str(err))
+
+      encoder = JsonResponse()
+      encoded_result = encoder.Encode(result)
+
+      self.send_response(200)
+      self.send_header("Content-Type", encoder.CONTENT_TYPE)
+      self.end_headers()
+      self.wfile.write(encoded_result)
+
+    except httperror.HTTPException, err:
+      self.send_error(err.code, message=err.message)
+
+    except Exception, err:
+      self.send_error(httperror.HTTPInternalError.code, message=str(err))
 
   def log_message(self, format, *args):
     """Log an arbitrary message.
@@ -184,24 +230,6 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     """
     self.server.httplog.LogRequest(self, format, *args)
-
-  def R_Resource(self, uri):
-    """Create controller from the URL.
-
-    Args:
-      uri: a string with requested URL.
-
-    Returns:
-      R_Generic class inheritor.
-
-    """
-    controller = self.map.getController(uri)
-    if not controller:
-      raise AttributeError()
-
-    (handler, items, args) = controller
-
-    return handler(self, items, args)
 
 
 def start(options):

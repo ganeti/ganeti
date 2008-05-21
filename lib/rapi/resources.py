@@ -23,7 +23,6 @@
 
 """
 
-import simplejson
 import cgi
 import re
 
@@ -33,16 +32,11 @@ import ganeti.utils
 import ganeti.cli
 
 from ganeti import constants
+from ganeti.rapi import httperror
 
 
 # Initialized at the end of this file.
 _CONNECTOR = {}
-
-
-class RemoteAPIError(ganeti.errors.GenericError):
-  """Remote API exception.
-
-  """
 
 
 def BuildUriList(names, uri_format):
@@ -140,7 +134,10 @@ class Mapper:
         result = (handler, [], args)
         break
 
-    return result
+    if result is not None:
+      return result
+    else:
+      raise httperror.HTTPNotFound()
 
 
 class R_Generic(object):
@@ -149,81 +146,18 @@ class R_Generic(object):
   """
   LOCK = 'cmd'
 
-  def __init__(self, dispatcher, items, args):
+  def __init__(self, request, items, queryargs):
     """Generic resource constructor.
 
     Args:
-      dispatcher: HTTPRequestHandler object
+      request: HTTPRequestHandler object
       items: a list with variables encoded in the URL
-      args: a dictionary with additional options from URL
+      queryargs: a dictionary with additional options from URL
 
     """
-    self.dispatcher = dispatcher
+    self.request = request
     self.items = items
-    self.args = args
-    self.code = 200
-    self.result = None
-
-  def set_headers(self, headers):
-    """Pass headers to the resource class.
-
-    Args:
-      headers: a Message-like class used to parse headers
-    """
-    self.headers = headers
-
-  def do_Request(self, request):
-    """Default request flow.
-
-    """
-    try:
-      fn = getattr(self, '_%s' % request.lower())
-      if self.LOCK:
-        ganeti.utils.Lock(self.LOCK, max_retries=15)
-        try:
-          fn()
-        finally:
-          ganeti.utils.Unlock(self.LOCK)
-          ganeti.utils.LockCleanup()
-      else:
-        fn()
-      self.send(self.code, self.result)
-
-    except RemoteAPIError, msg:
-      self.send_error(self.code, str(msg))
-    except ganeti.errors.OpPrereqError, msg:
-      self.send_error(404, str(msg))
-    except AttributeError, msg:
-      self.send_error(405, 'Method Not Implemented: %s' % msg)
-    except ganeti.errors.LockError, msg:
-      self.send_error(503, 'Unable to acquire the lock: %s' % msg)
-    except Exception, msg:
-      self.send_error(500, 'Internal Server Error: %s' % msg)
-
-  def send(self, code, data=None):
-    """Write data to client.
-
-    Args:
-      code: int, the HTTP response code
-      data: message body
-
-    """
-    self.dispatcher.send_response(code)
-    # rfc4627.txt
-    self.dispatcher.send_header("Content-type", "application/json")
-    self.dispatcher.end_headers()
-    if data:
-      self.dispatcher.wfile.write(simplejson.dumps(data))
-
-  def send_error(self, code, message):
-    """Send an error to the client.
-
-    Args:
-      code: HTTP response code (int)
-      message: Error message
-
-    """
-    self.dispatcher.send_error(code, message)
+    self.queryargs = queryargs
 
 
 class R_root(R_Generic):
@@ -232,7 +166,7 @@ class R_root(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Show the list of mapped resources.
 
     """
@@ -246,7 +180,7 @@ class R_root(R_Generic):
         if name != 'root':
           rootlist.append(name)
 
-    self.result = BuildUriList(rootlist, "/%s")
+    return BuildUriList(rootlist, "/%s")
 
 
 class R_version(R_Generic):
@@ -255,11 +189,11 @@ class R_version(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Returns the remote API version.
 
     """
-    self.result = constants.RAPI_VERSION
+    return constants.RAPI_VERSION
 
 
 class R_instances(R_Generic):
@@ -268,15 +202,14 @@ class R_instances(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Send a list of all available instances.
 
     """
     op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
     instancelist = ganeti.cli.SubmitOpCode(op)
 
-    self.result = BuildUriList(ExtractField(instancelist, 0),
-                               "/instances/%s")
+    return BuildUriList(ExtractField(instancelist, 0), "/instances/%s")
 
 
 class R_tags(R_Generic):
@@ -285,11 +218,11 @@ class R_tags(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Send a list of all cluster tags."""
     op = ganeti.opcodes.OpGetTags(kind=constants.TAG_CLUSTER)
     tags = ganeti.cli.SubmitOpCode(op)
-    self.result = list(tags)
+    return list(tags)
 
 
 class R_info(R_Generic):
@@ -298,12 +231,12 @@ class R_info(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Returns cluster information.
 
     """
     op = ganeti.opcodes.OpQueryClusterInfo()
-    self.result = ganeti.cli.SubmitOpCode(op)
+    return ganeti.cli.SubmitOpCode(op)
 
 
 class R_nodes(R_Generic):
@@ -312,22 +245,21 @@ class R_nodes(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Send a list of all nodes.
 
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
     nodelist = ganeti.cli.SubmitOpCode(op)
 
-    self.result = BuildUriList(ExtractField(nodelist, 0),
-                               "/nodes/%s")
+    return BuildUriList(ExtractField(nodelist, 0), "/nodes/%s")
 
 
 class R_nodes_name(R_Generic):
   """/nodes/[node_name] resources.
 
   """
-  def _get(self):
+  def GET(self):
     """Send information about a node.
 
     """
@@ -340,7 +272,7 @@ class R_nodes_name(R_Generic):
                                      names=[node_name])
     result = ganeti.cli.SubmitOpCode(op)
 
-    self.result = MapFields(fields, result[0])
+    return MapFields(fields, result[0])
 
 
 class R_nodes_name_tags(R_Generic):
@@ -349,20 +281,20 @@ class R_nodes_name_tags(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Send a list of node tags.
 
     """
     op = ganeti.opcodes.OpGetTags(kind=constants.TAG_NODE, name=self.items[0])
     tags = ganeti.cli.SubmitOpCode(op)
-    self.result = list(tags)
+    return list(tags)
 
 
 class R_instances_name(R_Generic):
   """/instances/[instance_name] resources.
 
   """
-  def _get(self):
+  def GET(self):
     """Send information about an instance.
 
     """
@@ -377,7 +309,7 @@ class R_instances_name(R_Generic):
                                          names=[instance_name])
     result = ganeti.cli.SubmitOpCode(op)
 
-    self.result = MapFields(fields, result[0])
+    return MapFields(fields, result[0])
 
 
 class R_instances_name_tags(R_Generic):
@@ -386,21 +318,21 @@ class R_instances_name_tags(R_Generic):
   """
   LOCK = None
 
-  def _get(self):
+  def GET(self):
     """Send a list of instance tags.
 
     """
     op = ganeti.opcodes.OpGetTags(kind=constants.TAG_INSTANCE,
                                   name=self.items[0])
     tags = ganeti.cli.SubmitOpCode(op)
-    self.result = list(tags)
+    return list(tags)
 
 
 class R_os(R_Generic):
   """/os resource.
 
   """
-  def _get(self):
+  def GET(self):
     """Send a list of all OSes.
 
     """
@@ -409,10 +341,9 @@ class R_os(R_Generic):
     diagnose_data = ganeti.cli.SubmitOpCode(op)
 
     if not isinstance(diagnose_data, list):
-      self.code = 500
-      raise RemoteAPIError("Can't get the OS list")
+      raise httperror.HTTPInternalError(message="Can't get OS list")
 
-    self.result = [row[0] for row in diagnose_data if row[1]]
+    return [row[0] for row in diagnose_data if row[1]]
 
 
 _CONNECTOR.update({
