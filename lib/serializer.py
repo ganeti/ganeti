@@ -39,7 +39,7 @@ except TypeError:
 _RE_EOLSP = re.compile('\s+$', re.MULTILINE)
 
 
-def Dump(data):
+def DumpJson(data):
   """Serialize a given object.
 
   """
@@ -53,8 +53,12 @@ def Dump(data):
   return txt
 
 
-def Load(txt):
+def LoadJson(txt):
   """Unserialize data from a string.
 
   """
   return simplejson.loads(txt)
+
+
+Dump = DumpJson
+Load = LoadJson
