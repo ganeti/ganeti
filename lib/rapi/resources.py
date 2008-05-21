@@ -19,8 +19,7 @@
 # 02110-1301, USA.
 
 
-"""
-resources.py
+"""Remote API resources.
 
 """
 
@@ -33,6 +32,8 @@ import ganeti.errors
 import ganeti.utils
 import ganeti.cli
 
+from ganeti import constants
+
 
 # Initialized at the end of this file.
 _CONNECTOR = {}
@@ -42,6 +43,52 @@ class RemoteAPIError(ganeti.errors.GenericError):
   """Remote API exception.
 
   """
+
+
+def BuildUriList(names, uri_format):
+  """Builds a URI list as used by index resources.
+
+  Args:
+  - names: List of names as strings
+  - uri_format: Format to be applied for URI
+
+  """
+  def _MapName(name):
+    return { "name": name, "uri": uri_format % name, }
+
+  # Make sure the result is sorted, makes it nicer to look at and simplifies
+  # unittests.
+  names.sort()
+
+  return map(_MapName, names)
+
+
+def ExtractField(sequence, index):
+  """Creates a list containing one column out of a list of lists
+
+  Args:
+  - sequence: Sequence of lists
+  - index: Index of field
+
+  """
+  return map(lambda item: item[index], sequence)
+
+
+def MapFields(names, data):
+  """Maps two lists into one dictionary.
+
+  Args:
+  - names: Field names (list of strings)
+  - data: Field data (list)
+
+  Example:
+  >>> MapFields(["a", "b"], ["foo", 123])
+  {'a': 'foo', 'b': 123}
+
+  """
+  if len(names) != len(data):
+    raise AttributeError("Names and data must have the same length")
+  return dict([(names[i], data[i]) for i in range(len(names))])
 
 
 class Mapper:
@@ -189,18 +236,17 @@ class R_root(R_Generic):
     """Show the list of mapped resources.
 
     """
-    result = []
     root_pattern = re.compile('^R_([a-zA-Z0-9]+)$')
+
+    rootlist = []
     for handler in _CONNECTOR.values():
-      root_elem = root_pattern.match(handler.__name__)
-      if root_elem:
-        match = root_elem.groups()[0]
-        if match != 'root':
-          result.append({
-            'name': match,
-            'uri': '/%s' % match})
-    result.sort(cmp=lambda a, b: cmp(a["name"], b["name"]))
-    self.result = result
+      m = root_pattern.match(handler.__name__)
+      if m:
+        name = m.group(1)
+        if name != 'root':
+          rootlist.append(name)
+
+    self.result = BuildUriList(rootlist, "/%s")
 
 
 class R_instances(R_Generic):
@@ -213,15 +259,11 @@ class R_instances(R_Generic):
     """Send a list of all available instances.
 
     """
-    result = []
-    request = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
-    instancelist = ganeti.cli.SubmitOpCode(request)
-    for instance in instancelist:
-      result.append({
-        'name': instance[0],
-        'uri': '/instances/%s' % instance[0],
-        })
-    self.result = result
+    op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
+    instancelist = ganeti.cli.SubmitOpCode(op)
+
+    self.result = BuildUriList(ExtractField(instancelist, 0),
+                               "/instances/%s")
 
 
 class R_tags(R_Generic):
@@ -232,9 +274,9 @@ class R_tags(R_Generic):
 
   def _get(self):
     """Send a list of all cluster tags."""
-    request = ganeti.opcodes.OpDumpClusterConfig()
-    config = ganeti.cli.SubmitOpCode(request)
-    self.result = list(config.cluster.tags)
+    op = ganeti.opcodes.OpGetTags(kind=constants.TAG_CLUSTER)
+    tags = ganeti.cli.SubmitOpCode(op)
+    self.result = list(tags)
 
 
 class R_info(R_Generic):
@@ -247,8 +289,8 @@ class R_info(R_Generic):
     """Returns cluster information.
 
     """
-    request = ganeti.opcodes.OpQueryClusterInfo()
-    self.result = ganeti.cli.SubmitOpCode(request)
+    op = ganeti.opcodes.OpQueryClusterInfo()
+    self.result = ganeti.cli.SubmitOpCode(op)
 
 
 class R_nodes(R_Generic):
@@ -261,15 +303,11 @@ class R_nodes(R_Generic):
     """Send a list of all nodes.
 
     """
-    result = []
-    request = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
-    nodelist = ganeti.cli.SubmitOpCode(request)
-    for node in nodelist:
-      result.append({
-        'name': node[0],
-        'uri': '/nodes/%s' % node[0],
-        })
-    self.result = result
+    op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
+    nodelist = ganeti.cli.SubmitOpCode(op)
+
+    self.result = BuildUriList(ExtractField(nodelist, 0),
+                               "/nodes/%s")
 
 
 class R_nodes_name(R_Generic):
@@ -280,19 +318,16 @@ class R_nodes_name(R_Generic):
     """Send information about a node.
 
     """
-    result = {}
+    node_name = self.items[0]
     fields = ["dtotal", "dfree",
               "mtotal", "mnode", "mfree",
               "pinst_cnt", "sinst_cnt"]
 
-    request = ganeti.opcodes.OpQueryNodes(output_fields=fields,
-                                          names=self.items)
-    [r_list] = ganeti.cli.SubmitOpCode(request)
+    op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
+                                     names=[node_name])
+    result = ganeti.cli.SubmitOpCode(op)
 
-    for i in range(len(fields)):
-      result[fields[i]] = r_list[i]
-
-    self.result = result
+    self.result = MapFields(fields, result[0])
 
 
 class R_nodes_name_tags(R_Generic):
@@ -305,7 +340,7 @@ class R_nodes_name_tags(R_Generic):
     """Send a list of node tags.
 
     """
-    op = ganeti.opcodes.OpGetTags(kind='node', name=self.items[0])
+    op = ganeti.opcodes.OpGetTags(kind=constants.TAG_NODE, name=self.items[0])
     tags = ganeti.cli.SubmitOpCode(op)
     self.result = list(tags)
 
@@ -318,20 +353,18 @@ class R_instances_name(R_Generic):
     """Send information about an instance.
 
     """
+    instance_name = self.items[0]
     fields = ["name", "os", "pnode", "snodes",
               "admin_state", "admin_ram",
               "disk_template", "ip", "mac", "bridge",
               "sda_size", "sdb_size", "vcpus",
               "oper_state", "status"]
 
-    request = ganeti.opcodes.OpQueryInstances(output_fields=fields,
-                                              names=self.items)
-    data = ganeti.cli.SubmitOpCode(request)
+    op = ganeti.opcodes.OpQueryInstances(output_fields=fields,
+                                         names=[instance_name])
+    result = ganeti.cli.SubmitOpCode(op)
 
-    result = {}
-    for i in range(len(fields)):
-      result[fields[i]] = data[0][i]
-    self.result = result
+    self.result = MapFields(fields, result[0])
 
 
 class R_instances_name_tags(R_Generic):
@@ -344,7 +377,8 @@ class R_instances_name_tags(R_Generic):
     """Send a list of instance tags.
 
     """
-    op = ganeti.opcodes.OpGetTags(kind='instance', name=self.items[0])
+    op = ganeti.opcodes.OpGetTags(kind=constants.TAG_INSTANCE,
+                                  name=self.items[0])
     tags = ganeti.cli.SubmitOpCode(op)
     self.result = list(tags)
 
@@ -357,9 +391,9 @@ class R_os(R_Generic):
     """Send a list of all OSes.
 
     """
-    request = ganeti.opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
-                                          names=[])
-    diagnose_data = ganeti.cli.SubmitOpCode(request)
+    op = ganeti.opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
+                                     names=[])
+    diagnose_data = ganeti.cli.SubmitOpCode(op)
 
     if not isinstance(diagnose_data, list):
       self.code = 500
