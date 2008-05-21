@@ -113,6 +113,15 @@ def RequireLock(name='cmd'):
   return wrapper
 
 
+def _Tags_GET(kind, name=None):
+  """Helper function to retrieve tags.
+
+  """
+  op = ganeti.opcodes.OpGetTags(kind=kind, name=name)
+  tags = ganeti.cli.SubmitOpCode(op)
+  return list(tags)
+
+
 class Mapper:
   """Map resource to method.
 
@@ -238,9 +247,7 @@ class R_tags(R_Generic):
   """
   def GET(self):
     """Send a list of all cluster tags."""
-    op = ganeti.opcodes.OpGetTags(kind=constants.TAG_CLUSTER)
-    tags = ganeti.cli.SubmitOpCode(op)
-    return list(tags)
+    return _Tags_GET(constants.TAG_CLUSTER)
 
 
 class R_info(R_Generic):
@@ -298,9 +305,7 @@ class R_nodes_name_tags(R_Generic):
     """Send a list of node tags.
 
     """
-    op = ganeti.opcodes.OpGetTags(kind=constants.TAG_NODE, name=self.items[0])
-    tags = ganeti.cli.SubmitOpCode(op)
-    return list(tags)
+    return _Tags_GET(constants.TAG_NODE, name=self.items[0])
 
 
 class R_instances_name(R_Generic):
@@ -334,10 +339,7 @@ class R_instances_name_tags(R_Generic):
     """Send a list of instance tags.
 
     """
-    op = ganeti.opcodes.OpGetTags(kind=constants.TAG_INSTANCE,
-                                  name=self.items[0])
-    tags = ganeti.cli.SubmitOpCode(op)
-    return list(tags)
+    return _Tags_GET(constants.TAG_CLUSTER, name=self.items[0])
 
 
 class R_os(R_Generic):
