@@ -2,6 +2,32 @@ Version 1.2.4
   - Experimental readonly, REST-based remote API implementation; automatically
     started on master node, TCP port 5080, if enabled by --enable-rapi
     parameter to configure script.
+  - Instance allocator support. Add and import instance accept a --iallocator
+    parameter, and call that instance allocator to decide which node to use for
+    the instance. The iallocator document describes what's expected from an
+    allocator script.
+  - gnt-cluster verify N+1 memory redundancy checks: Unless passed the
+    --no-nplus1-mem option gnt-cluster verify now checks that if a node is lost
+    there is still enough memory to fail over the instances that reside on it.
+  - gnt-cluster verify hooks: it is now possible to add post-hooks to
+    gnt-cluster verify, to check for site-specific compliance. All the hooks
+    will run, and their output, if any, will be displayed. Any failing hook
+    will make the verification return an error value.
+  - gnt-cluster verify now checks that its peers are reachable on the primary
+    and secondary interfaces
+  - gnt-node add now supports the --readd option, to readd a node that is still
+    declared as part of the cluster and has failed.
+  - gnt-* list commands now accept a new -o +field way of specifying output
+    fields, that just adds the chosen fields to the default ones.
+  - gnt-backup now has a new "remove" command to delete an existing export from
+    the filesystem.
+  - New per-instance parameters hvm_acpi, hvm_pae and hvm_cdrom_image_path have
+    been added. Using them you can enable/disable acpi and pae support, and
+    specify a path for a cd image to be exported to the instance. These
+    parameters as the name suggest only work on HVM clusters.
+  - The address to which an instance's VNC console is bound is now selectable
+    per-instance, rather than being cluster wide. Of course this only applies
+    to instances controlled via VNC, so currently just applies to HVM clusters.
 
 Version 1.2.3
   - more tweaks to the disk activation code (especially helpful for DRBD)
