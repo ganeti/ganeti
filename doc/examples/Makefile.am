@@ -1,4 +1,4 @@
-EXTRA_DIST = ganeti.initd.in ganeti.cron.in
+EXTRA_DIST = ganeti.initd.in ganeti.cron.in dumb-allocator
 CLEANFILES = $(nodist_EXTRA_DATA)
 
 nodist_EXTRA_DATA = ganeti.initd ganeti.cron
