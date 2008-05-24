@@ -199,6 +199,8 @@ class R_root(R_Generic):
   """/ resource.
 
   """
+  DOC_URI = "/"
+
   def GET(self):
     """Show the list of mapped resources.
 
@@ -219,7 +221,12 @@ class R_root(R_Generic):
 class R_version(R_Generic):
   """/version resource.
 
+  This resource should be used to determine the remote API version and to adapt
+  clients accordingly.
+
   """
+  DOC_URI = "/version"
+
   def GET(self):
     """Returns the remote API version.
 
@@ -231,8 +238,12 @@ class R_instances(R_Generic):
   """/instances resource.
 
   """
+  DOC_URI = "/instances"
+
   def GET(self):
-    """Send a list of all available instances.
+    """Returns a list of all available instances.
+
+    Example: ["web1.example.com", "mail1.example.com"]
 
     """
     op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
@@ -244,9 +255,17 @@ class R_instances(R_Generic):
 class R_tags(R_Generic):
   """/tags resource.
 
+  Manages cluster tags.
+
   """
+  DOC_URI = "/tags"
+
   def GET(self):
-    """Send a list of all cluster tags."""
+    """Returns a list of all cluster tags.
+
+    Example: ["tag1", "tag2", "tag3"]
+
+    """
     return _Tags_GET(constants.TAG_CLUSTER)
 
 
@@ -254,8 +273,25 @@ class R_info(R_Generic):
   """Cluster info.
 
   """
+  DOC_URI = "/info"
+
   def GET(self):
     """Returns cluster information.
+
+    Example: {
+      "config_version": 3,
+      "name": "cluster1.example.com",
+      "software_version": "1.2.4",
+      "os_api_version": 5,
+      "export_version": 0,
+      "master": "node1.example.com",
+      "architecture": [
+        "64bit",
+        "x86_64"
+      ],
+      "hypervisor_type": "xen-3.0",
+      "protocol_version": 12
+    }
 
     """
     op = ganeti.opcodes.OpQueryClusterInfo()
@@ -266,8 +302,12 @@ class R_nodes(R_Generic):
   """/nodes resource.
 
   """
+  DOC_URI = "/nodes"
+
   def GET(self):
-    """Send a list of all nodes.
+    """Returns a list of all nodes.
+
+    Example: ["node1.example.com", "node2.example.com"]
 
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
@@ -280,6 +320,8 @@ class R_nodes_name(R_Generic):
   """/nodes/[node_name] resources.
 
   """
+  DOC_URI = "/nodes/[node_name]"
+
   @RequireLock()
   def GET(self):
     """Send information about a node.
@@ -300,9 +342,15 @@ class R_nodes_name(R_Generic):
 class R_nodes_name_tags(R_Generic):
   """/nodes/[node_name]/tags resource.
 
+  Manages per-node tags.
+
   """
+  DOC_URI = "/nodes/[node_name]/tags"
+
   def GET(self):
-    """Send a list of node tags.
+    """Returns a list of node tags.
+
+    Example: ["tag1", "tag2", "tag3"]
 
     """
     return _Tags_GET(constants.TAG_NODE, name=self.items[0])
@@ -312,6 +360,8 @@ class R_instances_name(R_Generic):
   """/instances/[instance_name] resources.
 
   """
+  DOC_URI = "/instances/[instance_name]"
+
   @RequireLock()
   def GET(self):
     """Send information about an instance.
@@ -334,9 +384,15 @@ class R_instances_name(R_Generic):
 class R_instances_name_tags(R_Generic):
   """/instances/[instance_name]/tags resource.
 
+  Manages per-instance tags.
+
   """
+  DOC_URI = "/instances/[instance_name]/tags"
+
   def GET(self):
-    """Send a list of instance tags.
+    """Returns a list of instance tags.
+
+    Example: ["tag1", "tag2", "tag3"]
 
     """
     return _Tags_GET(constants.TAG_CLUSTER, name=self.items[0])
@@ -346,9 +402,15 @@ class R_os(R_Generic):
   """/os resource.
 
   """
+  DOC_URI = "/os"
+
   @RequireLock()
   def GET(self):
-    """Send a list of all OSes.
+    """Return a list of all OSes.
+
+    Can return error 500 in case of a problem.
+
+    Example: ["debian-etch"]
 
     """
     op = ganeti.opcodes.OpDiagnoseOS(output_fields=["name", "valid"],

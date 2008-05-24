@@ -1,0 +1,83 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2008 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+"""Script to generate documentation for remote API resources.
+
+"""
+
+import re
+import cgi
+import inspect
+
+from ganeti.rapi import resources
+
+
+CHECKED_COMMANDS = ["GET", "POST", "PUT", "DELETE"]
+
+
+def main():
+  # Get list of all resources
+  all = list(resources._CONNECTOR.itervalues())
+
+  # Sort resources by URI
+  all.sort(cmp=lambda a, b: cmp(a.DOC_URI, b.DOC_URI))
+
+  print "<!-- Automatically generated, do not edit -->"
+
+  for cls in all:
+    print "<sect2>"
+    print "<title>%s</title>" % cgi.escape(cls.DOC_URI)
+
+    # Get docstring
+    print "<literallayout>%s</literallayout>" % inspect.getdoc(cls)
+
+    print '<informaltable><tgroup cols="2">'
+    print '<colspec colwidth="1*">'
+    print '<colspec colwidth="5*">'
+    print "<thead>"
+    print "  <row>"
+    print "    <entry>Method</entry>"
+    print "    <entry>Description</entry>"
+    print "  </row>"
+    print "</thead>"
+    print '<tbody valign="top">'
+
+    for cmd in CHECKED_COMMANDS:
+      if not hasattr(cls, cmd):
+        continue
+
+      # Get docstring
+      text = inspect.getdoc(getattr(cls, cmd))
+      if not text:
+        text = ""
+
+      print "<row>"
+      print "  <entry>%s</entry>" % cgi.escape(cmd)
+      print "  <entry><literallayout>%s</literallayout></entry>" % text
+      print "</row>"
+
+    print "</tbody>"
+    print "</tgroup></informaltable>"
+
+    print "</sect2>"
+
+
+if __name__ == "__main__":
+  main()
