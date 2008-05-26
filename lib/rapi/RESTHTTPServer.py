@@ -27,6 +27,7 @@ import time
 from ganeti import constants
 from ganeti import errors
 from ganeti import logger
+from ganeti import rpc
 from ganeti import serializer
 from ganeti.rapi import resources
 from ganeti.rapi import httperror
@@ -221,6 +222,10 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 def start(options):
+  # Disable signal handlers, otherwise we can't exit the daemon in a clean way
+  # by sending a signal.
+  rpc.install_twisted_signal_handlers = False
+
   httpd = RESTHTTPServer(("", options.port), RESTRequestHandler, options)
   try:
     httpd.serve_forever()
