@@ -4632,7 +4632,6 @@ class LUSetInstanceParms(LogicalUnit):
                                      " or 'default'")
 
     # hvm_cdrom_image_path verification
-    print "image path = |%s|" % self.op.hvm_cdrom_image_path
     if self.op.hvm_cdrom_image_path is not None:
       if not (os.path.isabs(self.op.hvm_cdrom_image_path) or
               self.op.hvm_cdrom_image_path.lower() == "none"):
