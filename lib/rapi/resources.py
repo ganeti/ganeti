@@ -117,6 +117,10 @@ def _Tags_GET(kind, name=None):
   """Helper function to retrieve tags.
 
   """
+  if name is None:
+    # Do not cause "missing parameter" error, which happens if a parameter
+    # is None.
+    name = ""
   op = ganeti.opcodes.OpGetTags(kind=kind, name=name)
   tags = ganeti.cli.SubmitOpCode(op)
   return list(tags)
@@ -395,7 +399,7 @@ class R_instances_name_tags(R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
-    return _Tags_GET(constants.TAG_CLUSTER, name=self.items[0])
+    return _Tags_GET(constants.TAG_INSTANCE, name=self.items[0])
 
 
 class R_os(R_Generic):
