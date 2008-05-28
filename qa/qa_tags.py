@@ -21,9 +21,11 @@
 """
 
 from ganeti import utils
+from ganeti import constants
 
 import qa_config
 import qa_utils
+import qa_rapi
 
 from qa_utils import AssertEqual, StartSSH
 
@@ -31,12 +33,26 @@ from qa_utils import AssertEqual, StartSSH
 _TEMP_TAG_NAMES = ["TEMP-Ganeti-QA-Tag%d" % i for i in range(3)]
 _TEMP_TAG_RE = r'^TEMP-Ganeti-QA-Tag\d+$'
 
+_KIND_TO_COMMAND = {
+  constants.TAG_CLUSTER: "gnt-cluster",
+  constants.TAG_NODE: "gnt-node",
+  constants.TAG_INSTANCE: "gnt-instance",
+  }
 
-def _TestTags(cmdfn):
+
+def _TestTags(kind, name):
   """Generic function for add-tags.
 
   """
   master = qa_config.GetMasterNode()
+
+  def cmdfn(subcmd):
+    cmd = [_KIND_TO_COMMAND[kind], subcmd]
+
+    if kind != constants.TAG_CLUSTER:
+      cmd.append(name)
+
+    return cmd
 
   cmd = cmdfn('add-tags') + _TEMP_TAG_NAMES
   AssertEqual(StartSSH(master['primary'],
@@ -58,16 +74,16 @@ def _TestTags(cmdfn):
 @qa_utils.DefineHook('tags-cluster')
 def TestClusterTags():
   """gnt-cluster tags"""
-  _TestTags(lambda subcmd: ['gnt-cluster', subcmd])
+  _TestTags(constants.TAG_CLUSTER, "")
 
 
 @qa_utils.DefineHook('tags-node')
 def TestNodeTags(node):
   """gnt-node tags"""
-  _TestTags(lambda subcmd: ['gnt-node', subcmd, node['primary']])
+  _TestTags(constants.TAG_NODE, node["primary"])
 
 
 @qa_utils.DefineHook('tags-instance')
 def TestInstanceTags(instance):
   """gnt-instance tags"""
-  _TestTags(lambda subcmd: ['gnt-instance', subcmd, instance['name']])
+  _TestTags(constants.TAG_INSTANCE, instance["name"])
