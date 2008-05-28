@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2007 Google Inc.
+# Copyright (C) 2007, 2008 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ import qa_instance
 import qa_node
 import qa_os
 import qa_other
+import qa_rapi
 import qa_tags
 import qa_utils
 
@@ -110,6 +111,10 @@ def RunClusterTests():
 
   if qa_config.TestEnabled('cluster-master-failover'):
     RunTest(qa_cluster.TestClusterMasterFailover)
+
+  if qa_rapi.Enabled():
+    RunTest(qa_rapi.TestVersion)
+    RunTest(qa_rapi.TestEmptyCluster)
 
 
 def RunOsTests():
@@ -244,6 +249,8 @@ def main():
 
   qa_config.Load(config_file)
   qa_utils.LoadHooks()
+
+  qa_rapi.PrintRemoteAPIWarning()
 
   RunTest(qa_other.UploadKnownHostsFile, known_hosts_file)
 

@@ -48,7 +48,8 @@ def TestGanetiCommands():
            ['gnt-instance', '--version'],
            ['gnt-backup', '--version'],
            ['ganeti-noded', '--version'],
-           ['ganeti-watcher', '--version'] )
+           ['ganeti-watcher', '--version'],
+           ['ganeti-rapi', '--version'] )
 
   cmd = ' && '.join([utils.ShellQuoteArgs(i) for i in cmds])
 
