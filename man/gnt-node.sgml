@@ -146,7 +146,7 @@
         This command will change the secondary node from the source
         node to the destination node for all instances having the
         source node as secondary. It works only for instances having
-        a remote_raid1 or drbd disk layout.
+        a drbd disk template.
       </para>
 
       <para>
@@ -170,7 +170,7 @@
       <para>
         This command will fail over all instances having the given
         node as primary to their secondary nodes. This works only for
-        instances having a remote raid disk layout.
+        instances having a drbd disk template.
       </para>
 
       <para>

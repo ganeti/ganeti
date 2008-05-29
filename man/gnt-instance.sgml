@@ -270,7 +270,7 @@
 
         <para>
           The optional second value of the <option>--node</option> is used for
-          the remote raid template type and specifies the remote node.
+          the drbd template type and specifies the remote node.
         </para>
 
         <para>
@@ -327,7 +327,7 @@
           interface has the advantage of better performance. Especially
           if you use a network file system (e.g. NFS) to store your instances
           this is the recommended choice.
-        </para> 
+        </para>
 
         <para>
           Example:
@@ -569,7 +569,7 @@
           Show detailed information about the (given) instances. This
           is different from <command>list</command> as it shows
           detailed data about the instance's disks (especially useful
-          for remote raid templates).
+          for drbd disk template).
         </para>
       </refsect3>
 
@@ -907,12 +907,6 @@
 
         <cmdsynopsis>
           <command>replace-disks</command>
-          <arg choice="opt">--new-secondary <replaceable>NODE</replaceable></arg>
-          <arg choice="req"><replaceable>instance</replaceable></arg>
-        </cmdsynopsis>
-
-        <cmdsynopsis>
-          <command>replace-disks</command>
           <arg choice="opt">-s</arg>
           <arg choice="req">--new-secondary <replaceable>NODE</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
@@ -929,24 +923,13 @@
 
         <para>
           This command is a generalized form for adding and replacing
-          disks.
+          disks. It is currently only valid for the mirrored (DRBD)
+          disk template.
         </para>
 
         <para>
-          The first form is usable with the
-          <literal>remote_raid1</literal> disk template. This will
-          replace the disks on both the primary and secondary node,
-          and optionally will change the secondary node to a new one
-          if you pass the <option>--new-secondary</option> option.
-        </para>
-
-        <para>
-          The second and third forms are usable with the
-          <literal>drbd</literal> disk template. The second form will
-          do a secondary replacement, but as opposed to the
-          <literal>remote_raid1</literal> will not replace the disks
-          on the primary, therefore it will execute faster. The third
-          form will replace the disks on either the primary
+          The first form will do a secondary node change, while the
+          second form will replace the disks on either the primary
           (<option>-p</option>) or the secondary (<option>-s</option>)
           node of the instance only, without changing the node.
         </para>
@@ -965,16 +948,16 @@
           successful, the command will show the location and name of
           the block devices:
           <screen>
-node1.example.com:sda:/dev/md0
-node1.example.com:sdb:/dev/md1
+node1.example.com:sda:/dev/drbd0
+node1.example.com:sdb:/dev/drbd1
           </screen>
 
           In this example, <emphasis>node1.example.com</emphasis> is
           the name of the node on which the devices have been
           activated. The <emphasis>sda</emphasis> and
           <emphasis>sdb</emphasis> are the names of the block devices
-          inside the instance. <emphasis>/dev/md0</emphasis> and
-          <emphasis>/dev/md1</emphasis> are the names of the block
+          inside the instance. <emphasis>/dev/drbd0</emphasis> and
+          <emphasis>/dev/drbd1</emphasis> are the names of the block
           devices as visible on the node.
         </para>
 
@@ -993,11 +976,11 @@ node1.example.com:sdb:/dev/md1
         </cmdsynopsis>
         <para>
           De-activates the block devices of the given instance. Note
-          that if you run this command for a remote raid instance
-          type, while it is running, it will not be able to shutdown
-          the block devices on the primary node, but it will shutdown
-          the block devices on the secondary nodes, thus breaking the
-          replication.
+          that if you run this command for an instance with a drbd
+          disk template, while it is running, it will not be able to
+          shutdown the block devices on the primary node, but it will
+          shutdown the block devices on the secondary nodes, thus
+          breaking the replication.
         </para>
 
       </refsect3>
@@ -1019,8 +1002,8 @@ node1.example.com:sdb:/dev/md1
 
         <para>
           Failover will fail the instance over its secondary
-          node. This works only for instances having a remote raid
-          disk layout.
+          node. This works only for instances having a drbd disk
+          template.
         </para>
 
         <para>

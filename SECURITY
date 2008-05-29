@@ -5,7 +5,7 @@ Ganeti was developed to run on internal, trusted systems. As such, the
 security model is all-or-nothing.
 
 All the Ganeti code runs as root, because all the operations that Ganeti
-is doing require privileges: creating logical volumes, md arrays,
+is doing require privileges: creating logical volumes, drbd devices,
 starting instances, etc. Running as root does not mean setuid, but that
 you need to be root to run the cluster commands.
 
@@ -39,7 +39,7 @@ determined by the weakest node.
 Note that only the ssh key will allow other machines to run random
 commands on this node; the RPC method will run only:
   - well defined commands to create, remove, activate logical volumes,
-    DRBD disks, md arrays, start/stop instances, etc;
+    drbd devices, start/stop instances, etc;
   - run ssh commands on other nodes in the cluster, again well-defined
   - scripts under the /etc/ganeti/hooks directory
 
