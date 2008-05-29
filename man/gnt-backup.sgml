@@ -92,13 +92,21 @@
       <title>IMPORT</title>
       <cmdsynopsis>
         <command>import</command>
-        <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
-        <arg>-s <replaceable>disksize</replaceable></arg>
+
+        <group choice="req">
+          <arg>-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
+          <arg>--iallocator <replaceable>name</replaceable></arg>
+        </group>
         <sbr>
 
+        <arg>-s <replaceable>disksize</replaceable></arg>
         <arg>--swap-size <replaceable>disksize</replaceable></arg>
         <arg>-m <replaceable>memsize</replaceable></arg>
+        <sbr>
+
         <arg>-b <replaceable>bridge</replaceable></arg>
+        <arg choice="req">--src-node=<replaceable>source-node</replaceable></arg>
+        <arg choice="req">--src-dir=<replaceable>source-dir</replaceable></arg>
         <sbr>
 
         <arg choice="req">-t<group>
@@ -110,8 +118,6 @@
           </group></arg>
         <sbr>
 
-        <arg choice="req">--src-node=<replaceable>source-node</replaceable></arg>
-        <arg choice="req">--src-dir=<replaceable>source-dir</replaceable></arg>
         <arg choice="req"><replaceable>instance</replaceable></arg>
       </cmdsynopsis>
       <para>
@@ -206,6 +212,14 @@
             </listitem>
           </varlistentry>
         </variablelist>
+      </para>
+
+      <para>
+        The <option>--iallocator</option> option specifies the instance
+        allocator plugin to use. If you pass in this option the allocator will
+        select nodes for this instance automatically, so you don't need to pass
+        them with the <option>-n</option> option. For more information please
+        refer to the instance allocator documentation.
       </para>
 
       <para>
