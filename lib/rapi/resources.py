@@ -207,6 +207,9 @@ class R_root(R_Generic):
 
   def GET(self):
     """Show the list of mapped resources.
+    
+    Returns:
+      A dictionary with 'name' and 'uri' keys for each of them.
 
     """
     root_pattern = re.compile('^R_([a-zA-Z0-9]+)$')
@@ -246,8 +249,19 @@ class R_instances(R_Generic):
 
   def GET(self):
     """Returns a list of all available instances.
+    
+    Returns:
+       A dictionary with 'name' and 'uri' keys for each of them.
 
-    Example: ["web1.example.com", "mail1.example.com"]
+    Example: [
+        {
+          "name": "web.example.com",
+          "uri": "\/instances\/web.example.com"
+        },
+        {
+          "name": "mail.example.com",
+          "uri": "\/instances\/mail.example.com"
+        }]
 
     """
     op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
@@ -310,8 +324,19 @@ class R_nodes(R_Generic):
 
   def GET(self):
     """Returns a list of all nodes.
+    
+    Returns:
+      A dictionary with 'name' an 'uri' keys for each of them.
 
-    Example: ["node1.example.com", "node2.example.com"]
+    Example: [
+        {
+          "name": "node1.example.com",
+          "uri": "\/instances\/node1.example.com"
+        },
+        {
+          "name": "node2.example.com",
+          "uri": "\/instances\/node2.example.com"
+        }]
 
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
@@ -328,7 +353,7 @@ class R_nodes_name(R_Generic):
 
   @RequireLock()
   def GET(self):
-    """Send information about a node.
+    """Send information about a node. 
 
     """
     node_name = self.items[0]
