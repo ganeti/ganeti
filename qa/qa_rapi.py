@@ -33,7 +33,7 @@ import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, AssertNotEqual, StartSSH
+from qa_utils import AssertEqual, AssertNotEqual, AssertIn, StartSSH
 
 
 # Create opener which doesn't try to look for proxies.
@@ -101,15 +101,54 @@ def TestEmptyCluster():
   """
   master_name = qa_config.GetMasterNode()["primary"]
 
+  def _VerifyInfo(data):
+    AssertIn("name", data)
+    AssertIn("master", data)
+    AssertEqual(data["master"], master_name)
+
+  def _VerifyNodes(data):
+    master_entry = {
+      "name": master_name,
+      "uri": "/nodes/%s" % master_name,
+      }
+    AssertIn(master_entry, data)
+
   _DoTests([
     ("/", None),
-    ("/info", None),
-    ("/tags", []),
-    ("/nodes", [
-      { "name": master_name, "uri": "/nodes/%s" % master_name, },
-      ]),
+    ("/info", _VerifyInfo),
+    ("/tags", None),
+    ("/nodes", _VerifyNodes),
     ("/instances", []),
     ("/os", None),
+    ])
+
+
+@qa_utils.DefineHook('rapi-instance')
+def TestInstance(instance):
+  """Testing getting instance info via remote API.
+
+  """
+  def _VerifyInstance(data):
+    AssertIn("name", data)
+    AssertIn("pnode", data)
+
+  _DoTests([
+    ("/instances/%s" % instance["name"], _VerifyInstance),
+    ])
+
+
+@qa_utils.DefineHook('rapi-node')
+def TestNode(node):
+  """Testing getting node info via remote API.
+
+  """
+  def _VerifyNode(data):
+    AssertIn("pinst_cnt", data)
+    AssertIn("sinst_cnt", data)
+    AssertIn("mtotal", data)
+
+  _DoTests([
+    ("/nodes/%s" % node["primary"], _VerifyNode),
     ])
 
 

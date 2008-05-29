@@ -159,6 +159,9 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled('node-volumes'):
     RunTest(qa_node.TestNodeVolumes)
 
+  if qa_rapi.Enabled():
+    RunTest(qa_rapi.TestInstance, instance)
+
 
 def RunExportImportTests(instance, pnode):
   """Tries to export and import the instance.
@@ -274,6 +277,9 @@ def main():
   try:
     if qa_config.TestEnabled('tags'):
       RunTest(qa_tags.TestNodeTags, pnode)
+
+    if qa_rapi.Enabled():
+      RunTest(qa_rapi.TestNode, pnode)
 
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
