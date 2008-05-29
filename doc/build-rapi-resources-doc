@@ -45,8 +45,11 @@ def main():
     print "<sect2>"
     print "<title>%s</title>" % cgi.escape(cls.DOC_URI)
 
-    # Get docstring
-    print "<literallayout>%s</literallayout>" % inspect.getdoc(cls)
+    # Class docstring
+    description = inspect.getdoc(cls)
+    if description:
+      print ("<literallayout>%s</literallayout>" %
+             cgi.escape(description.strip()))
 
     print '<informaltable><tgroup cols="2">'
     print '<colspec colwidth="1*">'
@@ -70,7 +73,8 @@ def main():
 
       print "<row>"
       print "  <entry>%s</entry>" % cgi.escape(cmd)
-      print "  <entry><literallayout>%s</literallayout></entry>" % text
+      print ("  <entry><literallayout>%s</literallayout></entry>" %
+             cgi.escape(text.strip()))
       print "</row>"
 
     print "</tbody>"
