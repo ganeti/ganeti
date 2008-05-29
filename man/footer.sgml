@@ -57,7 +57,11 @@
       <citerefentry>
         <refentrytitle>ganeti-master</refentrytitle>
         <manvolnum>8</manvolnum>
-      </citerefentry> (the master startup script).
+      </citerefentry> (the master startup script),
+      <citerefentry>
+        <refentrytitle>ganeti-rapi</refentrytitle>
+        <manvolnum>8</manvolnum>
+      </citerefentry> (remote API daemon).
     </para>
 
   </refsect1>

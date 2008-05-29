@@ -1,0 +1,89 @@
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+
+  <!-- Fill in your name for FIRSTNAME and SURNAME. -->
+  <!-- Please adjust the date whenever revising the manpage. -->
+  <!ENTITY dhdate      "<date>May 29, 2008</date>">
+  <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
+       allowed: see man(7), man(1). -->
+  <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
+  <!ENTITY dhucpackage "<refentrytitle>ganeti-rapi</refentrytitle>">
+  <!ENTITY dhpackage   "ganeti-rapi">
+
+  <!ENTITY debian      "<productname>Debian</productname>">
+  <!ENTITY gnu         "<acronym>GNU</acronym>">
+  <!ENTITY gpl         "&gnu; <acronym>GPL</acronym>">
+  <!ENTITY footer SYSTEM "footer.sgml">
+]>
+
+<refentry>
+  <refentryinfo>
+    <copyright>
+      <year>2008</year>
+      <holder>Google Inc.</holder>
+    </copyright>
+    &dhdate;
+  </refentryinfo>
+  <refmeta>
+    &dhucpackage;
+
+    &dhsection;
+    <refmiscinfo>ganeti 1.2</refmiscinfo>
+  </refmeta>
+  <refnamediv>
+    <refname>&dhpackage;</refname>
+
+    <refpurpose>ganeti remote API daemon</refpurpose>
+  </refnamediv>
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>&dhpackage; </command>
+
+    </cmdsynopsis>
+  </refsynopsisdiv>
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>
+      <command>&dhpackage;</command> is the daemon providing a remote API for
+      Ganeti clusters.
+    </para>
+
+    <para>
+      It is automatically started on the master node if enabled at build time.
+      Encryption via SSL can be enabled by using command line parameters.
+    </para>
+
+    <para>
+      Take a look at the <emphasis>Ganeti remote API</emphasis> documentation
+      for further information.
+    </para>
+
+    <para>
+      Requests are logged to
+      <filename>@LOCALSTATEDIR@/log/ganeti/rapi-access.log</filename> in a
+      format similar to Apache's Common Log Format. The timestamp is always in
+      the UTC timezone.
+    </para>
+
+  </refsect1>
+
+  &footer;
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:nil
+sgml-local-ecat-files:nil
+End:
+-->
