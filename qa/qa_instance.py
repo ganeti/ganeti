@@ -152,6 +152,11 @@ def TestInstanceFailover(instance):
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
+  # ... and back
+  cmd = ['gnt-instance', 'failover', '--force', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
 
 @qa_utils.DefineHook('instance-info')
 def TestInstanceInfo(instance):
