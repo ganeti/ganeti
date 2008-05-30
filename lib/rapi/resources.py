@@ -326,7 +326,7 @@ class R_nodes(R_Generic):
     """Returns a list of all nodes.
     
     Returns:
-      A dictionary with 'name' an 'uri' keys for each of them.
+      A dictionary with 'name' and 'uri' keys for each of them.
 
     Example: [
         {
