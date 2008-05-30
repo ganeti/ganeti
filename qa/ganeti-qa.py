@@ -205,12 +205,20 @@ def RunDaemonTests(instance, pnode):
       RunTest(qa_daemon.TestInstanceConsecutiveFailures, pnode, instance)
 
 
-def RunHardwareFailureTests(instance, pnode, snode):
+def RunHardwareFailureTests(instance, pnode, snode, is_drbd):
   """Test cluster internal hardware failure recovery.
 
   """
   if qa_config.TestEnabled('instance-failover'):
     RunTest(qa_instance.TestInstanceFailover, instance)
+
+  if qa_config.TestEnabled('instance-replace-disks'):
+    othernode = qa_config.AcquireNode(exclude=pnode)
+    try:
+      RunTest(qa_instance.TestReplaceDisks,
+              instance, pnode, snode, othernode, is_drbd)
+    finally:
+      qa_config.ReleaseNode(othernode)
 
   if qa_config.TestEnabled('node-evacuate'):
     RunTest(qa_node.TestNodeEvacuate, pnode, snode)
@@ -298,19 +306,21 @@ def main():
 
     multinode_tests = [
       ('instance-add-remote-raid-disk',
-       qa_instance.TestInstanceAddWithRemoteRaidDisk),
+       qa_instance.TestInstanceAddWithRemoteRaidDisk,
+       False),
       ('instance-add-drbd-disk',
-       qa_instance.TestInstanceAddWithDrbdDisk),
+       qa_instance.TestInstanceAddWithDrbdDisk,
+       True),
     ]
 
-    for name, func in multinode_tests:
+    for name, func, is_drbd in multinode_tests:
       if qa_config.TestEnabled(name):
         snode = qa_config.AcquireNode(exclude=pnode)
         try:
           instance = RunTest(func, pnode, snode)
           RunCommonInstanceTests(instance)
           RunExportImportTests(instance, pnode)
-          RunHardwareFailureTests(instance, pnode, snode)
+          RunHardwareFailureTests(instance, pnode, snode, is_drbd)
           RunTest(qa_instance.TestInstanceRemove, instance)
           del instance
         finally:

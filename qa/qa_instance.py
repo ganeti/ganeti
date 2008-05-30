@@ -194,6 +194,42 @@ def TestInstanceList():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-replace-disks')
+def TestReplaceDisks(instance, pnode, snode, othernode, is_drbd):
+  """gnt-instance replace-disks"""
+  master = qa_config.GetMasterNode()
+
+  def buildcmd(args):
+    cmd = ['gnt-instance', 'replace-disks']
+    cmd.extend(args)
+    cmd.append(instance["name"])
+    return cmd
+
+  if not is_drbd:
+    # remote_raid1
+    cmd = buildcmd([])
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  else:
+    # drbd
+    cmd = buildcmd(["-p"])
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    cmd = buildcmd(["-s"])
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  cmd = buildcmd(["--new-secondary=%s" % othernode["primary"]])
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # Restore
+  cmd = buildcmd(["--new-secondary=%s" % snode["primary"]])
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 @qa_utils.DefineHook('backup-export')
 def TestInstanceExport(instance, node):
   """gnt-backup export"""
