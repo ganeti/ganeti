@@ -101,7 +101,7 @@ def RequireLock(name='cmd'):
         finally:
           utils.Unlock(name)
           utils.LockCleanup()
-      except errors.LockError, err:
+      except ganeti.errors.LockError, err:
         raise httperror.HTTPServiceUnavailable(message=str(err))
 
     # Override function metadata
