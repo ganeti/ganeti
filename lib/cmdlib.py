@@ -2872,7 +2872,7 @@ class LUFailoverInstance(LogicalUnit):
     secondary_nodes = instance.secondary_nodes
     if not secondary_nodes:
       raise errors.ProgrammerError("no secondary node but using "
-                                   "DT_REMOTE_RAID1 template")
+                                   "a mirrored disk template")
 
     target_node = secondary_nodes[0]
     # check memory requirements on the secondary node
@@ -2902,7 +2902,7 @@ class LUFailoverInstance(LogicalUnit):
 
     feedback_fn("* checking disk consistency between source and target")
     for dev in instance.disks:
-      # for remote_raid1, these are md over drbd
+      # for drbd, these are drbd over lvm
       if not _CheckDiskConsistency(self.cfg, dev, target_node, False):
         if instance.status == "up" and not self.op.ignore_consistency:
           raise errors.OpExecError("Disk %s is degraded on target node,"
@@ -3751,13 +3751,6 @@ class LUReplaceDisks(LogicalUnit):
         # replacement as for drbd7 (no different port allocated)
         raise errors.OpPrereqError("Same secondary given, cannot execute"
                                    " replacement")
-      # the user gave the current secondary, switch to
-      # 'no-replace-secondary' mode for drbd7
-      remote_node = None
-    if (instance.disk_template == constants.DT_REMOTE_RAID1 and
-        self.op.mode != constants.REPLACE_DISK_ALL):
-      raise errors.OpPrereqError("Template 'remote_raid1' only allows all"
-                                 " disks replacement, not individual ones")
     if instance.disk_template == constants.DT_DRBD8:
       if (self.op.mode == constants.REPLACE_DISK_ALL and
           remote_node is not None):
@@ -3788,101 +3781,6 @@ class LUReplaceDisks(LogicalUnit):
         raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
                                    (name, instance.name))
     self.op.remote_node = remote_node
-
-  def _ExecRR1(self, feedback_fn):
-    """Replace the disks of an instance.
-
-    """
-    instance = self.instance
-    iv_names = {}
-    # start of work
-    if self.op.remote_node is None:
-      remote_node = self.sec_node
-    else:
-      remote_node = self.op.remote_node
-    cfg = self.cfg
-    for dev in instance.disks:
-      size = dev.size
-      lv_names = [".%s_%s" % (dev.iv_name, suf) for suf in ["data", "meta"]]
-      names = _GenerateUniqueNames(cfg, lv_names)
-      new_drbd = _GenerateMDDRBDBranch(cfg, instance.primary_node,
-                                       remote_node, size, names)
-      iv_names[dev.iv_name] = (dev, dev.children[0], new_drbd)
-      logger.Info("adding new mirror component on secondary for %s" %
-                  dev.iv_name)
-      #HARDCODE
-      if not _CreateBlockDevOnSecondary(cfg, remote_node, instance,
-                                        new_drbd, False,
-                                        _GetInstanceInfoText(instance)):
-        raise errors.OpExecError("Failed to create new component on secondary"
-                                 " node %s. Full abort, cleanup manually!" %
-                                 remote_node)
-
-      logger.Info("adding new mirror component on primary")
-      #HARDCODE
-      if not _CreateBlockDevOnPrimary(cfg, instance.primary_node,
-                                      instance, new_drbd,
-                                      _GetInstanceInfoText(instance)):
-        # remove secondary dev
-        cfg.SetDiskID(new_drbd, remote_node)
-        rpc.call_blockdev_remove(remote_node, new_drbd)
-        raise errors.OpExecError("Failed to create volume on primary!"
-                                 " Full abort, cleanup manually!!")
-
-      # the device exists now
-      # call the primary node to add the mirror to md
-      logger.Info("adding new mirror component to md")
-      if not rpc.call_blockdev_addchildren(instance.primary_node, dev,
-                                           [new_drbd]):
-        logger.Error("Can't add mirror compoment to md!")
-        cfg.SetDiskID(new_drbd, remote_node)
-        if not rpc.call_blockdev_remove(remote_node, new_drbd):
-          logger.Error("Can't rollback on secondary")
-        cfg.SetDiskID(new_drbd, instance.primary_node)
-        if not rpc.call_blockdev_remove(instance.primary_node, new_drbd):
-          logger.Error("Can't rollback on primary")
-        raise errors.OpExecError("Full abort, cleanup manually!!")
-
-      dev.children.append(new_drbd)
-      cfg.AddInstance(instance)
-
-    # this can fail as the old devices are degraded and _WaitForSync
-    # does a combined result over all disks, so we don't check its
-    # return value
-    _WaitForSync(cfg, instance, self.proc, unlock=True)
-
-    # so check manually all the devices
-    for name in iv_names:
-      dev, child, new_drbd = iv_names[name]
-      cfg.SetDiskID(dev, instance.primary_node)
-      is_degr = rpc.call_blockdev_find(instance.primary_node, dev)[5]
-      if is_degr:
-        raise errors.OpExecError("MD device %s is degraded!" % name)
-      cfg.SetDiskID(new_drbd, instance.primary_node)
-      is_degr = rpc.call_blockdev_find(instance.primary_node, new_drbd)[5]
-      if is_degr:
-        raise errors.OpExecError("New drbd device %s is degraded!" % name)
-
-    for name in iv_names:
-      dev, child, new_drbd = iv_names[name]
-      logger.Info("remove mirror %s component" % name)
-      cfg.SetDiskID(dev, instance.primary_node)
-      if not rpc.call_blockdev_removechildren(instance.primary_node,
-                                              dev, [child]):
-        logger.Error("Can't remove child from mirror, aborting"
-                     " *this device cleanup*.\nYou need to cleanup manually!!")
-        continue
-
-      for node in child.logical_id[:2]:
-        logger.Info("remove child device on %s" % node)
-        cfg.SetDiskID(child, node)
-        if not rpc.call_blockdev_remove(node, child):
-          logger.Error("Warning: failed to remove device from node %s,"
-                       " continuing operation." % node)
-
-      dev.children.remove(child)
-
-      cfg.AddInstance(instance)
 
   def _ExecD8DiskOnly(self, feedback_fn):
     """Replace a disk on the primary or secondary for dbrd8.
@@ -4225,9 +4123,7 @@ class LUReplaceDisks(LogicalUnit):
 
     """
     instance = self.instance
-    if instance.disk_template == constants.DT_REMOTE_RAID1:
-      fn = self._ExecRR1
-    elif instance.disk_template == constants.DT_DRBD8:
+    if instance.disk_template == constants.DT_DRBD8:
       if self.op.remote_node is None:
         fn = self._ExecD8DiskOnly
       else:

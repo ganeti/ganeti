@@ -101,21 +101,17 @@ HKR_SUCCESS = 2
 # disk template types
 DT_DISKLESS = "diskless"
 DT_PLAIN = "plain"
-DT_LOCAL_RAID1 = "local_raid1"
-DT_REMOTE_RAID1 = "remote_raid1"
 DT_DRBD8 = "drbd"
 DT_FILE = "file"
 
 # the set of network-mirrored disk templates
-DTS_NET_MIRROR = frozenset([DT_REMOTE_RAID1, DT_DRBD8])
+DTS_NET_MIRROR = frozenset([DT_DRBD8])
 
 # the set of non-lvm-based disk templates
 DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE])
 
 # logical disk types
 LD_LV = "lvm"
-LD_MD_R1 = "md_raid1"
-LD_DRBD7 = "drbd"
 LD_DRBD8 = "drbd8"
 LD_FILE = "file"
 
@@ -124,7 +120,7 @@ FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
 
 # the set of drbd-like disk types
-LDS_DRBD = frozenset([LD_DRBD7, LD_DRBD8])
+LDS_DRBD = frozenset([LD_DRBD8])
 
 # disk replacement mode
 REPLACE_DISK_PRI = "replace_primary"
@@ -136,7 +132,6 @@ INSTANCE_CREATE = "create"
 INSTANCE_IMPORT = "import"
 
 DISK_TEMPLATES = frozenset([DT_DISKLESS, DT_PLAIN,
-                            DT_LOCAL_RAID1, DT_REMOTE_RAID1,
                             DT_DRBD8, DT_FILE])
 
 FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])

@@ -342,12 +342,9 @@ class Disk(ConfigObject):
 
     This method, given the node on which the parent disk lives, will
     return the list of all (node, disk) pairs which describe the disk
-    tree in the most compact way. For example, a md/drbd/lvm stack
-    will be returned as (primary_node, md) and (secondary_node, drbd)
-    which represents all the top-level devices on the nodes. This
-    means that on the primary node we need to activate the the md (and
-    recursively all its children) and on the secondary node we need to
-    activate the drbd device (and its children, the two lvm volumes).
+    tree in the most compact way. For example, a drbd/lvm stack
+    will be returned as (primary_node, drbd) and (secondary_node, drbd)
+    which represents all the top-level devices on the nodes.
 
     """
     my_nodes = self.GetNodes(parent_node)

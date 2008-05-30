@@ -142,8 +142,8 @@ import_opts = [
   make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
               default=1, type="int", metavar="<PROC>"),
   make_option("-t", "--disk-template", dest="disk_template",
-              help="Custom disk setup (diskless, plain, local_raid1,"
-              " remote_raid1 or drbd)", default=None, metavar="TEMPL"),
+              help="Custom disk setup (diskless, file, plain, drbd)"
+              default=None, metavar="TEMPL"),
   make_option("-i", "--ip", dest="ip",
               help="IP address ('none' [default], 'auto', or specify address)",
               default='none', type="string", metavar="<ADDRESS>"),

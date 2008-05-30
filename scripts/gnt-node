@@ -300,8 +300,8 @@ commands = {
                [DEBUG_OPT, FORCE_OPT],
                "[-f] <src> <dst>",
                "Relocate the secondary instances from the first node"
-               " to the second one (only for instances of type remote_raid1"
-               " drbd)"),
+               " to the second one (only for instances with drbd disk template"
+               ),
   'failover': (FailoverNode, ARGS_ONE,
                [DEBUG_OPT, FORCE_OPT,
                 make_option("--ignore-consistency", dest="ignore_consistency",
@@ -311,7 +311,7 @@ commands = {
                 ],
                "[-f] <node>",
                "Stops the primary instances on a node and start them on their"
-               " secondary node (only for instances of type remote_raid1)"),
+               " secondary node (only for instances with drbd disk template)"),
   'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
            "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,
