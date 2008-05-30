@@ -66,6 +66,7 @@ tests:
   instance-export: True
   instance-import: True
   instance-reinstall: True
+  instance-reboot: True
   instance-shutdown: True
   instance-automatic-restart: False
   instance-consecutive-failures: False

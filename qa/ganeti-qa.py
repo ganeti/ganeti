@@ -153,6 +153,9 @@ def RunCommonInstanceTests(instance):
     RunTest(qa_instance.TestInstanceReinstall, instance)
     RunTest(qa_instance.TestInstanceStartup, instance)
 
+  if qa_config.TestEnabled('instance-reboot'):
+    RunTest(qa_instance.TestInstanceReboot, instance)
+
   if qa_config.TestEnabled('tags'):
     RunTest(qa_tags.TestInstanceTags, instance)
 
