@@ -2662,7 +2662,7 @@ class LURemoveInstance(LogicalUnit):
   """
   HPATH = "instance-remove"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = ["instance_name", "ignore_failures"]
 
   def BuildHooksEnv(self):
     """Build hooks env.
