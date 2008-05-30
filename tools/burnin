@@ -299,7 +299,8 @@ class Burner(object):
       exp_op = opcodes.OpExportInstance(instance_name=instance,
                                            target_node=enode,
                                            shutdown=True)
-      rem_op = opcodes.OpRemoveInstance(instance_name=instance)
+      rem_op = opcodes.OpRemoveInstance(instance_name=instance,
+                                        ignore_failures=True)
       nam_op = opcodes.OpQueryInstances(output_fields=["name"],
                                            names=[instance])
       full_name = self.ExecOp(nam_op)[0][0]
@@ -347,7 +348,8 @@ class Burner(object):
   def Remove(self):
     """Remove the instances."""
     for instance in self.to_rem:
-      op = opcodes.OpRemoveInstance(instance_name=instance)
+      op = opcodes.OpRemoveInstance(instance_name=instance,
+                                    ignore_failures=True)
       Log("- Remove instance %s" % instance)
       self.ExecOp(op)
 
