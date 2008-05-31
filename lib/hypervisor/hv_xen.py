@@ -357,8 +357,14 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("memory = %d\n" % instance.memory)
     config.write("vcpus = %d\n" % instance.vcpus)
     config.write("name = '%s'\n" % instance.name)
-    config.write("pae = 1\n")
-    config.write("acpi = 1\n")
+    if instance.hvm_pae:
+      config.write("pae = 1\n")
+    else:
+      config.write("pae = 0\n")
+    if instance.hvm_acpi:
+      config.write("acpi = 1\n")
+    else:
+      config.write("acpi = 0\n")
     config.write("apic = 1\n")
     arch = os.uname()[4]
     if '64' in arch:
@@ -373,7 +379,7 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("usb = 1\n");
     config.write("usbdevice = 'tablet'\n");
     config.write("vnc = 1\n")
-    config.write("vnclisten = '0.0.0.0'\n")
+    config.write("vnclisten = '%s'\n" % instance.vnc_bind_address)
 
     if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
       display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
@@ -407,10 +413,15 @@ class XenHvmHypervisor(XenHypervisor):
       vif_data.append("'%s'" % nic_str)
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
-    iso = "'file:/srv/ganeti/iso/hvm-install.iso,hdc:cdrom,r'"
-    config.write("disk = [%s, %s]\n" % (",".join(
-                 cls._GetConfigFileDiskData(instance.disk_template,
-                                            block_devices)), iso))
+    disk_data = cls._GetConfigFileDiskData(instance.disk_template,
+                                            block_devices)
+    disk_data = [line.replace(",sd", ",ioemu:hd") for line in disk_data]
+    if instance.hvm_cdrom_image_path is not None:
+      iso = "'file:%s,hdc:cdrom,r'" % (instance.hvm_cdrom_image_path)
+      disk_data.append(iso)
+
+    config.write("disk = [%s]\n" % (",".join(disk_data)))
+
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
     config.write("on_crash = 'restart'\n")
@@ -437,7 +448,11 @@ class XenHvmHypervisor(XenHypervisor):
     if instance.network_port is None:
       raise errors.OpExecError("no console port defined for %s"
                                % instance.name)
-    else:
+    elif instance.vnc_bind_address == constants.BIND_ADDRESS_GLOBAL:
       raise errors.OpExecError("no PTY console, connect to %s:%s via VNC"
                                % (instance.primary_node,
+                                  instance.network_port))
+    else:
+      raise errors.OpExecError("no PTY console, connect to %s:%s via VNC"
+                               % (instance.vnc_bind_address,
                                   instance.network_port))
