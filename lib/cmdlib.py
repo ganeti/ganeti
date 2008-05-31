@@ -3426,6 +3426,12 @@ class LUCreateInstance(LogicalUnit):
                                  " destination node '%s'" %
                                  (self.op.bridge, pnode.name))
 
+    # memory check on primary node
+    if self.op.start:
+      _CheckNodeFreeMemory(self.cfg, self.pnode.name,
+                           "creating instance %s" % self.op.instance_name,
+                           self.op.mem_size)
+
     # hvm_cdrom_image_path verification
     if self.op.hvm_cdrom_image_path is not None:
       if not os.path.isabs(self.op.hvm_cdrom_image_path):
