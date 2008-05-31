@@ -3294,7 +3294,8 @@ class LUCreateInstance(LogicalUnit):
     """
     # set optional parameters to none if they don't exist
     for attr in ["kernel_path", "initrd_path", "hvm_boot_order", "pnode",
-                 "iallocator"]:
+                 "iallocator", "hvm_acpi", "hvm_pae", "hvm_cdrom_image_path",
+                 "vnc_bind_address"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -3484,6 +3485,25 @@ class LUCreateInstance(LogicalUnit):
                                  " destination node '%s'" %
                                  (self.op.bridge, pnode.name))
 
+    # hvm_cdrom_image_path verification
+    if self.op.hvm_cdrom_image_path is not None:
+      if not os.path.isabs(self.op.hvm_cdrom_image_path):
+        raise errors.OpPrereqError("The path to the HVM CDROM image must"
+                                   " be an absolute path or None, not %s" %
+                                   self.op.hvm_cdrom_image_path)
+      if not os.path.isfile(self.op.hvm_cdrom_image_path):
+        raise errors.OpPrereqError("The HVM CDROM image must either be a"
+                                   " regular file or a symlink pointing to"
+                                   " an existing regular file, not %s" %
+                                   self.op.hvm_cdrom_image_path)
+
+    # vnc_bind_address verification
+    if self.op.vnc_bind_address is not None:
+      if not utils.IsValidIP(self.op.vnc_bind_address):
+        raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
+                                   " like a valid IP address" %
+                                   self.op.vnc_bind_address)
+
     if self.op.start:
       self.instance_status = 'up'
     else:
@@ -3510,6 +3530,9 @@ class LUCreateInstance(LogicalUnit):
       network_port = self.cfg.AllocatePort()
     else:
       network_port = None
+
+    if self.op.vnc_bind_address is None:
+      self.op.vnc_bind_address = constants.VNC_DEFAULT_BIND_ADDRESS
 
     # this is needed because os.path.join does not accept None arguments
     if self.op.file_storage_dir is None:
@@ -3542,6 +3565,10 @@ class LUCreateInstance(LogicalUnit):
                             kernel_path=self.op.kernel_path,
                             initrd_path=self.op.initrd_path,
                             hvm_boot_order=self.op.hvm_boot_order,
+                            hvm_acpi=self.op.hvm_acpi,
+                            hvm_pae=self.op.hvm_pae,
+                            hvm_cdrom_image_path=self.op.hvm_cdrom_image_path,
+                            vnc_bind_address=self.op.vnc_bind_address,
                             )
 
     feedback_fn("* creating instance disks...")
@@ -4231,6 +4258,10 @@ class LUQueryInstanceData(NoHooksLU):
         "kernel_path": instance.kernel_path,
         "initrd_path": instance.initrd_path,
         "hvm_boot_order": instance.hvm_boot_order,
+        "hvm_acpi": instance.hvm_acpi,
+        "hvm_pae": instance.hvm_pae,
+        "hvm_cdrom_image_path": instance.hvm_cdrom_image_path,
+        "vnc_bind_address": instance.vnc_bind_address,
         }
 
       result[instance.name] = idict
@@ -4290,9 +4321,15 @@ class LUSetInstanceParams(LogicalUnit):
     self.kernel_path = getattr(self.op, "kernel_path", None)
     self.initrd_path = getattr(self.op, "initrd_path", None)
     self.hvm_boot_order = getattr(self.op, "hvm_boot_order", None)
-    all_params = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
-                  self.kernel_path, self.initrd_path, self.hvm_boot_order]
-    if all_params.count(None) == len(all_params):
+    self.hvm_acpi = getattr(self.op, "hvm_acpi", None)
+    self.hvm_pae = getattr(self.op, "hvm_pae", None)
+    self.hvm_cdrom_image_path = getattr(self.op, "hvm_cdrom_image_path", None)
+    self.vnc_bind_address = getattr(self.op, "vnc_bind_address", None)
+    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
+                 self.kernel_path, self.initrd_path, self.hvm_boot_order,
+                 self.hvm_acpi, self.hvm_pae, self.hvm_cdrom_image_path,
+                 self.vnc_bind_address]
+    if all_parms.count(None) == len(all_parms):
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
       try:
@@ -4351,6 +4388,25 @@ class LUSetInstanceParams(LogicalUnit):
                                      " must be one or more of [acdn]"
                                      " or 'default'")
 
+    # hvm_cdrom_image_path verification
+    if self.op.hvm_cdrom_image_path is not None:
+      if not os.path.isabs(self.op.hvm_cdrom_image_path):
+        raise errors.OpPrereqError("The path to the HVM CDROM image must"
+                                   " be an absolute path or None, not %s" %
+                                   self.op.hvm_cdrom_image_path)
+      if not os.path.isfile(self.op.hvm_cdrom_image_path):
+        raise errors.OpPrereqError("The HVM CDROM image must either be a"
+                                   " regular file or a symlink pointing to"
+                                   " an existing regular file, not %s" %
+                                   self.op.hvm_cdrom_image_path)
+
+    # vnc_bind_address verification
+    if self.op.vnc_bind_address is not None:
+      if not utils.IsValidIP(self.op.vnc_bind_address):
+        raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
+                                   " like a valid IP address" %
+                                   self.op.vnc_bind_address)
+
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
@@ -4394,6 +4450,15 @@ class LUSetInstanceParams(LogicalUnit):
       else:
         instance.hvm_boot_order = self.hvm_boot_order
       result.append(("hvm_boot_order", self.hvm_boot_order))
+    if self.hvm_acpi:
+      result.append(("hvm_acpi", self.hvm_acpi))
+    if self.hvm_pae:
+      result.append(("hvm_pae", self.hvm_pae))
+    if self.hvm_cdrom_image_path:
+      result.append(("hvm_cdrom_image_path", self.hvm_cdrom_image_path))
+    if self.vnc_bind_address:
+      instance.vnc_bind_address = self.vnc_bind_address
+      result.append(("vnc_bind_address", self.vnc_bind_address))
 
     self.cfg.AddInstance(instance)
 
