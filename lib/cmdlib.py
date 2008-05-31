@@ -1999,6 +1999,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "export_version": constants.EXPORT_VERSION,
       "master": self.sstore.GetMasterNode(),
       "architecture": (platform.architecture()[0], platform.machine()),
+      "hypervisor_type": self.sstore.GetHypervisorType(),
       }
 
     return result
