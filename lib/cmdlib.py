@@ -4458,10 +4458,13 @@ class LUSetInstanceParams(LogicalUnit):
         instance.hvm_boot_order = self.hvm_boot_order
       result.append(("hvm_boot_order", self.hvm_boot_order))
     if self.hvm_acpi:
+      instance.hvm_acpi = self.hvm_acpi
       result.append(("hvm_acpi", self.hvm_acpi))
     if self.hvm_pae:
+      instance.hvm_pae = self.hvm_pae
       result.append(("hvm_pae", self.hvm_pae))
     if self.hvm_cdrom_image_path:
+      instance.hvm_cdrom_image_path = self.hvm_cdrom_image_path
       result.append(("hvm_cdrom_image_path", self.hvm_cdrom_image_path))
     if self.vnc_bind_address:
       instance.vnc_bind_address = self.vnc_bind_address
