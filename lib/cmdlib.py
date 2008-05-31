@@ -4253,16 +4253,23 @@ class LUQueryInstanceData(NoHooksLU):
         "memory": instance.memory,
         "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
         "disks": disks,
-        "network_port": instance.network_port,
         "vcpus": instance.vcpus,
-        "kernel_path": instance.kernel_path,
-        "initrd_path": instance.initrd_path,
-        "hvm_boot_order": instance.hvm_boot_order,
-        "hvm_acpi": instance.hvm_acpi,
-        "hvm_pae": instance.hvm_pae,
-        "hvm_cdrom_image_path": instance.hvm_cdrom_image_path,
-        "vnc_bind_address": instance.vnc_bind_address,
         }
+
+      htkind = self.sstore.GetHypervisorType()
+      if htkind == constants.HT_XEN_PVM30:
+        idict["kernel_path"] = instance.kernel_path
+        idict["initrd_path"] = instance.initrd_path
+
+      if htkind == constants.HT_XEN_HVM31:
+        idict["hvm_boot_order"] = instance.hvm_boot_order
+        idict["hvm_acpi"] = instance.hvm_acpi
+        idict["hvm_pae"] = instance.hvm_pae
+        idict["hvm_cdrom_image_path"] = instance.hvm_cdrom_image_path
+
+      if htkind in constants.HTS_REQ_PORT:
+        idict["vnc_bind_address"] = instance.vnc_bind_address
+        idict["network_port"] = instance.network_port
 
       result[instance.name] = idict
 
