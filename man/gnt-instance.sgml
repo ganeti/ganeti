@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>May 16, 2007</date>">
+  <!ENTITY dhdate      "<date>May 29, 2008</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -20,6 +20,7 @@
     <copyright>
       <year>2006</year>
       <year>2007</year>
+      <year>2008</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -114,7 +115,12 @@
             </group></arg>
           <sbr>
 
-          <arg choice="req">-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
+          <group choice="req">
+            <arg>-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
+            <arg>--iallocator <replaceable>name</replaceable></arg>
+          </group>
+          <sbr>
+
           <arg choice="req">-o <replaceable>os-type</replaceable></arg>
           <sbr>
 
@@ -235,7 +241,7 @@
         </para>
 
         <para>
-          The <option>--hvm-cdrom-image-path</option> specifies the
+          The <option>--hvm-cdrom-image-path</option> option specifies the
           path to the file xen uses to emulate a virtual CDROM drive
           for this HVM instance. Valid values are either an
           absolute path to an existing file or None, which disables
@@ -243,14 +249,22 @@
         </para>
 
         <para>
-          The <option>--vnc-bind-address</option> specifies the
+          The <option>--vnc-bind-address</option> option specifies the
           address that the VNC listener for this instance should bind
           to. Valid values are IPv4 addresses. Use the address 0.0.0.0
           to bind to all available interfaces.
         </para>
 
         <para>
-          The <option>--kernel</option> options allows the instance to
+          The <option>--iallocator</option> option specifies the instance
+          allocator plugin to use. If you pass in this option the allocator
+          will select nodes for this instance automatically, so you don't need
+          to pass them with the <option>-n</option> option. For more
+          information please refer to the instance allocator documentation.
+        </para>
+
+        <para>
+          The <option>--kernel</option> option allows the instance to
           use a custom kernel (if a filename is passed) or to use the
           default kernel (<filename>@CUSTOM_XEN_KERNEL@</filename>), if the
           string <constant>default</constant> is passed.
@@ -980,13 +994,20 @@
 
         <cmdsynopsis>
           <command>replace-disks</command>
+
+          <group choice="req">
+            <arg>--iallocator <replaceable>name</replaceable></arg>
+            <arg>--new-secondary <replaceable>NODE</replaceable></arg>
+          </group>
+          <sbr>
+
           <arg choice="opt">-s</arg>
-          <arg choice="req">--new-secondary <replaceable>NODE</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <cmdsynopsis>
           <command>replace-disks</command>
+
           <group>
           <arg choice="req">-s</arg>
           <arg choice="req">-p</arg>
@@ -1007,6 +1028,11 @@
           node of the instance only, without changing the node.
         </para>
 
+        <para>
+          Specifying <option>--iallocator</option> enables secondary node
+          replacement and and makes the new secondary be selected automatically
+          by the specified allocator plugin.
+        </para>
       </refsect3>
 
       <refsect3>
