@@ -69,6 +69,9 @@ tests:
   # they support the `gnt-instance console' command.
   instance-console: False
 
+  # Disabled by default because it takes rather long
+  instance-replace-disks: False
+
   # Make sure not to include the disk(s) required for Dom0 to be included in
   # the volume group used for instances. Otherwise the whole system may stop
   # working until restarted.

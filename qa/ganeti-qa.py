@@ -207,6 +207,14 @@ def RunHardwareFailureTests(instance, pnode, snode):
   if qa_config.TestEnabled('instance-failover'):
     RunTest(qa_instance.TestInstanceFailover, instance)
 
+  if qa_config.TestEnabled('instance-replace-disks'):
+    othernode = qa_config.AcquireNode(exclude=pnode)
+    try:
+      RunTest(qa_instance.TestReplaceDisks,
+              instance, pnode, snode, othernode)
+    finally:
+      qa_config.ReleaseNode(othernode)
+
   if qa_config.TestEnabled('node-evacuate'):
     RunTest(qa_node.TestNodeEvacuate, pnode, snode)
 
