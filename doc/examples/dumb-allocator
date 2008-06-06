@@ -25,6 +25,7 @@ that fits in both memory and disk space, without any consideration for
 equal spread or VCPU oversubscription.
 
 """
+
 import simplejson
 import sys
 
@@ -95,12 +96,13 @@ def main():
     result_nodes.append(new_selection)
 
   result = {
-          "success": True,
-          "info": "Allocation successful",
-          "nodes": result_nodes,
-          }
+    "success": True,
+    "info": "Allocation successful",
+    "nodes": result_nodes,
+    }
   print simplejson.dumps(result, indent=2)
   return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
