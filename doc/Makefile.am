@@ -14,7 +14,7 @@ MAINTAINERCLEANFILES = *.html *.pdf
 	sed -e 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g' < $< > $@
 
 %.html: %.sgmltmp
-	docbook2html --nochunks $<
+	docbook2html --nochunks $< || rm -f $@
 
 %.pdf: %.sgmltmp
-	docbook2pdf $<
+	docbook2pdf $< || rm -f $@
