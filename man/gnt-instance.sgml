@@ -73,12 +73,17 @@
 
           <arg>--hvm-boot-order <replaceable>boot-order</replaceable></arg>
           <arg>--hvm-acpi <replaceable>ACPI-support</replaceable></arg>
+          <sbr>
+
           <arg>--hvm-pae <replaceable>PAE-support</replaceable></arg>
+          <sbr>
+
           <arg>--hvm-cdrom-image-path
             <replaceable>cdrom-image-path</replaceable></arg>
+          <sbr>
+
           <arg>--vnc-bind-address
             <replaceable>vnc-bind-address</replaceable></arg>
-
           <sbr>
 
           <arg>--kernel<group choice="req">
