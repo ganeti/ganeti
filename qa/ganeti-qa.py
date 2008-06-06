@@ -211,7 +211,7 @@ def RunHardwareFailureTests(instance, pnode, snode):
     RunTest(qa_instance.TestInstanceFailover, instance)
 
   if qa_config.TestEnabled('instance-replace-disks'):
-    othernode = qa_config.AcquireNode(exclude=pnode)
+    othernode = qa_config.AcquireNode(exclude=[pnode, snode])
     try:
       RunTest(qa_instance.TestReplaceDisks,
               instance, pnode, snode, othernode)
