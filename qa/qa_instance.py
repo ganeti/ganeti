@@ -111,6 +111,18 @@ def TestInstanceShutdown(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-reboot')
+def TestInstanceReboot(instance):
+  """gnt-instance reboot"""
+  master = qa_config.GetMasterNode()
+
+  for reboottype in ["soft", "hard", "full"]:
+    cmd = ['gnt-instance', 'reboot', '--type=%s' % reboottype,
+           instance['name']]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 @qa_utils.DefineHook('instance-reinstall')
 def TestInstanceReinstall(instance):
   """gnt-instance reinstall"""
