@@ -603,11 +603,15 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("memory = %d\n" % instance.memory)
     config.write("vcpus = %d\n" % instance.vcpus)
     config.write("name = '%s'\n" % instance.name)
-    if instance.hvm_pae:
+    if instance.hvm_pae is None:   # use default value if not specified
+      config.write("pae = %s\n" % constants.HT_HVM_DEFAULT_PAE_MODE)
+    elif instance.hvm_pae:
       config.write("pae = 1\n")
     else:
       config.write("pae = 0\n")
-    if instance.hvm_acpi:
+    if instance.hvm_acpi is None:  # use default value if not specified
+      config.write("acpi = %s\n" % constants.HT_HVM_DEFAULT_ACPI_MODE)
+    elif instance.hvm_acpi:
       config.write("acpi = 1\n")
     else:
       config.write("acpi = 0\n")
