@@ -25,6 +25,10 @@ Version 1.2.4
     been added. Using them you can enable/disable acpi and pae support, and
     specify a path for a cd image to be exported to the instance. These
     parameters as the name suggest only work on HVM clusters.
+  - When upgrading an HVM cluster to Ganeti 1.2.4, the values for ACPI and PAE
+    support will be set to the previously hardcoded values, but the (previously
+    hardcoded) path to the CDROM ISO image will be unset and if required, needs
+    to be set manually with gnt-instance modify after the upgrade..
   - The address to which an instance's VNC console is bound is now selectable
     per-instance, rather than being cluster wide. Of course this only applies
     to instances controlled via VNC, so currently just applies to HVM clusters.
