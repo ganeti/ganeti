@@ -47,7 +47,6 @@ class SimpleStore:
   Other particularities of the datastore:
     - keys are restricted to predefined values
     - values are small (<4k)
-    - since the data is practically static, read keys are cached in memory
     - some keys are handled specially (read from the system, so
       we can't update them)
 
@@ -71,7 +70,6 @@ class SimpleStore:
       self._cfg_dir = constants.DATA_DIR
     else:
       self._cfg_dir = cfg_location
-    self._cache = {}
 
   def KeyToFilename(self, key):
     """Convert a given key into filename.
@@ -91,8 +89,6 @@ class SimpleStore:
     will be changed into ConfigurationErrors.
 
     """
-    if key in self._cache:
-      return self._cache[key]
     filename = self.KeyToFilename(key)
     try:
       fh = file(filename, 'r')
@@ -104,7 +100,6 @@ class SimpleStore:
     except EnvironmentError, err:
       raise errors.ConfigurationError("Can't read from the ssconf file:"
                                       " '%s'" % str(err))
-    self._cache[key] = data
     return data
 
   def GetNodeDaemonPort(self):
@@ -185,7 +180,6 @@ class SimpleStore:
     file_name = self.KeyToFilename(key)
     utils.WriteFile(file_name, data="%s\n" % str(value),
                     uid=0, gid=0, mode=0400)
-    self._cache[key] = value
 
   def GetFileList(self):
     """Return the list of all config files.
