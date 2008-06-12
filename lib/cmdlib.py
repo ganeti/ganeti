@@ -54,14 +54,13 @@ class LogicalUnit(object):
     - implement Exec
     - implement BuildHooksEnv
     - redefine HPATH and HTYPE
-    - optionally redefine their run requirements (REQ_CLUSTER,
-      REQ_MASTER); note that all commands require root permissions
+    - optionally redefine their run requirements (REQ_MASTER); note that all
+      commands require root permissions
 
   """
   HPATH = None
   HTYPE = None
   _OP_REQP = []
-  REQ_CLUSTER = True
   REQ_MASTER = True
 
   def __init__(self, processor, op, cfg, sstore):
@@ -82,15 +81,15 @@ class LogicalUnit(object):
       if attr_val is None:
         raise errors.OpPrereqError("Required parameter '%s' missing" %
                                    attr_name)
-    if self.REQ_CLUSTER:
-      if not cfg.IsCluster():
-        raise errors.OpPrereqError("Cluster not initialized yet,"
-                                   " use 'gnt-cluster init' first.")
-      if self.REQ_MASTER:
-        master = sstore.GetMasterNode()
-        if master != utils.HostInfo().name:
-          raise errors.OpPrereqError("Commands must be run on the master"
-                                     " node %s" % master)
+
+    if not cfg.IsCluster():
+      raise errors.OpPrereqError("Cluster not initialized yet,"
+                                 " use 'gnt-cluster init' first.")
+    if self.REQ_MASTER:
+      master = sstore.GetMasterNode()
+      if master != utils.HostInfo().name:
+        raise errors.OpPrereqError("Commands must be run on the master"
+                                   " node %s" % master)
 
   def __GetSSH(self):
     """Returns the SshRunner object

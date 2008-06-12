@@ -117,7 +117,7 @@ class Processor(object):
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")
 
-    if lu_class.REQ_CLUSTER and self.cfg is None:
+    if self.cfg is None:
       self.cfg = config.ConfigWriter()
       self.sstore = ssconf.SimpleStore()
     if self.cfg is not None:
@@ -162,7 +162,7 @@ class Processor(object):
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")
 
-    if lu_class.REQ_CLUSTER and self.cfg is None:
+    if self.cfg is None:
       self.cfg = config.ConfigWriter()
       self.sstore = ssconf.SimpleStore()
     #do_hooks = lu_class.HPATH is not None
