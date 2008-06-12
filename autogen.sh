@@ -10,8 +10,8 @@ set -e
 rm -rf config.cache autom4te.cache
 mkdir -p autotools
 
-aclocal-1.9 -I autotools
-autoconf
-automake-1.9 --add-missing -Wall -Wno-portability
+${ACLOCAL:-aclocal} -I autotools
+${AUTOCONF:-autoconf}
+${AUTOMAKE:-automake} --add-missing -Wall -Wno-portability
 
 rm -rf autom4te.cache
