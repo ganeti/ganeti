@@ -57,7 +57,7 @@ WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
-MASTER_SOCKET = RUN_DIR + "/master.sock"
+MASTER_SOCKET = RUN_DIR + "/ganeti-master.sock"
 
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 DEFAULT_NODED_PORT = 1811
