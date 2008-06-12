@@ -377,6 +377,7 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   interaction functions.
 
   """
+  # TODO: Fix feedback_fn situation.
   cl = luxi.Client()
   job = opcodes.Job(op_list=[op])
   jid = SubmitJob(job)
@@ -406,12 +407,6 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   if status != opcodes.Job.STATUS_SUCCESS:
     raise errors.OpExecError(op_result[0])
   return op_result[0]
-
-  if feedback_fn is None:
-    feedback_fn = logger.ToStdout
-  if proc is None:
-    proc = mcpu.Processor(feedback=feedback_fn)
-  return proc.ExecOpCode(op)
 
 
 def SubmitJob(job, cl=None):
