@@ -305,22 +305,6 @@ def _BuildInstanceHookEnvByObject(instance, override=None):
   return _BuildInstanceHookEnv(**args)
 
 
-def _HasValidVG(vglist, vgname):
-  """Checks if the volume group list is valid.
-
-  A non-None return value means there's an error, and the return value
-  is the error message.
-
-  """
-  vgsize = vglist.get(vgname, None)
-  if vgsize is None:
-    return "volume group '%s' missing" % vgname
-  elif vgsize < 20480:
-    return ("volume group '%s' too small (20480MiB required, %dMib found)" %
-            (vgname, vgsize))
-  return None
-
-
 def _InitSSHSetup(node):
   """Setup the SSH configuration for the cluster.
 
@@ -465,7 +449,8 @@ class LUInitCluster(LogicalUnit):
       self.op.vg_name = None
     # if vg_name not None, checks if volume group is valid
     if self.op.vg_name:
-      vgstatus = _HasValidVG(utils.ListVolumeGroups(), self.op.vg_name)
+      vgstatus = utils.CheckVolumeGroupSize(utils.ListVolumeGroups(), vg_name,
+                                            constants.MIN_VG_SIZE)
       if vgstatus:
         raise errors.OpPrereqError("Error: %s\nspecify --no-lvm-storage if"
                                    " you are not using lvm" % vgstatus)
@@ -632,7 +617,8 @@ class LUVerifyCluster(LogicalUnit):
                       (node,))
       bad = True
     else:
-      vgstatus = _HasValidVG(vglist, self.cfg.GetVGName())
+      vgstatus = utils.CheckVolumeGroupSize(vglist, self.cfg.GetVGName(),
+                                            constants.MIN_VG_SIZE)
       if vgstatus:
         feedback_fn("  - ERROR: %s on node %s" % (vgstatus, node))
         bad = True
@@ -1211,7 +1197,8 @@ class LUSetClusterParams(LogicalUnit):
       node_list = self.cfg.GetNodeList()
       vglist = rpc.call_vg_list(node_list)
       for node in node_list:
-        vgstatus = _HasValidVG(vglist[node], self.op.vg_name)
+        vgstatus = utils.CheckVolumeGroupSize(vglist[node], self.op.vg_name,
+                                              constants.MIN_VG_SIZE)
         if vgstatus:
           raise errors.OpPrereqError("Error on node '%s': %s" %
                                      (node, vgstatus))

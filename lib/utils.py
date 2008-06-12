@@ -1130,3 +1130,19 @@ def FindFile(name, search_path, test=os.path.exists):
     if test(item_name):
       return item_name
   return None
+
+
+def CheckVolumeGroupSize(vglist, vgname, minsize):
+  """Checks if the volume group list is valid.
+
+  A non-None return value means there's an error, and the return value
+  is the error message.
+
+  """
+  vgsize = vglist.get(vgname, None)
+  if vgsize is None:
+    return "volume group '%s' missing" % vgname
+  elif vgsize < minsize:
+    return ("volume group '%s' too small (%s MiB required, %d MiB found)" %
+            (vgname, minsize, vgsize))
+  return None
