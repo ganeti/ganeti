@@ -28,6 +28,7 @@ from ganeti import opcodes
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
+from ganeti import bootstrap
 
 
 def InitCluster(opts, args):
@@ -46,15 +47,14 @@ def InitCluster(opts, args):
   if opts.lvm_storage and not opts.vg_name:
     vg_name = constants.DEFAULT_VG
 
-  op = opcodes.OpInitCluster(cluster_name=args[0],
-                             secondary_ip=opts.secondary_ip,
-                             hypervisor_type=opts.hypervisor_type,
-                             vg_name=vg_name,
-                             mac_prefix=opts.mac_prefix,
-                             def_bridge=opts.def_bridge,
-                             master_netdev=opts.master_netdev,
-                             file_storage_dir=opts.file_storage_dir)
-  SubmitOpCode(op)
+  bootstrap.InitCluster(cluster_name=args[0],
+                        secondary_ip=opts.secondary_ip,
+                        hypervisor_type=opts.hypervisor_type,
+                        vg_name=vg_name,
+                        mac_prefix=opts.mac_prefix,
+                        def_bridge=opts.def_bridge,
+                        master_netdev=opts.master_netdev,
+                        file_storage_dir=opts.file_storage_dir)
   return 0
 
 

@@ -43,7 +43,6 @@ class Processor(object):
   """Object which runs OpCodes"""
   DISPATCH_TABLE = {
     # Cluster
-    opcodes.OpInitCluster: cmdlib.LUInitCluster,
     opcodes.OpDestroyCluster: cmdlib.LUDestroyCluster,
     opcodes.OpQueryClusterInfo: cmdlib.LUQueryClusterInfo,
     opcodes.OpClusterCopyFile: cmdlib.LUClusterCopyFile,

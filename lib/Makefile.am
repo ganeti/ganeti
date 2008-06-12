@@ -5,7 +5,8 @@ nodist_pkgpython_PYTHON = _autoconf.py
 pkgpython_PYTHON = __init__.py backend.py cli.py cmdlib.py config.py \
 	objects.py errors.py logger.py ssh.py utils.py rpc.py \
 	bdev.py opcodes.py mcpu.py constants.py \
-	ssconf.py locking.py luxi.py jqueue.py serializer.py
+	ssconf.py locking.py luxi.py jqueue.py serializer.py \
+	bootstrap.py
 python_files = $(pkgpython_PYTHON)
 
 all-local: _autoconf.py
