@@ -781,6 +781,14 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
     raise
 
 
+def AddHostToEtcHosts(hostname):
+  """Wrapper around SetEtcHostsEntry.
+
+  """
+  hi = HostInfo(name=hostname)
+  SetEtcHostsEntry(constants.ETC_HOSTS, hi.ip, hi.name, [hi.ShortName()])
+
+
 def RemoveEtcHostsEntry(file_name, hostname):
   """Removes a hostname from /etc/hosts.
 
@@ -815,6 +823,15 @@ def RemoveEtcHostsEntry(file_name, hostname):
   except:
     RemoveFile(tmpname)
     raise
+
+
+def RemoveHostFromEtcHosts(hostname):
+  """Wrapper around RemoveEtcHostsEntry.
+
+  """
+  hi = HostInfo(name=hostname)
+  RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.name)
+  RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName())
 
 
 def CreateBackup(file_name):

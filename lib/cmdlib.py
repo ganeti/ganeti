@@ -182,23 +182,6 @@ class NoHooksLU(LogicalUnit):
   HTYPE = None
 
 
-def _AddHostToEtcHosts(hostname):
-  """Wrapper around utils.SetEtcHostsEntry.
-
-  """
-  hi = utils.HostInfo(name=hostname)
-  utils.SetEtcHostsEntry(constants.ETC_HOSTS, hi.ip, hi.name, [hi.ShortName()])
-
-
-def _RemoveHostFromEtcHosts(hostname):
-  """Wrapper around utils.RemoveEtcHostsEntry.
-
-  """
-  hi = utils.HostInfo(name=hostname)
-  utils.RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.name)
-  utils.RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName())
-
-
 def _GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
 
@@ -556,7 +539,7 @@ class LUInitCluster(LogicalUnit):
       f.close()
     sshkey = sshline.split(" ")[1]
 
-    _AddHostToEtcHosts(hostname.name)
+    utils.AddHostToEtcHosts(hostname.name)
     _InitSSHSetup(hostname.name)
 
     # init of cluster config file
@@ -1491,7 +1474,7 @@ class LURemoveNode(LogicalUnit):
 
     self.cfg.RemoveNode(node.name)
 
-    _RemoveHostFromEtcHosts(node.name)
+    utils.RemoveHostFromEtcHosts(node.name)
 
 
 class LUQueryNodes(NoHooksLU):
@@ -1853,7 +1836,7 @@ class LUAddNode(LogicalUnit):
       raise errors.OpExecError("Cannot transfer ssh keys to the new node")
 
     # Add node to our /etc/hosts, and add key to known_hosts
-    _AddHostToEtcHosts(new_node.name)
+    utils.AddHostToEtcHosts(new_node.name)
 
     if new_node.secondary_ip != new_node.primary_ip:
       if not rpc.call_node_tcp_ping(new_node.name,
