@@ -12,7 +12,7 @@ AC_PREREQ(2.59)
 AC_INIT(ganeti, gnt_version_full, ganeti@googlegroups.com)
 AC_CONFIG_AUX_DIR(autotools)
 AC_CONFIG_SRCDIR(configure)
-AM_INIT_AUTOMAKE([foreign tar-ustar 1.9])
+AM_INIT_AUTOMAKE([1.9 foreign tar-ustar -Wall -Wno-portability])
 
 AC_SUBST([VERSION_MAJOR], gnt_version_major)
 AC_SUBST([VERSION_MINOR], gnt_version_minor)
