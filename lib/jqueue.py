@@ -46,7 +46,7 @@ class JobObject:
     self.lock.acquire()
     self.data.status = status
     if result is not None:
-      self.data.result = result
+      self.data.op_result = result
     self.lock.release()
 
   def GetData(self):
