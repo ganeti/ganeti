@@ -26,6 +26,7 @@ rapi.pdf rapi.html: rapi-resources.sgml
 
 rapi-resources.sgml: build-rapi-resources-doc ../lib/rapi/resources.py
 	$(MAKE) -C $(top_builddir) ganeti
+	$(MAKE) -C $(top_builddir)/lib
 	PYTHONPATH=.:$(top_builddir) ./build-rapi-resources-doc > $@ || rm -f $@
 
 .INTERMEDIATE: rapi-resources.sgml
