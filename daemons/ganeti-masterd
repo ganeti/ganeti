@@ -285,7 +285,9 @@ def PoolWorker(worker_id, incoming_queue):
       try:
         JobRunner(proc, item)
       except errors.GenericError, err:
-        print "ganeti exception %s" % err
+        msg = "ganeti exception %s" % err
+        item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
+        print msg
     finally:
       #utils.Unlock('cmd')
       #utils.LockCleanup()
