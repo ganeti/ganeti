@@ -62,7 +62,7 @@ class Burner(object):
 
   def __init__(self):
     """Constructor."""
-    logger.SetupLogging(debug=False, program="ganeti/burnin")
+    logger.SetupLogging(program="ganeti/burnin", debug=False)
     self._feed_buf = StringIO()
     self.proc = mcpu.Processor(feedback=self.Feedback)
     self.nodes = []

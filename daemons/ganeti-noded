@@ -592,8 +592,7 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_NODESERVER)
 
-  logger.SetupLogging(twisted_workaround=True, debug=options.debug,
-                      program="ganeti-noded")
+  logger.SetupLogging(program="ganeti-noded", debug=options.debug)
 
   httpd = BaseHTTPServer.HTTPServer(('', port), ServerObject)
   httpd.serve_forever()
