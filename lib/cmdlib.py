@@ -2879,7 +2879,7 @@ class LUFailoverInstance(LogicalUnit):
 
     instance.primary_node = target_node
     # distribute new instance config to the other nodes
-    self.cfg.AddInstance(instance)
+    self.cfg.Update(instance)
 
     # Only start the instance if it's marked as up
     if instance.status == "up":
