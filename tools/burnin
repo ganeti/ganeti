@@ -296,6 +296,19 @@ class Burner(object):
                  self.instances)
 
     for pnode, snode, enode, instance in mytor:
+
+      if self.opts.iallocator:
+        pnode = snode = None
+        import_log_msg = ("- Import instance %s from node %s (iallocator: %s)" %
+                          (instance, enode, self.opts.iallocator))
+      elif self.opts.disk_template not in constants.DTS_NET_MIRROR:
+        snode = None
+        import_log_msg = ("- Import instance %s from node %s to node %s" %
+                          (instance, enode, pnode))
+      else:
+        import_log_msg = ("- Import instance %s from node %s to nodes %s/%s" %
+                          (instance, enode, pnode, snode))
+
       exp_op = opcodes.OpExportInstance(instance_name=instance,
                                            target_node=enode,
                                            shutdown=True)
@@ -319,7 +332,8 @@ class Burner(object):
                                         start=True,
                                         ip_check=True,
                                         wait_for_sync=True,
-                                        mac="auto")
+                                        mac="auto",
+                                        iallocator=self.opts.iallocator)
       erem_op = opcodes.OpRemoveExport(instance_name=instance)
 
       Log("- Export instance %s to node %s" % (instance, enode))
@@ -327,8 +341,7 @@ class Burner(object):
       Log("- Remove instance %s" % (instance))
       self.ExecOp(rem_op)
       self.to_rem.remove(instance)
-      Log("- Import instance %s from node %s to node %s" %
-          (instance, enode, pnode))
+      Log(import_log_msg)
       self.ExecOp(imp_op)
       Log("- Remove export of instance %s" % (instance))
       self.ExecOp(erem_op)
