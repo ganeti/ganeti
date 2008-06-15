@@ -3907,6 +3907,12 @@ class LUReplaceDisks(LogicalUnit):
 
     """
     instance = self.instance
+
+    # Activate the instance disks if we're replacing them on a down instance
+    if instance.status == "down":
+      op = opcodes.OpActivateInstanceDisks(instance_name=instance.name)
+      self.proc.ChainOpCode(op)
+
     if instance.disk_template == constants.DT_DRBD8:
       if self.op.remote_node is None:
         fn = self._ExecD8DiskOnly
@@ -3914,7 +3920,15 @@ class LUReplaceDisks(LogicalUnit):
         fn = self._ExecD8Secondary
     else:
       raise errors.ProgrammerError("Unhandled disk replacement case")
-    return fn(feedback_fn)
+
+    ret = fn(feedback_fn)
+
+    # Deactivate the instance disks if we're replacing them on a down instance
+    if instance.status == "down":
+      op = opcodes.OpDeactivateInstanceDisks(instance_name=instance.name)
+      self.proc.ChainOpCode(op)
+
+    return ret
 
 
 class LUQueryInstanceData(NoHooksLU):
