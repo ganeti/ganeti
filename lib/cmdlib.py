@@ -3210,7 +3210,7 @@ class LUCreateInstance(LogicalUnit):
         info = nodeinfo.get(node, None)
         if not info:
           raise errors.OpPrereqError("Cannot get current information"
-                                     " from node '%s'" % nodeinfo)
+                                     " from node '%s'" % node)
         vg_free = info.get('vg_free', None)
         if not isinstance(vg_free, int):
           raise errors.OpPrereqError("Can't compute free disk space on"
