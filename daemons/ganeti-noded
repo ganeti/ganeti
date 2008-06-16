@@ -203,6 +203,15 @@ class ServerObject(pb.Avatar):
     cfbd = objects.Disk.FromDict(params[0])
     return backend.SnapshotBlockDevice(cfbd)
 
+  @staticmethod
+  def perspective_blockdev_grow(params):
+    """Grow a stack of devices.
+
+    """
+    cfbd = objects.Disk.FromDict(params[0])
+    amount = params[1]
+    return backend.GrowBlockDevice(cfbd, amount)
+
   # export/import  --------------------------
 
   @staticmethod

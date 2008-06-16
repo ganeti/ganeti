@@ -716,6 +716,18 @@ def call_iallocator_runner(node, name, idata):
   return result
 
 
+def call_blockdev_grow(node, cf_bdev, amount):
+  """Request a snapshot of the given block device.
+
+  This is a single-node call.
+
+  """
+  c = Client("blockdev_grow", [cf_bdev.ToDict(), amount])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_blockdev_snapshot(node, cf_bdev):
   """Request a snapshot of the given block device.
 
