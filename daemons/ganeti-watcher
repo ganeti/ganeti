@@ -33,12 +33,12 @@ import re
 import time
 import fcntl
 import errno
-import simplejson
 import logging
 from optparse import OptionParser
 
 from ganeti import utils
 from ganeti import constants
+from ganeti import serializer
 from ganeti import ssconf
 from ganeti import errors
 
@@ -119,7 +119,7 @@ class WatcherState(object):
     self.statefile = f
 
     try:
-      self.data = simplejson.load(self.statefile)
+      self.data = serializer.Load(self.statefile.read())
     except Exception, msg:
       # Ignore errors while loading the file and treat it as empty
       self.data = {}
@@ -226,7 +226,7 @@ class WatcherState(object):
     self.statefile.seek(0)
     self.statefile.truncate()
 
-    simplejson.dump(self.data, self.statefile)
+    self.statefile.write(serializer.Dump(self.data))
 
     self._Close()
 
