@@ -477,6 +477,8 @@ def main():
       # Just exit if there's no configuration
       sys.exit(constants.EXIT_SUCCESS)
     watcher.Run()
+  except SystemExit:
+    raise
   except NotMasterError:
     logging.debug("Not master, exiting")
     sys.exit(constants.EXIT_NOTMASTER)
