@@ -1001,7 +1001,8 @@ def NewUUID():
 
 def WriteFile(file_name, fn=None, data=None,
               mode=None, uid=-1, gid=-1,
-              atime=None, mtime=None):
+              atime=None, mtime=None, close=True,
+              prewrite=None, postwrite=None):
   """(Over)write a file atomically.
 
   The file_name and either fn (a function taking one argument, the
@@ -1015,6 +1016,22 @@ def WriteFile(file_name, fn=None, data=None,
   exception, an existing target file should be unmodified and the
   temporary file should be removed.
 
+  Args:
+    file_name: New filename
+    fn: Content writing function, called with file descriptor as parameter
+    data: Content as string
+    mode: File mode
+    uid: Owner
+    gid: Group
+    atime: Access time
+    mtime: Modification time
+    close: Whether to close file after writing it
+    prewrite: Function object called before writing content
+    postwrite: Function object called after writing content
+
+  Returns:
+    None if "close" parameter evaluates to True, otherwise file descriptor.
+
   """
   if not os.path.isabs(file_name):
     raise errors.ProgrammerError("Path passed to WriteFile is not"
@@ -1027,7 +1044,6 @@ def WriteFile(file_name, fn=None, data=None,
     raise errors.ProgrammerError("Both atime and mtime must be either"
                                  " set or None")
 
-
   dir_name, base_name = os.path.split(file_name)
   fd, new_name = tempfile.mkstemp('.new', base_name, dir_name)
   # here we need to make sure we remove the temp file, if any error
@@ -1037,17 +1053,27 @@ def WriteFile(file_name, fn=None, data=None,
       os.chown(new_name, uid, gid)
     if mode:
       os.chmod(new_name, mode)
+    if callable(prewrite):
+      prewrite(fd)
     if data is not None:
       os.write(fd, data)
     else:
       fn(fd)
+    if callable(postwrite):
+      postwrite(fd)
     os.fsync(fd)
     if atime is not None and mtime is not None:
       os.utime(new_name, (atime, mtime))
     os.rename(new_name, file_name)
   finally:
-    os.close(fd)
+    if close:
+      os.close(fd)
+      result = None
+    else:
+      result = fd
     RemoveFile(new_name)
+
+  return result
 
 
 def all(seq, pred=bool):
