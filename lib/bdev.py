@@ -255,6 +255,16 @@ class BlockDev(object):
     for child in self._children:
       child.SetInfo(text)
 
+  def Grow(self, amount):
+    """Grow the block device.
+
+    Arguments:
+      amount: the amount (in mebibytes) to grow with
+
+    Returns: None
+
+    """
+    raise NotImplementedError
 
   def __repr__(self):
     return ("<%s: unique_id: %s, children: %s, %s:%s, %s>" %
@@ -518,6 +528,21 @@ class LogicalVolume(BlockDev):
       raise errors.BlockDeviceError("Command: %s error: %s - %s" %
                                     (result.cmd, result.fail_reason,
                                      result.output))
+  def Grow(self, amount):
+    """Grow the logical volume.
+
+    """
+    # we try multiple algorithms since the 'best' ones might not have
+    # space available in the right place, but later ones might (since
+    # they have less constraints); also note that only recent LVM
+    # supports 'cling'
+    for alloc_policy in "contiguous", "cling", "normal":
+      result = utils.RunCmd(["lvextend", "--alloc", alloc_policy,
+                             "-L", "+%dm" % amount, self.dev_path])
+      if not result.failed:
+        return
+    raise errors.BlockDeviceError("Can't grow LV %s: %s" %
+                                  (self.dev_path, result.output))
 
 
 class BaseDRBD(BlockDev):
@@ -1329,6 +1354,21 @@ class DRBD8(BaseDRBD):
     if not cls._IsValidMeta(meta.dev_path):
       raise errors.BlockDeviceError("Cannot initalize meta device")
     return cls(unique_id, children)
+
+  def Grow(self, amount):
+    """Resize the DRBD device and its backing storage.
+
+    """
+    if self.minor is None:
+      raise errors.ProgrammerError("drbd8: Grow called while not attached")
+    if len(self._children) != 2 or None in self._children:
+      raise errors.BlockDeviceError("Cannot grow diskless DRBD8 device")
+    self._children[0].Grow(amount)
+    result = utils.RunCmd(["drbdsetup", self.dev_path, "resize"])
+    if result.failed:
+      raise errors.BlockDeviceError("resize failed for %s: %s" %
+                                    (self.dev_path, result.output))
+    return
 
 
 class FileStorage(BlockDev):
