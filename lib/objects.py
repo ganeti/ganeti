@@ -374,6 +374,24 @@ class Disk(ConfigObject):
             # be different)
     return result
 
+  def RecordGrow(self, amount):
+    """Update the size of this disk after growth.
+
+    This method recurses over the disks's children and updates their
+    size correspondigly. The method needs to be kept in sync with the
+    actual algorithms from bdev.
+
+    """
+    if self.dev_type == constants.LD_LV:
+      self.size += amount
+    elif self.dev_type == constants.LD_DRBD8:
+      if self.children:
+        self.children[0].RecordGrow(amount)
+      self.size += amount
+    else:
+      raise errors.ProgrammerError("Disk.RecordGrow called for unsupported"
+                                   " disk type %s" % self.dev_type)
+
   def ToDict(self):
     """Disk-specific conversion to standard python types.
 
