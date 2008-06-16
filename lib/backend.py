@@ -669,6 +669,21 @@ def RebootInstance(instance, reboot_type, extra_args):
   return True
 
 
+def MigrateInstance(instance, target, live):
+  """Migrates an instance to another node.
+
+  """
+  hyper = hypervisor.GetHypervisor()
+
+  try:
+    hyper.MigrateInstance(instance, target, live)
+  except errors.HypervisorError, err:
+    msg = "Failed to migrate instance: %s" % str(err)
+    logger.Error(msg)
+    return (False, msg)
+  return (True, "Migration successfull")
+
+
 def CreateBlockDevice(disk, size, owner, on_primary, info):
   """Creates a block device for an instance.
 
