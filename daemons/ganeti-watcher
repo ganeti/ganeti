@@ -124,17 +124,17 @@ class WatcherState(object):
     LockFile(self.statefile.fileno())
 
     try:
-      self.data = serializer.Load(self.statefile.read())
+      self._data = serializer.Load(self.statefile.read())
     except Exception, msg:
       # Ignore errors while loading the file and treat it as empty
-      self.data = {}
+      self._data = {}
       logging.warning(("Empty or invalid state file. Using defaults."
                        " Error message: %s"), msg)
 
-    if "instance" not in self.data:
-      self.data["instance"] = {}
-    if "node" not in self.data:
-      self.data["node"] = {}
+    if "instance" not in self._data:
+      self._data["instance"] = {}
+    if "node" not in self._data:
+      self._data["node"] = {}
 
   def Save(self):
     """Save state to file, then unlock and close it.
@@ -145,7 +145,7 @@ class WatcherState(object):
     # We need to make sure the file is locked before renaming it, otherwise
     # starting ganeti-watcher again at the same time will create a conflict.
     fd = utils.WriteFile(constants.WATCHER_STATEFILE,
-                         data=serializer.Dump(self.data),
+                         data=serializer.Dump(self._data),
                          prewrite=LockFile, close=False)
     self.statefile = os.fdopen(fd, 'w+')
 
@@ -163,7 +163,7 @@ class WatcherState(object):
     """Returns the last boot ID of a node or None.
 
     """
-    ndata = self.data["node"]
+    ndata = self._data["node"]
 
     if name in ndata and KEY_BOOT_ID in ndata[name]:
       return ndata[name][KEY_BOOT_ID]
@@ -175,7 +175,7 @@ class WatcherState(object):
     """
     assert bootid
 
-    ndata = self.data["node"]
+    ndata = self._data["node"]
 
     if name not in ndata:
       ndata[name] = {}
@@ -189,7 +189,7 @@ class WatcherState(object):
       instance - the instance to look up.
 
     """
-    idata = self.data["instance"]
+    idata = self._data["instance"]
 
     if instance.name in idata:
       return idata[instance.name][KEY_RESTART_COUNT]
@@ -203,7 +203,7 @@ class WatcherState(object):
       instance - the instance being restarted
 
     """
-    idata = self.data["instance"]
+    idata = self._data["instance"]
 
     if instance.name not in idata:
       inst = idata[instance.name] = {}
@@ -222,7 +222,7 @@ class WatcherState(object):
     This method removes the record for a named instance.
 
     """
-    idata = self.data["instance"]
+    idata = self._data["instance"]
 
     if instance.name in idata:
       del idata[instance.name]
