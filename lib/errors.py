@@ -201,3 +201,9 @@ class TagError(GenericError):
   The argument to this exception will show the exact error.
 
   """
+
+
+class CommandError(GenericError):
+  """External command error.
+
+  """

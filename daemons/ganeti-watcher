@@ -53,11 +53,7 @@ KEY_RESTART_WHEN = "restart_when"
 KEY_BOOT_ID = "bootid"
 
 
-class Error(Exception):
-  """Generic custom error class."""
-
-
-class NotMasterError(Error):
+class NotMasterError(errors.GenericError):
   """Exception raised when this host is not the master."""
 
 
@@ -84,11 +80,12 @@ def DoCmd(cmd):
   res = utils.RunCmd(cmd)
 
   if res.failed:
-    raise Error("Command %s failed:\n%s\nstdout:\n%sstderr:\n%s" %
-                (repr(cmd),
-                 Indent(res.fail_reason),
-                 Indent(res.stdout),
-                 Indent(res.stderr)))
+    msg = ("Command %s failed:\n%s\nstdout:\n%sstderr:\n%s" %
+           (repr(cmd),
+            Indent(res.fail_reason),
+            Indent(res.stdout),
+            Indent(res.stderr)))
+    raise errors.CommandError(msg)
 
   return res
 
@@ -101,7 +98,7 @@ def LockFile(fd):
     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
   except IOError, err:
     if err.errno == errno.EAGAIN:
-      raise StandardError("File already locked")
+      raise errors.LockError("File already locked")
     raise
 
 
@@ -112,7 +109,7 @@ class WatcherState(object):
   def __init__(self):
     """Open, lock, read and parse the file.
 
-    Raises StandardError on lock contention.
+    Raises exception on lock contention.
 
     """
     # The two-step dance below is necessary to allow both opening existing
