@@ -257,6 +257,31 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return disk_data
 
+  def MigrateInstance(self, instance, target, live):
+    """Migrate an instance to a target node.
+
+    Arguments:
+      - instance: the name of the instance
+      - target: the ip of the target node
+      - live: whether to do live migration or not
+
+    Returns: none, errors will be signaled by exception.
+
+    The migration will not be attempted if the instance is not
+    currently running.
+
+    """
+    if self.GetInstanceInfo(instance) is None:
+      raise errors.HypervisorError("Instance not running, cannot migrate")
+    args = ["xm", "migrate"]
+    if live:
+      args.append("-l")
+    args.extend([instance, target])
+    result = utils.RunCmd(args)
+    if result.failed:
+      raise errors.HypervisorError("Failed to migrate instance %s: %s" %
+                                   (instance, result.output))
+
 
 class XenPvmHypervisor(XenHypervisor):
   """Xen PVM hypervisor interface"""

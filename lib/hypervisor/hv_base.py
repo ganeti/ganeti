@@ -93,3 +93,16 @@ class BaseHypervisor(object):
 
     """
     raise NotImplementedError
+
+  def MigrateInstance(self, name, target, live):
+    """Migrate an instance.
+
+    Arguments:
+      - name: the name of the instance
+      - target: the target of the migration (usually will be IP and not name)
+      - live: whether to do live migration or not
+
+    Returns: none, errors will be signaled by exception.
+
+    """
+    raise NotImplementedError
