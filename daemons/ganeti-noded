@@ -341,6 +341,14 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
     return backend.StartInstance(instance, extra_args)
 
   @staticmethod
+  def perspective_instance_migrate(params):
+    """Migrates an instance.
+
+    """
+    instance, target, live = params
+    return backend.MigrateInstance(instance, target, live)
+
+  @staticmethod
   def perspective_instance_reboot(params):
     """Reboot an instance.
 

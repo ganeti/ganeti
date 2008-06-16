@@ -208,6 +208,18 @@ def call_instance_shutdown(node, instance):
   return c.getresult().get(node, False)
 
 
+def call_instance_migrate(node, instance, target, live):
+  """Migrate an instance.
+
+  This is a single-node call.
+
+  """
+  c = Client("instance_migrate", [instance.name, target, live])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_instance_reboot(node, instance, reboot_type, extra_args):
   """Reboots an instance.
 
