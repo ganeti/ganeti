@@ -1146,6 +1146,32 @@ def OSFromDisk(name, base_dir=None):
                     api_version=api_version)
 
 
+def GrowBlockDevice(disk, amount):
+  """Grow a stack of block devices.
+
+  This function is called recursively, with the childrens being the
+  first one resize.
+
+  Args:
+    disk: the disk to be grown
+
+  Returns: a tuple of (status, result), with:
+    status: the result (true/false) of the operation
+    result: the error message if the operation failed, otherwise not used
+
+  """
+  r_dev = _RecursiveFindBD(disk)
+  if r_dev is None:
+    return False, "Cannot find block device %s" % (disk,)
+
+  try:
+    r_dev.Grow(amount)
+  except errors.BlockDeviceError, err:
+    return False, str(err)
+
+  return True, None
+
+
 def SnapshotBlockDevice(disk):
   """Create a snapshot copy of a block device.
 
