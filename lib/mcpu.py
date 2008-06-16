@@ -118,7 +118,10 @@ class Processor(object):
 
     if self.cfg is None:
       self.cfg = config.ConfigWriter()
-      self.sstore = ssconf.SimpleStore()
+      if lu_class.REQ_WSSTORE:
+        self.sstore = ssconf.WritableSimpleStore()
+      else:
+        self.sstore = ssconf.SimpleStore()
     if self.cfg is not None:
       write_count = self.cfg.write_count
     else:

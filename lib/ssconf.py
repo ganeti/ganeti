@@ -47,8 +47,7 @@ class SimpleStore:
   Other particularities of the datastore:
     - keys are restricted to predefined values
     - values are small (<4k)
-    - some keys are handled specially (read from the system, so
-      we can't update them)
+    - some keys are handled specially (read from the system)
 
   """
   _SS_FILEPREFIX = "ssconf_"
@@ -170,6 +169,25 @@ class SimpleStore:
       raise errors.ConfigurationError("Failed to convert config version %s to"
                                       " int: '%s'" % (value, str(err)))
 
+  def GetFileList(self):
+    """Return the list of all config files.
+
+    This is used for computing node replication data.
+
+    """
+    return [self.KeyToFilename(key) for key in self._VALID_KEYS]
+
+
+class WritableSimpleStore(SimpleStore):
+  """This is a read/write interface to SimpleStore, which is used rarely, when
+  values need to be changed. Since WriteFile handles updates in an atomic way
+  it should be fine to use two WritableSimpleStore at the same time, but in
+  the future we might want to put additional protection for this class.
+
+  A WritableSimpleStore cannot be used to update system-dependent values.
+
+  """
+
   def SetKey(self, key, value):
     """Set the value of a key.
 
@@ -181,10 +199,3 @@ class SimpleStore:
     utils.WriteFile(file_name, data="%s\n" % str(value),
                     uid=0, gid=0, mode=0400)
 
-  def GetFileList(self):
-    """Return the list of all config files.
-
-    This is used for computing node replication data.
-
-    """
-    return [self.KeyToFilename(key) for key in self._VALID_KEYS]

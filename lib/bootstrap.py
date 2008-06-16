@@ -75,6 +75,9 @@ def _InitGanetiServerSetup(ss):
   This creates the nodepass file containing the shared password for
   the cluster and also generates the SSL certificate.
 
+  Args:
+    ss: A WritableSimpleStore
+
   """
   # Create pseudo random password
   randpass = sha.new(os.urandom(64)).hexdigest()
@@ -191,7 +194,7 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
                                " executable." % constants.NODE_INITD_SCRIPT)
 
   # set up the simple store
-  ss = ssconf.SimpleStore()
+  ss = ssconf.WritableSimpleStore()
   ss.SetKey(ss.SS_HYPERVISOR, hypervisor_type)
   ss.SetKey(ss.SS_MASTER_NODE, hostname.name)
   ss.SetKey(ss.SS_MASTER_IP, clustername.ip)

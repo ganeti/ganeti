@@ -54,14 +54,18 @@ class LogicalUnit(object):
     - implement Exec
     - implement BuildHooksEnv
     - redefine HPATH and HTYPE
-    - optionally redefine their run requirements (REQ_MASTER); note that all
-      commands require root permissions
+    - optionally redefine their run requirements:
+        REQ_MASTER: the LU needs to run on the master node
+        REQ_WSSTORE: the LU needs a writable SimpleStore
+
+  Note that all commands require root permissions.
 
   """
   HPATH = None
   HTYPE = None
   _OP_REQP = []
   REQ_MASTER = True
+  REQ_WSSTORE = False
 
   def __init__(self, processor, op, cfg, sstore):
     """Constructor for LogicalUnit.
@@ -849,6 +853,7 @@ class LURenameCluster(LogicalUnit):
   HPATH = "cluster-rename"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = ["name"]
+  REQ_WSSTORE = True
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -1661,6 +1666,7 @@ class LUMasterFailover(LogicalUnit):
   HPATH = "master-failover"
   HTYPE = constants.HTYPE_CLUSTER
   REQ_MASTER = False
+  REQ_WSSTORE = True
   _OP_REQP = []
 
   def BuildHooksEnv(self):
