@@ -126,6 +126,19 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
+  def MigrateInstance(self, name, target, live):
+    """Migrate an instance.
+
+    Arguments:
+      - name: the name of the instance
+      - target: the target of the migration (usually will be IP and not name)
+      - live: whether to do live migration or not
+
+    Returns: none, errors will be signaled by exception.
+
+    """
+    raise NotImplementedError
+
 
 class XenHypervisor(BaseHypervisor):
   """Xen generic hypervisor interface
@@ -312,6 +325,31 @@ class XenHypervisor(BaseHypervisor):
     """
     if not utils.CheckDaemonAlive('/var/run/xend.pid', 'xend'):
       return "xend daemon is not running"
+
+  def MigrateInstance(self, instance, target, live):
+    """Migrate an instance to a target node.
+
+    Arguments:
+      - instance: the name of the instance
+      - target: the ip of the target node
+      - live: whether to do live migration or not
+
+    Returns: none, errors will be signaled by exception.
+
+    The migration will not be attempted if the instance is not
+    currently running.
+
+    """
+    if self.GetInstanceInfo(instance) is None:
+      raise errors.HypervisorError("Instance not running, cannot migrate")
+    args = ["xm", "migrate"]
+    if live:
+      args.append("-l")
+    args.extend([instance, target])
+    result = utils.RunCmd(args)
+    if result.failed:
+      raise errors.HypervisorError("Failed to migrate instance %s: %s" %
+                                   (instance, result.output))
 
 
 class XenPvmHypervisor(XenHypervisor):
