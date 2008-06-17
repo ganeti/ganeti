@@ -392,6 +392,50 @@ class Disk(ConfigObject):
       raise errors.ProgrammerError("Disk.RecordGrow called for unsupported"
                                    " disk type %s" % self.dev_type)
 
+  def SetPhysicalID(self, target_node, nodes_ip):
+    """Convert the logical ID to the physical ID.
+
+    This is used only for drbd, which needs ip/port configuration.
+
+    The routine descends down and updates its children also, because
+    this helps when the only the top device is passed to the remote
+    node.
+
+    Arguments:
+      - target_node: the node we wish to configure for
+      - nodes_ip: a mapping of node name to ip
+
+    The target_node must exist in in nodes_ip, and must be one of the
+    nodes in the logical ID for each of the DRBD devices encountered
+    in the disk tree.
+
+    """
+    if self.children:
+      for child in self.children:
+        child.SetPhysicalID(target_node, nodes_ip)
+
+    if self.logical_id is None and self.physical_id is not None:
+      return
+    if self.dev_type in constants.LDS_DRBD:
+      pnode, snode, port = self.logical_id
+      if target_node not in (pnode, snode):
+        raise errors.ConfigurationError("DRBD device not knowing node %s" %
+                                        target_node)
+      pnode_ip = nodes_ip.get(pnode, None)
+      snode_ip = nodes_ip.get(snode, None)
+      if pnode_ip is None or snode_ip is None:
+        raise errors.ConfigurationError("Can't find primary or secondary node"
+                                        " for %s" % str(self))
+      if pnode == target_node:
+        self.physical_id = (pnode_ip, port,
+                            snode_ip, port)
+      else: # it must be secondary, we tested above
+        self.physical_id = (snode_ip, port,
+                            pnode_ip, port)
+    else:
+      self.physical_id = self.logical_id
+    return
+
   def ToDict(self):
     """Disk-specific conversion to standard python types.
 
