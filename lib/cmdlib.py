@@ -3937,6 +3937,88 @@ class LUReplaceDisks(LogicalUnit):
     return ret
 
 
+class LUGrowDisk(LogicalUnit):
+  """Grow a disk of an instance.
+
+  """
+  HPATH = "disk-grow"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name", "disk", "amount"]
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on the master, the primary and all the secondaries.
+
+    """
+    env = {
+      "DISK": self.op.disk,
+      "AMOUNT": self.op.amount,
+      }
+    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    nl = [
+      self.sstore.GetMasterNode(),
+      self.instance.primary_node,
+      ]
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster.
+
+    """
+    instance = self.cfg.GetInstanceInfo(
+      self.cfg.ExpandInstanceName(self.op.instance_name))
+    if instance is None:
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
+    self.instance = instance
+    self.op.instance_name = instance.name
+
+    if instance.disk_template not in (constants.DT_PLAIN, constants.DT_DRBD8):
+      raise errors.OpPrereqError("Instance's disk layout does not support"
+                                 " growing.")
+
+    if instance.FindDisk(self.op.disk) is None:
+      raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
+                                 (name, instance.name))
+
+    nodenames = [instance.primary_node] + list(instance.secondary_nodes)
+    nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName())
+    for node in nodenames:
+      info = nodeinfo.get(node, None)
+      if not info:
+        raise errors.OpPrereqError("Cannot get current information"
+                                   " from node '%s'" % node)
+      vg_free = info.get('vg_free', None)
+      if not isinstance(vg_free, int):
+        raise errors.OpPrereqError("Can't compute free disk space on"
+                                   " node %s" % node)
+      if self.op.amount > info['vg_free']:
+        raise errors.OpPrereqError("Not enough disk space on target node %s:"
+                                   " %d MiB available, %d MiB required" %
+                                   (node, info['vg_free'], self.op.amount))
+
+  def Exec(self, feedback_fn):
+    """Execute disk grow.
+
+    """
+    instance = self.instance
+    disk = instance.FindDisk(self.op.disk)
+    for node in (instance.secondary_nodes + (instance.primary_node,)):
+      self.cfg.SetDiskID(disk, node)
+      result = rpc.call_blockdev_grow(node, disk, self.op.amount)
+      if not result or not isinstance(result, tuple) or len(result) != 2:
+        raise errors.OpExecError("grow request failed to node %s" % node)
+      elif not result[0]:
+        raise errors.OpExecError("grow request failed to node %s: %s" %
+                                 (node, result[1]))
+    disk.RecordGrow(self.op.amount)
+    self.cfg.Update(instance)
+    return
+
+
 class LUQueryInstanceData(NoHooksLU):
   """Query runtime instance data.
 

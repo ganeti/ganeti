@@ -370,6 +370,12 @@ class OpSetInstanceParams(OpCode):
     ]
 
 
+class OpGrowDisk(OpCode):
+  """Grow a disk of an instance."""
+  OP_ID = "OP_INSTANCE_GROW_DISK"
+  __slots__ = ["instance_name", "disk", "amount"]
+
+
 # OS opcodes
 class OpDiagnoseOS(OpCode):
   """Compute the list of guest operating systems."""
