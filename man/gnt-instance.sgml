@@ -1104,6 +1104,80 @@ node1.example.com:sdb:/dev/md1
 
       </refsect3>
 
+      <refsect3>
+        <title>GROW-DISK</title>
+        <cmdsynopsis>
+          <command>grow-disk</command>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+          <arg choice="req"><replaceable>disk</replaceable></arg>
+          <arg choice="req"><replaceable>amount</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Grows an instance's disk. This is only possible for
+          instances having a <literal>plain</literal> or
+          <literal>drbd</literal> disk template.
+        </para>
+
+        <para>
+          Note that this command only change the block device size; it
+          will not grow the actual filesystems, partitions, etc. that
+          live on that disk. Usually, you will need to:
+          <orderedlist>
+            <listitem>
+              <simpara>use <command>gnt-instance grow-disk</command></simpara>
+            </listitem>
+            <listitem>
+              <simpara>reboot the instance (later, at a convenient
+              time)</simpara>
+            </listitem>
+            <listitem>
+              <simpara>use a filesystem resizer, such as
+              <citerefentry> <refentrytitle>ext2online</refentrytitle>
+              <manvolnum>8</manvolnum> </citerefentry> or
+              <citerefentry> <refentrytitle>xfs_growfs</refentrytitle>
+              <manvolnum>8</manvolnum> </citerefentry> to resize the
+              filesystem, or use <citerefentry>
+              <refentrytitle>fdisk</refentrytitle>
+              <manvolnum>8</manvolnum> </citerefentry> to change the
+              partition table on the disk
+              </simpara>
+            </listitem>
+          </orderedlist>
+        </para>
+
+
+        <para>
+          The <replaceable>disk</replaceable> argument is either
+          <literal>sda</literal> or <literal>sdb</literal>. The
+          <replaceable>amount</replaceable> argument is given either
+          as a number (and it represents the amount to increase the
+          disk with in mebibytes) or can be given similar to the
+          arguments in the create instance operation, with a suffix
+          denoting the unit.
+        </para>
+
+        <para>
+          Note that the disk grow operation might complete on one node
+          but fail on the other; this will leave the instance with
+          different-sized LVs on the two nodes, but this will not
+          create problems (except for unused space).
+        </para>
+
+        <para>Example (increasing sda for instance1 with 16GiB):
+          <screen>
+# gnt-instance grow-disk instance1.example.com sda 16g
+          </screen>
+        </para>
+
+        <para>
+          Also note that disk shrinking will not be supported; use
+          <command>gnt-backup export</command> and then
+          <command>gnt-backup import</command> to reduce the disk size
+          of an instance.
+        </para>
+      </refsect3>
+
     </refsect2>
 
     <refsect2>
