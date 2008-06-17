@@ -3982,7 +3982,7 @@ class LUGrowDisk(LogicalUnit):
 
     if instance.FindDisk(self.op.disk) is None:
       raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
-                                 (name, instance.name))
+                                 (self.op.disk, instance.name))
 
     nodenames = [instance.primary_node] + list(instance.secondary_nodes)
     nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName())
