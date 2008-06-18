@@ -34,6 +34,7 @@ import time
 import fcntl
 import errno
 import simplejson
+import logging
 from optparse import OptionParser
 
 from ganeti import utils
@@ -122,8 +123,8 @@ class WatcherState(object):
     except Exception, msg:
       # Ignore errors while loading the file and treat it as empty
       self.data = {}
-      sys.stderr.write("Empty or invalid state file."
-                       " Using defaults. Error message: %s\n" % msg)
+      logging.warning(("Empty or invalid state file. Using defaults."
+                       " Error message: %s"), msg)
 
     if "instance" not in self.data:
       self.data["instance"] = {}
@@ -315,19 +316,6 @@ def GetNodeBootIDs():
   return ids
 
 
-class Message(object):
-  """Encapsulation of a notice or error message.
-
-  """
-  def __init__(self, level, msg):
-    self.level = level
-    self.msg = msg
-    self.when = time.time()
-
-  def __str__(self):
-    return self.level + ' ' + time.ctime(self.when) + '\n' + Indent(self.msg)
-
-
 class Watcher(object):
   """Encapsulate the logic for restarting erronously halted virtual machines.
 
@@ -343,7 +331,6 @@ class Watcher(object):
       raise NotMasterError("This is not the master node")
     self.instances = GetInstanceList()
     self.bootids = GetNodeBootIDs()
-    self.messages = []
     self.started_instances = set()
 
   def Run(self):
@@ -369,21 +356,18 @@ class Watcher(object):
       # secondary node.
       for instance in GetInstanceList(with_secondaries=check_nodes):
         if not instance.autostart:
-          self.messages.append(Message(NOTICE,
-                                       ("Skipping disk activation for"
-                                        " non-autostart instance '%s'." %
-                                        instance.name)))
+          logging.info(("Skipping disk activation for non-autostart"
+                        " instance %s"), instance.name)
           continue
         if instance.name in self.started_instances:
           # we already tried to start the instance, which should have
           # activated its drives (if they can be at all)
           continue
         try:
-          self.messages.append(Message(NOTICE, ("Activating disks for %s." %
-                                                instance.name)))
+          logging.info("Activating disks for instance %s", instance.name)
           instance.ActivateDisks()
-        except Error, x:
-          self.messages.append(Message(ERROR, str(x)))
+        except Error, err:
+          logging.error(str(err), exc_info=True)
 
       # Keep changed boot IDs
       for name in check_nodes:
@@ -408,17 +392,16 @@ class Watcher(object):
           last = " (Attempt #%d)" % (n + 1)
         else:
           notepad.RecordRestartAttempt(instance)
-          self.messages.append(Message(ERROR, "Could not restart %s for %d"
-                                       " times, giving up..." %
-                                       (instance.name, MAXTRIES)))
+          logging.error("Could not restart %s after %d attempts, giving up",
+                        instance.name, MAXTRIES)
           continue
         try:
-          self.messages.append(Message(NOTICE, ("Restarting %s%s." %
-                                                (instance.name, last))))
+          logging.info("Restarting %s%s",
+                        instance.name, last)
           instance.Restart()
           self.started_instances.add(instance.name)
-        except Error, x:
-          self.messages.append(Message(ERROR, str(x)))
+        except Error, err:
+          logging.error(str(err), exc_info=True)
 
         notepad.RecordRestartAttempt(instance)
       elif instance.state in HELPLESS_STATES:
@@ -427,8 +410,7 @@ class Watcher(object):
       else:
         if notepad.NumberOfRestartAttempts(instance):
           notepad.RemoveInstance(instance)
-          msg = Message(NOTICE, "Restart of %s succeeded." % instance.name)
-          self.messages.append(msg)
+          logging.info("Restart of %s succeeded", instance.name)
 
   def VerifyDisks(self):
     """Run gnt-cluster verify-disks.
@@ -436,17 +418,7 @@ class Watcher(object):
     """
     result = DoCmd(['gnt-cluster', 'verify-disks', '--lock-retries=15'])
     if result.output:
-      self.messages.append(Message(NOTICE, result.output))
-
-  def WriteReport(self, logfile):
-    """Log all messages to file.
-
-    Args:
-      logfile: file object open for writing (the log file)
-
-    """
-    for msg in self.messages:
-      print >> logfile, str(msg)
+      logging.info(result.output)
 
 
 def ParseOptions():
@@ -462,10 +434,33 @@ def ParseOptions():
                         constants.RELEASE_VERSION)
 
   parser.add_option("-d", "--debug", dest="debug",
-                    help="Don't redirect messages to the log file",
+                    help="Write all messages to stderr",
                     default=False, action="store_true")
   options, args = parser.parse_args()
   return options, args
+
+
+def SetupLogging(debug):
+  """Configures the logging module.
+
+  """
+  formatter = logging.Formatter("%(asctime)s: %(message)s")
+
+  logfile_handler = logging.FileHandler(constants.LOG_WATCHER)
+  logfile_handler.setFormatter(formatter)
+  logfile_handler.setLevel(logging.INFO)
+
+  stderr_handler = logging.StreamHandler()
+  stderr_handler.setFormatter(formatter)
+  if debug:
+    stderr_handler.setLevel(logging.NOTSET)
+  else:
+    stderr_handler.setLevel(logging.CRITICAL)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(logfile_handler)
+  root_logger.addHandler(stderr_handler)
 
 
 def main():
@@ -474,8 +469,7 @@ def main():
   """
   options, args = ParseOptions()
 
-  if not options.debug:
-    sys.stderr = sys.stdout = open(constants.LOG_WATCHER, 'a')
+  SetupLogging(options.debug)
 
   try:
     try:
@@ -484,16 +478,15 @@ def main():
       # Just exit if there's no configuration
       sys.exit(constants.EXIT_SUCCESS)
     watcher.Run()
-    watcher.WriteReport(sys.stdout)
   except NotMasterError:
-    if options.debug:
-      sys.stderr.write("Not master, exiting.\n")
+    logging.debug("Not master, exiting")
     sys.exit(constants.EXIT_NOTMASTER)
   except errors.ResolverError, err:
-    sys.stderr.write("Cannot resolve hostname '%s', exiting.\n" % err.args[0])
+    logging.error("Cannot resolve hostname '%s', exiting.", err.args[0])
     sys.exit(constants.EXIT_NODESETUP_ERROR)
-  except Error, err:
-    print err
+  except Exception, err:
+    logging.error(str(err), exc_info=True)
+    sys.exit(constants.EXIT_FAILURE)
 
 
 if __name__ == '__main__':

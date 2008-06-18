@@ -142,6 +142,7 @@ INISECT_INS = "instance"
 
 # common exit codes
 EXIT_SUCCESS = 0
+EXIT_FAILURE = 1
 EXIT_NOTMASTER = 11
 EXIT_NODESETUP_ERROR = 12
 EXIT_CONFIRMATION = 13 # need user confirmation
