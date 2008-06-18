@@ -335,10 +335,12 @@ class Watcher(object):
 
   def Run(self):
     notepad = WatcherState()
-    self.CheckInstances(notepad)
-    self.CheckDisks(notepad)
-    self.VerifyDisks()
-    notepad.Save()
+    try:
+      self.CheckInstances(notepad)
+      self.CheckDisks(notepad)
+      self.VerifyDisks()
+    finally:
+      notepad.Save()
 
   def CheckDisks(self, notepad):
     """Check all nodes for restarted ones.
