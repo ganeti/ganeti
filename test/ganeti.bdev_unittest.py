@@ -26,6 +26,7 @@ import os
 import unittest
 
 from ganeti import bdev
+from ganeti import errors
 
 
 class TestDRBD8Runner(unittest.TestCase):
@@ -107,6 +108,55 @@ class TestDRBD8Runner(unittest.TestCase):
     self.failUnless(("local_addr" not in result and
                      "remote_addr" not in result),
                     "Should not find network info")
+
+
+class TestDRBD8Status(unittest.TestCase):
+  """Testing case for DRBD8 /proc status"""
+
+  def setUp(self):
+    """Read in txt data"""
+    self.proc_data = bdev.DRBD8._GetProcData(filename="data/proc_drbd8.txt")
+    self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)
+
+  def testMinorNotFound(self):
+    """Test not-found-minor in /proc"""
+    self.failUnless(9 not in self.mass_data)
+
+  def testLineNotMatch(self):
+    """Test wrong line passed to DRBD8Status"""
+    self.assertRaises(errors.BlockDeviceError, bdev.DRBD8Status, "foo")
+
+  def testMinor0(self):
+    """Test connected, primary device"""
+    stats = bdev.DRBD8Status(self.mass_data[0])
+    self.failUnless(stats.is_connected and stats.is_primary and
+                    stats.peer_secondary and stats.is_disk_uptodate)
+
+  def testMinor1(self):
+    """Test connected, secondary device"""
+    stats = bdev.DRBD8Status(self.mass_data[1])
+    self.failUnless(stats.is_connected and stats.is_secondary and
+                    stats.peer_primary and stats.is_disk_uptodate)
+
+  def testMinor4(self):
+    """Test WFconn device"""
+    stats = bdev.DRBD8Status(self.mass_data[4])
+    self.failUnless(stats.is_wfconn and stats.is_primary and
+                    stats.rrole == 'Unknown' and
+                    stats.is_disk_uptodate)
+
+  def testMinor6(self):
+    """Test diskless device"""
+    stats = bdev.DRBD8Status(self.mass_data[6])
+    self.failUnless(stats.is_connected and stats.is_secondary and
+                    stats.peer_primary and stats.is_diskless)
+
+  def testMinor8(self):
+    """Test standalone device"""
+    stats = bdev.DRBD8Status(self.mass_data[8])
+    self.failUnless(stats.is_standalone and
+                    stats.rrole == 'Unknown' and
+                    stats.is_disk_uptodate)
 
 if __name__ == '__main__':
   unittest.main()

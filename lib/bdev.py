@@ -1005,6 +1005,56 @@ class MDRaid1(BlockDev):
     pass
 
 
+class DRBD8Status(object):
+  """A DRBD status representation class.
+
+  Note that this doesn't support unconfigured devices (cs:Unconfigured).
+
+  """
+  LINE_RE = re.compile(r"\s*[0-9]+:\s*cs:(\S+)\s+st:([^/]+)/(\S+)"
+                       "\s+ds:([^/]+)/(\S+)\s+.*$")
+  SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
+                       "\sfinish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
+
+  def __init__(self, procline):
+    m = self.LINE_RE.match(procline)
+    if not m:
+      raise errors.BlockDeviceError("Can't parse input data '%s'" % procline)
+    self.cstatus = m.group(1)
+    self.lrole = m.group(2)
+    self.rrole = m.group(3)
+    self.ldisk = m.group(4)
+    self.rdisk = m.group(5)
+
+    self.is_standalone = self.cstatus == "StandAlone"
+    self.is_wfconn = self.cstatus == "WFConnection"
+    self.is_connected = self.cstatus == "Connected"
+    self.is_primary = self.lrole == "Primary"
+    self.is_secondary = self.lrole == "Secondary"
+    self.peer_primary = self.rrole == "Primary"
+    self.peer_secondary = self.rrole == "Secondary"
+    self.both_primary = self.is_primary and self.peer_primary
+    self.both_secondary = self.is_secondary and self.peer_secondary
+
+    self.is_diskless = self.ldisk == "Diskless"
+    self.is_disk_uptodate = self.ldisk == "UpToDate"
+
+    m = self.SYNC_RE.match(procline)
+    if m:
+      self.sync_percent = float(m.group(1))
+      hours = int(m.group(2))
+      minutes = int(m.group(3))
+      seconds = int(m.group(4))
+      self.est_time = hours * 3600 + minutes * 60 + seconds
+    else:
+      self.sync_percent = None
+      self.est_time = None
+
+    self.is_sync_target = self.peer_sync_source = self.cstatus == "SyncTarget"
+    self.peer_sync_target = self.is_sync_source = self.cstatus == "SyncSource"
+    self.is_resync = self.is_sync_target or self.is_sync_source
+
+
 class BaseDRBD(BlockDev):
   """Base DRBD class.
 
@@ -1020,18 +1070,20 @@ class BaseDRBD(BlockDev):
   _ST_WFCONNECTION = "WFConnection"
   _ST_CONNECTED = "Connected"
 
+  _STATUS_FILE = "/proc/drbd"
+
   @staticmethod
-  def _GetProcData():
+  def _GetProcData(filename=_STATUS_FILE):
     """Return data from /proc/drbd.
 
     """
-    stat = open("/proc/drbd", "r")
+    stat = open(filename, "r")
     try:
       data = stat.read().splitlines()
     finally:
       stat.close()
     if not data:
-      raise errors.BlockDeviceError("Can't read any data from /proc/drbd")
+      raise errors.BlockDeviceError("Can't read any data from %s" % filename)
     return data
 
   @staticmethod
@@ -2043,6 +2095,18 @@ class DRBD8(BaseDRBD):
                    (result.fail_reason, result.output))
     return not result.failed and children_result
 
+  def GetProcStatus(self):
+    """Return device data from /proc.
+
+    """
+    if self.minor is None:
+      raise errors.BlockDeviceError("GetStats() called while not attached")
+    proc_info = self._MassageProcData(self._GetProcData())
+    if self.minor not in proc_info:
+      raise errors.BlockDeviceError("Can't find myself in /proc (minor %d)" %
+                                    self.minor)
+    return DRBD8Status(proc_info[self.minor])
+
   def GetSyncStatus(self):
     """Returns the sync status of the device.
 
@@ -2063,31 +2127,10 @@ class DRBD8(BaseDRBD):
     """
     if self.minor is None and not self.Attach():
       raise errors.BlockDeviceError("Can't attach to device in GetSyncStatus")
-    proc_info = self._MassageProcData(self._GetProcData())
-    if self.minor not in proc_info:
-      raise errors.BlockDeviceError("Can't find myself in /proc (minor %d)" %
-                                    self.minor)
-    line = proc_info[self.minor]
-    match = re.match("^.*sync'ed: *([0-9.]+)%.*"
-                     " finish: ([0-9]+):([0-9]+):([0-9]+) .*$", line)
-    if match:
-      sync_percent = float(match.group(1))
-      hours = int(match.group(2))
-      minutes = int(match.group(3))
-      seconds = int(match.group(4))
-      est_time = hours * 3600 + minutes * 60 + seconds
-    else:
-      sync_percent = None
-      est_time = None
-    match = re.match("^ *\d+: cs:(\w+).*ds:(\w+)/(\w+).*$", line)
-    if not match:
-      raise errors.BlockDeviceError("Can't find my data in /proc (minor %d)" %
-                                    self.minor)
-    client_state = match.group(1)
-    local_disk_state = match.group(2)
-    ldisk = local_disk_state != "UpToDate"
-    is_degraded = client_state != "Connected"
-    return sync_percent, est_time, is_degraded or ldisk, ldisk
+    stats = self.GetProcStatus()
+    ldisk = not stats.is_disk_uptodate
+    is_degraded = not stats.is_connected
+    return stats.sync_percent, stats.est_time, is_degraded or ldisk, ldisk
 
   def GetStatus(self):
     """Compute the status of the DRBD device

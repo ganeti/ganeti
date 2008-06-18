@@ -1,0 +1,29 @@
+version: 8.0.12 (api:86/proto:86)
+GIT-hash: 5c9f89594553e32adb87d9638dce591782f947e3 build by XXX
+ 0: cs:Connected st:Primary/Secondary ds:UpToDate/UpToDate C r---
+    ns:4375577 nr:0 dw:4446279 dr:674 al:1067 bm:69 lo:0 pe:0 ua:0 ap:0
+	resync: used:0/61 hits:0 misses:0 starving:0 dirty:0 changed:0
+	act_log: used:0/257 hits:793749 misses:1067 starving:0 dirty:0 changed:1067
+ 1: cs:Connected st:Secondary/Primary ds:UpToDate/UpToDate C r---
+    ns:738320 nr:0 dw:738320 dr:554400 al:67 bm:0 lo:0 pe:0 ua:0 ap:0
+	resync: used:0/61 hits:0 misses:0 starving:0 dirty:0 changed:0
+	act_log: used:0/257 hits:92464 misses:67 starving:0 dirty:0 changed:67
+ 2: cs:Unconfigured
+ 4: cs:WFConnection st:Primary/Unknown ds:UpToDate/DUnknown C r---
+    ns:738320 nr:0 dw:738320 dr:554400 al:67 bm:0 lo:0 pe:0 ua:0 ap:0
+        resync: used:0/61 hits:0 misses:0 starving:0 dirty:0 changed:0
+        act_log: used:0/257 hits:92464 misses:67 starving:0 dirty:0 changed:67
+ 5: cs:Connected st:Primary/Secondary ds:UpToDate/Diskless C r---
+    ns:4375581 nr:0 dw:4446283 dr:674 al:1069 bm:69 lo:0 pe:0 ua:0 ap:0
+        resync: used:0/61 hits:0 misses:0 starving:0 dirty:0 changed:0
+        act_log: used:0/257 hits:793750 misses:1069 starving:0 dirty:0 changed:1069
+ 6: cs:Connected st:Secondary/Primary ds:Diskless/UpToDate C r---
+    ns:0 nr:4375581 dw:5186925 dr:327 al:75 bm:214 lo:0 pe:0 ua:0 ap:0
+ 7: cs:WFConnection st:Secondary/Unknown ds:UpToDate/DUnknown C r---
+    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0
+        resync: used:0/61 hits:0 misses:0 starving:0 dirty:0 changed:0
+        act_log: used:0/257 hits:0 misses:0 starving:0 dirty:0 changed:0
+ 8: cs:StandAlone st:Secondary/Unknown ds:UpToDate/DUnknown   r---
+    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0
+        resync: used:0/61 hits:0 misses:0 starving:0 dirty:0 changed:0
+        act_log: used:0/257 hits:0 misses:0 starving:0 dirty:0 changed:0
