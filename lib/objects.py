@@ -164,15 +164,21 @@ class TaggableObject(ConfigObject):
   __slots__ = ConfigObject.__slots__ + ["tags"]
 
   @staticmethod
-  def ValidateTag(tag):
+  def ValidateTag(tag, removal=False):
     """Check if a tag is valid.
 
     If the tag is invalid, an errors.TagError will be raised. The
     function has no return value.
 
+    Args:
+      tag: Tag value
+      removal: Validating tag for removal?
+
     """
     if not isinstance(tag, basestring):
       raise errors.TagError("Invalid tag type (not a string)")
+    if removal:
+      return
     if len(tag) > constants.MAX_TAG_LEN:
       raise errors.TagError("Tag too long (>%d characters)" %
                             constants.MAX_TAG_LEN)
@@ -204,7 +210,7 @@ class TaggableObject(ConfigObject):
     """Remove a tag.
 
     """
-    self.ValidateTag(tag)
+    self.ValidateTag(tag, removal=True)
     tags = self.GetTags()
     try:
       tags.remove(tag)

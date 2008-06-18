@@ -130,8 +130,8 @@ EXIT_CONFIRMATION = 13 # need user confirmation
 TAG_CLUSTER = "cluster"
 TAG_NODE = "node"
 TAG_INSTANCE = "instance"
-MAX_TAG_LEN = 128
-MAX_TAGS_PER_OBJ = 4096
+MAX_TAG_LEN = 64
+MAX_TAGS_PER_OBJ = 48
 
 # others
 DEFAULT_BRIDGE = "xen-br0"

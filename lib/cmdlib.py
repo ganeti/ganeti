@@ -5126,7 +5126,7 @@ class LUDelTags(TagsLU):
     """
     TagsLU.CheckPrereq(self)
     for tag in self.op.tags:
-      objects.TaggableObject.ValidateTag(tag)
+      objects.TaggableObject.ValidateTag(tag, removal=True)
     del_tags = frozenset(self.op.tags)
     cur_tags = self.target.GetTags()
     if not del_tags <= cur_tags:
