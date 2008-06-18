@@ -26,7 +26,6 @@ backend (currently json).
 """
 
 import simplejson
-import ConfigParser
 import re
 
 # Check whether the simplejson module supports indentation
@@ -36,7 +35,7 @@ try:
 except TypeError:
   _JSON_INDENT = None
 
-_RE_EOLSP = re.compile('\s+$', re.MULTILINE)
+_RE_EOLSP = re.compile('[ \t]+$', re.MULTILINE)
 
 
 def DumpJson(data):
@@ -47,9 +46,9 @@ def DumpJson(data):
     txt = simplejson.dumps(data)
   else:
     txt = simplejson.dumps(data, indent=_JSON_INDENT)
+  txt = _RE_EOLSP.sub("", txt)
   if not txt.endswith('\n'):
     txt += '\n'
-  txt = _RE_EOLSP.sub("", txt)
   return txt
 
 
