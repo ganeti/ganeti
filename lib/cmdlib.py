@@ -858,8 +858,11 @@ class LUVerifyCluster(LogicalUnit):
 
     """
     all_nodes = self.cfg.GetNodeList()
+    tags = self.cfg.GetClusterInfo().GetTags()
     # TODO: populate the environment with useful information for verify hooks
-    env = {}
+    env = {
+      "CLUSTER_TAGS": " ".join(tags),
+      }
     return env, [], all_nodes
 
   def Exec(self, feedback_fn):
