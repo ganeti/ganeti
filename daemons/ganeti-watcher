@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -93,6 +93,18 @@ def DoCmd(cmd):
   return res
 
 
+def LockFile(fd):
+  """Locks a file using POSIX locks.
+
+  """
+  try:
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+  except IOError, err:
+    if err.errno == errno.EAGAIN:
+      raise StandardError("File already locked")
+    raise
+
+
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
@@ -106,17 +118,10 @@ class WatcherState(object):
     # The two-step dance below is necessary to allow both opening existing
     # file read/write and creating if not existing.  Vanilla open will truncate
     # an existing file -or- allow creating if not existing.
-    f = os.open(constants.WATCHER_STATEFILE, os.O_RDWR | os.O_CREAT)
-    f = os.fdopen(f, 'w+')
+    fd = os.open(constants.WATCHER_STATEFILE, os.O_RDWR | os.O_CREAT)
+    self.statefile = os.fdopen(fd, 'w+')
 
-    try:
-      fcntl.flock(f.fileno(), fcntl.LOCK_EX|fcntl.LOCK_NB)
-    except IOError, x:
-      if x.errno == errno.EAGAIN:
-        raise StandardError("State file already locked")
-      raise
-
-    self.statefile = f
+    LockFile(self.statefile.fileno())
 
     try:
       self.data = serializer.Load(self.statefile.read())
@@ -131,21 +136,26 @@ class WatcherState(object):
     if "node" not in self.data:
       self.data["node"] = {}
 
-  def __del__(self):
-    """Called on destruction.
+  def Save(self):
+    """Save state to file, then unlock and close it.
 
     """
-    if self.statefile:
-      self._Close()
+    assert self.statefile
 
-  def _Close(self):
+    # We need to make sure the file is locked before renaming it, otherwise
+    # starting ganeti-watcher again at the same time will create a conflict.
+    fd = utils.WriteFile(constants.WATCHER_STATEFILE,
+                         data=serializer.Dump(self.data),
+                         prewrite=LockFile, close=False)
+    self.statefile = os.fdopen(fd, 'w+')
+
+  def Close(self):
     """Unlock configuration file and close it.
 
     """
     assert self.statefile
 
-    fcntl.flock(self.statefile.fileno(), fcntl.LOCK_UN)
-
+    # Files are automatically unlocked when closing them
     self.statefile.close()
     self.statefile = None
 
@@ -216,19 +226,6 @@ class WatcherState(object):
 
     if instance.name in idata:
       del idata[instance.name]
-
-  def Save(self):
-    """Save state to file, then unlock and close it.
-
-    """
-    assert self.statefile
-
-    self.statefile.seek(0)
-    self.statefile.truncate()
-
-    self.statefile.write(serializer.Dump(self.data))
-
-    self._Close()
 
 
 class Instance(object):
