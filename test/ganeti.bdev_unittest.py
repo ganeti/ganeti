@@ -115,7 +115,11 @@ class TestDRBD8Status(unittest.TestCase):
 
   def setUp(self):
     """Read in txt data"""
-    self.proc_data = bdev.DRBD8._GetProcData(filename="data/proc_drbd8.txt")
+    proc_data = "data/proc_drbd8.txt"
+    prefix = os.environ.get("srcdir", None)
+    if prefix:
+      proc_data = prefix + "/" + proc_data
+    self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
     self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)
 
   def testMinorNotFound(self):
