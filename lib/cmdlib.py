@@ -906,6 +906,8 @@ class LUVerifyCluster(LogicalUnit):
     all_rversion = rpc.call_version(nodelist)
     all_ninfo = rpc.call_node_info(nodelist, self.cfg.GetVGName())
 
+    incomplete_nodeinfo = False
+
     for node in nodelist:
       feedback_fn("* Verifying node %s" % node)
       result = self._VerifyNode(node, file_names, local_checksums,
@@ -924,6 +926,7 @@ class LUVerifyCluster(LogicalUnit):
       elif not isinstance(volumeinfo, dict):
         feedback_fn("  - ERROR: connection to %s failed" % (node,))
         bad = True
+        incomplete_nodeinfo = True
         continue
       else:
         node_volume[node] = volumeinfo
@@ -933,6 +936,7 @@ class LUVerifyCluster(LogicalUnit):
       if type(nodeinstance) != list:
         feedback_fn("  - ERROR: connection to %s failed" % (node,))
         bad = True
+        incomplete_nodeinfo = True
         continue
 
       node_instance[node] = nodeinstance
@@ -942,6 +946,7 @@ class LUVerifyCluster(LogicalUnit):
       if not isinstance(nodeinfo, dict):
         feedback_fn("  - ERROR: connection to %s failed" % (node,))
         bad = True
+        incomplete_nodeinfo = True
         continue
 
       try:
@@ -958,9 +963,10 @@ class LUVerifyCluster(LogicalUnit):
           # secondary.
           "sinst-by-pnode": {},
         }
-      except ValueError:
+      except (ValueError, TypeError):
         feedback_fn("  - ERROR: invalid value returned from node %s" % (node,))
         bad = True
+        incomplete_nodeinfo = True
         continue
 
     node_vol_should = {}
@@ -1015,7 +1021,8 @@ class LUVerifyCluster(LogicalUnit):
                                          feedback_fn)
     bad = bad or result
 
-    if constants.VERIFY_NPLUSONE_MEM not in self.skip_set:
+    if (constants.VERIFY_NPLUSONE_MEM not in self.skip_set and
+        not incomplete_nodeinfo):
       feedback_fn("* Verifying N+1 Memory redundancy")
       result = self._VerifyNPlusOneMemory(node_info, instance_cfg, feedback_fn)
       bad = bad or result
