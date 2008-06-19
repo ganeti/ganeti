@@ -553,6 +553,9 @@ def _GatherBlockDevs(instance):
   This is run on the primary node at instance startup. The block
   devices must be already assembled.
 
+  Returns:
+    A list of (block_device, disk_name) tuples.
+
   """
   block_devices = []
   for disk in instance.disks:
@@ -561,7 +564,7 @@ def _GatherBlockDevs(instance):
       raise errors.BlockDeviceError("Block device '%s' is not set up." %
                                     str(disk))
     device.Open()
-    block_devices.append((disk, device))
+    block_devices.append((device.dev_path, disk.iv_name))
   return block_devices
 
 

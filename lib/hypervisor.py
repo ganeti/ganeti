@@ -407,8 +407,7 @@ class XenPvmHypervisor(XenHypervisor):
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
 
-    disk_data = ["'phy:%s,%s,w'" % (rldev.dev_path, cfdev.iv_name)
-                 for cfdev, rldev in block_devices]
+    disk_data = ["'phy:%s,%s,w'" % names for names in block_devices]
     config.write("disk = [%s]\n" % ",".join(disk_data))
 
     config.write("root = '/dev/sda ro'\n")
@@ -702,9 +701,13 @@ class XenHvmHypervisor(XenHypervisor):
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
 
+    # TODO(2.0): This code changes the block device name, seen by the instance,
+    # from what Ganeti believes it should be. Different hypervisors may have
+    # different requirements, so we should probably review the design of
+    # storing it altogether, for the next major version.
     disk_data = ["'phy:%s,%s,w'" %
-                 (rldev.dev_path, cfdev.iv_name.replace("sd", "ioemu:hd"))
-                 for cfdev, rldev in block_devices]
+                 (dev_path, iv_name.replace("sd", "ioemu:hd"))
+                 for dev_path, iv_name in block_devices]
 
     if instance.hvm_cdrom_image_path is None:
       config.write("disk = [%s]\n" % (",".join(disk_data)))
