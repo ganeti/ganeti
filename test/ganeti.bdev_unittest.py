@@ -51,14 +51,13 @@ class TestDRBD8Runner(unittest.TestCase):
 
     prefix = os.environ.get("srcdir", None)
     if prefix:
-      name = prefix + "/" + name
+      name = prefix + "/test/" + name
     fh = open(name, "r")
     try:
       data = fh.read()
     finally:
       fh.close()
     return data
-
 
   @staticmethod
   def _has_net(data, local, remote):
@@ -115,7 +114,7 @@ class TestDRBD8Status(unittest.TestCase):
 
   def setUp(self):
     """Read in txt data"""
-    proc_data = "data/proc_drbd8.txt"
+    proc_data = "test/data/proc_drbd8.txt"
     prefix = os.environ.get("srcdir", None)
     if prefix:
       proc_data = prefix + "/" + proc_data

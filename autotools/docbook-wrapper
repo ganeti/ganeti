@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -e
+
+input="${1}"
+output="${2}"
+
+case "${output}" in
+  *.pdf) cmd=docbook2pdf ;;
+  *.html) cmd='docbook2html --nochunks' ;;
+  *.7|*.8) cmd=docbook2man ;;
+  *)
+    echo "Unknown filetype: ${output}" >&2
+    exit 1
+  ;;
+esac
+
+tmpdir=`mktemp -d`
+trap "rm -rf ${tmpdir}" EXIT
+
+if ! ( cd `dirname ${input}` &&
+       ${cmd} -o ${tmpdir} `basename "${input}"` >/dev/null; )
+then
+  echo "Building ${output} failed." >&2
+  exit 1
+fi;
+
+mv "${tmpdir}/`basename "${output}"`" "${output}"
+
+# Needed for make to recognize output file
+touch "${output}"

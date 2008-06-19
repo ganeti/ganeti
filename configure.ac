@@ -111,20 +111,6 @@ then
   AC_MSG_WARN([docbook2man not found.])
 fi
 
-AC_CONFIG_FILES([
-  Makefile
-  daemons/Makefile
-  devel/Makefile
-  doc/Makefile
-  doc/examples/Makefile
-  lib/Makefile
-  lib/hypervisor/Makefile
-  man/Makefile
-  qa/Makefile
-  qa/hooks/Makefile
-  scripts/Makefile
-  test/Makefile
-  tools/Makefile
-])
+AC_CONFIG_FILES([ Makefile ])
 
 AC_OUTPUT
