@@ -93,6 +93,28 @@ AC_SUBST(FILE_STORAGE_DIR, $file_storage_dir)
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
+# Check for docbook programs
+AC_ARG_VAR(DOCBOOK2MAN, [docbook2man path])
+AC_PATH_PROG(DOCBOOK2MAN, [docbook2man], [])
+if test -z "$DOCBOOK2MAN"
+then
+  AC_MSG_ERROR([docbook2man not found])
+fi
+
+AC_ARG_VAR(DOCBOOK2PDF, [docbook2pdf path])
+AC_PATH_PROG(DOCBOOK2PDF, [docbook2pdf], [])
+if test -z "$DOCBOOK2PDF"
+then
+  AC_MSG_ERROR([docbook2pdf not found])
+fi
+
+AC_ARG_VAR(DOCBOOK2HTML, [docbook2html path])
+AC_PATH_PROG(DOCBOOK2HTML, [docbook2html], [])
+if test -z "$DOCBOOK2HTML"
+then
+  AC_MSG_ERROR([docbook2html not found])
+fi
+
 # Check for Python
 AM_PATH_PYTHON(2.4)
 
@@ -102,14 +124,6 @@ AC_PYTHON_MODULE(twisted.spread, t)
 AC_PYTHON_MODULE(OpenSSL, t)
 AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
-
-# Check for docbook2man
-found_docbook2man=
-AC_CHECK_PROG(found_docbook2man, [docbook2man], [yes])
-if test "$found_docbook2man" != "yes"
-then
-  AC_MSG_WARN([docbook2man not found.])
-fi
 
 AC_CONFIG_FILES([ Makefile ])
 
