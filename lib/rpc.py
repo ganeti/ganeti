@@ -621,6 +621,19 @@ def call_blockdev_find(node, disk):
   return c.getresult().get(node, False)
 
 
+def call_blockdev_close(node, disks):
+  """Closes the given block devices.
+
+  This is a single-node call.
+
+  """
+  params = [cf.ToDict() for cf in disks]
+  c = Client("blockdev_close", params)
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_upload_file(node_list, file_name):
   """Upload a file.
 
