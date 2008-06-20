@@ -1477,7 +1477,7 @@ def _TransformFileStorageDir(file_storage_dir):
 
   Args:
     file_storage_dir: string with path
-  
+
   Returns:
     normalized file_storage_dir (string) if valid, None otherwise
 
@@ -1590,6 +1590,31 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
                      old_file_storage_dir, new_file_storage_dir)
         result = False,
   return result
+
+
+def CloseBlockDevices(disks):
+  """Closes the given block devices.
+
+  This means they will be switched to secondary mode (in case of DRBD).
+
+  """
+  bdevs = []
+  for cf in disks:
+    rd = _RecursiveFindBD(cf)
+    if rd is None:
+      return (False, "Can't find device %s" % cf)
+    bdevs.append(rd)
+
+  msg = []
+  for rd in bdevs:
+    try:
+      rd.Close()
+    except errors.BlockDeviceError, err:
+      msg.append(str(err))
+  if msg:
+    return (False, "Can't make devices secondary: %s" % ",".join(msg))
+  else:
+    return (True, "All devices secondary")
 
 
 class HooksRunner(object):

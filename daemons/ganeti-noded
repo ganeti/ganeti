@@ -220,6 +220,14 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
     amount = params[1]
     return backend.GrowBlockDevice(cfbd, amount)
 
+  @staticmethod
+  def perspective_blockdev_close(params):
+    """Closes the given block devices.
+
+    """
+    disks = [objects.Disk.FromDict(cf) for cf in params]
+    return backend.CloseBlockDevices(disks)
+
   # export/import  --------------------------
 
   @staticmethod
