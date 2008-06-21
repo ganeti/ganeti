@@ -466,6 +466,15 @@ def FormatError(err):
     obuf.write("Failure: invalid tag(s) given:\n%s" % msg)
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
+  elif isinstance(err, luxi.NoMasterError):
+    obuf.write("Cannot communicate with the master daemon.\nIs it running"
+               " and listening on '%s'?" % err.args[0])
+  elif isinstance(err, luxi.TimeoutError):
+    obuf.write("Timeout while talking to the master daemon. Error:\n"
+               "%s" % msg)
+  elif isinstance(err, luxi.ProtocolError):
+    obuf.write("Unhandled protocol error while talking to the master daemon:\n"
+               "%s" % msg)
   else:
     obuf.write("Unhandled exception: %s" % msg)
   return retcode, obuf.getvalue().rstrip('\n')
@@ -517,7 +526,7 @@ def GenericMain(commands, override=None, aliases=None):
 
   try:
     result = func(options, args)
-  except errors.GenericError, err:
+  except (errors.GenericError, luxi.ProtocolError), err:
     result, err_msg = FormatError(err)
     logger.ToStderr(err_msg)
 

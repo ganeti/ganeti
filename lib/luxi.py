@@ -33,6 +33,7 @@ import socket
 import collections
 import simplejson
 import time
+import errno
 
 from ganeti import opcodes
 from ganeti import constants
@@ -77,6 +78,14 @@ class RequestError(ProtocolError):
   Some common conditions that can trigger this exception:
     - job submission failed because the job data was wrong
     - query failed because required fields were missing
+
+  """
+
+class NoMasterError(ProtocolError):
+  """The master cannot be reached
+
+  This means that the master daemon is not running or the socket has
+  been removed.
 
   """
 
@@ -153,9 +162,13 @@ class Transport:
       try:
         self.socket.connect(address)
       except socket.timeout, err:
-        raise TimeoutError("Connection timed out: %s" % str(err))
+        raise TimeoutError("Connect timed out: %s" % str(err))
+      except socket.error, err:
+        if err.args[0] == errno.ENOENT:
+          raise NoMasterError((address,))
+        raise
       self.socket.settimeout(self._rwtimeout)
-    except socket.error:
+    except (socket.error, NoMasterError):
       if self.socket is not None:
         self.socket.close()
       self.socket = None
