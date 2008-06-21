@@ -244,7 +244,6 @@ class BlockDev(object):
     """
     return None, None, False, False
 
-
   def CombinedSyncStatus(self):
     """Calculate the mirror status recursively for our children.
 
@@ -268,7 +267,6 @@ class BlockDev(object):
         is_degraded = is_degraded or c_degraded
         ldisk = ldisk or c_ldisk
     return min_percent, max_time, is_degraded, ldisk
-
 
   def SetInfo(self, text):
     """Update metadata with info text.
