@@ -166,8 +166,8 @@ class TestRunCmd(unittest.TestCase):
     self.assertEqual(result.output, "A" + self.magic + "B" + self.magic)
 
   def testSignal(self):
-    """Test standard error"""
-    result = RunCmd("/bin/sh -c 'kill -15 $$'")
+    """Test signal"""
+    result = RunCmd(["python", "-c", "import os; os.kill(os.getpid(), 15)"])
     self.assertEqual(result.signal, 15)
 
   def testListRun(self):
