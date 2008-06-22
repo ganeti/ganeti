@@ -70,6 +70,7 @@ def ListNodes(opts, args):
       "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
       "bootid": "BootID",
       "ctotal": "CTotal",
+      "tags": "Tags",
       }
   else:
     headers = None
@@ -84,13 +85,12 @@ def ListNodes(opts, args):
                "pinst_cnt", "sinst_cnt",
                "ctotal"]
 
+  list_type_fields = ("pinst_list", "sinst_list", "tags")
   # change raw values to nicer strings
   for row in output:
     for idx, field in enumerate(selected_fields):
       val = row[idx]
-      if field == "pinst_list":
-        val = ",".join(val)
-      elif field == "sinst_list":
+      if field in list_type_fields:
         val = ",".join(val)
       elif val is None:
         val = "?"

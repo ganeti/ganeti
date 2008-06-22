@@ -186,7 +186,7 @@ def ListInstances(opts, args):
       "ip": "IP Address", "mac": "MAC Address",
       "bridge": "Bridge", "vcpus": "VCPUs",
       "sda_size": "Disk/0", "sdb_size": "Disk/1",
-      "status": "Status",
+      "status": "Status", "tags": "Tags",
       }
   else:
     headers = None
@@ -198,6 +198,7 @@ def ListInstances(opts, args):
 
   numfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size", "vcpus"]
 
+  list_type_fields = ("tags",)
   # change raw values to nicer strings
   for row in output:
     for idx, field in enumerate(selected_fields):
@@ -222,6 +223,8 @@ def ListInstances(opts, args):
       elif field == "sda_size" or field == "sdb_size":
         if val is None:
           val = "N/A"
+      elif field in list_type_fields:
+        val = ",".join(val)
       row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,

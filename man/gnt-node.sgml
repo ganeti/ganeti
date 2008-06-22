@@ -326,6 +326,13 @@
               changes in this value)</simpara>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>tags</term>
+            <listitem>
+              <simpara>comma-separated list of the node's
+              tags</simpara>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </para>
 
