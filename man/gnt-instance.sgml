@@ -575,6 +575,13 @@
                 instance</simpara>
               </listitem>
             </varlistentry>
+            <varlistentry>
+              <term>tags</term>
+              <listitem>
+                <simpara>comma-separated list of the instances's
+                tags</simpara>
+              </listitem>
+            </varlistentry>
           </variablelist>
         </para>
 

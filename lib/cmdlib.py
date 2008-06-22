@@ -1271,7 +1271,7 @@ class LUQueryNodes(NoHooksLU):
 
     _CheckOutputFields(static=["name", "pinst_cnt", "sinst_cnt",
                                "pinst_list", "sinst_list",
-                               "pip", "sip"],
+                               "pip", "sip", "tags"],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
@@ -1342,6 +1342,8 @@ class LUQueryNodes(NoHooksLU):
           val = node.primary_ip
         elif field == "sip":
           val = node.secondary_ip
+        elif field == "tags":
+          val = list(node.GetTags())
         elif field in self.dynamic_fields:
           val = live_data[node.name].get(field, None)
         else:
@@ -2488,7 +2490,7 @@ class LUQueryInstances(NoHooksLU):
     _CheckOutputFields(static=["name", "os", "pnode", "snodes",
                                "admin_state", "admin_ram",
                                "disk_template", "ip", "mac", "bridge",
-                               "sda_size", "sdb_size", "vcpus"],
+                               "sda_size", "sdb_size", "vcpus", "tags"],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
@@ -2581,6 +2583,8 @@ class LUQueryInstances(NoHooksLU):
             val = disk.size
         elif field == "vcpus":
           val = instance.vcpus
+        elif field == "tags":
+          val = list(instance.GetTags())
         else:
           raise errors.ParameterError(field)
         iout.append(val)
