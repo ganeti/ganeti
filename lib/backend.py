@@ -681,7 +681,7 @@ def MigrateInstance(instance, target, live):
   try:
     hyper.MigrateInstance(instance, target, live)
   except errors.HypervisorError, err:
-    msg = "Failed to migrate instance: %s" % str(err)
+    msg = str(err)
     logger.Error(msg)
     return (False, msg)
   return (True, "Migration successfull")
