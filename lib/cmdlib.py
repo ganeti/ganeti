@@ -2914,6 +2914,163 @@ class LUFailoverInstance(LogicalUnit):
                                  (instance.name, target_node))
 
 
+class LUMigrateInstance(LogicalUnit):
+  """Migrate an instance.
+
+  This is migration without shutting down, compared to the failover,
+  which is done with shutdown.
+
+  """
+  HPATH = "instance-migrate"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name", "live"]
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on master, primary and secondary nodes of the instance.
+
+    """
+    env = _BuildInstanceHookEnvByObject(self.instance)
+    nl = [self.sstore.GetMasterNode()] + list(self.instance.secondary_nodes)
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster.
+
+    """
+    instance = self.cfg.GetInstanceInfo(
+      self.cfg.ExpandInstanceName(self.op.instance_name))
+    if instance is None:
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
+
+    if instance.disk_template != constants.DT_DRBD8:
+      raise errors.OpPrereqError("Instance's disk layout is not"
+                                 " drbd8, cannot migrate.")
+
+    secondary_nodes = instance.secondary_nodes
+    if not secondary_nodes:
+      raise errors.ProgrammerError("no secondary node but using "
+                                   "drbd8 disk template")
+
+    target_node = secondary_nodes[0]
+    # check memory requirements on the secondary node
+    _CheckNodeFreeMemory(self.cfg, target_node, "failing over instance %s" %
+                         instance.name, instance.memory)
+
+    # check bridge existance
+    brlist = [nic.bridge for nic in instance.nics]
+    if not rpc.call_bridges_exist(target_node, brlist):
+      raise errors.OpPrereqError("One or more target bridges %s does not"
+                                 " exist on destination node '%s'" %
+                                 (brlist, target_node))
+
+    ins_l = rpc.call_instance_list([instance.primary_node])
+    ins_l = ins_l[instance.primary_node]
+    if not type(ins_l) is list:
+      raise errors.OpPrereqError("Can't contact node '%s'" %
+                               instance.primary_node)
+
+    if instance.name not in ins_l:
+      raise errors.OpPrereqError("Instance is not running, can't migrate"
+                                 " - please use failover instead")
+    self.instance = instance
+
+  def Exec(self, feedback_fn):
+    """Migrate an instance.
+
+    The migrate is done by:
+      - change the disks into dual-master mode
+      - wait until disks are fully synchronized again
+      - migrate the instance
+      - change disks on the new secondary node (the old primary) to secondary
+      - wait until disks are fully synchronized
+      - change disks into single-master mode
+
+    """
+    instance = self.instance
+
+    source_node = instance.primary_node
+    target_node = instance.secondary_nodes[0]
+    all_nodes = [source_node, target_node]
+
+    feedback_fn("* checking disk consistency between source and target")
+    for dev in instance.disks:
+      if not _CheckDiskConsistency(self.cfg, dev, target_node, False):
+        raise errors.OpExecError("Disk %s is degraded or not fully"
+                                 " synchronized on target node,"
+                                 " aborting migrate." % dev.iv_name)
+
+    feedback_fn("* ensuring the target is in secondary mode")
+    result = rpc.call_blockdev_close(target_node, instance.name,
+                                     instance.disks)
+    if not result or not result[0]:
+      raise errors.BlockDeviceError("Cannot switch target node to"
+                                    " secondary: %s" % result[1])
+
+    feedback_fn("* changing disks into dual-master mode")
+    logger.Info("Changing disks for instance %s into dual-master mode" %
+                (instance.name,))
+
+    nodes_ip = {
+      source_node: self.cfg.GetNodeInfo(source_node).secondary_ip,
+      target_node: self.cfg.GetNodeInfo(target_node).secondary_ip,
+      }
+    result = rpc.call_drbd_reconfig_net(all_nodes, instance.name,
+                                        instance.disks, nodes_ip, True)
+    for node in all_nodes:
+      if not result[node] or not result[node][0]:
+        raise errors.OpExecError("Cannot change disks config on node %s,"
+                                 " error %s" % (node, result[node][1]))
+
+    _WaitForSync(self.cfg, instance, self.proc)
+
+    feedback_fn("* migrating instance to %s" % target_node)
+    result = rpc.call_instance_migrate(source_node, instance,
+                                       nodes_ip[target_node], self.op.live)
+    if not result or not result[0]:
+      logger.Error("Instance migration failed, trying to revert disk status")
+      res2 = rpc.call_blockdev_close(target_node, instance.name,
+                                     instance.disks)
+      if not res2 or not res2[0]:
+        feedback_fn("Disk close on secondary failed, instance disks left"
+                    " in dual-master mode")
+      else:
+        res2 = rpc.call_drbd_reconfig_net(all_nodes, instance.name,
+                                          instance.disks, nodes_ip, False)
+        if not (res2 and res2[source_node][0] and res2[target_node][0]):
+          logger.Error("Warning: DRBD change to single-master failed: shutdown"
+                       " manually the instance disks or via deactivate-disks,"
+                       " and then restart them via activate-disks")
+      raise errors.OpExecError("Could not migrate instance %s: %s" %
+                               (instance.name, result[1]))
+
+    instance.primary_node = target_node
+    # distribute new instance config to the other nodes
+    self.cfg.Update(instance)
+
+    feedback_fn("* changing the instance's disks on source node to secondary")
+    result = rpc.call_blockdev_close(source_node, instance.name,
+                                     instance.disks)
+    if not result or not result[0]:
+      logger.Error("Warning: DRBD deactivation failed: shutdown manually the"
+                   " instance disks or via deactivate-disks, and then"
+                   " restart them via activate-disks")
+
+    _WaitForSync(self.cfg, instance, self.proc)
+
+    feedback_fn("* changing the instance's disks to single-master")
+    result = rpc.call_drbd_reconfig_net(all_nodes, instance.name,
+                                        instance.disks, nodes_ip, False)
+    if not (result and result[source_node][0] and result[target_node][0]):
+      logger.Error("Warning: DRBD change to single-master failed: shutdown"
+                   " manually the instance disks or via deactivate-disks,"
+                   " and then restart them via activate-disks")
+
+
 def _CreateBlockDevOnPrimary(cfg, node, instance, device, info):
   """Create a tree of block devices on the primary node.
 
