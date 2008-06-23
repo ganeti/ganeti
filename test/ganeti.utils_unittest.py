@@ -28,6 +28,7 @@ import tempfile
 import os.path
 import os
 import md5
+import signal
 import socket
 import shutil
 import re
@@ -43,16 +44,16 @@ from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      SetEtcHostsEntry, RemoveEtcHostsEntry
 from ganeti.errors import LockError, UnitParseError
 
+def _ChildHandler(signal, stack):
+  global _ChildFlag
+  _ChildFlag = True
 
 class TestIsProcessAlive(unittest.TestCase):
   """Testing case for IsProcessAlive"""
+
   def setUp(self):
-    # create a zombie and a (hopefully) non-existing process id
-    self.pid_zombie = os.fork()
-    if self.pid_zombie == 0:
-      os._exit(0)
-    elif self.pid_zombie < 0:
-      raise SystemError("can't fork")
+    global _ChildFlag
+    # create a (most probably) non-existing process-id
     self.pid_non_existing = os.fork()
     if self.pid_non_existing == 0:
       os._exit(0)
@@ -60,7 +61,18 @@ class TestIsProcessAlive(unittest.TestCase):
       os.waitpid(self.pid_non_existing, 0)
     else:
       raise SystemError("can't fork")
+    _ChildFlag = False
+    # Use _ChildHandler for SIGCHLD
+    self.chldOrig = signal.signal(signal.SIGCHLD, _ChildHandler)
+    # create a zombie
+    self.pid_zombie = os.fork()
+    if self.pid_zombie == 0:
+      os._exit(0)
+    elif self.pid_zombie < 0:
+      raise SystemError("can't fork")
 
+  def tearDown(self):
+    signal.signal(signal.SIGCHLD, self.chldOrig)
 
   def testExists(self):
     mypid = os.getpid()
@@ -68,9 +80,19 @@ class TestIsProcessAlive(unittest.TestCase):
                  "can't find myself running")
 
   def testZombie(self):
+    global _ChildFlag
+    timeout = 10
+
+    while not _ChildFlag:
+      if timeout >= 0:
+        time.sleep(0.2)
+        timeout -= 0.2
+      else:
+        self.fail("timed out waiting for child's signal")
+        break # not executed...
+
     self.assert_(not IsProcessAlive(self.pid_zombie),
                  "zombie not detected as zombie")
-
 
   def testNotExisting(self):
     self.assert_(not IsProcessAlive(self.pid_non_existing),
