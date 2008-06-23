@@ -584,10 +584,10 @@ def _RemoveBlockDevLinks(instance_name):
   """
   for i in os.listdir(constants.DISK_LINKS_DIR):
     if os.path.islink(i) and i.startswith('%s-' % instance_name):
-     try:
-      os.remove(link)
-    except OSError, e:
-      pass # Ignore errors when removing the symlinks
+      try:
+        os.remove(link)
+      except OSError, e:
+        pass # Ignore errors when removing the symlinks
 
 
 def _GatherAndLinkBlockDevs(instance):
