@@ -288,6 +288,15 @@ def PoolWorker(worker_id, incoming_queue):
         msg = "ganeti exception %s" % err
         item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
         print msg
+      except Exception, err:
+        msg = "unhandled exception %s" % err
+        item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
+        print msg
+      except:
+        msg = "unhandled unknown exception"
+        item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
+        print msg
+
     finally:
       #utils.Unlock('cmd')
       #utils.LockCleanup()
