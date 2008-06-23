@@ -1225,6 +1225,68 @@ node1.example.com:sdb:/dev/md1
         </para>
       </refsect3>
 
+      <refsect3>
+        <title>MIGRATE</title>
+
+        <cmdsynopsis>
+          <command>migrate</command>
+          <arg>-f</arg>
+          <arg>--non-live</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Migrate will move the instance to its secondary node without
+          shutdown. It only works for instances having the drbd8 disk
+          template type.
+        </para>
+
+        <para>
+          The migration command needs a perfectly healthy instance, as
+          we rely on the dual-master capability of drbd8 and the disks
+          of the instance are not allowed to be degraded.
+        </para>
+
+        <para>
+          The <option>--non-live</option> option will switch (for the
+          hypervisors that support it) between a "fully live"
+          (i.e. the interruption is as minimal as possible) migration
+          and one in which the instance is frozen, its state saved and
+          transported to the remote node, and then resumed there. This
+          all depends on the hypervisor support for two different
+          methods. In any case, it is not an error to pass this
+          parameter (it will just be ignored if the hypervisor doesn't
+          support it).
+        </para>
+
+        <para>
+          The option <option>-f</option> will skip the prompting for
+          confirmation.
+        </para>
+
+        <para>
+          Example (and expected output):
+          <screen>
+# gnt-instance migrate instance1
+Migrate will happen to the instance instance1. Note that migration is
+**experimental** in this version. This might impact the instance if
+anything goes wrong. Continue?
+y/[n]/?: y
+* checking disk consistency between source and target
+* ensuring the target is in secondary mode
+* changing disks into dual-master mode
+ - INFO: Waiting for instance instance1 to sync disks.
+ - INFO: Instance instance1's disks are in sync.
+* migrating instance to node2.example.com
+* changing the instance's disks on source node to secondary
+ - INFO: Waiting for instance instance1 to sync disks.
+ - INFO: Instance instance1's disks are in sync.
+* changing the instance's disks to single-master
+#
+          </screen>
+        </para>
+      </refsect3>
+
     </refsect2>
 
     <refsect2>
