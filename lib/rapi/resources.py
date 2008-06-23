@@ -58,7 +58,7 @@ def BuildUriList(names, uri_format):
 
 
 def ExtractField(sequence, index):
-  """Creates a list containing one column out of a list of lists
+  """Creates a list containing one column out of a list of lists.
 
   Args:
   - sequence: Sequence of lists
@@ -241,35 +241,6 @@ class R_version(R_Generic):
     return constants.RAPI_VERSION
 
 
-class R_instances(R_Generic):
-  """/instances resource.
-
-  """
-  DOC_URI = "/instances"
-
-  def GET(self):
-    """Returns a list of all available instances.
-    
-    Returns:
-       A dictionary with 'name' and 'uri' keys for each of them.
-
-    Example: [
-        {
-          "name": "web.example.com",
-          "uri": "\/instances\/web.example.com"
-        },
-        {
-          "name": "mail.example.com",
-          "uri": "\/instances\/mail.example.com"
-        }]
-
-    """
-    op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
-    instancelist = ganeti.cli.SubmitOpCode(op)
-
-    return BuildUriList(ExtractField(instancelist, 0), "/instances/%s")
-
-
 class R_tags(R_Generic):
   """/tags resource.
 
@@ -322,6 +293,31 @@ class R_nodes(R_Generic):
   """
   DOC_URI = "/nodes"
 
+  @RequireLock()
+  def _GetDetails(self, nodeslist):
+    """Returns detailed instance data for bulk output.
+
+    Args:
+      instance: A list of nodes names.
+
+    Returns:
+      A list of nodes properties
+
+    """
+    fields = ["name","dtotal", "dfree",
+              "mtotal", "mnode", "mfree",
+              "pinst_cnt", "sinst_cnt", "tags"]
+
+    op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
+                                     names=nodeslist)
+    result = ganeti.cli.SubmitOpCode(op)
+
+    nodes_details = []
+    for node in result:
+      mapped = MapFields(fields, node)
+      nodes_details.append(mapped)
+    return nodes_details
+ 
   def GET(self):
     """Returns a list of all nodes.
     
@@ -338,11 +334,33 @@ class R_nodes(R_Generic):
           "uri": "\/instances\/node2.example.com"
         }]
 
+    If the optional 'bulk' argument is provided and set to 'true' 
+    value (i.e '?bulk=1'), the output contains detailed
+    information about nodes as a list. Note: Lock required.
+
+    Example: [
+        {
+          "pinst_cnt": 1,
+          "mfree": 31280,
+          "mtotal": 32763,
+          "name": "www.example.com",
+          "tags": [],
+          "mnode": 512,
+          "dtotal": 5246208,
+          "sinst_cnt": 2,
+          "dfree": 5171712
+        },
+        ...
+    ]
+
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
-    nodelist = ganeti.cli.SubmitOpCode(op)
+    nodeslist = ExtractField(ganeti.cli.SubmitOpCode(op), 0)
+    
+    if 'bulk' in self.queryargs:
+      return self._GetDetails(nodeslist)
 
-    return BuildUriList(ExtractField(nodelist, 0), "/nodes/%s")
+    return BuildUriList(nodeslist, "/nodes/%s")
 
 
 class R_nodes_name(R_Generic):
@@ -357,9 +375,9 @@ class R_nodes_name(R_Generic):
 
     """
     node_name = self.items[0]
-    fields = ["dtotal", "dfree",
+    fields = ["name","dtotal", "dfree",
               "mtotal", "mnode", "mfree",
-              "pinst_cnt", "sinst_cnt"]
+              "pinst_cnt", "sinst_cnt", "tags"]
 
     op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
                                      names=[node_name])
@@ -385,6 +403,92 @@ class R_nodes_name_tags(R_Generic):
     return _Tags_GET(constants.TAG_NODE, name=self.items[0])
 
 
+class R_instances(R_Generic):
+  """/instances resource.
+
+  """
+  DOC_URI = "/instances"
+
+  @RequireLock()
+  def _GetDetails(self, instanceslist):
+    """Returns detailed instance data for bulk output.
+
+    Args:
+      instance: A list of instances names.
+
+    Returns:
+      A list with instances properties.
+
+    """
+    fields = ["name", "os", "pnode", "snodes",
+              "admin_state", "admin_ram",
+              "disk_template", "ip", "mac", "bridge",
+              "sda_size", "sdb_size", "vcpus",
+              "oper_state", "status", "tags"]
+
+    op = ganeti.opcodes.OpQueryInstances(output_fields=fields,
+                                         names=instanceslist)
+    result = ganeti.cli.SubmitOpCode(op)
+
+    instances_details = []
+    for instance in result:
+      mapped = MapFields(fields, instance)
+      instances_details.append(mapped)
+    return instances_details
+   
+  def GET(self):
+    """Returns a list of all available instances.
+    
+    Returns:
+       A dictionary with 'name' and 'uri' keys for each of them.
+
+    Example: [
+        {
+          "name": "web.example.com",
+          "uri": "\/instances\/web.example.com"
+        },
+        {
+          "name": "mail.example.com",
+          "uri": "\/instances\/mail.example.com"
+        }]
+
+    If the optional 'bulk' argument is provided and set to 'true' 
+    value (i.e '?bulk=1'), the output contains detailed
+    information about nodes as a list. Note: Lock required.
+
+    Example: [
+        {
+           "status": "running",
+           "bridge": "xen-br0",
+           "name": "web.example.com",
+           "tags": ["tag1", "tag2"],
+           "admin_ram": 512,
+           "sda_size": 20480,
+           "pnode": "node1.example.com",
+           "mac": "01:23:45:67:89:01",
+           "sdb_size": 4096,
+           "snodes": ["node2.example.com"],
+           "disk_template": "drbd",
+           "ip": null,
+           "admin_state": true,
+           "os": "debian-etch",
+           "vcpus": 2,
+           "oper_state": true
+        },
+        ...
+    ]
+
+    """
+    op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
+    instanceslist = ExtractField(ganeti.cli.SubmitOpCode(op), 0)
+    
+    if 'bulk' in self.queryargs:
+      return self._GetDetails(instanceslist)  
+
+    else:
+      return BuildUriList(instanceslist, "/instances/%s")
+
+
 class R_instances_name(R_Generic):
   """/instances/[instance_name] resources.
 
@@ -401,7 +505,7 @@ class R_instances_name(R_Generic):
               "admin_state", "admin_ram",
               "disk_template", "ip", "mac", "bridge",
               "sda_size", "sdb_size", "vcpus",
-              "oper_state", "status"]
+              "oper_state", "status", "tags"]
 
     op = ganeti.opcodes.OpQueryInstances(output_fields=fields,
                                          names=[instance_name])
