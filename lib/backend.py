@@ -547,7 +547,38 @@ def _GetVGInfo(vg_name):
   return retdic
 
 
-def _GatherBlockDevs(instance):
+def _SymlinkBlockDev(instance_name, device_path, device_name):
+  """Set up symlinks to a instance's block device.
+
+  This is an auxiliary function run when an instance is start (on the primary
+  node) or when an instance is migrated (on the target node).
+
+  Args:
+    instance_name: the name of the target instance
+    device_path: path of the physical block device, on the node
+    device_name: 'virtual' name of the device
+
+  Returns:
+    absolute path to the disk's symlink
+
+  """
+  link_basename = "%s-%s" % (instance_name, device_name)
+  link_name = os.path.join(constants.DISK_LINKS_DIR, link_basename)
+  try:
+    os.symlink(device_path, link_name)
+  except OSError, e:
+    if e.errno == errno.EEXIST:
+      if (not os.path.islink(link_name) or
+          os.readlink(link_name) != device_path):
+        os.remove(link_name)
+        os.symlink(device_path, link_name)
+    else:
+      raise
+
+  return link_name
+
+
+def _GatherAndLinkBlockDevs(instance):
   """Set up an instance's block device(s).
 
   This is run on the primary node at instance startup. The block
@@ -564,7 +595,14 @@ def _GatherBlockDevs(instance):
       raise errors.BlockDeviceError("Block device '%s' is not set up." %
                                     str(disk))
     device.Open()
-    block_devices.append((device.dev_path, disk.iv_name))
+    try:
+      link_name = _SymlinkBlockDev(instance.name, device.dev_path, disk.iv_name)
+    except OSError, e:
+      raise errors.BlockDeviceError("Cannot create block device symlink: %s" %
+                                    e.strerror)
+
+    block_devices.append((link_name, disk.iv_name))
+
   return block_devices
 
 
@@ -580,7 +618,7 @@ def StartInstance(instance, extra_args):
   if instance.name in running_instances:
     return True
 
-  block_devices = _GatherBlockDevs(instance)
+  block_devices = _GatherAndLinkBlockDevs(instance)
   hyper = hypervisor.GetHypervisor()
 
   try:
