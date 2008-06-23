@@ -171,6 +171,7 @@ dist_TESTS = \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.locking_unittest.py \
+	test/ganeti.serializer_unittest.py \
 	test/ganeti.constants_unittest.py
 
 nodist_TESTS =
