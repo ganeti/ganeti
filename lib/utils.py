@@ -960,7 +960,7 @@ def NewUUID():
 def WriteFile(file_name, fn=None, data=None,
               mode=None, uid=-1, gid=-1,
               atime=None, mtime=None, close=True,
-              check_abspath=True, dry_run=False, backup=False,
+              dry_run=False, backup=False,
               prewrite=None, postwrite=None):
   """(Over)write a file atomically.
 
@@ -992,7 +992,7 @@ def WriteFile(file_name, fn=None, data=None,
     None if "close" parameter evaluates to True, otherwise file descriptor.
 
   """
-  if check_abspath and not os.path.isabs(file_name):
+  if not os.path.isabs(file_name):
     raise errors.ProgrammerError("Path passed to WriteFile is not"
                                  " absolute: '%s'" % file_name)
 
