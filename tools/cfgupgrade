@@ -33,6 +33,7 @@ import sys
 import optparse
 import tempfile
 import simplejson
+import logging
 
 from ganeti import utils
 from ganeti import cli
@@ -104,6 +105,26 @@ def UpdateFromVersion2To3(cfg):
   cfg['cluster']['config_version'] = 3
 
 
+def SetupLogging():
+  """Configures the logging module.
+
+  """
+  formatter = logging.Formatter("%(asctime)s: %(message)s")
+
+  stderr_handler = logging.StreamHandler()
+  stderr_handler.setFormatter(formatter)
+  if options.debug:
+    stderr_handler.setLevel(logging.NOTSET)
+  elif options.verbose:
+    stderr_handler.setLevel(logging.INFO)
+  else:
+    stderr_handler.setLevel(logging.CRITICAL)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(stderr_handler)
+
+
 # Main program
 if __name__ == "__main__":
   program = os.path.basename(sys.argv[0])
@@ -115,10 +136,13 @@ if __name__ == "__main__":
                     help="Try to do the conversion, but don't write"
                          " output file")
   parser.add_option(cli.FORCE_OPT)
+  parser.add_option(cli.DEBUG_OPT)
   parser.add_option('--verbose', dest='verbose',
                     action="store_true",
                     help="Verbose output")
   (options, args) = parser.parse_args()
+
+  SetupLogging()
 
   # Option checking
   if args:
