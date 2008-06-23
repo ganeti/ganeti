@@ -564,6 +564,35 @@ def FailoverInstance(opts, args):
   return 0
 
 
+def MigrateInstance(opts, args):
+  """Migrate an instance.
+
+  The migrate is done without shutdown.
+
+  Args:
+    opts - class with options as members
+    args - list with a single element, the instance name
+  Opts used:
+    force - whether to migrate without asking questions.
+
+  """
+  instance_name = args[0]
+  force = opts.force
+
+  if not force:
+    usertext = ("Instance %s will be migrated. Note that migration"
+                " is **experimental** in this version."
+                " This might impact the instance if anything goes wrong."
+                " Continue?" %
+                (instance_name,))
+    if not AskUser(usertext):
+      return 1
+
+  op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live)
+  SubmitOpCode(op)
+  return 0
+
+
 def ConnectToInstanceConsole(opts, args):
   """Connect to the console of an instance.
 
@@ -898,6 +927,18 @@ commands = {
                "Stops the instance and starts it on the backup node, using"
                " the remote mirror (only for instances of type drbd or"
                " remote_raid1)"),
+  'migrate': (MigrateInstance, ARGS_ONE,
+               [DEBUG_OPT, FORCE_OPT,
+                make_option("--non-live", dest="live",
+                            default=True, action="store_false",
+                            help="Do a non-live migration (this usually means"
+                            " freeze the instance, save the state,"
+                            " transfer and only then resume running on the"
+                            " secondary node)"),
+                ],
+               "[-f] <instance>",
+               "Migrate instance to its secondary node"
+               " (only for instances of type drbd)"),
   'info': (ShowInstanceConfig, ARGS_ANY, [DEBUG_OPT], "[<instance>...]",
            "Show information on the specified instance"),
   'list': (ListInstances, ARGS_NONE,
