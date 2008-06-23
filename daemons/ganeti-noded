@@ -217,8 +217,22 @@ class ServerObject(pb.Avatar):
     """Closes the given block devices.
 
     """
-    disks = [objects.Disk.FromDict(cf) for cf in params]
-    return backend.CloseBlockDevices(disks)
+    disks = [objects.Disk.FromDict(cf) for cf in params[1]]
+    return backend.CloseBlockDevices(params[0], disks)
+
+  # blockdev/drbd specific methods ----------
+
+  @staticmethod
+  def perspective_drbd_reconfig_net(params):
+    """Re-configures the network connection of drbd disks.
+
+    Note that this is only valid for drbd disks, so the members of the
+    disk list must all be drbd devices.
+
+    """
+    instance_name, disks, nodes_ip, multimaster = params
+    disks = [objects.Disk.FromDict(cf) for cf in disks]
+    return backend.DrbdReconfigNet(instance_name, disks, nodes_ip, multimaster)
 
   # export/import  --------------------------
 

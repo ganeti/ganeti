@@ -621,17 +621,32 @@ def call_blockdev_find(node, disk):
   return c.getresult().get(node, False)
 
 
-def call_blockdev_close(node, disks):
+def call_blockdev_close(node, instance_name, disks):
   """Closes the given block devices.
 
   This is a single-node call.
 
   """
-  params = [cf.ToDict() for cf in disks]
+  params = [instance_name, [cf.ToDict() for cf in disks]]
   c = Client("blockdev_close", params)
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
+
+
+def call_drbd_reconfig_net(node_list, instance_name, disks,
+                           nodes_ip, multimaster):
+  """Re-configures the network connection of drbd disks.
+
+  This is a multi-node call.
+
+  """
+  params = [instance_name, [cf.ToDict() for cf in disks],
+            nodes_ip, multimaster]
+  c = Client("drbd_reconfig_net", params)
+  c.connect_list(node_list)
+  c.run()
+  return c.getresult()
 
 
 def call_upload_file(node_list, file_name):

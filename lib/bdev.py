@@ -1037,6 +1037,8 @@ class DRBD8Status(object):
     self.is_diskless = self.ldisk == "Diskless"
     self.is_disk_uptodate = self.ldisk == "UpToDate"
 
+    self.is_in_resync = self.cstatus in ('SyncSource', 'SyncTarget')
+
     m = self.SYNC_RE.match(procline)
     if m:
       self.sync_percent = float(m.group(1))

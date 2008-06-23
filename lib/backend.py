@@ -1535,10 +1535,16 @@ def RenameBlockDevices(devlist):
   return result
 
 
-def CloseBlockDevices(disks):
+def CloseBlockDevices(instance_name, disks):
   """Closes the given block devices.
 
   This means they will be switched to secondary mode (in case of DRBD).
+
+  Args:
+    - instance_name: if the argument is not false, then the symlinks
+                     belonging to the instance are removed, in order
+                     to keep only the 'active' devices symlinked
+    - disks: a list of objects.Disk instances
 
   """
   bdevs = []
@@ -1554,10 +1560,66 @@ def CloseBlockDevices(disks):
       rd.Close()
     except errors.BlockDeviceError, err:
       msg.append(str(err))
+  if instance_name:
+    _RemoveBlockDevLinks(instance_name)
   if msg:
     return (False, "Can't make devices secondary: %s" % ",".join(msg))
   else:
     return (True, "All devices secondary")
+
+
+def DrbdReconfigNet(instance_name, disks, nodes_ip, multimaster):
+  """Tune the network settings on a list of drbd devices.
+
+  """
+  my_name = utils.HostInfo().name
+  bdevs = []
+  for cf in disks:
+    cf.SetPhysicalID(my_name, nodes_ip)
+    rd = _RecursiveFindBD(cf)
+    if rd is None:
+      return (False, "Can't find device %s" % cf)
+    if multimaster:
+      try:
+        _SymlinkBlockDev(instance_name, rd.dev_path, cf.iv_name)
+      except EnvironmentError, err:
+        return (False, "Can't create symlink: %s" % str(err))
+    bdevs.append(rd)
+
+  # switch to new master configuration and if needed primary mode
+  for rd in bdevs:
+    rd.ReAttachNet(multimaster)
+  # wait until the disks are connected; we need to retry the re-attach
+  # if the device becomes standalone, as this might happen if the one
+  # node disconnects and reconnects in a different mode before the
+  # other node reconnects; in this case, one or both of the nodes will
+  # decide it has wrong configuration and switch to standalone
+  RECONNECT_TIMEOUT = 2 * 60
+  timeout_limit = time.time() + RECONNECT_TIMEOUT
+  notyet = True
+  while notyet and time.time() < timeout_limit:
+    notyet = False
+    for rd in bdevs:
+      stats = rd.GetProcStatus()
+      if not (stats.is_connected or stats.is_in_resync):
+        notyet = True
+      if stats.is_standalone:
+        # peer had different config info and this node became standalone
+        rd.ReAttachNet(multimaster)
+    if not notyet:
+      break
+    time.sleep(5)
+  if notyet:
+    return (False, "Timeout in disk reconnecting")
+  if multimaster:
+    # change to primary mode
+    for rd in bdevs:
+      rd.Open()
+  if multimaster:
+    msg = "multi-master and primary"
+  else:
+    msg = "single-master"
+  return (True, "Disks are now configured as %s" % msg)
 
 
 class HooksRunner(object):
