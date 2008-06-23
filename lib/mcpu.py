@@ -45,8 +45,6 @@ class Processor(object):
     # Cluster
     opcodes.OpDestroyCluster: cmdlib.LUDestroyCluster,
     opcodes.OpQueryClusterInfo: cmdlib.LUQueryClusterInfo,
-    opcodes.OpClusterCopyFile: cmdlib.LUClusterCopyFile,
-    opcodes.OpRunClusterCommand: cmdlib.LURunClusterCommand,
     opcodes.OpVerifyCluster: cmdlib.LUVerifyCluster,
     opcodes.OpMasterFailover: cmdlib.LUMasterFailover,
     opcodes.OpDumpClusterConfig: cmdlib.LUDumpClusterConfig,

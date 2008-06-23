@@ -22,6 +22,7 @@
 import sys
 from optparse import make_option
 import pprint
+import os.path
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -29,6 +30,8 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti import bootstrap
+from ganeti import ssh
+from ganeti import ssconf
 
 
 def InitCluster(opts, args):
@@ -156,8 +159,20 @@ def ClusterCopyFile(opts, args):
     nodes - list containing the name of target nodes; if empty, all nodes
 
   """
-  op = opcodes.OpClusterCopyFile(filename=args[0], nodes=opts.nodes)
-  SubmitOpCode(op)
+  filename = args[0]
+  if not os.path.exists(filename):
+    raise errors.OpPrereqError("No such filename '%s'" % filename)
+
+  myname = utils.HostInfo().name
+
+  op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
+  results = [row[0] for row in SubmitOpCode(op) if row[0] != myname]
+  srun = ssh.SshRunner()
+  for node in results:
+    if not srun.CopyFileToNode(node, filename):
+      print >> sys.stderr, ("Copy of file %s to node %s failed" %
+                            (filename, node))
+
   return 0
 
 
@@ -172,14 +187,25 @@ def RunClusterCommand(opts, args):
 
   """
   command = " ".join(args)
-  nodes = opts.nodes
-  op = opcodes.OpRunClusterCommand(command=command, nodes=nodes)
-  result = SubmitOpCode(op)
-  for node, output, exit_code in result:
+  op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
+  nodes = [row[0] for row in SubmitOpCode(op)]
+
+  sstore = ssconf.SimpleStore()
+  master_node = sstore.GetMasterNode()
+  srun = ssh.SshRunner(sstore=sstore)
+
+  if master_node in nodes:
+    nodes.remove(master_node)
+    nodes.append(master_node)
+
+  for name in nodes:
+    result = srun.Run(name, "root", command)
     print ("------------------------------------------------")
-    print ("node: %s" % node)
-    print ("%s" % output)
-    print ("return code = %s" % exit_code)
+    print ("node: %s" % name)
+    print ("%s" % result.output)
+    print ("return code = %s" % result.exit_code)
+
+  return 0
 
 
 def VerifyCluster(opts, args):

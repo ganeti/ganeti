@@ -171,18 +171,6 @@ class OpQueryClusterInfo(OpCode):
   __slots__ = []
 
 
-class OpClusterCopyFile(OpCode):
-  """Copy a file to multiple nodes."""
-  OP_ID = "OP_CLUSTER_COPYFILE"
-  __slots__ = ["nodes", "filename"]
-
-
-class OpRunClusterCommand(OpCode):
-  """Run a command on multiple nodes."""
-  OP_ID = "OP_CLUSTER_RUNCOMMAND"
-  __slots__ = ["nodes", "command"]
-
-
 class OpVerifyCluster(OpCode):
   """Verify the cluster state."""
   OP_ID = "OP_CLUSTER_VERIFY"

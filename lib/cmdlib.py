@@ -1763,45 +1763,6 @@ class LUQueryClusterInfo(NoHooksLU):
     return result
 
 
-class LUClusterCopyFile(NoHooksLU):
-  """Copy file to cluster.
-
-  """
-  _OP_REQP = ["nodes", "filename"]
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    It should check that the named file exists and that the given list
-    of nodes is valid.
-
-    """
-    if not os.path.exists(self.op.filename):
-      raise errors.OpPrereqError("No such filename '%s'" % self.op.filename)
-
-    self.nodes = _GetWantedNodes(self, self.op.nodes)
-
-  def Exec(self, feedback_fn):
-    """Copy a file from master to some nodes.
-
-    Args:
-      opts - class with options as members
-      args - list containing a single element, the file name
-    Opts used:
-      nodes - list containing the name of target nodes; if empty, all nodes
-
-    """
-    filename = self.op.filename
-
-    myname = utils.HostInfo().name
-
-    for node in self.nodes:
-      if node == myname:
-        continue
-      if not self.ssh.CopyFileToNode(node, filename):
-        logger.Error("Copy of file %s to node %s failed" % (filename, node))
-
-
 class LUDumpClusterConfig(NoHooksLU):
   """Return a text-representation of the cluster-config.
 
@@ -1819,38 +1780,6 @@ class LUDumpClusterConfig(NoHooksLU):
 
     """
     return self.cfg.DumpConfig()
-
-
-class LURunClusterCommand(NoHooksLU):
-  """Run a command on some nodes.
-
-  """
-  _OP_REQP = ["command", "nodes"]
-
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    It checks that the given list of nodes is valid.
-
-    """
-    self.nodes = _GetWantedNodes(self, self.op.nodes)
-
-  def Exec(self, feedback_fn):
-    """Run a command on some nodes.
-
-    """
-    # put the master at the end of the nodes list
-    master_node = self.sstore.GetMasterNode()
-    if master_node in self.nodes:
-      self.nodes.remove(master_node)
-      self.nodes.append(master_node)
-
-    data = []
-    for node in self.nodes:
-      result = self.ssh.Run(node, "root", self.op.command)
-      data.append((node, result.output, result.exit_code))
-
-    return data
 
 
 class LUActivateInstanceDisks(NoHooksLU):
