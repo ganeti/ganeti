@@ -125,8 +125,12 @@ def SetupLogging():
   root_logger.addHandler(stderr_handler)
 
 
-# Main program
-if __name__ == "__main__":
+def main():
+  """Main program.
+
+  """
+  global options, args
+
   program = os.path.basename(sys.argv[0])
 
   # Option parsing
@@ -176,5 +180,9 @@ if __name__ == "__main__":
   print "The configuration file has been updated successfully. Please run"
   print "  gnt-cluster copyfile %s" % cfg_file
   print "now."
+
+
+if __name__ == "__main__":
+  main()
 
 # vim: set foldmethod=marker :
