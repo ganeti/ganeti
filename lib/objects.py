@@ -688,7 +688,6 @@ class Node(TaggableObject):
 class Cluster(TaggableObject):
   """Config object representing the cluster."""
   __slots__ = TaggableObject.__slots__ + [
-    "config_version",
     "serial_no",
     "rsahostkeypub",
     "highest_used_port",
