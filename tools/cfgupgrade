@@ -32,15 +32,28 @@ import os.path
 import sys
 import optparse
 import tempfile
-import simplejson
 import logging
+import errno
 
+from ganeti import constants
+from ganeti import serializer
 from ganeti import utils
 from ganeti import cli
 
 
+# We need to keep filenames locally because they might be renamed between
+# versions.
+CONFIG_DATA_PATH = constants.DATA_DIR + "/config.data"
+SERVER_PEM_PATH = constants.DATA_DIR + "/server.pem"
+KNOWN_HOSTS_PATH = constants.DATA_DIR + "/known_hosts"
+SSCONF_CLUSTER_NAME_PATH = constants.DATA_DIR + "/ssconf_cluster_name"
+SSCONF_CONFIG_VERSION_PATH = constants.DATA_DIR + "/ssconf_config_version"
+
 options = None
 args = None
+
+# Unique object to identify calls without default value
+NoDefault = object()
 
 
 class Error(Exception):
@@ -48,61 +61,31 @@ class Error(Exception):
   pass
 
 
-def ReadConfig(path):
-  """Reads configuration file.
+def ReadFile(file_name, default=NoDefault):
+  """Reads a file.
 
   """
-  f = open(path, 'r')
+  logging.debug("Reading %s", file_name)
   try:
-    return simplejson.load(f)
-  finally:
-    f.close()
+    fh = open(file_name, 'r')
+  except IOError, err:
+    if default is not NoDefault and err.errno == errno.ENOENT:
+      return default
+    raise
 
-
-def WriteConfig(path, data):
-  """Writes the configuration file.
-
-  """
-  if not options.dry_run:
-    utils.CreateBackup(path)
-
-  (fd, name) = tempfile.mkstemp(dir=os.path.dirname(path))
-  f = os.fdopen(fd, 'w')
   try:
-    try:
-      simplejson.dump(data, f)
-      f.flush()
-      if options.dry_run:
-        os.unlink(name)
-      else:
-        os.rename(name, path)
-    except:
-      os.unlink(name)
-      raise
+    return fh.read()
   finally:
-    f.close()
+    fh.close()
 
 
-def UpdateFromVersion2To3(cfg):
-  """Updates the configuration from version 2 to 3.
+def WriteFile(file_name, data):
+  """Writes a configuration file.
 
   """
-  if cfg['cluster']['config_version'] != 2:
-    return
-
-  # Add port pool
-  if 'tcpudp_port_pool' not in cfg['cluster']:
-    cfg['cluster']['tcpudp_port_pool'] = []
-
-  # Add bridge settings
-  if 'default_bridge' not in cfg['cluster']:
-    cfg['cluster']['default_bridge'] = 'xen-br0'
-  for inst in cfg['instances'].values():
-    for nic in inst['nics']:
-      if 'bridge' not in nic:
-        nic['bridge'] = None
-
-  cfg['cluster']['config_version'] = 3
+  logging.debug("Writing %s", file_name)
+  utils.WriteFile(file_name=file_name, data=data, mode=0600,
+                  dry_run=options.dry_run, backup=True)
 
 
 def SetupLogging():
@@ -134,7 +117,7 @@ def main():
   program = os.path.basename(sys.argv[0])
 
   # Option parsing
-  parser = optparse.OptionParser(usage="%prog [options] <config-file>")
+  parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")
   parser.add_option('--dry-run', dest='dry_run',
                     action="store_true",
                     help="Try to do the conversion, but don't write"
@@ -150,9 +133,7 @@ def main():
 
   # Option checking
   if args:
-    cfg_file = args[0]
-  else:
-    raise Error("Configuration file not specified")
+    raise Error("No arguments expected")
 
   if not options.force:
     usertext = ("%s MUST run on the master node. Is this the master"
@@ -160,26 +141,73 @@ def main():
     if not cli.AskUser(usertext):
       sys.exit(1)
 
-  config = ReadConfig(cfg_file)
+  # Check whether it's a Ganeti configuration directory
+  if not (os.path.isfile(CONFIG_DATA_PATH) and
+          os.path.isfile(SERVER_PEM_PATH) or
+          os.path.isfile(KNOWN_HOSTS_PATH)):
+    raise Error(("%s does not seem to be a known Ganeti configuration"
+                 " directory") % constants.DATA_DIR)
 
-  if options.verbose:
-    import pprint
-    print "Before upgrade:"
-    pprint.pprint(config)
-    print
+  config_version = ReadFile(SSCONF_CONFIG_VERSION_PATH, "1.2").strip()
+  logging.info("Found configuration version %s", config_version)
 
-  UpdateFromVersion2To3(config)
+  config_data = serializer.LoadJson(ReadFile(CONFIG_DATA_PATH))
 
-  if options.verbose:
-    print "After upgrade:"
-    pprint.pprint(config)
-    print
+  # Ganeti 1.2?
+  if config_version == "1.2":
+    logging.info("Found a Ganeti 1.2 configuration")
 
-  WriteConfig(cfg_file, config)
+    old_config_version = config_data["cluster"].get("config_version", None)
+    logging.info("Found old configuration version %s", old_config_version)
+    if old_config_version not in (3, ):
+      raise Error("Unsupported configuration version: %s" %
+                  old_config_version)
 
-  print "The configuration file has been updated successfully. Please run"
-  print "  gnt-cluster copyfile %s" % cfg_file
-  print "now."
+    # Make sure no instance uses remote_raid1 anymore
+    remote_raid1_instances = []
+    for instance in config_data["instances"]:
+      if instance["disk_template"] == "remote_raid1":
+        remote_raid1_instances.append(instance["name"])
+    if remote_raid1_instances:
+      for name in remote_raid1_instances:
+        logging.error("Instance %s still using remote_raid1 disk template")
+      raise Error("Unable to convert configuration as long as there are"
+                  " instances using remote_raid1 disk template")
+
+    # The configuration version will be stored in a ssconf file
+    if 'config_version' in config_data['cluster']:
+      del config_data['cluster']['config_version']
+
+    # Build content of new known_hosts file
+    cluster_name = ReadFile(SSCONF_CLUSTER_NAME_PATH).rstrip()
+    cluster_key = config_data['cluster']['rsahostkeypub']
+    known_hosts = "%s ssh-rsa %s\n" % (cluster_name, cluster_key)
+
+  else:
+    logging.info("Found a Ganeti 2.0 configuration")
+
+    if "config_version" in config_data["cluster"]:
+      raise Error("Inconsistent configuration: found config_data in"
+                  " configuration file")
+
+    known_hosts = None
+
+  config_version_str = "%s\n" % constants.BuildVersion(2, 0, 0)
+  try:
+    logging.info("Writing configuration file")
+    WriteFile(CONFIG_DATA_PATH, serializer.DumpJson(config_data))
+
+    logging.info("Writing configuration version %s",
+                 config_version_str.strip())
+    WriteFile(SSCONF_CONFIG_VERSION_PATH, config_version_str)
+
+    if known_hosts is not None:
+      logging.info("Writing SSH known_hosts file (%s)", known_hosts.strip())
+      WriteFile(KNOWN_HOSTS_PATH, known_hosts)
+  except:
+    logging.critical("Writing configuration failed. It is proably in an"
+                     " inconsistent state and needs manual intervention.")
+    raise
 
 
 if __name__ == "__main__":
