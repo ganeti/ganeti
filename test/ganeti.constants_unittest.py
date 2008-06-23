@@ -40,6 +40,19 @@ class TestConstants(unittest.TestCase):
     self.failUnless(constants.CONFIG_VERSION >= 0 and
                     constants.CONFIG_VERSION <= 99999999)
 
+    self.failUnless(constants.BuildVersion(0, 0, 0) == 0)
+    self.failUnless(constants.BuildVersion(10, 10, 1010) == 10101010)
+    self.failUnless(constants.BuildVersion(12, 34, 5678) == 12345678)
+    self.failUnless(constants.BuildVersion(99, 99, 9999) == 99999999)
+
+    self.failUnless(constants.SplitVersion(00000000) == (0, 0, 0))
+    self.failUnless(constants.SplitVersion(10101010) == (10, 10, 1010))
+    self.failUnless(constants.SplitVersion(12345678) == (12, 34, 5678))
+    self.failUnless(constants.SplitVersion(99999999) == (99, 99, 9999))
+    self.failUnless(constants.SplitVersion(constants.CONFIG_VERSION) ==
+                    (constants.CONFIG_MAJOR, constants.CONFIG_MINOR,
+                     constants.CONFIG_REVISION))
+
 
 if __name__ == '__main__':
   unittest.main()

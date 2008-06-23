@@ -29,6 +29,7 @@ RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_VERSION = 5
 EXPORT_VERSION = 0
 
+
 # Format for CONFIG_VERSION:
 #   01 03 0123 = 01030123
 #   ^^ ^^ ^^^^
@@ -37,14 +38,44 @@ EXPORT_VERSION = 0
 #   + Major version
 #
 # It stored as an integer. Make sure not to write an octal number.
-#
+
+# BuildVersion and SplitVersion must be in here because we can't import other
+# modules. The cfgupgrade tool must be able to read and write version numbers
+# and thus requires these functions. To avoid code duplication, they're kept in
+# here.
+
+def BuildVersion(major, minor, revision):
+  """Calculates int version number from major, minor and revision numbers.
+
+  Returns: int representing version number
+
+  """
+  assert isinstance(major, int)
+  assert isinstance(minor, int)
+  assert isinstance(revision, int)
+  return (1000000 * major +
+            10000 * minor +
+                1 * revision)
+
+
+def SplitVersion(version):
+  """Splits version number stored in an int.
+
+  Returns: tuple; (major, minor, revision)
+
+  """
+  assert isinstance(version, int)
+
+  (major, remainder) = divmod(version, 1000000)
+  (minor, revision) = divmod(remainder, 10000)
+
+  return (major, minor, revision)
+
+
 CONFIG_MAJOR = int(_autoconf.VERSION_MAJOR)
 CONFIG_MINOR = int(_autoconf.VERSION_MINOR)
 CONFIG_REVISION = 0
-CONFIG_VERSION = (
-  1000000 * CONFIG_MAJOR +
-    10000 * CONFIG_MINOR +
-        1 * CONFIG_REVISION)
+CONFIG_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, CONFIG_REVISION)
 
 # file paths
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
