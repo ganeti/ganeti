@@ -454,7 +454,7 @@ class R_instances(R_Generic):
 
     If the optional 'bulk' argument is provided and set to 'true' 
     value (i.e '?bulk=1'), the output contains detailed
-    information about nodes as a list. Note: Lock required.
+    information about instances as a list. Note: Lock required.
 
     Example: [
         {
