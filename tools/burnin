@@ -110,8 +110,12 @@ class Burner(object):
                       metavar="<OS>")
     parser.add_option("--os-size", dest="os_size", help="Disk size",
                       default=4 * 1024, type="unit", metavar="<size>")
+    parser.add_option("--os-growth", dest="sda_growth", help="Disk growth",
+                      default=1024, type="unit", metavar="<size>")
     parser.add_option("--swap-size", dest="swap_size", help="Swap size",
                       default=4 * 1024, type="unit", metavar="<size>")
+    parser.add_option("--swap-growth", dest="sdb_growth", help="Swap growth",
+                      default=1024, type="unit", metavar="<size>")
     parser.add_option("--mem-size", dest="mem_size", help="Memory size",
                       default=128, type="unit", metavar="<size>")
     parser.add_option("-v", "--verbose",
@@ -232,6 +236,17 @@ class Burner(object):
                                     iallocator=self.opts.iallocator)
       self.ExecOp(op)
       self.to_rem.append(instance)
+
+  def GrowDisks(self):
+    """Grow both the os and the swap disks by the requested amount, if any."""
+    for instance in self.instances:
+      for disk in ['sda', 'sdb']:
+        growth = getattr(self.opts, '%s_growth' % disk)
+        if growth > 0:
+          op = opcodes.OpGrowDisk(instance_name=instance, disk=disk,
+                                  amount=growth)
+          Log("- Increase %s's %s disk by %s MB" % (instance, disk, growth))
+          self.ExecOp(op)
 
   def ReplaceDisks1R1(self):
     """Replace disks with the same secondary for rr1."""
@@ -395,6 +410,8 @@ class Burner(object):
       if (opts.do_replace2 and len(self.nodes) > 2 and
           opts.disk_template in constants.DTS_NET_MIRROR) :
         self.ReplaceDisks2()
+
+      self.GrowDisks()
 
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
         self.Failover()
