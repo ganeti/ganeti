@@ -547,6 +547,11 @@ def _GetVGInfo(vg_name):
   return retdic
 
 
+def _GetBlockDevSymlinkPath(instance_name, device_name):
+  return os.path.join(constants.DISK_LINKS_DIR,
+                      "%s:%s" % (instance_name, device_name))
+
+
 def _SymlinkBlockDev(instance_name, device_path, device_name):
   """Set up symlinks to a instance's block device.
 
@@ -562,12 +567,11 @@ def _SymlinkBlockDev(instance_name, device_path, device_name):
     absolute path to the disk's symlink
 
   """
-  link_basename = "%s-%s" % (instance_name, device_name)
-  link_name = os.path.join(constants.DISK_LINKS_DIR, link_basename)
+  link_name = _GetBlockDevSymlinkPath(instance_name, device_name)
   try:
     os.symlink(device_path, link_name)
-  except OSError, e:
-    if e.errno == errno.EEXIST:
+  except OSError, err:
+    if err.errno == errno.EEXIST:
       if (not os.path.islink(link_name) or
           os.readlink(link_name) != device_path):
         os.remove(link_name)
@@ -578,14 +582,13 @@ def _SymlinkBlockDev(instance_name, device_path, device_name):
   return link_name
 
 
-def _RemoveBlockDevLinks(instance_name):
+def _RemoveBlockDevLinks(instance_name, disks):
   """Remove the block device symlinks belonging to the given instance.
 
   """
-  for short_name in os.listdir(constants.DISK_LINKS_DIR):
-    link_name = os.path.join(constants.DISK_LINKS_DIR, short_name)
-    if (os.path.islink(link_name) and
-        short_name.startswith('%s-' % instance_name)):
+  for disk in disks:
+    link_name = _GetBlockDevSymlinkPath(instance_name, disk.iv_name)
+    if os.path.islink(link_name):
       try:
         os.remove(link_name)
       except OSError, err:
@@ -610,7 +613,8 @@ def _GatherAndLinkBlockDevs(instance):
                                     str(disk))
     device.Open()
     try:
-      link_name = _SymlinkBlockDev(instance.name, device.dev_path, disk.iv_name)
+      link_name = _SymlinkBlockDev(instance.name, device.dev_path,
+                                   disk.iv_name)
     except OSError, e:
       raise errors.BlockDeviceError("Cannot create block device symlink: %s" %
                                     e.strerror)
@@ -641,7 +645,7 @@ def StartInstance(instance, extra_args):
     return False
   except errors.HypervisorError, err:
     logger.Error("Failed to start instance: %s" % err)
-    _RemoveBlockDevLinks(instance.name)
+    _RemoveBlockDevLinks(instance.name, instance.disks)
     return False
 
   return True
@@ -689,7 +693,7 @@ def ShutdownInstance(instance):
       logger.Error("could not shutdown instance '%s' even by destroy")
       return False
 
-  _RemoveBlockDevLinks(instance.name)
+  _RemoveBlockDevLinks(instance.name, instance.disks)
 
   return True
 
@@ -1561,7 +1565,7 @@ def CloseBlockDevices(instance_name, disks):
     except errors.BlockDeviceError, err:
       msg.append(str(err))
   if instance_name:
-    _RemoveBlockDevLinks(instance_name)
+    _RemoveBlockDevLinks(instance_name, disks)
   if msg:
     return (False, "Can't make devices secondary: %s" % ",".join(msg))
   else:
