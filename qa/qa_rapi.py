@@ -40,6 +40,19 @@ from qa_utils import AssertEqual, AssertNotEqual, AssertIn, StartSSH
 NoProxyOpener = urllib2.build_opener(urllib2.ProxyHandler({}))
 
 
+INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
+                   "admin_state", "admin_ram",
+                   "disk_template", "ip", "mac", "bridge",
+                   "sda_size", "sdb_size", "vcpus",
+                   "oper_state", "status", "tags")
+
+NODE_FIELDS = ("name", "dtotal", "dfree",
+               "mtotal", "mnode", "mfree",
+               "pinst_cnt", "sinst_cnt", "tags")
+
+LIST_FIELDS = ("name", "uri")
+
+
 def Enabled():
   """Return whether remote API tests should be run.
 
@@ -113,42 +126,70 @@ def TestEmptyCluster():
       }
     AssertIn(master_entry, data)
 
+  def _VerifyNodesBulk(data):
+    for node in data:
+      for entry in NODE_FIELDS:
+        AssertIn(entry, node)
+
   _DoTests([
     ("/", None),
     ("/info", _VerifyInfo),
     ("/tags", None),
     ("/nodes", _VerifyNodes),
+    ("/nodes?bulk=1", _VerifyNodesBulk),
     ("/instances", []),
+    ("/instances?bulk=1", []),
     ("/os", None),
     ])
 
 
 @qa_utils.DefineHook('rapi-instance')
 def TestInstance(instance):
-  """Testing getting instance info via remote API.
+  """Testing getting instance(s) info via remote API.
 
   """
   def _VerifyInstance(data):
-    AssertIn("name", data)
-    AssertIn("pnode", data)
+    for entry in INSTANCE_FIELDS:
+      AssertIn(entry, data)
+  
+  def _VerifyInstancesList(data):
+    for instance in data:
+      for entry in LIST_FIELDS: 
+        AssertIn(entry, instance)
+      
+  def _VerifyInstancesBulk(data):
+    for instance_data in data:
+      _VerifyInstance(instance_data)
 
   _DoTests([
     ("/instances/%s" % instance["name"], _VerifyInstance),
+    ("/instances", _VerifyInstancesList),
+    ("/instances?bulk=1", _VerifyInstancesBulk),
     ])
 
 
 @qa_utils.DefineHook('rapi-node')
 def TestNode(node):
-  """Testing getting node info via remote API.
+  """Testing getting node(s) info via remote API.
 
   """
   def _VerifyNode(data):
-    AssertIn("pinst_cnt", data)
-    AssertIn("sinst_cnt", data)
-    AssertIn("mtotal", data)
+    for entry in NODE_FIELDS:
+      AssertIn(entry, data)
+  
+  def _VerifyNodesList(data):
+    for node in data:
+      for entry in LIST_FIELDS: 
+        AssertIn(entry, node)
+  
+  def _VerifyNodesBulk(data):
+    for node_data in data:
+      _VerifyNode(node_data)
 
   _DoTests([
     ("/nodes/%s" % node["primary"], _VerifyNode),
+    ("/nodes", _VerifyNodesList),
+    ("/nodes?bulk=1", _VerifyNodesBulk),
     ])
 
 
