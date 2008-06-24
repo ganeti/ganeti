@@ -4623,6 +4623,10 @@ class LUGrowDisk(LogicalUnit):
     if instance is None:
       raise errors.OpPrereqError("Instance '%s' not known" %
                                  self.op.instance_name)
+
+    if self.op.amount <= 0:
+      raise errors.OpPrereqError("Invalid grow-by amount: %s" % self.op.amount)
+
     self.instance = instance
     self.op.instance_name = instance.name
 
@@ -4630,7 +4634,8 @@ class LUGrowDisk(LogicalUnit):
       raise errors.OpPrereqError("Instance's disk layout does not support"
                                  " growing.")
 
-    if instance.FindDisk(self.op.disk) is None:
+    self.disk = instance.FindDisk(self.op.disk)
+    if self.disk is None:
       raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
                                  (self.op.disk, instance.name))
 
@@ -4649,13 +4654,18 @@ class LUGrowDisk(LogicalUnit):
         raise errors.OpPrereqError("Not enough disk space on target node %s:"
                                    " %d MiB available, %d MiB required" %
                                    (node, info['vg_free'], self.op.amount))
+      is_primary = (node == instance.primary_node)
+      if not _CheckDiskConsistency(self.cfg, self.disk, node, is_primary):
+        raise errors.OpPrereqError("Disk %s is degraded or not fully"
+                                 " synchronized on node %s,"
+                                 " aborting grow." % (self.op.disk, node))
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
 
     """
     instance = self.instance
-    disk = instance.FindDisk(self.op.disk)
+    disk = self.disk
     for node in (instance.secondary_nodes + (instance.primary_node,)):
       self.cfg.SetDiskID(disk, node)
       result = rpc.call_blockdev_grow(node, disk, self.op.amount)
