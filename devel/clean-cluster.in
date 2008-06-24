@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# Copyright (C) 2008 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# This is a test script to ease development by cleaning up a cluster
+# as good as possible. This mean it will cause data loss if run by
+# mistake, and thus it should not be used to update production
+# environments. It needs to be run on the master node.
+
+# Usage: clean-cluster --yes-do-it
+
+# Steps performed:
+# - xen instances are destroyed
+# - drbd devices are stopped
+# - all volumes from the xenvg volume group are removed
+# - all nodes are removed from the cluster
+# - the cluster is destroyed
+
+if [ "$1" != "--yes-do-it" ]; then
+    echo "This is a tool designed to 'cleanup' clusters." 1>&2
+    echo "This means complete dataloss." 1>&2
+    echo "Read the source to find out how to call it." 1>&2
+    exit 1
+fi
+
+echo "Removing all known instances"
+for instance in `gnt-instance list --no-headers -o name`; do
+    gnt-instance remove -f $instance
+done
+
+echo "Destroying all remaining instances"
+gnt-cluster command \
+    for inst in \
+    \`xm list\|awk \'{print \$2}\' \| grep -v -e ^ID -e ^0$\`\; \
+    do echo domain id \$inst \; xm destroy \$inst \; done
+
+echo "Unmounting all drbds"
+gnt-cluster command \
+    for mpt in \
+    \`mount \| grep /dev/drbd \|awk \'{print \$3 } \'\` \; \
+    do echo mount point \$mpt \; fuser -vkm \$mpt \; umount \$mpt \; done
+
+echo "Shutting down all drbds"
+gnt-cluster command \
+    for minor in \
+    \` cat /proc/drbd \| grep cs: \| grep -v cs:Unconfigured \| \
+    awk -F: \' { print \$ 1 } \' \` \; \
+    do echo drbd minor $\minor \; drbdsetup /dev/drbd\$minor down \; done
+
+echo "Cleaning up xenvg"
+gnt-cluster command lvremove -f xenvg
+
+echo "Removing all nodes"
+for node in `gnt-node list --no-headers -o name` ; do
+    gnt-node remove $node
+done
+
+echo "Destroying cluster"
+gnt-cluster destroy --yes-do-it
+
+echo "Making sure ganeti daemons are stopped"
+@SYSCONFDIR@/init.d/ganeti stop
+
+echo "Cleaning up @LOCALSTATEDIR@/lib/ganeti"
+rm -rf @LOCALSTATEDIR@/lib/ganeti/*
+
+exit 0
