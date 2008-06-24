@@ -130,6 +130,9 @@ class Burner(object):
     parser.add_option("--no-failover", dest="do_failover",
                       help="Skip instance failovers", action="store_false",
                       default=True)
+    parser.add_option("--no-migrate", dest="do_migrate",
+                      help="Skip instance live migration", action="store_false",
+                      default=True)
     parser.add_option("--no-importexport", dest="do_importexport",
                       help="Skip instance export/import", action="store_false",
                       default=True)
@@ -300,6 +303,15 @@ class Burner(object):
       Log("- Failover instance %s" % (instance))
       self.ExecOp(op)
 
+  def Migrate(self):
+    """Migrate the instances."""
+
+    for instance in self.instances:
+      op = opcodes.OpMigrateInstance(instance_name=instance, live=True)
+
+      Log("- Migrate instance %s" % (instance))
+      self.ExecOp(op)
+
   def ImportExport(self):
     """Export the instance, delete it, and import it back.
 
@@ -415,6 +427,9 @@ class Burner(object):
 
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
         self.Failover()
+
+      if opts.do_migrate and opts.disk_template in constants.DTS_NET_MIRROR:
+        self.Migrate()
 
       if opts.do_importexport:
         self.ImportExport()
