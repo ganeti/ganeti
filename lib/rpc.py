@@ -103,6 +103,9 @@ class NodeController:
     making the actual call.
 
     """
+    set_keepalive = getattr(obj.broker.transport, 'setTcpKeepAlive', None)
+    if callable(set_keepalive):
+      set_keepalive(True)
     deferred = obj.callRemote(self.parent.procedure, self.parent.args)
     deferred.addCallbacks(self.cb_done, self.cb_err2)
 
