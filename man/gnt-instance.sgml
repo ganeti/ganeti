@@ -1115,6 +1115,7 @@ node1.example.com:sdb:/dev/md1
         <title>GROW-DISK</title>
         <cmdsynopsis>
           <command>grow-disk</command>
+          <arg>--no-wait-for-sync</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
           <arg choice="req"><replaceable>disk</replaceable></arg>
           <arg choice="req"><replaceable>amount</replaceable></arg>
@@ -1170,6 +1171,13 @@ node1.example.com:sdb:/dev/md1
           different-sized LVs on the two nodes, but this will not
           create problems (except for unused space).
         </para>
+
+        <para>
+          If you do not want gnt-instance to wait for the new disk
+          region to be synced, use the
+          <option>--no-wait-for-sync</option> option.
+        </para>
+
 
         <para>Example (increase sda for instance1 by 16GiB):
           <screen>

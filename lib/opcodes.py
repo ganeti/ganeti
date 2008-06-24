@@ -289,7 +289,7 @@ class OpSetInstanceParms(OpCode):
 class OpGrowDisk(OpCode):
   """Grow a disk of an instance."""
   OP_ID = "OP_INSTANCE_GROW_DISK"
-  __slots__ = ["instance_name", "disk", "amount"]
+  __slots__ = ["instance_name", "disk", "amount", "wait_for_sync"]
 
 
 # OS opcodes

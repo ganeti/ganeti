@@ -391,7 +391,8 @@ def GrowDisk(opts, args):
   instance = args[0]
   disk = args[1]
   amount = utils.ParseUnit(args[2])
-  op = opcodes.OpGrowDisk(instance_name=instance, disk=disk, amount=amount)
+  op = opcodes.OpGrowDisk(instance_name=instance, disk=disk, amount=amount,
+                          wait_for_sync=opts.wait_for_sync)
   SubmitOpCode(op)
   return 0
 
@@ -1087,7 +1088,13 @@ commands = {
   'deactivate-disks': (DeactivateDisks, ARGS_ONE, [DEBUG_OPT],
                        "<instance>",
                        "Deactivate an instance's disks"),
-  'grow-disk': (GrowDisk, ARGS_FIXED(3), [DEBUG_OPT],
+  'grow-disk': (GrowDisk, ARGS_FIXED(3),
+                [DEBUG_OPT,
+                 make_option("--no-wait-for-sync",
+                             dest="wait_for_sync", default=True,
+                             action="store_false",
+                             help="Don't wait for sync (DANGEROUS!)"),
+                 ],
                 "<instance> <disk> <size>", "Grow an instance's disk"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
                 "<node_name>", "List the tags of the given instance"),
