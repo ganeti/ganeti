@@ -156,11 +156,11 @@ class XenHypervisor(BaseHypervisor):
     raise NotImplementedError
 
   @staticmethod
-  def _RemoveConfigFile(instance):
+  def _RemoveConfigFile(instance_name):
     """Remove the xen configuration file.
 
     """
-    utils.RemoveFile("/etc/xen/%s" % instance.name)
+    utils.RemoveFile("/etc/xen/%s" % instance_name)
 
   @staticmethod
   def _GetXMList(include_node):
@@ -254,7 +254,7 @@ class XenHypervisor(BaseHypervisor):
 
   def StopInstance(self, instance, force=False):
     """Stop an instance."""
-    self._RemoveConfigFile(instance)
+    self._RemoveConfigFile(instance.name)
     if force:
       command = ["xm", "destroy", instance.name]
     else:
@@ -350,6 +350,12 @@ class XenHypervisor(BaseHypervisor):
     if result.failed:
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
                                    (instance, result.output))
+    # remove old xen file after migration succeeded
+    try:
+      self._RemoveConfigFile(instance)
+    except EnvironmentError, err:
+      logger.Error("Failure while removing instance config file: %s" %
+                   str(err))
 
 
 class XenPvmHypervisor(XenHypervisor):
