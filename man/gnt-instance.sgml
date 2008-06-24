@@ -1171,7 +1171,7 @@ node1.example.com:sdb:/dev/md1
           create problems (except for unused space).
         </para>
 
-        <para>Example (increasing sda for instance1 with 16GiB):
+        <para>Example (increase sda for instance1 by 16GiB):
           <screen>
 # gnt-instance grow-disk instance1.example.com sda 16g
           </screen>
