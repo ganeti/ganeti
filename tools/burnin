@@ -428,7 +428,7 @@ class Burner(object):
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
         self.Failover()
 
-      if opts.do_migrate and opts.disk_template in constants.DTS_NET_MIRROR:
+      if opts.do_migrate and opts.disk_template == constants.DT_DRBD8:
         self.Migrate()
 
       if opts.do_importexport:
