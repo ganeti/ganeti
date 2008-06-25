@@ -2968,15 +2968,14 @@ class LUMigrateInstance(LogicalUnit):
                                  " exist on destination node '%s'" %
                                  (brlist, target_node))
 
-    ins_l = rpc.call_instance_list([instance.primary_node])
-    ins_l = ins_l[instance.primary_node]
-    if not type(ins_l) is list:
+    migratable = rpc.call_instance_migratable(instance.primary_node, instance)
+    if not migratable:
       raise errors.OpPrereqError("Can't contact node '%s'" %
-                               instance.primary_node)
+                                 instance.primary_node)
+    if not migratable[0]:
+      raise errors.OpPrereqError("Can't migrate: %s - please use failover" %
+                                 migratable[1])
 
-    if instance.name not in ins_l:
-      raise errors.OpPrereqError("Instance is not running, can't migrate"
-                                 " - please use failover instead")
     self.instance = instance
 
   def Exec(self, feedback_fn):

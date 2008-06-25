@@ -360,6 +360,30 @@ def GetInstanceInfo(instance):
   return output
 
 
+def GetInstanceMigratable(instance):
+  """Gives whether an instance can be migrated.
+
+  Args:
+    instance - object representing the instance to be checked.
+
+  Returns:
+    (result, description)
+      result - whether the instance can be migrated or not
+      description - a description of the issue, if relevant
+
+  """
+  hyper = hypervisor.GetHypervisor()
+  if instance.name not in hyper.ListInstances():
+    return (False, 'not running')
+
+  for disk in instance.disks:
+    link_name = _GetBlockDevSymlinkPath(instance.name, disk.iv_name)
+    if not os.path.islink(link_name):
+      return (False, 'not restarted since ganeti 1.2.5')
+
+  return (True, '')
+
+
 def GetAllInstancesInfo():
   """Gather data about all instances.
 

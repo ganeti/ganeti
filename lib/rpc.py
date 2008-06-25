@@ -382,6 +382,18 @@ def call_instance_info(node, instance):
   return c.getresult().get(node, False)
 
 
+def call_instance_migratable(node, instance):
+  """Checks whether the given instance can be migrated.
+
+  This is a single-node call.
+
+  """
+  c = Client("instance_migratable", [instance.ToDict()])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)
+
+
 def call_all_instances_info(node_list):
   """Returns information about all instances on a given node.
 
