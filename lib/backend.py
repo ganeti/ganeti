@@ -736,6 +736,11 @@ def RebootInstance(instance, reboot_type, extra_args):
 def MigrateInstance(instance, target, live):
   """Migrates an instance to another node.
 
+  Args:
+    instance - name of the instance to be migrated.
+    target   - node to send the instance to.
+    live     - whether to perform a live migration.
+
   """
   hyper = hypervisor.GetHypervisor()
 
