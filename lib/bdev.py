@@ -287,6 +287,8 @@ class LogicalVolume(BlockDev):
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
     self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
+    self._degraded = True
+    self.major = self.minor = None
     self.Attach()
 
   @classmethod
@@ -392,19 +394,35 @@ class LogicalVolume(BlockDev):
     recorded.
 
     """
-    result = utils.RunCmd(["lvdisplay", self.dev_path])
+    result = utils.RunCmd(["lvs", "--noheadings", "--separator=,",
+                           "-olv_attr,lv_kernel_major,lv_kernel_minor",
+                           self.dev_path])
     if result.failed:
       logger.Error("Can't find LV %s: %s, %s" %
                    (self.dev_path, result.fail_reason, result.output))
       return False
-    match = re.compile("^ *Block device *([0-9]+):([0-9]+).*$")
-    for line in result.stdout.splitlines():
-      match_result = match.match(line)
-      if match_result:
-        self.major = int(match_result.group(1))
-        self.minor = int(match_result.group(2))
-        return True
-    return False
+    out = result.stdout.strip().rstrip(',')
+    out = out.split(",")
+    if len(out) != 3:
+      logger.Error("Can't parse LVS output, len(%s) != 3" % str(out))
+      return False
+
+    status, major, minor = out[:3]
+    if len(status) != 6:
+      logger.Error("lvs lv_attr is not 6 characters (%s)" % status)
+      return False
+
+    try:
+      major = int(major)
+      minor = int(minor)
+    except ValueError, err:
+      logger.Error("lvs major/minor cannot be parsed: %s" % str(err))
+
+    self.major = major
+    self.minor = minor
+    self._degraded = status[0] == 'v' # virtual volume, i.e. doesn't backing
+                                      # storage
+    return True
 
   def Assemble(self):
     """Assemble the device.
@@ -448,20 +466,10 @@ class LogicalVolume(BlockDev):
     physical disk failure and subsequent 'vgreduce --removemissing' on
     the volume group.
 
+    The status was already read in Attach, so we just return it.
+
     """
-    result = utils.RunCmd(["lvs", "--noheadings", "-olv_attr", self.dev_path])
-    if result.failed:
-      logger.Error("Can't display lv: %s - %s" %
-                   (result.fail_reason, result.output))
-      return None, None, True, True
-    out = result.stdout.strip()
-    # format: type/permissions/alloc/fixed_minor/state/open
-    if len(out) != 6:
-      logger.Debug("Error in lvs output: attrs=%s, len != 6" % out)
-      return None, None, True, True
-    ldisk = out[0] == 'v' # virtual volume, i.e. doesn't have
-                          # backing storage
-    return None, None, ldisk, ldisk
+    return None, None, self._degraded, self._degraded
 
   def Open(self, force=False):
     """Make the device ready for I/O.
