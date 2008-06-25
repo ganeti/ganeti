@@ -213,6 +213,52 @@ def FailoverNode(opts, args):
   return retcode
 
 
+def MigrateNode(opts, args):
+  """Migrate all primary instance on a node.
+
+  """
+  force = opts.force
+  selected_fields = ["name", "pinst_list"]
+
+  op = opcodes.OpQueryNodes(output_fields=selected_fields, names=args)
+  result = SubmitOpCode(op)
+  node, pinst = result[0]
+
+  if not pinst:
+    logger.ToStderr("No primary instances on node %s, exiting." % node)
+    return 0
+
+  pinst = utils.NiceSort(pinst)
+
+  retcode = 0
+
+  if not force and not AskUser("Fail over instance(s) %s?" %
+                               (",".join("'%s'" % name for name in pinst))):
+    return 2
+
+  good_cnt = bad_cnt = 0
+  for iname in pinst:
+    op = opcodes.OpMigrateInstance(instance_name=iname, live=opts.live)
+    try:
+      logger.ToStdout("Migrating instance %s" % iname)
+      SubmitOpCode(op)
+      logger.ToStdout("Instance %s has been migrated" % iname)
+      good_cnt += 1
+    except errors.GenericError, err:
+      nret, msg = FormatError(err)
+      retcode |= nret
+      logger.ToStderr("Error migrating instance %s: %s" % (iname, msg))
+      bad_cnt += 1
+
+  if retcode == 0:
+    logger.ToStdout("All %d instance(s) migrated successfully." % good_cnt)
+  else:
+    logger.ToStdout("There were errors during the migration:\n"
+                    "%d error(s) out of %d instance(s)." %
+                    (bad_cnt, good_cnt + bad_cnt))
+  return retcode
+
+
 def ShowNodeConfig(opts, args):
   """Show node information.
 
@@ -313,6 +359,18 @@ commands = {
                "Stops the primary instances on a node and start them on their"
                " secondary node (only for instances of type remote_raid1"
                " or drbd)"),
+  'migrate': (MigrateNode, ARGS_ONE,
+               [DEBUG_OPT, FORCE_OPT,
+                make_option("--non-live", dest="live",
+                            default=True, action="store_false",
+                            help="Do a non-live migration (this usually means"
+                            " freeze the instance, save the state,"
+                            " transfer and only then resume running on the"
+                            " secondary node)"),
+                ],
+               "[-f] <node>",
+               "Migrate all the primary instance on a node away from it"
+               " (only for instances of type drbd)"),
   'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
            "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,
