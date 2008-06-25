@@ -628,7 +628,7 @@ def StartInstance(instance, extra_args):
   """Start an instance.
 
   Args:
-    instance - name of instance to start.
+    instance - object representing the instance to be started.
 
   """
   running_instances = GetInstanceList()
@@ -655,7 +655,7 @@ def ShutdownInstance(instance):
   """Shut an instance down.
 
   Args:
-    instance - name of instance to shutdown.
+    instance - object representing the instance to be shutdown.
 
   """
   running_instances = GetInstanceList()
@@ -702,7 +702,7 @@ def RebootInstance(instance, reboot_type, extra_args):
   """Reboot an instance.
 
   Args:
-    instance    - name of instance to reboot
+    instance    - object representing the instance to be reboot.
     reboot_type - how to reboot [soft,hard,full]
 
   """
