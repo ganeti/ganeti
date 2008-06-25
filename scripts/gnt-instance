@@ -590,7 +590,7 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
         minor_string = str(minor)
 
       buf.write("%s (%s:%s)" % (path, major_string, minor_string))
-      if dtype in (constants.LD_MD_R1, constants.LD_DRBD7, constants.LD_DRBD8):
+      if dtype in (constants.LD_DRBD8, ):
         if syncp is not None:
           sync_text = "*RECOVERING* %5.2f%%," % syncp
           if estt:

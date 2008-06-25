@@ -277,13 +277,11 @@ class Disk(ConfigObject):
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
-    return self.dev_type in (constants.LD_DRBD7, constants.LD_DRBD8,
-                             constants.LD_LV)
+    return self.dev_type in (constants.LD_DRBD8, constants.LD_LV)
 
   def AssembleOnSecondary(self):
     """Test if this device needs to be assembled on a secondary node."""
-    return self.dev_type in (constants.LD_DRBD7, constants.LD_DRBD8,
-                             constants.LD_LV)
+    return self.dev_type in (constants.LD_DRBD8, constants.LD_LV)
 
   def OpenOnSecondary(self):
     """Test if this device needs to be opened on a secondary node."""
@@ -326,8 +324,7 @@ class Disk(ConfigObject):
     devices needs to (or can) be assembled.
 
     """
-    if self.dev_type in [constants.LD_LV, constants.LD_MD_R1,
-                         constants.LD_FILE]:
+    if self.dev_type in [constants.LD_LV, constants.LD_FILE]:
       result = [node]
     elif self.dev_type in constants.LDS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]
@@ -470,10 +467,7 @@ class Disk(ConfigObject):
     if self.dev_type == constants.LD_LV:
       val =  "<LogicalVolume(/dev/%s/%s" % self.logical_id
     elif self.dev_type in constants.LDS_DRBD:
-      if self.dev_type == constants.LD_DRBD7:
-        val = "<DRBD7("
-      else:
-        val = "<DRBD8("
+      val = "<DRBD8("
       if self.physical_id is None:
         phy = "unconfigured"
       else:
@@ -488,8 +482,6 @@ class Disk(ConfigObject):
         val += "backend=%s, metadev=%s" % (self.children[0], self.children[1])
       else:
         val += "no local storage"
-    elif self.dev_type == constants.LD_MD_R1:
-      val = "<MD_R1(uuid=%s, children=%s" % (self.physical_id, self.children)
     else:
       val = ("<Disk(type=%s, logical_id=%s, physical_id=%s, children=%s" %
              (self.dev_type, self.logical_id, self.physical_id, self.children))

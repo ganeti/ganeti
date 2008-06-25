@@ -2701,22 +2701,6 @@ def _GenerateUniqueNames(cfg, exts):
   return results
 
 
-def _GenerateMDDRBDBranch(cfg, primary, secondary, size, names):
-  """Generate a drbd device complete with its children.
-
-  """
-  port = cfg.AllocatePort()
-  vgname = cfg.GetVGName()
-  dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
-                          logical_id=(vgname, names[0]))
-  dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
-                          logical_id=(vgname, names[1]))
-  drbd_dev = objects.Disk(dev_type=constants.LD_DRBD7, size=size,
-                          logical_id = (primary, secondary, port),
-                          children = [dev_data, dev_meta])
-  return drbd_dev
-
-
 def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name):
   """Generate a drbd8 device complete with its children.
 
