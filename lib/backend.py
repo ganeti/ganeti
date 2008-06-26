@@ -1621,7 +1621,10 @@ def DrbdReconfigNet(instance_name, disks, nodes_ip, multimaster):
 
   # switch to new master configuration and if needed primary mode
   for rd in bdevs:
-    rd.ReAttachNet(multimaster)
+    try:
+      rd.ReAttachNet(multimaster)
+    except errors.BlockDeviceError, err:
+      return (False, "Can't change network configuration: %s" % str(err))
   # wait until the disks are connected; we need to retry the re-attach
   # if the device becomes standalone, as this might happen if the one
   # node disconnects and reconnects in a different mode before the
@@ -1638,7 +1641,10 @@ def DrbdReconfigNet(instance_name, disks, nodes_ip, multimaster):
         notyet = True
       if stats.is_standalone:
         # peer had different config info and this node became standalone
-        rd.ReAttachNet(multimaster)
+        try:
+          rd.ReAttachNet(multimaster)
+        except errors.BlockDeviceError, err:
+          return (False, "Can't change network configuration: %s" % str(err))
     if not notyet:
       break
     time.sleep(5)

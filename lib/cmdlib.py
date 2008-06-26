@@ -3004,6 +3004,8 @@ class LUMigrateInstance(LogicalUnit):
                                  " aborting migrate." % dev.iv_name)
 
     feedback_fn("* ensuring the target is in secondary mode")
+    for disk in instance.disks:
+      self.cfg.SetDiskID(disk, target_node)
     result = rpc.call_blockdev_close(target_node, instance.name,
                                      instance.disks)
     if not result or not result[0]:
@@ -3052,6 +3054,8 @@ class LUMigrateInstance(LogicalUnit):
     self.cfg.Update(instance)
 
     feedback_fn("* changing the instance's disks on source node to secondary")
+    for disk in instance.disks:
+      self.cfg.SetDiskID(disk, source_node)
     result = rpc.call_blockdev_close(source_node, instance.name,
                                      instance.disks)
     if not result or not result[0]:
