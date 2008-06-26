@@ -77,6 +77,17 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
       params = simplejson.loads(body)
       result = method(params)
       payload = simplejson.dumps(result)
+    except errors.QuitGanetiException, err:
+      global _EXIT_GANETI_NODED
+      _EXIT_GANETI_NODED = True
+      if isinstance(err, tuple) and len(err) == 2:
+        if err[0]:
+          self.send_error(500, "Error: %s" % str(err[1]))
+        else:
+          payload = simplejson.dumps(err[1])
+      else:
+        self.log_message('GanetiQuitException Usage Error')
+        self.send_error(500, "Error: %s" % str(err))
     except Exception, err:
       self.send_error(500, "Error: %s" % str(err))
       return False
