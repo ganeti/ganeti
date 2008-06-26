@@ -201,6 +201,7 @@ class UnitParseError(GenericError):
 
 class SshKeyError(GenericError):
   """Invalid SSH key.
+
   """
 
 
