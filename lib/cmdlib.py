@@ -1525,11 +1525,6 @@ class LUAddNode(LogicalUnit):
                                  primary_ip=primary_ip,
                                  secondary_ip=secondary_ip)
 
-    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
-      if not os.path.exists(constants.VNC_PASSWORD_FILE):
-        raise errors.OpPrereqError("Cluster VNC password file %s missing" %
-                                   constants.VNC_PASSWORD_FILE)
-
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
