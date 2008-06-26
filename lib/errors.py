@@ -217,3 +217,22 @@ class CommandError(GenericError):
   """External command error.
 
   """
+
+
+class QuitGanetiException(Exception):
+  """Signal that Ganeti that it must quit.
+
+  This is not necessarily an error (and thus not a subclass of GenericError),
+  but it's an exceptional circumstance and it is thus treated. This instance
+  should be instantiated with a tuple of two values. The first value will
+  specify whether an error should returned to the caller, and the second one
+  will be the returned result (either as an error or as a normal result).
+
+  Examples:
+    # Return a result of "True" to the caller, but quit ganeti afterwards
+    raise QuitGanetiException((False, True))
+    # Send an error to the caller, and quit ganeti
+    raise QuitGanetiException((True, "Fatal safety violation, shutting down"))
+
+  """
+
