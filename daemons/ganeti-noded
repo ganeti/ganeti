@@ -619,8 +619,12 @@ def main():
 
   logger.SetupLogging(program="ganeti-noded", debug=options.debug)
 
+  global _EXIT_GANETI_NODED
+  _EXIT_GANETI_NODED = False
+
   httpd = BaseHTTPServer.HTTPServer(('', port), ServerObject)
-  httpd.serve_forever()
+  while (not _EXIT_GANETI_NODED):
+    httpd.handle_request()
 
 
 if __name__ == '__main__':
