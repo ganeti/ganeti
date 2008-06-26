@@ -650,14 +650,14 @@ def call_blockdev_close(node, instance_name, disks):
 
 
 def call_drbd_reconfig_net(node_list, instance_name, disks,
-                           nodes_ip, multimaster):
+                           nodes_ip, multimaster, step):
   """Re-configures the network connection of drbd disks.
 
   This is a multi-node call.
 
   """
   params = [instance_name, [cf.ToDict() for cf in disks],
-            nodes_ip, multimaster]
+            nodes_ip, multimaster, step]
   c = Client("drbd_reconfig_net", params)
   c.connect_list(node_list)
   c.run()

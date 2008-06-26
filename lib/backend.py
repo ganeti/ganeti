@@ -44,6 +44,18 @@ from ganeti import objects
 from ganeti import ssconf
 
 
+# global cache for DrbdReconfigNet
+
+# the cache is indexed by a tuple (instance_name, physical_id) of the
+# disk, and contains as value the actual BlockDev instance (in our
+# particular usage, only DRBD8 instances)
+
+# the cache is cleared every time we restart DrbdReconfigNet with
+# step=1, and it's checked for consistency (we have the same keys and
+# size of the cache) when it's called with step!=1
+
+_D8_RECONF_CACHE = {}
+
 def StartMaster():
   """Activate local node as master node.
 
@@ -1601,64 +1613,141 @@ def CloseBlockDevices(instance_name, disks):
     return (True, "All devices secondary")
 
 
-def DrbdReconfigNet(instance_name, disks, nodes_ip, multimaster):
+def DrbdReconfigNet(instance_name, disks, nodes_ip, multimaster, step):
   """Tune the network settings on a list of drbd devices.
 
+  The 'step' argument has three possible values:
+    - step 1, init the operation and identify the disks
+    - step 2, disconnect the network
+    - step 3, reconnect with correct settings and (if needed) set primary
+    - step 4, change disks into read-only (secondary) mode
+    - step 5, wait until devices are synchronized
+
   """
+  # local short name for the cache
+  cache = _D8_RECONF_CACHE
+
+  # set the correct physical ID so that we can use it in the cache
   my_name = utils.HostInfo().name
-  bdevs = []
   for cf in disks:
     cf.SetPhysicalID(my_name, nodes_ip)
-    rd = _RecursiveFindBD(cf)
-    if rd is None:
-      return (False, "Can't find device %s" % cf)
-    if multimaster:
-      try:
-        _SymlinkBlockDev(instance_name, rd.dev_path, cf.iv_name)
-      except EnvironmentError, err:
-        return (False, "Can't create symlink: %s" % str(err))
-    bdevs.append(rd)
 
-  # switch to new master configuration and if needed primary mode
-  for rd in bdevs:
-    try:
-      rd.ReAttachNet(multimaster)
-    except errors.BlockDeviceError, err:
-      return (False, "Can't change network configuration: %s" % str(err))
-  # wait until the disks are connected; we need to retry the re-attach
-  # if the device becomes standalone, as this might happen if the one
-  # node disconnects and reconnects in a different mode before the
-  # other node reconnects; in this case, one or both of the nodes will
-  # decide it has wrong configuration and switch to standalone
-  RECONNECT_TIMEOUT = 2 * 60
-  timeout_limit = time.time() + RECONNECT_TIMEOUT
-  notyet = True
-  while notyet and time.time() < timeout_limit:
-    notyet = False
+  bdevs = []
+
+  # note: the cache keys do not contain the multimaster setting, as we
+  # want to reuse the cache between the to-master, (in the meantime
+  # failover), to-secondary calls
+
+  if step == constants.DRBD_RECONF_RPC_INIT:
+    # we clear the cache
+    cache.clear()
+    for cf in disks:
+      key = (instance_name, cf.physical_id)
+      rd = _RecursiveFindBD(cf)
+      if rd is None:
+        return (False, "Can't find device %s" % cf)
+      bdevs.append(rd)
+      cache[key] = rd
+  else:
+    # we check that the cached items are exactly what we have been passed
+    for cf in disks:
+      key = (instance_name, cf.physical_id)
+      if key not in cache:
+        return (False, "ReconfigCache has wrong contents - missing %s" % key)
+      bdevs.append(cache[key])
+    if len(cache) != len(disks):
+      return (False, "ReconfigCache: wrong contents, extra items are present")
+
+  if step == constants.DRBD_RECONF_RPC_INIT:
+    # nothing to do beside the discovery/caching of the disks
+    return (True, "Disks have been identified")
+  elif step == constants.DRBD_RECONF_RPC_DISCONNECT:
+    # disconnect disks
+    for rd in bdevs:
+      try:
+        rd.DisconnectNet()
+      except errors.BlockDeviceError, err:
+        logger.Debug("Failed to go into standalone mode: %s" % str(err))
+        return (False, "Can't change network configuration: %s" % str(err))
+    return (True, "All disks are now disconnected")
+  elif step == constants.DRBD_RECONF_RPC_RECONNECT:
+    if multimaster:
+      for cf, rd in zip(disks, bdevs):
+        try:
+          _SymlinkBlockDev(instance_name, rd.dev_path, cf.iv_name)
+        except EnvironmentError, err:
+          return (False, "Can't create symlink: %s" % str(err))
+    # reconnect disks, switch to new master configuration and if
+    # needed primary mode
+    for rd in bdevs:
+      try:
+        rd.ReAttachNet(multimaster)
+      except errors.BlockDeviceError, err:
+        return (False, "Can't change network configuration: %s" % str(err))
+    # wait until the disks are connected; we need to retry the re-attach
+    # if the device becomes standalone, as this might happen if the one
+    # node disconnects and reconnects in a different mode before the
+    # other node reconnects; in this case, one or both of the nodes will
+    # decide it has wrong configuration and switch to standalone
+    RECONNECT_TIMEOUT = 2 * 60
+    sleep_time = 0.100 # start with 100 miliseconds
+    timeout_limit = time.time() + RECONNECT_TIMEOUT
+    while time.time() < timeout_limit:
+      all_connected = True
+      for rd in bdevs:
+        stats = rd.GetProcStatus()
+        if not (stats.is_connected or stats.is_in_resync):
+          all_connected = False
+        if stats.is_standalone:
+          # peer had different config info and this node became
+          # standalone, even though this should not happen with the
+          # new staged way of changing disk configs
+          try:
+            rd.ReAttachNet(multimaster)
+          except errors.BlockDeviceError, err:
+            return (False, "Can't change network configuration: %s" % str(err))
+      if all_connected:
+        break
+      time.sleep(sleep_time)
+      sleep_time = min(5, sleep_time * 1.5)
+    if not all_connected:
+      return (False, "Timeout in disk reconnecting")
+    if multimaster:
+      # change to primary mode
+      for rd in bdevs:
+        rd.Open()
+    if multimaster:
+      msg = "multi-master and primary"
+    else:
+      msg = "single-master"
+    return (True, "Disks are now configured as %s" % msg)
+  elif step == constants.DRBD_RECONF_RPC_SECONDARY:
+    msg = []
+    for rd in bdevs:
+      try:
+        rd.Close()
+      except errors.BlockDeviceError, err:
+        msg.append(str(err))
+    _RemoveBlockDevLinks(instance_name, disks)
+    if msg:
+      return (False, "Can't make devices secondary: %s" % ",".join(msg))
+    else:
+      return (True, "All devices secondary")
+  elif step == constants.DRBD_RECONF_RPC_WFSYNC:
+    min_resync = 100
+    alldone = True
+    failure = False
     for rd in bdevs:
       stats = rd.GetProcStatus()
       if not (stats.is_connected or stats.is_in_resync):
-        notyet = True
-      if stats.is_standalone:
-        # peer had different config info and this node became standalone
-        try:
-          rd.ReAttachNet(multimaster)
-        except errors.BlockDeviceError, err:
-          return (False, "Can't change network configuration: %s" % str(err))
-    if not notyet:
-      break
-    time.sleep(5)
-  if notyet:
-    return (False, "Timeout in disk reconnecting")
-  if multimaster:
-    # change to primary mode
-    for rd in bdevs:
-      rd.Open()
-  if multimaster:
-    msg = "multi-master and primary"
+        failure = True
+        break
+      alldone = alldone and (not stats.is_in_resync)
+      if stats.sync_percent is not None:
+        min_resync = min(min_resync, stats.sync_percent)
+    return (not failure, (alldone, min_resync))
   else:
-    msg = "single-master"
-  return (True, "Disks are now configured as %s" % msg)
+    return (False, "Unknown reconfiguration step %s" % step)
 
 
 class HooksRunner(object):

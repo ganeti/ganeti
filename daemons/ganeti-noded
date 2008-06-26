@@ -230,9 +230,10 @@ class ServerObject(pb.Avatar):
     disk list must all be drbd devices.
 
     """
-    instance_name, disks, nodes_ip, multimaster = params
+    instance_name, disks, nodes_ip, multimaster, step = params
     disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdReconfigNet(instance_name, disks, nodes_ip, multimaster)
+    return backend.DrbdReconfigNet(instance_name, disks,
+                                   nodes_ip, multimaster, step)
 
   # export/import  --------------------------
 

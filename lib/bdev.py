@@ -2208,13 +2208,10 @@ class DRBD8(BaseDRBD):
       logger.Error(msg)
       raise errors.BlockDeviceError(msg)
 
-  def ReAttachNet(self, multimaster):
-    """Changes network configuration.
+  def DisconnectNet(self):
+    """Removes network configuration.
 
-    This method shutdowns the network side of the device and
-    re-connects, with a possibly different multi-master flag. The
-    device needs to be connected and have valid network configuration
-    data.
+    This method shutdowns the network side of the device.
 
     The method will wait up to a hardcoded timeout for the device to
     go into standalone after the 'disconnect' command before
@@ -2223,6 +2220,48 @@ class DRBD8(BaseDRBD):
     command while the device is still connected. If the device will
     still be attached to the network and we time out, we raise an
     exception.
+
+    """
+    if self.minor is None:
+      raise errors.BlockDeviceError("DRBD disk not attached in re-attach net")
+
+    if None in (self._lhost, self._lport, self._rhost, self._rport):
+      raise errors.BlockDeviceError("DRBD disk missing network info in"
+                                    " DisconnectNet()")
+
+    ever_disconnected = self._ShutdownNet(self.minor)
+    timeout_limit = time.time() + self._NET_RECONFIG_TIMEOUT
+    sleep_time = 0.100 # we start the retry time at 100 miliseconds
+    while time.time() < timeout_limit:
+      status = self.GetProcStatus()
+      if status.is_standalone:
+        break
+      # retry the disconnect, it seems possible that due to a
+      # well-time disconnect on the peer, my disconnect command might
+      # be ingored and forgotten
+      ever_disconnected = self._ShutdownNet(self.minor) or ever_disconnected
+      time.sleep(sleep_time)
+      sleep_time = min(2, sleep_time * 1.5)
+
+    if not status.is_standalone:
+      if ever_disconnected:
+        msg = ("Device did not react to the"
+               " 'disconnect' command in a timely manner")
+      else:
+        msg = ("Can't shutdown network, even after multiple retries")
+      raise errors.BlockDeviceError(msg)
+
+    reconfig_time = time.time() - timeout_limit + self._NET_RECONFIG_TIMEOUT
+    if reconfig_time > 15: # hardcoded alert limit
+      logger.Debug("DRBD8.ReAttachNet: detach took %.3f seconds" %
+                   reconfig_time)
+
+  def ReAttachNet(self, multimaster):
+    """Reconnects the network.
+
+    This method reconnects the network side of the device with a
+    specified multi-master flag. The device needs to be 'Standalone'
+    but have valid network configuration data.
 
     Args:
       - multimaster: init the network in dual-primary mode
@@ -2235,26 +2274,11 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("DRBD disk missing network info in"
                                     " ReAttachNet()")
 
-    if not self._ShutdownNet(self.minor):
-      raise errors.BlockDeviceError("Can't shutdown network, please check"
-                                    " device status")
-
-    timeout_limit = time.time() + self._NET_RECONFIG_TIMEOUT
-    while time.time() < timeout_limit:
-      status = self.GetProcStatus()
-      if status.is_standalone:
-        break
-      time.sleep(2)
+    status = self.GetProcStatus()
 
     if not status.is_standalone:
-      raise errors.BlockDeviceError("Device did not react to the"
-                                    " 'disconnect' command in a timely manner")
-
-    reconfig_time = time.time() - timeout_limit + self._NET_RECONFIG_TIMEOUT
-    if reconfig_time > 15: # hardcoded alert limit
-      logger.Debug("DRBD8.ReAttachNet: detach took %.3f seconds" %
-                   reconfig_time)
-
+      raise errors.BlockDeviceError("Device is not standalone in"
+                                    " ReAttachNet")
 
     return self._AssembleNet(self.minor,
                              (self._lhost, self._lport,
