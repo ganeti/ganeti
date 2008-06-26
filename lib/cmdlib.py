@@ -1187,7 +1187,7 @@ class LURemoveNode(LogicalUnit):
     """Build hooks env.
 
     This doesn't run on the target node in the pre phase as a failed
-    node would not allows itself to run.
+    node would then be impossible to remove.
 
     """
     env = {
