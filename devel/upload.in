@@ -26,6 +26,28 @@
 # $prefix/sbin. It needs passwordless root login to the nodes.
 
 set -e
+
+NO_RESTART=
+hosts=
+while [ "$#" -gt 0 ]; do
+  opt="$1"
+  case "$opt" in
+    --no-restart)
+      NO_RESTART=1
+    ;;
+    -*)
+      echo "Unknown option: $opt" >&2
+      exit 1
+    ;;
+    *)
+      hosts="$hosts $opt"
+    ;;
+  esac
+  shift
+done
+
+set ${hosts}
+
 TXD=`mktemp -d`
 trap 'rm -rf $TXD' EXIT
 
@@ -63,8 +85,10 @@ if [ -f ganeti-master-cron ]; then
 fi
 wait
 
-for host; do
-  echo Restarting ganeti-noded on ${host}...
-  ssh root@${host} /etc/init.d/ganeti restart &
-done
-wait
+if test -z "${NO_RESTART}"; then
+  for host; do
+    echo Restarting ganeti-noded on ${host}...
+    ssh root@${host} /etc/init.d/ganeti restart &
+  done
+  wait
+fi
