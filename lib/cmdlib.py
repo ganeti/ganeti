@@ -1241,8 +1241,6 @@ class LURemoveNode(LogicalUnit):
 
     rpc.call_node_leave_cluster(node.name)
 
-    self.ssh.Run(node.name, 'root', "%s stop" % constants.NODE_INITD_SCRIPT)
-
     logger.Info("Removing node %s from config" % node.name)
 
     self.cfg.RemoveNode(node.name)
