@@ -1239,6 +1239,13 @@ node1.example.com:sdb:/dev/md1
         <cmdsynopsis>
           <command>migrate</command>
           <arg>-f</arg>
+          <arg choice="req">--cleanup</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <cmdsynopsis>
+          <command>migrate</command>
+          <arg>-f</arg>
           <arg>--non-live</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
@@ -1265,6 +1272,16 @@ node1.example.com:sdb:/dev/md1
           methods. In any case, it is not an error to pass this
           parameter (it will just be ignored if the hypervisor doesn't
           support it).
+        </para>
+
+        <para>
+          If the <option>--cleanup</option> option is passed, the
+          operation changes from migration to attempting recovery from
+          a failed previous migration. In this mode, ganeti checks if
+          the instance runs on the correct node (and updates its
+          configuration if not) and ensures the instances's disks are
+          configured correctly. In this mode, the
+          <option>--non-live</option> option is ignored.
         </para>
 
         <para>

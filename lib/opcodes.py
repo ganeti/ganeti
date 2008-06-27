@@ -243,7 +243,7 @@ class OpMigrateInstance(OpCode):
 
   """
   OP_ID = "OP_INSTANCE_MIGRATE"
-  __slots__ = ["instance_name", "live"]
+  __slots__ = ["instance_name", "live", "cleanup"]
 
 
 class OpConnectConsole(OpCode):

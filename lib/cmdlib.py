@@ -2923,7 +2923,7 @@ class LUMigrateInstance(LogicalUnit):
   """
   HPATH = "instance-migrate"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "live"]
+  _OP_REQP = ["instance_name", "live", "cleanup"]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2958,7 +2958,7 @@ class LUMigrateInstance(LogicalUnit):
 
     target_node = secondary_nodes[0]
     # check memory requirements on the secondary node
-    _CheckNodeFreeMemory(self.cfg, target_node, "failing over instance %s" %
+    _CheckNodeFreeMemory(self.cfg, target_node, "migrating instance %s" %
                          instance.name, instance.memory)
 
     # check bridge existance
@@ -2968,13 +2968,15 @@ class LUMigrateInstance(LogicalUnit):
                                  " exist on destination node '%s'" %
                                  (brlist, target_node))
 
-    migratable = rpc.call_instance_migratable(instance.primary_node, instance)
-    if not migratable:
-      raise errors.OpPrereqError("Can't contact node '%s'" %
-                                 instance.primary_node)
-    if not migratable[0]:
-      raise errors.OpPrereqError("Can't migrate: %s - please use failover" %
-                                 migratable[1])
+    if not self.op.cleanup:
+      migratable = rpc.call_instance_migratable(instance.primary_node,
+                                                instance)
+      if not migratable:
+        raise errors.OpPrereqError("Can't contact node '%s'" %
+                                   instance.primary_node)
+      if not migratable[0]:
+        raise errors.OpPrereqError("Can't migrate: %s - please use failover" %
+                                   migratable[1])
 
     self.instance = instance
 
@@ -3067,6 +3069,69 @@ class LUMigrateInstance(LogicalUnit):
         raise errors.OpExecError("Cannot identify disks node %s,"
                                  " error %s" % (node, result[node][1]))
 
+  def _ExecCleanup(self):
+    """Try to cleanup after a failed migration.
+
+    The cleanup is done by:
+      - check that the instance is running only on one node
+        (and update the config if needed)
+      - change disks on its secondary node to secondary
+      - wait until disks are fully synchronized
+      - disconnect from the network
+      - change disks into single-master mode
+      - wait again until disks are fully synchronized
+
+    """
+    instance = self.instance
+    target_node = self.target_node
+    source_node = self.source_node
+
+    # check running on only one node
+    self.feedback_fn("* checking where the instance actually runs"
+                     " (if this hangs, the hypervisor might be in"
+                     " a bad state)")
+    ins_l = rpc.call_instance_list(self.all_nodes)
+    for node in self.all_nodes:
+      if not type(ins_l[node]) is list:
+        raise errors.OpExecError("Can't contact node '%s'" % node)
+
+    runningon_source = instance.name in ins_l[source_node]
+    runningon_target = instance.name in ins_l[target_node]
+
+    if runningon_source and runningon_target:
+      raise errors.OpExecError("Instance seems to be running on two nodes,"
+                               " or the hypervisor is confused. You will have"
+                               " to ensure manually that it runs only on one"
+                               " and restart this operation.")
+
+    if not (runningon_source or runningon_target):
+      raise errors.OpExecError("Instance does not seem to be running at all."
+                               " In this case, it's safer to repair by"
+                               " running 'gnt-instance stop' to ensure disk"
+                               " shutdown, and then restarting it.")
+
+    if runningon_target:
+      # the migration has actually succeeded, we need to update the config
+      self.feedback_fn("* instance running on secondary node (%s),"
+                       " updating config" % target_node)
+      instance.primary_node = target_node
+      self.cfg.Update(instance)
+      demoted_node = source_node
+    else:
+      self.feedback_fn("* instance confirmed to be running on its"
+                       " primary node (%s)" % source_node)
+      demoted_node = target_node
+
+    self._IdentifyDisks()
+
+    self._EnsureSecondary(demoted_node)
+    self._WaitUntilSync()
+    self._GoStandalone()
+    self._GoReconnect(False)
+    self._WaitUntilSync()
+
+    self.feedback_fn("* done")
+
   def _ExecMigration(self):
     """Migrate an instance.
 
@@ -3141,7 +3206,10 @@ class LUMigrateInstance(LogicalUnit):
       self.source_node: self.cfg.GetNodeInfo(self.source_node).secondary_ip,
       self.target_node: self.cfg.GetNodeInfo(self.target_node).secondary_ip,
       }
-    return self._ExecMigration()
+    if self.op.cleanup:
+      return self._ExecCleanup()
+    else:
+      return self._ExecMigration()
 
 
 def _CreateBlockDevOnPrimary(cfg, node, instance, device, info):

@@ -581,15 +581,21 @@ def MigrateInstance(opts, args):
   force = opts.force
 
   if not force:
-    usertext = ("Instance %s will be migrated. Note that migration"
-                " is **experimental** in this version."
+    if opts.cleanup:
+      usertext = ("Instance %s will be recovered from a failed migration."
+                  " Note that the migration procedure (including cleanup)" %
+                  (instance_name,))
+    else:
+      usertext = ("Instance %s will be migrated. Note that migration" %
+                  (instance_name,))
+    usertext += (" is **experimental** in this version."
                 " This might impact the instance if anything goes wrong."
-                " Continue?" %
-                (instance_name,))
+                " Continue?")
     if not AskUser(usertext):
       return 1
 
-  op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live)
+  op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live,
+                                 cleanup=opts.cleanup)
   SubmitOpCode(op)
   return 0
 
@@ -936,6 +942,14 @@ commands = {
                             " freeze the instance, save the state,"
                             " transfer and only then resume running on the"
                             " secondary node)"),
+                make_option("--cleanup", dest="cleanup",
+                            default=False, action="store_true",
+                            help="Instead of performing the migration, try to"
+                            " recover from a failed cleanup. This is safe"
+                            " to run even if the instance is healthy, but it"
+                            " will create extra replication traffic and "
+                            " disrupt briefly the replication (like during the"
+                            " migration"),
                 ],
                "[-f] <instance>",
                "Migrate instance to its secondary node"
