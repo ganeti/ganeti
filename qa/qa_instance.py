@@ -93,9 +93,10 @@ def TestInstanceAddWithDrbdDisk(node, node2):
 def TestInstanceGrowDisk(instance, should_fail):
   """gnt-instance grow-disk"""
   master = qa_config.GetMasterNode()
+  grow_size = qa_config.get('options', {}).get('grow-disk-size', '1g')
 
   for device in ['sda', 'sdb']:
-    cmd = (['gnt-instance', 'grow-disk', instance['name'], device, '1g'])
+    cmd = (['gnt-instance', 'grow-disk', instance['name'], device, grow_size])
     code = StartSSH(master['primary'], utils.ShellQuoteArgs(cmd)).wait()
     if should_fail:
       AssertNotEqual(code, 0)

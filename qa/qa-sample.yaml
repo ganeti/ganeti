@@ -85,6 +85,7 @@ tests:
 options:
   burnin-instances: 2
   burnin-disk-template: remote_raid1
+  grow-disk-size: 1g
 
   # Directory containing QA hooks
   #hooks-dir: hooks/
