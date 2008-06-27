@@ -1639,7 +1639,7 @@ class LUAddNode(LogicalUnit):
           logger.Error("copy of file %s to node %s failed" %
                        (fname, to_node))
 
-    to_copy = ss.GetFileList()
+    to_copy = self.sstore.GetFileList()
     if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
       to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
