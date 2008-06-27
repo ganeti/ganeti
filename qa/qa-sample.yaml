@@ -58,6 +58,8 @@ tests:
 
   # Requires DRBD 8.x
   instance-add-drbd-disk: False
+  
+  instance-grow-disk: True
 
   instance-list: True
   instance-failover: True

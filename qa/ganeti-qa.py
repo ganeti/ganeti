@@ -295,6 +295,8 @@ def main():
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
       RunCommonInstanceTests(instance)
+      if qa_config.TestEnabled('instance-grow-disk'):
+        RunTest(qa_instance.TestInstanceGrowDisk, instance, False)
       RunExportImportTests(instance, pnode)
       RunDaemonTests(instance, pnode)
       RunTest(qa_instance.TestInstanceRemove, instance)
@@ -302,6 +304,8 @@ def main():
 
     if qa_config.TestEnabled('instance-add-local-mirror-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithLocalMirrorDisk, pnode)
+      if qa_config.TestEnabled('instance-grow-disk'):
+        RunTest(qa_instance.TestInstanceGrowDisk, instance, True)
       RunCommonInstanceTests(instance)
       RunExportImportTests(instance, pnode)
       RunTest(qa_instance.TestInstanceRemove, instance)
@@ -322,6 +326,8 @@ def main():
         try:
           instance = RunTest(func, pnode, snode)
           RunCommonInstanceTests(instance)
+          if qa_config.TestEnabled('instance-grow-disk'):
+            RunTest(qa_instance.TestInstanceGrowDisk, instance, False)
           RunExportImportTests(instance, pnode)
           RunHardwareFailureTests(instance, pnode, snode, is_drbd)
           RunTest(qa_instance.TestInstanceRemove, instance)
