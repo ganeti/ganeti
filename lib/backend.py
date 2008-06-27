@@ -139,6 +139,9 @@ def LeaveCluster():
   utils.RemoveFile(priv_key)
   utils.RemoveFile(pub_key)
 
+  # Return a reassuring string to the caller, and quit
+  raise errors.QuitGanetiException(False, 'Shutdown scheduled')
+
 
 def GetNodeInfo(vgname):
   """Gives back a hash with different informations about the node.
