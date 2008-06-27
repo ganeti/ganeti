@@ -54,6 +54,9 @@ def SetupLogging(program='ganeti', debug=False):
   fmt = "%(asctime)s " + program + ": %(message)s"
   formatter = logging.Formatter(fmt)
 
+  stderr_fmt = "%(asctime)s: %(message)s"
+  stderr_formatter = logging.Formatter(stderr_fmt)
+
   info_file = _CreateFileHandler("info")
   info_file.setLevel(logging.INFO)
   info_file.setFormatter(formatter)
@@ -67,6 +70,7 @@ def SetupLogging(program='ganeti', debug=False):
   debug_file.setFormatter(formatter)
 
   stderr_file = logging.StreamHandler()
+  stderr_file.setFormatter(stderr_formatter)
   if debug:
     stderr_file.setLevel(logging.NOTSET)
   else:
