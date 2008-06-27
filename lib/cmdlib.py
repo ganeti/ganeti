@@ -1615,12 +1615,22 @@ class LUAddNode(LogicalUnit):
                                  " you gave (%s). Please fix and re-run this"
                                  " command." % new_node.secondary_ip)
 
-    success, msg = self.ssh.VerifyNodeHostname(node)
-    if not success:
-      raise errors.OpExecError("Node '%s' claims it has a different hostname"
-                               " than the one the resolver gives: %s."
-                               " Please fix and re-run this command." %
-                               (node, msg))
+    node_verify_list = [self.sstore.GetMasterNode()]
+    node_verify_param = {
+      'nodelist': [node],
+      # TODO: do a node-net-test as well?
+    }
+
+    result = rpc.call_node_verify(node_verify_list, node_verify_param)
+    for verifier in node_verify_list:
+      if not result[verifier]:
+        raise errors.OpExecError("Cannot communicate with %s's node daemon"
+                                 " for remote verification" % verifier)
+      if result[verifier]['nodelist']:
+        for failed in result[verifier]['nodelist']:
+          feedback_fn("ssh/hostname verification failed %s -> %s" %
+                      (verifier, result[verifier]['nodelist'][failed]))
+        raise errors.OpExecError("ssh/hostname verification failed.")
 
     # Distribute updated /etc/hosts and known_hosts to all nodes,
     # including the node just added
