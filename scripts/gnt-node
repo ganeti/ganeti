@@ -37,11 +37,28 @@ _LIST_DEF_FIELDS = [
   ]
 
 def AddNode(opts, args):
-  """Add node cli-to-processor bridge."""
+  """Add node cli-to-processor bridge.
+
+  """
+  dns_data = utils.HostInfo(args[0])
+  node = dns_data.name
+
+  if not opts.readd:
+    op = opcodes.OpQueryNodes(output_fields=['name'], names=[node])
+    try:
+      output = SubmitOpCode(op)
+    except (errors.OpPrereqError, errors.OpExecError):
+      pass
+    else:
+      logger.ToStderr("Node %s already in the cluster (as %s)"
+                      " - please use --readd" % (args[0], output[0][0]))
+      return 1
+
   logger.ToStderr("-- WARNING -- \n"
     "Performing this operation is going to replace the ssh daemon keypair\n"
     "on the target machine (%s) with the ones of the current one\n"
-    "and grant full intra-cluster ssh root access to/from it\n" % args[0])
+    "and grant full intra-cluster ssh root access to/from it\n" % node)
+
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip,
                          readd=opts.readd)
   SubmitOpCode(op)
