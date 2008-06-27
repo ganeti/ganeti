@@ -307,9 +307,16 @@ class Burner(object):
     """Migrate the instances."""
 
     for instance in self.instances:
-      op = opcodes.OpMigrateInstance(instance_name=instance, live=True)
+      op = opcodes.OpMigrateInstance(instance_name=instance, live=True,
+                                     cleanup=False)
 
       Log("- Migrate instance %s" % (instance))
+      self.ExecOp(op)
+    for instance in self.instances:
+      op = opcodes.OpMigrateInstance(instance_name=instance, live=True,
+                                     cleanup=True)
+
+      Log("- Testing 'migrate --cleanup' for instance %s" % (instance))
       self.ExecOp(op)
 
   def ImportExport(self):
