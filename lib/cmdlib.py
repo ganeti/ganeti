@@ -1529,46 +1529,7 @@ class LUAddNode(LogicalUnit):
     new_node = self.new_node
     node = new_node.name
 
-    # set up inter-node password and certificate and restarts the node daemon
-    gntpass = self.sstore.GetNodeDaemonPassword()
-    if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
-      raise errors.OpExecError("ganeti password corruption detected")
-    f = open(constants.SSL_CERT_FILE)
-    try:
-      gntpem = f.read(8192)
-    finally:
-      f.close()
-    # in the base64 pem encoding, neither '!' nor '.' are valid chars,
-    # so we use this to detect an invalid certificate; as long as the
-    # cert doesn't contain this, the here-document will be correctly
-    # parsed by the shell sequence below
-    if re.search('^!EOF\.', gntpem, re.MULTILINE):
-      raise errors.OpExecError("invalid PEM encoding in the SSL certificate")
-    if not gntpem.endswith("\n"):
-      raise errors.OpExecError("PEM must end with newline")
-    logger.Info("copy cluster pass to %s and starting the node daemon" % node)
-
-    # and then connect with ssh to set password and start ganeti-noded
-    # note that all the below variables are sanitized at this point,
-    # either by being constants or by the checks above
-    ss = self.sstore
-    mycommand = ("umask 077 && "
-                 "echo '%s' > '%s' && "
-                 "cat > '%s' << '!EOF.' && \n"
-                 "%s!EOF.\n%s restart" %
-                 (gntpass, ss.KeyToFilename(ss.SS_NODED_PASS),
-                  constants.SSL_CERT_FILE, gntpem,
-                  constants.NODE_INITD_SCRIPT))
-
-    result = self.ssh.Run(node, 'root', mycommand, batch=False, ask_key=True)
-    if result.failed:
-      raise errors.OpExecError("Remote command on node %s, error: %s,"
-                               " output: %s" %
-                               (node, result.fail_reason, result.output))
-
     # check connectivity
-    time.sleep(4)
-
     result = rpc.call_version([node])[node]
     if result:
       if constants.PROTOCOL_VERSION == result:

@@ -227,3 +227,54 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
                  mac_prefix, vg_name, def_bridge)
 
   ssh.WriteKnownHostsFile(cfg, ss, constants.SSH_KNOWN_HOSTS_FILE)
+
+def SetupNodeDaemon(node):
+  """Add a node to the cluster.
+
+  This function must be called before the actual opcode, and will ssh to the
+  remote node, copy the needed files, and start ganeti-noded, allowing the master
+  to do the rest via normal rpc calls.
+
+  Args:
+    node: fully qualified domain name for the new node
+
+  """
+  ss = ssconf.SimpleStore()
+  sshrunner = ssh.SshRunner(ss)
+  gntpass = ss.GetNodeDaemonPassword()
+  if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
+    raise errors.OpExecError("ganeti password corruption detected")
+  f = open(constants.SSL_CERT_FILE)
+  try:
+    gntpem = f.read(8192)
+  finally:
+    f.close()
+  # in the base64 pem encoding, neither '!' nor '.' are valid chars,
+  # so we use this to detect an invalid certificate; as long as the
+  # cert doesn't contain this, the here-document will be correctly
+  # parsed by the shell sequence below
+  if re.search('^!EOF\.', gntpem, re.MULTILINE):
+    raise errors.OpExecError("invalid PEM encoding in the SSL certificate")
+  if not gntpem.endswith("\n"):
+    raise errors.OpExecError("PEM must end with newline")
+
+  # set up inter-node password and certificate and restarts the node daemon
+  # and then connect with ssh to set password and start ganeti-noded
+  # note that all the below variables are sanitized at this point,
+  # either by being constants or by the checks above
+  mycommand = ("umask 077 && "
+               "echo '%s' > '%s' && "
+               "cat > '%s' << '!EOF.' && \n"
+               "%s!EOF.\n%s restart" %
+               (gntpass, ss.KeyToFilename(ss.SS_NODED_PASS),
+                constants.SSL_CERT_FILE, gntpem,
+                constants.NODE_INITD_SCRIPT))
+
+  result = sshrunner.Run(node, 'root', mycommand, batch=False, ask_key=True)
+  if result.failed:
+    raise errors.OpExecError("Remote command on node %s, error: %s,"
+                             " output: %s" %
+                             (node, result.fail_reason, result.output))
+
+  return 0
+
