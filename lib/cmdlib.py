@@ -3160,12 +3160,12 @@ class LUMigrateInstance(LogicalUnit):
     self._WaitUntilSync()
 
     self.feedback_fn("* migrating instance to %s" % target_node)
+    time.sleep(2)
     result = rpc.call_instance_migrate(source_node, instance,
                                        self.nodes_ip[target_node],
                                        self.op.live)
     if not result or not result[0]:
       logger.Error("Instance migration failed, trying to revert disk status")
-
       try:
         self._EnsureSecondary(target_node)
         self._GoStandalone()
@@ -3177,6 +3177,7 @@ class LUMigrateInstance(LogicalUnit):
 
       raise errors.OpExecError("Could not migrate instance %s: %s" %
                                (instance.name, result[1]))
+    time.sleep(2)
 
     instance.primary_node = target_node
     # distribute new instance config to the other nodes
