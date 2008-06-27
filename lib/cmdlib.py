@@ -1643,7 +1643,8 @@ class LUAddNode(LogicalUnit):
     if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
       to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
-      if not self.ssh.CopyFileToNode(node, fname):
+      result = rpc.call_upload_file([node], fname)
+      if not result[node]:
         logger.Error("could not copy file %s to node %s" % (fname, node))
 
     if not self.op.readd:
