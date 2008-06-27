@@ -880,8 +880,7 @@ class LURenameCluster(LogicalUnit):
       raise errors.OpPrereqError("Neither the name nor the IP address of the"
                                  " cluster has changed")
     if new_ip != old_ip:
-      result = utils.RunCmd(["fping", "-q", new_ip])
-      if not result.failed:
+      if utils.TcpPing(new_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("The given cluster IP address (%s) is"
                                    " reachable on the network. Aborting." %
                                    new_ip)
@@ -2284,9 +2283,7 @@ class LURenameInstance(LogicalUnit):
                                  new_name)
 
     if not getattr(self.op, "ignore_ip", False):
-      command = ["fping", "-q", name_info.ip]
-      result = utils.RunCmd(command)
-      if not result.failed:
+      if utils.TcpPing(name_info.ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (name_info.ip, new_name))
 
