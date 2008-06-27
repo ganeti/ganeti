@@ -982,6 +982,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
     constants.CLUSTER_CONF_FILE,
     constants.ETC_HOSTS,
     constants.SSH_KNOWN_HOSTS_FILE,
+    constants.VNC_PASSWORD_FILE,
     ]
   allowed_files.extend(ssconf.SimpleStore().GetFileList())
   if file_name not in allowed_files:
