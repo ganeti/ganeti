@@ -225,24 +225,22 @@ class TestHooksMaster(unittest.TestCase):
     return dict([(node_name, [("unittest", constants.HKR_SUCCESS, "ok")])
                  for node_name in node_list])
 
+  def setUp(self):
+    self.cfg = FakeConfig()
+    self.sstore = FakeSStore()
+    self.op = opcodes.OpCode()
+    self.lu = FakeLU(None, self.op, self.cfg, self.sstore)
+
   def testTotalFalse(self):
     """Test complete rpc failure"""
-    cfg = FakeConfig()
-    sstore = FakeSStore()
-    op = opcodes.OpCode()
-    lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_false, FakeProc(), lu)
+    hm = mcpu.HooksMaster(self._call_false, FakeProc(), self.lu)
     self.failUnlessRaises(errors.HooksFailure,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
   def testIndividualFalse(self):
     """Test individual node failure"""
-    cfg = FakeConfig()
-    sstore = FakeSStore()
-    op = opcodes.OpCode()
-    lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_nodes_false, FakeProc(), lu)
+    hm = mcpu.HooksMaster(self._call_nodes_false, FakeProc(), self.lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
     #self.failUnlessRaises(errors.HooksFailure,
     #                      hm.RunPhase, constants.HOOKS_PHASE_PRE)
@@ -250,22 +248,14 @@ class TestHooksMaster(unittest.TestCase):
 
   def testScriptFalse(self):
     """Test individual rpc failure"""
-    cfg = FakeConfig()
-    op = opcodes.OpCode()
-    sstore = FakeSStore()
-    lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_script_fail, FakeProc(), lu)
+    hm = mcpu.HooksMaster(self._call_script_fail, FakeProc(), self.lu)
     self.failUnlessRaises(errors.HooksAbort,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
   def testScriptSucceed(self):
     """Test individual rpc failure"""
-    cfg = FakeConfig()
-    op = opcodes.OpCode()
-    sstore = FakeSStore()
-    lu = FakeLU(None, op, cfg, sstore)
-    hm = mcpu.HooksMaster(self._call_script_succeed, FakeProc(), lu)
+    hm = mcpu.HooksMaster(self._call_script_succeed, FakeProc(), self.lu)
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
       hm.RunPhase(phase)
 
