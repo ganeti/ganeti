@@ -97,7 +97,6 @@ class Processor(object):
                     interesting events are happening
     """
     self.cfg = None
-    self.sstore = None
     self._feedback_fn = feedback
 
   def ExecOpCode(self, op):
@@ -115,17 +114,18 @@ class Processor(object):
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")
 
+    if lu_class.REQ_WSSTORE:
+      sstore = ssconf.WritableSimpleStore()
+    else:
+      sstore = ssconf.SimpleStore()
+
     if self.cfg is None:
       self.cfg = config.ConfigWriter()
-      if lu_class.REQ_WSSTORE:
-        self.sstore = ssconf.WritableSimpleStore()
-      else:
-        self.sstore = ssconf.SimpleStore()
     if self.cfg is not None:
       write_count = self.cfg.write_count
     else:
       write_count = 0
-    lu = lu_class(self, op, self.cfg, self.sstore)
+    lu = lu_class(self, op, self.cfg, sstore)
     lu.CheckPrereq()
     hm = HooksMaster(rpc.call_hooks_runner, self, lu)
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
@@ -163,11 +163,15 @@ class Processor(object):
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")
 
+    if lu_class.REQ_WSSTORE:
+      sstore = ssconf.WritableSimpleStore()
+    else:
+      sstore = ssconf.SimpleStore()
+
     if self.cfg is None:
       self.cfg = config.ConfigWriter()
-      self.sstore = ssconf.SimpleStore()
     #do_hooks = lu_class.HPATH is not None
-    lu = lu_class(self, op, self.cfg, self.sstore)
+    lu = lu_class(self, op, self.cfg, sstore)
     lu.CheckPrereq()
     #if do_hooks:
     #  hm = HooksMaster(rpc.call_hooks_runner, self, lu)
