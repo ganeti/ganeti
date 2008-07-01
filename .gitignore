@@ -18,6 +18,7 @@
 /config.status
 /configure
 /ganeti
+/stamp-directories
 /*.patch
 /*.tar.bz2
 /*.tar.gz
