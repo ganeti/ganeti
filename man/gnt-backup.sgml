@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>Jul 6, 2007</date>">
+  <!ENTITY dhdate      "<date>July 1, 2008</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -19,6 +19,7 @@
   <refentryinfo>
     <copyright>
       <year>2007</year>
+      <year>2008</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -104,7 +105,19 @@
         <arg>-m <replaceable>memsize</replaceable></arg>
         <sbr>
 
+        <arg>--cpu <replaceable>vcpus</replaceable></arg>
+        <arg>--ip<group choice="req">
+            <arg>default</arg>
+            <arg>none</arg>
+            <arg><replaceable>ip-address</replaceable></arg>
+          </group></arg>
+        <sbr>
+
         <arg>-b <replaceable>bridge</replaceable></arg>
+        <arg>--no-wait-for-sync</arg>
+        <arg>--no-ip-check</arg>
+        <sbr>
+
         <arg choice="req">--src-node=<replaceable>source-node</replaceable></arg>
         <arg choice="req">--src-dir=<replaceable>source-dir</replaceable></arg>
         <sbr>
@@ -231,6 +244,23 @@
         If you do not want gnt-backup to wait for the disk mirror
         to be synced, use the <option>--no-wait-for-sync</option>
         option.
+      </para>
+
+      <para>
+        Use the <option>--cpu</option> option to set the number of virtual
+        CPUs.
+      </para>
+
+      <para>
+        To pass an IPv4 address to the hypervisor, specify the
+        <option>--ip</option> option. Note that this IP address will not be
+        used by the OS scripts and changing it later will change the address
+        that the instance will actually use.
+      </para>
+
+      <para>
+        Ganeti will not check whether an instance's IP address is already
+        alive if the <option>--no-ip-check</option> option is specified.
       </para>
 
       <para>
