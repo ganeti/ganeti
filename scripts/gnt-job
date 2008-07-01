@@ -33,12 +33,16 @@ from ganeti import utils
 from ganeti import errors
 
 
+_LIST_DEF_FIELDS = ["id", "status"]
+
 def ListJobs(opts, args):
   """List the jobs
 
   """
   if opts.output is None:
-    selected_fields = ["id", "status"]
+    selected_fields = _LIST_DEF_FIELDS
+  elif opts.output.startswith("+"):
+    selected_fields = _LIST_DEF_FIELDS + opts.output[1:].split(",")
   else:
     selected_fields = opts.output.split(",")
 
@@ -100,7 +104,7 @@ commands = {
            " (see the man page for details): id, status, op_list,"
            " op_status, op_result."
            " The default field"
-           " list is (in order): id, status."),
+           " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS))
   }
 
 
