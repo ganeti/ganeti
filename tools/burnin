@@ -64,7 +64,6 @@ class Burner(object):
     """Constructor."""
     logger.SetupLogging(program="ganeti/burnin", debug=False)
     self._feed_buf = StringIO()
-    self.proc = mcpu.Processor(feedback=self.Feedback)
     self.nodes = []
     self.instances = []
     self.to_rem = []
