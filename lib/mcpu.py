@@ -37,6 +37,7 @@ from ganeti import cmdlib
 from ganeti import config
 from ganeti import ssconf
 from ganeti import logger
+from ganeti import locking
 
 
 class Processor(object):
@@ -98,6 +99,7 @@ class Processor(object):
     """
     self.context = context
     self._feedback_fn = feedback
+    self.exclusive_BGL = False
 
   def ExecOpCode(self, op):
     """Execute an opcode.
@@ -120,24 +122,31 @@ class Processor(object):
       sstore = ssconf.SimpleStore()
 
     write_count = self.context.cfg.write_count
-    lu = lu_class(self, op, self.context.cfg, sstore)
-    lu.CheckPrereq()
-    hm = HooksMaster(rpc.call_hooks_runner, self, lu)
-    h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
-    lu.HooksCallBack(constants.HOOKS_PHASE_PRE,
-                     h_results, self._feedback_fn, None)
+
+    # Acquire the Big Ganeti Lock exclusively if this LU requires it, and in a
+    # shared fashion otherwise (to prevent concurrent run with an exclusive LU.
+    self.context.GLM.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
+                             shared=not lu_class.REQ_BGL)
     try:
-      result = lu.Exec(self._feedback_fn)
-      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
-      result = lu.HooksCallBack(constants.HOOKS_PHASE_POST,
-                       h_results, self._feedback_fn, result)
-    finally:
-      if lu.cfg is not None:
-        # we use lu.cfg and not self.cfg as for init cluster, self.cfg
-        # is None but lu.cfg has been recently initialized in the
-        # lu.Exec method
-        if write_count != lu.cfg.write_count:
+      self.exclusive_BGL = lu_class.REQ_BGL
+      lu = lu_class(self, op, self.context.cfg, sstore)
+      lu.CheckPrereq()
+      hm = HooksMaster(rpc.call_hooks_runner, self, lu)
+      h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
+      lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
+                       self._feedback_fn, None)
+      try:
+        result = lu.Exec(self._feedback_fn)
+        h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
+        result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
+                                  self._feedback_fn, result)
+      finally:
+        # FIXME: This needs locks if not lu_class.REQ_BGL
+        if write_count != self.context.cfg.write_count:
           hm.RunConfigUpdate()
+    finally:
+      self.context.GLM.release(locking.LEVEL_CLUSTER)
+      self.exclusive_BGL = False
 
     return result
 
@@ -157,6 +166,10 @@ class Processor(object):
     lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")
+
+    if lu_class.REQ_BGL and not self.exclusive_BGL:
+      raise errors.ProgrammerError("LUs which require the BGL cannot"
+                                   " be chained to granular ones.")
 
     if lu_class.REQ_WSSTORE:
       sstore = ssconf.WritableSimpleStore()
