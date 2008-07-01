@@ -333,7 +333,7 @@ class GanetiContext(object):
     # Create a ConfigWriter...
     self.cfg = config.ConfigWriter()
     # And a GanetiLockingManager...
-    self.GLM = locking.GanetiLockManager(
+    self.glm = locking.GanetiLockManager(
                 self.cfg.GetNodeList(),
                 self.cfg.GetInstanceList())
 

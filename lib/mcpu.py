@@ -125,7 +125,7 @@ class Processor(object):
 
     # Acquire the Big Ganeti Lock exclusively if this LU requires it, and in a
     # shared fashion otherwise (to prevent concurrent run with an exclusive LU.
-    self.context.GLM.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
+    self.context.glm.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
                              shared=not lu_class.REQ_BGL)
     try:
       self.exclusive_BGL = lu_class.REQ_BGL
@@ -145,7 +145,7 @@ class Processor(object):
         if write_count != self.context.cfg.write_count:
           hm.RunConfigUpdate()
     finally:
-      self.context.GLM.release(locking.LEVEL_CLUSTER)
+      self.context.glm.release(locking.LEVEL_CLUSTER)
       self.exclusive_BGL = False
 
     return result
