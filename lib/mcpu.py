@@ -89,14 +89,14 @@ class Processor(object):
     opcodes.OpTestAllocator: cmdlib.LUTestAllocator,
     }
 
-  def __init__(self, feedback=None):
+  def __init__(self, context, feedback=None):
     """Constructor for Processor
 
     Args:
      - feedback_fn: the feedback function (taking one string) to be run when
                     interesting events are happening
     """
-    self.cfg = None
+    self.context = context
     self._feedback_fn = feedback
 
   def ExecOpCode(self, op):
@@ -119,13 +119,8 @@ class Processor(object):
     else:
       sstore = ssconf.SimpleStore()
 
-    if self.cfg is None:
-      self.cfg = config.ConfigWriter()
-    if self.cfg is not None:
-      write_count = self.cfg.write_count
-    else:
-      write_count = 0
-    lu = lu_class(self, op, self.cfg, sstore)
+    write_count = self.context.cfg.write_count
+    lu = lu_class(self, op, self.context.cfg, sstore)
     lu.CheckPrereq()
     hm = HooksMaster(rpc.call_hooks_runner, self, lu)
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
@@ -168,10 +163,8 @@ class Processor(object):
     else:
       sstore = ssconf.SimpleStore()
 
-    if self.cfg is None:
-      self.cfg = config.ConfigWriter()
     #do_hooks = lu_class.HPATH is not None
-    lu = lu_class(self, op, self.cfg, sstore)
+    lu = lu_class(self, op, self.context.cfg, sstore)
     lu.CheckPrereq()
     #if do_hooks:
     #  hm = HooksMaster(rpc.call_hooks_runner, self, lu)
