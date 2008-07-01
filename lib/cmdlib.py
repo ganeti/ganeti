@@ -57,6 +57,7 @@ class LogicalUnit(object):
     - optionally redefine their run requirements:
         REQ_MASTER: the LU needs to run on the master node
         REQ_WSSTORE: the LU needs a writable SimpleStore
+        REQ_BGL: the LU needs to hold the Big Ganeti Lock exclusively
 
   Note that all commands require root permissions.
 
@@ -66,6 +67,7 @@ class LogicalUnit(object):
   _OP_REQP = []
   REQ_MASTER = True
   REQ_WSSTORE = False
+  REQ_BGL = True
 
   def __init__(self, processor, op, cfg, sstore):
     """Constructor for LogicalUnit.
