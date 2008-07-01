@@ -65,7 +65,7 @@ class IOServer(SocketServer.UnixStreamServer):
   cleanup at shutdown.
 
   """
-  QUEUE_PROCESSOR_SIZE = 1
+  QUEUE_PROCESSOR_SIZE = 5
 
   def __init__(self, address, rqhandler, context):
     """IOServer constructor
