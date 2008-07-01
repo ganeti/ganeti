@@ -1039,6 +1039,27 @@ def WriteFile(file_name, fn=None, data=None,
   return result
 
 
+def FirstFree(seq, base=0):
+  """Returns the first non-existing integer from seq.
+
+  The seq argument should be a sorted list of positive integers. The
+  first time the index of an element is smaller than the element
+  value, the index will be returned.
+
+  The base argument is used to start at a different offset,
+  i.e. [3, 4, 6] with offset=3 will return 5.
+
+  Example: [0, 1, 3] will return 2.
+
+  """
+  for idx, elem in enumerate(seq):
+    assert elem >= base, "Passed element is higher than base offset"
+    if elem > idx + base:
+      # idx is not used
+      return idx + base
+  return None
+
+
 def all(seq, pred=bool):
   "Returns True if pred(x) is True for every element in the iterable"
   for elem in itertools.ifilterfalse(pred, seq):

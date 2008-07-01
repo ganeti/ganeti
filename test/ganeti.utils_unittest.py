@@ -41,7 +41,7 @@ from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
-     SetEtcHostsEntry, RemoveEtcHostsEntry
+     SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree
 from ganeti.errors import LockError, UnitParseError
 
 def _ChildHandler(signal, stack):
@@ -689,6 +689,16 @@ class TestUniqueSequence(unittest.TestCase):
     self._test(["a", "b"], ["a", "b"])
     self._test(["a", "b", "a"], ["a", "b"])
 
+class TestFirstFree(unittest.TestCase):
+  """Test case for the FirstFree function"""
+
+  def test(self):
+    """Test FirstFree"""
+    self.failUnlessEqual(FirstFree([0, 1, 3]), 2)
+    self.failUnlessEqual(FirstFree([]), None)
+    self.failUnlessEqual(FirstFree([3, 4, 6]), 0)
+    self.failUnlessEqual(FirstFree([3, 4, 6], base=3), 5)
+    self.failUnlessRaises(AssertionError, FirstFree, [0, 3, 4, 6], base=3)
 
 if __name__ == '__main__':
   unittest.main()
