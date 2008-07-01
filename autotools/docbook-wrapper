@@ -5,6 +5,10 @@ set -e
 input="${1}"
 output="${2}"
 
+# docbook2man inserts a date formatted using the current locale into its
+# output. Using the "C" locale makes sure it's always in the default format.
+export LC_ALL=C
+
 case "${output}" in
   *.pdf) cmd=docbook2pdf ;;
   *.html) cmd='docbook2html --nochunks' ;;
