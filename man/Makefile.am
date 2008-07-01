@@ -15,6 +15,7 @@ MAINTAINERCLEANFILES = $(maninput)
 
 # Wrapper around docbook2man to control output filename
 %.in: %.sgml footer.sgml
+	export LC_ALL=C && \
 	tmpdir=`mktemp -d "./manbuildXXXXXX"` && \
 	docbook2man -o "$$tmpdir" $< && \
 	ok= && \
