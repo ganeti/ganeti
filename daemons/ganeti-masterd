@@ -288,28 +288,21 @@ def PoolWorker(worker_id, incoming_queue, context):
     if item is None:
       break
     logging.debug("worker %s processing job %s", worker_id, item.data.job_id)
-    #utils.Lock('cmd')
+    proc = mcpu.Processor(context, feedback=lambda x: None)
     try:
-      proc = mcpu.Processor(context, feedback=lambda x: None)
-      try:
-        JobRunner(proc, item, context)
-      except errors.GenericError, err:
-        msg = "ganeti exception"
-        logging.error(msg, exc_info=err)
-        item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
-      except Exception, err:
-        msg = "unhandled exception"
-        logging.error(msg, exc_info=err)
-        item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
-      except:
-        msg = "unhandled unknown exception"
-        logging.error(msg, exc_info=True)
-        item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
-
-    finally:
-      #utils.Unlock('cmd')
-      #utils.LockCleanup()
-      pass
+      JobRunner(proc, item, context)
+    except errors.GenericError, err:
+      msg = "ganeti exception"
+      logging.error(msg, exc_info=err)
+      item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
+    except Exception, err:
+      msg = "unhandled exception"
+      logging.error(msg, exc_info=err)
+      item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
+    except:
+      msg = "unhandled unknown exception"
+      logging.error(msg, exc_info=True)
+      item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
     logging.debug("worker %s finish job %s", worker_id, item.data.job_id)
   logging.debug("worker %s exiting", worker_id)
 
