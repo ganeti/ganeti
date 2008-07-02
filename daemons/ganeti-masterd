@@ -36,7 +36,7 @@ import Queue
 import random
 import signal
 import simplejson
-
+import logging
 
 from cStringIO import StringIO
 from optparse import OptionParser
@@ -51,6 +51,7 @@ from ganeti import luxi
 from ganeti import utils
 from ganeti import errors
 from ganeti import ssconf
+from ganeti import logger
 
 
 EXIT_NOTMASTER = constants.EXIT_NOTMASTER
@@ -144,9 +145,9 @@ class IOServer(SocketServer.UnixStreamServer):
     for i in range(self.QUEUE_PROCESSOR_SIZE):
       self.queue.new_queue.put(None)
     for idx, t in enumerate(self.processors):
-      print "waiting for processor thread %s..." % idx
+      logging.debug("waiting for processor thread %s...", idx)
       t.join()
-    print "done threads"
+    logging.debug("threads done")
 
 
 class ClientRqHandler(SocketServer.BaseRequestHandler):
@@ -282,35 +283,35 @@ def PoolWorker(worker_id, incoming_queue, context):
 
   """
   while True:
-    print "worker %s sleeping" % worker_id
+    logging.debug("worker %s sleeping", worker_id)
     item = incoming_queue.get(True)
     if item is None:
       break
-    print "worker %s processing job %s" % (worker_id, item.data.job_id)
+    logging.debug("worker %s processing job %s", worker_id, item.data.job_id)
     #utils.Lock('cmd')
     try:
       proc = mcpu.Processor(context, feedback=lambda x: None)
       try:
         JobRunner(proc, item, context)
       except errors.GenericError, err:
-        msg = "ganeti exception %s" % err
+        msg = "ganeti exception"
+        logging.error(msg, exc_info=err)
         item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
-        print msg
       except Exception, err:
-        msg = "unhandled exception %s" % err
+        msg = "unhandled exception"
+        logging.error(msg, exc_info=err)
         item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
-        print msg
       except:
         msg = "unhandled unknown exception"
+        logging.error(msg, exc_info=True)
         item.SetStatus(opcodes.Job.STATUS_FAIL, result=[msg])
-        print msg
 
     finally:
       #utils.Unlock('cmd')
       #utils.LockCleanup()
       pass
-    print "worker %s finish job %s" % (worker_id, item.data.job_id)
-  print "worker %s exiting" % worker_id
+    logging.debug("worker %s finish job %s", worker_id, item.data.job_id)
+  logging.debug("worker %s exiting", worker_id)
 
 
 class GanetiContext(object):
@@ -402,6 +403,8 @@ def main():
   options, args = ParseOptions()
   utils.debug = options.debug
   utils.no_fork = True
+
+  logger.SetupLogging(program="ganeti-masterd", debug=options.debug)
 
   CheckMaster(options.debug)
 
