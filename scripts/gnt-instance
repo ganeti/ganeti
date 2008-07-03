@@ -556,8 +556,6 @@ def ConnectToInstanceConsole(opts, args):
   if opts.show_command:
     print utils.ShellQuoteArgs(cmd)
   else:
-    # drop lock and exec so other commands can run while we have console
-    utils.Unlock("cmd")
     try:
       os.execvp(cmd[0], cmd)
     finally:
