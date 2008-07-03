@@ -380,7 +380,7 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   # TODO: Fix feedback_fn situation.
   cl = luxi.Client()
   job = opcodes.Job(op_list=[op])
-  jid = SubmitJob(job)
+  jid = SubmitJob(job, cl)
 
   query = {
     "object": "jobs",
@@ -389,7 +389,7 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
     }
 
   while True:
-    jdata = SubmitQuery(query)
+    jdata = SubmitQuery(query, cl)
     if not jdata:
       # job not found, go away!
       raise errors.JobLost("Job with id %s lost" % jid)
@@ -400,7 +400,7 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
     time.sleep(1)
 
   query["fields"].extend(["op_list", "op_status", "op_result"])
-  jdata = SubmitQuery(query)
+  jdata = SubmitQuery(query, cl)
   if not jdata:
     raise errors.JobLost("Job with id %s lost" % jid)
   status, op_list, op_status, op_result = jdata[0]
