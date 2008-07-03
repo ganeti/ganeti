@@ -397,8 +397,6 @@ def main():
   utils.debug = options.debug
   utils.no_fork = True
 
-  logger.SetupLogging(program="ganeti-masterd", debug=options.debug)
-
   CheckMaster(options.debug)
 
   master = IOServer(constants.MASTER_SOCKET, ClientRqHandler, GanetiContext())
@@ -407,6 +405,10 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_MASTERDAEMON,
                     noclose_fds=[master.fileno()])
+
+  logger.SetupDaemon(constants.LOG_MASTERDAEMON, debug=options.debug)
+
+  logger.Info("ganeti master daemon startup")
 
   try:
     utils.Lock('cmd', debug=options.debug)

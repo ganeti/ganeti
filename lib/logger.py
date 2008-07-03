@@ -84,6 +84,34 @@ def SetupLogging(program='ganeti', debug=False):
   root_logger.addHandler(stderr_file)
 
 
+def SetupDaemon(logfile, debug=False):
+  """Configures the logging module for daemons
+
+  """
+  if debug:
+    fmt = "%(asctime)s: %(levelname)s %(pathname)s:%(lineno)s %(message)s"
+  else:
+    fmt = "%(asctime)s: %(levelname)s %(message)s"
+  formatter = logging.Formatter(fmt)
+
+  logfile_handler = logging.FileHandler(logfile)
+  logfile_handler.setFormatter(formatter)
+
+  stderr_handler = logging.StreamHandler()
+  stderr_handler.setFormatter(formatter)
+  if debug:
+    logfile_handler.setLevel(logging.DEBUG)
+    stderr_handler.setLevel(logging.NOTSET)
+  else:
+    logfile_handler.setLevel(logging.INFO)
+    stderr_handler.setLevel(logging.CRITICAL)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+  root_logger.addHandler(logfile_handler)
+  root_logger.addHandler(stderr_handler)
+
+
 # Backwards compatibility
 Error = logging.error
 Info = logging.info

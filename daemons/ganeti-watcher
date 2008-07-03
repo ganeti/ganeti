@@ -41,6 +41,7 @@ from ganeti import constants
 from ganeti import serializer
 from ganeti import ssconf
 from ganeti import errors
+from ganeti import logger
 
 
 MAXTRIES = 5
@@ -443,36 +444,13 @@ def ParseOptions():
   return options, args
 
 
-def SetupLogging(debug):
-  """Configures the logging module.
-
-  """
-  formatter = logging.Formatter("%(asctime)s: %(message)s")
-
-  logfile_handler = logging.FileHandler(constants.LOG_WATCHER)
-  logfile_handler.setFormatter(formatter)
-  logfile_handler.setLevel(logging.INFO)
-
-  stderr_handler = logging.StreamHandler()
-  stderr_handler.setFormatter(formatter)
-  if debug:
-    stderr_handler.setLevel(logging.NOTSET)
-  else:
-    stderr_handler.setLevel(logging.CRITICAL)
-
-  root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(logfile_handler)
-  root_logger.addHandler(stderr_handler)
-
-
 def main():
   """Main function.
 
   """
   options, args = ParseOptions()
 
-  SetupLogging(options.debug)
+  logger.SetupDaemon(constants.LOG_WATCHER, debug=options.debug)
 
   try:
     try:
