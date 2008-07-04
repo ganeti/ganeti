@@ -2260,7 +2260,8 @@ def _CheckNodeFreeMemory(cfg, node, reason, requested):
 
   """
   nodeinfo = rpc.call_node_info([node], cfg.GetVGName())
-  if not nodeinfo or not isinstance(nodeinfo, dict):
+  if not (nodeinfo and isinstance(nodeinfo, dict) and
+          node in nodeinfo and isinstance(nodeinfo[node], dict)):
     raise errors.OpPrereqError("Could not contact node %s for resource"
                              " information" % (node,))
 
