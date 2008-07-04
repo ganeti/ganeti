@@ -29,7 +29,6 @@ by a node reboot.  Run from cron or similar.
 
 import os
 import sys
-import re
 import time
 import fcntl
 import errno
@@ -134,7 +133,7 @@ class WatcherState(object):
     if "node" not in self._data:
       self._data["node"] = {}
 
-    self._orig_data = self._data.copy()
+    self._orig_data = serializer.Dump(self._data)
 
   def Save(self):
     """Save state to file, then unlock and close it.
@@ -142,7 +141,8 @@ class WatcherState(object):
     """
     assert self.statefile
 
-    if self._orig_data == self._data:
+    serialized_form = serializer.Dump(self._data)
+    if self._orig_data == serialized_form:
       logging.debug("Data didn't change, just touching status file")
       os.utime(constants.WATCHER_STATEFILE, None)
       return
@@ -150,7 +150,7 @@ class WatcherState(object):
     # We need to make sure the file is locked before renaming it, otherwise
     # starting ganeti-watcher again at the same time will create a conflict.
     fd = utils.WriteFile(constants.WATCHER_STATEFILE,
-                         data=serializer.Dump(self._data),
+                         data=serialized_form,
                          prewrite=LockFile, close=False)
     self.statefile = os.fdopen(fd, 'w+')
 
@@ -349,9 +349,9 @@ class Watcher(object):
 
     """
     check_nodes = []
-    for name, id in self.bootids.iteritems():
+    for name, new_id in self.bootids.iteritems():
       old = notepad.GetNodeBootID(name)
-      if old != id:
+      if old != new_id:
         # Node's boot ID has changed, proably through a reboot.
         check_nodes.append(name)
 
@@ -370,7 +370,7 @@ class Watcher(object):
         try:
           logging.info("Activating disks for instance %s", instance.name)
           instance.ActivateDisks()
-        except Error, err:
+        except Exception, err:
           logging.error(str(err), exc_info=True)
 
       # Keep changed boot IDs
@@ -404,7 +404,7 @@ class Watcher(object):
                         instance.name, last)
           instance.Restart()
           self.started_instances.add(instance.name)
-        except Error, err:
+        except Exception, err:
           logging.error(str(err), exc_info=True)
 
         notepad.RecordRestartAttempt(instance)
