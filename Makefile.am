@@ -75,7 +75,8 @@ pkgpython_PYTHON = \
 	lib/serializer.py \
 	lib/ssconf.py \
 	lib/ssh.py \
-	lib/utils.py
+	lib/utils.py \
+	lib/workerpool.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
@@ -172,6 +173,7 @@ dist_TESTS = \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.locking_unittest.py \
 	test/ganeti.serializer_unittest.py \
+	test/ganeti.workerpool_unittest.py \
 	test/ganeti.constants_unittest.py
 
 nodist_TESTS =
