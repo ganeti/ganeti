@@ -1,3 +1,16 @@
+Version 1.2.5
+  - note: the allowed size and number of tags per object were reduced
+  - fix a bug in “gnt-cluster verify” with inconsistent volume groups
+  - fixed twisted 8.x compatibility
+  - add TCP keepalives on twisted connections to detect restarted nodes
+  - disk increase support, see “gnt-instance grow-disk”
+  - implement bulk node/instance query for RAPI
+  - add tags in node/instance listing (optional)
+  - experimental migration (and live migration) support, read the man
+    page for “gnt-instance migrate”
+  - the ganeti-watcher logs are now timestamped, and the watcher also
+    has some small improvements in handling its state file
+
 Version 1.2.4
   - Experimental readonly, REST-based remote API implementation; automatically
     started on master node, TCP port 5080, if enabled by --enable-rapi
