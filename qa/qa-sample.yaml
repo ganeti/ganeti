@@ -62,6 +62,7 @@ tests:
   instance-grow-disk: True
 
   instance-list: True
+  instance-migrate: True
   instance-failover: True
   instance-info: True
   instance-modify: True
@@ -86,7 +87,7 @@ options:
   burnin-instances: 2
   burnin-disk-template: remote_raid1
   grow-disk-size: 1g
-
+  instance-migrations: 2
   # Directory containing QA hooks
   #hooks-dir: hooks/
 

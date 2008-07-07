@@ -173,6 +173,33 @@ def TestInstanceFailover(instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+@qa_utils.DefineHook('instance-migrate')
+def TestInstanceMigrate(instance):
+  """gnt-instance migrate"""
+  master = qa_config.GetMasterNode()
+  migrations = qa_config.get('options', {}).get('instance-migrations', 1)
+
+  for _ in range(migrations):
+    cmd = ['gnt-instance', 'migrate', '-f', instance['name']]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    # ... and back
+    cmd = ['gnt-instance', 'migrate', '-f', instance['name']]
+    AssertEqual(StartSSH(master['primary'],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  
+  # ...and once with --cleanup
+  cmd = ['gnt-instance', 'migrate', '-f', '--cleanup', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # ... and back
+  cmd = ['gnt-instance', 'migrate', '-f', '--cleanup', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 @qa_utils.DefineHook('instance-info')
 def TestInstanceInfo(instance):
   """gnt-instance info"""

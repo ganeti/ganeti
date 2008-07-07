@@ -212,6 +212,9 @@ def RunHardwareFailureTests(instance, pnode, snode, is_drbd):
   """Test cluster internal hardware failure recovery.
 
   """
+  if qa_config.TestEnabled('instance-migrate'):
+    RunTest(qa_instance.TestInstanceMigrate, instance)
+
   if qa_config.TestEnabled('instance-failover'):
     RunTest(qa_instance.TestInstanceFailover, instance)
 
