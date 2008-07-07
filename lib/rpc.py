@@ -25,46 +25,13 @@
 
 # pylint: disable-msg=C0103
 
+import sys
 import os
-
-from twisted.internet.pollreactor import PollReactor
-
 
 install_twisted_signal_handlers = True
 
-
-class ReReactor(PollReactor):
-  """A re-startable Reactor implementation.
-
-  """
-  def run(self, installSignalHandlers=None):
-    """Custom run method.
-
-    This is customized run that, before calling Reactor.run, will
-    reinstall the shutdown events and re-create the threadpool in case
-    these are not present (as will happen on the second run of the
-    reactor).
-
-    """
-    if installSignalHandlers is None:
-      installSignalHandlers = install_twisted_signal_handlers
-    if not 'shutdown' in self._eventTriggers:
-      # the shutdown queue has been killed, we are most probably
-      # at the second run, thus recreate the queue
-      self.addSystemEventTrigger('during', 'shutdown', self.crash)
-      self.addSystemEventTrigger('during', 'shutdown', self.disconnectAll)
-    if self.threadpool is not None and self.threadpool.joined == 1:
-      # in case the threadpool has been stopped, re-start it
-      # and add a trigger to stop it at reactor shutdown
-      self.threadpool.start()
-      self.addSystemEventTrigger('during', 'shutdown', self.threadpool.stop)
-
-    return PollReactor.run(self, installSignalHandlers)
-
-
+from twisted.internet.pollreactor import PollReactor
 import twisted.internet.main
-twisted.internet.main.installReactor(ReReactor())
-
 from twisted.spread import pb
 from twisted.internet import reactor
 from twisted.cred import credentials
@@ -217,6 +184,13 @@ class Client:
     self.results = {}
     self.procedure = procedure
     self.args = args
+    global reactor
+    try:
+      del sys.modules['twisted.internet.reactor']
+    except KeyError:
+      pass
+    reactor = PollReactor()
+    twisted.internet.main.installReactor(reactor)
 
   #--- generic connector -------------
 
@@ -253,7 +227,7 @@ class Client:
 
     """
     if self.nc:
-      reactor.run()
+      reactor.run(install_twisted_signal_handlers)
 
 
 def call_volume_list(node_list, vg_name):
