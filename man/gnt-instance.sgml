@@ -231,35 +231,42 @@
         </para>
 
         <para>
-          The option is only relevant for Xen HVM instances and
-          ignored by all other instances types.
+          The default is not to set an HVM boot order which is
+          interpreted as 'dc'. This option, like all options starting
+          with 'hvm', is only relevant for Xen HVM instances and
+          ignored by all other instance types.
         </para>
 
         <para>
           The <option>--hvm-acpi</option> option specifies if Xen
           should enable ACPI support for this HVM instance. Valid
-          values are true or false.
+          values are true or false. The default value is false,
+          disabling ACPI support for this instance.
         </para>
 
         <para>
           The <option>--hvm-pae</option> option specifies if Xen
           should enabled PAE support for this HVM instance. Valid
-          values are true or false.
+          values are true or false. The default is false, disabling
+          PAE support for this instance.
         </para>
 
         <para>
           The <option>--hvm-cdrom-image-path</option> option specifies the
-          path to the file xen uses to emulate a virtual CDROM drive
+          path to the file Xen uses to emulate a virtual CDROM drive
           for this HVM instance. Valid values are either an
           absolute path to an existing file or None, which disables
-          virtual CDROM support for this instance.
+          virtual CDROM support for this instance. The default is
+          None, disabling virtual CDROM support.
         </para>
 
         <para>
           The <option>--vnc-bind-address</option> option specifies the
           address that the VNC listener for this instance should bind
           to. Valid values are IPv4 addresses. Use the address 0.0.0.0
-          to bind to all available interfaces.
+          to bind to all available interfaces (this is the default)
+          or specify the address of one of the interfaces on the node
+          to restrict listing to that interface.
         </para>
 
         <para>

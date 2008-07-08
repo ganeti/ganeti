@@ -262,10 +262,9 @@
         xen-hvm3.1. The default is the xen-3.0 hypervisor.
         Note that if you init the cluster with hypervisor-type
         xen-hvm3.1 you also need to provide the cluster VNC password
-        file <filename>/etc/ganeti/vnc-cluster-password</filename> and
-        the HVM boot ISO image
-        <filename>/srv/ganeti/iso/hvm-install.iso</filename> because
-        instances created by the experimental HVM support require them.
+        file <filename>/etc/ganeti/vnc-cluster-password</filename>
+        because HVM instances require it for VNC console
+        authentication.
       </para>
 
       <para>
