@@ -609,20 +609,20 @@ def main():
     print "Cluster configuration incomplete: '%s'" % str(err)
     sys.exit(5)
 
-  # create /var/run/ganeti if not existing, in order to take care of
-  # tmpfs /var/run
-  if not os.path.exists(constants.BDEV_CACHE_DIR):
-    try:
-      os.mkdir(constants.BDEV_CACHE_DIR, 0755)
-    except EnvironmentError, err:
-      if err.errno != errno.EEXIST:
-        print ("Node setup wrong, cannot create directory %s: %s" %
-               (constants.BDEV_CACHE_DIR, err))
-        sys.exit(5)
-  if not os.path.isdir(constants.BDEV_CACHE_DIR):
-    print ("Node setup wrong, %s is not a directory" %
-           constants.BDEV_CACHE_DIR)
-    sys.exit(5)
+  # create the various SUB_RUN_DIRS, if not existing, so that we handle the
+  # situation where RUN_DIR is tmpfs
+  for dir_name in constants.SUB_RUN_DIRS:
+    if not os.path.exists(dir_name):
+      try:
+        os.mkdir(dir_name, 0755)
+      except EnvironmentError, err:
+        if err.errno != errno.EEXIST:
+          print ("Node setup wrong, cannot create directory %s: %s" %
+                 (dir_name, err))
+          sys.exit(5)
+    if not os.path.isdir(dir_name):
+      print ("Node setup wrong, %s is not a directory" % dir_name)
+      sys.exit(5)
 
   # become a daemon
   if options.fork:
