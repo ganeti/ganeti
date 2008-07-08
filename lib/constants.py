@@ -80,8 +80,12 @@ CONFIG_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, CONFIG_REVISION)
 # file paths
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
 RUN_DIR = _autoconf.LOCALSTATEDIR + "/run"
-BDEV_CACHE_DIR = RUN_DIR + "/ganeti"
-DISK_LINKS_DIR = RUN_DIR + "/ganeti/instance-disks"
+RUN_GANETI_DIR = RUN_DIR + "/ganeti"
+BDEV_CACHE_DIR = RUN_GANETI_DIR # TODO(2.0): move deeper
+DISK_LINKS_DIR = RUN_GANETI_DIR + "/instance-disks"
+# keep RUN_GANETI_DIR first here, to make sure all get created when the node
+# daemon is started (this takes care of RUN_DIR being tmpfs)
+SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
