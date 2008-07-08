@@ -89,7 +89,7 @@ class LogicalUnit(object):
         raise errors.OpPrereqError("Required parameter '%s' missing" %
                                    attr_name)
 
-    if not cfg.IsCluster():
+    if not self.cfg.IsCluster():
       raise errors.OpPrereqError("Cluster not initialized yet,"
                                  " use 'gnt-cluster init' first.")
     if self.REQ_MASTER:
