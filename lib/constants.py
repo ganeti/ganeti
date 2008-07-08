@@ -81,6 +81,7 @@ CONFIG_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, CONFIG_REVISION)
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
 RUN_DIR = _autoconf.LOCALSTATEDIR + "/run"
 BDEV_CACHE_DIR = RUN_DIR + "/ganeti"
+DISK_LINKS_DIR = RUN_DIR + "/ganeti/instance-disks"
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
