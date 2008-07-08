@@ -36,6 +36,7 @@ import time
 import errno
 
 from ganeti import opcodes
+from ganeti import serializer
 from ganeti import constants
 
 
@@ -265,9 +266,9 @@ class Client(object):
 
     """
     msg = {KEY_REQUEST: request, KEY_DATA: data}
-    result = self.transport.Call(simplejson.dumps(msg))
+    result = self.transport.Call(serializer.DumpJson(msg, indent=False))
     try:
-      data = simplejson.loads(result)
+      data = serializer.LoadJson(result)
     except Exception, err:
       raise ProtocolError("Error while deserializing response: %s" % str(err))
     if (not isinstance(data, dict) or
