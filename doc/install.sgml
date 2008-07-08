@@ -729,7 +729,9 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
         nodes names for a multi-node cluster. In general the best
         choice is to have a unique name for a cluster, even if it
         consists of only one machine, as you will be able to expand it
-        later without any problems.
+        later without any problems. Please note that the hostname used
+        for this must resolve to an IP address reserved exclusively
+        for this purpose.
       </para>
 
       <para>
