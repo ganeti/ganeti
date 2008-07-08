@@ -69,7 +69,7 @@ class LogicalUnit(object):
   REQ_WSSTORE = False
   REQ_BGL = True
 
-  def __init__(self, processor, op, cfg, sstore):
+  def __init__(self, processor, op, context, sstore):
     """Constructor for LogicalUnit.
 
     This needs to be overriden in derived classes in order to check op
@@ -78,8 +78,9 @@ class LogicalUnit(object):
     """
     self.proc = processor
     self.op = op
-    self.cfg = cfg
+    self.cfg = context.cfg
     self.sstore = sstore
+    self.context = context
     self.__ssh = None
 
     for attr_name in self._OP_REQP:

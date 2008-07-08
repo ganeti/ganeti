@@ -129,7 +129,7 @@ class Processor(object):
                              shared=not lu_class.REQ_BGL)
     try:
       self.exclusive_BGL = lu_class.REQ_BGL
-      lu = lu_class(self, op, self.context.cfg, sstore)
+      lu = lu_class(self, op, self.context, sstore)
       lu.CheckPrereq()
       hm = HooksMaster(rpc.call_hooks_runner, self, lu)
       h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
@@ -177,7 +177,7 @@ class Processor(object):
       sstore = ssconf.SimpleStore()
 
     #do_hooks = lu_class.HPATH is not None
-    lu = lu_class(self, op, self.context.cfg, sstore)
+    lu = lu_class(self, op, self.context, sstore)
     lu.CheckPrereq()
     #if do_hooks:
     #  hm = HooksMaster(rpc.call_hooks_runner, self, lu)
