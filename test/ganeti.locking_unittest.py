@@ -584,6 +584,8 @@ class TestGanetiLockManager(unittest.TestCase):
   def testLockingConstants(self):
     # The locking library internally cheats by assuming its constants have some
     # relationships with each other. Check those hold true.
+    # This relationship is also used in the Processor to recursively acquire
+    # the right locks. Again, please don't break it.
     for i in range(len(locking.LEVELS)):
       self.assertEqual(i, locking.LEVELS[i])
 
