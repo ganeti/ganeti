@@ -29,6 +29,25 @@ from ganeti import errors
 from ganeti import utils
 
 
+def ssynchronized(lock, shared=0):
+  """Shared Synchronization decorator.
+
+  Calls the function holding the given lock, either in exclusive or shared
+  mode. It requires the passed lock to be a SharedLock (or support its
+  semantics).
+
+  """
+  def wrap(fn):
+    def sync_function(*args, **kwargs):
+      lock.acquire(shared=shared)
+      try:
+        return fn(*args, **kwargs)
+      finally:
+        lock.release()
+    return sync_function
+  return wrap
+
+
 class SharedLock:
   """Implements a shared lock.
 
