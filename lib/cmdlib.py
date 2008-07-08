@@ -4550,7 +4550,7 @@ class LUDelTags(TagsLU):
 class LUTestDelay(NoHooksLU):
   """Sleep for a specified amount of time.
 
-  This LU sleeps on the master and/or nodes for a specified amoutn of
+  This LU sleeps on the master and/or nodes for a specified amount of
   time.
 
   """
