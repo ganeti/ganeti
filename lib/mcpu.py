@@ -150,6 +150,7 @@ class Processor(object):
     try:
       self.exclusive_BGL = lu_class.REQ_BGL
       lu = lu_class(self, op, self.context, sstore)
+      lu.ExpandNames()
       result = self._ExecLU(lu)
     finally:
       self.context.glm.release(locking.LEVEL_CLUSTER)

@@ -50,8 +50,8 @@ class LogicalUnit(object):
   """Logical Unit base class.
 
   Subclasses must follow these rules:
-    - implement CheckPrereq which also fills in the opcode instance
-      with all the fields (even if as None)
+    - implement ExpandNames
+    - implement CheckPrereq
     - implement Exec
     - implement BuildHooksEnv
     - redefine HPATH and HTYPE
@@ -82,6 +82,7 @@ class LogicalUnit(object):
     self.cfg = context.cfg
     self.sstore = sstore
     self.context = context
+    self.needed_locks = None
     self.__ssh = None
 
     for attr_name in self._OP_REQP:
@@ -109,6 +110,46 @@ class LogicalUnit(object):
 
   ssh = property(fget=__GetSSH)
 
+  def ExpandNames(self):
+    """Expand names for this LU.
+
+    This method is called before starting to execute the opcode, and it should
+    update all the parameters of the opcode to their canonical form (e.g. a
+    short node name must be fully expanded after this method has successfully
+    completed). This way locking, hooks, logging, ecc. can work correctly.
+
+    LUs which implement this method must also populate the self.needed_locks
+    member, as a dict with lock levels as keys, and a list of needed lock names
+    as values. Rules:
+      - Use an empty dict if you don't need any lock
+      - If you don't need any lock at a particular level omit that level
+      - Don't put anything for the BGL level
+      - If you want all locks at a level use None as a value
+        (this reflects what LockSet does, and will be replaced before
+        CheckPrereq with the full list of nodes that have been locked)
+
+    Examples:
+    # Acquire all nodes and one instance
+    self.needed_locks = {
+      locking.LEVEL_NODE: None,
+      locking.LEVEL_INSTANCES: ['instance1.example.tld'],
+    }
+    # Acquire just two nodes
+    self.needed_locks = {
+      locking.LEVEL_NODE: ['node1.example.tld', 'node2.example.tld'],
+    }
+    # Acquire no locks
+    self.needed_locks = {} # No, you can't leave it to the default value None
+
+    """
+    # The implementation of this method is mandatory only if the new LU is
+    # concurrent, so that old LUs don't need to be changed all at the same
+    # time.
+    if self.REQ_BGL:
+      self.needed_locks = {} # Exclusive LUs don't need locks.
+    else:
+      raise NotImplementedError
+
   def CheckPrereq(self):
     """Check prerequisites for this LU.
 
@@ -121,9 +162,7 @@ class LogicalUnit(object):
     not fulfilled. Its return value is ignored.
 
     This method should also update all the parameters of the opcode to
-    their canonical form; e.g. a short node name must be fully
-    expanded after this method has successfully completed (so that
-    hooks, logging, etc. work correctly).
+    their canonical form if it hasn't been done by ExpandNames before.
 
     """
     raise NotImplementedError
