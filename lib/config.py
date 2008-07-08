@@ -37,6 +37,7 @@ import random
 import re
 
 from ganeti import errors
+from ganeti import locking
 from ganeti import logger
 from ganeti import utils
 from ganeti import constants
@@ -44,6 +45,9 @@ from ganeti import rpc
 from ganeti import objects
 from ganeti import serializer
 from ganeti import ssconf
+
+
+_config_lock = locking.SharedLock()
 
 
 def ValidateConfig():
@@ -62,6 +66,7 @@ class ConfigWriter:
   """
   def __init__(self, cfg_file=None, offline=False):
     self.write_count = 0
+    self._lock = _config_lock
     self._config_data = None
     self._config_time = None
     self._config_size = None
@@ -86,6 +91,7 @@ class ConfigWriter:
     """
     return os.path.exists(constants.CLUSTER_CONF_FILE)
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GenerateMAC(self):
     """Generate a MAC for an instance.
 
@@ -108,6 +114,7 @@ class ConfigWriter:
       raise errors.ConfigurationError("Can't generate unique MAC")
     return mac
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def IsMacInUse(self, mac):
     """Predicate: check if the specified MAC is in use in the Ganeti cluster.
 
@@ -131,6 +138,7 @@ class ConfigWriter:
         lvnames.update(lv_list)
     return lvnames
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GenerateUniqueID(self, exceptions=None):
     """Generate an unique disk name.
 
@@ -177,6 +185,7 @@ class ConfigWriter:
 
     return result
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def VerifyConfig(self):
     """Stub verify function.
     """
@@ -202,7 +211,7 @@ class ConfigWriter:
           seen_macs.append(nic.mac)
     return result
 
-  def SetDiskID(self, disk, node_name):
+  def _UnlockedSetDiskID(self, disk, node_name):
     """Convert the unique ID to the ID needed on the target nodes.
 
     This is used only for drbd, which needs ip/port configuration.
@@ -211,10 +220,12 @@ class ConfigWriter:
     this helps when the only the top device is passed to the remote
     node.
 
+    This function is for internal use, when the config lock is already held.
+
     """
     if disk.children:
       for child in disk.children:
-        self.SetDiskID(child, node_name)
+        self._UnlockedSetDiskID(child, node_name)
 
     if disk.logical_id is None and disk.physical_id is not None:
       return
@@ -223,8 +234,8 @@ class ConfigWriter:
       if node_name not in (pnode, snode):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %
                                         node_name)
-      pnode_info = self.GetNodeInfo(pnode)
-      snode_info = self.GetNodeInfo(snode)
+      pnode_info = self._UnlockedGetNodeInfo(pnode)
+      snode_info = self._UnlockedGetNodeInfo(snode)
       if pnode_info is None or snode_info is None:
         raise errors.ConfigurationError("Can't find primary or secondary node"
                                         " for %s" % str(disk))
@@ -238,6 +249,20 @@ class ConfigWriter:
       disk.physical_id = disk.logical_id
     return
 
+  @locking.ssynchronized(_config_lock)
+  def SetDiskID(self, disk, node_name):
+    """Convert the unique ID to the ID needed on the target nodes.
+
+    This is used only for drbd, which needs ip/port configuration.
+
+    The routine descends down and updates its children also, because
+    this helps when the only the top device is passed to the remote
+    node.
+
+    """
+    return self._UnlockedSetDiskID(disk, node_name)
+
+  @locking.ssynchronized(_config_lock)
   def AddTcpUdpPort(self, port):
     """Adds a new port to the available port pool.
 
@@ -249,6 +274,7 @@ class ConfigWriter:
     self._config_data.cluster.tcpudp_port_pool.add(port)
     self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetPortList(self):
     """Returns a copy of the current port list.
 
@@ -256,6 +282,7 @@ class ConfigWriter:
     self._OpenConfig()
     return self._config_data.cluster.tcpudp_port_pool.copy()
 
+  @locking.ssynchronized(_config_lock)
   def AllocatePort(self):
     """Allocate a port.
 
@@ -280,6 +307,7 @@ class ConfigWriter:
     self._WriteConfig()
     return port
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetHostKey(self):
     """Return the rsa hostkey from the config.
 
@@ -290,6 +318,7 @@ class ConfigWriter:
     self._OpenConfig()
     return self._config_data.cluster.rsahostkeypub
 
+  @locking.ssynchronized(_config_lock)
   def AddInstance(self, instance):
     """Add an instance to the config.
 
@@ -327,12 +356,14 @@ class ConfigWriter:
       instance.status = status
       self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock)
   def MarkInstanceUp(self, instance_name):
     """Mark the instance status to up in the config.
 
     """
     self._SetInstanceStatus(instance_name, "up")
 
+  @locking.ssynchronized(_config_lock)
   def RemoveInstance(self, instance_name):
     """Remove the instance from the configuration.
 
@@ -344,6 +375,7 @@ class ConfigWriter:
     del self._config_data.instances[instance_name]
     self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock)
   def RenameInstance(self, old_name, new_name):
     """Rename an instance.
 
@@ -371,12 +403,14 @@ class ConfigWriter:
     self._config_data.instances[inst.name] = inst
     self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock)
   def MarkInstanceDown(self, instance_name):
     """Mark the status of an instance to down in the configuration.
 
     """
     self._SetInstanceStatus(instance_name, "down")
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceList(self):
     """Get the list of instances.
 
@@ -389,6 +423,7 @@ class ConfigWriter:
 
     return self._config_data.instances.keys()
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def ExpandInstanceName(self, short_name):
     """Attempt to expand an incomplete instance name.
 
@@ -398,6 +433,7 @@ class ConfigWriter:
     return utils.MatchNameComponent(short_name,
                                     self._config_data.instances.keys())
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceInfo(self, instance_name):
     """Returns informations about an instance.
 
@@ -418,6 +454,7 @@ class ConfigWriter:
 
     return self._config_data.instances[instance_name]
 
+  @locking.ssynchronized(_config_lock)
   def AddNode(self, node):
     """Add a node to the configuration.
 
@@ -429,6 +466,7 @@ class ConfigWriter:
     self._config_data.nodes[node.name] = node
     self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock)
   def RemoveNode(self, node_name):
     """Remove a node from the configuration.
 
@@ -440,6 +478,7 @@ class ConfigWriter:
     del self._config_data.nodes[node_name]
     self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def ExpandNodeName(self, short_name):
     """Attempt to expand an incomplete instance name.
 
@@ -449,8 +488,10 @@ class ConfigWriter:
     return utils.MatchNameComponent(short_name,
                                     self._config_data.nodes.keys())
 
-  def GetNodeInfo(self, node_name):
+  def _UnlockedGetNodeInfo(self, node_name):
     """Get the configuration of a node, as stored in the config.
+
+    This function is for internal use, when the config lock is already held.
 
     Args: node: nodename (tuple) of the node
 
@@ -464,13 +505,36 @@ class ConfigWriter:
 
     return self._config_data.nodes[node_name]
 
-  def GetNodeList(self):
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeInfo(self, node_name):
+    """Get the configuration of a node, as stored in the config.
+
+    Args: node: nodename (tuple) of the node
+
+    Returns: the node object
+
+    """
+    return self._UnlockedGetNodeInfo(node_name)
+
+  def _UnlockedGetNodeList(self):
     """Return the list of nodes which are in the configuration.
+
+    This function is for internal use, when the config lock is already held.
 
     """
     self._OpenConfig()
     return self._config_data.nodes.keys()
 
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeList(self):
+    """Return the list of nodes which are in the configuration.
+
+    """
+    return self._UnlockedGetNodeList()
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def DumpConfig(self):
     """Return the entire configuration of the cluster.
     """
@@ -533,7 +597,7 @@ class ConfigWriter:
     if self._offline:
       return True
     bad = False
-    nodelist = self.GetNodeList()
+    nodelist = self._UnlockedGetNodeList()
     myhostname = self._my_hostname
 
     try:
@@ -579,6 +643,7 @@ class ConfigWriter:
     # and redistribute the config file
     self._DistributeConfig()
 
+  @locking.ssynchronized(_config_lock)
   def InitConfig(self, node, primary_ip, secondary_ip,
                  hostkeypub, mac_prefix, vg_name, def_bridge):
     """Create the initial cluster configuration.
@@ -611,6 +676,7 @@ class ConfigWriter:
                                            cluster=globalconfig)
     self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetVGName(self):
     """Return the volume group name.
 
@@ -618,6 +684,7 @@ class ConfigWriter:
     self._OpenConfig()
     return self._config_data.cluster.volume_group_name
 
+  @locking.ssynchronized(_config_lock)
   def SetVGName(self, vg_name):
     """Set the volume group name.
 
@@ -626,6 +693,7 @@ class ConfigWriter:
     self._config_data.cluster.volume_group_name = vg_name
     self._WriteConfig()
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetDefBridge(self):
     """Return the default bridge.
 
@@ -633,6 +701,7 @@ class ConfigWriter:
     self._OpenConfig()
     return self._config_data.cluster.default_bridge
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetMACPrefix(self):
     """Return the mac prefix.
 
@@ -640,6 +709,7 @@ class ConfigWriter:
     self._OpenConfig()
     return self._config_data.cluster.mac_prefix
 
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetClusterInfo(self):
     """Returns informations about the cluster
 
@@ -651,6 +721,7 @@ class ConfigWriter:
 
     return self._config_data.cluster
 
+  @locking.ssynchronized(_config_lock)
   def Update(self, target):
     """Notify function to be called after updates.
 
