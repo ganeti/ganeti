@@ -1246,6 +1246,8 @@ class LURemoveNode(LogicalUnit):
     logger.Info("Removing node %s from config" % node.name)
 
     self.cfg.RemoveNode(node.name)
+    # Remove the node from the Ganeti Lock Manager
+    self.context.glm.remove(locking.LEVEL_NODE, node.name)
 
     utils.RemoveHostFromEtcHosts(node.name)
 
@@ -1624,6 +1626,8 @@ class LUAddNode(LogicalUnit):
     if not self.op.readd:
       logger.Info("adding node %s to cluster.conf" % node)
       self.cfg.AddNode(new_node)
+      # Add the new node to the Ganeti Lock Manager
+      self.context.glm.add(locking.LEVEL_NODE, node)
 
 
 class LUMasterFailover(LogicalUnit):
@@ -2366,6 +2370,8 @@ class LURemoveInstance(LogicalUnit):
     logger.Info("removing instance %s out of cluster config" % instance.name)
 
     self.cfg.RemoveInstance(instance.name)
+    # Remove the new instance from the Ganeti Lock Manager
+    self.context.glm.remove(locking.LEVEL_INSTANCE, instance.name)
 
 
 class LUQueryInstances(NoHooksLU):
@@ -3224,6 +3230,8 @@ class LUCreateInstance(LogicalUnit):
     feedback_fn("adding instance %s to cluster config" % instance)
 
     self.cfg.AddInstance(iobj)
+    # Add the new instance to the Ganeti Lock Manager
+    self.context.glm.add(locking.LEVEL_INSTANCE, instance)
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self.cfg, iobj, self.proc)
@@ -3238,6 +3246,8 @@ class LUCreateInstance(LogicalUnit):
     if disk_abort:
       _RemoveDisks(iobj, self.cfg)
       self.cfg.RemoveInstance(iobj.name)
+      # Remove the new instance from the Ganeti Lock Manager
+      self.context.glm.remove(locking.LEVEL_INSTANCE, iobj.name)
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
 
