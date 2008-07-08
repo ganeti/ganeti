@@ -37,6 +37,7 @@ from ganeti import logger
 from ganeti import utils
 from ganeti import errors
 from ganeti import hypervisor
+from ganeti import locking
 from ganeti import config
 from ganeti import constants
 from ganeti import objects
