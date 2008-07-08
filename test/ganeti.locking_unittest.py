@@ -403,6 +403,18 @@ class TestLockSet(unittest.TestCase):
     self.assertRaises(AssertionError, self.ls.add, 'five')
     self.ls.release()
 
+  def testEmptyAcquire(self):
+    # Acquire an empty list of locks...
+    self.assertEquals(self.ls.acquire([]), set())
+    self.assertEquals(self.ls._list_owned(), set())
+    # New locks can still be addded
+    self.assert_(self.ls.add('six'))
+    # "re-acquiring" is not an issue, since we had really acquired nothing
+    self.assertEquals(self.ls.acquire([], shared=1), set())
+    self.assertEquals(self.ls._list_owned(), set())
+    # We haven't really acquired anything, so we cannot release
+    self.assertRaises(AssertionError, self.ls.release)
+
   def _doLockSet(self, set, shared):
     try:
       self.ls.acquire(set, shared=shared)
