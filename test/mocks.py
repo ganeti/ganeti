@@ -67,3 +67,12 @@ class FakeProc:
 
     def LogInfo(self, msg):
         pass
+
+class FakeContext:
+    """Fake context object"""
+
+    def __init__(self):
+        self.cfg = FakeConfig()
+        # TODO: decide what features a mock Ganeti Lock Manager must have
+        self.GLM = None
+
