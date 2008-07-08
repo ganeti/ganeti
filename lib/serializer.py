@@ -28,6 +28,7 @@ backend (currently json).
 import simplejson
 import re
 
+
 # Check whether the simplejson module supports indentation
 _JSON_INDENT = 2
 try:
@@ -38,14 +39,18 @@ except TypeError:
 _RE_EOLSP = re.compile('[ \t]+$', re.MULTILINE)
 
 
-def DumpJson(data):
+def DumpJson(data, indent=True):
   """Serialize a given object.
 
+  Args:
+  - indent: Whether to indent output (depends on simplejson version)
+
   """
-  if _JSON_INDENT is None:
+  if not indent or _JSON_INDENT is None:
     txt = simplejson.dumps(data)
   else:
     txt = simplejson.dumps(data, indent=_JSON_INDENT)
+
   txt = _RE_EOLSP.sub("", txt)
   if not txt.endswith('\n'):
     txt += '\n'
