@@ -101,6 +101,28 @@ class Processor(object):
     self._feedback_fn = feedback
     self.exclusive_BGL = False
 
+  def _ExecLU(self, lu):
+    """Logical Unit execution sequence.
+
+    """
+    write_count = self.context.cfg.write_count
+    lu.CheckPrereq()
+    hm = HooksMaster(rpc.call_hooks_runner, self, lu)
+    h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
+                     self._feedback_fn, None)
+    try:
+      result = lu.Exec(self._feedback_fn)
+      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
+      result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
+                                self._feedback_fn, result)
+    finally:
+      # FIXME: This needs locks if not lu_class.REQ_BGL
+      if write_count != self.context.cfg.write_count:
+        hm.RunConfigUpdate()
+
+    return result
+
   def ExecOpCode(self, op):
     """Execute an opcode.
 
@@ -121,8 +143,6 @@ class Processor(object):
     else:
       sstore = ssconf.SimpleStore()
 
-    write_count = self.context.cfg.write_count
-
     # Acquire the Big Ganeti Lock exclusively if this LU requires it, and in a
     # shared fashion otherwise (to prevent concurrent run with an exclusive LU.
     self.context.glm.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
@@ -130,20 +150,7 @@ class Processor(object):
     try:
       self.exclusive_BGL = lu_class.REQ_BGL
       lu = lu_class(self, op, self.context, sstore)
-      lu.CheckPrereq()
-      hm = HooksMaster(rpc.call_hooks_runner, self, lu)
-      h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
-      lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
-                       self._feedback_fn, None)
-      try:
-        result = lu.Exec(self._feedback_fn)
-        h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
-        result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
-                                  self._feedback_fn, result)
-      finally:
-        # FIXME: This needs locks if not lu_class.REQ_BGL
-        if write_count != self.context.cfg.write_count:
-          hm.RunConfigUpdate()
+      result = self._ExecLU(lu)
     finally:
       self.context.glm.release(locking.LEVEL_CLUSTER)
       self.exclusive_BGL = False
