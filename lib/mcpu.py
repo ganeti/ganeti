@@ -123,6 +123,29 @@ class Processor(object):
 
     return result
 
+  def _LockAndExecLU(self, lu, level):
+    """Execute a Logical Unit, with the needed locks.
+
+    This is a recursive function that starts locking the given level, and
+    proceeds up, till there are no more locks to acquire. Then it executes the
+    given LU and its opcodes.
+
+    """
+    if level in lu.needed_locks:
+      # This is always safe to do, as we can't acquire more/less locks than
+      # what was requested.
+      lu.needed_locks[level] = self.context.glm.acquire(level,
+                                                        lu.needed_locks[level])
+      try:
+        result = self._LockAndExecLU(lu, level + 1)
+      finally:
+        if lu.needed_locks[level]:
+          self.context.glm.release(level)
+    else:
+      result = self._ExecLU(lu)
+
+    return result
+
   def ExecOpCode(self, op):
     """Execute an opcode.
 
@@ -151,7 +174,8 @@ class Processor(object):
       self.exclusive_BGL = lu_class.REQ_BGL
       lu = lu_class(self, op, self.context, sstore)
       lu.ExpandNames()
-      result = self._ExecLU(lu)
+      assert lu.needed_locks is not None, "needed_locks not set by LU"
+      result = self._LockAndExecLU(lu, locking.LEVEL_NODE)
     finally:
       self.context.glm.release(locking.LEVEL_CLUSTER)
       self.exclusive_BGL = False
