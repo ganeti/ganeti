@@ -669,24 +669,19 @@ class LockSet:
 #   - at levels LEVEL_NODE and LEVEL_INSTANCE reside node and instance locks.
 #   If you need more than one node, or more than one instance, acquire them at
 #   the same time.
-#  - level LEVEL_CONFIG contains the configuration lock, which you must acquire
-#  before reading or changing the config file.
 LEVEL_CLUSTER = 0
 LEVEL_NODE = 1
 LEVEL_INSTANCE = 2
-LEVEL_CONFIG = 3
 
 LEVELS = [LEVEL_CLUSTER,
           LEVEL_NODE,
-          LEVEL_INSTANCE,
-          LEVEL_CONFIG]
+          LEVEL_INSTANCE]
 
 # Lock levels which are modifiable
 LEVELS_MOD = [LEVEL_NODE, LEVEL_INSTANCE]
 
-# Constant for the big ganeti lock and config lock
+# Constant for the big ganeti lock
 BGL = 'BGL'
-CONFIG = 'config'
 
 
 class GanetiLockManager:
@@ -720,7 +715,6 @@ class GanetiLockManager:
       LEVEL_CLUSTER: LockSet([BGL]),
       LEVEL_NODE: LockSet(nodes),
       LEVEL_INSTANCE: LockSet(instances),
-      LEVEL_CONFIG: LockSet([CONFIG]),
     }
 
   def _names(self, level):

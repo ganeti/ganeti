@@ -583,7 +583,6 @@ class TestGanetiLockManager(unittest.TestCase):
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(self.nodes))
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),
                      set(self.instances))
-    self.assertEqual(self.GL._names(locking.LEVEL_CONFIG), set(['config']))
 
   def testInitAndResources(self):
     locking.GanetiLockManager._instance = None
@@ -591,14 +590,12 @@ class TestGanetiLockManager(unittest.TestCase):
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
-    self.assertEqual(self.GL._names(locking.LEVEL_CONFIG), set(['config']))
 
     locking.GanetiLockManager._instance = None
     self.GL = locking.GanetiLockManager(nodes=self.nodes)
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(self.nodes))
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
-    self.assertEqual(self.GL._names(locking.LEVEL_CONFIG), set(['config']))
 
     locking.GanetiLockManager._instance = None
     self.GL = locking.GanetiLockManager(instances=self.instances)
@@ -606,7 +603,6 @@ class TestGanetiLockManager(unittest.TestCase):
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),
                      set(self.instances))
-    self.assertEqual(self.GL._names(locking.LEVEL_CONFIG), set(['config']))
 
   def testAcquireRelease(self):
     self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
@@ -616,12 +612,10 @@ class TestGanetiLockManager(unittest.TestCase):
     self.GL.acquire(locking.LEVEL_NODE, ['n1'])
     self.assertEquals(self.GL._list_owned(locking.LEVEL_NODE), set(['n1']))
     self.GL.acquire(locking.LEVEL_INSTANCE, ['i1', 'i2'])
-    self.GL.acquire(locking.LEVEL_CONFIG, ['config'])
     self.GL.release(locking.LEVEL_INSTANCE, ['i2'])
     self.assertEquals(self.GL._list_owned(locking.LEVEL_INSTANCE), set(['i1']))
     self.GL.release(locking.LEVEL_NODE)
     self.GL.release(locking.LEVEL_INSTANCE)
-    self.GL.release(locking.LEVEL_CONFIG)
     self.assertRaises(errors.LockError, self.GL.acquire,
                       locking.LEVEL_INSTANCE, ['i5'])
     self.GL.acquire(locking.LEVEL_INSTANCE, ['i3'], shared=1)
@@ -645,9 +639,6 @@ class TestGanetiLockManager(unittest.TestCase):
     self.assertRaises(AssertionError, self.GL.release,
                       locking.LEVEL_CLUSTER)
     self.GL.release(locking.LEVEL_INSTANCE)
-    self.GL.acquire(locking.LEVEL_CONFIG, ['config'])
-    self.assertRaises(AssertionError, self.GL.release,
-                      locking.LEVEL_CLUSTER)
 
   def testWrongOrder(self):
     self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
@@ -656,16 +647,6 @@ class TestGanetiLockManager(unittest.TestCase):
                       locking.LEVEL_NODE, ['n1'])
     self.assertRaises(AssertionError, self.GL.acquire,
                       locking.LEVEL_INSTANCE, ['i2'])
-    self.GL.acquire(locking.LEVEL_CONFIG, ['config'])
-    self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_CONFIG, ['config'])
-    self.GL.release(locking.LEVEL_INSTANCE)
-    self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_NODE, ['n1'])
-    self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_INSTANCE, ['i2'])
-    self.assertRaises(AssertionError, self.GL.acquire,
-                      locking.LEVEL_CONFIG, ['config'])
 
   # Helper function to run as a thread that shared the BGL and then acquires
   # some locks at another level.
@@ -685,12 +666,10 @@ class TestGanetiLockManager(unittest.TestCase):
     self.assertEqual(self.done.get(True, 1), 'DONE')
     self.GL.acquire(locking.LEVEL_NODE, ['n1'])
     self.GL.acquire(locking.LEVEL_INSTANCE, ['i3'])
-    self.GL.acquire(locking.LEVEL_CONFIG, ['config'])
     Thread(target=self._doLock, args=(locking.LEVEL_INSTANCE, 'i1', 1)).start()
     self.assertEqual(self.done.get(True, 1), 'DONE')
     Thread(target=self._doLock, args=(locking.LEVEL_INSTANCE, 'i3', 1)).start()
     self.assertRaises(Queue.Empty, self.done.get, True, 0.2)
-    self.GL.release(locking.LEVEL_CONFIG)
     self.GL.release(locking.LEVEL_INSTANCE)
     self.assertEqual(self.done.get(True, 1), 'DONE')
     self.GL.acquire(locking.LEVEL_INSTANCE, ['i2'], shared=1)
