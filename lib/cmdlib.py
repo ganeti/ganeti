@@ -4606,17 +4606,26 @@ class LUTestDelay(NoHooksLU):
 
   """
   _OP_REQP = ["duration", "on_master", "on_nodes"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    """Expand names and set required locks.
+
+    This expands the node list, if any.
+
+    """
+    self.needed_locks = {}
+    if self.op.on_nodes:
+      # _GetWantedNodes can be used here, but is not always appropriate to use
+      # this way in ExpandNames. Check LogicalUnit.ExpandNames docstring for
+      # more information.
+      self.op.on_nodes = _GetWantedNodes(self, self.op.on_nodes)
+      self.needed_locks[locking.LEVEL_NODE] = self.op.on_nodes
 
   def CheckPrereq(self):
     """Check prerequisites.
 
-    This checks that we have a good list of nodes and/or the duration
-    is valid.
-
     """
-
-    if self.op.on_nodes:
-      self.op.on_nodes = _GetWantedNodes(self, self.op.on_nodes)
 
   def Exec(self, feedback_fn):
     """Do the actual sleep.
