@@ -93,7 +93,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     prefix = self._config_data.cluster.mac_prefix
     all_macs = self._AllMACs()
     retries = 64
@@ -117,7 +116,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     all_macs = self._AllMACs()
     return mac in all_macs
 
@@ -126,7 +124,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     lvnames = set()
     for instance in self._config_data.instances.values():
       node_data = instance.MapLVsByNode()
@@ -172,7 +169,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     result = []
     for instance in self._config_data.instances.values():
@@ -185,7 +181,6 @@ class ConfigWriter:
     """Stub verify function.
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     result = []
     seen_macs = []
@@ -259,7 +254,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     return self._config_data.cluster.tcpudp_port_pool.copy()
 
   def AllocatePort(self):
@@ -294,7 +288,6 @@ class ConfigWriter:
     Returns: rsa hostkey
     """
     self._OpenConfig()
-    self._ReleaseLock()
     return self._config_data.cluster.rsahostkeypub
 
   def AddInstance(self, instance):
@@ -393,7 +386,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     return self._config_data.instances.keys()
 
@@ -402,7 +394,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     return utils.MatchNameComponent(short_name,
                                     self._config_data.instances.keys())
@@ -421,7 +412,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     if instance_name not in self._config_data.instances:
       return None
@@ -455,7 +445,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     return utils.MatchNameComponent(short_name,
                                     self._config_data.nodes.keys())
@@ -469,7 +458,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     if node_name not in self._config_data.nodes:
       return None
@@ -481,14 +469,12 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     return self._config_data.nodes.keys()
 
   def DumpConfig(self):
     """Return the entire configuration of the cluster.
     """
     self._OpenConfig()
-    self._ReleaseLock()
     return self._config_data
 
   def _BumpSerialNo(self):
@@ -536,10 +522,6 @@ class ConfigWriter:
     self._config_time = st.st_mtime
     self._config_size = st.st_size
     self._config_inode = st.st_ino
-
-  def _ReleaseLock(self):
-    """xxxx
-    """
 
   def _DistributeConfig(self):
     """Distribute the configuration to the other nodes.
@@ -634,7 +616,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     return self._config_data.cluster.volume_group_name
 
   def SetVGName(self, vg_name):
@@ -650,7 +631,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     return self._config_data.cluster.default_bridge
 
   def GetMACPrefix(self):
@@ -658,7 +638,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
     return self._config_data.cluster.mac_prefix
 
   def GetClusterInfo(self):
@@ -669,7 +648,6 @@ class ConfigWriter:
 
     """
     self._OpenConfig()
-    self._ReleaseLock()
 
     return self._config_data.cluster
 
