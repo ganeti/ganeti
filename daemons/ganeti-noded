@@ -30,6 +30,7 @@ import traceback
 import BaseHTTPServer
 import simplejson
 import errno
+import logging
 
 from optparse import OptionParser
 
@@ -41,6 +42,8 @@ from ganeti import objects
 from ganeti import errors
 from ganeti import ssconf
 from ganeti import utils
+
+_EXIT_GANETI_NODED = False
 
 
 class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -56,6 +59,7 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
     path = self.path
     if path.startswith("/"):
       path = path[1:]
+    logging.debug("ServerObject: received call '%s'", path)
     mname = "perspective_%s" % path
     if not hasattr(self, mname):
       self.send_error(404)
@@ -75,6 +79,7 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
       return
     try:
       params = simplejson.loads(body)
+      logging.debug("ServerObject: method parameters: %s", params)
       result = method(params)
       payload = simplejson.dumps(result)
     except errors.QuitGanetiException, err:
@@ -107,7 +112,7 @@ class ServerObject(BaseHTTPServer.BaseHTTPRequestHandler):
            (self.address_string(),
             self.log_date_time_string(),
             format % args))
-    logger.Debug(msg)
+    logging.debug(msg)
 
   # the new block devices  --------------------------
 
@@ -628,10 +633,10 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_NODESERVER)
 
-  logger.SetupLogging(program="ganeti-noded", debug=options.debug)
+  logger.SetupDaemon(logfile=constants.LOG_NODESERVER, debug=options.debug)
+  logging.info("ganeti node daemon startup")
 
   global _EXIT_GANETI_NODED
-  _EXIT_GANETI_NODED = False
 
   httpd = BaseHTTPServer.HTTPServer(('', port), ServerObject)
   while (not _EXIT_GANETI_NODED):
