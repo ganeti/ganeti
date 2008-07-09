@@ -82,6 +82,7 @@ class BlockDev(object):
     self.unique_id = unique_id
     self.major = None
     self.minor = None
+    self.attached = False
 
   def Assemble(self):
     """Assemble the device from its components.
@@ -394,6 +395,7 @@ class LogicalVolume(BlockDev):
     recorded.
 
     """
+    self.attached = False
     result = utils.RunCmd(["lvs", "--noheadings", "--separator=,",
                            "-olv_attr,lv_kernel_major,lv_kernel_minor",
                            self.dev_path])
@@ -422,6 +424,7 @@ class LogicalVolume(BlockDev):
     self.minor = minor
     self._degraded = status[0] == 'v' # virtual volume, i.e. doesn't backing
                                       # storage
+    self.attached = True
     return True
 
   def Assemble(self):
@@ -435,7 +438,8 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvchange", "-ay", self.dev_path])
     if result.failed:
       logging.error("Can't activate lv %s: %s", self.dev_path, result.output)
-    return not result.failed
+      return False
+    return self.Attach()
 
   def Shutdown(self):
     """Shutdown the device.
@@ -728,9 +732,11 @@ class BaseDRBD(BlockDev):
     """
     if minor is None:
       self.minor = self.dev_path = None
+      self.attached = False
     else:
       self.minor = minor
       self.dev_path = self._DevPath(minor)
+      self.attached = True
 
   @staticmethod
   def _CheckMetaSize(meta_device):
@@ -1550,7 +1556,7 @@ def FindDevice(dev_type, unique_id, children):
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
   device = DEV_MAP[dev_type](unique_id, children)
-  if not device.Attach():
+  if not device.attached:
     return None
   return  device
 
@@ -1565,9 +1571,9 @@ def AttachOrAssemble(dev_type, unique_id, children):
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
   device = DEV_MAP[dev_type](unique_id, children)
-  if not device.Attach():
+  if not device.attached:
     device.Assemble()
-    if not device.Attach():
+    if not device.attached:
       raise errors.BlockDeviceError("Can't find a valid block device for"
                                     " %s/%s/%s" %
                                     (dev_type, unique_id, children))
