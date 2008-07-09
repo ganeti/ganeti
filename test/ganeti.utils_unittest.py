@@ -37,7 +37,7 @@ import ganeti
 import testutils
 from ganeti import constants
 from ganeti import utils
-from ganeti.utils import IsProcessAlive, Lock, Unlock, RunCmd, \
+from ganeti.utils import IsProcessAlive, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
