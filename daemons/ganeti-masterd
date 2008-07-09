@@ -391,7 +391,8 @@ def main():
     utils.Daemonize(logfile=constants.LOG_MASTERDAEMON,
                     noclose_fds=[master.fileno()])
 
-  logger.SetupDaemon(constants.LOG_MASTERDAEMON, debug=options.debug)
+  logger.SetupDaemon(constants.LOG_MASTERDAEMON, debug=options.debug,
+                     stderr_logging=not options.fork)
 
   logging.info("ganeti master daemon startup")
 

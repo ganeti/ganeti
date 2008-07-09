@@ -633,7 +633,8 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_NODESERVER)
 
-  logger.SetupDaemon(logfile=constants.LOG_NODESERVER, debug=options.debug)
+  logger.SetupDaemon(logfile=constants.LOG_NODESERVER, debug=options.debug,
+                     stderr_logging=not options.fork)
   logging.info("ganeti node daemon startup")
 
   global _EXIT_GANETI_NODED
