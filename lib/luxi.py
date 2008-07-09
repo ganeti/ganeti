@@ -40,8 +40,11 @@ from ganeti import serializer
 from ganeti import constants
 
 
-KEY_REQUEST = 'request'
-KEY_DATA = 'data'
+KEY_METHOD = 'method'
+KEY_ARGS = 'args'
+KEY_SUCCESS = "success"
+KEY_RESULT = "result"
+
 REQ_SUBMIT = 'submit'
 REQ_ABORT = 'abort'
 REQ_QUERY = 'query'
@@ -81,6 +84,7 @@ class RequestError(ProtocolError):
     - query failed because required fields were missing
 
   """
+
 
 class NoMasterError(ProtocolError):
   """The master cannot be reached
@@ -261,35 +265,42 @@ class Client(object):
       address = constants.MASTER_SOCKET
     self.transport = transport(address, timeouts=timeouts)
 
-  def SendRequest(self, request, data):
+  def CallMethod(self, method, args):
     """Send a generic request and return the response.
 
     """
-    msg = {KEY_REQUEST: request, KEY_DATA: data}
-    result = self.transport.Call(serializer.DumpJson(msg, indent=False))
+    # Build request
+    request = {
+      KEY_METHOD: method,
+      KEY_ARGS: args,
+      }
+
+    # Send request and wait for response
+    result = self.transport.Call(serializer.DumpJson(request, indent=False))
     try:
       data = serializer.LoadJson(result)
     except Exception, err:
       raise ProtocolError("Error while deserializing response: %s" % str(err))
+
+    # Validate response
     if (not isinstance(data, dict) or
-        'success' not in data or
-        'result' not in data):
+        KEY_SUCCESS not in data or
+        KEY_RESULT not in data):
       raise DecodingError("Invalid response from server: %s" % str(data))
-    return data
+
+    if not data[KEY_SUCCESS]:
+      # TODO: decide on a standard exception
+      raise RequestError(data[KEY_RESULT])
+
+    return data[KEY_RESULT]
 
   def SubmitJob(self, job):
     """Submit a job"""
-    result = self.SendRequest(REQ_SUBMIT, SerializeJob(job))
-    if not result['success']:
-      raise RequestError(result['result'])
-    return result['result']
+    return self.CallMethod(REQ_SUBMIT, SerializeJob(job))
 
   def Query(self, data):
     """Make a query"""
-    result = self.SendRequest(REQ_QUERY, data)
-    if not result['success']:
-      raise RequestError(result[result])
-    result = result['result']
+    result = self.CallMethod(REQ_QUERY, data)
     if data["object"] == "jobs":
       # custom job processing of query values
       for row in result:
@@ -297,3 +308,5 @@ class Client(object):
           if field == "op_list":
             row[idx] = [opcodes.OpCode.LoadOpCode(i) for i in row[idx]]
     return result
+
+# TODO: class Server(object)

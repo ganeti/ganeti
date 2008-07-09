@@ -175,21 +175,36 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
     while True:
       msg = self.read_message()
       if msg is None:
-        print "client closed connection"
+        logging.info("client closed connection")
         break
+
       request = simplejson.loads(msg)
+      logging.debug("request: %s", request)
       if not isinstance(request, dict):
-        print "wrong request received: %s" % msg
+        logging.error("wrong request received: %s", msg)
         break
-      method = request.get('request', None)
-      data = request.get('data', None)
-      if method is None or data is None:
-        print "no method or data in request"
+
+      method = request.get(luxi.KEY_METHOD, None)
+      args = request.get(luxi.KEY_ARGS, None)
+      if method is None or args is None:
+        logging.error("no method or args in request")
         break
-      print "request:", method, data
-      result = self._ops.handle_request(method, data)
-      print "result:", result
-      self.send_message(simplejson.dumps({'success': True, 'result': result}))
+
+      success = False
+      try:
+        result = self._ops.handle_request(method, args)
+        success = True
+      except:
+        logging.error("Unexpected exception", exc_info=True)
+        err = sys.exc_info()
+        result = "Caught exception: %s" % str(err[1])
+
+      response = {
+        luxi.KEY_SUCCESS: success,
+        luxi.KEY_RESULT: result,
+        }
+      logging.debug("response: %s", response)
+      self.send_message(simplejson.dumps(response))
 
   def read_message(self):
     while not self._msgs:
