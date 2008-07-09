@@ -225,46 +225,30 @@ class ClientOps:
   """Class holding high-level client operations."""
   def __init__(self, server):
     self.server = server
-    self._cpu = None
 
-  def _getcpu(self):
-    if self._cpu is None:
-      self._cpu = mcpu.Processor(lambda x: None)
-    return self._cpu
+  def handle_request(self, method, args):
+    queue = self.server.jobqueue
 
-  def handle_request(self, operation, args):
-    print operation, args
-    if operation == "submit":
-      return self.put(args)
-    elif operation == "query":
-      return self.query(args)
+    # TODO: Parameter validation
+
+    if method == luxi.REQ_SUBMIT_JOB:
+      ops = [opcodes.OpCode.LoadOpCode(state) for state in args]
+      return queue.SubmitJob(ops)
+
+    elif method == luxi.REQ_CANCEL_JOB:
+      (job_id, ) = args
+      return queue.CancelJob(job_id)
+
+    elif method == luxi.REQ_ARCHIVE_JOB:
+      (job_id, ) = args
+      return queue.ArchiveJob(job_id)
+
+    elif method == luxi.REQ_QUERY_JOBS:
+      (job_ids, fields) = args
+      return queue.QueryJobs(job_ids, fields)
+
     else:
       raise ValueError("Invalid operation")
-
-  def put(self, args):
-    job = luxi.UnserializeJob(args)
-    rid = self.server.queue.put(job)
-    return rid
-
-  def query(self, args):
-    path = args["object"]
-    fields = args["fields"]
-    names = args["names"]
-    if path == "instances":
-      opclass = opcodes.OpQueryInstances
-    elif path == "jobs":
-      # early exit because job query-ing is special (not via opcodes)
-      return self.query_jobs(fields, names)
-    else:
-      raise ValueError("Invalid object %s" % path)
-
-    op = opclass(output_fields = fields, names=names)
-    cpu = self._getcpu()
-    result = cpu.ExecOpCode(op)
-    return result
-
-  def query_jobs(self, fields, names):
-    return self.server.queue.query_jobs(fields, names)
 
 
 def JobRunner(proc, job, context):

@@ -41,7 +41,7 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError, SUPPRESS_HELP)
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
-           "SubmitOpCode", "SubmitJob", "SubmitQuery",
+           "SubmitOpCode",
            "cli_option", "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
@@ -370,7 +370,7 @@ def AskUser(text, choices=None):
 
 
 def SubmitOpCode(op, proc=None, feedback_fn=None):
-  """Function to submit an opcode.
+  """Legacy function to submit an opcode.
 
   This is just a simple wrapper over the construction of the processor
   instance. It should be extended to better handle feedback and
@@ -379,46 +379,30 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   """
   # TODO: Fix feedback_fn situation.
   cl = luxi.Client()
-  job = opcodes.Job(op_list=[op])
-  jid = SubmitJob(job, cl)
 
-  query = {
-    "object": "jobs",
-    "fields": ["status"],
-    "names": [jid],
-    }
+  job_id = cl.SubmitJob([op])
 
   while True:
-    jdata = SubmitQuery(query, cl)
-    if not jdata:
+    jobs = cl.QueryJobs([job_id], ["status"])
+    if not jobs:
       # job not found, go away!
-      raise errors.JobLost("Job with id %s lost" % jid)
+      raise errors.JobLost("Job with id %s lost" % job_id)
 
-    status = jdata[0][0]
-    if status in (opcodes.Job.STATUS_SUCCESS, opcodes.Job.STATUS_FAIL):
+    # TODO: Handle canceled and archived jobs
+    status = jobs[0][0]
+    if status in (constants.JOB_STATUS_SUCCESS, constants.JOB_STATUS_ERROR):
       break
     time.sleep(1)
 
-  query["fields"].extend(["op_list", "op_status", "op_result"])
-  jdata = SubmitQuery(query, cl)
-  if not jdata:
-    raise errors.JobLost("Job with id %s lost" % jid)
-  status, op_list, op_status, op_result = jdata[0]
-  if status != opcodes.Job.STATUS_SUCCESS:
-    raise errors.OpExecError(op_result[0])
-  return op_result[0]
+  jobs = cl.QueryJobs([job_id], ["status", "result"])
+  if not jobs:
+    raise errors.JobLost("Job with id %s lost" % job_id)
 
-
-def SubmitJob(job, cl=None):
-  if cl is None:
-    cl = luxi.Client()
-  return cl.SubmitJob(job)
-
-
-def SubmitQuery(data, cl=None):
-  if cl is None:
-    cl = luxi.Client()
-  return cl.Query(data)
+  status, result = jobs[0]
+  if status == constants.JOB_STATUS_SUCCESS:
+    return result[0]
+  else:
+    raise errors.OpExecError(result)
 
 
 def FormatError(err):

@@ -45,9 +45,10 @@ KEY_ARGS = 'args'
 KEY_SUCCESS = "success"
 KEY_RESULT = "result"
 
-REQ_SUBMIT = 'submit'
-REQ_ABORT = 'abort'
-REQ_QUERY = 'query'
+REQ_SUBMIT_JOB = "SubmitJob"
+REQ_CANCEL_JOB = "CancelJob"
+REQ_ARCHIVE_JOB = "ArchiveJob"
+REQ_QUERY_JOBS = "QueryJobs"
 
 DEF_CTMO = 10
 DEF_RWTO = 60
@@ -294,19 +295,17 @@ class Client(object):
 
     return data[KEY_RESULT]
 
-  def SubmitJob(self, job):
-    """Submit a job"""
-    return self.CallMethod(REQ_SUBMIT, SerializeJob(job))
+  def SubmitJob(self, ops):
+    ops_state = map(lambda op: op.__getstate__(), ops)
+    return self.CallMethod(REQ_SUBMIT_JOB, ops_state)
 
-  def Query(self, data):
-    """Make a query"""
-    result = self.CallMethod(REQ_QUERY, data)
-    if data["object"] == "jobs":
-      # custom job processing of query values
-      for row in result:
-        for idx, field in enumerate(data["fields"]):
-          if field == "op_list":
-            row[idx] = [opcodes.OpCode.LoadOpCode(i) for i in row[idx]]
-    return result
+  def CancelJob(self, job_id):
+    return self.CallMethod(REQ_CANCEL_JOB, job_id)
+
+  def ArchiveJob(self, job_id):
+    return self.CallMethod(REQ_ARCHIVE_JOB, job_id)
+
+  def QueryJobs(self, job_ids, fields):
+    return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))
 
 # TODO: class Server(object)
