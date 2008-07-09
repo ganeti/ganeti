@@ -39,10 +39,10 @@ import itertools
 import select
 import fcntl
 import resource
+import logging
 
 from cStringIO import StringIO
 
-from ganeti import logger
 from ganeti import errors
 from ganeti import constants
 
@@ -88,9 +88,9 @@ class RunResult(object):
     else:
       self.fail_reason = "unable to determine termination reason"
 
-    if debug and self.failed:
-      logger.Debug("Command '%s' failed (%s); output: %s" %
-                   (self.cmd, self.fail_reason, self.output))
+    if self.failed:
+      logging.debug("Command '%s' failed (%s); output: %s",
+                    self.cmd, self.fail_reason, self.output)
 
   def _GetOutput(self):
     """Returns the combined stdout and stderr for easier usage.
@@ -123,6 +123,7 @@ def RunCmd(cmd):
   else:
     strcmd = cmd
     shell = True
+  logging.debug("RunCmd '%s'", strcmd)
   env = os.environ.copy()
   env["LC_ALL"] = "C"
   poller = select.poll()
@@ -258,8 +259,7 @@ def CheckDict(target, template, logname=None):
       target[k] = template[k]
 
   if missing and logname:
-    logger.Debug('%s missing keys %s' %
-                 (logname, ', '.join(missing)))
+    logging.warning('%s missing keys %s', logname, ', '.join(missing))
 
 
 def IsProcessAlive(pid):
@@ -386,7 +386,7 @@ def ListVolumeGroups():
       name, size = line.split()
       size = int(float(size))
     except (IndexError, ValueError), err:
-      logger.Error("Invalid output from vgs (%s): %s" % (err, line))
+      logging.error("Invalid output from vgs (%s): %s", err, line)
       continue
 
     retval[name] = size
