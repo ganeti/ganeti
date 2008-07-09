@@ -22,121 +22,15 @@
 """Module implementing the job queue handling."""
 
 import logging
-import Queue
 import threading
 
 from ganeti import constants
 from ganeti import workerpool
-from ganeti import opcodes
 from ganeti import errors
 from ganeti import mcpu
 
 
 JOBQUEUE_THREADS = 5
-
-
-class JobObject:
-  """In-memory job representation.
-
-  This is what we use to track the user-submitted jobs (which are of
-  class opcodes.Job).
-
-  """
-  def __init__(self, jid, jdesc):
-    self.data = jdesc
-    jdesc.status = opcodes.Job.STATUS_PENDING
-    jdesc.job_id = jid
-    jdesc.op_status = [opcodes.Job.STATUS_PENDING for i in jdesc.op_list]
-    jdesc.op_result = [None for i in jdesc.op_list]
-    self.lock = threading.Lock()
-
-  def SetStatus(self, status, result=None):
-    self.lock.acquire()
-    self.data.status = status
-    if result is not None:
-      self.data.op_result = result
-    self.lock.release()
-
-  def GetData(self):
-    self.lock.acquire()
-    #FIXME(iustin): make a deep copy of result
-    result = self.data
-    self.lock.release()
-    return result
-
-
-class QueueManager:
-  """Example queue implementation.
-
-  """
-  def __init__(self):
-    self.job_queue = {}
-    self.jid = 1
-    self.lock = threading.Lock()
-    self.new_queue = Queue.Queue()
-
-  def put(self, item):
-    """Add a new job to the queue.
-
-    This enters the job into our job queue and also puts it on the new
-    queue, in order for it to be picked up by the queue processors.
-
-    """
-    self.lock.acquire()
-    try:
-      rid = self.jid
-      self.jid += 1
-      job = JobObject(rid, item)
-      self.job_queue[rid] = job
-    finally:
-      self.lock.release()
-    self.new_queue.put(job)
-    return rid
-
-  def query(self, rid):
-    """Query a given job ID.
-
-    """
-    self.lock.acquire()
-    result = self.job_queue.get(rid, None)
-    self.lock.release()
-    return result
-
-  def query_jobs(self, fields, names):
-    """Query all jobs.
-
-    The fields and names parameters are similar to the ones passed to
-    the OpQueryInstances.
-
-    """
-    result = []
-    self.lock.acquire()
-    if names:
-      values = [self.job_queue[j_id] for j_id in names]
-    else:
-      values = self.job_queue.itervalues()
-    try:
-      for jobj in values:
-        row = []
-        jdata = jobj.data
-        for fname in fields:
-          if fname == "id":
-            row.append(jdata.job_id)
-          elif fname == "status":
-            row.append(jdata.status)
-          elif fname == "op_list":
-            row.append([op.__getstate__() for op in jdata.op_list])
-          elif fname == "op_status":
-            row.append(jdata.op_status)
-          elif fname == "op_result":
-            row.append(jdata.op_result)
-          else:
-            raise errors.OpExecError("Invalid job query field '%s'" %
-                                           fname)
-        result.append(row)
-    finally:
-      self.lock.release()
-    return result
 
 
 class _QueuedOpCode(object):

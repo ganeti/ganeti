@@ -96,24 +96,6 @@ class NoMasterError(ProtocolError):
   """
 
 
-def SerializeJob(job):
-  """Convert a job description to a string format.
-
-  """
-  return simplejson.dumps(job.__getstate__())
-
-
-def UnserializeJob(data):
-  """Load a job from a string format"""
-  try:
-    new_data = simplejson.loads(data)
-  except Exception, err:
-    raise DecodingError("Error while unserializing: %s" % str(err))
-  job = opcodes.Job()
-  job.__setstate__(new_data)
-  return job
-
-
 class Transport:
   """Low-level transport class.
 

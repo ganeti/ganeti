@@ -66,8 +66,6 @@ class IOServer(SocketServer.UnixStreamServer):
   cleanup at shutdown.
 
   """
-  QUEUE_PROCESSOR_SIZE = 5
-
   def __init__(self, address, rqhandler, context):
     """IOServer constructor
 
@@ -79,9 +77,7 @@ class IOServer(SocketServer.UnixStreamServer):
     """
     SocketServer.UnixStreamServer.__init__(self, address, rqhandler)
     self.do_quit = False
-    self.queue = jqueue.QueueManager()
     self.context = context
-    self.processors = []
 
     # We'll only start threads once we've forked.
     self.jobqueue = None
@@ -91,21 +87,6 @@ class IOServer(SocketServer.UnixStreamServer):
 
   def setup_queue(self):
     self.jobqueue = jqueue.JobQueue(self.context)
-
-  def setup_processors(self):
-    """Spawn the processors threads.
-
-    This initializes the queue and the thread processors. It is done
-    separately from the constructor because we want the clone()
-    syscalls to happen after the daemonize part.
-
-    """
-    for i in range(self.QUEUE_PROCESSOR_SIZE):
-      self.processors.append(threading.Thread(target=PoolWorker,
-                                              args=(i, self.queue.new_queue,
-                                                    self.context)))
-    for t in self.processors:
-      t.start()
 
   def process_request_thread(self, request, client_address):
     """Process the request.
@@ -150,12 +131,6 @@ class IOServer(SocketServer.UnixStreamServer):
     try:
       self.server_close()
       utils.RemoveFile(constants.MASTER_SOCKET)
-      for i in range(self.QUEUE_PROCESSOR_SIZE):
-        self.queue.new_queue.put(None)
-      for idx, t in enumerate(self.processors):
-        logging.debug("waiting for processor thread %s...", idx)
-        t.join()
-      logging.debug("threads done")
     finally:
       if self.jobqueue:
         self.jobqueue.Shutdown()
@@ -428,7 +403,6 @@ def main():
     return
 
   try:
-    master.setup_processors()
     master.setup_queue()
     try:
       master.serve_forever()

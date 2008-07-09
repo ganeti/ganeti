@@ -73,51 +73,6 @@ class BaseJO(object):
       setattr(self, name, state[name])
 
 
-class Job(BaseJO):
-  """Job definition structure
-
-  The Job definitions has two sets of parameters:
-    - the parameters of the job itself (all filled by server):
-      - job_id,
-      - status: pending, running, successfull, failed, aborted
-    - opcode parameters:
-      - op_list, list of opcodes, clients creates this
-      - op_status, status for each opcode, server fills in
-      - op_result, result for each opcode, server fills in
-
-  """
-  STATUS_PENDING = 1
-  STATUS_RUNNING = 2
-  STATUS_SUCCESS = 3
-  STATUS_FAIL = 4
-  STATUS_ABORT = 5
-
-  __slots__ = [
-    "job_id",
-    "status",
-    "op_list",
-    "op_status",
-    "op_result",
-    ]
-
-  def __getstate__(self):
-    """Specialized getstate for jobs
-
-    """
-    data = BaseJO.__getstate__(self)
-    if "op_list" in data:
-      data["op_list"] = [op.__getstate__() for op in data["op_list"]]
-    return data
-
-  def __setstate__(self, state):
-    """Specialized setstate for jobs
-
-    """
-    BaseJO.__setstate__(self, state)
-    if "op_list" in state:
-      self.op_list = [OpCode.LoadOpCode(op) for op in state["op_list"]]
-
-
 class OpCode(BaseJO):
   """Abstract OpCode"""
   OP_ID = "OP_ABSTRACT"
