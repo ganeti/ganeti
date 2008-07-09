@@ -1093,15 +1093,7 @@ def _WaitForSync(cfgw, instance, proc, oneshot=False, unlock=False):
     if done or oneshot:
       break
 
-    if unlock:
-      #utils.Unlock('cmd')
-      pass
-    try:
-      time.sleep(min(60, max_time))
-    finally:
-      if unlock:
-        #utils.Lock('cmd')
-        pass
+    time.sleep(min(60, max_time))
 
   if done:
     proc.LogInfo("Instance %s's disks are in sync." % instance.name)

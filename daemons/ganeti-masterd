@@ -393,24 +393,13 @@ def main():
 
   logger.SetupDaemon(constants.LOG_MASTERDAEMON, debug=options.debug)
 
-  logger.Info("ganeti master daemon startup")
+  logging.info("ganeti master daemon startup")
 
+  master.setup_queue()
   try:
-    utils.Lock('cmd', debug=options.debug)
-  except errors.LockError, err:
-    print >> sys.stderr, str(err)
-    master.server_cleanup()
-    return
-
-  try:
-    master.setup_queue()
-    try:
-      master.serve_forever()
-    finally:
-      master.server_cleanup()
+    master.serve_forever()
   finally:
-    utils.Unlock('cmd')
-    utils.LockCleanup()
+    master.server_cleanup()
 
 
 if __name__ == "__main__":
