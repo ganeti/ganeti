@@ -26,9 +26,9 @@ import time
 import errno
 import pyparsing as pyp
 import os
+import logging
 
 from ganeti import utils
-from ganeti import logger
 from ganeti import errors
 from ganeti import constants
 
@@ -337,14 +337,14 @@ class LogicalVolume(BlockDev):
                "--separator=:"]
     result = utils.RunCmd(command)
     if result.failed:
-      logger.Error("Can't get the PV information: %s - %s" %
-                   (result.fail_reason, result.output))
+      logging.error("Can't get the PV information: %s - %s",
+                    result.fail_reason, result.output)
       return None
     data = []
     for line in result.stdout.splitlines():
       fields = line.strip().split(':')
       if len(fields) != 4:
-        logger.Error("Can't parse pvs output: line '%s'" % line)
+        logging.error("Can't parse pvs output: line '%s'", line)
         return None
       # skip over pvs from another vg or ones which are not allocatable
       if fields[1] != vg_name or fields[3][0] != 'a':
@@ -363,8 +363,8 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvremove", "-f", "%s/%s" %
                            (self._vg_name, self._lv_name)])
     if result.failed:
-      logger.Error("Can't lvremove: %s - %s" %
-                   (result.fail_reason, result.output))
+      logging.error("Can't lvremove: %s - %s",
+                    result.fail_reason, result.output)
 
     return not result.failed
 
@@ -398,25 +398,25 @@ class LogicalVolume(BlockDev):
                            "-olv_attr,lv_kernel_major,lv_kernel_minor",
                            self.dev_path])
     if result.failed:
-      logger.Error("Can't find LV %s: %s, %s" %
-                   (self.dev_path, result.fail_reason, result.output))
+      logging.error("Can't find LV %s: %s, %s",
+                    self.dev_path, result.fail_reason, result.output)
       return False
     out = result.stdout.strip().rstrip(',')
     out = out.split(",")
     if len(out) != 3:
-      logger.Error("Can't parse LVS output, len(%s) != 3" % str(out))
+      logging.error("Can't parse LVS output, len(%s) != 3", str(out))
       return False
 
     status, major, minor = out[:3]
     if len(status) != 6:
-      logger.Error("lvs lv_attr is not 6 characters (%s)" % status)
+      logging.error("lvs lv_attr is not 6 characters (%s)", status)
       return False
 
     try:
       major = int(major)
       minor = int(minor)
     except ValueError, err:
-      logger.Error("lvs major/minor cannot be parsed: %s" % str(err))
+      logging.error("lvs major/minor cannot be parsed: %s", str(err))
 
     self.major = major
     self.minor = minor
@@ -434,7 +434,7 @@ class LogicalVolume(BlockDev):
     """
     result = utils.RunCmd(["lvchange", "-ay", self.dev_path])
     if result.failed:
-      logger.Error("Can't activate lv %s: %s" % (self.dev_path, result.output))
+      logging.error("Can't activate lv %s: %s", self.dev_path, result.output)
     return not result.failed
 
   def Shutdown(self):
@@ -742,20 +742,20 @@ class BaseDRBD(BlockDev):
     """
     result = utils.RunCmd(["blockdev", "--getsize", meta_device])
     if result.failed:
-      logger.Error("Failed to get device size: %s - %s" %
-                   (result.fail_reason, result.output))
+      logging.error("Failed to get device size: %s - %s",
+                    result.fail_reason, result.output)
       return False
     try:
       sectors = int(result.stdout)
     except ValueError:
-      logger.Error("Invalid output from blockdev: '%s'" % result.stdout)
+      logging.error("Invalid output from blockdev: '%s'", result.stdout)
       return False
     bytes = sectors * 512
     if bytes < 128 * 1024 * 1024: # less than 128MiB
-      logger.Error("Meta device too small (%.2fMib)" % (bytes / 1024 / 1024))
+      logging.error("Meta device too small (%.2fMib)", (bytes / 1024 / 1024))
       return False
     if bytes > (128 + 32) * 1024 * 1024: # account for an extra (big) PE on LVM
-      logger.Error("Meta device too big (%.2fMiB)" % (bytes / 1024 / 1024))
+      logging.error("Meta device too big (%.2fMiB)", (bytes / 1024 / 1024))
       return False
     return True
 
@@ -840,7 +840,7 @@ class DRBD8(BaseDRBD):
     if highest is None: # there are no minors in use at all
       return 0
     if highest >= cls._MAX_MINORS:
-      logger.Error("Error: no free drbd minors!")
+      logging.error("Error: no free drbd minors!")
       raise errors.BlockDeviceError("Can't find a free DRBD minor")
     return highest + 1
 
@@ -855,7 +855,7 @@ class DRBD8(BaseDRBD):
                            "v08", meta_device, "0",
                            "dstate"])
     if result.failed:
-      logger.Error("Invalid meta device %s: %s" % (meta_device, result.output))
+      logging.error("Invalid meta device %s: %s", meta_device, result.output)
       return False
     return True
 
@@ -916,8 +916,8 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "show"])
     if result.failed:
-      logger.Error("Can't display the drbd config: %s - %s" %
-                   (result.fail_reason, result.output))
+      logging.error("Can't display the drbd config: %s - %s",
+                    result.fail_reason, result.output)
       return None
     return result.stdout
 
@@ -1030,7 +1030,7 @@ class DRBD8(BaseDRBD):
             backend, meta, "0", "-e", "detach", "--create-device"]
     result = utils.RunCmd(args)
     if result.failed:
-      logger.Error("Can't attach local disk: %s" % result.output)
+      logging.error("Can't attach local disk: %s", result.output)
     return not result.failed
 
   @classmethod
@@ -1057,8 +1057,8 @@ class DRBD8(BaseDRBD):
       args.extend(["-a", hmac, "-x", secret])
     result = utils.RunCmd(args)
     if result.failed:
-      logger.Error("Can't setup network for dbrd device: %s - %s" %
-                   (result.fail_reason, result.output))
+      logging.error("Can't setup network for dbrd device: %s - %s",
+                    result.fail_reason, result.output)
       return False
 
     timeout = time.time() + 10
@@ -1075,7 +1075,7 @@ class DRBD8(BaseDRBD):
       ok = True
       break
     if not ok:
-      logger.Error("Timeout while configuring network")
+      logging.error("Timeout while configuring network")
       return False
     return True
 
@@ -1120,7 +1120,7 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("We don't have two children: %s" %
                                     self._children)
     if self._children.count(None) == 2: # we don't actually have children :)
-      logger.Error("Requested detach while detached")
+      logging.error("Requested detach while detached")
       return
     if len(devices) != 2:
       raise errors.BlockDeviceError("We need two children in RemoveChildren")
@@ -1140,13 +1140,13 @@ class DRBD8(BaseDRBD):
     """
     children_result = super(DRBD8, self).SetSyncSpeed(kbytes)
     if self.minor is None:
-      logger.Info("Instance not attached to a device")
+      logging.info("Instance not attached to a device")
       return False
     result = utils.RunCmd(["drbdsetup", self.dev_path, "syncer", "-r", "%d" %
                            kbytes])
     if result.failed:
-      logger.Error("Can't change syncer rate: %s - %s" %
-                   (result.fail_reason, result.output))
+      logging.error("Can't change syncer rate: %s - %s",
+                    result.fail_reason, result.output)
     return not result.failed and children_result
 
   def GetProcStatus(self):
@@ -1196,7 +1196,7 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None and not self.Attach():
-      logger.Error("DRBD cannot attach to a device during open")
+      logging.error("DRBD cannot attach to a device during open")
       return False
     cmd = ["drbdsetup", self.dev_path, "primary"]
     if force:
@@ -1204,7 +1204,7 @@ class DRBD8(BaseDRBD):
     result = utils.RunCmd(cmd)
     if result.failed:
       msg = ("Can't make drbd device primary: %s" % result.output)
-      logger.Error(msg)
+      logging.error(msg)
       raise errors.BlockDeviceError(msg)
 
   def Close(self):
@@ -1214,13 +1214,13 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None and not self.Attach():
-      logger.Info("Instance not attached to a device")
+      logging.info("Instance not attached to a device")
       raise errors.BlockDeviceError("Can't find device")
     result = utils.RunCmd(["drbdsetup", self.dev_path, "secondary"])
     if result.failed:
       msg = ("Can't switch drbd device to"
              " secondary: %s" % result.output)
-      logger.Error(msg)
+      logging.error(msg)
       raise errors.BlockDeviceError(msg)
 
   def Attach(self):
@@ -1300,7 +1300,7 @@ class DRBD8(BaseDRBD):
     """
     self.Attach()
     if self.minor is not None:
-      logger.Info("Already assembled")
+      logging.info("Already assembled")
       return True
 
     result = super(DRBD8, self).Assemble()
@@ -1323,7 +1323,7 @@ class DRBD8(BaseDRBD):
       if not result:
         if need_localdev_teardown:
           # we will ignore failures from this
-          logger.Error("net setup failed, tearing down local device")
+          logging.error("net setup failed, tearing down local device")
           self._ShutdownAll(minor)
         return False
     self._SetFromMinor(minor)
@@ -1339,7 +1339,7 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "detach"])
     if result.failed:
-      logger.Error("Can't detach local device: %s" % result.output)
+      logging.error("Can't detach local device: %s", result.output)
     return not result.failed
 
   @classmethod
@@ -1351,7 +1351,7 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disconnect"])
     if result.failed:
-      logger.Error("Can't shutdown network: %s" % result.output)
+      logging.error("Can't shutdown network: %s", result.output)
     return not result.failed
 
   @classmethod
@@ -1363,7 +1363,7 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "down"])
     if result.failed:
-      logger.Error("Can't shutdown drbd device: %s" % result.output)
+      logging.error("Can't shutdown drbd device: %s", result.output)
     return not result.failed
 
   def Shutdown(self):
@@ -1371,7 +1371,7 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None and not self.Attach():
-      logger.Info("DRBD device not attached to a device during Shutdown")
+      logging.info("DRBD device not attached to a device during Shutdown")
       return True
     if not self._ShutdownAll(self.minor):
       return False
@@ -1491,8 +1491,7 @@ class FileStorage(BlockDev):
       os.remove(self.dev_path)
       return True
     except OSError, err:
-      logger.Error("Can't remove file '%s': %s"
-                   % (self.dev_path, err))
+      logging.error("Can't remove file '%s': %s", self.dev_path, err)
       return False
 
   def Attach(self):
