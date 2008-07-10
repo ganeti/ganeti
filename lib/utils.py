@@ -1082,3 +1082,15 @@ def LockedMethod(fn):
       lock.release()
     return result
   return wrapper
+
+
+def LockFile(fd):
+  """Locks a file using POSIX locks.
+
+  """
+  try:
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+  except IOError, err:
+    if err.errno == errno.EAGAIN:
+      raise errors.LockError("File already locked")
+    raise
