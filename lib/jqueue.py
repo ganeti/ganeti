@@ -103,10 +103,12 @@ class _QueuedJob(object):
 
     """
     try:
-      for op in self._ops:
+      count = len(self._ops)
+      for idx, op in enumerate(self._ops):
         try:
           self._lock.acquire()
           try:
+            logging.debug("Op %s/%s: Starting %s", idx + 1, count, op)
             op.status = constants.OP_STATUS_RUNNING
           finally:
             self._lock.release()
@@ -115,6 +117,8 @@ class _QueuedJob(object):
 
           self._lock.acquire()
           try:
+            logging.debug("Op %s/%s: Successfully finished %s",
+                          idx + 1, count, op)
             op.status = constants.OP_STATUS_SUCCESS
             op.result = result
           finally:
@@ -122,6 +126,7 @@ class _QueuedJob(object):
         except Exception, err:
           self._lock.acquire()
           try:
+            logging.debug("Op %s/%s: Error in %s", idx + 1, count, op)
             op.status = constants.OP_STATUS_ERROR
             op.result = str(err)
           finally:
