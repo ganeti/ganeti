@@ -28,6 +28,7 @@ from ganeti import constants
 from ganeti import workerpool
 from ganeti import errors
 from ganeti import mcpu
+from ganeti import utils
 
 
 JOBQUEUE_THREADS = 5

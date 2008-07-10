@@ -1063,3 +1063,22 @@ def CheckVolumeGroupSize(vglist, vgname, minsize):
     return ("volume group '%s' too small (%s MiB required, %d MiB found)" %
             (vgname, minsize, vgsize))
   return None
+
+
+def LockedMethod(fn):
+  """Synchronized object access decorator.
+
+  This decorator is intended to protect access to an object using the
+  object's own lock which is hardcoded to '_lock'.
+
+  """
+  def wrapper(self, *args, **kwargs):
+    assert hasattr(self, '_lock')
+    lock = self._lock
+    lock.acquire()
+    try:
+      result = fn(self, *args, **kwargs)
+    finally:
+      lock.release()
+    return result
+  return wrapper
