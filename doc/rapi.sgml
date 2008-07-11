@@ -2,7 +2,6 @@
 <!ENTITY JsonLink "http://www.json.org/">
 <!ENTITY WikipediaRESTLink
   "http://en.wikipedia.org/wiki/Representational_State_Transfer">
-<!ENTITY IncludeResources SYSTEM "doc/rapi-resources.sgml">
 ]>
 <article class="specification">
 <articleinfo>
@@ -88,7 +87,7 @@ xmlreq.send(null);</screen>
 
 <sect1>
   <title>Resources</title>
-  &IncludeResources;
+  @INCLUDE_RAPI_RESOURCES@
 </sect1>
 
 </article>

@@ -11,6 +11,7 @@ abs_top_srcdir = @abs_top_srcdir@
 
 ACLOCAL_AMFLAGS = -I autotools
 DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
+BUILD_RAPI_RESOURCE_DOC = $(top_srcdir)/doc/build-rapi-resources-doc
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -41,6 +42,7 @@ CLEANFILES = \
 	doc/*.html \
 	doc/*.in \
 	doc/*.pdf \
+	doc/rapi-resources.sgml \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
 	lib/*.py[co] \
@@ -223,10 +225,8 @@ doc/%.html: doc/%.in $(DOCBOOK_WRAPPER)
 
 doc/rapi.pdf doc/rapi.html: doc/rapi-resources.sgml
 
-doc/rapi-resources.sgml: doc/build-rapi-resources-doc lib/rapi/resources.py
-	PYTHONPATH=.:$(top_builddir) $< > $@ || rm -f $@
-
-.INTERMEDIATE: doc/rapi-resources.sgml
+doc/rapi-resources.sgml: $(BUILD_RAPI_RESOURCE_DOC) lib/rapi/resources.py
+	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || rm -f $@
 
 man/%.7: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
 	$(DOCBOOK_WRAPPER) $< $@
@@ -236,7 +236,7 @@ man/%.8: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
 
 man/footer.sgml $(TESTS): srclinks
 
-$(TESTS) doc/build-rapi-resources-doc: ganeti lib/_autoconf.py
+$(TESTS) $(BUILD_RAPI_RESOURCE_DOC): ganeti lib/_autoconf.py
 
 lib/_autoconf.py: Makefile stamp-directories
 	set -e; \
@@ -269,6 +269,10 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@LOCALSTATEDIR@#$(localstatedir)#g'; \
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
+	  echo '/@INCLUDE_RAPI_RESOURCES@/ {'; \
+	  echo '  r $(abs_top_builddir)/doc/rapi-resources.sgml'; \
+	  echo '  d'; \
+	  echo '}'; \
 	} > $@
 
 # We need to create symlinks because "make distcheck" will not install Python
