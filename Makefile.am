@@ -14,6 +14,7 @@ DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
+rapidir = $(pkgpythondir)/rapi
 toolsdir = $(pkglibdir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
 
@@ -25,6 +26,7 @@ DIRS = \
 	doc/examples \
 	lib \
 	lib/hypervisor \
+	lib/rapi \
 	man \
 	qa \
 	qa/hooks \
@@ -43,6 +45,7 @@ CLEANFILES = \
 	doc/examples/ganeti.cron \
 	lib/*.py[co] \
 	lib/hypervisor/*.py[co] \
+	lib/rapi/*.py[co] \
 	man/*.[78] \
 	man/*.in \
 	qa/*.py[co] \
@@ -84,6 +87,13 @@ hypervisor_PYTHON = \
 	lib/hypervisor/hv_fake.py \
 	lib/hypervisor/hv_xen.py
 
+rapi_PYTHON = \
+	lib/rapi/__init__.py \
+	lib/rapi/RESTHTTPServer.py \
+	lib/rapi/httperror.py \
+	lib/rapi/resources.py
+
+
 docsgml = \
 	doc/hooks.sgml \
 	doc/install.sgml \
@@ -99,6 +109,7 @@ dist_sbin_SCRIPTS = \
 	daemons/ganeti-watcher \
 	daemons/ganeti-master \
 	daemons/ganeti-masterd \
+	daemons/ganeti-rapi \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
@@ -254,7 +265,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 #.PHONY: srclinks
 srclinks: stamp-directories
 	set -e; \
-	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON); do \
+	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) $(rapi_PYTHON); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \

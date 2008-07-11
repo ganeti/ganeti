@@ -1,0 +1,95 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2006, 2007 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+""" Ganeti Remote API master script.
+"""
+
+import glob
+import optparse
+import sys
+import os
+
+# we need to import rpc early in order to get our custom reactor,
+# instead of the default twisted one; without this, things breaks in a
+# not-nice-to-debug way
+from ganeti import rpc
+from ganeti import constants
+from ganeti import utils
+from ganeti.rapi import RESTHTTPServer
+
+
+def ParseOptions():
+  """Parse the command line options.
+
+  Returns:
+    (options, args) as from OptionParser.parse_args()
+
+  """
+  parser = optparse.OptionParser(description="Ganeti Remote API",
+                    usage="%prog [-d] [-p port]",
+                    version="%%prog (ganeti) %s" %
+                                 constants.RAPI_VERSION)
+  parser.add_option("-d", "--debug", dest="debug",
+                    help="Enable some debug messages",
+                    default=False, action="store_true")
+  parser.add_option("-p", "--port", dest="port",
+                    help="Port to run API (%s default)." %
+                                 constants.RAPI_PORT,
+                    default=constants.RAPI_PORT, type="int")
+  parser.add_option("-S", "--https", dest="ssl",
+                    help="Secure HTTP protocol with SSL",
+                    default=False, action="store_true")
+  parser.add_option("-K", "--ssl-key", dest="ssl_key",
+                    help="SSL key",
+                    default=None, type="string")
+  parser.add_option("-C", "--ssl-cert", dest="ssl_cert",
+                    help="SSL certificate",
+                    default=None, type="string")
+  parser.add_option("-f", "--foreground", dest="fork",
+                    help="Don't detach from the current terminal",
+                    default=True, action="store_false")
+
+  options, args = parser.parse_args()
+
+  if len(args) != 0:
+    print >> sys.stderr, "Usage: %s [-d] [-p port]" % sys.argv[0]
+    sys.exit(1)
+
+  if options.ssl and not (options.ssl_cert and options.ssl_key):
+    print >> sys.stderr, ("For secure mode please provide "
+                         "--ssl-key and --ssl-cert arguments")
+    sys.exit(1)
+
+  return options, args
+
+
+def main():
+  """Main function.
+
+  """
+  options, args = ParseOptions()
+  if options.fork:
+    utils.Daemonize(logfile=constants.LOG_RAPISERVER)
+  RESTHTTPServer.start(options)
+  sys.exit(0)
+
+
+if __name__ == '__main__':
+  main()
