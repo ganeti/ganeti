@@ -1,0 +1,94 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V4.2//EN" [
+<!ENTITY JsonLink "http://www.json.org/">
+<!ENTITY WikipediaRESTLink
+  "http://en.wikipedia.org/wiki/Representational_State_Transfer">
+<!ENTITY IncludeResources SYSTEM "doc/rapi-resources.sgml">
+]>
+<article class="specification">
+<articleinfo>
+  <title>Ganeti remote API</title>
+</articleinfo>
+
+<para>Documents Ganeti version 1.2</para>
+
+<sect1>
+  <title>Introduction</title>
+
+  <para>Ganeti supports a remote API for enable external tools to easily
+    retrieve information about a cluster's state. The remote API daemon,
+    <computeroutput>ganeti-rapi</computeroutput>, is automatically started on
+    the master node if the <computeroutput>--enable-rapi</computeroutput>
+    parameter is passed to the <computeroutput>configure</computeroutput>
+    script. Alternatively you can start it manually. By default it runs on TCP
+    port 5080, but this can be changed either in
+    <filename>&hellip;/constants.py</filename> or via the command line
+    parameter <computeroutput>-p</computeroutput>. SSL support can also be
+    enabled by passing command line parameters.</para>
+
+  <note>
+    <para>Ganeti 1.2 only supports a limited set of calls, all of them
+      read-only. The next major version will have support for write
+      operations.</para>
+  </note>
+</sect1>
+
+<sect1>
+  <title>Protocol</title>
+
+  <para>The protocol used is <ulink url="&JsonLink;">JSON</ulink> over HTTP
+    designed after the <ulink url="&WikipediaRESTLink;">REST</ulink> principle.
+  </para>
+</sect1>
+
+<sect1>
+  <title>Usage examples</title>
+
+  <para>You can access the API using your favorite programming language as long
+    as it supports network connections.</para>
+
+  <sect2>
+    <title>Shell</title>
+    <screen>wget -q -O - http://<replaceable>CLUSTERNAME</replaceable>:5080/info</screen>
+  </sect2>
+
+  <sect2>
+    <title>Python</title>
+    <screen>import urllib2
+f = urllib2.urlopen('http://<replaceable>CLUSTERNAME</replaceable>:5080/info')
+print f.read()</screen>
+  </sect2>
+
+  <sect2>
+    <title>JavaScript</title>
+    <note>
+      <para>While it's possible to use JavaScript, it poses several potential
+        problems, including browser blocking request due to non-standard ports
+        or different domain names. Fetching the data on the webserver is
+        easier.</para>
+    </note>
+    <screen>var url = 'http://<replaceable>CLUSTERNAME</replaceable>:5080/info';
+var info;
+
+var xmlreq = new XMLHttpRequest();
+xmlreq.onreadystatechange = function () {
+  if (xmlreq.readyState != 4) return;
+  if (xmlreq.status == 200) {
+    info = eval("(" + xmlreq.responseText + ")");
+    alert(info);
+  } else {
+    alert('Error fetching cluster info');
+  }
+  xmlreq = null;
+};
+xmlreq.open('GET', url, true);
+xmlreq.send(null);</screen>
+  </sect2>
+
+</sect1>
+
+<sect1>
+  <title>Resources</title>
+  &IncludeResources;
+</sect1>
+
+</article>

@@ -99,6 +99,7 @@ docsgml = \
 	doc/hooks.sgml \
 	doc/install.sgml \
 	doc/admin.sgml \
+	doc/rapi.sgml \
 	doc/iallocator.sgml
 
 doc_DATA = \
@@ -131,6 +132,7 @@ EXTRA_DIST = \
 	autotools/docbook-wrapper \
 	devel/upload.in \
 	$(docsgml) \
+	doc/build-rapi-resources-doc \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
@@ -186,6 +188,7 @@ dist_TESTS = \
 	test/ganeti.locking_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.workerpool_unittest.py \
+	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.constants_unittest.py
 
 nodist_TESTS =
@@ -218,6 +221,13 @@ doc/%.pdf: doc/%.in $(DOCBOOK_WRAPPER)
 doc/%.html: doc/%.in $(DOCBOOK_WRAPPER)
 	$(DOCBOOK_WRAPPER) $< $@
 
+doc/rapi.pdf doc/rapi.html: doc/rapi-resources.sgml
+
+doc/rapi-resources.sgml: doc/build-rapi-resources-doc lib/rapi/resources.py
+	PYTHONPATH=.:$(top_builddir) $< > $@ || rm -f $@
+
+.INTERMEDIATE: doc/rapi-resources.sgml
+
 man/%.7: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
 	$(DOCBOOK_WRAPPER) $< $@
 
@@ -226,7 +236,7 @@ man/%.8: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
 
 man/footer.sgml $(TESTS): srclinks
 
-$(TESTS): ganeti
+$(TESTS) doc/build-rapi-resources-doc: ganeti lib/_autoconf.py
 
 lib/_autoconf.py: Makefile stamp-directories
 	set -e; \
