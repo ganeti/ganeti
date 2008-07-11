@@ -89,9 +89,10 @@ def SetupDaemon(logfile, debug=False, stderr_logging=False):
 
   """
   if debug:
-    fmt = "%(asctime)s: %(levelname)s %(module)s:%(lineno)s %(message)s"
+    fmt = ("%(asctime)s: pid=%(process)d %(levelname)s"
+           " %(module)s:%(lineno)s %(message)s")
   else:
-    fmt = "%(asctime)s: %(levelname)s %(message)s"
+    fmt = "%(asctime)s: pid=%(process)d %(levelname)s %(message)s"
   formatter = logging.Formatter(fmt)
 
   logfile_handler = logging.FileHandler(logfile)
