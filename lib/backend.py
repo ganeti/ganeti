@@ -258,11 +258,14 @@ def GetVolumeList(vg_name):
                  result.output)
     return result.output
 
+  valid_line_re = re.compile("^ *([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
   for line in result.stdout.splitlines():
-    line = line.strip().rstrip(sep)
-    name, size, attr = line.split(sep)
-    if len(attr) != 6:
-      attr = '------'
+    line = line.strip()
+    match = valid_line_re.match(line)
+    if not match:
+      logger.Error("Invalid line returned from lvs output: '%s'" % line)
+      continue
+    name, size, attr = match.groups()
     inactive = attr[4] == '-'
     online = attr[5] == 'o'
     lvs[name] = (size, inactive, online)
