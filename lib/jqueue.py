@@ -47,6 +47,13 @@ class _QueuedOpCode(object):
     self._lock = threading.Lock()
 
   @utils.LockedMethod
+  def GetInput(self):
+    """Returns the original opcode.
+
+    """
+    return self.input
+
+  @utils.LockedMethod
   def SetStatus(self, status, result):
     """Update the opcode status and result.
 
@@ -228,9 +235,12 @@ class JobQueue:
         row.append(job.id)
       elif fname == "status":
         row.append(job.GetStatus())
-      elif fname == "result":
-        # TODO
+      elif fname == "ops":
+        row.append([op.GetInput().__getstate__() for op in job._ops])
+      elif fname == "opresult":
         row.append([op.GetResult() for op in job._ops])
+      elif fname == "opstatus":
+        row.append([op.GetStatus() for op in job._ops])
       else:
         raise errors.OpExecError("Invalid job query field '%s'" % fname)
     return row

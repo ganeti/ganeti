@@ -41,7 +41,7 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError, SUPPRESS_HELP)
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
-           "SubmitOpCode",
+           "SubmitOpCode", "GetClient",
            "cli_option", "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
@@ -394,7 +394,7 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
       break
     time.sleep(1)
 
-  jobs = cl.QueryJobs([job_id], ["status", "result"])
+  jobs = cl.QueryJobs([job_id], ["status", "opresult"])
   if not jobs:
     raise errors.JobLost("Job with id %s lost" % job_id)
 
@@ -403,6 +403,11 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
     return result[0]
   else:
     raise errors.OpExecError(result)
+
+
+def GetClient():
+  # TODO: Cache object?
+  return luxi.Client()
 
 
 def FormatError(err):

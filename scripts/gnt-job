@@ -35,6 +35,14 @@ from ganeti import errors
 
 _LIST_DEF_FIELDS = ["id", "status"]
 
+_USER_JOB_STATUS = {
+  constants.JOB_STATUS_QUEUED: "queued",
+  constants.JOB_STATUS_RUNNING: "running",
+  constants.JOB_STATUS_CANCELED: "canceled",
+  constants.JOB_STATUS_SUCCESS: "success",
+  constants.JOB_STATUS_ERROR: "error",
+  }
+
 def ListJobs(opts, args):
   """List the jobs
 
@@ -46,20 +54,15 @@ def ListJobs(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  query = {
-    "object": "jobs",
-    "fields": selected_fields,
-    "names": [],
-    }
-
-  output = SubmitQuery(query)
+  output = GetClient().QueryJobs(None, selected_fields)
   if not opts.no_headers:
+    # TODO: Implement more fields
     headers = {
       "id": "ID",
       "status": "Status",
-      "op_list": "OpCodes",
-      "op_status": "OpStatus",
-      "op_result": "OpResult",
+      "ops": "OpCodes",
+      "opresult": "OpCode_result",
+      "opstatus": "OpCode_status",
       }
   else:
     headers = None
@@ -73,16 +76,8 @@ def ListJobs(opts, args):
     for idx, field in enumerate(selected_fields):
       val = row[idx]
       if field == "status":
-        if val == opcodes.Job.STATUS_PENDING:
-          val = "pending"
-        elif val == opcodes.Job.STATUS_RUNNING:
-          val = "running"
-        elif val == opcodes.Job.STATUS_SUCCESS:
-          val = "finished"
-        elif val == opcodes.Job.STATUS_FAIL:
-          val = "failed"
-        elif val == opcodes.Job.STATUS_ABORT:
-          val = "aborted"
+        if val in _USER_JOB_STATUS:
+          val = _USER_JOB_STATUS[val]
         else:
           raise errors.ProgrammerError("Unknown job status code '%s'" % val)
 
