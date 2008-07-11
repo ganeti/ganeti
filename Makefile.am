@@ -67,6 +67,7 @@ pkgpython_PYTHON = \
 	lib/config.py \
 	lib/constants.py \
 	lib/errors.py \
+	lib/http.py \
 	lib/jqueue.py \
 	lib/locking.py \
 	lib/logger.py \
