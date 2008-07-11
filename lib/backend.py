@@ -315,7 +315,8 @@ def NodeVolumes():
       'vg': line[3].strip(),
     }
 
-  return [map_line(line.split('|')) for line in result.stdout.splitlines()]
+  return [map_line(line.split('|')) for line in result.stdout.splitlines()
+          if line.count('|') >= 3]
 
 
 def BridgesExist(bridges_list):
