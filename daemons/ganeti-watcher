@@ -447,7 +447,8 @@ def SetupLogging(debug):
   """Configures the logging module.
 
   """
-  formatter = logging.Formatter("%(asctime)s: %(message)s")
+  formatter = logging.Formatter("%(asctime)s %(module)s[%(process)d]:"
+                                " %(message)s")
 
   logfile_handler = logging.FileHandler(constants.LOG_WATCHER)
   logfile_handler.setFormatter(formatter)
