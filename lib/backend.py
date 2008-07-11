@@ -266,6 +266,9 @@ def GetVolumeList(vg_name):
 
   for line in result.stdout.splitlines():
     line = line.strip().rstrip(sep)
+    if line.count(sep) != 2:
+      logger.Error("Invalid line returned from lvs output: '%s'" % line)
+      continue
     name, size, attr = line.split(sep)
     if len(attr) != 6:
       attr = '------'
