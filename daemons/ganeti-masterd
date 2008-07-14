@@ -136,7 +136,7 @@ class IOServer(SocketServer.UnixStreamServer):
       utils.RemoveFile(constants.MASTER_SOCKET)
     finally:
       if self.request_workers:
-        self.request_workers.Shutdown()
+        self.request_workers.TerminateWorkers()
       if self.jobqueue:
         self.jobqueue.Shutdown()
 
