@@ -223,7 +223,7 @@ class _JobQueueWorkerPool(workerpool.WorkerPool):
 
 
 class JobStorage(object):
-  _RE_JOB_FILE = re.compile(r"^job-\d+$")
+  _RE_JOB_FILE = re.compile(r"^job-(\d+)$")
 
   def __init__(self):
     self._lock = threading.Lock()
@@ -313,15 +313,27 @@ class JobStorage(object):
   def _GetJobPath(self, job_id):
     return os.path.join(constants.QUEUE_DIR, "job-%s" % job_id)
 
+  def _GetJobIDsUnlocked(self, archived=False):
+    """Return all known job IDs.
+
+    If the parameter archived is True, archived jobs IDs will be
+    included. Currently this argument is unused.
+
+    """
+    jfiles = self._ListJobFiles()
+    return [m.group(1) for m in
+            [self._RE_JOB_FILE.match(name) for name in jfiles]]
+
   def _ListJobFiles(self):
     assert self.lock_fd, "Queue should be open"
 
     return [name for name in utils.ListVisibleFiles(constants.QUEUE_DIR)
             if self._RE_JOB_FILE.match(name)]
 
-  def _LoadJobUnlocked(self, filepath):
+  def _LoadJobUnlocked(self, job_id):
     assert self.lock_fd, "Queue should be open"
 
+    filepath = self._GetJobPath(job_id)
     logging.debug("Loading job from %s", filepath)
     try:
       fd = open(filepath, "r")
@@ -337,13 +349,10 @@ class JobStorage(object):
     return _QueuedJob.Restore(self, data)
 
   def _GetJobsUnlocked(self, job_ids):
-    if job_ids:
-      files = [self._GetJobPath(job_id) for job_id in job_ids]
-    else:
-      files = [os.path.join(constants.QUEUE_DIR, filename)
-               for filename in self._ListJobFiles()]
+    if not job_ids:
+      job_ids = self._GetJobIDsUnlocked()
 
-    return [self._LoadJobUnlocked(filepath) for filepath in files]
+    return [self._LoadJobUnlocked(job_id) for job_id in job_ids]
 
   @utils.LockedMethod
   def GetJobs(self, job_ids):
