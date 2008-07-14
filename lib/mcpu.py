@@ -90,7 +90,7 @@ class Processor(object):
     opcodes.OpTestAllocator: cmdlib.LUTestAllocator,
     }
 
-  def __init__(self, context, feedback=None):
+  def __init__(self, context):
     """Constructor for Processor
 
     Args:
@@ -98,7 +98,7 @@ class Processor(object):
                     interesting events are happening
     """
     self.context = context
-    self._feedback_fn = feedback
+    self._feedback_fn = None
     self.exclusive_BGL = False
 
   def _ExecLU(self, lu):
@@ -146,7 +146,7 @@ class Processor(object):
 
     return result
 
-  def ExecOpCode(self, op):
+  def ExecOpCode(self, op, feedback_fn):
     """Execute an opcode.
 
     Args:
@@ -157,6 +157,7 @@ class Processor(object):
       raise errors.ProgrammerError("Non-opcode instance passed"
                                    " to ExecOpcode")
 
+    self._feedback_fn = feedback_fn
     lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")

@@ -262,3 +262,7 @@ OP_STATUS_QUEUED = "queued"
 OP_STATUS_RUNNING = "running"
 OP_STATUS_SUCCESS = "success"
 OP_STATUS_ERROR = "error"
+
+# Execution log types
+ELOG_MESSAGE = "message"
+ELOG_PROGRESS = "progress"

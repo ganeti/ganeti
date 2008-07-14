@@ -382,8 +382,9 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
 
   job_id = cl.SubmitJob([op])
 
+  lastmsg = None
   while True:
-    jobs = cl.QueryJobs([job_id], ["status"])
+    jobs = cl.QueryJobs([job_id], ["status", "ticker"])
     if not jobs:
       # job not found, go away!
       raise errors.JobLost("Job with id %s lost" % job_id)
@@ -392,6 +393,10 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
     status = jobs[0][0]
     if status in (constants.JOB_STATUS_SUCCESS, constants.JOB_STATUS_ERROR):
       break
+    msg = jobs[0][1]
+    if msg is not None and msg != lastmsg:
+      print "%s %s" % (time.ctime(msg[0]), msg[2])
+    lastmsg = msg
     time.sleep(1)
 
   jobs = cl.QueryJobs([job_id], ["status", "opresult"])
