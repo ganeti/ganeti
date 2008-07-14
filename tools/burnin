@@ -26,6 +26,7 @@
 import os
 import sys
 import optparse
+import time
 from itertools import izip, islice, cycle
 from cStringIO import StringIO
 
@@ -81,15 +82,14 @@ class Burner(object):
 
   def Feedback(self, msg):
     """Acumulate feedback in our buffer."""
-    self._feed_buf.write(msg)
-    self._feed_buf.write("\n")
+    self._feed_buf.write("%s %s\n" % (time.ctime(msg[0]), msg[2]))
     if self.opts.verbose:
       Log(msg)
 
   def ExecOp(self, op):
     """Execute an opcode and manage the exec buffer."""
     self.ClearFeedbackBuf()
-    return cli.SubmitOpCode(op)
+    return cli.SubmitOpCode(op, feedback_fn=self.Feedback)
 
   def ParseOptions(self):
     """Parses the command line options.

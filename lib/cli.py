@@ -369,7 +369,7 @@ def AskUser(text, choices=None):
   return answer
 
 
-def SubmitOpCode(op, proc=None, feedback_fn=None):
+def SubmitOpCode(op, cl=None, feedback_fn=None):
   """Legacy function to submit an opcode.
 
   This is just a simple wrapper over the construction of the processor
@@ -377,8 +377,8 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
   interaction functions.
 
   """
-  # TODO: Fix feedback_fn situation.
-  cl = luxi.Client()
+  if cl is None:
+    cl = luxi.Client()
 
   job_id = cl.SubmitJob([op])
 
@@ -395,7 +395,10 @@ def SubmitOpCode(op, proc=None, feedback_fn=None):
       break
     msg = jobs[0][1]
     if msg is not None and msg != lastmsg:
-      print "%s %s" % (time.ctime(msg[0]), msg[2])
+      if callable(feedback_fn):
+        feedback_fn(msg)
+      else:
+        print "%s %s" % (time.ctime(msg[0]), msg[2])
     lastmsg = msg
     time.sleep(1)
 
