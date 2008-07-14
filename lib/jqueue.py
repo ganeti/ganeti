@@ -321,7 +321,7 @@ class JobStorage(object):
 
     """
     jfiles = self._ListJobFiles()
-    return [m.group(1) for m in
+    return [int(m.group(1)) for m in
             [self._RE_JOB_FILE.match(name) for name in jfiles]]
 
   def _ListJobFiles(self):
