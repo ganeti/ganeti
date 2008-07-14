@@ -108,6 +108,8 @@ LOG_OS_DIR = LOG_DIR + "/os"
 LOG_NODESERVER = LOG_DIR + "/node-daemon.log"
 LOG_WATCHER = LOG_DIR + "/watcher.log"
 LOG_MASTERDAEMON = LOG_DIR + "/master-daemon.log"
+LOG_RAPISERVER = LOG_DIR + "/rapi-daemon.log"
+LOG_RAPIACCESS = LOG_DIR + "/rapi-access.log"
 
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 EXPORT_DIR = _autoconf.EXPORT_DIR
@@ -267,3 +269,7 @@ OP_STATUS_ERROR = "error"
 # Execution log types
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
+
+# Temporary RAPI constants until we have cluster parameters
+RAPI_ENABLE = True
+RAPI_PORT = 5080
