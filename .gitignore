@@ -28,9 +28,11 @@
 /devel/upload
 
 # doc
+/doc/api
 /doc/*.html
 /doc/*.in
 /doc/*.pdf
+/doc/rapi-resources.sgml
 
 # doc/examples
 /doc/examples/ganeti.cron

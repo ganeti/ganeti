@@ -306,4 +306,17 @@ stamp-directories: Makefile
 	@mkdir_p@ $(DIRS)
 	touch $@
 
+.PHONY: apidoc
+apidoc:
+	test -e doc/api || mkdir doc/api
+	TMPDIR=`mktemp -d ./temp-epydoc.XXXXXX` && { \
+		cp -r scripts daemons lib $$TMPDIR && \
+		( \
+			cd $$TMPDIR && \
+			mv lib ganeti && \
+			epydoc --conf ../epydoc.conf \
+		) ; \
+		rm -rf $$TMPDIR ; \
+	}
+
 # vim: set noet :
