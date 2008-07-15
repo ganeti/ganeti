@@ -24,11 +24,8 @@
 This module implements the data structures which define the cluster
 operations - the so-called opcodes.
 
-
-This module implements the logic for doing operations in the cluster. There
-are two kinds of classes defined:
-  - opcodes, which are small classes only holding data for the task at hand
-  - logical units, which know how to deal with their specific opcode only
+Every operation which modifies the cluster state is expressed via
+opcodes.
 
 """
 
@@ -37,11 +34,12 @@ are two kinds of classes defined:
 # pylint: disable-msg=R0903
 
 
-class BaseJO(object):
+class BaseOpCode(object):
   """A simple serializable object.
 
-  This object serves as a parent class for both OpCode and Job since
-  they are serialized in the same way.
+  This object serves as a parent class for OpCode without any custom
+  field handling.
+
 
   """
   __slots__ = []
@@ -73,7 +71,7 @@ class BaseJO(object):
       setattr(self, name, state[name])
 
 
-class OpCode(BaseJO):
+class OpCode(BaseOpCode):
   """Abstract OpCode"""
   OP_ID = "OP_ABSTRACT"
   __slots__ = []
@@ -82,7 +80,7 @@ class OpCode(BaseJO):
     """Specialized getstate for opcodes.
 
     """
-    data = BaseJO.__getstate__(self)
+    data = BaseOpCode.__getstate__(self)
     data["OP_ID"] = self.OP_ID
     return data
 
