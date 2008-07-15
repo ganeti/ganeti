@@ -367,8 +367,10 @@ class JobStorage(object):
 
     """
     jfiles = self._ListJobFiles()
-    return [int(m.group(1)) for m in
-            [self._RE_JOB_FILE.match(name) for name in jfiles]]
+    jlist = [int(m.group(1)) for m in
+             [self._RE_JOB_FILE.match(name) for name in jfiles]]
+    jlist.sort()
+    return jlist
 
   def _ListJobFiles(self):
     assert self.lock_fd, "Queue should be open"
