@@ -29,6 +29,7 @@ tests:
   env: True
   os: True
   tags: True
+  rapi: True
 
   cluster-verify: True
   cluster-info: True

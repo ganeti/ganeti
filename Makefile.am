@@ -157,6 +157,7 @@ EXTRA_DIST = \
 	qa/qa_node.py \
 	qa/qa_os.py \
 	qa/qa_other.py \
+	qa/qa_rapi.py \
 	qa/qa_tags.py \
 	qa/qa_utils.py
 

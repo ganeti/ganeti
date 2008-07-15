@@ -39,6 +39,7 @@ import qa_instance
 import qa_node
 import qa_os
 import qa_other
+import qa_rapi
 import qa_tags
 import qa_utils
 
@@ -111,6 +112,9 @@ def RunClusterTests():
   if qa_config.TestEnabled('cluster-master-failover'):
     RunTest(qa_cluster.TestClusterMasterFailover)
 
+  if qa_rapi.Enabled():
+    RunTest(qa_rapi.TestVersion)
+    RunTest(qa_rapi.TestEmptyCluster)
 
 def RunOsTests():
   """Runs all tests related to gnt-os.
@@ -160,6 +164,8 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled('node-volumes'):
     RunTest(qa_node.TestNodeVolumes)
 
+  if qa_rapi.Enabled():
+    RunTest(qa_rapi.TestInstance, instance)
 
 def RunExportImportTests(instance, pnode):
   """Tries to export and import the instance.
@@ -281,6 +287,9 @@ def main():
   try:
     if qa_config.TestEnabled('tags'):
       RunTest(qa_tags.TestNodeTags, pnode)
+
+    if qa_rapi.Enabled():
+      RunTest(qa_rapi.TestNode, pnode)
 
     if qa_config.TestEnabled('instance-add-plain-disk'):
       instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
