@@ -40,11 +40,18 @@ class BaseOpCode(object):
   This object serves as a parent class for OpCode without any custom
   field handling.
 
-
   """
   __slots__ = []
 
   def __init__(self, **kwargs):
+    """Constructor for BaseOpCode.
+
+    The constructor takes only keyword arguments and will set
+    attributes on this object based on the passed arguments. As such,
+    it means that you should not pass arguments which are not in the
+    __slots__ attribute for this class.
+
+    """
     for key in kwargs:
       if key not in self.__slots__:
         raise TypeError("Object %s doesn't support the parameter '%s'" %
@@ -52,6 +59,15 @@ class BaseOpCode(object):
       setattr(self, key, kwargs[key])
 
   def __getstate__(self):
+    """Generic serializer.
+
+    This method just returns the contents of the instance as a
+    dictionary.
+
+    @rtype:  C{dict}
+    @return: the instance attributes and their values
+
+    """
     state = {}
     for name in self.__slots__:
       if hasattr(self, name):
@@ -59,6 +75,15 @@ class BaseOpCode(object):
     return state
 
   def __setstate__(self, state):
+    """Generic unserializer.
+
+    This method just restores from the serialized state the attributes
+    of the current instance.
+
+    @param state: the serialized opcode data
+    @type state:  C{dict}
+
+    """
     if not isinstance(state, dict):
       raise ValueError("Invalid data to __setstate__: expected dict, got %s" %
                        type(state))
@@ -72,12 +97,27 @@ class BaseOpCode(object):
 
 
 class OpCode(BaseOpCode):
-  """Abstract OpCode"""
+  """Abstract OpCode.
+
+  This is the root of the actual OpCode hierarchy. All clases derived
+  from this class should override OP_ID.
+
+  @cvar OP_ID: The ID of this opcode. This should be unique amongst all
+               childre of this class.
+
+  """
   OP_ID = "OP_ABSTRACT"
   __slots__ = []
 
   def __getstate__(self):
     """Specialized getstate for opcodes.
+
+    This method adds to the state dictionary the OP_ID of the class,
+    so that on unload we can identify the correct class for
+    instantiating the opcode.
+
+    @rtype:   C{dict}
+    @return:  the state as a dictionary
 
     """
     data = BaseOpCode.__getstate__(self)
@@ -87,6 +127,13 @@ class OpCode(BaseOpCode):
   @classmethod
   def LoadOpCode(cls, data):
     """Generic load opcode method.
+
+    The method identifies the correct opcode class from the dict-form
+    by looking for a OP_ID key, if this is not found, or its value is
+    not available in this module as a child of this class, we fail.
+
+    @type data:  C{dict}
+    @param data: the serialized opcode
 
     """
     if not isinstance(data, dict):
@@ -113,7 +160,12 @@ class OpCode(BaseOpCode):
 
 
 class OpDestroyCluster(OpCode):
-  """Destroy the cluster."""
+  """Destroy the cluster.
+
+  This opcode has no other parameters. All the state is irreversibly
+  lost after the execution of this opcode.
+
+  """
   OP_ID = "OP_CLUSTER_DESTROY"
   __slots__ = []
 
@@ -125,7 +177,15 @@ class OpQueryClusterInfo(OpCode):
 
 
 class OpVerifyCluster(OpCode):
-  """Verify the cluster state."""
+  """Verify the cluster state.
+
+  @type skip_checks: C{list}
+  @ivar skip_checks: steps to be skipped from the verify process; this
+                     needs to be a subset of
+                     L{constants.VERIFY_OPTIONAL_CHECKS}; currently
+                     only L{constants.VERIFY_NPLUSONE_MEM} can be passed
+
+  """
   OP_ID = "OP_CLUSTER_VERIFY"
   __slots__ = ["skip_checks"]
 
@@ -137,7 +197,7 @@ class OpVerifyDisks(OpCode):
 
   Result: two lists:
     - list of node names with bad data returned (unreachable, etc.)
-    - dist of node names with broken volume groups (values: error msg)
+    - dict of node names with broken volume groups (values: error msg)
     - list of instances with degraded disks (that should be activated)
     - dict of instances with missing logical volumes (values: (node, vol)
       pairs with details about the missing volumes)
@@ -168,13 +228,25 @@ class OpDumpClusterConfig(OpCode):
 
 
 class OpRenameCluster(OpCode):
-  """Rename the cluster."""
+  """Rename the cluster.
+
+  @type name: C{str}
+  @ivar name: The new name of the cluster. The name and/or the master IP
+              address will be changed to match the new name and its IP
+              address.
+
+  """
   OP_ID = "OP_CLUSTER_RENAME"
   __slots__ = ["name"]
 
 
 class OpSetClusterParams(OpCode):
-  """Change the parameters of the cluster."""
+  """Change the parameters of the cluster.
+
+  @type vg_name: C{str} or C{None}
+  @ivar vg_name: The new volume group name or None to disable LVM usage.
+
+  """
   OP_ID = "OP_CLUSTER_SET_PARAMS"
   __slots__ = ["vg_name"]
 
@@ -182,13 +254,39 @@ class OpSetClusterParams(OpCode):
 # node opcodes
 
 class OpRemoveNode(OpCode):
-  """Remove a node."""
+  """Remove a node.
+
+  @type node_name: C{str}
+  @ivar node_name: The name of the node to remove. If the node still has
+                   instances on it, the operation will fail.
+
+  """
   OP_ID = "OP_NODE_REMOVE"
   __slots__ = ["node_name"]
 
 
 class OpAddNode(OpCode):
-  """Add a node."""
+  """Add a node to the cluster.
+
+  @type node_name: C{str}
+  @ivar node_name: The name of the node to add. This can be a short name,
+                   but it will be expanded to the FQDN.
+  @type primary_ip: IP address
+  @ivar primary_ip: The primary IP of the node. This will be ignored when the
+                    opcode is submitted, but will be filled during the node
+                    add (so it will be visible in the job query).
+  @type secondary_ip: IP address
+  @ivar secondary_ip: The secondary IP of the node. This needs to be passed
+                      if the cluster has been initialized in 'dual-network'
+                      mode, otherwise it must not be given.
+  @type readd: C{bool}
+  @ivar readd: Whether to re-add an existing node to the cluster. If
+               this is not passed, then the operation will abort if the node
+               name is already in the cluster; use this parameter to 'repair'
+               a node that had its configuration broken, or was reinstalled
+               without removal from the cluster.
+
+  """
   OP_ID = "OP_NODE_ADD"
   __slots__ = ["node_name", "primary_ip", "secondary_ip", "readd"]
 
