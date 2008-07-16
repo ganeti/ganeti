@@ -27,6 +27,7 @@
 import os
 import sys
 import traceback
+import SocketServer
 import errno
 import logging
 
@@ -537,6 +538,15 @@ class NodeDaemonHttpServer(http.HTTPServer):
     http.HTTPServer.__init__(self, server_address, NodeDaemonRequestHandler)
 
 
+class ForkingHTTPServer(SocketServer.ForkingMixIn, NodeDaemonHttpServer):
+  """Forking HTTP Server.
+
+  This inherits from ForkingMixIn and HTTPServer in order to fork for each
+  request we handle. This allows more requests to be handled concurrently.
+
+  """
+
+
 def ParseOptions():
   """Parse the command line options.
 
@@ -603,7 +613,12 @@ def main():
 
   global _EXIT_GANETI_NODED
 
-  httpd = NodeDaemonHttpServer(('', port))
+  if options.fork:
+    httpd = ForkingHTTPServer(('', port))
+  else:
+    httpd = NodeDaemonHttpServer(('', port))
+
+  # FIXME: updating _EXIT_GANETI_NODED doesn't work when forking
   while (not _EXIT_GANETI_NODED):
     httpd.handle_request()
 
