@@ -85,34 +85,6 @@ def MapFields(names, data):
   return dict([(names[i], data[i]) for i in range(len(names))])
 
 
-def RequireLock(name='cmd'):
-  """Function decorator to automatically acquire locks.
-
-  PEP-318 style function decorator.
-
-  """
-  def wrapper(fn):
-    def new_f(*args, **kwargs):
-      try:
-        utils.Lock(name, max_retries=15)
-        try:
-          # Call real function
-          return fn(*args, **kwargs)
-        finally:
-          utils.Unlock(name)
-          utils.LockCleanup()
-      except ganeti.errors.LockError, err:
-        raise httperror.HTTPServiceUnavailable(message=str(err))
-
-    # Override function metadata
-    new_f.func_name = fn.func_name
-    new_f.func_doc = fn.func_doc
-
-    return new_f
-
-  return wrapper
-
-
 def _Tags_GET(kind, name=None):
   """Helper function to retrieve tags.
 
@@ -293,7 +265,6 @@ class R_nodes(R_Generic):
   """
   DOC_URI = "/nodes"
 
-  @RequireLock()
   def _GetDetails(self, nodeslist):
     """Returns detailed instance data for bulk output.
 
@@ -336,7 +307,7 @@ class R_nodes(R_Generic):
 
     If the optional 'bulk' argument is provided and set to 'true' 
     value (i.e '?bulk=1'), the output contains detailed
-    information about nodes as a list. Note: Lock required.
+    information about nodes as a list.
 
     Example: [
         {
@@ -369,7 +340,6 @@ class R_nodes_name(R_Generic):
   """
   DOC_URI = "/nodes/[node_name]"
 
-  @RequireLock()
   def GET(self):
     """Send information about a node. 
 
@@ -409,7 +379,6 @@ class R_instances(R_Generic):
   """
   DOC_URI = "/instances"
 
-  @RequireLock()
   def _GetDetails(self, instanceslist):
     """Returns detailed instance data for bulk output.
 
@@ -454,7 +423,7 @@ class R_instances(R_Generic):
 
     If the optional 'bulk' argument is provided and set to 'true' 
     value (i.e '?bulk=1'), the output contains detailed
-    information about instances as a list. Note: Lock required.
+    information about instances as a list.
 
     Example: [
         {
@@ -495,7 +464,6 @@ class R_instances_name(R_Generic):
   """
   DOC_URI = "/instances/[instance_name]"
 
-  @RequireLock()
   def GET(self):
     """Send information about an instance.
 
@@ -537,7 +505,6 @@ class R_os(R_Generic):
   """
   DOC_URI = "/os"
 
-  @RequireLock()
   def GET(self):
     """Return a list of all OSes.
 

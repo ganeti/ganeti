@@ -126,6 +126,14 @@ def StartMaster(master_netdev, master_ip, debug):
   result = utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev,
                          "-s", master_ip, master_ip])
   # we'll ignore the exit code of arping
+
+  if constants.RAPI_ENABLE:
+    # Start remote API
+    result = utils.RunCmd(["ganeti-rapi", "--port=%s" % constants.RAPI_PORT])
+    if debug and result.failed:
+      sys.stderr.write("Failed to start ganeti-rapi, error: %s\n" %
+                       result.output)
+
   return EXIT_OK
 
 
@@ -133,6 +141,14 @@ def StopMaster(master_netdev, master_ip, debug):
   """Stops the master.
 
   """
+  if constants.RAPI_ENABLE:
+    # Stop remote API
+    result = utils.RunCmd(["fuser", "-k", "-TERM", "-n", "tcp",
+                           str(constants.RAPI_PORT)])
+    if debug and result.failed:
+      sys.stderr.write("Failed to stop ganeti-rapi, error: %s\n" %
+                       result.output)
+
   result = utils.RunCmd(["ip", "address", "del", "%s/32" % master_ip,
                          "dev", master_netdev])
   if result.failed:
