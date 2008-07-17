@@ -264,7 +264,7 @@ class _JobQueueWorkerPool(workerpool.WorkerPool):
 
 
 class JobStorage(object):
-  _RE_JOB_FILE = re.compile(r"^job-(\d+)$")
+  _RE_JOB_FILE = re.compile(r"^job-(%s)$" % constants.JOB_ID_TEMPLATE)
 
   def __init__(self):
     self._lock = threading.Lock()

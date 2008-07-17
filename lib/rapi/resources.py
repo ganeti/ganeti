@@ -31,6 +31,7 @@ import ganeti.errors
 import ganeti.cli
 
 from ganeti import constants
+from ganeti import luxi
 from ganeti import utils
 from ganeti.rapi import httperror
 
@@ -39,22 +40,25 @@ from ganeti.rapi import httperror
 _CONNECTOR = {}
 
 
-def BuildUriList(names, uri_format):
+def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   """Builds a URI list as used by index resources.
 
   Args:
-  - names: List of names as strings
+  - ids: List of ids as strings
   - uri_format: Format to be applied for URI
+  - uri_fields: Optional parameter for field ids
 
   """
-  def _MapName(name):
-    return { "name": name, "uri": uri_format % name, }
+  (field_id, field_uri) = uri_fields
+  
+  def _MapId(m_id):
+    return { field_id: m_id, field_uri: uri_format % m_id, }
 
   # Make sure the result is sorted, makes it nicer to look at and simplifies
   # unittests.
-  names.sort()
+  ids.sort()
 
-  return map(_MapName, names)
+  return map(_MapId, ids)
 
 
 def ExtractField(sequence, index):
@@ -523,6 +527,52 @@ class R_os(R_Generic):
     return [row[0] for row in diagnose_data if row[1]]
 
 
+class R_2_jobs(R_Generic):
+  """/2/jobs resource.
+
+  """
+  DOC_URI = "/2/jobs"
+
+  def GET(self):
+    """Returns a dictionary of jobs.
+
+    Returns:
+      A dictionary with jobs id and uri.
+    
+    """
+    fields = ["id"]
+    # Convert the list of lists to the list of ids
+    result = [job_id for [job_id] in luxi.Client().QueryJobs(None, fields)]
+    return BuildUriList(result, "/2/jobs/%s", uri_fields=("id", "uri"))
+
+
+class R_2_jobs_id(R_Generic):
+  """/2/jobs/[job_id] resource.
+
+  """
+  DOC_URI = "/2/jobs/[job_id]"
+
+  def GET(self):
+    """Returns a job status.
+
+    Returns: 
+      A dictionary with job parameters.
+
+    The result includes:
+      id - job ID as a number
+      status - current job status as a string
+      ops - involved OpCodes as a list of dictionaries for each opcodes in 
+        the job
+      opstatus - OpCodes status as a list
+      opresult - OpCodes results as a list of lists
+    
+    """
+    fields = ["id", "ops", "status", "opstatus", "opresult"]
+    job_id = self.items[0]
+    result = luxi.Client().QueryJobs([job_id,], fields)[0]
+    return MapFields(fields, result)
+
+
 _CONNECTOR.update({
   "/": R_root,
 
@@ -540,4 +590,7 @@ _CONNECTOR.update({
   re.compile(r'^/instances/([\w\._-]+)/tags$'): R_instances_name_tags,
 
   "/os": R_os,
+
+  "/2/jobs": R_2_jobs,
+  re.compile(r'/2/jobs/(%s)$' % constants.JOB_ID_TEMPLATE): R_2_jobs_id,
   })
