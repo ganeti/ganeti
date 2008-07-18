@@ -4207,7 +4207,7 @@ class LUReplaceDisks(LogicalUnit):
       if self.op.remote_node is not None:
         raise errors.OpPrereqError("Give either the iallocator or the new"
                                    " secondary, not both")
-      self.op.remote_node = self._RunAllocator()
+      self._RunAllocator()
 
     remote_node = self.op.remote_node
     if remote_node is not None:
