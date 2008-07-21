@@ -30,9 +30,9 @@ import traceback
 import SocketServer
 import errno
 import logging
+import signal
 
 from optparse import OptionParser
-
 
 from ganeti import backend
 from ganeti import logger
@@ -42,8 +42,6 @@ from ganeti import errors
 from ganeti import ssconf
 from ganeti import http
 from ganeti import utils
-
-_EXIT_GANETI_NODED = False
 
 
 class NodeDaemonRequestHandler(http.HTTPRequestHandler):
@@ -56,8 +54,6 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """Handle a request.
 
     """
-    global _EXIT_GANETI_NODED
-
     if self.command.upper() != "PUT":
       raise http.HTTPBadRequest()
 
@@ -72,7 +68,8 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     try:
       return method(self.post_data)
     except errors.QuitGanetiException, err:
-      _EXIT_GANETI_NODED = True
+      # Tell parent to quit
+      os.kill(self.server.noded_pid, signal.SIGTERM)
 
   # the new block devices  --------------------------
 
@@ -536,6 +533,17 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
 class NodeDaemonHttpServer(http.HTTPServer):
   def __init__(self, server_address):
     http.HTTPServer.__init__(self, server_address, NodeDaemonRequestHandler)
+    self.noded_pid = os.getpid()
+
+  def serve_forever(self):
+    """Handle requests until told to quit."""
+    sighandler = utils.SignalHandler([signal.SIGINT, signal.SIGTERM])
+    try:
+      while not sighandler.called:
+        self.handle_request()
+      # TODO: There could be children running at this point
+    finally:
+      sighandler.Reset()
 
 
 class ForkingHTTPServer(SocketServer.ForkingMixIn, NodeDaemonHttpServer):
@@ -611,17 +619,12 @@ def main():
                      stderr_logging=not options.fork)
   logging.info("ganeti node daemon startup")
 
-  global _EXIT_GANETI_NODED
-
   if options.fork:
-    httpd = ForkingHTTPServer(('', port))
+    server = ForkingHTTPServer(('', port))
   else:
-    httpd = NodeDaemonHttpServer(('', port))
+    server = NodeDaemonHttpServer(('', port))
 
-  # FIXME: updating _EXIT_GANETI_NODED doesn't work when forking
-  while (not _EXIT_GANETI_NODED):
-    httpd.handle_request()
-
+  server.serve_forever()
 
 if __name__ == '__main__':
   main()
