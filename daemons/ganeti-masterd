@@ -93,15 +93,11 @@ class IOServer(SocketServer.UnixStreamServer):
 
     """
     SocketServer.UnixStreamServer.__init__(self, address, rqhandler)
-    self.do_quit = False
     self.context = context
 
     # We'll only start threads once we've forked.
     self.jobqueue = None
     self.request_workers = None
-
-    signal.signal(signal.SIGINT, self.handle_quit_signals)
-    signal.signal(signal.SIGTERM, self.handle_quit_signals)
 
   def setup_queue(self):
     self.jobqueue = jqueue.JobQueue(self.context)
@@ -114,15 +110,14 @@ class IOServer(SocketServer.UnixStreamServer):
     """
     self.request_workers.AddTask(self, request, client_address)
 
-  def handle_quit_signals(self, signum, frame):
-    print "received %s in %s" % (signum, frame)
-    self.do_quit = True
-
   def serve_forever(self):
     """Handle one request at a time until told to quit."""
-    while not self.do_quit:
-      self.handle_request()
-      print "served request, quit=%s" % (self.do_quit)
+    sighandler = utils.SignalHandler([signal.SIGINT, signal.SIGTERM])
+    try:
+      while not sighandler.called:
+        self.handle_request()
+    finally:
+      sighandler.Reset()
 
   def server_cleanup(self):
     """Cleanup the server.
