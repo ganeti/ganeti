@@ -40,6 +40,7 @@ import select
 import fcntl
 import resource
 import logging
+import signal
 
 from cStringIO import StringIO
 
@@ -1094,3 +1095,71 @@ def LockFile(fd):
     if err.errno == errno.EAGAIN:
       raise errors.LockError("File already locked")
     raise
+
+
+class SignalHandler(object):
+  """Generic signal handler class.
+
+  It automatically restores the original handler when deconstructed or when
+  Reset() is called. You can either pass your own handler function in or query
+  the "called" attribute to detect whether the signal was sent.
+
+  """
+  def __init__(self, signum):
+    """Constructs a new SignalHandler instance.
+
+    @param signum: Single signal number or set of signal numbers
+
+    """
+    if isinstance(signum, (int, long)):
+      self.signum = set([signum])
+    else:
+      self.signum = set(signum)
+
+    self.called = False
+
+    self._previous = {}
+    try:
+      for signum in self.signum:
+        # Setup handler
+        prev_handler = signal.signal(signum, self._HandleSignal)
+        try:
+          self._previous[signum] = prev_handler
+        except:
+          # Restore previous handler
+          signal.signal(signum, prev_handler)
+          raise
+    except:
+      # Reset all handlers
+      self.Reset()
+      # Here we have a race condition: a handler may have already been called,
+      # but there's not much we can do about it at this point.
+      raise
+
+  def __del__(self):
+    self.Reset()
+
+  def Reset(self):
+    """Restore previous handler.
+
+    """
+    for signum, prev_handler in self._previous.items():
+      signal.signal(signum, prev_handler)
+      # If successful, remove from dict
+      del self._previous[signum]
+
+  def Clear(self):
+    """Unsets "called" flag.
+
+    This function can be used in case a signal may arrive several times.
+
+    """
+    self.called = False
+
+  def _HandleSignal(self, signum, frame):
+    """Actual signal handling function.
+
+    """
+    # This is not nice and not absolutely atomic, but it appears to be the only
+    # solution in Python -- there are no atomic types.
+    self.called = True
