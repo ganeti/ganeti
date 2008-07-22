@@ -2,6 +2,7 @@ Version 1.2.5
   - note: the allowed size and number of tags per object were reduced
   - fix a bug in “gnt-cluster verify” with inconsistent volume groups
   - fixed twisted 8.x compatibility
+  - fixed gnt-instance replace-disks with iallocator
   - add TCP keepalives on twisted connections to detect restarted nodes
   - disk increase support, see “gnt-instance grow-disk”
   - implement bulk node/instance query for RAPI
