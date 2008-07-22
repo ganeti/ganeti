@@ -4284,7 +4284,7 @@ class LUSetInstanceParams(LogicalUnit):
       instance.vnc_bind_address = self.vnc_bind_address
       result.append(("vnc_bind_address", self.vnc_bind_address))
 
-    self.cfg.AddInstance(instance)
+    self.cfg.Update(instance)
 
     return result
 
