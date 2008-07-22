@@ -217,6 +217,28 @@ class LogicalUnit(object):
     """
     return lu_result
 
+  def _ExpandAndLockInstance(self):
+    """Helper function to expand and lock an instance.
+
+    Many LUs that work on an instance take its name in self.op.instance_name
+    and need to expand it and then declare the expanded name for locking. This
+    function does it, and then updates self.op.instance_name to the expanded
+    name. It also initializes needed_locks as a dict, if this hasn't been done
+    before.
+
+    """
+    if self.needed_locks is None:
+      self.needed_locks = {}
+    else:
+      assert locking.LEVEL_INSTANCE not in self.needed_locks, \
+        "_ExpandAndLockInstance called with instance-level locks set"
+    expanded_name = self.cfg.ExpandInstanceName(self.op.instance_name)
+    if expanded_name is None:
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                  self.op.instance_name)
+    self.needed_locks[locking.LEVEL_INSTANCE] = expanded_name
+    self.op.instance_name = expanded_name
+
 
 class NoHooksLU(LogicalUnit):
   """Simple LU which runs no hooks.
