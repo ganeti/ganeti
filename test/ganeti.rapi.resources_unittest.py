@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Script for unittesting the rapi.resources module"""
+"""Script for unittesting the RAPI resources module"""
 
 
 import os
@@ -28,16 +28,17 @@ import tempfile
 import time
 
 from ganeti import errors
+from ganeti.rapi import connector 
 from ganeti.rapi import httperror
-from ganeti.rapi import resources
 from ganeti.rapi import RESTHTTPServer
+from ganeti.rapi import rlib1 
 
 
 class MapperTests(unittest.TestCase):
   """Tests for remote API URI mapper."""
 
   def setUp(self):
-    self.map = resources.Mapper()
+    self.map = connector.Mapper()
 
   def _TestUri(self, uri, result):
     self.assertEquals(self.map.getController(uri), result)
@@ -46,17 +47,18 @@ class MapperTests(unittest.TestCase):
     self.failUnlessRaises(httperror.HTTPNotFound, self.map.getController, uri)
 
   def testMapper(self):
-    """Testing resources.Mapper"""
+    """Testing Mapper"""
 
-    self._TestUri("/tags", (resources.R_tags, [], {}))
+    self._TestUri("/tags", (rlib1.R_tags, [], {}))
+    self._TestUri("/instances", (rlib1.R_instances, [], {}))
 
     self._TestUri('/instances/www.test.com',
-                  (resources.R_instances_name,
+                  (rlib1.R_instances_name,
                    ['www.test.com'],
                    {}))
 
     self._TestUri('/instances/www.test.com/tags?f=5&f=6&alt=html',
-                  (resources.R_instances_name_tags,
+                  (rlib1.R_instances_name_tags,
                    ['www.test.com'],
                    {'alt': ['html'],
                     'f': ['5', '6'],
@@ -70,7 +72,7 @@ class R_RootTests(unittest.TestCase):
   """Testing for R_root class."""
 
   def setUp(self):
-    self.root = resources.R_root(None, None, None)
+    self.root = connector.R_root(None, None, None)
 
   def testGet(self):
     expected = [

@@ -20,9 +20,10 @@
 
 """
 
-import socket
 import BaseHTTPServer
 import OpenSSL
+import re
+import socket
 import time
 
 from ganeti import constants
@@ -30,7 +31,8 @@ from ganeti import errors
 from ganeti import logger
 from ganeti import rpc
 from ganeti import serializer
-from ganeti.rapi import resources
+
+from ganeti.rapi import connector
 from ganeti.rapi import httperror
 
 
@@ -158,7 +160,7 @@ class RESTRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.connection = self.request
     self.rfile = socket._fileobject(self.request, "rb", self.rbufsize)
     self.wfile = socket._fileobject(self.request, "wb", self.wbufsize)
-    self._resmap = resources.Mapper()
+    self._resmap = connector.Mapper()
 
   def handle_one_request(self):
     """Handle a single REST request.

@@ -19,189 +19,24 @@
 # 02110-1301, USA.
 
 
-"""Remote API resources.
+"""Remote API version 1 resources library.
 
 """
 
-import cgi
 import re
 
-import ganeti.opcodes
-import ganeti.errors
 import ganeti.cli
+import ganeti.errors
+import ganeti.opcodes
 
 from ganeti import constants
-from ganeti import luxi
 from ganeti import utils
-from ganeti.rapi import httperror
+
+from ganeti.rapi import baserlib 
+from ganeti.rapi import httperror 
 
 
-# Initialized at the end of this file.
-_CONNECTOR = {}
-
-
-def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
-  """Builds a URI list as used by index resources.
-
-  Args:
-  - ids: List of ids as strings
-  - uri_format: Format to be applied for URI
-  - uri_fields: Optional parameter for field ids
-
-  """
-  (field_id, field_uri) = uri_fields
-  
-  def _MapId(m_id):
-    return { field_id: m_id, field_uri: uri_format % m_id, }
-
-  # Make sure the result is sorted, makes it nicer to look at and simplifies
-  # unittests.
-  ids.sort()
-
-  return map(_MapId, ids)
-
-
-def ExtractField(sequence, index):
-  """Creates a list containing one column out of a list of lists.
-
-  Args:
-  - sequence: Sequence of lists
-  - index: Index of field
-
-  """
-  return map(lambda item: item[index], sequence)
-
-
-def MapFields(names, data):
-  """Maps two lists into one dictionary.
-
-  Args:
-  - names: Field names (list of strings)
-  - data: Field data (list)
-
-  Example:
-  >>> MapFields(["a", "b"], ["foo", 123])
-  {'a': 'foo', 'b': 123}
-
-  """
-  if len(names) != len(data):
-    raise AttributeError("Names and data must have the same length")
-  return dict([(names[i], data[i]) for i in range(len(names))])
-
-
-def _Tags_GET(kind, name=None):
-  """Helper function to retrieve tags.
-
-  """
-  if name is None:
-    # Do not cause "missing parameter" error, which happens if a parameter
-    # is None.
-    name = ""
-  op = ganeti.opcodes.OpGetTags(kind=kind, name=name)
-  tags = ganeti.cli.SubmitOpCode(op)
-  return list(tags)
-
-
-class Mapper:
-  """Map resource to method.
-
-  """
-  def __init__(self, connector=_CONNECTOR):
-    """Resource mapper constructor.
-
-    Args:
-      con: a dictionary, mapping method name with URL path regexp
-
-    """
-    self._connector = connector
-
-  def getController(self, uri):
-    """Find method for a given URI.
-
-    Args:
-      uri: string with URI
-
-    Returns:
-      None if no method is found or a tuple containing the following fields:
-        methd: name of method mapped to URI
-        items: a list of variable intems in the path
-        args: a dictionary with additional parameters from URL
-
-    """
-    if '?' in uri:
-      (path, query) = uri.split('?', 1)
-      args = cgi.parse_qs(query)
-    else:
-      path = uri
-      query = None
-      args = {}
-
-    result = None
-
-    for key, handler in self._connector.iteritems():
-      # Regex objects
-      if hasattr(key, "match"):
-        m = key.match(path)
-        if m:
-          result = (handler, list(m.groups()), args)
-          break
-
-      # String objects
-      elif key == path:
-        result = (handler, [], args)
-        break
-
-    if result is not None:
-      return result
-    else:
-      raise httperror.HTTPNotFound()
-
-
-class R_Generic(object):
-  """Generic class for resources.
-
-  """
-  def __init__(self, request, items, queryargs):
-    """Generic resource constructor.
-
-    Args:
-      request: HTTPRequestHandler object
-      items: a list with variables encoded in the URL
-      queryargs: a dictionary with additional options from URL
-
-    """
-    self.request = request
-    self.items = items
-    self.queryargs = queryargs
-
-
-class R_root(R_Generic):
-  """/ resource.
-
-  """
-  DOC_URI = "/"
-
-  def GET(self):
-    """Show the list of mapped resources.
-    
-    Returns:
-      A dictionary with 'name' and 'uri' keys for each of them.
-
-    """
-    root_pattern = re.compile('^R_([a-zA-Z0-9]+)$')
-
-    rootlist = []
-    for handler in _CONNECTOR.values():
-      m = root_pattern.match(handler.__name__)
-      if m:
-        name = m.group(1)
-        if name != 'root':
-          rootlist.append(name)
-
-    return BuildUriList(rootlist, "/%s")
-
-
-class R_version(R_Generic):
+class R_version(baserlib.R_Generic):
   """/version resource.
 
   This resource should be used to determine the remote API version and to adapt
@@ -217,7 +52,7 @@ class R_version(R_Generic):
     return constants.RAPI_VERSION
 
 
-class R_tags(R_Generic):
+class R_tags(baserlib.R_Generic):
   """/tags resource.
 
   Manages cluster tags.
@@ -231,10 +66,10 @@ class R_tags(R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
-    return _Tags_GET(constants.TAG_CLUSTER)
+    return baserlib._Tags_GET(constants.TAG_CLUSTER)
 
 
-class R_info(R_Generic):
+class R_info(baserlib.R_Generic):
   """Cluster info.
 
   """
@@ -263,7 +98,7 @@ class R_info(R_Generic):
     return ganeti.cli.SubmitOpCode(op)
 
 
-class R_nodes(R_Generic):
+class R_nodes(baserlib.R_Generic):
   """/nodes resource.
 
   """
@@ -289,7 +124,7 @@ class R_nodes(R_Generic):
 
     nodes_details = []
     for node in result:
-      mapped = MapFields(fields, node)
+      mapped = baserlib.MapFields(fields, node)
       nodes_details.append(mapped)
     return nodes_details
  
@@ -330,15 +165,15 @@ class R_nodes(R_Generic):
 
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
-    nodeslist = ExtractField(ganeti.cli.SubmitOpCode(op), 0)
+    nodeslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
     
     if 'bulk' in self.queryargs:
       return self._GetDetails(nodeslist)
 
-    return BuildUriList(nodeslist, "/nodes/%s")
+    return baserlib.BuildUriList(nodeslist, "/nodes/%s")
 
 
-class R_nodes_name(R_Generic):
+class R_nodes_name(baserlib.R_Generic):
   """/nodes/[node_name] resources.
 
   """
@@ -357,10 +192,10 @@ class R_nodes_name(R_Generic):
                                      names=[node_name])
     result = ganeti.cli.SubmitOpCode(op)
 
-    return MapFields(fields, result[0])
+    return baserlib.MapFields(fields, result[0])
 
 
-class R_nodes_name_tags(R_Generic):
+class R_nodes_name_tags(baserlib.R_Generic):
   """/nodes/[node_name]/tags resource.
 
   Manages per-node tags.
@@ -374,10 +209,10 @@ class R_nodes_name_tags(R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
-    return _Tags_GET(constants.TAG_NODE, name=self.items[0])
+    return baserlib._Tags_GET(constants.TAG_NODE, name=self.items[0])
 
 
-class R_instances(R_Generic):
+class R_instances(baserlib.R_Generic):
   """/instances resource.
 
   """
@@ -405,7 +240,7 @@ class R_instances(R_Generic):
 
     instances_details = []
     for instance in result:
-      mapped = MapFields(fields, instance)
+      mapped = baserlib.MapFields(fields, instance)
       instances_details.append(mapped)
     return instances_details
    
@@ -453,16 +288,16 @@ class R_instances(R_Generic):
 
     """
     op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
-    instanceslist = ExtractField(ganeti.cli.SubmitOpCode(op), 0)
+    instanceslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
     
     if 'bulk' in self.queryargs:
       return self._GetDetails(instanceslist)  
 
     else:
-      return BuildUriList(instanceslist, "/instances/%s")
+      return baserlib.BuildUriList(instanceslist, "/instances/%s")
 
 
-class R_instances_name(R_Generic):
+class R_instances_name(baserlib.R_Generic):
   """/instances/[instance_name] resources.
 
   """
@@ -483,10 +318,10 @@ class R_instances_name(R_Generic):
                                          names=[instance_name])
     result = ganeti.cli.SubmitOpCode(op)
 
-    return MapFields(fields, result[0])
+    return baserlib.MapFields(fields, result[0])
 
 
-class R_instances_name_tags(R_Generic):
+class R_instances_name_tags(baserlib.R_Generic):
   """/instances/[instance_name]/tags resource.
 
   Manages per-instance tags.
@@ -500,10 +335,10 @@ class R_instances_name_tags(R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
-    return _Tags_GET(constants.TAG_INSTANCE, name=self.items[0])
+    return baserlib._Tags_GET(constants.TAG_INSTANCE, name=self.items[0])
 
 
-class R_os(R_Generic):
+class R_os(baserlib.R_Generic):
   """/os resource.
 
   """
@@ -525,72 +360,3 @@ class R_os(R_Generic):
       raise httperror.HTTPInternalError(message="Can't get OS list")
 
     return [row[0] for row in diagnose_data if row[1]]
-
-
-class R_2_jobs(R_Generic):
-  """/2/jobs resource.
-
-  """
-  DOC_URI = "/2/jobs"
-
-  def GET(self):
-    """Returns a dictionary of jobs.
-
-    Returns:
-      A dictionary with jobs id and uri.
-    
-    """
-    fields = ["id"]
-    # Convert the list of lists to the list of ids
-    result = [job_id for [job_id] in luxi.Client().QueryJobs(None, fields)]
-    return BuildUriList(result, "/2/jobs/%s", uri_fields=("id", "uri"))
-
-
-class R_2_jobs_id(R_Generic):
-  """/2/jobs/[job_id] resource.
-
-  """
-  DOC_URI = "/2/jobs/[job_id]"
-
-  def GET(self):
-    """Returns a job status.
-
-    Returns: 
-      A dictionary with job parameters.
-
-    The result includes:
-      id - job ID as a number
-      status - current job status as a string
-      ops - involved OpCodes as a list of dictionaries for each opcodes in 
-        the job
-      opstatus - OpCodes status as a list
-      opresult - OpCodes results as a list of lists
-    
-    """
-    fields = ["id", "ops", "status", "opstatus", "opresult"]
-    job_id = self.items[0]
-    result = luxi.Client().QueryJobs([job_id,], fields)[0]
-    return MapFields(fields, result)
-
-
-_CONNECTOR.update({
-  "/": R_root,
-
-  "/version": R_version,
-
-  "/tags": R_tags,
-  "/info": R_info,
-
-  "/nodes": R_nodes,
-  re.compile(r'^/nodes/([\w\._-]+)$'): R_nodes_name,
-  re.compile(r'^/nodes/([\w\._-]+)/tags$'): R_nodes_name_tags,
-
-  "/instances": R_instances,
-  re.compile(r'^/instances/([\w\._-]+)$'): R_instances_name,
-  re.compile(r'^/instances/([\w\._-]+)/tags$'): R_instances_name_tags,
-
-  "/os": R_os,
-
-  "/2/jobs": R_2_jobs,
-  re.compile(r'/2/jobs/(%s)$' % constants.JOB_ID_TEMPLATE): R_2_jobs_id,
-  })

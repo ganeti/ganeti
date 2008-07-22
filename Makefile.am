@@ -94,7 +94,10 @@ rapi_PYTHON = \
 	lib/rapi/__init__.py \
 	lib/rapi/RESTHTTPServer.py \
 	lib/rapi/httperror.py \
-	lib/rapi/resources.py
+	lib/rapi/baserlib.py \
+	lib/rapi/connector.py \
+	lib/rapi/rlib1.py \
+	lib/rapi/rlib2.py
 
 
 docsgml = \
@@ -226,7 +229,7 @@ doc/%.html: doc/%.in $(DOCBOOK_WRAPPER)
 
 doc/rapi.pdf doc/rapi.html: doc/rapi-resources.sgml
 
-doc/rapi-resources.sgml: $(BUILD_RAPI_RESOURCE_DOC) lib/rapi/resources.py
+doc/rapi-resources.sgml: $(BUILD_RAPI_RESOURCE_DOC) lib/rapi/connector.py
 	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || rm -f $@
 
 man/%.7: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)

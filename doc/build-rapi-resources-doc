@@ -26,7 +26,9 @@ import re
 import cgi
 import inspect
 
-from ganeti.rapi import resources
+from ganeti.rapi import rlib1
+from ganeti.rapi import rlib2
+from ganeti.rapi import connector 
 
 
 CHECKED_COMMANDS = ["GET", "POST", "PUT", "DELETE"]
@@ -34,9 +36,9 @@ CHECKED_COMMANDS = ["GET", "POST", "PUT", "DELETE"]
 
 def main():
   # Get list of all resources
-  all = list(resources._CONNECTOR.itervalues())
+  all = list(connector.CONNECTOR.itervalues())
 
-  # Sort resources by URI
+  # Sort rlib1 by URI
   all.sort(cmp=lambda a, b: cmp(a.DOC_URI, b.DOC_URI))
 
   print "<!-- Automatically generated, do not edit -->"
