@@ -1740,6 +1740,10 @@ class LUQueryClusterInfo(NoHooksLU):
   """
   _OP_REQP = []
   REQ_MASTER = False
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {}
 
   def CheckPrereq(self):
     """No prerequsites needed for this LU.
@@ -1771,6 +1775,10 @@ class LUDumpClusterConfig(NoHooksLU):
 
   """
   _OP_REQP = []
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {}
 
   def CheckPrereq(self):
     """No prerequisites.
