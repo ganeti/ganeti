@@ -4590,6 +4590,7 @@ class LUDelTags(TagsLU):
                                 " config file and the operation has been"
                                 " aborted. Please retry.")
 
+
 class LUTestDelay(NoHooksLU):
   """Sleep for a specified amount of time.
 
