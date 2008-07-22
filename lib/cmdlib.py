@@ -4097,6 +4097,10 @@ class LUSetInstanceParams(LogicalUnit):
   HPATH = "instance-modify"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4134,6 +4138,9 @@ class LUSetInstanceParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
+    # FIXME: all the parameters could be checked before, in ExpandNames, or in
+    # a separate CheckArguments function, if we implement one, so the operation
+    # can be aborted without waiting for any lock, should it have an error...
     self.mem = getattr(self.op, "mem", None)
     self.vcpus = getattr(self.op, "vcpus", None)
     self.ip = getattr(self.op, "ip", None)
@@ -4228,13 +4235,9 @@ class LUSetInstanceParams(LogicalUnit):
                                    " like a valid IP address" %
                                    self.op.vnc_bind_address)
 
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("No such instance name '%s'" %
-                                 self.op.instance_name)
-    self.op.instance_name = instance.name
-    self.instance = instance
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert self.instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
     return
 
   def Exec(self, feedback_fn):
