@@ -436,18 +436,18 @@ class JobStorage(object):
     logging.debug("Writing job %s to %s", job.id, filename)
     utils.WriteFile(filename,
                     data=serializer.DumpJson(job.Serialize(), indent=False))
-    self._CleanCacheUnlocked(exceptions=[job.id])
+    self._CleanCacheUnlocked([job.id])
 
-  def _CleanCacheUnlocked(self, exceptions=None):
+  def _CleanCacheUnlocked(self, exclude):
     """Clean the memory cache.
 
     The exceptions argument contains job IDs that should not be
     cleaned.
 
     """
-    assert isinstance(exceptions, list)
+    assert isinstance(exclude, list)
     for job in self._memcache.values():
-      if job.id in exceptions:
+      if job.id in exclude:
         continue
       if job.GetStatus() not in (constants.JOB_STATUS_QUEUED,
                                  constants.JOB_STATUS_RUNNING):
