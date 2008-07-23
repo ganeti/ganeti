@@ -290,6 +290,31 @@ def IsProcessAlive(pid):
   return alive
 
 
+def IsPidFileAlive(pidfile):
+  """Check whether the given pidfile points to a live process.
+
+    @param pidfile: Path to a file containing the pid to be checked
+    @type  pidfile: string (filename)
+
+  """
+  try:
+    pf = open(pidfile, 'r')
+  except EnvironmentError, open_err:
+    if open_err.errno == errno.ENOENT:
+      return False
+    else:
+      raise errors.GenericError("Cannot open file %s. Error: %s" %
+                                (pidfile, str(open_err)))
+
+  try:
+    pid = int(pf.read())
+  except ValueError:
+    raise errors.GenericError("Invalid pid string in %s" %
+                              (pidfile,))
+
+  return IsProcessAlive(pid)
+
+
 def MatchNameComponent(key, name_list):
   """Try to match a name against a list.
 
