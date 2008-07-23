@@ -82,7 +82,7 @@ CONFIG_VERSION = BuildVersion(CONFIG_MAJOR, CONFIG_MINOR, CONFIG_REVISION)
 DATA_DIR = _autoconf.LOCALSTATEDIR + "/lib/ganeti"
 RUN_DIR = _autoconf.LOCALSTATEDIR + "/run"
 RUN_GANETI_DIR = RUN_DIR + "/ganeti"
-BDEV_CACHE_DIR = RUN_GANETI_DIR # TODO(2.0): move deeper
+BDEV_CACHE_DIR = RUN_GANETI_DIR + "/bdev-cache"
 DISK_LINKS_DIR = RUN_GANETI_DIR + "/instance-disks"
 # keep RUN_GANETI_DIR first here, to make sure all get created when the node
 # daemon is started (this takes care of RUN_DIR being tmpfs)
