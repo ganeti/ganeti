@@ -264,7 +264,7 @@ class _JobQueueWorkerPool(workerpool.WorkerPool):
     self.context = context
 
 
-class JobStorage(object):
+class DiskJobStorage(object):
   _RE_JOB_FILE = re.compile(r"^job-(%s)$" % constants.JOB_ID_TEMPLATE)
 
   def __init__(self):
@@ -513,7 +513,7 @@ class JobQueue:
    """
   def __init__(self, context):
     self._lock = threading.Lock()
-    self._jobs = JobStorage()
+    self._jobs = DiskJobStorage()
     self._wpool = _JobQueueWorkerPool(context)
 
     for job in self._jobs.GetJobs(None):
