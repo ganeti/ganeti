@@ -383,7 +383,7 @@ class JobStorage(object):
       if not result[node]:
         logging.error("copy of job queue file to node %s failed", node)
 
-    return serial
+    return str(serial)
 
   def _GetJobPath(self, job_id):
     return os.path.join(constants.QUEUE_DIR, "job-%s" % job_id)
