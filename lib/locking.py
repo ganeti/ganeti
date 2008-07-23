@@ -670,12 +670,12 @@ class LockSet:
 #   If you need more than one node, or more than one instance, acquire them at
 #   the same time.
 LEVEL_CLUSTER = 0
-LEVEL_NODE = 1
-LEVEL_INSTANCE = 2
+LEVEL_INSTANCE = 1
+LEVEL_NODE = 2
 
 LEVELS = [LEVEL_CLUSTER,
-          LEVEL_NODE,
-          LEVEL_INSTANCE]
+          LEVEL_INSTANCE,
+          LEVEL_NODE]
 
 # Lock levels which are modifiable
 LEVELS_MOD = [LEVEL_NODE, LEVEL_INSTANCE]

@@ -176,7 +176,7 @@ class Processor(object):
       lu = lu_class(self, op, self.context, sstore)
       lu.ExpandNames()
       assert lu.needed_locks is not None, "needed_locks not set by LU"
-      result = self._LockAndExecLU(lu, locking.LEVEL_NODE)
+      result = self._LockAndExecLU(lu, locking.LEVEL_INSTANCE)
     finally:
       self.context.glm.release(locking.LEVEL_CLUSTER)
       self.exclusive_BGL = False

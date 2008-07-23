@@ -621,14 +621,14 @@ class TestGanetiLockManager(unittest.TestCase):
   def testAcquireRelease(self):
     self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
     self.assertEquals(self.GL._list_owned(locking.LEVEL_CLUSTER), set(['BGL']))
+    self.GL.acquire(locking.LEVEL_INSTANCE, ['i1'])
     self.GL.acquire(locking.LEVEL_NODE, ['n1', 'n2'], shared=1)
-    self.GL.release(locking.LEVEL_NODE)
-    self.GL.acquire(locking.LEVEL_NODE, ['n1'])
+    self.GL.release(locking.LEVEL_NODE, ['n2'])
     self.assertEquals(self.GL._list_owned(locking.LEVEL_NODE), set(['n1']))
-    self.GL.acquire(locking.LEVEL_INSTANCE, ['i1', 'i2'])
-    self.GL.release(locking.LEVEL_INSTANCE, ['i2'])
     self.assertEquals(self.GL._list_owned(locking.LEVEL_INSTANCE), set(['i1']))
     self.GL.release(locking.LEVEL_NODE)
+    self.assertEquals(self.GL._list_owned(locking.LEVEL_NODE), set())
+    self.assertEquals(self.GL._list_owned(locking.LEVEL_INSTANCE), set(['i1']))
     self.GL.release(locking.LEVEL_INSTANCE)
     self.assertRaises(errors.LockError, self.GL.acquire,
                       locking.LEVEL_INSTANCE, ['i5'])
@@ -656,7 +656,7 @@ class TestGanetiLockManager(unittest.TestCase):
 
   def testWrongOrder(self):
     self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
-    self.GL.acquire(locking.LEVEL_INSTANCE, ['i3'])
+    self.GL.acquire(locking.LEVEL_NODE, ['n2'])
     self.assertRaises(AssertionError, self.GL.acquire,
                       locking.LEVEL_NODE, ['n1'])
     self.assertRaises(AssertionError, self.GL.acquire,
@@ -678,7 +678,6 @@ class TestGanetiLockManager(unittest.TestCase):
     self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
     Thread(target=self._doLock, args=(locking.LEVEL_INSTANCE, 'i1', 1)).start()
     self.assertEqual(self.done.get(True, 1), 'DONE')
-    self.GL.acquire(locking.LEVEL_NODE, ['n1'])
     self.GL.acquire(locking.LEVEL_INSTANCE, ['i3'])
     Thread(target=self._doLock, args=(locking.LEVEL_INSTANCE, 'i1', 1)).start()
     self.assertEqual(self.done.get(True, 1), 'DONE')
