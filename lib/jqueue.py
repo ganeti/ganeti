@@ -309,12 +309,31 @@ class JobStorage(object):
     finally:
       version_fd.close()
 
-    serial_fd = open(constants.JOB_QUEUE_SERIAL_FILE, "r")
+    self._last_serial = self._ReadSerial()
+    if self._last_serial is None:
+      raise errors.ConfigurationError("Can't read/parse the job queue serial"
+                                      " file")
+
+  @staticmethod
+  def _ReadSerial():
+    """Try to read the job serial file.
+
+    @rtype: None or int
+    @return: If the serial can be read, then it is returned. Otherwise None
+             is returned.
+
+    """
     try:
-      # Read last serial
-      self._last_serial = int(serial_fd.read(1024).strip())
-    finally:
-      serial_fd.close()
+      serial_fd = open(constants.JOB_QUEUE_SERIAL_FILE, "r")
+      try:
+        # Read last serial
+        serial = int(serial_fd.read(1024).strip())
+      finally:
+        serial_fd.close()
+    except (ValueError, EnvironmentError):
+      serial = None
+
+    return serial
 
   def Close(self):
     assert self.lock_fd, "Queue should be open"
@@ -327,8 +346,9 @@ class JobStorage(object):
 
     utils.WriteFile(constants.JOB_QUEUE_VERSION_FILE,
                     data="%s\n" % constants.JOB_QUEUE_VERSION)
-    utils.WriteFile(constants.JOB_QUEUE_SERIAL_FILE,
-                    data="%s\n" % 0)
+    if self._ReadSerial() is None:
+      utils.WriteFile(constants.JOB_QUEUE_SERIAL_FILE,
+                      data="%s\n" % 0)
 
   def _NewSerialUnlocked(self):
     """Generates a new job identifier.
