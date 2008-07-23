@@ -415,7 +415,7 @@ class JobStorage(object):
     assert self.lock_fd, "Queue should be open"
 
     if job_id in self._memcache:
-      logging.debug("Found job %d in memcache", job_id)
+      logging.debug("Found job %s in memcache", job_id)
       return self._memcache[job_id]
 
     filepath = self._GetJobPath(job_id)
@@ -433,7 +433,7 @@ class JobStorage(object):
 
     job = _QueuedJob.Restore(self, data)
     self._memcache[job_id] = job
-    logging.debug("Added job %d to the cache", job_id)
+    logging.debug("Added job %s to the cache", job_id)
     return job
 
   def _GetJobsUnlocked(self, job_ids):
@@ -451,7 +451,7 @@ class JobStorage(object):
     """Create and store on disk a new job.
 
     @type ops: list
-    @param ops: The list of OpCodes that will becom the new job.
+    @param ops: The list of OpCodes that will become the new job.
     @type nodes: list
     @param nodes: The list of nodes to which the new job serial will be
                   distributed.
@@ -466,7 +466,7 @@ class JobStorage(object):
     # Write to disk
     self._UpdateJobUnlocked(job)
 
-    logging.debug("Added new job %d to the cache", job_id)
+    logging.debug("Added new job %s to the cache", job_id)
     self._memcache[job_id] = job
 
     return job
@@ -493,7 +493,7 @@ class JobStorage(object):
         continue
       if job.GetStatus() not in (constants.JOB_STATUS_QUEUED,
                                  constants.JOB_STATUS_RUNNING):
-        logging.debug("Cleaning job %d from the cache", job.id)
+        logging.debug("Cleaning job %s from the cache", job.id)
         try:
           del self._memcache[job.id]
         except KeyError:
