@@ -37,7 +37,7 @@ def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
 
   """
   (field_id, field_uri) = uri_fields
-  
+
   def _MapId(m_id):
     return { field_id: m_id, field_uri: uri_format % m_id, }
 
@@ -73,7 +73,7 @@ def MapFields(names, data):
   """
   if len(names) != len(data):
     raise AttributeError("Names and data must have the same length")
-  return dict([(names[i], data[i]) for i in range(len(names))])
+  return dict(zip(names, data))
 
 
 def _Tags_GET(kind, name=None):
