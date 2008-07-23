@@ -69,7 +69,7 @@ def ListJobs(opts, args):
 
   # we don't have yet unitfields here
   unitfields = None
-  numfields = ["id"]
+  numfields = None
 
   # change raw values to nicer strings
   for row in output:
