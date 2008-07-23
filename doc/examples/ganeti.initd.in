@@ -19,6 +19,9 @@ MASTER=@PREFIX@/sbin/ganeti-master
 MASTERD_NAME=ganeti-masterd
 MASTERD="@PREFIX@/sbin/$MASTERD_NAME"
 SCRIPTNAME=@SYSCONFDIR@/init.d/ganeti
+GANETIRUNDIR="@LOCALSTATEDIR@/run/ganeti"
+NODED_PID="$GANETIRUNDIR/$NAME.pid"
+MASTERD_PID="$GANETIRUNDIR/$MASTERD_NAME.pid"
 
 test -f $NODED || exit 0
 
@@ -71,12 +74,12 @@ case "$1" in
      ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
-        if start-stop-daemon --stop --quiet --name $NAME; then
+        if start-stop-daemon --stop --quiet --oknodo -p $NODED_PID; then
             log_end_msg 0
         else
             log_end_msg 1
         fi
-        if start-stop-daemon --stop --quiet --name $MASTERD_NAME; then
+        if start-stop-daemon --stop --quiet --oknodo -p $MASTERD_PID; then
             log_end_msg 0
         else
             log_end_msg 1
@@ -85,8 +88,8 @@ case "$1" in
     ;;
     restart|force-reload)
         log_daemon_msg "Reloading $DESC"
-        start-stop-daemon --stop --quiet --oknodo --retry 30 --name $NAME
-        start-stop-daemon --stop --quiet --oknodo --retry 30 --name $MASTERD_NAME
+        start-stop-daemon --stop --quiet --oknodo --retry 30 -p $NODED_PID
+        start-stop-daemon --stop --quiet --oknodo --retry 30 -p $MASTERD_PID
         check_config
         start-stop-daemon --start --quiet --exec $NODED
         start-stop-daemon --start --quiet --exec $MASTERD
