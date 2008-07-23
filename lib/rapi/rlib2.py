@@ -32,6 +32,8 @@ from ganeti import luxi
 
 from ganeti.rapi import baserlib 
 
+from ganeti.rapi.rlib1 import I_FIELDS, N_FIELDS
+
 
 class R_2_jobs(baserlib.R_Generic):
   """/2/jobs resource.
@@ -85,30 +87,6 @@ class R_2_nodes(baserlib.R_Generic):
   """
   DOC_URI = "/2/nodes"
  
-  def _GetDetails(self, nodeslist):
-    """Returns detailed instance data for bulk output.
-
-    Args:
-      instance: A list of nodes names.
-
-    Returns:
-      A list of nodes properties
-
-    """
-    fields = ["name","dtotal", "dfree",
-              "mtotal", "mnode", "mfree",
-              "pinst_cnt", "sinst_cnt", "tags"]
-
-    op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
-                                     names=nodeslist)
-    result = ganeti.cli.SubmitOpCode(op)
-
-    nodes_details = []
-    for node in result:
-      mapped = baserlib.MapFields(fields, node)
-      nodes_details.append(mapped)
-    return nodes_details
- 
   def GET(self):
     """Returns a list of all nodes.
     
@@ -149,6 +127,9 @@ class R_2_nodes(baserlib.R_Generic):
     nodeslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
     
     if 'bulk' in self.queryargs:
-      return self._GetDetails(nodeslist)
+      op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
+                                       names=nodeslist)
+      result = ganeti.cli.SubmitOpCode(op)
+      return baserlib.MapBulkFields(result, N_FIELDS)
 
     return baserlib.BuildUriList(nodeslist, "/nodes/%s", uri_fields=("id", "uri"))

@@ -89,6 +89,23 @@ def _Tags_GET(kind, name=None):
   return list(tags)
 
 
+def MapBulkFields(itemslist, fields):
+  """Map value to field name in to one dictionary.
+
+  Args:
+  - itemslist: A list of items values
+  - instance: A list of items names
+
+  Returns:
+    A list of mapped dictionaries
+  """
+  items_details = []
+  for item in itemslist:
+    mapped = MapFields(fields, item)
+    items_details.append(mapped)
+  return items_details
+
+
 class R_Generic(object):
   """Generic class for resources.
 

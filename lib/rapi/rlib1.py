@@ -36,6 +36,17 @@ from ganeti.rapi import baserlib
 from ganeti.rapi import httperror 
 
 
+I_FIELDS = ["name", "os", "pnode", "snodes",
+            "admin_state", "admin_ram",
+            "disk_template", "ip", "mac", "bridge",
+            "sda_size", "sdb_size", "vcpus",
+            "oper_state", "status", "tags"]
+
+N_FIELDS = ["name","dtotal", "dfree",
+            "mtotal", "mnode", "mfree",
+            "pinst_cnt", "sinst_cnt", "tags"]
+
+
 class R_version(baserlib.R_Generic):
   """/version resource.
 
@@ -103,30 +114,6 @@ class R_nodes(baserlib.R_Generic):
 
   """
   DOC_URI = "/nodes"
-
-  def _GetDetails(self, nodeslist):
-    """Returns detailed instance data for bulk output.
-
-    Args:
-      instance: A list of nodes names.
-
-    Returns:
-      A list of nodes properties
-
-    """
-    fields = ["name","dtotal", "dfree",
-              "mtotal", "mnode", "mfree",
-              "pinst_cnt", "sinst_cnt", "tags"]
-
-    op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
-                                     names=nodeslist)
-    result = ganeti.cli.SubmitOpCode(op)
-
-    nodes_details = []
-    for node in result:
-      mapped = baserlib.MapFields(fields, node)
-      nodes_details.append(mapped)
-    return nodes_details
  
   def GET(self):
     """Returns a list of all nodes.
@@ -168,7 +155,10 @@ class R_nodes(baserlib.R_Generic):
     nodeslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
     
     if 'bulk' in self.queryargs:
-      return self._GetDetails(nodeslist)
+      op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
+                                       names=nodeslist)
+      result = ganeti.cli.SubmitOpCode(op)
+      return baserlib.MapBulkFields(result, N_FIELDS)
 
     return baserlib.BuildUriList(nodeslist, "/nodes/%s")
 
@@ -184,15 +174,11 @@ class R_nodes_name(baserlib.R_Generic):
 
     """
     node_name = self.items[0]
-    fields = ["name","dtotal", "dfree",
-              "mtotal", "mnode", "mfree",
-              "pinst_cnt", "sinst_cnt", "tags"]
-
-    op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
+    op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
                                      names=[node_name])
     result = ganeti.cli.SubmitOpCode(op)
 
-    return baserlib.MapFields(fields, result[0])
+    return baserlib.MapFields(N_FIELDS, result[0])
 
 
 class R_nodes_name_tags(baserlib.R_Generic):
@@ -218,32 +204,7 @@ class R_instances(baserlib.R_Generic):
   """
   DOC_URI = "/instances"
 
-  def _GetDetails(self, instanceslist):
-    """Returns detailed instance data for bulk output.
 
-    Args:
-      instance: A list of instances names.
-
-    Returns:
-      A list with instances properties.
-
-    """
-    fields = ["name", "os", "pnode", "snodes",
-              "admin_state", "admin_ram",
-              "disk_template", "ip", "mac", "bridge",
-              "sda_size", "sdb_size", "vcpus",
-              "oper_state", "status", "tags"]
-
-    op = ganeti.opcodes.OpQueryInstances(output_fields=fields,
-                                         names=instanceslist)
-    result = ganeti.cli.SubmitOpCode(op)
-
-    instances_details = []
-    for instance in result:
-      mapped = baserlib.MapFields(fields, instance)
-      instances_details.append(mapped)
-    return instances_details
-   
   def GET(self):
     """Returns a list of all available instances.
     
@@ -291,7 +252,11 @@ class R_instances(baserlib.R_Generic):
     instanceslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
     
     if 'bulk' in self.queryargs:
-      return self._GetDetails(instanceslist)  
+      op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
+                                           names=instanceslist)
+      result = ganeti.cli.SubmitOpCode(op)
+      return baserlib.MapBulkFields(result, I_FIELDS)
+
 
     else:
       return baserlib.BuildUriList(instanceslist, "/instances/%s")
@@ -308,17 +273,11 @@ class R_instances_name(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    fields = ["name", "os", "pnode", "snodes",
-              "admin_state", "admin_ram",
-              "disk_template", "ip", "mac", "bridge",
-              "sda_size", "sdb_size", "vcpus",
-              "oper_state", "status", "tags"]
-
-    op = ganeti.opcodes.OpQueryInstances(output_fields=fields,
+    op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
                                          names=[instance_name])
     result = ganeti.cli.SubmitOpCode(op)
 
-    return baserlib.MapFields(fields, result[0])
+    return baserlib.MapFields(I_FIELDS, result[0])
 
 
 class R_instances_name_tags(baserlib.R_Generic):
