@@ -292,6 +292,14 @@ class JobStorageBase(object):
 
     return "%s%010d" % (prefix, job_id)
 
+  def _ShouldJobBeArchivedUnlocked(self, job):
+    if job.GetStatus() not in (constants.JOB_STATUS_CANCELED,
+                               constants.JOB_STATUS_SUCCESS,
+                               constants.JOB_STATUS_ERROR):
+      logging.debug("Job %s is not yet done", job.id)
+      return False
+    return True
+
 
 class DiskJobStorage(JobStorageBase):
   _RE_JOB_FILE = re.compile(r"^job-(%s)$" % constants.JOB_ID_TEMPLATE)
@@ -538,8 +546,35 @@ class DiskJobStorage(JobStorageBase):
   def UpdateJob(self, job):
     return self._UpdateJobUnlocked(job)
 
+  @utils.LockedMethod
   def ArchiveJob(self, job_id):
-    raise NotImplementedError()
+    """Archives a job.
+
+    @type job_id: string
+    @param job_id: Job ID of job to be archived.
+
+    """
+    logging.debug("Archiving job %s", job_id)
+
+    job = self._LoadJobUnlocked(job_id)
+    if not job:
+      logging.debug("Job %s not found", job_id)
+      return
+
+    if not self._ShouldJobBeArchivedUnlocked(job):
+      return
+
+    try:
+      old = self._GetJobPath(job.id)
+      new = self._GetArchivedJobPath(job.id)
+
+      os.rename(old, new)
+
+      logging.debug("Successfully archived job %s", job.id)
+    finally:
+      # Cleaning the cache because we don't know what os.rename actually did
+      # and to be on the safe side.
+      self._CleanCacheUnlocked([])
 
 
 class JobQueue:
@@ -582,7 +617,7 @@ class JobQueue:
     return job.id
 
   def ArchiveJob(self, job_id):
-    raise NotImplementedError()
+    self._jobs.ArchiveJob(job_id)
 
   def CancelJob(self, job_id):
     raise NotImplementedError()
