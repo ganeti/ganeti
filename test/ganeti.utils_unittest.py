@@ -32,6 +32,7 @@ import signal
 import socket
 import shutil
 import re
+import tempfile
 
 import ganeti
 import testutils
@@ -97,6 +98,24 @@ class TestIsProcessAlive(unittest.TestCase):
   def testNotExisting(self):
     self.assert_(not IsProcessAlive(self.pid_non_existing),
                  "noexisting process detected")
+
+class TestPidFileFunctions(unittest.TestCase):
+  """Tests for WritePidFile, RemovePidFile and IsPidFileAlive"""
+
+  def setUp(self):
+    self.dir = tempfile.mkdtemp()
+    self.f_dpn = lambda name: os.path.join(self.dir, "%s.pid" % name)
+    utils._DaemonPidFileName = self.f_dpn
+
+  def testPidFileFunctions(self):
+    utils.WritePidFile('test')
+    self.assert_(os.path.exists(self.f_dpn('test')))
+    self.assert_(utils.IsPidFileAlive(self.f_dpn('test')))
+    utils.RemovePidFile('test')
+    self.assert_(not os.path.exists(self.f_dpn('test')))
+
+  def tearDown(self):
+    os.rmdir(self.dir)
 
 
 class TestRunCmd(unittest.TestCase):
