@@ -215,11 +215,11 @@ class ClientOps:
       return queue.SubmitJob(ops, node_list)
 
     elif method == luxi.REQ_CANCEL_JOB:
-      (job_id, ) = args
+      job_id = args
       return queue.CancelJob(job_id)
 
     elif method == luxi.REQ_ARCHIVE_JOB:
-      (job_id, ) = args
+      job_id = args
       return queue.ArchiveJob(job_id)
 
     elif method == luxi.REQ_QUERY_JOBS:
