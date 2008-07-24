@@ -303,12 +303,13 @@ class DiskJobStorage(JobStorageBase):
     self._memcache = {}
     self._my_hostname = utils.HostInfo().name
 
-    # Make sure our directory exists
-    try:
-      os.mkdir(constants.QUEUE_DIR, 0700)
-    except OSError, err:
-      if err.errno not in (errno.EEXIST, ):
-        raise
+    # Make sure our directories exists
+    for path in (constants.QUEUE_DIR, constants.JOB_QUEUE_ARCHIVE_DIR):
+      try:
+        os.mkdir(path, 0700)
+      except OSError, err:
+        if err.errno not in (errno.EEXIST, ):
+          raise
 
     # Get queue lock
     self.lock_fd = open(constants.JOB_QUEUE_LOCK_FILE, "w")
@@ -418,6 +419,9 @@ class DiskJobStorage(JobStorageBase):
 
   def _GetJobPath(self, job_id):
     return os.path.join(constants.QUEUE_DIR, "job-%s" % job_id)
+
+  def _GetArchivedJobPath(self, job_id):
+    return os.path.join(constants.JOB_QUEUE_ARCHIVE_DIR, "job-%s" % job_id)
 
   def _GetJobIDsUnlocked(self, archived=False):
     """Return all known job IDs.
