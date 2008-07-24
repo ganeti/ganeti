@@ -195,6 +195,7 @@ dist_TESTS = \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.workerpool_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
+	test/ganeti.http_unittest.py \
 	test/ganeti.constants_unittest.py
 
 nodist_TESTS =

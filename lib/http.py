@@ -108,6 +108,7 @@ class ApacheLogfile:
       # Message
       format % args,
       ))
+    self._fd.flush()
 
   def _FormatCurrentTime(self):
     """Formats current time in Common Log Format.

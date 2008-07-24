@@ -22,14 +22,13 @@
 """Script for unittesting the RAPI resources module"""
 
 
-import os
 import unittest
 import tempfile
-import time
 
 from ganeti import errors
+from ganeti import http
+
 from ganeti.rapi import connector 
-from ganeti.rapi import httperror
 from ganeti.rapi import RESTHTTPServer
 from ganeti.rapi import rlib1 
 
@@ -44,7 +43,7 @@ class MapperTests(unittest.TestCase):
     self.assertEquals(self.map.getController(uri), result)
 
   def _TestFailingUri(self, uri):
-    self.failUnlessRaises(httperror.HTTPNotFound, self.map.getController, uri)
+    self.failUnlessRaises(http.HTTPNotFound, self.map.getController, uri)
 
   def testMapper(self):
     """Testing Mapper"""
@@ -84,62 +83,6 @@ class R_RootTests(unittest.TestCase):
       {'name': 'version', 'uri': '/version'},
       ]
     self.assertEquals(self.root.GET(), expected)
-
-
-class HttpLogfileTests(unittest.TestCase):
-  """Rests for HttpLogfile class."""
-
-  class FakeRequest:
-    FAKE_ADDRESS = "1.2.3.4"
-
-    def address_string(self):
-      return self.FAKE_ADDRESS
-
-  def setUp(self):
-    self.tmpfile = tempfile.NamedTemporaryFile()
-    self.logfile = RESTHTTPServer.HttpLogfile(self.tmpfile.name)
-
-  def testFormatLogTime(self):
-    self._TestInTimezone(1208646123.0, "Europe/London",
-                         "19/Apr/2008:23:02:03 +0000")
-    self._TestInTimezone(1208646123, "Europe/Zurich",
-                         "19/Apr/2008:23:02:03 +0000")
-    self._TestInTimezone(1208646123, "Australia/Sydney",
-                         "19/Apr/2008:23:02:03 +0000")
-
-  def _TestInTimezone(self, seconds, timezone, expected):
-    """Tests HttpLogfile._FormatLogTime with a specific timezone
-
-    """
-    # Preserve environment
-    old_TZ = os.environ.get("TZ", None)
-    try:
-      os.environ["TZ"] = timezone
-      time.tzset()
-      result = self.logfile._FormatLogTime(seconds)
-    finally:
-      # Restore environment
-      if old_TZ is not None:
-        os.environ["TZ"] = old_TZ
-      elif "TZ" in os.environ:
-        del os.environ["TZ"]
-      time.tzset()
-
-    self.assertEqual(result, expected)
-
-  def testClose(self):
-    self.logfile.Close()
-
-  def testCloseAndWrite(self):
-    request = self.FakeRequest()
-    self.logfile.Close()
-    self.assertRaises(errors.ProgrammerError, self.logfile.LogRequest,
-                      request, "Message")
-
-  def testLogRequest(self):
-    request = self.FakeRequest()
-    self.logfile.LogRequest(request, "This is only a %s", "test")
-    self.logfile.Close()
 
 
 if __name__ == '__main__':

@@ -26,9 +26,9 @@ import cgi
 import re
 
 from ganeti import constants 
+from ganeti import http 
 
 from ganeti.rapi import baserlib 
-from ganeti.rapi import httperror 
 from ganeti.rapi import rlib1
 from ganeti.rapi import rlib2
 
@@ -85,10 +85,10 @@ class Mapper:
         result = (handler, [], args)
         break
 
-    if result is not None:
+    if result:
       return result
     else:
-      raise httperror.HTTPNotFound()
+      raise http.HTTPNotFound()
 
 
 class R_root(baserlib.R_Generic):
