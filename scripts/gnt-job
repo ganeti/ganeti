@@ -43,6 +43,7 @@ _USER_JOB_STATUS = {
   constants.JOB_STATUS_ERROR: "error",
   }
 
+
 def ListJobs(opts, args):
   """List the jobs
 
@@ -92,6 +93,15 @@ def ListJobs(opts, args):
   return 0
 
 
+def ArchiveJobs(opts, args):
+  client = GetClient()
+
+  for job_id in args:
+    client.ArchiveJob(job_id)
+
+  return 0
+
+
 commands = {
   'list': (ListJobs, ARGS_NONE,
             [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
@@ -99,7 +109,11 @@ commands = {
            " (see the man page for details): id, status, op_list,"
            " op_status, op_result."
            " The default field"
-           " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS))
+           " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS)),
+  'archive': (ArchiveJobs, ARGS_ANY,
+              [DEBUG_OPT],
+              "<job-id> [<job-id> ...]",
+              "Archive specified jobs"),
   }
 
 
