@@ -4515,7 +4515,7 @@ class LUGetTags(TagsLU):
     """Returns the tag list.
 
     """
-    return self.target.GetTags()
+    return list(self.target.GetTags())
 
 
 class LUSearchTags(NoHooksLU):
