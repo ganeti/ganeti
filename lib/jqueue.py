@@ -431,6 +431,13 @@ class DiskJobStorage(JobStorageBase):
   def _GetArchivedJobPath(self, job_id):
     return os.path.join(constants.JOB_QUEUE_ARCHIVE_DIR, "job-%s" % job_id)
 
+  def _ExtractJobID(self, name):
+    m = self._RE_JOB_FILE.match(name)
+    if m:
+      return m.group(1)
+    else:
+      return None
+
   def _GetJobIDsUnlocked(self, archived=False):
     """Return all known job IDs.
 
@@ -442,9 +449,7 @@ class DiskJobStorage(JobStorageBase):
     extra IDs).
 
     """
-    jfiles = self._ListJobFiles()
-    jlist = [m.group(1) for m in
-             [self._RE_JOB_FILE.match(name) for name in jfiles]]
+    jlist = [self._ExtractJobID(name) for name in self._ListJobFiles()]
     jlist.sort()
     return jlist
 
