@@ -44,10 +44,8 @@ def Delay(opts, args):
   op = opcodes.OpTestDelay(duration=delay,
                            on_master=opts.on_master,
                            on_nodes=opts.on_nodes)
+  SubmitOpCode(op)
 
-  job = opcodes.Job(op_list=[op])
-  jid = SubmitJob(job)
-  print "Job id", jid
   return 0
 
 
