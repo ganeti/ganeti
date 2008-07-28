@@ -28,9 +28,8 @@ import tempfile
 from ganeti import errors
 from ganeti import http
 
-from ganeti.rapi import connector 
-from ganeti.rapi import RESTHTTPServer
-from ganeti.rapi import rlib1 
+from ganeti.rapi import connector
+from ganeti.rapi import rlib1
 
 
 class MapperTests(unittest.TestCase):
