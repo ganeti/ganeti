@@ -560,6 +560,32 @@ class DiskJobStorage(JobStorageBase):
   def UpdateJob(self, job):
     return self._UpdateJobUnlocked(job)
 
+  # TODO: Figure out locking
+  #@utils.LockedMethod
+  def CancelJob(self, job_id):
+    """Cancels a job.
+
+    @type job_id: string
+    @param job_id: Job ID of job to be cancelled.
+
+    """
+    logging.debug("Cancelling job %s", job_id)
+
+    self._lock.acquire()
+    try:
+      job = self._LoadJobUnlocked(job_id)
+    finally:
+      self._lock.release()
+    if not job:
+      logging.debug("Job %s not found", job_id)
+      return
+
+    if job.GetStatus() not in (constants.JOB_STATUS_QUEUED,):
+      logging.debug("Job %s is no longer in the queue", job.id)
+      return
+
+    job.SetCanceled("Job cancelled by request")
+
   @utils.LockedMethod
   def ArchiveJob(self, job_id):
     """Archives a job.
@@ -633,8 +659,9 @@ class JobQueue:
   def ArchiveJob(self, job_id):
     self._jobs.ArchiveJob(job_id)
 
+  @utils.LockedMethod
   def CancelJob(self, job_id):
-    raise NotImplementedError()
+    self._jobs.CancelJob(job_id)
 
   def _GetJobInfo(self, job, fields):
     row = []
