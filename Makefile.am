@@ -92,7 +92,6 @@ hypervisor_PYTHON = \
 
 rapi_PYTHON = \
 	lib/rapi/__init__.py \
-	lib/rapi/RESTHTTPServer.py \
 	lib/rapi/httperror.py \
 	lib/rapi/baserlib.py \
 	lib/rapi/connector.py \
