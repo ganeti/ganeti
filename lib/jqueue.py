@@ -161,12 +161,18 @@ class _QueuedJob(object):
       "run_op_index": self.run_op_index,
       }
 
-  def SetUnclean(self, msg):
+  def _SetStatus(self, status, msg):
     try:
       for op in self._ops:
-        op.SetStatus(constants.OP_STATUS_ERROR, msg)
+        op.SetStatus(status, msg)
     finally:
       self.storage.UpdateJob(self)
+
+  def SetUnclean(self, msg):
+    return self._SetStatus(constants.OP_STATUS_ERROR, msg)
+
+  def SetCanceled(self, msg):
+    return self._SetStatus(constants.JOB_STATUS_CANCELED, msg)
 
   def GetStatus(self):
     status = constants.JOB_STATUS_QUEUED
@@ -186,6 +192,9 @@ class _QueuedJob(object):
       elif op_status == constants.OP_STATUS_ERROR:
         status = constants.JOB_STATUS_ERROR
         # The whole job fails if one opcode failed
+        break
+      elif op_status == constants.OP_STATUS_CANCELED:
+        status = constants.OP_STATUS_CANCELED
         break
 
     if all_success:

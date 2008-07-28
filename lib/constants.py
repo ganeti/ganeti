@@ -266,6 +266,7 @@ JOB_STATUS_ERROR = "error"
 
 OP_STATUS_QUEUED = "queued"
 OP_STATUS_RUNNING = "running"
+OP_STATUS_CANCELED = "canceled"
 OP_STATUS_SUCCESS = "success"
 OP_STATUS_ERROR = "error"
 
