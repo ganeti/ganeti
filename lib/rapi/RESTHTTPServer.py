@@ -25,7 +25,6 @@ from ganeti import http
 from ganeti import errors
 from ganeti import rpc
 from ganeti.rapi import connector
-from ganeti.rapi import httperror
 
 
 class RESTRequestHandler(http.HTTPRequestHandler):
@@ -35,7 +34,7 @@ class RESTRequestHandler(http.HTTPRequestHandler):
   def setup(self):
     super(RESTRequestHandler, self).setup()
     self._resmap = connector.Mapper()
-  
+
   def HandleRequest(self):
     """ Handels a request.
 
@@ -47,7 +46,7 @@ class RESTRequestHandler(http.HTTPRequestHandler):
     try:
       fn = getattr(handler, command)
     except AttributeError, err:
-      raise httperror.HTTPBadRequest()
+      raise http.HTTPBadRequest()
 
     try:
       result = fn()
@@ -55,8 +54,8 @@ class RESTRequestHandler(http.HTTPRequestHandler):
     except errors.OpPrereqError, err:
       # TODO: "Not found" is not always the correct error. Ganeti's core must
       # differentiate between different error types.
-      raise httperror.HTTPNotFound(message=str(err))
-    
+      raise http.HTTPNotFound(message=str(err))
+
     return result
 
 
