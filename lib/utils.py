@@ -1067,7 +1067,7 @@ def WritePidFile(name):
   pid = os.getpid()
   pidfilename = _DaemonPidFileName(name)
   if IsPidFileAlive(pidfilename):
-    raise GenericError("%s contains a live process" % pidfilename)
+    raise errors.GenericError("%s contains a live process" % pidfilename)
 
   WriteFile(pidfilename, data="%d\n" % pid)
 
