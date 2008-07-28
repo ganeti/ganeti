@@ -25,6 +25,7 @@ import glob
 import optparse
 import sys
 import os
+import signal
 
 from ganeti import constants
 from ganeti import errors
@@ -64,6 +65,17 @@ class RESTRequestHandler(http.HTTPRequestHandler):
       raise http.HTTPNotFound(message=str(err))
 
     return result
+
+
+class RESTHttpServer(http.HTTPServer):
+  def serve_forever(self):
+    """Handle one request at a time until told to quit."""
+    sighandler = utils.SignalHandler([signal.SIGINT, signal.SIGTERM])
+    try:
+      while not sighandler.called:
+        self.handle_request()
+    finally:
+      sighandler.Reset()
 
 
 def ParseOptions():
@@ -123,8 +135,8 @@ def main():
   log_fd = open(constants.LOG_RAPIACCESS, 'a')
   try:
     apache_log = http.ApacheLogfile(log_fd)
-    httpd = http.HTTPServer(("", options.port), RESTRequestHandler,
-                            httplog=apache_log)
+    httpd = RESTHttpServer(("", options.port), RESTRequestHandler,
+                           httplog=apache_log)
     try:
       httpd.serve_forever()
     finally:
