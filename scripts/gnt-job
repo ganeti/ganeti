@@ -102,6 +102,15 @@ def ArchiveJobs(opts, args):
   return 0
 
 
+def CancelJobs(opts, args):
+  client = GetClient()
+
+  for job_id in args:
+    client.CancelJob(job_id)
+
+  return 0
+
+
 commands = {
   'list': (ListJobs, ARGS_NONE,
             [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
@@ -114,6 +123,10 @@ commands = {
               [DEBUG_OPT],
               "<job-id> [<job-id> ...]",
               "Archive specified jobs"),
+  'cancel': (CancelJobs, ARGS_ANY,
+             [DEBUG_OPT],
+             "<job-id> [<job-id> ...]",
+             "Cancel specified jobs"),
   }
 
 
