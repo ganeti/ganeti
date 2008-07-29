@@ -43,7 +43,8 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree
-from ganeti.errors import LockError, UnitParseError, GenericError
+from ganeti.errors import LockError, UnitParseError, GenericError, \
+     ProgrammerError
 
 def _ChildHandler(signal, stack):
   global _ChildFlag
@@ -131,6 +132,27 @@ class TestPidFileFunctions(unittest.TestCase):
     utils.RemovePidFile('test')
     self.failIf(os.path.exists(pid_file),
                 "PID file should not exist anymore")
+
+  def testKill(self):
+    pid_file = self.f_dpn('child')
+    r_fd, w_fd = os.pipe()
+    new_pid = os.fork()
+    if new_pid == 0: #child
+      utils.WritePidFile('child')
+      os.write(w_fd, 'a')
+      signal.pause()
+      os._exit(0)
+      return
+    # else we are in the parent
+    # wait until the child has written the pid file
+    os.read(r_fd, 1)
+    read_pid = utils.ReadPidFile(pid_file)
+    self.failUnlessEqual(read_pid, new_pid)
+    self.failUnless(utils.IsProcessAlive(new_pid))
+    utils.KillProcess(new_pid)
+    self.failIf(utils.IsProcessAlive(new_pid))
+    utils.RemovePidFile('child')
+    self.failUnlessRaises(ProgrammerError, utils.KillProcess, 0)
 
   def tearDown(self):
     for name in os.listdir(self.dir):

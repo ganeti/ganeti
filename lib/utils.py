@@ -1092,6 +1092,35 @@ def RemovePidFile(name):
     pass
 
 
+def KillProcess(pid, signal=signal.SIGTERM, timeout=30):
+  """Kill a process given by its pid.
+
+  @type pid: int
+  @param pid: The PID to terminate.
+  @type signal: int
+  @param signal: The signal to send, by default SIGTERM
+  @type timeout: int
+  @param timeout: The timeout after which, if the process is still alive,
+                  a SIGKILL will be sent. If not positive, no such checking
+                  will be done
+
+  """
+  if pid <= 0:
+    # kill with pid=0 == suicide
+    raise errors.ProgrammerError("Invalid pid given '%s'" % pid)
+
+  if not IsProcessAlive(pid):
+    return
+  os.kill(pid, signal)
+  if timeout <= 0:
+    return
+  end = time.time() + timeout
+  while time.time() < end and IsProcessAlive(pid):
+    time.sleep(0.1)
+  if IsProcessAlive(pid):
+    os.kill(pid, signal.SIGKILL)
+
+
 def FindFile(name, search_path, test=os.path.exists):
   """Look for a filesystem object in a given path.
 
