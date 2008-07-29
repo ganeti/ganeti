@@ -98,7 +98,7 @@ DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 MASTER_SOCKET = RUN_GANETI_DIR + "/master.sock"
 
 # PID files
-MASTERD_PID = "ganeti-master"
+MASTERD_PID = "ganeti-masterd"
 NODED_PID = "ganeti-noded"
 RAPI_PID = "ganeti-rapi"
 
