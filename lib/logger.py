@@ -89,7 +89,7 @@ def SetupDaemon(logfile, debug=False, stderr_logging=False):
 
   """
   if debug:
-    fmt = ("%(asctime)s: pid=%(process)d %(levelname)s"
+    fmt = ("%(asctime)s: pid=%(process)d/%(threadName)s %(levelname)s"
            " %(module)s:%(lineno)s %(message)s")
   else:
     fmt = "%(asctime)s: pid=%(process)d %(levelname)s %(message)s"
