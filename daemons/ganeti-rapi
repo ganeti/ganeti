@@ -132,6 +132,8 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_RAPISERVER)
 
+  utils.WritePidFile('ganeti-rapi')
+
   log_fd = open(constants.LOG_RAPIACCESS, 'a')
   try:
     apache_log = http.ApacheLogfile(log_fd)
@@ -141,6 +143,7 @@ def main():
       httpd.serve_forever()
     finally:
       httpd.server_close()
+      utils.RemovePidFile('ganeti-rapi')
 
   finally:
     log_fd.close()
