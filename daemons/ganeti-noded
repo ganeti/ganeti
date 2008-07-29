@@ -615,7 +615,7 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_NODESERVER)
 
-  utils.WritePidFile('ganeti-noded')
+  utils.WritePidFile(constants.NODED_PID)
 
   logger.SetupDaemon(logfile=constants.LOG_NODESERVER, debug=options.debug,
                      stderr_logging=not options.fork)
@@ -629,7 +629,7 @@ def main():
   try:
     server.serve_forever()
   finally:
-    utils.RemovePidFile('ganeti-noded')
+    utils.RemovePidFile(constants.NODED_PID)
 
 
 if __name__ == '__main__':

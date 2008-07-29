@@ -97,6 +97,11 @@ ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 MASTER_SOCKET = RUN_GANETI_DIR + "/master.sock"
 
+# PID files
+MASTERD_PID = "ganeti-master"
+NODED_PID = "ganeti-noded"
+RAPI_PID = "ganeti-rapi"
+
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 DEFAULT_NODED_PORT = 1811
 FIRST_DRBD_PORT = 11000

@@ -329,7 +329,7 @@ def main():
     utils.Daemonize(logfile=constants.LOG_MASTERDAEMON,
                     noclose_fds=[master.fileno()])
 
-  utils.WritePidFile('ganeti-masterd')
+  utils.WritePidFile(constants.MASTERD_PID)
 
   logger.SetupDaemon(constants.LOG_MASTERDAEMON, debug=options.debug,
                      stderr_logging=not options.fork)
@@ -341,7 +341,7 @@ def main():
     master.serve_forever()
   finally:
     master.server_cleanup()
-    utils.RemovePidFile('ganeti-masterd')
+    utils.RemovePidFile(constants.MASTERD_PID)
 
 
 if __name__ == "__main__":
