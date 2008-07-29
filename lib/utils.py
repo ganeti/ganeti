@@ -268,9 +268,13 @@ def IsProcessAlive(pid):
 
   Returns: true or false, depending on if the pid exists or not
 
-  Remarks: zombie processes treated as not alive
+  Remarks: zombie processes treated as not alive, and giving a pid <=
+  0 makes the function to return False.
 
   """
+  if pid <= 0:
+    return False
+
   try:
     f = open("/proc/%d/status" % pid)
   except IOError, err:
@@ -290,29 +294,30 @@ def IsProcessAlive(pid):
   return alive
 
 
-def IsPidFileAlive(pidfile):
-  """Check whether the given pidfile points to a live process.
+def ReadPidFile(pidfile):
+  """Read the pid from a file.
 
-    @param pidfile: Path to a file containing the pid to be checked
-    @type  pidfile: string (filename)
+  @param pidfile: Path to a file containing the pid to be checked
+  @type  pidfile: string (filename)
+  @return: The process id, if the file exista and contains a valid PID,
+           otherwise 0
+  @rtype: int
 
   """
   try:
     pf = open(pidfile, 'r')
-  except EnvironmentError, open_err:
-    if open_err.errno == errno.ENOENT:
-      return False
-    else:
-      raise errors.GenericError("Cannot open file %s. Error: %s" %
-                                (pidfile, str(open_err)))
+  except EnvironmentError, err:
+    if err.errno != errno.ENOENT:
+      logging.exception("Can't read pid file?!")
+    return 0
 
   try:
     pid = int(pf.read())
-  except ValueError:
-    raise errors.GenericError("Invalid pid string in %s" %
-                              (pidfile,))
+  except ValueError, err:
+    logging.info("Can't parse pid file contents", exc_info=err)
+    return 0
 
-  return IsProcessAlive(pid)
+  return pid
 
 
 def MatchNameComponent(key, name_list):
@@ -1066,7 +1071,7 @@ def WritePidFile(name):
   """
   pid = os.getpid()
   pidfilename = _DaemonPidFileName(name)
-  if IsPidFileAlive(pidfilename):
+  if IsProcessAlive(ReadPidFile(pidfilename)):
     raise errors.GenericError("%s contains a live process" % pidfilename)
 
   WriteFile(pidfilename, data="%d\n" % pid)

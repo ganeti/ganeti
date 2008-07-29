@@ -43,11 +43,12 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree
-from ganeti.errors import LockError, UnitParseError
+from ganeti.errors import LockError, UnitParseError, GenericError
 
 def _ChildHandler(signal, stack):
   global _ChildFlag
   _ChildFlag = True
+
 
 class TestIsProcessAlive(unittest.TestCase):
   """Testing case for IsProcessAlive"""
@@ -99,8 +100,9 @@ class TestIsProcessAlive(unittest.TestCase):
     self.assert_(not IsProcessAlive(self.pid_non_existing),
                  "noexisting process detected")
 
+
 class TestPidFileFunctions(unittest.TestCase):
-  """Tests for WritePidFile, RemovePidFile and IsPidFileAlive"""
+  """Tests for WritePidFile, RemovePidFile and ReadPidFile"""
 
   def setUp(self):
     self.dir = tempfile.mkdtemp()
@@ -108,13 +110,31 @@ class TestPidFileFunctions(unittest.TestCase):
     utils._DaemonPidFileName = self.f_dpn
 
   def testPidFileFunctions(self):
+    pid_file = self.f_dpn('test')
     utils.WritePidFile('test')
-    self.assert_(os.path.exists(self.f_dpn('test')))
-    self.assert_(utils.IsPidFileAlive(self.f_dpn('test')))
+    self.failUnless(os.path.exists(pid_file),
+                    "PID file should have been created")
+    read_pid = utils.ReadPidFile(pid_file)
+    self.failUnlessEqual(read_pid, os.getpid())
+    self.failUnless(utils.IsProcessAlive(read_pid))
+    self.failUnlessRaises(GenericError, utils.WritePidFile, 'test')
     utils.RemovePidFile('test')
-    self.assert_(not os.path.exists(self.f_dpn('test')))
+    self.failIf(os.path.exists(pid_file),
+                "PID file should not exist anymore")
+    self.failUnlessEqual(utils.ReadPidFile(pid_file), 0,
+                         "ReadPidFile should return 0 for missing pid file")
+    fh = open(pid_file, "w")
+    fh.write("blah\n")
+    fh.close()
+    self.failUnlessEqual(utils.ReadPidFile(pid_file), 0,
+                         "ReadPidFile should return 0 for invalid pid file")
+    utils.RemovePidFile('test')
+    self.failIf(os.path.exists(pid_file),
+                "PID file should not exist anymore")
 
   def tearDown(self):
+    for name in os.listdir(self.dir):
+      os.unlink(os.path.join(self.dir, name))
     os.rmdir(self.dir)
 
 
