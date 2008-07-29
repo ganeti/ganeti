@@ -246,11 +246,9 @@ class _QueuedJob(object):
           raise
 
     except errors.GenericError, err:
-      logging.error("ganeti exception %s", exc_info=err)
-    except Exception, err:
-      logging.error("unhandled exception %s", exc_info=err)
+      logging.exception("Ganeti exception")
     except:
-      logging.error("unhandled unknown exception %s", exc_info=err)
+      logging.exception("Unhandled exception")
 
 
 class _JobQueueWorker(workerpool.BaseWorker):
