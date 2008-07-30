@@ -32,13 +32,12 @@ from cStringIO import StringIO
 from ganeti import utils
 from ganeti import logger
 from ganeti import errors
-from ganeti import mcpu
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import luxi
 
 from optparse import (OptionParser, make_option, TitledHelpFormatter,
-                      Option, OptionValueError, SUPPRESS_HELP)
+                      Option, OptionValueError)
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "SubmitOpCode", "GetClient",

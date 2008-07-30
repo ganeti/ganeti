@@ -34,7 +34,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import rpc
 from ganeti import cmdlib
-from ganeti import config
 from ganeti import ssconf
 from ganeti import logger
 from ganeti import locking

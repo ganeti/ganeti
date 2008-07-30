@@ -38,11 +38,9 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import hypervisor
 from ganeti import locking
-from ganeti import config
 from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
-from ganeti import ssconf
 from ganeti import serializer
 
 
@@ -870,7 +868,8 @@ class LUVerifyCluster(LogicalUnit):
       lu_result: previous Exec result
 
     """
-    # We only really run POST phase hooks, and are only interested in their results
+    # We only really run POST phase hooks, and are only interested in
+    # their results
     if phase == constants.HOOKS_PHASE_POST:
       # Used to change hooks' output to proper indentation
       indent_re = re.compile('^', re.M)
@@ -4395,8 +4394,8 @@ class LUExportInstance(LogicalUnit):
     if self.op.shutdown:
       # shutdown the instance, but not the disks
       if not rpc.call_instance_shutdown(src_node, instance):
-         raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                                  (instance.name, src_node))
+        raise errors.OpExecError("Could not shutdown instance %s on node %s" %
+                                 (instance.name, src_node))
 
     vgname = self.cfg.GetVGName()
 
@@ -4929,9 +4928,8 @@ class IAllocator(object):
     if rcode == constants.IARUN_NOTFOUND:
       raise errors.OpExecError("Can't find allocator '%s'" % name)
     elif rcode == constants.IARUN_FAILURE:
-        raise errors.OpExecError("Instance allocator call failed: %s,"
-                                 " output: %s" %
-                                 (fail, stdout+stderr))
+      raise errors.OpExecError("Instance allocator call failed: %s,"
+                               " output: %s" % (fail, stdout+stderr))
     self.out_text = stdout
     if validate:
       self._ValidateResult()

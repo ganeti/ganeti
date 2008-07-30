@@ -197,11 +197,11 @@ class _JobQueueWorker(workerpool.BaseWorker):
               op.result = None
               queue.UpdateJobUnlocked(job)
 
-              input = op.input
+              input_opcode = op.input
             finally:
               queue.release()
 
-            result = proc.ExecOpCode(input, op.Log)
+            result = proc.ExecOpCode(input_opcode, op.Log)
 
             queue.acquire()
             try:

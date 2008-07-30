@@ -23,17 +23,14 @@
 
 """
 
-import re
-
 import ganeti.cli
 import ganeti.errors
 import ganeti.opcodes
 
 from ganeti import constants
-from ganeti import utils
 
-from ganeti.rapi import baserlib 
-from ganeti.rapi import httperror 
+from ganeti.rapi import baserlib
+from ganeti.rapi import httperror
 
 
 I_FIELDS = ["name", "os", "pnode", "snodes",
@@ -42,7 +39,7 @@ I_FIELDS = ["name", "os", "pnode", "snodes",
             "sda_size", "sdb_size", "vcpus",
             "oper_state", "status", "tags"]
 
-N_FIELDS = ["name","dtotal", "dfree",
+N_FIELDS = ["name", "dtotal", "dfree",
             "mtotal", "mnode", "mfree",
             "pinst_cnt", "sinst_cnt", "tags"]
 
@@ -114,10 +111,10 @@ class R_nodes(baserlib.R_Generic):
 
   """
   DOC_URI = "/nodes"
- 
+
   def GET(self):
     """Returns a list of all nodes.
-    
+
     Returns:
       A dictionary with 'name' and 'uri' keys for each of them.
 
@@ -131,7 +128,7 @@ class R_nodes(baserlib.R_Generic):
           "uri": "\/instances\/node2.example.com"
         }]
 
-    If the optional 'bulk' argument is provided and set to 'true' 
+    If the optional 'bulk' argument is provided and set to 'true'
     value (i.e '?bulk=1'), the output contains detailed
     information about nodes as a list.
 
@@ -153,7 +150,7 @@ class R_nodes(baserlib.R_Generic):
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
     nodeslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
-    
+
     if 'bulk' in self.queryargs:
       op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
                                        names=nodeslist)
@@ -170,7 +167,7 @@ class R_nodes_name(baserlib.R_Generic):
   DOC_URI = "/nodes/[node_name]"
 
   def GET(self):
-    """Send information about a node. 
+    """Send information about a node.
 
     """
     node_name = self.items[0]
@@ -207,7 +204,7 @@ class R_instances(baserlib.R_Generic):
 
   def GET(self):
     """Returns a list of all available instances.
-    
+
     Returns:
        A dictionary with 'name' and 'uri' keys for each of them.
 
@@ -221,7 +218,7 @@ class R_instances(baserlib.R_Generic):
           "uri": "\/instances\/mail.example.com"
         }]
 
-    If the optional 'bulk' argument is provided and set to 'true' 
+    If the optional 'bulk' argument is provided and set to 'true'
     value (i.e '?bulk=1'), the output contains detailed
     information about instances as a list.
 
@@ -250,7 +247,7 @@ class R_instances(baserlib.R_Generic):
     """
     op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
     instanceslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
-    
+
     if 'bulk' in self.queryargs:
       op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
                                            names=instanceslist)

@@ -34,7 +34,6 @@ much memory.
 import os
 import tempfile
 import random
-import re
 
 from ganeti import errors
 from ganeti import locking

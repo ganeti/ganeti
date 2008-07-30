@@ -27,9 +27,6 @@ import collections
 import logging
 import threading
 
-from ganeti import errors
-from ganeti import utils
-
 
 class BaseWorker(threading.Thread, object):
   """Base worker class for worker pools.

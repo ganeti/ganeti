@@ -23,14 +23,11 @@
 
 """
 
-import re
-
 import ganeti.opcodes
 
-from ganeti import constants
 from ganeti import luxi
 
-from ganeti.rapi import baserlib 
+from ganeti.rapi import baserlib
 
 from ganeti.rapi.rlib1 import I_FIELDS, N_FIELDS
 
@@ -46,7 +43,7 @@ class R_2_jobs(baserlib.R_Generic):
 
     Returns:
       A dictionary with jobs id and uri.
-    
+
     """
     fields = ["id"]
     # Convert the list of lists to the list of ids
@@ -63,21 +60,21 @@ class R_2_jobs_id(baserlib.R_Generic):
   def GET(self):
     """Returns a job status.
 
-    Returns: 
+    Returns:
       A dictionary with job parameters.
 
     The result includes:
       id - job ID as a number
       status - current job status as a string
-      ops - involved OpCodes as a list of dictionaries for each opcodes in 
+      ops - involved OpCodes as a list of dictionaries for each opcodes in
         the job
       opstatus - OpCodes status as a list
       opresult - OpCodes results as a list of lists
-    
+
     """
     fields = ["id", "ops", "status", "opstatus", "opresult"]
     job_id = self.items[0]
-    result = luxi.Client().QueryJobs([job_id,], fields)[0]
+    result = luxi.Client().QueryJobs([job_id, ], fields)[0]
     return baserlib.MapFields(fields, result)
 
 
@@ -86,10 +83,10 @@ class R_2_nodes(baserlib.R_Generic):
 
   """
   DOC_URI = "/2/nodes"
- 
+
   def GET(self):
     """Returns a list of all nodes.
-    
+
     Returns:
       A dictionary with 'name' and 'uri' keys for each of them.
 
@@ -103,7 +100,7 @@ class R_2_nodes(baserlib.R_Generic):
           "uri": "\/instances\/node2.example.com"
         }]
 
-    If the optional 'bulk' argument is provided and set to 'true' 
+    If the optional 'bulk' argument is provided and set to 'true'
     value (i.e '?bulk=1'), the output contains detailed
     information about nodes as a list.
 
@@ -125,11 +122,12 @@ class R_2_nodes(baserlib.R_Generic):
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
     nodeslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
-    
+
     if 'bulk' in self.queryargs:
       op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
                                        names=nodeslist)
       result = ganeti.cli.SubmitOpCode(op)
       return baserlib.MapBulkFields(result, N_FIELDS)
 
-    return baserlib.BuildUriList(nodeslist, "/nodes/%s", uri_fields=("id", "uri"))
+    return baserlib.BuildUriList(nodeslist, "/nodes/%s",
+                                 uri_fields=("id", "uri"))

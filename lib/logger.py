@@ -30,9 +30,6 @@ Ganeti code. It offers some utility functions for easy logging.
 
 import sys
 import logging
-import os, os.path
-
-from ganeti import constants
 
 
 def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):

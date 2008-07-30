@@ -25,7 +25,6 @@ import OpenSSL
 import time
 import logging
 
-from ganeti import errors
 from ganeti import logger
 from ganeti import serializer
 

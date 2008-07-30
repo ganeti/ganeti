@@ -74,13 +74,13 @@ class RunResult(object):
                "failed", "fail_reason", "cmd"]
 
 
-  def __init__(self, exit_code, signal, stdout, stderr, cmd):
+  def __init__(self, exit_code, signal_, stdout, stderr, cmd):
     self.cmd = cmd
     self.exit_code = exit_code
-    self.signal = signal
+    self.signal = signal_
     self.stdout = stdout
     self.stderr = stderr
-    self.failed = (signal is not None or exit_code != 0)
+    self.failed = (signal_ is not None or exit_code != 0)
 
     if self.signal is not None:
       self.fail_reason = "terminated by signal %s" % self.signal
@@ -168,12 +168,12 @@ def RunCmd(cmd):
   status = child.wait()
   if status >= 0:
     exitcode = status
-    signal = None
+    signal_ = None
   else:
     exitcode = None
-    signal = -status
+    signal_ = -status
 
-  return RunResult(exitcode, signal, out, err, strcmd)
+  return RunResult(exitcode, signal_, out, err, strcmd)
 
 
 def RemoveFile(filename):
@@ -1092,13 +1092,13 @@ def RemovePidFile(name):
     pass
 
 
-def KillProcess(pid, signal=signal.SIGTERM, timeout=30):
+def KillProcess(pid, signal_=signal.SIGTERM, timeout=30):
   """Kill a process given by its pid.
 
   @type pid: int
   @param pid: The PID to terminate.
-  @type signal: int
-  @param signal: The signal to send, by default SIGTERM
+  @type signal_: int
+  @param signal_: The signal to send, by default SIGTERM
   @type timeout: int
   @param timeout: The timeout after which, if the process is still alive,
                   a SIGKILL will be sent. If not positive, no such checking
@@ -1111,7 +1111,7 @@ def KillProcess(pid, signal=signal.SIGTERM, timeout=30):
 
   if not IsProcessAlive(pid):
     return
-  os.kill(pid, signal)
+  os.kill(pid, signal_)
   if timeout <= 0:
     return
   end = time.time() + timeout

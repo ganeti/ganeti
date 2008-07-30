@@ -31,11 +31,9 @@ The module is also be used by the master daemon.
 
 import socket
 import collections
-import simplejson
 import time
 import errno
 
-from ganeti import opcodes
 from ganeti import serializer
 from ganeti import constants
 
