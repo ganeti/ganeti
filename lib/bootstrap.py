@@ -230,6 +230,19 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   rpc.call_node_start_master(hostname.name, True)
 
 
+def FinalizeClusterDestroy(master):
+  """Execute the last steps of cluster destroy
+
+  This function shuts down all the daemons, completing the destroy
+  begun in cmdlib.LUDestroyOpcode.
+
+  """
+  if not rpc.call_node_stop_master(master, True):
+    logging.warning("Could not disable the master role")
+  if not rpc.call_node_leave_cluster(master):
+    logging.warning("Could not shutdown the node daemon and cleanup the node")
+
+
 def SetupNodeDaemon(node):
   """Add a node to the cluster.
 

@@ -74,7 +74,10 @@ def DestroyCluster(opts, args):
     return 1
 
   op = opcodes.OpDestroyCluster()
-  SubmitOpCode(op)
+  master = SubmitOpCode(op)
+  # if we reached this, the opcode didn't fail; we can proceed to
+  # shutdown all the daemons
+  bootstrap.FinalizeClusterDestroy(master)
   return 0
 
 

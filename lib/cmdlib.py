@@ -481,7 +481,7 @@ class LUDestroyCluster(NoHooksLU):
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
     utils.CreateBackup(priv_key)
     utils.CreateBackup(pub_key)
-    rpc.call_node_leave_cluster(master)
+    return master
 
 
 class LUVerifyCluster(LogicalUnit):
