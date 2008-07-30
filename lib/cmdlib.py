@@ -2007,6 +2007,16 @@ class LUStartupInstance(LogicalUnit):
   HPATH = "instance-start"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "force"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2028,11 +2038,9 @@ class LUStartupInstance(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name)
+    self.instance = instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert self.instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
 
     # check bridges existance
     _CheckInstanceBridgesExist(instance)
@@ -2040,9 +2048,6 @@ class LUStartupInstance(LogicalUnit):
     _CheckNodeFreeMemory(self.cfg, instance.primary_node,
                          "starting instance %s" % instance.name,
                          instance.memory)
-
-    self.instance = instance
-    self.op.instance_name = instance.name
 
   def Exec(self, feedback_fn):
     """Start the instance.
@@ -2070,6 +2075,16 @@ class LURebootInstance(LogicalUnit):
   HPATH = "instance-reboot"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "ignore_secondaries", "reboot_type"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2091,17 +2106,12 @@ class LURebootInstance(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name)
+    self.instance = instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert self.instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
 
     # check bridges existance
     _CheckInstanceBridgesExist(instance)
-
-    self.instance = instance
-    self.op.instance_name = instance.name
 
   def Exec(self, feedback_fn):
     """Reboot the instance.
@@ -2146,6 +2156,16 @@ class LUShutdownInstance(LogicalUnit):
   HPATH = "instance-stop"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2164,12 +2184,9 @@ class LUShutdownInstance(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name)
-    self.instance = instance
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert self.instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
 
   def Exec(self, feedback_fn):
     """Shutdown the instance.
