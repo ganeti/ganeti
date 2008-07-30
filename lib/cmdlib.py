@@ -84,6 +84,8 @@ class LogicalUnit(object):
     self.context = context
     self.needed_locks = None
     self.share_locks = dict(((i, 0) for i in locking.LEVELS))
+    # Used to force good behavior when calling helper functions
+    self.recalculate_locks = {}
     self.__ssh = None
 
     for attr_name in self._OP_REQP:
@@ -261,6 +263,43 @@ class LogicalUnit(object):
                                   self.op.instance_name)
     self.needed_locks[locking.LEVEL_INSTANCE] = expanded_name
     self.op.instance_name = expanded_name
+
+  def _LockInstancesNodes(self):
+    """Helper function to declare instances' nodes for locking.
+
+    This function should be called after locking one or more instances to lock
+    their nodes. Its effect is populating self.needed_locks[locking.LEVEL_NODE]
+    with all primary or secondary nodes for instances already locked and
+    present in self.needed_locks[locking.LEVEL_INSTANCE].
+
+    It should be called from DeclareLocks, and for safety only works if
+    self.recalculate_locks[locking.LEVEL_NODE] is set.
+
+    In the future it may grow parameters to just lock some instance's nodes, or
+    to just lock primaries or secondary nodes, if needed.
+
+    If should be called in DeclareLocks in a way similar to:
+
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
+
+    """
+    assert locking.LEVEL_NODE in self.recalculate_locks, \
+      "_LockInstancesNodes helper function called with no nodes to recalculate"
+
+    # TODO: check if we're really been called with the instance locks held
+
+    # For now we'll replace self.needed_locks[locking.LEVEL_NODE], but in the
+    # future we might want to have different behaviors depending on the value
+    # of self.recalculate_locks[locking.LEVEL_NODE]
+    wanted_nodes = []
+    for instance_name in self.needed_locks[locking.LEVEL_INSTANCE]:
+      instance = self.context.cfg.GetInstanceInfo(instance_name)
+      wanted_nodes.append(instance.primary_node)
+      wanted_nodes.extend(instance.secondary_nodes)
+    self.needed_locks[locking.LEVEL_NODE] = wanted_nodes
+
+    del self.recalculate_locks[locking.LEVEL_NODE]
 
 
 class NoHooksLU(LogicalUnit):
