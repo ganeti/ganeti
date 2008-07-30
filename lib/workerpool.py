@@ -288,6 +288,7 @@ class WorkerPool(object):
       self._lock.release()
       try:
         for worker in termworkers:
+          logging.debug("Waiting for thread %s", worker.getName())
           worker.join()
       finally:
         self._lock.acquire()
