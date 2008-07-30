@@ -35,83 +35,48 @@ import os, os.path
 from ganeti import constants
 
 
-def _CreateFileHandler(name):
-  return logging.FileHandler(os.path.join(constants.LOG_DIR, name))
-
-
-def SetupLogging(program='ganeti', debug=False):
-  """Setup logging for ganeti
-
-  On failure, a check is made whether process is run by root or not,
-  and an appropriate error message is printed on stderr, then process
-  exits.
-
-  Args:
-    debug: Whether to enable verbose logging
-    program: Program name
+def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
+  """Configures the logging module.
 
   """
-  fmt = "%(asctime)s " + program + ": %(message)s"
-  formatter = logging.Formatter(fmt)
-
-  stderr_fmt = "%(asctime)s: %(message)s"
-  stderr_formatter = logging.Formatter(stderr_fmt)
-
-  info_file = _CreateFileHandler("info")
-  info_file.setLevel(logging.INFO)
-  info_file.setFormatter(formatter)
-
-  errors_file = _CreateFileHandler("errors")
-  errors_file.setLevel(logging.ERROR)
-  errors_file.setFormatter(formatter)
-
-  debug_file = _CreateFileHandler("debug")
-  debug_file.setLevel(logging.DEBUG)
-  debug_file.setFormatter(formatter)
-
-  stderr_file = logging.StreamHandler()
-  stderr_file.setFormatter(stderr_formatter)
+  fmt = "%(asctime)s: " + program + " "
   if debug:
-    stderr_file.setLevel(logging.NOTSET)
-  else:
-    stderr_file.setLevel(logging.ERROR)
-
-  root_logger = logging.getLogger("")
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(info_file)
-  root_logger.addHandler(errors_file)
-  root_logger.addHandler(debug_file)
-  root_logger.addHandler(stderr_file)
-
-
-def SetupDaemon(logfile, debug=False, stderr_logging=False):
-  """Configures the logging module for daemons
-
-  """
-  if debug:
-    fmt = ("%(asctime)s: pid=%(process)d/%(threadName)s %(levelname)s"
+    fmt += ("pid=%(process)d/%(threadName)s %(levelname)s"
            " %(module)s:%(lineno)s %(message)s")
   else:
-    fmt = "%(asctime)s: pid=%(process)d %(levelname)s %(message)s"
+    fmt += "pid=%(process)d %(levelname)s %(message)s"
   formatter = logging.Formatter(fmt)
-
-  logfile_handler = logging.FileHandler(logfile)
-  logfile_handler.setFormatter(formatter)
-
-  stderr_handler = logging.StreamHandler()
-  stderr_handler.setFormatter(formatter)
-  if debug:
-    logfile_handler.setLevel(logging.DEBUG)
-    stderr_handler.setLevel(logging.NOTSET)
-  else:
-    logfile_handler.setLevel(logging.INFO)
-    stderr_handler.setLevel(logging.CRITICAL)
 
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(logfile_handler)
+
   if stderr_logging:
+    stderr_handler = logging.StreamHandler()
+    stderr_handler.setFormatter(formatter)
+    if debug:
+      stderr_handler.setLevel(logging.NOTSET)
+    else:
+      stderr_handler.setLevel(logging.CRITICAL)
     root_logger.addHandler(stderr_handler)
+
+  # this can fail, if the logging directories are not setup or we have
+  # a permisssion problem; in this case, it's best to log but ignore
+  # the error if stderr_logging is True, and if false we re-raise the
+  # exception since otherwise we could run but without any logs at all
+  try:
+    logfile_handler = logging.FileHandler(logfile)
+    logfile_handler.setFormatter(formatter)
+    if debug:
+      logfile_handler.setLevel(logging.DEBUG)
+    else:
+      logfile_handler.setLevel(logging.INFO)
+    root_logger.addHandler(logfile_handler)
+  except EnvironmentError, err:
+    if stderr_logging:
+      logging.exception("Failed to enable logging to file '%s'", logfile)
+    else:
+      # we need to re-raise the exception
+      raise
 
 
 # Backwards compatibility

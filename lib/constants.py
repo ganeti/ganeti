@@ -116,6 +116,7 @@ LOG_MASTERDAEMON = LOG_DIR + "master-daemon.log"
 LOG_RAPISERVER = LOG_DIR + "rapi-daemon.log"
 LOG_RAPIACCESS = LOG_DIR + "rapi-access.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"
+LOG_BURNING = LOG_DIR + "burnin.log"
 
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 EXPORT_DIR = _autoconf.EXPORT_DIR

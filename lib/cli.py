@@ -512,7 +512,8 @@ def GenericMain(commands, override=None, aliases=None):
     for key, val in override.iteritems():
       setattr(options, key, val)
 
-  logger.SetupLogging(program=binary, debug=options.debug)
+  logger.SetupLogging(constants.LOG_COMMANDS, debug=options.debug,
+                      stderr_logging=True, program=binary)
 
   utils.debug = options.debug
 

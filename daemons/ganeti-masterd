@@ -306,8 +306,8 @@ def main():
 
   utils.WritePidFile(constants.MASTERD_PID)
 
-  logger.SetupDaemon(constants.LOG_MASTERDAEMON, debug=options.debug,
-                     stderr_logging=not options.fork)
+  logger.SetupLogging(constants.LOG_MASTERDAEMON, debug=options.debug,
+                      stderr_logging=not options.fork)
 
   logging.info("ganeti master daemon startup")
 

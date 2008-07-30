@@ -63,7 +63,7 @@ class Burner(object):
 
   def __init__(self):
     """Constructor."""
-    logger.SetupLogging(program="ganeti/burnin", debug=False)
+    logger.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
     self._feed_buf = StringIO()
     self.nodes = []
     self.instances = []

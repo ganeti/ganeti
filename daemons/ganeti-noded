@@ -617,8 +617,8 @@ def main():
 
   utils.WritePidFile(constants.NODED_PID)
 
-  logger.SetupDaemon(logfile=constants.LOG_NODESERVER, debug=options.debug,
-                     stderr_logging=not options.fork)
+  logger.SetupLogging(logfile=constants.LOG_NODESERVER, debug=options.debug,
+                      stderr_logging=not options.fork)
   logging.info("ganeti node daemon startup")
 
   if options.fork:

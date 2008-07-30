@@ -438,7 +438,7 @@ def main():
   """
   options, args = ParseOptions()
 
-  logger.SetupDaemon(constants.LOG_WATCHER, debug=options.debug)
+  logger.SetupLogging(constants.LOG_WATCHER, debug=options.debug)
 
   try:
     try:
