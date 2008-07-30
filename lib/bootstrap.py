@@ -207,10 +207,6 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(ss)
 
-  # start the master ip
-  # TODO: Review rpc call from bootstrap
-  rpc.call_node_start_master(hostname.name)
-
   # set up ssh config and /etc/hosts
   f = open(constants.SSH_HOST_RSA_PUB, 'r')
   try:
@@ -228,6 +224,10 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
                  mac_prefix, vg_name, def_bridge)
 
   ssh.WriteKnownHostsFile(cfg, ss, constants.SSH_KNOWN_HOSTS_FILE)
+
+  # start the master ip
+  # TODO: Review rpc call from bootstrap
+  rpc.call_node_start_master(hostname.name, True)
 
 
 def SetupNodeDaemon(node):
