@@ -47,12 +47,13 @@ def _GetSshRunner():
   return ssh.SshRunner()
 
 
-def StartMaster():
+def StartMaster(start_daemons):
   """Activate local node as master node.
 
-  There are two needed steps for this:
-    - run the master script
-    - register the cron script
+  The function will always try activate the IP address of the master
+  (if someone else has it, then it won't). Then, if the start_daemons
+  parameter is True, it will also start the master daemons
+  (ganet-masterd and ganeti-rapi).
 
   """
   result = utils.RunCmd([constants.MASTER_SCRIPT, "-d", "start"])
@@ -65,10 +66,12 @@ def StartMaster():
   return True
 
 
-def StopMaster():
+def StopMaster(stop_daemons):
   """Deactivate this node as master.
 
-  This runs the master stop script.
+  The function will always try to deactivate the IP address of the
+  master. Then, if the stop_daemons parameter is True, it will also
+  stop the master daemons (ganet-masterd and ganeti-rapi).
 
   """
   result = utils.RunCmd([constants.MASTER_SCRIPT, "-d", "stop"])

@@ -362,25 +362,25 @@ def call_node_verify(node_list, checkdict):
   return c.getresult()
 
 
-def call_node_start_master(node):
+def call_node_start_master(node, start_daemons):
   """Tells a node to activate itself as a master.
 
   This is a single-node call.
 
   """
-  c = Client("node_start_master", [])
+  c = Client("node_start_master", [start_daemons])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
 
 
-def call_node_stop_master(node):
+def call_node_stop_master(node, stop_daemons):
   """Tells a node to demote itself from master status.
 
   This is a single-node call.
 
   """
-  c = Client("node_stop_master", [])
+  c = Client("node_stop_master", [stop_daemons])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
@@ -803,4 +803,3 @@ def call_file_storage_dir_rename(node, old_file_storage_dir,
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
-

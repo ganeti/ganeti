@@ -416,7 +416,7 @@ class LUDestroyCluster(NoHooksLU):
 
     """
     master = self.sstore.GetMasterNode()
-    if not rpc.call_node_stop_master(master):
+    if not rpc.call_node_stop_master(master, False):
       raise errors.OpExecError("Could not disable the master role")
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
     utils.CreateBackup(priv_key)
@@ -962,7 +962,7 @@ class LURenameCluster(LogicalUnit):
 
     # shutdown the master IP
     master = ss.GetMasterNode()
-    if not rpc.call_node_stop_master(master):
+    if not rpc.call_node_stop_master(master, False):
       raise errors.OpExecError("Could not disable the master role")
 
     try:
@@ -985,7 +985,7 @@ class LURenameCluster(LogicalUnit):
             logger.Error("copy of file %s to node %s failed" %
                          (fname, to_node))
     finally:
-      if not rpc.call_node_start_master(master):
+      if not rpc.call_node_start_master(master, False):
         logger.Error("Could not re-enable the master role on the master,"
                      " please restart manually.")
 
@@ -1737,7 +1737,7 @@ class LUMasterFailover(LogicalUnit):
     logger.Info("setting master to %s, old master: %s" %
                 (self.new_master, self.old_master))
 
-    if not rpc.call_node_stop_master(self.old_master):
+    if not rpc.call_node_stop_master(self.old_master, True):
       logger.Error("could disable the master role on the old master"
                    " %s, please disable manually" % self.old_master)
 
@@ -1748,7 +1748,7 @@ class LUMasterFailover(LogicalUnit):
       logger.Error("could not distribute the new simple store master file"
                    " to the other nodes, please check.")
 
-    if not rpc.call_node_start_master(self.new_master):
+    if not rpc.call_node_start_master(self.new_master, True):
       logger.Error("could not start the master role on the new master"
                    " %s, please check" % self.new_master)
       feedback_fn("Error in activating the master IP on the new master,"

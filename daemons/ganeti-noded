@@ -407,14 +407,14 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """Promote this node to master status.
 
     """
-    return backend.StartMaster()
+    return backend.StartMaster(params[0])
 
   @staticmethod
   def perspective_node_stop_master(params):
     """Demote this node from master status.
 
     """
-    return backend.StopMaster()
+    return backend.StopMaster(params[0])
 
   @staticmethod
   def perspective_node_leave_cluster(params):
