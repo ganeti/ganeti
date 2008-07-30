@@ -108,13 +108,14 @@ FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
 MASTER_SCRIPT = "ganeti-master"
 
-LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti"
-LOG_OS_DIR = LOG_DIR + "/os"
-LOG_NODESERVER = LOG_DIR + "/node-daemon.log"
-LOG_WATCHER = LOG_DIR + "/watcher.log"
-LOG_MASTERDAEMON = LOG_DIR + "/master-daemon.log"
-LOG_RAPISERVER = LOG_DIR + "/rapi-daemon.log"
-LOG_RAPIACCESS = LOG_DIR + "/rapi-access.log"
+LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti/"
+LOG_OS_DIR = LOG_DIR + "os"
+LOG_NODESERVER = LOG_DIR + "node-daemon.log"
+LOG_WATCHER = LOG_DIR + "watcher.log"
+LOG_MASTERDAEMON = LOG_DIR + "master-daemon.log"
+LOG_RAPISERVER = LOG_DIR + "rapi-daemon.log"
+LOG_RAPIACCESS = LOG_DIR + "rapi-access.log"
+LOG_COMMANDS = LOG_DIR + "commands.log"
 
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 EXPORT_DIR = _autoconf.EXPORT_DIR
