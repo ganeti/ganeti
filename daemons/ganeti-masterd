@@ -265,32 +265,6 @@ class GanetiContext(object):
     object.__setattr__(self, name, value)
 
 
-def CheckMaster(debug):
-  """Checks the node setup.
-
-  If this is the master, the function will return. Otherwise it will
-  exit with an exit code based on the node status.
-
-  """
-  try:
-    ss = ssconf.SimpleStore()
-    master_name = ss.GetMasterNode()
-  except errors.ConfigurationError, err:
-    print "Cluster configuration incomplete: '%s'" % str(err)
-    sys.exit(EXIT_NODESETUP_ERROR)
-
-  try:
-    myself = utils.HostInfo()
-  except errors.ResolverError, err:
-    sys.stderr.write("Cannot resolve my own name (%s)\n" % err.args[0])
-    sys.exit(EXIT_NODESETUP_ERROR)
-
-  if myself.name != master_name:
-    if debug:
-      sys.stderr.write("Not master, exiting.\n")
-    sys.exit(EXIT_NOTMASTER)
-
-
 def ParseOptions():
   """Parse the command line options.
 
@@ -320,7 +294,7 @@ def main():
   utils.debug = options.debug
   utils.no_fork = True
 
-  CheckMaster(options.debug)
+  ssconf.CheckMaster(options.debug)
 
   master = IOServer(constants.MASTER_SOCKET, ClientRqHandler, GanetiContext())
 

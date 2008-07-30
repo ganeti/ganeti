@@ -31,6 +31,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import http
 from ganeti import rpc
+from ganeti import ssconf
 from ganeti import utils
 from ganeti.rapi import connector
 
@@ -128,6 +129,8 @@ def main():
 
   """
   options, args = ParseOptions()
+
+  ssconf.CheckMaster(options.debug)
 
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_RAPISERVER)

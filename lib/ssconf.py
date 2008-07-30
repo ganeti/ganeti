@@ -27,6 +27,7 @@ configuration data, which is mostly static and available to all nodes.
 """
 
 import socket
+import sys
 
 from ganeti import errors
 from ganeti import constants
@@ -199,3 +200,28 @@ class WritableSimpleStore(SimpleStore):
     utils.WriteFile(file_name, data="%s\n" % str(value),
                     uid=0, gid=0, mode=0400)
 
+
+def CheckMaster(debug):
+  """Checks the node setup.
+
+  If this is the master, the function will return. Otherwise it will
+  exit with an exit code based on the node status.
+
+  """
+  try:
+    ss = SimpleStore()
+    master_name = ss.GetMasterNode()
+  except errors.ConfigurationError, err:
+    print "Cluster configuration incomplete: '%s'" % str(err)
+    sys.exit(constants.EXIT_NODESETUP_ERROR)
+
+  try:
+    myself = utils.HostInfo()
+  except errors.ResolverError, err:
+    sys.stderr.write("Cannot resolve my own name (%s)\n" % err.args[0])
+    sys.exit(constants.EXIT_NODESETUP_ERROR)
+
+  if myself.name != master_name:
+    if debug:
+      sys.stderr.write("Not master, exiting.\n")
+    sys.exit(constants.EXIT_NOTMASTER)
