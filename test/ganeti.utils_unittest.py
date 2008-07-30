@@ -108,7 +108,7 @@ class TestPidFileFunctions(unittest.TestCase):
   def setUp(self):
     self.dir = tempfile.mkdtemp()
     self.f_dpn = lambda name: os.path.join(self.dir, "%s.pid" % name)
-    utils._DaemonPidFileName = self.f_dpn
+    utils.DaemonPidFileName = self.f_dpn
 
   def testPidFileFunctions(self):
     pid_file = self.f_dpn('test')

@@ -1056,7 +1056,7 @@ def Daemonize(logfile, noclose_fds=None):
   return 0
 
 
-def _DaemonPidFileName(name):
+def DaemonPidFileName(name):
   """Compute a ganeti pid file absolute path, given the daemon name.
 
   """
@@ -1070,7 +1070,7 @@ def WritePidFile(name):
 
   """
   pid = os.getpid()
-  pidfilename = _DaemonPidFileName(name)
+  pidfilename = DaemonPidFileName(name)
   if IsProcessAlive(ReadPidFile(pidfilename)):
     raise errors.GenericError("%s contains a live process" % pidfilename)
 
@@ -1084,7 +1084,7 @@ def RemovePidFile(name):
 
   """
   pid = os.getpid()
-  pidfilename = _DaemonPidFileName(name)
+  pidfilename = DaemonPidFileName(name)
   # TODO: we could check here that the file contains our pid
   try:
     RemoveFile(pidfilename)
