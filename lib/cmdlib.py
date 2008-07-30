@@ -2268,6 +2268,9 @@ class LURenameInstance(LogicalUnit):
       old_file_storage_dir = os.path.dirname(inst.disks[0].logical_id[1])
 
     self.cfg.RenameInstance(inst.name, self.op.new_name)
+    # Change the instance lock. This is definitely safe while we hold the BGL
+    self.context.glm.remove(locking.LEVEL_INSTANCE, inst.name)
+    self.context.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
 
     # re-read the instance from the configuration after rename
     inst = self.cfg.GetInstanceInfo(self.op.new_name)
