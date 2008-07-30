@@ -32,6 +32,7 @@ import re
 import subprocess
 import random
 import logging
+import tempfile
 
 from ganeti import errors
 from ganeti import utils
@@ -120,7 +121,7 @@ def StopMaster(stop_daemons):
   result = utils.RunCmd(["ip", "address", "del", "%s/32" % master_ip,
                          "dev", master_netdev])
   if result.failed:
-    logger.error("Can't remove the master IP, error: %s", result.output)
+    logging.error("Can't remove the master IP, error: %s", result.output)
     # but otherwise ignore the failure
 
   if stop_daemons:

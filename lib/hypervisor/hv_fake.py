@@ -198,7 +198,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       finally:
         fh.close()
     except EnvironmentError, err:
-      raise HypervisorError("Failed to list node info: %s" % err)
+      raise errors.HypervisorError("Failed to list node info: %s" % err)
     result['cpu_total'] = cpu_total
 
     return result

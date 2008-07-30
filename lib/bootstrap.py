@@ -315,8 +315,8 @@ def MasterFailover():
 
   if not rpc.call_upload_file(cfg.GetNodeList(),
                               ss.KeyToFilename(ss.SS_MASTER_NODE)):
-    logger.Error("could not distribute the new simple store master file"
-                 " to the other nodes, please check.")
+    logging.error("could not distribute the new simple store master file"
+                  " to the other nodes, please check.")
 
   if not rpc.call_node_start_master(new_master, True):
     logging.error("could not start the master role on the new master"
