@@ -208,6 +208,8 @@ class Processor(object):
       raise errors.ProgrammerError("LUs which require the BGL cannot"
                                    " be chained to granular ones.")
 
+    assert lu_class.REQ_BGL, "ChainOpCode is still BGL-only"
+
     if lu_class.REQ_WSSTORE:
       sstore = ssconf.WritableSimpleStore()
     else:
