@@ -134,10 +134,13 @@ class Processor(object):
       # This gives a chance to LUs to make last-minute changes after acquiring
       # locks at any preceding level.
       lu.DeclareLocks(level)
+      needed_locks = lu.needed_locks[level]
+      share = lu.share_locks[level]
       # This is always safe to do, as we can't acquire more/less locks than
       # what was requested.
       lu.needed_locks[level] = self.context.glm.acquire(level,
-                                                        lu.needed_locks[level])
+                                                        needed_locks,
+                                                        shared=share)
       try:
         result = self._LockAndExecLU(lu, level + 1)
       finally:

@@ -83,6 +83,7 @@ class LogicalUnit(object):
     self.sstore = sstore
     self.context = context
     self.needed_locks = None
+    self.share_locks = dict(((i, 0) for i in locking.LEVELS))
     self.__ssh = None
 
     for attr_name in self._OP_REQP:
@@ -127,6 +128,10 @@ class LogicalUnit(object):
       - If you want all locks at a level use None as a value
         (this reflects what LockSet does, and will be replaced before
         CheckPrereq with the full list of nodes that have been locked)
+
+    If you need to share locks (rather than acquire them exclusively) at one
+    level you can modify self.share_locks, setting a true value (usually 1) for
+    that level. By default locks are not shared.
 
     Examples:
     # Acquire all nodes and one instance
