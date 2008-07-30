@@ -293,8 +293,7 @@ def MasterFailover(opts, args):
   master.
 
   """
-  op = opcodes.OpMasterFailover()
-  SubmitOpCode(op)
+  return bootstrap.MasterFailover()
 
 
 def SearchTags(opts, args):

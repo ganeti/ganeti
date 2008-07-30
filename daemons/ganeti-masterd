@@ -52,6 +52,7 @@ from ganeti import errors
 from ganeti import ssconf
 from ganeti import logger
 from ganeti import workerpool
+from ganeti import rpc
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -309,6 +310,11 @@ def main():
                      stderr_logging=not options.fork)
 
   logging.info("ganeti master daemon startup")
+
+  # activate ip
+  master_node = ssconf.SimpleStore().GetMasterNode()
+  if not rpc.call_node_start_master(master_node, False):
+    logging.error("Can't activate master IP address")
 
   master.setup_queue()
   try:

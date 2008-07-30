@@ -27,6 +27,7 @@ import os
 import os.path
 import sha
 import re
+import logging
 
 from ganeti import rpc
 from ganeti import ssh
@@ -228,12 +229,13 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
 
   ssh.WriteKnownHostsFile(cfg, ss, constants.SSH_KNOWN_HOSTS_FILE)
 
+
 def SetupNodeDaemon(node):
   """Add a node to the cluster.
 
-  This function must be called before the actual opcode, and will ssh to the
-  remote node, copy the needed files, and start ganeti-noded, allowing the master
-  to do the rest via normal rpc calls.
+  This function must be called before the actual opcode, and will ssh
+  to the remote node, copy the needed files, and start ganeti-noded,
+  allowing the master to do the rest via normal rpc calls.
 
   Args:
     node: fully qualified domain name for the new node
@@ -278,3 +280,47 @@ def SetupNodeDaemon(node):
 
   return 0
 
+
+def MasterFailover():
+  """Failover the master node.
+
+  This checks that we are not already the master, and will cause the
+  current master to cease being master, and the non-master to become
+  new master.
+
+  """
+  ss = ssconf.WritableSimpleStore()
+
+  new_master = utils.HostInfo().name
+  old_master = ss.GetMasterNode()
+
+  if old_master == new_master:
+    raise errors.OpPrereqError("This commands must be run on the node"
+                               " where you want the new master to be."
+                               " %s is already the master" %
+                               old_master)
+  # end checks
+
+  rcode = 0
+
+  logging.info("setting master to %s, old master: %s", new_master, old_master)
+
+  if not rpc.call_node_stop_master(old_master, True):
+    logging.error("could disable the master role on the old master"
+                 " %s, please disable manually", old_master)
+
+  ss.SetKey(ss.SS_MASTER_NODE, new_master)
+
+  cfg = config.ConfigWriter()
+
+  if not rpc.call_upload_file(cfg.GetNodeList(),
+                              ss.KeyToFilename(ss.SS_MASTER_NODE)):
+    logger.Error("could not distribute the new simple store master file"
+                 " to the other nodes, please check.")
+
+  if not rpc.call_node_start_master(new_master, True):
+    logging.error("could not start the master role on the new master"
+                  " %s, please check", new_master)
+    rcode = 1
+
+  return rcode

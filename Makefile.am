@@ -113,7 +113,6 @@ doc_DATA = \
 dist_sbin_SCRIPTS = \
 	daemons/ganeti-noded \
 	daemons/ganeti-watcher \
-	daemons/ganeti-master \
 	daemons/ganeti-masterd \
 	daemons/ganeti-rapi \
 	scripts/gnt-backup \
@@ -165,7 +164,6 @@ EXTRA_DIST = \
 
 man_MANS = \
 	man/ganeti.7 \
-	man/ganeti-master.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
 	man/ganeti-watcher.8 \

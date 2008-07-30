@@ -13,15 +13,22 @@
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 DESC="Ganeti cluster"
-NAME=ganeti-noded
-NODED=@PREFIX@/sbin/ganeti-noded
-MASTER=@PREFIX@/sbin/ganeti-master
-MASTERD_NAME=ganeti-masterd
-MASTERD="@PREFIX@/sbin/$MASTERD_NAME"
-SCRIPTNAME=@SYSCONFDIR@/init.d/ganeti
+
 GANETIRUNDIR="@LOCALSTATEDIR@/run/ganeti"
-NODED_PID="$GANETIRUNDIR/$NAME.pid"
-MASTERD_PID="$GANETIRUNDIR/$MASTERD_NAME.pid"
+
+NODED_NAME="ganeti-noded"
+NODED="@PREFIX@/sbin/${NODED_NAME}"
+NODED_PID="${GANETIRUNDIR}/${NODED_NAME}.pid"
+
+MASTERD_NAME="ganeti-masterd"
+MASTERD="@PREFIX@/sbin/${MASTERD_NAME}"
+MASTERD_PID="${GANETIRUNDIR}/${MASTERD_NAME}.pid"
+
+RAPI_NAME="ganeti-rapi"
+RAPI="@PREFIX@/sbin/${RAPI_NAME}"
+RAPI_PID="${GANETIRUNDIR}/${RAPI_NAME}.pid"
+
+SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 
 test -f $NODED || exit 0
 
@@ -40,9 +47,8 @@ check_config() {
     done
 }
 
-master_action() {
-    log_action_begin_msg "ganeti-master"; $MASTER "$1"
-    RC=$?
+check_exitcode() {
+    RC=$1
     case $RC in
         0)
             log_action_end_msg 0
@@ -56,47 +62,45 @@ master_action() {
     esac
 }
 
+start_action() {
+    # called as start_action daemon pidfile
+    log_action_begin_msg "$1"
+    start-stop-daemon --start --quiet --exec "$1" --pidfile "$2"
+    check_exitcode $?
+}
+
+stop_action() {
+    # called as stop_action daemon pidfile
+    log_action_begin_msg "$1"
+    start-stop-daemon --stop --quiet --oknodo \
+        --retry 30 --pidfile "$2"
+    check_exitcode $?
+}
+
+
 case "$1" in
     start)
         log_daemon_msg "Starting $DESC" "$NAME"
         check_config
-        if start-stop-daemon --start --quiet --exec $NODED; then
-            log_end_msg 0
-        else
-            log_end_msg 1
-        fi
-        master_action start
-        if start-stop-daemon --start --quiet --exec $MASTERD; then
-            log_end_msg 0
-        else
-            log_end_msg 1
-        fi
+        start_action $NODED $NODED_PID
+        start_action $MASTERD $MASTERD_PID
+        start_action $RAPI $RAPI_PID
      ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
-        if start-stop-daemon --stop --quiet --oknodo -p $NODED_PID; then
-            log_end_msg 0
-        else
-            log_end_msg 1
-        fi
-        if start-stop-daemon --stop --quiet --oknodo -p $MASTERD_PID; then
-            log_end_msg 0
-        else
-            log_end_msg 1
-        fi
-         master_action stop
+        stop_action $RAPI $RAPI_PID
+        stop_action $MASTERD $MASTERD_PID
+        stop_action $NODED $NODED_PID
     ;;
     restart|force-reload)
         log_daemon_msg "Reloading $DESC"
-        start-stop-daemon --stop --quiet --oknodo --retry 30 -p $NODED_PID
-        start-stop-daemon --stop --quiet --oknodo --retry 30 -p $MASTERD_PID
+        stop_action $RAPI $RAPI_PID
+        stop_action $MASTERD $MASTERD_PID
+        stop_action $NODED $NODED_PID
         check_config
-        start-stop-daemon --start --quiet --exec $NODED
-        start-stop-daemon --start --quiet --exec $MASTERD
-        log_end_msg $?
-
-        $MASTER stop
-        master_action start
+        start_action $NODED $NODED_PID
+        start_action $MASTERD $MASTERD_PID
+        start_action $RAPI $RAPI_PID
      ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"

@@ -215,12 +215,6 @@ class OpVerifyDisks(OpCode):
   __slots__ = []
 
 
-class OpMasterFailover(OpCode):
-  """Do a master failover."""
-  OP_ID = "OP_CLUSTER_MASTERFAILOVER"
-  __slots__ = []
-
-
 class OpDumpClusterConfig(OpCode):
   """Dump the cluster configuration."""
   OP_ID = "OP_CLUSTER_DUMPCONFIG"

@@ -47,6 +47,20 @@ def _GetSshRunner():
   return ssh.SshRunner()
 
 
+def _GetMasterInfo():
+  """Return the master ip and netdev.
+
+  """
+  try:
+    ss = ssconf.SimpleStore()
+    master_netdev = ss.GetMasterNetdev()
+    master_ip = ss.GetMasterIP()
+  except errors.ConfigurationError, err:
+    logging.exception("Cluster configuration incomplete")
+    return (None, None)
+  return (master_netdev, master_ip)
+
+
 def StartMaster(start_daemons):
   """Activate local node as master node.
 
@@ -56,14 +70,39 @@ def StartMaster(start_daemons):
   (ganet-masterd and ganeti-rapi).
 
   """
-  result = utils.RunCmd([constants.MASTER_SCRIPT, "-d", "start"])
-
-  if result.failed:
-    logging.error("could not activate cluster interface with command %s,"
-                  " error: '%s'", result.cmd, result.output)
+  ok = True
+  master_netdev, master_ip = _GetMasterInfo()
+  if not master_netdev:
     return False
 
-  return True
+  if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+    if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT,
+                     source=constants.LOCALHOST_IP_ADDRESS):
+      # we already have the ip:
+      logging.debug("Already started")
+    else:
+      logging.error("Someone else has the master ip, not activating")
+      ok = False
+  else:
+    result = utils.RunCmd(["ip", "address", "add", "%s/32" % master_ip,
+                           "dev", master_netdev, "label",
+                           "%s:0" % master_netdev])
+    if result.failed:
+      logging.error("Can't activate master IP: %s", result.output)
+      ok = False
+
+    result = utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev,
+                           "-s", master_ip, master_ip])
+    # we'll ignore the exit code of arping
+
+  # and now start the master and rapi daemons
+  if start_daemons:
+    for daemon in 'ganeti-masterd', 'ganeti-rapi':
+      result = utils.RunCmd([daemon])
+      if result.failed:
+        logging.error("Can't start daemon %s: %s", daemon, result.output)
+        ok = False
+  return ok
 
 
 def StopMaster(stop_daemons):
@@ -74,12 +113,20 @@ def StopMaster(stop_daemons):
   stop the master daemons (ganet-masterd and ganeti-rapi).
 
   """
-  result = utils.RunCmd([constants.MASTER_SCRIPT, "-d", "stop"])
-
-  if result.failed:
-    logging.error("could not deactivate cluster interface with command %s,"
-                  " error: '%s'", result.cmd, result.output)
+  master_netdev, master_ip = _GetMasterInfo()
+  if not master_netdev:
     return False
+
+  result = utils.RunCmd(["ip", "address", "del", "%s/32" % master_ip,
+                         "dev", master_netdev])
+  if result.failed:
+    logger.error("Can't remove the master IP, error: %s", result.output)
+    # but otherwise ignore the failure
+
+  if stop_daemons:
+    # stop/kill the rapi and the master daemon
+    for daemon in constants.RAPI_PID, constants.MASTERD_PID:
+      utils.KillProcess(utils.ReadPidFile(utils.DaemonPidFileName(daemon)))
 
   return True
 
