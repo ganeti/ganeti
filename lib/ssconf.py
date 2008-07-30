@@ -201,7 +201,21 @@ class WritableSimpleStore(SimpleStore):
                     uid=0, gid=0, mode=0400)
 
 
-def CheckMaster(debug):
+def GetMasterAndMyself(ss=None):
+  """Get the master node and my own hostname.
+
+  This can be either used for a 'soft' check (compared to CheckMaster,
+  which exits) or just for computing both at the same time.
+
+  The function does not handle any errors, these should be handled in
+  the caller (errors.ConfigurationError, errors.ResolverError).
+
+  """
+  if ss is None:
+    ss = SimpleStore()
+  return ss.GetMasterNode(), utils.HostInfo().name
+
+def CheckMaster(debug, ss=None):
   """Checks the node setup.
 
   If this is the master, the function will return. Otherwise it will
@@ -209,19 +223,15 @@ def CheckMaster(debug):
 
   """
   try:
-    ss = SimpleStore()
-    master_name = ss.GetMasterNode()
+    master_name, myself = GetMasterAndMyself(ss)
   except errors.ConfigurationError, err:
     print "Cluster configuration incomplete: '%s'" % str(err)
     sys.exit(constants.EXIT_NODESETUP_ERROR)
-
-  try:
-    myself = utils.HostInfo()
   except errors.ResolverError, err:
     sys.stderr.write("Cannot resolve my own name (%s)\n" % err.args[0])
     sys.exit(constants.EXIT_NODESETUP_ERROR)
 
-  if myself.name != master_name:
+  if myself != master_name:
     if debug:
       sys.stderr.write("Not master, exiting.\n")
     sys.exit(constants.EXIT_NOTMASTER)

@@ -35,6 +35,7 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import luxi
+from ganeti import ssconf
 
 from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -377,7 +378,7 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
 
   """
   if cl is None:
-    cl = luxi.Client()
+    cl = GetClient()
 
   job_id = cl.SubmitJob([op])
 
@@ -414,7 +415,17 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
 
 def GetClient():
   # TODO: Cache object?
-  return luxi.Client()
+  try:
+    client = luxi.Client()
+  except luxi.NoMasterError:
+    master, myself = ssconf.GetMasterAndMyself()
+    if master != myself:
+      raise errors.OpPrereqError("This is not the master node, please connect"
+                                 " to node '%s' and rerun the command" %
+                                 master)
+    else:
+      raise
+  return client
 
 
 def FormatError(err):
