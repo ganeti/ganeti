@@ -131,6 +131,9 @@ class Processor(object):
 
     """
     if level in lu.needed_locks:
+      # This gives a chance to LUs to make last-minute changes after acquiring
+      # locks at any preceding level.
+      lu.DeclareLocks(level)
       # This is always safe to do, as we can't acquire more/less locks than
       # what was requested.
       lu.needed_locks[level] = self.context.glm.acquire(level,

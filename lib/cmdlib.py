@@ -150,6 +150,24 @@ class LogicalUnit(object):
     else:
       raise NotImplementedError
 
+  def DeclareLocks(self, level):
+    """Declare LU locking needs for a level
+
+    While most LUs can just declare their locking needs at ExpandNames time,
+    sometimes there's the need to calculate some locks after having acquired
+    the ones before. This function is called just before acquiring locks at a
+    particular level, but after acquiring the ones at lower levels, and permits
+    such calculations. It can be used to modify self.needed_locks, and by
+    default it does nothing.
+
+    This function is only called if you have something already set in
+    self.needed_locks for the level.
+
+    @param level: Locking level which is going to be locked
+    @type level: member of ganeti.locking.LEVELS
+
+    """
+
   def CheckPrereq(self):
     """Check prerequisites for this LU.
 
