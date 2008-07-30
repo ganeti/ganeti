@@ -124,9 +124,8 @@ def ShowClusterMaster(opts, args):
     opts - class with options as members
 
   """
-  op = opcodes.OpQueryClusterInfo()
-  result = SubmitOpCode(op)
-  print (result["master"])
+  sstore = ssconf.SimpleStore()
+  print sstore.GetMasterNode()
   return 0
 
 
