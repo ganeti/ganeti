@@ -181,7 +181,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
     """
     logging.debug("Worker %s processing job %s",
                   self.worker_id, job.id)
-    proc = mcpu.Processor(self.pool.context)
+    proc = mcpu.Processor(self.pool.queue.context)
     queue = job.queue
     try:
       try:
@@ -242,16 +242,17 @@ class _JobQueueWorker(workerpool.BaseWorker):
 
 
 class _JobQueueWorkerPool(workerpool.WorkerPool):
-  def __init__(self, context):
+  def __init__(self, queue):
     super(_JobQueueWorkerPool, self).__init__(JOBQUEUE_THREADS,
                                               _JobQueueWorker)
-    self.context = context
+    self.queue = queue
 
 
 class JobQueue(object):
   _RE_JOB_FILE = re.compile(r"^job-(%s)$" % constants.JOB_ID_TEMPLATE)
 
   def __init__(self, context):
+    self.context = context
     self._memcache = {}
     self._my_hostname = utils.HostInfo().name
 
@@ -306,7 +307,7 @@ class JobQueue(object):
                                       " file")
 
     # Setup worker pool
-    self._wpool = _JobQueueWorkerPool(context)
+    self._wpool = _JobQueueWorkerPool(self)
 
     # We need to lock here because WorkerPool.AddTask() may start a job while
     # we're still doing our work.
