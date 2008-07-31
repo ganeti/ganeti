@@ -26,6 +26,8 @@
 import ganeti.cli
 import ganeti.opcodes
 
+from ganeti import luxi
+
 
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   """Builds a URI list as used by index resources.
@@ -89,6 +91,19 @@ def _Tags_GET(kind, name=None):
   return list(tags)
 
 
+def _Tags_POST(kind, tags, name=None):
+  """Helper function to set tags.
+
+  """
+  if name is None:
+    # Do not cause "missing parameter" error, which happens if a parameter
+    # is None.
+    name = ""
+  cl = luxi.Client()
+  return cl.SubmitJob([ganeti.opcodes.OpAddTags(kind=kind, name=name,
+                                                tags=tags)])
+
+
 def MapBulkFields(itemslist, fields):
   """Map value to field name in to one dictionary.
 
@@ -110,7 +125,7 @@ class R_Generic(object):
   """Generic class for resources.
 
   """
-  def __init__(self, request, items, queryargs):
+  def __init__(self, request, items, queryargs, post_data):
     """Generic resource constructor.
 
     Args:
@@ -122,3 +137,4 @@ class R_Generic(object):
     self.request = request
     self.items = items
     self.queryargs = queryargs
+    self.post_data = post_data

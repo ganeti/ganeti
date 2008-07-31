@@ -129,5 +129,97 @@ class R_2_nodes(baserlib.R_Generic):
       result = ganeti.cli.SubmitOpCode(op)
       return baserlib.MapBulkFields(result, N_FIELDS)
 
-    return baserlib.BuildUriList(nodeslist, "/nodes/%s",
+    return baserlib.BuildUriList(nodeslist, "/2/nodes/%s",
                                  uri_fields=("id", "uri"))
+
+
+class R_2_instances(baserlib.R_Generic):
+  """/2/instances resource.
+
+  """
+  DOC_URI = "/2/instances"
+
+
+  def GET(self):
+    """Returns a list of all available instances.
+
+    Returns:
+       A dictionary with 'name' and 'uri' keys for each of them.
+
+    Example: [
+        {
+          "name": "web.example.com",
+          "uri": "\/instances\/web.example.com"
+        },
+        {
+          "name": "mail.example.com",
+          "uri": "\/instances\/mail.example.com"
+        }]
+
+    If the optional 'bulk' argument is provided and set to 'true'
+    value (i.e '?bulk=1'), the output contains detailed
+    information about instances as a list.
+
+    Example: [
+        {
+           "status": "running",
+           "bridge": "xen-br0",
+           "name": "web.example.com",
+           "tags": ["tag1", "tag2"],
+           "admin_ram": 512,
+           "sda_size": 20480,
+           "pnode": "node1.example.com",
+           "mac": "01:23:45:67:89:01",
+           "sdb_size": 4096,
+           "snodes": ["node2.example.com"],
+           "disk_template": "drbd",
+           "ip": null,
+           "admin_state": true,
+           "os": "debian-etch",
+           "vcpus": 2,
+           "oper_state": true
+        },
+        ...
+    ]
+
+    """
+    op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
+    instanceslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
+
+    if 'bulk' in self.queryargs:
+      op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
+                                           names=instanceslist)
+      result = ganeti.cli.SubmitOpCode(op)
+      return baserlib.MapBulkFields(result, I_FIELDS)
+
+
+    else:
+      return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
+                                   uri_fields=("id", "uri"))
+
+
+class R_2_instances_name_tags(baserlib.R_Generic):
+  """/2/instances/[instance_name]/tags resource.
+
+  Manages per-instance tags.
+
+  """
+  DOC_URI = "/2/instances/[instance_name]/tags"
+
+  def GET(self):
+    """Returns a list of instance tags.
+
+    Example: ["tag1", "tag2", "tag3"]
+
+    """
+    return baserlib._Tags_GET(constants.TAG_INSTANCE, name=self.items[0])
+
+  def POST(self):
+    """Add a set of tags to the instance.
+
+    The reqest as a list of strings should be POST to this URI. And you'll have
+    back a job id.
+
+    """
+    return baserlib._Tags_POST(constants.TAG_INSTANCE,
+                               self.post_data, name=self.items[0])

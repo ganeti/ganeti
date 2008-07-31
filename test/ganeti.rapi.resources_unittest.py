@@ -28,8 +28,8 @@ import tempfile
 from ganeti import errors
 from ganeti import http
 
-from ganeti.rapi import connector
-from ganeti.rapi import rlib1
+from ganeti.rapi import connector 
+from ganeti.rapi import rlib1 
 
 
 class MapperTests(unittest.TestCase):
@@ -70,7 +70,7 @@ class R_RootTests(unittest.TestCase):
   """Testing for R_root class."""
 
   def setUp(self):
-    self.root = connector.R_root(None, None, None)
+    self.root = connector.R_root(None, None, None, None)
 
   def testGet(self):
     expected = [

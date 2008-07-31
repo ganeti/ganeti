@@ -22,15 +22,16 @@
 """
 
 import glob
+import logging
 import optparse
 import sys
 import os
 import signal
 
+from ganeti import logger
 from ganeti import constants
 from ganeti import errors
 from ganeti import http
-from ganeti import rpc
 from ganeti import ssconf
 from ganeti import utils
 from ganeti.rapi import connector
@@ -49,7 +50,7 @@ class RESTRequestHandler(http.HTTPRequestHandler):
 
     """
     (HandlerClass, items, args) = self._resmap.getController(self.path)
-    handler = HandlerClass(self, items, args)
+    handler = HandlerClass(self, items, args, self.post_data)
 
     command = self.command.upper()
     try:
@@ -58,7 +59,11 @@ class RESTRequestHandler(http.HTTPRequestHandler):
       raise http.HTTPBadRequest()
 
     try:
-      result = fn()
+      try:
+        result = fn()
+      except:
+        logging.exception("Error while handling the %s request", command)
+        raise
 
     except errors.OpPrereqError, err:
       # TODO: "Not found" is not always the correct error. Ganeti's core must
@@ -135,6 +140,9 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_RAPISERVER)
 
+  logger.SetupLogging(constants.LOG_RAPISERVER, debug=options.debug,
+                     stderr_logging=not options.fork)
+
   utils.WritePidFile(constants.RAPI_PID)
 
   log_fd = open(constants.LOG_RAPIACCESS, 'a')
@@ -155,4 +163,5 @@ def main():
 
 
 if __name__ == '__main__':
+  
   main()
