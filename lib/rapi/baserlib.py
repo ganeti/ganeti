@@ -78,29 +78,30 @@ def MapFields(names, data):
   return dict(zip(names, data))
 
 
-def _Tags_GET(kind, name=None):
+def _Tags_GET(kind, name=""):
   """Helper function to retrieve tags.
 
   """
-  if name is None:
-    # Do not cause "missing parameter" error, which happens if a parameter
-    # is None.
-    name = ""
   op = ganeti.opcodes.OpGetTags(kind=kind, name=name)
   tags = ganeti.cli.SubmitOpCode(op)
   return list(tags)
 
 
-def _Tags_POST(kind, tags, name=None):
+def _Tags_POST(kind, tags, name=""):
   """Helper function to set tags.
 
   """
-  if name is None:
-    # Do not cause "missing parameter" error, which happens if a parameter
-    # is None.
-    name = ""
   cl = luxi.Client()
   return cl.SubmitJob([ganeti.opcodes.OpAddTags(kind=kind, name=name,
+                                                tags=tags)])
+
+
+def _Tags_DELETE(kind, tags, name=""):
+  """Helper function to delete tags.
+
+  """
+  cl = luxi.Client()
+  return cl.SubmitJob([ganeti.opcodes.OpDelTags(kind=kind, name=name,
                                                 tags=tags)])
 
 

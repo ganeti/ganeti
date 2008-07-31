@@ -24,9 +24,9 @@
 """
 
 import ganeti.opcodes
-
+from ganeti import http
 from ganeti import luxi
-
+from ganeti import constants
 from ganeti.rapi import baserlib
 
 from ganeti.rapi.rlib1 import I_FIELDS, N_FIELDS
@@ -223,3 +223,17 @@ class R_2_instances_name_tags(baserlib.R_Generic):
     """
     return baserlib._Tags_POST(constants.TAG_INSTANCE,
                                self.post_data, name=self.items[0])
+
+  def DELETE(self):
+    """Delete a tag.
+
+    In order to delete a set of tags from a instance, DELETE request should be
+    addressed to URI like: /2/instances/[instance_name]/tags?tag=[tag]&tag=[tag]
+
+    """
+    if 'tag' not in self.queryargs:
+      # no we not gonna delete all tags from an instance
+      raise http.HTTPNotImplemented
+    return baserlib._Tags_DELETE(constants.TAG_INSTANCE,
+                                 self.queryargs['tag'],
+                                 name=self.items[0])
