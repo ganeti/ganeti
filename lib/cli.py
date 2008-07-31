@@ -369,18 +369,36 @@ def AskUser(text, choices=None):
   return answer
 
 
-def SubmitOpCode(op, cl=None, feedback_fn=None):
-  """Legacy function to submit an opcode.
+def SendJob(ops, cl=None):
+  """Function to submit an opcode without waiting for the results.
 
-  This is just a simple wrapper over the construction of the processor
-  instance. It should be extended to better handle feedback and
-  interaction functions.
+  @type ops: list
+  @param ops: list of opcodes
+  @type cl: luxi.Client
+  @param cl: the luxi client to use for communicating with the master;
+             if None, a new client will be created
 
   """
   if cl is None:
     cl = GetClient()
 
-  job_id = cl.SubmitJob([op])
+  job_id = cl.SubmitJob(ops)
+
+  return job_id
+
+
+def PollJob(job_id, cl=None):
+  """Function to poll for the result of a job.
+
+  @type job_id: job identified
+  @param job_id: the job to poll for results
+  @type cl: luxi.Client
+  @param cl: the luxi client to use for communicating with the master;
+             if None, a new client will be created
+
+  """
+  if cl is None:
+    cl = GetClient()
 
   lastmsg = None
   while True:
@@ -411,6 +429,22 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
     return result[0]
   else:
     raise errors.OpExecError(result)
+
+
+def SubmitOpCode(op, cl=None, feedback_fn=None):
+  """Legacy function to submit an opcode.
+
+  This is just a simple wrapper over the construction of the processor
+  instance. It should be extended to better handle feedback and
+  interaction functions.
+
+  """
+  if cl is None:
+    cl = GetClient()
+
+  job_id = SendJob([op], cl)
+
+  return PollJob(job_id, cl)
 
 
 def GetClient():
