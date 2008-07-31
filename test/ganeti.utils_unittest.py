@@ -32,7 +32,6 @@ import signal
 import socket
 import shutil
 import re
-import tempfile
 
 import ganeti
 import testutils
@@ -710,6 +709,7 @@ class TestUniqueSequence(unittest.TestCase):
     self._test(["a", "b"], ["a", "b"])
     self._test(["a", "b", "a"], ["a", "b"])
 
+
 class TestFirstFree(unittest.TestCase):
   """Test case for the FirstFree function"""
 
@@ -720,6 +720,63 @@ class TestFirstFree(unittest.TestCase):
     self.failUnlessEqual(FirstFree([3, 4, 6]), 0)
     self.failUnlessEqual(FirstFree([3, 4, 6], base=3), 5)
     self.failUnlessRaises(AssertionError, FirstFree, [0, 3, 4, 6], base=3)
+
+
+class TestFileLock(unittest.TestCase):
+  """Test case for the FileLock class"""
+
+  def setUp(self):
+    self.tmpfile = tempfile.NamedTemporaryFile()
+    self.lock = utils.FileLock(self.tmpfile.name)
+
+  def testSharedNonblocking(self):
+    self.lock.Shared(blocking=False)
+    self.lock.Close()
+
+  def testExclusiveNonblocking(self):
+    self.lock.Exclusive(blocking=False)
+    self.lock.Close()
+
+  def testUnlockNonblocking(self):
+    self.lock.Unlock(blocking=False)
+    self.lock.Close()
+
+  def testSharedBlocking(self):
+    self.lock.Shared(blocking=True)
+    self.lock.Close()
+
+  def testExclusiveBlocking(self):
+    self.lock.Exclusive(blocking=True)
+    self.lock.Close()
+
+  def testUnlockBlocking(self):
+    self.lock.Unlock(blocking=True)
+    self.lock.Close()
+
+  def testSharedExclusiveUnlock(self):
+    self.lock.Shared(blocking=False)
+    self.lock.Exclusive(blocking=False)
+    self.lock.Unlock(blocking=False)
+    self.lock.Close()
+
+  def testExclusiveSharedUnlock(self):
+    self.lock.Exclusive(blocking=False)
+    self.lock.Shared(blocking=False)
+    self.lock.Unlock(blocking=False)
+    self.lock.Close()
+
+  def testCloseShared(self):
+    self.lock.Close()
+    self.assertRaises(AssertionError, self.lock.Shared, blocking=False)
+
+  def testCloseExclusive(self):
+    self.lock.Close()
+    self.assertRaises(AssertionError, self.lock.Exclusive, blocking=False)
+
+  def testCloseUnlock(self):
+    self.lock.Close()
+    self.assertRaises(AssertionError, self.lock.Unlock, blocking=False)
+
 
 if __name__ == '__main__':
   unittest.main()

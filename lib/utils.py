@@ -1192,6 +1192,62 @@ def LockFile(fd):
     raise
 
 
+class FileLock(object):
+  """Utility class for file locks.
+
+  """
+  def __init__(self, filename):
+    self.filename = filename
+    self.fd = open(self.filename, "w")
+
+  def __del__(self):
+    self.Close()
+
+  def Close(self):
+    if self.fd:
+      self.fd.close()
+      self.fd = None
+
+  def _flock(self, flag, blocking, errmsg):
+    assert self.fd, "Lock was closed"
+
+    if not blocking:
+      flag |= fcntl.LOCK_NB
+
+    try:
+      fcntl.flock(self.fd, flag)
+    except IOError, err:
+      logging.exception("fcntl.flock failed")
+      if err.errno in (errno.EAGAIN, ):
+        raise errors.LockError(errmsg)
+      raise
+
+  def Exclusive(self, blocking=False):
+    """Locks the file in exclusive mode.
+
+    """
+    self._flock(fcntl.LOCK_EX, blocking,
+                "Failed to lock %s in exclusive mode" % self.filename)
+
+  def Shared(self, blocking=False):
+    """Locks the file in shared mode.
+
+    """
+    self._flock(fcntl.LOCK_SH, blocking,
+                "Failed to lock %s in shared mode" % self.filename)
+
+  def Unlock(self, blocking=True):
+    """Unlocks the file.
+
+    According to "man flock", unlocking can also be a nonblocking operation:
+    "To make a non-blocking request, include LOCK_NB with any of the above
+    operations"
+
+    """
+    self._flock(fcntl.LOCK_UN, blocking,
+                "Failed to unlock %s" % self.filename)
+
+
 class SignalHandler(object):
   """Generic signal handler class.
 
