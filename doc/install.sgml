@@ -376,7 +376,7 @@ modprobe drbd minor_count=128
 
       <para>
         It is also recommended that you comment out the default
-        resources in the <filename>/etc/dbrd.conf</filename> file, so
+        resources in the <filename>/etc/drbd.conf</filename> file, so
         that the init script doesn't try to configure any drbd
         devices. You can do this by prefixing all
         <literal>resource</literal> lines in the file with the keyword
