@@ -371,6 +371,7 @@ apt-get install -t etch-backports drbd8-module-source drbd8-utils
 m-a update
 m-a a-i drbd8
 echo drbd minor_count=128 >> /etc/modules
+depmod -a
 modprobe drbd minor_count=128
       </screen>
 
