@@ -44,9 +44,9 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "SubmitOpCode", "GetClient",
            "cli_option", "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
-           "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT",
+           "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT", "SUBMIT_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
-           "FormatError", "SplitNodeOption"
+           "FormatError", "SplitNodeOption", "SubmitOrSend",
            ]
 
 
@@ -179,6 +179,11 @@ FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
 
 TAG_SRC_OPT = make_option("--from", dest="tags_source",
                           default=None, help="File with tag names")
+
+SUBMIT_OPT = make_option("--submit", dest="submit_only",
+                         default=False, action="store_true",
+                         help="Submit the job and return the job ID, but"
+                         " don't wait for the job to finish")
 
 
 def ARGS_FIXED(val):
@@ -445,6 +450,22 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
   job_id = SendJob([op], cl)
 
   return PollJob(job_id, cl)
+
+
+def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
+  """Wrapper around SubmitOpCode or SendJob.
+
+  This function will decide, based on the 'opts' parameter, whether to
+  submit and wait for the result of the opcode (and return it), or
+  whether to just send the job and print its identifier. It is used in
+  order to simplify the implementation of the '--submit' option.
+
+  """
+  if opts and opts.submit_only:
+    print SendJob([op], cl=cl)
+    sys.exit(0)
+  else:
+    return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn)
 
 
 def GetClient():

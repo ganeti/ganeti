@@ -79,7 +79,7 @@ def ListNodes(opts, args):
     selected_fields = opts.output.split(",")
 
   op = opcodes.OpQueryNodes(output_fields=selected_fields, names=[])
-  output = SubmitOpCode(op)
+  output = SubmitOrSend(op, opts)
 
   if not opts.no_headers:
     headers = {
@@ -335,7 +335,8 @@ commands = {
   'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
            "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,
-           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT,
+            SUBMIT_OPT],
            "", "Lists the nodes in the cluster. The available fields"
            " are (see the man page for details): name, pinst_cnt, pinst_list,"
            " sinst_cnt, sinst_list, pip, sip, dtotal, dfree, mtotal, mnode,"
