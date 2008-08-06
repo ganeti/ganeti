@@ -176,8 +176,7 @@ def ListInstances(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  op = opcodes.OpQueryInstances(output_fields=selected_fields, names=[])
-  output = SubmitOpCode(op)
+  output = GetClient().QueryInstances([], selected_fields)
 
   if not opts.no_headers:
     headers = {
