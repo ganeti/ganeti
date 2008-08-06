@@ -47,6 +47,7 @@ REQ_SUBMIT_JOB = "SubmitJob"
 REQ_CANCEL_JOB = "CancelJob"
 REQ_ARCHIVE_JOB = "ArchiveJob"
 REQ_QUERY_JOBS = "QueryJobs"
+REQ_QUERY_INSTANCES = "QueryInstances"
 
 DEF_CTMO = 10
 DEF_RWTO = 60
@@ -287,5 +288,8 @@ class Client(object):
 
   def QueryJobs(self, job_ids, fields):
     return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))
+
+  def QueryInstances(self, names, fields):
+    return self.CallMethod(REQ_QUERY_INSTANCES, (names, fields))
 
 # TODO: class Server(object)

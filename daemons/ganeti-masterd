@@ -227,8 +227,24 @@ class ClientOps:
       (job_ids, fields) = args
       return queue.QueryJobs(job_ids, fields)
 
+    elif method == luxi.REQ_QUERY_INSTANCES:
+      (names, fields) = args
+      op = opcodes.OpQueryInstances(names=names, output_fields=fields)
+      return self._Query(op)
+
     else:
       raise ValueError("Invalid operation")
+
+  def _DummyLog(self, *args):
+    pass
+
+  def _Query(self, op):
+    """Runs the specified opcode and returns the result.
+
+    """
+    proc = mcpu.Processor(self.server.context)
+    # TODO: Where should log messages go?
+    return proc.ExecOpCode(op, self._DummyLog)
 
 
 class GanetiContext(object):
