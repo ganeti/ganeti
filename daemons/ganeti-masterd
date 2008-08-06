@@ -232,6 +232,11 @@ class ClientOps:
       op = opcodes.OpQueryInstances(names=names, output_fields=fields)
       return self._Query(op)
 
+    elif method == luxi.REQ_QUERY_NODES:
+      (names, fields) = args
+      op = opcodes.OpQueryNodes(names=names, output_fields=fields)
+      return self._Query(op)
+
     else:
       raise ValueError("Invalid operation")
 
