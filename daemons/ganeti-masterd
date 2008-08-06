@@ -207,11 +207,7 @@ class ClientOps:
 
     if method == luxi.REQ_SUBMIT_JOB:
       ops = [opcodes.OpCode.LoadOpCode(state) for state in args]
-      # we need to compute the node list here, since from now on all
-      # operations require locks on the queue or the storage, and we
-      # shouldn't get another lock
-      node_list = self.server.context.cfg.GetNodeList()
-      return queue.SubmitJob(ops, node_list)
+      return queue.SubmitJob(ops)
 
     elif method == luxi.REQ_CANCEL_JOB:
       job_id = args

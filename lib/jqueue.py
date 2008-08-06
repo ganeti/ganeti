@@ -362,7 +362,7 @@ class JobQueue(object):
 
     return str(job_id)
 
-  def _NewSerialUnlocked(self, nodes):
+  def _NewSerialUnlocked(self):
     """Generates a new job identifier.
 
     Job identifiers are unique during the lifetime of a cluster.
@@ -448,7 +448,7 @@ class JobQueue(object):
 
   @utils.LockedMethod
   @_RequireOpenQueue
-  def SubmitJob(self, ops, nodes):
+  def SubmitJob(self, ops):
     """Create and store a new job.
 
     This enters the job into our job queue and also puts it on the new
@@ -456,13 +456,10 @@ class JobQueue(object):
 
     @type ops: list
     @param ops: The list of OpCodes that will become the new job.
-    @type nodes: list
-    @param nodes: The list of nodes to which the new job serial will be
-                  distributed.
 
     """
     # Get job identifier
-    job_id = self._NewSerialUnlocked(nodes)
+    job_id = self._NewSerialUnlocked()
     job = _QueuedJob(self, job_id, ops)
 
     # Write to disk
