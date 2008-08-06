@@ -84,24 +84,22 @@ class IOServer(SocketServer.UnixStreamServer):
   cleanup at shutdown.
 
   """
-  def __init__(self, address, rqhandler, context):
+  def __init__(self, address, rqhandler):
     """IOServer constructor
 
     Args:
       address: the address to bind this IOServer to
       rqhandler: RequestHandler type object
-      context: Context Object common to all worker threads
 
     """
     SocketServer.UnixStreamServer.__init__(self, address, rqhandler)
-    self.context = context
 
     # We'll only start threads once we've forked.
-    self.jobqueue = None
+    self.context = None
     self.request_workers = None
 
   def setup_queue(self):
-    self.jobqueue = jqueue.JobQueue(self.context)
+    self.context = GanetiContext()
     self.request_workers = workerpool.WorkerPool(CLIENT_REQUEST_WORKERS,
                                                  ClientRequestWorker)
 
@@ -133,8 +131,8 @@ class IOServer(SocketServer.UnixStreamServer):
     finally:
       if self.request_workers:
         self.request_workers.TerminateWorkers()
-      if self.jobqueue:
-        self.jobqueue.Shutdown()
+      if self.context:
+        self.context.jobqueue.Shutdown()
 
 
 class ClientRqHandler(SocketServer.BaseRequestHandler):
@@ -203,7 +201,7 @@ class ClientOps:
     self.server = server
 
   def handle_request(self, method, args):
-    queue = self.server.jobqueue
+    queue = self.server.context.jobqueue
 
     # TODO: Parameter validation
 
@@ -269,12 +267,16 @@ class GanetiContext(object):
     """
     assert self.__class__._instance is None, "double GanetiContext instance"
 
-    # Create a ConfigWriter...
+    # Create global configuration object
     self.cfg = config.ConfigWriter()
-    # And a GanetiLockingManager...
+
+    # Locking manager
     self.glm = locking.GanetiLockManager(
                 self.cfg.GetNodeList(),
                 self.cfg.GetInstanceList())
+
+    # Job queue
+    self.jobqueue = jqueue.JobQueue(self)
 
     # setting this also locks the class against attribute modifications
     self.__class__._instance = self
@@ -318,7 +320,7 @@ def main():
 
   ssconf.CheckMaster(options.debug)
 
-  master = IOServer(constants.MASTER_SOCKET, ClientRqHandler, GanetiContext())
+  master = IOServer(constants.MASTER_SOCKET, ClientRqHandler)
 
   # become a daemon
   if options.fork:
