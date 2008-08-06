@@ -291,7 +291,13 @@ class JobQueue(object):
                                            " check in jstore and here")
 
     # Get initial list of nodes
-    self._nodes = self.context.cfg.GetNodeList()
+    self._nodes = set(self.context.cfg.GetNodeList())
+
+    # Remove master node
+    try:
+      self._nodes.remove(self._my_hostname)
+    except ValueError:
+      pass
 
     # TODO: Check consistency across nodes
 
@@ -333,9 +339,15 @@ class JobQueue(object):
     except ValueError:
       pass
 
+  def _WriteAndReplicateFileUnlocked(self, file_name, data):
+    """Writes a file locally and then replicates it to all nodes.
+
+    """
+    utils.WriteFile(file_name, data=data)
+
     failed_nodes = 0
-    result = rpc.call_upload_file(nodes, file_name)
-    for node in nodes:
+    result = rpc.call_upload_file(self._nodes, file_name)
+    for node in self._nodes:
       if not result[node]:
         failed_nodes += 1
         logging.error("Copy of job queue file to node %s failed", node)
