@@ -284,6 +284,31 @@ class GanetiContext(object):
     assert self.__class__._instance is None, "Attempt to modify Ganeti Context"
     object.__setattr__(self, name, value)
 
+  def AddNode(self, node):
+    """Adds a node to the configuration and lock manager.
+
+    """
+    # Add it to the configuration
+    self.cfg.AddNode(node)
+
+    # Add the new node to the Ganeti Lock Manager
+    self.glm.add(locking.LEVEL_NODE, node.name)
+
+  def ReaddNode(self, node):
+    """Updates a node that's already in the configuration
+
+    """
+
+  def RemoveNode(self, name):
+    """Removes a node from the configuration and lock manager.
+
+    """
+    # Remove node from configuration
+    self.cfg.RemoveNode(name)
+
+    # Remove the node from the Ganeti Lock Manager
+    self.glm.remove(locking.LEVEL_NODE, name)
+
 
 def ParseOptions():
   """Parse the command line options.

@@ -1356,15 +1356,9 @@ class LURemoveNode(LogicalUnit):
     logger.Info("stopping the node daemon and removing configs from node %s" %
                 node.name)
 
+    self.context.RemoveNode(node.name)
+
     rpc.call_node_leave_cluster(node.name)
-
-    logger.Info("Removing node %s from config" % node.name)
-
-    self.cfg.RemoveNode(node.name)
-    # Remove the node from the Ganeti Lock Manager
-    self.context.glm.remove(locking.LEVEL_NODE, node.name)
-
-    utils.RemoveHostFromEtcHosts(node.name)
 
 
 class LUQueryNodes(NoHooksLU):
@@ -1738,11 +1732,10 @@ class LUAddNode(LogicalUnit):
       if not result[node]:
         logger.Error("could not copy file %s to node %s" % (fname, node))
 
-    if not self.op.readd:
-      logger.Info("adding node %s to cluster.conf" % node)
-      self.cfg.AddNode(new_node)
-      # Add the new node to the Ganeti Lock Manager
-      self.context.glm.add(locking.LEVEL_NODE, node)
+    if self.op.readd:
+      self.context.ReaddNode(new_node)
+    else:
+      self.context.AddNode(new_node)
 
 
 class LUQueryClusterInfo(NoHooksLU):

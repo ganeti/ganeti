@@ -34,6 +34,7 @@ much memory.
 import os
 import tempfile
 import random
+import logging
 
 from ganeti import errors
 from ganeti import locking
@@ -461,6 +462,8 @@ class ConfigWriter:
       node: an object.Node instance
 
     """
+    logging.info("Adding node %s to configuration" % node.name)
+
     self._OpenConfig()
     self._config_data.nodes[node.name] = node
     self._WriteConfig()
@@ -470,6 +473,8 @@ class ConfigWriter:
     """Remove a node from the configuration.
 
     """
+    logging.info("Removing node %s from configuration" % node_name)
+
     self._OpenConfig()
     if node_name not in self._config_data.nodes:
       raise errors.ConfigurationError("Unknown node '%s'" % node_name)
