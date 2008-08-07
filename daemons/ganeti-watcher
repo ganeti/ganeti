@@ -40,7 +40,9 @@ from ganeti import constants
 from ganeti import serializer
 from ganeti import ssconf
 from ganeti import errors
+from ganeti import opcodes
 from ganeti import logger
+from ganeti import cli
 
 
 MAXTRIES = 5
@@ -51,6 +53,10 @@ ERROR = 'ERROR'
 KEY_RESTART_COUNT = "restart_count"
 KEY_RESTART_WHEN = "restart_when"
 KEY_BOOT_ID = "bootid"
+
+
+# Global client object
+client = None
 
 
 class NotMasterError(errors.GenericError):
@@ -237,48 +243,40 @@ class Instance(object):
     """Encapsulates the start of an instance.
 
     """
-    DoCmd(['gnt-instance', 'startup', '--lock-retries=15', self.name])
+    op = opcodes.OpStartupInstance(instance_name=self.name,
+                                   force=False,
+                                   extra_args=None)
+    cli.SubmitOpCode(op, cl=client)
 
   def ActivateDisks(self):
     """Encapsulates the activation of all disks of an instance.
 
     """
-    DoCmd(['gnt-instance', 'activate-disks', '--lock-retries=15', self.name])
-
-
-def _RunListCmd(cmd):
-  """Runs a command and parses its output into lists.
-
-  """
-  for line in DoCmd(cmd).stdout.splitlines():
-    yield line.split(':')
+    op = opcodes.OpActivateInstanceDisks(instance_name=self.name)
+    cli.SubmitOpCode(op, cl=client)
 
 
 def GetInstanceList(with_secondaries=None):
   """Get a list of instances on this cluster.
 
   """
-  cmd = ['gnt-instance', 'list', '--lock-retries=15', '--no-headers',
-         '--separator=:']
-
-  fields = 'name,oper_state,admin_state'
+  fields = ["name", "oper_state", "admin_state"]
 
   if with_secondaries is not None:
-    fields += ',snodes'
+    fields.append("snodes")
 
-  cmd.append('-o')
-  cmd.append(fields)
+  result = client.QueryInstances([], fields)
 
   instances = []
-  for fields in _RunListCmd(cmd):
+  for fields in result:
     if with_secondaries is not None:
       (name, status, autostart, snodes) = fields
 
-      if snodes == "-":
+      if not snodes:
         continue
 
       for node in with_secondaries:
-        if node in snodes.split(','):
+        if node in snodes:
           break
       else:
         continue
@@ -286,7 +284,7 @@ def GetInstanceList(with_secondaries=None):
     else:
       (name, status, autostart) = fields
 
-    instances.append(Instance(name, status, autostart != "no"))
+    instances.append(Instance(name, status, autostart))
 
   return instances
 
@@ -295,15 +293,8 @@ def GetNodeBootIDs():
   """Get a dict mapping nodes to boot IDs.
 
   """
-  cmd = ['gnt-node', 'list', '--lock-retries=15', '--no-headers',
-         '--separator=:', '-o', 'name,bootid']
-
-  ids = {}
-  for fields in _RunListCmd(cmd):
-    (name, bootid) = fields
-    ids[name] = bootid
-
-  return ids
+  result = client.QueryNodes([], ["name", "bootid"])
+  return dict([(name, bootid) for name, bootid in result])
 
 
 class Watcher(object):
@@ -408,7 +399,8 @@ class Watcher(object):
     """Run gnt-cluster verify-disks.
 
     """
-    result = DoCmd(['gnt-cluster', 'verify-disks', '--lock-retries=15'])
+    # TODO: What should we do here?
+    result = DoCmd(['gnt-cluster', 'verify-disks'])
     if result.output:
       logging.info(result.output)
 
@@ -436,16 +428,21 @@ def main():
   """Main function.
 
   """
+  global client
+
   options, args = ParseOptions()
 
   logger.SetupLogging(constants.LOG_WATCHER, debug=options.debug)
 
   try:
+    client = cli.GetClient()
+
     try:
       watcher = Watcher()
     except errors.ConfigurationError:
       # Just exit if there's no configuration
       sys.exit(constants.EXIT_SUCCESS)
+
     watcher.Run()
   except SystemExit:
     raise
