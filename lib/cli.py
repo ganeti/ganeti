@@ -392,7 +392,7 @@ def SendJob(ops, cl=None):
   return job_id
 
 
-def PollJob(job_id, cl=None):
+def PollJob(job_id, cl=None, feedback_fn=None):
   """Function to poll for the result of a job.
 
   @type job_id: job identified
@@ -449,7 +449,7 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
 
   job_id = SendJob([op], cl)
 
-  return PollJob(job_id, cl)
+  return PollJob(job_id, cl=cl, feedback_fn=feedback_fn)
 
 
 def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
