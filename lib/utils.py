@@ -1217,10 +1217,11 @@ class FileLock(object):
     try:
       fcntl.flock(self.fd, flag)
     except IOError, err:
-      logging.exception("fcntl.flock failed")
       if err.errno in (errno.EAGAIN, ):
         raise errors.LockError(errmsg)
-      raise
+      else:
+        logging.exception("fcntl.flock failed")
+        raise
 
   def Exclusive(self, blocking=False):
     """Locks the file in exclusive mode.
