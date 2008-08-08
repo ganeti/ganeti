@@ -330,7 +330,8 @@ class JobQueue(object):
   def AddNode(self, node_name):
     assert node_name != self._my_hostname
 
-    # TODO: Clean queue directory on added node
+    # Clean queue directory on added node
+    rpc.call_jobqueue_purge(node_name)
 
     # Upload the whole queue excluding archived jobs
     files = [self._GetJobPath(job_id) for job_id in self._GetJobIDsUnlocked()]
@@ -339,7 +340,14 @@ class JobQueue(object):
     files.append(constants.JOB_QUEUE_SERIAL_FILE)
 
     for file_name in files:
-      result = rpc.call_upload_file([node_name], file_name)
+      # Read file content
+      fd = open(file_name, "r")
+      try:
+        content = fd.read()
+      finally:
+        fd.close()
+
+      result = rpc.call_jobqueue_update([node_name], file_name, content)
       if not result[node_name]:
         logging.error("Failed to upload %s to %s", file_name, node_name)
 
@@ -361,7 +369,7 @@ class JobQueue(object):
     utils.WriteFile(file_name, data=data)
 
     failed_nodes = 0
-    result = rpc.call_upload_file(self._nodes, file_name)
+    result = rpc.call_jobqueue_update(self._nodes, file_name, data)
     for node in self._nodes:
       if not result[node]:
         failed_nodes += 1
