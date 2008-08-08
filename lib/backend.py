@@ -48,11 +48,23 @@ def _GetSshRunner():
   return ssh.SshRunner()
 
 
-def _CleanDirectory(path):
+def _CleanDirectory(path, exclude=[]):
+  """Removes all regular files in a directory.
+
+  @param exclude: List of files to be excluded.
+  @type exclude: list
+
+  """
   if not os.path.isdir(path):
     return
+
+  # Normalize excluded paths
+  exclude = [os.path.normpath(i) for i in exclude]
+
   for rel_name in utils.ListVisibleFiles(path):
-    full_name = os.path.join(path, rel_name)
+    full_name = os.path.normpath(os.path.join(path, rel_name))
+    if full_name in exclude:
+      continue
     if os.path.isfile(full_name) and not os.path.islink(full_name):
       utils.RemoveFile(full_name)
 
