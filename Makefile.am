@@ -3,7 +3,7 @@
 # - Keep files sorted; one line per file.
 # - Directories in lib/ must have their own *dir variable (see hypervisor).
 # - All directories must be listed DIRS.
-# - Use autogen.sh to generate Makefile.in and configure script
+# - Use autogen.sh to generate Makefile.in and configure script.
 
 # Automake doesn't export these variables before version 1.10.
 abs_top_builddir = @abs_top_builddir@
