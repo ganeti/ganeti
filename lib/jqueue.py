@@ -283,7 +283,7 @@ class JobQueue(object):
     self.release = self._lock.release
 
     # Initialize
-    self._queue_lock = jstore.InitAndVerifyQueue(exclusive=True)
+    self._queue_lock = jstore.InitAndVerifyQueue(must_lock=True)
 
     # Read serial file
     self._last_serial = jstore.ReadSerial()
