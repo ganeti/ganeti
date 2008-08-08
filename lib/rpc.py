@@ -826,3 +826,16 @@ def call_jobqueue_purge(node):
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
+
+
+def call_jobqueue_rename(node_list, old, new):
+  """Rename a job queue file.
+
+  This is a multi-node call.
+
+  """
+  c = Client("jobqueue_rename", [old, new])
+  c.connect_list(node_list)
+  c.run()
+  result = c.getresult()
+  return result

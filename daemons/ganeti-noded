@@ -569,6 +569,16 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """
     return backend.JobQueuePurge()
 
+  @staticmethod
+  @_RequireJobQueueLock
+  def perspective_jobqueue_rename(params):
+    """Rename a job queue file.
+
+    """
+    (old, new) = params
+
+    return backend.JobQueueRename(old, new)
+
 
 class NodeDaemonHttpServer(http.HTTPServer):
   def __init__(self, server_address):

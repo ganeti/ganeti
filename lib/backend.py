@@ -1690,6 +1690,18 @@ def JobQueuePurge():
   _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
 
 
+def JobQueueRename(old, new):
+  """Renames a job queue file.
+
+  """
+  if not (_IsJobQueueFile(old) and _IsJobQueueFile(new)):
+    return False
+
+  os.rename(old, new)
+
+  return True
+
+
 def CloseBlockDevices(disks):
   """Closes the given block devices.
 
