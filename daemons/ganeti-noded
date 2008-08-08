@@ -48,6 +48,22 @@ from ganeti import utils
 queue_lock = None
 
 
+def _RequireJobQueueLock(fn):
+  """Decorator for job queue manipulating functions.
+
+  """
+  def wrapper(*args, **kwargs):
+    # Locking in exclusive, blocking mode because there could be several
+    # children running at the same time.
+    # TODO: Implement nonblocking locking with retries?
+    queue_lock.Exclusive(blocking=True)
+    try:
+      return fn(*args, **kwargs)
+    finally:
+      queue_lock.Unlock()
+  return wrapper
+
+
 class NodeDaemonRequestHandler(http.HTTPRequestHandler):
   """The server implementation.
 
@@ -538,20 +554,13 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
                                         new_file_storage_dir)
 
   @staticmethod
+  @_RequireJobQueueLock
   def perspective_jobqueue_update(params):
     """Update job queue.
 
     """
     (file_name, content) = params
-
-    # Locking in exclusive, blocking mode because there could be several
-    # children running at the same time.
-    # TODO: Implement nonblocking locking with retries?
-    queue_lock.Exclusive(blocking=True)
-    try:
-      return backend.JobQueueUpdate(file_name, content)
-    finally:
-      queue_lock.Unlock()
+    return backend.JobQueueUpdate(file_name, content)
 
   @staticmethod
   def perspective_jobqueue_purge(params):
