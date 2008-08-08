@@ -49,6 +49,7 @@ REQ_ARCHIVE_JOB = "ArchiveJob"
 REQ_QUERY_JOBS = "QueryJobs"
 REQ_QUERY_INSTANCES = "QueryInstances"
 REQ_QUERY_NODES = "QueryNodes"
+REQ_QUERY_EXPORTS = "QueryExports"
 
 DEF_CTMO = 10
 DEF_RWTO = 60
@@ -295,5 +296,8 @@ class Client(object):
 
   def QueryNodes(self, names, fields):
     return self.CallMethod(REQ_QUERY_NODES, (names, fields))
+
+  def QueryExports(self, nodes):
+    return self.CallMethod(REQ_QUERY_EXPORTS, nodes)
 
 # TODO: class Server(object)
