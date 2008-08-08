@@ -39,9 +39,13 @@ from ganeti import logger
 from ganeti import constants
 from ganeti import objects
 from ganeti import errors
+from ganeti import jstore
 from ganeti import ssconf
 from ganeti import http
 from ganeti import utils
+
+
+queue_lock = None
 
 
 class NodeDaemonRequestHandler(http.HTTPRequestHandler):
@@ -539,7 +543,15 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
 
     """
     (file_name, content) = params
-    return backend.JobQueueUpdate(file_name, content)
+
+    # Locking in exclusive, blocking mode because there could be several
+    # children running at the same time.
+    # TODO: Implement nonblocking locking with retries?
+    queue_lock.Exclusive(blocking=True)
+    try:
+      return backend.JobQueueUpdate(file_name, content)
+    finally:
+      queue_lock.Unlock()
 
   @staticmethod
   def perspective_jobqueue_purge(params):
@@ -600,6 +612,8 @@ def main():
   """Main function for the node daemon.
 
   """
+  global queue_lock
+
   options, args = ParseOptions()
   utils.debug = options.debug
   for fname in (constants.SSL_CERT_FILE,):
@@ -639,6 +653,9 @@ def main():
   logger.SetupLogging(logfile=constants.LOG_NODESERVER, debug=options.debug,
                       stderr_logging=not options.fork)
   logging.info("ganeti node daemon startup")
+
+  # Prepare job queue
+  queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
 
   if options.fork:
     server = ForkingHTTPServer(('', port))
