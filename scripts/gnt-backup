@@ -39,8 +39,7 @@ def PrintExportList(opts, args):
     nothing
 
   """
-  op = opcodes.OpQueryExports(nodes=opts.nodes)
-  exports = SubmitOpCode(op)
+  exports = GetClient().QueryExports(opts.nodes)
   for node in exports:
     print ("Node: %s" % node)
     print ("Exports:")
