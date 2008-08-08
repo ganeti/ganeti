@@ -1658,6 +1658,22 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
   return result
 
 
+def JobQueueUpdate(file_name, content):
+  """Updates a file in the queue directory.
+
+  """
+  queue_dir = os.path.normpath(constants.QUEUE_DIR)
+  if os.path.commonprefix([queue_dir, file_name]) != queue_dir:
+    logging.error("'%s' is not a file in the queue directory",
+                  file_name)
+    return False
+
+  # Write and replace the file atomically
+  utils.WriteFile(file_name, data=content)
+
+  return True
+
+
 def JobQueuePurge():
   """Removes job queue files and archived jobs
 

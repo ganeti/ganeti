@@ -801,3 +801,28 @@ def call_file_storage_dir_rename(node, old_file_storage_dir,
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)
+
+
+def call_jobqueue_update(node_list, file_name, content):
+  """Update job queue.
+
+  This is a multi-node call.
+
+  """
+  c = Client("jobqueue_update", [file_name, content])
+  c.connect_list(node_list)
+  c.run()
+  result = c.getresult()
+  return result
+
+
+def call_jobqueue_purge(node):
+  """Purge job queue.
+
+  This is a single-node call.
+
+  """
+  c = Client("jobqueue_purge", [])
+  c.connect(node)
+  c.run()
+  return c.getresult().get(node, False)

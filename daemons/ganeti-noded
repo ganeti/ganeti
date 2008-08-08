@@ -529,6 +529,21 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     return backend.RenameFileStorageDir(old_file_storage_dir,
                                         new_file_storage_dir)
 
+  @staticmethod
+  def perspective_jobqueue_update(params):
+    """Update job queue.
+
+    """
+    (file_name, content) = params
+    return backend.JobQueueUpdate(file_name, content)
+
+  @staticmethod
+  def perspective_jobqueue_purge(params):
+    """Purge job queue.
+
+    """
+    return backend.JobQueuePurge()
+
 
 class NodeDaemonHttpServer(http.HTTPServer):
   def __init__(self, server_address):
