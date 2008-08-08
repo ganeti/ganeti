@@ -1026,9 +1026,6 @@ def FindBlockDevice(disk):
     return rbd
   return (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus()
 
-def _IsJobQueueFile(file_name):
-  queue_dir = os.path.normpath(constants.QUEUE_DIR)
-  return os.path.commonprefix([queue_dir, file_name]) == queue_dir
 
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   """Write a file to the filesystem.
@@ -1050,7 +1047,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
     ]
   allowed_files.extend(ssconf.SimpleStore().GetFileList())
 
-  if not (file_name in allowed_files or _IsJobQueueFile(file_name)):
+  if file_name not in allowed_files:
     logging.error("Filename passed to UploadFile not in allowed"
                  " upload targets: '%s'", file_name)
     return False
