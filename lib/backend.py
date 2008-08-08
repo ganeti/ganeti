@@ -48,6 +48,15 @@ def _GetSshRunner():
   return ssh.SshRunner()
 
 
+def _CleanDirectory(path):
+  if not os.path.isdir(path):
+    return
+  for rel_name in utils.ListVisibleFiles(path):
+    full_name = os.path.join(path, rel_name)
+    if os.path.isfile(full_name) and not os.path.islink(full_name):
+      utils.RemoveFile(full_name)
+
+
 def _GetMasterInfo():
   """Return the master ip and netdev.
 
@@ -169,19 +178,9 @@ def LeaveCluster():
   """Cleans up the current node and prepares it to be removed from the cluster.
 
   """
-  def _CleanDirectory(path):
-    if not os.path.isdir(path):
-      return
-    for rel_name in utils.ListVisibleFiles(path):
-      full_name = os.path.join(path, rel_name)
-      if os.path.isfile(full_name) and not os.path.islink(full_name):
-        utils.RemoveFile(full_name)
-
   _CleanDirectory(constants.DATA_DIR)
 
-  # Remove job queue files and archived jobs
-  _CleanDirectory(constants.QUEUE_DIR)
-  _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
+  JobQueuePurge()
 
   try:
     priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
@@ -1657,6 +1656,14 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
                       old_file_storage_dir, new_file_storage_dir)
         result = False,
   return result
+
+
+def JobQueuePurge():
+  """Removes job queue files and archived jobs
+
+  """
+  _CleanDirectory(constants.QUEUE_DIR)
+  _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
 
 
 def CloseBlockDevices(disks):
