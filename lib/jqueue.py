@@ -377,6 +377,16 @@ class JobQueue(object):
 
     # TODO: check failed_nodes
 
+  def _RenameFileUnlocked(self, old, new):
+    os.rename(old, new)
+
+    result = rpc.call_jobqueue_rename(self._nodes, old, new)
+    for node in self._nodes:
+      if not result[node]:
+        logging.error("Moving %s to %s failed on %s", old, new, node)
+
+    # TODO: check failed nodes
+
   def _FormatJobID(self, job_id):
     if not isinstance(job_id, (int, long)):
       raise errors.ProgrammerError("Job ID '%s' not numeric" % job_id)
@@ -577,7 +587,7 @@ class JobQueue(object):
       old = self._GetJobPath(job.id)
       new = self._GetArchivedJobPath(job.id)
 
-      os.rename(old, new)
+      self._RenameFileUnlocked(old, new)
 
       logging.debug("Successfully archived job %s", job.id)
     finally:
