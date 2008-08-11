@@ -98,7 +98,9 @@ class _QueuedOpCode(object):
 
     self._log_lock.acquire()
     try:
-      self.log.append((time.time(), log_type, log_msg))
+      # The time is split to make serialization easier and not lose more
+      # precision.
+      self.log.append((utils.SplitTime(time.time()), log_type, log_msg))
     finally:
       self._log_lock.release()
 

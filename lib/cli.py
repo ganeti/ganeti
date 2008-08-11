@@ -421,7 +421,7 @@ def PollJob(job_id, cl=None, feedback_fn=None):
       if callable(feedback_fn):
         feedback_fn(msg)
       else:
-        print "%s %s" % (time.ctime(msg[0]), msg[2])
+        print "%s %s" % (time.ctime(utils.MergeTime(msg[0])), msg[2])
     lastmsg = msg
     time.sleep(1)
 
