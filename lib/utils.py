@@ -1161,6 +1161,34 @@ def CheckVolumeGroupSize(vglist, vgname, minsize):
   return None
 
 
+def SplitTime(seconds):
+  """Splits time as floating point number into a tuple.
+
+  @param seconds: Time in seconds
+  @type seconds: int or float
+  @return: Tuple containing (seconds, milliseconds)
+
+  """
+  (seconds, fraction) = divmod(seconds, 1.0)
+  return (int(seconds), int(round(fraction * 1000, 0)))
+
+
+def MergeTime(timetuple):
+  """Merges a tuple into time as a floating point number.
+
+  @param timetuple: Time as tuple, (seconds, milliseconds)
+  @type timetuple: tuple
+  @return: Time as a floating point number expressed in seconds
+
+  """
+  (seconds, milliseconds) = timetuple
+
+  assert 0 <= seconds, "Seconds must be larger than 0"
+  assert 0 <= milliseconds <= 999, "Milliseconds must be 0-999"
+
+  return float(seconds) + (float(1) / 1000 * milliseconds)
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 

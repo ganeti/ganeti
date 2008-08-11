@@ -778,5 +778,27 @@ class TestFileLock(unittest.TestCase):
     self.assertRaises(AssertionError, self.lock.Unlock, blocking=False)
 
 
+class TestTimeFunctions(unittest.TestCase):
+  """Test case for time functions"""
+
+  def runTest(self):
+    self.assertEqual(utils.SplitTime(1), (1, 0))
+    self.assertEqual(utils.SplitTime(1.5), (1, 500))
+    self.assertEqual(utils.SplitTime(1218448917.4809151), (1218448917, 481))
+
+    self.assertEqual(utils.MergeTime((1, 0)), 1.0)
+    self.assertEqual(utils.MergeTime((1, 500)), 1.5)
+    self.assertEqual(utils.MergeTime((1218448917, 500)), 1218448917.5)
+
+    self.assertEqual(round(utils.MergeTime((1218448917, 481)), 3), 1218448917.481)
+    self.assertEqual(round(utils.MergeTime((1, 801)), 3), 1.801)
+
+    self.assertRaises(AssertionError, utils.MergeTime, (0, -1))
+    self.assertRaises(AssertionError, utils.MergeTime, (0, 1000))
+    self.assertRaises(AssertionError, utils.MergeTime, (0, 9999))
+    self.assertRaises(AssertionError, utils.MergeTime, (-1, 0))
+    self.assertRaises(AssertionError, utils.MergeTime, (-9999, 0))
+
+
 if __name__ == '__main__':
   unittest.main()
