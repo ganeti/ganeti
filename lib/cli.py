@@ -405,25 +405,25 @@ def PollJob(job_id, cl=None, feedback_fn=None):
   if cl is None:
     cl = GetClient()
 
+  state = None
   lastmsg = None
   while True:
-    jobs = cl.QueryJobs([job_id], ["status", "ticker"])
-    if not jobs:
+    state = cl.WaitForJobChange(job_id, ["status", "ticker"], state)
+    if not state:
       # job not found, go away!
       raise errors.JobLost("Job with id %s lost" % job_id)
 
     # TODO: Handle canceled and archived jobs
-    status = jobs[0][0]
+    status = state[0]
     if status in (constants.JOB_STATUS_SUCCESS, constants.JOB_STATUS_ERROR):
       break
-    msg = jobs[0][1]
+    msg = state[1]
     if msg is not None and msg != lastmsg:
       if callable(feedback_fn):
         feedback_fn(msg)
       else:
         print "%s %s" % (time.ctime(utils.MergeTime(msg[0])), msg[2])
     lastmsg = msg
-    time.sleep(1)
 
   jobs = cl.QueryJobs([job_id], ["status", "opresult"])
   if not jobs:
