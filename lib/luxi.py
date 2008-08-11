@@ -44,6 +44,7 @@ KEY_SUCCESS = "success"
 KEY_RESULT = "result"
 
 REQ_SUBMIT_JOB = "SubmitJob"
+REQ_WAIT_FOR_JOB_CHANGE = "WaitForJobChange"
 REQ_CANCEL_JOB = "CancelJob"
 REQ_ARCHIVE_JOB = "ArchiveJob"
 REQ_QUERY_JOBS = "QueryJobs"
@@ -287,6 +288,10 @@ class Client(object):
 
   def ArchiveJob(self, job_id):
     return self.CallMethod(REQ_ARCHIVE_JOB, job_id)
+
+  def WaitForJobChange(self, job_id, fields, previous):
+    return self.CallMethod(REQ_WAIT_FOR_JOB_CHANGE,
+                           (job_id, fields, previous))
 
   def QueryJobs(self, job_ids, fields):
     return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))

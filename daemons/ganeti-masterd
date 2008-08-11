@@ -217,6 +217,10 @@ class ClientOps:
       job_id = args
       return queue.ArchiveJob(job_id)
 
+    elif method == luxi.REQ_WAIT_FOR_JOB_CHANGE:
+      (job_id, fields, previous) = args
+      return queue.WaitForJobChanges(job_id, fields, previous)
+
     elif method == luxi.REQ_QUERY_JOBS:
       (job_ids, fields) = args
       return queue.QueryJobs(job_ids, fields)
