@@ -150,7 +150,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return (instance_name, pid, memory, vcpus, stat, times)
 
-
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
 
@@ -194,7 +193,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # FIXME: handle other models
         nic_val = "nic,macaddr=%s,model=virtio" % nic.mac
         kvm_cmd.extend(['-net', nic_val])
-        # if os.path.blah(script):
         kvm_cmd.extend(['-net', 'tap,script=%s' % script])
         temp_files.append(script)
         nic_seq += 1
@@ -202,21 +200,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     boot_drive = True
     for cfdev, rldev in block_devices:
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
-      # TODO: handle if= correctly
-      #drive_val = 'file=%s,format=raw,if=virtio' % rldev.dev_path
       if boot_drive:
         boot_val = ',boot=on'
+        boot_drive = False
       else:
         boot_val = ''
 
-      drive_val = 'file=%s,format=raw,if=virtio' % rldev.dev_path
-      if boot_drive:
-        drive_val = '%s,boot=on' % drive_val
-        boot_drive = False
-      #drive_val = 'file=%s,if=virtio' % rldev.dev_path
+      # TODO: handle different if= types
+      if_val = ',if=virtio'
+
+      drive_val = 'file=%s,format=raw%s%s' % (rldev.dev_path, if_val, boot_val)
       kvm_cmd.extend(['-drive', drive_val])
-      #flagname = cfdev.iv_name.replace('s', 'h', 1)
-      #kvm_cmd.extend(['-%s' % flagname, drive_val])
 
     # kernel handling
     if instance.kernel_path in (None, constants.VALUE_DEFAULT):
@@ -251,7 +245,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd.extend(['-append', 'console=ttyS0,38400 root=/dev/vda'])
 
     #"hvm_boot_order",
-    #"hvm_pae",
     #"hvm_cdrom_image_path",
 
     kvm_cmd.extend(['-nographic'])
