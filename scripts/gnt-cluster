@@ -350,8 +350,9 @@ commands = {
                         metavar="ADDRESS", default=None),
             make_option("-t", "--hypervisor-type", dest="hypervisor_type",
                         help="Specify the hypervisor type "
-                        "(xen-3.0, fake, xen-hvm-3.1)",
+                        "(xen-3.0, kvm, fake, xen-hvm-3.1)",
                         metavar="TYPE", choices=["xen-3.0",
+                                                 "kvm",
                                                  "fake",
                                                  "xen-hvm-3.1"],
                         default="xen-3.0",),
