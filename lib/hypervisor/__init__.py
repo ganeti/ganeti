@@ -29,12 +29,14 @@ from ganeti import errors
 
 from ganeti.hypervisor import hv_fake
 from ganeti.hypervisor import hv_xen
+from ganeti.hypervisor import hv_kvm
 
 
 _HYPERVISOR_MAP = {
     constants.HT_XEN_PVM30: hv_xen.XenPvmHypervisor,
     constants.HT_XEN_HVM31: hv_xen.XenHvmHypervisor,
     constants.HT_FAKE: hv_fake.FakeHypervisor,
+    constants.HT_KVM: hv_kvm.KVMHypervisor,
     }
 
 

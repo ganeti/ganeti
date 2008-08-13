@@ -89,6 +89,7 @@ hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
 	lib/hypervisor/hv_base.py \
 	lib/hypervisor/hv_fake.py \
+	lib/hypervisor/hv_kvm.py \
 	lib/hypervisor/hv_xen.py
 
 rapi_PYTHON = \
