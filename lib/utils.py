@@ -223,10 +223,10 @@ def RunCmd(cmd):
   The command should not read from its standard input, as it will be
   closed.
 
-  Args:
-    cmd: command to run. (str)
-
-  Returns: `RunResult` instance
+  @param cmd: Command to run
+  @type  cmd: string or list
+  @return: `RunResult` instance
+  @rtype: RunResult
 
   """
   if isinstance(cmd, list):
