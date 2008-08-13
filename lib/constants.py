@@ -126,6 +126,8 @@ EXPORT_CONF_FILE = "config.ini"
 XEN_KERNEL = _autoconf.XEN_KERNEL
 XEN_INITRD = _autoconf.XEN_INITRD
 
+KVM_PATH = _autoconf.KVM_PATH
+
 VALUE_DEFAULT = "default"
 VALUE_NONE = "none"
 

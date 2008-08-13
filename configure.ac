@@ -89,6 +89,16 @@ AC_ARG_WITH([file-storage-dir],
   [file_storage_dir="/srv/ganeti/file-storage"])
 AC_SUBST(FILE_STORAGE_DIR, $file_storage_dir)
 
+# --with-kvm-path=...
+AC_ARG_WITH([kvm-path],
+  [AS_HELP_STRING([--with-kvm-path=PATH],
+    [absolute path to the kvm binary]
+    [ (default is /usr/bin/kvm)]
+  )],
+  [kvm_path="$withval"],
+  [kvm_path="/usr/bin/kvm"])
+AC_SUBST(KVM_PATH, $kvm_path)
+
 # Check common programs
 AC_PROG_INSTALL
 AC_PROG_LN_S
