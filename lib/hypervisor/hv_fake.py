@@ -107,7 +107,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Failed to list instances: %s" % err)
     return data
 
-  def StartInstance(self, instance, force, extra_args):
+  def StartInstance(self, instance, block_devices, extra_args):
     """Start an instance.
 
     For the fake hypervisor, it just creates a file in the base dir,
