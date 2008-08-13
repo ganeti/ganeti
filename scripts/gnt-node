@@ -37,6 +37,7 @@ _LIST_DEF_FIELDS = [
   "pinst_cnt", "sinst_cnt",
   ]
 
+
 def AddNode(opts, args):
   """Add node cli-to-processor bridge.
 

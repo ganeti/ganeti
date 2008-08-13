@@ -101,7 +101,7 @@ class SshRunner:
     return "-oHostKeyAlias=%s" % self.sstore.GetClusterName()
 
   def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
-               tty=False):
+               tty=False, use_cluster_key=True):
     """Build an ssh command to execute a command on a remote node.
 
     Args:
@@ -111,6 +111,7 @@ class SshRunner:
       batch: if true, ssh will run in batch mode with no prompting
       ask_key: if true, ssh will run with StrictHostKeyChecking=ask, so that
                we can connect to an unknown host (not valid in batch mode)
+      use_cluster_key: Whether to expect and use the cluster-global SSH key
 
     Returns:
       The ssh call to run 'command' on the remote host.
@@ -118,7 +119,8 @@ class SshRunner:
     """
     argv = [constants.SSH, "-q"]
     argv.extend(KNOWN_HOSTS_OPTS)
-    argv.append(self._GetHostKeyAliasOption())
+    if use_cluster_key:
+      argv.append(self._GetHostKeyAliasOption())
     if batch:
       # if we are in batch mode, we can't ask the key
       if ask_key:
@@ -131,7 +133,8 @@ class SshRunner:
     argv.extend(["%s@%s" % (user, hostname), command])
     return argv
 
-  def Run(self, hostname, user, command, batch=True, ask_key=False):
+  def Run(self, hostname, user, command, batch=True, ask_key=False,
+          use_cluster_key=True):
     """Runs a command on a remote node.
 
     This method has the same return value as `utils.RunCmd()`, which it
@@ -150,7 +153,8 @@ class SshRunner:
 
     """
     return utils.RunCmd(self.BuildCmd(hostname, user, command, batch=batch,
-                                      ask_key=ask_key))
+                                      ask_key=ask_key,
+                                      use_cluster_key=use_cluster_key))
 
   def CopyFileToNode(self, node, filename):
     """Copy a file to another node with scp.

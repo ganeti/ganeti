@@ -285,7 +285,8 @@ def SetupNodeDaemon(node):
                 constants.SSL_CERT_FILE, gntpem,
                 constants.NODE_INITD_SCRIPT))
 
-  result = sshrunner.Run(node, 'root', mycommand, batch=False, ask_key=True)
+  result = sshrunner.Run(node, 'root', mycommand, batch=False, ask_key=True,
+                         use_cluster_key=False)
   if result.failed:
     raise errors.OpExecError("Remote command on node %s, error: %s,"
                              " output: %s" %
