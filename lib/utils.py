@@ -102,7 +102,7 @@ class RunResult(object):
   output = property(_GetOutput, None, None, "Return full output")
 
 
-def RunCmd(cmd):
+def RunCmd(cmd, env=None):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -110,6 +110,8 @@ def RunCmd(cmd):
 
   @param cmd: Command to run
   @type  cmd: string or list
+  @param env: Additional environment
+  @type env: dict
   @return: `RunResult` instance
   @rtype: RunResult
 
@@ -125,14 +127,18 @@ def RunCmd(cmd):
     strcmd = cmd
     shell = True
   logging.debug("RunCmd '%s'", strcmd)
-  env = os.environ.copy()
-  env["LC_ALL"] = "C"
+
+  cmd_env = os.environ.copy()
+  cmd_env["LC_ALL"] = "C"
+  if env is not None:
+    cmd_env.update(env)
+
   poller = select.poll()
   child = subprocess.Popen(cmd, shell=shell,
                            stderr=subprocess.PIPE,
                            stdout=subprocess.PIPE,
                            stdin=subprocess.PIPE,
-                           close_fds=True, env=env)
+                           close_fds=True, env=cmd_env)
 
   child.stdin.close()
   poller.register(child.stdout, select.POLLIN)
