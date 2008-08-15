@@ -78,7 +78,8 @@ class SshRunner:
     else:
       self.sstore = sstore
 
-  def _BuildSshOptions(self, batch, ask_key, use_cluster_key):
+  def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
+                       strict_host_check):
     options = [
       "-oEscapeChar=none",
       "-oHashKnownHosts=no",
@@ -89,15 +90,20 @@ class SshRunner:
     if use_cluster_key:
       options.append("-oHostKeyAlias=%s" % self.sstore.GetClusterName())
 
+    # TODO: Too many boolean options, maybe convert them to more descriptive
+    # constants.
+
     # Note: ask_key conflicts with batch mode
     if batch:
       if ask_key:
         raise errors.ProgrammerError("SSH call requested conflicting options")
 
-      options.extend([
-        "-oBatchMode=yes",
-        "-oStrictHostKeyChecking=yes",
-        ])
+      options.append("-oBatchMode=yes")
+
+      if strict_host_check:
+        options.append("-oStrictHostKeyChecking=yes")
+      else:
+        options.append("-oStrictHostKeyChecking=no")
 
     elif ask_key:
       options.extend([
@@ -107,7 +113,7 @@ class SshRunner:
     return options
 
   def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
-               tty=False, use_cluster_key=True):
+               tty=False, use_cluster_key=True, strict_host_check=True):
     """Build an ssh command to execute a command on a remote node.
 
     Args:
@@ -118,13 +124,15 @@ class SshRunner:
       ask_key: if true, ssh will run with StrictHostKeyChecking=ask, so that
                we can connect to an unknown host (not valid in batch mode)
       use_cluster_key: Whether to expect and use the cluster-global SSH key
+      strict_host_check: Whether to check the host's SSH key at all
 
     Returns:
       The ssh call to run 'command' on the remote host.
 
     """
     argv = [constants.SSH, "-q"]
-    argv.extend(self._BuildSshOptions(batch, ask_key, use_cluster_key))
+    argv.extend(self._BuildSshOptions(batch, ask_key, use_cluster_key,
+                                      strict_host_check))
     if tty:
       argv.append("-t")
     argv.extend(["%s@%s" % (user, hostname), command])
@@ -165,7 +173,7 @@ class SshRunner:
       return False
 
     command = [constants.SCP, "-q", "-p"]
-    command.extend(self._BuildSshOptions(True, False, True))
+    command.extend(self._BuildSshOptions(True, False, True, True))
     command.append(filename)
     command.append("%s:%s" % (node, filename))
 
