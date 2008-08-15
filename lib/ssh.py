@@ -33,25 +33,6 @@ from ganeti import constants
 from ganeti import ssconf
 
 
-KNOWN_HOSTS_OPTS = [
-  "-oGlobalKnownHostsFile=%s" % constants.SSH_KNOWN_HOSTS_FILE,
-  "-oUserKnownHostsFile=/dev/null",
-  ]
-
-# Note: BATCH_MODE conflicts with ASK_KEY
-BATCH_MODE_OPTS = [
-  "-oBatchMode=yes",
-  "-oEscapeChar=none",
-  "-oStrictHostKeyChecking=yes",
-  ]
-
-ASK_KEY_OPTS = [
-  "-oEscapeChar=none",
-  "-oHashKnownHosts=no",
-  "-oStrictHostKeyChecking=ask",
-  ]
-
-
 def GetUserFiles(user, mkdir=False):
   """Return the paths of a user's ssh files.
 
@@ -97,8 +78,33 @@ class SshRunner:
     else:
       self.sstore = sstore
 
-  def _GetHostKeyAliasOption(self):
-    return "-oHostKeyAlias=%s" % self.sstore.GetClusterName()
+  def _BuildSshOptions(self, batch, ask_key, use_cluster_key):
+    options = [
+      "-oEscapeChar=none",
+      "-oHashKnownHosts=no",
+      "-oGlobalKnownHostsFile=%s" % constants.SSH_KNOWN_HOSTS_FILE,
+      "-oUserKnownHostsFile=/dev/null",
+      ]
+
+    if use_cluster_key:
+      options.append("-oHostKeyAlias=%s" % self.sstore.GetClusterName())
+
+    # Note: ask_key conflicts with batch mode
+    if batch:
+      if ask_key:
+        raise errors.ProgrammerError("SSH call requested conflicting options")
+
+      options.extend([
+        "-oBatchMode=yes",
+        "-oStrictHostKeyChecking=yes",
+        ])
+
+    elif ask_key:
+      options.extend([
+        "-oStrictHostKeyChecking=ask",
+        ])
+
+    return options
 
   def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
                tty=False, use_cluster_key=True):
@@ -118,16 +124,7 @@ class SshRunner:
 
     """
     argv = [constants.SSH, "-q"]
-    argv.extend(KNOWN_HOSTS_OPTS)
-    if use_cluster_key:
-      argv.append(self._GetHostKeyAliasOption())
-    if batch:
-      # if we are in batch mode, we can't ask the key
-      if ask_key:
-        raise errors.ProgrammerError("SSH call requested conflicting options")
-      argv.extend(BATCH_MODE_OPTS)
-    elif ask_key:
-      argv.extend(ASK_KEY_OPTS)
+    argv.extend(self._BuildSshOptions(batch, ask_key, use_cluster_key))
     if tty:
       argv.append("-t")
     argv.extend(["%s@%s" % (user, hostname), command])
@@ -168,9 +165,7 @@ class SshRunner:
       return False
 
     command = [constants.SCP, "-q", "-p"]
-    command.extend(KNOWN_HOSTS_OPTS)
-    command.extend(BATCH_MODE_OPTS)
-    command.append(self._GetHostKeyAliasOption())
+    command.extend(self._BuildSshOptions(True, False, True))
     command.append(filename)
     command.append("%s:%s" % (node, filename))
 
