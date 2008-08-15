@@ -243,7 +243,7 @@ def FinalizeClusterDestroy(master):
     logging.warning("Could not shutdown the node daemon and cleanup the node")
 
 
-def SetupNodeDaemon(node):
+def SetupNodeDaemon(node, ssh_key_check):
   """Add a node to the cluster.
 
   This function must be called before the actual opcode, and will ssh
@@ -285,8 +285,10 @@ def SetupNodeDaemon(node):
                 constants.SSL_CERT_FILE, gntpem,
                 constants.NODE_INITD_SCRIPT))
 
-  result = sshrunner.Run(node, 'root', mycommand, batch=False, ask_key=True,
-                         use_cluster_key=False)
+  result = sshrunner.Run(node, 'root', mycommand, batch=False,
+                         ask_key=ssh_key_check,
+                         use_cluster_key=False,
+                         strict_host_check=ssh_key_check)
   if result.failed:
     raise errors.OpExecError("Remote command on node %s, error: %s,"
                              " output: %s" %

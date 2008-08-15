@@ -61,7 +61,7 @@ def AddNode(opts, args):
     "on the target machine (%s) with the ones of the current one\n"
     "and grant full intra-cluster ssh root access to/from it\n" % node)
 
-  bootstrap.SetupNodeDaemon(node)
+  bootstrap.SetupNodeDaemon(node, opts.ssh_key_check)
 
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip,
                          readd=opts.readd)
@@ -314,8 +314,12 @@ commands = {
            make_option("--readd", dest="readd",
                        default=False, action="store_true",
                        help="Readd old node after replacing it"),
+           make_option("--no-ssh-key-check", dest="ssh_key_check",
+                       default=True, action="store_false",
+                       help="Disable SSH key fingerprint checking"),
            ],
-          "[-s ip] [--readd] <node_name>", "Add a node to the cluster"),
+          "[-s ip] [--readd] [--no-ssh-key-check] <node_name>",
+          "Add a node to the cluster"),
   'evacuate': (EvacuateNode, ARGS_FIXED(2),
                [DEBUG_OPT, FORCE_OPT],
                "[-f] <src> <dst>",
