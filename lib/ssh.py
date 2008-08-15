@@ -133,28 +133,20 @@ class SshRunner:
     argv.extend(["%s@%s" % (user, hostname), command])
     return argv
 
-  def Run(self, hostname, user, command, batch=True, ask_key=False,
-          use_cluster_key=True):
+  def Run(self, *args, **kwargs):
     """Runs a command on a remote node.
 
     This method has the same return value as `utils.RunCmd()`, which it
     uses to launch ssh.
 
     Args:
-      hostname: the target host, string
-      user: user to auth as
-      command: the command
-      batch: if true, ssh will run in batch mode with no prompting
-      ask_key: if true, ssh will run with StrictHostKeyChecking=ask, so that
-               we can connect to an unknown host (not valid in batch mode)
+      See SshRunner.BuildCmd.
 
     Returns:
       `utils.RunResult` like `utils.RunCmd()`
 
     """
-    return utils.RunCmd(self.BuildCmd(hostname, user, command, batch=batch,
-                                      ask_key=ask_key,
-                                      use_cluster_key=use_cluster_key))
+    return utils.RunCmd(self.BuildCmd(*args, **kwargs))
 
   def CopyFileToNode(self, node, filename):
     """Copy a file to another node with scp.
