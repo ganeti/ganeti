@@ -30,7 +30,6 @@ DIRS = \
 	lib/rapi \
 	man \
 	qa \
-	qa/hooks \
 	scripts \
 	test \
 	test/data \
@@ -51,7 +50,6 @@ CLEANFILES = \
 	man/*.[78] \
 	man/*.in \
 	qa/*.py[co] \
-	qa/hooks/*.py[co] \
 	test/*.py[co] \
 	stamp-directories \
 	$(nodist_pkgpython_PYTHON)
@@ -141,8 +139,6 @@ EXTRA_DIST = \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
-	qa/hooks/datehook.py \
-	qa/hooks/loghook.py \
 	test/testutils.py \
 	test/mocks.py \
 	$(dist_TESTS) \

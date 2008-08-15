@@ -54,7 +54,6 @@ def _CheckFileOnAllNodes(filename, content):
                 content)
 
 
-@qa_utils.DefineHook('cluster-init')
 def TestClusterInit():
   """gnt-cluster init"""
   master = qa_config.GetMasterNode()
@@ -79,7 +78,6 @@ def TestClusterInit():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-@qa_utils.DefineHook('cluster-rename')
 def TestClusterRename():
   """gnt-cluster rename"""
   master = qa_config.GetMasterNode()
@@ -110,7 +108,6 @@ def TestClusterRename():
                        utils.ShellQuoteArgs(cmd_verify)).wait(), 0)
 
 
-@qa_utils.DefineHook('cluster-verify')
 def TestClusterVerify():
   """gnt-cluster verify"""
   master = qa_config.GetMasterNode()
@@ -120,7 +117,6 @@ def TestClusterVerify():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-@qa_utils.DefineHook('cluster-info')
 def TestClusterInfo():
   """gnt-cluster info"""
   master = qa_config.GetMasterNode()
@@ -130,7 +126,6 @@ def TestClusterInfo():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-@qa_utils.DefineHook('cluster-getmaster')
 def TestClusterGetmaster():
   """gnt-cluster getmaster"""
   master = qa_config.GetMasterNode()
@@ -140,7 +135,6 @@ def TestClusterGetmaster():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-@qa_utils.DefineHook('cluster-version')
 def TestClusterVersion():
   """gnt-cluster version"""
   master = qa_config.GetMasterNode()
@@ -150,7 +144,6 @@ def TestClusterVersion():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-@qa_utils.DefineHook('cluster-burnin')
 def TestClusterBurnin():
   """Burnin"""
   master = qa_config.GetMasterNode()
@@ -191,7 +184,6 @@ def TestClusterBurnin():
       qa_config.ReleaseInstance(inst)
 
 
-@qa_utils.DefineHook('cluster-master-failover')
 def TestClusterMasterFailover():
   """gnt-cluster masterfailover"""
   master = qa_config.GetMasterNode()
@@ -209,7 +201,6 @@ def TestClusterMasterFailover():
     qa_config.ReleaseNode(failovermaster)
 
 
-@qa_utils.DefineHook('cluster-copyfile')
 def TestClusterCopyfile():
   """gnt-cluster copyfile"""
   master = qa_config.GetMasterNode()
@@ -234,7 +225,6 @@ def TestClusterCopyfile():
     _RemoveFileFromAllNodes(testname)
 
 
-@qa_utils.DefineHook('cluster-command')
 def TestClusterCommand():
   """gnt-cluster command"""
   master = qa_config.GetMasterNode()
@@ -252,7 +242,6 @@ def TestClusterCommand():
     _RemoveFileFromAllNodes(rfile)
 
 
-@qa_utils.DefineHook('cluster-destroy')
 def TestClusterDestroy():
   """gnt-cluster destroy"""
   master = qa_config.GetMasterNode()

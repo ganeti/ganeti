@@ -104,7 +104,6 @@ def PrintCronWarning():
   print qa_utils.FormatWarning(msg)
 
 
-@qa_utils.DefineHook('daemon-automatic-restart')
 def TestInstanceAutomaticRestart(node, instance):
   """Test automatic restart of instance by ganeti-watcher.
 
@@ -126,7 +125,6 @@ def TestInstanceAutomaticRestart(node, instance):
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
-@qa_utils.DefineHook('daemon-consecutive-failures')
 def TestInstanceConsecutiveFailures(node, instance):
   """Test five consecutive instance failures.
 

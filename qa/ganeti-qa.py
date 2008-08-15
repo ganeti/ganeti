@@ -263,7 +263,6 @@ def main():
     sys.exit(1)
 
   qa_config.Load(config_file)
-  qa_utils.LoadHooks()
 
   RunTest(qa_other.UploadKnownHostsFile, known_hosts_file)
 

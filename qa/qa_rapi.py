@@ -97,7 +97,6 @@ def _DoTests(uris):
         AssertEqual(data, verify)
 
 
-@qa_utils.DefineHook('rapi-version')
 def TestVersion():
   """Testing remote API version.
 
@@ -107,7 +106,6 @@ def TestVersion():
     ])
 
 
-@qa_utils.DefineHook('rapi-empty-cluster')
 def TestEmptyCluster():
   """Testing remote API on an empty cluster.
 
@@ -143,7 +141,6 @@ def TestEmptyCluster():
     ])
 
 
-@qa_utils.DefineHook('rapi-instance')
 def TestInstance(instance):
   """Testing getting instance(s) info via remote API.
 
@@ -168,7 +165,6 @@ def TestInstance(instance):
     ])
 
 
-@qa_utils.DefineHook('rapi-node')
 def TestNode(node):
   """Testing getting node(s) info via remote API.
 
