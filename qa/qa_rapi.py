@@ -148,12 +148,12 @@ def TestInstance(instance):
   def _VerifyInstance(data):
     for entry in INSTANCE_FIELDS:
       AssertIn(entry, data)
-  
+
   def _VerifyInstancesList(data):
     for instance in data:
-      for entry in LIST_FIELDS: 
+      for entry in LIST_FIELDS:
         AssertIn(entry, instance)
-      
+
   def _VerifyInstancesBulk(data):
     for instance_data in data:
       _VerifyInstance(instance_data)
@@ -172,12 +172,12 @@ def TestNode(node):
   def _VerifyNode(data):
     for entry in NODE_FIELDS:
       AssertIn(entry, data)
-  
+
   def _VerifyNodesList(data):
     for node in data:
-      for entry in LIST_FIELDS: 
+      for entry in LIST_FIELDS:
         AssertIn(entry, node)
-  
+
   def _VerifyNodesBulk(data):
     for node_data in data:
       _VerifyNode(node_data)
