@@ -1366,13 +1366,9 @@ class LUQueryNodes(NoHooksLU):
 
   """
   _OP_REQP = ["output_fields", "names"]
+  REQ_BGL = False
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This checks that the fields required are valid output fields.
-
-    """
+  def ExpandNames(self):
     self.dynamic_fields = frozenset([
       "dtotal", "dfree",
       "mtotal", "mnode", "mfree",
@@ -1386,7 +1382,23 @@ class LUQueryNodes(NoHooksLU):
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
-    self.wanted = _GetWantedNodes(self, self.op.names)
+    self.needed_locks = {}
+    self.share_locks[locking.LEVEL_NODE] = 1
+    # TODO: we could lock nodes only if the user asked for dynamic fields. For
+    # that we need atomic ways to get info for a group of nodes from the
+    # config, though.
+    if not self.op.names:
+      self.needed_locks[locking.LEVEL_NODE] = None
+    else:
+       self.needed_locks[locking.LEVEL_NODE] = \
+         _GetWantedNodes(self, self.op.names)
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    # This of course is valid only if we locked the nodes
+    self.wanted = self.needed_locks[locking.LEVEL_NODE]
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
