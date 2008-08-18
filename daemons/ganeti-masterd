@@ -127,7 +127,6 @@ class IOServer(SocketServer.UnixStreamServer):
     """
     try:
       self.server_close()
-      utils.RemoveFile(constants.MASTER_SOCKET)
     finally:
       if self.request_workers:
         self.request_workers.TerminateWorkers()
