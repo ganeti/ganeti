@@ -21,10 +21,6 @@
 
 """Script for doing QA on Ganeti.
 
-You can create the required known_hosts file using ssh-keyscan. It's mandatory
-to use the full name of a node (FQDN). For security reasons, verify the keys
-before using them.
-Example: ssh-keyscan -t rsa node{1,2,3,4}.example.com > known_hosts
 """
 
 import sys
@@ -38,7 +34,6 @@ import qa_env
 import qa_instance
 import qa_node
 import qa_os
-import qa_other
 import qa_rapi
 import qa_tags
 import qa_utils
@@ -241,8 +236,7 @@ def main():
   """Main program.
 
   """
-  parser = optparse.OptionParser(usage="%prog [options] <config-file>"
-                                       " <known-hosts-file>")
+  parser = optparse.OptionParser(usage="%prog [options] <config-file>")
   parser.add_option('--dry-run', dest='dry_run',
       action="store_true",
       help="Show what would be done")
@@ -251,10 +245,10 @@ def main():
       help="Really execute the tests")
   (qa_config.options, args) = parser.parse_args()
 
-  if len(args) == 2:
-    (config_file, known_hosts_file) = args
+  if len(args) == 1:
+    (config_file, ) = args
   else:
-    parser.error("Not enough arguments.")
+    parser.error("Wrong number of arguments.")
 
   if not qa_config.options.yes_do_it:
     print ("Executing this script irreversibly destroys any Ganeti\n"
@@ -263,8 +257,6 @@ def main():
     sys.exit(1)
 
   qa_config.Load(config_file)
-
-  RunTest(qa_other.UploadKnownHostsFile, known_hosts_file)
 
   RunEnvTests()
   SetupCluster()
