@@ -129,7 +129,9 @@ class Processor(object):
     given LU and its opcodes.
 
     """
-    if level in lu.needed_locks:
+    if level not in locking.LEVELS:
+      result = self._ExecLU(lu)
+    elif level in lu.needed_locks:
       # This gives a chance to LUs to make last-minute changes after acquiring
       # locks at any preceding level.
       lu.DeclareLocks(level)
@@ -146,7 +148,7 @@ class Processor(object):
         if lu.needed_locks[level]:
           self.context.glm.release(level)
     else:
-      result = self._ExecLU(lu)
+      result = self._LockAndExecLU(lu, level + 1)
 
     return result
 
