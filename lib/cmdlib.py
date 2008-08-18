@@ -2070,12 +2070,20 @@ class LURebootInstance(LogicalUnit):
   REQ_BGL = False
 
   def ExpandNames(self):
+    if self.op.reboot_type not in [constants.INSTANCE_REBOOT_SOFT,
+                                   constants.INSTANCE_REBOOT_HARD,
+                                   constants.INSTANCE_REBOOT_FULL]:
+      raise errors.ParameterError("reboot type not in [%s, %s, %s]" %
+                                  (constants.INSTANCE_REBOOT_SOFT,
+                                   constants.INSTANCE_REBOOT_HARD,
+                                   constants.INSTANCE_REBOOT_FULL))
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
+      # FIXME: lock only primary on (not constants.INSTANCE_REBOOT_FULL)
       self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
@@ -2115,14 +2123,6 @@ class LURebootInstance(LogicalUnit):
     extra_args = getattr(self.op, "extra_args", "")
 
     node_current = instance.primary_node
-
-    if reboot_type not in [constants.INSTANCE_REBOOT_SOFT,
-                           constants.INSTANCE_REBOOT_HARD,
-                           constants.INSTANCE_REBOOT_FULL]:
-      raise errors.ParameterError("reboot type not in [%s, %s, %s]" %
-                                  (constants.INSTANCE_REBOOT_SOFT,
-                                   constants.INSTANCE_REBOOT_HARD,
-                                   constants.INSTANCE_REBOOT_FULL))
 
     if reboot_type in [constants.INSTANCE_REBOOT_SOFT,
                        constants.INSTANCE_REBOOT_HARD]:
