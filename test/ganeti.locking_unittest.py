@@ -635,6 +635,20 @@ class TestGanetiLockManager(unittest.TestCase):
     self.GL.acquire(locking.LEVEL_INSTANCE, ['i3'], shared=1)
     self.assertEquals(self.GL._list_owned(locking.LEVEL_INSTANCE), set(['i3']))
 
+  def testAcquireWholeSets(self):
+    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
+    self.assertEquals(self.GL.acquire(locking.LEVEL_INSTANCE, None),
+                      set(self.instances))
+    self.assertEquals(self.GL._list_owned(locking.LEVEL_INSTANCE),
+                      set(self.instances))
+    self.assertEquals(self.GL.acquire(locking.LEVEL_NODE, None, shared=1),
+                      set(self.nodes))
+    self.assertEquals(self.GL._list_owned(locking.LEVEL_NODE),
+                      set(self.nodes))
+    self.GL.release(locking.LEVEL_NODE)
+    self.GL.release(locking.LEVEL_INSTANCE)
+    self.GL.release(locking.LEVEL_CLUSTER)
+
   def testBGLDependency(self):
     self.assertRaises(AssertionError, self.GL.acquire,
                       locking.LEVEL_NODE, ['n1', 'n2'])
