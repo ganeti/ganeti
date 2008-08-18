@@ -403,6 +403,12 @@ class TestLockSet(unittest.TestCase):
     self.assertRaises(AssertionError, self.ls.add, 'five')
     self.ls.release()
 
+  def testAcquireWithRepetitions(self):
+    self.assertEquals(self.ls.acquire(['two', 'two', 'three'], shared=1),
+                      set(['two', 'two', 'three']))
+    self.ls.release(['two', 'two'])
+    self.assertEquals(self.ls._list_owned(), set(['three']))
+
   def testEmptyAcquire(self):
     # Acquire an empty list of locks...
     self.assertEquals(self.ls.acquire([]), set())
@@ -645,6 +651,20 @@ class TestGanetiLockManager(unittest.TestCase):
                       set(self.nodes))
     self.assertEquals(self.GL._list_owned(locking.LEVEL_NODE),
                       set(self.nodes))
+    self.GL.release(locking.LEVEL_NODE)
+    self.GL.release(locking.LEVEL_INSTANCE)
+    self.GL.release(locking.LEVEL_CLUSTER)
+
+  def testAcquireWholeAndPartial(self):
+    self.GL.acquire(locking.LEVEL_CLUSTER, ['BGL'], shared=1)
+    self.assertEquals(self.GL.acquire(locking.LEVEL_INSTANCE, None),
+                      set(self.instances))
+    self.assertEquals(self.GL._list_owned(locking.LEVEL_INSTANCE),
+                      set(self.instances))
+    self.assertEquals(self.GL.acquire(locking.LEVEL_NODE, ['n2'], shared=1),
+                      set(['n2']))
+    self.assertEquals(self.GL._list_owned(locking.LEVEL_NODE),
+                      set(['n2']))
     self.GL.release(locking.LEVEL_NODE)
     self.GL.release(locking.LEVEL_INSTANCE)
     self.GL.release(locking.LEVEL_CLUSTER)
