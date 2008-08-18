@@ -452,7 +452,7 @@ class LockSet:
       # First we look the locks up on __lockdict. We have no way of being sure
       # they will still be there after, but this makes it a lot faster should
       # just one of them be the already wrong
-      for lname in names:
+      for lname in utils.UniqueSequence(names):
         try:
           lock = self.__lockdict[lname] # raises KeyError if lock is not there
           acquire_list.append((lname, lock))
