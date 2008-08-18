@@ -1,0 +1,90 @@
+{
+  "name": "xen-test",
+  "rename": "xen-test-rename",
+  "hypervisor-type": "xen-3.0",
+
+  "os": "debian-etch",
+  "os-size": "10G",
+  "swap-size": "1G",
+  "mem": "512M",
+
+  "nodes": [
+    {
+      "# Master node": null,
+      "primary": "xen-test-0",
+      "secondary": "192.168.1.1"
+    },
+
+    {
+      "primary": "xen-test-1",
+      "secondary": "192.168.1.2"
+    }
+  ],
+
+  "instances": [
+    {
+      "name": "xen-test-inst1"
+    },
+    {
+      "name": "xen-test-inst2"
+    }
+  ],
+
+  "tests": {
+    "env": true,
+    "os": true,
+    "tags": true,
+    "rapi": true,
+
+    "cluster-verify": true,
+    "cluster-info": true,
+    "cluster-burnin": true,
+    "cluster-command": true,
+    "cluster-copyfile": true,
+    "cluster-master-failover": true,
+    "cluster-destroy": true,
+    "cluster-rename": true,
+
+    "node-info": true,
+    "node-volumes": true,
+    "node-readd": true,
+
+    "# This test needs at least three nodes": null,
+    "node-evacuate": false,
+
+    "# This test needs at least two nodes": null,
+    "node-failover": false,
+
+    "instance-add-plain-disk": true,
+    "instance-add-drbd-disk": true,
+
+    "instance-list": true,
+    "instance-failover": true,
+    "instance-info": true,
+    "instance-modify": true,
+    "instance-export": true,
+    "instance-import": true,
+    "instance-reinstall": true,
+    "instance-reboot": true,
+    "instance-shutdown": true,
+    "instance-automatic-restart": false,
+    "instance-consecutive-failures": false,
+
+    "# This test might fail with certain hypervisor types, depending on whether": null,
+    "# they support the `gnt-instance console' command.": null,
+    "instance-console": false,
+
+    "# Disabled by default because it takes rather long": null,
+    "instance-replace-disks": false,
+
+    "# Make sure not to include the disk(s) required for Dom0 to be included in": null,
+    "# the volume group used for instances. Otherwise the whole system may stop": null,
+    "# working until restarted.": null,
+    "instance-disk-failure": false
+  },
+
+  "options": {
+    "burnin-instances": 2,
+    "burnin-disk-template": "drbd"
+  }
+}

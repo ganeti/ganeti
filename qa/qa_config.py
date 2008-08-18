@@ -24,7 +24,7 @@
 """
 
 
-import yaml
+import simplejson
 
 import qa_error
 
@@ -41,7 +41,7 @@ def Load(path):
 
   f = open(path, 'r')
   try:
-    cfg = yaml.load(f.read())
+    cfg = simplejson.load(f)
   finally:
     f.close()
 
