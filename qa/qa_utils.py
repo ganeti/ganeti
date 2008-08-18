@@ -68,6 +68,14 @@ def _SetupColours():
 _SetupColours()
 
 
+def AssertIn(item, sequence):
+  """Raises an error when item is not in sequence.
+
+  """
+  if item not in sequence:
+    raise qa_error.Error('%r not in %r' % (item, sequence))
+
+
 def AssertEqual(first, second):
   """Raises an error when values aren't equal.
 
