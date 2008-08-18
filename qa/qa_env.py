@@ -43,12 +43,16 @@ def TestGanetiCommands():
   """Test availibility of Ganeti commands.
 
   """
-  cmds = ( ['gnt-cluster', '--version'],
-           ['gnt-os', '--version'],
-           ['gnt-node', '--version'],
+  cmds = ( ['gnt-backup', '--version'],
+           ['gnt-cluster', '--version'],
+           ['gnt-debug', '--version'],
            ['gnt-instance', '--version'],
-           ['gnt-backup', '--version'],
+           ['gnt-job', '--version'],
+           ['gnt-node', '--version'],
+           ['gnt-os', '--version'],
+           ['ganeti-masterd', '--version'],
            ['ganeti-noded', '--version'],
+           ['ganeti-rapi', '--version'],
            ['ganeti-watcher', '--version'] )
 
   cmd = ' && '.join([utils.ShellQuoteArgs(i) for i in cmds])
