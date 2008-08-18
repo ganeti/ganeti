@@ -855,7 +855,7 @@ class LUVerifyCluster(LogicalUnit):
       feedback_fn("  - NOTICE: %d non-redundant instance(s) found."
                   % len(i_non_redundant))
 
-    return int(bad)
+    return not bad
 
   def HooksCallBack(self, phase, hooks_results, feedback_fn, lu_result):
     """Analize the post-hooks' result, handle it, and send some

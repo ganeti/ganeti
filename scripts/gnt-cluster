@@ -221,8 +221,10 @@ def VerifyCluster(opts, args):
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
   op = opcodes.OpVerifyCluster(skip_checks=skip_checks)
-  result = SubmitOpCode(op)
-  return result
+  if SubmitOpCode(op):
+    return 0
+  else:
+    return 1
 
 
 def VerifyDisks(opts, args):
