@@ -184,6 +184,13 @@ HT_HVM_DEFAULT_PAE_MODE = '1'
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
 VNC_DEFAULT_BIND_ADDRESS = '0.0.0.0'
 
+# HVM NIC types
+HT_HVM_NIC_RTL8139 = "rtl8139"
+HT_HVM_NIC_NE2K_PCI = "ne2k_pci"
+HT_HVM_NIC_NE2K_ISA = "ne2k_isa"
+HT_HVM_DEV_PARAVIRTUAL = "paravirtual"
+HT_HVM_DEV_IOEMU = "ioemu"
+
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
