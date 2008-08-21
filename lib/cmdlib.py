@@ -3561,7 +3561,7 @@ class LUCreateInstance(LogicalUnit):
     # set optional parameters to none if they don't exist
     for attr in ["kernel_path", "initrd_path", "hvm_boot_order", "pnode",
                  "iallocator", "hvm_acpi", "hvm_pae", "hvm_cdrom_image_path",
-                 "vnc_bind_address"]:
+                 "hvm_nic_type", "hvm_disk_type", "vnc_bind_address"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -3762,6 +3762,15 @@ class LUCreateInstance(LogicalUnit):
                                    " like a valid IP address" %
                                    self.op.vnc_bind_address)
 
+    # Xen HVM device type checks
+    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+      if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
+        raise errors.OpPrereqError("Invalid NIC type %s specified for Xen HVM"
+                                   " hypervisor" % self.op.hvm_nic_type)
+      if self.op.hvm_disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
+        raise errors.OpPrereqError("Invalid disk type %s specified for Xen HVM"
+                                   " hypervisor" % self.op.hvm_disk_type)
+
     if self.op.start:
       self.instance_status = 'up'
     else:
@@ -3813,6 +3822,8 @@ class LUCreateInstance(LogicalUnit):
                             hvm_pae=self.op.hvm_pae,
                             hvm_cdrom_image_path=self.op.hvm_cdrom_image_path,
                             vnc_bind_address=self.op.vnc_bind_address,
+                            hvm_nic_type=self.op.hvm_nic_type,
+                            hvm_disk_type=self.op.hvm_disk_type,
                             )
 
     feedback_fn("* creating instance disks...")
@@ -4929,6 +4940,8 @@ class LUQueryInstanceData(NoHooksLU):
         idict["hvm_acpi"] = instance.hvm_acpi
         idict["hvm_pae"] = instance.hvm_pae
         idict["hvm_cdrom_image_path"] = instance.hvm_cdrom_image_path
+        idict["hvm_nic_type"] = instance.hvm_nic_type
+        idict["hvm_disk_type"] = instance.hvm_disk_type
 
       if htkind in constants.HTS_REQ_PORT:
         idict["vnc_bind_address"] = instance.vnc_bind_address
@@ -4993,12 +5006,14 @@ class LUSetInstanceParms(LogicalUnit):
     self.hvm_boot_order = getattr(self.op, "hvm_boot_order", None)
     self.hvm_acpi = getattr(self.op, "hvm_acpi", None)
     self.hvm_pae = getattr(self.op, "hvm_pae", None)
+    self.hvm_nic_type = getattr(self.op, "hvm_nic_type", None)
+    self.hvm_disk_type = getattr(self.op, "hvm_disk_type", None)
     self.hvm_cdrom_image_path = getattr(self.op, "hvm_cdrom_image_path", None)
     self.vnc_bind_address = getattr(self.op, "vnc_bind_address", None)
     all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
                  self.kernel_path, self.initrd_path, self.hvm_boot_order,
                  self.hvm_acpi, self.hvm_pae, self.hvm_cdrom_image_path,
-                 self.vnc_bind_address]
+                 self.vnc_bind_address, self.hvm_nic_type, self.hvm_disk_type]
     if all_parms.count(None) == len(all_parms):
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
@@ -5128,6 +5143,12 @@ class LUSetInstanceParms(LogicalUnit):
     if self.hvm_pae is not None:
       instance.hvm_pae = self.hvm_pae
       result.append(("hvm_pae", self.hvm_pae))
+    if self.hvm_nic_type is not None:
+      instance.hvm_nic_type = self.hvm_nic_type
+      result.append(("hvm_nic_type", self.hvm_nic_type))
+    if self.hvm_disk_type is not None:
+      instance.hvm_disk_type = self.hvm_disk_type
+      result.append(("hvm_disk_type", self.hvm_disk_type))
     if self.hvm_cdrom_image_path:
       if self.hvm_cdrom_image_path == constants.VALUE_NONE:
         instance.hvm_cdrom_image_path = None

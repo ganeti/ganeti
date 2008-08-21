@@ -190,6 +190,10 @@ HT_HVM_NIC_NE2K_PCI = "ne2k_pci"
 HT_HVM_NIC_NE2K_ISA = "ne2k_isa"
 HT_HVM_DEV_PARAVIRTUAL = "paravirtual"
 HT_HVM_DEV_IOEMU = "ioemu"
+HT_HVM_VALID_NIC_TYPES = frozenset([HT_HVM_NIC_RTL8139, HT_HVM_NIC_NE2K_PCI,
+                                    HT_HVM_NIC_NE2K_ISA,
+                                    HT_HVM_DEV_PARAVIRTUAL])
+HT_HVM_VALID_DISK_TYPES = frozenset([HT_HVM_DEV_PARAVIRTUAL, HT_HVM_DEV_IOEMU])
 
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'

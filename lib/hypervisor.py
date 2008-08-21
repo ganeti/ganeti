@@ -699,7 +699,14 @@ class XenHvmHypervisor(XenHypervisor):
 
     vif_data = []
     for nic in instance.nics:
-      nic_str = "mac=%s, bridge=%s, type=ioemu" % (nic.mac, nic.bridge)
+      if instance.hvm_nic_type is None: # ensure old instances don't change
+        nic_type = ", type=ioemu"
+      elif instance.hvm_nic_type == constants.HT_HVM_DEV_PARAVIRTUAL:
+        nic_type = ", type=paravirtualized"
+      else:
+        nic_type = ", model=%s, type=ioemu" % instance.hvm_nic_type
+
+      nic_str = "mac=%s, bridge=%s%s" % (nic.mac, nic.bridge, nic_type)
       ip = getattr(nic, "ip", None)
       if ip is not None:
         nic_str += ", ip=%s" % ip
@@ -711,8 +718,14 @@ class XenHvmHypervisor(XenHypervisor):
     # from what Ganeti believes it should be. Different hypervisors may have
     # different requirements, so we should probably review the design of
     # storing it altogether, for the next major version.
+    if ((instance.hvm_disk_type is None) or
+        (instance.hvm_disk_type == constants.HT_HVM_DEV_IOEMU)):
+      disk_type = "ioemu:"
+    else:
+      disk_type = ""
+
     disk_data = ["'phy:%s,%s,w'" %
-                 (dev_path, iv_name.replace("sd", "ioemu:hd"))
+                 (dev_path, iv_name.replace("sd", "%shd" % disk_type))
                  for dev_path, iv_name in block_devices]
 
     if instance.hvm_cdrom_image_path is None:
