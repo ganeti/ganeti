@@ -5094,6 +5094,17 @@ class LUSetInstanceParms(LogicalUnit):
                                    " like a valid IP address" %
                                    self.op.vnc_bind_address)
 
+    # Xen HVM device type checks
+    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+      if self.op.hvm_nic_type is not None:
+        if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
+          raise errors.OpPrereqError("Invalid NIC type %s specified for Xen"
+                                     " HVM  hypervisor" % self.op.hvm_nic_type)
+      if self.op.hvm_disk_type is not None:
+        if self.op.hvm_disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
+          raise errors.OpPrereqError("Invalid disk type %s specified for Xen"
+                                     " HVM hypervisor" % self.op.hvm_disk_type)
+
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
