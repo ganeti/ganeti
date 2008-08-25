@@ -5,6 +5,6 @@ Configuring for development
 ---------------------------
 
 sh autogen.sh && \
-./configure --enable-maintainer-mode \
+./configure PYTHON=python2.4 --enable-maintainer-mode \
   --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var \
   --enable-rapi
