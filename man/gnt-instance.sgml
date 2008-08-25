@@ -771,6 +771,7 @@
           <command>reinstall</command>
           <arg choice="opt">-o <replaceable>os-type</replaceable></arg>
           <arg choice="opt">-f <replaceable>force</replaceable></arg>
+          <arg>--interactive</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -779,6 +780,12 @@
           must be stopped when running this command. If the
           <option>--os-type</option> is specified, the operating system is
           changed.
+        </para>
+
+        <para>
+          The <option>--interactive</option> option switches to an
+          interactive reinstall. The user is prompted to select the OS
+          template from the list of available OS templates.
         </para>
       </refsect3>
 
