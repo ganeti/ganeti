@@ -37,8 +37,6 @@ Before installing, please verify that you have the following programs:
   - pyparsing Python module
     http://pyparsing.wikispaces.com/
 
-For testing, you also need the YAML module for Python (http://pyyaml.org/).
-
 For building from source, you also need tar, gzip or bzip2 and make.
 
 

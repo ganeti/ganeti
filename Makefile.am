@@ -146,7 +146,7 @@ EXTRA_DIST = \
 	man/footer.sgml \
 	$(mansgml) \
 	qa/ganeti-qa.py \
-	qa/qa-sample.yaml \
+	qa/qa-sample.json \
 	qa/qa_cluster.py \
 	qa/qa_config.py \
 	qa/qa_daemon.py \
