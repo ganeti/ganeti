@@ -2100,7 +2100,7 @@ class DRBD8(BaseDRBD):
       logger.Info("Instance not attached to a device")
       return False
     result = utils.RunCmd(["drbdsetup", self.dev_path, "syncer", "-r", "%d" %
-                           kbytes])
+                           kbytes, "--create-device"])
     if result.failed:
       logger.Error("Can't change syncer rate: %s - %s" %
                    (result.fail_reason, result.output))
@@ -2370,6 +2370,21 @@ class DRBD8(BaseDRBD):
       return result
 
     minor = self._FindUnusedMinor()
+
+    # Temporarily set self.minor and self.dev_path
+    self._SetFromMinor(minor)
+    try:
+      # Workaround for a race condition. When DRBD is doing its dance to
+      # establish a connection with its peer, it also sends the synchronization
+      # speed over the wire. In some cases setting the sync speed only after
+      # setting up both sides can race with DRBD connecting, hence we set it
+      # here before telling DRBD anything about its peer.
+      self.SetSyncSpeed(constants.SYNC_SPEED)
+    finally:
+      # To avoid side effects, reset self.minor and self.dev_path again
+      self.minor = None
+      self.dev_path = None
+
     need_localdev_teardown = False
     if self._children and self._children[0] and self._children[1]:
       result = self._AssembleLocal(minor, self._children[0].dev_path,
