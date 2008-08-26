@@ -1032,6 +1032,13 @@
         </para>
 
         <para>
+          For HVM instances, this will attempt to connect to the serial
+          console of the instance. To connect to the virtualized
+          "physical" console of a HVM instance, use a VNC client with
+          the connection info from gnt-instance info.
+        </para>
+
+        <para>
           Example:
           <screen>
 # gnt-instance console instance1.example.com
