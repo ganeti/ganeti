@@ -101,7 +101,7 @@ def GetSSHCommand(node, cmd, strict=True):
   - strict: Whether to enable strict host key checking
 
   """
-  args = [ 'ssh', '-oEscapeChar=none', '-oBatchMode=yes', '-l', 'root' ]
+  args = [ 'ssh', '-oEscapeChar=none', '-oBatchMode=yes', '-l', 'root', '-t' ]
 
   if strict:
     tmp = 'yes'
