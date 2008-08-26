@@ -2610,8 +2610,8 @@ class LURenameInstance(LogicalUnit):
     try:
       if not rpc.call_instance_run_rename(inst.primary_node, inst, old_name,
                                           "sda", "sdb"):
-        msg = ("Could run OS rename script for instance %s on node %s (but the"
-               " instance has been renamed in Ganeti)" %
+        msg = ("Could not run OS rename script for instance %s on node %s"
+               " (but the instance has been renamed in Ganeti)" %
                (inst.name, inst.primary_node))
         logger.Error(msg)
     finally:
