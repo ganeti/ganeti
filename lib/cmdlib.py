@@ -5126,6 +5126,37 @@ class LUSetInstanceParms(LogicalUnit):
                                  self.op.instance_name)
     self.op.instance_name = instance.name
     self.instance = instance
+    self.warn = []
+    if self.mem is not None and not self.force:
+      pnode = self.instance.primary_node
+      nodelist = [pnode]
+      nodelist.extend(instance.secondary_nodes)
+      instance_info = rpc.call_instance_info(pnode, instance.name)
+      nodeinfo = rpc.call_node_info(nodelist, self.cfg.GetVGName())
+
+      if pnode not in nodeinfo or not isinstance(nodeinfo[pnode], dict):
+        # Assume the primary node is unreachable and go ahead
+        self.warn.append("Can't get info from primary node %s" % pnode)
+      else:
+        if instance_info:
+          current_mem = instance_info['memory']
+        else:
+          # Assume instance not running
+          # (there is a slight race condition here, but it's not very probable,
+          # and we have no other way to check)
+          current_mem = 0
+        miss_mem = self.mem - current_mem - nodeinfo[pnode]['memory_free']
+        if miss_mem > 0:
+          raise errors.OpPrereqError("This change will prevent the instance"
+                                     " from starting, due to %d MB of memory"
+                                     " missing on its primary node" % miss_mem)
+
+      for node in instance.secondary_nodes:
+        if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
+          self.warn.append("Can't get info from secondary node %s" % node)
+        elif self.mem > nodeinfo[node]['memory_free']:
+          self.warn.append("Not enough memory to failover instance to secondary"
+                           " node %s" % node)
     return
 
   def Exec(self, feedback_fn):
@@ -5133,6 +5164,11 @@ class LUSetInstanceParms(LogicalUnit):
 
     All parameters take effect only at the next restart of the instance.
     """
+    # Process here the warnings from CheckPrereq, as we don't have a
+    # feedback_fn there.
+    for warn in self.warn:
+      feedback_fn("WARNING: %s" % warn)
+
     result = []
     instance = self.instance
     if self.mem:
