@@ -48,6 +48,10 @@ from ganeti import rpc
 JOBQUEUE_THREADS = 5
 
 
+def TimeStampNow():
+  return utils.SplitTime(time.time())
+
+
 class _QueuedOpCode(object):
   """Encasulates an opcode object.
 
@@ -60,6 +64,8 @@ class _QueuedOpCode(object):
     self.status = constants.OP_STATUS_QUEUED
     self.result = None
     self.log = []
+    self.start_timestamp = None
+    self.end_timestamp = None
 
   @classmethod
   def Restore(cls, state):
@@ -68,6 +74,8 @@ class _QueuedOpCode(object):
     obj.status = state["status"]
     obj.result = state["result"]
     obj.log = state["log"]
+    obj.start_timestamp = state.get("start_timestamp", None)
+    obj.end_timestamp = state.get("end_timestamp", None)
     return obj
 
   def Serialize(self):
@@ -76,6 +84,8 @@ class _QueuedOpCode(object):
       "status": self.status,
       "result": self.result,
       "log": self.log,
+      "start_timestamp": self.start_timestamp,
+      "end_timestamp": self.end_timestamp,
       }
 
 
@@ -191,6 +201,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
               job.run_op_index = idx
               op.status = constants.OP_STATUS_RUNNING
               op.result = None
+              op.start_timestamp = TimeStampNow()
               queue.UpdateJobUnlocked(job)
 
               input_opcode = op.input
@@ -229,6 +240,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
             try:
               op.status = constants.OP_STATUS_SUCCESS
               op.result = result
+              op.end_timestamp = TimeStampNow()
               queue.UpdateJobUnlocked(job)
             finally:
               queue.release()
@@ -241,6 +253,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
               try:
                 op.status = constants.OP_STATUS_ERROR
                 op.result = str(err)
+                op.end_timestamp = TimeStampNow()
                 logging.debug("Op %s/%s: Error in %s", idx + 1, count, op)
               finally:
                 queue.UpdateJobUnlocked(job)
