@@ -289,9 +289,9 @@ class Client(object):
   def ArchiveJob(self, job_id):
     return self.CallMethod(REQ_ARCHIVE_JOB, job_id)
 
-  def WaitForJobChange(self, job_id, fields, previous):
+  def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
     return self.CallMethod(REQ_WAIT_FOR_JOB_CHANGE,
-                           (job_id, fields, previous))
+                           (job_id, fields, prev_job_info, prev_log_serial))
 
   def QueryJobs(self, job_ids, fields):
     return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))
