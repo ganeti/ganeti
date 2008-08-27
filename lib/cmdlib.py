@@ -5023,6 +5023,7 @@ class LUSetInstanceParms(LogicalUnit):
     self.hvm_disk_type = getattr(self.op, "hvm_disk_type", None)
     self.hvm_cdrom_image_path = getattr(self.op, "hvm_cdrom_image_path", None)
     self.vnc_bind_address = getattr(self.op, "vnc_bind_address", None)
+    self.force = getattr(self.op, "force", None)
     all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
                  self.kernel_path, self.initrd_path, self.hvm_boot_order,
                  self.hvm_acpi, self.hvm_pae, self.hvm_cdrom_image_path,
