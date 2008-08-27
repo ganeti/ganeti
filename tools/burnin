@@ -82,7 +82,8 @@ class Burner(object):
 
   def Feedback(self, msg):
     """Acumulate feedback in our buffer."""
-    self._feed_buf.write("%s %s\n" % (time.ctime(msg[0]), msg[2]))
+    self._feed_buf.write("%s %s\n" % (time.ctime(utils.MergeTime(msg[0])),
+                                      msg[2]))
     if self.opts.verbose:
       Log(msg)
 
