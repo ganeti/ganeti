@@ -255,8 +255,12 @@ class _JobQueueWorker(workerpool.BaseWorker):
     finally:
       queue.acquire()
       try:
-        job_id = job.id
-        status = job.CalcStatus()
+        try:
+          job.run_op_idx = -1
+          queue.UpdateJobUnlocked(job)
+        finally:
+          job_id = job.id
+          status = job.CalcStatus()
       finally:
         queue.release()
       logging.debug("Worker %s finished job %s, status = %s",
