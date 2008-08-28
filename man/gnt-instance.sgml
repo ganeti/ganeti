@@ -83,11 +83,11 @@
             <replaceable>cdrom-image-path</replaceable></arg>
           <sbr>
 
-          <arg>--hvm-nic-type <replaceable>NICTYPE</replacable></arg>
+          <arg>--hvm-nic-type <replaceable>NICTYPE</replaceable></arg>
           <sbr>
 
           <arg>--hvm-disk-type
-          <replaceale>DISKTYPE</replaceable></arg>
+          <replaceable>DISKTYPE</replaceable></arg>
           <sbr>
 
           <arg>--vnc-bind-address
