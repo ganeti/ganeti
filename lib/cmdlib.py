@@ -832,7 +832,8 @@ class LUVerifyCluster(LogicalUnit):
       for prinode, instances in nodeinfo['sinst-by-pnode'].iteritems():
         needed_mem = 0
         for instance in instances:
-          needed_mem += instance_cfg[instance].memory
+          if instance_cfg[instance].auto_balance:
+            needed_mem += instance_cfg[instance].memory
         if nodeinfo['mfree'] < needed_mem:
           feedback_fn("  - ERROR: not enough memory on node %s to accomodate"
                       " failovers should node %s fail" % (node, prinode))
@@ -879,6 +880,7 @@ class LUVerifyCluster(LogicalUnit):
     nodeinfo = [self.cfg.GetNodeInfo(nname) for nname in nodelist]
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
     i_non_redundant = [] # Non redundant instances
+    i_non_a_balanced = [] # Non auto-balanced instances
     node_volume = {}
     node_instance = {}
     node_info = {}
@@ -1001,6 +1003,9 @@ class LUVerifyCluster(LogicalUnit):
         feedback_fn("  - WARNING: multiple secondaries for instance %s"
                     % instance)
 
+      if not inst_config.auto_balance:
+        i_non_a_balanced.append(instance)
+
       for snode in inst_config.secondary_nodes:
         if snode in node_info:
           node_info[snode]['sinst'].append(instance)
@@ -1031,6 +1036,10 @@ class LUVerifyCluster(LogicalUnit):
     if i_non_redundant:
       feedback_fn("  - NOTICE: %d non-redundant instance(s) found."
                   % len(i_non_redundant))
+
+    if i_non_a_balanced:
+      feedback_fn("  - NOTICE: %d non-auto-balanced instance(s) found."
+                  % len(i_non_a_balanced))
 
     return int(bad)
 
