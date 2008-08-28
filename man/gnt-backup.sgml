@@ -131,6 +131,8 @@
           </group></arg>
         <sbr>
 
+        <arg>--auto_balance <replaceable>AUTO_BALANCE</replaceable></arg>
+
         <arg choice="req"><replaceable>instance</replaceable></arg>
       </cmdsynopsis>
       <para>
@@ -249,6 +251,14 @@
       <para>
         Use the <option>--cpu</option> option to set the number of virtual
         CPUs.
+      </para>
+
+      <para>
+        The <option>--auto-balance</option> option specifies whether
+        the memory size of the instance will be considered in cluster
+        verify checks; in the future, it might be used for automated
+        cluster operations, but currently it is not used anywhere
+        else. It default to true.
       </para>
 
       <para>
