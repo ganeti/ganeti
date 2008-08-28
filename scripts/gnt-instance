@@ -1039,7 +1039,8 @@ commands = {
            "Lists the instances and their status. The available fields are"
            " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
-           " ip, mac, bridge, sda_size, sdb_size, vcpus. The default field"
+           " ip, mac, bridge, sda_size, sdb_size, vcpus, auto_balance."
+           " The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),
   'reinstall': (ReinstallInstance, ARGS_ONE,
