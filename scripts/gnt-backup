@@ -27,7 +27,9 @@ from ganeti import cmdlib
 from ganeti import opcodes
 from ganeti import constants
 
+
 _VALUE_TRUE = "true"
+
 
 def PrintExportList(opts, args):
   """Prints a list of all the exported system images.
@@ -104,7 +106,14 @@ def ImportInstance(opts, args):
                                 src_node=opts.src_node, src_path=opts.src_dir,
                                 wait_for_sync=opts.wait_for_sync, mac="auto",
                                 iallocator=opts.iallocator,
-                                auto_balance=auto_balance)
+                                auto_balance=auto_balance,
+                                hvm_boot_order=opts.hvm_boot_order,
+                                hvm_acpi=opts.hvm_acpi,
+                                hvm_nic_type=opts.hvm_nic_type,
+                                hvm_disk_type=opts.hvm_disk_type,
+                                hvm_pae=opts.hvm_pae,
+                                hvm_cdrom_image_path=opts.hvm_cdrom_image_path,
+                                vnc_bind_address=opts.vnc_bind_address)
   SubmitOpCode(op)
   return 0
 
@@ -169,6 +178,34 @@ import_opts = [
               " failover in cluster verify (true|false)",
               default=_VALUE_TRUE,
               metavar="<BOOL>", choices=["true", "false"]),
+  make_option("--hvm-boot-order", dest="hvm_boot_order",
+              help="Boot device order for HVM (one or more of [acdn])",
+              default=None, type="string", metavar="<BOOTORDER>"),
+  make_option("--hvm-acpi", dest="hvm_acpi",
+              help="ACPI support for HVM (true|false)",
+              metavar="<BOOL>", choices=["true", "false"]),
+  make_option("--hvm-nic-type", dest="hvm_nic_type",
+              help="Type of virtual NIC for HVM "
+              "(rtl8139,ne2k_pci,ne2k_isa,paravirtual)",
+              metavar="NICTYPE", choices=[constants.HT_HVM_NIC_RTL8139,
+                                          constants.HT_HVM_NIC_NE2K_PCI,
+                                          constants.HT_HVM_NIC_NE2K_ISA,
+                                          constants.HT_HVM_DEV_PARAVIRTUAL],
+              default=constants.HT_HVM_NIC_RTL8139),
+  make_option("--hvm-disk-type", dest="hvm_disk_type",
+              help="Type of virtual disks for HVM (ioemu,paravirtual)",
+              metavar="DISKTYPE", choices=[constants.HT_HVM_DEV_IOEMU,
+                                           constants.HT_HVM_DEV_PARAVIRTUAL],
+              default=constants.HT_HVM_DEV_IOEMU,),
+  make_option("--hvm-pae", dest="hvm_pae",
+              help="PAE support for HVM (true|false)",
+              metavar="<BOOL>", choices=["true", "false"]),
+  make_option("--hvm-cdrom-image-path", dest="hvm_cdrom_image_path",
+              help="CDROM image path for HVM (absolute path or None)",
+              default=None, type="string", metavar="<CDROMIMAGE>"),
+  make_option("--vnc-bind-address", dest="vnc_bind_address",
+              help="bind address for VNC (IP address)",
+              default=None, type="string", metavar="<VNCADDRESS>"),
   ]
 
 commands = {
