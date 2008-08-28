@@ -9,6 +9,7 @@ EXTRA_DIST = ganeti-qa.py qa-sample.yaml \
 	qa_node.py \
 	qa_os.py \
 	qa_other.py \
+	qa_rapi.py \
 	qa_tags.py \
 	qa_utils.py
 CLEANFILES = *.py[co]
