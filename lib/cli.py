@@ -539,7 +539,7 @@ def FormatError(err):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, luxi.NoMasterError):
     obuf.write("Cannot communicate with the master daemon.\nIs it running"
-               " and listening on '%s'?" % err.args[0])
+               " and listening for connections?")
   elif isinstance(err, luxi.TimeoutError):
     obuf.write("Timeout while talking to the master daemon. Error:\n"
                "%s" % msg)
