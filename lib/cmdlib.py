@@ -81,6 +81,7 @@ class LogicalUnit(object):
     self.sstore = sstore
     self.context = context
     self.needed_locks = None
+    self.acquired_locks = {}
     self.share_locks = dict(((i, 0) for i in locking.LEVELS))
     # Used to force good behavior when calling helper functions
     self.recalculate_locks = {}
@@ -291,7 +292,7 @@ class LogicalUnit(object):
     # future we might want to have different behaviors depending on the value
     # of self.recalculate_locks[locking.LEVEL_NODE]
     wanted_nodes = []
-    for instance_name in self.needed_locks[locking.LEVEL_INSTANCE]:
+    for instance_name in self.acquired_locks[locking.LEVEL_INSTANCE]:
       instance = self.context.cfg.GetInstanceInfo(instance_name)
       wanted_nodes.append(instance.primary_node)
       wanted_nodes.extend(instance.secondary_nodes)
@@ -1398,7 +1399,7 @@ class LUQueryNodes(NoHooksLU):
 
     """
     # This of course is valid only if we locked the nodes
-    self.wanted = self.needed_locks[locking.LEVEL_NODE]
+    self.wanted = self.acquired_locks[locking.LEVEL_NODE]
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
@@ -2501,7 +2502,7 @@ class LUQueryInstances(NoHooksLU):
 
     """
     # This of course is valid only if we locked the instances
-    self.wanted = self.needed_locks[locking.LEVEL_INSTANCE]
+    self.wanted = self.acquired_locks[locking.LEVEL_INSTANCE]
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.

@@ -139,13 +139,15 @@ class Processor(object):
       share = lu.share_locks[level]
       # This is always safe to do, as we can't acquire more/less locks than
       # what was requested.
-      lu.needed_locks[level] = self.context.glm.acquire(level,
-                                                        needed_locks,
-                                                        shared=share)
+      lu.acquired_locks[level] = self.context.glm.acquire(level,
+                                                          needed_locks,
+                                                          shared=share)
       try:
         result = self._LockAndExecLU(lu, level + 1)
       finally:
-        if lu.needed_locks[level]:
+        # We need to release the current level if we acquired any lock, or if
+        # we acquired the set-lock (needed_locks is None)
+        if lu.needed_locks[level] is None or lu.acquired_locks[level]:
           self.context.glm.release(level)
     else:
       result = self._LockAndExecLU(lu, level + 1)
