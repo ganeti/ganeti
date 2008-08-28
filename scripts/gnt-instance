@@ -314,7 +314,7 @@ def ReinstallInstance(opts, args):
   """
   instance_name = args[0]
 
-  if opts.interactive is True:
+  if opts.select_os is True:
     op = opcodes.OpDiagnoseOS(output_fields=["name", "valid"], names=[])
     result = SubmitOpCode(op)
 
@@ -1063,9 +1063,9 @@ commands = {
            ),
   'reinstall': (ReinstallInstance, ARGS_ONE,
                 [DEBUG_OPT, FORCE_OPT, os_opt,
-                 make_option("--interactive", dest="interactive",
+                 make_option("--select-os", dest="select_os",
                              action="store_true", default=False,
-                             help="Interactive reinstall, lists available"
+                             help="Interactive OS reinstall, lists available"
                              " OS templates for selection")],
                 "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (RemoveInstance, ARGS_ONE,
