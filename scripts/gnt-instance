@@ -666,7 +666,7 @@ def ConnectToInstanceConsole(opts, args):
     os._exit(1)
 
 
-def _FormatBlockDevInfo(buf, dev, indent_level):
+def _FormatBlockDevInfo(buf, dev, indent_level, static):
   """Show block device information.
 
   This is only used by ShowInstanceConfig(), but it's too big to be
@@ -716,16 +716,17 @@ def _FormatBlockDevInfo(buf, dev, indent_level):
   elif dev["physical_id"] is not None:
     data += ", physical_id: %s" % (dev["physical_id"],)
   buf.write("%*s%s\n" % (2*indent_level, "", data))
-  buf.write("%*s    primary:   " % (2*indent_level, ""))
-  helper(buf, dev["dev_type"], dev["pstatus"])
+  if not static:
+    buf.write("%*s    primary:   " % (2*indent_level, ""))
+    helper(buf, dev["dev_type"], dev["pstatus"])
 
-  if dev["sstatus"]:
+  if dev["sstatus"] and not static:
     buf.write("%*s    secondary: " % (2*indent_level, ""))
     helper(buf, dev["dev_type"], dev["sstatus"])
 
   if dev["children"]:
     for child in dev["children"]:
-      _FormatBlockDevInfo(buf, child, indent_level+1)
+      _FormatBlockDevInfo(buf, child, indent_level+1, static)
 
 
 def ShowInstanceConfig(opts, args):
@@ -733,7 +734,7 @@ def ShowInstanceConfig(opts, args):
 
   """
   retcode = 0
-  op = opcodes.OpQueryInstanceData(instances=args)
+  op = opcodes.OpQueryInstanceData(instances=args, static=opts.static)
   result = SubmitOpCode(op)
   hvm_parameters = ("hvm_acpi", "hvm_pae", "hvm_cdrom_image_path",
                     "hvm_boot_order", "hvm_nic_type", "hvm_disk_type")
@@ -749,8 +750,10 @@ def ShowInstanceConfig(opts, args):
   for instance_name in result:
     instance = result[instance_name]
     buf.write("Instance name: %s\n" % instance["name"])
-    buf.write("State: configured to be %s, actual state is %s\n" %
-              (instance["config_state"], instance["run_state"]))
+    buf.write("State: configured to be %s" % instance["config_state"])
+    if not opts.static:
+      buf.write(", actual state is %s" % instance["run_state"])
+    buf.write("\n")
     buf.write("Considered for memory checks in cluster verify: %s\n" %
               instance["auto_balance"])
     buf.write("  Nodes:\n")
@@ -793,7 +796,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("  Block devices:\n")
 
     for device in instance["disks"]:
-      _FormatBlockDevInfo(buf, device, 1)
+      _FormatBlockDevInfo(buf, device, 1, opts.static)
 
   logger.ToStdout(buf.getvalue().rstrip('\n'))
   return retcode
@@ -1042,7 +1045,12 @@ commands = {
                "[-f] <instance>",
                "Migrate instance to its secondary node"
                " (only for instances of type drbd)"),
-  'info': (ShowInstanceConfig, ARGS_ANY, [DEBUG_OPT], "[<instance>...]",
+  'info': (ShowInstanceConfig, ARGS_ANY,
+           [DEBUG_OPT,
+            make_option("-s", "--static", dest="static",
+                        action="store_true", default=False,
+                        help="Only show configuration data, not runtime data"),
+            ], "[<instance>...]",
            "Show information on the specified instance"),
   'list': (ListInstances, ARGS_NONE,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT], "",
