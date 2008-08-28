@@ -5153,7 +5153,8 @@ class LUSetInstanceParms(LogicalUnit):
     if self.mem is not None and not self.force:
       pnode = self.instance.primary_node
       nodelist = [pnode]
-      nodelist.extend(instance.secondary_nodes)
+      if instance.auto_balance:
+        nodelist.extend(instance.secondary_nodes)
       instance_info = rpc.call_instance_info(pnode, instance.name)
       nodeinfo = rpc.call_node_info(nodelist, self.cfg.GetVGName())
 
@@ -5174,12 +5175,13 @@ class LUSetInstanceParms(LogicalUnit):
                                      " from starting, due to %d MB of memory"
                                      " missing on its primary node" % miss_mem)
 
-      for node in instance.secondary_nodes:
-        if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
-          self.warn.append("Can't get info from secondary node %s" % node)
-        elif self.mem > nodeinfo[node]['memory_free']:
-          self.warn.append("Not enough memory to failover instance to secondary"
-                           " node %s" % node)
+      if instance.auto_balance:
+        for node in instance.secondary_nodes:
+          if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
+            self.warn.append("Can't get info from secondary node %s" % node)
+          elif self.mem > nodeinfo[node]['memory_free']:
+            self.warn.append("Not enough memory to failover instance to"
+                             " secondary node %s" % node)
     return
 
   def Exec(self, feedback_fn):
