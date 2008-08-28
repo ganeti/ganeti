@@ -207,7 +207,7 @@ class R_root(R_Generic):
 
   def GET(self):
     """Show the list of mapped resources.
-    
+
     Returns:
       A dictionary with 'name' and 'uri' keys for each of them.
 
@@ -317,10 +317,10 @@ class R_nodes(R_Generic):
       mapped = MapFields(fields, node)
       nodes_details.append(mapped)
     return nodes_details
- 
+
   def GET(self):
     """Returns a list of all nodes.
-    
+
     Returns:
       A dictionary with 'name' and 'uri' keys for each of them.
 
@@ -334,7 +334,7 @@ class R_nodes(R_Generic):
           "uri": "\/instances\/node2.example.com"
         }]
 
-    If the optional 'bulk' argument is provided and set to 'true' 
+    If the optional 'bulk' argument is provided and set to 'true'
     value (i.e '?bulk=1'), the output contains detailed
     information about nodes as a list. Note: Lock required.
 
@@ -356,7 +356,7 @@ class R_nodes(R_Generic):
     """
     op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
     nodeslist = ExtractField(ganeti.cli.SubmitOpCode(op), 0)
-    
+
     if 'bulk' in self.queryargs:
       return self._GetDetails(nodeslist)
 
@@ -371,7 +371,7 @@ class R_nodes_name(R_Generic):
 
   @RequireLock()
   def GET(self):
-    """Send information about a node. 
+    """Send information about a node.
 
     """
     node_name = self.items[0]
@@ -420,11 +420,18 @@ class R_instances(R_Generic):
       A list with instances properties.
 
     """
-    fields = ["name", "os", "pnode", "snodes",
-              "admin_state", "admin_ram",
-              "disk_template", "ip", "mac", "bridge",
-              "sda_size", "sdb_size", "vcpus",
-              "oper_state", "status", "tags"]
+    fields = [
+      "name", "os", "pnode", "snodes",
+      "admin_state", "admin_ram",
+      "disk_template", "ip", "mac", "bridge",
+      "sda_size", "sdb_size", "vcpus",
+      "oper_state", "status", "tags",
+      "auto_balance",
+      "network_port", "kernel_path", "initrd_path",
+      "hvm_boot_order", "hvm_acpi", "hvm_pae",
+      "hvm_cdrom_image_path", "hvm_nic_type",
+      "hvm_disk_type", "vnc_bind_address",
+      ]
 
     op = ganeti.opcodes.OpQueryInstances(output_fields=fields,
                                          names=instanceslist)
@@ -435,10 +442,10 @@ class R_instances(R_Generic):
       mapped = MapFields(fields, instance)
       instances_details.append(mapped)
     return instances_details
-   
+
   def GET(self):
     """Returns a list of all available instances.
-    
+
     Returns:
        A dictionary with 'name' and 'uri' keys for each of them.
 
@@ -452,7 +459,7 @@ class R_instances(R_Generic):
           "uri": "\/instances\/mail.example.com"
         }]
 
-    If the optional 'bulk' argument is provided and set to 'true' 
+    If the optional 'bulk' argument is provided and set to 'true'
     value (i.e '?bulk=1'), the output contains detailed
     information about instances as a list. Note: Lock required.
 
@@ -481,9 +488,9 @@ class R_instances(R_Generic):
     """
     op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
     instanceslist = ExtractField(ganeti.cli.SubmitOpCode(op), 0)
-    
+
     if 'bulk' in self.queryargs:
-      return self._GetDetails(instanceslist)  
+      return self._GetDetails(instanceslist)
 
     else:
       return BuildUriList(instanceslist, "/instances/%s")
@@ -501,11 +508,18 @@ class R_instances_name(R_Generic):
 
     """
     instance_name = self.items[0]
-    fields = ["name", "os", "pnode", "snodes",
-              "admin_state", "admin_ram",
-              "disk_template", "ip", "mac", "bridge",
-              "sda_size", "sdb_size", "vcpus",
-              "oper_state", "status", "tags"]
+    fields = [
+      "name", "os", "pnode", "snodes",
+      "admin_state", "admin_ram",
+      "disk_template", "ip", "mac", "bridge",
+      "sda_size", "sdb_size", "vcpus",
+      "oper_state", "status", "tags",
+      "auto_balance",
+      "network_port", "kernel_path", "initrd_path",
+      "hvm_boot_order", "hvm_acpi", "hvm_pae",
+      "hvm_cdrom_image_path", "hvm_nic_type",
+      "hvm_disk_type", "vnc_bind_address",
+      ]
 
     op = ganeti.opcodes.OpQueryInstances(output_fields=fields,
                                          names=[instance_name])
