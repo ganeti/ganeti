@@ -236,7 +236,8 @@ class Burner(object):
                                     kernel_path=None,
                                     initrd_path=None,
                                     hvm_boot_order=None,
-                                    iallocator=self.opts.iallocator)
+                                    iallocator=self.opts.iallocator,
+                                    auto_balance=True)
       self.ExecOp(op)
       self.to_rem.append(instance)
 
@@ -367,7 +368,8 @@ class Burner(object):
                                         ip_check=True,
                                         wait_for_sync=True,
                                         mac="auto",
-                                        iallocator=self.opts.iallocator)
+                                        iallocator=self.opts.iallocator,
+                                        auto_balance=True)
       erem_op = opcodes.OpRemoveExport(instance_name=instance)
 
       Log("- Export instance %s to node %s" % (instance, enode))

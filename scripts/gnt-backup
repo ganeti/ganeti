@@ -27,6 +27,8 @@ from ganeti import cmdlib
 from ganeti import opcodes
 from ganeti import constants
 
+_VALUE_TRUE = "true"
+
 def PrintExportList(opts, args):
   """Prints a list of all the exported system images.
 
@@ -90,6 +92,8 @@ def ImportInstance(opts, args):
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
+  auto_balance = opts.auto_balance == _VALUE_TRUE
+
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
@@ -99,7 +103,8 @@ def ImportInstance(opts, args):
                                 ip=opts.ip, bridge=opts.bridge, start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
                                 wait_for_sync=opts.wait_for_sync, mac="auto",
-                                iallocator=opts.iallocator)
+                                iallocator=opts.iallocator,
+                                auto_balance=auto_balance)
   SubmitOpCode(op)
   return 0
 
@@ -159,6 +164,11 @@ import_opts = [
   make_option("--iallocator", metavar="<NAME>",
               help="Select nodes for the instance automatically using the"
               " <NAME> iallocator plugin", default=None, type="string"),
+  make_option("--auto-balance", dest="auto_balance",
+              help="consider instance memory requirements for"
+              " failover in cluster verify (true|false)",
+              default=_VALUE_TRUE,
+              metavar="<BOOL>", choices=["true", "false"]),
   ]
 
 commands = {

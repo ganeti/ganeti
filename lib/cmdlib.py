@@ -2693,7 +2693,8 @@ class LUQueryInstances(NoHooksLU):
     _CheckOutputFields(static=["name", "os", "pnode", "snodes",
                                "admin_state", "admin_ram",
                                "disk_template", "ip", "mac", "bridge",
-                               "sda_size", "sdb_size", "vcpus", "tags"],
+                               "sda_size", "sdb_size", "vcpus", "tags",
+                               "auto_balance"],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
@@ -2788,6 +2789,8 @@ class LUQueryInstances(NoHooksLU):
           val = instance.vcpus
         elif field == "tags":
           val = list(instance.GetTags())
+        elif field == "auto_balance":
+          val = instance.auto_balance
         else:
           raise errors.ParameterError(field)
         iout.append(val)
@@ -3482,7 +3485,7 @@ class LUCreateInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mem_size", "disk_size",
               "disk_template", "swap_size", "mode", "start", "vcpus",
-              "wait_for_sync", "ip_check", "mac"]
+              "wait_for_sync", "ip_check", "mac", "auto_balance"]
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -3824,6 +3827,7 @@ class LUCreateInstance(LogicalUnit):
                             vnc_bind_address=self.op.vnc_bind_address,
                             hvm_nic_type=self.op.hvm_nic_type,
                             hvm_disk_type=self.op.hvm_disk_type,
+                            auto_balance=bool(self.op.auto_balance),
                             )
 
     feedback_fn("* creating instance disks...")
@@ -4928,6 +4932,7 @@ class LUQueryInstanceData(NoHooksLU):
         "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
         "disks": disks,
         "vcpus": instance.vcpus,
+        "auto_balance": instance.auto_balance,
         }
 
       htkind = self.sstore.GetHypervisorType()
@@ -5024,10 +5029,14 @@ class LUSetInstanceParms(LogicalUnit):
     self.hvm_cdrom_image_path = getattr(self.op, "hvm_cdrom_image_path", None)
     self.vnc_bind_address = getattr(self.op, "vnc_bind_address", None)
     self.force = getattr(self.op, "force", None)
-    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
-                 self.kernel_path, self.initrd_path, self.hvm_boot_order,
-                 self.hvm_acpi, self.hvm_pae, self.hvm_cdrom_image_path,
-                 self.vnc_bind_address, self.hvm_nic_type, self.hvm_disk_type]
+    self.auto_balance = getattr(self.op, "auto_balance", None)
+    all_parms = [
+      self.mem, self.vcpus, self.ip, self.bridge, self.mac,
+      self.kernel_path, self.initrd_path, self.hvm_boot_order,
+      self.hvm_acpi, self.hvm_pae, self.hvm_cdrom_image_path,
+      self.vnc_bind_address, self.hvm_nic_type, self.hvm_disk_type,
+      self.auto_balance,
+      ]
     if all_parms.count(None) == len(all_parms):
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
@@ -5118,6 +5127,11 @@ class LUSetInstanceParms(LogicalUnit):
         if self.op.hvm_disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
           raise errors.OpPrereqError("Invalid disk type %s specified for Xen"
                                      " HVM hypervisor" % self.op.hvm_disk_type)
+
+    # auto balance setting
+    if self.auto_balance is not None:
+      # convert the value to a proper bool value, if it's not
+      self.auto_balance = bool(self.auto_balance)
 
     instance = self.cfg.GetInstanceInfo(
       self.cfg.ExpandInstanceName(self.op.instance_name))
@@ -5219,6 +5233,9 @@ class LUSetInstanceParms(LogicalUnit):
     if self.vnc_bind_address:
       instance.vnc_bind_address = self.vnc_bind_address
       result.append(("vnc_bind_address", self.vnc_bind_address))
+    if self.auto_balance is not None:
+      instance.auto_balance = self.auto_balance
+      result.append(("auto_balance", self.auto_balance))
 
     self.cfg.AddInstance(instance)
 

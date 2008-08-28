@@ -168,6 +168,7 @@ class OpCreateInstance(OpCode):
     "kernel_path", "initrd_path", "hvm_boot_order", "hvm_acpi",
     "hvm_pae", "hvm_cdrom_image_path", "vnc_bind_address",
     "iallocator", "hvm_nic_type", "hvm_disk_type",
+    "auto_balance",
     ]
 
 
@@ -283,7 +284,7 @@ class OpSetInstanceParms(OpCode):
     "instance_name", "mem", "vcpus", "ip", "bridge", "mac",
     "kernel_path", "initrd_path", "hvm_boot_order", "hvm_acpi",
     "hvm_pae", "hvm_cdrom_image_path", "vnc_bind_address",
-    "hvm_nic_type", "hvm_disk_type", "force"
+    "hvm_nic_type", "hvm_disk_type", "force", "auto_balance",
     ]
 
 

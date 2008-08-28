@@ -187,6 +187,7 @@ def ListInstances(opts, args):
       "bridge": "Bridge", "vcpus": "VCPUs",
       "sda_size": "Disk/0", "sdb_size": "Disk/1",
       "status": "Status", "tags": "Tags",
+      "auto_balance": "Auto_balance",
       }
   else:
     headers = None
@@ -205,7 +206,7 @@ def ListInstances(opts, args):
       val = row[idx]
       if field == "snodes":
         val = ",".join(val) or "-"
-      elif field == "admin_state":
+      elif field == "admin_state" or field == "auto_balance":
         if val:
           val = "yes"
         else:
@@ -266,6 +267,8 @@ def AddInstance(opts, args):
   else:
     hvm_cdrom_image_path = opts.hvm_cdrom_image_path
 
+  auto_balance = opts.auto_balance == _VALUE_TRUE
+
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
@@ -284,7 +287,8 @@ def AddInstance(opts, args):
                                 hvm_cdrom_image_path=hvm_cdrom_image_path,
                                 vnc_bind_address=opts.vnc_bind_address,
                                 hvm_nic_type=opts.hvm_nic_type,
-                                hvm_disk_type=opts.hvm_disk_type)
+                                hvm_disk_type=opts.hvm_disk_type,
+                                auto_balance=auto_balance)
 
   SubmitOpCode(op)
   return 0
@@ -737,6 +741,8 @@ def ShowInstanceConfig(opts, args):
     buf.write("Instance name: %s\n" % instance["name"])
     buf.write("State: configured to be %s, actual state is %s\n" %
               (instance["config_state"], instance["run_state"]))
+    buf.write("Considered for memory checks in cluster verify: %s\n" %
+              instance["auto_balance"])
     buf.write("  Nodes:\n")
     buf.write("    - primary: %s\n" % instance["pnode"])
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
@@ -800,7 +806,8 @@ def SetInstanceParms(opts, args):
   if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac or
           opts.kernel_path or opts.initrd_path or opts.hvm_boot_order or
           opts.hvm_acpi or opts.hvm_pae or opts.hvm_cdrom_image_path or
-          opts.vnc_bind_address or opts.hvm_nic_type or opts.hvm_disk_type):
+          opts.vnc_bind_address or opts.hvm_nic_type or opts.hvm_disk_type or
+          opts.auto_balance):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
 
@@ -831,6 +838,12 @@ def SetInstanceParms(opts, args):
   else:
     hvm_disk_type = opts.hvm_disk_type
 
+  if opts.auto_balance is None:
+    auto_balance = opts.auto_balance
+  else:
+    auto_balance = opts.auto_balance == _VALUE_TRUE
+
+
   op = opcodes.OpSetInstanceParms(instance_name=args[0], mem=opts.mem,
                                   vcpus=opts.vcpus, ip=opts.ip,
                                   bridge=opts.bridge, mac=opts.mac,
@@ -843,7 +856,8 @@ def SetInstanceParms(opts, args):
                                   vnc_bind_address=opts.vnc_bind_address,
                                   hvm_nic_type=hvm_nic_type,
                                   hvm_disk_type=hvm_disk_type,
-                                  force=opts.force)
+                                  force=opts.force,
+                                  auto_balance=auto_balance)
 
   result = SubmitOpCode(op)
 
@@ -966,6 +980,11 @@ add_opts = [
   make_option("--vnc-bind-address", dest="vnc_bind_address",
               help="bind address for VNC (IP address)",
               default=None, type="string", metavar="<VNCADDRESS>"),
+  make_option("--auto-balance", dest="auto_balance",
+              help="consider instance memory requirements for"
+              " failover in cluster verify (true|false)",
+              default=_VALUE_TRUE,
+              metavar="<BOOL>", choices=["true", "false"]),
   ]
 
 commands = {
@@ -1144,6 +1163,11 @@ commands = {
               make_option("--vnc-bind-address", dest="vnc_bind_address",
                           help="bind address for VNC (IP address)",
                           default=None, type="string", metavar="<VNCADDRESS>"),
+              make_option("--auto-balance", dest="auto_balance",
+                          help="consider instance memory requirements for"
+                          " failover in cluster verify (true|false)",
+                          default=None,
+                          metavar="<BOOL>", choices=["true", "false"]),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,
