@@ -531,6 +531,7 @@ class Instance(TaggableObject):
     "hvm_nic_type",
     "hvm_disk_type",
     "vnc_bind_address",
+    "auto_balance",
     ]
 
   def _ComputeSecondaryNodes(self):
@@ -647,6 +648,9 @@ class Instance(TaggableObject):
     """Custom function for instances.
 
     """
+    # we set the auto_balance value to True if missing
+    if val.get("auto_balance", None) is None:
+      val["auto_balance"] = True
     obj = super(Instance, cls).FromDict(val)
     obj.nics = cls._ContainerFromDicts(obj.nics, list, NIC)
     obj.disks = cls._ContainerFromDicts(obj.disks, list, Disk)
