@@ -431,7 +431,14 @@ class XenHvmHypervisor(XenHypervisor):
 
     vif_data = []
     for nic in instance.nics:
-      nic_str = "mac=%s, bridge=%s, type=ioemu" % (nic.mac, nic.bridge)
+      if instance.hvm_nic_type is None: # ensure old instances don't change
+        nic_type = ", type=ioemu"
+      elif instance.hvm_nic_type == constants.HT_HVM_DEV_PARAVIRTUAL:
+        nic_type = ", type=paravirtualized"
+      else:
+        nic_type = ", model=%s, type=ioemu" % instance.hvm_nic_type
+
+      nic_str = "mac=%s, bridge=%s%s" % (nic.mac, nic.bridge, nic_type)
       ip = getattr(nic, "ip", None)
       if ip is not None:
         nic_str += ", ip=%s" % ip
@@ -440,7 +447,12 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("vif = [%s]\n" % ",".join(vif_data))
     disk_data = cls._GetConfigFileDiskData(instance.disk_template,
                                             block_devices)
-    disk_data = [line.replace(",sd", ",ioemu:hd") for line in disk_data]
+    if ((instance.hvm_disk_type is None) or
+        (instance.hvm_disk_type == constants.HT_HVM_DEV_IOEMU)):
+      replacement = ",ioemu:hd"
+    else:
+      replacement = ",hd"
+    disk_data = [line.replace(",sd", replacement) for line in disk_data]
     if instance.hvm_cdrom_image_path is not None:
       iso = "'file:%s,hdc:cdrom,r'" % (instance.hvm_cdrom_image_path)
       disk_data.append(iso)
