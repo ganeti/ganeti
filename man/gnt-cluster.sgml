@@ -228,8 +228,8 @@
         Note that the <replaceable>clustername</replaceable> is not
         any random name. It has to be resolvable to an IP address
         using DNS, and it is best if you give the fully-qualified
-        domain name. Also it is advisable to reserve a per-cluster
-        unique name, and not try to reuse one of the nodes' names.
+        domain name. This hostname must resolve to an IP address
+        reserved exclusively for this purpose.
       </para>
 
       <para>
