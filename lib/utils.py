@@ -1176,6 +1176,7 @@ def SplitTime(seconds):
   @return: Tuple containing (seconds, milliseconds)
 
   """
+  seconds = round(seconds, 3)
   (seconds, fraction) = divmod(seconds, 1.0)
   return (int(seconds), int(round(fraction * 1000, 0)))
 

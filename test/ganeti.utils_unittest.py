@@ -785,6 +785,9 @@ class TestTimeFunctions(unittest.TestCase):
     self.assertEqual(utils.SplitTime(1), (1, 0))
     self.assertEqual(utils.SplitTime(1.5), (1, 500))
     self.assertEqual(utils.SplitTime(1218448917.4809151), (1218448917, 481))
+    self.assertEqual(utils.SplitTime(123.48012), (123, 480))
+    self.assertEqual(utils.SplitTime(123.9995), (124, 0))
+    self.assertEqual(utils.SplitTime(123.999999999), (124, 0))
 
     self.assertEqual(utils.MergeTime((1, 0)), 1.0)
     self.assertEqual(utils.MergeTime((1, 500)), 1.5)
