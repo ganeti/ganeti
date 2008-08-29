@@ -279,6 +279,9 @@ JOB_QUEUE_ARCHIVE_DIR = QUEUE_DIR + "/archive"
 
 JOB_ID_TEMPLATE = r"\d+"
 
+# unchanged job return
+JOB_NOTCHANGED = "nochange"
+
 # Job status
 JOB_STATUS_QUEUED = "queued"
 JOB_STATUS_RUNNING = "running"

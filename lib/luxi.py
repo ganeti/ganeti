@@ -290,8 +290,14 @@ class Client(object):
     return self.CallMethod(REQ_ARCHIVE_JOB, job_id)
 
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
-    return self.CallMethod(REQ_WAIT_FOR_JOB_CHANGE,
-                           (job_id, fields, prev_job_info, prev_log_serial))
+    timeout = (DEF_RWTO - 1) / 2
+    while True:
+      result = self.CallMethod(REQ_WAIT_FOR_JOB_CHANGE,
+                               (job_id, fields, prev_job_info,
+                                prev_log_serial, timeout))
+      if result != constants.JOB_NOTCHANGED:
+        break
+    return result
 
   def QueryJobs(self, job_ids, fields):
     return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))

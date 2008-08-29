@@ -558,7 +558,8 @@ class JobQueue(object):
 
   @utils.LockedMethod
   @_RequireOpenQueue
-  def WaitForJobChanges(self, job_id, fields, prev_job_info, prev_log_serial):
+  def WaitForJobChanges(self, job_id, fields, prev_job_info, prev_log_serial,
+                        timeout):
     """Waits for changes in a job.
 
     @type job_id: string
@@ -569,15 +570,20 @@ class JobQueue(object):
     @param prev_job_info: Last job information returned
     @type prev_log_serial: int
     @param prev_log_serial: Last job message serial number
+    @type timeout: float
+    @param timeout: maximum time to wait
 
     """
     logging.debug("Waiting for changes in job %s", job_id)
-
+    end_time = time.time() + timeout
     while True:
+      delta_time = end_time - time.time()
+      if delta_time < 0:
+        return constants.JOB_NOTCHANGED
+
       job = self._LoadJobUnlocked(job_id)
       if not job:
         logging.debug("Job %s not found", job_id)
-        new_state = None
         break
 
       status = job.CalcStatus()
@@ -605,7 +611,7 @@ class JobQueue(object):
       logging.debug("Waiting again")
 
       # Release the queue lock while waiting
-      job.change.wait()
+      job.change.wait(delta_time)
 
     logging.debug("Job %s changed", job_id)
 
