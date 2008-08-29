@@ -512,6 +512,8 @@ class Instance(TaggableObject):
     "hvm_acpi",
     "hvm_pae",
     "hvm_cdrom_image_path",
+    "hvm_nic_type",
+    "hvm_disk_type",
     "vnc_bind_address",
     ]
 
