@@ -4270,11 +4270,13 @@ class LUSetInstanceParams(LogicalUnit):
 
     # hvm_cdrom_image_path verification
     if self.op.hvm_cdrom_image_path is not None:
-      if not os.path.isabs(self.op.hvm_cdrom_image_path):
+      if not (os.path.isabs(self.op.hvm_cdrom_image_path) or
+              self.op.hvm_cdrom_image_path.lower() == "none"):
         raise errors.OpPrereqError("The path to the HVM CDROM image must"
                                    " be an absolute path or None, not %s" %
                                    self.op.hvm_cdrom_image_path)
-      if not os.path.isfile(self.op.hvm_cdrom_image_path):
+      if not (os.path.isfile(self.op.hvm_cdrom_image_path) or
+              self.op.hvm_cdrom_image_path.lower() == "none"):
         raise errors.OpPrereqError("The HVM CDROM image must either be a"
                                    " regular file or a symlink pointing to"
                                    " an existing regular file, not %s" %
@@ -4326,14 +4328,17 @@ class LUSetInstanceParams(LogicalUnit):
       else:
         instance.hvm_boot_order = self.hvm_boot_order
       result.append(("hvm_boot_order", self.hvm_boot_order))
-    if self.hvm_acpi:
+    if self.hvm_acpi is not None:
       instance.hvm_acpi = self.hvm_acpi
       result.append(("hvm_acpi", self.hvm_acpi))
-    if self.hvm_pae:
+    if self.hvm_pae is not None:
       instance.hvm_pae = self.hvm_pae
       result.append(("hvm_pae", self.hvm_pae))
     if self.hvm_cdrom_image_path:
-      instance.hvm_cdrom_image_path = self.hvm_cdrom_image_path
+      if self.hvm_cdrom_image_path == constants.VALUE_NONE:
+        instance.hvm_cdrom_image_path = None
+      else:
+        instance.hvm_cdrom_image_path = self.hvm_cdrom_image_path
       result.append(("hvm_cdrom_image_path", self.hvm_cdrom_image_path))
     if self.vnc_bind_address:
       instance.vnc_bind_address = self.vnc_bind_address

@@ -729,14 +729,15 @@ def SetInstanceParams(opts, args):
   else:
     hvm_boot_order = opts.hvm_boot_order
 
-  hvm_acpi = opts.hvm_acpi == _VALUE_TRUE
-  hvm_pae = opts.hvm_pae == _VALUE_TRUE
-
-  if ((opts.hvm_cdrom_image_path is not None) and
-      (opts.hvm_cdrom_image_path.lower() == constants.VALUE_NONE)):
-    hvm_cdrom_image_path = None
+  if opts.hvm_acpi is None:
+    hvm_acpi = opts.hvm_acpi
   else:
-    hvm_cdrom_image_path = opts.hvm_cdrom_image_path
+    hvm_acpi = opts.hvm_acpi == _VALUE_TRUE
+
+  if opts.hvm_pae is None:
+    hvm_pae = opts.hvm_pae
+  else:
+    hvm_pae = opts.hvm_pae == _VALUE_TRUE
 
   op = opcodes.OpSetInstanceParams(instance_name=args[0], mem=opts.mem,
                                    vcpus=opts.vcpus, ip=opts.ip,
@@ -745,7 +746,8 @@ def SetInstanceParams(opts, args):
                                    initrd_path=opts.initrd_path,
                                    hvm_boot_order=hvm_boot_order,
                                    hvm_acpi=hvm_acpi, hvm_pae=hvm_pae,
-                                   hvm_cdrom_image_path=hvm_cdrom_image_path,
+                                   hvm_cdrom_image_path=
+                                   opts.hvm_cdrom_image_path,
                                    vnc_bind_address=opts.vnc_bind_address)
 
   result = SubmitOpCode(op)
