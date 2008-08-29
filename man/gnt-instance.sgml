@@ -83,6 +83,13 @@
             <replaceable>cdrom-image-path</replaceable></arg>
           <sbr>
 
+          <arg>--hvm-nic-type <replaceable>NICTYPE</replaceable></arg>
+          <sbr>
+
+          <arg>--hvm-disk-type
+          <replaceale>DISKTYPE</replaceable></arg>
+          <sbr>
+
           <arg>--vnc-bind-address
             <replaceable>vnc-bind-address</replaceable></arg>
           <sbr>
@@ -251,6 +258,22 @@
           absolute path to an existing file or None, which disables
           virtual CDROM support for this instance. The default is
           None, disabling virtual CDROM support.
+        </para>
+
+        <para>
+          The <option>--hvm-nic-type</option> specifies the NIC type
+          Xen should use for this HVM instance. Valid choices are
+          rtl8139, ne2k_pci, ne2k_isa and paravirtual with rtl8139
+          as the default. The paravirtual setting is intended for use
+          with the GPL PV drivers inside HVM Windows instances.
+        </para>
+
+        <para>
+          The <option>--hvm-disk-type</option> specifies the disk type
+          Xen should use for the HVM instance. Valid choices are ioemu
+          and paravirtual with ioemu as the default. The paravirtual
+          setting is intended for use with the GPL PV drivers inside
+          HVM Windows instances.
         </para>
 
         <para>
@@ -655,6 +678,8 @@
           <arg>--hvm-pae <replaceable>PAE-support</replaceable></arg>
           <arg>--hvm-cdrom-image-path
             <replaceable>cdrom-image-path</replaceable></arg>
+          <arg>--hvm-nic-type <replaceable>NICTYPE</replaceable></arg>
+          <arg>--hvm-disk-type <replaceable>DISKTYPE</replaceable></arg>
           <arg>--vnc-bind-address
             <replaceable>vnc-bind-address</replaceable></arg>
 
@@ -713,6 +738,22 @@
           for this HVM instance. Valid values are either an
           absolute path to an existing file or None, which disables
           virtual CDROM support for this instance.
+        </para>
+
+        <para>
+          The <option>--hvm-nic-type</option> specifies the NIC type
+          Xen should use for this HVM instance. Valid choices are
+          rtl8139, ne2k_pci, ne2k_isa and paravirtual with rtl8139
+          as the default. The paravirtual setting is intended for use
+          with the GPL PV drivers inside HVM Windows instances.
+        </para>
+
+        <para>
+          The <option>--hvm-disk-type</option> specifies the disk type
+          Xen should use for the HVM instance. Valid choices are ioemu
+          and paravirtual with ioemu as the default. The paravirtual
+          setting is intended for use with the GPL PV drivers inside
+          HVM Windows instances.
         </para>
 
         <para>
