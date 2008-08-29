@@ -139,6 +139,7 @@ EXTRA_DIST = \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
+	doc/locking.txt \
 	test/testutils.py \
 	test/mocks.py \
 	$(dist_TESTS) \
