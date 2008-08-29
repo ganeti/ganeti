@@ -291,7 +291,7 @@
           to. Valid values are IPv4 addresses. Use the address 0.0.0.0
           to bind to all available interfaces (this is the default)
           or specify the address of one of the interfaces on the node
-          to restrict listing to that interface.
+          to restrict listening to that interface.
         </para>
 
         <para>
