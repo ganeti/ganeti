@@ -285,7 +285,9 @@ def AddInstance(opts, args):
                                 file_driver=opts.file_driver,
                                 hvm_acpi=hvm_acpi, hvm_pae=hvm_pae,
                                 hvm_cdrom_image_path=hvm_cdrom_image_path,
-                                vnc_bind_address=opts.vnc_bind_address)
+                                vnc_bind_address=opts.vnc_bind_address,
+                                hvm_nic_type=opts.hvm_nic_type,
+                                hvm_disk_type=opts.hvm_disk_type)
 
   SubmitOpCode(op)
   return 0
@@ -643,7 +645,7 @@ def ShowInstanceConfig(opts, args):
   op = opcodes.OpQueryInstanceData(instances=args)
   result = SubmitOpCode(op)
   hvm_parameters = ("hvm_acpi", "hvm_pae", "hvm_cdrom_image_path",
-                    "hvm_boot_order")
+                    "hvm_boot_order", "hvm_nic_type", "hvm_disk_type")
 
   pvm_parameters = ("kernel_path", "initrd_path")
 
@@ -683,6 +685,8 @@ def ShowInstanceConfig(opts, args):
       buf.write("    - ACPI support: %s\n" % instance["hvm_acpi"])
       buf.write("    - PAE support: %s\n" % instance["hvm_pae"])
       buf.write("    - virtual CDROM: %s\n" % instance["hvm_cdrom_image_path"])
+      buf.write("    - virtual NIC type: %s\n" %  instance["hvm_nic_type"])
+      buf.write("    - virtual disk type: %s\n" %  instance["hvm_disk_type"])
     if instance.has_key("vnc_bind_address"):
       buf.write("  VNC bind address: %s\n" % instance["vnc_bind_address"])
     buf.write("  Hardware:\n")
@@ -718,7 +722,7 @@ def SetInstanceParams(opts, args):
   if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac or
           opts.kernel_path or opts.initrd_path or opts.hvm_boot_order or
           opts.hvm_acpi or opts.hvm_pae or opts.hvm_cdrom_image_path or
-          opts.vnc_bind_address):
+          opts.vnc_bind_address or opts.hvm_nic_type or opts.hvm_disk_type):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
 
@@ -739,6 +743,16 @@ def SetInstanceParams(opts, args):
   else:
     hvm_pae = opts.hvm_pae == _VALUE_TRUE
 
+  if opts.hvm_nic_type == constants.VALUE_NONE:
+    hvm_nic_type = None
+  else:
+    hvm_nic_type = opts.hvm_nic_type
+
+  if opts.hvm_disk_type == constants.VALUE_NONE:
+    hvm_disk_type = None
+  else:
+    hvm_disk_type = opts.hvm_disk_type
+
   op = opcodes.OpSetInstanceParams(instance_name=args[0], mem=opts.mem,
                                    vcpus=opts.vcpus, ip=opts.ip,
                                    bridge=opts.bridge, mac=opts.mac,
@@ -748,7 +762,9 @@ def SetInstanceParams(opts, args):
                                    hvm_acpi=hvm_acpi, hvm_pae=hvm_pae,
                                    hvm_cdrom_image_path=
                                    opts.hvm_cdrom_image_path,
-                                   vnc_bind_address=opts.vnc_bind_address)
+                                   vnc_bind_address=opts.vnc_bind_address,
+                                   hvm_nic_type=hvm_nic_type,
+                                   hvm_disk_type=hvm_disk_type)
 
   result = SubmitOpCode(op)
 
@@ -855,6 +871,19 @@ add_opts = [
   make_option("--hvm-acpi", dest="hvm_acpi",
               help="ACPI support for HVM (true|false)",
               metavar="<BOOL>", choices=["true", "false"]),
+  make_option("--hvm-nic-type", dest="hvm_nic_type",
+              help="Type of virtual NIC for HVM "
+              "(rtl8139,ne2k_pci,ne2k_isa,paravirtual)",
+              metavar="NICTYPE", choices=[constants.HT_HVM_NIC_RTL8139,
+                                          constants.HT_HVM_NIC_NE2K_PCI,
+                                          constants.HT_HVM_NIC_NE2K_ISA,
+                                          constants.HT_HVM_DEV_PARAVIRTUAL],
+              default=constants.HT_HVM_NIC_RTL8139),
+  make_option("--hvm-disk-type", dest="hvm_disk_type",
+              help="Type of virtual disks for HVM (ioemu,paravirtual)",
+              metavar="DISKTYPE", choices=[constants.HT_HVM_DEV_IOEMU,
+                                           constants.HT_HVM_DEV_PARAVIRTUAL],
+              default=constants.HT_HVM_DEV_IOEMU,),
   make_option("--hvm-pae", dest="hvm_pae",
               help="PAE support for HVM (true|false)",
               metavar="<BOOL>", choices=["true", "false"]),
@@ -982,6 +1011,22 @@ commands = {
                           help="CDROM image path for HVM"
                           "(absolute path or None)",
                           default=None, type="string", metavar="<CDROMIMAGE>"),
+              make_option("--hvm-nic-type", dest="hvm_nic_type",
+                          help="Type of virtual NIC for HVM "
+                          "(rtl8139,ne2k_pci,ne2k_isa,paravirtual)",
+                          metavar="NICTYPE",
+                          choices=[constants.HT_HVM_NIC_RTL8139,
+                                   constants.HT_HVM_NIC_NE2K_PCI,
+                                   constants.HT_HVM_NIC_NE2K_ISA,
+                                   constants.HT_HVM_DEV_PARAVIRTUAL],
+                          default=None),
+              make_option("--hvm-disk-type", dest="hvm_disk_type",
+                          help="Type of virtual disks for HVM "
+                          "(ioemu,paravirtual)",
+                          metavar="DISKTYPE",
+                          choices=[constants.HT_HVM_DEV_IOEMU,
+                                   constants.HT_HVM_DEV_PARAVIRTUAL],
+                          default=None),
               make_option("--vnc-bind-address", dest="vnc_bind_address",
                           help="bind address for VNC (IP address)",
                           default=None, type="string", metavar="<VNCADDRESS>"),
