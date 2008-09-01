@@ -689,6 +689,7 @@ def ShowInstanceConfig(opts, args):
       buf.write("    - virtual disk type: %s\n" %  instance["hvm_disk_type"])
     if instance.has_key("vnc_bind_address"):
       buf.write("  VNC bind address: %s\n" % instance["vnc_bind_address"])
+      buf.write("  VNC console port: %s\n" % instance["vnc_console_port"])
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])

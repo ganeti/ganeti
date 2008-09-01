@@ -4147,6 +4147,15 @@ class LUQueryInstanceData(NoHooksLU):
         idict["hvm_disk_type"] = instance.hvm_disk_type
 
       if htkind in constants.HTS_REQ_PORT:
+        if instance.network_port is None:
+          vnc_console_port = None
+        elif instance.vnc_bind_address == constants.BIND_ADDRESS_GLOBAL:
+          vnc_console_port = "%s:%s"% (instance.primary_node,
+                                       instance.network_port)
+        else:
+          vnc_console_port = "%s:%s" % (instance.vnc_bind_address,
+                                        instance.network_port)
+        idict["vnc_console_port"] = vnc_console_port
         idict["vnc_bind_address"] = instance.vnc_bind_address
         idict["network_port"] = instance.network_port
 
