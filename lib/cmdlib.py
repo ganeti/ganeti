@@ -4340,6 +4340,17 @@ class LUSetInstanceParams(LogicalUnit):
           self.warn.append("Not enough memory to failover instance to secondary"
                            " node %s" % node)
 
+    # Xen HVM device type checks
+    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+      if self.op.hvm_nic_type is not None:
+        if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
+          raise errors.OpPrereqError("Invalid NIC type %s specified for Xen"
+                                     " HVM  hypervisor" % self.op.hvm_nic_type)
+      if self.op.hvm_disk_type is not None:
+        if self.op.hvm_disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
+          raise errors.OpPrereqError("Invalid disk type %s specified for Xen"
+                                     " HVM hypervisor" % self.op.hvm_disk_type)
+
     return
 
   def Exec(self, feedback_fn):
