@@ -764,7 +764,8 @@ def SetInstanceParams(opts, args):
                                    opts.hvm_cdrom_image_path,
                                    vnc_bind_address=opts.vnc_bind_address,
                                    hvm_nic_type=hvm_nic_type,
-                                   hvm_disk_type=hvm_disk_type)
+                                   hvm_disk_type=hvm_disk_type,
+                                   force=opts.force)
 
   result = SubmitOpCode(op)
 
