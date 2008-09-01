@@ -1,0 +1,794 @@
+#!/usr/bin/python
+#
+# Copyright (C) 2007, 2008 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Script to create Ganeti instances in batches.
+
+batcher is a Python script that automates the creation of
+Ganeti instances.
+
+"""
+
+
+from email import MIMEText
+import logging
+import optparse
+import os
+import shutil
+import smtplib
+import sys
+import tempfile
+import time
+import simplejson
+import errno
+import traceback
+
+from ganeti import utils
+from ganeti import errors
+from ganeti import constants
+
+
+_CLUSTER_NAME_FILE = constants.DATA_DIR + '/ssconf_cluster_name'
+_CLUSTER_MASTER_FILE = constants.DATA_DIR + '/ssconf_master_node'
+_LOCKFILE = constants.LOCK_DIR + '/batcher.lock'
+
+
+def ParseCommandline():
+  """Parse the commandline arguments and return options to the caller.
+
+  Returns:
+     options: an object containing values for all of the commandline arguments.
+
+  """
+  # Setup the parser object
+  usage = 'usage: %prog [options]'
+  parser = optparse.OptionParser(usage=usage)
+
+  # Add options to the parser object
+  parser.add_option('-i', '--instancesfile', dest='instancesfile',
+                    help='define the file holding the instance definitions.')
+
+  parser.add_option('-l', '--logfile', dest='logfile',
+                    help='define batcher\'s log file')
+
+  parser.add_option('-d', '--debug', action='store_true', dest='debug',
+                    help='run with debugging information')
+
+  parser.add_option('-n', '--notify', dest='notify',
+                    help='list of recipients to notify')
+
+  parser.add_option('-s', '--sender', dest='sender',
+                    help='From: field for the runtime report')
+
+  parser.add_option('-f', '--force', action='store_true', dest='force',
+                    help='really perform the instance creations')
+
+  parser.add_option('--no-wait-sync', action='store_true', dest='nowait',
+                    help='Do not wait for the disks to sync (DANGEROUS).')
+
+  parser.add_option('-k', '--keep-files', action='store_true', dest='keepfiles',
+                    help='Keep config and error files instead of deleting '
+                    'them.')
+  parser.add_option('--sleep', dest='sleep', type='int', help='Amount of '
+                    'seconds to sleep between instance creations.')
+  parser.add_option('--iallocator', dest='iallocator', help='Allocation '
+                    'algorithm to use for primary/secondary instances.')
+
+  parser.set_defaults(instancesfile='/var/spool/batcher/instances.json',
+                      logfile='/var/log/batcher/batcher.log',
+                      debug=False,
+                      force=False,
+                      nowait=False,
+                      keepfiles=False,
+                      iallocator='dumb')
+
+  # Retrieve the options passed on the commandline
+  options = parser.parse_args()[0]
+
+  # Return the options
+  return options
+
+
+def LockWrapped(meth):
+  """Decorator for lock wrapped functions (like main)."""
+  def lockwrapper(*args):
+    try:
+      pidfd = os.open(_LOCKFILE, os.O_CREAT|os.O_EXCL)
+      try:
+        meth(*args)
+      finally:
+        os.unlink(_LOCKFILE)
+        os.close(pidfd)
+    except EnvironmentError, err:
+      if err.errno == errno.EEXIST:
+        newmsg = ('Batcher lockfile exists. Batcher is either already running'
+                  ' or there is a stale lockfile (%s).') % _LOCKFILE
+        raise BatcherLockError(newmsg)
+      else:
+        print '%s, aborting.\n%s' % (err, traceback.format_exc())
+        sys.exit(254)
+  return lockwrapper
+
+
+def RemoveFile(file_path):
+  """Remove a file.
+
+  Args:
+    file_path: A string containing the full path to the file.
+
+  Raises:
+    BatcherGenericError: There was an error removing file_path.
+
+  """
+  try:
+    os.remove(file_path)
+  except EnvironmentError, msg:
+    raise BatcherGenericError(msg)
+
+
+def MakeBackup(file_name):
+  """Make a copy of a file.
+
+  Make a backup copy of a file to preserve an historical record of
+  that file as well as to help with debugging any problems that arise.
+
+  Args:
+    file_name: the path to the original file.
+
+  Returns:
+    the path to the  newly created backup file.
+
+  Raises:
+    BatcherGenericError: file_name did not exist.
+
+  """
+  if not os.path.isfile(file_name):
+    raise BatcherGenericError('Can\'t make a backup of a non-file \'%s\'' %
+                              file_name)
+
+  prefix = '%s.backup-%d.' % (os.path.basename(file_name), int(time.time()))
+  dir_name = os.path.dirname(file_name)
+
+  fsrc = open(file_name, 'rb')
+  try:
+    (fd, backup_name) = tempfile.mkstemp(prefix=prefix, dir=dir_name)
+    fdst = os.fdopen(fd, 'wb')
+    try:
+      shutil.copyfileobj(fsrc, fdst)
+    finally:
+      fdst.close()
+  finally:
+    fsrc.close()
+
+  return backup_name
+
+
+def SleepTime(seconds):
+  """Put batcher to sleep for a period of time.
+
+  Args:
+    seconds: An integer.
+
+  """
+  while seconds > 0:
+    sys.stdout.write('.')
+    sys.stdout.flush()
+    seconds -= 2
+    time.sleep(2)
+  sys.stdout.write('\n')
+  sys.stdout.flush()
+
+
+class Error(Exception):
+  """Abstract base error class."""
+
+
+class BatcherGenericError(Error):
+  """Abstract generic error class."""
+
+
+class BatcherLockError(Error):
+  """Problem creating Batcher's pid file."""
+
+
+class BatcherNotificationError(Error):
+  """Problem sending batcher's runtime report."""
+
+
+class InstancesFile:
+  """Abstraction of the instances definition file."""
+
+  def __init__(self, file_path):
+    self.__dict__['data'] = self.ReadInstances(file_path)
+
+  def __getitem__(self, key):
+    return self.data[key]
+
+  def ReadInstances(self, file_path):
+    """Read instance data from a file."""
+    try:
+      fd = open(file_path)
+    except EnvironmentError, msg:
+      raise EnvironmentError(msg)
+
+    try:
+      return simplejson.load(fd)
+    finally:
+      fd.close()
+
+  #TODO(tjb): figure out minimum necessary validation of data
+
+
+class Cluster:
+  """Class to represent data about a cluster."""
+
+  def __init__(self):
+    self.__dict__['data'] = {'cluster_name': None,
+                             'cluster_master': None,
+                             'hostname': None}
+    self.PopulateClusterData()
+
+  def __getattr__(self, name):
+    """Getter for retrieving class attributes."""
+    if name in self.data:
+      return self.data[name]
+    else:
+      raise AttributeError
+
+  def __setattr__(self, name, value):
+    """Setter for changing class attributes."""
+    self.data[name] = value
+
+  def PopulateClusterData(self):
+    """Populate our class attributes."""
+    try:
+      self.SetClusterName()
+      self.SetClusterMaster()
+      self.SetHostName()
+    except AttributeError, msg:
+      raise AttributeError(msg)
+
+  def SetClusterName(self, file_object=None):
+    """Get the name of the cluster.
+
+    Args:
+      file_object: a file object, defaults to None.
+
+    Raises:
+      AttributeError: There was an error trying to get the cluster name.
+
+    """
+    try:
+      if not file_object:
+        self.data['cluster_name'] = open(_CLUSTER_NAME_FILE,
+                                         'r').readlines()[0].strip()
+      else:
+        self.data['cluster_name'] = file_object.readlines()[0].strip()
+    except EnvironmentError, msg:
+      raise AttributeError(msg)
+
+  def SetClusterMaster(self, file_object=None):
+    """Get the cluster's master node.
+
+    Args:
+      file_object: a file object, defaults to None.
+
+    Raises:
+      AttributeError: There was an error getting the cluster manster name.
+
+    """
+    try:
+      if not file_object:
+        self.data['cluster_master'] = (open(_CLUSTER_MASTER_FILE,
+                                            'r').readlines()[0].strip())
+      else:
+        self.data['cluster_master'] = file_object.readlines()[0].strip()
+    except EnvironmentError, msg:
+      raise AttributeError(msg)
+
+  def SetHostName(self, file_object=None):
+    """Get the fqdn of the current host.
+
+    Args:
+      file_object: an opened file object for /etc/hostname
+
+    Raises:
+      AttributeError: There was a problem getting the hostname.
+
+    """
+    try:
+      if not file_object:
+        self.data['hostname'] = (open('/etc/hostname',
+                                      'r').readlines()[0].strip())
+      else:
+        self.data['hostname'] = file_object.readlines()[0].strip()
+    except EnvironmentError, msg:
+      raise AttributeError(msg)
+
+
+class Instance:
+  """Class to represent an instance that needs to be created."""
+
+  NumberOfInstances = 0
+  NumberCreated = 0
+
+  def __init__(self, hostname, data):
+    self.__dict__['hostname'] = hostname
+    self.__dict__['data'] = data
+    Instance.NumberOfInstances += 1
+
+  def __del__(self):
+    Instance.NumberOfInstances -= 1
+
+  def __getattr__(self, name):
+    """Getter for retrieving class attributes."""
+    if name in self.data:
+      return self.data[name]
+    elif name == 'hostname':
+      return self.hostname
+    else:
+      raise AttributeError
+
+  def __setattr__(self, name, value):
+    """Setter for changing class attributes."""
+    if name == 'hostname':
+      self.hostname = value
+    else:
+      self.data[name] = value
+
+  def InstancesCount(self):
+    """Return the number of instances."""
+    return Instance.NumberOfInstances
+
+  def InstancesCreated(self):
+    """Return the number of instances created."""
+    return Instance.NumberCreated
+
+  def IncrementCreated(self):
+    """Increase the number of instances created by 1."""
+    Instance.NumberCreated += 1
+
+  def InstanceAsDict(self):
+    """Return the instance namespace dictionary."""
+    return self.__dict__
+
+
+class InstanceCreator:
+  """Class to handle the creation of instances.
+
+  This class is responsible for the following tasks:
+  1. Parsing the instance definition file.
+  2. Create the correct number of Instance objects per the instance
+     definition file.
+  3. Create the instances.
+
+  Args:
+    options: an OptParse object that holds the commandline options.
+
+  """
+
+  def __init__(self, options, cluster_name):
+    self.instances = []
+    self.instances_file = options.instancesfile
+    self.archived_instances_file = None
+    self.logfile = options.logfile
+    self.force = options.force
+    self.no_wait_for_sync = options.nowait
+    self.keepfiles = options.keepfiles
+    self.iallocator = options.iallocator
+    self.runtime_report = None
+    self.cluster_name = cluster_name
+    self.start = time.time()
+    self.finish = 0
+
+    if options.notify:
+      self.notify = options.notify.split(',')
+
+    if options.sender:
+      self.sender = options.sender
+
+    if options.sleep:
+      self.sleep = options.sleep
+    else:
+      self.sleep = False
+
+    self.ParseInstanceDefs()
+
+  def ParseInstanceDefs(self):
+    """Parse the instance definition file and set up instance objects.
+
+    Raises:
+      BatcherGenericError: There was an error reading the instances def file.
+
+    """
+    try:
+      instances = InstancesFile(self.instances_file)
+    except BatcherGenericError, msg:
+      raise
+
+    for instance in instances.data:
+      self.instances.append(Instance(instance, instances[instance]))
+
+  def CreateInstances(self):
+    """Create Ganeti instances.
+
+    This method handles the creation of the instances defined in the
+    instances definition file.
+
+    """
+    for instance in self.instances:
+      try:
+        instance.create_command = self.CreateCommand(instance)
+      except AttributeError, msg:
+        instance.create_command = 'Failed to create instance.'
+        instance.created = False
+        instance.message = msg
+        continue
+
+      if self.force:
+        msg = ('Creating %s with the following: %s....' %
+               (instance.hostname, instance.create_command))
+        sys.stdout.write(msg)
+        sys.stdout.flush()
+        logging.info(msg)
+
+        # now we actually create the instance
+        result = utils.RunCmd(instance.create_command)
+
+        # post-creation checks and cleanup
+        if result.failed:
+          msg = '%s.' % (result.stderr.strip())
+          instance.created = False
+          instance.message = msg
+        else:
+          msg = 'Creation was successful.'
+          # update the number of instances created
+          instance.IncrementCreated()
+          instance.created = True
+          instance.message = msg
+
+        # write msg to stdout
+        sys.stdout.write(msg + '\n')
+        sys.stdout.flush()
+        logging.info(msg)
+
+        if (self.sleep and
+            instance.InstancesCreated() < instance.InstancesCount()):
+          msg = ('Sleeping for %d seconds between instance '
+                 'creations') % self.sleep
+          logging.info(msg)
+          sys.stdout.write(msg)
+          sys.stdout.flush()
+          SleepTime(self.sleep)
+
+      else:
+        # dry run
+        instance.created = False
+        instance.message = (('Creating %s in dry-run mode. Run batcher'
+                             ' with -f to really create this instance.') %
+                            instance.hostname)
+        logging.info(instance.message)
+        continue
+
+    self.finish = time.time()
+
+  def SendRuntimeReport(self):
+    """Send the runtime report to recipients.
+
+    Raises:
+      BatcherNotificationError: There was a problem sending the report.
+
+    """
+    data = {'recipient': self.notify,
+            'sender': self.sender,
+            'cluster_name': self.cluster_name,
+            'message': self.runtime_report.report}
+
+    notify = Notify(data)
+
+    try:
+      notify.SendReport()
+    except BatcherNotificationError, msg:
+      raise BatcherNotifcationError(msg)
+
+  def CreateRuntimeReport(self):
+    """Create the runtime report."""
+    report_data = {'cluster_name': self.cluster_name,
+                   'instances': self.instances,
+                   'start': self.start,
+                   'finish': self.finish,
+                   'instancesfile': self.instances_file,
+                   'archived_instancesfile': self.archived_instances_file,
+                   'logfile': self.logfile}
+    self.runtime_report = RuntimeReport(report_data)
+
+  def CreateCommand(self, instance):
+    """Build the command string used to create an instance.
+
+    Args:
+      instance: an instance of the Instance class.
+    Returns:
+      a string containing the appropriate gnt-instance add command.
+
+    """
+    if not self.no_wait_for_sync:
+      nowait = ''
+    else:
+      nowait = '--no-wait-for-sync'
+
+    try:
+      nodes = '-n %s:%s' % (instance.primary_node, instance.secondary_node)
+    except AttributeError:
+      nodes = '--iallocator %s' % self.iallocator
+
+    try:
+      template = '-t %s' % instance.template
+    except AttributeError:
+      template = '-t %s' % 'plain'
+
+    try:
+      vcpu = '-p %i' % instance.vcpu
+    except AttributeError:
+      vcpu = ''
+
+    try:
+      command = ('gnt-instance add %s %s -o %s -s %s -m %s '
+                 '%s %s %s' % (template,
+                               nodes,
+                               instance.os,
+                               instance.disk_size,
+                               instance.ram_size,
+                               vcpu,
+                               nowait,
+                               instance.hostname))
+    except AttributeError, msg:
+      msg = ('It appears either the instance\'s hostname, disk_size, or '
+             'ram_size were not specified in %s') % self.instances_file
+      raise AttributeError(msg)
+
+
+    return command
+
+  def DumpInstances(self):
+    """Dump the namespace dictionary for each instance object."""
+    for i in self.instances:
+      print simplejson.dumps(i.InstanceAsDict())
+
+
+class RuntimeReport:
+  """Class to represent the runtime report."""
+
+  def __init__(self, data):
+    self.__dict__['data'] = data
+    self.BuildReport()
+
+  def __getattr__(self, name):
+    if name in self.data:
+      return self.data[name]
+    elif name == 'report':
+      return self.report
+    else:
+      raise AttributeError
+
+  def __setattr__(self, name, value):
+    if name == 'report':
+      self.data[name] = value
+    else:
+      raise AttributeError('Invalid attribute %s' % name)
+
+  def BuildReport(self):
+    """Build the runtime report.
+
+    This report is printed to stdout and, if -n was specified with a recipient
+    on the commandline, get email to the recipient(s).
+
+    """
+    # build list of instances created/not created
+    instances_created = []
+    instances_not_created = []
+    for i in self.instances:
+      if i.created:
+        instances_created.append('%s (command: %s)' % (i.hostname,
+                                                       i.create_command))
+      else:
+        instances_not_created.append('%s: %s (%s)' % (i.hostname,
+                                                      i.message,
+                                                      i.create_command))
+
+    #TODO(tjb): this needs cleaned up, i just copied/pasted from original
+    start = self.start
+    finish = self.finish
+    elapsed = finish - start
+    now = time.strftime('%Y-%m-%d %H:%M:%S')
+    repeating_dashes = '=' * 60
+    d = '%Y-%m-%d'
+    t = '%H:%M:%S'
+    msg = ('%s\n'
+           'batcher runtime report\n'
+           '%s\n'
+           'Cluster: %s\n'
+           'Date: %s\n\n'
+           '---- Summary ----\n'
+           'Time started: %s\n'
+           'Time finished: %s\n'
+           'Elapsed time (minutes): %d\n'
+           'Instances defined in the config file: %i\n'
+           'Number of instances created: %i\n'
+           'Number of instances not created: %i\n'
+           'Original instances.yaml: %s\n'
+           'Archived instances.yaml: %s\n'
+           'Logfile: %s\n'
+           '\n'
+           '---- Details ----\n'
+           'Instances created:\n'
+           '%s\n'
+           '\n'
+           'Instances not created and why:\n'
+           '%s\n'
+           '\n') % (repeating_dashes, repeating_dashes,
+                    self.cluster_name, now,
+                    time.strftime('%s %s' % (d, t), time.localtime(start)),
+                    time.strftime('%s %s' % (d, t), time.localtime(finish)),
+                    elapsed / 60,
+                    self.data['instances'][0].InstancesCount(),
+                    self.data['instances'][0].InstancesCreated(),
+                    (self.data['instances'][0].InstancesCount() -
+                     self.data['instances'][0].InstancesCreated()),
+                    self.instancesfile,
+                    self.archived_instancesfile,
+                    self.logfile,
+                    instances_created, instances_not_created)
+
+    self.report = msg
+
+
+class Notify:
+  """Class to handle batcher notifications."""
+
+  def __init__(self, data):
+    self.__dict__['data'] = data
+
+  def __getattr__(self, name):
+    if name in self.data:
+      return self.data[name]
+    else:
+      raise AttributeError
+
+  def __setattr__(self, name, value):
+    if (name == 'recipient' or name == 'sender' or
+        name == 'cluster_name' or name == 'messsage'):
+      self.data[name] = value
+    else:
+      raise AttributeError('%s is not a valid attribute' % name)
+
+  def SendReport(self):
+    """Connect to the SMTP server and send the message.
+
+    Raises:
+      SMTPConnectError: Problem connection to the smtp server.
+      SMTPDataError: The SMTP server refused to accept the message data.
+      SMTPRecipientRefused: All recipient addresses refused.
+      SMTPSenderRefused: Sender address refused.
+
+    """
+    msg_object = MIMEText.MIMEText(self.message)
+
+    if msg_object is not '':
+      msg_object['Subject'] = ('[batcher] report from %s' %
+                               self.data['cluster_name'])
+      msg_object['From'] = self.data['sender']
+      # convert self.data['recipient'] from a list to a string for the header
+      msg_object['To'] = str(self.data['recipient'])[1:-1].replace('\'', '')
+
+      s = smtplib.SMTP()
+
+      try:
+        s.connect()
+        s.sendmail(self.data['sender'],
+                   self.data['recipient'],
+                   msg_object.as_string())
+      except (smtplib.SMTPConnectError, smtplib.SMTPDataError,
+              smtplib.SMTPRecipientsRefused, smtplib.SMTPSenderRefused), msg:
+        raise BatcherNotificationError(msg)
+
+      s.close()
+
+
+@LockWrapped
+def main():
+  # check if we're running as root.
+  if os.getuid():
+    sys.stderr.write('This program must be run as root.\n')
+    sys.exit(-1)
+
+  cluster = Cluster()
+  # check that we're running on the master node
+  if cluster.cluster_master != cluster.hostname:
+    msg = 'This program must be run from the the master node.\n'
+    logging.critical(msg)
+    sys.stderr.write(msg)
+    sys.exit(-1)
+
+  # get the commandline options
+  options = ParseCommandline()
+
+  # set up logger object
+  loggerconf = {
+      'format': '[%(asctime)s]: %(levelname)-8s: %(message)s',
+      'level': logging.INFO,
+      'datefmt': '%Y-%m-%d %H:%M:%S',
+      'filename': options.logfile,
+      'filemode': 'a'}
+
+  # set debug level if user requested it
+  # TODO(tjb): add debugging lines in appropriate places
+  if options.debug:
+    loggerconf['level'] = logging.DEBUG
+
+  logging.basicConfig(**loggerconf)
+
+  # Before we do anything else, make a copy of the config file
+  try:
+    archived_instances = MakeBackup(options.instancesfile)
+  except BatcherGenericError, msg:
+    logging.warning(msg)
+
+  # create instances
+  try:
+    logging.info('Batcher is starting instance creation jobs.')
+    creator = InstanceCreator(options, cluster.cluster_name)
+    creator.archived_instances_file = archived_instances
+    creator.CreateInstances()
+  except KeyboardInterrupt:
+    sys.stderr.write(('\nAborting. Waiting for batcher to clean up after '
+                      'iteself...'))
+
+    sys.stderr.write('complete. Exiting.')
+    sys.stderr.flush()
+    logging.warning('Aborting due to user interaction (ctrl-C).')
+    sys.exit(-1)
+
+  # build the runtime report
+  logging.info('Creating runtime report')
+  creator.CreateRuntimeReport()
+
+  # send the runtime report
+  if options.notify:
+    try:
+      creator.SendRuntimeReport()
+      logging.info('Runtime report sent to %s' % options.notify)
+    except BatcherNotificationError, msg:
+      sys.stderr.write(msg + '\n')
+      logging.warning(msg)
+
+  logging.info('Batcher has finished instance creation jobs.')
+
+  # print the runtime report and then have batcher clean up after itself
+  print '\n\n%s' % creator.runtime_report.report
+
+  try:
+    if not options.keepfiles:
+      RemoveFile(options.instancesfile)
+  except GenericBatcherError, msg:
+    sys.stderr.write(msg)
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+  main()

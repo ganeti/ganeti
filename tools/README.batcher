@@ -1,0 +1,131 @@
+batcher - Automated Ganeti Instance Creation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Synopsis::
+
+       batcher [ -i INSTANCESFILE ] [ -l LOGFILE ] [ -n NOTIFY ] [ -s SENDER ]
+               [ -f ] [ --no-wait-sync ] [ -k ] [ --iallocator ALLOCATOR ]
+
+
+Description
+-----------
+
+The batcher script is used for automating the creation of Ganeti
+instances.
+
+Options:
+
+-i INSTANCESFILE, --instancesfile=INSTANCESFILE
+  The INSTANCESFILE is the JSON-encoded file
+  containing the instances to add. It will default to
+  /var/spool/batcher/instances.json otherwise.
+  See below.
+
+-l LOGFILE, --logfile=LOGFILE
+  Specifies where to put the logfile. If this option is not specified,
+  it will default to /var/log/batcher/batcher.log. If the logfile already
+  exists, it will be appended to, otherwise a new file will be created.
+
+-n NOTIFY, --notify=NOTIFY
+  Comma-separated list of email addresses that will receive batcher's
+  runtime report. The notification email is a summary of what happened
+  during the run. If not specified, no notifications will be sent.
+
+-s SENDER, --sender=SENDER
+  The email address to use in the From: field for the runtime report.
+
+-f, --force
+  Tells batcher to actually create the instances defined in the
+  INSTANCESFILE. If this option is not passed to
+  batcher, it will just do a dry run.
+
+--no-wait-sync
+  Run the instance addition with the --no-wait-for-sync flag
+  before running the os-create scripts.
+
+-k, --keep-files
+  Keeps the original INSTANCESFILE in addition to
+  making a backup copy of it.
+
+--iallocator ALLOCATOR
+  Defines the iallocator to use with Ganeti to allocate the instance.
+  If this option is set make sure you don't provide any primary node or
+  secondary node keys in instances.json
+
+Examples: The following command runs batcher adding instances, logging and
+notifying me@example.com and you@example.com. It will also use the
+--no-wait-for-sync when adding the instances. It is not a dry run since the
+-f flag is given::
+
+  # batcher -i /tmp/myinstances.json \
+            -l /tmp/batcher.log \
+            -n 'me@example.com,you@example.com' \
+            --no-wait-sync \
+            -f
+
+Or if you want to use an iallocator::
+
+  # batcher -i /tmp/myinstances.json \
+            -l /tmp/batcher.log \
+            -n 'me@example.com' \
+            --no-wait-sync \
+            -f \
+            --iallocator dumb
+
+The following runs batcher in dry run with default file locations for
+the logs and instance file::
+
+  # batcher
+
+instances.json - Input file to batcher
+--------------------------------------
+
+The instances.json file provides the specification of instances to be created
+by batcher. It is a JSON-encoded file and should be named instances.json
+and can be put anywhere on the filesytem and specified with -c INSTANCESFILE).
+
+If not specified on the commandline, batcher will look for the file in
+/var/spool/batcher.
+
+Legal entries include:
+
+  - hostname (as the FQDN)[REQUIRED]
+  - template [REQUIRED]
+  - primary node for the instance (as the FQDN)
+  - secondary node for the instance (as the FQDN)
+  - operating system for the instance [REQUIRED]
+  - disk size in GB [REQUIRED]
+  - ram size in MB [REQUIRED]
+  - number of VCPUs
+
+All hostnames - i.e. for the instance, the primary node, and the sec- ondary
+node - must be in FQDN format. For example, mytestinstance.exam- ple.com
+instead of mytestinstance.
+
+The template specifies the type of disk layout an instance will have.
+Supported Ganeti template types are plain or drbd.
+
+The operating systems supported can be found running 'gnt-os list'.
+
+The number of VCPUs can be in the range 1-4. This field is optional,
+however, and if you don't include it, batcher will default this value to 1.
+
+Example::
+
+  # {
+  #  "myinstance.example.com": {
+  #    "template": "drbd",
+  #    "os": "etch",
+  #    "disk_size": "50g",
+  #    "ram_size": 512
+  #  },
+  #  "myinstance2.example.com": {
+  #    "template": "drbd",
+  #    "os": "etch",
+  #    "disk_size": "75g",
+  #    "ram_size": 1024
+  #  }
+  # }
+
+If the config file is not specified on the command line to bathcher, it will
+look at /var/spool/batcher/instances.json.

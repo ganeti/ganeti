@@ -1,0 +1,14 @@
+{
+  "instance1.example.com": {
+    "template": "drbd",
+    "os": "debootstrap",
+    "disk_size": 25,
+    "ram_size": 512
+  },
+  "instance2.example.com": {
+    "template": "plain",
+    "os": "debootstrap",
+    "disk_size": 100,
+    "ram_size": 512
+  }
+}
