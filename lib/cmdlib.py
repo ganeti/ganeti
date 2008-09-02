@@ -2472,7 +2472,12 @@ class LUQueryInstances(NoHooksLU):
     _CheckOutputFields(static=["name", "os", "pnode", "snodes",
                                "admin_state", "admin_ram",
                                "disk_template", "ip", "mac", "bridge",
-                               "sda_size", "sdb_size", "vcpus", "tags"],
+                               "sda_size", "sdb_size", "vcpus", "tags",
+                               "auto_balance",
+                               "network_port", "kernel_path", "initrd_path",
+                               "hvm_boot_order", "hvm_acpi", "hvm_pae",
+                               "hvm_cdrom_image_path", "hvm_nic_type",
+                               "hvm_disk_type", "vnc_bind_address"],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
@@ -2593,6 +2598,18 @@ class LUQueryInstances(NoHooksLU):
           val = instance.vcpus
         elif field == "tags":
           val = list(instance.GetTags())
+        elif field in ("network_port", "kernel_path", "initrd_path",
+                       "hvm_boot_order", "hvm_acpi", "hvm_pae",
+                       "hvm_cdrom_image_path", "hvm_nic_type",
+                       "hvm_disk_type", "vnc_bind_address"):
+          val = getattr(instance, field, None)
+          if val is not None:
+            pass
+          elif field in ("hvm_nic_type", "hvm_disk_type",
+                         "kernel_path", "initrd_path"):
+            val = "default"
+          else:
+            val = "-"
         else:
           raise errors.ParameterError(field)
         iout.append(val)

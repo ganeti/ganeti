@@ -184,10 +184,20 @@ def ListInstances(opts, args):
       "snodes": "Secondary_Nodes", "admin_state": "Autostart",
       "oper_state": "Running", "admin_ram": "Configured_memory",
       "oper_ram": "Memory", "disk_template": "Disk_template",
-      "ip": "IP Address", "mac": "MAC Address",
+      "ip": "IP_address", "mac": "MAC_address",
       "bridge": "Bridge", "vcpus": "VCPUs",
       "sda_size": "Disk/0", "sdb_size": "Disk/1",
       "status": "Status", "tags": "Tags",
+      "network_port": "Network_port",
+      "kernel_path": "Kernel_path",
+      "initrd_path": "Initrd_path",
+      "hvm_boot_order": "HVM_boot_order",
+      "hvm_acpi": "HVM_ACPI",
+      "hvm_pae": "HVM_PAE",
+      "hvm_cdrom_image_path": "HVM_CDROM_image_path",
+      "hvm_nic_type": "HVM_NIC_type",
+      "hvm_disk_type": "HVM_disk_type",
+      "vnc_bind_address": "VNC_bind_address",
       }
   else:
     headers = None
