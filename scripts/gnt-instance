@@ -303,6 +303,34 @@ def ReinstallInstance(opts, args):
   """
   instance_name = args[0]
 
+  if opts.select_os is True:
+    op = opcodes.OpDiagnoseOS(output_fields=["name", "valid"], names=[])
+    result = SubmitOpCode(op)
+
+    if not result:
+      logger.ToStdout("Can't get the OS list")
+      return 1
+
+    logger.ToStdout("Available OS templates:")
+    number = 0
+    choices = []
+    for entry in result:
+      logger.ToStdout("%3s: %s" % (number, entry[0]))
+      choices.append(("%s" % number, entry[0], entry[0]))
+      number = number + 1
+
+    choices.append(('x', 'exit', 'Exit gnt-instance reinstall'))
+    selected = AskUser("Enter OS template name or number (or x to abort):",
+                       choices)
+
+    if selected == 'exit':
+      logger.ToStdout("User aborted reinstall, exiting")
+      return 1
+
+    os = selected
+  else:
+    os = opts.os
+
   if not opts.force:
     usertext = ("This will reinstall the instance %s and remove"
                 " all data. Continue?") % instance_name
@@ -310,7 +338,7 @@ def ReinstallInstance(opts, args):
       return 1
 
   op = opcodes.OpReinstallInstance(instance_name=instance_name,
-                                   os_type=opts.os)
+                                   os_type=os)
   SubmitOpCode(op)
 
   return 0
@@ -928,7 +956,12 @@ commands = {
            " ip, mac, bridge, sda_size, sdb_size, vcpus. The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),
-  'reinstall': (ReinstallInstance, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, os_opt],
+  'reinstall': (ReinstallInstance, ARGS_ONE,
+                [DEBUG_OPT, FORCE_OPT, os_opt,
+                 make_option("--select-os", dest="select_os",
+                             action="store_true", default=False,
+                             help="Interactive OS reinstall, lists available"
+                             " OS templates for selection")],
                 "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (RemoveInstance, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
