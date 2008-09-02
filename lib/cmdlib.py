@@ -2711,7 +2711,6 @@ class LUQueryInstances(NoHooksLU):
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
-
     self.wanted = _GetWantedInstances(self, self.op.names)
 
   def Exec(self, feedback_fn):
@@ -2810,13 +2809,12 @@ class LUQueryInstances(NoHooksLU):
                        "hvm_cdrom_image_path", "hvm_nic_type",
                        "hvm_disk_type", "vnc_bind_address"):
           val = getattr(instance, field, None)
-          if val is not None:
-            pass
-          elif field in ("hvm_nic_type", "hvm_disk_type",
+          if val is None:
+            if field in ("hvm_nic_type", "hvm_disk_type",
                          "kernel_path", "initrd_path"):
-            val = "default"
-          else:
-            val = "-"
+              val = "default"
+            else:
+              val = "-"
         else:
           raise errors.ParameterError(field)
         iout.append(val)
