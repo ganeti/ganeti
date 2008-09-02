@@ -4150,8 +4150,12 @@ class LUQueryInstanceData(NoHooksLU):
         if instance.network_port is None:
           vnc_console_port = None
         elif instance.vnc_bind_address == constants.BIND_ADDRESS_GLOBAL:
-          vnc_console_port = "%s:%s"% (instance.primary_node,
+          vnc_console_port = "%s:%s" % (instance.primary_node,
                                        instance.network_port)
+        elif instance.vnc_bind_address == constants.LOCALHOST_IP_ADDRESS:
+          vnc_console_port = "%s:%s on node %s" % (instance.vnc_bind_address,
+                                                   instance.network_port,
+                                                   instance.primary_node)
         else:
           vnc_console_port = "%s:%s" % (instance.vnc_bind_address,
                                         instance.network_port)
