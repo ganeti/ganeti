@@ -212,7 +212,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Return a command for connecting to the console of an instance.
 
     """
-    raise NotImplementedError
+    return "xm console %s" % instance.name
+
 
   def Verify(self):
     """Verify the hypervisor.
@@ -359,13 +360,6 @@ class XenPvmHypervisor(XenHypervisor):
                                " file /etc/xen/%s: %s" % (instance.name, err))
     return True
 
-  @staticmethod
-  def GetShellCommandForConsole(instance):
-    """Return a command for connecting to the console of an instance.
-
-    """
-    return "xm console %s" % instance.name
-
 
 class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
@@ -476,20 +470,3 @@ class XenHvmHypervisor(XenHypervisor):
       raise errors.OpExecError("Cannot write Xen instance confile"
                                " file /etc/xen/%s: %s" % (instance.name, err))
     return True
-
-  @staticmethod
-  def GetShellCommandForConsole(instance):
-    """Return a command for connecting to the console of an instance.
-
-    """
-    if instance.network_port is None:
-      raise errors.OpExecError("no console port defined for %s"
-                               % instance.name)
-    elif instance.vnc_bind_address == constants.BIND_ADDRESS_GLOBAL:
-      raise errors.OpExecError("no PTY console, connect to %s:%s via VNC"
-                               % (instance.primary_node,
-                                  instance.network_port))
-    else:
-      raise errors.OpExecError("no PTY console, connect to %s:%s via VNC"
-                               % (instance.vnc_bind_address,
-                                  instance.network_port))
