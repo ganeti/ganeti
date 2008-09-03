@@ -14,6 +14,8 @@ Version 1.2.6
     instance will not be able to fail over, if auto_balance is true.
   - documentation fixes
   - sync fields between instance list/modify/add/import
+  - fix a race condition in drbd when the sync speed was set after giving the
+    device a remote peer.
 
 Version 1.2.5
   - note: the allowed size and number of tags per object were reduced
