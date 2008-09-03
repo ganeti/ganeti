@@ -1,6 +1,7 @@
 Version 1.2.6
   - new --hvm-nic-type and --hvm-disk-type flags to control the type of disk
     exported to fully virtualized instances.
+  - provide access to the serial console of HVM instances
   - instance auto_balance flag, set by default. If turned off it will avoid
     warnings on cluster verify if there is not enough memory to fail over an
     instance. in the future it will prevent automatically failing it over when
