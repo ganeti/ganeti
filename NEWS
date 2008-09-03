@@ -1,3 +1,19 @@
+Version 1.2.6
+  - new --hvm-nic-type and --hvm-disk-type flags to control the type of disk
+    exported to fully virtualized instances.
+  - instance auto_balance flag, set by default. If turned off it will avoid
+    warnings on cluster verify if there is not enough memory to fail over an
+    instance. in the future it will prevent automatically failing it over when
+    we will support that.
+  - batcher tool for instance creation, see /tools/README.batcher
+  - gnt-instance reinstall --select-os to interactively select a new operating
+    system when reinstalling an instance.
+  - when changing the memory amount on instance modify a check has been added
+    that the instance will be able to start. also warnings are emitted if the
+    instance will not be able to fail over, if auto_balance is true.
+  - documentation fixes
+  - sync fields between instance list/modify/add/import
+
 Version 1.2.5
   - note: the allowed size and number of tags per object were reduced
   - fix a bug in “gnt-cluster verify” with inconsistent volume groups
