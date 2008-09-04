@@ -666,7 +666,10 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("usb = 1\n")
     config.write("usbdevice = 'tablet'\n")
     config.write("vnc = 1\n")
-    config.write("vnclisten = '%s'\n" % instance.vnc_bind_address)
+    if instance.vnc_bind_address is None:
+      config.write("vnclisten = '%s'\n" % constants.VNC_DEFAULT_BIND_ADDRESS)
+    else:
+      config.write("vnclisten = '%s'\n" % instance.vnc_bind_address)
 
     if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
       display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
