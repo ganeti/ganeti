@@ -432,7 +432,8 @@ class Burner(object):
           opts.disk_template in constants.DTS_NET_MIRROR) :
         self.ReplaceDisks2()
 
-      self.GrowDisks()
+      if opts.disk_template != constants.DT_DISKLESS:
+        self.GrowDisks()
 
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
         self.Failover()
