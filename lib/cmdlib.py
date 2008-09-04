@@ -4457,7 +4457,7 @@ class LUQueryExports(NoHooksLU):
   """Query the exports list
 
   """
-  _OP_REQP = []
+  _OP_REQP = ['nodes']
 
   def CheckPrereq(self):
     """Check that the nodelist contains only existing nodes.
