@@ -4587,8 +4587,7 @@ class LUExportInstance(LogicalUnit):
     # if we proceed the backup would be removed because OpQueryExports
     # substitutes an empty list with the full cluster node list.
     if nodelist:
-      op = opcodes.OpQueryExports(nodes=nodelist)
-      exportlist = self.proc.ChainOpCode(op)
+      exportlist = rpc.call_export_list(nodelist)
       for node in exportlist:
         if instance.name in exportlist[node]:
           if not rpc.call_export_remove(node, instance.name):
@@ -4619,8 +4618,7 @@ class LURemoveExport(NoHooksLU):
       fqdn_warn = True
       instance_name = self.op.instance_name
 
-    op = opcodes.OpQueryExports(nodes=[])
-    exportlist = self.proc.ChainOpCode(op)
+    exportlist = rpc.call_export_list(self.cfg.GetNodeList())
     found = False
     for node in exportlist:
       if instance_name in exportlist[node]:
