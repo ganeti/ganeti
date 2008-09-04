@@ -322,17 +322,17 @@ def _GetWantedNodes(lu, nodes):
   if not isinstance(nodes, list):
     raise errors.OpPrereqError("Invalid argument type 'nodes'")
 
-  if nodes:
-    wanted = []
+  if not nodes:
+    raise errors.ProgrammerError("_GetWantedNodes should only be called with a"
+      " non-empty list of nodes whose name is to be expanded.")
 
-    for name in nodes:
-      node = lu.cfg.ExpandNodeName(name)
-      if node is None:
-        raise errors.OpPrereqError("No such node name '%s'" % name)
-      wanted.append(node)
+  wanted = []
+  for name in nodes:
+    node = lu.cfg.ExpandNodeName(name)
+    if node is None:
+      raise errors.OpPrereqError("No such node name '%s'" % name)
+    wanted.append(node)
 
-  else:
-    wanted = lu.cfg.GetNodeList()
   return utils.NiceSort(wanted)
 
 
