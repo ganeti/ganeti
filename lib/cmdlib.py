@@ -1489,6 +1489,20 @@ class LUQueryNodeVolumes(NoHooksLU):
 
   """
   _OP_REQP = ["nodes", "output_fields"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    _CheckOutputFields(static=["node"],
+                       dynamic=["phys", "vg", "name", "size", "instance"],
+                       selected=self.op.output_fields)
+
+    self.needed_locks = {}
+    self.share_locks[locking.LEVEL_NODE] = 1
+    if not self.op.nodes:
+      self.needed_locks[locking.LEVEL_NODE] = None
+    else:
+      self.needed_locks[locking.LEVEL_NODE] = \
+        _GetWantedNodes(self, self.op.nodes)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1496,12 +1510,7 @@ class LUQueryNodeVolumes(NoHooksLU):
     This checks that the fields required are valid output fields.
 
     """
-    self.nodes = _GetWantedNodes(self, self.op.nodes)
-
-    _CheckOutputFields(static=["node"],
-                       dynamic=["phys", "vg", "name", "size", "instance"],
-                       selected=self.op.output_fields)
-
+    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
@@ -4464,12 +4473,22 @@ class LUQueryExports(NoHooksLU):
 
   """
   _OP_REQP = ['nodes']
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+    self.share_locks[locking.LEVEL_NODE] = 1
+    if not self.op.nodes:
+      self.needed_locks[locking.LEVEL_NODE] = None
+    else:
+      self.needed_locks[locking.LEVEL_NODE] = \
+        _GetWantedNodes(self, self.op.nodes)
 
   def CheckPrereq(self):
-    """Check that the nodelist contains only existing nodes.
+    """Check prerequisites.
 
     """
-    self.nodes = _GetWantedNodes(self, getattr(self.op, "nodes", None))
+    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
 
   def Exec(self, feedback_fn):
     """Compute the list of all the exported system images.
