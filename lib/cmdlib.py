@@ -1218,13 +1218,9 @@ class LUDiagnoseOS(NoHooksLU):
 
   """
   _OP_REQP = ["output_fields", "names"]
+  REQ_BGL = False
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This always succeeds, since this is a pure query LU.
-
-    """
+  def ExpandNames(self):
     if self.op.names:
       raise errors.OpPrereqError("Selective OS query not supported")
 
@@ -1232,6 +1228,16 @@ class LUDiagnoseOS(NoHooksLU):
     _CheckOutputFields(static=[],
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
+
+    # Lock all nodes, in shared mode
+    self.needed_locks = {}
+    self.share_locks[locking.LEVEL_NODE] = 1
+    self.needed_locks[locking.LEVEL_NODE] = None
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
 
   @staticmethod
   def _DiagnoseByOS(node_list, rlist):
@@ -1268,7 +1274,7 @@ class LUDiagnoseOS(NoHooksLU):
     """Compute the list of OSes.
 
     """
-    node_list = self.cfg.GetNodeList()
+    node_list = self.acquired_locks[locking.LEVEL_NODE]
     node_data = rpc.call_os_diagnose(node_list)
     if node_data == False:
       raise errors.OpExecError("Can't gather the list of OSes")
