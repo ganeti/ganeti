@@ -1391,8 +1391,8 @@ class LUQueryNodes(NoHooksLU):
     if not self.op.names:
       self.needed_locks[locking.LEVEL_NODE] = None
     else:
-       self.needed_locks[locking.LEVEL_NODE] = \
-         _GetWantedNodes(self, self.op.names)
+      self.needed_locks[locking.LEVEL_NODE] = \
+        _GetWantedNodes(self, self.op.names)
 
   def CheckPrereq(self):
     """Check prerequisites.
