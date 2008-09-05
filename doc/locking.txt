@@ -1,10 +1,15 @@
-Introduction:
+Ganeti locking
+==============
+
+Introduction
+------------
 
 This document describes lock order dependencies in Ganeti.
 It is divided by functional sections
 
 
-Opcode Execution Locking:
+Opcode Execution Locking
+------------------------
 
 These locks are declared by Logical Units (LUs) (in cmdlib.py) and acquired by
 the Processor (in mcpu.py) with the aid of the Ganeti Locking Library
@@ -31,3 +36,33 @@ to execute on the nodes in parallel with other operations (but not necessarily
 concurrently with itself on the same file, as inside the ConfigWriter this is
 called with the internal config lock held.
 
+
+Job Queue Locking
+-----------------
+
+The job queue is designed to be thread-safe. This means that its public
+functions can be called from any thread. One must only pay attention not to
+call the job queue from functions called by the queue itself (e.g. logical
+units).
+
+The single queue lock is used from all classes involved in the queue handling.
+During development we tried to split locks, but demmed it to be too dangerous
+and difficicult at the time. Once the lock is held, all functions called must
+not grab the queue lock again (e.g. call only functions with a ``Unlocked``
+suffix).
+
+In the job queue worker (``_JobQueueWorker``), the lock must be released before
+calling the LU processor. Otherwise a deadlock can occur when log messages are
+added to opcode results.
+
+
+Node Daemon Locking
+-------------------
+
+The node daemon contains a lock for the job queue. In order to avoid conflicts
+and/or corruption when an eventual master daemon or another node daemon is
+running, it must be held for all job queue operations
+
+There's one special case for the node daemon running on the master node. If
+grabbing the lock in exclusive fails on startup, the code assumes all checks
+have been done by the process keeping the lock.
