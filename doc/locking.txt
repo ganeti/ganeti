@@ -1,4 +1,4 @@
-﻿Introduction:
+Introduction:
 
 This document describes lock order dependencies in Ganeti.
 It is divided by functional sections
