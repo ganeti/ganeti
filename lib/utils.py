@@ -1168,33 +1168,40 @@ def CheckVolumeGroupSize(vglist, vgname, minsize):
   return None
 
 
-def SplitTime(seconds):
+def SplitTime(value):
   """Splits time as floating point number into a tuple.
 
-  @param seconds: Time in seconds
-  @type seconds: int or float
-  @return: Tuple containing (seconds, milliseconds)
+  @param value: Time in seconds
+  @type value: int or float
+  @return: Tuple containing (seconds, microseconds)
 
   """
-  seconds = round(seconds, 3)
-  (seconds, fraction) = divmod(seconds, 1.0)
-  return (int(seconds), int(round(fraction * 1000, 0)))
+  (seconds, microseconds) = divmod(int(value * 1000000), 1000000)
+
+  assert 0 <= seconds, \
+    "Seconds must be larger than or equal to 0, but are %s" % seconds
+  assert 0 <= microseconds <= 999999, \
+    "Microseconds must be 0-999999, but are %s" % microseconds
+
+  return (int(seconds), int(microseconds))
 
 
 def MergeTime(timetuple):
   """Merges a tuple into time as a floating point number.
 
-  @param timetuple: Time as tuple, (seconds, milliseconds)
+  @param timetuple: Time as tuple, (seconds, microseconds)
   @type timetuple: tuple
   @return: Time as a floating point number expressed in seconds
 
   """
-  (seconds, milliseconds) = timetuple
+  (seconds, microseconds) = timetuple
 
-  assert 0 <= seconds, "Seconds must be larger than 0"
-  assert 0 <= milliseconds <= 999, "Milliseconds must be 0-999"
+  assert 0 <= seconds, \
+    "Seconds must be larger than or equal to 0, but are %s" % seconds
+  assert 0 <= microseconds <= 999999, \
+    "Microseconds must be 0-999999, but are %s" % microseconds
 
-  return float(seconds) + (float(1) / 1000 * milliseconds)
+  return float(seconds) + (float(microseconds) * 0.000001)
 
 
 def LockedMethod(fn):

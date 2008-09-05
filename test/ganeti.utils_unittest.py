@@ -783,22 +783,26 @@ class TestTimeFunctions(unittest.TestCase):
 
   def runTest(self):
     self.assertEqual(utils.SplitTime(1), (1, 0))
-    self.assertEqual(utils.SplitTime(1.5), (1, 500))
-    self.assertEqual(utils.SplitTime(1218448917.4809151), (1218448917, 481))
-    self.assertEqual(utils.SplitTime(123.48012), (123, 480))
-    self.assertEqual(utils.SplitTime(123.9995), (124, 0))
-    self.assertEqual(utils.SplitTime(123.999999999), (124, 0))
+    self.assertEqual(utils.SplitTime(1.5), (1, 500000))
+    self.assertEqual(utils.SplitTime(1218448917.4809151), (1218448917, 480915))
+    self.assertEqual(utils.SplitTime(123.48012), (123, 480120))
+    self.assertEqual(utils.SplitTime(123.9996), (123, 999600))
+    self.assertEqual(utils.SplitTime(123.9995), (123, 999500))
+    self.assertEqual(utils.SplitTime(123.9994), (123, 999400))
+    self.assertEqual(utils.SplitTime(123.999999999), (123, 999999))
+
+    self.assertRaises(AssertionError, utils.SplitTime, -1)
 
     self.assertEqual(utils.MergeTime((1, 0)), 1.0)
-    self.assertEqual(utils.MergeTime((1, 500)), 1.5)
-    self.assertEqual(utils.MergeTime((1218448917, 500)), 1218448917.5)
+    self.assertEqual(utils.MergeTime((1, 500000)), 1.5)
+    self.assertEqual(utils.MergeTime((1218448917, 500000)), 1218448917.5)
 
-    self.assertEqual(round(utils.MergeTime((1218448917, 481)), 3), 1218448917.481)
-    self.assertEqual(round(utils.MergeTime((1, 801)), 3), 1.801)
+    self.assertEqual(round(utils.MergeTime((1218448917, 481000)), 3), 1218448917.481)
+    self.assertEqual(round(utils.MergeTime((1, 801000)), 3), 1.801)
 
     self.assertRaises(AssertionError, utils.MergeTime, (0, -1))
-    self.assertRaises(AssertionError, utils.MergeTime, (0, 1000))
-    self.assertRaises(AssertionError, utils.MergeTime, (0, 9999))
+    self.assertRaises(AssertionError, utils.MergeTime, (0, 1000000))
+    self.assertRaises(AssertionError, utils.MergeTime, (0, 9999999))
     self.assertRaises(AssertionError, utils.MergeTime, (-1, 0))
     self.assertRaises(AssertionError, utils.MergeTime, (-9999, 0))
 
