@@ -563,6 +563,7 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     return backend.JobQueueUpdate(file_name, content)
 
   @staticmethod
+  @_RequireJobQueueLock
   def perspective_jobqueue_purge(params):
     """Purge job queue.
 
