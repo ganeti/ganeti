@@ -237,9 +237,6 @@ def main():
 
   """
   parser = optparse.OptionParser(usage="%prog [options] <config-file>")
-  parser.add_option('--dry-run', dest='dry_run',
-      action="store_true",
-      help="Show what would be done")
   parser.add_option('--yes-do-it', dest='yes_do_it',
       action="store_true",
       help="Really execute the tests")

@@ -111,13 +111,7 @@ def GetSSHCommand(node, cmd, strict=True):
   args.append('-oClearAllForwardings=yes')
   args.append('-oForwardAgent=yes')
   args.append(node)
-
-  if qa_config.options.dry_run:
-    prefix = 'exit 0; '
-  else:
-    prefix = ''
-
-  args.append(prefix + cmd)
+  args.append(cmd)
 
   print 'SSH:', utils.ShellQuoteArgs(args)
 
