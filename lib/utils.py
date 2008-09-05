@@ -1259,36 +1259,64 @@ class FileLock(object):
       self.fd.close()
       self.fd = None
 
-  def _flock(self, flag, blocking, errmsg):
+  def _flock(self, flag, blocking, timeout, errmsg):
+    """Wrapper for fcntl.flock.
+
+    @type flag: int
+    @param flag: Operation flag
+    @type blocking: bool
+    @param blocking: Whether the operation should be done in blocking mode.
+    @type timeout: None or float
+    @param timeout: For how long the operation should be retried (implies
+                    non-blocking mode).
+    @type errmsg: string
+    @param errmsg: Error message in case operation fails.
+
+    """
     assert self.fd, "Lock was closed"
+    assert timeout is None or timeout >= 0, \
+      "If specified, timeout must be positive"
 
-    if not blocking:
+    if timeout is not None:
       flag |= fcntl.LOCK_NB
+      timeout_end = time.time() + timeout
 
-    try:
-      fcntl.flock(self.fd, flag)
-    except IOError, err:
-      if err.errno in (errno.EAGAIN, ):
-        raise errors.LockError(errmsg)
-      else:
-        logging.exception("fcntl.flock failed")
-        raise
+    # Blocking doesn't have effect with timeout
+    elif not blocking:
+      flag |= fcntl.LOCK_NB
+      timeout_end = None
 
-  def Exclusive(self, blocking=False):
+    retry = True
+    while retry:
+      try:
+        fcntl.flock(self.fd, flag)
+        retry = False
+      except IOError, err:
+        if err.errno in (errno.EAGAIN, ):
+          if timeout_end is not None and time.time() < timeout_end:
+            # Wait before trying again
+            time.sleep(max(0.1, min(1.0, timeout)))
+          else:
+            raise errors.LockError(errmsg)
+        else:
+          logging.exception("fcntl.flock failed")
+          raise
+
+  def Exclusive(self, blocking=False, timeout=None):
     """Locks the file in exclusive mode.
 
     """
-    self._flock(fcntl.LOCK_EX, blocking,
+    self._flock(fcntl.LOCK_EX, blocking, timeout,
                 "Failed to lock %s in exclusive mode" % self.filename)
 
-  def Shared(self, blocking=False):
+  def Shared(self, blocking=False, timeout=None):
     """Locks the file in shared mode.
 
     """
-    self._flock(fcntl.LOCK_SH, blocking,
+    self._flock(fcntl.LOCK_SH, blocking, timeout,
                 "Failed to lock %s in shared mode" % self.filename)
 
-  def Unlock(self, blocking=True):
+  def Unlock(self, blocking=True, timeout=None):
     """Unlocks the file.
 
     According to "man flock", unlocking can also be a nonblocking operation:
@@ -1296,7 +1324,7 @@ class FileLock(object):
     operations"
 
     """
-    self._flock(fcntl.LOCK_UN, blocking,
+    self._flock(fcntl.LOCK_UN, blocking, timeout,
                 "Failed to unlock %s" % self.filename)
 
 
