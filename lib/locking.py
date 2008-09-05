@@ -298,6 +298,11 @@ class SharedLock:
       self.__lock.release()
 
 
+# Whenever we want to acquire a full LockSet we pass None as the value to acquire.
+# Hide this behing this nicely named constant.
+ALL_SET = None
+
+
 class LockSet:
   """Implements a set of locks.
 

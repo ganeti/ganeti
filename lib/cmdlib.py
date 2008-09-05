@@ -126,9 +126,7 @@ class LogicalUnit(object):
       - Use an empty dict if you don't need any lock
       - If you don't need any lock at a particular level omit that level
       - Don't put anything for the BGL level
-      - If you want all locks at a level use None as a value
-        (this reflects what LockSet does, and will be replaced before
-        CheckPrereq with the full list of nodes that have been locked)
+      - If you want all locks at a level use locking.ALL_SET as a value
 
     If you need to share locks (rather than acquire them exclusively) at one
     level you can modify self.share_locks, setting a true value (usually 1) for
@@ -137,7 +135,7 @@ class LogicalUnit(object):
     Examples:
     # Acquire all nodes and one instance
     self.needed_locks = {
-      locking.LEVEL_NODE: None,
+      locking.LEVEL_NODE: locking.ALL_SET,
       locking.LEVEL_INSTANCES: ['instance1.example.tld'],
     }
     # Acquire just two nodes
@@ -1232,7 +1230,7 @@ class LUDiagnoseOS(NoHooksLU):
     # Lock all nodes, in shared mode
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_NODE] = 1
-    self.needed_locks[locking.LEVEL_NODE] = None
+    self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1395,7 +1393,7 @@ class LUQueryNodes(NoHooksLU):
     # that we need atomic ways to get info for a group of nodes from the
     # config, though.
     if not self.op.names:
-      self.needed_locks[locking.LEVEL_NODE] = None
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
     else:
       self.needed_locks[locking.LEVEL_NODE] = \
         _GetWantedNodes(self, self.op.names)
@@ -1499,7 +1497,7 @@ class LUQueryNodeVolumes(NoHooksLU):
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_NODE] = 1
     if not self.op.nodes:
-      self.needed_locks[locking.LEVEL_NODE] = None
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
     else:
       self.needed_locks[locking.LEVEL_NODE] = \
         _GetWantedNodes(self, self.op.nodes)
@@ -2504,7 +2502,7 @@ class LUQueryInstances(NoHooksLU):
     # dynamic fields. For that we need atomic ways to get info for a group of
     # instances from the config, though.
     if not self.op.names:
-      self.needed_locks[locking.LEVEL_INSTANCE] = None # Acquire all
+      self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
     else:
       self.needed_locks[locking.LEVEL_INSTANCE] = \
         _GetWantedInstances(self, self.op.names)
@@ -4479,7 +4477,7 @@ class LUQueryExports(NoHooksLU):
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_NODE] = 1
     if not self.op.nodes:
-      self.needed_locks[locking.LEVEL_NODE] = None
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
     else:
       self.needed_locks[locking.LEVEL_NODE] = \
         _GetWantedNodes(self, self.op.nodes)
