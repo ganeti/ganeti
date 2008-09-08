@@ -4519,6 +4519,23 @@ class LUExportInstance(LogicalUnit):
   HPATH = "instance-export"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "target_node", "shutdown"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+    # FIXME: lock only instance primary and destination node
+    #
+    # Sad but true, for now we have do lock all nodes, as we don't know where
+    # the previous export might be, and and in this LU we search for it and
+    # remove it from its current node. In the future we could fix this by:
+    #  - making a tasklet to search (share-lock all), then create the new one,
+    #    then one to remove, after
+    #  - removing the removal operation altoghether
+    self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+
+  def DeclareLocks(self, level):
+    """Last minute lock declaration."""
+    # All nodes are locked anyway, so nothing to do here.
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4541,20 +4558,16 @@ class LUExportInstance(LogicalUnit):
     This checks that the instance and node names are valid.
 
     """
-    instance_name = self.cfg.ExpandInstanceName(self.op.instance_name)
+    instance_name = self.op.instance_name
     self.instance = self.cfg.GetInstanceInfo(instance_name)
-    if self.instance is None:
-      raise errors.OpPrereqError("Instance '%s' not found" %
-                                 self.op.instance_name)
+    assert self.instance is not None, \
+          "Cannot retrieve locked instance %s" % self.op.instance_name
 
-    # node verification
-    dst_node_short = self.cfg.ExpandNodeName(self.op.target_node)
-    self.dst_node = self.cfg.GetNodeInfo(dst_node_short)
+    self.dst_node = self.cfg.GetNodeInfo(
+      self.cfg.ExpandNodeName(self.op.target_node))
 
-    if self.dst_node is None:
-      raise errors.OpPrereqError("Destination node '%s' is unknown." %
-                                 self.op.target_node)
-    self.op.target_node = self.dst_node.name
+    assert self.dst_node is not None, \
+          "Cannot retrieve locked node %s" % self.op.target_node
 
     # instance disk type verification
     for disk in self.instance.disks:
