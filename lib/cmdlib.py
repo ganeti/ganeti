@@ -2113,8 +2113,8 @@ class LURebootInstance(LogicalUnit):
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
-      # FIXME: lock only primary on (not constants.INSTANCE_REBOOT_FULL)
-      self._LockInstancesNodes()
+      primary_only = not constants.INSTANCE_REBOOT_FULL
+      self._LockInstancesNodes(primary_only=primary_only)
 
   def BuildHooksEnv(self):
     """Build hooks env.
