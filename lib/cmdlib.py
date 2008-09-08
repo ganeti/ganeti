@@ -5109,7 +5109,7 @@ class IAllocator(object):
 
     result = call_fn(self.sstore.GetMasterNode(), name, self.in_text)
 
-    if not isinstance(result, tuple) or len(result) != 4:
+    if not isinstance(result, (list, tuple)) or len(result) != 4:
       raise errors.OpExecError("Invalid result from master iallocator runner")
 
     rcode, stdout, stderr, fail = result
