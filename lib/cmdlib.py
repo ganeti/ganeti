@@ -4069,7 +4069,7 @@ class LUGrowDisk(LogicalUnit):
     for node in (instance.secondary_nodes + (instance.primary_node,)):
       self.cfg.SetDiskID(disk, node)
       result = rpc.call_blockdev_grow(node, disk, self.op.amount)
-      if not result or not isinstance(result, tuple) or len(result) != 2:
+      if not result or not isinstance(result, (list, tuple)) or len(result) != 2:
         raise errors.OpExecError("grow request failed to node %s" % node)
       elif not result[0]:
         raise errors.OpExecError("grow request failed to node %s: %s" %
