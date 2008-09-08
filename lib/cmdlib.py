@@ -261,7 +261,7 @@ class LogicalUnit(object):
     self.needed_locks[locking.LEVEL_INSTANCE] = expanded_name
     self.op.instance_name = expanded_name
 
-  def _LockInstancesNodes(self):
+  def _LockInstancesNodes(self, primary_only=False):
     """Helper function to declare instances' nodes for locking.
 
     This function should be called after locking one or more instances to lock
@@ -280,6 +280,9 @@ class LogicalUnit(object):
     if level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
 
+    @type primary_only: boolean
+    @param primary_only: only lock primary nodes of locked instances
+
     """
     assert locking.LEVEL_NODE in self.recalculate_locks, \
       "_LockInstancesNodes helper function called with no nodes to recalculate"
@@ -293,7 +296,8 @@ class LogicalUnit(object):
     for instance_name in self.acquired_locks[locking.LEVEL_INSTANCE]:
       instance = self.context.cfg.GetInstanceInfo(instance_name)
       wanted_nodes.append(instance.primary_node)
-      wanted_nodes.extend(instance.secondary_nodes)
+      if not primary_only:
+        wanted_nodes.extend(instance.secondary_nodes)
     self.needed_locks[locking.LEVEL_NODE] = wanted_nodes
 
     del self.recalculate_locks[locking.LEVEL_NODE]
