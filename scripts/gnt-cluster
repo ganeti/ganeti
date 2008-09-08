@@ -236,7 +236,7 @@ def VerifyDisks(opts, args):
   """
   op = opcodes.OpVerifyDisks()
   result = SubmitOpCode(op)
-  if not isinstance(result, tuple) or len(result) != 4:
+  if not isinstance(result, (list, tuple)) or len(result) != 4:
     raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
 
   nodes, nlvm, instances, missing = result
