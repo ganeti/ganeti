@@ -3996,6 +3996,16 @@ class LUGrowDisk(LogicalUnit):
   HPATH = "disk-grow"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "disk", "amount"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4020,13 +4030,11 @@ class LUGrowDisk(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name)
+    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
+
     self.instance = instance
-    self.op.instance_name = instance.name
 
     if instance.disk_template not in (constants.DT_PLAIN, constants.DT_DRBD8):
       raise errors.OpPrereqError("Instance's disk layout does not support"
