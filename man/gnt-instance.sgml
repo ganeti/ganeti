@@ -115,7 +115,7 @@
             </group></arg>
           <sbr>
 
-          <arg>--auto_balance <replaceable>AUTO_BALANCE</replaceable></arg>
+          <arg>--auto-balance <replaceable>AUTO_BALANCE</replaceable></arg>
 
           <arg>--no-wait-for-sync</arg>
           <arg>--no-start</arg>
@@ -710,7 +710,7 @@
               <arg><replaceable>initrd_path</replaceable></arg>
             </group> </arg>
           <sbr>
-          <arg>--auto_balance <replaceable>AUTO_BALANCE</replaceable></arg>
+          <arg>--auto-balance <replaceable>AUTO_BALANCE</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
