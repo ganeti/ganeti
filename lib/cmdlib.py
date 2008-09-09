@@ -1958,17 +1958,27 @@ class LUDeactivateInstanceDisks(NoHooksLU):
 
     """
     instance = self.instance
-    ins_l = rpc.call_instance_list([instance.primary_node])
-    ins_l = ins_l[instance.primary_node]
-    if not type(ins_l) is list:
-      raise errors.OpExecError("Can't contact node '%s'" %
-                               instance.primary_node)
+    _SafeShutdownInstanceDisks(instance, self.cfg)
 
-    if self.instance.name in ins_l:
-      raise errors.OpExecError("Instance is running, can't shutdown"
-                               " block devices.")
 
-    _ShutdownInstanceDisks(instance, self.cfg)
+def _SafeShutdownInstanceDisks(instance, cfg):
+  """Shutdown block devices of an instance.
+
+  This function checks if an instance is running, before calling
+  _ShutdownInstanceDisks.
+
+  """
+  ins_l = rpc.call_instance_list([instance.primary_node])
+  ins_l = ins_l[instance.primary_node]
+  if not type(ins_l) is list:
+    raise errors.OpExecError("Can't contact node '%s'" %
+                             instance.primary_node)
+
+  if instance.name in ins_l:
+    raise errors.OpExecError("Instance is running, can't shutdown"
+                             " block devices.")
+
+  _ShutdownInstanceDisks(instance, cfg)
 
 
 def _ShutdownInstanceDisks(instance, cfg, ignore_primary=False):
