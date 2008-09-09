@@ -4145,6 +4145,33 @@ class LUQueryInstanceData(NoHooksLU):
 
   """
   _OP_REQP = ["instances"]
+  REQ_BGL = False
+  def ExpandNames(self):
+    self.needed_locks = {}
+    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
+
+    if not isinstance(self.op.instances, list):
+      raise errors.OpPrereqError("Invalid argument type 'instances'")
+
+    if self.op.instances:
+      self.wanted_names = []
+      for name in self.op.instances:
+        full_name = self.cfg.ExpandInstanceName(name)
+        if full_name is None:
+          raise errors.OpPrereqError("Instance '%s' not known" %
+                                     self.op.instance_name)
+        self.wanted_names.append(full_name)
+      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
+    else:
+      self.wanted_names = None
+      self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
+
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4152,21 +4179,12 @@ class LUQueryInstanceData(NoHooksLU):
     This only checks the optional instance list against the existing names.
 
     """
-    if not isinstance(self.op.instances, list):
-      raise errors.OpPrereqError("Invalid argument type 'instances'")
-    if self.op.instances:
-      self.wanted_instances = []
-      names = self.op.instances
-      for name in names:
-        instance = self.cfg.GetInstanceInfo(self.cfg.ExpandInstanceName(name))
-        if instance is None:
-          raise errors.OpPrereqError("No such instance name '%s'" % name)
-        self.wanted_instances.append(instance)
-    else:
-      self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
-                               in self.cfg.GetInstanceList()]
-    return
+    if self.wanted_names is None:
+      self.wanted_names = self.acquired_locks[locking.LEVEL_INSTANCE]
 
+    self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
+                             in self.wanted_names]
+    return
 
   def _ComputeDiskStatus(self, instance, snode, dev):
     """Compute block device status.
