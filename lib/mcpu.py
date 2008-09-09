@@ -191,49 +191,6 @@ class Processor(object):
 
     return result
 
-  def ChainOpCode(self, op):
-    """Chain and execute an opcode.
-
-    This is used by LUs when they need to execute a child LU.
-
-    Args:
-     - opcode: the opcode to be executed
-
-    """
-    if not isinstance(op, opcodes.OpCode):
-      raise errors.ProgrammerError("Non-opcode instance passed"
-                                   " to ExecOpcode")
-
-    lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
-    if lu_class is None:
-      raise errors.OpCodeUnknown("Unknown opcode")
-
-    if lu_class.REQ_BGL and not self.exclusive_BGL:
-      raise errors.ProgrammerError("LUs which require the BGL cannot"
-                                   " be chained to granular ones.")
-
-    assert lu_class.REQ_BGL, "ChainOpCode is still BGL-only"
-
-    if lu_class.REQ_WSSTORE:
-      sstore = ssconf.WritableSimpleStore()
-    else:
-      sstore = ssconf.SimpleStore()
-
-    #do_hooks = lu_class.HPATH is not None
-    lu = lu_class(self, op, self.context, sstore)
-    lu.CheckPrereq()
-    #if do_hooks:
-    #  hm = HooksMaster(rpc.call_hooks_runner, self, lu)
-    #  h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
-    #  lu.HooksCallBack(constants.HOOKS_PHASE_PRE,
-    #                   h_results, self._feedback_fn, None)
-    result = lu.Exec(self._feedback_fn)
-    #if do_hooks:
-    #  h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
-    #  result = lu.HooksCallBack(constants.HOOKS_PHASE_POST,
-    #                   h_results, self._feedback_fn, result)
-    return result
-
   def LogStep(self, current, total, message):
     """Log a change in LU execution progress.
 
