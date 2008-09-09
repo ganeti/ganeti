@@ -190,6 +190,7 @@ REPLACE_DISK_ALL = "replace_all"
 
 # lock recalculate mode
 LOCKS_REPLACE = 'replace'
+LOCKS_APPEND = 'append'
 
 # instance creation modes
 INSTANCE_CREATE = "create"

@@ -298,7 +298,11 @@ class LogicalUnit(object):
       wanted_nodes.append(instance.primary_node)
       if not primary_only:
         wanted_nodes.extend(instance.secondary_nodes)
-    self.needed_locks[locking.LEVEL_NODE] = wanted_nodes
+
+    if self.recalculate_locks[locking.LEVEL_NODE] == constants.LOCKS_REPLACE:
+      self.needed_locks[locking.LEVEL_NODE] = wanted_nodes
+    elif self.recalculate_locks[locking.LEVEL_NODE] == constants.LOCKS_APPEND:
+      self.needed_locks[locking.LEVEL_NODE].extend(wanted_nodes)
 
     del self.recalculate_locks[locking.LEVEL_NODE]
 
