@@ -3978,8 +3978,7 @@ class LUReplaceDisks(LogicalUnit):
 
     # Activate the instance disks if we're replacing them on a down instance
     if instance.status == "down":
-      op = opcodes.OpActivateInstanceDisks(instance_name=instance.name)
-      self.proc.ChainOpCode(op)
+      _StartInstanceDisks(self.cfg, instance, True)
 
     if instance.disk_template == constants.DT_DRBD8:
       if self.op.remote_node is None:
@@ -3993,8 +3992,7 @@ class LUReplaceDisks(LogicalUnit):
 
     # Deactivate the instance disks if we're replacing them on a down instance
     if instance.status == "down":
-      op = opcodes.OpDeactivateInstanceDisks(instance_name=instance.name)
-      self.proc.ChainOpCode(op)
+      _SafeShutdownInstanceDisks(instance, self.cfg)
 
     return ret
 
