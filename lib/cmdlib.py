@@ -3523,6 +3523,38 @@ class LUReplaceDisks(LogicalUnit):
   HPATH = "mirrors-replace"
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mode", "disks"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
+
+    ia_name = getattr(self.op, "iallocator", None)
+    if ia_name is not None:
+      if self.op.remote_node is not None:
+        raise errors.OpPrereqError("Give either the iallocator or the new"
+                                   " secondary, not both")
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+    elif self.op.remote_node is not None:
+      remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
+      if remote_node is None:
+        raise errors.OpPrereqError("Node '%s' not known" %
+                                   self.op.remote_node)
+      self.op.remote_node = remote_node
+      self.needed_locks[locking.LEVEL_NODE] = [remote_node]
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+    else:
+      self.needed_locks[locking.LEVEL_NODE] = []
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+  def DeclareLocks(self, level):
+    # If we're not already locking all nodes in the set we have to declare the
+    # instance's primary/secondary nodes.
+    if (level == locking.LEVEL_NODE and
+        self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET):
+      self._LockInstancesNodes()
 
   def _RunAllocator(self):
     """Compute a new secondary node using an IAllocator.
@@ -3573,16 +3605,10 @@ class LUReplaceDisks(LogicalUnit):
     This checks that the instance is in the cluster.
 
     """
-    if not hasattr(self.op, "remote_node"):
-      self.op.remote_node = None
-
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name)
+    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
     self.instance = instance
-    self.op.instance_name = instance.name
 
     if instance.disk_template not in constants.DTS_NET_MIRROR:
       raise errors.OpPrereqError("Instance's disk layout is not"
@@ -3597,18 +3623,13 @@ class LUReplaceDisks(LogicalUnit):
 
     ia_name = getattr(self.op, "iallocator", None)
     if ia_name is not None:
-      if self.op.remote_node is not None:
-        raise errors.OpPrereqError("Give either the iallocator or the new"
-                                   " secondary, not both")
       self._RunAllocator()
 
     remote_node = self.op.remote_node
     if remote_node is not None:
-      remote_node = self.cfg.ExpandNodeName(remote_node)
-      if remote_node is None:
-        raise errors.OpPrereqError("Node '%s' not known" %
-                                   self.op.remote_node)
       self.remote_node_info = self.cfg.GetNodeInfo(remote_node)
+      assert self.remote_node_info is not None, \
+        "Cannot retrieve locked node %s" % remote_node
     else:
       self.remote_node_info = None
     if remote_node == instance.primary_node:
@@ -3649,7 +3670,6 @@ class LUReplaceDisks(LogicalUnit):
       if instance.FindDisk(name) is None:
         raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
                                    (name, instance.name))
-    self.op.remote_node = remote_node
 
   def _ExecD8DiskOnly(self, feedback_fn):
     """Replace a disk on the primary or secondary for dbrd8.
