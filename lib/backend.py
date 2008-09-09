@@ -69,16 +69,11 @@ def _CleanDirectory(path, exclude=[]):
       utils.RemoveFile(full_name)
 
 
-def _JobQueuePurge(keep_lock):
+def JobQueuePurge():
   """Removes job queue files and archived jobs
 
   """
-  if keep_lock:
-    exclude = [constants.JOB_QUEUE_LOCK_FILE]
-  else:
-    exclude = []
-
-  _CleanDirectory(constants.QUEUE_DIR, exclude=exclude)
+  _CleanDirectory(constants.QUEUE_DIR, exclude=[constants.JOB_QUEUE_LOCK_FILE])
   _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
 
 
@@ -211,9 +206,7 @@ def LeaveCluster():
 
   """
   _CleanDirectory(constants.DATA_DIR)
-
-  # The lock can be removed because we're going to quit anyway.
-  _JobQueuePurge(keep_lock=False)
+  JobQueuePurge()
 
   try:
     priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
@@ -1715,15 +1708,6 @@ def JobQueueUpdate(file_name, content):
   utils.WriteFile(file_name, data=content)
 
   return True
-
-
-def JobQueuePurge():
-  """Removes job queue files and archived jobs
-
-  """
-  # The lock must not be removed, otherwise another process could create
-  # it again.
-  return _JobQueuePurge(keep_lock=True)
 
 
 def JobQueueRename(old, new):
