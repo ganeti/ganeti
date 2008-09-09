@@ -2034,7 +2034,7 @@ class LUStartupInstance(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -2109,7 +2109,7 @@ class LURebootInstance(LogicalUnit):
                                    constants.INSTANCE_REBOOT_FULL))
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -2183,7 +2183,7 @@ class LUShutdownInstance(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -2235,7 +2235,7 @@ class LUReinstallInstance(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -2512,7 +2512,7 @@ class LUQueryInstances(NoHooksLU):
         _GetWantedInstances(self, self.op.names)
 
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     # TODO: locking of nodes could be avoided when not querying them
@@ -2647,7 +2647,7 @@ class LUFailoverInstance(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -4001,7 +4001,7 @@ class LUGrowDisk(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = 'replace'
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
