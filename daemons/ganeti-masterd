@@ -349,6 +349,64 @@ def ParseOptions():
   return options, args
 
 
+def CheckAgreement():
+  """Check the agreement on who is the master.
+
+  The function uses a very simple algorithm: we must get more positive
+  than negative answers. Since in most of the cases we are the master,
+  we'll use our own config file for getting the node list. In the
+  future we could collect the current node list from our (possibly
+  obsolete) known nodes.
+
+  """
+  myself = utils.HostInfo().name
+  #temp instantiation of a config writer, used only to get the node list
+  cfg = config.ConfigWriter()
+  node_list = cfg.GetNodeList()
+  del cfg
+  try:
+    node_list.remove(myself)
+  except KeyError:
+    pass
+  if not node_list:
+    # either single node cluster, or a misconfiguration, but I won't
+    # break any other node, so I can proceed
+    return True
+  results = rpc.call_master_info(node_list)
+  if not isinstance(results, dict):
+    # this should not happen (unless internal error in rpc)
+    logging.critical("Can't complete rpc call, aborting master startup")
+    return False
+  positive = negative = 0
+  other_masters = {}
+  for node in results:
+    if not isinstance(results[node], (tuple, list)) or len(results[node]) < 3:
+      logging.warning("Can't contact node %s", node)
+      continue
+    master_node = results[node][2]
+    if master_node == myself:
+      positive += 1
+    else:
+      negative += 1
+      if not master_node in other_masters:
+        other_masters[master_node] = 0
+      other_masters[master_node] += 1
+  if positive <= negative:
+    # bad!
+    logging.critical("It seems we are not the master (%d votes for,"
+                     " %d votes against)", positive, negative)
+    if len(other_masters) > 1:
+      logging.critical("The other nodes do not agree on a single master")
+    elif other_masters:
+      # TODO: resync my files from the master
+      logging.critical("It seems the real master is %s",
+                       other_masters.keys()[0])
+    else:
+      logging.critical("Can't contact any node for data, aborting startup")
+    return False
+  return True
+
+
 def main():
   """Main function"""
 
@@ -357,6 +415,10 @@ def main():
   utils.no_fork = True
 
   ssconf.CheckMaster(options.debug)
+
+  # we believe we are the master, let's ask the other nodes...
+  if not CheckAgreement():
+    return
 
   master = IOServer(constants.MASTER_SOCKET, ClientRqHandler)
 
