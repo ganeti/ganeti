@@ -82,18 +82,25 @@ def _JobQueuePurge(keep_lock):
   _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
 
 
-def _GetMasterInfo():
-  """Return the master ip and netdev.
+def GetMasterInfo():
+  """Returns master information.
+
+  This is an utility function to compute master information, either
+  for consumption here or from the node daemon.
+
+  @rtype: tuple
+  @return: (master_netdev, master_ip, master_name)
 
   """
   try:
     ss = ssconf.SimpleStore()
     master_netdev = ss.GetMasterNetdev()
     master_ip = ss.GetMasterIP()
+    master_node = ss.GetMasterNode()
   except errors.ConfigurationError, err:
     logging.exception("Cluster configuration incomplete")
     return (None, None)
-  return (master_netdev, master_ip)
+  return (master_netdev, master_ip, master_node)
 
 
 def StartMaster(start_daemons):
@@ -106,7 +113,7 @@ def StartMaster(start_daemons):
 
   """
   ok = True
-  master_netdev, master_ip = _GetMasterInfo()
+  master_netdev, master_ip, _ = GetMasterInfo()
   if not master_netdev:
     return False
 
@@ -148,7 +155,7 @@ def StopMaster(stop_daemons):
   stop the master daemons (ganet-masterd and ganeti-rapi).
 
   """
-  master_netdev, master_ip = _GetMasterInfo()
+  master_netdev, master_ip, _ = GetMasterInfo()
   if not master_netdev:
     return False
 
