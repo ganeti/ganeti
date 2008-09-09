@@ -498,6 +498,14 @@ class LUVerifyCluster(LogicalUnit):
   HPATH = "cluster-verify"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = ["skip_checks"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {
+      locking.LEVEL_NODE: locking.ALL_SET,
+      locking.LEVEL_INSTANCE: locking.ALL_SET,
+    }
+    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
 
   def _VerifyNode(self, node, file_list, local_cksum, vglist, node_result,
                   remote_version, feedback_fn):
@@ -912,6 +920,14 @@ class LUVerifyDisks(NoHooksLU):
 
   """
   _OP_REQP = []
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {
+      locking.LEVEL_NODE: locking.ALL_SET,
+      locking.LEVEL_INSTANCE: locking.ALL_SET,
+    }
+    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
 
   def CheckPrereq(self):
     """Check prerequisites.
