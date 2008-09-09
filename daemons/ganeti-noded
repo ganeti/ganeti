@@ -52,14 +52,17 @@ def _RequireJobQueueLock(fn):
   """Decorator for job queue manipulating functions.
 
   """
+  QUEUE_LOCK_TIMEOUT = 10
+
   def wrapper(*args, **kwargs):
     # Locking in exclusive, blocking mode because there could be several
     # children running at the same time. Waiting up to 10 seconds.
-    queue_lock.Exclusive(blocking=True, timeout=10)
+    queue_lock.Exclusive(blocking=True, timeout=QUEUE_LOCK_TIMEOUT)
     try:
       return fn(*args, **kwargs)
     finally:
       queue_lock.Unlock()
+
   return wrapper
 
 
