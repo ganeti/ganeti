@@ -136,7 +136,7 @@ class LogicalUnit(object):
     # Acquire all nodes and one instance
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
-      locking.LEVEL_INSTANCES: ['instance1.example.tld'],
+      locking.LEVEL_INSTANCE: ['instance1.example.tld'],
     }
     # Acquire just two nodes
     self.needed_locks = {
