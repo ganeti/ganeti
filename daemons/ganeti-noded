@@ -472,6 +472,12 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """
     return backend.UploadFile(*params)
 
+  @staticmethod
+  def perspective_master_info(params):
+    """Query master information.
+
+    """
+    return backend.GetMasterInfo()
 
   # os -----------------------
 
@@ -526,6 +532,8 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     duration = params[0]
     return utils.TestDelay(duration)
 
+  # file storage ---------------
+
   @staticmethod
   def perspective_file_storage_dir_create(params):
     """Create the file storage directory.
@@ -551,6 +559,8 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     new_file_storage_dir = params[1]
     return backend.RenameFileStorageDir(old_file_storage_dir,
                                         new_file_storage_dir)
+
+  # jobs ------------------------
 
   @staticmethod
   @_RequireJobQueueLock

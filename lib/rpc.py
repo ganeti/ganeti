@@ -384,6 +384,18 @@ def call_node_stop_master(node, stop_daemons):
   return c.getresult().get(node, False)
 
 
+def call_master_info(node_list):
+  """Query master info.
+
+  This is a multi-node call.
+
+  """
+  c = Client("master_info", [])
+  c.connect_list(node_list)
+  c.run()
+  return c.getresult()
+
+
 def call_version(node_list):
   """Query node version.
 
