@@ -237,7 +237,9 @@ class Burner(object):
                                     initrd_path=None,
                                     hvm_boot_order=None,
                                     iallocator=self.opts.iallocator,
-                                    auto_balance=True)
+                                    auto_balance=True,
+                                    hvm_nic_type=constants.HT_HVM_NIC_RTL8139,
+                                    hvm_disk_type=constants.HT_HVM_DEV_IOEMU)
       self.ExecOp(op)
       self.to_rem.append(instance)
 
@@ -369,7 +371,11 @@ class Burner(object):
                                         wait_for_sync=True,
                                         mac="auto",
                                         iallocator=self.opts.iallocator,
-                                        auto_balance=True)
+                                        auto_balance=True,
+                                        hvm_nic_type=
+                                        constants.HT_HVM_NIC_RTL8139,
+                                        hvm_disk_type=
+                                        constants.HT_HVM_DEV_IOEMU)
       erem_op = opcodes.OpRemoveExport(instance_name=instance)
 
       Log("- Export instance %s to node %s" % (instance, enode))
