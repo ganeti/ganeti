@@ -2541,15 +2541,18 @@ class LUQueryInstances(NoHooksLU):
 
   def ExpandNames(self):
     self.dynamic_fields = frozenset(["oper_state", "oper_ram", "status"])
-    _CheckOutputFields(static=["name", "os", "pnode", "snodes",
-                               "admin_state", "admin_ram",
-                               "disk_template", "ip", "mac", "bridge",
-                               "sda_size", "sdb_size", "vcpus", "tags",
-                               "auto_balance",
-                               "network_port", "kernel_path", "initrd_path",
-                               "hvm_boot_order", "hvm_acpi", "hvm_pae",
-                               "hvm_cdrom_image_path", "hvm_nic_type",
-                               "hvm_disk_type", "vnc_bind_address"],
+    self.static_fields = frozenset([
+      "name", "os", "pnode", "snodes",
+      "admin_state", "admin_ram",
+      "disk_template", "ip", "mac", "bridge",
+      "sda_size", "sdb_size", "vcpus", "tags",
+      "auto_balance",
+      "network_port", "kernel_path", "initrd_path",
+      "hvm_boot_order", "hvm_acpi", "hvm_pae",
+      "hvm_cdrom_image_path", "hvm_nic_type",
+      "hvm_disk_type", "vnc_bind_address",
+      ])
+    _CheckOutputFields(static=self.static_fields,
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
@@ -2557,37 +2560,37 @@ class LUQueryInstances(NoHooksLU):
     self.share_locks[locking.LEVEL_INSTANCE] = 1
     self.share_locks[locking.LEVEL_NODE] = 1
 
-    # TODO: we could lock instances (and nodes) only if the user asked for
-    # dynamic fields. For that we need atomic ways to get info for a group of
-    # instances from the config, though.
-    if not self.op.names:
-      self.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
+    if self.op.names:
+      self.wanted = _GetWantedInstances(self, self.op.names)
     else:
-      self.needed_locks[locking.LEVEL_INSTANCE] = \
-        _GetWantedInstances(self, self.op.names)
+      self.wanted = locking.ALL_SET
 
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    self.do_locking = not self.static_fields.issuperset(self.op.output_fields)
+    if self.do_locking:
+      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted
+      self.needed_locks[locking.LEVEL_NODE] = []
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
   def DeclareLocks(self, level):
-    # TODO: locking of nodes could be avoided when not querying them
-    if level == locking.LEVEL_NODE:
+    if level == locking.LEVEL_NODE and self.do_locking:
       self._LockInstancesNodes()
 
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
-    # This of course is valid only if we locked the instances
-    self.wanted = self.acquired_locks[locking.LEVEL_INSTANCE]
+    pass
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
-    instance_names = self.wanted
-    instance_list = [self.cfg.GetInstanceInfo(iname) for iname
-                     in instance_names]
+    all_info = self.cfg.GetAllInstancesInfo()
+    if self.do_locking:
+      instance_names = self.acquired_locks[locking.LEVEL_INSTANCE]
+    else:
+      instance_names = all_info.keys()
+    instance_list = [all_info[iname] for iname in instance_names]
 
     # begin data gathering
 
