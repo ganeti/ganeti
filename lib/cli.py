@@ -47,6 +47,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT", "SUBMIT_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
+           "JobSubmittedException",
            ]
 
 
@@ -374,6 +375,17 @@ def AskUser(text, choices=None):
   return answer
 
 
+class JobSubmittedException(Exception):
+  """Job was submitted, client should exit.
+
+  This exception has one argument, the ID of the job that was
+  submitted. The handler should print this ID.
+
+  This is not an error, just a structured way to exit from clients.
+
+  """
+
+
 def SendJob(ops, cl=None):
   """Function to submit an opcode without waiting for the results.
 
@@ -471,8 +483,8 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
 
   """
   if opts and opts.submit_only:
-    print SendJob([op], cl=cl)
-    sys.exit(0)
+    job_id = SendJob([op], cl=cl)
+    raise JobSubmittedException(job_id)
   else:
     return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn)
 
@@ -546,6 +558,9 @@ def FormatError(err):
   elif isinstance(err, luxi.ProtocolError):
     obuf.write("Unhandled protocol error while talking to the master daemon:\n"
                "%s" % msg)
+  elif isinstance(err, JobSubmittedException):
+    obuf.write("JobID: %s\n" % err.args[0])
+    retcode = 0
   else:
     obuf.write("Unhandled exception: %s" % msg)
   return retcode, obuf.getvalue().rstrip('\n')
