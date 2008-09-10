@@ -539,6 +539,19 @@ class ConfigWriter:
     return self._UnlockedGetNodeList()
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetAllNodesInfo(self):
+    """Get the configuration of all nodes.
+
+    @rtype: dict
+    @returns: dict of (node, node_info), where node_info is what
+              would GetNodeInfo return for the node
+
+    """
+    my_dict = dict([(node, self._UnlockedGetNodeInfo(node))
+                    for node in self._UnlockedGetNodeList()])
+    return my_dict
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def DumpConfig(self):
     """Return the entire configuration of the cluster.
     """
