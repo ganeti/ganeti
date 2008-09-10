@@ -69,8 +69,8 @@ def _ExpandMultiNames(mode, names):
   if mode == _SHUTDOWN_CLUSTER:
     if names:
       raise errors.OpPrereqError("Cluster filter mode takes no arguments")
-    op = opcodes.OpQueryInstances(output_fields=["name"], names=[])
-    idata = SubmitOpCode(op)
+    client = GetClient()
+    idata = client.QueryInstances([], ["name"])
     inames = [row[0] for row in idata]
 
   elif mode in (_SHUTDOWN_NODES_BOTH,
@@ -78,9 +78,8 @@ def _ExpandMultiNames(mode, names):
                 _SHUTDOWN_NODES_SEC):
     if not names:
       raise errors.OpPrereqError("No node names passed")
-    op = opcodes.OpQueryNodes(output_fields=["name", "pinst_list",
-                                             "sinst_list"], names=names)
-    ndata = SubmitOpCode(op)
+    client = GetClient()
+    ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"])
     ipri = [row[1] for row in ndata]
     pri_names = list(itertools.chain(*ipri))
     isec = [row[2] for row in ndata]
@@ -97,8 +96,8 @@ def _ExpandMultiNames(mode, names):
   elif mode == _SHUTDOWN_INSTANCES:
     if not names:
       raise errors.OpPrereqError("No instance names passed")
-    op = opcodes.OpQueryInstances(output_fields=["name"], names=names)
-    idata = SubmitOpCode(op)
+    client = GetClient()
+    idata = client.QueryInstances(names, ["name"])
     inames = [row[0] for row in idata]
 
   else:
