@@ -1405,36 +1405,48 @@ class LUQueryNodes(NoHooksLU):
       "ctotal",
       ])
 
-    _CheckOutputFields(static=["name", "pinst_cnt", "sinst_cnt",
-                               "pinst_list", "sinst_list",
-                               "pip", "sip", "tags"],
+    self.static_fields = frozenset([
+      "name", "pinst_cnt", "sinst_cnt",
+      "pinst_list", "sinst_list",
+      "pip", "sip", "tags",
+      ])
+
+    _CheckOutputFields(static=self.static_fields,
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
 
     self.needed_locks = {}
     self.share_locks[locking.LEVEL_NODE] = 1
-    # TODO: we could lock nodes only if the user asked for dynamic fields. For
-    # that we need atomic ways to get info for a group of nodes from the
-    # config, though.
-    if not self.op.names:
-      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+
+    if self.op.names:
+      self.wanted = _GetWantedNodes(self, self.op.names)
     else:
-      self.needed_locks[locking.LEVEL_NODE] = \
-        _GetWantedNodes(self, self.op.names)
+      self.wanted = locking.ALL_SET
+
+    self.do_locking = not self.static_fields.issuperset(self.op.output_fields)
+    if self.do_locking:
+      # if we don't request only static fields, we need to lock the nodes
+      self.needed_locks[locking.LEVEL_NODE] = self.wanted
+
 
   def CheckPrereq(self):
     """Check prerequisites.
 
     """
-    # This of course is valid only if we locked the nodes
-    self.wanted = self.acquired_locks[locking.LEVEL_NODE]
+    # The validation of the node list is done in the _GetWantedNodes,
+    # if non empty, and if empty, there's no validation to do
+    pass
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
 
     """
-    nodenames = self.wanted
-    nodelist = [self.cfg.GetNodeInfo(name) for name in nodenames]
+    all_info = self.cfg.GetAllNodesInfo()
+    if self.do_locking:
+      nodenames = self.acquired_locks[locking.LEVEL_NODE]
+    else:
+      nodenames = all_info.keys()
+    nodelist = [all_info[name] for name in nodenames]
 
     # begin data gathering
 
