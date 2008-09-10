@@ -469,6 +469,19 @@ class ConfigWriter:
     """
     return self._UnlockedGetInstanceInfo(instance_name)
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetAllInstancesInfo(self):
+    """Get the configuration of all instances.
+
+    @rtype: dict
+    @returns: dict of (instance, instance_info), where instance_info is what
+              would GetInstanceInfo return for the node
+
+    """
+    my_dict = dict([(node, self._UnlockedGetInstanceInfo(node))
+                    for node in self._UnlockedGetInstanceList()])
+    return my_dict
+
   @locking.ssynchronized(_config_lock)
   def AddNode(self, node):
     """Add a node to the configuration.
