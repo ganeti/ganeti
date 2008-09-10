@@ -299,7 +299,7 @@ def AddInstance(opts, args):
                                 hvm_nic_type=opts.hvm_nic_type,
                                 hvm_disk_type=opts.hvm_disk_type)
 
-  SubmitOpCode(op)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -349,7 +349,7 @@ def ReinstallInstance(opts, args):
 
   op = opcodes.OpReinstallInstance(instance_name=instance_name,
                                    os_type=os)
-  SubmitOpCode(op)
+  SubmitOrSend(op, opts)
 
   return 0
 
@@ -374,7 +374,7 @@ def RemoveInstance(opts, args):
 
   op = opcodes.OpRemoveInstance(instance_name=instance_name,
                                 ignore_failures=opts.ignore_failures)
-  SubmitOpCode(op)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -389,8 +389,7 @@ def RenameInstance(opts, args):
   op = opcodes.OpRenameInstance(instance_name=args[0],
                                 new_name=args[1],
                                 ignore_ip=opts.ignore_ip)
-  SubmitOpCode(op)
-
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -405,7 +404,7 @@ def ActivateDisks(opts, args):
   """
   instance_name = args[0]
   op = opcodes.OpActivateInstanceDisks(instance_name=instance_name)
-  disks_info = SubmitOpCode(op)
+  disks_info = SubmitOrSend(op, opts)
   for host, iname, nname in disks_info:
     print "%s:%s:%s" % (host, iname, nname)
   return 0
@@ -420,7 +419,7 @@ def DeactivateDisks(opts, args):
   """
   instance_name = args[0]
   op = opcodes.OpDeactivateInstanceDisks(instance_name=instance_name)
-  SubmitOpCode(op)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -435,7 +434,7 @@ def GrowDisk(opts, args):
   disk = args[1]
   amount = utils.ParseUnit(args[2])
   op = opcodes.OpGrowDisk(instance_name=instance, disk=disk, amount=amount)
-  SubmitOpCode(op)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -488,7 +487,7 @@ def RebootInstance(opts, args):
                                   reboot_type=opts.reboot_type,
                                   ignore_secondaries=opts.ignore_secondaries)
 
-    SubmitOpCode(op)
+    SubmitOrSend(op, opts)
   return 0
 
 
@@ -546,7 +545,7 @@ def ReplaceDisks(opts, args):
   op = opcodes.OpReplaceDisks(instance_name=args[0], disks=disks,
                               remote_node=new_2ndary, mode=mode,
                               iallocator=iallocator)
-  SubmitOpCode(op)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -575,7 +574,7 @@ def FailoverInstance(opts, args):
 
   op = opcodes.OpFailoverInstance(instance_name=instance_name,
                                   ignore_consistency=opts.ignore_consistency)
-  SubmitOpCode(op)
+  SubmitOrSend(op, opts)
   return 0
 
 
@@ -806,7 +805,8 @@ def SetInstanceParams(opts, args):
                                    hvm_disk_type=hvm_disk_type,
                                    force=opts.force)
 
-  result = SubmitOpCode(op)
+  # even if here we process the result, we allow submit only
+  result = SubmitOrSend(op, opts)
 
   if result:
     logger.ToStdout("Modified instance %s" % args[0])
@@ -933,6 +933,7 @@ add_opts = [
   make_option("--vnc-bind-address", dest="vnc_bind_address",
               help="bind address for VNC (IP address)",
               default=None, type="string", metavar="<VNCADDRESS>"),
+  SUBMIT_OPT,
   ]
 
 commands = {
@@ -952,6 +953,7 @@ commands = {
                             action="store_true", default=False,
                             help="Ignore the consistency of the disks on"
                             " the secondary"),
+                SUBMIT_OPT,
                 ],
                "[-f] <instance>",
                "Stops the instance and starts it on the backup node, using"
@@ -971,7 +973,9 @@ commands = {
                  make_option("--select-os", dest="select_os",
                              action="store_true", default=False,
                              help="Interactive OS reinstall, lists available"
-                             " OS templates for selection")],
+                             " OS templates for selection"),
+                 SUBMIT_OPT,
+                 ],
                 "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (RemoveInstance, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
@@ -980,6 +984,7 @@ commands = {
                           help=("Remove the instance from the cluster even"
                                 " if there are failures during the removal"
                                 " process (shutdown, disk removal, etc.)")),
+              SUBMIT_OPT,
               ],
              "[-f] <instance>", "Shuts down the instance and removes it"),
   'rename': (RenameInstance, ARGS_FIXED(2),
@@ -988,6 +993,7 @@ commands = {
                           help="Do not check that the IP of the new name"
                           " is alive",
                           default=False, action="store_true"),
+              SUBMIT_OPT,
               ],
              "<instance> <new_name>", "Rename the instance"),
   'replace-disks': (ReplaceDisks, ARGS_ONE,
@@ -1013,6 +1019,7 @@ commands = {
                                  " <NAME> iallocator plugin (enables"
                                  " secondary node replacement)",
                                  default=None, type="string"),
+                     SUBMIT_OPT,
                      ],
                     "[-s|-p|-n NODE] <instance>",
                     "Replaces all disks for the instance"),
@@ -1075,11 +1082,14 @@ commands = {
               make_option("--vnc-bind-address", dest="vnc_bind_address",
                           help="bind address for VNC (IP address)",
                           default=None, type="string", metavar="<VNCADDRESS>"),
+              SUBMIT_OPT,
               ],
              "<instance>", "Alters the parameters of an instance"),
   'shutdown': (ShutdownInstance, ARGS_ANY,
                [DEBUG_OPT, m_node_opt, m_pri_node_opt, m_sec_node_opt,
-                m_clust_opt, m_inst_opt, m_force_multi],
+                m_clust_opt, m_inst_opt, m_force_multi,
+                SUBMIT_OPT,
+                ],
                "<instance>", "Stops an instance"),
   'startup': (StartupInstance, ARGS_ANY,
               [DEBUG_OPT, FORCE_OPT, m_force_multi,
@@ -1088,6 +1098,7 @@ commands = {
                            default=None, type="string", metavar="<PARAMS>"),
                m_node_opt, m_pri_node_opt, m_sec_node_opt,
                m_clust_opt, m_inst_opt,
+               SUBMIT_OPT,
                ],
             "<instance>", "Starts an instance"),
 
@@ -1105,15 +1116,16 @@ commands = {
                            help="Ignore errors from secondaries"),
                m_node_opt, m_pri_node_opt, m_sec_node_opt,
                m_clust_opt, m_inst_opt,
+               SUBMIT_OPT,
                ],
             "<instance>", "Reboots an instance"),
-  'activate-disks': (ActivateDisks, ARGS_ONE, [DEBUG_OPT],
+  'activate-disks': (ActivateDisks, ARGS_ONE, [DEBUG_OPT, SUBMIT_OPT],
                      "<instance>",
                      "Activate an instance's disks"),
-  'deactivate-disks': (DeactivateDisks, ARGS_ONE, [DEBUG_OPT],
+  'deactivate-disks': (DeactivateDisks, ARGS_ONE, [DEBUG_OPT, SUBMIT_OPT],
                        "<instance>",
                        "Deactivate an instance's disks"),
-  'grow-disk': (GrowDisk, ARGS_FIXED(3), [DEBUG_OPT],
+  'grow-disk': (GrowDisk, ARGS_FIXED(3), [DEBUG_OPT, SUBMIT_OPT],
                 "<instance> <disk> <size>", "Grow an instance's disk"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
                 "<node_name>", "List the tags of the given instance"),
