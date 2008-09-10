@@ -410,6 +410,15 @@ class ConfigWriter:
     """
     self._SetInstanceStatus(instance_name, "down")
 
+  def _UnlockedGetInstanceList(self):
+    """Get the list of instances.
+
+    This function is for internal use, when the config lock is already held.
+
+    """
+    self._OpenConfig()
+    return self._config_data.instances.keys()
+
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceList(self):
     """Get the list of instances.
@@ -419,9 +428,7 @@ class ConfigWriter:
       these contains all the instances, also the ones in Admin_down state
 
     """
-    self._OpenConfig()
-
-    return self._config_data.instances.keys()
+    return self._UnlockedGetInstanceList()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def ExpandInstanceName(self, short_name):
@@ -432,6 +439,19 @@ class ConfigWriter:
 
     return utils.MatchNameComponent(short_name,
                                     self._config_data.instances.keys())
+
+  def _UnlockedGetInstanceInfo(self, instance_name):
+    """Returns informations about an instance.
+
+    This function is for internal use, when the config lock is already held.
+
+    """
+    self._OpenConfig()
+
+    if instance_name not in self._config_data.instances:
+      return None
+
+    return self._config_data.instances[instance_name]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceInfo(self, instance_name):
@@ -447,12 +467,7 @@ class ConfigWriter:
       the instance object
 
     """
-    self._OpenConfig()
-
-    if instance_name not in self._config_data.instances:
-      return None
-
-    return self._config_data.instances[instance_name]
+    return self._UnlockedGetInstanceInfo(instance_name)
 
   @locking.ssynchronized(_config_lock)
   def AddNode(self, node):
