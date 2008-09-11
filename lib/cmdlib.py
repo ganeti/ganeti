@@ -3071,6 +3071,125 @@ class LUCreateInstance(LogicalUnit):
   _OP_REQP = ["instance_name", "mem_size", "disk_size",
               "disk_template", "swap_size", "mode", "start", "vcpus",
               "wait_for_sync", "ip_check", "mac"]
+  REQ_BGL = False
+
+  def _ExpandNode(self, node):
+    """Expands and checks one node name.
+
+    """
+    node_full = self.cfg.ExpandNodeName(node)
+    if node_full is None:
+      raise errors.OpPrereqError("Unknown node %s" % node)
+    return node_full
+
+  def ExpandNames(self):
+    """ExpandNames for CreateInstance.
+
+    Figure out the right locks for instance creation.
+
+    """
+    self.needed_locks = {}
+
+    # set optional parameters to none if they don't exist
+    for attr in ["kernel_path", "initrd_path", "pnode", "snode",
+                 "iallocator", "hvm_boot_order", "hvm_acpi", "hvm_pae",
+                 "hvm_cdrom_image_path", "hvm_nic_type", "hvm_disk_type",
+                 "vnc_bind_address"]:
+      if not hasattr(self.op, attr):
+        setattr(self.op, attr, None)
+
+    # verify creation mode
+    if self.op.mode not in (constants.INSTANCE_CREATE,
+                            constants.INSTANCE_IMPORT):
+      raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
+                                 self.op.mode)
+    # disk template and mirror node verification
+    if self.op.disk_template not in constants.DISK_TEMPLATES:
+      raise errors.OpPrereqError("Invalid disk template name")
+
+    #### instance parameters check
+
+    # instance name verification
+    hostname1 = utils.HostInfo(self.op.instance_name)
+    self.op.instance_name = instance_name = hostname1.name
+
+    # this is just a preventive check, but someone might still add this
+    # instance in the meantime, and creation will fail at lock-add time
+    if instance_name in self.cfg.GetInstanceList():
+      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
+                                 instance_name)
+
+    self.add_locks[locking.LEVEL_INSTANCE] = instance_name
+
+    # ip validity checks
+    ip = getattr(self.op, "ip", None)
+    if ip is None or ip.lower() == "none":
+      inst_ip = None
+    elif ip.lower() == "auto":
+      inst_ip = hostname1.ip
+    else:
+      if not utils.IsValidIP(ip):
+        raise errors.OpPrereqError("given IP address '%s' doesn't look"
+                                   " like a valid IP" % ip)
+      inst_ip = ip
+    self.inst_ip = self.op.ip = inst_ip
+    # used in CheckPrereq for ip ping check
+    self.check_ip = hostname1.ip
+
+    # MAC address verification
+    if self.op.mac != "auto":
+      if not utils.IsValidMac(self.op.mac.lower()):
+        raise errors.OpPrereqError("invalid MAC address specified: %s" %
+                                   self.op.mac)
+
+    # boot order verification
+    if self.op.hvm_boot_order is not None:
+      if len(self.op.hvm_boot_order.strip("acdn")) != 0:
+        raise errors.OpPrereqError("invalid boot order specified,"
+                                   " must be one or more of [acdn]")
+    # file storage checks
+    if (self.op.file_driver and
+        not self.op.file_driver in constants.FILE_DRIVER):
+      raise errors.OpPrereqError("Invalid file driver name '%s'" %
+                                 self.op.file_driver)
+
+    if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
+      raise errors.OpPrereqError("File storage directory path not absolute")
+
+    ### Node/iallocator related checks
+    if [self.op.iallocator, self.op.pnode].count(None) != 1:
+      raise errors.OpPrereqError("One and only one of iallocator and primary"
+                                 " node must be given")
+
+    if self.op.iallocator:
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+    else:
+      self.op.pnode = self._ExpandNode(self.op.pnode)
+      nodelist = [self.op.pnode]
+      if self.op.snode is not None:
+        self.op.snode = self._ExpandNode(self.op.snode)
+        nodelist.append(self.op.snode)
+      self.needed_locks[locking.LEVEL_NODE] = nodelist
+
+    # in case of import lock the source node too
+    if self.op.mode == constants.INSTANCE_IMPORT:
+      src_node = getattr(self.op, "src_node", None)
+      src_path = getattr(self.op, "src_path", None)
+
+      if src_node is None or src_path is None:
+        raise errors.OpPrereqError("Importing an instance requires source"
+                                   " node and path options")
+
+      if not os.path.isabs(src_path):
+        raise errors.OpPrereqError("The source path must be absolute")
+
+      self.op.src_node = src_node = self._ExpandNode(src_node)
+      if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
+        self.needed_locks[locking.LEVEL_NODE].append(src_node)
+
+    else: # INSTANCE_CREATE
+      if getattr(self.op, "os_type", None) is None:
+        raise errors.OpPrereqError("No guest OS specified")
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -3146,36 +3265,14 @@ class LUCreateInstance(LogicalUnit):
     """Check prerequisites.
 
     """
-    # set optional parameters to none if they don't exist
-    for attr in ["kernel_path", "initrd_path", "hvm_boot_order", "pnode",
-                 "iallocator", "hvm_acpi", "hvm_pae", "hvm_cdrom_image_path",
-                 "hvm_nic_type", "hvm_disk_type", "vnc_bind_address"]:
-      if not hasattr(self.op, attr):
-        setattr(self.op, attr, None)
-
-    if self.op.mode not in (constants.INSTANCE_CREATE,
-                            constants.INSTANCE_IMPORT):
-      raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
-                                 self.op.mode)
-
     if (not self.cfg.GetVGName() and
         self.op.disk_template not in constants.DTS_NOT_LVM):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
                                  " instances")
 
     if self.op.mode == constants.INSTANCE_IMPORT:
-      src_node = getattr(self.op, "src_node", None)
-      src_path = getattr(self.op, "src_path", None)
-      if src_node is None or src_path is None:
-        raise errors.OpPrereqError("Importing an instance requires source"
-                                   " node and path options")
-      src_node_full = self.cfg.ExpandNodeName(src_node)
-      if src_node_full is None:
-        raise errors.OpPrereqError("Unknown source node '%s'" % src_node)
-      self.op.src_node = src_node = src_node_full
-
-      if not os.path.isabs(src_path):
-        raise errors.OpPrereqError("The source path must be absolute")
+      src_node = self.op.src_node
+      src_path = self.op.src_path
 
       export_info = rpc.call_export_info(src_node, src_path)
 
@@ -3199,52 +3296,17 @@ class LUCreateInstance(LogicalUnit):
       diskimage = os.path.join(src_path, export_info.get(constants.INISECT_INS,
                                                          'disk0_dump'))
       self.src_image = diskimage
-    else: # INSTANCE_CREATE
-      if getattr(self.op, "os_type", None) is None:
-        raise errors.OpPrereqError("No guest OS specified")
 
-    #### instance parameters check
-
-    # disk template and mirror node verification
-    if self.op.disk_template not in constants.DISK_TEMPLATES:
-      raise errors.OpPrereqError("Invalid disk template name")
-
-    # instance name verification
-    hostname1 = utils.HostInfo(self.op.instance_name)
-
-    self.op.instance_name = instance_name = hostname1.name
-    instance_list = self.cfg.GetInstanceList()
-    if instance_name in instance_list:
-      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 instance_name)
-
-    # ip validity checks
-    ip = getattr(self.op, "ip", None)
-    if ip is None or ip.lower() == "none":
-      inst_ip = None
-    elif ip.lower() == "auto":
-      inst_ip = hostname1.ip
-    else:
-      if not utils.IsValidIP(ip):
-        raise errors.OpPrereqError("given IP address '%s' doesn't look"
-                                   " like a valid IP" % ip)
-      inst_ip = ip
-    self.inst_ip = self.op.ip = inst_ip
+    # ip ping checks (we use the same ip that was resolved in ExpandNames)
 
     if self.op.start and not self.op.ip_check:
       raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
                                  " adding an instance in start mode")
 
     if self.op.ip_check:
-      if utils.TcpPing(hostname1.ip, constants.DEFAULT_NODED_PORT):
+      if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (hostname1.ip, instance_name))
-
-    # MAC address verification
-    if self.op.mac != "auto":
-      if not utils.IsValidMac(self.op.mac.lower()):
-        raise errors.OpPrereqError("invalid MAC address specified: %s" %
-                                   self.op.mac)
+                                   (self.check_ip, instance_name))
 
     # bridge verification
     bridge = getattr(self.op, "bridge", None)
@@ -3253,25 +3315,7 @@ class LUCreateInstance(LogicalUnit):
     else:
       self.op.bridge = bridge
 
-    # boot order verification
-    if self.op.hvm_boot_order is not None:
-      if len(self.op.hvm_boot_order.strip("acdn")) != 0:
-        raise errors.OpPrereqError("invalid boot order specified,"
-                                   " must be one or more of [acdn]")
-    # file storage checks
-    if (self.op.file_driver and
-        not self.op.file_driver in constants.FILE_DRIVER):
-      raise errors.OpPrereqError("Invalid file driver name '%s'" %
-                                 self.op.file_driver)
-
-    if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
-      raise errors.OpPrereqError("File storage directory not a relative"
-                                 " path")
     #### allocator run
-
-    if [self.op.iallocator, self.op.pnode].count(None) != 1:
-      raise errors.OpPrereqError("One and only one of iallocator and primary"
-                                 " node must be given")
 
     if self.op.iallocator is not None:
       self._RunAllocator()
@@ -3279,28 +3323,20 @@ class LUCreateInstance(LogicalUnit):
     #### node related checks
 
     # check primary node
-    pnode = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.pnode))
-    if pnode is None:
-      raise errors.OpPrereqError("Primary node '%s' is unknown" %
-                                 self.op.pnode)
-    self.op.pnode = pnode.name
-    self.pnode = pnode
+    self.pnode = pnode = self.cfg.GetNodeInfo(self.op.pnode)
+    assert self.pnode is not None, \
+      "Cannot retrieve locked node %s" % self.op.pnode
     self.secondaries = []
 
     # mirror node verification
     if self.op.disk_template in constants.DTS_NET_MIRROR:
-      if getattr(self.op, "snode", None) is None:
+      if self.op.snode is None:
         raise errors.OpPrereqError("The networked disk templates need"
                                    " a mirror node")
-
-      snode_name = self.cfg.ExpandNodeName(self.op.snode)
-      if snode_name is None:
-        raise errors.OpPrereqError("Unknown secondary node '%s'" %
-                                   self.op.snode)
-      elif snode_name == pnode.name:
+      if self.op.snode == pnode.name:
         raise errors.OpPrereqError("The secondary node cannot be"
                                    " the primary node.")
-      self.secondaries.append(snode_name)
+      self.secondaries.append(self.op.snode)
 
     req_size = _ComputeDiskSize(self.op.disk_template,
                                 self.op.disk_size, self.op.swap_size)
@@ -3332,7 +3368,6 @@ class LUCreateInstance(LogicalUnit):
     if self.op.kernel_path == constants.VALUE_NONE:
       raise errors.OpPrereqError("Can't set instance kernel to none")
 
-
     # bridge check on primary node
     if not rpc.call_bridges_exist(self.pnode.name, [self.op.bridge]):
       raise errors.OpPrereqError("target bridge '%s' does not exist on"
@@ -3347,6 +3382,7 @@ class LUCreateInstance(LogicalUnit):
 
     # hvm_cdrom_image_path verification
     if self.op.hvm_cdrom_image_path is not None:
+      # FIXME (als): shouldn't these checks happen on the destination node?
       if not os.path.isabs(self.op.hvm_cdrom_image_path):
         raise errors.OpPrereqError("The path to the HVM CDROM image must"
                                    " be an absolute path or None, not %s" %
@@ -3450,8 +3486,9 @@ class LUCreateInstance(LogicalUnit):
     feedback_fn("adding instance %s to cluster config" % instance)
 
     self.cfg.AddInstance(iobj)
-    # Add the new instance to the Ganeti Lock Manager
-    self.context.glm.add(locking.LEVEL_INSTANCE, instance)
+    # Declare that we don't want to remove the instance lock anymore, as we've
+    # added the instance to the config
+    del self.remove_locks[locking.LEVEL_INSTANCE]
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self.cfg, iobj, self.proc)
@@ -3466,8 +3503,8 @@ class LUCreateInstance(LogicalUnit):
     if disk_abort:
       _RemoveDisks(iobj, self.cfg)
       self.cfg.RemoveInstance(iobj.name)
-      # Remove the new instance from the Ganeti Lock Manager
-      self.context.glm.remove(locking.LEVEL_INSTANCE, iobj.name)
+      # Make sure the instance lock gets removed
+      self.remove_locks[locking.LEVEL_INSTANCE] = iobj.name
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
 
