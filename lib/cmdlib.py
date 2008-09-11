@@ -4845,6 +4845,24 @@ class TagsLU(NoHooksLU):
   This is an abstract class which is the parent of all the other tags LUs.
 
   """
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+    if self.op.kind == constants.TAG_NODE:
+      name = self.cfg.ExpandNodeName(self.op.name)
+      if name is None:
+        raise errors.OpPrereqError("Invalid node name (%s)" %
+                                   (self.op.name,))
+      self.op.name = name
+      self.needed_locks[locking.LEVEL_NODE] = name
+    elif self.op.kind == constants.TAG_INSTANCE:
+      name = self.cfg.ExpandInstanceName(self.op.name)
+      if name is None:
+        raise errors.OpPrereqError("Invalid instance name (%s)" %
+                                   (self.op.name,))
+      self.op.name = name
+      self.needed_locks[locking.LEVEL_INSTANCE] = name
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -4852,19 +4870,9 @@ class TagsLU(NoHooksLU):
     if self.op.kind == constants.TAG_CLUSTER:
       self.target = self.cfg.GetClusterInfo()
     elif self.op.kind == constants.TAG_NODE:
-      name = self.cfg.ExpandNodeName(self.op.name)
-      if name is None:
-        raise errors.OpPrereqError("Invalid node name (%s)" %
-                                   (self.op.name,))
-      self.op.name = name
-      self.target = self.cfg.GetNodeInfo(name)
+      self.target = self.cfg.GetNodeInfo(self.op.name)
     elif self.op.kind == constants.TAG_INSTANCE:
-      name = self.cfg.ExpandInstanceName(self.op.name)
-      if name is None:
-        raise errors.OpPrereqError("Invalid instance name (%s)" %
-                                   (self.op.name,))
-      self.op.name = name
-      self.target = self.cfg.GetInstanceInfo(name)
+      self.target = self.cfg.GetInstanceInfo(self.op.name)
     else:
       raise errors.OpPrereqError("Wrong tag type requested (%s)" %
                                  str(self.op.kind))
@@ -4875,6 +4883,7 @@ class LUGetTags(TagsLU):
 
   """
   _OP_REQP = ["kind", "name"]
+  REQ_BGL = False
 
   def Exec(self, feedback_fn):
     """Returns the tag list.
@@ -4888,6 +4897,10 @@ class LUSearchTags(NoHooksLU):
 
   """
   _OP_REQP = ["pattern"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {}
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4907,9 +4920,9 @@ class LUSearchTags(NoHooksLU):
     """
     cfg = self.cfg
     tgts = [("/cluster", cfg.GetClusterInfo())]
-    ilist = [cfg.GetInstanceInfo(name) for name in cfg.GetInstanceList()]
+    ilist = cfg.GetAllInstancesInfo().values()
     tgts.extend([("/instances/%s" % i.name, i) for i in ilist])
-    nlist = [cfg.GetNodeInfo(name) for name in cfg.GetNodeList()]
+    nlist = cfg.GetAllNodesInfo().values()
     tgts.extend([("/nodes/%s" % n.name, n) for n in nlist])
     results = []
     for path, target in tgts:
@@ -4924,6 +4937,7 @@ class LUAddTags(TagsLU):
 
   """
   _OP_REQP = ["kind", "name", "tags"]
+  REQ_BGL = False
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4957,6 +4971,7 @@ class LUDelTags(TagsLU):
 
   """
   _OP_REQP = ["kind", "name", "tags"]
+  REQ_BGL = False
 
   def CheckPrereq(self):
     """Check prerequisites.
