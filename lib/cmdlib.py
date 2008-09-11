@@ -4788,6 +4788,14 @@ class LURemoveExport(NoHooksLU):
 
   """
   _OP_REQP = ["instance_name"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+    # We need all nodes to be locked in order for RemoveExport to work, but we
+    # don't need to lock the instance itself, as nothing will happen to it (and
+    # we can remove exports also for a removed instance)
+    self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4806,7 +4814,7 @@ class LURemoveExport(NoHooksLU):
       fqdn_warn = True
       instance_name = self.op.instance_name
 
-    exportlist = rpc.call_export_list(self.cfg.GetNodeList())
+    exportlist = rpc.call_export_list(self.acquired_locks[locking.LEVEL_NODE])
     found = False
     for node in exportlist:
       if instance_name in exportlist[node]:
