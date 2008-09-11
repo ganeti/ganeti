@@ -460,7 +460,11 @@ def StartupInstance(opts, args):
                                    extra_args=opts.extra_args)
     if multi_on:
       logger.ToStdout("Starting up %s" % name)
-    SubmitOpCode(op)
+    try:
+      SubmitOrSend(op, opts)
+    except JobSubmittedException, err:
+      _, txt = FormatError(err)
+      logger.ToStdout("%s" % txt)
   return 0
 
 
@@ -511,7 +515,11 @@ def ShutdownInstance(opts, args):
     op = opcodes.OpShutdownInstance(instance_name=name)
     if multi_on:
       logger.ToStdout("Shutting down %s" % name)
-    SubmitOpCode(op)
+    try:
+      SubmitOrSend(op, opts)
+    except JobSubmittedException, err:
+      _, txt = FormatError(err)
+      logger.ToStdout("%s" % txt)
   return 0
 
 
