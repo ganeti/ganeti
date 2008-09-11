@@ -745,6 +745,8 @@ class GanetiLockManager:
     """
     return self.__keyring[level]._is_owned()
 
+  is_owned = _is_owned
+
   def _list_owned(self, level):
     """Get the set of owned locks at the given level
 
