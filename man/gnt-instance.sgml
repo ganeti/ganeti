@@ -87,7 +87,7 @@
           <sbr>
 
           <arg>--hvm-disk-type
-          <replaceale>DISKTYPE</replaceable></arg>
+          <replaceable>DISKTYPE</replaceable></arg>
           <sbr>
 
           <arg>--vnc-bind-address
