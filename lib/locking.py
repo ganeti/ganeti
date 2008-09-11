@@ -568,7 +568,7 @@ class LockSet:
     if isinstance(names, basestring):
       names = [names]
 
-    # If we don't already own the set-level lock acquire it in an exclusive way
+    # If we don't already own the set-level lock acquired in an exclusive way
     # we'll get it and note we need to release it later.
     release_lock = False
     if not self.__lock._is_owned():
