@@ -80,9 +80,12 @@ class LogicalUnit(object):
     self.cfg = context.cfg
     self.sstore = sstore
     self.context = context
+    # Dicts used to declare locking needs to mcpu
     self.needed_locks = None
     self.acquired_locks = {}
     self.share_locks = dict(((i, 0) for i in locking.LEVELS))
+    self.add_locks = {}
+    self.remove_locks = {}
     # Used to force good behavior when calling helper functions
     self.recalculate_locks = {}
     self.__ssh = None

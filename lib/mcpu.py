@@ -129,21 +129,40 @@ class Processor(object):
     given LU and its opcodes.
 
     """
+    adding_locks = level in lu.add_locks
+    acquiring_locks = level in lu.needed_locks
     if level not in locking.LEVELS:
       result = self._ExecLU(lu)
-    elif level in lu.needed_locks:
-      # This gives a chance to LUs to make last-minute changes after acquiring
-      # locks at any preceding level.
+    elif adding_locks and acquiring_locks:
+      # We could both acquire and add locks at the same level, but for now we
+      # don't need this, so we'll avoid the complicated code needed.
+      raise NotImplementedError(
+        "Can't declare locks to acquire when adding others")
+    elif adding_locks or acquiring_locks:
       lu.DeclareLocks(level)
-      needed_locks = lu.needed_locks[level]
       share = lu.share_locks[level]
-      # This is always safe to do, as we can't acquire more/less locks than
-      # what was requested.
-      lu.acquired_locks[level] = self.context.glm.acquire(level,
-                                                          needed_locks,
-                                                          shared=share)
+      if acquiring_locks:
+        needed_locks = lu.needed_locks[level]
+        lu.acquired_locks[level] = self.context.glm.acquire(level,
+                                                            needed_locks,
+                                                            shared=share)
+      else: # adding_locks
+        add_locks = lu.add_locks[level]
+        lu.remove_locks[level] = add_locks
+        try:
+          self.context.glm.add(level, add_locks, acquired=1, shared=share)
+        except errors.LockError:
+          raise errors.OpPrereqError(
+            "Coudn't add locks (%s), probably because of a race condition"
+            " with another job, who added them first" % add_locks)
       try:
-        result = self._LockAndExecLU(lu, level + 1)
+        try:
+          if adding_locks:
+            lu.acquired_locks[level] = add_locks
+          result = self._LockAndExecLU(lu, level + 1)
+        finally:
+          if level in lu.remove_locks:
+            self.context.glm.remove(level, lu.remove_locks[level])
       finally:
         if self.context.glm.is_owned(level):
           self.context.glm.release(level)
