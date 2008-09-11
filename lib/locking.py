@@ -390,11 +390,17 @@ class LockSet:
     Used only for debugging purposes.
 
     """
-    self.__lock.acquire(shared=1)
+    # If we don't already own the set-level lock acquired
+    # we'll get it and note we need to release it later.
+    release_lock = False
+    if not self.__lock._is_owned():
+      release_lock = True
+      self.__lock.acquire(shared=1)
     try:
       result = self.__names()
     finally:
-      self.__lock.release()
+      if release_lock:
+        self.__lock.release()
     return set(result)
 
   def acquire(self, names, blocking=1, shared=0):

@@ -393,6 +393,9 @@ class TestLockSet(unittest.TestCase):
   def testAcquireSetLock(self):
     # acquire the set-lock exclusively
     self.assertEquals(self.ls.acquire(None), set(['one', 'two', 'three']))
+    self.assertEquals(self.ls._list_owned(), set(['one', 'two', 'three']))
+    self.assertEquals(self.ls._is_owned(), True)
+    self.assertEquals(self.ls._names(), set(['one', 'two', 'three']))
     # I can still add/remove elements...
     self.assertEquals(self.ls.remove(['two', 'three']), ['two', 'three'])
     self.assert_(self.ls.add('six'))
