@@ -1135,11 +1135,11 @@ commands = {
   'grow-disk': (GrowDisk, ARGS_FIXED(3), [DEBUG_OPT, SUBMIT_OPT],
                 "<instance> <disk> <size>", "Grow an instance's disk"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
-                "<node_name>", "List the tags of the given instance"),
+                "<instance_name>", "List the tags of the given instance"),
   'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
-               "<node_name> tag...", "Add tags to the given instance"),
+               "<instance_name> tag...", "Add tags to the given instance"),
   'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
-                  "<node_name> tag...", "Remove tags from given instance"),
+                  "<instance_name> tag...", "Remove tags from given instance"),
   }
 
 aliases = {
