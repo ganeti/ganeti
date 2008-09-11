@@ -1101,6 +1101,15 @@ class LUSetClusterParams(LogicalUnit):
   HPATH = "cluster-modify"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = []
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    # FIXME: in the future maybe other cluster params won't require checking on
+    # all nodes to be modified.
+    self.needed_locks = {
+      locking.LEVEL_NODE: locking.ALL_SET,
+    }
+    self.share_locks[locking.LEVEL_NODE] = 1
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -1120,9 +1129,10 @@ class LUSetClusterParams(LogicalUnit):
     if the given volume group is valid.
 
     """
+    # FIXME: This only works because there is only one parameter that can be
+    # changed or removed.
     if not self.op.vg_name:
-      instances = [self.cfg.GetInstanceInfo(name)
-                   for name in self.cfg.GetInstanceList()]
+      instances = self.cfg.GetAllInstancesInfo().values()
       for inst in instances:
         for disk in inst.disks:
           if _RecursiveCheckIfLVMBased(disk):
@@ -1131,7 +1141,7 @@ class LUSetClusterParams(LogicalUnit):
 
     # if vg_name not None, checks given volume group on all nodes
     if self.op.vg_name:
-      node_list = self.cfg.GetNodeList()
+      node_list = self.acquired_locks[locking.LEVEL_NODE]
       vglist = rpc.call_vg_list(node_list)
       for node in node_list:
         vgstatus = utils.CheckVolumeGroupSize(vglist[node], self.op.vg_name,
