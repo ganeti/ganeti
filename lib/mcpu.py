@@ -145,9 +145,7 @@ class Processor(object):
       try:
         result = self._LockAndExecLU(lu, level + 1)
       finally:
-        # We need to release the current level if we acquired any lock, or if
-        # we acquired the set-lock (needed_locks is None)
-        if lu.needed_locks[level] is None or lu.acquired_locks[level]:
+        if self.context.glm.is_owned(level):
           self.context.glm.release(level)
     else:
       result = self._LockAndExecLU(lu, level + 1)
