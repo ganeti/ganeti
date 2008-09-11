@@ -560,9 +560,9 @@ class LockSet:
       shared: is the pre-acquisition shared?
 
     """
-
-    assert not self.__lock._is_owned(shared=1), (
-           "Cannot add new elements while sharing the set-lock")
+    # Check we don't already own locks at this level
+    assert not self._is_owned() or self.__lock._is_owned(shared=0), \
+      "Cannot add locks if the set is only partially owned, or shared"
 
     # Support passing in a single resource to add rather than many
     if isinstance(names, basestring):
