@@ -478,8 +478,8 @@ class ConfigWriter:
               would GetInstanceInfo return for the node
 
     """
-    my_dict = dict([(node, self._UnlockedGetInstanceInfo(node))
-                    for node in self._UnlockedGetInstanceList()])
+    my_dict = dict([(instance, self._UnlockedGetInstanceInfo(instance))
+                    for instance in self._UnlockedGetInstanceList()])
     return my_dict
 
   @locking.ssynchronized(_config_lock)
