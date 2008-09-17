@@ -41,15 +41,16 @@ Job Queue Locking
 -----------------
 
 The job queue is designed to be thread-safe. This means that its public
-functions can be called from any thread. One must only pay attention not to
-call the job queue from functions called by the queue itself (e.g. logical
-units).
+functions can be called from any thread. The job queue can be called from
+functions called by the queue itself (e.g. logical units), but special
+attention must be paid not to create deadlocks or an invalid state.
 
 The single queue lock is used from all classes involved in the queue handling.
-During development we tried to split locks, but demmed it to be too dangerous
-and difficicult at the time. Once the lock is held, all functions called must
-not grab the queue lock again (e.g. call only functions with a ``Unlocked``
-suffix).
+During development we tried to split locks, but deemed it to be too dangerous
+and difficult at the time. Job queue functions acquiring the lock can be safely
+called from all the rest of the code, as the lock is released before leaving
+the job queue again. Unlocked functions should only be called from job queue
+related classes (e.g. in jqueue.py) and the lock must be acquired beforehand.
 
 In the job queue worker (``_JobQueueWorker``), the lock must be released before
 calling the LU processor. Otherwise a deadlock can occur when log messages are
