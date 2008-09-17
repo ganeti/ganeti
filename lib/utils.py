@@ -864,6 +864,23 @@ def NewUUID():
     f.close()
 
 
+def ReadFile(file_name, size=None):
+  """Reads a file.
+
+  @type size: None or int
+  @param size: Read at most size bytes
+
+  """
+  f = open(file_name, "r")
+  try:
+    if size is None:
+      return f.read()
+    else:
+      return f.read(size)
+  finally:
+    f.close()
+
+
 def WriteFile(file_name, fn=None, data=None,
               mode=None, uid=-1, gid=-1,
               atime=None, mtime=None, close=True,
