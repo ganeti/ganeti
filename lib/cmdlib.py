@@ -1457,6 +1457,12 @@ class LUQueryNodes(NoHooksLU):
     all_info = self.cfg.GetAllNodesInfo()
     if self.do_locking:
       nodenames = self.acquired_locks[locking.LEVEL_NODE]
+    elif self.wanted != locking.ALL_SET:
+      nodenames = self.wanted
+      missing = set(nodenames).difference(all_info.keys())
+      if missing:
+        raise self.OpExecError(
+          "Some nodes were removed before retrieving their data: %s" % missing)
     else:
       nodenames = all_info.keys()
     nodelist = [all_info[name] for name in nodenames]
@@ -2606,6 +2612,13 @@ class LUQueryInstances(NoHooksLU):
     all_info = self.cfg.GetAllInstancesInfo()
     if self.do_locking:
       instance_names = self.acquired_locks[locking.LEVEL_INSTANCE]
+    elif self.wanted != locking.ALL_SET:
+      instance_names = self.wanted
+      missing = set(instance_names).difference(all_info.keys())
+      if missing:
+        raise self.OpExecError(
+          "Some instances were removed before retrieving their data: %s"
+          % missing)
     else:
       instance_names = all_info.keys()
     instance_list = [all_info[iname] for iname in instance_names]
