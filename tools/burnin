@@ -237,7 +237,6 @@ class Burner(object):
                                     file_driver="loop",
                                     file_storage_dir=None,
                                     iallocator=self.opts.iallocator,
-                                    auto_balance=True,
                                     hvm_nic_type=constants.HT_HVM_NIC_RTL8139,
                                     hvm_disk_type=constants.HT_HVM_DEV_IOEMU)
 
@@ -332,7 +331,6 @@ class Burner(object):
                                         file_storage_dir=None,
                                         file_driver=None,
                                         iallocator=self.opts.iallocator,
-                                        auto_balance=True,
                                         hvm_nic_type=
                                         constants.HT_HVM_NIC_RTL8139,
                                         hvm_disk_type=

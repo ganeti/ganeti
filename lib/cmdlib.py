@@ -2565,7 +2565,6 @@ class LUQueryInstances(NoHooksLU):
       "admin_state", "admin_ram",
       "disk_template", "ip", "mac", "bridge",
       "sda_size", "sdb_size", "vcpus", "tags",
-      "auto_balance",
       "network_port", "kernel_path", "initrd_path",
       "hvm_boot_order", "hvm_acpi", "hvm_pae",
       "hvm_cdrom_image_path", "hvm_nic_type",
