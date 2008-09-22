@@ -229,8 +229,8 @@ class ConfigWriter:
 
     if disk.logical_id is None and disk.physical_id is not None:
       return
-    if disk.dev_type in constants.LDS_DRBD:
-      pnode, snode, port = disk.logical_id
+    if disk.dev_type == constants.LD_DRBD8:
+      pnode, snode, port, pminor, sminor = disk.logical_id
       if node_name not in (pnode, snode):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %
                                         node_name)
@@ -239,12 +239,12 @@ class ConfigWriter:
       if pnode_info is None or snode_info is None:
         raise errors.ConfigurationError("Can't find primary or secondary node"
                                         " for %s" % str(disk))
+      p_data = (pnode_info.secondary_ip, port)
+      s_data = (snode_info.secondary_ip, port)
       if pnode == node_name:
-        disk.physical_id = (pnode_info.secondary_ip, port,
-                            snode_info.secondary_ip, port)
+        disk.physical_id = p_data + s_data + (pminor,)
       else: # it must be secondary, we tested above
-        disk.physical_id = (snode_info.secondary_ip, port,
-                            pnode_info.secondary_ip, port)
+        disk.physical_id = s_data + p_data + (sminor,)
     else:
       disk.physical_id = disk.logical_id
     return

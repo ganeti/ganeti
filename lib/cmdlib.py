@@ -30,6 +30,7 @@ import time
 import tempfile
 import re
 import platform
+import logging
 
 from ganeti import rpc
 from ganeti import ssh
@@ -2909,7 +2910,8 @@ def _GenerateUniqueNames(cfg, exts):
   return results
 
 
-def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name):
+def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name,
+                         p_minor, s_minor):
   """Generate a drbd8 device complete with its children.
 
   """
@@ -2920,8 +2922,9 @@ def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name):
   dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
                           logical_id=(vgname, names[1]))
   drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
-                          logical_id = (primary, secondary, port),
-                          children = [dev_data, dev_meta],
+                          logical_id=(primary, secondary, port,
+                                      p_minor, s_minor),
+                          children=[dev_data, dev_meta],
                           iv_name=iv_name)
   return drbd_dev
 
@@ -2954,12 +2957,17 @@ def _GenerateDiskTemplate(cfg, template_name,
     if len(secondary_nodes) != 1:
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node = secondary_nodes[0]
+    (minor_pa, minor_pb,
+     minor_sa, minor_sb) = [None, None, None, None]
+
     names = _GenerateUniqueNames(cfg, [".sda_data", ".sda_meta",
                                        ".sdb_data", ".sdb_meta"])
     drbd_sda_dev = _GenerateDRBD8Branch(cfg, primary_node, remote_node,
-                                         disk_sz, names[0:2], "sda")
+                                        disk_sz, names[0:2], "sda",
+                                        minor_pa, minor_sa)
     drbd_sdb_dev = _GenerateDRBD8Branch(cfg, primary_node, remote_node,
-                                         swap_sz, names[2:4], "sdb")
+                                        swap_sz, names[2:4], "sdb",
+                                        minor_pb, minor_sb)
     disks = [drbd_sda_dev, drbd_sdb_dev]
   elif template_name == constants.DT_FILE:
     if len(secondary_nodes) != 0:
@@ -4003,8 +4011,11 @@ class LUReplaceDisks(LogicalUnit):
                                  pri_node)
 
     # Step: create new storage
+
+    minors = [None for dev in instance.disks]
+    logging.debug("Allocated minors %s" % (minors,))
     self.proc.LogStep(3, steps_total, "allocate new storage")
-    for dev in instance.disks:
+    for idx, dev in enumerate(instance.disks):
       size = dev.size
       info("adding new local storage on %s for %s" % (new_node, dev.iv_name))
       # since we *always* want to create this LV, we use the
@@ -4017,16 +4028,22 @@ class LUReplaceDisks(LogicalUnit):
                                    " node '%s'" %
                                    (new_lv.logical_id[1], new_node))
 
-      iv_names[dev.iv_name] = (dev, dev.children)
+      iv_names[dev.iv_name] = (dev, dev.children, minors[idx])
 
     self.proc.LogStep(4, steps_total, "changing drbd configuration")
     for dev in instance.disks:
       size = dev.size
       info("activating a new drbd on %s for %s" % (new_node, dev.iv_name))
       # create new devices on new_node
+      new_minor = iv_names[dev.iv_name][2]
+      if pri_node == dev.logical_id[0]:
+        new_logical_id = (pri_node, new_node,
+                          dev.logical_id[2], dev.logical_id[3], new_minor)
+      else:
+        new_logical_id = (new_node, pri_node,
+                          dev.logical_id[2], new_minor, dev.logical_id[4])
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
-                              logical_id=(pri_node, new_node,
-                                          dev.logical_id[2]),
+                              logical_id=new_logical_id,
                               children=dev.children)
       if not _CreateBlockDevOnSecondary(cfg, new_node, instance,
                                         new_drbd, False,
@@ -4048,7 +4065,7 @@ class LUReplaceDisks(LogicalUnit):
       cfg.SetDiskID(dev, pri_node)
       # set the physical (unique in bdev terms) id to None, meaning
       # detach from network
-      dev.physical_id = (None,) * len(dev.physical_id)
+      dev.physical_id = (None, None, None, None, dev.physical_id[4])
       # and 'find' the device, which will 'fix' it to match the
       # standalone state
       if rpc.call_blockdev_find(pri_node, dev):
@@ -4078,6 +4095,7 @@ class LUReplaceDisks(LogicalUnit):
       # it will automatically activate the network, if the physical_id
       # is correct
       cfg.SetDiskID(dev, pri_node)
+      logging.debug("Disk to attach: %s", dev)
       if not rpc.call_blockdev_find(pri_node, dev):
         warning("can't attach drbd %s to new secondary!" % dev.iv_name,
                 "please do a gnt-instance info to see the status of disks")
@@ -4089,14 +4107,14 @@ class LUReplaceDisks(LogicalUnit):
     _WaitForSync(cfg, instance, self.proc, unlock=True)
 
     # so check manually all the devices
-    for name, (dev, old_lvs) in iv_names.iteritems():
+    for name, (dev, old_lvs, _) in iv_names.iteritems():
       cfg.SetDiskID(dev, pri_node)
       is_degr = rpc.call_blockdev_find(pri_node, dev)[5]
       if is_degr:
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
     self.proc.LogStep(6, steps_total, "removing old storage")
-    for name, (dev, old_lvs) in iv_names.iteritems():
+    for name, (dev, old_lvs, _) in iv_names.iteritems():
       info("remove logical volumes for %s" % name)
       for lv in old_lvs:
         cfg.SetDiskID(lv, old_node)
