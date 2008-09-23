@@ -2958,7 +2958,8 @@ def _GenerateDiskTemplate(cfg, template_name,
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node = secondary_nodes[0]
     (minor_pa, minor_pb,
-     minor_sa, minor_sb) = [None, None, None, None]
+     minor_sa, minor_sb) = cfg.AllocateDRBDMinor(
+      [primary_node, primary_node, remote_node, remote_node], instance_name)
 
     names = _GenerateUniqueNames(cfg, [".sda_data", ".sda_meta",
                                        ".sdb_data", ".sdb_meta"])
@@ -3517,6 +3518,7 @@ class LUCreateInstance(LogicalUnit):
     feedback_fn("* creating instance disks...")
     if not _CreateDisks(self.cfg, iobj):
       _RemoveDisks(iobj, self.cfg)
+      self.cfg.ReleaseDRBDMinors(instance)
       raise errors.OpExecError("Device creation failed, reverting...")
 
     feedback_fn("adding instance %s to cluster config" % instance)
@@ -3525,6 +3527,8 @@ class LUCreateInstance(LogicalUnit):
     # Declare that we don't want to remove the instance lock anymore, as we've
     # added the instance to the config
     del self.remove_locks[locking.LEVEL_INSTANCE]
+    # Remove the temp. assignements for the instance's drbds
+    self.cfg.ReleaseDRBDMinors(instance)
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self.cfg, iobj, self.proc)
@@ -4027,7 +4031,10 @@ class LUReplaceDisks(LogicalUnit):
 
 
     # Step 4: dbrd minors and drbd setups changes
-    minors = [None for dev in instance.disks]
+    # after this, we must manually remove the drbd minors on both the
+    # error and the success paths
+    minors = cfg.AllocateDRBDMinor([new_node for dev in instance.disks],
+                                   instance.name)
     logging.debug("Allocated minors %s" % (minors,))
     self.proc.LogStep(4, steps_total, "changing drbd configuration")
     for dev, new_minor in zip(instance.disks, minors):
@@ -4041,12 +4048,15 @@ class LUReplaceDisks(LogicalUnit):
         new_logical_id = (new_node, pri_node,
                           dev.logical_id[2], new_minor, dev.logical_id[4])
       iv_names[dev.iv_name] = (dev, dev.children, new_logical_id)
+      logging.debug("Allocated new_minor: %s, new_logical_id: %s", new_minor,
+                    new_logical_id)
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
                               logical_id=new_logical_id,
                               children=dev.children)
       if not _CreateBlockDevOnSecondary(cfg, new_node, instance,
                                         new_drbd, False,
                                       _GetInstanceInfoText(instance)):
+        self.cfg.ReleaseDRBDMinors(instance.name)
         raise errors.OpExecError("Failed to create new DRBD on"
                                  " node '%s'" % new_node)
 
@@ -4075,6 +4085,7 @@ class LUReplaceDisks(LogicalUnit):
 
     if not done:
       # no detaches succeeded (very unlikely)
+      self.cfg.ReleaseDRBDMinors(instance.name)
       raise errors.OpExecError("Can't detach at least one DRBD from old node")
 
     # if we managed to detach at least one, we update all the disks of
@@ -4084,6 +4095,9 @@ class LUReplaceDisks(LogicalUnit):
       dev.logical_id = new_logical_id
       cfg.SetDiskID(dev, pri_node)
     cfg.Update(instance)
+    # we can remove now the temp minors as now the new values are
+    # written to the config file (and therefore stable)
+    self.cfg.ReleaseDRBDMinors(instance.name)
 
     # and now perform the drbd attach
     info("attaching primary drbds to new secondary (standalone => connected)")

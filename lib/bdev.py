@@ -1243,7 +1243,7 @@ class DRBD8(BaseDRBD):
     the attach if can return success.
 
     """
-    for minor in self._GetUsedDevs():
+    for minor in (self._aminor,):
       info = self._GetDevInfo(self._GetShowData(minor))
       match_l = self._MatchesLocal(info)
       match_r = self._MatchesNet(info)
@@ -1319,7 +1319,9 @@ class DRBD8(BaseDRBD):
     if not result:
       return result
 
-    minor = self._FindUnusedMinor()
+    # TODO: maybe completely tear-down the minor (drbdsetup ... down)
+    # before attaching our own?
+    minor = self._aminor
     need_localdev_teardown = False
     if self._children and self._children[0] and self._children[1]:
       result = self._AssembleLocal(minor, self._children[0].dev_path,
