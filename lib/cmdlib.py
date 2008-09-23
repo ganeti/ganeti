@@ -4011,11 +4011,8 @@ class LUReplaceDisks(LogicalUnit):
                                  pri_node)
 
     # Step: create new storage
-
-    minors = [None for dev in instance.disks]
-    logging.debug("Allocated minors %s" % (minors,))
     self.proc.LogStep(3, steps_total, "allocate new storage")
-    for idx, dev in enumerate(instance.disks):
+    for dev in instance.disks:
       size = dev.size
       info("adding new local storage on %s for %s" % (new_node, dev.iv_name))
       # since we *always* want to create this LV, we use the
@@ -4028,20 +4025,22 @@ class LUReplaceDisks(LogicalUnit):
                                    " node '%s'" %
                                    (new_lv.logical_id[1], new_node))
 
-      iv_names[dev.iv_name] = (dev, dev.children, minors[idx])
 
+    # Step 4: dbrd minors and drbd setups changes
+    minors = [None for dev in instance.disks]
+    logging.debug("Allocated minors %s" % (minors,))
     self.proc.LogStep(4, steps_total, "changing drbd configuration")
-    for dev in instance.disks:
+    for dev, new_minor in zip(instance.disks, minors):
       size = dev.size
       info("activating a new drbd on %s for %s" % (new_node, dev.iv_name))
       # create new devices on new_node
-      new_minor = iv_names[dev.iv_name][2]
       if pri_node == dev.logical_id[0]:
         new_logical_id = (pri_node, new_node,
                           dev.logical_id[2], dev.logical_id[3], new_minor)
       else:
         new_logical_id = (new_node, pri_node,
                           dev.logical_id[2], new_minor, dev.logical_id[4])
+      iv_names[dev.iv_name] = (dev, dev.children, new_logical_id)
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
                               logical_id=new_logical_id,
                               children=dev.children)
@@ -4081,8 +4080,8 @@ class LUReplaceDisks(LogicalUnit):
     # if we managed to detach at least one, we update all the disks of
     # the instance to point to the new secondary
     info("updating instance configuration")
-    for dev in instance.disks:
-      dev.logical_id = (pri_node, new_node) + dev.logical_id[2:]
+    for dev, _, new_logical_id in iv_names.itervalues():
+      dev.logical_id = new_logical_id
       cfg.SetDiskID(dev, pri_node)
     cfg.Update(instance)
 
