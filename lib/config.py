@@ -77,6 +77,7 @@ class ConfigWriter:
     else:
       self._cfg_file = cfg_file
     self._temporary_ids = set()
+    self._temporary_drbds = {}
     # Note: in order to prevent errors when resolving our name in
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
@@ -306,6 +307,93 @@ class ConfigWriter:
 
     self._WriteConfig()
     return port
+
+  def _ComputeDRBDMap(self, instance):
+    """Compute the used DRBD minor/nodes.
+
+    Return: dictionary of node_name: dict of minor: instance_name. The
+    returned dict will have all the nodes in it (even if with an empty
+    list).
+
+    """
+    def _AppendUsedPorts(instance_name, disk, used):
+      if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) == 5:
+        nodeA, nodeB, dummy, minorA, minorB = disk.logical_id
+        for node, port in ((nodeA, minorA), (nodeB, minorB)):
+          assert node in used, "Instance node not found in node list"
+          if port in used[node]:
+            raise errors.ProgrammerError("DRBD minor already used:"
+                                         " %s/%s, %s/%s" %
+                                         (node, port, instance_name,
+                                          used[node][port]))
+
+          used[node][port] = instance_name
+      if disk.children:
+        for child in disk.children:
+          _AppendUsedPorts(instance_name, child, used)
+
+    my_dict = dict((node, {}) for node in self._config_data.nodes)
+    for (node, minor), instance in self._temporary_drbds.iteritems():
+      my_dict[node][minor] = instance
+    for instance in self._config_data.instances.itervalues():
+      for disk in instance.disks:
+        _AppendUsedPorts(instance.name, disk, my_dict)
+    return my_dict
+
+  @locking.ssynchronized(_config_lock)
+  def AllocateDRBDMinor(self, nodes, instance):
+    """Allocate a drbd minor.
+
+    The free minor will be automatically computed from the existing
+    devices. A node can be given multiple times in order to allocate
+    multiple minors. The result is the list of minors, in the same
+    order as the passed nodes.
+
+    """
+    self._OpenConfig()
+
+    d_map = self._ComputeDRBDMap(instance)
+    result = []
+    for nname in nodes:
+      ndata = d_map[nname]
+      if not ndata:
+        # no minors used, we can start at 0
+        result.append(0)
+        ndata[0] = instance
+        continue
+      keys = ndata.keys()
+      keys.sort()
+      ffree = utils.FirstFree(keys)
+      if ffree is None:
+        # return the next minor
+        # TODO: implement high-limit check
+        minor = keys[-1] + 1
+      else:
+        minor = ffree
+      result.append(minor)
+      ndata[minor] = instance
+      assert (nname, minor) not in self._temporary_drbds, \
+             "Attempt to reuse reserved DRBD minor"
+      self._temporary_drbds[(nname, minor)] = instance
+    logging.debug("Request to allocate drbd minors, input: %s, returning %s",
+                  nodes, result)
+    return result
+
+  @locking.ssynchronized(_config_lock)
+  def ReleaseDRBDMinors(self, instance):
+    """Release temporary drbd minors allocated for a given instance.
+
+    This should be called on both the error paths and on the success
+    paths (after the instance has been added or updated).
+
+    @type instance: string
+    @param instance: the instance for which temporary minors should be
+                     released
+
+    """
+    for key, name in self._temporary_drbds.items():
+      if name == instance:
+        del self._temporary_drbds[key]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetHostKey(self):
