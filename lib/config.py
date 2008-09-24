@@ -38,7 +38,6 @@ import logging
 
 from ganeti import errors
 from ganeti import locking
-from ganeti import logger
 from ganeti import utils
 from ganeti import constants
 from ganeti import rpc
@@ -420,7 +419,7 @@ class ConfigWriter:
 
     if instance.disk_template != constants.DT_DISKLESS:
       all_lvs = instance.MapLVsByNode()
-      logger.Info("Instance '%s' DISK_LAYOUT: %s" % (instance.name, all_lvs))
+      logging.info("Instance '%s' DISK_LAYOUT: %s", instance.name, all_lvs)
 
     self._OpenConfig()
     self._config_data.instances[instance.name] = instance
@@ -741,8 +740,8 @@ class ConfigWriter:
     result = rpc.call_upload_file(nodelist, self._cfg_file)
     for node in nodelist:
       if not result[node]:
-        logger.Error("copy of file %s to node %s failed" %
-                     (self._cfg_file, node))
+        logging.error("copy of file %s to node %s failed",
+                      self._cfg_file, node)
         bad = True
     return not bad
 
