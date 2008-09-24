@@ -3540,7 +3540,7 @@ class LUCreateInstance(LogicalUnit):
     if len(ial.nodes) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (len(ial.nodes), ial.required_nodes))
+                                 (ial.name, len(ial.nodes), ial.required_nodes))
     self.op.pnode = ial.nodes[0]
     logger.ToStdout("Selected nodes for the instance: %s" %
                     (", ".join(ial.nodes),))
