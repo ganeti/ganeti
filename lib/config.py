@@ -677,7 +677,7 @@ class ConfigWriter:
     """Bump up the serial number of the config.
 
     """
-    self._config_data.cluster.serial_no += 1
+    self._config_data.serial_no += 1
 
   def _OpenConfig(self):
     """Read the config data from disk.
@@ -805,7 +805,8 @@ class ConfigWriter:
 
     self._config_data = objects.ConfigData(nodes={node: nodeconfig},
                                            instances={},
-                                           cluster=globalconfig)
+                                           cluster=globalconfig,
+                                           serial_no=1)
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
