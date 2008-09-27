@@ -424,6 +424,7 @@ class ConfigWriter:
     self._OpenConfig()
     instance.serial_no = 1
     self._config_data.instances[instance.name] = instance
+    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   def _SetInstanceStatus(self, instance_name, status):
@@ -462,6 +463,7 @@ class ConfigWriter:
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
     del self._config_data.instances[instance_name]
+    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -490,6 +492,7 @@ class ConfigWriter:
                                                            disk.iv_name))
 
     self._config_data.instances[inst.name] = inst
+    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -584,6 +587,7 @@ class ConfigWriter:
     self._OpenConfig()
     node.serial_no = 1
     self._config_data.nodes[node.name] = node
+    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -598,6 +602,7 @@ class ConfigWriter:
       raise errors.ConfigurationError("Unknown node '%s'" % node_name)
 
     del self._config_data.nodes[node_name]
+    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -827,6 +832,7 @@ class ConfigWriter:
     """
     self._OpenConfig()
     self._config_data.cluster.volume_group_name = vg_name
+    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
