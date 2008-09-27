@@ -193,6 +193,7 @@ class ConfigWriter:
 
     result = []
     seen_macs = []
+    ports = {}
     data = self._config_data
     for instance_name in data.instances:
       instance = data.instances[instance_name]
@@ -209,6 +210,43 @@ class ConfigWriter:
                         (instance_name, idx, nic.mac))
         else:
           seen_macs.append(nic.mac)
+
+      # gather the drbd ports for duplicate checks
+      for dsk in instance.disks:
+        if dsk.dev_type in constants.LDS_DRBD:
+          tcp_port = dsk.logical_id[2]
+          if tcp_port not in ports:
+            ports[tcp_port] = []
+          ports[tcp_port].append((instance.name, "drbd disk %s" % dsk.iv_name))
+      # gather network port reservation
+      net_port = getattr(instance, "network_port", None)
+      if net_port is not None:
+        if net_port not in ports:
+          ports[net_port] = []
+        ports[net_port].append((instance.name, "network port"))
+
+    # cluster-wide pool of free ports
+    for free_port in self._config_data.cluster.tcpudp_port_pool:
+      if free_port not in ports:
+        ports[free_port] = []
+      ports[free_port].append(("cluster", "port marked as free"))
+
+    # compute tcp/udp duplicate ports
+    keys = ports.keys()
+    keys.sort()
+    for pnum in keys:
+      pdata = ports[pnum]
+      if len(pdata) > 1:
+        txt = ", ".join(["%s/%s" % val for val in pdata])
+        result.append("tcp/udp port %s has duplicates: %s" % (pnum, txt))
+
+    # highest used tcp port check
+    if keys:
+      if keys[-1] > self._config_data.cluster.highest_used_port:
+        result.append("Highest used port mismatch, saved %s, computed %s" %
+                      (self._config_data.cluster.highest_used_port,
+                       keys[-1]))
+
     return result
 
   def _UnlockedSetDiskID(self, disk, node_name):
