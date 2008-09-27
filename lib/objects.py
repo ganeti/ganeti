@@ -237,7 +237,7 @@ class TaggableObject(ConfigObject):
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
-  __slots__ = ["cluster", "nodes", "instances"]
+  __slots__ = ["cluster", "nodes", "instances", "serial_no"]
 
   def ToDict(self):
     """Custom function for top-level config data.
@@ -518,6 +518,7 @@ class Instance(TaggableObject):
     "hvm_nic_type",
     "hvm_disk_type",
     "vnc_bind_address",
+    "serial_no",
     ]
 
   def _ComputeSecondaryNodes(self):
@@ -679,6 +680,7 @@ class Node(TaggableObject):
     "name",
     "primary_ip",
     "secondary_ip",
+    "serial_no",
     ]
 
 
