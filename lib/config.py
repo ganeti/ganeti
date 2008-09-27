@@ -422,6 +422,7 @@ class ConfigWriter:
       logging.info("Instance '%s' DISK_LAYOUT: %s", instance.name, all_lvs)
 
     self._OpenConfig()
+    instance.serial_no = 1
     self._config_data.instances[instance.name] = instance
     self._WriteConfig()
 
@@ -441,6 +442,7 @@ class ConfigWriter:
     instance = self._config_data.instances[instance_name]
     if instance.status != status:
       instance.status = status
+      instance.serial_no += 1
       self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -580,6 +582,7 @@ class ConfigWriter:
     logging.info("Adding node %s to configuration" % node.name)
 
     self._OpenConfig()
+    node.serial_no = 1
     self._config_data.nodes[node.name] = node
     self._WriteConfig()
 
@@ -801,7 +804,7 @@ class ConfigWriter:
     if secondary_ip is None:
       secondary_ip = primary_ip
     nodeconfig = objects.Node(name=node, primary_ip=primary_ip,
-                              secondary_ip=secondary_ip)
+                              secondary_ip=secondary_ip, serial_no=1)
 
     self._config_data = objects.ConfigData(nodes={node: nodeconfig},
                                            instances={},
@@ -880,4 +883,6 @@ class ConfigWriter:
     if not test:
       raise errors.ConfigurationError("Configuration updated since object"
                                       " has been read or unknown object")
+    target.serial_no += 1
+
     self._WriteConfig()
