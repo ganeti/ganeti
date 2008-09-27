@@ -2373,7 +2373,7 @@ class LUReinstallInstance(LogicalUnit):
     if self.op.os_type is not None:
       feedback_fn("Changing OS to '%s'..." % self.op.os_type)
       inst.os = self.op.os_type
-      self.cfg.AddInstance(inst)
+      self.cfg.Update(inst)
 
     _StartInstanceDisks(self.cfg, inst, None)
     try:
@@ -3257,7 +3257,7 @@ class LUCreateInstance(LogicalUnit):
     if len(ial.nodes) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (self.op.iallocator, len(ial.nodes), 
+                                 (self.op.iallocator, len(ial.nodes),
                                   ial.required_nodes))
     self.op.pnode = ial.nodes[0]
     logger.ToStdout("Selected nodes for the instance: %s" %
