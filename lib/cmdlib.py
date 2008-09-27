@@ -1423,6 +1423,7 @@ class LUQueryNodes(NoHooksLU):
       "name", "pinst_cnt", "sinst_cnt",
       "pinst_list", "sinst_list",
       "pip", "sip", "tags",
+      "serial_no",
       ])
 
     _CheckOutputFields(static=self.static_fields,
@@ -1528,6 +1529,8 @@ class LUQueryNodes(NoHooksLU):
           val = node.secondary_ip
         elif field == "tags":
           val = list(node.GetTags())
+        elif field == "serial_no":
+          val = node.serial_no
         elif field in self.dynamic_fields:
           val = live_data[node.name].get(field, None)
         else:
@@ -2576,6 +2579,7 @@ class LUQueryInstances(NoHooksLU):
       "hvm_boot_order", "hvm_acpi", "hvm_pae",
       "hvm_cdrom_image_path", "hvm_nic_type",
       "hvm_disk_type", "vnc_bind_address",
+      "serial_no",
       ])
     _CheckOutputFields(static=self.static_fields,
                        dynamic=self.dynamic_fields,
@@ -2705,6 +2709,8 @@ class LUQueryInstances(NoHooksLU):
           val = instance.vcpus
         elif field == "tags":
           val = list(instance.GetTags())
+        elif field == "serial_no":
+          val = instance.serial_no
         elif field in ("network_port", "kernel_path", "initrd_path",
                        "hvm_boot_order", "hvm_acpi", "hvm_pae",
                        "hvm_cdrom_image_path", "hvm_nic_type",

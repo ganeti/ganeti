@@ -612,6 +612,15 @@
                 tags</simpara>
               </listitem>
             </varlistentry>
+            <varlistentry>
+              <term>serial_no</term>
+              <listitem>
+                <simpara>the so called 'serial number' of the
+                instance; this is a numeric field that is incremented
+                each time the instance is modified, and it can be used
+                to detect modifications</simpara>
+              </listitem>
+            </varlistentry>
           </variablelist>
         </para>
 

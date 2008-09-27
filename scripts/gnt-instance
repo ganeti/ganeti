@@ -197,6 +197,7 @@ def ListInstances(opts, args):
       "hvm_nic_type": "HVM_NIC_type",
       "hvm_disk_type": "HVM_disk_type",
       "vnc_bind_address": "VNC_bind_address",
+      "serial_no": "SerialNo",
       }
   else:
     headers = None
@@ -206,7 +207,8 @@ def ListInstances(opts, args):
   else:
     unitfields = None
 
-  numfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size", "vcpus"]
+  numfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size", "vcpus",
+               "serial_no"]
 
   list_type_fields = ("tags",)
   # change raw values to nicer strings
@@ -972,7 +974,8 @@ commands = {
            "Lists the instances and their status. The available fields are"
            " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
-           " ip, mac, bridge, sda_size, sdb_size, vcpus. The default field"
+           " ip, mac, bridge, sda_size, sdb_size, vcpus, serial_no."
+           " The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),
   'reinstall': (ReinstallInstance, ARGS_ONE,
