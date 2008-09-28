@@ -864,6 +864,16 @@ def NewUUID():
     f.close()
 
 
+def GenerateSecret():
+  """Generates a random secret.
+
+  This will generate a pseudo-random secret, and return its sha digest
+  (so that it can be used where an ASCII string is needed).
+
+  """
+  return sha.new(os.urandom(64)).hexdigest()
+
+
 def ReadFile(file_name, size=None):
   """Reads a file.
 

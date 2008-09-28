@@ -81,7 +81,7 @@ def _InitGanetiServerSetup(ss):
 
   """
   # Create pseudo random password
-  randpass = sha.new(os.urandom(64)).hexdigest()
+  randpass = utils.GenerateSecret()
   # and write it into sstore
   ss.SetKey(ss.SS_NODED_PASS, randpass)
 
