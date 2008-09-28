@@ -397,6 +397,7 @@ class ConfigWriter:
         # no minors used, we can start at 0
         result.append(0)
         ndata[0] = instance
+        self._temporary_drbds[(nname, 0)] = instance
         continue
       keys = ndata.keys()
       keys.sort()
