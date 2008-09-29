@@ -696,6 +696,8 @@ class JobQueue(object):
         row.append([op.result for op in job.ops])
       elif fname == "opstatus":
         row.append([op.status for op in job.ops])
+      elif fname == "summary":
+        row.append([op.input.Summary() for op in job.ops])
       else:
         raise errors.OpExecError("Invalid job query field '%s'" % fname)
     return row

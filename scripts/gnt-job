@@ -33,7 +33,7 @@ from ganeti import utils
 from ganeti import errors
 
 
-_LIST_DEF_FIELDS = ["id", "status"]
+_LIST_DEF_FIELDS = ["id", "status", "summary"]
 
 _USER_JOB_STATUS = {
   constants.JOB_STATUS_QUEUED: "queued",
@@ -64,6 +64,7 @@ def ListJobs(opts, args):
       "ops": "OpCodes",
       "opresult": "OpCode_result",
       "opstatus": "OpCode_status",
+      "summary": "Summary",
       }
   else:
     headers = None
@@ -81,6 +82,8 @@ def ListJobs(opts, args):
           val = _USER_JOB_STATUS[val]
         else:
           raise errors.ProgrammerError("Unknown job status code '%s'" % val)
+      elif field == "summary":
+        val = ",".join(val)
 
       row[idx] = str(val)
 
