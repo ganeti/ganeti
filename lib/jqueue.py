@@ -492,7 +492,7 @@ class JobQueue(object):
 
     """
     jlist = [self._ExtractJobID(name) for name in self._ListJobFiles()]
-    jlist.sort()
+    jlist = utils.NiceSort(jlist)
     return jlist
 
   def _ListJobFiles(self):
