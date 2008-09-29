@@ -114,6 +114,70 @@ def CancelJobs(opts, args):
   return 0
 
 
+def ShowJobs(opts, args):
+  """List the jobs
+
+  """
+  def format(level, text):
+    """Display the text indented."""
+    print "%s%s" % ("  " * level, text)
+
+  def result_helper(value):
+    """Format a result field in a nice way."""
+    if isinstance(value, (tuple, list)):
+      return "[%s]" % (", ".join(str(elem) for elem in value))
+    else:
+      return str(value)
+
+  selected_fields = ["id", "status", "ops", "opresult", "opstatus"]
+
+  result = GetClient().QueryJobs(args, selected_fields)
+
+  first = True
+
+  for job_id, status, ops, opresult, opstatus in result:
+    if not first:
+      format(0, "")
+    else:
+      first = False
+    format(0, "Job ID: %s" % job_id)
+    if status in _USER_JOB_STATUS:
+      status = _USER_JOB_STATUS[status]
+    else:
+      raise errors.ProgrammerError("Unknown job status code '%s'" % val)
+
+    format(1, "Status: %s" % status)
+    format(1, "Opcodes:")
+    for opcode, result, status in zip(ops, opresult, opstatus):
+      format(2, "%s" % opcode["OP_ID"])
+      format(3, "Status: %s" % status)
+      format(3, "Input fields:")
+      for key, val in opcode.iteritems():
+        if key == "OP_ID":
+          continue
+        if isinstance(val, (tuple, list)):
+          val = ",".join(val)
+        format(4, "%s: %s" % (key, val))
+      if result is None:
+        format(3, "No output data")
+      elif isinstance(result, (tuple, list)):
+        if not result:
+          format(3, "Result: empty sequence")
+        else:
+          format(3, "Result:")
+          for elem in result:
+            format(4, result_helper(elem))
+      elif isinstance(result, dict):
+        if not result:
+          format(3, "Result: empty dictionary")
+        else:
+          for key, val in result.iteritems():
+            format(4, "%s: %s" % (key, result_helper(val)))
+      else:
+        format(3, "Result: %s" % result)
+  return 0
+
+
 commands = {
   'list': (ListJobs, ARGS_NONE,
             [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
@@ -130,6 +194,9 @@ commands = {
              [DEBUG_OPT],
              "<job-id> [<job-id> ...]",
              "Cancel specified jobs"),
+  'info': (ShowJobs, ARGS_ANY, [DEBUG_OPT],
+           "<job-id> [<job-id> ...]",
+           "Show detailed information about the specified jobs"),
   }
 
 
