@@ -1253,7 +1253,8 @@ class DRBD8(BaseDRBD):
         res_r = self._AssembleNet(minor,
                                   (self._lhost, self._lport,
                                    self._rhost, self._rport),
-                                  "C", hmac=constants.DRBD_HMAC_ALG,
+                                  constants.DRBD_NET_PROTOCOL,
+                                  hmac=constants.DRBD_HMAC_ALG,
                                   secret=self._secret
                                   )
         if res_r:
@@ -1283,7 +1284,8 @@ class DRBD8(BaseDRBD):
         # local storage (i.e. one or more of the _[lr](host|port) is
         # None)
         if (self._AssembleNet(minor, (self._lhost, self._lport,
-                                      self._rhost, self._rport), "C",
+                                      self._rhost, self._rport),
+                              constants.DRBD_NET_PROTOCOL,
                               hmac=constants.DRBD_HMAC_ALG,
                               secret=self._secret) and
             self._MatchesNet(self._GetDevInfo(self._GetShowData(minor)))):
@@ -1337,7 +1339,8 @@ class DRBD8(BaseDRBD):
       result = self._AssembleNet(minor,
                                  (self._lhost, self._lport,
                                   self._rhost, self._rport),
-                                 "C", hmac=constants.DRBD_HMAC_ALG,
+                                 constants.DRBD_NET_PROTOCOL,
+                                 hmac=constants.DRBD_HMAC_ALG,
                                  secret=self._secret)
       if not result:
         if need_localdev_teardown:

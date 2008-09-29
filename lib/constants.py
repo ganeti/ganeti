@@ -178,6 +178,7 @@ LD_FILE = "file"
 
 # drbd constants
 DRBD_HMAC_ALG = "md5"
+DRBD_NET_PROTOCOL = "C"
 
 # file backend driver
 FD_LOOP = "loop"
