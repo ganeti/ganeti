@@ -126,6 +126,25 @@ class ConfigWriter:
     all_macs = self._AllMACs()
     return mac in all_macs
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GenerateDRBDSecret(self):
+    """Generate a DRBD secret.
+
+    This checks the current disks for duplicates.
+
+    """
+    self._OpenConfig()
+    all_secrets = self._AllDRBDSecrets()
+    retries = 64
+    while retries > 0:
+      secret = utils.GenerateSecret()
+      if secret not in all_secrets:
+        break
+      retries -= 1
+    else:
+      raise errors.ConfigurationError("Can't generate unique DRBD secret")
+    return secret
+
   def _ComputeAllLVs(self):
     """Compute the list of all LVs.
 
@@ -182,6 +201,25 @@ class ConfigWriter:
     for instance in self._config_data.instances.values():
       for nic in instance.nics:
         result.append(nic.mac)
+
+    return result
+
+  def _AllDRBDSecrets(self):
+    """Return all DRBD secrets present in the config.
+
+    """
+    def helper(disk, result):
+      """Recursively gather secrets from this disk."""
+      if disk.dev_type == constants.DT_DRBD8:
+        result.append(disk.logical_id[5])
+      if disk.children:
+        for child in disk.children:
+          helper(child, result)
+
+    result = []
+    for instance in self._config_data.instances.values():
+      for disk in instance.disks:
+        helper(disk, result)
 
     return result
 
@@ -268,7 +306,7 @@ class ConfigWriter:
     if disk.logical_id is None and disk.physical_id is not None:
       return
     if disk.dev_type == constants.LD_DRBD8:
-      pnode, snode, port, pminor, sminor = disk.logical_id
+      pnode, snode, port, pminor, sminor, secret = disk.logical_id
       if node_name not in (pnode, snode):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %
                                         node_name)
@@ -280,9 +318,9 @@ class ConfigWriter:
       p_data = (pnode_info.secondary_ip, port)
       s_data = (snode_info.secondary_ip, port)
       if pnode == node_name:
-        disk.physical_id = p_data + s_data + (pminor,)
+        disk.physical_id = p_data + s_data + (pminor, secret)
       else: # it must be secondary, we tested above
-        disk.physical_id = s_data + p_data + (sminor,)
+        disk.physical_id = s_data + p_data + (sminor, secret)
     else:
       disk.physical_id = disk.logical_id
     return
@@ -354,8 +392,8 @@ class ConfigWriter:
 
     """
     def _AppendUsedPorts(instance_name, disk, used):
-      if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) == 5:
-        nodeA, nodeB, dummy, minorA, minorB = disk.logical_id
+      if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
+        nodeA, nodeB, dummy, minorA, minorB = disk.logical_id[:5]
         for node, port in ((nodeA, minorA), (nodeB, minorB)):
           assert node in used, "Instance node not found in node list"
           if port in used[node]:

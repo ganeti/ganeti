@@ -2923,13 +2923,15 @@ def _GenerateDRBD8Branch(cfg, primary, secondary, size, names, iv_name,
   """
   port = cfg.AllocatePort()
   vgname = cfg.GetVGName()
+  shared_secret = cfg.GenerateDRBDSecret()
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                           logical_id=(vgname, names[0]))
   dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,
                           logical_id=(vgname, names[1]))
   drbd_dev = objects.Disk(dev_type=constants.LD_DRBD8, size=size,
                           logical_id=(primary, secondary, port,
-                                      p_minor, s_minor),
+                                      p_minor, s_minor,
+                                      shared_secret),
                           children=[dev_data, dev_meta],
                           iv_name=iv_name)
   return drbd_dev
@@ -4050,10 +4052,12 @@ class LUReplaceDisks(LogicalUnit):
       # create new devices on new_node
       if pri_node == dev.logical_id[0]:
         new_logical_id = (pri_node, new_node,
-                          dev.logical_id[2], dev.logical_id[3], new_minor)
+                          dev.logical_id[2], dev.logical_id[3], new_minor,
+                          dev.logical_id[5])
       else:
         new_logical_id = (new_node, pri_node,
-                          dev.logical_id[2], new_minor, dev.logical_id[4])
+                          dev.logical_id[2], new_minor, dev.logical_id[4],
+                          dev.logical_id[5])
       iv_names[dev.iv_name] = (dev, dev.children, new_logical_id)
       logging.debug("Allocated new_minor: %s, new_logical_id: %s", new_minor,
                     new_logical_id)
@@ -4079,9 +4083,9 @@ class LUReplaceDisks(LogicalUnit):
     done = 0
     for dev in instance.disks:
       cfg.SetDiskID(dev, pri_node)
-      # set the physical (unique in bdev terms) id to None, meaning
-      # detach from network
-      dev.physical_id = (None, None, None, None, dev.physical_id[4])
+      # set the network part of the physical (unique in bdev terms) id
+      # to None, meaning detach from network
+      dev.physical_id = (None, None, None, None) + dev.physical_id[4:]
       # and 'find' the device, which will 'fix' it to match the
       # standalone state
       if rpc.call_blockdev_find(pri_node, dev):

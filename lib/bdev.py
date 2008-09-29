@@ -804,11 +804,11 @@ class DRBD8(BaseDRBD):
 
     if len(children) not in (0, 2):
       raise ValueError("Invalid configuration data %s" % str(children))
-    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 5:
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 6:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     (self._lhost, self._lport,
      self._rhost, self._rport,
-     self._aminor) = unique_id
+     self._aminor, self._secret) = unique_id
     if (self._lhost is not None and self._lhost == self._rhost and
         self._lport == self._rport):
       raise ValueError("Invalid configuration data, same local/remote %s" %

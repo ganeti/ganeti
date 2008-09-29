@@ -412,7 +412,7 @@ class Disk(ConfigObject):
     if self.logical_id is None and self.physical_id is not None:
       return
     if self.dev_type in constants.LDS_DRBD:
-      pnode, snode, port, pminor, sminor = self.logical_id
+      pnode, snode, port, pminor, sminor, secret = self.logical_id
       if target_node not in (pnode, snode):
         raise errors.ConfigurationError("DRBD device not knowing node %s" %
                                         target_node)
@@ -424,9 +424,9 @@ class Disk(ConfigObject):
       p_data = (pnode_ip, port)
       s_data = (snode_ip, port)
       if pnode == target_node:
-        self.physical_id = p_data + s_data + (pminor,)
+        self.physical_id = p_data + s_data + (pminor, secret)
       else: # it must be secondary, we tested above
-        self.physical_id = s_data + p_data + (sminor,)
+        self.physical_id = s_data + p_data + (sminor, secret)
     else:
       self.physical_id = self.logical_id
     return
@@ -458,9 +458,10 @@ class Disk(ConfigObject):
       obj.logical_id = tuple(obj.logical_id)
     if obj.physical_id and isinstance(obj.physical_id, list):
       obj.physical_id = tuple(obj.physical_id)
-    if obj.dev_type in constants.LDS_DRBD and len(obj.logical_id) == 3:
-      # old non-minor based disk type
-      obj.logical_id += (None, None)
+    if obj.dev_type in constants.LDS_DRBD:
+      # we need a tuple of length six here
+      if len(obj.logical_id) < 6:
+        obj.logical_id += (None,) * (6 - len(obj.logical_id))
     return obj
 
   def __str__(self):
