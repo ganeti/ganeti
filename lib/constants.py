@@ -176,6 +176,9 @@ LD_LV = "lvm"
 LD_DRBD8 = "drbd8"
 LD_FILE = "file"
 
+# drbd constants
+DRBD_HMAC_ALG = "md5"
+
 # file backend driver
 FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
