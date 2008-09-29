@@ -22,6 +22,7 @@
 import sys
 import os
 import itertools
+import time
 from optparse import make_option
 from cStringIO import StringIO
 
@@ -64,6 +65,7 @@ def ListJobs(opts, args):
       "ops": "OpCodes",
       "opresult": "OpCode_result",
       "opstatus": "OpCode_status",
+      "oplog": "OpCode_log",
       "summary": "Summary",
       }
   else:
@@ -129,13 +131,13 @@ def ShowJobs(opts, args):
     else:
       return str(value)
 
-  selected_fields = ["id", "status", "ops", "opresult", "opstatus"]
+  selected_fields = ["id", "status", "ops", "opresult", "opstatus", "oplog"]
 
   result = GetClient().QueryJobs(args, selected_fields)
 
   first = True
 
-  for job_id, status, ops, opresult, opstatus in result:
+  for job_id, status, ops, opresult, opstatus, oplog in result:
     if not first:
       format(0, "")
     else:
@@ -148,7 +150,7 @@ def ShowJobs(opts, args):
 
     format(1, "Status: %s" % status)
     format(1, "Opcodes:")
-    for opcode, result, status in zip(ops, opresult, opstatus):
+    for opcode, result, status, log in zip(ops, opresult, opstatus, oplog):
       format(2, "%s" % opcode["OP_ID"])
       format(3, "Status: %s" % status)
       format(3, "Input fields:")
@@ -175,6 +177,11 @@ def ShowJobs(opts, args):
             format(4, "%s: %s" % (key, result_helper(val)))
       else:
         format(3, "Result: %s" % result)
+      format(3, "Execution log:")
+      for serial, (sec, usec), log_type, log_msg in log:
+        time_txt = time.strftime("%F %T", time.localtime(sec)) + ".%06d" % usec
+        encoded = str(log_msg).encode('string_escape')
+        format(4, "%s:%s:%s %s" % (serial, time_txt, log_type, encoded))
   return 0
 
 
