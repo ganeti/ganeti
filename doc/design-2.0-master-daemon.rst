@@ -46,12 +46,13 @@ Interaction paths are between:
 
 The protocol between the master daemon and the node daemons will be
 changed to HTTP(S), using a simple PUT/GET of JSON-encoded
-messages. This is done due to difficulties in working with the twisted
-protocols in a multithreaded environment, which we can overcome by
-using a simpler stack (see the caveats section). The protocol between
-the CLI/RAPI and the master daemon will be a custom one: on a UNIX
+messages. This is done due to difficulties in working with the Twisted
+framework and its protocols in a multithreaded environment, which we can
+overcome by using a simpler stack (see the caveats section). The protocol
+between the CLI/RAPI and the master daemon will be a custom one: on a UNIX
 socket on the master node, with rights restricted by filesystem
-permissions, the CLI/API will speak HTTP to the master daemon.
+permissions, the CLI/RAPI will talk to the master daemon using JSON-encoded
+messages.
 
 The operations supported over this internal protocol will be encoded
 via a python library that will expose a simple API for its
@@ -78,13 +79,14 @@ The job-related functions will be:
 - archive job (see the job queue design doc)
 - wait for job change, which allows a client to wait without polling
 
+For more details, see the job queue design document.
+
 Daemon implementation
 ~~~~~~~~~~~~~~~~~~~~~
 
 The daemon will be based around a main I/O thread that will wait for
 new requests from the clients, and that does the setup/shutdown of the
 other thread (pools).
-
 
 There will two other classes of threads in the daemon:
 
@@ -183,8 +185,8 @@ disatvantanges to using it:
   unsupported, unrecommended way, and the only alternative would have
   been to make all the code be written for twisted
 - it has some weaknesses in working with multiple threads, since its base
-  model is designed to replace thread usage by the deffered, so while it can
-  use threads, it's not less flexible in doing so
+  model is designed to replace thread usage by using deferred calls, so while
+  it can use threads, it's not less flexible in doing so
 
-And, since we already have an http server library (for the RAPI), we
+And, since we already have an HTTP server library for the RAPI, we
 can just reuse that for inter-node communication.
