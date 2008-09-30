@@ -1,6 +1,16 @@
 Developer notes
 ===============
 
+Build dependencies
+------------------
+
+Most dependencies from INSTALL, plus:
+ - docbook2html, docbook2man, docbook2pdf from Docbook tools
+   http://sources.redhat.com/docbook-tools/
+ - rst2html from Docutils
+   http://docutils.sourceforge.net/
+
+
 Configuring for development
 ---------------------------
 
