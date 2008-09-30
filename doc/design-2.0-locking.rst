@@ -171,6 +171,43 @@ level.  In the future we may want to split logical units in independent
 "tasklets" with their own locking requirements. A different design doc (or mini
 design doc) will cover the move from Logical Units to tasklets.
 
+Lock acquisition code path
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In general when acquiring locks we should use a code path equivalent to::
+
+  lock.acquire()
+  try:
+    ...
+    # other code
+  finally:
+    lock.release()
+
+This makes sure we release all locks, and avoid possible deadlocks. Of course
+extra care must be used not to leave, if possible locked structures in an
+unusable state.
+
+In order to avoid this extra indentation and code changes everywhere in the
+Logical Units code, we decided to allow LUs to declare locks, and then execute
+their code with their locks acquired. In the new world LUs are called like
+this::
+
+  # user passed names are expanded to the internal lock/resource name,
+  # then known needed locks are declared
+  lu.ExpandNames()
+  ... some locking/adding of locks may happen ...
+  # late declaration of locks for one level: this is useful because sometimes
+  # we can't know which resource we need before locking the previous level
+  lu.DeclareLocks() # for each level (cluster, instance, node)
+  ... more locking/adding of locks can happen ...
+  # these functions are called with the proper locks held
+  lu.CheckPrereq()
+  lu.Exec()
+  ... locks declared for removal are removed, all acquired locks released ...
+
+The Processor and the LogicalUnit class will contain exact documentation on how
+locks are supposed to be declared.
+
 Caveats
 -------
 
