@@ -125,6 +125,14 @@ then
   AC_MSG_ERROR([docbook2html not found])
 fi
 
+# Check for rst programs
+AC_ARG_VAR(RST2HTML, [rst2html path])
+AC_PATH_PROG(RST2HTML, [rst2html], [])
+if test -z "$RST2HTML"
+then
+  AC_MSG_ERROR([rst2html not found])
+fi
+
 # Check for Python
 AM_PATH_PYTHON(2.4)
 

@@ -106,7 +106,16 @@ docsgml = \
 	doc/rapi.sgml \
 	doc/iallocator.sgml
 
+docrst = \
+	doc/design-2.0-commandline-parameters.rst \
+	doc/design-2.0-disk-handling.rst \
+	doc/design-2.0-index.rst \
+	doc/design-2.0-job-queue.rst \
+	doc/design-2.0-locking.rst \
+	doc/design-2.0-master-daemon.rst
+
 doc_DATA = \
+	$(patsubst %.rst,%.html,$(docrst)) \
 	$(patsubst %.sgml,%.html,$(docsgml)) \
 	$(patsubst %.sgml,%.pdf,$(docsgml))
 
@@ -134,6 +143,7 @@ EXTRA_DIST = \
 	DEVNOTES \
 	autotools/docbook-wrapper \
 	devel/upload.in \
+	$(docrst) \
 	$(docsgml) \
 	doc/build-rapi-resources-doc \
 	doc/examples/ganeti.initd.in \
@@ -222,6 +232,9 @@ doc/%.pdf: doc/%.in $(DOCBOOK_WRAPPER)
 
 doc/%.html: doc/%.in $(DOCBOOK_WRAPPER)
 	$(DOCBOOK_WRAPPER) $< $@
+
+doc/%.html: doc/%.rst
+	$(RST2HTML) $< $@
 
 doc/rapi.pdf doc/rapi.html: doc/rapi-resources.sgml
 
