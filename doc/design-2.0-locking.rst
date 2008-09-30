@@ -123,8 +123,8 @@ The API will have a way to grab one or more than one locks at the same time.
 Any attempt to grab a lock while already holding one in the wrong order will be
 checked for, and fail.
 
-Adding new locks
-~~~~~~~~~~~~~~~~
+Adding/Removing locks
+~~~~~~~~~~~~~~~~~~~~~
 
 When a new instance or a new node is created an associated lock must be added
 to the list. The relevant code will need to inform the locking library of such
@@ -132,9 +132,14 @@ a change.
 
 This needs to be compatible with every other lock in the system, especially
 metalocks that guarantee to grab sets of resources without specifying them
-explicitly.
+explicitly. The implementation of this will be handled in the locking library
+itself.
 
-The implementation of this will be handled in the locking library itself.
+Of course when instances or nodes disappear from the cluster the relevant locks
+must be removed. This is easier than adding new elements, as the code which
+removes them must own them exclusively or can queue for their ownership, and
+thus deals with metalocks exactly as normal code acquiring those locks. Any
+operation queueing on a removed lock will fail after its removal.
 
 Asynchronous operations
 ~~~~~~~~~~~~~~~~~~~~~~~
