@@ -155,10 +155,12 @@ operations such as:
 - Try to acquire one of these lock sets and return the first one you were
   able to get (or after a timeout) (select/poll like)
 
-Keep in mind, though, that any operation using the first operation, or setting
-a timeout for the second one, is susceptible to starvation and thus may never
-be able to get the required locks and succeed. Considering this providing/using
-these operations should not be among our first priorities
+These operations can be used to prioritize operations based on available locks,
+rather than making them just blindly queue for acquiring them. The inherent
+risk, though, is that any code using the first operation, or setting a timeout
+for the second one, is susceptible to starvation and thus may never be able to
+get the required locks and complete certain tasks. Considering this
+providing/using these operations should not be among our first priorities.
 
 Locking granularity
 ~~~~~~~~~~~~~~~~~~~
