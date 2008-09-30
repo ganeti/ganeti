@@ -47,7 +47,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT", "SUBMIT_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
-           "JobSubmittedException",
+           "JobSubmittedException", "FormatTimestamp",
            ]
 
 
@@ -689,3 +689,17 @@ def GenerateTable(headers, fields, separator, data,
     result.append(format % tuple(args))
 
   return result
+
+
+def FormatTimestamp(ts):
+  """Formats a given timestamp.
+
+  @type ts: timestamp
+  @param ts: a timeval-type timestamp, a tuple of seconds and microseconds
+
+  @rtype: string
+  @returns: a string with the formatted timestamp
+
+  """
+  sec, usec = ts
+  return time.strftime("%F %T", time.localtime(sec)) + ".%06d" % usec
