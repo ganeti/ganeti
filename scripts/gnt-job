@@ -149,14 +149,19 @@ def ShowJobs(opts, args):
 
   first = True
 
-  for entry, arg_job in zip(result, args):
+  for idx, entry in enumerate(result):
     if not first:
       format(0, "")
     else:
       first = False
 
     if entry is None:
-      format(0, "Job ID %s not found" % arg_job)
+      if idx <= len(args):
+        format(0, "Job ID %s not found" % args[idx])
+      else:
+        # this should not happen, when we don't pass args it will be a
+        # valid job returned
+        format(0, "Job ID requested as argument %s not found" % (idx + 1))
       continue
 
     (job_id, status, ops, opresult, opstatus, oplog,
