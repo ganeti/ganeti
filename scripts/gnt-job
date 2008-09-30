@@ -67,6 +67,11 @@ def ListJobs(opts, args):
       "opstatus": "OpCode_status",
       "oplog": "OpCode_log",
       "summary": "Summary",
+      "opstart": "OpCode_start",
+      "opend": "OpCode_end",
+      "start_ts": "Start",
+      "end_ts": "End",
+      "received_ts": "Received",
       }
   else:
     headers = None
@@ -86,6 +91,10 @@ def ListJobs(opts, args):
           raise errors.ProgrammerError("Unknown job status code '%s'" % val)
       elif field == "summary":
         val = ",".join(val)
+      elif field in ("start_ts", "end_ts", "received_ts"):
+        val = FormatTimestamp(val)
+      elif field in ("opstart", "opend"):
+        val = [FormatTimestamp(entry) for entry in val]
 
       row[idx] = str(val)
 
@@ -131,17 +140,27 @@ def ShowJobs(opts, args):
     else:
       return str(value)
 
-  selected_fields = ["id", "status", "ops", "opresult", "opstatus", "oplog"]
+  selected_fields = [
+    "id", "status", "ops", "opresult", "opstatus", "oplog",
+    "opstart", "opend", "received_ts", "start_ts", "end_ts",
+    ]
 
   result = GetClient().QueryJobs(args, selected_fields)
 
   first = True
 
-  for job_id, status, ops, opresult, opstatus, oplog in result:
+  for entry, arg_job in zip(result, args):
     if not first:
       format(0, "")
     else:
       first = False
+
+    if entry is None:
+      format(0, "Job ID %s not found" % arg_job)
+      continue
+
+    (job_id, status, ops, opresult, opstatus, oplog,
+     opstart, opend, recv_ts, start_ts, end_ts) = entry
     format(0, "Job ID: %s" % job_id)
     if status in _USER_JOB_STATUS:
       status = _USER_JOB_STATUS[status]
@@ -149,10 +168,50 @@ def ShowJobs(opts, args):
       raise errors.ProgrammerError("Unknown job status code '%s'" % val)
 
     format(1, "Status: %s" % status)
+
+    if recv_ts is not None:
+      format(1, "Received:         %s" % FormatTimestamp(recv_ts))
+    else:
+      format(1, "Missing received timestamp (%s)" % str(recv_ts))
+
+    if start_ts is not None:
+      if recv_ts is not None:
+        d1 = start_ts[0] - recv_ts[0] + (start_ts[1] - recv_ts[1]) / 1000000.0
+        delta = " (delta %.6fs)" % d1
+      else:
+        delta = ""
+      format(1, "Processing start: %s%s" % (FormatTimestamp(start_ts), delta))
+    else:
+      format(1, "Processing start: unknown (%s)" % str(start_ts))
+
+    if end_ts is not None:
+      if start_ts is not None:
+        d2 = end_ts[0] - start_ts[0] + (end_ts[1] - start_ts[1]) / 1000000.0
+        delta = " (delta %.6fs)" % d2
+      else:
+        delta = ""
+      format(1, "Processing end:   %s%s" % (FormatTimestamp(end_ts), delta))
+    else:
+      format(1, "Processing end:   unknown (%s)" % str(end_ts))
+
+    if end_ts is not None and recv_ts is not None:
+      d3 = end_ts[0] - recv_ts[0] + (end_ts[1] - recv_ts[1]) / 1000000.0
+      format(1, "Total processing time: %.6f seconds" % d3)
+    else:
+      format(1, "Total processing time: N/A")
     format(1, "Opcodes:")
-    for opcode, result, status, log in zip(ops, opresult, opstatus, oplog):
+    for (opcode, result, status, log, s_ts, e_ts) in \
+            zip(ops, opresult, opstatus, oplog, opstart, opend):
       format(2, "%s" % opcode["OP_ID"])
       format(3, "Status: %s" % status)
+      if isinstance(s_ts, (tuple, list)):
+        format(3, "Processing start: %s" % FormatTimestamp(s_ts))
+      else:
+        format(3, "No processing start time")
+      if isinstance(e_ts, (tuple, list)):
+        format(3, "Processing end:   %s" % FormatTimestamp(e_ts))
+      else:
+        format(3, "No processing end time")
       format(3, "Input fields:")
       for key, val in opcode.iteritems():
         if key == "OP_ID":
