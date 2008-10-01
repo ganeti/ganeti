@@ -452,7 +452,7 @@ def PollJob(job_id, cl=None, feedback_fn=None):
 
   status, result = jobs[0]
   if status == constants.JOB_STATUS_SUCCESS:
-    return result[0]
+    return result
   else:
     raise errors.OpExecError(result)
 
@@ -470,7 +470,9 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
 
   job_id = SendJob([op], cl)
 
-  return PollJob(job_id, cl=cl, feedback_fn=feedback_fn)
+  op_results = PollJob(job_id, cl=cl, feedback_fn=feedback_fn)
+
+  return op_results[0]
 
 
 def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
