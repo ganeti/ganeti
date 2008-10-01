@@ -440,7 +440,7 @@ def main():
   logging.info("ganeti master daemon startup")
 
   # activate ip
-  master_node = ssconf.SimpleStore().GetMasterNode()
+  master_node = ssconf.SimpleConfigReader().GetMasterNode()
   if not rpc.call_node_start_master(master_node, False):
     logging.error("Can't activate master IP address")
 
