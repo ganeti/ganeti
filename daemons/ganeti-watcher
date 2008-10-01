@@ -30,8 +30,6 @@ by a node reboot.  Run from cron or similar.
 import os
 import sys
 import time
-import fcntl
-import errno
 import logging
 from optparse import OptionParser
 
@@ -46,8 +44,8 @@ from ganeti import cli
 
 
 MAXTRIES = 5
-BAD_STATES = ['stopped']
-HELPLESS_STATES = ['(node down)']
+BAD_STATES = ['ERROR_down']
+HELPLESS_STATES = ['ERROR_nodedown']
 NOTICE = 'NOTICE'
 ERROR = 'ERROR'
 KEY_RESTART_COUNT = "restart_count"
@@ -238,7 +236,7 @@ def GetInstanceList(with_secondaries=None):
   """Get a list of instances on this cluster.
 
   """
-  fields = ["name", "oper_state", "admin_state"]
+  fields = ["name", "status", "admin_state"]
 
   if with_secondaries is not None:
     fields.append("snodes")
@@ -327,8 +325,9 @@ class Watcher(object):
         try:
           logging.info("Activating disks for instance %s", instance.name)
           instance.ActivateDisks()
-        except Exception, err:
-          logging.error(str(err), exc_info=True)
+        except Exception:
+          logging.exception("Error while activating disks for instance %s",
+                            instance.name)
 
       # Keep changed boot IDs
       for name in check_nodes:
@@ -339,10 +338,6 @@ class Watcher(object):
 
     """
     for instance in self.instances:
-      # Don't care about manually stopped instances
-      if not instance.autostart:
-        continue
-
       if instance.state in BAD_STATES:
         n = notepad.NumberOfRestartAttempts(instance)
 
@@ -361,8 +356,8 @@ class Watcher(object):
                         instance.name, last)
           instance.Restart()
           self.started_instances.add(instance.name)
-        except Exception, err:
-          logging.error(str(err), exc_info=True)
+        except Exception:
+          logging.exception("Erro while restarting instance %s", instance.name)
 
         notepad.RecordRestartAttempt(instance)
       elif instance.state in HELPLESS_STATES:
@@ -373,7 +368,8 @@ class Watcher(object):
           notepad.RemoveInstance(instance)
           logging.info("Restart of %s succeeded", instance.name)
 
-  def VerifyDisks(self):
+  @staticmethod
+  def VerifyDisks():
     """Run gnt-cluster verify-disks.
 
     """
