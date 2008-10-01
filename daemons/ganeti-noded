@@ -40,7 +40,6 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import errors
 from ganeti import jstore
-from ganeti import ssconf
 from ganeti import http
 from ganeti import utils
 
@@ -654,9 +653,8 @@ def main():
       sys.exit(5)
 
   try:
-    ss = ssconf.SimpleStore()
-    port = ss.GetNodeDaemonPort()
-    pwdata = ss.GetNodeDaemonPassword()
+    port = utils.GetNodeDaemonPort()
+    pwdata = utils.GetNodeDaemonPassword()
   except errors.ConfigurationError, err:
     print "Cluster configuration incomplete: '%s'" % str(err)
     sys.exit(5)
