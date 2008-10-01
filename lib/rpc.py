@@ -34,7 +34,6 @@ import simplejson
 from ganeti import logger
 from ganeti import utils
 from ganeti import objects
-from ganeti import ssconf
 
 
 class NodeController:
@@ -101,9 +100,8 @@ class Client:
   allresult = []
 
   def __init__(self, procedure, args):
-    ss = ssconf.SimpleStore()
-    self.port = ss.GetNodeDaemonPort()
-    self.nodepw = ss.GetNodeDaemonPassword()
+    self.port = utils.GetNodeDaemonPort()
+    self.nodepw = utils.GetNodeDaemonPassword()
     self.nc = {}
     self.results = {}
     self.procedure = procedure
