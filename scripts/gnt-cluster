@@ -161,6 +161,9 @@ def ClusterCopyFile(opts, args):
     nodes - list containing the name of target nodes; if empty, all nodes
 
   """
+  # TODO: Query master
+  cfg = ssconf.SimpleConfigReader()
+
   filename = args[0]
   if not os.path.exists(filename):
     raise errors.OpPrereqError("No such filename '%s'" % filename)
@@ -169,7 +172,7 @@ def ClusterCopyFile(opts, args):
 
   op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
   results = [row[0] for row in SubmitOpCode(op) if row[0] != myname]
-  srun = ssh.SshRunner()
+  srun = ssh.SshRunner(cfg)
   for node in results:
     if not srun.CopyFileToNode(node, filename):
       print >> sys.stderr, ("Copy of file %s to node %s failed" %
@@ -188,14 +191,18 @@ def RunClusterCommand(opts, args):
     nodes: list containing the name of target nodes; if empty, all nodes
 
   """
+  # TODO: Query master
+  cfg = ssconf.SimpleConfigReader()
+
   command = " ".join(args)
   op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
   nodes = [row[0] for row in SubmitOpCode(op)]
 
   sstore = ssconf.SimpleStore()
   master_node = sstore.GetMasterNode()
-  srun = ssh.SshRunner(sstore=sstore)
+  srun = ssh.SshRunner(cfg)
 
+  # Make sure master node is at list end
   if master_node in nodes:
     nodes.remove(master_node)
     nodes.append(master_node)

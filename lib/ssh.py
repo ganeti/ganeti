@@ -30,7 +30,6 @@ from ganeti import logger
 from ganeti import utils
 from ganeti import errors
 from ganeti import constants
-from ganeti import ssconf
 
 
 def GetUserFiles(user, mkdir=False):
@@ -72,11 +71,8 @@ class SshRunner:
   """Wrapper for SSH commands.
 
   """
-  def __init__(self, sstore=None):
-    if sstore is None:
-      self.sstore = ssconf.SimpleStore()
-    else:
-      self.sstore = sstore
+  def __init__(self, cfg):
+    self.cfg = cfg
 
   def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
                        strict_host_check):
@@ -88,7 +84,7 @@ class SshRunner:
       ]
 
     if use_cluster_key:
-      options.append("-oHostKeyAlias=%s" % self.sstore.GetClusterName())
+      options.append("-oHostKeyAlias=%s" % self.cfg.GetClusterName())
 
     # TODO: Too many boolean options, maybe convert them to more descriptive
     # constants.
@@ -224,10 +220,10 @@ class SshRunner:
     return True, "host matches"
 
 
-def WriteKnownHostsFile(cfg, sstore, file_name):
+def WriteKnownHostsFile(cfg, file_name):
   """Writes the cluster-wide equally known_hosts file.
 
   """
   utils.WriteFile(file_name, mode=0700,
-                  data="%s ssh-rsa %s\n" % (sstore.GetClusterName(),
+                  data="%s ssh-rsa %s\n" % (cfg.GetClusterName(),
                                             cfg.GetHostKey()))

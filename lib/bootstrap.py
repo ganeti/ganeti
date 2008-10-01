@@ -243,7 +243,7 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   cfg = config.ConfigWriter()
   cfg.InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
 
-  ssh.WriteKnownHostsFile(cfg, ss, constants.SSH_KNOWN_HOSTS_FILE)
+  ssh.WriteKnownHostsFile(cfg, constants.SSH_KNOWN_HOSTS_FILE)
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
@@ -274,8 +274,9 @@ def SetupNodeDaemon(node, ssh_key_check):
     node: fully qualified domain name for the new node
 
   """
+  cfg = ssconf.SimpleConfigReader()
+  sshrunner = ssh.SshRunner(cfg)
   ss = ssconf.SimpleStore()
-  sshrunner = ssh.SshRunner(ss)
   gntpass = ss.GetNodeDaemonPassword()
   if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
     raise errors.OpExecError("ganeti password corruption detected")

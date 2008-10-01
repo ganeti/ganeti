@@ -49,7 +49,7 @@ def _GetConfig():
 
 
 def _GetSshRunner():
-  return ssh.SshRunner()
+  return ssh.SshRunner(_GetConfig())
 
 
 def _CleanDirectory(path, exclude=[]):

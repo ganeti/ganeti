@@ -41,10 +41,9 @@ class TestKnownHosts(testutils.GanetiTestCase):
 
   def test(self):
     cfg = mocks.FakeConfig()
-    sstore = mocks.FakeSStore()
-    ssh.WriteKnownHostsFile(cfg, sstore, self.tmpfile.name)
+    ssh.WriteKnownHostsFile(cfg, self.tmpfile.name)
     self.assertFileContent(self.tmpfile.name,
-        "%s ssh-rsa %s\n" % (sstore.GetClusterName(),
+        "%s ssh-rsa %s\n" % (cfg.GetClusterName(),
                              mocks.FAKE_CLUSTER_KEY))
 
 
