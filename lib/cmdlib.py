@@ -56,7 +56,6 @@ class LogicalUnit(object):
     - redefine HPATH and HTYPE
     - optionally redefine their run requirements:
         REQ_MASTER: the LU needs to run on the master node
-        REQ_WSSTORE: the LU needs a writable SimpleStore
         REQ_BGL: the LU needs to hold the Big Ganeti Lock exclusively
 
   Note that all commands require root permissions.
@@ -66,10 +65,9 @@ class LogicalUnit(object):
   HTYPE = None
   _OP_REQP = []
   REQ_MASTER = True
-  REQ_WSSTORE = False
   REQ_BGL = True
 
-  def __init__(self, processor, op, context, sstore):
+  def __init__(self, processor, op, context):
     """Constructor for LogicalUnit.
 
     This needs to be overriden in derived classes in order to check op
@@ -79,7 +77,6 @@ class LogicalUnit(object):
     self.proc = processor
     self.op = op
     self.cfg = context.cfg
-    self.sstore = sstore
     self.context = context
     # Dicts used to declare locking needs to mcpu
     self.needed_locks = None

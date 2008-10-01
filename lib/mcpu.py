@@ -34,7 +34,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import rpc
 from ganeti import cmdlib
-from ganeti import ssconf
 from ganeti import logger
 from ganeti import locking
 
@@ -187,18 +186,13 @@ class Processor(object):
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")
 
-    if lu_class.REQ_WSSTORE:
-      sstore = ssconf.WritableSimpleStore()
-    else:
-      sstore = ssconf.SimpleStore()
-
     # Acquire the Big Ganeti Lock exclusively if this LU requires it, and in a
     # shared fashion otherwise (to prevent concurrent run with an exclusive LU.
     self.context.glm.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
                              shared=not lu_class.REQ_BGL)
     try:
       self.exclusive_BGL = lu_class.REQ_BGL
-      lu = lu_class(self, op, self.context, sstore)
+      lu = lu_class(self, op, self.context)
       lu.ExpandNames()
       assert lu.needed_locks is not None, "needed_locks not set by LU"
       result = self._LockAndExecLU(lu, locking.LEVEL_INSTANCE)
