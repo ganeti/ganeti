@@ -861,12 +861,14 @@ class ConfigWriter:
     self._DistributeConfig()
 
   @locking.ssynchronized(_config_lock)
-  def InitConfig(self, cluster_config, master_node_config):
+  def InitConfig(self, version, cluster_config, master_node_config):
     """Create the initial cluster configuration.
 
     It will contain the current node, which will also be the master
     node, and no instances.
 
+    @type version: int
+    @param version: Configuration version
     @type cluster_config: objects.Cluster
     @param cluster_config: Cluster configuration
     @type master_node_config: objects.Node
@@ -877,7 +879,8 @@ class ConfigWriter:
       master_node_config.name: master_node_config,
       }
 
-    self._config_data = objects.ConfigData(cluster=cluster_config,
+    self._config_data = objects.ConfigData(version=version,
+                                           cluster=cluster_config,
                                            nodes=nodes,
                                            instances={},
                                            serial_no=1)

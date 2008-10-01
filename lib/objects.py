@@ -237,7 +237,7 @@ class TaggableObject(ConfigObject):
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
-  __slots__ = ["cluster", "nodes", "instances", "serial_no"]
+  __slots__ = ["version", "cluster", "nodes", "instances", "serial_no"]
 
   def ToDict(self):
     """Custom function for top-level config data.
@@ -695,6 +695,12 @@ class Cluster(TaggableObject):
     "mac_prefix",
     "volume_group_name",
     "default_bridge",
+    "hypervisor",
+    "master_node",
+    "master_ip",
+    "master_netdev",
+    "cluster_name",
+    "file_storage_dir",
     ]
 
   def ToDict(self):

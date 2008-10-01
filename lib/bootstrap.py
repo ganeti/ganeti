@@ -230,12 +230,18 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
     volume_group_name=vg_name,
     default_bridge=def_bridge,
     tcpudp_port_pool=set(),
+    hypervisor=hypervisor_type,
+    master_node=hostname.name,
+    master_ip=clustername.ip,
+    master_netdev=master_netdev,
+    cluster_name=clustername.name,
+    file_storage_dir=file_storage_dir,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
                                     secondary_ip=secondary_ip)
   cfg = config.ConfigWriter()
-  cfg.InitConfig(cluster_config, master_node_config)
+  cfg.InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
 
   ssh.WriteKnownHostsFile(cfg, ss, constants.SSH_KNOWN_HOSTS_FILE)
 

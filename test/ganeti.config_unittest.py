@@ -55,6 +55,9 @@ class TestConfigRunner(unittest.TestCase):
 
   def _init_cluster(self, cfg):
     """Initializes the cfg object"""
+    me = utils.HostInfo()
+    ip = constants.LOCALHOST_IP_ADDRESS
+
     cluster_config = objects.Cluster(
       serial_no=1,
       rsahostkeypub="",
@@ -63,12 +66,20 @@ class TestConfigRunner(unittest.TestCase):
       volume_group_name="xenvg",
       default_bridge=constants.DEFAULT_BRIDGE,
       tcpudp_port_pool=set(),
+      hypervisor=constants.HT_FAKE,
+      master_node=me.name,
+      master_ip="127.0.0.1",
+      master_netdev=constants.DEFAULT_BRIDGE,
+      cluster_name="cluster.local",
+      file_storage_dir="/tmp",
       )
-    ip = constants.LOCALHOST_IP_ADDRESS
-    master_node_config = objects.Node(name=utils.HostInfo().name,
-                                      primary_ip=ip,
+
+    master_node_config = objects.Node(name=me.name,
+                                      primary_ip=me.ip,
                                       secondary_ip=ip)
-    cfg.InitConfig(cluster_config, master_node_config)
+
+    cfg.InitConfig(constants.CONFIG_VERSION,
+                   cluster_config, master_node_config)
 
   def _create_instance(self):
     """Create and return an instance object"""
