@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ import sys
 from ganeti import errors
 from ganeti import constants
 from ganeti import utils
+from ganeti import serializer
 
 
 class SimpleStore:
@@ -199,6 +200,68 @@ class WritableSimpleStore(SimpleStore):
     file_name = self.KeyToFilename(key)
     utils.WriteFile(file_name, data="%s\n" % str(value),
                     uid=0, gid=0, mode=0400)
+
+
+class SimpleConfigReader:
+  """Simple class to read configuration file.
+
+  """
+  def __init__(self, file_name=constants.CLUSTER_CONF_FILE):
+    """Initializes this class.
+
+    @type file_name: string
+    @param file_name: Configuration file path
+
+    """
+    self._file_name = file_name
+    self._config_data = serializer.Load(utils.ReadFile(file_name))
+    # TODO: Error handling
+
+  def GetClusterName(self):
+    return self._config_data["cluster"]["cluster_name"]
+
+  def GetHostKey(self):
+    return self._config_data["cluster"]["rsahostkeypub"]
+
+  def GetMasterNode(self):
+    return self._config_data["cluster"]["master_node"]
+
+  def GetMasterIP(self):
+    return self._config_data["cluster"]["master_ip"]
+
+  def GetMasterNetdev(self):
+    return self._config_data["cluster"]["master_netdev"]
+
+  def GetFileStorageDir(self):
+    return self._config_data["cluster"]["file_storage_dir"]
+
+  def GetHypervisorType(self):
+    return self._config_data["cluster"]["hypervisor"]
+
+  def GetNodeList(self):
+    return self._config_data["nodes"].keys()
+
+
+class SimpleConfigWriter(SimpleConfigReader):
+  """Simple class to write configuration file.
+
+  """
+  def SetMasterNode(self, node):
+    """Change master node.
+
+    """
+    self._config_data["cluster"]["master_node"] = node
+
+  def Save(self):
+    """Writes configuration file.
+
+    Warning: Doesn't take care of locking or synchronizing with other
+    processes.
+
+    """
+    utils.WriteFile(self._file_name,
+                    data=serializer.Dump(self._config_data),
+                    mode=0600)
 
 
 def GetMasterAndMyself(ss=None):
