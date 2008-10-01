@@ -36,7 +36,6 @@ from optparse import OptionParser
 from ganeti import utils
 from ganeti import constants
 from ganeti import serializer
-from ganeti import ssconf
 from ganeti import errors
 from ganeti import opcodes
 from ganeti import logger
@@ -282,8 +281,7 @@ class Watcher(object):
 
   """
   def __init__(self):
-    sstore = ssconf.SimpleStore()
-    master = sstore.GetMasterNode()
+    master = client.QueryConfigValues(["master_node"])[0]
     if master != utils.HostInfo().name:
       raise NotMasterError("This is not the master node")
     self.instances = GetInstanceList()
