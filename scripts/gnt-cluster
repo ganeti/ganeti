@@ -127,8 +127,7 @@ def ShowClusterMaster(opts, args):
     opts - class with options as members
 
   """
-  sstore = ssconf.SimpleStore()
-  print sstore.GetMasterNode()
+  print GetClient().QueryConfigValues(["master_node"])[0]
   return 0
 
 
@@ -172,6 +171,8 @@ def ClusterCopyFile(opts, args):
 
   op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
   results = [row[0] for row in SubmitOpCode(op) if row[0] != myname]
+
+  # TODO: Potential inconsistency between local node and master
   srun = ssh.SshRunner(cfg)
   for node in results:
     if not srun.CopyFileToNode(node, filename):
@@ -198,8 +199,8 @@ def RunClusterCommand(opts, args):
   op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
   nodes = [row[0] for row in SubmitOpCode(op)]
 
-  sstore = ssconf.SimpleStore()
-  master_node = sstore.GetMasterNode()
+  # TODO: Potential inconsistency between local node and master
+  master_node = cfg.GetMasterNode()
   srun = ssh.SshRunner(cfg)
 
   # Make sure master node is at list end
