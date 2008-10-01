@@ -43,19 +43,16 @@ from ganeti import constants
 from ganeti import rpc
 from ganeti import objects
 from ganeti import serializer
-from ganeti import ssconf
 
 
 _config_lock = locking.SharedLock()
 
 
-def ValidateConfig():
-  sstore = ssconf.SimpleStore()
-
-  if sstore.GetConfigVersion() != constants.CONFIG_VERSION:
+def _ValidateConfig(data):
+  if data.version != constants.CONFIG_VERSION:
     raise errors.ConfigurationError("Cluster configuration version"
                                     " mismatch, got %s instead of %s" %
-                                    (sstore.GetConfigVersion(),
+                                    (data.version,
                                      constants.CONFIG_VERSION))
 
 
@@ -840,9 +837,6 @@ class ConfigWriter:
       # data is current, so skip loading of config file
       return
 
-    # Make sure the configuration has the right version
-    ValidateConfig()
-
     f = open(self._cfg_file, 'r')
     try:
       try:
@@ -851,6 +845,10 @@ class ConfigWriter:
         raise errors.ConfigurationError(err)
     finally:
       f.close()
+
+    # Make sure the configuration has the right version
+    _ValidateConfig(data)
+
     if (not hasattr(data, 'cluster') or
         not hasattr(data.cluster, 'rsahostkeypub')):
       raise errors.ConfigurationError("Incomplete configuration"
