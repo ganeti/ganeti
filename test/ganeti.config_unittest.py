@@ -76,7 +76,8 @@ class TestConfigRunner(unittest.TestCase):
 
     master_node_config = objects.Node(name=me.name,
                                       primary_ip=me.ip,
-                                      secondary_ip=ip)
+                                      secondary_ip=ip,
+                                      serial_no=1)
 
     cfg.InitConfig(constants.CONFIG_VERSION,
                    cluster_config, master_node_config)
