@@ -196,16 +196,6 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
     raise errors.OpPrereqError("Init.d script '%s' missing or not"
                                " executable." % constants.NODE_INITD_SCRIPT)
 
-  # set up the simple store
-  ss = ssconf.WritableSimpleStore()
-  ss.SetKey(ss.SS_HYPERVISOR, hypervisor_type)
-  ss.SetKey(ss.SS_MASTER_NODE, hostname.name)
-  ss.SetKey(ss.SS_MASTER_IP, clustername.ip)
-  ss.SetKey(ss.SS_MASTER_NETDEV, master_netdev)
-  ss.SetKey(ss.SS_CLUSTER_NAME, clustername.name)
-  ss.SetKey(ss.SS_FILE_STORAGE_DIR, file_storage_dir)
-  ss.SetKey(ss.SS_CONFIG_VERSION, constants.CONFIG_VERSION)
-
   # set up the inter-node password and certificate
   _InitGanetiServerSetup()
 

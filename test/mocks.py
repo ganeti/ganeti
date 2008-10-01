@@ -55,13 +55,6 @@ class FakeConfig:
         return utils.HostInfo().name
 
 
-class FakeSStore:
-    """Fake simplestore object"""
-
-    def GetMasterNode(self):
-        return utils.HostInfo().name
-
-
 class FakeProc:
     """Fake processor object"""
 

@@ -36,7 +36,7 @@ from ganeti import constants
 from ganeti import cmdlib
 from ganeti.constants import HKR_SUCCESS, HKR_FAIL, HKR_SKIP
 
-from mocks import FakeConfig, FakeSStore, FakeProc, FakeContext
+from mocks import FakeConfig, FakeProc, FakeContext
 
 class FakeLU(cmdlib.LogicalUnit):
   HPATH = "test"
@@ -226,10 +226,9 @@ class TestHooksMaster(unittest.TestCase):
                  for node_name in node_list])
 
   def setUp(self):
-    self.sstore = FakeSStore()
     self.op = opcodes.OpCode()
     self.context = FakeContext()
-    self.lu = FakeLU(None, self.op, self.context, self.sstore)
+    self.lu = FakeLU(None, self.op, self.context)
 
   def testTotalFalse(self):
     """Test complete rpc failure"""
