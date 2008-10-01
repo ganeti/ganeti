@@ -44,6 +44,10 @@ from ganeti import objects
 from ganeti import ssconf
 
 
+def _GetConfig():
+  return ssconf.SimpleConfigReader()
+
+
 def _GetSshRunner():
   return ssh.SshRunner()
 
@@ -88,10 +92,10 @@ def GetMasterInfo():
 
   """
   try:
-    ss = ssconf.SimpleStore()
-    master_netdev = ss.GetMasterNetdev()
-    master_ip = ss.GetMasterIP()
-    master_node = ss.GetMasterNode()
+    cfg = _GetConfig()
+    master_netdev = cfg.GetMasterNetdev()
+    master_ip = cfg.GetMasterIP()
+    master_node = cfg.GetMasterNode()
   except errors.ConfigurationError, err:
     logging.exception("Cluster configuration incomplete")
     return (None, None)
@@ -307,7 +311,7 @@ def VerifyNode(what):
                                           " primary/secondary IP"
                                           " in the node list")
     else:
-      port = ssconf.SimpleStore().GetNodeDaemonPort()
+      port = utils.GetNodeDaemonPort()
       for name, pip, sip in what['node-net-test']:
         fail = []
         if not utils.TcpPing(pip, port, source=my_pip):
@@ -495,6 +499,7 @@ def AddOSToInstance(instance, os_disk, swap_disk):
     swap_disk: the instance-visible name of the swap device
 
   """
+  cfg = _GetConfig()
   inst_os = OSFromDisk(instance.os)
 
   create_script = inst_os.create_script
@@ -530,7 +535,7 @@ def AddOSToInstance(instance, os_disk, swap_disk):
                                 inst_os.path, create_script, instance.name,
                                 real_os_dev.dev_path, real_swap_dev.dev_path,
                                 logfile)
-  env = {'HYPERVISOR': ssconf.SimpleStore().GetHypervisorType()}
+  env = {'HYPERVISOR': cfg.GetHypervisorType()}
 
   result = utils.RunCmd(command, env=env)
   if result.failed:
@@ -1072,7 +1077,6 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
     constants.SSH_KNOWN_HOSTS_FILE,
     constants.VNC_PASSWORD_FILE,
     ]
-  allowed_files.extend(ssconf.SimpleStore().GetFileList())
 
   if file_name not in allowed_files:
     logging.error("Filename passed to UploadFile not in allowed"
@@ -1446,6 +1450,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
     False in case of error, True otherwise.
 
   """
+  cfg = _GetConfig()
   inst_os = OSFromDisk(instance.os)
   import_script = inst_os.import_script
 
@@ -1487,7 +1492,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
                                logfile)
 
   command = '|'.join([utils.ShellQuoteArgs(remotecmd), comprcmd, impcmd])
-  env = {'HYPERVISOR': ssconf.SimpleStore().GetHypervisorType()}
+  env = {'HYPERVISOR': cfg.GetHypervisorType()}
 
   result = utils.RunCmd(command, env=env)
 
@@ -1573,8 +1578,9 @@ def _TransformFileStorageDir(file_storage_dir):
     normalized file_storage_dir (string) if valid, None otherwise
 
   """
+  cfg = _GetConfig()
   file_storage_dir = os.path.normpath(file_storage_dir)
-  base_file_storage_dir = ssconf.SimpleStore().GetFileStorageDir()
+  base_file_storage_dir = cfg.GetFileStorageDir()
   if (not os.path.commonprefix([file_storage_dir, base_file_storage_dir]) ==
       base_file_storage_dir):
     logging.error("file storage directory '%s' is not under base file"
