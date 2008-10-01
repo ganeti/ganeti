@@ -207,7 +207,7 @@ class OpVerifyDisks(OpCode):
 
   Parameters: none
 
-  Result: two lists:
+  Result: a tuple of four elements:
     - list of node names with bad data returned (unreachable, etc.)
     - dict of node names with broken volume groups (values: error msg)
     - list of instances with degraded disks (that should be activated)

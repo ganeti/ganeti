@@ -74,28 +74,6 @@ def Indent(s, prefix='| '):
   return "%s%s\n" % (prefix, ('\n' + prefix).join(s.splitlines()))
 
 
-def DoCmd(cmd):
-  """Run a shell command.
-
-  Args:
-    cmd: the command to run.
-
-  Raises CommandError with verbose commentary on error.
-
-  """
-  res = utils.RunCmd(cmd)
-
-  if res.failed:
-    msg = ("Command %s failed:\n%s\nstdout:\n%sstderr:\n%s" %
-           (repr(cmd),
-            Indent(res.fail_reason),
-            Indent(res.stdout),
-            Indent(res.stderr)))
-    raise errors.CommandError(msg)
-
-  return res
-
-
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
@@ -399,10 +377,24 @@ class Watcher(object):
     """Run gnt-cluster verify-disks.
 
     """
-    # TODO: What should we do here?
-    result = DoCmd(['gnt-cluster', 'verify-disks'])
-    if result.output:
-      logging.info(result.output)
+    op = opcodes.OpVerifyDisks()
+    result = cli.SubmitOpCode(op, cl=client)
+    if not isinstance(result, (tuple, list)):
+      logging.error("Can't get a valid result from verify-disks")
+      return
+    offline_disk_instances = result[2]
+    if not offline_disk_instances:
+      # nothing to do
+      return
+    logging.debug("Will activate disks for instances %s",
+                  ", ".join(offline_disk_instances))
+    # we submit only one job, and wait for it. not optimal, but spams
+    # less the job queue
+    job = [opcodes.OpActivateInstanceDisks(instance_name=name)
+           for name in offline_disk_instances]
+    job_id = cli.SendJob(job, cl=client)
+
+    cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)
 
 
 def ParseOptions():
@@ -432,7 +424,8 @@ def main():
 
   options, args = ParseOptions()
 
-  logger.SetupLogging(constants.LOG_WATCHER, debug=options.debug)
+  logger.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
+                      stderr_logging=options.debug)
 
   try:
     client = cli.GetClient()
