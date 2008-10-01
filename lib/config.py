@@ -861,36 +861,25 @@ class ConfigWriter:
     self._DistributeConfig()
 
   @locking.ssynchronized(_config_lock)
-  def InitConfig(self, node, primary_ip, secondary_ip,
-                 hostkeypub, mac_prefix, vg_name, def_bridge):
+  def InitConfig(self, cluster_config, master_node_config):
     """Create the initial cluster configuration.
 
     It will contain the current node, which will also be the master
-    node, and no instances or operating systmes.
+    node, and no instances.
 
-    Args:
-      node: the nodename of the initial node
-      primary_ip: the IP address of the current host
-      secondary_ip: the secondary IP of the current host or None
-      hostkeypub: the public hostkey of this host
+    @type cluster_config: objects.Cluster
+    @param cluster_config: Cluster configuration
+    @type master_node_config: objects.Node
+    @param master_node_config: Master node configuration
 
     """
-    hu_port = constants.FIRST_DRBD_PORT - 1
-    globalconfig = objects.Cluster(serial_no=1,
-                                   rsahostkeypub=hostkeypub,
-                                   highest_used_port=hu_port,
-                                   mac_prefix=mac_prefix,
-                                   volume_group_name=vg_name,
-                                   default_bridge=def_bridge,
-                                   tcpudp_port_pool=set())
-    if secondary_ip is None:
-      secondary_ip = primary_ip
-    nodeconfig = objects.Node(name=node, primary_ip=primary_ip,
-                              secondary_ip=secondary_ip, serial_no=1)
+    nodes = {
+      master_node_config.name: master_node_config,
+      }
 
-    self._config_data = objects.ConfigData(nodes={node: nodeconfig},
+    self._config_data = objects.ConfigData(cluster=cluster_config,
+                                           nodes=nodes,
                                            instances={},
-                                           cluster=globalconfig,
                                            serial_no=1)
     self._WriteConfig()
 

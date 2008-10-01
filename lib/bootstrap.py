@@ -35,6 +35,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import config
 from ganeti import constants
+from ganeti import objects
 from ganeti import ssconf
 
 
@@ -149,6 +150,8 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
       raise errors.OpPrereqError("You gave %s as secondary IP,"
                                  " but it does not belong to this host." %
                                  secondary_ip)
+  else:
+    secondary_ip = hostname.ip
 
   if vg_name is not None:
     # Check if volume group is valid
@@ -219,9 +222,20 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   _InitSSHSetup(hostname.name)
 
   # init of cluster config file
+  cluster_config = objects.Cluster(
+    serial_no=1,
+    rsahostkeypub=sshkey,
+    highest_used_port=(constants.FIRST_DRBD_PORT - 1),
+    mac_prefix=mac_prefix,
+    volume_group_name=vg_name,
+    default_bridge=def_bridge,
+    tcpudp_port_pool=set(),
+    )
+  master_node_config = objects.Node(name=hostname.name,
+                                    primary_ip=hostname.ip,
+                                    secondary_ip=secondary_ip)
   cfg = config.ConfigWriter()
-  cfg.InitConfig(hostname.name, hostname.ip, secondary_ip, sshkey,
-                 mac_prefix, vg_name, def_bridge)
+  cfg.InitConfig(cluster_config, master_node_config)
 
   ssh.WriteKnownHostsFile(cfg, ss, constants.SSH_KNOWN_HOSTS_FILE)
 
