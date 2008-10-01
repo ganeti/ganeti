@@ -71,20 +71,19 @@ def _InitSSHSetup(node):
     f.close()
 
 
-def _InitGanetiServerSetup(ss):
+def _InitGanetiServerSetup():
   """Setup the necessary configuration for the initial node daemon.
 
   This creates the nodepass file containing the shared password for
   the cluster and also generates the SSL certificate.
 
-  Args:
-    ss: A WritableSimpleStore
-
   """
   # Create pseudo random password
   randpass = utils.GenerateSecret()
-  # and write it into sstore
-  ss.SetKey(ss.SS_NODED_PASS, randpass)
+
+  # and write it into the config file
+  utils.WriteFile(constants.CLUSTER_PASSWORD_FILE,
+                  data="%s\n" % randpass, mode=0400)
 
   result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
                          "-days", str(365*5), "-nodes", "-x509",
@@ -208,7 +207,7 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   ss.SetKey(ss.SS_CONFIG_VERSION, constants.CONFIG_VERSION)
 
   # set up the inter-node password and certificate
-  _InitGanetiServerSetup(ss)
+  _InitGanetiServerSetup()
 
   # set up ssh config and /etc/hosts
   f = open(constants.SSH_HOST_RSA_PUB, 'r')
@@ -276,8 +275,7 @@ def SetupNodeDaemon(node, ssh_key_check):
   """
   cfg = ssconf.SimpleConfigReader()
   sshrunner = ssh.SshRunner(cfg)
-  ss = ssconf.SimpleStore()
-  gntpass = ss.GetNodeDaemonPassword()
+  gntpass = utils.GetNodeDaemonPassword()
   if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
     raise errors.OpExecError("ganeti password corruption detected")
   f = open(constants.SSL_CERT_FILE)
@@ -302,7 +300,7 @@ def SetupNodeDaemon(node, ssh_key_check):
                "echo '%s' > '%s' && "
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n%s restart" %
-               (gntpass, ss.KeyToFilename(ss.SS_NODED_PASS),
+               (gntpass, constants.CLUSTER_PASSWORD_FILE,
                 constants.SSL_CERT_FILE, gntpem,
                 constants.NODE_INITD_SCRIPT))
 
@@ -326,10 +324,10 @@ def MasterFailover():
   new master.
 
   """
-  ss = ssconf.WritableSimpleStore()
+  cfg = ssconf.SimpleConfigWriter()
 
   new_master = utils.HostInfo().name
-  old_master = ss.GetMasterNode()
+  old_master = cfg.GetMasterNode()
 
   if old_master == new_master:
     raise errors.OpPrereqError("This commands must be run on the node"
@@ -346,12 +344,13 @@ def MasterFailover():
     logging.error("could disable the master role on the old master"
                  " %s, please disable manually", old_master)
 
-  ss.SetKey(ss.SS_MASTER_NODE, new_master)
+  cfg.SetMasterNode(new_master)
+  cfg.Save()
 
-  cfg = config.ConfigWriter()
+  # Here we have a phase where no master should be running
 
   if not rpc.call_upload_file(cfg.GetNodeList(),
-                              ss.KeyToFilename(ss.SS_MASTER_NODE)):
+                              constants.CLUSTER_CONF_FILE):
     logging.error("could not distribute the new simple store master file"
                   " to the other nodes, please check.")
 
