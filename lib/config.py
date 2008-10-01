@@ -814,13 +814,6 @@ class ConfigWriter:
                     for node in self._UnlockedGetNodeList()])
     return my_dict
 
-  @locking.ssynchronized(_config_lock, shared=1)
-  def DumpConfig(self):
-    """Return the entire configuration of the cluster.
-    """
-    self._OpenConfig()
-    return self._config_data
-
   def _BumpSerialNo(self):
     """Bump up the serial number of the config.
 

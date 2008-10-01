@@ -227,10 +227,10 @@ class OpVerifyDisks(OpCode):
   __slots__ = []
 
 
-class OpDumpClusterConfig(OpCode):
-  """Dump the cluster configuration."""
-  OP_ID = "OP_CLUSTER_DUMPCONFIG"
-  __slots__ = []
+class OpQueryConfigValues(OpCode):
+  """Query cluster configuration values."""
+  OP_ID = "OP_CLUSTER_CONFIG_QUERY"
+  __slots__ = ["output_fields"]
 
 
 class OpRenameCluster(OpCode):

@@ -240,6 +240,11 @@ class ClientOps:
       op = opcodes.OpQueryExports(nodes=nodes)
       return self._Query(op)
 
+    elif method == luxi.REQ_QUERY_CONFIG_VALUES:
+      fields = args
+      op = opcodes.OpQueryConfigValues(output_fields=fields)
+      return self._Query(op)
+
     else:
       raise ValueError("Invalid operation")
 

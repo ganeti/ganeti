@@ -1859,8 +1859,8 @@ class LUQueryClusterInfo(NoHooksLU):
     return result
 
 
-class LUDumpClusterConfig(NoHooksLU):
-  """Return a text-representation of the cluster-config.
+class LUQueryConfigValues(NoHooksLU):
+  """Return configuration values.
 
   """
   _OP_REQP = []
@@ -1868,6 +1868,11 @@ class LUDumpClusterConfig(NoHooksLU):
 
   def ExpandNames(self):
     self.needed_locks = {}
+
+    static_fields = ["cluster_name", "master_node"]
+    _CheckOutputFields(static=static_fields,
+                       dynamic=[],
+                       selected=self.op.output_fields)
 
   def CheckPrereq(self):
     """No prerequisites.
@@ -1879,7 +1884,15 @@ class LUDumpClusterConfig(NoHooksLU):
     """Dump a representation of the cluster config to the standard output.
 
     """
-    return self.cfg.DumpConfig()
+    values = []
+    for field in self.op.output_fields:
+      if field == "cluster_name":
+        values.append(self.cfg.GetClusterName())
+      elif field == "master_node":
+        values.append(self.cfg.GetMasterNode())
+      else:
+        raise errors.ParameterError(field)
+    return values
 
 
 class LUActivateInstanceDisks(NoHooksLU):
@@ -4271,6 +4284,7 @@ class LUQueryInstanceData(NoHooksLU):
   """
   _OP_REQP = ["instances"]
   REQ_BGL = False
+
   def ExpandNames(self):
     self.needed_locks = {}
     self.share_locks = dict(((i, 1) for i in locking.LEVELS))
