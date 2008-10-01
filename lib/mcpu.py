@@ -287,9 +287,9 @@ class HooksMaster(object):
     env = self.env.copy()
     env["GANETI_HOOKS_PHASE"] = phase
     env["GANETI_HOOKS_PATH"] = hpath
-    if self.lu.sstore is not None:
-      env["GANETI_CLUSTER"] = self.lu.sstore.GetClusterName()
-      env["GANETI_MASTER"] = self.lu.sstore.GetMasterNode()
+    if self.lu.cfg is not None:
+      env["GANETI_CLUSTER"] = self.lu.cfg.GetClusterName()
+      env["GANETI_MASTER"] = self.lu.cfg.GetMasterNode()
 
     env = dict([(str(key), str(val)) for key, val in env.iteritems()])
 
@@ -340,7 +340,5 @@ class HooksMaster(object):
     """
     phase = constants.HOOKS_PHASE_POST
     hpath = constants.HOOKS_NAME_CFGUPDATE
-    if self.lu.sstore is None:
-      raise errors.ProgrammerError("Null sstore on config update hook")
-    nodes = [self.lu.sstore.GetMasterNode()]
+    nodes = [self.lu.cfg.GetMasterNode()]
     results = self._RunWrapper(nodes, hpath, phase)

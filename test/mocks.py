@@ -48,6 +48,12 @@ class FakeConfig:
     def GetHostKey(self):
         return FAKE_CLUSTER_KEY
 
+    def GetClusterName(self):
+        return "test.cluster"
+
+    def GetMasterNode(self):
+        return utils.HostInfo().name
+
 
 class FakeSStore:
     """Fake simplestore object"""
