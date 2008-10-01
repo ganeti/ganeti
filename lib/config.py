@@ -472,6 +472,69 @@ class ConfigWriter:
         del self._temporary_drbds[key]
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetConfigVersion(self):
+    """Get the configuration version.
+
+    @return: Config version
+
+    """
+    return self._config_data.version
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetClusterName(self):
+    """Get cluster name.
+
+    @return: Cluster name
+
+    """
+    self._OpenConfig()
+    return self._config_data.cluster.cluster_name
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMasterNode(self):
+    """Get the hostname of the master node for this cluster.
+
+    @return: Master hostname
+
+    """
+    self._OpenConfig()
+    return self._config_data.cluster.master_node
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMasterIP(self):
+    """Get the IP of the master node for this cluster.
+
+    @return: Master IP
+
+    """
+    self._OpenConfig()
+    return self._config_data.cluster.master_ip
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMasterNetdev(self):
+    """Get the master network device for this cluster.
+
+    """
+    self._OpenConfig()
+    return self._config_data.cluster.master_netdev
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetFileStorageDir(self):
+    """Get the file storage dir for this cluster.
+
+    """
+    self._OpenConfig()
+    return self._config_data.cluster.file_storage_dir
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetHypervisorType(self):
+    """Get the hypervisor type for this cluster.
+
+    """
+    self._OpenConfig()
+    return self._config_data.cluster.hypervisor
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetHostKey(self):
     """Return the rsa hostkey from the config.
 

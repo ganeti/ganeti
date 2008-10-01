@@ -1231,6 +1231,29 @@ def MergeTime(timetuple):
   return float(seconds) + (float(microseconds) * 0.000001)
 
 
+def GetNodeDaemonPort():
+  """Get the node daemon port for this cluster.
+
+  Note that this routine does not read a ganeti-specific file, but
+  instead uses socket.getservbyname to allow pre-customization of
+  this parameter outside of Ganeti.
+
+  """
+  try:
+    port = socket.getservbyname("ganeti-noded", "tcp")
+  except socket.error:
+    port = constants.DEFAULT_NODED_PORT
+
+  return port
+
+
+def GetNodeDaemonPassword():
+  """Get the node password for the cluster.
+
+  """
+  return ReadFile(constants.CLUSTER_PASSWORD_FILE)
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 

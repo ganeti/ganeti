@@ -92,6 +92,7 @@ CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
+CLUSTER_PASSWORD_FILE = DATA_DIR + "/ssconf_node_pass"
 QUEUE_DIR = DATA_DIR + "/queue"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
