@@ -250,7 +250,7 @@ def GetNodeInfo(vgname):
   outputarray['vg_size'] = vginfo['vg_size']
   outputarray['vg_free'] = vginfo['vg_free']
 
-  hyper = hypervisor.GetHypervisor()
+  hyper = hypervisor.GetHypervisor(_GetConfig())
   hyp_info = hyper.GetNodeInfo()
   if hyp_info is not None:
     outputarray.update(hyp_info)
@@ -285,7 +285,7 @@ def VerifyNode(what):
   result = {}
 
   if 'hypervisor' in what:
-    result['hypervisor'] = hypervisor.GetHypervisor().Verify()
+    result['hypervisor'] = hypervisor.GetHypervisor(_GetConfig()).Verify()
 
   if 'filelist' in what:
     result['filelist'] = utils.FingerprintFiles(what['filelist'])
@@ -425,7 +425,7 @@ def GetInstanceList():
 
   """
   try:
-    names = hypervisor.GetHypervisor().ListInstances()
+    names = hypervisor.GetHypervisor(_GetConfig()).ListInstances()
   except errors.HypervisorError, err:
     logging.exception("Error enumerating instances")
     raise
@@ -449,7 +449,7 @@ def GetInstanceInfo(instance):
   """
   output = {}
 
-  iinfo = hypervisor.GetHypervisor().GetInstanceInfo(instance)
+  iinfo = hypervisor.GetHypervisor(_GetConfig()).GetInstanceInfo(instance)
   if iinfo is not None:
     output['memory'] = iinfo[2]
     output['state'] = iinfo[4]
@@ -477,7 +477,7 @@ def GetAllInstancesInfo():
   """
   output = {}
 
-  iinfo = hypervisor.GetHypervisor().GetAllInstancesInfo()
+  iinfo = hypervisor.GetHypervisor(_GetConfig()).GetAllInstancesInfo()
   if iinfo:
     for name, inst_id, memory, vcpus, state, times in iinfo:
       output[name] = {
@@ -676,7 +676,7 @@ def StartInstance(instance, extra_args):
     return True
 
   block_devices = _GatherBlockDevs(instance)
-  hyper = hypervisor.GetHypervisor()
+  hyper = hypervisor.GetHypervisor(_GetConfig())
 
   try:
     hyper.StartInstance(instance, block_devices, extra_args)
@@ -699,7 +699,7 @@ def ShutdownInstance(instance):
   if instance.name not in running_instances:
     return True
 
-  hyper = hypervisor.GetHypervisor()
+  hyper = hypervisor.GetHypervisor(_GetConfig())
   try:
     hyper.StopInstance(instance)
   except errors.HypervisorError, err:
@@ -747,7 +747,7 @@ def RebootInstance(instance, reboot_type, extra_args):
     logging.error("Cannot reboot instance that is not running")
     return False
 
-  hyper = hypervisor.GetHypervisor()
+  hyper = hypervisor.GetHypervisor(_GetConfig())
   if reboot_type == constants.INSTANCE_REBOOT_SOFT:
     try:
       hyper.RebootInstance(instance)
@@ -772,7 +772,7 @@ def MigrateInstance(instance, target, live):
   """Migrates an instance to another node.
 
   """
-  hyper = hypervisor.GetHypervisor()
+  hyper = hypervisor.GetHypervisor(_GetConfig())
 
   try:
     hyper.MigrateInstance(instance, target, live)
