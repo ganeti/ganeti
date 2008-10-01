@@ -101,7 +101,7 @@ class LogicalUnit(object):
       raise errors.OpPrereqError("Cluster not initialized yet,"
                                  " use 'gnt-cluster init' first.")
     if self.REQ_MASTER:
-      master = sstore.GetMasterNode()
+      master = self.cfg.GetMasterNode()
       if master != utils.HostInfo().name:
         raise errors.OpPrereqError("Commands must be run on the master"
                                    " node %s" % master)
@@ -471,7 +471,7 @@ class LUDestroyCluster(NoHooksLU):
     Any errors are signalled by raising errors.OpPrereqError.
 
     """
-    master = self.sstore.GetMasterNode()
+    master = self.cfg.GetMasterNode()
 
     nodelist = self.cfg.GetNodeList()
     if len(nodelist) != 1 or nodelist[0] != master:
@@ -486,7 +486,7 @@ class LUDestroyCluster(NoHooksLU):
     """Destroys the cluster.
 
     """
-    master = self.sstore.GetMasterNode()
+    master = self.cfg.GetMasterNode()
     if not rpc.call_node_stop_master(master, False):
       raise errors.OpExecError("Could not disable the master role")
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
@@ -735,7 +735,7 @@ class LUVerifyCluster(LogicalUnit):
 
     # FIXME: verify OS list
     # do local checksums
-    file_names = list(self.sstore.GetFileList())
+    file_names = []
     file_names.append(constants.SSL_CERT_FILE)
     file_names.append(constants.CLUSTER_CONF_FILE)
     local_checksums = utils.FingerprintFiles(file_names)
@@ -1006,17 +1006,16 @@ class LURenameCluster(LogicalUnit):
   HPATH = "cluster-rename"
   HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = ["name"]
-  REQ_WSSTORE = True
 
   def BuildHooksEnv(self):
     """Build hooks env.
 
     """
     env = {
-      "OP_TARGET": self.sstore.GetClusterName(),
+      "OP_TARGET": self.cfg.GetClusterName(),
       "NEW_NAME": self.op.name,
       }
-    mn = self.sstore.GetMasterNode()
+    mn = self.cfg.GetMasterNode()
     return env, [mn], [mn]
 
   def CheckPrereq(self):
@@ -1027,8 +1026,8 @@ class LURenameCluster(LogicalUnit):
 
     new_name = hostname.name
     self.ip = new_ip = hostname.ip
-    old_name = self.sstore.GetClusterName()
-    old_ip = self.sstore.GetMasterIP()
+    old_name = self.cfg.GetClusterName()
+    old_ip = self.cfg.GetMasterIP()
     if new_name == old_name and new_ip == old_ip:
       raise errors.OpPrereqError("Neither the name nor the IP address of the"
                                  " cluster has changed")
@@ -1046,15 +1045,15 @@ class LURenameCluster(LogicalUnit):
     """
     clustername = self.op.name
     ip = self.ip
-    ss = self.sstore
 
     # shutdown the master IP
-    master = ss.GetMasterNode()
+    master = self.cfg.GetMasterNode()
     if not rpc.call_node_stop_master(master, False):
       raise errors.OpExecError("Could not disable the master role")
 
     try:
       # modify the sstore
+      # TODO: sstore
       ss.SetKey(ss.SS_MASTER_IP, ip)
       ss.SetKey(ss.SS_CLUSTER_NAME, clustername)
 
@@ -1117,10 +1116,10 @@ class LUSetClusterParams(LogicalUnit):
 
     """
     env = {
-      "OP_TARGET": self.sstore.GetClusterName(),
+      "OP_TARGET": self.cfg.GetClusterName(),
       "NEW_VG_NAME": self.op.vg_name,
       }
-    mn = self.sstore.GetMasterNode()
+    mn = self.cfg.GetMasterNode()
     return env, [mn], [mn]
 
   def CheckPrereq(self):
@@ -1375,7 +1374,7 @@ class LURemoveNode(LogicalUnit):
 
     instance_list = self.cfg.GetInstanceList()
 
-    masternode = self.sstore.GetMasterNode()
+    masternode = self.cfg.GetMasterNode()
     if node.name == masternode:
       raise errors.OpPrereqError("Node is the master node,"
                                  " you need to failover first.")
@@ -1695,7 +1694,7 @@ class LUAddNode(LogicalUnit):
 
     # check that the type of the node (single versus dual homed) is the
     # same as for the master
-    myself = cfg.GetNodeInfo(self.sstore.GetMasterNode())
+    myself = cfg.GetNodeInfo(self.cfg.GetMasterNode())
     master_singlehomed = myself.secondary_ip == myself.primary_ip
     newbie_singlehomed = secondary_ip == primary_ip
     if master_singlehomed != newbie_singlehomed:
@@ -1775,7 +1774,7 @@ class LUAddNode(LogicalUnit):
                                  " you gave (%s). Please fix and re-run this"
                                  " command." % new_node.secondary_ip)
 
-    node_verify_list = [self.sstore.GetMasterNode()]
+    node_verify_list = [self.cfg.GetMasterNode()]
     node_verify_param = {
       'nodelist': [node],
       # TODO: do a node-net-test as well?
@@ -1794,7 +1793,7 @@ class LUAddNode(LogicalUnit):
 
     # Distribute updated /etc/hosts and known_hosts to all nodes,
     # including the node just added
-    myself = self.cfg.GetNodeInfo(self.sstore.GetMasterNode())
+    myself = self.cfg.GetNodeInfo(self.cfg.GetMasterNode())
     dist_nodes = self.cfg.GetNodeList()
     if not self.op.readd:
       dist_nodes.append(node)
@@ -1809,8 +1808,8 @@ class LUAddNode(LogicalUnit):
           logger.Error("copy of file %s to node %s failed" %
                        (fname, to_node))
 
-    to_copy = self.sstore.GetFileList()
-    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+    to_copy = []
+    if self.cfg.GetHypervisorType() == constants.HT_XEN_HVM31:
       to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
       result = rpc.call_upload_file([node], fname)
@@ -1845,15 +1844,15 @@ class LUQueryClusterInfo(NoHooksLU):
 
     """
     result = {
-      "name": self.sstore.GetClusterName(),
+      "name": self.cfg.GetClusterName(),
       "software_version": constants.RELEASE_VERSION,
       "protocol_version": constants.PROTOCOL_VERSION,
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": constants.OS_API_VERSION,
       "export_version": constants.EXPORT_VERSION,
-      "master": self.sstore.GetMasterNode(),
+      "master": self.cfg.GetMasterNode(),
       "architecture": (platform.architecture()[0], platform.machine()),
-      "hypervisor_type": self.sstore.GetHypervisorType(),
+      "hypervisor_type": self.cfg.GetHypervisorType(),
       }
 
     return result
@@ -2141,7 +2140,7 @@ class LUStartupInstance(LogicalUnit):
       "FORCE": self.op.force,
       }
     env.update(_BuildInstanceHookEnvByObject(self.instance))
-    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -2217,7 +2216,7 @@ class LURebootInstance(LogicalUnit):
       "IGNORE_SECONDARIES": self.op.ignore_secondaries,
       }
     env.update(_BuildInstanceHookEnvByObject(self.instance))
-    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -2287,7 +2286,7 @@ class LUShutdownInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self.instance)
-    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -2339,7 +2338,7 @@ class LUReinstallInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self.instance)
-    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -2418,7 +2417,7 @@ class LURenameInstance(LogicalUnit):
     """
     env = _BuildInstanceHookEnvByObject(self.instance)
     env["INSTANCE_NEW_NAME"] = self.op.new_name
-    nl = ([self.sstore.GetMasterNode(), self.instance.primary_node] +
+    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
 
@@ -2532,7 +2531,7 @@ class LURemoveInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self.instance)
-    nl = [self.sstore.GetMasterNode()]
+    nl = [self.cfg.GetMasterNode()]
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -2772,7 +2771,7 @@ class LUFailoverInstance(LogicalUnit):
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       }
     env.update(_BuildInstanceHookEnvByObject(self.instance))
-    nl = [self.sstore.GetMasterNode()] + list(self.instance.secondary_nodes)
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -3257,7 +3256,7 @@ class LUCreateInstance(LogicalUnit):
              {"size": self.op.swap_size, "mode": "w"}]
     nics = [{"mac": self.op.mac, "ip": getattr(self.op, "ip", None),
              "bridge": self.op.bridge}]
-    ial = IAllocator(self.cfg, self.sstore,
+    ial = IAllocator(self.cfg,
                      mode=constants.IALLOCATOR_MODE_ALLOC,
                      name=self.op.instance_name,
                      disk_template=self.op.disk_template,
@@ -3315,7 +3314,7 @@ class LUCreateInstance(LogicalUnit):
       nics=[(self.inst_ip, self.op.bridge, self.op.mac)],
     ))
 
-    nl = ([self.sstore.GetMasterNode(), self.op.pnode] +
+    nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
           self.secondaries)
     return env, nl, nl
 
@@ -3460,7 +3459,7 @@ class LUCreateInstance(LogicalUnit):
                                    self.op.vnc_bind_address)
 
     # Xen HVM device type checks
-    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+    if self.cfg.GetHypervisorType() == constants.HT_XEN_HVM31:
       if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
         raise errors.OpPrereqError("Invalid NIC type %s specified for Xen HVM"
                                    " hypervisor" % self.op.hvm_nic_type)
@@ -3489,7 +3488,7 @@ class LUCreateInstance(LogicalUnit):
     if self.inst_ip is not None:
       nic.ip = self.inst_ip
 
-    ht_kind = self.sstore.GetHypervisorType()
+    ht_kind = self.cfg.GetHypervisorType()
     if ht_kind in constants.HTS_REQ_PORT:
       network_port = self.cfg.AllocatePort()
     else:
@@ -3506,7 +3505,7 @@ class LUCreateInstance(LogicalUnit):
 
     # build the full file storage dir path
     file_storage_dir = os.path.normpath(os.path.join(
-                                        self.sstore.GetFileStorageDir(),
+                                        self.cfg.GetFileStorageDir(),
                                         string_file_storage_dir, instance))
 
 
@@ -3693,7 +3692,7 @@ class LUReplaceDisks(LogicalUnit):
     """Compute a new secondary node using an IAllocator.
 
     """
-    ial = IAllocator(self.cfg, self.sstore,
+    ial = IAllocator(self.cfg,
                      mode=constants.IALLOCATOR_MODE_RELOC,
                      name=self.op.instance_name,
                      relocate_from=[self.sec_node])
@@ -3725,7 +3724,7 @@ class LUReplaceDisks(LogicalUnit):
       }
     env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = [
-      self.sstore.GetMasterNode(),
+      self.cfg.GetMasterNode(),
       self.instance.primary_node,
       ]
     if self.op.remote_node is not None:
@@ -4218,7 +4217,7 @@ class LUGrowDisk(LogicalUnit):
       }
     env.update(_BuildInstanceHookEnvByObject(self.instance))
     nl = [
-      self.sstore.GetMasterNode(),
+      self.cfg.GetMasterNode(),
       self.instance.primary_node,
       ]
     return env, nl, nl
@@ -4393,7 +4392,7 @@ class LUQueryInstanceData(NoHooksLU):
         "vcpus": instance.vcpus,
         }
 
-      htkind = self.sstore.GetHypervisorType()
+      htkind = self.cfg.GetHypervisorType()
       if htkind == constants.HT_XEN_PVM30:
         idict["kernel_path"] = instance.kernel_path
         idict["initrd_path"] = instance.initrd_path
@@ -4470,7 +4469,7 @@ class LUSetInstanceParams(LogicalUnit):
         mac = self.instance.nics[0].mac
       args['nics'] = [(ip, bridge, mac)]
     env = _BuildInstanceHookEnvByObject(self.instance, override=args)
-    nl = [self.sstore.GetMasterNode(),
+    nl = [self.cfg.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
@@ -4618,7 +4617,7 @@ class LUSetInstanceParams(LogicalUnit):
                            " node %s" % node)
 
     # Xen HVM device type checks
-    if self.sstore.GetHypervisorType() == constants.HT_XEN_HVM31:
+    if self.cfg.GetHypervisorType() == constants.HT_XEN_HVM31:
       if self.op.hvm_nic_type is not None:
         if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
           raise errors.OpPrereqError("Invalid NIC type %s specified for Xen"
@@ -4766,7 +4765,7 @@ class LUExportInstance(LogicalUnit):
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
       }
     env.update(_BuildInstanceHookEnvByObject(self.instance))
-    nl = [self.sstore.GetMasterNode(), self.instance.primary_node,
+    nl = [self.cfg.GetMasterNode(), self.instance.primary_node,
           self.op.target_node]
     return env, nl, nl
 
@@ -5123,7 +5122,7 @@ class IAllocator(object):
   """IAllocator framework.
 
   An IAllocator instance has three sets of attributes:
-    - cfg/sstore that are needed to query the cluster
+    - cfg that is needed to query the cluster
     - input data (all members of the _KEYS class attribute are required)
     - four buffer attributes (in|out_data|text), that represent the
       input (to the external script) in text and data structure format,
@@ -5140,9 +5139,8 @@ class IAllocator(object):
     "relocate_from",
     ]
 
-  def __init__(self, cfg, sstore, mode, name, **kwargs):
+  def __init__(self, cfg, mode, name, **kwargs):
     self.cfg = cfg
-    self.sstore = sstore
     # init buffer variables
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
@@ -5183,9 +5181,9 @@ class IAllocator(object):
     # cluster data
     data = {
       "version": 1,
-      "cluster_name": self.sstore.GetClusterName(),
+      "cluster_name": self.cfg.GetClusterName(),
       "cluster_tags": list(cfg.GetClusterInfo().GetTags()),
-      "hypervisor_type": self.sstore.GetHypervisorType(),
+      "hypervisor_type": self.cfg.GetHypervisorType(),
       # we don't have job IDs
       }
 
@@ -5348,7 +5346,7 @@ class IAllocator(object):
     """
     data = self.in_text
 
-    result = call_fn(self.sstore.GetMasterNode(), name, self.in_text)
+    result = call_fn(self.cfg.GetMasterNode(), name, self.in_text)
 
     if not isinstance(result, (list, tuple)) or len(result) != 4:
       raise errors.OpExecError("Invalid result from master iallocator runner")
@@ -5461,7 +5459,7 @@ class LUTestAllocator(NoHooksLU):
 
     """
     if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
-      ial = IAllocator(self.cfg, self.sstore,
+      ial = IAllocator(self.cfg,
                        mode=self.op.mode,
                        name=self.op.name,
                        mem_size=self.op.mem_size,
@@ -5473,7 +5471,7 @@ class LUTestAllocator(NoHooksLU):
                        vcpus=self.op.vcpus,
                        )
     else:
-      ial = IAllocator(self.cfg, self.sstore,
+      ial = IAllocator(self.cfg,
                        mode=self.op.mode,
                        name=self.op.name,
                        relocate_from=list(self.relocate_from),
