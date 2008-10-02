@@ -1525,14 +1525,15 @@ class LUQueryNodes(NoHooksLU):
       for name in nodenames:
         nodeinfo = node_data.get(name, None)
         if nodeinfo:
+          fn = utils.TryConvert
           live_data[name] = {
-            "mtotal": utils.TryConvert(int, nodeinfo['memory_total']),
-            "mnode": utils.TryConvert(int, nodeinfo['memory_dom0']),
-            "mfree": utils.TryConvert(int, nodeinfo['memory_free']),
-            "dtotal": utils.TryConvert(int, nodeinfo['vg_size']),
-            "dfree": utils.TryConvert(int, nodeinfo['vg_free']),
-            "ctotal": utils.TryConvert(int, nodeinfo['cpu_total']),
-            "bootid": nodeinfo['bootid'],
+            "mtotal": fn(int, nodeinfo.get('memory_total', None)),
+            "mnode": fn(int, nodeinfo.get('memory_dom0', None)),
+            "mfree": fn(int, nodeinfo.get('memory_free', None)),
+            "dtotal": fn(int, nodeinfo.get('vg_size', None)),
+            "dfree": fn(int, nodeinfo.get('vg_free', None)),
+            "ctotal": fn(int, nodeinfo.get('cpu_total', None)),
+            "bootid": nodeinfo.get('bootid', None),
             }
         else:
           live_data[name] = {}
