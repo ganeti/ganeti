@@ -28,8 +28,6 @@ Before installing, please verify that you have the following programs:
     ftp://ftp.inr.ac.ru/ip-routing/iputils-current.tar.gz
   - Python 2.4
     http://www.python.org
-  - Python Twisted library (the core is enough)
-    http://twistedmatrix.com/
   - Python OpenSSL bindings
     http://pyopenssl.sourceforge.net/
   - simplejson Python module
