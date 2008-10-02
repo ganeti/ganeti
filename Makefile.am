@@ -228,24 +228,24 @@ man/%.in: man/%.sgml stamp-directories $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 doc/%.pdf: doc/%.in $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) $< $@
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2PDF)" $< $@
 
 doc/%.html: doc/%.in $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) $< $@
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $@
 
 doc/%.html: doc/%.rst
 	$(RST2HTML) $< $@
 
-doc/rapi.pdf doc/rapi.html: doc/rapi-resources.sgml
+doc/rapi.pdf doc/rapi.html doc/rapi.in: doc/rapi-resources.sgml
 
 doc/rapi-resources.sgml: $(BUILD_RAPI_RESOURCE_DOC) lib/rapi/connector.py
 	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || rm -f $@
 
 man/%.7: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) $< $@
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $@
 
 man/%.8: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) $< $@
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $@
 
 man/footer.sgml $(TESTS): srclinks
 
