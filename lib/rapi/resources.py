@@ -306,7 +306,8 @@ class R_nodes(R_Generic):
     """
     fields = ["name","dtotal", "dfree",
               "mtotal", "mnode", "mfree",
-              "pinst_cnt", "sinst_cnt", "tags"]
+              "pinst_cnt", "sinst_cnt", "tags",
+              "ctotal", "cnodes", "csockets"]
 
     op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
                                      names=nodeslist)
@@ -377,7 +378,9 @@ class R_nodes_name(R_Generic):
     node_name = self.items[0]
     fields = ["name","dtotal", "dfree",
               "mtotal", "mnode", "mfree",
-              "pinst_cnt", "sinst_cnt", "tags"]
+              "pinst_cnt", "sinst_cnt", "tags",
+              "ctotal", "cnodes", "csockets",
+              ]
 
     op = ganeti.opcodes.OpQueryNodes(output_fields=fields,
                                      names=[node_name])

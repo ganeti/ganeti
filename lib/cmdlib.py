@@ -1499,7 +1499,7 @@ class LUQueryNodes(NoHooksLU):
       "dtotal", "dfree",
       "mtotal", "mnode", "mfree",
       "bootid",
-      "ctotal",
+      "ctotal", "cnodes", "csockets",
       ])
 
     _CheckOutputFields(static=["name", "pinst_cnt", "sinst_cnt",
@@ -1534,6 +1534,8 @@ class LUQueryNodes(NoHooksLU):
             "dfree": fn(int, nodeinfo.get('vg_free', None)),
             "ctotal": fn(int, nodeinfo.get('cpu_total', None)),
             "bootid": nodeinfo.get('bootid', None),
+            "cnodes": fn(int, nodeinfo.get('cpu_nodes', None)),
+            "csockets": fn(int, nodeinfo.get('cpu_sockets', None)),
             }
         else:
           live_data[name] = {}

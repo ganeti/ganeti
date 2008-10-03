@@ -69,7 +69,7 @@ def ListNodes(opts, args):
       "dtotal": "DTotal", "dfree": "DFree",
       "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
       "bootid": "BootID",
-      "ctotal": "CTotal",
+      "ctotal": "CTotal", "cnodes": "CNodes", "csockets": "CSockets",
       "tags": "Tags",
       }
   else:
@@ -378,7 +378,8 @@ commands = {
            "", "Lists the nodes in the cluster. The available fields"
            " are (see the man page for details): name, pinst_cnt, pinst_list,"
            " sinst_cnt, sinst_list, pip, sip, dtotal, dfree, mtotal, mnode,"
-           " mfree, bootid, cpu_count. The default field list is"
+           " mfree, bootid, ctotal, cnodes, csockets."
+           " The default field list is"
            " (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],

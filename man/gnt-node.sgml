@@ -333,6 +333,26 @@
               tags</simpara>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>ctotal</term>
+            <listitem>
+              <simpara>Total number of CPUs (as seen by the hypervisor)
+              </simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>cnodes</term>
+            <listitem>
+              <simpara>CPU Nodes present in the system (only different
+              from one in NUMA configurations</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>csockets</term>
+            <listitem>
+              <simpara>physical CPU sockets as seen by the hypervisor</simpara>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </para>
 
