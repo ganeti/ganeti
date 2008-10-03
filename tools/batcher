@@ -27,6 +27,7 @@ Ganeti instances.
 
 
 from email import MIMEText
+import errno
 import logging
 import optparse
 import os
@@ -35,18 +36,61 @@ import smtplib
 import sys
 import tempfile
 import time
-import simplejson
-import errno
 import traceback
-
-from ganeti import utils
-from ganeti import errors
 from ganeti import constants
+from ganeti import utils
+import simplejson
 
 
 _CLUSTER_NAME_FILE = constants.DATA_DIR + '/ssconf_cluster_name'
 _CLUSTER_MASTER_FILE = constants.DATA_DIR + '/ssconf_master_node'
 _LOCKFILE = constants.LOCK_DIR + '/batcher.lock'
+_STATEFILE = constants.RUN_DIR + '/batcher.state'
+
+
+class State:
+  """Keep and update batcher state."""
+  CREATE_INSTANCE = 1
+  SLEEP = 2
+
+  _STATES = { CREATE_INSTANCE: 'Creating instance',
+              SLEEP: 'Sleeping' }
+
+  current_state = None
+
+  @classmethod
+  def UpdateState(cls, state):
+    """Update the state file and internal status.
+
+    Args:
+      state: The new state (must be a defined constant)
+
+    """
+    if state not in cls._STATES:
+      raise BatcherGenericError('Invalid state update.')
+
+    try:
+      f = open(_STATEFILE, 'w')
+      try:
+        f.write(cls._STATES[state])
+        cls.current_state = state
+      finally:
+        f.close()
+    except EnvironmentError, err:
+      logging.error('Error while updating the state file: %s' % err)
+
+  @classmethod
+  def ReceiveState(cls):
+    """Returns the current state.
+
+    Raises:
+      AssertionError: If state was never set before
+
+    """
+    if not cls.current_state:
+      raise AssertionError('State was not updated before.')
+    return cls.current_state
+
 
 
 def ParseCommandline():
@@ -107,7 +151,9 @@ def ParseCommandline():
 
 def LockWrapped(meth):
   """Decorator for lock wrapped functions (like main)."""
-  def lockwrapper(*args):
+
+  def LockWrapper(*args):
+    """Function wrapper."""
     try:
       pidfd = os.open(_LOCKFILE, os.O_CREAT|os.O_EXCL)
       try:
@@ -117,13 +163,26 @@ def LockWrapped(meth):
         os.close(pidfd)
     except EnvironmentError, err:
       if err.errno == errno.EEXIST:
-        newmsg = ('Batcher lockfile exists. Batcher is either already running'
-                  ' or there is a stale lockfile (%s).') % _LOCKFILE
+        newmsg = ('Batcher lockfile exists. Batcher is either already running '
+                  'or there is a stale lockfile (%s).') % _LOCKFILE
         raise BatcherLockError(newmsg)
       else:
         print '%s, aborting.\n%s' % (err, traceback.format_exc())
         sys.exit(254)
-  return lockwrapper
+  return LockWrapper
+
+
+def StateWrapped(meth):
+  """Decorator for state wrapped functions."""
+
+  def StateWrapper(*args):
+    """Function wrapper."""
+    try:
+      meth(*args)
+    finally:
+      if os.path.isfile(_STATEFILE):
+        RemoveFile(_STATEFILE)
+  return StateWrapper
 
 
 def RemoveFile(file_path):
@@ -186,6 +245,7 @@ def SleepTime(seconds):
     seconds: An integer.
 
   """
+  State.UpdateState(State.SLEEP)
   while seconds > 0:
     sys.stdout.write('.')
     sys.stdout.flush()
@@ -215,8 +275,9 @@ class InstancesFile:
   """Abstraction of the instances definition file."""
 
   def __init__(self, file_path):
-    self.__dict__['data'] = self.ReadInstances(file_path)
+    self.data = self.ReadInstances(file_path)
 
+  # Why getitem here? Do we want InstanceFile acting as a dict?
   def __getitem__(self, key):
     return self.data[key]
 
@@ -239,21 +300,10 @@ class Cluster:
   """Class to represent data about a cluster."""
 
   def __init__(self):
-    self.__dict__['data'] = {'cluster_name': None,
-                             'cluster_master': None,
-                             'hostname': None}
+    self.cluster_name   = None
+    self.cluster_master = None
+    self.hostname       = None
     self.PopulateClusterData()
-
-  def __getattr__(self, name):
-    """Getter for retrieving class attributes."""
-    if name in self.data:
-      return self.data[name]
-    else:
-      raise AttributeError
-
-  def __setattr__(self, name, value):
-    """Setter for changing class attributes."""
-    self.data[name] = value
 
   def PopulateClusterData(self):
     """Populate our class attributes."""
@@ -263,6 +313,11 @@ class Cluster:
       self.SetHostName()
     except AttributeError, msg:
       raise AttributeError(msg)
+
+  #
+  # Please note, that we're leaking fd's here for the next 3 functions.
+  # TODO(rn): Fix this.
+  #
 
   def SetClusterName(self, file_object=None):
     """Get the name of the cluster.
@@ -276,12 +331,11 @@ class Cluster:
     """
     try:
       if not file_object:
-        self.data['cluster_name'] = open(_CLUSTER_NAME_FILE,
-                                         'r').readlines()[0].strip()
-      else:
-        self.data['cluster_name'] = file_object.readlines()[0].strip()
+        file_object = file(_CLUSTER_NAME_FILE, 'r')
+
+      self.cluster_name = file_object.readline().strip()
     except EnvironmentError, msg:
-      raise AttributeError(msg)
+      raise AttributeError(msg) # WTF?!
 
   def SetClusterMaster(self, file_object=None):
     """Get the cluster's master node.
@@ -295,10 +349,9 @@ class Cluster:
     """
     try:
       if not file_object:
-        self.data['cluster_master'] = (open(_CLUSTER_MASTER_FILE,
-                                            'r').readlines()[0].strip())
-      else:
-        self.data['cluster_master'] = file_object.readlines()[0].strip()
+        file_object = file(_CLUSTER_MASTER_FILE, 'r')
+
+      self.cluster_master = file_object.readline().strip()
     except EnvironmentError, msg:
       raise AttributeError(msg)
 
@@ -314,10 +367,12 @@ class Cluster:
     """
     try:
       if not file_object:
-        self.data['hostname'] = (open('/etc/hostname',
+        # Please note, that /etc/hostname is not guaranteed to exist,
+        # call the hostname binary with --fqdn|-f to get the same value
+        self.hostname = (file('/etc/hostname',
                                       'r').readlines()[0].strip())
       else:
-        self.data['hostname'] = file_object.readlines()[0].strip()
+        self.hostname = file_object.readlines()[0].strip()
     except EnvironmentError, msg:
       raise AttributeError(msg)
 
@@ -329,8 +384,8 @@ class Instance:
   NumberCreated = 0
 
   def __init__(self, hostname, data):
-    self.__dict__['hostname'] = hostname
-    self.__dict__['data'] = data
+    self.hostname = hostname
+    self.data     = data
     Instance.NumberOfInstances += 1
 
   def __del__(self):
@@ -338,6 +393,8 @@ class Instance:
 
   def __getattr__(self, name):
     """Getter for retrieving class attributes."""
+    # XXX: This might have a side effect, someone can overwrite hostname in
+    #      data and you end up with distinct hostnames
     if name in self.data:
       return self.data[name]
     elif name == 'hostname':
@@ -348,9 +405,11 @@ class Instance:
   def __setattr__(self, name, value):
     """Setter for changing class attributes."""
     if name == 'hostname':
-      self.hostname = value
+      self.__dict__['hostname'] = value
+    elif name == 'data':
+      self.__dict__['data'] = value
     else:
-      self.data[name] = value
+      self.__dict__['data'][name] = value
 
   def InstancesCount(self):
     """Return the number of instances."""
@@ -392,6 +451,8 @@ class InstanceCreator:
     self.no_wait_for_sync = options.nowait
     self.keepfiles = options.keepfiles
     self.iallocator = options.iallocator
+    self.notify = None
+    self.sender = os.environ['USER']
     self.runtime_report = None
     self.cluster_name = cluster_name
     self.start = time.time()
@@ -419,7 +480,7 @@ class InstanceCreator:
     """
     try:
       instances = InstancesFile(self.instances_file)
-    except BatcherGenericError, msg:
+    except:
       raise
 
     for instance in instances.data:
@@ -433,6 +494,7 @@ class InstanceCreator:
 
     """
     for instance in self.instances:
+      State.UpdateState(State.CREATE_INSTANCE)
       try:
         instance.create_command = self.CreateCommand(instance)
       except AttributeError, msg:
@@ -480,8 +542,8 @@ class InstanceCreator:
       else:
         # dry run
         instance.created = False
-        instance.message = (('Creating %s in dry-run mode. Run batcher'
-                             ' with -f to really create this instance.') %
+        instance.message = (('Creating %s in dry-run mode. Run batcher with -f '
+                             'to really create this instance.') %
                             instance.hostname)
         logging.info(instance.message)
         continue
@@ -495,6 +557,10 @@ class InstanceCreator:
       BatcherNotificationError: There was a problem sending the report.
 
     """
+    # Don't send anything if we don't have a recipient
+    if self.notify is None:
+      return
+
     data = {'recipient': self.notify,
             'sender': self.sender,
             'cluster_name': self.cluster_name,
@@ -505,7 +571,7 @@ class InstanceCreator:
     try:
       notify.SendReport()
     except BatcherNotificationError, msg:
-      raise BatcherNotifcationError(msg)
+      raise BatcherNotificationError(msg)
 
   def CreateRuntimeReport(self):
     """Create the runtime report."""
@@ -562,7 +628,6 @@ class InstanceCreator:
              'ram_size were not specified in %s') % self.instances_file
       raise AttributeError(msg)
 
-
     return command
 
   def DumpInstances(self):
@@ -588,7 +653,7 @@ class RuntimeReport:
 
   def __setattr__(self, name, value):
     if name == 'report':
-      self.data[name] = value
+      self.__dict__['data'][name] = value
     else:
       raise AttributeError('Invalid attribute %s' % name)
 
@@ -671,9 +736,9 @@ class Notify:
       raise AttributeError
 
   def __setattr__(self, name, value):
-    if (name == 'recipient' or name == 'sender' or
-        name == 'cluster_name' or name == 'messsage'):
-      self.data[name] = value
+    if name in ('recipient', 'sender', 'cluster_name',
+                'message'):
+      self.__dict__['data'][name] = value
     else:
       raise AttributeError('%s is not a valid attribute' % name)
 
@@ -710,6 +775,7 @@ class Notify:
       s.close()
 
 
+@StateWrapped
 @LockWrapped
 def main():
   # check if we're running as root.
@@ -785,9 +851,9 @@ def main():
   try:
     if not options.keepfiles:
       RemoveFile(options.instancesfile)
-  except GenericBatcherError, msg:
+  except BatcherGenericError, msg:
     sys.stderr.write(msg)
-    sys.exit(1)
+    sys.exit(-1)
 
 
 if __name__ == '__main__':
