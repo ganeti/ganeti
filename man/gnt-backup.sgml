@@ -69,7 +69,7 @@
       <para>
         Exports an instance to the target node. All the instance data
         and its configuration will be exported under the
-        /srv/ganeti/exports/<replaceable>instance</replaceable>
+        /srv/ganeti/export/<replaceable>instance</replaceable>
         directory on the target node.
       </para>
 
@@ -278,7 +278,7 @@
         <screen>
 # gnt-backup import -t plain -s 30 -m 512 -n node1.example.com \
 > --src-node=node2.example.com \
-> --src-dir=/srv/ganeti/exports/instance3.example.com \
+> --src-dir=/srv/ganeti/export/instance3.example.com \
 > instance3.example.com
         </screen>
       </para>
