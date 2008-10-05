@@ -108,8 +108,9 @@ def GetMasterAndMyself(ss=None):
 
   """
   if ss is None:
-    ss = SimpleStore()
+    ss = SimpleConfigReader()
   return ss.GetMasterNode(), utils.HostInfo().name
+
 
 def CheckMaster(debug, ss=None):
   """Checks the node setup.
