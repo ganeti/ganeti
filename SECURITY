@@ -12,21 +12,22 @@ you need to be root to run the cluster commands.
 Host issues
 -----------
 
-For a host on which the Ganeti software has been installed but which has
-not been joined in a cluster, there are no changes to the system.
+For a host on which the Ganeti software has been installed, but not joined to a
+cluster, there are no changes to the system.
 
 For a host that has been joined to the cluster, there are very important
 changes:
-  - the host will have its ssh host key replaced with the one of the
+  - The host will have its SSH host key replaced with the one of the
     cluster (which is the one the initial node had at the cluster
     creation)
-  - root will have added to its authorized_keys file a public key which
-    grants access to all other nodes in the cluster, and furthermore it
-    will also get the private part of this key, which will allow it to
-    login to the other nodes in the cluster (its previous private key
-    will be backed up)
-  - the Ganeti node daemon will accept RPC requests from any host which
-    has the cluster shared secret, and the operations it will do as a
+  - A new public key will be added to root's authorized_keys file, granting
+    root access to all nodes of the cluster. The private part of the key
+    is also distributed to all nodes. Old files are renamed.
+  - Communication between nodes is encrypted using SSL/TLS. A common
+    key and certificate combo is shared between all nodes of the cluster.
+    At this time, no CA is used.
+  - The Ganeti node daemon will accept RPC requests from any host within the
+    cluster with the correct certificate, and the operations it will do as a
     result of these requests are:
       - running commands under the /etc/ganeti/hooks directory
       - creating DRBD disks between it and the IP it has been told
@@ -36,11 +37,11 @@ As you can see, as soon as a node is joined, it becomes equal to all
 other nodes in the cluster, and the security of the cluster is
 determined by the weakest node.
 
-Note that only the ssh key will allow other machines to run random
+Note that only the SSH key will allow other machines to run random
 commands on this node; the RPC method will run only:
   - well defined commands to create, remove, activate logical volumes,
     drbd devices, start/stop instances, etc;
-  - run ssh commands on other nodes in the cluster, again well-defined
+  - run SSH commands on other nodes in the cluster, again well-defined
   - scripts under the /etc/ganeti/hooks directory
 
 It is therefore important to make sure that the contents of the
@@ -52,21 +53,34 @@ Cluster issues
 
 As told above, there are multiple ways of communication between cluster
 nodes:
-  - ssh-based, for high-volume traffic (image dumps) or for low-level
-    command (restart the Ganeti node daemon)
-  - python-twisted based, for the usual operation
-  - DRBD traffic, for real-time disk replication traffic
+  - SSH-based, for high-volume traffic like image dumps or for low-level
+    command, e.g. restarting the Ganeti node daemon
+  - RPC communication between master and nodes
+  - DRBD real-time disk replication traffic
 
-The ssh traffic is protected (after the initial login to a new node) by
-the cluster-wide shared ssh key.
+The SSH traffic is protected (after the initial login to a new node) by
+the cluster-wide shared SSH key.
 
-The python-twisted traffic is secured by SSL and two pre-conditions: the
-client will refuse to connect to servers which don't have the
-cluster-wide shared SSL certificate, and server will not allow clients
-which don't have the cluster-wide shared secret.
+RPC communication between the master and nodes is protected using SSL/TLS
+encryption. Both the client and the server must have the cluster-widely
+shared SSL/TLS certificate and verify it when establishing the connection
+by comparing fingerprints. We decided not to use a CA to simplify the
+key handling.
 
-The DRBD traffic is not protected by anything. DRBD does not support
+The DRBD traffic is not protected by encryption. DRBD does not support
 traffic encryption. It's therefore recommended to implement host-level
 firewalling or to use a separate range of IP addresses for the DRBD
 traffic (this is supported in Ganeti) which is not routed outside the
-cluster.
+cluster. DRBD connections are protected from connecting to random other
+machines by using a shared secret exchanged via RPC requests when
+starting the device.
+
+Remote API
+----------
+
+Starting with Ganeti 2.0, Remote API traffic is encrypted using SSL/TLS by
+default. It supports Basic authentication as per RFC2617.
+
+Paths for certificate, private key and CA files required for SSL/TLS will
+be set at source configure time. Symlinks or command line parameters may
+be used to use different files.
