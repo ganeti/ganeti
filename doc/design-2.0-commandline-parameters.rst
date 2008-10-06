@@ -7,7 +7,7 @@ Objective
 ---------
 
 Ganeti 2.0 introduces several new features as well as new ways to
-handle instance ressources like disks or network interfaces. This
+handle instance resources like disks or network interfaces. This
 requires some noticable changes in the way commandline arguments are
 handled.
 
@@ -17,8 +17,8 @@ handled.
 Background
 ----------
 
-Ganeti 2.0 introduces several changes in handling instances ressources
-such as disks and network card as well as some new features. Due to
+Ganeti 2.0 introduces several changes in handling instances resources
+such as disks and network cards as well as some new features. Due to
 these changes, the commandline syntax needs to be changed
 significantly since the existing commandline syntax is not able to
 cover the changes.
@@ -26,7 +26,7 @@ cover the changes.
 Overview
 --------
 
-Changes for Ganeti 2.0 that require changes for the commandline
+Design changes for Ganeti 2.0 that require changes for the commandline
 syntax, in no particular order:
 
 - flexible instance disk handling: support a variable number of disks
@@ -115,7 +115,7 @@ further changes):
 
 :size: size of the disk device, either a positive number, specifying
   the disk size in mebibytes, or a number followed by a magnitude suffix
-  (M for megabytes, G for gigabytes). Also accepts the string 'auto' in
+  (M for mebibytes, G for gibibytes). Also accepts the string 'auto' in
   which case the default disk size will be used. If the size option is
   not specified, 'auto' is assumed. This option is not valid for all
   disk layout types.
