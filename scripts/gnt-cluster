@@ -160,20 +160,20 @@ def ClusterCopyFile(opts, args):
     nodes - list containing the name of target nodes; if empty, all nodes
 
   """
-  # TODO: Query master
-  cfg = ssconf.SimpleConfigReader()
-
   filename = args[0]
   if not os.path.exists(filename):
     raise errors.OpPrereqError("No such filename '%s'" % filename)
 
+  cl = GetClient()
+
   myname = utils.HostInfo().name
 
-  op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
-  results = [row[0] for row in SubmitOpCode(op) if row[0] != myname]
+  cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
 
-  # TODO: Potential inconsistency between local node and master
-  srun = ssh.SshRunner(cfg)
+  op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
+  results = [row[0] for row in SubmitOpCode(op, cl=cl) if row[0] != myname]
+
+  srun = ssh.SshRunner(cluster_name=cluster_name)
   for node in results:
     if not srun.CopyFileToNode(node, filename):
       print >> sys.stderr, ("Copy of file %s to node %s failed" %
@@ -192,16 +192,16 @@ def RunClusterCommand(opts, args):
     nodes: list containing the name of target nodes; if empty, all nodes
 
   """
-  # TODO: Query master
-  cfg = ssconf.SimpleConfigReader()
+  cl = GetClient()
 
   command = " ".join(args)
   op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
-  nodes = [row[0] for row in SubmitOpCode(op)]
+  nodes = [row[0] for row in SubmitOpCode(op, cl=cl)]
 
-  # TODO: Potential inconsistency between local node and master
-  master_node = cfg.GetMasterNode()
-  srun = ssh.SshRunner(cfg)
+  cluster_name, master_node = cl.QueryConfigValues(["cluster_name",
+                                                    "master_node"])
+
+  srun = ssh.SshRunner(cluster_name=cluster_name)
 
   # Make sure master node is at list end
   if master_node in nodes:

@@ -71,8 +71,8 @@ class SshRunner:
   """Wrapper for SSH commands.
 
   """
-  def __init__(self, cfg):
-    self.cfg = cfg
+  def __init__(self, cluster_name):
+    self.cluster_name = cluster_name
 
   def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
                        strict_host_check):
@@ -84,7 +84,7 @@ class SshRunner:
       ]
 
     if use_cluster_key:
-      options.append("-oHostKeyAlias=%s" % self.cfg.GetClusterName())
+      options.append("-oHostKeyAlias=%s" % self.cluster_name)
 
     # TODO: Too many boolean options, maybe convert them to more descriptive
     # constants.
