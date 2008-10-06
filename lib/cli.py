@@ -703,5 +703,7 @@ def FormatTimestamp(ts):
   @returns: a string with the formatted timestamp
 
   """
+  if not isinstance (ts, (tuple, list)) or len(ts) != 2:
+    return '?'
   sec, usec = ts
   return time.strftime("%F %T", time.localtime(sec)) + ".%06d" % usec
