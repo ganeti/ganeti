@@ -46,7 +46,7 @@ from ganeti import jstore
 from ganeti import rpc
 
 
-JOBQUEUE_THREADS = 5
+JOBQUEUE_THREADS = 25
 
 
 def TimeStampNow():
