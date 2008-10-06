@@ -64,9 +64,6 @@ class ConfigWriter:
     self.write_count = 0
     self._lock = _config_lock
     self._config_data = None
-    self._config_time = None
-    self._config_size = None
-    self._config_inode = None
     self._offline = offline
     if cfg_file is None:
       self._cfg_file = constants.CLUSTER_CONF_FILE
@@ -79,6 +76,7 @@ class ConfigWriter:
     # better to raise an error before starting to modify the config
     # file than after it was modified
     self._my_hostname = utils.HostInfo().name
+    self._OpenConfig()
 
   # this method needs to be static, so that we can call it on the class
   @staticmethod
@@ -95,7 +93,6 @@ class ConfigWriter:
     This should check the current instances for duplicates.
 
     """
-    self._OpenConfig()
     prefix = self._config_data.cluster.mac_prefix
     all_macs = self._AllMACs()
     retries = 64
@@ -119,7 +116,6 @@ class ConfigWriter:
     check for potential collisions elsewhere.
 
     """
-    self._OpenConfig()
     all_macs = self._AllMACs()
     return mac in all_macs
 
@@ -130,7 +126,6 @@ class ConfigWriter:
     This checks the current disks for duplicates.
 
     """
-    self._OpenConfig()
     all_secrets = self._AllDRBDSecrets()
     retries = 64
     while retries > 0:
@@ -146,7 +141,6 @@ class ConfigWriter:
     """Compute the list of all LVs.
 
     """
-    self._OpenConfig()
     lvnames = set()
     for instance in self._config_data.instances.values():
       node_data = instance.MapLVsByNode()
@@ -192,8 +186,6 @@ class ConfigWriter:
     """Return all MACs present in the config.
 
     """
-    self._OpenConfig()
-
     result = []
     for instance in self._config_data.instances.values():
       for nic in instance.nics:
@@ -224,8 +216,6 @@ class ConfigWriter:
   def VerifyConfig(self):
     """Stub verify function.
     """
-    self._OpenConfig()
-
     result = []
     seen_macs = []
     ports = {}
@@ -343,7 +333,6 @@ class ConfigWriter:
     if not isinstance(port, int):
       raise errors.ProgrammerError("Invalid type passed for port")
 
-    self._OpenConfig()
     self._config_data.cluster.tcpudp_port_pool.add(port)
     self._WriteConfig()
 
@@ -352,7 +341,6 @@ class ConfigWriter:
     """Returns a copy of the current port list.
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.tcpudp_port_pool.copy()
 
   @locking.ssynchronized(_config_lock)
@@ -364,8 +352,6 @@ class ConfigWriter:
     highest_used_port).
 
     """
-    self._OpenConfig()
-
     # If there are TCP/IP ports configured, we use them first.
     if self._config_data.cluster.tcpudp_port_pool:
       port = self._config_data.cluster.tcpudp_port_pool.pop()
@@ -422,8 +408,6 @@ class ConfigWriter:
     order as the passed nodes.
 
     """
-    self._OpenConfig()
-
     d_map = self._ComputeDRBDMap(instance)
     result = []
     for nname in nodes:
@@ -484,7 +468,6 @@ class ConfigWriter:
     @return: Cluster name
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.cluster_name
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -494,7 +477,6 @@ class ConfigWriter:
     @return: Master hostname
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.master_node
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -504,7 +486,6 @@ class ConfigWriter:
     @return: Master IP
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.master_ip
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -512,7 +493,6 @@ class ConfigWriter:
     """Get the master network device for this cluster.
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.master_netdev
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -520,7 +500,6 @@ class ConfigWriter:
     """Get the file storage dir for this cluster.
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.file_storage_dir
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -528,7 +507,6 @@ class ConfigWriter:
     """Get the hypervisor type for this cluster.
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.hypervisor
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -539,7 +517,6 @@ class ConfigWriter:
 
     Returns: rsa hostkey
     """
-    self._OpenConfig()
     return self._config_data.cluster.rsahostkeypub
 
   @locking.ssynchronized(_config_lock)
@@ -558,7 +535,6 @@ class ConfigWriter:
       all_lvs = instance.MapLVsByNode()
       logging.info("Instance '%s' DISK_LAYOUT: %s", instance.name, all_lvs)
 
-    self._OpenConfig()
     instance.serial_no = 1
     self._config_data.instances[instance.name] = instance
     self._config_data.cluster.serial_no += 1
@@ -572,7 +548,6 @@ class ConfigWriter:
       raise errors.ProgrammerError("Invalid status '%s' passed to"
                                    " ConfigWriter._SetInstanceStatus()" %
                                    status)
-    self._OpenConfig()
 
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" %
@@ -595,8 +570,6 @@ class ConfigWriter:
     """Remove the instance from the configuration.
 
     """
-    self._OpenConfig()
-
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
     del self._config_data.instances[instance_name]
@@ -612,7 +585,6 @@ class ConfigWriter:
     rename.
 
     """
-    self._OpenConfig()
     if old_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % old_name)
     inst = self._config_data.instances[old_name]
@@ -645,7 +617,6 @@ class ConfigWriter:
     This function is for internal use, when the config lock is already held.
 
     """
-    self._OpenConfig()
     return self._config_data.instances.keys()
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -664,8 +635,6 @@ class ConfigWriter:
     """Attempt to expand an incomplete instance name.
 
     """
-    self._OpenConfig()
-
     return utils.MatchNameComponent(short_name,
                                     self._config_data.instances.keys())
 
@@ -675,8 +644,6 @@ class ConfigWriter:
     This function is for internal use, when the config lock is already held.
 
     """
-    self._OpenConfig()
-
     if instance_name not in self._config_data.instances:
       return None
 
@@ -721,7 +688,6 @@ class ConfigWriter:
     """
     logging.info("Adding node %s to configuration" % node.name)
 
-    self._OpenConfig()
     node.serial_no = 1
     self._config_data.nodes[node.name] = node
     self._config_data.cluster.serial_no += 1
@@ -734,7 +700,6 @@ class ConfigWriter:
     """
     logging.info("Removing node %s from configuration" % node_name)
 
-    self._OpenConfig()
     if node_name not in self._config_data.nodes:
       raise errors.ConfigurationError("Unknown node '%s'" % node_name)
 
@@ -747,8 +712,6 @@ class ConfigWriter:
     """Attempt to expand an incomplete instance name.
 
     """
-    self._OpenConfig()
-
     return utils.MatchNameComponent(short_name,
                                     self._config_data.nodes.keys())
 
@@ -762,8 +725,6 @@ class ConfigWriter:
     Returns: the node object
 
     """
-    self._OpenConfig()
-
     if node_name not in self._config_data.nodes:
       return None
 
@@ -787,7 +748,6 @@ class ConfigWriter:
     This function is for internal use, when the config lock is already held.
 
     """
-    self._OpenConfig()
     return self._config_data.nodes.keys()
 
 
@@ -825,18 +785,6 @@ class ConfigWriter:
     file, since de-serialisation could be slow.
 
     """
-    try:
-      st = os.stat(self._cfg_file)
-    except OSError, err:
-      raise errors.ConfigurationError("Can't stat config file: %s" % err)
-    if (self._config_data is not None and
-        self._config_time is not None and
-        self._config_time == st.st_mtime and
-        self._config_size == st.st_size and
-        self._config_inode == st.st_ino):
-      # data is current, so skip loading of config file
-      return
-
     f = open(self._cfg_file, 'r')
     try:
       try:
@@ -854,9 +802,6 @@ class ConfigWriter:
       raise errors.ConfigurationError("Incomplete configuration"
                                       " (missing cluster.rsahostkeypub)")
     self._config_data = data
-    self._config_time = st.st_mtime
-    self._config_size = st.st_size
-    self._config_inode = st.st_ino
 
   def _DistributeConfig(self):
     """Distribute the configuration to the other nodes.
@@ -903,14 +848,7 @@ class ConfigWriter:
     # we don't need to do os.close(fd) as f.close() did it
     os.rename(name, destination)
     self.write_count += 1
-    # re-set our cache as not to re-read the config file
-    try:
-      st = os.stat(destination)
-    except OSError, err:
-      raise errors.ConfigurationError("Can't stat config file: %s" % err)
-    self._config_time = st.st_mtime
-    self._config_size = st.st_size
-    self._config_inode = st.st_ino
+
     # and redistribute the config file
     self._DistributeConfig()
 
@@ -945,7 +883,6 @@ class ConfigWriter:
     """Return the volume group name.
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.volume_group_name
 
   @locking.ssynchronized(_config_lock)
@@ -953,7 +890,6 @@ class ConfigWriter:
     """Set the volume group name.
 
     """
-    self._OpenConfig()
     self._config_data.cluster.volume_group_name = vg_name
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
@@ -963,7 +899,6 @@ class ConfigWriter:
     """Return the default bridge.
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.default_bridge
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -971,7 +906,6 @@ class ConfigWriter:
     """Return the mac prefix.
 
     """
-    self._OpenConfig()
     return self._config_data.cluster.mac_prefix
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -982,8 +916,6 @@ class ConfigWriter:
       the cluster object
 
     """
-    self._OpenConfig()
-
     return self._config_data.cluster
 
   @locking.ssynchronized(_config_lock)

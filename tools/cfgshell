@@ -152,7 +152,6 @@ class ConfigShell(cmd.Cmd):
       arg = None
     try:
       self.cfg = config.ConfigWriter(cfg_file=arg, offline=True)
-      self.cfg._OpenConfig()
       self.parents = [self.cfg._config_data]
       self.path = []
     except errors.ConfigurationError, err:
