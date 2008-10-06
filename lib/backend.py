@@ -48,8 +48,8 @@ def _GetConfig():
   return ssconf.SimpleConfigReader()
 
 
-def _GetSshRunner():
-  return ssh.SshRunner(_GetConfig().GetClusterName())
+def _GetSshRunner(cluster_name):
+  return ssh.SshRunner(cluster_name)
 
 
 def _CleanDirectory(path, exclude=[]):
@@ -264,7 +264,7 @@ def GetNodeInfo(vgname):
   return outputarray
 
 
-def VerifyNode(what):
+def VerifyNode(what, cluster_name):
   """Verify the status of the local node.
 
   Args:
@@ -294,7 +294,7 @@ def VerifyNode(what):
     result['nodelist'] = {}
     random.shuffle(what['nodelist'])
     for node in what['nodelist']:
-      success, message = _GetSshRunner().VerifyNodeHostname(node)
+      success, message = _GetSshRunner(cluster_name).VerifyNodeHostname(node)
       if not success:
         result['nodelist'][node] = message
   if 'node-net-test' in what:
@@ -1295,7 +1295,7 @@ def SnapshotBlockDevice(disk):
                                  (disk.unique_id, disk.dev_type))
 
 
-def ExportSnapshot(disk, dest_node, instance):
+def ExportSnapshot(disk, dest_node, instance, cluster_name):
   """Export a block device snapshot to a remote node.
 
   Args:
@@ -1336,8 +1336,9 @@ def ExportSnapshot(disk, dest_node, instance):
 
   destcmd = utils.BuildShellCmd("mkdir -p %s && cat > %s/%s",
                                 destdir, destdir, destfile)
-  remotecmd = _GetSshRunner().BuildCmd(dest_node, constants.GANETI_RUNAS,
-                                       destcmd)
+  remotecmd = _GetSshRunner(cluster_name).BuildCmd(dest_node,
+                                                   constants.GANETI_RUNAS,
+                                                   destcmd)
 
   # all commands have been checked, so we're safe to combine them
   command = '|'.join([expcmd, comprcmd, utils.ShellQuoteArgs(remotecmd)])
@@ -1436,7 +1437,8 @@ def ExportInfo(dest):
   return config
 
 
-def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
+def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image,
+                         cluster_name):
   """Import an os image into an instance.
 
   Args:
@@ -1482,8 +1484,9 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
   destcmd = utils.BuildShellCmd('cat %s', src_image)
-  remotecmd = _GetSshRunner().BuildCmd(src_node, constants.GANETI_RUNAS,
-                                       destcmd)
+  remotecmd = _GetSshRunner(cluster_name).BuildCmd(src_node,
+                                                   constants.GANETI_RUNAS,
+                                                   destcmd)
 
   comprcmd = "gunzip"
   impcmd = utils.BuildShellCmd("(cd %s; %s -i %s -b %s -s %s &>%s)",

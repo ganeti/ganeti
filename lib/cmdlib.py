@@ -748,7 +748,8 @@ class LUVerifyCluster(LogicalUnit):
       'node-net-test': [(node.name, node.primary_ip, node.secondary_ip)
                         for node in nodeinfo]
       }
-    all_nvinfo = rpc.call_node_verify(nodelist, node_verify_param)
+    all_nvinfo = rpc.call_node_verify(nodelist, node_verify_param,
+                                      self.cfg.GetClusterName())
     all_rversion = rpc.call_version(nodelist)
     all_ninfo = rpc.call_node_info(nodelist, self.cfg.GetVGName())
 
@@ -1777,7 +1778,8 @@ class LUAddNode(LogicalUnit):
       # TODO: do a node-net-test as well?
     }
 
-    result = rpc.call_node_verify(node_verify_list, node_verify_param)
+    result = rpc.call_node_verify(node_verify_list, node_verify_param,
+                                  self.cfg.GetClusterName())
     for verifier in node_verify_list:
       if not result[verifier]:
         raise errors.OpExecError("Cannot communicate with %s's node daemon"
@@ -3581,8 +3583,9 @@ class LUCreateInstance(LogicalUnit):
         feedback_fn("* running the instance OS import scripts...")
         src_node = self.op.src_node
         src_image = self.src_image
+        cluster_name = self.cfg.GetClusterName()
         if not rpc.call_instance_os_import(pnode_name, iobj, "sda", "sdb",
-                                                src_node, src_image):
+                                           src_node, src_image, cluster_name):
           raise errors.OpExecError("Could not import os for instance"
                                    " %s on node %s" %
                                    (instance, pnode_name))
@@ -4830,8 +4833,10 @@ class LUExportInstance(LogicalUnit):
 
     # TODO: check for size
 
+    cluster_name = self.cfg.GetClusterName()
     for dev in snap_disks:
-      if not rpc.call_snapshot_export(src_node, dev, dst_node.name, instance):
+      if not rpc.call_snapshot_export(src_node, dev, dst_node.name,
+                                      instance, cluster_name):
         logger.Error("could not export block device %s from node %s to node %s"
                      % (dev.logical_id[1], src_node, dst_node.name))
       if not rpc.call_blockdev_remove(src_node, dev):

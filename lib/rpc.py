@@ -346,13 +346,13 @@ def call_node_add(node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
   return c.getresult().get(node, False)
 
 
-def call_node_verify(node_list, checkdict):
+def call_node_verify(node_list, checkdict, cluster_name):
   """Request verification of given parameters.
 
   This is a multi-node call.
 
   """
-  c = Client("node_verify", [checkdict])
+  c = Client("node_verify", [checkdict, cluster_name])
   c.connect_list(node_list)
   c.run()
   return c.getresult()
@@ -652,13 +652,13 @@ def call_blockdev_snapshot(node, cf_bdev):
   return c.getresult().get(node, False)
 
 
-def call_snapshot_export(node, snap_bdev, dest_node, instance):
+def call_snapshot_export(node, snap_bdev, dest_node, instance, cluster_name):
   """Request the export of a given snapshot.
 
   This is a single-node call.
 
   """
-  params = [snap_bdev.ToDict(), dest_node, instance.ToDict()]
+  params = [snap_bdev.ToDict(), dest_node, instance.ToDict(), cluster_name]
   c = Client("snapshot_export", params)
   c.connect(node)
   c.run()
@@ -698,13 +698,14 @@ def call_export_info(node, path):
   return objects.SerializableConfigParser.Loads(str(result))
 
 
-def call_instance_os_import(node, inst, osdev, swapdev, src_node, src_image):
+def call_instance_os_import(node, inst, osdev, swapdev,
+                            src_node, src_image, cluster_name):
   """Request the import of a backup into an instance.
 
   This is a single-node call.
 
   """
-  params = [inst.ToDict(), osdev, swapdev, src_node, src_image]
+  params = [inst.ToDict(), osdev, swapdev, src_node, src_image, cluster_name]
   c = Client("instance_os_import", params)
   c.connect(node)
   c.run()

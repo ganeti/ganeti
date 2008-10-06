@@ -236,7 +236,8 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     disk = objects.Disk.FromDict(params[0])
     dest_node = params[1]
     instance = objects.Instance.FromDict(params[2])
-    return backend.ExportSnapshot(disk, dest_node, instance)
+    cluster_name = params[3]
+    return backend.ExportSnapshot(disk, dest_node, instance, cluster_name)
 
   @staticmethod
   def perspective_finalize_export(params):
@@ -333,10 +334,10 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """Run the import function of an OS onto a given instance.
 
     """
-    inst_s, os_disk, swap_disk, src_node, src_image = params
+    inst_s, os_disk, swap_disk, src_node, src_image, cluster_name = params
     inst = objects.Instance.FromDict(inst_s)
     return backend.ImportOSIntoInstance(inst, os_disk, swap_disk,
-                                        src_node, src_image)
+                                        src_node, src_image, cluster_name)
 
   @staticmethod
   def perspective_instance_shutdown(params):
@@ -425,7 +426,7 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """Run a verify sequence on this node.
 
     """
-    return backend.VerifyNode(params[0])
+    return backend.VerifyNode(params[0], params[1])
 
   @staticmethod
   def perspective_node_start_master(params):
