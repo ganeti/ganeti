@@ -47,7 +47,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT", "SUBMIT_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
-           "JobSubmittedException", "FormatTimestamp",
+           "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
            ]
 
 

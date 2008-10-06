@@ -116,6 +116,20 @@ def ArchiveJobs(opts, args):
   return 0
 
 
+def AutoArchiveJobs(opts, args):
+  client = GetClient()
+
+  age = args[0]
+
+  if age == 'all':
+    age = -1
+  else:
+    age = ParseTimespec(age)
+
+  client.AutoArchiveJobs(age)
+  return 0
+
+
 def CancelJobs(opts, args):
   client = GetClient()
 
@@ -261,6 +275,10 @@ commands = {
               [DEBUG_OPT],
               "<job-id> [<job-id> ...]",
               "Archive specified jobs"),
+  'autoarchive': (AutoArchiveJobs, ARGS_ONE,
+              [DEBUG_OPT],
+              "<age>",
+              "Auto archive jobs older than the given age"),
   'cancel': (CancelJobs, ARGS_ANY,
              [DEBUG_OPT],
              "<job-id> [<job-id> ...]",

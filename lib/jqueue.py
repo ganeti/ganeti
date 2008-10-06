@@ -666,16 +666,15 @@ class JobQueue(object):
     finally:
       self.UpdateJobUnlocked(job)
 
-  @utils.LockedMethod
   @_RequireOpenQueue
-  def ArchiveJob(self, job_id):
+  def _ArchiveJobUnlocked(self, job_id):
     """Archives a job.
 
     @type job_id: string
     @param job_id: Job ID of job to be archived.
 
     """
-    logging.debug("Archiving job %s", job_id)
+    logging.info("Archiving job %s", job_id)
 
     job = self._LoadJobUnlocked(job_id)
     if not job:
@@ -694,6 +693,51 @@ class JobQueue(object):
     self._RenameFileUnlocked(old, new)
 
     logging.debug("Successfully archived job %s", job.id)
+
+  @utils.LockedMethod
+  @_RequireOpenQueue
+  def ArchiveJob(self, job_id):
+    """Archives a job.
+
+    @type job_id: string
+    @param job_id: Job ID of job to be archived.
+
+    """
+    return self._ArchiveJobUnlocked(job_id)
+
+  @utils.LockedMethod
+  @_RequireOpenQueue
+  def AutoArchiveJobs(self, age):
+    """Archives all jobs based on age.
+
+    The method will archive all jobs which are older than the age
+    parameter. For jobs that don't have an end timestamp, the start
+    timestamp will be considered. The special '-1' age will cause
+    archival of all jobs (that are not running or queued).
+
+    @type age: int
+    @param age: the minimum age in seconds
+
+    """
+    logging.info("Archiving jobs with age more than %s seconds", age)
+
+    now = time.time()
+    for jid in self._GetJobIDsUnlocked(archived=False):
+      job = self._LoadJobUnlocked(jid)
+      if job.CalcStatus() not in (constants.OP_STATUS_SUCCESS,
+                                  constants.OP_STATUS_ERROR,
+                                  constants.OP_STATUS_CANCELED):
+        continue
+      if job.end_timestamp is None:
+        if job.start_timestamp is None:
+          job_age = job.received_timestamp
+        else:
+          job_age = job.start_timestamp
+      else:
+        job_age = job.end_timestamp
+
+      if age == -1 or now - job_age[0] > age:
+        self._ArchiveJobUnlocked(jid)
 
   def _GetJobInfoUnlocked(self, job, fields):
     row = []

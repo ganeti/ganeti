@@ -47,6 +47,7 @@ REQ_SUBMIT_JOB = "SubmitJob"
 REQ_WAIT_FOR_JOB_CHANGE = "WaitForJobChange"
 REQ_CANCEL_JOB = "CancelJob"
 REQ_ARCHIVE_JOB = "ArchiveJob"
+REQ_AUTOARCHIVE_JOBS = "AutoArchiveJobs"
 REQ_QUERY_JOBS = "QueryJobs"
 REQ_QUERY_INSTANCES = "QueryInstances"
 REQ_QUERY_NODES = "QueryNodes"
@@ -289,6 +290,9 @@ class Client(object):
 
   def ArchiveJob(self, job_id):
     return self.CallMethod(REQ_ARCHIVE_JOB, job_id)
+
+  def AutoArchiveJobs(self, age):
+    return self.CallMethod(REQ_AUTOARCHIVE_JOBS, age)
 
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
     timeout = (DEF_RWTO - 1) / 2
