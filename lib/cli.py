@@ -707,3 +707,45 @@ def FormatTimestamp(ts):
     return '?'
   sec, usec = ts
   return time.strftime("%F %T", time.localtime(sec)) + ".%06d" % usec
+
+
+def ParseTimespec(value):
+  """Parse a time specification.
+
+  The following suffixed will be recognized:
+
+    - s: seconds
+    - m: minutes
+    - h: hours
+    - d: day
+    - w: weeks
+
+  Without any suffix, the value will be taken to be in seconds.
+
+  """
+  value = str(value)
+  if not value:
+    raise errors.OpPrereqError("Empty time specification passed")
+  suffix_map = {
+    's': 1,
+    'm': 60,
+    'h': 3600,
+    'd': 86400,
+    'w': 604800,
+    }
+  if value[-1] not in suffix_map:
+    try:
+      value = int(value)
+    except ValueError:
+      raise errors.OpPrereqError("Invalid time specification '%s'" % value)
+  else:
+    multiplier = suffix_map[value[-1]]
+    value = value[:-1]
+    if not value: # no data left after stripping the suffix
+      raise errors.OpPrereqError("Invalid time specification (only"
+                                 " suffix passed)")
+    try:
+      value = int(value) * multiplier
+    except ValueError:
+      raise errors.OpPrereqError("Invalid time specification '%s'" % value)
+  return value
