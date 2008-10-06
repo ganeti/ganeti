@@ -112,7 +112,8 @@ docrst = \
 	doc/design-2.0-index.rst \
 	doc/design-2.0-job-queue.rst \
 	doc/design-2.0-locking.rst \
-	doc/design-2.0-master-daemon.rst
+	doc/design-2.0-master-daemon.rst \
+	doc/design-2.0-rapi-changes.rst
 
 doc_DATA = \
 	$(patsubst %.rst,%.html,$(docrst)) \
