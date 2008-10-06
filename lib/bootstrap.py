@@ -264,7 +264,7 @@ def SetupNodeDaemon(node, ssh_key_check):
 
   """
   cfg = ssconf.SimpleConfigReader()
-  sshrunner = ssh.SshRunner(cfg)
+  sshrunner = ssh.SshRunner(cfg.GetClusterName())
   gntpass = utils.GetNodeDaemonPassword()
   if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
     raise errors.OpExecError("ganeti password corruption detected")

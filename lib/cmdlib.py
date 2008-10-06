@@ -108,7 +108,7 @@ class LogicalUnit(object):
 
     """
     if not self.__ssh:
-      self.__ssh = ssh.SshRunner(self.cfg)
+      self.__ssh = ssh.SshRunner(self.cfg.GetClusterName())
     return self.__ssh
 
   ssh = property(fget=__GetSSH)
