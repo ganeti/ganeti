@@ -159,6 +159,8 @@ class _QueuedJob(object):
 
       if op.status == constants.OP_STATUS_QUEUED:
         pass
+      elif op.status == constants.OP_STATUS_WAITLOCK:
+        status = constants.JOB_STATUS_WAITLOCK
       elif op.status == constants.OP_STATUS_RUNNING:
         status = constants.JOB_STATUS_RUNNING
       elif op.status == constants.OP_STATUS_ERROR:
@@ -188,6 +190,24 @@ class _QueuedJob(object):
 
 
 class _JobQueueWorker(workerpool.BaseWorker):
+  def _NotifyStart(self):
+    """Mark the opcode as running, not lock-waiting.
+
+    This is called from the mcpu code as a notifier function, when the
+    LU is finally about to start the Exec() method. Of course, to have
+    end-user visible results, the opcode must be initially (before
+    calling into Processor.ExecOpCode) set to OP_STATUS_WAITLOCK.
+
+    """
+    assert self.queue, "Queue attribute is missing"
+    assert self.opcode, "Opcode attribute is missing"
+
+    self.queue.acquire()
+    try:
+      self.opcode.status = constants.OP_STATUS_RUNNING
+    finally:
+      self.queue.release()
+
   def RunTask(self, job):
     """Job executor.
 
@@ -198,7 +218,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
     logging.debug("Worker %s processing job %s",
                   self.worker_id, job.id)
     proc = mcpu.Processor(self.pool.queue.context)
-    queue = job.queue
+    self.queue = queue = job.queue
     try:
       try:
         count = len(job.ops)
@@ -209,7 +229,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
             queue.acquire()
             try:
               job.run_op_index = idx
-              op.status = constants.OP_STATUS_RUNNING
+              op.status = constants.OP_STATUS_WAITLOCK
               op.result = None
               op.start_timestamp = TimeStampNow()
               if idx == 0: # first opcode
@@ -246,7 +266,8 @@ class _JobQueueWorker(workerpool.BaseWorker):
                 queue.release()
 
             # Make sure not to hold lock while _Log is called
-            result = proc.ExecOpCode(input_opcode, _Log)
+            self.opcode = op
+            result = proc.ExecOpCode(input_opcode, _Log, self._NotifyStart)
 
             queue.acquire()
             try:
@@ -365,7 +386,8 @@ class JobQueue(object):
         if status in (constants.JOB_STATUS_QUEUED, ):
           self._wpool.AddTask(job)
 
-        elif status in (constants.JOB_STATUS_RUNNING, ):
+        elif status in (constants.JOB_STATUS_RUNNING,
+                        constants.JOB_STATUS_WAITLOCK):
           logging.warning("Unfinished job %s found: %s", job.id, job)
           try:
             for op in job.ops:
@@ -621,7 +643,8 @@ class JobQueue(object):
       log_entries = serializer.LoadJson(serializer.DumpJson(log_entries))
 
       if status not in (constants.JOB_STATUS_QUEUED,
-                        constants.JOB_STATUS_RUNNING):
+                        constants.JOB_STATUS_RUNNING,
+                        constants.JOB_STATUS_WAITLOCK):
         # Don't even try to wait if the job is no longer running, there will be
         # no changes.
         break

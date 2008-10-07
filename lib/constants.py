@@ -304,12 +304,14 @@ JOB_NOTCHANGED = "nochange"
 
 # Job status
 JOB_STATUS_QUEUED = "queued"
+JOB_STATUS_WAITLOCK = "waiting"
 JOB_STATUS_RUNNING = "running"
 JOB_STATUS_CANCELED = "canceled"
 JOB_STATUS_SUCCESS = "success"
 JOB_STATUS_ERROR = "error"
 
 OP_STATUS_QUEUED = "queued"
+OP_STATUS_WAITLOCK = "waiting"
 OP_STATUS_RUNNING = "running"
 OP_STATUS_CANCELED = "canceled"
 OP_STATUS_SUCCESS = "success"

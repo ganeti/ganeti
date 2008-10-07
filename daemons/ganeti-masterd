@@ -261,7 +261,7 @@ class ClientOps:
     """
     proc = mcpu.Processor(self.server.context)
     # TODO: Where should log messages go?
-    return proc.ExecOpCode(op, self._DummyLog)
+    return proc.ExecOpCode(op, self._DummyLog, None)
 
 
 class GanetiContext(object):

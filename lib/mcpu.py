@@ -131,6 +131,8 @@ class Processor(object):
     adding_locks = level in lu.add_locks
     acquiring_locks = level in lu.needed_locks
     if level not in locking.LEVELS:
+      if callable(self._run_notifier):
+        self._run_notifier()
       result = self._ExecLU(lu)
     elif adding_locks and acquiring_locks:
       # We could both acquire and add locks at the same level, but for now we
@@ -170,11 +172,18 @@ class Processor(object):
 
     return result
 
-  def ExecOpCode(self, op, feedback_fn):
+  def ExecOpCode(self, op, feedback_fn, run_notifier):
     """Execute an opcode.
 
-    Args:
-      op: the opcode to be executed
+    @type op: an OpCode instance
+    @param op: the opcode to be executed
+    @type feedback_fn: a function that takes a single argument
+    @param feedback_fn: this function will be used as feedback from the LU
+                        code to the end-user
+    @type run_notifier: callable (no arguments) or None
+    @param run_notifier:  this function (if callable) will be called when
+                          we are about to call the lu's Exec() method, that
+                          is, after we have aquired all locks
 
     """
     if not isinstance(op, opcodes.OpCode):
@@ -182,6 +191,7 @@ class Processor(object):
                                    " to ExecOpcode")
 
     self._feedback_fn = feedback_fn
+    self._run_notifier = run_notifier
     lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
     if lu_class is None:
       raise errors.OpCodeUnknown("Unknown opcode")
