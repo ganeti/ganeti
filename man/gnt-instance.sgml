@@ -1001,7 +1001,7 @@
           recreates the hypervisor config for the instance and
           starts the instance. A full reboot does the equivalent
           of <command>gnt-instance shutdown &amp;&amp; gnt-instance
-          startup</command>. The default is soft reboot.
+          startup</command>. The default is hard reboot.
         </para>
 
         <para>

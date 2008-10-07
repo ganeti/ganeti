@@ -1119,7 +1119,7 @@ commands = {
                            default=None, type="string", metavar="<PARAMS>"),
                make_option("-t", "--type", dest="reboot_type",
                            help="Type of reboot: soft/hard/full",
-                           default=constants.INSTANCE_REBOOT_SOFT,
+                           default=constants.INSTANCE_REBOOT_HARD,
                            type="string", metavar="<REBOOT>"),
                make_option("--ignore-secondaries", dest="ignore_secondaries",
                            default=False, action="store_true",
