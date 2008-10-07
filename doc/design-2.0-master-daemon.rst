@@ -1,6 +1,8 @@
 Ganeti 2.0 Master daemon
 ========================
 
+.. contents::
+
 Objective
 ---------
 
