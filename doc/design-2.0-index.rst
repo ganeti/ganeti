@@ -23,7 +23,14 @@ Beside these major changes, another 'core' change but that will not be
 as visible to the users will be changing the model of object attribute
 storage, and separate that into namespaces (such that an Xen PVM
 instance will not have the Xen HVM parameters). This will allow future
-flexibility in defining additional parameters.
+flexibility in defining additional parameters. More details in the
+design-2.0-cluster-parameters document.
+
+The various changes brought in by the master daemon model and the
+read-write RAPI will require changes to the cluster security; we move
+away from Twisted and use http(s) for intra- and extra-cluster
+communications. For more details, see the SECURITY document in the top
+directory.
 
 
 Functionality changes
@@ -56,3 +63,8 @@ either 2.0 or subsequent 2.x releases:
 - multiple disks, with custom properties (read-only/read-write, exportable,
   etc.)
 - multiple NICs
+
+These changes will require OS API changes, details are in the
+design-2.0-os-interface document. And they will also require many
+command line changes, see the design-2.0-commandline-parameters
+document.
