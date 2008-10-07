@@ -115,7 +115,8 @@ docrst = \
 	doc/design-2.0-locking.rst \
 	doc/design-2.0-master-daemon.rst \
 	doc/design-2.0-os-interface.rst \
-	doc/design-2.0-rapi-changes.rst
+	doc/design-2.0-rapi-changes.rst \
+	doc/security.rst
 
 doc_DATA = \
 	$(patsubst %.rst,%.html,$(docrst)) \

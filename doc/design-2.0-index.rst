@@ -29,8 +29,8 @@ design-2.0-cluster-parameters document.
 The various changes brought in by the master daemon model and the
 read-write RAPI will require changes to the cluster security; we move
 away from Twisted and use http(s) for intra- and extra-cluster
-communications. For more details, see the SECURITY document in the top
-directory.
+communications. For more details, see the security document in the
+doc/ directory.
 
 
 Functionality changes
