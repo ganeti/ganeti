@@ -41,7 +41,7 @@ Hypervisor Parameter
 A hypervisor parameter (or hypervisor specific parameter) is defined
 as a parameter that is interpreted by the hypervisor support code in
 Ganeti and usually is specific to a particular hypervisor (like the
-kernel path for PVM which makes no sense for HVM or KVM).
+kernel path for PVM which makes no sense for HVM).
 
 Cluster parameters
 ~~~~~~~~~~~~~~~~~~
