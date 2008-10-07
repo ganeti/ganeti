@@ -362,6 +362,7 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
 
     """
     instance, target, live = params
+    instance = objects.Instance.FromDict(instance)
     return backend.MigrateInstance(instance, target, live)
 
   @staticmethod

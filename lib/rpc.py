@@ -209,8 +209,18 @@ def call_instance_migrate(node, instance, target, live):
 
   This is a single-node call.
 
+  @type node: string
+  @param node: the node on which the instance is currently running
+  @type instance: instance object
+  @param instance: the instance definition
+  @type target: string
+  @param target: the target node name
+  @type live: boolean
+  @param live: whether the migration should be done live or not (the
+      interpretation of this parameter is left to the hypervisor)
+
   """
-  c = Client("instance_migrate", [instance.name, target, live])
+  c = Client("instance_migrate", [instance.ToDict(), target, live])
   c.connect(node)
   c.run()
   return c.getresult().get(node, False)

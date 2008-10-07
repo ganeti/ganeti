@@ -771,11 +771,23 @@ def RebootInstance(instance, reboot_type, extra_args):
 def MigrateInstance(instance, target, live):
   """Migrates an instance to another node.
 
+  @type instance: C{objects.Instance}
+  @param instance: the instance definition
+  @type target: string
+  @param target: the target node name
+  @type live: boolean
+  @param live: whether the migration should be done live or not (the
+      interpretation of this parameter is left to the hypervisor)
+  @rtype: tuple
+  @return: a tuple of (success, msg) where:
+      - succes is a boolean denoting the success/failure of the operation
+      - msg is a string with details in case of failure
+
   """
   hyper = hypervisor.GetHypervisor(_GetConfig())
 
   try:
-    hyper.MigrateInstance(instance, target, live)
+    hyper.MigrateInstance(instance.name, target, live)
   except errors.HypervisorError, err:
     msg = "Failed to migrate instance: %s" % str(err)
     logging.error(msg)
