@@ -20,6 +20,7 @@ The current Ganeti OS interface, version 5, is tailored for Ganeti 1.2. The
 interface is composed by a series of scripts which get called with certain
 parameters to perform OS-dependent operations on the cluster. The current
 scripts are:
+
 create
   called when a new instance is added to the cluster
 export
@@ -70,6 +71,7 @@ The Scripts
 
 As in Ganeti 1.2, every OS which wants to be installed in Ganeti needs to
 support the following functionality, through scripts:
+
 create:
   used to create a new instance running that OS. This script should prepare the
   block devices, and install them so that the new OS can boot under the
@@ -95,6 +97,7 @@ Incompatibilities with 1.2
 
 We expect the following incompatibilities between the OS scripts for 1.2 and
 the ones for 2.0:
+
 - Input parameters: in 1.2 those were passed on the command line, in 2.0 we'll
   use environment variables, as there will be a lot more information and not
   all OSes may care about all of it.
@@ -114,6 +117,7 @@ Input
 
 Rather than using command line flags, as they do now, scripts will accept
 inputs from environment variables.  We expect the following input values:
+
 INSTANCE_NAME
   Name of the instance acted on
 HYPERVISOR
@@ -150,6 +154,7 @@ page. All these variables will be available to all scripts.
 
 Some scripts will need a few more information to work. These will have
 per-script variables, such as for example:
+
 NEW_INSTANCE_NAME
   rename: the name the instance should be renamed to.
 EXPORT_NODE
@@ -172,7 +177,7 @@ command line, so we'll move it for uniformity.)
 
 
 Output/Behaviour
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 As discussed scripts should only send user-targeted information to stdout. The
 create and import scripts are supposed to format/initialise the given block
@@ -194,7 +199,7 @@ subset of the ganeti hypervisors, by declaring them in the 'hypervisors' file.
 
 
 Caveats/Notes
-------------
+-------------
 
 We might want to have a "default" import/export behaviour that just dumps all
 disks and restores them. This can save work as most systems will just do this,
@@ -205,4 +210,3 @@ enough space to store the information we need. If we discover that this is not
 the case we may want to go to a more complex API such as storing those
 information on the filesystem and providing the OS script with the path to a
 file where they are encoded in some format.
-
