@@ -107,9 +107,9 @@ the ones for 2.0:
   way to distinguish them. A target/source node and directory will be instead
   passed, for the import script to do the correct job. All scripts will get
   nothing in input and are supposed to output only user-relevant messages.
-- Scripts are not compulsory: if a script is missing the relevant operations
-  will be forbidden for instances of that os. This makes it easier to
-  distinguish between unsupported operations and no-op ones (if any).
+- Some scripts are not compulsory: if such a script is missing the relevant
+  operations will be forbidden for instances of that os. This makes it easier
+  to distinguish between unsupported operations and no-op ones (if any).
 
 
 Input
@@ -118,6 +118,11 @@ Input
 Rather than using command line flags, as they do now, scripts will accept
 inputs from environment variables.  We expect the following input values:
 
+OS_API_VERSION
+  The version of the OS api that the following parameters comply with;
+  this is used so that in the future we could have OSes supporting
+  multiple versions and thus Ganeti send the proper version in this
+  parameter
 INSTANCE_NAME
   Name of the instance acted on
 HYPERVISOR
@@ -189,10 +194,13 @@ what its name is.
 Other declarative style features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As for Ganeti 1.2 OS specifications will need to provide a 'ganeti_api_version'
-with a number matching the version of the api they implement. Ganeti itself
-will always be compatible with one version of the API and may maintain
-retrocompatibility if it's feasible to do so.
+Similar to Ganeti 1.2, OS specifications will need to provide a
+'ganeti_api_version' containing list of numbers matching the version(s) of the
+api they implement. Ganeti itself will always be compatible with one version of
+the API and may maintain retrocompatibility if it's feasible to do so. The
+numbers are one-per-line, so an OS supporting both version 5 and version 20
+will have a file containing two lines. This is different from Ganeti 1.2, which
+only supported one version number.
 
 In addition to that an OS will be able to declare that it does support only a
 subset of the ganeti hypervisors, by declaring them in the 'hypervisors' file.
