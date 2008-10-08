@@ -253,12 +253,12 @@ INSTANCE_REBOOT_HARD = "hard"
 INSTANCE_REBOOT_FULL = "full"
 
 # Hypervisor constants
-HT_XEN_PVM30 = "xen-3.0"
+HT_XEN_PVM = "xen-pvm"
 HT_FAKE = "fake"
-HT_XEN_HVM31 = "xen-hvm-3.1"
+HT_XEN_HVM = "xen-hvm"
 HT_KVM = "kvm"
-HYPER_TYPES = frozenset([HT_XEN_PVM30, HT_FAKE, HT_XEN_HVM31, HT_KVM])
-HTS_REQ_PORT = frozenset([HT_XEN_HVM31])
+HYPER_TYPES = frozenset([HT_XEN_PVM, HT_FAKE, HT_XEN_HVM, HT_KVM])
+HTS_REQ_PORT = frozenset([HT_XEN_HVM])
 
 HT_HVM_VNC_BASE_PORT = 5900
 HT_HVM_DEFAULT_BOOT_ORDER = 'dc'

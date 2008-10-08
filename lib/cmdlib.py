@@ -1814,7 +1814,7 @@ class LUAddNode(LogicalUnit):
                        (fname, to_node))
 
     to_copy = []
-    if constants.HT_XEN_HVM31 in self.cfg.GetClusterInfo().enabled_hypervisors:
+    if constants.HT_XEN_HVM in self.cfg.GetClusterInfo().enabled_hypervisors:
       to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
       result = rpc.call_upload_file([node], fname)
@@ -3493,7 +3493,7 @@ class LUCreateInstance(LogicalUnit):
                                    self.op.vnc_bind_address)
 
     # Xen HVM device type checks
-    if self.op.hypervisor == constants.HT_XEN_HVM31:
+    if self.op.hypervisor == constants.HT_XEN_HVM:
       if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
         raise errors.OpPrereqError("Invalid NIC type %s specified for Xen HVM"
                                    " hypervisor" % self.op.hvm_nic_type)
@@ -4433,11 +4433,11 @@ class LUQueryInstanceData(NoHooksLU):
         }
 
       htkind = instance.hypervisor
-      if htkind == constants.HT_XEN_PVM30:
+      if htkind == constants.HT_XEN_PVM:
         idict["kernel_path"] = instance.kernel_path
         idict["initrd_path"] = instance.initrd_path
 
-      if htkind == constants.HT_XEN_HVM31:
+      if htkind == constants.HT_XEN_HVM:
         idict["hvm_boot_order"] = instance.hvm_boot_order
         idict["hvm_acpi"] = instance.hvm_acpi
         idict["hvm_pae"] = instance.hvm_pae
@@ -4659,7 +4659,7 @@ class LUSetInstanceParams(LogicalUnit):
                            " node %s" % node)
 
     # Xen HVM device type checks
-    if instance.hypervisor == constants.HT_XEN_HVM31:
+    if instance.hypervisor == constants.HT_XEN_HVM:
       if self.op.hvm_nic_type is not None:
         if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
           raise errors.OpPrereqError("Invalid NIC type %s specified for Xen"

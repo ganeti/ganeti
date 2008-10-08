@@ -114,7 +114,7 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   if config.ConfigWriter.IsCluster():
     raise errors.OpPrereqError("Cluster is already initialised")
 
-  if hypervisor_type == constants.HT_XEN_HVM31:
+  if hypervisor_type == constants.HT_XEN_HVM:
     if not os.path.exists(constants.VNC_PASSWORD_FILE):
       raise errors.OpPrereqError("Please prepare the cluster VNC"
                                  "password file %s" %
