@@ -29,9 +29,10 @@ import tempfile
 import os.path
 import socket
 
-from ganeti import errors
-from ganeti import constants
+from ganeti import bootstrap
 from ganeti import config
+from ganeti import constants
+from ganeti import errors
 from ganeti import objects
 from ganeti import utils
 
@@ -41,6 +42,7 @@ class TestConfigRunner(unittest.TestCase):
   def setUp(self):
     fd, self.cfg_file = tempfile.mkstemp()
     os.close(fd)
+    self._init_cluster(self.cfg_file)
 
   def tearDown(self):
     try:
@@ -79,8 +81,8 @@ class TestConfigRunner(unittest.TestCase):
                                       secondary_ip=ip,
                                       serial_no=1)
 
-    cfg.InitConfig(constants.CONFIG_VERSION,
-                   cluster_config, master_node_config)
+    bootstrap.InitConfig(constants.CONFIG_VERSION,
+                         cluster_config, master_node_config, self.cfg_file)
 
   def _create_instance(self):
     """Create and return an instance object"""
@@ -95,7 +97,6 @@ class TestConfigRunner(unittest.TestCase):
   def testInit(self):
     """Test initialize the config file"""
     cfg = self._get_object()
-    self._init_cluster(cfg)
     self.failUnlessEqual(1, len(cfg.GetNodeList()))
     self.failUnlessEqual(0, len(cfg.GetInstanceList()))
 
@@ -105,9 +106,8 @@ class TestConfigRunner(unittest.TestCase):
     # construct a fake cluster object
     fake_cl = objects.Cluster()
     # fail if we didn't read the config
-    self.failUnlessRaises(errors.ProgrammerError, cfg.Update, fake_cl)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl)
 
-    self._init_cluster(cfg)
     cl = cfg.GetClusterInfo()
     # first pass, must not fail
     cfg.Update(cl)
@@ -122,9 +122,8 @@ class TestConfigRunner(unittest.TestCase):
     # construct a fake node
     fake_node = objects.Node()
     # fail if we didn't read the config
-    self.failUnlessRaises(errors.ProgrammerError, cfg.Update, fake_node)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node)
 
-    self._init_cluster(cfg)
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
     # first pass, must not fail
     cfg.Update(node)
@@ -140,9 +139,8 @@ class TestConfigRunner(unittest.TestCase):
     inst = self._create_instance()
     fake_instance = objects.Instance()
     # fail if we didn't read the config
-    self.failUnlessRaises(errors.ProgrammerError, cfg.Update, fake_instance)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance)
 
-    self._init_cluster(cfg)
     cfg.AddInstance(inst)
     instance = cfg.GetInstanceInfo(cfg.GetInstanceList()[0])
     # first pass, must not fail
