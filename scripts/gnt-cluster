@@ -360,12 +360,12 @@ commands = {
                         metavar="ADDRESS", default=None),
             make_option("-t", "--hypervisor-type", dest="hypervisor_type",
                         help="Specify the hypervisor type "
-                        "(xen-3.0, kvm, fake, xen-hvm-3.1)",
-                        metavar="TYPE", choices=["xen-3.0",
+                        "(xen-pvm, kvm, fake, xen-hvm)",
+                        metavar="TYPE", choices=["xen-pvm",
                                                  "kvm",
                                                  "fake",
-                                                 "xen-hvm-3.1"],
-                        default="xen-3.0",),
+                                                 "xen-hvm"],
+                        default="xen-pvm",),
             make_option("-m", "--mac-prefix", dest="mac_prefix",
                         help="Specify the mac prefix for the instance IP"
                         " addresses, in the format XX:XX:XX",

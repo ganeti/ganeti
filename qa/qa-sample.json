@@ -1,7 +1,7 @@
 {
   "name": "xen-test",
   "rename": "xen-test-rename",
-  "hypervisor-type": "xen-3.0",
+  "hypervisor-type": "xen-pvm",
 
   "os": "debian-etch",
   "os-size": "10G",

@@ -97,7 +97,7 @@ class R_info(baserlib.R_Generic):
         "64bit",
         "x86_64"
       ],
-      "hypervisor_type": "xen-3.0",
+      "hypervisor_type": "xen-pvm",
       "protocol_version": 12
     }
 
