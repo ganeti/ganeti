@@ -55,22 +55,22 @@ Instance parameters
 ~~~~~~~~~~~~~~~~~~~
 
 The only hypervisor parameter to remain at the top level of the
-instance namespace will be instance.hypervisor_type, specifying not
+instance namespace will be instance.hypervisor, specifying not
 only the hypervisor type to be used for that instance, but also
 implicitly the hypervisor type to use for parameter checks.
 
 All other instance level hypervisor parameters will be moved into the
-instance.hypervisor_params namespace subtree.
+instance.hvparams namespace subtree.
 
-The names for hypervisor parameters in the instance.hypervisor_params
+The names for hypervisor parameters in the instance.hvparams
 subtree should be choosen as generic as possible, especially if
 specific parameters could conceivably be useful for more than one
 hypervisor, e.g.
-instance.hypervisor_params.vnc_console_port instead of using both
-instance.hypervisor_params.hvm_vnc_console_port and
-instance.hypervisor_params.kvm_vnc_console_port.
+instance.hvparams.vnc_console_port instead of using both
+instance.hvparams.hvm_vnc_console_port and
+instance.hvparams.kvm_vnc_console_port.
 
-The instance.hypervisor_params subtree will be implemented as a dict.
+The instance.hvparams subtree will be implemented as a dict.
 
 Examples for instance level hypervisor parameters:
 
