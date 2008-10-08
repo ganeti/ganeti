@@ -35,7 +35,7 @@ from ganeti import utils
 from ganeti import serializer
 
 
-class SimpleConfigReader:
+class SimpleConfigReader(object):
   """Simple class to read configuration file.
 
   """
@@ -73,6 +73,16 @@ class SimpleConfigReader:
 
   def GetNodeList(self):
     return self._config_data["nodes"].keys()
+
+  @classmethod
+  def FromDict(cls, val, cfg_file=constants.CLUSTER_CONF_FILE):
+    """Alternative construction from a dictionary.
+
+    """
+    obj = SimpleConfigReader.__new__(cls)
+    obj._config_data = val
+    obj._file_name = cfg_file
+    return obj
 
 
 class SimpleConfigWriter(SimpleConfigReader):
