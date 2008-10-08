@@ -259,10 +259,10 @@
 
       <para>
         The <option>-t</option> allows to set the hypervisor type of
-        the cluster. Available hypervisor types are: xen-3.0, fake and
-        xen-hvm3.1. The default is the xen-3.0 hypervisor.
+        the cluster. Available hypervisor types are: xen-pvm, fake and
+        xen-hvm. The default is the xen-pvm hypervisor.
         Note that if you init the cluster with hypervisor-type
-        xen-hvm3.1 you also need to provide the cluster VNC password
+        xen-hvm you also need to provide the cluster VNC password
         file <filename>/etc/ganeti/vnc-cluster-password</filename>
         because HVM instances require it for VNC console
         authentication.

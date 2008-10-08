@@ -190,7 +190,7 @@ option is as follows:
   --hypervisor $HYPERVISOR:$OPTION=$VALUE[,$OPTION=$VALUE]
 
 :$HYPERVISOR: symbolic name of the hypervisor to use, string,
-  has to match the supported hypervisors. Example: xen-3.0
+  has to match the supported hypervisors. Example: xen-pvm
 
 :$OPTION: hypervisor option name, string
 :$VALUE: hypervisor option value, string
