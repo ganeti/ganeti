@@ -43,7 +43,7 @@ _SHUTDOWN_INSTANCES = "instances"
 _VALUE_TRUE = "true"
 
 _LIST_DEF_FIELDS = [
-  "name", "os", "pnode", "status", "oper_ram",
+  "name", "hypervisor", "os", "pnode", "status", "oper_ram",
   ]
 
 
@@ -197,7 +197,7 @@ def ListInstances(opts, args):
       "hvm_nic_type": "HVM_NIC_type",
       "hvm_disk_type": "HVM_disk_type",
       "vnc_bind_address": "VNC_bind_address",
-      "serial_no": "SerialNo",
+      "serial_no": "SerialNo", "hypervisor": "Hypervisor",
       }
   else:
     headers = None
@@ -709,6 +709,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("  Nodes:\n")
     buf.write("    - primary: %s\n" % instance["pnode"])
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
+    buf.write("  Hypervisor: %s\n" % instance["hypervisor"])
     buf.write("  Operating system: %s\n" % instance["os"])
     if instance.has_key("network_port"):
       buf.write("  Allocated network port: %s\n" % instance["network_port"])
@@ -974,7 +975,8 @@ commands = {
            "Lists the instances and their status. The available fields are"
            " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
-           " ip, mac, bridge, sda_size, sdb_size, vcpus, serial_no."
+           " ip, mac, bridge, sda_size, sdb_size, vcpus, serial_no,"
+           " hypervisor."
            " The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),

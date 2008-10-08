@@ -39,17 +39,16 @@ _HYPERVISOR_MAP = {
     }
 
 
-def GetHypervisor(cfg):
+def GetHypervisor(ht_kind):
   """Return a Hypervisor instance.
 
   This function parses the cluster hypervisor configuration file and
   instantiates a class based on the value of this file.
 
-  @param cfg: Configuration object
+  @type ht_kind: string
+  @param ht_kind: The requested hypervisor type
 
   """
-  ht_kind = cfg.GetHypervisorType()
-
   if ht_kind not in _HYPERVISOR_MAP:
     raise errors.HypervisorError("Unknown hypervisor type '%s'" % ht_kind)
 

@@ -231,18 +231,21 @@ def LeaveCluster():
   raise errors.QuitGanetiException(False, 'Shutdown scheduled')
 
 
-def GetNodeInfo(vgname):
+def GetNodeInfo(vgname, hypervisor_type):
   """Gives back a hash with different informations about the node.
 
-  Returns:
-    { 'vg_size' : xxx,  'vg_free' : xxx, 'memory_domain0': xxx,
-      'memory_free' : xxx, 'memory_total' : xxx }
-    where
-    vg_size is the size of the configured volume group in MiB
-    vg_free is the free size of the volume group in MiB
-    memory_dom0 is the memory allocated for domain0 in MiB
-    memory_free is the currently available (free) ram in MiB
-    memory_total is the total number of ram in MiB
+  @type vgname: C{string}
+  @param vgname: the name of the volume group to ask for disk space information
+  @type hypervisor_type: C{str}
+  @param hypervisor_type: the name of the hypervisor to ask for
+      memory information
+  @rtype: C{dict}
+  @return: dictionary with the following keys:
+      - vg_size is the size of the configured volume group in MiB
+      - vg_free is the free size of the volume group in MiB
+      - memory_dom0 is the memory allocated for domain0 in MiB
+      - memory_free is the currently available (free) ram in MiB
+      - memory_total is the total number of ram in MiB
 
   """
   outputarray = {}
@@ -250,7 +253,7 @@ def GetNodeInfo(vgname):
   outputarray['vg_size'] = vginfo['vg_size']
   outputarray['vg_free'] = vginfo['vg_free']
 
-  hyper = hypervisor.GetHypervisor(_GetConfig())
+  hyper = hypervisor.GetHypervisor(hypervisor_type)
   hyp_info = hyper.GetNodeInfo()
   if hyp_info is not None:
     outputarray.update(hyp_info)
@@ -267,25 +270,36 @@ def GetNodeInfo(vgname):
 def VerifyNode(what, cluster_name):
   """Verify the status of the local node.
 
-  Args:
-    what - a dictionary of things to check:
-      'filelist' : list of files for which to compute checksums
-      'nodelist' : list of nodes we should check communication with
-      'hypervisor': run the hypervisor-specific verify
+  Based on the input L{what} parameter, various checks are done on the
+  local node.
 
-  Requested files on local node are checksummed and the result returned.
+  If the I{filelist} key is present, this list of
+  files is checksummed and the file/checksum pairs are returned.
 
-  The nodelist is traversed, with the following checks being made
-  for each node:
-  - known_hosts key correct
-  - correct resolving of node name (target node returns its own hostname
-    by ssh-execution of 'hostname', result compared against name in list.
+  If the I{nodelist} key is present, we check that we have
+  connectivity via ssh with the target nodes (and check the hostname
+  report).
+
+  If the I{node-net-test} key is present, we check that we have
+  connectivity to the given nodes via both primary IP and, if
+  applicable, secondary IPs.
+
+  @type what: C{dict}
+  @param what: a dictionary of things to check:
+      - filelist: list of files for which to compute checksums
+      - nodelist: list of nodes we should check ssh communication with
+      - node-net-test: list of nodes we should check node daemon port
+        connectivity with
+      - hypervisor: list with hypervisors to run the verify for
+
 
   """
   result = {}
 
   if 'hypervisor' in what:
-    result['hypervisor'] = hypervisor.GetHypervisor(_GetConfig()).Verify()
+    result['hypervisor'] = my_dict = {}
+    for hv_name in what['hypervisor']:
+      my_dict[hv_name] = hypervisor.GetHypervisor(hv_name).Verify()
 
   if 'filelist' in what:
     result['filelist'] = utils.FingerprintFiles(what['filelist'])
@@ -415,41 +429,49 @@ def BridgesExist(bridges_list):
   return True
 
 
-def GetInstanceList():
+def GetInstanceList(hypervisor_list):
   """Provides a list of instances.
 
-  Returns:
-    A list of all running instances on the current node
-    - instance1.example.com
-    - instance2.example.com
+  @type hypervisor_list: list
+  @param hypervisor_list: the list of hypervisors to query information
+
+  @rtype: list
+  @return: a list of all running instances on the current node
+             - instance1.example.com
+             - instance2.example.com
 
   """
-  try:
-    names = hypervisor.GetHypervisor(_GetConfig()).ListInstances()
-  except errors.HypervisorError, err:
-    logging.exception("Error enumerating instances")
-    raise
+  results = []
+  for hname in hypervisor_list:
+    try:
+      names = hypervisor.GetHypervisor(hname).ListInstances()
+      results.extend(names)
+    except errors.HypervisorError, err:
+      logging.exception("Error enumerating instances for hypevisor %s", hname)
+      # FIXME: should we somehow not propagate this to the master?
+      raise
 
-  return names
+  return results
 
 
-def GetInstanceInfo(instance):
+def GetInstanceInfo(instance, hname):
   """Gives back the informations about an instance as a dictionary.
 
-  Args:
-    instance: name of the instance (ex. instance1.example.com)
+  @type instance: string
+  @param instance: the instance name
+  @type hname: string
+  @param hname: the hypervisor type of the instance
 
-  Returns:
-    { 'memory' : 511, 'state' : '-b---', 'time' : 3188.8, }
-    where
-    memory: memory size of instance (int)
-    state: xen state of instance (string)
-    time: cpu time of instance (float)
+  @rtype: dict
+  @return: dictionary with the following keys:
+      - memory: memory size of instance (int)
+      - state: xen state of instance (string)
+      - time: cpu time of instance (float)
 
   """
   output = {}
 
-  iinfo = hypervisor.GetHypervisor(_GetConfig()).GetInstanceInfo(instance)
+  iinfo = hypervisor.GetHypervisor(hname).GetInstanceInfo(instance)
   if iinfo is not None:
     output['memory'] = iinfo[2]
     output['state'] = iinfo[4]
@@ -458,34 +480,38 @@ def GetInstanceInfo(instance):
   return output
 
 
-def GetAllInstancesInfo():
+def GetAllInstancesInfo(hypervisor_list):
   """Gather data about all instances.
 
   This is the equivalent of `GetInstanceInfo()`, except that it
   computes data for all instances at once, thus being faster if one
   needs data about more than one instance.
 
-  Returns: a dictionary of dictionaries, keys being the instance name,
-    and with values:
-    { 'memory' : 511, 'state' : '-b---', 'time' : 3188.8, }
-    where
-    memory: memory size of instance (int)
-    state: xen state of instance (string)
-    time: cpu time of instance (float)
-    vcpus: the number of cpus
+  @type hypervisor_list: list
+  @param hypervisor_list: list of hypervisors to query for instance data
+
+  @rtype: dict of dicts
+  @return: dictionary of instance: data, with data having the following keys:
+      - memory: memory size of instance (int)
+      - state: xen state of instance (string)
+      - time: cpu time of instance (float)
+      - vcpuus: the number of vcpus
 
   """
   output = {}
 
-  iinfo = hypervisor.GetHypervisor(_GetConfig()).GetAllInstancesInfo()
-  if iinfo:
-    for name, inst_id, memory, vcpus, state, times in iinfo:
-      output[name] = {
-        'memory': memory,
-        'vcpus': vcpus,
-        'state': state,
-        'time': times,
-        }
+  for hname in hypervisor_list:
+    iinfo = hypervisor.GetHypervisor(hname).GetAllInstancesInfo()
+    if iinfo:
+      for name, inst_id, memory, vcpus, state, times in iinfo:
+        if name in output:
+          raise errors.HypervisorError("Instance %s running duplicate" % name)
+        output[name] = {
+          'memory': memory,
+          'vcpus': vcpus,
+          'state': state,
+          'time': times,
+          }
 
   return output
 
@@ -499,7 +525,6 @@ def AddOSToInstance(instance, os_disk, swap_disk):
     swap_disk: the instance-visible name of the swap device
 
   """
-  cfg = _GetConfig()
   inst_os = OSFromDisk(instance.os)
 
   create_script = inst_os.create_script
@@ -535,7 +560,7 @@ def AddOSToInstance(instance, os_disk, swap_disk):
                                 inst_os.path, create_script, instance.name,
                                 real_os_dev.dev_path, real_swap_dev.dev_path,
                                 logfile)
-  env = {'HYPERVISOR': cfg.GetHypervisorType()}
+  env = {'HYPERVISOR': instance.hypervisor}
 
   result = utils.RunCmd(command, env=env)
   if result.failed:
@@ -666,17 +691,19 @@ def _GatherBlockDevs(instance):
 def StartInstance(instance, extra_args):
   """Start an instance.
 
-  Args:
-    instance - name of instance to start.
+  @type instance: instance object
+  @param instance: the instance object
+  @rtype: boolean
+  @return: whether the startup was successful or not
 
   """
-  running_instances = GetInstanceList()
+  running_instances = GetInstanceList([instance.hypervisor])
 
   if instance.name in running_instances:
     return True
 
   block_devices = _GatherBlockDevs(instance)
-  hyper = hypervisor.GetHypervisor(_GetConfig())
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
 
   try:
     hyper.StartInstance(instance, block_devices, extra_args)
@@ -690,16 +717,19 @@ def StartInstance(instance, extra_args):
 def ShutdownInstance(instance):
   """Shut an instance down.
 
-  Args:
-    instance - name of instance to shutdown.
+  @type instance: instance object
+  @param instance: the instance object
+  @rtype: boolean
+  @return: whether the startup was successful or not
 
   """
-  running_instances = GetInstanceList()
+  hv_name = instance.hypervisor
+  running_instances = GetInstanceList([hv_name])
 
   if instance.name not in running_instances:
     return True
 
-  hyper = hypervisor.GetHypervisor(_GetConfig())
+  hyper = hypervisor.GetHypervisor(hv_name)
   try:
     hyper.StopInstance(instance)
   except errors.HypervisorError, err:
@@ -711,7 +741,7 @@ def ShutdownInstance(instance):
 
   time.sleep(1)
   for dummy in range(11):
-    if instance.name not in GetInstanceList():
+    if instance.name not in GetInstanceList([hv_name]):
       break
     time.sleep(10)
   else:
@@ -725,7 +755,7 @@ def ShutdownInstance(instance):
       return False
 
     time.sleep(1)
-    if instance.name in GetInstanceList():
+    if instance.name in GetInstanceList([hv_name]):
       logging.error("could not shutdown instance '%s' even by destroy",
                     instance.name)
       return False
@@ -741,13 +771,13 @@ def RebootInstance(instance, reboot_type, extra_args):
     reboot_type - how to reboot [soft,hard,full]
 
   """
-  running_instances = GetInstanceList()
+  running_instances = GetInstanceList([instance.hypervisor])
 
   if instance.name not in running_instances:
     logging.error("Cannot reboot instance that is not running")
     return False
 
-  hyper = hypervisor.GetHypervisor(_GetConfig())
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
   if reboot_type == constants.INSTANCE_REBOOT_SOFT:
     try:
       hyper.RebootInstance(instance)
@@ -763,7 +793,6 @@ def RebootInstance(instance, reboot_type, extra_args):
       return False
   else:
     raise errors.ParameterError("reboot_type invalid")
-
 
   return True
 
@@ -784,7 +813,7 @@ def MigrateInstance(instance, target, live):
       - msg is a string with details in case of failure
 
   """
-  hyper = hypervisor.GetHypervisor(_GetConfig())
+  hyper = hypervisor.GetHypervisor(instance.hypervisor_name)
 
   try:
     hyper.MigrateInstance(instance.name, target, live)
@@ -1464,7 +1493,6 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image,
     False in case of error, True otherwise.
 
   """
-  cfg = _GetConfig()
   inst_os = OSFromDisk(instance.os)
   import_script = inst_os.import_script
 
@@ -1507,7 +1535,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image,
                                logfile)
 
   command = '|'.join([utils.ShellQuoteArgs(remotecmd), comprcmd, impcmd])
-  env = {'HYPERVISOR': cfg.GetHypervisorType()}
+  env = {'HYPERVISOR': instance.hypervisor}
 
   result = utils.RunCmd(command, env=env)
 

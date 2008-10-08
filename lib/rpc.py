@@ -211,7 +211,7 @@ def call_instance_migrate(node, instance, target, live):
 
   @type node: string
   @param node: the node on which the instance is currently running
-  @type instance: instance object
+  @type instance: C{objects.Instance}
   @param instance: the instance definition
   @type target: string
   @param target: the target node name
@@ -264,10 +264,17 @@ def call_instance_run_rename(node, inst, old_name, osdev, swapdev):
   return c.getresult().get(node, False)
 
 
-def call_instance_info(node, instance):
+def call_instance_info(node, instance, hname):
   """Returns information about a single instance.
 
   This is a single-node call.
+
+  @type node_list: list
+  @param node_list: the list of nodes to query
+  @type instance: string
+  @param instance: the instance name
+  @type hname: string
+  @param hname: the hypervisor type of the instance
 
   """
   c = Client("instance_info", [instance])
@@ -276,25 +283,35 @@ def call_instance_info(node, instance):
   return c.getresult().get(node, False)
 
 
-def call_all_instances_info(node_list):
-  """Returns information about all instances on a given node.
+def call_all_instances_info(node_list, hypervisor_list):
+  """Returns information about all instances on the given nodes.
 
-  This is a single-node call.
+  This is a multi-node call.
+
+  @type node_list: list
+  @param node_list: the list of nodes to query
+  @type hypervisor_list: list
+  @param hypervisor_list: the hypervisors to query for instances
 
   """
-  c = Client("all_instances_info", [])
+  c = Client("all_instances_info", [hypervisor_list])
   c.connect_list(node_list)
   c.run()
   return c.getresult()
 
 
-def call_instance_list(node_list):
+def call_instance_list(node_list, hypervisor_list):
   """Returns the list of running instances on a given node.
 
-  This is a single-node call.
+  This is a multi-node call.
+
+  @type node_list: list
+  @param node_list: the list of nodes to query
+  @type hypervisor_list: list
+  @param hypervisor_list: the hypervisors to query for instances
 
   """
-  c = Client("instance_list", [])
+  c = Client("instance_list", [hypervisor_list])
   c.connect_list(node_list)
   c.run()
   return c.getresult()
@@ -312,7 +329,7 @@ def call_node_tcp_ping(node, source, target, port, timeout, live_port_needed):
   return c.getresult().get(node, False)
 
 
-def call_node_info(node_list, vg_name):
+def call_node_info(node_list, vg_name, hypervisor_type):
   """Return node information.
 
   This will return memory information and volume group size and free
@@ -320,8 +337,16 @@ def call_node_info(node_list, vg_name):
 
   This is a multi-node call.
 
+  @type node_list: list
+  @param node_list: the list of nodes to query
+  @type vgname: C{string}
+  @param vgname: the name of the volume group to ask for disk space information
+  @type hypervisor_type: C{str}
+  @param hypervisor_type: the name of the hypervisor to ask for
+      memory information
+
   """
-  c = Client("node_info", [vg_name])
+  c = Client("node_info", [vg_name, hypervisor_type])
   c.connect_list(node_list)
   c.run()
   retux = c.getresult()

@@ -503,6 +503,7 @@ class Instance(TaggableObject):
     "name",
     "primary_node",
     "os",
+    "hypervisor",
     "status",
     "memory",
     "vcpus",
@@ -701,6 +702,7 @@ class Cluster(TaggableObject):
     "master_netdev",
     "cluster_name",
     "file_storage_dir",
+    "enabled_hypervisors",
     ]
 
   def ToDict(self):

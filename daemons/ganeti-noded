@@ -387,14 +387,14 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """Query information about all instances.
 
     """
-    return backend.GetAllInstancesInfo()
+    return backend.GetAllInstancesInfo(params[0])
 
   @staticmethod
   def perspective_instance_list(params):
     """Query the list of running instances.
 
     """
-    return backend.GetInstanceList()
+    return backend.GetInstanceList(params[0])
 
   # node --------------------------
 
@@ -411,8 +411,8 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     """Query node information.
 
     """
-    vgname = params[0]
-    return backend.GetNodeInfo(vgname)
+    vgname, hypervisor_type = params
+    return backend.GetNodeInfo(vgname, hypervisor_type)
 
   @staticmethod
   def perspective_node_add(params):

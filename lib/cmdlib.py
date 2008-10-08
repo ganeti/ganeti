@@ -586,8 +586,11 @@ class LUVerifyCluster(LogicalUnit):
                           (node, node_result['node-net-test'][node]))
 
     hyp_result = node_result.get('hypervisor', None)
-    if hyp_result is not None:
-      feedback_fn("  - ERROR: hypervisor verify failure: '%s'" % hyp_result)
+    if isinstance(hyp_result, dict):
+      for hv_name, hv_result in hyp_result.iteritems():
+        if hv_result is not None:
+          feedback_fn("  - ERROR: hypervisor %s verify failure: '%s'" %
+                      (hv_name, hv_result))
     return bad
 
   def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
@@ -721,6 +724,7 @@ class LUVerifyCluster(LogicalUnit):
       feedback_fn("  - ERROR: %s" % msg)
 
     vg_name = self.cfg.GetVGName()
+    hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
     nodeinfo = [self.cfg.GetNodeInfo(nname) for nname in nodelist]
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
@@ -739,19 +743,20 @@ class LUVerifyCluster(LogicalUnit):
 
     feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
     all_volumeinfo = rpc.call_volume_list(nodelist, vg_name)
-    all_instanceinfo = rpc.call_instance_list(nodelist)
+    all_instanceinfo = rpc.call_instance_list(nodelist, hypervisors)
     all_vglist = rpc.call_vg_list(nodelist)
     node_verify_param = {
       'filelist': file_names,
       'nodelist': nodelist,
-      'hypervisor': None,
+      'hypervisor': hypervisors,
       'node-net-test': [(node.name, node.primary_ip, node.secondary_ip)
                         for node in nodeinfo]
       }
     all_nvinfo = rpc.call_node_verify(nodelist, node_verify_param,
                                       self.cfg.GetClusterName())
     all_rversion = rpc.call_version(nodelist)
-    all_ninfo = rpc.call_node_info(nodelist, self.cfg.GetVGName())
+    all_ninfo = rpc.call_node_info(nodelist, self.cfg.GetVGName(),
+                                   self.cfg.GetHypervisorType())
 
     for node in nodelist:
       feedback_fn("* Verifying node %s" % node)
@@ -1470,7 +1475,8 @@ class LUQueryNodes(NoHooksLU):
 
     if self.dynamic_fields.intersection(self.op.output_fields):
       live_data = {}
-      node_data = rpc.call_node_info(nodenames, self.cfg.GetVGName())
+      node_data = rpc.call_node_info(nodenames, self.cfg.GetVGName(),
+                                     self.cfg.GetHypervisorType())
       for name in nodenames:
         nodeinfo = node_data.get(name, None)
         if nodeinfo:
@@ -1808,7 +1814,7 @@ class LUAddNode(LogicalUnit):
                        (fname, to_node))
 
     to_copy = []
-    if self.cfg.GetHypervisorType() == constants.HT_XEN_HVM31:
+    if constants.HT_XEN_HVM31 in self.cfg.GetClusterInfo().enabled_hypervisors:
       to_copy.append(constants.VNC_PASSWORD_FILE)
     for fname in to_copy:
       result = rpc.call_upload_file([node], fname)
@@ -1852,6 +1858,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "master": self.cfg.GetMasterNode(),
       "architecture": (platform.architecture()[0], platform.machine()),
       "hypervisor_type": self.cfg.GetHypervisorType(),
+      "enabled_hypervisors": self.cfg.GetClusterInfo().enabled_hypervisors,
       }
 
     return result
@@ -2047,7 +2054,8 @@ def _SafeShutdownInstanceDisks(instance, cfg):
   _ShutdownInstanceDisks.
 
   """
-  ins_l = rpc.call_instance_list([instance.primary_node])
+  ins_l = rpc.call_instance_list([instance.primary_node],
+                                 [instance.hypervisor])
   ins_l = ins_l[instance.primary_node]
   if not type(ins_l) is list:
     raise errors.OpExecError("Can't contact node '%s'" %
@@ -2081,7 +2089,7 @@ def _ShutdownInstanceDisks(instance, cfg, ignore_primary=False):
   return result
 
 
-def _CheckNodeFreeMemory(cfg, node, reason, requested):
+def _CheckNodeFreeMemory(cfg, node, reason, requested, hypervisor):
   """Checks if a node has enough free memory.
 
   This function check if a given node has the needed amount of free
@@ -2089,14 +2097,21 @@ def _CheckNodeFreeMemory(cfg, node, reason, requested):
   information from the node, this function raise an OpPrereqError
   exception.
 
-  Args:
-    - cfg: a ConfigWriter instance
-    - node: the node name
-    - reason: string to use in the error message
-    - requested: the amount of memory in MiB
+  @type cfg: C{config.ConfigWriter}
+  @param cfg: the ConfigWriter instance from which we get configuration data
+  @type node: C{str}
+  @param node: the node to check
+  @type reason: C{str}
+  @param reason: string to use in the error message
+  @type requested: C{int}
+  @param requested: the amount of memory in MiB to check for
+  @type hypervisor: C{str}
+  @param hypervisor: the hypervisor to ask for memory stats
+  @raise errors.OpPrereqError: if the node doesn't have enough memory, or
+      we cannot check the node
 
   """
-  nodeinfo = rpc.call_node_info([node], cfg.GetVGName())
+  nodeinfo = rpc.call_node_info([node], cfg.GetVGName(), hypervisor)
   if not nodeinfo or not isinstance(nodeinfo, dict):
     raise errors.OpPrereqError("Could not contact node %s for resource"
                              " information" % (node,))
@@ -2158,7 +2173,7 @@ class LUStartupInstance(LogicalUnit):
 
     _CheckNodeFreeMemory(self.cfg, instance.primary_node,
                          "starting instance %s" % instance.name,
-                         instance.memory)
+                         instance.memory, instance.hypervisor)
 
   def Exec(self, feedback_fn):
     """Start the instance.
@@ -2357,7 +2372,8 @@ class LUReinstallInstance(LogicalUnit):
     if instance.status != "down":
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
                                  self.op.instance_name)
-    remote_info = rpc.call_instance_info(instance.primary_node, instance.name)
+    remote_info = rpc.call_instance_info(instance.primary_node, instance.name,
+                                         instance.hypervisor)
     if remote_info:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
@@ -2434,7 +2450,8 @@ class LURenameInstance(LogicalUnit):
     if instance.status != "down":
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
                                  self.op.instance_name)
-    remote_info = rpc.call_instance_info(instance.primary_node, instance.name)
+    remote_info = rpc.call_instance_info(instance.primary_node, instance.name,
+                                         instance.hypervisor)
     if remote_info:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
@@ -2590,7 +2607,7 @@ class LUQueryInstances(NoHooksLU):
       "hvm_boot_order", "hvm_acpi", "hvm_pae",
       "hvm_cdrom_image_path", "hvm_nic_type",
       "hvm_disk_type", "vnc_bind_address",
-      "serial_no",
+      "serial_no", "hypervisor",
       ])
     _CheckOutputFields(static=self.static_fields,
                        dynamic=self.dynamic_fields,
@@ -2642,11 +2659,12 @@ class LUQueryInstances(NoHooksLU):
     # begin data gathering
 
     nodes = frozenset([inst.primary_node for inst in instance_list])
+    hv_list = list(set([inst.hypervisor for inst in instance_list]))
 
     bad_nodes = []
     if self.dynamic_fields.intersection(self.op.output_fields):
       live_data = {}
-      node_data = rpc.call_all_instances_info(nodes)
+      node_data = rpc.call_all_instances_info(nodes, hv_list)
       for name in nodes:
         result = node_data[name]
         if result:
@@ -2734,6 +2752,8 @@ class LUQueryInstances(NoHooksLU):
             val = "default"
           else:
             val = "-"
+        elif field == "hypervisor":
+          val = instance.hypervisor
         else:
           raise errors.ParameterError(field)
         iout.append(val)
@@ -2795,7 +2815,8 @@ class LUFailoverInstance(LogicalUnit):
     target_node = secondary_nodes[0]
     # check memory requirements on the secondary node
     _CheckNodeFreeMemory(self.cfg, target_node, "failing over instance %s" %
-                         instance.name, instance.memory)
+                         instance.name, instance.memory,
+                         instance.hypervisor)
 
     # check bridge existance
     brlist = [nic.bridge for nic in instance.nics]
@@ -3150,7 +3171,7 @@ class LUCreateInstance(LogicalUnit):
     for attr in ["kernel_path", "initrd_path", "pnode", "snode",
                  "iallocator", "hvm_boot_order", "hvm_acpi", "hvm_pae",
                  "hvm_cdrom_image_path", "hvm_nic_type", "hvm_disk_type",
-                 "vnc_bind_address"]:
+                 "vnc_bind_address", "hypervisor"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -3327,6 +3348,19 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
                                  " instances")
 
+    # cheap checks (from the config only)
+
+    if self.op.hypervisor is None:
+      self.op.hypervisor = self.cfg.GetHypervisorType()
+
+    enabled_hvs = self.cfg.GetClusterInfo().enabled_hypervisors
+    if self.op.hypervisor not in enabled_hvs:
+      raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
+                                 " cluster (%s)" % (self.op.hypervisor,
+                                  ",".join(enabled_hvs)))
+
+    # costly checks (from nodes)
+
     if self.op.mode == constants.INSTANCE_IMPORT:
       src_node = self.op.src_node
       src_path = self.op.src_path
@@ -3401,7 +3435,8 @@ class LUCreateInstance(LogicalUnit):
     # Check lv size requirements
     if req_size is not None:
       nodenames = [pnode.name] + self.secondaries
-      nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName())
+      nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName(),
+                                    self.op.hypervisor)
       for node in nodenames:
         info = nodeinfo.get(node, None)
         if not info:
@@ -3435,7 +3470,7 @@ class LUCreateInstance(LogicalUnit):
     if self.op.start:
       _CheckNodeFreeMemory(self.cfg, self.pnode.name,
                            "creating instance %s" % self.op.instance_name,
-                           self.op.mem_size)
+                           self.op.mem_size, self.op.hypervisor)
 
     # hvm_cdrom_image_path verification
     if self.op.hvm_cdrom_image_path is not None:
@@ -3458,7 +3493,7 @@ class LUCreateInstance(LogicalUnit):
                                    self.op.vnc_bind_address)
 
     # Xen HVM device type checks
-    if self.cfg.GetHypervisorType() == constants.HT_XEN_HVM31:
+    if self.op.hypervisor == constants.HT_XEN_HVM31:
       if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
         raise errors.OpPrereqError("Invalid NIC type %s specified for Xen HVM"
                                    " hypervisor" % self.op.hvm_nic_type)
@@ -3487,7 +3522,7 @@ class LUCreateInstance(LogicalUnit):
     if self.inst_ip is not None:
       nic.ip = self.inst_ip
 
-    ht_kind = self.cfg.GetHypervisorType()
+    ht_kind = self.op.hypervisor
     if ht_kind in constants.HTS_REQ_PORT:
       network_port = self.cfg.AllocatePort()
     else:
@@ -3533,6 +3568,7 @@ class LUCreateInstance(LogicalUnit):
                             vnc_bind_address=self.op.vnc_bind_address,
                             hvm_nic_type=self.op.hvm_nic_type,
                             hvm_disk_type=self.op.hvm_disk_type,
+                            hypervisor=self.op.hypervisor,
                             )
 
     feedback_fn("* creating instance disks...")
@@ -3632,7 +3668,8 @@ class LUConnectConsole(NoHooksLU):
     instance = self.instance
     node = instance.primary_node
 
-    node_insts = rpc.call_instance_list([node])[node]
+    node_insts = rpc.call_instance_list([node],
+                                        [instance.hypervisor])[node]
     if node_insts is False:
       raise errors.OpExecError("Can't connect to node %s." % node)
 
@@ -3641,7 +3678,7 @@ class LUConnectConsole(NoHooksLU):
 
     logger.Debug("connecting to console of %s on %s" % (instance.name, node))
 
-    hyper = hypervisor.GetHypervisor(self.cfg)
+    hyper = hypervisor.GetHypervisor(instance.hypervisor)
     console_cmd = hyper.GetShellCommandForConsole(instance)
 
     # build ssh cmdline
@@ -4243,7 +4280,8 @@ class LUGrowDisk(LogicalUnit):
                                  (self.op.disk, instance.name))
 
     nodenames = [instance.primary_node] + list(instance.secondary_nodes)
-    nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName())
+    nodeinfo = rpc.call_node_info(nodenames, self.cfg.GetVGName(),
+                                  instance.hypervisor)
     for node in nodenames:
       info = nodeinfo.get(node, None)
       if not info:
@@ -4366,7 +4404,8 @@ class LUQueryInstanceData(NoHooksLU):
     result = {}
     for instance in self.wanted_instances:
       remote_info = rpc.call_instance_info(instance.primary_node,
-                                                instance.name)
+                                           instance.name,
+                                           instance.hypervisor)
       if remote_info and "state" in remote_info:
         remote_state = "up"
       else:
@@ -4390,9 +4429,10 @@ class LUQueryInstanceData(NoHooksLU):
         "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
         "disks": disks,
         "vcpus": instance.vcpus,
+        "hypervisor": instance.hypervisor,
         }
 
-      htkind = self.cfg.GetHypervisorType()
+      htkind = instance.hypervisor
       if htkind == constants.HT_XEN_PVM30:
         idict["kernel_path"] = instance.kernel_path
         idict["initrd_path"] = instance.initrd_path
@@ -4589,8 +4629,10 @@ class LUSetInstanceParams(LogicalUnit):
       pnode = self.instance.primary_node
       nodelist = [pnode]
       nodelist.extend(instance.secondary_nodes)
-      instance_info = rpc.call_instance_info(pnode, instance.name)
-      nodeinfo = rpc.call_node_info(nodelist, self.cfg.GetVGName())
+      instance_info = rpc.call_instance_info(pnode, instance.name,
+                                             instance.hypervisor)
+      nodeinfo = rpc.call_node_info(nodelist, self.cfg.GetVGName(),
+                                    instance.hypervisor)
 
       if pnode not in nodeinfo or not isinstance(nodeinfo[pnode], dict):
         # Assume the primary node is unreachable and go ahead
@@ -4617,7 +4659,7 @@ class LUSetInstanceParams(LogicalUnit):
                            " node %s" % node)
 
     # Xen HVM device type checks
-    if self.cfg.GetHypervisorType() == constants.HT_XEN_HVM31:
+    if instance.hypervisor == constants.HT_XEN_HVM31:
       if self.op.hvm_nic_type is not None:
         if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
           raise errors.OpPrereqError("Invalid NIC type %s specified for Xen"
@@ -5180,12 +5222,13 @@ class IAllocator(object):
 
     """
     cfg = self.cfg
+    cluster_info = cfg.GetClusterInfo()
     # cluster data
     data = {
       "version": 1,
       "cluster_name": self.cfg.GetClusterName(),
-      "cluster_tags": list(cfg.GetClusterInfo().GetTags()),
-      "hypervisor_type": self.cfg.GetHypervisorType(),
+      "cluster_tags": list(cluster_info.GetTags()),
+      "enable_hypervisors": list(cluster_info.enabled_hypervisors),
       # we don't have job IDs
       }
 
@@ -5194,7 +5237,10 @@ class IAllocator(object):
     # node data
     node_results = {}
     node_list = cfg.GetNodeList()
-    node_data = rpc.call_node_info(node_list, cfg.GetVGName())
+    # FIXME: here we have only one hypervisor information, but
+    # instance can belong to different hypervisors
+    node_data = rpc.call_node_info(node_list, cfg.GetVGName(),
+                                   cfg.GetHypervisorType())
     for nname in node_list:
       ninfo = cfg.GetNodeInfo(nname)
       if nname not in node_data or not isinstance(node_data[nname], dict):
@@ -5250,6 +5296,7 @@ class IAllocator(object):
         "nics": nic_data,
         "disks": [{"size": dsk.size, "mode": "w"} for dsk in iinfo.disks],
         "disk_template": iinfo.disk_template,
+        "hypervisor": iinfo.hypervisor,
         }
       instance_data[iinfo.name] = pir
 
