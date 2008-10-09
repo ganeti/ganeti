@@ -3175,14 +3175,26 @@ class LUCreateInstance(LogicalUnit):
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
+    # cheap checks, mostly valid constants given
+
     # verify creation mode
     if self.op.mode not in (constants.INSTANCE_CREATE,
                             constants.INSTANCE_IMPORT):
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
                                  self.op.mode)
+
     # disk template and mirror node verification
     if self.op.disk_template not in constants.DISK_TEMPLATES:
       raise errors.OpPrereqError("Invalid disk template name")
+
+    if self.op.hypervisor is None:
+      self.op.hypervisor = self.cfg.GetHypervisorType()
+
+    enabled_hvs = self.cfg.GetClusterInfo().enabled_hypervisors
+    if self.op.hypervisor not in enabled_hvs:
+      raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
+                                 " cluster (%s)" % (self.op.hypervisor,
+                                  ",".join(enabled_hvs)))
 
     #### instance parameters check
 
@@ -3348,18 +3360,6 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
                                  " instances")
 
-    # cheap checks (from the config only)
-
-    if self.op.hypervisor is None:
-      self.op.hypervisor = self.cfg.GetHypervisorType()
-
-    enabled_hvs = self.cfg.GetClusterInfo().enabled_hypervisors
-    if self.op.hypervisor not in enabled_hvs:
-      raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
-                                 " cluster (%s)" % (self.op.hypervisor,
-                                  ",".join(enabled_hvs)))
-
-    # costly checks (from nodes)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       src_node = self.op.src_node
