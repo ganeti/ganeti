@@ -45,6 +45,7 @@ from ganeti import utils
 from ganeti import jstore
 from ganeti import rpc
 
+from ganeti.rpc import RpcRunner
 
 JOBQUEUE_THREADS = 25
 
@@ -404,7 +405,7 @@ class JobQueue(object):
     assert node_name != self._my_hostname
 
     # Clean queue directory on added node
-    rpc.call_jobqueue_purge(node_name)
+    RpcRunner.call_jobqueue_purge(node_name)
 
     # Upload the whole queue excluding archived jobs
     files = [self._GetJobPath(job_id) for job_id in self._GetJobIDsUnlocked()]
@@ -420,7 +421,7 @@ class JobQueue(object):
       finally:
         fd.close()
 
-      result = rpc.call_jobqueue_update([node_name], file_name, content)
+      result = RpcRunner.call_jobqueue_update([node_name], file_name, content)
       if not result[node_name]:
         logging.error("Failed to upload %s to %s", file_name, node_name)
 
@@ -459,14 +460,14 @@ class JobQueue(object):
     """
     utils.WriteFile(file_name, data=data)
 
-    result = rpc.call_jobqueue_update(self._nodes, file_name, data)
+    result = RpcRunner.call_jobqueue_update(self._nodes, file_name, data)
     self._CheckRpcResult(result, self._nodes,
                          "Updating %s" % file_name)
 
   def _RenameFileUnlocked(self, old, new):
     os.rename(old, new)
 
-    result = rpc.call_jobqueue_rename(self._nodes, old, new)
+    result = RpcRunner.call_jobqueue_rename(self._nodes, old, new)
     self._CheckRpcResult(result, self._nodes,
                          "Moving %s to %s" % (old, new))
 

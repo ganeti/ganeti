@@ -38,6 +38,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import ssconf
 
+from ganeti.rpc import RpcRunner
 
 def _InitSSHSetup(node):
   """Setup the SSH configuration for the cluster.
@@ -236,7 +237,7 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
-  rpc.call_node_start_master(hostname.name, True)
+  RpcRunner.call_node_start_master(hostname.name, True)
 
 
 def InitConfig(version, cluster_config, master_node_config,
@@ -281,9 +282,9 @@ def FinalizeClusterDestroy(master):
   begun in cmdlib.LUDestroyOpcode.
 
   """
-  if not rpc.call_node_stop_master(master, True):
+  if not RpcRunner.call_node_stop_master(master, True):
     logging.warning("Could not disable the master role")
-  if not rpc.call_node_leave_cluster(master):
+  if not RpcRunner.call_node_leave_cluster(master):
     logging.warning("Could not shutdown the node daemon and cleanup the node")
 
 
@@ -365,7 +366,7 @@ def MasterFailover():
 
   logging.info("setting master to %s, old master: %s", new_master, old_master)
 
-  if not rpc.call_node_stop_master(old_master, True):
+  if not RpcRunner.call_node_stop_master(old_master, True):
     logging.error("could disable the master role on the old master"
                  " %s, please disable manually", old_master)
 
@@ -374,12 +375,12 @@ def MasterFailover():
 
   # Here we have a phase where no master should be running
 
-  if not rpc.call_upload_file(cfg.GetNodeList(),
-                              constants.CLUSTER_CONF_FILE):
+  if not RpcRunner.call_upload_file(cfg.GetNodeList(),
+                                    constants.CLUSTER_CONF_FILE):
     logging.error("could not distribute the new simple store master file"
                   " to the other nodes, please check.")
 
-  if not rpc.call_node_start_master(new_master, True):
+  if not RpcRunner.call_node_start_master(new_master, True):
     logging.error("could not start the master role on the new master"
                   " %s, please check", new_master)
     rcode = 1

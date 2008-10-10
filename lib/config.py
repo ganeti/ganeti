@@ -821,7 +821,7 @@ class ConfigWriter:
     except ValueError:
       pass
 
-    result = rpc.call_upload_file(nodelist, self._cfg_file)
+    result = rpc.RpcRunner.call_upload_file(nodelist, self._cfg_file)
     for node in nodelist:
       if not result[node]:
         logging.error("copy of file %s to node %s failed",

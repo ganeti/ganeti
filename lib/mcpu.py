@@ -97,6 +97,7 @@ class Processor(object):
     self.context = context
     self._feedback_fn = None
     self.exclusive_BGL = False
+    self.rpc = rpc.RpcRunner(context.cfg)
 
   def _ExecLU(self, lu):
     """Logical Unit execution sequence.
@@ -104,7 +105,7 @@ class Processor(object):
     """
     write_count = self.context.cfg.write_count
     lu.CheckPrereq()
-    hm = HooksMaster(rpc.call_hooks_runner, self, lu)
+    hm = HooksMaster(self.rpc.call_hooks_runner, self, lu)
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
                      self._feedback_fn, None)
@@ -202,7 +203,7 @@ class Processor(object):
                              shared=not lu_class.REQ_BGL)
     try:
       self.exclusive_BGL = lu_class.REQ_BGL
-      lu = lu_class(self, op, self.context)
+      lu = lu_class(self, op, self.context, self.rpc)
       lu.ExpandNames()
       assert lu.needed_locks is not None, "needed_locks not set by LU"
       result = self._LockAndExecLU(lu, locking.LEVEL_INSTANCE)

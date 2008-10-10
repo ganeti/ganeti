@@ -23,7 +23,12 @@
 
 """
 
-# pylint: disable-msg=C0103
+# pylint: disable-msg=C0103,R0201,R0904
+# C0103: Invalid name, since call_ are not valid
+# R0201: Method could be a function, we keep all rpcs instance methods
+# as not to change them back and forth between static/instance methods
+# if they need to start using instance attributes
+# R0904: Too many public methods
 
 import os
 import socket
@@ -140,748 +145,793 @@ class Client:
       self.results[node] = nc.get_response()
 
 
-def call_volume_list(node_list, vg_name):
-  """Gets the logical volumes present in a given volume group.
+class RpcRunner(object):
+  """RPC runner class"""
 
-  This is a multi-node call.
+  def __init__(self, cfg):
+    """Initialized the rpc runner.
 
-  """
-  c = Client("volume_list", [vg_name])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
+    @type cfg:  C{config.ConfigWriter}
+    @param cfg: the configuration object that will be used to get data
+                about the cluster
 
+    """
+    self._cfg = cfg
 
-def call_vg_list(node_list):
-  """Gets the volume group list.
+  def call_volume_list(self, node_list, vg_name):
+    """Gets the logical volumes present in a given volume group.
 
-  This is a multi-node call.
+    This is a multi-node call.
 
-  """
-  c = Client("vg_list", [])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
+    """
+    c = Client("volume_list", [vg_name])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
+  def call_vg_list(self, node_list):
+    """Gets the volume group list.
 
-def call_bridges_exist(node, bridges_list):
-  """Checks if a node has all the bridges given.
+    This is a multi-node call.
 
-  This method checks if all bridges given in the bridges_list are
-  present on the remote node, so that an instance that uses interfaces
-  on those bridges can be started.
+    """
+    c = Client("vg_list", [])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
-  This is a single-node call.
 
-  """
-  c = Client("bridges_exist", [bridges_list])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+  def call_bridges_exist(self, node, bridges_list):
+    """Checks if a node has all the bridges given.
 
+    This method checks if all bridges given in the bridges_list are
+    present on the remote node, so that an instance that uses interfaces
+    on those bridges can be started.
 
-def call_instance_start(node, instance, extra_args):
-  """Starts an instance.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("bridges_exist", [bridges_list])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("instance_start", [instance.ToDict(), extra_args])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_instance_start(self, node, instance, extra_args):
+    """Starts an instance.
 
-def call_instance_shutdown(node, instance):
-  """Stops an instance.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("instance_start", [instance.ToDict(), extra_args])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("instance_shutdown", [instance.ToDict()])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_instance_shutdown(self, node, instance):
+    """Stops an instance.
 
-def call_instance_migrate(node, instance, target, live):
-  """Migrate an instance.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("instance_shutdown", [instance.ToDict()])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  @type node: string
-  @param node: the node on which the instance is currently running
-  @type instance: C{objects.Instance}
-  @param instance: the instance definition
-  @type target: string
-  @param target: the target node name
-  @type live: boolean
-  @param live: whether the migration should be done live or not (the
-      interpretation of this parameter is left to the hypervisor)
 
-  """
-  c = Client("instance_migrate", [instance.ToDict(), target, live])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+  def call_instance_migrate(self, node, instance, target, live):
+    """Migrate an instance.
 
+    This is a single-node call.
 
-def call_instance_reboot(node, instance, reboot_type, extra_args):
-  """Reboots an instance.
+    @type node: string
+    @param node: the node on which the instance is currently running
+    @type instance: C{objects.Instance}
+    @param instance: the instance definition
+    @type target: string
+    @param target: the target node name
+    @type live: boolean
+    @param live: whether the migration should be done live or not (the
+        interpretation of this parameter is left to the hypervisor)
 
-  This is a single-node call.
+    """
+    c = Client("instance_migrate", [instance.ToDict(), target, live])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("instance_reboot", [instance.ToDict(), reboot_type, extra_args])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_instance_reboot(self, node, instance, reboot_type, extra_args):
+    """Reboots an instance.
 
-def call_instance_os_add(node, inst, osdev, swapdev):
-  """Installs an OS on the given instance.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("instance_reboot", [instance.ToDict(), reboot_type, extra_args])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [inst.ToDict(), osdev, swapdev]
-  c = Client("instance_os_add", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_instance_os_add(self, node, inst, osdev, swapdev):
+    """Installs an OS on the given instance.
 
-def call_instance_run_rename(node, inst, old_name, osdev, swapdev):
-  """Run the OS rename script for an instance.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [inst.ToDict(), osdev, swapdev]
+    c = Client("instance_os_add", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [inst.ToDict(), old_name, osdev, swapdev]
-  c = Client("instance_run_rename", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_instance_run_rename(self, node, inst, old_name, osdev, swapdev):
+    """Run the OS rename script for an instance.
 
-def call_instance_info(node, instance, hname):
-  """Returns information about a single instance.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [inst.ToDict(), old_name, osdev, swapdev]
+    c = Client("instance_run_rename", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  @type node_list: list
-  @param node_list: the list of nodes to query
-  @type instance: string
-  @param instance: the instance name
-  @type hname: string
-  @param hname: the hypervisor type of the instance
 
-  """
-  c = Client("instance_info", [instance])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+  def call_instance_info(self, node, instance, hname):
+    """Returns information about a single instance.
 
+    This is a single-node call.
 
-def call_all_instances_info(node_list, hypervisor_list):
-  """Returns information about all instances on the given nodes.
+    @type node_list: list
+    @param node_list: the list of nodes to query
+    @type instance: string
+    @param instance: the instance name
+    @type hname: string
+    @param hname: the hypervisor type of the instance
 
-  This is a multi-node call.
+    """
+    c = Client("instance_info", [instance])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  @type node_list: list
-  @param node_list: the list of nodes to query
-  @type hypervisor_list: list
-  @param hypervisor_list: the hypervisors to query for instances
 
-  """
-  c = Client("all_instances_info", [hypervisor_list])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
+  def call_all_instances_info(self, node_list, hypervisor_list):
+    """Returns information about all instances on the given nodes.
 
+    This is a multi-node call.
 
-def call_instance_list(node_list, hypervisor_list):
-  """Returns the list of running instances on a given node.
+    @type node_list: list
+    @param node_list: the list of nodes to query
+    @type hypervisor_list: list
+    @param hypervisor_list: the hypervisors to query for instances
 
-  This is a multi-node call.
+    """
+    c = Client("all_instances_info", [hypervisor_list])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
-  @type node_list: list
-  @param node_list: the list of nodes to query
-  @type hypervisor_list: list
-  @param hypervisor_list: the hypervisors to query for instances
 
-  """
-  c = Client("instance_list", [hypervisor_list])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
+  def call_instance_list(self, node_list, hypervisor_list):
+    """Returns the list of running instances on a given node.
 
+    This is a multi-node call.
 
-def call_node_tcp_ping(node, source, target, port, timeout, live_port_needed):
-  """Do a TcpPing on the remote node
+    @type node_list: list
+    @param node_list: the list of nodes to query
+    @type hypervisor_list: list
+    @param hypervisor_list: the hypervisors to query for instances
 
-  This is a single-node call.
-  """
-  c = Client("node_tcp_ping", [source, target, port, timeout,
-                               live_port_needed])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+    """
+    c = Client("instance_list", [hypervisor_list])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
 
-def call_node_info(node_list, vg_name, hypervisor_type):
-  """Return node information.
+  def call_node_tcp_ping(self, node, source, target, port, timeout,
+                         live_port_needed):
+    """Do a TcpPing on the remote node
 
-  This will return memory information and volume group size and free
-  space.
+    This is a single-node call.
+    """
+    c = Client("node_tcp_ping", [source, target, port, timeout,
+                                 live_port_needed])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  This is a multi-node call.
 
-  @type node_list: list
-  @param node_list: the list of nodes to query
-  @type vgname: C{string}
-  @param vgname: the name of the volume group to ask for disk space information
-  @type hypervisor_type: C{str}
-  @param hypervisor_type: the name of the hypervisor to ask for
-      memory information
+  def call_node_info(self, node_list, vg_name, hypervisor_type):
+    """Return node information.
 
-  """
-  c = Client("node_info", [vg_name, hypervisor_type])
-  c.connect_list(node_list)
-  c.run()
-  retux = c.getresult()
+    This will return memory information and volume group size and free
+    space.
 
-  for node_name in retux:
-    ret = retux.get(node_name, False)
-    if type(ret) != dict:
-      logger.Error("could not connect to node %s" % (node_name))
-      ret = {}
+    This is a multi-node call.
 
-    utils.CheckDict(ret,
-                    { 'memory_total' : '-',
-                      'memory_dom0' : '-',
-                      'memory_free' : '-',
-                      'vg_size' : 'node_unreachable',
-                      'vg_free' : '-' },
-                    "call_node_info",
-                    )
-  return retux
+    @type node_list: list
+    @param node_list: the list of nodes to query
+    @type vgname: C{string}
+    @param vgname: the name of the volume group to ask for disk space
+        information
+    @type hypervisor_type: C{str}
+    @param hypervisor_type: the name of the hypervisor to ask for
+        memory information
 
+    """
+    c = Client("node_info", [vg_name, hypervisor_type])
+    c.connect_list(node_list)
+    c.run()
+    retux = c.getresult()
 
-def call_node_add(node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
-  """Add a node to the cluster.
+    for node_name in retux:
+      ret = retux.get(node_name, False)
+      if type(ret) != dict:
+        logger.Error("could not connect to node %s" % (node_name))
+        ret = {}
 
-  This is a single-node call.
+      utils.CheckDict(ret,
+                      { 'memory_total' : '-',
+                        'memory_dom0' : '-',
+                        'memory_free' : '-',
+                        'vg_size' : 'node_unreachable',
+                        'vg_free' : '-' },
+                      "call_node_info",
+                      )
+    return retux
 
-  """
-  params = [dsa, dsapub, rsa, rsapub, ssh, sshpub]
-  c = Client("node_add", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
+    """Add a node to the cluster.
 
-def call_node_verify(node_list, checkdict, cluster_name):
-  """Request verification of given parameters.
+    This is a single-node call.
 
-  This is a multi-node call.
+    """
+    params = [dsa, dsapub, rsa, rsapub, ssh, sshpub]
+    c = Client("node_add", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("node_verify", [checkdict, cluster_name])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
 
+  def call_node_verify(self, node_list, checkdict, cluster_name):
+    """Request verification of given parameters.
 
-def call_node_start_master(node, start_daemons):
-  """Tells a node to activate itself as a master.
+    This is a multi-node call.
 
-  This is a single-node call.
+    """
+    c = Client("node_verify", [checkdict, cluster_name])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
-  """
-  c = Client("node_start_master", [start_daemons])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  @staticmethod
+  def call_node_start_master(node, start_daemons):
+    """Tells a node to activate itself as a master.
 
-def call_node_stop_master(node, stop_daemons):
-  """Tells a node to demote itself from master status.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("node_start_master", [start_daemons])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("node_stop_master", [stop_daemons])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  @staticmethod
+  def call_node_stop_master(node, stop_daemons):
+    """Tells a node to demote itself from master status.
 
-def call_master_info(node_list):
-  """Query master info.
+    This is a single-node call.
 
-  This is a multi-node call.
+    """
+    c = Client("node_stop_master", [stop_daemons])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("master_info", [])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
 
+  @staticmethod
+  def call_master_info(node_list):
+    """Query master info.
 
-def call_version(node_list):
-  """Query node version.
+    This is a multi-node call.
 
-  This is a multi-node call.
+    """
+    # TODO: should this method query down nodes?
+    c = Client("master_info", [])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
-  """
-  c = Client("version", [])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
 
+  def call_version(self, node_list):
+    """Query node version.
 
-def call_blockdev_create(node, bdev, size, owner, on_primary, info):
-  """Request creation of a given block device.
+    This is a multi-node call.
 
-  This is a single-node call.
+    """
+    c = Client("version", [])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
-  """
-  params = [bdev.ToDict(), size, owner, on_primary, info]
-  c = Client("blockdev_create", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_create(self, node, bdev, size, owner, on_primary, info):
+    """Request creation of a given block device.
 
-def call_blockdev_remove(node, bdev):
-  """Request removal of a given block device.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [bdev.ToDict(), size, owner, on_primary, info]
+    c = Client("blockdev_create", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("blockdev_remove", [bdev.ToDict()])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_remove(self, node, bdev):
+    """Request removal of a given block device.
 
-def call_blockdev_rename(node, devlist):
-  """Request rename of the given block devices.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("blockdev_remove", [bdev.ToDict()])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [(d.ToDict(), uid) for d, uid in devlist]
-  c = Client("blockdev_rename", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_rename(self, node, devlist):
+    """Request rename of the given block devices.
 
-def call_blockdev_assemble(node, disk, owner, on_primary):
-  """Request assembling of a given block device.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [(d.ToDict(), uid) for d, uid in devlist]
+    c = Client("blockdev_rename", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [disk.ToDict(), owner, on_primary]
-  c = Client("blockdev_assemble", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_assemble(self, node, disk, owner, on_primary):
+    """Request assembling of a given block device.
 
-def call_blockdev_shutdown(node, disk):
-  """Request shutdown of a given block device.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [disk.ToDict(), owner, on_primary]
+    c = Client("blockdev_assemble", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("blockdev_shutdown", [disk.ToDict()])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_shutdown(self, node, disk):
+    """Request shutdown of a given block device.
 
-def call_blockdev_addchildren(node, bdev, ndevs):
-  """Request adding a list of children to a (mirroring) device.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("blockdev_shutdown", [disk.ToDict()])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
-  c = Client("blockdev_addchildren", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_addchildren(self, node, bdev, ndevs):
+    """Request adding a list of children to a (mirroring) device.
 
-def call_blockdev_removechildren(node, bdev, ndevs):
-  """Request removing a list of children from a (mirroring) device.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
+    c = Client("blockdev_addchildren", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
-  c = Client("blockdev_removechildren", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_removechildren(self, node, bdev, ndevs):
+    """Request removing a list of children from a (mirroring) device.
 
-def call_blockdev_getmirrorstatus(node, disks):
-  """Request status of a (mirroring) device.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
+    c = Client("blockdev_removechildren", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [dsk.ToDict() for dsk in disks]
-  c = Client("blockdev_getmirrorstatus", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_getmirrorstatus(self, node, disks):
+    """Request status of a (mirroring) device.
 
-def call_blockdev_find(node, disk):
-  """Request identification of a given block device.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    params = [dsk.ToDict() for dsk in disks]
+    c = Client("blockdev_getmirrorstatus", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  c = Client("blockdev_find", [disk.ToDict()])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_find(self, node, disk):
+    """Request identification of a given block device.
 
-def call_blockdev_close(node, disks):
-  """Closes the given block devices.
+    This is a single-node call.
 
-  This is a single-node call.
+    """
+    c = Client("blockdev_find", [disk.ToDict()])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  """
-  params = [cf.ToDict() for cf in disks]
-  c = Client("blockdev_close", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
 
+  def call_blockdev_close(self, node, disks):
+    """Closes the given block devices.
 
-def call_upload_file(node_list, file_name):
-  """Upload a file.
+    This is a single-node call.
 
-  The node will refuse the operation in case the file is not on the
-  approved file list.
+    """
+    params = [cf.ToDict() for cf in disks]
+    c = Client("blockdev_close", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
-  This is a multi-node call.
 
-  """
-  fh = file(file_name)
-  try:
-    data = fh.read()
-  finally:
-    fh.close()
-  st = os.stat(file_name)
-  params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
-            st.st_atime, st.st_mtime]
-  c = Client("upload_file", params)
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
+  @staticmethod
+  def call_upload_file(node_list, file_name):
+    """Upload a file.
 
+    The node will refuse the operation in case the file is not on the
+    approved file list.
 
-def call_os_diagnose(node_list):
-  """Request a diagnose of OS definitions.
+    This is a multi-node call.
 
-  This is a multi-node call.
+    """
+    fh = file(file_name)
+    try:
+      data = fh.read()
+    finally:
+      fh.close()
+    st = os.stat(file_name)
+    params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
+              st.st_atime, st.st_mtime]
+    c = Client("upload_file", params)
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
 
-  """
-  c = Client("os_diagnose", [])
-  c.connect_list(node_list)
-  c.run()
-  result = c.getresult()
-  new_result = {}
-  for node_name in result:
-    if result[node_name]:
-      nr = [objects.OS.FromDict(oss) for oss in result[node_name]]
+  @staticmethod
+  def call_upload_file(node_list, file_name):
+    """Upload a file.
+
+    The node will refuse the operation in case the file is not on the
+    approved file list.
+
+    This is a multi-node call.
+
+    """
+    fh = file(file_name)
+    try:
+      data = fh.read()
+    finally:
+      fh.close()
+    st = os.stat(file_name)
+    params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
+              st.st_atime, st.st_mtime]
+    c = Client("upload_file", params)
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
+
+  def call_os_diagnose(self, node_list):
+    """Request a diagnose of OS definitions.
+
+    This is a multi-node call.
+
+    """
+    c = Client("os_diagnose", [])
+    c.connect_list(node_list)
+    c.run()
+    result = c.getresult()
+    new_result = {}
+    for node_name in result:
+      if result[node_name]:
+        nr = [objects.OS.FromDict(oss) for oss in result[node_name]]
+      else:
+        nr = []
+      new_result[node_name] = nr
+    return new_result
+
+
+  def call_os_get(self, node, name):
+    """Returns an OS definition.
+
+    This is a single-node call.
+
+    """
+    c = Client("os_get", [name])
+    c.connect(node)
+    c.run()
+    result = c.getresult().get(node, False)
+    if isinstance(result, dict):
+      return objects.OS.FromDict(result)
     else:
-      nr = []
-    new_result[node_name] = nr
-  return new_result
+      return result
 
 
-def call_os_get(node, name):
-  """Returns an OS definition.
+  def call_hooks_runner(self, node_list, hpath, phase, env):
+    """Call the hooks runner.
 
-  This is a single-node call.
+    Args:
+      - op: the OpCode instance
+      - env: a dictionary with the environment
 
-  """
-  c = Client("os_get", [name])
-  c.connect(node)
-  c.run()
-  result = c.getresult().get(node, False)
-  if isinstance(result, dict):
-    return objects.OS.FromDict(result)
-  else:
+    This is a multi-node call.
+
+    """
+    params = [hpath, phase, env]
+    c = Client("hooks_runner", params)
+    c.connect_list(node_list)
+    c.run()
+    result = c.getresult()
     return result
 
 
-def call_hooks_runner(node_list, hpath, phase, env):
-  """Call the hooks runner.
+  def call_iallocator_runner(self, node, name, idata):
+    """Call an iallocator on a remote node
 
-  Args:
-    - op: the OpCode instance
-    - env: a dictionary with the environment
+    Args:
+      - name: the iallocator name
+      - input: the json-encoded input string
 
-  This is a multi-node call.
+    This is a single-node call.
 
-  """
-  params = [hpath, phase, env]
-  c = Client("hooks_runner", params)
-  c.connect_list(node_list)
-  c.run()
-  result = c.getresult()
-  return result
-
-
-def call_iallocator_runner(node, name, idata):
-  """Call an iallocator on a remote node
-
-  Args:
-    - name: the iallocator name
-    - input: the json-encoded input string
-
-  This is a single-node call.
-
-  """
-  params = [name, idata]
-  c = Client("iallocator_runner", params)
-  c.connect(node)
-  c.run()
-  result = c.getresult().get(node, False)
-  return result
-
-
-def call_blockdev_grow(node, cf_bdev, amount):
-  """Request a snapshot of the given block device.
-
-  This is a single-node call.
-
-  """
-  c = Client("blockdev_grow", [cf_bdev.ToDict(), amount])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
-
-
-def call_blockdev_snapshot(node, cf_bdev):
-  """Request a snapshot of the given block device.
-
-  This is a single-node call.
-
-  """
-  c = Client("blockdev_snapshot", [cf_bdev.ToDict()])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
-
-
-def call_snapshot_export(node, snap_bdev, dest_node, instance, cluster_name):
-  """Request the export of a given snapshot.
-
-  This is a single-node call.
-
-  """
-  params = [snap_bdev.ToDict(), dest_node, instance.ToDict(), cluster_name]
-  c = Client("snapshot_export", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
-
-
-def call_finalize_export(node, instance, snap_disks):
-  """Request the completion of an export operation.
-
-  This writes the export config file, etc.
-
-  This is a single-node call.
-
-  """
-  flat_disks = []
-  for disk in snap_disks:
-    flat_disks.append(disk.ToDict())
-  params = [instance.ToDict(), flat_disks]
-  c = Client("finalize_export", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
-
-
-def call_export_info(node, path):
-  """Queries the export information in a given path.
-
-  This is a single-node call.
-
-  """
-  c = Client("export_info", [path])
-  c.connect(node)
-  c.run()
-  result = c.getresult().get(node, False)
-  if not result:
+    """
+    params = [name, idata]
+    c = Client("iallocator_runner", params)
+    c.connect(node)
+    c.run()
+    result = c.getresult().get(node, False)
     return result
-  return objects.SerializableConfigParser.Loads(str(result))
 
 
-def call_instance_os_import(node, inst, osdev, swapdev,
-                            src_node, src_image, cluster_name):
-  """Request the import of a backup into an instance.
+  def call_blockdev_grow(self, node, cf_bdev, amount):
+    """Request a snapshot of the given block device.
 
-  This is a single-node call.
+    This is a single-node call.
 
-  """
-  params = [inst.ToDict(), osdev, swapdev, src_node, src_image, cluster_name]
-  c = Client("instance_os_import", params)
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+    """
+    c = Client("blockdev_grow", [cf_bdev.ToDict(), amount])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
 
-def call_export_list(node_list):
-  """Gets the stored exports list.
+  def call_blockdev_snapshot(self, node, cf_bdev):
+    """Request a snapshot of the given block device.
 
-  This is a multi-node call.
+    This is a single-node call.
 
-  """
-  c = Client("export_list", [])
-  c.connect_list(node_list)
-  c.run()
-  result = c.getresult()
-  return result
-
-
-def call_export_remove(node, export):
-  """Requests removal of a given export.
-
-  This is a single-node call.
-
-  """
-  c = Client("export_remove", [export])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+    """
+    c = Client("blockdev_snapshot", [cf_bdev.ToDict()])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
 
-def call_node_leave_cluster(node):
-  """Requests a node to clean the cluster information it has.
+  def call_snapshot_export(self, node, snap_bdev, dest_node, instance,
+                           cluster_name):
+    """Request the export of a given snapshot.
 
-  This will remove the configuration information from the ganeti data
-  dir.
+    This is a single-node call.
 
-  This is a single-node call.
-
-  """
-  c = Client("node_leave_cluster", [])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
-
-
-def call_node_volumes(node_list):
-  """Gets all volumes on node(s).
-
-  This is a multi-node call.
-
-  """
-  c = Client("node_volumes", [])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
+    """
+    params = [snap_bdev.ToDict(), dest_node, instance.ToDict(), cluster_name]
+    c = Client("snapshot_export", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
 
-def call_test_delay(node_list, duration):
-  """Sleep for a fixed time on given node(s).
+  def call_finalize_export(self, node, instance, snap_disks):
+    """Request the completion of an export operation.
 
-  This is a multi-node call.
+    This writes the export config file, etc.
 
-  """
-  c = Client("test_delay", [duration])
-  c.connect_list(node_list)
-  c.run()
-  return c.getresult()
+    This is a single-node call.
 
-
-def call_file_storage_dir_create(node, file_storage_dir):
-  """Create the given file storage directory.
-
-  This is a single-node call.
-
-  """
-  c = Client("file_storage_dir_create", [file_storage_dir])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+    """
+    flat_disks = []
+    for disk in snap_disks:
+      flat_disks.append(disk.ToDict())
+    params = [instance.ToDict(), flat_disks]
+    c = Client("finalize_export", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
 
-def call_file_storage_dir_remove(node, file_storage_dir):
-  """Remove the given file storage directory.
+  def call_export_info(self, node, path):
+    """Queries the export information in a given path.
 
-  This is a single-node call.
+    This is a single-node call.
 
-  """
-  c = Client("file_storage_dir_remove", [file_storage_dir])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
-
-
-def call_file_storage_dir_rename(node, old_file_storage_dir,
-                                 new_file_storage_dir):
-  """Rename file storage directory.
-
-  This is a single-node call.
-
-  """
-  c = Client("file_storage_dir_rename",
-             [old_file_storage_dir, new_file_storage_dir])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+    """
+    c = Client("export_info", [path])
+    c.connect(node)
+    c.run()
+    result = c.getresult().get(node, False)
+    if not result:
+      return result
+    return objects.SerializableConfigParser.Loads(str(result))
 
 
-def call_jobqueue_update(node_list, file_name, content):
-  """Update job queue.
+  def call_instance_os_import(self, node, inst, osdev, swapdev,
+                              src_node, src_image, cluster_name):
+    """Request the import of a backup into an instance.
 
-  This is a multi-node call.
+    This is a single-node call.
 
-  """
-  c = Client("jobqueue_update", [file_name, content])
-  c.connect_list(node_list)
-  c.run()
-  result = c.getresult()
-  return result
-
-
-def call_jobqueue_purge(node):
-  """Purge job queue.
-
-  This is a single-node call.
-
-  """
-  c = Client("jobqueue_purge", [])
-  c.connect(node)
-  c.run()
-  return c.getresult().get(node, False)
+    """
+    params = [inst.ToDict(), osdev, swapdev, src_node, src_image, cluster_name]
+    c = Client("instance_os_import", params)
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
 
 
-def call_jobqueue_rename(node_list, old, new):
-  """Rename a job queue file.
+  def call_export_list(self, node_list):
+    """Gets the stored exports list.
 
-  This is a multi-node call.
+    This is a multi-node call.
 
-  """
-  c = Client("jobqueue_rename", [old, new])
-  c.connect_list(node_list)
-  c.run()
-  result = c.getresult()
-  return result
+    """
+    c = Client("export_list", [])
+    c.connect_list(node_list)
+    c.run()
+    result = c.getresult()
+    return result
+
+
+  def call_export_remove(self, node, export):
+    """Requests removal of a given export.
+
+    This is a single-node call.
+
+    """
+    c = Client("export_remove", [export])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
+
+
+  def call_node_leave_cluster(self, node):
+    """Requests a node to clean the cluster information it has.
+
+    This will remove the configuration information from the ganeti data
+    dir.
+
+    This is a single-node call.
+
+    """
+    c = Client("node_leave_cluster", [])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
+
+
+  def call_node_volumes(self, node_list):
+    """Gets all volumes on node(s).
+
+    This is a multi-node call.
+
+    """
+    c = Client("node_volumes", [])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
+
+
+  def call_test_delay(self, node_list, duration):
+    """Sleep for a fixed time on given node(s).
+
+    This is a multi-node call.
+
+    """
+    c = Client("test_delay", [duration])
+    c.connect_list(node_list)
+    c.run()
+    return c.getresult()
+
+
+  def call_file_storage_dir_create(self, node, file_storage_dir):
+    """Create the given file storage directory.
+
+    This is a single-node call.
+
+    """
+    c = Client("file_storage_dir_create", [file_storage_dir])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
+
+
+  def call_file_storage_dir_remove(self, node, file_storage_dir):
+    """Remove the given file storage directory.
+
+    This is a single-node call.
+
+    """
+    c = Client("file_storage_dir_remove", [file_storage_dir])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
+
+
+  def call_file_storage_dir_rename(self, node, old_file_storage_dir,
+                                   new_file_storage_dir):
+    """Rename file storage directory.
+
+    This is a single-node call.
+
+    """
+    c = Client("file_storage_dir_rename",
+               [old_file_storage_dir, new_file_storage_dir])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
+
+
+  @staticmethod
+  def call_jobqueue_update(node_list, file_name, content):
+    """Update job queue.
+
+    This is a multi-node call.
+
+    """
+    c = Client("jobqueue_update", [file_name, content])
+    c.connect_list(node_list)
+    c.run()
+    result = c.getresult()
+    return result
+
+
+  @staticmethod
+  def call_jobqueue_purge(node):
+    """Purge job queue.
+
+    This is a single-node call.
+
+    """
+    c = Client("jobqueue_purge", [])
+    c.connect(node)
+    c.run()
+    return c.getresult().get(node, False)
+
+
+  @staticmethod
+  def call_jobqueue_rename(node_list, old, new):
+    """Rename a job queue file.
+
+    This is a multi-node call.
+
+    """
+    c = Client("jobqueue_rename", [old, new])
+    c.connect_list(node_list)
+    c.run()
+    result = c.getresult()
+    return result

@@ -381,7 +381,7 @@ def CheckAgreement():
     # either single node cluster, or a misconfiguration, but I won't
     # break any other node, so I can proceed
     return True
-  results = rpc.call_master_info(node_list)
+  results = rpc.RpcRunner.call_master_info(node_list)
   if not isinstance(results, dict):
     # this should not happen (unless internal error in rpc)
     logging.critical("Can't complete rpc call, aborting master startup")
@@ -445,7 +445,7 @@ def main():
 
   # activate ip
   master_node = ssconf.SimpleConfigReader().GetMasterNode()
-  if not rpc.call_node_start_master(master_node, False):
+  if not rpc.RpcRunner.call_node_start_master(master_node, False):
     logging.error("Can't activate master IP address")
 
   master.setup_queue()
