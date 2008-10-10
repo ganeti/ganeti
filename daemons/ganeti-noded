@@ -40,6 +40,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import errors
 from ganeti import jstore
+from ganeti import daemon
 from ganeti import http
 from ganeti import utils
 
@@ -65,36 +66,40 @@ def _RequireJobQueueLock(fn):
   return wrapper
 
 
-class NodeDaemonRequestHandler(http.HTTPRequestHandler):
+class NodeHttpServer(http.HttpServer):
   """The server implementation.
 
   This class holds all methods exposed over the RPC interface.
 
   """
-  def HandleRequest(self):
+  def __init__(self, *args, **kwargs):
+    http.HttpServer.__init__(self, *args, **kwargs)
+    self.noded_pid = os.getpid()
+
+  def HandleRequest(self, req):
     """Handle a request.
 
     """
-    if self.command.upper() != "PUT":
+    if req.request_method.upper() != "PUT":
       raise http.HTTPBadRequest()
 
-    path = self.path
+    path = req.request_path
     if path.startswith("/"):
       path = path[1:]
 
     method = getattr(self, "perspective_%s" % path, None)
     if method is None:
-      raise httperror.HTTPNotFound()
+      raise http.HTTPNotFound()
 
     try:
       try:
-        return method(self.post_data)
+        return method(req.request_post_data)
       except:
         logging.exception("Error in RPC call")
         raise
     except errors.QuitGanetiException, err:
       # Tell parent to quit
-      os.kill(self.server.noded_pid, signal.SIGTERM)
+      os.kill(self.noded_pid, signal.SIGTERM)
 
   # the new block devices  --------------------------
 
@@ -594,31 +599,6 @@ class NodeDaemonRequestHandler(http.HTTPRequestHandler):
     return backend.JobQueueRename(old, new)
 
 
-class NodeDaemonHttpServer(http.HTTPServer):
-  def __init__(self, server_address):
-    http.HTTPServer.__init__(self, server_address, NodeDaemonRequestHandler)
-    self.noded_pid = os.getpid()
-
-  def serve_forever(self):
-    """Handle requests until told to quit."""
-    sighandler = utils.SignalHandler([signal.SIGINT, signal.SIGTERM])
-    try:
-      while not sighandler.called:
-        self.handle_request()
-      # TODO: There could be children running at this point
-    finally:
-      sighandler.Reset()
-
-
-class ForkingHTTPServer(SocketServer.ForkingMixIn, NodeDaemonHttpServer):
-  """Forking HTTP Server.
-
-  This inherits from ForkingMixIn and HTTPServer in order to fork for each
-  request we handle. This allows more requests to be handled concurrently.
-
-  """
-
-
 def ParseOptions():
   """Parse the command line options.
 
@@ -681,21 +661,21 @@ def main():
     utils.Daemonize(logfile=constants.LOG_NODESERVER)
 
   utils.WritePidFile(constants.NODED_PID)
-
-  logger.SetupLogging(logfile=constants.LOG_NODESERVER, debug=options.debug,
-                      stderr_logging=not options.fork)
-  logging.info("ganeti node daemon startup")
-
-  # Prepare job queue
-  queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
-
-  if options.fork:
-    server = ForkingHTTPServer(('', port))
-  else:
-    server = NodeDaemonHttpServer(('', port))
-
   try:
-    server.serve_forever()
+    logger.SetupLogging(logfile=constants.LOG_NODESERVER, debug=options.debug,
+                        stderr_logging=not options.fork)
+    logging.info("ganeti node daemon startup")
+
+    # Prepare job queue
+    queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
+
+    mainloop = daemon.Mainloop()
+    server = NodeHttpServer(mainloop, ("", port))
+    server.Start()
+    try:
+      mainloop.Run()
+    finally:
+      server.Stop()
   finally:
     utils.RemovePidFile(constants.NODED_PID)
 
