@@ -549,6 +549,10 @@ class LUVerifyCluster(LogicalUnit):
         feedback_fn("  - ERROR: %s on node %s" % (vgstatus, node))
         bad = True
 
+    if not node_result:
+      feedback_fn("  - ERROR: unable to verify node %s." % (node,))
+      return True
+
     # checks config file checksum
     # checks ssh to any
 
