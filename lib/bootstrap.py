@@ -241,37 +241,37 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
 
 def InitConfig(version, cluster_config, master_node_config,
                cfg_file=constants.CLUSTER_CONF_FILE):
-    """Create the initial cluster configuration.
+  """Create the initial cluster configuration.
 
-    It will contain the current node, which will also be the master
-    node, and no instances.
+  It will contain the current node, which will also be the master
+  node, and no instances.
 
-    @type version: int
-    @param version: Configuration version
-    @type cluster_config: objects.Cluster
-    @param cluster_config: Cluster configuration
-    @type master_node_config: objects.Node
-    @param master_node_config: Master node configuration
-    @type file_name: string
-    @param file_name: Configuration file path
+  @type version: int
+  @param version: Configuration version
+  @type cluster_config: objects.Cluster
+  @param cluster_config: Cluster configuration
+  @type master_node_config: objects.Node
+  @param master_node_config: Master node configuration
+  @type file_name: string
+  @param file_name: Configuration file path
 
-    @rtype: ssconf.SimpleConfigWriter
-    @returns: Initialized config instance
+  @rtype: ssconf.SimpleConfigWriter
+  @returns: Initialized config instance
 
-    """
-    nodes = {
-      master_node_config.name: master_node_config,
-      }
+  """
+  nodes = {
+    master_node_config.name: master_node_config,
+    }
 
-    config_data = objects.ConfigData(version=version,
-                                     cluster=cluster_config,
-                                     nodes=nodes,
-                                     instances={},
-                                     serial_no=1)
-    cfg = ssconf.SimpleConfigWriter.FromDict(config_data.ToDict(), cfg_file)
-    cfg.Save()
+  config_data = objects.ConfigData(version=version,
+                                   cluster=cluster_config,
+                                   nodes=nodes,
+                                   instances={},
+                                   serial_no=1)
+  cfg = ssconf.SimpleConfigWriter.FromDict(config_data.ToDict(), cfg_file)
+  cfg.Save()
 
-    return cfg
+  return cfg
 
 
 def FinalizeClusterDestroy(master):

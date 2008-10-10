@@ -1465,7 +1465,7 @@ class LUQueryNodes(NoHooksLU):
       nodenames = self.wanted
       missing = set(nodenames).difference(all_info.keys())
       if missing:
-        raise self.OpExecError(
+        raise errors.OpExecError(
           "Some nodes were removed before retrieving their data: %s" % missing)
     else:
       nodenames = all_info.keys()
@@ -2649,7 +2649,7 @@ class LUQueryInstances(NoHooksLU):
       instance_names = self.wanted
       missing = set(instance_names).difference(all_info.keys())
       if missing:
-        raise self.OpExecError(
+        raise errors.OpExecError(
           "Some instances were removed before retrieving their data: %s"
           % missing)
     else:
@@ -3397,7 +3397,7 @@ class LUCreateInstance(LogicalUnit):
     if self.op.ip_check:
       if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (self.check_ip, instance_name))
+                                   (self.check_ip, self.op.instance_name))
 
     # bridge verification
     bridge = getattr(self.op, "bridge", None)
