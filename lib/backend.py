@@ -292,7 +292,6 @@ def VerifyNode(what, cluster_name):
         connectivity with
       - hypervisor: list with hypervisors to run the verify for
 
-
   """
   result = {}
 
@@ -1169,21 +1168,21 @@ def _OSOndiskVersion(name, os_dir):
   try:
     f = open(api_file)
     try:
-      api_version = f.read(256)
+      api_versions = f.readlines()
     finally:
       f.close()
   except EnvironmentError, err:
     raise errors.InvalidOS(name, os_dir, "error while reading the"
                            " API version (%s)" % _ErrnoOrStr(err))
 
-  api_version = api_version.strip()
+  api_versions = [version.strip() for version in api_versions]
   try:
-    api_version = int(api_version)
+    api_versions = [int(version) for version in api_versions]
   except (TypeError, ValueError), err:
     raise errors.InvalidOS(name, os_dir,
                            "API version is not integer (%s)" % str(err))
 
-  return api_version
+  return api_versions
 
 
 def DiagnoseOS(top_dirs=None):
@@ -1238,12 +1237,12 @@ def OSFromDisk(name, base_dir=None):
   else:
     os_dir = os.path.sep.join([base_dir, name])
 
-  api_version = _OSOndiskVersion(name, os_dir)
+  api_versions = _OSOndiskVersion(name, os_dir)
 
-  if api_version != constants.OS_API_VERSION:
+  if constants.OS_API_VERSION not in api_versions:
     raise errors.InvalidOS(name, os_dir, "API version mismatch"
                            " (found %s want %s)"
-                           % (api_version, constants.OS_API_VERSION))
+                           % (api_versions, constants.OS_API_VERSION))
 
   # OS Scripts dictionary, we will populate it with the actual script names
   os_scripts = {'create': '', 'export': '', 'import': '', 'rename': ''}
@@ -1271,7 +1270,7 @@ def OSFromDisk(name, base_dir=None):
                     export_script=os_scripts['export'],
                     import_script=os_scripts['import'],
                     rename_script=os_scripts['rename'],
-                    api_version=api_version)
+                    api_versions=api_versions)
 
 
 def GrowBlockDevice(disk, amount):
