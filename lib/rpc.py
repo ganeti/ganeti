@@ -819,7 +819,8 @@ class RpcRunner(object):
     return c.getresult().get(node, False)
 
 
-  def call_node_leave_cluster(self, node):
+  @staticmethod
+  def call_node_leave_cluster(node):
     """Requests a node to clean the cluster information it has.
 
     This will remove the configuration information from the ganeti data
