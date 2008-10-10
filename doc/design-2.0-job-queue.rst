@@ -21,8 +21,8 @@ Job execution—“Life of a Ganeti job”
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #. Job gets submitted by the client. A new job identifier is generated and
-   assigned to the job. The job is then automatically replicated to all nodes
-   in the cluster. The identifier is returned to the client.
+   assigned to the job. The job is then automatically replicated [#replic]_
+   to all nodes in the cluster. The identifier is returned to the client.
 #. A pool of worker threads waits for new jobs. If all are busy, the job has
    to wait and the first worker finishing its work will grab it. Otherwise any
    of the waiting threads will pick up the new job.
@@ -32,7 +32,43 @@ Job execution—“Life of a Ganeti job”
 #. As soon as the job is finished, its final result and status can be retrieved
    from the server.
 #. If the client archives the job, it gets moved to a history directory.
-   This could also be done regularily using a cron script.
+   There will be a method to archive all jobs older than a a given age.
+
+.. [#replic] We need replication in order to maintain the consistency across
+   all nodes in the system; the master node only differs in the fact that
+   now it is running the master daemon, but it if fails and we do a master
+   failover, the jobs are still visible on the new master (even though they
+   will be marked as failed).
+
+Failures to replicate a job to other nodes will be only flagged as
+errors in the master daemon log if more than half of the nodes failed,
+otherwise we ignore the failure, and rely on the fact that the next
+update (for still running jobs) will retry the update. For finished
+jobs, it is less of a problem.
+
+Future improvements will look into checking the consistency of the job
+list and jobs themselves at master daemon startup.
+
+
+Job storage
+~~~~~~~~~~~
+
+Jobs are stored in the filesystem as individual files, serialized
+using JSON (standard serialization mechanism in Ganeti).
+
+The choice of storing each job in its own file was made because:
+
+- a file can be atomically replaced
+- a file can easily be replicated to other nodes
+- checking consistency across nodes can be implemented very easily, since
+  all job files should be (at a given moment in time) identical
+
+The other possible choices that were discussed and discounted were:
+
+- single big file with all job data: not feasible due to difficult updates
+- in-process databases: hard to replicate the entire database to the
+  other nodes, and replicating individual operations does not mean wee keep
+  consistency
 
 
 Queue structure
@@ -126,12 +162,16 @@ Error status once the master started again.
 History
 ~~~~~~~
 
-Archived jobs are kept in a separate directory, /var/lib/ganeti/queue/archive/.
-The idea is to speed up the queue handling.
+Archived jobs are kept in a separate directory,
+/var/lib/ganeti/queue/archive/.  This is done in order to speed up the
+queue handling: by default, the jobs in the archive are not touched by
+any functions. Only the current (unarchived) jobs are parsed, loaded,
+and verified (if implemented) by the master daemon.
 
 
 Ganeti updates
 ~~~~~~~~~~~~~~
 
-The queue has to be completely empty for Ganeti updates with changes in the job
-queue structure.
+The queue has to be completely empty for Ganeti updates with changes
+in the job queue structure. In order to allow this, there will be a
+way to prevent new jobs entering the queue.
