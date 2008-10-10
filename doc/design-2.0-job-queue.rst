@@ -108,6 +108,8 @@ Each job and each opcode has, at any time, one of the following states:
 
 Queued
   The job/opcode was submitted, but did not yet start.
+Waiting
+  The job/opcode is waiting for a lock to proceed.
 Running
   The job/opcode is running.
 Canceled
