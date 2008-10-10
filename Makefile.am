@@ -66,6 +66,7 @@ pkgpython_PYTHON = \
 	lib/cmdlib.py \
 	lib/config.py \
 	lib/constants.py \
+	lib/daemon.py \
 	lib/errors.py \
 	lib/http.py \
 	lib/jqueue.py \
