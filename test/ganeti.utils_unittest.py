@@ -41,7 +41,7 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
-     SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree
+     SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
 
@@ -633,6 +633,24 @@ class TestTcpPingDeaf(unittest.TestCase):
                          live_port_needed=False,
                          ), # ECONNREFUSED is OK
                  "failed to ping alive host on deaf port (no source addr)")
+
+
+class TestOwnIpAddress(unittest.TestCase):
+  """Testcase for OwnIpAddress"""
+
+  def testOwnLoopback(self):
+    """check having the loopback ip"""
+    self.failUnless(OwnIpAddress(constants.LOCALHOST_IP_ADDRESS),
+                    "Should own the loopback address")
+
+  def testNowOwnAddress(self):
+    """check that I don't own an address"""
+
+    # network 192.0.2.0/24 is reserved for test/documentation as per
+    # rfc 3330, so we *should* not have an address of this range... if
+    # this fails, we should extend the test to multiple addresses
+    DST_IP = "192.0.2.1"
+    self.failIf(OwnIpAddress(DST_IP), "Should not own IP address %s" % DST_IP)
 
 
 class TestListVisibleFiles(unittest.TestCase):

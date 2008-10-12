@@ -1774,11 +1774,8 @@ class LUAddNode(LogicalUnit):
     utils.AddHostToEtcHosts(new_node.name)
 
     if new_node.secondary_ip != new_node.primary_ip:
-      if not self.rpc.call_node_tcp_ping(new_node.name,
-                                         constants.LOCALHOST_IP_ADDRESS,
-                                         new_node.secondary_ip,
-                                         constants.DEFAULT_NODED_PORT,
-                                         10, False):
+      if not self.rpc.call_node_has_ip_address(new_node.name,
+                                               new_node.secondary_ip):
         raise errors.OpExecError("Node claims it doesn't have the secondary ip"
                                  " you gave (%s). Please fix and re-run this"
                                  " command." % new_node.secondary_ip)

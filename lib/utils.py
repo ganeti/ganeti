@@ -823,6 +823,21 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   return success
 
 
+def OwnIpAddress(address):
+  """Check if the current host has the the given IP address.
+
+  Currently this is done by tcp-pinging the address from the loopback
+  address.
+
+  @type address: string
+  @param address: the addres to check
+  @rtype: bool
+
+  """
+  return TcpPing(address, constants.DEFAULT_NODED_PORT,
+                 source=constants.LOCALHOST_IP_ADDRESS)
+
+
 def ListVisibleFiles(path):
   """Returns a list of all visible files in a directory.
 

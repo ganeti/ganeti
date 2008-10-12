@@ -117,8 +117,7 @@ def StartMaster(start_daemons):
     return False
 
   if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
-    if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT,
-                     source=constants.LOCALHOST_IP_ADDRESS):
+    if utils.OwnIpAddress(master_ip):
       # we already have the ip:
       logging.debug("Already started")
     else:

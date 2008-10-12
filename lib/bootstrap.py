@@ -128,8 +128,7 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
                                " range (%s). Please fix DNS or %s." %
                                (hostname.ip, constants.ETC_HOSTS))
 
-  if not utils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT,
-                       source=constants.LOCALHOST_IP_ADDRESS):
+  if not utils.OwnIpAddress(hostname.ip):
     raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                " to %s,\nbut this ip address does not"
                                " belong to this host."
@@ -145,8 +144,7 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
     if not utils.IsValidIP(secondary_ip):
       raise errors.OpPrereqError("Invalid secondary ip given")
     if (secondary_ip != hostname.ip and
-        (not utils.TcpPing(secondary_ip, constants.DEFAULT_NODED_PORT,
-                           source=constants.LOCALHOST_IP_ADDRESS))):
+        not utils.OwnIpAddress(secondary_ip)):
       raise errors.OpPrereqError("You gave %s as secondary IP,"
                                  " but it does not belong to this host." %
                                  secondary_ip)
