@@ -180,7 +180,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult()
 
-
   def call_bridges_exist(self, node, bridges_list):
     """Checks if a node has all the bridges given.
 
@@ -196,7 +195,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_instance_start(self, node, instance, extra_args):
     """Starts an instance.
 
@@ -208,7 +206,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_instance_shutdown(self, node, instance):
     """Stops an instance.
 
@@ -219,7 +216,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_instance_migrate(self, node, instance, target, live):
     """Migrate an instance.
@@ -242,7 +238,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_instance_reboot(self, node, instance, reboot_type, extra_args):
     """Reboots an instance.
 
@@ -253,7 +248,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_instance_os_add(self, node, inst, osdev, swapdev):
     """Installs an OS on the given instance.
@@ -267,7 +261,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_instance_run_rename(self, node, inst, old_name, osdev, swapdev):
     """Run the OS rename script for an instance.
 
@@ -279,7 +272,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_instance_info(self, node, instance, hname):
     """Returns information about a single instance.
@@ -294,11 +286,10 @@ class RpcRunner(object):
     @param hname: the hypervisor type of the instance
 
     """
-    c = Client("instance_info", [instance])
+    c = Client("instance_info", [instance, hname])
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_all_instances_info(self, node_list, hypervisor_list):
     """Returns information about all instances on the given nodes.
@@ -316,7 +307,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult()
 
-
   def call_instance_list(self, node_list, hypervisor_list):
     """Returns the list of running instances on a given node.
 
@@ -332,7 +322,6 @@ class RpcRunner(object):
     c.connect_list(node_list)
     c.run()
     return c.getresult()
-
 
   def call_node_tcp_ping(self, node, source, target, port, timeout,
                          live_port_needed):
@@ -397,7 +386,6 @@ class RpcRunner(object):
                       )
     return retux
 
-
   def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
     """Add a node to the cluster.
 
@@ -410,7 +398,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_node_verify(self, node_list, checkdict, cluster_name):
     """Request verification of given parameters.
 
@@ -421,7 +408,6 @@ class RpcRunner(object):
     c.connect_list(node_list)
     c.run()
     return c.getresult()
-
 
   @staticmethod
   def call_node_start_master(node, start_daemons):
@@ -435,7 +421,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   @staticmethod
   def call_node_stop_master(node, stop_daemons):
     """Tells a node to demote itself from master status.
@@ -447,7 +432,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   @staticmethod
   def call_master_info(node_list):
@@ -462,7 +446,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult()
 
-
   def call_version(self, node_list):
     """Query node version.
 
@@ -473,7 +456,6 @@ class RpcRunner(object):
     c.connect_list(node_list)
     c.run()
     return c.getresult()
-
 
   def call_blockdev_create(self, node, bdev, size, owner, on_primary, info):
     """Request creation of a given block device.
@@ -487,7 +469,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_blockdev_remove(self, node, bdev):
     """Request removal of a given block device.
 
@@ -498,7 +479,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_blockdev_rename(self, node, devlist):
     """Request rename of the given block devices.
@@ -512,7 +492,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_blockdev_assemble(self, node, disk, owner, on_primary):
     """Request assembling of a given block device.
 
@@ -525,7 +504,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_blockdev_shutdown(self, node, disk):
     """Request shutdown of a given block device.
 
@@ -536,7 +514,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_blockdev_addchildren(self, node, bdev, ndevs):
     """Request adding a list of children to a (mirroring) device.
@@ -550,7 +527,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_blockdev_removechildren(self, node, bdev, ndevs):
     """Request removing a list of children from a (mirroring) device.
 
@@ -562,7 +538,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_blockdev_getmirrorstatus(self, node, disks):
     """Request status of a (mirroring) device.
@@ -576,7 +551,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_blockdev_find(self, node, disk):
     """Request identification of a given block device.
 
@@ -587,7 +561,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_blockdev_close(self, node, disks):
     """Closes the given block devices.
@@ -600,30 +573,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
-
-  @staticmethod
-  def call_upload_file(node_list, file_name):
-    """Upload a file.
-
-    The node will refuse the operation in case the file is not on the
-    approved file list.
-
-    This is a multi-node call.
-
-    """
-    fh = file(file_name)
-    try:
-      data = fh.read()
-    finally:
-      fh.close()
-    st = os.stat(file_name)
-    params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
-              st.st_atime, st.st_mtime]
-    c = Client("upload_file", params)
-    c.connect_list(node_list)
-    c.run()
-    return c.getresult()
 
   @staticmethod
   def call_upload_file(node_list, file_name):
@@ -667,7 +616,6 @@ class RpcRunner(object):
       new_result[node_name] = nr
     return new_result
 
-
   def call_os_get(self, node, name):
     """Returns an OS definition.
 
@@ -682,7 +630,6 @@ class RpcRunner(object):
       return objects.OS.FromDict(result)
     else:
       return result
-
 
   def call_hooks_runner(self, node_list, hpath, phase, env):
     """Call the hooks runner.
@@ -701,7 +648,6 @@ class RpcRunner(object):
     result = c.getresult()
     return result
 
-
   def call_iallocator_runner(self, node, name, idata):
     """Call an iallocator on a remote node
 
@@ -719,7 +665,6 @@ class RpcRunner(object):
     result = c.getresult().get(node, False)
     return result
 
-
   def call_blockdev_grow(self, node, cf_bdev, amount):
     """Request a snapshot of the given block device.
 
@@ -731,7 +676,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_blockdev_snapshot(self, node, cf_bdev):
     """Request a snapshot of the given block device.
 
@@ -742,7 +686,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_snapshot_export(self, node, snap_bdev, dest_node, instance,
                            cluster_name):
@@ -756,7 +699,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_finalize_export(self, node, instance, snap_disks):
     """Request the completion of an export operation.
@@ -775,7 +717,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_export_info(self, node, path):
     """Queries the export information in a given path.
 
@@ -790,7 +731,6 @@ class RpcRunner(object):
       return result
     return objects.SerializableConfigParser.Loads(str(result))
 
-
   def call_instance_os_import(self, node, inst, osdev, swapdev,
                               src_node, src_image, cluster_name):
     """Request the import of a backup into an instance.
@@ -804,7 +744,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_export_list(self, node_list):
     """Gets the stored exports list.
 
@@ -817,7 +756,6 @@ class RpcRunner(object):
     result = c.getresult()
     return result
 
-
   def call_export_remove(self, node, export):
     """Requests removal of a given export.
 
@@ -828,7 +766,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   @staticmethod
   def call_node_leave_cluster(node):
@@ -845,7 +782,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_node_volumes(self, node_list):
     """Gets all volumes on node(s).
 
@@ -856,7 +792,6 @@ class RpcRunner(object):
     c.connect_list(node_list)
     c.run()
     return c.getresult()
-
 
   def call_test_delay(self, node_list, duration):
     """Sleep for a fixed time on given node(s).
@@ -869,7 +804,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult()
 
-
   def call_file_storage_dir_create(self, node, file_storage_dir):
     """Create the given file storage directory.
 
@@ -881,7 +815,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   def call_file_storage_dir_remove(self, node, file_storage_dir):
     """Remove the given file storage directory.
 
@@ -892,7 +825,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   def call_file_storage_dir_rename(self, node, old_file_storage_dir,
                                    new_file_storage_dir):
@@ -907,7 +839,6 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-
   @staticmethod
   def call_jobqueue_update(node_list, file_name, content):
     """Update job queue.
@@ -921,7 +852,6 @@ class RpcRunner(object):
     result = c.getresult()
     return result
 
-
   @staticmethod
   def call_jobqueue_purge(node):
     """Purge job queue.
@@ -933,7 +863,6 @@ class RpcRunner(object):
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
-
 
   @staticmethod
   def call_jobqueue_rename(node_list, old, new):
