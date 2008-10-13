@@ -6,9 +6,13 @@ Ganeti 2.0 cluster parameters
 Objective
 ---------
 
-With the introduction of the HVM hypervisor in Ganeti 1.2 and the
-implementation of multiple hypervisor support in Ganeti 2.0, the way
-the cluster parameters are handled needs to be reorganized accordingly.
+We need to enhance the way attributes for instances and other clusters
+parameters are handled internally within Ganeti in order to have
+better flexibility in the following cases:
+
+- introducting new parameters
+- writing command line interfaces or APIs for these parameters
+- supporting new 2.0 features
 
 Background
 ----------
@@ -19,87 +23,136 @@ namespace, as were additional parameters for the PVM hypervisor.
 
 As a result of this, wether a particular parameter is valid for the
 actual hypervisor could either be guessed from the name but only
-really checked by following the code using it.
-
-This design doc aims to provide an approach to solve this.
+really checked by following the code using it. Similar to this case,
+other parameters are not valid in all cases, and were simply added to
+the top-level instance objects.
 
 Overview
 --------
 
-The instance level hypervisor parameters will be moved into a separate
-sub-tree of the instance name space. Also, a mechanismum to allow for
-automatic checking and possibly validation of hypervisor parameters
-will be outlined.
+Across all cluster configuration data, we have multiple classes of
+parameters:
+
+A. cluster-wide parameters (e.g. name of the cluster, the master);
+   these are the ones that we have today, and are unchanged from the
+   current model
+
+#. node parameters
+
+#. instance specific parameters, e.g. the name of disks (LV), that
+   cannot be shared with other instances
+
+#. instance parameters, that are or can be the same for many
+   instances, but are not hypervisor related; e.g. the number of VCPUs,
+   or the size of memory
+
+#. instance parameters that are hypervisor specific (e.g. kernel_path
+   or PAE mode)
+
 
 
 Detailed Design
 ---------------
 
-Hypervisor Parameter
-~~~~~~~~~~~~~~~~~~~~
+The following definitions for instance parameters will be used below:
 
-A hypervisor parameter (or hypervisor specific parameter) is defined
-as a parameter that is interpreted by the hypervisor support code in
-Ganeti and usually is specific to a particular hypervisor (like the
-kernel path for PVM which makes no sense for HVM).
+hypervisor parameter
+  a hypervisor parameter (or hypervisor specific parameter) is defined
+  as a parameter that is interpreted by the hypervisor support code in
+  Ganeti and usually is specific to a particular hypervisor (like the
+  kernel path for PVM which makes no sense for HVM).
+
+backend parameter
+  a backend parameter is defined as an instance parameter that can be
+  shared among a list of instances, and is either generic enough not
+  to be tied to a given hypervisor or cannot influence at all the
+  hypervisor behaviour
+
+proper parameter
+  a parameter whose value is unique to the instance (e.g. the name of a LV,
+  or the MAC of a NIC)
+
+As a general rule, for all kind of parameters, “None” (or in
+JSON-speak, “nil”) will no longer be a valid value for a parameter. As
+such, only non-default parameters will be saved as part of objects in
+the serialization step, reducing the size of the serialized format.
 
 Cluster parameters
 ~~~~~~~~~~~~~~~~~~
 
-The cluster parameter namespace will be extended with cluster level
-hypervisor specific parameters. The typical expected use case for this
-is to store default values for instance level hypervisor parameters.
+Cluster parameters remain as today, attributes at the top level of the
+Cluster object. In addition, two new attributes at this level will
+hold defaults for the instances:
 
+- hvparams, a dictionary indexed by hypervisor type, holding default
+  values for hypervisor parameters that are not defined/overrided by
+  the instances of this hypervisor type
+
+- beparams, a dictionary holding (for 2.0) a single element 'default',
+  which holds the default value for backend parameters
+
+Node parameters
+~~~~~~~~~~~~~~~
+
+Node-related parameters are very few, and we will continue using the
+same model for these as previously (attributes on the Node object).
 
 Instance parameters
 ~~~~~~~~~~~~~~~~~~~
 
-The only hypervisor parameter to remain at the top level of the
-instance namespace will be instance.hypervisor, specifying not
-only the hypervisor type to be used for that instance, but also
-implicitly the hypervisor type to use for parameter checks.
+As described before, the instance parameters are split in three:
+instance proper parameters, unique to each instance, instance
+hypervisor parameters and instance backend parameters.
 
-All other instance level hypervisor parameters will be moved into the
-instance.hvparams namespace subtree.
+The “hvparams” and “beparams” are kept in two dictionaries at instance
+level. Only non-default parameters are stored (but once customized, a
+parameter will be kept, even with the same value as the default one,
+until reset).
 
-The names for hypervisor parameters in the instance.hvparams
-subtree should be choosen as generic as possible, especially if
-specific parameters could conceivably be useful for more than one
-hypervisor, e.g.
-instance.hvparams.vnc_console_port instead of using both
+The names for hypervisor parameters in the instance.hvparams subtree
+should be choosen as generic as possible, especially if specific
+parameters could conceivably be useful for more than one hypervisor,
+e.g. instance.hvparams.vnc_console_port instead of using both
 instance.hvparams.hvm_vnc_console_port and
 instance.hvparams.kvm_vnc_console_port.
 
-The instance.hvparams subtree will be implemented as a dict.
+There are some special cases related to disks and NICs (for example):
+a disk has both ganeti-related parameters (e.g. the name of the LV)
+and hypervisor-related parameters (how the disk is presented to/named
+in the instance). The former parameters remain as proper-instance
+parameters, while the latter value are migrated to the hvparams
+structure. In 2.0, we will have only globally-per-instance such
+hypervisor parameters, and not per-disk ones (e.g. all NICs will be
+exported as of the same type).
 
-Examples for instance level hypervisor parameters:
+Starting from the 1.2 list of instance parameters, here is how they
+will be mapped to the three classes of parameters:
 
-:boot_order: boot device order
-:vnc_bind_address: bind address for VNC console
-:vnc_bind_port: bind port for VNC console
-:kernel_path: path to the kernel binary
-:disk_type: type of the virtual disk interface
+- name (P)
+- primary_node (P)
+- os (P)
+- hypervisor (P)
+- status (P)
+- memory (BE)
+- vcpus (BE)
+- nics (P)
+- disks (P)
+- disk_template (P)
+- network_port (P)
+- kernel_path (HV)
+- initrd_path (HV)
+- hvm_boot_order (HV)
+- hvm_acpi (HV)
+- hvm_pae (HV)
+- hvm_cdrom_image_path (HV)
+- hvm_nic_type (HV)
+- hvm_disk_type (HV)
+- vnc_bind_address (HV)
+- serial_no (P)
 
-With this design, hypervisor specific parameters for disk and NIC
-devices are defined globally for all devices of that type in the instance.
-It may become necessary later to allow setting these parameters on a
-per device basis, which will require design changes to the cluster
-parameters.
 
-All other, non hypervisor related parameters of the instance remain at
-the top level of the instance namespace. This includes:
-
-- disks
-- nics
-- mem
-- vcpu
-- status
-- OS
-
-
-
-Hypervisor support requirements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Parameter validation
+~~~~~~~~~~~~~~~~~~~~
 
 To support the new cluster parameter design, additional features will
 be required from the hypervisor support implementations in Ganeti.
@@ -107,18 +160,74 @@ be required from the hypervisor support implementations in Ganeti.
 The hypervisor support  implementation API will be extended with the
 following features:
 
-:GetValidClusterParameters(): returns a list of valid cluster level
-  parameters for this hypervisor,
-:GetValidInstanceParameters(): provide a list of valid instance level
-  parameters for this hypervisor,
-:VerifyParameter(parameter_name, parameter_value): verifies the
-  provided parameter against this hypervisor:
+:PARAMETERS: class-level attribute holding the list of valid parameters
+  for this hypervisor
+:CheckParamSyntax(hvparams): checks that the given parameters are
+  valid (as in the names are valid) for this hypervisor; usually just
+  comparing hvparams.keys() and cls.PARAMETERS; this is a class method
+  that can be called from within master code (i.e. cmdlib) and should
+  be safe to do so
+:ValidateParameters(hvparams): verifies the values of the provided
+  parameters against this hypervisor; this is a method that will be
+  called on the target node, from backend.py code, and as such can
+  make node-specific checks (e.g. kernel_path checking)
 
-  - if the provided parameter name is valid for this hypervisor
-  - if applicable, if the provided value is valid for this hypervisor
+Default value application
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The VerifyParameter(..) function will return True or False.
+The application of defaults to an instance is done in the Cluster
+object, via two new methods as follows:
 
+- ``Cluster.FillHV(instance)``, returns 'filled' hvparams dict, based on
+  instance's hvparams and cluster's ``hvparams[instance.hypervisor]``
 
-The parameter validation will be used for every addition or change of
-hypervisor parameters.
+- ``Cluster.FillBE(instance, be_type="default")``, which returns the
+  beparams dict, based on the instance and cluster beparams
+
+The FillHV/BE transformations will be used, for example, in the RpcRunner
+when sending an instance for activation/stop, and the sent instance
+hvparams/beparams will have the final value (noded code doesn't know
+about defaults).
+
+LU code will need to self-call the transformation, if needed.
+
+Opcode changes
+~~~~~~~~~~~~~~
+
+The parameter changes will have impact on the OpCodes, especially on
+the following ones:
+
+- OpCreateInstance, where the new hv and be parameters will be sent as
+  dictionaries; note that all hv and be parameters are now optional, as
+  the values can be instead taken from the cluster
+- OpQueryInstances, where we have to be able to query these new
+  parameters; the syntax for names will be ``hvparam/$NAME`` and
+  ``beparam/$NAME`` for querying an individual parameter out of one
+  dictionary, and ``hvparams``, respectively ``beparams``, for the whole
+  dictionaries
+- OpModifyInstance, where the the modified parameters are sent as
+  dictionaries
+
+Additionally, we will need new OpCodes to modify the cluster-level
+defaults for the be/hv sets of parameters.
+
+Caveats
+-------
+
+One problem that might appear is that our classification is not
+complete or not good enough, and we'll need to change this model. As
+the last resort, we will need to rollback and keep 1.2 style.
+
+Another problem is that classification of one parameter is unclear
+(e.g. ``network_port``, is this BE or HV?); in this case we'll take
+the risk of having to move parameters later between classes.
+
+Security
+--------
+
+The only security issue that we foresee is if some new parameters will
+have sensitive value. If so, we will need to have a way to export the
+config data while purging the sensitive value.
+
+E.g. for the drbd shared secrets, we could export these with the
+values replaced by an empty string.
