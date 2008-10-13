@@ -42,7 +42,8 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "SubmitOpCode", "GetClient",
-           "cli_option", "GenerateTable", "AskUser",
+           "cli_option", "ikv_option", "keyval_option",
+           "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT", "SUBMIT_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
@@ -221,8 +222,88 @@ class CliOption(Option):
   TYPE_CHECKER["unit"] = check_unit
 
 
+def _SplitKeyVal(opt, data):
+  """Convert a KeyVal string into a dict.
+
+  This function will convert a key=val[,...] string into a dict. Empty
+  values will be converted specially: keys which have the prefix 'no_'
+  will have the value=False and the prefix stripped, the others will
+  have value=True.
+
+  @type opt: string
+  @param opt: a string holding the option name for which we process the
+      data, used in building error messages
+  @type data: string
+  @param data: a string of the format key=val,key=val,...
+  @rtype: dict
+  @return: {key=val, key=val}
+  @raises errors.ParameterError: if there are duplicate keys
+
+  """
+  NO_PREFIX = "no_"
+  kv_dict = {}
+  for elem in data.split(","):
+    if "=" in elem:
+      key, val = elem.split("=", 1)
+    else:
+      if elem.startswith(NO_PREFIX):
+        key, val = elem[len(NO_PREFIX):], False
+      else:
+        key, val = elem, True
+    if key in kv_dict:
+      raise errors.ParameterError("Duplicate key '%s' in option %s" %
+                                  (key, opt))
+    kv_dict[key] = val
+  return kv_dict
+
+
+def check_ident_key_val(option, opt, value):
+  """Custom parser for the IdentKeyVal option type.
+
+  """
+  if ":" not in value:
+    retval =  (value, {})
+  else:
+    ident, rest = value.split(":", 1)
+    kv_dict = _SplitKeyVal(opt, rest)
+    retval = (ident, kv_dict)
+  return retval
+
+
+class IdentKeyValOption(Option):
+  """Custom option class for ident:key=val,key=val options.
+
+  This will store the parsed values as a tuple (ident, {key: val}). As
+  such, multiple uses of this option via action=append is possible.
+
+  """
+  TYPES = Option.TYPES + ("identkeyval",)
+  TYPE_CHECKER = copy.copy(Option.TYPE_CHECKER)
+  TYPE_CHECKER["identkeyval"] = check_ident_key_val
+
+
+def check_key_val(option, opt, value):
+  """Custom parser for the KeyVal option type.
+
+  """
+  return _SplitKeyVal(opt, value)
+
+
+class KeyValOption(Option):
+  """Custom option class for key=val,key=val options.
+
+  This will store the parsed values as a dict {key: val}.
+
+  """
+  TYPES = Option.TYPES + ("keyval",)
+  TYPE_CHECKER = copy.copy(Option.TYPE_CHECKER)
+  TYPE_CHECKER["keyval"] = check_key_val
+
+
 # optparse.py sets make_option, so we do it for our own option class, too
 cli_option = CliOption
+ikv_option = IdentKeyValOption
+keyval_option = KeyValOption
 
 
 def _ParseArgs(argv, commands, aliases):

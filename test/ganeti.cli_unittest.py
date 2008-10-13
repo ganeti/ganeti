@@ -27,7 +27,7 @@ import ganeti
 import testutils
 from ganeti import constants
 from ganeti import cli
-from ganeti.errors import OpPrereqError
+from ganeti.errors import OpPrereqError, ParameterError
 
 class TestParseTimespec(unittest.TestCase):
   """Testing case for ParseTimespec"""
@@ -57,6 +57,22 @@ class TestParseTimespec(unittest.TestCase):
       ]
     for value in test_data:
       self.failUnlessRaises(OpPrereqError, cli.ParseTimespec, value)
+
+
+class TestSplitKeyVal(unittest.TestCase):
+  """Testing case for cli._SplitKeyVal"""
+  DATA = "a=b,c,no_d"
+  RESULT = {"a": "b", "c": True, "d": False}
+
+  def testSplitKeyVal(self):
+    """Test splitting"""
+    self.failUnlessEqual(cli._SplitKeyVal("option", self.DATA), self.RESULT)
+
+  def testDuplicateParam(self):
+    """Test duplicate parameters"""
+    for data in ("a=1,a=2", "a,no_a"):
+      self.failUnlessRaises(ParameterError, cli._SplitKeyVal,
+                            "option", data)
 
 
 if __name__ == '__main__':
