@@ -104,7 +104,7 @@ Disk Device Options
 
 The generic format of the disk device option is:
 
-  --disk $DEVNUM:[$OPTION=$VALUE][,$OPTION=VALUE]
+  --disk $DEVNUM[:$OPTION=$VALUE][,$OPTION=VALUE]
 
 :$DEVNUM: device number, unsigned integer, starting at 0,
 :$OPTION: device option, string,
@@ -260,4 +260,3 @@ The generic format of the hypervisor clusterwide default setting option is:
   to set, string
 :$OPTION: cluster default option, string,
 :$VALUE: cluster default option value, string.
-

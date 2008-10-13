@@ -81,6 +81,7 @@ condition.
 
 Resource representation
 ~~~~~~~~~~~~~~~~~~~~~~~
+
 The key difference of REST approach from others API is instead having one URI
 for all our requests, REST demand separate service by resources with unique
 URI. Each of them should have limited amount of stateless and standard HTTP
@@ -110,7 +111,8 @@ operations.
 
 
 Security
-~~~~~~~~
+--------
+
 With the write functionality security becomes much bigger an issue.  The Ganeti
 RAPI uses basic HTTP authentication on top of SSL connection to grant access to
 an exported resource. The password stores locally in Apache-style .htpasswd
