@@ -663,7 +663,7 @@ class OS(ConfigObject):
     "name",
     "path",
     "status",
-    "api_version",
+    "api_versions",
     "create_script",
     "export_script",
     "import_script",
