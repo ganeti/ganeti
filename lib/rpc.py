@@ -172,7 +172,9 @@ class RpcRunner(object):
 
     """
     idict = instance.ToDict()
-    idict["hvparams"] = self._cfg.GetClusterInfo().FillHV(instance)
+    cluster = self._cfg.GetClusterInfo()
+    idict["hvparams"] = cluster.FillHV(instance)
+    idict["beparams"] = cluster.FillBE(instance)
     return idict
 
   def call_volume_list(self, node_list, vg_name):
