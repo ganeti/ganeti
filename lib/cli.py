@@ -49,6 +49,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
+           "ValidateBeParams",
            ]
 
 
@@ -399,6 +400,27 @@ def SplitNodeOption(value):
     return value.split(':', 1)
   else:
     return (value, None)
+
+
+def ValidateBeParams(bep):
+  """Parse and check the given beparams.
+
+  The function will update in-place the given dictionary.
+
+  @type bep: dict
+  @param bep: input beparams
+  @raise errors.ParameterError: if the input values are not OK
+  @raise errors.UnitParseError: if the input values are not OK
+
+  """
+  if constants.BE_MEMORY in bep:
+    bep[constants.BE_MEMORY] = utils.ParseUnit(bep[constants.BE_MEMORY])
+
+  if constants.BE_VCPUS in bep:
+    try:
+      bep[constants.BE_VCPUS] = int(bep[constants.BE_VCPUS])
+    except ValueError:
+      raise errors.ParameterError("Invalid number of VCPUs")
 
 
 def AskUser(text, choices=None):
