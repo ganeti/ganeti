@@ -323,11 +323,9 @@ class OpCreateInstance(OpCode):
     "disk_template", "snode", "swap_size", "mode",
     "vcpus", "ip", "bridge", "src_node", "src_path", "start",
     "wait_for_sync", "ip_check", "mac",
-    "kernel_path", "initrd_path", "hvm_boot_order", "hvm_acpi",
-    "hvm_pae", "hvm_cdrom_image_path", "vnc_bind_address",
     "file_storage_dir", "file_driver",
-    "iallocator", "hvm_nic_type", "hvm_disk_type",
-    "hypervisor",
+    "iallocator",
+    "hypervisor", "hvparams", "beparams",
     ]
 
 

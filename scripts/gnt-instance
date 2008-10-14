@@ -266,17 +266,22 @@ def AddInstance(opts, args):
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
-  kernel_path = _TransformPath(opts.kernel_path)
-  initrd_path = _TransformPath(opts.initrd_path)
+  hypervisor = None
+  hvparams = {}
+  if opts.hypervisor:
+    hypervisor, hvparams = opts.hypervisor
 
-  hvm_acpi = opts.hvm_acpi == _VALUE_TRUE
-  hvm_pae = opts.hvm_pae == _VALUE_TRUE
+##  kernel_path = _TransformPath(opts.kernel_path)
+##  initrd_path = _TransformPath(opts.initrd_path)
 
-  if ((opts.hvm_cdrom_image_path is not None) and
-      (opts.hvm_cdrom_image_path.lower() == constants.VALUE_NONE)):
-    hvm_cdrom_image_path = None
-  else:
-    hvm_cdrom_image_path = opts.hvm_cdrom_image_path
+##  hvm_acpi = opts.hvm_acpi == _VALUE_TRUE
+##  hvm_pae = opts.hvm_pae == _VALUE_TRUE
+
+##  if ((opts.hvm_cdrom_image_path is not None) and
+##      (opts.hvm_cdrom_image_path.lower() == constants.VALUE_NONE)):
+##    hvm_cdrom_image_path = None
+##  else:
+##    hvm_cdrom_image_path = opts.hvm_cdrom_image_path
 
   op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
                                 disk_size=opts.size, swap_size=opts.swap,
@@ -288,17 +293,12 @@ def AddInstance(opts, args):
                                 start=opts.start, ip_check=opts.ip_check,
                                 wait_for_sync=opts.wait_for_sync,
                                 mac=opts.mac,
-                                kernel_path=kernel_path,
-                                initrd_path=initrd_path,
+                                hypervisor=hypervisor,
+                                hvparams=hvparams,
                                 iallocator=opts.iallocator,
-                                hvm_boot_order=opts.hvm_boot_order,
                                 file_storage_dir=opts.file_storage_dir,
                                 file_driver=opts.file_driver,
-                                hvm_acpi=hvm_acpi, hvm_pae=hvm_pae,
-                                hvm_cdrom_image_path=hvm_cdrom_image_path,
-                                vnc_bind_address=opts.vnc_bind_address,
-                                hvm_nic_type=opts.hvm_nic_type,
-                                hvm_disk_type=opts.hvm_disk_type)
+                                )
 
   SubmitOrSend(op, opts)
   return 0
@@ -918,28 +918,10 @@ add_opts = [
   make_option("--iallocator", metavar="<NAME>",
               help="Select nodes for the instance automatically using the"
               " <NAME> iallocator plugin", default=None, type="string"),
-  make_option("--hvm-acpi", dest="hvm_acpi",
-              help="ACPI support for HVM (true|false)",
-              metavar="<BOOL>", choices=["true", "false"]),
-  make_option("--hvm-nic-type", dest="hvm_nic_type",
-              help="Type of virtual NIC for HVM "
-              "(rtl8139,ne2k_pci,ne2k_isa,paravirtual)",
-              metavar="NICTYPE", choices=[constants.HT_HVM_NIC_RTL8139,
-                                          constants.HT_HVM_NIC_NE2K_PCI,
-                                          constants.HT_HVM_NIC_NE2K_ISA,
-                                          constants.HT_HVM_DEV_PARAVIRTUAL],
-              default=constants.HT_HVM_NIC_RTL8139),
-  make_option("--hvm-disk-type", dest="hvm_disk_type",
-              help="Type of virtual disks for HVM (ioemu,paravirtual)",
-              metavar="DISKTYPE", choices=[constants.HT_HVM_DEV_IOEMU,
-                                           constants.HT_HVM_DEV_PARAVIRTUAL],
-              default=constants.HT_HVM_DEV_IOEMU,),
-  make_option("--hvm-pae", dest="hvm_pae",
-              help="PAE support for HVM (true|false)",
-              metavar="<BOOL>", choices=["true", "false"]),
-  make_option("--hvm-cdrom-image-path", dest="hvm_cdrom_image_path",
-              help="CDROM image path for HVM (absolute path or None)",
-              default=None, type="string", metavar="<CDROMIMAGE>"),
+  ikv_option("-H", "--hypervisor", dest="hypervisor",
+              help="Hypervisor and hypervisor options, in the format"
+              " hypervisor:option=value,option=value,...", default=None,
+              type="identkeyval"),
   make_option("--vnc-bind-address", dest="vnc_bind_address",
               help="bind address for VNC (IP address)",
               default=None, type="string", metavar="<VNCADDRESS>"),

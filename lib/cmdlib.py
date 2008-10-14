@@ -3153,7 +3153,7 @@ class LUCreateInstance(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   _OP_REQP = ["instance_name", "mem_size", "disk_size",
               "disk_template", "swap_size", "mode", "start", "vcpus",
-              "wait_for_sync", "ip_check", "mac"]
+              "wait_for_sync", "ip_check", "mac", "hvparams"]
   REQ_BGL = False
 
   def _ExpandNode(self, node):
@@ -3174,10 +3174,7 @@ class LUCreateInstance(LogicalUnit):
     self.needed_locks = {}
 
     # set optional parameters to none if they don't exist
-    for attr in ["kernel_path", "initrd_path", "pnode", "snode",
-                 "iallocator", "hvm_boot_order", "hvm_acpi", "hvm_pae",
-                 "hvm_cdrom_image_path", "hvm_nic_type", "hvm_disk_type",
-                 "vnc_bind_address", "hypervisor"]:
+    for attr in ["pnode", "snode", "iallocator", "hypervisor"]:
       if not hasattr(self.op, attr):
         setattr(self.op, attr, None)
 
@@ -3201,6 +3198,11 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
                                  " cluster (%s)" % (self.op.hypervisor,
                                   ",".join(enabled_hvs)))
+
+    # check hypervisor parameter syntax (locally)
+
+    hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
+    hv_type.CheckParameterSyntax(self.op.hvparams)
 
     #### instance parameters check
 
@@ -3237,11 +3239,6 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("invalid MAC address specified: %s" %
                                    self.op.mac)
 
-    # boot order verification
-    if self.op.hvm_boot_order is not None:
-      if len(self.op.hvm_boot_order.strip("acdn")) != 0:
-        raise errors.OpPrereqError("invalid boot order specified,"
-                                   " must be one or more of [acdn]")
     # file storage checks
     if (self.op.file_driver and
         not self.op.file_driver in constants.FILE_DRIVER):
@@ -3435,12 +3432,13 @@ class LUCreateInstance(LogicalUnit):
                                    " the primary node.")
       self.secondaries.append(self.op.snode)
 
+    nodenames = [pnode.name] + self.secondaries
+
     req_size = _ComputeDiskSize(self.op.disk_template,
                                 self.op.disk_size, self.op.swap_size)
 
     # Check lv size requirements
     if req_size is not None:
-      nodenames = [pnode.name] + self.secondaries
       nodeinfo = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
                                          self.op.hypervisor)
       for node in nodenames:
@@ -3457,14 +3455,24 @@ class LUCreateInstance(LogicalUnit):
                                      " %d MB available, %d MB required" %
                                      (node, info['vg_free'], req_size))
 
+    # hypervisor parameter validation
+    hvinfo = self.rpc.call_hypervisor_validate_params(nodenames,
+                                                      self.op.hypervisor,
+                                                      self.op.hvparams)
+    for node in nodenames:
+      info = hvinfo.get(node, None)
+      if not info or not isinstance(info, (tuple, list)):
+        raise errors.OpPrereqError("Cannot get current information"
+                                   " from node '%s' (%s)" % (node, info))
+      if not info[0]:
+        raise errors.OpPrereqError("Hypervisor parameter validation failed:"
+                                   " %s" % info[1])
+
     # os verification
     os_obj = self.rpc.call_os_get(pnode.name, self.op.os_type)
     if not os_obj:
       raise errors.OpPrereqError("OS '%s' not in supported os list for"
                                  " primary node"  % self.op.os_type)
-
-    if self.op.kernel_path == constants.VALUE_NONE:
-      raise errors.OpPrereqError("Can't set instance kernel to none")
 
     # bridge check on primary node
     if not self.rpc.call_bridges_exist(self.pnode.name, [self.op.bridge]):
@@ -3477,35 +3485,6 @@ class LUCreateInstance(LogicalUnit):
       _CheckNodeFreeMemory(self, self.pnode.name,
                            "creating instance %s" % self.op.instance_name,
                            self.op.mem_size, self.op.hypervisor)
-
-    # hvm_cdrom_image_path verification
-    if self.op.hvm_cdrom_image_path is not None:
-      # FIXME (als): shouldn't these checks happen on the destination node?
-      if not os.path.isabs(self.op.hvm_cdrom_image_path):
-        raise errors.OpPrereqError("The path to the HVM CDROM image must"
-                                   " be an absolute path or None, not %s" %
-                                   self.op.hvm_cdrom_image_path)
-      if not os.path.isfile(self.op.hvm_cdrom_image_path):
-        raise errors.OpPrereqError("The HVM CDROM image must either be a"
-                                   " regular file or a symlink pointing to"
-                                   " an existing regular file, not %s" %
-                                   self.op.hvm_cdrom_image_path)
-
-    # vnc_bind_address verification
-    if self.op.vnc_bind_address is not None:
-      if not utils.IsValidIP(self.op.vnc_bind_address):
-        raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
-                                   " like a valid IP address" %
-                                   self.op.vnc_bind_address)
-
-    # Xen HVM device type checks
-    if self.op.hypervisor == constants.HT_XEN_HVM:
-      if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
-        raise errors.OpPrereqError("Invalid NIC type %s specified for Xen HVM"
-                                   " hypervisor" % self.op.hvm_nic_type)
-      if self.op.hvm_disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
-        raise errors.OpPrereqError("Invalid disk type %s specified for Xen HVM"
-                                   " hypervisor" % self.op.hvm_disk_type)
 
     if self.op.start:
       self.instance_status = 'up'
@@ -3534,8 +3513,8 @@ class LUCreateInstance(LogicalUnit):
     else:
       network_port = None
 
-    if self.op.vnc_bind_address is None:
-      self.op.vnc_bind_address = constants.VNC_DEFAULT_BIND_ADDRESS
+    ##if self.op.vnc_bind_address is None:
+    ##  self.op.vnc_bind_address = constants.VNC_DEFAULT_BIND_ADDRESS
 
     # this is needed because os.path.join does not accept None arguments
     if self.op.file_storage_dir is None:
@@ -3565,15 +3544,7 @@ class LUCreateInstance(LogicalUnit):
                             disk_template=self.op.disk_template,
                             status=self.instance_status,
                             network_port=network_port,
-                            kernel_path=self.op.kernel_path,
-                            initrd_path=self.op.initrd_path,
-                            hvm_boot_order=self.op.hvm_boot_order,
-                            hvm_acpi=self.op.hvm_acpi,
-                            hvm_pae=self.op.hvm_pae,
-                            hvm_cdrom_image_path=self.op.hvm_cdrom_image_path,
-                            vnc_bind_address=self.op.vnc_bind_address,
-                            hvm_nic_type=self.op.hvm_nic_type,
-                            hvm_disk_type=self.op.hvm_disk_type,
+                            hvparams=self.op.hvparams,
                             hypervisor=self.op.hypervisor,
                             )
 
