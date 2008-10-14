@@ -4254,7 +4254,7 @@ class LUGrowDisk(LogicalUnit):
   """
   HPATH = "disk-grow"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "disk", "amount"]
+  _OP_REQP = ["instance_name", "disk", "amount", "wait_for_sync"]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -4337,7 +4337,11 @@ class LUGrowDisk(LogicalUnit):
                                  (node, result[1]))
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance)
-    return
+    if self.op.wait_for_sync:
+      disk_abort = not _WaitForSync(self.cfg, instance, self.proc)
+      if disk_abort:
+        logger.Error("Warning: disk sync-ing has not returned a good status.\n"
+                     " Please check the instance.")
 
 
 class LUQueryInstanceData(NoHooksLU):
