@@ -3218,7 +3218,8 @@ class LUCreateInstance(LogicalUnit):
     if self.op.hypervisor is None:
       self.op.hypervisor = self.cfg.GetHypervisorType()
 
-    enabled_hvs = self.cfg.GetClusterInfo().enabled_hypervisors
+    cluster = self.cfg.GetClusterInfo()
+    enabled_hvs = cluster.enabled_hypervisors
     if self.op.hypervisor not in enabled_hvs:
       raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
                                  " cluster (%s)" % (self.op.hypervisor,
@@ -3226,8 +3227,10 @@ class LUCreateInstance(LogicalUnit):
 
     # check hypervisor parameter syntax (locally)
 
+    filled_hvp = cluster.FillDict(cluster.hvparams[self.op.hypervisor],
+                                  self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
-    hv_type.CheckParameterSyntax(self.op.hvparams)
+    hv_type.CheckParameterSyntax(filled_hvp)
 
     #### instance parameters check
 
