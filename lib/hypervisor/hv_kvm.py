@@ -47,6 +47,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _CTRL_DIR = _ROOT_DIR + "/ctrl"
   _DIRS = [_ROOT_DIR, _PIDS_DIR, _CTRL_DIR]
 
+  PARAMETERS = [
+    constants.HV_KERNEL_PATH,
+    constants.HV_INITRD_PATH,
+    constants.HV_ACPI,
+    ]
+
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
     # Let's make sure the directories we need exist, even if the RUN_DIR lives
@@ -182,7 +188,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # used just by the vnc server, if enabled
     kvm_cmd.extend(['-name', instance.name])
     kvm_cmd.extend(['-daemonize'])
-    if not instance.hvm_acpi:
+    if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(['-no-acpi'])
     if not instance.nics:
       kvm_cmd.extend(['-net', 'none'])
@@ -212,33 +218,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = 'file=%s,format=raw%s%s' % (rldev.dev_path, if_val, boot_val)
       kvm_cmd.extend(['-drive', drive_val])
 
-    # kernel handling
-    if instance.kernel_path in (None, constants.VALUE_DEFAULT):
-      kpath = constants.XEN_KERNEL # FIXME: other name??
-    else:
-      if not os.path.exists(instance.kernel_path):
-        raise errors.HypervisorError("The kernel %s for instance %s is"
-                                     " missing" % (instance.kernel_path,
-                                                   instance.name))
-      kpath = instance.kernel_path
-
-    kvm_cmd.extend(['-kernel', kpath])
-
-    # initrd handling
-    if instance.initrd_path in (None, constants.VALUE_DEFAULT):
-      if os.path.exists(constants.XEN_INITRD):
-        initrd_path = constants.XEN_INITRD
-      else:
-        initrd_path = None
-    elif instance.initrd_path == constants.VALUE_NONE:
-      initrd_path = None
-    else:
-      if not os.path.exists(instance.initrd_path):
-        raise errors.HypervisorError("The initrd %s for instance %s is"
-                                     " missing" % (instance.initrd_path,
-                                                   instance.name))
-      initrd_path = instance.initrd_path
-
+    kvm_cmd.extend(['-kernel', instance.hvparams[HV_KERNEL_PATH]])
+    initrd_path = instance.hvparams[HV_INITRD_PATH]
     if initrd_path:
       kvm_cmd.extend(['-initrd', initrd_path])
 
@@ -278,7 +259,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     pid_file = self._PIDS_DIR + "/%s" % instance.name
     pid = utils.ReadPidFile(pid_file)
     if pid > 0 and utils.IsProcessAlive(pid):
-      if force or not instance.hvm_acpi:
+      if force or not instance.hvparams[constants.HV_ACPI]:
         utils.KillProcess(pid)
       else:
         # This only works if the instance os has acpi support
@@ -372,3 +353,46 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     if not os.path.exists(constants.KVM_PATH):
       return "The kvm binary ('%s') does not exist." % constants.KVM_PATH
+
+  @classmethod
+  def CheckParameterSyntax(cls, hvparams):
+    """Check the given parameters for validity.
+
+    For the KVM hypervisor, this only check the existence of the
+    kernel.
+
+    @type hvparams:  dict
+    @param hvparams: dictionary with parameter names/value
+    @raise errors.HypervisorError: when a parameter is not valid
+
+    """
+    super(KvmHypervisor, cls).CheckParameterSyntax(hvparams)
+
+    if not hvparams[constants.HV_KERNEL_PATH]:
+      raise errors.HypervisorError("Need a kernel for the instance")
+
+    if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
+      raise errors.HypervisorError("The kernel path must an absolute path")
+
+    if hvparams[constants.HV_INITRD_PATH]:
+      if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):
+        raise errors.HypervisorError("The initrd path must an absolute path"
+                                     ", if defined")
+
+  def ValidateParameters(self, hvparams):
+    """Check the given parameters for validity.
+
+    For the KVM hypervisor, this checks the existence of the
+    kernel.
+
+    """
+    super(KvmHypervisor, self).ValidateParameters(hvparams)
+
+    kernel_path = hvparams[constants.HV_KERNEL_PATH]
+    if not os.path.isfile(kernel_path):
+      raise errors.HypervisorError("Instance kernel '%s' not found or"
+                                   " not a file" % kernel_path)
+    initrd_path = hvparams[constants.HV_INITRD_PATH]
+    if initrd_path and not os.path.isfile(initrd_path):
+      raise errors.HypervisorError("Instance initrd '%s' not found or"
+                                   " not a file" % initrd_path)
