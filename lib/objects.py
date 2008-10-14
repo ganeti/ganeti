@@ -508,8 +508,6 @@ class Instance(TaggableObject):
     "hvparams",
     "beparams",
     "status",
-    "memory",
-    "vcpus",
     "nics",
     "disks",
     "disk_template",
