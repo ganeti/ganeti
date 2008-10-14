@@ -661,6 +661,10 @@
 
         <cmdsynopsis>
           <command>info</command>
+          <group>
+            <arg>-s</arg>
+            <arg>--static</arg>
+          </group>
           <arg rep="repeat"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -669,6 +673,12 @@
           is different from <command>list</command> as it shows
           detailed data about the instance's disks (especially useful
           for drbd disk template).
+        </para>
+
+        <para>
+          If the option <option>-s</option> is used, only information
+          available in the configuration file is returned, without
+          querying nodes, making the operation faster.
         </para>
       </refsect3>
 

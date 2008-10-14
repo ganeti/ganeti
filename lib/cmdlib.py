@@ -4312,7 +4312,7 @@ class LUQueryInstanceData(NoHooksLU):
   """Query runtime instance data.
 
   """
-  _OP_REQP = ["instances"]
+  _OP_REQP = ["instances", "static"]
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -4359,8 +4359,13 @@ class LUQueryInstanceData(NoHooksLU):
     """Compute block device status.
 
     """
-    self.cfg.SetDiskID(dev, instance.primary_node)
-    dev_pstatus = self.rpc.call_blockdev_find(instance.primary_node, dev)
+    static = self.op.static
+    if not static:
+      self.cfg.SetDiskID(dev, instance.primary_node)
+      dev_pstatus = self.rpc.call_blockdev_find(instance.primary_node, dev)
+    else:
+      dev_pstatus = None
+
     if dev.dev_type in constants.LDS_DRBD:
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
@@ -4368,7 +4373,7 @@ class LUQueryInstanceData(NoHooksLU):
       else:
         snode = dev.logical_id[0]
 
-    if snode:
+    if snode and not static:
       self.cfg.SetDiskID(dev, snode)
       dev_sstatus = self.rpc.call_blockdev_find(snode, dev)
     else:
@@ -4396,13 +4401,16 @@ class LUQueryInstanceData(NoHooksLU):
     """Gather and return data"""
     result = {}
     for instance in self.wanted_instances:
-      remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                                instance.name,
-                                                instance.hypervisor)
-      if remote_info and "state" in remote_info:
-        remote_state = "up"
+      if not self.op.static:
+        remote_info = self.rpc.call_instance_info(instance.primary_node,
+                                                  instance.name,
+                                                  instance.hypervisor)
+        if remote_info and "state" in remote_info:
+          remote_state = "up"
+        else:
+          remote_state = "down"
       else:
-        remote_state = "down"
+        remote_state = None
       if instance.status == "down":
         config_state = "down"
       else:

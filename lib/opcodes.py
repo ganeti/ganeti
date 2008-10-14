@@ -415,7 +415,7 @@ class OpQueryInstances(OpCode):
 class OpQueryInstanceData(OpCode):
   """Compute the run-time status of instances."""
   OP_ID = "OP_INSTANCE_QUERY_DATA"
-  __slots__ = ["instances"]
+  __slots__ = ["instances", "static"]
 
 
 class OpSetInstanceParams(OpCode):
