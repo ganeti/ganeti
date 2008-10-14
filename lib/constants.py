@@ -252,6 +252,25 @@ INSTANCE_REBOOT_SOFT = "soft"
 INSTANCE_REBOOT_HARD = "hard"
 INSTANCE_REBOOT_FULL = "full"
 
+# HV parameter names (global namespace)
+HV_BOOT_ORDER = "boot_order"
+HV_CDROM_IMAGE_PATH = "cdrom_image_path"
+HV_NIC_TYPE = "nic_type"
+HV_DISK_TYPE = "disk_type"
+HV_VNC_BIND_ADDRESS = "vnc_bind_address"
+HV_ACPI = "acpi"
+HV_PAE = "pae"
+HV_KERNEL_PATH = "kernel_path"
+HV_INITRD_PATH = "initrd_path"
+
+# BE parameter names
+BE_MEMSIZE = "memory"
+BE_VCPUS = "vcpus"
+BE_AUTOBALANCE = "auto_balance"
+
+# BE GROUP
+BEGR_DEFAULT = "default"
+
 # Hypervisor constants
 HT_XEN_PVM = "xen-pvm"
 HT_FAKE = "fake"
