@@ -693,11 +693,6 @@ def ShowInstanceConfig(opts, args):
   retcode = 0
   op = opcodes.OpQueryInstanceData(instances=args)
   result = SubmitOpCode(op)
-  hvm_parameters = ("hvm_acpi", "hvm_pae", "hvm_cdrom_image_path",
-                    "hvm_boot_order", "hvm_nic_type", "hvm_disk_type")
-
-  pvm_parameters = ("kernel_path", "initrd_path")
-
   if not result:
     logger.ToStdout("No instances.")
     return 1
@@ -712,41 +707,53 @@ def ShowInstanceConfig(opts, args):
     buf.write("  Nodes:\n")
     buf.write("    - primary: %s\n" % instance["pnode"])
     buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
-    buf.write("  Hypervisor: %s\n" % instance["hypervisor"])
     buf.write("  Operating system: %s\n" % instance["os"])
     if instance.has_key("network_port"):
       buf.write("  Allocated network port: %s\n" % instance["network_port"])
-    if False not in map(instance.has_key, pvm_parameters):
-      if instance["kernel_path"] in (None, constants.VALUE_DEFAULT):
-        kpath = "(default: %s)" % constants.XEN_KERNEL
+    buf.write("  Hypervisor: %s\n" % instance["hypervisor"])
+    if instance["hypervisor"] == constants.HT_XEN_PVM:
+      hvattrs = ((constants.HV_KERNEL_PATH, "kernel path"),
+                 (constants.HV_INITRD_PATH, "initrd path"))
+    elif instance["hypervisor"] == constants.HT_XEN_HVM:
+      hvattrs = ((constants.HV_BOOT_ORDER, "boot order"),
+                 (constants.HV_ACPI, "ACPI"),
+                 (constants.HV_PAE, "PAE"),
+                 (constants.HV_CDROM_IMAGE_PATH, "virtual CDROM"),
+                 (constants.HV_NIC_TYPE, "NIC type"),
+                 (constants.HV_DISK_TYPE, "Disk type"),
+                 (constants.HV_VNC_BIND_ADDRESS, "VNC bind address"),
+                 )
+      # custom console information for HVM
+      vnc_bind_address = instance["hv_actual"][constants.HV_VNC_BIND_ADDRESS]
+      if vnc_bind_address == constants.BIND_ADDRESS_GLOBAL:
+        vnc_console_port = "%s:%s" % (instance["pnode"],
+                                      instance["network_port"])
+      elif vnc_bind_address == constants.LOCALHOST_IP_ADDRESS:
+        vnc_console_port = "%s:%s on node %s" % (vnc_bind_address,
+                                                 instance["network_port"],
+                                                 instance["pnode"])
       else:
-        kpath = instance["kernel_path"]
-      buf.write("  Kernel path: %s\n" % kpath)
-      if instance["initrd_path"] in (None, constants.VALUE_DEFAULT):
-        initrd = "(default: %s)" % constants.XEN_INITRD
-      elif instance["initrd_path"] == constants.VALUE_NONE:
-        initrd = "(none)"
+        vnc_console_port = "%s:%s" % (vnc_bind_address,
+                                      instance["network_port"])
+      buf.write("    - console connection: vnc to %s\n" % vnc_console_port)
+
+    else:
+      # auto-handle other hypervisor types
+      hvattrs = [(key, key) for key in instance["hv_actual"]]
+
+    for key, desc in hvattrs:
+      if key in instance["hv_instance"]:
+        val = instance["hv_instance"][key]
       else:
-        initrd = instance["initrd_path"]
-      buf.write("       initrd: %s\n" % initrd)
-    if False not in map(instance.has_key, hvm_parameters):
-      buf.write("  HVM:\n")
-      buf.write("    - boot order: %s\n" % instance["hvm_boot_order"])
-      buf.write("    - ACPI support: %s\n" % instance["hvm_acpi"])
-      buf.write("    - PAE support: %s\n" % instance["hvm_pae"])
-      buf.write("    - virtual CDROM: %s\n" % instance["hvm_cdrom_image_path"])
-      buf.write("    - virtual NIC type: %s\n" %  instance["hvm_nic_type"])
-      buf.write("    - virtual disk type: %s\n" %  instance["hvm_disk_type"])
-    if instance.has_key("vnc_bind_address"):
-      buf.write("  VNC bind address: %s\n" % instance["vnc_bind_address"])
-      buf.write("  VNC console port: %s\n" % instance["vnc_console_port"])
+        val = "default (%s)" % instance["hv_actual"][key]
+      buf.write("    - %s: %s\n" % (desc, val))
     buf.write("  Hardware:\n")
     buf.write("    - VCPUs: %d\n" % instance["vcpus"])
     buf.write("    - memory: %dMiB\n" % instance["memory"])
     buf.write("    - NICs: %s\n" %
-        ", ".join(["{MAC: %s, IP: %s, bridge: %s}" %
-                   (mac, ip, bridge)
-                     for mac, ip, bridge in instance["nics"]]))
+              ", ".join(["{MAC: %s, IP: %s, bridge: %s}" %
+                         (mac, ip, bridge)
+                         for mac, ip, bridge in instance["nics"]]))
     buf.write("  Block devices:\n")
 
     for device in instance["disks"]:

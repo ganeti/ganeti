@@ -4423,41 +4423,10 @@ class LUQueryInstanceData(NoHooksLU):
         "disks": disks,
         "vcpus": instance.vcpus,
         "hypervisor": instance.hypervisor,
+        "network_port": instance.network_port,
+        "hv_instance": instance.hvparams,
+        "hv_actual": self.cfg.GetClusterInfo().FillHV(instance),
         }
-
-      htkind = instance.hypervisor
-      if htkind == constants.HT_XEN_PVM:
-        idict["kernel_path"] = instance.kernel_path
-        idict["initrd_path"] = instance.initrd_path
-
-      if htkind == constants.HT_XEN_HVM:
-        idict["hvm_boot_order"] = instance.hvm_boot_order
-        idict["hvm_acpi"] = instance.hvm_acpi
-        idict["hvm_pae"] = instance.hvm_pae
-        idict["hvm_cdrom_image_path"] = instance.hvm_cdrom_image_path
-        idict["hvm_nic_type"] = instance.hvm_nic_type
-        idict["hvm_disk_type"] = instance.hvm_disk_type
-
-      if htkind in constants.HTS_REQ_PORT:
-        if instance.vnc_bind_address is None:
-          vnc_bind_address = constants.VNC_DEFAULT_BIND_ADDRESS
-        else:
-          vnc_bind_address = instance.vnc_bind_address
-        if instance.network_port is None:
-          vnc_console_port = None
-        elif vnc_bind_address == constants.BIND_ADDRESS_GLOBAL:
-          vnc_console_port = "%s:%s" % (instance.primary_node,
-                                       instance.network_port)
-        elif vnc_bind_address == constants.LOCALHOST_IP_ADDRESS:
-          vnc_console_port = "%s:%s on node %s" % (vnc_bind_address,
-                                                   instance.network_port,
-                                                   instance.primary_node)
-        else:
-          vnc_console_port = "%s:%s" % (instance.vnc_bind_address,
-                                        instance.network_port)
-        idict["vnc_console_port"] = vnc_console_port
-        idict["vnc_bind_address"] = vnc_bind_address
-        idict["network_port"] = instance.network_port
 
       result[instance.name] = idict
 
