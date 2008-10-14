@@ -1419,8 +1419,10 @@ def FinalizeExport(instance, snap_disks):
 
   config.add_section(constants.INISECT_INS)
   config.set(constants.INISECT_INS, 'name', instance.name)
-  config.set(constants.INISECT_INS, 'memory', '%d' % instance.memory)
-  config.set(constants.INISECT_INS, 'vcpus', '%d' % instance.vcpus)
+  config.set(constants.INISECT_INS, 'memory', '%d' %
+             instance.beparams[constants.BE_MEMORY])
+  config.set(constants.INISECT_INS, 'vcpus', '%d' %
+             instance.beparams[constants.BE_VCPUS])
   config.set(constants.INISECT_INS, 'disk_template', instance.disk_template)
 
   nic_count = 0
