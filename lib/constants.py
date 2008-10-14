@@ -278,12 +278,12 @@ HVS_PARAMETERS = frozenset([
 # BE parameter names
 BE_MEMORY = "memory"
 BE_VCPUS = "vcpus"
-BE_AUTOBALANCE = "auto_balance"
+BE_AUTO_BALANCE = "auto_balance"
 
 BES_PARAMETERS = frozenset([
   BE_MEMORY,
   BE_VCPUS,
-  BE_AUTOBALANCE,
+  BE_AUTO_BALANCE,
   ])
 
 # BE GROUP

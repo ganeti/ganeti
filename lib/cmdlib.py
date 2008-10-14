@@ -691,7 +691,7 @@ class LUVerifyCluster(LogicalUnit):
         needed_mem = 0
         for instance in instances:
           bep = self.cfg.GetClusterInfo().FillBE(instance_cfg[instance])
-          if bep[constants.BE_AUTOBALANCE]:
+          if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
         if nodeinfo['mfree'] < needed_mem:
           feedback_fn("  - ERROR: not enough memory on node %s to accomodate"
@@ -857,7 +857,7 @@ class LUVerifyCluster(LogicalUnit):
         feedback_fn("  - WARNING: multiple secondaries for instance %s"
                     % instance)
 
-      if not cluster.FillBE(inst_config)[constants.BE_AUTOBALANCE]:
+      if not cluster.FillBE(inst_config)[constants.BE_AUTO_BALANCE]:
         i_non_a_balanced.append(instance)
 
       for snode in inst_config.secondary_nodes:
@@ -4625,8 +4625,8 @@ class LUSetInstanceParams(LogicalUnit):
 
     if constants.BE_MEMORY in self.op.beparams and not self.force:
       mem_check_list = [pnode]
-      if be_new[constants.BE_AUTOBALANCE]:
-        # either we changed autobalance to yes or it was from before
+      if be_new[constants.BE_AUTO_BALANCE]:
+        # either we changed auto_balance to yes or it was from before
         mem_check_list.extend(instance.secondary_nodes)
       instance_info = self.rpc.call_instance_info(pnode, instance.name,
                                                   instance.hypervisor)
@@ -4651,7 +4651,7 @@ class LUSetInstanceParams(LogicalUnit):
                                      " from starting, due to %d MB of memory"
                                      " missing on its primary node" % miss_mem)
 
-      if be_new[constants.BE_AUTOBALANCE]:
+      if be_new[constants.BE_AUTO_BALANCE]:
         for node in instance.secondary_nodes:
           if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
             self.warn.append("Can't get info from secondary node %s" % node)

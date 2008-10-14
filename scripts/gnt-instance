@@ -201,6 +201,7 @@ def ListInstances(opts, args):
       "hvparams": "Hypervisor_parameters",
       "be/memory": "Configured_memory",
       "be/vcpus": "VCPUs",
+      "be/auto_balance": "Auto_balance",
       }
   else:
     headers = None
