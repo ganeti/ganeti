@@ -196,7 +196,7 @@ def ListInstances(opts, args):
       "hv/cdrom_image_path": "HVM_CDROM_image_path",
       "hv/nic_type": "HVM_NIC_type",
       "hv/disk_type": "HVM_Disk_type",
-      "vnc_bind_address": "VNC_bind_address",
+      "hv/vnc_bind_address": "VNC_bind_address",
       "serial_no": "SerialNo", "hypervisor": "Hypervisor",
       "hvparams": "Hypervisor_parameters",
       "be/memory": "Configured_memory",
@@ -883,17 +883,6 @@ add_opts = [
   make_option("--no-ip-check", dest="ip_check", default=True,
               action="store_false", help="Don't check that the instance's IP"
               " is alive (only valid with --no-start)"),
-  make_option("--kernel", dest="kernel_path",
-              help="Path to the instances' kernel (or 'default')",
-              default=None,
-              type="string", metavar="<FILENAME>"),
-  make_option("--initrd", dest="initrd_path",
-              help="Path to the instances' initrd (or 'none', or 'default')",
-              default=None,
-              type="string", metavar="<FILENAME>"),
-  make_option("--hvm-boot-order", dest="hvm_boot_order",
-              help="Boot device order for HVM (one or more of [acdn])",
-              default=None, type="string", metavar="<BOOTORDER>"),
   make_option("--file-storage-dir", dest="file_storage_dir",
               help="Relative path under default cluster-wide file storage dir"
               " to store file-based disks", default=None,
@@ -907,9 +896,6 @@ add_opts = [
               help="Hypervisor and hypervisor options, in the format"
               " hypervisor:option=value,option=value,...", default=None,
               type="identkeyval"),
-  make_option("--vnc-bind-address", dest="vnc_bind_address",
-              help="bind address for VNC (IP address)",
-              default=None, type="string", metavar="<VNCADDRESS>"),
   SUBMIT_OPT,
   ]
 
