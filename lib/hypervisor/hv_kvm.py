@@ -176,8 +176,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
-    kvm_cmd.extend(['-m', instance.memory])
-    kvm_cmd.extend(['-smp', instance.vcpus])
+    kvm_cmd.extend(['-m', instance.beparams[constants.BE_MEMORY]])
+    kvm_cmd.extend(['-smp', instance.beparams[constants.BE_VCPUS]])
     kvm_cmd.extend(['-pidfile', pidfile])
     # used just by the vnc server, if enabled
     kvm_cmd.extend(['-name', instance.name])
@@ -372,4 +372,3 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     if not os.path.exists(constants.KVM_PATH):
       return "The kvm binary ('%s') does not exist." % constants.KVM_PATH
-
