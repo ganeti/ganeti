@@ -876,3 +876,25 @@ class RpcRunner(object):
     c.run()
     result = c.getresult()
     return result
+
+
+  def call_hypervisor_validate_params(self, node_list, hvname, hvparams):
+    """Validate the hypervisor params.
+
+    This is a multi-node call.
+
+    @type node_list: list
+    @param node_list: the list of nodes to query
+    @type hvname: string
+    @param hvname: the hypervisor name
+    @type hvparams: dict
+    @param hvparams: the hypervisor parameters to be validated
+
+    """
+    cluster = self._cfg.GetClusterInfo()
+    hv_full = cluster.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
+    c = Client("hypervisor_validate_params", [hvname, hv_full])
+    c.connect_list(node_list)
+    c.run()
+    result = c.getresult()
+    return result

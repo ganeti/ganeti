@@ -605,6 +605,16 @@ class NodeHttpServer(http.HttpServer):
 
     return backend.JobQueueRename(old, new)
 
+  # hypervisor ---------------
+
+  @staticmethod
+  def perspective_hypervisor_validate_params(params):
+    """Validate the hypervisor parameters.
+
+    """
+    (hvname, hvparams) = params
+    return backend.ValidateHVParams(hvname, hvparams)
+
 
 def ParseOptions():
   """Parse the command line options.

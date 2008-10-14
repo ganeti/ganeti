@@ -1794,6 +1794,25 @@ def CloseBlockDevices(disks):
     return (True, "All devices secondary")
 
 
+def ValidateHVParams(hvname, hvparams):
+  """Validates the given hypervisor parameters.
+
+  @type hvname: string
+  @param hvname: the hypervisor name
+  @type hvparams: dict
+  @param hvparams: the hypervisor parameters to be validated
+  @rtype: tuple (bool, str)
+  @return: tuple of (success, message)
+
+  """
+  try:
+    hv_type = hypervisor.GetHypervisor(hvname)
+    hv_type.ValidateParameters(hvparams)
+    return (True, "Validation passed")
+  except errors.HypervisorError, err:
+    return (False, str(err))
+
+
 class HooksRunner(object):
   """Hook runner.
 
