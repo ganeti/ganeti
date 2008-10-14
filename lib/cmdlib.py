@@ -31,6 +31,7 @@ import tempfile
 import re
 import platform
 import logging
+import copy
 
 from ganeti import ssh
 from ganeti import logger
@@ -3139,6 +3140,36 @@ def _ComputeDiskSize(disk_template, disk_size, swap_size):
   return req_size_dict[disk_template]
 
 
+def _CheckHVParams(lu, nodenames, hvname, hvparams):
+  """Hypervisor parameter validation.
+
+  This function abstract the hypervisor parameter validation to be
+  used in both instance create and instance modify.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit for which we check
+  @type nodenames: list
+  @param nodenames: the list of nodes on which we should check
+  @type hvname: string
+  @param hvname: the name of the hypervisor we should use
+  @type hvparams: dict
+  @param hvparams: the parameters which we need to check
+  @raise errors.OpPrereqError: if the parameters are not valid
+
+  """
+  hvinfo = lu.rpc.call_hypervisor_validate_params(nodenames,
+                                                  hvname,
+                                                  hvparams)
+  for node in nodenames:
+    info = hvinfo.get(node, None)
+    if not info or not isinstance(info, (tuple, list)):
+      raise errors.OpPrereqError("Cannot get current information"
+                                 " from node '%s' (%s)" % (node, info))
+    if not info[0]:
+      raise errors.OpPrereqError("Hypervisor parameter validation failed:"
+                                 " %s" % info[1])
+
+
 class LUCreateInstance(LogicalUnit):
   """Create an instance.
 
@@ -3449,18 +3480,7 @@ class LUCreateInstance(LogicalUnit):
                                      " %d MB available, %d MB required" %
                                      (node, info['vg_free'], req_size))
 
-    # hypervisor parameter validation
-    hvinfo = self.rpc.call_hypervisor_validate_params(nodenames,
-                                                      self.op.hypervisor,
-                                                      self.op.hvparams)
-    for node in nodenames:
-      info = hvinfo.get(node, None)
-      if not info or not isinstance(info, (tuple, list)):
-        raise errors.OpPrereqError("Cannot get current information"
-                                   " from node '%s' (%s)" % (node, info))
-      if not info[0]:
-        raise errors.OpPrereqError("Hypervisor parameter validation failed:"
-                                   " %s" % info[1])
+    _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
     # os verification
     os_obj = self.rpc.call_os_get(pnode.name, self.op.os_type)
@@ -4450,11 +4470,18 @@ class LUSetInstanceParams(LogicalUnit):
   """
   HPATH = "instance-modify"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name"]
+  _OP_REQP = ["instance_name", "hvparams"]
   REQ_BGL = False
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4502,19 +4529,9 @@ class LUSetInstanceParams(LogicalUnit):
     self.bridge = getattr(self.op, "bridge", None)
     self.kernel_path = getattr(self.op, "kernel_path", None)
     self.initrd_path = getattr(self.op, "initrd_path", None)
-    self.hvm_boot_order = getattr(self.op, "hvm_boot_order", None)
-    self.hvm_acpi = getattr(self.op, "hvm_acpi", None)
-    self.hvm_pae = getattr(self.op, "hvm_pae", None)
-    self.hvm_nic_type = getattr(self.op, "hvm_nic_type", None)
-    self.hvm_disk_type = getattr(self.op, "hvm_disk_type", None)
-    self.hvm_cdrom_image_path = getattr(self.op, "hvm_cdrom_image_path", None)
-    self.vnc_bind_address = getattr(self.op, "vnc_bind_address", None)
     self.force = getattr(self.op, "force", None)
-    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac,
-                 self.kernel_path, self.initrd_path, self.hvm_boot_order,
-                 self.hvm_acpi, self.hvm_pae, self.hvm_cdrom_image_path,
-                 self.vnc_bind_address, self.hvm_nic_type, self.hvm_disk_type]
-    if all_parms.count(None) == len(all_parms):
+    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac]
+    if all_parms.count(None) == len(all_parms) and not self.op.hvparams:
       raise errors.OpPrereqError("No changes submitted")
     if self.mem is not None:
       try:
@@ -4543,65 +4560,36 @@ class LUSetInstanceParams(LogicalUnit):
       if not utils.IsValidMac(self.mac):
         raise errors.OpPrereqError('Invalid MAC address %s' % self.mac)
 
-    if self.kernel_path is not None:
-      self.do_kernel_path = True
-      if self.kernel_path == constants.VALUE_NONE:
-        raise errors.OpPrereqError("Can't set instance to no kernel")
-
-      if self.kernel_path != constants.VALUE_DEFAULT:
-        if not os.path.isabs(self.kernel_path):
-          raise errors.OpPrereqError("The kernel path must be an absolute"
-                                    " filename")
-    else:
-      self.do_kernel_path = False
-
-    if self.initrd_path is not None:
-      self.do_initrd_path = True
-      if self.initrd_path not in (constants.VALUE_NONE,
-                                  constants.VALUE_DEFAULT):
-        if not os.path.isabs(self.initrd_path):
-          raise errors.OpPrereqError("The initrd path must be an absolute"
-                                    " filename")
-    else:
-      self.do_initrd_path = False
-
-    # boot order verification
-    if self.hvm_boot_order is not None:
-      if self.hvm_boot_order != constants.VALUE_DEFAULT:
-        if len(self.hvm_boot_order.strip("acdn")) != 0:
-          raise errors.OpPrereqError("invalid boot order specified,"
-                                     " must be one or more of [acdn]"
-                                     " or 'default'")
-
-    # hvm_cdrom_image_path verification
-    if self.op.hvm_cdrom_image_path is not None:
-      if not (os.path.isabs(self.op.hvm_cdrom_image_path) or
-              self.op.hvm_cdrom_image_path.lower() == "none"):
-        raise errors.OpPrereqError("The path to the HVM CDROM image must"
-                                   " be an absolute path or None, not %s" %
-                                   self.op.hvm_cdrom_image_path)
-      if not (os.path.isfile(self.op.hvm_cdrom_image_path) or
-              self.op.hvm_cdrom_image_path.lower() == "none"):
-        raise errors.OpPrereqError("The HVM CDROM image must either be a"
-                                   " regular file or a symlink pointing to"
-                                   " an existing regular file, not %s" %
-                                   self.op.hvm_cdrom_image_path)
-
-    # vnc_bind_address verification
-    if self.op.vnc_bind_address is not None:
-      if not utils.IsValidIP(self.op.vnc_bind_address):
-        raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
-                                   " like a valid IP address" %
-                                   self.op.vnc_bind_address)
+    # checking the new params on the primary/secondary nodes
 
     instance = self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+    pnode = self.instance.primary_node
+    nodelist = [pnode]
+    nodelist.extend(instance.secondary_nodes)
+
+    if self.op.hvparams:
+      i_hvdict = copy.deepcopy(instance.hvparams)
+      for key, val in self.op.hvparams.iteritems():
+        if val is None:
+          try:
+            del i_hvdict[key]
+          except KeyError:
+            pass
+        else:
+          i_hvdict[key] = val
+      cluster = self.cfg.GetClusterInfo()
+      hv_new = cluster.FillDict(cluster.hvparams[instance.hypervisor],
+                                i_hvdict)
+      # local check
+      hypervisor.GetHypervisor(
+        instance.hypervisor).CheckParameterSyntax(hv_new)
+      _CheckHVParams(self, nodelist, instance.hypervisor, hv_new)
+      self.hv_new = hv_new
+
     self.warn = []
     if self.mem is not None and not self.force:
-      pnode = self.instance.primary_node
-      nodelist = [pnode]
-      nodelist.extend(instance.secondary_nodes)
       instance_info = self.rpc.call_instance_info(pnode, instance.name,
                                                   instance.hypervisor)
       nodeinfo = self.rpc.call_node_info(nodelist, self.cfg.GetVGName(),
@@ -4628,19 +4616,8 @@ class LUSetInstanceParams(LogicalUnit):
         if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
           self.warn.append("Can't get info from secondary node %s" % node)
         elif self.mem > nodeinfo[node]['memory_free']:
-          self.warn.append("Not enough memory to failover instance to secondary"
-                           " node %s" % node)
-
-    # Xen HVM device type checks
-    if instance.hypervisor == constants.HT_XEN_HVM:
-      if self.op.hvm_nic_type is not None:
-        if self.op.hvm_nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
-          raise errors.OpPrereqError("Invalid NIC type %s specified for Xen"
-                                     " HVM  hypervisor" % self.op.hvm_nic_type)
-      if self.op.hvm_disk_type is not None:
-        if self.op.hvm_disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
-          raise errors.OpPrereqError("Invalid disk type %s specified for Xen"
-                                     " HVM hypervisor" % self.op.hvm_disk_type)
+          self.warn.append("Not enough memory to failover instance to"
+                           " secondary node %s" % node)
 
     return
 
@@ -4671,39 +4648,10 @@ class LUSetInstanceParams(LogicalUnit):
     if self.mac:
       instance.nics[0].mac = self.mac
       result.append(("mac", self.mac))
-    if self.do_kernel_path:
-      instance.kernel_path = self.kernel_path
-      result.append(("kernel_path", self.kernel_path))
-    if self.do_initrd_path:
-      instance.initrd_path = self.initrd_path
-      result.append(("initrd_path", self.initrd_path))
-    if self.hvm_boot_order:
-      if self.hvm_boot_order == constants.VALUE_DEFAULT:
-        instance.hvm_boot_order = None
-      else:
-        instance.hvm_boot_order = self.hvm_boot_order
-      result.append(("hvm_boot_order", self.hvm_boot_order))
-    if self.hvm_acpi is not None:
-      instance.hvm_acpi = self.hvm_acpi
-      result.append(("hvm_acpi", self.hvm_acpi))
-    if self.hvm_pae is not None:
-      instance.hvm_pae = self.hvm_pae
-      result.append(("hvm_pae", self.hvm_pae))
-    if self.hvm_nic_type is not None:
-      instance.hvm_nic_type = self.hvm_nic_type
-      result.append(("hvm_nic_type", self.hvm_nic_type))
-    if self.hvm_disk_type is not None:
-      instance.hvm_disk_type = self.hvm_disk_type
-      result.append(("hvm_disk_type", self.hvm_disk_type))
-    if self.hvm_cdrom_image_path:
-      if self.hvm_cdrom_image_path == constants.VALUE_NONE:
-        instance.hvm_cdrom_image_path = None
-      else:
-        instance.hvm_cdrom_image_path = self.hvm_cdrom_image_path
-      result.append(("hvm_cdrom_image_path", self.hvm_cdrom_image_path))
-    if self.vnc_bind_address:
-      instance.vnc_bind_address = self.vnc_bind_address
-      result.append(("vnc_bind_address", self.vnc_bind_address))
+    if self.op.hvparams:
+      instance.hvparams = self.hv_new
+      for key, val in self.op.hvparams.iteritems():
+        result.append(("hv/%s" % key, val))
 
     self.cfg.Update(instance)
 
