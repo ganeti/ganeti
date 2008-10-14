@@ -502,14 +502,16 @@ def GetAllInstancesInfo(hypervisor_list):
     iinfo = hypervisor.GetHypervisor(hname).GetAllInstancesInfo()
     if iinfo:
       for name, inst_id, memory, vcpus, state, times in iinfo:
-        if name in output:
-          raise errors.HypervisorError("Instance %s running duplicate" % name)
-        output[name] = {
+        value = {
           'memory': memory,
           'vcpus': vcpus,
           'state': state,
           'time': times,
           }
+        if name in output and output[name] != value:
+          raise errors.HypervisorError("Instance %s running duplicate"
+                                       " with different parameters" % name)
+        output[name] = value
 
   return output
 
