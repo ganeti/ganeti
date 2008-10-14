@@ -4622,10 +4622,15 @@ class LUSetInstanceParams(LogicalUnit):
       self.hv_new = self.hv_inst = {}
 
     self.warn = []
+
     if constants.BE_MEMORY in self.op.beparams and not self.force:
+      mem_check_list = [pnode]
+      if be_new[constants.BE_AUTOBALANCE]:
+        # either we changed autobalance to yes or it was from before
+        mem_check_list.extend(instance.secondary_nodes)
       instance_info = self.rpc.call_instance_info(pnode, instance.name,
                                                   instance.hypervisor)
-      nodeinfo = self.rpc.call_node_info(nodelist, self.cfg.GetVGName(),
+      nodeinfo = self.rpc.call_node_info(mem_check_list, self.cfg.GetVGName(),
                                          instance.hypervisor)
 
       if pnode not in nodeinfo or not isinstance(nodeinfo[pnode], dict):
@@ -4646,12 +4651,13 @@ class LUSetInstanceParams(LogicalUnit):
                                      " from starting, due to %d MB of memory"
                                      " missing on its primary node" % miss_mem)
 
-      for node in instance.secondary_nodes:
-        if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
-          self.warn.append("Can't get info from secondary node %s" % node)
-        elif be_new[constants.BE_MEMORY] > nodeinfo[node]['memory_free']:
-          self.warn.append("Not enough memory to failover instance to"
-                           " secondary node %s" % node)
+      if be_new[constants.BE_AUTOBALANCE]:
+        for node in instance.secondary_nodes:
+          if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
+            self.warn.append("Can't get info from secondary node %s" % node)
+          elif be_new[constants.BE_MEMORY] > nodeinfo[node]['memory_free']:
+            self.warn.append("Not enough memory to failover instance to"
+                             " secondary node %s" % node)
 
     return
 
