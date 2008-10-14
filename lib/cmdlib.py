@@ -2609,12 +2609,9 @@ class LUQueryInstances(NoHooksLU):
       "admin_state", "admin_ram",
       "disk_template", "ip", "mac", "bridge",
       "sda_size", "sdb_size", "vcpus", "tags",
-      "network_port", "kernel_path", "initrd_path",
-      "hvm_boot_order", "hvm_acpi", "hvm_pae",
-      "hvm_cdrom_image_path", "hvm_nic_type",
-      "hvm_disk_type", "vnc_bind_address",
-      "serial_no", "hypervisor",
-      ])
+      "network_port",
+      "serial_no", "hypervisor", "hvparams",
+      ] + ["hv/%s" % name for name in constants.HVS_PARAMETERS])
     _CheckOutputFields(static=self.static_fields,
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
@@ -2683,9 +2680,11 @@ class LUQueryInstances(NoHooksLU):
 
     # end data gathering
 
+    HVPREFIX = "hv/"
     output = []
     for instance in instance_list:
       iout = []
+      i_hv = self.cfg.GetClusterInfo().FillHV(instance)
       for field in self.op.output_fields:
         if field == "name":
           val = instance.name
@@ -2746,18 +2745,13 @@ class LUQueryInstances(NoHooksLU):
           val = list(instance.GetTags())
         elif field == "serial_no":
           val = instance.serial_no
-        elif field in ("network_port", "kernel_path", "initrd_path",
-                       "hvm_boot_order", "hvm_acpi", "hvm_pae",
-                       "hvm_cdrom_image_path", "hvm_nic_type",
-                       "hvm_disk_type", "vnc_bind_address"):
-          val = getattr(instance, field, None)
-          if val is not None:
-            pass
-          elif field in ("hvm_nic_type", "hvm_disk_type",
-                         "kernel_path", "initrd_path"):
-            val = "default"
-          else:
-            val = "-"
+        elif field == "network_port":
+          val = instance.network_port
+        elif (field.startswith(HVPREFIX) and
+              field[len(HVPREFIX):] in constants.HVS_PARAMETERS):
+          val = i_hv.get(field[len(HVPREFIX):], None)
+        elif field == "hvparams":
+          val = i_hv
         elif field == "hypervisor":
           val = instance.hypervisor
         else:

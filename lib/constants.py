@@ -263,6 +263,18 @@ HV_PAE = "pae"
 HV_KERNEL_PATH = "kernel_path"
 HV_INITRD_PATH = "initrd_path"
 
+HVS_PARAMETERS = frozenset([
+  HV_BOOT_ORDER,
+  HV_CDROM_IMAGE_PATH,
+  HV_NIC_TYPE,
+  HV_DISK_TYPE,
+  HV_VNC_BIND_ADDRESS,
+  HV_ACPI,
+  HV_PAE,
+  HV_KERNEL_PATH,
+  HV_INITRD_PATH,
+  ])
+
 # BE parameter names
 BE_MEMSIZE = "memory"
 BE_VCPUS = "vcpus"
