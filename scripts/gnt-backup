@@ -92,6 +92,13 @@ def ImportInstance(opts, args):
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
+  hypervisor = None
+  hvparams = {}
+  if opts.hypervisor:
+    hypervisor, hvparams = opts.hypervisor
+
+  ValidateBeParams(opts.beparams)
+
   op = opcodes.OpCreateInstance(instance_name=instance,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
@@ -104,15 +111,9 @@ def ImportInstance(opts, args):
                                 file_storage_dir=opts.file_storage_dir,
                                 file_driver=opts.file_driver,
                                 iallocator=opts.iallocator,
-                                auto_balance=auto_balance,
-                                hvm_boot_order=opts.hvm_boot_order,
-                                hvm_acpi=opts.hvm_acpi,
-                                hvm_nic_type=opts.hvm_nic_type,
-                                hvm_disk_type=opts.hvm_disk_type,
-                                hvm_pae=opts.hvm_pae,
-                                hvm_cdrom_image_path=opts.hvm_cdrom_image_path,
-                                vnc_bind_address=opts.vnc_bind_address,
-                                beparams=ValidateBeParams(opts.beparams))
+                                hypervisor=hypervisor,
+                                hvparams=hvparams,
+                                beparams=opts.beparams)
 
   SubmitOpCode(op)
   return 0
@@ -148,6 +149,9 @@ import_opts = [
              default=20 * 1024, type="unit", metavar="<size>"),
   cli_option("--swap-size", dest="swap", help="Swap size",
              default=4 * 1024, type="unit", metavar="<size>"),
+  keyval_option("-B", "--backend", dest="beparams",
+                type="keyval", default={},
+                help="Backend parameters"),
   make_option("-t", "--disk-template", dest="disk_template",
               help="Custom disk setup (diskless, file, plain, drbd)",
               default=None, metavar="TEMPL"),
@@ -175,34 +179,10 @@ import_opts = [
               metavar="<DIR>"),
   make_option("--file-driver", dest="file_driver", help="Driver to use"
               " for image files", default="loop", metavar="<DRIVER>"),
-  make_option("--hvm-boot-order", dest="hvm_boot_order",
-              help="Boot device order for HVM (one or more of [acdn])",
-              default=None, type="string", metavar="<BOOTORDER>"),
-  make_option("--hvm-acpi", dest="hvm_acpi",
-              help="ACPI support for HVM (true|false)",
-              metavar="<BOOL>", choices=["true", "false"]),
-  make_option("--hvm-nic-type", dest="hvm_nic_type",
-              help="Type of virtual NIC for HVM "
-              "(rtl8139,ne2k_pci,ne2k_isa,paravirtual)",
-              metavar="NICTYPE", choices=[constants.HT_HVM_NIC_RTL8139,
-                                          constants.HT_HVM_NIC_NE2K_PCI,
-                                          constants.HT_HVM_NIC_NE2K_ISA,
-                                          constants.HT_HVM_DEV_PARAVIRTUAL],
-              default=constants.HT_HVM_NIC_RTL8139),
-  make_option("--hvm-disk-type", dest="hvm_disk_type",
-              help="Type of virtual disks for HVM (ioemu,paravirtual)",
-              metavar="DISKTYPE", choices=[constants.HT_HVM_DEV_IOEMU,
-                                           constants.HT_HVM_DEV_PARAVIRTUAL],
-              default=constants.HT_HVM_DEV_IOEMU,),
-  make_option("--hvm-pae", dest="hvm_pae",
-              help="PAE support for HVM (true|false)",
-              metavar="<BOOL>", choices=["true", "false"]),
-  make_option("--hvm-cdrom-image-path", dest="hvm_cdrom_image_path",
-              help="CDROM image path for HVM (absolute path or None)",
-              default=None, type="string", metavar="<CDROMIMAGE>"),
-  make_option("--vnc-bind-address", dest="vnc_bind_address",
-              help="bind address for VNC (IP address)",
-              default=None, type="string", metavar="<VNCADDRESS>"),
+  ikv_option("-H", "--hypervisor", dest="hypervisor",
+              help="Hypervisor and hypervisor options, in the format"
+              " hypervisor:option=value,option=value,...", default=None,
+              type="identkeyval"),
   ]
 
 commands = {
