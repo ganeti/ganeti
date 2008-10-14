@@ -158,6 +158,23 @@ class RpcRunner(object):
     """
     self._cfg = cfg
 
+  def _InstDict(self, instance):
+    """Convert the given instance to a dict.
+
+    This is done via the instance's ToDict() method and additionally
+    we fill the hvparams with the cluster defaults.
+
+    @type instance: L{objects.Instance}
+    @param instance: an Instance object
+    @rtype: dict
+    @return: the instance dict, with the hvparams filled with the
+        cluster defaults
+
+    """
+    idict = instance.ToDict()
+    idict["hvparams"] = self._cfg.GetClusterInfo().FillHV(instance)
+    return idict
+
   def call_volume_list(self, node_list, vg_name):
     """Gets the logical volumes present in a given volume group.
 
@@ -201,7 +218,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("instance_start", [instance.ToDict(), extra_args])
+    c = Client("instance_start", [self._InstDict(instance), extra_args])
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
@@ -212,7 +229,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("instance_shutdown", [instance.ToDict()])
+    c = Client("instance_shutdown", [self._InstDict(instance)])
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
@@ -233,7 +250,7 @@ class RpcRunner(object):
         interpretation of this parameter is left to the hypervisor)
 
     """
-    c = Client("instance_migrate", [instance.ToDict(), target, live])
+    c = Client("instance_migrate", [self._InstDict(instance), target, live])
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
@@ -244,7 +261,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("instance_reboot", [instance.ToDict(), reboot_type, extra_args])
+    c = Client("instance_reboot", [self._InstDict(instance),
+                                   reboot_type, extra_args])
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
@@ -255,7 +273,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [inst.ToDict(), osdev, swapdev]
+    params = [self._InstDict(inst), osdev, swapdev]
     c = Client("instance_os_add", params)
     c.connect(node)
     c.run()
@@ -267,7 +285,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [inst.ToDict(), old_name, osdev, swapdev]
+    params = [self._InstDict(inst), old_name, osdev, swapdev]
     c = Client("instance_run_rename", params)
     c.connect(node)
     c.run()
@@ -694,7 +712,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [snap_bdev.ToDict(), dest_node, instance.ToDict(), cluster_name]
+    params = [snap_bdev.ToDict(), dest_node,
+              self._InstDict(instance), cluster_name]
     c = Client("snapshot_export", params)
     c.connect(node)
     c.run()
@@ -711,7 +730,7 @@ class RpcRunner(object):
     flat_disks = []
     for disk in snap_disks:
       flat_disks.append(disk.ToDict())
-    params = [instance.ToDict(), flat_disks]
+    params = [self._InstDict(instance), flat_disks]
     c = Client("finalize_export", params)
     c.connect(node)
     c.run()
@@ -738,7 +757,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [inst.ToDict(), osdev, swapdev, src_node, src_image, cluster_name]
+    params = [self._InstDict(inst), osdev, swapdev,
+              src_node, src_image, cluster_name]
     c = Client("instance_os_import", params)
     c.connect(node)
     c.run()
