@@ -29,6 +29,7 @@ pass to and from external parties.
 
 import ConfigParser
 import re
+import copy
 from cStringIO import StringIO
 
 from ganeti import errors
@@ -504,6 +505,8 @@ class Instance(TaggableObject):
     "primary_node",
     "os",
     "hypervisor",
+    "hvparams",
+    "beparams",
     "status",
     "memory",
     "vcpus",
@@ -703,6 +706,8 @@ class Cluster(TaggableObject):
     "cluster_name",
     "file_storage_dir",
     "enabled_hypervisors",
+    "hvparams",
+    "beparams",
     ]
 
   def ToDict(self):
@@ -722,6 +727,48 @@ class Cluster(TaggableObject):
     if not isinstance(obj.tcpudp_port_pool, set):
       obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
     return obj
+
+  @staticmethod
+  def FillDict(defaults_dict, custom_dict):
+    """Basic function to apply settings on top a default dict.
+
+    @type defaults_dict: dict
+    @param defaults_dict: dictionary holding the default values
+    @type custom_dict: dict
+    @param custom_dict: dictionary holding customized value
+    @rtype: dict
+    @return: dict with the 'full' values
+
+    """
+    ret_dict = copy.deepcopy(defaults_dict)
+    ret_dict.update(custom_dict)
+    return ret_dict
+
+  def FillHV(self, instance):
+    """Fill an instance's hvparams dict.
+
+    @type instance: object
+    @param instance: the instance parameter to fill
+    @rtype: dict
+    @return: a copy of the instance's hvparams with missing keys filled from
+        the cluster defaults
+
+    """
+    return self.FillDict(self.hvparams.get(instance.hypervisor, {}),
+                         instance.hvparams)
+
+  def FillBE(self, instance):
+    """Fill an instance's beparams dict.
+
+    @type instance: object
+    @param instance: the instance parameter to fill
+    @rtype: dict
+    @return: a copy of the instance's beparams with missing keys filled from
+        the cluster defaults
+
+    """
+    return self.FillDict(self.beparams.get(constants.BEGR_DEFAULT, {}),
+                         instance.beparams)
 
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
