@@ -28,9 +28,9 @@ import ganeti.errors
 import ganeti.opcodes
 
 from ganeti import constants
+from ganeti import http
 
 from ganeti.rapi import baserlib
-from ganeti.rapi import httperror
 
 
 I_FIELDS = ["name", "os", "pnode", "snodes",
@@ -313,6 +313,6 @@ class R_os(baserlib.R_Generic):
     diagnose_data = ganeti.cli.SubmitOpCode(op)
 
     if not isinstance(diagnose_data, list):
-      raise httperror.HTTPInternalError(message="Can't get OS list")
+      raise http.HTTPInternalError(message="Can't get OS list")
 
     return [row[0] for row in diagnose_data if row[1]]
