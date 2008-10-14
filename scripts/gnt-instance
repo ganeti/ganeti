@@ -181,10 +181,10 @@ def ListInstances(opts, args):
     headers = {
       "name": "Instance", "os": "OS", "pnode": "Primary_node",
       "snodes": "Secondary_Nodes", "admin_state": "Autostart",
-      "oper_state": "Running", "admin_ram": "Configured_memory",
+      "oper_state": "Running",
       "oper_ram": "Memory", "disk_template": "Disk_template",
       "ip": "IP_address", "mac": "MAC_address",
-      "bridge": "Bridge", "vcpus": "VCPUs",
+      "bridge": "Bridge",
       "sda_size": "Disk/0", "sdb_size": "Disk/1",
       "status": "Status", "tags": "Tags",
       "network_port": "Network_port",
@@ -199,16 +199,18 @@ def ListInstances(opts, args):
       "vnc_bind_address": "VNC_bind_address",
       "serial_no": "SerialNo", "hypervisor": "Hypervisor",
       "hvparams": "Hypervisor_parameters",
+      "be/memory": "Configured_memory",
+      "be/vcpus": "VCPUs",
       }
   else:
     headers = None
 
   if opts.human_readable:
-    unitfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size"]
+    unitfields = ["be/memory", "oper_ram", "sda_size", "sdb_size"]
   else:
     unitfields = None
 
-  numfields = ["admin_ram", "oper_ram", "sda_size", "sdb_size", "vcpus",
+  numfields = ["be/memory", "oper_ram", "sda_size", "sdb_size", "be/vcpus",
                "serial_no"]
 
   list_type_fields = ("tags",)
@@ -274,6 +276,8 @@ def AddInstance(opts, args):
   if opts.hypervisor:
     hypervisor, hvparams = opts.hypervisor
 
+  bep = ValidateBeParams(opts.beparams)
+
 ##  kernel_path = _TransformPath(opts.kernel_path)
 ##  initrd_path = _TransformPath(opts.initrd_path)
 
@@ -286,18 +290,19 @@ def AddInstance(opts, args):
 ##  else:
 ##    hvm_cdrom_image_path = opts.hvm_cdrom_image_path
 
-  op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
+  op = opcodes.OpCreateInstance(instance_name=instance,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
                                 mode=constants.INSTANCE_CREATE,
                                 os_type=opts.os, pnode=pnode,
-                                snode=snode, vcpus=opts.vcpus,
+                                snode=snode,
                                 ip=opts.ip, bridge=opts.bridge,
                                 start=opts.start, ip_check=opts.ip_check,
                                 wait_for_sync=opts.wait_for_sync,
                                 mac=opts.mac,
                                 hypervisor=hypervisor,
                                 hvparams=hvparams,
+                                beparams=opts.beparams,
                                 iallocator=opts.iallocator,
                                 file_storage_dir=opts.file_storage_dir,
                                 file_driver=opts.file_driver,
@@ -753,8 +758,10 @@ def ShowInstanceConfig(opts, args):
         val = "default (%s)" % instance["hv_actual"][key]
       buf.write("    - %s: %s\n" % (desc, val))
     buf.write("  Hardware:\n")
-    buf.write("    - VCPUs: %d\n" % instance["vcpus"])
-    buf.write("    - memory: %dMiB\n" % instance["memory"])
+    buf.write("    - VCPUs: %d\n" %
+              instance["be_actual"][constants.BE_VCPUS])
+    buf.write("    - memory: %dMiB\n" %
+              instance["be_actual"][constants.BE_MEMORY])
     buf.write("    - NICs: %s\n" %
               ", ".join(["{MAC: %s, IP: %s, bridge: %s}" %
                          (mac, ip, bridge)
@@ -777,8 +784,6 @@ def SetInstanceParams(opts, args):
     opts - class with options as members
     args - list with a single element, the instance name
   Opts used:
-    memory - the new memory size
-    vcpus - the new number of cpus
     mac - the new MAC address of the instance
 
   """
@@ -787,10 +792,11 @@ def SetInstanceParams(opts, args):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
 
-  op = opcodes.OpSetInstanceParams(instance_name=args[0], mem=opts.mem,
-                                   vcpus=opts.vcpus, ip=opts.ip,
+  op = opcodes.OpSetInstanceParams(instance_name=args[0],
+                                   ip=opts.ip,
                                    bridge=opts.bridge, mac=opts.mac,
                                    hvparams=opts.hypervisor,
+                                   beparams=opts.beparams,
                                    force=opts.force)
 
   # even if here we process the result, we allow submit only
@@ -852,10 +858,9 @@ add_opts = [
              " suffix is used",
              default=4 * 1024, type="unit", metavar="<size>"),
   os_opt,
-  cli_option("-m", "--memory", dest="mem", help="Memory size (in MiB)",
-              default=128, type="unit", metavar="<mem>"),
-  make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
-              default=1, type="int", metavar="<PROC>"),
+  keyval_option("-B", "--backend", dest="beparams",
+                type="keyval", default={},
+                help="Backend parameters"),
   make_option("-t", "--disk-template", dest="disk_template",
               help="Custom disk setup (diskless, file, plain or drbd)",
               default=None, metavar="TEMPL"),

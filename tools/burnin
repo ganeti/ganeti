@@ -191,6 +191,11 @@ class Burner(object):
 
     self.opts = options
     self.instances = args
+    self.bep = {
+      constants.BE_MEMORY: options.mem_size,
+      constants.BE_VCPUS: 1,
+      }
+    self.hvp = {}
 
   def GetState(self):
     """Read the cluster state from the config."""
@@ -230,6 +235,7 @@ class Burner(object):
                  islice(cycle(self.nodes), 1, None),
                  self.instances)
     jobset = []
+
     for pnode, snode, instance in mytor:
       if self.opts.iallocator:
         pnode = snode = None
@@ -242,7 +248,6 @@ class Burner(object):
         Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
 
       op = opcodes.OpCreateInstance(instance_name=instance,
-                                    mem_size=self.opts.mem_size,
                                     disk_size=self.opts.os_size,
                                     swap_size=self.opts.swap_size,
                                     disk_template=self.opts.disk_template,
@@ -250,19 +255,16 @@ class Burner(object):
                                     os_type=self.opts.os,
                                     pnode=pnode,
                                     snode=snode,
-                                    vcpus=1,
                                     start=True,
                                     ip_check=True,
                                     wait_for_sync=True,
                                     mac="auto",
-                                    kernel_path=None,
-                                    initrd_path=None,
-                                    hvm_boot_order=None,
                                     file_driver="loop",
                                     file_storage_dir=None,
                                     iallocator=self.opts.iallocator,
-                                    hvm_nic_type=constants.HT_HVM_NIC_RTL8139,
-                                    hvm_disk_type=constants.HT_HVM_DEV_IOEMU)
+                                    beparams=self.bep,
+                                    hvparams=self.hvp,
+                                    )
 
       if self.opts.parallel:
         jobset.append([op])
@@ -346,7 +348,6 @@ class Burner(object):
       full_name = self.ExecOp(nam_op)[0][0]
       imp_dir = os.path.join(constants.EXPORT_DIR, full_name)
       imp_op = opcodes.OpCreateInstance(instance_name=instance,
-                                        mem_size=128,
                                         disk_size=self.opts.os_size,
                                         swap_size=self.opts.swap_size,
                                         disk_template=self.opts.disk_template,
@@ -355,7 +356,6 @@ class Burner(object):
                                         src_path=imp_dir,
                                         pnode=pnode,
                                         snode=snode,
-                                        vcpus=1,
                                         start=True,
                                         ip_check=True,
                                         wait_for_sync=True,
@@ -363,10 +363,9 @@ class Burner(object):
                                         file_storage_dir=None,
                                         file_driver=None,
                                         iallocator=self.opts.iallocator,
-                                        hvm_nic_type=
-                                        constants.HT_HVM_NIC_RTL8139,
-                                        hvm_disk_type=
-                                        constants.HT_HVM_DEV_IOEMU)
+                                        beparams=self.bep,
+                                        hvparams=self.hvp,
+                                        )
 
       erem_op = opcodes.OpRemoveExport(instance_name=instance)
 

@@ -92,12 +92,12 @@ def ImportInstance(opts, args):
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
-  op = opcodes.OpCreateInstance(instance_name=instance, mem_size=opts.mem,
+  op = opcodes.OpCreateInstance(instance_name=instance,
                                 disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
                                 mode=constants.INSTANCE_IMPORT,
                                 pnode=pnode, snode=snode,
-                                vcpus=opts.vcpus, ip_check=opts.ip_check,
+                                ip_check=opts.ip_check,
                                 ip=opts.ip, bridge=opts.bridge, start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
                                 wait_for_sync=opts.wait_for_sync, mac="auto",
@@ -111,7 +111,8 @@ def ImportInstance(opts, args):
                                 hvm_disk_type=opts.hvm_disk_type,
                                 hvm_pae=opts.hvm_pae,
                                 hvm_cdrom_image_path=opts.hvm_cdrom_image_path,
-                                vnc_bind_address=opts.vnc_bind_address)
+                                vnc_bind_address=opts.vnc_bind_address,
+                                beparams=ValidateBeParams(opts.beparams))
 
   SubmitOpCode(op)
   return 0
@@ -147,10 +148,6 @@ import_opts = [
              default=20 * 1024, type="unit", metavar="<size>"),
   cli_option("--swap-size", dest="swap", help="Swap size",
              default=4 * 1024, type="unit", metavar="<size>"),
-  cli_option("-m", "--memory", dest="mem", help="Memory size",
-             default=128, type="unit", metavar="<mem>"),
-  make_option("-p", "--cpu", dest="vcpus", help="Number of virtual CPUs",
-              default=1, type="int", metavar="<PROC>"),
   make_option("-t", "--disk-template", dest="disk_template",
               help="Custom disk setup (diskless, file, plain, drbd)",
               default=None, metavar="TEMPL"),

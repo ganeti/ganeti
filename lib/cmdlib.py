@@ -421,21 +421,22 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   return env
 
 
-def _BuildInstanceHookEnvByObject(instance, override=None):
+def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   """Builds instance related env variables for hooks from an object.
 
   Args:
     instance: objects.Instance object of instance
     override: dict of values to override
   """
+  bep = lu.cfg.GetClusterInfo().FillBE(instance)
   args = {
     'name': instance.name,
     'primary_node': instance.primary_node,
     'secondary_nodes': instance.secondary_nodes,
     'os_type': instance.os,
     'status': instance.os,
-    'memory': instance.memory,
-    'vcpus': instance.vcpus,
+    'memory': bep[constants.BE_MEMORY],
+    'vcpus': bep[constants.BE_VCPUS],
     'nics': [(nic.ip, nic.bridge, nic.mac) for nic in instance.nics],
   }
   if override:
@@ -689,7 +690,8 @@ class LUVerifyCluster(LogicalUnit):
       for prinode, instances in nodeinfo['sinst-by-pnode'].iteritems():
         needed_mem = 0
         for instance in instances:
-          needed_mem += instance_cfg[instance].memory
+          bep = self.cfg.GetClusterInfo().FillBE(instance_cfg[instance])
+          needed_mem += bep[constants.BE_MEMORY]
         if nodeinfo['mfree'] < needed_mem:
           feedback_fn("  - ERROR: not enough memory on node %s to accomodate"
                       " failovers should node %s fail" % (node, prinode))
@@ -2156,7 +2158,7 @@ class LUStartupInstance(LogicalUnit):
     env = {
       "FORCE": self.op.force,
       }
-    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -2171,12 +2173,13 @@ class LUStartupInstance(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    bep = self.cfg.GetClusterInfo().FillBE(instance)
     # check bridges existance
     _CheckInstanceBridgesExist(self, instance)
 
     _CheckNodeFreeMemory(self, instance.primary_node,
                          "starting instance %s" % instance.name,
-                         instance.memory, instance.hypervisor)
+                         bep[constants.BE_MEMORY], instance.hypervisor)
 
   def Exec(self, feedback_fn):
     """Start the instance.
@@ -2232,7 +2235,7 @@ class LURebootInstance(LogicalUnit):
     env = {
       "IGNORE_SECONDARIES": self.op.ignore_secondaries,
       }
-    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -2302,7 +2305,7 @@ class LUShutdownInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self.instance)
+    env = _BuildInstanceHookEnvByObject(self, self.instance)
     nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -2354,7 +2357,7 @@ class LUReinstallInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self.instance)
+    env = _BuildInstanceHookEnvByObject(self, self.instance)
     nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
     return env, nl, nl
@@ -2435,7 +2438,7 @@ class LURenameInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self.instance)
+    env = _BuildInstanceHookEnvByObject(self, self.instance)
     env["INSTANCE_NEW_NAME"] = self.op.new_name
     nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
           list(self.instance.secondary_nodes))
@@ -2553,7 +2556,7 @@ class LURemoveInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self.instance)
+    env = _BuildInstanceHookEnvByObject(self, self.instance)
     nl = [self.cfg.GetMasterNode()]
     return env, nl, nl
 
@@ -2605,6 +2608,8 @@ class LUQueryInstances(NoHooksLU):
 
   def ExpandNames(self):
     self.dynamic_fields = frozenset(["oper_state", "oper_ram", "status"])
+    hvp = ["hv/%s" % name for name in constants.HVS_PARAMETERS]
+    bep = ["be/%s" % name for name in constants.BES_PARAMETERS]
     self.static_fields = frozenset([
       "name", "os", "pnode", "snodes",
       "admin_state", "admin_ram",
@@ -2612,7 +2617,8 @@ class LUQueryInstances(NoHooksLU):
       "sda_size", "sdb_size", "vcpus", "tags",
       "network_port",
       "serial_no", "hypervisor", "hvparams",
-      ] + ["hv/%s" % name for name in constants.HVS_PARAMETERS])
+      ] + hvp + bep)
+
     _CheckOutputFields(static=self.static_fields,
                        dynamic=self.dynamic_fields,
                        selected=self.op.output_fields)
@@ -2682,10 +2688,12 @@ class LUQueryInstances(NoHooksLU):
     # end data gathering
 
     HVPREFIX = "hv/"
+    BEPREFIX = "be/"
     output = []
     for instance in instance_list:
       iout = []
       i_hv = self.cfg.GetClusterInfo().FillHV(instance)
+      i_be = self.cfg.GetClusterInfo().FillBE(instance)
       for field in self.op.output_fields:
         if field == "name":
           val = instance.name
@@ -2717,8 +2725,6 @@ class LUQueryInstances(NoHooksLU):
                 val = "ERROR_down"
               else:
                 val = "ADMIN_down"
-        elif field == "admin_ram":
-          val = instance.memory
         elif field == "oper_ram":
           if instance.primary_node in bad_nodes:
             val = None
@@ -2740,21 +2746,24 @@ class LUQueryInstances(NoHooksLU):
             val = None
           else:
             val = disk.size
-        elif field == "vcpus":
-          val = instance.vcpus
         elif field == "tags":
           val = list(instance.GetTags())
         elif field == "serial_no":
           val = instance.serial_no
         elif field == "network_port":
           val = instance.network_port
+        elif field == "hypervisor":
+          val = instance.hypervisor
+        elif field == "hvparams":
+          val = i_hv
         elif (field.startswith(HVPREFIX) and
               field[len(HVPREFIX):] in constants.HVS_PARAMETERS):
           val = i_hv.get(field[len(HVPREFIX):], None)
-        elif field == "hvparams":
-          val = i_hv
-        elif field == "hypervisor":
-          val = instance.hypervisor
+        elif field == "beparams":
+          val = i_be
+        elif (field.startswith(BEPREFIX) and
+              field[len(BEPREFIX):] in constants.BES_PARAMETERS):
+          val = i_be.get(field[len(BEPREFIX):], None)
         else:
           raise errors.ParameterError(field)
         iout.append(val)
@@ -2790,7 +2799,7 @@ class LUFailoverInstance(LogicalUnit):
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       }
-    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
@@ -2804,6 +2813,7 @@ class LUFailoverInstance(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    bep = self.cfg.GetClusterInfo().FillBE(instance)
     if instance.disk_template not in constants.DTS_NET_MIRROR:
       raise errors.OpPrereqError("Instance's disk layout is not"
                                  " network mirrored, cannot failover.")
@@ -2816,7 +2826,7 @@ class LUFailoverInstance(LogicalUnit):
     target_node = secondary_nodes[0]
     # check memory requirements on the secondary node
     _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
-                         instance.name, instance.memory,
+                         instance.name, bep[constants.BE_MEMORY],
                          instance.hypervisor)
 
     # check bridge existance
@@ -3176,9 +3186,10 @@ class LUCreateInstance(LogicalUnit):
   """
   HPATH = "instance-add"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "mem_size", "disk_size",
-              "disk_template", "swap_size", "mode", "start", "vcpus",
-              "wait_for_sync", "ip_check", "mac", "hvparams"]
+  _OP_REQP = ["instance_name", "disk_size",
+              "disk_template", "swap_size", "mode", "start",
+              "wait_for_sync", "ip_check", "mac",
+              "hvparams", "beparams"]
   REQ_BGL = False
 
   def _ExpandNode(self, node):
@@ -3231,6 +3242,10 @@ class LUCreateInstance(LogicalUnit):
                                   self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
+
+    # fill and remember the beparams dict
+    self.be_full = cluster.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
+                                    self.op.beparams)
 
     #### instance parameters check
 
@@ -3325,8 +3340,8 @@ class LUCreateInstance(LogicalUnit):
                      disk_template=self.op.disk_template,
                      tags=[],
                      os=self.op.os_type,
-                     vcpus=self.op.vcpus,
-                     mem_size=self.op.mem_size,
+                     vcpus=self.be_full[constants.BE_VCPUS],
+                     mem_size=self.be_full[constants.BE_MEMORY],
                      disks=disks,
                      nics=nics,
                      )
@@ -3372,8 +3387,8 @@ class LUCreateInstance(LogicalUnit):
       secondary_nodes=self.secondaries,
       status=self.instance_status,
       os_type=self.op.os_type,
-      memory=self.op.mem_size,
-      vcpus=self.op.vcpus,
+      memory=self.be_full[constants.BE_MEMORY],
+      vcpus=self.be_full[constants.BE_VCPUS],
       nics=[(self.inst_ip, self.op.bridge, self.op.mac)],
     ))
 
@@ -3501,7 +3516,8 @@ class LUCreateInstance(LogicalUnit):
     if self.op.start:
       _CheckNodeFreeMemory(self, self.pnode.name,
                            "creating instance %s" % self.op.instance_name,
-                           self.op.mem_size, self.op.hypervisor)
+                           self.be_full[constants.BE_MEMORY],
+                           self.op.hypervisor)
 
     if self.op.start:
       self.instance_status = 'up'
@@ -3555,12 +3571,11 @@ class LUCreateInstance(LogicalUnit):
 
     iobj = objects.Instance(name=instance, os=self.op.os_type,
                             primary_node=pnode_name,
-                            memory=self.op.mem_size,
-                            vcpus=self.op.vcpus,
                             nics=[nic], disks=disks,
                             disk_template=self.op.disk_template,
                             status=self.instance_status,
                             network_port=network_port,
+                            beparams=self.op.beparams,
                             hvparams=self.op.hvparams,
                             hypervisor=self.op.hypervisor,
                             )
@@ -3754,7 +3769,7 @@ class LUReplaceDisks(LogicalUnit):
       "NEW_SECONDARY": self.op.remote_node,
       "OLD_SECONDARY": self.instance.secondary_nodes[0],
       }
-    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [
       self.cfg.GetMasterNode(),
       self.instance.primary_node,
@@ -4247,7 +4262,7 @@ class LUGrowDisk(LogicalUnit):
       "DISK": self.op.disk,
       "AMOUNT": self.op.amount,
       }
-    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [
       self.cfg.GetMasterNode(),
       self.instance.primary_node,
@@ -4403,6 +4418,9 @@ class LUQueryInstanceData(NoHooksLU):
   def Exec(self, feedback_fn):
     """Gather and return data"""
     result = {}
+
+    cluster = self.cfg.GetClusterInfo()
+
     for instance in self.wanted_instances:
       if not self.op.static:
         remote_info = self.rpc.call_instance_info(instance.primary_node,
@@ -4429,14 +4447,14 @@ class LUQueryInstanceData(NoHooksLU):
         "pnode": instance.primary_node,
         "snodes": instance.secondary_nodes,
         "os": instance.os,
-        "memory": instance.memory,
         "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
         "disks": disks,
-        "vcpus": instance.vcpus,
         "hypervisor": instance.hypervisor,
         "network_port": instance.network_port,
         "hv_instance": instance.hvparams,
-        "hv_actual": self.cfg.GetClusterInfo().FillHV(instance),
+        "hv_actual": cluster.FillHV(instance),
+        "be_instance": instance.beparams,
+        "be_actual": cluster.FillBE(instance),
         }
 
       result[instance.name] = idict
@@ -4470,10 +4488,10 @@ class LUSetInstanceParams(LogicalUnit):
 
     """
     args = dict()
-    if self.mem:
-      args['memory'] = self.mem
-    if self.vcpus:
-      args['vcpus'] = self.vcpus
+    if constants.BE_MEMORY in self.be_new:
+      args['memory'] = self.be_new[constants.BE_MEMORY]
+    if constants.BE_VCPUS in self.be_new:
+      args['vcpus'] = self.be_bnew[constants.BE_VCPUS]
     if self.do_ip or self.do_bridge or self.mac:
       if self.do_ip:
         ip = self.ip
@@ -4488,7 +4506,7 @@ class LUSetInstanceParams(LogicalUnit):
       else:
         mac = self.instance.nics[0].mac
       args['nics'] = [(ip, bridge, mac)]
-    env = _BuildInstanceHookEnvByObject(self.instance, override=args)
+    env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
     nl = [self.cfg.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
     return env, nl, nl
@@ -4502,27 +4520,25 @@ class LUSetInstanceParams(LogicalUnit):
     # FIXME: all the parameters could be checked before, in ExpandNames, or in
     # a separate CheckArguments function, if we implement one, so the operation
     # can be aborted without waiting for any lock, should it have an error...
-    self.mem = getattr(self.op, "mem", None)
-    self.vcpus = getattr(self.op, "vcpus", None)
     self.ip = getattr(self.op, "ip", None)
     self.mac = getattr(self.op, "mac", None)
     self.bridge = getattr(self.op, "bridge", None)
     self.kernel_path = getattr(self.op, "kernel_path", None)
     self.initrd_path = getattr(self.op, "initrd_path", None)
     self.force = getattr(self.op, "force", None)
-    all_parms = [self.mem, self.vcpus, self.ip, self.bridge, self.mac]
-    if all_parms.count(None) == len(all_parms) and not self.op.hvparams:
+    all_parms = [self.ip, self.bridge, self.mac]
+    if (all_parms.count(None) == len(all_parms) and
+        not self.op.hvparams and
+        not self.op.beparams):
       raise errors.OpPrereqError("No changes submitted")
-    if self.mem is not None:
-      try:
-        self.mem = int(self.mem)
-      except ValueError, err:
-        raise errors.OpPrereqError("Invalid memory size: %s" % str(err))
-    if self.vcpus is not None:
-      try:
-        self.vcpus = int(self.vcpus)
-      except ValueError, err:
-        raise errors.OpPrereqError("Invalid vcpus number: %s" % str(err))
+    for item in (constants.BE_MEMORY, constants.BE_VCPUS):
+      val = self.op.beparams.get(item, None)
+      if val is not None:
+        try:
+          val = int(val)
+        except ValueError, err:
+          raise errors.OpPrereqError("Invalid %s size: %s" % (item, str(err)))
+        self.op.beparams[item] = val
     if self.ip is not None:
       self.do_ip = True
       if self.ip.lower() == "none":
@@ -4549,6 +4565,7 @@ class LUSetInstanceParams(LogicalUnit):
     nodelist = [pnode]
     nodelist.extend(instance.secondary_nodes)
 
+    # hvparams processing
     if self.op.hvparams:
       i_hvdict = copy.deepcopy(instance.hvparams)
       for key, val in self.op.hvparams.iteritems():
@@ -4566,10 +4583,32 @@ class LUSetInstanceParams(LogicalUnit):
       hypervisor.GetHypervisor(
         instance.hypervisor).CheckParameterSyntax(hv_new)
       _CheckHVParams(self, nodelist, instance.hypervisor, hv_new)
-      self.hv_new = hv_new
+      self.hv_new = hv_new # the new actual values
+      self.hv_inst = i_hvdict # the new dict (without defaults)
+    else:
+      self.hv_new = self.hv_inst = {}
+
+    # beparams processing
+    if self.op.beparams:
+      i_bedict = copy.deepcopy(instance.beparams)
+      for key, val in self.op.beparams.iteritems():
+        if val is None:
+          try:
+            del i_bedict[key]
+          except KeyError:
+            pass
+        else:
+          i_bedict[key] = val
+      cluster = self.cfg.GetClusterInfo()
+      be_new = cluster.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
+                                i_bedict)
+      self.be_new = be_new # the new actual values
+      self.be_inst = i_bedict # the new dict (without defaults)
+    else:
+      self.hv_new = self.hv_inst = {}
 
     self.warn = []
-    if self.mem is not None and not self.force:
+    if constants.BE_MEMORY in self.op.beparams and not self.force:
       instance_info = self.rpc.call_instance_info(pnode, instance.name,
                                                   instance.hypervisor)
       nodeinfo = self.rpc.call_node_info(nodelist, self.cfg.GetVGName(),
@@ -4586,7 +4625,8 @@ class LUSetInstanceParams(LogicalUnit):
           # (there is a slight race condition here, but it's not very probable,
           # and we have no other way to check)
           current_mem = 0
-        miss_mem = self.mem - current_mem - nodeinfo[pnode]['memory_free']
+        miss_mem = (be_new[constants.BE_MEMORY] - current_mem -
+                    nodeinfo[pnode]['memory_free'])
         if miss_mem > 0:
           raise errors.OpPrereqError("This change will prevent the instance"
                                      " from starting, due to %d MB of memory"
@@ -4595,7 +4635,7 @@ class LUSetInstanceParams(LogicalUnit):
       for node in instance.secondary_nodes:
         if node not in nodeinfo or not isinstance(nodeinfo[node], dict):
           self.warn.append("Can't get info from secondary node %s" % node)
-        elif self.mem > nodeinfo[node]['memory_free']:
+        elif be_new[constants.BE_MEMORY] > nodeinfo[node]['memory_free']:
           self.warn.append("Not enough memory to failover instance to"
                            " secondary node %s" % node)
 
@@ -4613,12 +4653,6 @@ class LUSetInstanceParams(LogicalUnit):
 
     result = []
     instance = self.instance
-    if self.mem:
-      instance.memory = self.mem
-      result.append(("mem", self.mem))
-    if self.vcpus:
-      instance.vcpus = self.vcpus
-      result.append(("vcpus",  self.vcpus))
     if self.do_ip:
       instance.nics[0].ip = self.ip
       result.append(("ip", self.ip))
@@ -4632,6 +4666,10 @@ class LUSetInstanceParams(LogicalUnit):
       instance.hvparams = self.hv_new
       for key, val in self.op.hvparams.iteritems():
         result.append(("hv/%s" % key, val))
+    if self.op.beparams:
+      instance.beparams = self.be_inst
+      for key, val in self.op.beparams.iteritems():
+        result.append(("be/%s" % key, val))
 
     self.cfg.Update(instance)
 
@@ -4707,7 +4745,7 @@ class LUExportInstance(LogicalUnit):
       "EXPORT_NODE": self.op.target_node,
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
       }
-    env.update(_BuildInstanceHookEnvByObject(self.instance))
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode(), self.instance.primary_node,
           self.op.target_node]
     return env, nl, nl
@@ -5134,7 +5172,11 @@ class IAllocator(object):
       # we don't have job IDs
       }
 
-    i_list = [cfg.GetInstanceInfo(iname) for iname in cfg.GetInstanceList()]
+    i_list = []
+    cluster = self.cfg.GetClusterInfo()
+    for iname in cfg.GetInstanceList():
+      i_obj = cfg.GetInstanceInfo(iname)
+      i_list.append((i_obj, cluster.FillBE(i_obj)))
 
     # node data
     node_results = {}
@@ -5160,11 +5202,11 @@ class IAllocator(object):
                                    " %s" % (nname, attr, str(err)))
       # compute memory used by primary instances
       i_p_mem = i_p_up_mem = 0
-      for iinfo in i_list:
+      for iinfo, beinfo in i_list:
         if iinfo.primary_node == nname:
-          i_p_mem += iinfo.memory
+          i_p_mem += beinfo[constants.BE_MEMORY]
           if iinfo.status == "up":
-            i_p_up_mem += iinfo.memory
+            i_p_up_mem += beinfo[constants.BE_MEMORY]
 
       # compute memory used by instances
       pnr = {
@@ -5185,14 +5227,14 @@ class IAllocator(object):
 
     # instance data
     instance_data = {}
-    for iinfo in i_list:
+    for iinfo, beinfo in i_list:
       nic_data = [{"mac": n.mac, "ip": n.ip, "bridge": n.bridge}
                   for n in iinfo.nics]
       pir = {
         "tags": list(iinfo.GetTags()),
         "should_run": iinfo.status == "up",
-        "vcpus": iinfo.vcpus,
-        "memory": iinfo.memory,
+        "vcpus": beinfo[constants.BE_VCPUS],
+        "memory": beinfo[constants.BE_MEMORY],
         "os": iinfo.os,
         "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
         "nics": nic_data,
