@@ -1476,6 +1476,8 @@ class LUQueryNodes(NoHooksLU):
           "Some nodes were removed before retrieving their data: %s" % missing)
     else:
       nodenames = all_info.keys()
+
+    nodenames = utils.NiceSort(nodenames)
     nodelist = [all_info[name] for name in nodenames]
 
     # begin data gathering
@@ -2664,6 +2666,8 @@ class LUQueryInstances(NoHooksLU):
           % missing)
     else:
       instance_names = all_info.keys()
+
+    instance_names = utils.NiceSort(instance_names)
     instance_list = [all_info[iname] for iname in instance_names]
 
     # begin data gathering
