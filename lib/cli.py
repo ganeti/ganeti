@@ -241,6 +241,7 @@ def _SplitKeyVal(opt, data):
 
   """
   NO_PREFIX = "no_"
+  UN_PREFIX = "-"
   kv_dict = {}
   for elem in data.split(","):
     if "=" in elem:
@@ -248,6 +249,8 @@ def _SplitKeyVal(opt, data):
     else:
       if elem.startswith(NO_PREFIX):
         key, val = elem[len(NO_PREFIX):], False
+      elif elem.startswith(UN_PREFIX):
+        key, val = elem[len(UN_PREFIX):], None
       else:
         key, val = elem, True
     if key in kv_dict:

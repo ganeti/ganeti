@@ -61,8 +61,8 @@ class TestParseTimespec(unittest.TestCase):
 
 class TestSplitKeyVal(unittest.TestCase):
   """Testing case for cli._SplitKeyVal"""
-  DATA = "a=b,c,no_d"
-  RESULT = {"a": "b", "c": True, "d": False}
+  DATA = "a=b,c,no_d,-e"
+  RESULT = {"a": "b", "c": True, "d": False, "e": None}
 
   def testSplitKeyVal(self):
     """Test splitting"""
