@@ -23,13 +23,18 @@
 
 """
 
+from ganeti import errors
+
+
 class BaseHypervisor(object):
   """Abstract virtualisation technology interface
 
-  The goal is that all aspects of the virtualisation technology must
-  be abstracted away from the rest of code.
+  The goal is that all aspects of the virtualisation technology are
+  abstracted away from the rest of code.
 
   """
+  PARAMETERS = []
+
   def __init__(self):
     pass
 
@@ -106,3 +111,38 @@ class BaseHypervisor(object):
 
     """
     raise NotImplementedError
+
+
+  @classmethod
+  def CheckParameterSyntax(cls, hvparams):
+    """Check the given parameters for validity.
+
+    This should check the passed set of parameters for
+    validity. Classes should extend, not replace, this function.
+
+    @type hvparams:  dict
+    @param hvparams: dictionary with parameter names/value
+    @raise errors.HypervisorError: when a parameter is not valid
+
+    """
+    for key in hvparams:
+      if key not in cls.PARAMETERS:
+        raise errors.HypervisorError("Hypervisor parameter '%s'"
+                                     " not supported" % key)
+    for key in cls.PARAMETERS:
+      if key not in hvparams:
+        raise errors.HypervisorError("Hypervisor parameter '%s'"
+                                     " missing" % key)
+
+  def ValidateParameters(self, hvparams):
+    """Check the given parameters for validity.
+
+    This should check the passed set of parameters for
+    validity. Classes should extend, not replace, this function.
+
+    @type hvparams:  dict
+    @param hvparams: dictionary with parameter names/value
+    @raise errors.HypervisorError: when a parameter is not valid
+
+    """
+    pass
