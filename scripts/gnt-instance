@@ -22,10 +22,12 @@
 import sys
 import os
 import itertools
+import simplejson
 from optparse import make_option
 from cStringIO import StringIO
 
 from ganeti.cli import *
+from ganeti import cli
 from ganeti import opcodes
 from ganeti import logger
 from ganeti import constants
@@ -310,6 +312,114 @@ def AddInstance(opts, args):
                                 )
 
   SubmitOrSend(op, opts)
+  return 0
+
+
+def BatchCreate(opts, args):
+  """Create instances on a batched base.
+
+  This function reads a json with instances defined in the form:
+
+  {"instance-name": {"disk_size": 25,
+                     "swap_size": 1024,
+                     "template": "drbd",
+                     "backend": { "memory": 512,
+                                  "vcpus": 1 },
+                     "os": "etch-image",
+                     "primary_node": "firstnode",
+                     "secondary_node": "secondnode",
+                     "iallocator": "dumb"}}
+
+  primary_node and secondary_node has precedence over iallocator.
+
+  Args:
+    opts: The parsed command line options
+    args: Argument passed to the command in our case the json file
+
+  """
+  _DEFAULT_SPECS = {"disk_size": 20 * 1024,
+                    "swap_size": 4 * 1024,
+                    "backend": {},
+                    "iallocator": None,
+                    "primary_node": None,
+                    "secondary_node": None,
+                    "ip": 'none',
+                    "mac": 'auto',
+                    "bridge": None,
+                    "start": True,
+                    "ip_check": True,
+                    "hypervisor": None,
+                    "file_storage_dir": None,
+                    "file_driver": 'loop'}
+
+  def _PopulateWithDefaults(spec):
+    """Returns a new hash combined with default values."""
+    dict = _DEFAULT_SPECS.copy()
+    dict.update(spec)
+    return dict
+
+  def _Validate(spec):
+    """Validate the instance specs."""
+    # Validate fields required under any circumstances
+    for required_field in ('os', 'template'):
+      if required_field not in spec:
+        raise errors.OpPrereqError('Required field "%s" is missing.' %
+                                   required_field)
+    # Validate special fields
+    if spec['primary_node'] is not None:
+      if (spec['template'] in constants.DTS_NET_MIRROR and
+          spec['secondary_node'] is None):
+        raise errors.OpPrereqError('Template requires secondary node, but'
+                                   ' there was no secondary provided.')
+    elif spec['iallocator'] is None:
+      raise errors.OpPrereqError('You have to provide at least a primary_node'
+                                 ' or an iallocator.')
+
+    if (spec['hypervisor'] and
+        not isinstance(spec['hypervisor'], dict)):
+      raise errors.OpPrereqError('Hypervisor parameters must be a dict.')
+
+  json_filename = args[0]
+  fd = open(json_filename, 'r')
+  try:
+    instance_data = simplejson.load(fd)
+  finally:
+    fd.close()
+
+  # Iterate over the instances and do:
+  #  * Populate the specs with default value
+  #  * Validate the instance specs
+  for (name, specs) in instance_data.iteritems():
+    specs = _PopulateWithDefaults(specs)
+    _Validate(specs)
+
+    hypervisor = None
+    hvparams = {}
+    if specs['hypervisor']:
+      hypervisor, hvparams = specs['hypervisor'].iteritems()
+
+    op = opcodes.OpCreateInstance(instance_name=name,
+                                  disk_size=specs['disk_size'],
+                                  swap_size=specs['swap_size'],
+                                  disk_template=specs['template'],
+                                  mode=constants.INSTANCE_CREATE,
+                                  os_type=specs['os'],
+                                  pnode=specs['primary_node'],
+                                  snode=specs['secondary_node'],
+                                  ip=specs['ip'], bridge=specs['bridge'],
+                                  start=specs['start'],
+                                  ip_check=specs['ip_check'],
+                                  wait_for_sync=True,
+                                  mac=specs['mac'],
+                                  iallocator=specs['iallocator'],
+                                  hypervisor=hypervisor,
+                                  hvparams=hvparams,
+                                  beparams=specs['backend'],
+                                  file_storage_dir=specs['file_storage_dir'],
+                                  file_driver=specs['file_driver'])
+
+    print '%s: %s' % (name, cli.SendJob([op]))
+
   return 0
 
 
@@ -903,6 +1013,10 @@ commands = {
   'add': (AddInstance, ARGS_ONE, add_opts,
           "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
           "Creates and adds a new instance to the cluster"),
+  'batch-create': (BatchCreate, ARGS_ONE,
+                   [DEBUG_OPT],
+                   "<instances_file.json>",
+                   "Create a bunch of instances based on specs in the file."),
   'console': (ConnectToInstanceConsole, ARGS_ONE,
               [DEBUG_OPT,
                make_option("--show-cmd", dest="show_command",
