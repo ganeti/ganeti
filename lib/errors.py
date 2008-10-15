@@ -237,7 +237,7 @@ class QuitGanetiException(Exception):
   """
 
 
-class JobQueueError(Exception):
+class JobQueueError(GenericError):
   """Job queue error.
 
   """
