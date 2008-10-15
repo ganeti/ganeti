@@ -605,6 +605,15 @@ class NodeHttpServer(http.HttpServer):
 
     return backend.JobQueueRename(old, new)
 
+  @staticmethod
+  def perspective_jobqueue_set_drain(params):
+    """Set/unset the queue drain flag.
+
+    """
+    drain_flag = params[0]
+    return backend.JobQueueSetDrainFlag(drain_flag)
+
+
   # hypervisor ---------------
 
   @staticmethod

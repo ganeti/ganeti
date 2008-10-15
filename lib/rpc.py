@@ -900,6 +900,25 @@ class RpcRunner(object):
     return result
 
 
+  @staticmethod
+  def call_jobqueue_set_drain(node_list, drain_flag):
+    """Set the drain flag on the queue.
+
+    This is a multi-node call.
+
+    @type node_list: list
+    @param node_list: the list of nodes to query
+    @type drain_flag: bool
+    @param drain_flag: if True, will set the drain flag, otherwise reset it.
+
+    """
+    c = Client("jobqueue_set_drain", [drain_flag])
+    c.connect_list(node_list)
+    c.run()
+    result = c.getresult()
+    return result
+
+
   def call_hypervisor_validate_params(self, node_list, hvname, hvparams):
     """Validate the hypervisor params.
 

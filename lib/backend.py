@@ -1773,6 +1773,23 @@ def JobQueueRename(old, new):
   return True
 
 
+def JobQueueSetDrainFlag(drain_flag):
+  """Set the drain flag for the queue.
+
+  This will set or unset the queue drain flag.
+
+  @type drain_flag: bool
+  @param drain_flag: if True, will set the drain flag, otherwise reset it.
+
+  """
+  if drain_flag:
+    utils.WriteFile(constants.JOB_QUEUE_DRAIN_FILE, data="", close=True)
+  else:
+    utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
+
+  return True
+
+
 def CloseBlockDevices(disks):
   """Closes the given block devices.
 
