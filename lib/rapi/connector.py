@@ -25,14 +25,14 @@
 import cgi
 import re
 
-from ganeti import constants 
-from ganeti import http 
+from ganeti import constants
+from ganeti import http
 
-from ganeti.rapi import baserlib 
+from ganeti.rapi import baserlib
 from ganeti.rapi import rlib1
 from ganeti.rapi import rlib2
 
-# the connection map created at the end of this file
+# the connection map is created at the end of this file
 CONNECTOR = {}
 
 
@@ -99,7 +99,7 @@ class R_root(baserlib.R_Generic):
 
   def GET(self):
     """Show the list of mapped resources.
-    
+
     Returns:
       A dictionary with 'name' and 'uri' keys for each of them.
 
