@@ -243,6 +243,15 @@ class JobQueueError(GenericError):
   """
 
 
+class JobQueueDrainError(JobQueueError):
+  """Job queue is marked for drain error.
+
+  This is raised when a job submission attempt is made but the queue
+  is marked for drain.
+
+  """
+
+
 # errors should be added above
 
 

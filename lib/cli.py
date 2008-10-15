@@ -655,6 +655,9 @@ def FormatError(err):
     obuf.write("Failure: command execution error:\n%s" % msg)
   elif isinstance(err, errors.TagError):
     obuf.write("Failure: invalid tag(s) given:\n%s" % msg)
+  elif isinstance(err, errors.JobQueueDrainError):
+    obuf.write("Failure: the job queue is marked for drain and doesn't"
+               " accept new requests\n")
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, luxi.NoMasterError):

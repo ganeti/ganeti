@@ -564,6 +564,16 @@ class JobQueue(object):
 
     return [self._LoadJobUnlocked(job_id) for job_id in job_ids]
 
+  @staticmethod
+  def _IsQueueMarkedDrain():
+    """Check if the queue is marked from drain.
+
+    This currently uses the queue drain file, which makes it a
+    per-node flag. In the future this can be moved to the config file.
+
+    """
+    return os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
+
   @utils.LockedMethod
   @_RequireOpenQueue
   def SubmitJob(self, ops):
@@ -576,6 +586,8 @@ class JobQueue(object):
     @param ops: The list of OpCodes that will become the new job.
 
     """
+    if self._IsQueueMarkedDrain():
+      raise errors.JobQueueDrainError()
     # Get job identifier
     job_id = self._NewSerialUnlocked()
     job = _QueuedJob(self, job_id, ops)
