@@ -167,6 +167,9 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
       try:
         result = self._ops.handle_request(method, args)
         success = True
+      except errors.GenericError, err:
+        success = False
+        result = (err.__class__.__name__, err.args)
       except:
         logging.error("Unexpected exception", exc_info=True)
         err = sys.exc_info()

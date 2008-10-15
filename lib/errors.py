@@ -241,3 +241,25 @@ class JobQueueError(GenericError):
   """Job queue error.
 
   """
+
+
+# errors should be added above
+
+
+def GetErrorClass(name):
+  """Return the class of an exception.
+
+  Given the class name, return the class itself.
+
+  @type name: str
+  @param name: the exception name
+  @rtype: class
+  @return: the actual class, or None if not found
+
+  """
+  item = globals().get(name, None)
+  if item is not None:
+    if not (isinstance(item, type(Exception)) and
+            issubclass(item, GenericError)):
+      item = None
+  return item

@@ -36,6 +36,7 @@ import errno
 
 from ganeti import serializer
 from ganeti import constants
+from ganeti import errors
 
 
 KEY_METHOD = 'method'
@@ -275,11 +276,20 @@ class Client(object):
         KEY_RESULT not in data):
       raise DecodingError("Invalid response from server: %s" % str(data))
 
+    result = data[KEY_RESULT]
+
     if not data[KEY_SUCCESS]:
       # TODO: decide on a standard exception
-      raise RequestError(data[KEY_RESULT])
+      if (isinstance(result, (tuple, list)) and len(result) == 2 and
+          isinstance(result[1], (tuple, list))):
+        # custom ganeti errors
+        err_class = errors.GetErrorClass(result[0])
+        if err_class is not None:
+          raise err_class, tuple(result[1])
 
-    return data[KEY_RESULT]
+      raise RequestError(result)
+
+    return result
 
   def SubmitJob(self, ops):
     ops_state = map(lambda op: op.__getstate__(), ops)
