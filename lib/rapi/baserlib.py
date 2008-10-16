@@ -126,16 +126,14 @@ class R_Generic(object):
   """Generic class for resources.
 
   """
-  def __init__(self, request, items, queryargs, post_data):
+  def __init__(self, items, queryargs, post_data):
     """Generic resource constructor.
 
     Args:
-      request: HTTPRequestHandler object
       items: a list with variables encoded in the URL
       queryargs: a dictionary with additional options from URL
 
     """
-    self.request = request
     self.items = items
     self.queryargs = queryargs
     self.post_data = post_data

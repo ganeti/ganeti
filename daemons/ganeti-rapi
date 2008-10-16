@@ -32,56 +32,40 @@ from ganeti import logger
 from ganeti import constants
 from ganeti import errors
 from ganeti import http
+from ganeti import daemon
 from ganeti import ssconf
 from ganeti import utils
 from ganeti.rapi import connector
 
 
-class RESTRequestHandler(http.HTTPRequestHandler):
+class RemoteApiHttpServer(http.HttpServer):
   """REST Request Handler Class.
 
   """
-  def setup(self):
-    super(RESTRequestHandler, self).setup()
+  def __init__(self, *args, **kwargs):
+    http.HttpServer.__init__(self, *args, **kwargs)
     self._resmap = connector.Mapper()
 
-  def HandleRequest(self):
-    """ Handels a request.
+  def HandleRequest(self, req):
+    """Handles a request.
 
     """
-    (HandlerClass, items, args) = self._resmap.getController(self.path)
-    handler = HandlerClass(self, items, args, self.post_data)
+    (HandlerClass, items, args) = self._resmap.getController(req.request_path)
+    handler = HandlerClass(items, args, req.request_post_data)
 
-    command = self.command.upper()
+    method = req.request_method.upper()
     try:
-      fn = getattr(handler, command)
+      fn = getattr(handler, method)
     except AttributeError, err:
       raise http.HTTPBadRequest()
 
     try:
-      try:
-        result = fn()
-      except:
-        logging.exception("Error while handling the %s request", command)
-        raise
-
-    except errors.OpPrereqError, err:
-      # TODO: "Not found" is not always the correct error. Ganeti's core must
-      # differentiate between different error types.
-      raise http.HTTPNotFound(message=str(err))
+      result = fn()
+    except:
+      logging.exception("Error while handling the %s request", method)
+      raise
 
     return result
-
-
-class RESTHttpServer(http.HTTPServer):
-  def serve_forever(self):
-    """Handle one request at a time until told to quit."""
-    sighandler = utils.SignalHandler([signal.SIGINT, signal.SIGTERM])
-    try:
-      while not sighandler.called:
-        self.handle_request()
-    finally:
-      sighandler.Reset()
 
 
 def ParseOptions():
@@ -144,22 +128,16 @@ def main():
                      stderr_logging=not options.fork)
 
   utils.WritePidFile(constants.RAPI_PID)
-
-  log_fd = open(constants.LOG_RAPIACCESS, 'a')
   try:
-    apache_log = http.ApacheLogfile(log_fd)
-    httpd = RESTHttpServer(("", options.port), RESTRequestHandler,
-                           httplog=apache_log)
+    mainloop = daemon.Mainloop()
+    server = RemoteApiHttpServer(mainloop, ("", options.port))
+    server.Start()
     try:
-      httpd.serve_forever()
+      mainloop.Run()
     finally:
-      httpd.server_close()
-      utils.RemovePidFile(constants.RAPI_PID)
-
+      server.Stop()
   finally:
-    log_fd.close()
-
-  sys.exit(0)
+    utils.RemovePidFile(constants.RAPI_PID)
 
 
 if __name__ == '__main__':
