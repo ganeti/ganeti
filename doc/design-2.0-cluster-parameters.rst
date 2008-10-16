@@ -70,7 +70,7 @@ backend parameter
 
   For example: memory, vcpus, auto_balance
 
-  All these parameters will be encoded into constants.py with the prefix "BE_"
+  All these parameters will be encoded into constants.py with the prefix "BE\_"
   and the whole list of parameters will exist in the set "BES_PARAMETERS"
 
 proper parameter
