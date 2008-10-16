@@ -343,6 +343,24 @@ def SetClusterParams(opts, args):
   return 0
 
 
+def QueueOps(opts, args):
+  """Queue operations.
+
+  """
+  command = args[0]
+  client = GetClient()
+  if command in ("drain", "undrain"):
+    drain_flag = command == "drain"
+    client.SetQueueDrainFlag(drain_flag)
+  elif command == "info":
+    result = client.QueryConfigValues(["drain_flag"])
+    print "The drain flag is",
+    if result[0]:
+      print "set"
+    else:
+      print "unset"
+  return 0
+
 # this is an option common to more than one command, so we declare
 # it here and reuse it
 node_option = make_option("-n", "--node", action="append", dest="nodes",
@@ -443,6 +461,8 @@ commands = {
   'search-tags': (SearchTags, ARGS_ONE,
                   [DEBUG_OPT], "", "Searches the tags on all objects on"
                   " the cluster for a given pattern (regex)"),
+  'queue': (QueueOps, ARGS_ONE, [DEBUG_OPT],
+            "drain|undrain|info", "Change queue properties"),
   'modify': (SetClusterParams, ARGS_NONE,
              [DEBUG_OPT,
               make_option("-g", "--vg-name", dest="vg_name",

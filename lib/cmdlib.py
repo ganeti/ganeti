@@ -1891,7 +1891,7 @@ class LUQueryConfigValues(NoHooksLU):
   def ExpandNames(self):
     self.needed_locks = {}
 
-    static_fields = ["cluster_name", "master_node"]
+    static_fields = ["cluster_name", "master_node", "drain_flag"]
     _CheckOutputFields(static=static_fields,
                        dynamic=[],
                        selected=self.op.output_fields)
@@ -1909,11 +1909,14 @@ class LUQueryConfigValues(NoHooksLU):
     values = []
     for field in self.op.output_fields:
       if field == "cluster_name":
-        values.append(self.cfg.GetClusterName())
+        entry = self.cfg.GetClusterName()
       elif field == "master_node":
-        values.append(self.cfg.GetMasterNode())
+        entry = self.cfg.GetMasterNode()
+      elif field == "drain_flag":
+        entry = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
       else:
         raise errors.ParameterError(field)
+      values.append(entry)
     return values
 
 

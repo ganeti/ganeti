@@ -252,6 +252,10 @@ class ClientOps:
       op = opcodes.OpQueryConfigValues(output_fields=fields)
       return self._Query(op)
 
+    elif method == luxi.REQ_QUEUE_SET_DRAIN_FLAG:
+      drain_flag = args
+      return queue.SetDrainFlag(drain_flag)
+
     else:
       raise ValueError("Invalid operation")
 

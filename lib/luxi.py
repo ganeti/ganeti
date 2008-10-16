@@ -54,6 +54,7 @@ REQ_QUERY_INSTANCES = "QueryInstances"
 REQ_QUERY_NODES = "QueryNodes"
 REQ_QUERY_EXPORTS = "QueryExports"
 REQ_QUERY_CONFIG_VALUES = "QueryConfigValues"
+REQ_QUEUE_SET_DRAIN_FLAG = "SetDrainFlag"
 
 DEF_CTMO = 10
 DEF_RWTO = 60
@@ -291,6 +292,9 @@ class Client(object):
 
     return result
 
+  def SetQueueDrainFlag(self, drain_flag):
+    return self.CallMethod(REQ_QUEUE_SET_DRAIN_FLAG, drain_flag)
+
   def SubmitJob(self, ops):
     ops_state = map(lambda op: op.__getstate__(), ops)
     return self.CallMethod(REQ_SUBMIT_JOB, ops_state)
@@ -328,5 +332,6 @@ class Client(object):
 
   def QueryConfigValues(self, fields):
     return self.CallMethod(REQ_QUERY_CONFIG_VALUES, fields)
+
 
 # TODO: class Server(object)

@@ -574,6 +574,20 @@ class JobQueue(object):
     """
     return os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
 
+  @staticmethod
+  def SetDrainFlag(drain_flag):
+    """Sets the drain flag for the queue.
+
+    This is similar to the function L{backend.JobQueueSetDrainFlag},
+    and in the future we might merge them.
+
+    """
+    if drain_flag:
+      utils.WriteFile(constants.JOB_QUEUE_DRAIN_FILE, data="", close=True)
+    else:
+      utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
+    return True
+
   @utils.LockedMethod
   @_RequireOpenQueue
   def SubmitJob(self, ops):
