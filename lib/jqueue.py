@@ -382,6 +382,10 @@ class JobQueue(object):
     self.acquire()
     try:
       for job in self._GetJobsUnlocked(None):
+        # a failure in loading the job can cause 'None' to be returned
+        if job is None:
+          continue
+
         status = job.CalcStatus()
 
         if status in (constants.JOB_STATUS_QUEUED, ):
@@ -553,7 +557,19 @@ class JobQueue(object):
     finally:
       fd.close()
 
-    job = _QueuedJob.Restore(self, data)
+    try:
+      job = _QueuedJob.Restore(self, data)
+    except Exception, err:
+      new_path = self._GetArchivedJobPath(job_id)
+      if filepath == new_path:
+        # job already archived (future case)
+        logging.exception("Can't parse job %s", job_id)
+      else:
+        # non-archived case
+        logging.exception("Can't parse job %s, will archive.", job_id)
+        self._RenameFileUnlocked(filepath, new_path)
+      return None
+
     self._memcache[job_id] = job
     logging.debug("Added job %s to the cache", job_id)
     return job
