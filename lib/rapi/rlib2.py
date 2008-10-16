@@ -139,7 +139,6 @@ class R_2_instances(baserlib.R_Generic):
   """
   DOC_URI = "/2/instances"
 
-
   def GET(self):
     """Returns a list of all available instances.
 
@@ -196,6 +195,54 @@ class R_2_instances(baserlib.R_Generic):
     else:
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
                                    uri_fields=("id", "uri"))
+
+  def PUT(self):
+    """Create an instance.
+
+    Returns:
+      A job id.
+
+    """
+    opts = self.post_data
+
+    # beparams
+    mem = opts.get('mem', None)
+    vcpus = opts.get('vcpus', None)
+    auto_balance = opts.get('auto_balance', None)
+
+    beparams = {}
+
+    for key, const in [(mem, constants.BE_MEMORY),
+                       (vcpus, constants.BE_VCPUS),
+                       (auto_balance, constants.BE_AUTO_BALANCE)]:
+      if key is not None:
+        beparams[const] = key
+
+    op = ganeti.opcodes.OpCreateInstance(
+        instance_name=opts.get('name'),
+        disk_size=opts.get('size', 20 * 1024),
+        swap_size=opts.get('swap', 4 * 1024),
+        disk_template=opts.get('disk_template', None),
+        mode=constants.INSTANCE_CREATE,
+        os_type=opts.get('os'),
+        pnode=opts.get('pnode'),
+        snode=opts.get('snode'),
+        ip=opts.get('ip', 'none'),
+        bridge=opts.get('bridge', None),
+        start=opts.get('start', True),
+        ip_check=opts.get('ip_check', True),
+        wait_for_sync=opts.get('wait_for_sync', True),
+        mac=opts.get('mac', 'auto'),
+        hypervisor=opts.get('hypervisor', None),
+        hvparams=opts.get('hvparams', {}),
+        beparams=beparams,
+        iallocator=opts.get('iallocator', None),
+        file_storage_dir=opts.get('file_storage_dir', None),
+        file_driver=opts.get('file_driver', 'loop'),
+        )
+
+    job_id = ganeti.cli.SendJob([op])
+    return job_id
 
 
 class R_2_instances_name_tags(baserlib.R_Generic):

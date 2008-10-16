@@ -33,10 +33,9 @@ from ganeti import http
 from ganeti.rapi import baserlib
 
 
-I_FIELDS = ["name", "os", "pnode", "snodes",
-            "admin_state", "admin_ram",
-            "disk_template", "ip", "mac", "bridge",
-            "sda_size", "sdb_size", "vcpus",
+I_FIELDS = ["name", "os", "pnode", "snodes", "admin_state", "disk_template",
+            "ip", "mac", "bridge", "sda_size", "sdb_size", "be/vcpus",
+            "be/memory", "be/auto_balance",
             "oper_state", "status", "tags"]
 
 N_FIELDS = ["name", "dtotal", "dfree",
@@ -275,6 +274,17 @@ class R_instances_name(baserlib.R_Generic):
     result = ganeti.cli.SubmitOpCode(op)
 
     return baserlib.MapFields(I_FIELDS, result[0])
+
+  def DELETE(self):
+    """Removes an instance.
+
+    """
+    instance_name = self.items[0]
+    op = ganeti.opcodes.OpRemoveInstance(instance_name=instance_name,
+                                         ignore_failures=True)
+    job_id = ganeti.cli.SendJob([op])
+
+    return job_id
 
 
 class R_instances_name_tags(baserlib.R_Generic):
