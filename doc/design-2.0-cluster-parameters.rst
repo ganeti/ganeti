@@ -66,7 +66,12 @@ backend parameter
   a backend parameter is defined as an instance parameter that can be
   shared among a list of instances, and is either generic enough not
   to be tied to a given hypervisor or cannot influence at all the
-  hypervisor behaviour
+  hypervisor behaviour.
+
+  For example: memory, vcpus, auto_balance
+
+  All these parameters will be encoded into constants.py with the prefix "BE_"
+  and the whole list of parameters will exist in the set "BES_PARAMETERS"
 
 proper parameter
   a parameter whose value is unique to the instance (e.g. the name of a LV,
