@@ -342,7 +342,9 @@ def SetClusterParams(opts, args):
     opts - class with options as members
 
   """
-  if not (not opts.lvm_storage or opts.vg_name):
+  if not (not opts.lvm_storage or opts.vg_name or
+          opts.enabled_hypervisors or opts.hvparams or
+          opts.beparams):
     print "Please give at least one of the parameters."
     return 1
 
@@ -351,7 +353,21 @@ def SetClusterParams(opts, args):
     print ("Options --no-lvm-storage and --vg-name conflict.")
     return 1
 
-  op = opcodes.OpSetClusterParams(vg_name=opts.vg_name)
+  hvlist = opts.enabled_hypervisors
+  if hvlist is not None:
+    hvlist = hvlist.split(",")
+
+  hvparams = opts.hvparams
+  if hvparams:
+    # a list of (name, dict) we can pass directly to dict()
+    hvparams = dict(opts.hvparams)
+
+  beparams = opts.beparams
+
+  op = opcodes.OpSetClusterParams(vg_name=opts.vg_name,
+                                  enabled_hypervisors=hvlist,
+                                  hvparams=hvparams,
+                                  beparams=beparams)
   SubmitOpCode(op)
   return 0
 
@@ -487,6 +503,19 @@ commands = {
                           help="Disable support for lvm based instances"
                                " (cluster-wide)",
                           action="store_false", default=True,),
+              make_option("--enabled-hypervisors", dest="enabled_hypervisors",
+                          help="Comma-separated list of hypervisors",
+                          type="string", default=None),
+              ikv_option("-H", "--hypervisor-parameters", dest="hvparams",
+                         help="Hypervisor and hypervisor options, in the"
+                         " format"
+                         " hypervisor:option=value,option=value,...",
+                         default=[],
+                         action="append",
+                         type="identkeyval"),
+              keyval_option("-B", "--backend-parameters", dest="beparams",
+                            type="keyval", default={},
+                            help="Backend parameters"),
               ],
              "[opts...]",
              "Alters the parameters of the cluster"),

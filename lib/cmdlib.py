@@ -1151,7 +1151,7 @@ class LUSetClusterParams(LogicalUnit):
     """
     # FIXME: This only works because there is only one parameter that can be
     # changed or removed.
-    if not self.op.vg_name:
+    if self.op.vg_name is not None and not self.op.vg_name:
       instances = self.cfg.GetAllInstancesInfo().values()
       for inst in instances:
         for disk in inst.disks:
@@ -1159,9 +1159,10 @@ class LUSetClusterParams(LogicalUnit):
             raise errors.OpPrereqError("Cannot disable lvm storage while"
                                        " lvm-based instances exist")
 
+    node_list = self.acquired_locks[locking.LEVEL_NODE]
+
     # if vg_name not None, checks given volume group on all nodes
     if self.op.vg_name:
-      node_list = self.acquired_locks[locking.LEVEL_NODE]
       vglist = self.rpc.call_vg_list(node_list)
       for node in node_list:
         vgstatus = utils.CheckVolumeGroupSize(vglist[node], self.op.vg_name,
@@ -1170,15 +1171,57 @@ class LUSetClusterParams(LogicalUnit):
           raise errors.OpPrereqError("Error on node '%s': %s" %
                                      (node, vgstatus))
 
+    self.cluster = cluster = self.cfg.GetClusterInfo()
+    # beparams changes do not need validation (we can't validate?),
+    # but we still process here
+    if self.op.beparams:
+      self.new_beparams = cluster.FillDict(
+        cluster.beparams[constants.BEGR_DEFAULT], self.op.beparams)
+
+    # hypervisor list/parameters
+    self.new_hvparams = cluster.FillDict(cluster.hvparams, {})
+    if self.op.hvparams:
+      if not isinstance(self.op.hvparams, dict):
+        raise errors.OpPrereqError("Invalid 'hvparams' parameter on input")
+      for hv_name, hv_dict in self.op.hvparams.items():
+        if hv_name not in self.new_hvparams:
+          self.new_hvparams[hv_name] = hv_dict
+        else:
+          self.new_hvparams[hv_name].update(hv_dict)
+
+    if self.op.enabled_hypervisors is not None:
+      self.hv_list = self.op.enabled_hypervisors
+    else:
+      self.hv_list = cluster.enabled_hypervisors
+
+    if self.op.hvparams or self.op.enabled_hypervisors is not None:
+      # either the enabled list has changed, or the parameters have, validate
+      for hv_name, hv_params in self.new_hvparams.items():
+        if ((self.op.hvparams and hv_name in self.op.hvparams) or
+            (self.op.enabled_hypervisors and
+             hv_name in self.op.enabled_hypervisors)):
+          # either this is a new hypervisor, or its parameters have changed
+          hv_class = hypervisor.GetHypervisor(hv_name)
+          hv_class.CheckParameterSyntax(hv_params)
+          _CheckHVParams(self, node_list, hv_name, hv_params)
+
   def Exec(self, feedback_fn):
     """Change the parameters of the cluster.
 
     """
-    if self.op.vg_name != self.cfg.GetVGName():
-      self.cfg.SetVGName(self.op.vg_name)
-    else:
-      feedback_fn("Cluster LVM configuration already in desired"
-                  " state, not changing")
+    if self.op.vg_name is not None:
+      if self.op.vg_name != self.cfg.GetVGName():
+        self.cfg.SetVGName(self.op.vg_name)
+      else:
+        feedback_fn("Cluster LVM configuration already in desired"
+                    " state, not changing")
+    if self.op.hvparams:
+      self.cluster.hvparams = self.new_hvparams
+    if self.op.enabled_hypervisors is not None:
+      self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
+    if self.op.beparams:
+      self.cluster.beparams[constants.BEGR_DEFAULT] = self.new_beparams
+    self.cfg.Update(self.cluster)
 
 
 def _WaitForSync(lu, instance, oneshot=False, unlock=False):
