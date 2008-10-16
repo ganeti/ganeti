@@ -160,8 +160,8 @@ page. All these variables will be available to all scripts.
 Some scripts will need a few more information to work. These will have
 per-script variables, such as for example:
 
-NEW_INSTANCE_NAME
-  rename: the name the instance should be renamed to.
+OLD_INSTANCE_NAME
+  rename: the name the instance should be renamed from.
 EXPORT_NODE
   import/export: node where the export should be saved to or sourced from.
 EXPORT_PATH
