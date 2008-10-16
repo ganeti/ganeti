@@ -53,6 +53,7 @@ from ganeti import ssconf
 from ganeti import logger
 from ganeti import workerpool
 from ganeti import rpc
+from ganeti import bootstrap
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -374,53 +375,51 @@ def CheckAgreement():
   future we could collect the current node list from our (possibly
   obsolete) known nodes.
 
+  In order to account for cold-start of all nodes, we retry for up to
+  a minute until we get a real answer as the top-voted one. If the
+  nodes are more out-of-sync, for now manual startup of the master
+  should be attempted.
+
+  Note that for a even number of nodes cluster, we need at least half
+  of the nodes (beside ourselves) to vote for us. This creates a
+  problem on two-node clusters, since in this case we require the
+  other node to be up too to confirm our status.
+
   """
   myself = utils.HostInfo().name
   #temp instantiation of a config writer, used only to get the node list
   cfg = config.ConfigWriter()
   node_list = cfg.GetNodeList()
   del cfg
-  try:
-    node_list.remove(myself)
-  except KeyError:
-    pass
-  if not node_list:
-    # either single node cluster, or a misconfiguration, but I won't
-    # break any other node, so I can proceed
-    return True
-  results = rpc.RpcRunner.call_master_info(node_list)
-  if not isinstance(results, dict):
-    # this should not happen (unless internal error in rpc)
-    logging.critical("Can't complete rpc call, aborting master startup")
-    return False
-  positive = negative = 0
-  other_masters = {}
-  for node in results:
-    if not isinstance(results[node], (tuple, list)) or len(results[node]) < 3:
-      logging.warning("Can't contact node %s", node)
+  retries = 6
+  while retries > 0:
+    votes = bootstrap.GatherMasterVotes(node_list)
+    if not votes:
+      # empty node list, this is a one node cluster
+      return True
+    if votes[0][0] is None:
+      retries -= 1
+      time.sleep(10)
       continue
-    master_node = results[node][2]
-    if master_node == myself:
-      positive += 1
-    else:
-      negative += 1
-      if not master_node in other_masters:
-        other_masters[master_node] = 0
-      other_masters[master_node] += 1
-  if positive <= negative:
-    # bad!
+    break
+  if retries == 0:
+      logging.critical("Cluster inconsistent, most of the nodes didn't answer"
+                       " after multiple retries. Aborting startup")
+      return False
+  # here a real node is at the top of the list
+  all_votes = sum(item[1] for item in votes)
+  top_node, top_votes = votes[0]
+  result = False
+  if top_node != myself:
+    logging.critical("It seems we are not the master (top-voted node"
+                     " is %s)", top_node)
+  elif top_votes < all_votes - top_votes:
     logging.critical("It seems we are not the master (%d votes for,"
-                     " %d votes against)", positive, negative)
-    if len(other_masters) > 1:
-      logging.critical("The other nodes do not agree on a single master")
-    elif other_masters:
-      # TODO: resync my files from the master
-      logging.critical("It seems the real master is %s",
-                       other_masters.keys()[0])
-    else:
-      logging.critical("Can't contact any node for data, aborting startup")
-    return False
-  return True
+                     " %d votes against)", top_votes, all_votes - top_votes)
+  else:
+    result = True
+
+  return result
 
 
 def main():

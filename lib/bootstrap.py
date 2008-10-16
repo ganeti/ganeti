@@ -384,3 +384,61 @@ def MasterFailover():
     rcode = 1
 
   return rcode
+
+
+def GatherMasterVotes(node_list):
+  """Check the agreement on who is the master.
+
+  This function will return a list of (node, number of votes), ordered
+  by the number of votes. Errors will be denoted by the key 'None'.
+
+  Note that the sum of votes is the number of nodes this machine
+  knows, whereas the number of entries in the list could be different
+  (if some nodes vote for another master).
+
+  We remove ourselves from the list since we know that (bugs aside)
+  since we use the same source for configuration information for both
+  backend and boostrap, we'll always vote for ourselves.
+
+  @type node_list: list
+  @param node_list: the list of nodes to query for master info; the current
+      node wil be removed if it is in the list
+  @rtype: list
+  @return: list of (node, votes)
+
+  """
+  myself = utils.HostInfo().name
+  try:
+    node_list.remove(myself)
+  except ValueError:
+    pass
+  if not node_list:
+    # no nodes left (eventually after removing myself)
+    return []
+  results = rpc.RpcRunner.call_master_info(node_list)
+  if not isinstance(results, dict):
+    # this should not happen (unless internal error in rpc)
+    logging.critical("Can't complete rpc call, aborting master startup")
+    return [(None, len(node_list))]
+  positive = negative = 0
+  other_masters = {}
+  votes = {}
+  for node in results:
+    if not isinstance(results[node], (tuple, list)) or len(results[node]) < 3:
+      # here the rpc layer should have already logged errors
+      if None not in votes:
+        votes[None] = 0
+      votes[None] += 1
+      continue
+    master_node = results[node][2]
+    if master_node not in votes:
+      votes[master_node] = 0
+    votes[master_node] += 1
+
+  vote_list = [v for v in votes.items()]
+  # sort first on number of votes then on name, since we want None
+  # sorted later if we have the half of the nodes not responding, and
+  # half voting all for the same master
+  vote_list.sort(key=lambda x: (x[1], x[0]), reverse=True)
+
+  return vote_list
