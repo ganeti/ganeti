@@ -145,7 +145,20 @@ def ShowClusterConfig(opts, args):
   print ("Architecture (this node): %s (%s)" %
          (result["architecture"][0], result["architecture"][1]))
 
-  print ("Cluster hypervisor: %s" % result["hypervisor_type"])
+  print ("Default hypervisor: %s" % result["hypervisor_type"])
+  print ("Enabled hypervisors: %s" % ", ".join(result["enabled_hypervisors"]))
+
+  print "Hypervisor parameters:"
+  for hv_name, hv_dict in result["hvparams"].items():
+    print "  - %s:" % hv_name
+    for item, val in hv_dict.iteritems():
+      print "      %s: %s" % (item, val)
+
+  print "Cluster parameters:"
+  for gr_name, gr_dict in result["beparams"].items():
+    print "  - %s:" % gr_name
+    for item, val in gr_dict.iteritems():
+      print "      %s: %s" % (item, val)
 
   return 0
 

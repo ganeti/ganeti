@@ -1865,17 +1865,20 @@ class LUQueryClusterInfo(NoHooksLU):
     """Return cluster config.
 
     """
+    cluster = self.cfg.GetClusterInfo()
     result = {
-      "name": self.cfg.GetClusterName(),
       "software_version": constants.RELEASE_VERSION,
       "protocol_version": constants.PROTOCOL_VERSION,
       "config_version": constants.CONFIG_VERSION,
       "os_api_version": constants.OS_API_VERSION,
       "export_version": constants.EXPORT_VERSION,
-      "master": self.cfg.GetMasterNode(),
       "architecture": (platform.architecture()[0], platform.machine()),
-      "hypervisor_type": self.cfg.GetHypervisorType(),
-      "enabled_hypervisors": self.cfg.GetClusterInfo().enabled_hypervisors,
+      "name": cluster.cluster_name,
+      "master": cluster.master_node,
+      "hypervisor_type": cluster.hypervisor,
+      "enabled_hypervisors": cluster.enabled_hypervisors,
+      "hvparams": cluster.hvparams,
+      "beparams": cluster.beparams,
       }
 
     return result
