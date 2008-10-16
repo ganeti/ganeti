@@ -352,20 +352,34 @@ def MasterFailover():
 
   new_master = utils.HostInfo().name
   old_master = cfg.GetMasterNode()
+  node_list = cfg.GetNodeList()
 
   if old_master == new_master:
     raise errors.OpPrereqError("This commands must be run on the node"
                                " where you want the new master to be."
                                " %s is already the master" %
                                old_master)
+
+  vote_list = GatherMasterVotes(node_list)
+
+  if vote_list:
+    voted_master = vote_list[0][0]
+    if voted_master is None:
+      raise errors.OpPrereqError("Cluster is inconsistent, most nodes did not"
+                                 " respond.")
+    elif voted_master != old_master:
+      raise errors.OpPrereqError("I have wrong configuration, I believe the"
+                                 " master is %s but the other nodes voted for"
+                                 " %s. Please resync the configuration of"
+                                 " this node." % (old_master, voted_master))
   # end checks
 
   rcode = 0
 
-  logging.info("setting master to %s, old master: %s", new_master, old_master)
+  logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
   if not RpcRunner.call_node_stop_master(old_master, True):
-    logging.error("could disable the master role on the old master"
+    logging.error("Could not disable the master role on the old master"
                  " %s, please disable manually", old_master)
 
   cfg.SetMasterNode(new_master)
@@ -375,11 +389,12 @@ def MasterFailover():
 
   if not RpcRunner.call_upload_file(cfg.GetNodeList(),
                                     constants.CLUSTER_CONF_FILE):
-    logging.error("could not distribute the new simple store master file"
+    logging.error("Could not distribute the new configuration"
                   " to the other nodes, please check.")
 
+
   if not RpcRunner.call_node_start_master(new_master, True):
-    logging.error("could not start the master role on the new master"
+    logging.error("Could not start the master role on the new master"
                   " %s, please check", new_master)
     rcode = 1
 
