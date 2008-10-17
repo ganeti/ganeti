@@ -37,6 +37,8 @@ class Mainloop(object):
     self._io_wait = []
     self._signal_wait = []
     self.sigchld_handler = None
+    self.sigterm_handler = None
+    self.quit = False
 
   def Run(self):
     # TODO: Does not yet support adding new event sources while running
@@ -45,8 +47,9 @@ class Mainloop(object):
       poller.register(fd, conditions)
 
     self.sigchld_handler = utils.SignalHandler([signal.SIGCHLD])
+    self.sigterm_handler = utils.SignalHandler([signal.SIGTERM])
     try:
-      while True:
+      while not self.quit:
         try:
           io_events = poller.poll(1000)
         except select.error, err:
@@ -68,9 +71,16 @@ class Mainloop(object):
           for owner in self._signal_wait:
             owner.OnSignal(signal.SIGCHLD)
           self.sigchld_handler.Clear()
+
+        if self.sigterm_handler.called:
+          self.quit = True
+          self.sigterm_handler.Clear()
     finally:
       self.sigchld_handler.Reset()
       self.sigchld_handler = None
+      self.sigterm_handler.Reset()
+      self.sigterm_handler = None
+
 
   def RegisterIO(self, owner, fd, condition):
     """Registers a receiver for I/O notifications
