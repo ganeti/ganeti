@@ -1347,6 +1347,10 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name):
     True if successful, False otherwise.
 
   """
+  # TODO(ultrotter): Import/Export still to be converted to OS API 10
+  logging.error("Import/Export still to be converted to OS API 10")
+  return False
+
   inst_os = OSFromDisk(instance.os)
   export_script = inst_os.export_script
 
@@ -1494,6 +1498,10 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image,
     False in case of error, True otherwise.
 
   """
+  # TODO(ultrotter): Import/Export still to be converted to OS API 10
+  logging.error("Import/Export still to be converted to OS API 10")
+  return False
+
   inst_os = OSFromDisk(instance.os)
   import_script = inst_os.import_script
 
