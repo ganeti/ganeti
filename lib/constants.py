@@ -175,6 +175,7 @@ DTS_NOT_LVM = frozenset([DT_DISKLESS, DT_FILE])
 LD_LV = "lvm"
 LD_DRBD8 = "drbd8"
 LD_FILE = "file"
+LDS_BLOCK = frozenset([LD_LV, LD_DRBD8])
 
 # drbd constants
 DRBD_HMAC_ALG = "md5"
