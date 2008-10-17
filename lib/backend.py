@@ -585,28 +585,8 @@ def RunRenameInstance(instance, old_name, os_disk, swap_disk):
   inst_os = OSFromDisk(instance.os)
 
   script = inst_os.rename_script
-
-  os_device = instance.FindDisk(os_disk)
-  if os_device is None:
-    logging.error("Can't find this device-visible name '%s'", os_disk)
-    return False
-
-  swap_device = instance.FindDisk(swap_disk)
-  if swap_device is None:
-    logging.error("Can't find this device-visible name '%s'", swap_disk)
-    return False
-
-  real_os_dev = _RecursiveFindBD(os_device)
-  if real_os_dev is None:
-    raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                  str(os_device))
-  real_os_dev.Open()
-
-  real_swap_dev = _RecursiveFindBD(swap_device)
-  if real_swap_dev is None:
-    raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                  str(swap_device))
-  real_swap_dev.Open()
+  rename_env = OSEnvironment(instance)
+  rename_env['OLD_INSTANCE_NAME'] = old_name
 
   logfile = "%s/rename-%s-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
                                            old_name,
@@ -614,12 +594,10 @@ def RunRenameInstance(instance, old_name, os_disk, swap_disk):
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  command = utils.BuildShellCmd("cd %s && %s -o %s -n %s -b %s -s %s &>%s",
-                                inst_os.path, script, old_name, instance.name,
-                                real_os_dev.dev_path, real_swap_dev.dev_path,
-                                logfile)
+  command = utils.BuildShellCmd("cd %s && %s &>%s",
+                                inst_os.path, script, logfile)
 
-  result = utils.RunCmd(command)
+  result = utils.RunCmd(command, env=rename_env)
 
   if result.failed:
     logging.error("os create command '%s' returned error: %s output: %s",
