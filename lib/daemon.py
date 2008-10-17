@@ -36,7 +36,7 @@ class Mainloop(object):
   def __init__(self):
     self._io_wait = []
     self._signal_wait = []
-    self.sigchld_handler = {}
+    self.sigchld_handler = None
 
   def Run(self):
     # TODO: Does not yet support adding new event sources while running
