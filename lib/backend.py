@@ -516,13 +516,11 @@ def GetAllInstancesInfo(hypervisor_list):
   return output
 
 
-def AddOSToInstance(instance, os_disk, swap_disk):
+def AddOSToInstance(instance):
   """Add an OS to an instance.
 
-  Args:
-    instance: the instance object
-    os_disk: the instance-visible name of the os device
-    swap_disk: the instance-visible name of the swap device
+  @type instance: L{objects.Instance}
+  @param instance: Instance whose OS is to be installed
 
   """
   inst_os = OSFromDisk(instance.os)
@@ -548,14 +546,13 @@ def AddOSToInstance(instance, os_disk, swap_disk):
   return True
 
 
-def RunRenameInstance(instance, old_name, os_disk, swap_disk):
+def RunRenameInstance(instance, old_name):
   """Run the OS rename script for an instance.
 
-  Args:
-    instance: the instance object
-    old_name: the old name of the instance
-    os_disk: the instance-visible name of the os device
-    swap_disk: the instance-visible name of the swap device
+  @type instance: objects.Instance
+  @param instance: Instance whose OS is to be installed
+  @type old_name: string
+  @param old_name: previous instance name
 
   """
   inst_os = OSFromDisk(instance.os)

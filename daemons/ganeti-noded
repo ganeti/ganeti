@@ -321,18 +321,18 @@ class NodeHttpServer(http.HttpServer):
     """Install an OS on a given instance.
 
     """
-    inst_s, os_disk, swap_disk = params
+    inst_s = params[0]
     inst = objects.Instance.FromDict(inst_s)
-    return backend.AddOSToInstance(inst, os_disk, swap_disk)
+    return backend.AddOSToInstance(inst)
 
   @staticmethod
   def perspective_instance_run_rename(params):
     """Runs the OS rename script for an instance.
 
     """
-    inst_s, old_name, os_disk, swap_disk = params
+    inst_s, old_name = params
     inst = objects.Instance.FromDict(inst_s)
-    return backend.RunRenameInstance(inst, old_name, os_disk, swap_disk)
+    return backend.RunRenameInstance(inst, old_name)
 
   @staticmethod
   def perspective_instance_os_import(params):

@@ -269,25 +269,25 @@ class RpcRunner(object):
     c.run()
     return c.getresult().get(node, False)
 
-  def call_instance_os_add(self, node, inst, osdev, swapdev):
+  def call_instance_os_add(self, node, inst):
     """Installs an OS on the given instance.
 
     This is a single-node call.
 
     """
-    params = [self._InstDict(inst), osdev, swapdev]
+    params = [self._InstDict(inst)]
     c = Client("instance_os_add", params)
     c.connect(node)
     c.run()
     return c.getresult().get(node, False)
 
-  def call_instance_run_rename(self, node, inst, old_name, osdev, swapdev):
+  def call_instance_run_rename(self, node, inst, old_name):
     """Run the OS rename script for an instance.
 
     This is a single-node call.
 
     """
-    params = [self._InstDict(inst), old_name, osdev, swapdev]
+    params = [self._InstDict(inst), old_name]
     c = Client("instance_run_rename", params)
     c.connect(node)
     c.run()

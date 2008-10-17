@@ -2583,8 +2583,7 @@ class LURenameInstance(LogicalUnit):
     _StartInstanceDisks(self, inst, None)
     try:
       if not self.rpc.call_instance_run_rename(inst.primary_node, inst,
-                                               old_name,
-                                               "sda", "sdb"):
+                                               old_name):
         msg = ("Could not run OS rename script for instance %s on node %s"
                " (but the instance has been renamed in Ganeti)" %
                (inst.name, inst.primary_node))
@@ -3682,7 +3681,7 @@ class LUCreateInstance(LogicalUnit):
     if iobj.disk_template != constants.DT_DISKLESS:
       if self.op.mode == constants.INSTANCE_CREATE:
         feedback_fn("* running the instance OS create scripts...")
-        if not self.rpc.call_instance_os_add(pnode_name, iobj, "sda", "sdb"):
+        if not self.rpc.call_instance_os_add(pnode_name, iobj):
           raise errors.OpExecError("could not add os for instance %s"
                                    " on node %s" %
                                    (instance, pnode_name))
