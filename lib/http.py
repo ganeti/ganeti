@@ -65,6 +65,7 @@ HTTP_1_1 = "HTTP/1.1"
 
 HTTP_GET = "GET"
 HTTP_HEAD = "HEAD"
+HTTP_ETAG = "ETag"
 
 
 class SocketClosed(socket.error):
@@ -372,6 +373,7 @@ class _HttpConnectionHandler(object):
     self.response_body = None
     self.response_code = HTTP_OK
     self.response_content_type = None
+    self.response_headers = {}
 
     self.should_fork = False
 
@@ -484,6 +486,9 @@ class _HttpConnectionHandler(object):
       self._SendHeader("Date", self._DateTimeHeader())
       self._SendHeader("Content-Type", self.response_content_type)
       self._SendHeader("Content-Length", str(len(self.response_body)))
+      for key, val in self.response_headers.iteritems():
+        self._SendHeader(key, val)
+
       # We don't support keep-alive at this time
       self._SendHeader("Connection", "close")
       self.wfile.write("\r\n")

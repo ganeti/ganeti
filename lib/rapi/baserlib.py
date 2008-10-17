@@ -137,3 +137,10 @@ class R_Generic(object):
     self.items = items
     self.queryargs = queryargs
     self.post_data = post_data
+    self.sn = None
+
+  def getSerialNumber(self):
+    """Get Serial Number.
+
+    """
+    return self.sn

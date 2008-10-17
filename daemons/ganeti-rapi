@@ -61,6 +61,9 @@ class RemoteApiHttpServer(http.HttpServer):
 
     try:
       result = fn()
+      sn = handler.getSerialNumber()
+      if sn:
+        req.response_headers[http.HTTP_ETAG] = str(sn)
     except:
       logging.exception("Error while handling the %s request", method)
       raise
