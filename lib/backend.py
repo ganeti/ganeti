@@ -1225,9 +1225,9 @@ def OSFromDisk(name, base_dir=None):
   `errors.InvalidOS` exception, detailing why this is not a valid
   OS.
 
-  Args:
-    os_dir: Directory containing the OS scripts. Defaults to a search
-            in all the OS_SEARCH_PATH directories.
+  @type base_dir: string
+  @keyword base_dir: Base directory containing OS installations.
+                     Defaults to a search in all the OS_SEARCH_PATH dirs.
 
   """
 
