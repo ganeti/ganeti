@@ -1273,6 +1273,51 @@ def OSFromDisk(name, base_dir=None):
                     rename_script=os_scripts[constants.OS_SCRIPT_RENAME],
                     api_versions=api_versions)
 
+def OSEnvironment(instance, debug=0):
+  """Calculate the environment for an os script.
+
+  @type instance: instance object
+  @param instance: target instance for the os script run
+  @type debug: integer
+  @param debug: debug level (0 or 1, for os api 10)
+  @rtype: dict
+  @return: dict of environment variables
+
+  """
+  result = {}
+  result['OS_API_VERSION'] = '%d' % constants.OS_API_VERSION
+  result['INSTANCE_NAME'] = instance.name
+  result['HYPERVISOR'] = instance.hypervisor
+  result['DISK_COUNT'] = '%d' % len(instance.disks)
+  result['NIC_COUNT'] = '%d' % len(instance.nics)
+  result['DEBUG_LEVEL'] = '%d' % debug
+  for idx, disk in enumerate(instance.disks):
+    real_disk = _RecursiveFindBD(disk)
+    if real_disk is None:
+      raise errors.BlockDeviceError("Block device '%s' is not set up" %
+                                    str(disk))
+    real_disk.Open()
+    result['DISK_%d_PATH' % idx] = real_disk.dev_path
+    # FIXME: When disks will have read-only mode, populate this
+    result['DISK_%d_ACCESS' % idx] = 'W'
+    if constants.HV_DISK_TYPE in instance.hvparams:
+      result['DISK_%d_FRONTEND_TYPE' % idx] = \
+        instance.hvparams[constants.HV_DISK_TYPE]
+    if disk.dev_type in constants.LDS_BLOCK:
+      result['DISK_%d_BACKEND_TYPE' % idx] = 'block'
+    elif disk.dev_type == constants.LD_FILE:
+      result['DISK_%d_BACKEND_TYPE' % idx] = \
+        'file:%s' % disk.physical_id[0]
+  for idx, nic in enumerate(instance.nics):
+    result['NIC_%d_MAC' % idx] = nic.mac
+    if nic.ip:
+      result['NIC_%d_IP' % idx] = nic.ip
+    result['NIC_%d_BRIDGE' % idx] = nic.bridge
+    if constants.HV_NIC_TYPE in instance.hvparams:
+      result['NIC_%d_FRONTEND_TYPE' % idx] = \
+        instance.hvparams[constants.HV_NIC_TYPE]
+
+  return result
 
 def GrowBlockDevice(disk, amount):
   """Grow a stack of block devices.
