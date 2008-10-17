@@ -233,8 +233,14 @@ DEFAULT_VG = "xenvg"
 BIND_ADDRESS_GLOBAL = "0.0.0.0"
 MIN_VG_SIZE = 20480
 
-# valid os status
+# os related constants
 OS_VALID_STATUS = "VALID"
+OS_SCRIPT_CREATE = 'create'
+OS_SCRIPT_IMPORT = 'import'
+OS_SCRIPT_EXPORT = 'export'
+OS_SCRIPT_RENAME = 'rename'
+OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT, 
+                        OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME])
 
 # ssh constants
 SSH_INITD_SCRIPT = _autoconf.SSH_INITD_SCRIPT
