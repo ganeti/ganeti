@@ -528,41 +528,17 @@ def AddOSToInstance(instance, os_disk, swap_disk):
   inst_os = OSFromDisk(instance.os)
 
   create_script = inst_os.create_script
-
-  os_device = instance.FindDisk(os_disk)
-  if os_device is None:
-    logging.error("Can't find this device-visible name '%s'", os_disk)
-    return False
-
-  swap_device = instance.FindDisk(swap_disk)
-  if swap_device is None:
-    logging.error("Can't find this device-visible name '%s'", swap_disk)
-    return False
-
-  real_os_dev = _RecursiveFindBD(os_device)
-  if real_os_dev is None:
-    raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                  str(os_device))
-  real_os_dev.Open()
-
-  real_swap_dev = _RecursiveFindBD(swap_device)
-  if real_swap_dev is None:
-    raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                  str(swap_device))
-  real_swap_dev.Open()
+  create_env = OSEnvironment(instance)
 
   logfile = "%s/add-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
                                      instance.name, int(time.time()))
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  command = utils.BuildShellCmd("cd %s && %s -i %s -b %s -s %s &>%s",
-                                inst_os.path, create_script, instance.name,
-                                real_os_dev.dev_path, real_swap_dev.dev_path,
-                                logfile)
-  env = {'HYPERVISOR': instance.hypervisor}
+  command = utils.BuildShellCmd("cd %s && %s &>%s",
+                                inst_os.path, create_script, logfile)
 
-  result = utils.RunCmd(command, env=env)
+  result = utils.RunCmd(command, env=create_env)
   if result.failed:
     logging.error("os create command '%s' returned error: %s, logfile: %s,"
                   " output: %s", command, result.fail_reason, logfile,
