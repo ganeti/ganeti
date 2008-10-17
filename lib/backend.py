@@ -1246,7 +1246,7 @@ def OSFromDisk(name, base_dir=None):
                            % (api_versions, constants.OS_API_VERSION))
 
   # OS Scripts dictionary, we will populate it with the actual script names
-  os_scripts = {'create': '', 'export': '', 'import': '', 'rename': ''}
+  os_scripts = dict.fromkeys(constants.OS_SCRIPTS)
 
   for script in os_scripts:
     os_scripts[script] = os.path.sep.join([os_dir, script])
@@ -1267,10 +1267,10 @@ def OSFromDisk(name, base_dir=None):
 
 
   return objects.OS(name=name, path=os_dir, status=constants.OS_VALID_STATUS,
-                    create_script=os_scripts['create'],
-                    export_script=os_scripts['export'],
-                    import_script=os_scripts['import'],
-                    rename_script=os_scripts['rename'],
+                    create_script=os_scripts[constants.OS_SCRIPT_CREATE],
+                    export_script=os_scripts[constants.OS_SCRIPT_EXPORT],
+                    import_script=os_scripts[constants.OS_SCRIPT_IMPORT],
+                    rename_script=os_scripts[constants.OS_SCRIPT_RENAME],
                     api_versions=api_versions)
 
 
