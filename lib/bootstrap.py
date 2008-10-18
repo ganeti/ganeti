@@ -108,7 +108,8 @@ def _InitGanetiServerSetup():
 def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
                 master_netdev, file_storage_dir,
                 secondary_ip=None,
-                vg_name=None):
+                vg_name=None, beparams=None, hvparams=None,
+                enabled_hypervisors=None):
   """Initialise the cluster.
 
   """
@@ -224,6 +225,9 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
     master_netdev=master_netdev,
     cluster_name=clustername.name,
     file_storage_dir=file_storage_dir,
+    enabled_hypervisors=enabled_hypervisors,
+    beparams={constants.BEGR_DEFAULT: beparams},
+    hvparams=hvparams,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

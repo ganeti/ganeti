@@ -50,6 +50,54 @@ def InitCluster(opts, args):
   if opts.lvm_storage and not opts.vg_name:
     vg_name = constants.DEFAULT_VG
 
+  hvlist = opts.enabled_hypervisors
+  if hvlist is not None:
+    hvlist = hvlist.split(",")
+  else:
+    hvlist = constants.DEFAULT_ENABLED_HYPERVISOR
+
+  hvparams = opts.hvparams
+  if hvparams:
+    # a list of (name, dict) we can pass directly to dict()
+    hvparams = dict(opts.hvparams)
+  else:
+    # otherwise init as empty dict
+    hvparams = {}
+
+  beparams = opts.beparams
+  # check for invalid parameters
+  for parameter in beparams:
+    if parameter not in constants.BES_PARAMETERS:
+      print "Invalid backend parameter: %s" % parameter
+      return 1
+
+  # prepare beparams dict
+  for parameter in constants.BES_PARAMETERS:
+    if parameter not in beparams:
+      beparams[parameter] = constants.BEC_DEFAULTS[parameter]
+
+  # type wrangling
+  try:
+    beparams[constants.BE_VCPUS] = int(beparams[constants.BE_VCPUS])
+  except ValueError:
+    print "%s must be an integer" % constants.BE_VCPUS
+    return 1
+
+  beparams[constants.BE_MEMORY] = utils.ParseUnit(beparams[constants.BE_MEMORY])
+
+  # prepare hvparams dict
+  for hv in constants.HYPER_TYPES:
+    if hv not in hvparams:
+      hvparams[hv] = {}
+    for parameter in constants.HVC_DEFAULTS[hv]:
+      if parameter not in hvparams[hv]:
+        hvparams[hv][parameter] = constants.HVC_DEFAULTS[hv][parameter]
+
+  for hv in hvlist:
+    if hv not in constants.HYPER_TYPES:
+      print "invalid hypervisor: %s" % hv
+      return 1
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         hypervisor_type=opts.hypervisor_type,
@@ -57,7 +105,10 @@ def InitCluster(opts, args):
                         mac_prefix=opts.mac_prefix,
                         def_bridge=opts.def_bridge,
                         master_netdev=opts.master_netdev,
-                        file_storage_dir=opts.file_storage_dir)
+                        file_storage_dir=opts.file_storage_dir,
+                        enabled_hypervisors=hvlist,
+                        hvparams=hvparams,
+                        beparams=beparams)
   return 0
 
 
@@ -445,6 +496,19 @@ commands = {
                         help="No support for lvm based instances"
                              " (cluster-wide)",
                         action="store_false", default=True,),
+            make_option("--enabled-hypervisors", dest="enabled_hypervisors",
+                        help="Comma-separated list of hypervisors",
+                        type="string", default=None),
+            ikv_option("-H", "--hypervisor-parameters", dest="hvparams",
+                       help="Hypervisor and hypervisor options, in the"
+                         " format"
+                       " hypervisor:option=value,option=value,...",
+                       default=[],
+                       action="append",
+                       type="identkeyval"),
+            keyval_option("-B", "--backend-parameters", dest="beparams",
+                          type="keyval", default={},
+                          help="Backend parameters"),
             ],
            "[opts...] <cluster_name>",
            "Initialises a new cluster configuration"),
