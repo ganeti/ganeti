@@ -899,10 +899,14 @@ def SetInstanceParams(opts, args):
     mac - the new MAC address of the instance
 
   """
-  if not (opts.mem or opts.vcpus or opts.ip or opts.bridge or opts.mac or
-          opts.hypervisor):
+  if not (opts.ip or opts.bridge or opts.mac or
+          opts.hypervisor or opts.beparams):
     logger.ToStdout("Please give at least one of the parameters.")
     return 1
+
+  if constants.BE_MEMORY in opts.beparams:
+    opts.beparams[constants.BE_MEMORY] = utils.ParseUnit(
+      opts.beparams[constants.BE_MEMORY])
 
   op = opcodes.OpSetInstanceParams(instance_name=args[0],
                                    ip=opts.ip,
@@ -1109,12 +1113,6 @@ commands = {
                     "Replaces all disks for the instance"),
   'modify': (SetInstanceParams, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
-              cli_option("-m", "--memory", dest="mem",
-                         help="Memory size",
-                         default=None, type="unit", metavar="<mem>"),
-              make_option("-p", "--cpu", dest="vcpus",
-                          help="Number of virtual CPUs",
-                          default=None, type="int", metavar="<PROC>"),
               make_option("-i", "--ip", dest="ip",
                           help="IP address ('none' or numeric IP)",
                           default=None, type="string", metavar="<ADDRESS>"),
@@ -1127,6 +1125,9 @@ commands = {
               keyval_option("-H", "--hypervisor", type="keyval",
                             default={}, dest="hypervisor",
                             help="Change hypervisor parameters"),
+              keyval_option("-B", "--backend", type="keyval",
+                            default={}, dest="beparams",
+                            help="Change backend parameters"),
               SUBMIT_OPT,
               ],
              "<instance>", "Alters the parameters of an instance"),

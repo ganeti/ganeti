@@ -4557,7 +4557,7 @@ class LUSetInstanceParams(LogicalUnit):
     if constants.BE_MEMORY in self.be_new:
       args['memory'] = self.be_new[constants.BE_MEMORY]
     if constants.BE_VCPUS in self.be_new:
-      args['vcpus'] = self.be_bnew[constants.BE_VCPUS]
+      args['vcpus'] = self.be_new[constants.BE_VCPUS]
     if self.do_ip or self.do_bridge or self.mac:
       if self.do_ip:
         ip = self.ip
