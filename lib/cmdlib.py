@@ -3679,7 +3679,7 @@ class LUCreateInstance(LogicalUnit):
                                    (hostname1.ip, instance_name))
 
     # MAC address verification
-    if self.op.mac != "auto":
+    if self.op.mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
       if not utils.IsValidMac(self.op.mac.lower()):
         raise errors.OpPrereqError("invalid MAC address specified: %s" %
                                    self.op.mac)
@@ -3814,7 +3814,7 @@ class LUCreateInstance(LogicalUnit):
     instance = self.op.instance_name
     pnode_name = self.pnode.name
 
-    if self.op.mac == "auto":
+    if self.op.mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
       mac_address = self.cfg.GenerateMAC()
     else:
       mac_address = self.op.mac
