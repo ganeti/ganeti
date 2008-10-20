@@ -210,7 +210,6 @@
         <command>init</command>
         <arg>-s <replaceable>secondary_ip</replaceable></arg>
         <arg>-b <replaceable>bridge</replaceable></arg>
-        <arg>-t <replaceable>hypervisor-type</replaceable></arg>
         <arg>-g <replaceable>vg-name</replaceable></arg>
         <arg>--master-netdev <replaceable>vg-name</replaceable></arg>
         <arg>-m <replaceable>mac-prefix</replaceable></arg>
@@ -255,17 +254,6 @@
       <para>
         The <option>-b</option> option specifies the default bridge
         for instances.
-      </para>
-
-      <para>
-        The <option>-t</option> allows to set the hypervisor type of
-        the cluster. Available hypervisor types are: xen-pvm, fake and
-        xen-hvm. The default is the xen-pvm hypervisor.
-        Note that if you init the cluster with hypervisor-type
-        xen-hvm you also need to provide the cluster VNC password
-        file <filename>/etc/ganeti/vnc-cluster-password</filename>
-        because HVM instances require it for VNC console
-        authentication.
       </para>
 
       <para>
