@@ -105,6 +105,8 @@
         <sbr>
 
         <arg>-b <replaceable>bridge</replaceable></arg>
+        <arg>--mac <replaceable>mac</replaceable></arg>
+        <sbr>
         <arg choice="req">--src-node=<replaceable>source-node</replaceable></arg>
         <arg choice="req">--src-dir=<replaceable>source-dir</replaceable></arg>
         <sbr>
@@ -155,6 +157,14 @@
         The <option>-b</option> option specifies the bridge to which the
         instance will be connected. (defaults to the cluster-wide default
         bridge specified at cluster intialization time).
+      </para>
+
+      <para>
+	The <option>--mac</option> option specifies the mac address for the
+	instance. The default is 'auto' which is reusing the previous mac
+	address if the instance is being imported with the same name, and
+	generating a new one otherwise. You can also force generation by
+	specifying 'generate'.
       </para>
 
       <para>
