@@ -30,9 +30,9 @@ import socket
 import sys
 import time
 import signal
+import logging
 
 from ganeti import constants
-from ganeti import logger
 from ganeti import serializer
 
 
