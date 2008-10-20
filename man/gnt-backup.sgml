@@ -114,7 +114,7 @@
         <sbr>
 
         <arg>-b <replaceable>bridge</replaceable></arg>
-        <arg>-m <replaceable>mac</replaceable></arg>
+        <arg>--mac <replaceable>mac</replaceable></arg>
         <arg>--no-wait-for-sync</arg>
         <arg>--no-ip-check</arg>
         <sbr>
@@ -176,7 +176,7 @@
       </para>
 
       <para>
-	The <option>-m</option> option specifies the mac address for the
+	The <option>--mac</option> option specifies the mac address for the
 	instance. The default is 'auto' which is reusing the previous mac
 	address if the instance is being imported with the same name, and
 	generating a new one otherwise. You can also force generation by
