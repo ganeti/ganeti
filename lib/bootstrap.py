@@ -109,7 +109,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
                 master_netdev, file_storage_dir,
                 secondary_ip=None,
                 vg_name=None, beparams=None, hvparams=None,
-                enabled_hypervisors=None):
+                enabled_hypervisors=None, default_hypervisor=None):
   """Initialise the cluster.
 
   """
@@ -215,6 +215,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     cluster_name=clustername.name,
     file_storage_dir=file_storage_dir,
     enabled_hypervisors=enabled_hypervisors,
+    default_hypervisor=default_hypervisor,
     beparams={constants.BEGR_DEFAULT: beparams},
     hvparams=hvparams,
     )

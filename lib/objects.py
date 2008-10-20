@@ -688,7 +688,7 @@ class Cluster(TaggableObject):
     "mac_prefix",
     "volume_group_name",
     "default_bridge",
-    "hypervisor",
+    "default_hypervisor",
     "master_node",
     "master_ip",
     "master_netdev",

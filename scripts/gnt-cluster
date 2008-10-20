@@ -56,7 +56,13 @@ def InitCluster(opts, args):
   if hvlist is not None:
     hvlist = hvlist.split(",")
   else:
-    hvlist = constants.DEFAULT_ENABLED_HYPERVISOR
+    hvlist = [constants.DEFAULT_ENABLED_HYPERVISOR]
+
+  # avoid an impossible situation
+  if opts.default_hypervisor in hvlist:
+    default_hypervisor = opts.default_hypervisor
+  else:
+    default_hypervisor = hvlist[0]
 
   hvparams = opts.hvparams
   if hvparams:
@@ -108,6 +114,7 @@ def InitCluster(opts, args):
                         master_netdev=opts.master_netdev,
                         file_storage_dir=opts.file_storage_dir,
                         enabled_hypervisors=hvlist,
+                        default_hypervisor=default_hypervisor,
                         hvparams=hvparams,
                         beparams=beparams)
   return 0
@@ -197,7 +204,7 @@ def ShowClusterConfig(opts, args):
   ToStdout("Architecture (this node): %s (%s)",
            result["architecture"][0], result["architecture"][1])
 
-  ToStdout("Default hypervisor: %s", result["hypervisor_type"])
+  ToStdout("Default hypervisor: %s", result["default_hypervisor"])
   ToStdout("Enabled hypervisors: %s", ", ".join(result["enabled_hypervisors"]))
 
   ToStdout("Hypervisor parameters:")
@@ -490,6 +497,11 @@ commands = {
             make_option("--enabled-hypervisors", dest="enabled_hypervisors",
                         help="Comma-separated list of hypervisors",
                         type="string", default=None),
+            make_option("-t", "--default-hypervisor",
+                        dest="default_hypervisor",
+                        help="Default hypervisor to use for instance creation",
+                        choices=list(constants.HYPER_TYPES),
+                        default=constants.DEFAULT_ENABLED_HYPERVISOR),
             ikv_option("-H", "--hypervisor-parameters", dest="hvparams",
                        help="Hypervisor and hypervisor options, in the"
                          " format"

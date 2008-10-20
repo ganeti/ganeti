@@ -68,7 +68,7 @@ class TestConfigRunner(unittest.TestCase):
       volume_group_name="xenvg",
       default_bridge=constants.DEFAULT_BRIDGE,
       tcpudp_port_pool=set(),
-      hypervisor=constants.HT_FAKE,
+      default_hypervisor=constants.HT_FAKE,
       master_node=me.name,
       master_ip="127.0.0.1",
       master_netdev=constants.DEFAULT_BRIDGE,
