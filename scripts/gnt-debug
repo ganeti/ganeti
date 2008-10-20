@@ -30,7 +30,6 @@ from cStringIO import StringIO
 
 from ganeti.cli import *
 from ganeti import opcodes
-from ganeti import logger
 from ganeti import constants
 from ganeti import utils
 from ganeti import errors
@@ -58,7 +57,7 @@ def GenericOpCodes(opts, args):
   op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
   job = opcodes.Job(op_list=op_list)
   jid = SubmitJob(job)
-  print "Job id:", jid
+  ToStdout("Job id: %s", jid)
   query = {
     "object": "jobs",
     "fields": ["status"],
@@ -70,11 +69,11 @@ def GenericOpCodes(opts, args):
     jdata = SubmitQuery(query)
     if not jdata:
       # job not found, gone away!
-      print "Job lost!"
+      ToStderr("Job lost!")
       return 1
 
     status = jdata[0][0]
-    print status
+    ToStdout(status)
     if status in (opcodes.Job.STATUS_SUCCESS, opcodes.Job.STATUS_FAIL):
       break
 
@@ -86,12 +85,12 @@ def GenericOpCodes(opts, args):
   jdata = SubmitQuery(query)
   if not jdata:
     # job not found, gone away!
-    print "Job lost!"
+    ToStderr("Job lost!")
     return 1
-  print jdata[0]
+  ToStdout(jdata[0])
   status, op_list, op_status, op_result = jdata[0]
   for idx, op in enumerate(op_list):
-    print idx, op.OP_ID, op_status[idx], op_result[idx]
+    ToStdout("%s %s %s %s", idx, op.OP_ID, op_status[idx], op_result[idx])
   return 0
 
 
@@ -102,7 +101,7 @@ def TestAllocator(opts, args):
     disks = [{"size": utils.ParseUnit(val), "mode": 'w'}
              for val in opts.disks.split(",")]
   except errors.UnitParseError, err:
-    print >> sys.stderr, "Invalid disks parameter '%s': %s" % (opts.disks, err)
+    ToStderr("Invalid disks parameter '%s': %s", opts.disks, err)
     return 1
 
   nics = [val.split("/") for val in opts.nics.split(",")]
@@ -132,7 +131,7 @@ def TestAllocator(opts, args):
                                allocator=opts.allocator,
                                )
   result = SubmitOpCode(op)
-  print result
+  ToStdout("%s" % result)
   return 0
 
 

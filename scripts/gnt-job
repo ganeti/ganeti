@@ -28,7 +28,6 @@ from cStringIO import StringIO
 
 from ganeti.cli import *
 from ganeti import opcodes
-from ganeti import logger
 from ganeti import constants
 from ganeti import utils
 from ganeti import errors
@@ -103,7 +102,7 @@ def ListJobs(opts, args):
                        fields=selected_fields, unitfields=unitfields,
                        numfields=numfields, data=output)
   for line in data:
-    print line
+    ToStdout(line)
 
   return 0
 
@@ -146,7 +145,7 @@ def ShowJobs(opts, args):
   """
   def format(level, text):
     """Display the text indented."""
-    print "%s%s" % ("  " * level, text)
+    ToStdout("%s%s", "  " * level, text)
 
   def result_helper(value):
     """Format a result field in a nice way."""

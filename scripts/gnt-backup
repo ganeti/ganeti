@@ -43,13 +43,13 @@ def PrintExportList(opts, args):
   """
   exports = GetClient().QueryExports(opts.nodes)
   for node in exports:
-    print ("Node: %s" % node)
-    print ("Exports:")
+    ToStdout("Node: %s", node)
+    ToStdout("Exports:")
     if isinstance(exports[node], list):
       for instance_name in exports[node]:
-        print ("\t%s" % instance_name)
+        ToStdout("\t%s", instance_name)
     else:
-      print ("  Could not get exports list")
+      ToStdout("  Could not get exports list")
 
 
 def ExportInstance(opts, args):

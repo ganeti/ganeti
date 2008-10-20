@@ -21,7 +21,6 @@
 
 import sys
 from optparse import make_option
-import pprint
 import os.path
 
 from ganeti.cli import *
@@ -43,7 +42,7 @@ def InitCluster(opts, args):
 
   """
   if not opts.lvm_storage and opts.vg_name:
-    print ("Options --no-lvm-storage and --vg-name conflict.")
+    ToStderr("Options --no-lvm-storage and --vg-name conflict.")
     return 1
 
   vg_name = opts.vg_name
@@ -119,8 +118,8 @@ def DestroyCluster(opts, args):
 
   """
   if not opts.yes_do_it:
-    print ("Destroying a cluster is irreversibly. If you really want destroy"
-           " this cluster, supply the --yes-do-it option.")
+    ToStderr("Destroying a cluster is irreversible. If you really want"
+             " destroy this cluster, supply the --yes-do-it option.")
     return 1
 
   op = opcodes.OpDestroyCluster()
@@ -162,11 +161,11 @@ def ShowClusterVersion(opts, args):
   """
   op = opcodes.OpQueryClusterInfo()
   result = SubmitOpCode(op)
-  print ("Software version: %s" % result["software_version"])
-  print ("Internode protocol: %s" % result["protocol_version"])
-  print ("Configuration format: %s" % result["config_version"])
-  print ("OS api version: %s" % result["os_api_version"])
-  print ("Export interface: %s" % result["export_version"])
+  ToStdout("Software version: %s", result["software_version"])
+  ToStdout("Internode protocol: %s", result["protocol_version"])
+  ToStdout("Configuration format: %s", result["config_version"])
+  ToStdout("OS api version: %s", result["os_api_version"])
+  ToStdout("Export interface: %s", result["export_version"])
   return 0
 
 
@@ -177,7 +176,7 @@ def ShowClusterMaster(opts, args):
     opts - class with options as members
 
   """
-  print GetClient().QueryConfigValues(["master_node"])[0]
+  ToStdout("%s", GetClient().QueryConfigValues(["master_node"])[0])
   return 0
 
 
@@ -188,27 +187,27 @@ def ShowClusterConfig(opts, args):
   op = opcodes.OpQueryClusterInfo()
   result = SubmitOpCode(op)
 
-  print ("Cluster name: %s" % result["name"])
+  ToStdout("Cluster name: %s", result["name"])
 
-  print ("Master node: %s" % result["master"])
+  ToStdout("Master node: %s", result["master"])
 
-  print ("Architecture (this node): %s (%s)" %
-         (result["architecture"][0], result["architecture"][1]))
+  ToStdout("Architecture (this node): %s (%s)",
+           result["architecture"][0], result["architecture"][1])
 
-  print ("Default hypervisor: %s" % result["hypervisor_type"])
-  print ("Enabled hypervisors: %s" % ", ".join(result["enabled_hypervisors"]))
+  ToStdout("Default hypervisor: %s", result["hypervisor_type"])
+  ToStdout("Enabled hypervisors: %s", ", ".join(result["enabled_hypervisors"]))
 
-  print "Hypervisor parameters:"
+  ToStdout("Hypervisor parameters:")
   for hv_name, hv_dict in result["hvparams"].items():
-    print "  - %s:" % hv_name
+    ToStdout("  - %s:", hv_name)
     for item, val in hv_dict.iteritems():
-      print "      %s: %s" % (item, val)
+      ToStdout("      %s: %s", item, val)
 
-  print "Cluster parameters:"
+  ToStdout("Cluster parameters:")
   for gr_name, gr_dict in result["beparams"].items():
-    print "  - %s:" % gr_name
+    ToStdout("  - %s:", gr_name)
     for item, val in gr_dict.iteritems():
-      print "      %s: %s" % (item, val)
+      ToStdout("      %s: %s", item, val)
 
   return 0
 
@@ -239,8 +238,7 @@ def ClusterCopyFile(opts, args):
   srun = ssh.SshRunner(cluster_name=cluster_name)
   for node in results:
     if not srun.CopyFileToNode(node, filename):
-      print >> sys.stderr, ("Copy of file %s to node %s failed" %
-                            (filename, node))
+      ToStderr("Copy of file %s to node %s failed", filename, node)
 
   return 0
 
@@ -273,10 +271,10 @@ def RunClusterCommand(opts, args):
 
   for name in nodes:
     result = srun.Run(name, "root", command)
-    print ("------------------------------------------------")
-    print ("node: %s" % name)
-    print ("%s" % result.output)
-    print ("return code = %s" % result.exit_code)
+    ToStdout("------------------------------------------------")
+    ToStdout("node: %s", name)
+    ToStdout("%s", result.output)
+    ToStdout("return code = %s", result.exit_code)
 
   return 0
 
@@ -313,17 +311,17 @@ def VerifyDisks(opts, args):
   nodes, nlvm, instances, missing = result
 
   if nodes:
-    print "Nodes unreachable or with bad data:"
+    ToStdout("Nodes unreachable or with bad data:")
     for name in nodes:
-      print "\t%s" % name
+      ToStdout("\t%s", name)
   retcode = constants.EXIT_SUCCESS
 
   if nlvm:
     for node, text in nlvm.iteritems():
-      print ("Error on node %s: LVM error: %s" %
-             (node, text[-400:].encode('string_escape')))
+      ToStdout("Error on node %s: LVM error: %s",
+               node, text[-400:].encode('string_escape'))
       retcode |= 1
-      print "You need to fix these nodes first before fixing instances"
+      ToStdout("You need to fix these nodes first before fixing instances")
 
   if instances:
     for iname in instances:
@@ -331,29 +329,28 @@ def VerifyDisks(opts, args):
         continue
       op = opcodes.OpActivateInstanceDisks(instance_name=iname)
       try:
-        print "Activating disks for instance '%s'" % iname
+        ToStdout("Activating disks for instance '%s'", iname)
         SubmitOpCode(op)
       except errors.GenericError, err:
         nret, msg = FormatError(err)
         retcode |= nret
-        print >> sys.stderr, ("Error activating disks for instance %s: %s" %
-                              (iname, msg))
+        ToStderr("Error activating disks for instance %s: %s", iname, msg)
 
   if missing:
     for iname, ival in missing.iteritems():
       all_missing = utils.all(ival, lambda x: x[0] in nlvm)
       if all_missing:
-        print ("Instance %s cannot be verified as it lives on"
-               " broken nodes" % iname)
+        ToStdout("Instance %s cannot be verified as it lives on"
+                 " broken nodes", iname)
       else:
-        print "Instance %s has missing logical volumes:" % iname
+        ToStdout("Instance %s has missing logical volumes:", iname)
         ival.sort()
         for node, vol in ival:
           if node in nlvm:
-            print ("\tbroken node %s /dev/xenvg/%s" % (node, vol))
+            ToStdout("\tbroken node %s /dev/xenvg/%s", node, vol)
           else:
-            print ("\t%s /dev/xenvg/%s" % (node, vol))
-    print ("You need to run replace_disks for all the above"
+            ToStdout("\t%s /dev/xenvg/%s", node, vol)
+    ToStdout("You need to run replace_disks for all the above"
            " instances, if this message persist after fixing nodes.")
     retcode |= 1
 
@@ -382,7 +379,7 @@ def SearchTags(opts, args):
   result = list(result)
   result.sort()
   for path, tag in result:
-    print "%s %s" % (path, tag)
+    ToStdout("%s %s", path, tag)
 
 
 def SetClusterParams(opts, args):
@@ -395,12 +392,12 @@ def SetClusterParams(opts, args):
   if not (not opts.lvm_storage or opts.vg_name or
           opts.enabled_hypervisors or opts.hvparams or
           opts.beparams):
-    print "Please give at least one of the parameters."
+    ToStderr("Please give at least one of the parameters.")
     return 1
 
   vg_name = opts.vg_name
   if not opts.lvm_storage and opts.vg_name:
-    print ("Options --no-lvm-storage and --vg-name conflict.")
+    ToStdout("Options --no-lvm-storage and --vg-name conflict.")
     return 1
 
   hvlist = opts.enabled_hypervisors
@@ -433,11 +430,11 @@ def QueueOps(opts, args):
     client.SetQueueDrainFlag(drain_flag)
   elif command == "info":
     result = client.QueryConfigValues(["drain_flag"])
-    print "The drain flag is",
     if result[0]:
-      print "set"
+      val = "set"
     else:
-      print "unset"
+      val = "unset"
+    ToStdout("The drain flag is %s" % val)
   return 0
 
 # this is an option common to more than one command, so we declare

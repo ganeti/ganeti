@@ -29,7 +29,6 @@ from cStringIO import StringIO
 from ganeti.cli import *
 from ganeti import cli
 from ganeti import opcodes
-from ganeti import logger
 from ganeti import constants
 from ganeti import utils
 from ganeti import errors
@@ -252,7 +251,7 @@ def ListInstances(opts, args):
                        numfields=numfields, data=output)
 
   for line in data:
-    logger.ToStdout(line)
+    ToStdout(line)
 
   return 0
 
@@ -418,7 +417,7 @@ def BatchCreate(opts, args):
                                   file_storage_dir=specs['file_storage_dir'],
                                   file_driver=specs['file_driver'])
 
-    print '%s: %s' % (name, cli.SendJob([op]))
+    ToStdout("%s: %s", name, cli.SendJob([op]))
 
   return 0
 
@@ -438,14 +437,14 @@ def ReinstallInstance(opts, args):
     result = SubmitOpCode(op)
 
     if not result:
-      logger.ToStdout("Can't get the OS list")
+      ToStdout("Can't get the OS list")
       return 1
 
-    logger.ToStdout("Available OS templates:")
+    ToStdout("Available OS templates:")
     number = 0
     choices = []
     for entry in result:
-      logger.ToStdout("%3s: %s" % (number, entry[0]))
+      ToStdout("%3s: %s", number, entry[0])
       choices.append(("%s" % number, entry[0], entry[0]))
       number = number + 1
 
@@ -454,7 +453,7 @@ def ReinstallInstance(opts, args):
                        choices)
 
     if selected == 'exit':
-      logger.ToStdout("User aborted reinstall, exiting")
+      ToStdout("User aborted reinstall, exiting")
       return 1
 
     os = selected
@@ -526,7 +525,7 @@ def ActivateDisks(opts, args):
   op = opcodes.OpActivateInstanceDisks(instance_name=instance_name)
   disks_info = SubmitOrSend(op, opts)
   for host, iname, nname in disks_info:
-    print "%s:%s:%s" % (host, iname, nname)
+    ToStdout("%s:%s:%s", host, iname, nname)
   return 0
 
 
@@ -581,12 +580,12 @@ def StartupInstance(opts, args):
                                    force=opts.force,
                                    extra_args=opts.extra_args)
     if multi_on:
-      logger.ToStdout("Starting up %s" % name)
+      ToStdout("Starting up %s", name)
     try:
       SubmitOrSend(op, opts)
     except JobSubmittedException, err:
       _, txt = FormatError(err)
-      logger.ToStdout("%s" % txt)
+      ToStdout("%s", txt)
   return 0
 
 
@@ -636,12 +635,12 @@ def ShutdownInstance(opts, args):
   for name in inames:
     op = opcodes.OpShutdownInstance(instance_name=name)
     if multi_on:
-      logger.ToStdout("Shutting down %s" % name)
+      ToStdout("Shutting down %s", name)
     try:
       SubmitOrSend(op, opts)
     except JobSubmittedException, err:
       _, txt = FormatError(err)
-      logger.ToStdout("%s" % txt)
+      ToStdout("%s", txt)
   return 0
 
 
@@ -721,13 +720,13 @@ def ConnectToInstanceConsole(opts, args):
   cmd = SubmitOpCode(op)
 
   if opts.show_command:
-    print utils.ShellQuoteArgs(cmd)
+    ToStdout("%s", utils.ShellQuoteArgs(cmd))
   else:
     try:
       os.execvp(cmd[0], cmd)
     finally:
-      sys.stderr.write("Can't run console command %s with arguments:\n'%s'" %
-                       (cmd, " ".join(argv)))
+      ToStderr("Can't run console command %s with arguments:\n'%s'",
+               cmd, " ".join(argv))
       os._exit(1)
 
 
@@ -812,7 +811,7 @@ def ShowInstanceConfig(opts, args):
   op = opcodes.OpQueryInstanceData(instances=args, static=opts.static)
   result = SubmitOpCode(op)
   if not result:
-    logger.ToStdout("No instances.")
+    ToStdout("No instances.")
     return 1
 
   buf = StringIO()
@@ -883,7 +882,7 @@ def ShowInstanceConfig(opts, args):
     for device in instance["disks"]:
       _FormatBlockDevInfo(buf, device, 1, opts.static)
 
-  logger.ToStdout(buf.getvalue().rstrip('\n'))
+  ToStdout(buf.getvalue().rstrip('\n'))
   return retcode
 
 
@@ -901,7 +900,7 @@ def SetInstanceParams(opts, args):
   """
   if not (opts.ip or opts.bridge or opts.mac or
           opts.hypervisor or opts.beparams):
-    logger.ToStdout("Please give at least one of the parameters.")
+    ToStderr("Please give at least one of the parameters.")
     return 1
 
   if constants.BE_MEMORY in opts.beparams:
@@ -919,11 +918,11 @@ def SetInstanceParams(opts, args):
   result = SubmitOrSend(op, opts)
 
   if result:
-    logger.ToStdout("Modified instance %s" % args[0])
+    ToStdout("Modified instance %s", args[0])
     for param, data in result:
-      logger.ToStdout(" - %-5s -> %s" % (param, data))
-    logger.ToStdout("Please don't forget that these parameters take effect"
-                    " only at the next start of the instance.")
+      ToStdout(" - %-5s -> %s", param, data)
+    ToStdout("Please don't forget that these parameters take effect"
+             " only at the next start of the instance.")
   return 0
 
 

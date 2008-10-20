@@ -24,7 +24,6 @@ from optparse import make_option
 
 from ganeti.cli import *
 from ganeti import opcodes
-from ganeti import logger
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
@@ -52,14 +51,16 @@ def AddNode(opts, args):
     except (errors.OpPrereqError, errors.OpExecError):
       pass
     else:
-      logger.ToStderr("Node %s already in the cluster (as %s)"
-                      " - please use --readd" % (args[0], output[0][0]))
+      ToStderr("Node %s already in the cluster (as %s)"
+               " - please use --readd", args[0], output[0][0])
       return 1
 
-  logger.ToStderr("-- WARNING -- \n"
-    "Performing this operation is going to replace the ssh daemon keypair\n"
-    "on the target machine (%s) with the ones of the current one\n"
-    "and grant full intra-cluster ssh root access to/from it\n" % node)
+  ToStderr("-- WARNING -- \n"
+           "Performing this operation is going to replace the ssh daemon"
+           " keypair\n"
+           "on the target machine (%s) with the ones of the"
+           " current one\n"
+           "and grant full intra-cluster ssh root access to/from it\n", node)
 
   bootstrap.SetupNodeDaemon(node, opts.ssh_key_check)
 
@@ -121,7 +122,7 @@ def ListNodes(opts, args):
                        fields=selected_fields, unitfields=unitfields,
                        numfields=numfields, data=output)
   for line in data:
-    logger.ToStdout(line)
+    ToStdout(line)
 
   return 0
 
@@ -147,7 +148,7 @@ def EvacuateNode(opts, args):
                                src_node)
 
   if not sinst:
-    logger.ToStderr("No secondary instances on node %s, exiting." % src_node)
+    ToStderr("No secondary instances on node %s, exiting.", src_node)
     return constants.EXIT_SUCCESS
 
   sinst = utils.NiceSort(sinst)
@@ -167,23 +168,21 @@ def EvacuateNode(opts, args):
                                 mode=constants.REPLACE_DISK_ALL,
                                 disks=["sda", "sdb"])
     try:
-      logger.ToStdout("Replacing disks for instance %s" % iname)
+      ToStdout("Replacing disks for instance %s", iname)
       SubmitOpCode(op)
-      logger.ToStdout("Instance %s has been relocated" % iname)
+      ToStdout("Instance %s has been relocated", iname)
       good_cnt += 1
     except errors.GenericError, err:
       nret, msg = FormatError(err)
       retcode |= nret
-      logger.ToStderr("Error replacing disks for instance %s: %s" %
-                      (iname, msg))
+      ToStderr("Error replacing disks for instance %s: %s", iname, msg)
       bad_cnt += 1
 
   if retcode == constants.EXIT_SUCCESS:
-    logger.ToStdout("All %d instance(s) relocated successfully." % good_cnt)
+    ToStdout("All %d instance(s) relocated successfully.", good_cnt)
   else:
-    logger.ToStdout("There were errors during the relocation:\n"
-                    "%d error(s) out of %d instance(s)." %
-                    (bad_cnt, good_cnt + bad_cnt))
+    ToStdout("There were errors during the relocation:\n"
+             "%d error(s) out of %d instance(s).", bad_cnt, good_cnt + bad_cnt)
   return retcode
 
 
@@ -199,7 +198,7 @@ def FailoverNode(opts, args):
   node, pinst = result[0]
 
   if not pinst:
-    logger.ToStderr("No primary instances on node %s, exiting." % node)
+    ToStderr("No primary instances on node %s, exiting.", node)
     return 0
 
   pinst = utils.NiceSort(pinst)
@@ -215,22 +214,21 @@ def FailoverNode(opts, args):
     op = opcodes.OpFailoverInstance(instance_name=iname,
                                     ignore_consistency=opts.ignore_consistency)
     try:
-      logger.ToStdout("Failing over instance %s" % iname)
+      ToStdout("Failing over instance %s", iname)
       SubmitOpCode(op)
-      logger.ToStdout("Instance %s has been failed over" % iname)
+      ToStdout("Instance %s has been failed over", iname)
       good_cnt += 1
     except errors.GenericError, err:
       nret, msg = FormatError(err)
       retcode |= nret
-      logger.ToStderr("Error failing over instance %s: %s" % (iname, msg))
+      ToStderr("Error failing over instance %s: %s", iname, msg)
       bad_cnt += 1
 
   if retcode == 0:
-    logger.ToStdout("All %d instance(s) failed over successfully." % good_cnt)
+    ToStdout("All %d instance(s) failed over successfully.", good_cnt)
   else:
-    logger.ToStdout("There were errors during the failover:\n"
-                    "%d error(s) out of %d instance(s)." %
-                    (bad_cnt, good_cnt + bad_cnt))
+    ToStdout("There were errors during the failover:\n"
+             "%d error(s) out of %d instance(s).", bad_cnt, good_cnt + bad_cnt)
   return retcode
 
 
@@ -244,21 +242,21 @@ def ShowNodeConfig(opts, args):
   result = SubmitOpCode(op)
 
   for name, primary_ip, secondary_ip, pinst, sinst in result:
-    logger.ToStdout("Node name: %s" % name)
-    logger.ToStdout("  primary ip: %s" % primary_ip)
-    logger.ToStdout("  secondary ip: %s" % secondary_ip)
+    ToStdout("Node name: %s", name)
+    ToStdout("  primary ip: %s", primary_ip)
+    ToStdout("  secondary ip: %s", secondary_ip)
     if pinst:
-      logger.ToStdout("  primary for instances:")
+      ToStdout("  primary for instances:")
       for iname in pinst:
-        logger.ToStdout("    - %s" % iname)
+        ToStdout("    - %s", iname)
     else:
-      logger.ToStdout("  primary for no instances")
+      ToStdout("  primary for no instances")
     if sinst:
-      logger.ToStdout("  secondary for instances:")
+      ToStdout("  secondary for instances:")
       for iname in sinst:
-        logger.ToStdout("    - %s" % iname)
+        ToStdout("    - %s", iname)
     else:
-      logger.ToStdout("  secondary for no instances")
+      ToStdout("  secondary for no instances")
 
   return 0
 
@@ -301,7 +299,7 @@ def ListVolumes(opts, args):
                        numfields=numfields, data=output)
 
   for line in data:
-    logger.ToStdout(line)
+    ToStdout(line)
 
   return 0
 

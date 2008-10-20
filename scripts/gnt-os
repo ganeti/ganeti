@@ -24,7 +24,6 @@ from optparse import make_option
 
 from ganeti.cli import *
 from ganeti import opcodes
-from ganeti import logger
 from ganeti import objects
 from ganeti import utils
 from ganeti import errors
@@ -39,7 +38,7 @@ def ListOS(opts, args):
   result = SubmitOpCode(op)
 
   if not result:
-    logger.ToStdout("Can't get the OS list")
+    ToStderr("Can't get the OS list")
     return 1
 
   if not opts.no_headers:
@@ -51,7 +50,7 @@ def ListOS(opts, args):
                        data=[[row[0]] for row in result if row[1]])
 
   for line in data:
-    logger.ToStdout(line)
+    ToStdout(line)
 
   return 0
 
@@ -65,7 +64,7 @@ def DiagnoseOS(opts, args):
   result = SubmitOpCode(op)
 
   if not result:
-    logger.ToStdout("Can't get the OS list")
+    ToStderr("Can't get the OS list")
     return 1
 
   has_bad = False
@@ -102,15 +101,14 @@ def DiagnoseOS(opts, args):
     def _OutputPerNodeOSStatus(msg_map):
       map_k = utils.NiceSort(msg_map.keys())
       for node_name in map_k:
-        logger.ToStdout("  Node: %s, status: %s" %
-                        (node_name, msg_map[node_name]))
+        ToStdout("  Node: %s, status: %s", node_name, msg_map[node_name])
         for msg in nodes_hidden[node_name]:
-          logger.ToStdout(msg)
+          ToStdout(msg)
 
-    logger.ToStdout("OS: %s [global status: %s]" % (os_name, status))
+    ToStdout("OS: %s [global status: %s]", os_name, status)
     _OutputPerNodeOSStatus(nodes_valid)
     _OutputPerNodeOSStatus(nodes_bad)
-    logger.ToStdout("")
+    ToStdout("")
 
   return int(has_bad)
 
