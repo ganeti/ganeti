@@ -34,7 +34,6 @@ import logging
 import copy
 
 from ganeti import ssh
-from ganeti import logger
 from ganeti import utils
 from ganeti import errors
 from ganeti import hypervisor
@@ -995,11 +994,11 @@ class LUVerifyDisks(NoHooksLU):
       lvs = node_lvs[node]
 
       if isinstance(lvs, basestring):
-        logger.Info("error enumerating LVs on node %s: %s" % (node, lvs))
+        logging.warning("Error enumerating LVs on node %s: %s", node, lvs)
         res_nlvm[node] = lvs
       elif not isinstance(lvs, dict):
-        logger.Info("connection to node %s failed or invalid data returned" %
-                    (node,))
+        logging.warning("Connection to node %s failed or invalid data"
+                        " returned", node)
         res_nodes.append(node)
         continue
 
@@ -1083,18 +1082,17 @@ class LURenameCluster(LogicalUnit):
       if myself.name in dist_nodes:
         dist_nodes.remove(myself.name)
 
-      logger.Debug("Copying updated ssconf data to all nodes")
+      logging.debug("Copying updated ssconf data to all nodes")
       for keyname in [ss.SS_CLUSTER_NAME, ss.SS_MASTER_IP]:
         fname = ss.KeyToFilename(keyname)
         result = self.rpc.call_upload_file(dist_nodes, fname)
         for to_node in dist_nodes:
           if not result[to_node]:
-            logger.Error("copy of file %s to node %s failed" %
-                         (fname, to_node))
+            logging.error("Copy of file %s to node %s failed", fname, to_node)
     finally:
       if not self.rpc.call_node_start_master(master, False):
-        logger.Error("Could not re-enable the master role on the master,"
-                     " please restart manually.")
+        logging.error("Could not re-enable the master role on the master,"
+                      " please restart manually.")
 
 
 def _RecursiveCheckIfLVMBased(disk):
@@ -1300,7 +1298,7 @@ def _CheckDiskConsistency(lu, dev, node, on_primary, ldisk=False):
   if on_primary or dev.AssembleOnSecondary():
     rstats = lu.rpc.call_blockdev_find(node, dev)
     if not rstats:
-      logger.ToStderr("Node %s: Disk degraded, not found or node down" % node)
+      logging.warning("Node %s: disk degraded, not found or node down", node)
       result = False
     else:
       result = result and (not rstats[idx])
@@ -1458,8 +1456,8 @@ class LURemoveNode(LogicalUnit):
 
     """
     node = self.node
-    logger.Info("stopping the node daemon and removing configs from node %s" %
-                node.name)
+    logging.info("Stopping the node daemon and removing configs from node %s",
+                 node.name)
 
     self.context.RemoveNode(node.name)
 
@@ -1797,8 +1795,8 @@ class LUAddNode(LogicalUnit):
     result = self.rpc.call_version([node])[node]
     if result:
       if constants.PROTOCOL_VERSION == result:
-        logger.Info("communication to node %s fine, sw version %s match" %
-                    (node, result))
+        logging.info("Communication to node %s fine, sw version %s match",
+                     node, result)
       else:
         raise errors.OpExecError("Version mismatch master version %s,"
                                  " node version %s" %
@@ -1807,7 +1805,7 @@ class LUAddNode(LogicalUnit):
       raise errors.OpExecError("Cannot get version from the new node")
 
     # setup ssh on node
-    logger.Info("copy ssh key to node %s" % node)
+    logging.info("Copy ssh key to node %s", node)
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
     keyarray = []
     keyfiles = [constants.SSH_HOST_DSA_PRIV, constants.SSH_HOST_DSA_PUB,
@@ -1865,13 +1863,12 @@ class LUAddNode(LogicalUnit):
     if myself.name in dist_nodes:
       dist_nodes.remove(myself.name)
 
-    logger.Debug("Copying hosts and known_hosts to all nodes")
+    logging.debug("Copying hosts and known_hosts to all nodes")
     for fname in (constants.ETC_HOSTS, constants.SSH_KNOWN_HOSTS_FILE):
       result = self.rpc.call_upload_file(dist_nodes, fname)
       for to_node in dist_nodes:
         if not result[to_node]:
-          logger.Error("copy of file %s to node %s failed" %
-                       (fname, to_node))
+          logging.error("Copy of file %s to node %s failed", fname, to_node)
 
     to_copy = []
     if constants.HT_XEN_HVM in self.cfg.GetClusterInfo().enabled_hypervisors:
@@ -1879,7 +1876,7 @@ class LUAddNode(LogicalUnit):
     for fname in to_copy:
       result = self.rpc.call_upload_file([node], fname)
       if not result[node]:
-        logger.Error("could not copy file %s to node %s" % (fname, node))
+        logging.error("Could not copy file %s to node %s", fname, node)
 
     if self.op.readd:
       self.context.ReaddNode(new_node)
@@ -2036,8 +2033,8 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, False)
       if not result:
-        logger.Error("could not prepare block device %s on node %s"
-                     " (is_primary=False, pass=1)" % (inst_disk.iv_name, node))
+        logging.error("Could not prepare block device %s on node %s"
+                      " (is_primary=False, pass=1)", inst_disk.iv_name, node)
         if not ignore_secondaries:
           disks_ok = False
 
@@ -2051,8 +2048,8 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, True)
       if not result:
-        logger.Error("could not prepare block device %s on node %s"
-                     " (is_primary=True, pass=2)" % (inst_disk.iv_name, node))
+        logging.error("Could not prepare block device %s on node %s"
+                      " (is_primary=True, pass=2)", inst_disk.iv_name, node)
         disks_ok = False
     device_info.append((instance.primary_node, inst_disk.iv_name, result))
 
@@ -2074,8 +2071,8 @@ def _StartInstanceDisks(lu, instance, force):
   if not disks_ok:
     _ShutdownInstanceDisks(lu, instance)
     if force is not None and not force:
-      logger.Error("If the message above refers to a secondary node,"
-                   " you can retry the operation using '--force'.")
+      logging.error("If the message above refers to a secondary node,"
+                    " you can retry the operation using '--force'.")
     raise errors.OpExecError("Disk consistency error")
 
 
@@ -2148,8 +2145,8 @@ def _ShutdownInstanceDisks(lu, instance, ignore_primary=False):
     for node, top_disk in disk.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(top_disk, node)
       if not lu.rpc.call_blockdev_shutdown(node, top_disk):
-        logger.Error("could not shutdown block device %s on node %s" %
-                     (disk.iv_name, node))
+        logging.error("Could not shutdown block device %s on node %s",
+                      disk.iv_name, node)
         if not ignore_primary or node != instance.primary_node:
           result = False
   return result
@@ -2389,7 +2386,7 @@ class LUShutdownInstance(LogicalUnit):
     node_current = instance.primary_node
     self.cfg.MarkInstanceDown(instance.name)
     if not self.rpc.call_instance_shutdown(node_current, instance):
-      logger.Error("could not shutdown instance")
+      logging.error("Could not shutdown instance")
 
     _ShutdownInstanceDisks(self, instance)
 
@@ -2587,7 +2584,7 @@ class LURenameInstance(LogicalUnit):
         msg = ("Could not run OS rename script for instance %s on node %s"
                " (but the instance has been renamed in Ganeti)" %
                (inst.name, inst.primary_node))
-        logger.Error(msg)
+        logging.error(msg)
     finally:
       _ShutdownInstanceDisks(self, inst)
 
@@ -2635,8 +2632,8 @@ class LURemoveInstance(LogicalUnit):
 
     """
     instance = self.instance
-    logger.Info("shutting down instance %s on node %s" %
-                (instance.name, instance.primary_node))
+    logging.info("Shutting down instance %s on node %s",
+                 instance.name, instance.primary_node)
 
     if not self.rpc.call_instance_shutdown(instance.primary_node, instance):
       if self.op.ignore_failures:
@@ -2645,7 +2642,7 @@ class LURemoveInstance(LogicalUnit):
         raise errors.OpExecError("Could not shutdown instance %s on node %s" %
                                  (instance.name, instance.primary_node))
 
-    logger.Info("removing block devices for instance %s" % instance.name)
+    logging.info("Removing block devices for instance %s", instance.name)
 
     if not _RemoveDisks(self, instance):
       if self.op.ignore_failures:
@@ -2653,7 +2650,7 @@ class LURemoveInstance(LogicalUnit):
       else:
         raise errors.OpExecError("Can't remove instance's disks")
 
-    logger.Info("removing instance %s out of cluster config" % instance.name)
+    logging.info("Removing instance %s out of cluster config", instance.name)
 
     self.cfg.RemoveInstance(instance.name)
     self.remove_locks[locking.LEVEL_INSTANCE] = instance.name
@@ -2919,14 +2916,14 @@ class LUFailoverInstance(LogicalUnit):
                                    " aborting failover." % dev.iv_name)
 
     feedback_fn("* shutting down instance on source node")
-    logger.Info("Shutting down instance %s on node %s" %
-                (instance.name, source_node))
+    logging.info("Shutting down instance %s on node %s",
+                 instance.name, source_node)
 
     if not self.rpc.call_instance_shutdown(source_node, instance):
       if self.op.ignore_consistency:
-        logger.Error("Could not shutdown instance %s on node %s. Proceeding"
-                     " anyway. Please make sure node %s is down"  %
-                     (instance.name, source_node, source_node))
+        logging.error("Could not shutdown instance %s on node %s. Proceeding"
+                      " anyway. Please make sure node %s is down",
+                      instance.name, source_node, source_node)
       else:
         raise errors.OpExecError("Could not shutdown instance %s on node %s" %
                                  (instance.name, source_node))
@@ -2942,8 +2939,8 @@ class LUFailoverInstance(LogicalUnit):
     # Only start the instance if it's marked as up
     if instance.status == "up":
       feedback_fn("* activating the instance's disks on target node")
-      logger.Info("Starting instance %s on node %s" %
-                  (instance.name, target_node))
+      logging.info("Starting instance %s on node %s",
+                   instance.name, target_node)
 
       disks_ok, dummy = _AssembleInstanceDisks(self, instance,
                                                ignore_secondaries=True)
@@ -3126,28 +3123,27 @@ def _CreateDisks(lu, instance):
                                                  file_storage_dir)
 
     if not result:
-      logger.Error("Could not connect to node '%s'" % instance.primary_node)
+      logging.error("Could not connect to node '%s'", instance.primary_node)
       return False
 
     if not result[0]:
-      logger.Error("failed to create directory '%s'" % file_storage_dir)
+      logging.error("Failed to create directory '%s'", file_storage_dir)
       return False
 
   for device in instance.disks:
-    logger.Info("creating volume %s for instance %s" %
-                (device.iv_name, instance.name))
+    logging.info("Creating volume %s for instance %s",
+                 device.iv_name, instance.name)
     #HARDCODE
     for secondary_node in instance.secondary_nodes:
       if not _CreateBlockDevOnSecondary(lu, secondary_node, instance,
                                         device, False, info):
-        logger.Error("failed to create volume %s (%s) on secondary node %s!" %
-                     (device.iv_name, device, secondary_node))
+        logging.error("Failed to create volume %s (%s) on secondary node %s!",
+                      device.iv_name, device, secondary_node)
         return False
     #HARDCODE
     if not _CreateBlockDevOnPrimary(lu, instance.primary_node,
                                     instance, device, info):
-      logger.Error("failed to create volume %s on primary!" %
-                   device.iv_name)
+      logging.error("Failed to create volume %s on primary!", device.iv_name)
       return False
 
   return True
@@ -3168,23 +3164,22 @@ def _RemoveDisks(lu, instance):
     True or False showing the success of the removal proces
 
   """
-  logger.Info("removing block devices for instance %s" % instance.name)
+  logging.info("Removing block devices for instance %s", instance.name)
 
   result = True
   for device in instance.disks:
     for node, disk in device.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(disk, node)
       if not lu.rpc.call_blockdev_remove(node, disk):
-        logger.Error("could not remove block device %s on node %s,"
-                     " continuing anyway" %
-                     (device.iv_name, node))
+        logging.error("Could not remove block device %s on node %s,"
+                      " continuing anyway", device.iv_name, node)
         result = False
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     if not lu.rpc.call_file_storage_dir_remove(instance.primary_node,
                                                file_storage_dir):
-      logger.Error("could not remove directory '%s'" % file_storage_dir)
+      logging.error("Could not remove directory '%s'", file_storage_dir)
       result = False
 
   return result
@@ -3420,10 +3415,10 @@ class LUCreateInstance(LogicalUnit):
                                  (self.op.iallocator, len(ial.nodes),
                                   ial.required_nodes))
     self.op.pnode = ial.nodes[0]
-    logger.ToStdout("Selected nodes for the instance: %s" %
-                    (", ".join(ial.nodes),))
-    logger.Info("Selected nodes for instance %s via iallocator %s: %s" %
-                (self.op.instance_name, self.op.iallocator, ial.nodes))
+    feedback_fn("Selected nodes for the instance: %s" %
+                (", ".join(ial.nodes),))
+    logging.info("Selected nodes for instance %s via iallocator %s: %s",
+                 self.op.instance_name, self.op.iallocator, ial.nodes)
     if ial.required_nodes == 2:
       self.op.snode = ial.nodes[1]
 
@@ -3703,7 +3698,7 @@ class LUCreateInstance(LogicalUnit):
                                      % self.op.mode)
 
     if self.op.start:
-      logger.Info("starting instance %s on node %s" % (instance, pnode_name))
+      logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
       if not self.rpc.call_instance_start(pnode_name, iobj, None):
         raise errors.OpExecError("Could not start instance")
@@ -3748,7 +3743,7 @@ class LUConnectConsole(NoHooksLU):
     if instance.name not in node_insts:
       raise errors.OpExecError("Instance %s is not running." % instance.name)
 
-    logger.Debug("connecting to console of %s on %s" % (instance.name, node))
+    logging.debug("Connecting to console of %s on %s", instance.name, node)
 
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
     console_cmd = hyper.GetShellCommandForConsole(instance)
@@ -3817,8 +3812,8 @@ class LUReplaceDisks(LogicalUnit):
                                  " of nodes (%s), required %s" %
                                  (len(ial.nodes), ial.required_nodes))
     self.op.remote_node = ial.nodes[0]
-    logger.ToStdout("Selected new secondary for the instance: %s" %
-                    self.op.remote_node)
+    feedback_fn("Selected new secondary for the instance: %s" %
+                self.op.remote_node)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4388,8 +4383,8 @@ class LUGrowDisk(LogicalUnit):
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self.cfg, instance, self.proc)
       if disk_abort:
-        logger.Error("Warning: disk sync-ing has not returned a good status.\n"
-                     " Please check the instance.")
+        logging.error("Warning: disk sync-ing has not returned a good"
+                      " status.\nPlease check the instance.")
 
 
 class LUQueryInstanceData(NoHooksLU):
@@ -4869,8 +4864,8 @@ class LUExportInstance(LogicalUnit):
           new_dev_name = self.rpc.call_blockdev_snapshot(src_node, disk)
 
           if not new_dev_name:
-            logger.Error("could not snapshot block device %s on node %s" %
-                         (disk.logical_id[1], src_node))
+            logging.error("Could not snapshot block device %s on node %s",
+                          disk.logical_id[1], src_node)
           else:
             new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
                                       logical_id=(vgname, new_dev_name),
@@ -4890,15 +4885,15 @@ class LUExportInstance(LogicalUnit):
     for dev in snap_disks:
       if not self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
                                       instance, cluster_name):
-        logger.Error("could not export block device %s from node %s to node %s"
-                     % (dev.logical_id[1], src_node, dst_node.name))
+        logging.error("Could not export block device %s from node %s to"
+                      " node %s", dev.logical_id[1], src_node, dst_node.name)
       if not self.rpc.call_blockdev_remove(src_node, dev):
-        logger.Error("could not remove snapshot block device %s from node %s" %
-                     (dev.logical_id[1], src_node))
+        logging.error("Could not remove snapshot block device %s from node"
+                      " %s", dev.logical_id[1], src_node)
 
     if not self.rpc.call_finalize_export(dst_node.name, instance, snap_disks):
-      logger.Error("could not finalize export for instance %s on node %s" %
-                   (instance.name, dst_node.name))
+      logging.error("Could not finalize export for instance %s on node %s",
+                    instance.name, dst_node.name)
 
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(dst_node.name)
@@ -4911,8 +4906,8 @@ class LUExportInstance(LogicalUnit):
       for node in exportlist:
         if instance.name in exportlist[node]:
           if not self.rpc.call_export_remove(node, instance.name):
-            logger.Error("could not remove older export for instance %s"
-                         " on node %s" % (instance.name, node))
+            logging.error("Could not remove older export for instance %s"
+                          " on node %s", instance.name, node)
 
 
 class LURemoveExport(NoHooksLU):
@@ -4953,8 +4948,8 @@ class LURemoveExport(NoHooksLU):
       if instance_name in exportlist[node]:
         found = True
         if not self.rpc.call_export_remove(node, instance_name):
-          logger.Error("could not remove export for instance %s"
-                       " on node %s" % (instance_name, node))
+          logging.error("Could not remove export for instance %s"
+                        " on node %s", instance_name, node)
 
     if fqdn_warn and not found:
       feedback_fn("Export not found. If trying to remove an export belonging"
