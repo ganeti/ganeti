@@ -49,20 +49,36 @@ class NodeController:
   individual call.
 
   """
-  def __init__(self, parent, node):
+  def __init__(self, parent, node, address=None):
+    """Constructor for the node controller.
+
+    @type parent: L{Client}
+    @param parent: the C{Client} instance which holds global parameters for
+        the call
+    @type node: str
+    @param node: the name of the node we connect to; it is used for error
+        messages and in cases we the address paramater is not passed
+    @type address: str
+    @keyword address: the node's address, in case we know it, so that we
+        don't need to resolve it; testing shows that httplib has high
+        overhead in resolving addresses (even when speficied in /etc/hosts)
+
+    """
     self.parent = parent
     self.node = node
+    if address is None:
+      address = node
     self.failed = False
 
-    self.http_conn = hc = httplib.HTTPConnection(node, self.parent.port)
+    self.http_conn = hc = httplib.HTTPConnection(address, parent.port)
     try:
       hc.connect()
-      hc.putrequest('PUT', "/%s" % self.parent.procedure,
+      hc.putrequest('PUT', "/%s" % parent.procedure,
                     skip_accept_encoding=True)
-      hc.putheader('Content-Length', str(len(parent.body)))
+      hc.putheader('Content-Length', parent.body_length)
       hc.endheaders()
       hc.send(parent.body)
-    except socket.error, err:
+    except socket.error:
       logging.exception("Error connecting to node %s", node)
       self.failed = True
 
@@ -99,6 +115,9 @@ class Client:
   'False' result, which is not good. This overloading of values can
   cause bugs.
 
+  @var body_length: cached string value of the length of the body (so that
+      individual C{NodeController} instances don't have to recompute it)
+
   """
   result_set = False
   result = False
@@ -112,24 +131,38 @@ class Client:
     self.procedure = procedure
     self.args = args
     self.body = simplejson.dumps(args)
+    self.body_length = str(len(self.body))
 
   #--- generic connector -------------
 
-  def ConnectList(self, node_list):
+  def ConnectList(self, node_list, address_list=None):
     """Add a list of nodes to the target nodes.
 
     @type node_list: list
     @param node_list: the list of node names to connect
+    @type address_list: list or None
+    @keyword address_list: either None or a list with node addresses,
+        which must have the same length as the node list
 
     """
-    for node in node_list:
-      self.ConnectNode(node)
+    if address_list is None:
+      address_list = [None for _ in node_list]
+    else:
+      assert len(node_list) == len(address_list), \
+             "Name and address lists should have the same length"
+    for node, address in zip(node_list, address_list):
+      self.ConnectNode(node, address)
 
-  def ConnectNode(self, connect_node):
+  def ConnectNode(self, name, address=None):
     """Add a node to the target list.
 
+    @type name: str
+    @param name: the node name
+    @type address: str
+    @keyword address: the node address, if known
+
     """
-    self.nc[connect_node] = nc = NodeController(self, connect_node)
+    self.nc[name] = NodeController(self, name, address)
 
   def GetResults(self):
     """Return the results of the call.
