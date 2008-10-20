@@ -50,7 +50,6 @@ from ganeti import luxi
 from ganeti import utils
 from ganeti import errors
 from ganeti import ssconf
-from ganeti import logger
 from ganeti import workerpool
 from ganeti import rpc
 from ganeti import bootstrap
@@ -444,8 +443,8 @@ def main():
 
   utils.WritePidFile(constants.MASTERD_PID)
 
-  logger.SetupLogging(constants.LOG_MASTERDAEMON, debug=options.debug,
-                      stderr_logging=not options.fork)
+  utils.SetupLogging(constants.LOG_MASTERDAEMON, debug=options.debug,
+                     stderr_logging=not options.fork)
 
   logging.info("ganeti master daemon startup")
 

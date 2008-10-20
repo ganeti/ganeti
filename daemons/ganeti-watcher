@@ -38,7 +38,6 @@ from ganeti import constants
 from ganeti import serializer
 from ganeti import errors
 from ganeti import opcodes
-from ganeti import logger
 from ganeti import cli
 
 
@@ -423,8 +422,8 @@ def main():
 
   options, args = ParseOptions()
 
-  logger.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
-                      stderr_logging=options.debug)
+  utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
+                     stderr_logging=options.debug)
 
   try:
     client = cli.GetClient()

@@ -28,7 +28,6 @@ import sys
 import os
 import signal
 
-from ganeti import logger
 from ganeti import constants
 from ganeti import errors
 from ganeti import http
@@ -127,7 +126,7 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_RAPISERVER)
 
-  logger.SetupLogging(constants.LOG_RAPISERVER, debug=options.debug,
+  utils.SetupLogging(constants.LOG_RAPISERVER, debug=options.debug,
                      stderr_logging=not options.fork)
 
   utils.WritePidFile(constants.RAPI_PID)

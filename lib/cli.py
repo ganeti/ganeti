@@ -31,7 +31,6 @@ import logging
 from cStringIO import StringIO
 
 from ganeti import utils
-from ganeti import logger
 from ganeti import errors
 from ganeti import constants
 from ganeti import opcodes
@@ -714,8 +713,8 @@ def GenericMain(commands, override=None, aliases=None):
     for key, val in override.iteritems():
       setattr(options, key, val)
 
-  logger.SetupLogging(constants.LOG_COMMANDS, debug=options.debug,
-                      stderr_logging=True, program=binary)
+  utils.SetupLogging(constants.LOG_COMMANDS, debug=options.debug,
+                     stderr_logging=True, program=binary)
 
   utils.debug = options.debug
 

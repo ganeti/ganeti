@@ -35,7 +35,6 @@ import signal
 from optparse import OptionParser
 
 from ganeti import backend
-from ganeti import logger
 from ganeti import constants
 from ganeti import objects
 from ganeti import errors
@@ -688,8 +687,8 @@ def main():
 
   utils.WritePidFile(constants.NODED_PID)
   try:
-    logger.SetupLogging(logfile=constants.LOG_NODESERVER, debug=options.debug,
-                        stderr_logging=not options.fork)
+    utils.SetupLogging(logfile=constants.LOG_NODESERVER, debug=options.debug,
+                       stderr_logging=not options.fork)
     logging.info("ganeti node daemon startup")
 
     # Prepare job queue

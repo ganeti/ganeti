@@ -1269,6 +1269,50 @@ def GetNodeDaemonPassword():
   return ReadFile(constants.CLUSTER_PASSWORD_FILE)
 
 
+def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
+  """Configures the logging module.
+
+  """
+  fmt = "%(asctime)s: " + program + " "
+  if debug:
+    fmt += ("pid=%(process)d/%(threadName)s %(levelname)s"
+           " %(module)s:%(lineno)s %(message)s")
+  else:
+    fmt += "pid=%(process)d %(levelname)s %(message)s"
+  formatter = logging.Formatter(fmt)
+
+  root_logger = logging.getLogger("")
+  root_logger.setLevel(logging.NOTSET)
+
+  if stderr_logging:
+    stderr_handler = logging.StreamHandler()
+    stderr_handler.setFormatter(formatter)
+    if debug:
+      stderr_handler.setLevel(logging.NOTSET)
+    else:
+      stderr_handler.setLevel(logging.CRITICAL)
+    root_logger.addHandler(stderr_handler)
+
+  # this can fail, if the logging directories are not setup or we have
+  # a permisssion problem; in this case, it's best to log but ignore
+  # the error if stderr_logging is True, and if false we re-raise the
+  # exception since otherwise we could run but without any logs at all
+  try:
+    logfile_handler = logging.FileHandler(logfile)
+    logfile_handler.setFormatter(formatter)
+    if debug:
+      logfile_handler.setLevel(logging.DEBUG)
+    else:
+      logfile_handler.setLevel(logging.INFO)
+    root_logger.addHandler(logfile_handler)
+  except EnvironmentError, err:
+    if stderr_logging:
+      logging.exception("Failed to enable logging to file '%s'", logfile)
+    else:
+      # we need to re-raise the exception
+      raise
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 

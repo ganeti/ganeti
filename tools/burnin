@@ -34,7 +34,6 @@ from ganeti import opcodes
 from ganeti import mcpu
 from ganeti import constants
 from ganeti import cli
-from ganeti import logger
 from ganeti import errors
 from ganeti import utils
 
@@ -63,7 +62,7 @@ class Burner(object):
 
   def __init__(self):
     """Constructor."""
-    logger.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
+    utils.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
     self._feed_buf = StringIO()
     self.nodes = []
     self.instances = []

@@ -72,7 +72,6 @@ pkgpython_PYTHON = \
 	lib/jqueue.py \
 	lib/jstore.py \
 	lib/locking.py \
-	lib/logger.py \
 	lib/luxi.py \
 	lib/mcpu.py \
 	lib/objects.py \
