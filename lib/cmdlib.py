@@ -3667,7 +3667,7 @@ class LUCreateInstance(LogicalUnit):
     ip = getattr(self.op, "ip", None)
     if ip is None or ip.lower() == "none":
       inst_ip = None
-    elif ip.lower() == "auto":
+    elif ip.lower() == constants.VALUE_AUTO:
       inst_ip = hostname1.ip
     else:
       if not utils.IsValidIP(ip):
