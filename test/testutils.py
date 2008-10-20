@@ -21,16 +21,49 @@
 
 """Utilities for unit testing"""
 
+import os
 import unittest
+
+from ganeti import utils
 
 
 class GanetiTestCase(unittest.TestCase):
-  def assertFileContent(self, file_name, content):
-    """Checks the content of a file.
+  def assertFileContent(self, file_name, expected_content):
+    """Checks the content of a file is what we expect.
+
+    @type file_name: str
+    @param file_name: the file whose contents we should check
+    @type expected_content: str
+    @param expected_content: the content we expect
 
     """
-    handle = open(file_name, 'r')
-    try:
-      self.assertEqual(handle.read(), content)
-    finally:
-      handle.close()
+    actual_content = utils.ReadFile(file_name)
+    self.assertEqual(actual_content, expected_content)
+
+  @staticmethod
+  def _TestDataFilename(name):
+    """Returns the filename of a given test data file.
+
+    @type name: str
+    @param name: the 'base' of the file name, as present in
+        the test/data directory
+    @rtype: str
+    @return: the full path to the filename, such that it can
+        be used in 'make distcheck' rules
+
+    """
+    prefix = os.environ.get("srcdir", "")
+    if prefix:
+      prefix = prefix + "/test/"
+    return "%sdata/%s" % (prefix, name)
+
+  @classmethod
+  def _ReadTestData(cls, name):
+    """Returns the contents of a test data file.
+
+    This is just a very simple wrapper over utils.ReadFile with the
+    proper test file name.
+
+    """
+
+    return utils.ReadFile(cls._TestDataFilename(name))

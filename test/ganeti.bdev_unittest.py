@@ -25,11 +25,12 @@
 import os
 import unittest
 
+import testutils
 from ganeti import bdev
 from ganeti import errors
 
 
-class TestDRBD8Runner(unittest.TestCase):
+class TestDRBD8Runner(testutils.GanetiTestCase):
   """Testing case for DRBD8"""
 
   @staticmethod
@@ -44,20 +45,6 @@ class TestDRBD8Runner(unittest.TestCase):
       data["meta_index"] == 0
       )
     return retval
-
-  @staticmethod
-  def _get_contents(name):
-    """Returns the contents of a file"""
-
-    prefix = os.environ.get("srcdir", None)
-    if prefix:
-      name = prefix + "/test/" + name
-    fh = open(name, "r")
-    try:
-      data = fh.read()
-    finally:
-      fh.close()
-    return data
 
   @staticmethod
   def _has_net(data, local, remote):
@@ -76,7 +63,7 @@ class TestDRBD8Runner(unittest.TestCase):
 
   def testParserBoth(self):
     """Test drbdsetup show parser for disk and network"""
-    data = self._get_contents("data/bdev-both.txt")
+    data = self._ReadTestData("bdev-both.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
@@ -87,7 +74,7 @@ class TestDRBD8Runner(unittest.TestCase):
 
   def testParserNet(self):
     """Test drbdsetup show parser for disk and network"""
-    data = self._get_contents("data/bdev-net.txt")
+    data = self._ReadTestData("bdev-net.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(("local_dev" not in result and
                      "meta_dev" not in result and
@@ -99,7 +86,7 @@ class TestDRBD8Runner(unittest.TestCase):
 
   def testParserDisk(self):
     """Test drbdsetup show parser for disk and network"""
-    data = self._get_contents("data/bdev-disk.txt")
+    data = self._ReadTestData("bdev-disk.txt")
     result = bdev.DRBD8._GetDevInfo(data)
     self.failUnless(self._has_disk(result, "/dev/xenvg/test.data",
                                    "/dev/xenvg/test.meta"),
@@ -109,15 +96,12 @@ class TestDRBD8Runner(unittest.TestCase):
                     "Should not find network info")
 
 
-class TestDRBD8Status(unittest.TestCase):
+class TestDRBD8Status(testutils.GanetiTestCase):
   """Testing case for DRBD8 /proc status"""
 
   def setUp(self):
     """Read in txt data"""
-    proc_data = "test/data/proc_drbd8.txt"
-    prefix = os.environ.get("srcdir", None)
-    if prefix:
-      proc_data = prefix + "/" + proc_data
+    proc_data = self._TestDataFilename("proc_drbd8.txt")
     self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
     self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)
 
