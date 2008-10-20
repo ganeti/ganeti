@@ -26,7 +26,6 @@
 
 import os
 
-from ganeti import logger
 from ganeti import utils
 from ganeti import errors
 from ganeti import constants
@@ -161,11 +160,11 @@ class SshRunner:
 
     """
     if not os.path.isabs(filename):
-      logger.Error("file %s must be an absolute path" % (filename))
+      logging.error("File %s must be an absolute path", filename)
       return False
 
     if not os.path.isfile(filename):
-      logger.Error("file %s does not exist" % (filename))
+      logging.error("File %s does not exist", filename)
       return False
 
     command = [constants.SCP, "-q", "-p"]
@@ -176,9 +175,9 @@ class SshRunner:
     result = utils.RunCmd(command)
 
     if result.failed:
-      logger.Error("copy to node %s failed (%s) error %s,"
-                   " command was %s" %
-                   (node, result.fail_reason, result.output, result.cmd))
+      logging.error("Copy to node %s failed (%s) error %s,"
+                    " command was %s",
+                    node, result.fail_reason, result.output, result.cmd)
 
     return not result.failed
 
