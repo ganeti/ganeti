@@ -70,6 +70,8 @@ XEN_KERNEL = _autoconf.XEN_KERNEL
 XEN_INITRD = _autoconf.XEN_INITRD
 
 VALUE_DEFAULT = "default"
+VALUE_AUTO = "auto"
+VALUE_GENERATE = "generate"
 VALUE_NONE = "none"
 
 # hooks-related constants
