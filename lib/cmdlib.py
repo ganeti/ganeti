@@ -3656,6 +3656,13 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
                                  instance_name)
 
+    if (self.op.mode == constants.INSTANCE_IMPORT and
+        self.op.mac == constants.VALUE_AUTO):
+      old_name = export_info.get(constants.INISECT_INS, 'name')
+      if instance_name == old_name:
+        if int(export_info.get(constants.INISECT_INS, 'nic_count')) >= 1:
+          self.op.mac = export_info.get(constants.INISECT_INS, 'nic_0_mac')
+
     # ip validity checks
     ip = getattr(self.op, "ip", None)
     if ip is None or ip.lower() == "none":
