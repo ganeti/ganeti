@@ -22,6 +22,7 @@
 """Script for unittesting the cli module"""
 
 import unittest
+from cStringIO import StringIO
 
 import ganeti
 import testutils
@@ -74,6 +75,31 @@ class TestSplitKeyVal(unittest.TestCase):
       self.failUnlessRaises(ParameterError, cli._SplitKeyVal,
                             "option", data)
 
+
+class TestToStream(unittest.TestCase):
+  """Thes the ToStream functions"""
+
+  def testBasic(self):
+    for data in ["foo",
+                 "foo %s",
+                 "foo %(test)s",
+                 "foo %s %s",
+                 "",
+                 ]:
+      buf = StringIO()
+      cli._ToStream(buf, data)
+      self.failUnlessEqual(buf.getvalue(), data+'\n')
+
+  def testParams(self):
+      buf = StringIO()
+      cli._ToStream(buf, "foo %s", 1)
+      self.failUnlessEqual(buf.getvalue(), "foo 1\n")
+      buf = StringIO()
+      cli._ToStream(buf, "foo %s", (15,16))
+      self.failUnlessEqual(buf.getvalue(), "foo (15, 16)\n")
+      buf = StringIO()
+      cli._ToStream(buf, "foo %s %s", "a", "b")
+      self.failUnlessEqual(buf.getvalue(), "foo a b\n")
 
 if __name__ == '__main__':
   unittest.main()

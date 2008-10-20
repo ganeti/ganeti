@@ -27,6 +27,7 @@ import textwrap
 import os.path
 import copy
 import time
+import logging
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -50,6 +51,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
            "ValidateBeParams",
+           "ToStderr", "ToStdout",
            ]
 
 
@@ -626,7 +628,7 @@ def FormatError(err):
   msg = str(err)
   if isinstance(err, errors.ConfigurationError):
     txt = "Corrupt configuration file: %s" % msg
-    logger.Error(txt)
+    logging.error(txt)
     obuf.write(txt + "\n")
     obuf.write("Aborting.")
     retcode = 2
@@ -718,15 +720,16 @@ def GenericMain(commands, override=None, aliases=None):
   utils.debug = options.debug
 
   if old_cmdline:
-    logger.Info("run with arguments '%s'" % old_cmdline)
+    logging.info("run with arguments '%s'", old_cmdline)
   else:
-    logger.Info("run with no arguments")
+    logging.info("run with no arguments")
 
   try:
     result = func(options, args)
   except (errors.GenericError, luxi.ProtocolError), err:
     result, err_msg = FormatError(err)
-    logger.ToStderr(err_msg)
+    logging.exception("Error durring command processing")
+    ToStderr(err_msg)
 
   return result
 
@@ -858,3 +861,45 @@ def ParseTimespec(value):
     except ValueError:
       raise errors.OpPrereqError("Invalid time specification '%s'" % value)
   return value
+
+
+def _ToStream(stream, txt, *args):
+  """Write a message to a stream, bypassing the logging system
+
+  @type stream: file object
+  @param stream: the file to which we should write
+  @type txt: str
+  @param txt: the message
+
+  """
+  if args:
+    args = tuple(args)
+    stream.write(txt % args)
+  else:
+    stream.write(txt)
+  stream.write('\n')
+  stream.flush()
+
+
+def ToStdout(txt, *args):
+  """Write a message to stdout only, bypassing the logging system
+
+  This is just a wrapper over _ToStream.
+
+  @type txt: str
+  @param txt: the message
+
+  """
+  _ToStream(sys.stdout, txt, *args)
+
+
+def ToStderr(txt, *args):
+  """Write a message to stderr only, bypassing the logging system
+
+  This is just a wrapper over _ToStream.
+
+  @type txt: str
+  @param txt: the message
+
+  """
+  _ToStream(sys.stderr, txt, *args)
