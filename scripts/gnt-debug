@@ -19,14 +19,15 @@
 # 02110-1301, USA.
 
 
+# pylint: disable-msg=W0401,W0614
+# W0401: Wildcard import ganeti.cli
+# W0614: Unused import %s from wildcard import (since we need cli)
+
 import sys
-import os
-import itertools
 import simplejson
 import time
 
 from optparse import make_option
-from cStringIO import StringIO
 
 from ganeti.cli import *
 from ganeti import opcodes

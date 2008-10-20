@@ -19,6 +19,10 @@
 # 02110-1301, USA.
 
 
+# pylint: disable-msg=W0401,W0614
+# W0401: Wildcard import ganeti.cli
+# W0614: Unused import %s from wildcard import (since we need cli)
+
 import sys
 import os
 import itertools
@@ -353,9 +357,9 @@ def BatchCreate(opts, args):
 
   def _PopulateWithDefaults(spec):
     """Returns a new hash combined with default values."""
-    dict = _DEFAULT_SPECS.copy()
-    dict.update(spec)
-    return dict
+    mydict = _DEFAULT_SPECS.copy()
+    mydict.update(spec)
+    return mydict
 
   def _Validate(spec):
     """Validate the instance specs."""
@@ -456,9 +460,9 @@ def ReinstallInstance(opts, args):
       ToStdout("User aborted reinstall, exiting")
       return 1
 
-    os = selected
+    os_name = selected
   else:
-    os = opts.os
+    os_name = opts.os
 
   if not opts.force:
     usertext = ("This will reinstall the instance %s and remove"
@@ -467,7 +471,7 @@ def ReinstallInstance(opts, args):
       return 1
 
   op = opcodes.OpReinstallInstance(instance_name=instance_name,
-                                   os_type=os)
+                                   os_type=os_name)
   SubmitOrSend(op, opts)
 
   return 0
@@ -726,7 +730,7 @@ def ConnectToInstanceConsole(opts, args):
       os.execvp(cmd[0], cmd)
     finally:
       ToStderr("Can't run console command %s with arguments:\n'%s'",
-               cmd, " ".join(argv))
+               cmd[0], " ".join(cmd))
       os._exit(1)
 
 
