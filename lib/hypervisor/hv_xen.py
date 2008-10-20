@@ -26,11 +26,11 @@
 import os
 import os.path
 import time
+import logging
 from cStringIO import StringIO
 
 from ganeti import constants
 from ganeti import errors
-from ganeti import logger
 from ganeti import utils
 from ganeti.hypervisor import hv_base
 
@@ -71,8 +71,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
       result = utils.RunCmd(["xm", "list"])
       if not result.failed:
         break
-      logger.Error("xm list failed (%s): %s" % (result.fail_reason,
-                                                result.output))
+      logging.error("xm list failed (%s): %s", result.fail_reason,
+                    result.output)
       time.sleep(1)
 
     if result.failed:
@@ -184,7 +184,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     # note: in xen 3, memory has changed to total_memory
     result = utils.RunCmd(["xm", "info"])
     if result.failed:
-      logger.Error("Can't run 'xm info': %s" % result.fail_reason)
+      logging.error("Can't run 'xm info' (%s): %s", result.fail_reason,
+                    result.output)
       return None
 
     xmoutput = result.stdout.splitlines()
