@@ -141,6 +141,8 @@ XEN_INITRD = _autoconf.XEN_INITRD
 KVM_PATH = _autoconf.KVM_PATH
 
 VALUE_DEFAULT = "default"
+VALUE_AUTO = "auto"
+VALUE_GENERATE = "generate"
 VALUE_NONE = "none"
 
 # hooks-related constants
