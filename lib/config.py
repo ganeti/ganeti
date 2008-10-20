@@ -820,8 +820,15 @@ class ConfigWriter:
       nodelist.remove(myhostname)
     except ValueError:
       pass
+    # we can skip checking whether _UnlockedGetNodeInfo returns None
+    # since the node list comes from _UnlocketGetNodeList, and we are
+    # called with the lock held, so no modifications should take place
+    # in between
+    address_list = [self._UnlockedGetNodeInfo(name).primary_ip
+                    for name in nodelist]
 
-    result = rpc.RpcRunner.call_upload_file(nodelist, self._cfg_file)
+    result = rpc.RpcRunner.call_upload_file(nodelist, self._cfg_file,
+                                            address_list=address_list)
     for node in nodelist:
       if not result[node]:
         logging.error("copy of file %s to node %s failed",

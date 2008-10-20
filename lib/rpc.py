@@ -666,13 +666,21 @@ class RpcRunner(object):
     return c.GetResults().get(node, False)
 
   @staticmethod
-  def call_upload_file(node_list, file_name):
+  def call_upload_file(node_list, file_name, address_list=None):
     """Upload a file.
 
     The node will refuse the operation in case the file is not on the
     approved file list.
 
     This is a multi-node call.
+
+    @type node_list: list
+    @param node_list: the list of node names to upload to
+    @type file_name: str
+    @param file_name: the filename to upload
+    @type address_list: list or None
+    @keyword address_list: an optional list of node addresses, in order
+        to optimize the RPC speed
 
     """
     fh = file(file_name)
@@ -684,7 +692,7 @@ class RpcRunner(object):
     params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
               st.st_atime, st.st_mtime]
     c = Client("upload_file", params)
-    c.ConnectList(node_list)
+    c.ConnectList(node_list, address_list=address_list)
     c.Run()
     return c.GetResults()
 
