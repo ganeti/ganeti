@@ -31,7 +31,7 @@ from ganeti import http
 
 
 class HttpLogfileTests(unittest.TestCase):
-  """Rests for ApacheLogfile class."""
+  """Tests for ApacheLogfile class."""
 
   class FakeRequest:
     FAKE_ADDRESS = "1.2.3.4"
