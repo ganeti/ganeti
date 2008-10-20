@@ -28,13 +28,13 @@ are two kinds of classes defined:
 
 """
 
+import logging
 
 from ganeti import opcodes
 from ganeti import constants
 from ganeti import errors
 from ganeti import rpc
 from ganeti import cmdlib
-from ganeti import logger
 from ganeti import locking
 
 
@@ -217,14 +217,14 @@ class Processor(object):
     """Log a change in LU execution progress.
 
     """
-    logger.Debug("Step %d/%d %s" % (current, total, message))
+    logging.debug("Step %d/%d %s", current, total, message)
     self._feedback_fn("STEP %d/%d %s" % (current, total, message))
 
   def LogWarning(self, message, hint=None):
     """Log a warning to the logs and the user.
 
     """
-    logger.Error(message)
+    logging.warning(message)
     self._feedback_fn(" - WARNING: %s" % message)
     if hint:
       self._feedback_fn("      Hint: %s" % hint)
@@ -233,7 +233,7 @@ class Processor(object):
     """Log an informational message to the logs and the user.
 
     """
-    logger.Info(message)
+    logging.info(message)
     self._feedback_fn(" - INFO: %s" % message)
 
 
