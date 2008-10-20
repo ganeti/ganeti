@@ -317,7 +317,7 @@ class GanetiContext(object):
     self.cfg.AddNode(node)
 
     # If preseeding fails it'll not be added
-    self.jobqueue.AddNode(node.name)
+    self.jobqueue.AddNode(node)
 
     # Add the new node to the Ganeti Lock Manager
     self.glm.add(locking.LEVEL_NODE, node.name)
@@ -327,7 +327,7 @@ class GanetiContext(object):
 
     """
     # Synchronize the queue again
-    self.jobqueue.AddNode(node.name)
+    self.jobqueue.AddNode(node)
 
   def RemoveNode(self, name):
     """Removes a node from the configuration and lock manager.

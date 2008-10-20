@@ -941,14 +941,14 @@ class RpcRunner(object):
     return c.GetResults().get(node, False)
 
   @staticmethod
-  def call_jobqueue_update(node_list, file_name, content):
+  def call_jobqueue_update(node_list, address_list, file_name, content):
     """Update job queue.
 
     This is a multi-node call.
 
     """
     c = Client("jobqueue_update", [file_name, content])
-    c.ConnectList(node_list)
+    c.ConnectList(node_list, address_list=address_list)
     c.Run()
     result = c.GetResults()
     return result
@@ -966,14 +966,14 @@ class RpcRunner(object):
     return c.GetResults().get(node, False)
 
   @staticmethod
-  def call_jobqueue_rename(node_list, old, new):
+  def call_jobqueue_rename(node_list, address_list, old, new):
     """Rename a job queue file.
 
     This is a multi-node call.
 
     """
     c = Client("jobqueue_rename", [old, new])
-    c.ConnectList(node_list)
+    c.ConnectList(node_list, address_list=address_list)
     c.Run()
     result = c.GetResults()
     return result
