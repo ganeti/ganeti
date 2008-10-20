@@ -105,7 +105,7 @@ def _InitGanetiServerSetup():
                              (result.cmd, result.exit_code, result.output))
 
 
-def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
+def InitCluster(cluster_name, mac_prefix, def_bridge,
                 master_netdev, file_storage_dir,
                 secondary_ip=None,
                 vg_name=None, beparams=None, hvparams=None,
@@ -115,12 +115,6 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   """
   if config.ConfigWriter.IsCluster():
     raise errors.OpPrereqError("Cluster is already initialised")
-
-  if hypervisor_type == constants.HT_XEN_HVM:
-    if not os.path.exists(constants.VNC_PASSWORD_FILE):
-      raise errors.OpPrereqError("Please prepare the cluster VNC"
-                                 "password file %s" %
-                                 constants.VNC_PASSWORD_FILE)
 
   hostname = utils.HostInfo()
 
@@ -181,10 +175,6 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
   if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$", mac_prefix):
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix)
 
-  if hypervisor_type not in constants.HYPER_TYPES:
-    raise errors.OpPrereqError("Invalid hypervisor type given '%s'" %
-                               hypervisor_type)
-
   result = utils.RunCmd(["ip", "link", "show", "dev", master_netdev])
   if result.failed:
     raise errors.OpPrereqError("Invalid master netdev given (%s): '%s'" %
@@ -219,7 +209,6 @@ def InitCluster(cluster_name, hypervisor_type, mac_prefix, def_bridge,
     volume_group_name=vg_name,
     default_bridge=def_bridge,
     tcpudp_port_pool=set(),
-    hypervisor=hypervisor_type,
     master_node=hostname.name,
     master_ip=clustername.ip,
     master_netdev=master_netdev,

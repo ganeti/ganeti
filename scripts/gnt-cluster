@@ -100,7 +100,6 @@ def InitCluster(opts, args):
 
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
-                        hypervisor_type=opts.hypervisor_type,
                         vg_name=vg_name,
                         mac_prefix=opts.mac_prefix,
                         def_bridge=opts.def_bridge,
@@ -456,14 +455,6 @@ commands = {
                         " if given, the entire cluster must have secondary"
                         " addresses",
                         metavar="ADDRESS", default=None),
-            make_option("-t", "--hypervisor-type", dest="hypervisor_type",
-                        help="Specify the hypervisor type "
-                        "(xen-pvm, kvm, fake, xen-hvm)",
-                        metavar="TYPE", choices=["xen-pvm",
-                                                 "kvm",
-                                                 "fake",
-                                                 "xen-hvm"],
-                        default="xen-pvm",),
             make_option("-m", "--mac-prefix", dest="mac_prefix",
                         help="Specify the mac prefix for the instance IP"
                         " addresses, in the format XX:XX:XX",
