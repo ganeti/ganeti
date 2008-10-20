@@ -213,6 +213,41 @@ class RpcRunner(object):
     idict["beparams"] = cluster.FillBE(instance)
     return idict
 
+  def _ConnectList(self, client, node_list):
+    """Helper for computing node addresses.
+
+    @type client: L{Client}
+    @param client: a C{Client} instance
+    @type node_list: list
+    @param node_list: the node list we should connect
+
+    """
+    all_nodes = self._cfg.GetAllNodesInfo()
+    addr_list = []
+    for node in node_list:
+      if node in all_nodes:
+        val = all_nodes[node].primary_ip
+      else:
+        val = None
+      addr_list.append(val)
+    client.ConnectList(node_list, address_list=addr_list)
+
+  def _ConnectNode(self, client, node):
+    """Helper for computing one node's address.
+
+    @type client: L{Client}
+    @param client: a C{Client} instance
+    @type node: str
+    @param node: the node we should connect
+
+    """
+    node_info = self._cfg.GetNodeInfo(node)
+    if node_info is not None:
+      addr = node_info.primary_ip
+    else:
+      addr = None
+    client.ConnectNode(node, address=addr)
+
   def call_volume_list(self, node_list, vg_name):
     """Gets the logical volumes present in a given volume group.
 
@@ -220,7 +255,7 @@ class RpcRunner(object):
 
     """
     c = Client("volume_list", [vg_name])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -231,7 +266,7 @@ class RpcRunner(object):
 
     """
     c = Client("vg_list", [])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -246,7 +281,7 @@ class RpcRunner(object):
 
     """
     c = Client("bridges_exist", [bridges_list])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -257,7 +292,7 @@ class RpcRunner(object):
 
     """
     c = Client("instance_start", [self._InstDict(instance), extra_args])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -268,7 +303,7 @@ class RpcRunner(object):
 
     """
     c = Client("instance_shutdown", [self._InstDict(instance)])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -289,7 +324,7 @@ class RpcRunner(object):
 
     """
     c = Client("instance_migrate", [self._InstDict(instance), target, live])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -301,7 +336,7 @@ class RpcRunner(object):
     """
     c = Client("instance_reboot", [self._InstDict(instance),
                                    reboot_type, extra_args])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -313,7 +348,7 @@ class RpcRunner(object):
     """
     params = [self._InstDict(inst)]
     c = Client("instance_os_add", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -325,7 +360,7 @@ class RpcRunner(object):
     """
     params = [self._InstDict(inst), old_name]
     c = Client("instance_run_rename", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -343,7 +378,7 @@ class RpcRunner(object):
 
     """
     c = Client("instance_info", [instance, hname])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -359,7 +394,7 @@ class RpcRunner(object):
 
     """
     c = Client("all_instances_info", [hypervisor_list])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -375,7 +410,7 @@ class RpcRunner(object):
 
     """
     c = Client("instance_list", [hypervisor_list])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -388,7 +423,7 @@ class RpcRunner(object):
     """
     c = Client("node_tcp_ping", [source, target, port, timeout,
                                  live_port_needed])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -399,7 +434,7 @@ class RpcRunner(object):
 
     """
     c = Client("node_has_ip_address", [address])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -422,7 +457,7 @@ class RpcRunner(object):
 
     """
     c = Client("node_info", [vg_name, hypervisor_type])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     retux = c.GetResults()
 
@@ -450,7 +485,7 @@ class RpcRunner(object):
     """
     params = [dsa, dsapub, rsa, rsapub, ssh, sshpub]
     c = Client("node_add", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -461,7 +496,7 @@ class RpcRunner(object):
 
     """
     c = Client("node_verify", [checkdict, cluster_name])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -509,7 +544,7 @@ class RpcRunner(object):
 
     """
     c = Client("version", [])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -521,7 +556,7 @@ class RpcRunner(object):
     """
     params = [bdev.ToDict(), size, owner, on_primary, info]
     c = Client("blockdev_create", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -532,7 +567,7 @@ class RpcRunner(object):
 
     """
     c = Client("blockdev_remove", [bdev.ToDict()])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -544,7 +579,7 @@ class RpcRunner(object):
     """
     params = [(d.ToDict(), uid) for d, uid in devlist]
     c = Client("blockdev_rename", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -556,7 +591,7 @@ class RpcRunner(object):
     """
     params = [disk.ToDict(), owner, on_primary]
     c = Client("blockdev_assemble", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -567,7 +602,7 @@ class RpcRunner(object):
 
     """
     c = Client("blockdev_shutdown", [disk.ToDict()])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -579,7 +614,7 @@ class RpcRunner(object):
     """
     params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
     c = Client("blockdev_addchildren", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -591,7 +626,7 @@ class RpcRunner(object):
     """
     params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
     c = Client("blockdev_removechildren", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -603,7 +638,7 @@ class RpcRunner(object):
     """
     params = [dsk.ToDict() for dsk in disks]
     c = Client("blockdev_getmirrorstatus", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -614,7 +649,7 @@ class RpcRunner(object):
 
     """
     c = Client("blockdev_find", [disk.ToDict()])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -626,7 +661,7 @@ class RpcRunner(object):
     """
     params = [cf.ToDict() for cf in disks]
     c = Client("blockdev_close", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -660,7 +695,7 @@ class RpcRunner(object):
 
     """
     c = Client("os_diagnose", [])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     result = c.GetResults()
     new_result = {}
@@ -679,7 +714,7 @@ class RpcRunner(object):
 
     """
     c = Client("os_get", [name])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     result = c.GetResults().get(node, False)
     if isinstance(result, dict):
@@ -699,7 +734,7 @@ class RpcRunner(object):
     """
     params = [hpath, phase, env]
     c = Client("hooks_runner", params)
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     result = c.GetResults()
     return result
@@ -716,7 +751,7 @@ class RpcRunner(object):
     """
     params = [name, idata]
     c = Client("iallocator_runner", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     result = c.GetResults().get(node, False)
     return result
@@ -728,7 +763,7 @@ class RpcRunner(object):
 
     """
     c = Client("blockdev_grow", [cf_bdev.ToDict(), amount])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -739,7 +774,7 @@ class RpcRunner(object):
 
     """
     c = Client("blockdev_snapshot", [cf_bdev.ToDict()])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -753,7 +788,7 @@ class RpcRunner(object):
     params = [snap_bdev.ToDict(), dest_node,
               self._InstDict(instance), cluster_name]
     c = Client("snapshot_export", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -770,7 +805,7 @@ class RpcRunner(object):
       flat_disks.append(disk.ToDict())
     params = [self._InstDict(instance), flat_disks]
     c = Client("finalize_export", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -781,7 +816,7 @@ class RpcRunner(object):
 
     """
     c = Client("export_info", [path])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     result = c.GetResults().get(node, False)
     if not result:
@@ -798,7 +833,7 @@ class RpcRunner(object):
     params = [self._InstDict(inst), osdev, swapdev,
               src_node, src_image, cluster_name]
     c = Client("instance_os_import", params)
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -809,7 +844,7 @@ class RpcRunner(object):
 
     """
     c = Client("export_list", [])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     result = c.GetResults()
     return result
@@ -821,7 +856,7 @@ class RpcRunner(object):
 
     """
     c = Client("export_remove", [export])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -847,7 +882,7 @@ class RpcRunner(object):
 
     """
     c = Client("node_volumes", [])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -858,7 +893,7 @@ class RpcRunner(object):
 
     """
     c = Client("test_delay", [duration])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     return c.GetResults()
 
@@ -869,7 +904,7 @@ class RpcRunner(object):
 
     """
     c = Client("file_storage_dir_create", [file_storage_dir])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -880,7 +915,7 @@ class RpcRunner(object):
 
     """
     c = Client("file_storage_dir_remove", [file_storage_dir])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -893,7 +928,7 @@ class RpcRunner(object):
     """
     c = Client("file_storage_dir_rename",
                [old_file_storage_dir, new_file_storage_dir])
-    c.ConnectNode(node)
+    self._ConnectNode(c, node)
     c.Run()
     return c.GetResults().get(node, False)
 
@@ -971,7 +1006,7 @@ class RpcRunner(object):
     cluster = self._cfg.GetClusterInfo()
     hv_full = cluster.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
     c = Client("hypervisor_validate_params", [hvname, hv_full])
-    c.ConnectList(node_list)
+    self._ConnectList(c, node_list)
     c.Run()
     result = c.GetResults()
     return result
