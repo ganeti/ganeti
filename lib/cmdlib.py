@@ -3491,6 +3491,14 @@ class LUCreateInstance(LogicalUnit):
                                                          'disk0_dump'))
       self.src_image = diskimage
 
+      if self.op.mac == constants.VALUE_AUTO:
+        old_name = export_info.get(constants.INISECT_INS, 'name')
+        if self.op.instance_name == old_name:
+          # FIXME: adjust every nic, when we'll be able to create instances
+          # with more than one
+          if int(export_info.get(constants.INISECT_INS, 'nic_count')) >= 1:
+            self.op.mac = export_info.get(constants.INISECT_INS, 'nic_0_mac')
+
     # ip ping checks (we use the same ip that was resolved in ExpandNames)
 
     if self.op.start and not self.op.ip_check:
