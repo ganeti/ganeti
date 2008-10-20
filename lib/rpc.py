@@ -33,10 +33,10 @@
 import os
 import socket
 import httplib
+import logging
 
 import simplejson
 
-from ganeti import logger
 from ganeti import utils
 from ganeti import objects
 
@@ -63,7 +63,7 @@ class NodeController:
       hc.endheaders()
       hc.send(parent.body)
     except socket.error, err:
-      logger.Error("Error connecting to %s: %s" % (node, str(err)))
+      logging.exception("Error connecting to node %s", node)
       self.failed = True
 
   def get_response(self):
@@ -81,7 +81,7 @@ class NodeController:
     except ValueError:
       return False
     if not length:
-      logger.Error("Zero-length reply from %s" % self.node)
+      logging.error("Zero-length reply from node %s", self.node)
       return False
     payload = resp.read(length)
     unload = simplejson.loads(payload)
@@ -393,7 +393,7 @@ class RpcRunner(object):
     for node_name in retux:
       ret = retux.get(node_name, False)
       if type(ret) != dict:
-        logger.Error("could not connect to node %s" % (node_name))
+        logging.error("could not connect to node %s", node_name)
         ret = {}
 
       utils.CheckDict(ret,
