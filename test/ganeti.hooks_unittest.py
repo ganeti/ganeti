@@ -230,7 +230,7 @@ class TestHooksMaster(unittest.TestCase):
     self.context = FakeContext()
     # WARNING: here we pass None as RpcRunner instance since we know
     # our usage via HooksMaster will not use lu.rpc
-    self.lu = FakeLU(None, self.op, self.context, None)
+    self.lu = FakeLU(FakeProc(), self.op, self.context, None)
 
   def testTotalFalse(self):
     """Test complete rpc failure"""

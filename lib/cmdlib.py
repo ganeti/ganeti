@@ -87,6 +87,9 @@ class LogicalUnit(object):
     # Used to force good behavior when calling helper functions
     self.recalculate_locks = {}
     self.__ssh = None
+    # logging
+    self.LogWarning = processor.LogWarning
+    self.LogInfo = processor.LogInfo
 
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)
@@ -1088,11 +1091,12 @@ class LURenameCluster(LogicalUnit):
         result = self.rpc.call_upload_file(dist_nodes, fname)
         for to_node in dist_nodes:
           if not result[to_node]:
-            logging.error("Copy of file %s to node %s failed", fname, to_node)
+            self.LogWarning("Copy of file %s to node %s failed",
+                            fname, to_node)
     finally:
       if not self.rpc.call_node_start_master(master, False):
-        logging.error("Could not re-enable the master role on the master,"
-                      " please restart manually.")
+        self.LogWarning("Could not re-enable the master role on"
+                        " the master, please restart manually.")
 
 
 def _RecursiveCheckIfLVMBased(disk):
@@ -1244,7 +1248,7 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
     cumul_degraded = False
     rstats = lu.rpc.call_blockdev_getmirrorstatus(node, instance.disks)
     if not rstats:
-      lu.proc.LogWarning("Can't get any data from node %s" % node)
+      lu.LogWarning("Can't get any data from node %s", node)
       retries += 1
       if retries >= 10:
         raise errors.RemoteError("Can't contact node %s for mirror data,"
@@ -1255,8 +1259,8 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
     for i in range(len(rstats)):
       mstat = rstats[i]
       if mstat is None:
-        lu.proc.LogWarning("Can't compute data for node %s/%s" %
-                           (node, instance.disks[i].iv_name))
+        lu.LogWarning("Can't compute data for node %s/%s",
+                           node, instance.disks[i].iv_name)
         continue
       # we ignore the ldisk parameter
       perc_done, est_time, is_degraded, _ = mstat
@@ -2033,8 +2037,9 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, False)
       if not result:
-        logging.error("Could not prepare block device %s on node %s"
-                      " (is_primary=False, pass=1)", inst_disk.iv_name, node)
+        lu.proc.LogWarning("Could not prepare block device %s on node %s"
+                           " (is_primary=False, pass=1)",
+                           inst_disk.iv_name, node)
         if not ignore_secondaries:
           disks_ok = False
 
@@ -2048,8 +2053,9 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, True)
       if not result:
-        logging.error("Could not prepare block device %s on node %s"
-                      " (is_primary=True, pass=2)", inst_disk.iv_name, node)
+        lu.proc.LogWarning("Could not prepare block device %s on node %s"
+                           " (is_primary=True, pass=2)",
+                           inst_disk.iv_name, node)
         disks_ok = False
     device_info.append((instance.primary_node, inst_disk.iv_name, result))
 
@@ -2071,8 +2077,9 @@ def _StartInstanceDisks(lu, instance, force):
   if not disks_ok:
     _ShutdownInstanceDisks(lu, instance)
     if force is not None and not force:
-      logging.error("If the message above refers to a secondary node,"
-                    " you can retry the operation using '--force'.")
+      lu.proc.LogWarning("", hint="If the message above refers to a"
+                         " secondary node,"
+                         " you can retry the operation using '--force'.")
     raise errors.OpExecError("Disk consistency error")
 
 
@@ -2386,7 +2393,7 @@ class LUShutdownInstance(LogicalUnit):
     node_current = instance.primary_node
     self.cfg.MarkInstanceDown(instance.name)
     if not self.rpc.call_instance_shutdown(node_current, instance):
-      logging.error("Could not shutdown instance")
+      self.proc.LogWarning("Could not shutdown instance")
 
     _ShutdownInstanceDisks(self, instance)
 
@@ -2584,7 +2591,7 @@ class LURenameInstance(LogicalUnit):
         msg = ("Could not run OS rename script for instance %s on node %s"
                " (but the instance has been renamed in Ganeti)" %
                (inst.name, inst.primary_node))
-        logging.error(msg)
+        self.proc.LogWarning(msg)
     finally:
       _ShutdownInstanceDisks(self, inst)
 
@@ -2921,9 +2928,10 @@ class LUFailoverInstance(LogicalUnit):
 
     if not self.rpc.call_instance_shutdown(source_node, instance):
       if self.op.ignore_consistency:
-        logging.error("Could not shutdown instance %s on node %s. Proceeding"
-                      " anyway. Please make sure node %s is down",
-                      instance.name, source_node, source_node)
+        self.proc.LogWarning("Could not shutdown instance %s on node %s."
+                             " Proceeding"
+                             " anyway. Please make sure node %s is down",
+                             instance.name, source_node, source_node)
       else:
         raise errors.OpExecError("Could not shutdown instance %s on node %s" %
                                  (instance.name, source_node))
@@ -3171,8 +3179,8 @@ def _RemoveDisks(lu, instance):
     for node, disk in device.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(disk, node)
       if not lu.rpc.call_blockdev_remove(node, disk):
-        logging.error("Could not remove block device %s on node %s,"
-                      " continuing anyway", device.iv_name, node)
+        lu.proc.LogWarning("Could not remove block device %s on node %s,"
+                           " continuing anyway", device.iv_name, node)
         result = False
 
   if instance.disk_template == constants.DT_FILE:
@@ -3415,10 +3423,9 @@ class LUCreateInstance(LogicalUnit):
                                  (self.op.iallocator, len(ial.nodes),
                                   ial.required_nodes))
     self.op.pnode = ial.nodes[0]
-    feedback_fn("Selected nodes for the instance: %s" %
-                (", ".join(ial.nodes),))
-    logging.info("Selected nodes for instance %s via iallocator %s: %s",
-                 self.op.instance_name, self.op.iallocator, ial.nodes)
+    self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
+                 self.op.instance_name, self.op.iallocator,
+                 ", ".join(ial.nodes))
     if ial.required_nodes == 2:
       self.op.snode = ial.nodes[1]
 
@@ -3820,8 +3827,8 @@ class LUReplaceDisks(LogicalUnit):
                                  " of nodes (%s), required %s" %
                                  (len(ial.nodes), ial.required_nodes))
     self.op.remote_node = ial.nodes[0]
-    feedback_fn("Selected new secondary for the instance: %s" %
-                self.op.remote_node)
+    self.LogInfo("Selected new secondary for the instance: %s",
+                 self.op.remote_node)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -4391,8 +4398,8 @@ class LUGrowDisk(LogicalUnit):
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self.cfg, instance, self.proc)
       if disk_abort:
-        logging.error("Warning: disk sync-ing has not returned a good"
-                      " status.\nPlease check the instance.")
+        self.proc.LogWarning("Warning: disk sync-ing has not returned a good"
+                             " status.\nPlease check the instance.")
 
 
 class LUQueryInstanceData(NoHooksLU):
