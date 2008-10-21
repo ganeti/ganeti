@@ -50,7 +50,7 @@ class RemoteApiHttpServer(http.HttpServer):
 
     """
     (HandlerClass, items, args) = self._resmap.getController(req.request_path)
-    handler = HandlerClass(items, args, req.request_post_data)
+    handler = HandlerClass(items, args, req)
 
     method = req.request_method.upper()
     try:

@@ -126,7 +126,7 @@ class R_Generic(object):
   """Generic class for resources.
 
   """
-  def __init__(self, items, queryargs, post_data):
+  def __init__(self, items, queryargs, req):
     """Generic resource constructor.
 
     Args:
@@ -136,7 +136,7 @@ class R_Generic(object):
     """
     self.items = items
     self.queryargs = queryargs
-    self.post_data = post_data
+    self.req = req
     self.sn = None
 
   def getSerialNumber(self):
