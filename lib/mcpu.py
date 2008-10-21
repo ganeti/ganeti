@@ -220,19 +220,31 @@ class Processor(object):
     logging.debug("Step %d/%d %s", current, total, message)
     self._feedback_fn("STEP %d/%d %s" % (current, total, message))
 
-  def LogWarning(self, message, hint=None):
+  def LogWarning(self, message, *args, **kwargs):
     """Log a warning to the logs and the user.
 
-    """
-    logging.warning(message)
-    self._feedback_fn(" - WARNING: %s" % message)
-    if hint:
-      self._feedback_fn("      Hint: %s" % hint)
+    The optional keyword argument is 'hint' and can be used to show a
+    hint to the user (presumably related to the warning). If the
+    message is empty, it will not be printed at all, allowing one to
+    show only a hint.
 
-  def LogInfo(self, message):
+    """
+    assert not kwargs or (len(kwargs) == 1 and "hint" in kwargs), \
+           "Invalid keyword arguments for LogWarning (%s)" % str(kwargs)
+    if args:
+      message = message % tuple(args)
+    if message:
+      logging.warning(message)
+      self._feedback_fn(" - WARNING: %s" % message)
+    if "hint" in kwargs:
+      self._feedback_fn("      Hint: %s" % kwargs["hint"])
+
+  def LogInfo(self, message, *args):
     """Log an informational message to the logs and the user.
 
     """
+    if args:
+      message = message % tuple(args)
     logging.info(message)
     self._feedback_fn(" - INFO: %s" % message)
 
