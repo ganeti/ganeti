@@ -97,6 +97,7 @@ Legal entries include:
   - disk size in GB [REQUIRED]
   - ram size in MB [REQUIRED]
   - number of VCPUs
+  - MAC address for the instance
 
 All hostnames - i.e. for the instance, the primary node, and the sec- ondary
 node - must be in FQDN format. For example, mytestinstance.exam- ple.com
@@ -123,7 +124,8 @@ Example::
   #    "template": "drbd",
   #    "os": "etch",
   #    "disk_size": "75g",
-  #    "ram_size": 1024
+  #    "ram_size": 1024,
+  #    "mac": "00:de:ad:20:c0:de"
   #  }
   # }
 

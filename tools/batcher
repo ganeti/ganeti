@@ -614,15 +614,21 @@ class InstanceCreator:
       vcpu = ''
 
     try:
+      mac = '--mac %s' % instance.mac
+    except AttributeError:
+      mac = ''
+
+    try:
       command = ('gnt-instance add %s %s -o %s -s %s -m %s '
-                 '%s %s %s' % (template,
-                               nodes,
-                               instance.os,
-                               instance.disk_size,
-                               instance.ram_size,
-                               vcpu,
-                               nowait,
-                               instance.hostname))
+                 '%s %s %s %s' % (template,
+                                  nodes,
+                                  instance.os,
+                                  instance.disk_size,
+                                  instance.ram_size,
+                                  vcpu,
+                                  nowait,
+                                  mac,
+                                  instance.hostname))
     except AttributeError, msg:
       msg = ('It appears either the instance\'s hostname, disk_size, or '
              'ram_size were not specified in %s') % self.instances_file
