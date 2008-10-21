@@ -242,7 +242,7 @@ OS_SCRIPT_CREATE = 'create'
 OS_SCRIPT_IMPORT = 'import'
 OS_SCRIPT_EXPORT = 'export'
 OS_SCRIPT_RENAME = 'rename'
-OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT, 
+OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT,
                         OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME])
 
 # ssh constants

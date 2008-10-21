@@ -28,7 +28,7 @@ import inspect
 
 from ganeti.rapi import rlib1
 from ganeti.rapi import rlib2
-from ganeti.rapi import connector 
+from ganeti.rapi import connector
 
 
 CHECKED_COMMANDS = ["GET", "POST", "PUT", "DELETE"]
