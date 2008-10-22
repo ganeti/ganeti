@@ -1436,12 +1436,13 @@ def FinalizeExport(instance, snap_disks):
 
   disk_count = 0
   for disk_count, disk in enumerate(snap_disks):
-    config.set(constants.INISECT_INS, 'disk%d_ivname' % disk_count,
-               ('%s' % disk.iv_name))
-    config.set(constants.INISECT_INS, 'disk%d_dump' % disk_count,
-               ('%s' % disk.physical_id[1]))
-    config.set(constants.INISECT_INS, 'disk%d_size' % disk_count,
-               ('%d' % disk.size))
+    if disk:
+      config.set(constants.INISECT_INS, 'disk%d_ivname' % disk_count,
+                 ('%s' % disk.iv_name))
+      config.set(constants.INISECT_INS, 'disk%d_dump' % disk_count,
+                 ('%s' % disk.physical_id[1]))
+      config.set(constants.INISECT_INS, 'disk%d_size' % disk_count,
+                 ('%d' % disk.size))
   config.set(constants.INISECT_INS, 'disk_count' , '%d' % disk_count)
 
   cff = os.path.join(destdir, constants.EXPORT_CONF_FILE)

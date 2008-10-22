@@ -4874,19 +4874,19 @@ class LUExportInstance(LogicalUnit):
 
     try:
       for disk in instance.disks:
-        if disk.iv_name == "sda":
-          # new_dev_name will be a snapshot of an lvm leaf of the one we passed
-          new_dev_name = self.rpc.call_blockdev_snapshot(src_node, disk)
+        # new_dev_name will be a snapshot of an lvm leaf of the one we passed
+        new_dev_name = self.rpc.call_blockdev_snapshot(src_node, disk)
 
-          if not new_dev_name:
-            logging.error("Could not snapshot block device %s on node %s",
+        if not new_dev_name:
+          self.LogWarning("Could not snapshot block device %s on node %s",
                           disk.logical_id[1], src_node)
-          else:
-            new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
-                                      logical_id=(vgname, new_dev_name),
-                                      physical_id=(vgname, new_dev_name),
-                                      iv_name=disk.iv_name)
-            snap_disks.append(new_dev)
+          snap_disks.append(False)
+        else:
+          new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
+                                 logical_id=(vgname, new_dev_name),
+                                 physical_id=(vgname, new_dev_name),
+                                 iv_name=disk.iv_name)
+          snap_disks.append(new_dev)
 
     finally:
       if self.op.shutdown and instance.status == "up":
@@ -4898,17 +4898,19 @@ class LUExportInstance(LogicalUnit):
 
     cluster_name = self.cfg.GetClusterName()
     for dev in snap_disks:
-      if not self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
-                                      instance, cluster_name):
-        logging.error("Could not export block device %s from node %s to"
-                      " node %s", dev.logical_id[1], src_node, dst_node.name)
-      if not self.rpc.call_blockdev_remove(src_node, dev):
-        logging.error("Could not remove snapshot block device %s from node"
-                      " %s", dev.logical_id[1], src_node)
+      if dev:
+        if not self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
+                                             instance, cluster_name):
+          self.LogWarning("Could not export block device %s from node %s to"
+                          " node %s", dev.logical_id[1], src_node,
+                          dst_node.name)
+        if not self.rpc.call_blockdev_remove(src_node, dev):
+          self.LogWarning("Could not remove snapshot block device %s from node"
+                          " %s", dev.logical_id[1], src_node)
 
     if not self.rpc.call_finalize_export(dst_node.name, instance, snap_disks):
-      logging.error("Could not finalize export for instance %s on node %s",
-                    instance.name, dst_node.name)
+      self.LogWarning("Could not finalize export for instance %s on node %s",
+                      instance.name, dst_node.name)
 
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(dst_node.name)
@@ -4921,8 +4923,8 @@ class LUExportInstance(LogicalUnit):
       for node in exportlist:
         if instance.name in exportlist[node]:
           if not self.rpc.call_export_remove(node, instance.name):
-            logging.error("Could not remove older export for instance %s"
-                          " on node %s", instance.name, node)
+            self.LogWarning("Could not remove older export for instance %s"
+                            " on node %s", instance.name, node)
 
 
 class LURemoveExport(NoHooksLU):
