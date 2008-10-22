@@ -1477,77 +1477,52 @@ def ExportInfo(dest):
   return config
 
 
-def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image,
-                         cluster_name):
+def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
   """Import an os image into an instance.
 
-  Args:
-    instance: the instance object
-    os_disk: the instance-visible name of the os device
-    swap_disk: the instance-visible name of the swap device
-    src_node: node holding the source image
-    src_image: path to the source image on src_node
-
-  Returns:
-    False in case of error, True otherwise.
+  @type instance: L{objects.instance}
+  @param instance: instance to import the disks into
+  @type src_node: string
+  @param src_node: source node for the disk images
+  @type src_images: list of string
+  @param src_images: absolute paths of the disk images
+  @rtype: list of boolean
+  @return: each boolean represent the success of importing the n-th disk
 
   """
-  # TODO(ultrotter): Import/Export still to be converted to OS API 10
-  logging.error("Import/Export still to be converted to OS API 10")
-  return False
-
+  import_env = OSEnvironment(instance)
   inst_os = OSFromDisk(instance.os)
   import_script = inst_os.import_script
-
-  os_device = instance.FindDisk(os_disk)
-  if os_device is None:
-    logging.error("Can't find this device-visible name '%s'", os_disk)
-    return False
-
-  swap_device = instance.FindDisk(swap_disk)
-  if swap_device is None:
-    logging.error("Can't find this device-visible name '%s'", swap_disk)
-    return False
-
-  real_os_dev = _RecursiveFindBD(os_device)
-  if real_os_dev is None:
-    raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                  str(os_device))
-  real_os_dev.Open()
-
-  real_swap_dev = _RecursiveFindBD(swap_device)
-  if real_swap_dev is None:
-    raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                  str(swap_device))
-  real_swap_dev.Open()
 
   logfile = "%s/import-%s-%s-%s.log" % (constants.LOG_OS_DIR, instance.os,
                                         instance.name, int(time.time()))
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  destcmd = utils.BuildShellCmd('cat %s', src_image)
-  remotecmd = _GetSshRunner(cluster_name).BuildCmd(src_node,
-                                                   constants.GANETI_RUNAS,
-                                                   destcmd)
-
   comprcmd = "gunzip"
-  impcmd = utils.BuildShellCmd("(cd %s; %s -i %s -b %s -s %s &>%s)",
-                               inst_os.path, import_script, instance.name,
-                               real_os_dev.dev_path, real_swap_dev.dev_path,
+  impcmd = utils.BuildShellCmd("(cd %s; %s &>%s)", inst_os.path, import_script,
                                logfile)
 
-  command = '|'.join([utils.ShellQuoteArgs(remotecmd), comprcmd, impcmd])
-  env = {'HYPERVISOR': instance.hypervisor}
+  final_result = []
+  for idx, image in enumerate(src_images):
+    if image:
+      destcmd = utils.BuildShellCmd('cat %s', image)
+      remotecmd = _GetSshRunner(cluster_name).BuildCmd(src_node,
+                                                       constants.GANETI_RUNAS,
+                                                       destcmd)
+      command = '|'.join([utils.ShellQuoteArgs(remotecmd), comprcmd, impcmd])
+      import_env['IMPORT_DEVICE'] = import_env['DISK_%d_PATH' % idx]
+      result = utils.RunCmd(command, env=import_env)
+      if result.failed:
+        logging.error("disk import command '%s' returned error: %s"
+                      " output: %s", command, result.fail_reason, result.output)
+        final_result.append(False)
+      else:
+        final_result.append(True)
+    else:
+      final_result.append(True)
 
-  result = utils.RunCmd(command, env=env)
-
-  if result.failed:
-    logging.error("os import command '%s' returned error: %s"
-                  " output: %s", command, result.fail_reason, result.output)
-    return False
-
-  return True
+  return final_result
 
 
 def ListExports():

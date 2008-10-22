@@ -831,15 +831,14 @@ class RpcRunner(object):
       return result
     return objects.SerializableConfigParser.Loads(str(result))
 
-  def call_instance_os_import(self, node, inst, osdev, swapdev,
-                              src_node, src_image, cluster_name):
+  def call_instance_os_import(self, node, inst, src_node, src_images,
+                              cluster_name):
     """Request the import of a backup into an instance.
 
     This is a single-node call.
 
     """
-    params = [self._InstDict(inst), osdev, swapdev,
-              src_node, src_image, cluster_name]
+    params = [self._InstDict(inst), src_node, src_images, cluster_name]
     c = Client("instance_os_import", params)
     self._ConnectNode(c, node)
     c.Run()

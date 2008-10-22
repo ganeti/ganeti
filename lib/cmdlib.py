@@ -3701,10 +3701,11 @@ class LUCreateInstance(LogicalUnit):
         src_node = self.op.src_node
         src_image = self.src_image
         cluster_name = self.cfg.GetClusterName()
-        if not self.rpc.call_instance_os_import(pnode_name, iobj, "sda", "sdb",
-                                                src_node, src_image,
-                                                cluster_name):
-          raise errors.OpExecError("Could not import os for instance"
+        import_result = self.rpc.call_instance_os_import(pnode_name, iobj,
+                                                         src_node, [src_image],
+                                                         cluster_name)
+        if import_result[0]:
+          raise errors.OpExecError("Could not import disks for instance"
                                    " %s on node %s" %
                                    (instance, pnode_name))
       else:
