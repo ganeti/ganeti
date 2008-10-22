@@ -203,7 +203,7 @@ class R_2_instances(baserlib.R_Generic):
       A job id.
 
     """
-    opts = self.post_data
+    opts = self.req.request_post_data
 
     # beparams
     mem = opts.get('mem', None)
