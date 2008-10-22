@@ -1302,11 +1302,10 @@ def SnapshotBlockDevice(disk):
   This function is called recursively, and the snapshot is actually created
   just for the leaf lvm backend device.
 
-  Args:
-    disk: the disk to be snapshotted
-
-  Returns:
-    a config entry for the actual lvm device snapshotted.
+  @type disk: L{objects.Disk}
+  @param disk: the disk to be snapshotted
+  @rtype: string
+  @return: snapshot disk path
 
   """
   if disk.children:
