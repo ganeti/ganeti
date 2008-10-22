@@ -2679,7 +2679,7 @@ class LUQueryInstances(NoHooksLU):
       "admin_state", "admin_ram",
       "disk_template", "ip", "mac", "bridge",
       "sda_size", "sdb_size", "vcpus", "tags",
-      "network_port",
+      "network_port", "beparams",
       "serial_no", "hypervisor", "hvparams",
       ] + hvp + bep)
 

@@ -34,8 +34,7 @@ from ganeti.rapi import baserlib
 
 
 I_FIELDS = ["name", "os", "pnode", "snodes", "admin_state", "disk_template",
-            "ip", "mac", "bridge", "sda_size", "sdb_size", "be/vcpus",
-            "be/memory", "be/auto_balance",
+            "ip", "mac", "bridge", "sda_size", "sdb_size", "beparams",
             "oper_state", "status", "tags"]
 
 N_FIELDS = ["name", "dtotal", "dfree",
