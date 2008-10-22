@@ -3444,7 +3444,7 @@ class LUCreateInstance(LogicalUnit):
     if self.op.mode == constants.INSTANCE_IMPORT:
       env["INSTANCE_SRC_NODE"] = self.op.src_node
       env["INSTANCE_SRC_PATH"] = self.op.src_path
-      env["INSTANCE_SRC_IMAGE"] = self.src_image
+      env["INSTANCE_SRC_IMAGES"] = self.src_images
 
     env.update(_BuildInstanceHookEnv(name=self.op.instance_name,
       primary_node=self.op.pnode,
@@ -3488,15 +3488,28 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("Wrong export version %s (wanted %d)" %
                                    (ei_version, constants.EXPORT_VERSION))
 
-      if int(export_info.get(constants.INISECT_INS, 'disk_count')) > 1:
-        raise errors.OpPrereqError("Can't import instance with more than"
-                                   " one data disk")
+      # Check that the new instance doesn't have less disks than the export
+      # TODO: substitute "2" with the actual number of disks requested
+      instance_disks = 2
+      export_disks = export_info.getint(constants.INISECT_INS, 'disk_count')
+      if instance_disks < export_disks:
+        raise errors.OpPrereqError("Not enough disks to import."
+                                   " (instance: %d, export: %d)" %
+                                   (2, export_disks))
 
-      # FIXME: are the old os-es, disk sizes, etc. useful?
       self.op.os_type = export_info.get(constants.INISECT_EXP, 'os')
-      diskimage = os.path.join(src_path, export_info.get(constants.INISECT_INS,
-                                                         'disk0_dump'))
-      self.src_image = diskimage
+      disk_images = []
+      for idx in range(export_disks):
+        option = 'disk%d_dump' % idx
+        if export_info.has_option(constants.INISECT_INS, option):
+          # FIXME: are the old os-es, disk sizes, etc. useful?
+          export_name = export_info.get(constants.INISECT_INS, option)
+          image = os.path.join(src_path, export_name)
+          disk_images.append(image)
+        else:
+          disk_images.append(False)
+
+      self.src_images = disk_images
 
       if self.op.mac == constants.VALUE_AUTO:
         old_name = export_info.get(constants.INISECT_INS, 'name')
@@ -3699,15 +3712,16 @@ class LUCreateInstance(LogicalUnit):
       elif self.op.mode == constants.INSTANCE_IMPORT:
         feedback_fn("* running the instance OS import scripts...")
         src_node = self.op.src_node
-        src_image = self.src_image
+        src_images = self.src_images
         cluster_name = self.cfg.GetClusterName()
         import_result = self.rpc.call_instance_os_import(pnode_name, iobj,
-                                                         src_node, [src_image],
+                                                         src_node, src_images,
                                                          cluster_name)
-        if import_result[0]:
-          raise errors.OpExecError("Could not import disks for instance"
-                                   " %s on node %s" %
-                                   (instance, pnode_name))
+        for idx, result in enumerate(import_result):
+          if not result:
+            self.LogWarning("Could not image %s for on instance %s, disk %d,"
+                            " on node %s" % (src_images[idx], instance, idx,
+                                             pnode_name))
       else:
         # also checked in the prereq part
         raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
