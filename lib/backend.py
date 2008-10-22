@@ -1343,9 +1343,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name):
     True if successful, False otherwise.
 
   """
-  # TODO(ultrotter): Import/Export still to be converted to OS API 10
-  logging.error("Import/Export still to be converted to OS API 10")
-  return False
+  export_env = OSEnvironment(instance)
 
   inst_os = OSFromDisk(instance.os)
   export_script = inst_os.export_script
@@ -1354,12 +1352,13 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name):
                                      instance.name, int(time.time()))
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
-
-  real_os_dev = _RecursiveFindBD(disk)
-  if real_os_dev is None:
+  real_disk = _RecursiveFindBD(disk)
+  if real_disk is None:
     raise errors.BlockDeviceError("Block device '%s' is not set up" %
                                   str(disk))
-  real_os_dev.Open()
+  real_disk.Open()
+
+  export_env['EXPORT_DEVICE'] = real_disk.dev_path
 
   destdir = os.path.join(constants.EXPORT_DIR, instance.name + ".new")
   destfile = disk.physical_id[1]
@@ -1367,10 +1366,8 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name):
   # the target command is built out of three individual commands,
   # which are joined by pipes; we check each individual command for
   # valid parameters
-
-  expcmd = utils.BuildShellCmd("cd %s; %s -i %s -b %s 2>%s", inst_os.path,
-                               export_script, instance.name,
-                               real_os_dev.dev_path, logfile)
+  expcmd = utils.BuildShellCmd("cd %s; %s 2>%s", inst_os.path,
+                               export_script, logfile)
 
   comprcmd = "gzip"
 
@@ -1383,7 +1380,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name):
   # all commands have been checked, so we're safe to combine them
   command = '|'.join([expcmd, comprcmd, utils.ShellQuoteArgs(remotecmd)])
 
-  result = utils.RunCmd(command)
+  result = utils.RunCmd(command, env=export_env)
 
   if result.failed:
     logging.error("os snapshot export command '%s' returned error: %s"
