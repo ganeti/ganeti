@@ -507,7 +507,7 @@ class ConfigWriter:
     """Get the hypervisor type for this cluster.
 
     """
-    return self._config_data.cluster.hypervisor
+    return self._config_data.cluster.default_hypervisor
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetHostKey(self):
