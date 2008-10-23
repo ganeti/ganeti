@@ -214,6 +214,11 @@
         <arg>--master-netdev <replaceable>vg-name</replaceable></arg>
         <arg>-m <replaceable>mac-prefix</replaceable></arg>
         <arg>--no-lvm-storage</arg>
+        <arg>--file-storage-dir <replaceable>dir</replaceable></arg>
+        <arg>--enabled-hypervisors <replaceable>hypervisors</replaceable></arg>
+        <arg>-t <replaceable>hypervisor name</replaceable></arg>
+        <arg>--hypervisor-parameters <replaceable>hv-params</replaceable></arg>
+        <arg>--backend-parameters <replaceable>be-params</replaceable></arg>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -288,6 +293,335 @@
         is initialized you can change this setup with the
         <command>modify</command> command.
       </para>
+
+      <para>
+        The <option>--file-storage-dir</option> option allows you
+        set the directory to use for storing the instance disk
+        files when using file storage as backend for instance disks.
+      </para>
+
+      <para>
+        The <option>--enabled-hypervisors</option> option allows you
+        to set the list of hypervisors that will be enabled for
+        this cluster. Instance hypervisors can only be choosen from
+        the list of enabled hypervisors. Currently, the following
+        hypervisors are available:
+      </para>
+
+      <para>
+        <variablelist>
+          <varlistentry>
+            <term>xen-pvm</term>
+            <listitem>
+              <para>
+                Xen PVM hypervisor
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>xen-hvm</term>
+            <listitem>
+              <para>
+                Xen HVM hypervisor
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>kvm</term>
+            <listitem>
+              <para>
+                Linux KVM hypervisor
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>fake</term>
+            <listitem>
+              <para>
+                fake hypervisor for development/testing
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+
+      <para>
+        Either a single hypervisor name or a comma-separated list of
+        hypervisor names can be specified. If this option is not
+        specified, only the xen-pvm hypervisor is enabled by default.
+      </para>
+
+      <para>
+        With the <option>-t</option> option, the default hypervisor
+        can be set. It has to be a member of the list of enabled
+        hypervisors. If not specified, the first entry on the list of
+        enabled hypervisors will be used by default.
+      </para>
+
+      <para>
+        The <option>--backend</option> option allows you to set
+        the default backend parameters for the cluster. The parameter
+        format is a comma-separated list of key=value pairs with the
+        following supported keys:
+      </para>
+
+      <para>
+        <variablelist>
+          <varlistentry>
+            <term>vcpus</term>
+            <listitem>
+              <para>
+                Number of VCPUs to set for an instance by default, must
+                be an integer, will be set to 1 if no specified.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>memory</term>
+            <listitem>
+              <para>
+                Amount of memory to allocate for an instance by default,
+                can be either an integer or an integer followed by a
+                unit (M for mebibytes and G for gibibytes are
+                supported), will be set to 128M if not specified.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>auto_balance</term>
+            <listitem>
+              <para>
+                Value of the auto_balance flag for instances to use by
+                default, will be set to true if not specified.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+
+      <para>
+        The <option>--hypervisor-parameters</option> option allows you
+        to set default hypervisor specific parameters for the
+        cluster. The format of this option is the name of the
+        hypervisor, followed by a colon and a comma-separated list of
+        key=value pairs with the following keys:
+      </para>
+
+      <para>
+        <variablelist>
+          <varlistentry>
+            <term>xen-pvm</term>
+            <listitem>
+              <variablelist>
+                <varlistentry>
+                  <term>
+                    kernel_path
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the path to the instance kernel, if not
+                      specified, the value /boot/vmlinuz-2.6-xenU will
+                      be used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                    initrd_path
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the path to the instance initrd, if not
+                      specified, no initrd will be used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+              </variablelist>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>xen-hvm</term>
+            <listitem>
+              <variablelist>
+                <varlistentry>
+                  <term>
+                    boot_order
+                  </term>
+                  <listitem>
+                    <para>
+                      Boot device order for instances. Several single
+                      letter device entries can be combined together
+                      without a separator. If not specified, the value
+                      cd will be used. Available boot device entries are:
+                    <para>
+                      <variablelist>
+                        <varlistentry>
+                          <term>a</term>
+                          <listitem>
+                            <para>
+                              floppy drive
+                            </para>
+                          </listitem>
+                        </varlistentry>
+                        <varlistentry>
+                          <term>c</term>
+                          <listitem>
+                            <para>
+                              hard disk
+                            </para>
+                          </listitem>
+                        </varlistentry>
+                        <varlistentry>
+                          <term>d</term>
+                          <listitem>
+                            <para>
+                              CDROM drive
+                            </para>
+                          </listitem>
+                        </varlistentry>
+                        <varlistentry>
+                          <term>n</term>
+                          <listitem>
+                            <para>
+                              network boot (PXE)
+                            </para>
+                          </listitem>
+                        </varlistentry>
+                      </variablelist>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                    cdrom_image_path
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the path to the file Xen uses to
+                      emulate a virtual CDROM drive for
+                      instances. Valid values are either an absolute
+                      path to an existing file or the value None,
+                      which disables virtual CDROM support. If not
+                      specified, the value None will be used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                    nic_type
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the NIC type Xen should use for this
+                      HVM instance. Valid choices are rtl8139,
+                      ne2k_pci, ne2k_isa and paravirtual. The
+                      paravirtual setting is intended for use with the
+                      GPL PV drivers inside HVM Windows instances. If
+                      not specified, the value rtl8139 will be used.
+                      </para>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                      disk_type
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the disk type Xen should use for the
+                      HVM instance. Valid choices are ioemu and
+                      paravirtual. The paravirtual setting is intended
+                      for use with the GPL PV drivers inside HVM
+                      Windows instances. If not specified, the value
+                      ioemu will be used.
+                      </para>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                    vnc_bind_address
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the address that the VNC listener for
+                      this instance should bind to. Valid  values
+                      are IPv4 addresses. Use the address 0.0.0.0 to
+                      bind to all available interfaces or specify the
+                      address of one of the interfaces on the node to
+                      restrict listening to that interface. If not
+                      specified, the value 0.0.0.0 will be used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                    acpi
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets if Xen should enable ACPI support for
+                      HVM instances. Valid values are true or
+                      false. If not specified, the value true will be
+                      used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                    pae
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets if Xen should enabled PAE support for
+                      this HVM instance. Valid values are true or
+                      false. If not specified, the value true will be
+                      used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+              </variablelist>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>kvm</term>
+            <listitem>
+              <variablelist>
+                <varlistentry>
+                  <term>
+                    kernel_path
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the path to the instance kernel, if not
+                      specified, the valee /boot/vmlinuz-2.6-xenU will
+                      be used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+                <varlistentry>
+                  <term>
+                    initrd_path
+                  </term>
+                  <listitem>
+                    <para>
+                      Sets the path to the instance initrd, if not
+                      specified, no initrd will be used.
+                    </para>
+                  </listitem>
+                </varlistentry>
+              </variablelist>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>fake</term>
+            <listitem>
+              <para>
+                There are currently no parameters for the fake
+                hypervisor.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+
     </refsect2>
 
     <refsect2>
