@@ -51,7 +51,7 @@ class Mainloop(object):
     try:
       while not self.quit:
         try:
-          io_events = poller.poll(1000)
+          io_events = poller.poll()
         except select.error, err:
           # EINTR can happen when signals are sent
           if err.args and err.args[0] in (errno.EINTR,):
