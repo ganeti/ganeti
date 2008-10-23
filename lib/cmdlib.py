@@ -4912,10 +4912,10 @@ class LUExportInstance(LogicalUnit):
     # TODO: check for size
 
     cluster_name = self.cfg.GetClusterName()
-    for dev in snap_disks:
+    for idx, dev in enumerate(snap_disks):
       if dev:
         if not self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
-                                             instance, cluster_name):
+                                             instance, cluster_name, idx):
           self.LogWarning("Could not export block device %s from node %s to"
                           " node %s", dev.logical_id[1], src_node,
                           dst_node.name)

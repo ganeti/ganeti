@@ -241,7 +241,9 @@ class NodeHttpServer(http.HttpServer):
     dest_node = params[1]
     instance = objects.Instance.FromDict(params[2])
     cluster_name = params[3]
-    return backend.ExportSnapshot(disk, dest_node, instance, cluster_name)
+    dev_idx = params[4]
+    return backend.ExportSnapshot(disk, dest_node, instance,
+                                  cluster_name, dev_idx)
 
   @staticmethod
   def perspective_finalize_export(params):

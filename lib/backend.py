@@ -1331,16 +1331,22 @@ def SnapshotBlockDevice(disk):
                                  (disk.unique_id, disk.dev_type))
 
 
-def ExportSnapshot(disk, dest_node, instance, cluster_name):
+def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   """Export a block device snapshot to a remote node.
 
-  Args:
-    disk: the snapshot block device
-    dest_node: the node to send the image to
-    instance: instance being exported
-
-  Returns:
-    True if successful, False otherwise.
+  @type disk: L{objects.Disk}
+  @param disk: the description of the disk to export
+  @type dest_node: str
+  @param dest_node: the destination node to export to
+  @type instance: L{objects.Instance}
+  @param instance: the instance object to whom the disk belongs
+  @type cluster_name: str
+  @param cluster_name: the cluster name, needed for SSH hostalias
+  @type idx: int
+  @param idx: the index of the disk in the instance's disk list,
+      used to export to the OS scripts environment
+  @rtype: bool
+  @return: the success of the operation
 
   """
   export_env = OSEnvironment(instance)
@@ -1359,6 +1365,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name):
   real_disk.Open()
 
   export_env['EXPORT_DEVICE'] = real_disk.dev_path
+  export_env['EXPORT_INDEX'] = str(idx)
 
   destdir = os.path.join(constants.EXPORT_DIR, instance.name + ".new")
   destfile = disk.physical_id[1]
@@ -1512,6 +1519,7 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
                                                        destcmd)
       command = '|'.join([utils.ShellQuoteArgs(remotecmd), comprcmd, impcmd])
       import_env['IMPORT_DEVICE'] = import_env['DISK_%d_PATH' % idx]
+      import_env['IMPORT_INDEX'] = str(idx)
       result = utils.RunCmd(command, env=import_env)
       if result.failed:
         logging.error("disk import command '%s' returned error: %s"

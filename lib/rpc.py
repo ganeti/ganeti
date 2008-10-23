@@ -787,14 +787,14 @@ class RpcRunner(object):
     return c.GetResults().get(node, False)
 
   def call_snapshot_export(self, node, snap_bdev, dest_node, instance,
-                           cluster_name):
+                           cluster_name, idx):
     """Request the export of a given snapshot.
 
     This is a single-node call.
 
     """
     params = [snap_bdev.ToDict(), dest_node,
-              self._InstDict(instance), cluster_name]
+              self._InstDict(instance), cluster_name, idx]
     c = Client("snapshot_export", params)
     self._ConnectNode(c, node)
     c.Run()
