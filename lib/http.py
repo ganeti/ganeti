@@ -242,8 +242,6 @@ class _HttpConnectionHandler(object):
     try:
       self._ReadRequest()
       self._ReadPostData()
-
-      self.should_fork = self._server.ForkForRequest(self)
     except HTTPException, err:
       self._SetErrorStatus(err)
 
@@ -454,7 +452,6 @@ class HttpServer(object):
   """Generic HTTP server class
 
   Users of this class must subclass it and override the HandleRequest function.
-  Optionally, the ForkForRequest function can be overriden.
 
   """
   MAX_CHILDREN = 20
@@ -516,6 +513,10 @@ class HttpServer(object):
       # Don't wait for other processes if it should be a quick check
       while len(self._children) > self.MAX_CHILDREN:
         try:
+          # Waiting without a timeout brings us into a potential DoS situation.
+          # As soon as too many children run, we'll not respond to new
+          # requests. The real solution would be to add a timeout for children
+          # and killing them after some time.
           pid, status = os.waitpid(0, 0)
         except os.error:
           pid = None
@@ -531,39 +532,36 @@ class HttpServer(object):
         self._children.remove(pid)
 
   def _IncomingConnection(self):
-    connection, client_addr = self.socket.accept()
-    logging.info("Connection from %s:%s", client_addr[0], client_addr[1])
-    try:
-      handler = _HttpConnectionHandler(self, connection, client_addr, self._fileio_class)
-    except (socket.error, SocketClosed):
-      return
+    """Called for each incoming connection
 
-    def FinishRequest():
-      try:
-        try:
-          try:
-            handler.HandleRequest()
-          finally:
-            # Try to send a response
-            handler.SendResponse()
-            handler.Close()
-        except SocketClosed:
-          pass
-      finally:
-        logging.info("Disconnected %s:%s", client_addr[0], client_addr[1])
-
-    # Check whether we should fork or not
-    if not handler.should_fork:
-      FinishRequest()
-      return
+    """
+    (connection, client_addr) = self.socket.accept()
 
     self._CollectChildren(False)
 
     pid = os.fork()
     if pid == 0:
       # Child process
+      logging.info("Connection from %s:%s", client_addr[0], client_addr[1])
+
       try:
-        FinishRequest()
+        try:
+          try:
+            handler = None
+            try:
+              # Read, parse and handle request
+              handler = _HttpConnectionHandler(self, connection, client_addr,
+                                               self._fileio_class)
+              handler.HandleRequest()
+            finally:
+              # Try to send a response
+              if handler:
+                handler.SendResponse()
+                handler.Close()
+          except SocketClosed:
+            pass
+        finally:
+          logging.info("Disconnected %s:%s", client_addr[0], client_addr[1])
       except:
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])
@@ -574,9 +572,6 @@ class HttpServer(object):
 
   def HandleRequest(self, req):
     raise NotImplementedError()
-
-  def ForkForRequest(self, req):
-    return True
 
 
 class _SSLFileObject(object):
