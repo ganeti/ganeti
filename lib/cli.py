@@ -725,7 +725,8 @@ def GenericMain(commands, override=None, aliases=None):
 
   try:
     result = func(options, args)
-  except (errors.GenericError, luxi.ProtocolError), err:
+  except (errors.GenericError, luxi.ProtocolError,
+          JobSubmittedException), err:
     result, err_msg = FormatError(err)
     logging.exception("Error durring command processing")
     ToStderr(err_msg)
