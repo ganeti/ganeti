@@ -76,7 +76,7 @@ def InitCluster(opts, args):
   # check for invalid parameters
   for parameter in beparams:
     if parameter not in constants.BES_PARAMETERS:
-      ToStderr("Invalid backend parameter: %s" % parameter)
+      ToStderr("Invalid backend parameter: %s", parameter)
       return 1
 
   # prepare beparams dict
@@ -88,7 +88,7 @@ def InitCluster(opts, args):
   try:
     beparams[constants.BE_VCPUS] = int(beparams[constants.BE_VCPUS])
   except ValueError:
-    ToStderr("%s must be an integer" % constants.BE_VCPUS)
+    ToStderr("%s must be an integer", constants.BE_VCPUS)
     return 1
 
   beparams[constants.BE_MEMORY] = utils.ParseUnit(beparams[constants.BE_MEMORY])
@@ -103,7 +103,7 @@ def InitCluster(opts, args):
 
   for hv in hvlist:
     if hv not in constants.HYPER_TYPES:
-      ToStderr("invalid hypervisor: %s" % hv)
+      ToStderr("invalid hypervisor: %s", hv)
       return 1
 
   bootstrap.InitCluster(cluster_name=args[0],
