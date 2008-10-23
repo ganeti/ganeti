@@ -653,6 +653,13 @@
         <command>modify</command>
         <arg choice="opt">-g <replaceable>vg-name</replaceable></arg>
         <arg choice="opt">--no-lvm-storage</arg>
+        <arg choice="opt">--enabled-hypervisors
+        <replaceable>hypervisors</replaceable></arg>
+        <arg choice="opt">--hypervisor-parameters
+        <replaceable>hv-params</replaceable></arg>
+        <arg choice="opt">--backend-parameters
+        <replaceable>be-params</replaceable></arg>
+
       </cmdsynopsis>
 
         <para>
@@ -660,9 +667,44 @@
         </para>
 
         <para>
-          The <option>-g</option> and <option>--no-lvm-stoarge</option> are
+          The <option>-g</option>, <option>--no-lvm-storarge</option>,
+          <option>--enabled-hypervisors</option>,
+          <option>--hypervisor-parameters</option> and
+          <option>--backend-parameters</option> options are
           described in the <command>init</command> command.
         </para>
+    </refsect2>
+
+    <refsect2>
+      <title>QUEUE</title>
+
+      <cmdsynopsis>
+        <command>queue</command>
+        <arg choice="opt">drain</arg>
+        <arg choice="opt">undrain</arg>
+        <arg choice="opt">info</arg>
+
+      </cmdsynopsis>
+
+      <para>
+        Change job queue properties.
+      </para>
+
+      <para>
+        The <option>drain</option> option sets the drain flag on the
+        job queue. No new jobs will be accepted, but jobs already in
+        the queue will be processed.
+      </para>
+
+      <para>
+        The <option>undrain</option> will unset the drain flag on the
+        job queue. New jobs will be accepted.
+      </para>
+
+      <para>
+        The <option>info</option> option shows the properties of the
+        job queue.
+      </para>
     </refsect2>
 
     <refsect2>
