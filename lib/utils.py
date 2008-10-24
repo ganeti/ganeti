@@ -103,18 +103,22 @@ class RunResult(object):
   output = property(_GetOutput, None, None, "Return full output")
 
 
-def RunCmd(cmd, env=None):
+def RunCmd(cmd, env=None, output=None):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
   closed.
 
-  @param cmd: Command to run
   @type  cmd: string or list
-  @param env: Additional environment
+  @param cmd: Command to run
   @type env: dict
+  @keyword env: Additional environment
+  @type output: str
+  @keyword output: if desired, the output of the command can be
+      saved in a file instead of the RunResult instance; this
+      parameter denotes the file name (if not None)
+  @rtype: L{RunResult}
   @return: `RunResult` instance
-  @rtype: RunResult
 
   """
   if no_fork:
@@ -134,12 +138,40 @@ def RunCmd(cmd, env=None):
   if env is not None:
     cmd_env.update(env)
 
+  if output is None:
+    out, err, status = _RunCmdPipe(cmd, cmd_env, shell)
+  else:
+    status = _RunCmdFile(cmd, cmd_env, shell, output)
+    out = err = ""
+
+  if status >= 0:
+    exitcode = status
+    signal_ = None
+  else:
+    exitcode = None
+    signal_ = -status
+
+  return RunResult(exitcode, signal_, out, err, strcmd)
+
+def _RunCmdPipe(cmd, env, via_shell):
+  """Run a command and return its output.
+
+  @type  cmd: string or list
+  @param cmd: Command to run
+  @type env: dict
+  @param env: The environment to use
+  @type via_shell: bool
+  @param via_shell: if we should run via the shell
+  @rtype: tuple
+  @return: (out, err, status)
+
+  """
   poller = select.poll()
-  child = subprocess.Popen(cmd, shell=shell,
+  child = subprocess.Popen(cmd, shell=via_shell,
                            stderr=subprocess.PIPE,
                            stdout=subprocess.PIPE,
                            stdin=subprocess.PIPE,
-                           close_fds=True, env=cmd_env)
+                           close_fds=True, env=env)
 
   child.stdin.close()
   poller.register(child.stdout, select.POLLIN)
@@ -173,14 +205,37 @@ def RunCmd(cmd, env=None):
   err = err.getvalue()
 
   status = child.wait()
-  if status >= 0:
-    exitcode = status
-    signal_ = None
-  else:
-    exitcode = None
-    signal_ = -status
+  return out, err, status
 
-  return RunResult(exitcode, signal_, out, err, strcmd)
+
+def _RunCmdFile(cmd, env, via_shell, output):
+  """Run a command and save its output to a file.
+
+  @type  cmd: string or list
+  @param cmd: Command to run
+  @type env: dict
+  @param env: The environment to use
+  @type via_shell: bool
+  @param via_shell: if we should run via the shell
+  @type output: str
+  @param output: the filename in which to save the output
+  @rtype: int
+  @return: the exit status
+
+  """
+  fh = open(output, "a")
+  try:
+    child = subprocess.Popen(cmd, shell=via_shell,
+                             stderr=subprocess.STDOUT,
+                             stdout=fh,
+                             stdin=subprocess.PIPE,
+                             close_fds=True, env=env)
+
+    child.stdin.close()
+    status = child.wait()
+  finally:
+    fh.close()
+  return status
 
 
 def RemoveFile(filename):

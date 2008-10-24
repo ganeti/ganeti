@@ -150,47 +150,63 @@ class TestPidFileFunctions(unittest.TestCase):
     os.rmdir(self.dir)
 
 
-class TestRunCmd(unittest.TestCase):
+class TestRunCmd(testutils.GanetiTestCase):
   """Testing case for the RunCmd function"""
 
   def setUp(self):
     self.magic = time.ctime() + " ganeti test"
+    fh, self.fname = tempfile.mkstemp()
+    os.close(fh)
+
+  def tearDown(self):
+    if self.fname:
+      utils.RemoveFile(self.fname)
 
   def testOk(self):
     """Test successful exit code"""
     result = RunCmd("/bin/sh -c 'exit 0'")
     self.assertEqual(result.exit_code, 0)
+    self.assertEqual(result.output, "")
 
   def testFail(self):
     """Test fail exit code"""
     result = RunCmd("/bin/sh -c 'exit 1'")
     self.assertEqual(result.exit_code, 1)
-
+    self.assertEqual(result.output, "")
 
   def testStdout(self):
     """Test standard output"""
     cmd = 'echo -n "%s"' % self.magic
     result = RunCmd("/bin/sh -c '%s'" % cmd)
     self.assertEqual(result.stdout, self.magic)
-
+    result = RunCmd("/bin/sh -c '%s'" % cmd, output=self.fname)
+    self.assertEqual(result.output, "")
+    self.assertFileContent(self.fname, self.magic)
 
   def testStderr(self):
     """Test standard error"""
     cmd = 'echo -n "%s"' % self.magic
     result = RunCmd("/bin/sh -c '%s' 1>&2" % cmd)
     self.assertEqual(result.stderr, self.magic)
-
+    result = RunCmd("/bin/sh -c '%s' 1>&2" % cmd, output=self.fname)
+    self.assertEqual(result.output, "")
+    self.assertFileContent(self.fname, self.magic)
 
   def testCombined(self):
     """Test combined output"""
     cmd = 'echo -n "A%s"; echo -n "B%s" 1>&2' % (self.magic, self.magic)
+    expected = "A" + self.magic + "B" + self.magic
     result = RunCmd("/bin/sh -c '%s'" % cmd)
-    self.assertEqual(result.output, "A" + self.magic + "B" + self.magic)
+    self.assertEqual(result.output, expected)
+    result = RunCmd("/bin/sh -c '%s'" % cmd, output=self.fname)
+    self.assertEqual(result.output, "")
+    self.assertFileContent(self.fname, expected)
 
   def testSignal(self):
     """Test signal"""
     result = RunCmd(["python", "-c", "import os; os.kill(os.getpid(), 15)"])
     self.assertEqual(result.signal, 15)
+    self.assertEqual(result.output, "")
 
   def testListRun(self):
     """Test list runs"""
@@ -204,6 +220,13 @@ class TestRunCmd(unittest.TestCase):
     self.assertEqual(result.signal, None)
     self.assertEqual(result.exit_code, 0)
     self.assertEqual(result.stdout, self.magic)
+
+  def testFileEmptyOutput(self):
+    """Test file output"""
+    result = RunCmd(["true"], output=self.fname)
+    self.assertEqual(result.signal, None)
+    self.assertEqual(result.exit_code, 0)
+    self.assertFileContent(self.fname, "")
 
   def testLang(self):
     """Test locale environment"""
