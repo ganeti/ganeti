@@ -101,12 +101,10 @@ the ones for 2.0:
 - Input parameters: in 1.2 those were passed on the command line, in 2.0 we'll
   use environment variables, as there will be a lot more information and not
   all OSes may care about all of it.
-- Input/Output: in 1.2 import scripts accepted the instance contents from
-  standard input, and export scripts exported it to standard output. This can't
-  be done in 2.0 as we can have more than one disk and so we wouldn't have a
-  way to distinguish them. A target/source node and directory will be instead
-  passed, for the import script to do the correct job. All scripts will get
-  nothing in input and are supposed to output only user-relevant messages.
+- Number of calls: export scripts will be called once for each device the
+  instance has, and import scripts once for every exported disk. Imported
+  instances will be forced to have a number of disks greater or equal to the
+  one of the export.
 - Some scripts are not compulsory: if such a script is missing the relevant
   operations will be forbidden for instances of that os. This makes it easier
   to distinguish between unsupported operations and no-op ones (if any).
@@ -162,18 +160,14 @@ per-script variables, such as for example:
 
 OLD_INSTANCE_NAME
   rename: the name the instance should be renamed from.
-EXPORT_NODE
-  import/export: node where the export should be saved to or sourced from.
-EXPORT_PATH
-  import/export: the place where exports are/should be saved to.
-EXPORT_COMPRESSION
-  import/export: the type of compression for the exports.
-
-(Rationale for the EXPORT_NODE, EXPORT_PATH decision: giving always a local
-path would require either copying exports around, which takes a lot of
-time/resources or depending on some type of remote filesystem to mount
-resources on different nodes, which would add even more complexity to the
-ganeti code, and can be added later, if really needed.)
+EXPORT_DEVICE
+  export: device to be exported, a snapshot of the actual device. The data must be exported to stdout.
+EXPORT_INDEX
+  export: sequential number of the instance device targeted.
+IMPORT_DEVICE
+  import: device to send the data to, part of the new instance. The data must be imported from stdin.
+IMPORT_INDEX
+  import: sequential number of the instance device targeted.
 
 (Rationale for INSTANCE_NAME as an environment variable: the instance name is
 always needed and we could pass it on the command line. On the other hand,
@@ -184,12 +178,13 @@ command line, so we'll move it for uniformity.)
 Output/Behaviour
 ~~~~~~~~~~~~~~~~
 
-As discussed scripts should only send user-targeted information to stdout. The
+As discussed scripts should only send user-targeted information to stderr. The
 create and import scripts are supposed to format/initialise the given block
 devices and install the correct instance data. The export script is supposed to
-export instance data to a target node in a format understandable by the the
-import script. The rename script should only modify the instance's knowledge of
-what its name is.
+export instance data to stdout in a format understandable by the the import
+script. The data will be compressed by ganeti, so no compression should be
+done. The rename script should only modify the instance's knowledge of what
+its name is.
 
 Other declarative style features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
