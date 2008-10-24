@@ -416,8 +416,8 @@ def NodeVolumes():
 def BridgesExist(bridges_list):
   """Check if a list of bridges exist on the current node.
 
-  Returns:
-    True if all of them exist, false otherwise
+  @rtype: boolean
+  @return: C{True} if all of them exist, C{False} otherwise
 
   """
   for bridge in bridges_list:
@@ -549,7 +549,7 @@ def AddOSToInstance(instance):
 def RunRenameInstance(instance, old_name):
   """Run the OS rename script for an instance.
 
-  @type instance: objects.Instance
+  @type instance: L{objects.Instance}
   @param instance: Instance whose OS is to be installed
   @type old_name: string
   @param old_name: previous instance name
@@ -751,7 +751,7 @@ def RebootInstance(instance, reboot_type, extra_args):
 def MigrateInstance(instance, target, live):
   """Migrates an instance to another node.
 
-  @type instance: C{objects.Instance}
+  @type instance: L{objects.Instance}
   @param instance: the instance definition
   @type target: string
   @param target: the target node name
@@ -778,17 +778,22 @@ def MigrateInstance(instance, target, live):
 def CreateBlockDevice(disk, size, owner, on_primary, info):
   """Creates a block device for an instance.
 
-  Args:
-   disk: a ganeti.objects.Disk object
-   size: the size of the physical underlying device
-   owner: a string with the name of the instance
-   on_primary: a boolean indicating if it is the primary node or not
-   info: string that will be sent to the physical device creation
+  @type disk: L{objects.Disk}
+  @param disk: the object describing the disk we should create
+  @type size: int
+  @param size: the size of the physical underlying device, in MiB
+  @type owner: str
+  @param owner: the name of the instance for which disk is created,
+      used for device cache data
+  @type on_primary: boolean
+  @param on_primary:  indicates if it is the primary node or not
+  @type info: string
+  @param info: string that will be sent to the physical device
+      creation, used for example to set (LVM) tags on LVs
 
-  Returns:
-    the new unique_id of the device (this can sometime be
-    computed only after creation), or None. On secondary nodes,
-    it's not required to return anything.
+  @return: the new unique_id of the device (this can sometime be
+      computed only after creation), or None. On secondary nodes,
+      it's not required to return anything.
 
   """
   clist = []
@@ -911,9 +916,9 @@ def AssembleBlockDevice(disk, owner, as_primary):
 
   This is a wrapper over _RecursiveAssembleBD.
 
-  Returns:
-    a /dev path for primary nodes
-    True for secondary nodes
+  @rtype: str or boolean
+  @return: a C{/dev/...} path for primary nodes, and
+      C{True} for secondary nodes
 
   """
   result = _RecursiveAssembleBD(disk, owner, as_primary)
@@ -1487,7 +1492,7 @@ def ExportInfo(dest):
 def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
   """Import an os image into an instance.
 
-  @type instance: L{objects.instance}
+  @type instance: L{objects.Instance}
   @param instance: instance to import the disks into
   @type src_node: string
   @param src_node: source node for the disk images
@@ -1600,11 +1605,10 @@ def _TransformFileStorageDir(file_storage_dir):
   default file_storage_dir stored in SimpleStore. Only paths under that
   directory are allowed.
 
-  Args:
-    file_storage_dir: string with path
+  @type file_storage_dir: str
+  @param file_storage_dir: the path to check
 
-  Returns:
-    normalized file_storage_dir (string) if valid, None otherwise
+  @return: the normalized path if valid, None otherwise
 
   """
   cfg = _GetConfig()
@@ -1622,12 +1626,12 @@ def _TransformFileStorageDir(file_storage_dir):
 def CreateFileStorageDir(file_storage_dir):
   """Create file storage directory.
 
-  Args:
-    file_storage_dir: string containing the path
+  @type file_storage_dir: str
+  @param file_storage_dir: directory to create
 
-  Returns:
-    tuple with first element a boolean indicating wheter dir
-    creation was successful or not
+  @rtype: tuple
+  @return: tuple with first element a boolean indicating wheter dir
+      creation was successful or not
 
   """
   file_storage_dir = _TransformFileStorageDir(file_storage_dir)
