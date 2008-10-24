@@ -1186,7 +1186,6 @@ def OSFromDisk(name, base_dir=None):
                      Defaults to a search in all the OS_SEARCH_PATH dirs.
 
   """
-
   if base_dir is None:
     os_dir = utils.FindFile(name, constants.OS_SEARCH_PATH, os.path.isdir)
     if os_dir is None:
