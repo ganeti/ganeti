@@ -34,6 +34,7 @@ import logging
 
 from ganeti import constants
 from ganeti import serializer
+from ganeti import utils
 
 
 WEEKDAYNAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -456,7 +457,8 @@ class HttpServer(object):
   """
   MAX_CHILDREN = 20
 
-  def __init__(self, mainloop, local_address, port):
+  def __init__(self, mainloop, local_address, port,
+               ssl_key_path=None, ssl_cert_path=None, ssl_verify_peer=False):
     """Initializes the HTTP server
 
     @type mainloop: ganeti.daemon.Mainloop
@@ -465,24 +467,41 @@ class HttpServer(object):
     @param local_address: Local IP address to bind to
     @type port: int
     @param port: TCP port to listen on
+    @type ssl_key_path: string
+    @param ssl_key_path: Path to file containing SSL key in PEM format
+    @type ssl_cert_path: string
+    @param ssl_cert_path: Path to file containing SSL certificate in PEM format
+    @type ssl_verify_peer: bool
+    @param ssl_verify_peer: Whether to require client certificate and compare
+                            it with our certificate
 
     """
     self.mainloop = mainloop
     self.local_address = local_address
     self.port = port
 
-    # TODO: SSL support
-    self.ssl_cert = None
-    self.ssl_key = self.ssl_cert
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    if self.ssl_cert and self.ssl_key:
+    if ssl_cert_path and ssl_key_path:
       ctx = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
       ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
 
-      ctx.use_certificate_file(self.ssl_cert)
-      ctx.use_privatekey_file(self.ssl_key)
+      ssl_key_pem = utils.ReadFile(ssl_key_path)
+      ssl_cert_pem = utils.ReadFile(ssl_cert_path)
+
+      cr = OpenSSL.crypto
+      self._ssl_cert = cr.load_certificate(cr.FILETYPE_PEM, ssl_cert_pem)
+      self._ssl_key = cr.load_privatekey(cr.FILETYPE_PEM, ssl_key_pem)
+      del cr
+
+      ctx.use_privatekey(self._ssl_key)
+      ctx.use_certificate(self._ssl_cert)
+      ctx.check_privatekey()
+
+      if ssl_verify_peer:
+        ctx.set_verify(OpenSSL.SSL.VERIFY_PEER |
+                       OpenSSL.SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
+                       self._VerifyCallback)
 
       self.socket = OpenSSL.SSL.Connection(ctx, sock)
       self._fileio_class = _SSLFileObject
@@ -497,6 +516,16 @@ class HttpServer(object):
 
     mainloop.RegisterIO(self, self.socket.fileno(), select.POLLIN)
     mainloop.RegisterSignal(self)
+
+  def _VerifyCallback(self, conn, cert, errno, errdepth, ok):
+    """Verify the certificate provided by the peer
+
+    We only compare fingerprints. The client must use the same certificate as
+    we do on the server side.
+
+    """
+    return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and
+            self._ssl_cert.digest("md5") == cert.digest("md5"))
 
   def Start(self):
     self.socket.bind((self.local_address, self.port))
