@@ -98,7 +98,7 @@ def GetMasterInfo():
     master_node = cfg.GetMasterNode()
   except errors.ConfigurationError, err:
     logging.exception("Cluster configuration incomplete")
-    return (None, None)
+    return (None, None, None)
   return (master_netdev, master_ip, master_node)
 
 
