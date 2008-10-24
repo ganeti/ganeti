@@ -456,9 +456,20 @@ class HttpServer(object):
   """
   MAX_CHILDREN = 20
 
-  def __init__(self, mainloop, server_address):
+  def __init__(self, mainloop, local_address, port):
+    """Initializes the HTTP server
+
+    @type mainloop: ganeti.daemon.Mainloop
+    @param mainloop: Mainloop used to poll for I/O events
+    @type local_addess: string
+    @param local_address: Local IP address to bind to
+    @type port: int
+    @param port: TCP port to listen on
+
+    """
     self.mainloop = mainloop
-    self.server_address = server_address
+    self.local_address = local_address
+    self.port = port
 
     # TODO: SSL support
     self.ssl_cert = None
@@ -488,7 +499,7 @@ class HttpServer(object):
     mainloop.RegisterSignal(self)
 
   def Start(self):
-    self.socket.bind(self.server_address)
+    self.socket.bind((self.local_address, self.port))
     self.socket.listen(5)
 
   def Stop(self):

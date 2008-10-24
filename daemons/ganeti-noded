@@ -697,7 +697,7 @@ def main():
     queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
 
     mainloop = daemon.Mainloop()
-    server = NodeHttpServer(mainloop, ("", port))
+    server = NodeHttpServer(mainloop, "", port)
     server.Start()
     try:
       mainloop.Run()

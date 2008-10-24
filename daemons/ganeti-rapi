@@ -132,7 +132,7 @@ def main():
   utils.WritePidFile(constants.RAPI_PID)
   try:
     mainloop = daemon.Mainloop()
-    server = RemoteApiHttpServer(mainloop, ("", options.port))
+    server = RemoteApiHttpServer(mainloop, "", options.port)
     server.Start()
     try:
       mainloop.Run()
