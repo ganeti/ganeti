@@ -45,18 +45,37 @@ from ganeti import ssconf
 
 
 def _GetConfig():
+  """Simple wrapper to return a ConfigReader.
+
+  @rtype: L{ssconf.SimpleConfigReader}
+  @return: a SimpleConfigReader instance
+
+  """
   return ssconf.SimpleConfigReader()
 
 
 def _GetSshRunner(cluster_name):
+  """Simple wrapper to return an SshRunner.
+
+  @type cluster_name: str
+  @param cluster_name: the cluster name, which is needed
+      by the SshRunner constructor
+  @rtype: L{ssh.SshRunner}
+  @return: an SshRunner instance
+
+  """
   return ssh.SshRunner(cluster_name)
 
 
 def _CleanDirectory(path, exclude=[]):
   """Removes all regular files in a directory.
 
-  @param exclude: List of files to be excluded.
+  @type path: str
+  @param path: the directory to clean
   @type exclude: list
+  @param exclude: list of files to be excluded, defaults
+      to the empty list
+  @rtype: None
 
   """
   if not os.path.isdir(path):
@@ -74,7 +93,9 @@ def _CleanDirectory(path, exclude=[]):
 
 
 def JobQueuePurge():
-  """Removes job queue files and archived jobs
+  """Removes job queue files and archived jobs.
+
+  @rtype: None
 
   """
   _CleanDirectory(constants.QUEUE_DIR, exclude=[constants.JOB_QUEUE_LOCK_FILE])
@@ -88,7 +109,8 @@ def GetMasterInfo():
   for consumption here or from the node daemon.
 
   @rtype: tuple
-  @return: (master_netdev, master_ip, master_name)
+  @return: (master_netdev, master_ip, master_name) if we have a good
+      configuration, otherwise (None, None, None)
 
   """
   try:
@@ -106,9 +128,13 @@ def StartMaster(start_daemons):
   """Activate local node as master node.
 
   The function will always try activate the IP address of the master
-  (if someone else has it, then it won't). Then, if the start_daemons
-  parameter is True, it will also start the master daemons
-  (ganet-masterd and ganeti-rapi).
+  (unless someone else has it). It will also start the master daemons,
+  based on the start_daemons parameter.
+
+  @type start_daemons: boolean
+  @param start_daemons: whther to also start the master
+      daemons (ganeti-masterd and ganeti-rapi)
+  @rtype: None
 
   """
   ok = True
@@ -149,8 +175,13 @@ def StopMaster(stop_daemons):
   """Deactivate this node as master.
 
   The function will always try to deactivate the IP address of the
-  master. Then, if the stop_daemons parameter is True, it will also
-  stop the master daemons (ganet-masterd and ganeti-rapi).
+  master. It will also stop the master daemons depending on the
+  stop_daemons parameter.
+
+  @type stop_daemons: boolean
+  @param stop_daemons: whether to also stop the master daemons
+      (ganeti-masterd and ganeti-rapi)
+  @rtype: None
 
   """
   master_netdev, master_ip, _ = GetMasterInfo()
@@ -179,6 +210,21 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
       - adds the ssh private key to the user
       - adds the ssh public key to the users' authorized_keys file
 
+  @type dsa: str
+  @param dsa: the DSA private key to write
+  @type dsapub: str
+  @param dsapub: the DSA public key to write
+  @type rsa: str
+  @param rsa: the RSA private key to write
+  @type rsapub: str
+  @param rsapub: the RSA public key to write
+  @type sshkey: str
+  @param sshkey: the SSH private key to write
+  @type sshpub: str
+  @param sshpub: the SSH public key to write
+  @rtype: boolean
+  @return: the success of the operation
+
   """
   sshd_keys =  [(constants.SSH_HOST_RSA_PRIV, rsa, 0600),
                 (constants.SSH_HOST_RSA_PUB, rsapub, 0644),
@@ -205,7 +251,14 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
 
 
 def LeaveCluster():
-  """Cleans up the current node and prepares it to be removed from the cluster.
+  """Cleans up and remove the current node.
+
+  This function cleans up and prepares the current node to be removed
+  from the cluster.
+
+  If processing is successful, then it raises an
+  L{errors.GanetiQuitException} which is used as a special case to
+  shutdown the node daemon.
 
   """
   _CleanDirectory(constants.DATA_DIR)
@@ -290,6 +343,9 @@ def VerifyNode(what, cluster_name):
       - node-net-test: list of nodes we should check node daemon port
         connectivity with
       - hypervisor: list with hypervisors to run the verify for
+  @rtype: dict
+  @return: a dictionary with the same keys as the input dict, and
+      values representing the result of the checks
 
   """
   result = {}
@@ -342,10 +398,17 @@ def VerifyNode(what, cluster_name):
 def GetVolumeList(vg_name):
   """Compute list of logical volumes and their size.
 
-  Returns:
-    dictionary of all partions (key) with their size (in MiB), inactive
-    and online status:
-    {'test1': ('20.06', True, True)}
+  @type vg_name: str
+  @param vg_name: the volume group whose LVs we should list
+  @rtype: dict
+  @return:
+      dictionary of all partions (key) with value being a tuple of
+      their size (in MiB), inactive and online status::
+
+        {'test1': ('20.06', True, True)}
+
+      in case of errors, a string is returned with the error
+      details.
 
   """
   lvs = {}
@@ -376,8 +439,9 @@ def GetVolumeList(vg_name):
 def ListVolumeGroups():
   """List the volume groups and their size.
 
-  Returns:
-    Dictionary with keys volume name and values the size of the volume
+  @rtype: dict
+  @return: dictionary with keys volume name and values the
+      size of the volume
 
   """
   return utils.ListVolumeGroups()
@@ -385,6 +449,21 @@ def ListVolumeGroups():
 
 def NodeVolumes():
   """List all volumes on this node.
+
+  @rtype: list
+  @return:
+    A list of dictionaries, each having four keys:
+      - name: the logical volume name,
+      - size: the size of the logical volume
+      - dev: the physical device on which the LV lives
+      - vg: the volume group to which it belongs
+
+    In case of errors, we return an empty list and log the
+    error.
+
+    Note that since a logical volume can live on multiple physical
+    volumes, the resulting list might include a logical volume
+    multiple times.
 
   """
   result = utils.RunCmd(["lvs", "--noheadings", "--units=m", "--nosuffix",
@@ -435,8 +514,8 @@ def GetInstanceList(hypervisor_list):
 
   @rtype: list
   @return: a list of all running instances on the current node
-             - instance1.example.com
-             - instance2.example.com
+    - instance1.example.com
+    - instance2.example.com
 
   """
   results = []
@@ -481,7 +560,7 @@ def GetInstanceInfo(instance, hname):
 def GetAllInstancesInfo(hypervisor_list):
   """Gather data about all instances.
 
-  This is the equivalent of `GetInstanceInfo()`, except that it
+  This is the equivalent of L{GetInstanceInfo}, except that it
   computes data for all instances at once, thus being faster if one
   needs data about more than one instance.
 
@@ -493,7 +572,7 @@ def GetAllInstancesInfo(hypervisor_list):
       - memory: memory size of instance (int)
       - state: xen state of instance (string)
       - time: cpu time of instance (float)
-      - vcpuus: the number of vcpus
+      - vcpus: the number of vcpus
 
   """
   output = {}
@@ -521,6 +600,8 @@ def AddOSToInstance(instance):
 
   @type instance: L{objects.Instance}
   @param instance: Instance whose OS is to be installed
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   inst_os = OSFromDisk(instance.os)
@@ -553,6 +634,8 @@ def RunRenameInstance(instance, old_name):
   @param instance: Instance whose OS is to be installed
   @type old_name: string
   @param old_name: previous instance name
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   inst_os = OSFromDisk(instance.os)
@@ -583,18 +666,17 @@ def RunRenameInstance(instance, old_name):
 def _GetVGInfo(vg_name):
   """Get informations about the volume group.
 
-  Args:
-    vg_name: the volume group
+  @type vg_name: str
+  @param vg_name: the volume group which we query
+  @rtype: dict
+  @return:
+    A dictionary with the following keys:
+      - C{vg_size} is the total size of the volume group in MiB
+      - C{vg_free} is the free size of the volume group in MiB
+      - C{pv_count} are the number of physical disks in that VG
 
-  Returns:
-    { 'vg_size' : xxx, 'vg_free' : xxx, 'pv_count' : xxx }
-    where
-    vg_size is the total size of the volume group in MiB
-    vg_free is the free size of the volume group in MiB
-    pv_count are the number of physical disks in that vg
-
-  If an error occurs during gathering of data, we return the same dict
-  with keys all set to None.
+    If an error occurs during gathering of data, we return the same dict
+    with keys all set to None.
 
   """
   retdic = dict.fromkeys(["vg_size", "vg_free", "pv_count"])
@@ -627,6 +709,11 @@ def _GatherBlockDevs(instance):
   This is run on the primary node at instance startup. The block
   devices must be already assembled.
 
+  @type instance: L{objects.Instance}
+  @param instance: the instance whose disks we shoul assemble
+  @rtype: list of L{bdev.BlockDev}
+  @return: list of the block devices
+
   """
   block_devices = []
   for disk in instance.disks:
@@ -642,7 +729,7 @@ def _GatherBlockDevs(instance):
 def StartInstance(instance, extra_args):
   """Start an instance.
 
-  @type instance: instance object
+  @type instance: L{objects.Instance}
   @param instance: the instance object
   @rtype: boolean
   @return: whether the startup was successful or not
@@ -668,7 +755,9 @@ def StartInstance(instance, extra_args):
 def ShutdownInstance(instance):
   """Shut an instance down.
 
-  @type instance: instance object
+  @note: this functions uses polling with a hardcoded timeout.
+
+  @type instance: L{objects.Instance}
   @param instance: the instance object
   @rtype: boolean
   @return: whether the startup was successful or not
@@ -717,9 +806,20 @@ def ShutdownInstance(instance):
 def RebootInstance(instance, reboot_type, extra_args):
   """Reboot an instance.
 
-  Args:
-    instance    - name of instance to reboot
-    reboot_type - how to reboot [soft,hard,full]
+  @type instance: L{objects.Instance}
+  @param instance: the instance object to reboot
+  @type reboot_type: str
+  @param reboot_type: the type of reboot, one the following
+    constants:
+      - L{constants.INSTANCE_REBOOT_SOFT}: only reboot the
+        instance OS, do not recreate the VM
+      - L{constants.INSTANCE_REBOOT_HARD}: tear down and
+        restart the VM (at the hypervisor level)
+      - the other reboot type (L{constants.INSTANCE_REBOOT_HARD})
+        is not accepted here, since that mode is handled
+        differently
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   running_instances = GetInstanceList([instance.hypervisor])
@@ -839,7 +939,12 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
 def RemoveBlockDevice(disk):
   """Remove a block device.
 
-  This is intended to be called recursively.
+  @note: This is intended to be called recursively.
+
+  @type disk: L{objects.disk}
+  @param disk: the disk object we should remove
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   try:
@@ -868,16 +973,21 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
 
   This is run on the primary and secondary nodes for an instance.
 
-  This function is called recursively.
+  @note: this function is called recursively.
 
-  Args:
-    disk: a objects.Disk object
-    as_primary: if we should make the block device read/write
+  @type disk: L{objects.Disk}
+  @param disk: the disk we try to assemble
+  @type owner: str
+  @param owner: the name of the instance which owns the disk
+  @type as_primary: boolean
+  @param as_primary: if we should make the block device
+      read/write
 
-  Returns:
-    the assembled device or None (in case no device was assembled)
-
-  If the assembly is not successful, an exception is raised.
+  @return: the assembled device or None (in case no device
+      was assembled)
+  @raise errors.BlockDeviceError: in case there is an error
+      during the activation of the children or the device
+      itself
 
   """
   children = []
@@ -930,12 +1040,18 @@ def AssembleBlockDevice(disk, owner, as_primary):
 def ShutdownBlockDevice(disk):
   """Shut down a block device.
 
-  First, if the device is assembled (can `Attach()`), then the device
+  First, if the device is assembled (can L{Attach()}), then the device
   is shutdown. Then the children of the device are shutdown.
 
   This function is called recursively. Note that we don't cache the
   children or such, as oppossed to assemble, shutdown of different
   devices doesn't require that the upper device was active.
+
+  @type disk: L{objects.Disk}
+  @param disk: the description of the disk we should
+      shutdown
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   r_dev = _RecursiveFindBD(disk)
@@ -955,6 +1071,13 @@ def ShutdownBlockDevice(disk):
 def MirrorAddChildren(parent_cdev, new_cdevs):
   """Extend a mirrored block device.
 
+  @type parent_cdev: L{objects.Disk}
+  @param parent_cdev: the disk to which we should add children
+  @type new_cdevs: list of L{objects.Disk}
+  @param new_cdevs: the list of children which we should add
+  @rtype: boolean
+  @return: the success of the operation
+
   """
   parent_bdev = _RecursiveFindBD(parent_cdev, allow_partial=True)
   if parent_bdev is None:
@@ -971,6 +1094,13 @@ def MirrorAddChildren(parent_cdev, new_cdevs):
 
 def MirrorRemoveChildren(parent_cdev, new_cdevs):
   """Shrink a mirrored block device.
+
+  @type parent_cdev: L{objects.Disk}
+  @param parent_cdev: the disk from which we should remove children
+  @type new_cdevs: list of L{objects.Disk}
+  @param new_cdevs: the list of children which we should remove
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
@@ -997,12 +1127,14 @@ def MirrorRemoveChildren(parent_cdev, new_cdevs):
 def GetMirrorStatus(disks):
   """Get the mirroring status of a list of devices.
 
-  Args:
-    disks: list of `objects.Disk`
-
-  Returns:
-    list of (mirror_done, estimated_time) tuples, which
-    are the result of bdev.BlockDevice.CombinedSyncStatus()
+  @type disks: list of L{objects.Disk}
+  @param disks: the list of disks which we should query
+  @rtype: disk
+  @return:
+      a list of (mirror_done, estimated_time) tuples, which
+      are the result of L{bdev.BlockDevice.CombinedSyncStatus}
+  @raise errors.BlockDeviceError: if any of the disks cannot be
+      found
 
   """
   stats = []
@@ -1019,15 +1151,15 @@ def _RecursiveFindBD(disk, allow_partial=False):
 
   If so, return informations about the real device.
 
-  Args:
-    disk: the objects.Disk instance
-    allow_partial: don't abort the find if a child of the
-                   device can't be found; this is intended to be
-                   used when repairing mirrors
+  @type disk: L{objects.Disk}
+  @param disk: the disk object we need to find
+  @type allow_partial: boolean
+  @param allow_partial: if true, don't abort the find if a
+      child of the device can't be found; this is intended
+      to be used when repairing mirrors
 
-  Returns:
-    None if the device can't be found
-    otherwise the device instance
+  @return: None if the device can't be found,
+      otherwise the device instance
 
   """
   children = []
@@ -1041,13 +1173,14 @@ def _RecursiveFindBD(disk, allow_partial=False):
 def FindBlockDevice(disk):
   """Check if a device is activated.
 
-  If so, return informations about the real device.
+  If it is, return informations about the real device.
 
-  Args:
-    disk: the objects.Disk instance
-  Returns:
-    None if the device can't be found
-    (device_path, major, minor, sync_percent, estimated_time, is_degraded)
+  @type disk: L{objects.Disk}
+  @param disk: the disk to find
+  @rtype: None or tuple
+  @return: None if the disk cannot be found, otherwise a
+      tuple (device_path, major, minor, sync_percent,
+      estimated_time, is_degraded)
 
   """
   rbd = _RecursiveFindBD(disk)
@@ -1061,6 +1194,24 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
   This allows the master to overwrite(!) a file. It will only perform
   the operation if the file belongs to a list of configuration files.
+
+  @type file_name: str
+  @param file_name: the target file name
+  @type data: str
+  @param data: the new contents of the file
+  @type mode: int
+  @param mode: the mode to give the file (can be None)
+  @type uid: int
+  @param uid: the owner of the file (can be -1 for default)
+  @type gid: int
+  @param gid: the group of the file (can be -1 for default)
+  @type atime: float
+  @param atime: the atime to set on the file (can be None)
+  @type mtime: float
+  @param mtime: the mtime to set on the file (can be None)
+  @rtype: boolean
+  @return: the success of the operation; errors are logged
+      in the node daemon log
 
   """
   if not os.path.isabs(file_name):
@@ -1088,9 +1239,12 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 def _ErrnoOrStr(err):
   """Format an EnvironmentError exception.
 
-  If the `err` argument has an errno attribute, it will be looked up
-  and converted into a textual EXXXX description. Otherwise the string
-  representation of the error will be returned.
+  If the L{err} argument has an errno attribute, it will be looked up
+  and converted into a textual C{E...} description. Otherwise the
+  string representation of the error will be returned.
+
+  @type err: L{EnvironmentError}
+  @param err: the exception to format
 
   """
   if hasattr(err, 'errno'):
@@ -1103,11 +1257,18 @@ def _ErrnoOrStr(err):
 def _OSOndiskVersion(name, os_dir):
   """Compute and return the API version of a given OS.
 
-  This function will try to read the API version of the os given by
+  This function will try to read the API version of the OS given by
   the 'name' parameter and residing in the 'os_dir' directory.
 
-  Return value will be either an integer denoting the version or None in the
-  case when this is not a valid OS name.
+  @type name: str
+  @param name: the OS name we should look for
+  @type os_dir: str
+  @param os_dir: the directory inwhich we should look for the OS
+  @rtype: int or None
+  @return:
+      Either an integer denoting the version or None in the
+      case when this is not a valid OS name.
+  @raise errors.InvalidOS: if the OS cannot be found
 
   """
   api_file = os.path.sep.join([os_dir, "ganeti_api_version"])
@@ -1145,11 +1306,13 @@ def _OSOndiskVersion(name, os_dir):
 def DiagnoseOS(top_dirs=None):
   """Compute the validity for all OSes.
 
-  Returns an OS object for each name in all the given top directories
-  (if not given defaults to constants.OS_SEARCH_PATH)
-
-  Returns:
-    list of OS objects
+  @type top_dirs: list
+  @param top_dirs: the list of directories in which to
+      search (if not given defaults to
+      L{constants.OS_SEARCH_PATH})
+  @rtype: list of L{objects.OS}
+  @return: an OS object for each name in all the given
+      directories
 
   """
   if top_dirs is None:
@@ -1178,12 +1341,14 @@ def OSFromDisk(name, base_dir=None):
 
   This function will return an OS instance if the given name is a
   valid OS name. Otherwise, it will raise an appropriate
-  `errors.InvalidOS` exception, detailing why this is not a valid
-  OS.
+  L{errors.InvalidOS} exception, detailing why this is not a valid OS.
 
   @type base_dir: string
   @keyword base_dir: Base directory containing OS installations.
                      Defaults to a search in all the OS_SEARCH_PATH dirs.
+  @rtype: L{objects.OS}
+  @return: the OS instance if we find a valid one
+  @raise errors.InvalidOS: if we don't find a valid OS
 
   """
   if base_dir is None:
@@ -1231,12 +1396,14 @@ def OSFromDisk(name, base_dir=None):
 def OSEnvironment(instance, debug=0):
   """Calculate the environment for an os script.
 
-  @type instance: instance object
+  @type instance: L{objects.Instance}
   @param instance: target instance for the os script run
   @type debug: integer
-  @param debug: debug level (0 or 1, for os api 10)
+  @param debug: debug level (0 or 1, for OS Api 10)
   @rtype: dict
   @return: dict of environment variables
+  @raise errors.BlockDeviceError: if the block device
+      cannot be found
 
   """
   result = {}
@@ -1278,14 +1445,14 @@ def GrowBlockDevice(disk, amount):
   """Grow a stack of block devices.
 
   This function is called recursively, with the childrens being the
-  first one resize.
+  first ones to resize.
 
-  Args:
-    disk: the disk to be grown
-
-  Returns: a tuple of (status, result), with:
-    status: the result (true/false) of the operation
-    result: the error message if the operation failed, otherwise not used
+  @type disk: L{objects.Disk}
+  @param disk: the disk to be grown
+  @rtype: (status, result)
+  @return: a tuple with the status of the operation
+      (True/False), and the errors message if status
+      is False
 
   """
   r_dev = _RecursiveFindBD(disk)
@@ -1349,7 +1516,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   @type idx: int
   @param idx: the index of the disk in the instance's disk list,
       used to export to the OS scripts environment
-  @rtype: bool
+  @rtype: boolean
   @return: the success of the operation
 
   """
@@ -1404,12 +1571,15 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
 def FinalizeExport(instance, snap_disks):
   """Write out the export configuration information.
 
-  Args:
-    instance: instance configuration
-    snap_disks: snapshot block devices
+  @type instance: L{objects.Instance}
+  @param instance: the instance which we export, used for
+      saving configuration
+  @type snap_disks: list of L{objects.Disk}
+  @param snap_disks: list of snapshot block devices, which
+      will be used to get the actual name of the dump file
 
-  Returns:
-    False in case of error, True otherwise.
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   destdir = os.path.join(constants.EXPORT_DIR, instance.name + ".new")
@@ -1469,11 +1639,12 @@ def FinalizeExport(instance, snap_disks):
 def ExportInfo(dest):
   """Get export configuration information.
 
-  Args:
-    dest: directory containing the export
+  @type dest: str
+  @param dest: directory containing the export
 
-  Returns:
-    A serializable config file containing the export info.
+  @rtype: L{objects.SerializableConfigParser}
+  @return: a serializable config file containing the
+      export info
 
   """
   cff = os.path.join(dest, constants.EXPORT_CONF_FILE)
@@ -1540,6 +1711,9 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
 def ListExports():
   """Return a list of exports currently available on this machine.
 
+  @rtype: list
+  @return: list of the exports
+
   """
   if os.path.isdir(constants.EXPORT_DIR):
     return utils.ListVisibleFiles(constants.EXPORT_DIR)
@@ -1550,11 +1724,10 @@ def ListExports():
 def RemoveExport(export):
   """Remove an existing export from the node.
 
-  Args:
-    export: the name of the export to remove
-
-  Returns:
-    False in case of error, True otherwise.
+  @type export: str
+  @param export: the name of the export to remove
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   target = os.path.join(constants.EXPORT_DIR, export)
@@ -1569,9 +1742,14 @@ def RemoveExport(export):
 def RenameBlockDevices(devlist):
   """Rename a list of block devices.
 
-  The devlist argument is a list of tuples (disk, new_logical,
-  new_physical). The return value will be a combined boolean result
-  (True only if all renames succeeded).
+  @type devlist: list of tuples
+  @param devlist: list of tuples of the form  (disk,
+      new_logical_id, new_physical_id); disk is an
+      L{objects.Disk} object describing the current disk,
+      and new logical_id/physical_id is the name we
+      rename it to
+  @rtype: boolean
+  @return: True if all renames succeeded, False otherwise
 
   """
   result = True
@@ -1657,12 +1835,11 @@ def RemoveFileStorageDir(file_storage_dir):
 
   Remove it only if it's empty. If not log an error and return.
 
-  Args:
-    file_storage_dir: string containing the path
-
-  Returns:
-    tuple with first element a boolean indicating wheter dir
-    removal was successful or not
+  @type file_storage_dir: str
+  @param file_storage_dir: the directory we should cleanup
+  @rtype: tuple (success,)
+  @return: tuple of one element, C{success}, denoting
+      whether the operation was successfull
 
   """
   file_storage_dir = _TransformFileStorageDir(file_storage_dir)
@@ -1687,13 +1864,13 @@ def RemoveFileStorageDir(file_storage_dir):
 def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
   """Rename the file storage directory.
 
-  Args:
-    old_file_storage_dir: string containing the old path
-    new_file_storage_dir: string containing the new path
-
-  Returns:
-    tuple with first element a boolean indicating wheter dir
-    rename was successful or not
+  @type old_file_storage_dir: str
+  @param old_file_storage_dir: the current path
+  @type new_file_storage_dir: str
+  @param new_file_storage_dir: the name we should rename to
+  @rtype: tuple (success,)
+  @return: tuple of one element, C{success}, denoting
+      whether the operation was successful
 
   """
   old_file_storage_dir = _TransformFileStorageDir(old_file_storage_dir)
@@ -1724,6 +1901,11 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
 def _IsJobQueueFile(file_name):
   """Checks whether the given filename is in the queue directory.
 
+  @type file_name: str
+  @param file_name: the file name we should check
+  @rtype: boolean
+  @return: whether the file is under the queue directory
+
   """
   queue_dir = os.path.normpath(constants.QUEUE_DIR)
   result = (os.path.commonprefix([queue_dir, file_name]) == queue_dir)
@@ -1738,6 +1920,16 @@ def _IsJobQueueFile(file_name):
 def JobQueueUpdate(file_name, content):
   """Updates a file in the queue directory.
 
+  This is just a wrapper over L{utils.WriteFile}, with proper
+  checking.
+
+  @type file_name: str
+  @param file_name: the job file name
+  @type content: str
+  @param content: the new job contents
+  @rtype: boolean
+  @return: the success of the operation
+
   """
   if not _IsJobQueueFile(file_name):
     return False
@@ -1750,6 +1942,15 @@ def JobQueueUpdate(file_name, content):
 
 def JobQueueRename(old, new):
   """Renames a job queue file.
+
+  This is just a wrapper over L{os.rename} with proper checking.
+
+  @type old: str
+  @param old: the old (actual) file name
+  @type new: str
+  @param new: the desired file name
+  @rtype: boolean
+  @return: the success of the operation
 
   """
   if not (_IsJobQueueFile(old) and _IsJobQueueFile(new)):
@@ -1765,8 +1966,11 @@ def JobQueueSetDrainFlag(drain_flag):
 
   This will set or unset the queue drain flag.
 
-  @type drain_flag: bool
+  @type drain_flag: boolean
   @param drain_flag: if True, will set the drain flag, otherwise reset it.
+  @rtype: boolean
+  @return: always True
+  @warning: the function always returns True
 
   """
   if drain_flag:
@@ -1780,7 +1984,16 @@ def JobQueueSetDrainFlag(drain_flag):
 def CloseBlockDevices(disks):
   """Closes the given block devices.
 
-  This means they will be switched to secondary mode (in case of DRBD).
+  This means they will be switched to secondary mode (in case of
+  DRBD).
+
+  @type disks: list of L{objects.Disk}
+  @param disks: the list of disks to be closed
+  @rtype: tuple (success, message)
+  @return: a tuple of success and message, where success
+      indicates the succes of the operation, and message
+      which will contain the error details in case we
+      failed
 
   """
   bdevs = []
@@ -1809,8 +2022,11 @@ def ValidateHVParams(hvname, hvparams):
   @param hvname: the hypervisor name
   @type hvparams: dict
   @param hvparams: the hypervisor parameters to be validated
-  @rtype: tuple (bool, str)
-  @return: tuple of (success, message)
+  @rtype: tuple (success, message)
+  @return: a tuple of success and message, where success
+      indicates the succes of the operation, and message
+      which will contain the error details in case we
+      failed
 
   """
   try:
@@ -1824,8 +2040,8 @@ def ValidateHVParams(hvname, hvparams):
 class HooksRunner(object):
   """Hook runner.
 
-  This class is instantiated on the node side (ganeti-noded) and not on
-  the master side.
+  This class is instantiated on the node side (ganeti-noded) and not
+  on the master side.
 
   """
   RE_MASK = re.compile("^[a-zA-Z0-9_-]+$")
@@ -1833,9 +2049,9 @@ class HooksRunner(object):
   def __init__(self, hooks_base_dir=None):
     """Constructor for hooks runner.
 
-    Args:
-      - hooks_base_dir: if not None, this overrides the
-        constants.HOOKS_BASE_DIR (useful for unittests)
+    @type hooks_base_dir: str or None
+    @param hooks_base_dir: if not None, this overrides the
+        L{constants.HOOKS_BASE_DIR} (useful for unittests)
 
     """
     if hooks_base_dir is None:
@@ -1846,9 +2062,15 @@ class HooksRunner(object):
   def ExecHook(script, env):
     """Exec one hook script.
 
-    Args:
-     - script: the full path to the script
-     - env: the environment with which to exec the script
+    @type script: str
+    @param script: the full path to the script
+    @type env: dict
+    @param env: the environment with which to exec the script
+    @rtype: tuple (success, message)
+    @return: a tuple of success and message, where success
+        indicates the succes of the operation, and message
+        which will contain the error details in case we
+        failed
 
     """
     # exec the process using subprocess and log the output
@@ -1889,7 +2111,23 @@ class HooksRunner(object):
   def RunHooks(self, hpath, phase, env):
     """Run the scripts in the hooks directory.
 
-    This method will not be usually overriden by child opcodes.
+    @type hpath: str
+    @param hpath: the path to the hooks directory which
+        holds the scripts
+    @type phase: str
+    @param phase: either L{constants.HOOKS_PHASE_PRE} or
+        L{constants.HOOKS_PHASE_POST}
+    @type env: dict
+    @param env: dictionary with the environment for the hook
+    @rtype: list
+    @return: list of 3-element tuples:
+      - script path
+      - script result, either L{constants.HKR_SUCCESS} or
+        L{constants.HKR_FAIL}
+      - output of the script
+
+    @raise errors.ProgrammerError: for invalid input
+        parameters
 
     """
     if phase == constants.HOOKS_PHASE_PRE:
@@ -1905,7 +2143,7 @@ class HooksRunner(object):
     try:
       dir_contents = utils.ListVisibleFiles(dir_name)
     except OSError, err:
-      # must log
+      # FIXME: must log output in case of failures
       return rr
 
     # we use the standard python sort order,
@@ -1938,11 +2176,17 @@ class IAllocatorRunner(object):
   def Run(self, name, idata):
     """Run an iallocator script.
 
-    Return value: tuple of:
+    @type name: str
+    @param name: the iallocator script name
+    @type idata: str
+    @param idata: the allocator input data
+
+    @rtype: tuple
+    @return: four element tuple of:
        - run status (one of the IARUN_ constants)
        - stdout
        - stderr
-       - fail reason (as from utils.RunResult)
+       - fail reason (as from L{utils.RunResult})
 
     """
     alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
@@ -1976,7 +2220,12 @@ class DevCacheManager(object):
     """Converts a /dev/name path to the cache file name.
 
     This replaces slashes with underscores and strips the /dev
-    prefix. It then returns the full path to the cache file
+    prefix. It then returns the full path to the cache file.
+
+    @type dev_path: str
+    @param dev_path: the C{/dev/} path name
+    @rtype: str
+    @return: the converted path name
 
     """
     if dev_path.startswith(cls._DEV_PREFIX):
@@ -1988,6 +2237,19 @@ class DevCacheManager(object):
   @classmethod
   def UpdateCache(cls, dev_path, owner, on_primary, iv_name):
     """Updates the cache information for a given device.
+
+    @type dev_path: str
+    @param dev_path: the pathname of the device
+    @type owner: str
+    @param owner: the owner (instance name) of the device
+    @type on_primary: bool
+    @param on_primary: whether this is the primary
+        node nor not
+    @type iv_name: str
+    @param iv_name: the instance-visible name of the
+        device, as in L{objects.Disk.iv_name}
+
+    @rtype: None
 
     """
     if dev_path is None:
@@ -2009,6 +2271,14 @@ class DevCacheManager(object):
   @classmethod
   def RemoveCache(cls, dev_path):
     """Remove data for a dev_path.
+
+    This is just a wrapper over L{utils.RemoveFile} with a converted
+    path name and logging.
+
+    @type dev_path: str
+    @param dev_path: the pathname of the device
+
+    @rtype: None
 
     """
     if dev_path is None:
