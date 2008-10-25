@@ -393,7 +393,7 @@ def NodeVolumes():
   if result.failed:
     logging.error("Failed to list logical volumes, lvs output: %s",
                   result.output)
-    return {}
+    return []
 
   def parse_dev(dev):
     if '(' in dev:
