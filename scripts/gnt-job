@@ -30,8 +30,11 @@ from ganeti import constants
 from ganeti import errors
 
 
+#: default list of fields for L{ListJobs}
 _LIST_DEF_FIELDS = ["id", "status", "summary"]
 
+#: map converting the job status contants to user-visible
+#: names
 _USER_JOB_STATUS = {
   constants.JOB_STATUS_QUEUED: "queued",
   constants.JOB_STATUS_WAITLOCK: "waiting",
@@ -44,6 +47,12 @@ _USER_JOB_STATUS = {
 
 def ListJobs(opts, args):
   """List the jobs
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   if opts.output is None:
@@ -105,6 +114,15 @@ def ListJobs(opts, args):
 
 
 def ArchiveJobs(opts, args):
+  """Archive jobs.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain the job IDs to be archived
+  @rtype: int
+  @return: the desired exit code
+
+  """
   client = GetClient()
 
   for job_id in args:
@@ -114,6 +132,20 @@ def ArchiveJobs(opts, args):
 
 
 def AutoArchiveJobs(opts, args):
+  """Archive jobs based on age.
+
+  This will archive jobs based on their age, or all jobs if a 'all' is
+  passed.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the age as a time spec
+      that can be parsed by L{cli.ParseTimespec} or the keyword I{all},
+      which will cause all jobs to be archived
+  @rtype: int
+  @return: the desired exit code
+
+  """
   client = GetClient()
 
   age = args[0]
@@ -128,6 +160,15 @@ def AutoArchiveJobs(opts, args):
 
 
 def CancelJobs(opts, args):
+  """Cancel not-yet-started jobs.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain the job IDs to be cancelled
+  @rtype: int
+  @return: the desired exit code
+
+  """
   client = GetClient()
 
   for job_id in args:
@@ -137,7 +178,13 @@ def CancelJobs(opts, args):
 
 
 def ShowJobs(opts, args):
-  """List the jobs
+  """Show detailed information about jobs.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain the job IDs to be queried
+  @rtype: int
+  @return: the desired exit code
 
   """
   def format(level, text):
