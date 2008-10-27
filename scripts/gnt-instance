@@ -47,6 +47,7 @@ _SHUTDOWN_INSTANCES = "instances"
 
 _VALUE_TRUE = "true"
 
+#: default list of options for L{ListInstances}
 _LIST_DEF_FIELDS = [
   "name", "hypervisor", "os", "pnode", "status", "oper_ram",
   ]
@@ -55,20 +56,24 @@ _LIST_DEF_FIELDS = [
 def _ExpandMultiNames(mode, names):
   """Expand the given names using the passed mode.
 
-  Args:
-    - mode, which can be one of _SHUTDOWN_CLUSTER, _SHUTDOWN_NODES_BOTH,
-      _SHUTDOWN_NODES_PRI, _SHUTDOWN_NODES_SEC or _SHUTDOWN_INSTANCES
-    - names, which is a list of names; for cluster, it must be empty,
-      and for node and instance it must be a list of valid item
-      names (short names are valid as usual, e.g. node1 instead of
-      node1.example.com)
-
   For _SHUTDOWN_CLUSTER, all instances will be returned. For
   _SHUTDOWN_NODES_PRI/SEC, all instances having those nodes as
-  primary/secondary will be shutdown. For _SHUTDOWN_NODES_BOTH, all
+  primary/secondary will be returned. For _SHUTDOWN_NODES_BOTH, all
   instances having those nodes as either primary or secondary will be
   returned. For _SHUTDOWN_INSTANCES, the given instances will be
   returned.
+
+  @param mode: one of L{_SHUTDOWN_CLUSTER}, L{_SHUTDOWN_NODES_BOTH},
+      L{_SHUTDOWN_NODES_PRI}, L{_SHUTDOWN_NODES_SEC} or
+      L{_SHUTDOWN_INSTANCES}
+  @param names: a list of names; for cluster, it must be empty,
+      and for node and instance it must be a list of valid item
+      names (short names are valid as usual, e.g. node1 instead of
+      node1.example.com)
+  @rtype: list
+  @return: the list of names after the expansion
+  @raise errors.ProgrammerError: for unknown selection type
+  @raise errors.OpPrereqError: for invalid input parameters
 
   """
   if mode == _SHUTDOWN_CLUSTER:
@@ -117,11 +122,14 @@ def _ConfirmOperation(inames, text):
   This function is used to request confirmation for doing an operation
   on a given list of instances.
 
-  The inames argument is what the selection algorithm computed, and
-  the text argument is the operation we should tell the user to
-  confirm (e.g. 'shutdown' or 'startup').
-
-  Returns: boolean depending on user's confirmation.
+  @type inames: list
+  @param inames: the list of names that we display when
+      we ask for confirmation
+  @type text: str
+  @param text: the operation that the user should confirm
+      (e.g. I{shutdown} or I{startup})
+  @rtype: boolean
+  @return: True or False depending on user's confirmation.
 
   """
   count = len(inames)
@@ -171,6 +179,12 @@ def _TransformPath(user_input):
 
 def ListInstances(opts, args):
   """List instances and their properties.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   if opts.output is None:
@@ -263,14 +277,11 @@ def ListInstances(opts, args):
 def AddInstance(opts, args):
   """Add an instance to the cluster.
 
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
-  Opts used:
-    mem - amount of memory to allocate to instance (MiB)
-    size - amount of disk space to allocate to instance (MiB)
-    os - which OS to run on instance
-    node - node to run new instance on
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the new instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance = args[0]
@@ -319,25 +330,32 @@ def AddInstance(opts, args):
 
 
 def BatchCreate(opts, args):
-  """Create instances on a batched base.
+  """Create instances using a definition file.
 
-  This function reads a json with instances defined in the form:
+  This function reads a json file with instances defined
+  in the form::
 
-  {"instance-name": {"disk_size": 25,
-                     "swap_size": 1024,
-                     "template": "drbd",
-                     "backend": { "memory": 512,
-                                  "vcpus": 1 },
-                     "os": "etch-image",
-                     "primary_node": "firstnode",
-                     "secondary_node": "secondnode",
-                     "iallocator": "dumb"}}
+    {"instance-name":{
+      "disk_size": 25,
+      "swap_size": 1024,
+      "template": "drbd",
+      "backend": {
+        "memory": 512,
+        "vcpus": 1 },
+      "os": "etch-image",
+      "primary_node": "firstnode",
+      "secondary_node": "secondnode",
+      "iallocator": "dumb"}
+    }
 
-  primary_node and secondary_node has precedence over iallocator.
+  Note that I{primary_node} and I{secondary_node} have precedence over
+  I{iallocator}.
 
-  Args:
-    opts: The parsed command line options
-    args: Argument passed to the command in our case the json file
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain one element, the json filename
+  @rtype: int
+  @return: the desired exit code
 
   """
   _DEFAULT_SPECS = {"disk_size": 20 * 1024,
@@ -429,9 +447,12 @@ def BatchCreate(opts, args):
 def ReinstallInstance(opts, args):
   """Reinstall an instance.
 
-  Args:
-    opts - class with options as members
-    args - list containing a single element, the instance name
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name of the
+      instance to be reinstalled
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]
@@ -480,9 +501,12 @@ def ReinstallInstance(opts, args):
 def RemoveInstance(opts, args):
   """Remove an instance.
 
-  Args:
-    opts - class with options as members
-    args - list containing a single element, the instance name
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name of
+      the instance to be removed
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]
@@ -504,9 +528,12 @@ def RemoveInstance(opts, args):
 def RenameInstance(opts, args):
   """Rename an instance.
 
-  Args:
-    opts - class with options as members
-    args - list containing two elements, the instance name and the new name
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain two elements, the old and the
+      new instance names
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpRenameInstance(instance_name=args[0],
@@ -520,9 +547,15 @@ def ActivateDisks(opts, args):
   """Activate an instance's disks.
 
   This serves two purposes:
-    - it allows one (as long as the instance is not running) to mount
-    the disks and modify them from the node
+    - it allows (as long as the instance is not running)
+      mounting the disks and modifying them from the node
     - it repairs inactive secondary drbds
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]
@@ -534,10 +567,16 @@ def ActivateDisks(opts, args):
 
 
 def DeactivateDisks(opts, args):
-  """Command-line interface for _ShutdownInstanceBlockDevices.
+  """Deactivate an instance's disks..
 
   This function takes the instance name, looks for its primary node
   and the tries to shutdown its block devices on that node.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]
@@ -547,10 +586,14 @@ def DeactivateDisks(opts, args):
 
 
 def GrowDisk(opts, args):
-  """Command-line interface for _ShutdownInstanceBlockDevices.
+  """Grow an instance's disks.
 
-  This function takes the instance name, looks for its primary node
-  and the tries to shutdown its block devices on that node.
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain two elements, the instance name
+      whose disks we grow and the disk name, e.g. I{sda}
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance = args[0]
@@ -563,11 +606,18 @@ def GrowDisk(opts, args):
 
 
 def StartupInstance(opts, args):
-  """Startup an instance.
+  """Startup instances.
 
-  Args:
-    opts - class with options as members
-    args - list containing a single element, the instance name
+  Depending on the options given, this will start one or more
+  instances.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: the instance or node names based on which we
+      create the final selection (in conjunction with the
+      opts argument)
+  @rtype: int
+  @return: the desired exit code
 
   """
   if opts.multi_mode is None:
@@ -594,11 +644,18 @@ def StartupInstance(opts, args):
 
 
 def RebootInstance(opts, args):
-  """Reboot an instance
+  """Reboot instance(s).
 
-  Args:
-    opts - class with options as members
-    args - list containing a single element, the instance name
+  Depending on the parameters given, this will reboot one or more
+  instances.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: the instance or node names based on which we
+      create the final selection (in conjunction with the
+      opts argument)
+  @rtype: int
+  @return: the desired exit code
 
   """
   if opts.multi_mode is None:
@@ -622,9 +679,13 @@ def RebootInstance(opts, args):
 def ShutdownInstance(opts, args):
   """Shutdown an instance.
 
-  Args:
-    opts - class with options as members
-    args - list containing a single element, the instance name
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: the instance or node names based on which we
+      create the final selection (in conjunction with the
+      opts argument)
+  @rtype: int
+  @return: the desired exit code
 
   """
   if opts.multi_mode is None:
@@ -651,9 +712,11 @@ def ShutdownInstance(opts, args):
 def ReplaceDisks(opts, args):
   """Replace the disks of an instance
 
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]
@@ -687,11 +750,11 @@ def FailoverInstance(opts, args):
   The failover is done by shutting it down on its present node and
   starting it on the secondary.
 
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
-  Opts used:
-    force - whether to failover without asking questions.
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]
@@ -713,9 +776,11 @@ def FailoverInstance(opts, args):
 def ConnectToInstanceConsole(opts, args):
   """Connect to the console of an instance.
 
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]
@@ -737,12 +802,32 @@ def ConnectToInstanceConsole(opts, args):
 def _FormatBlockDevInfo(buf, dev, indent_level, static):
   """Show block device information.
 
-  This is only used by ShowInstanceConfig(), but it's too big to be
+  This is only used by L{ShowInstanceConfig}, but it's too big to be
   left for an inline definition.
+
+  @type buf: StringIO
+  @param buf: buffer that will accumulate the output
+  @type dev: dict
+  @param dev: dictionary with disk information
+  @type indent_level: int
+  @param indent_level: the indendation level we are at, used for
+      the layout of the device tree
+  @type static: boolean
+  @param static: wheter the device information doesn't contain
+      runtime information but only static data
 
   """
   def helper(buf, dtype, status):
-    """Format one line for physical device status."""
+    """Format one line for physical device status.
+
+    @type buf: StringIO
+    @param buf: buffer that will accumulate the output
+    @type dtype: str
+    @param dtype: a constant from the L{constants.LDS_BLOCK} set
+    @type status: tuple
+    @param status: a tuple as returned from L{backend.FindBlockDevice}
+
+    """
     if not status:
       buf.write("not active\n")
     else:
@@ -809,6 +894,13 @@ def _FormatBlockDevInfo(buf, dev, indent_level, static):
 
 def ShowInstanceConfig(opts, args):
   """Compute instance run-time status.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: either an empty list, and then we query all
+      instances, or should contain a list of instance names
+  @rtype: int
+  @return: the desired exit code
 
   """
   retcode = 0
@@ -895,11 +987,11 @@ def SetInstanceParams(opts, args):
 
   All parameters take effect only at the next restart of the instance.
 
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
-  Opts used:
-    mac - the new MAC address of the instance
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   if not (opts.ip or opts.bridge or opts.mac or
@@ -1190,6 +1282,7 @@ commands = {
                   "<instance_name> tag...", "Remove tags from given instance"),
   }
 
+#: dictionary with aliases for commands
 aliases = {
   'activate_block_devs': 'activate-disks',
   'replace_disks': 'replace-disks',
