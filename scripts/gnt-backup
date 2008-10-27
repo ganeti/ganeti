@@ -36,12 +36,11 @@ _VALUE_TRUE = "true"
 def PrintExportList(opts, args):
   """Prints a list of all the exported system images.
 
-  Args:
-   opts - class with options as members (should be empty)
-   args - should be empty
-
-  Returns:
-    nothing
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   exports = GetClient().QueryExports(opts.nodes)
@@ -61,12 +60,12 @@ def PrintExportList(opts, args):
 def ExportInstance(opts, args):
   """Export an instance to an image in the cluster.
 
-  Args:
-   opts - class with options as members
-   args - list with a single element, the instance name
-
-  Returns:
-    1 in case of error, 0 otherwise
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name
+      of the instance to be exported
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpExportInstance(instance_name=args[0],
@@ -79,19 +78,11 @@ def ExportInstance(opts, args):
 def ImportInstance(opts, args):
   """Add an instance to the cluster.
 
-  Args:
-   opts - class with options as members
-   args - list with a single element, the new instance name
-  Opts used:
-   memory - amount of memory to allocate to instance (MiB)
-   size - amount of disk space to allocate to instance (MiB)
-   os - which OS to run on instance
-   node - node to run new instance on
-   src_node - node containing the export
-   src_dir - directory on the old node with the export in it
-
-  Returns:
-    1 in case of error, 0 otherwise
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the new instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance = args[0]
@@ -128,13 +119,12 @@ def ImportInstance(opts, args):
 def RemoveExport(opts, args):
   """Remove an export from the cluster.
 
-  Args:
-   opts - class with options as members
-   args - list with a single element, the exported instance to remove
-  Opts used:
-
-  Returns:
-    1 in case of error, 0 otherwise
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name of the
+      instance whose backup should be removed
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance = args[0]
