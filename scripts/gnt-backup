@@ -45,6 +45,7 @@ def PrintExportList(opts, args):
 
   """
   exports = GetClient().QueryExports(opts.nodes)
+  retcode = 0
   for node in exports:
     ToStdout("Node: %s", node)
     ToStdout("Exports:")
@@ -53,6 +54,8 @@ def PrintExportList(opts, args):
         ToStdout("\t%s", instance_name)
     else:
       ToStdout("  Could not get exports list")
+      retcode = 1
+  return retcode
 
 
 def ExportInstance(opts, args):
