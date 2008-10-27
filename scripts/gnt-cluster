@@ -39,9 +39,12 @@ from ganeti import ssh
 def InitCluster(opts, args):
   """Initialize the cluster.
 
-  Args:
-    opts - class with options as members
-    args - list of arguments, expected to be [clustername]
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the desired
+      cluster name
+  @rtype: int
+  @return: the desired exit code
 
   """
   if not opts.lvm_storage and opts.vg_name:
@@ -123,8 +126,11 @@ def InitCluster(opts, args):
 def DestroyCluster(opts, args):
   """Destroy the cluster.
 
-  Args:
-    opts - class with options as members
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   if not opts.yes_do_it:
@@ -143,9 +149,11 @@ def DestroyCluster(opts, args):
 def RenameCluster(opts, args):
   """Rename the cluster.
 
-  Args:
-    opts - class with options as members, we use force only
-    args - list of arguments, expected to be [new_name]
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the new cluster name
+  @rtype: int
+  @return: the desired exit code
 
   """
   name = args[0]
@@ -165,8 +173,11 @@ def RenameCluster(opts, args):
 def ShowClusterVersion(opts, args):
   """Write version of ganeti software to the standard output.
 
-  Args:
-    opts - class with options as members
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpQueryClusterInfo()
@@ -182,8 +193,11 @@ def ShowClusterVersion(opts, args):
 def ShowClusterMaster(opts, args):
   """Write name of master node to the standard output.
 
-  Args:
-    opts - class with options as members
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   ToStdout("%s", GetClient().QueryConfigValues(["master_node"])[0])
@@ -192,6 +206,12 @@ def ShowClusterMaster(opts, args):
 
 def ShowClusterConfig(opts, args):
   """Shows cluster information.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpQueryClusterInfo()
@@ -225,11 +245,12 @@ def ShowClusterConfig(opts, args):
 def ClusterCopyFile(opts, args):
   """Copy a file from master to some nodes.
 
-  Args:
-    opts - class with options as members
-    args - list containing a single element, the file name
-  Opts used:
-    nodes - list containing the name of target nodes; if empty, all nodes
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the path of
+      the file to be copied
+  @rtype: int
+  @return: the desired exit code
 
   """
   filename = args[0]
@@ -256,11 +277,11 @@ def ClusterCopyFile(opts, args):
 def RunClusterCommand(opts, args):
   """Run a command on some nodes.
 
-  Args:
-    opts - class with options as members
-    args - the command list as a list
-  Opts used:
-    nodes: list containing the name of target nodes; if empty, all nodes
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain the command to be run and its arguments
+  @rtype: int
+  @return: the desired exit code
 
   """
   cl = GetClient()
@@ -292,8 +313,11 @@ def RunClusterCommand(opts, args):
 def VerifyCluster(opts, args):
   """Verify integrity of cluster, performing various test on nodes.
 
-  Args:
-    opts - class with options as members
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   skip_checks = []
@@ -309,8 +333,11 @@ def VerifyCluster(opts, args):
 def VerifyDisks(opts, args):
   """Verify integrity of cluster disks.
 
-  Args:
-    opts - class with options as members
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpVerifyDisks()
@@ -374,12 +401,24 @@ def MasterFailover(opts, args):
   master to cease being master, and the non-master to become new
   master.
 
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
+
   """
   return bootstrap.MasterFailover()
 
 
 def SearchTags(opts, args):
   """Searches the tags on all the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the tag pattern
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpSearchTags(pattern=args[0])
@@ -395,8 +434,11 @@ def SearchTags(opts, args):
 def SetClusterParams(opts, args):
   """Modify the cluster.
 
-  Args:
-    opts - class with options as members
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   if not (not opts.lvm_storage or opts.vg_name or
@@ -431,6 +473,12 @@ def SetClusterParams(opts, args):
 
 def QueueOps(opts, args):
   """Queue operations.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the subcommand
+  @rtype: int
+  @return: the desired exit code
 
   """
   command = args[0]
