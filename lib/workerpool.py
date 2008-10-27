@@ -37,9 +37,8 @@ class BaseWorker(threading.Thread, object):
   def __init__(self, pool, worker_id):
     """Constructor for BaseWorker thread.
 
-    Args:
-    - pool: Parent worker pool
-    - worker_id: Identifier for this worker
+    @param pool: the parent worker pool
+    @param worker_id: identifier for this worker
 
     """
     super(BaseWorker, self).__init__()
@@ -137,6 +136,8 @@ class BaseWorker(threading.Thread, object):
   def RunTask(self, *args):
     """Function called to start a task.
 
+    This needs to be implemented by child classes.
+
     """
     raise NotImplementedError()
 
@@ -146,19 +147,18 @@ class WorkerPool(object):
 
   This class is thread-safe.
 
-  Tasks are guaranteed to be started in the order in which they're added to the
-  pool. Due to the nature of threading, they're not guaranteed to finish in the
-  same order.
+  Tasks are guaranteed to be started in the order in which they're
+  added to the pool. Due to the nature of threading, they're not
+  guaranteed to finish in the same order.
 
   """
   def __init__(self, num_workers, worker_class):
     """Constructor for worker pool.
 
-    Args:
-    - num_workers: Number of workers to be started (dynamic resizing is not
-                   yet implemented)
-    - worker_class: Class to be instantiated for workers; should derive from
-                    BaseWorker
+    @param num_workers: number of workers to be started
+        (dynamic resizing is not yet implemented)
+    @param worker_class: the class to be instantiated for workers;
+        should derive from L{BaseWorker}
 
     """
     # Some of these variables are accessed by BaseWorker
@@ -185,8 +185,7 @@ class WorkerPool(object):
   def AddTask(self, *args):
     """Adds a task to the queue.
 
-    Args:
-    - *args: Arguments passed to BaseWorker.RunTask
+    @param args: arguments passed to L{BaseWorker.RunTask}
 
     """
     self._lock.acquire()
@@ -249,6 +248,9 @@ class WorkerPool(object):
       self._lock.release()
 
   def _NewWorkerIdUnlocked(self):
+    """Return an identifier for a new worker.
+
+    """
     self._last_worker_id += 1
     return self._last_worker_id
 
@@ -311,8 +313,7 @@ class WorkerPool(object):
   def Resize(self, num_workers):
     """Changes the number of workers in the pool.
 
-    Args:
-    - num_workers: New number of workers
+    @param num_workers: the new number of workers
 
     """
     self._lock.acquire()
