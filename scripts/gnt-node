@@ -34,6 +34,7 @@ from ganeti import errors
 from ganeti import bootstrap
 
 
+#: default list of field for L{ListNodes}
 _LIST_DEF_FIELDS = [
   "name", "dtotal", "dfree",
   "mtotal", "mnode", "mfree",
@@ -42,7 +43,13 @@ _LIST_DEF_FIELDS = [
 
 
 def AddNode(opts, args):
-  """Add node cli-to-processor bridge.
+  """Add a node to the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the new node name
+  @rtype: int
+  @return: the desired exit code
 
   """
   dns_data = utils.HostInfo(args[0])
@@ -75,6 +82,12 @@ def AddNode(opts, args):
 
 def ListNodes(opts, args):
   """List nodes and their properties.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   if opts.output is None:
@@ -133,6 +146,12 @@ def ListNodes(opts, args):
 
 def EvacuateNode(opts, args):
   """Relocate all secondary instance from a node.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   force = opts.force
@@ -193,6 +212,12 @@ def EvacuateNode(opts, args):
 def FailoverNode(opts, args):
   """Failover all primary instance on a node.
 
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
+
   """
   force = opts.force
   selected_fields = ["name", "pinst_list"]
@@ -239,6 +264,14 @@ def FailoverNode(opts, args):
 def ShowNodeConfig(opts, args):
   """Show node information.
 
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should either be an empty list, in which case
+      we show information about all nodes, or should contain
+      a list of nodes to be queried for information
+  @rtype: int
+  @return: the desired exit code
+
   """
   op = opcodes.OpQueryNodes(output_fields=["name", "pip", "sip",
                                            "pinst_list", "sinst_list"],
@@ -266,13 +299,31 @@ def ShowNodeConfig(opts, args):
 
 
 def RemoveNode(opts, args):
-  """Remove node cli-to-processor bridge."""
+  """Remove a node from the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name of
+      the node to be removed
+  @rtype: int
+  @return: the desired exit code
+
+  """
   op = opcodes.OpRemoveNode(node_name=args[0])
   SubmitOpCode(op)
+  return 0
 
 
 def ListVolumes(opts, args):
   """List logical volumes on node(s).
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should either be an empty list, in which case
+      we list data for all nodes, or contain a list of nodes
+      to display data only for those
+  @rtype: int
+  @return: the desired exit code
 
   """
   if opts.output is None:
