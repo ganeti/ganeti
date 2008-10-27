@@ -19,7 +19,10 @@
 # 02110-1301, USA.
 
 
-"""Ganeti small utilities
+"""Ganeti utility module.
+
+This module holds functions that can be used in both daemons (all) and
+the command line scripts.
 
 """
 
@@ -53,22 +56,28 @@ _re_shell_unquoted = re.compile('^[-.,=:/_+@A-Za-z0-9]+$')
 
 debug = False
 debug_locks = False
+
+#: when set to True, L{RunCmd} is disabled
 no_fork = False
 
 
 class RunResult(object):
-  """Simple class for holding the result of running external programs.
+  """Holds the result of running external programs.
 
-  Instance variables:
-    exit_code: the exit code of the program, or None (if the program
-               didn't exit())
-    signal: numeric signal that caused the program to finish, or None
-            (if the program wasn't terminated by a signal)
-    stdout: the standard output of the program
-    stderr: the standard error of the program
-    failed: a Boolean value which is True in case the program was
-            terminated by a signal or exited with a non-zero exit code
-    fail_reason: a string detailing the termination reason
+  @type exit_code: int
+  @ivar exit_code: the exit code of the program, or None (if the program
+      didn't exit())
+  @type signal: int or None
+  @ivar signal: the signal that caused the program to finish, or None
+      (if the program wasn't terminated by a signal)
+  @type stdout: str
+  @ivar stdout: the standard output of the program
+  @type stderr: str
+  @ivar stderr: the standard error of the program
+  @type failed: boolean
+  @ivar failed: True in case the program was
+      terminated by a signal or exited with a non-zero exit code
+  @ivar fail_reason: a string detailing the termination reason
 
   """
   __slots__ = ["exit_code", "signal", "stdout", "stderr",
@@ -112,13 +121,14 @@ def RunCmd(cmd, env=None, output=None):
   @type  cmd: string or list
   @param cmd: Command to run
   @type env: dict
-  @keyword env: Additional environment
+  @param env: Additional environment
   @type output: str
-  @keyword output: if desired, the output of the command can be
+  @param output: if desired, the output of the command can be
       saved in a file instead of the RunResult instance; this
       parameter denotes the file name (if not None)
   @rtype: L{RunResult}
-  @return: `RunResult` instance
+  @return: RunResult instance
+  @raise erors.ProgrammerError: if we call this when forks are disabled
 
   """
   if no_fork:
@@ -244,6 +254,9 @@ def RemoveFile(filename):
   Remove a file, ignoring non-existing ones or directories. Other
   errors are passed.
 
+  @type filename: str
+  @param filename: the file to be removed
+
   """
   try:
     os.unlink(filename)
@@ -258,8 +271,11 @@ def _FingerprintFile(filename):
   If the file does not exist, a None will be returned
   instead.
 
-  Args:
-    filename - Filename (str)
+  @type filename: str
+  @param filename: the filename to checksum
+  @rtype: str
+  @return: the hex digest of the sha checksum of the contents
+      of the file
 
   """
   if not (os.path.exists(filename) and os.path.isfile(filename)):
@@ -281,11 +297,11 @@ def _FingerprintFile(filename):
 def FingerprintFiles(files):
   """Compute fingerprints for a list of files.
 
-  Args:
-    files - array of filenames.  ( [str, ...] )
-
-  Return value:
-    dictionary of filename: fingerprint for the files that exist
+  @type files: list
+  @param files: the list of filename to fingerprint
+  @rtype: dict
+  @return: a dictionary filename: fingerprint, holding only
+      existing files
 
   """
   ret = {}
@@ -301,18 +317,17 @@ def FingerprintFiles(files):
 def CheckDict(target, template, logname=None):
   """Ensure a dictionary has a required set of keys.
 
-  For the given dictionaries `target` and `template`, ensure target
-  has all the keys from template. Missing keys are added with values
-  from template.
+  For the given dictionaries I{target} and I{template}, ensure
+  I{target} has all the keys from I{template}. Missing keys are added
+  with values from template.
 
-  Args:
-    target   - the dictionary to check
-    template - template dictionary
-    logname  - a caller-chosen string to identify the debug log
-               entry; if None, no logging will be done
-
-  Returns value:
-    None
+  @type target: dict
+  @param target: the dictionary to update
+  @type template: dict
+  @param template: the dictionary holding the default values
+  @type logname: str or None
+  @param logname: if not None, causes the missing keys to be
+      logged with this name
 
   """
   missing = []
@@ -328,10 +343,12 @@ def CheckDict(target, template, logname=None):
 def IsProcessAlive(pid):
   """Check if a given pid exists on the system.
 
-  Returns: true or false, depending on if the pid exists or not
-
-  Remarks: zombie processes treated as not alive, and giving a pid <=
-  0 makes the function to return False.
+  @note: zombie processes treated as not alive, and giving a
+      pid M{<= 0} causes the function to return False.
+  @type pid: int
+  @param pid: the process ID to check
+  @rtype: boolean
+  @return: True if the process exists
 
   """
   if pid <= 0:
@@ -357,13 +374,13 @@ def IsProcessAlive(pid):
 
 
 def ReadPidFile(pidfile):
-  """Read the pid from a file.
+  """Read a pid from a file.
 
-  @param pidfile: Path to a file containing the pid to be checked
-  @type  pidfile: string (filename)
+  @type  pidfile: string
+  @param pidfile: path to the file containing the pid
+  @rtype: int
   @return: The process id, if the file exista and contains a valid PID,
            otherwise 0
-  @rtype: int
 
   """
   try:
@@ -386,18 +403,20 @@ def MatchNameComponent(key, name_list):
   """Try to match a name against a list.
 
   This function will try to match a name like test1 against a list
-  like ['test1.example.com', 'test2.example.com', ...]. Against this
-  list, 'test1' as well as 'test1.example' will match, but not
-  'test1.ex'. A multiple match will be considered as no match at all
-  (e.g. 'test1' against ['test1.example.com', 'test1.example.org']).
+  like C{['test1.example.com', 'test2.example.com', ...]}. Against
+  this list, I{'test1'} as well as I{'test1.example'} will match, but
+  not I{'test1.ex'}. A multiple match will be considered as no match
+  at all (e.g. I{'test1'} against C{['test1.example.com',
+  'test1.example.org']}).
 
-  Args:
-    key: the name to be searched
-    name_list: the list of strings against which to search the key
+  @type key: str
+  @param key: the name to be searched
+  @type name_list: list
+  @param name_list: the list of strings against which to search the key
 
-  Returns:
-    None if there is no match *or* if there are multiple matches
-    otherwise the element from the list which matches
+  @rtype: None or str
+  @return: None if there is no match I{or} if there are multiple matches,
+      otherwise the element from the list which matches
 
   """
   mo = re.compile("^%s(\..*)?$" % re.escape(key))
@@ -435,7 +454,7 @@ class HostInfo:
   def SysName():
     """Return the current system's name.
 
-    This is simply a wrapper over socket.gethostname()
+    This is simply a wrapper over C{socket.gethostname()}.
 
     """
     return socket.gethostname()
@@ -444,12 +463,13 @@ class HostInfo:
   def LookupHostname(hostname):
     """Look up hostname
 
-    Args:
-      hostname: hostname to look up
+    @type hostname: str
+    @param hostname: hostname to look up
 
-    Returns:
-      a tuple (name, aliases, ipaddrs) as returned by socket.gethostbyname_ex
-      in case of errors in resolving, we raise a ResolverError
+    @rtype: tuple
+    @return: a tuple (name, aliases, ipaddrs) as returned by
+        C{socket.gethostbyname_ex}
+    @raise errors.ResolverError: in case of errors in resolving
 
     """
     try:
@@ -464,8 +484,10 @@ class HostInfo:
 def ListVolumeGroups():
   """List volume groups and their size
 
-  Returns:
-     Dictionary with keys volume name and values the size of the volume
+  @rtype: dict
+  @return:
+       Dictionary with keys volume name and values
+       the size of the volume
 
   """
   command = "vgs --noheadings --units m --nosuffix -o name,size"
@@ -490,8 +512,10 @@ def ListVolumeGroups():
 def BridgeExists(bridge):
   """Check whether the given bridge exists in the system
 
-  Returns:
-     True if it does, false otherwise.
+  @type bridge: str
+  @param bridge: the bridge name to check
+  @rtype: boolean
+  @return: True if it does
 
   """
   return os.path.isdir("/sys/class/net/%s/bridge" % bridge)
@@ -500,15 +524,18 @@ def BridgeExists(bridge):
 def NiceSort(name_list):
   """Sort a list of strings based on digit and non-digit groupings.
 
-  Given a list of names ['a1', 'a10', 'a11', 'a2'] this function will
-  sort the list in the logical order ['a1', 'a2', 'a10', 'a11'].
+  Given a list of names C{['a1', 'a10', 'a11', 'a2']} this function
+  will sort the list in the logical order C{['a1', 'a2', 'a10',
+  'a11']}.
 
   The sort algorithm breaks each name in groups of either only-digits
   or no-digits. Only the first eight such groups are considered, and
   after that we just use what's left of the string.
 
-  Return value
-    - a copy of the list sorted according to our algorithm
+  @type name_list: list
+  @param name_list: the names to be sorted
+  @rtype: list
+  @return: a copy of the name list sorted with our algorithm
 
   """
   _SORTER_BASE = "(\D+|\d+)"
@@ -534,10 +561,16 @@ def NiceSort(name_list):
 def TryConvert(fn, val):
   """Try to convert a value ignoring errors.
 
-  This function tries to apply function `fn` to `val`. If no
-  ValueError or TypeError exceptions are raised, it will return the
-  result, else it will return the original value. Any other exceptions
-  are propagated to the caller.
+  This function tries to apply function I{fn} to I{val}. If no
+  C{ValueError} or C{TypeError} exceptions are raised, it will return
+  the result, else it will return the original value. Any other
+  exceptions are propagated to the caller.
+
+  @type fn: callable
+  @param fn: function to apply to the value
+  @param val: the value to be converted
+  @return: The converted value if the conversion was successful,
+      otherwise the original value.
 
   """
   try:
@@ -548,13 +581,20 @@ def TryConvert(fn, val):
 
 
 def IsValidIP(ip):
-  """Verifies the syntax of an IP address.
+  """Verifies the syntax of an IPv4 address.
 
-  This function checks if the ip address passes is valid or not based
-  on syntax (not ip range, class calculations or anything).
+  This function checks if the IPv4 address passes is valid or not based
+  on syntax (not IP range, class calculations, etc.).
+
+  @type ip: str
+  @param ip: the address to be checked
+  @rtype: a regular expression match object
+  @return: a regular epression match object, or None if the
+      address is not valid
 
   """
   unit = "(0|[1-9]\d{0,2})"
+  #TODO: convert and return only boolean
   return re.match("^%s\.%s\.%s\.%s$" % (unit, unit, unit, unit), ip)
 
 
@@ -568,6 +608,11 @@ def IsValidShellParam(word):
   Note that we are overly restrictive here, in order to be on the safe
   side.
 
+  @type word: str
+  @param word: the word to check
+  @rtype: boolean
+  @return: True if the word is 'safe'
+
   """
   return bool(re.match("^[-a-zA-Z0-9._+/:%@]+$", word))
 
@@ -580,6 +625,12 @@ def BuildShellCmd(template, *args):
   metacharaters). If everything is ok, it will return the result of
   template % args.
 
+  @type template: str
+  @param template: the string holding the template for the
+      string formatting
+  @rtype: str
+  @return: the expanded command line
+
   """
   for word in args:
     if not IsValidShellParam(word):
@@ -591,7 +642,10 @@ def BuildShellCmd(template, *args):
 def FormatUnit(value):
   """Formats an incoming number of MiB with the appropriate unit.
 
-  Value needs to be passed as a numeric type. Return value is always a string.
+  @type value: int
+  @param value: integer representing the value in MiB (1048576)
+  @rtype: str
+  @return: the formatted value (with suffix)
 
   """
   if value < 1024:
@@ -607,8 +661,9 @@ def FormatUnit(value):
 def ParseUnit(input_string):
   """Tries to extract number and scale from the given string.
 
-  Input must be in the format NUMBER+ [DOT NUMBER+] SPACE* [UNIT]. If no unit
-  is specified, it defaults to MiB. Return value is always an int in MiB.
+  Input must be in the format C{NUMBER+ [DOT NUMBER+] SPACE*
+  [UNIT]}. If no unit is specified, it defaults to MiB. Return value
+  is always an int in MiB.
 
   """
   m = re.match('^([.\d]+)\s*([a-zA-Z]+)?$', input_string)
@@ -651,9 +706,11 @@ def ParseUnit(input_string):
 def AddAuthorizedKey(file_name, key):
   """Adds an SSH public key to an authorized_keys file.
 
-  Args:
-    file_name: Path to authorized_keys file
-    key: String containing key
+  @type file_name: str
+  @param file_name: path to authorized_keys file
+  @type key: str
+  @param key: string containing key
+
   """
   key_fields = key.split()
 
@@ -678,9 +735,11 @@ def AddAuthorizedKey(file_name, key):
 def RemoveAuthorizedKey(file_name, key):
   """Removes an SSH public key from an authorized_keys file.
 
-  Args:
-    file_name: Path to authorized_keys file
-    key: String containing key
+  @type file_name: str
+  @param file_name: path to authorized_keys file
+  @type key: str
+  @param key: string containing key
+
   """
   key_fields = key.split()
 
@@ -708,6 +767,15 @@ def RemoveAuthorizedKey(file_name, key):
 
 def SetEtcHostsEntry(file_name, ip, hostname, aliases):
   """Sets the name of an IP address and hostname in /etc/hosts.
+
+  @type file_name: str
+  @param file_name: path to the file to modify (usually C{/etc/hosts})
+  @type ip: str
+  @param ip: the IP address
+  @type hostname: str
+  @param hostname: the hostname to be added
+  @type aliases: list
+  @param aliases: the list of aliases to add for the hostname
 
   """
   # Ensure aliases are unique
@@ -746,6 +814,10 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
 def AddHostToEtcHosts(hostname):
   """Wrapper around SetEtcHostsEntry.
 
+  @type hostname: str
+  @param hostname: a hostname that will be resolved and added to
+      L{constants.ETC_HOSTS}
+
   """
   hi = HostInfo(name=hostname)
   SetEtcHostsEntry(constants.ETC_HOSTS, hi.ip, hi.name, [hi.ShortName()])
@@ -755,6 +827,12 @@ def RemoveEtcHostsEntry(file_name, hostname):
   """Removes a hostname from /etc/hosts.
 
   IP addresses without names are removed from the file.
+
+  @type file_name: str
+  @param file_name: path to the file to modify (usually C{/etc/hosts})
+  @type hostname: str
+  @param hostname: the hostname to be removed
+
   """
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
@@ -790,6 +868,11 @@ def RemoveEtcHostsEntry(file_name, hostname):
 def RemoveHostFromEtcHosts(hostname):
   """Wrapper around RemoveEtcHostsEntry.
 
+  @type hostname: str
+  @param hostname: hostname that will be resolved and its
+      full and shot name will be removed from
+      L{constants.ETC_HOSTS}
+
   """
   hi = HostInfo(name=hostname)
   RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.name)
@@ -799,7 +882,11 @@ def RemoveHostFromEtcHosts(hostname):
 def CreateBackup(file_name):
   """Creates a backup of a file.
 
-  Returns: the path to the newly created backup file.
+  @type file_name: str
+  @param file_name: file to be backed up
+  @rtype: str
+  @return: the path to the newly created backup
+  @raise errors.ProgrammerError: for invalid file names
 
   """
   if not os.path.isfile(file_name):
@@ -826,6 +913,11 @@ def CreateBackup(file_name):
 def ShellQuote(value):
   """Quotes shell argument according to POSIX.
 
+  @type value: str
+  @param value: the argument to be quoted
+  @rtype: str
+  @return: the quoted value
+
   """
   if _re_shell_unquoted.match(value):
     return value
@@ -834,7 +926,12 @@ def ShellQuote(value):
 
 
 def ShellQuoteArgs(args):
-  """Quotes all given shell arguments and concatenates using spaces.
+  """Quotes a list of shell arguments.
+
+  @type args: list
+  @param args: list of arguments to be quoted
+  @rtype: str
+  @return: the quoted arguments concatenaned with spaces
 
   """
   return ' '.join([ShellQuote(i) for i in args])
@@ -843,14 +940,22 @@ def ShellQuoteArgs(args):
 def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   """Simple ping implementation using TCP connect(2).
 
-  Try to do a TCP connect(2) from an optional source IP to the
-  specified target IP and the specified target port. If the optional
-  parameter live_port_needed is set to true, requires the remote end
-  to accept the connection. The timeout is specified in seconds and
-  defaults to 10 seconds. If the source optional argument is not
-  passed, the source address selection is left to the kernel,
-  otherwise we try to connect using the passed address (failures to
-  bind other than EADDRNOTAVAIL will be ignored).
+  Check if the given IP is reachable by doing attempting a TCP connect
+  to it.
+
+  @type target: str
+  @param target: the IP or hostname to ping
+  @type port: int
+  @param port: the port to connect to
+  @type timeout: int
+  @param timeout: the timeout on the connection attemp
+  @type live_port_needed: boolean
+  @param live_port_needed: whether a closed port will cause the
+      function to return failure, as if there was a timeout
+  @type source: str or None
+  @param source: if specified, will cause the connect to be made
+      from this specific source address; failures to bind other
+      than C{EADDRNOTAVAIL} will be ignored
 
   """
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -881,12 +986,13 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
 def OwnIpAddress(address):
   """Check if the current host has the the given IP address.
 
-  Currently this is done by tcp-pinging the address from the loopback
+  Currently this is done by TCP-pinging the address from the loopback
   address.
 
   @type address: string
   @param address: the addres to check
   @rtype: bool
+  @return: True if we own the address
 
   """
   return TcpPing(address, constants.DEFAULT_NODED_PORT,
@@ -894,7 +1000,12 @@ def OwnIpAddress(address):
 
 
 def ListVisibleFiles(path):
-  """Returns a list of all visible files in a directory.
+  """Returns a list of visible files in a directory.
+
+  @type path: str
+  @param path: the directory to enumerate
+  @rtype: list
+  @return: the list of all files not starting with a dot
 
   """
   files = [i for i in os.listdir(path) if not i.startswith(".")]
@@ -926,6 +1037,10 @@ def GetHomeDir(user, default=None):
 def NewUUID():
   """Returns a random UUID.
 
+  @note: This is a Linux-specific method as it uses the /proc
+      filesystem.
+  @rtype: str
+
   """
   f = open("/proc/sys/kernel/random/uuid", "r")
   try:
@@ -940,6 +1055,9 @@ def GenerateSecret():
   This will generate a pseudo-random secret, and return its sha digest
   (so that it can be used where an ASCII string is needed).
 
+  @rtype: str
+  @return: a sha1 hexdigest of a block of 64 random bytes
+
   """
   return sha.new(os.urandom(64)).hexdigest()
 
@@ -949,6 +1067,8 @@ def ReadFile(file_name, size=None):
 
   @type size: None or int
   @param size: Read at most size bytes
+  @rtype: str
+  @return: the (possibly partial) conent of the file
 
   """
   f = open(file_name, "r")
@@ -979,21 +1099,35 @@ def WriteFile(file_name, fn=None, data=None,
   exception, an existing target file should be unmodified and the
   temporary file should be removed.
 
-  Args:
-    file_name: New filename
-    fn: Content writing function, called with file descriptor as parameter
-    data: Content as string
-    mode: File mode
-    uid: Owner
-    gid: Group
-    atime: Access time
-    mtime: Modification time
-    close: Whether to close file after writing it
-    prewrite: Function object called before writing content
-    postwrite: Function object called after writing content
+  @type file_name: str
+  @param file_name: the target filename
+  @type fn: callable
+  @param fn: content writing function, called with
+      file descriptor as parameter
+  @type data: sr
+  @param data: contents of the file
+  @type mode: int
+  @param mode: file mode
+  @type uid: int
+  @param uid: the owner of the file
+  @type gid: int
+  @param gid: the group of the file
+  @type atime: int
+  @param atime: a custom access time to be set on the file
+  @type mtime: int
+  @param mtime: a custom modification time to be set on the file
+  @type close: boolean
+  @param close: whether to close file after writing it
+  @type prewrite: callable
+  @param prewrite: function to be called before writing content
+  @type postwrite: callable
+  @param postwrite: function to be called after writing content
 
-  Returns:
-    None if "close" parameter evaluates to True, otherwise file descriptor.
+  @rtype: None or int
+  @return: None if the 'close' parameter evaluates to True,
+      otherwise the file descriptor
+
+  @raise errors.ProgrammerError: if an of the arguments are not valid
 
   """
   if not os.path.isabs(file_name):
@@ -1051,9 +1185,16 @@ def FirstFree(seq, base=0):
   value, the index will be returned.
 
   The base argument is used to start at a different offset,
-  i.e. [3, 4, 6] with offset=3 will return 5.
+  i.e. C{[3, 4, 6]} with I{offset=3} will return 5.
 
-  Example: [0, 1, 3] will return 2.
+  Example: C{[0, 1, 3]} will return I{2}.
+
+  @type seq: sequence
+  @param seq: the sequence to be analyzed.
+  @type base: int
+  @param base: use this value as the base index of the sequence
+  @rtype: int
+  @return: the first non-used index in the sequence
 
   """
   for idx, elem in enumerate(seq):
@@ -1082,6 +1223,12 @@ def UniqueSequence(seq):
   """Returns a list with unique elements.
 
   Element order is preserved.
+
+  @type seq: sequence
+  @param seq: the sequence with the source elementes
+  @rtype: list
+  @return: list of unique elements from seq
+
   """
   seen = set()
   return [i for i in seq if i not in seen and not seen.add(i)]
@@ -1092,6 +1239,12 @@ def IsValidMac(mac):
 
   Checks wether the supplied MAC address is formally correct, only
   accepts colon separated format.
+
+  @type mac: str
+  @param mac: the MAC to be validated
+  @rtype: boolean
+  @return: True is the MAC seems valid
+
   """
   mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$")
   return mac_check.match(mac) is not None
@@ -1099,6 +1252,11 @@ def IsValidMac(mac):
 
 def TestDelay(duration):
   """Sleep for a fixed amount of time.
+
+  @type duration: float
+  @param duration: the sleep duration
+  @rtype: boolean
+  @return: False for negative value, True otherwise
 
   """
   if duration < 0:
@@ -1112,6 +1270,14 @@ def Daemonize(logfile, noclose_fds=None):
 
   This detaches the current process from the controlling terminal and
   runs it in the background as a daemon.
+
+  @type logfile: str
+  @param logfile: the logfile to which we should redirect stdout/stderr
+  @type noclose_fds: list or None
+  @param noclose_fds: if given, it denotes a list of file descriptor
+      that should not be closed
+  @rtype: int
+  @returns: the value zero
 
   """
   UMASK = 077
@@ -1161,7 +1327,13 @@ def Daemonize(logfile, noclose_fds=None):
 
 
 def DaemonPidFileName(name):
-  """Compute a ganeti pid file absolute path, given the daemon name.
+  """Compute a ganeti pid file absolute path
+
+  @type name: str
+  @param name: the daemon name
+  @rtype: str
+  @return: the full path to the pidfile corresponding to the given
+      daemon name
 
   """
   return os.path.join(constants.RUN_GANETI_DIR, "%s.pid" % name)
@@ -1170,7 +1342,12 @@ def DaemonPidFileName(name):
 def WritePidFile(name):
   """Write the current process pidfile.
 
-  The file will be written to constants.RUN_GANETI_DIR/name.pid
+  The file will be written to L{constants.RUN_GANETI_DIR}I{/name.pid}
+
+  @type name: str
+  @param name: the daemon name to use
+  @raise errors.GenericError: if the pid file already exists and
+      points to a live process
 
   """
   pid = os.getpid()
@@ -1185,6 +1362,9 @@ def RemovePidFile(name):
   """Remove the current process pidfile.
 
   Any errors are ignored.
+
+  @type name: str
+  @param name: the daemon name used to derive the pidfile name
 
   """
   pid = os.getpid()
@@ -1231,15 +1411,16 @@ def FindFile(name, search_path, test=os.path.exists):
   This is an abstract method to search for filesystem object (files,
   dirs) under a given search path.
 
-  Args:
-    - name: the name to look for
-    - search_path: list of directory names
-    - test: the test which the full path must satisfy
-      (defaults to os.path.exists)
-
-  Returns:
-    - full path to the item if found
-    - None otherwise
+  @type name: str
+  @param name: the name to look for
+  @type search_path: str
+  @param search_path: location to start at
+  @type test: callable
+  @param test: a function taking one argument that should return True
+      if the a given object is valid; the default value is
+      os.path.exists, causing only existing files to be returned
+  @rtype: str or None
+  @return: full path to the object if found, None otherwise
 
   """
   for dir_name in search_path:
@@ -1252,8 +1433,17 @@ def FindFile(name, search_path, test=os.path.exists):
 def CheckVolumeGroupSize(vglist, vgname, minsize):
   """Checks if the volume group list is valid.
 
-  A non-None return value means there's an error, and the return value
-  is the error message.
+  The function will check if a given volume group is in the list of
+  volume groups and has a minimum size.
+
+  @type vglist: dict
+  @param vglist: dictionary of volume group names and their size
+  @type vgname: str
+  @param vgname: the volume group we should check
+  @type minsize: int
+  @param minsize: the minimum size we accept
+  @rtype: None or str
+  @return: None for success, otherwise the error message
 
   """
   vgsize = vglist.get(vgname, None)
@@ -1305,8 +1495,10 @@ def GetNodeDaemonPort():
   """Get the node daemon port for this cluster.
 
   Note that this routine does not read a ganeti-specific file, but
-  instead uses socket.getservbyname to allow pre-customization of
+  instead uses C{socket.getservbyname} to allow pre-customization of
   this parameter outside of Ganeti.
+
+  @rtype: int
 
   """
   try:
@@ -1320,12 +1512,26 @@ def GetNodeDaemonPort():
 def GetNodeDaemonPassword():
   """Get the node password for the cluster.
 
+  @rtype: str
+
   """
   return ReadFile(constants.CLUSTER_PASSWORD_FILE)
 
 
 def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
   """Configures the logging module.
+
+  @type logfile: str
+  @param logfile: the filename to which we should log
+  @type debug: boolean
+  @param debug: whether to enable debug messages too or
+      only those at C{INFO} and above level
+  @type stderr_logging: boolean
+  @param stderr_logging: whether we should also log to the standard error
+  @type program: str
+  @param program: the name under which we should log messages
+  @raise EnvironmentError: if we can't open the log file and
+      stderr logging is disabled
 
   """
   fmt = "%(asctime)s: " + program + " "
@@ -1398,6 +1604,9 @@ def LockedMethod(fn):
 def LockFile(fd):
   """Locks a file using POSIX locks.
 
+  @type fd: int
+  @param fd: the file descriptor we need to lock
+
   """
   try:
     fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -1412,6 +1621,14 @@ class FileLock(object):
 
   """
   def __init__(self, filename):
+    """Constructor for FileLock.
+
+    This will open the file denoted by the I{filename} argument.
+
+    @type filename: str
+    @param filename: path to the file to be locked
+
+    """
     self.filename = filename
     self.fd = open(self.filename, "w")
 
@@ -1419,6 +1636,9 @@ class FileLock(object):
     self.Close()
 
   def Close(self):
+    """Close the file and release the lock.
+
+    """
     if self.fd:
       self.fd.close()
       self.fd = None
@@ -1427,14 +1647,14 @@ class FileLock(object):
     """Wrapper for fcntl.flock.
 
     @type flag: int
-    @param flag: Operation flag
+    @param flag: operation flag
     @type blocking: bool
-    @param blocking: Whether the operation should be done in blocking mode.
+    @param blocking: whether the operation should be done in blocking mode.
     @type timeout: None or float
-    @param timeout: For how long the operation should be retried (implies
+    @param timeout: for how long the operation should be retried (implies
                     non-blocking mode).
     @type errmsg: string
-    @param errmsg: Error message in case operation fails.
+    @param errmsg: error message in case operation fails.
 
     """
     assert self.fd, "Lock was closed"
@@ -1469,12 +1689,26 @@ class FileLock(object):
   def Exclusive(self, blocking=False, timeout=None):
     """Locks the file in exclusive mode.
 
+    @type blocking: boolean
+    @param blocking: whether to block and wait until we
+        can lock the file or return immediately
+    @type timeout: int or None
+    @param timeout: if not None, the duration to wait for the lock
+        (in blocking mode)
+
     """
     self._flock(fcntl.LOCK_EX, blocking, timeout,
                 "Failed to lock %s in exclusive mode" % self.filename)
 
   def Shared(self, blocking=False, timeout=None):
     """Locks the file in shared mode.
+
+    @type blocking: boolean
+    @param blocking: whether to block and wait until we
+        can lock the file or return immediately
+    @type timeout: int or None
+    @param timeout: if not None, the duration to wait for the lock
+        (in blocking mode)
 
     """
     self._flock(fcntl.LOCK_SH, blocking, timeout,
@@ -1483,9 +1717,18 @@ class FileLock(object):
   def Unlock(self, blocking=True, timeout=None):
     """Unlocks the file.
 
-    According to "man flock", unlocking can also be a nonblocking operation:
-    "To make a non-blocking request, include LOCK_NB with any of the above
-    operations"
+    According to C{flock(2)}, unlocking can also be a nonblocking
+    operation::
+
+      To make a non-blocking request, include LOCK_NB with any of the above
+      operations.
+
+    @type blocking: boolean
+    @param blocking: whether to block and wait until we
+        can lock the file or return immediately
+    @type timeout: int or None
+    @param timeout: if not None, the duration to wait for the lock
+        (in blocking mode)
 
     """
     self._flock(fcntl.LOCK_UN, blocking, timeout,
@@ -1495,14 +1738,21 @@ class FileLock(object):
 class SignalHandler(object):
   """Generic signal handler class.
 
-  It automatically restores the original handler when deconstructed or when
-  Reset() is called. You can either pass your own handler function in or query
-  the "called" attribute to detect whether the signal was sent.
+  It automatically restores the original handler when deconstructed or
+  when L{Reset} is called. You can either pass your own handler
+  function in or query the L{called} attribute to detect whether the
+  signal was sent.
+
+  @type signum: list
+  @ivar signum: the signals we handle
+  @type called: boolean
+  @ivar called: tracks whether any of the signals have been raised
 
   """
   def __init__(self, signum):
     """Constructs a new SignalHandler instance.
 
+    @type signum: int or list of ints
     @param signum: Single signal number or set of signal numbers
 
     """
@@ -1537,6 +1787,8 @@ class SignalHandler(object):
   def Reset(self):
     """Restore previous handler.
 
+    This will reset all the signals to their previous handlers.
+
     """
     for signum, prev_handler in self._previous.items():
       signal.signal(signum, prev_handler)
@@ -1544,7 +1796,7 @@ class SignalHandler(object):
       del self._previous[signum]
 
   def Clear(self):
-    """Unsets "called" flag.
+    """Unsets the L{called} flag.
 
     This function can be used in case a signal may arrive several times.
 
