@@ -185,7 +185,7 @@ class _QueuedJob(object):
 
     entries = []
     for op in self.ops:
-      entries.extend(filter(lambda entry: entry[0] > newer_than, op.log))
+      entries.extend(filter(lambda entry: entry[0] > serial, op.log))
 
     return entries
 
