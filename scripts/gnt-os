@@ -33,7 +33,13 @@ from ganeti import constants
 
 
 def ListOS(opts, args):
-  """List the OSes existing on this node.
+  """List the valid OSes in the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpDiagnoseOS(output_fields=["name", "valid"], names=[])
@@ -59,6 +65,12 @@ def ListOS(opts, args):
 
 def DiagnoseOS(opts, args):
   """Analyse all OSes on this cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be an empty list
+  @rtype: int
+  @return: the desired exit code
 
   """
   op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "node_status"],

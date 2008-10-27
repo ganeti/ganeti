@@ -39,6 +39,13 @@ from ganeti import errors
 def Delay(opts, args):
   """Sleeps for a while
 
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the duration
+      the sleep
+  @rtype: int
+  @return: the desired exit code
+
   """
   delay = float(args[0])
   op = opcodes.OpTestDelay(duration=delay,
@@ -50,7 +57,16 @@ def Delay(opts, args):
 
 
 def GenericOpCodes(opts, args):
-  """Send any opcode to the master
+  """Send any opcode to the master.
+
+  @todo: The function is broken and needs to be converted to the
+      current job queue API
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the path of
+      the file with the opcode definition
+  @rtype: int
+  @return: the desired exit code
 
   """
   fname = args[0]
@@ -96,8 +112,15 @@ def GenericOpCodes(opts, args):
 
 
 def TestAllocator(opts, args):
-  """Runs the test allocator opcode"""
+  """Runs the test allocator opcode.
 
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the iallocator name
+  @rtype: int
+  @return: the desired exit code
+
+  """
   try:
     disks = [{"size": utils.ParseUnit(val), "mode": 'w'}
              for val in opts.disks.split(",")]
