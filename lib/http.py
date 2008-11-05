@@ -37,6 +37,8 @@ from ganeti import serializer
 from ganeti import utils
 
 
+HTTP_GANETI_VERSION = "Ganeti %s" % constants.RELEASE_VERSION
+
 WEEKDAYNAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MONTHNAME = [None,
              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -66,7 +68,18 @@ HTTP_1_1 = "HTTP/1.1"
 
 HTTP_GET = "GET"
 HTTP_HEAD = "HEAD"
+HTTP_POST = "POST"
+HTTP_PUT = "PUT"
+
 HTTP_ETAG = "ETag"
+HTTP_HOST = "Host"
+HTTP_SERVER = "Server"
+HTTP_DATE = "Date"
+HTTP_USER_AGENT = "User-Agent"
+HTTP_CONTENT_TYPE = "Content-Type"
+HTTP_CONTENT_LENGTH = "Content-Length"
+HTTP_CONNECTION = "Connection"
+HTTP_KEEP_ALIVE = "Keep-Alive"
 
 
 class SocketClosed(socket.error):
@@ -192,9 +205,6 @@ class _HttpConnectionHandler(object):
   character encodings. Keep-alive connections are not supported.
 
   """
-  # String for "Server" header
-  server_version = "Ganeti %s" % constants.RELEASE_VERSION
-
   # The default request version.  This only affects responses up until
   # the point where the request line is parsed, so it mainly decides what
   # the client gets back when sending a malformed request line.
@@ -343,15 +353,15 @@ class _HttpConnectionHandler(object):
       self.wfile.write("%s %d %s\r\n" %
                        (self.request_version, self.response_code,
                         response_message))
-      self._SendHeader("Server", self.server_version)
-      self._SendHeader("Date", self._DateTimeHeader())
-      self._SendHeader("Content-Type", self.response_content_type)
-      self._SendHeader("Content-Length", str(len(self.response_body)))
+      self._SendHeader(HTTP_SERVER, HTTP_GANETI_VERSION)
+      self._SendHeader(HTTP_DATE, self._DateTimeHeader())
+      self._SendHeader(HTTP_CONTENT_TYPE, self.response_content_type)
+      self._SendHeader(HTTP_CONTENT_LENGTH, str(len(self.response_body)))
       for key, val in self.response_headers.iteritems():
         self._SendHeader(key, val)
 
       # We don't support keep-alive at this time
-      self._SendHeader("Connection", "close")
+      self._SendHeader(HTTP_CONNECTION, "close")
       self.wfile.write("\r\n")
 
     if (self.request_method != HTTP_HEAD and
@@ -431,7 +441,8 @@ class _HttpConnectionHandler(object):
     """Reads POST/PUT data
 
     """
-    if not self.request_method or self.request_method.upper() not in ("POST", "PUT"):
+    if (not self.request_method or
+        self.request_method.upper() not in (HTTP_POST, HTTP_PUT)):
       self.request_post_data = None
       return
 
