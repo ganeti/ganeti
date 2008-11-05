@@ -4411,7 +4411,7 @@ class LUGrowDisk(LogicalUnit):
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance)
     if self.op.wait_for_sync:
-      disk_abort = not _WaitForSync(self.cfg, instance, self.proc)
+      disk_abort = not _WaitForSync(self, instance)
       if disk_abort:
         self.proc.LogWarning("Warning: disk sync-ing has not returned a good"
                              " status.\nPlease check the instance.")
