@@ -440,17 +440,32 @@ class _HttpConnectionHandler(object):
   def _ReadPostData(self):
     """Reads POST/PUT data
 
+    Quoting RFC1945, section 7.2 (HTTP/1.0): "The presence of an entity body in
+    a request is signaled by the inclusion of a Content-Length header field in
+    the request message headers. HTTP/1.0 requests containing an entity body
+    must include a valid Content-Length header field."
+
     """
+    # While not according to specification, we only support an entity body for
+    # POST and PUT.
     if (not self.request_method or
         self.request_method.upper() not in (HTTP_POST, HTTP_PUT)):
       self.request_post_data = None
       return
 
-    # TODO: Decide what to do when Content-Length header was not sent
+    content_length = None
     try:
-      content_length = int(self.request_headers.get('Content-Length', 0))
+      if HTTP_CONTENT_LENGTH in self.request_headers:
+        content_length = int(self.request_headers[HTTP_CONTENT_LENGTH])
+    except TypeError:
+      pass
     except ValueError:
-      raise HTTPBadRequest("No Content-Length header or invalid format")
+      pass
+
+    # 411 Length Required is specified in RFC2616, section 10.4.12 (HTTP/1.1)
+    if content_length is None:
+      raise HTTPLengthRequired("Missing Content-Length header or"
+                               " invalid format")
 
     data = self.rfile.read(content_length)
 
