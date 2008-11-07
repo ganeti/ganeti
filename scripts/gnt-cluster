@@ -94,7 +94,9 @@ def InitCluster(opts, args):
     ToStderr("%s must be an integer", constants.BE_VCPUS)
     return 1
 
-  beparams[constants.BE_MEMORY] = utils.ParseUnit(beparams[constants.BE_MEMORY])
+  if not isinstance(beparams[constants.BE_MEMORY], int):
+    beparams[constants.BE_MEMORY] = utils.ParseUnit(
+        beparams[constants.BE_MEMORY])
 
   # prepare hvparams dict
   for hv in constants.HYPER_TYPES:
