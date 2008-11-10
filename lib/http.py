@@ -87,6 +87,8 @@ HTTP_CONTENT_LENGTH = "Content-Length"
 HTTP_CONNECTION = "Connection"
 HTTP_KEEP_ALIVE = "Keep-Alive"
 
+_SSL_UNEXPECTED_EOF = "Unexpected EOF"
+
 
 class SocketClosed(socket.error):
   pass
@@ -1252,7 +1254,7 @@ class _SSLFileObject(object):
       # TODO
 
       except OpenSSL.SSL.SysCallError, (retval, desc):
-        if ((retval == -1 and desc == "Unexpected EOF")
+        if ((retval == -1 and desc == _SSL_UNEXPECTED_EOF)
             or retval > 0):
           self._ConnectionLost()
           return ""
