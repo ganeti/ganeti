@@ -34,53 +34,111 @@ class Mainloop(object):
 
   """
   def __init__(self):
-    self._io_wait = []
+    """Constructs a new Mainloop instance.
+
+    """
+    self._io_wait = {}
+    self._io_wait_add = []
+    self._io_wait_remove = []
     self._signal_wait = []
-    self.sigchld_handler = None
-    self.sigterm_handler = None
-    self.quit = False
 
-  def Run(self):
-    # TODO: Does not yet support adding new event sources while running
+  def Run(self, handle_sigchld=True, handle_sigterm=True, stop_on_empty=False):
+    """Runs the mainloop.
+
+    @type handle_sigchld: bool
+    @param handle_sigchld: Whether to install handler for SIGCHLD
+    @type handle_sigterm: bool
+    @param handle_sigterm: Whether to install handler for SIGTERM
+    @type stop_on_empty: bool
+    @param stop_on_empty: Whether to stop mainloop once all I/O waiters
+                          unregistered
+
+    """
     poller = select.poll()
-    for (owner, fd, conditions) in self._io_wait:
-      poller.register(fd, conditions)
 
-    self.sigchld_handler = utils.SignalHandler([signal.SIGCHLD])
-    self.sigterm_handler = utils.SignalHandler([signal.SIGTERM])
+    # Setup signal handlers
+    if handle_sigchld:
+      sigchld_handler = utils.SignalHandler([signal.SIGCHLD])
+    else:
+      sigchld_handler = None
     try:
-      while not self.quit:
-        try:
-          io_events = poller.poll()
-        except select.error, err:
-          # EINTR can happen when signals are sent
-          if err.args and err.args[0] in (errno.EINTR,):
-            io_events = None
-          else:
-            raise
+      if handle_sigterm:
+        sigterm_handler = utils.SignalHandler([signal.SIGTERM])
+      else:
+        sigterm_handler = None
 
-        if io_events:
-          # Check for I/O events
-          for (evfd, evcond) in io_events:
-            for (owner, fd, conditions) in self._io_wait:
-              if fd == evfd and evcond & conditions:
-                owner.OnIO(fd, evcond)
+      try:
+        running = True
 
-        # Check whether signal was raised
-        if self.sigchld_handler.called:
-          for owner in self._signal_wait:
-            owner.OnSignal(signal.SIGCHLD)
-          self.sigchld_handler.Clear()
+        # Start actual main loop
+        while running:
+          # Entries could be added again afterwards, hence removing first
+          if self._io_wait_remove:
+            for fd in self._io_wait_remove:
+              try:
+                poller.unregister(fd)
+              except KeyError:
+                pass
+              try:
+                del self._io_wait[fd]
+              except KeyError:
+                pass
+            self._io_wait_remove = []
 
-        if self.sigterm_handler.called:
-          self.quit = True
-          self.sigterm_handler.Clear()
+          # Add new entries
+          if self._io_wait_add:
+            for (owner, fd, conditions) in self._io_wait_add:
+              self._io_wait[fd] = owner
+              poller.register(fd, conditions)
+            self._io_wait_add = []
+
+          # Stop if nothing is listening anymore
+          if stop_on_empty and not self._io_wait:
+            break
+
+          # Wait for I/O events
+          try:
+            io_events = poller.poll()
+          except select.error, err:
+            # EINTR can happen when signals are sent
+            if err.args and err.args[0] in (errno.EINTR,):
+              io_events = None
+            else:
+              raise
+
+          if io_events:
+            # Check for I/O events
+            for (evfd, evcond) in io_events:
+              owner = self._io_wait.get(evfd, None)
+              if owner:
+                owner.OnIO(evfd, evcond)
+
+          # Check whether signal was raised
+          if sigchld_handler and sigchld_handler.called:
+            self._CallSignalWaiters(signal.SIGCHLD)
+            sigchld_handler.Clear()
+
+          if sigterm_handler and sigterm_handler.called:
+            self._CallSignalWaiters(signal.SIGTERM)
+            running = False
+            sigterm_handler.Clear()
+      finally:
+        # Restore signal handlers
+        if sigterm_handler:
+          sigterm_handler.Reset()
     finally:
-      self.sigchld_handler.Reset()
-      self.sigchld_handler = None
-      self.sigterm_handler.Reset()
-      self.sigterm_handler = None
+      if sigchld_handler:
+        sigchld_handler.Reset()
 
+  def _CallSignalWaiters(self, signum):
+    """Calls all signal waiters for a certain signal.
+
+    @type signum: int
+    @param signum: Signal number
+
+    """
+    for owner in self._signal_wait:
+      owner.OnSignal(signal.SIGCHLD)
 
   def RegisterIO(self, owner, fd, condition):
     """Registers a receiver for I/O notifications
@@ -96,7 +154,26 @@ class Mainloop(object):
                       (see select module)
 
     """
-    self._io_wait.append((owner, fd, condition))
+    # select.Poller also supports file() like objects, but we don't.
+    assert isinstance(fd, (int, long)), \
+      "Only integers are supported for file descriptors"
+
+    self._io_wait_add.append((owner, fd, condition))
+
+  def UnregisterIO(self, fd):
+    """Unregister a file descriptor.
+
+    It'll be unregistered the next time the mainloop checks for it.
+
+    @type fd: int
+    @param fd: File descriptor
+
+    """
+    # select.Poller also supports file() like objects, but we don't.
+    assert isinstance(fd, (int, long)), \
+      "Only integers are supported for file descriptors"
+
+    self._io_wait_remove.append(fd)
 
   def RegisterSignal(self, owner):
     """Registers a receiver for signal notifications
