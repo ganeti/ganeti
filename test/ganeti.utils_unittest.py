@@ -139,7 +139,7 @@ class TestPidFileFunctions(unittest.TestCase):
     read_pid = utils.ReadPidFile(pid_file)
     self.failUnlessEqual(read_pid, new_pid)
     self.failUnless(utils.IsProcessAlive(new_pid))
-    utils.KillProcess(new_pid)
+    utils.KillProcess(new_pid, waitpid=True)
     self.failIf(utils.IsProcessAlive(new_pid))
     utils.RemovePidFile('child')
     self.failUnlessRaises(ProgrammerError, utils.KillProcess, 0)

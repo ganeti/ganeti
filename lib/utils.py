@@ -1385,7 +1385,8 @@ def RemovePidFile(name):
     pass
 
 
-def KillProcess(pid, signal_=signal.SIGTERM, timeout=30):
+def KillProcess(pid, signal_=signal.SIGTERM, timeout=30,
+                waitpid=False):
   """Kill a process given by its pid.
 
   @type pid: int
@@ -1396,22 +1397,35 @@ def KillProcess(pid, signal_=signal.SIGTERM, timeout=30):
   @param timeout: The timeout after which, if the process is still alive,
                   a SIGKILL will be sent. If not positive, no such checking
                   will be done
+  @type waitpid: boolean
+  @param waitpid: If true, we should waitpid on this process after
+      sending signals, since it's our own child and otherwise it
+      would remain as zombie
 
   """
+  def _helper(pid, signal_, wait):
+    """Simple helper to encapsulate the kill/waitpid sequence"""
+    os.kill(pid, signal_)
+    if wait:
+      try:
+        os.waitpid(pid, os.WNOHANG)
+      except OSError:
+        pass
+
   if pid <= 0:
     # kill with pid=0 == suicide
     raise errors.ProgrammerError("Invalid pid given '%s'" % pid)
 
   if not IsProcessAlive(pid):
     return
-  os.kill(pid, signal_)
+  _helper(pid, signal_, waitpid)
   if timeout <= 0:
     return
   end = time.time() + timeout
   while time.time() < end and IsProcessAlive(pid):
     time.sleep(0.1)
   if IsProcessAlive(pid):
-    os.kill(pid, signal.SIGKILL)
+    _helper(pid, signal.SIGKILL, wait)
 
 
 def FindFile(name, search_path, test=os.path.exists):
