@@ -606,21 +606,16 @@ def AddOSToInstance(instance):
   """
   inst_os = OSFromDisk(instance.os)
 
-  create_script = inst_os.create_script
   create_env = OSEnvironment(instance)
 
   logfile = "%s/add-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
                                      instance.name, int(time.time()))
-  if not os.path.exists(constants.LOG_OS_DIR):
-    os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  command = utils.BuildShellCmd("cd %s && %s &>%s",
-                                inst_os.path, create_script, logfile)
-
-  result = utils.RunCmd(command, env=create_env)
+  result = utils.RunCmd([inst_os.create_script], env=create_env,
+                        cwd=inst_os.path, output=logfile,)
   if result.failed:
     logging.error("os create command '%s' returned error: %s, logfile: %s,"
-                  " output: %s", command, result.fail_reason, logfile,
+                  " output: %s", result.cmd, result.fail_reason, logfile,
                   result.output)
     return False
 
@@ -640,24 +635,19 @@ def RunRenameInstance(instance, old_name):
   """
   inst_os = OSFromDisk(instance.os)
 
-  script = inst_os.rename_script
   rename_env = OSEnvironment(instance)
   rename_env['OLD_INSTANCE_NAME'] = old_name
 
   logfile = "%s/rename-%s-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
                                            old_name,
                                            instance.name, int(time.time()))
-  if not os.path.exists(constants.LOG_OS_DIR):
-    os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  command = utils.BuildShellCmd("cd %s && %s &>%s",
-                                inst_os.path, script, logfile)
-
-  result = utils.RunCmd(command, env=rename_env)
+  result = utils.RunCmd([inst_os.rename_script], env=rename_env,
+                        cwd=inst_os.path, output=logfile)
 
   if result.failed:
     logging.error("os create command '%s' returned error: %s output: %s",
-                  command, result.fail_reason, result.output)
+                  result.cmd, result.fail_reason, result.output)
     return False
 
   return True
@@ -1682,8 +1672,8 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
   comprcmd = "gunzip"
-  impcmd = utils.BuildShellCmd("(cd %s; %s &>%s)", inst_os.path, import_script,
-                               logfile)
+  impcmd = utils.BuildShellCmd("(cd %s; %s >%s 2>&1)", inst_os.path,
+                               import_script, logfile)
 
   final_result = []
   for idx, image in enumerate(src_images):
