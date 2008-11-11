@@ -306,7 +306,7 @@ srclinks: stamp-directories
 
 .PHONY: ganeti
 ganeti:
-	cd $(top_builddir) && rm -f $@ && $(LN_S) lib $@
+	cd $(top_builddir) && test -h "$@" || { rm -f $@ && $(LN_S) lib $@; }
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:
