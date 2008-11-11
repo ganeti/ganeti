@@ -2480,8 +2480,7 @@ class LUReinstallInstance(LogicalUnit):
     _StartInstanceDisks(self, inst, None)
     try:
       feedback_fn("Running the instance OS create scripts...")
-      if not self.rpc.call_instance_os_add(inst.primary_node, inst,
-                                           "sda", "sdb"):
+      if not self.rpc.call_instance_os_add(inst.primary_node, inst):
         raise errors.OpExecError("Could not install OS for instance %s"
                                  " on node %s" %
                                  (inst.name, inst.primary_node))
