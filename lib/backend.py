@@ -472,7 +472,7 @@ def AddOSToInstance(instance, os_disk, swap_disk):
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  command = utils.BuildShellCmd("cd %s && %s -i %s -b %s -s %s &>%s",
+  command = utils.BuildShellCmd("cd %s && %s -i %s -b %s -s %s >%s 2>&1",
                                 inst_os.path, create_script, instance.name,
                                 real_os_dev.dev_path, real_swap_dev.dev_path,
                                 logfile)
@@ -529,7 +529,7 @@ def RunRenameInstance(instance, old_name, os_disk, swap_disk):
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
-  command = utils.BuildShellCmd("cd %s && %s -o %s -n %s -b %s -s %s &>%s",
+  command = utils.BuildShellCmd("cd %s && %s -o %s -n %s -b %s -s %s >%s 2>&1",
                                 inst_os.path, script, old_name, instance.name,
                                 real_os_dev.dev_path, real_swap_dev.dev_path,
                                 logfile)
@@ -1505,7 +1505,7 @@ def ImportOSIntoInstance(instance, os_disk, swap_disk, src_node, src_image):
   remotecmd = ssh.BuildSSHCmd(src_node, constants.GANETI_RUNAS, destcmd)
 
   comprcmd = "gunzip"
-  impcmd = utils.BuildShellCmd("(cd %s; %s -i %s -b %s -s %s &>%s)",
+  impcmd = utils.BuildShellCmd("(cd %s; %s -i %s -b %s -s %s >%s 2>&1)",
                                inst_os.path, import_script, instance.name,
                                real_os_dev.dev_path, real_swap_dev.dev_path,
                                logfile)
