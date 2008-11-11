@@ -648,6 +648,30 @@ def ParseOptions():
   return options, args
 
 
+def EnsureRuntimeEnvironment():
+  """Ensure our run-time environment is complete.
+
+  Currently this creates directories which could be missing, either
+  due to directories being on a tmpfs mount, or due to incomplete
+  packaging.
+
+  """
+  dirs = [(val, 0755) for val in constants.SUB_RUN_DIRS]
+  dirs.append((constants.LOG_OS_DIR, 0750))
+  for dir_name, dir_mode in dirs:
+    if not os.path.exists(dir_name):
+      try:
+        os.mkdir(dir_name, dir_mode)
+      except EnvironmentError, err:
+        if err.errno != errno.EEXIST:
+          print ("Node setup wrong, cannot create directory '%s': %s" %
+                 (dir_name, err))
+          sys.exit(5)
+    if not os.path.isdir(dir_name):
+      print ("Node setup wrong, '%s' is not a directory" % dir_name)
+      sys.exit(5)
+
+
 def main():
   """Main function for the node daemon.
 
@@ -668,20 +692,7 @@ def main():
     print "Cluster configuration incomplete: '%s'" % str(err)
     sys.exit(5)
 
-  # create the various SUB_RUN_DIRS, if not existing, so that we handle the
-  # situation where RUN_DIR is tmpfs
-  for dir_name in constants.SUB_RUN_DIRS:
-    if not os.path.exists(dir_name):
-      try:
-        os.mkdir(dir_name, 0755)
-      except EnvironmentError, err:
-        if err.errno != errno.EEXIST:
-          print ("Node setup wrong, cannot create directory %s: %s" %
-                 (dir_name, err))
-          sys.exit(5)
-    if not os.path.isdir(dir_name):
-      print ("Node setup wrong, %s is not a directory" % dir_name)
-      sys.exit(5)
+  EnsureRuntimeEnvironment()
 
   # become a daemon
   if options.fork:
