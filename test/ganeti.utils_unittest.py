@@ -50,36 +50,10 @@ from ganeti.errors import LockError, UnitParseError, GenericError, \
 class TestIsProcessAlive(unittest.TestCase):
   """Testing case for IsProcessAlive"""
 
-  def _CreateZombie(self):
-    # create a zombie
-    r_fd, w_fd = os.pipe()
-    pid_zombie = os.fork()
-    if pid_zombie == 0:
-      # explicit close of read, write end will be closed only due to exit
-      os.close(r_fd)
-      os._exit(0)
-    elif pid_zombie < 0:
-      raise SystemError("can't fork")
-    # parent: we close our end of the w_fd, so reads will error as
-    # soon as the OS cleans the child's filedescriptors on its exit
-    os.close(w_fd)
-    # wait for 60 seconds at max for the exit (pathological case, just
-    # so that the test doesn't hang indefinitely)
-    r_set, w_set, e_set = select.select([r_fd], [], [], 60)
-    if not r_set and not e_set:
-      self.fail("Timeout exceeded in zombie creation")
-    return pid_zombie
-
   def testExists(self):
     mypid = os.getpid()
     self.assert_(IsProcessAlive(mypid),
                  "can't find myself running")
-
-  def testZombie(self):
-    pid_zombie = self._CreateZombie()
-    is_zombie = not IsProcessAlive(pid_zombie)
-    self.assert_(is_zombie, "zombie not detected as zombie")
-    os.waitpid(pid_zombie, os.WNOHANG)
 
   def testNotExisting(self):
     pid_non_existing = os.fork()

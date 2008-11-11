@@ -352,8 +352,8 @@ def CheckDict(target, template, logname=None):
 def IsProcessAlive(pid):
   """Check if a given pid exists on the system.
 
-  @note: zombie processes treated as not alive, and giving a
-      pid M{<= 0} causes the function to return False.
+  @note: zombie status is not handled, so zombie processes
+      will be returned as alive
   @type pid: int
   @param pid: the process ID to check
   @rtype: boolean
@@ -364,22 +364,12 @@ def IsProcessAlive(pid):
     return False
 
   try:
-    f = open("/proc/%d/status" % pid)
-  except IOError, err:
+    os.stat("/proc/%d/status" % pid)
+    return True
+  except EnvironmentError, err:
     if err.errno in (errno.ENOENT, errno.ENOTDIR):
       return False
-
-  alive = True
-  try:
-    data = f.readlines()
-    if len(data) > 1:
-      state = data[1].split()
-      if len(state) > 1 and state[1] == "Z":
-        alive = False
-  finally:
-    f.close()
-
-  return alive
+    raise
 
 
 def ReadPidFile(pidfile):
