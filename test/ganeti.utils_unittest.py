@@ -245,6 +245,17 @@ class TestRunCmd(testutils.GanetiTestCase):
     finally:
       os.environ = old_env
 
+  def testDefaultCwd(self):
+    """Test default working directory"""
+    self.failUnlessEqual(RunCmd(["pwd"]).stdout.strip(), "/")
+
+  def testCwd(self):
+    """Test default working directory"""
+    self.failUnlessEqual(RunCmd(["pwd"], cwd="/").stdout.strip(), "/")
+    self.failUnlessEqual(RunCmd(["pwd"], cwd="/tmp").stdout.strip(), "/tmp")
+    cwd = os.getcwd()
+    self.failUnlessEqual(RunCmd(["pwd"], cwd=cwd).stdout.strip(), cwd)
+
 
 class TestRemoveFile(unittest.TestCase):
   """Test case for the RemoveFile function"""

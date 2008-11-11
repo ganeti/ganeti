@@ -112,7 +112,7 @@ class RunResult(object):
   output = property(_GetOutput, None, None, "Return full output")
 
 
-def RunCmd(cmd, env=None, output=None):
+def RunCmd(cmd, env=None, output=None, cwd='/'):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -126,6 +126,9 @@ def RunCmd(cmd, env=None, output=None):
   @param output: if desired, the output of the command can be
       saved in a file instead of the RunResult instance; this
       parameter denotes the file name (if not None)
+  @type cwd: string
+  @param cwd: if specified, will be used as the working
+      directory for the command; the default will be /
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise erors.ProgrammerError: if we call this when forks are disabled
@@ -149,9 +152,9 @@ def RunCmd(cmd, env=None, output=None):
     cmd_env.update(env)
 
   if output is None:
-    out, err, status = _RunCmdPipe(cmd, cmd_env, shell)
+    out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd)
   else:
-    status = _RunCmdFile(cmd, cmd_env, shell, output)
+    status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
     out = err = ""
 
   if status >= 0:
@@ -163,7 +166,7 @@ def RunCmd(cmd, env=None, output=None):
 
   return RunResult(exitcode, signal_, out, err, strcmd)
 
-def _RunCmdPipe(cmd, env, via_shell):
+def _RunCmdPipe(cmd, env, via_shell, cwd):
   """Run a command and return its output.
 
   @type  cmd: string or list
@@ -172,6 +175,8 @@ def _RunCmdPipe(cmd, env, via_shell):
   @param env: The environment to use
   @type via_shell: bool
   @param via_shell: if we should run via the shell
+  @type cwd: string
+  @param cwd: the working directory for the program
   @rtype: tuple
   @return: (out, err, status)
 
@@ -181,7 +186,8 @@ def _RunCmdPipe(cmd, env, via_shell):
                            stderr=subprocess.PIPE,
                            stdout=subprocess.PIPE,
                            stdin=subprocess.PIPE,
-                           close_fds=True, env=env)
+                           close_fds=True, env=env,
+                           cwd=cwd)
 
   child.stdin.close()
   poller.register(child.stdout, select.POLLIN)
@@ -218,7 +224,7 @@ def _RunCmdPipe(cmd, env, via_shell):
   return out, err, status
 
 
-def _RunCmdFile(cmd, env, via_shell, output):
+def _RunCmdFile(cmd, env, via_shell, output, cwd):
   """Run a command and save its output to a file.
 
   @type  cmd: string or list
@@ -229,6 +235,8 @@ def _RunCmdFile(cmd, env, via_shell, output):
   @param via_shell: if we should run via the shell
   @type output: str
   @param output: the filename in which to save the output
+  @type cwd: string
+  @param cwd: the working directory for the program
   @rtype: int
   @return: the exit status
 
@@ -239,7 +247,8 @@ def _RunCmdFile(cmd, env, via_shell, output):
                              stderr=subprocess.STDOUT,
                              stdout=fh,
                              stdin=subprocess.PIPE,
-                             close_fds=True, env=env)
+                             close_fds=True, env=env,
+                             cwd=cwd)
 
     child.stdin.close()
     status = child.wait()
