@@ -294,11 +294,7 @@ def SetupNodeDaemon(node, ssh_key_check):
   gntpass = utils.GetNodeDaemonPassword()
   if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
     raise errors.OpExecError("ganeti password corruption detected")
-  f = open(constants.SSL_CERT_FILE)
-  try:
-    gntpem = f.read(8192)
-  finally:
-    f.close()
+  gntpem = utils.ReadFile(constants.SSL_CERT_FILE)
   # in the base64 pem encoding, neither '!' nor '.' are valid chars,
   # so we use this to detect an invalid certificate; as long as the
   # cert doesn't contain this, the here-document will be correctly
