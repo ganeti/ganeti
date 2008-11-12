@@ -1558,6 +1558,10 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
 
+  # Remove all previously setup handlers
+  for handler in root_logger.handlers:
+    root_logger.removeHandler(handler)
+
   if stderr_logging:
     stderr_handler = logging.StreamHandler()
     stderr_handler.setFormatter(formatter)
