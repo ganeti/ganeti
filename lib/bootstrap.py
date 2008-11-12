@@ -38,8 +38,6 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import ssconf
 
-from ganeti.rpc import RpcRunner
-
 def _InitSSHSetup(node):
   """Setup the SSH configuration for the cluster.
 
@@ -229,7 +227,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
-  RpcRunner.call_node_start_master(hostname.name, True)
+  rpc.RpcRunner.call_node_start_master(hostname.name, True)
 
 
 def InitConfig(version, cluster_config, master_node_config,
@@ -274,9 +272,9 @@ def FinalizeClusterDestroy(master):
   begun in cmdlib.LUDestroyOpcode.
 
   """
-  if not RpcRunner.call_node_stop_master(master, True):
+  if not rpc.RpcRunner.call_node_stop_master(master, True):
     logging.warning("Could not disable the master role")
-  if not RpcRunner.call_node_leave_cluster(master):
+  if not rpc.RpcRunner.call_node_leave_cluster(master):
     logging.warning("Could not shutdown the node daemon and cleanup the node")
 
 
@@ -372,7 +370,7 @@ def MasterFailover():
 
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
-  if not RpcRunner.call_node_stop_master(old_master, True):
+  if not rpc.RpcRunner.call_node_stop_master(old_master, True):
     logging.error("Could not disable the master role on the old master"
                  " %s, please disable manually", old_master)
 
@@ -381,13 +379,13 @@ def MasterFailover():
 
   # Here we have a phase where no master should be running
 
-  if not RpcRunner.call_upload_file(cfg.GetNodeList(),
+  if not rpc.RpcRunner.call_upload_file(cfg.GetNodeList(),
                                     constants.CLUSTER_CONF_FILE):
     logging.error("Could not distribute the new configuration"
                   " to the other nodes, please check.")
 
 
-  if not RpcRunner.call_node_start_master(new_master, True):
+  if not rpc.RpcRunner.call_node_start_master(new_master, True):
     logging.error("Could not start the master role on the new master"
                   " %s, please check", new_master)
     rcode = 1
