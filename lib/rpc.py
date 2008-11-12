@@ -35,11 +35,10 @@ import socket
 import httplib
 import logging
 
-import simplejson
-
 from ganeti import utils
 from ganeti import objects
 from ganeti import http
+from ganeti import serializer
 
 
 class Client:
@@ -57,7 +56,7 @@ class Client:
   def __init__(self, procedure, args):
     self.procedure = procedure
     self.args = args
-    self.body = simplejson.dumps(args)
+    self.body = serializer.DumpJson(args, indent=False)
 
     self.port = utils.GetNodeDaemonPort()
     self.nodepw = utils.GetNodeDaemonPassword()
@@ -115,7 +114,7 @@ class Client:
 
     for name, req in self.nc.iteritems():
       if req.success and req.resp_status == http.HTTP_OK:
-        results[name] = simplejson.loads(req.resp_body)
+        results[name] = serializer.LoadJson(req.resp_body)
         continue
 
       if req.error:
