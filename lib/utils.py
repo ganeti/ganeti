@@ -1415,7 +1415,7 @@ def KillProcess(pid, signal_=signal.SIGTERM, timeout=30,
   while time.time() < end and IsProcessAlive(pid):
     time.sleep(0.1)
   if IsProcessAlive(pid):
-    _helper(pid, signal.SIGKILL, wait)
+    _helper(pid, signal.SIGKILL, waitpid)
 
 
 def FindFile(name, search_path, test=os.path.exists):
