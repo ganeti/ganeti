@@ -599,11 +599,7 @@ class RpcRunner(object):
         to optimize the RPC speed
 
     """
-    fh = file(file_name)
-    try:
-      data = fh.read()
-    finally:
-      fh.close()
+    data = utils.ReadFile(file_name)
     st = os.stat(file_name)
     params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
               st.st_atime, st.st_mtime]
