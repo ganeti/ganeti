@@ -245,6 +245,33 @@ class R_2_instances(baserlib.R_Generic):
     return job_id
 
 
+class R_2_instances_name_reboot(baserlib.R_Generic):
+  """/2/instances/[instance_name]/reboot resource.
+
+  Implements an instance reboot.
+
+  """
+
+  DOC_URI = "/2/instances/[instance_name]/reboot"
+
+  def GET(self):
+    """Reboot an instance.
+
+    """
+    instance_name = self.items[0]
+    reboot_type = self.queryargs.get('reboot_type',
+                                     constants.INSTANCE_REBOOT_HARD)
+    ignore_secondaries = self.queryargs.get('ignore_secondaries', False)
+    op = ganeti.opcodes.OpRebootInstance(
+        instance_name=instance_name,
+        reboot_type=reboot_type,
+        ignore_secondaries=ignore_secondaries)
+
+    job_id = ganeti.cli.SendJob([op])
+
+    return job_id
+
+
 class R_2_instances_name_tags(baserlib.R_Generic):
   """/2/instances/[instance_name]/tags resource.
 
