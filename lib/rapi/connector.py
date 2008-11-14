@@ -142,5 +142,9 @@ CONNECTOR.update({
   re.compile(r'^/2/instances/([\w\._-]+)/tags$'): rlib2.R_2_instances_name_tags,
   re.compile(r'^/2/instances/([\w\._-]+)/reboot$'):
       rlib2.R_2_instances_name_reboot,
+  re.compile(r'^/2/instances/([\w\._-]+)/shutdown$'):
+      rlib2.R_2_instances_name_shutdown,
+  re.compile(r'^/2/instances/([\w\._-]+)/startup$'):
+      rlib2.R_2_instances_name_startup,
   re.compile(r'/2/jobs/(%s)$' % constants.JOB_ID_TEMPLATE): rlib2.R_2_jobs_id,
   })

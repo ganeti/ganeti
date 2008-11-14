@@ -257,15 +257,66 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
   def GET(self):
     """Reboot an instance.
 
+    The URI takes type=[hard|soft|full] and
+    ignore_secondaries=[False|True] parameters.
+
     """
     instance_name = self.items[0]
-    reboot_type = self.queryargs.get('reboot_type',
-                                     constants.INSTANCE_REBOOT_HARD)
-    ignore_secondaries = self.queryargs.get('ignore_secondaries', False)
+    reboot_type = self.queryargs.get('type',
+                                     [constants.INSTANCE_REBOOT_HARD])[0]
+    ignore_secondaries = bool(self.queryargs.get('ignore_secondaries',
+                                                 [False])[0])
     op = ganeti.opcodes.OpRebootInstance(
         instance_name=instance_name,
         reboot_type=reboot_type,
         ignore_secondaries=ignore_secondaries)
+
+    job_id = ganeti.cli.SendJob([op])
+
+    return job_id
+
+
+class R_2_instances_name_startup(baserlib.R_Generic):
+  """/2/instances/[instance_name]/startup resource.
+
+  Implements an instance startup.
+
+  """
+
+  DOC_URI = "/2/instances/[instance_name]/startup"
+
+  def GET(self):
+    """Startup an instance.
+
+    The URI takes force=[False|True] parameter to start the instance if even if
+    secondary disks are failing.
+
+    """
+    instance_name = self.items[0]
+    force_startup = bool(self.queryargs.get('force', [False])[0])
+    op = ganeti.opcodes.OpStartupInstance(instance_name=instance_name,
+                                          force=force_startup)
+
+    job_id = ganeti.cli.SendJob([op])
+
+    return job_id
+
+
+class R_2_instances_name_shutdown(baserlib.R_Generic):
+  """/2/instances/[instance_name]/shutdown resource.
+
+  Implements an instance shutdown.
+
+  """
+
+  DOC_URI = "/2/instances/[instance_name]/shutdown"
+
+  def GET(self):
+    """Shutdown an instance.
+
+    """
+    instance_name = self.items[0]
+    op = ganeti.opcodes.OpShutdownInstance(instance_name=instance_name)
 
     job_id = ganeti.cli.SendJob([op])
 
@@ -291,7 +342,7 @@ class R_2_instances_name_tags(baserlib.R_Generic):
   def POST(self):
     """Add a set of tags to the instance.
 
-    The reqest as a list of strings should be POST to this URI. And you'll have
+    The request as a list of strings should be POST to this URI. And you'll have
     back a job id.
 
     """
