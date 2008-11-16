@@ -85,6 +85,14 @@ design of Ganeti is required. While the cluster operations themselves
 won't change (e.g. start instance will do the same things, the way
 these operations are scheduled internally will change radically.
 
+The new design will change the cluster architecture to:
+
+.. image:: arch-2.0.png
+
+This differs from the 1.2 architecture by the addition of the master
+daemon, which will be the only entity to talk to the node daemons.
+
+
 Detailed design
 ===============
 

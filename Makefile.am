@@ -232,6 +232,11 @@ doc/%.html: doc/%.in $(DOCBOOK_WRAPPER)
 doc/%.html: doc/%.rst
 	$(RST2HTML) $< $@
 
+doc/%.png: doc/%.dot
+	$(DOT) -Tpng -o $@ $<
+
+doc/design-2.0.html: doc/design-2.0.rst doc/arch-2.0.png
+
 doc/rapi.pdf doc/rapi.html doc/rapi.in: doc/rapi-resources.sgml
 
 doc/rapi-resources.sgml: $(BUILD_RAPI_RESOURCE_DOC) lib/rapi/connector.py

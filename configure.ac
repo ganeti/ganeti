@@ -133,6 +133,14 @@ then
   AC_MSG_ERROR([rst2html not found])
 fi
 
+# Check for graphviz (dot)
+AC_ARG_VAR(DOT, [dot path])
+AC_PATH_PROG(DOT, [dot], [])
+if test -z "$DOT"
+then
+  AC_MSG_ERROR([dot (from the graphviz suite) not found])
+fi
+
 # Check for Python
 AM_PATH_PYTHON(2.4)
 

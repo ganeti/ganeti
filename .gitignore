@@ -32,6 +32,7 @@
 /doc/*.html
 /doc/*.in
 /doc/*.pdf
+/doc/*.png
 /doc/rapi-resources.sgml
 
 # doc/examples

@@ -9,6 +9,8 @@ Most dependencies from INSTALL, plus:
    http://sources.redhat.com/docbook-tools/
  - rst2html from Docutils
    http://docutils.sourceforge.net/
+ - graphviz
+   http://www.graphviz.org/
 
 
 Configuring for development
