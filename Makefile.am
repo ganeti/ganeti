@@ -106,15 +106,7 @@ docsgml = \
 	doc/iallocator.sgml
 
 docrst = \
-	doc/design-2.0-cluster-parameters.rst \
-	doc/design-2.0-commandline-parameters.rst \
-	doc/design-2.0-disk-handling.rst \
-	doc/design-2.0-index.rst \
-	doc/design-2.0-job-queue.rst \
-	doc/design-2.0-locking.rst \
-	doc/design-2.0-master-daemon.rst \
-	doc/design-2.0-os-interface.rst \
-	doc/design-2.0-rapi-changes.rst \
+	doc/design-2.0.rst \
 	doc/security.rst
 
 doc_DATA = \
