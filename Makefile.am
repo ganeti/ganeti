@@ -41,6 +41,7 @@ CLEANFILES = \
 	doc/*.html \
 	doc/*.in \
 	doc/*.pdf \
+	$(patsubst %.dot,%.png,$(docdot)) \
 	doc/rapi-resources.sgml \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
@@ -109,6 +110,9 @@ docrst = \
 	doc/design-2.0.rst \
 	doc/security.rst
 
+docdot = \
+	doc/arch-2.0.dot
+
 doc_DATA = \
 	$(patsubst %.rst,%.html,$(docrst)) \
 	$(patsubst %.sgml,%.html,$(docsgml)) \
@@ -139,6 +143,7 @@ EXTRA_DIST = \
 	autotools/docbook-wrapper \
 	devel/upload.in \
 	$(docrst) \
+	$(docdot) \
 	$(docsgml) \
 	doc/build-rapi-resources-doc \
 	doc/examples/ganeti.initd.in \
