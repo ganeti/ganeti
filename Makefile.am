@@ -191,18 +191,19 @@ TEST_FILES = \
 	test/data/proc_drbd8.txt
 
 dist_TESTS = \
-	test/ganeti.config_unittest.py \
-	test/ganeti.hooks_unittest.py \
-	test/ganeti.utils_unittest.py \
 	test/ganeti.bdev_unittest.py \
-	test/ganeti.ssh_unittest.py \
-	test/ganeti.locking_unittest.py \
-	test/ganeti.serializer_unittest.py \
-	test/ganeti.workerpool_unittest.py \
-	test/ganeti.rapi.resources_unittest.py \
-	test/ganeti.http_unittest.py \
+	test/ganeti.cli_unittest.py \
+	test/ganeti.cmdlib_unittest.py \
+	test/ganeti.config_unittest.py \
 	test/ganeti.constants_unittest.py \
-	test/ganeti.cli_unittest.py
+	test/ganeti.hooks_unittest.py \
+	test/ganeti.http_unittest.py \
+	test/ganeti.locking_unittest.py \
+	test/ganeti.rapi.resources_unittest.py \
+	test/ganeti.serializer_unittest.py \
+	test/ganeti.ssh_unittest.py \
+	test/ganeti.utils_unittest.py \
+	test/ganeti.workerpool_unittest.py
 
 nodist_TESTS =
 
