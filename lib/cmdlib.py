@@ -416,20 +416,20 @@ def _GetWantedInstances(lu, instances):
 def _CheckOutputFields(static, dynamic, selected):
   """Checks whether all selected fields are valid.
 
-  Args:
-    static: Static fields
-    dynamic: Dynamic fields
+  @type static: L{_FieldSet}
+  @param static: static fields set
+  @type dynamic: L{_FieldSet}
+  @param dynamic: dynamic fields set
 
   """
-  static_fields = frozenset(static)
-  dynamic_fields = frozenset(dynamic)
+  f = _FieldSet()
+  f.Extend(static)
+  f.Extend(dynamic)
 
-  all_fields = static_fields | dynamic_fields
-
-  if not all_fields.issuperset(selected):
+  delta = f.NonMatching(selected)
+  if delta:
     raise errors.OpPrereqError("Unknown output fields selected: %s"
-                               % ",".join(frozenset(selected).
-                                          difference(all_fields)))
+                               % ",".join(delta))
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
@@ -1362,14 +1362,15 @@ class LUDiagnoseOS(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
+  _FIELDS_STATIC = _FieldSet()
+  _FIELDS_DYNAMIC = _FieldSet("name", "valid", "node_status")
 
   def ExpandNames(self):
     if self.op.names:
       raise errors.OpPrereqError("Selective OS query not supported")
 
-    self.dynamic_fields = frozenset(["name", "valid", "node_status"])
-    _CheckOutputFields(static=[],
-                       dynamic=self.dynamic_fields,
+    _CheckOutputFields(static=self._FIELDS_STATIC,
+                       dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
     # Lock all nodes, in shared mode
@@ -1517,24 +1518,23 @@ class LUQueryNodes(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
+  _FIELDS_DYNAMIC = _FieldSet(
+    "dtotal", "dfree",
+    "mtotal", "mnode", "mfree",
+    "bootid",
+    "ctotal",
+    )
+
+  _FIELDS_STATIC = _FieldSet(
+    "name", "pinst_cnt", "sinst_cnt",
+    "pinst_list", "sinst_list",
+    "pip", "sip", "tags",
+    "serial_no",
+    )
 
   def ExpandNames(self):
-    self.dynamic_fields = frozenset([
-      "dtotal", "dfree",
-      "mtotal", "mnode", "mfree",
-      "bootid",
-      "ctotal",
-      ])
-
-    self.static_fields = frozenset([
-      "name", "pinst_cnt", "sinst_cnt",
-      "pinst_list", "sinst_list",
-      "pip", "sip", "tags",
-      "serial_no",
-      ])
-
-    _CheckOutputFields(static=self.static_fields,
-                       dynamic=self.dynamic_fields,
+    _CheckOutputFields(static=self._FIELDS_STATIC,
+                       dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
     self.needed_locks = {}
@@ -1545,7 +1545,7 @@ class LUQueryNodes(NoHooksLU):
     else:
       self.wanted = locking.ALL_SET
 
-    self.do_locking = not self.static_fields.issuperset(self.op.output_fields)
+    self.do_locking = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
     if self.do_locking:
       # if we don't request only static fields, we need to lock the nodes
       self.needed_locks[locking.LEVEL_NODE] = self.wanted
@@ -1580,7 +1580,7 @@ class LUQueryNodes(NoHooksLU):
 
     # begin data gathering
 
-    if self.dynamic_fields.intersection(self.op.output_fields):
+    if self.do_locking:
       live_data = {}
       node_data = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
                                           self.cfg.GetHypervisorType())
@@ -1641,7 +1641,7 @@ class LUQueryNodes(NoHooksLU):
           val = list(node.GetTags())
         elif field == "serial_no":
           val = node.serial_no
-        elif field in self.dynamic_fields:
+        elif self._FIELDS_DYNAMIC.Matches(field):
           val = live_data[node.name].get(field, None)
         else:
           raise errors.ParameterError(field)
@@ -1657,10 +1657,12 @@ class LUQueryNodeVolumes(NoHooksLU):
   """
   _OP_REQP = ["nodes", "output_fields"]
   REQ_BGL = False
+  _FIELDS_DYNAMIC = _FieldSet("phys", "vg", "name", "size", "instance")
+  _FIELDS_STATIC = _FieldSet("node")
 
   def ExpandNames(self):
-    _CheckOutputFields(static=["node"],
-                       dynamic=["phys", "vg", "name", "size", "instance"],
+    _CheckOutputFields(static=self._FIELDS_STATIC,
+                       dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
     self.needed_locks = {}
@@ -1977,13 +1979,14 @@ class LUQueryConfigValues(NoHooksLU):
   """
   _OP_REQP = []
   REQ_BGL = False
+  _FIELDS_DYNAMIC = _FieldSet()
+  _FIELDS_STATIC = _FieldSet("cluster_name", "master_node", "drain_flag")
 
   def ExpandNames(self):
     self.needed_locks = {}
 
-    static_fields = ["cluster_name", "master_node", "drain_flag"]
-    _CheckOutputFields(static=static_fields,
-                       dynamic=[],
+    _CheckOutputFields(static=self._FIELDS_STATIC,
+                       dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
   def CheckPrereq(self):
@@ -2711,22 +2714,22 @@ class LUQueryInstances(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
+  _FIELDS_STATIC = _FieldSet(*["name", "os", "pnode", "snodes",
+                               "admin_state", "admin_ram",
+                               "disk_template", "ip", "mac", "bridge",
+                               "sda_size", "sdb_size", "vcpus", "tags",
+                               "network_port", "beparams",
+                               "serial_no", "hypervisor", "hvparams",] +
+                             ["hv/%s" % name
+                              for name in constants.HVS_PARAMETERS] +
+                             ["be/%s" % name
+                              for name in constants.BES_PARAMETERS])
+  _FIELDS_DYNAMIC = _FieldSet("oper_state", "oper_ram", "status")
+
 
   def ExpandNames(self):
-    self.dynamic_fields = frozenset(["oper_state", "oper_ram", "status"])
-    hvp = ["hv/%s" % name for name in constants.HVS_PARAMETERS]
-    bep = ["be/%s" % name for name in constants.BES_PARAMETERS]
-    self.static_fields = frozenset([
-      "name", "os", "pnode", "snodes",
-      "admin_state", "admin_ram",
-      "disk_template", "ip", "mac", "bridge",
-      "sda_size", "sdb_size", "vcpus", "tags",
-      "network_port", "beparams",
-      "serial_no", "hypervisor", "hvparams",
-      ] + hvp + bep)
-
-    _CheckOutputFields(static=self.static_fields,
-                       dynamic=self.dynamic_fields,
+    _CheckOutputFields(static=self._FIELDS_STATIC,
+                       dynamic=self._FIELDS_DYNAMIC,
                        selected=self.op.output_fields)
 
     self.needed_locks = {}
@@ -2738,7 +2741,7 @@ class LUQueryInstances(NoHooksLU):
     else:
       self.wanted = locking.ALL_SET
 
-    self.do_locking = not self.static_fields.issuperset(self.op.output_fields)
+    self.do_locking = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
     if self.do_locking:
       self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted
       self.needed_locks[locking.LEVEL_NODE] = []
@@ -2780,7 +2783,7 @@ class LUQueryInstances(NoHooksLU):
     hv_list = list(set([inst.hypervisor for inst in instance_list]))
 
     bad_nodes = []
-    if self.dynamic_fields.intersection(self.op.output_fields):
+    if self.do_locking:
       live_data = {}
       node_data = self.rpc.call_all_instances_info(nodes, hv_list)
       for name in nodes:
