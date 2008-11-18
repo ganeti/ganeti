@@ -2719,6 +2719,9 @@ class LUQueryInstances(NoHooksLU):
                                "disk_template", "ip", "mac", "bridge",
                                "sda_size", "sdb_size", "vcpus", "tags",
                                "network_port", "beparams",
+                               "(disk).(size)/([0-9]+)",
+                               "(nic).(mac|ip|bridge)/([0-9]+)",
+                               "(disk|nic).(count)",
                                "serial_no", "hypervisor", "hvparams",] +
                              ["hv/%s" % name
                               for name in constants.HVS_PARAMETERS] +
@@ -2806,6 +2809,7 @@ class LUQueryInstances(NoHooksLU):
       i_hv = self.cfg.GetClusterInfo().FillHV(instance)
       i_be = self.cfg.GetClusterInfo().FillBE(instance)
       for field in self.op.output_fields:
+        st_match = self._FIELDS_STATIC.Matches(field)
         if field == "name":
           val = instance.name
         elif field == "os":
@@ -2875,6 +2879,39 @@ class LUQueryInstances(NoHooksLU):
         elif (field.startswith(BEPREFIX) and
               field[len(BEPREFIX):] in constants.BES_PARAMETERS):
           val = i_be.get(field[len(BEPREFIX):], None)
+        elif st_match and st_match.groups():
+          # matches a variable list
+          st_groups = st_match.groups()
+          if st_groups and st_groups[0] == "disk":
+            if st_groups[1] == "count":
+              val = len(instance.disks)
+            elif st_groups[1] == "size":
+              disk_idx = int(st_groups[2])
+              if disk_idx >= len(instance.disks):
+                val = None
+              else:
+                val = instance.disks[disk_idx].size
+            else:
+              assert False, "Unhandled disk parameter"
+          elif st_groups[0] == "nic":
+            if st_groups[1] == "count":
+              val = len(instance.nics)
+            else:
+              # index-based item
+              nic_idx = int(st_groups[2])
+              if nic_idx >= len(instance.nics):
+                val = None
+              else:
+                if st_groups[1] == "mac":
+                  val = instance.nics[nic_idx].mac
+                elif st_groups[1] == "ip":
+                  val = instance.nics[nic_idx].ip
+                elif st_groups[1] == "bridge":
+                  val = instance.nics[nic_idx].bridge
+                else:
+                  assert False, "Unhandled NIC parameter"
+          else:
+            assert False, "Unhandled variable parameter"
         else:
           raise errors.ParameterError(field)
         iout.append(val)

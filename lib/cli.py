@@ -755,8 +755,10 @@ def GenerateTable(headers, fields, separator, data,
   format_fields = []
   for field in fields:
     if headers and field not in headers:
-      raise errors.ProgrammerError("Missing header description for field '%s'"
-                                   % field)
+      # FIXME: handle better unknown fields (either revert to old
+      # style of raising exception, or deal more intelligently with
+      # variable fields)
+      headers[field] = field
     if separator is not None:
       format_fields.append("%s")
     elif field in numfields:
