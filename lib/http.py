@@ -551,7 +551,10 @@ class _HttpConnectionHandler(object):
     data = self.rfile.read(content_length)
 
     # TODO: Content-type, error handling
-    self.request_post_data = HTTPJsonConverter().Decode(data)
+    if data:
+      self.request_post_data = HTTPJsonConverter().Decode(data)
+    else:
+      self.request_post_data = None
 
     logging.debug("HTTP POST data: %s", self.request_post_data)
 
