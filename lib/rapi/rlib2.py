@@ -205,18 +205,8 @@ class R_2_instances(baserlib.R_Generic):
     """
     opts = self.req.request_post_data
 
-    # beparams
-    mem = opts.get('mem', None)
-    vcpus = opts.get('vcpus', None)
-    auto_balance = opts.get('auto_balance', None)
-
-    beparams = {}
-
-    for key, const in [(mem, constants.BE_MEMORY),
-                       (vcpus, constants.BE_VCPUS),
-                       (auto_balance, constants.BE_AUTO_BALANCE)]:
-      if key is not None:
-        beparams[const] = key
+    beparams = baserlib.MakeParamsDict(opts, constants.BES_PARAMETERS)
+    hvparams = baserlib.MakeParamsDict(opts, constants.HVS_PARAMETERS)
 
     op = ganeti.opcodes.OpCreateInstance(
         instance_name=opts.get('name'),
@@ -234,7 +224,7 @@ class R_2_instances(baserlib.R_Generic):
         wait_for_sync=opts.get('wait_for_sync', True),
         mac=opts.get('mac', 'auto'),
         hypervisor=opts.get('hypervisor', None),
-        hvparams=opts.get('hvparams', {}),
+        hvparams=hvparams,
         beparams=beparams,
         iallocator=opts.get('iallocator', None),
         file_storage_dir=opts.get('file_storage_dir', None),

@@ -122,6 +122,33 @@ def MapBulkFields(itemslist, fields):
   return items_details
 
 
+def MakeParamsDict(opts, params):
+  """ Makes params dictionary out of a option set.
+
+  This function returns a dictionary needed for hv or be parameters. But only
+  those fields which provided in the option set. Takes parameters frozensets
+  from constants.
+
+  @type opts: dict
+  @param opts: selected options
+  @type params: frozenset
+  @param params: subset of options
+  @rtype: dict
+  @return: dictionary of options, filtered by given subset.
+
+  """
+  result = {}
+
+  for p in params:
+    try:
+      value = opts[p]
+    except KeyError:
+      continue
+    result[p] = value
+
+  return result
+
+
 class R_Generic(object):
   """Generic class for resources.
 

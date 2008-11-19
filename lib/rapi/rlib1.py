@@ -285,6 +285,32 @@ class R_instances_name(baserlib.R_Generic):
 
     return job_id
 
+  def POST(self):
+    """Modify an instance.
+
+    """
+    instance_name = self.items[0]
+    opts = {}
+
+    for key in self.queryargs:
+      opts[key] = self.queryargs[key][0]
+
+    beparams = baserlib.MakeParamsDict(opts, constants.BES_PARAMETERS)
+    hvparams = baserlib.MakeParamsDict(opts, constants.HVS_PARAMETERS)
+
+    op = ganeti.opcodes.OpSetInstanceParams(
+        instance_name=instance_name,
+        ip=opts.get('ip', None),
+        bridge=opts.get('bridge', None),
+        mac=opts.get('mac', None),
+        hvparams=hvparams,
+        beparams=beparams,
+        force=opts.get('force', None))
+
+    job_id = ganeti.cli.SendJob([op])
+
+    return job_id
+
 
 class R_instances_name_tags(baserlib.R_Generic):
   """/instances/[instance_name]/tags resource.
