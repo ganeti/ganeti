@@ -195,15 +195,46 @@ class RpcRunner(object):
       addr = None
     client.ConnectNode(node, address=addr)
 
+  def _MultiNodeCall(self, node_list, procedure, args,
+                     address_list=None):
+    c = Client(procedure, args)
+    if address_list is None:
+      self._ConnectList(c, node_list)
+    else:
+      c.ConnectList(node_list, address_list=address_list)
+    return c.GetResults()
+
+  @classmethod
+  def _StaticMultiNodeCall(cls, node_list, procedure, args,
+                           address_list=None):
+    c = Client(procedure, args)
+    c.ConnectList(node_list, address_list=address_list)
+    return c.GetResults()
+
+  def _SingleNodeCall(self, node, procedure, args):
+    """
+
+    """
+    c = Client(procedure, args)
+    self._ConnectNode(c, node)
+    return c.GetResults().get(node, False)
+
+  @classmethod
+  def _StaticSingleNodeCall(cls, node, procedure, args):
+    """
+
+    """
+    c = Client(procedure, args)
+    c.ConnectNode(c, node)
+    return c.GetResults().get(node, False)
+
   def call_volume_list(self, node_list, vg_name):
     """Gets the logical volumes present in a given volume group.
 
     This is a multi-node call.
 
     """
-    c = Client("volume_list", [vg_name])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "volume_list", [vg_name])
 
   def call_vg_list(self, node_list):
     """Gets the volume group list.
@@ -211,9 +242,7 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    c = Client("vg_list", [])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "vg_list", [])
 
   def call_bridges_exist(self, node, bridges_list):
     """Checks if a node has all the bridges given.
@@ -225,9 +254,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("bridges_exist", [bridges_list])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "bridges_exist", [bridges_list])
 
   def call_instance_start(self, node, instance, extra_args):
     """Starts an instance.
@@ -235,9 +262,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("instance_start", [self._InstDict(instance), extra_args])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_start",
+                                [self._InstDict(instance), extra_args])
 
   def call_instance_shutdown(self, node, instance):
     """Stops an instance.
@@ -245,9 +271,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("instance_shutdown", [self._InstDict(instance)])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_shutdown",
+                                [self._InstDict(instance)])
 
   def call_instance_migrate(self, node, instance, target, live):
     """Migrate an instance.
@@ -265,9 +290,8 @@ class RpcRunner(object):
         interpretation of this parameter is left to the hypervisor)
 
     """
-    c = Client("instance_migrate", [self._InstDict(instance), target, live])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_migrate",
+                                [self._InstDict(instance), target, live])
 
   def call_instance_reboot(self, node, instance, reboot_type, extra_args):
     """Reboots an instance.
@@ -275,10 +299,9 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("instance_reboot", [self._InstDict(instance),
-                                   reboot_type, extra_args])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_reboot",
+                                [self._InstDict(instance), reboot_type,
+                                 extra_args])
 
   def call_instance_os_add(self, node, inst):
     """Installs an OS on the given instance.
@@ -286,10 +309,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [self._InstDict(inst)]
-    c = Client("instance_os_add", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_os_add",
+                                [self._InstDict(inst)])
 
   def call_instance_run_rename(self, node, inst, old_name):
     """Run the OS rename script for an instance.
@@ -297,27 +318,23 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [self._InstDict(inst), old_name]
-    c = Client("instance_run_rename", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_run_rename",
+                                [self._InstDict(inst), old_name])
 
   def call_instance_info(self, node, instance, hname):
     """Returns information about a single instance.
 
     This is a single-node call.
 
-    @type node_list: list
-    @param node_list: the list of nodes to query
+    @type node: list
+    @param node: the list of nodes to query
     @type instance: string
     @param instance: the instance name
     @type hname: string
     @param hname: the hypervisor type of the instance
 
     """
-    c = Client("instance_info", [instance, hname])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_info", [instance, hname])
 
   def call_all_instances_info(self, node_list, hypervisor_list):
     """Returns information about all instances on the given nodes.
@@ -330,9 +347,8 @@ class RpcRunner(object):
     @param hypervisor_list: the hypervisors to query for instances
 
     """
-    c = Client("all_instances_info", [hypervisor_list])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "all_instances_info",
+                               [hypervisor_list])
 
   def call_instance_list(self, node_list, hypervisor_list):
     """Returns the list of running instances on a given node.
@@ -345,9 +361,7 @@ class RpcRunner(object):
     @param hypervisor_list: the hypervisors to query for instances
 
     """
-    c = Client("instance_list", [hypervisor_list])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "instance_list", [hypervisor_list])
 
   def call_node_tcp_ping(self, node, source, target, port, timeout,
                          live_port_needed):
@@ -356,10 +370,9 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("node_tcp_ping", [source, target, port, timeout,
+    return self._SingleNodeCall(node, "node_tcp_ping",
+                                [source, target, port, timeout,
                                  live_port_needed])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
 
   def call_node_has_ip_address(self, node, address):
     """Checks if a node has the given IP address.
@@ -367,9 +380,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("node_has_ip_address", [address])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "node_has_ip_address", [address])
 
   def call_node_info(self, node_list, vg_name, hypervisor_type):
     """Return node information.
@@ -389,9 +400,8 @@ class RpcRunner(object):
         memory information
 
     """
-    c = Client("node_info", [vg_name, hypervisor_type])
-    self._ConnectList(c, node_list)
-    retux = c.GetResults()
+    retux = self._MultiNodeCall(node_list, "node_info",
+                                [vg_name, hypervisor_type])
 
     for node_name in retux:
       ret = retux.get(node_name, False)
@@ -399,14 +409,13 @@ class RpcRunner(object):
         logging.error("could not connect to node %s", node_name)
         ret = {}
 
-      utils.CheckDict(ret,
-                      { 'memory_total' : '-',
+      utils.CheckDict(ret, {
+                        'memory_total' : '-',
                         'memory_dom0' : '-',
                         'memory_free' : '-',
                         'vg_size' : 'node_unreachable',
-                        'vg_free' : '-' },
-                      "call_node_info",
-                      )
+                        'vg_free' : '-',
+                      }, "call_node_info")
     return retux
 
   def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
@@ -415,10 +424,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [dsa, dsapub, rsa, rsapub, ssh, sshpub]
-    c = Client("node_add", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "node_add",
+                                [dsa, dsapub, rsa, rsapub, ssh, sshpub])
 
   def call_node_verify(self, node_list, checkdict, cluster_name):
     """Request verification of given parameters.
@@ -426,43 +433,37 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    c = Client("node_verify", [checkdict, cluster_name])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "node_verify",
+                               [checkdict, cluster_name])
 
-  @staticmethod
-  def call_node_start_master(node, start_daemons):
+  @classmethod
+  def call_node_start_master(cls, node, start_daemons):
     """Tells a node to activate itself as a master.
 
     This is a single-node call.
 
     """
-    c = Client("node_start_master", [start_daemons])
-    c.ConnectNode(node)
-    return c.GetResults().get(node, False)
+    return cls._StaticSingleNodeCall(node, "node_start_master",
+                                     [start_daemons])
 
-  @staticmethod
-  def call_node_stop_master(node, stop_daemons):
+  @classmethod
+  def call_node_stop_master(cls, node, stop_daemons):
     """Tells a node to demote itself from master status.
 
     This is a single-node call.
 
     """
-    c = Client("node_stop_master", [stop_daemons])
-    c.ConnectNode(node)
-    return c.GetResults().get(node, False)
+    return cls._StaticSingleNodeCall(node, "node_stop_master", [stop_daemons])
 
-  @staticmethod
-  def call_master_info(node_list):
+  @classmethod
+  def call_master_info(cls, node_list):
     """Query master info.
 
     This is a multi-node call.
 
     """
     # TODO: should this method query down nodes?
-    c = Client("master_info", [])
-    c.ConnectList(node_list)
-    return c.GetResults()
+    return cls._StaticMultiNodeCall(node_list, "master_info", [])
 
   def call_version(self, node_list):
     """Query node version.
@@ -470,9 +471,7 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    c = Client("version", [])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "version", [])
 
   def call_blockdev_create(self, node, bdev, size, owner, on_primary, info):
     """Request creation of a given block device.
@@ -480,10 +479,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [bdev.ToDict(), size, owner, on_primary, info]
-    c = Client("blockdev_create", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_create",
+                                [bdev.ToDict(), size, owner, on_primary, info])
 
   def call_blockdev_remove(self, node, bdev):
     """Request removal of a given block device.
@@ -491,9 +488,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("blockdev_remove", [bdev.ToDict()])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_remove", [bdev.ToDict()])
 
   def call_blockdev_rename(self, node, devlist):
     """Request rename of the given block devices.
@@ -501,10 +496,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [(d.ToDict(), uid) for d, uid in devlist]
-    c = Client("blockdev_rename", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_rename",
+                                [(d.ToDict(), uid) for d, uid in devlist])
 
   def call_blockdev_assemble(self, node, disk, owner, on_primary):
     """Request assembling of a given block device.
@@ -512,10 +505,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [disk.ToDict(), owner, on_primary]
-    c = Client("blockdev_assemble", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_assemble",
+                                [disk.ToDict(), owner, on_primary])
 
   def call_blockdev_shutdown(self, node, disk):
     """Request shutdown of a given block device.
@@ -523,9 +514,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("blockdev_shutdown", [disk.ToDict()])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_shutdown", [disk.ToDict()])
 
   def call_blockdev_addchildren(self, node, bdev, ndevs):
     """Request adding a list of children to a (mirroring) device.
@@ -533,10 +522,9 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
-    c = Client("blockdev_addchildren", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_addchildren",
+                                [bdev.ToDict(),
+                                 [disk.ToDict() for disk in ndevs]])
 
   def call_blockdev_removechildren(self, node, bdev, ndevs):
     """Request removing a list of children from a (mirroring) device.
@@ -544,10 +532,9 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [bdev.ToDict(), [disk.ToDict() for disk in ndevs]]
-    c = Client("blockdev_removechildren", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_removechildren",
+                                [bdev.ToDict(),
+                                 [disk.ToDict() for disk in ndevs]])
 
   def call_blockdev_getmirrorstatus(self, node, disks):
     """Request status of a (mirroring) device.
@@ -555,10 +542,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [dsk.ToDict() for dsk in disks]
-    c = Client("blockdev_getmirrorstatus", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_getmirrorstatus",
+                                [dsk.ToDict() for dsk in disks])
 
   def call_blockdev_find(self, node, disk):
     """Request identification of a given block device.
@@ -566,9 +551,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("blockdev_find", [disk.ToDict()])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_find", [disk.ToDict()])
 
   def call_blockdev_close(self, node, disks):
     """Closes the given block devices.
@@ -576,13 +559,11 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [cf.ToDict() for cf in disks]
-    c = Client("blockdev_close", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_close",
+                                [cf.ToDict() for cf in disks])
 
-  @staticmethod
-  def call_upload_file(node_list, file_name, address_list=None):
+  @classmethod
+  def call_upload_file(cls, node_list, file_name, address_list=None):
     """Upload a file.
 
     The node will refuse the operation in case the file is not on the
@@ -603,9 +584,8 @@ class RpcRunner(object):
     st = os.stat(file_name)
     params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
               st.st_atime, st.st_mtime]
-    c = Client("upload_file", params)
-    c.ConnectList(node_list, address_list=address_list)
-    return c.GetResults()
+    return cls._StaticMultiNodeCall(node_list, "upload_file", params,
+                                    address_list=address_list)
 
   def call_os_diagnose(self, node_list):
     """Request a diagnose of OS definitions.
@@ -613,9 +593,8 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    c = Client("os_diagnose", [])
-    self._ConnectList(c, node_list)
-    result = c.GetResults()
+    result = self._MultiNodeCall(node_list, "os_diagnose", [])
+
     new_result = {}
     for node_name in result:
       if result[node_name]:
@@ -631,9 +610,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("os_get", [name])
-    self._ConnectNode(c, node)
-    result = c.GetResults().get(node, False)
+    result = self._SingleNodeCall(node, "os_get", [name])
     if isinstance(result, dict):
       return objects.OS.FromDict(result)
     else:
@@ -650,10 +627,7 @@ class RpcRunner(object):
 
     """
     params = [hpath, phase, env]
-    c = Client("hooks_runner", params)
-    self._ConnectList(c, node_list)
-    result = c.GetResults()
-    return result
+    return self._MultiNodeCall(node_list, "hooks_runner", params)
 
   def call_iallocator_runner(self, node, name, idata):
     """Call an iallocator on a remote node
@@ -665,11 +639,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [name, idata]
-    c = Client("iallocator_runner", params)
-    self._ConnectNode(c, node)
-    result = c.GetResults().get(node, False)
-    return result
+    return self._SingleNodeCall(node, "iallocator_runner", [name, idata])
 
   def call_blockdev_grow(self, node, cf_bdev, amount):
     """Request a snapshot of the given block device.
@@ -677,9 +647,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("blockdev_grow", [cf_bdev.ToDict(), amount])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_grow",
+                                [cf_bdev.ToDict(), amount])
 
   def call_blockdev_snapshot(self, node, cf_bdev):
     """Request a snapshot of the given block device.
@@ -687,9 +656,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("blockdev_snapshot", [cf_bdev.ToDict()])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "blockdev_snapshot", [cf_bdev.ToDict()])
 
   def call_snapshot_export(self, node, snap_bdev, dest_node, instance,
                            cluster_name, idx):
@@ -698,11 +665,9 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [snap_bdev.ToDict(), dest_node,
-              self._InstDict(instance), cluster_name, idx]
-    c = Client("snapshot_export", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "snapshot_export",
+                                [snap_bdev.ToDict(), dest_node,
+                                 self._InstDict(instance), cluster_name, idx])
 
   def call_finalize_export(self, node, instance, snap_disks):
     """Request the completion of an export operation.
@@ -715,10 +680,9 @@ class RpcRunner(object):
     flat_disks = []
     for disk in snap_disks:
       flat_disks.append(disk.ToDict())
-    params = [self._InstDict(instance), flat_disks]
-    c = Client("finalize_export", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+
+    return self._SingleNodeCall(node, "finalize_export",
+                                [self._InstDict(instance), flat_disks])
 
   def call_export_info(self, node, path):
     """Queries the export information in a given path.
@@ -726,9 +690,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("export_info", [path])
-    self._ConnectNode(c, node)
-    result = c.GetResults().get(node, False)
+    result = self._SingleNodeCall(node, "export_info", [path])
     if not result:
       return result
     return objects.SerializableConfigParser.Loads(str(result))
@@ -740,10 +702,9 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    params = [self._InstDict(inst), src_node, src_images, cluster_name]
-    c = Client("instance_os_import", params)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "instance_os_import",
+                                [self._InstDict(inst), src_node, src_images,
+                                 cluster_name])
 
   def call_export_list(self, node_list):
     """Gets the stored exports list.
@@ -751,10 +712,7 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    c = Client("export_list", [])
-    self._ConnectList(c, node_list)
-    result = c.GetResults()
-    return result
+    return self._MultiNodeCall(node_list, "export_list", [])
 
   def call_export_remove(self, node, export):
     """Requests removal of a given export.
@@ -762,12 +720,10 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("export_remove", [export])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "export_remove", [export])
 
-  @staticmethod
-  def call_node_leave_cluster(node):
+  @classmethod
+  def call_node_leave_cluster(cls, node):
     """Requests a node to clean the cluster information it has.
 
     This will remove the configuration information from the ganeti data
@@ -776,9 +732,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("node_leave_cluster", [])
-    c.ConnectNode(node)
-    return c.GetResults().get(node, False)
+    return cls._StaticSingleNodeCall(node, "node_leave_cluster", [])
 
   def call_node_volumes(self, node_list):
     """Gets all volumes on node(s).
@@ -786,9 +740,7 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    c = Client("node_volumes", [])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "node_volumes", [])
 
   def call_test_delay(self, node_list, duration):
     """Sleep for a fixed time on given node(s).
@@ -796,9 +748,7 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    c = Client("test_delay", [duration])
-    self._ConnectList(c, node_list)
-    return c.GetResults()
+    return self._MultiNodeCall(node_list, "test_delay", [duration])
 
   def call_file_storage_dir_create(self, node, file_storage_dir):
     """Create the given file storage directory.
@@ -806,9 +756,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("file_storage_dir_create", [file_storage_dir])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "file_storage_dir_create",
+                                [file_storage_dir])
 
   def call_file_storage_dir_remove(self, node, file_storage_dir):
     """Remove the given file storage directory.
@@ -816,9 +765,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("file_storage_dir_remove", [file_storage_dir])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "file_storage_dir_remove",
+                                [file_storage_dir])
 
   def call_file_storage_dir_rename(self, node, old_file_storage_dir,
                                    new_file_storage_dir):
@@ -827,49 +775,41 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    c = Client("file_storage_dir_rename",
-               [old_file_storage_dir, new_file_storage_dir])
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    return self._SingleNodeCall(node, "file_storage_dir_rename",
+                                [old_file_storage_dir, new_file_storage_dir])
 
-  @staticmethod
-  def call_jobqueue_update(node_list, address_list, file_name, content):
+  @classmethod
+  def call_jobqueue_update(cls, node_list, address_list, file_name, content):
     """Update job queue.
 
     This is a multi-node call.
 
     """
-    c = Client("jobqueue_update", [file_name, content])
-    c.ConnectList(node_list, address_list=address_list)
-    result = c.GetResults()
-    return result
+    return cls._StaticMultiNodeCall(node_list, "jobqueue_update",
+                                    [file_name, content],
+                                    address_list=address_list)
 
-  @staticmethod
-  def call_jobqueue_purge(node):
+  @classmethod
+  def call_jobqueue_purge(cls, node):
     """Purge job queue.
 
     This is a single-node call.
 
     """
-    c = Client("jobqueue_purge", [])
-    c.ConnectNode(node)
-    return c.GetResults().get(node, False)
+    return cls._StaticSingleNodeCall(node, "jobqueue_purge", [])
 
-  @staticmethod
-  def call_jobqueue_rename(node_list, address_list, old, new):
+  @classmethod
+  def call_jobqueue_rename(cls, node_list, address_list, old, new):
     """Rename a job queue file.
 
     This is a multi-node call.
 
     """
-    c = Client("jobqueue_rename", [old, new])
-    c.ConnectList(node_list, address_list=address_list)
-    result = c.GetResults()
-    return result
+    return cls._StaticMultiNodeCall(node_list, "jobqueue_rename", [old, new],
+                                    address_list=address_list)
 
-
-  @staticmethod
-  def call_jobqueue_set_drain(node_list, drain_flag):
+  @classmethod
+  def call_jobqueue_set_drain(cls, node_list, drain_flag):
     """Set the drain flag on the queue.
 
     This is a multi-node call.
@@ -880,11 +820,8 @@ class RpcRunner(object):
     @param drain_flag: if True, will set the drain flag, otherwise reset it.
 
     """
-    c = Client("jobqueue_set_drain", [drain_flag])
-    c.ConnectList(node_list)
-    result = c.GetResults()
-    return result
-
+    return cls._StaticMultiNodeCall(node_list, "jobqueue_set_drain",
+                                    [drain_flag])
 
   def call_hypervisor_validate_params(self, node_list, hvname, hvparams):
     """Validate the hypervisor params.
@@ -901,7 +838,5 @@ class RpcRunner(object):
     """
     cluster = self._cfg.GetClusterInfo()
     hv_full = cluster.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
-    c = Client("hypervisor_validate_params", [hvname, hv_full])
-    self._ConnectList(c, node_list)
-    result = c.GetResults()
-    return result
+    return self._MultiNodeCall(node_list, "hypervisor_validate_params",
+                               [hvname, hv_full])
