@@ -88,6 +88,7 @@ DISK_LINKS_DIR = RUN_GANETI_DIR + "/instance-disks"
 # daemon is started (this takes care of RUN_DIR being tmpfs)
 SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
+SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"

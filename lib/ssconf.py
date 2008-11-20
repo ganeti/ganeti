@@ -26,13 +26,15 @@ configuration data, which is mostly static and available to all nodes.
 
 """
 
-import socket
 import sys
 
 from ganeti import errors
 from ganeti import constants
 from ganeti import utils
 from ganeti import serializer
+
+
+SSCONF_LOCK_TIMEOUT = 10
 
 
 class SimpleConfigReader(object):
@@ -105,6 +107,40 @@ class SimpleConfigWriter(SimpleConfigReader):
     utils.WriteFile(self._file_name,
                     data=serializer.Dump(self._config_data),
                     mode=0600)
+
+
+def _SsconfPath(name):
+  return "%s/ssconf_%s" % (constants.DATA_DIR, name)
+
+
+def WriteSsconfFiles(file_name):
+  """Writes legacy ssconf files to be used by external scripts.
+
+  @type file_name: string
+  @param file_name: Path to configuration file
+
+  """
+  ssconf_lock = utils.FileLock(constants.SSCONF_LOCK_FILE)
+
+  # Read config
+  cfg = SimpleConfigReader(file_name=file_name)
+
+  # Get lock while writing files
+  ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
+  try:
+    utils.WriteFile(_SsconfPath("cluster_name"),
+                    data="%s\n" % cfg.GetClusterName())
+
+    utils.WriteFile(_SsconfPath("master_ip"),
+                    data="%s\n" % cfg.GetMasterIP())
+
+    utils.WriteFile(_SsconfPath("master_netdev"),
+                    data="%s\n" % cfg.GetMasterNetdev())
+
+    utils.WriteFile(_SsconfPath("master_node"),
+                    data="%s\n" % cfg.GetMasterNode())
+  finally:
+    ssconf_lock.Unlock()
 
 
 def GetMasterAndMyself(ss=None):
