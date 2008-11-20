@@ -249,12 +249,18 @@ class XenHypervisor(hv_base.BaseHypervisor):
       constants.FD_BLKTAP: "tap:aio",
       }
     disk_data = []
-    for cfdev, rldev in block_devices:
+    if len(block_devices) > 24:
+      # 'z' - 'a' = 24
+      raise errors.HypervisorError("Too many disks")
+    # FIXME: instead of this hardcoding here, each of PVM/HVM should
+    # directly export their info (currently HVM will just sed this info)
+    namespace = ["sd" + chr(i + ord('a')) for i in range(24)]
+    for sd_name, (cfdev, rldev) in zip(namespace, block_devices):
       if cfdev.dev_type == constants.LD_FILE:
         line = "'%s:%s,%s,w'" % (FILE_DRIVER_MAP[cfdev.physical_id[0]],
-                                 rldev.dev_path, cfdev.iv_name)
+                                 rldev.dev_path, sd_name)
       else:
-        line = "'phy:%s,%s,w'" % (rldev.dev_path, cfdev.iv_name)
+        line = "'phy:%s,%s,w'" % (rldev.dev_path, sd_name)
       disk_data.append(line)
 
     return disk_data
