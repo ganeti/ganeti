@@ -756,9 +756,12 @@ def ReplaceDisks(opts, args):
   new_2ndary = opts.new_secondary
   iallocator = opts.iallocator
   if opts.disks is None:
-    disks = ["sda", "sdb"]
+    disks = []
   else:
-    disks = opts.disks.split(",")
+    try:
+      disks = [int(i) for i in opts.disks.split(",")]
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
   if opts.on_primary == opts.on_secondary: # no -p or -s passed, or both passed
     mode = constants.REPLACE_DISK_ALL
   elif opts.on_primary: # only on primary:

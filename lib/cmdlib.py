@@ -4035,8 +4035,11 @@ class LUReplaceDisks(LogicalUnit):
       else:
         raise errors.ProgrammerError("Unhandled disk replace mode")
 
-    for name in self.op.disks:
-      if instance.FindDisk(name) is None:
+    if not self.op.disks:
+      self.op.disks = range(len(instance.disks))
+
+    for disk_idx in self.op.disks:
+      if disk_idx < 0 or disk_idx >= len(instance.disks):
         raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
                                    (name, instance.name))
 
@@ -4079,22 +4082,22 @@ class LUReplaceDisks(LogicalUnit):
       if not res or my_vg not in res:
         raise errors.OpExecError("Volume group '%s' not found on %s" %
                                  (my_vg, node))
-    for dev in instance.disks:
-      if not dev.iv_name in self.op.disks:
+    for idx, dev in enumerate(instance.disks):
+      if idx not in self.op.disks:
         continue
       for node in tgt_node, oth_node:
-        info("checking %s on %s" % (dev.iv_name, node))
+        info("checking disk/%d on %s" % (idx, node))
         cfg.SetDiskID(dev, node)
         if not self.rpc.call_blockdev_find(node, dev):
-          raise errors.OpExecError("Can't find device %s on node %s" %
-                                   (dev.iv_name, node))
+          raise errors.OpExecError("Can't find disk/%d on node %s" %
+                                   (idx, node))
 
     # Step: check other node consistency
     self.proc.LogStep(2, steps_total, "check peer consistency")
-    for dev in instance.disks:
-      if not dev.iv_name in self.op.disks:
+    for idx, dev in enumerate(instance.disks):
+      if idx not in self.op.disks:
         continue
-      info("checking %s consistency on %s" % (dev.iv_name, oth_node))
+      info("checking disk/%d consistency on %s" % (idx, oth_node))
       if not _CheckDiskConsistency(self, dev, oth_node,
                                    oth_node==instance.primary_node):
         raise errors.OpExecError("Peer node (%s) has degraded storage, unsafe"
@@ -4103,12 +4106,13 @@ class LUReplaceDisks(LogicalUnit):
 
     # Step: create new storage
     self.proc.LogStep(3, steps_total, "allocate new storage")
-    for dev in instance.disks:
-      if not dev.iv_name in self.op.disks:
+    for idx, dev in enumerate(instance.disks):
+      if idx not in self.op.disks:
         continue
       size = dev.size
       cfg.SetDiskID(dev, tgt_node)
-      lv_names = [".%s_%s" % (dev.iv_name, suf) for suf in ["data", "meta"]]
+      lv_names = [".disk%d_%s" % (idx, suf)
+                  for suf in ["data", "meta"]]
       names = _GenerateUniqueNames(self, lv_names)
       lv_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                              logical_id=(vgname, names[0]))
