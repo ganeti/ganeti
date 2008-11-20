@@ -2720,7 +2720,9 @@ class LUQueryInstances(NoHooksLU):
                                "sda_size", "sdb_size", "vcpus", "tags",
                                "network_port", "beparams",
                                "(disk).(size)/([0-9]+)",
+                               "(disk).(sizes)",
                                "(nic).(mac|ip|bridge)/([0-9]+)",
+                               "(nic).(macs|ips|bridges)",
                                "(disk|nic).(count)",
                                "serial_no", "hypervisor", "hvparams",] +
                              ["hv/%s" % name
@@ -2885,6 +2887,8 @@ class LUQueryInstances(NoHooksLU):
           if st_groups and st_groups[0] == "disk":
             if st_groups[1] == "count":
               val = len(instance.disks)
+            elif st_groups[1] == "sizes":
+              val = [disk.size for disk in instance.disks]
             elif st_groups[1] == "size":
               disk_idx = int(st_groups[2])
               if disk_idx >= len(instance.disks):
@@ -2896,6 +2900,12 @@ class LUQueryInstances(NoHooksLU):
           elif st_groups[0] == "nic":
             if st_groups[1] == "count":
               val = len(instance.nics)
+            elif st_groups[1] == "macs":
+              val = [nic.mac for nic in instance.nics]
+            elif st_groups[1] == "ips":
+              val = [nic.ip for nic in instance.nics]
+            elif st_groups[1] == "bridges":
+              val = [nic.bridge for nic in instance.nics]
             else:
               # index-based item
               nic_idx = int(st_groups[2])
