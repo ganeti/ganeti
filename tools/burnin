@@ -126,14 +126,11 @@ class Burner(object):
     parser.add_option("-o", "--os", dest="os", default=None,
                       help="OS to use during burnin",
                       metavar="<OS>")
-    parser.add_option("--os-size", dest="os_size", help="Disk size",
-                      default=4 * 1024, type="unit", metavar="<size>")
-    parser.add_option("--os-growth", dest="sda_growth", help="Disk growth",
-                      default=1024, type="unit", metavar="<size>")
-    parser.add_option("--swap-size", dest="swap_size", help="Swap size",
-                      default=4 * 1024, type="unit", metavar="<size>")
-    parser.add_option("--swap-growth", dest="sdb_growth", help="Swap growth",
-                      default=1024, type="unit", metavar="<size>")
+    parser.add_option("--disk-size", dest="disk_size",
+                      help="Disk size (determines disk count)",
+                      default="128m", type="string", metavar="<size,size,...>")
+    parser.add_option("--disk-growth", dest="disk_growth", help="Disk growth",
+                      default=128, type="string", metavar="<size,size,...>")
     parser.add_option("--mem-size", dest="mem_size", help="Memory size",
                       default=128, type="unit", metavar="<size>")
     parser.add_option("-v", "--verbose",
@@ -187,6 +184,20 @@ class Burner(object):
     if options.disk_template not in supported_disk_templates:
       Log("Unknown disk template '%s'" % options.disk_template)
       sys.exit(1)
+
+    disk_size = [utils.ParseUnit(v) for v in options.disk_size.split(",")]
+    disk_growth = [utils.ParseUnit(v) for v in options.disk_growth.split(",")]
+    if len(disk_growth) != len(disk_size):
+      Log("Wrong disk sizes/growth combination")
+      sys.exit(1)
+    if ((disk_size and options.disk_template == constants.DT_DISKLESS) or
+        (not disk_size and options.disk_template != constants.DT_DISKLESS)):
+      Log("Wrong disk count/disk template combination")
+      sys.exit(1)
+
+    self.disk_size = disk_size
+    self.disk_growth = disk_growth
+    self.disk_count = len(disk_size)
 
     if options.nodes and options.iallocator:
       Log("Give either the nodes option or the iallocator option, not both")
@@ -251,9 +262,10 @@ class Burner(object):
         Log("- Add instance %s on nodes %s/%s" % (instance, pnode, snode))
 
       op = opcodes.OpCreateInstance(instance_name=instance,
-                                    disk_size=self.opts.os_size,
-                                    swap_size=self.opts.swap_size,
+                                    disks = [ {"size": size}
+                                              for size in self.disk_size],
                                     disk_template=self.opts.disk_template,
+                                    nics=[{}],
                                     mode=constants.INSTANCE_CREATE,
                                     os_type=self.opts.os,
                                     pnode=pnode,
@@ -261,7 +273,6 @@ class Burner(object):
                                     start=True,
                                     ip_check=True,
                                     wait_for_sync=True,
-                                    mac="auto",
                                     file_driver="loop",
                                     file_storage_dir=None,
                                     iallocator=self.opts.iallocator,
@@ -283,12 +294,11 @@ class Burner(object):
   def GrowDisks(self):
     """Grow both the os and the swap disks by the requested amount, if any."""
     for instance in self.instances:
-      for disk in ['sda', 'sdb']:
-        growth = getattr(self.opts, '%s_growth' % disk)
+      for idx, growth in enumerate(self.disk_growth):
         if growth > 0:
-          op = opcodes.OpGrowDisk(instance_name=instance, disk=disk,
+          op = opcodes.OpGrowDisk(instance_name=instance, disk=idx,
                                   amount=growth, wait_for_sync=True)
-          Log("- Increase %s's %s disk by %s MB" % (instance, disk, growth))
+          Log("- Increase %s's %s disk by %s MB" % (instance, idx, growth))
           self.ExecOp(op)
 
   def ReplaceDisks1D8(self):
@@ -297,7 +307,7 @@ class Burner(object):
       for mode in constants.REPLACE_DISK_SEC, constants.REPLACE_DISK_PRI:
         op = opcodes.OpReplaceDisks(instance_name=instance,
                                     mode=mode,
-                                    disks=["sda", "sdb"])
+                                    disks=[i for i in range(self.disk_count)])
         Log("- Replace disks (%s) for instance %s" % (mode, instance))
         self.ExecOp(op)
 
@@ -314,7 +324,7 @@ class Burner(object):
                                   mode=mode,
                                   remote_node=tnode,
                                   iallocator=self.opts.iallocator,
-                                  disks=["sda", "sdb"])
+                                  disks=[i for i in range(self.disk_count)])
       Log("- Replace secondary (%s) for instance %s" % (mode, instance))
       self.ExecOp(op)
 

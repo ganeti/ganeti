@@ -280,7 +280,7 @@ def ShowJobs(opts, args):
         if key == "OP_ID":
           continue
         if isinstance(val, (tuple, list)):
-          val = ",".join(val)
+          val = ",".join([str(item) for item in val])
         format(4, "%s: %s" % (key, val))
       if result is None:
         format(3, "No output data")

@@ -274,7 +274,7 @@ class NIC(ConfigObject):
 class Disk(ConfigObject):
   """Config object representing a block device."""
   __slots__ = ["dev_type", "logical_id", "physical_id",
-               "children", "iv_name", "size"]
+               "children", "iv_name", "size", "mode"]
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""

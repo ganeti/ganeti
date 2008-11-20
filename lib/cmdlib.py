@@ -3141,7 +3141,7 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, names, iv_name,
 
 def _GenerateDiskTemplate(lu, template_name,
                           instance_name, primary_node,
-                          secondary_nodes, disk_sz, swap_sz,
+                          secondary_nodes, disk_info,
                           file_storage_dir, file_driver):
   """Generate the entire disk layout for a given template type.
 
@@ -3149,48 +3149,51 @@ def _GenerateDiskTemplate(lu, template_name,
   #TODO: compute space requirements
 
   vgname = lu.cfg.GetVGName()
+  disk_count = len(disk_info)
+  disks = []
   if template_name == constants.DT_DISKLESS:
-    disks = []
+    pass
   elif template_name == constants.DT_PLAIN:
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
 
-    names = _GenerateUniqueNames(lu, [".sda", ".sdb"])
-    sda_dev = objects.Disk(dev_type=constants.LD_LV, size=disk_sz,
-                           logical_id=(vgname, names[0]),
-                           iv_name = "sda")
-    sdb_dev = objects.Disk(dev_type=constants.LD_LV, size=swap_sz,
-                           logical_id=(vgname, names[1]),
-                           iv_name = "sdb")
-    disks = [sda_dev, sdb_dev]
+    names = _GenerateUniqueNames(lu, [".disk%d" % i
+                                      for i in range(disk_count)])
+    for idx, disk in enumerate(disk_info):
+      disk_dev = objects.Disk(dev_type=constants.LD_LV, size=disk["size"],
+                              logical_id=(vgname, names[idx]),
+                              iv_name = "disk/%d" % idx)
+      disks.append(disk_dev)
   elif template_name == constants.DT_DRBD8:
     if len(secondary_nodes) != 1:
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node = secondary_nodes[0]
-    (minor_pa, minor_pb,
-     minor_sa, minor_sb) = lu.cfg.AllocateDRBDMinor(
-      [primary_node, primary_node, remote_node, remote_node], instance_name)
+    minors = lu.cfg.AllocateDRBDMinor(
+      [primary_node, remote_node] * len(disk_info), instance_name)
 
-    names = _GenerateUniqueNames(lu, [".sda_data", ".sda_meta",
-                                      ".sdb_data", ".sdb_meta"])
-    drbd_sda_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
-                                        disk_sz, names[0:2], "sda",
-                                        minor_pa, minor_sa)
-    drbd_sdb_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
-                                        swap_sz, names[2:4], "sdb",
-                                        minor_pb, minor_sb)
-    disks = [drbd_sda_dev, drbd_sdb_dev]
+    names = _GenerateUniqueNames(lu,
+                                 [".disk%d_%s" % (i, s)
+                                  for i in range(disk_count)
+                                  for s in ("data", "meta")
+                                  ])
+    for idx, disk in enumerate(disk_info):
+      disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
+                                      disk["size"], names[idx*2:idx*2+2],
+                                      "disk/%d" % idx,
+                                      minors[idx*2], minors[idx*2+1])
+      disks.append(disk_dev)
   elif template_name == constants.DT_FILE:
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
 
-    file_sda_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk_sz,
-                                iv_name="sda", logical_id=(file_driver,
-                                "%s/sda" % file_storage_dir))
-    file_sdb_dev = objects.Disk(dev_type=constants.LD_FILE, size=swap_sz,
-                                iv_name="sdb", logical_id=(file_driver,
-                                "%s/sdb" % file_storage_dir))
-    disks = [file_sda_dev, file_sdb_dev]
+    for idx, disk in enumerate(disk_info):
+
+      disk_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk["size"],
+                              iv_name="disk/%d" % idx,
+                              logical_id=(file_driver,
+                                          "%s/disk%d" % (file_storage_dir,
+                                                         idx)))
+      disks.append(disk_dev)
   else:
     raise errors.ProgrammerError("Invalid disk template '%s'" % template_name)
   return disks
@@ -3285,7 +3288,7 @@ def _RemoveDisks(lu, instance):
   return result
 
 
-def _ComputeDiskSize(disk_template, disk_size, swap_size):
+def _ComputeDiskSize(disk_template, disks):
   """Compute disk size requirements in the volume group
 
   This is currently hard-coded for the two-drive layout.
@@ -3294,9 +3297,9 @@ def _ComputeDiskSize(disk_template, disk_size, swap_size):
   # Required free disk space as a function of disk and swap space
   req_size_dict = {
     constants.DT_DISKLESS: None,
-    constants.DT_PLAIN: disk_size + swap_size,
-    # 256 MB are added for drbd metadata, 128MB for each drbd device
-    constants.DT_DRBD8: disk_size + swap_size + 256,
+    constants.DT_PLAIN: sum(d["size"] for d in disks),
+    # 128 MB are added for drbd metadata for each disk
+    constants.DT_DRBD8: sum(d["size"] + 128 for d in disks),
     constants.DT_FILE: None,
   }
 
@@ -3343,9 +3346,9 @@ class LUCreateInstance(LogicalUnit):
   """
   HPATH = "instance-add"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "disk_size",
-              "disk_template", "swap_size", "mode", "start",
-              "wait_for_sync", "ip_check", "mac",
+  _OP_REQP = ["instance_name", "disks", "disk_template",
+              "mode", "start",
+              "wait_for_sync", "ip_check", "nics",
               "hvparams", "beparams"]
   REQ_BGL = False
 
@@ -3418,26 +3421,49 @@ class LUCreateInstance(LogicalUnit):
 
     self.add_locks[locking.LEVEL_INSTANCE] = instance_name
 
-    # ip validity checks
-    ip = getattr(self.op, "ip", None)
-    if ip is None or ip.lower() == "none":
-      inst_ip = None
-    elif ip.lower() == constants.VALUE_AUTO:
-      inst_ip = hostname1.ip
-    else:
-      if not utils.IsValidIP(ip):
-        raise errors.OpPrereqError("given IP address '%s' doesn't look"
-                                   " like a valid IP" % ip)
-      inst_ip = ip
-    self.inst_ip = self.op.ip = inst_ip
+    # NIC buildup
+    self.nics = []
+    for nic in self.op.nics:
+      # ip validity checks
+      ip = nic.get("ip", None)
+      if ip is None or ip.lower() == "none":
+        nic_ip = None
+      elif ip.lower() == constants.VALUE_AUTO:
+        nic_ip = hostname1.ip
+      else:
+        if not utils.IsValidIP(ip):
+          raise errors.OpPrereqError("Given IP address '%s' doesn't look"
+                                     " like a valid IP" % ip)
+        nic_ip = ip
+
+      # MAC address verification
+      mac = nic.get("mac", constants.VALUE_AUTO)
+      if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+        if not utils.IsValidMac(mac.lower()):
+          raise errors.OpPrereqError("Invalid MAC address specified: %s" %
+                                     mac)
+      # bridge verification
+      bridge = nic.get("bridge", self.cfg.GetDefBridge())
+      self.nics.append(objects.NIC(mac=mac, ip=nic_ip, bridge=bridge))
+
+    # disk checks/pre-build
+    self.disks = []
+    for disk in self.op.disks:
+      mode = disk.get("mode", constants.DISK_RDWR)
+      if mode not in constants.DISK_ACCESS_SET:
+        raise errors.OpPrereqError("Invalid disk access mode '%s'" %
+                                   mode)
+      size = disk.get("size", None)
+      if size is None:
+        raise errors.OpPrereqError("Missing disk size")
+      try:
+        size = int(size)
+      except ValueError:
+        raise errors.OpPrereqError("Invalid disk size '%s'" % size)
+      self.disks.append({"size": size, "mode": mode})
+
     # used in CheckPrereq for ip ping check
     self.check_ip = hostname1.ip
-
-    # MAC address verification
-    if self.op.mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-      if not utils.IsValidMac(self.op.mac.lower()):
-        raise errors.OpPrereqError("invalid MAC address specified: %s" %
-                                   self.op.mac)
 
     # file storage checks
     if (self.op.file_driver and
@@ -3487,10 +3513,7 @@ class LUCreateInstance(LogicalUnit):
     """Run the allocator based on input opcode.
 
     """
-    disks = [{"size": self.op.disk_size, "mode": "w"},
-             {"size": self.op.swap_size, "mode": "w"}]
-    nics = [{"mac": self.op.mac, "ip": getattr(self.op, "ip", None),
-             "bridge": self.op.bridge}]
+    nics = [n.ToDict() for n in self.nics]
     ial = IAllocator(self,
                      mode=constants.IALLOCATOR_MODE_ALLOC,
                      name=self.op.instance_name,
@@ -3499,7 +3522,7 @@ class LUCreateInstance(LogicalUnit):
                      os=self.op.os_type,
                      vcpus=self.be_full[constants.BE_VCPUS],
                      mem_size=self.be_full[constants.BE_MEMORY],
-                     disks=disks,
+                     disks=self.disks,
                      nics=nics,
                      )
 
@@ -3529,8 +3552,7 @@ class LUCreateInstance(LogicalUnit):
     """
     env = {
       "INSTANCE_DISK_TEMPLATE": self.op.disk_template,
-      "INSTANCE_DISK_SIZE": self.op.disk_size,
-      "INSTANCE_SWAP_SIZE": self.op.swap_size,
+      "INSTANCE_DISK_SIZE": ",".join(str(d["size"]) for d in self.disks),
       "INSTANCE_ADD_MODE": self.op.mode,
       }
     if self.op.mode == constants.INSTANCE_IMPORT:
@@ -3545,7 +3567,7 @@ class LUCreateInstance(LogicalUnit):
       os_type=self.op.os_type,
       memory=self.be_full[constants.BE_MEMORY],
       vcpus=self.be_full[constants.BE_VCPUS],
-      nics=[(self.inst_ip, self.op.bridge, self.op.mac)],
+      nics=[(n.ip, n.bridge, n.mac) for n in self.nics],
     ))
 
     nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
@@ -3581,8 +3603,7 @@ class LUCreateInstance(LogicalUnit):
                                    (ei_version, constants.EXPORT_VERSION))
 
       # Check that the new instance doesn't have less disks than the export
-      # TODO: substitute "2" with the actual number of disks requested
-      instance_disks = 2
+      instance_disks = len(self.disks)
       export_disks = export_info.getint(constants.INISECT_INS, 'disk_count')
       if instance_disks < export_disks:
         raise errors.OpPrereqError("Not enough disks to import."
@@ -3622,13 +3643,6 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (self.check_ip, self.op.instance_name))
 
-    # bridge verification
-    bridge = getattr(self.op, "bridge", None)
-    if bridge is None:
-      self.op.bridge = self.cfg.GetDefBridge()
-    else:
-      self.op.bridge = bridge
-
     #### allocator run
 
     if self.op.iallocator is not None:
@@ -3655,7 +3669,7 @@ class LUCreateInstance(LogicalUnit):
     nodenames = [pnode.name] + self.secondaries
 
     req_size = _ComputeDiskSize(self.op.disk_template,
-                                self.op.disk_size, self.op.swap_size)
+                                self.disks)
 
     # Check lv size requirements
     if req_size is not None:
@@ -3684,10 +3698,12 @@ class LUCreateInstance(LogicalUnit):
                                  " primary node"  % self.op.os_type)
 
     # bridge check on primary node
-    if not self.rpc.call_bridges_exist(self.pnode.name, [self.op.bridge]):
-      raise errors.OpPrereqError("target bridge '%s' does not exist on"
+    bridges = [n.bridge for n in self.nics]
+    if not self.rpc.call_bridges_exist(self.pnode.name, bridges):
+      raise errors.OpPrereqError("one of the target bridges '%s' does not"
+                                 " exist on"
                                  " destination node '%s'" %
-                                 (self.op.bridge, pnode.name))
+                                 (",".join(bridges), pnode.name))
 
     # memory check on primary node
     if self.op.start:
@@ -3708,14 +3724,9 @@ class LUCreateInstance(LogicalUnit):
     instance = self.op.instance_name
     pnode_name = self.pnode.name
 
-    if self.op.mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-      mac_address = self.cfg.GenerateMAC()
-    else:
-      mac_address = self.op.mac
-
-    nic = objects.NIC(bridge=self.op.bridge, mac=mac_address)
-    if self.inst_ip is not None:
-      nic.ip = self.inst_ip
+    for nic in self.nics:
+      if nic.mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+        nic.mac = self.cfg.GenerateMAC()
 
     ht_kind = self.op.hypervisor
     if ht_kind in constants.HTS_REQ_PORT:
@@ -3741,14 +3752,14 @@ class LUCreateInstance(LogicalUnit):
     disks = _GenerateDiskTemplate(self,
                                   self.op.disk_template,
                                   instance, pnode_name,
-                                  self.secondaries, self.op.disk_size,
-                                  self.op.swap_size,
+                                  self.secondaries,
+                                  self.disks,
                                   file_storage_dir,
                                   self.op.file_driver)
 
     iobj = objects.Instance(name=instance, os=self.op.os_type,
                             primary_node=pnode_name,
-                            nics=[nic], disks=disks,
+                            nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
                             status=self.instance_status,
                             network_port=network_port,

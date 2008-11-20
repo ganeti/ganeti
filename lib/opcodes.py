@@ -319,10 +319,11 @@ class OpCreateInstance(OpCode):
   OP_ID = "OP_INSTANCE_CREATE"
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
-    "instance_name", "disk_size", "os_type", "pnode",
-    "disk_template", "snode", "swap_size", "mode",
-    "ip", "bridge", "src_node", "src_path", "start",
-    "wait_for_sync", "ip_check", "mac",
+    "instance_name", "os_type", "pnode",
+    "disk_template", "snode", "mode",
+    "disks", "nics",
+    "src_node", "src_path", "start",
+    "wait_for_sync", "ip_check",
     "file_storage_dir", "file_driver",
     "iallocator",
     "hypervisor", "hvparams", "beparams",

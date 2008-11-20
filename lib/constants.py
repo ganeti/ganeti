@@ -190,6 +190,11 @@ FD_BLKTAP = "blktap"
 # the set of drbd-like disk types
 LDS_DRBD = frozenset([LD_DRBD8])
 
+# disk access mode
+DISK_RDONLY = "r"
+DISK_RDWR = "w"
+DISK_ACCESS_SET = frozenset([DISK_RDONLY, DISK_RDWR])
+
 # disk replacement mode
 REPLACE_DISK_PRI = "replace_primary"
 REPLACE_DISK_SEC = "replace_secondary"

@@ -293,6 +293,40 @@ def AddInstance(opts, args):
   if opts.hypervisor:
     hypervisor, hvparams = opts.hypervisor
 
+  if opts.nics:
+    try:
+      nic_max = max(int(nidx[0])+1 for nidx in opts.nics)
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
+    nics = [{}] * nic_max
+    for nidx, ndict in opts.nics.items():
+      nidx = int(nidx)
+      nics[nidx] = ndict
+  else:
+    # default of one nic, all auto
+    nics = [{}]
+
+  if not opts.disks and opts.disk_template != constants.DT_DISKLESS:
+    raise errors.OpPrereqError("No disk information specified")
+  elif opts.disks and opts.disk_template == constants.DT_DISKLESS:
+    raise errors.OpPrereqError("Diskless instance but disk information passeD")
+  else:
+    try:
+      disk_max = max(int(didx[0])+1 for didx in opts.disks)
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
+    disks = [{}] * disk_max
+    for didx, ddict in opts.disks:
+      didx = int(didx)
+      if "size" not in ddict:
+        raise errors.OpPrereqError("Missing size for disk %d" % didx)
+      try:
+        ddict["size"] = utils.ParseUnit(ddict["size"])
+      except ValueError, err:
+        raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
+                                   (didx, err))
+      disks[didx] = ddict
+
   ValidateBeParams(opts.beparams)
 
 ##  kernel_path = _TransformPath(opts.kernel_path)
@@ -308,15 +342,14 @@ def AddInstance(opts, args):
 ##    hvm_cdrom_image_path = opts.hvm_cdrom_image_path
 
   op = opcodes.OpCreateInstance(instance_name=instance,
-                                disk_size=opts.size, swap_size=opts.swap,
+                                disks=disks,
                                 disk_template=opts.disk_template,
+                                nics=nics,
                                 mode=constants.INSTANCE_CREATE,
                                 os_type=opts.os, pnode=pnode,
                                 snode=snode,
-                                ip=opts.ip, bridge=opts.bridge,
                                 start=opts.start, ip_check=opts.ip_check,
                                 wait_for_sync=opts.wait_for_sync,
-                                mac=opts.mac,
                                 hypervisor=hypervisor,
                                 hvparams=hvparams,
                                 beparams=opts.beparams,
@@ -1075,17 +1108,16 @@ add_opts = [
   make_option("-t", "--disk-template", dest="disk_template",
               help="Custom disk setup (diskless, file, plain or drbd)",
               default=None, metavar="TEMPL"),
-  make_option("-i", "--ip", dest="ip",
-              help="IP address ('none' [default], 'auto', or specify address)",
-              default='none', type="string", metavar="<ADDRESS>"),
-  make_option("--mac", dest="mac",
-              help="MAC address ('auto' [default], or specify address)",
-              default='auto', type="string", metavar="<MACADDRESS>"),
+  ikv_option("--disk", help="Disk information",
+             default=[], dest="disks",
+             action="append",
+             type="identkeyval"),
+  ikv_option("--net", help="NIC information",
+             default=[], dest="nics",
+             action="append",
+             type="identkeyval"),
   make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
               action="store_false", help="Don't wait for sync (DANGEROUS!)"),
-  make_option("-b", "--bridge", dest="bridge",
-              help="Bridge to connect this instance to",
-              default=None, metavar="<bridge>"),
   make_option("--no-start", dest="start", default=True,
               action="store_false", help="Don't start the instance after"
               " creation"),
