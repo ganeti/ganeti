@@ -221,17 +221,19 @@ def ListInstances(opts, args):
       "be/memory": "Configured_memory",
       "be/vcpus": "VCPUs",
       "be/auto_balance": "Auto_balance",
+      "disk.count": "Disks",
+      "nic.count": "NICs",
       }
   else:
     headers = None
 
   if opts.human_readable:
-    unitfields = ["be/memory", "oper_ram", "sda_size", "sdb_size"]
+    unitfields = ["be/memory", "oper_ram", "sd(a|b)_size", "disk.size/.*"]
   else:
     unitfields = None
 
-  numfields = ["be/memory", "oper_ram", "sda_size", "sdb_size", "be/vcpus",
-               "serial_no"]
+  numfields = ["be/memory", "oper_ram", "sd(a|b)_size", "be/vcpus",
+               "serial_no", "(disk|nic).count", "disk.size/.*"]
 
   list_type_fields = ("tags",)
   # change raw values to nicer strings

@@ -764,6 +764,9 @@ def GenerateTable(headers, fields, separator, data,
   if unitfields is None:
     unitfields = []
 
+  numfields = utils.FieldSet(*numfields)
+  unitfields = utils.FieldSet(*unitfields)
+
   format_fields = []
   for field in fields:
     if headers and field not in headers:
@@ -773,7 +776,7 @@ def GenerateTable(headers, fields, separator, data,
       headers[field] = field
     if separator is not None:
       format_fields.append("%s")
-    elif field in numfields:
+    elif numfields.Matches(field):
       format_fields.append("%*s")
     else:
       format_fields.append("%-*s")
@@ -786,7 +789,7 @@ def GenerateTable(headers, fields, separator, data,
 
   for row in data:
     for idx, val in enumerate(row):
-      if fields[idx] in unitfields:
+      if unitfields.Matches(fields[idx]):
         try:
           val = int(val)
         except ValueError:
