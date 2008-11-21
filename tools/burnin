@@ -298,7 +298,7 @@ class Burner(object):
         if growth > 0:
           op = opcodes.OpGrowDisk(instance_name=instance, disk=idx,
                                   amount=growth, wait_for_sync=True)
-          Log("- Increase %s's %s disk by %s MB" % (instance, idx, growth))
+          Log("- Increase %s's disk/%s by %s MB" % (instance, idx, growth))
           self.ExecOp(op)
 
   def ReplaceDisks1D8(self):
