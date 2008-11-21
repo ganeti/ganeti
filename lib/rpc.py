@@ -41,6 +41,36 @@ from ganeti import http
 from ganeti import serializer
 
 
+# Module level variable
+_http_manager = None
+
+
+def Init():
+  """Initializes the module-global HTTP client manager.
+
+  Must be called before using any RPC function.
+
+  """
+  global _http_manager
+
+  assert not _http_manager, "RPC module initialized more than once"
+
+  _http_manager = http.HttpClientManager()
+
+
+def Shutdown():
+  """Stops the module-global HTTP client manager.
+
+  Must be called before quitting the program.
+
+  """
+  global _http_manager
+
+  if _http_manager:
+    _http_manager.Shutdown()
+    _http_manager = None
+
+
 class Client:
   """RPC Client class.
 
@@ -103,12 +133,9 @@ class Client:
     @returns: List of RPC results
 
     """
-    # TODO: Shared and reused manager
-    mgr = http.HttpClientManager()
-    try:
-      mgr.ExecRequests(self.nc.values())
-    finally:
-      mgr.Shutdown()
+    assert _http_manager, "RPC module not intialized"
+
+    _http_manager.ExecRequests(self.nc.values())
 
     results = {}
 

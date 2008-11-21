@@ -36,6 +36,7 @@ from ganeti import constants
 from ganeti import opcodes
 from ganeti import luxi
 from ganeti import ssconf
+from ganeti import rpc
 
 from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -51,6 +52,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
            "ValidateBeParams",
            "ToStderr", "ToStdout",
+           "UsesRPC",
            ]
 
 
@@ -422,6 +424,16 @@ def ValidateBeParams(bep):
       bep[constants.BE_VCPUS] = int(bep[constants.BE_VCPUS])
     except ValueError:
       raise errors.ParameterError("Invalid number of VCPUs")
+
+
+def UsesRPC(fn):
+  def wrapper(*args, **kwargs):
+    rpc.Init()
+    try:
+      return fn(*args, **kwargs)
+    finally:
+      rpc.Shutdown()
+  return wrapper
 
 
 def AskUser(text, choices=None):

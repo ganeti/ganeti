@@ -42,6 +42,7 @@ _LIST_DEF_FIELDS = [
   ]
 
 
+@UsesRPC
 def AddNode(opts, args):
   """Add a node to the cluster.
 

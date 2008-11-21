@@ -36,6 +36,7 @@ from ganeti import bootstrap
 from ganeti import ssh
 
 
+@UsesRPC
 def InitCluster(opts, args):
   """Initialize the cluster.
 
@@ -125,6 +126,7 @@ def InitCluster(opts, args):
   return 0
 
 
+@UsesRPC
 def DestroyCluster(opts, args):
   """Destroy the cluster.
 
@@ -396,6 +398,7 @@ def VerifyDisks(opts, args):
   return retcode
 
 
+@UsesRPC
 def MasterFailover(opts, args):
   """Failover the master node.
 
