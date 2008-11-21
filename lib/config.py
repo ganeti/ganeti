@@ -859,6 +859,9 @@ class ConfigWriter:
     # and redistribute the config file
     self._DistributeConfig()
 
+    # Write ssconf files on all nodes (including locally)
+    rpc.RpcRunner.call_write_ssconf_files(self._UnlockedGetNodeList())
+
   @locking.ssynchronized(_config_lock)
   def InitConfig(self, version, cluster_config, master_node_config):
     """Create the initial cluster configuration.
