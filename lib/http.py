@@ -215,31 +215,52 @@ class HTTPJsonConverter:
     return serializer.LoadJson(data)
 
 
+class HttpSslParams(object):
+  """Data class for SSL key and certificate.
+
+  """
+  def __init__(self, ssl_key_path, ssl_cert_path):
+    """Initializes this class.
+
+    @type ssl_key_path: string
+    @param ssl_key_path: Path to file containing SSL key in PEM format
+    @type ssl_cert_path: string
+    @param ssl_cert_path: Path to file containing SSL certificate in PEM format
+
+    """
+    ssl_key_pem = utils.ReadFile(ssl_key_path)
+    ssl_cert_pem = utils.ReadFile(ssl_cert_path)
+
+    cr = OpenSSL.crypto
+    self.cert = cr.load_certificate(cr.FILETYPE_PEM, ssl_cert_pem)
+    self.key = cr.load_privatekey(cr.FILETYPE_PEM, ssl_key_pem)
+    del cr
+
+
 class _HttpSocketBase(object):
   """Base class for HTTP server and client.
 
   """
   def __init__(self):
     self._using_ssl = None
-    self._ssl_cert = None
-    self._ssl_key = None
+    self._ssl_params = None
 
-  def _CreateSocket(self, ssl_key_path, ssl_cert_path, ssl_verify_peer):
+  def _CreateSocket(self, ssl_params, ssl_verify_peer):
     """Creates a TCP socket and initializes SSL if needed.
 
-    @type ssl_key_path: string
-    @param ssl_key_path: Path to file containing SSL key in PEM format
-    @type ssl_cert_path: string
-    @param ssl_cert_path: Path to file containing SSL certificate in PEM format
+    @type ssl_params: HttpSslParams
+    @param ssl_params: SSL key and certificate
     @type ssl_verify_peer: bool
     @param ssl_verify_peer: Whether to require client certificate and compare
                             it with our certificate
 
     """
+    self._ssl_params = ssl_params
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Should we enable SSL?
-    self._using_ssl = (ssl_cert_path and ssl_key_path)
+    self._using_ssl = ssl_params is not None
 
     if not self._using_ssl:
       return sock
@@ -247,16 +268,8 @@ class _HttpSocketBase(object):
     ctx = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
     ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
 
-    ssl_key_pem = utils.ReadFile(ssl_key_path)
-    ssl_cert_pem = utils.ReadFile(ssl_cert_path)
-
-    cr = OpenSSL.crypto
-    self._ssl_cert = cr.load_certificate(cr.FILETYPE_PEM, ssl_cert_pem)
-    self._ssl_key = cr.load_privatekey(cr.FILETYPE_PEM, ssl_key_pem)
-    del cr
-
-    ctx.use_privatekey(self._ssl_key)
-    ctx.use_certificate(self._ssl_cert)
+    ctx.use_privatekey(ssl_params.key)
+    ctx.use_certificate(ssl_params.cert)
     ctx.check_privatekey()
 
     if ssl_verify_peer:
@@ -273,10 +286,13 @@ class _HttpSocketBase(object):
     we do on our side.
 
     """
-    assert self._ssl_cert and self._ssl_key, "SSL not initialized"
+    assert self._ssl_params, "SSL not initialized"
 
-    return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and
-            self._ssl_cert.digest("md5") == cert.digest("md5"))
+    mykey = self._ssl_params.key
+    mycert = self._ssl_params.cert
+
+    return (mycert.digest("sha1") == cert.digest("sha1") and
+            mycert.digest("md5") == cert.digest("md5"))
 
 
 class _HttpConnectionHandler(object):
@@ -569,7 +585,7 @@ class HttpServer(_HttpSocketBase):
   MAX_CHILDREN = 20
 
   def __init__(self, mainloop, local_address, port,
-               ssl_key_path=None, ssl_cert_path=None, ssl_verify_peer=False):
+               ssl_params=None, ssl_verify_peer=False):
     """Initializes the HTTP server
 
     @type mainloop: ganeti.daemon.Mainloop
@@ -578,10 +594,8 @@ class HttpServer(_HttpSocketBase):
     @param local_address: Local IP address to bind to
     @type port: int
     @param port: TCP port to listen on
-    @type ssl_key_path: string
-    @param ssl_key_path: Path to file containing SSL key in PEM format
-    @type ssl_cert_path: string
-    @param ssl_cert_path: Path to file containing SSL certificate in PEM format
+    @type ssl_params: HttpSslParams
+    @param ssl_params: SSL key and certificate
     @type ssl_verify_peer: bool
     @param ssl_verify_peer: Whether to require client certificate and compare
                             it with our certificate
@@ -593,7 +607,7 @@ class HttpServer(_HttpSocketBase):
     self.local_address = local_address
     self.port = port
 
-    self.socket = self._CreateSocket(ssl_key_path, ssl_cert_path, ssl_verify_peer)
+    self.socket = self._CreateSocket(ssl_params, ssl_verify_peer)
 
     # Allow port to be reused
     self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -697,7 +711,7 @@ class HttpServer(_HttpSocketBase):
 
 class HttpClientRequest(object):
   def __init__(self, host, port, method, path, headers=None, post_data=None,
-               ssl_key_path=None, ssl_cert_path=None, ssl_verify_peer=False):
+               ssl_params=None, ssl_verify_peer=False):
     """Describes an HTTP request.
 
     @type host: string
@@ -712,6 +726,11 @@ class HttpClientRequest(object):
     @param headers: Additional headers to send
     @type post_data: string or None
     @param post_data: Additional data to send
+    @type ssl_params: HttpSslParams
+    @param ssl_params: SSL key and certificate
+    @type ssl_verify_peer: bool
+    @param ssl_verify_peer: Whether to compare our certificate with server's
+                            certificate
 
     """
     if post_data is not None:
@@ -722,8 +741,7 @@ class HttpClientRequest(object):
 
     self.host = host
     self.port = port
-    self.ssl_key_path = ssl_key_path
-    self.ssl_cert_path = ssl_cert_path
+    self.ssl_params = ssl_params
     self.ssl_verify_peer = ssl_verify_peer
     self.method = method
     self.path = path
@@ -793,8 +811,7 @@ class HttpClientRequestExecutor(_HttpSocketBase):
 
     try:
       # TODO: Implement connection caching/keep-alive
-      self.sock = self._CreateSocket(req.ssl_key_path,
-                                     req.ssl_cert_path,
+      self.sock = self._CreateSocket(req.ssl_params,
                                      req.ssl_verify_peer)
 
       # Disable Python's timeout
