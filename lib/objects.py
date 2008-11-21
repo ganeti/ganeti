@@ -594,17 +594,26 @@ class Instance(TaggableObject):
 
     return ret
 
-  def FindDisk(self, name):
-    """Find a disk given having a specified name.
+  def FindDisk(self, idx):
+    """Find a disk given having a specified index.
 
-    This will return the disk which has the given iv_name.
+    This is just a wrapper that does validation of the index.
+
+    @type idx: int
+    @param idx: the disk index
+    @rtype: L{Disk}
+    @return: the corresponding disk
+    @raise errors.OpPrereqError: when the given index is not valid
 
     """
-    for disk in self.disks:
-      if disk.iv_name == name:
-        return disk
-
-    return None
+    try:
+      idx = int(idx)
+      return self.disks[idx]
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid disk index: '%s'" % str(err))
+    except IndexError:
+      raise errors.OpPrereqError("Invalid disk index: %d (instace has disks"
+                                 " 0 to %d" % (idx, len(self.disks)))
 
   def ToDict(self):
     """Instance-specific conversion to standard python types.

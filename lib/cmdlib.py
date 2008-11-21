@@ -2858,11 +2858,11 @@ class LUQueryInstances(NoHooksLU):
         elif field == "mac":
           val = instance.nics[0].mac
         elif field == "sda_size" or field == "sdb_size":
-          disk = instance.FindDisk(field[:3])
-          if disk is None:
+          idx = ord(field[2]) - ord('a')
+          try:
+            val = instance.FindDisk(idx).size
+          except errors.OpPrereqError:
             val = None
-          else:
-            val = disk.size
         elif field == "tags":
           val = list(instance.GetTags())
         elif field == "serial_no":
@@ -4479,9 +4479,7 @@ class LUGrowDisk(LogicalUnit):
       raise errors.OpPrereqError("Instance's disk layout does not support"
                                  " growing.")
 
-    if instance.FindDisk(self.op.disk) is None:
-      raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
-                                 (self.op.disk, instance.name))
+    self.disk = instance.FindDisk(self.op.disk)
 
     nodenames = [instance.primary_node] + list(instance.secondary_nodes)
     nodeinfo = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
@@ -4505,7 +4503,7 @@ class LUGrowDisk(LogicalUnit):
 
     """
     instance = self.instance
-    disk = instance.FindDisk(self.op.disk)
+    disk = self.disk
     for node in (instance.secondary_nodes + (instance.primary_node,)):
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, disk, self.op.amount)

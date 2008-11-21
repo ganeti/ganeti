@@ -631,6 +631,10 @@ def GrowDisk(opts, args):
   """
   instance = args[0]
   disk = args[1]
+  try:
+    disk = int(disk)
+  except ValueError, err:
+    raise errors.OpPrereqError("Invalid disk index: %s" % str(err))
   amount = utils.ParseUnit(args[2])
   op = opcodes.OpGrowDisk(instance_name=instance, disk=disk, amount=amount,
                           wait_for_sync=opts.wait_for_sync)
