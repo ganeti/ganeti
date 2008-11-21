@@ -710,11 +710,16 @@ def main():
                        stderr_logging=not options.fork)
     logging.info("ganeti node daemon startup")
 
+    # Read SSL certificate
+    ssl_params = http.HttpSslParams(ssl_key_path=constants.SSL_CERT_FILE,
+                                    ssl_cert_path=constants.SSL_CERT_FILE)
+
     # Prepare job queue
     queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
 
     mainloop = daemon.Mainloop()
-    server = NodeHttpServer(mainloop, "", port)
+    server = NodeHttpServer(mainloop, "", port,
+                            ssl_params=ssl_params, ssl_verify_peer=True)
     server.Start()
     try:
       mainloop.Run()
