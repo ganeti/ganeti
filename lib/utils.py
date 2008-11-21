@@ -1818,3 +1818,45 @@ class SignalHandler(object):
     # This is not nice and not absolutely atomic, but it appears to be the only
     # solution in Python -- there are no atomic types.
     self.called = True
+
+
+class FieldSet(object):
+  """A simple field set.
+
+  Among the features are:
+    - checking if a string is among a list of static string or regex objects
+    - checking if a whole list of string matches
+    - returning the matching groups from a regex match
+
+  Internally, all fields are held as regular expression objects.
+
+  """
+  def __init__(self, *items):
+    self.items = [re.compile("^%s$" % value) for value in items]
+
+  def Extend(self, other_set):
+    """Extend the field set with the items from another one"""
+    self.items.extend(other_set.items)
+
+  def Matches(self, field):
+    """Checks if a field matches the current set
+
+    @type field: str
+    @param field: the string to match
+    @return: either False or a regular expression match object
+
+    """
+    for m in itertools.ifilter(None, (val.match(field) for val in self.items)):
+      return m
+    return False
+
+  def NonMatching(self, items):
+    """Returns the list of fields not matching the current set
+
+    @type items: list
+    @param items: the list of fields to check
+    @rtype: list
+    @return: list of non-matching fields
+
+    """
+    return [val for val in items if not self.Matches(val)]

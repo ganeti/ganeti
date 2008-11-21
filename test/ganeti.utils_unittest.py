@@ -824,5 +824,26 @@ class TestTimeFunctions(unittest.TestCase):
     self.assertRaises(AssertionError, utils.MergeTime, (-9999, 0))
 
 
+class FieldSetTestCase(unittest.TestCase):
+  """Test case for FieldSets"""
+
+  def testSimpleMatch(self):
+    f = utils.FieldSet("a", "b", "c", "def")
+    self.failUnless(f.Matches("a"))
+    self.failIf(f.Matches("d"), "Substring matched")
+    self.failIf(f.Matches("defghi"), "Prefix string matched")
+    self.failIf(f.NonMatching(["b", "c"]))
+    self.failIf(f.NonMatching(["a", "b", "c", "def"]))
+    self.failUnless(f.NonMatching(["a", "d"]))
+
+  def testRegexMatch(self):
+    f = utils.FieldSet("a", "b([0-9]+)", "c")
+    self.failUnless(f.Matches("b1"))
+    self.failUnless(f.Matches("b99"))
+    self.failIf(f.Matches("b/1"))
+    self.failIf(f.NonMatching(["b12", "c"]))
+    self.failUnless(f.NonMatching(["a", "1"]))
+
+
 if __name__ == '__main__':
   unittest.main()

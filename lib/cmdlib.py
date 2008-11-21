@@ -32,7 +32,6 @@ import re
 import platform
 import logging
 import copy
-import itertools
 
 from ganeti import ssh
 from ganeti import utils
@@ -323,48 +322,6 @@ class NoHooksLU(LogicalUnit):
   HTYPE = None
 
 
-class _FieldSet(object):
-  """A simple field set.
-
-  Among the features are:
-    - checking if a string is among a list of static string or regex objects
-    - checking if a whole list of string matches
-    - returning the matching groups from a regex match
-
-  Internally, all fields are held as regular expression objects.
-
-  """
-  def __init__(self, *items):
-    self.items = [re.compile("^%s$" % value) for value in items]
-
-  def Extend(self, other_set):
-    """Extend the field set with the items from another one"""
-    self.items.extend(other_set.items)
-
-  def Matches(self, field):
-    """Checks if a field matches the current set
-
-    @type field: str
-    @param field: the string to match
-    @return: either False or a regular expression match object
-
-    """
-    for m in itertools.ifilter(None, (val.match(field) for val in self.items)):
-      return m
-    return False
-
-  def NonMatching(self, items):
-    """Returns the list of fields not matching the current set
-
-    @type items: list
-    @param items: the list of fields to check
-    @rtype: list
-    @return: list of non-matching fields
-
-    """
-    return [val for val in items if not self.Matches(val)]
-
-
 def _GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
 
@@ -416,13 +373,13 @@ def _GetWantedInstances(lu, instances):
 def _CheckOutputFields(static, dynamic, selected):
   """Checks whether all selected fields are valid.
 
-  @type static: L{_FieldSet}
+  @type static: L{utils.FieldSet}
   @param static: static fields set
-  @type dynamic: L{_FieldSet}
+  @type dynamic: L{utils.FieldSet}
   @param dynamic: dynamic fields set
 
   """
-  f = _FieldSet()
+  f = utils.FieldSet()
   f.Extend(static)
   f.Extend(dynamic)
 
@@ -1362,8 +1319,8 @@ class LUDiagnoseOS(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
-  _FIELDS_STATIC = _FieldSet()
-  _FIELDS_DYNAMIC = _FieldSet("name", "valid", "node_status")
+  _FIELDS_STATIC = utils.FieldSet()
+  _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status")
 
   def ExpandNames(self):
     if self.op.names:
@@ -1518,14 +1475,14 @@ class LUQueryNodes(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
-  _FIELDS_DYNAMIC = _FieldSet(
+  _FIELDS_DYNAMIC = utils.FieldSet(
     "dtotal", "dfree",
     "mtotal", "mnode", "mfree",
     "bootid",
     "ctotal",
     )
 
-  _FIELDS_STATIC = _FieldSet(
+  _FIELDS_STATIC = utils.FieldSet(
     "name", "pinst_cnt", "sinst_cnt",
     "pinst_list", "sinst_list",
     "pip", "sip", "tags",
@@ -1657,8 +1614,8 @@ class LUQueryNodeVolumes(NoHooksLU):
   """
   _OP_REQP = ["nodes", "output_fields"]
   REQ_BGL = False
-  _FIELDS_DYNAMIC = _FieldSet("phys", "vg", "name", "size", "instance")
-  _FIELDS_STATIC = _FieldSet("node")
+  _FIELDS_DYNAMIC = utils.FieldSet("phys", "vg", "name", "size", "instance")
+  _FIELDS_STATIC = utils.FieldSet("node")
 
   def ExpandNames(self):
     _CheckOutputFields(static=self._FIELDS_STATIC,
@@ -1979,8 +1936,8 @@ class LUQueryConfigValues(NoHooksLU):
   """
   _OP_REQP = []
   REQ_BGL = False
-  _FIELDS_DYNAMIC = _FieldSet()
-  _FIELDS_STATIC = _FieldSet("cluster_name", "master_node", "drain_flag")
+  _FIELDS_DYNAMIC = utils.FieldSet()
+  _FIELDS_STATIC = utils.FieldSet("cluster_name", "master_node", "drain_flag")
 
   def ExpandNames(self):
     self.needed_locks = {}
@@ -2714,22 +2671,22 @@ class LUQueryInstances(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
-  _FIELDS_STATIC = _FieldSet(*["name", "os", "pnode", "snodes",
-                               "admin_state", "admin_ram",
-                               "disk_template", "ip", "mac", "bridge",
-                               "sda_size", "sdb_size", "vcpus", "tags",
-                               "network_port", "beparams",
-                               "(disk).(size)/([0-9]+)",
-                               "(disk).(sizes)",
-                               "(nic).(mac|ip|bridge)/([0-9]+)",
-                               "(nic).(macs|ips|bridges)",
-                               "(disk|nic).(count)",
-                               "serial_no", "hypervisor", "hvparams",] +
-                             ["hv/%s" % name
-                              for name in constants.HVS_PARAMETERS] +
-                             ["be/%s" % name
-                              for name in constants.BES_PARAMETERS])
-  _FIELDS_DYNAMIC = _FieldSet("oper_state", "oper_ram", "status")
+  _FIELDS_STATIC = utils.FieldSet(*["name", "os", "pnode", "snodes",
+                                    "admin_state", "admin_ram",
+                                    "disk_template", "ip", "mac", "bridge",
+                                    "sda_size", "sdb_size", "vcpus", "tags",
+                                    "network_port", "beparams",
+                                    "(disk).(size)/([0-9]+)",
+                                    "(disk).(sizes)",
+                                    "(nic).(mac|ip|bridge)/([0-9]+)",
+                                    "(nic).(macs|ips|bridges)",
+                                    "(disk|nic).(count)",
+                                    "serial_no", "hypervisor", "hvparams",] +
+                                  ["hv/%s" % name
+                                   for name in constants.HVS_PARAMETERS] +
+                                  ["be/%s" % name
+                                   for name in constants.BES_PARAMETERS])
+  _FIELDS_DYNAMIC = utils.FieldSet("oper_state", "oper_ram", "status")
 
 
   def ExpandNames(self):
