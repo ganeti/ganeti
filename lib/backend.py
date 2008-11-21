@@ -1226,6 +1226,10 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   return True
 
 
+def WriteSsconfFiles():
+  ssconf.WriteSsconfFiles(constants.CLUSTER_CONF_FILE)
+
+
 def _ErrnoOrStr(err):
   """Format an EnvironmentError exception.
 

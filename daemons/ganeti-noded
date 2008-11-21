@@ -496,6 +496,13 @@ class NodeHttpServer(http.HttpServer):
     """
     return backend.GetMasterInfo()
 
+  @staticmethod
+  def perspective_write_ssconf_files(params):
+    """Write ssconf files.
+
+    """
+    return backend.WriteSsconfFiles()
+
   # os -----------------------
 
   @staticmethod

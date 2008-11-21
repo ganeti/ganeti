@@ -587,6 +587,15 @@ class RpcRunner(object):
     return cls._StaticMultiNodeCall(node_list, "upload_file", params,
                                     address_list=address_list)
 
+  @classmethod
+  def call_write_ssconf_files(cls, node_list):
+    """Write ssconf files.
+
+    This is a multi-node call.
+
+    """
+    return cls._StaticMultiNodeCall(node_list, "write_ssconf_files", [])
+
   def call_os_diagnose(self, node_list):
     """Request a diagnose of OS definitions.
 
