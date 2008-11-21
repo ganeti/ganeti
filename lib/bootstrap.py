@@ -77,13 +77,6 @@ def _InitGanetiServerSetup():
   the cluster and also generates the SSL certificate.
 
   """
-  # Create pseudo random password
-  randpass = utils.GenerateSecret()
-
-  # and write it into the config file
-  utils.WriteFile(constants.CLUSTER_PASSWORD_FILE,
-                  data="%s\n" % randpass, mode=0400)
-
   result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
                          "-days", str(365*5), "-nodes", "-x509",
                          "-keyout", constants.SSL_CERT_FILE,
@@ -291,9 +284,6 @@ def SetupNodeDaemon(node, ssh_key_check):
   """
   cfg = ssconf.SimpleConfigReader()
   sshrunner = ssh.SshRunner(cfg.GetClusterName())
-  gntpass = utils.GetNodeDaemonPassword()
-  if not re.match('^[a-zA-Z0-9.]{1,64}$', gntpass):
-    raise errors.OpExecError("ganeti password corruption detected")
   gntpem = utils.ReadFile(constants.SSL_CERT_FILE)
   # in the base64 pem encoding, neither '!' nor '.' are valid chars,
   # so we use this to detect an invalid certificate; as long as the
@@ -309,11 +299,9 @@ def SetupNodeDaemon(node, ssh_key_check):
   # note that all the below variables are sanitized at this point,
   # either by being constants or by the checks above
   mycommand = ("umask 077 && "
-               "echo '%s' > '%s' && "
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n%s restart" %
-               (gntpass, constants.CLUSTER_PASSWORD_FILE,
-                constants.SSL_CERT_FILE, gntpem,
+               (constants.SSL_CERT_FILE, gntpem,
                 constants.NODE_INITD_SCRIPT))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,

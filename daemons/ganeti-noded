@@ -694,7 +694,6 @@ def main():
 
   try:
     port = utils.GetNodeDaemonPort()
-    pwdata = utils.GetNodeDaemonPassword()
   except errors.ConfigurationError, err:
     print "Cluster configuration incomplete: '%s'" % str(err)
     sys.exit(5)

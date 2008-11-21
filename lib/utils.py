@@ -1522,15 +1522,6 @@ def GetNodeDaemonPort():
   return port
 
 
-def GetNodeDaemonPassword():
-  """Get the node password for the cluster.
-
-  @rtype: str
-
-  """
-  return ReadFile(constants.CLUSTER_PASSWORD_FILE)
-
-
 def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
   """Configures the logging module.
 

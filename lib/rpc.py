@@ -89,7 +89,6 @@ class Client:
     self.body = serializer.DumpJson(args, indent=False)
 
     self.port = utils.GetNodeDaemonPort()
-    self.nodepw = utils.GetNodeDaemonPassword()
     self.nc = {}
 
   def ConnectList(self, node_list, address_list=None):
