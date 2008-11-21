@@ -2890,11 +2890,10 @@ class LUQueryInstances(NoHooksLU):
             elif st_groups[1] == "sizes":
               val = [disk.size for disk in instance.disks]
             elif st_groups[1] == "size":
-              disk_idx = int(st_groups[2])
-              if disk_idx >= len(instance.disks):
+              try:
+                val = instance.FindDisk(st_groups[2]).size
+              except errors.OpPrereqError:
                 val = None
-              else:
-                val = instance.disks[disk_idx].size
             else:
               assert False, "Unhandled disk parameter"
           elif st_groups[0] == "nic":
@@ -4039,9 +4038,7 @@ class LUReplaceDisks(LogicalUnit):
       self.op.disks = range(len(instance.disks))
 
     for disk_idx in self.op.disks:
-      if disk_idx < 0 or disk_idx >= len(instance.disks):
-        raise errors.OpPrereqError("Disk '%s' not found for instance '%s'" %
-                                   (disk_idx, instance.name))
+      instance.FindDisk(disk_idx)
 
   def _ExecD8DiskOnly(self, feedback_fn):
     """Replace a disk on the primary or secondary for dbrd8.
