@@ -130,7 +130,7 @@ class Burner(object):
                       help="Disk size (determines disk count)",
                       default="128m", type="string", metavar="<size,size,...>")
     parser.add_option("--disk-growth", dest="disk_growth", help="Disk growth",
-                      default=128, type="string", metavar="<size,size,...>")
+                      default="128m", type="string", metavar="<size,size,...>")
     parser.add_option("--mem-size", dest="mem_size", help="Memory size",
                       default=128, type="unit", metavar="<size>")
     parser.add_option("-v", "--verbose",
