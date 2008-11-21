@@ -77,6 +77,14 @@ class R_2_jobs_id(baserlib.R_Generic):
     result = luxi.Client().QueryJobs([job_id, ], fields)[0]
     return baserlib.MapFields(fields, result)
 
+  def DELETE(self):
+    """Cancel not-yet-started job.
+
+    """
+    job_id = self.items[0]
+    result = luxi.Client().CancelJob(job_id)
+    return result
+
 
 class R_2_nodes(baserlib.R_Generic):
   """/2/nodes resource.
