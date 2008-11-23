@@ -638,23 +638,40 @@ def BuildShellCmd(template, *args):
   return template % args
 
 
-def FormatUnit(value):
+def FormatUnit(value, units):
   """Formats an incoming number of MiB with the appropriate unit.
 
   @type value: int
   @param value: integer representing the value in MiB (1048576)
+  @type units: char
+  @param units: the type of formatting we should do:
+      - 'h' for automatic scaling
+      - 'm' for MiBs
+      - 'g' for GiBs
+      - 't' for TiBs
   @rtype: str
   @return: the formatted value (with suffix)
 
   """
-  if value < 1024:
-    return "%dM" % round(value, 0)
+  if units not in ('m', 'g', 't', 'h'):
+    raise errors.ProgrammerError("Invalid unit specified '%s'" % str(units))
 
-  elif value < (1024 * 1024):
-    return "%0.1fG" % round(float(value) / 1024, 1)
+  suffix = ''
+
+  if units == 'm' or (units == 'h' and value < 1024):
+    if units == 'h':
+      suffix = 'M'
+    return "%d%s" % (round(value, 0), suffix)
+
+  elif units == 'g' or (units == 'h' and value < (1024 * 1024)):
+    if units == 'h':
+      suffix = 'G'
+    return "%0.1f%s" % (round(float(value) / 1024, 1), suffix)
 
   else:
-    return "%0.1fT" % round(float(value) / 1024 / 1024, 1)
+    if units == 'h':
+      suffix = 'T'
+    return "%0.1f%s" % (round(float(value) / 1024 / 1024, 1), suffix)
 
 
 def ParseUnit(input_string):

@@ -106,7 +106,7 @@ def ListJobs(opts, args):
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,
-                       numfields=numfields, data=output)
+                       numfields=numfields, data=output, units=opts.units)
   for line in data:
     ToStdout(line)
 

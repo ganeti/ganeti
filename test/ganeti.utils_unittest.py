@@ -324,21 +324,42 @@ class TestFormatUnit(unittest.TestCase):
   """Test case for the FormatUnit function"""
 
   def testMiB(self):
-    self.assertEqual(FormatUnit(1), '1M')
-    self.assertEqual(FormatUnit(100), '100M')
-    self.assertEqual(FormatUnit(1023), '1023M')
+    self.assertEqual(FormatUnit(1, 'h'), '1M')
+    self.assertEqual(FormatUnit(100, 'h'), '100M')
+    self.assertEqual(FormatUnit(1023, 'h'), '1023M')
+
+    self.assertEqual(FormatUnit(1, 'm'), '1')
+    self.assertEqual(FormatUnit(100, 'm'), '100')
+    self.assertEqual(FormatUnit(1023, 'm'), '1023')
+
+    self.assertEqual(FormatUnit(1024, 'm'), '1024')
+    self.assertEqual(FormatUnit(1536, 'm'), '1536')
+    self.assertEqual(FormatUnit(17133, 'm'), '17133')
+    self.assertEqual(FormatUnit(1024 * 1024 - 1, 'm'), '1048575')
 
   def testGiB(self):
-    self.assertEqual(FormatUnit(1024), '1.0G')
-    self.assertEqual(FormatUnit(1536), '1.5G')
-    self.assertEqual(FormatUnit(17133), '16.7G')
-    self.assertEqual(FormatUnit(1024 * 1024 - 1), '1024.0G')
+    self.assertEqual(FormatUnit(1024, 'h'), '1.0G')
+    self.assertEqual(FormatUnit(1536, 'h'), '1.5G')
+    self.assertEqual(FormatUnit(17133, 'h'), '16.7G')
+    self.assertEqual(FormatUnit(1024 * 1024 - 1, 'h'), '1024.0G')
+
+    self.assertEqual(FormatUnit(1024, 'g'), '1.0')
+    self.assertEqual(FormatUnit(1536, 'g'), '1.5')
+    self.assertEqual(FormatUnit(17133, 'g'), '16.7')
+    self.assertEqual(FormatUnit(1024 * 1024 - 1, 'g'), '1024.0')
+
+    self.assertEqual(FormatUnit(1024 * 1024, 'g'), '1024.0')
+    self.assertEqual(FormatUnit(5120 * 1024, 'g'), '5120.0')
+    self.assertEqual(FormatUnit(29829 * 1024, 'g'), '29829.0')
 
   def testTiB(self):
-    self.assertEqual(FormatUnit(1024 * 1024), '1.0T')
-    self.assertEqual(FormatUnit(5120 * 1024), '5.0T')
-    self.assertEqual(FormatUnit(29829 * 1024), '29.1T')
+    self.assertEqual(FormatUnit(1024 * 1024, 'h'), '1.0T')
+    self.assertEqual(FormatUnit(5120 * 1024, 'h'), '5.0T')
+    self.assertEqual(FormatUnit(29829 * 1024, 'h'), '29.1T')
 
+    self.assertEqual(FormatUnit(1024 * 1024, 't'), '1.0')
+    self.assertEqual(FormatUnit(5120 * 1024, 't'), '5.0')
+    self.assertEqual(FormatUnit(29829 * 1024, 't'), '29.1')
 
 class TestParseUnit(unittest.TestCase):
   """Test case for the ParseUnit function"""

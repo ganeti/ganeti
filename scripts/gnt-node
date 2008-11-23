@@ -115,10 +115,7 @@ def ListNodes(opts, args):
   else:
     headers = None
 
-  if opts.human_readable:
-    unitfields = ["dtotal", "dfree", "mtotal", "mnode", "mfree"]
-  else:
-    unitfields = None
+  unitfields = ["dtotal", "dfree", "mtotal", "mnode", "mfree"]
 
   numfields = ["dtotal", "dfree",
                "mtotal", "mnode", "mfree",
@@ -138,7 +135,7 @@ def ListNodes(opts, args):
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,
-                       numfields=numfields, data=output)
+                       numfields=numfields, data=output, units=opts.units)
   for line in data:
     ToStdout(line)
 
@@ -343,16 +340,13 @@ def ListVolumes(opts, args):
   else:
     headers = None
 
-  if opts.human_readable:
-    unitfields = ["size"]
-  else:
-    unitfields = None
+  unitfields = ["size"]
 
   numfields = ["size"]
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,
-                       numfields=numfields, data=output)
+                       numfields=numfields, data=output, units=opts.units)
 
   for line in data:
     ToStdout(line)

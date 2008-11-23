@@ -55,7 +55,8 @@ def ListOS(opts, args):
     headers = None
 
   data = GenerateTable(separator=None, headers=headers, fields=["name"],
-                       data=[[row[0]] for row in result if row[1]])
+                       data=[[row[0]] for row in result if row[1]],
+                       units=None)
 
   for line in data:
     ToStdout(line)

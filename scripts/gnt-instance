@@ -228,11 +228,7 @@ def ListInstances(opts, args):
   else:
     headers = None
 
-  if opts.human_readable:
-    unitfields = ["be/memory", "oper_ram", "sd(a|b)_size", "disk\.size/.*"]
-  else:
-    unitfields = None
-
+  unitfields = ["be/memory", "oper_ram", "sd(a|b)_size", "disk\.size/.*"]
   numfields = ["be/memory", "oper_ram", "sd(a|b)_size", "be/vcpus",
                "serial_no", "(disk|nic)\.count", "disk\.size/.*"]
 
@@ -270,7 +266,7 @@ def ListInstances(opts, args):
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,
-                       numfields=numfields, data=output)
+                       numfields=numfields, data=output, units=opts.units)
 
   for line in data:
     ToStdout(line)

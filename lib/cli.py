@@ -171,9 +171,9 @@ SEP_OPT = make_option("--separator", default=None,
                       help="Separator between output fields"
                       " (defaults to one space)")
 
-USEUNITS_OPT = make_option("--human-readable", default=False,
-                           action="store_true", dest="human_readable",
-                           help="Print sizes in human readable format")
+USEUNITS_OPT = make_option("--units", default=None,
+                           dest="units", choices=('h', 'm', 'g', 't'),
+                           help="Specify units for output (one of hmgt)")
 
 FIELDS_OPT = make_option("-o", "--output", dest="output", action="store",
                          type="string", help="Comma separated list of"
@@ -747,18 +747,40 @@ def GenericMain(commands, override=None, aliases=None):
 
 
 def GenerateTable(headers, fields, separator, data,
-                  numfields=None, unitfields=None):
+                  numfields=None, unitfields=None,
+                  units=None):
   """Prints a table with headers and different fields.
 
-  Args:
-    headers: Dict of header titles or None if no headers should be shown
-    fields: List of fields to show
-    separator: String used to separate fields or None for spaces
-    data: Data to be printed
-    numfields: List of fields to be aligned to right
-    unitfields: List of fields to be formatted as units
+  @type headers: dict
+  @param headers: dictionary mapping field names to headers for
+      the table
+  @type fields: list
+  @param fields: the field names corresponding to each row in
+      the data field
+  @param separator: the separator to be used; if this is None,
+      the default 'smart' algorithm is used which computes optimal
+      field width, otherwise just the separator is used between
+      each field
+  @type data: list
+  @param data: a list of lists, each sublist being one row to be output
+  @type numfields: list
+  @param numfields: a list with the fields that hold numeric
+      values and thus should be right-aligned
+  @type unitfields: list
+  @param unitfields: a list with the fields that hold numeric
+      values that should be formatted with the units field
+  @type units: string or None
+  @param units: the units we should use for formatting, or None for
+      automatic choice (human-readable for non-separator usage, otherwise
+      megabytes); this is a one-letter string
 
   """
+  if units is None:
+    if separator:
+      units = "m"
+    else:
+      units = "h"
+
   if numfields is None:
     numfields = []
   if unitfields is None:
@@ -795,7 +817,7 @@ def GenerateTable(headers, fields, separator, data,
         except ValueError:
           pass
         else:
-          val = row[idx] = utils.FormatUnit(val)
+          val = row[idx] = utils.FormatUnit(val, units)
       val = row[idx] = str(val)
       if separator is None:
         mlens[idx] = max(mlens[idx], len(val))
