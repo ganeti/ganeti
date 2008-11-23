@@ -802,6 +802,9 @@ class ConfigWriter:
       raise errors.ConfigurationError("Incomplete configuration"
                                       " (missing cluster.rsahostkeypub)")
     self._config_data = data
+    # init the last serial as -1 so that the next write will cause
+    # ssconf update
+    self._last_cluster_serial = -1
 
   def _DistributeConfig(self):
     """Distribute the configuration to the other nodes.
@@ -860,7 +863,9 @@ class ConfigWriter:
     self._DistributeConfig()
 
     # Write ssconf files on all nodes (including locally)
-    rpc.RpcRunner.call_write_ssconf_files(self._UnlockedGetNodeList())
+    if self._last_cluster_serial < self._config_data.cluster.serial_no:
+      rpc.RpcRunner.call_write_ssconf_files(self._UnlockedGetNodeList())
+      self._last_cluster_serial = self._config_data.cluster.serial_no
 
   @locking.ssynchronized(_config_lock)
   def InitConfig(self, version, cluster_config, master_node_config):
