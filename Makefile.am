@@ -330,12 +330,13 @@ stamp-directories: Makefile
 .PHONY: apidoc
 apidoc:
 	test -e doc/api || mkdir doc/api
-	TMPDIR=`mktemp -d ./temp-epydoc.XXXXXX` && { \
+	TMPDIR=`mktemp -d ` && { \
 		cp -r scripts daemons lib $$TMPDIR && \
 		( \
+			CDIR=`pwd` && \
 			cd $$TMPDIR && \
 			mv lib ganeti && \
-			epydoc --conf ../epydoc.conf \
+			epydoc --conf $$CDIR/epydoc.conf -o $$CDIR/doc/api \
 		) ; \
 		rm -rf $$TMPDIR ; \
 	}
