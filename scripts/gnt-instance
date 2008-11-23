@@ -221,21 +221,23 @@ def ListInstances(opts, args):
       "be/memory": "Configured_memory",
       "be/vcpus": "VCPUs",
       "be/auto_balance": "Auto_balance",
-      "disk.count": "Disks",
-      "nic.count": "NICs",
+      "disk.count": "Disks", "disk.sizes": "Disk_sizes",
+      "nic.count": "NICs", "nic.ips": "NIC_IPs",
+      "nic.bridges": "NIC_bridges", "nic.macs": "NIC_MACs",
       }
   else:
     headers = None
 
   if opts.human_readable:
-    unitfields = ["be/memory", "oper_ram", "sd(a|b)_size", "disk.size/.*"]
+    unitfields = ["be/memory", "oper_ram", "sd(a|b)_size", "disk\.size/.*"]
   else:
     unitfields = None
 
   numfields = ["be/memory", "oper_ram", "sd(a|b)_size", "be/vcpus",
-               "serial_no", "(disk|nic).count", "disk.size/.*"]
+               "serial_no", "(disk|nic)\.count", "disk\.size/.*"]
 
-  list_type_fields = ("tags",)
+  list_type_fields = ("tags", "disk.sizes",
+                      "nic.macs", "nic.ips", "nic.bridges")
   # change raw values to nicer strings
   for row in output:
     for idx, field in enumerate(selected_fields):
@@ -261,7 +263,7 @@ def ListInstances(opts, args):
         if val is None:
           val = "N/A"
       elif field in list_type_fields:
-        val = ",".join(val)
+        val = ",".join(str(item) for item in val)
       elif val is None:
         val = "-"
       row[idx] = str(val)
