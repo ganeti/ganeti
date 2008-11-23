@@ -127,27 +127,29 @@ class LogicalUnit(object):
     LUs which implement this method must also populate the self.needed_locks
     member, as a dict with lock levels as keys, and a list of needed lock names
     as values. Rules:
-      - Use an empty dict if you don't need any lock
-      - If you don't need any lock at a particular level omit that level
-      - Don't put anything for the BGL level
-      - If you want all locks at a level use locking.ALL_SET as a value
+
+      - use an empty dict if you don't need any lock
+      - if you don't need any lock at a particular level omit that level
+      - don't put anything for the BGL level
+      - if you want all locks at a level use locking.ALL_SET as a value
 
     If you need to share locks (rather than acquire them exclusively) at one
     level you can modify self.share_locks, setting a true value (usually 1) for
     that level. By default locks are not shared.
 
-    Examples:
-    # Acquire all nodes and one instance
-    self.needed_locks = {
-      locking.LEVEL_NODE: locking.ALL_SET,
-      locking.LEVEL_INSTANCE: ['instance1.example.tld'],
-    }
-    # Acquire just two nodes
-    self.needed_locks = {
-      locking.LEVEL_NODE: ['node1.example.tld', 'node2.example.tld'],
-    }
-    # Acquire no locks
-    self.needed_locks = {} # No, you can't leave it to the default value None
+    Examples::
+
+      # Acquire all nodes and one instance
+      self.needed_locks = {
+        locking.LEVEL_NODE: locking.ALL_SET,
+        locking.LEVEL_INSTANCE: ['instance1.example.tld'],
+      }
+      # Acquire just two nodes
+      self.needed_locks = {
+        locking.LEVEL_NODE: ['node1.example.tld', 'node2.example.tld'],
+      }
+      # Acquire no locks
+      self.needed_locks = {} # No, you can't leave it to the default value None
 
     """
     # The implementation of this method is mandatory only if the new LU is
@@ -234,11 +236,14 @@ class LogicalUnit(object):
     previous result is passed back unchanged but any LU can define it if it
     wants to use the local cluster hook-scripts somehow.
 
-    Args:
-      phase: the hooks phase that has just been run
-      hooks_results: the results of the multi-node hooks rpc call
-      feedback_fn: function to send feedback back to the caller
-      lu_result: the previous result this LU had, or None in the PRE phase.
+    @param phase: one of L{constants.HOOKS_PHASE_POST} or
+        L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
+    @param hook_results: the results of the multi-node hooks rpc call
+    @param feedback_fn: function used send feedback back to the caller
+    @param lu_result: the previous Exec result this LU had, or None
+        in the PRE phase
+    @return: the new Exec result, based on the previous result
+        and hook results
 
     """
     return lu_result
@@ -279,10 +284,10 @@ class LogicalUnit(object):
     In the future it may grow parameters to just lock some instance's nodes, or
     to just lock primaries or secondary nodes, if needed.
 
-    If should be called in DeclareLocks in a way similar to:
+    If should be called in DeclareLocks in a way similar to::
 
-    if level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
+      if level == locking.LEVEL_NODE:
+        self._LockInstancesNodes()
 
     @type primary_only: boolean
     @param primary_only: only lock primary nodes of locked instances
@@ -325,8 +330,13 @@ class NoHooksLU(LogicalUnit):
 def _GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
 
-  Args:
-    nodes: List of nodes (strings) or None for all
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type nodes: list
+  @param nodes: list of node names or None for all nodes
+  @rtype: list
+  @return: the list of nodes, sorted
+  @raise errors.OpProgrammerError: if the nodes parameter is wrong type
 
   """
   if not isinstance(nodes, list):
@@ -349,8 +359,14 @@ def _GetWantedNodes(lu, nodes):
 def _GetWantedInstances(lu, instances):
   """Returns list of checked and expanded instance names.
 
-  Args:
-    instances: List of instances (strings) or None for all
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instances: list
+  @param instances: list of instance names or None for all instances
+  @rtype: list
+  @return: the list of instances, sorted
+  @raise errors.OpPrereqError: if the instances parameter is wrong type
+  @raise errors.OpPrereqError: if any of the passed instances is not found
 
   """
   if not isinstance(instances, list):
@@ -391,10 +407,30 @@ def _CheckOutputFields(static, dynamic, selected):
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           memory, vcpus, nics):
-  """Builds instance related env variables for hooks from single variables.
+  """Builds instance related env variables for hooks
 
-  Args:
-    secondary_nodes: List of secondary nodes as strings
+  This builds the hook environment from individual variables.
+
+  @type name: string
+  @param name: the name of the instance
+  @type primary_node: string
+  @param primary_node: the name of the instance's primary node
+  @type secondary_nodes: list
+  @param secondary_nodes: list of secondary nodes as strings
+  @type os_type: string
+  @param os_type: the name of the instance's OS
+  @type status: string
+  @param status: the desired status of the instances
+  @type memory: string
+  @param memory: the memory size of the instance
+  @type vcpus: string
+  @param vcpus: the count of VCPUs the instance has
+  @type nics: list
+  @param nics: list of tuples (ip, bridge, mac) representing
+      the NICs the instance  has
+  @rtype: dict
+  @return: the hook environment for this instance
+
   """
   env = {
     "OP_TARGET": name,
@@ -426,9 +462,17 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   """Builds instance related env variables for hooks from an object.
 
-  Args:
-    instance: objects.Instance object of instance
-    override: dict of values to override
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance for which we should build the
+      environment
+  @type override: dict
+  @param override: dictionary with key/values that will override
+      our values
+  @rtype: dict
+  @return: the hook environment dictionary
+
   """
   bep = lu.cfg.GetClusterInfo().FillBE(instance)
   args = {
@@ -516,16 +560,22 @@ class LUVerifyCluster(LogicalUnit):
                   remote_version, feedback_fn):
     """Run multiple tests against a node.
 
-    Test list:
+    Test list::
+
       - compares ganeti version
       - checks vg existance and size > 20G
       - checks config file checksum
       - checks ssh to other nodes
 
-    Args:
-      node: name of the node to check
-      file_list: required list of files
-      local_cksum: dictionary of local files and their checksums
+    @type node: string
+    @param node: the name of the node to check
+    @param file_list: required list of files
+    @param local_cksum: dictionary of local files and their checksums
+    @type vglist: dict
+    @param vglist: dictionary of volume group names and their size
+    @param node_result: the results from the node
+    @param remote_version: the RPC version from the remote node
+    @param feedback_fn: function used to accumulate results
 
     """
     # compares ganeti version
@@ -899,14 +949,18 @@ class LUVerifyCluster(LogicalUnit):
     return not bad
 
   def HooksCallBack(self, phase, hooks_results, feedback_fn, lu_result):
-    """Analize the post-hooks' result, handle it, and send some
+    """Analize the post-hooks' result
+
+    This method analyses the hook result, handles it, and sends some
     nicely-formatted feedback back to the user.
 
-    Args:
-      phase: the hooks phase that has just been run
-      hooks_results: the results of the multi-node hooks rpc call
-      feedback_fn: function to send feedback back to the caller
-      lu_result: previous Exec result
+    @param phase: one of L{constants.HOOKS_PHASE_POST} or
+        L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
+    @param hooks_results: the results of the multi-node hooks rpc call
+    @param feedback_fn: function used send feedback back to the caller
+    @param lu_result: previous Exec result
+    @return: the new Exec result, based on the previous result
+        and hook results
 
     """
     # We only really run POST phase hooks, and are only interested in
@@ -1102,11 +1156,10 @@ class LURenameCluster(LogicalUnit):
 def _RecursiveCheckIfLVMBased(disk):
   """Check if the given disk or its children are lvm-based.
 
-  Args:
-    disk: ganeti.objects.Disk object
-
-  Returns:
-    boolean indicating whether a LD_LV dev_type was found or not
+  @type disk: L{objects.Disk}
+  @param disk: the disk to check
+  @rtype: booleean
+  @return: boolean indicating whether a LD_LV dev_type was found or not
 
   """
   if disk.children:
@@ -1344,17 +1397,16 @@ class LUDiagnoseOS(NoHooksLU):
   def _DiagnoseByOS(node_list, rlist):
     """Remaps a per-node return list into an a per-os per-node dictionary
 
-      Args:
-        node_list: a list with the names of all nodes
-        rlist: a map with node names as keys and OS objects as values
+    @param node_list: a list with the names of all nodes
+    @param rlist: a map with node names as keys and OS objects as values
 
-      Returns:
-        map: a map with osnames as keys and as value another map, with
-             nodes as
-             keys and list of OS objects as values
-             e.g. {"debian-etch": {"node1": [<object>,...],
-                                   "node2": [<object>,]}
-                  }
+    @rtype: dict
+    @returns: a dictionary with osnames as keys and as value another map, with
+        nodes as keys and list of OS objects as values, eg::
+
+          {"debian-etch": {"node1": [<object>,...],
+                           "node2": [<object>,]}
+          }
 
     """
     all_os = {}
@@ -2012,15 +2064,17 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
 
   This sets up the block devices on all nodes.
 
-  Args:
-    instance: a ganeti.objects.Instance object
-    ignore_secondaries: if true, errors on secondary nodes won't result
-                        in an error return from the function
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance for whose disks we assemble
+  @type ignore_secondaries: boolean
+  @param ignore_secondaries: if true, errors on secondary nodes
+      won't result in an error return from the function
+  @return: False if the operation failed, otherwise a list of
+      (host, instance_visible_name, node_visible_name)
+      with the mapping from node devices to instance devices
 
-  Returns:
-    false if the operation failed
-    list of (host, instance_visible_name, node_visible_name) if the operation
-         suceeded with the mapping from node devices to instance devices
   """
   device_info = []
   disks_ok = True
@@ -3167,11 +3221,12 @@ def _CreateDisks(lu, instance):
 
   This abstracts away some work from AddInstance.
 
-  Args:
-    instance: the instance object
-
-  Returns:
-    True or False showing the success of the creation process
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance whose disks we should create
+  @rtype: boolean
+  @return: the success of the creation
 
   """
   info = _GetInstanceInfoText(instance)
@@ -3216,11 +3271,12 @@ def _RemoveDisks(lu, instance):
   be removed, the removal will continue with the other ones (compare
   with `_CreateDisks()`).
 
-  Args:
-    instance: the instance object
-
-  Returns:
-    True or False showing the success of the removal proces
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance whose disks we should remove
+  @rtype: boolean
+  @return: the success of the removal
 
   """
   logging.info("Removing block devices for instance %s", instance.name)
@@ -3246,8 +3302,6 @@ def _RemoveDisks(lu, instance):
 
 def _ComputeDiskSize(disk_template, disks):
   """Compute disk size requirements in the volume group
-
-  This is currently hard-coded for the two-drive layout.
 
   """
   # Required free disk space as a function of disk and swap space
@@ -4001,15 +4055,20 @@ class LUReplaceDisks(LogicalUnit):
     """Replace a disk on the primary or secondary for dbrd8.
 
     The algorithm for replace is quite complicated:
-      - for each disk to be replaced:
-        - create new LVs on the target node with unique names
-        - detach old LVs from the drbd device
-        - rename old LVs to name_replaced.<time_t>
-        - rename new LVs to old LVs
-        - attach the new LVs (with the old names now) to the drbd device
-      - wait for sync across all devices
-      - for each modified disk:
-        - remove old LVs (which have the name name_replaces.<time_t>)
+
+      1. for each disk to be replaced:
+
+        1. create new LVs on the target node with unique names
+        1. detach old LVs from the drbd device
+        1. rename old LVs to name_replaced.<time_t>
+        1. rename new LVs to old LVs
+        1. attach the new LVs (with the old names now) to the drbd device
+
+      1. wait for sync across all devices
+
+      1. for each modified disk:
+
+        1. remove old LVs (which have the name name_replaces.<time_t>)
 
     Failures are not very well handled.
 
@@ -4857,10 +4916,10 @@ class LUQueryExports(NoHooksLU):
   def Exec(self, feedback_fn):
     """Compute the list of all the exported system images.
 
-    Returns:
-      a dictionary with the structure node->(export-list)
-      where export-list is a list of the instances exported on
-      that node.
+    @rtype: dict
+    @return: a dictionary with the structure node->(export-list)
+        where export-list is a list of the instances exported on
+        that node.
 
     """
     return self.rpc.call_export_list(self.nodes)
