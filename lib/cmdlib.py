@@ -3768,6 +3768,9 @@ class LUCreateInstance(LogicalUnit):
     del self.remove_locks[locking.LEVEL_INSTANCE]
     # Remove the temp. assignements for the instance's drbds
     self.cfg.ReleaseDRBDMinors(instance)
+    # Unlock all the nodes
+    self.context.glm.release(locking.LEVEL_NODE)
+    del self.acquired_locks[locking.LEVEL_NODE]
 
     if self.op.wait_for_sync:
       disk_abort = not _WaitForSync(self, iobj)
