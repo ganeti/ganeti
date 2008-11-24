@@ -372,9 +372,10 @@ class Burner(object):
       full_name = self.ExecOp(nam_op)[0][0]
       imp_dir = os.path.join(constants.EXPORT_DIR, full_name)
       imp_op = opcodes.OpCreateInstance(instance_name=instance,
-                                        disk_size=self.opts.os_size,
-                                        swap_size=self.opts.swap_size,
+                                        disks = [ {"size": size}
+                                                  for size in self.disk_size],
                                         disk_template=self.opts.disk_template,
+                                        nics=[{}],
                                         mode=constants.INSTANCE_IMPORT,
                                         src_node=enode,
                                         src_path=imp_dir,
@@ -383,9 +384,8 @@ class Burner(object):
                                         start=True,
                                         ip_check=True,
                                         wait_for_sync=True,
-                                        mac="auto",
                                         file_storage_dir=None,
-                                        file_driver=None,
+                                        file_driver="loop",
                                         iallocator=self.opts.iallocator,
                                         beparams=self.bep,
                                         hvparams=self.hvp,
