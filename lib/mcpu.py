@@ -317,11 +317,10 @@ class HooksMaster(object):
 
     This is the main function of the HookMaster.
 
-    Args:
-      phase: the hooks phase to run
-
-    Returns:
-      the result of the hooks multi-node rpc call
+    @param phase: one of L{constants.HOOKS_PHASE_POST} or
+        L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
+    @return: the processed results of the hooks multi-node rpc call
+    @raise errors.HooksFailure: on communication failure to the nodes
 
     """
     if not self.node_list[phase]:
