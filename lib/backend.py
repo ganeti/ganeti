@@ -567,7 +567,7 @@ def GetAllInstancesInfo(hypervisor_list):
   @type hypervisor_list: list
   @param hypervisor_list: list of hypervisors to query for instance data
 
-  @rtype: dict of dicts
+  @rtype: dict
   @return: dictionary of instance: data, with data having the following keys:
       - memory: memory size of instance (int)
       - state: xen state of instance (string)
