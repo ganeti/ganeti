@@ -3509,6 +3509,7 @@ class LUCreateInstance(LogicalUnit):
                      mem_size=self.be_full[constants.BE_MEMORY],
                      disks=self.disks,
                      nics=nics,
+                     hypervisor=self.op.hypervisor,
                      )
 
     ial.Run(self.op.iallocator)
@@ -5309,7 +5310,7 @@ class IAllocator(object):
   """
   _ALLO_KEYS = [
     "mem_size", "disks", "disk_template",
-    "os", "tags", "nics", "vcpus",
+    "os", "tags", "nics", "vcpus", "hypervisor",
     ]
   _RELO_KEYS = [
     "relocate_from",
@@ -5369,10 +5370,14 @@ class IAllocator(object):
     # node data
     node_results = {}
     node_list = cfg.GetNodeList()
-    # FIXME: here we have only one hypervisor information, but
-    # instance can belong to different hypervisors
+
+    if self.mode == constants.IALLOCATOR_MODE_ALLOC:
+      hypervisor = self.hypervisor
+    elif self.mode == constants.IALLOCATOR_MODE_RELOC:
+      hypervisor = cfg.GetInstanceInfo(self.name).hypervisor
+
     node_data = self.lu.rpc.call_node_info(node_list, cfg.GetVGName(),
-                                           cfg.GetHypervisorType())
+                                           hypervisor)
     for nname in node_list:
       ninfo = cfg.GetNodeInfo(nname)
       if nname not in node_data or not isinstance(node_data[nname], dict):
@@ -5614,6 +5619,8 @@ class LUTestAllocator(NoHooksLU):
             row["mode"] not in ['r', 'w']):
           raise errors.OpPrereqError("Invalid contents of the"
                                      " 'disks' parameter")
+      if self.op.hypervisor is None:
+        self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       if not hasattr(self.op, "name"):
         raise errors.OpPrereqError("Missing attribute 'name' on opcode input")
@@ -5649,6 +5656,7 @@ class LUTestAllocator(NoHooksLU):
                        tags=self.op.tags,
                        nics=self.op.nics,
                        vcpus=self.op.vcpus,
+                       hypervisor=self.op.hypervisor,
                        )
     else:
       ial = IAllocator(self,

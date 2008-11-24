@@ -534,5 +534,5 @@ class OpTestAllocator(OpCode):
   __slots__ = [
     "direction", "mode", "allocator", "name",
     "mem_size", "disks", "disk_template",
-    "os", "tags", "nics", "vcpus",
+    "os", "tags", "nics", "vcpus", "hypervisor",
     ]
