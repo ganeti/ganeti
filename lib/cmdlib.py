@@ -2264,12 +2264,6 @@ class LUStartupInstance(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
-
-  def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2340,13 +2334,6 @@ class LURebootInstance(LogicalUnit):
                                    constants.INSTANCE_REBOOT_HARD,
                                    constants.INSTANCE_REBOOT_FULL))
     self._ExpandAndLockInstance()
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
-
-  def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
-      primary_only = not constants.INSTANCE_REBOOT_FULL
-      self._LockInstancesNodes(primary_only=primary_only)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2414,12 +2401,6 @@ class LUShutdownInstance(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
-
-  def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -2466,12 +2447,6 @@ class LUReinstallInstance(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
-    self.needed_locks[locking.LEVEL_NODE] = []
-    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
-
-  def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE:
-      self._LockInstancesNodes()
 
   def BuildHooksEnv(self):
     """Build hooks env.
