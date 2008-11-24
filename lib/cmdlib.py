@@ -5479,8 +5479,7 @@ class IAllocator(object):
     if len(self.disks) != 2:
       raise errors.OpExecError("Only two-disk configurations supported")
 
-    disk_space = _ComputeDiskSize(self.disk_template,
-                                  self.disks[0]["size"], self.disks[1]["size"])
+    disk_space = _ComputeDiskSize(self.disk_template, self.disks)
 
     if self.disk_template in constants.DTS_NET_MIRROR:
       self.required_nodes = 2
@@ -5523,10 +5522,8 @@ class IAllocator(object):
       raise errors.OpPrereqError("Instance has not exactly one secondary node")
 
     self.required_nodes = 1
-
-    disk_space = _ComputeDiskSize(instance.disk_template,
-                                  instance.disks[0].size,
-                                  instance.disks[1].size)
+    disk_sizes = [{'size': disk.size} for disk in instance.disks]
+    disk_space = _ComputeDiskSize(instance.disk_template, disk_sizes)
 
     request = {
       "type": "relocate",
