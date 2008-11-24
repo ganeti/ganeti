@@ -3610,16 +3610,16 @@ class LUCreateInstance(LogicalUnit):
 
       self.src_images = disk_images
 
-      if self.op.mac == constants.VALUE_AUTO:
-        old_name = export_info.get(constants.INISECT_INS, 'name')
-        if self.op.instance_name == old_name:
-          # FIXME: adjust every nic, when we'll be able to create instances
-          # with more than one
-          if int(export_info.get(constants.INISECT_INS, 'nic_count')) >= 1:
-            self.op.mac = export_info.get(constants.INISECT_INS, 'nic_0_mac')
+      old_name = export_info.get(constants.INISECT_INS, 'name')
+      # FIXME: int() here could throw a ValueError on broken exports
+      exp_nic_count = int(export_info.get(constants.INISECT_INS, 'nic_count'))
+      if self.op.instance_name == old_name:
+        for idx, nic in enumerate(self.nics):
+          if nic.mac == constants.VALUE_AUTO and exp_nic_count >= idx:
+            nic_mac_ini = 'nic%d_mac' % idx
+            nic.mac = export_info.get(constants.INISECT_INS, nic_mac_ini)
 
     # ip ping checks (we use the same ip that was resolved in ExpandNames)
-
     if self.op.start and not self.op.ip_check:
       raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
                                  " adding an instance in start mode")
