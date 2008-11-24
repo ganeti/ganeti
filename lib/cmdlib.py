@@ -5378,6 +5378,8 @@ class IAllocator(object):
 
     node_data = self.lu.rpc.call_node_info(node_list, cfg.GetVGName(),
                                            hypervisor)
+    node_iinfo = self.lu.rpc.call_all_instances_info(node_list,
+                       cluster_info.enabled_hypervisors)
     for nname in node_list:
       ninfo = cfg.GetNodeInfo(nname)
       if nname not in node_data or not isinstance(node_data[nname], dict):
@@ -5398,6 +5400,13 @@ class IAllocator(object):
       for iinfo, beinfo in i_list:
         if iinfo.primary_node == nname:
           i_p_mem += beinfo[constants.BE_MEMORY]
+          if iinfo.name not in node_iinfo[nname]:
+            i_used_mem = 0
+          else:
+            i_used_mem = int(node_iinfo[nname][iinfo.name]['memory'])
+          i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
+          remote_info['memory_free'] -= max(0, i_mem_diff)
+
           if iinfo.status == "up":
             i_p_up_mem += beinfo[constants.BE_MEMORY]
 
