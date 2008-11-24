@@ -92,6 +92,10 @@ class Client:
     self.port = utils.GetNodeDaemonPort()
     self.nc = {}
 
+    self._ssl_params = \
+      http.HttpSslParams(ssl_key_path=constants.SSL_CERT_FILE,
+                         ssl_cert_path=constants.SSL_CERT_FILE)
+
   def ConnectList(self, node_list, address_list=None):
     """Add a list of nodes to the target nodes.
 
@@ -122,14 +126,10 @@ class Client:
     if address is None:
       address = name
 
-    # TODO: Cache key and certificate for different requests
-    ssl_params = http.HttpSslParams(ssl_key_path=constants.SSL_CERT_FILE,
-                                    ssl_cert_path=constants.SSL_CERT_FILE)
-
     self.nc[name] = http.HttpClientRequest(address, self.port, http.HTTP_PUT,
                                            "/%s" % self.procedure,
                                            post_data=self.body,
-                                           ssl_params=ssl_params,
+                                           ssl_params=self._ssl_params,
                                            ssl_verify_peer=True)
 
   def GetResults(self):
@@ -150,6 +150,7 @@ class Client:
         results[name] = serializer.LoadJson(req.resp_body)
         continue
 
+      # TODO: Better error reporting
       if req.error:
         msg = req.error
       else:
