@@ -5363,12 +5363,8 @@ class IAllocator(object):
       "enable_hypervisors": list(cluster_info.enabled_hypervisors),
       # we don't have job IDs
       }
-
-    i_list = []
-    cluster = self.cfg.GetClusterInfo()
-    for iname in cfg.GetInstanceList():
-      i_obj = cfg.GetInstanceInfo(iname)
-      i_list.append((i_obj, cluster.FillBE(i_obj)))
+    iinfo = cfg.GetAllInstancesInfo().values()
+    i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
 
     # node data
     node_results = {}
