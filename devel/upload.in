@@ -35,6 +35,10 @@ while [ "$#" -gt 0 ]; do
     --no-restart)
       NO_RESTART=1
     ;;
+    -h|--help)
+      echo "Usage: $0 [--no-restart] hosts..."
+      exit 0
+      ;;
     -*)
       echo "Unknown option: $opt" >&2
       exit 1
