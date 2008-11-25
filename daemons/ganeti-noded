@@ -501,7 +501,8 @@ class NodeHttpServer(http.HttpServer):
     """Write ssconf files.
 
     """
-    return backend.WriteSsconfFiles()
+    (values,) = params
+    return backend.WriteSsconfFiles(values)
 
   # os -----------------------
 

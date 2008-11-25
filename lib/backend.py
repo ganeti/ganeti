@@ -1226,8 +1226,8 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   return True
 
 
-def WriteSsconfFiles():
-  ssconf.WriteSsconfFiles(constants.CLUSTER_CONF_FILE)
+def WriteSsconfFiles(values):
+  ssconf.WriteSsconfFiles(values)
 
 
 def _ErrnoOrStr(err):

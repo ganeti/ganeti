@@ -865,8 +865,17 @@ class ConfigWriter:
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
-        rpc.RpcRunner.call_write_ssconf_files(self._UnlockedGetNodeList())
+        rpc.RpcRunner.call_write_ssconf_files(self._UnlockedGetNodeList(),
+                                              self._UnlockedGetSsconfValues())
       self._last_cluster_serial = self._config_data.cluster.serial_no
+
+  def _UnlockedGetSsconfValues(self):
+    return {
+      "cluster_name": self._config_data.cluster.cluster_name,
+      "master_ip": self._config_data.cluster.master_ip,
+      "master_netdev": self._config_data.cluster.master_netdev,
+      "master_node": self._config_data.cluster.master_node,
+      }
 
   @locking.ssynchronized(_config_lock)
   def InitConfig(self, version, cluster_config, master_node_config):

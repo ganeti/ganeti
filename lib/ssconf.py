@@ -27,6 +27,7 @@ configuration data, which is mostly static and available to all nodes.
 """
 
 import sys
+import re
 
 from ganeti import errors
 from ganeti import constants
@@ -35,6 +36,8 @@ from ganeti import serializer
 
 
 SSCONF_LOCK_TIMEOUT = 10
+
+RE_VALID_SSCONF_NAME = re.compile(r'^[-_a-z0-9]+$')
 
 
 class SimpleConfigReader(object):
@@ -110,35 +113,28 @@ class SimpleConfigWriter(SimpleConfigReader):
 
 
 def _SsconfPath(name):
+  if not RE_VALID_SSCONF_NAME.match(name):
+    raise errors.ParameterError("Invalid ssconf name: %s" % name)
   return "%s/ssconf_%s" % (constants.DATA_DIR, name)
 
 
-def WriteSsconfFiles(file_name):
+def WriteSsconfFiles(values):
   """Writes legacy ssconf files to be used by external scripts.
 
-  @type file_name: string
-  @param file_name: Path to configuration file
+  @type values: dict
+  @param values: Dictionary of (name, value)
 
   """
   ssconf_lock = utils.FileLock(constants.SSCONF_LOCK_FILE)
 
-  # Read config
-  cfg = SimpleConfigReader(file_name=file_name)
-
   # Get lock while writing files
   ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
   try:
-    utils.WriteFile(_SsconfPath("cluster_name"),
-                    data="%s\n" % cfg.GetClusterName())
-
-    utils.WriteFile(_SsconfPath("master_ip"),
-                    data="%s\n" % cfg.GetMasterIP())
-
-    utils.WriteFile(_SsconfPath("master_netdev"),
-                    data="%s\n" % cfg.GetMasterNetdev())
-
-    utils.WriteFile(_SsconfPath("master_node"),
-                    data="%s\n" % cfg.GetMasterNode())
+    for name, value in values.iteritems():
+      if not value.endswith("\n"):
+        value += "\n"
+      utils.WriteFile(_SsconfPath(name),
+                      data=value)
   finally:
     ssconf_lock.Unlock()
 
