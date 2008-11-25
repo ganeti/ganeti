@@ -228,13 +228,16 @@ class HttpSslParams(object):
     @param ssl_cert_path: Path to file containing SSL certificate in PEM format
 
     """
-    ssl_key_pem = utils.ReadFile(ssl_key_path)
-    ssl_cert_pem = utils.ReadFile(ssl_cert_path)
+    self.ssl_key_pem = utils.ReadFile(ssl_key_path)
+    self.ssl_cert_pem = utils.ReadFile(ssl_cert_path)
 
-    cr = OpenSSL.crypto
-    self.cert = cr.load_certificate(cr.FILETYPE_PEM, ssl_cert_pem)
-    self.key = cr.load_privatekey(cr.FILETYPE_PEM, ssl_key_pem)
-    del cr
+  def GetKey(self):
+    return OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
+                                          self.ssl_key_pem)
+
+  def GetCertificate(self):
+    return OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           self.ssl_cert_pem)
 
 
 class _HttpSocketBase(object):
@@ -244,6 +247,8 @@ class _HttpSocketBase(object):
   def __init__(self):
     self._using_ssl = None
     self._ssl_params = None
+    self._ssl_key = None
+    self._ssl_cert = None
 
   def _CreateSocket(self, ssl_params, ssl_verify_peer):
     """Creates a TCP socket and initializes SSL if needed.
@@ -265,11 +270,14 @@ class _HttpSocketBase(object):
     if not self._using_ssl:
       return sock
 
+    self._ssl_key = ssl_params.GetKey()
+    self._ssl_cert = ssl_params.GetCertificate()
+
     ctx = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
     ctx.set_options(OpenSSL.SSL.OP_NO_SSLv2)
 
-    ctx.use_privatekey(ssl_params.key)
-    ctx.use_certificate(ssl_params.cert)
+    ctx.use_privatekey(self._ssl_key)
+    ctx.use_certificate(self._ssl_cert)
     ctx.check_privatekey()
 
     if ssl_verify_peer:
@@ -288,11 +296,8 @@ class _HttpSocketBase(object):
     """
     assert self._ssl_params, "SSL not initialized"
 
-    mykey = self._ssl_params.key
-    mycert = self._ssl_params.cert
-
-    return (mycert.digest("sha1") == cert.digest("sha1") and
-            mycert.digest("md5") == cert.digest("md5"))
+    return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and
+            self._ssl_cert.digest("md5") == cert.digest("md5"))
 
 
 class _HttpConnectionHandler(object):
