@@ -54,7 +54,6 @@ class LogicalUnit(object):
     - implement BuildHooksEnv
     - redefine HPATH and HTYPE
     - optionally redefine their run requirements:
-        REQ_MASTER: the LU needs to run on the master node
         REQ_BGL: the LU needs to hold the Big Ganeti Lock exclusively
 
   Note that all commands require root permissions.
@@ -63,7 +62,6 @@ class LogicalUnit(object):
   HPATH = None
   HTYPE = None
   _OP_REQP = []
-  REQ_MASTER = True
   REQ_BGL = True
 
   def __init__(self, processor, op, context, rpc):
@@ -96,15 +94,7 @@ class LogicalUnit(object):
       if attr_val is None:
         raise errors.OpPrereqError("Required parameter '%s' missing" %
                                    attr_name)
-
-    if not self.cfg.IsCluster():
-      raise errors.OpPrereqError("Cluster not initialized yet,"
-                                 " use 'gnt-cluster init' first.")
-    if self.REQ_MASTER:
-      master = self.cfg.GetMasterNode()
-      if master != utils.HostInfo().name:
-        raise errors.OpPrereqError("Commands must be run on the master"
-                                   " node %s" % master)
+    self.CheckArguments()
 
   def __GetSSH(self):
     """Returns the SshRunner object
@@ -115,6 +105,24 @@ class LogicalUnit(object):
     return self.__ssh
 
   ssh = property(fget=__GetSSH)
+
+  def CheckArguments(self):
+    """Check syntactic validity for the opcode arguments.
+
+    This method is for doing a simple syntactic check and ensure
+    validity of opcode parameters, without any cluster-related
+    checks. While the same can be accomplished in ExpandNames and/or
+    CheckPrereq, doing these separate is better because:
+
+      - ExpandNames is left as as purely a lock-related function
+      - CheckPrereq is run after we have aquired locks (and possible
+        waited for them)
+
+    The function is allowed to change the self.op attribute so that
+    later methods can no longer worry about missing parameters.
+
+    """
+    pass
 
   def ExpandNames(self):
     """Expand names for this LU.
@@ -1947,7 +1955,6 @@ class LUQueryClusterInfo(NoHooksLU):
 
   """
   _OP_REQP = []
-  REQ_MASTER = False
   REQ_BGL = False
 
   def ExpandNames(self):
