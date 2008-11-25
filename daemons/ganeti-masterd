@@ -27,6 +27,8 @@ inheritance from parent classes requires it.
 """
 
 
+import os
+import errno
 import sys
 import SocketServer
 import time
@@ -435,6 +437,13 @@ def main():
     # we believe we are the master, let's ask the other nodes...
     if not CheckAgreement():
       return
+
+    try:
+      os.mkdir(constants.SOCKET_DIR, constants.SOCKET_DIR_MODE)
+    except EnvironmentError, err:
+      if err.errno != errno.EEXIST:
+        raise errors.GenericError("Cannot create socket directory"
+          " '%s': %s" % (constants.SOCKET_DIR, err))
 
     master = IOServer(constants.MASTER_SOCKET, ClientRqHandler)
   finally:
