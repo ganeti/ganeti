@@ -1009,10 +1009,10 @@ def ShowInstanceConfig(opts, args):
               instance["be_actual"][constants.BE_VCPUS])
     buf.write("    - memory: %dMiB\n" %
               instance["be_actual"][constants.BE_MEMORY])
-    buf.write("    - NICs: %s\n" %
-              ", ".join(["{MAC: %s, IP: %s, bridge: %s}" %
-                         (mac, ip, bridge)
-                         for mac, ip, bridge in instance["nics"]]))
+    buf.write("    - NICs:\n")
+    for idx, (mac, ip, bridge) in enumerate(instance["nics"]):
+      buf.write("      - nic/%d: MAC: %s, IP: %s, bridge: %s\n" %
+                (idx, mac, ip, bridge))
     buf.write("  Block devices:\n")
 
     for device in instance["disks"]:
