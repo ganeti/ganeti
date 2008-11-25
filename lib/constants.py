@@ -99,18 +99,7 @@ QUEUE_DIR = DATA_DIR + "/queue"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 
-# Quoting unix(7) on Linux:
-#   Linux also supports an abstract namespace which is independent of the file
-#   system. [...] If sun_path starts with a null byte ('\0'), then it refers to
-#   the abstract namespace maintained by the Unix protocol module. The socket's
-#   address in this namespace is given by the rest of the bytes in sun_path.
-#
-# By using this Linux-specific way we don't have to care about removing the
-# socket file when quitting or starting (after an unclean shutdown).
-#
-# Sample output for "netstat -nlp":
-#   unix 2 [ ACC ] STREAM LISTENING 247919 1234/python @ganeti-master
-MASTER_SOCKET = "\0ganeti-master"
+MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
 # PID files
 MASTERD_PID = "ganeti-masterd"

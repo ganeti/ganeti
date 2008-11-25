@@ -445,6 +445,10 @@ def main():
         raise errors.GenericError("Cannot create socket directory"
           " '%s': %s" % (constants.SOCKET_DIR, err))
 
+    # This is safe to do as the pid file guarantees against
+    # concurrent execution.
+    utils.RemoveFile(constants.MASTER_SOCKET)
+
     master = IOServer(constants.MASTER_SOCKET, ClientRqHandler)
   finally:
     rpc.Shutdown()
@@ -477,6 +481,7 @@ def main():
       rpc.Shutdown()
   finally:
     utils.RemovePidFile(constants.MASTERD_PID)
+    utils.RemoveFile(constants.MASTER_SOCKET)
 
 
 if __name__ == "__main__":
