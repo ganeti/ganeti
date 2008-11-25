@@ -191,8 +191,8 @@ FD_BLKTAP = "blktap"
 LDS_DRBD = frozenset([LD_DRBD8])
 
 # disk access mode
-DISK_RDONLY = "r"
-DISK_RDWR = "w"
+DISK_RDONLY = "ro"
+DISK_RDWR = "rw"
 DISK_ACCESS_SET = frozenset([DISK_RDONLY, DISK_RDWR])
 
 # disk replacement mode
@@ -216,6 +216,11 @@ FILE_DRIVER = frozenset([FD_LOOP, FD_BLKTAP])
 # import/export config options
 INISECT_EXP = "export"
 INISECT_INS = "instance"
+
+# dynamic device modification
+
+DDM_ADD = 'add'
+DDM_REMOVE = 'remove'
 
 # common exit codes
 EXIT_SUCCESS = 0
@@ -375,6 +380,10 @@ ELOG_PROGRESS = "progress"
 # Temporary RAPI constants until we have cluster parameters
 RAPI_ENABLE = True
 RAPI_PORT = 5080
+
+# max dynamnic devices
+MAX_NICS = 8
+MAX_DISKS = 16
 
 # cluster wide default parameters
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM

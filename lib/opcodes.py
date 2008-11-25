@@ -424,8 +424,9 @@ class OpSetInstanceParams(OpCode):
   OP_ID = "OP_INSTANCE_SET_PARAMS"
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
-    "instance_name", "ip", "bridge", "mac",
+    "instance_name",
     "hvparams", "beparams", "force",
+    "nics", "disks",
     ]
 
 

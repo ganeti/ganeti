@@ -3228,6 +3228,8 @@ def _CreateDisks(lu, instance):
       logging.error("Failed to create directory '%s'", file_storage_dir)
       return False
 
+  # Note: this needs to be kept in sync with adding of disks in
+  # LUSetInstanceParams
   for device in instance.disks:
     logging.info("Creating volume %s for instance %s",
                  device.iv_name, instance.name)
@@ -4667,14 +4669,106 @@ class LUSetInstanceParams(LogicalUnit):
   """
   HPATH = "instance-modify"
   HTYPE = constants.HTYPE_INSTANCE
-  _OP_REQP = ["instance_name", "hvparams"]
+  _OP_REQP = ["instance_name"]
   REQ_BGL = False
+
+  def CheckArguments(self):
+    if not hasattr(self.op, 'nics'):
+      self.op.nics = []
+    if not hasattr(self.op, 'disks'):
+      self.op.disks = []
+    if not hasattr(self.op, 'beparams'):
+      self.op.beparams = {}
+    if not hasattr(self.op, 'hvparams'):
+      self.op.hvparams = {}
+    self.op.force = getattr(self.op, "force", False)
+    if not (self.op.nics or self.op.disks or
+            self.op.hvparams or self.op.beparams):
+      raise errors.OpPrereqError("No changes submitted")
+
+    for item in (constants.BE_MEMORY, constants.BE_VCPUS):
+      val = self.op.beparams.get(item, None)
+      if val is not None:
+        try:
+          val = int(val)
+        except ValueError, err:
+          raise errors.OpPrereqError("Invalid %s size: %s" % (item, str(err)))
+        self.op.beparams[item] = val
+    # Disk validation
+    disk_addremove = 0
+    for disk_op, disk_dict in self.op.disks:
+      if disk_op == constants.DDM_REMOVE:
+        disk_addremove += 1
+        continue
+      elif disk_op == constants.DDM_ADD:
+        disk_addremove += 1
+      else:
+        if not isinstance(disk_op, int):
+          raise errors.OpPrereqError("Invalid disk index")
+      if disk_op == constants.DDM_ADD:
+        mode = disk_dict.setdefault('mode', constants.DISK_RDWR)
+        if mode not in (constants.DISK_RDONLY, constants.DISK_RDWR):
+          raise errors.OpPrereqError("Invalid disk access mode '%s'" % mode)
+        size = disk_dict.get('size', None)
+        if size is None:
+          raise errors.OpPrereqError("Required disk parameter size missing")
+        try:
+          size = int(size)
+        except ValueError, err:
+          raise errors.OpPrereqError("Invalid disk size parameter: %s" %
+                                     str(err))
+        disk_dict['size'] = size
+      else:
+        # modification of disk
+        if 'size' in disk_dict:
+          raise errors.OpPrereqError("Disk size change not possible, use"
+                                     " grow-disk")
+
+    if disk_addremove > 1:
+      raise errors.OpPrereqError("Only one disk add or remove operation"
+                                 " supported at a time")
+
+    # NIC validation
+    nic_addremove = 0
+    for nic_op, nic_dict in self.op.nics:
+      if nic_op == constants.DDM_REMOVE:
+        nic_addremove += 1
+        continue
+      elif nic_op == constants.DDM_ADD:
+        nic_addremove += 1
+      else:
+        if not isinstance(nic_op, int):
+          raise errors.OpPrereqError("Invalid nic index")
+
+      # nic_dict should be a dict
+      nic_ip = nic_dict.get('ip', None)
+      if nic_ip is not None:
+        if nic_ip.lower() == "none":
+          nic_dict['ip'] = None
+        else:
+          if not utils.IsValidIP(nic_ip):
+            raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip)
+      # we can only check None bridges and assign the default one
+      nic_bridge = nic_dict.get('bridge', None)
+      if nic_bridge is None:
+        nic_dict['bridge'] = self.cfg.GetDefBridge()
+      # but we can validate MACs
+      nic_mac = nic_dict.get('mac', None)
+      if nic_mac is not None:
+        if self.cfg.IsMacInUse(nic_mac):
+          raise errors.OpPrereqError("MAC address %s already in use"
+                                     " in cluster" % nic_mac)
+        if nic_mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+          if not utils.IsValidMac(nic_mac):
+            raise errors.OpPrereqError("Invalid MAC address %s" % nic_mac)
+    if nic_addremove > 1:
+      raise errors.OpPrereqError("Only one NIC add or remove operation"
+                                 " supported at a time")
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
-
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -4691,20 +4785,7 @@ class LUSetInstanceParams(LogicalUnit):
       args['memory'] = self.be_new[constants.BE_MEMORY]
     if constants.BE_VCPUS in self.be_new:
       args['vcpus'] = self.be_new[constants.BE_VCPUS]
-    if self.do_ip or self.do_bridge or self.mac:
-      if self.do_ip:
-        ip = self.ip
-      else:
-        ip = self.instance.nics[0].ip
-      if self.bridge:
-        bridge = self.bridge
-      else:
-        bridge = self.instance.nics[0].bridge
-      if self.mac:
-        mac = self.mac
-      else:
-        mac = self.instance.nics[0].mac
-      args['nics'] = [(ip, bridge, mac)]
+    # FIXME: readd disk/nic changes
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
     nl = [self.cfg.GetMasterNode(),
           self.instance.primary_node] + list(self.instance.secondary_nodes)
@@ -4716,44 +4797,7 @@ class LUSetInstanceParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
-    # FIXME: all the parameters could be checked before, in ExpandNames, or in
-    # a separate CheckArguments function, if we implement one, so the operation
-    # can be aborted without waiting for any lock, should it have an error...
-    self.ip = getattr(self.op, "ip", None)
-    self.mac = getattr(self.op, "mac", None)
-    self.bridge = getattr(self.op, "bridge", None)
-    self.kernel_path = getattr(self.op, "kernel_path", None)
-    self.initrd_path = getattr(self.op, "initrd_path", None)
-    self.force = getattr(self.op, "force", None)
-    all_parms = [self.ip, self.bridge, self.mac]
-    if (all_parms.count(None) == len(all_parms) and
-        not self.op.hvparams and
-        not self.op.beparams):
-      raise errors.OpPrereqError("No changes submitted")
-    for item in (constants.BE_MEMORY, constants.BE_VCPUS):
-      val = self.op.beparams.get(item, None)
-      if val is not None:
-        try:
-          val = int(val)
-        except ValueError, err:
-          raise errors.OpPrereqError("Invalid %s size: %s" % (item, str(err)))
-        self.op.beparams[item] = val
-    if self.ip is not None:
-      self.do_ip = True
-      if self.ip.lower() == "none":
-        self.ip = None
-      else:
-        if not utils.IsValidIP(self.ip):
-          raise errors.OpPrereqError("Invalid IP address '%s'." % self.ip)
-    else:
-      self.do_ip = False
-    self.do_bridge = (self.bridge is not None)
-    if self.mac is not None:
-      if self.cfg.IsMacInUse(self.mac):
-        raise errors.OpPrereqError('MAC address %s already in use in cluster' %
-                                   self.mac)
-      if not utils.IsValidMac(self.mac):
-        raise errors.OpPrereqError('Invalid MAC address %s' % self.mac)
+    force = self.force = self.op.force
 
     # checking the new params on the primary/secondary nodes
 
@@ -4844,12 +4888,63 @@ class LUSetInstanceParams(LogicalUnit):
             self.warn.append("Not enough memory to failover instance to"
                              " secondary node %s" % node)
 
+    # NIC processing
+    for nic_op, nic_dict in self.op.nics:
+      if nic_op == constants.DDM_REMOVE:
+        if not instance.nics:
+          raise errors.OpPrereqError("Instance has no NICs, cannot remove")
+        continue
+      if nic_op != constants.DDM_ADD:
+        # an existing nic
+        if nic_op < 0 or nic_op >= len(instance.nics):
+          raise errors.OpPrereqError("Invalid NIC index %s, valid values"
+                                     " are 0 to %d" %
+                                     (nic_op, len(instance.nics)))
+      nic_bridge = nic_dict.get('bridge', None)
+      if nic_bridge is not None:
+        if not self.rpc.call_bridges_exist(pnode, [nic_bridge]):
+          msg = ("Bridge '%s' doesn't exist on one of"
+                 " the instance nodes" % nic_bridge)
+          if self.force:
+            self.warn.append(msg)
+          else:
+            raise errors.OpPrereqError(msg)
+
+    # DISK processing
+    if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
+      raise errors.OpPrereqError("Disk operations not supported for"
+                                 " diskless instances")
+    for disk_op, disk_dict in self.op.disks:
+      if disk_op == constants.DDM_REMOVE:
+        if len(instance.disks) == 1:
+          raise errors.OpPrereqError("Cannot remove the last disk of"
+                                     " an instance")
+        ins_l = self.rpc.call_instance_list([pnode], [instance.hypervisor])
+        ins_l = ins_l[pnode]
+        if not type(ins_l) is list:
+          raise errors.OpPrereqError("Can't contact node '%s'" % pnode)
+        if instance.name in ins_l:
+          raise errors.OpPrereqError("Instance is running, can't remove"
+                                     " disks.")
+
+      if (disk_op == constants.DDM_ADD and
+          len(instance.nics) >= constants.MAX_DISKS):
+        raise errors.OpPrereqError("Instance has too many disks (%d), cannot"
+                                   " add more" % constants.MAX_DISKS)
+      if disk_op not in (constants.DDM_ADD, constants.DDM_REMOVE):
+        # an existing disk
+        if disk_op < 0 or disk_op >= len(instance.disks):
+          raise errors.OpPrereqError("Invalid disk index %s, valid values"
+                                     " are 0 to %d" %
+                                     (disk_op, len(instance.disks)))
+
     return
 
   def Exec(self, feedback_fn):
     """Modifies an instance.
 
     All parameters take effect only at the next restart of the instance.
+
     """
     # Process here the warnings from CheckPrereq, as we don't have a
     # feedback_fn there.
@@ -4858,19 +4953,93 @@ class LUSetInstanceParams(LogicalUnit):
 
     result = []
     instance = self.instance
-    if self.do_ip:
-      instance.nics[0].ip = self.ip
-      result.append(("ip", self.ip))
-    if self.bridge:
-      instance.nics[0].bridge = self.bridge
-      result.append(("bridge", self.bridge))
-    if self.mac:
-      instance.nics[0].mac = self.mac
-      result.append(("mac", self.mac))
+    # disk changes
+    for disk_op, disk_dict in self.op.disks:
+      if disk_op == constants.DDM_REMOVE:
+        # remove the last disk
+        device = instance.disks.pop()
+        device_idx = len(instance.disks)
+        for node, disk in device.ComputeNodeTree(instance.primary_node):
+          self.cfg.SetDiskID(disk, node)
+          if not self.rpc.call_blockdev_remove(node, disk):
+            self.proc.LogWarning("Could not remove disk/%d on node %s,"
+                                 " continuing anyway", device_idx, node)
+        result.append(("disk/%d" % device_idx, "remove"))
+      elif disk_op == constants.DDM_ADD:
+        # add a new disk
+        if instance.disk_template == constants.DT_FILE:
+          file_driver, file_path = instance.disks[0].logical_id
+          file_path = os.path.dirname(file_path)
+        else:
+          file_driver = file_path = None
+        disk_idx_base = len(instance.disks)
+        new_disk = _GenerateDiskTemplate(self,
+                                         instance.disk_template,
+                                         instance, instance.primary_node,
+                                         instance.secondary_nodes,
+                                         [disk_dict],
+                                         file_path,
+                                         file_driver,
+                                         disk_idx_base)[0]
+        new_disk.mode = disk_dict['mode']
+        instance.disks.append(new_disk)
+        info = _GetInstanceInfoText(instance)
+
+        logging.info("Creating volume %s for instance %s",
+                     new_disk.iv_name, instance.name)
+        # Note: this needs to be kept in sync with _CreateDisks
+        #HARDCODE
+        for secondary_node in instance.secondary_nodes:
+          if not _CreateBlockDevOnSecondary(self, secondary_node, instance,
+                                            new_disk, False, info):
+            self.LogWarning("Failed to create volume %s (%s) on"
+                            " secondary node %s!",
+                            new_disk.iv_name, new_disk, secondary_node)
+        #HARDCODE
+        if not _CreateBlockDevOnPrimary(self, instance.primary_node,
+                                        instance, new_disk, info):
+          self.LogWarning("Failed to create volume %s on primary!",
+                          new_disk.iv_name)
+        result.append(("disk/%d" % disk_idx_base, "add:size=%s,mode=%s" %
+                       (new_disk.size, new_disk.mode)))
+      else:
+        # change a given disk
+        instance.disks[disk_op].mode = disk_dict['mode']
+        result.append(("disk.mode/%d" % disk_op, disk_dict['mode']))
+    # NIC changes
+    for nic_op, nic_dict in self.op.nics:
+      if nic_op == constants.DDM_REMOVE:
+        # remove the last nic
+        del instance.nics[-1]
+        result.append(("nic.%d" % len(instance.nics), "remove"))
+      elif nic_op == constants.DDM_ADD:
+        # add a new nic
+        if 'mac' not in nic_dict:
+          mac = constants.VALUE_GENERATE
+        else:
+          mac = nic_dict['mac']
+        if mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+          mac = self.cfg.GenerateMAC()
+        new_nic = objects.NIC(mac=mac, ip=nic_dict.get('ip', None),
+                              bridge=nic_dict.get('bridge', None))
+        instance.nics.append(new_nic)
+        result.append(("nic.%d" % (len(instance.nics) - 1),
+                       "add:mac=%s,ip=%s,bridge=%s" %
+                       (new_nic.mac, new_nic.ip, new_nic.bridge)))
+      else:
+        # change a given nic
+        for key in 'mac', 'ip', 'bridge':
+          if key in nic_dict:
+            setattr(instance.nics[nic_op], key, nic_dict[key])
+            result.append(("nic.%s/%d" % (key, nic_op), nic_dict[key]))
+
+    # hvparams changes
     if self.op.hvparams:
       instance.hvparams = self.hv_new
       for key, val in self.op.hvparams.iteritems():
         result.append(("hv/%s" % key, val))
+
+    # beparams changes
     if self.op.beparams:
       instance.beparams = self.be_inst
       for key, val in self.op.beparams.iteritems():

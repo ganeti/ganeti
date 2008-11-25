@@ -1035,7 +1035,7 @@ def SetInstanceParams(opts, args):
   @return: the desired exit code
 
   """
-  if not (opts.ip or opts.bridge or opts.mac or
+  if not (opts.nics or opts.disks or
           opts.hypervisor or opts.beparams):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -1044,9 +1044,27 @@ def SetInstanceParams(opts, args):
     opts.beparams[constants.BE_MEMORY] = utils.ParseUnit(
       opts.beparams[constants.BE_MEMORY])
 
+  for idx, (nic_op, nic_dict) in enumerate(opts.nics):
+    try:
+      nic_op = int(nic_op)
+      opts.nics[idx] = (nic_op, nic_dict)
+    except ValueError:
+      pass
+
+  for idx, (disk_op, disk_dict) in enumerate(opts.disks):
+    try:
+      disk_op = int(disk_op)
+      opts.disks[idx] = (disk_op, disk_dict)
+    except ValueError:
+      pass
+    if disk_op == constants.DDM_ADD:
+      if 'size' not in disk_dict:
+        raise errors.OpPrereqError("Missing required parameter 'size'")
+      disk_dict['size'] = utils.ParseUnit(disk_dict['size'])
+
   op = opcodes.OpSetInstanceParams(instance_name=args[0],
-                                   ip=opts.ip,
-                                   bridge=opts.bridge, mac=opts.mac,
+                                   nics=opts.nics,
+                                   disks=opts.disks,
                                    hvparams=opts.hypervisor,
                                    beparams=opts.beparams,
                                    force=opts.force)
@@ -1248,21 +1266,20 @@ commands = {
                     "Replaces all disks for the instance"),
   'modify': (SetInstanceParams, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
-              make_option("-i", "--ip", dest="ip",
-                          help="IP address ('none' or numeric IP)",
-                          default=None, type="string", metavar="<ADDRESS>"),
-              make_option("-b", "--bridge", dest="bridge",
-                          help="Bridge to connect this instance to",
-                          default=None, type="string", metavar="<bridge>"),
-              make_option("--mac", dest="mac",
-                          help="MAC address", default=None,
-                          type="string", metavar="<MACADDRESS>"),
               keyval_option("-H", "--hypervisor", type="keyval",
                             default={}, dest="hypervisor",
                             help="Change hypervisor parameters"),
               keyval_option("-B", "--backend", type="keyval",
                             default={}, dest="beparams",
                             help="Change backend parameters"),
+              ikv_option("--disk", help="Disk changes",
+                         default=[], dest="disks",
+                         action="append",
+                         type="identkeyval"),
+              ikv_option("--net", help="NIC changes",
+                         default=[], dest="nics",
+                         action="append",
+                         type="identkeyval"),
               SUBMIT_OPT,
               ],
              "<instance>", "Alters the parameters of an instance"),
