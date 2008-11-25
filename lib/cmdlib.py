@@ -4797,7 +4797,7 @@ class LUSetInstanceParams(LogicalUnit):
       self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)
     else:
-      self.hv_new = self.hv_inst = {}
+      self.be_new = self.be_inst = {}
 
     self.warn = []
 
