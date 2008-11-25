@@ -85,6 +85,7 @@ RUN_GANETI_DIR = RUN_DIR + "/ganeti"
 BDEV_CACHE_DIR = RUN_GANETI_DIR + "/bdev-cache"
 DISK_LINKS_DIR = RUN_GANETI_DIR + "/instance-disks"
 SOCKET_DIR = RUN_GANETI_DIR + "/socket"
+SOCKET_DIR_MODE = 0700
 # keep RUN_GANETI_DIR first here, to make sure all get created when the node
 # daemon is started (this takes care of RUN_DIR being tmpfs)
 SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
