@@ -913,6 +913,7 @@ def _FormatBlockDevInfo(buf, dev, indent_level, static):
     data = "  - %s, " % dev["iv_name"]
   else:
     data = "  - "
+  data += "access mode: %s, " % dev["mode"]
   data += "type: %s" % dev["dev_type"]
   if dev["logical_id"] is not None:
     data += ", logical_id: %s" % (dev["logical_id"],)
