@@ -3127,7 +3127,8 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, names, iv_name,
 def _GenerateDiskTemplate(lu, template_name,
                           instance_name, primary_node,
                           secondary_nodes, disk_info,
-                          file_storage_dir, file_driver):
+                          file_storage_dir, file_driver,
+                          base_index):
   """Generate the entire disk layout for a given template type.
 
   """
@@ -3145,9 +3146,10 @@ def _GenerateDiskTemplate(lu, template_name,
     names = _GenerateUniqueNames(lu, [".disk%d" % i
                                       for i in range(disk_count)])
     for idx, disk in enumerate(disk_info):
+      disk_index = idx + base_index
       disk_dev = objects.Disk(dev_type=constants.LD_LV, size=disk["size"],
                               logical_id=(vgname, names[idx]),
-                              iv_name = "disk/%d" % idx)
+                              iv_name="disk/%d" % disk_index)
       disks.append(disk_dev)
   elif template_name == constants.DT_DRBD8:
     if len(secondary_nodes) != 1:
@@ -3164,7 +3166,7 @@ def _GenerateDiskTemplate(lu, template_name,
     for idx, disk in enumerate(disk_info):
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
                                       disk["size"], names[idx*2:idx*2+2],
-                                      "disk/%d" % idx,
+                                      "disk/%d" % disk_index,
                                       minors[idx*2], minors[idx*2+1])
       disks.append(disk_dev)
   elif template_name == constants.DT_FILE:
@@ -3174,7 +3176,7 @@ def _GenerateDiskTemplate(lu, template_name,
     for idx, disk in enumerate(disk_info):
 
       disk_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk["size"],
-                              iv_name="disk/%d" % idx,
+                              iv_name="disk/%d" % disk_index,
                               logical_id=(file_driver,
                                           "%s/disk%d" % (file_storage_dir,
                                                          idx)))
@@ -3741,7 +3743,8 @@ class LUCreateInstance(LogicalUnit):
                                   self.secondaries,
                                   self.disks,
                                   file_storage_dir,
-                                  self.op.file_driver)
+                                  self.op.file_driver,
+                                  0)
 
     iobj = objects.Instance(name=instance, os=self.op.os_type,
                             primary_node=pnode_name,
