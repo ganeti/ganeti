@@ -438,12 +438,18 @@ def main():
     if not CheckAgreement():
       return
 
-    try:
-      os.mkdir(constants.SOCKET_DIR, constants.SOCKET_DIR_MODE)
-    except EnvironmentError, err:
-      if err.errno != errno.EEXIST:
-        raise errors.GenericError("Cannot create socket directory"
-          " '%s': %s" % (constants.SOCKET_DIR, err))
+    dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE),
+            (constants.SOCKET_DIR, constants.SOCKET_DIR_MODE),
+           ]
+    for dir, mode in dirs:
+      try:
+        os.mkdir(dir, mode)
+      except EnvironmentError, err:
+        if err.errno != errno.EEXIST:
+          raise errors.GenericError("Cannot create needed directory"
+            " '%s': %s" % (constants.SOCKET_DIR, err))
+      if not os.path.isdir(dir):
+        raise errors.GenericError("%s is not a directory" % dir)
 
     # This is safe to do as the pid file guarantees against
     # concurrent execution.
