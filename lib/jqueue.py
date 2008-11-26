@@ -506,32 +506,35 @@ class JobQueue(object):
 
     # Setup worker pool
     self._wpool = _JobQueueWorkerPool(self)
-
-    # We need to lock here because WorkerPool.AddTask() may start a job while
-    # we're still doing our work.
-    self.acquire()
     try:
-      for job in self._GetJobsUnlocked(None):
-        # a failure in loading the job can cause 'None' to be returned
-        if job is None:
-          continue
+      # We need to lock here because WorkerPool.AddTask() may start a job while
+      # we're still doing our work.
+      self.acquire()
+      try:
+        for job in self._GetJobsUnlocked(None):
+          # a failure in loading the job can cause 'None' to be returned
+          if job is None:
+            continue
 
-        status = job.CalcStatus()
+          status = job.CalcStatus()
 
-        if status in (constants.JOB_STATUS_QUEUED, ):
-          self._wpool.AddTask(job)
+          if status in (constants.JOB_STATUS_QUEUED, ):
+            self._wpool.AddTask(job)
 
-        elif status in (constants.JOB_STATUS_RUNNING,
-                        constants.JOB_STATUS_WAITLOCK):
-          logging.warning("Unfinished job %s found: %s", job.id, job)
-          try:
-            for op in job.ops:
-              op.status = constants.OP_STATUS_ERROR
-              op.result = "Unclean master daemon shutdown"
-          finally:
-            self.UpdateJobUnlocked(job)
-    finally:
-      self.release()
+          elif status in (constants.JOB_STATUS_RUNNING,
+                          constants.JOB_STATUS_WAITLOCK):
+            logging.warning("Unfinished job %s found: %s", job.id, job)
+            try:
+              for op in job.ops:
+                op.status = constants.OP_STATUS_ERROR
+                op.result = "Unclean master daemon shutdown"
+            finally:
+              self.UpdateJobUnlocked(job)
+      finally:
+        self.release()
+    except:
+      self._wpool.TerminateWorkers()
+      raise
 
   @utils.LockedMethod
   @_RequireOpenQueue
