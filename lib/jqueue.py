@@ -511,7 +511,20 @@ class JobQueue(object):
       # we're still doing our work.
       self.acquire()
       try:
-        for job in self._GetJobsUnlocked(None):
+        logging.info("Inspecting job queue")
+
+        all_job_ids = self._GetJobIDsUnlocked()
+        lastinfo = time.time()
+        for idx, job_id in enumerate(all_job_ids):
+          # Give an update every 1000 jobs or 10 seconds
+          if idx % 1000 == 0 or time.time() >= (lastinfo + 10.0):
+            jobs_count = len(all_job_ids)
+            logging.info("Job queue inspection: %d/%d (%0.1f %%)",
+                         idx, jobs_count, 100.0 * (idx + 1) / jobs_count)
+            lastinfo = time.time()
+
+          job = self._LoadJobUnlocked(job_id)
+
           # a failure in loading the job can cause 'None' to be returned
           if job is None:
             continue
@@ -530,6 +543,8 @@ class JobQueue(object):
                 op.result = "Unclean master daemon shutdown"
             finally:
               self.UpdateJobUnlocked(job)
+
+        logging.info("Job queue inspection finished")
       finally:
         self.release()
     except:
