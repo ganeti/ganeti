@@ -84,12 +84,10 @@ class Client:
   cause bugs.
 
   """
-  def __init__(self, procedure, args):
+  def __init__(self, procedure, body, port):
     self.procedure = procedure
-    self.args = args
-    self.body = serializer.DumpJson(args, indent=False)
-
-    self.port = utils.GetNodeDaemonPort()
+    self.body = body
+    self.port = port
     self.nc = {}
 
     self._ssl_params = \
@@ -174,6 +172,7 @@ class RpcRunner(object):
 
     """
     self._cfg = cfg
+    self.port = utils.GetNodeDaemonPort()
 
   def _InstDict(self, instance):
     """Convert the given instance to a dict.
@@ -231,7 +230,11 @@ class RpcRunner(object):
 
   def _MultiNodeCall(self, node_list, procedure, args,
                      address_list=None):
-    c = Client(procedure, args)
+    """Helper for making a multi-node call
+
+    """
+    body = serializer.DumpJson(args, indent=False)
+    c = Client(procedure, body, self.port)
     if address_list is None:
       self._ConnectList(c, node_list)
     else:
@@ -241,24 +244,30 @@ class RpcRunner(object):
   @classmethod
   def _StaticMultiNodeCall(cls, node_list, procedure, args,
                            address_list=None):
-    c = Client(procedure, args)
+    """Helper for making a multi-node static call
+
+    """
+    body = serializer.DumpJson(args, indent=False)
+    c = Client(procedure, body, utils.GetNodeDaemonPort())
     c.ConnectList(node_list, address_list=address_list)
     return c.GetResults()
 
   def _SingleNodeCall(self, node, procedure, args):
-    """
+    """Helper for making a single-node call
 
     """
-    c = Client(procedure, args)
+    body = serializer.DumpJson(args, indent=False)
+    c = Client(procedure, body, self.port)
     self._ConnectNode(c, node)
     return c.GetResults().get(node, False)
 
   @classmethod
   def _StaticSingleNodeCall(cls, node, procedure, args):
-    """
+    """Helper for making a single-node static call
 
     """
-    c = Client(procedure, args)
+    body = serializer.DumpJson(args, indent=False)
+    c = Client(procedure, body, utils.GetNodeDaemonPort())
     c.ConnectNode(c, node)
     return c.GetResults().get(node, False)
 
