@@ -204,7 +204,7 @@ class R_2_instances(baserlib.R_Generic):
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
                                    uri_fields=("id", "uri"))
 
-  def PUT(self):
+  def POST(self):
     """Create an instance.
 
     Returns:
@@ -252,7 +252,7 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
 
   DOC_URI = "/2/instances/[instance_name]/reboot"
 
-  def GET(self):
+  def POST(self):
     """Reboot an instance.
 
     The URI takes type=[hard|soft|full] and
@@ -283,7 +283,7 @@ class R_2_instances_name_startup(baserlib.R_Generic):
 
   DOC_URI = "/2/instances/[instance_name]/startup"
 
-  def GET(self):
+  def PUT(self):
     """Startup an instance.
 
     The URI takes force=[False|True] parameter to start the instance if even if
@@ -309,7 +309,7 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
 
   DOC_URI = "/2/instances/[instance_name]/shutdown"
 
-  def GET(self):
+  def PUT(self):
     """Shutdown an instance.
 
     """
@@ -337,14 +337,14 @@ class R_2_instances_name_tags(baserlib.R_Generic):
     """
     return baserlib._Tags_GET(constants.TAG_INSTANCE, name=self.items[0])
 
-  def POST(self):
+  def PUT(self):
     """Add a set of tags to the instance.
 
-    The request as a list of strings should be POST to this URI. And you'll have
+    The request as a list of strings should be PUT to this URI. And you'll have
     back a job id.
 
     """
-    return baserlib._Tags_POST(constants.TAG_INSTANCE,
+    return baserlib._Tags_PUT(constants.TAG_INSTANCE,
                                self.post_data, name=self.items[0])
 
   def DELETE(self):

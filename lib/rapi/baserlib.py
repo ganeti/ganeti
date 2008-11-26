@@ -87,7 +87,7 @@ def _Tags_GET(kind, name=""):
   return list(tags)
 
 
-def _Tags_POST(kind, tags, name=""):
+def _Tags_PUT(kind, tags, name=""):
   """Helper function to set tags.
 
   """

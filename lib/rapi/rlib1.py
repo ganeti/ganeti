@@ -285,7 +285,7 @@ class R_instances_name(baserlib.R_Generic):
 
     return job_id
 
-  def POST(self):
+  def PUT(self):
     """Modify an instance.
 
     """
