@@ -664,7 +664,7 @@ def EnsureRuntimeEnvironment():
   packaging.
 
   """
-  dirs = [(val, 0755) for val in constants.SUB_RUN_DIRS]
+  dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   for dir_name, dir_mode in dirs:
     if not os.path.exists(dir_name):
