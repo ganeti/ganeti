@@ -30,6 +30,7 @@ import time
 from optparse import make_option
 
 from ganeti.cli import *
+from ganeti import cli
 from ganeti import opcodes
 from ganeti import constants
 from ganeti import utils
@@ -69,45 +70,13 @@ def GenericOpCodes(opts, args):
   @return: the desired exit code
 
   """
+  cl = cli.GetClient()
   fname = args[0]
   op_data = simplejson.loads(open(fname).read())
   op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
-  job = opcodes.Job(op_list=op_list)
-  jid = SubmitJob(job)
+  jid = cli.SendJob(op_list, cl=cl)
   ToStdout("Job id: %s", jid)
-  query = {
-    "object": "jobs",
-    "fields": ["status"],
-    "names": [jid],
-    }
-
-  # wait for job to complete (either by success or failure)
-  while True:
-    jdata = SubmitQuery(query)
-    if not jdata:
-      # job not found, gone away!
-      ToStderr("Job lost!")
-      return 1
-
-    status = jdata[0][0]
-    ToStdout(status)
-    if status in (opcodes.Job.STATUS_SUCCESS, opcodes.Job.STATUS_FAIL):
-      break
-
-    # sleep between checks
-    time.sleep(0.5)
-
-  # job has finished, get and process its results
-  query["fields"].extend(["op_list", "op_status", "op_result"])
-  jdata = SubmitQuery(query)
-  if not jdata:
-    # job not found, gone away!
-    ToStderr("Job lost!")
-    return 1
-  ToStdout(jdata[0])
-  status, op_list, op_status, op_result = jdata[0]
-  for idx, op in enumerate(op_list):
-    ToStdout("%s %s %s %s", idx, op.OP_ID, op_status[idx], op_result[idx])
+  cli.PollJob(jid, cl=cl)
   return 0
 
 
