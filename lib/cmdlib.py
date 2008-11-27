@@ -5139,8 +5139,9 @@ class LUExportInstance(LogicalUnit):
     self.dst_node = self.cfg.GetNodeInfo(
       self.cfg.ExpandNodeName(self.op.target_node))
 
-    assert self.dst_node is not None, \
-          "Cannot retrieve locked node %s" % self.op.target_node
+    if self.dst_node is None:
+      # This is wrong node name, not a non-locked node
+      raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node)
 
     # instance disk type verification
     for disk in self.instance.disks:
