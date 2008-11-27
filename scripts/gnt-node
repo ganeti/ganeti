@@ -238,7 +238,8 @@ def MigrateNode(opts, args):
 
   good_cnt = bad_cnt = 0
   for iname in pinst:
-    op = opcodes.OpMigrateInstance(instance_name=iname, live=opts.live)
+    op = opcodes.OpMigrateInstance(instance_name=iname, live=opts.live,
+                                   cleanup=False)
     try:
       logger.ToStdout("Migrating instance %s" % iname)
       SubmitOpCode(op)
