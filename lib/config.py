@@ -954,21 +954,24 @@ class ConfigWriter:
     if self._config_data is None:
       raise errors.ProgrammerError("Configuration file not read,"
                                    " cannot save.")
-    update_serial = True
+    update_serial = False
     if isinstance(target, objects.Cluster):
       test = target == self._config_data.cluster
     elif isinstance(target, objects.Node):
       test = target in self._config_data.nodes.values()
+      update_serial = True
     elif isinstance(target, objects.Instance):
       test = target in self._config_data.instances.values()
-      update_serial = False
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
     if not test:
       raise errors.ConfigurationError("Configuration updated since object"
                                       " has been read or unknown object")
+    target.serial_no += 1
+
     if update_serial:
-      target.serial_no += 1
+      # for node updates, we need to increase the cluster serial too
+      self._config_data.cluster.serial_no += 1
 
     self._WriteConfig()
