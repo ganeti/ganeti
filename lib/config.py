@@ -537,7 +537,6 @@ class ConfigWriter:
 
     instance.serial_no = 1
     self._config_data.instances[instance.name] = instance
-    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   def _SetInstanceStatus(self, instance_name, status):
@@ -573,7 +572,6 @@ class ConfigWriter:
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
     del self._config_data.instances[instance_name]
-    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -601,7 +599,6 @@ class ConfigWriter:
                                                            disk.iv_name))
 
     self._config_data.instances[inst.name] = inst
-    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -957,18 +954,21 @@ class ConfigWriter:
     if self._config_data is None:
       raise errors.ProgrammerError("Configuration file not read,"
                                    " cannot save.")
+    update_serial = True
     if isinstance(target, objects.Cluster):
       test = target == self._config_data.cluster
     elif isinstance(target, objects.Node):
       test = target in self._config_data.nodes.values()
     elif isinstance(target, objects.Instance):
       test = target in self._config_data.instances.values()
+      update_serial = False
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
     if not test:
       raise errors.ConfigurationError("Configuration updated since object"
                                       " has been read or unknown object")
-    target.serial_no += 1
+    if update_serial:
+      target.serial_no += 1
 
     self._WriteConfig()
