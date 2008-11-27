@@ -565,14 +565,25 @@ def PollJob(job_id, cl=None, feedback_fn=None):
 
     prev_job_info = job_info
 
-  jobs = cl.QueryJobs([job_id], ["status", "opresult"])
+  jobs = cl.QueryJobs([job_id], ["status", "opstatus", "opresult"])
   if not jobs:
     raise errors.JobLost("Job with id %s lost" % job_id)
 
-  status, result = jobs[0]
+  status, opstatus, result = jobs[0]
   if status == constants.JOB_STATUS_SUCCESS:
     return result
   else:
+    has_ok = False
+    for idx, (status, msg) in enumerate(zip(opstatus, result)):
+      if status == constants.OP_STATUS_SUCCESS:
+        has_ok = True
+      elif status == constants.OP_STATUS_ERROR:
+        if has_ok:
+          raise errors.OpExecError("partial failure (opcode %d): %s" %
+                                   (idx, msg))
+        else:
+          raise errors.OpExecError(str(msg))
+    # default failure mode
     raise errors.OpExecError(result)
 
 
