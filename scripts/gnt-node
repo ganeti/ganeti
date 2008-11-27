@@ -53,19 +53,23 @@ def AddNode(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   dns_data = utils.HostInfo(args[0])
   node = dns_data.name
 
   if not opts.readd:
-    op = opcodes.OpQueryNodes(output_fields=['name'], names=[node])
     try:
-      output = SubmitOpCode(op)
+      output = cl.QueryNodes(names=[node], fields=['name'])
     except (errors.OpPrereqError, errors.OpExecError):
       pass
     else:
       ToStderr("Node %s already in the cluster (as %s)"
                " - please use --readd", args[0], output[0][0])
       return 1
+
+  # read the cluster name from the master
+  output = cl.QueryConfigValues(['cluster_name'])
+  cluster_name = output[0]
 
   ToStderr("-- WARNING -- \n"
            "Performing this operation is going to replace the ssh daemon"
@@ -74,7 +78,7 @@ def AddNode(opts, args):
            " current one\n"
            "and grant full intra-cluster ssh root access to/from it\n", node)
 
-  bootstrap.SetupNodeDaemon(node, opts.ssh_key_check)
+  bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
 
   op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip,
                          readd=opts.readd)

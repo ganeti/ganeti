@@ -271,19 +271,19 @@ def FinalizeClusterDestroy(master):
     logging.warning("Could not shutdown the node daemon and cleanup the node")
 
 
-def SetupNodeDaemon(node, ssh_key_check):
+def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   """Add a node to the cluster.
 
   This function must be called before the actual opcode, and will ssh
   to the remote node, copy the needed files, and start ganeti-noded,
   allowing the master to do the rest via normal rpc calls.
 
-  Args:
-    node: fully qualified domain name for the new node
+  @param cluster_name: the cluster name
+  @param node: the name of the new node
+  @param ssh_key_check: whether to do a strict key check
 
   """
-  cfg = ssconf.SimpleConfigReader()
-  sshrunner = ssh.SshRunner(cfg.GetClusterName())
+  sshrunner = ssh.SshRunner(cluster_name)
   gntpem = utils.ReadFile(constants.SSL_CERT_FILE)
   # in the base64 pem encoding, neither '!' nor '.' are valid chars,
   # so we use this to detect an invalid certificate; as long as the
@@ -312,8 +312,6 @@ def SetupNodeDaemon(node, ssh_key_check):
     raise errors.OpExecError("Remote command on node %s, error: %s,"
                              " output: %s" %
                              (node, result.fail_reason, result.output))
-
-  return 0
 
 
 def MasterFailover():
