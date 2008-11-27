@@ -3606,7 +3606,7 @@ class LUCreateInstance(LogicalUnit):
       if instance_disks < export_disks:
         raise errors.OpPrereqError("Not enough disks to import."
                                    " (instance: %d, export: %d)" %
-                                   (2, export_disks))
+                                   (instance_disks, export_disks))
 
       self.op.os_type = export_info.get(constants.INISECT_EXP, 'os')
       disk_images = []
@@ -3824,9 +3824,9 @@ class LUCreateInstance(LogicalUnit):
                                                          cluster_name)
         for idx, result in enumerate(import_result):
           if not result:
-            self.LogWarning("Could not image %s for on instance %s, disk %d,"
-                            " on node %s" % (src_images[idx], instance, idx,
-                                             pnode_name))
+            self.LogWarning("Could not import the image %s for instance"
+                            " %s, disk %d, on node %s" %
+                            (src_images[idx], instance, idx, pnode_name))
       else:
         # also checked in the prereq part
         raise errors.ProgrammerError("Unknown OS initialization mode '%s'"

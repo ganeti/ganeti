@@ -1606,24 +1606,21 @@ def FinalizeExport(instance, snap_disks):
   # TODO: redundant: on load can read nics until it doesn't exist
   config.set(constants.INISECT_INS, 'nic_count' , '%d' % nic_count)
 
-  disk_count = 0
+  disk_total = 0
   for disk_count, disk in enumerate(snap_disks):
     if disk:
+      disk_total += 1
       config.set(constants.INISECT_INS, 'disk%d_ivname' % disk_count,
                  ('%s' % disk.iv_name))
       config.set(constants.INISECT_INS, 'disk%d_dump' % disk_count,
                  ('%s' % disk.physical_id[1]))
       config.set(constants.INISECT_INS, 'disk%d_size' % disk_count,
                  ('%d' % disk.size))
-  config.set(constants.INISECT_INS, 'disk_count' , '%d' % disk_count)
 
-  cff = os.path.join(destdir, constants.EXPORT_CONF_FILE)
-  cfo = open(cff, 'w')
-  try:
-    config.write(cfo)
-  finally:
-    cfo.close()
+  config.set(constants.INISECT_INS, 'disk_count' , '%d' % disk_total)
 
+  utils.WriteFile(os.path.join(destdir, constants.EXPORT_CONF_FILE),
+                  data=config.Dumps())
   shutil.rmtree(finaldestdir, True)
   shutil.move(destdir, finaldestdir)
 
@@ -1691,8 +1688,9 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
       import_env['IMPORT_INDEX'] = str(idx)
       result = utils.RunCmd(command, env=import_env)
       if result.failed:
-        logging.error("disk import command '%s' returned error: %s"
-                      " output: %s", command, result.fail_reason, result.output)
+        logging.error("Disk import command '%s' returned error: %s"
+                      " output: %s", command, result.fail_reason,
+                      result.output)
         final_result.append(False)
       else:
         final_result.append(True)
