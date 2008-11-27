@@ -499,7 +499,7 @@ class JobQueue(object):
     # Remove master node
     try:
       del self._nodes[self._my_hostname]
-    except ValueError:
+    except KeyError:
       pass
 
     # TODO: Check consistency across nodes
