@@ -29,6 +29,8 @@ from optparse import make_option
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
+from ganeti import errors
+from ganeti import utils
 
 
 _VALUE_TRUE = "true"
@@ -94,17 +96,58 @@ def ImportInstance(opts, args):
   if opts.hypervisor:
     hypervisor, hvparams = opts.hypervisor
 
+  if opts.nics:
+    try:
+      nic_max = max(int(nidx[0])+1 for nidx in opts.nics)
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
+    nics = [{}] * nic_max
+    for nidx, ndict in opts.nics.items():
+      nidx = int(nidx)
+      nics[nidx] = ndict
+  elif opts.no_nics:
+    # no nics
+    nics = []
+  else:
+    # default of one nic, all auto
+    nics = [{}]
+
+  if opts.disk_template == constants.DT_DISKLESS:
+    if opts.disks:
+      raise errors.OpPrereqError("Diskless instance but disk"
+                                 " information passed")
+    disks = []
+  else:
+    if not opts.disks:
+      raise errors.OpPrereqError("No disk information specified")
+    try:
+      disk_max = max(int(didx[0])+1 for didx in opts.disks)
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
+    disks = [{}] * disk_max
+    for didx, ddict in opts.disks:
+      didx = int(didx)
+      if "size" not in ddict:
+        raise errors.OpPrereqError("Missing size for disk %d" % didx)
+      try:
+        ddict["size"] = utils.ParseUnit(ddict["size"])
+      except ValueError, err:
+        raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
+                                   (didx, err))
+      disks[didx] = ddict
+
   ValidateBeParams(opts.beparams)
 
   op = opcodes.OpCreateInstance(instance_name=instance,
-                                disk_size=opts.size, swap_size=opts.swap,
                                 disk_template=opts.disk_template,
+                                disks=disks,
+                                nics=nics,
                                 mode=constants.INSTANCE_IMPORT,
                                 pnode=pnode, snode=snode,
                                 ip_check=opts.ip_check,
-                                ip=opts.ip, bridge=opts.bridge, start=False,
+                                start=False,
                                 src_node=opts.src_node, src_path=opts.src_dir,
-                                wait_for_sync=opts.wait_for_sync, mac=opts.mac,
+                                wait_for_sync=opts.wait_for_sync,
                                 file_storage_dir=opts.file_storage_dir,
                                 file_driver=opts.file_driver,
                                 iallocator=opts.iallocator,
@@ -140,28 +183,24 @@ import_opts = [
   make_option("-n", "--node", dest="node",
               help="Target node and optional secondary node",
               metavar="<pnode>[:<snode>]"),
-  cli_option("-s", "--os-size", dest="size", help="Disk size, in MiB unless"
-             " a suffix is used",
-             default=20 * 1024, type="unit", metavar="<size>"),
-  cli_option("--swap-size", dest="swap", help="Swap size",
-             default=4 * 1024, type="unit", metavar="<size>"),
   keyval_option("-B", "--backend", dest="beparams",
                 type="keyval", default={},
                 help="Backend parameters"),
   make_option("-t", "--disk-template", dest="disk_template",
               help="Custom disk setup (diskless, file, plain, drbd)",
               default=None, metavar="TEMPL"),
-  make_option("-i", "--ip", dest="ip",
-              help="IP address ('none' [default], 'auto', or specify address)",
-              default='none', type="string", metavar="<ADDRESS>"),
+  ikv_option("--disk", help="Disk information",
+             default=[], dest="disks",
+             action="append",
+             type="identkeyval"),
+  ikv_option("--net", help="NIC information",
+             default=[], dest="nics",
+             action="append",
+             type="identkeyval"),
+  make_option("--no-nics", default=False, action="store_true",
+              help="Do not create any network cards for the instance"),
   make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
               action="store_false", help="Don't wait for sync (DANGEROUS!)"),
-  make_option("-b", "--bridge", dest="bridge",
-              help="Bridge to connect this instance to",
-              default=None, metavar="<bridge>"),
-  make_option("--mac", dest="mac",
-              help="MAC address ('auto' [default], or specify address)",
-              default='auto', type="string", metavar="<MACADDRESS>"),
   make_option("--src-node", dest="src_node", help="Source node",
               metavar="<node>"),
   make_option("--src-dir", dest="src_dir", help="Source directory",
