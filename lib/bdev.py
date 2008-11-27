@@ -1463,6 +1463,7 @@ class FileStorage(BlockDev):
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.driver = unique_id[0]
     self.dev_path = unique_id[1]
+    self.Attach()
 
   def Assemble(self):
     """Assemble the device.
@@ -1525,9 +1526,8 @@ class FileStorage(BlockDev):
       boolean indicating if file exists or not.
 
     """
-    if os.path.exists(self.dev_path):
-      return True
-    return False
+    self.attached = os.path.exists(self.dev_path)
+    return self.attached
 
   @classmethod
   def Create(cls, unique_id, children, size):
@@ -1574,7 +1574,7 @@ def FindDevice(dev_type, unique_id, children):
   device = DEV_MAP[dev_type](unique_id, children)
   if not device.attached:
     return None
-  return  device
+  return device
 
 
 def AttachOrAssemble(dev_type, unique_id, children):
