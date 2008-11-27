@@ -302,6 +302,9 @@ def AddInstance(opts, args):
     for nidx, ndict in opts.nics.items():
       nidx = int(nidx)
       nics[nidx] = ndict
+  elif opts.no_nics:
+    # no nics
+    nics = []
   else:
     # default of one nic, all auto
     nics = [{}]
@@ -1145,6 +1148,8 @@ add_opts = [
              default=[], dest="nics",
              action="append",
              type="identkeyval"),
+  make_option("--no-nics", default=False, action="store_true",
+              help="Do not create any network cards for the instance"),
   make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
               action="store_false", help="Don't wait for sync (DANGEROUS!)"),
   make_option("--no-start", dest="start", default=True,
