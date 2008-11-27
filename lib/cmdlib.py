@@ -3171,6 +3171,7 @@ def _GenerateDiskTemplate(lu, template_name,
                                   for s in ("data", "meta")
                                   ])
     for idx, disk in enumerate(disk_info):
+      disk_index = idx + base_index
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
                                       disk["size"], names[idx*2:idx*2+2],
                                       "disk/%d" % disk_index,
@@ -3181,7 +3182,7 @@ def _GenerateDiskTemplate(lu, template_name,
       raise errors.ProgrammerError("Wrong template configuration")
 
     for idx, disk in enumerate(disk_info):
-
+      disk_index = idx + base_index
       disk_dev = objects.Disk(dev_type=constants.LD_FILE, size=disk["size"],
                               iv_name="disk/%d" % disk_index,
                               logical_id=(file_driver,

@@ -306,11 +306,14 @@ def AddInstance(opts, args):
     # default of one nic, all auto
     nics = [{}]
 
-  if not opts.disks and opts.disk_template != constants.DT_DISKLESS:
-    raise errors.OpPrereqError("No disk information specified")
-  elif opts.disks and opts.disk_template == constants.DT_DISKLESS:
-    raise errors.OpPrereqError("Diskless instance but disk information passeD")
+  if opts.disk_template == constants.DT_DISKLESS:
+    if opts.disks:
+      raise errors.OpPrereqError("Diskless instance but disk"
+                                 " information passed")
+    disks = []
   else:
+    if not opts.disks:
+      raise errors.OpPrereqError("No disk information specified")
     try:
       disk_max = max(int(didx[0])+1 for didx in opts.disks)
     except ValueError, err:
