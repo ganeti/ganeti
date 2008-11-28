@@ -560,7 +560,10 @@ def PollJob(job_id, cl=None, feedback_fn=None):
         prev_logmsg_serial = max(prev_logmsg_serial, serial)
 
     # TODO: Handle canceled and archived jobs
-    elif status in (constants.JOB_STATUS_SUCCESS, constants.JOB_STATUS_ERROR):
+    elif status in (constants.JOB_STATUS_SUCCESS,
+                    constants.JOB_STATUS_ERROR,
+                    constants.JOB_STATUS_CANCELING,
+                    constants.JOB_STATUS_CANCELED):
       break
 
     prev_job_info = job_info
@@ -572,6 +575,9 @@ def PollJob(job_id, cl=None, feedback_fn=None):
   status, opstatus, result = jobs[0]
   if status == constants.JOB_STATUS_SUCCESS:
     return result
+  elif status in (constants.JOB_STATUS_CANCELING,
+                  constants.JOB_STATUS_CANCELED):
+    raise errors.OpExecError("Job was canceled")
   else:
     has_ok = False
     for idx, (status, msg) in enumerate(zip(opstatus, result)):
