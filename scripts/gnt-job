@@ -173,8 +173,10 @@ def CancelJobs(opts, args):
   client = GetClient()
 
   for job_id in args:
-    client.CancelJob(job_id)
+    (success, msg) = client.CancelJob(job_id)
+    ToStdout(msg)
 
+  # TODO: Different exit value if not all jobs were canceled?
   return 0
 
 
