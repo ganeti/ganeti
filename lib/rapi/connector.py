@@ -125,11 +125,11 @@ CONNECTOR.update({
   "/tags": rlib1.R_tags,
   "/info": rlib1.R_info,
 
-  "/nodes": rlib1.R_nodes,
+  "/nodes": rlib2.R_2_nodes,
   re.compile(r'^/nodes/([\w\._-]+)$'): rlib1.R_nodes_name,
   re.compile(r'^/nodes/([\w\._-]+)/tags$'): rlib1.R_nodes_name_tags,
 
-  "/instances": rlib1.R_instances,
+  "/instances": rlib2.R_2_instances,
   re.compile(r'^/instances/([\w\._-]+)$'): rlib1.R_instances_name,
   re.compile(r'^/instances/([\w\._-]+)/tags$'): rlib1.R_instances_name_tags,
 

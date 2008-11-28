@@ -128,14 +128,13 @@ class R_2_nodes(baserlib.R_Generic):
     ]
 
     """
-    op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
-    nodeslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
+    client = luxi.Client()
+    nodesdata = client.QueryNodes([], ["name"])
+    nodeslist = [row[0] for row in nodesdata]
 
     if 'bulk' in self.queryargs:
-      op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
-                                       names=nodeslist)
-      result = ganeti.cli.SubmitOpCode(op)
-      return baserlib.MapBulkFields(result, N_FIELDS)
+      bulkdata = client.QueryNodes(nodeslist, N_FIELDS)
+      return baserlib.MapBulkFields(bulkdata, N_FIELDS)
 
     return baserlib.BuildUriList(nodeslist, "/2/nodes/%s",
                                  uri_fields=("id", "uri"))
@@ -190,15 +189,14 @@ class R_2_instances(baserlib.R_Generic):
     ]
 
     """
-    op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
-    instanceslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
+    client = luxi.Client()
+    instancesdata = client.QueryInstances([], ["name"])
+    instanceslist = [row[0] for row in instancesdata]
+
 
     if 'bulk' in self.queryargs:
-      op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
-                                           names=instanceslist)
-      result = ganeti.cli.SubmitOpCode(op)
-      return baserlib.MapBulkFields(result, I_FIELDS)
-
+      bulkdata = client.QueryInstances(instanceslist, I_FIELDS)
+      return baserlib.MapBulkFields(bulkdata, I_FIELDS)
 
     else:
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
