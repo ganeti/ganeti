@@ -30,6 +30,7 @@ from ganeti import http
 
 from ganeti.rapi import connector
 from ganeti.rapi import rlib1
+from ganeti.rapi import rlib2
 
 
 class MapperTests(unittest.TestCase):
@@ -48,7 +49,7 @@ class MapperTests(unittest.TestCase):
     """Testing Mapper"""
 
     self._TestUri("/tags", (rlib1.R_tags, [], {}))
-    self._TestUri("/instances", (rlib1.R_instances, [], {}))
+    self._TestUri("/instances", (rlib2.R_instances, [], {}))
 
     self._TestUri('/instances/www.test.com',
                   (rlib1.R_instances_name,

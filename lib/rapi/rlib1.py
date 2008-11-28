@@ -104,60 +104,6 @@ class R_info(baserlib.R_Generic):
     return ganeti.cli.SubmitOpCode(op)
 
 
-class R_nodes(baserlib.R_Generic):
-  """/nodes resource.
-
-  """
-  DOC_URI = "/nodes"
-
-  def GET(self):
-    """Returns a list of all nodes.
-
-    Returns:
-      A dictionary with 'name' and 'uri' keys for each of them.
-
-    Example: [
-        {
-          "name": "node1.example.com",
-          "uri": "\/instances\/node1.example.com"
-        },
-        {
-          "name": "node2.example.com",
-          "uri": "\/instances\/node2.example.com"
-        }]
-
-    If the optional 'bulk' argument is provided and set to 'true'
-    value (i.e '?bulk=1'), the output contains detailed
-    information about nodes as a list.
-
-    Example: [
-        {
-          "pinst_cnt": 1,
-          "mfree": 31280,
-          "mtotal": 32763,
-          "name": "www.example.com",
-          "tags": [],
-          "mnode": 512,
-          "dtotal": 5246208,
-          "sinst_cnt": 2,
-          "dfree": 5171712
-        },
-        ...
-    ]
-
-    """
-    op = ganeti.opcodes.OpQueryNodes(output_fields=["name"], names=[])
-    nodeslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
-
-    if 'bulk' in self.queryargs:
-      op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
-                                       names=nodeslist)
-      result = ganeti.cli.SubmitOpCode(op)
-      return baserlib.MapBulkFields(result, N_FIELDS)
-
-    return baserlib.BuildUriList(nodeslist, "/nodes/%s")
-
-
 class R_nodes_name(baserlib.R_Generic):
   """/nodes/[node_name] resources.
 
@@ -191,70 +137,6 @@ class R_nodes_name_tags(baserlib.R_Generic):
 
     """
     return baserlib._Tags_GET(constants.TAG_NODE, name=self.items[0])
-
-
-class R_instances(baserlib.R_Generic):
-  """/instances resource.
-
-  """
-  DOC_URI = "/instances"
-
-
-  def GET(self):
-    """Returns a list of all available instances.
-
-    Returns:
-       A dictionary with 'name' and 'uri' keys for each of them.
-
-    Example: [
-        {
-          "name": "web.example.com",
-          "uri": "\/instances\/web.example.com"
-        },
-        {
-          "name": "mail.example.com",
-          "uri": "\/instances\/mail.example.com"
-        }]
-
-    If the optional 'bulk' argument is provided and set to 'true'
-    value (i.e '?bulk=1'), the output contains detailed
-    information about instances as a list.
-
-    Example: [
-        {
-           "status": "running",
-           "bridge": "xen-br0",
-           "name": "web.example.com",
-           "tags": ["tag1", "tag2"],
-           "admin_ram": 512,
-           "sda_size": 20480,
-           "pnode": "node1.example.com",
-           "mac": "01:23:45:67:89:01",
-           "sdb_size": 4096,
-           "snodes": ["node2.example.com"],
-           "disk_template": "drbd",
-           "ip": null,
-           "admin_state": true,
-           "os": "debian-etch",
-           "vcpus": 2,
-           "oper_state": true
-        },
-        ...
-    ]
-
-    """
-    op = ganeti.opcodes.OpQueryInstances(output_fields=["name"], names=[])
-    instanceslist = baserlib.ExtractField(ganeti.cli.SubmitOpCode(op), 0)
-
-    if 'bulk' in self.queryargs:
-      op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
-                                           names=instanceslist)
-      result = ganeti.cli.SubmitOpCode(op)
-      return baserlib.MapBulkFields(result, I_FIELDS)
-
-
-    else:
-      return baserlib.BuildUriList(instanceslist, "/instances/%s")
 
 
 class R_instances_name(baserlib.R_Generic):

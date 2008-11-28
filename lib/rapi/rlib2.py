@@ -140,6 +140,14 @@ class R_2_nodes(baserlib.R_Generic):
                                  uri_fields=("id", "uri"))
 
 
+class R_nodes(R_2_nodes):
+  """/nodes resource
+
+  """
+  # TODO: Temporary resource will be deprecated
+  DOC_URI = "/nodes"
+
+
 class R_2_instances(baserlib.R_Generic):
   """/2/instances resource.
 
@@ -239,6 +247,14 @@ class R_2_instances(baserlib.R_Generic):
 
     job_id = ganeti.cli.SendJob([op])
     return job_id
+
+
+class R_instances(R_2_instances):
+  """/instances resource.
+
+  """
+  # TODO: Temporary resource will be deprecated
+  DOC_URI = "/instances"
 
 
 class R_2_instances_name_reboot(baserlib.R_Generic):
