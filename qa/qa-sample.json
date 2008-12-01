@@ -1,12 +1,14 @@
 {
   "name": "xen-test",
   "rename": "xen-test-rename",
-  "hypervisor-type": "xen-pvm",
+  "default-hypervisor": "xen-pvm",
 
   "os": "debian-etch",
-  "os-size": "10G",
-  "swap-size": "1G",
   "mem": "512M",
+
+  "# Lists of disk sizes": null,
+  "disk": ["1G", "512M"],
+  "disk-growth": ["2G", "768M"],
 
   "nodes": [
     {

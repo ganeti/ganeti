@@ -68,9 +68,9 @@ def TestClusterInit():
     cmd.append('--bridge=%s' % bridge)
     cmd.append('--master-netdev=%s' % bridge)
 
-  htype = qa_config.get('hypervisor-type', None)
+  htype = qa_config.get('default-hypervisor', None)
   if htype:
-    cmd.append('--hypervisor-type=%s' % htype)
+    cmd.append('--default-hypervisor=%s' % htype)
 
   cmd.append(qa_config.get('name'))
 
@@ -169,8 +169,8 @@ def TestClusterBurnin():
       # Run burnin
       cmd = [script,
              '--os=%s' % qa_config.get('os'),
-             '--os-size=%s' % qa_config.get('os-size'),
-             '--swap-size=%s' % qa_config.get('swap-size'),
+             '--disk-size=%s' % ",".join(qa_config.get('disk')),
+             '--disk-growth=%s' % ",".join(qa_config.get('disk-growth')),
              '--disk-template=%s' % disk_template]
       cmd += [inst['name'] for inst in instances]
       AssertEqual(StartSSH(master['primary'],

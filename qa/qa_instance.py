@@ -41,9 +41,10 @@ def _GetDiskStatePath(disk):
 
 
 def _GetGenericAddParameters():
-  return ['--os-size=%s' % qa_config.get('os-size'),
-          '--swap-size=%s' % qa_config.get('swap-size'),
-          '--memory=%s' % qa_config.get('mem')]
+  params = ['-B', '%s=%s' % (constants.BE_MEMORY, qa_config.get('mem'))]
+  for idx, size in enumerate(qa_config.get('disk')):
+    params.extend(["--disk", "%s:size=%s" % (idx, size)])
+  return params
 
 
 def _DiskTest(node, disk_template):
@@ -153,22 +154,32 @@ def TestInstanceModify(instance):
   """gnt-instance modify"""
   master = qa_config.GetMasterNode()
 
+  # Assume /sbin/init exists on all systems
+  test_kernel = "/sbin/init"
+  test_initrd = test_kernel
+
   orig_memory = qa_config.get('mem')
   orig_bridge = qa_config.get('bridge', 'xen-br0')
   args = [
-    ["--memory", "128"],
-    ["--memory", str(orig_memory)],
-    ["--cpu", "2"],
-    ["--cpu", "1"],
-    ["--bridge", "xen-br1"],
-    ["--bridge", orig_bridge],
-    ["--kernel", "/dev/null"],
-    ["--kernel", "default"],
-    ["--initrd", "/dev/null"],
-    ["--initrd", "none"],
-    ["--initrd", "default"],
-    ["--hvm-boot-order", "acn"],
-    ["--hvm-boot-order", "default"],
+    ["-B", "%s=128" % constants.BE_MEMORY],
+    ["-B", "%s=%s" % (constants.BE_MEMORY, orig_memory)],
+    ["-B", "%s=2" % constants.BE_VCPUS],
+    ["-B", "%s=1" % constants.BE_VCPUS],
+    ["-B", "%s=%s" % (constants.BE_VCPUS, constants.VALUE_DEFAULT)],
+
+    ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, test_kernel)],
+    ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, constants.VALUE_DEFAULT)],
+    ["-H", "%s=%s" % (constants.HV_INITRD_PATH, test_initrd)],
+    ["-H", "%s=%s" % (constants.HV_INITRD_PATH, constants.VALUE_NONE)],
+    ["-H", "%s=%s" % (constants.HV_INITRD_PATH, constants.VALUE_DEFAULT)],
+
+    # TODO: bridge tests
+    #["--bridge", "xen-br1"],
+    #["--bridge", orig_bridge],
+
+    # TODO: Do these tests only with xen-hvm
+    #["-H", "%s=acn" % constants.HV_BOOT_ORDER],
+    #["-H", "%s=%s" % (constants.HV_BOOT_ORDER, constants.VALUE_DEFAULT)],
     ]
   for alist in args:
     cmd = ['gnt-instance', 'modify'] + alist + [instance['name']]

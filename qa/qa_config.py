@@ -53,6 +53,9 @@ def Validate():
     raise qa_error.Error("Need at least one node")
   if len(cfg['instances']) < 1:
     raise qa_error.Error("Need at least one instance")
+  if len(cfg["disk"]) != len(cfg["disk-growth"]):
+    raise qa_error.Error("Config options 'disk' and 'disk-growth' must have"
+                         " the same number of items")
 
 
 def get(name, default=None):
