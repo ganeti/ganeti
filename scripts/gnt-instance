@@ -1127,12 +1127,6 @@ add_opts = [
   make_option("-n", "--node", dest="node",
               help="Target node and optional secondary node",
               metavar="<pnode>[:<snode>]"),
-  cli_option("-s", "--os-size", dest="size", help="Disk size, in MiB unless"
-             " a suffix is used",
-             default=20 * 1024, type="unit", metavar="<size>"),
-  cli_option("--swap-size", dest="swap", help="Swap size, in MiB unless a"
-             " suffix is used",
-             default=4 * 1024, type="unit", metavar="<size>"),
   os_opt,
   keyval_option("-B", "--backend", dest="beparams",
                 type="keyval", default={},
