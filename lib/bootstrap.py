@@ -212,7 +212,8 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
-                                    secondary_ip=secondary_ip)
+                                    secondary_ip=secondary_ip,
+                                    serial_no=1)
 
   cfg = InitConfig(constants.CONFIG_VERSION,
                    cluster_config, master_node_config)
