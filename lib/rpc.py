@@ -268,7 +268,7 @@ class RpcRunner(object):
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, utils.GetNodeDaemonPort())
-    c.ConnectNode(c, node)
+    c.ConnectNode(node)
     return c.GetResults().get(node, False)
 
   def call_volume_list(self, node_list, vg_name):
