@@ -255,6 +255,11 @@ def GetMasterAndMyself(ss=None):
   The function does not handle any errors, these should be handled in
   the caller (errors.ConfigurationError, errors.ResolverError).
 
+  @param ss: either a sstore.SimpleConfigReader or a
+      sstore.SimpleStore instance
+  @rtype: tuple
+  @return: a tuple (master node name, my own name)
+
   """
   if ss is None:
     ss = SimpleStore()

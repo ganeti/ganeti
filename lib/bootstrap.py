@@ -323,17 +323,25 @@ def MasterFailover():
   new master.
 
   """
-  cfg = ssconf.SimpleConfigWriter()
+  sstore = ssconf.SimpleStore()
 
-  new_master = utils.HostInfo().name
-  old_master = cfg.GetMasterNode()
-  node_list = cfg.GetNodeList()
+  old_master, new_master = ssconf.GetMasterAndMyself(sstore)
+  node_list = sstore.GetNodeList()
+  mc_list = sstore.GetMasterCandidates()
 
   if old_master == new_master:
     raise errors.OpPrereqError("This commands must be run on the node"
                                " where you want the new master to be."
                                " %s is already the master" %
                                old_master)
+
+  if new_master not in mc_list:
+    mc_no_master = [name for name in mc_list if name != old_master]
+    raise errors.OpPrereqError("This node is not among the nodes marked"
+                               " as master candidates. Only these nodes"
+                               " can become masters. Current list of"
+                               " master candidates is:\n"
+                               "%s" % ('\n'.join(mc_no_master)))
 
   vote_list = GatherMasterVotes(node_list)
 
@@ -348,6 +356,10 @@ def MasterFailover():
                                  " %s. Please resync the configuration of"
                                  " this node." % (old_master, voted_master))
   # end checks
+
+  # instantiate a real config writer, as we now know we have the
+  # configuration data
+  cfg = ssconf.SimpleConfigWriter()
 
   rcode = 0
 
