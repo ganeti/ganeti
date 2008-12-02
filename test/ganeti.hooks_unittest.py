@@ -34,6 +34,7 @@ from ganeti import mcpu
 from ganeti import backend
 from ganeti import constants
 from ganeti import cmdlib
+from ganeti import rpc
 from ganeti.constants import HKR_SUCCESS, HKR_FAIL, HKR_SKIP
 
 from mocks import FakeConfig, FakeProc, FakeContext
@@ -197,33 +198,34 @@ class TestHooksMaster(unittest.TestCase):
   def _call_nodes_false(node_list, hpath, phase, env):
     """Fake call_hooks_runner function.
 
-    Returns:
-      - list of False values with the same len as the node_list argument
+    @rtype: dict of node -> L{rpc.RpcResult} with an rpc error
+    @return: rpc failure from all nodes
 
     """
-    return [False for node_name in node_list]
+    return dict([(node, rpc.RpcResult('error', failed=True,
+                  node=node, call='FakeError')) for node in node_list])
 
   @staticmethod
   def _call_script_fail(node_list, hpath, phase, env):
     """Fake call_hooks_runner function.
 
-    Returns:
-      - list of False values with the same len as the node_list argument
+    @rtype: dict of node -> L{rpc.RpcResult} with a failed script result
+    @return: script execution failure from all nodes
 
     """
-    return dict([(node_name, [("unittest", constants.HKR_FAIL, "error")])
-                 for node_name in node_list])
+    return dict([(node, rpc.RpcResult([("utest", constants.HKR_FAIL, "err")],
+                  node=node, call='FakeScriptFail')) for node in node_list])
 
   @staticmethod
   def _call_script_succeed(node_list, hpath, phase, env):
     """Fake call_hooks_runner function.
 
-    Returns:
-      - list of False values with the same len as the node_list argument
+    @rtype: dict of node -> L{rpc.RpcResult} with a successful script result
+    @return: script execution from all nodes
 
     """
-    return dict([(node_name, [("unittest", constants.HKR_SUCCESS, "ok")])
-                 for node_name in node_list])
+    return dict([(node, rpc.RpcResult([("utest", constants.HKR_SUCCESS, "ok")],
+                  node=node, call='FakeScriptOk')) for node in node_list])
 
   def setUp(self):
     self.op = opcodes.OpCode()
