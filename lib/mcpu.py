@@ -337,10 +337,10 @@ class HooksMaster(object):
         raise errors.HooksFailure("Communication failure")
       for node_name in results:
         res = results[node_name]
-        if res is False or not isinstance(res, list):
+        if res.failed or res.data is False or not isinstance(res.data, list):
           self.proc.LogWarning("Communication failure to node %s" % node_name)
           continue
-        for script, hkr, output in res:
+        for script, hkr, output in res.data:
           if hkr == constants.HKR_FAIL:
             output = output.strip().encode("string_escape")
             errs.append((node_name, script, output))

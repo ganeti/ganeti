@@ -40,6 +40,7 @@ from ganeti import objects
 from ganeti import http
 from ganeti import serializer
 from ganeti import constants
+from ganeti import errors
 
 
 # Module level variable
@@ -70,6 +71,37 @@ def Shutdown():
   if _http_manager:
     _http_manager.Shutdown()
     _http_manager = None
+
+
+class RpcResult(object):
+  """RPC Result class.
+
+  This class holds an RPC result. It is needed since in multi-node
+  calls we can't raise an exception just because one one out of many
+  failed, and therefore we use this class to encapsulate the result.
+
+  """
+  def __init__(self, data, failed=False, call=None, node=None):
+    self.failed = failed
+    self.call = None
+    self.node = None
+    if failed:
+      self.error = data
+      self.data = None
+    else:
+      self.data = data
+      self.error = None
+
+  def Raise(self):
+    """If the result has failed, raise an OpExecError.
+
+    This is used so that LU code doesn't have to check for each
+    result, but instead can call this function.
+
+    """
+    if self.failed:
+      raise errors.OpExecError("Call '%s' to node '%s' has failed: %s" %
+                               (self.call, self.node, self.error))
 
 
 class Client:
@@ -145,7 +177,8 @@ class Client:
 
     for name, req in self.nc.iteritems():
       if req.success and req.resp_status == http.HTTP_OK:
-        results[name] = serializer.LoadJson(req.resp_body)
+        results[name] = RpcResult(data=serializer.LoadJson(req.resp_body),
+                                  node=name, call=self.procedure)
         continue
 
       # TODO: Better error reporting
@@ -155,7 +188,8 @@ class Client:
         msg = req.resp_body
 
       logging.error("RPC error from node %s: %s", name, msg)
-      results[name] = False
+      results[name] = RpcResult(data=msg, failed=True, node=name,
+                                call=self.procedure)
 
     return results
 
@@ -270,6 +304,10 @@ class RpcRunner(object):
     c = Client(procedure, body, utils.GetNodeDaemonPort())
     c.ConnectNode(node)
     return c.GetResults().get(node, False)
+
+  #
+  # Begin RPC calls
+  #
 
   def call_volume_list(self, node_list, vg_name):
     """Gets the logical volumes present in a given volume group.
@@ -446,19 +484,17 @@ class RpcRunner(object):
     retux = self._MultiNodeCall(node_list, "node_info",
                                 [vg_name, hypervisor_type])
 
-    for node_name in retux:
-      ret = retux.get(node_name, False)
-      if type(ret) != dict:
-        logging.error("could not connect to node %s", node_name)
-        ret = {}
+    for result in retux.itervalues():
+      if result.failed or not isinstance(result.data, dict):
+        result.data = {}
 
-      utils.CheckDict(ret, {
-                        'memory_total' : '-',
-                        'memory_dom0' : '-',
-                        'memory_free' : '-',
-                        'vg_size' : 'node_unreachable',
-                        'vg_free' : '-',
-                      }, "call_node_info")
+      utils.CheckDict(result.data, {
+        'memory_total' : '-',
+        'memory_dom0' : '-',
+        'memory_free' : '-',
+        'vg_size' : 'node_unreachable',
+        'vg_free' : '-',
+        }, "call_node_info")
     return retux
 
   def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
@@ -647,14 +683,11 @@ class RpcRunner(object):
     """
     result = self._MultiNodeCall(node_list, "os_diagnose", [])
 
-    new_result = {}
-    for node_name in result:
-      if result[node_name]:
-        nr = [objects.OS.FromDict(oss) for oss in result[node_name]]
-      else:
-        nr = []
-      new_result[node_name] = nr
-    return new_result
+    for node_name, node_result in result.iteritems():
+      if not node_result.failed and node_result.data:
+        node_result.data = [objects.OS.FromDict(oss)
+                            for oss in node_result.data]
+    return result
 
   def call_os_get(self, node, name):
     """Returns an OS definition.
@@ -663,10 +696,9 @@ class RpcRunner(object):
 
     """
     result = self._SingleNodeCall(node, "os_get", [name])
-    if isinstance(result, dict):
-      return objects.OS.FromDict(result)
-    else:
-      return result
+    if not result.failed and isinstance(result.data, dict):
+      result.data = objects.OS.FromDict(result.data)
+    return result
 
   def call_hooks_runner(self, node_list, hpath, phase, env):
     """Call the hooks runner.
@@ -743,9 +775,9 @@ class RpcRunner(object):
 
     """
     result = self._SingleNodeCall(node, "export_info", [path])
-    if not result:
-      return result
-    return objects.SerializableConfigParser.Loads(str(result))
+    if not result.failed and result.data:
+      result.data = objects.SerializableConfigParser.Loads(str(result.data))
+    return result
 
   def call_instance_os_import(self, node, inst, src_node, src_images,
                               cluster_name):

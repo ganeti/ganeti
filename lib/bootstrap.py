@@ -268,9 +268,11 @@ def FinalizeClusterDestroy(master):
   begun in cmdlib.LUDestroyOpcode.
 
   """
-  if not rpc.RpcRunner.call_node_stop_master(master, True):
+  result = rpc.RpcRunner.call_node_stop_master(master, True)
+  if result.failed or not result.data:
     logging.warning("Could not disable the master role")
-  if not rpc.RpcRunner.call_node_leave_cluster(master):
+  result = rpc.RpcRunner.call_node_leave_cluster(master)
+  if result.failed or not result.data:
     logging.warning("Could not shutdown the node daemon and cleanup the node")
 
 
@@ -363,7 +365,8 @@ def MasterFailover():
 
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
-  if not rpc.RpcRunner.call_node_stop_master(old_master, True):
+  result = rpc.RpcRunner.call_node_stop_master(old_master, True)
+  if result.failed or not result.data:
     logging.error("Could not disable the master role on the old master"
                  " %s, please disable manually", old_master)
 
@@ -379,7 +382,8 @@ def MasterFailover():
   # cluster info
   cfg.Update(cluster_info)
 
-  if not rpc.RpcRunner.call_node_start_master(new_master, True):
+  result = rpc.RpcRunner.call_node_start_master(new_master, True)
+  if result.failed or not result.data:
     logging.error("Could not start the master role on the new master"
                   " %s, please check", new_master)
     rcode = 1
@@ -425,13 +429,15 @@ def GatherMasterVotes(node_list):
   other_masters = {}
   votes = {}
   for node in results:
-    if not isinstance(results[node], (tuple, list)) or len(results[node]) < 3:
+    nres = results[node]
+    data = nres.data
+    if nres.failed or not isinstance(data, (tuple, list)) or len(data) < 3:
       # here the rpc layer should have already logged errors
       if None not in votes:
         votes[None] = 0
       votes[None] += 1
       continue
-    master_node = results[node][2]
+    master_node = data[2]
     if master_node not in votes:
       votes[master_node] = 0
     votes[master_node] += 1
