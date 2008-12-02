@@ -214,7 +214,8 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def VerifyConfig(self):
-    """Stub verify function.
+    """Verify function.
+
     """
     result = []
     seen_macs = []
@@ -251,7 +252,7 @@ class ConfigWriter:
         ports[net_port].append((instance.name, "network port"))
 
     # cluster-wide pool of free ports
-    for free_port in self._config_data.cluster.tcpudp_port_pool:
+    for free_port in data.cluster.tcpudp_port_pool:
       if free_port not in ports:
         ports[free_port] = []
       ports[free_port].append(("cluster", "port marked as free"))
@@ -267,10 +268,18 @@ class ConfigWriter:
 
     # highest used tcp port check
     if keys:
-      if keys[-1] > self._config_data.cluster.highest_used_port:
+      if keys[-1] > data.cluster.highest_used_port:
         result.append("Highest used port mismatch, saved %s, computed %s" %
-                      (self._config_data.cluster.highest_used_port,
-                       keys[-1]))
+                      (data.cluster.highest_used_port, keys[-1]))
+
+    cp_size = data.cluster.candidate_pool_size
+    num_c = 0
+    for node in data.nodes.values():
+      if node.master_candidate:
+        num_c += 1
+    if cp_size > num_c:
+      result.append("Not enough master candidates: actual %d, desired %d" %
+                    (num_c, cp_size))
 
     return result
 
