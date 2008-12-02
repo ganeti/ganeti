@@ -171,6 +171,25 @@ class SimpleStore(object):
                                       " '%s'" % str(err))
     return data
 
+  def WriteFiles(self, values):
+    """Writes ssconf files used by external scripts.
+
+    @type values: dict
+    @param values: Dictionary of (name, value)
+
+    """
+    ssconf_lock = utils.FileLock(constants.SSCONF_LOCK_FILE)
+
+    # Get lock while writing files
+    ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
+    try:
+      for name, value in values.iteritems():
+        if not value.endswith("\n"):
+          value += "\n"
+        utils.WriteFile(self.KeyToFilename(name), data=value)
+    finally:
+      ssconf_lock.Unlock()
+
   def GetFileList(self):
     """Return the list of all config files.
 
@@ -216,33 +235,6 @@ class SimpleStore(object):
     data = self._ReadFile(constants.SS_NODE_LIST)
     nl = data.splitlines(False)
     return nl
-
-
-def _SsconfPath(name):
-  if not RE_VALID_SSCONF_NAME.match(name):
-    raise errors.ParameterError("Invalid ssconf name: %s" % name)
-  return "%s/ssconf_%s" % (constants.DATA_DIR, name)
-
-
-def WriteSsconfFiles(values):
-  """Writes legacy ssconf files to be used by external scripts.
-
-  @type values: dict
-  @param values: Dictionary of (name, value)
-
-  """
-  ssconf_lock = utils.FileLock(constants.SSCONF_LOCK_FILE)
-
-  # Get lock while writing files
-  ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
-  try:
-    for name, value in values.iteritems():
-      if not value.endswith("\n"):
-        value += "\n"
-      utils.WriteFile(_SsconfPath(name),
-                      data=value)
-  finally:
-    ssconf_lock.Unlock()
 
 
 def GetMasterAndMyself(ss=None):

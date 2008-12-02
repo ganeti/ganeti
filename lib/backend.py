@@ -1227,7 +1227,12 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
 
 def WriteSsconfFiles(values):
-  ssconf.WriteSsconfFiles(values)
+  """Update all ssconf files.
+
+  Wrapper around the SimpleStore.WriteFiles.
+
+  """
+  ssconf.SimpleStore().WriteFiles(values)
 
 
 def _ErrnoOrStr(err):
