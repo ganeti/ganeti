@@ -413,7 +413,8 @@ def CheckAgreement():
   result = False
   if top_node != myself:
     logging.critical("It seems we are not the master (top-voted node"
-                     " is %s)", top_node)
+                     " is %s with %d out of %d votes)", top_node, top_votes,
+                     all_votes)
   elif top_votes < all_votes - top_votes:
     logging.critical("It seems we are not the master (%d votes for,"
                      " %d votes against)", top_votes, all_votes - top_votes)

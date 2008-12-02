@@ -357,10 +357,6 @@ def MasterFailover():
                                  " this node." % (old_master, voted_master))
   # end checks
 
-  # instantiate a real config writer, as we now know we have the
-  # configuration data
-  cfg = ssconf.SimpleConfigWriter()
-
   rcode = 0
 
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
@@ -369,16 +365,17 @@ def MasterFailover():
     logging.error("Could not disable the master role on the old master"
                  " %s, please disable manually", old_master)
 
-  cfg.SetMasterNode(new_master)
-  cfg.Save()
-
   # Here we have a phase where no master should be running
 
-  if not rpc.RpcRunner.call_upload_file(cfg.GetNodeList(),
-                                    constants.CLUSTER_CONF_FILE):
-    logging.error("Could not distribute the new configuration"
-                  " to the other nodes, please check.")
+  # instantiate a real config writer, as we now know we have the
+  # configuration data
+  cfg = config.ConfigWriter()
 
+  cluster_info = cfg.GetClusterInfo()
+  cluster_info.master_node = new_master
+  # this will also regenerate the ssconf files, since we updated the
+  # cluster info
+  cfg.Update(cluster_info)
 
   if not rpc.RpcRunner.call_node_start_master(new_master, True):
     logging.error("Could not start the master role on the new master"
