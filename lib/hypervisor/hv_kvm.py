@@ -366,7 +366,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: when a parameter is not valid
 
     """
-    super(KvmHypervisor, cls).CheckParameterSyntax(hvparams)
+    super(KVMHypervisor, cls).CheckParameterSyntax(hvparams)
 
     if not hvparams[constants.HV_KERNEL_PATH]:
       raise errors.HypervisorError("Need a kernel for the instance")
@@ -386,7 +386,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kernel.
 
     """
-    super(KvmHypervisor, self).ValidateParameters(hvparams)
+    super(KVMHypervisor, self).ValidateParameters(hvparams)
 
     kernel_path = hvparams[constants.HV_KERNEL_PATH]
     if not os.path.isfile(kernel_path):
