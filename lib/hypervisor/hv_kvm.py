@@ -218,8 +218,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = 'file=%s,format=raw%s%s' % (rldev.dev_path, if_val, boot_val)
       kvm_cmd.extend(['-drive', drive_val])
 
-    kvm_cmd.extend(['-kernel', instance.hvparams[HV_KERNEL_PATH]])
-    initrd_path = instance.hvparams[HV_INITRD_PATH]
+    kvm_cmd.extend(['-kernel', instance.hvparams[constants.HV_KERNEL_PATH]])
+
+    initrd_path = instance.hvparams[constants.HV_INITRD_PATH]
     if initrd_path:
       kvm_cmd.extend(['-initrd', initrd_path])
 
