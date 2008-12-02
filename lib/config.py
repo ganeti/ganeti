@@ -813,23 +813,26 @@ class ConfigWriter:
     if self._offline:
       return True
     bad = False
-    nodelist = self._UnlockedGetNodeList()
-    myhostname = self._my_hostname
 
-    try:
-      nodelist.remove(myhostname)
-    except ValueError:
-      pass
+    node_list = []
+    addr_list = []
+    myhostname = self._my_hostname
     # we can skip checking whether _UnlockedGetNodeInfo returns None
     # since the node list comes from _UnlocketGetNodeList, and we are
     # called with the lock held, so no modifications should take place
     # in between
-    address_list = [self._UnlockedGetNodeInfo(name).primary_ip
-                    for name in nodelist]
+    for node_name in self._UnlockedGetNodeList():
+      if node_name == myhostname:
+        continue
+      node_info = self._UnlockedGetNodeInfo(node_name)
+      if not node_info.master_candidate:
+        continue
+      node_list.append(node_info.name)
+      addr_list.append(node_info.primary_ip)
 
-    result = rpc.RpcRunner.call_upload_file(nodelist, self._cfg_file,
-                                            address_list=address_list)
-    for node in nodelist:
+    result = rpc.RpcRunner.call_upload_file(node_list, self._cfg_file,
+                                            address_list=addr_list)
+    for node in node_list:
       if not result[node]:
         logging.error("copy of file %s to node %s failed",
                       self._cfg_file, node)
