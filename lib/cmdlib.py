@@ -32,6 +32,7 @@ import re
 import platform
 import logging
 import copy
+import random
 
 from ganeti import ssh
 from ganeti import utils
@@ -1186,6 +1187,21 @@ class LUSetClusterParams(LogicalUnit):
   _OP_REQP = []
   REQ_BGL = False
 
+  def CheckParameters(self):
+    """Check parameters
+
+    """
+    if not hasattr(self.op, "candidate_pool_size"):
+      self.op.candidate_pool_size = None
+    if self.op.candidate_pool_size is not None:
+      try:
+        self.op.candidate_pool_size = int(self.op.candidate_pool_size)
+      except ValueError, err:
+        raise errors.OpPrereqError("Invalid candidate_pool_size value: %s" %
+                                   str(err))
+      if self.op.candidate_pool_size < 1:
+        raise errors.OpPrereqError("At least one master candidate needed")
+
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
     # all nodes to be modified.
@@ -1284,7 +1300,34 @@ class LUSetClusterParams(LogicalUnit):
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
     if self.op.beparams:
       self.cluster.beparams[constants.BEGR_DEFAULT] = self.new_beparams
+    if self.op.candidate_pool_size is not None:
+      self.cluster.candidate_pool_size = self.op.candidate_pool_size
+
     self.cfg.Update(self.cluster)
+
+    # we want to update nodes after the cluster so that if any errors
+    # happen, we have recorded and saved the cluster info
+    if self.op.candidate_pool_size is not None:
+      node_info = self.cfg.GetAllNodesInfo().values()
+      num_candidates = len([node for node in node_info
+                            if node.master_candidate])
+      num_nodes = len(node_info)
+      if num_candidates < self.op.candidate_pool_size:
+        random.shuffle(node_info)
+        for node in node_info:
+          if num_candidates >= self.op.candidate_pool_size:
+            break
+          if node.master_candidate:
+            continue
+          node.master_candidate = True
+          self.LogInfo("Promoting node %s to master candidate", node.name)
+          self.cfg.Update(node)
+          self.context.ReaddNode(node)
+          num_candidates += 1
+      elif num_candidates > self.op.candidate_pool_size:
+        self.LogInfo("Note: more nodes are candidates (%d) than the new value"
+                     " of candidate_pool_size (%d)" %
+                     (num_candidates, self.op.candidate_pool_size))
 
 
 def _WaitForSync(lu, instance, oneshot=False, unlock=False):
@@ -2058,6 +2101,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "enabled_hypervisors": cluster.enabled_hypervisors,
       "hvparams": cluster.hvparams,
       "beparams": cluster.beparams,
+      "candidate_pool_size": cluster.candidate_pool_size,
       }
 
     return result

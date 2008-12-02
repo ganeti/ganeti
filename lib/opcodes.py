@@ -255,7 +255,13 @@ class OpSetClusterParams(OpCode):
 
   """
   OP_ID = "OP_CLUSTER_SET_PARAMS"
-  __slots__ = ["vg_name", "enabled_hypervisors", "hvparams", "beparams"]
+  __slots__ = [
+    "vg_name",
+    "enabled_hypervisors",
+    "hvparams",
+    "beparams",
+    "candidate_pool_size",
+    ]
 
 
 # node opcodes

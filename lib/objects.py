@@ -707,6 +707,7 @@ class Cluster(TaggableObject):
     "enabled_hypervisors",
     "hvparams",
     "beparams",
+    "candidate_pool_size",
     ]
 
   def ToDict(self):
