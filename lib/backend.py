@@ -45,13 +45,13 @@ from ganeti import ssconf
 
 
 def _GetConfig():
-  """Simple wrapper to return a ConfigReader.
+  """Simple wrapper to return a SimpleStore.
 
-  @rtype: L{ssconf.SimpleConfigReader}
-  @return: a SimpleConfigReader instance
+  @rtype: L{ssconf.SimpleStore}
+  @return: a SimpleStore instance
 
   """
-  return ssconf.SimpleConfigReader()
+  return ssconf.SimpleStore()
 
 
 def _GetSshRunner(cluster_name):

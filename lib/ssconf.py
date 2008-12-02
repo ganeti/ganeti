@@ -112,6 +112,112 @@ class SimpleConfigWriter(SimpleConfigReader):
                     mode=0600)
 
 
+class SimpleStore(object):
+  """Interface to static cluster data.
+
+  This is different that the config.ConfigWriter and
+  SimpleConfigReader classes in that it holds data that will always be
+  present, even on nodes which don't have all the cluster data.
+
+  Other particularities of the datastore:
+    - keys are restricted to predefined values
+
+  """
+  _SS_FILEPREFIX = "ssconf_"
+  _VALID_KEYS = (
+    constants.SS_CLUSTER_NAME,
+    constants.SS_FILE_STORAGE_DIR,
+    constants.SS_MASTER_IP,
+    constants.SS_MASTER_NETDEV,
+    constants.SS_MASTER_NODE,
+    constants.SS_NODE_LIST,
+    )
+  _MAX_SIZE = 131072
+
+  def __init__(self, cfg_location=None):
+    if cfg_location is None:
+      self._cfg_dir = constants.DATA_DIR
+    else:
+      self._cfg_dir = cfg_location
+
+  def KeyToFilename(self, key):
+    """Convert a given key into filename.
+
+    """
+    if key not in self._VALID_KEYS:
+      raise errors.ProgrammerError("Invalid key requested from SSConf: '%s'"
+                                   % str(key))
+
+    filename = self._cfg_dir + '/' + self._SS_FILEPREFIX + key
+    return filename
+
+  def _ReadFile(self, key):
+    """Generic routine to read keys.
+
+    This will read the file which holds the value requested. Errors
+    will be changed into ConfigurationErrors.
+
+    """
+    filename = self.KeyToFilename(key)
+    try:
+      fh = file(filename, 'r')
+      try:
+        data = fh.read(self._MAX_SIZE)
+        data = data.rstrip('\n')
+      finally:
+        fh.close()
+    except EnvironmentError, err:
+      raise errors.ConfigurationError("Can't read from the ssconf file:"
+                                      " '%s'" % str(err))
+    return data
+
+  def GetFileList(self):
+    """Return the list of all config files.
+
+    This is used for computing node replication data.
+
+    """
+    return [self.KeyToFilename(key) for key in self._VALID_KEYS]
+
+  def GetClusterName(self):
+    """Get the cluster name.
+
+    """
+    return self._ReadFile(constants.SS_CLUSTER_NAME)
+
+  def GetFileStorageDir(self):
+    """Get the file storage dir.
+
+    """
+    return self._ReadFile(constants.SS_FILE_STORAGE_DIR)
+
+  def GetMasterIP(self):
+    """Get the IP of the master node for this cluster.
+
+    """
+    return self._ReadFile(constants.SS_MASTER_IP)
+
+  def GetMasterNetdev(self):
+    """Get the netdev to which we'll add the master ip.
+
+    """
+    return self._ReadFile(constants.SS_MASTER_NETDEV)
+
+  def GetMasterNode(self):
+    """Get the hostname of the master node for this cluster.
+
+    """
+    return self._ReadFile(constants.SS_MASTER_NODE)
+
+  def GetNodeList(self):
+    """Return the list of cluster nodes.
+
+    """
+    data = self._ReadFile(constants.SS_NODE_LIST)
+    nl = data.splitlines(False)
+    return nl
+
+
 def _SsconfPath(name):
   if not RE_VALID_SSCONF_NAME.match(name):
     raise errors.ParameterError("Invalid ssconf name: %s" % name)
@@ -150,7 +256,7 @@ def GetMasterAndMyself(ss=None):
 
   """
   if ss is None:
-    ss = SimpleConfigReader()
+    ss = SimpleStore()
   return ss.GetMasterNode(), utils.HostInfo().name
 
 
