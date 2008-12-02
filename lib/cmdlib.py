@@ -2045,6 +2045,19 @@ class LUSetNodeParams(LogicalUnit):
     """
     force = self.force = self.op.force
 
+    if self.op.master_candidate == False:
+      cp_size = self.cfg.GetClusterInfo().candidate_pool_size
+      node_info = self.cfg.GetAllNodesInfo().values()
+      num_candidates = len([node for node in node_info
+                            if node.master_candidate])
+      if num_candidates <= cp_size:
+        msg = ("Not enough master candidates (desired"
+               " %d, new value will be %d)" % (cp_size, num_candidates-1))
+        if force:
+          self.LogWarning(msg)
+        else:
+          raise errors.OpPrereqError(msg)
+
     return
 
   def Exec(self, feedback_fn):
