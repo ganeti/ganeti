@@ -264,6 +264,10 @@ INSTANCE_REBOOT_SOFT = "soft"
 INSTANCE_REBOOT_HARD = "hard"
 INSTANCE_REBOOT_FULL = "full"
 
+REBOOT_TYPES = frozenset([INSTANCE_REBOOT_SOFT,
+                          INSTANCE_REBOOT_HARD,
+                          INSTANCE_REBOOT_FULL])
+
 # HV parameter names (global namespace)
 HV_BOOT_ORDER = "boot_order"
 HV_CDROM_IMAGE_PATH = "cdrom_image_path"

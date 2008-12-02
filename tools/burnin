@@ -151,6 +151,12 @@ class Burner(object):
     parser.add_option("--no-startstop", dest="do_startstop",
                       help="Skip instance stop/start", action="store_false",
                       default=True)
+    parser.add_option("--no-reinstall", dest="do_reinstall",
+                      help="Skip instance reinstall", action="store_false",
+                      default=True)
+    parser.add_option("--no-reboot", dest="do_reboot",
+                      help="Skip instance reboot", action="store_false",
+                      default=True)
     parser.add_option("--no-nics", dest="nics",
                       help="No network interfaces", action="store_const",
                       const=[], default=[{}])
@@ -359,7 +365,8 @@ class Burner(object):
 
       if self.opts.iallocator:
         pnode = snode = None
-        import_log_msg = ("- Import instance %s from node %s (iallocator: %s)" %
+        import_log_msg = ("- Import instance %s from node %s"
+                          " (iallocator: %s)" %
                           (instance, enode, self.opts.iallocator))
       elif self.opts.disk_template not in constants.DTS_NET_MIRROR:
         snode = None
@@ -457,6 +464,29 @@ class Burner(object):
       self.RenameInstance(rename, instance)
       self.StartInstance(instance)
 
+  def Reinstall(self):
+    """Reinstall the instances."""
+    for instance in self.instances:
+      self.StopInstance(instance)
+      op = opcodes.OpReinstallInstance(instance_name=instance)
+      Log("- Reinstall instance %s without passing the OS" % (instance,))
+      self.ExecOp(op)
+      op = opcodes.OpReinstallInstance(instance_name=instance,
+                                       os_type=self.opts.os)
+      Log("- Reinstall instance %s specifying the OS" % (instance,))
+      self.ExecOp(op)
+      self.StartInstance(instance)
+
+  def Reboot(self):
+    """Reinstall the instances."""
+    for instance in self.instances:
+      for reboot_type in constants.REBOOT_TYPES:
+        op = opcodes.OpRebootInstance(instance_name=instance,
+                                      reboot_type=reboot_type,
+                                      ignore_secondaries=False)
+        Log("- Reboot instance %s with type '%s'" % (instance, reboot_type))
+        self.ExecOp(op)
+
   def BurninCluster(self):
     """Test a cluster intensively.
 
@@ -495,6 +525,12 @@ class Burner(object):
           opts.disk_template not in (constants.DT_DISKLESS,
                                      constants.DT_FILE)):
         self.ImportExport()
+
+      if opts.do_reinstall:
+        self.Reinstall()
+
+      if opts.do_reboot:
+        self.Reboot()
 
       if opts.do_startstop:
         self.StopStart()
