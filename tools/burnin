@@ -491,7 +491,9 @@ class Burner(object):
       if opts.do_failover and opts.disk_template in constants.DTS_NET_MIRROR:
         self.Failover()
 
-      if opts.do_importexport:
+      if (opts.do_importexport and
+          opts.disk_template not in (constants.DT_DISKLESS,
+                                     constants.DT_FILE)):
         self.ImportExport()
 
       if opts.do_startstop:
