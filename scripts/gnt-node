@@ -115,6 +115,8 @@ def ListNodes(opts, args):
       "ctotal": "CTotal",
       "tags": "Tags",
       "serial_no": "SerialNo",
+      "master_candidate": "MasterC",
+      "master": "IsMaster",
       }
   else:
     headers = None
@@ -133,6 +135,11 @@ def ListNodes(opts, args):
       val = row[idx]
       if field in list_type_fields:
         val = ",".join(val)
+      elif field in ('master', 'master_candidate'):
+        if val:
+          val = 'Y'
+        else:
+          val = 'N'
       elif val is None:
         val = "?"
       row[idx] = str(val)

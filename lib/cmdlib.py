@@ -1547,6 +1547,8 @@ class LUQueryNodes(NoHooksLU):
     "pinst_list", "sinst_list",
     "pip", "sip", "tags",
     "serial_no",
+    "master_candidate",
+    "master",
     )
 
   def ExpandNames(self):
@@ -1635,6 +1637,8 @@ class LUQueryNodes(NoHooksLU):
           if secnode in node_to_secondary:
             node_to_secondary[secnode].add(inst.name)
 
+    master_node = self.cfg.GetMasterNode()
+
     # end data gathering
 
     output = []
@@ -1659,6 +1663,10 @@ class LUQueryNodes(NoHooksLU):
           val = list(node.GetTags())
         elif field == "serial_no":
           val = node.serial_no
+        elif field == "master_candidate":
+          val = node.master_candidate
+        elif field == "master":
+          val = node.name == master_node
         elif self._FIELDS_DYNAMIC.Matches(field):
           val = live_data[node.name].get(field, None)
         else:
