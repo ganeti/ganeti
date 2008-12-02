@@ -127,6 +127,7 @@ class SimpleStore(object):
   _VALID_KEYS = (
     constants.SS_CLUSTER_NAME,
     constants.SS_FILE_STORAGE_DIR,
+    constants.SS_MASTER_CANDIDATES,
     constants.SS_MASTER_IP,
     constants.SS_MASTER_NETDEV,
     constants.SS_MASTER_NODE,
@@ -209,6 +210,14 @@ class SimpleStore(object):
 
     """
     return self._ReadFile(constants.SS_FILE_STORAGE_DIR)
+
+  def GetMasterCandidates(self):
+    """Return the list of master candidates.
+
+    """
+    data = self._ReadFile(constants.SS_MASTER_CANDIDATES)
+    nl = data.splitlines(False)
+    return nl
 
   def GetMasterIP(self):
     """Get the IP of the master node for this cluster.

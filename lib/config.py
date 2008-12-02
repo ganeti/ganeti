@@ -859,7 +859,7 @@ class ConfigWriter:
     os.rename(name, destination)
     self.write_count += 1
 
-    # and redistribute the config file
+    # and redistribute the config file to master candidates
     self._DistributeConfig()
 
     # Write ssconf files on all nodes (including locally)
@@ -877,11 +877,17 @@ class ConfigWriter:
         associated value
 
     """
-    node_list = "\n".join(utils.NiceSort(self._UnlockedGetNodeList()))
+    node_list = utils.NiceSort(self._UnlockedGetNodeList())
+    mc_list = [self._UnlockedGetNodeInfo(name) for name in node_list]
+    mc_list = [node.name for node in mc_list if node.master_candidate]
+    node_list = "\n".join(node_list)
+    mc_list = "\n".join(mc_list)
+
     cluster = self._config_data.cluster
     return {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_FILE_STORAGE_DIR: cluster.file_storage_dir,
+      constants.SS_MASTER_CANDIDATES: mc_list,
       constants.SS_MASTER_IP: cluster.master_ip,
       constants.SS_MASTER_NETDEV: cluster.master_netdev,
       constants.SS_MASTER_NODE: cluster.master_node,
