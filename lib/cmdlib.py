@@ -1174,25 +1174,10 @@ class LURenameCluster(LogicalUnit):
       raise errors.OpExecError("Could not disable the master role")
 
     try:
-      # modify the sstore
-      # TODO: sstore
-      ss.SetKey(ss.SS_MASTER_IP, ip)
-      ss.SetKey(ss.SS_CLUSTER_NAME, clustername)
-
-      # Distribute updated ss config to all nodes
-      myself = self.cfg.GetNodeInfo(master)
-      dist_nodes = self.cfg.GetNodeList()
-      if myself.name in dist_nodes:
-        dist_nodes.remove(myself.name)
-
-      logging.debug("Copying updated ssconf data to all nodes")
-      for keyname in [ss.SS_CLUSTER_NAME, ss.SS_MASTER_IP]:
-        fname = ss.KeyToFilename(keyname)
-        result = self.rpc.call_upload_file(dist_nodes, fname)
-        for to_node in dist_nodes:
-          if result[to_node].failed or not result[to_node].data:
-            self.LogWarning("Copy of file %s to node %s failed",
-                            fname, to_node)
+      cluster = self.cfg.GetClusterInfo()
+      cluster.cluster_name = clustername
+      cluster.master_ip = ip
+      self.cfg.Update(cluster)
     finally:
       result = self.rpc.call_node_start_master(master, False)
       if result.failed or not result.data:
