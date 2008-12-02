@@ -60,13 +60,14 @@ def InitCluster(opts, args):
   if hvlist is not None:
     hvlist = hvlist.split(",")
   else:
-    hvlist = [constants.DEFAULT_ENABLED_HYPERVISOR]
+    hvlist = [opts.default_hypervisor]
 
   # avoid an impossible situation
-  if opts.default_hypervisor in hvlist:
-    default_hypervisor = opts.default_hypervisor
-  else:
-    default_hypervisor = hvlist[0]
+  if opts.default_hypervisor not in hvlist:
+    ToStderr("The default hypervisor requested (%s) is not"
+             " within the enabled hypervisor list (%s)" %
+             (opts.default_hypervisor, hvlist))
+    return 1
 
   hvparams = opts.hvparams
   if hvparams:
@@ -120,7 +121,7 @@ def InitCluster(opts, args):
                         master_netdev=opts.master_netdev,
                         file_storage_dir=opts.file_storage_dir,
                         enabled_hypervisors=hvlist,
-                        default_hypervisor=default_hypervisor,
+                        default_hypervisor=opts.default_hypervisor,
                         hvparams=hvparams,
                         beparams=beparams)
   return 0
