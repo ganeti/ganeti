@@ -1279,9 +1279,9 @@ class LUSetClusterParams(LogicalUnit):
                                      (node, vgstatus))
 
     self.cluster = cluster = self.cfg.GetClusterInfo()
-    # beparams changes do not need validation (we can't validate?),
-    # but we still process here
+    # validate beparams changes
     if self.op.beparams:
+      utils.CheckBEParams(self.op.beparams)
       self.new_beparams = cluster.FillDict(
         cluster.beparams[constants.BEGR_DEFAULT], self.op.beparams)
 
@@ -3560,6 +3560,7 @@ class LUCreateInstance(LogicalUnit):
     hv_type.CheckParameterSyntax(filled_hvp)
 
     # fill and remember the beparams dict
+    utils.CheckBEParams(self.op.beparams)
     self.be_full = cluster.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
                                     self.op.beparams)
 
@@ -4874,14 +4875,8 @@ class LUSetInstanceParams(LogicalUnit):
             self.op.hvparams or self.op.beparams):
       raise errors.OpPrereqError("No changes submitted")
 
-    for item in (constants.BE_MEMORY, constants.BE_VCPUS):
-      val = self.op.beparams.get(item, None)
-      if val is not None:
-        try:
-          val = int(val)
-        except ValueError, err:
-          raise errors.OpPrereqError("Invalid %s size: %s" % (item, str(err)))
-        self.op.beparams[item] = val
+    utils.CheckBEParams(self.op.beparams)
+
     # Disk validation
     disk_addremove = 0
     for disk_op, disk_dict in self.op.disks:

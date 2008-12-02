@@ -177,6 +177,8 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     raise errors.OpPrereqError("Init.d script '%s' missing or not"
                                " executable." % constants.NODE_INITD_SCRIPT)
 
+  utils.CheckBEParams(beparams)
+
   # set up the inter-node password and certificate
   _InitGanetiServerSetup()
 
