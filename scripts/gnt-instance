@@ -1046,9 +1046,20 @@ def SetInstanceParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  if constants.BE_MEMORY in opts.beparams:
-    opts.beparams[constants.BE_MEMORY] = utils.ParseUnit(
-      opts.beparams[constants.BE_MEMORY])
+  for param in opts.beparams:
+    if opts.beparams[param].lower() == "default":
+      opts.beparams[param] = constants.VALUE_DEFAULT
+    elif opts.beparams[param].lower() == "none":
+      opts.beparams[param] = constants.VALUE_NONE
+    elif param == constants.BE_MEMORY:
+      opts.beparams[constants.BE_MEMORY] = \
+        utils.ParseUnit(opts.beparams[constants.BE_MEMORY])
+
+  for param in opts.hypervisor:
+    if opts.hypervisor[param].lower() == "default":
+      opts.hypervisor[param] = constants.VALUE_DEFAULT
+    elif opts.hypervisor[param].lower() == "none":
+      opts.hypervisor[param] = constants.VALUE_NONE
 
   for idx, (nic_op, nic_dict) in enumerate(opts.nics):
     try:
