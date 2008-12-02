@@ -867,11 +867,22 @@ class ConfigWriter:
       self._last_cluster_serial = self._config_data.cluster.serial_no
 
   def _UnlockedGetSsconfValues(self):
+    """Return the values needed by ssconf.
+
+    @rtype: dict
+    @return: a dictionary with keys the ssconf names and values their
+        associated value
+
+    """
+    node_list = "\n".join(utils.NiceSort(self._UnlockedGetNodeList()))
+    cluster = self._config_data.cluster
     return {
-      "cluster_name": self._config_data.cluster.cluster_name,
-      "master_ip": self._config_data.cluster.master_ip,
-      "master_netdev": self._config_data.cluster.master_netdev,
-      "master_node": self._config_data.cluster.master_node,
+      constants.SS_CLUSTER_NAME: cluster.cluster_name,
+      constants.SS_FILE_STORAGE_DIR: cluster.file_storage_dir,
+      constants.SS_MASTER_IP: cluster.master_ip,
+      constants.SS_MASTER_NETDEV: cluster.master_netdev,
+      constants.SS_MASTER_NODE: cluster.master_node,
+      constants.SS_NODE_LIST: node_list,
       }
 
   @locking.ssynchronized(_config_lock)
