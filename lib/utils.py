@@ -520,6 +520,36 @@ def BridgeExists(bridge):
   return os.path.isdir("/sys/class/net/%s/bridge" % bridge)
 
 
+def CheckBEParams(beparams):
+  """Checks whether the user-supplied be-params are valid,
+  and converts them from string format where appropriate.
+
+  @type beparams: dict
+  @param beparams: new params dict
+
+  """
+  if beparams:
+    for item in beparams:
+      if item not in constants.BES_PARAMETERS:
+        raise errors.OpPrereqError("Unknown backend parameter %s" % item)
+      if item in (constants.BE_MEMORY, constants.BE_VCPUS):
+        val = beparams[item]
+        if val != constants.VALUE_DEFAULT:
+          try:
+            val = int(val)
+          except ValueError, err:
+            raise errors.OpPrereqError("Invalid %s size: %s" % (item, str(err)))
+          beparams[item] = val
+      if item in (constants.BE_AUTO_BALANCE):
+        val = beparams[item]
+        if val == constants.VALUE_TRUE:
+          beparams[item] = True
+        elif val == constants.VALUE_FALSE:
+          beparams[item] = False
+        else:
+          raise errors.OpPrereqError("Invalid %s value: %s" % (item, val))
+
+
 def NiceSort(name_list):
   """Sort a list of strings based on digit and non-digit groupings.
 
