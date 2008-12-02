@@ -151,6 +151,9 @@ class Burner(object):
     parser.add_option("--no-startstop", dest="do_startstop",
                       help="Skip instance stop/start", action="store_false",
                       default=True)
+    parser.add_option("--no-nics", dest="nics",
+                      help="No network interfaces", action="store_const",
+                      const=[], default=[{}])
     parser.add_option("--rename", dest="rename", default=None,
                       help="Give one unused instance name which is taken"
                            " to start the renaming sequence",
@@ -185,11 +188,15 @@ class Burner(object):
       Log("Unknown disk template '%s'" % options.disk_template)
       sys.exit(1)
 
-    disk_size = [utils.ParseUnit(v) for v in options.disk_size.split(",")]
-    disk_growth = [utils.ParseUnit(v) for v in options.disk_growth.split(",")]
-    if len(disk_growth) != len(disk_size):
-      Log("Wrong disk sizes/growth combination")
-      sys.exit(1)
+    if options.disk_template == constants.DT_DISKLESS:
+      disk_size = disk_growth = []
+    else:
+      disk_size = [utils.ParseUnit(v) for v in options.disk_size.split(",")]
+      disk_growth = [utils.ParseUnit(v)
+                     for v in options.disk_growth.split(",")]
+      if len(disk_growth) != len(disk_size):
+        Log("Wrong disk sizes/growth combination")
+        sys.exit(1)
     if ((disk_size and options.disk_template == constants.DT_DISKLESS) or
         (not disk_size and options.disk_template != constants.DT_DISKLESS)):
       Log("Wrong disk count/disk template combination")
@@ -265,7 +272,7 @@ class Burner(object):
                                     disks = [ {"size": size}
                                               for size in self.disk_size],
                                     disk_template=self.opts.disk_template,
-                                    nics=[{}],
+                                    nics=self.opts.nics,
                                     mode=constants.INSTANCE_CREATE,
                                     os_type=self.opts.os,
                                     pnode=pnode,
@@ -375,7 +382,7 @@ class Burner(object):
                                         disks = [ {"size": size}
                                                   for size in self.disk_size],
                                         disk_template=self.opts.disk_template,
-                                        nics=[{}],
+                                        nics=self.opts.nics,
                                         mode=constants.INSTANCE_IMPORT,
                                         src_node=enode,
                                         src_path=imp_dir,
