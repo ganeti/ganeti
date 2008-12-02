@@ -5000,11 +5000,13 @@ class LUSetInstanceParams(LogicalUnit):
     if self.op.hvparams:
       i_hvdict = copy.deepcopy(instance.hvparams)
       for key, val in self.op.hvparams.iteritems():
-        if val is None:
+        if val == constants.VALUE_DEFAULT:
           try:
             del i_hvdict[key]
           except KeyError:
             pass
+        elif val == constants.VALUE_NONE:
+          i_hvdict[key] = None
         else:
           i_hvdict[key] = val
       cluster = self.cfg.GetClusterInfo()
@@ -5023,7 +5025,7 @@ class LUSetInstanceParams(LogicalUnit):
     if self.op.beparams:
       i_bedict = copy.deepcopy(instance.beparams)
       for key, val in self.op.beparams.iteritems():
-        if val is None:
+        if val == constants.VALUE_DEFAULT:
           try:
             del i_bedict[key]
           except KeyError:
