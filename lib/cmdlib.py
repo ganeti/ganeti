@@ -3650,16 +3650,22 @@ class LUCreateInstance(LogicalUnit):
       src_node = getattr(self.op, "src_node", None)
       src_path = getattr(self.op, "src_path", None)
 
-      if src_node is None or src_path is None:
-        raise errors.OpPrereqError("Importing an instance requires source"
-                                   " node and path options")
+      if src_path is None:
+        self.op.src_path = src_path = self.op.instance_name
 
-      if not os.path.isabs(src_path):
-        raise errors.OpPrereqError("The source path must be absolute")
-
-      self.op.src_node = src_node = self._ExpandNode(src_node)
-      if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
-        self.needed_locks[locking.LEVEL_NODE].append(src_node)
+      if src_node is None:
+        self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+        self.op.src_node = None
+        if os.path.isabs(src_path):
+          raise errors.OpPrereqError("Importing an instance from an absolute"
+                                     " path requires a source node option.")
+      else:
+        self.op.src_node = src_node = self._ExpandNode(src_node)
+        if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
+          self.needed_locks[locking.LEVEL_NODE].append(src_node)
+        if not os.path.isabs(src_path):
+          self.op.src_path = src_path = \
+            os.path.join(constants.EXPORT_DIR, src_path)
 
     else: # INSTANCE_CREATE
       if getattr(self.op, "os_type", None) is None:
