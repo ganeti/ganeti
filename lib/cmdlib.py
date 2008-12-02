@@ -43,6 +43,7 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import serializer
+from ganeti import ssconf
 
 
 class LogicalUnit(object):
@@ -565,19 +566,19 @@ class LUVerifyCluster(LogicalUnit):
     }
     self.share_locks = dict(((i, 1) for i in locking.LEVELS))
 
-  def _VerifyNode(self, node, file_list, local_cksum, vglist, node_result,
-                  remote_version, feedback_fn):
+  def _VerifyNode(self, nodeinfo, file_list, local_cksum, vglist, node_result,
+                  remote_version, feedback_fn, master_files):
     """Run multiple tests against a node.
 
-    Test list::
+    Test list:
 
       - compares ganeti version
       - checks vg existance and size > 20G
       - checks config file checksum
       - checks ssh to other nodes
 
-    @type node: string
-    @param node: the name of the node to check
+    @type nodeinfo: L{objects.Node}
+    @param nodeinfo: the node to check
     @param file_list: required list of files
     @param local_cksum: dictionary of local files and their checksums
     @type vglist: dict
@@ -585,8 +586,10 @@ class LUVerifyCluster(LogicalUnit):
     @param node_result: the results from the node
     @param remote_version: the RPC version from the remote node
     @param feedback_fn: function used to accumulate results
+    @param master_files: list of files that only masters should have
 
     """
+    node = nodeinfo.name
     # compares ganeti version
     local_version = constants.PROTOCOL_VERSION
     if not remote_version:
@@ -625,12 +628,26 @@ class LUVerifyCluster(LogicalUnit):
     else:
       remote_cksum = node_result['filelist']
       for file_name in file_list:
+        node_is_mc = nodeinfo.master_candidate
+        must_have_file = file_name not in master_files
         if file_name not in remote_cksum:
-          bad = True
-          feedback_fn("  - ERROR: file '%s' missing" % file_name)
+          if node_is_mc or must_have_file:
+            bad = True
+            feedback_fn("  - ERROR: file '%s' missing" % file_name)
         elif remote_cksum[file_name] != local_cksum[file_name]:
-          bad = True
-          feedback_fn("  - ERROR: file '%s' has wrong checksum" % file_name)
+          if node_is_mc or must_have_file:
+            bad = True
+            feedback_fn("  - ERROR: file '%s' has wrong checksum" % file_name)
+          else:
+            # not candidate and this is not a must-have file
+            bad = True
+            feedback_fn("  - ERROR: non master-candidate has old/wrong file"
+                        " '%s'" % file_name)
+        else:
+          # all good, except non-master/non-must have combination
+          if not node_is_mc and not must_have_file:
+            feedback_fn("  - ERROR: file '%s' should not exist on non master"
+                        " candidates" % file_name)
 
     if 'nodelist' not in node_result:
       bad = True
@@ -806,9 +823,12 @@ class LUVerifyCluster(LogicalUnit):
 
     # FIXME: verify OS list
     # do local checksums
-    file_names = []
+    master_files = [constants.CLUSTER_CONF_FILE]
+
+    file_names = ssconf.SimpleStore().GetFileList()
     file_names.append(constants.SSL_CERT_FILE)
-    file_names.append(constants.CLUSTER_CONF_FILE)
+    file_names.extend(master_files)
+
     local_checksums = utils.FingerprintFiles(file_names)
 
     feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
@@ -829,11 +849,19 @@ class LUVerifyCluster(LogicalUnit):
                                         self.cfg.GetHypervisorType())
 
     cluster = self.cfg.GetClusterInfo()
-    for node in nodelist:
-      feedback_fn("* Verifying node %s" % node)
-      result = self._VerifyNode(node, file_names, local_checksums,
+    master_node = self.cfg.GetMasterNode()
+    for node_i in nodeinfo:
+      node = node_i.name
+      if node == master_node:
+        ntype="master"
+      elif node_i.master_candidate:
+        ntype="master candidate"
+      else:
+        ntype="regular"
+      feedback_fn("* Verifying node %s (%s)" % (node, ntype))
+      result = self._VerifyNode(node_i, file_names, local_checksums,
                                 all_vglist[node], all_nvinfo[node],
-                                all_rversion[node], feedback_fn)
+                                all_rversion[node], feedback_fn, master_files)
       bad = bad or result
 
       # node_volume
