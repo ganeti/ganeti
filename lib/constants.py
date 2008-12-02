@@ -333,6 +333,17 @@ HT_HVM_VALID_DISK_TYPES = frozenset([HT_HVM_DEV_PARAVIRTUAL, HT_HVM_DEV_IOEMU])
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
 
+# Node verify constants
+NV_FILELIST = "filelist"
+NV_HVINFO = "hvinfo"
+NV_HYPERVISOR = "hypervisor"
+NV_INSTANCELIST = "instancelist"
+NV_LVLIST = "lvlist"
+NV_NODELIST = "nodelist"
+NV_NODENETTEST = "node-net-test"
+NV_VERSION = "version"
+NV_VGLIST = "vglist"
+
 # Allocator framework constants
 IALLOCATOR_DIR_IN = "in"
 IALLOCATOR_DIR_OUT = "out"

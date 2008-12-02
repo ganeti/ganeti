@@ -570,8 +570,8 @@ class LUVerifyCluster(LogicalUnit):
     }
     self.share_locks = dict(((i, 1) for i in locking.LEVELS))
 
-  def _VerifyNode(self, nodeinfo, file_list, local_cksum, vglist, node_result,
-                  remote_version, feedback_fn, master_files):
+  def _VerifyNode(self, nodeinfo, file_list, local_cksum,
+                  node_result, feedback_fn, master_files):
     """Run multiple tests against a node.
 
     Test list:
@@ -585,17 +585,21 @@ class LUVerifyCluster(LogicalUnit):
     @param nodeinfo: the node to check
     @param file_list: required list of files
     @param local_cksum: dictionary of local files and their checksums
-    @type vglist: dict
-    @param vglist: dictionary of volume group names and their size
     @param node_result: the results from the node
-    @param remote_version: the RPC version from the remote node
     @param feedback_fn: function used to accumulate results
     @param master_files: list of files that only masters should have
 
     """
     node = nodeinfo.name
+
+    # main result, node_result should be a non-empty dict
+    if not node_result or not isinstance(node_result, dict):
+      feedback_fn("  - ERROR: unable to verify node %s." % (node,))
+      return True
+
     # compares ganeti version
     local_version = constants.PROTOCOL_VERSION
+    remote_version = node_result.get('version', None)
     if not remote_version:
       feedback_fn("  - ERROR: connection to %s failed" % (node))
       return True
@@ -608,6 +612,7 @@ class LUVerifyCluster(LogicalUnit):
     # checks vg existance and size > 20G
 
     bad = False
+    vglist = node_result.get(constants.NV_VGLIST, None)
     if not vglist:
       feedback_fn("  - ERROR: unable to check volume groups on node %s." %
                       (node,))
@@ -619,18 +624,13 @@ class LUVerifyCluster(LogicalUnit):
         feedback_fn("  - ERROR: %s on node %s" % (vgstatus, node))
         bad = True
 
-    if not node_result:
-      feedback_fn("  - ERROR: unable to verify node %s." % (node,))
-      return True
-
     # checks config file checksum
-    # checks ssh to any
 
-    if 'filelist' not in node_result:
+    remote_cksum = node_result.get(constants.NV_FILELIST, None)
+    if not isinstance(remote_cksum, dict):
       bad = True
       feedback_fn("  - ERROR: node hasn't returned file checksum data")
     else:
-      remote_cksum = node_result['filelist']
       for file_name in file_list:
         node_is_mc = nodeinfo.master_candidate
         must_have_file = file_name not in master_files
@@ -653,27 +653,30 @@ class LUVerifyCluster(LogicalUnit):
             feedback_fn("  - ERROR: file '%s' should not exist on non master"
                         " candidates" % file_name)
 
-    if 'nodelist' not in node_result:
+    # checks ssh to any
+
+    if constants.NV_NODELIST not in node_result:
       bad = True
       feedback_fn("  - ERROR: node hasn't returned node ssh connectivity data")
     else:
-      if node_result['nodelist']:
+      if node_result[constants.NV_NODELIST]:
         bad = True
-        for node in node_result['nodelist']:
+        for node in node_result[constants.NV_NODELIST]:
           feedback_fn("  - ERROR: ssh communication with node '%s': %s" %
-                          (node, node_result['nodelist'][node]))
-    if 'node-net-test' not in node_result:
+                          (node, node_result[constants.NV_NODELIST][node]))
+
+    if constants.NV_NODENETTEST not in node_result:
       bad = True
       feedback_fn("  - ERROR: node hasn't returned node tcp connectivity data")
     else:
-      if node_result['node-net-test']:
+      if node_result[constants.NV_NODENETTEST]:
         bad = True
-        nlist = utils.NiceSort(node_result['node-net-test'].keys())
+        nlist = utils.NiceSort(node_result[constants.NV_NODENETTEST].keys())
         for node in nlist:
           feedback_fn("  - ERROR: tcp communication with node '%s': %s" %
-                          (node, node_result['node-net-test'][node]))
+                          (node, node_result[constants.NV_NODENETTEST][node]))
 
-    hyp_result = node_result.get('hypervisor', None)
+    hyp_result = node_result.get(constants.NV_HYPERVISOR, None)
     if isinstance(hyp_result, dict):
       for hv_name, hv_result in hyp_result.iteritems():
         if hv_result is not None:
@@ -836,73 +839,78 @@ class LUVerifyCluster(LogicalUnit):
     local_checksums = utils.FingerprintFiles(file_names)
 
     feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
-    all_volumeinfo = self.rpc.call_volume_list(nodelist, vg_name)
-    all_instanceinfo = self.rpc.call_instance_list(nodelist, hypervisors)
-    all_vglist = self.rpc.call_vg_list(nodelist)
     node_verify_param = {
-      'filelist': file_names,
-      'nodelist': nodelist,
-      'hypervisor': hypervisors,
-      'node-net-test': [(node.name, node.primary_ip, node.secondary_ip)
-                        for node in nodeinfo]
+      constants.NV_FILELIST: file_names,
+      constants.NV_NODELIST: nodelist,
+      constants.NV_HYPERVISOR: hypervisors,
+      constants.NV_NODENETTEST: [(node.name, node.primary_ip,
+                                  node.secondary_ip) for node in nodeinfo],
+      constants.NV_LVLIST: vg_name,
+      constants.NV_INSTANCELIST: hypervisors,
+      constants.NV_VGLIST: None,
+      constants.NV_VERSION: None,
+      constants.NV_HVINFO: self.cfg.GetHypervisorType(),
       }
     all_nvinfo = self.rpc.call_node_verify(nodelist, node_verify_param,
                                            self.cfg.GetClusterName())
-    all_rversion = self.rpc.call_version(nodelist)
-    all_ninfo = self.rpc.call_node_info(nodelist, self.cfg.GetVGName(),
-                                        self.cfg.GetHypervisorType())
 
     cluster = self.cfg.GetClusterInfo()
     master_node = self.cfg.GetMasterNode()
     for node_i in nodeinfo:
       node = node_i.name
+      nresult = all_nvinfo[node].data
+
       if node == master_node:
-        ntype="master"
+        ntype = "master"
       elif node_i.master_candidate:
-        ntype="master candidate"
+        ntype = "master candidate"
       else:
-        ntype="regular"
+        ntype = "regular"
       feedback_fn("* Verifying node %s (%s)" % (node, ntype))
+
+      if all_nvinfo[node].failed or not isinstance(nresult, dict):
+        feedback_fn("  - ERROR: connection to %s failed" % (node,))
+        bad = True
+        continue
+
       result = self._VerifyNode(node_i, file_names, local_checksums,
-                                all_vglist[node], all_nvinfo[node],
-                                all_rversion[node], feedback_fn, master_files)
+                                nresult, feedback_fn, master_files)
       bad = bad or result
 
-      # node_volume
-      volumeinfo = all_volumeinfo[node]
-
-      if isinstance(volumeinfo, basestring):
+      lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
+      if isinstance(lvdata, basestring):
         feedback_fn("  - ERROR: LVM problem on node %s: %s" %
-                    (node, volumeinfo[-400:].encode('string_escape')))
+                    (node, lvdata.encode('string_escape')))
         bad = True
         node_volume[node] = {}
-      elif not isinstance(volumeinfo, dict):
-        feedback_fn("  - ERROR: connection to %s failed" % (node,))
+      elif not isinstance(lvdata, dict):
+        feedback_fn("  - ERROR: connection to %s failed (lvlist)" % (node,))
         bad = True
         continue
       else:
-        node_volume[node] = volumeinfo
+        node_volume[node] = lvdata
 
       # node_instance
-      nodeinstance = all_instanceinfo[node]
-      if type(nodeinstance) != list:
-        feedback_fn("  - ERROR: connection to %s failed" % (node,))
+      idata = nresult.get(constants.NV_INSTANCELIST, None)
+      if not isinstance(idata, list):
+        feedback_fn("  - ERROR: connection to %s failed (instancelist)" %
+                    (node,))
         bad = True
         continue
 
-      node_instance[node] = nodeinstance
+      node_instance[node] = idata
 
       # node_info
-      nodeinfo = all_ninfo[node]
+      nodeinfo = nresult.get(constants.NV_HVINFO, None)
       if not isinstance(nodeinfo, dict):
-        feedback_fn("  - ERROR: connection to %s failed" % (node,))
+        feedback_fn("  - ERROR: connection to %s failed (hvinfo)" % (node,))
         bad = True
         continue
 
       try:
         node_info[node] = {
           "mfree": int(nodeinfo['memory_free']),
-          "dfree": int(nodeinfo['vg_free']),
+          "dfree": int(nresult[constants.NV_VGLIST][vg_name]),
           "pinst": [],
           "sinst": [],
           # dictionary holding all instances this node is secondary for,
@@ -1017,11 +1025,11 @@ class LUVerifyCluster(LogicalUnit):
         for node_name in hooks_results:
           show_node_header = True
           res = hooks_results[node_name]
-          if res is False or not isinstance(res, list):
-            feedback_fn("    Communication failure")
+          if res.failed or res.data is False or not isinstance(res.data, list):
+            feedback_fn("    Communication failure in hooks execution")
             lu_result = 1
             continue
-          for script, hkr, output in res:
+          for script, hkr, output in res.data:
             if hkr == constants.HKR_FAIL:
               # The node header is only shown once, if there are
               # failing hooks on that node
@@ -5500,7 +5508,7 @@ class LURemoveExport(NoHooksLU):
     found = False
     for node in exportlist:
       if exportlist[node].failed:
-        self.Warning("Failed to query node %s, continuing" % node)
+        self.LogWarning("Failed to query node %s, continuing" % node)
         continue
       if instance_name in exportlist[node].data:
         found = True
