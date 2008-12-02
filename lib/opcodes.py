@@ -312,6 +312,16 @@ class OpQueryNodeVolumes(OpCode):
   __slots__ = ["nodes", "output_fields"]
 
 
+class OpSetNodeParams(OpCode):
+  """Change the parameters of a node."""
+  OP_ID = "OP_NODE_SET_PARAMS"
+  OP_DSC_FIELD = "node_name"
+  __slots__ = [
+    "node_name",
+    "force",
+    "master_candidate",
+    ]
+
 # instance opcodes
 
 class OpCreateInstance(OpCode):

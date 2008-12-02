@@ -1959,6 +1959,71 @@ class LUAddNode(LogicalUnit):
       self.context.AddNode(new_node)
 
 
+class LUSetNodeParams(LogicalUnit):
+  """Modifies the parameters of a node.
+
+  """
+  HPATH = "node-modify"
+  HTYPE = constants.HTYPE_NODE
+  _OP_REQP = ["node_name"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    node_name = self.cfg.ExpandNodeName(self.op.node_name)
+    if node_name is None:
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+    self.op.node_name = node_name
+    if not hasattr(self.op, 'master_candidate'):
+      raise errors.OpPrereqError("Please pass at least one modification")
+    self.op.master_candidate = bool(self.op.master_candidate)
+
+  def ExpandNames(self):
+    self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on the master node.
+
+    """
+    env = {
+      "OP_TARGET": self.op.node_name,
+      "MASTER_CANDIDATE": str(self.op.master_candidate),
+      }
+    nl = [self.cfg.GetMasterNode(),
+          self.op.node_name]
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This only checks the instance list against the existing names.
+
+    """
+    force = self.force = self.op.force
+
+    return
+
+  def Exec(self, feedback_fn):
+    """Modifies a node.
+
+    """
+    node = self.cfg.GetNodeInfo(self.op.node_name)
+
+    result = []
+
+    if self.op.master_candidate is not None:
+      node.master_candidate = self.op.master_candidate
+      result.append(("master_candidate", str(self.op.master_candidate)))
+
+    # this will trigger configuration file update, if needed
+    self.cfg.Update(node)
+    # this will trigger job queue propagation or cleanup
+    self.context.ReaddNode(node)
+
+    return result
+
+
 class LUQueryClusterInfo(NoHooksLU):
   """Query cluster configuration.
 
