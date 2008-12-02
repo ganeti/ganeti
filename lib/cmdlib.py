@@ -3746,6 +3746,21 @@ class LUCreateInstance(LogicalUnit):
       src_node = self.op.src_node
       src_path = self.op.src_path
 
+      if src_node is None:
+        exp_list = self.rpc.call_export_list(
+                     self.acquired_locks[locking.LEVEL_NODE])
+        found = False
+        for node in exp_list:
+          if src_path in exp_list[node]:
+            found = True
+            self.op.src_node = src_node = node
+            self.op.src_path = src_path = os.path.join(constants.EXPORT_DIR,
+                                                       src_path)
+            break
+        if not found:
+          raise errors.OpPrereqError("No export found for relative path %s" %
+                                      src_path)
+
       export_info = self.rpc.call_export_info(src_node, src_path)
 
       if not export_info:
