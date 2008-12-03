@@ -2017,7 +2017,7 @@ class LUAddNode(LogicalUnit):
     result = self.rpc.call_node_verify(node_verify_list, node_verify_param,
                                        self.cfg.GetClusterName())
     for verifier in node_verify_list:
-      if result.failed or not result[verifier].data:
+      if result[verifier].failed or not result[verifier].data:
         raise errors.OpExecError("Cannot communicate with %s's node daemon"
                                  " for remote verification" % verifier)
       if result[verifier].data['nodelist']:
