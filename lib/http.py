@@ -160,6 +160,45 @@ class HTTPJsonConverter:
     return serializer.LoadJson(data)
 
 
+def WaitForSocketCondition(sock, poller, event, timeout):
+  """Waits for a condition to occur on the socket.
+
+  @type sock: socket
+  @param socket: Wait for events on this socket
+  @type poller: select.Poller
+  @param poller: Poller object as created by select.poll()
+  @type event: int
+  @param event: ORed condition (see select module)
+  @type timeout: float or None
+  @param timeout: Timeout in seconds
+  @rtype: int or None
+  @return: None for timeout, otherwise occured conditions
+
+  """
+  check = (event | select.POLLPRI |
+           select.POLLNVAL | select.POLLHUP | select.POLLERR)
+
+  if timeout is not None:
+    # Poller object expects milliseconds
+    timeout *= 1000
+
+  poller.register(sock, event)
+  try:
+    while True:
+      # TODO: If the main thread receives a signal and we have no timeout, we
+      # could wait forever. This should check a global "quit" flag or
+      # something every so often.
+      io_events = poller.poll(timeout)
+      if not io_events:
+        # Timeout
+        return None
+      for (evfd, evcond) in io_events:
+        if evcond & check:
+          return evcond
+  finally:
+    poller.unregister(sock)
+
+
 class HttpSslParams(object):
   """Data class for SSL key and certificate.
 
@@ -1006,41 +1045,6 @@ class HttpClientRequestExecutor(_HttpSocketBase):
 
     return buf
 
-  def _WaitForCondition(self, event, timeout):
-    """Waits for a condition to occur on the socket.
-
-    @type event: int
-    @param event: ORed condition (see select module)
-    @type timeout: float or None
-    @param timeout: Timeout in seconds
-    @rtype: int or None
-    @return: None for timeout, otherwise occured conditions
-
-    """
-    check = (event | select.POLLPRI |
-             select.POLLNVAL | select.POLLHUP | select.POLLERR)
-
-    if timeout is not None:
-      # Poller object expects milliseconds
-      timeout *= 1000
-
-    self.poller.register(self.sock, event)
-    try:
-      while True:
-        # TODO: If the main thread receives a signal and we have no timeout, we
-        # could wait forever. This should check a global "quit" flag or
-        # something every so often.
-        io_events = self.poller.poll(timeout)
-        if io_events:
-          for (evfd, evcond) in io_events:
-            if evcond & check:
-              return evcond
-        else:
-          # Timeout
-          return None
-    finally:
-      self.poller.unregister(self.sock)
-
   def _SocketOperation(self, op, arg1, error_msg, timeout_msg):
     """Wrapper around socket functions.
 
@@ -1084,7 +1088,8 @@ class HttpClientRequestExecutor(_HttpSocketBase):
         else:
           wait_for_event = event_poll
 
-        event = self._WaitForCondition(wait_for_event, timeout)
+        event = WaitForSocketCondition(self.sock, self.poller, wait_for_event,
+                                       timeout)
         if event is None:
           raise _HttpClientTimeout(timeout_msg)
 
@@ -1180,7 +1185,8 @@ class HttpClientRequestExecutor(_HttpSocketBase):
 
     if not connected:
       # Wait for connection
-      event = self._WaitForCondition(select.POLLOUT, self.CONNECT_TIMEOUT)
+      event = WaitForSocketCondition(self.sock, self.poller,
+                                     select.POLLOUT, self.CONNECT_TIMEOUT)
       if event is None:
         raise _HttpClientError("Timeout while connecting to server")
 
