@@ -412,7 +412,7 @@ class _HttpSocketBase(object):
             self._ssl_cert.digest("md5") == cert.digest("md5"))
 
 
-class _HttpConnectionHandler(object):
+class HttpServerRequestExecutor(object):
   """Implements server side of HTTP
 
   This class implements the server side of HTTP. It's based on code of Python's
@@ -465,13 +465,27 @@ class _HttpConnectionHandler(object):
 
     self.should_fork = False
 
+    logging.info("Connection from %s:%s", client_addr[0], client_addr[1])
     try:
-      self._ReadRequest()
-      self._ReadPostData()
-    except HTTPException, err:
-      self._SetErrorStatus(err)
+      try:
+        try:
+          try:
+            # Read, parse and handle request
+            self._ReadRequest()
+            self._ReadPostData()
+            self._HandleRequest()
+          except HTTPException, err:
+            self._SetErrorStatus(err)
+        finally:
+          # Try to send a response
+          self._SendResponse()
+          self._Close()
+      except SocketClosed:
+        pass
+    finally:
+      logging.info("Disconnected %s:%s", client_addr[0], client_addr[1])
 
-  def Close(self):
+  def _Close(self):
     if not self.wfile.closed:
       self.wfile.flush()
     self.wfile.close()
@@ -512,7 +526,7 @@ class _HttpConnectionHandler(object):
     self.response_content_type = self.error_content_type
     self.response_body = self.error_message_format % values
 
-  def HandleRequest(self):
+  def _HandleRequest(self):
     """Handle the actual request.
 
     Calls the actual handler function and converts exceptions into HTTP errors.
@@ -549,7 +563,7 @@ class _HttpConnectionHandler(object):
     except HTTPException, err:
       self._SetErrorStatus(err)
 
-  def SendResponse(self):
+  def _SendResponse(self):
     """Sends response to the client.
 
     """
@@ -794,26 +808,9 @@ class HttpServer(_HttpSocketBase):
     pid = os.fork()
     if pid == 0:
       # Child process
-      logging.info("Connection from %s:%s", client_addr[0], client_addr[1])
-
       try:
-        try:
-          try:
-            handler = None
-            try:
-              # Read, parse and handle request
-              handler = _HttpConnectionHandler(self, connection, client_addr,
-                                               self._fileio_class)
-              handler.HandleRequest()
-            finally:
-              # Try to send a response
-              if handler:
-                handler.SendResponse()
-                handler.Close()
-          except SocketClosed:
-            pass
-        finally:
-          logging.info("Disconnected %s:%s", client_addr[0], client_addr[1])
+        HttpServerRequestExecutor(self, connection, client_addr,
+                                  self._fileio_class)
       except:
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])
