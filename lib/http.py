@@ -150,61 +150,6 @@ class HTTPVersionNotSupported(HTTPException):
   code = 505
 
 
-class ApacheLogfile:
-  """Utility class to write HTTP server log files.
-
-  The written format is the "Common Log Format" as defined by Apache:
-  http://httpd.apache.org/docs/2.2/mod/mod_log_config.html#examples
-
-  """
-  def __init__(self, fd):
-    """Constructor for ApacheLogfile class.
-
-    Args:
-    - fd: Open file object
-
-    """
-    self._fd = fd
-
-  def LogRequest(self, request, format, *args):
-    self._fd.write("%s %s %s [%s] %s\n" % (
-      # Remote host address
-      request.address_string(),
-
-      # RFC1413 identity (identd)
-      "-",
-
-      # Remote user
-      "-",
-
-      # Request time
-      self._FormatCurrentTime(),
-
-      # Message
-      format % args,
-      ))
-    self._fd.flush()
-
-  def _FormatCurrentTime(self):
-    """Formats current time in Common Log Format.
-
-    """
-    return self._FormatLogTime(time.time())
-
-  def _FormatLogTime(self, seconds):
-    """Formats time for Common Log Format.
-
-    All timestamps are logged in the UTC timezone.
-
-    Args:
-    - seconds: Time in seconds since the epoch
-
-    """
-    (_, month, _, _, _, _, _, _, _) = tm = time.gmtime(seconds)
-    format = "%d/" + MONTHNAME[month] + "/%Y:%H:%M:%S +0000"
-    return time.strftime(format, tm)
-
-
 class HTTPJsonConverter:
   CONTENT_TYPE = "application/json"
 
