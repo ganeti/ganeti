@@ -2100,6 +2100,9 @@ class LUSetNodeParams(LogicalUnit):
     force = self.force = self.op.force
 
     if self.op.master_candidate == False:
+      if self.op.node_name == self.cfg.GetMasterNode():
+        raise errors.OpPrereqError("The master node has to be a"
+                                   " master candidate")
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
       node_info = self.cfg.GetAllNodesInfo().values()
       num_candidates = len([node for node in node_info
@@ -2129,7 +2132,8 @@ class LUSetNodeParams(LogicalUnit):
     # this will trigger configuration file update, if needed
     self.cfg.Update(node)
     # this will trigger job queue propagation or cleanup
-    self.context.ReaddNode(node)
+    if self.op.node_name != self.cfg.GetMasterNode():
+      self.context.ReaddNode(node)
 
     return result
 

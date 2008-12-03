@@ -272,14 +272,17 @@ class ConfigWriter:
         result.append("Highest used port mismatch, saved %s, computed %s" %
                       (data.cluster.highest_used_port, keys[-1]))
 
+    if not data.nodes[data.cluster.master_node].master_candidate:
+      result.append("Master node is not a master candidate")
+
     cp_size = data.cluster.candidate_pool_size
     num_c = 0
     for node in data.nodes.values():
       if node.master_candidate:
         num_c += 1
-    if cp_size > num_c:
-      result.append("Not enough master candidates: actual %d, desired %d" %
-                    (num_c, cp_size))
+    if cp_size > num_c and num_c < len(data.nodes):
+      result.append("Not enough master candidates: actual %d, desired %d,"
+                    " %d total nodes" % (num_c, cp_size, len(data.nodes)))
 
     return result
 
