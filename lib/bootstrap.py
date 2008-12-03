@@ -223,9 +223,11 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
                                     master_candidate=True,
                                     )
 
-  cfg = InitConfig(constants.CONFIG_VERSION,
-                   cluster_config, master_node_config)
-  ssh.WriteKnownHostsFile(cfg, constants.SSH_KNOWN_HOSTS_FILE)
+  sscfg = InitConfig(constants.CONFIG_VERSION,
+                     cluster_config, master_node_config)
+  ssh.WriteKnownHostsFile(sscfg, constants.SSH_KNOWN_HOSTS_FILE)
+  cfg = config.ConfigWriter()
+  cfg.Update(cfg.GetClusterInfo())
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
