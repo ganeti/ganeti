@@ -1950,9 +1950,16 @@ class LUAddNode(LogicalUnit):
         raise errors.OpPrereqError("Node secondary ip not reachable by TCP"
                                    " based ping to noded port")
 
+    cp_size = self.cfg.GetClusterInfo().candidate_pool_size
+    node_info = self.cfg.GetAllNodesInfo().values()
+    num_candidates = len([n for n in node_info
+                          if n.master_candidate])
+    master_candidate = num_candidates < cp_size
+
     self.new_node = objects.Node(name=node,
                                  primary_ip=primary_ip,
-                                 secondary_ip=secondary_ip)
+                                 secondary_ip=secondary_ip,
+                                 master_candidate=master_candidate)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
