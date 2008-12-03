@@ -41,6 +41,21 @@ _LIST_DEF_FIELDS = [
   "pinst_cnt", "sinst_cnt",
   ]
 
+#: headers (and full field list for L{ListNodes}
+_LIST_HEADERS = {
+  "name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
+  "pinst_list": "PriInstances", "sinst_list": "SecInstances",
+  "pip": "PrimaryIP", "sip": "SecondaryIP",
+  "dtotal": "DTotal", "dfree": "DFree",
+  "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
+  "bootid": "BootID",
+  "ctotal": "CTotal",
+  "tags": "Tags",
+  "serial_no": "SerialNo",
+  "master_candidate": "MasterC",
+  "master": "IsMaster",
+  }
+
 
 @UsesRPC
 def AddNode(opts, args):
@@ -105,19 +120,7 @@ def ListNodes(opts, args):
   output = GetClient().QueryNodes([], selected_fields)
 
   if not opts.no_headers:
-    headers = {
-      "name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
-      "pinst_list": "PriInstances", "sinst_list": "SecInstances",
-      "pip": "PrimaryIP", "sip": "SecondaryIP",
-      "dtotal": "DTotal", "dfree": "DFree",
-      "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
-      "bootid": "BootID",
-      "ctotal": "CTotal",
-      "tags": "Tags",
-      "serial_no": "SerialNo",
-      "master_candidate": "MasterC",
-      "master": "IsMaster",
-      }
+    headers = _LIST_HEADERS
   else:
     headers = None
 
@@ -431,12 +434,9 @@ commands = {
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT,
             SUBMIT_OPT],
            "", "Lists the nodes in the cluster. The available fields"
-           " are (see the man page for details): name, pinst_cnt, pinst_list,"
-           " sinst_cnt, sinst_list, pip, sip, dtotal, dfree, mtotal, mnode,"
-           " mfree, bootid, cpu_count, serial_no."
-           " The default field list is"
-           " (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
-           ),
+           " are (see the man page for details): %s"
+           " The default field list is (in order): %s." %
+           (", ".join(_LIST_HEADERS), ", ".join(_LIST_DEF_FIELDS))),
   'modify': (SetNodeParams, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,
               SUBMIT_OPT,
