@@ -463,8 +463,6 @@ class HttpServerRequestExecutor(object):
     self.response_content_type = None
     self.response_headers = {}
 
-    self.should_fork = False
-
     logging.info("Connection from %s:%s", client_addr[0], client_addr[1])
     try:
       try:
