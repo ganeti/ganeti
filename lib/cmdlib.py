@@ -5349,9 +5349,15 @@ class LUQueryExports(NoHooksLU):
         that node.
 
     """
-    result = self.rpc.call_export_list(self.nodes)
-    result.Raise()
-    return result.data
+    rpcresult = self.rpc.call_export_list(self.nodes)
+    result = {}
+    for node in rpcresult:
+      if rpcresult[node].failed:
+        result[node] = False
+      else:
+        result[node] = rpcresult[node].data
+
+    return result
 
 
 class LUExportInstance(LogicalUnit):
