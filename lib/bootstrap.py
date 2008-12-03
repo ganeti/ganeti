@@ -97,13 +97,16 @@ def _InitGanetiServerSetup():
 
 
 def InitCluster(cluster_name, mac_prefix, def_bridge,
-                master_netdev, file_storage_dir,
-                secondary_ip=None,
-                vg_name=None, beparams=None, hvparams=None,
+                master_netdev, file_storage_dir, candidate_pool_size,
+                secondary_ip=None, vg_name=None, beparams=None, hvparams=None,
                 enabled_hypervisors=None, default_hypervisor=None):
   """Initialise the cluster.
 
+  @type candidate_pool_size: int
+  @param candidate_pool_size: master candidate pool size
+
   """
+  # TODO: complete the docstring
   if config.ConfigWriter.IsCluster():
     raise errors.OpPrereqError("Cluster is already initialised")
 
@@ -211,6 +214,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     default_hypervisor=default_hypervisor,
     beparams={constants.BEGR_DEFAULT: beparams},
     hvparams=hvparams,
+    candidate_pool_size=candidate_pool_size,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
