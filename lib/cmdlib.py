@@ -1186,6 +1186,20 @@ class LURenameCluster(LogicalUnit):
       cluster.cluster_name = clustername
       cluster.master_ip = ip
       self.cfg.Update(cluster)
+
+      # update the known hosts file
+      ssh.WriteKnownHostsFile(self.cfg, constants.SSH_KNOWN_HOSTS_FILE)
+      node_list = self.cfg.GetNodeList()
+      try:
+        node_list.remove(master)
+      except ValueError:
+        pass
+      result = self.rpc.call_upload_file(node_list,
+                                         constants.SSH_KNOWN_HOSTS_FILE)
+      for to_node, to_result in result.iteritems():
+        if to_result.failed or not to_result.data:
+          logging.error("Copy of file %s to node %s failed", fname, to_node)
+
     finally:
       result = self.rpc.call_node_start_master(master, False)
       if result.failed or not result.data:
@@ -2024,8 +2038,8 @@ class LUAddNode(LogicalUnit):
     logging.debug("Copying hosts and known_hosts to all nodes")
     for fname in (constants.ETC_HOSTS, constants.SSH_KNOWN_HOSTS_FILE):
       result = self.rpc.call_upload_file(dist_nodes, fname)
-      for to_node in dist_nodes:
-        if result[to_node].failed or not result[to_node]:
+      for to_node, to_result in result.iteritems():
+        if to_result.failed or not to_result.data:
           logging.error("Copy of file %s to node %s failed", fname, to_node)
 
     to_copy = []
