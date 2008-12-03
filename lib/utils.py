@@ -542,12 +542,13 @@ def CheckBEParams(beparams):
           beparams[item] = val
       if item in (constants.BE_AUTO_BALANCE):
         val = beparams[item]
-        if val == constants.VALUE_TRUE:
-          beparams[item] = True
-        elif val == constants.VALUE_FALSE:
-          beparams[item] = False
-        else:
-          raise errors.OpPrereqError("Invalid %s value: %s" % (item, val))
+        if not isinstance(val, bool):
+          if val == constants.VALUE_TRUE:
+            beparams[item] = True
+          elif val == constants.VALUE_FALSE:
+            beparams[item] = False
+          else:
+            raise errors.OpPrereqError("Invalid %s value: %s" % (item, val))
 
 
 def NiceSort(name_list):
