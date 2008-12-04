@@ -15,6 +15,7 @@ BUILD_RAPI_RESOURCE_DOC = $(top_srcdir)/doc/build-rapi-resources-doc
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
+httpdir = $(pkgpythondir)/http
 rapidir = $(pkgpythondir)/rapi
 toolsdir = $(pkglibdir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
@@ -26,6 +27,7 @@ DIRS = \
 	doc \
 	doc/examples \
 	lib \
+	lib/http \
 	lib/hypervisor \
 	lib/rapi \
 	man \
@@ -46,6 +48,7 @@ CLEANFILES = \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
 	lib/*.py[co] \
+	lib/http/*.py[co] \
 	lib/hypervisor/*.py[co] \
 	lib/rapi/*.py[co] \
 	man/*.[78] \
@@ -69,7 +72,6 @@ pkgpython_PYTHON = \
 	lib/constants.py \
 	lib/daemon.py \
 	lib/errors.py \
-	lib/http.py \
 	lib/jqueue.py \
 	lib/jstore.py \
 	lib/locking.py \
@@ -97,6 +99,9 @@ rapi_PYTHON = \
 	lib/rapi/connector.py \
 	lib/rapi/rlib1.py \
 	lib/rapi/rlib2.py
+
+http_PYTHON = \
+	lib/http/__init__.py
 
 
 docsgml = \
@@ -301,7 +306,8 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 #.PHONY: srclinks
 srclinks: stamp-directories
 	set -e; \
-	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) $(rapi_PYTHON); do \
+	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) \
+			$(rapi_PYTHON) $(http_PYTHON); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \
