@@ -36,13 +36,15 @@ from ganeti import ssconf
 from ganeti import utils
 from ganeti.rapi import connector
 
+import ganeti.http.server
 
-class RemoteApiHttpServer(http.HttpServer):
+
+class RemoteApiHttpServer(http.server.HttpServer):
   """REST Request Handler Class.
 
   """
   def __init__(self, *args, **kwargs):
-    http.HttpServer.__init__(self, *args, **kwargs)
+    http.server.HttpServer.__init__(self, *args, **kwargs)
     self._resmap = connector.Mapper()
 
   def HandleRequest(self, req):
