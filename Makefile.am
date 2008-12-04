@@ -101,7 +101,9 @@ rapi_PYTHON = \
 	lib/rapi/rlib2.py
 
 http_PYTHON = \
-	lib/http/__init__.py
+	lib/http/__init__.py \
+	lib/http/client.py \
+	lib/http/server.py
 
 
 docsgml = \
