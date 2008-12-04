@@ -43,6 +43,8 @@ from ganeti import daemon
 from ganeti import http
 from ganeti import utils
 
+import ganeti.http.server
+
 
 queue_lock = None
 
@@ -65,21 +67,21 @@ def _RequireJobQueueLock(fn):
   return wrapper
 
 
-class NodeHttpServer(http.HttpServer):
+class NodeHttpServer(http.server.HttpServer):
   """The server implementation.
 
   This class holds all methods exposed over the RPC interface.
 
   """
   def __init__(self, *args, **kwargs):
-    http.HttpServer.__init__(self, *args, **kwargs)
+    http.server.HttpServer.__init__(self, *args, **kwargs)
     self.noded_pid = os.getpid()
 
   def HandleRequest(self, req):
     """Handle a request.
 
     """
-    if req.request_method.upper() != "PUT":
+    if req.request_method.upper() != http.HTTP_PUT:
       raise http.HttpBadRequest()
 
     path = req.request_path
@@ -92,7 +94,7 @@ class NodeHttpServer(http.HttpServer):
 
     try:
       try:
-        return method(req.request_post_data)
+        return method(req.request_body)
       except:
         logging.exception("Error in RPC call")
         raise
