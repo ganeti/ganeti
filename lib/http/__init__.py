@@ -111,7 +111,7 @@ class _HttpClientError(Exception):
   """
 
 
-class _HttpSocketTimeout(Exception):
+class HttpSocketTimeout(Exception):
   """Internal exception for socket timeouts.
 
   This should only be used for internal error reporting.
@@ -265,7 +265,7 @@ def SocketOperation(poller, sock, op, arg1, timeout):
 
       event = WaitForSocketCondition(poller, sock, wait_for_event, timeout)
       if event is None:
-        raise _HttpSocketTimeout()
+        raise HttpSocketTimeout()
 
       if (op == SOCKOP_RECV and
           event & (select.POLLNVAL | select.POLLHUP | select.POLLERR)):
@@ -355,7 +355,7 @@ class HttpSslParams(object):
                                            self.ssl_cert_pem)
 
 
-class _HttpSocketBase(object):
+class HttpSocketBase(object):
   """Base class for HTTP server and client.
 
   """
@@ -708,7 +708,7 @@ class HttpServerRequestExecutor(object):
     logging.debug("HTTP POST data: %s", self.request_post_data)
 
 
-class HttpServer(_HttpSocketBase):
+class HttpServer(HttpSocketBase):
   """Generic HTTP server class
 
   Users of this class must subclass it and override the HandleRequest function.
@@ -733,7 +733,7 @@ class HttpServer(_HttpSocketBase):
                             it with our certificate
 
     """
-    _HttpSocketBase.__init__(self)
+    HttpSocketBase.__init__(self)
 
     self.mainloop = mainloop
     self.local_address = local_address
@@ -874,7 +874,7 @@ class HttpClientRequest(object):
     self.resp_body = None
 
 
-class HttpClientRequestExecutor(_HttpSocketBase):
+class HttpClientRequestExecutor(HttpSocketBase):
   # Default headers
   DEFAULT_HEADERS = {
     HTTP_USER_AGENT: HTTP_GANETI_VERSION,
@@ -906,7 +906,7 @@ class HttpClientRequestExecutor(_HttpSocketBase):
     @param req: Request object
 
     """
-    _HttpSocketBase.__init__(self)
+    HttpSocketBase.__init__(self)
 
     self.request = req
 
@@ -1226,7 +1226,7 @@ class HttpClientRequestExecutor(_HttpSocketBase):
       try:
         sent = SocketOperation(self.poller, self.sock, SOCKOP_SEND, data,
                                self.WRITE_TIMEOUT)
-      except _HttpSocketTimeout:
+      except HttpSocketTimeout:
         raise _HttpClientError("Timeout while sending request")
       except socket.error, err:
         raise _HttpClientError("Error sending request: %s" % err)
@@ -1248,7 +1248,7 @@ class HttpClientRequestExecutor(_HttpSocketBase):
       try:
         data = SocketOperation(self.poller, self.sock, SOCKOP_RECV, 4096,
                                self.READ_TIMEOUT)
-      except _HttpSocketTimeout:
+      except HttpSocketTimeout:
         raise _HttpClientError("Timeout while reading response")
       except socket.error, err:
         raise _HttpClientError("Error while reading response: %s" % err)
@@ -1284,7 +1284,7 @@ class HttpClientRequestExecutor(_HttpSocketBase):
         if not SocketOperation(self.poller, self.sock, SOCKOP_RECV, 1,
                                self.CLOSE_TIMEOUT):
           return
-      except (socket.error, _HttpClientError, _HttpSocketTimeout):
+      except (socket.error, _HttpClientError, HttpSocketTimeout):
         # Ignore errors at this stage
         pass
 
@@ -1292,7 +1292,7 @@ class HttpClientRequestExecutor(_HttpSocketBase):
     try:
       SocketOperation(self.poller, self.sock, SOCKOP_SHUTDOWN,
                       socket.SHUT_RDWR, self.WRITE_TIMEOUT)
-    except _HttpSocketTimeout:
+    except HttpSocketTimeout:
       raise _HttpClientError("Timeout while shutting down connection")
     except socket.error, err:
       raise _HttpClientError("Error while shutting down connection: %s" % err)
