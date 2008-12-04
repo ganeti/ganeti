@@ -32,7 +32,6 @@
 
 import os
 import socket
-import httplib
 import logging
 
 from ganeti import utils
@@ -41,6 +40,8 @@ from ganeti import http
 from ganeti import serializer
 from ganeti import constants
 from ganeti import errors
+
+import ganeti.http.client
 
 
 # Module level variable
@@ -57,7 +58,7 @@ def Init():
 
   assert not _http_manager, "RPC module initialized more than once"
 
-  _http_manager = http.HttpClientManager()
+  _http_manager = http.client.HttpClientManager()
 
 
 def Shutdown():
@@ -156,11 +157,12 @@ class Client:
     if address is None:
       address = name
 
-    self.nc[name] = http.HttpClientRequest(address, self.port, http.HTTP_PUT,
-                                           "/%s" % self.procedure,
-                                           post_data=self.body,
-                                           ssl_params=self._ssl_params,
-                                           ssl_verify_peer=True)
+    self.nc[name] = \
+      http.client.HttpClientRequest(address, self.port, http.HTTP_PUT,
+                                    "/%s" % self.procedure,
+                                    post_data=self.body,
+                                    ssl_params=self._ssl_params,
+                                    ssl_verify_peer=True)
 
   def GetResults(self):
     """Call nodes and return results.
@@ -176,7 +178,7 @@ class Client:
     results = {}
 
     for name, req in self.nc.iteritems():
-      if req.success and req.resp_status == http.HTTP_OK:
+      if req.success and req.resp_status_code == http.HTTP_OK:
         results[name] = RpcResult(data=serializer.LoadJson(req.resp_body),
                                   node=name, call=self.procedure)
         continue
