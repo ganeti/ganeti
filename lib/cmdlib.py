@@ -1622,6 +1622,24 @@ class LURemoveNode(LogicalUnit):
 
     self.rpc.call_node_leave_cluster(node.name)
 
+    # Promote nodes to master candidate as needed
+    cp_size = self.cfg.GetClusterInfo().candidate_pool_size
+    node_info = self.cfg.GetAllNodesInfo().values()
+    num_candidates = len([n for n in node_info
+                          if n.master_candidate])
+    num_nodes = len(node_info)
+    random.shuffle(node_info)
+    for node in node_info:
+      if num_candidates >= cp_size or num_candidates >= num_nodes:
+        break
+      if node.master_candidate:
+        continue
+      node.master_candidate = True
+      self.LogInfo("Promoting node %s to master candidate", node.name)
+      self.cfg.Update(node)
+      self.context.ReaddNode(node)
+      num_candidates += 1
+
 
 class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
