@@ -56,7 +56,7 @@ class RemoteApiHttpServer(http.HttpServer):
     try:
       fn = getattr(handler, method)
     except AttributeError, err:
-      raise http.HTTPBadRequest()
+      raise http.HttpBadRequest()
 
     try:
       result = fn()

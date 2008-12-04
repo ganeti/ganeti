@@ -370,7 +370,7 @@ class R_2_instances_name_tags(baserlib.R_Generic):
     """
     if 'tag' not in self.queryargs:
       # no we not gonna delete all tags from an instance
-      raise http.HTTPNotImplemented()
+      raise http.HttpNotImplemented()
     return baserlib._Tags_DELETE(constants.TAG_INSTANCE,
                                  self.queryargs['tag'],
                                  name=self.items[0])

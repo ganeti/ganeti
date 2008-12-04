@@ -88,7 +88,7 @@ class Mapper:
     if result:
       return result
     else:
-      raise http.HTTPNotFound()
+      raise http.HttpNotFound()
 
 
 class R_root(baserlib.R_Generic):

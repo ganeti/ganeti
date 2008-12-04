@@ -43,7 +43,7 @@ class MapperTests(unittest.TestCase):
     self.assertEquals(self.map.getController(uri), result)
 
   def _TestFailingUri(self, uri):
-    self.failUnlessRaises(http.HTTPNotFound, self.map.getController, uri)
+    self.failUnlessRaises(http.HttpNotFound, self.map.getController, uri)
 
   def testMapper(self):
     """Testing Mapper"""

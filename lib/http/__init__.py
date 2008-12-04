@@ -119,7 +119,7 @@ class HttpSocketTimeout(Exception):
   """
 
 
-class HTTPException(Exception):
+class HttpException(Exception):
   code = None
   message = None
 
@@ -129,43 +129,43 @@ class HTTPException(Exception):
       self.message = message
 
 
-class HTTPBadRequest(HTTPException):
+class HttpBadRequest(HttpException):
   code = 400
 
 
-class HTTPForbidden(HTTPException):
+class HttpForbidden(HttpException):
   code = 403
 
 
-class HTTPNotFound(HTTPException):
+class HttpNotFound(HttpException):
   code = 404
 
 
-class HTTPGone(HTTPException):
+class HttpGone(HttpException):
   code = 410
 
 
-class HTTPLengthRequired(HTTPException):
+class HttpLengthRequired(HttpException):
   code = 411
 
 
-class HTTPInternalError(HTTPException):
+class HttpInternalError(HttpException):
   code = 500
 
 
-class HTTPNotImplemented(HTTPException):
+class HttpNotImplemented(HttpException):
   code = 501
 
 
-class HTTPServiceUnavailable(HTTPException):
+class HttpServiceUnavailable(HttpException):
   code = 503
 
 
-class HTTPVersionNotSupported(HTTPException):
+class HttpVersionNotSupported(HttpException):
   code = 505
 
 
-class HTTPJsonConverter:
+class HttpJsonConverter:
   CONTENT_TYPE = "application/json"
 
   def Encode(self, data):
@@ -475,7 +475,7 @@ class HttpServerRequestExecutor(object):
             self._ReadRequest()
             self._ReadPostData()
             self._HandleRequest()
-          except HTTPException, err:
+          except HttpException, err:
             self._SetErrorStatus(err)
         finally:
           # Try to send a response
@@ -501,9 +501,9 @@ class HttpServerRequestExecutor(object):
             (WEEKDAYNAME[wd], day, MONTHNAME[month], year, hh, mm, ss))
 
   def _SetErrorStatus(self, err):
-    """Sets the response code and body from a HTTPException.
+    """Sets the response code and body from a HttpException.
 
-    @type err: HTTPException
+    @type err: HttpException
     @param err: Exception instance
 
     """
@@ -547,21 +547,21 @@ class HttpServerRequestExecutor(object):
         result = self._server.HandleRequest(self)
 
         # TODO: Content-type
-        encoder = HTTPJsonConverter()
+        encoder = HttpJsonConverter()
         body = encoder.Encode(result)
 
         self.response_content_type = encoder.CONTENT_TYPE
         self.response_body = body
-      except (HTTPException, KeyboardInterrupt, SystemExit):
+      except (HttpException, KeyboardInterrupt, SystemExit):
         raise
       except Exception, err:
         logging.exception("Caught exception")
-        raise HTTPInternalError(message=str(err))
+        raise HttpInternalError(message=str(err))
       except:
         logging.exception("Unknown exception")
-        raise HTTPInternalError(message="Unknown error")
+        raise HttpInternalError(message="Unknown error")
 
-    except HTTPException, err:
+    except HttpException, err:
       self._SetErrorStatus(err)
 
   def _SendResponse(self):
@@ -616,7 +616,7 @@ class HttpServerRequestExecutor(object):
       requestline = requestline[:-1]
 
     if not requestline:
-      raise HTTPBadRequest("Empty request line")
+      raise HttpBadRequest("Empty request line")
 
     self.request_requestline = requestline
 
@@ -627,7 +627,7 @@ class HttpServerRequestExecutor(object):
     if len(words) == 3:
       [method, path, version] = words
       if version[:5] != 'HTTP/':
-        raise HTTPBadRequest("Bad request version (%r)" % version)
+        raise HttpBadRequest("Bad request version (%r)" % version)
 
       try:
         base_version_number = version.split('/', 1)[1]
@@ -640,24 +640,24 @@ class HttpServerRequestExecutor(object):
         #      turn is lower than HTTP/12.3;
         #   - Leading zeros MUST be ignored by recipients.
         if len(version_number) != 2:
-          raise HTTPBadRequest("Bad request version (%r)" % version)
+          raise HttpBadRequest("Bad request version (%r)" % version)
 
         version_number = int(version_number[0]), int(version_number[1])
       except (ValueError, IndexError):
-        raise HTTPBadRequest("Bad request version (%r)" % version)
+        raise HttpBadRequest("Bad request version (%r)" % version)
 
       if version_number >= (2, 0):
-        raise HTTPVersionNotSupported("Invalid HTTP Version (%s)" %
+        raise HttpVersionNotSupported("Invalid HTTP Version (%s)" %
                                       base_version_number)
 
     elif len(words) == 2:
       version = HTTP_0_9
       [method, path] = words
       if method != HTTP_GET:
-        raise HTTPBadRequest("Bad HTTP/0.9 request type (%r)" % method)
+        raise HttpBadRequest("Bad HTTP/0.9 request type (%r)" % method)
 
     else:
-      raise HTTPBadRequest("Bad request syntax (%r)" % requestline)
+      raise HttpBadRequest("Bad request syntax (%r)" % requestline)
 
     # Examine the headers and look for a Connection directive
     headers = mimetools.Message(self.rfile, 0)
@@ -694,14 +694,14 @@ class HttpServerRequestExecutor(object):
 
     # 411 Length Required is specified in RFC2616, section 10.4.12 (HTTP/1.1)
     if content_length is None:
-      raise HTTPLengthRequired("Missing Content-Length header or"
+      raise HttpLengthRequired("Missing Content-Length header or"
                                " invalid format")
 
     data = self.rfile.read(content_length)
 
     # TODO: Content-type, error handling
     if data:
-      self.request_post_data = HTTPJsonConverter().Decode(data)
+      self.request_post_data = HttpJsonConverter().Decode(data)
     else:
       self.request_post_data = None
 

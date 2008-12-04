@@ -80,7 +80,7 @@ class NodeHttpServer(http.HttpServer):
 
     """
     if req.request_method.upper() != "PUT":
-      raise http.HTTPBadRequest()
+      raise http.HttpBadRequest()
 
     path = req.request_path
     if path.startswith("/"):
@@ -88,7 +88,7 @@ class NodeHttpServer(http.HttpServer):
 
     method = getattr(self, "perspective_%s" % path, None)
     if method is None:
-      raise http.HTTPNotFound()
+      raise http.HttpNotFound()
 
     try:
       try:
