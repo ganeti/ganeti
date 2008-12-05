@@ -889,21 +889,24 @@ class ConfigWriter:
         associated value
 
     """
-    node_list = utils.NiceSort(self._UnlockedGetNodeList())
-    mc_list = [self._UnlockedGetNodeInfo(name) for name in node_list]
-    mc_list = [node.name for node in mc_list if node.master_candidate]
-    node_list = "\n".join(node_list)
-    mc_list = "\n".join(mc_list)
+    fn = "\n".join
+    node_names = utils.NiceSort(self._UnlockedGetNodeList())
+    node_info = [self._UnlockedGetNodeInfo(name) for name in node_names]
+
+    off_data = fn(node.name for node in node_info if node.offline)
+    mc_data = fn(node.name for node in node_info if node.master_candidate)
+    node_data = fn(node_names)
 
     cluster = self._config_data.cluster
     return {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_FILE_STORAGE_DIR: cluster.file_storage_dir,
-      constants.SS_MASTER_CANDIDATES: mc_list,
+      constants.SS_MASTER_CANDIDATES: mc_data,
       constants.SS_MASTER_IP: cluster.master_ip,
       constants.SS_MASTER_NETDEV: cluster.master_netdev,
       constants.SS_MASTER_NODE: cluster.master_node,
-      constants.SS_NODE_LIST: node_list,
+      constants.SS_NODE_LIST: node_data,
+      constants.SS_OFFLINE_NODES: off_data,
       }
 
   @locking.ssynchronized(_config_lock)

@@ -132,6 +132,7 @@ class SimpleStore(object):
     constants.SS_MASTER_NETDEV,
     constants.SS_MASTER_NODE,
     constants.SS_NODE_LIST,
+    constants.SS_OFFLINE_NODES,
     )
   _MAX_SIZE = 131072
 
