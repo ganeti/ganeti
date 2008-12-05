@@ -685,6 +685,7 @@ class Node(TaggableObject):
     "secondary_ip",
     "serial_no",
     "master_candidate",
+    "offline",
     ]
 
 

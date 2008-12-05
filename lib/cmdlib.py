@@ -1977,7 +1977,8 @@ class LUAddNode(LogicalUnit):
     self.new_node = objects.Node(name=node,
                                  primary_ip=primary_ip,
                                  secondary_ip=secondary_ip,
-                                 master_candidate=master_candidate)
+                                 master_candidate=master_candidate,
+                                 offline=False)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
@@ -5914,6 +5915,7 @@ class IAllocator(object):
         "primary_ip": ninfo.primary_ip,
         "secondary_ip": ninfo.secondary_ip,
         "total_cpus": remote_info['cpu_total'],
+        "offline": ninfo.offline,
         }
       node_results[nname] = pnr
     data["nodes"] = node_results
