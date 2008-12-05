@@ -415,6 +415,32 @@ def _CheckOutputFields(static, dynamic, selected):
                                % ",".join(delta))
 
 
+def _CheckBooleanOpField(op, name):
+  """Validates boolean opcode parameters.
+
+  This will ensure that an opcode parameter is either a boolean value,
+  or None (but that it always exists).
+
+  """
+  val = getattr(op, name, None)
+  if not (val is None or isinstance(val, bool)):
+    raise errors.OpPrereqError("Invalid boolean parameter '%s' (%s)" %
+                               (name, str(val)))
+  setattr(op, name, val)
+
+
+def _CheckNodeOnline(lu, node):
+  """Ensure that a given node is online.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @raise errors.OpPrereqError: if the nodes is offline
+
+  """
+  if lu.cfg.GetNodeInfo(node).offline:
+    raise errors.OpPrereqError("Can't use offline node %s" % node)
+
+
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           memory, vcpus, nics):
   """Builds instance related env variables for hooks
