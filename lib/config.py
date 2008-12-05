@@ -275,14 +275,10 @@ class ConfigWriter:
     if not data.nodes[data.cluster.master_node].master_candidate:
       result.append("Master node is not a master candidate")
 
-    cp_size = data.cluster.candidate_pool_size
-    num_c = 0
-    for node in data.nodes.values():
-      if node.master_candidate:
-        num_c += 1
-    if cp_size > num_c and num_c < len(data.nodes):
-      result.append("Not enough master candidates: actual %d, desired %d,"
-                    " %d total nodes" % (num_c, cp_size, len(data.nodes)))
+    mc_now, mc_max = self._UnlockedGetMasterCandidateStats()
+    if mc_now < mc_max:
+      result.append("Not enough master candidates: actual %d, target %d" %
+                    (mc_now, mc_max))
 
     return result
 
@@ -772,13 +768,74 @@ class ConfigWriter:
     """Get the configuration of all nodes.
 
     @rtype: dict
-    @returns: dict of (node, node_info), where node_info is what
+    @return: dict of (node, node_info), where node_info is what
               would GetNodeInfo return for the node
 
     """
     my_dict = dict([(node, self._UnlockedGetNodeInfo(node))
                     for node in self._UnlockedGetNodeList()])
     return my_dict
+
+  def _UnlockedGetMasterCandidateStats(self):
+    """Get the number of current and maximum desired and possible candidates.
+
+    @rtype: tuple
+    @return: tuple of (current, desired and possible)
+
+    """
+    mc_now = mc_max = 0
+    for node in self._config_data.nodes.itervalues():
+      if not node.offline:
+        mc_max += 1
+      if node.master_candidate:
+        mc_now += 1
+    mc_max = min(mc_max, self._config_data.cluster.candidate_pool_size)
+    return (mc_now, mc_max)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetMasterCandidateStats(self):
+    """Get the number of current and maximum possible candidates.
+
+    This is just a wrapper over L{_UnlockedGetMasterCandidateStats}.
+
+    @rtype: tuple
+    @return: tuple of (current, max)
+
+    """
+    return self._UnlockedGetMasterCandidateStats()
+
+  @locking.ssynchronized(_config_lock)
+  def MaintainCandidatePool(self):
+    """Try to grow the candidate pool to the desired size.
+
+    @rtype: list
+    @return: list with the adjusted node names
+
+    """
+    mc_now, mc_max = self._UnlockedGetMasterCandidateStats()
+    mod_list = []
+    if mc_now < mc_max:
+      node_list = self._config_data.nodes.keys()
+      random.shuffle(node_list)
+      for name in node_list:
+        if mc_now >= mc_max:
+          break
+        node = self._config_data.nodes[name]
+        if node.master_candidate or node.offline:
+          continue
+        mod_list.append(node.name)
+        node.master_candidate = True
+        node.serial_no += 1
+        mc_now += 1
+      if mc_now != mc_max:
+        # this should not happen
+        logging.warning("Warning: MaintainCandidatePool didn't manage to"
+                        " fill the candidate pool (%d/%d)", mc_now, mc_max)
+      if mod_list:
+        self._config_data.cluster.serial_no += 1
+        self._WriteConfig()
+
+    return mod_list
 
   def _BumpSerialNo(self):
     """Bump up the serial number of the config.

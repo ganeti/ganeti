@@ -500,6 +500,22 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   return _BuildInstanceHookEnv(**args)
 
 
+def _AdjustCandidatePool(lu):
+  """Adjust the candidate pool after node operations.
+
+  """
+  mod_list = lu.cfg.MaintainCandidatePool()
+  if mod_list:
+    lu.LogInfo("Promoted nodes to master candidate role: %s",
+               ", ".join(mod_list))
+    for name in mod_list:
+      lu.context.ReaddNode(name)
+  mc_now, mc_max = lu.cfg.GetMasterCandidateStats()
+  if mc_now > mc_max:
+    lu.LogInfo("Note: more nodes are candidates (%d) than desired (%d)" %
+               (mc_now, mc_max))
+
+
 def _CheckInstanceBridgesExist(lu, instance):
   """Check that the brigdes needed by an instance exist.
 
@@ -1358,26 +1374,7 @@ class LUSetClusterParams(LogicalUnit):
     # we want to update nodes after the cluster so that if any errors
     # happen, we have recorded and saved the cluster info
     if self.op.candidate_pool_size is not None:
-      node_info = self.cfg.GetAllNodesInfo().values()
-      num_candidates = len([node for node in node_info
-                            if node.master_candidate])
-      num_nodes = len(node_info)
-      if num_candidates < self.op.candidate_pool_size:
-        random.shuffle(node_info)
-        for node in node_info:
-          if num_candidates >= self.op.candidate_pool_size:
-            break
-          if node.master_candidate:
-            continue
-          node.master_candidate = True
-          self.LogInfo("Promoting node %s to master candidate", node.name)
-          self.cfg.Update(node)
-          self.context.ReaddNode(node)
-          num_candidates += 1
-      elif num_candidates > self.op.candidate_pool_size:
-        self.LogInfo("Note: more nodes are candidates (%d) than the new value"
-                     " of candidate_pool_size (%d)" %
-                     (num_candidates, self.op.candidate_pool_size))
+      _AdjustCandidatePool(self)
 
 
 def _WaitForSync(lu, instance, oneshot=False, unlock=False):
@@ -1623,22 +1620,7 @@ class LURemoveNode(LogicalUnit):
     self.rpc.call_node_leave_cluster(node.name)
 
     # Promote nodes to master candidate as needed
-    cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-    node_info = self.cfg.GetAllNodesInfo().values()
-    num_candidates = len([n for n in node_info
-                          if n.master_candidate])
-    num_nodes = len(node_info)
-    random.shuffle(node_info)
-    for node in node_info:
-      if num_candidates >= cp_size or num_candidates >= num_nodes:
-        break
-      if node.master_candidate:
-        continue
-      node.master_candidate = True
-      self.LogInfo("Promoting node %s to master candidate", node.name)
-      self.cfg.Update(node)
-      self.context.ReaddNode(node)
-      num_candidates += 1
+    _AdjustCandidatePool(self)
 
 
 class LUQueryNodes(NoHooksLU):
@@ -1973,9 +1955,8 @@ class LUAddNode(LogicalUnit):
 
     cp_size = self.cfg.GetClusterInfo().candidate_pool_size
     node_info = self.cfg.GetAllNodesInfo().values()
-    num_candidates = len([n for n in node_info
-                          if n.master_candidate])
-    master_candidate = num_candidates < cp_size
+    mc_now, _ = self.cfg.GetMasterCandidateStats()
+    master_candidate = mc_now < cp_size
 
     self.new_node = objects.Node(name=node,
                                  primary_ip=primary_ip,
