@@ -185,7 +185,7 @@ class SimpleStore(object):
     ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)
     try:
       for name, value in values.iteritems():
-        if not value.endswith("\n"):
+        if value and not value.endswith("\n"):
           value += "\n"
         utils.WriteFile(self.KeyToFilename(name), data=value)
     finally:
