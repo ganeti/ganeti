@@ -36,8 +36,6 @@ from ganeti import serializer
 from ganeti import utils
 
 
-HTTP_CLIENT_THREADS = 10
-
 HTTP_GANETI_VERSION = "Ganeti %s" % constants.RELEASE_VERSION
 
 HTTP_OK = 200
@@ -71,6 +69,8 @@ _SSL_UNEXPECTED_EOF = "Unexpected EOF"
  SOCKOP_RECV,
  SOCKOP_SHUTDOWN) = range(3)
 
+# send/receive quantum
+SOCK_BUF_SIZE = 32768
 
 class HttpError(Exception):
   """Internal exception for HTTP errors.
@@ -469,17 +469,20 @@ class HttpMessageWriter(object):
     buf = self._FormatMessage()
 
     poller = select.poll()
-    while buf:
-      # Send only 4 KB at a time
-      data = buf[:4096]
+
+    pos = 0
+    end = len(buf)
+    while pos < end:
+      # Send only SOCK_BUF_SIZE bytes at a time
+      data = buf[pos:pos+SOCK_BUF_SIZE]
 
       sent = SocketOperation(poller, sock, SOCKOP_SEND, data,
                              write_timeout)
 
       # Remove sent bytes
-      buf = buf[sent:]
+      pos += sent
 
-    assert not buf, "Message wasn't sent completely"
+    assert pos == end, "Message wasn't sent completely"
 
   def _PrepareMessage(self):
     """Prepares the HTTP message by setting mandatory headers.
@@ -555,7 +558,7 @@ class HttpMessageReader(object):
     buf = ""
     eof = False
     while self.parser_status != self.PS_COMPLETE:
-      data = SocketOperation(self.poller, sock, SOCKOP_RECV, 4096,
+      data = SocketOperation(self.poller, sock, SOCKOP_RECV, SOCK_BUF_SIZE,
                              read_timeout)
 
       if data:
