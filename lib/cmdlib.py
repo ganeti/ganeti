@@ -2286,6 +2286,7 @@ class LUActivateInstanceDisks(NoHooksLU):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, instance.primary_node)
 
   def Exec(self, feedback_fn):
     """Activate the disks.
@@ -2526,6 +2527,8 @@ class LUStartupInstance(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    _CheckNodeOnline(self, instance.primary_node)
+
     bep = self.cfg.GetClusterInfo().FillBE(instance)
     # check bridges existance
     _CheckInstanceBridgesExist(self, instance)
@@ -2597,6 +2600,8 @@ class LURebootInstance(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    _CheckNodeOnline(self, instance.primary_node)
+
     # check bridges existance
     _CheckInstanceBridgesExist(self, instance)
 
@@ -2662,6 +2667,7 @@ class LUShutdownInstance(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, instance.primary_node)
 
   def Exec(self, feedback_fn):
     """Shutdown the instance.
@@ -2709,6 +2715,7 @@ class LUReinstallInstance(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, instance.primary_node)
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
@@ -2795,6 +2802,8 @@ class LURenameInstance(LogicalUnit):
     if instance is None:
       raise errors.OpPrereqError("Instance '%s' not known" %
                                  self.op.instance_name)
+    _CheckNodeOnline(self, instance.primary_node)
+
     if instance.status != "down":
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
                                  self.op.instance_name)
@@ -3221,6 +3230,7 @@ class LUFailoverInstance(LogicalUnit):
                                    "a mirrored disk template")
 
     target_node = secondary_nodes[0]
+    _CheckNodeOnline(self, target_node)
     # check memory requirements on the secondary node
     _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
                          instance.name, bep[constants.BE_MEMORY],
@@ -3863,6 +3873,7 @@ class LUCreateInstance(LogicalUnit):
           raise errors.OpPrereqError("No export found for relative path %s" %
                                       src_path)
 
+      _CheckNodeOnline(self, src_node)
       result = self.rpc.call_export_info(src_node, src_path)
       result.Raise()
       if not result.data:
@@ -3929,6 +3940,10 @@ class LUCreateInstance(LogicalUnit):
     self.pnode = pnode = self.cfg.GetNodeInfo(self.op.pnode)
     assert self.pnode is not None, \
       "Cannot retrieve locked node %s" % self.op.pnode
+    if pnode.offline:
+      raise errors.OpPrereqError("Cannot use offline primary node '%s'" %
+                                 pnode.name)
+
     self.secondaries = []
 
     # mirror node verification
@@ -3940,6 +3955,7 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("The secondary node cannot be"
                                    " the primary node.")
       self.secondaries.append(self.op.snode)
+      _CheckNodeOnline(self, self.op.snode)
 
     nodenames = [pnode.name] + self.secondaries
 
@@ -4155,6 +4171,7 @@ class LUConnectConsole(NoHooksLU):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, self.op.primary_node)
 
   def Exec(self, feedback_fn):
     """Connect to the console of an instance
@@ -4321,11 +4338,18 @@ class LUReplaceDisks(LogicalUnit):
                                      " node disk replacement")
         self.tgt_node = instance.primary_node
         self.oth_node = instance.secondary_nodes[0]
+        _CheckNodeOnline(self, self.tgt_node)
+        _CheckNodeOnline(self, self.oth_node)
       elif self.op.mode == constants.REPLACE_DISK_SEC:
         self.new_node = remote_node # this can be None, in which case
                                     # we don't change the secondary
         self.tgt_node = instance.secondary_nodes[0]
         self.oth_node = instance.primary_node
+        _CheckNodeOnline(self, self.oth_node)
+        if self.new_node is not None:
+          _CheckNodeOnline(self, self.new_node)
+        else:
+          _CheckNodeOnline(self, self.tgt_node)
       else:
         raise errors.ProgrammerError("Unhandled disk replace mode")
 
@@ -4783,6 +4807,10 @@ class LUGrowDisk(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, instance.primary_node)
+    for node in instance.secondary_nodes:
+      _CheckNodeOnline(self, node)
+
 
     self.instance = instance
 
@@ -5452,6 +5480,7 @@ class LUExportInstance(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(instance_name)
     assert self.instance is not None, \
           "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, instance.primary_node)
 
     self.dst_node = self.cfg.GetNodeInfo(
       self.cfg.ExpandNodeName(self.op.target_node))
@@ -5459,6 +5488,7 @@ class LUExportInstance(LogicalUnit):
     if self.dst_node is None:
       # This is wrong node name, not a non-locked node
       raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node)
+    _CheckNodeOnline(self, self.op.target_node)
 
     # instance disk type verification
     for disk in self.instance.disks:
