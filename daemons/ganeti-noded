@@ -472,6 +472,14 @@ class NodeHttpServer(http.server.HttpServer):
     """
     return backend.NodeVolumes()
 
+  @staticmethod
+  def perspective_node_demote_from_mc(params):
+    """Demote a node from the master candidate role.
+
+    """
+    return backend.DemoteFromMC()
+
+
   # cluster --------------------------
 
   @staticmethod

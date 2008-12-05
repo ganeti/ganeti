@@ -828,6 +828,14 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "node_volumes", [])
 
+  def call_node_demote_from_mc(self, node):
+    """Demote a node from the master candidate role.
+
+    This is a single-node call.
+
+    """
+    return self._SingleNodeCall(node, "node_demote_from_mc", [])
+
   def call_test_delay(self, node_list, duration):
     """Sleep for a fixed time on given node(s).
 

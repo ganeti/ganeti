@@ -2157,6 +2157,13 @@ class LUSetNodeParams(LogicalUnit):
     if self.op.master_candidate is not None:
       node.master_candidate = self.op.master_candidate
       result.append(("master_candidate", str(self.op.master_candidate)))
+      if self.op.master_candidate == False:
+        rrc = self.rpc.call_node_demote_from_mc(node.name)
+        if (rrc.failed or not isinstance(rrc.data, (tuple, list))
+            or len(rrc.data) != 2):
+          self.LogWarning("Node rpc error: %s" % rrc.error)
+        elif not rrc.data[0]:
+          self.LogWarning("Node failed to demote itself: %s" % rrc.data[1])
 
     # this will trigger configuration file update, if needed
     self.cfg.Update(node)
