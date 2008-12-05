@@ -1661,6 +1661,7 @@ class LUQueryNodes(NoHooksLU):
     "serial_no",
     "master_candidate",
     "master",
+    "offline",
     )
 
   def ExpandNames(self):
@@ -1780,6 +1781,8 @@ class LUQueryNodes(NoHooksLU):
           val = node.master_candidate
         elif field == "master":
           val = node.name == master_node
+        elif field == "offline":
+          val = node.offline
         elif self._FIELDS_DYNAMIC.Matches(field):
           val = live_data[node.name].get(field, None)
         else:

@@ -54,6 +54,7 @@ _LIST_HEADERS = {
   "serial_no": "SerialNo",
   "master_candidate": "MasterC",
   "master": "IsMaster",
+  "offline": "Offline",
   }
 
 
@@ -138,7 +139,7 @@ def ListNodes(opts, args):
       val = row[idx]
       if field in list_type_fields:
         val = ",".join(val)
-      elif field in ('master', 'master_candidate'):
+      elif field in ('master', 'master_candidate', 'offline'):
         if val:
           val = 'Y'
         else:
