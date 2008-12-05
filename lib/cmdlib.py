@@ -727,7 +727,7 @@ class LUVerifyCluster(LogicalUnit):
     return bad
 
   def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
-                      node_instance, feedback_fn):
+                      node_instance, feedback_fn, n_offline):
     """Verify an instance.
 
     This function checks to see if the required block devices are
@@ -742,6 +742,9 @@ class LUVerifyCluster(LogicalUnit):
     instanceconfig.MapLVsByNode(node_vol_should)
 
     for node in node_vol_should:
+      if node in n_offline:
+        # ignore missing volumes on offline nodes
+        continue
       for volume in node_vol_should[node]:
         if node not in node_vol_is or volume not in node_vol_is[node]:
           feedback_fn("  - ERROR: volume %s missing on node %s" %
@@ -749,8 +752,9 @@ class LUVerifyCluster(LogicalUnit):
           bad = True
 
     if not instanceconfig.status == 'down':
-      if (node_current not in node_instance or
-          not instance in node_instance[node_current]):
+      if ((node_current not in node_instance or
+          not instance in node_instance[node_current]) and
+          node_current not in n_offline):
         feedback_fn("  - ERROR: instance %s not running on node %s" %
                         (instance, node_current))
         bad = True
@@ -865,6 +869,7 @@ class LUVerifyCluster(LogicalUnit):
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
+    n_offline = [] # List of offline nodes
     node_volume = {}
     node_instance = {}
     node_info = {}
@@ -901,6 +906,11 @@ class LUVerifyCluster(LogicalUnit):
     for node_i in nodeinfo:
       node = node_i.name
       nresult = all_nvinfo[node].data
+
+      if node_i.offline:
+        feedback_fn("* Skipping offline node %s" % (node,))
+        n_offline.append(node)
+        continue
 
       if node == master_node:
         ntype = "master"
@@ -974,7 +984,7 @@ class LUVerifyCluster(LogicalUnit):
       feedback_fn("* Verifying instance %s" % instance)
       inst_config = self.cfg.GetInstanceInfo(instance)
       result =  self._VerifyInstance(instance, inst_config, node_volume,
-                                     node_instance, feedback_fn)
+                                     node_instance, feedback_fn, n_offline)
       bad = bad or result
 
       inst_config.MapLVsByNode(node_vol_should)
@@ -984,7 +994,7 @@ class LUVerifyCluster(LogicalUnit):
       pnode = inst_config.primary_node
       if pnode in node_info:
         node_info[pnode]['pinst'].append(instance)
-      else:
+      elif pnode not in n_offline:
         feedback_fn("  - ERROR: instance %s, connection to primary node"
                     " %s failed" % (instance, pnode))
         bad = True
@@ -1009,7 +1019,7 @@ class LUVerifyCluster(LogicalUnit):
           if pnode not in node_info[snode]['sinst-by-pnode']:
             node_info[snode]['sinst-by-pnode'][pnode] = []
           node_info[snode]['sinst-by-pnode'][pnode].append(instance)
-        else:
+        elif snode not in n_offline:
           feedback_fn("  - ERROR: instance %s, connection to secondary node"
                       " %s failed" % (instance, snode))
 
@@ -1036,6 +1046,9 @@ class LUVerifyCluster(LogicalUnit):
     if i_non_a_balanced:
       feedback_fn("  - NOTICE: %d non-auto-balanced instance(s) found."
                   % len(i_non_a_balanced))
+
+    if n_offline:
+      feedback_fn("  - NOTICE: %d offline node(s) found." % len(n_offline))
 
     return not bad
 
@@ -1068,6 +1081,9 @@ class LUVerifyCluster(LogicalUnit):
           show_node_header = True
           res = hooks_results[node_name]
           if res.failed or res.data is False or not isinstance(res.data, list):
+            if res.offline:
+              # no need to warn or set fail return value
+              continue
             feedback_fn("    Communication failure in hooks execution")
             lu_result = 1
             continue
@@ -1141,8 +1157,9 @@ class LUVerifyDisks(NoHooksLU):
       # node_volume
       lvs = node_lvs[node]
       if lvs.failed:
-        self.LogWarning("Connection to node %s failed: %s" %
-                        (node, lvs.data))
+        if not lvs.offline:
+          self.LogWarning("Connection to node %s failed: %s" %
+                          (node, lvs.data))
         continue
       lvs = lvs.data
       if isinstance(lvs, basestring):

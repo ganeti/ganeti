@@ -338,7 +338,9 @@ class HooksMaster(object):
       for node_name in results:
         res = results[node_name]
         if res.failed or res.data is False or not isinstance(res.data, list):
-          self.proc.LogWarning("Communication failure to node %s" % node_name)
+          if not res.offline:
+            self.proc.LogWarning("Communication failure to node %s" %
+                                 node_name)
           continue
         for script, hkr, output in res.data:
           if hkr == constants.HKR_FAIL:
