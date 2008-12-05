@@ -3007,11 +3007,15 @@ class LUQueryInstances(NoHooksLU):
     hv_list = list(set([inst.hypervisor for inst in instance_list]))
 
     bad_nodes = []
+    off_nodes = []
     if self.do_locking:
       live_data = {}
       node_data = self.rpc.call_all_instances_info(nodes, hv_list)
       for name in nodes:
         result = node_data[name]
+        if result.offline:
+          # offline nodes will be in both lists
+          off_nodes.append(name)
         if result.failed:
           bad_nodes.append(name)
         else:
@@ -3048,7 +3052,9 @@ class LUQueryInstances(NoHooksLU):
           else:
             val = bool(live_data.get(instance.name))
         elif field == "status":
-          if instance.primary_node in bad_nodes:
+          if instance.primary_node in off_nodes:
+            val = "ERROR_nodeoffline"
+          elif instance.primary_node in bad_nodes:
             val = "ERROR_nodedown"
           else:
             running = bool(live_data.get(instance.name))

@@ -43,7 +43,7 @@ from ganeti import cli
 
 MAXTRIES = 5
 BAD_STATES = ['ERROR_down']
-HELPLESS_STATES = ['ERROR_nodedown']
+HELPLESS_STATES = ['ERROR_nodedown', 'ERROR_nodeoffline']
 NOTICE = 'NOTICE'
 ERROR = 'ERROR'
 KEY_RESTART_COUNT = "restart_count"
@@ -267,8 +267,8 @@ def GetNodeBootIDs():
   """Get a dict mapping nodes to boot IDs.
 
   """
-  result = client.QueryNodes([], ["name", "bootid"])
-  return dict([(name, bootid) for name, bootid in result])
+  result = client.QueryNodes([], ["name", "bootid", "offline"])
+  return dict([(name, (bootid, offline)) for name, bootid, offline in result])
 
 
 class Watcher(object):
@@ -301,12 +301,13 @@ class Watcher(object):
 
     """
     check_nodes = []
-    for name, new_id in self.bootids.iteritems():
+    for name, (new_id, offline) in self.bootids.iteritems():
       old = notepad.GetNodeBootID(name)
       if new_id is None:
         # Bad node, not returning a boot id
-        logging.debug("Node %s missing boot id, skipping secondary checks",
-                      name)
+        if not offline:
+          logging.debug("Node %s missing boot id, skipping secondary checks",
+                        name)
         continue
       if old != new_id:
         # Node's boot ID has changed, proably through a reboot.
