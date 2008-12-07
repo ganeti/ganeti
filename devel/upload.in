@@ -75,9 +75,11 @@ for host; do
 done
 wait
 
+INIT_SCRIPT="$TXD/ganeti.initd"
+install --mode=0755 doc/examples/ganeti.initd $INIT_SCRIPT
 for host; do
   echo Uploading init script to ${host}...
-  scp doc/examples/ganeti.initd root@${host}:/etc/init.d/ganeti &
+  scp $INIT_SCRIPT root@${host}:/etc/init.d/ganeti &
 done
 wait
 
