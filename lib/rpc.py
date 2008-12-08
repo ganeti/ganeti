@@ -81,12 +81,29 @@ class RpcResult(object):
   calls we can't raise an exception just because one one out of many
   failed, and therefore we use this class to encapsulate the result.
 
+  @ivar data: the data payload, for successfull results, or None
+  @type failed: boolean
+  @ivar failed: whether the operation failed at RPC level (not
+      application level on the remote node)
+  @ivar call: the name of the RPC call
+  @ivar node: the name of the node to which we made the call
+  @ivar offline: whether the operation failed because the node was
+      offline, as opposed to actual failure; offline=True will always
+      imply failed=True, in order to allow simpler checking if
+      the user doesn't care about the exact failure mode
+
   """
-  def __init__(self, data, failed=False, call=None, node=None):
+  def __init__(self, data=None, failed=False, offline=False,
+               call=None, node=None):
     self.failed = failed
-    self.call = None
-    self.node = None
-    if failed:
+    self.offline = offline
+    self.call = call
+    self.node = node
+    if offline:
+      self.failed = True
+      self.error = "Node is marked offline"
+      self.data = None
+    elif failed:
       self.error = data
       self.data = None
     else:
@@ -239,14 +256,22 @@ class RpcRunner(object):
 
     """
     all_nodes = self._cfg.GetAllNodesInfo()
+    name_list = []
     addr_list = []
+    skip_dict = {}
     for node in node_list:
       if node in all_nodes:
+        if all_nodes[node].offline:
+          skip_dict[node] = RpcResult(node=node, offline=True)
+          continue
         val = all_nodes[node].primary_ip
       else:
         val = None
       addr_list.append(val)
-    client.ConnectList(node_list, address_list=addr_list)
+      name_list.append(node)
+    if name_list:
+      client.ConnectList(name_list, address_list=addr_list)
+    return skip_dict
 
   def _ConnectNode(self, client, node):
     """Helper for computing one node's address.
@@ -259,23 +284,22 @@ class RpcRunner(object):
     """
     node_info = self._cfg.GetNodeInfo(node)
     if node_info is not None:
+      if node_info.offline:
+        return RpcResult(node=node, offline=True)
       addr = node_info.primary_ip
     else:
       addr = None
     client.ConnectNode(node, address=addr)
 
-  def _MultiNodeCall(self, node_list, procedure, args,
-                     address_list=None):
+  def _MultiNodeCall(self, node_list, procedure, args):
     """Helper for making a multi-node call
 
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, self.port)
-    if address_list is None:
-      self._ConnectList(c, node_list)
-    else:
-      c.ConnectList(node_list, address_list=address_list)
-    return c.GetResults()
+    skip_dict = self._ConnectList(c, node_list)
+    skip_dict.update(c.GetResults())
+    return skip_dict
 
   @classmethod
   def _StaticMultiNodeCall(cls, node_list, procedure, args,
@@ -294,8 +318,11 @@ class RpcRunner(object):
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, self.port)
-    self._ConnectNode(c, node)
-    return c.GetResults().get(node, False)
+    result = self._ConnectNode(c, node)
+    if result is None:
+      # we did connect, node is not offline
+      result = c.GetResults()[node]
+    return result
 
   @classmethod
   def _StaticSingleNodeCall(cls, node, procedure, args):
@@ -305,7 +332,7 @@ class RpcRunner(object):
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, utils.GetNodeDaemonPort())
     c.ConnectNode(node)
-    return c.GetResults().get(node, False)
+    return c.GetResults()[node]
 
   #
   # Begin RPC calls
