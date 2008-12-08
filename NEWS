@@ -1,3 +1,19 @@
+Version 1.2.7
+  - Change the default reboot type in gnt-instance reboot to "hard"
+  - Reuse the old instance mac address by default on instance import,
+    if the instance name is the same.
+  - Handle situations in which the node info rpc returns incomplete results
+    (issue 46)
+  - Add checks for tcp/udp ports collisions in gnt-cluster verify
+  - Improved version of batcher:
+    - state file support
+    - instance mac address support
+  - Add an option to show the number of cpu sockets and nodes in gnt-node list
+  - Support OSes that handle more than one version of the OS api
+    (but do not change the current API in any other way)
+  - Fix gnt-node migrate
+  - Fixes various more typos&small issues
+
 Version 1.2.6
   - new --hvm-nic-type and --hvm-disk-type flags to control the type of disk
     exported to fully virtualized instances.
