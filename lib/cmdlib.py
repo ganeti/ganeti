@@ -2123,9 +2123,13 @@ class LUSetNodeParams(LogicalUnit):
     if node_name is None:
       raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
     self.op.node_name = node_name
-    if not hasattr(self.op, 'master_candidate'):
+    _CheckBooleanOpField(self.op, 'master_candidate')
+    _CheckBooleanOpField(self.op, 'offline')
+    if self.op.master_candidate is None and self.op.offline is None:
       raise errors.OpPrereqError("Please pass at least one modification")
-    self.op.master_candidate = bool(self.op.master_candidate)
+    if self.op.offline == True and self.op.master_candidate == True:
+      raise errors.OpPrereqError("Can't set the node into offline and"
+                                 " master_candidate at the same time")
 
   def ExpandNames(self):
     self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
@@ -2139,6 +2143,7 @@ class LUSetNodeParams(LogicalUnit):
     env = {
       "OP_TARGET": self.op.node_name,
       "MASTER_CANDIDATE": str(self.op.master_candidate),
+      "OFFLINE": str(self.op.offline),
       }
     nl = [self.cfg.GetMasterNode(),
           self.op.node_name]
@@ -2150,23 +2155,29 @@ class LUSetNodeParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
-    force = self.force = self.op.force
+    node = self.node = self.cfg.GetNodeInfo(self.op.node_name)
 
-    if self.op.master_candidate == False:
+    if ((self.op.master_candidate == False or self.op.offline == True)
+        and node.master_candidate):
+      # we will demote the node from master_candidate
       if self.op.node_name == self.cfg.GetMasterNode():
         raise errors.OpPrereqError("The master node has to be a"
-                                   " master candidate")
+                                   " master candidate and online")
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
       node_info = self.cfg.GetAllNodesInfo().values()
-      num_candidates = len([node for node in node_info
-                            if node.master_candidate])
+      num_candidates, _ = self.cfg.GetMasterCandidateStats()
       if num_candidates <= cp_size:
         msg = ("Not enough master candidates (desired"
                " %d, new value will be %d)" % (cp_size, num_candidates-1))
-        if force:
+        if self.op.force:
           self.LogWarning(msg)
         else:
           raise errors.OpPrereqError(msg)
+
+    if (self.op.master_candidate == True and node.offline and
+        not self.op.offline == False):
+      raise errors.OpPrereqError("Can't set an offline node to"
+                                 " master_candidate")
 
     return
 
@@ -2174,9 +2185,16 @@ class LUSetNodeParams(LogicalUnit):
     """Modifies a node.
 
     """
-    node = self.cfg.GetNodeInfo(self.op.node_name)
+    node = self.node
 
     result = []
+
+    if self.op.offline is not None:
+      node.offline = self.op.offline
+      result.append(("offline", str(self.op.offline)))
+      if self.op.offline == True and node.master_candidate:
+        node.master_candidate = False
+        result.append(("master_candidate", "auto-demotion due to offline"))
 
     if self.op.master_candidate is not None:
       node.master_candidate = self.op.master_candidate

@@ -379,14 +379,22 @@ def SetNodeParams(opts, args):
   @return: the desired exit code
 
   """
-  if opts.master_candidate is None:
+  if opts.master_candidate is None and opts.offline is None:
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  candidate = opts.master_candidate == 'yes'
+  if opts.master_candidate is not None:
+    candidate = opts.master_candidate == 'yes'
+  else:
+    candidate = None
+  if opts.offline is not None:
+    offline = opts.offline == 'yes'
+  else:
+    offline = None
   op = opcodes.OpSetNodeParams(node_name=args[0],
-                              master_candidate=candidate,
-                              force=opts.force)
+                               master_candidate=candidate,
+                               offline=offline,
+                               force=opts.force)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -444,6 +452,9 @@ commands = {
               make_option("-C", "--master-candidate", dest="master_candidate",
                           choices=('yes', 'no'), default=None,
                           help="Set the master_candidate flag on the node"),
+              make_option("-O", "--offline", dest="offline",
+                          choices=('yes', 'no'), default=None,
+                          help="Set the offline flag on the node"),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
