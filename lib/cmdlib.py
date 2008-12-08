@@ -533,7 +533,7 @@ def _AdjustCandidatePool(lu):
   mod_list = lu.cfg.MaintainCandidatePool()
   if mod_list:
     lu.LogInfo("Promoted nodes to master candidate role: %s",
-               ", ".join(mod_list))
+               ", ".join(node.name for node in mod_list))
     for name in mod_list:
       lu.context.ReaddNode(name)
   mc_now, mc_max = lu.cfg.GetMasterCandidateStats()

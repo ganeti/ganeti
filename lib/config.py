@@ -809,7 +809,7 @@ class ConfigWriter:
     """Try to grow the candidate pool to the desired size.
 
     @rtype: list
-    @return: list with the adjusted node names
+    @return: list with the adjusted nodes (L{objects.Node} instances)
 
     """
     mc_now, mc_max = self._UnlockedGetMasterCandidateStats()
@@ -823,7 +823,7 @@ class ConfigWriter:
         node = self._config_data.nodes[name]
         if node.master_candidate or node.offline:
           continue
-        mod_list.append(node.name)
+        mod_list.append(node)
         node.master_candidate = True
         node.serial_no += 1
         mc_now += 1
