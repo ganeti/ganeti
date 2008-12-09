@@ -385,7 +385,7 @@ class Instance:
 
   def __init__(self, hostname, data):
     self.hostname = hostname
-    self.data     = data
+    self.data = self._TransformNonSymbolToSymbol(data)
     Instance.NumberOfInstances += 1
 
   def __del__(self):
@@ -410,6 +410,23 @@ class Instance:
       self.__dict__['data'] = value
     else:
       self.__dict__['data'][name] = value
+
+  def _TransformNonSymbolToSymbol(self, my_dict):
+    """Transform every non Python symbolic key in a dict into one."""
+    result = {}
+
+    for (key, data) in my_dict.iteritems():
+      result[self._NonSymbolToSymbol(key)] = data
+
+    return result
+
+  def _NonSymbolToSymbol(self, key):
+    """Transform a non symbol conforming name to a symbol conforming name.
+
+    Returns:
+      The transformed name
+    """
+    return key.replace('-', '_')
 
   def InstancesCount(self):
     """Return the number of instances."""
@@ -593,48 +610,63 @@ class InstanceCreator:
       a string containing the appropriate gnt-instance add command.
 
     """
-    if not self.no_wait_for_sync:
-      nowait = ''
+    cmd = ['gnt-instance', 'add']
+
+    if self.no_wait_for_sync:
+      cmd.append('--no-wait-for-sync')
+
+    # TODO(rn): Check with template
+    if (hasattr(instance, 'primary_node') and
+        hasattr(instance, 'secondary_node')):
+      cmd += ['-n', '%s:%s' % (instance.primary_node,
+                               instance.secondary_node)]
     else:
-      nowait = '--no-wait-for-sync'
+      cmd += ['--iallocator', self.iallocator]
 
-    try:
-      nodes = '-n %s:%s' % (instance.primary_node, instance.secondary_node)
-    except AttributeError:
-      nodes = '--iallocator %s' % self.iallocator
+    cmd.append('-t')
+    if hasattr(instance, 'template'):
+      cmd.append(instance.template)
+    else:
+      cmd.append('plain')
 
-    try:
-      template = '-t %s' % instance.template
-    except AttributeError:
-      template = '-t %s' % 'plain'
+    if hasattr(instance, 'vcpu'):
+      cmd += ['-p', str(instance.vcpu)]
 
-    try:
-      vcpu = '-p %i' % instance.vcpu
-    except AttributeError:
-      vcpu = ''
+    if hasattr(instance, 'mac'):
+      cmd += ['--mac', instance.mac]
 
-    try:
-      mac = '--mac %s' % instance.mac
-    except AttributeError:
-      mac = ''
+    if hasattr(instance, 'hvm_pae'):
+      cmd += ['--hvm-pae', str(instance.hvm_pae).lower()]
 
-    try:
-      command = ('gnt-instance add %s %s -o %s -s %s -m %s '
-                 '%s %s %s %s' % (template,
-                                  nodes,
-                                  instance.os,
-                                  instance.disk_size,
-                                  instance.ram_size,
-                                  vcpu,
-                                  nowait,
-                                  mac,
-                                  instance.hostname))
-    except AttributeError, msg:
+    if hasattr(instance, 'hvm_acpi'):
+      cmd += ['--hvm-acpi', str(instance.hvm_acpi).lower()]
+
+    if hasattr(instance, 'hvm_cdrom_image_path'):
+      cmd += ['--hvm-cdrom-image-path', instance.hvm_cdrom_image_path]
+
+    if hasattr(instance, 'hvm_boot_order'):
+      cmd += ['--hvm-boot-order', instance.hvm_boot_order]
+
+    if hasattr(instance, 'hvm_nic_type'):
+      cmd += ['--hvm-nic-type', instance.hvm_nic_type]
+
+    if hasattr(instance, 'hvm_disk_type'):
+      cmd += ['--hvm-disk-type', instance.hvm_disk_type]
+
+    if (hasattr(instance, 'os') and
+        hasattr(instance, 'disk_size') and
+        hasattr(instance, 'ram_size') and
+        hasattr(instance, 'hostname')):
+      cmd += ['-o', instance.os,
+              '-s', instance.disk_size,
+              '-m', instance.ram_size,
+              instance.hostname]
+    else:
       msg = ('It appears either the instance\'s hostname, disk_size, or '
              'ram_size were not specified in %s') % self.instances_file
       raise AttributeError(msg)
 
-    return command
+    return cmd
 
   def DumpInstances(self):
     """Dump the namespace dictionary for each instance object."""
