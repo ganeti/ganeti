@@ -72,16 +72,9 @@ _SSL_UNEXPECTED_EOF = "Unexpected EOF"
 # send/receive quantum
 SOCK_BUF_SIZE = 32768
 
+
 class HttpError(Exception):
   """Internal exception for HTTP errors.
-
-  This should only be used for internal error reporting.
-
-  """
-
-
-class _HttpClientError(Exception):
-  """Internal exception for HTTP client errors.
 
   This should only be used for internal error reporting.
 
