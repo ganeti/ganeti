@@ -33,6 +33,8 @@ import subprocess
 import random
 import logging
 import tempfile
+import zlib
+import base64
 
 from ganeti import errors
 from ganeti import utils
@@ -65,6 +67,25 @@ def _GetSshRunner(cluster_name):
 
   """
   return ssh.SshRunner(cluster_name)
+
+
+def _Decompress(data):
+  """Unpacks data compressed by the RPC client.
+
+  @type data: list or tuple
+  @param data: Data sent by RPC client
+  @rtype: str
+  @return: Decompressed data
+
+  """
+  assert len(data) == 2
+  (encoding, content) = data
+  if encoding == constants.RPC_ENCODING_NONE:
+    return content
+  elif encoding == constants.RPC_ENCODING_ZLIB_BASE64:
+    return zlib.decompress(base64.b64decode(content))
+  else:
+    raise AssertionError("Unknown data encoding")
 
 
 def _CleanDirectory(path, exclude=[]):
@@ -1238,7 +1259,9 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                  " upload targets: '%s'", file_name)
     return False
 
-  utils.WriteFile(file_name, data=data, mode=mode, uid=uid, gid=gid,
+  raw_data = _Decompress(data)
+
+  utils.WriteFile(file_name, data=raw_data, mode=mode, uid=uid, gid=gid,
                   atime=atime, mtime=mtime)
   return True
 
@@ -1949,7 +1972,7 @@ def JobQueueUpdate(file_name, content):
     return False
 
   # Write and replace the file atomically
-  utils.WriteFile(file_name, data=content)
+  utils.WriteFile(file_name, data=_Decompress(content))
 
   return True
 

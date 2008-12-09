@@ -240,6 +240,10 @@ DEFAULT_VG = "xenvg"
 BIND_ADDRESS_GLOBAL = "0.0.0.0"
 MIN_VG_SIZE = 20480
 
+# RPC constants
+(RPC_ENCODING_NONE,
+ RPC_ENCODING_ZLIB_BASE64) = range(2)
+
 # os related constants
 OS_VALID_STATUS = "VALID"
 OS_SCRIPT_CREATE = 'create'

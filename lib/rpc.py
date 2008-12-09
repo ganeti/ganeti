@@ -33,6 +33,8 @@
 import os
 import socket
 import logging
+import zlib
+import base64
 
 from ganeti import utils
 from ganeti import objects
@@ -333,6 +335,26 @@ class RpcRunner(object):
     c = Client(procedure, body, utils.GetNodeDaemonPort())
     c.ConnectNode(node)
     return c.GetResults()[node]
+
+  @staticmethod
+  def _Compress(data):
+    """Compresses a string for transport over RPC.
+
+    Small amounts of data are not compressed.
+
+    @type data: str
+    @param data: Data
+    @rtype: tuple
+    @return: Encoded data to send
+
+    """
+    # Small amounts of data are not compressed
+    if len(data) < 512:
+      return (constants.RPC_ENCODING_NONE, data)
+
+    # Compress with zlib and encode in base64
+    return (constants.RPC_ENCODING_ZLIB_BASE64,
+            base64.b64encode(zlib.compress(data, 3)))
 
   #
   # Begin RPC calls
@@ -688,7 +710,8 @@ class RpcRunner(object):
         to optimize the RPC speed
 
     """
-    data = utils.ReadFile(file_name)
+    file_contents = utils.ReadFile(file_name)
+    data = cls._Compress(file_contents)
     st = os.stat(file_name)
     params = [file_name, data, st.st_mode, st.st_uid, st.st_gid,
               st.st_atime, st.st_mtime]
@@ -907,7 +930,7 @@ class RpcRunner(object):
 
     """
     return cls._StaticMultiNodeCall(node_list, "jobqueue_update",
-                                    [file_name, content],
+                                    [file_name, cls._Compress(content)],
                                     address_list=address_list)
 
   @classmethod
