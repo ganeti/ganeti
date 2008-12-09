@@ -986,6 +986,7 @@ class LUVerifyCluster(LogicalUnit):
       result =  self._VerifyInstance(instance, inst_config, node_volume,
                                      node_instance, feedback_fn, n_offline)
       bad = bad or result
+      inst_nodes_offline = []
 
       inst_config.MapLVsByNode(node_vol_should)
 
@@ -998,6 +999,9 @@ class LUVerifyCluster(LogicalUnit):
         feedback_fn("  - ERROR: instance %s, connection to primary node"
                     " %s failed" % (instance, pnode))
         bad = True
+
+      if pnode in n_offline:
+        inst_nodes_offline.append(pnode)
 
       # If the instance is non-redundant we cannot survive losing its primary
       # node, so we are not N+1 compliant. On the other hand we have no disk
@@ -1022,6 +1026,15 @@ class LUVerifyCluster(LogicalUnit):
         elif snode not in n_offline:
           feedback_fn("  - ERROR: instance %s, connection to secondary node"
                       " %s failed" % (instance, snode))
+          bad = True
+        if snode in n_offline:
+          inst_nodes_offline.append(snode)
+
+      if inst_nodes_offline:
+        # warn that the instance lives on offline nodes, and set bad=True
+        feedback_fn("  - ERROR: instance lives on offline node(s) %s" %
+                    ", ".join(inst_nodes_offline))
+        bad = True
 
     feedback_fn("* Verifying orphan volumes")
     result = self._VerifyOrphanVolumes(node_vol_should, node_volume,
