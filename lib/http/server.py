@@ -412,7 +412,7 @@ class HttpServer(http.HttpSocketBase):
 
   def Start(self):
     self.socket.bind((self.local_address, self.port))
-    self.socket.listen(5)
+    self.socket.listen(1024)
 
   def Stop(self):
     self.socket.close()
