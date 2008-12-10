@@ -151,7 +151,7 @@ def WaitForSocketCondition(poller, sock, event, timeout):
   @type poller: select.Poller
   @param poller: Poller object as created by select.poll()
   @type sock: socket
-  @param socket: Wait for events on this socket
+  @param sock: Wait for events on this socket
   @type event: int
   @param event: ORed condition (see select module)
   @type timeout: float or None
@@ -193,13 +193,14 @@ def SocketOperation(poller, sock, op, arg1, timeout):
   @type poller: select.Poller
   @param poller: Poller object as created by select.poll()
   @type sock: socket
-  @param socket: Socket for the operation
+  @param sock: Socket for the operation
   @type op: int
   @param op: Operation to execute (SOCKOP_* constants)
   @type arg1: any
   @param arg1: Parameter for function (if needed)
   @type timeout: None or float
   @param timeout: Timeout in seconds or None
+  @return: Return value of socket function
 
   """
   # TODO: event_poll/event_check/override
@@ -303,6 +304,21 @@ def SocketOperation(poller, sock, op, arg1, timeout):
 def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
                        force):
   """Closes the connection.
+
+  @type poller: select.Poller
+  @param poller: Poller object as created by select.poll()
+  @type sock: socket
+  @param sock: Socket to be shut down
+  @type close_timeout: float
+  @param close_timeout: How long to wait for the peer to close the connection
+  @type write_timeout: float
+  @param write_timeout: Write timeout for shutdown
+  @type msgreader: http.HttpMessageReader
+  @param msgreader: Request message reader, used to determine whether peer
+                    should close connection
+  @type force: bool
+  @param force: Whether to forcibly close the connection without waiting
+                for peer
 
   """
   poller = select.poll()
@@ -455,6 +471,16 @@ class HttpMessageWriter(object):
 
   """
   def __init__(self, sock, msg, write_timeout):
+    """Initializes this class and writes an HTTP message to a socket.
+
+    @type sock: socket
+    @param sock: Socket to be written to
+    @type msg: http.HttpMessage
+    @param msg: HTTP message to be written
+    @type write_timeout: float
+    @param write_timeout: Write timeout for socket
+
+    """
     self._msg = msg
 
     self._PrepareMessage()
@@ -467,7 +493,7 @@ class HttpMessageWriter(object):
     end = len(buf)
     while pos < end:
       # Send only SOCK_BUF_SIZE bytes at a time
-      data = buf[pos:pos+SOCK_BUF_SIZE]
+      data = buf[pos:(pos + SOCK_BUF_SIZE)]
 
       sent = SocketOperation(poller, sock, SOCKOP_SEND, data,
                              write_timeout)
@@ -537,6 +563,16 @@ class HttpMessageReader(object):
   PS_COMPLETE = "complete"
 
   def __init__(self, sock, msg, read_timeout):
+    """Reads an HTTP message from a socket.
+
+    @type sock: socket
+    @param sock: Socket to be read from
+    @type msg: http.HttpMessage
+    @param msg: Object for the read message
+    @type read_timeout: float
+    @param read_timeout: Read timeout for socket
+
+    """
     self.sock = sock
     self.msg = msg
 
@@ -608,7 +644,7 @@ class HttpMessageReader(object):
         # beginning of a message and receives a CRLF first, it should ignore
         # the CRLF."
         if idx == 0:
-          # TODO: Limit number of CRLFs for safety?
+          # TODO: Limit number of CRLFs/empty lines for safety?
           buf = buf[:2]
           continue
 

@@ -88,7 +88,17 @@ class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
 
   """
   def __init__(self, sock, request_msg, response_msg, write_timeout):
-    """TODO
+    """Writes the response to the client.
+
+    @type sock: socket
+    @param sock: Target socket
+    @type request_msg: http.HttpMessage
+    @param request_msg: Request message, required to determine whether
+                        response may have a message body
+    @type response_msg: http.HttpMessage
+    @param response_msg: Response message
+    @type write_timeout: float
+    @param write_timeout: Write timeout for socket
 
     """
     self._request_msg = request_msg
