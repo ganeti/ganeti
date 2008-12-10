@@ -78,6 +78,7 @@ def _Decompress(data):
   @return: Decompressed data
 
   """
+  assert isinstance(data, (list, tuple))
   assert len(data) == 2
   (encoding, content) = data
   if encoding == constants.RPC_ENCODING_NONE:
