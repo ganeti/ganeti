@@ -110,7 +110,7 @@ commands = {
                  make_option("-m", "--mode", default="relocate",
                              choices=["relocate", "allocate"],
                              help="Request mode, either allocate or"
-                             "relocate"),
+                             " relocate"),
                  cli_option("--mem", default=128, type="unit",
                             help="Memory size for the instance (MiB)"),
                  make_option("--disks", default="4096,4096",

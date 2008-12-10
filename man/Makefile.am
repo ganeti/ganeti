@@ -2,14 +2,14 @@
 
 man_MANS = ganeti.7 ganeti-os-interface.7 gnt-cluster.8 gnt-node.8 gnt-os.8 \
 	   gnt-instance.8 ganeti-noded.8 ganeti-watcher.8 gnt-backup.8 \
-	   ganeti-master.8 ganeti-rapi.8
+	   ganeti-master.8 ganeti-rapi.8 gnt-debug.8
 
 maninput = $(patsubst %.7,%.in,$(patsubst %.8,%.in,$(man_MANS)))
 
 EXTRA_DIST = ganeti-os-interface.sgml gnt-cluster.sgml gnt-node.sgml \
 	     ganeti-watcher.sgml ganeti.sgml gnt-instance.sgml gnt-os.sgml \
 	     gnt-backup.sgml ganeti-noded.sgml ganeti-master.sgml \
-	     ganeti-rapi.sgml footer.sgml $(maninput)
+	     ganeti-rapi.sgml gnt-debug.sgml footer.sgml $(maninput)
 CLEANFILES = *.[78]
 MAINTAINERCLEANFILES = $(maninput)
 
@@ -36,4 +36,5 @@ MAINTAINERCLEANFILES = $(maninput)
 	sed -e 's#@LOCALSTATEDIR@#$(localstatedir)#g' \
 	    -e 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g' \
 	    -e 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g' \
+	    -e 's#@CUSTOM_IALLOCATOR_SEARCH_PATH@#$(IALLOCATOR_SEARCH_PATH)#g' \
 	    < $< > $@
