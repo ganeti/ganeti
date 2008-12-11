@@ -8,11 +8,11 @@ Version 1.2.7
   - Improved version of batcher:
     - state file support
     - instance mac address support
+    - support for HVM clusters/instances
   - Add an option to show the number of cpu sockets and nodes in gnt-node list
   - Support OSes that handle more than one version of the OS api
     (but do not change the current API in any other way)
   - Fix gnt-node migrate
-  - Batcher support for HVM clusters/instances
   - gnt-debug man page
   - Fixes various more typos&small issues
 
