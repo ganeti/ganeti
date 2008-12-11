@@ -344,7 +344,7 @@ apidoc:
 			CDIR=`pwd` && \
 			cd $$TMPDIR && \
 			mv lib ganeti && \
-			epydoc --conf $$CDIR/epydoc.conf -o $$CDIR/doc/api \
+			epydoc -v --conf $$CDIR/epydoc.conf -o $$CDIR/doc/api \
 		) ; \
 		rm -rf $$TMPDIR ; \
 	}

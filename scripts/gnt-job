@@ -141,8 +141,8 @@ def AutoArchiveJobs(opts, args):
   @param opts: the command line options selected by the user
   @type args: list
   @param args: should contain only one element, the age as a time spec
-      that can be parsed by L{cli.ParseTimespec} or the keyword I{all},
-      which will cause all jobs to be archived
+      that can be parsed by L{ganeti.cli.ParseTimespec} or the
+      keyword I{all}, which will cause all jobs to be archived
   @rtype: int
   @return: the desired exit code
 

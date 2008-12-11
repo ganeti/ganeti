@@ -89,9 +89,8 @@ class IOServer(SocketServer.UnixStreamServer):
   def __init__(self, address, rqhandler):
     """IOServer constructor
 
-    Args:
-      address: the address to bind this IOServer to
-      rqhandler: RequestHandler type object
+    @param address: the address to bind this IOServer to
+    @param rqhandler: RequestHandler type object
 
     """
     SocketServer.UnixStreamServer.__init__(self, address, rqhandler)
@@ -348,8 +347,7 @@ class GanetiContext(object):
 def ParseOptions():
   """Parse the command line options.
 
-  Returns:
-    (options, args) as from OptionParser.parse_args()
+  @return: (options, args) as from OptionParser.parse_args()
 
   """
   parser = OptionParser(description="Ganeti master daemon",

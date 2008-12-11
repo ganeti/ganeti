@@ -1101,7 +1101,7 @@ class JobQueue(object):
     """Archives a job.
 
     @type job_id: string
-    @param job_id: Job ID of job to be archived.
+    @param job_id: the ID of job to be archived
 
     """
     logging.info("Archiving job %s", job_id)

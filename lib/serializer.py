@@ -42,8 +42,10 @@ _RE_EOLSP = re.compile('[ \t]+$', re.MULTILINE)
 def DumpJson(data, indent=True):
   """Serialize a given object.
 
-  Args:
-  - indent: Whether to indent output (depends on simplejson version)
+  @param data: the data to serialize
+  @param indent: whether to indent output (depends on simplejson version)
+
+  @return: the string representation of data
 
   """
   if not indent or _JSON_INDENT is None:
@@ -59,6 +61,10 @@ def DumpJson(data, indent=True):
 
 def LoadJson(txt):
   """Unserialize data from a string.
+
+  @param txt: the json-encoded form
+
+  @return: the original data
 
   """
   return simplejson.loads(txt)

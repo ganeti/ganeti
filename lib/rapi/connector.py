@@ -43,8 +43,7 @@ class Mapper:
   def __init__(self, connector=CONNECTOR):
     """Resource mapper constructor.
 
-    Args:
-      con: a dictionary, mapping method name with URL path regexp
+    @param connector: a dictionary, mapping method name with URL path regexp
 
     """
     self._connector = connector
@@ -52,14 +51,13 @@ class Mapper:
   def getController(self, uri):
     """Find method for a given URI.
 
-    Args:
-      uri: string with URI
+    @param uri: string with URI
 
-    Returns:
-      None if no method is found or a tuple containing the following fields:
-        methd: name of method mapped to URI
-        items: a list of variable intems in the path
-        args: a dictionary with additional parameters from URL
+    @return: None if no method is found or a tuple containing
+        the following fields:
+            - method: name of method mapped to URI
+            - items: a list of variable intems in the path
+            - args: a dictionary with additional parameters from URL
 
     """
     if '?' in uri:
@@ -100,8 +98,7 @@ class R_root(baserlib.R_Generic):
   def GET(self):
     """Show the list of mapped resources.
 
-    Returns:
-      A dictionary with 'name' and 'uri' keys for each of them.
+    @return: a dictionary with 'name' and 'uri' keys for each of them.
 
     """
     root_pattern = re.compile('^R_([a-zA-Z0-9]+)$')

@@ -62,9 +62,8 @@ class NotMasterError(errors.GenericError):
 def Indent(s, prefix='| '):
   """Indent a piece of text with a given prefix before each line.
 
-  Args:
-    s: The string to indent
-    prefix: The string to prepend each line.
+  @param s: the string to indent
+  @param prefix: the string to prepend each line
 
   """
   return "%s%s\n" % (prefix, ('\n' + prefix).join(s.splitlines()))
@@ -158,8 +157,8 @@ class WatcherState(object):
   def NumberOfRestartAttempts(self, instance):
     """Returns number of previous restart attempts.
 
-    Args:
-      instance - the instance to look up.
+    @type instance: L{Instance}
+    @param instance: the instance to look up
 
     """
     idata = self._data["instance"]
@@ -172,8 +171,8 @@ class WatcherState(object):
   def RecordRestartAttempt(self, instance):
     """Record a restart attempt.
 
-    Args:
-      instance - the instance being restarted
+    @type instance: L{Instance}
+    @param instance: the instance being restarted
 
     """
     idata = self._data["instance"]
@@ -187,12 +186,13 @@ class WatcherState(object):
     inst[KEY_RESTART_COUNT] = inst.get(KEY_RESTART_COUNT, 0) + 1
 
   def RemoveInstance(self, instance):
-    """Update state to reflect that a machine is running, i.e. remove record.
+    """Update state to reflect that a machine is running.
 
-    Args:
-      instance - the instance to remove from books
+    This method removes the record for a named instance (as we only
+    track down instances).
 
-    This method removes the record for a named instance.
+    @type instance: L{Instance}
+    @param instance: the instance to remove from books
 
     """
     idata = self._data["instance"]
@@ -203,9 +203,6 @@ class WatcherState(object):
 
 class Instance(object):
   """Abstraction for a Virtual Machine instance.
-
-  Methods:
-    Restart(): issue a command to restart the represented machine.
 
   """
   def __init__(self, name, state, autostart):
@@ -399,8 +396,7 @@ class Watcher(object):
 def ParseOptions():
   """Parse the command line options.
 
-  Returns:
-    (options, args) as from OptionParser.parse_args()
+  @return: (options, args) as from OptionParser.parse_args()
 
   """
   parser = OptionParser(description="Ganeti cluster watcher",

@@ -75,8 +75,7 @@ class RemoteApiHttpServer(http.server.HttpServer):
 def ParseOptions():
   """Parse the command line options.
 
-  Returns:
-    (options, args) as from OptionParser.parse_args()
+  @return: (options, args) as from OptionParser.parse_args()
 
   """
   parser = optparse.OptionParser(description="Ganeti Remote API",

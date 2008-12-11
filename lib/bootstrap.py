@@ -41,12 +41,10 @@ from ganeti import ssconf
 def _InitSSHSetup(node):
   """Setup the SSH configuration for the cluster.
 
-
   This generates a dsa keypair for root, adds the pub key to the
   permitted hosts and adds the hostkey to its own known hosts.
 
-  Args:
-    node: the name of this host as a fqdn
+  @param node: the name of this host as an FQDN
 
   """
   priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
@@ -243,16 +241,16 @@ def InitConfig(version, cluster_config, master_node_config,
   node, and no instances.
 
   @type version: int
-  @param version: Configuration version
-  @type cluster_config: objects.Cluster
-  @param cluster_config: Cluster configuration
-  @type master_node_config: objects.Node
-  @param master_node_config: Master node configuration
-  @type file_name: string
-  @param file_name: Configuration file path
+  @param version: configuration version
+  @type cluster_config: L{objects.Cluster}
+  @param cluster_config: cluster configuration
+  @type master_node_config: L{objects.Node}
+  @param master_node_config: master node configuration
+  @type cfg_file: string
+  @param cfg_file: configuration file path
 
-  @rtype: ssconf.SimpleConfigWriter
-  @returns: Initialized config instance
+  @rtype: L{ssconf.SimpleConfigWriter}
+  @returns: initialized config instance
 
   """
   nodes = {

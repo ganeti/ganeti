@@ -228,7 +228,8 @@ class QuitGanetiException(Exception):
   error should returned to the caller, and the second one will be the returned
   result (either as an error or as a normal result).
 
-  Examples:
+  Examples::
+
     # Return a result of "True" to the caller, but quit ganeti afterwards
     raise QuitGanetiException(False, True)
     # Send an error to the caller, and quit ganeti

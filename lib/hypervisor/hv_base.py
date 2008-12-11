@@ -57,11 +57,9 @@ class BaseHypervisor(object):
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
 
-    Args:
-      instance_name: the instance name
+    @param instance_name: the instance name
 
-    Returns:
-      (name, id, memory, vcpus, state, times)
+    @return: tuple (name, id, memory, vcpus, state, times)
 
     """
     raise NotImplementedError
@@ -69,19 +67,18 @@ class BaseHypervisor(object):
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
 
-    Returns:
-      [(name, id, memory, vcpus, stat, times),...]
+    @return: list of tuples (name, id, memory, vcpus, stat, times)
+
     """
     raise NotImplementedError
 
   def GetNodeInfo(self):
     """Return information about the node.
 
-    The return value is a dict, which has to have the following items:
-      (all values in MiB)
-      - memory_total: the total memory size on the node
-      - memory_free: the available memory on the node for instances
-      - memory_dom0: the memory used by the node itself, if available
+    @return: a dict with the following keys (values in MiB):
+          - memory_total: the total memory size on the node
+          - memory_free: the available memory on the node for instances
+          - memory_dom0: the memory used by the node itself, if available
 
     """
     raise NotImplementedError

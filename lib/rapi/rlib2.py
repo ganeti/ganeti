@@ -41,8 +41,7 @@ class R_2_jobs(baserlib.R_Generic):
   def GET(self):
     """Returns a dictionary of jobs.
 
-    Returns:
-      A dictionary with jobs id and uri.
+    @return: a dictionary with jobs id and uri.
 
     """
     fields = ["id"]
@@ -60,16 +59,14 @@ class R_2_jobs_id(baserlib.R_Generic):
   def GET(self):
     """Returns a job status.
 
-    Returns:
-      A dictionary with job parameters.
-
-    The result includes:
-      id - job ID as a number
-      status - current job status as a string
-      ops - involved OpCodes as a list of dictionaries for each opcodes in
-        the job
-      opstatus - OpCodes status as a list
-      opresult - OpCodes results as a list of lists
+    @return: a dictionary with job parameters.
+        The result includes:
+            - id: job ID as a number
+            - status: current job status as a string
+            - ops: involved OpCodes as a list of dictionaries for each
+              opcodes in the job
+            - opstatus: OpCodes status as a list
+            - opresult: OpCodes results as a list of lists
 
     """
     fields = ["id", "ops", "status", "opstatus", "opresult"]
@@ -95,10 +92,9 @@ class R_2_nodes(baserlib.R_Generic):
   def GET(self):
     """Returns a list of all nodes.
 
-    Returns:
-      A dictionary with 'name' and 'uri' keys for each of them.
+    Example::
 
-    Example: [
+      [
         {
           "id": "node1.example.com",
           "uri": "\/instances\/node1.example.com"
@@ -106,13 +102,16 @@ class R_2_nodes(baserlib.R_Generic):
         {
           "id": "node2.example.com",
           "uri": "\/instances\/node2.example.com"
-        }]
+        }
+      ]
 
     If the optional 'bulk' argument is provided and set to 'true'
     value (i.e '?bulk=1'), the output contains detailed
     information about nodes as a list.
 
-    Example: [
+    Example::
+
+      [
         {
           "pinst_cnt": 1,
           "mfree": 31280,
@@ -125,7 +124,9 @@ class R_2_nodes(baserlib.R_Generic):
           "dfree": 5171712
         },
         ...
-    ]
+      ]
+
+    @return: a dictionary with 'name' and 'uri' keys for each of them
 
     """
     client = luxi.Client()
@@ -157,10 +158,10 @@ class R_2_instances(baserlib.R_Generic):
   def GET(self):
     """Returns a list of all available instances.
 
-    Returns:
-       A dictionary with 'name' and 'uri' keys for each of them.
 
-    Example: [
+    Example::
+
+      [
         {
           "name": "web.example.com",
           "uri": "\/instances\/web.example.com"
@@ -168,13 +169,16 @@ class R_2_instances(baserlib.R_Generic):
         {
           "name": "mail.example.com",
           "uri": "\/instances\/mail.example.com"
-        }]
+        }
+      ]
 
     If the optional 'bulk' argument is provided and set to 'true'
     value (i.e '?bulk=1'), the output contains detailed
     information about instances as a list.
 
-    Example: [
+    Example::
+
+      [
         {
            "status": "running",
            "bridge": "xen-br0",
@@ -194,7 +198,9 @@ class R_2_instances(baserlib.R_Generic):
            "oper_state": true
         },
         ...
-    ]
+      ]
+
+    @returns: a dictionary with 'name' and 'uri' keys for each of them.
 
     """
     client = luxi.Client()
@@ -213,8 +219,7 @@ class R_2_instances(baserlib.R_Generic):
   def POST(self):
     """Create an instance.
 
-    Returns:
-      A job id.
+    @returns: a job id
 
     """
     opts = self.req.request_post_data
@@ -300,8 +305,8 @@ class R_2_instances_name_startup(baserlib.R_Generic):
   def PUT(self):
     """Startup an instance.
 
-    The URI takes force=[False|True] parameter to start the instance if even if
-    secondary disks are failing.
+    The URI takes force=[False|True] parameter to start the instance
+    if even if secondary disks are failing.
 
     """
     instance_name = self.items[0]
@@ -354,8 +359,8 @@ class R_2_instances_name_tags(baserlib.R_Generic):
   def PUT(self):
     """Add a set of tags to the instance.
 
-    The request as a list of strings should be PUT to this URI. And you'll have
-    back a job id.
+    The request as a list of strings should be PUT to this URI. And
+    you'll have back a job id.
 
     """
     return baserlib._Tags_PUT(constants.TAG_INSTANCE,
@@ -364,8 +369,9 @@ class R_2_instances_name_tags(baserlib.R_Generic):
   def DELETE(self):
     """Delete a tag.
 
-    In order to delete a set of tags from a instance, DELETE request should be
-    addressed to URI like: /2/instances/[instance_name]/tags?tag=[tag]&tag=[tag]
+    In order to delete a set of tags from a instance, the DELETE
+    request should be addressed to URI like:
+    /2/instances/[instance_name]/tags?tag=[tag]&tag=[tag]
 
     """
     if 'tag' not in self.queryargs:

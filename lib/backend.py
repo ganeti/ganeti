@@ -279,7 +279,7 @@ def LeaveCluster():
   from the cluster.
 
   If processing is successful, then it raises an
-  L{errors.GanetiQuitException} which is used as a special case to
+  L{errors.QuitGanetiException} which is used as a special case to
   shutdown the node daemon.
 
   """
@@ -970,7 +970,7 @@ def RemoveBlockDevice(disk):
 
   @note: This is intended to be called recursively.
 
-  @type disk: L{objects.disk}
+  @type disk: L{objects.Disk}
   @param disk: the disk object we should remove
   @rtype: boolean
   @return: the success of the operation
@@ -1069,8 +1069,9 @@ def AssembleBlockDevice(disk, owner, as_primary):
 def ShutdownBlockDevice(disk):
   """Shut down a block device.
 
-  First, if the device is assembled (can L{Attach()}), then the device
-  is shutdown. Then the children of the device are shutdown.
+  First, if the device is assembled (Attach() is successfull), then
+  the device is shutdown. Then the children of the device are
+  shutdown.
 
   This function is called recursively. Note that we don't cache the
   children or such, as oppossed to assemble, shutdown of different
@@ -1161,7 +1162,7 @@ def GetMirrorStatus(disks):
   @rtype: disk
   @return:
       a list of (mirror_done, estimated_time) tuples, which
-      are the result of L{bdev.BlockDevice.CombinedSyncStatus}
+      are the result of L{bdev.BlockDev.CombinedSyncStatus}
   @raise errors.BlockDeviceError: if any of the disks cannot be
       found
 
@@ -1981,7 +1982,7 @@ def JobQueueUpdate(file_name, content):
 def JobQueueRename(old, new):
   """Renames a job queue file.
 
-  This is just a wrapper over L{os.rename} with proper checking.
+  This is just a wrapper over os.rename with proper checking.
 
   @type old: str
   @param old: the old (actual) file name
@@ -2305,7 +2306,7 @@ class DevCacheManager(object):
         node nor not
     @type iv_name: str
     @param iv_name: the instance-visible name of the
-        device, as in L{objects.Disk.iv_name}
+        device, as in objects.Disk.iv_name
 
     @rtype: None
 

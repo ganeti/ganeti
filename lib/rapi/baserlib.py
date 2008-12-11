@@ -32,10 +32,9 @@ from ganeti import luxi
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
   """Builds a URI list as used by index resources.
 
-  Args:
-  - ids: List of ids as strings
-  - uri_format: Format to be applied for URI
-  - uri_fields: Optional parameter for field ids
+  @param ids: list of ids as strings
+  @param uri_format: format to be applied for URI
+  @param uri_fields: optional parameter for field IDs
 
   """
   (field_id, field_uri) = uri_fields
@@ -53,9 +52,8 @@ def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
 def ExtractField(sequence, index):
   """Creates a list containing one column out of a list of lists.
 
-  Args:
-  - sequence: Sequence of lists
-  - index: Index of field
+  @param sequence: sequence of lists
+  @param index: index of field
 
   """
   return map(lambda item: item[index], sequence)
@@ -64,13 +62,12 @@ def ExtractField(sequence, index):
 def MapFields(names, data):
   """Maps two lists into one dictionary.
 
-  Args:
-  - names: Field names (list of strings)
-  - data: Field data (list)
+  Example::
+      >>> MapFields(["a", "b"], ["foo", 123])
+      {'a': 'foo', 'b': 123}
 
-  Example:
-  >>> MapFields(["a", "b"], ["foo", 123])
-  {'a': 'foo', 'b': 123}
+  @param names: field names (list of strings)
+  @param data: field data (list)
 
   """
   if len(names) != len(data):
@@ -108,12 +105,11 @@ def _Tags_DELETE(kind, tags, name=""):
 def MapBulkFields(itemslist, fields):
   """Map value to field name in to one dictionary.
 
-  Args:
-  - itemslist: A list of items values
-  - instance: A list of items names
+  @param itemslist: a list of items values
+  @param fields: a list of items names
 
-  Returns:
-    A list of mapped dictionaries
+  @return: a list of mapped dictionaries
+
   """
   items_details = []
   for item in itemslist:
@@ -123,7 +119,7 @@ def MapBulkFields(itemslist, fields):
 
 
 def MakeParamsDict(opts, params):
-  """ Makes params dictionary out of a option set.
+  """Makes params dictionary out of a option set.
 
   This function returns a dictionary needed for hv or be parameters. But only
   those fields which provided in the option set. Takes parameters frozensets
@@ -156,9 +152,8 @@ class R_Generic(object):
   def __init__(self, items, queryargs, req):
     """Generic resource constructor.
 
-    Args:
-      items: a list with variables encoded in the URL
-      queryargs: a dictionary with additional options from URL
+    @param items: a list with variables encoded in the URL
+    @param queryargs: a dictionary with additional options from URL
 
     """
     self.items = items

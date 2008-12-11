@@ -61,10 +61,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def _GetXMList(include_node):
     """Return the list of running instances.
 
-    If the `include_node` argument is True, then we return information
+    If the include_node argument is True, then we return information
     for dom0 also, otherwise we filter that from the return value.
 
-    The return value is a list of (name, id, memory, vcpus, state, time spent)
+    @return: list of (name, id, memory, vcpus, state, time spent)
 
     """
     for dummy in range(5):
@@ -117,11 +117,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
 
-    Args:
-      instance_name: the instance name
+    @param instance_name: the instance name
 
-    Returns:
-      (name, id, memory, vcpus, stat, times)
+    @return: tuple (name, id, memory, vcpus, stat, times)
+
     """
     xm_list = self._GetXMList(instance_name=="Domain-0")
     result = None
@@ -134,14 +133,16 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
 
-    Returns:
-      [(name, id, memory, vcpus, stat, times),...]
+    @return: list of tuples (name, id, memory, vcpus, stat, times)
+
     """
     xm_list = self._GetXMList(False)
     return xm_list
 
   def StartInstance(self, instance, block_devices, extra_args):
-    """Start an instance."""
+    """Start an instance.
+
+    """
     self._WriteConfigFile(instance, block_devices, extra_args)
     result = utils.RunCmd(["xm", "create", instance.name])
 
@@ -151,7 +152,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                     result.output))
 
   def StopInstance(self, instance, force=False):
-    """Stop an instance."""
+    """Stop an instance.
+
+    """
     self._RemoveConfigFile(instance)
     if force:
       command = ["xm", "destroy", instance.name]
@@ -164,7 +167,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, result.fail_reason))
 
   def RebootInstance(self, instance):
-    """Reboot an instance."""
+    """Reboot an instance.
+
+    """
     result = utils.RunCmd(["xm", "reboot", instance.name])
 
     if result.failed:
@@ -174,11 +179,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def GetNodeInfo(self):
     """Return information about the node.
 
-    The return value is a dict, which has to have the following items:
-      (all values in MiB)
-      - memory_total: the total memory size on the node
-      - memory_free: the available memory on the node for instances
-      - memory_dom0: the memory used by the node itself, if available
+    @return: a dict with the following keys (values in MiB):
+          - memory_total: the total memory size on the node
+          - memory_free: the available memory on the node for instances
+          - memory_dom0: the memory used by the node itself, if available
 
     """
     # note: in xen 3, memory has changed to total_memory
@@ -233,15 +237,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
     This method builds the xen config disk directive according to the
     given disk_template and block_devices.
 
-    Args:
-      disk_template: String containing instance disk template
-      block_devices: List[tuple1,tuple2,...]
-        tuple: (cfdev, rldev)
-          cfdev: dict containing ganeti config disk part
-          rldev: ganeti.bdev.BlockDev object
+    @param disk_template: string containing instance disk template
+    @param block_devices: list of tuples (cfdev, rldev):
+        - cfdev: dict containing ganeti config disk part
+        - rldev: ganeti.bdev.BlockDev object
 
-    Returns:
-      String containing disk directive for xen instance config file
+    @return: string containing disk directive for xen instance config file
 
     """
     FILE_DRIVER_MAP = {

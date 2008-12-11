@@ -393,7 +393,7 @@ class HttpServer(http.HttpSocketBase):
 
     @type mainloop: ganeti.daemon.Mainloop
     @param mainloop: Mainloop used to poll for I/O events
-    @type local_addess: string
+    @type local_address: string
     @param local_address: Local IP address to bind to
     @type port: int
     @param port: TCP port to listen on

@@ -45,8 +45,8 @@ N_FIELDS = ["name", "dtotal", "dfree",
 class R_version(baserlib.R_Generic):
   """/version resource.
 
-  This resource should be used to determine the remote API version and to adapt
-  clients accordingly.
+  This resource should be used to determine the remote API version and
+  to adapt clients accordingly.
 
   """
   DOC_URI = "/version"
@@ -84,20 +84,22 @@ class R_info(baserlib.R_Generic):
   def GET(self):
     """Returns cluster information.
 
-    Example: {
-      "config_version": 3,
-      "name": "cluster1.example.com",
-      "software_version": "1.2.4",
-      "os_api_version": 5,
-      "export_version": 0,
-      "master": "node1.example.com",
-      "architecture": [
-        "64bit",
-        "x86_64"
-      ],
-      "hypervisor_type": "xen-pvm",
-      "protocol_version": 12
-    }
+    Example::
+
+      {
+        "config_version": 3,
+        "name": "cluster1.example.com",
+        "software_version": "1.2.4",
+        "os_api_version": 5,
+        "export_version": 0,
+        "master": "node1.example.com",
+        "architecture": [
+          "64bit",
+          "x86_64"
+        ],
+        "hypervisor_type": "xen-pvm",
+        "protocol_version": 12
+      }
 
     """
     op = ganeti.opcodes.OpQueryClusterInfo()

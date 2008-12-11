@@ -549,15 +549,14 @@ class Instance(TaggableObject):
   def MapLVsByNode(self, lvmap=None, devs=None, node=None):
     """Provide a mapping of nodes to LVs this instance owns.
 
-    This function figures out what logical volumes should belong on which
-    nodes, recursing through a device tree.
+    This function figures out what logical volumes should belong on
+    which nodes, recursing through a device tree.
 
-    Args:
-      lvmap: (optional) a dictionary to receive the 'node' : ['lv', ...] data.
+    @param lvmap: optional dictionary to receive the
+        'node' : ['lv', ...] data.
 
-    Returns:
-      None if lvmap arg is given.
-      Otherwise, { 'nodename' : ['volume1', 'volume2', ...], ... }
+    @return: None if lvmap arg is given, otherwise, a dictionary
+        of the form { 'nodename' : ['volume1', 'volume2', ...], ... }
 
     """
     if node == None:

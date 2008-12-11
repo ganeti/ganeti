@@ -104,11 +104,10 @@ class SharedLock:
   def _is_owned(self, shared=-1):
     """Is the current thread somehow owning the lock at this time?
 
-    Args:
-      shared:
-        < 0: check for any type of ownership (default)
-        0: check for exclusive ownership
-        > 0: check for shared ownership
+    @param shared:
+        - < 0: check for any type of ownership (default)
+        - 0: check for exclusive ownership
+        - > 0: check for shared ownership
 
     """
     self.__lock.acquire()
@@ -123,8 +122,7 @@ class SharedLock:
     """Wait on the given condition, and raise an exception if the current lock
     is declared deleted in the meantime.
 
-    Args:
-      c: condition to wait on
+    @param c: the condition to wait on
 
     """
     c.wait()
@@ -158,11 +156,10 @@ class SharedLock:
   def acquire(self, blocking=1, shared=0):
     """Acquire a shared lock.
 
-    Args:
-      shared: whether to acquire in shared mode. By default an exclusive lock
-              will be acquired.
-      blocking: whether to block while trying to acquire or to operate in
-                try-lock mode. this locking mode is not supported yet.
+    @param shared: whether to acquire in shared mode; by default an
+        exclusive lock will be acquired
+    @param blocking: whether to block while trying to acquire or to
+        operate in try-lock mode (this locking mode is not supported yet)
 
     """
     if not blocking:
@@ -268,10 +265,9 @@ class SharedLock:
     acquired in exclusive mode if you don't already own it, then the lock
     will be put in a state where any future and pending acquire() fail.
 
-    Args:
-      blocking: whether to block while trying to acquire or to operate in
-                try-lock mode.  this locking mode is not supported yet unless
-                you are already holding exclusively the lock.
+    @param blocking: whether to block while trying to acquire or to
+        operate in try-lock mode.  this locking mode is not supported
+        yet unless you are already holding exclusively the lock.
 
     """
     self.__lock.acquire()
@@ -317,8 +313,7 @@ class LockSet:
   def __init__(self, members=None):
     """Constructs a new LockSet.
 
-    Args:
-      members: initial members of the set
+    @param members: initial members of the set
 
     """
     # Used internally to guarantee coherency.
@@ -406,21 +401,18 @@ class LockSet:
   def acquire(self, names, blocking=1, shared=0):
     """Acquire a set of resource locks.
 
-    Args:
-      names: the names of the locks which shall be acquired.
-             (special lock names, or instance/node names)
-      shared: whether to acquire in shared mode. By default an exclusive lock
-              will be acquired.
-      blocking: whether to block while trying to acquire or to operate in
-                try-lock mode.  this locking mode is not supported yet.
+    @param names: the names of the locks which shall be acquired
+        (special lock names, or instance/node names)
+    @param shared: whether to acquire in shared mode; by default an
+        exclusive lock will be acquired
+    @param blocking: whether to block while trying to acquire or to
+        operate in try-lock mode (this locking mode is not supported yet)
 
-    Returns:
-      True: when all the locks are successfully acquired
+    @return: True when all the locks are successfully acquired
 
-    Raises:
-      errors.LockError: when any lock we try to acquire has been deleted
-      before we succeed. In this case none of the locks requested will be
-      acquired.
+    @raise errors.LockError: when any lock we try to acquire has
+        been deleted before we succeed. In this case none of the
+        locks requested will be acquired.
 
     """
     if not blocking:
@@ -520,9 +512,8 @@ class LockSet:
     You must have acquired the locks, either in shared or in exclusive mode,
     before releasing them.
 
-    Args:
-      names: the names of the locks which shall be released.
-             (defaults to all the locks acquired at that level).
+    @param names: the names of the locks which shall be released
+        (defaults to all the locks acquired at that level).
 
     """
     assert self._is_owned(), "release() on lock set while not owner"
@@ -554,10 +545,9 @@ class LockSet:
   def add(self, names, acquired=0, shared=0):
     """Add a new set of elements to the set
 
-    Args:
-      names: names of the new elements to add
-      acquired: pre-acquire the new resource?
-      shared: is the pre-acquisition shared?
+    @param names: names of the new elements to add
+    @param acquired: pre-acquire the new resource?
+    @param shared: is the pre-acquisition shared?
 
     """
     # Check we don't already own locks at this level
@@ -616,15 +606,14 @@ class LockSet:
     You can either not hold anything in the lockset or already hold a superset
     of the elements you want to delete, exclusively.
 
-    Args:
-      names: names of the resource to remove.
-      blocking: whether to block while trying to acquire or to operate in
-                try-lock mode.  this locking mode is not supported yet unless
-                you are already holding exclusively the locks.
+    @param names: names of the resource to remove.
+    @param blocking: whether to block while trying to acquire or to
+        operate in try-lock mode (this locking mode is not supported
+        yet unless you are already holding exclusively the locks)
 
-    Returns:
-      A list of lock which we removed. The list is always equal to the names
-      list if we were holding all the locks exclusively.
+    @return:: a list of locks which we removed; the list is always
+        equal to the names list if we were holding all the locks
+        exclusively
 
     """
     if not blocking and not self._is_owned():
@@ -712,12 +701,13 @@ class GanetiLockManager:
     There should be only a GanetiLockManager object at any time, so this
     function raises an error if this is not the case.
 
-    Args:
-      nodes: list of node names
-      instances: list of instance names
+    @param nodes: list of node names
+    @param instances: list of instance names
 
     """
-    assert self.__class__._instance is None, "double GanetiLockManager instance"
+    assert self.__class__._instance is None, \
+           "double GanetiLockManager instance"
+
     self.__class__._instance = self
 
     # The keyring contains all the locks, at their level and in the correct
@@ -730,10 +720,10 @@ class GanetiLockManager:
 
   def _names(self, level):
     """List the lock names at the given level.
-    Used for debugging/testing purposes.
 
-    Args:
-      level: the level whose list of locks to get
+    This can be used for debugging/testing purposes.
+
+    @param level: the level whose list of locks to get
 
     """
     assert level in LEVELS, "Invalid locking level %s" % level
@@ -770,8 +760,10 @@ class GanetiLockManager:
     return BGL in self.__keyring[LEVEL_CLUSTER]._list_owned()
 
   def _contains_BGL(self, level, names):
-    """Check if acting on the given level and set of names will change the
-    status of the Big Ganeti Lock.
+    """Check if the level contains the BGL.
+
+    Check if acting on the given level and set of names will change
+    the status of the Big Ganeti Lock.
 
     """
     return level == LEVEL_CLUSTER and (names is None or BGL in names)
@@ -779,15 +771,14 @@ class GanetiLockManager:
   def acquire(self, level, names, blocking=1, shared=0):
     """Acquire a set of resource locks, at the same level.
 
-    Args:
-      level: the level at which the locks shall be acquired.
-             It must be a memmber of LEVELS.
-      names: the names of the locks which shall be acquired.
-             (special lock names, or instance/node names)
-      shared: whether to acquire in shared mode. By default an exclusive lock
-              will be acquired.
-      blocking: whether to block while trying to acquire or to operate in
-                try-lock mode.  this locking mode is not supported yet.
+    @param level: the level at which the locks shall be acquired;
+        it must be a memmber of LEVELS.
+    @param names: the names of the locks which shall be acquired
+        (special lock names, or instance/node names)
+    @param shared: whether to acquire in shared mode; by default
+        an exclusive lock will be acquired
+    @param blocking: whether to block while trying to acquire or to
+        operate in try-lock mode (this locking mode is not supported yet)
 
     """
     assert level in LEVELS, "Invalid locking level %s" % level
@@ -812,14 +803,13 @@ class GanetiLockManager:
   def release(self, level, names=None):
     """Release a set of resource locks, at the same level.
 
-    You must have acquired the locks, either in shared or in exclusive mode,
-    before releasing them.
+    You must have acquired the locks, either in shared or in exclusive
+    mode, before releasing them.
 
-    Args:
-      level: the level at which the locks shall be released.
-             It must be a memmber of LEVELS.
-      names: the names of the locks which shall be released.
-             (defaults to all the locks acquired at that level).
+    @param level: the level at which the locks shall be released;
+        it must be a memmber of LEVELS
+    @param names: the names of the locks which shall be released
+        (defaults to all the locks acquired at that level)
 
     """
     assert level in LEVELS, "Invalid locking level %s" % level
@@ -834,12 +824,12 @@ class GanetiLockManager:
   def add(self, level, names, acquired=0, shared=0):
     """Add locks at the specified level.
 
-    Args:
-      level: the level at which the locks shall be added.
-             It must be a memmber of LEVELS_MOD.
-      names: names of the locks to acquire
-      acquired: whether to acquire the newly added locks
-      shared: whether the acquisition will be shared
+    @param level: the level at which the locks shall be added;
+        it must be a memmber of LEVELS_MOD.
+    @param names: names of the locks to acquire
+    @param acquired: whether to acquire the newly added locks
+    @param shared: whether the acquisition will be shared
+
     """
     assert level in LEVELS_MOD, "Invalid or immutable level %s" % level
     assert self._BGL_owned(), ("You must own the BGL before performing other"
@@ -851,16 +841,15 @@ class GanetiLockManager:
   def remove(self, level, names, blocking=1):
     """Remove locks from the specified level.
 
-    You must either already own the locks you are trying to remove exclusively
-    or not own any lock at an upper level.
+    You must either already own the locks you are trying to remove
+    exclusively or not own any lock at an upper level.
 
-    Args:
-      level: the level at which the locks shall be removed.
-             It must be a memmber of LEVELS_MOD.
-      names: the names of the locks which shall be removed.
-             (special lock names, or instance/node names)
-      blocking: whether to block while trying to operate in try-lock mode.
-                this locking mode is not supported yet.
+    @param level: the level at which the locks shall be removed;
+        it must be a member of LEVELS_MOD
+    @param names: the names of the locks which shall be removed
+        (special lock names, or instance/node names)
+    @param blocking: whether to block while trying to operate in
+        try-lock mode (this locking mode is not supported yet)
 
     """
     assert level in LEVELS_MOD, "Invalid or immutable level %s" % level

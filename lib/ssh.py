@@ -111,18 +111,18 @@ class SshRunner:
                tty=False, use_cluster_key=True, strict_host_check=True):
     """Build an ssh command to execute a command on a remote node.
 
-    Args:
-      hostname: the target host, string
-      user: user to auth as
-      command: the command
-      batch: if true, ssh will run in batch mode with no prompting
-      ask_key: if true, ssh will run with StrictHostKeyChecking=ask, so that
-               we can connect to an unknown host (not valid in batch mode)
-      use_cluster_key: Whether to expect and use the cluster-global SSH key
-      strict_host_check: Whether to check the host's SSH key at all
+    @param hostname: the target host, string
+    @param user: user to auth as
+    @param command: the command
+    @param batch: if true, ssh will run in batch mode with no prompting
+    @param ask_key: if true, ssh will run with
+        StrictHostKeyChecking=ask, so that we can connect to an
+        unknown host (not valid in batch mode)
+    @param use_cluster_key: whether to expect and use the
+        cluster-global SSH key
+    @param strict_host_check: whether to check the host's SSH key at all
 
-    Returns:
-      The ssh call to run 'command' on the remote host.
+    @return: the ssh call to run 'command' on the remote host.
 
     """
     argv = [constants.SSH, "-q"]
@@ -139,11 +139,10 @@ class SshRunner:
     This method has the same return value as `utils.RunCmd()`, which it
     uses to launch ssh.
 
-    Args:
-      See SshRunner.BuildCmd.
+    Args: see SshRunner.BuildCmd.
 
-    Returns:
-      `utils.RunResult` like `utils.RunCmd()`
+    @rtype: L{utils.RunResult}
+    @return: the result as from L{utils.RunCmd()}
 
     """
     return utils.RunCmd(self.BuildCmd(*args, **kwargs))
@@ -151,12 +150,11 @@ class SshRunner:
   def CopyFileToNode(self, node, filename):
     """Copy a file to another node with scp.
 
-    Args:
-      node: node in the cluster
-      filename: absolute pathname of a local file
+    @param node: node in the cluster
+    @param filename: absolute pathname of a local file
 
-    Returns:
-      success: True/False
+    @rtype: boolean
+    @return: the success of the operation
 
     """
     if not os.path.isabs(filename):
@@ -192,14 +190,12 @@ class SshRunner:
     (conflicting known hosts) and incosistencies between dns/hosts
     entries and local machine names
 
-    Args:
-      node: nodename of a host to check. can be short or full qualified hostname
+    @param node: nodename of a host to check; can be short or
+        full qualified hostname
 
-    Returns:
-      (success, detail)
-      where
-        success: True/False
-        detail: String with details
+    @return: (success, detail), where:
+        - success: True/False
+        - detail: string with details
 
     """
     retval = self.Run(node, 'root', 'hostname')

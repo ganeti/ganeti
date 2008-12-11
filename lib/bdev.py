@@ -202,9 +202,6 @@ class BlockDev(object):
     If this device is a mirroring device, this function returns the
     status of the mirror.
 
-    Returns:
-     (sync_percent, estimated_time, is_degraded, ldisk)
-
     If sync_percent is None, it means the device is not syncing.
 
     If estimated_time is None, it means we can't estimate
@@ -217,6 +214,9 @@ class BlockDev(object):
     The ldisk parameter represents the degradation of the local
     data. This is only valid for some devices, the rest will always
     return False (not degraded).
+
+    @rtype: tuple
+    @return: (sync_percent, estimated_time, is_degraded, ldisk)
 
     """
     return None, None, False, False
@@ -259,10 +259,7 @@ class BlockDev(object):
   def Grow(self, amount):
     """Grow the block device.
 
-    Arguments:
-      amount: the amount (in mebibytes) to grow with
-
-    Returns: None
+    @param amount: the amount (in mebibytes) to grow with
 
     """
     raise NotImplementedError
@@ -326,11 +323,10 @@ class LogicalVolume(BlockDev):
   def GetPVInfo(vg_name):
     """Get the free space info for PVs in a volume group.
 
-    Args:
-      vg_name: the volume group name
+    @param vg_name: the volume group name
 
-    Returns:
-      list of (free_space, name) with free_space in mebibytes
+    @rtype: list
+    @return: list of tuples (free_space, name) with free_space in mebibytes
 
     """
     command = ["pvs", "--noheadings", "--nosuffix", "--units=m",
@@ -456,9 +452,6 @@ class LogicalVolume(BlockDev):
     If this device is a mirroring device, this function returns the
     status of the mirror.
 
-    Returns:
-     (sync_percent, estimated_time, is_degraded, ldisk)
-
     For logical volumes, sync_percent and estimated_time are always
     None (no recovery in progress, as we don't handle the mirrored LV
     case). The is_degraded parameter is the inverse of the ldisk
@@ -471,6 +464,9 @@ class LogicalVolume(BlockDev):
     the volume group.
 
     The status was already read in Attach, so we just return it.
+
+    @rtype: tuple
+    @return: (sync_percent, estimated_time, is_degraded, ldisk)
 
     """
     return None, None, self._degraded, self._degraded
@@ -642,8 +638,8 @@ class BaseDRBD(BlockDev):
   def _MassageProcData(data):
     """Transform the output of _GetProdData into a nicer form.
 
-    Returns:
-      a dictionary of minor: joined lines from /proc/drbd for that minor
+    @return: a dictionary of minor: joined lines from /proc/drbd
+        for that minor
 
     """
     lmatch = re.compile("^ *([0-9]+):.*$")
@@ -669,12 +665,12 @@ class BaseDRBD(BlockDev):
     """Return the DRBD version.
 
     This will return a dict with keys:
-      k_major,
-      k_minor,
-      k_point,
-      api,
-      proto,
-      proto2 (only on drbd > 8.2.X)
+      - k_major
+      - k_minor
+      - k_point
+      - api
+      - proto
+      - proto2 (only on drbd > 8.2.X)
 
     """
     proc_data = cls._GetProcData()
@@ -1176,8 +1172,6 @@ class DRBD8(BaseDRBD):
   def GetSyncStatus(self):
     """Returns the sync status of the device.
 
-    Returns:
-     (sync_percent, estimated_time, is_degraded)
 
     If sync_percent is None, it means all is ok
     If estimated_time is None, it means we can't esimate
@@ -1189,6 +1183,9 @@ class DRBD8(BaseDRBD):
 
     We compute the ldisk parameter based on wheter we have a local
     disk or not.
+
+    @rtype: tuple
+    @return: (sync_percent, estimated_time, is_degraded, ldisk)
 
     """
     if self.minor is None and not self.Attach():
@@ -1504,8 +1501,8 @@ class FileStorage(BlockDev):
   def Remove(self):
     """Remove the file backing the block device.
 
-    Returns:
-      boolean indicating wheter removal of file was successful or not.
+    @rtype: boolean
+    @return: True if the removal was successful
 
     """
     if not os.path.exists(self.dev_path):
@@ -1522,8 +1519,8 @@ class FileStorage(BlockDev):
 
     Check if this file already exists.
 
-    Returns:
-      boolean indicating if file exists or not.
+    @rtype: boolean
+    @return: True if file exists
 
     """
     self.attached = os.path.exists(self.dev_path)
@@ -1533,12 +1530,10 @@ class FileStorage(BlockDev):
   def Create(cls, unique_id, children, size):
     """Create a new file.
 
-    Args:
-      children:
-      size: integer size of file in MiB
+    @param size: the size of file in MiB
 
-    Returns:
-      A ganeti.bdev.FileStorage object.
+    @rtype: L{bdev.FileStorage}
+    @return: an instance of FileStorage
 
     """
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:

@@ -49,6 +49,14 @@ _config_lock = locking.SharedLock()
 
 
 def _ValidateConfig(data):
+  """Verifies that a configuration objects looks valid.
+
+  This only verifies the version of the configuration.
+
+  @raise errors.ConfigurationError: if the version differs from what
+      we expect
+
+  """
   if data.version != constants.CONFIG_VERSION:
     raise errors.ConfigurationError("Cluster configuration version"
                                     " mismatch, got %s instead of %s" %
@@ -155,13 +163,13 @@ class ConfigWriter:
     This checks the current node, instances and disk names for
     duplicates.
 
-    Args:
-      - exceptions: a list with some other names which should be checked
-                    for uniqueness (used for example when you want to get
-                    more than one id at one time without adding each one in
-                    turn to the config file
+    @param exceptions: a list with some other names which should be checked
+        for uniqueness (used for example when you want to get
+        more than one id at one time without adding each one in
+        turn to the config file)
 
-    Returns: the unique id as a string
+    @rtype: string
+    @return: the unique id
 
     """
     existing = set()
@@ -185,6 +193,9 @@ class ConfigWriter:
   def _AllMACs(self):
     """Return all MACs present in the config.
 
+    @rtype: list
+    @return: the list of all MACs
+
     """
     result = []
     for instance in self._config_data.instances.values():
@@ -195,6 +206,9 @@ class ConfigWriter:
 
   def _AllDRBDSecrets(self):
     """Return all DRBD secrets present in the config.
+
+    @rtype: list
+    @return: the list of all DRBD secrets
 
     """
     def helper(disk, result):
@@ -377,9 +391,9 @@ class ConfigWriter:
   def _ComputeDRBDMap(self, instance):
     """Compute the used DRBD minor/nodes.
 
-    Return: dictionary of node_name: dict of minor: instance_name. The
-    returned dict will have all the nodes in it (even if with an empty
-    list).
+    @return: dictionary of node_name: dict of minor: instance_name;
+        the returned dict will have all the nodes in it (even if with
+        an empty list).
 
     """
     def _AppendUsedPorts(instance_name, disk, used):
@@ -521,9 +535,9 @@ class ConfigWriter:
   def GetHostKey(self):
     """Return the rsa hostkey from the config.
 
-    Args: None
+    @rtype: string
+    @return: the rsa hostkey
 
-    Returns: rsa hostkey
     """
     return self._config_data.cluster.rsahostkeypub
 
@@ -533,8 +547,9 @@ class ConfigWriter:
 
     This should be used after creating a new instance.
 
-    Args:
-      instance: the instance object
+    @type instance: L{objects.Instance}
+    @param instance: the instance object
+
     """
     if not isinstance(instance, objects.Instance):
       raise errors.ProgrammerError("Invalid type passed to AddInstance")
@@ -628,9 +643,8 @@ class ConfigWriter:
   def GetInstanceList(self):
     """Get the list of instances.
 
-    Returns:
-      array of instances, ex. ['instance2.example.com','instance1.example.com']
-      these contains all the instances, also the ones in Admin_down state
+    @return: array of instances, ex. ['instance2.example.com',
+        'instance1.example.com']
 
     """
     return self._UnlockedGetInstanceList()
@@ -661,11 +675,11 @@ class ConfigWriter:
     It takes the information from the configuration file. Other informations of
     an instance are taken from the live systems.
 
-    Args:
-      instance: name of the instance, ex instance1.example.com
+    @param instance_name: name of the instance, e.g.
+        I{instance1.example.com}
 
-    Returns:
-      the instance object
+    @rtype: L{objects.Instance}
+    @return: the instance object
 
     """
     return self._UnlockedGetInstanceInfo(instance_name)
@@ -687,8 +701,8 @@ class ConfigWriter:
   def AddNode(self, node):
     """Add a node to the configuration.
 
-    Args:
-      node: an object.Node instance
+    @type node: L{objects.Node}
+    @param node: a Node instance
 
     """
     logging.info("Adding node %s to configuration" % node.name)
@@ -723,11 +737,13 @@ class ConfigWriter:
   def _UnlockedGetNodeInfo(self, node_name):
     """Get the configuration of a node, as stored in the config.
 
-    This function is for internal use, when the config lock is already held.
+    This function is for internal use, when the config lock is already
+    held.
 
-    Args: node: nodename (tuple) of the node
+    @param node_name: the node name, e.g. I{node1.example.com}
 
-    Returns: the node object
+    @rtype: L{objects.Node}
+    @return: the node object
 
     """
     if node_name not in self._config_data.nodes:
@@ -740,9 +756,12 @@ class ConfigWriter:
   def GetNodeInfo(self, node_name):
     """Get the configuration of a node, as stored in the config.
 
-    Args: node: nodename (tuple) of the node
+    This is just a locked wrapper over L{_UnlockedGetNodeInfo}.
 
-    Returns: the node object
+    @param node_name: the node name, e.g. I{node1.example.com}
+
+    @rtype: L{objects.Node}
+    @return: the node object
 
     """
     return self._UnlockedGetNodeInfo(node_name)
@@ -750,7 +769,10 @@ class ConfigWriter:
   def _UnlockedGetNodeList(self):
     """Return the list of nodes which are in the configuration.
 
-    This function is for internal use, when the config lock is already held.
+    This function is for internal use, when the config lock is already
+    held.
+
+    @rtype: list
 
     """
     return self._config_data.nodes.keys()
@@ -845,10 +867,6 @@ class ConfigWriter:
 
   def _OpenConfig(self):
     """Read the config data from disk.
-
-    In case we already have configuration data and the config file has
-    the same mtime as when we read it, we skip the parsing of the
-    file, since de-serialisation could be slow.
 
     """
     f = open(self._cfg_file, 'r')
@@ -1026,8 +1044,8 @@ class ConfigWriter:
   def GetClusterInfo(self):
     """Returns informations about the cluster
 
-    Returns:
-      the cluster object
+    @rtype: L{objects.Cluster}
+    @return: the cluster object
 
     """
     return self._config_data.cluster
@@ -1041,6 +1059,10 @@ class ConfigWriter:
     caller wants the modifications saved to the backing store. Note
     that all modified objects will be saved, but the target argument
     is the one the caller wants to ensure that it's saved.
+
+    @param target: an instance of either L{objects.Cluster},
+        L{objects.Node} or L{objects.Instance} which is existing in
+        the cluster
 
     """
     if self._config_data is None:

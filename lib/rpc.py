@@ -524,8 +524,8 @@ class RpcRunner(object):
 
     @type node_list: list
     @param node_list: the list of nodes to query
-    @type vgname: C{string}
-    @param vgname: the name of the volume group to ask for disk space
+    @type vg_name: C{string}
+    @param vg_name: the name of the volume group to ask for disk space
         information
     @type hypervisor_type: C{str}
     @param hypervisor_type: the name of the hypervisor to ask for

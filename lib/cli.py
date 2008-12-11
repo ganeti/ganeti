@@ -314,15 +314,15 @@ keyval_option = KeyValOption
 
 
 def _ParseArgs(argv, commands, aliases):
-  """Parses the command line and return the function which must be
-  executed together with its arguments
+  """Parser for the command line arguments.
 
-  Arguments:
-    argv: the command line
+  This function parses the arguements and returns the function which
+  must be executed together with its (modified) arguments.
 
-    commands: dictionary with special contents, see the design doc for
-    cmdline handling
-    aliases: dictionary with command aliases {'alias': 'target, ...}
+  @param argv: the command line
+  @param commands: dictionary with special contents, see the design
+      doc for cmdline handling
+  @param aliases: dictionary with command aliases {'alias': 'target, ...}
 
   """
   if len(argv) == 0:
@@ -439,17 +439,16 @@ def UsesRPC(fn):
 def AskUser(text, choices=None):
   """Ask the user a question.
 
-  Args:
-    text - the question to ask.
+  @param text: the question to ask
 
-    choices - list with elements tuples (input_char, return_value,
-    description); if not given, it will default to: [('y', True,
-    'Perform the operation'), ('n', False, 'Do no do the operation')];
-    note that the '?' char is reserved for help
+  @param choices: list with elements tuples (input_char, return_value,
+      description); if not given, it will default to: [('y', True,
+      'Perform the operation'), ('n', False, 'Do no do the operation')];
+      note that the '?' char is reserved for help
 
-  Returns: one of the return values from the choices list; if input is
-  not possible (i.e. not running with a tty, we return the last entry
-  from the list
+  @return: one of the return values from the choices list; if input is
+      not possible (i.e. not running with a tty, we return the last
+      entry from the list
 
   """
   if choices is None:
