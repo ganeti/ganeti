@@ -374,7 +374,7 @@ class HttpBase(object):
 
   """
   def __init__(self):
-    self._using_ssl = None
+    self.using_ssl = None
     self._ssl_params = None
     self._ssl_key = None
     self._ssl_cert = None
@@ -394,9 +394,9 @@ class HttpBase(object):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Should we enable SSL?
-    self._using_ssl = ssl_params is not None
+    self.using_ssl = ssl_params is not None
 
-    if not self._using_ssl:
+    if not self.using_ssl:
       return sock
 
     self._ssl_key = ssl_params.GetKey()
