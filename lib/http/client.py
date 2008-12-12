@@ -141,7 +141,7 @@ class _HttpServerToClientMessageReader(http.HttpMessageReader):
     return http.HttpServerToClientStartLine(version, status, reason)
 
 
-class HttpClientRequestExecutor(http.HttpSocketBase):
+class HttpClientRequestExecutor(http.HttpBase):
   # Default headers
   DEFAULT_HEADERS = {
     http.HTTP_USER_AGENT: http.HTTP_GANETI_VERSION,
@@ -164,7 +164,7 @@ class HttpClientRequestExecutor(http.HttpSocketBase):
     @param req: Request object
 
     """
-    http.HttpSocketBase.__init__(self)
+    http.HttpBase.__init__(self)
     self.request = req
 
     self.poller = select.poll()

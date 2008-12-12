@@ -379,7 +379,7 @@ class _HttpServerRequestExecutor(object):
     self.response_msg.body = self.error_message_format % values
 
 
-class HttpServer(http.HttpSocketBase):
+class HttpServer(http.HttpBase):
   """Generic HTTP server class
 
   Users of this class must subclass it and override the HandleRequest function.
@@ -404,7 +404,7 @@ class HttpServer(http.HttpSocketBase):
                             it with our certificate
 
     """
-    http.HttpSocketBase.__init__(self)
+    http.HttpBase.__init__(self)
 
     self.mainloop = mainloop
     self.local_address = local_address

@@ -369,7 +369,7 @@ class HttpSslParams(object):
                                            self.ssl_cert_pem)
 
 
-class HttpSocketBase(object):
+class HttpBase(object):
   """Base class for HTTP server and client.
 
   """
