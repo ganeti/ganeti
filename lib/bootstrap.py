@@ -430,8 +430,6 @@ def GatherMasterVotes(node_list):
     # this should not happen (unless internal error in rpc)
     logging.critical("Can't complete rpc call, aborting master startup")
     return [(None, len(node_list))]
-  positive = negative = 0
-  other_masters = {}
   votes = {}
   for node in results:
     nres = results[node]
