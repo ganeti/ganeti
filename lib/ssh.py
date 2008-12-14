@@ -75,6 +75,19 @@ class SshRunner:
 
   def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
                        strict_host_check):
+    """Builds a list with needed SSH options.
+
+    @param batch: same as ssh's batch option
+    @param ask_key: allows ssh to ask for key confirmation; this
+        parameter conflicts with the batch one
+    @param use_cluster_key: if True, use the cluster name as the
+        HostKeyAlias name
+    @param strict_host_check: this makes the host key checking strict
+
+    @rtype: list
+    @return: the list of options ready to use in L{utils.RunCmd}
+
+    """
     options = [
       "-oEscapeChar=none",
       "-oHashKnownHosts=no",
