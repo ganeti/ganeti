@@ -84,6 +84,7 @@ class ConfigWriter:
     # better to raise an error before starting to modify the config
     # file than after it was modified
     self._my_hostname = utils.HostInfo().name
+    self._last_cluster_serial = -1
     self._OpenConfig()
 
   # this method needs to be static, so that we can call it on the class
@@ -886,7 +887,7 @@ class ConfigWriter:
       raise errors.ConfigurationError("Incomplete configuration"
                                       " (missing cluster.rsahostkeypub)")
     self._config_data = data
-    # init the last serial as -1 so that the next write will cause
+    # reset the last serial as -1 so that the next write will cause
     # ssconf update
     self._last_cluster_serial = -1
 
