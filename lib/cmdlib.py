@@ -1270,7 +1270,8 @@ class LURenameCluster(LogicalUnit):
                                          constants.SSH_KNOWN_HOSTS_FILE)
       for to_node, to_result in result.iteritems():
         if to_result.failed or not to_result.data:
-          logging.error("Copy of file %s to node %s failed", fname, to_node)
+          logging.error("Copy of file %s to node %s failed",
+                        constants.SSH_KNOWN_HOSTS_FILE, to_node)
 
     finally:
       result = self.rpc.call_node_start_master(master, False)
