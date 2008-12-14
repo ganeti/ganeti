@@ -834,7 +834,6 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
     try:
       f = open(file_name, 'r')
       try:
-        written = False
         for line in f:
           fields = line.split()
           if fields and not fields[0].startswith('#') and ip == fields[0]:
