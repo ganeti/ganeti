@@ -51,7 +51,7 @@ from ganeti import rpc
 JOBQUEUE_THREADS = 25
 
 
-class CancelJob:
+class CancelJob(Exception):
   """Special exception to cancel a job.
 
   """
