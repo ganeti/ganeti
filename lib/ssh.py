@@ -25,6 +25,7 @@
 
 
 import os
+import logging
 
 from ganeti import utils
 from ganeti import errors
