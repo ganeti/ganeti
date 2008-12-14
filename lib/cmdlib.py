@@ -5913,6 +5913,7 @@ class IAllocator(object):
     self.name = name
     self.mem_size = self.disks = self.disk_template = None
     self.os = self.tags = self.nics = self.vcpus = None
+    self.hypervisor = None
     self.relocate_from = None
     # computed fields
     self.required_nodes = None
@@ -5960,12 +5961,12 @@ class IAllocator(object):
     node_list = cfg.GetNodeList()
 
     if self.mode == constants.IALLOCATOR_MODE_ALLOC:
-      hypervisor = self.hypervisor
+      hypervisor_name = self.hypervisor
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
-      hypervisor = cfg.GetInstanceInfo(self.name).hypervisor
+      hypervisor_name = cfg.GetInstanceInfo(self.name).hypervisor
 
     node_data = self.lu.rpc.call_node_info(node_list, cfg.GetVGName(),
-                                           hypervisor)
+                                           hypervisor_name)
     node_iinfo = self.lu.rpc.call_all_instances_info(node_list,
                        cluster_info.enabled_hypervisors)
     for nname in node_list:
