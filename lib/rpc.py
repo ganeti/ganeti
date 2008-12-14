@@ -735,7 +735,7 @@ class RpcRunner(object):
     """
     result = self._MultiNodeCall(node_list, "os_diagnose", [])
 
-    for node_name, node_result in result.iteritems():
+    for node_result in result.values():
       if not node_result.failed and node_result.data:
         node_result.data = [objects.OS.FromDict(oss)
                             for oss in node_result.data]
