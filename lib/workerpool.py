@@ -214,7 +214,7 @@ class WorkerPool(object):
     """
     self._lock.acquire()
     try:
-      return self._ShouldWorkerTerminateUnlocked(self)
+      return self._ShouldWorkerTerminateUnlocked(worker)
     finally:
       self._lock.release()
 
