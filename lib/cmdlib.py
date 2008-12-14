@@ -4553,7 +4553,7 @@ class LUReplaceDisks(LogicalUnit):
 
       # now that the new lvs have the old name, we can add them to the device
       info("adding new mirror component on %s" % tgt_node)
-      result =self.rpc.call_blockdev_addchildren(tgt_node, dev, new_lvs)
+      result = self.rpc.call_blockdev_addchildren(tgt_node, dev, new_lvs)
       if result.failed or not result.data:
         for new_lv in new_lvs:
           result = self.rpc.call_blockdev_remove(tgt_node, new_lv)
@@ -4614,7 +4614,6 @@ class LUReplaceDisks(LogicalUnit):
     warning, info = (self.proc.LogWarning, self.proc.LogInfo)
     instance = self.instance
     iv_names = {}
-    vgname = self.cfg.GetVGName()
     # start of work
     cfg = self.cfg
     old_node = self.tgt_node
@@ -4656,7 +4655,6 @@ class LUReplaceDisks(LogicalUnit):
     # Step: create new storage
     self.proc.LogStep(3, steps_total, "allocate new storage")
     for idx, dev in enumerate(instance.disks):
-      size = dev.size
       info("adding new local storage on %s for disk/%d" %
            (new_node, idx))
       # since we *always* want to create this LV, we use the
@@ -4744,7 +4742,6 @@ class LUReplaceDisks(LogicalUnit):
 
     # and now perform the drbd attach
     info("attaching primary drbds to new secondary (standalone => connected)")
-    failures = []
     for idx, dev in enumerate(instance.disks):
       info("attaching primary drbd for disk/%d to new secondary node" % idx)
       # since the attach is smart, it's enough to 'find' the device,
