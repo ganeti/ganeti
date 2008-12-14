@@ -38,13 +38,11 @@ from ganeti import constants
 from ganeti import objects
 from ganeti import ssconf
 
-def _InitSSHSetup(node):
+def _InitSSHSetup():
   """Setup the SSH configuration for the cluster.
 
   This generates a dsa keypair for root, adds the pub key to the
   permitted hosts and adds the hostkey to its own known hosts.
-
-  @param node: the name of this host as an FQDN
 
   """
   priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
@@ -192,7 +190,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
   sshkey = sshline.split(" ")[1]
 
   utils.AddHostToEtcHosts(hostname.name)
-  _InitSSHSetup(hostname.name)
+  _InitSSHSetup()
 
   # init of cluster config file
   cluster_config = objects.Cluster(
