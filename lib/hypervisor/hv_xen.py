@@ -43,8 +43,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
   """
 
-  @staticmethod
-  def _WriteConfigFile(instance, block_devices, extra_args):
+  @classmethod
+  def _WriteConfigFile(cls, instance, block_devices, extra_args):
     """Write the Xen config file for the instance.
 
     """
@@ -441,9 +441,9 @@ class XenHvmHypervisor(XenHypervisor):
 
     iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
     if iso_path and not os.path.isabs(iso_path):
-        raise errors.HypervisorError("The path to the HVM CDROM image must"
-                                     " be an absolute path or None, not %s" %
-                                     iso_path)
+      raise errors.HypervisorError("The path to the HVM CDROM image must"
+                                   " be an absolute path or None, not %s" %
+                                   iso_path)
 
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
