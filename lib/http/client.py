@@ -274,7 +274,8 @@ class HttpClientRequestExecutor(http.HttpBase):
     if self.request.headers:
       send_headers.update(self.request.headers)
 
-    send_headers[http.HTTP_HOST] = "%s:%s" % (self.request.host, self.request.port)
+    send_headers[http.HTTP_HOST] = "%s:%s" % (self.request.host,
+                                              self.request.port)
 
     # Response message
     msg = http.HttpMessage()
@@ -284,7 +285,8 @@ class HttpClientRequestExecutor(http.HttpBase):
     # TODO: For keep-alive, change to HTTP/1.1
     msg.start_line = \
       http.HttpClientToServerStartLine(method=self.request.method.upper(),
-                                       path=self.request.path, version=http.HTTP_1_0)
+                                       path=self.request.path,
+                                       version=http.HTTP_1_0)
     msg.headers = send_headers
     msg.body = self.request.post_data
 
