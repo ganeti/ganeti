@@ -977,9 +977,7 @@ def RemoveBlockDevice(disk):
 
   """
   try:
-    # since we are removing the device, allow a partial match
-    # this allows removal of broken mirrors
-    rdev = _RecursiveFindBD(disk, allow_partial=True)
+    rdev = _RecursiveFindBD(disk)
   except errors.BlockDeviceError, err:
     # probably can't attach
     logging.info("Can't attach to device %s in remove", disk)
@@ -1109,7 +1107,7 @@ def MirrorAddChildren(parent_cdev, new_cdevs):
   @return: the success of the operation
 
   """
-  parent_bdev = _RecursiveFindBD(parent_cdev, allow_partial=True)
+  parent_bdev = _RecursiveFindBD(parent_cdev)
   if parent_bdev is None:
     logging.error("Can't find parent device")
     return False
@@ -1176,17 +1174,13 @@ def GetMirrorStatus(disks):
   return stats
 
 
-def _RecursiveFindBD(disk, allow_partial=False):
+def _RecursiveFindBD(disk):
   """Check if a device is activated.
 
   If so, return informations about the real device.
 
   @type disk: L{objects.Disk}
   @param disk: the disk object we need to find
-  @type allow_partial: boolean
-  @param allow_partial: if true, don't abort the find if a
-      child of the device can't be found; this is intended
-      to be used when repairing mirrors
 
   @return: None if the device can't be found,
       otherwise the device instance
