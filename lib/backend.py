@@ -89,7 +89,7 @@ def _Decompress(data):
     raise AssertionError("Unknown data encoding")
 
 
-def _CleanDirectory(path, exclude=[]):
+def _CleanDirectory(path, exclude=None):
   """Removes all regular files in a directory.
 
   @type path: str
@@ -97,14 +97,15 @@ def _CleanDirectory(path, exclude=[]):
   @type exclude: list
   @param exclude: list of files to be excluded, defaults
       to the empty list
-  @rtype: None
 
   """
   if not os.path.isdir(path):
     return
-
-  # Normalize excluded paths
-  exclude = [os.path.normpath(i) for i in exclude]
+  if exclude is None:
+    exclude = []
+  else:
+    # Normalize excluded paths
+    exclude = [os.path.normpath(i) for i in exclude]
 
   for rel_name in utils.ListVisibleFiles(path):
     full_name = os.path.normpath(os.path.join(path, rel_name))
