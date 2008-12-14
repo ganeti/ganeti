@@ -130,9 +130,11 @@ class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
     # message-body, [...]"
 
     return (http.HttpMessageWriter.HasMessageBody(self) and
-            (request_method is not None and request_method != http.HTTP_HEAD) and
+            (request_method is not None and
+             request_method != http.HTTP_HEAD) and
             response_code >= http.HTTP_OK and
-            response_code not in (http.HTTP_NO_CONTENT, http.HTTP_NOT_MODIFIED))
+            response_code not in (http.HTTP_NO_CONTENT,
+                                  http.HTTP_NOT_MODIFIED))
 
 
 class _HttpClientToServerMessageReader(http.HttpMessageReader):
