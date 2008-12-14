@@ -2504,7 +2504,7 @@ def _ShutdownInstanceDisks(lu, instance, ignore_primary=False):
   return result
 
 
-def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor):
+def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   """Checks if a node has enough free memory.
 
   This function check if a given node has the needed amount of free
@@ -2520,13 +2520,13 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor):
   @param reason: string to use in the error message
   @type requested: C{int}
   @param requested: the amount of memory in MiB to check for
-  @type hypervisor: C{str}
-  @param hypervisor: the hypervisor to ask for memory stats
+  @type hypervisor_name: C{str}
+  @param hypervisor_name: the hypervisor to ask for memory stats
   @raise errors.OpPrereqError: if the node doesn't have enough memory, or
       we cannot check the node
 
   """
-  nodeinfo = lu.rpc.call_node_info([node], lu.cfg.GetVGName(), hypervisor)
+  nodeinfo = lu.rpc.call_node_info([node], lu.cfg.GetVGName(), hypervisor_name)
   nodeinfo[node].Raise()
   free_mem = nodeinfo[node].data.get('memory_free')
   if not isinstance(free_mem, int):
