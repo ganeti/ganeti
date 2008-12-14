@@ -2011,7 +2011,6 @@ class LUAddNode(LogicalUnit):
                                    " based ping to noded port")
 
     cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-    node_info = self.cfg.GetAllNodesInfo().values()
     mc_now, _ = self.cfg.GetMasterCandidateStats()
     master_candidate = mc_now < cp_size
 
@@ -2178,7 +2177,6 @@ class LUSetNodeParams(LogicalUnit):
         raise errors.OpPrereqError("The master node has to be a"
                                    " master candidate and online")
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-      node_info = self.cfg.GetAllNodesInfo().values()
       num_candidates, _ = self.cfg.GetMasterCandidateStats()
       if num_candidates <= cp_size:
         msg = ("Not enough master candidates (desired"
