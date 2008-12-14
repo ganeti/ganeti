@@ -1006,7 +1006,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   """
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-  sucess = False
+  success = False
 
   if source is not None:
     try:
