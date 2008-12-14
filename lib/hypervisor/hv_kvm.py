@@ -57,9 +57,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     hv_base.BaseHypervisor.__init__(self)
     # Let's make sure the directories we need exist, even if the RUN_DIR lives
     # in a tmpfs filesystem or has been otherwise wiped out.
-    for dir in self._DIRS:
-      if not os.path.exists(dir):
-        os.mkdir(dir)
+    for mydir in self._DIRS:
+      if not os.path.exists(mydir):
+        os.mkdir(mydir)
 
   def _WriteNetScript(self, instance, seq, nic):
     """Write a script to connect a net interface to the proper bridge.
@@ -111,8 +111,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     result = []
     for name in os.listdir(self._PIDS_DIR):
-      file = "%s/%s" % (self._PIDS_DIR, name)
-      if utils.IsProcessAlive(utils.ReadPidFile(file)):
+      filename = "%s/%s" % (self._PIDS_DIR, name)
+      if utils.IsProcessAlive(utils.ReadPidFile(filename)):
         result.append(name)
     return result
 
@@ -163,8 +163,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     data = []
     for name in os.listdir(self._PIDS_DIR):
-      file = "%s/%s" % (self._PIDS_DIR, name)
-      if utils.IsProcessAlive(utils.ReadPidFile(file)):
+      filename = "%s/%s" % (self._PIDS_DIR, name)
+      if utils.IsProcessAlive(utils.ReadPidFile(filename)):
         data.append(self.GetInstanceInfo(name))
 
     return data
@@ -249,8 +249,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name))
 
-    for file in temp_files:
-      utils.RemoveFile(file)
+    for filename in temp_files:
+      utils.RemoveFile(filename)
 
   def StopInstance(self, instance, force=False):
     """Stop an instance.
