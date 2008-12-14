@@ -807,7 +807,6 @@ def ShutdownInstance(instance):
     return False
 
   # test every 10secs for 2min
-  shutdown_ok = False
 
   time.sleep(1)
   for dummy in range(11):
