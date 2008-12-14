@@ -364,7 +364,7 @@ class R_2_instances_name_tags(baserlib.R_Generic):
 
     """
     return baserlib._Tags_PUT(constants.TAG_INSTANCE,
-                               self.post_data, name=self.items[0])
+                              self.req.request_post_data, name=self.items[0])
 
   def DELETE(self):
     """Delete a tag.
