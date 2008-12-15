@@ -252,6 +252,15 @@ class _HttpServerRequestExecutor(object):
       request_msg_reader = None
       force_close = True
       try:
+        # Do the secret SSL handshake
+        if self.server.using_ssl:
+          self.sock.set_accept_state()
+          try:
+            http.Handshake(self.poller, self.sock, self.WRITE_TIMEOUT)
+          except http.HttpSessionHandshakeUnexpectedEOF:
+            # Ignore rest
+            return
+
         try:
           try:
             request_msg_reader = self._ReadRequest()

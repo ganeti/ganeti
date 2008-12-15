@@ -264,6 +264,14 @@ class HttpClientRequestExecutor(http.HttpBase):
     # keep-alive settings, see "man 7 tcp" for TCP_KEEPCNT, TCP_KEEPIDLE and
     # TCP_KEEPINTVL.
 
+    # Do the secret SSL handshake
+    if self.using_ssl:
+      self.sock.set_connect_state()
+      try:
+        http.Handshake(self.poller, self.sock, self.WRITE_TIMEOUT)
+      except http.HttpSessionHandshakeUnexpectedEOF:
+        raise http.HttpError("Server closed connection during SSL handshake")
+
   def _SendRequest(self):
     """Sends request to server.
 
