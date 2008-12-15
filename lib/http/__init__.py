@@ -652,6 +652,8 @@ class HttpMessageReader(object):
     buf = ""
     eof = False
     while self.parser_status != self.PS_COMPLETE:
+      # TODO: Don't read more than necessary (Content-Length), otherwise
+      # data might be lost and/or an error could occur
       data = SocketOperation(self.poller, sock, SOCKOP_RECV, SOCK_BUF_SIZE,
                              read_timeout)
 
@@ -698,6 +700,7 @@ class HttpMessageReader(object):
     @return: Updated receive buffer
 
     """
+    # TODO: Use offset instead of slicing when possible
     if self.parser_status == self.PS_START_LINE:
       # Expect start line
       while True:
@@ -763,6 +766,8 @@ class HttpMessageReader(object):
       # [...] 5. By the server closing the connection. (Closing the connection
       # cannot be used to indicate the end of a request body, since that would
       # leave no possibility for the server to send back a response.)"
+      #
+      # TODO: Error when buffer length > Content-Length header
       if (eof or
           self.content_length is None or
           (self.content_length is not None and
