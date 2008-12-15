@@ -81,6 +81,15 @@ class HttpError(Exception):
   """
 
 
+class HttpConnectionClosed(Exception):
+  """Internal exception for a closed connection.
+
+  This should only be used for internal error reporting. Only use
+  it if there's no other way to report this condition.
+
+  """
+
+
 class HttpSocketTimeout(Exception):
   """Internal exception for socket timeouts.
 
@@ -276,6 +285,21 @@ def SocketOperation(poller, sock, op, arg1, timeout):
       except OpenSSL.SSL.WantX509LookupError:
         continue
 
+      except OpenSSL.SSL.ZeroReturnError, err:
+        # SSL Connection has been closed. In SSL 3.0 and TLS 1.0, this only
+        # occurs if a closure alert has occurred in the protocol, i.e. the
+        # connection has been closed cleanly. Note that this does not
+        # necessarily mean that the transport layer (e.g. a socket) has been
+        # closed.
+        if op == SOCKOP_SEND:
+          # Can happen during a renegotiation
+          raise HttpConnectionClosed(err.args)
+        elif op == SOCKOP_RECV:
+          return ""
+
+        # SSL_shutdown shouldn't return SSL_ERROR_ZERO_RETURN
+        raise socket.error(err.args)
+
       except OpenSSL.SSL.SysCallError, err:
         if op == SOCKOP_SEND:
           # arg1 is the data when writing
@@ -336,6 +360,7 @@ def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
 
   # Close the connection from our side
   try:
+    # We don't care about the return value, see NOTES in SSL_shutdown(3).
     SocketOperation(poller, sock, SOCKOP_SHUTDOWN, socket.SHUT_RDWR,
                     write_timeout)
   except HttpSocketTimeout:
