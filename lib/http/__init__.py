@@ -67,7 +67,8 @@ _SSL_UNEXPECTED_EOF = "Unexpected EOF"
 # Socket operations
 (SOCKOP_SEND,
  SOCKOP_RECV,
- SOCKOP_SHUTDOWN) = range(3)
+ SOCKOP_SHUTDOWN,
+ SOCKOP_HANDSHAKE) = range(4)
 
 # send/receive quantum
 SOCK_BUF_SIZE = 32768
@@ -86,6 +87,14 @@ class HttpConnectionClosed(Exception):
 
   This should only be used for internal error reporting. Only use
   it if there's no other way to report this condition.
+
+  """
+
+
+class HttpSessionHandshakeUnexpectedEOF(HttpError):
+  """Internal exception for errors during SSL handshake.
+
+  This should only be used for internal error reporting.
 
   """
 
@@ -213,7 +222,7 @@ def SocketOperation(poller, sock, op, arg1, timeout):
 
   """
   # TODO: event_poll/event_check/override
-  if op == SOCKOP_SEND:
+  if op in (SOCKOP_SEND, SOCKOP_HANDSHAKE):
     event_poll = select.POLLOUT
     event_check = select.POLLOUT
 
@@ -232,12 +241,17 @@ def SocketOperation(poller, sock, op, arg1, timeout):
   else:
     raise AssertionError("Invalid socket operation")
 
+  # Handshake is only supported by SSL sockets
+  if (op == SOCKOP_HANDSHAKE and
+      not isinstance(sock, OpenSSL.SSL.ConnectionType)):
+    return
+
   # No override by default
   event_override = 0
 
   while True:
     # Poll only for certain operations and when asked for by an override
-    if event_override or op in (SOCKOP_SEND, SOCKOP_RECV):
+    if event_override or op in (SOCKOP_SEND, SOCKOP_RECV, SOCKOP_HANDSHAKE):
       if event_override:
         wait_for_event = event_override
       else:
@@ -271,6 +285,9 @@ def SocketOperation(poller, sock, op, arg1, timeout):
             return sock.shutdown()
           else:
             return sock.shutdown(arg1)
+
+        elif op == SOCKOP_HANDSHAKE:
+          return sock.do_handshake()
 
       except OpenSSL.SSL.WantWriteError:
         # OpenSSL wants to write, poll for POLLOUT
@@ -308,9 +325,13 @@ def SocketOperation(poller, sock, op, arg1, timeout):
             # and can be ignored
             return 0
 
-        elif op == SOCKOP_RECV:
-          if err.args == (-1, _SSL_UNEXPECTED_EOF):
+        if err.args == (-1, _SSL_UNEXPECTED_EOF):
+          if op == SOCKOP_RECV:
             return ""
+          elif op == SOCKOP_HANDSHAKE:
+            # Can happen if peer disconnects directly after the connection is
+            # opened.
+            raise HttpSessionHandshakeUnexpectedEOF(err.args)
 
         raise socket.error(err.args)
 
@@ -367,6 +388,25 @@ def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
     raise HttpError("Timeout while shutting down connection")
   except socket.error, err:
     raise HttpError("Error while shutting down connection: %s" % err)
+
+
+def Handshake(poller, sock, write_timeout):
+  """Shakes peer's hands.
+
+  @type poller: select.Poller
+  @param poller: Poller object as created by select.poll()
+  @type sock: socket
+  @param sock: Socket to be shut down
+  @type write_timeout: float
+  @param write_timeout: Write timeout for handshake
+
+  """
+  try:
+    return SocketOperation(poller, sock, SOCKOP_HANDSHAKE, None, write_timeout)
+  except HttpSocketTimeout:
+    raise HttpError("Timeout during SSL handshake")
+  except socket.error, err:
+    raise HttpError("Error in SSL handshake: %s" % err)
 
 
 class HttpSslParams(object):
