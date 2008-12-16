@@ -428,7 +428,7 @@ HVC_DEFAULTS = {
         HV_PAE: True,
         },
     HT_KVM: {
-        HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
+        HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
         HV_INITRD_PATH: None,
         HV_ACPI: True,
         },
