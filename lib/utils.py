@@ -203,7 +203,18 @@ def _RunCmdPipe(cmd, env, via_shell, cwd):
     fcntl.fcntl(fd, fcntl.F_SETFL, status | os.O_NONBLOCK)
 
   while fdmap:
-    for fd, event in poller.poll():
+    try:
+      pollresult = poller.poll()
+    except EnvironmentError, eerr:
+      if eerr.errno == errno.EINTR:
+        continue
+      raise
+    except select.error, serr:
+      if serr[0] == errno.EINTR:
+        continue
+      raise
+
+    for fd, event in pollresult:
       if event & select.POLLIN or event & select.POLLPRI:
         data = fdmap[fd][1].read()
         # no data from read signifies EOF (the same as POLLHUP)
