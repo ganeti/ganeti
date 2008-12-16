@@ -256,6 +256,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Stop an instance.
 
     """
+    socat_bin = constants.SOCAT_PATH
     pid_file = self._PIDS_DIR + "/%s" % instance.name
     pid = utils.ReadPidFile(pid_file)
     if pid > 0 and utils.IsProcessAlive(pid):
@@ -264,7 +265,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         # This only works if the instance os has acpi support
         monitor_socket = '%s/%s.monitor'  % (self._CTRL_DIR, instance.name)
-        socat = 'socat -u STDIN UNIX-CONNECT:%s' % monitor_socket
+        socat = '%s -u STDIN UNIX-CONNECT:%s' % (socat_bin, monitor_socket)
         command = "echo 'system_powerdown' | %s" % socat
         result = utils.RunCmd(command)
         if result.failed:
@@ -352,6 +353,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     if not os.path.exists(constants.KVM_PATH):
       return "The kvm binary ('%s') does not exist." % constants.KVM_PATH
+    if not os.path.exists(constants.SOCAT_PATH):
+      return "The socat binary ('%s') does not exist." % constants.SOCAT_PATH
+
 
   @classmethod
   def CheckParameterSyntax(cls, hvparams):

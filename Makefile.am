@@ -294,6 +294,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "FILE_STORAGE_DIR = '$(FILE_STORAGE_DIR)'"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
+	  echo "SOCAT_PATH = '$(SOCAT_PATH)'"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile stamp-directories

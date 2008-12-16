@@ -99,6 +99,16 @@ AC_ARG_WITH([kvm-path],
   [kvm_path="/usr/bin/kvm"])
 AC_SUBST(KVM_PATH, $kvm_path)
 
+# --with-socat-path=...
+AC_ARG_WITH([socat-path],
+  [AS_HELP_STRING([--with-socat-path=PATH],
+    [absolute path to the socat binary]
+    [ (default is /usr/bin/socat)]
+  )],
+  [socat_path="$withval"],
+  [socat_path="/usr/bin/socat"])
+AC_SUBST(SOCAT_PATH, $socat_path)
+
 # Check common programs
 AC_PROG_INSTALL
 AC_PROG_LN_S
