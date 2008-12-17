@@ -1469,10 +1469,24 @@ def KillProcess(pid, signal_=signal.SIGTERM, timeout=30,
   _helper(pid, signal_, waitpid)
   if timeout <= 0:
     return
+
+  # Wait up to $timeout seconds
   end = time.time() + timeout
+  wait = 0.01
   while time.time() < end and IsProcessAlive(pid):
-    time.sleep(0.1)
+    try:
+      (result_pid, _) = os.waitpid(pid, os.WNOHANG)
+      if result_pid > 0:
+        break
+    except OSError:
+      pass
+    time.sleep(wait)
+    # Make wait time longer for next try
+    if wait < 0.1:
+      wait *= 1.5
+
   if IsProcessAlive(pid):
+    # Kill process if it's still alive
     _helper(pid, signal.SIGKILL, waitpid)
 
 
