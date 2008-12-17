@@ -59,11 +59,15 @@ DEFAULT_ERROR_MESSAGE = """\
 """
 
 
-def _DateTimeHeader():
+def _DateTimeHeader(gmnow=None):
   """Return the current date and time formatted for a message header.
 
+  The time MUST be in the GMT timezone.
+
   """
-  (year, month, day, hh, mm, ss, wd, _, _) = time.gmtime()
+  if gmnow is None:
+    gmnow = time.gmtime()
+  (year, month, day, hh, mm, ss, wd, _, _) = gmnow
   return ("%s, %02d %3s %4d %02d:%02d:%02d GMT" %
           (WEEKDAYNAME[wd], day, MONTHNAME[month], year, hh, mm, ss))
 
