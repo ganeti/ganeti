@@ -687,6 +687,9 @@ def FormatError(err):
   elif isinstance(err, errors.JobQueueDrainError):
     obuf.write("Failure: the job queue is marked for drain and doesn't"
                " accept new requests\n")
+  elif isinstance(err, errors.JobQueueFull):
+    obuf.write("Failure: the job queue is full and doesn't accept new"
+               " job submissions until old jobs are archived\n")
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, luxi.NoMasterError):

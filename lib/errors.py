@@ -253,6 +253,14 @@ class JobQueueDrainError(JobQueueError):
   """
 
 
+class JobQueueFull(JobQueueError):
+  """Job queue full error.
+
+  Raised when job queue size reached its hard limit.
+
+  """
+
+
 # errors should be added above
 
 
