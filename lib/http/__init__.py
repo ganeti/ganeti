@@ -281,11 +281,9 @@ class HttpJsonConverter:
     return serializer.LoadJson(data)
 
 
-def WaitForSocketCondition(poller, sock, event, timeout):
+def WaitForSocketCondition(sock, event, timeout):
   """Waits for a condition to occur on the socket.
 
-  @type poller: select.Poller
-  @param poller: Poller object as created by select.poll()
   @type sock: socket
   @param sock: Wait for events on this socket
   @type event: int
@@ -303,6 +301,7 @@ def WaitForSocketCondition(poller, sock, event, timeout):
     # Poller object expects milliseconds
     timeout *= 1000
 
+  poller = select.poll()
   poller.register(sock, event)
   try:
     while True:
@@ -320,14 +319,12 @@ def WaitForSocketCondition(poller, sock, event, timeout):
     poller.unregister(sock)
 
 
-def SocketOperation(poller, sock, op, arg1, timeout):
+def SocketOperation(sock, op, arg1, timeout):
   """Wrapper around socket functions.
 
   This function abstracts error handling for socket operations, especially
   for the complicated interaction with OpenSSL.
 
-  @type poller: select.Poller
-  @param poller: Poller object as created by select.poll()
   @type sock: socket
   @param sock: Socket for the operation
   @type op: int
@@ -375,7 +372,7 @@ def SocketOperation(poller, sock, op, arg1, timeout):
       else:
         wait_for_event = event_poll
 
-      event = WaitForSocketCondition(poller, sock, wait_for_event, timeout)
+      event = WaitForSocketCondition(sock, wait_for_event, timeout)
       if event is None:
         raise HttpSocketTimeout()
 
@@ -464,12 +461,9 @@ def SocketOperation(poller, sock, op, arg1, timeout):
       raise
 
 
-def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
-                       force):
+def ShutdownConnection(sock, close_timeout, write_timeout, msgreader, force):
   """Closes the connection.
 
-  @type poller: select.Poller
-  @param poller: Poller object as created by select.poll()
   @type sock: socket
   @param sock: Socket to be shut down
   @type close_timeout: float
@@ -484,14 +478,12 @@ def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
                 for peer
 
   """
-  poller = select.poll()
-
   #print msgreader.peer_will_close, force
   if msgreader and msgreader.peer_will_close and not force:
     # Wait for peer to close
     try:
       # Check whether it's actually closed
-      if not SocketOperation(poller, sock, SOCKOP_RECV, 1, close_timeout):
+      if not SocketOperation(sock, SOCKOP_RECV, 1, close_timeout):
         return
     except (socket.error, HttpError, HttpSocketTimeout):
       # Ignore errors at this stage
@@ -500,7 +492,7 @@ def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
   # Close the connection from our side
   try:
     # We don't care about the return value, see NOTES in SSL_shutdown(3).
-    SocketOperation(poller, sock, SOCKOP_SHUTDOWN, socket.SHUT_RDWR,
+    SocketOperation(sock, SOCKOP_SHUTDOWN, socket.SHUT_RDWR,
                     write_timeout)
   except HttpSocketTimeout:
     raise HttpError("Timeout while shutting down connection")
@@ -510,11 +502,9 @@ def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
       raise HttpError("Error while shutting down connection: %s" % err)
 
 
-def Handshake(poller, sock, write_timeout):
+def Handshake(sock, write_timeout):
   """Shakes peer's hands.
 
-  @type poller: select.Poller
-  @param poller: Poller object as created by select.poll()
   @type sock: socket
   @param sock: Socket to be shut down
   @type write_timeout: float
@@ -522,7 +512,7 @@ def Handshake(poller, sock, write_timeout):
 
   """
   try:
-    return SocketOperation(poller, sock, SOCKOP_HANDSHAKE, None, write_timeout)
+    return SocketOperation(sock, SOCKOP_HANDSHAKE, None, write_timeout)
   except HttpSocketTimeout:
     raise HttpError("Timeout during SSL handshake")
   except socket.error, err:
@@ -672,16 +662,13 @@ class HttpMessageWriter(object):
 
     buf = self._FormatMessage()
 
-    poller = select.poll()
-
     pos = 0
     end = len(buf)
     while pos < end:
       # Send only SOCK_BUF_SIZE bytes at a time
       data = buf[pos:(pos + SOCK_BUF_SIZE)]
 
-      sent = SocketOperation(poller, sock, SOCKOP_SEND, data,
-                             write_timeout)
+      sent = SocketOperation(sock, SOCKOP_SEND, data, write_timeout)
 
       # Remove sent bytes
       pos += sent
@@ -761,7 +748,6 @@ class HttpMessageReader(object):
     self.sock = sock
     self.msg = msg
 
-    self.poller = select.poll()
     self.start_line_buffer = None
     self.header_buffer = StringIO()
     self.body_buffer = StringIO()
@@ -774,8 +760,7 @@ class HttpMessageReader(object):
     while self.parser_status != self.PS_COMPLETE:
       # TODO: Don't read more than necessary (Content-Length), otherwise
       # data might be lost and/or an error could occur
-      data = SocketOperation(self.poller, sock, SOCKOP_RECV, SOCK_BUF_SIZE,
-                             read_timeout)
+      data = SocketOperation(sock, SOCKOP_RECV, SOCK_BUF_SIZE, read_timeout)
 
       if data:
         buf += data

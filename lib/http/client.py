@@ -167,8 +167,6 @@ class HttpClientRequestExecutor(http.HttpBase):
     http.HttpBase.__init__(self)
     self.request = req
 
-    self.poller = select.poll()
-
     try:
       # TODO: Implement connection caching/keep-alive
       self.sock = self._CreateSocket(req.ssl_params,
@@ -194,9 +192,9 @@ class HttpClientRequestExecutor(http.HttpBase):
       finally:
         # TODO: Keep-alive is not supported, always close connection
         force_close = True
-        http.ShutdownConnection(self.poller, self.sock,
-                                self.CLOSE_TIMEOUT, self.WRITE_TIMEOUT,
-                                response_msg_reader, force_close)
+        http.ShutdownConnection(self.sock, self.CLOSE_TIMEOUT,
+                                self.WRITE_TIMEOUT, response_msg_reader,
+                                force_close)
 
       self.sock.close()
       self.sock = None
@@ -246,8 +244,8 @@ class HttpClientRequestExecutor(http.HttpBase):
 
     if not connected:
       # Wait for connection
-      event = http.WaitForSocketCondition(self.poller, self.sock,
-                                          select.POLLOUT, self.CONNECT_TIMEOUT)
+      event = http.WaitForSocketCondition(self.sock, select.POLLOUT,
+                                          self.CONNECT_TIMEOUT)
       if event is None:
         raise http.HttpError("Timeout while connecting to server")
 
@@ -268,7 +266,7 @@ class HttpClientRequestExecutor(http.HttpBase):
     if self.using_ssl:
       self.sock.set_connect_state()
       try:
-        http.Handshake(self.poller, self.sock, self.WRITE_TIMEOUT)
+        http.Handshake(self.sock, self.WRITE_TIMEOUT)
       except http.HttpSessionHandshakeUnexpectedEOF:
         raise http.HttpError("Server closed connection during SSL handshake")
 

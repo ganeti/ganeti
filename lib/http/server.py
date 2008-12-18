@@ -236,8 +236,6 @@ class _HttpServerRequestExecutor(object):
     self.sock = sock
     self.client_addr = client_addr
 
-    self.poller = select.poll()
-
     self.request_msg = http.HttpMessage()
     self.response_msg = http.HttpMessage()
 
@@ -260,7 +258,7 @@ class _HttpServerRequestExecutor(object):
         if self.server.using_ssl:
           self.sock.set_accept_state()
           try:
-            http.Handshake(self.poller, self.sock, self.WRITE_TIMEOUT)
+            http.Handshake(self.sock, self.WRITE_TIMEOUT)
           except http.HttpSessionHandshakeUnexpectedEOF:
             # Ignore rest
             return
@@ -278,8 +276,7 @@ class _HttpServerRequestExecutor(object):
           # Try to send a response
           self._SendResponse()
       finally:
-        http.ShutdownConnection(self.poller, sock,
-                                self.CLOSE_TIMEOUT, self.WRITE_TIMEOUT,
+        http.ShutdownConnection(sock, self.CLOSE_TIMEOUT, self.WRITE_TIMEOUT,
                                 request_msg_reader, force_close)
 
       self.sock.close()
