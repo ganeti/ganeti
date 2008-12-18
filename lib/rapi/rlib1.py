@@ -232,6 +232,6 @@ class R_os(baserlib.R_Generic):
     diagnose_data = ganeti.cli.SubmitOpCode(op)
 
     if not isinstance(diagnose_data, list):
-      raise http.HttpInternalError(message="Can't get OS list")
+      raise http.HttpInternalServerError(message="Can't get OS list")
 
     return [row[0] for row in diagnose_data if row[1]]

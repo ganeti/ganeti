@@ -231,7 +231,7 @@ class HttpPreconditionFailed(HttpException):
   code = 412
 
 
-class HttpInternalError(HttpException):
+class HttpInternalServerError(HttpException):
   """500 Internal Server Error
 
   RFC2616, 10.5.1: The server encountered an unexpected condition which

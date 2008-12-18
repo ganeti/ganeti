@@ -316,10 +316,10 @@ class _HttpServerRequestExecutor(object):
       raise
     except Exception, err:
       logging.exception("Caught exception")
-      raise http.HttpInternalError(message=str(err))
+      raise http.HttpInternalServerError(message=str(err))
     except:
       logging.exception("Unknown exception")
-      raise http.HttpInternalError(message="Unknown error")
+      raise http.HttpInternalServerError(message="Unknown error")
 
     # TODO: Content-type
     encoder = http.HttpJsonConverter()
