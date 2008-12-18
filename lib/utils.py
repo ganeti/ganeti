@@ -285,6 +285,32 @@ def RemoveFile(filename):
       raise
 
 
+def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
+  """Renames a file.
+
+  @type old: string
+  @param old: Original path
+  @type new: string
+  @param new: New path
+  @type mkdir: bool
+  @param mkdir: Whether to create target directory if it doesn't exist
+  @type mkdir_mode: int
+  @param mkdir_mode: Mode for newly created directories
+
+  """
+  try:
+    return os.rename(old, new)
+  except OSError, err:
+    # In at least one use case of this function, the job queue, directory
+    # creation is very rare. Checking for the directory before renaming is not
+    # as efficient.
+    if mkdir and err.errno == errno.ENOENT:
+      # Create directory and try again
+      os.makedirs(os.path.dirname(new), mkdir_mode)
+      return os.rename(old, new)
+    raise
+
+
 def _FingerprintFile(filename):
   """Compute the fingerprint of a file.
 

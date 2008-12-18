@@ -277,6 +277,36 @@ class TestRemoveFile(unittest.TestCase):
       self.fail("File '%s' not removed" % symlink)
 
 
+class TestRename(unittest.TestCase):
+  """Test case for RenameFile"""
+
+  def setUp(self):
+    """Create a temporary directory"""
+    self.tmpdir = tempfile.mkdtemp()
+    self.tmpfile = os.path.join(self.tmpdir, "test1")
+
+    # Touch the file
+    open(self.tmpfile, "w").close()
+
+  def tearDown(self):
+    """Remove temporary directory"""
+    shutil.rmtree(self.tmpdir)
+
+  def testSimpleRename1(self):
+    """Simple rename 1"""
+    utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "xyz"))
+
+  def testSimpleRename2(self):
+    """Simple rename 2"""
+    utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "xyz"),
+                     mkdir=True)
+
+  def testRenameMkdir(self):
+    """Rename with mkdir"""
+    utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "test/xyz"),
+                     mkdir=True)
+
+
 class TestCheckdict(unittest.TestCase):
   """Test case for the CheckDict function"""
 
