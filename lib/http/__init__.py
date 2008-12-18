@@ -61,6 +61,10 @@ HTTP_CONTENT_TYPE = "Content-Type"
 HTTP_CONTENT_LENGTH = "Content-Length"
 HTTP_CONNECTION = "Connection"
 HTTP_KEEP_ALIVE = "Keep-Alive"
+HTTP_WWW_AUTHENTICATE = "WWW-Authenticate"
+HTTP_AUTHORIZATION = "Authorization"
+HTTP_AUTHENTICATION_INFO = "Authentication-Info"
+HTTP_ALLOW = "Allow"
 
 _SSL_UNEXPECTED_EOF = "Unexpected EOF"
 
@@ -118,38 +122,152 @@ class HttpException(Exception):
 
 
 class HttpBadRequest(HttpException):
+  """400 Bad Request
+
+  RFC2616, 10.4.1: The request could not be understood by the server due to
+  malformed syntax. The client SHOULD NOT repeat the request without
+  modifications.
+
+  """
   code = 400
 
 
+class HttpUnauthorized(HttpException):
+  """401 Unauthorized
+
+  RFC2616, section 10.4.2: The request requires user authentication. The
+  response MUST include a WWW-Authenticate header field (section 14.47)
+  containing a challenge applicable to the requested resource.
+
+  """
+  code = 401
+
+
 class HttpForbidden(HttpException):
+  """403 Forbidden
+
+  RFC2616, 10.4.4: The server understood the request, but is refusing to
+  fulfill it.  Authorization will not help and the request SHOULD NOT be
+  repeated.
+
+  """
   code = 403
 
 
 class HttpNotFound(HttpException):
+  """404 Not Found
+
+  RFC2616, 10.4.5: The server has not found anything matching the Request-URI.
+  No indication is given of whether the condition is temporary or permanent.
+
+  """
   code = 404
 
 
+class HttpMethodNotAllowed(HttpException):
+  """405 Method Not Allowed
+
+  RFC2616, 10.4.6: The method specified in the Request-Line is not allowed for
+  the resource identified by the Request-URI. The response MUST include an
+  Allow header containing a list of valid methods for the requested resource.
+
+  """
+  code = 405
+
+
+class HttpRequestTimeout(HttpException):
+  """408 Request Timeout
+
+  RFC2616, 10.4.9: The client did not produce a request within the time that
+  the server was prepared to wait. The client MAY repeat the request without
+  modifications at any later time.
+
+  """
+  code = 408
+
+
+class HttpConflict(HttpException):
+  """409 Conflict
+
+  RFC2616, 10.4.10: The request could not be completed due to a conflict with
+  the current state of the resource. This code is only allowed in situations
+  where it is expected that the user might be able to resolve the conflict and
+  resubmit the request.
+
+  """
+  code = 409
+
+
 class HttpGone(HttpException):
+  """410 Gone
+
+  RFC2616, 10.4.11: The requested resource is no longer available at the server
+  and no forwarding address is known. This condition is expected to be
+  considered permanent.
+
+  """
   code = 410
 
 
 class HttpLengthRequired(HttpException):
+  """411 Length Required
+
+  RFC2616, 10.4.12: The server refuses to accept the request without a defined
+  Content-Length. The client MAY repeat the request if it adds a valid
+  Content-Length header field containing the length of the message-body in the
+  request message.
+
+  """
   code = 411
 
 
+class HttpPreconditionFailed(HttpException):
+  """412 Precondition Failed
+
+  RFC2616, 10.4.13: The precondition given in one or more of the request-header
+  fields evaluated to false when it was tested on the server.
+
+  """
+  code = 412
+
+
 class HttpInternalError(HttpException):
+  """500 Internal Server Error
+
+  RFC2616, 10.5.1: The server encountered an unexpected condition which
+  prevented it from fulfilling the request.
+
+  """
   code = 500
 
 
 class HttpNotImplemented(HttpException):
+  """501 Not Implemented
+
+  RFC2616, 10.5.2: The server does not support the functionality required to
+  fulfill the request.
+
+  """
   code = 501
 
 
 class HttpServiceUnavailable(HttpException):
+  """503 Service Unavailable
+
+  RFC2616, 10.5.4: The server is currently unable to handle the request due to
+  a temporary overloading or maintenance of the server.
+
+  """
   code = 503
 
 
 class HttpVersionNotSupported(HttpException):
+  """505 HTTP Version Not Supported
+
+  RFC2616, 10.5.6: The server does not support, or refuses to support, the HTTP
+  protocol version that was used in the request message.
+
+  """
   code = 505
 
 
