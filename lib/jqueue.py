@@ -1171,7 +1171,7 @@ class JobQueue(object):
 
   @utils.LockedMethod
   @_RequireOpenQueue
-  def AutoArchiveJobs(self, age):
+  def AutoArchiveJobs(self, age, timeout):
     """Archives all jobs based on age.
 
     The method will archive all jobs which are older than the age
@@ -1186,22 +1186,36 @@ class JobQueue(object):
     logging.info("Archiving jobs with age more than %s seconds", age)
 
     now = time.time()
-    for job_id in self._GetJobIDsUnlocked(archived=False):
+    end_time = now + timeout
+    archived_count = 0
+    last_touched = 0
+
+    all_job_ids = self._GetJobIDsUnlocked(archived=False)
+    for idx, job_id in enumerate(all_job_ids):
+      last_touched = idx
+
+      if time.time() > end_time:
+        break
+
       # Returns None if the job failed to load
       job = self._LoadJobUnlocked(job_id)
-      if not job:
-        continue
-
-      if job.end_timestamp is None:
-        if job.start_timestamp is None:
-          job_age = job.received_timestamp
+      if job:
+        if job.end_timestamp is None:
+          if job.start_timestamp is None:
+            job_age = job.received_timestamp
+          else:
+            job_age = job.start_timestamp
         else:
-          job_age = job.start_timestamp
-      else:
-        job_age = job.end_timestamp
+          job_age = job.end_timestamp
 
-      if age == -1 or now - job_age[0] > age:
-        self._ArchiveJobUnlocked(job)
+        if age == -1 or now - job_age[0] > age:
+          archived = self._ArchiveJobUnlocked(job)
+          if archived:
+            archived_count += 1
+            continue
+
+
+    return (archived_count, len(all_job_ids) - last_touched - 1)
 
   def _GetJobInfoUnlocked(self, job, fields):
     """Returns information about a job.

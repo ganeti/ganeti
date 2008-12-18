@@ -221,8 +221,8 @@ class ClientOps:
       return queue.ArchiveJob(job_id)
 
     elif method == luxi.REQ_AUTOARCHIVE_JOBS:
-      age = args
-      return queue.AutoArchiveJobs(age)
+      (age, timeout) = args
+      return queue.AutoArchiveJobs(age, timeout)
 
     elif method == luxi.REQ_WAIT_FOR_JOB_CHANGE:
       (job_id, fields, prev_job_info, prev_log_serial, timeout) = args

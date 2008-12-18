@@ -156,7 +156,9 @@ def AutoArchiveJobs(opts, args):
   else:
     age = ParseTimespec(age)
 
-  client.AutoArchiveJobs(age)
+  (archived_count, jobs_left) = client.AutoArchiveJobs(age)
+  ToStdout("Archived %s jobs, %s unchecked left", archived_count, jobs_left)
+
   return 0
 
 
