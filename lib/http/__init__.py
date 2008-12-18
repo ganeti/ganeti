@@ -387,7 +387,9 @@ def ShutdownConnection(poller, sock, close_timeout, write_timeout, msgreader,
   except HttpSocketTimeout:
     raise HttpError("Timeout while shutting down connection")
   except socket.error, err:
-    raise HttpError("Error while shutting down connection: %s" % err)
+    # Ignore ENOTCONN
+    if not (err.args and err.args[0] == errno.ENOTCONN):
+      raise HttpError("Error while shutting down connection: %s" % err)
 
 
 def Handshake(poller, sock, write_timeout):
