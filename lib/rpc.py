@@ -943,13 +943,13 @@ class RpcRunner(object):
     return cls._StaticSingleNodeCall(node, "jobqueue_purge", [])
 
   @classmethod
-  def call_jobqueue_rename(cls, node_list, address_list, old, new):
+  def call_jobqueue_rename(cls, node_list, address_list, rename):
     """Rename a job queue file.
 
     This is a multi-node call.
 
     """
-    return cls._StaticMultiNodeCall(node_list, "jobqueue_rename", [old, new],
+    return cls._StaticMultiNodeCall(node_list, "jobqueue_rename", rename,
                                     address_list=address_list)
 
   @classmethod

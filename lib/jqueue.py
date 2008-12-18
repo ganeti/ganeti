@@ -713,13 +713,14 @@ class JobQueue(object):
     @param rename: List containing tuples mapping old to new names
 
     """
+    # Rename them locally
     for old, new in rename:
       utils.RenameFile(old, new, mkdir=True)
 
-      names, addrs = self._GetNodeIp()
-      result = rpc.RpcRunner.call_jobqueue_rename(names, addrs, old, new)
-      self._CheckRpcResult(result, self._nodes,
-                           "Moving %s to %s" % (old, new))
+    # ... and on all nodes
+    names, addrs = self._GetNodeIp()
+    result = rpc.RpcRunner.call_jobqueue_rename(names, addrs, rename)
+    self._CheckRpcResult(result, self._nodes, "Renaming files (%r)" % rename)
 
   def _FormatJobID(self, job_id):
     """Convert a job ID to string format.

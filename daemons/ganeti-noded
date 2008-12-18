@@ -620,9 +620,8 @@ class NodeHttpServer(http.server.HttpServer):
     """Rename a job queue file.
 
     """
-    (old, new) = params
-
-    return backend.JobQueueRename(old, new)
+    # TODO: What if a file fails to rename?
+    return [backend.JobQueueRename(old, new) for old, new in params]
 
   @staticmethod
   def perspective_jobqueue_set_drain(params):
