@@ -111,10 +111,10 @@ class HttpException(Exception):
   code = None
   message = None
 
-  def __init__(self, message=None):
+  def __init__(self, message=None, headers=None):
     Exception.__init__(self)
-    if message is not None:
-      self.message = message
+    self.message = message
+    self.headers = headers
 
 
 class HttpBadRequest(HttpException):

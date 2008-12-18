@@ -388,9 +388,13 @@ class _HttpServerRequestExecutor(object):
       }
 
     self.response_msg.start_line.code = err.code
-    self.response_msg.headers = {
-      http.HTTP_CONTENT_TYPE: self.error_content_type,
-      }
+
+    headers = {}
+    if err.headers:
+      headers.update(err.headers)
+    headers[http.HTTP_CONTENT_TYPE] = self.error_content_type
+    self.response_msg.headers = headers
+
     self.response_msg.body = self.error_message_format % values
 
 
