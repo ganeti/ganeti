@@ -1123,25 +1123,20 @@ class JobQueue(object):
       self.UpdateJobUnlocked(job)
 
   @_RequireOpenQueue
-  def _ArchiveJobUnlocked(self, job_id):
+  def _ArchiveJobUnlocked(self, job):
     """Archives a job.
 
-    @type job_id: string
-    @param job_id: the ID of job to be archived
+    @type job: L{_QueuedJob}
+    @param job: Job object
+    @rtype bool
+    @return Whether job was archived
 
     """
-    logging.info("Archiving job %s", job_id)
-
-    job = self._LoadJobUnlocked(job_id)
-    if not job:
-      logging.debug("Job %s not found", job_id)
-      return
-
     if job.CalcStatus() not in (constants.JOB_STATUS_CANCELED,
                                 constants.JOB_STATUS_SUCCESS,
                                 constants.JOB_STATUS_ERROR):
       logging.debug("Job %s is not yet done", job.id)
-      return
+      return False
 
     old = self._GetJobPath(job.id)
     new = self._GetArchivedJobPath(job.id)
@@ -1149,6 +1144,8 @@ class JobQueue(object):
     self._RenameFileUnlocked(old, new)
 
     logging.debug("Successfully archived job %s", job.id)
+
+    return True
 
   @utils.LockedMethod
   @_RequireOpenQueue
@@ -1159,9 +1156,18 @@ class JobQueue(object):
 
     @type job_id: string
     @param job_id: Job ID of job to be archived.
+    @rtype: bool
+    @return: Whether job was archived
 
     """
-    return self._ArchiveJobUnlocked(job_id)
+    logging.info("Archiving job %s", job_id)
+
+    job = self._LoadJobUnlocked(job_id)
+    if not job:
+      logging.debug("Job %s not found", job_id)
+      return False
+
+    return self._ArchiveJobUnlocked(job)
 
   @utils.LockedMethod
   @_RequireOpenQueue
@@ -1180,12 +1186,12 @@ class JobQueue(object):
     logging.info("Archiving jobs with age more than %s seconds", age)
 
     now = time.time()
-    for jid in self._GetJobIDsUnlocked(archived=False):
-      job = self._LoadJobUnlocked(jid)
-      if job.CalcStatus() not in (constants.OP_STATUS_SUCCESS,
-                                  constants.OP_STATUS_ERROR,
-                                  constants.OP_STATUS_CANCELED):
+    for job_id in self._GetJobIDsUnlocked(archived=False):
+      # Returns None if the job failed to load
+      job = self._LoadJobUnlocked(job_id)
+      if not job:
         continue
+
       if job.end_timestamp is None:
         if job.start_timestamp is None:
           job_age = job.received_timestamp
@@ -1195,7 +1201,7 @@ class JobQueue(object):
         job_age = job.end_timestamp
 
       if age == -1 or now - job_age[0] > age:
-        self._ArchiveJobUnlocked(jid)
+        self._ArchiveJobUnlocked(job)
 
   def _GetJobInfoUnlocked(self, job, fields):
     """Returns information about a job.
