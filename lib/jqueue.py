@@ -49,6 +49,7 @@ from ganeti import rpc
 
 
 JOBQUEUE_THREADS = 25
+JOBS_PER_ARCHIVE_DIRECTORY = 10000
 
 
 class CancelJob(Exception):
@@ -714,7 +715,7 @@ class JobQueue(object):
     @param new: the new name of the file
 
     """
-    os.rename(old, new)
+    utils.RenameFile(old, new, mkdir=True)
 
     names, addrs = self._GetNodeIp()
     result = rpc.RpcRunner.call_jobqueue_rename(names, addrs, old, new)
@@ -740,6 +741,18 @@ class JobQueue(object):
       raise errors.ProgrammerError("Job ID %s is negative" % job_id)
 
     return str(job_id)
+
+  @classmethod
+  def _GetArchiveDirectory(cls, job_id):
+    """Returns the archive directory for a job.
+
+    @type job_id: str
+    @param job_id: Job identifier
+    @rtype: str
+    @return: Directory name
+
+    """
+    return str(int(job_id) / JOBS_PER_ARCHIVE_DIRECTORY)
 
   def _NewSerialUnlocked(self):
     """Generates a new job identifier.
@@ -774,8 +787,8 @@ class JobQueue(object):
     """
     return os.path.join(constants.QUEUE_DIR, "job-%s" % job_id)
 
-  @staticmethod
-  def _GetArchivedJobPath(job_id):
+  @classmethod
+  def _GetArchivedJobPath(cls, job_id):
     """Returns the archived job file for a give job id.
 
     @type job_id: str
@@ -784,7 +797,8 @@ class JobQueue(object):
     @return: the path to the archived job file
 
     """
-    return os.path.join(constants.JOB_QUEUE_ARCHIVE_DIR, "job-%s" % job_id)
+    path = "%s/job-%s" % (cls._GetArchiveDirectory(job_id), job_id)
+    return os.path.join(constants.JOB_QUEUE_ARCHIVE_DIR, path)
 
   @classmethod
   def _ExtractJobID(cls, name):
