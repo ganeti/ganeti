@@ -19,4 +19,4 @@
 # 02110-1301, USA.
 
 
-# empty file for package definition
+RAPI_ACCESS_WRITE = "write"

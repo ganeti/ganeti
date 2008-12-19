@@ -27,6 +27,7 @@ import ganeti.cli
 import ganeti.opcodes
 
 from ganeti import luxi
+from ganeti import rapi
 
 
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
@@ -149,6 +150,12 @@ class R_Generic(object):
   """Generic class for resources.
 
   """
+  # Default permission requirements
+  GET_ACCESS = []
+  PUT_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  POST_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+  DELETE_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+
   def __init__(self, items, queryargs, req):
     """Generic resource constructor.
 

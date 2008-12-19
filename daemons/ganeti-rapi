@@ -26,6 +26,7 @@ import logging
 import optparse
 import sys
 import os
+import os.path
 import signal
 
 from ganeti import constants
@@ -36,6 +37,7 @@ from ganeti import ssconf
 from ganeti import utils
 from ganeti.rapi import connector
 
+import ganeti.http.auth
 import ganeti.http.server
 
 
@@ -46,15 +48,26 @@ class RemoteApiRequestContext(object):
   def __init__(self):
     self.handler = None
     self.handler_fn = None
+    self.handler_access = None
 
 
-class RemoteApiHttpServer(http.server.HttpServer):
+class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
+                          http.server.HttpServer):
   """REST Request Handler Class.
 
   """
+  AUTH_REALM = "Ganeti Remote API"
+
   def __init__(self, *args, **kwargs):
     http.server.HttpServer.__init__(self, *args, **kwargs)
+    http.auth.HttpServerRequestAuthentication.__init__(self)
     self._resmap = connector.Mapper()
+
+    # Load password file
+    if os.path.isfile(constants.RAPI_USERS_FILE):
+      self._users = http.auth.ReadPasswordFile(constants.RAPI_USERS_FILE)
+    else:
+      self._users = None
 
   def _GetRequestContext(self, req):
     """Returns the context for a request.
@@ -74,9 +87,40 @@ class RemoteApiHttpServer(http.server.HttpServer):
       except AttributeError, err:
         raise http.HttpBadRequest()
 
+      ctx.handler_access = getattr(ctx.handler, "%s_ACCESS" % method, None)
+
+      # Require permissions definition (usually in the base class)
+      if ctx.handler_access is None:
+        raise AssertionError("Permissions definition missing")
+
       req.private = ctx
 
     return req.private
+
+  def Authenticate(self, req, username, password):
+    """Checks whether a user can access a resource.
+
+    """
+    ctx = self._GetRequestContext(req)
+
+    # Check username and password
+    valid_user = False
+    if self._users:
+      user = self._users.get(username, None)
+      if user and user.password == password:
+        valid_user = True
+
+    if not valid_user:
+      # Unknown user or password wrong
+      return False
+
+    if (not ctx.handler_access or
+        set(user.options).intersection(ctx.handler_access)):
+      # Allow access
+      return True
+
+    # Access forbidden
+    raise http.HttpForbidden()
 
   def HandleRequest(self, req):
     """Handles a request.
