@@ -102,6 +102,7 @@ rapi_PYTHON = \
 
 http_PYTHON = \
 	lib/http/__init__.py \
+	lib/http/auth.py \
 	lib/http/client.py \
 	lib/http/server.py
 
