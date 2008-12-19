@@ -28,6 +28,7 @@ import os.path
 import sha
 import re
 import logging
+import tempfile
 
 from ganeti import rpc
 from ganeti import ssh
@@ -76,15 +77,26 @@ def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
   @param validity: Validity for certificate in days
 
   """
-  result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
-                         "-days", str(validity), "-nodes", "-x509",
-                         "-keyout", file_name, "-out", file_name, "-batch"])
-  if result.failed:
-    raise errors.OpExecError("Could not generate SSL certificate, command"
-                             " %s had exitcode %s and error message %s" %
-                             (result.cmd, result.exit_code, result.output))
+  (fd, tmp_file_name) = tempfile.mkstemp(dir=os.path.dirname(file_name))
+  try:
+    # Set permissions before writing key
+    os.chmod(tmp_file_name, 0600)
 
-  os.chmod(file_name, 0400)
+    result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
+                           "-days", str(validity), "-nodes", "-x509",
+                           "-keyout", tmp_file_name, "-out", tmp_file_name,
+                           "-batch"])
+    if result.failed:
+      raise errors.OpExecError("Could not generate SSL certificate, command"
+                               " %s had exitcode %s and error message %s" %
+                               (result.cmd, result.exit_code, result.output))
+
+    # Make read-only
+    os.chmod(tmp_file_name, 0400)
+
+    os.rename(tmp_file_name, file_name)
+  finally:
+    utils.RemoveFile(tmp_file_name)
 
 
 def _InitGanetiServerSetup():
