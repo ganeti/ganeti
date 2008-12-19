@@ -197,3 +197,58 @@ class HttpServerRequestAuthentication(object):
 
     """
     raise NotImplementedError()
+
+
+class PasswordFileUser(object):
+  """Data structure for users from password file.
+
+  """
+  def __init__(self, name, password, options):
+    self.name = name
+    self.password = password
+    self.options = options
+
+
+def ReadPasswordFile(file_name):
+  """Reads a password file.
+
+  Lines in the password file are of the following format:
+
+    <username> <password> [options]
+
+  Fields are separated by whitespace. Username and password are mandatory,
+  options are optional and separated by comma (","). Empty lines and comments
+  ("#") are ignored.
+
+  @type file_name: str
+  @param file_name: Path to password file
+  @rtype: dict
+  @return: Dictionary containing L{PasswordFileUser} instances
+
+  """
+  users = {}
+
+  for line in utils.ReadFile(file_name).splitlines():
+    line = line.strip()
+
+    # Ignore empty lines and comments
+    if not line or line.startswith("#"):
+      continue
+
+    parts = line.split(None, 2)
+    if len(parts) < 2:
+      # Invalid line
+      continue
+
+    name = parts[0]
+    password = parts[1]
+
+    # Extract options
+    options = []
+    if len(parts) >= 3:
+      for part in parts[2].split(","):
+        options.append(part.strip())
+
+    users[name] = PasswordFileUser(name, password, options)
+
+  return users
