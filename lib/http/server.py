@@ -308,6 +308,10 @@ class _HttpServerRequestExecutor(object):
     handler_context = _HttpServerRequest(self.request_msg)
 
     try:
+      # Authentication, etc.
+      self.server.PreHandleRequest(handler_context)
+
+      # Call actual request handler
       result = self.server.HandleRequest(handler_context)
     except (http.HttpException, KeyboardInterrupt, SystemExit):
       raise
@@ -500,6 +504,13 @@ class HttpServer(http.HttpBase):
       os._exit(0)
     else:
       self._children.append(pid)
+
+  def PreHandleRequest(self, req):
+    """Called before handling a request.
+
+    Can be overriden by a subclass.
+
+    """
 
   def HandleRequest(self, req):
     """Handles a request.
