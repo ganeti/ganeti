@@ -67,6 +67,26 @@ def _InitSSHSetup():
     f.close()
 
 
+def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
+  """Generates a self-signed SSL certificate.
+
+  @type file_name: str
+  @param file_name: Path to output file
+  @type validity: int
+  @param validity: Validity for certificate in days
+
+  """
+  result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
+                         "-days", str(validity), "-nodes", "-x509",
+                         "-keyout", file_name, "-out", file_name, "-batch"])
+  if result.failed:
+    raise errors.OpExecError("Could not generate SSL certificate, command"
+                             " %s had exitcode %s and error message %s" %
+                             (result.cmd, result.exit_code, result.output))
+
+  os.chmod(file_name, 0400)
+
+
 def _InitGanetiServerSetup():
   """Setup the necessary configuration for the initial node daemon.
 
@@ -74,16 +94,7 @@ def _InitGanetiServerSetup():
   the cluster and also generates the SSL certificate.
 
   """
-  result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
-                         "-days", str(365*5), "-nodes", "-x509",
-                         "-keyout", constants.SSL_CERT_FILE,
-                         "-out", constants.SSL_CERT_FILE, "-batch"])
-  if result.failed:
-    raise errors.OpExecError("could not generate server ssl cert, command"
-                             " %s had exitcode %s and error message %s" %
-                             (result.cmd, result.exit_code, result.output))
-
-  os.chmod(constants.SSL_CERT_FILE, 0400)
+  _GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
 
   result = utils.RunCmd([constants.NODE_INITD_SCRIPT, "restart"])
 
