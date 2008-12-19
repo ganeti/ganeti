@@ -348,9 +348,11 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                "%s!EOF.\n"
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n"
+               "chmod 0400 %s %s && "
                "%s restart" %
                (constants.SSL_CERT_FILE, noded_cert,
                 constants.RAPI_CERT_FILE, rapi_cert,
+                constants.SSL_CERT_FILE, constants.RAPI_CERT_FILE,
                 constants.NODE_INITD_SCRIPT))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
