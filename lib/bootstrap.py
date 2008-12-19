@@ -96,6 +96,10 @@ def _InitGanetiServerSetup():
   """
   _GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
 
+  # Don't overwrite existing file
+  if not os.path.exists(constants.RAPI_CERT_FILE):
+    _GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
+
   result = utils.RunCmd([constants.NODE_INITD_SCRIPT, "restart"])
 
   if result.failed:
