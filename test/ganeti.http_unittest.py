@@ -78,6 +78,7 @@ class TestMisc(unittest.TestCase):
     self.assert_(hasattr(server_request, "request_headers"))
     self.assert_(hasattr(server_request, "request_body"))
     self.assert_(isinstance(server_request.resp_headers, dict))
+    self.assert_(hasattr(server_request, "private"))
 
   def testServerSizeLimits(self):
     """Test HTTP server size limits"""

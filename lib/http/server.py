@@ -86,6 +86,10 @@ class _HttpServerRequest(object):
     # Response attributes
     self.resp_headers = {}
 
+    # Private data for request handler (useful in combination with
+    # authentication)
+    self.private = None
+
 
 class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
   """Writes an HTTP response to client.
@@ -308,26 +312,30 @@ class _HttpServerRequestExecutor(object):
     handler_context = _HttpServerRequest(self.request_msg)
 
     try:
-      # Authentication, etc.
-      self.server.PreHandleRequest(handler_context)
+      try:
+        # Authentication, etc.
+        self.server.PreHandleRequest(handler_context)
 
-      # Call actual request handler
-      result = self.server.HandleRequest(handler_context)
-    except (http.HttpException, KeyboardInterrupt, SystemExit):
-      raise
-    except Exception, err:
-      logging.exception("Caught exception")
-      raise http.HttpInternalServerError(message=str(err))
-    except:
-      logging.exception("Unknown exception")
-      raise http.HttpInternalServerError(message="Unknown error")
+        # Call actual request handler
+        result = self.server.HandleRequest(handler_context)
+      except (http.HttpException, KeyboardInterrupt, SystemExit):
+        raise
+      except Exception, err:
+        logging.exception("Caught exception")
+        raise http.HttpInternalServerError(message=str(err))
+      except:
+        logging.exception("Unknown exception")
+        raise http.HttpInternalServerError(message="Unknown error")
 
-    # TODO: Content-type
-    encoder = http.HttpJsonConverter()
-    self.response_msg.start_line.code = http.HTTP_OK
-    self.response_msg.body = encoder.Encode(result)
-    self.response_msg.headers = handler_context.resp_headers
-    self.response_msg.headers[http.HTTP_CONTENT_TYPE] = encoder.CONTENT_TYPE
+      # TODO: Content-type
+      encoder = http.HttpJsonConverter()
+      self.response_msg.start_line.code = http.HTTP_OK
+      self.response_msg.body = encoder.Encode(result)
+      self.response_msg.headers = handler_context.resp_headers
+      self.response_msg.headers[http.HTTP_CONTENT_TYPE] = encoder.CONTENT_TYPE
+    finally:
+      # No reason to keep this any longer, even for exceptions
+      handler_context.private = None
 
   def _SendResponse(self):
     """Sends the response to the client.
