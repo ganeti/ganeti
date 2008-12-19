@@ -322,15 +322,18 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
 
   """
   sshrunner = ssh.SshRunner(cluster_name)
-  gntpem = utils.ReadFile(constants.SSL_CERT_FILE)
+
+  noded_cert = utils.ReadFile(constants.SSL_CERT_FILE)
+
   # in the base64 pem encoding, neither '!' nor '.' are valid chars,
   # so we use this to detect an invalid certificate; as long as the
   # cert doesn't contain this, the here-document will be correctly
   # parsed by the shell sequence below
-  if re.search('^!EOF\.', gntpem, re.MULTILINE):
+  if re.search('^!EOF\.', noded_cert, re.MULTILINE):
     raise errors.OpExecError("invalid PEM encoding in the SSL certificate")
-  if not gntpem.endswith("\n"):
-    raise errors.OpExecError("PEM must end with newline")
+
+  if not noded_cert.endswith("\n"):
+    noded_cert += "\n"
 
   # set up inter-node password and certificate and restarts the node daemon
   # and then connect with ssh to set password and start ganeti-noded
@@ -339,7 +342,7 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   mycommand = ("umask 077 && "
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n%s restart" %
-               (constants.SSL_CERT_FILE, gntpem,
+               (constants.SSL_CERT_FILE, noded_cert,
                 constants.NODE_INITD_SCRIPT))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
