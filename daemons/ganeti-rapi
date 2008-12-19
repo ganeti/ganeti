@@ -39,6 +39,15 @@ from ganeti.rapi import connector
 import ganeti.http.server
 
 
+class RemoteApiRequestContext(object):
+  """Data structure for Remote API requests.
+
+  """
+  def __init__(self):
+    self.handler = None
+    self.handler_fn = None
+
+
 class RemoteApiHttpServer(http.server.HttpServer):
   """REST Request Handler Class.
 
@@ -47,22 +56,37 @@ class RemoteApiHttpServer(http.server.HttpServer):
     http.server.HttpServer.__init__(self, *args, **kwargs)
     self._resmap = connector.Mapper()
 
+  def _GetRequestContext(self, req):
+    """Returns the context for a request.
+
+    The context is cached in the req.private variable.
+
+    """
+    if req.private is None:
+      (HandlerClass, items, args) = self._resmap.getController(req.request_path)
+
+      ctx = RemoteApiRequestContext()
+      ctx.handler = HandlerClass(items, args, req)
+
+      method = req.request_method.upper()
+      try:
+        ctx.handler_fn = getattr(ctx.handler, method)
+      except AttributeError, err:
+        raise http.HttpBadRequest()
+
+      req.private = ctx
+
+    return req.private
+
   def HandleRequest(self, req):
     """Handles a request.
 
     """
-    (HandlerClass, items, args) = self._resmap.getController(req.request_path)
-    handler = HandlerClass(items, args, req)
-
-    method = req.request_method.upper()
-    try:
-      fn = getattr(handler, method)
-    except AttributeError, err:
-      raise http.HttpBadRequest()
+    ctx = self._GetRequestContext(req)
 
     try:
-      result = fn()
-      sn = handler.getSerialNumber()
+      result = ctx.handler_fn()
+      sn = ctx.handler.getSerialNumber()
       if sn:
         req.response_headers[http.HTTP_ETAG] = str(sn)
     except:
