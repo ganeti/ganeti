@@ -134,6 +134,7 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
       if sn:
         req.response_headers[http.HTTP_ETAG] = str(sn)
     except:
+      method = req.request_method.upper()
       logging.exception("Error while handling the %s request", method)
       raise
 

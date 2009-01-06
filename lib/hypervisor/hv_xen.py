@@ -461,10 +461,10 @@ class XenHvmHypervisor(XenHypervisor):
     # hvm_cdrom_image_path verification
     iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
     if iso_path and not os.path.isfile(iso_path):
-        raise errors.HypervisorError("The HVM CDROM image must either be a"
-                                     " regular file or a symlink pointing to"
-                                     " an existing regular file, not %s" %
-                                     iso_path)
+      raise errors.HypervisorError("The HVM CDROM image must either be a"
+                                   " regular file or a symlink pointing to"
+                                   " an existing regular file, not %s" %
+                                   iso_path)
 
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices, extra_args):

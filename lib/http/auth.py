@@ -166,19 +166,19 @@ class HttpServerRequestAuthentication(object):
     # Unsupported authentication scheme
     return False
 
-  def _CheckBasicAuthorization(self, req, input):
+  def _CheckBasicAuthorization(self, req, in_data):
     """Checks credentials sent for basic authentication.
 
     @type req: L{http.server._HttpServerRequest}
     @param req: HTTP request context
-    @type input: str
-    @param input: Username and password encoded as Base64
+    @type in_data: str
+    @param in_data: Username and password encoded as Base64
     @rtype: bool
     @return: Whether user is allowed to execute request
 
     """
     try:
-      creds = base64.b64decode(input.encode('ascii')).decode('ascii')
+      creds = base64.b64decode(in_data.encode('ascii')).decode('ascii')
     except (TypeError, binascii.Error, UnicodeError):
       logging.exception("Error when decoding Basic authentication credentials")
       return False
