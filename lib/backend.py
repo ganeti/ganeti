@@ -764,6 +764,18 @@ def _SymlinkBlockDev(instance_name, device_path, device_name):
   return link_name
 
 
+def _RemoveBlockDevLinks(instance_name):
+  """Remove the block device symlinks belonging to the given instance.
+
+  """
+  for i in os.listdir(constants.DISK_LINKS_DIR):
+    if os.path.islink(i) and i.startswith('%s-' % instance_name):
+      try:
+        os.remove(link)
+      except OSError, e:
+        pass # Ignore errors when removing the symlinks
+
+
 def _GatherAndLinkBlockDevs(instance):
   """Set up an instance's block device(s).
 
@@ -818,6 +830,7 @@ def StartInstance(instance, extra_args):
     return False
   except errors.HypervisorError, err:
     logging.exception("Failed to start instance")
+    _RemoveBlockDevLinks(instance.name)
     return False
 
   return True
@@ -869,6 +882,8 @@ def ShutdownInstance(instance):
       logging.error("could not shutdown instance '%s' even by destroy",
                     instance.name)
       return False
+
+  _RemoveBlockDevLinks(instance.name)
 
   return True
 
