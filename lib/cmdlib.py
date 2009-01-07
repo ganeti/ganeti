@@ -2402,7 +2402,7 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
                            " (is_primary=True, pass=2)",
                            inst_disk.iv_name, node)
         disks_ok = False
-    device_info.append((instance.primary_node, inst_disk.iv_name, result))
+    device_info.append((instance.primary_node, inst_disk.iv_name, result.data))
 
   # leave the disks configured for the primary node
   # this is a workaround that would be fixed better by
