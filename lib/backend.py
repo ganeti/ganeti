@@ -2073,12 +2073,14 @@ def JobQueueSetDrainFlag(drain_flag):
   return True
 
 
-def CloseBlockDevices(disks):
+def CloseBlockDevices(instance_name, disks):
   """Closes the given block devices.
 
   This means they will be switched to secondary mode (in case of
   DRBD).
 
+  @param instance_name: if the argument is not empty, the symlinks
+      of this instance will be removed
   @type disks: list of L{objects.Disk}
   @param disks: the list of disks to be closed
   @rtype: tuple (success, message)
@@ -2104,6 +2106,8 @@ def CloseBlockDevices(disks):
   if msg:
     return (False, "Can't make devices secondary: %s" % ",".join(msg))
   else:
+    if instance_name:
+      _RemoveBlockDevLinks(instance_name)
     return (True, "All devices secondary")
 
 

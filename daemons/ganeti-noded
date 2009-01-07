@@ -229,8 +229,8 @@ class NodeHttpServer(http.server.HttpServer):
     """Closes the given block devices.
 
     """
-    disks = [objects.Disk.FromDict(cf) for cf in params]
-    return backend.CloseBlockDevices(disks)
+    disks = [objects.Disk.FromDict(cf) for cf in params[1]]
+    return backend.CloseBlockDevices(params[0], disks)
 
   # export/import  --------------------------
 

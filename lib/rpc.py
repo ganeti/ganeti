@@ -683,14 +683,14 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "blockdev_find", [disk.ToDict()])
 
-  def call_blockdev_close(self, node, disks):
+  def call_blockdev_close(self, node, instance_name, disks):
     """Closes the given block devices.
 
     This is a single-node call.
 
     """
-    return self._SingleNodeCall(node, "blockdev_close",
-                                [cf.ToDict() for cf in disks])
+    params = [instance_name, [cf.ToDict() for cf in disks]]
+    return self._SingleNodeCall(node, "blockdev_close", params)
 
   @classmethod
   def call_upload_file(cls, node_list, file_name, address_list=None):
