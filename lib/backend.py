@@ -768,12 +768,14 @@ def _RemoveBlockDevLinks(instance_name):
   """Remove the block device symlinks belonging to the given instance.
 
   """
-  for i in os.listdir(constants.DISK_LINKS_DIR):
-    if os.path.islink(i) and i.startswith('%s-' % instance_name):
+  for short_name in os.listdir(constants.DISK_LINKS_DIR):
+    link_name = os.path.join(constants.DISK_LINKS_DIR, short_name)
+    if (os.path.islink(link_name) and
+        short_name.startswith('%s-' % instance_name)):
       try:
-        os.remove(link)
-      except OSError, e:
-        pass # Ignore errors when removing the symlinks
+        os.remove(link_name)
+      except OSError:
+        logging.exception("Can't remove symlink '%s'", link_name)
 
 
 def _GatherAndLinkBlockDevs(instance):
