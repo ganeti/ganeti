@@ -809,11 +809,13 @@ def StartInstance(instance, extra_args):
   if instance.name in running_instances:
     return True
 
-  block_devices = _GatherAndLinkBlockDevs(instance)
-  hyper = hypervisor.GetHypervisor(instance.hypervisor)
-
   try:
+    block_devices = _GatherAndLinkBlockDevs(instance)
+    hyper = hypervisor.GetHypervisor(instance.hypervisor)
     hyper.StartInstance(instance, block_devices, extra_args)
+  except errors.BlockDeviceError, err:
+    logging.exception("Failed to start instance")
+    return False
   except errors.HypervisorError, err:
     logging.exception("Failed to start instance")
     return False
