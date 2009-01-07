@@ -256,12 +256,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
     # FIXME: instead of this hardcoding here, each of PVM/HVM should
     # directly export their info (currently HVM will just sed this info)
     namespace = ["sd" + chr(i + ord('a')) for i in range(24)]
-    for sd_name, (cfdev, rldev) in zip(namespace, block_devices):
+    for sd_name, (cfdev, dev_path) in zip(namespace, block_devices):
       if cfdev.dev_type == constants.LD_FILE:
         line = "'%s:%s,%s,w'" % (FILE_DRIVER_MAP[cfdev.physical_id[0]],
-                                 rldev.dev_path, sd_name)
+                                 dev_path, sd_name)
       else:
-        line = "'phy:%s,%s,w'" % (rldev.dev_path, sd_name)
+        line = "'phy:%s,%s,w'" % (dev_path, sd_name)
       disk_data.append(line)
 
     return disk_data

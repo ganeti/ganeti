@@ -203,7 +203,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         nic_seq += 1
 
     boot_drive = True
-    for cfdev, rldev in block_devices:
+    for cfdev, dev_path in block_devices:
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       if boot_drive:
         boot_val = ',boot=on'
@@ -214,7 +214,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO: handle different if= types
       if_val = ',if=virtio'
 
-      drive_val = 'file=%s,format=raw%s%s' % (rldev.dev_path, if_val, boot_val)
+      drive_val = 'file=%s,format=raw%s%s' % (dev_path, if_val, boot_val)
       kvm_cmd.extend(['-drive', drive_val])
 
     kvm_cmd.extend(['-kernel', instance.hvparams[constants.HV_KERNEL_PATH]])
