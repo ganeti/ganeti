@@ -391,6 +391,14 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.GetInstanceInfo(params[0], params[1])
 
   @staticmethod
+  def perspective_instance_migratable(params):
+    """Query whether the specified instance can be migrated.
+
+    """
+    instance = objects.Instance.FromDict(params[0])
+    return backend.GetInstanceMigratable(instance)
+
+  @staticmethod
   def perspective_all_instances_info(params):
     """Query information about all instances.
 

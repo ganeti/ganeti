@@ -468,6 +468,20 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "instance_info", [instance, hname])
 
+  def call_instance_migratable(self, node, instance):
+    """Checks whether the given instance can be migrated.
+
+    This is a single-node call.
+
+    @param node: the node to query
+    @type instance: L{objects.Instance}
+    @param instance: the instance to check
+
+
+    """
+    return self._SingleNodeCall(node, "instance_migratable",
+                                [self._InstDict(instance)])
+
   def call_all_instances_info(self, node_list, hypervisor_list):
     """Returns information about all instances on the given nodes.
 
