@@ -123,6 +123,32 @@ class RpcResult(object):
       raise errors.OpExecError("Call '%s' to node '%s' has failed: %s" %
                                (self.call, self.node, self.error))
 
+  def RemoteFailMsg(self):
+    """Check if the remote procedure failed.
+
+    This is valid only for RPC calls which return result of the form
+    (status, data | error_msg).
+
+    @return: empty string for succcess, otherwise an error message
+
+    """
+    def _EnsureErr(val):
+      """Helper to ensure we return a 'True' value for error."""
+      if val:
+        return val
+      else:
+        return "No error information"
+
+    if self.failed:
+      return _EnsureErr(self.error)
+    if not isinstance(self.data, (tuple, list)):
+      return "Invalid result type (%s)" % type(self.data)
+    if len(self.data) != 2:
+      return "Invalid result length (%d), expected 2" % len(self.data)
+    if not self.data[0]:
+      return _EnsureErr(self.data[1])
+    return ""
+
 
 class Client:
   """RPC Client class.
