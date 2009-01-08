@@ -889,10 +889,12 @@ class LUVerifyCluster(LogicalUnit):
     feedback_fn("* Gathering data (%d nodes)" % len(nodelist))
     node_verify_param = {
       constants.NV_FILELIST: file_names,
-      constants.NV_NODELIST: nodelist,
+      constants.NV_NODELIST: [node.name for node in nodeinfo
+                              if not node.offline],
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_NODENETTEST: [(node.name, node.primary_ip,
-                                  node.secondary_ip) for node in nodeinfo],
+                                  node.secondary_ip) for node in nodeinfo
+                                 if not node.offline],
       constants.NV_LVLIST: vg_name,
       constants.NV_INSTANCELIST: hypervisors,
       constants.NV_VGLIST: None,
