@@ -1056,6 +1056,14 @@ class DRBD8(BaseDRBD):
       # sure its shutdown
       return cls._ShutdownNet(minor)
 
+    # Workaround for a race condition. When DRBD is doing its dance to
+    # establish a connection with its peer, it also sends the
+    # synchronization speed over the wire. In some cases setting the
+    # sync speed only after setting up both sides can race with DRBD
+    # connecting, hence we set it here before telling DRBD anything
+    # about its peer.
+    cls._SetMinorSyncSpeed(minor, constants.SYNC_SPEED)
+
     args = ["drbdsetup", cls._DevPath(minor), "net",
             "%s:%s" % (lhost, lport), "%s:%s" % (rhost, rport), protocol,
             "-A", "discard-zero-changes",
@@ -1145,20 +1153,41 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("Can't detach from local storage")
     self._children = []
 
-  def SetSyncSpeed(self, kbytes):
+  @classmethod
+  def _SetMinorSyncSpeed(cls, minor, kbytes):
     """Set the speed of the DRBD syncer.
 
+    This is the low-level implementation.
+
+    @type minor: int
+    @param minor: the drbd minor whose settings we change
+    @type kbytes: int
+    @param kbytes: the speed in kbytes/second
+    @rtype: boolean
+    @return: the success of the operation
+
     """
-    children_result = super(DRBD8, self).SetSyncSpeed(kbytes)
-    if self.minor is None:
-      logging.info("Instance not attached to a device")
-      return False
-    result = utils.RunCmd(["drbdsetup", self.dev_path, "syncer", "-r", "%d" %
-                           kbytes])
+    result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "syncer",
+                           "-r", "%d" % kbytes, "--create-device"])
     if result.failed:
       logging.error("Can't change syncer rate: %s - %s",
                     result.fail_reason, result.output)
-    return not result.failed and children_result
+    return not result.failed
+
+  def SetSyncSpeed(self, kbytes):
+    """Set the speed of the DRBD syncer.
+
+    @type kbytes: int
+    @param kbytes: the speed in kbytes/second
+    @rtype: boolean
+    @return: the success of the operation
+
+    """
+    if self.minor is None:
+      logging.info("Not attached during SetSyncSpeed")
+      return False
+    children_result = super(DRBD8, self).SetSyncSpeed(kbytes)
+    return self._SetMinorSyncSpeed(self.minor, kbytes) and children_result
 
   def GetProcStatus(self):
     """Return device data from /proc.
