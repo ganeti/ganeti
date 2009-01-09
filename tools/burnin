@@ -231,13 +231,13 @@ class Burner(object):
     else:
       names = []
     try:
-      op = opcodes.OpQueryNodes(output_fields=["name"], names=names)
+      op = opcodes.OpQueryNodes(output_fields=["name", "offline"], names=names)
       result = self.ExecOp(op)
     except errors.GenericError, err:
       err_code, msg = cli.FormatError(err)
       Log(msg)
       sys.exit(err_code)
-    self.nodes = [data[0] for data in result]
+    self.nodes = [data[0] for data in result if not data[1]]
 
     result = self.ExecOp(opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
                                               names=[]))
@@ -451,7 +451,6 @@ class Burner(object):
                                     ignore_failures=True)
       Log("- Remove instance %s" % instance)
       self.ExecOp(op)
-
 
   def Rename(self):
     """Rename the instances."""
