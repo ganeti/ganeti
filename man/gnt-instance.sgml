@@ -1082,24 +1082,25 @@
 
         <cmdsynopsis>
           <command>replace-disks</command>
-
-          <group choice="req">
-            <arg>--iallocator <replaceable>name</replaceable></arg>
-            <arg>--new-secondary <replaceable>NODE</replaceable></arg>
-          </group>
-          <sbr>
-
-          <arg choice="opt">-s</arg>
+          <arg choice="req">-p</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <cmdsynopsis>
           <command>replace-disks</command>
 
-          <group>
           <arg choice="req">-s</arg>
-          <arg choice="req">-p</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <cmdsynopsis>
+          <command>replace-disks</command>
+
+          <group choice="req">
+            <arg>--iallocator <replaceable>name</replaceable></arg>
+            <arg>--new-secondary <replaceable>NODE</replaceable></arg>
           </group>
+
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -1110,16 +1111,21 @@
         </para>
 
         <para>
-          The first form will do a secondary node change, while the
-          second form will replace the disks on either the primary
-          (<option>-p</option>) or the secondary (<option>-s</option>)
-          node of the instance only, without changing the node.
+          The first form (when passing the <option>-p</option> option)
+          will replace the disks on the primary, while the second form
+          (when passing the <option>-s</option> option will replace
+          the disks on the secondary node.
         </para>
 
         <para>
-          Specifying <option>--iallocator</option> enables secondary node
-          replacement and and makes the new secondary be selected automatically
-          by the specified allocator plugin.
+          The third form (when passing either the
+          <option>--iallocator</option> or the
+          <option>--new-secondary</option> option) is designed to
+          change secondary node of the instance.  Specifying
+          <option>--iallocator</option> makes the new secondary be
+          selected automatically by the specified allocator plugin,
+          otherwise the new secondary node will be the one chosen
+          manually via the <option>--new-secondary</option> option.
         </para>
       </refsect3>
 

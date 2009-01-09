@@ -4255,17 +4255,32 @@ class LUReplaceDisks(LogicalUnit):
   _OP_REQP = ["instance_name", "mode", "disks"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
+    if not hasattr(self.op, "iallocator"):
+      self.op.iallocator = None
+
+    # check for valid parameter combination
+    cnt = [self.op.remote_node, self.op.iallocator].count(None)
+    if self.op.mode == constants.REPLACE_DISK_CHG:
+      if cnt == 2:
+        raise errors.OpPrereqError("When changing the secondary either an"
+                                   " iallocator script must be used or the"
+                                   " new node given")
+      elif cnt == 0:
+        raise errors.OpPrereqError("Give either the iallocator or the new"
+                                   " secondary, not both")
+    else: # not replacing the secondary
+      if cnt != 2:
+        raise errors.OpPrereqError("The iallocator and new node options can"
+                                   " be used only when changing the"
+                                   " secondary node")
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
 
-    if not hasattr(self.op, "remote_node"):
-      self.op.remote_node = None
-
-    ia_name = getattr(self.op, "iallocator", None)
-    if ia_name is not None:
-      if self.op.remote_node is not None:
-        raise errors.OpPrereqError("Give either the iallocator or the new"
-                                   " secondary, not both")
+    if self.op.iallocator is not None:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
     elif self.op.remote_node is not None:
       remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
@@ -4340,9 +4355,9 @@ class LUReplaceDisks(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     self.instance = instance
 
-    if instance.disk_template not in constants.DTS_NET_MIRROR:
-      raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " network mirrored.")
+    if instance.disk_template != constants.DT_DRBD8:
+      raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
+                                 " instances")
 
     if len(instance.secondary_nodes) != 1:
       raise errors.OpPrereqError("The instance has a strange layout,"
@@ -4351,8 +4366,7 @@ class LUReplaceDisks(LogicalUnit):
 
     self.sec_node = instance.secondary_nodes[0]
 
-    ia_name = getattr(self.op, "iallocator", None)
-    if ia_name is not None:
+    if self.op.iallocator is not None:
       self._RunAllocator()
 
     remote_node = self.op.remote_node
@@ -4366,42 +4380,24 @@ class LUReplaceDisks(LogicalUnit):
       raise errors.OpPrereqError("The specified node is the primary node of"
                                  " the instance.")
     elif remote_node == self.sec_node:
-      if self.op.mode == constants.REPLACE_DISK_SEC:
-        # this is for DRBD8, where we can't execute the same mode of
-        # replacement as for drbd7 (no different port allocated)
-        raise errors.OpPrereqError("Same secondary given, cannot execute"
-                                   " replacement")
-    if instance.disk_template == constants.DT_DRBD8:
-      if (self.op.mode == constants.REPLACE_DISK_ALL and
-          remote_node is not None):
-        # switch to replace secondary mode
-        self.op.mode = constants.REPLACE_DISK_SEC
+      raise errors.OpPrereqError("The specified node is already the"
+                                 " secondary node of the instance.")
 
-      if self.op.mode == constants.REPLACE_DISK_ALL:
-        raise errors.OpPrereqError("Template 'drbd' only allows primary or"
-                                   " secondary disk replacement, not"
-                                   " both at once")
-      elif self.op.mode == constants.REPLACE_DISK_PRI:
-        if remote_node is not None:
-          raise errors.OpPrereqError("Template 'drbd' does not allow changing"
-                                     " the secondary while doing a primary"
-                                     " node disk replacement")
-        self.tgt_node = instance.primary_node
-        self.oth_node = instance.secondary_nodes[0]
-        _CheckNodeOnline(self, self.tgt_node)
-        _CheckNodeOnline(self, self.oth_node)
-      elif self.op.mode == constants.REPLACE_DISK_SEC:
-        self.new_node = remote_node # this can be None, in which case
-                                    # we don't change the secondary
-        self.tgt_node = instance.secondary_nodes[0]
-        self.oth_node = instance.primary_node
-        _CheckNodeOnline(self, self.oth_node)
-        if self.new_node is not None:
-          _CheckNodeOnline(self, self.new_node)
-        else:
-          _CheckNodeOnline(self, self.tgt_node)
-      else:
-        raise errors.ProgrammerError("Unhandled disk replace mode")
+    if self.op.mode == constants.REPLACE_DISK_PRI:
+      n1 = self.tgt_node = instance.primary_node
+      n2 = self.oth_node = self.sec_node
+    elif self.op.mode == constants.REPLACE_DISK_SEC:
+      n1 = self.tgt_node = self.sec_node
+      n2 = self.oth_node = instance.primary_node
+    elif self.op.mode == constants.REPLACE_DISK_CHG:
+      n1 = self.new_node = remote_node
+      n2 = self.oth_node = instance.primary_node
+      self.tgt_node = self.sec_node
+    else:
+      raise errors.ProgrammerError("Unhandled disk replace mode")
+
+    _CheckNodeOnline(self, n1)
+    _CheckNodeOnline(self, n2)
 
     if not self.op.disks:
       self.op.disks = range(len(instance.disks))
@@ -4793,13 +4789,10 @@ class LUReplaceDisks(LogicalUnit):
     if instance.status == "down":
       _StartInstanceDisks(self, instance, True)
 
-    if instance.disk_template == constants.DT_DRBD8:
-      if self.op.remote_node is None:
-        fn = self._ExecD8DiskOnly
-      else:
-        fn = self._ExecD8Secondary
+    if self.op.mode == constants.REPLACE_DISK_CHG:
+      fn = self._ExecD8Secondary
     else:
-      raise errors.ProgrammerError("Unhandled disk replacement case")
+      fn = self._ExecD8DiskOnly
 
     ret = fn(feedback_fn)
 
