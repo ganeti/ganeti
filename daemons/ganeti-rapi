@@ -191,6 +191,9 @@ def main():
   """
   options, args = ParseOptions()
 
+  if options.fork:
+    utils.CloseFDs()
+
   ssconf.CheckMaster(options.debug)
 
   if options.fork:

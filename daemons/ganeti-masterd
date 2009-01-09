@@ -429,6 +429,9 @@ def main():
   utils.debug = options.debug
   utils.no_fork = True
 
+  if options.fork:
+    utils.CloseFDs()
+
   rpc.Init()
   try:
     ssconf.CheckMaster(options.debug)
@@ -460,8 +463,7 @@ def main():
 
   # become a daemon
   if options.fork:
-    utils.Daemonize(logfile=constants.LOG_MASTERDAEMON,
-                    noclose_fds=[master.fileno()])
+    utils.Daemonize(logfile=constants.LOG_MASTERDAEMON)
 
   utils.WritePidFile(constants.MASTERD_PID)
   try:

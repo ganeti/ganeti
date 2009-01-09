@@ -1348,23 +1348,37 @@ def TestDelay(duration):
   return True
 
 
-def Daemonize(logfile, noclose_fds=None):
-  """Daemonize the current process.
+def _CloseFDNoErr(fd, retries=5):
+  """Close a file descriptor ignoring errors.
 
-  This detaches the current process from the controlling terminal and
-  runs it in the background as a daemon.
+  @type fd: int
+  @param fd: the file descriptor
+  @type retries: int
+  @param retries: how many retries to make, in case we get any
+      other error than EBADF
 
-  @type logfile: str
-  @param logfile: the logfile to which we should redirect stdout/stderr
+  """
+  try:
+    os.close(fd)
+  except OSError, err:
+    if err.errno != errno.EBADF:
+      if retries > 0:
+        _CloseFDNoErr(fd, retries - 1)
+    # else either it's closed already or we're out of retries, so we
+    # ignore this and go on
+
+
+def CloseFDs(noclose_fds=None):
+  """Close file descriptors.
+
+  This closes all file descriptors above 2 (i.e. except
+  stdin/out/err).
+
   @type noclose_fds: list or None
   @param noclose_fds: if given, it denotes a list of file descriptor
       that should not be closed
-  @rtype: int
-  @returns: the value zero
 
   """
-  UMASK = 077
-  WORKDIR = "/"
   # Default maximum for the number of available file descriptors.
   if 'SC_OPEN_MAX' in os.sysconf_names:
     try:
@@ -1375,6 +1389,31 @@ def Daemonize(logfile, noclose_fds=None):
       MAXFD = 1024
   else:
     MAXFD = 1024
+  maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
+  if (maxfd == resource.RLIM_INFINITY):
+    maxfd = MAXFD
+
+  # Iterate through and close all file descriptors (except the standard ones)
+  for fd in range(3, maxfd):
+    if noclose_fds and fd in noclose_fds:
+      continue
+    _CloseFDNoErr(fd)
+
+
+def Daemonize(logfile):
+  """Daemonize the current process.
+
+  This detaches the current process from the controlling terminal and
+  runs it in the background as a daemon.
+
+  @type logfile: str
+  @param logfile: the logfile to which we should redirect stdout/stderr
+  @rtype: int
+  @returns: the value zero
+
+  """
+  UMASK = 077
+  WORKDIR = "/"
 
   # this might fail
   pid = os.fork()
@@ -1390,22 +1429,15 @@ def Daemonize(logfile, noclose_fds=None):
       os._exit(0) # Exit parent (the first child) of the second child.
   else:
     os._exit(0) # Exit parent of the first child.
-  maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-  if (maxfd == resource.RLIM_INFINITY):
-    maxfd = MAXFD
 
-  # Iterate through and close all file descriptors.
-  for fd in range(0, maxfd):
-    if noclose_fds and fd in noclose_fds:
-      continue
-    try:
-      os.close(fd)
-    except OSError: # ERROR, fd wasn't open to begin with (ignored)
-      pass
-  os.open(logfile, os.O_RDWR|os.O_CREAT|os.O_APPEND, 0600)
-  # Duplicate standard input to standard output and standard error.
-  os.dup2(0, 1)     # standard output (1)
-  os.dup2(0, 2)     # standard error (2)
+  for fd in range(3):
+    _CloseFDNoErr(fd)
+  i = os.open("/dev/null", os.O_RDONLY) # stdin
+  assert i == 0, "Can't close/reopen stdin"
+  i = os.open(logfile, os.O_WRONLY|os.O_CREAT|os.O_APPEND, 0600) # stdout
+  assert i == 1, "Can't close/reopen stdout"
+  # Duplicate standard output to standard error.
+  os.dup2(1, 2)
   return 0
 
 
@@ -1649,6 +1681,7 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
 
   # Remove all previously setup handlers
   for handler in root_logger.handlers:
+    handler.close()
     root_logger.removeHandler(handler)
 
   if stderr_logging:
