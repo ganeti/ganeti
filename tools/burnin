@@ -157,6 +157,9 @@ class Burner(object):
     parser.add_option("--no-reboot", dest="do_reboot",
                       help="Skip instance reboot", action="store_false",
                       default=True)
+    parser.add_option("--no-activate-disks", dest="do_activate_disks",
+                      help="Skip disk activation/deactivation",
+                      action="store_false", default=True)
     parser.add_option("--no-nics", dest="nics",
                       help="No network interfaces", action="store_const",
                       const=[], default=[{}])
@@ -486,6 +489,20 @@ class Burner(object):
         Log("- Reboot instance %s with type '%s'" % (instance, reboot_type))
         self.ExecOp(op)
 
+  def ActivateDisks(self):
+    """Activate and deactivate disks of the instances."""
+    for instance in self.instances:
+      op_act = opcodes.OpActivateInstanceDisks(instance_name=instance)
+      op_deact = opcodes.OpDeactivateInstanceDisks(instance_name=instance)
+      Log("- Activate disks of online instance %s" % (instance,))
+      self.ExecOp(op_act)
+      self.StopInstance(instance)
+      Log("- Activate disks of offline instance %s" % (instance,))
+      self.ExecOp(op_act)
+      Log("- Deactivate disks of offline instance %s" % (instance,))
+      self.ExecOp(op_deact)
+      self.StartInstance(instance)
+
   def BurninCluster(self):
     """Test a cluster intensively.
 
@@ -530,6 +547,9 @@ class Burner(object):
 
       if opts.do_reboot:
         self.Reboot()
+
+      if opts.do_activate_disks:
+        self.ActivateDisks()
 
       if opts.do_startstop:
         self.StopStart()
