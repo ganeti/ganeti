@@ -992,6 +992,7 @@ class ConfigWriter:
       constants.SS_MASTER_NODE: cluster.master_node,
       constants.SS_NODE_LIST: node_data,
       constants.SS_OFFLINE_NODES: off_data,
+      constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       }
 
   @locking.ssynchronized(_config_lock)

@@ -133,6 +133,7 @@ class SimpleStore(object):
     constants.SS_MASTER_NODE,
     constants.SS_NODE_LIST,
     constants.SS_OFFLINE_NODES,
+    constants.SS_RELEASE_VERSION,
     )
   _MAX_SIZE = 131072
 

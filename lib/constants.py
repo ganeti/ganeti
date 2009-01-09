@@ -414,6 +414,7 @@ SS_MASTER_NETDEV = "master_netdev"
 SS_MASTER_NODE = "master_node"
 SS_NODE_LIST = "node_list"
 SS_OFFLINE_NODES = "offline_nodes"
+SS_RELEASE_VERSION = "release_version"
 
 # cluster wide default parameters
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM
