@@ -578,6 +578,10 @@ class RpcRunner(object):
     for result in retux.itervalues():
       if result.failed or not isinstance(result.data, dict):
         result.data = {}
+      if result.offline:
+        log_name = None
+      else:
+        log_name = "call_node_info"
 
       utils.CheckDict(result.data, {
         'memory_total' : '-',
@@ -585,7 +589,7 @@ class RpcRunner(object):
         'memory_free' : '-',
         'vg_size' : 'node_unreachable',
         'vg_free' : '-',
-        }, "call_node_info")
+        }, log_name)
     return retux
 
   def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
