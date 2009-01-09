@@ -787,6 +787,15 @@ class ConfigWriter:
     return self._UnlockedGetNodeList()
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetOnlineNodeList(self):
+    """Return the list of nodes which are online.
+
+    """
+    all_nodes = [self._UnlockedGetNodeInfo(node)
+                 for node in self._UnlockedGetNodeList()]
+    return [node.name for node in all_nodes if not node.offline]
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodesInfo(self):
     """Get the configuration of all nodes.
 

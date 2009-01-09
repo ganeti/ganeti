@@ -1587,10 +1587,12 @@ class LUDiagnoseOS(NoHooksLU):
 
     """
     node_list = self.acquired_locks[locking.LEVEL_NODE]
-    node_data = self.rpc.call_os_diagnose(node_list)
+    valid_nodes = [node for node in self.cfg.GetOnlineNodeList()
+                   if node in node_list]
+    node_data = self.rpc.call_os_diagnose(valid_nodes)
     if node_data == False:
       raise errors.OpExecError("Can't gather the list of OSes")
-    pol = self._DiagnoseByOS(node_list, node_data)
+    pol = self._DiagnoseByOS(valid_nodes, node_data)
     output = []
     for os_name, os_data in pol.iteritems():
       row = []
