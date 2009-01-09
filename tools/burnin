@@ -326,7 +326,7 @@ class Burner(object):
 
   def ReplaceDisks2(self):
     """Replace secondary node."""
-    mode = constants.REPLACE_DISK_SEC
+    mode = constants.REPLACE_DISK_CHG
 
     mytor = izip(islice(cycle(self.nodes), 2, None),
                  self.instances)
