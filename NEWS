@@ -15,6 +15,7 @@ Version 1.2.7
   - Fix gnt-node migrate
   - gnt-debug man page
   - Fixes various more typos&small issues
+  - Increase disk resync maximum speed to 60MB/s (from 30MB/s)
 
 Version 1.2.6
   - new --hvm-nic-type and --hvm-disk-type flags to control the type of disk
