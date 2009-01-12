@@ -847,99 +847,161 @@ def ConnectToInstanceConsole(opts, args):
       os._exit(1)
 
 
-def _FormatBlockDevInfo(buf, dev, indent_level, static):
+def _FormatLogicalID(dev_type, logical_id):
+  """Formats the logical_id of a disk.
+
+  """
+  if dev_type == constants.LD_DRBD8:
+    node_a, node_b, port, minor_a, minor_b, key = logical_id
+    data = [
+      ("nodeA", "%s, minor=%s" % (node_a, minor_a)),
+      ("nodeB", "%s, minor=%s" % (node_b, minor_b)),
+      ("port", port),
+      ("auth key", key),
+      ]
+  elif dev_type == constants.LD_LV:
+    vg_name, lv_name = logical_id
+    data = ["%s/%s" % (vg_name, lv_name)]
+  else:
+    data = [str(logical_id)]
+
+  return data
+
+
+def _FormatBlockDevInfo(idx, top_level, dev, static):
   """Show block device information.
 
   This is only used by L{ShowInstanceConfig}, but it's too big to be
   left for an inline definition.
 
-  @type buf: StringIO
-  @param buf: buffer that will accumulate the output
+  @type idx: int
+  @param idx: the index of the current disk
+  @type top_level: boolean
+  @param top_level: if this a top-level disk?
   @type dev: dict
   @param dev: dictionary with disk information
-  @type indent_level: int
-  @param indent_level: the indendation level we are at, used for
-      the layout of the device tree
   @type static: boolean
   @param static: wheter the device information doesn't contain
       runtime information but only static data
+  @return: a list of either strings, tuples or lists
+      (which should be formatted at a higher indent level)
 
   """
-  def helper(buf, dtype, status):
+  def helper(dtype, status):
     """Format one line for physical device status.
 
-    @type buf: StringIO
-    @param buf: buffer that will accumulate the output
     @type dtype: str
     @param dtype: a constant from the L{constants.LDS_BLOCK} set
     @type status: tuple
     @param status: a tuple as returned from L{backend.FindBlockDevice}
+    @return: the string representing the status
 
     """
     if not status:
-      buf.write("not active\n")
+      return "not active"
+    txt = ""
+    (path, major, minor, syncp, estt, degr, ldisk) = status
+    if major is None:
+      major_string = "N/A"
     else:
-      (path, major, minor, syncp, estt, degr, ldisk) = status
-      if major is None:
-        major_string = "N/A"
+      major_string = str(major)
+
+    if minor is None:
+      minor_string = "N/A"
+    else:
+      minor_string = str(minor)
+
+    txt += ("%s (%s:%s)" % (path, major_string, minor_string))
+    if dtype in (constants.LD_DRBD8, ):
+      if syncp is not None:
+        sync_text = "*RECOVERING* %5.2f%%," % syncp
+        if estt:
+          sync_text += " ETA %ds" % estt
+        else:
+          sync_text += " ETA unknown"
       else:
-        major_string = str(major)
-
-      if minor is None:
-        minor_string = "N/A"
+        sync_text = "in sync"
+      if degr:
+        degr_text = "*DEGRADED*"
       else:
-        minor_string = str(minor)
+        degr_text = "ok"
+      if ldisk:
+        ldisk_text = " *MISSING DISK*"
+      else:
+        ldisk_text = ""
+      txt += (" %s, status %s%s" % (sync_text, degr_text, ldisk_text))
+    elif dtype == constants.LD_LV:
+      if ldisk:
+        ldisk_text = " *FAILED* (failed drive?)"
+      else:
+        ldisk_text = ""
+      txt += ldisk_text
+    return txt
 
-      buf.write("%s (%s:%s)" % (path, major_string, minor_string))
-      if dtype in (constants.LD_DRBD8, ):
-        if syncp is not None:
-          sync_text = "*RECOVERING* %5.2f%%," % syncp
-          if estt:
-            sync_text += " ETA %ds" % estt
-          else:
-            sync_text += " ETA unknown"
-        else:
-          sync_text = "in sync"
-        if degr:
-          degr_text = "*DEGRADED*"
-        else:
-          degr_text = "ok"
-        if ldisk:
-          ldisk_text = " *MISSING DISK*"
-        else:
-          ldisk_text = ""
-        buf.write(" %s, status %s%s" % (sync_text, degr_text, ldisk_text))
-      elif dtype == constants.LD_LV:
-        if ldisk:
-          ldisk_text = " *FAILED* (failed drive?)"
-        else:
-          ldisk_text = ""
-        buf.write(ldisk_text)
-      buf.write("\n")
-
-  if dev["iv_name"] is not None:
-    data = "  - %s, " % dev["iv_name"]
+  # the header
+  if top_level:
+    if dev["iv_name"] is not None:
+      txt = dev["iv_name"]
+    else:
+      txt = "disk %d" % idx
   else:
-    data = "  - "
-  data += "access mode: %s, " % dev["mode"]
-  data += "type: %s" % dev["dev_type"]
+    txt = "child %d" % idx
+  d1 = ["- %s: %s" % (txt, dev["dev_type"])]
+  data = []
+  if top_level:
+    data.append(("access mode", dev["mode"]))
   if dev["logical_id"] is not None:
-    data += ", logical_id: %s" % (dev["logical_id"],)
+    try:
+      l_id = _FormatLogicalID(dev["dev_type"], dev["logical_id"])
+    except ValueError:
+      l_id = [str(dev["logical_id"])]
+    if len(l_id) == 1:
+      data.append(("logical_id", l_id[0]))
+    else:
+      data.extend(l_id)
   elif dev["physical_id"] is not None:
-    data += ", physical_id: %s" % (dev["physical_id"],)
-  buf.write("%*s%s\n" % (2*indent_level, "", data))
+    data.append("physical_id:")
+    data.append([dev["physical_id"]])
   if not static:
-    buf.write("%*s    primary:   " % (2*indent_level, ""))
-    helper(buf, dev["dev_type"], dev["pstatus"])
-
+    data.append(("on primary", helper(dev["dev_type"], dev["pstatus"])))
   if dev["sstatus"] and not static:
-    buf.write("%*s    secondary: " % (2*indent_level, ""))
-    helper(buf, dev["dev_type"], dev["sstatus"])
+    data.append(("on secondary", helper(dev["dev_type"], dev["sstatus"])))
 
   if dev["children"]:
-    for child in dev["children"]:
-      _FormatBlockDevInfo(buf, child, indent_level+1, static)
+    data.append("child devices:")
+    for c_idx, child in enumerate(dev["children"]):
+      data.append(_FormatBlockDevInfo(c_idx, False, child, static))
+  d1.append(data)
+  return d1
 
+
+def _FormatList(buf, data, indent_level):
+  """Formats a list of data at a given indent level.
+
+  If the element of the list is:
+    - a string, it is simply formatted as is
+    - a tuple, it will be split into key, value and the all the
+      values in a list will be aligned all at the same start column
+    - a list, will be recursively formatted
+
+  @type buf: StringIO
+  @param buf: the buffer into which we write the output
+  @param data: the list to format
+  @type indent_level: int
+  @param indent_level: the indent level to format at
+
+  """
+  max_tlen = max([len(elem[0]) for elem in data
+                 if isinstance(elem, tuple)] or [0])
+  for elem in data:
+    if isinstance(elem, basestring):
+      buf.write("%*s%s\n" % (2*indent_level, "", elem))
+    elif isinstance(elem, tuple):
+      key, value = elem
+      spacer = "%*s" % (max_tlen - len(key), "")
+      buf.write("%*s%s:%s %s\n" % (2*indent_level, "", key, spacer, value))
+    elif isinstance(elem, list):
+      _FormatList(buf, elem, indent_level+1)
 
 def ShowInstanceConfig(opts, args):
   """Compute instance run-time status.
@@ -1022,10 +1084,10 @@ def ShowInstanceConfig(opts, args):
     for idx, (mac, ip, bridge) in enumerate(instance["nics"]):
       buf.write("      - nic/%d: MAC: %s, IP: %s, bridge: %s\n" %
                 (idx, mac, ip, bridge))
-    buf.write("  Block devices:\n")
+    buf.write("  Disks:\n")
 
-    for device in instance["disks"]:
-      _FormatBlockDevInfo(buf, device, 1, opts.static)
+    for idx, device in enumerate(instance["disks"]):
+      _FormatList(buf, _FormatBlockDevInfo(idx, True, device, opts.static), 2)
 
   ToStdout(buf.getvalue().rstrip('\n'))
   return retcode
