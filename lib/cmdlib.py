@@ -4950,8 +4950,7 @@ class LUQueryInstanceData(NoHooksLU):
       for name in self.op.instances:
         full_name = self.cfg.ExpandInstanceName(name)
         if full_name is None:
-          raise errors.OpPrereqError("Instance '%s' not known" %
-                                     self.op.instance_name)
+          raise errors.OpPrereqError("Instance '%s' not known" % name)
         self.wanted_names.append(full_name)
       self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
     else:
