@@ -53,6 +53,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "ValidateBeParams",
            "ToStderr", "ToStdout",
            "UsesRPC",
+           "GetOnlineNodes",
            ]
 
 
@@ -919,6 +920,33 @@ def ParseTimespec(value):
     except ValueError:
       raise errors.OpPrereqError("Invalid time specification '%s'" % value)
   return value
+
+
+def GetOnlineNodes(nodes, cl=None, nowarn=False):
+  """Returns the names of online nodes.
+
+  This function will also log a warning on stderr with the names of
+  the online nodes.
+
+  @param nodes: if not empty, use only this subset of nodes (minus the
+      offline ones)
+  @param cl: if not None, luxi client to use
+  @type nowarn: boolean
+  @param nowarn: by default, this function will output a note with the
+      offline nodes that are skipped; if this parameter is True the
+      note is not displayed
+
+  """
+  if cl is None:
+    cl = GetClient()
+
+  op = opcodes.OpQueryNodes(output_fields=["name", "offline"],
+                            names=nodes)
+  result = SubmitOpCode(op, cl=cl)
+  offline = [row[0] for row in result if row[1]]
+  if offline and not nowarn:
+    ToStderr("Note: skipping offline node(s): %s" % ", ".join(offline))
+  return [row[0] for row in result if not row[1]]
 
 
 def _ToStream(stream, txt, *args):

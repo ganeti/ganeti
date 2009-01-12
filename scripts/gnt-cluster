@@ -288,8 +288,8 @@ def ClusterCopyFile(opts, args):
 
   cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
 
-  op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
-  results = [row[0] for row in SubmitOpCode(op, cl=cl) if row[0] != myname]
+  results = GetOnlineNodes(nodes=opts.nodes, cl=cl)
+  results = [name for name in results if name != myname]
 
   srun = ssh.SshRunner(cluster_name=cluster_name)
   for node in results:
@@ -312,8 +312,8 @@ def RunClusterCommand(opts, args):
   cl = GetClient()
 
   command = " ".join(args)
-  op = opcodes.OpQueryNodes(output_fields=["name"], names=opts.nodes)
-  nodes = [row[0] for row in SubmitOpCode(op, cl=cl)]
+
+  nodes = GetOnlineNodes(nodes=opts.nodes, cl=cl)
 
   cluster_name, master_node = cl.QueryConfigValues(["cluster_name",
                                                     "master_node"])
