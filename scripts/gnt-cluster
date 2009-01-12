@@ -177,6 +177,21 @@ def RenameCluster(opts, args):
   return 0
 
 
+def RedistributeConfig(opts, args):
+  """Forces push of the cluster configuration.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: empty list
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  op = opcodes.OpRedistributeConf()
+  SubmitOrSend(op, opts)
+  return 0
+
+
 def ShowClusterVersion(opts, args):
   """Write version of ganeti software to the standard output.
 
@@ -589,6 +604,10 @@ commands = {
   'rename': (RenameCluster, ARGS_ONE, [DEBUG_OPT, FORCE_OPT],
                "<new_name>",
                "Renames the cluster"),
+  'redist-conf': (RedistributeConfig, ARGS_NONE, [DEBUG_OPT, SUBMIT_OPT],
+                  "",
+                  "Forces a push of the configuration file and ssconf files"
+                  " to the nodes in the cluster"),
   'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT,
              make_option("--no-nplus1-mem", dest="skip_nplusone_mem",
                          help="Skip N+1 memory redundancy tests",

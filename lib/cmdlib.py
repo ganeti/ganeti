@@ -1437,6 +1437,33 @@ class LUSetClusterParams(LogicalUnit):
       _AdjustCandidatePool(self)
 
 
+class LURedistributeConfig(NoHooksLU):
+  """Force the redistribution of cluster configuration.
+
+  This is a very simple LU.
+
+  """
+  _OP_REQP = []
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {
+      locking.LEVEL_NODE: locking.ALL_SET,
+    }
+    self.share_locks[locking.LEVEL_NODE] = 1
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+
+  def Exec(self, feedback_fn):
+    """Redistribute the configuration.
+
+    """
+    self.cfg.Update(self.cfg.GetClusterInfo())
+
+
 def _WaitForSync(lu, instance, oneshot=False, unlock=False):
   """Sleep and poll for an instance's disk to sync.
 

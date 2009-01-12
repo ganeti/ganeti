@@ -171,6 +171,8 @@ class OpCode(BaseOpCode):
     return txt
 
 
+# cluster opcodes
+
 class OpDestroyCluster(OpCode):
   """Destroy the cluster.
 
@@ -263,6 +265,14 @@ class OpSetClusterParams(OpCode):
     "candidate_pool_size",
     ]
 
+
+class OpRedistributeConfig(OpCode):
+  """Force a full push of the cluster configuration.
+
+  """
+  OP_ID = "OP_CLUSTER_REDIST_CONF"
+  __slots__ = [
+    ]
 
 # node opcodes
 
