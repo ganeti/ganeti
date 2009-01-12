@@ -5326,9 +5326,9 @@ class LUSetInstanceParams(LogicalUnit):
                                      " an instance")
         ins_l = self.rpc.call_instance_list([pnode], [instance.hypervisor])
         ins_l = ins_l[pnode]
-        if not type(ins_l) is list:
+        if ins_l.failed or not isinstance(ins_l.data, list):
           raise errors.OpPrereqError("Can't contact node '%s'" % pnode)
-        if instance.name in ins_l:
+        if instance.name in ins_l.data:
           raise errors.OpPrereqError("Instance is running, can't remove"
                                      " disks.")
 
@@ -5366,8 +5366,8 @@ class LUSetInstanceParams(LogicalUnit):
         device_idx = len(instance.disks)
         for node, disk in device.ComputeNodeTree(instance.primary_node):
           self.cfg.SetDiskID(disk, node)
-          result = self.rpc.call_blockdev_remove(node, disk)
-          if result.failed or not result.data:
+          rpc_result = self.rpc.call_blockdev_remove(node, disk)
+          if rpc_result.failed or not rpc_result.data:
             self.proc.LogWarning("Could not remove disk/%d on node %s,"
                                  " continuing anyway", device_idx, node)
         result.append(("disk/%d" % device_idx, "remove"))
