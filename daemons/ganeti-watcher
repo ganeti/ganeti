@@ -357,7 +357,8 @@ class Watcher(object):
           instance.Restart()
           self.started_instances.add(instance.name)
         except Exception:
-          logging.exception("Erro while restarting instance %s", instance.name)
+          logging.exception("Error while restarting instance %s",
+                            instance.name)
 
         notepad.RecordRestartAttempt(instance)
       elif instance.state in HELPLESS_STATES:
