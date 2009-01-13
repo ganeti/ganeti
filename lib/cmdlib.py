@@ -5286,7 +5286,9 @@ class LUSetInstanceParams(LogicalUnit):
                                      " missing on its primary node" % miss_mem)
 
       if be_new[constants.BE_AUTO_BALANCE]:
-        for node, nres in instance.secondary_nodes.iteritems():
+        for node, nres in nodeinfo.iteritems():
+          if node not in instance.secondary_nodes:
+            continue
           if nres.failed or not isinstance(nres.data, dict):
             self.warn.append("Can't get info from secondary node %s" % node)
           elif be_new[constants.BE_MEMORY] > nres.data['memory_free']:
