@@ -1680,22 +1680,20 @@ def FindDevice(dev_type, unique_id, children):
   return device
 
 
-def AttachOrAssemble(dev_type, unique_id, children):
+def Assemble(dev_type, unique_id, children):
   """Try to attach or assemble an existing device.
 
-  This will attach to an existing assembled device or will assemble
-  the device, as needed, to bring it fully up.
+  This will attach to assemble the device, as needed, to bring it
+  fully up. It must be safe to run on already-assembled devices.
 
   """
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
   device = DEV_MAP[dev_type](unique_id, children)
-  if not device.attached:
-    device.Assemble()
-    if not device.attached:
-      raise errors.BlockDeviceError("Can't find a valid block device for"
-                                    " %s/%s/%s" %
-                                    (dev_type, unique_id, children))
+  if not device.Assemble():
+    raise errors.BlockDeviceError("Can't find a valid block device for"
+                                  " %s/%s/%s" %
+                                  (dev_type, unique_id, children))
   return device
 
 
