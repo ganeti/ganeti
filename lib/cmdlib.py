@@ -4647,6 +4647,11 @@ class LUReplaceDisks(LogicalUnit):
     old_node = self.tgt_node
     new_node = self.new_node
     pri_node = instance.primary_node
+    nodes_ip = {
+      old_node: self.cfg.GetNodeInfo(old_node).secondary_ip,
+      new_node: self.cfg.GetNodeInfo(new_node).secondary_ip,
+      pri_node: self.cfg.GetNodeInfo(pri_node).secondary_ip,
+      }
 
     # Step: check device activation
     self.proc.LogStep(1, steps_total, "check device existence")
@@ -4705,20 +4710,24 @@ class LUReplaceDisks(LogicalUnit):
     for idx, (dev, new_minor) in enumerate(zip(instance.disks, minors)):
       size = dev.size
       info("activating a new drbd on %s for disk/%d" % (new_node, idx))
-      # create new devices on new_node
-      if pri_node == dev.logical_id[0]:
-        new_logical_id = (pri_node, new_node,
-                          dev.logical_id[2], dev.logical_id[3], new_minor,
-                          dev.logical_id[5])
+      # create new devices on new_node; note that we create two IDs:
+      # one without port, so the drbd will be activated without
+      # networking information on the new node at this stage, and one
+      # with network, for the latter activation in step 4
+      (o_node1, o_node2, o_port, o_minor1, o_minor2, o_secret) = dev.logical_id
+      if pri_node == o_node1:
+        p_minor = o_minor1
       else:
-        new_logical_id = (new_node, pri_node,
-                          dev.logical_id[2], new_minor, dev.logical_id[4],
-                          dev.logical_id[5])
-      iv_names[idx] = (dev, dev.children, new_logical_id)
+        p_minor = o_minor2
+
+      new_alone_id = (pri_node, new_node, None, p_minor, new_minor, o_secret)
+      new_net_id = (pri_node, new_node, o_port, p_minor, new_minor, o_secret)
+
+      iv_names[idx] = (dev, dev.children, new_net_id)
       logging.debug("Allocated new_minor: %s, new_logical_id: %s", new_minor,
-                    new_logical_id)
+                    new_net_id)
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
-                              logical_id=new_logical_id,
+                              logical_id=new_alone_id,
                               children=dev.children)
       if not _CreateBlockDevOnSecondary(self, new_node, instance,
                                         new_drbd, False,
@@ -4737,25 +4746,15 @@ class LUReplaceDisks(LogicalUnit):
                 hint="Please cleanup this device manually as soon as possible")
 
     info("detaching primary drbds from the network (=> standalone)")
-    done = 0
-    for idx, dev in enumerate(instance.disks):
-      cfg.SetDiskID(dev, pri_node)
-      # set the network part of the physical (unique in bdev terms) id
-      # to None, meaning detach from network
-      dev.physical_id = (None, None, None, None) + dev.physical_id[4:]
-      # and 'find' the device, which will 'fix' it to match the
-      # standalone state
-      result = self.rpc.call_blockdev_find(pri_node, dev)
-      if not result.failed and result.data:
-        done += 1
-      else:
-        warning("Failed to detach drbd disk/%d from network, unusual case" %
-                idx)
+    result = self.rpc.call_drbd_disconnect_net([pri_node], nodes_ip,
+                                               instance.disks)[pri_node]
 
-    if not done:
-      # no detaches succeeded (very unlikely)
+    msg = result.RemoteFailMsg()
+    if msg:
+      # detaches didn't succeed (unlikely)
       self.cfg.ReleaseDRBDMinors(instance.name)
-      raise errors.OpExecError("Can't detach at least one DRBD from old node")
+      raise errors.OpExecError("Can't detach the disks from the network on"
+                               " old node: %s" % (msg,))
 
     # if we managed to detach at least one, we update all the disks of
     # the instance to point to the new secondary
@@ -4770,17 +4769,15 @@ class LUReplaceDisks(LogicalUnit):
 
     # and now perform the drbd attach
     info("attaching primary drbds to new secondary (standalone => connected)")
-    for idx, dev in enumerate(instance.disks):
-      info("attaching primary drbd for disk/%d to new secondary node" % idx)
-      # since the attach is smart, it's enough to 'find' the device,
-      # it will automatically activate the network, if the physical_id
-      # is correct
-      cfg.SetDiskID(dev, pri_node)
-      logging.debug("Disk to attach: %s", dev)
-      result = self.rpc.call_blockdev_find(pri_node, dev)
-      if result.failed or not result.data:
-        warning("can't attach drbd disk/%d to new secondary!" % idx,
-                "please do a gnt-instance info to see the status of disks")
+    result = self.rpc.call_drbd_attach_net([pri_node, new_node], nodes_ip,
+                                           instance.disks, instance.name,
+                                           False)
+    for to_node, to_result in result.items():
+      msg = to_result.RemoteFailMsg()
+      if msg:
+        warning("can't attach drbd disks on node %s: %s", to_node, msg,
+                hint="please do a gnt-instance info to see the"
+                " status of disks")
 
     # this can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its
