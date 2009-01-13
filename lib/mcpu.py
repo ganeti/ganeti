@@ -68,6 +68,7 @@ class Processor(object):
     opcodes.OpDeactivateInstanceDisks: cmdlib.LUDeactivateInstanceDisks,
     opcodes.OpReplaceDisks: cmdlib.LUReplaceDisks,
     opcodes.OpFailoverInstance: cmdlib.LUFailoverInstance,
+    opcodes.OpMigrateInstance: cmdlib.LUMigrateInstance,
     opcodes.OpConnectConsole: cmdlib.LUConnectConsole,
     opcodes.OpQueryInstances: cmdlib.LUQueryInstances,
     opcodes.OpQueryInstanceData: cmdlib.LUQueryInstanceData,

@@ -821,6 +821,41 @@ def FailoverInstance(opts, args):
   return 0
 
 
+def MigrateInstance(opts, args):
+  """Migrate an instance.
+
+  The migrate is done without shutdown.
+
+  Args:
+    opts - class with options as members
+    args - list with a single element, the instance name
+  Opts used:
+    force - whether to migrate without asking questions.
+
+  """
+  instance_name = args[0]
+  force = opts.force
+
+  if not force:
+    if opts.cleanup:
+      usertext = ("Instance %s will be recovered from a failed migration."
+                  " Note that the migration procedure (including cleanup)" %
+                  (instance_name,))
+    else:
+      usertext = ("Instance %s will be migrated. Note that migration" %
+                  (instance_name,))
+    usertext += (" is **experimental** in this version."
+                " This might impact the instance if anything goes wrong."
+                " Continue?")
+    if not AskUser(usertext):
+      return 1
+
+  op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live,
+                                 cleanup=opts.cleanup)
+  SubmitOpCode(op)
+  return 0
+
+
 def ConnectToInstanceConsole(opts, args):
   """Connect to the console of an instance.
 
@@ -1269,6 +1304,26 @@ commands = {
                "[-f] <instance>",
                "Stops the instance and starts it on the backup node, using"
                " the remote mirror (only for instances of type drbd)"),
+  'migrate': (MigrateInstance, ARGS_ONE,
+               [DEBUG_OPT, FORCE_OPT,
+                make_option("--non-live", dest="live",
+                            default=True, action="store_false",
+                            help="Do a non-live migration (this usually means"
+                            " freeze the instance, save the state,"
+                            " transfer and only then resume running on the"
+                            " secondary node)"),
+                make_option("--cleanup", dest="cleanup",
+                            default=False, action="store_true",
+                            help="Instead of performing the migration, try to"
+                            " recover from a failed cleanup. This is safe"
+                            " to run even if the instance is healthy, but it"
+                            " will create extra replication traffic and "
+                            " disrupt briefly the replication (like during the"
+                            " migration"),
+                ],
+               "[-f] <instance>",
+               "Migrate instance to its secondary node"
+               " (only for instances of type drbd)"),
   'info': (ShowInstanceConfig, ARGS_ANY,
            [DEBUG_OPT,
             make_option("-s", "--static", dest="static",

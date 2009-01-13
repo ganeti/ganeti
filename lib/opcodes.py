@@ -413,6 +413,19 @@ class OpFailoverInstance(OpCode):
   __slots__ = ["instance_name", "ignore_consistency"]
 
 
+class OpMigrateInstance(OpCode):
+  """Migrate an instance.
+
+  This migrates (without shutting down an instance) to its secondary
+  node.
+
+  @var instance_name: the name of the instance
+
+  """
+  OP_ID = "OP_INSTANCE_MIGRATE"
+  __slots__ = ["instance_name", "live", "cleanup"]
+
+
 class OpConnectConsole(OpCode):
   """Connect to an instance's console."""
   OP_ID = "OP_INSTANCE_CONSOLE"

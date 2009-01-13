@@ -975,14 +975,14 @@ def MigrateInstance(instance, target, live):
       - msg is a string with details in case of failure
 
   """
-  hyper = hypervisor.GetHypervisor(instance.hypervisor_name)
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
 
   try:
     hyper.MigrateInstance(instance.name, target, live)
   except errors.HypervisorError, err:
-    msg = "Failed to migrate instance: %s" % str(err)
-    logging.error(msg)
-    return (False, msg)
+    msg = "Failed to migrate instance"
+    logging.exception(msg)
+    return (False, "%s: %s" % (msg, err))
   return (True, "Migration successfull")
 
 
@@ -2223,9 +2223,9 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
     return status, bdevs
 
   if multimaster:
-    for cf, rd in zip(disks, bdevs):
+    for idx, rd in enumerate(bdevs):
       try:
-        _SymlinkBlockDev(instance_name, rd.dev_path, cf.iv_name)
+        _SymlinkBlockDev(instance_name, rd.dev_path, idx)
       except EnvironmentError, err:
         return (False, "Can't create symlink: %s" % str(err))
   # reconnect disks, switch to new master configuration and if

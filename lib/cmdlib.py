@@ -3387,6 +3387,310 @@ class LUFailoverInstance(LogicalUnit):
                                  (instance.name, target_node))
 
 
+class LUMigrateInstance(LogicalUnit):
+  """Migrate an instance.
+
+  This is migration without shutting down, compared to the failover,
+  which is done with shutdown.
+
+  """
+  HPATH = "instance-migrate"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name", "live", "cleanup"]
+
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+    self.needed_locks[locking.LEVEL_NODE] = []
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on master, primary and secondary nodes of the instance.
+
+    """
+    env = _BuildInstanceHookEnvByObject(self, self.instance)
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster.
+
+    """
+    instance = self.cfg.GetInstanceInfo(
+      self.cfg.ExpandInstanceName(self.op.instance_name))
+    if instance is None:
+      raise errors.OpPrereqError("Instance '%s' not known" %
+                                 self.op.instance_name)
+
+    if instance.disk_template != constants.DT_DRBD8:
+      raise errors.OpPrereqError("Instance's disk layout is not"
+                                 " drbd8, cannot migrate.")
+
+    secondary_nodes = instance.secondary_nodes
+    if not secondary_nodes:
+      raise errors.ProgrammerError("no secondary node but using "
+                                   "drbd8 disk template")
+
+    i_be = self.cfg.GetClusterInfo().FillBE(instance)
+
+    target_node = secondary_nodes[0]
+    # check memory requirements on the secondary node
+    _CheckNodeFreeMemory(self, target_node, "migrating instance %s" %
+                         instance.name, i_be[constants.BE_MEMORY],
+                         instance.hypervisor)
+
+    # check bridge existance
+    brlist = [nic.bridge for nic in instance.nics]
+    result = self.rpc.call_bridges_exist(target_node, brlist)
+    if result.failed or not result.data:
+      raise errors.OpPrereqError("One or more target bridges %s does not"
+                                 " exist on destination node '%s'" %
+                                 (brlist, target_node))
+
+    if not self.op.cleanup:
+      result = self.rpc.call_instance_migratable(instance.primary_node,
+                                                 instance)
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpPrereqError("Can't migrate: %s - please use failover" %
+                                   msg)
+
+    self.instance = instance
+
+  def _WaitUntilSync(self):
+    """Poll with custom rpc for disk sync.
+
+    This uses our own step-based rpc call.
+
+    """
+    self.feedback_fn("* wait until resync is done")
+    all_done = False
+    while not all_done:
+      all_done = True
+      result = self.rpc.call_drbd_wait_sync(self.all_nodes,
+                                            self.nodes_ip,
+                                            self.instance.disks)
+      min_percent = 100
+      for node, nres in result.items():
+        msg = nres.RemoteFailMsg()
+        if msg:
+          raise errors.OpExecError("Cannot resync disks on node %s: %s" %
+                                   (node, msg))
+        node_done, node_percent = nres.data[1]
+        all_done = all_done and node_done
+        if node_percent is not None:
+          min_percent = min(min_percent, node_percent)
+      if not all_done:
+        if min_percent < 100:
+          self.feedback_fn("   - progress: %.1f%%" % min_percent)
+        time.sleep(2)
+
+  def _EnsureSecondary(self, node):
+    """Demote a node to secondary.
+
+    """
+    self.feedback_fn("* switching node %s to secondary mode" % node)
+
+    for dev in self.instance.disks:
+      self.cfg.SetDiskID(dev, node)
+
+    result = self.rpc.call_blockdev_close(node, self.instance.name,
+                                          self.instance.disks)
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Cannot change disk to secondary on node %s,"
+                               " error %s" % (node, msg))
+
+  def _GoStandalone(self):
+    """Disconnect from the network.
+
+    """
+    self.feedback_fn("* changing into standalone mode")
+    result = self.rpc.call_drbd_disconnect_net(self.all_nodes, self.nodes_ip,
+                                               self.instance.disks)
+    for node, nres in result.items():
+      msg = nres.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Cannot disconnect disks node %s,"
+                                 " error %s" % (node, msg))
+
+  def _GoReconnect(self, multimaster):
+    """Reconnect to the network.
+
+    """
+    if multimaster:
+      msg = "dual-master"
+    else:
+      msg = "single-master"
+    self.feedback_fn("* changing disks into %s mode" % msg)
+    result = self.rpc.call_drbd_attach_net(self.all_nodes, self.nodes_ip,
+                                           self.instance.disks,
+                                           self.instance.name, multimaster)
+    for node, nres in result.items():
+      msg = nres.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Cannot change disks config on node %s,"
+                                 " error: %s" % (node, msg))
+
+  def _ExecCleanup(self):
+    """Try to cleanup after a failed migration.
+
+    The cleanup is done by:
+      - check that the instance is running only on one node
+        (and update the config if needed)
+      - change disks on its secondary node to secondary
+      - wait until disks are fully synchronized
+      - disconnect from the network
+      - change disks into single-master mode
+      - wait again until disks are fully synchronized
+
+    """
+    instance = self.instance
+    target_node = self.target_node
+    source_node = self.source_node
+
+    # check running on only one node
+    self.feedback_fn("* checking where the instance actually runs"
+                     " (if this hangs, the hypervisor might be in"
+                     " a bad state)")
+    ins_l = self.rpc.call_instance_list(self.all_nodes, [instance.hypervisor])
+    for node, result in ins_l.items():
+      result.Raise()
+      if not isinstance(result.data, list):
+        raise errors.OpExecError("Can't contact node '%s'" % node)
+
+    runningon_source = instance.name in ins_l[source_node].data
+    runningon_target = instance.name in ins_l[target_node].data
+
+    if runningon_source and runningon_target:
+      raise errors.OpExecError("Instance seems to be running on two nodes,"
+                               " or the hypervisor is confused. You will have"
+                               " to ensure manually that it runs only on one"
+                               " and restart this operation.")
+
+    if not (runningon_source or runningon_target):
+      raise errors.OpExecError("Instance does not seem to be running at all."
+                               " In this case, it's safer to repair by"
+                               " running 'gnt-instance stop' to ensure disk"
+                               " shutdown, and then restarting it.")
+
+    if runningon_target:
+      # the migration has actually succeeded, we need to update the config
+      self.feedback_fn("* instance running on secondary node (%s),"
+                       " updating config" % target_node)
+      instance.primary_node = target_node
+      self.cfg.Update(instance)
+      demoted_node = source_node
+    else:
+      self.feedback_fn("* instance confirmed to be running on its"
+                       " primary node (%s)" % source_node)
+      demoted_node = target_node
+
+    self._EnsureSecondary(demoted_node)
+    try:
+      self._WaitUntilSync()
+    except errors.OpExecError:
+      # we ignore here errors, since if the device is standalone, it
+      # won't be able to sync
+      pass
+    self._GoStandalone()
+    self._GoReconnect(False)
+    self._WaitUntilSync()
+
+    self.feedback_fn("* done")
+
+  def _ExecMigration(self):
+    """Migrate an instance.
+
+    The migrate is done by:
+      - change the disks into dual-master mode
+      - wait until disks are fully synchronized again
+      - migrate the instance
+      - change disks on the new secondary node (the old primary) to secondary
+      - wait until disks are fully synchronized
+      - change disks into single-master mode
+
+    """
+    instance = self.instance
+    target_node = self.target_node
+    source_node = self.source_node
+
+    self.feedback_fn("* checking disk consistency between source and target")
+    for dev in instance.disks:
+      if not _CheckDiskConsistency(self, dev, target_node, False):
+        raise errors.OpExecError("Disk %s is degraded or not fully"
+                                 " synchronized on target node,"
+                                 " aborting migrate." % dev.iv_name)
+
+    self._EnsureSecondary(target_node)
+    self._GoStandalone()
+    self._GoReconnect(True)
+    self._WaitUntilSync()
+
+    self.feedback_fn("* migrating instance to %s" % target_node)
+    time.sleep(10)
+    result = self.rpc.call_instance_migrate(source_node, instance,
+                                            self.nodes_ip[target_node],
+                                            self.op.live)
+    msg = result.RemoteFailMsg()
+    if msg:
+      logging.error("Instance migration failed, trying to revert"
+                    " disk status: %s", msg)
+      try:
+        self._EnsureSecondary(target_node)
+        self._GoStandalone()
+        self._GoReconnect(False)
+        self._WaitUntilSync()
+      except errors.OpExecError, err:
+        self.LogWarning("Migration failed and I can't reconnect the"
+                        " drives: error '%s'\n"
+                        "Please look and recover the instance status" %
+                        str(err))
+
+      raise errors.OpExecError("Could not migrate instance %s: %s" %
+                               (instance.name, msg))
+    time.sleep(10)
+
+    instance.primary_node = target_node
+    # distribute new instance config to the other nodes
+    self.cfg.Update(instance)
+
+    self._EnsureSecondary(source_node)
+    self._WaitUntilSync()
+    self._GoStandalone()
+    self._GoReconnect(False)
+    self._WaitUntilSync()
+
+    self.feedback_fn("* done")
+
+  def Exec(self, feedback_fn):
+    """Perform the migration.
+
+    """
+    self.feedback_fn = feedback_fn
+
+    self.source_node = self.instance.primary_node
+    self.target_node = self.instance.secondary_nodes[0]
+    self.all_nodes = [self.source_node, self.target_node]
+    self.nodes_ip = {
+      self.source_node: self.cfg.GetNodeInfo(self.source_node).secondary_ip,
+      self.target_node: self.cfg.GetNodeInfo(self.target_node).secondary_ip,
+      }
+    if self.op.cleanup:
+      return self._ExecCleanup()
+    else:
+      return self._ExecMigration()
+
+
 def _CreateBlockDevOnPrimary(lu, node, instance, device, info):
   """Create a tree of block devices on the primary node.
 
