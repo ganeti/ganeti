@@ -87,36 +87,16 @@ class BlockDev(object):
   def Assemble(self):
     """Assemble the device from its components.
 
-    If this is a plain block device (e.g. LVM) than assemble does
-    nothing, as the LVM has no children and we don't put logical
-    volumes offline.
-
-    One guarantee is that after the device has been assembled, it
-    knows its major/minor numbers. This allows other devices (usually
-    parents) to probe correctly for their children.
+    Implementations of this method by child classes must ensure that:
+      - after the device has been assembled, it knows its major/minor
+        numbers; this allows other devices (usually parents) to probe
+        correctly for their children
+      - calling this method on an existing, in-use device is safe
+      - if the device is already configured (and in an OK state),
+        this method is idempotent
 
     """
-    status = True
-    for child in self._children:
-      if not isinstance(child, BlockDev):
-        raise TypeError("Invalid child passed of type '%s'" % type(child))
-      if not status:
-        break
-      status = status and child.Assemble()
-      if not status:
-        break
-
-      try:
-        child.Open()
-      except errors.BlockDeviceError:
-        for child in self._children:
-          child.Shutdown()
-        raise
-
-    if not status:
-      for child in self._children:
-        child.Shutdown()
-    return status
+    return True
 
   def Attach(self):
     """Find a device which matches our config and attach to it.
