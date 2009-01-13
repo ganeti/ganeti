@@ -27,6 +27,9 @@ import os
 import sys
 import optparse
 import time
+import socket
+import urllib2
+import errno
 from itertools import izip, islice, cycle
 from cStringIO import StringIO
 
@@ -39,6 +42,10 @@ from ganeti import utils
 
 
 USAGE = ("\tburnin -o OS_NAME [options...] instance_name ...")
+
+
+class InstanceDown(Exception):
+  """The checked instance was not up"""
 
 
 def Usage():
@@ -190,6 +197,16 @@ class Burner(object):
                       dest="parallel",
                       help="Enable parallelization of some operations in"
                       " order to speed burnin or to test granular locking")
+    parser.add_option("--net-timeout", default=15, type="int",
+                      dest="net_timeout",
+                      help="The instance check network timeout in seconds"
+                      " (defaults to 15 seconds)")
+    parser.add_option("-C", "--http-check", default=False, action="store_true",
+                      dest="http_check",
+                      help="Enable checking of instance status via http,"
+                      " looking for /hostname.txt that should contain the"
+                      " name of the instance")
+
 
     options, args = parser.parse_args()
     if len(args) < 1 or options.os is None:
@@ -205,7 +222,7 @@ class Burner(object):
 
     if options.disk_template == constants.DT_DISKLESS:
       disk_size = disk_growth = []
-      opts.do_addremove_disks = False
+      options.do_addremove_disks = False
     else:
       disk_size = [utils.ParseUnit(v) for v in options.disk_size.split(",")]
       disk_growth = [utils.ParseUnit(v)
@@ -233,6 +250,8 @@ class Burner(object):
       constants.BE_VCPUS: 1,
       }
     self.hvp = {}
+
+    socket.setdefaulttimeout(options.net_timeout)
 
   def GetState(self):
     """Read the cluster state from the config."""
@@ -314,6 +333,9 @@ class Burner(object):
     if self.opts.parallel:
       self.ExecJobSet(jobset)
 
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
+
   def GrowDisks(self):
     """Grow both the os and the swap disks by the requested amount, if any."""
     for instance in self.instances:
@@ -360,6 +382,8 @@ class Burner(object):
 
       Log("- Failover instance %s" % (instance))
       self.ExecOp(op)
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
 
   def ImportExport(self):
     """Export the instance, delete it, and import it back.
@@ -429,6 +453,9 @@ class Burner(object):
 
       self.to_rem.append(instance)
 
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
+
   def StopInstance(self, instance):
     """Stop given instance."""
     op = opcodes.OpShutdownInstance(instance_name=instance)
@@ -454,6 +481,9 @@ class Burner(object):
       self.StopInstance(instance)
       self.StartInstance(instance)
 
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
+
   def Remove(self):
     """Remove the instances."""
     for instance in self.to_rem:
@@ -469,9 +499,13 @@ class Burner(object):
       self.StopInstance(instance)
       self.RenameInstance(instance, rename)
       self.StartInstance(rename)
+      self._CheckInstanceAlive(rename)
       self.StopInstance(rename)
       self.RenameInstance(rename, instance)
       self.StartInstance(instance)
+
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
 
   def Reinstall(self):
     """Reinstall the instances."""
@@ -485,6 +519,8 @@ class Burner(object):
       Log("- Reinstall instance %s specifying the OS" % (instance,))
       self.ExecOp(op)
       self.StartInstance(instance)
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
 
   def Reboot(self):
     """Reinstall the instances."""
@@ -495,6 +531,7 @@ class Burner(object):
                                       ignore_secondaries=False)
         Log("- Reboot instance %s with type '%s'" % (instance, reboot_type))
         self.ExecOp(op)
+        self._CheckInstanceAlive(instance)
 
   def ActivateDisks(self):
     """Activate and deactivate disks of the instances."""
@@ -509,6 +546,8 @@ class Burner(object):
       Log("- Deactivate disks of offline instance %s" % (instance,))
       self.ExecOp(op_deact)
       self.StartInstance(instance)
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
 
   def AddRemoveDisks(self):
     """Add and remove an extra disk for the instances."""
@@ -524,6 +563,8 @@ class Burner(object):
       Log("- Removing the last disk of instance %s" % (instance,))
       self.ExecOp(op_rem)
       self.StartInstance(instance)
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
 
   def AddRemoveNICs(self):
     """Add and remove an extra NIC for the instances."""
@@ -536,6 +577,33 @@ class Burner(object):
       self.ExecOp(op_add)
       Log("- Removing the last NIC of instance %s" % (instance,))
       self.ExecOp(op_rem)
+
+  def _CheckInstanceAlive(self, instance):
+    """Check if an instance is alive by doing http checks.
+
+    This will try to retrieve the url on the instance /hostname.txt
+    and check that it contains the hostname of the instance. In case
+    we get ECONNREFUSED, we retry up to the net timeout seconds, for
+    any other error we abort.
+
+    """
+    if not self.opts.http_check:
+      return
+    try:
+      for retries in range(self.opts.net_timeout):
+        try:
+          url = urllib2.urlopen("http://%s/hostname.txt" % instance)
+        except urllib2.URLError, err:
+          if err.args[0][0] == errno.ECONNREFUSED:
+            time.sleep(1)
+            continue
+          raise
+    except urllib2.URLError, err:
+      raise InstanceDown(instance, str(err))
+    hostname = url.read().strip()
+    if hostname != instance:
+      raise InstanceDown(instance, ("Hostname mismatch, expected %s, got %s" %
+                                    (instance, hostname)))
 
   def BurninCluster(self):
     """Test a cluster intensively.
