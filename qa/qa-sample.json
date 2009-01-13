@@ -87,7 +87,9 @@
 
   "options": {
     "burnin-instances": 2,
-    "burnin-disk-template": "drbd"
+    "burnin-disk-template": "drbd",
+    "burnin-in-parallel": false,
+    "burnin-check-instances": false
   },
 
   "# vim: set syntax=javascript :": null

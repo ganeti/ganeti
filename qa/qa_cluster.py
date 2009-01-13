@@ -148,8 +148,10 @@ def TestClusterBurnin():
   """Burnin"""
   master = qa_config.GetMasterNode()
 
-  disk_template = (qa_config.get('options', {}).
-                   get('burnin-disk-template', 'drbd'))
+  options = qa_config.get('options', {})
+  disk_template = options.get('burnin-disk-template', 'drbd')
+  parallel = options.get('burnin-in-parallel', False)
+  check_inst = options.get('burnin-check-instances', False)
 
   # Get as many instances as we need
   instances = []
@@ -168,10 +170,15 @@ def TestClusterBurnin():
     try:
       # Run burnin
       cmd = [script,
+             '-p',
              '--os=%s' % qa_config.get('os'),
              '--disk-size=%s' % ",".join(qa_config.get('disk')),
              '--disk-growth=%s' % ",".join(qa_config.get('disk-growth')),
              '--disk-template=%s' % disk_template]
+      if parallel:
+        cmd.append('--parallel')
+      if check_inst:
+        cmd.append('--http-check')
       cmd += [inst['name'] for inst in instances]
       AssertEqual(StartSSH(master['primary'],
                            utils.ShellQuoteArgs(cmd)).wait(), 0)
