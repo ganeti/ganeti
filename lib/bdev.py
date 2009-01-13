@@ -1321,7 +1321,49 @@ class DRBD8(BaseDRBD):
                              "C", dual_pri=multimaster)
 
   def Attach(self):
-    """Find a DRBD device which matches our config and attach to it.
+    """Check if our minor is configured.
+
+    This doesn't do any device configurations - it only checks if the
+    minor is in a state different from Unconfigured.
+
+    Note that this function will not change the state of the system in
+    any way (except in case of side-effects caused by reading from
+    /proc).
+
+    """
+    used_devs = self._GetUsedDevs()
+    if self._aminor in used_devs:
+      minor = self._aminor
+    else:
+      minor = None
+
+    self._SetFromMinor(minor)
+    return minor is not None
+
+  def Assemble(self):
+    """Assemble the drbd.
+
+    Method:
+      - if we have a configured device, we try to ensure that it matches
+        our config
+      - if not, we create it from zero
+
+    """
+    result = super(DRBD8, self).Assemble()
+    if not result:
+      return result
+
+    self.Attach()
+    if self.minor is None:
+      # local device completely unconfigured
+      return self._FastAssemble()
+    else:
+      # we have to recheck the local and network status and try to fix
+      # the device
+      return self._SlowAssemble()
+
+  def _SlowAssemble(self):
+    """Assembles the DRBD device from a (partially) configured device.
 
     In case of partially attached (local device matches but no network
     setup), we perform the network attach. If successful, we re-test
@@ -1382,34 +1424,12 @@ class DRBD8(BaseDRBD):
     self._SetFromMinor(minor)
     return minor is not None
 
-  def Assemble(self):
-    """Assemble the drbd.
+  def _FastAssemble(self):
+    """Assemble the drbd device from zero.
 
-    Method:
-      - if we have a local backing device, we bind to it by:
-        - checking the list of used drbd devices
-        - check if the local minor use of any of them is our own device
-        - if yes, abort?
-        - if not, bind
-      - if we have a local/remote net info:
-        - redo the local backing device step for the remote device
-        - check if any drbd device is using the local port,
-          if yes abort
-        - check if any remote drbd device is using the remote
-          port, if yes abort (for now)
-        - bind our net port
-        - bind the remote net port
+    This is run when in Assemble we detect our minor is unused.
 
     """
-    self.Attach()
-    if self.minor is not None:
-      logging.info("Already assembled")
-      return True
-
-    result = super(DRBD8, self).Assemble()
-    if not result:
-      return result
-
     # TODO: maybe completely tear-down the minor (drbdsetup ... down)
     # before attaching our own?
     minor = self._aminor
