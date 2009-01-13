@@ -736,6 +736,35 @@ class RpcRunner(object):
     params = [instance_name, [cf.ToDict() for cf in disks]]
     return self._SingleNodeCall(node, "blockdev_close", params)
 
+  def call_drbd_disconnect_net(self, node_list, nodes_ip, disks):
+    """Disconnects the network of the given drbd devices.
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(node_list, "drbd_disconnect_net",
+                               [nodes_ip, [cf.ToDict() for cf in disks]])
+
+  def call_drbd_attach_net(self, node_list, nodes_ip,
+                           disks, instance_name, multimaster):
+    """Disconnects the given drbd devices.
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(node_list, "drbd_attach_net",
+                               [nodes_ip, [cf.ToDict() for cf in disks],
+                                instance_name, multimaster])
+
+  def call_drbd_wait_sync(self, node_list, nodes_ip, disks):
+    """Waits for the synchronization of drbd devices is complete.
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(node_list, "drbd_wait_sync",
+                               [nodes_ip, [cf.ToDict() for cf in disks]])
+
   @classmethod
   def call_upload_file(cls, node_list, file_name, address_list=None):
     """Upload a file.
