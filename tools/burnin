@@ -659,11 +659,11 @@ class Burner(object):
       if opts.do_activate_disks:
         self.ActivateDisks()
 
-      if opts.do_startstop:
-        self.StopStart()
-
       if opts.rename:
         self.Rename()
+
+      if opts.do_startstop:
+        self.StopStart()
 
       has_err = False
     finally:
