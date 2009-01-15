@@ -253,7 +253,7 @@ class _HttpServerRequestExecutor(object):
     # Operate in non-blocking mode
     self.sock.setblocking(0)
 
-    logging.info("Connection from %s:%s", client_addr[0], client_addr[1])
+    logging.debug("Connection from %s:%s", client_addr[0], client_addr[1])
     try:
       request_msg_reader = None
       force_close = True
@@ -286,7 +286,7 @@ class _HttpServerRequestExecutor(object):
       self.sock.close()
       self.sock = None
     finally:
-      logging.info("Disconnected %s:%s", client_addr[0], client_addr[1])
+      logging.debug("Disconnected %s:%s", client_addr[0], client_addr[1])
 
   def _ReadRequest(self):
     """Reads a request sent by client.
