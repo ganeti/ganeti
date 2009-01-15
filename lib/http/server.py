@@ -102,7 +102,7 @@ class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
     @param sock: Target socket
     @type request_msg: http.HttpMessage
     @param request_msg: Request message, required to determine whether
-                        response may have a message body
+        response may have a message body
     @type response_msg: http.HttpMessage
     @param response_msg: Response message
     @type write_timeout: float
@@ -210,9 +210,10 @@ class _HttpClientToServerMessageReader(http.HttpMessageReader):
 class _HttpServerRequestExecutor(object):
   """Implements server side of HTTP.
 
-  This class implements the server side of HTTP. It's based on code of Python's
-  BaseHTTPServer, from both version 2.4 and 3k. It does not support non-ASCII
-  character encodings. Keep-alive connections are not supported.
+  This class implements the server side of HTTP. It's based on code of
+  Python's BaseHTTPServer, from both version 2.4 and 3k. It does not
+  support non-ASCII character encodings. Keep-alive connections are
+  not supported.
 
   """
   # The default request version.  This only affects responses up until
@@ -428,8 +429,8 @@ class HttpServer(http.HttpBase):
     @type ssl_params: HttpSslParams
     @param ssl_params: SSL key and certificate
     @type ssl_verify_peer: bool
-    @param ssl_verify_peer: Whether to require client certificate and compare
-                            it with our certificate
+    @param ssl_verify_peer: Whether to require client certificate
+        and compare it with our certificate
 
     """
     http.HttpBase.__init__(self)

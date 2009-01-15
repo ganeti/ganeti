@@ -125,12 +125,10 @@ class HttpServerRequestAuthentication(object):
     raise http.HttpUnauthorized(headers=headers)
 
   def _CheckAuthorization(self, req):
-    """Checks "Authorization" header sent by client.
+    """Checks 'Authorization' header sent by client.
 
     @type req: L{http.server._HttpServerRequest}
     @param req: HTTP request context
-    @type credentials: str
-    @param credentials: Credentials sent
     @rtype: bool
     @return: Whether user is allowed to execute request
 
@@ -212,13 +210,13 @@ class PasswordFileUser(object):
 def ReadPasswordFile(file_name):
   """Reads a password file.
 
-  Lines in the password file are of the following format:
+  Lines in the password file are of the following format::
 
-    <username> <password> [options]
+      <username> <password> [options]
 
   Fields are separated by whitespace. Username and password are mandatory,
-  options are optional and separated by comma (","). Empty lines and comments
-  ("#") are ignored.
+  options are optional and separated by comma (','). Empty lines and comments
+  ('#') are ignored.
 
   @type file_name: str
   @param file_name: Path to password file

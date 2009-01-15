@@ -124,9 +124,9 @@ class HttpException(Exception):
 class HttpBadRequest(HttpException):
   """400 Bad Request
 
-  RFC2616, 10.4.1: The request could not be understood by the server due to
-  malformed syntax. The client SHOULD NOT repeat the request without
-  modifications.
+  RFC2616, 10.4.1: The request could not be understood by the server
+  due to malformed syntax. The client SHOULD NOT repeat the request
+  without modifications.
 
   """
   code = 400
@@ -135,9 +135,10 @@ class HttpBadRequest(HttpException):
 class HttpUnauthorized(HttpException):
   """401 Unauthorized
 
-  RFC2616, section 10.4.2: The request requires user authentication. The
-  response MUST include a WWW-Authenticate header field (section 14.47)
-  containing a challenge applicable to the requested resource.
+  RFC2616, section 10.4.2: The request requires user
+  authentication. The response MUST include a WWW-Authenticate header
+  field (section 14.47) containing a challenge applicable to the
+  requested resource.
 
   """
   code = 401
@@ -146,9 +147,9 @@ class HttpUnauthorized(HttpException):
 class HttpForbidden(HttpException):
   """403 Forbidden
 
-  RFC2616, 10.4.4: The server understood the request, but is refusing to
-  fulfill it.  Authorization will not help and the request SHOULD NOT be
-  repeated.
+  RFC2616, 10.4.4: The server understood the request, but is refusing
+  to fulfill it.  Authorization will not help and the request SHOULD
+  NOT be repeated.
 
   """
   code = 403
@@ -157,8 +158,9 @@ class HttpForbidden(HttpException):
 class HttpNotFound(HttpException):
   """404 Not Found
 
-  RFC2616, 10.4.5: The server has not found anything matching the Request-URI.
-  No indication is given of whether the condition is temporary or permanent.
+  RFC2616, 10.4.5: The server has not found anything matching the
+  Request-URI.  No indication is given of whether the condition is
+  temporary or permanent.
 
   """
   code = 404
@@ -167,9 +169,10 @@ class HttpNotFound(HttpException):
 class HttpMethodNotAllowed(HttpException):
   """405 Method Not Allowed
 
-  RFC2616, 10.4.6: The method specified in the Request-Line is not allowed for
-  the resource identified by the Request-URI. The response MUST include an
-  Allow header containing a list of valid methods for the requested resource.
+  RFC2616, 10.4.6: The method specified in the Request-Line is not
+  allowed for the resource identified by the Request-URI. The response
+  MUST include an Allow header containing a list of valid methods for
+  the requested resource.
 
   """
   code = 405
@@ -178,9 +181,9 @@ class HttpMethodNotAllowed(HttpException):
 class HttpRequestTimeout(HttpException):
   """408 Request Timeout
 
-  RFC2616, 10.4.9: The client did not produce a request within the time that
-  the server was prepared to wait. The client MAY repeat the request without
-  modifications at any later time.
+  RFC2616, 10.4.9: The client did not produce a request within the
+  time that the server was prepared to wait. The client MAY repeat the
+  request without modifications at any later time.
 
   """
   code = 408
@@ -189,10 +192,10 @@ class HttpRequestTimeout(HttpException):
 class HttpConflict(HttpException):
   """409 Conflict
 
-  RFC2616, 10.4.10: The request could not be completed due to a conflict with
-  the current state of the resource. This code is only allowed in situations
-  where it is expected that the user might be able to resolve the conflict and
-  resubmit the request.
+  RFC2616, 10.4.10: The request could not be completed due to a
+  conflict with the current state of the resource. This code is only
+  allowed in situations where it is expected that the user might be
+  able to resolve the conflict and resubmit the request.
 
   """
   code = 409
@@ -201,9 +204,9 @@ class HttpConflict(HttpException):
 class HttpGone(HttpException):
   """410 Gone
 
-  RFC2616, 10.4.11: The requested resource is no longer available at the server
-  and no forwarding address is known. This condition is expected to be
-  considered permanent.
+  RFC2616, 10.4.11: The requested resource is no longer available at
+  the server and no forwarding address is known. This condition is
+  expected to be considered permanent.
 
   """
   code = 410
@@ -212,10 +215,10 @@ class HttpGone(HttpException):
 class HttpLengthRequired(HttpException):
   """411 Length Required
 
-  RFC2616, 10.4.12: The server refuses to accept the request without a defined
-  Content-Length. The client MAY repeat the request if it adds a valid
-  Content-Length header field containing the length of the message-body in the
-  request message.
+  RFC2616, 10.4.12: The server refuses to accept the request without a
+  defined Content-Length. The client MAY repeat the request if it adds
+  a valid Content-Length header field containing the length of the
+  message-body in the request message.
 
   """
   code = 411
@@ -224,8 +227,9 @@ class HttpLengthRequired(HttpException):
 class HttpPreconditionFailed(HttpException):
   """412 Precondition Failed
 
-  RFC2616, 10.4.13: The precondition given in one or more of the request-header
-  fields evaluated to false when it was tested on the server.
+  RFC2616, 10.4.13: The precondition given in one or more of the
+  request-header fields evaluated to false when it was tested on the
+  server.
 
   """
   code = 412
@@ -234,8 +238,8 @@ class HttpPreconditionFailed(HttpException):
 class HttpInternalServerError(HttpException):
   """500 Internal Server Error
 
-  RFC2616, 10.5.1: The server encountered an unexpected condition which
-  prevented it from fulfilling the request.
+  RFC2616, 10.5.1: The server encountered an unexpected condition
+  which prevented it from fulfilling the request.
 
   """
   code = 500
@@ -244,8 +248,8 @@ class HttpInternalServerError(HttpException):
 class HttpNotImplemented(HttpException):
   """501 Not Implemented
 
-  RFC2616, 10.5.2: The server does not support the functionality required to
-  fulfill the request.
+  RFC2616, 10.5.2: The server does not support the functionality
+  required to fulfill the request.
 
   """
   code = 501
@@ -254,8 +258,8 @@ class HttpNotImplemented(HttpException):
 class HttpServiceUnavailable(HttpException):
   """503 Service Unavailable
 
-  RFC2616, 10.5.4: The server is currently unable to handle the request due to
-  a temporary overloading or maintenance of the server.
+  RFC2616, 10.5.4: The server is currently unable to handle the
+  request due to a temporary overloading or maintenance of the server.
 
   """
   code = 503
@@ -264,8 +268,8 @@ class HttpServiceUnavailable(HttpException):
 class HttpVersionNotSupported(HttpException):
   """505 HTTP Version Not Supported
 
-  RFC2616, 10.5.6: The server does not support, or refuses to support, the HTTP
-  protocol version that was used in the request message.
+  RFC2616, 10.5.6: The server does not support, or refuses to support,
+  the HTTP protocol version that was used in the request message.
 
   """
   code = 505
@@ -467,15 +471,16 @@ def ShutdownConnection(sock, close_timeout, write_timeout, msgreader, force):
   @type sock: socket
   @param sock: Socket to be shut down
   @type close_timeout: float
-  @param close_timeout: How long to wait for the peer to close the connection
+  @param close_timeout: How long to wait for the peer to close
+      the connection
   @type write_timeout: float
   @param write_timeout: Write timeout for shutdown
   @type msgreader: http.HttpMessageReader
-  @param msgreader: Request message reader, used to determine whether peer
-                    should close connection
+  @param msgreader: Request message reader, used to determine whether
+      peer should close connection
   @type force: bool
-  @param force: Whether to forcibly close the connection without waiting
-                for peer
+  @param force: Whether to forcibly close the connection without
+      waiting for peer
 
   """
   #print msgreader.peer_will_close, force
@@ -529,7 +534,8 @@ class HttpSslParams(object):
     @type ssl_key_path: string
     @param ssl_key_path: Path to file containing SSL key in PEM format
     @type ssl_cert_path: string
-    @param ssl_cert_path: Path to file containing SSL certificate in PEM format
+    @param ssl_cert_path: Path to file containing SSL certificate
+        in PEM format
 
     """
     self.ssl_key_pem = utils.ReadFile(ssl_key_path)
@@ -560,8 +566,8 @@ class HttpBase(object):
     @type ssl_params: HttpSslParams
     @param ssl_params: SSL key and certificate
     @type ssl_verify_peer: bool
-    @param ssl_verify_peer: Whether to require client certificate and compare
-                            it with our certificate
+    @param ssl_verify_peer: Whether to require client certificate
+        and compare it with our certificate
 
     """
     self._ssl_params = ssl_params
@@ -959,9 +965,9 @@ class HttpMessageReader(object):
 
     This function also adjusts internal variables based on header values.
 
-    RFC2616, section 4.3: "The presence of a message-body in a request is
+    RFC2616, section 4.3: The presence of a message-body in a request is
     signaled by the inclusion of a Content-Length or Transfer-Encoding header
-    field in the request's message-headers."
+    field in the request's message-headers.
 
     """
     # Parse headers

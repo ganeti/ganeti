@@ -65,8 +65,8 @@ class HttpClientRequest(object):
     @type ssl_params: HttpSslParams
     @param ssl_params: SSL key and certificate
     @type ssl_verify_peer: bool
-    @param ssl_verify_peer: Whether to compare our certificate with server's
-                            certificate
+    @param ssl_verify_peer: Whether to compare our certificate with
+        server's certificate
 
     """
     if post_data is not None:

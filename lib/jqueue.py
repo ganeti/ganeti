@@ -1127,7 +1127,7 @@ class JobQueue(object):
     """Archives jobs.
 
     @type jobs: list of L{_QueuedJob}
-    @param job: Job objects
+    @param jobs: Job objects
     @rtype: int
     @return: Number of archived jobs
 
@@ -1160,7 +1160,7 @@ class JobQueue(object):
   def ArchiveJob(self, job_id):
     """Archives a job.
 
-    This is just a wrapper over L{_ArchiveJobUnlocked}.
+    This is just a wrapper over L{_ArchiveJobsUnlocked}.
 
     @type job_id: string
     @param job_id: Job ID of job to be archived.
