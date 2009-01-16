@@ -88,8 +88,8 @@ class Burner(object):
     self.instances = []
     self.to_rem = []
     self.opts = None
-    self.cl = cli.GetClient()
     self.ParseOptions()
+    self.cl = cli.GetClient()
     self.GetState()
 
   def ClearFeedbackBuf(self):
@@ -222,6 +222,12 @@ class Burner(object):
                       help="Enable checking of instance status via http,"
                       " looking for /hostname.txt that should contain the"
                       " name of the instance")
+    parser.add_option("-K", "--keep-instances", default=False,
+                      action="store_true",
+                      dest="keep_instances",
+                      help="Leave instances on the cluster after burnin,"
+                      " for investigation in case of errors or simply"
+                      " to use them")
 
 
     options, args = parser.parse_args()
@@ -724,7 +730,8 @@ class Burner(object):
         Log("Error detected: opcode buffer follows:\n\n")
         Log(self.GetFeedbackBuf())
         Log("\n\n")
-      self.Remove()
+      if not self.opts.keep_instances:
+        self.Remove()
 
     return 0
 
