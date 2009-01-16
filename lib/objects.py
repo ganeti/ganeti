@@ -518,33 +518,42 @@ class Instance(TaggableObject):
   def _ComputeSecondaryNodes(self):
     """Compute the list of secondary nodes.
 
+    This is a simple wrapper over _ComputeAllNodes.
+
+    """
+    all_nodes = set(self._ComputeAllNodes())
+    all_nodes.discard(self.primary_node)
+    return tuple(all_nodes)
+
+  secondary_nodes = property(_ComputeSecondaryNodes, None, None,
+                             "List of secondary nodes")
+
+  def _ComputeAllNodes(self):
+    """Compute the list of all nodes.
+
     Since the data is already there (in the drbd disks), keeping it as
     a separate normal attribute is redundant and if not properly
     synchronised can cause problems. Thus it's better to compute it
     dynamically.
 
     """
-    def _Helper(primary, sec_nodes, device):
-      """Recursively computes secondary nodes given a top device."""
+    def _Helper(nodes, device):
+      """Recursively computes nodes given a top device."""
       if device.dev_type in constants.LDS_DRBD:
-        nodea, nodeb, dummy = device.logical_id[:3]
-        if nodea == primary:
-          candidate = nodeb
-        else:
-          candidate = nodea
-        if candidate not in sec_nodes:
-          sec_nodes.append(candidate)
+        nodea, nodeb = device.logical_id[:2]
+        nodes.add(nodea)
+        nodes.add(nodeb)
       if device.children:
         for child in device.children:
-          _Helper(primary, sec_nodes, child)
+          _Helper(nodes, child)
 
-    secondary_nodes = []
+    all_nodes = set()
     for device in self.disks:
-      _Helper(self.primary_node, secondary_nodes, device)
-    return tuple(secondary_nodes)
+      _Helper(all_nodes, device)
+    return tuple(all_nodes)
 
-  secondary_nodes = property(_ComputeSecondaryNodes, None, None,
-                             "List of secondary nodes")
+  all_nodes = property(_ComputeAllNodes, None, None,
+                       "List of all nodes of the instance")
 
   def MapLVsByNode(self, lvmap=None, devs=None, node=None):
     """Provide a mapping of nodes to LVs this instance owns.
