@@ -5376,6 +5376,11 @@ class LUExportInstance(LogicalUnit):
 
     snap_disks = []
 
+    # set the disks ID correctly since call_instance_start needs the
+    # correct drbd minor to create the symlinks
+    for disk in instance.disks:
+      self.cfg.SetDiskID(disk, src_node)
+
     try:
       for disk in instance.disks:
         if disk.iv_name == "sda":
