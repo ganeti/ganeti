@@ -5859,7 +5859,7 @@ class LUExportInstance(LogicalUnit):
     if self.dst_node is None:
       # This is wrong node name, not a non-locked node
       raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node)
-    _CheckNodeOnline(self, self.op.target_node)
+    _CheckNodeOnline(self, self.dst_node.name)
 
     # instance disk type verification
     for disk in self.instance.disks:
