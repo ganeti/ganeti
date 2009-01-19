@@ -3747,14 +3747,15 @@ def _CreateSingleBlockDev(lu, node, instance, device, info, force_open):
 
   """
   lu.cfg.SetDiskID(device, node)
-  new_id = lu.rpc.call_blockdev_create(node, device, device.size,
+  result = lu.rpc.call_blockdev_create(node, device, device.size,
                                        instance.name, force_open, info)
-  if new_id.failed or not new_id.data:
+  msg = result.RemoteFailMsg()
+  if msg:
     raise errors.OpExecError("Can't create block device %s on"
-                             " node %s for instance %s" %
-                             (device, node, instance.name))
+                             " node %s for instance %s: %s" %
+                             (device, node, instance.name, msg))
   if device.physical_id is None:
-    device.physical_id = new_id
+    device.physical_id = result.data[1]
 
 
 def _GenerateUniqueNames(lu, exts):
