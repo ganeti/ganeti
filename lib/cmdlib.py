@@ -3699,17 +3699,16 @@ def _CreateBlockDevOnPrimary(lu, node, instance, device, info):
   """
   if device.children:
     for child in device.children:
-      if not _CreateBlockDevOnPrimary(lu, node, instance, child, info):
-        return False
+      _CreateBlockDevOnPrimary(lu, node, instance, child, info)
 
   lu.cfg.SetDiskID(device, node)
   new_id = lu.rpc.call_blockdev_create(node, device, device.size,
                                        instance.name, True, info)
   if new_id.failed or not new_id.data:
-    return False
+    raise errors.OpExecError("Can't create block device %s on primary"
+                             " node %s" % (device, node))
   if device.physical_id is None:
     device.physical_id = new_id
-  return True
 
 
 def _CreateBlockDevOnSecondary(lu, node, instance, device, force, info):
@@ -3723,22 +3722,22 @@ def _CreateBlockDevOnSecondary(lu, node, instance, device, force, info):
   """
   if device.CreateOnSecondary():
     force = True
+
   if device.children:
     for child in device.children:
-      if not _CreateBlockDevOnSecondary(lu, node, instance,
-                                        child, force, info):
-        return False
+      _CreateBlockDevOnSecondary(lu, node, instance, child, force, info)
 
   if not force:
-    return True
+    return
+
   lu.cfg.SetDiskID(device, node)
   new_id = lu.rpc.call_blockdev_create(node, device, device.size,
                                        instance.name, False, info)
   if new_id.failed or not new_id.data:
-    return False
+    raise errors.OpExecError("Can't create block device %s on secondary"
+                             " node %s" % (device, node))
   if device.physical_id is None:
     device.physical_id = new_id
-  return True
 
 
 def _GenerateUniqueNames(lu, exts):
@@ -3866,12 +3865,12 @@ def _CreateDisks(lu, instance):
                                                  file_storage_dir)
 
     if result.failed or not result.data:
-      logging.error("Could not connect to node '%s'", instance.primary_node)
-      return False
+      raise errors.OpExecError("Could not connect to node '%s'" %
+                               instance.primary_node)
 
     if not result.data[0]:
-      logging.error("Failed to create directory '%s'", file_storage_dir)
-      return False
+      raise errors.OpExecError("Failed to create directory '%s'" %
+                               file_storage_dir)
 
   # Note: this needs to be kept in sync with adding of disks in
   # LUSetInstanceParams
@@ -3880,18 +3879,11 @@ def _CreateDisks(lu, instance):
                  device.iv_name, instance.name)
     #HARDCODE
     for secondary_node in instance.secondary_nodes:
-      if not _CreateBlockDevOnSecondary(lu, secondary_node, instance,
-                                        device, False, info):
-        logging.error("Failed to create volume %s (%s) on secondary node %s!",
-                      device.iv_name, device, secondary_node)
-        return False
+      _CreateBlockDevOnSecondary(lu, secondary_node, instance,
+                                 device, False, info)
     #HARDCODE
-    if not _CreateBlockDevOnPrimary(lu, instance.primary_node,
-                                    instance, device, info):
-      logging.error("Failed to create volume %s on primary!", device.iv_name)
-      return False
-
-  return True
+    _CreateBlockDevOnPrimary(lu, instance.primary_node,
+                             instance, device, info)
 
 
 def _RemoveDisks(lu, instance):
@@ -4448,10 +4440,15 @@ class LUCreateInstance(LogicalUnit):
                             )
 
     feedback_fn("* creating instance disks...")
-    if not _CreateDisks(self, iobj):
-      _RemoveDisks(self, iobj)
-      self.cfg.ReleaseDRBDMinors(instance)
-      raise errors.OpExecError("Device creation failed, reverting...")
+    try:
+      _CreateDisks(self, iobj)
+    except errors.OpExecError:
+      self.LogWarning("Device creation failed, reverting...")
+      try:
+        _RemoveDisks(self, iobj)
+      finally:
+        self.cfg.ReleaseDRBDMinors(instance)
+        raise
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
@@ -4827,11 +4824,8 @@ class LUReplaceDisks(LogicalUnit):
       # _Create...OnPrimary (which forces the creation), even if we
       # are talking about the secondary node
       for new_lv in new_lvs:
-        if not _CreateBlockDevOnPrimary(self, tgt_node, instance, new_lv,
-                                        _GetInstanceInfoText(instance)):
-          raise errors.OpExecError("Failed to create new LV named '%s' on"
-                                   " node '%s'" %
-                                   (new_lv.logical_id[1], tgt_node))
+        _CreateBlockDevOnPrimary(self, tgt_node, instance, new_lv,
+                                 _GetInstanceInfoText(instance))
 
     # Step: for each lv, detach+rename*2+attach
     self.proc.LogStep(4, steps_total, "change drbd configuration")
@@ -4998,11 +4992,8 @@ class LUReplaceDisks(LogicalUnit):
       # _Create...OnPrimary (which forces the creation), even if we
       # are talking about the secondary node
       for new_lv in dev.children:
-        if not _CreateBlockDevOnPrimary(self, new_node, instance, new_lv,
-                                        _GetInstanceInfoText(instance)):
-          raise errors.OpExecError("Failed to create new LV named '%s' on"
-                                   " node '%s'" %
-                                   (new_lv.logical_id[1], new_node))
+        _CreateBlockDevOnPrimary(self, new_node, instance, new_lv,
+                                 _GetInstanceInfoText(instance))
 
     # Step 4: dbrd minors and drbd setups changes
     # after this, we must manually remove the drbd minors on both the
@@ -5033,12 +5024,12 @@ class LUReplaceDisks(LogicalUnit):
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
                               logical_id=new_alone_id,
                               children=dev.children)
-      if not _CreateBlockDevOnSecondary(self, new_node, instance,
-                                        new_drbd, False,
-                                        _GetInstanceInfoText(instance)):
+      try:
+        _CreateBlockDevOnSecondary(self, new_node, instance, new_drbd, False,
+                                   _GetInstanceInfoText(instance))
+      except error.BlockDeviceError:
         self.cfg.ReleaseDRBDMinors(instance.name)
-        raise errors.OpExecError("Failed to create new DRBD on"
-                                 " node '%s'" % new_node)
+        raise
 
     for idx, dev in enumerate(instance.disks):
       # we have new devices, shutdown the drbd on the old secondary
@@ -5699,16 +5690,20 @@ class LUSetInstanceParams(LogicalUnit):
         # Note: this needs to be kept in sync with _CreateDisks
         #HARDCODE
         for secondary_node in instance.secondary_nodes:
-          if not _CreateBlockDevOnSecondary(self, secondary_node, instance,
-                                            new_disk, False, info):
+          try:
+            _CreateBlockDevOnSecondary(self, secondary_node, instance,
+                                       new_disk, False, info)
+          except error.OpExecError, err:
             self.LogWarning("Failed to create volume %s (%s) on"
-                            " secondary node %s!",
-                            new_disk.iv_name, new_disk, secondary_node)
+                            " secondary node %s: %s",
+                            new_disk.iv_name, new_disk, secondary_node, err)
         #HARDCODE
-        if not _CreateBlockDevOnPrimary(self, instance.primary_node,
-                                        instance, new_disk, info):
-          self.LogWarning("Failed to create volume %s on primary!",
-                          new_disk.iv_name)
+        try:
+          _CreateBlockDevOnPrimary(self, instance.primary_node,
+                                   instance, new_disk, info)
+        except errors.OpExecError, err:
+          self.LogWarning("Failed to create volume %s on primary: %s",
+                          new_disk.iv_name, err)
         result.append(("disk/%d" % disk_idx_base, "add:size=%s,mode=%s" %
                        (new_disk.size, new_disk.mode)))
       else:
