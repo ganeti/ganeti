@@ -242,6 +242,7 @@ GANETI_RUNAS = "root"
 DEFAULT_VG = "xenvg"
 BIND_ADDRESS_GLOBAL = "0.0.0.0"
 MIN_VG_SIZE = 20480
+DEFAULT_MAC_PREFIX = "aa:00:00"
 
 # RPC constants
 (RPC_ENCODING_NONE,
@@ -401,7 +402,7 @@ ELOG_PROGRESS = "progress"
 RAPI_ENABLE = True
 RAPI_PORT = 5080
 
-# max dynamnic devices
+# max dynamic devices
 MAX_NICS = 8
 MAX_DISKS = 16
 

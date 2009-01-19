@@ -541,7 +541,7 @@ commands = {
                         help="Specify the mac prefix for the instance IP"
                         " addresses, in the format XX:XX:XX",
                         metavar="PREFIX",
-                        default="aa:00:00",),
+                        default=constants.DEFAULT_MAC_PREFIX,),
             make_option("-g", "--vg-name", dest="vg_name",
                         help="Specify the volume group name "
                         " (cluster-wide) for disk allocation [xenvg]",
