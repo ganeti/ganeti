@@ -275,7 +275,8 @@ class LogicalVolume(BlockDev):
 
     """
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
-      raise ValueError("Invalid configuration data %s" % str(unique_id))
+      raise errors.ProgrammerError("Invalid configuration data %s" %
+                                   str(unique_id))
     vg_name, lv_name = unique_id
     pvs_info = cls.GetPVInfo(vg_name)
     if not pvs_info:
@@ -295,8 +296,8 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-n%s" % lv_name,
                            vg_name] + pvlist)
     if result.failed:
-      raise errors.BlockDeviceError("%s - %s" % (result.fail_reason,
-                                                result.output))
+      raise errors.BlockDeviceError("LV create failed (%s): %s" %
+                                    (result.fail_reason, result.output))
     return LogicalVolume(unique_id, children)
 
   @staticmethod
@@ -1646,16 +1647,17 @@ class FileStorage(BlockDev):
     @return: an instance of FileStorage
 
     """
+    # TODO: decide whether we should check for existing files and
+    # abort or not
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     dev_path = unique_id[1]
     try:
       f = open(dev_path, 'w')
-    except IOError, err:
-      raise errors.BlockDeviceError("Could not create '%'" % err)
-    else:
       f.truncate(size * 1024 * 1024)
       f.close()
+    except IOError, err:
+      raise errors.BlockDeviceError("Error in file creation: %" % str(err))
 
     return FileStorage(unique_id, children)
 

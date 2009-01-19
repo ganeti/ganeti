@@ -1016,19 +1016,9 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
         # be assembled
         crdev.Open()
       clist.append(crdev)
-  try:
-    device = bdev.FindDevice(disk.dev_type, disk.physical_id, clist)
-    if device is not None:
-      logging.info("removing existing device %s", disk)
-      device.Remove()
-  except errors.BlockDeviceError, err:
-    pass
 
-  device = bdev.Create(disk.dev_type, disk.physical_id,
-                       clist, size)
-  if device is None:
-    raise ValueError("Can't create child device for %s, %s" %
-                     (disk, size))
+  device = bdev.Create(disk.dev_type, disk.physical_id, clist, size)
+
   if on_primary or disk.AssembleOnSecondary():
     if not device.Assemble():
       errorstring = "Can't assemble device after creation"
