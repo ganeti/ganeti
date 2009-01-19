@@ -3730,12 +3730,37 @@ def _CreateBlockDev(lu, node, instance, device, force_create,
   if not force_create:
     return
 
+  _CreateSingleBlockDev(lu, node, instance, device, info, force_open)
+
+
+def _CreateSingleBlockDev(lu, node, instance, device, info, force_open):
+  """Create a single block device on a given node.
+
+  This will not recurse over children of the device, so they must be
+  created in advance.
+
+  @param lu: the lu on whose behalf we execute
+  @param node: the node on which to create the device
+  @type instance: L{objects.Instance}
+  @param instance: the instance which owns the device
+  @type device: L{objects.Disk}
+  @param device: the device to create
+  @param info: the extra 'metadata' we should attach to the device
+      (this will be represented as a LVM tag)
+  @type force_open: boolean
+  @param force_open: this parameter will be passes to the
+      L{backend.CreateBlockDevice} function where it specifies
+      whether we run on primary or not, and it affects both
+      the child assembly and the device own Open() execution
+
+  """
   lu.cfg.SetDiskID(device, node)
   new_id = lu.rpc.call_blockdev_create(node, device, device.size,
                                        instance.name, force_open, info)
   if new_id.failed or not new_id.data:
     raise errors.OpExecError("Can't create block device %s on"
-                             " node %s" % (device, node))
+                             " node %s for instance %s" %
+                             (device, node, instance.name))
   if device.physical_id is None:
     device.physical_id = new_id
 
@@ -5017,8 +5042,8 @@ class LUReplaceDisks(LogicalUnit):
                               logical_id=new_alone_id,
                               children=dev.children)
       try:
-        _CreateBlockDev(self, new_node, instance, new_drbd, False,
-                        _GetInstanceInfoText(instance), False)
+        _CreateSingleBlockDev(self, new_node, instance, new_drbd,
+                              _GetInstanceInfoText(instance), False)
       except error.BlockDeviceError:
         self.cfg.ReleaseDRBDMinors(instance.name)
         raise
