@@ -587,12 +587,6 @@ class Instance(TaggableObject):
         lvmap[node].append(dev.logical_id[1])
 
       elif dev.dev_type in constants.LDS_DRBD:
-        if dev.logical_id[0] not in lvmap:
-          lvmap[dev.logical_id[0]] = []
-
-        if dev.logical_id[1] not in lvmap:
-          lvmap[dev.logical_id[1]] = []
-
         if dev.children:
           self.MapLVsByNode(lvmap, dev.children, dev.logical_id[0])
           self.MapLVsByNode(lvmap, dev.children, dev.logical_id[1])
