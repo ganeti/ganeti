@@ -1017,14 +1017,16 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
         crdev.Open()
       clist.append(crdev)
 
-  device = bdev.Create(disk.dev_type, disk.physical_id, clist, size)
+  try:
+    device = bdev.Create(disk.dev_type, disk.physical_id, clist, size)
+  except errors.GenericError, err:
+    return False, "Can't create block device: %s" % str(err)
 
   if on_primary or disk.AssembleOnSecondary():
     if not device.Assemble():
-      errorstring = "Can't assemble device after creation"
+      errorstring = "Can't assemble device after creation, very unusual event"
       logging.error(errorstring)
-      raise errors.BlockDeviceError("%s, very unusual event - check the node"
-                                    " daemon logs" % errorstring)
+      return False, errorstring
     device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       device.Open(force=True)
@@ -1034,7 +1036,7 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
   device.SetInfo(info)
 
   physical_id = device.unique_id
-  return physical_id
+  return True, physical_id
 
 
 def RemoveBlockDevice(disk):

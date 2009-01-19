@@ -3702,13 +3702,14 @@ def _CreateBlockDevOnPrimary(lu, node, instance, device, info):
       _CreateBlockDevOnPrimary(lu, node, instance, child, info)
 
   lu.cfg.SetDiskID(device, node)
-  new_id = lu.rpc.call_blockdev_create(node, device, device.size,
+  result = lu.rpc.call_blockdev_create(node, device, device.size,
                                        instance.name, True, info)
-  if new_id.failed or not new_id.data:
+  msg = result.RemoteFailMsg()
+  if msg:
     raise errors.OpExecError("Can't create block device %s on primary"
-                             " node %s" % (device, node))
+                             " node %s: %s" % (device, node, msg))
   if device.physical_id is None:
-    device.physical_id = new_id
+    device.physical_id = result.data[1]
 
 
 def _CreateBlockDevOnSecondary(lu, node, instance, device, force, info):
