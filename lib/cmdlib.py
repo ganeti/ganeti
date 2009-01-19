@@ -3691,51 +3691,50 @@ class LUMigrateInstance(LogicalUnit):
       return self._ExecMigration()
 
 
-def _CreateBlockDevOnPrimary(lu, node, instance, device, info):
-  """Create a tree of block devices on the primary node.
-
-  This always creates all devices.
-
-  """
-  if device.children:
-    for child in device.children:
-      _CreateBlockDevOnPrimary(lu, node, instance, child, info)
-
-  lu.cfg.SetDiskID(device, node)
-  result = lu.rpc.call_blockdev_create(node, device, device.size,
-                                       instance.name, True, info)
-  msg = result.RemoteFailMsg()
-  if msg:
-    raise errors.OpExecError("Can't create block device %s on primary"
-                             " node %s: %s" % (device, node, msg))
-  if device.physical_id is None:
-    device.physical_id = result.data[1]
-
-
-def _CreateBlockDevOnSecondary(lu, node, instance, device, force, info):
-  """Create a tree of block devices on a secondary node.
+def _CreateBlockDev(lu, node, instance, device, force_create,
+                    info, force_open):
+  """Create a tree of block devices on a given node.
 
   If this device type has to be created on secondaries, create it and
   all its children.
 
   If not, just recurse to children keeping the same 'force' value.
 
+  @param lu: the lu on whose behalf we execute
+  @param node: the node on which to create the device
+  @type instance: L{objects.Instance}
+  @param instance: the instance which owns the device
+  @type device: L{objects.Disk}
+  @param device: the device to create
+  @type force_create: boolean
+  @param force_create: whether to force creation of this device; this
+      will be change to True whenever we find a device which has
+      CreateOnSecondary() attribute
+  @param info: the extra 'metadata' we should attach to the device
+      (this will be represented as a LVM tag)
+  @type force_open: boolean
+  @param force_open: this parameter will be passes to the
+      L{backend.CreateBlockDevice} function where it specifies
+      whether we run on primary or not, and it affects both
+      the child assembly and the device own Open() execution
+
   """
   if device.CreateOnSecondary():
-    force = True
+    force_create = True
 
   if device.children:
     for child in device.children:
-      _CreateBlockDevOnSecondary(lu, node, instance, child, force, info)
+      _CreateBlockDev(lu, node, instance, child, force_create,
+                      info, force_open)
 
-  if not force:
+  if not force_create:
     return
 
   lu.cfg.SetDiskID(device, node)
   new_id = lu.rpc.call_blockdev_create(node, device, device.size,
-                                       instance.name, False, info)
+                                       instance.name, force_open, info)
   if new_id.failed or not new_id.data:
-    raise errors.OpExecError("Can't create block device %s on secondary"
+    raise errors.OpExecError("Can't create block device %s on"
                              " node %s" % (device, node))
   if device.physical_id is None:
     device.physical_id = new_id
@@ -3859,15 +3858,14 @@ def _CreateDisks(lu, instance):
 
   """
   info = _GetInstanceInfoText(instance)
+  pnode = instance.primary_node
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
-    result = lu.rpc.call_file_storage_dir_create(instance.primary_node,
-                                                 file_storage_dir)
+    result = lu.rpc.call_file_storage_dir_create(pnode, file_storage_dir)
 
     if result.failed or not result.data:
-      raise errors.OpExecError("Could not connect to node '%s'" %
-                               instance.primary_node)
+      raise errors.OpExecError("Could not connect to node '%s'" % pnode)
 
     if not result.data[0]:
       raise errors.OpExecError("Failed to create directory '%s'" %
@@ -3879,12 +3877,9 @@ def _CreateDisks(lu, instance):
     logging.info("Creating volume %s for instance %s",
                  device.iv_name, instance.name)
     #HARDCODE
-    for secondary_node in instance.secondary_nodes:
-      _CreateBlockDevOnSecondary(lu, secondary_node, instance,
-                                 device, False, info)
-    #HARDCODE
-    _CreateBlockDevOnPrimary(lu, instance.primary_node,
-                             instance, device, info)
+    for node in instance.all_nodes:
+      f_create = node == pnode
+      _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
 
 
 def _RemoveDisks(lu, instance):
@@ -4821,12 +4816,10 @@ class LUReplaceDisks(LogicalUnit):
       iv_names[dev.iv_name] = (dev, old_lvs, new_lvs)
       info("creating new local storage on %s for %s" %
            (tgt_node, dev.iv_name))
-      # since we *always* want to create this LV, we use the
-      # _Create...OnPrimary (which forces the creation), even if we
-      # are talking about the secondary node
+      # we pass force_create=True to force the LVM creation
       for new_lv in new_lvs:
-        _CreateBlockDevOnPrimary(self, tgt_node, instance, new_lv,
-                                 _GetInstanceInfoText(instance))
+        _CreateBlockDev(self, tgt_node, instance, new_lv, True,
+                        _GetInstanceInfoText(instance), False)
 
     # Step: for each lv, detach+rename*2+attach
     self.proc.LogStep(4, steps_total, "change drbd configuration")
@@ -4989,12 +4982,10 @@ class LUReplaceDisks(LogicalUnit):
     for idx, dev in enumerate(instance.disks):
       info("adding new local storage on %s for disk/%d" %
            (new_node, idx))
-      # since we *always* want to create this LV, we use the
-      # _Create...OnPrimary (which forces the creation), even if we
-      # are talking about the secondary node
+      # we pass force_create=True to force LVM creation
       for new_lv in dev.children:
-        _CreateBlockDevOnPrimary(self, new_node, instance, new_lv,
-                                 _GetInstanceInfoText(instance))
+        _CreateBlockDev(self, new_node, instance, new_lv, True,
+                        _GetInstanceInfoText(instance), False)
 
     # Step 4: dbrd minors and drbd setups changes
     # after this, we must manually remove the drbd minors on both the
@@ -5026,8 +5017,8 @@ class LUReplaceDisks(LogicalUnit):
                               logical_id=new_alone_id,
                               children=dev.children)
       try:
-        _CreateBlockDevOnSecondary(self, new_node, instance, new_drbd, False,
-                                   _GetInstanceInfoText(instance))
+        _CreateBlockDev(self, new_node, instance, new_drbd, False,
+                        _GetInstanceInfoText(instance), False)
       except error.BlockDeviceError:
         self.cfg.ReleaseDRBDMinors(instance.name)
         raise
@@ -5690,21 +5681,15 @@ class LUSetInstanceParams(LogicalUnit):
                      new_disk.iv_name, instance.name)
         # Note: this needs to be kept in sync with _CreateDisks
         #HARDCODE
-        for secondary_node in instance.secondary_nodes:
+        for node in instance.all_nodes:
+          f_create = node == instance.primary_node
           try:
-            _CreateBlockDevOnSecondary(self, secondary_node, instance,
-                                       new_disk, False, info)
+            _CreateBlockDev(self, node, instance, new_disk,
+                            f_create, info, f_create)
           except error.OpExecError, err:
             self.LogWarning("Failed to create volume %s (%s) on"
-                            " secondary node %s: %s",
-                            new_disk.iv_name, new_disk, secondary_node, err)
-        #HARDCODE
-        try:
-          _CreateBlockDevOnPrimary(self, instance.primary_node,
-                                   instance, new_disk, info)
-        except errors.OpExecError, err:
-          self.LogWarning("Failed to create volume %s on primary: %s",
-                          new_disk.iv_name, err)
+                            " node %s: %s",
+                            new_disk.iv_name, new_disk, node, err)
         result.append(("disk/%d" % disk_idx_base, "add:size=%s,mode=%s" %
                        (new_disk.size, new_disk.mode)))
       else:
