@@ -1687,11 +1687,8 @@ class LURemoveNode(LogicalUnit):
 
     for instance_name in instance_list:
       instance = self.cfg.GetInstanceInfo(instance_name)
-      if node.name == instance.primary_node:
-        raise errors.OpPrereqError("Instance %s still running on the node,"
-                                   " please remove first." % instance_name)
-      if node.name in instance.secondary_nodes:
-        raise errors.OpPrereqError("Instance %s has node as a secondary,"
+      if node.name in instance.all_nodes:
+        raise errors.OpPrereqError("Instance %s is still running on the node,"
                                    " please remove first." % instance_name)
     self.op.node_name = node.name
     self.node = node
@@ -2592,8 +2589,7 @@ class LUStartupInstance(LogicalUnit):
       "FORCE": self.op.force,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
-          list(self.instance.secondary_nodes))
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -2665,8 +2661,7 @@ class LURebootInstance(LogicalUnit):
       "IGNORE_SECONDARIES": self.op.ignore_secondaries,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
-          list(self.instance.secondary_nodes))
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -2733,8 +2728,7 @@ class LUShutdownInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
-    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
-          list(self.instance.secondary_nodes))
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -2781,8 +2775,7 @@ class LUReinstallInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
-    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
-          list(self.instance.secondary_nodes))
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -2866,8 +2859,7 @@ class LURenameInstance(LogicalUnit):
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
     env["INSTANCE_NEW_NAME"] = self.op.new_name
-    nl = ([self.cfg.GetMasterNode(), self.instance.primary_node] +
-          list(self.instance.secondary_nodes))
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -5185,8 +5177,8 @@ class LUGrowDisk(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    _CheckNodeOnline(self, instance.primary_node)
-    for node in instance.secondary_nodes:
+    nodenames = list(instance.all_nodes)
+    for node in nodenames:
       _CheckNodeOnline(self, node)
 
 
@@ -5198,7 +5190,6 @@ class LUGrowDisk(LogicalUnit):
 
     self.disk = instance.FindDisk(self.op.disk)
 
-    nodenames = [instance.primary_node] + list(instance.secondary_nodes)
     nodeinfo = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
                                        instance.hypervisor)
     for node in nodenames:
@@ -5221,7 +5212,7 @@ class LUGrowDisk(LogicalUnit):
     """
     instance = self.instance
     disk = self.disk
-    for node in (instance.secondary_nodes + (instance.primary_node,)):
+    for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, disk, self.op.amount)
       result.Raise()
@@ -5500,8 +5491,7 @@ class LUSetInstanceParams(LogicalUnit):
       args['vcpus'] = self.be_new[constants.BE_VCPUS]
     # FIXME: readd disk/nic changes
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
-    nl = [self.cfg.GetMasterNode(),
-          self.instance.primary_node] + list(self.instance.secondary_nodes)
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -5517,9 +5507,8 @@ class LUSetInstanceParams(LogicalUnit):
     instance = self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    pnode = self.instance.primary_node
-    nodelist = [pnode]
-    nodelist.extend(instance.secondary_nodes)
+    pnode = instance.primary_node
+    nodelist = list(instance.all_nodes)
 
     # hvparams processing
     if self.op.hvparams:
@@ -6367,7 +6356,7 @@ class IAllocator(object):
         "vcpus": beinfo[constants.BE_VCPUS],
         "memory": beinfo[constants.BE_MEMORY],
         "os": iinfo.os,
-        "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
+        "nodes": list(iinfo.all_nodes),
         "nics": nic_data,
         "disks": [{"size": dsk.size, "mode": "w"} for dsk in iinfo.disks],
         "disk_template": iinfo.disk_template,
