@@ -548,6 +548,7 @@ class Instance(TaggableObject):
           _Helper(nodes, child)
 
     all_nodes = set()
+    all_nodes.add(self.primary_node)
     for device in self.disks:
       _Helper(all_nodes, device)
     return tuple(all_nodes)
