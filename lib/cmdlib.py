@@ -3809,11 +3809,11 @@ def _GenerateDiskTemplate(lu, template_name,
     minors = lu.cfg.AllocateDRBDMinor(
       [primary_node, remote_node] * len(disk_info), instance_name)
 
-    names = _GenerateUniqueNames(lu,
-                                 [".disk%d_%s" % (i, s)
-                                  for i in range(disk_count)
-                                  for s in ("data", "meta")
-                                  ])
+    names = []
+    for lv_prefix in _GenerateUniqueNames(lu, [".disk%d" % i
+                                               for i in range(disk_count)]):
+      names.append(lv_prefix + "_data")
+      names.append(lv_prefix + "_meta")
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
       disk_dev = _GenerateDRBD8Branch(lu, primary_node, remote_node,
