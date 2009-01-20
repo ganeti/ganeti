@@ -826,11 +826,11 @@ def MigrateInstance(opts, args):
 
   The migrate is done without shutdown.
 
-  Args:
-    opts - class with options as members
-    args - list with a single element, the instance name
-  Opts used:
-    force - whether to migrate without asking questions.
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
 
   """
   instance_name = args[0]

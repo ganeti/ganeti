@@ -419,7 +419,7 @@ class OpMigrateInstance(OpCode):
   This migrates (without shutting down an instance) to its secondary
   node.
 
-  @var instance_name: the name of the instance
+  @ivar instance_name: the name of the instance
 
   """
   OP_ID = "OP_INSTANCE_MIGRATE"
