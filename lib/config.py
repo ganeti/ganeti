@@ -443,7 +443,13 @@ class ConfigWriter:
     multiple minors. The result is the list of minors, in the same
     order as the passed nodes.
 
+    @type instance: string
+    @param instance: the instance for which we allocate minors
+
     """
+    assert isinstance(instance, basestring), \
+           "Invalid argument passed to AllocateDRBDMinor"
+
     d_map = self._UnlockedComputeDRBDMap()
     result = []
     for nname in nodes:
@@ -484,6 +490,8 @@ class ConfigWriter:
                      released
 
     """
+    assert isinstance(instance, basestring), \
+           "Invalid argument passed to ReleaseDRBDMinors"
     for key, name in self._temporary_drbds.items():
       if name == instance:
         del self._temporary_drbds[key]

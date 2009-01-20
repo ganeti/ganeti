@@ -5712,7 +5712,7 @@ class LUSetInstanceParams(LogicalUnit):
         disk_idx_base = len(instance.disks)
         new_disk = _GenerateDiskTemplate(self,
                                          instance.disk_template,
-                                         instance, instance.primary_node,
+                                         instance.name, instance.primary_node,
                                          instance.secondary_nodes,
                                          [disk_dict],
                                          file_path,
