@@ -166,6 +166,7 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
 
   return RunResult(exitcode, signal_, out, err, strcmd)
 
+
 def _RunCmdPipe(cmd, env, via_shell, cwd):
   """Run a command and return its output.
 

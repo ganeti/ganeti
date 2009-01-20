@@ -13,7 +13,9 @@
 /TAGS
 /aclocal.m4
 /autom4te.cache
-/autotools/
+/autotools/install-sh
+/autotools/missing
+/autotools/py-compile
 /config.log
 /config.status
 /configure
@@ -22,10 +24,6 @@
 /*.patch
 /*.tar.bz2
 /*.tar.gz
-
-# overrides
-!/autotools/ac_python_module.m4
-!/autotoosl/docbook-wrapper
 
 # devel
 /devel/clean-cluster
