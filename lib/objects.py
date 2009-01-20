@@ -50,7 +50,7 @@ class ConfigObject(object):
       as None instead of raising an error
 
   Classes derived from this must always declare __slots__ (we use many
-  config objects and the memory reduction is useful.
+  config objects and the memory reduction is useful)
 
   """
   __slots__ = []
