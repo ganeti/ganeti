@@ -25,7 +25,7 @@ This module implements the local unix socket protocl. You only need
 this module and the opcodes module in the client program in order to
 communicate with the master.
 
-The module is also be used by the master daemon.
+The module is also used by the master daemon.
 
 """
 
