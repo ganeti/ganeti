@@ -723,9 +723,12 @@ def RunRenameInstance(instance, old_name):
   if result.failed:
     logging.error("os create command '%s' returned error: %s output: %s",
                   result.cmd, result.fail_reason, result.output)
-    return False
+    lines = [val.encode("string_escape")
+             for val in utils.TailFile(logfile, lines=20)]
+    return (False, "OS rename script failed (%s), last lines in the"
+            " log file:\n%s" % (result.fail_reason, "\n".join(lines)))
 
-  return True
+  return (True, "Rename successful")
 
 
 def _GetVGInfo(vg_name):

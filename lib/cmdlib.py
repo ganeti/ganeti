@@ -2973,10 +2973,11 @@ class LURenameInstance(LogicalUnit):
     try:
       result = self.rpc.call_instance_run_rename(inst.primary_node, inst,
                                                  old_name)
-      if result.failed or not result.data:
+      msg = result.RemoteFailMsg()
+      if msg:
         msg = ("Could not run OS rename script for instance %s on node %s"
-               " (but the instance has been renamed in Ganeti)" %
-               (inst.name, inst.primary_node))
+               " (but the instance has been renamed in Ganeti): %s" %
+               (inst.name, inst.primary_node, msg))
         self.proc.LogWarning(msg)
     finally:
       _ShutdownInstanceDisks(self, inst)
