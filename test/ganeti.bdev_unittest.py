@@ -117,18 +117,26 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testMinor0(self):
     """Test connected, primary device"""
     stats = bdev.DRBD8Status(self.mass_data[0])
+    self.failUnless(stats.is_in_use)
     self.failUnless(stats.is_connected and stats.is_primary and
                     stats.peer_secondary and stats.is_disk_uptodate)
 
   def testMinor1(self):
     """Test connected, secondary device"""
     stats = bdev.DRBD8Status(self.mass_data[1])
+    self.failUnless(stats.is_in_use)
     self.failUnless(stats.is_connected and stats.is_secondary and
                     stats.peer_primary and stats.is_disk_uptodate)
+
+  def testMinor2(self):
+    """Test unconfigured device"""
+    stats = bdev.DRBD8Status(self.mass_data[2])
+    self.failIf(stats.is_in_use)
 
   def testMinor4(self):
     """Test WFconn device"""
     stats = bdev.DRBD8Status(self.mass_data[4])
+    self.failUnless(stats.is_in_use)
     self.failUnless(stats.is_wfconn and stats.is_primary and
                     stats.rrole == 'Unknown' and
                     stats.is_disk_uptodate)
@@ -136,12 +144,14 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testMinor6(self):
     """Test diskless device"""
     stats = bdev.DRBD8Status(self.mass_data[6])
+    self.failUnless(stats.is_in_use)
     self.failUnless(stats.is_connected and stats.is_secondary and
                     stats.peer_primary and stats.is_diskless)
 
   def testMinor8(self):
     """Test standalone device"""
     stats = bdev.DRBD8Status(self.mass_data[8])
+    self.failUnless(stats.is_in_use)
     self.failUnless(stats.is_standalone and
                     stats.rrole == 'Unknown' and
                     stats.is_disk_uptodate)

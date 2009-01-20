@@ -540,20 +540,28 @@ class DRBD8Status(object):
   Note that this doesn't support unconfigured devices (cs:Unconfigured).
 
   """
+  UNCONF_RE = re.compile(r"\s*[0-9]+:\s*cs:Unconfigured$")
   LINE_RE = re.compile(r"\s*[0-9]+:\s*cs:(\S+)\s+st:([^/]+)/(\S+)"
                        "\s+ds:([^/]+)/(\S+)\s+.*$")
   SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
                        "\sfinish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
 
   def __init__(self, procline):
-    m = self.LINE_RE.match(procline)
-    if not m:
-      raise errors.BlockDeviceError("Can't parse input data '%s'" % procline)
-    self.cstatus = m.group(1)
-    self.lrole = m.group(2)
-    self.rrole = m.group(3)
-    self.ldisk = m.group(4)
-    self.rdisk = m.group(5)
+    u = self.UNCONF_RE.match(procline)
+    if u:
+      self.cstatus = "Unconfigured"
+      self.lrole = self.rrole = self.ldisk = self.rdisk = None
+    else:
+      m = self.LINE_RE.match(procline)
+      if not m:
+        raise errors.BlockDeviceError("Can't parse input data '%s'" % procline)
+      self.cstatus = m.group(1)
+      self.lrole = m.group(2)
+      self.rrole = m.group(3)
+      self.ldisk = m.group(4)
+      self.rdisk = m.group(5)
+
+    # end reading of data from the LINE_RE or UNCONF_RE
 
     self.is_standalone = self.cstatus == "StandAlone"
     self.is_wfconn = self.cstatus == "WFConnection"
@@ -568,7 +576,8 @@ class DRBD8Status(object):
     self.is_diskless = self.ldisk == "Diskless"
     self.is_disk_uptodate = self.ldisk == "UpToDate"
 
-    self.is_in_resync = self.cstatus in ('SyncSource', 'SyncTarget')
+    self.is_in_resync = self.cstatus in ("SyncSource", "SyncTarget")
+    self.is_in_use = self.cstatus != "Unconfigured"
 
     m = self.SYNC_RE.match(procline)
     if m:
@@ -1525,6 +1534,17 @@ class DRBD8(BaseDRBD):
     """
     if len(children) != 2:
       raise errors.ProgrammerError("Invalid setup for the drbd device")
+    # check that the minor is unused
+    aminor = unique_id[4]
+    proc_info = cls._MassageProcData(cls._GetProcData())
+    if aminor in proc_info:
+      status = DRBD8Status(proc_info[aminor])
+      in_use = status.is_in_use
+    else:
+      in_use = False
+    if in_use:
+      raise errors.BlockDeviceError("DRBD minor %d already in use at"
+                                    " Create() time" % aminor)
     meta = children[1]
     meta.Assemble()
     if not meta.Attach():
