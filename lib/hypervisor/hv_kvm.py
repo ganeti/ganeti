@@ -36,12 +36,8 @@ from ganeti.hypervisor import hv_base
 
 
 class KVMHypervisor(hv_base.BaseHypervisor):
-  """Fake hypervisor interface.
+  """KVM hypervisor interface"""
 
-  This can be used for testing the ganeti code without having to have
-  a real virtualisation software installed.
-
-  """
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/kvm-hypervisor"
   _PIDS_DIR = _ROOT_DIR + "/pid"
   _CTRL_DIR = _ROOT_DIR + "/ctrl"
