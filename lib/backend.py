@@ -897,7 +897,7 @@ def ShutdownInstance(instance):
   try:
     hyper.StopInstance(instance)
   except errors.HypervisorError, err:
-    logging.error("Failed to stop instance")
+    logging.error("Failed to stop instance: %s" % err)
     return False
 
   # test every 10secs for 2min
@@ -914,7 +914,7 @@ def ShutdownInstance(instance):
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      logging.exception("Failed to stop instance")
+      logging.exception("Failed to stop instance: %s" % err)
       return False
 
     time.sleep(1)
