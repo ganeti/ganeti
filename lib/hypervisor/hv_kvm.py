@@ -39,9 +39,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   """KVM hypervisor interface"""
 
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/kvm-hypervisor"
-  _PIDS_DIR = _ROOT_DIR + "/pid"
-  _CTRL_DIR = _ROOT_DIR + "/ctrl"
-  _DIRS = [_ROOT_DIR, _PIDS_DIR, _CTRL_DIR]
+  _PIDS_DIR = _ROOT_DIR + "/pid" # contains live instances pids
+  _CTRL_DIR = _ROOT_DIR + "/ctrl" # contains instances control sockets
+  _CONF_DIR = _ROOT_DIR + "/conf" # contains instances startup data
+  _DIRS = [_ROOT_DIR, _PIDS_DIR, _CTRL_DIR, _CONF_DIR]
 
   PARAMETERS = [
     constants.HV_KERNEL_PATH,
