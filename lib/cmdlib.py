@@ -2627,9 +2627,10 @@ class LUStartupInstance(LogicalUnit):
     _StartInstanceDisks(self, instance, force)
 
     result = self.rpc.call_instance_start(node_current, instance, extra_args)
-    if result.failed or not result.data:
+    msg = result.RemoteFailMsg()
+    if msg:
       _ShutdownInstanceDisks(self, instance)
-      raise errors.OpExecError("Could not start instance")
+      raise errors.OpExecError("Could not start instance: %s" % msg)
 
 
 class LURebootInstance(LogicalUnit):
@@ -2702,9 +2703,11 @@ class LURebootInstance(LogicalUnit):
       _ShutdownInstanceDisks(self, instance)
       _StartInstanceDisks(self, instance, ignore_secondaries)
       result = self.rpc.call_instance_start(node_current, instance, extra_args)
-      if result.failed or not result.data:
+      msg = result.RemoteFailMsg()
+      if msg:
         _ShutdownInstanceDisks(self, instance)
-        raise errors.OpExecError("Could not start instance for full reboot")
+        raise errors.OpExecError("Could not start instance for"
+                                 " full reboot: %s" % msg)
 
     self.cfg.MarkInstanceUp(instance.name)
 
@@ -3373,10 +3376,11 @@ class LUFailoverInstance(LogicalUnit):
 
       feedback_fn("* starting the instance on the target node")
       result = self.rpc.call_instance_start(target_node, instance, None)
-      if result.failed or not result.data:
+      msg = result.RemoteFailMsg()
+      if msg:
         _ShutdownInstanceDisks(self, instance)
-        raise errors.OpExecError("Could not start instance %s on node %s." %
-                                 (instance.name, target_node))
+        raise errors.OpExecError("Could not start instance %s on node %s: %s" %
+                                 (instance.name, target_node, msg))
 
 
 class LUMigrateInstance(LogicalUnit):
@@ -4537,9 +4541,9 @@ class LUCreateInstance(LogicalUnit):
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
       result = self.rpc.call_instance_start(pnode_name, iobj, None)
-      result.Raise()
-      if not result.data:
-        raise errors.OpExecError("Could not start instance")
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Could not start instance: %s" % msg)
 
 
 class LUConnectConsole(NoHooksLU):
@@ -5905,9 +5909,10 @@ class LUExportInstance(LogicalUnit):
     finally:
       if self.op.shutdown and instance.status == "up":
         result = self.rpc.call_instance_start(src_node, instance, None)
-        if result.failed or not result.data:
+        msg = result.RemoteFailMsg()
+        if msg:
           _ShutdownInstanceDisks(self, instance)
-          raise errors.OpExecError("Could not start instance")
+          raise errors.OpExecError("Could not start instance: %s" % msg)
 
     # TODO: check for size
 

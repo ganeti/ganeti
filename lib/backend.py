@@ -845,7 +845,7 @@ def StartInstance(instance, extra_args):
   running_instances = GetInstanceList([instance.hypervisor])
 
   if instance.name in running_instances:
-    return True
+    return (True, "Already running")
 
   try:
     block_devices = _GatherAndLinkBlockDevs(instance)
@@ -853,13 +853,13 @@ def StartInstance(instance, extra_args):
     hyper.StartInstance(instance, block_devices, extra_args)
   except errors.BlockDeviceError, err:
     logging.exception("Failed to start instance")
-    return False
+    return (False, "Block device error: %s" % str(err))
   except errors.HypervisorError, err:
     logging.exception("Failed to start instance")
     _RemoveBlockDevLinks(instance.name, instance.disks)
-    return False
+    return (False, "Hypervisor error: %s" % str(err))
 
-  return True
+  return (True, "Instance started successfully")
 
 
 def ShutdownInstance(instance):
