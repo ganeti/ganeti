@@ -432,6 +432,14 @@ def VerifyNode(what, cluster_name):
     hyper = hypervisor.GetHypervisor(what[constants.NV_HVINFO])
     result[constants.NV_HVINFO] = hyper.GetNodeInfo()
 
+  if constants.NV_DRBDLIST in what:
+    try:
+      used_minors = bdev.DRBD8.GetUsedDevs().keys()
+    except errors.BlockDeviceErrors:
+      logging.warning("Can't get used minors list", exc_info=True)
+      used_minors = []
+    result[constants.NV_DRBDLIST] = used_minors
+
   return result
 
 

@@ -692,7 +692,7 @@ class BaseDRBD(BlockDev):
     return "/dev/drbd%d" % minor
 
   @classmethod
-  def _GetUsedDevs(cls):
+  def GetUsedDevs(cls):
     """Compute the list of used DRBD devices.
 
     """
@@ -1343,7 +1343,7 @@ class DRBD8(BaseDRBD):
     /proc).
 
     """
-    used_devs = self._GetUsedDevs()
+    used_devs = self.GetUsedDevs()
     if self._aminor in used_devs:
       minor = self._aminor
     else:

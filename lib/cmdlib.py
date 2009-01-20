@@ -613,7 +613,8 @@ class LUVerifyCluster(LogicalUnit):
     self.share_locks = dict(((i, 1) for i in locking.LEVELS))
 
   def _VerifyNode(self, nodeinfo, file_list, local_cksum,
-                  node_result, feedback_fn, master_files):
+                  node_result, feedback_fn, master_files,
+                  drbd_map):
     """Run multiple tests against a node.
 
     Test list:
@@ -630,6 +631,9 @@ class LUVerifyCluster(LogicalUnit):
     @param node_result: the results from the node
     @param feedback_fn: function used to accumulate results
     @param master_files: list of files that only masters should have
+    @param drbd_map: the useddrbd minors for this node, in
+        form of minor: (instance, must_exist) which correspond to instances
+        and their running status
 
     """
     node = nodeinfo.name
@@ -724,6 +728,19 @@ class LUVerifyCluster(LogicalUnit):
         if hv_result is not None:
           feedback_fn("  - ERROR: hypervisor %s verify failure: '%s'" %
                       (hv_name, hv_result))
+
+    # check used drbd list
+    used_minors = node_result.get(constants.NV_DRBDLIST, [])
+    for minor, (iname, must_exist) in drbd_map.items():
+      if minor not in used_minors and must_exist:
+        feedback_fn("  - ERROR: drbd minor %d of instance %s is not active" %
+                    (minor, iname))
+        bad = True
+    for minor in used_minors:
+      if minor not in drbd_map:
+        feedback_fn("  - ERROR: unallocated drbd minor %d is in use" % minor)
+        bad = True
+
     return bad
 
   def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
@@ -867,6 +884,8 @@ class LUVerifyCluster(LogicalUnit):
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
     nodeinfo = [self.cfg.GetNodeInfo(nname) for nname in nodelist]
     instancelist = utils.NiceSort(self.cfg.GetInstanceList())
+    instanceinfo = dict((iname, self.cfg.GetInstanceInfo(iname))
+                        for iname in instancelist)
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
     n_offline = [] # List of offline nodes
@@ -900,12 +919,15 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_VGLIST: None,
       constants.NV_VERSION: None,
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
+      constants.NV_DRBDLIST: None,
       }
     all_nvinfo = self.rpc.call_node_verify(nodelist, node_verify_param,
                                            self.cfg.GetClusterName())
 
     cluster = self.cfg.GetClusterInfo()
     master_node = self.cfg.GetMasterNode()
+    all_drbd_map = self.cfg.ComputeDRBDMap()
+
     for node_i in nodeinfo:
       node = node_i.name
       nresult = all_nvinfo[node].data
@@ -928,8 +950,13 @@ class LUVerifyCluster(LogicalUnit):
         bad = True
         continue
 
+      node_drbd = {}
+      for minor, instance in all_drbd_map[node].items():
+        instance = instanceinfo[instance]
+        node_drbd[minor] = (instance.name, instance.status == "up")
       result = self._VerifyNode(node_i, file_names, local_checksums,
-                                nresult, feedback_fn, master_files)
+                                nresult, feedback_fn, master_files,
+                                node_drbd)
       bad = bad or result
 
       lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
@@ -985,7 +1012,7 @@ class LUVerifyCluster(LogicalUnit):
 
     for instance in instancelist:
       feedback_fn("* Verifying instance %s" % instance)
-      inst_config = self.cfg.GetInstanceInfo(instance)
+      inst_config = instanceinfo[instance]
       result =  self._VerifyInstance(instance, inst_config, node_volume,
                                      node_instance, feedback_fn, n_offline)
       bad = bad or result

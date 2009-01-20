@@ -389,7 +389,7 @@ class ConfigWriter:
     self._WriteConfig()
     return port
 
-  def _ComputeDRBDMap(self, instance):
+  def _UnlockedComputeDRBDMap(self):
     """Compute the used DRBD minor/nodes.
 
     @return: dictionary of node_name: dict of minor: instance_name;
@@ -422,6 +422,19 @@ class ConfigWriter:
     return my_dict
 
   @locking.ssynchronized(_config_lock)
+  def ComputeDRBDMap(self):
+    """Compute the used DRBD minor/nodes.
+
+    This is just a wrapper over L{_UnlockedComputeDRBDMap}.
+
+    @return: dictionary of node_name: dict of minor: instance_name;
+        the returned dict will have all the nodes in it (even if with
+        an empty list).
+
+    """
+    return self._UnlockedComputeDRBDMap()
+
+  @locking.ssynchronized(_config_lock)
   def AllocateDRBDMinor(self, nodes, instance):
     """Allocate a drbd minor.
 
@@ -431,7 +444,7 @@ class ConfigWriter:
     order as the passed nodes.
 
     """
-    d_map = self._ComputeDRBDMap(instance)
+    d_map = self._UnlockedComputeDRBDMap()
     result = []
     for nname in nodes:
       ndata = d_map[nname]

@@ -351,6 +351,7 @@ NV_NODELIST = "nodelist"
 NV_NODENETTEST = "node-net-test"
 NV_VERSION = "version"
 NV_VGLIST = "vglist"
+NV_DRBDLIST = "drbd-list"
 
 # Allocator framework constants
 IALLOCATOR_DIR_IN = "in"
