@@ -28,7 +28,7 @@ import sys
 import optparse
 import time
 import socket
-import urllib2
+import urllib
 import errno
 from itertools import izip, islice, cycle
 from cStringIO import StringIO
@@ -77,12 +77,31 @@ def Err(msg, exit_code=1):
   sys.stderr.flush()
   sys.exit(exit_code)
 
+
+class SimpleOpener(urllib.FancyURLopener):
+  """A simple url opener"""
+
+  def prompt_user_passwd(self, host, realm, clear_cache = 0):
+    """No-interaction version of prompt_user_passwd."""
+    return None, None
+
+  def http_error_default(self, url, fp, errcode, errmsg, headers):
+    """Custom error handling"""
+    # make sure sockets are not left in CLOSE_WAIT, this is similar
+    # but with a different exception to the BasicURLOpener class
+    _ = fp.read() # throw away data
+    fp.close()
+    raise InstanceDown("HTTP error returned: code %s, msg %s" %
+                       (errcode, errmsg))
+
+
 class Burner(object):
   """Burner class."""
 
   def __init__(self):
     """Constructor."""
     utils.SetupLogging(constants.LOG_BURNIN, debug=False, stderr_logging=True)
+    self.url_opener = SimpleOpener()
     self._feed_buf = StringIO()
     self.nodes = []
     self.instances = []
@@ -646,18 +665,18 @@ class Burner(object):
     """
     if not self.opts.http_check:
       return
-    try:
-      for retries in range(self.opts.net_timeout):
-        try:
-          url = urllib2.urlopen("http://%s/hostname.txt" % instance)
-        except urllib2.URLError, err:
-          if err.args[0][0] == errno.ECONNREFUSED:
-            time.sleep(1)
-            continue
-          raise
-    except urllib2.URLError, err:
-      raise InstanceDown(instance, str(err))
+    end_time = time.time() + self.opts.net_timeout
+    url = None
+    while time.time() < end_time and url is None:
+      try:
+        url = self.url_opener.open("http://%s/hostname.txt" % instance)
+      except IOError, err:
+        # here we can have connection refused, no route to host, etc.
+        time.sleep(1)
+    if url is None:
+      raise InstanceDown(instance, "Cannot contact instance")
     hostname = url.read().strip()
+    url.close()
     if hostname != instance:
       raise InstanceDown(instance, ("Hostname mismatch, expected %s, got %s" %
                                     (instance, hostname)))
