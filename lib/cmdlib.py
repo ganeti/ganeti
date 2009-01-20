@@ -2837,11 +2837,11 @@ class LUReinstallInstance(LogicalUnit):
     try:
       feedback_fn("Running the instance OS create scripts...")
       result = self.rpc.call_instance_os_add(inst.primary_node, inst)
-      result.Raise()
-      if not result.data:
+      msg = result.RemoteFailMsg()
+      if msg:
         raise errors.OpExecError("Could not install OS for instance %s"
-                                 " on node %s" %
-                                 (inst.name, inst.primary_node))
+                                 " on node %s: %s" %
+                                 (inst.name, inst.primary_node, msg))
     finally:
       _ShutdownInstanceDisks(self, inst)
 
@@ -4512,11 +4512,11 @@ class LUCreateInstance(LogicalUnit):
       if self.op.mode == constants.INSTANCE_CREATE:
         feedback_fn("* running the instance OS create scripts...")
         result = self.rpc.call_instance_os_add(pnode_name, iobj)
-        result.Raise()
-        if not result.data:
+        msg = result.RemoteFailMsg()
+        if msg:
           raise errors.OpExecError("Could not add os for instance %s"
-                                   " on node %s" %
-                                   (instance, pnode_name))
+                                   " on node %s: %s" %
+                                   (instance, pnode_name, msg))
 
       elif self.op.mode == constants.INSTANCE_IMPORT:
         feedback_fn("* running the instance OS import scripts...")
