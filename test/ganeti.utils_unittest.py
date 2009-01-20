@@ -128,13 +128,9 @@ class TestRunCmd(testutils.GanetiTestCase):
   """Testing case for the RunCmd function"""
 
   def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
     self.magic = time.ctime() + " ganeti test"
-    fh, self.fname = tempfile.mkstemp()
-    os.close(fh)
-
-  def tearDown(self):
-    if self.fname:
-      utils.RemoveFile(self.fname)
+    self.fname = self._CreateTempFile()
 
   def testOk(self):
     """Test successful exit code"""
@@ -451,21 +447,14 @@ class TestSshKeys(testutils.GanetiTestCase):
            'ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b')
 
   def setUp(self):
-    (fd, self.tmpname) = tempfile.mkstemp(prefix='ganeti-test')
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpname = self._CreateTempFile()
+    handle = open(self.tmpname, 'w')
     try:
-      handle = os.fdopen(fd, 'w')
-      try:
-        handle.write("%s\n" % TestSshKeys.KEY_A)
-        handle.write("%s\n" % TestSshKeys.KEY_B)
-      finally:
-        handle.close()
-    except:
-      utils.RemoveFile(self.tmpname)
-      raise
-
-  def tearDown(self):
-    utils.RemoveFile(self.tmpname)
-    del self.tmpname
+      handle.write("%s\n" % TestSshKeys.KEY_A)
+      handle.write("%s\n" % TestSshKeys.KEY_B)
+    finally:
+      handle.close()
 
   def testAddingNewKey(self):
     AddAuthorizedKey(self.tmpname, 'ssh-dss AAAAB3NzaC1kc3MAAACB root@test')
@@ -517,22 +506,15 @@ class TestEtcHosts(testutils.GanetiTestCase):
   """Test functions modifying /etc/hosts"""
 
   def setUp(self):
-    (fd, self.tmpname) = tempfile.mkstemp(prefix='ganeti-test')
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpname = self._CreateTempFile()
+    handle = open(self.tmpname, 'w')
     try:
-      handle = os.fdopen(fd, 'w')
-      try:
-        handle.write('# This is a test file for /etc/hosts\n')
-        handle.write('127.0.0.1\tlocalhost\n')
-        handle.write('192.168.1.1 router gw\n')
-      finally:
-        handle.close()
-    except:
-      utils.RemoveFile(self.tmpname)
-      raise
-
-  def tearDown(self):
-    utils.RemoveFile(self.tmpname)
-    del self.tmpname
+      handle.write('# This is a test file for /etc/hosts\n')
+      handle.write('127.0.0.1\tlocalhost\n')
+      handle.write('192.168.1.1 router gw\n')
+    finally:
+      handle.close()
 
   def testSettingNewIp(self):
     SetEtcHostsEntry(self.tmpname, '1.2.3.4', 'myhost.domain.tld', ['myhost'])

@@ -101,6 +101,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def setUp(self):
     """Read in txt data"""
+    testutils.GanetiTestCase.setUp(self)
     proc_data = self._TestDataFilename("proc_drbd8.txt")
     self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
     self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)

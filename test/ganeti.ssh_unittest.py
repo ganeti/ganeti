@@ -37,12 +37,13 @@ class TestKnownHosts(testutils.GanetiTestCase):
   """Test case for function writing the known_hosts file"""
 
   def setUp(self):
-    self.tmpfile = tempfile.NamedTemporaryFile()
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpfile = self._CreateTempFile()
 
   def test(self):
     cfg = mocks.FakeConfig()
-    ssh.WriteKnownHostsFile(cfg, self.tmpfile.name)
-    self.assertFileContent(self.tmpfile.name,
+    ssh.WriteKnownHostsFile(cfg, self.tmpfile)
+    self.assertFileContent(self.tmpfile,
         "%s ssh-rsa %s\n" % (cfg.GetClusterName(),
                              mocks.FAKE_CLUSTER_KEY))
 

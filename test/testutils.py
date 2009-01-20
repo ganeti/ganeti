@@ -22,12 +22,29 @@
 """Utilities for unit testing"""
 
 import os
+import tempfile
 import unittest
 
 from ganeti import utils
 
 
 class GanetiTestCase(unittest.TestCase):
+  """Helper class for unittesting.
+
+  This class defines a few utility functions that help in building
+  unittests. Child classes must call the parent setup and cleanup.
+
+  """
+  def setUp(self):
+    self._temp_files = []
+
+  def tearDown(self):
+    while self._temp_files:
+      try:
+        utils.RemoveFile(self._temp_files.pop())
+      except EnvironmentError, err:
+        pass
+
   def assertFileContent(self, file_name, expected_content):
     """Checks the content of a file is what we expect.
 
@@ -67,3 +84,15 @@ class GanetiTestCase(unittest.TestCase):
     """
 
     return utils.ReadFile(cls._TestDataFilename(name))
+
+  def _CreateTempFile(self):
+    """Creates a temporary file and adds it to the internal cleanup list.
+
+    This method simplifies the creation and cleanup of temporary files
+    during tests.
+
+    """
+    fh, fname = tempfile.mkstemp(prefix="ganeti-test", suffix=".tmp")
+    os.close(fh)
+    self._temp_files.append(fname)
+    return fname
