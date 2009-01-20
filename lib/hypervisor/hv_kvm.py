@@ -57,6 +57,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if not os.path.exists(mydir):
         os.mkdir(mydir)
 
+  def _InstanceMonitor(self, instance_name):
+    """Returns the instance monitor socket name
+
+    """
+    return '%s/%s.monitor' % (self._CTRL_DIR, instance_name)
+
+  def _InstanceSerial(self, instance_name):
+    """Returns the instance serial socket name
+
+    """
+    return '%s/%s.serial' % (self._CTRL_DIR, instance_name)
+
   def _WriteNetScript(self, instance, seq, nic):
     """Write a script to connect a net interface to the proper bridge.
 
@@ -229,10 +241,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # How do we decide whether to have it or not?? :(
     #"vnc_bind_address",
     #"network_port"
-    base_control = '%s/%s' % (self._CTRL_DIR, instance.name)
-    monitor_dev = 'unix:%s.monitor,server,nowait' % base_control
+    monitor_dev = 'unix:%s,server,nowait' % \
+      self._InstanceMonitor(instance.name)
     kvm_cmd.extend(['-monitor', monitor_dev])
-    serial_dev = 'unix:%s.serial,server,nowait' % base_control
+    serial_dev = 'unix:%s,server,nowait' % self._InstanceSerial(instance.name)
     kvm_cmd.extend(['-serial', serial_dev])
 
     result = utils.RunCmd(kvm_cmd)
@@ -270,6 +282,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if not utils.IsProcessAlive(pid):
       utils.RemoveFile(pid_file)
+      utils.RemoveFile(self._InstanceMonitor(instance.name))
+      utils.RemoveFile(self._InstanceSerial(instance.name))
 
   def RebootInstance(self, instance):
     """Reboot an instance.
