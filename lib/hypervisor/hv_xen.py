@@ -269,15 +269,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def MigrateInstance(self, instance, target, live):
     """Migrate an instance to a target node.
 
-    Arguments:
-      - instance: the name of the instance
-      - target: the ip of the target node
-      - live: whether to do live migration or not
-
-    Returns: none, errors will be signaled by exception.
-
     The migration will not be attempted if the instance is not
     currently running.
+
+    @type instance: string
+    @param instance: instance name
+    @type target: string
+    @param target: ip address of the target node
+    @type live: boolean
+    @param live: perform a live migration
 
     """
     if self.GetInstanceInfo(instance) is None:
