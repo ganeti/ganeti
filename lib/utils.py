@@ -1713,6 +1713,32 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
       raise
 
 
+def TailFile(fname, lines=20):
+  """Return the last lines from a file.
+
+  @note: this function will only read and parse the last 4KB of
+      the file; if the lines are very long, it could be that less
+      than the requested number of lines are returned
+
+  @param fname: the file name
+  @type lines: int
+  @param lines: the (maximum) number of lines to return
+
+  """
+  fd = open(fname, "r")
+  try:
+    fd.seek(0, 2)
+    pos = fd.tell()
+    pos = max(0, pos-4096)
+    fd.seek(pos, 0)
+    raw_data = fd.read()
+  finally:
+    fd.close()
+
+  rows = raw_data.splitlines()
+  return rows[-lines:]
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 

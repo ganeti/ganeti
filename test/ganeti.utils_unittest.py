@@ -42,7 +42,9 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
-     SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress
+     SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
+     TailFile
+
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
 
@@ -770,6 +772,48 @@ class TestFirstFree(unittest.TestCase):
     self.failUnlessEqual(FirstFree([3, 4, 6]), 0)
     self.failUnlessEqual(FirstFree([3, 4, 6], base=3), 5)
     self.failUnlessRaises(AssertionError, FirstFree, [0, 3, 4, 6], base=3)
+
+
+class TestTailFile(testutils.GanetiTestCase):
+  """Test case for the TailFile function"""
+
+  def testEmpty(self):
+    fname = self._CreateTempFile()
+    self.failUnlessEqual(TailFile(fname), [])
+    self.failUnlessEqual(TailFile(fname, lines=25), [])
+
+  def testAllLines(self):
+    data = ["test %d" % i for i in range(30)]
+    for i in range(30):
+      fname = self._CreateTempFile()
+      fd = open(fname, "w")
+      fd.write("\n".join(data[:i]))
+      if i > 0:
+        fd.write("\n")
+      fd.close()
+      self.failUnlessEqual(TailFile(fname, lines=i), data[:i])
+
+  def testPartialLines(self):
+    data = ["test %d" % i for i in range(30)]
+    fname = self._CreateTempFile()
+    fd = open(fname, "w")
+    fd.write("\n".join(data))
+    fd.write("\n")
+    fd.close()
+    for i in range(1, 30):
+      self.failUnlessEqual(TailFile(fname, lines=i), data[-i:])
+
+  def testBigFile(self):
+    data = ["test %d" % i for i in range(30)]
+    fname = self._CreateTempFile()
+    fd = open(fname, "w")
+    fd.write("X" * 1048576)
+    fd.write("\n")
+    fd.write("\n".join(data))
+    fd.write("\n")
+    fd.close()
+    for i in range(1, 30):
+      self.failUnlessEqual(TailFile(fname, lines=i), data[-i:])
 
 
 class TestFileLock(unittest.TestCase):
