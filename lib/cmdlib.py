@@ -1495,8 +1495,7 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
       continue
     rstats = rstats.data
     retries = 0
-    for i in range(len(rstats)):
-      mstat = rstats[i]
+    for i, mstat in enumerate(rstats):
       if mstat is None:
         lu.LogWarning("Can't compute data for node %s/%s",
                            node, instance.disks[i].iv_name)
@@ -5041,7 +5040,7 @@ class LUReplaceDisks(LogicalUnit):
       try:
         _CreateSingleBlockDev(self, new_node, instance, new_drbd,
                               _GetInstanceInfoText(instance), False)
-      except error.BlockDeviceError:
+      except errors.BlockDeviceError:
         self.cfg.ReleaseDRBDMinors(instance.name)
         raise
 
@@ -5705,7 +5704,7 @@ class LUSetInstanceParams(LogicalUnit):
           try:
             _CreateBlockDev(self, node, instance, new_disk,
                             f_create, info, f_create)
-          except error.OpExecError, err:
+          except errors.OpExecError, err:
             self.LogWarning("Failed to create volume %s (%s) on"
                             " node %s: %s",
                             new_disk.iv_name, new_disk, node, err)
