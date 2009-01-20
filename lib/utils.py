@@ -1653,7 +1653,8 @@ def GetNodeDaemonPort():
   return port
 
 
-def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
+def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
+                 multithreaded=False):
   """Configures the logging module.
 
   @type logfile: str
@@ -1665,16 +1666,18 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
   @param stderr_logging: whether we should also log to the standard error
   @type program: str
   @param program: the name under which we should log messages
+  @type multithreaded: boolean
+  @param multithreaded: if True, will add the thread name to the log file
   @raise EnvironmentError: if we can't open the log file and
       stderr logging is disabled
 
   """
-  fmt = "%(asctime)s: " + program + " "
+  fmt = "%(asctime)s: " + program + " pid=%(process)d"
+  if multithreaded:
+    fmt += "/%(threadName)s"
   if debug:
-    fmt += ("pid=%(process)d/%(threadName)s %(levelname)s"
-           " %(module)s:%(lineno)s %(message)s")
-  else:
-    fmt += "pid=%(process)d %(levelname)s %(message)s"
+    fmt += " %(module)s:%(lineno)s"
+  fmt += " %(levelname)s %(message)s"
   formatter = logging.Formatter(fmt)
 
   root_logger = logging.getLogger("")
@@ -1706,7 +1709,7 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program=""):
     else:
       logfile_handler.setLevel(logging.INFO)
     root_logger.addHandler(logfile_handler)
-  except EnvironmentError, err:
+  except EnvironmentError:
     if stderr_logging:
       logging.exception("Failed to enable logging to file '%s'", logfile)
     else:

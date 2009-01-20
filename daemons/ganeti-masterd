@@ -149,7 +149,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
     while True:
       msg = self.read_message()
       if msg is None:
-        logging.info("client closed connection")
+        logging.debug("client closed connection")
         break
 
       request = simplejson.loads(msg)
@@ -468,7 +468,7 @@ def main():
   utils.WritePidFile(constants.MASTERD_PID)
   try:
     utils.SetupLogging(constants.LOG_MASTERDAEMON, debug=options.debug,
-                       stderr_logging=not options.fork)
+                       stderr_logging=not options.fork, multithreaded=True)
 
     logging.info("Ganeti master daemon startup")
 
