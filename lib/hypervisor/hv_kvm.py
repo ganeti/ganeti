@@ -28,6 +28,7 @@ import os.path
 import re
 import tempfile
 import time
+import logging
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -52,6 +53,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_INITRD_PATH,
     constants.HV_ACPI,
     ]
+
+  _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
+                                    re.M | re.I)
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
@@ -284,18 +288,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     serialized_form = serializer.Dump((kvm_cmd, serialized_nics))
     self._WriteKVMRuntime(instance.name, serialized_form)
 
-  def _LoadKVMRuntime(self, instance):
+  def _LoadKVMRuntime(self, instance, serialized_runtime=None):
     """Load an instance's KVM runtime
 
     """
-    serialized_form = self._ReadKVMRuntime(instance.name)
-    loaded_runtime = serializer.Load(serialized_form)
+    if not serialized_runtime:
+      serialized_runtime = self._ReadKVMRuntime(instance.name)
+    loaded_runtime = serializer.Load(serialized_runtime)
     kvm_cmd, serialized_nics = loaded_runtime
     kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
     return (kvm_cmd, kvm_nics)
 
-  def _ExecuteKVMRuntime(self, instance, kvm_runtime):
+  def _ExecuteKVMRuntime(self, instance, kvm_runtime, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data
+
+    @type incoming: tuple of strings
+    @param incoming: (target_host_ip, port)
 
     """
     pidfile, pid, alive = self._InstancePidAlive(instance.name)
@@ -316,6 +324,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         kvm_cmd.extend(['-net', nic_val])
         kvm_cmd.extend(['-net', 'tap,script=%s' % script])
         temp_files.append(script)
+
+    if incoming:
+      target, port = incoming
+      kvm_cmd.extend(['-incoming', 'tcp:%s:%s' % (target, port)])
 
     result = utils.RunCmd(kvm_cmd)
     if result.failed:
@@ -414,6 +426,95 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # ...and finally we can save it again, and execute it...
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
+
+  def MigrationInfo(self, instance):
+    """Get instance information to perform a migration.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be migrated
+    @rtype: string
+    @return: content of the KVM runtime file
+
+    """
+    return self._ReadKVMRuntime(instance.name)
+
+  def AcceptInstance(self, instance, info, target):
+    """Prepare to accept an instance.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type info: string
+    @param info: content of the KVM runtime file on the source node
+    @type target: string
+    @param target: target host (usually ip), on this node
+
+    """
+    kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
+    incoming_address = (target, constants.KVM_MIGRATION_PORT)
+    self._ExecuteKVMRuntime(instance, kvm_runtime, incoming=incoming_address)
+
+  def FinalizeMigration(self, instance, info, success):
+    """Finalize an instance migration.
+
+    Stop the incoming mode KVM.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance whose migration is being aborted
+
+    """
+    if success:
+      self._WriteKVMRuntime(instance.name, info)
+    else:
+      self.StopInstance(instance, force=True)
+
+  def MigrateInstance(self, instance_name, target, live):
+    """Migrate an instance to a target node.
+
+    The migration will not be attempted if the instance is not
+    currently running.
+
+    @type instance_name: string
+    @param instance_name: name of the instance to be migrated
+    @type target: string
+    @param target: ip address of the target node
+    @type live: boolean
+    @param live: perform a live migration
+
+    """
+    pidfile, pid, alive = self._InstancePidAlive(instance_name)
+    if not alive:
+      raise errors.HypervisorError("Instance not running, cannot migrate")
+
+    if not live:
+      self._CallMonitorCommand(instance_name, 'stop')
+
+    migrate_command = ('migrate -d tcp:%s:%s' %
+                       (target, constants.KVM_MIGRATION_PORT))
+    self._CallMonitorCommand(instance_name, migrate_command)
+
+    info_command = 'info migrate'
+    done = False
+    while not done:
+      result = self._CallMonitorCommand(instance_name, info_command)
+      match = self._MIGRATION_STATUS_RE.search(result.stdout)
+      if not match:
+        raise errors.HypervisorError("Unknown 'info migrate' result: %s" %
+                                     result.stdout)
+      else:
+        status = match.group(1)
+        if status == 'completed':
+          done = True
+        elif status == 'active':
+          time.sleep(2)
+        else:
+          logging.info("KVM: unknown migration status '%s'" % status)
+          time.sleep(2)
+
+    utils.KillProcess(pid)
+    utils.RemoveFile(pidfile)
+    utils.RemoveFile(self._InstanceMonitor(instance_name))
+    utils.RemoveFile(self._InstanceSerial(instance_name))
+    utils.RemoveFile(self._InstanceKVMRuntime(instance_name))
 
   def GetNodeInfo(self):
     """Return information about the node.
