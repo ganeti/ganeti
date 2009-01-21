@@ -27,6 +27,7 @@ import os
 import os.path
 import re
 import tempfile
+import time
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -333,31 +334,57 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
 
+  def _CallMonitorCommand(self, instance_name, command):
+    """Invoke a command on the instance monitor.
+
+    """
+    socat = ("echo %s | %s STDIO UNIX-CONNECT:%s" %
+             (utils.ShellQuote(command),
+              constants.SOCAT_PATH,
+              utils.ShellQuote(self._InstanceMonitor(instance_name))))
+    result = utils.RunCmd(socat)
+    if result.failed:
+      msg = ("Failed to send command '%s' to instance %s."
+             " output: %s, error: %s, fail_reason: %s" %
+             (instance.name, result.stdout, result.stderr, result.fail_reason))
+      raise errors.HypervisorError(msg)
+
+    return result
+
+  def _RetryInstancePowerdown(self, instance, pid, timeout=30):
+    """Wait for an instance  to power down.
+
+    """
+    # Wait up to $timeout seconds
+    end = time.time() + timeout
+    wait = 1
+    while time.time() < end and utils.IsProcessAlive(pid):
+      self._CallMonitorCommand(instance.name, 'system_powerdown')
+      time.sleep(wait)
+      # Make wait time longer for next try
+      if wait < 5:
+        wait *= 1.3
+
   def StopInstance(self, instance, force=False):
     """Stop an instance.
 
     """
-    socat_bin = constants.SOCAT_PATH
     pid_file = self._PIDS_DIR + "/%s" % instance.name
     pid = utils.ReadPidFile(pid_file)
     if pid > 0 and utils.IsProcessAlive(pid):
       if force or not instance.hvparams[constants.HV_ACPI]:
         utils.KillProcess(pid)
       else:
-        # This only works if the instance os has acpi support
-        monitor_socket = '%s/%s.monitor'  % (self._CTRL_DIR, instance.name)
-        socat = '%s -u STDIN UNIX-CONNECT:%s' % (socat_bin, monitor_socket)
-        command = "echo 'system_powerdown' | %s" % socat
-        result = utils.RunCmd(command)
-        if result.failed:
-          raise errors.HypervisorError("Failed to stop instance %s: %s" %
-                                       (instance.name, result.fail_reason))
+        self._RetryInstancePowerdown(instance, pid)
 
     if not utils.IsProcessAlive(pid):
       utils.RemoveFile(pid_file)
       utils.RemoveFile(self._InstanceMonitor(instance.name))
       utils.RemoveFile(self._InstanceSerial(instance.name))
       utils.RemoveFile(self._InstanceKVMRuntime(instance.name))
+      return True
+    else:
+      return False
 
   def RebootInstance(self, instance):
     """Reboot an instance.
