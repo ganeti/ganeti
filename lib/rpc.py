@@ -234,7 +234,8 @@ class Client:
       else:
         msg = req.resp_body
 
-      logging.error("RPC error from node %s: %s", name, msg)
+      logging.error("RPC error in %s from node %s: %s",
+                    self.procedure, name, msg)
       results[name] = RpcResult(data=msg, failed=True, node=name,
                                 call=self.procedure)
 
