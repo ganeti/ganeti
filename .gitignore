@@ -16,6 +16,7 @@
 /autotools/install-sh
 /autotools/missing
 /autotools/py-compile
+/autotools/replace_vars.sed
 /config.log
 /config.status
 /configure
