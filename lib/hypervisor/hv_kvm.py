@@ -167,7 +167,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         cmdline = fh.read()
       finally:
         fh.close()
-    except IOError, err:
+    except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list instance %s: %s" %
                                    (instance_name, err))
 
@@ -266,7 +266,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     try:
       utils.WriteFile(self._InstanceKVMRuntime(instance_name),
                       data=data)
-    except IOError, err:
+    except EnvironmentError, err:
       raise errors.HypervisorError("Failed to save KVM runtime file: %s" % err)
 
   def _ReadKVMRuntime(self, instance_name):
@@ -275,7 +275,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     try:
       file_content = utils.ReadFile(self._InstanceKVMRuntime(instance_name))
-    except IOError, err:
+    except EnvironmentError, err:
       raise errors.HypervisorError("Failed to load KVM runtime file: %s" % err)
     return file_content
 
@@ -535,7 +535,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data = fh.readlines()
       finally:
         fh.close()
-    except IOError, err:
+    except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list node info: %s" % err)
 
     result = {}
