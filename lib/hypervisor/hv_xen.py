@@ -293,9 +293,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     # remove old xen file after migration succeeded
     try:
       self._RemoveConfigFile(instance)
-    except EnvironmentError, err:
-      logger.Error("Failure while removing instance config file: %s" %
-                   str(err))
+    except EnvironmentError:
+      logging.exception("Failure while removing instance config file")
 
 
 class XenPvmHypervisor(XenHypervisor):
