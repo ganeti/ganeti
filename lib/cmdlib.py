@@ -4566,8 +4566,6 @@ class LUCreateInstance(LogicalUnit):
     # Declare that we don't want to remove the instance lock anymore, as we've
     # added the instance to the config
     del self.remove_locks[locking.LEVEL_INSTANCE]
-    # Remove the temp. assignements for the instance's drbds
-    self.cfg.ReleaseDRBDMinors(instance)
     # Unlock all the nodes
     if self.op.mode == constants.INSTANCE_IMPORT:
       nodes_keep = [self.op.src_node]
@@ -5164,9 +5162,6 @@ class LUReplaceDisks(LogicalUnit):
       dev.logical_id = new_logical_id
       cfg.SetDiskID(dev, pri_node)
     cfg.Update(instance)
-    # we can remove now the temp minors as now the new values are
-    # written to the config file (and therefore stable)
-    self.cfg.ReleaseDRBDMinors(instance.name)
 
     # and now perform the drbd attach
     info("attaching primary drbds to new secondary (standalone => connected)")

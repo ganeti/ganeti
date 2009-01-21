@@ -478,12 +478,8 @@ class ConfigWriter:
                   nodes, result)
     return result
 
-  @locking.ssynchronized(_config_lock)
-  def ReleaseDRBDMinors(self, instance):
+  def _UnlockedReleaseDRBDMinors(self, instance):
     """Release temporary drbd minors allocated for a given instance.
-
-    This should be called on both the error paths and on the success
-    paths (after the instance has been added or updated).
 
     @type instance: string
     @param instance: the instance for which temporary minors should be
@@ -495,6 +491,23 @@ class ConfigWriter:
     for key, name in self._temporary_drbds.items():
       if name == instance:
         del self._temporary_drbds[key]
+
+  @locking.ssynchronized(_config_lock)
+  def ReleaseDRBDMinors(self, instance):
+    """Release temporary drbd minors allocated for a given instance.
+
+    This should be called on the error paths, on the success paths
+    it's automatically called by the ConfigWriter add and update
+    functions.
+
+    This function is just a wrapper over L{_UnlockedReleaseDRBDMinors}.
+
+    @type instance: string
+    @param instance: the instance for which temporary minors should be
+                     released
+
+    """
+    self._UnlockedReleaseDRBDMinors(instance)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetConfigVersion(self):
@@ -582,6 +595,7 @@ class ConfigWriter:
 
     instance.serial_no = 1
     self._config_data.instances[instance.name] = instance
+    self._UnlockedReleaseDRBDMinors(instance.name)
     self._WriteConfig()
 
   def _SetInstanceStatus(self, instance_name, status):
@@ -1117,5 +1131,8 @@ class ConfigWriter:
     if update_serial:
       # for node updates, we need to increase the cluster serial too
       self._config_data.cluster.serial_no += 1
+
+    if isinstance(target, objects.Instance):
+      self._UnlockedReleaseDRBDMinors(target.name)
 
     self._WriteConfig()
