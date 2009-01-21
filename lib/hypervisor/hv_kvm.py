@@ -32,6 +32,8 @@ from cStringIO import StringIO
 from ganeti import utils
 from ganeti import constants
 from ganeti import errors
+from ganeti import serializer
+from ganeti import objects
 from ganeti.hypervisor import hv_base
 
 
@@ -69,6 +71,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     return '%s/%s.serial' % (self._CTRL_DIR, instance_name)
+
+  def _InstanceKVMRuntime(self, instance_name):
+    """Returns the instance KVM runtime filename
+
+    """
+    return '%s/%s.runtime' % (self._CONF_DIR, instance_name)
 
   def _WriteNetScript(self, instance, seq, nic):
     """Write a script to connect a net interface to the proper bridge.
@@ -237,6 +245,45 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return (kvm_cmd, kvm_nics)
 
+  def _WriteKVMRuntime(self, instance_name, data):
+    """Write an instance's KVM runtime
+
+    """
+    try:
+      utils.WriteFile(self._InstanceKVMRuntime(instance_name),
+                      data=data)
+    except IOError, err:
+      raise errors.HypervisorError("Failed to save KVM runtime file: %s" % err)
+
+  def _ReadKVMRuntime(self, instance_name):
+    """Read an instance's KVM runtime
+
+    """
+    try:
+      file_content = utils.ReadFile(self._InstanceKVMRuntime(instance_name))
+    except IOError, err:
+      raise errors.HypervisorError("Failed to load KVM runtime file: %s" % err)
+    return file_content
+
+  def _SaveKVMRuntime(self, instance, kvm_runtime):
+    """Save an instance's KVM runtime
+
+    """
+    kvm_cmd, kvm_nics = kvm_runtime
+    serialized_nics = [nic.ToDict() for nic in kvm_nics]
+    serialized_form = serializer.Dump((kvm_cmd, serialized_nics))
+    self._WriteKVMRuntime(instance.name, serialized_form)
+
+  def _LoadKVMRuntime(self, instance):
+    """Load an instance's KVM runtime
+
+    """
+    serialized_form = self._ReadKVMRuntime(instance.name)
+    loaded_runtime = serializer.Load(serialized_form)
+    kvm_cmd, serialized_nics = loaded_runtime
+    kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
+    return (kvm_cmd, kvm_nics)
+
   def _ExecuteKVMRuntime(self, instance, kvm_runtime):
     """Execute a KVM cmd, after completing it with some last minute data
 
@@ -283,6 +330,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, "already running"))
 
     kvm_runtime = self._GenerateKVMRuntime(instance, block_devices, extra_args)
+    self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
 
   def StopInstance(self, instance, force=False):
@@ -309,6 +357,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       utils.RemoveFile(pid_file)
       utils.RemoveFile(self._InstanceMonitor(instance.name))
       utils.RemoveFile(self._InstanceSerial(instance.name))
+      utils.RemoveFile(self._InstanceKVMRuntime(instance.name))
 
   def RebootInstance(self, instance):
     """Reboot an instance.
