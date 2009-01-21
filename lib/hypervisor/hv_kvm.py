@@ -178,16 +178,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return data
 
-  def StartInstance(self, instance, block_devices, extra_args):
-    """Start an instance.
+  def _GenerateKVMRuntime(self, instance, block_devices, extra_args):
+    """Generate KVM information to start an instance.
 
     """
-    temp_files = []
     pidfile = self._PIDS_DIR + "/%s" % instance.name
-    if utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
-      raise errors.HypervisorError("Failed to start instance %s: %s" %
-                                   (instance.name, "already running"))
-
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
     kvm_cmd.extend(['-m', instance.beparams[constants.BE_MEMORY]])
@@ -198,18 +193,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd.extend(['-daemonize'])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(['-no-acpi'])
-    if not instance.nics:
-      kvm_cmd.extend(['-net', 'none'])
-    else:
-      nic_seq = 0
-      for nic in instance.nics:
-        script = self._WriteNetScript(instance, nic_seq, nic)
-        # FIXME: handle other models
-        nic_val = "nic,macaddr=%s,model=virtio" % nic.mac
-        kvm_cmd.extend(['-net', nic_val])
-        kvm_cmd.extend(['-net', 'tap,script=%s' % script])
-        temp_files.append(script)
-        nic_seq += 1
 
     boot_drive = True
     for cfdev, dev_path in block_devices:
@@ -248,6 +231,35 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     serial_dev = 'unix:%s,server,nowait' % self._InstanceSerial(instance.name)
     kvm_cmd.extend(['-serial', serial_dev])
 
+    # Save the current instance nics, but defer their expansion as parameters,
+    # as we'll need to generate executable temp files for them.
+    kvm_nics = instance.nics
+
+    return (kvm_cmd, kvm_nics)
+
+  def _ExecuteKVMRuntime(self, instance, kvm_runtime):
+    """Execute a KVM cmd, after completing it with some last minute data
+
+    """
+    pidfile = self._PIDS_DIR + "/%s" % instance.name
+    if utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
+      raise errors.HypervisorError("Failed to start instance %s: %s" %
+                                   (instance.name, "already running"))
+
+    temp_files = []
+
+    kvm_cmd, kvm_nics = kvm_runtime
+
+    if not kvm_nics:
+      kvm_cmd.extend(['-net', 'none'])
+    else:
+      for nic_seq, nic in enumerate(kvm_nics):
+        nic_val = "nic,macaddr=%s,model=virtio" % nic.mac
+        script = self._WriteNetScript(instance, nic_seq, nic)
+        kvm_cmd.extend(['-net', nic_val])
+        kvm_cmd.extend(['-net', 'tap,script=%s' % script])
+        temp_files.append(script)
+
     result = utils.RunCmd(kvm_cmd)
     if result.failed:
       raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
@@ -260,6 +272,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     for filename in temp_files:
       utils.RemoveFile(filename)
+
+  def StartInstance(self, instance, block_devices, extra_args):
+    """Start an instance.
+
+    """
+    pidfile = self._PIDS_DIR + "/%s" % instance.name
+    if utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
+      raise errors.HypervisorError("Failed to start instance %s: %s" %
+                                   (instance.name, "already running"))
+
+    kvm_runtime = self._GenerateKVMRuntime(instance, block_devices, extra_args)
+    self._ExecuteKVMRuntime(instance, kvm_runtime)
 
   def StopInstance(self, instance, force=False):
     """Stop an instance.
