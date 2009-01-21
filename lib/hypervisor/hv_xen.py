@@ -51,6 +51,26 @@ class XenHypervisor(hv_base.BaseHypervisor):
     raise NotImplementedError
 
   @staticmethod
+  def _WriteConfigFileStatic(instance_name, data):
+    """Write the Xen config file for the instance.
+
+    This version of the function just writes the config file from static data.
+
+    """
+    utils.WriteFile("/etc/xen/%s" % instance_name, data=data)
+
+  @staticmethod
+  def _ReadConfigFile(instance_name):
+    """Returns the contents of the instance config file.
+
+    """
+    try:
+      file_content = utils.ReadFile("/etc/xen/%s" % instance_name)
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to load Xen config file: %s" % err)
+    return file_content
+
+  @staticmethod
   def _RemoveConfigFile(instance_name):
     """Remove the xen configuration file.
 
@@ -265,6 +285,47 @@ class XenHypervisor(hv_base.BaseHypervisor):
       disk_data.append(line)
 
     return disk_data
+
+  def MigrationInfo(self, instance):
+    """Get instance information to perform a migration.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be migrated
+    @rtype: string
+    @return: content of the xen config file
+
+    """
+    return self._ReadConfigFile(instance.name)
+
+  def AcceptInstance(self, instance, info, target):
+    """Prepare to accept an instance.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type info: string
+    @param info: content of the xen config file on the source node
+    @type target: string
+    @param target: target host (usually ip), on this node
+
+    """
+    pass
+
+  def FinalizeMigration(self, instance, info, success):
+    """Finalize an instance migration.
+
+    After a successful migration we write the xen config file.
+    We do nothing on a failure, as we did not change anything at accept time.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance whose migration is being aborted
+    @type info: string
+    @param info: content of the xen config file on the source node
+    @type success: boolean
+    @param success: whether the migration was a success or a failure
+
+    """
+    if success:
+      self._WriteConfigFileStatic(instance.name, info)
 
   def MigrateInstance(self, instance, target, live):
     """Migrate an instance to a target node.
