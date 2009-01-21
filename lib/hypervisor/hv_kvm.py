@@ -393,8 +393,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # For some reason if we do a 'send-key ctrl-alt-delete' to the control
     # socket the instance will stop, but now power up again. So we'll resort
     # to shutdown and restart.
-    self.StopInstance(instance)
-    self.StartInstance(instance)
+
+    # StopInstance will delete the saved KVM runtime so:
+    # ...first load it...
+    kvm_runtime = self._LoadKVMRuntime(instance)
+    # ...now we can safely call StopInstance...
+    if not self.StopInstance(instance):
+      self.StopInstance(instance, force=True)
+    # ...and finally we can save it again, and execute it...
+    self._SaveKVMRuntime(instance, kvm_runtime)
+    self._ExecuteKVMRuntime(instance, kvm_runtime)
 
   def GetNodeInfo(self):
     """Return information about the node.
