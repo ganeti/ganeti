@@ -588,17 +588,15 @@ class ConfigWriter:
     """Set the instance's status to a given value.
 
     """
-    if status not in ("up", "down"):
-      raise errors.ProgrammerError("Invalid status '%s' passed to"
-                                   " ConfigWriter._SetInstanceStatus()" %
-                                   status)
+    assert isinstance(status, bool), \
+           "Invalid status '%s' passed to SetInstanceStatus" % (status,)
 
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" %
                                       instance_name)
     instance = self._config_data.instances[instance_name]
-    if instance.status != status:
-      instance.status = status
+    if instance.admin_up != status:
+      instance.admin_up = status
       instance.serial_no += 1
       self._WriteConfig()
 
@@ -607,7 +605,7 @@ class ConfigWriter:
     """Mark the instance status to up in the config.
 
     """
-    self._SetInstanceStatus(instance_name, "up")
+    self._SetInstanceStatus(instance_name, True)
 
   @locking.ssynchronized(_config_lock)
   def RemoveInstance(self, instance_name):
@@ -651,7 +649,7 @@ class ConfigWriter:
     """Mark the status of an instance to down in the configuration.
 
     """
-    self._SetInstanceStatus(instance_name, "down")
+    self._SetInstanceStatus(instance_name, False)
 
   def _UnlockedGetInstanceList(self):
     """Get the list of instances.

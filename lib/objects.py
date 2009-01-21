@@ -507,7 +507,7 @@ class Instance(TaggableObject):
     "hypervisor",
     "hvparams",
     "beparams",
-    "status",
+    "admin_up",
     "nics",
     "disks",
     "disk_template",

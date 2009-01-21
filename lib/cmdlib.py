@@ -455,8 +455,8 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param secondary_nodes: list of secondary nodes as strings
   @type os_type: string
   @param os_type: the name of the instance's OS
-  @type status: string
-  @param status: the desired status of the instances
+  @type status: boolean
+  @param status: the should_run status of the instance
   @type memory: string
   @param memory: the memory size of the instance
   @type vcpus: string
@@ -468,13 +468,17 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @return: the hook environment for this instance
 
   """
+  if status:
+    str_status = "up"
+  else:
+    str_status = "down"
   env = {
     "OP_TARGET": name,
     "INSTANCE_NAME": name,
     "INSTANCE_PRIMARY": primary_node,
     "INSTANCE_SECONDARIES": " ".join(secondary_nodes),
     "INSTANCE_OS_TYPE": os_type,
-    "INSTANCE_STATUS": status,
+    "INSTANCE_STATUS": str_status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
   }
@@ -516,7 +520,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'primary_node': instance.primary_node,
     'secondary_nodes': instance.secondary_nodes,
     'os_type': instance.os,
-    'status': instance.os,
+    'status': instance.admin_up,
     'memory': bep[constants.BE_MEMORY],
     'vcpus': bep[constants.BE_VCPUS],
     'nics': [(nic.ip, nic.bridge, nic.mac) for nic in instance.nics],
@@ -768,7 +772,7 @@ class LUVerifyCluster(LogicalUnit):
                           (volume, node))
           bad = True
 
-    if not instanceconfig.status == 'down':
+    if instanceconfig.admin_up:
       if ((node_current not in node_instance or
           not instance in node_instance[node_current]) and
           node_current not in n_offline):
@@ -953,7 +957,7 @@ class LUVerifyCluster(LogicalUnit):
       node_drbd = {}
       for minor, instance in all_drbd_map[node].items():
         instance = instanceinfo[instance]
-        node_drbd[minor] = (instance.name, instance.status == "up")
+        node_drbd[minor] = (instance.name, instance.admin_up)
       result = self._VerifyNode(node_i, file_names, local_checksums,
                                 nresult, feedback_fn, master_files,
                                 node_drbd)
@@ -1181,7 +1185,7 @@ class LUVerifyDisks(NoHooksLU):
     nv_dict = {}
     for inst in instances:
       inst_lvs = {}
-      if (inst.status != "up" or
+      if (not inst.admin_up or
           inst.disk_template not in constants.DTS_NET_MIRROR):
         continue
       inst.MapLVsByNode(inst_lvs)
@@ -2821,7 +2825,7 @@ class LUReinstallInstance(LogicalUnit):
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name)
-    if instance.status != "down":
+    if instance.admin_up:
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
                                  self.op.instance_name)
     remote_info = self.rpc.call_instance_info(instance.primary_node,
@@ -2904,7 +2908,7 @@ class LURenameInstance(LogicalUnit):
                                  self.op.instance_name)
     _CheckNodeOnline(self, instance.primary_node)
 
-    if instance.status != "down":
+    if instance.admin_up:
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
                                  self.op.instance_name)
     remote_info = self.rpc.call_instance_info(instance.primary_node,
@@ -3169,7 +3173,7 @@ class LUQueryInstances(NoHooksLU):
         elif field == "snodes":
           val = list(instance.secondary_nodes)
         elif field == "admin_state":
-          val = (instance.status != "down")
+          val = instance.admin_up
         elif field == "oper_state":
           if instance.primary_node in bad_nodes:
             val = None
@@ -3183,12 +3187,12 @@ class LUQueryInstances(NoHooksLU):
           else:
             running = bool(live_data.get(instance.name))
             if running:
-              if instance.status != "down":
+              if instance.admin_up:
                 val = "running"
               else:
                 val = "ERROR_up"
             else:
-              if instance.status != "down":
+              if instance.admin_up:
                 val = "ERROR_down"
               else:
                 val = "ADMIN_down"
@@ -3362,7 +3366,7 @@ class LUFailoverInstance(LogicalUnit):
     for dev in instance.disks:
       # for drbd, these are drbd over lvm
       if not _CheckDiskConsistency(self, dev, target_node, False):
-        if instance.status == "up" and not self.op.ignore_consistency:
+        if instance.admin_up and not self.op.ignore_consistency:
           raise errors.OpExecError("Disk %s is degraded on target node,"
                                    " aborting failover." % dev.iv_name)
 
@@ -3390,7 +3394,7 @@ class LUFailoverInstance(LogicalUnit):
     self.cfg.Update(instance)
 
     # Only start the instance if it's marked as up
-    if instance.status == "up":
+    if instance.admin_up:
       feedback_fn("* activating the instance's disks on target node")
       logging.info("Starting instance %s on node %s",
                    instance.name, target_node)
@@ -4491,10 +4495,7 @@ class LUCreateInstance(LogicalUnit):
                            self.be_full[constants.BE_MEMORY],
                            self.op.hypervisor)
 
-    if self.op.start:
-      self.instance_status = 'up'
-    else:
-      self.instance_status = 'down'
+    self.instance_status = self.op.start
 
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
@@ -4541,7 +4542,7 @@ class LUCreateInstance(LogicalUnit):
                             primary_node=pnode_name,
                             nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
-                            status=self.instance_status,
+                            admin_up=self.instance_status,
                             network_port=network_port,
                             beparams=self.op.beparams,
                             hvparams=self.op.hvparams,
@@ -5212,7 +5213,7 @@ class LUReplaceDisks(LogicalUnit):
     instance = self.instance
 
     # Activate the instance disks if we're replacing them on a down instance
-    if instance.status == "down":
+    if not instance.admin_up:
       _StartInstanceDisks(self, instance, True)
 
     if self.op.mode == constants.REPLACE_DISK_CHG:
@@ -5223,7 +5224,7 @@ class LUReplaceDisks(LogicalUnit):
     ret = fn(feedback_fn)
 
     # Deactivate the instance disks if we're replacing them on a down instance
-    if instance.status == "down":
+    if not instance.admin_up:
       _SafeShutdownInstanceDisks(self, instance)
 
     return ret
@@ -5439,10 +5440,10 @@ class LUQueryInstanceData(NoHooksLU):
           remote_state = "down"
       else:
         remote_state = None
-      if instance.status == "down":
-        config_state = "down"
-      else:
+      if instance.admin_up:
         config_state = "up"
+      else:
+        config_state = "down"
 
       disks = [self._ComputeDiskStatus(instance, None, device)
                for device in instance.disks]
@@ -5998,7 +5999,7 @@ class LUExportInstance(LogicalUnit):
           snap_disks.append(new_dev)
 
     finally:
-      if self.op.shutdown and instance.status == "up":
+      if self.op.shutdown and instance.admin_up:
         result = self.rpc.call_instance_start(src_node, instance, None)
         msg = result.RemoteFailMsg()
         if msg:
@@ -6421,7 +6422,7 @@ class IAllocator(object):
           i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
           remote_info['memory_free'] -= max(0, i_mem_diff)
 
-          if iinfo.status == "up":
+          if iinfo.admin_up:
             i_p_up_mem += beinfo[constants.BE_MEMORY]
 
       # compute memory used by instances
@@ -6449,7 +6450,7 @@ class IAllocator(object):
                   for n in iinfo.nics]
       pir = {
         "tags": list(iinfo.GetTags()),
-        "should_run": iinfo.status == "up",
+        "should_run": iinfo.admin_up,
         "vcpus": beinfo[constants.BE_VCPUS],
         "memory": beinfo[constants.BE_MEMORY],
         "os": iinfo.os,
