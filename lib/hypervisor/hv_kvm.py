@@ -506,6 +506,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           done = True
         elif status == 'active':
           time.sleep(2)
+        elif status == 'failed' or status == 'cancelled':
+          if not live:
+            self._CallMonitorCommand(instance_name, 'cont')
+          raise errors.HypervisorError("Migration %s at the kvm level" %
+                                       status)
         else:
           logging.info("KVM: unknown migration status '%s'" % status)
           time.sleep(2)
