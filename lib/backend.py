@@ -909,7 +909,8 @@ def ShutdownInstance(instance):
     time.sleep(10)
   else:
     # the shutdown did not succeed
-    logging.error("shutdown of '%s' unsuccessful, using destroy", instance)
+    logging.error("Shutdown of '%s' unsuccessful, using destroy",
+                  instance.name)
 
     try:
       hyper.StopInstance(instance, force=True)
@@ -919,7 +920,7 @@ def ShutdownInstance(instance):
 
     time.sleep(1)
     if instance.name in GetInstanceList([hv_name]):
-      logging.error("could not shutdown instance '%s' even by destroy",
+      logging.error("Could not shutdown instance '%s' even by destroy",
                     instance.name)
       return False
 
