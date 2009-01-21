@@ -432,6 +432,59 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_shutdown",
                                 [self._InstDict(instance)])
 
+  def call_migration_info(self, node, instance):
+    """Gather the information necessary to prepare an instance migration.
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: the node on which the instance is currently running
+    @type instance: C{objects.Instance}
+    @param instance: the instance definition
+
+    """
+    return self._SingleNodeCall(node, "migration_info",
+                                [self._InstDict(instance)])
+
+  def call_accept_instance(self, node, instance, info, target):
+    """Prepare a node to accept an instance.
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: the target node for the migration
+    @type instance: C{objects.Instance}
+    @param instance: the instance definition
+    @type info: opaque/hypervisor specific (string/data)
+    @param info: result for the call_migration_info call
+    @type target: string
+    @param target: target hostname (usually ip address) (on the node itself)
+
+    """
+    return self._SingleNodeCall(node, "accept_instance",
+                                [self._InstDict(instance), info, target])
+
+  def call_finalize_migration(self, node, instance, info, success):
+    """Finalize any target-node migration specific operation.
+
+    This is called both in case of a successful migration and in case of error
+    (in which case it should abort the migration).
+
+    This is a single-node call.
+
+    @type node: string
+    @param node: the target node for the migration
+    @type instance: C{objects.Instance}
+    @param instance: the instance definition
+    @type info: opaque/hypervisor specific (string/data)
+    @param info: result for the call_migration_info call
+    @type success: boolean
+    @param success: whether the migration was a success or a failure
+
+    """
+    return self._SingleNodeCall(node, "finalize_migration",
+                                [self._InstDict(instance), info, success])
+
   def call_instance_migrate(self, node, instance, target, live):
     """Migrate an instance.
 

@@ -403,6 +403,32 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.StartInstance(instance, extra_args)
 
   @staticmethod
+  def perspective_migration_info(params):
+    """Gather information about an instance to be migrated.
+
+    """
+    instance = objects.Instance.FromDict(params[0])
+    return backend.MigrationInfo(instance)
+
+  @staticmethod
+  def perspective_accept_instance(params):
+    """Prepare the node to accept an instance.
+
+    """
+    instance, info, target = params
+    instance = objects.Instance.FromDict(instance)
+    return backend.AcceptInstance(instance, info, target)
+
+  @staticmethod
+  def perspective_finalize_migration(params):
+    """Finalize the instance migration.
+
+    """
+    instance, info, success = params
+    instance = objects.Instance.FromDict(instance)
+    return backend.FinalizeMigration(instance, info, success)
+
+  @staticmethod
   def perspective_instance_migrate(params):
     """Migrates an instance.
 

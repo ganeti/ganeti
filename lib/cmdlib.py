@@ -3631,6 +3631,41 @@ class LUMigrateInstance(LogicalUnit):
 
     self.feedback_fn("* done")
 
+  def _RevertDiskStatus(self):
+    """Try to revert the disk status after a failed migration.
+
+    """
+    target_node = self.target_node
+    try:
+      self._EnsureSecondary(target_node)
+      self._GoStandalone()
+      self._GoReconnect(False)
+      self._WaitUntilSync()
+    except errors.OpExecError, err:
+      self.LogWarning("Migration failed and I can't reconnect the"
+                      " drives: error '%s'\n"
+                      "Please look and recover the instance status" %
+                      str(err))
+
+  def _AbortMigration(self):
+    """Call the hypervisor code to abort a started migration.
+
+    """
+    instance = self.instance
+    target_node = self.target_node
+    migration_info = self.migration_info
+
+    abort_result = self.rpc.call_finalize_migration(target_node,
+                                                    instance,
+                                                    migration_info,
+                                                    False)
+    abort_msg = abort_result.RemoteFailMsg()
+    if abort_msg:
+      logging.error("Aborting migration failed on target node %s: %s" %
+                    (target_node, abort_msg))
+      # Don't raise an exception here, as we stil have to try to revert the
+      # disk status, even if this step failed.
+
   def _ExecMigration(self):
     """Migrate an instance.
 
@@ -3654,10 +3689,37 @@ class LUMigrateInstance(LogicalUnit):
                                  " synchronized on target node,"
                                  " aborting migrate." % dev.iv_name)
 
+    # First get the migration information from the remote node
+    result = self.rpc.call_migration_info(source_node, instance)
+    msg = result.RemoteFailMsg()
+    if msg:
+      log_err = ("Failed fetching source migration information from %s: %s" %
+                  (source_node, msg))
+      logging.error(log_err)
+      raise errors.OpExecError(log_err)
+
+    self.migration_info = migration_info = result.data[1]
+
+    # Then switch the disks to master/master mode
     self._EnsureSecondary(target_node)
     self._GoStandalone()
     self._GoReconnect(True)
     self._WaitUntilSync()
+
+    self.feedback_fn("* preparing %s to accept the instance" % target_node)
+    result = self.rpc.call_accept_instance(target_node,
+                                           instance,
+                                           migration_info,
+                                           self.nodes_ip[target_node])
+
+    msg = result.RemoteFailMsg()
+    if msg:
+      logging.error("Instance pre-migration failed, trying to revert"
+                    " disk status: %s", msg)
+      self._AbortMigration()
+      self._RevertDiskStatus()
+      raise errors.OpExecError("Could not pre-migrate instance %s: %s" %
+                               (instance.name, msg))
 
     self.feedback_fn("* migrating instance to %s" % target_node)
     time.sleep(10)
@@ -3668,17 +3730,8 @@ class LUMigrateInstance(LogicalUnit):
     if msg:
       logging.error("Instance migration failed, trying to revert"
                     " disk status: %s", msg)
-      try:
-        self._EnsureSecondary(target_node)
-        self._GoStandalone()
-        self._GoReconnect(False)
-        self._WaitUntilSync()
-      except errors.OpExecError, err:
-        self.LogWarning("Migration failed and I can't reconnect the"
-                        " drives: error '%s'\n"
-                        "Please look and recover the instance status" %
-                        str(err))
-
+      self._AbortMigration()
+      self._RevertDiskStatus()
       raise errors.OpExecError("Could not migrate instance %s: %s" %
                                (instance.name, msg))
     time.sleep(10)
@@ -3686,6 +3739,17 @@ class LUMigrateInstance(LogicalUnit):
     instance.primary_node = target_node
     # distribute new instance config to the other nodes
     self.cfg.Update(instance)
+
+    result = self.rpc.call_finalize_migration(target_node,
+                                              instance,
+                                              migration_info,
+                                              True)
+    msg = result.RemoteFailMsg()
+    if msg:
+      logging.error("Instance migration succeeded, but finalization failed:"
+                    " %s" % msg)
+      raise errors.OpExecError("Could not finalize instance migration: %s" %
+                               msg)
 
     self._EnsureSecondary(source_node)
     self._WaitUntilSync()
