@@ -980,7 +980,14 @@ def MigrationInfo(instance):
   @param instance: the instance definition
 
   """
-  return (True, '')
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    info = hyper.MigrationInfo(instance)
+  except errors.HypervisorError, err:
+    msg = "Failed to fetch migration information"
+    logging.exception(msg)
+    return (False, '%s: %s' % (msg, err))
+  return (True, info)
 
 
 def AcceptInstance(instance, info, target):
@@ -994,6 +1001,13 @@ def AcceptInstance(instance, info, target):
   @param target: target host (usually ip), on this node
 
   """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.AcceptInstance(instance, info, target)
+  except errors.HypervisorError, err:
+    msg = "Failed to accept instance"
+    logging.exception(msg)
+    return (False, '%s: %s' % (msg, err))
   return (True, "Accept successfull")
 
 
@@ -1008,6 +1022,13 @@ def FinalizeMigration(instance, info, success):
   @param success: whether the migration was a success or a failure
 
   """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.FinalizeMigration(instance, info, success)
+  except errors.HypervisorError, err:
+    msg = "Failed to finalize migration"
+    logging.exception(msg)
+    return (False, '%s: %s' % (msg, err))
   return (True, "Migration Finalized")
 
 

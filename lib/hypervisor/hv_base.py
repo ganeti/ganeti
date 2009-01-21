@@ -57,6 +57,7 @@ class BaseHypervisor(object):
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
 
+    @type instance_name: string
     @param instance_name: the instance name
 
     @return: tuple (name, id, memory, vcpus, state, times)
@@ -96,19 +97,62 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
+  def MigrationInfo(self, instance):
+    """Get instance information to perform a migration.
+
+    By default assume no information is needed.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be migrated
+    @rtype: string/data (opaque)
+    @return: instance migration information - serialized form
+
+    """
+    return ''
+
+  def AcceptInstance(self, instance, info, target):
+    """Prepare to accept an instance.
+
+    By default assume no preparation is needed.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type info: string/data (opaque)
+    @param info: migration information, from the source node
+    @type target: string
+    @param target: target host (usually ip), on this node
+
+    """
+    pass
+
+  def FinalizeMigration(self, instance, info, success):
+    """Finalized an instance migration.
+
+    Should finalize or revert any preparation done to accept the instance.
+    Since by default we do no preparation, we also don't have anything to do
+
+    @type instance: L{objects.Instance}
+    @param instance: instance whose migration is being aborted
+    @type info: string/data (opaque)
+    @param info: migration information, from the source node
+    @type success: boolean
+    @param success: whether the migration was a success or a failure
+
+    """
+    pass
+
   def MigrateInstance(self, name, target, live):
     """Migrate an instance.
 
-    Arguments:
-      - name: the name of the instance
-      - target: the target of the migration (usually will be IP and not name)
-      - live: whether to do live migration or not
-
-    Returns: none, errors will be signaled by exception.
+    @type name: string
+    @param name: name of the instance to be migrated
+    @type target: string
+    @param target: hostname (usually ip) of the target node
+    @type live: boolean
+    @param live: whether to do a live or non-live migration
 
     """
     raise NotImplementedError
-
 
   @classmethod
   def CheckParameterSyntax(cls, hvparams):
