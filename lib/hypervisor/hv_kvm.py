@@ -61,6 +61,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if not os.path.exists(mydir):
         os.mkdir(mydir)
 
+  def _InstancePidAlive(self, instance_name):
+    """Returns the instance pid and pidfile
+
+    """
+    pidfile = "%s/%s" % (self._PIDS_DIR, instance_name)
+    pid = utils.ReadPidFile(pidfile)
+    alive = utils.IsProcessAlive(pid)
+
+    return (pidfile, pid, alive)
+
   def _InstanceMonitor(self, instance_name):
     """Returns the instance monitor socket name
 
@@ -142,9 +152,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    pidfile = "%s/%s" % (self._PIDS_DIR, instance_name)
-    pid = utils.ReadPidFile(pidfile)
-    if not utils.IsProcessAlive(pid):
+    pidfile, pid, alive = self._InstancePidAlive(instance_name)
+    if not alive:
       return None
 
     cmdline_file = "/proc/%s/cmdline" % pid
@@ -191,7 +200,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
-    pidfile = self._PIDS_DIR + "/%s" % instance.name
+    pidfile, pid, alive = self._InstancePidAlive(instance.name)
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
     kvm_cmd.extend(['-m', instance.beparams[constants.BE_MEMORY]])
@@ -289,8 +298,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Execute a KVM cmd, after completing it with some last minute data
 
     """
-    pidfile = self._PIDS_DIR + "/%s" % instance.name
-    if utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
+    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    if alive:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, "already running"))
 
@@ -325,8 +334,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Start an instance.
 
     """
-    pidfile = self._PIDS_DIR + "/%s" % instance.name
-    if utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
+    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    if alive:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, "already running"))
 
@@ -369,16 +378,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Stop an instance.
 
     """
-    pid_file = self._PIDS_DIR + "/%s" % instance.name
-    pid = utils.ReadPidFile(pid_file)
-    if pid > 0 and utils.IsProcessAlive(pid):
+    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    if pid > 0 and alive:
       if force or not instance.hvparams[constants.HV_ACPI]:
         utils.KillProcess(pid)
       else:
         self._RetryInstancePowerdown(instance, pid)
 
     if not utils.IsProcessAlive(pid):
-      utils.RemoveFile(pid_file)
+      utils.RemoveFile(pidfile)
       utils.RemoveFile(self._InstanceMonitor(instance.name))
       utils.RemoveFile(self._InstanceSerial(instance.name))
       utils.RemoveFile(self._InstanceKVMRuntime(instance.name))
@@ -393,7 +401,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # For some reason if we do a 'send-key ctrl-alt-delete' to the control
     # socket the instance will stop, but now power up again. So we'll resort
     # to shutdown and restart.
-
+    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    if not alive:
+      raise errors.HypervisorError("Failed to reboot instance %s: not running" %
+                                             (instance.name))
     # StopInstance will delete the saved KVM runtime so:
     # ...first load it...
     kvm_runtime = self._LoadKVMRuntime(instance)
