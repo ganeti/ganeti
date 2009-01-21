@@ -472,6 +472,7 @@ class Disk(ConfigObject):
     if self.dev_type == constants.LD_LV:
       val =  "<LogicalVolume(/dev/%s/%s" % self.logical_id
     elif self.dev_type in constants.LDS_DRBD:
+      node_a, node_b, port, minor_a, minor_b = self.logical_id[:5]
       val = "<DRBD8("
       if self.physical_id is None:
         phy = "unconfigured"
@@ -480,9 +481,8 @@ class Disk(ConfigObject):
                (self.physical_id[0], self.physical_id[1],
                 self.physical_id[2], self.physical_id[3]))
 
-      val += ("hosts=%s-%s, port=%s, %s, " %
-              (self.logical_id[0], self.logical_id[1], self.logical_id[2],
-               phy))
+      val += ("hosts=%s/%d-%s/%d, port=%s, %s, " %
+              (node_a, minor_a, node_b, minor_b, port, phy))
       if self.children and self.children.count(None) == 0:
         val += "backend=%s, metadev=%s" % (self.children[0], self.children[1])
       else:
