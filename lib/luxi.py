@@ -21,7 +21,7 @@
 
 """Module for the unix socket protocol
 
-This module implements the local unix socket protocl. You only need
+This module implements the local unix socket protocol. You only need
 this module and the opcodes module in the client program in order to
 communicate with the master.
 
@@ -252,7 +252,32 @@ class Client(object):
     """
     if address is None:
       address = constants.MASTER_SOCKET
-    self.transport = transport(address, timeouts=timeouts)
+    self.address = address
+    self.timeouts = timeouts
+    self.transport_class = transport
+    self.transport = None
+    self._InitTransport()
+
+  def _InitTransport(self):
+    """(Re)initialize the transport if needed.
+
+    """
+    if self.transport is None:
+      self.transport = self.transport_class(self.address,
+                                            timeouts=self.timeouts)
+
+  def _CloseTransport(self):
+    """Close the transport, ignoring errors.
+
+    """
+    if self.transport is None:
+      return
+    try:
+      old_transp = self.transport
+      self.transport = None
+      old_transp.Close()
+    except Exception, err:
+      pass
 
   def CallMethod(self, method, args):
     """Send a generic request and return the response.
@@ -264,8 +289,18 @@ class Client(object):
       KEY_ARGS: args,
       }
 
+    # Serialize the request
+    send_data = serializer.DumpJson(request, indent=False)
+
     # Send request and wait for response
-    result = self.transport.Call(serializer.DumpJson(request, indent=False))
+    try:
+      self._InitTransport()
+      result = self.transport.Call(send_data)
+    except Exception:
+      self._CloseTransport()
+      raise
+
+    # Parse the result
     try:
       data = serializer.LoadJson(result)
     except Exception, err:
