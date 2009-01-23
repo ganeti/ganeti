@@ -6472,8 +6472,6 @@ class IAllocator(object):
 
     """
     data = self.in_data
-    if len(self.disks) != 2:
-      raise errors.OpExecError("Only two-disk configurations supported")
 
     disk_space = _ComputeDiskSize(self.disk_template, self.disks)
 
@@ -6630,8 +6628,6 @@ class LUTestAllocator(NoHooksLU):
                                      " 'nics' parameter")
       if not isinstance(self.op.disks, list):
         raise errors.OpPrereqError("Invalid parameter 'disks'")
-      if len(self.op.disks) != 2:
-        raise errors.OpPrereqError("Only two-disk configurations supported")
       for row in self.op.disks:
         if (not isinstance(row, dict) or
             "size" not in row or
@@ -6640,7 +6636,7 @@ class LUTestAllocator(NoHooksLU):
             row["mode"] not in ['r', 'w']):
           raise errors.OpPrereqError("Invalid contents of the"
                                      " 'disks' parameter")
-      if self.op.hypervisor is None:
+      if not hasattr(self.op, "hypervisor") or self.op.hypervisor is None:
         self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       if not hasattr(self.op, "name"):
