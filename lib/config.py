@@ -441,14 +441,14 @@ class ConfigWriter:
 
     duplicates = []
     my_dict = dict((node, {}) for node in self._config_data.nodes)
-    for (node, minor), instance in self._temporary_drbds.iteritems():
-      if minor in my_dict[node]:
-        duplicates.append((node, minor, instance, my_dict[node][minor]))
-      else:
-        my_dict[node][minor] = instance
     for instance in self._config_data.instances.itervalues():
       for disk in instance.disks:
         duplicates.extend(_AppendUsedPorts(instance.name, disk, my_dict))
+    for (node, minor), instance in self._temporary_drbds.iteritems():
+      if minor in my_dict[node] and my_dict[node][minor] != instance:
+        duplicates.append((node, minor, instance, my_dict[node][minor]))
+      else:
+        my_dict[node][minor] = instance
     return my_dict, duplicates
 
   @locking.ssynchronized(_config_lock)
