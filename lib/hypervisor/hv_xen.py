@@ -384,11 +384,11 @@ class XenPvmHypervisor(XenHypervisor):
       raise errors.HypervisorError("Need a kernel for the instance")
 
     if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
-      raise errors.HypervisorError("The kernel path must an absolute path")
+      raise errors.HypervisorError("The kernel path must be an absolute path")
 
     if hvparams[constants.HV_INITRD_PATH]:
       if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):
-        raise errors.HypervisorError("The initrd path must an absolute path"
+        raise errors.HypervisorError("The initrd path must be an absolute path"
                                      ", if defined")
 
   def ValidateParameters(self, hvparams):
