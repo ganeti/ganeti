@@ -227,9 +227,12 @@ class ConfigWriter:
 
     return result
 
-  @locking.ssynchronized(_config_lock, shared=1)
-  def VerifyConfig(self):
+  def _UnlockedVerifyConfig(self):
     """Verify function.
+
+    @rtype: list
+    @return: a list of error messages; a non-empty list signifies
+        configuration errors
 
     """
     result = []
@@ -290,12 +293,32 @@ class ConfigWriter:
     if not data.nodes[data.cluster.master_node].master_candidate:
       result.append("Master node is not a master candidate")
 
+    # master candidate checks
     mc_now, mc_max = self._UnlockedGetMasterCandidateStats()
     if mc_now < mc_max:
       result.append("Not enough master candidates: actual %d, target %d" %
                     (mc_now, mc_max))
 
+    # drbd minors check
+    d_map, duplicates = self._UnlockedComputeDRBDMap()
+    for node, minor, instance_a, instance_b in duplicates:
+      result.append("DRBD minor %d on node %s is assigned twice to instances"
+                    " %s and %s" % (minor, node, instance_a, instance_b))
+
     return result
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def VerifyConfig(self):
+    """Verify function.
+
+    This is just a wrapper over L{_UnlockedVerifyConfig}.
+
+    @rtype: list
+    @return: a list of error messages; a non-empty list signifies
+        configuration errors
+
+    """
+    return self._UnlockedVerifyConfig()
 
   def _UnlockedSetDiskID(self, disk, node_name):
     """Convert the unique ID to the ID needed on the target nodes.
@@ -392,34 +415,41 @@ class ConfigWriter:
   def _UnlockedComputeDRBDMap(self):
     """Compute the used DRBD minor/nodes.
 
+    @rtype: (dict, list)
     @return: dictionary of node_name: dict of minor: instance_name;
         the returned dict will have all the nodes in it (even if with
-        an empty list).
+        an empty list), and a list of duplicates; if the duplicates
+        list is not empty, the configuration is corrupted and its caller
+        should raise an exception
 
     """
     def _AppendUsedPorts(instance_name, disk, used):
+      duplicates = []
       if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
         nodeA, nodeB, dummy, minorA, minorB = disk.logical_id[:5]
         for node, port in ((nodeA, minorA), (nodeB, minorB)):
-          assert node in used, "Instance node not found in node list"
+          assert node in used, ("Node '%s' of instance '%s' not found"
+                                " in node list" % (node, instance_name))
           if port in used[node]:
-            raise errors.ProgrammerError("DRBD minor already used:"
-                                         " %s/%s, %s/%s" %
-                                         (node, port, instance_name,
-                                          used[node][port]))
-
-          used[node][port] = instance_name
+            duplicates.append((node, port, instance_name, used[node][port]))
+          else:
+            used[node][port] = instance_name
       if disk.children:
         for child in disk.children:
-          _AppendUsedPorts(instance_name, child, used)
+          duplicates.extend(_AppendUsedPorts(instance_name, child, used))
+      return duplicates
 
+    duplicates = []
     my_dict = dict((node, {}) for node in self._config_data.nodes)
     for (node, minor), instance in self._temporary_drbds.iteritems():
-      my_dict[node][minor] = instance
+      if minor in my_dict[node]:
+        duplicates.append((node, minor, instance, my_dict[node][minor]))
+      else:
+        my_dict[node][minor] = instance
     for instance in self._config_data.instances.itervalues():
       for disk in instance.disks:
-        _AppendUsedPorts(instance.name, disk, my_dict)
-    return my_dict
+        duplicates.extend(_AppendUsedPorts(instance.name, disk, my_dict))
+    return my_dict, duplicates
 
   @locking.ssynchronized(_config_lock)
   def ComputeDRBDMap(self):
@@ -432,7 +462,11 @@ class ConfigWriter:
         an empty list).
 
     """
-    return self._UnlockedComputeDRBDMap()
+    d_map, duplicates = self._UnlockedComputeDRBDMap()
+    if duplicates:
+      raise errors.ConfigurationError("Duplicate DRBD ports detected: %s" %
+                                      str(duplicates))
+    return d_map
 
   @locking.ssynchronized(_config_lock)
   def AllocateDRBDMinor(self, nodes, instance):
@@ -448,9 +482,12 @@ class ConfigWriter:
 
     """
     assert isinstance(instance, basestring), \
-           "Invalid argument passed to AllocateDRBDMinor"
+           "Invalid argument '%s' passed to AllocateDRBDMinor" % instance
 
-    d_map = self._UnlockedComputeDRBDMap()
+    d_map, duplicates = self._UnlockedComputeDRBDMap()
+    if duplicates:
+      raise errors.ConfigurationError("Duplicate DRBD ports detected: %s" %
+                                      str(duplicates))
     result = []
     for nname in nodes:
       ndata = d_map[nname]
@@ -469,11 +506,20 @@ class ConfigWriter:
         minor = keys[-1] + 1
       else:
         minor = ffree
-      result.append(minor)
+      # double-check minor against current instances
+      assert minor not in d_map[nname], \
+             ("Attempt to reuse allocated DRBD minor %d on node %s,"
+              " already allocated to instance %s" %
+              (minor, nname, d_map[nname][minor]))
       ndata[minor] = instance
-      assert (nname, minor) not in self._temporary_drbds, \
-             "Attempt to reuse reserved DRBD minor"
-      self._temporary_drbds[(nname, minor)] = instance
+      # double-check minor against reservation
+      r_key = (nname, minor)
+      assert r_key not in self._temporary_drbds, \
+             ("Attempt to reuse reserved DRBD minor %d on node %s,"
+              " reserved for instance %s" %
+              (minor, nname, self._temporary_drbds[r_key]))
+      self._temporary_drbds[r_key] = instance
+      result.append(minor)
     logging.debug("Request to allocate drbd minors, input: %s, returning %s",
                   nodes, result)
     return result
@@ -973,6 +1019,11 @@ class ConfigWriter:
     """Write the configuration data to persistent storage.
 
     """
+    config_errors = self._UnlockedVerifyConfig()
+    if config_errors:
+      raise errors.ConfigurationError("Configuration data is not"
+                                      " consistent: %s" %
+                                      (", ".join(config_errors)))
     if destination is None:
       destination = self._cfg_file
     self._BumpSerialNo()

@@ -42,9 +42,6 @@ class FakeConfig:
     def GetNodeList(self):
         return ["a", "b", "c"]
 
-    def GetMaster(self):
-        return utils.HostInfo().name
-
     def GetHostKey(self):
         return FAKE_CLUSTER_KEY
 
@@ -71,4 +68,3 @@ class FakeContext:
         self.cfg = FakeConfig()
         # TODO: decide what features a mock Ganeti Lock Manager must have
         self.GLM = None
-

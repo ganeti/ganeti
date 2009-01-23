@@ -79,15 +79,17 @@ class TestConfigRunner(unittest.TestCase):
     master_node_config = objects.Node(name=me.name,
                                       primary_ip=me.ip,
                                       secondary_ip=ip,
-                                      serial_no=1)
+                                      serial_no=1,
+                                      master_candidate=True)
 
     bootstrap.InitConfig(constants.CONFIG_VERSION,
                          cluster_config, master_node_config, self.cfg_file)
 
   def _create_instance(self):
     """Create and return an instance object"""
-    inst = objects.Instance(name="test.example.com", disks=[],
-                            disk_template=constants.DT_DISKLESS)
+    inst = objects.Instance(name="test.example.com", disks=[], nics=[],
+                            disk_template=constants.DT_DISKLESS,
+                            primary_node=self._get_object().GetMasterNode())
     return inst
 
   def testEmpty(self):
