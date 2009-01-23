@@ -597,7 +597,7 @@ def FailoverInstance(opts, args):
   force = opts.force
 
   if not force:
-    usertext = ("Failover will happen to image %s."
+    usertext = ("Failover will happen to instance %s."
                 " This requires a shutdown of the instance. Continue?" %
                 (instance_name,))
     if not AskUser(usertext):
