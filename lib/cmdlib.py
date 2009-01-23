@@ -4193,7 +4193,9 @@ class LUCreateInstance(LogicalUnit):
           raise errors.OpPrereqError("Invalid MAC address specified: %s" %
                                      mac)
       # bridge verification
-      bridge = nic.get("bridge", self.cfg.GetDefBridge())
+      bridge = nic.get("bridge", None)
+      if bridge is None:
+        bridge = self.cfg.GetDefBridge()
       self.nics.append(objects.NIC(mac=mac, ip=nic_ip, bridge=bridge))
 
     # disk checks/pre-build

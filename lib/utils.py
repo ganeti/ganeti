@@ -751,7 +751,7 @@ def ParseUnit(input_string):
   is always an int in MiB.
 
   """
-  m = re.match('^([.\d]+)\s*([a-zA-Z]+)?$', input_string)
+  m = re.match('^([.\d]+)\s*([a-zA-Z]+)?$', str(input_string))
   if not m:
     raise errors.UnitParseError("Invalid format")
 

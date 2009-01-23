@@ -375,13 +375,12 @@ def BatchCreate(opts, args):
   in the form::
 
     {"instance-name":{
-      "disk_size": 25,
-      "swap_size": 1024,
+      "disk_size": [20480],
       "template": "drbd",
       "backend": {
         "memory": 512,
         "vcpus": 1 },
-      "os": "etch-image",
+      "os": "debootstrap",
       "primary_node": "firstnode",
       "secondary_node": "secondnode",
       "iallocator": "dumb"}
@@ -397,8 +396,7 @@ def BatchCreate(opts, args):
   @return: the desired exit code
 
   """
-  _DEFAULT_SPECS = {"disk_size": 20 * 1024,
-                    "swap_size": 4 * 1024,
+  _DEFAULT_SPECS = {"disk_size": [20 * 1024],
                     "backend": {},
                     "iallocator": None,
                     "primary_node": None,
@@ -458,19 +456,29 @@ def BatchCreate(opts, args):
     if specs['hypervisor']:
       hypervisor, hvparams = specs['hypervisor'].iteritems()
 
+    disks = []
+    for elem in specs['disk_size']:
+      try:
+        size = utils.ParseUnit(elem)
+      except ValueError, err:
+        raise errors.OpPrereqError("Invalid disk size '%s' for"
+                                   " instance %s: %s" %
+                                   (elem, name, err))
+      disks.append({"size": size})
+
+    nic0 = {'ip': specs['ip'], 'bridge': specs['bridge'], 'mac': specs['mac']}
+
     op = opcodes.OpCreateInstance(instance_name=name,
-                                  disk_size=specs['disk_size'],
-                                  swap_size=specs['swap_size'],
+                                  disks=disks,
                                   disk_template=specs['template'],
                                   mode=constants.INSTANCE_CREATE,
                                   os_type=specs['os'],
                                   pnode=specs['primary_node'],
                                   snode=specs['secondary_node'],
-                                  ip=specs['ip'], bridge=specs['bridge'],
+                                  nics=[nic0],
                                   start=specs['start'],
                                   ip_check=specs['ip_check'],
                                   wait_for_sync=True,
-                                  mac=specs['mac'],
                                   iallocator=specs['iallocator'],
                                   hypervisor=hypervisor,
                                   hvparams=hvparams,
