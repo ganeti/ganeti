@@ -848,21 +848,6 @@ class DRBD8(BaseDRBD):
     return highest + 1
 
   @classmethod
-  def _IsValidMeta(cls, meta_device):
-    """Check if the given meta device looks like a valid one.
-
-    """
-    minor = cls._FindUnusedMinor()
-    minor_path = cls._DevPath(minor)
-    result = utils.RunCmd(["drbdmeta", minor_path,
-                           "v08", meta_device, "0",
-                           "dstate"])
-    if result.failed:
-      logging.error("Invalid meta device %s: %s", meta_device, result.output)
-      return False
-    return True
-
-  @classmethod
   def _GetShowParser(cls):
     """Return a parser for `drbd show` output.
 
@@ -1023,12 +1008,7 @@ class DRBD8(BaseDRBD):
   def _AssembleLocal(cls, minor, backend, meta):
     """Configure the local part of a DRBD device.
 
-    This is the first thing that must be done on an unconfigured DRBD
-    device. And it must be done only once.
-
     """
-    if not cls._IsValidMeta(meta):
-      return False
     args = ["drbdsetup", cls._DevPath(minor), "disk",
             backend, meta, "0", "-e", "detach", "--create-device"]
     result = utils.RunCmd(args)
@@ -1109,8 +1089,6 @@ class DRBD8(BaseDRBD):
     if not self._CheckMetaSize(meta.dev_path):
       raise errors.BlockDeviceError("Invalid meta device size")
     self._InitMeta(self._FindUnusedMinor(), meta.dev_path)
-    if not self._IsValidMeta(meta.dev_path):
-      raise errors.BlockDeviceError("Cannot initalize meta device")
 
     if not self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path):
       raise errors.BlockDeviceError("Can't attach to local storage")
@@ -1551,9 +1529,7 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("Can't attach to meta device")
     if not cls._CheckMetaSize(meta.dev_path):
       raise errors.BlockDeviceError("Invalid meta device size")
-    cls._InitMeta(cls._FindUnusedMinor(), meta.dev_path)
-    if not cls._IsValidMeta(meta.dev_path):
-      raise errors.BlockDeviceError("Cannot initalize meta device")
+    cls._InitMeta(aminor, meta.dev_path)
     return cls(unique_id, children)
 
   def Grow(self, amount):

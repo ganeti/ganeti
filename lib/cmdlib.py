@@ -4726,6 +4726,10 @@ class LUReplaceDisks(LogicalUnit):
         raise errors.OpPrereqError("Node '%s' not known" %
                                    self.op.remote_node)
       self.op.remote_node = remote_node
+      # Warning: do not remove the locking of the new secondary here
+      # unless DRBD8.AddChildren is changed to work in parallel;
+      # currently it doesn't since parallel invocations of
+      # FindUnusedMinor will conflict
       self.needed_locks[locking.LEVEL_NODE] = [remote_node]
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
     else:
