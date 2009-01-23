@@ -275,13 +275,16 @@ class RpcRunner(object):
     idict["beparams"] = cluster.FillBE(instance)
     return idict
 
-  def _ConnectList(self, client, node_list):
+  def _ConnectList(self, client, node_list, call):
     """Helper for computing node addresses.
 
     @type client: L{Client}
     @param client: a C{Client} instance
     @type node_list: list
     @param node_list: the node list we should connect
+    @type call: string
+    @param call: the name of the remote procedure call, for filling in
+        correctly any eventual offline nodes' results
 
     """
     all_nodes = self._cfg.GetAllNodesInfo()
@@ -291,7 +294,7 @@ class RpcRunner(object):
     for node in node_list:
       if node in all_nodes:
         if all_nodes[node].offline:
-          skip_dict[node] = RpcResult(node=node, offline=True)
+          skip_dict[node] = RpcResult(node=node, offline=True, call=call)
           continue
         val = all_nodes[node].primary_ip
       else:
@@ -302,19 +305,22 @@ class RpcRunner(object):
       client.ConnectList(name_list, address_list=addr_list)
     return skip_dict
 
-  def _ConnectNode(self, client, node):
+  def _ConnectNode(self, client, node, call):
     """Helper for computing one node's address.
 
     @type client: L{Client}
     @param client: a C{Client} instance
     @type node: str
     @param node: the node we should connect
+    @type call: string
+    @param call: the name of the remote procedure call, for filling in
+        correctly any eventual offline nodes' results
 
     """
     node_info = self._cfg.GetNodeInfo(node)
     if node_info is not None:
       if node_info.offline:
-        return RpcResult(node=node, offline=True)
+        return RpcResult(node=node, offline=True, call=call)
       addr = node_info.primary_ip
     else:
       addr = None
@@ -326,7 +332,7 @@ class RpcRunner(object):
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, self.port)
-    skip_dict = self._ConnectList(c, node_list)
+    skip_dict = self._ConnectList(c, node_list, procedure)
     skip_dict.update(c.GetResults())
     return skip_dict
 
@@ -347,7 +353,7 @@ class RpcRunner(object):
     """
     body = serializer.DumpJson(args, indent=False)
     c = Client(procedure, body, self.port)
-    result = self._ConnectNode(c, node)
+    result = self._ConnectNode(c, node, procedure)
     if result is None:
       # we did connect, node is not offline
       result = c.GetResults()[node]
