@@ -447,7 +447,9 @@ def BatchCreate(opts, args):
   # Iterate over the instances and do:
   #  * Populate the specs with default value
   #  * Validate the instance specs
-  for (name, specs) in instance_data.iteritems():
+  i_names = utils.NiceSort(instance_data.keys())
+  for name in i_names:
+    specs = instance_data[name]
     specs = _PopulateWithDefaults(specs)
     _Validate(specs)
 
