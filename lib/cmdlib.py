@@ -6374,7 +6374,7 @@ class IAllocator(object):
       "version": 1,
       "cluster_name": cfg.GetClusterName(),
       "cluster_tags": list(cluster_info.GetTags()),
-      "enable_hypervisors": list(cluster_info.enabled_hypervisors),
+      "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
       # we don't have job IDs
       }
     iinfo = cfg.GetAllInstancesInfo().values()
@@ -6393,52 +6393,60 @@ class IAllocator(object):
                                            hypervisor_name)
     node_iinfo = self.lu.rpc.call_all_instances_info(node_list,
                        cluster_info.enabled_hypervisors)
-    for nname in node_list:
+    for nname, nresult in node_data.items():
+      # first fill in static (config-based) values
       ninfo = cfg.GetNodeInfo(nname)
-      node_data[nname].Raise()
-      if not isinstance(node_data[nname].data, dict):
-        raise errors.OpExecError("Can't get data for node %s" % nname)
-      remote_info = node_data[nname].data
-      for attr in ['memory_total', 'memory_free', 'memory_dom0',
-                   'vg_size', 'vg_free', 'cpu_total']:
-        if attr not in remote_info:
-          raise errors.OpExecError("Node '%s' didn't return attribute '%s'" %
-                                   (nname, attr))
-        try:
-          remote_info[attr] = int(remote_info[attr])
-        except ValueError, err:
-          raise errors.OpExecError("Node '%s' returned invalid value for '%s':"
-                                   " %s" % (nname, attr, str(err)))
-      # compute memory used by primary instances
-      i_p_mem = i_p_up_mem = 0
-      for iinfo, beinfo in i_list:
-        if iinfo.primary_node == nname:
-          i_p_mem += beinfo[constants.BE_MEMORY]
-          if iinfo.name not in node_iinfo[nname]:
-            i_used_mem = 0
-          else:
-            i_used_mem = int(node_iinfo[nname][iinfo.name]['memory'])
-          i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
-          remote_info['memory_free'] -= max(0, i_mem_diff)
-
-          if iinfo.admin_up:
-            i_p_up_mem += beinfo[constants.BE_MEMORY]
-
-      # compute memory used by instances
       pnr = {
         "tags": list(ninfo.GetTags()),
-        "total_memory": remote_info['memory_total'],
-        "reserved_memory": remote_info['memory_dom0'],
-        "free_memory": remote_info['memory_free'],
-        "i_pri_memory": i_p_mem,
-        "i_pri_up_memory": i_p_up_mem,
-        "total_disk": remote_info['vg_size'],
-        "free_disk": remote_info['vg_free'],
         "primary_ip": ninfo.primary_ip,
         "secondary_ip": ninfo.secondary_ip,
-        "total_cpus": remote_info['cpu_total'],
         "offline": ninfo.offline,
+        "master_candidate": ninfo.master_candidate,
         }
+
+      if not ninfo.offline:
+        nresult.Raise()
+        if not isinstance(nresult.data, dict):
+          raise errors.OpExecError("Can't get data for node %s" % nname)
+        remote_info = nresult.data
+        for attr in ['memory_total', 'memory_free', 'memory_dom0',
+                     'vg_size', 'vg_free', 'cpu_total']:
+          if attr not in remote_info:
+            raise errors.OpExecError("Node '%s' didn't return attribute"
+                                     " '%s'" % (nname, attr))
+          try:
+            remote_info[attr] = int(remote_info[attr])
+          except ValueError, err:
+            raise errors.OpExecError("Node '%s' returned invalid value"
+                                     " for '%s': %s" % (nname, attr, err))
+        # compute memory used by primary instances
+        i_p_mem = i_p_up_mem = 0
+        for iinfo, beinfo in i_list:
+          if iinfo.primary_node == nname:
+            i_p_mem += beinfo[constants.BE_MEMORY]
+            if iinfo.name not in node_iinfo[nname].data:
+              i_used_mem = 0
+            else:
+              i_used_mem = int(node_iinfo[nname].data[iinfo.name]['memory'])
+            i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
+            remote_info['memory_free'] -= max(0, i_mem_diff)
+
+            if iinfo.admin_up:
+              i_p_up_mem += beinfo[constants.BE_MEMORY]
+
+        # compute memory used by instances
+        pnr_dyn = {
+          "total_memory": remote_info['memory_total'],
+          "reserved_memory": remote_info['memory_dom0'],
+          "free_memory": remote_info['memory_free'],
+          "total_disk": remote_info['vg_size'],
+          "free_disk": remote_info['vg_free'],
+          "total_cpus": remote_info['cpu_total'],
+          "i_pri_memory": i_p_mem,
+          "i_pri_up_memory": i_p_up_mem,
+          }
+        pnr.update(pnr_dyn)
+
       node_results[nname] = pnr
     data["nodes"] = node_results
 
@@ -6449,13 +6457,13 @@ class IAllocator(object):
                   for n in iinfo.nics]
       pir = {
         "tags": list(iinfo.GetTags()),
-        "should_run": iinfo.admin_up,
+        "admin_up": iinfo.admin_up,
         "vcpus": beinfo[constants.BE_VCPUS],
         "memory": beinfo[constants.BE_MEMORY],
         "os": iinfo.os,
-        "nodes": list(iinfo.all_nodes),
+        "nodes": [iinfo.primary_node] + list(iinfo.secondary_nodes),
         "nics": nic_data,
-        "disks": [{"size": dsk.size, "mode": "w"} for dsk in iinfo.disks],
+        "disks": [{"size": dsk.size, "mode": dsk.mode} for dsk in iinfo.disks],
         "disk_template": iinfo.disk_template,
         "hypervisor": iinfo.hypervisor,
         }

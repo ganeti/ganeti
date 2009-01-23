@@ -208,7 +208,7 @@ import_opts = [
   make_option("--no-ip-check", dest="ip_check", default=True,
               action="store_false", help="Don't check that the instance's IP"
               " is alive"),
-  make_option("--iallocator", metavar="<NAME>",
+  make_option("-I", "--iallocator", metavar="<NAME>",
               help="Select nodes for the instance automatically using the"
               " <NAME> iallocator plugin", default=None, type="string"),
   make_option("--file-storage-dir", dest="file_storage_dir",

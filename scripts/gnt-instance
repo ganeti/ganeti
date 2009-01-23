@@ -1268,7 +1268,7 @@ add_opts = [
               metavar="<DIR>"),
   make_option("--file-driver", dest="file_driver", help="Driver to use"
               " for image files", default="loop", metavar="<DRIVER>"),
-  make_option("--iallocator", metavar="<NAME>",
+  make_option("-I", "--iallocator", metavar="<NAME>",
               help="Select nodes for the instance automatically using the"
               " <NAME> iallocator plugin", default=None, type="string"),
   ikv_option("-H", "--hypervisor", dest="hypervisor",

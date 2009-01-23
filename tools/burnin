@@ -249,7 +249,7 @@ class Burner(object):
     parser.add_option("-n", "--nodes", dest="nodes", default="",
                       help="Comma separated list of nodes to perform"
                       " the burnin on (defaults to all nodes)")
-    parser.add_option("--iallocator", dest="iallocator",
+    parser.add_option("-I", "--iallocator", dest="iallocator",
                       default=None, type="string",
                       help="Perform the allocation using an iallocator"
                       " instead of fixed node spread (node restrictions no"
