@@ -269,6 +269,11 @@ class ConfigWriter:
           ports[net_port] = []
         ports[net_port].append((instance.name, "network port"))
 
+      # instance disk verify
+      for idx, disk in enumerate(instance.disks):
+        result.extend(["instance '%s' disk %d error: %s" %
+                       (instance.name, idx, msg) for msg in disk.Verify()])
+
     # cluster-wide pool of free ports
     for free_port in data.cluster.tcpudp_port_pool:
       if free_port not in ports:

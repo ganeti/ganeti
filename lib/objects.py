@@ -497,6 +497,15 @@ class Disk(ConfigObject):
     val += ", size=%dm)>" % self.size
     return val
 
+  def Verify(self):
+    """Checks that this disk is correctly configured.
+
+    """
+    errors = []
+    if self.mode not in constants.DISK_ACCESS_SET:
+      errors.append("Disk access mode '%s' is invalid" % (self.mode, ))
+    return errors
+
 
 class Instance(TaggableObject):
   """Config object representing an instance."""
