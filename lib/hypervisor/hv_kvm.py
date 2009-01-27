@@ -576,13 +576,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return result
 
-  @staticmethod
-  def GetShellCommandForConsole(instance):
+  @classmethod
+  def GetShellCommandForConsole(cls, instance):
     """Return a command for connecting to the console of an instance.
 
     """
-    # TODO: we can either try the serial socket or suggest vnc
-    return "echo Console not available for the kvm hypervisor yet"
+    # FIXME: The socat shell is not perfect. In particular the way we start
+    # it ctrl+c will close it, rather than being passed to the other end.
+    # On the other hand if we pass the option 'raw' (or ignbrk=1) there
+    # will be no way of exiting socat (except killing it from another shell)
+    # and ctrl+c doesn't work anyway, printing ^C rather than being
+    # interpreted by kvm. For now we'll leave it this way, which at least
+    # allows a minimal interaction and changes on the machine.
+    socat_shell = ("%s STDIO,echo=0,icanon=0 UNIX-CONNECT:%s" %
+                   (constants.SOCAT_PATH,
+                    utils.ShellQuote(cls._InstanceSerial(instance.name))))
+
+    return socat_shell
 
   def Verify(self):
     """Verify the hypervisor.
