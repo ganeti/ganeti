@@ -458,14 +458,13 @@ class XenPvmHypervisor(XenHypervisor):
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
-      f = open("/etc/xen/%s" % instance.name, "w")
-      try:
-        f.write(config.getvalue())
-      finally:
-        f.close()
-    except IOError, err:
-      raise errors.OpExecError("Cannot write Xen instance confile"
-                               " file /etc/xen/%s: %s" % (instance.name, err))
+      utils.WriteFile("/etc/xen/%s" % instance.name,
+                      data=config.getvalue())
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Cannot write Xen instance confile"
+                                   " file /etc/xen/%s: %s" %
+                                   (instance.name, err))
+
     return True
 
 
@@ -637,12 +636,11 @@ class XenHvmHypervisor(XenHypervisor):
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
-      f = open("/etc/xen/%s" % instance.name, "w")
-      try:
-        f.write(config.getvalue())
-      finally:
-        f.close()
-    except IOError, err:
-      raise errors.OpExecError("Cannot write Xen instance confile"
-                               " file /etc/xen/%s: %s" % (instance.name, err))
+      utils.WriteFile("/etc/xen/%s" % instance.name,
+                      data=config.getvalue())
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Cannot write Xen instance confile"
+                                   " file /etc/xen/%s: %s" %
+                                   (instance.name, err))
+
     return True
