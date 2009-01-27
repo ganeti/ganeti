@@ -50,10 +50,8 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
-           "ValidateBeParams",
-           "ToStderr", "ToStdout",
-           "UsesRPC",
-           "GetOnlineNodes",
+           "ValidateBeParams", "ToStderr", "ToStdout", "UsesRPC",
+           "GetOnlineNodes", "JobExecutor",
            ]
 
 
@@ -989,3 +987,67 @@ def ToStderr(txt, *args):
 
   """
   _ToStream(sys.stderr, txt, *args)
+
+
+class JobExecutor(object):
+  """Class which manages the submission and execution of multiple jobs.
+
+  Note that instances of this class should not be reused between
+  GetResults() calls.
+
+  """
+  def __init__(self, cl=None, verbose=True):
+    self.queue = []
+    if cl is None:
+      cl = GetClient()
+    self.cl = cl
+    self.verbose = verbose
+
+  def QueueJob(self, name, *ops):
+    """Submit a job for execution.
+
+    @type name: string
+    @param name: a description of the job, will be used in WaitJobSet
+    """
+    job_id = SendJob(ops, cl=self.cl)
+    self.queue.append((job_id, name))
+
+  def GetResults(self):
+    """Wait for and return the results of all jobs.
+
+    @rtype: list
+    @return: list of tuples (success, job results), in the same order
+        as the submitted jobs; if a job has failed, instead of the result
+        there will be the error message
+
+    """
+    results = []
+    if self.verbose:
+      ToStdout("Submitted jobs %s", ", ".join(row[0] for row in self.queue))
+    for jid, name in self.queue:
+      if self.verbose:
+        ToStdout("Waiting for job %s for %s...", jid, name)
+      try:
+        job_result = PollJob(jid, cl=self.cl)
+        success = True
+      except (errors.GenericError, luxi.ProtocolError), err:
+        _, job_result = FormatError(err)
+        success = False
+        # the error message will always be shown, verbose or not
+        ToStderr("Job %s for %s has failed: %s", jid, name, job_result)
+
+      results.append((success, job_result))
+    return results
+
+  def WaitOrShow(self, wait):
+    """Wait for job results or only print the job IDs.
+
+    @type wait: boolean
+    @param wait: whether to wait or not
+
+    """
+    if wait:
+      return self.GetResults()
+    else:
+      for jid, name in self.queue:
+        ToStdout("%s: %s", jid, name)

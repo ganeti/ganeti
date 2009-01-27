@@ -167,15 +167,16 @@ def EvacuateNode(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   force = opts.force
   selected_fields = ["name", "sinst_list"]
   src_node, dst_node = args
 
   op = opcodes.OpQueryNodes(output_fields=selected_fields, names=[src_node])
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, cl=cl)
   src_node, sinst = result[0]
   op = opcodes.OpQueryNodes(output_fields=["name"], names=[dst_node])
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, cl=cl)
   dst_node = result[0][0]
 
   if src_node == dst_node:
@@ -189,36 +190,30 @@ def EvacuateNode(opts, args):
 
   sinst = utils.NiceSort(sinst)
 
-  retcode = constants.EXIT_SUCCESS
-
   if not force and not AskUser("Relocate instance(s) %s from node\n"
                                " %s to node\n %s?" %
                                (",".join("'%s'" % name for name in sinst),
                                src_node, dst_node)):
     return constants.EXIT_CONFIRMATION
 
-  good_cnt = bad_cnt = 0
+  jex = JobExecutor()
   for iname in sinst:
     op = opcodes.OpReplaceDisks(instance_name=iname,
                                 remote_node=dst_node,
-                                mode=constants.REPLACE_DISK_ALL,
-                                disks=["sda", "sdb"])
-    try:
-      ToStdout("Replacing disks for instance %s", iname)
-      SubmitOpCode(op)
-      ToStdout("Instance %s has been relocated", iname)
-      good_cnt += 1
-    except errors.GenericError, err:
-      nret, msg = FormatError(err)
-      retcode |= nret
-      ToStderr("Error replacing disks for instance %s: %s", iname, msg)
-      bad_cnt += 1
+                                mode=constants.REPLACE_DISK_CHG,
+                                disks=[])
+    jex.QueueJob(iname, op)
 
-  if retcode == constants.EXIT_SUCCESS:
-    ToStdout("All %d instance(s) relocated successfully.", good_cnt)
+  results = jex.GetResults()
+
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    ToStdout("All %d instance(s) relocated successfully.", len(results))
+    retcode = constants.EXIT_SUCCESS
   else:
     ToStdout("There were errors during the relocation:\n"
-             "%d error(s) out of %d instance(s).", bad_cnt, good_cnt + bad_cnt)
+             "%d error(s) out of %d instance(s).", bad_cnt, len(results))
+    retcode = constants.EXIT_FAILURE
   return retcode
 
 
@@ -232,11 +227,12 @@ def FailoverNode(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   force = opts.force
   selected_fields = ["name", "pinst_list"]
 
   op = opcodes.OpQueryNodes(output_fields=selected_fields, names=args)
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, cl=cl)
   node, pinst = result[0]
 
   if not pinst:
@@ -251,26 +247,18 @@ def FailoverNode(opts, args):
                                (",".join("'%s'" % name for name in pinst))):
     return 2
 
-  good_cnt = bad_cnt = 0
+  jex = JobExecutor(cl=cl)
   for iname in pinst:
     op = opcodes.OpFailoverInstance(instance_name=iname,
                                     ignore_consistency=opts.ignore_consistency)
-    try:
-      ToStdout("Failing over instance %s", iname)
-      SubmitOpCode(op)
-      ToStdout("Instance %s has been failed over", iname)
-      good_cnt += 1
-    except errors.GenericError, err:
-      nret, msg = FormatError(err)
-      retcode |= nret
-      ToStderr("Error failing over instance %s: %s", iname, msg)
-      bad_cnt += 1
-
-  if retcode == 0:
-    ToStdout("All %d instance(s) failed over successfully.", good_cnt)
+    jex.QueueJob(iname, op)
+  results = jex.GetResults()
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    ToStdout("All %d instance(s) failed over successfully.", len(results))
   else:
     ToStdout("There were errors during the failover:\n"
-             "%d error(s) out of %d instance(s).", bad_cnt, good_cnt + bad_cnt)
+             "%d error(s) out of %d instance(s).", bad_cnt, len(results))
   return retcode
 
 

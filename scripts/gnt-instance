@@ -53,7 +53,7 @@ _LIST_DEF_FIELDS = [
   ]
 
 
-def _ExpandMultiNames(mode, names):
+def _ExpandMultiNames(mode, names, client=None):
   """Expand the given names using the passed mode.
 
   For _SHUTDOWN_CLUSTER, all instances will be returned. For
@@ -76,10 +76,11 @@ def _ExpandMultiNames(mode, names):
   @raise errors.OpPrereqError: for invalid input parameters
 
   """
+  if client is None:
+    client = GetClient()
   if mode == _SHUTDOWN_CLUSTER:
     if names:
       raise errors.OpPrereqError("Cluster filter mode takes no arguments")
-    client = GetClient()
     idata = client.QueryInstances([], ["name"])
     inames = [row[0] for row in idata]
 
@@ -88,7 +89,6 @@ def _ExpandMultiNames(mode, names):
                 _SHUTDOWN_NODES_SEC):
     if not names:
       raise errors.OpPrereqError("No node names passed")
-    client = GetClient()
     ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"])
     ipri = [row[1] for row in ndata]
     pri_names = list(itertools.chain(*ipri))
@@ -106,7 +106,6 @@ def _ExpandMultiNames(mode, names):
   elif mode == _SHUTDOWN_INSTANCES:
     if not names:
       raise errors.OpPrereqError("No instance names passed")
-    client = GetClient()
     idata = client.QueryInstances(names, ["name"])
     inames = [row[0] for row in idata]
 
@@ -673,26 +672,23 @@ def StartupInstance(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
-  inames = _ExpandMultiNames(opts.multi_mode, args)
+  inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
   if not inames:
     raise errors.OpPrereqError("Selection filter does not match any instances")
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if not (opts.force_multi or not multi_on
           or _ConfirmOperation(inames, "startup")):
     return 1
+  jex = cli.JobExecutor(verbose=multi_on, cl=cl)
   for name in inames:
     op = opcodes.OpStartupInstance(instance_name=name,
                                    force=opts.force,
                                    extra_args=opts.extra_args)
-    if multi_on:
-      ToStdout("Starting up %s", name)
-    try:
-      SubmitOrSend(op, opts)
-    except JobSubmittedException, err:
-      _, txt = FormatError(err)
-      ToStdout("%s", txt)
+    jex.QueueJob(name, op)
+  jex.WaitOrShow(not opts.submit_only)
   return 0
 
 
@@ -711,21 +707,23 @@ def RebootInstance(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
-  inames = _ExpandMultiNames(opts.multi_mode, args)
+  inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
   if not inames:
     raise errors.OpPrereqError("Selection filter does not match any instances")
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if not (opts.force_multi or not multi_on
           or _ConfirmOperation(inames, "reboot")):
     return 1
+  jex = JobExecutor(verbose=multi_on, cl=cl)
   for name in inames:
     op = opcodes.OpRebootInstance(instance_name=name,
                                   reboot_type=opts.reboot_type,
                                   ignore_secondaries=opts.ignore_secondaries)
-
-    SubmitOrSend(op, opts)
+    jex.QueueJob(name, op)
+  jex.WaitOrShow(not opts.submit_only)
   return 0
 
 
@@ -741,24 +739,22 @@ def ShutdownInstance(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   if opts.multi_mode is None:
     opts.multi_mode = _SHUTDOWN_INSTANCES
-  inames = _ExpandMultiNames(opts.multi_mode, args)
+  inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
   if not inames:
     raise errors.OpPrereqError("Selection filter does not match any instances")
   multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
   if not (opts.force_multi or not multi_on
           or _ConfirmOperation(inames, "shutdown")):
     return 1
+
+  jex = cli.JobExecutor(verbose=multi_on, cl=cl)
   for name in inames:
     op = opcodes.OpShutdownInstance(instance_name=name)
-    if multi_on:
-      ToStdout("Shutting down %s", name)
-    try:
-      SubmitOrSend(op, opts)
-    except JobSubmittedException, err:
-      _, txt = FormatError(err)
-      ToStdout("%s", txt)
+    jex.QueueJob(name, op)
+  jex.WaitOrShow(not opts.submit_only)
   return 0
 
 
