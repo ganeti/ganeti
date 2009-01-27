@@ -587,14 +587,10 @@ class XenHvmHypervisor(XenHypervisor):
       config.write("vncunused = 1\n")
 
     try:
-      password_file = open(constants.VNC_PASSWORD_FILE, "r")
-      try:
-        password = password_file.readline()
-      finally:
-        password_file.close()
-    except IOError:
-      raise errors.OpExecError("failed to open VNC password file %s " %
-                               constants.VNC_PASSWORD_FILE)
+      password = utils.ReadFile(constants.VNC_PASSWORD_FILE)
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to open VNC password file %s: %s" %
+                                   (constants.VNC_PASSWORD_FILE, err))
 
     config.write("vncpasswd = '%s'\n" % password.rstrip())
 
