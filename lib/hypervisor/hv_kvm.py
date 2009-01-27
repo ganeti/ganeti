@@ -75,23 +75,26 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return (pidfile, pid, alive)
 
-  def _InstanceMonitor(self, instance_name):
+  @classmethod
+  def _InstanceMonitor(cls, instance_name):
     """Returns the instance monitor socket name
 
     """
-    return '%s/%s.monitor' % (self._CTRL_DIR, instance_name)
+    return '%s/%s.monitor' % (cls._CTRL_DIR, instance_name)
 
-  def _InstanceSerial(self, instance_name):
+  @classmethod
+  def _InstanceSerial(cls, instance_name):
     """Returns the instance serial socket name
 
     """
-    return '%s/%s.serial' % (self._CTRL_DIR, instance_name)
+    return '%s/%s.serial' % (cls._CTRL_DIR, instance_name)
 
-  def _InstanceKVMRuntime(self, instance_name):
+  @classmethod
+  def _InstanceKVMRuntime(cls, instance_name):
     """Returns the instance KVM runtime filename
 
     """
-    return '%s/%s.runtime' % (self._CONF_DIR, instance_name)
+    return '%s/%s.runtime' % (cls._CONF_DIR, instance_name)
 
   def _WriteNetScript(self, instance, seq, nic):
     """Write a script to connect a net interface to the proper bridge.
