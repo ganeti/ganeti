@@ -1178,7 +1178,7 @@ class JobQueue(object):
       logging.debug("Job %s not found", job_id)
       return False
 
-    return self._ArchiveJobUnlocked([job]) == 1
+    return self._ArchiveJobsUnlocked([job]) == 1
 
   @utils.LockedMethod
   @_RequireOpenQueue
