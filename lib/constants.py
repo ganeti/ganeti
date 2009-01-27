@@ -287,6 +287,7 @@ HV_ACPI = "acpi"
 HV_PAE = "pae"
 HV_KERNEL_PATH = "kernel_path"
 HV_INITRD_PATH = "initrd_path"
+HV_ROOT_PATH = "root_path"
 
 HVS_PARAMETERS = frozenset([
   HV_BOOT_ORDER,
@@ -298,6 +299,7 @@ HVS_PARAMETERS = frozenset([
   HV_PAE,
   HV_KERNEL_PATH,
   HV_INITRD_PATH,
+  HV_ROOT_PATH,
   ])
 
 # BE parameter names
@@ -426,6 +428,7 @@ HVC_DEFAULTS = {
     HT_XEN_PVM: {
         HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
         HV_INITRD_PATH: None,
+        HV_ROOT_PATH: '/dev/sda',
         },
     HT_XEN_HVM: {
         HV_BOOT_ORDER: "cd",
@@ -439,6 +442,7 @@ HVC_DEFAULTS = {
     HT_KVM: {
         HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
         HV_INITRD_PATH: None,
+        HV_ROOT_PATH: '/dev/vda',
         HV_ACPI: True,
         },
     HT_FAKE: {

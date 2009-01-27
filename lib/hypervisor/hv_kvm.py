@@ -51,6 +51,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   PARAMETERS = [
     constants.HV_KERNEL_PATH,
     constants.HV_INITRD_PATH,
+    constants.HV_ROOT_PATH,
     constants.HV_ACPI,
     ]
 
@@ -240,7 +241,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if initrd_path:
       kvm_cmd.extend(['-initrd', initrd_path])
 
-    kvm_cmd.extend(['-append', 'console=ttyS0,38400 root=/dev/vda'])
+    root_path = instance.hvparams[constants.HV_ROOT_PATH]
+    kvm_cmd.extend(['-append', 'console=ttyS0,38400 root=%s ro' % root_path])
 
     #"hvm_boot_order",
     #"hvm_cdrom_image_path",
@@ -625,6 +627,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
       raise errors.HypervisorError("The kernel path must be an absolute path")
+
+    if not hvparams[constants.HV_ROOT_PATH]:
+      raise errors.HypervisorError("Need a root partition for the instance")
 
     if hvparams[constants.HV_INITRD_PATH]:
       if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):

@@ -364,6 +364,7 @@ class XenPvmHypervisor(XenHypervisor):
   PARAMETERS = [
     constants.HV_KERNEL_PATH,
     constants.HV_INITRD_PATH,
+    constants.HV_ROOT_PATH,
     ]
 
   @classmethod
@@ -385,6 +386,9 @@ class XenPvmHypervisor(XenHypervisor):
 
     if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
       raise errors.HypervisorError("The kernel path must be an absolute path")
+
+    if not hvparams[constants.HV_ROOT_PATH]:
+      raise errors.HypervisorError("Need a root partition for the instance")
 
     if hvparams[constants.HV_INITRD_PATH]:
       if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):
@@ -443,7 +447,9 @@ class XenPvmHypervisor(XenHypervisor):
     config.write("disk = [%s]\n" % ",".join(
                  cls._GetConfigFileDiskData(instance.disk_template,
                                             block_devices)))
-    config.write("root = '/dev/sda ro'\n")
+
+    rpath = instance.hvparams[constants.HV_ROOT_PATH]
+    config.write("root = '%s ro'\n" % rpath)
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
     config.write("on_crash = 'restart'\n")
