@@ -3916,7 +3916,8 @@ def _GenerateDiskTemplate(lu, template_name,
       disk_index = idx + base_index
       disk_dev = objects.Disk(dev_type=constants.LD_LV, size=disk["size"],
                               logical_id=(vgname, names[idx]),
-                              iv_name="disk/%d" % disk_index)
+                              iv_name="disk/%d" % disk_index,
+                              mode=disk["mode"])
       disks.append(disk_dev)
   elif template_name == constants.DT_DRBD8:
     if len(secondary_nodes) != 1:
@@ -3936,6 +3937,7 @@ def _GenerateDiskTemplate(lu, template_name,
                                       disk["size"], names[idx*2:idx*2+2],
                                       "disk/%d" % disk_index,
                                       minors[idx*2], minors[idx*2+1])
+      disk_dev.mode = disk["mode"]
       disks.append(disk_dev)
   elif template_name == constants.DT_FILE:
     if len(secondary_nodes) != 0:
@@ -3947,7 +3949,8 @@ def _GenerateDiskTemplate(lu, template_name,
                               iv_name="disk/%d" % disk_index,
                               logical_id=(file_driver,
                                           "%s/disk%d" % (file_storage_dir,
-                                                         idx)))
+                                                         idx)),
+                              mode=disk["mode"])
       disks.append(disk_dev)
   else:
     raise errors.ProgrammerError("Invalid disk template '%s'" % template_name)
@@ -5509,7 +5512,7 @@ class LUSetInstanceParams(LogicalUnit):
           raise errors.OpPrereqError("Invalid disk index")
       if disk_op == constants.DDM_ADD:
         mode = disk_dict.setdefault('mode', constants.DISK_RDWR)
-        if mode not in (constants.DISK_RDONLY, constants.DISK_RDWR):
+        if mode not in constants.DISK_ACCESS_SET:
           raise errors.OpPrereqError("Invalid disk access mode '%s'" % mode)
         size = disk_dict.get('size', None)
         if size is None:
@@ -5785,7 +5788,6 @@ class LUSetInstanceParams(LogicalUnit):
                                          file_path,
                                          file_driver,
                                          disk_idx_base)[0]
-        new_disk.mode = disk_dict['mode']
         instance.disks.append(new_disk)
         info = _GetInstanceInfoText(instance)
 
