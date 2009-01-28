@@ -359,6 +359,8 @@ class _JobQueueWorker(workerpool.BaseWorker):
 
             queue.acquire()
             try:
+              if op.status == constants.OP_STATUS_CANCELED:
+                raise CancelJob()
               assert op.status == constants.OP_STATUS_QUEUED
               job.run_op_index = idx
               op.status = constants.OP_STATUS_WAITLOCK
@@ -1120,7 +1122,7 @@ class JobQueue(object):
     """
     try:
       for op in job.ops:
-        op.status = constants.OP_STATUS_ERROR
+        op.status = constants.OP_STATUS_CANCELED
         op.result = "Job canceled by request"
     finally:
       self.UpdateJobUnlocked(job)
