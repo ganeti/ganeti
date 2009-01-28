@@ -277,11 +277,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
     # directly export their info (currently HVM will just sed this info)
     namespace = ["sd" + chr(i + ord('a')) for i in range(24)]
     for sd_name, (cfdev, dev_path) in zip(namespace, block_devices):
-      if cfdev.dev_type == constants.LD_FILE:
-        line = "'%s:%s,%s,w'" % (FILE_DRIVER_MAP[cfdev.physical_id[0]],
-                                 dev_path, sd_name)
+      if cfdev.mode == constants.DISK_RDWR:
+        mode = "w"
       else:
-        line = "'phy:%s,%s,w'" % (dev_path, sd_name)
+        mode = "r"
+      if cfdev.dev_type == constants.LD_FILE:
+        line = "'%s:%s,%s,%s'" % (FILE_DRIVER_MAP[cfdev.physical_id[0]],
+                                  dev_path, sd_name, mode)
+      else:
+        line = "'phy:%s,%s,%s'" % (dev_path, sd_name, mode)
       disk_data.append(line)
 
     return disk_data

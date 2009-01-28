@@ -222,6 +222,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     boot_drive = True
     for cfdev, dev_path in block_devices:
+      if cfdev.mode != constants.DISK_RDWR:
+        raise errors.HypervisorError("Instance has read-only disks which"
+                                     " are not supported by KVM")
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       if boot_drive:
         boot_val = ',boot=on'
