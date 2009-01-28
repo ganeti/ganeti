@@ -1,0 +1,245 @@
+Cluster tools (h-aneti?)
+========================
+
+These are some simple cluster tools for fixing common problems. Right now N+1
+and rebalancing are included.
+
+.. contents::
+
+Cluster N+1 solver
+------------------
+
+This program runs a very simple brute force algorithm over the instance
+placement space in order to determine the shortest number of replace-disks
+needed to fix the cluster. Note this means we won't get a balanced cluster,
+just one that passes N+1 checks.
+
+Also note that the set of all instance placements on a 20/80 cluster is
+(20*19)^80, that is ~10^200, so...
+
+Algorithm
++++++++++
+
+The algorithm is a simple two-phase process.
+
+In phase 1 we determine the removal set, that is the set of instances that when
+removed completely from the cluster, make it healthy again. The instances that
+can go into the set are all the primary and secondary instances of the failing
+nodes. The result from this phase is actually a list - we compute all sets of
+the same minimum length.
+
+So basically we aim to determine here: what is the minimum number of instances
+that need to be removed (this is called the removal depth) and which are the
+actual combinations that fit (called the list of removal sets). 
+
+In phase 2, for each removal set computed in the previous phase, we take the
+removed instances and try to determine where we can put them so that the
+cluster is still passing N+1 checks. From this list of possible solutions
+(called the list of solutions), we compute the one that has the smallest delta
+from the original state (the delta is the number of replace disks that needs to
+be run) and chose this as the final solution.
+
+Implementation
+++++++++++++++
+
+Of course, a naive implementation based on the above description will run for
+long periods of time, so the implementation has to be smart in order to prune
+the solution space as eagerly as possible.
+
+In the following, we use as example a set of test data (a cluster with 20
+nodes, 80 instances that has 5 nodes failing N+1 checks for a total of 12
+warnings).
+
+On this set, the minimum depth is 4 (anything below fails), and for this depth
+the current version of the algorithm generates 5 removal sets; a previous
+version of the first phase generated a slightly different set of instances, with
+two removal sets. For the original version of the algorithm:
+
+- the first, non-optimized implementation computed a solution of delta=4 in 30
+  minutes on server-class CPUs and was still running when aborted 10 minutes
+  later
+- the intermediate optimized version computed the whole solution space and
+  found a delta=3 solution in around 10 seconds on a laptop-class CPU (total
+  number of solutions ~600k)
+- latest version on server CPUs (which actually computes more removal sets)
+  computes depth=4 in less than a second and depth=5 in around 2 seconds, and
+  depth=6 in less than 20 seconds; depth=8 takes under five minutes (this is
+  10^10 bigger solution space)
+
+Note that when (artificially) increasing the depth to 5 the number of removal
+sets grows fast (~3000) and a (again artificial) depth 6 generates 61k removal
+sets. Therefore, it is possible to restrict the number of solution sets
+examined via a command-line option.
+
+The factors that influence the run time are:
+
+- the removal depth; for each increase with one of the depth, we grow the
+  solution space by the number of nodes squared (since a new instance can live
+  any two nodes as primary/secondary, therefore (almost) N times N); i.e.,
+  depth=1 will create a N^2 solution space, depth two will make this N^4,
+  depth three will be N^6, etc.
+- the removal depth again; for each increase in the depth, there will be more
+  valid removal sets, and the space of solutions increases linearly with the
+  number of removal sets
+
+Therefore, the smaller the depth the faster the algorithm will be; it doesn't
+seem like this algorithm will work for clusters of 100 nodes and many many
+small instances (e.g. 256MB instances on 16GB nodes).
+
+Currently applied optimizations:
+
+- when choosing where to place an instance in phase two, there are N*(N-1)
+  possible primary/secondary options; however, if instead of iterating over all
+  p * s pairs, we first determine the set of primary nodes that can hold this
+  instance (without failing N+1), we can cut (N-1) secondary placements for
+  each primary node removed; and since this applies at every iteration of phase
+  2 it linearly decreases the solution space, and on full clusters, this can
+  mean a four-five times reductions of solution space
+- since the number of solutions is very high even for smaller depths (on the
+  test data, depth=4 results in 1.8M solutions) we can't compare them at the
+  end, so at each iteration in phase 2 we only promote the best solution out of
+  our own set of solutions
+- since the placement of instances can only increase the delta of the solution
+  (placing a new instance will add zero or more replace-disks steps), it means
+  the delta will only increase while recursing during phase 2; therefore, if we
+  know at one point that we have a current delta that is equal or higher to the
+  delta of the best solution so far, we can abort the recursion; this cuts a
+  tremendous number of branches; further promotion of the best solution from
+  one removal set to another can cut entire removal sets after a few recursions
+
+Command line usage
+++++++++++++++++++
+
+Synopsis::
+
+    hn1 [-n NODES_FILE] [-i INSTANCES_FILE] [-d START_DEPTH] \
+        [-r MAX_REMOVALS] [-l MIN_DELTA] [-L MAX_DELTA] \
+        [-p] [-C]
+
+The -n and -i options change the names of the input files. The -d option
+changes the start depth, as a higher depth can give (with a longer computation
+time) a solution with better delta. The -r option restricts at each depth the
+number of solutions considered - with r=1000 for example even depth=10 finishes
+in less than a second.
+
+The -p option will show the cluster state after the solution is implemented,
+while the -C option will show the needed gnt-instance commands to implement
+it.
+
+The -l (--min-delta) and -L (--max-delta) options restrict the solution in the
+following ways:
+
+- min-delta will cause the search to abort early once we find a solution with
+  delta less than or equal to this parameter; this can cause extremely fast
+  results in case a desired solution is found quickly; the default value for
+  this parameter is zero, so once we find a "perfect" solution we finish early
+- max-delta causes rejection of valid solution but which have delta higher
+  than the value of this parameter; this can reduce the depth of the search
+  tree, with sometimes significant speedups; by default, this optimization is
+  not used
+
+Individually or combined, these two parameters can (if there are any) very
+fast result; on our test data, depth=34 (max depth!) is solved in 2 seconds
+with min-delta=0/max-delta=1 (since there is such a solution), and the
+extremely low max-delta causes extreme pruning.
+
+Cluster rebalancer
+------------------
+
+Compared to the N+1 solver, the rebalancer uses a very simple algorithm:
+repeatedly try to move each instance one step, so that the cluster score
+becomes better. We stop when no further move can improve the score.
+
+The algorithm is divided into rounds (all identical):
+
+#. Repeat for each instance:
+
+    #. Compute score after the potential failover of the instance
+
+    #. For each node that is different from the current primary/secondary
+
+        #. Compute score after replacing the primary with this new node
+
+        #. Compute score after replacing the secondary with this new node
+
+
+    #. Out of this N*2+1 possible new scores (and their associated move) for
+       this instance, we choose the one that is the best in terms of cluster
+       score, and then proceed to the next instance
+
+Since we don't compute all combinations of moves for instances (e.g. the first
+instance's all moves Cartesian product with second instance's all moves, etc.)
+but we proceed serially instance A, then B, then C, the total computations we
+make in one steps is simply N(number of nodes)*2+1 times I(number of instances),
+instead of (N*2+1)^I. So therefore the runtime for a round is trivial.
+
+Further rounds are done, since the relocation of instances might offer better
+places for instances which we didn't move, or simply didn't move to the best
+place. It is possible to limit the rounds, but usually the algorithm finishes
+after a few rounds by itself.
+
+Note that the cluster *must* be N+1 compliant before this algorithm is run, and
+will stay at each move N+1 compliant. Therefore, the final cluster will be N+1
+compliant.
+
+Single-round solutions
+++++++++++++++++++++++
+
+Single-round solutions have the very nice property that they are
+incrementally-valid. In other words, if you have a 10-step solution, at each
+step the cluster is both N+1 compliant and better than the previous step.
+
+This means that you can stop at any point and you will have a better cluster.
+For this reason, single-round solutions are recommended in the common case of
+let's make this better. Multi-round solutions will be better though when adding
+a couple of new, empty nodes to the cluster due to the many relocations needed.
+
+
+Multi-round solutions
++++++++++++++++++++++
+
+A multi-round solution (not for a single round), due to de-duplication of moves
+(i.e. just put the instance directly in its final place, and not move it five
+times around) loses both these properties. It might be that it's not possible to
+directly put the instance on the final nodes. So it can be possible that yes,
+the cluster is happy in the final solution and nice, but you cannot do the steps
+in the shown order. Solving this (via additional instance move(s)) is left to
+the user.
+
+Command line usage
+++++++++++++++++++
+
+Synopsis::
+
+    hbal [-n NODES_FILE] [-i INSTANCES_FILE] \
+         [-r MAX_ROUNDS] \
+         [-p] [-C]
+
+The -n and -i options change the names of the input files. The -r option
+restricts the maximum number of rounds (and is more of safety measure).
+
+The -p option will show the cluster state after the solution is implemented,
+while the -C option will show the needed gnt-instance commands to implement
+it.
+
+Integration with Ganeti
+-----------------------
+
+The programs needs only the output of the node list and instance list. That is,
+they need the following two commands to be run::
+
+    gnt-node list -oname,mtotal,mfree,dtotal,dfree,pinst_list,sinst_list \
+      --separator '|' --no-headers > nodes
+    gnt-instance list -oname,admin_ram,sda_size \
+      --separator '|' --no-head > instances
+
+These two files should be saved under the names of 'nodes' and 'instances'.
+
+When run, the programs will show some informational messages and output the
+chosen solution, in the form of a list of instance name and chosen
+primary/secondary nodes. The user then needs to run the necessary commands to
+get the instances to live on those nodes.
+
+Note that sda_size is less than the total disk size of an instance by 4352
+MiB, so if disk space is at a premium the calculation could be wrong; in this
+case, please adjust the values manually.

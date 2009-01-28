@@ -1,0 +1,6 @@
+
+.keyglyph, .layout {color: red;}
+.keyword {color: blue;}
+.comment, .comment a {color: green;}
+.str, .chr {color: teal;}
+.keyword,.conid, .varid, .conop, .varop, .num, .cpp, .sel, .definition {}
