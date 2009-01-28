@@ -4083,6 +4083,8 @@ def _CheckHVParams(lu, nodenames, hvname, hvparams):
                                                   hvparams)
   for node in nodenames:
     info = hvinfo[node]
+    if info.offline:
+      continue
     info.Raise()
     if not info.data or not isinstance(info.data, (tuple, list)):
       raise errors.OpPrereqError("Cannot get current information"
