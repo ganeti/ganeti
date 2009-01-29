@@ -29,7 +29,6 @@ from ganeti import errors
 from ganeti import http
 
 from ganeti.rapi import connector
-from ganeti.rapi import rlib1
 from ganeti.rapi import rlib2
 
 
@@ -50,10 +49,10 @@ class MapperTests(unittest.TestCase):
 
     self._TestFailingUri("/tags")
     self._TestFailingUri("/instances")
-    self._TestUri("/version", (rlib1.R_version, [], {}))
+    self._TestUri("/version", (rlib2.R_version, [], {}))
 
     self._TestUri('/2/instances/www.test.com',
-                  (rlib1.R_instances_name,
+                  (rlib2.R_2_instances_name,
                    ['www.test.com'],
                    {}))
 

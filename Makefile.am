@@ -97,7 +97,6 @@ rapi_PYTHON = \
 	lib/rapi/__init__.py \
 	lib/rapi/baserlib.py \
 	lib/rapi/connector.py \
-	lib/rapi/rlib1.py \
 	lib/rapi/rlib2.py
 
 http_PYTHON = \

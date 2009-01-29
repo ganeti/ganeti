@@ -29,7 +29,102 @@ from ganeti import luxi
 from ganeti import constants
 from ganeti.rapi import baserlib
 
-from ganeti.rapi.rlib1 import I_FIELDS, N_FIELDS
+
+I_FIELDS = ["name", "os", "pnode", "snodes", "admin_state", "disk_template",
+            "ip", "mac", "bridge", "sda_size", "sdb_size", "beparams",
+            "oper_state", "status", "tags"]
+
+N_FIELDS = ["name", "dtotal", "dfree",
+            "mtotal", "mnode", "mfree",
+            "pinst_cnt", "sinst_cnt", "tags"]
+
+
+class R_version(baserlib.R_Generic):
+  """/version resource.
+
+  This resource should be used to determine the remote API version and
+  to adapt clients accordingly.
+
+  """
+  DOC_URI = "/version"
+
+  def GET(self):
+    """Returns the remote API version.
+
+    """
+    return constants.RAPI_VERSION
+
+
+class R_2_info(baserlib.R_Generic):
+  """Cluster info.
+
+  """
+  DOC_URI = "/2/info"
+
+  def GET(self):
+    """Returns cluster information.
+
+    Example::
+
+      {
+        "config_version": 3,
+        "name": "cluster1.example.com",
+        "software_version": "1.2.4",
+        "os_api_version": 5,
+        "export_version": 0,
+        "master": "node1.example.com",
+        "architecture": [
+          "64bit",
+          "x86_64"
+        ],
+        "hypervisor_type": "xen-pvm",
+        "protocol_version": 12
+      }
+
+    """
+    op = ganeti.opcodes.OpQueryClusterInfo()
+    return ganeti.cli.SubmitOpCode(op)
+
+
+class R_2_tags(baserlib.R_Generic):
+  """/2/tags resource.
+
+  Manages cluster tags.
+
+  """
+  DOC_URI = "/2/tags"
+
+  def GET(self):
+    """Returns a list of all cluster tags.
+
+    Example: ["tag1", "tag2", "tag3"]
+
+    """
+    return baserlib._Tags_GET(constants.TAG_CLUSTER)
+
+
+class R_2_os(baserlib.R_Generic):
+  """/2/os resource.
+
+  """
+  DOC_URI = "/2/os"
+
+  def GET(self):
+    """Return a list of all OSes.
+
+    Can return error 500 in case of a problem.
+
+    Example: ["debian-etch"]
+
+    """
+    op = ganeti.opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
+                                     names=[])
+    diagnose_data = ganeti.cli.SubmitOpCode(op)
+
+    if not isinstance(diagnose_data, list):
+      raise http.HttpInternalServerError(message="Can't get OS list")
+
+    return [row[0] for row in diagnose_data if row[1]]
 
 
 class R_2_jobs(baserlib.R_Generic):
@@ -141,12 +236,22 @@ class R_2_nodes(baserlib.R_Generic):
                                  uri_fields=("id", "uri"))
 
 
-class R_nodes(R_2_nodes):
-  """/nodes resource
+class R_2_nodes_name(baserlib.R_Generic):
+  """/2/nodes/[node_name] resources.
 
   """
-  # TODO: Temporary resource will be deprecated
-  DOC_URI = "/nodes"
+  DOC_URI = "/nodes/[node_name]"
+
+  def GET(self):
+    """Send information about a node.
+
+    """
+    node_name = self.items[0]
+    op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
+                                     names=[node_name])
+    result = ganeti.cli.SubmitOpCode(op)
+
+    return baserlib.MapFields(N_FIELDS, result[0])
 
 
 class R_2_instances(baserlib.R_Generic):
@@ -254,12 +359,22 @@ class R_2_instances(baserlib.R_Generic):
     return job_id
 
 
-class R_instances(R_2_instances):
-  """/instances resource.
+class R_2_instances_name(baserlib.R_Generic):
+  """/2/instances/[instance_name] resources.
 
   """
-  # TODO: Temporary resource will be deprecated
-  DOC_URI = "/instances"
+  DOC_URI = "/2/instances/[instance_name]"
+
+  def GET(self):
+    """Send information about an instance.
+
+    """
+    instance_name = self.items[0]
+    op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
+                                         names=[instance_name])
+    result = ganeti.cli.SubmitOpCode(op)
+
+    return baserlib.MapFields(I_FIELDS, result[0])
 
 
 class R_2_instances_name_reboot(baserlib.R_Generic):

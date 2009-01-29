@@ -29,7 +29,6 @@ from ganeti import constants
 from ganeti import http
 
 from ganeti.rapi import baserlib
-from ganeti.rapi import rlib1
 from ganeti.rapi import rlib2
 
 # the connection map is created at the end of this file
@@ -152,13 +151,14 @@ class R_2(baserlib.R_Generic):
 CONNECTOR.update({
   "/": R_root,
 
-  "/version": rlib1.R_version,
+  "/version": rlib2.R_version,
 
   "/2": R_2,
   "/2/jobs": rlib2.R_2_jobs,
   "/2/nodes": rlib2.R_2_nodes,
+  re.compile(r'^/2/nodes/([\w\._-]+)$'): rlib2.R_2_nodes_name,
   "/2/instances": rlib2.R_2_instances,
-  re.compile(r'^/2/instances/([\w\._-]+)$'): rlib1.R_instances_name,
+  re.compile(r'^/2/instances/([\w\._-]+)$'): rlib2.R_2_instances_name,
   re.compile(r'^/2/instances/([\w\._-]+)/tags$'): rlib2.R_2_instances_name_tags,
   re.compile(r'^/2/instances/([\w\._-]+)/reboot$'):
       rlib2.R_2_instances_name_reboot,
@@ -167,4 +167,7 @@ CONNECTOR.update({
   re.compile(r'^/2/instances/([\w\._-]+)/startup$'):
       rlib2.R_2_instances_name_startup,
   re.compile(r'/2/jobs/(%s)$' % constants.JOB_ID_TEMPLATE): rlib2.R_2_jobs_id,
+  "/2/tags": rlib2.R_2_tags,
+  "/2/info": rlib2.R_2_info,
+  "/2/os": rlib2.R_2_os,
   })
