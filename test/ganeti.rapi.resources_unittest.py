@@ -48,16 +48,17 @@ class MapperTests(unittest.TestCase):
   def testMapper(self):
     """Testing Mapper"""
 
-    self._TestUri("/tags", (rlib1.R_tags, [], {}))
-    self._TestUri("/instances", (rlib2.R_instances, [], {}))
+    self._TestFailingUri("/tags")
+    self._TestFailingUri("/instances")
+    self._TestUri("/version", (rlib1.R_version, [], {}))
 
-    self._TestUri('/instances/www.test.com',
+    self._TestUri('/2/instances/www.test.com',
                   (rlib1.R_instances_name,
                    ['www.test.com'],
                    {}))
 
-    self._TestUri('/instances/www.test.com/tags?f=5&f=6&alt=html',
-                  (rlib1.R_instances_name_tags,
+    self._TestUri('/2/instances/www.test.com/tags?f=5&f=6&alt=html',
+                  (rlib2.R_2_instances_name_tags,
                    ['www.test.com'],
                    {'alt': ['html'],
                     'f': ['5', '6'],
@@ -75,11 +76,7 @@ class R_RootTests(unittest.TestCase):
 
   def testGet(self):
     expected = [
-      {'name': 'info', 'uri': '/info'},
-      {'name': 'instances', 'uri': '/instances'},
-      {'name': 'nodes', 'uri': '/nodes'},
-      {'name': 'os', 'uri': '/os'},
-      {'name': 'tags', 'uri': '/tags'},
+        # TODO: {'name': 'info', 'uri': '/2'},
       {'name': 'version', 'uri': '/version'},
       ]
     self.assertEquals(self.root.GET(), expected)
