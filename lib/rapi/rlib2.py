@@ -86,23 +86,6 @@ class R_2_info(baserlib.R_Generic):
     return ganeti.cli.SubmitOpCode(op)
 
 
-class R_2_tags(baserlib.R_Generic):
-  """/2/tags resource.
-
-  Manages cluster tags.
-
-  """
-  DOC_URI = "/2/tags"
-
-  def GET(self):
-    """Returns a list of all cluster tags.
-
-    Example: ["tag1", "tag2", "tag3"]
-
-    """
-    return baserlib._Tags_GET(constants.TAG_CLUSTER)
-
-
 class R_2_os(baserlib.R_Generic):
   """/2/os resource.
 
@@ -455,43 +438,86 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
     return job_id
 
 
-class R_2_instances_name_tags(baserlib.R_Generic):
-  """/2/instances/[instance_name]/tags resource.
+class _R_Tags(baserlib.R_Generic):
+  """ Quasiclass for tagging resources
 
-  Manages per-instance tags.
+  Manages tags. Inheriting this class you suppose to define DOC_URI and
+  TAG_LEVEL for it.
 
   """
-  DOC_URI = "/2/instances/[instance_name]/tags"
+
+  def __init__(self, items, queryargs, req):
+    """A tag resource constructor.
+
+    We have to override the default to sort out cluster naming case.
+
+    """
+    baserlib.R_Generic.__init__(self, items, queryargs, req)
+
+    if self.TAG_LEVEL != constants.TAG_CLUSTER:
+      self.name = items[0]
+    else:
+      self.name = ""
 
   def GET(self):
-    """Returns a list of instance tags.
+    """Returns a list of tags.
 
     Example: ["tag1", "tag2", "tag3"]
 
     """
-    return baserlib._Tags_GET(constants.TAG_INSTANCE, name=self.items[0])
+    return baserlib._Tags_GET(self.TAG_LEVEL, name=self.name)
 
   def PUT(self):
-    """Add a set of tags to the instance.
+    """Add a set of tags.
 
     The request as a list of strings should be PUT to this URI. And
     you'll have back a job id.
 
     """
-    return baserlib._Tags_PUT(constants.TAG_INSTANCE,
-                              self.req.request_post_data, name=self.items[0])
+    return baserlib._Tags_PUT(self.TAG_LEVEL,
+                              self.req.request_post_data, name=self.name)
 
   def DELETE(self):
     """Delete a tag.
 
-    In order to delete a set of tags from a instance, the DELETE
+    In order to delete a set of tags, the DELETE
     request should be addressed to URI like:
-    /2/instances/[instance_name]/tags?tag=[tag]&tag=[tag]
+    /tags?tag=[tag]&tag=[tag]
 
     """
     if 'tag' not in self.queryargs:
-      # no we not gonna delete all tags from an instance
+      # no we not gonna delete all tags
       raise http.HttpNotImplemented()
-    return baserlib._Tags_DELETE(constants.TAG_INSTANCE,
+    return baserlib._Tags_DELETE(self.TAG_LEVEL,
                                  self.queryargs['tag'],
-                                 name=self.items[0])
+                                 name=self.name)
+
+
+class R_2_instances_name_tags(_R_Tags):
+  """ /2/instances/[instance_name]/tags resource.
+
+  Manages per-instance tags.
+
+  """
+  DOC_URI = "/2/instances/[instance_name]/tags"
+  TAG_LEVEL = constants.TAG_INSTANCE
+
+
+class R_2_nodes_name_tags(_R_Tags):
+  """ /2/nodes/[node_name]/tags resource.
+
+  Manages per-node tags.
+
+  """
+  DOC_URI = "/2/nodes/[node_name]/tags"
+  TAG_LEVEL = constants.TAG_NODE
+
+
+class R_2_tags(_R_Tags):
+  """ /2/instances/tags resource.
+
+  Manages cluster tags.
+
+  """
+  DOC_URI = "/2/tags"
+  TAG_LEVEL = constants.TAG_CLUSTER

@@ -157,6 +157,7 @@ CONNECTOR.update({
   "/2/jobs": rlib2.R_2_jobs,
   "/2/nodes": rlib2.R_2_nodes,
   re.compile(r'^/2/nodes/([\w\._-]+)$'): rlib2.R_2_nodes_name,
+  re.compile(r'^/2/nodes/([\w\._-]+)/tags$'): rlib2.R_2_nodes_name_tags,
   "/2/instances": rlib2.R_2_instances,
   re.compile(r'^/2/instances/([\w\._-]+)$'): rlib2.R_2_instances_name,
   re.compile(r'^/2/instances/([\w\._-]+)/tags$'): rlib2.R_2_instances_name_tags,
