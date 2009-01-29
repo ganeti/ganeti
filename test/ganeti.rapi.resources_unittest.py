@@ -76,7 +76,7 @@ class R_RootTests(unittest.TestCase):
 
   def testGet(self):
     expected = [
-        # TODO: {'name': 'info', 'uri': '/2'},
+      {'name': '2', 'uri': '/2'},
       {'name': 'version', 'uri': '/version'},
       ]
     self.assertEquals(self.root.GET(), expected)

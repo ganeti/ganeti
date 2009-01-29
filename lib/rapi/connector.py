@@ -114,12 +114,47 @@ class R_root(baserlib.R_Generic):
     return baserlib.BuildUriList(rootlist, "/%s")
 
 
+def _getResources(id):
+  """Return a list of resources underneath given id.
+
+  This is to generalize querying of version resources lists.
+
+  @return: a list of resources names.
+
+  """
+  r_pattern = re.compile('^R_%s_([a-zA-Z0-9]+)$' % id)
+
+  rlist = []
+  for handler in CONNECTOR.values():
+    m = r_pattern.match(handler.__name__)
+    if m:
+      name = m.group(1)
+      rlist.append(name)
+
+  return rlist
+
+
+class R_2(baserlib.R_Generic):
+  """ /2 resourse.
+
+  """
+  DOC_URI = "/2"
+
+  def GET(self):
+    """Show the list of mapped resources.
+
+    @return: a dictionary with 'name' and 'uri' keys for each of them.
+
+    """
+    return baserlib.BuildUriList(_getResources("2"), "/2/%s")
+
+
 CONNECTOR.update({
   "/": R_root,
 
   "/version": rlib1.R_version,
 
-
+  "/2": R_2,
   "/2/jobs": rlib2.R_2_jobs,
   "/2/nodes": rlib2.R_2_nodes,
   "/2/instances": rlib2.R_2_instances,
