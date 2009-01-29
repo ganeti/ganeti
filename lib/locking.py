@@ -179,9 +179,10 @@ class SharedLock:
         self.__nwait_shr += 1
         try:
           wait = False
-          # If there is an exclusive holder waiting we have to wait.  We'll
-          # only do this once, though, when we start waiting for the lock. Then
-          # we'll just wait while there are no exclusive holders.
+          # If there is an exclusive holder waiting we have to wait.
+          # We'll only do this once, though, when we start waiting for
+          # the lock. Then we'll just wait while there are no
+          # exclusive holders.
           if self.__nwait_exc > 0:
             # TODO: if !blocking...
             wait = True
@@ -242,8 +243,9 @@ class SharedLock:
         # If there are shared holders waiting (and not just scheduled to pass)
         # there *must* be an exclusive holder waiting as well; otherwise what
         # were they waiting for?
-        assert (self.__nwait_exc > 0 or self.__npass_shr == self.__nwait_shr), \
-               "Lock sharers waiting while no exclusive is queueing"
+        assert (self.__nwait_exc > 0 or
+                self.__npass_shr == self.__nwait_shr), \
+                "Lock sharers waiting while no exclusive is queueing"
 
         # If there are no more shared holders either in or scheduled to pass,
         # and some exclusive holders are waiting let's wake one up.
@@ -294,8 +296,8 @@ class SharedLock:
       self.__lock.release()
 
 
-# Whenever we want to acquire a full LockSet we pass None as the value to acquire.
-# Hide this behing this nicely named constant.
+# Whenever we want to acquire a full LockSet we pass None as the value
+# to acquire.  Hide this behing this nicely named constant.
 ALL_SET = None
 
 
@@ -461,8 +463,8 @@ class LockSet:
           acquire_list.append((lname, lock))
         except (KeyError):
           if self.__lock._is_owned():
-            # We are acquiring all the set, it doesn't matter if this particular
-            # element is not there anymore.
+            # We are acquiring all the set, it doesn't matter if this
+            # particular element is not there anymore.
             continue
           else:
             raise errors.LockError('non-existing lock in set (%s)' % lname)
@@ -481,8 +483,8 @@ class LockSet:
           acquired.add(lname)
         except (errors.LockError):
           if self.__lock._is_owned():
-            # We are acquiring all the set, it doesn't matter if this particular
-            # element is not there anymore.
+            # We are acquiring all the set, it doesn't matter if this
+            # particular element is not there anymore.
             continue
           else:
             name_fail = lname
@@ -855,9 +857,9 @@ class GanetiLockManager:
     assert level in LEVELS_MOD, "Invalid or immutable level %s" % level
     assert self._BGL_owned(), ("You must own the BGL before performing other"
            " operations")
-    # Check we either own the level or don't own anything from here up.
-    # LockSet.remove() will check the case in which we don't own all the needed
-    # resources, or we have a shared ownership.
+    # Check we either own the level or don't own anything from here
+    # up. LockSet.remove() will check the case in which we don't own
+    # all the needed resources, or we have a shared ownership.
     assert self._is_owned(level) or not self._upper_owned(level), (
            "Cannot remove locks at a level while not owning it or"
            " owning some at a greater one")
