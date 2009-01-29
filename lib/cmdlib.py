@@ -392,8 +392,8 @@ def _GetWantedInstances(lu, instances):
       wanted.append(instance)
 
   else:
-    wanted = lu.cfg.GetInstanceList()
-  return utils.NiceSort(wanted)
+    wanted = utils.NiceSort(lu.cfg.GetInstanceList())
+  return wanted
 
 
 def _CheckOutputFields(static, dynamic, selected):
@@ -3114,19 +3114,25 @@ class LUQueryInstances(NoHooksLU):
 
     """
     all_info = self.cfg.GetAllInstancesInfo()
-    if self.do_locking:
-      instance_names = self.acquired_locks[locking.LEVEL_INSTANCE]
-    elif self.wanted != locking.ALL_SET:
-      instance_names = self.wanted
-      missing = set(instance_names).difference(all_info.keys())
-      if missing:
-        raise errors.OpExecError(
-          "Some instances were removed before retrieving their data: %s"
-          % missing)
+    if self.wanted == locking.ALL_SET:
+      # caller didn't specify instance names, so ordering is not important
+      if self.do_locking:
+        instance_names = self.acquired_locks[locking.LEVEL_INSTANCE]
+      else:
+        instance_names = all_info.keys()
+      instance_names = utils.NiceSort(instance_names)
     else:
-      instance_names = all_info.keys()
+      # caller did specify names, so we must keep the ordering
+      if self.do_locking:
+        tgt_set = self.acquired_locks[locking.LEVEL_INSTANCE]
+      else:
+        tgt_set = all_info.keys()
+      missing = set(self.wanted).difference(tgt_set)
+      if missing:
+        raise errors.OpExecError("Some instances were removed before"
+                                 " retrieving their data: %s" % missing)
+      instance_names = self.wanted
 
-    instance_names = utils.NiceSort(instance_names)
     instance_list = [all_info[iname] for iname in instance_names]
 
     # begin data gathering
