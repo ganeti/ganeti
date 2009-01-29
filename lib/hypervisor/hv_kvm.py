@@ -255,11 +255,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     #"hvm_boot_order",
     #"hvm_cdrom_image_path",
 
-    kvm_cmd.extend(['-nographic'])
-    # FIXME: handle vnc, if needed
-    # How do we decide whether to have it or not?? :(
-    #"vnc_bind_address",
-    #"network_port"
+    # FIXME: handle vnc password
+    vnc_bind_address = instance.hvparams[constants.HV_VNC_BIND_ADDRESS]
+    if vnc_bind_address:
+      kvm_cmd.extend(['-usbdevice', 'tablet'])
+      if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
+        display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
+        if vnc_bind_address == '0.0.0.0':
+          vnc_arg = ':%d' % (display)
+        else:
+          vnc_arg = '%s:%d' % (constants.HV_VNC_BIND_ADDRESS, display)
+        kvm_cmd.extend(['-vnc', vnc_arg])
+      else:
+        logging.error("Network port is not a valid VNC display (%d < %d)."
+                      " Not starting VNC" %
+                      (instance.network_port, constants.HT_HVM_VNC_BASE_PORT))
+        kvm_cmd.extend(['-vnc', 'none'])
+    else:
+      kvm_cmd.extend(['-nographic'])
+
     monitor_dev = 'unix:%s,server,nowait' % \
       self._InstanceMonitor(instance.name)
     kvm_cmd.extend(['-monitor', monitor_dev])
