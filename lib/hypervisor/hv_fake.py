@@ -204,7 +204,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     return result
 
   @classmethod
-  def GetShellCommandForConsole(cls, instance):
+  def GetShellCommandForConsole(cls, instance, hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """

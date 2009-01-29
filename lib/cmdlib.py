@@ -4701,7 +4701,12 @@ class LUConnectConsole(NoHooksLU):
     logging.debug("Connecting to console of %s on %s", instance.name, node)
 
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
-    console_cmd = hyper.GetShellCommandForConsole(instance)
+    cluster = self.cfg.GetClusterInfo()
+    # beparams and hvparams are passed separately, to avoid editing the
+    # instance and then saving the defaults in the instance itself.
+    hvparams = cluster.FillHV(instance)
+    beparams = cluster.FillBE(instance)
+    console_cmd = hyper.GetShellCommandForConsole(instance, hvparams, beparams)
 
     # build ssh cmdline
     return self.ssh.BuildCmd(node, "root", console_cmd, batch=True, tty=True)
