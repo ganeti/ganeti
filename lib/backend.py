@@ -426,7 +426,8 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_VGLIST] = ListVolumeGroups()
 
   if constants.NV_VERSION in what:
-    result[constants.NV_VERSION] = constants.PROTOCOL_VERSION
+    result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,
+                                    constants.RELEASE_VERSION)
 
   if constants.NV_HVINFO in what:
     hyper = hypervisor.GetHypervisor(what[constants.NV_HVINFO])

@@ -650,18 +650,28 @@ class LUVerifyCluster(LogicalUnit):
     # compares ganeti version
     local_version = constants.PROTOCOL_VERSION
     remote_version = node_result.get('version', None)
-    if not remote_version:
+    if not (remote_version and isinstance(remote_version, (list, tuple)) and
+            len(remote_version) == 2):
       feedback_fn("  - ERROR: connection to %s failed" % (node))
       return True
 
-    if local_version != remote_version:
-      feedback_fn("  - ERROR: sw version mismatch: master %s, node(%s) %s" %
-                      (local_version, node, remote_version))
+    if local_version != remote_version[0]:
+      feedback_fn("  - ERROR: incompatible protocol versions: master %s,"
+                  " node %s %s" % (local_version, node, remote_version[0]))
       return True
 
-    # checks vg existance and size > 20G
+    # node seems compatible, we can actually try to look into its results
 
     bad = False
+
+    # full package version
+    if constants.RELEASE_VERSION != remote_version[1]:
+      feedback_fn("  - WARNING: software version mismatch: master %s,"
+                  " node %s %s" %
+                  (constants.RELEASE_VERSION, node, remote_version[1]))
+
+    # checks vg existence and size > 20G
+
     vglist = node_result.get(constants.NV_VGLIST, None)
     if not vglist:
       feedback_fn("  - ERROR: unable to check volume groups on node %s." %
