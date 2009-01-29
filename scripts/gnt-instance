@@ -176,6 +176,27 @@ def _TransformPath(user_input):
   return result_path
 
 
+def _EnsureInstancesExist(client, names):
+  """Check for and ensure the given instance names exist.
+
+  This function will raise an OpPrereqError in case they don't
+  exist. Otherwise it will exit cleanly.
+
+  @type client: L{luxi.Client}
+  @param client: the client to use for the query
+  @type names: list
+  @param names: the list of instance names to query
+  @raise errors.OpPrereqError: in case any instance is missing
+
+  """
+  # TODO: change LUQueryInstances to that it actually returns None
+  # instead of raising an exception, or devise a better mechanism
+  result = client.QueryInstances(names, ["name"])
+  for orig_name, row in zip(names, result):
+    if row[0] is None:
+      raise errors.OpPrereqError("Instance '%s' does not exist" % orig_name)
+
+
 def ListInstances(opts, args):
   """List instances and their properties.
 
@@ -559,8 +580,11 @@ def RemoveInstance(opts, args):
   """
   instance_name = args[0]
   force = opts.force
+  cl = GetClient()
 
   if not force:
+    _EnsureInstancesExist(cl, [instance_name])
+
     usertext = ("This will remove the volumes of the instance %s"
                 " (including mirrors), thus removing all the data"
                 " of the instance. Continue?") % instance_name
@@ -569,7 +593,7 @@ def RemoveInstance(opts, args):
 
   op = opcodes.OpRemoveInstance(instance_name=instance_name,
                                 ignore_failures=opts.ignore_failures)
-  SubmitOrSend(op, opts)
+  SubmitOrSend(op, opts, cl=cl)
   return 0
 
 
@@ -811,10 +835,13 @@ def FailoverInstance(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   instance_name = args[0]
   force = opts.force
 
   if not force:
+    _EnsureInstancesExist(cl, [instance_name])
+
     usertext = ("Failover will happen to image %s."
                 " This requires a shutdown of the instance. Continue?" %
                 (instance_name,))
@@ -823,7 +850,7 @@ def FailoverInstance(opts, args):
 
   op = opcodes.OpFailoverInstance(instance_name=instance_name,
                                   ignore_consistency=opts.ignore_consistency)
-  SubmitOrSend(op, opts)
+  SubmitOrSend(op, opts, cl=cl)
   return 0
 
 
@@ -839,10 +866,13 @@ def MigrateInstance(opts, args):
   @return: the desired exit code
 
   """
+  cl = GetClient()
   instance_name = args[0]
   force = opts.force
 
   if not force:
+    _EnsureInstancesExist(cl, [instance_name])
+
     if opts.cleanup:
       usertext = ("Instance %s will be recovered from a failed migration."
                   " Note that the migration procedure (including cleanup)" %
@@ -858,7 +888,7 @@ def MigrateInstance(opts, args):
 
   op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live,
                                  cleanup=opts.cleanup)
-  SubmitOpCode(op)
+  SubmitOpCode(op, cl=cl)
   return 0
 
 
