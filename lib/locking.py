@@ -451,7 +451,7 @@ class LockSet:
       if isinstance(names, basestring):
         names = [names]
       else:
-        names.sort()
+        names = sorted(names)
 
       acquire_list = []
       # First we look the locks up on __lockdict. We have no way of being sure
