@@ -214,7 +214,7 @@ def ListInstances(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  output = GetClient().QueryInstances([], selected_fields)
+  output = GetClient().QueryInstances(args, selected_fields)
 
   if not opts.no_headers:
     headers = {
@@ -1367,8 +1367,9 @@ commands = {
                         help="Only show configuration data, not runtime data"),
             ], "[-s] [<instance>...]",
            "Show information on the specified instance(s)"),
-  'list': (ListInstances, ARGS_NONE,
-           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT], "",
+  'list': (ListInstances, ARGS_ANY,
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
+           "[<instance>...]",
            "Lists the instances and their status. The available fields are"
            " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
