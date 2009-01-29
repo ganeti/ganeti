@@ -621,6 +621,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         utils.ShellQuote(cls._InstanceSerial(instance.name))))
     else:
       shell_command = "echo 'No serial shell for instance %s'" % instance.name
+
+    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
+    if vnc_bind_address:
+      if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
+        display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
+        vnc_command = ("echo 'Instance has VNC listening on %s:%d"
+                       " (display: %d)'" % (vnc_bind_address,
+                                            instance.network_port,
+                                            display))
+        shell_command = "%s; %s" % (vnc_command, shell_command)
+
     return shell_command
 
   def Verify(self):
