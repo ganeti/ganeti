@@ -53,6 +53,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_INITRD_PATH,
     constants.HV_ROOT_PATH,
     constants.HV_ACPI,
+    constants.HV_SERIAL_CONSOLE,
     ]
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -244,8 +245,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if initrd_path:
       kvm_cmd.extend(['-initrd', initrd_path])
 
-    root_path = instance.hvparams[constants.HV_ROOT_PATH]
-    kvm_cmd.extend(['-append', 'console=ttyS0,38400 root=%s ro' % root_path])
+    root_append = 'root=%s ro' % instance.hvparams[constants.HV_ROOT_PATH]
+    if instance.hvparams[constants.HV_SERIAL_CONSOLE]:
+      kvm_cmd.extend(['-append', 'console=ttyS0,38400 %s' % root_append])
+    else:
+      kvm_cmd.extend(['-append', root_append])
 
     #"hvm_boot_order",
     #"hvm_cdrom_image_path",
@@ -258,8 +262,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     monitor_dev = 'unix:%s,server,nowait' % \
       self._InstanceMonitor(instance.name)
     kvm_cmd.extend(['-monitor', monitor_dev])
-    serial_dev = 'unix:%s,server,nowait' % self._InstanceSerial(instance.name)
-    kvm_cmd.extend(['-serial', serial_dev])
+    if instance.hvparams[constants.HV_SERIAL_CONSOLE]:
+      serial_dev = 'unix:%s,server,nowait' % self._InstanceSerial(instance.name)
+      kvm_cmd.extend(['-serial', serial_dev])
+    else:
+      kvm_cmd.extend(['-serial', 'none'])
 
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.
@@ -586,18 +593,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Return a command for connecting to the console of an instance.
 
     """
-    # FIXME: The socat shell is not perfect. In particular the way we start
-    # it ctrl+c will close it, rather than being passed to the other end.
-    # On the other hand if we pass the option 'raw' (or ignbrk=1) there
-    # will be no way of exiting socat (except killing it from another shell)
-    # and ctrl+c doesn't work anyway, printing ^C rather than being
-    # interpreted by kvm. For now we'll leave it this way, which at least
-    # allows a minimal interaction and changes on the machine.
-    socat_shell = ("%s STDIO,echo=0,icanon=0 UNIX-CONNECT:%s" %
-                   (constants.SOCAT_PATH,
-                    utils.ShellQuote(cls._InstanceSerial(instance.name))))
-
-    return socat_shell
+    if hvparams[constants.HV_SERIAL_CONSOLE]:
+      # FIXME: The socat shell is not perfect. In particular the way we start
+      # it ctrl+c will close it, rather than being passed to the other end.
+      # On the other hand if we pass the option 'raw' (or ignbrk=1) there
+      # will be no way of exiting socat (except killing it from another shell)
+      # and ctrl+c doesn't work anyway, printing ^C rather than being
+      # interpreted by kvm. For now we'll leave it this way, which at least
+      # allows a minimal interaction and changes on the machine.
+      shell_command = ("%s STDIO,echo=0,icanon=0 UNIX-CONNECT:%s" %
+                       (constants.SOCAT_PATH,
+                        utils.ShellQuote(cls._InstanceSerial(instance.name))))
+    else:
+      shell_command = "echo 'No serial shell for instance %s'" % instance.name
+    return shell_command
 
   def Verify(self):
     """Verify the hypervisor.

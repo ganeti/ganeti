@@ -288,6 +288,7 @@ HV_PAE = "pae"
 HV_KERNEL_PATH = "kernel_path"
 HV_INITRD_PATH = "initrd_path"
 HV_ROOT_PATH = "root_path"
+HV_SERIAL_CONSOLE = "serial_console"
 
 HVS_PARAMETERS = frozenset([
   HV_BOOT_ORDER,
@@ -300,6 +301,7 @@ HVS_PARAMETERS = frozenset([
   HV_KERNEL_PATH,
   HV_INITRD_PATH,
   HV_ROOT_PATH,
+  HV_SERIAL_CONSOLE,
   ])
 
 # BE parameter names
@@ -444,6 +446,7 @@ HVC_DEFAULTS = {
         HV_INITRD_PATH: None,
         HV_ROOT_PATH: '/dev/vda',
         HV_ACPI: True,
+        HV_SERIAL_CONSOLE: True,
         },
     HT_FAKE: {
         },
