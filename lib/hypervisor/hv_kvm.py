@@ -239,17 +239,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = 'file=%s,format=raw%s%s' % (dev_path, if_val, boot_val)
       kvm_cmd.extend(['-drive', drive_val])
 
-    kvm_cmd.extend(['-kernel', instance.hvparams[constants.HV_KERNEL_PATH]])
-
-    initrd_path = instance.hvparams[constants.HV_INITRD_PATH]
-    if initrd_path:
-      kvm_cmd.extend(['-initrd', initrd_path])
-
-    root_append = 'root=%s ro' % instance.hvparams[constants.HV_ROOT_PATH]
-    if instance.hvparams[constants.HV_SERIAL_CONSOLE]:
-      kvm_cmd.extend(['-append', 'console=ttyS0,38400 %s' % root_append])
-    else:
-      kvm_cmd.extend(['-append', root_append])
+    kernel_path = instance.hvparams[constants.HV_KERNEL_PATH]
+    if kernel_path:
+      kvm_cmd.extend(['-kernel', kernel_path])
+      initrd_path = instance.hvparams[constants.HV_INITRD_PATH]
+      if initrd_path:
+        kvm_cmd.extend(['-initrd', initrd_path])
+      root_append = 'root=%s ro' % instance.hvparams[constants.HV_ROOT_PATH]
+      if instance.hvparams[constants.HV_SERIAL_CONSOLE]:
+        kvm_cmd.extend(['-append', 'console=ttyS0,38400 %s' % root_append])
+      else:
+        kvm_cmd.extend(['-append', root_append])
 
     #"hvm_boot_order",
     #"hvm_cdrom_image_path",
@@ -634,18 +634,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     super(KVMHypervisor, cls).CheckParameterSyntax(hvparams)
 
-    if not hvparams[constants.HV_KERNEL_PATH]:
-      raise errors.HypervisorError("Need a kernel for the instance")
+    kernel_path = hvparams[constants.HV_KERNEL_PATH]
+    if kernel_path:
+      if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
+        raise errors.HypervisorError("The kernel path must be an absolute path"
+                                     ", if defined")
 
-    if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
-      raise errors.HypervisorError("The kernel path must be an absolute path")
-
-    if not hvparams[constants.HV_ROOT_PATH]:
-      raise errors.HypervisorError("Need a root partition for the instance")
+      if not hvparams[constants.HV_ROOT_PATH]:
+        raise errors.HypervisorError("Need a root partition for the instance"
+                                     ", if a kernel is defined")
 
     if hvparams[constants.HV_INITRD_PATH]:
       if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):
-        raise errors.HypervisorError("The initrd path must be an absolute path"
+        raise errors.HypervisorError("The initrd path must an absolute path"
                                      ", if defined")
 
   def ValidateParameters(self, hvparams):
@@ -658,7 +659,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     super(KVMHypervisor, self).ValidateParameters(hvparams)
 
     kernel_path = hvparams[constants.HV_KERNEL_PATH]
-    if not os.path.isfile(kernel_path):
+    if kernel_path and not os.path.isfile(kernel_path):
       raise errors.HypervisorError("Instance kernel '%s' not found or"
                                    " not a file" % kernel_path)
     initrd_path = hvparams[constants.HV_INITRD_PATH]
