@@ -2178,8 +2178,10 @@ class LUAddNode(LogicalUnit):
           logging.error("Copy of file %s to node %s failed", fname, to_node)
 
     to_copy = []
-    if constants.HT_XEN_HVM in self.cfg.GetClusterInfo().enabled_hypervisors:
+    enabled_hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
+    if constants.HTS_USE_VNC.intersection(enabled_hypervisors):
       to_copy.append(constants.VNC_PASSWORD_FILE)
+
     for fname in to_copy:
       result = self.rpc.call_upload_file([node], fname)
       if result[node].failed or not result[node]:
