@@ -54,6 +54,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_ROOT_PATH,
     constants.HV_ACPI,
     constants.HV_SERIAL_CONSOLE,
+    constants.HV_VNC_BIND_ADDRESS,
     ]
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -648,6 +649,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):
         raise errors.HypervisorError("The initrd path must an absolute path"
                                      ", if defined")
+
+    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
+    if vnc_bind_address:
+      if not utils.IsValidIP(vnc_bind_address):
+        raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
+                                   " like a valid IP address" %
+                                   vnc_bind_address)
 
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.

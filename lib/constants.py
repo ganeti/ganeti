@@ -448,6 +448,7 @@ HVC_DEFAULTS = {
         HV_ROOT_PATH: '/dev/vda',
         HV_ACPI: True,
         HV_SERIAL_CONSOLE: True,
+        HV_VNC_BIND_ADDRESS: None,
         },
     HT_FAKE: {
         },
