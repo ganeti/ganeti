@@ -1182,19 +1182,21 @@ def SetInstanceParams(opts, args):
     return 1
 
   for param in opts.beparams:
-    if opts.beparams[param].lower() == "default":
-      opts.beparams[param] = constants.VALUE_DEFAULT
-    elif opts.beparams[param].lower() == "none":
-      opts.beparams[param] = constants.VALUE_NONE
-    elif param == constants.BE_MEMORY:
-      opts.beparams[constants.BE_MEMORY] = \
-        utils.ParseUnit(opts.beparams[constants.BE_MEMORY])
+    if isinstance(opts.beparams[param], basestring):
+      if opts.beparams[param].lower() == "default":
+        opts.beparams[param] = constants.VALUE_DEFAULT
+      elif opts.beparams[param].lower() == "none":
+        opts.beparams[param] = constants.VALUE_NONE
+      elif param == constants.BE_MEMORY:
+        opts.beparams[constants.BE_MEMORY] = \
+          utils.ParseUnit(opts.beparams[constants.BE_MEMORY])
 
   for param in opts.hypervisor:
-    if opts.hypervisor[param].lower() == "default":
-      opts.hypervisor[param] = constants.VALUE_DEFAULT
-    elif opts.hypervisor[param].lower() == "none":
-      opts.hypervisor[param] = constants.VALUE_NONE
+    if isinstance(opts.hypervisor[param], basestring):
+      if opts.hypervisor[param].lower() == "default":
+        opts.hypervisor[param] = constants.VALUE_DEFAULT
+      elif opts.hypervisor[param].lower() == "none":
+        opts.hypervisor[param] = constants.VALUE_NONE
 
   for idx, (nic_op, nic_dict) in enumerate(opts.nics):
     try:
