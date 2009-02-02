@@ -428,36 +428,36 @@ SS_RELEASE_VERSION = "release_version"
 DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM
 
 HVC_DEFAULTS = {
-    HT_XEN_PVM: {
-        HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
-        HV_INITRD_PATH: None,
-        HV_ROOT_PATH: '/dev/sda',
-        },
-    HT_XEN_HVM: {
-        HV_BOOT_ORDER: "cd",
-        HV_CDROM_IMAGE_PATH: None,
-        HV_NIC_TYPE: HT_HVM_NIC_RTL8139,
-        HV_DISK_TYPE: HT_HVM_DEV_PARAVIRTUAL,
-        HV_VNC_BIND_ADDRESS: '0.0.0.0',
-        HV_ACPI: True,
-        HV_PAE: True,
-        },
-    HT_KVM: {
-        HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
-        HV_INITRD_PATH: None,
-        HV_ROOT_PATH: '/dev/vda',
-        HV_ACPI: True,
-        HV_SERIAL_CONSOLE: True,
-        HV_VNC_BIND_ADDRESS: None,
-        },
-    HT_FAKE: {
-        },
-    }
+  HT_XEN_PVM: {
+    HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
+    HV_INITRD_PATH: None,
+    HV_ROOT_PATH: '/dev/sda',
+    },
+  HT_XEN_HVM: {
+    HV_BOOT_ORDER: "cd",
+    HV_CDROM_IMAGE_PATH: None,
+    HV_NIC_TYPE: HT_HVM_NIC_RTL8139,
+    HV_DISK_TYPE: HT_HVM_DEV_PARAVIRTUAL,
+    HV_VNC_BIND_ADDRESS: '0.0.0.0',
+    HV_ACPI: True,
+    HV_PAE: True,
+    },
+  HT_KVM: {
+    HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
+    HV_INITRD_PATH: None,
+    HV_ROOT_PATH: '/dev/vda',
+    HV_ACPI: True,
+    HV_SERIAL_CONSOLE: True,
+    HV_VNC_BIND_ADDRESS: None,
+    },
+  HT_FAKE: {
+    },
+  }
 
 BEC_DEFAULTS = {
-    BE_MEMORY: 128,
-    BE_VCPUS: 1,
-    BE_AUTO_BALANCE: True,
-    }
+  BE_MEMORY: 128,
+  BE_VCPUS: 1,
+  BE_AUTO_BALANCE: True,
+  }
 
 MASTER_POOL_SIZE_DEFAULT = 10
