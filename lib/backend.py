@@ -1594,6 +1594,7 @@ def OSEnvironment(instance, debug=0):
   result = {}
   result['OS_API_VERSION'] = '%d' % constants.OS_API_VERSION
   result['INSTANCE_NAME'] = instance.name
+  result['INSTANCE_OS'] = instance.os
   result['HYPERVISOR'] = instance.hypervisor
   result['DISK_COUNT'] = '%d' % len(instance.disks)
   result['NIC_COUNT'] = '%d' % len(instance.nics)
@@ -1606,7 +1607,7 @@ def OSEnvironment(instance, debug=0):
     real_disk.Open()
     result['DISK_%d_PATH' % idx] = real_disk.dev_path
     # FIXME: When disks will have read-only mode, populate this
-    result['DISK_%d_ACCESS' % idx] = 'W'
+    result['DISK_%d_ACCESS' % idx] = disk.mode
     if constants.HV_DISK_TYPE in instance.hvparams:
       result['DISK_%d_FRONTEND_TYPE' % idx] = \
         instance.hvparams[constants.HV_DISK_TYPE]
