@@ -2129,8 +2129,10 @@ class LUAddNode(LogicalUnit):
                                     keyarray[2],
                                     keyarray[3], keyarray[4], keyarray[5])
 
-    if result.failed or not result.data:
-      raise errors.OpExecError("Cannot transfer ssh keys to the new node")
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Cannot transfer ssh keys to the"
+                               " new node: %s" % msg)
 
     # Add node to our /etc/hosts, and add key to known_hosts
     utils.AddHostToEtcHosts(new_node.name)

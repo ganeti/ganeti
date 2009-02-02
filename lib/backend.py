@@ -260,8 +260,9 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
     priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS,
                                                     mkdir=True)
   except errors.OpExecError, err:
-    logging.exception("Error while processing user ssh files")
-    return False
+    msg = "Error while processing user ssh files"
+    logging.exception(msg)
+    return (False, "%s: %s" % (msg, err))
 
   for name, content in [(priv_key, sshkey), (pub_key, sshpub)]:
     utils.WriteFile(name, data=content, mode=0600)
@@ -270,7 +271,7 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
 
   utils.RunCmd([constants.SSH_INITD_SCRIPT, "restart"])
 
-  return True
+  return (True, "Node added successfully")
 
 
 def LeaveCluster():
