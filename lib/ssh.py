@@ -219,6 +219,9 @@ class SshRunner:
       output = retval.output
       if output:
         msg += ": %s" % output
+      else:
+        msg += ": %s (no output)" % retval.fail_reason
+      logging.error("Command %s failed: %s" % (retval.cmd, msg))
       return False, msg
 
     remotehostname = retval.stdout.strip()
