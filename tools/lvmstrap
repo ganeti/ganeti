@@ -47,8 +47,9 @@ import time
 from ganeti.utils import RunCmd
 from ganeti import constants
 
-USAGE = ("\tlvmstrap.py diskinfo\n"
-         "\tlvmstrap.py [--vgname=NAME] { --alldisks | --disks DISKLIST }"
+USAGE = ("\tlvmstrap diskinfo\n"
+         "\tlvmstrap [--vgname=NAME] [--allow-removable]"
+         " { --alldisks | --disks DISKLIST }"
          " create")
 
 verbose_flag = False
@@ -143,6 +144,9 @@ def ParseOptions():
   parser.add_option("-v", "--verbose",
                     action="store_true", dest="verbose", default=False,
                     help="print command execution messages to stdout")
+  parser.add_option("-r", "--allow-removable",
+                    action="store_true", dest="removable_ok", default=False,
+                    help="allow and use removable devices too")
   parser.add_option("-g", "--vg-name", type="string",
                     dest="vgname", default="xenvg", metavar="NAME",
                     help="the volume group to be created [default: xenvg]")
@@ -353,7 +357,7 @@ def ReadPV(name):
   return vgname
 
 
-def GetDiskList():
+def GetDiskList(opts):
   """Computes the block device list for this system.
 
   This function examines the /sys/block tree and using information
@@ -386,7 +390,7 @@ def GetDiskList():
     removable = int(f.read().strip())
     f.close()
 
-    if removable:
+    if removable and not opts.removable_ok:
       continue
 
     dev = ReadDev("/sys/block/%s" % name)
@@ -471,7 +475,7 @@ def DevInfo(name, dev, mountinfo):
   return mpath, whatvg, fileinfo
 
 
-def ShowDiskInfo():
+def ShowDiskInfo(opts):
   """Shows a nicely formatted block device list for this system.
 
   This function shows the user a table with the informations gathered
@@ -480,7 +484,7 @@ def ShowDiskInfo():
 
   """
   mounts = GetMountInfo()
-  dlist = GetDiskList()
+  dlist = GetDiskList(opts)
 
   print "------- Disk information -------"
   print ("%5s %7s %4s %5s %-10s %s" %
@@ -650,7 +654,7 @@ def ValidateDiskList(options):
     a list of disk names, e.g. ['sda', 'sdb']
   """
 
-  sysdisks = GetDiskList()
+  sysdisks = GetDiskList(options)
   if not sysdisks:
     raise PrereqError("no disks found (I looked for"
                       " non-removable block devices).")
@@ -689,7 +693,7 @@ def BootStrap():
   vgname = options.vgname
   command = args.pop(0)
   if command == "diskinfo":
-    ShowDiskInfo()
+    ShowDiskInfo(options)
     return
   if command != "create":
     Usage()
