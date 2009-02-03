@@ -2160,7 +2160,7 @@ class LUAddNode(LogicalUnit):
       if result[verifier].data['nodelist']:
         for failed in result[verifier].data['nodelist']:
           feedback_fn("ssh/hostname verification failed %s -> %s" %
-                      (verifier, result[verifier]['nodelist'][failed]))
+                      (verifier, result[verifier].data['nodelist'][failed]))
         raise errors.OpExecError("ssh/hostname verification failed.")
 
     # Distribute updated /etc/hosts and known_hosts to all nodes,
