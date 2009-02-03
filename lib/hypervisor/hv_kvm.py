@@ -202,7 +202,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     for name in os.listdir(self._PIDS_DIR):
       filename = "%s/%s" % (self._PIDS_DIR, name)
       if utils.IsProcessAlive(utils.ReadPidFile(filename)):
-        data.append(self.GetInstanceInfo(name))
+        try:
+          info = self.GetInstanceInfo(name)
+        except errors.HypervisorError, err:
+          continue
+        if info:
+          data.append(info)
 
     return data
 
