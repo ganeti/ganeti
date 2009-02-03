@@ -576,7 +576,7 @@ def CheckBEParams(beparams):
           try:
             val = int(val)
           except ValueError, err:
-            raise errors.OpPrereqError("Invalid %s size: %s" % (item, str(err)))
+            raise errors.OpPrereqError("Invalid %s size: %s" % (item, err))
           beparams[item] = val
       if item in (constants.BE_AUTO_BALANCE):
         val = beparams[item]
@@ -1741,6 +1741,27 @@ def TailFile(fname, lines=20):
 
   rows = raw_data.splitlines()
   return rows[-lines:]
+
+
+def SafeEncode(text):
+  """Return a 'safe' version of a source string.
+
+  This function mangles the input string and returns a version that
+  should be safe to disply/encode as ASCII. To this end, we first
+  convert it to ASCII using the 'backslashreplace' encoding which
+  should get rid of any non-ASCII chars, and then we again encode it
+  via 'string_escape' which converts '\n' into '\\n' so that log
+  messages remain one-line.
+
+  @type text: str or unicode
+  @param text: input data
+  @rtype: str
+  @return: a safe version of text
+
+  """
+  text = text.encode('ascii', 'backslashreplace')
+  text = text.encode('string_escape')
+  return text
 
 
 def LockedMethod(fn):

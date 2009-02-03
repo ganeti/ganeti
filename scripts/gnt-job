@@ -28,6 +28,7 @@ import sys
 from ganeti.cli import *
 from ganeti import constants
 from ganeti import errors
+from ganeti import utils
 
 
 #: default list of fields for L{ListJobs}
@@ -307,7 +308,7 @@ def ShowJobs(opts, args):
       format(3, "Execution log:")
       for serial, log_ts, log_type, log_msg in log:
         time_txt = FormatTimestamp(log_ts)
-        encoded = str(log_msg).encode('string_escape')
+        encoded = utils.SafeEncode(log_msg)
         format(4, "%s:%s:%s %s" % (serial, time_txt, log_type, encoded))
   return 0
 

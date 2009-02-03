@@ -976,7 +976,7 @@ class LUVerifyCluster(LogicalUnit):
       lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
       if isinstance(lvdata, basestring):
         feedback_fn("  - ERROR: LVM problem on node %s: %s" %
-                    (node, lvdata.encode('string_escape')))
+                    (node, utils.SafeEncode(lvdata)))
         bad = True
         node_volume[node] = {}
       elif not isinstance(lvdata, dict):

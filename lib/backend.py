@@ -691,7 +691,7 @@ def AddOSToInstance(instance):
     logging.error("os create command '%s' returned error: %s, logfile: %s,"
                   " output: %s", result.cmd, result.fail_reason, logfile,
                   result.output)
-    lines = [val.encode("string_escape")
+    lines = [utils.SafeEncode(val)
              for val in utils.TailFile(logfile, lines=20)]
     return (False, "OS create script failed (%s), last lines in the"
             " log file:\n%s" % (result.fail_reason, "\n".join(lines)))
@@ -725,7 +725,7 @@ def RunRenameInstance(instance, old_name):
   if result.failed:
     logging.error("os create command '%s' returned error: %s output: %s",
                   result.cmd, result.fail_reason, result.output)
-    lines = [val.encode("string_escape")
+    lines = [utils.SafeEncode(val)
              for val in utils.TailFile(logfile, lines=20)]
     return (False, "OS rename script failed (%s), last lines in the"
             " log file:\n%s" % (result.fail_reason, "\n".join(lines)))
@@ -2434,7 +2434,7 @@ class HooksRunner(object):
             #logging.exception("Error while closing fd %s", fd)
             pass
 
-    return result == 0, output
+    return result == 0, utils.SafeEncode(output.strip())
 
   def RunHooks(self, hpath, phase, env):
     """Run the scripts in the hooks directory.

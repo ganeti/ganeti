@@ -381,7 +381,7 @@ def VerifyDisks(opts, args):
   if nlvm:
     for node, text in nlvm.iteritems():
       ToStdout("Error on node %s: LVM error: %s",
-               node, text[-400:].encode('string_escape'))
+               node, utils.SafeEncode(text[-400:]))
       retcode |= 1
       ToStdout("You need to fix these nodes first before fixing instances")
 

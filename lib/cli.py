@@ -554,7 +554,8 @@ def PollJob(job_id, cl=None, feedback_fn=None):
         if callable(feedback_fn):
           feedback_fn(log_entry[1:])
         else:
-          print "%s %s" % (time.ctime(utils.MergeTime(timestamp)), message)
+          encoded = utils.SafeEncode(message)
+          print "%s %s" % (time.ctime(utils.MergeTime(timestamp)), encoded)
         prev_logmsg_serial = max(prev_logmsg_serial, serial)
 
     # TODO: Handle canceled and archived jobs

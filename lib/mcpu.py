@@ -346,7 +346,6 @@ class HooksMaster(object):
           continue
         for script, hkr, output in res.data:
           if hkr == constants.HKR_FAIL:
-            output = output.strip().encode("string_escape")
             errs.append((node_name, script, output))
       if errs:
         raise errors.HooksAbort(errs)
