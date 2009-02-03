@@ -27,6 +27,7 @@ import sys
 from optparse import make_option
 
 from ganeti.cli import *
+from ganeti import cli
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import constants
@@ -169,52 +170,57 @@ def EvacuateNode(opts, args):
   """
   cl = GetClient()
   force = opts.force
+
+  dst_node = opts.dst_node
+  iallocator = opts.iallocator
+
+  cnt = [dst_node, iallocator].count(None)
+  if cnt != 1:
+    raise errors.OpPrereqError("One and only one of the -n and -i"
+                               " options must be passed")
+
   selected_fields = ["name", "sinst_list"]
-  src_node, dst_node = args
+  src_node = args[0]
 
   op = opcodes.OpQueryNodes(output_fields=selected_fields, names=[src_node])
-  result = SubmitOpCode(op, cl=cl)
+  result = cl.QueryNodes(names=[src_node], fields=selected_fields)
   src_node, sinst = result[0]
-  op = opcodes.OpQueryNodes(output_fields=["name"], names=[dst_node])
-  result = SubmitOpCode(op, cl=cl)
-  dst_node = result[0][0]
-
-  if src_node == dst_node:
-    raise errors.OpPrereqError("Evacuate node needs different source and"
-                               " target nodes (node %s given twice)" %
-                               src_node)
 
   if not sinst:
     ToStderr("No secondary instances on node %s, exiting.", src_node)
     return constants.EXIT_SUCCESS
 
+  if dst_node is not None:
+    result = cl.QueryNodes(names=[dst_node], fields=["name"])
+    dst_node = result[0][0]
+
+    if src_node == dst_node:
+      raise errors.OpPrereqError("Evacuate node needs different source and"
+                                 " target nodes (node %s given twice)" %
+                                 src_node)
+    txt_msg = "to node %s" % dst_node
+  else:
+    txt_msg = "using iallocator %s" % iallocator
+
   sinst = utils.NiceSort(sinst)
 
   if not force and not AskUser("Relocate instance(s) %s from node\n"
-                               " %s to node\n %s?" %
+                               " %s %s?" %
                                (",".join("'%s'" % name for name in sinst),
-                               src_node, dst_node)):
+                               src_node, txt_msg)):
     return constants.EXIT_CONFIRMATION
 
-  jex = JobExecutor()
+  ops = []
   for iname in sinst:
     op = opcodes.OpReplaceDisks(instance_name=iname,
                                 remote_node=dst_node,
                                 mode=constants.REPLACE_DISK_CHG,
+                                iallocator=iallocator,
                                 disks=[])
-    jex.QueueJob(iname, op)
+    ops.append(op)
 
-  results = jex.GetResults()
-
-  bad_cnt = len([row for row in results if not row[0]])
-  if bad_cnt == 0:
-    ToStdout("All %d instance(s) relocated successfully.", len(results))
-    retcode = constants.EXIT_SUCCESS
-  else:
-    ToStdout("There were errors during the relocation:\n"
-             "%d error(s) out of %d instance(s).", bad_cnt, len(results))
-    retcode = constants.EXIT_FAILURE
-  return retcode
+  job_id = cli.SendJob(ops, cl=cl)
+  cli.PollJob(job_id, cl=cl)
 
 
 def FailoverNode(opts, args):
@@ -448,12 +454,20 @@ commands = {
            ],
           "[-s ip] [--readd] [--no-ssh-key-check] <node_name>",
           "Add a node to the cluster"),
-  'evacuate': (EvacuateNode, ARGS_FIXED(2),
-               [DEBUG_OPT, FORCE_OPT],
-               "[-f] <src> <dst>",
-               "Relocate the secondary instances from the first node"
-               " to the second one (only for instances with drbd disk template"
-               ),
+  'evacuate': (EvacuateNode, ARGS_ONE,
+               [DEBUG_OPT, FORCE_OPT,
+                make_option("-n", "--new-secondary", dest="dst_node",
+                            help="New secondary node", metavar="NODE",
+                            default=None),
+                make_option("-i", "--iallocator", metavar="<NAME>",
+                            help="Select new secondary for the instance"
+                            " automatically using the"
+                            " <NAME> iallocator plugin",
+                            default=None, type="string"),
+                ],
+               "[-f] {-i <iallocator> | -n <dst>} <node>",
+               "Relocate the secondary instances from a node"
+               " to other nodes (only for instances with drbd disk template)"),
   'failover': (FailoverNode, ARGS_ONE,
                [DEBUG_OPT, FORCE_OPT,
                 make_option("--ignore-consistency", dest="ignore_consistency",
