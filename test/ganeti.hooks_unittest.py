@@ -182,7 +182,7 @@ class TestHooksRunner(unittest.TestCase):
       os.symlink("/usr/bin/env", fname)
       self.torm.append((fname, False))
       env_snt = {"PHASE": phase}
-      env_exp = "PHASE=%s\n" % phase
+      env_exp = "PHASE=%s" % phase
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, env_snt),
                            [(self._rname(fname), HKR_SUCCESS, env_exp)])
 
