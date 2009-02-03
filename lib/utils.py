@@ -416,7 +416,7 @@ def ReadPidFile(pidfile):
   @type  pidfile: string
   @param pidfile: path to the file containing the pid
   @rtype: int
-  @return: The process id, if the file exista and contains a valid PID,
+  @return: The process id, if the file exists and contains a valid PID,
            otherwise 0
 
   """
