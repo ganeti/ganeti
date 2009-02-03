@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>June 20, 2007</date>">
+  <!ENTITY dhdate      "<date>February 02, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>7</manvolnum>">
@@ -20,6 +20,8 @@
     <copyright>
       <year>2006</year>
       <year>2007</year>
+      <year>2008</year>
+      <year>2009</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -28,7 +30,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 1.2</refmiscinfo>
+    <refmiscinfo>ganeti 2.0</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>ganeti-os-interface</refname>
@@ -60,86 +62,206 @@
     </para>
 
     <refsect2>
+      <title>Common environment</title>
+      <para>
+        All commands will get their input via environment variables. A
+        common set of variables will be exported for all commands, and
+        some of them might have extra ones. Note that all counts are
+        zero-based.
+      </para>
+      <variablelist>
+        <varlistentry>
+          <term>OS_API_VERSION</term>
+          <listitem>
+            <simpara>The OS api version that the rest of the
+            environment conforms to.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>INSTANCE_NAME</term>
+          <listitem>
+            <simpara>The instance name the script should operate
+            on.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>INSTANCE_OS</term>
+          <listitem>
+            <simpara>The name os the instance's OS as Ganeti knows
+            it. This can simplify the OS scripts by providing the same
+            scripts under multiple names, and then the scripts can use
+            this name to alter their behaviour.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>HYPERVISOR</term>
+          <listitem>
+            <simpara>The hypervisor of this instance.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>DISK_COUNT</term>
+          <listitem>
+            <simpara>The number of disks the instance has. The actual
+            disk defitions are in a set of additional variables. The
+            instance's disk will be numbered from 0 to this value
+            minus one.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>DISK_%N_PATH</term>
+          <listitem>
+            <simpara>The path to the storage for disk N of the
+            instance. This might be either a block device or a regular
+            file, in which case the OS scripts should use
+            <emphasis>losetup</emphasis> (if they need to mount
+            it). E.g. the first disk of the instance might be exported
+            as <envar>DISK_0_PATH=/dev/drbd0</envar>.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>DISK_%N_ACCESS</term>
+          <listitem>
+            <simpara>This is how the hypervisor will export the
+            instance disks: either read-write (<emphasis>rw</emphasis>) or
+            read-only (<emphasis>ro</emphasis>).</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>DISK_%N_FRONTEND_TYPE</term>
+          <listitem>
+            <simpara>(Optional) If applicable to the current
+            hypervisor type: the type of the device exported by the
+            hypervisor. For example, the Xen HVM hypervisor can export
+            disks as either <emphasis>paravirtual</emphasis> or
+            <emphasis>ioemu</emphasis>.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>DISK_%N_BACKEND_TYPE</term>
+          <listitem>
+            <simpara>How files are visible on the node side. This can
+            be either <emphasis>block</emphasis> (when using block
+            devices) or <emphasis>file:type</emphasis>, where
+            <emphasis>type</emphasis> is either
+            <emphasis>loop</emphasis> <emphasis>blktap</emphasis>
+            depending on how the hypervisor will be configured. Note
+            that not all backend types apply to all
+            hypervisors.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>NIC_COUNT</term>
+          <listitem>
+            <simpara>Similar to the <envar>DISK_COUNT</envar>, this
+            represents the number of NICs of the instance.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>NIC_%N_MAC</term>
+          <listitem>
+            <simpara>The MAC address associated with this
+            interface.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>NIC_%N_IP</term>
+          <listitem>
+            <simpara>The IP address, if any, associated with the N-th
+            NIC of the instance.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>NIC_%N_BRIDGE</term>
+          <listitem>
+            <simpara>The bridge to which this NIC will be attached
+            to.</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>NIC_%N_FRONTEND_TYPE</term>
+          <listitem>
+            <para>(Optional) If applicable, the type of the exported
+            NIC to the instance, this can be one of of: <simplelist
+            type="inline"> <member>rtl8139</member>
+            <member>ne2k_pci</member> <member>ne2k_isa</member>
+            <member>paravirtual</member> </simplelist>.
+              </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>DEBUG_LEVEL</term>
+          <listitem>
+            <simpara>If non-zero, this should cause the OS script to
+            generate verbose logs of its execution, for
+            troubleshooting purposes. Currently only
+            <emphasis>0</emphasis> and <emphasis>1</emphasis> are
+            valid values.</simpara>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </refsect2>
+
+    <refsect2>
       <title>create</title>
-      <cmdsynopsis>
-        <command>create</command>
-        <arg choice="req">-i <replaceable>instance_name</replaceable></arg>
-        <arg choice="req">-b <replaceable>blockdev_sda</replaceable></arg>
-        <arg choice="req">-s <replaceable>blockdev_sdb</replaceable></arg>
-      </cmdsynopsis>
 
       <para>The <command>create</command> command is used for creating
-      a new instance from scratch.</para>
+      a new instance from scratch. It has no additional environment
+      variables bside the common ones.</para>
 
-      <para>The argument to the <option>-i</option> option is the FQDN
+      <para>The <envar>INSTANCE_NAME</envar> variable denotes the name
       of the instance, which is guaranteed to resolve to an IP
       address. The create script should configure the instance
       according to this name. It can configure the IP statically or
       not, depending on the deployment environment.</para>
 
-      <para>The <option>-b</option> and <option>-s</option> options
-      denote the block devices which will be visible in the instance
-      as <emphasis>sda</emphasis> and <emphasis>sdb</emphasis>. The
-      <emphasis>sda</emphasis> block device should be used for the
-      root disk (and will be passed as the root device for Linux
-      kernels). The <emphasis>sdb</emphasis> device should be setup
-      for swap usage.</para>
+    </refsect2>
+
+    <refsect2>
+      <title>export</title>
+
+      <para>
+        This command is used in order to make a backup of a given disk
+        of the instance. The command should write to stdout a dump of
+        the given block device. The output of this program will be
+        passed during restore to the <command>import</command>
+        command.
+      </para>
+
+      <para>
+        The specific disk to backup is denoted by two additional
+        environment variables: <envar>EXPORT_INDEX</envar> which
+        denotes the index in the instance disks structure (and could
+        be used for example to skip the second disk if not needed for
+        backup) and <envar>EXPORT_PATH</envar> which has the same
+        value as <emphasis>DISK_N_PATH</emphasis> but is duplicate
+        here for easier usage by shell scripts (rather than parse the
+        DISK_... variables).
+      </para>
 
     </refsect2>
 
     <refsect2>
       <title>import</title>
-      <cmdsynopsis>
-        <command>import</command>
-        <arg choice="req">-i <replaceable>instance_name</replaceable></arg>
-        <arg choice="req">-b <replaceable>blockdev_sda</replaceable></arg>
-        <arg choice="req">-s <replaceable>blockdev_sdb</replaceable></arg>
-      </cmdsynopsis>
 
       <para>
         The <command>import</command> command is used for restoring an
         instance from a backup as done by
-        <command>export</command>. The arguments are the same as for
-        <command>create</command> and the output of the
-        <command>export</command> will be provided on
-        <acronym>stdin</acronym>.
-      </para>
-
-    </refsect2>
-
-    <refsect2>
-      <title>export</title>
-      <cmdsynopsis>
-        <command>export</command>
-        <arg choice="req">-i <replaceable>instance_name</replaceable></arg>
-        <arg choice="req">-b <replaceable>blockdev_sda</replaceable></arg>
-      </cmdsynopsis>
-
-      <para>
-        This command is used in order to make a backup of the
-        instance. The command should write to stdout a dump of the
-        given block device. The output of this program will be passed
-        to the <command>import</command> command.
+        <command>export</command>. The arguments are the similar to
+        those passed to <command>export</command>, whose output will
+        be provided on <acronym>stdin</acronym>.
       </para>
 
       <para>
-        The options have the same meaning as for
-        <command>create</command> and <command>import</command>, with
-        the exception that the argument to <option>-i</option> denotes
-        an existing instance.
+        The difference in variables is that the current disk is called
+        by <envar>IMPORT_DEVICE</envar> and <envar>IMPORT_IDX</envar>
+        (instead of <emphasis>EXPORT_</emphasis>).
       </para>
 
     </refsect2>
 
     <refsect2>
       <title>rename</title>
-      <cmdsynopsis>
-        <command>rename</command>
-        <arg choice="req">-o <replaceable>old_name</replaceable></arg>
-        <arg choice="req">-n <replaceable>new_name</replaceable></arg>
-        <arg choice="req">-b <replaceable>blockdev_sda</replaceable></arg>
-        <arg choice="req">-s <replaceable>blockdev_sdb</replaceable></arg>
-      </cmdsynopsis>
 
       <para>
         This command is used in order to perform a rename at the
@@ -157,6 +279,11 @@
         instance.
       </para>
 
+      <para>The script will be passed one additional environment
+      variable called <envar>OLD_INSTANCE_NAME</envar> which holds the
+      old instance name. The <envar>INSTANCE_NAME</envar> variable
+      holds the new instance name.</para>
+
       <para>
         A very simple rename script should at least change the
         hostname and IP address of the instance, leaving the
@@ -168,10 +295,13 @@
       <title>ganeti_api_version</title>
       <para>
         The <filename>ganeti_api_version</filename> file is a plain
-        text file containing the version of the guest OS api that this
-        OS definition complies with. The version documented by this
-        man page is 5, so this file must contain the number 5 followed
-        by a newline.
+        text file containing the version(s) of the guest OS api that
+        this OS definition complies with, one per line. The version
+        documented by this man page is 10, so this file must contain
+        the number 10 followed by a newline if only this version is
+        supported. A script compatible with both Ganeti 1.2 and Ganeti
+        2.0 should contain the most recent version first (i.e. 10),
+        followed by the old version(s) (in this case, 5).
       </para>
     </refsect2>
 
@@ -183,12 +313,37 @@
     <refsect2>
       <title>Common behaviour</title>
 
-      <para>All the scripts should display an usage message when called with a wrong number of arguments or when the first argument is <option>-h</option> or <option>--help</option>.</para>
+      <para>All the scripts should display an usage message when
+      called with a wrong number of arguments or when the first
+      argument is <option>-h</option> or
+      <option>--help</option>.</para>
 
     </refsect2>
 
     <refsect2>
       <title>Upgrading from old versions</title>
+      <refsect3>
+        <title>Version 5 to 10</title>
+
+        <para>
+          The method os passing data has changed from command line
+          options to environment variables, so scripts should be
+          modified to use these. For an example of how this can be
+          done in a way compatible with both versions, feel free to
+          look at the debootstrap instance's
+          <filename>common.sh</filename> auxiliary script.
+        </para>
+
+        <para>
+          Also, instances can have now a variable number of disks, not
+          only two, and a variable number of NICs (instead of fixed
+          one), so the scripts should deal with this. The biggest
+          change is in the import/export, which are called once per
+          disk, instead of once per instance.
+        </para>
+
+      </refsect3>
+
       <refsect3>
         <title>Version 4 to 5</title>
         <para>
