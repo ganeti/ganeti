@@ -262,6 +262,45 @@ def FailoverNode(opts, args):
   return retcode
 
 
+def MigrateNode(opts, args):
+  """Migrate all primary instance on a node.
+
+  """
+  cl = GetClient()
+  force = opts.force
+  selected_fields = ["name", "pinst_list"]
+
+  result = cl.QueryNodes(names=args, fields=selected_fields)
+  node, pinst = result[0]
+
+  if not pinst:
+    ToStdout("No primary instances on node %s, exiting." % node)
+    return 0
+
+  pinst = utils.NiceSort(pinst)
+
+  retcode = 0
+
+  if not force and not AskUser("Migrate instance(s) %s?" %
+                               (",".join("'%s'" % name for name in pinst))):
+    return 2
+
+  jex = JobExecutor(cl=cl)
+  for iname in pinst:
+    op = opcodes.OpMigrateInstance(instance_name=iname, live=opts.live,
+                                   cleanup=False)
+    jex.QueueJob(iname, op)
+
+  results = jex.GetResults()
+  bad_cnt = len([row for row in results if not row[0]])
+  if bad_cnt == 0:
+    ToStdout("All %d instance(s) migrated successfully.", len(results))
+  else:
+    ToStdout("There were errors during the migration:\n"
+             "%d error(s) out of %d instance(s).", bad_cnt, len(results))
+  return retcode
+
+
 def ShowNodeConfig(opts, args):
   """Show node information.
 
@@ -425,6 +464,18 @@ commands = {
                "[-f] <node>",
                "Stops the primary instances on a node and start them on their"
                " secondary node (only for instances with drbd disk template)"),
+  'migrate': (MigrateNode, ARGS_ONE,
+               [DEBUG_OPT, FORCE_OPT,
+                make_option("--non-live", dest="live",
+                            default=True, action="store_false",
+                            help="Do a non-live migration (this usually means"
+                            " freeze the instance, save the state,"
+                            " transfer and only then resume running on the"
+                            " secondary node)"),
+                ],
+               "[-f] <node>",
+               "Migrate all the primary instance on a node away from it"
+               " (only for instances of type drbd)"),
   'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
            "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,
