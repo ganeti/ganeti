@@ -233,6 +233,6 @@ def WriteKnownHostsFile(cfg, file_name):
   """Writes the cluster-wide equally known_hosts file.
 
   """
-  utils.WriteFile(file_name, mode=0700,
+  utils.WriteFile(file_name, mode=0600,
                   data="%s ssh-rsa %s\n" % (cfg.GetClusterName(),
                                             cfg.GetHostKey()))
