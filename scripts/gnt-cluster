@@ -187,7 +187,7 @@ def RedistributeConfig(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpRedistributeConf()
+  op = opcodes.OpRedistributeConfig()
   SubmitOrSend(op, opts)
   return 0
 

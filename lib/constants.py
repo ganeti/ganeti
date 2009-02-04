@@ -422,6 +422,8 @@ SS_MASTER_NETDEV = "master_netdev"
 SS_MASTER_NODE = "master_node"
 SS_NODE_LIST = "node_list"
 SS_OFFLINE_NODES = "offline_nodes"
+SS_ONLINE_NODES = "online_nodes"
+SS_INSTANCE_LIST = "instance_list"
 SS_RELEASE_VERSION = "release_version"
 
 # cluster wide default parameters

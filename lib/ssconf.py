@@ -133,6 +133,8 @@ class SimpleStore(object):
     constants.SS_MASTER_NODE,
     constants.SS_NODE_LIST,
     constants.SS_OFFLINE_NODES,
+    constants.SS_ONLINE_NODES,
+    constants.SS_INSTANCE_LIST,
     constants.SS_RELEASE_VERSION,
     )
   _MAX_SIZE = 131072
@@ -189,7 +191,7 @@ class SimpleStore(object):
       for name, value in values.iteritems():
         if value and not value.endswith("\n"):
           value += "\n"
-        utils.WriteFile(self.KeyToFilename(name), data=value)
+        utils.WriteFile(self.KeyToFilename(name), data=value, mode=0444)
     finally:
       ssconf_lock.Unlock()
 

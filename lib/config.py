@@ -646,6 +646,7 @@ class ConfigWriter:
 
     instance.serial_no = 1
     self._config_data.instances[instance.name] = instance
+    self._config_data.cluster.serial_no += 1
     self._UnlockedReleaseDRBDMinors(instance.name)
     self._WriteConfig()
 
@@ -680,6 +681,7 @@ class ConfigWriter:
     if instance_name not in self._config_data.instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % instance_name)
     del self._config_data.instances[instance_name]
+    self._config_data.cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -1064,10 +1066,13 @@ class ConfigWriter:
 
     """
     fn = "\n".join
+    instance_names = utils.NiceSort(self._UnlockedGetInstanceList())
     node_names = utils.NiceSort(self._UnlockedGetNodeList())
     node_info = [self._UnlockedGetNodeInfo(name) for name in node_names]
 
+    instance_data = fn(instance_names)
     off_data = fn(node.name for node in node_info if node.offline)
+    on_data = fn(node.name for node in node_info if not node.offline)
     mc_data = fn(node.name for node in node_info if node.master_candidate)
     node_data = fn(node_names)
 
@@ -1081,6 +1086,8 @@ class ConfigWriter:
       constants.SS_MASTER_NODE: cluster.master_node,
       constants.SS_NODE_LIST: node_data,
       constants.SS_OFFLINE_NODES: off_data,
+      constants.SS_ONLINE_NODES: on_data,
+      constants.SS_INSTANCE_LIST: instance_data,
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       }
 
