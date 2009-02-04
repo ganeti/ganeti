@@ -234,18 +234,20 @@ class ClientOps:
       return queue.QueryJobs(job_ids, fields)
 
     elif method == luxi.REQ_QUERY_INSTANCES:
-      (names, fields) = args
-      op = opcodes.OpQueryInstances(names=names, output_fields=fields)
+      (names, fields, use_locking) = args
+      op = opcodes.OpQueryInstances(names=names, output_fields=fields,
+                                    use_locking=use_locking)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_NODES:
-      (names, fields) = args
-      op = opcodes.OpQueryNodes(names=names, output_fields=fields)
+      (names, fields, use_locking) = args
+      op = opcodes.OpQueryNodes(names=names, output_fields=fields,
+                                use_locking=use_locking)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_EXPORTS:
-      nodes = args
-      op = opcodes.OpQueryExports(nodes=nodes)
+      nodes, use_locking = args
+      op = opcodes.OpQueryExports(nodes=nodes, use_locking=use_locking)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_CONFIG_VALUES:

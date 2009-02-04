@@ -3074,7 +3074,7 @@ class LUQueryInstances(NoHooksLU):
   """Logical unit for querying instances.
 
   """
-  _OP_REQP = ["output_fields", "names"]
+  _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet(*["name", "os", "pnode", "snodes",
                                     "admin_state", "admin_ram",
@@ -3108,7 +3108,8 @@ class LUQueryInstances(NoHooksLU):
     else:
       self.wanted = locking.ALL_SET
 
-    self.do_locking = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
+    self.do_node_query = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
+    self.do_locking = self.do_node_query and self.op.use_locking
     if self.do_locking:
       self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted
       self.needed_locks[locking.LEVEL_NODE] = []
@@ -3157,7 +3158,7 @@ class LUQueryInstances(NoHooksLU):
 
     bad_nodes = []
     off_nodes = []
-    if self.do_locking:
+    if self.do_node_query:
       live_data = {}
       node_data = self.rpc.call_all_instances_info(nodes, hv_list)
       for name in nodes:

@@ -357,14 +357,14 @@ class Client(object):
   def QueryJobs(self, job_ids, fields):
     return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))
 
-  def QueryInstances(self, names, fields):
-    return self.CallMethod(REQ_QUERY_INSTANCES, (names, fields))
+  def QueryInstances(self, names, fields, use_locking):
+    return self.CallMethod(REQ_QUERY_INSTANCES, (names, fields, use_locking))
 
-  def QueryNodes(self, names, fields):
-    return self.CallMethod(REQ_QUERY_NODES, (names, fields))
+  def QueryNodes(self, names, fields, use_locking):
+    return self.CallMethod(REQ_QUERY_NODES, (names, fields, use_locking))
 
-  def QueryExports(self, nodes):
-    return self.CallMethod(REQ_QUERY_EXPORTS, nodes)
+  def QueryExports(self, nodes, use_locking):
+    return self.CallMethod(REQ_QUERY_EXPORTS, (nodes, use_locking))
 
   def QueryConfigValues(self, fields):
     return self.CallMethod(REQ_QUERY_CONFIG_VALUES, fields)

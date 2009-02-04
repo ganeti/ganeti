@@ -76,7 +76,7 @@ def AddNode(opts, args):
 
   if not opts.readd:
     try:
-      output = cl.QueryNodes(names=[node], fields=['name'])
+      output = cl.QueryNodes(names=[node], fields=['name'], use_locking=True)
     except (errors.OpPrereqError, errors.OpExecError):
       pass
     else:
@@ -119,7 +119,7 @@ def ListNodes(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  output = GetClient().QueryNodes([], selected_fields)
+  output = GetClient().QueryNodes([], selected_fields, True)
 
   if not opts.no_headers:
     headers = _LIST_HEADERS
@@ -183,7 +183,8 @@ def EvacuateNode(opts, args):
   src_node = args[0]
 
   op = opcodes.OpQueryNodes(output_fields=selected_fields, names=[src_node])
-  result = cl.QueryNodes(names=[src_node], fields=selected_fields)
+  result = cl.QueryNodes(names=[src_node], fields=selected_fields,
+                         use_locking=True)
   src_node, sinst = result[0]
 
   if not sinst:
@@ -191,7 +192,7 @@ def EvacuateNode(opts, args):
     return constants.EXIT_SUCCESS
 
   if dst_node is not None:
-    result = cl.QueryNodes(names=[dst_node], fields=["name"])
+    result = cl.QueryNodes(names=[dst_node], fields=["name"], use_locking=True)
     dst_node = result[0][0]
 
     if src_node == dst_node:
@@ -276,7 +277,7 @@ def MigrateNode(opts, args):
   force = opts.force
   selected_fields = ["name", "pinst_list"]
 
-  result = cl.QueryNodes(names=args, fields=selected_fields)
+  result = cl.QueryNodes(names=args, fields=selected_fields, use_locking=True)
   node, pinst = result[0]
 
   if not pinst:

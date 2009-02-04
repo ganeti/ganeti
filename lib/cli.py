@@ -51,7 +51,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
            "ValidateBeParams", "ToStderr", "ToStdout", "UsesRPC",
-           "GetOnlineNodes", "JobExecutor",
+           "GetOnlineNodes", "JobExecutor", "SYNC_OPT",
            ]
 
 
@@ -189,6 +189,11 @@ SUBMIT_OPT = make_option("--submit", dest="submit_only",
                          default=False, action="store_true",
                          help="Submit the job and return the job ID, but"
                          " don't wait for the job to finish")
+
+SYNC_OPT = make_option("--sync", dest="do_locking",
+                       default=False, action="store_true",
+                       help="Grab locks while doing the queries"
+                       " in order to ensure more consistent results")
 
 
 def ARGS_FIXED(val):

@@ -319,7 +319,7 @@ class OpAddNode(OpCode):
 class OpQueryNodes(OpCode):
   """Compute the list of nodes."""
   OP_ID = "OP_NODE_QUERY"
-  __slots__ = ["output_fields", "names"]
+  __slots__ = ["output_fields", "names", "use_locking"]
 
 
 class OpQueryNodeVolumes(OpCode):
@@ -450,7 +450,7 @@ class OpDeactivateInstanceDisks(OpCode):
 class OpQueryInstances(OpCode):
   """Compute the list of instances."""
   OP_ID = "OP_INSTANCE_QUERY"
-  __slots__ = ["output_fields", "names"]
+  __slots__ = ["output_fields", "names", "use_locking"]
 
 
 class OpQueryInstanceData(OpCode):
@@ -488,7 +488,7 @@ class OpDiagnoseOS(OpCode):
 class OpQueryExports(OpCode):
   """Compute the list of exported images."""
   OP_ID = "OP_BACKUP_QUERY"
-  __slots__ = ["nodes"]
+  __slots__ = ["nodes", "use_locking"]
 
 
 class OpExportInstance(OpCode):

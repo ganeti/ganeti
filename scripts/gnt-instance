@@ -81,7 +81,7 @@ def _ExpandMultiNames(mode, names, client=None):
   if mode == _SHUTDOWN_CLUSTER:
     if names:
       raise errors.OpPrereqError("Cluster filter mode takes no arguments")
-    idata = client.QueryInstances([], ["name"])
+    idata = client.QueryInstances([], ["name"], False)
     inames = [row[0] for row in idata]
 
   elif mode in (_SHUTDOWN_NODES_BOTH,
@@ -89,7 +89,8 @@ def _ExpandMultiNames(mode, names, client=None):
                 _SHUTDOWN_NODES_SEC):
     if not names:
       raise errors.OpPrereqError("No node names passed")
-    ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"])
+    ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"],
+                              True)
     ipri = [row[1] for row in ndata]
     pri_names = list(itertools.chain(*ipri))
     isec = [row[2] for row in ndata]
@@ -106,7 +107,7 @@ def _ExpandMultiNames(mode, names, client=None):
   elif mode == _SHUTDOWN_INSTANCES:
     if not names:
       raise errors.OpPrereqError("No instance names passed")
-    idata = client.QueryInstances(names, ["name"])
+    idata = client.QueryInstances(names, ["name"], False)
     inames = [row[0] for row in idata]
 
   else:
@@ -191,7 +192,7 @@ def _EnsureInstancesExist(client, names):
   """
   # TODO: change LUQueryInstances to that it actually returns None
   # instead of raising an exception, or devise a better mechanism
-  result = client.QueryInstances(names, ["name"])
+  result = client.QueryInstances(names, ["name"], False)
   for orig_name, row in zip(names, result):
     if row[0] is None:
       raise errors.OpPrereqError("Instance '%s' does not exist" % orig_name)
@@ -214,7 +215,7 @@ def ListInstances(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  output = GetClient().QueryInstances(args, selected_fields)
+  output = GetClient().QueryInstances(args, selected_fields, opts.do_locking)
 
   if not opts.no_headers:
     headers = {
@@ -1370,7 +1371,7 @@ commands = {
             ], "[-s] [<instance>...]",
            "Show information on the specified instance(s)"),
   'list': (ListInstances, ARGS_ANY,
-           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
            "[<instance>...]",
            "Lists the instances and their status. The available fields are"
            " (see the man page for details): status, oper_state, oper_ram,"

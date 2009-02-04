@@ -208,11 +208,11 @@ class R_2_nodes(baserlib.R_Generic):
 
     """
     client = luxi.Client()
-    nodesdata = client.QueryNodes([], ["name"])
+    nodesdata = client.QueryNodes([], ["name"], True)
     nodeslist = [row[0] for row in nodesdata]
 
     if 'bulk' in self.queryargs:
-      bulkdata = client.QueryNodes(nodeslist, N_FIELDS)
+      bulkdata = client.QueryNodes(nodeslist, N_FIELDS, True)
       return baserlib.MapBulkFields(bulkdata, N_FIELDS)
 
     return baserlib.BuildUriList(nodeslist, "/2/nodes/%s",
@@ -292,12 +292,12 @@ class R_2_instances(baserlib.R_Generic):
 
     """
     client = luxi.Client()
-    instancesdata = client.QueryInstances([], ["name"])
+    instancesdata = client.QueryInstances([], ["name"], True)
     instanceslist = [row[0] for row in instancesdata]
 
 
     if 'bulk' in self.queryargs:
-      bulkdata = client.QueryInstances(instanceslist, I_FIELDS)
+      bulkdata = client.QueryInstances(instanceslist, I_FIELDS, True)
       return baserlib.MapBulkFields(bulkdata, I_FIELDS)
 
     else:

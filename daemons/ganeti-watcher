@@ -236,7 +236,7 @@ def GetInstanceList(with_secondaries=None):
   if with_secondaries is not None:
     fields.append("snodes")
 
-  result = client.QueryInstances([], fields)
+  result = client.QueryInstances([], fields, True)
 
   instances = []
   for fields in result:
@@ -264,7 +264,7 @@ def GetNodeBootIDs():
   """Get a dict mapping nodes to boot IDs.
 
   """
-  result = client.QueryNodes([], ["name", "bootid", "offline"])
+  result = client.QueryNodes([], ["name", "bootid", "offline"], True)
   return dict([(name, (bootid, offline)) for name, bootid, offline in result])
 
 
