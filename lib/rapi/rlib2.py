@@ -30,11 +30,17 @@ from ganeti import constants
 from ganeti.rapi import baserlib
 
 
-I_FIELDS = ["name", "os", "pnode", "snodes", "admin_state", "disk_template",
-            "ip", "mac", "bridge", "sda_size", "sdb_size", "beparams",
-            "oper_state", "status", "tags"]
+I_FIELDS = ["name", "admin_state", "os",
+            "pnode", "snodes",
+            "disk_template",
+            "nic.ips", "nic.macs", "nic.bridges",
+            "disk.sizes",
+            "beparams",
+            "oper_state", "oper_ram", "status",
+            "tags"]
 
-N_FIELDS = ["name", "dtotal", "dfree",
+N_FIELDS = ["name", "offline", "master_candidate",
+            "dtotal", "dfree",
             "mtotal", "mnode", "mfree",
             "pinst_cnt", "sinst_cnt", "tags"]
 
@@ -82,8 +88,8 @@ class R_2_info(baserlib.R_Generic):
       }
 
     """
-    op = ganeti.opcodes.OpQueryClusterInfo()
-    return ganeti.cli.SubmitOpCode(op)
+    client = luxi.Client()
+    return client.QueryClusterInfo()
 
 
 class R_2_os(baserlib.R_Generic):
@@ -125,7 +131,8 @@ class R_2_jobs(baserlib.R_Generic):
     fields = ["id"]
     # Convert the list of lists to the list of ids
     result = [job_id for [job_id] in luxi.Client().QueryJobs(None, fields)]
-    return baserlib.BuildUriList(result, "/2/jobs/%s", uri_fields=("id", "uri"))
+    return baserlib.BuildUriList(result, "/2/jobs/%s",
+                                 uri_fields=("id", "uri"))
 
 
 class R_2_jobs_id(baserlib.R_Generic):
@@ -199,7 +206,8 @@ class R_2_nodes(baserlib.R_Generic):
           "mnode": 512,
           "dtotal": 5246208,
           "sinst_cnt": 2,
-          "dfree": 5171712
+          "dfree": 5171712,
+          "offline": false
         },
         ...
       ]
@@ -208,15 +216,15 @@ class R_2_nodes(baserlib.R_Generic):
 
     """
     client = luxi.Client()
-    nodesdata = client.QueryNodes([], ["name"], True)
-    nodeslist = [row[0] for row in nodesdata]
 
     if 'bulk' in self.queryargs:
-      bulkdata = client.QueryNodes(nodeslist, N_FIELDS, True)
+      bulkdata = client.QueryNodes([], N_FIELDS, False)
       return baserlib.MapBulkFields(bulkdata, N_FIELDS)
-
-    return baserlib.BuildUriList(nodeslist, "/2/nodes/%s",
-                                 uri_fields=("id", "uri"))
+    else:
+      nodesdata = client.QueryNodes([], ["name"], False)
+      nodeslist = [row[0] for row in nodesdata]
+      return baserlib.BuildUriList(nodeslist, "/2/nodes/%s",
+                                   uri_fields=("id", "uri"))
 
 
 class R_2_nodes_name(baserlib.R_Generic):
@@ -230,9 +238,9 @@ class R_2_nodes_name(baserlib.R_Generic):
 
     """
     node_name = self.items[0]
-    op = ganeti.opcodes.OpQueryNodes(output_fields=N_FIELDS,
-                                     names=[node_name])
-    result = ganeti.cli.SubmitOpCode(op)
+    client = luxi.Client()
+    result = client.QueryNodes(names=[node_name], fields=N_FIELDS,
+                               use_locking=False)
 
     return baserlib.MapFields(N_FIELDS, result[0])
 
@@ -292,15 +300,14 @@ class R_2_instances(baserlib.R_Generic):
 
     """
     client = luxi.Client()
-    instancesdata = client.QueryInstances([], ["name"], True)
-    instanceslist = [row[0] for row in instancesdata]
 
 
     if 'bulk' in self.queryargs:
-      bulkdata = client.QueryInstances(instanceslist, I_FIELDS, True)
+      bulkdata = client.QueryInstances([], I_FIELDS, False)
       return baserlib.MapBulkFields(bulkdata, I_FIELDS)
-
     else:
+      instancesdata = client.QueryInstances([], ["name"], False)
+      instanceslist = [row[0] for row in instancesdata]
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
                                    uri_fields=("id", "uri"))
 
@@ -352,10 +359,10 @@ class R_2_instances_name(baserlib.R_Generic):
     """Send information about an instance.
 
     """
+    client = luxi.Client()
     instance_name = self.items[0]
-    op = ganeti.opcodes.OpQueryInstances(output_fields=I_FIELDS,
-                                         names=[instance_name])
-    result = ganeti.cli.SubmitOpCode(op)
+    result = client.QueryInstances(names=[instance_name], fields=I_FIELDS,
+                                   use_locking=False)
 
     return baserlib.MapFields(I_FIELDS, result[0])
 
