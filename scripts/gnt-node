@@ -119,7 +119,7 @@ def ListNodes(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  output = GetClient().QueryNodes([], selected_fields, True)
+  output = GetClient().QueryNodes([], selected_fields, opts.do_locking)
 
   if not opts.no_headers:
     headers = _LIST_HEADERS
@@ -495,7 +495,7 @@ commands = {
            "[<node_name>...]", "Show information about the node(s)"),
   'list': (ListNodes, ARGS_NONE,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT,
-            SUBMIT_OPT],
+            SUBMIT_OPT, SYNC_OPT],
            "", "Lists the nodes in the cluster. The available fields"
            " are (see the man page for details): %s"
            " The default field list is (in order): %s." %

@@ -1753,7 +1753,7 @@ class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
 
   """
-  _OP_REQP = ["output_fields", "names"]
+  _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet(
     "dtotal", "dfree",
@@ -1785,7 +1785,8 @@ class LUQueryNodes(NoHooksLU):
     else:
       self.wanted = locking.ALL_SET
 
-    self.do_locking = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
+    self.do_node_query = self._FIELDS_STATIC.NonMatching(self.op.output_fields)
+    self.do_locking = self.do_node_query and self.op.use_locking
     if self.do_locking:
       # if we don't request only static fields, we need to lock the nodes
       self.needed_locks[locking.LEVEL_NODE] = self.wanted
@@ -1820,7 +1821,7 @@ class LUQueryNodes(NoHooksLU):
 
     # begin data gathering
 
-    if self.do_locking:
+    if self.do_node_query:
       live_data = {}
       node_data = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
                                           self.cfg.GetHypervisorType())
