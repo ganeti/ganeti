@@ -28,6 +28,7 @@ import ganeti.opcodes
 
 from ganeti import luxi
 from ganeti import rapi
+from ganeti import http
 
 
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
@@ -173,3 +174,32 @@ class R_Generic(object):
 
     """
     return self.sn
+
+  def _checkIntVariable(self, name):
+    """Return the parsed value of an int argument.
+
+    """
+    val = self.queryargs.get(name, 0)
+    if isinstance(val, list):
+      if val:
+        val = val[0]
+      else:
+        val = 0
+    try:
+      val = int(val)
+    except (ValueError, TypeError), err:
+      raise http.HttpBadRequest(message="Invalid value for the"
+                                " '%s' parameter" % (name,))
+    return val
+
+  def useLocking(self):
+    """Check if the request specifies locking.
+
+    """
+    return self._checkIntVariable('lock')
+
+  def useBulk(self):
+    """Check if the request specifies bulk querying.
+
+    """
+    return self._checkIntVariable('bulk')

@@ -217,7 +217,7 @@ class R_2_nodes(baserlib.R_Generic):
     """
     client = luxi.Client()
 
-    if 'bulk' in self.queryargs:
+    if self.useBulk():
       bulkdata = client.QueryNodes([], N_FIELDS, False)
       return baserlib.MapBulkFields(bulkdata, N_FIELDS)
     else:
@@ -240,7 +240,7 @@ class R_2_nodes_name(baserlib.R_Generic):
     node_name = self.items[0]
     client = luxi.Client()
     result = client.QueryNodes(names=[node_name], fields=N_FIELDS,
-                               use_locking=False)
+                               use_locking=self.useLocking())
 
     return baserlib.MapFields(N_FIELDS, result[0])
 
@@ -301,12 +301,12 @@ class R_2_instances(baserlib.R_Generic):
     """
     client = luxi.Client()
 
-
-    if 'bulk' in self.queryargs:
-      bulkdata = client.QueryInstances([], I_FIELDS, False)
+    use_locking = self.useLocking()
+    if self.useBulk():
+      bulkdata = client.QueryInstances([], I_FIELDS, use_locking)
       return baserlib.MapBulkFields(bulkdata, I_FIELDS)
     else:
-      instancesdata = client.QueryInstances([], ["name"], False)
+      instancesdata = client.QueryInstances([], ["name"], use_locking)
       instanceslist = [row[0] for row in instancesdata]
       return baserlib.BuildUriList(instanceslist, "/2/instances/%s",
                                    uri_fields=("id", "uri"))
@@ -362,7 +362,7 @@ class R_2_instances_name(baserlib.R_Generic):
     client = luxi.Client()
     instance_name = self.items[0]
     result = client.QueryInstances(names=[instance_name], fields=I_FIELDS,
-                                   use_locking=False)
+                                   use_locking=self.useLocking())
 
     return baserlib.MapFields(I_FIELDS, result[0])
 
