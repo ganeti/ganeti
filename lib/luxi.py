@@ -54,6 +54,7 @@ REQ_QUERY_INSTANCES = "QueryInstances"
 REQ_QUERY_NODES = "QueryNodes"
 REQ_QUERY_EXPORTS = "QueryExports"
 REQ_QUERY_CONFIG_VALUES = "QueryConfigValues"
+REQ_QUERY_CLUSTER_INFO = "QueryClusterInfo"
 REQ_QUEUE_SET_DRAIN_FLAG = "SetDrainFlag"
 
 DEF_CTMO = 10
@@ -365,6 +366,9 @@ class Client(object):
 
   def QueryExports(self, nodes, use_locking):
     return self.CallMethod(REQ_QUERY_EXPORTS, (nodes, use_locking))
+
+  def QueryClusterInfo(self):
+    return self.CallMethod(REQ_QUERY_CLUSTER_INFO, ())
 
   def QueryConfigValues(self, fields):
     return self.CallMethod(REQ_QUERY_CONFIG_VALUES, fields)
