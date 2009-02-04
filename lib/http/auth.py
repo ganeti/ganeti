@@ -188,7 +188,7 @@ class HttpServerRequestAuthentication(object):
 
     return self.Authenticate(req, user, password)
 
-  def AuthenticateBasic(self, req, user, password):
+  def Authenticate(self, req, user, password):
     """Checks the password for a user.
 
     This function MUST be overriden by a subclass.

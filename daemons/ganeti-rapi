@@ -76,7 +76,8 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
 
     """
     if req.private is None:
-      (HandlerClass, items, args) = self._resmap.getController(req.request_path)
+      (HandlerClass, items, args) = \
+                     self._resmap.getController(req.request_path)
 
       ctx = RemoteApiRequestContext()
       ctx.handler = HandlerClass(items, args, req)
@@ -96,6 +97,16 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
       req.private = ctx
 
     return req.private
+
+  def GetAuthRealm(self, req):
+    """Override the auth realm for queries.
+
+    """
+    ctx = self._GetRequestContext(req)
+    if ctx.handler_access:
+      return self.AUTH_REALM
+    else:
+      return None
 
   def Authenticate(self, req, username, password):
     """Checks whether a user can access a resource.
