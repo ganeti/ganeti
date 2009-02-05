@@ -264,18 +264,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     vnc_bind_address = instance.hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
       kvm_cmd.extend(['-usbdevice', 'tablet'])
-      if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
-        display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
-        if vnc_bind_address == '0.0.0.0':
-          vnc_arg = ':%d' % (display)
+      if utils.IsValidIP(vnc_bind_address):
+        if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
+          display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
+          if vnc_bind_address == '0.0.0.0':
+            vnc_arg = ':%d' % (display)
+          else:
+            vnc_arg = '%s:%d' % (constants.HV_VNC_BIND_ADDRESS, display)
         else:
-          vnc_arg = '%s:%d' % (constants.HV_VNC_BIND_ADDRESS, display)
-        kvm_cmd.extend(['-vnc', vnc_arg])
+          logging.error("Network port is not a valid VNC display (%d < %d)."
+                        " Not starting VNC" %
+                        (instance.network_port,
+                         constants.HT_HVM_VNC_BASE_PORT))
+          vnc_arg = 'none'
       else:
-        logging.error("Network port is not a valid VNC display (%d < %d)."
-                      " Not starting VNC" %
-                      (instance.network_port, constants.HT_HVM_VNC_BASE_PORT))
-        kvm_cmd.extend(['-vnc', 'none'])
+        if os.path.isdir(vnc_bind_address):
+          vnc_arg = 'unix:%s/%s.vnc' % (vnc_bind_address, instance.name)
+        else:
+          vnc_arg = 'unix:%s' % vnc_bind_address
+      kvm_cmd.extend(['-vnc', vnc_arg])
     else:
       kvm_cmd.extend(['-nographic'])
 
@@ -683,9 +690,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
       if not utils.IsValidIP(vnc_bind_address):
-        raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
-                                   " like a valid IP address" %
-                                   vnc_bind_address)
+        if not os.path.isabs(vnc_bind_address):
+          raise errors.HypervisorError("The VNC bind address must be either"
+                                       " a valid IP address or an absolute"
+                                       " pathname. '%s' given" %
+                                       vnc_bind_address)
 
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
