@@ -169,15 +169,15 @@ def ParseOptions():
                     help="Port to run API (%s default)." %
                                  constants.RAPI_PORT,
                     default=constants.RAPI_PORT, type="int")
-  parser.add_option("-S", "--https", dest="ssl",
-                    help="Secure HTTP protocol with SSL",
-                    default=False, action="store_true")
+  parser.add_option("--no-ssl", dest="ssl",
+                    help="Do not secure HTTP protocol with SSL",
+                    default=True, action="store_false")
   parser.add_option("-K", "--ssl-key", dest="ssl_key",
                     help="SSL key",
-                    default=None, type="string")
+                    default=constants.RAPI_CERT_FILE, type="string")
   parser.add_option("-C", "--ssl-cert", dest="ssl_cert",
                     help="SSL certificate",
-                    default=None, type="string")
+                    default=constants.RAPI_CERT_FILE, type="string")
   parser.add_option("-f", "--foreground", dest="fork",
                     help="Don't detach from the current terminal",
                     default=True, action="store_false")
@@ -205,6 +205,13 @@ def main():
   if options.fork:
     utils.CloseFDs()
 
+  if options.ssl:
+    # Read SSL certificate
+    ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
+                                    ssl_cert_path=options.ssl_cert)
+  else:
+    ssl_params = None
+
   ssconf.CheckMaster(options.debug)
 
   if options.fork:
@@ -216,7 +223,8 @@ def main():
   utils.WritePidFile(constants.RAPI_PID)
   try:
     mainloop = daemon.Mainloop()
-    server = RemoteApiHttpServer(mainloop, "", options.port)
+    server = RemoteApiHttpServer(mainloop, "", options.port,
+                                 ssl_params=ssl_params, ssl_verify_peer=False)
     server.Start()
     try:
       mainloop.Run()
