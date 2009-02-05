@@ -944,9 +944,8 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False):
   if cl is None:
     cl = GetClient()
 
-  op = opcodes.OpQueryNodes(output_fields=["name", "offline"],
-                            names=nodes)
-  result = SubmitOpCode(op, cl=cl)
+  result = cl.QueryNodes(names=nodes, fields=["name", "offline"],
+                         use_locking=False)
   offline = [row[0] for row in result if row[1]]
   if offline and not nowarn:
     ToStderr("Note: skipping offline node(s): %s" % ", ".join(offline))

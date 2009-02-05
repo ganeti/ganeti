@@ -182,7 +182,6 @@ def EvacuateNode(opts, args):
   selected_fields = ["name", "sinst_list"]
   src_node = args[0]
 
-  op = opcodes.OpQueryNodes(output_fields=selected_fields, names=[src_node])
   result = cl.QueryNodes(names=[src_node], fields=selected_fields,
                          use_locking=True)
   src_node, sinst = result[0]
@@ -238,8 +237,10 @@ def FailoverNode(opts, args):
   force = opts.force
   selected_fields = ["name", "pinst_list"]
 
-  op = opcodes.OpQueryNodes(output_fields=selected_fields, names=args)
-  result = SubmitOpCode(op, cl=cl)
+  # these fields are static data anyway, so it doesn't matter, but
+  # locking=True should be safer
+  result = cl.QueryNodes(names=args, fields=selected_fields,
+                         use_locking=True)
   node, pinst = result[0]
 
   if not pinst:
@@ -320,10 +321,10 @@ def ShowNodeConfig(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpQueryNodes(output_fields=["name", "pip", "sip",
-                                           "pinst_list", "sinst_list"],
-                            names=args)
-  result = SubmitOpCode(op)
+  cl = GetClient()
+  result = cl.QueryNodes(fields=["name", "pip", "sip",
+                                 "pinst_list", "sinst_list"],
+                         names=args, use_locking=True)
 
   for name, primary_ip, secondary_ip, pinst, sinst in result:
     ToStdout("Node name: %s", name)
