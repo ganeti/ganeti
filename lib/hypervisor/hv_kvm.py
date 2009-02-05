@@ -55,6 +55,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_ACPI,
     constants.HV_SERIAL_CONSOLE,
     constants.HV_VNC_BIND_ADDRESS,
+    constants.HV_VNC_TLS,
+    constants.HV_VNC_X509,
+    constants.HV_VNC_X509_VERIFY,
     ]
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -277,11 +280,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                         (instance.network_port,
                          constants.HT_HVM_VNC_BASE_PORT))
           vnc_arg = 'none'
+
+        # Only allow tls and other option when not binding to a file, for now.
+        # kvm/qemu gets confused otherwise about the filename to use.
+        vnc_append = ''
+        if instance.hvparams[constants.HV_VNC_TLS]:
+          vnc_append = '%s,tls' % vnc_append
+          if instance.hvparams[constants.HV_VNC_X509_VERIFY]:
+            vnc_append = '%s,x509verify=%s' % (vnc_append,
+              instance.hvparams[constants.HV_VNC_X509])
+          elif instance.hvparams[constants.HV_VNC_X509]:
+            vnc_append = '%s,x509=%s' % (vnc_append,
+              instance.hvparams[constants.HV_VNC_X509])
+        vnc_arg = '%s%s' % (vnc_arg, vnc_append)
+
       else:
-        if os.path.isdir(vnc_bind_address):
-          vnc_arg = 'unix:%s/%s.vnc' % (vnc_bind_address, instance.name)
-        else:
-          vnc_arg = 'unix:%s' % vnc_bind_address
+        vnc_arg = 'unix:%s/%s.vnc' % (vnc_bind_address, instance.name)
+
       kvm_cmd.extend(['-vnc', vnc_arg])
     else:
       kvm_cmd.extend(['-nographic'])
@@ -696,6 +711,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                        " pathname. '%s' given" %
                                        vnc_bind_address)
 
+    if hvparams[constants.HV_VNC_X509_VERIFY] and \
+      not hvparams[constants.HV_VNC_X509]:
+        raise errors.HypervisorError("%s must be defined, if %s is" %
+                                     (constants.HV_VNC_X509,
+                                      constants.HV_VNC_X509_VERIFY))
+
+    if hvparams[constants.HV_VNC_X509]:
+      if not os.path.isabs(hvparams[constants.HV_VNC_X509]):
+        raise errors.HypervisorError("The vnc x509 path must an absolute path"
+                                     ", if defined")
+
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
 
@@ -713,3 +739,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if initrd_path and not os.path.isfile(initrd_path):
       raise errors.HypervisorError("Instance initrd '%s' not found or"
                                    " not a file" % initrd_path)
+
+    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
+    if vnc_bind_address and not utils.IsValidIP(vnc_bind_address) and \
+       not os.path.isdir(vnc_bind_address):
+       raise errors.HypervisorError("Instance vnc bind address must be either"
+                                    " an ip address or an existing directory")
+
+    vnc_x509 = hvparams[constants.HV_VNC_X509]
+    if vnc_x509 and not os.path.isdir(vnc_x509):
+      raise errors.HypervisorError("Instance vnc x509 path '%s' not found"
+                                   " or not a directory" % vnc_x509)
+

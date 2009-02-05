@@ -283,6 +283,9 @@ HV_CDROM_IMAGE_PATH = "cdrom_image_path"
 HV_NIC_TYPE = "nic_type"
 HV_DISK_TYPE = "disk_type"
 HV_VNC_BIND_ADDRESS = "vnc_bind_address"
+HV_VNC_TLS = "vnc_tls"
+HV_VNC_X509 = "vnc_x509_path"
+HV_VNC_X509_VERIFY = "vnc_x509_verify"
 HV_ACPI = "acpi"
 HV_PAE = "pae"
 HV_KERNEL_PATH = "kernel_path"
@@ -296,6 +299,9 @@ HVS_PARAMETERS = frozenset([
   HV_NIC_TYPE,
   HV_DISK_TYPE,
   HV_VNC_BIND_ADDRESS,
+  HV_VNC_TLS,
+  HV_VNC_X509,
+  HV_VNC_X509_VERIFY,
   HV_ACPI,
   HV_PAE,
   HV_KERNEL_PATH,
@@ -451,6 +457,9 @@ HVC_DEFAULTS = {
     HV_ACPI: True,
     HV_SERIAL_CONSOLE: True,
     HV_VNC_BIND_ADDRESS: None,
+    HV_VNC_TLS: False,
+    HV_VNC_X509: '',
+    HV_VNC_X509_VERIFY: False,
     },
   HT_FAKE: {
     },
