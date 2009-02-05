@@ -74,8 +74,9 @@ def SetupCluster():
   """Initializes the cluster.
 
   """
-  RunTest(qa_cluster.TestClusterInit)
-  RunTest(qa_node.TestNodeAddAll)
+  if qa_config.TestEnabled('create-cluster'):
+    RunTest(qa_cluster.TestClusterInit)
+    RunTest(qa_node.TestNodeAddAll)
   if qa_config.TestEnabled('node-info'):
     RunTest(qa_node.TestNodeInfo)
 
@@ -308,7 +309,8 @@ def main():
   finally:
     qa_config.ReleaseNode(pnode)
 
-  RunTest(qa_node.TestNodeRemoveAll)
+  if qa_config.TestEnabled('create-cluster'):
+    RunTest(qa_node.TestNodeRemoveAll)
 
   if qa_config.TestEnabled('cluster-destroy'):
     RunTest(qa_cluster.TestClusterDestroy)

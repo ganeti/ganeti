@@ -35,7 +35,7 @@ I_FIELDS = ["name", "admin_state", "os",
             "disk_template",
             "nic.ips", "nic.macs", "nic.bridges",
             "disk.sizes",
-            "beparams",
+            "beparams", "hvparams",
             "oper_state", "oper_ram", "status",
             "tags"]
 

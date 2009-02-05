@@ -41,10 +41,11 @@ NoProxyOpener = urllib2.build_opener(urllib2.ProxyHandler({}))
 
 
 INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
-                   "admin_state", "admin_ram",
-                   "disk_template", "ip", "mac", "bridge",
-                   "sda_size", "sdb_size", "vcpus",
-                   "oper_state", "status", "tags")
+                   "admin_state",
+                   "disk_template", "disk.sizes",
+                   "nic.ips", "nic.macs", "nic.bridges",
+                   "beparams", "hvparams",
+                   "oper_state", "oper_ram", "status", "tags")
 
 NODE_FIELDS = ("name", "dtotal", "dfree",
                "mtotal", "mnode", "mfree",
@@ -119,8 +120,8 @@ def TestEmptyCluster():
 
   def _VerifyNodes(data):
     master_entry = {
-      "name": master_name,
-      "uri": "/nodes/%s" % master_name,
+      "id": master_name,
+      "uri": "/2/nodes/%s" % master_name,
       }
     AssertIn(master_entry, data)
 
@@ -131,13 +132,13 @@ def TestEmptyCluster():
 
   _DoTests([
     ("/", None),
-    ("/info", _VerifyInfo),
-    ("/tags", None),
-    ("/nodes", _VerifyNodes),
-    ("/nodes?bulk=1", _VerifyNodesBulk),
-    ("/instances", []),
-    ("/instances?bulk=1", []),
-    ("/os", None),
+    ("/2/info", _VerifyInfo),
+    ("/2/tags", None),
+    ("/2/nodes", _VerifyNodes),
+    ("/2/nodes?bulk=1", _VerifyNodesBulk),
+    ("/2/instances", []),
+    ("/2/instances?bulk=1", []),
+    ("/2/os", None),
     ])
 
 
@@ -159,9 +160,9 @@ def TestInstance(instance):
       _VerifyInstance(instance_data)
 
   _DoTests([
-    ("/instances/%s" % instance["name"], _VerifyInstance),
-    ("/instances", _VerifyInstancesList),
-    ("/instances?bulk=1", _VerifyInstancesBulk),
+    ("/2/instances/%s" % instance["name"], _VerifyInstance),
+    ("/2/instances", _VerifyInstancesList),
+    ("/2/instances?bulk=1", _VerifyInstancesBulk),
     ])
 
 
@@ -183,9 +184,9 @@ def TestNode(node):
       _VerifyNode(node_data)
 
   _DoTests([
-    ("/nodes/%s" % node["primary"], _VerifyNode),
-    ("/nodes", _VerifyNodesList),
-    ("/nodes?bulk=1", _VerifyNodesBulk),
+    ("/2/nodes/%s" % node["primary"], _VerifyNode),
+    ("/2/nodes", _VerifyNodesList),
+    ("/2/nodes?bulk=1", _VerifyNodesBulk),
     ])
 
 
@@ -194,11 +195,11 @@ def TestTags(kind, name, tags):
 
   """
   if kind == constants.TAG_CLUSTER:
-    uri = "/tags"
+    uri = "/2/tags"
   elif kind == constants.TAG_NODE:
-    uri = "/nodes/%s/tags" % name
+    uri = "/2/nodes/%s/tags" % name
   elif kind == constants.TAG_INSTANCE:
-    uri = "/instances/%s/tags" % name
+    uri = "/2/instances/%s/tags" % name
   else:
     raise errors.ProgrammerError("Unknown tag kind")
 

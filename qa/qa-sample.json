@@ -38,6 +38,7 @@
     "tags": true,
     "rapi": true,
 
+    "create-cluster": true,
     "cluster-verify": true,
     "cluster-info": true,
     "cluster-burnin": true,
