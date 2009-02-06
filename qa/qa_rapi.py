@@ -81,7 +81,7 @@ def _DoTests(uris):
   for uri, verify in uris:
     assert uri.startswith("/")
 
-    url = "http://%s:%s%s" % (host, port, uri)
+    url = "https://%s:%s%s" % (host, port, uri)
 
     print "Testing %s ..." % url
 
