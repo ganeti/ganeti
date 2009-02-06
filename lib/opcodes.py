@@ -423,6 +423,7 @@ class OpMigrateInstance(OpCode):
 
   """
   OP_ID = "OP_INSTANCE_MIGRATE"
+  OP_DSC_FIELD = "instance_name"
   __slots__ = ["instance_name", "live", "cleanup"]
 
 

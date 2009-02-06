@@ -154,9 +154,14 @@ class R_2_jobs_id(baserlib.R_Generic):
             - opresult: OpCodes results as a list of lists
 
     """
-    fields = ["id", "ops", "status", "opstatus", "opresult"]
+    fields = ["id", "ops", "status", "summary",
+              "opstatus", "opresult", "oplog",
+              "received_ts", "start_ts", "end_ts",
+              ]
     job_id = self.items[0]
     result = luxi.Client().QueryJobs([job_id, ], fields)[0]
+    if result is None:
+      raise http.HttpNotFound()
     return baserlib.MapFields(fields, result)
 
   def DELETE(self):
