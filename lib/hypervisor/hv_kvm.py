@@ -240,6 +240,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                      " are not supported by KVM")
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
       if boot_disk:
+        kvm_cmd.extend(['-boot', 'c'])
         boot_val = ',boot=on'
         boot_disk = False
       else:
@@ -253,9 +254,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     iso_image = instance.hvparams[constants.HV_CDROM_IMAGE_PATH]
     if iso_image:
-      options = ',format=raw,if=virtio,media=cdrom'
+      options = ',format=raw,media=cdrom'
       if boot_cdrom:
+        kvm_cmd.extend(['-boot', 'd'])
         options = '%s,boot=on' % options
+      else:
+        options = '%s,if=virtio' % options
       drive_val = 'file=%s%s' % (iso_image, options)
       kvm_cmd.extend(['-drive', drive_val])
 
