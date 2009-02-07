@@ -493,7 +493,7 @@ class XenHvmHypervisor(XenHypervisor):
     super(XenHvmHypervisor, cls).CheckParameterSyntax(hvparams)
     # boot order verification
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if len(boot_order.strip("acdn")) != 0:
+    if not boot_order or len(boot_order.strip("acdn")) != 0:
       raise errors.HypervisorError("Invalid boot order '%s' specified,"
                                    " must be one or more of [acdn]" %
                                    boot_order)
@@ -567,10 +567,7 @@ class XenHvmHypervisor(XenHypervisor):
       config.write("device_model = '/usr/lib64/xen/bin/qemu-dm'\n")
     else:
       config.write("device_model = '/usr/lib/xen/bin/qemu-dm'\n")
-    if instance.hvparams[constants.HV_BOOT_ORDER] is None:
-      config.write("boot = '%s'\n" % constants.HT_HVM_DEFAULT_BOOT_ORDER)
-    else:
-      config.write("boot = '%s'\n" % instance.hvparams["boot_order"])
+    config.write("boot = '%s'\n" % instance.hvparams[constants.HV_BOOT_ORDER])
     config.write("sdl = 0\n")
     config.write("usb = 1\n")
     config.write("usbdevice = 'tablet'\n")

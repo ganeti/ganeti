@@ -334,7 +334,6 @@ HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
 HTS_USE_VNC = frozenset([HT_XEN_HVM, HT_KVM])
 
 HT_HVM_VNC_BASE_PORT = 5900
-HT_HVM_DEFAULT_BOOT_ORDER = 'dc'
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
 VNC_DEFAULT_BIND_ADDRESS = '0.0.0.0'
 
