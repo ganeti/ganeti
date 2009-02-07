@@ -58,6 +58,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VNC_TLS,
     constants.HV_VNC_X509,
     constants.HV_VNC_X509_VERIFY,
+    constants.HV_CDROM_IMAGE_PATH,
+    constants.HV_BOOT_ORDER,
     ]
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -230,15 +232,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(['-no-acpi'])
 
-    boot_drive = True
+    boot_disk = (instance.hvparams[constants.HV_BOOT_ORDER] == "disk")
+    boot_cdrom = (instance.hvparams[constants.HV_BOOT_ORDER] == "cdrom")
     for cfdev, dev_path in block_devices:
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
       # TODO: handle FD_LOOP and FD_BLKTAP (?)
-      if boot_drive:
+      if boot_disk:
         boot_val = ',boot=on'
-        boot_drive = False
+        boot_disk = False
       else:
         boot_val = ''
 
@@ -246,6 +249,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if_val = ',if=virtio'
 
       drive_val = 'file=%s,format=raw%s%s' % (dev_path, if_val, boot_val)
+      kvm_cmd.extend(['-drive', drive_val])
+
+    iso_image = instance.hvparams[constants.HV_CDROM_IMAGE_PATH]
+    if iso_image:
+      options = ',format=raw,if=virtio,media=cdrom'
+      if boot_cdrom:
+        options = '%s,boot=on' % options
+      drive_val = 'file=%s%s' % (iso_image, options)
       kvm_cmd.extend(['-drive', drive_val])
 
     kernel_path = instance.hvparams[constants.HV_KERNEL_PATH]
@@ -259,9 +270,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         kvm_cmd.extend(['-append', 'console=ttyS0,38400 %s' % root_append])
       else:
         kvm_cmd.extend(['-append', root_append])
-
-    #"hvm_boot_order",
-    #"hvm_cdrom_image_path",
 
     # FIXME: handle vnc password
     vnc_bind_address = instance.hvparams[constants.HV_VNC_BIND_ADDRESS]
@@ -722,6 +730,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("The vnc x509 path must an absolute path"
                                      ", if defined")
 
+    iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
+    if iso_path and not os.path.isabs(iso_path):
+      raise errors.HypervisorError("The path to the CDROM image must be"
+                                   " an absolute path, if defined")
+
+    boot_order = hvparams[constants.HV_BOOT_ORDER]
+    if boot_order not in ('cdrom', 'disk'):
+      raise errors.HypervisorError("The boot order must be 'cdrom' or 'disk'")
+
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
 
@@ -750,4 +767,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if vnc_x509 and not os.path.isdir(vnc_x509):
       raise errors.HypervisorError("Instance vnc x509 path '%s' not found"
                                    " or not a directory" % vnc_x509)
+
+    iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
+    if iso_path and not os.path.isfile(iso_path):
+      raise errors.HypervisorError("Instance cdrom image '%s' not found or"
+                                   " not a file" % iso_path)
+
 

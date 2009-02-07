@@ -459,6 +459,8 @@ HVC_DEFAULTS = {
     HV_VNC_TLS: False,
     HV_VNC_X509: '',
     HV_VNC_X509_VERIFY: False,
+    HV_CDROM_IMAGE_PATH: None,
+    HV_BOOT_ORDER: "disk",
     },
   HT_FAKE: {
     },
