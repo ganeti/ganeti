@@ -739,6 +739,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if boot_order not in ('cdrom', 'disk'):
       raise errors.HypervisorError("The boot order must be 'cdrom' or 'disk'")
 
+    if boot_order == 'cdrom' and not iso_path:
+      raise errors.HypervisorError("Cannot boot from cdrom without an ISO path")
+
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
 
