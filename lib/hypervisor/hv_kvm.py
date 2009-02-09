@@ -60,6 +60,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VNC_X509_VERIFY,
     constants.HV_CDROM_IMAGE_PATH,
     constants.HV_BOOT_ORDER,
+    constants.HV_NIC_TYPE,
+    constants.HV_DISK_TYPE,
     ]
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -748,6 +750,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     if boot_order == 'cdrom' and not iso_path:
       raise errors.HypervisorError("Cannot boot from cdrom without an ISO path")
+
+    nic_type = hvparams[constants.HV_NIC_TYPE]
+    if nic_type not in constants.HT_KVM_VALID_NIC_TYPES:
+      raise errors.HypervisorError("Invalid NIC type %s specified for the KVM"
+                                   " hypervisor. Please choose one of: %s" %
+                                   (nic_type,
+                                    constants.HT_KVM_VALID_NIC_TYPES))
+
+    disk_type = hvparams[constants.HV_DISK_TYPE]
+    if disk_type not in constants.HT_KVM_VALID_DISK_TYPES:
+      raise errors.HypervisorError("Invalid disk type %s specified for the KVM"
+                                   " hypervisor. Please choose one of: %s" %
+                                   (disk_type,
+                                    constants.HT_KVM_VALID_DISK_TYPES))
 
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
