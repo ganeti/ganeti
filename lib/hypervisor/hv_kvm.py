@@ -280,8 +280,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if vnc_bind_address:
       kvm_cmd.extend(['-usbdevice', 'tablet'])
       if utils.IsValidIP(vnc_bind_address):
-        if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
-          display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
+        if instance.network_port > constants.VNC_BASE_PORT:
+          display = instance.network_port - constants.VNC_BASE_PORT
           if vnc_bind_address == '0.0.0.0':
             vnc_arg = ':%d' % (display)
           else:
@@ -290,7 +290,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           logging.error("Network port is not a valid VNC display (%d < %d)."
                         " Not starting VNC" %
                         (instance.network_port,
-                         constants.HT_HVM_VNC_BASE_PORT))
+                         constants.VNC_BASE_PORT))
           vnc_arg = 'none'
 
         # Only allow tls and other option when not binding to a file, for now.
@@ -666,8 +666,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      if instance.network_port > constants.HT_HVM_VNC_BASE_PORT:
-        display = instance.network_port - constants.HT_HVM_VNC_BASE_PORT
+      if instance.network_port > constants.VNC_BASE_PORT:
+        display = instance.network_port - constants.VNC_BASE_PORT
         vnc_command = ("echo 'Instance has VNC listening on %s:%d"
                        " (display: %d)'" % (vnc_bind_address,
                                             instance.network_port,
