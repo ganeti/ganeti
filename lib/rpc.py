@@ -104,13 +104,17 @@ class RpcResult(object):
     if offline:
       self.failed = True
       self.error = "Node is marked offline"
-      self.data = None
+      self.data = self.payload = None
     elif failed:
       self.error = data
-      self.data = None
+      self.data = self.payload = None
     else:
       self.data = data
       self.error = None
+      if isinstance(data, (tuple, list)) and len(data) == 2:
+        self.payload = data[1]
+      else:
+        self.payload = None
 
   def Raise(self):
     """If the result has failed, raise an OpExecError.
