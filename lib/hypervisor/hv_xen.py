@@ -617,7 +617,7 @@ class XenHvmHypervisor(XenHypervisor):
     if nic_type is None:
       # ensure old instances don't change
       nic_type_str = ", type=ioemu"
-    elif nic_type == constants.HT_HVM_DEV_PARAVIRTUAL:
+    elif nic_type == constants.HT_NIC_PARAVIRTUAL:
       nic_type_str = ", type=paravirtualized"
     else:
       nic_type_str = ", model=%s, type=ioemu" % nic_type
@@ -632,7 +632,7 @@ class XenHvmHypervisor(XenHypervisor):
     disk_data = cls._GetConfigFileDiskData(instance.disk_template,
                                             block_devices)
     disk_type = instance.hvparams[constants.HV_DISK_TYPE]
-    if disk_type in (None, constants.HT_HVM_DEV_IOEMU):
+    if disk_type in (None, constants.HT_DISK_IOEMU):
       replacement = ",ioemu:hd"
     else:
       replacement = ",hd"

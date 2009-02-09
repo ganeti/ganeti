@@ -337,16 +337,15 @@ VNC_BASE_PORT = 5900
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
 VNC_DEFAULT_BIND_ADDRESS = '0.0.0.0'
 
-# HVM NIC types
-HT_HVM_NIC_RTL8139 = "rtl8139"
-HT_HVM_NIC_NE2K_PCI = "ne2k_pci"
-HT_HVM_NIC_NE2K_ISA = "ne2k_isa"
-HT_HVM_DEV_PARAVIRTUAL = "paravirtual"
-HT_HVM_DEV_IOEMU = "ioemu"
-HT_HVM_VALID_NIC_TYPES = frozenset([HT_HVM_NIC_RTL8139, HT_HVM_NIC_NE2K_PCI,
-                                    HT_HVM_NIC_NE2K_ISA,
-                                    HT_HVM_DEV_PARAVIRTUAL])
-HT_HVM_VALID_DISK_TYPES = frozenset([HT_HVM_DEV_PARAVIRTUAL, HT_HVM_DEV_IOEMU])
+# Device types
+HT_NIC_RTL8139 = "rtl8139"
+HT_NIC_NE2K_PCI = "ne2k_pci"
+HT_NIC_NE2K_ISA = "ne2k_isa"
+HT_NIC_PARAVIRTUAL = HT_DISK_PARAVIRTUAL = "paravirtual"
+HT_DISK_IOEMU = "ioemu"
+HT_HVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
+                                    HT_NIC_NE2K_ISA, HT_NIC_PARAVIRTUAL])
+HT_HVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IOEMU])
 
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
@@ -443,8 +442,8 @@ HVC_DEFAULTS = {
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
     HV_CDROM_IMAGE_PATH: None,
-    HV_NIC_TYPE: HT_HVM_NIC_RTL8139,
-    HV_DISK_TYPE: HT_HVM_DEV_PARAVIRTUAL,
+    HV_NIC_TYPE: HT_NIC_RTL8139,
+    HV_DISK_TYPE: HT_DEV_PARAVIRTUAL,
     HV_VNC_BIND_ADDRESS: '0.0.0.0',
     HV_ACPI: True,
     HV_PAE: True,
