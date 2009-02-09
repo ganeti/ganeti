@@ -2335,7 +2335,10 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
   if multimaster:
     # change to primary mode
     for rd in bdevs:
-      rd.Open()
+      try:
+        rd.Open()
+      except errors.BlockDeviceError, err:
+        return (False, "Can't change to primary mode: %s" % str(err))
   if multimaster:
     msg = "multi-master and primary"
   else:
