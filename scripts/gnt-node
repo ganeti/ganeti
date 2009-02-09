@@ -50,7 +50,7 @@ _LIST_HEADERS = {
   "dtotal": "DTotal", "dfree": "DFree",
   "mtotal": "MTotal", "mnode": "MNode", "mfree": "MFree",
   "bootid": "BootID",
-  "ctotal": "CTotal",
+  "ctotal": "CTotal", "cnodes": "CNodes", "csockets": "CSockets",
   "tags": "Tags",
   "serial_no": "SerialNo",
   "master_candidate": "MasterC",

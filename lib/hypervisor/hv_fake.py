@@ -200,6 +200,9 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list node info: %s" % err)
     result['cpu_total'] = cpu_total
+    # FIXME: export correct data here
+    result['cpu_nodes'] = 1
+    result['cpu_sockets'] = 1
 
     return result
 

@@ -42,7 +42,9 @@ I_FIELDS = ["name", "admin_state", "os",
 N_FIELDS = ["name", "offline", "master_candidate",
             "dtotal", "dfree",
             "mtotal", "mnode", "mfree",
-            "pinst_cnt", "sinst_cnt", "tags"]
+            "pinst_cnt", "sinst_cnt", "tags",
+            "ctotal", "cnodes", "csockets",
+            ]
 
 
 class R_version(baserlib.R_Generic):
