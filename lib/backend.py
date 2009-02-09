@@ -669,7 +669,7 @@ def GetAllInstancesInfo(hypervisor_list):
   return output
 
 
-def AddOSToInstance(instance):
+def InstanceOsAdd(instance):
   """Add an OS to an instance.
 
   @type instance: L{objects.Instance}
@@ -678,7 +678,15 @@ def AddOSToInstance(instance):
   @return: the success of the operation
 
   """
-  inst_os = OSFromDisk(instance.os)
+  try:
+    inst_os = OSFromDisk(instance.os)
+  except errors.InvalidOS, err:
+    os_name, os_dir, os_err = err.args
+    if os_dir is None:
+      return (False, "Can't find OS '%s': %s" % (os_name, os_err))
+    else:
+      return (False, "Error parsing OS '%s' in directory %s: %s" %
+              (os_name, os_dir, os_err))
 
   create_env = OSEnvironment(instance)
 
