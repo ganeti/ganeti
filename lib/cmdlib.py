@@ -2287,11 +2287,9 @@ class LUSetNodeParams(LogicalUnit):
       result.append(("master_candidate", str(self.op.master_candidate)))
       if self.op.master_candidate == False:
         rrc = self.rpc.call_node_demote_from_mc(node.name)
-        if (rrc.failed or not isinstance(rrc.data, (tuple, list))
-            or len(rrc.data) != 2):
-          self.LogWarning("Node rpc error: %s" % rrc.error)
-        elif not rrc.data[0]:
-          self.LogWarning("Node failed to demote itself: %s" % rrc.data[1])
+        msg = rrc.RemoteFailMsg()
+        if msg:
+          self.LogWarning("Node failed to demote itself: %s" % msg)
 
     # this will trigger configuration file update, if needed
     self.cfg.Update(node)
@@ -3535,7 +3533,7 @@ class LUMigrateInstance(LogicalUnit):
         if msg:
           raise errors.OpExecError("Cannot resync disks on node %s: %s" %
                                    (node, msg))
-        node_done, node_percent = nres.data[1]
+        node_done, node_percent = nres.payload
         all_done = all_done and node_done
         if node_percent is not None:
           min_percent = min(min_percent, node_percent)
@@ -3721,11 +3719,11 @@ class LUMigrateInstance(LogicalUnit):
     msg = result.RemoteFailMsg()
     if msg:
       log_err = ("Failed fetching source migration information from %s: %s" %
-                  (source_node, msg))
+                 (source_node, msg))
       logging.error(log_err)
       raise errors.OpExecError(log_err)
 
-    self.migration_info = migration_info = result.data[1]
+    self.migration_info = migration_info = result.payload
 
     # Then switch the disks to master/master mode
     self._EnsureSecondary(target_node)
@@ -3877,7 +3875,7 @@ def _CreateSingleBlockDev(lu, node, instance, device, info, force_open):
                              " node %s for instance %s: %s" %
                              (device, node, instance.name, msg))
   if device.physical_id is None:
-    device.physical_id = result.data[1]
+    device.physical_id = result.payload
 
 
 def _GenerateUniqueNames(lu, exts):
@@ -4108,13 +4106,10 @@ def _CheckHVParams(lu, nodenames, hvname, hvparams):
     info = hvinfo[node]
     if info.offline:
       continue
-    info.Raise()
-    if not info.data or not isinstance(info.data, (tuple, list)):
-      raise errors.OpPrereqError("Cannot get current information"
-                                 " from node '%s' (%s)" % (node, info.data))
-    if not info.data[0]:
+    msg = info.RemoteFailMsg()
+    if msg:
       raise errors.OpPrereqError("Hypervisor parameter validation failed:"
-                                 " %s" % info.data[1])
+                                 " %s" % msg)
 
 
 class LUCreateInstance(LogicalUnit):
@@ -5346,13 +5341,10 @@ class LUGrowDisk(LogicalUnit):
     for node in instance.all_nodes:
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, disk, self.op.amount)
-      result.Raise()
-      if (not result.data or not isinstance(result.data, (list, tuple)) or
-          len(result.data) != 2):
-        raise errors.OpExecError("Grow request failed to node %s" % node)
-      elif not result.data[0]:
+      msg = result.RemoteFailMsg()
+      if msg:
         raise errors.OpExecError("Grow request failed to node %s: %s" %
-                                 (node, result.data[1]))
+                                 (node, msg))
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance)
     if self.op.wait_for_sync:
