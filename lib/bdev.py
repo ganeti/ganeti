@@ -33,6 +33,38 @@ from ganeti import errors
 from ganeti import constants
 
 
+def _IgnoreError(fn, *args, **kwargs):
+  """Executes the given function, ignoring BlockDeviceErrors.
+
+  This is used in order to simplify the execution of cleanup or
+  rollback functions.
+
+  @rtype: boolean
+  @return: True when fn didn't raise an exception, False otherwise
+
+  """
+  try:
+    fn(*args, **kwargs)
+    return True
+  except errors.BlockDeviceError, err:
+    logging.warning("Caught BlockDeviceError but ignoring: %s" % str(err))
+    return False
+
+
+def _ThrowError(msg, *args):
+  """Log an error to the node daemon and the raise an exception.
+
+  @type msg: string
+  @param msg: the text of the exception
+  @raise errors.BlockDeviceError
+
+  """
+  if args:
+    msg = msg % args
+  logging.error(msg)
+  raise errors.BlockDeviceError(msg)
+
+
 class BlockDev(object):
   """Block device abstract class.
 
@@ -280,8 +312,7 @@ class LogicalVolume(BlockDev):
     vg_name, lv_name = unique_id
     pvs_info = cls.GetPVInfo(vg_name)
     if not pvs_info:
-      raise errors.BlockDeviceError("Can't compute PV info for vg %s" %
-                                    vg_name)
+      _ThrowError("Can't compute PV info for vg %s", vg_name)
     pvs_info.sort()
     pvs_info.reverse()
 
@@ -291,13 +322,13 @@ class LogicalVolume(BlockDev):
     # The size constraint should have been checked from the master before
     # calling the create function.
     if free_size < size:
-      raise errors.BlockDeviceError("Not enough free space: required %s,"
-                                    " available %s" % (size, free_size))
+      _ThrowError("Not enough free space: required %s,"
+                  " available %s", size, free_size)
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-n%s" % lv_name,
                            vg_name] + pvlist)
     if result.failed:
-      raise errors.BlockDeviceError("LV create failed (%s): %s" %
-                                    (result.fail_reason, result.output))
+      _ThrowError("LV create failed (%s): %s",
+                  result.fail_reason, result.output)
     return LogicalVolume(unique_id, children)
 
   @staticmethod
@@ -359,8 +390,7 @@ class LogicalVolume(BlockDev):
                                    (self._vg_name, new_vg))
     result = utils.RunCmd(["lvrename", new_vg, self._lv_name, new_name])
     if result.failed:
-      raise errors.BlockDeviceError("Failed to rename the logical volume: %s" %
-                                    result.output)
+      _ThrowError("Failed to rename the logical volume: %s", result.output)
     self._lv_name = new_name
     self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
 
@@ -480,21 +510,19 @@ class LogicalVolume(BlockDev):
 
     pvs_info = self.GetPVInfo(self._vg_name)
     if not pvs_info:
-      raise errors.BlockDeviceError("Can't compute PV info for vg %s" %
-                                    self._vg_name)
+      _ThrowError("Can't compute PV info for vg %s", self._vg_name)
     pvs_info.sort()
     pvs_info.reverse()
     free_size, pv_name = pvs_info[0]
     if free_size < size:
-      raise errors.BlockDeviceError("Not enough free space: required %s,"
-                                    " available %s" % (size, free_size))
+      _ThrowError("Not enough free space: required %s,"
+                  " available %s", size, free_size)
 
     result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-s",
                            "-n%s" % snap_name, self.dev_path])
     if result.failed:
-      raise errors.BlockDeviceError("command: %s error: %s - %s" %
-                                    (result.cmd, result.fail_reason,
-                                     result.output))
+      _ThrowError("command: %s error: %s - %s",
+                  result.cmd, result.fail_reason, result.output)
 
     return snap_name
 
@@ -514,9 +542,9 @@ class LogicalVolume(BlockDev):
     result = utils.RunCmd(["lvchange", "--addtag", text,
                            self.dev_path])
     if result.failed:
-      raise errors.BlockDeviceError("Command: %s error: %s - %s" %
-                                    (result.cmd, result.fail_reason,
-                                     result.output))
+      _ThrowError("Command: %s error: %s - %s", result.cmd, result.fail_reason,
+                  result.output)
+
   def Grow(self, amount):
     """Grow the logical volume.
 
@@ -530,8 +558,7 @@ class LogicalVolume(BlockDev):
                              "-L", "+%dm" % amount, self.dev_path])
       if not result.failed:
         return
-    raise errors.BlockDeviceError("Can't grow LV %s: %s" %
-                                  (self.dev_path, result.output))
+    _ThrowError("Can't grow LV %s: %s", self.dev_path, result.output)
 
 
 class DRBD8Status(object):
@@ -623,7 +650,7 @@ class BaseDRBD(BlockDev):
     finally:
       stat.close()
     if not data:
-      raise errors.BlockDeviceError("Can't read any data from %s" % filename)
+      _ThrowError("Can't read any data from %s", filename)
     return data
 
   @staticmethod
@@ -788,10 +815,9 @@ class DRBD8(BaseDRBD):
     self.major = self._DRBD_MAJOR
     version = self._GetVersion()
     if version['k_major'] != 8 :
-      raise errors.BlockDeviceError("Mismatch in DRBD kernel version and"
-                                    " requested ganeti usage: kernel is"
-                                    " %s.%s, ganeti wants 8.x" %
-                                    (version['k_major'], version['k_minor']))
+      _ThrowError("Mismatch in DRBD kernel version and requested ganeti"
+                  " usage: kernel is %s.%s, ganeti wants 8.x",
+                  version['k_major'], version['k_minor'])
 
     if len(children) not in (0, 2):
       raise ValueError("Invalid configuration data %s" % str(children))
@@ -816,8 +842,7 @@ class DRBD8(BaseDRBD):
     result = utils.RunCmd(["drbdmeta", "--force", cls._DevPath(minor),
                            "v08", dev_path, "0", "create-md"])
     if result.failed:
-      raise errors.BlockDeviceError("Can't initialize meta device: %s" %
-                                    result.output)
+      _ThrowError("Can't initialize meta device: %s", result.output)
 
   @classmethod
   def _FindUnusedMinor(cls):
@@ -929,8 +954,7 @@ class DRBD8(BaseDRBD):
     try:
       results = bnf.parseString(out)
     except pyp.ParseException, err:
-      raise errors.BlockDeviceError("Can't parse drbdsetup show output: %s" %
-                                    str(err))
+      _ThrowError("Can't parse drbdsetup show output: %s", str(err))
 
     # and massage the results into our desired format
     for section in results:
@@ -1075,15 +1099,16 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None:
-      raise errors.BlockDeviceError("Can't attach to dbrd8 during AddChildren")
+      _ThrowError("drbd%d: can't attach to dbrd8 during AddChildren",
+                  self._aminor)
     if len(devices) != 2:
-      raise errors.BlockDeviceError("Need two devices for AddChildren")
+      _ThrowError("drbd%d: need two devices for AddChildren", self.minor)
     info = self._GetDevInfo(self._GetShowData(self.minor))
     if "local_dev" in info:
-      raise errors.BlockDeviceError("DRBD8 already attached to a local disk")
+      _ThrowError("drbd%d: already attached to a local disk", self.minor)
     backend, meta = devices
     if backend.dev_path is None or meta.dev_path is None:
-      raise errors.BlockDeviceError("Children not ready during AddChildren")
+      _ThrowError("drbd%d: children not ready during AddChildren", self.minor)
     backend.Open()
     meta.Open()
     if not self._CheckMetaSize(meta.dev_path):
@@ -1099,25 +1124,24 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None:
-      raise errors.BlockDeviceError("Can't attach to drbd8 during"
-                                    " RemoveChildren")
+      _ThrowError("drbd%d: can't attach to drbd8 during RemoveChildren",
+                  self._aminor)
     # early return if we don't actually have backing storage
     info = self._GetDevInfo(self._GetShowData(self.minor))
     if "local_dev" not in info:
       return
     if len(self._children) != 2:
-      raise errors.BlockDeviceError("We don't have two children: %s" %
-                                    self._children)
+      _ThrowError("drbd%d: we don't have two children: %s", self.minor,
+                  self._children)
     if self._children.count(None) == 2: # we don't actually have children :)
-      logging.error("Requested detach while detached")
+      logging.warning("drbd%d: requested detach while detached", self.minor)
       return
     if len(devices) != 2:
-      raise errors.BlockDeviceError("We need two children in RemoveChildren")
+      _ThrowError("drbd%d: we need two children in RemoveChildren", self.minor)
     for child, dev in zip(self._children, devices):
       if dev != child.dev_path:
-        raise errors.BlockDeviceError("Mismatch in local storage"
-                                      " (%s != %s) in RemoveChildren" %
-                                      (dev, child.dev_path))
+        _ThrowError("drbd%d: mismatch in local storage (%s != %s) in"
+                    " RemoveChildren", self.minor, dev, child.dev_path)
 
     if not self._ShutdownLocal(self.minor):
       raise errors.BlockDeviceError("Can't detach from local storage")
@@ -1164,11 +1188,10 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None:
-      raise errors.BlockDeviceError("GetStats() called while not attached")
+      _ThrowError("drbd%d: GetStats() called while not attached", self._aminor)
     proc_info = self._MassageProcData(self._GetProcData())
     if self.minor not in proc_info:
-      raise errors.BlockDeviceError("Can't find myself in /proc (minor %d)" %
-                                    self.minor)
+      _ThrowError("drbd%d: can't find myself in /proc", self.minor)
     return DRBD8Status(proc_info[self.minor])
 
   def GetSyncStatus(self):
@@ -1191,7 +1214,7 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None and not self.Attach():
-      raise errors.BlockDeviceError("Can't attach to device in GetSyncStatus")
+      _ThrowError("drbd%d: can't Attach() in GetSyncStatus", self._aminor)
     stats = self.GetProcStatus()
     ldisk = not stats.is_disk_uptodate
     is_degraded = not stats.is_connected
@@ -1214,9 +1237,8 @@ class DRBD8(BaseDRBD):
       cmd.append("-o")
     result = utils.RunCmd(cmd)
     if result.failed:
-      msg = ("Can't make drbd device primary: %s" % result.output)
-      logging.error(msg)
-      raise errors.BlockDeviceError(msg)
+      _ThrowError("drbd%d: can't make drbd device primary: %s", self.minor,
+                  result.output)
 
   def Close(self):
     """Make the local state secondary.
@@ -1225,14 +1247,11 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None and not self.Attach():
-      logging.info("Instance not attached to a device")
-      raise errors.BlockDeviceError("Can't find device")
+      _ThrowError("drbd%d: can't Attach() in Close()", self._aminor)
     result = utils.RunCmd(["drbdsetup", self.dev_path, "secondary"])
     if result.failed:
-      msg = ("Can't switch drbd device to"
-             " secondary: %s" % result.output)
-      logging.error(msg)
-      raise errors.BlockDeviceError(msg)
+      _ThrowError("drbd%d: can't switch drbd device to secondary: %s",
+                  self.minor, result.output)
 
   def DisconnectNet(self):
     """Removes network configuration.
@@ -1249,11 +1268,11 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None:
-      raise errors.BlockDeviceError("DRBD disk not attached in re-attach net")
+      _ThrowError("drbd%d: disk not attached in re-attach net", self._aminor)
 
     if None in (self._lhost, self._lport, self._rhost, self._rport):
-      raise errors.BlockDeviceError("DRBD disk missing network info in"
-                                    " DisconnectNet()")
+      _ThrowError("drbd%d: DRBD disk missing network info in"
+                  " DisconnectNet()", self.minor)
 
     ever_disconnected = self._ShutdownNet(self.minor)
     timeout_limit = time.time() + self._NET_RECONFIG_TIMEOUT
@@ -1271,16 +1290,16 @@ class DRBD8(BaseDRBD):
 
     if not status.is_standalone:
       if ever_disconnected:
-        msg = ("Device did not react to the"
+        msg = ("drbd%d: device did not react to the"
                " 'disconnect' command in a timely manner")
       else:
-        msg = ("Can't shutdown network, even after multiple retries")
-      raise errors.BlockDeviceError(msg)
+        msg = "drbd%d: can't shutdown network, even after multiple retries"
+      _ThrowError(msg, self.minor)
 
     reconfig_time = time.time() - timeout_limit + self._NET_RECONFIG_TIMEOUT
     if reconfig_time > 15: # hardcoded alert limit
-      logging.debug("DRBD8.DisconnectNet: detach took %.3f seconds",
-                    reconfig_time)
+      logging.info("drbd%d: DisconnectNet: detach took %.3f seconds",
+                   self.minor, reconfig_time)
 
   def AttachNet(self, multimaster):
     """Reconnects the network.
@@ -1294,16 +1313,15 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None:
-      raise errors.BlockDeviceError("DRBD disk not attached in AttachNet")
+      _ThrowError("drbd%d: device not attached in AttachNet", self._aminor)
 
     if None in (self._lhost, self._lport, self._rhost, self._rport):
-      raise errors.BlockDeviceError("DRBD disk missing network info in"
-                                    " AttachNet()")
+      _ThrowError("drbd%d: missing network info in AttachNet()", self.minor)
 
     status = self.GetProcStatus()
 
     if not status.is_standalone:
-      raise errors.BlockDeviceError("Device is not standalone in AttachNet")
+      _ThrowError("drbd%d: device is not standalone in AttachNet", self.minor)
 
     return self._AssembleNet(self.minor,
                              (self._lhost, self._lport,
@@ -1521,8 +1539,7 @@ class DRBD8(BaseDRBD):
     else:
       in_use = False
     if in_use:
-      raise errors.BlockDeviceError("DRBD minor %d already in use at"
-                                    " Create() time" % aminor)
+      _ThrowError("DRBD minor %d already in use at Create() time", aminor)
     meta = children[1]
     meta.Assemble()
     if not meta.Attach():
@@ -1537,15 +1554,13 @@ class DRBD8(BaseDRBD):
 
     """
     if self.minor is None:
-      raise errors.ProgrammerError("drbd8: Grow called while not attached")
+      _ThrowError("drbd%d: Grow called while not attached", self._aminor)
     if len(self._children) != 2 or None in self._children:
-      raise errors.BlockDeviceError("Cannot grow diskless DRBD8 device")
+      _ThrowError("drbd%d: cannot grow diskless device", self.minor)
     self._children[0].Grow(amount)
     result = utils.RunCmd(["drbdsetup", self.dev_path, "resize"])
     if result.failed:
-      raise errors.BlockDeviceError("resize failed for %s: %s" %
-                                    (self.dev_path, result.output))
-    return
+      _ThrowError("drbd%d: resize failed: %s", self.minor, result.output)
 
 
 class FileStorage(BlockDev):
@@ -1653,7 +1668,7 @@ class FileStorage(BlockDev):
       f.truncate(size * 1024 * 1024)
       f.close()
     except IOError, err:
-      raise errors.BlockDeviceError("Error in file creation: %" % str(err))
+      _ThrowError("Error in file creation: %", str(err))
 
     return FileStorage(unique_id, children)
 
