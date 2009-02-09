@@ -236,6 +236,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     boot_disk = (instance.hvparams[constants.HV_BOOT_ORDER] == "disk")
     boot_cdrom = (instance.hvparams[constants.HV_BOOT_ORDER] == "cdrom")
+
+    disk_type = instance.hvparams[constants.HV_DISK_TYPE]
+    if disk_type == constants.HT_DISK_PARAVIRTUAL:
+      if_val = ',if=virtio'
+    else:
+      if_val = ',if=%s' % disk_type
     for cfdev, dev_path in block_devices:
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
@@ -247,9 +253,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         boot_disk = False
       else:
         boot_val = ''
-
-      # TODO: handle different if= types
-      if_val = ',if=virtio'
 
       drive_val = 'file=%s,format=raw%s%s' % (dev_path, if_val, boot_val)
       kvm_cmd.extend(['-drive', drive_val])
