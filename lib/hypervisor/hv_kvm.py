@@ -393,8 +393,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not kvm_nics:
       kvm_cmd.extend(['-net', 'none'])
     else:
+      nic_type = hvparams[constants.HV_NIC_TYPE]
+      if nic_type == constants.HT_NIC_PARAVIRTUAL:
+        nic_model = "model=virtio"
+      else:
+        nic_model = "model=%s" % nic_type
+
       for nic_seq, nic in enumerate(kvm_nics):
-        nic_val = "nic,macaddr=%s,model=virtio" % nic.mac
+        nic_val = "nic,macaddr=%s,%s" % (nic.mac, nic_model)
         script = self._WriteNetScript(instance, nic_seq, nic)
         kvm_cmd.extend(['-net', nic_val])
         kvm_cmd.extend(['-net', 'tap,script=%s' % script])
