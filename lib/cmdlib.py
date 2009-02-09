@@ -4350,7 +4350,7 @@ class LUCreateInstance(LogicalUnit):
     env.update(_BuildInstanceHookEnv(name=self.op.instance_name,
       primary_node=self.op.pnode,
       secondary_nodes=self.secondaries,
-      status=self.instance_status,
+      status=self.op.start,
       os_type=self.op.os_type,
       memory=self.be_full[constants.BE_MEMORY],
       vcpus=self.be_full[constants.BE_VCPUS],
@@ -4525,8 +4525,6 @@ class LUCreateInstance(LogicalUnit):
                            self.be_full[constants.BE_MEMORY],
                            self.op.hypervisor)
 
-    self.instance_status = self.op.start
-
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
 
@@ -4572,7 +4570,7 @@ class LUCreateInstance(LogicalUnit):
                             primary_node=pnode_name,
                             nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
-                            admin_up=self.instance_status,
+                            admin_up=False,
                             network_port=network_port,
                             beparams=self.op.beparams,
                             hvparams=self.op.hvparams,
@@ -4658,6 +4656,8 @@ class LUCreateInstance(LogicalUnit):
                                      % self.op.mode)
 
     if self.op.start:
+      iobj.admin_up = True
+      self.cfg.Update(iobj)
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
       result = self.rpc.call_instance_start(pnode_name, iobj, None)
