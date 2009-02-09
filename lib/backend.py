@@ -1352,7 +1352,7 @@ def _RecursiveFindBD(disk):
   return bdev.FindDevice(disk.dev_type, disk.physical_id, children)
 
 
-def FindBlockDevice(disk):
+def CallBlockdevFind(disk):
   """Check if a device is activated.
 
   If it is, return informations about the real device.
@@ -1365,10 +1365,13 @@ def FindBlockDevice(disk):
       estimated_time, is_degraded)
 
   """
-  rbd = _RecursiveFindBD(disk)
+  try:
+    rbd = _RecursiveFindBD(disk)
+  except errors.BlockDeviceError, err:
+    return (False, str(err))
   if rbd is None:
-    return rbd
-  return (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus()
+    return (True, None)
+  return (True, (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus())
 
 
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):

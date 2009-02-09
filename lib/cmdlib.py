@@ -1580,11 +1580,15 @@ def _CheckDiskConsistency(lu, dev, node, on_primary, ldisk=False):
   result = True
   if on_primary or dev.AssembleOnSecondary():
     rstats = lu.rpc.call_blockdev_find(node, dev)
-    if rstats.failed or not rstats.data:
-      logging.warning("Node %s: disk degraded, not found or node down", node)
+    msg = rstats.RemoteFailMsg()
+    if msg:
+      lu.LogWarning("Can't find disk on node %s: %s", node, msg)
+      result = False
+    elif not rstats.payload:
+      lu.LogWarning("Can't find disk on node %s", node)
       result = False
     else:
-      result = result and (not rstats.data[idx])
+      result = result and (not rstats.payload[idx])
   if dev.children:
     for child in dev.children:
       result = result and _CheckDiskConsistency(lu, child, node, on_primary)
@@ -4929,9 +4933,13 @@ class LUReplaceDisks(LogicalUnit):
       for node in tgt_node, oth_node:
         info("checking disk/%d on %s" % (idx, node))
         cfg.SetDiskID(dev, node)
-        if not self.rpc.call_blockdev_find(node, dev):
-          raise errors.OpExecError("Can't find disk/%d on node %s" %
-                                   (idx, node))
+        result = self.rpc.call_blockdev_find(node, dev)
+        msg = result.RemoteFailMsg()
+        if not msg and not result.payload:
+          msg = "disk not found"
+        if msg:
+          raise errors.OpExecError("Can't find disk/%d on node %s: %s" %
+                                   (idx, node, msg))
 
     # Step: check other node consistency
     self.proc.LogStep(2, steps_total, "check peer consistency")
@@ -4994,8 +5002,9 @@ class LUReplaceDisks(LogicalUnit):
       # build the rename list based on what LVs exist on the node
       rlist = []
       for to_ren in old_lvs:
-        find_res = self.rpc.call_blockdev_find(tgt_node, to_ren)
-        if not find_res.failed and find_res.data is not None: # device exists
+        result = self.rpc.call_blockdev_find(tgt_node, to_ren)
+        if not result.RemoteFailMsg() and result.payload:
+          # device exists
           rlist.append((to_ren, ren_fn(to_ren, temp_suffix)))
 
       info("renaming the old LVs on the target node")
@@ -5045,7 +5054,13 @@ class LUReplaceDisks(LogicalUnit):
     for name, (dev, old_lvs, new_lvs) in iv_names.iteritems():
       cfg.SetDiskID(dev, instance.primary_node)
       result = self.rpc.call_blockdev_find(instance.primary_node, dev)
-      if result.failed or result.data[5]:
+      msg = result.RemoteFailMsg()
+      if not msg and not result.payload:
+        msg = "disk not found"
+      if msg:
+        raise errors.OpExecError("Can't find DRBD device %s: %s" %
+                                 (name, msg))
+      if result.payload[5]:
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
     # Step: remove old storage
@@ -5109,10 +5124,12 @@ class LUReplaceDisks(LogicalUnit):
       info("checking disk/%d on %s" % (idx, pri_node))
       cfg.SetDiskID(dev, pri_node)
       result = self.rpc.call_blockdev_find(pri_node, dev)
-      result.Raise()
-      if not result.data:
-        raise errors.OpExecError("Can't find disk/%d on node %s" %
-                                 (idx, pri_node))
+      msg = result.RemoteFailMsg()
+      if not msg and not result.payload:
+        msg = "disk not found"
+      if msg:
+        raise errors.OpExecError("Can't find disk/%d on node %s: %s" %
+                                 (idx, pri_node, msg))
 
     # Step: check other node consistency
     self.proc.LogStep(2, steps_total, "check peer consistency")
@@ -5221,8 +5238,13 @@ class LUReplaceDisks(LogicalUnit):
     for idx, (dev, old_lvs, _) in iv_names.iteritems():
       cfg.SetDiskID(dev, pri_node)
       result = self.rpc.call_blockdev_find(pri_node, dev)
-      result.Raise()
-      if result.data[5]:
+      msg = result.RemoteFailMsg()
+      if not msg and not result.payload:
+        msg = "disk not found"
+      if msg:
+        raise errors.OpExecError("Can't find DRBD device disk/%d: %s" %
+                                 (idx, msg))
+      if result.payload[5]:
         raise errors.OpExecError("DRBD device disk/%d is degraded!" % idx)
 
     self.proc.LogStep(6, steps_total, "removing old storage")
@@ -5410,8 +5432,11 @@ class LUQueryInstanceData(NoHooksLU):
     if not static:
       self.cfg.SetDiskID(dev, instance.primary_node)
       dev_pstatus = self.rpc.call_blockdev_find(instance.primary_node, dev)
-      dev_pstatus.Raise()
-      dev_pstatus = dev_pstatus.data
+      msg = dev_pstatus.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Can't compute disk status for %s: %s" %
+                                 (instance.name, msg))
+      dev_pstatus = dev_pstatus.payload
     else:
       dev_pstatus = None
 
@@ -5425,8 +5450,11 @@ class LUQueryInstanceData(NoHooksLU):
     if snode and not static:
       self.cfg.SetDiskID(dev, snode)
       dev_sstatus = self.rpc.call_blockdev_find(snode, dev)
-      dev_sstatus.Raise()
-      dev_sstatus = dev_sstatus.data
+      msg = dev_sstatus.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Can't compute disk status for %s: %s" %
+                                 (instance.name, msg))
+      dev_sstatus = dev_sstatus.payload
     else:
       dev_sstatus = None
 
