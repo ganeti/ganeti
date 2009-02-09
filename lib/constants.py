@@ -292,6 +292,7 @@ HV_KERNEL_PATH = "kernel_path"
 HV_INITRD_PATH = "initrd_path"
 HV_ROOT_PATH = "root_path"
 HV_SERIAL_CONSOLE = "serial_console"
+HV_USB_MOUSE = "usb_mouse"
 
 HVS_PARAMETERS = frozenset([
   HV_BOOT_ORDER,
@@ -308,6 +309,7 @@ HVS_PARAMETERS = frozenset([
   HV_INITRD_PATH,
   HV_ROOT_PATH,
   HV_SERIAL_CONSOLE,
+  HV_USB_MOUSE,
   ])
 
 # BE parameter names
@@ -481,6 +483,7 @@ HVC_DEFAULTS = {
     HV_BOOT_ORDER: "disk",
     HV_NIC_TYPE: HT_NIC_PARAVIRTUAL,
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
+    HV_USB_MOUSE: None,
     },
   HT_FAKE: {
     },

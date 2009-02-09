@@ -62,6 +62,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_BOOT_ORDER,
     constants.HV_NIC_TYPE,
     constants.HV_DISK_TYPE,
+    constants.HV_USB_MOUSE,
     ]
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -285,10 +286,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         kvm_cmd.extend(['-append', root_append])
 
+    mouse_type = instance.hvparams[constants.HV_USB_MOUSE]
+    if mouse_type:
+      kvm_cmd.extend(['-usb'])
+      kvm_cmd.extend(['-usbdevice', mouse_type])
+
     # FIXME: handle vnc password
     vnc_bind_address = instance.hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
-      kvm_cmd.extend(['-usbdevice', 'tablet'])
       if utils.IsValidIP(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
           display = instance.network_port - constants.VNC_BASE_PORT
@@ -783,6 +788,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    " hypervisor. Please choose one of: %s" %
                                    (disk_type,
                                     constants.HT_KVM_VALID_DISK_TYPES))
+
+    mouse_type = hvparams[constants.HV_USB_MOUSE]
+    if mouse_type and mouse_type not in ('mouse', 'tablet'):
+      raise errors.HypervisorError("Invalid usb mouse type %s specified for"
+                                   " the KVM hyervisor. Please choose"
+                                   " 'mouse' or 'tablet'" % mouse_type)
 
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
