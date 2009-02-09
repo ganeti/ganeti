@@ -236,6 +236,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     boot_disk = (instance.hvparams[constants.HV_BOOT_ORDER] == "disk")
     boot_cdrom = (instance.hvparams[constants.HV_BOOT_ORDER] == "cdrom")
+    boot_network = (instance.hvparams[constants.HV_BOOT_ORDER] == "network")
+
+    if boot_network:
+      kvm_cmd.extend(['-boot', 'n'])
 
     disk_type = instance.hvparams[constants.HV_DISK_TYPE]
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
@@ -250,6 +254,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if boot_disk:
         kvm_cmd.extend(['-boot', 'c'])
         boot_val = ',boot=on'
+        # We only boot from the first disk
         boot_disk = False
       else:
         boot_val = ''
@@ -755,8 +760,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    " an absolute path, if defined")
 
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if boot_order not in ('cdrom', 'disk'):
-      raise errors.HypervisorError("The boot order must be 'cdrom' or 'disk'")
+    if boot_order not in ('cdrom', 'disk', 'network'):
+      raise errors.HypervisorError("The boot order must be 'cdrom', 'disk' or"
+                                   " 'network'")
 
     if boot_order == 'cdrom' and not iso_path:
       raise errors.HypervisorError("Cannot boot from cdrom without an ISO path")
@@ -767,6 +773,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    " hypervisor. Please choose one of: %s" %
                                    (nic_type,
                                     constants.HT_KVM_VALID_NIC_TYPES))
+    elif boot_order == 'network' and nic_type == constants.HT_NIC_PARAVIRTUAL:
+      raise errors.HypervisorError("Cannot boot from a paravirtual NIC. Please"
+                                   " change the nic type.")
 
     disk_type = hvparams[constants.HV_DISK_TYPE]
     if disk_type not in constants.HT_KVM_VALID_DISK_TYPES:
