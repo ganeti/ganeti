@@ -3832,7 +3832,7 @@ def _CreateBlockDev(lu, node, instance, device, force_create,
       (this will be represented as a LVM tag)
   @type force_open: boolean
   @param force_open: this parameter will be passes to the
-      L{backend.CreateBlockDevice} function where it specifies
+      L{backend.BlockdevCreate} function where it specifies
       whether we run on primary or not, and it affects both
       the child assembly and the device own Open() execution
 
@@ -3867,7 +3867,7 @@ def _CreateSingleBlockDev(lu, node, instance, device, info, force_open):
       (this will be represented as a LVM tag)
   @type force_open: boolean
   @param force_open: this parameter will be passes to the
-      L{backend.CreateBlockDevice} function where it specifies
+      L{backend.BlockdevCreate} function where it specifies
       whether we run on primary or not, and it affects both
       the child assembly and the device own Open() execution
 

@@ -1070,7 +1070,7 @@ def MigrateInstance(instance, target, live):
   return (True, "Migration successfull")
 
 
-def CreateBlockDevice(disk, size, owner, on_primary, info):
+def BlockdevCreate(disk, size, owner, on_primary, info):
   """Creates a block device for an instance.
 
   @type disk: L{objects.Disk}
@@ -1123,7 +1123,7 @@ def CreateBlockDevice(disk, size, owner, on_primary, info):
   return True, physical_id
 
 
-def RemoveBlockDevice(disk):
+def BlockdevRemove(disk):
   """Remove a block device.
 
   @note: This is intended to be called recursively.
@@ -1149,7 +1149,7 @@ def RemoveBlockDevice(disk):
     result = True
   if disk.children:
     for child in disk.children:
-      result = result and RemoveBlockDevice(child)
+      result = result and BlockdevRemove(child)
   return result
 
 
@@ -1189,7 +1189,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
         if children.count(None) >= mcn:
           raise
         cdev = None
-        logging.debug("Error in child activation: %s", str(err))
+        logging.error("Error in child activation: %s", str(err))
       children.append(cdev)
 
   if as_primary or disk.AssembleOnSecondary():
@@ -1206,7 +1206,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
   return result
 
 
-def AssembleBlockDevice(disk, owner, as_primary):
+def BlockdevAssemble(disk, owner, as_primary):
   """Activate a block device for an instance.
 
   This is a wrapper over _RecursiveAssembleBD.
@@ -1222,7 +1222,7 @@ def AssembleBlockDevice(disk, owner, as_primary):
   return result
 
 
-def ShutdownBlockDevice(disk):
+def BlockdevShutdown(disk):
   """Shut down a block device.
 
   First, if the device is assembled (Attach() is successfull), then
@@ -1250,11 +1250,11 @@ def ShutdownBlockDevice(disk):
     result = True
   if disk.children:
     for child in disk.children:
-      result = result and ShutdownBlockDevice(child)
+      result = result and BlockdevShutdown(child)
   return result
 
 
-def MirrorAddChildren(parent_cdev, new_cdevs):
+def BlockdevAddchildren(parent_cdev, new_cdevs):
   """Extend a mirrored block device.
 
   @type parent_cdev: L{objects.Disk}
@@ -1278,7 +1278,7 @@ def MirrorAddChildren(parent_cdev, new_cdevs):
   return True
 
 
-def MirrorRemoveChildren(parent_cdev, new_cdevs):
+def BlockdevRemovechildren(parent_cdev, new_cdevs):
   """Shrink a mirrored block device.
 
   @type parent_cdev: L{objects.Disk}
@@ -1310,7 +1310,7 @@ def MirrorRemoveChildren(parent_cdev, new_cdevs):
   return True
 
 
-def GetMirrorStatus(disks):
+def BlockdevGetmirrorstatus(disks):
   """Get the mirroring status of a list of devices.
 
   @type disks: list of L{objects.Disk}
@@ -1352,7 +1352,7 @@ def _RecursiveFindBD(disk):
   return bdev.FindDevice(disk.dev_type, disk.physical_id, children)
 
 
-def CallBlockdevFind(disk):
+def BlockdevFind(disk):
   """Check if a device is activated.
 
   If it is, return informations about the real device.
@@ -1638,7 +1638,7 @@ def OSEnvironment(instance, debug=0):
 
   return result
 
-def GrowBlockDevice(disk, amount):
+def BlockdevGrow(disk, amount):
   """Grow a stack of block devices.
 
   This function is called recursively, with the childrens being the
@@ -1664,7 +1664,7 @@ def GrowBlockDevice(disk, amount):
   return True, None
 
 
-def SnapshotBlockDevice(disk):
+def BlockdevSnapshot(disk):
   """Create a snapshot copy of a block device.
 
   This function is called recursively, and the snapshot is actually created
@@ -1679,13 +1679,13 @@ def SnapshotBlockDevice(disk):
   if disk.children:
     if len(disk.children) == 1:
       # only one child, let's recurse on it
-      return SnapshotBlockDevice(disk.children[0])
+      return BlockdevSnapshot(disk.children[0])
     else:
       # more than one child, choose one that matches
       for child in disk.children:
         if child.size == disk.size:
           # return implies breaking the loop
-          return SnapshotBlockDevice(child)
+          return BlockdevSnapshot(child)
   elif disk.dev_type == constants.LD_LV:
     r_dev = _RecursiveFindBD(disk)
     if r_dev is not None:
@@ -1935,7 +1935,7 @@ def RemoveExport(export):
   return True
 
 
-def RenameBlockDevices(devlist):
+def BlockdevRename(devlist):
   """Rename a list of block devices.
 
   @type devlist: list of tuples
@@ -2177,7 +2177,7 @@ def JobQueueSetDrainFlag(drain_flag):
   return True
 
 
-def CloseBlockDevices(instance_name, disks):
+def BlockdevClose(instance_name, disks):
   """Closes the given block devices.
 
   This means they will be switched to secondary mode (in case of

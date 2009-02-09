@@ -113,7 +113,7 @@ class NodeHttpServer(http.server.HttpServer):
     bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.CreateBlockDevice(bdev, size, owner, on_primary, info)
+    return backend.BlockdevCreate(bdev, size, owner, on_primary, info)
 
   @staticmethod
   def perspective_blockdev_remove(params):
@@ -122,7 +122,7 @@ class NodeHttpServer(http.server.HttpServer):
     """
     bdev_s = params[0]
     bdev = objects.Disk.FromDict(bdev_s)
-    return backend.RemoveBlockDevice(bdev)
+    return backend.BlockdevRemove(bdev)
 
   @staticmethod
   def perspective_blockdev_rename(params):
@@ -130,7 +130,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     devlist = [(objects.Disk.FromDict(ds), uid) for ds, uid in params]
-    return backend.RenameBlockDevices(devlist)
+    return backend.BlockdevRename(devlist)
 
   @staticmethod
   def perspective_blockdev_assemble(params):
@@ -141,7 +141,7 @@ class NodeHttpServer(http.server.HttpServer):
     bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.AssembleBlockDevice(bdev, owner, on_primary)
+    return backend.BlockdevAssemble(bdev, owner, on_primary)
 
   @staticmethod
   def perspective_blockdev_shutdown(params):
@@ -152,7 +152,7 @@ class NodeHttpServer(http.server.HttpServer):
     bdev = objects.Disk.FromDict(bdev_s)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.ShutdownBlockDevice(bdev)
+    return backend.BlockdevShutdown(bdev)
 
   @staticmethod
   def perspective_blockdev_addchildren(params):
@@ -167,7 +167,7 @@ class NodeHttpServer(http.server.HttpServer):
     ndevs = [objects.Disk.FromDict(disk_s) for disk_s in ndev_s]
     if bdev is None or ndevs.count(None) > 0:
       raise ValueError("can't unserialize data!")
-    return backend.MirrorAddChildren(bdev, ndevs)
+    return backend.BlockdevAddchildren(bdev, ndevs)
 
   @staticmethod
   def perspective_blockdev_removechildren(params):
@@ -182,7 +182,7 @@ class NodeHttpServer(http.server.HttpServer):
     ndevs = [objects.Disk.FromDict(disk_s) for disk_s in ndev_s]
     if bdev is None or ndevs.count(None) > 0:
       raise ValueError("can't unserialize data!")
-    return backend.MirrorRemoveChildren(bdev, ndevs)
+    return backend.BlockdevRemovechildren(bdev, ndevs)
 
   @staticmethod
   def perspective_blockdev_getmirrorstatus(params):
@@ -191,7 +191,7 @@ class NodeHttpServer(http.server.HttpServer):
     """
     disks = [objects.Disk.FromDict(dsk_s)
             for dsk_s in params]
-    return backend.GetMirrorStatus(disks)
+    return backend.BlockdevGetmirrorstatus(disks)
 
   @staticmethod
   def perspective_blockdev_find(params):
@@ -201,7 +201,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     disk = objects.Disk.FromDict(params[0])
-    return backend.CallBlockdevFind(disk)
+    return backend.BlockdevFind(disk)
 
   @staticmethod
   def perspective_blockdev_snapshot(params):
@@ -213,7 +213,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     cfbd = objects.Disk.FromDict(params[0])
-    return backend.SnapshotBlockDevice(cfbd)
+    return backend.BlockdevSnapshot(cfbd)
 
   @staticmethod
   def perspective_blockdev_grow(params):
@@ -222,7 +222,7 @@ class NodeHttpServer(http.server.HttpServer):
     """
     cfbd = objects.Disk.FromDict(params[0])
     amount = params[1]
-    return backend.GrowBlockDevice(cfbd, amount)
+    return backend.BlockdevGrow(cfbd, amount)
 
   @staticmethod
   def perspective_blockdev_close(params):
@@ -230,7 +230,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     disks = [objects.Disk.FromDict(cf) for cf in params[1]]
-    return backend.CloseBlockDevices(params[0], disks)
+    return backend.BlockdevClose(params[0], disks)
 
   # blockdev/drbd specific methods ----------
 
@@ -256,7 +256,8 @@ class NodeHttpServer(http.server.HttpServer):
     """
     nodes_ip, disks, instance_name, multimaster = params
     disks = [objects.Disk.FromDict(cf) for cf in disks]
-    return backend.DrbdAttachNet(nodes_ip, disks, instance_name, multimaster)
+    return backend.DrbdAttachNet(nodes_ip, disks,
+                                     instance_name, multimaster)
 
   @staticmethod
   def perspective_drbd_wait_sync(params):
@@ -593,7 +594,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query detailed information about existing OSes.
 
     """
-    return [os.ToDict() for os in backend.DiagnoseOS()]
+    return [os_obj.ToDict() for os_obj in backend.DiagnoseOS()]
 
   @staticmethod
   def perspective_os_get(params):
