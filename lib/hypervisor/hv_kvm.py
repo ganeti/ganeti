@@ -330,8 +330,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.
     kvm_nics = instance.nics
+    hvparams = instance.hvparams
 
-    return (kvm_cmd, kvm_nics)
+    return (kvm_cmd, kvm_nics, hvparams)
 
   def _WriteKVMRuntime(self, instance_name, data):
     """Write an instance's KVM runtime
@@ -357,9 +358,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Save an instance's KVM runtime
 
     """
-    kvm_cmd, kvm_nics = kvm_runtime
+    kvm_cmd, kvm_nics, hvparams = kvm_runtime
     serialized_nics = [nic.ToDict() for nic in kvm_nics]
-    serialized_form = serializer.Dump((kvm_cmd, serialized_nics))
+    serialized_form = serializer.Dump((kvm_cmd, serialized_nics, hvparams))
     self._WriteKVMRuntime(instance.name, serialized_form)
 
   def _LoadKVMRuntime(self, instance, serialized_runtime=None):
@@ -369,9 +370,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not serialized_runtime:
       serialized_runtime = self._ReadKVMRuntime(instance.name)
     loaded_runtime = serializer.Load(serialized_runtime)
-    kvm_cmd, serialized_nics = loaded_runtime
+    kvm_cmd, serialized_nics, hvparams = loaded_runtime
     kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
-    return (kvm_cmd, kvm_nics)
+    return (kvm_cmd, kvm_nics, hvparams)
 
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data
@@ -387,7 +388,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     temp_files = []
 
-    kvm_cmd, kvm_nics = kvm_runtime
+    kvm_cmd, kvm_nics, hvparams = kvm_runtime
 
     if not kvm_nics:
       kvm_cmd.extend(['-net', 'none'])
