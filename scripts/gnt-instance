@@ -226,6 +226,7 @@ def ListInstances(opts, args):
       "ip": "IP_address", "mac": "MAC_address",
       "bridge": "Bridge",
       "sda_size": "Disk/0", "sdb_size": "Disk/1",
+      "disk_usage": "DiskUsage",
       "status": "Status", "tags": "Tags",
       "network_port": "Network_port",
       "hv/kernel_path": "Kernel_path",

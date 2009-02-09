@@ -3087,7 +3087,7 @@ class LUQueryInstances(NoHooksLU):
                                     "sda_size", "sdb_size", "vcpus", "tags",
                                     "network_port", "beparams",
                                     "(disk).(size)/([0-9]+)",
-                                    "(disk).(sizes)",
+                                    "(disk).(sizes)", "disk_usage",
                                     "(nic).(mac|ip|bridge)/([0-9]+)",
                                     "(nic).(macs|ips|bridges)",
                                     "(disk|nic).(count)",
@@ -3244,6 +3244,9 @@ class LUQueryInstances(NoHooksLU):
             val = instance.FindDisk(idx).size
           except errors.OpPrereqError:
             val = None
+        elif field == "disk_usage": # total disk usage per node
+          disk_sizes = [{'size': disk.size} for disk in instance.disks]
+          val = _ComputeDiskSize(instance.disk_template, disk_sizes)
         elif field == "tags":
           val = list(instance.GetTags())
         elif field == "serial_no":
