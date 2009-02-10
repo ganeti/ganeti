@@ -459,6 +459,7 @@ class _R_Tags(baserlib.R_Generic):
   TAG_LEVEL for it.
 
   """
+  TAG_LEVEL = None
 
   def __init__(self, items, queryargs, req):
     """A tag resource constructor.
