@@ -55,7 +55,7 @@ _LIST_HEADERS = {
   "serial_no": "SerialNo",
   "master_candidate": "MasterC",
   "master": "IsMaster",
-  "offline": "Offline",
+  "offline": "Offline", "drained": "Drained",
   }
 
 
@@ -140,7 +140,7 @@ def ListNodes(opts, args):
       val = row[idx]
       if field in list_type_fields:
         val = ",".join(val)
-      elif field in ('master', 'master_candidate', 'offline'):
+      elif field in ('master', 'master_candidate', 'offline', 'drained'):
         if val:
           val = 'Y'
         else:
@@ -323,13 +323,18 @@ def ShowNodeConfig(opts, args):
   """
   cl = GetClient()
   result = cl.QueryNodes(fields=["name", "pip", "sip",
-                                 "pinst_list", "sinst_list"],
+                                 "pinst_list", "sinst_list",
+                                 "master_candidate", "drained", "offline"],
                          names=args, use_locking=True)
 
-  for name, primary_ip, secondary_ip, pinst, sinst in result:
+  for (name, primary_ip, secondary_ip, pinst, sinst,
+       is_mc, drained, offline) in result:
     ToStdout("Node name: %s", name)
     ToStdout("  primary ip: %s", primary_ip)
     ToStdout("  secondary ip: %s", secondary_ip)
+    ToStdout("  master candidate: %s", is_mc)
+    ToStdout("  drained: %s", drained)
+    ToStdout("  offline: %s", offline)
     if pinst:
       ToStdout("  primary for instances:")
       for iname in pinst:

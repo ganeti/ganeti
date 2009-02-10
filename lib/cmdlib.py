@@ -1774,6 +1774,7 @@ class LUQueryNodes(NoHooksLU):
     "master_candidate",
     "master",
     "offline",
+    "drained",
     )
 
   def ExpandNames(self):
@@ -1898,6 +1899,8 @@ class LUQueryNodes(NoHooksLU):
           val = node.name == master_node
         elif field == "offline":
           val = node.offline
+        elif field == "drained":
+          val = node.drained
         elif self._FIELDS_DYNAMIC.Matches(field):
           val = live_data[node.name].get(field, None)
         else:
@@ -6465,6 +6468,7 @@ class IAllocator(object):
         "primary_ip": ninfo.primary_ip,
         "secondary_ip": ninfo.secondary_ip,
         "offline": ninfo.offline,
+        "drained": ninfo.drained,
         "master_candidate": ninfo.master_candidate,
         }
 

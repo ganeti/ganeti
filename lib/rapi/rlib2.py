@@ -39,7 +39,7 @@ I_FIELDS = ["name", "admin_state", "os",
             "oper_state", "oper_ram", "status",
             "tags"]
 
-N_FIELDS = ["name", "offline", "master_candidate",
+N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "dtotal", "dfree",
             "mtotal", "mnode", "mfree",
             "pinst_cnt", "sinst_cnt", "tags",
