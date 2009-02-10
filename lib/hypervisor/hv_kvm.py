@@ -715,9 +715,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def CheckParameterSyntax(cls, hvparams):
     """Check the given parameters for validity.
 
-    For the KVM hypervisor, this only check the existence of the
-    kernel.
-
     @type hvparams:  dict
     @param hvparams: dictionary with parameter names/value
     @raise errors.HypervisorError: when a parameter is not valid
