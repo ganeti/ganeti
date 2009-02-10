@@ -434,11 +434,23 @@ def _CheckNodeOnline(lu, node):
 
   @param lu: the LU on behalf of which we make the check
   @param node: the node to check
-  @raise errors.OpPrereqError: if the nodes is offline
+  @raise errors.OpPrereqError: if the node is offline
 
   """
   if lu.cfg.GetNodeInfo(node).offline:
     raise errors.OpPrereqError("Can't use offline node %s" % node)
+
+
+def _CheckNodeNotDrained(lu, node):
+  """Ensure that a given node is not drained.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @raise errors.OpPrereqError: if the node is drained
+
+  """
+  if lu.cfg.GetNodeInfo(node).drained:
+    raise errors.OpPrereqError("Can't use drained node %s" % node)
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
@@ -3379,6 +3391,7 @@ class LUFailoverInstance(LogicalUnit):
 
     target_node = secondary_nodes[0]
     _CheckNodeOnline(self, target_node)
+    _CheckNodeNotDrained(self, target_node)
     # check memory requirements on the secondary node
     _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
                          instance.name, bep[constants.BE_MEMORY],
@@ -3507,8 +3520,8 @@ class LUMigrateInstance(LogicalUnit):
 
     secondary_nodes = instance.secondary_nodes
     if not secondary_nodes:
-      raise errors.ProgrammerError("no secondary node but using "
-                                   "drbd8 disk template")
+      raise errors.ConfigurationError("No secondary node but using"
+                                      " drbd8 disk template")
 
     i_be = self.cfg.GetClusterInfo().FillBE(instance)
 
@@ -3527,6 +3540,7 @@ class LUMigrateInstance(LogicalUnit):
                                  (brlist, target_node))
 
     if not self.op.cleanup:
+      _CheckNodeNotDrained(self, target_node)
       result = self.rpc.call_instance_migratable(instance.primary_node,
                                                  instance)
       msg = result.RemoteFailMsg()
@@ -4478,6 +4492,9 @@ class LUCreateInstance(LogicalUnit):
     if pnode.offline:
       raise errors.OpPrereqError("Cannot use offline primary node '%s'" %
                                  pnode.name)
+    if pnode.drained:
+      raise errors.OpPrereqError("Cannot use drained primary node '%s'" %
+                                 pnode.name)
 
     self.secondaries = []
 
@@ -4489,8 +4506,9 @@ class LUCreateInstance(LogicalUnit):
       if self.op.snode == pnode.name:
         raise errors.OpPrereqError("The secondary node cannot be"
                                    " the primary node.")
-      self.secondaries.append(self.op.snode)
       _CheckNodeOnline(self, self.op.snode)
+      _CheckNodeNotDrained(self, self.op.snode)
+      self.secondaries.append(self.op.snode)
 
     nodenames = [pnode.name] + self.secondaries
 
@@ -4887,6 +4905,7 @@ class LUReplaceDisks(LogicalUnit):
       n1 = self.new_node = remote_node
       n2 = self.oth_node = instance.primary_node
       self.tgt_node = self.sec_node
+      _CheckNodeNotDrained(self, remote_node)
     else:
       raise errors.ProgrammerError("Unhandled disk replace mode")
 
@@ -6025,6 +6044,7 @@ class LUExportInstance(LogicalUnit):
       # This is wrong node name, not a non-locked node
       raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node)
     _CheckNodeOnline(self, self.dst_node.name)
+    _CheckNodeNotDrained(self, self.dst_node.name)
 
     # instance disk type verification
     for disk in self.instance.disks:
