@@ -903,6 +903,7 @@ class LUVerifyCluster(LogicalUnit):
     i_non_redundant = [] # Non redundant instances
     i_non_a_balanced = [] # Non auto-balanced instances
     n_offline = [] # List of offline nodes
+    n_drained = [] # List of nodes being drained
     node_volume = {}
     node_instance = {}
     node_info = {}
@@ -955,6 +956,9 @@ class LUVerifyCluster(LogicalUnit):
         ntype = "master"
       elif node_i.master_candidate:
         ntype = "master candidate"
+      elif node_i.drained:
+        ntype = "drained"
+        n_drained.append(node)
       else:
         ntype = "regular"
       feedback_fn("* Verifying node %s (%s)" % (node, ntype))
@@ -1106,6 +1110,9 @@ class LUVerifyCluster(LogicalUnit):
 
     if n_offline:
       feedback_fn("  - NOTICE: %d offline node(s) found." % len(n_offline))
+
+    if n_drained:
+      feedback_fn("  - NOTICE: %d drained node(s) found." % len(n_drained))
 
     return not bad
 
