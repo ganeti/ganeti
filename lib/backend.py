@@ -1248,18 +1248,26 @@ def BlockdevShutdown(disk):
   @return: the success of the operation
 
   """
+  msgs = []
   r_dev = _RecursiveFindBD(disk)
   if r_dev is not None:
     r_path = r_dev.dev_path
-    result = r_dev.Shutdown()
+    try:
+      result = r_dev.Shutdown()
+    except errors.BlockDeviceError, err:
+      msgs.append(str(err))
+      result = False
     if result:
       DevCacheManager.RemoveCache(r_path)
   else:
     result = True
   if disk.children:
     for child in disk.children:
-      result = result and BlockdevShutdown(child)
-  return result
+      c_status, c_msg = BlockdevShutdown(child)
+      result = result and c_status
+      if c_msg: # not an empty message
+        msgs.append(c_msg)
+  return (result, "; ".join(msgs))
 
 
 def BlockdevAddchildren(parent_cdev, new_cdevs):

@@ -2572,17 +2572,18 @@ def _ShutdownInstanceDisks(lu, instance, ignore_primary=False):
   ignored.
 
   """
-  result = True
+  all_result = True
   for disk in instance.disks:
     for node, top_disk in disk.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(top_disk, node)
       result = lu.rpc.call_blockdev_shutdown(node, top_disk)
-      if result.failed or not result.data:
-        logging.error("Could not shutdown block device %s on node %s",
-                      disk.iv_name, node)
+      msg = result.RemoteFailMsg()
+      if msg:
+        lu.LogWarning("Could not shutdown block device %s on node %s: %s",
+                      disk.iv_name, node, msg)
         if not ignore_primary or node != instance.primary_node:
-          result = False
-  return result
+          all_result = False
+  return all_result
 
 
 def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
@@ -5197,9 +5198,10 @@ class LUReplaceDisks(LogicalUnit):
       # we have new devices, shutdown the drbd on the old secondary
       info("shutting down drbd for disk/%d on old node" % idx)
       cfg.SetDiskID(dev, old_node)
-      result = self.rpc.call_blockdev_shutdown(old_node, dev)
-      if result.failed or not result.data:
-        warning("Failed to shutdown drbd for disk/%d on old node" % idx,
+      msg = self.rpc.call_blockdev_shutdown(old_node, dev).RemoteFailMsg()
+      if msg:
+        warning("Failed to shutdown drbd for disk/%d on old node: %s" %
+                (idx, msg),
                 hint="Please cleanup this device manually as soon as possible")
 
     info("detaching primary drbds from the network (=> standalone)")
