@@ -455,7 +455,7 @@ class LogicalVolume(BlockDev):
     volumes on shutdown.
 
     """
-    return True
+    pass
 
   def GetSyncStatus(self):
     """Returns the sync status of the device.
@@ -1447,7 +1447,6 @@ class DRBD8(BaseDRBD):
                                    self._children[1].dev_path)
       if not result:
         return False
-      need_localdev_teardown = True
     if self._lhost and self._lport and self._rhost and self._rport:
       result = self._AssembleNet(minor,
                                  (self._lhost, self._lport,
@@ -1456,10 +1455,6 @@ class DRBD8(BaseDRBD):
                                  hmac=constants.DRBD_HMAC_ALG,
                                  secret=self._secret)
       if not result:
-        if need_localdev_teardown:
-          # we will ignore failures from this
-          logging.error("net setup failed, tearing down local device")
-          self._ShutdownAll(minor)
         return False
     self._SetFromMinor(minor)
     return True
@@ -1498,21 +1493,19 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "down"])
     if result.failed:
-      logging.error("Can't shutdown drbd device: %s", result.output)
-    return not result.failed
+      _ThrowError("Can't shutdown drbd device: %s", result.output)
 
   def Shutdown(self):
     """Shutdown the DRBD device.
 
     """
     if self.minor is None and not self.Attach():
-      logging.info("DRBD device not attached to a device during Shutdown")
-      return True
-    if not self._ShutdownAll(self.minor):
-      return False
+      logging.info("drbd%d: not attached during Shutdown()", self._aminor)
+      return
+    minor = self.minor
     self.minor = None
     self.dev_path = None
-    return True
+    self._ShutdownAll(minor)
 
   def Remove(self):
     """Stub remove for DRBD devices.
@@ -1602,7 +1595,7 @@ class FileStorage(BlockDev):
     the file on shutdown.
 
     """
-    return True
+    pass
 
   def Open(self, force=False):
     """Make the device ready for I/O.
