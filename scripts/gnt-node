@@ -73,31 +73,54 @@ def AddNode(opts, args):
   cl = GetClient()
   dns_data = utils.HostInfo(args[0])
   node = dns_data.name
+  readd = opts.readd
 
-  if not opts.readd:
-    try:
-      output = cl.QueryNodes(names=[node], fields=['name'], use_locking=True)
-    except (errors.OpPrereqError, errors.OpExecError):
-      pass
-    else:
-      ToStderr("Node %s already in the cluster (as %s)"
-               " - please use --readd", args[0], output[0][0])
+  try:
+    output = cl.QueryNodes(names=[node], fields=['name', 'sip'],
+                           use_locking=True)
+    node_exists, sip = output[0]
+  except (errors.OpPrereqError, errors.OpExecError):
+    node_exists = ""
+    sip = None
+
+  if readd:
+    if not node_exists:
+      ToStderr("Node %s not in the cluster"
+               " - please retry without '--readd'", node)
       return 1
+  else:
+    if node_exists:
+      ToStderr("Node %s already in the cluster (as %s)"
+               " - please retry with '--readd'", node, node_exists)
+      return 1
+    sip = opts.secondary_ip
 
   # read the cluster name from the master
   output = cl.QueryConfigValues(['cluster_name'])
   cluster_name = output[0]
 
-  ToStderr("-- WARNING -- \n"
-           "Performing this operation is going to replace the ssh daemon"
-           " keypair\n"
-           "on the target machine (%s) with the ones of the"
-           " current one\n"
-           "and grant full intra-cluster ssh root access to/from it\n", node)
+  if readd:
+    # clear the offline and drain flags on the node
+    ToStdout("Resetting the 'offline' and 'drained' flags due to re-add")
+    op = opcodes.OpSetNodeParams(node_name=node, force=True,
+                                 offline=False, drained=False)
+
+    result = SubmitOpCode(op, cl=cl)
+    if result:
+      ToStdout("Modified:")
+      for param, data in result:
+        ToStdout(" - %-5s -> %s", param, data)
+  else:
+    ToStderr("-- WARNING -- \n"
+             "Performing this operation is going to replace the ssh daemon"
+             " keypair\n"
+             "on the target machine (%s) with the ones of the"
+             " current one\n"
+             "and grant full intra-cluster ssh root access to/from it\n", node)
 
   bootstrap.SetupNodeDaemon(cluster_name, node, opts.ssh_key_check)
 
-  op = opcodes.OpAddNode(node_name=args[0], secondary_ip=opts.secondary_ip,
+  op = opcodes.OpAddNode(node_name=args[0], secondary_ip=sip,
                          readd=opts.readd)
   SubmitOpCode(op)
 

@@ -2331,6 +2331,7 @@ class LUSetNodeParams(LogicalUnit):
 
     if self.op.drained is not None:
       node.drained = self.op.drained
+      result.append(("drained", str(self.op.drained)))
       if self.op.drained == True:
         if node.master_candidate:
           node.master_candidate = False
