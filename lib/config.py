@@ -304,6 +304,14 @@ class ConfigWriter:
       result.append("Not enough master candidates: actual %d, target %d" %
                     (mc_now, mc_max))
 
+    # node checks
+    for node in data.nodes.values():
+      if [node.master_candidate, node.drained, node.offline].count(True) > 1:
+        result.append("Node %s state is invalid: master_candidate=%s,"
+                      " drain=%s, offline=%s" %
+                      (node.name, node.master_candidate, node.drain,
+                       node.offline))
+
     # drbd minors check
     d_map, duplicates = self._UnlockedComputeDRBDMap()
     for node, minor, instance_a, instance_b in duplicates:
@@ -903,7 +911,7 @@ class ConfigWriter:
     """
     mc_now = mc_max = 0
     for node in self._config_data.nodes.itervalues():
-      if not node.offline:
+      if not (node.offline or node.drained):
         mc_max += 1
       if node.master_candidate:
         mc_now += 1
@@ -939,7 +947,7 @@ class ConfigWriter:
         if mc_now >= mc_max:
           break
         node = self._config_data.nodes[name]
-        if node.master_candidate or node.offline:
+        if node.master_candidate or node.offline or node.drained:
           continue
         mod_list.append(node)
         node.master_candidate = True
