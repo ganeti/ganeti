@@ -1094,26 +1094,45 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
   clist = []
   if disk.children:
     for child in disk.children:
-      crdev = _RecursiveAssembleBD(child, owner, on_primary)
+      try:
+        crdev = _RecursiveAssembleBD(child, owner, on_primary)
+      except errors.BlockDeviceError, err:
+        errmsg = "Can't assemble device %s: %s" % (child, err)
+        logging.error(errmsg)
+        return False, errmsg
       if on_primary or disk.AssembleOnSecondary():
         # we need the children open in case the device itself has to
         # be assembled
-        crdev.Open()
+        try:
+          crdev.Open()
+        except errors.BlockDeviceError, err:
+          errmsg = "Can't make child '%s' read-write: %s" (child, err)
+          logging.error(errmsg)
+          return False, errmsg
       clist.append(crdev)
 
   try:
     device = bdev.Create(disk.dev_type, disk.physical_id, clist, size)
-  except errors.GenericError, err:
+  except errors.BlockDeviceError, err:
     return False, "Can't create block device: %s" % str(err)
 
   if on_primary or disk.AssembleOnSecondary():
-    if not device.Assemble():
-      errorstring = "Can't assemble device after creation, very unusual event"
-      logging.error(errorstring)
-      return False, errorstring
+    try:
+      device.Assemble()
+    except errors.BlockDeviceError, err:
+      errmsg = ("Can't assemble device after creation, very"
+                " unusual event: %s" % str(err))
+      logging.error(errmsg)
+      return False, errmsg
     device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
-      device.Open(force=True)
+      try:
+        device.Open(force=True)
+      except errors.BlockDeviceError, err:
+        errmsg = ("Can't make device r/w after creation, very"
+                  " unusual event: %s" % str(err))
+        logging.error(errmsg)
+        return False, errmsg
     DevCacheManager.UpdateCache(device.dev_path, owner,
                                 on_primary, disk.iv_name)
 
@@ -1198,7 +1217,8 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
         if children.count(None) >= mcn:
           raise
         cdev = None
-        logging.error("Error in child activation: %s", str(err))
+        logging.error("Error in child activation (but continuing): %s",
+                      str(err))
       children.append(cdev)
 
   if as_primary or disk.AssembleOnSecondary():
@@ -1225,17 +1245,15 @@ def BlockdevAssemble(disk, owner, as_primary):
       C{True} for secondary nodes
 
   """
-  status = False
+  status = True
   result = "no error information"
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, bdev.BlockDev):
       result = result.dev_path
-      status = True
-    if result == True:
-      status = True
   except errors.BlockDeviceError, err:
     result = "Error while assembling disk: %s" % str(err)
+    status = False
   return (status, result)
 
 

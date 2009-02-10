@@ -128,7 +128,7 @@ class BlockDev(object):
         this method is idempotent
 
     """
-    return True
+    pass
 
   def Attach(self):
     """Find a device which matches our config and attach to it.
@@ -441,9 +441,7 @@ class LogicalVolume(BlockDev):
     """
     result = utils.RunCmd(["lvchange", "-ay", self.dev_path])
     if result.failed:
-      logging.error("Can't activate lv %s: %s", self.dev_path, result.output)
-      return False
-    return self.Attach()
+      _ThrowError("Can't activate lv %s: %s", self.dev_path, result.output)
 
   def Shutdown(self):
     """Shutdown the device.
@@ -1034,8 +1032,7 @@ class DRBD8(BaseDRBD):
             backend, meta, "0", "-e", "detach", "--create-device"]
     result = utils.RunCmd(args)
     if result.failed:
-      logging.error("Can't attach local disk: %s", result.output)
-    return not result.failed
+      _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
 
   @classmethod
   def _AssembleNet(cls, minor, net_info, protocol,
@@ -1047,7 +1044,8 @@ class DRBD8(BaseDRBD):
     if None in net_info:
       # we don't want network connection and actually want to make
       # sure its shutdown
-      return cls._ShutdownNet(minor)
+      cls._ShutdownNet(minor)
+      return
 
     # Workaround for a race condition. When DRBD is doing its dance to
     # establish a connection with its peer, it also sends the
@@ -1069,9 +1067,8 @@ class DRBD8(BaseDRBD):
       args.extend(["-a", hmac, "-x", secret])
     result = utils.RunCmd(args)
     if result.failed:
-      logging.error("Can't setup network for dbrd device: %s - %s",
-                    result.fail_reason, result.output)
-      return False
+      _ThrowError("drbd%d: can't setup network: %s - %s",
+                  minor, result.fail_reason, result.output)
 
     timeout = time.time() + 10
     ok = False
@@ -1087,9 +1084,7 @@ class DRBD8(BaseDRBD):
       ok = True
       break
     if not ok:
-      logging.error("Timeout while configuring network")
-      return False
-    return True
+      _ThrowError("drbd%d: timeout while configuring network", minor)
 
   def AddChildren(self, devices):
     """Add a disk to the DRBD device.
@@ -1112,8 +1107,7 @@ class DRBD8(BaseDRBD):
       raise errors.BlockDeviceError("Invalid meta device size")
     self._InitMeta(self._FindUnusedMinor(), meta.dev_path)
 
-    if not self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path):
-      raise errors.BlockDeviceError("Can't attach to local storage")
+    self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path)
     self._children = devices
 
   def RemoveChildren(self, devices):
@@ -1140,8 +1134,7 @@ class DRBD8(BaseDRBD):
         _ThrowError("drbd%d: mismatch in local storage (%s != %s) in"
                     " RemoveChildren", self.minor, dev, child.dev_path)
 
-    if not self._ShutdownLocal(self.minor):
-      raise errors.BlockDeviceError("Can't detach from local storage")
+    self._ShutdownLocal(self.minor)
     self._children = []
 
   @classmethod
@@ -1271,7 +1264,7 @@ class DRBD8(BaseDRBD):
       _ThrowError("drbd%d: DRBD disk missing network info in"
                   " DisconnectNet()", self.minor)
 
-    ever_disconnected = self._ShutdownNet(self.minor)
+    ever_disconnected = _IgnoreError(self._ShutdownNet, self.minor)
     timeout_limit = time.time() + self._NET_RECONFIG_TIMEOUT
     sleep_time = 0.100 # we start the retry time at 100 miliseconds
     while time.time() < timeout_limit:
@@ -1281,7 +1274,8 @@ class DRBD8(BaseDRBD):
       # retry the disconnect, it seems possible that due to a
       # well-time disconnect on the peer, my disconnect command might
       # be ingored and forgotten
-      ever_disconnected = self._ShutdownNet(self.minor) or ever_disconnected
+      ever_disconnected = _IgnoreError(self._ShutdownNet, self.minor) or \
+                          ever_disconnected
       time.sleep(sleep_time)
       sleep_time = min(2, sleep_time * 1.5)
 
@@ -1320,10 +1314,10 @@ class DRBD8(BaseDRBD):
     if not status.is_standalone:
       _ThrowError("drbd%d: device is not standalone in AttachNet", self.minor)
 
-    return self._AssembleNet(self.minor,
-                             (self._lhost, self._lport,
-                              self._rhost, self._rport),
-                             "C", dual_pri=multimaster)
+    self._AssembleNet(self.minor,
+                      (self._lhost, self._lport, self._rhost, self._rport),
+                      constants.DRBD_NET_PROTOCOL, dual_pri=multimaster,
+                      hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
 
   def Attach(self):
     """Check if our minor is configured.
@@ -1354,18 +1348,16 @@ class DRBD8(BaseDRBD):
       - if not, we create it from zero
 
     """
-    result = super(DRBD8, self).Assemble()
-    if not result:
-      return result
+    super(DRBD8, self).Assemble()
 
     self.Attach()
     if self.minor is None:
       # local device completely unconfigured
-      return self._FastAssemble()
+      self._FastAssemble()
     else:
       # we have to recheck the local and network status and try to fix
       # the device
-      return self._SlowAssemble()
+      self._SlowAssemble()
 
   def _SlowAssemble(self):
     """Assembles the DRBD device from a (partially) configured device.
@@ -1375,27 +1367,35 @@ class DRBD8(BaseDRBD):
     the attach if can return success.
 
     """
+    net_data = (self._lhost, self._lport, self._rhost, self._rport)
     for minor in (self._aminor,):
       info = self._GetDevInfo(self._GetShowData(minor))
       match_l = self._MatchesLocal(info)
       match_r = self._MatchesNet(info)
+
       if match_l and match_r:
+        # everything matches
         break
+
       if match_l and not match_r and "local_addr" not in info:
-        res_r = self._AssembleNet(minor,
-                                  (self._lhost, self._lport,
-                                   self._rhost, self._rport),
-                                  constants.DRBD_NET_PROTOCOL,
-                                  hmac=constants.DRBD_HMAC_ALG,
-                                  secret=self._secret
-                                  )
-        if res_r:
-          if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
-            break
-      # the weakest case: we find something that is only net attached
-      # even though we were passed some children at init time
+        # disk matches, but not attached to network, attach and recheck
+        self._AssembleNet(minor, net_data, constants.DRBD_NET_PROTOCOL,
+                          hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
+        if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
+          break
+        else:
+          _ThrowError("drbd%d: network attach successful, but 'drbdsetup"
+                      " show' disagrees", minor)
+
       if match_r and "local_dev" not in info:
-        break
+        # no local disk, but network attached and it matches
+        self._AssembleLocal(minor, self._children[0].dev_path,
+                            self._children[1].dev_path)
+        if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
+          break
+        else:
+          _ThrowError("drbd%d: disk attach successful, but 'drbdsetup"
+                      " show' disagrees", minor)
 
       # this case must be considered only if we actually have local
       # storage, i.e. not in diskless mode, because all diskless
@@ -1407,27 +1407,30 @@ class DRBD8(BaseDRBD):
         # else, even though its local storage is ours; as we own the
         # drbd space, we try to disconnect from the remote peer and
         # reconnect to our correct one
-        if not self._ShutdownNet(minor):
-          raise errors.BlockDeviceError("Device has correct local storage,"
-                                        " wrong remote peer and is unable to"
-                                        " disconnect in order to attach to"
-                                        " the correct peer")
+        try:
+          self._ShutdownNet(minor)
+        except errors.BlockDeviceError, err:
+          _ThrowError("Device has correct local storage, wrong remote peer"
+                      " and is unable to disconnect in order to attach to"
+                      " the correct peer: %s", str(err))
         # note: _AssembleNet also handles the case when we don't want
         # local storage (i.e. one or more of the _[lr](host|port) is
         # None)
-        if (self._AssembleNet(minor, (self._lhost, self._lport,
-                                      self._rhost, self._rport),
-                              constants.DRBD_NET_PROTOCOL,
-                              hmac=constants.DRBD_HMAC_ALG,
-                              secret=self._secret) and
-            self._MatchesNet(self._GetDevInfo(self._GetShowData(minor)))):
+        self._AssembleNet(minor, net_data, constants.DRBD_NET_PROTOCOL,
+                          hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
+        if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
           break
+        else:
+          _ThrowError("drbd%d: network attach successful, but 'drbdsetup"
+                      " show' disagrees", minor)
 
     else:
       minor = None
 
     self._SetFromMinor(minor)
-    return minor is not None
+    if minor is None:
+      _ThrowError("drbd%d: cannot activate, unknown or unhandled reason",
+                  self._aminor)
 
   def _FastAssemble(self):
     """Assemble the drbd device from zero.
@@ -1435,26 +1438,16 @@ class DRBD8(BaseDRBD):
     This is run when in Assemble we detect our minor is unused.
 
     """
-    # TODO: maybe completely tear-down the minor (drbdsetup ... down)
-    # before attaching our own?
     minor = self._aminor
-    need_localdev_teardown = False
     if self._children and self._children[0] and self._children[1]:
-      result = self._AssembleLocal(minor, self._children[0].dev_path,
-                                   self._children[1].dev_path)
-      if not result:
-        return False
+      self._AssembleLocal(minor, self._children[0].dev_path,
+                          self._children[1].dev_path)
     if self._lhost and self._lport and self._rhost and self._rport:
-      result = self._AssembleNet(minor,
-                                 (self._lhost, self._lport,
-                                  self._rhost, self._rport),
-                                 constants.DRBD_NET_PROTOCOL,
-                                 hmac=constants.DRBD_HMAC_ALG,
-                                 secret=self._secret)
-      if not result:
-        return False
+      self._AssembleNet(minor,
+                        (self._lhost, self._lport, self._rhost, self._rport),
+                        constants.DRBD_NET_PROTOCOL,
+                        hmac=constants.DRBD_HMAC_ALG, secret=self._secret)
     self._SetFromMinor(minor)
-    return True
 
   @classmethod
   def _ShutdownLocal(cls, minor):
@@ -1466,8 +1459,7 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "detach"])
     if result.failed:
-      logging.error("Can't detach local device: %s", result.output)
-    return not result.failed
+      _ThrowError("drbd%d: can't detach local disk: %s", minor, result.output)
 
   @classmethod
   def _ShutdownNet(cls, minor):
@@ -1478,8 +1470,7 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "disconnect"])
     if result.failed:
-      logging.error("Can't shutdown network: %s", result.output)
-    return not result.failed
+      _ThrowError("drbd%d: can't shutdown network: %s", minor, result.output)
 
   @classmethod
   def _ShutdownAll(cls, minor):
@@ -1581,9 +1572,7 @@ class FileStorage(BlockDev):
 
     """
     if not os.path.exists(self.dev_path):
-      raise errors.BlockDeviceError("File device '%s' does not exist." %
-                                    self.dev_path)
-    return True
+      _ThrowError("File device '%s' does not exist" % self.dev_path)
 
   def Shutdown(self):
     """Shutdown the device.
@@ -1692,10 +1681,7 @@ def Assemble(dev_type, unique_id, children):
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
   device = DEV_MAP[dev_type](unique_id, children)
-  if not device.Assemble():
-    raise errors.BlockDeviceError("Can't find a valid block device for"
-                                  " %s/%s/%s" %
-                                  (dev_type, unique_id, children))
+  device.Assemble()
   return device
 
 
