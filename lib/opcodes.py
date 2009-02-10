@@ -337,6 +337,7 @@ class OpSetNodeParams(OpCode):
     "force",
     "master_candidate",
     "offline",
+    "drained",
     ]
 
 # instance opcodes

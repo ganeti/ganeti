@@ -419,7 +419,7 @@ def SetNodeParams(opts, args):
   @return: the desired exit code
 
   """
-  if opts.master_candidate is None and opts.offline is None:
+  if [opts.master_candidate, opts.drained, opts.offline].count(None) == 3:
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -431,9 +431,15 @@ def SetNodeParams(opts, args):
     offline = opts.offline == 'yes'
   else:
     offline = None
+
+  if opts.drained is not None:
+    drained = opts.drained == 'yes'
+  else:
+    drained = None
   op = opcodes.OpSetNodeParams(node_name=args[0],
                                master_candidate=candidate,
                                offline=offline,
+                               drained=drained,
                                force=opts.force)
 
   # even if here we process the result, we allow submit only
@@ -515,6 +521,9 @@ commands = {
               make_option("-O", "--offline", dest="offline",
                           choices=('yes', 'no'), default=None,
                           help="Set the offline flag on the node"),
+              make_option("-D", "--drained", dest="drained",
+                          choices=('yes', 'no'), default=None,
+                          help="Set the drained flag on the node"),
               ],
              "<instance>", "Alters the parameters of an instance"),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],

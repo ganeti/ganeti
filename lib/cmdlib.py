@@ -2240,11 +2240,13 @@ class LUSetNodeParams(LogicalUnit):
     self.op.node_name = node_name
     _CheckBooleanOpField(self.op, 'master_candidate')
     _CheckBooleanOpField(self.op, 'offline')
-    if self.op.master_candidate is None and self.op.offline is None:
+    _CheckBooleanOpField(self.op, 'drained')
+    all_mods = [self.op.offline, self.op.master_candidate, self.op.drained]
+    if all_mods.count(None) == 3:
       raise errors.OpPrereqError("Please pass at least one modification")
-    if self.op.offline == True and self.op.master_candidate == True:
-      raise errors.OpPrereqError("Can't set the node into offline and"
-                                 " master_candidate at the same time")
+    if all_mods.count(True) > 1:
+      raise errors.OpPrereqError("Can't set the node into more than one"
+                                 " state at the same time")
 
   def ExpandNames(self):
     self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
@@ -2259,6 +2261,7 @@ class LUSetNodeParams(LogicalUnit):
       "OP_TARGET": self.op.node_name,
       "MASTER_CANDIDATE": str(self.op.master_candidate),
       "OFFLINE": str(self.op.offline),
+      "DRAINED": str(self.op.drained),
       }
     nl = [self.cfg.GetMasterNode(),
           self.op.node_name]
@@ -2272,12 +2275,12 @@ class LUSetNodeParams(LogicalUnit):
     """
     node = self.node = self.cfg.GetNodeInfo(self.op.node_name)
 
-    if ((self.op.master_candidate == False or self.op.offline == True)
-        and node.master_candidate):
+    if ((self.op.master_candidate == False or self.op.offline == True or
+         self.op.drained == True) and node.master_candidate):
       # we will demote the node from master_candidate
       if self.op.node_name == self.cfg.GetMasterNode():
         raise errors.OpPrereqError("The master node has to be a"
-                                   " master candidate and online")
+                                   " master candidate, online and not drained")
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
       num_candidates, _ = self.cfg.GetMasterCandidateStats()
       if num_candidates <= cp_size:
@@ -2288,10 +2291,11 @@ class LUSetNodeParams(LogicalUnit):
         else:
           raise errors.OpPrereqError(msg)
 
-    if (self.op.master_candidate == True and node.offline and
-        not self.op.offline == False):
-      raise errors.OpPrereqError("Can't set an offline node to"
-                                 " master_candidate")
+    if (self.op.master_candidate == True and
+        ((node.offline and not self.op.offline == False) or
+         (node.drained and not self.op.drained == False))):
+      raise errors.OpPrereqError("Node '%s' is offline or drained, can't set"
+                                 " to master_candidate")
 
     return
 
@@ -2302,16 +2306,23 @@ class LUSetNodeParams(LogicalUnit):
     node = self.node
 
     result = []
+    changed_mc = False
 
     if self.op.offline is not None:
       node.offline = self.op.offline
       result.append(("offline", str(self.op.offline)))
-      if self.op.offline == True and node.master_candidate:
-        node.master_candidate = False
-        result.append(("master_candidate", "auto-demotion due to offline"))
+      if self.op.offline == True:
+        if node.master_candidate:
+          node.master_candidate = False
+          changed_mc = True
+          result.append(("master_candidate", "auto-demotion due to offline"))
+        if node.drained:
+          node.drained = False
+          result.append(("drained", "clear drained status due to offline"))
 
     if self.op.master_candidate is not None:
       node.master_candidate = self.op.master_candidate
+      changed_mc = True
       result.append(("master_candidate", str(self.op.master_candidate)))
       if self.op.master_candidate == False:
         rrc = self.rpc.call_node_demote_from_mc(node.name)
@@ -2319,10 +2330,21 @@ class LUSetNodeParams(LogicalUnit):
         if msg:
           self.LogWarning("Node failed to demote itself: %s" % msg)
 
+    if self.op.drained is not None:
+      node.drained = self.op.drained
+      if self.op.drained == True:
+        if node.master_candidate:
+          node.master_candidate = False
+          changed_mc = True
+          result.append(("master_candidate", "auto-demotion due to drain"))
+        if node.offline:
+          node.offline = False
+          result.append(("offline", "clear offline status due to drain"))
+
     # this will trigger configuration file update, if needed
     self.cfg.Update(node)
     # this will trigger job queue propagation or cleanup
-    if self.op.node_name != self.cfg.GetMasterNode():
+    if changed_mc:
       self.context.ReaddNode(node)
 
     return result
