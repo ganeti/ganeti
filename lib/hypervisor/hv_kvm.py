@@ -458,7 +458,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if result.failed:
       msg = ("Failed to send command '%s' to instance %s."
              " output: %s, error: %s, fail_reason: %s" %
-             (instance.name, result.stdout, result.stderr, result.fail_reason))
+             (command, instance_name,
+              result.stdout, result.stderr, result.fail_reason))
       raise errors.HypervisorError(msg)
 
     return result
