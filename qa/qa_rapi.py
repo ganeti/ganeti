@@ -51,7 +51,7 @@ NODE_FIELDS = ("name", "dtotal", "dfree",
                "mtotal", "mnode", "mfree",
                "pinst_cnt", "sinst_cnt", "tags")
 
-LIST_FIELDS = ("name", "uri")
+LIST_FIELDS = ("id", "uri")
 
 
 def Enabled():
