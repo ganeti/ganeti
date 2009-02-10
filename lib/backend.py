@@ -1216,10 +1216,18 @@ def BlockdevAssemble(disk, owner, as_primary):
       C{True} for secondary nodes
 
   """
-  result = _RecursiveAssembleBD(disk, owner, as_primary)
-  if isinstance(result, bdev.BlockDev):
-    result = result.dev_path
-  return result
+  status = False
+  result = "no error information"
+  try:
+    result = _RecursiveAssembleBD(disk, owner, as_primary)
+    if isinstance(result, bdev.BlockDev):
+      result = result.dev_path
+      status = True
+    if result == True:
+      status = True
+  except errors.BlockDeviceError, err:
+    result = "Error while assembling disk: %s" % str(err)
+  return (status, result)
 
 
 def BlockdevShutdown(disk):

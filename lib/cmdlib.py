@@ -2459,10 +2459,11 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, False)
-      if result.failed or not result:
+      msg = result.RemoteFailMsg()
+      if msg:
         lu.proc.LogWarning("Could not prepare block device %s on node %s"
-                           " (is_primary=False, pass=1)",
-                           inst_disk.iv_name, node)
+                           " (is_primary=False, pass=1): %s",
+                           inst_disk.iv_name, node, msg)
         if not ignore_secondaries:
           disks_ok = False
 
@@ -2475,10 +2476,11 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
         continue
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, True)
-      if result.failed or not result:
+      msg = result.RemoteFailMsg()
+      if msg:
         lu.proc.LogWarning("Could not prepare block device %s on node %s"
-                           " (is_primary=True, pass=2)",
-                           inst_disk.iv_name, node)
+                           " (is_primary=True, pass=2): %s",
+                           inst_disk.iv_name, node, msg)
         disks_ok = False
     device_info.append((instance.primary_node, inst_disk.iv_name, result.data))
 
