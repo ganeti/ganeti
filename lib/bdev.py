@@ -758,22 +758,17 @@ class BaseDRBD(BlockDev):
     """
     result = utils.RunCmd(["blockdev", "--getsize", meta_device])
     if result.failed:
-      logging.error("Failed to get device size: %s - %s",
-                    result.fail_reason, result.output)
-      return False
+      _ThrowError("Failed to get device size: %s - %s",
+                  result.fail_reason, result.output)
     try:
       sectors = int(result.stdout)
     except ValueError:
-      logging.error("Invalid output from blockdev: '%s'", result.stdout)
-      return False
+      _ThrowError("Invalid output from blockdev: '%s'", result.stdout)
     bytes = sectors * 512
     if bytes < 128 * 1024 * 1024: # less than 128MiB
-      logging.error("Meta device too small (%.2fMib)", (bytes / 1024 / 1024))
-      return False
+      _ThrowError("Meta device too small (%.2fMib)", (bytes / 1024 / 1024))
     if bytes > (128 + 32) * 1024 * 1024: # account for an extra (big) PE on LVM
-      logging.error("Meta device too big (%.2fMiB)", (bytes / 1024 / 1024))
-      return False
-    return True
+      _ThrowError("Meta device too big (%.2fMiB)", (bytes / 1024 / 1024))
 
   def Rename(self, new_id):
     """Rename a device.
@@ -1103,8 +1098,7 @@ class DRBD8(BaseDRBD):
       _ThrowError("drbd%d: children not ready during AddChildren", self.minor)
     backend.Open()
     meta.Open()
-    if not self._CheckMetaSize(meta.dev_path):
-      raise errors.BlockDeviceError("Invalid meta device size")
+    self._CheckMetaSize(meta.dev_path)
     self._InitMeta(self._FindUnusedMinor(), meta.dev_path)
 
     self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path)
@@ -1525,8 +1519,7 @@ class DRBD8(BaseDRBD):
     meta.Assemble()
     if not meta.Attach():
       raise errors.BlockDeviceError("Can't attach to meta device")
-    if not cls._CheckMetaSize(meta.dev_path):
-      raise errors.BlockDeviceError("Invalid meta device size")
+    cls._CheckMetaSize(meta.dev_path)
     cls._InitMeta(aminor, meta.dev_path)
     return cls(unique_id, children)
 
