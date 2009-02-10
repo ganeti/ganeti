@@ -4053,15 +4053,15 @@ def _RemoveDisks(lu, instance):
   """
   logging.info("Removing block devices for instance %s", instance.name)
 
-  result = True
+  all_result = True
   for device in instance.disks:
     for node, disk in device.ComputeNodeTree(instance.primary_node):
       lu.cfg.SetDiskID(disk, node)
-      result = lu.rpc.call_blockdev_remove(node, disk)
-      if result.failed or not result.data:
-        lu.proc.LogWarning("Could not remove block device %s on node %s,"
-                           " continuing anyway", device.iv_name, node)
-        result = False
+      msg = lu.rpc.call_blockdev_remove(node, disk).RemoteFailMsg()
+      if msg:
+        lu.LogWarning("Could not remove block device %s on node %s,"
+                      " continuing anyway: %s", device.iv_name, node, msg)
+        all_result = False
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
@@ -4069,9 +4069,9 @@ def _RemoveDisks(lu, instance):
                                                  file_storage_dir)
     if result.failed or not result.data:
       logging.error("Could not remove directory '%s'", file_storage_dir)
-      result = False
+      all_result = False
 
-  return result
+  return all_result
 
 
 def _ComputeDiskSize(disk_template, disks):
@@ -5039,10 +5039,10 @@ class LUReplaceDisks(LogicalUnit):
       result = self.rpc.call_blockdev_addchildren(tgt_node, dev, new_lvs)
       if result.failed or not result.data:
         for new_lv in new_lvs:
-          result = self.rpc.call_blockdev_remove(tgt_node, new_lv)
-          if result.failed or not result.data:
-            warning("Can't rollback device %s", hint="manually cleanup unused"
-                    " logical volumes")
+          msg = self.rpc.call_blockdev_remove(tgt_node, new_lv).RemoteFailMsg()
+          if msg:
+            warning("Can't rollback device %s: %s", dev, msg,
+                    hint="cleanup manually the unused logical volumes")
         raise errors.OpExecError("Can't add local storage to drbd")
 
       dev.children = new_lvs
@@ -5075,9 +5075,10 @@ class LUReplaceDisks(LogicalUnit):
       info("remove logical volumes for %s" % name)
       for lv in old_lvs:
         cfg.SetDiskID(lv, tgt_node)
-        result = self.rpc.call_blockdev_remove(tgt_node, lv)
-        if result.failed or not result.data:
-          warning("Can't remove old LV", hint="manually remove unused LVs")
+        msg = self.rpc.call_blockdev_remove(tgt_node, lv).RemoteFailMsg()
+        if msg:
+          warning("Can't remove old LV: %s" % msg,
+                  hint="manually remove unused LVs")
           continue
 
   def _ExecD8Secondary(self, feedback_fn):
@@ -5259,9 +5260,9 @@ class LUReplaceDisks(LogicalUnit):
       info("remove logical volumes for disk/%d" % idx)
       for lv in old_lvs:
         cfg.SetDiskID(lv, old_node)
-        result = self.rpc.call_blockdev_remove(old_node, lv)
-        if result.failed or not result.data:
-          warning("Can't remove LV on old secondary",
+        msg = self.rpc.call_blockdev_remove(old_node, lv).RemoteFailMsg()
+        if msg:
+          warning("Can't remove LV on old secondary: %s", msg,
                   hint="Cleanup stale volumes by hand")
 
   def Exec(self, feedback_fn):
@@ -5826,10 +5827,10 @@ class LUSetInstanceParams(LogicalUnit):
         device_idx = len(instance.disks)
         for node, disk in device.ComputeNodeTree(instance.primary_node):
           self.cfg.SetDiskID(disk, node)
-          rpc_result = self.rpc.call_blockdev_remove(node, disk)
-          if rpc_result.failed or not rpc_result.data:
-            self.proc.LogWarning("Could not remove disk/%d on node %s,"
-                                 " continuing anyway", device_idx, node)
+          msg = self.rpc.call_blockdev_remove(node, disk).RemoteFailMsg()
+          if msg:
+            self.LogWarning("Could not remove disk/%d on node %s: %s,"
+                            " continuing anyway", device_idx, node, msg)
         result.append(("disk/%d" % device_idx, "remove"))
       elif disk_op == constants.DDM_ADD:
         # add a new disk
@@ -6079,10 +6080,10 @@ class LUExportInstance(LogicalUnit):
           self.LogWarning("Could not export block device %s from node %s to"
                           " node %s", dev.logical_id[1], src_node,
                           dst_node.name)
-        result = self.rpc.call_blockdev_remove(src_node, dev)
-        if result.failed or not result.data:
+        msg = self.rpc.call_blockdev_remove(src_node, dev).RemoteFailMsg()
+        if msg:
           self.LogWarning("Could not remove snapshot block device %s from node"
-                          " %s", dev.logical_id[1], src_node)
+                          " %s: %s", dev.logical_id[1], src_node, msg)
 
     result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
     if result.failed or not result.data:

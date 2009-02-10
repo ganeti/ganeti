@@ -1134,6 +1134,8 @@ def BlockdevRemove(disk):
   @return: the success of the operation
 
   """
+  msgs = []
+  result = True
   try:
     rdev = _RecursiveFindBD(disk)
   except errors.BlockDeviceError, err:
@@ -1142,15 +1144,22 @@ def BlockdevRemove(disk):
     rdev = None
   if rdev is not None:
     r_path = rdev.dev_path
-    result = rdev.Remove()
+    try:
+      result = rdev.Remove()
+    except errors.BlockDeviceError, err:
+      msgs.append(str(err))
+      result = False
     if result:
       DevCacheManager.RemoveCache(r_path)
-  else:
-    result = True
+
   if disk.children:
     for child in disk.children:
-      result = result and BlockdevRemove(child)
-  return result
+      c_status, c_msg = BlockdevRemove(child)
+      result = result and c_status
+      if c_msg: # not an empty message
+        msgs.append(c_msg)
+
+  return (result, "; ".join(msgs))
 
 
 def _RecursiveAssembleBD(disk, owner, as_primary):
