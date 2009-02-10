@@ -323,13 +323,13 @@ class Burner(object):
     else:
       names = []
     try:
-      op = opcodes.OpQueryNodes(output_fields=["name", "offline"],
+      op = opcodes.OpQueryNodes(output_fields=["name", "offline", "drained"],
                                 names=names, use_locking=True)
       result = self.ExecOp(op)
     except errors.GenericError, err:
       err_code, msg = cli.FormatError(err)
       Err(msg, exit_code=err_code)
-    self.nodes = [data[0] for data in result if not data[1]]
+    self.nodes = [data[0] for data in result if not (data[1] or data[2])]
 
     result = self.ExecOp(opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
                                               names=[]))
