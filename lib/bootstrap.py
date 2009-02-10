@@ -245,7 +245,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
                                     secondary_ip=secondary_ip,
                                     serial_no=1,
                                     master_candidate=True,
-                                    offline=False,
+                                    offline=False, drained=False,
                                     )
 
   sscfg = InitConfig(constants.CONFIG_VERSION,

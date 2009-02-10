@@ -698,6 +698,7 @@ class Node(TaggableObject):
     "serial_no",
     "master_candidate",
     "offline",
+    "drained",
     ]
 
 

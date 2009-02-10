@@ -2094,7 +2094,7 @@ class LUAddNode(LogicalUnit):
                                  primary_ip=primary_ip,
                                  secondary_ip=secondary_ip,
                                  master_candidate=master_candidate,
-                                 offline=False)
+                                 offline=False, drained=False)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
