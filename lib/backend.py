@@ -1145,7 +1145,7 @@ def BlockdevRemove(disk):
   if rdev is not None:
     r_path = rdev.dev_path
     try:
-      result = rdev.Remove()
+      rdev.Remove()
     except errors.BlockDeviceError, err:
       msgs.append(str(err))
       result = False

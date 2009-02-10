@@ -368,14 +368,11 @@ class LogicalVolume(BlockDev):
     """
     if not self.minor and not self.Attach():
       # the LV does not exist
-      return True
+      return
     result = utils.RunCmd(["lvremove", "-f", "%s/%s" %
                            (self._vg_name, self._lv_name)])
     if result.failed:
-      logging.error("Can't lvremove: %s - %s",
-                    result.fail_reason, result.output)
-
-    return not result.failed
+      _ThrowError("Can't lvremove: %s - %s", result.fail_reason, result.output)
 
   def Rename(self, new_id):
     """Rename this logical volume.
@@ -506,7 +503,7 @@ class LogicalVolume(BlockDev):
 
     # remove existing snapshot if found
     snap = LogicalVolume((self._vg_name, snap_name), None)
-    snap.Remove()
+    _IgnoreError(snap.Remove)
 
     pvs_info = self.GetPVInfo(self._vg_name)
     if not pvs_info:
@@ -1511,7 +1508,7 @@ class DRBD8(BaseDRBD):
     """Stub remove for DRBD devices.
 
     """
-    return self.Shutdown()
+    self.Shutdown()
 
   @classmethod
   def Create(cls, unique_id, children, size):
@@ -1620,14 +1617,11 @@ class FileStorage(BlockDev):
     @return: True if the removal was successful
 
     """
-    if not os.path.exists(self.dev_path):
-      return True
     try:
       os.remove(self.dev_path)
-      return True
     except OSError, err:
-      logging.error("Can't remove file '%s': %s", self.dev_path, err)
-      return False
+      if err.errno != errno.ENOENT:
+        _ThrowError("Can't remove file '%s': %s", self.dev_path, err)
 
   def Attach(self):
     """Attach to an existing file.
