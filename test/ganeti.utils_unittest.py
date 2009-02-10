@@ -38,12 +38,13 @@ import ganeti
 import testutils
 from ganeti import constants
 from ganeti import utils
+from ganeti import errors
 from ganeti.utils import IsProcessAlive, RunCmd, \
      RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
-     TailFile
+     TailFile, ForceDictType
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -920,6 +921,45 @@ class FieldSetTestCase(unittest.TestCase):
     self.failIf(f.Matches("b/1"))
     self.failIf(f.NonMatching(["b12", "c"]))
     self.failUnless(f.NonMatching(["a", "1"]))
+
+class TestForceDictType(unittest.TestCase):
+  """Test case for ForceDictType"""
+
+  def setUp(self):
+    self.key_types = {
+      'a': constants.VTYPE_INT,
+      'b': constants.VTYPE_BOOL,
+      'c': constants.VTYPE_STRING,
+      'd': constants.VTYPE_SIZE,
+      }
+
+  def _fdt(self, dict, allowed_values=None):
+    if allowed_values is None:
+      ForceDictType(dict, self.key_types)
+    else:
+      ForceDictType(dict, self.key_types, allowed_values=allowed_values)
+
+    return dict
+
+  def testSimpleDict(self):
+    self.assertEqual(self._fdt({}), {})
+    self.assertEqual(self._fdt({'a': 1}), {'a': 1})
+    self.assertEqual(self._fdt({'a': '1'}), {'a': 1})
+    self.assertEqual(self._fdt({'a': 1, 'b': 1}), {'a':1, 'b': True})
+    self.assertEqual(self._fdt({'b': 1, 'c': 'foo'}), {'b': True, 'c': 'foo'})
+    self.assertEqual(self._fdt({'b': 1, 'c': False}), {'b': True, 'c': ''})
+    self.assertEqual(self._fdt({'b': 'false'}), {'b': False})
+    self.assertEqual(self._fdt({'b': 'False'}), {'b': False})
+    self.assertEqual(self._fdt({'b': 'true'}), {'b': True})
+    self.assertEqual(self._fdt({'b': 'True'}), {'b': True})
+    self.assertEqual(self._fdt({'d': '4'}), {'d': 4})
+    self.assertEqual(self._fdt({'d': '4M'}), {'d': 4})
+
+  def testErrors(self):
+    self.assertRaises(errors.TypeEnforcementError, self._fdt, {'a': 'astring'})
+    self.assertRaises(errors.TypeEnforcementError, self._fdt, {'c': True})
+    self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': 'astring'})
+    self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': '4 L'})
 
 
 if __name__ == '__main__':

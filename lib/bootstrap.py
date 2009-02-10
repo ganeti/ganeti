@@ -38,6 +38,7 @@ from ganeti import config
 from ganeti import constants
 from ganeti import objects
 from ganeti import ssconf
+from ganeti import hypervisor
 
 
 def _InitSSHSetup():
@@ -204,7 +205,12 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     raise errors.OpPrereqError("Init.d script '%s' missing or not"
                                " executable." % constants.NODE_INITD_SCRIPT)
 
-  utils.CheckBEParams(beparams)
+  utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
+  # hvparams is a mapping of hypervisor->hvparams dict
+  for hv_name, hv_params in hvparams.iteritems():
+    utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
+    hv_class = hypervisor.GetHypervisor(hv_name)
+    hv_class.CheckParameterSyntax(hv_params)
 
   # set up the inter-node password and certificate
   _InitGanetiServerSetup()

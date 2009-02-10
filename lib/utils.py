@@ -387,6 +387,69 @@ def CheckDict(target, template, logname=None):
     logging.warning('%s missing keys %s', logname, ', '.join(missing))
 
 
+def ForceDictType(target, key_types, allowed_values=None):
+  """Force the values of a dict to have certain types.
+
+  @type target: dict
+  @param target: the dict to update
+  @type key_types: dict
+  @param key_types: dict mapping target dict keys to types
+                    in constants.ENFORCEABLE_TYPES
+  @type allowed_values: list
+  @keyword allowed_values: list of specially allowed values
+
+  """
+  if allowed_values is None:
+    allowed_values = []
+
+  for key in target:
+    if key not in key_types:
+      msg = "Unknown key '%s'" % key
+      raise errors.TypeEnforcementError(msg)
+
+    if target[key] in allowed_values:
+      continue
+
+    type = key_types[key]
+    if type not in constants.ENFORCEABLE_TYPES:
+      msg = "'%s' has non-enforceable type %s" % (key, type)
+      raise errors.ProgrammerError(msg)
+
+    if type == constants.VTYPE_STRING:
+      if not isinstance(target[key], basestring):
+        if isinstance(target[key], bool) and not target[key]:
+          target[key] = ''
+        else:
+          msg = "'%s' (value %s) is not a valid string" % (key, target[key])
+          raise errors.TypeEnforcementError(msg)
+    elif type == constants.VTYPE_BOOL:
+      if isinstance(target[key], basestring) and target[key]:
+        if target[key].lower() == constants.VALUE_FALSE:
+          target[key] = False
+        elif target[key].lower() == constants.VALUE_TRUE:
+          target[key] = True
+        else:
+          msg = "'%s' (value %s) is not a valid boolean" % (key, target[key])
+          raise errors.TypeEnforcementError(msg)
+      elif target[key]:
+        target[key] = True
+      else:
+        target[key] = False
+    elif type == constants.VTYPE_SIZE:
+      try:
+        target[key] = ParseUnit(target[key])
+      except errors.UnitParseError, err:
+        msg = "'%s' (value %s) is not a valid size. error: %s" % \
+              (key, target[key], err)
+        raise errors.TypeEnforcementError(msg)
+    elif type == constants.VTYPE_INT:
+      try:
+        target[key] = int(target[key])
+      except (ValueError, TypeError):
+        msg = "'%s' (value %s) is not a valid integer" % (key, target[key])
+        raise errors.TypeEnforcementError(msg)
+
+
 def IsProcessAlive(pid):
   """Check if a given pid exists on the system.
 
@@ -556,37 +619,6 @@ def BridgeExists(bridge):
 
   """
   return os.path.isdir("/sys/class/net/%s/bridge" % bridge)
-
-
-def CheckBEParams(beparams):
-  """Checks whether the user-supplied be-params are valid,
-  and converts them from string format where appropriate.
-
-  @type beparams: dict
-  @param beparams: new params dict
-
-  """
-  if beparams:
-    for item in beparams:
-      if item not in constants.BES_PARAMETERS:
-        raise errors.OpPrereqError("Unknown backend parameter %s" % item)
-      if item in (constants.BE_MEMORY, constants.BE_VCPUS):
-        val = beparams[item]
-        if val != constants.VALUE_DEFAULT:
-          try:
-            val = int(val)
-          except ValueError, err:
-            raise errors.OpPrereqError("Invalid %s size: %s" % (item, err))
-          beparams[item] = val
-      if item in (constants.BE_AUTO_BALANCE):
-        val = beparams[item]
-        if not isinstance(val, bool):
-          if val == constants.VALUE_TRUE:
-            beparams[item] = True
-          elif val == constants.VALUE_FALSE:
-            beparams[item] = False
-          else:
-            raise errors.OpPrereqError("Invalid %s value: %s" % (item, val))
 
 
 def NiceSort(name_list):

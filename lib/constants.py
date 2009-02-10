@@ -277,6 +277,17 @@ REBOOT_TYPES = frozenset([INSTANCE_REBOOT_SOFT,
                           INSTANCE_REBOOT_HARD,
                           INSTANCE_REBOOT_FULL])
 
+VTYPE_STRING = 'string'
+VTYPE_BOOL = 'bool'
+VTYPE_SIZE = 'size' # size, in MiBs
+VTYPE_INT = 'int'
+ENFORCEABLE_TYPES = frozenset([
+                      VTYPE_STRING,
+                      VTYPE_BOOL,
+                      VTYPE_SIZE,
+                      VTYPE_INT,
+                      ])
+
 # HV parameter names (global namespace)
 HV_BOOT_ORDER = "boot_order"
 HV_CDROM_IMAGE_PATH = "cdrom_image_path"
@@ -294,34 +305,38 @@ HV_ROOT_PATH = "root_path"
 HV_SERIAL_CONSOLE = "serial_console"
 HV_USB_MOUSE = "usb_mouse"
 
-HVS_PARAMETERS = frozenset([
-  HV_BOOT_ORDER,
-  HV_CDROM_IMAGE_PATH,
-  HV_NIC_TYPE,
-  HV_DISK_TYPE,
-  HV_VNC_BIND_ADDRESS,
-  HV_VNC_TLS,
-  HV_VNC_X509,
-  HV_VNC_X509_VERIFY,
-  HV_ACPI,
-  HV_PAE,
-  HV_KERNEL_PATH,
-  HV_INITRD_PATH,
-  HV_ROOT_PATH,
-  HV_SERIAL_CONSOLE,
-  HV_USB_MOUSE,
-  ])
+HVS_PARAMETER_TYPES = {
+  HV_BOOT_ORDER: VTYPE_STRING,
+  HV_CDROM_IMAGE_PATH: VTYPE_STRING,
+  HV_NIC_TYPE: VTYPE_STRING,
+  HV_DISK_TYPE: VTYPE_STRING,
+  HV_VNC_BIND_ADDRESS: VTYPE_STRING,
+  HV_VNC_TLS: VTYPE_BOOL,
+  HV_VNC_X509: VTYPE_STRING,
+  HV_VNC_X509_VERIFY: VTYPE_BOOL,
+  HV_ACPI: VTYPE_BOOL,
+  HV_PAE: VTYPE_BOOL,
+  HV_KERNEL_PATH: VTYPE_STRING,
+  HV_INITRD_PATH: VTYPE_STRING,
+  HV_ROOT_PATH: VTYPE_STRING,
+  HV_SERIAL_CONSOLE: VTYPE_BOOL,
+  HV_USB_MOUSE: VTYPE_STRING,
+  }
+
+HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
 
 # BE parameter names
 BE_MEMORY = "memory"
 BE_VCPUS = "vcpus"
 BE_AUTO_BALANCE = "auto_balance"
 
-BES_PARAMETERS = frozenset([
-  BE_MEMORY,
-  BE_VCPUS,
-  BE_AUTO_BALANCE,
-  ])
+BES_PARAMETER_TYPES = {
+    BE_MEMORY: VTYPE_SIZE,
+    BE_VCPUS: VTYPE_INT,
+    BE_AUTO_BALANCE: VTYPE_BOOL,
+    }
+
+BES_PARAMETERS = frozenset(BES_PARAMETER_TYPES.keys())
 
 # BE GROUP
 BEGR_DEFAULT = "default"
@@ -457,12 +472,12 @@ DEFAULT_ENABLED_HYPERVISOR = HT_XEN_PVM
 HVC_DEFAULTS = {
   HT_XEN_PVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
-    HV_INITRD_PATH: None,
+    HV_INITRD_PATH: '',
     HV_ROOT_PATH: '/dev/sda',
     },
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
-    HV_CDROM_IMAGE_PATH: None,
+    HV_CDROM_IMAGE_PATH: '',
     HV_NIC_TYPE: HT_NIC_RTL8139,
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
     HV_VNC_BIND_ADDRESS: '0.0.0.0',
@@ -471,19 +486,19 @@ HVC_DEFAULTS = {
     },
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
-    HV_INITRD_PATH: None,
+    HV_INITRD_PATH: '',
     HV_ROOT_PATH: '/dev/vda',
     HV_ACPI: True,
     HV_SERIAL_CONSOLE: True,
-    HV_VNC_BIND_ADDRESS: None,
+    HV_VNC_BIND_ADDRESS: '',
     HV_VNC_TLS: False,
     HV_VNC_X509: '',
     HV_VNC_X509_VERIFY: False,
-    HV_CDROM_IMAGE_PATH: None,
+    HV_CDROM_IMAGE_PATH: '',
     HV_BOOT_ORDER: "disk",
     HV_NIC_TYPE: HT_NIC_PARAVIRTUAL,
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
-    HV_USB_MOUSE: None,
+    HV_USB_MOUSE: '',
     },
   HT_FAKE: {
     },

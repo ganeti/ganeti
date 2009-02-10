@@ -50,7 +50,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
-           "ValidateBeParams", "ToStderr", "ToStdout", "UsesRPC",
+           "ToStderr", "ToStdout", "UsesRPC",
            "GetOnlineNodes", "JobExecutor", "SYNC_OPT",
            ]
 
@@ -409,27 +409,6 @@ def SplitNodeOption(value):
     return (value, None)
 
 
-def ValidateBeParams(bep):
-  """Parse and check the given beparams.
-
-  The function will update in-place the given dictionary.
-
-  @type bep: dict
-  @param bep: input beparams
-  @raise errors.ParameterError: if the input values are not OK
-  @raise errors.UnitParseError: if the input values are not OK
-
-  """
-  if constants.BE_MEMORY in bep:
-    bep[constants.BE_MEMORY] = utils.ParseUnit(bep[constants.BE_MEMORY])
-
-  if constants.BE_VCPUS in bep:
-    try:
-      bep[constants.BE_VCPUS] = int(bep[constants.BE_VCPUS])
-    except ValueError:
-      raise errors.ParameterError("Invalid number of VCPUs")
-
-
 def UsesRPC(fn):
   def wrapper(*args, **kwargs):
     rpc.Init()
@@ -695,6 +674,8 @@ def FormatError(err):
   elif isinstance(err, errors.JobQueueFull):
     obuf.write("Failure: the job queue is full and doesn't accept new"
                " job submissions until old jobs are archived\n")
+  elif isinstance(err, errors.TypeEnforcementError):
+    obuf.write("Parameter Error: %s" % msg)
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, luxi.NoMasterError):

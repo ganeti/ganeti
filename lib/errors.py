@@ -198,6 +198,10 @@ class UnitParseError(GenericError):
 
   """
 
+class TypeEnforcementError(GenericError):
+  """Unable to enforce data type.
+
+  """
 
 class SshKeyError(GenericError):
   """Invalid SSH key.

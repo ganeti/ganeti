@@ -1409,8 +1409,6 @@ class LUSetClusterParams(LogicalUnit):
     if the given volume group is valid.
 
     """
-    # FIXME: This only works because there is only one parameter that can be
-    # changed or removed.
     if self.op.vg_name is not None and not self.op.vg_name:
       instances = self.cfg.GetAllInstancesInfo().values()
       for inst in instances:
@@ -1439,7 +1437,7 @@ class LUSetClusterParams(LogicalUnit):
     self.cluster = cluster = self.cfg.GetClusterInfo()
     # validate beparams changes
     if self.op.beparams:
-      utils.CheckBEParams(self.op.beparams)
+      utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
       self.new_beparams = cluster.FillDict(
         cluster.beparams[constants.BEGR_DEFAULT], self.op.beparams)
 
@@ -1467,6 +1465,7 @@ class LUSetClusterParams(LogicalUnit):
              hv_name in self.op.enabled_hypervisors)):
           # either this is a new hypervisor, or its parameters have changed
           hv_class = hypervisor.GetHypervisor(hv_name)
+          utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
           hv_class.CheckParameterSyntax(hv_params)
           _CheckHVParams(self, node_list, hv_name, hv_params)
 
@@ -4227,14 +4226,14 @@ class LUCreateInstance(LogicalUnit):
                                   ",".join(enabled_hvs)))
 
     # check hypervisor parameter syntax (locally)
-
+    utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
     filled_hvp = cluster.FillDict(cluster.hvparams[self.op.hypervisor],
                                   self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
 
     # fill and remember the beparams dict
-    utils.CheckBEParams(self.op.beparams)
+    utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
     self.be_full = cluster.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
                                     self.op.beparams)
 
@@ -5608,8 +5607,6 @@ class LUSetInstanceParams(LogicalUnit):
             self.op.hvparams or self.op.beparams):
       raise errors.OpPrereqError("No changes submitted")
 
-    utils.CheckBEParams(self.op.beparams)
-
     # Disk validation
     disk_addremove = 0
     for disk_op, disk_dict in self.op.disks:
@@ -5731,11 +5728,10 @@ class LUSetInstanceParams(LogicalUnit):
             del i_hvdict[key]
           except KeyError:
             pass
-        elif val == constants.VALUE_NONE:
-          i_hvdict[key] = None
         else:
           i_hvdict[key] = val
       cluster = self.cfg.GetClusterInfo()
+      utils.ForceDictType(i_hvdict, constants.HVS_PARAMETER_TYPES)
       hv_new = cluster.FillDict(cluster.hvparams[instance.hypervisor],
                                 i_hvdict)
       # local check
@@ -5759,6 +5755,7 @@ class LUSetInstanceParams(LogicalUnit):
         else:
           i_bedict[key] = val
       cluster = self.cfg.GetClusterInfo()
+      utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
       be_new = cluster.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
                                 i_bedict)
       self.be_new = be_new # the new actual values

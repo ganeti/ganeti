@@ -136,7 +136,8 @@ def ImportInstance(opts, args):
                                    (didx, err))
       disks[didx] = ddict
 
-  ValidateBeParams(opts.beparams)
+  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(opts.hvparams, constants.HVS_PARAMETER_TYPES)
 
   op = opcodes.OpCreateInstance(instance_name=instance,
                                 disk_template=opts.disk_template,

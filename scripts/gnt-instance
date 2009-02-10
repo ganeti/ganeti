@@ -355,19 +355,8 @@ def AddInstance(opts, args):
                                    (didx, err))
       disks[didx] = ddict
 
-  ValidateBeParams(opts.beparams)
-
-##  kernel_path = _TransformPath(opts.kernel_path)
-##  initrd_path = _TransformPath(opts.initrd_path)
-
-##  hvm_acpi = opts.hvm_acpi == _VALUE_TRUE
-##  hvm_pae = opts.hvm_pae == _VALUE_TRUE
-
-##  if ((opts.hvm_cdrom_image_path is not None) and
-##      (opts.hvm_cdrom_image_path.lower() == constants.VALUE_NONE)):
-##    hvm_cdrom_image_path = None
-##  else:
-##    hvm_cdrom_image_path = opts.hvm_cdrom_image_path
+  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(opts.hvparams, constants.HVS_PARAMETER_TYPES)
 
   op = opcodes.OpCreateInstance(instance_name=instance,
                                 disks=disks,
@@ -491,6 +480,9 @@ def BatchCreate(opts, args):
       disks.append({"size": size})
 
     nic0 = {'ip': specs['ip'], 'bridge': specs['bridge'], 'mac': specs['mac']}
+
+    utils.ForceDictType(specs['backend'], constants.BES_PARAMETER_TYPES)
+    utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
 
     op = opcodes.OpCreateInstance(instance_name=name,
                                   disks=disks,
@@ -1187,18 +1179,17 @@ def SetInstanceParams(opts, args):
     if isinstance(opts.beparams[param], basestring):
       if opts.beparams[param].lower() == "default":
         opts.beparams[param] = constants.VALUE_DEFAULT
-      elif opts.beparams[param].lower() == "none":
-        opts.beparams[param] = constants.VALUE_NONE
-      elif param == constants.BE_MEMORY:
-        opts.beparams[constants.BE_MEMORY] = \
-          utils.ParseUnit(opts.beparams[constants.BE_MEMORY])
+
+  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES,
+                      allowed_values=[constants.VALUE_DEFAULT])
 
   for param in opts.hypervisor:
     if isinstance(opts.hypervisor[param], basestring):
       if opts.hypervisor[param].lower() == "default":
         opts.hypervisor[param] = constants.VALUE_DEFAULT
-      elif opts.hypervisor[param].lower() == "none":
-        opts.hypervisor[param] = constants.VALUE_NONE
+
+  utils.ForceDictType(opts.hypervisor, constants.HVS_PARAMETER_TYPES,
+                      allowed_values=[constants.VALUE_DEFAULT])
 
   for idx, (nic_op, nic_dict) in enumerate(opts.nics):
     try:
