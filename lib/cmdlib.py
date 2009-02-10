@@ -5894,7 +5894,7 @@ class LUSetInstanceParams(LogicalUnit):
 
     # hvparams changes
     if self.op.hvparams:
-      instance.hvparams = self.hv_new
+      instance.hvparams = self.hv_inst
       for key, val in self.op.hvparams.iteritems():
         result.append(("hv/%s" % key, val))
 
