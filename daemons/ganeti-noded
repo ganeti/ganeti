@@ -618,8 +618,15 @@ def main():
       sys.exit(5)
 
   # become a daemon
+  noclose_fds = []
+  if hasattr(reactor, 'waker'):
+    # twisted with waker object which has extra fds in use
+    for attr in ('i', 'o'):
+      val = getattr(reactor.waker, attr, None)
+      if isinstance(val, int):
+        noclose_fds.append(val)
   if options.fork:
-    utils.Daemonize(logfile=constants.LOG_NODESERVER)
+    utils.Daemonize(logfile=constants.LOG_NODESERVER, noclose_fds=noclose_fds)
 
   logger.SetupLogging(twisted_workaround=True, debug=options.debug,
                       program="ganeti-noded")

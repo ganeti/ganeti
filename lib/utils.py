@@ -1160,6 +1160,7 @@ def Daemonize(logfile, noclose_fds=None):
   # Iterate through and close all file descriptors.
   for fd in range(0, maxfd):
     if noclose_fds and fd in noclose_fds:
+      assert fd > 2, "Cannot keep open standard fd %d" % fd
       continue
     try:
       os.close(fd)
