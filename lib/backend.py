@@ -1106,7 +1106,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
         try:
           crdev.Open()
         except errors.BlockDeviceError, err:
-          errmsg = "Can't make child '%s' read-write: %s" (child, err)
+          errmsg = "Can't make child '%s' read-write: %s" % (child, err)
           logging.error(errmsg)
           return False, errmsg
       clist.append(crdev)

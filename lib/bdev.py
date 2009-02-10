@@ -1404,9 +1404,9 @@ class DRBD8(BaseDRBD):
         try:
           self._ShutdownNet(minor)
         except errors.BlockDeviceError, err:
-          _ThrowError("Device has correct local storage, wrong remote peer"
-                      " and is unable to disconnect in order to attach to"
-                      " the correct peer: %s", str(err))
+          _ThrowError("drbd%d: device has correct local storage, wrong"
+                      " remote peer and is unable to disconnect in order"
+                      " to attach to the correct peer: %s", minor, str(err))
         # note: _AssembleNet also handles the case when we don't want
         # local storage (i.e. one or more of the _[lr](host|port) is
         # None)
@@ -1475,7 +1475,8 @@ class DRBD8(BaseDRBD):
     """
     result = utils.RunCmd(["drbdsetup", cls._DevPath(minor), "down"])
     if result.failed:
-      _ThrowError("Can't shutdown drbd device: %s", result.output)
+      _ThrowError("drbd%d: can't shutdown drbd device: %s",
+                  minor, result.output)
 
   def Shutdown(self):
     """Shutdown the DRBD device.
@@ -1514,11 +1515,12 @@ class DRBD8(BaseDRBD):
     else:
       in_use = False
     if in_use:
-      _ThrowError("DRBD minor %d already in use at Create() time", aminor)
+      _ThrowError("drbd%d: minor is already in use at Create() time", aminor)
     meta = children[1]
     meta.Assemble()
     if not meta.Attach():
-      raise errors.BlockDeviceError("Can't attach to meta device")
+      _ThrowError("drbd%d: can't attach to meta device '%s'",
+                  aminor, meta)
     cls._CheckMetaSize(meta.dev_path)
     cls._InitMeta(aminor, meta.dev_path)
     return cls(unique_id, children)
