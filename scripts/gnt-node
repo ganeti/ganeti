@@ -360,13 +360,13 @@ def ShowNodeConfig(opts, args):
     ToStdout("  offline: %s", offline)
     if pinst:
       ToStdout("  primary for instances:")
-      for iname in pinst:
+      for iname in utils.NiceSort(pinst):
         ToStdout("    - %s", iname)
     else:
       ToStdout("  primary for no instances")
     if sinst:
       ToStdout("  secondary for instances:")
-      for iname in sinst:
+      for iname in utils.NiceSort(sinst):
         ToStdout("    - %s", iname)
     else:
       ToStdout("  secondary for no instances")
