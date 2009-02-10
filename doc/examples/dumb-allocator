@@ -75,12 +75,13 @@ def main():
   request = data["request"]
   req_type = request["type"]
   offline_nodes = [name for name in nodes if nodes[name]["offline"]]
+  drained_nodes = [name for name in nodes if nodes[name]["offline"]]
   if req_type == "allocate":
     forbidden_nodes = offline_nodes
     inst_data = request
   elif req_type == "relocate":
     idict = data["instances"][request["name"]]
-    forbidden_nodes = idict["nodes"] + offline_nodes
+    forbidden_nodes = idict["nodes"] + offline_nodes + drained_nodes
     inst_data = idict
     inst_data["disk_space_total"] = request["disk_space_total"]
   else:
