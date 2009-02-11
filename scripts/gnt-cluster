@@ -69,13 +69,7 @@ def InitCluster(opts, args):
              (opts.default_hypervisor, hvlist))
     return 1
 
-  hvparams = opts.hvparams
-  if hvparams:
-    # a list of (name, dict) we can pass directly to dict()
-    hvparams = dict(opts.hvparams)
-  else:
-    # otherwise init as empty dict
-    hvparams = {}
+  hvparams = dict(opts.hvparams)
 
   beparams = opts.beparams
   # check for invalid parameters
@@ -473,10 +467,8 @@ def SetClusterParams(opts, args):
   if hvlist is not None:
     hvlist = hvlist.split(",")
 
-  hvparams = opts.hvparams
-  if hvparams:
-    # a list of (name, dict) we can pass directly to dict()
-    hvparams = dict(opts.hvparams)
+  # a list of (name, dict) we can pass directly to dict() (or [])
+  hvparams = dict(opts.hvparams)
   for hv, hv_params in hvparams.iteritems():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
 
