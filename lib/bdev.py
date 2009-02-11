@@ -1629,11 +1629,11 @@ class FileStorage(BlockDev):
     @return: an instance of FileStorage
 
     """
-    # TODO: decide whether we should check for existing files and
-    # abort or not
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     dev_path = unique_id[1]
+    if os.path.exists(dev_path):
+      _ThrowError("File already existing: %s", dev_path)
     try:
       f = open(dev_path, 'w')
       f.truncate(size * 1024 * 1024)
