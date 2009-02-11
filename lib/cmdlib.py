@@ -4028,7 +4028,7 @@ def _GenerateDiskTemplate(lu, template_name,
                               iv_name="disk/%d" % disk_index,
                               logical_id=(file_driver,
                                           "%s/disk%d" % (file_storage_dir,
-                                                         idx)),
+                                                         disk_index)),
                               mode=disk["mode"])
       disks.append(disk_dev)
   else:
