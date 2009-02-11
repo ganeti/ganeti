@@ -16,6 +16,7 @@ import Text.Printf (printf)
 
 import qualified Container
 import qualified Cluster
+import Rapi
 
 -- | Command line options structure.
 data Options = Options
@@ -110,6 +111,10 @@ parseOpts argv =
 -- | Main function.
 main :: IO ()
 main = do
+  i <- getInstances "gnta1"
+  n <- getNodes "gnta1"
+  print i
+  print n
   cmd_args <- System.getArgs
   (opts, _) <- parseOpts cmd_args
   (nl, il, ktn, kti) <- liftM2 Cluster.loadData
