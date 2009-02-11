@@ -747,6 +747,7 @@ def EnsureRuntimeEnvironment():
   """
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
+  dirs.append((constants.LOCK_DIR, 1777))
   for dir_name, dir_mode in dirs:
     if not os.path.exists(dir_name):
       try:
