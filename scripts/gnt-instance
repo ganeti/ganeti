@@ -356,7 +356,7 @@ def AddInstance(opts, args):
       disks[didx] = ddict
 
   utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES)
-  utils.ForceDictType(opts.hvparams, constants.HVS_PARAMETER_TYPES)
+  utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
 
   op = opcodes.OpCreateInstance(instance_name=instance,
                                 disks=disks,
