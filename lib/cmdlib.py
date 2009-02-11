@@ -2209,7 +2209,7 @@ class LUAddNode(LogicalUnit):
 
     to_copy = []
     enabled_hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
-    if constants.HTS_USE_VNC.intersection(enabled_hypervisors):
+    if constants.HTS_COPY_VNC_PASSWORD.intersection(enabled_hypervisors):
       to_copy.append(constants.VNC_PASSWORD_FILE)
 
     for fname in to_copy:

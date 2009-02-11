@@ -348,7 +348,7 @@ HT_XEN_HVM = "xen-hvm"
 HT_KVM = "kvm"
 HYPER_TYPES = frozenset([HT_XEN_PVM, HT_FAKE, HT_XEN_HVM, HT_KVM])
 HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
-HTS_USE_VNC = frozenset([HT_XEN_HVM, HT_KVM])
+HTS_COPY_VNC_PASSWORD = frozenset([HT_XEN_HVM])
 
 VNC_BASE_PORT = 5900
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
