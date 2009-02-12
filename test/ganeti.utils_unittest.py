@@ -527,6 +527,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "127.0.0.1\tlocalhost\n"
       "192.168.1.1 router gw\n"
       "1.2.3.4\tmyhost.domain.tld myhost\n")
+    self.assertFileMode(self.tmpname, 0644)
 
   def testSettingExistingIp(self):
     SetEtcHostsEntry(self.tmpname, '192.168.1.1', 'myhost.domain.tld',
@@ -536,6 +537,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.168.1.1\tmyhost.domain.tld myhost\n")
+    self.assertFileMode(self.tmpname, 0644)
 
   def testSettingDuplicateName(self):
     SetEtcHostsEntry(self.tmpname, '1.2.3.4', 'myhost', ['myhost'])
@@ -545,6 +547,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "127.0.0.1\tlocalhost\n"
       "192.168.1.1 router gw\n"
       "1.2.3.4\tmyhost\n")
+    self.assertFileMode(self.tmpname, 0644)
 
   def testRemovingExistingHost(self):
     RemoveEtcHostsEntry(self.tmpname, 'router')
@@ -553,6 +556,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.168.1.1 gw\n")
+    self.assertFileMode(self.tmpname, 0644)
 
   def testRemovingSingleExistingHost(self):
     RemoveEtcHostsEntry(self.tmpname, 'localhost')
@@ -560,6 +564,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
     self.assertFileContent(self.tmpname,
       "# This is a test file for /etc/hosts\n"
       "192.168.1.1 router gw\n")
+    self.assertFileMode(self.tmpname, 0644)
 
   def testRemovingNonExistingHost(self):
     RemoveEtcHostsEntry(self.tmpname, 'myhost')
@@ -568,6 +573,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.168.1.1 router gw\n")
+    self.assertFileMode(self.tmpname, 0644)
 
   def testRemovingAlias(self):
     RemoveEtcHostsEntry(self.tmpname, 'gw')
@@ -576,6 +582,7 @@ class TestEtcHosts(testutils.GanetiTestCase):
       "# This is a test file for /etc/hosts\n"
       "127.0.0.1\tlocalhost\n"
       "192.168.1.1 router\n")
+    self.assertFileMode(self.tmpname, 0644)
 
 
 class TestShellQuoting(unittest.TestCase):

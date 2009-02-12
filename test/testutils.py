@@ -22,6 +22,7 @@
 """Utilities for unit testing"""
 
 import os
+import stat
 import tempfile
 import unittest
 
@@ -46,7 +47,7 @@ class GanetiTestCase(unittest.TestCase):
         pass
 
   def assertFileContent(self, file_name, expected_content):
-    """Checks the content of a file is what we expect.
+    """Checks that the content of a file is what we expect.
 
     @type file_name: str
     @param file_name: the file whose contents we should check
@@ -56,6 +57,19 @@ class GanetiTestCase(unittest.TestCase):
     """
     actual_content = utils.ReadFile(file_name)
     self.assertEqual(actual_content, expected_content)
+
+  def assertFileMode(self, file_name, expected_mode):
+    """Checks that the mode of a file is what we expect.
+
+    @type file_name: str
+    @param file_name: the file whose contents we should check
+    @type expected_mode: int
+    @param expected_mode: the mode we expect
+
+    """
+    st = os.stat(file_name)
+    actual_mode = stat.S_IMODE(st.st_mode)
+    self.assertEqual(actual_mode, expected_mode)
 
   @staticmethod
   def _TestDataFilename(name):

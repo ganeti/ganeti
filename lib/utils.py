@@ -895,6 +895,7 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
   @param aliases: the list of aliases to add for the hostname
 
   """
+  # FIXME: use WriteFile + fn rather than duplicating its efforts
   # Ensure aliases are unique
   aliases = UniqueSequence([hostname] + aliases)[1:]
 
@@ -917,6 +918,7 @@ def SetEtcHostsEntry(file_name, ip, hostname, aliases):
 
         out.flush()
         os.fsync(out)
+        os.chmod(tmpname, 0644)
         os.rename(tmpname, file_name)
       finally:
         f.close()
@@ -950,6 +952,7 @@ def RemoveEtcHostsEntry(file_name, hostname):
   @param hostname: the hostname to be removed
 
   """
+  # FIXME: use WriteFile + fn rather than duplicating its efforts
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
     out = os.fdopen(fd, 'w')
@@ -971,6 +974,7 @@ def RemoveEtcHostsEntry(file_name, hostname):
 
         out.flush()
         os.fsync(out)
+        os.chmod(tmpname, 0644)
         os.rename(tmpname, file_name)
       finally:
         f.close()
