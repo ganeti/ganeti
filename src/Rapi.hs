@@ -6,14 +6,14 @@ module Rapi
     where
 
 import Network.Curl
-import Network.Curl.Types
+import Network.Curl.Types ()
 import Network.Curl.Code
-import Data.Either (either)
-import Data.Maybe
+import Data.Either ()
+import Data.Maybe ()
 import Control.Monad
 import Text.JSON
 import Text.Printf (printf)
-import Utils
+import Utils ()
 
 
 {-- Our cheap monad-like stuff.
@@ -37,6 +37,13 @@ ensureList lst =
           )
     (Right []) lst
 
+listHead :: Either String [a] -> Either String a
+listHead lst =
+    case lst of
+      Left x -> Left x
+      Right (x:_) -> Right x
+      Right [] -> Left "List empty"
+
 loadJSArray :: String -> Either String [JSObject JSValue]
 loadJSArray s = resultToEither $ decodeStrict s
 
@@ -50,6 +57,18 @@ getIntElement key o =
     in case tmp of
          Left x -> Left x
          Right x -> Right $ show x
+
+getListElement :: String -> JSObject JSValue
+               -> Either String [JSValue]
+getListElement key o =
+    let tmp = resultToEither $ ((valFromObj key o)::Result [JSValue])
+    in tmp
+
+readString :: JSValue -> Either String String
+readString v =
+    case v of
+      JSString s -> Right $ fromJSString s
+      _ -> Left "Wrong JSON type"
 
 concatElems a b =
     case a of
@@ -98,11 +117,14 @@ parseInstance a =
                  Left _ -> getIntElement "sda_size" a
                  Right x -> Right x
         bep = (resultToEither $ valFromObj "beparams" a)
+        pnode = getStringElement "pnode" a
+        snode = (listHead $ getListElement "snodes" a) `combine` readString
     in
       case bep of
         Left x -> Left x
         Right x -> let mem = getIntElement "memory" x
-                   in concatElems name $ concatElems mem disk
+                   in concatElems name $ concatElems mem $
+                      concatElems disk $ concatElems pnode snode
 
 parseNode :: JSObject JSValue -> Either String String
 parseNode a =
