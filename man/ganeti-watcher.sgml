@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>June 20, 2007</date>">
+  <!ENTITY dhdate      "<date>February 11, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -19,6 +19,8 @@
   <refentryinfo>
     <copyright>
       <year>2007</year>
+      <year>2008</year>
+      <year>2009</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -27,7 +29,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 1.2</refmiscinfo>
+    <refmiscinfo>ganeti 2.0</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -61,9 +63,10 @@
       secondaries on nodes that have been rebooted.
     </para>
 
-    <para>In order to prevent piling up commands, all the
-    <emphasis>gnt-*</emphasis> commands executed by ganeti-watcher are
-    run with a timeout of 15 seconds.
+    <para>
+      The watcher does synchronous queries but will submit jobs for
+      executing the changes. Due to locking, it could be that the jobs
+      execute much later than the watcher executes them.
     </para>
 
     <para>

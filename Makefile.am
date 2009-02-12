@@ -179,8 +179,10 @@ EXTRA_DIST = \
 
 man_MANS = \
 	man/ganeti.7 \
+	man/ganeti-masterd.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
+	man/ganeti-rapi.8 \
 	man/ganeti-watcher.8 \
 	man/gnt-backup.8 \
 	man/gnt-cluster.8 \

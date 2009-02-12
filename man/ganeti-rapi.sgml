@@ -1,12 +1,13 @@
 <!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
 
+  <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
   <!ENTITY dhdate      "<date>February 11, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
-  <!ENTITY dhucpackage "<refentrytitle>ganeti-noded</refentrytitle>">
-  <!ENTITY dhpackage   "ganeti-noded">
+  <!ENTITY dhucpackage "<refentrytitle>ganeti-rapi</refentrytitle>">
+  <!ENTITY dhpackage   "ganeti-rapi">
 
   <!ENTITY debian      "<productname>Debian</productname>">
   <!ENTITY gnu         "<acronym>GNU</acronym>">
@@ -17,8 +18,6 @@
 <refentry>
   <refentryinfo>
     <copyright>
-      <year>2006</year>
-      <year>2007</year>
       <year>2008</year>
       <year>2009</year>
       <holder>Google Inc.</holder>
@@ -34,13 +33,17 @@
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>ganeti node daemon</refpurpose>
+    <refpurpose>ganeti remote API daemon</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>&dhpackage; </command>
-      <arg>-f</arg>
       <arg>-d</arg>
+      <arg>-f</arg>
+      <arg>-p <replaceable>PORT</replaceable></arg>
+      <arg>--no-ssl</arg>
+      <arg>-K <replaceable>SSL_KEY_FILE</replaceable></arg>
+      <arg>-C <replaceable>SSL_CERT_FILE</replaceable></arg>
 
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -48,47 +51,33 @@
     <title>DESCRIPTION</title>
 
     <para>
-      The <command>&dhpackage;</command> is the daemon which is
-      responsible for the node functions in the ganeti system.
+      <command>&dhpackage;</command> is the daemon providing a remote
+      API for Ganeti clusters.
     </para>
 
     <para>
-      For testing purposes, you can give the <option>-f</option>
-      option and the program won't detach from the running terminal.
+      It is automatically started on the master node, and by default
+      it uses SSL encryption. This can be disabled by passing the
+      <option>--no-ssl</option> option, or alternatively the
+      certificate used can be changed via the <option>-C</option>
+      option and the key via the <option>-K</option> option.
     </para>
 
     <para>
-      Debug-level message can be activated by giving the
-      <option>-d</option> option.
+      The daemon will listen by default on the port 5080, but this can
+      be changed via the <option>-p</option> option.
     </para>
-    <refsect2>
-      <title>ROLE</title>
-      <para>
-        The role of the node daemon is to do almost all the actions
-        that change the state of the node. Things like creating disks
-        for instances, activating disks, starting/stopping instance
-        and so on are done via the node daemon.
-      </para>
 
-      <para>
-        Also, in some cases the startup/shutdown of the master daemon
-        are done via the node daemon, and the cluster IP address is
-        also added/removed to the master node via it.
-      </para>
+    <para>
+      See the <emphasis>Ganeti remote API</emphasis> documentation for
+      further information.
+    </para>
 
-      <para>
-        If the node daemon is stopped, the instances are not affected,
-        but the master won't be able to talk to that node.
-      </para>
-    </refsect2>
-
-    <refsect2>
-      <title>COMMUNICATION PROTOCOL</title>
-      <para>
-        Currently the master-node RPC is done using a simple json-RPC
-        over HTTP(S).
-      </para>
-    </refsect2>
+    <para>
+      Requests are logged to
+      <filename>@LOCALSTATEDIR@/log/ganeti/rapi-daemon.log</filename>,
+      in the same format as for the node and master daemon.
+    </para>
 
   </refsect1>
 
