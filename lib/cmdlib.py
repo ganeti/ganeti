@@ -3137,7 +3137,7 @@ class LUQueryInstances(NoHooksLU):
   _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet(*["name", "os", "pnode", "snodes",
-                                    "admin_state", "admin_ram",
+                                    "admin_state",
                                     "disk_template", "ip", "mac", "bridge",
                                     "sda_size", "sdb_size", "vcpus", "tags",
                                     "network_port", "beparams",

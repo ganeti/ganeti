@@ -527,7 +527,7 @@ class XenHvmHypervisor(XenHypervisor):
                                       constants.HT_HVM_VALID_DISK_TYPES))
     # vnc_bind_address verification
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
-    if vnc_bind_address is not None:
+    if vnc_bind_address:
       if not utils.IsValidIP(vnc_bind_address):
         raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
                                    " like a valid IP address" %
