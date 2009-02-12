@@ -418,6 +418,7 @@ def BatchCreate(opts, args):
                     "start": True,
                     "ip_check": True,
                     "hypervisor": None,
+                    "hvparams": {},
                     "file_storage_dir": None,
                     "file_driver": 'loop'}
 
@@ -444,16 +445,18 @@ def BatchCreate(opts, args):
       raise errors.OpPrereqError('You have to provide at least a primary_node'
                                  ' or an iallocator.')
 
-    if (spec['hypervisor'] and
-        not isinstance(spec['hypervisor'], dict)):
+    if (spec['hvparams'] and
+        not isinstance(spec['hvparams'], dict)):
       raise errors.OpPrereqError('Hypervisor parameters must be a dict.')
 
   json_filename = args[0]
-  fd = open(json_filename, 'r')
   try:
+    fd = open(json_filename, 'r')
     instance_data = simplejson.load(fd)
-  finally:
     fd.close()
+  except Exception, err:
+    ToStderr("Can't parse the instance definition file: %s" % str(err))
+    return 1
 
   # Iterate over the instances and do:
   #  * Populate the specs with default value
@@ -464,10 +467,8 @@ def BatchCreate(opts, args):
     specs = _PopulateWithDefaults(specs)
     _Validate(specs)
 
-    hypervisor = None
-    hvparams = {}
-    if specs['hypervisor']:
-      hypervisor, hvparams = specs['hypervisor'].iteritems()
+    hypervisor = specs['hypervisor']
+    hvparams = specs['hvparams']
 
     disks = []
     for elem in specs['disk_size']:
