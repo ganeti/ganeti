@@ -5675,24 +5675,29 @@ class LUSetInstanceParams(LogicalUnit):
       # nic_dict should be a dict
       nic_ip = nic_dict.get('ip', None)
       if nic_ip is not None:
-        if nic_ip.lower() == "none":
+        if nic_ip.lower() == constants.VALUE_NONE:
           nic_dict['ip'] = None
         else:
           if not utils.IsValidIP(nic_ip):
             raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip)
-      # we can only check None bridges and assign the default one
-      nic_bridge = nic_dict.get('bridge', None)
-      if nic_bridge is None:
-        nic_dict['bridge'] = self.cfg.GetDefBridge()
-      # but we can validate MACs
-      nic_mac = nic_dict.get('mac', None)
-      if nic_mac is not None:
-        if self.cfg.IsMacInUse(nic_mac):
-          raise errors.OpPrereqError("MAC address %s already in use"
-                                     " in cluster" % nic_mac)
+
+      if nic_op == constants.DDM_ADD:
+        nic_bridge = nic_dict.get('bridge', None)
+        if nic_bridge is None:
+          nic_dict['bridge'] = self.cfg.GetDefBridge()
+        nic_mac = nic_dict.get('mac', None)
+        if nic_mac is None:
+          nic_dict['mac'] = constants.VALUE_AUTO
+
+      if 'mac' in nic_dict:
+        nic_mac = nic_dict['mac']
         if nic_mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
           if not utils.IsValidMac(nic_mac):
             raise errors.OpPrereqError("Invalid MAC address %s" % nic_mac)
+        if nic_op != constants.DDM_ADD and nic_mac == constants.VALUE_AUTO:
+          raise errors.OpPrereqError("'auto' is not a valid MAC address when"
+                                     " modifying an existing nic")
+
     if nic_addremove > 1:
       raise errors.OpPrereqError("Only one NIC add or remove operation"
                                  " supported at a time")
@@ -5833,8 +5838,10 @@ class LUSetInstanceParams(LogicalUnit):
           raise errors.OpPrereqError("Invalid NIC index %s, valid values"
                                      " are 0 to %d" %
                                      (nic_op, len(instance.nics)))
-      nic_bridge = nic_dict.get('bridge', None)
-      if nic_bridge is not None:
+      if 'bridge' in nic_dict:
+        nic_bridge = nic_dict['bridge']
+        if nic_bridge is None:
+          raise errors.OpPrereqError('Cannot set the nic bridge to None')
         if not self.rpc.call_bridges_exist(pnode, [nic_bridge]):
           msg = ("Bridge '%s' doesn't exist on one of"
                  " the instance nodes" % nic_bridge)
@@ -5842,6 +5849,18 @@ class LUSetInstanceParams(LogicalUnit):
             self.warn.append(msg)
           else:
             raise errors.OpPrereqError(msg)
+      if 'mac' in nic_dict:
+        nic_mac = nic_dict['mac']
+        if nic_mac is None:
+          raise errors.OpPrereqError('Cannot set the nic mac to None')
+        elif nic_mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+          # otherwise generate the mac
+          nic_dict['mac'] = self.cfg.GenerateMAC()
+        else:
+          # or validate/reserve the current one
+          if self.cfg.IsMacInUse(nic_mac):
+            raise errors.OpPrereqError("MAC address %s already in use"
+                                       " in cluster" % nic_mac)
 
     # DISK processing
     if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
@@ -5944,15 +5963,11 @@ class LUSetInstanceParams(LogicalUnit):
         del instance.nics[-1]
         result.append(("nic.%d" % len(instance.nics), "remove"))
       elif nic_op == constants.DDM_ADD:
-        # add a new nic
-        if 'mac' not in nic_dict:
-          mac = constants.VALUE_GENERATE
-        else:
-          mac = nic_dict['mac']
-        if mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-          mac = self.cfg.GenerateMAC()
+        # mac and bridge should be set, by now
+        mac = nic_dict['mac']
+        bridge = nic_dict['bridge']
         new_nic = objects.NIC(mac=mac, ip=nic_dict.get('ip', None),
-                              bridge=nic_dict.get('bridge', None))
+                              bridge=bridge)
         instance.nics.append(new_nic)
         result.append(("nic.%d" % (len(instance.nics) - 1),
                        "add:mac=%s,ip=%s,bridge=%s" %
