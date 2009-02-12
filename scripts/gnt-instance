@@ -1420,7 +1420,7 @@ commands = {
                                  help=("Comma-separated list of disks"
                                        " to replace (e.g. sda) (optional,"
                                        " defaults to all disks")),
-                     make_option("-i", "--iallocator", metavar="<NAME>",
+                     make_option("-I", "--iallocator", metavar="<NAME>",
                                  help="Select new secondary for the instance"
                                  " automatically using the"
                                  " <NAME> iallocator plugin (enables"
@@ -1428,7 +1428,7 @@ commands = {
                                  default=None, type="string"),
                      SUBMIT_OPT,
                      ],
-                    "[-s|-p|-n NODE] <instance>",
+                    "[-s|-p|-n NODE|-I NAME] <instance>",
                     "Replaces all disks for the instance"),
   'modify': (SetInstanceParams, ARGS_ONE,
              [DEBUG_OPT, FORCE_OPT,

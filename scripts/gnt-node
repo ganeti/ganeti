@@ -495,13 +495,13 @@ commands = {
                 make_option("-n", "--new-secondary", dest="dst_node",
                             help="New secondary node", metavar="NODE",
                             default=None),
-                make_option("-i", "--iallocator", metavar="<NAME>",
+                make_option("-I", "--iallocator", metavar="<NAME>",
                             help="Select new secondary for the instance"
                             " automatically using the"
                             " <NAME> iallocator plugin",
                             default=None, type="string"),
                 ],
-               "[-f] {-i <iallocator> | -n <dst>} <node>",
+               "[-f] {-I <iallocator> | -n <dst>} <node>",
                "Relocate the secondary instances from a node"
                " to other nodes (only for instances with drbd disk template)"),
   'failover': (FailoverNode, ARGS_ONE,
