@@ -687,6 +687,12 @@ class ConfigWriter:
       all_lvs = instance.MapLVsByNode()
       logging.info("Instance '%s' DISK_LAYOUT: %s", instance.name, all_lvs)
 
+    all_macs = self._AllMACs()
+    for nic in instance.nics:
+      if nic.mac in all_macs:
+        raise errors.ConfigurationError("Cannot add instance %s:"
+          " MAC address '%s' already in use." % (instance.name, nic.mac))
+
     instance.serial_no = 1
     self._config_data.instances[instance.name] = instance
     self._config_data.cluster.serial_no += 1
