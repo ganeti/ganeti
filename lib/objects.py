@@ -494,7 +494,10 @@ class Disk(ConfigObject):
       val += ", not visible"
     else:
       val += ", visible as /dev/%s" % self.iv_name
-    val += ", size=%dm)>" % self.size
+    if isinstance(self.size, int):
+      val += ", size=%dm)>" % self.size
+    else:
+      val += ", size='%s')>" % (self.size,)
     return val
 
   def Verify(self):
