@@ -2792,8 +2792,9 @@ class LURebootInstance(LogicalUnit):
                        constants.INSTANCE_REBOOT_HARD]:
       result = self.rpc.call_instance_reboot(node_current, instance,
                                              reboot_type, extra_args)
-      if result.failed or not result.data:
-        raise errors.OpExecError("Could not reboot instance")
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Could not reboot instance: %s" % msg)
     else:
       if not self.rpc.call_instance_shutdown(node_current, instance):
         raise errors.OpExecError("could not shutdown instance for full reboot")

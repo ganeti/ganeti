@@ -939,7 +939,7 @@ def ShutdownInstance(instance):
   return True
 
 
-def RebootInstance(instance, reboot_type, extra_args):
+def InstanceReboot(instance, reboot_type, extra_args):
   """Reboot an instance.
 
   @type instance: L{objects.Instance}
@@ -961,27 +961,30 @@ def RebootInstance(instance, reboot_type, extra_args):
   running_instances = GetInstanceList([instance.hypervisor])
 
   if instance.name not in running_instances:
-    logging.error("Cannot reboot instance that is not running")
-    return False
+    msg = "Cannot reboot instance %s that is not running" % instance.name
+    logging.error(msg)
+    return (False, msg)
 
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
   if reboot_type == constants.INSTANCE_REBOOT_SOFT:
     try:
       hyper.RebootInstance(instance)
     except errors.HypervisorError, err:
-      logging.exception("Failed to soft reboot instance")
-      return False
+      msg = "Failed to soft reboot instance %s: %s" % (instance.name, err)
+      logging.error(msg)
+      return (False, msg)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       ShutdownInstance(instance)
       StartInstance(instance, extra_args)
     except errors.HypervisorError, err:
-      logging.exception("Failed to hard reboot instance")
-      return False
+      msg = "Failed to hard reboot instance %s: %s" % (instance.name, err)
+      logging.error(msg)
+      return (False, msg)
   else:
-    raise errors.ParameterError("reboot_type invalid")
+    return (False, "Invalid reboot_type received: %s" % (reboot_type,))
 
-  return True
+  return (True, "Reboot successful")
 
 
 def MigrationInfo(instance):
