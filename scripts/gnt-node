@@ -142,7 +142,7 @@ def ListNodes(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  output = GetClient().QueryNodes([], selected_fields, opts.do_locking)
+  output = GetClient().QueryNodes(args, selected_fields, opts.do_locking)
 
   if not opts.no_headers:
     headers = _LIST_HEADERS
@@ -528,10 +528,10 @@ commands = {
                " (only for instances of type drbd)"),
   'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
            "[<node_name>...]", "Show information about the node(s)"),
-  'list': (ListNodes, ARGS_NONE,
-           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT,
-            SUBMIT_OPT, SYNC_OPT],
-           "", "Lists the nodes in the cluster. The available fields"
+  'list': (ListNodes, ARGS_ANY,
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
+           "[nodes...]",
+           "Lists the nodes in the cluster. The available fields"
            " are (see the man page for details): %s"
            " The default field list is (in order): %s." %
            (", ".join(_LIST_HEADERS), ", ".join(_LIST_DEF_FIELDS))),

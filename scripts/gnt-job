@@ -64,7 +64,7 @@ def ListJobs(opts, args):
   else:
     selected_fields = opts.output.split(",")
 
-  output = GetClient().QueryJobs(None, selected_fields)
+  output = GetClient().QueryJobs(args, selected_fields)
   if not opts.no_headers:
     # TODO: Implement more fields
     headers = {
@@ -83,10 +83,6 @@ def ListJobs(opts, args):
       }
   else:
     headers = None
-
-  # we don't have yet unitfields here
-  unitfields = None
-  numfields = None
 
   # change raw values to nicer strings
   for row in output:
@@ -107,8 +103,7 @@ def ListJobs(opts, args):
       row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,
-                       fields=selected_fields, unitfields=unitfields,
-                       numfields=numfields, data=output, units=opts.units)
+                       fields=selected_fields, data=output)
   for line in data:
     ToStdout(line)
 
@@ -314,9 +309,10 @@ def ShowJobs(opts, args):
 
 
 commands = {
-  'list': (ListJobs, ARGS_NONE,
-            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
-            "", "List the jobs and their status. The available fields are"
+  'list': (ListJobs, ARGS_ANY,
+            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, FIELDS_OPT],
+            "[job_id ...]",
+           "List the jobs and their status. The available fields are"
            " (see the man page for details): id, status, op_list,"
            " op_status, op_result."
            " The default field"
