@@ -227,6 +227,34 @@ class ConfigWriter:
 
     return result
 
+  def _CheckDiskIDs(self, disk, l_ids, p_ids):
+    """Compute duplicate disk IDs
+
+    @type disk: L{objects.Disk}
+    @param disk: the disk at which to start searching
+    @type l_ids: list
+    @param l_ids: list of current logical ids
+    @type p_ids: list
+    @param p_ids: list of current physical ids
+    @rtype: list
+    @return: a list of error messages
+
+    """
+    result = []
+    if disk.logical_id in l_ids:
+      result.append("duplicate logical id %s" % str(disk.logical_id))
+    else:
+      l_ids.append(disk.logical_id)
+    if disk.physical_id in p_ids:
+      result.append("duplicate physical id %s" % str(disk.physical_id))
+    else:
+      p_ids.append(disk.physical_id)
+
+    if disk.children:
+      for child in disk.children:
+        result.extend(self._CheckDiskIDs(child, l_ids, p_ids))
+    return result
+
   def _UnlockedVerifyConfig(self):
     """Verify function.
 
@@ -239,6 +267,8 @@ class ConfigWriter:
     seen_macs = []
     ports = {}
     data = self._config_data
+    seen_lids = []
+    seen_pids = []
     for instance_name in data.instances:
       instance = data.instances[instance_name]
       if instance.primary_node not in data.nodes:
@@ -273,6 +303,7 @@ class ConfigWriter:
       for idx, disk in enumerate(instance.disks):
         result.extend(["instance '%s' disk %d error: %s" %
                        (instance.name, idx, msg) for msg in disk.Verify()])
+        result.extend(self._CheckDiskIDs(disk, seen_lids, seen_pids))
 
     # cluster-wide pool of free ports
     for free_port in data.cluster.tcpudp_port_pool:
