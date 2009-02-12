@@ -392,7 +392,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     instance = objects.Instance.FromDict(params[0])
-    return backend.ShutdownInstance(instance)
+    return backend.InstanceShutdown(instance)
 
   @staticmethod
   def perspective_instance_start(params):

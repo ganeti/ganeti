@@ -2796,8 +2796,11 @@ class LURebootInstance(LogicalUnit):
       if msg:
         raise errors.OpExecError("Could not reboot instance: %s" % msg)
     else:
-      if not self.rpc.call_instance_shutdown(node_current, instance):
-        raise errors.OpExecError("could not shutdown instance for full reboot")
+      result = self.rpc.call_instance_shutdown(node_current, instance)
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Could not shutdown instance for"
+                                 " full reboot: %s" % msg)
       _ShutdownInstanceDisks(self, instance)
       _StartInstanceDisks(self, instance, ignore_secondaries)
       result = self.rpc.call_instance_start(node_current, instance, extra_args)
@@ -2851,8 +2854,9 @@ class LUShutdownInstance(LogicalUnit):
     node_current = instance.primary_node
     self.cfg.MarkInstanceDown(instance.name)
     result = self.rpc.call_instance_shutdown(node_current, instance)
-    if result.failed or not result.data:
-      self.proc.LogWarning("Could not shutdown instance")
+    msg = result.RemoteFailMsg()
+    if msg:
+      self.proc.LogWarning("Could not shutdown instance: %s" % msg)
 
     _ShutdownInstanceDisks(self, instance)
 
@@ -3102,12 +3106,14 @@ class LURemoveInstance(LogicalUnit):
                  instance.name, instance.primary_node)
 
     result = self.rpc.call_instance_shutdown(instance.primary_node, instance)
-    if result.failed or not result.data:
+    msg = result.RemoteFailMsg()
+    if msg:
       if self.op.ignore_failures:
-        feedback_fn("Warning: can't shutdown instance")
+        feedback_fn("Warning: can't shutdown instance: %s" % msg)
       else:
-        raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                                 (instance.name, instance.primary_node))
+        raise errors.OpExecError("Could not shutdown instance %s on"
+                                 " node %s: %s" %
+                                 (instance.name, instance.primary_node, msg))
 
     logging.info("Removing block devices for instance %s", instance.name)
 
@@ -3454,15 +3460,17 @@ class LUFailoverInstance(LogicalUnit):
                  instance.name, source_node)
 
     result = self.rpc.call_instance_shutdown(source_node, instance)
-    if result.failed or not result.data:
+    msg = result.RemoteFailMsg()
+    if msg:
       if self.op.ignore_consistency:
         self.proc.LogWarning("Could not shutdown instance %s on node %s."
-                             " Proceeding"
-                             " anyway. Please make sure node %s is down",
-                             instance.name, source_node, source_node)
+                             " Proceeding anyway. Please make sure node"
+                             " %s is down. Error details: %s",
+                             instance.name, source_node, source_node, msg)
       else:
-        raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                                 (instance.name, source_node))
+        raise errors.OpExecError("Could not shutdown instance %s on"
+                                 " node %s: %s" %
+                                 (instance.name, source_node, msg))
 
     feedback_fn("* deactivating the instance's disks on source node")
     if not _ShutdownInstanceDisks(self, instance, ignore_primary=True):
@@ -6083,10 +6091,11 @@ class LUExportInstance(LogicalUnit):
     if self.op.shutdown:
       # shutdown the instance, but not the disks
       result = self.rpc.call_instance_shutdown(src_node, instance)
-      result.Raise()
-      if not result.data:
-        raise errors.OpExecError("Could not shutdown instance %s on node %s" %
-                                 (instance.name, src_node))
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Could not shutdown instance %s on"
+                                 " node %s: %s" %
+                                 (instance.name, src_node, msg))
 
     vgname = self.cfg.GetVGName()
 

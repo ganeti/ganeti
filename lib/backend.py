@@ -886,7 +886,7 @@ def StartInstance(instance, extra_args):
   return (True, "Instance started successfully")
 
 
-def ShutdownInstance(instance):
+def InstanceShutdown(instance):
   """Shut an instance down.
 
   @note: this functions uses polling with a hardcoded timeout.
@@ -901,14 +901,15 @@ def ShutdownInstance(instance):
   running_instances = GetInstanceList([hv_name])
 
   if instance.name not in running_instances:
-    return True
+    return (True, "Instance already stopped")
 
   hyper = hypervisor.GetHypervisor(hv_name)
   try:
     hyper.StopInstance(instance)
   except errors.HypervisorError, err:
-    logging.error("Failed to stop instance: %s" % err)
-    return False
+    msg = "Failed to stop instance %s: %s" % (instance.name, err)
+    logging.error(msg)
+    return (False, msg)
 
   # test every 10secs for 2min
 
@@ -925,18 +926,20 @@ def ShutdownInstance(instance):
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      logging.exception("Failed to stop instance: %s" % err)
-      return False
+      msg = "Failed to force stop instance %s: %s" % (instance.name, err)
+      logging.error(msg)
+      return (False, msg)
 
     time.sleep(1)
     if instance.name in GetInstanceList([hv_name]):
-      logging.error("Could not shutdown instance '%s' even by destroy",
-                    instance.name)
-      return False
+      msg = ("Could not shutdown instance %s even by destroy" %
+             instance.name)
+      logging.error(msg)
+      return (False, msg)
 
   _RemoveBlockDevLinks(instance.name, instance.disks)
 
-  return True
+  return (True, "Instance has been shutdown successfully")
 
 
 def InstanceReboot(instance, reboot_type, extra_args):
@@ -975,7 +978,7 @@ def InstanceReboot(instance, reboot_type, extra_args):
       return (False, msg)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
-      ShutdownInstance(instance)
+      InstanceShutdown(instance)
       StartInstance(instance, extra_args)
     except errors.HypervisorError, err:
       msg = "Failed to hard reboot instance %s: %s" % (instance.name, err)
