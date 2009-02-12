@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>June 16, 2007</date>">
+  <!ENTITY dhdate      "<date>February 12, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>7</manvolnum>">
@@ -20,6 +20,8 @@
     <copyright>
       <year>2006</year>
       <year>2007</year>
+      <year>2008</year>
+      <year>2009</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -28,7 +30,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 1.2</refmiscinfo>
+    <refmiscinfo>ganeti 2.0</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -40,8 +42,8 @@
     <screen>
 # gnt-cluster init cluster1.example.com
 # gnt-node add node2.example.com
-# gnt-os add -o debian-etch -p /srv/ganeti/os/debian-etch
-# gnt-instance add -n node2.example.com -o debian-etch -s 128 -m 8 \
+# gnt-instance add -n node2.example.com \
+&gt; -o debootstrap --disk 0:size=30g \
 &gt; -t plain instance1.example.com
     </screen>
   </refsynopsisdiv>
@@ -51,7 +53,8 @@
     <para>
       The ganeti software manages physical nodes and virtual instances
       of a cluster based on a virtualization software. The current
-      version (1.2) supports Xen 3.0 (also tested with 3.1).
+      version (2.0) supports Xen 3.0 (also tested with 3.1) and KVM
+      hypervisors.
     </para>
 
   </refsect1>
@@ -62,13 +65,157 @@
       First you must install the software on all the cluster nodes,
       either from sources or (if available) from a package. The next
       step is to create the initial cluster configuration, using
-      <computeroutput>gnt-cluster init</computeroutput>.
+      <userinput>gnt-cluster init</userinput>.
     </para>
 
     <para>
       Then you can add other nodes, or start creating instances.
     </para>
 
+  </refsect1>
+
+  <refsect1>
+    <title>Cluster architecture</title>
+
+    <para>
+      In Ganeti 2.0, the architecture of the cluster is a little more
+      complicated than in 1.2. The cluster is coordinated by a master
+      daemon (<citerefentry>
+      <refentrytitle>ganeti-masterd</refentrytitle>
+      <manvolnum>8</manvolnum> </citerefentry>), running on the master
+      node. Each node runs (as before) a node daemon, and the master
+      has the <acronym>RAPI</acronym> daemon running too.
+    </para>
+
+    <refsect2>
+      <title>Node roles</title>
+
+      <para>Each node can be in one of the following states:
+        <variablelist>
+          <varlistentry>
+            <term>master_candidate</term>
+            <listitem>
+              <para>The node receives the full cluster configuration
+              (configuration file and jobs) and can become a master
+              via the <command>gnt-cluster masterfailover</command>
+              command. Nodes that are not in this state cannot
+              transition into the master role due to missing
+              state.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>regular</term>
+            <listitem>
+              <para>This the normal state of a node.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>drained</term>
+            <listitem>
+              <para>Nodes in this state are functioning normally but
+              cannot receive new instance, because the intention is to
+              set them to <emphasis>offline</emphasis> or remove them
+              from the cluster.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>offline</term>
+            <listitem>
+              <para>These nodes are still recorder in the ganeti
+              configuration, but except for the master daemon startup
+              voting procedure, they are not actually contacted by the
+              master. This state was added in order to allow broken
+              machines (that are being repaired) to remain in the
+              cluster but without creating problems.</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>Cluster configuration</title>
+
+      <para>The master node keeps and is responsible for the cluster
+      configuration. On the filesystem, this is stored under the
+      <filename
+      class="directory">@LOCALSTATEDIR@/ganeti/lib</filename>
+      directory, and if the master daemon is stopped it can be backed
+      up normally.</para>
+
+      <para>The master daemon will replicate the configuration
+      database called <filename>config.data</filename> and the job
+      files to all the nodes in the master candidate role. It will
+      also distribute a copy of some configuration values via the
+      <emphasis>ssconf</emphasis> files, which are stored in the same
+      directory and start with <filename>ssconf_</filename> prefix, to
+      all nodes.</para>
+
+    </refsect2>
+
+    <refsect2>
+      <title>Jobs</title>
+
+      <para>
+        All cluster modification are done via jobs. A job consists of
+        one or more opcodes, and the list of opcodes is processed
+        serially. If an opcode fails, the entire job is failed and
+        later opcodes are no longer processed. A job can be in one of
+        the following states:
+        <variablelist>
+          <varlistentry>
+            <term>queued</term>
+            <listitem>
+              <simpara>The job has been submitted but not yet
+              processed by the master daemon.</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>waiting</term>
+            <listitem>
+              <simpara>The job is waiting for for locks before the
+              first of its opcodes.</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>canceling</term>
+            <listitem>
+              <para>The jos is waiting for locks, but is has been
+              marked for cancelation. It will not transition to
+              <emphasis>running</emphasis>, but to
+              <emphasis>canceled</emphasis>.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>running</term>
+            <listitem>
+              <simpara>The job is currently being executed.</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>canceled</term>
+            <listitem>
+              <para>The job has been canceled before starting
+              execution.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>success</term>
+            <listitem>
+              <para>The job has finished successfully.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>error</term>
+            <listitem>
+              <para>The job has failed during runtime, or the master
+              daemon has been stopped during the job execution.</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+    </refsect2>
   </refsect1>
 
   &footer;

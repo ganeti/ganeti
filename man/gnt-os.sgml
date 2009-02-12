@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>August 10, 2006</date>">
+  <!ENTITY dhdate      "<date>February 12, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -20,6 +20,8 @@
     <copyright>
       <year>2006</year>
       <year>2007</year>
+      <year>2008</year>
+      <year>2009</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -28,7 +30,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 1.2</refmiscinfo>
+    <refmiscinfo>ganeti 2.0</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>

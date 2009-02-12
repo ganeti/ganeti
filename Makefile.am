@@ -186,7 +186,9 @@ man_MANS = \
 	man/ganeti-watcher.8 \
 	man/gnt-backup.8 \
 	man/gnt-cluster.8 \
+	man/gnt-debug.8 \
 	man/gnt-instance.8 \
+	man/gnt-job.8 \
 	man/gnt-node.8 \
 	man/gnt-os.8
 
@@ -309,6 +311,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
+	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
 	  echo '/@INCLUDE_RAPI_RESOURCES@/ {'; \
 	  echo '  r $(abs_top_builddir)/doc/rapi-resources.sgml'; \
 	  echo '  d'; \

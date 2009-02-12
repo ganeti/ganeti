@@ -29,6 +29,10 @@
         <manvolnum>8</manvolnum>
       </citerefentry> (cluster-wide commands),
       <citerefentry>
+        <refentrytitle>gnt-job</refentrytitle>
+        <manvolnum>8</manvolnum>
+      </citerefentry> (job-related commands),
+      <citerefentry>
         <refentrytitle>gnt-node</refentrytitle>
         <manvolnum>8</manvolnum>
       </citerefentry> (node-related commands),
@@ -43,7 +47,11 @@
       <citerefentry>
         <refentrytitle>gnt-backup</refentrytitle>
         <manvolnum>8</manvolnum>
-      </citerefentry> (instance import/export commands).
+      </citerefentry> (instance import/export commands),
+      <citerefentry>
+        <refentrytitle>gnt-debug</refentrytitle>
+        <manvolnum>8</manvolnum>
+      </citerefentry> (debug commands).
     </para>
 
     <para>Ganeti daemons:

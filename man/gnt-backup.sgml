@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>Jul 6, 2007</date>">
+  <!ENTITY dhdate      "<date>February 11, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -19,6 +19,8 @@
   <refentryinfo>
     <copyright>
       <year>2007</year>
+      <year>2008</year>
+      <year>2009</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -27,7 +29,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 1.2</refmiscinfo>
+    <refmiscinfo>ganeti 2.0</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -92,29 +94,33 @@
       <title>IMPORT</title>
       <cmdsynopsis>
         <command>import</command>
-
+        <sbr>
         <group choice="req">
-          <arg>-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg>
-          <arg>--iallocator <replaceable>name</replaceable></arg>
+          <arg>-n <replaceable>node<optional>:secondary-node</optional></replaceable></arg> <arg>--iallocator
+          <replaceable>name</replaceable></arg>
         </group>
         <sbr>
 
-        <arg>-s <replaceable>disksize</replaceable></arg>
-        <arg>--swap-size <replaceable>disksize</replaceable></arg>
-        <arg>-m <replaceable>memsize</replaceable></arg>
+        <arg rep="repeat">--disk <replaceable>N</replaceable>:size=<replaceable>VAL</replaceable><arg>,mode=<replaceable>ro|rw</replaceable></arg></arg>
         <sbr>
-
-        <arg>-b <replaceable>bridge</replaceable></arg>
-        <arg>--mac <replaceable>mac</replaceable></arg>
+        <group>
+          <arg rep="repeat">--net <replaceable>N</replaceable><arg rep="repeat">:options</arg></arg>
+          <arg>--no-nics</arg>
+        </group>
         <sbr>
-        <arg choice="req">--src-node=<replaceable>source-node</replaceable></arg>
-        <arg choice="req">--src-dir=<replaceable>source-dir</replaceable></arg>
+        <arg>-B <replaceable>BEPARAMS</replaceable></arg>
+        <sbr>
+        <arg>-H <replaceable>HYPERVISOR</replaceable><arg>:<arg choice="plain" rep="repeat">option=<replaceable>value</replaceable></arg></arg></arg>
+        <sbr>
+        <arg>--src-node=<replaceable>source-node</replaceable></arg>
+        <arg>--src-dir=<replaceable>source-dir</replaceable></arg>
         <sbr>
 
         <arg choice="req">-t<group>
             <arg>diskless</arg>
             <arg>plain</arg>
             <arg>drbd</arg>
+            <arg>file</arg>
           </group></arg>
         <sbr>
 
@@ -124,47 +130,103 @@
         Imports a new instance from an export residing on
         <replaceable>source-node</replaceable> in
         <replaceable>source-dir</replaceable>.
-        <replaceable>instance</replaceable> must be in DNS and
-        resolve to a IP in the same network as the nodes in the
-        cluster.
+        <replaceable>instance</replaceable> must be in DNS and resolve
+        to a IP in the same network as the nodes in the cluster. If
+        the source node and directory are not passed, the last backup
+        in the cluster is used, as visible with the
+        <command>list</command> command.
       </para>
 
       <para>
-        The <option>-s</option> option specifies the disk size for
-        the instance, in mebibytes (defaults to
-        <constant>20480MiB</constant> =
-        <constant>20GiB</constant>). You can also use one of the
-        suffixes <literal>m</literal>, <literal>g</literal> or
+        The <option>disk</option> option specifies the parameters for
+        the disks of the instance. The numbering of disks starts at
+        zero, and at least one disk needs to be passed. For each disk,
+        at least the size needs to be given, and optionally the access
+        mode (read-only or the default of read-write) can also be
+        specified.  The size is interpreted (when no unit is given) in
+        mebibytes. You can also use one of the suffixes
+        <literal>m</literal>, <literal>g</literal> or
         <literal>t</literal> to specificy the exact the units used;
         these suffixes map to mebibytes, gibibytes and tebibytes.
       </para>
 
       <para>
-        The <option>--swap-size</option> option specifies the swap
-        disk size (in mebibytes) for the instance (the one presented
-        as <filename class="devicefile">/dev/sdb</filename>). The
-        default is <constant>4096MiB</constant>. As for the disk
-        size, you can specify other suffixes.
+        The minimum disk specification is therefore <userinput>--disk
+        0:size=20G</userinput>, and a three-disk instance can be
+        specified as <userinput>--disk 0:size=20G --disk 1:size=4G
+        --disk 2:size=100G</userinput>.
       </para>
 
       <para>
-        The <option>-m</option> option specifies the memory size for
-        the instance, in mebibytes (defaults to 128 MiB). Again, you
-        can use other suffixes (e.g. <userinput>2g</userinput>).
+        The NICs of the instances can be specified via the
+        <option>--nic</option> option. By default, one NIC is created
+        for the instance, with the MAC set to the original MAC of the
+        instance (as it was at export time). Each NIC can take up to
+        three parameters (all optional):
+        <variablelist>
+          <varlistentry>
+            <term>mac</term>
+            <listitem>
+              <simpara>either a value or <constant>GENERATE</constant>
+              to generate a new unique MAC, or
+              <constant>AUTO</constant> to reuse the old MAC</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>ip</term>
+            <listitem>
+              <simpara>specifies the IP address assigned to the
+              instance from the Ganeti side (this is not necessarily
+              what the instance will use, but what the node expects
+              the instance to use)</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>bridge</term>
+            <listitem>
+              <simpara>specifies the bridge to attach this NIC
+              to</simpara>
+            </listitem>
+          </varlistentry>
+        </variablelist>
       </para>
 
       <para>
-        The <option>-b</option> option specifies the bridge to which the
-        instance will be connected. (defaults to the cluster-wide default
-        bridge specified at cluster intialization time).
+        Alternatively, if no network is desired for the instance, you
+        can prevent the default of one NIC with the
+        <option>--no-nics</option> option.
       </para>
 
       <para>
-	The <option>--mac</option> option specifies the mac address for the
-	instance. The default is 'auto' which is reusing the previous mac
-	address if the instance is being imported with the same name, and
-	generating a new one otherwise. You can also force generation by
-	specifying 'generate'.
+        The <option>-B</option> option specifies the backend
+        parameters for the instance. If no such parameters are
+        specified, the values are inherited from the cluster. Possible
+        parameters are:
+        <variablelist>
+          <varlistentry>
+            <term>memory</term>
+            <listitem>
+              <simpara>the memory size of the instance; as usual,
+              suffixes can be used to denote the unit, otherwise the
+              value is taken in mebibites</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>vcpus</term>
+            <listitem>
+              <simpara>the number of VCPUs to assign to the instance
+              (if this value makes sense for the hypervisor)</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>auto_balance</term>
+            <listitem>
+              <simpara>whether the instance is considered in the N+1
+              cluster checks (enough redundancy in the cluster to
+              survive a node failure)</simpara>
+            </listitem>
+          </varlistentry>
+        </variablelist>
       </para>
 
       <para>
@@ -195,6 +257,18 @@
               </para>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>file</term>
+            <listitem>
+              <para>Disk devices will be backed up by files, under the
+              <filename
+              class="directory">@RPL_FILE_STORAGE_DIR@</filename>. By
+              default, each instance will get a directory (as its own
+              name) under this path, and each disk is stored as
+              individual files in this (instance-specific)
+              directory.</para>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </para>
 
@@ -208,7 +282,7 @@
 
       <para>
         The optional second value of the <option>--node</option> is used for
-        the remote raid template type and specifies the remote node.
+        the drbd template and specifies the remote node.
       </para>
 
       <para>
@@ -220,9 +294,8 @@
       <para>
         Example:
         <screen>
-# gnt-backup import -t plain -s 30 -m 512 -n node1.example.com \
-> --src-node=node2.example.com \
-> --src-dir=/srv/ganeti/export/instance3.example.com \
+# gnt-backup import -t plain --disk 0:size=1G -B memory=512 \
+> -n node1.example.com \
 > instance3.example.com
         </screen>
       </para>
@@ -249,6 +322,22 @@
 <screen>
 # gnt-backup list --nodes node1 --nodes node2
 </screen>
+    </refsect2>
+
+    <refsect2>
+      <title>REMOVE</title>
+      <cmdsynopsis>
+        <command>remove</command>
+        <arg choice="req">instance_name</arg>
+      </cmdsynopsis>
+
+      <para>
+        Removes the backup for the given instance name, if any. If the
+        backup was for a deleted instances, it is needed to pass the
+        <acronym>FQDN</acronym> of the instance, and not only the
+        short hostname.
+      </para>
+
     </refsect2>
 
   </refsect1>

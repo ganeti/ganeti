@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>December 12, 2007</date>">
+  <!ENTITY dhdate      "<date>February 12, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -20,6 +20,8 @@
     <copyright>
       <year>2006</year>
       <year>2007</year>
+      <year>2008</year>
+      <year>2009</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -28,7 +30,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 1.2</refmiscinfo>
+    <refmiscinfo>ganeti 2.0</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -105,9 +107,9 @@
         The command is executed serially on the selected nodes. If the
         master node is present in the list, the command will be
         executed last on the master. Regarding the other nodes, the
-        execution order is somewhat alphabetic (it's smarter so that
+        execution order is somewhat alphabetic, so that
         node2.example.com will be earlier than node10.example.com but
-        after node1.example.com).
+        after node1.example.com.
       </para>
 
       <para>
@@ -208,17 +210,29 @@
 
       <cmdsynopsis>
         <command>init</command>
+        <sbr>
         <arg>-s <replaceable>secondary_ip</replaceable></arg>
+        <sbr>
         <arg>-b <replaceable>bridge</replaceable></arg>
+        <sbr>
         <arg>-g <replaceable>vg-name</replaceable></arg>
+        <sbr>
         <arg>--master-netdev <replaceable>vg-name</replaceable></arg>
+        <sbr>
         <arg>-m <replaceable>mac-prefix</replaceable></arg>
+        <sbr>
         <arg>--no-lvm-storage</arg>
+        <sbr>
         <arg>--file-storage-dir <replaceable>dir</replaceable></arg>
+        <sbr>
         <arg>--enabled-hypervisors <replaceable>hypervisors</replaceable></arg>
+        <sbr>
         <arg>-t <replaceable>hypervisor name</replaceable></arg>
+        <sbr>
         <arg>--hypervisor-parameters <replaceable>hv-params</replaceable></arg>
+        <sbr>
         <arg>--backend-parameters <replaceable>be-params</replaceable></arg>
+        <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
 
@@ -404,222 +418,11 @@
         to set default hypervisor specific parameters for the
         cluster. The format of this option is the name of the
         hypervisor, followed by a colon and a comma-separated list of
-        key=value pairs with the following keys:
-      </para>
-
-      <para>
-        <variablelist>
-          <varlistentry>
-            <term>xen-pvm</term>
-            <listitem>
-              <variablelist>
-                <varlistentry>
-                  <term>
-                    kernel_path
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the path to the instance kernel, if not
-                      specified, the value /boot/vmlinuz-2.6-xenU will
-                      be used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                    initrd_path
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the path to the instance initrd, if not
-                      specified, no initrd will be used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-              </variablelist>
-            </listitem>
-          </varlistentry>
-          <varlistentry>
-            <term>xen-hvm</term>
-            <listitem>
-              <variablelist>
-                <varlistentry>
-                  <term>
-                    boot_order
-                  </term>
-                  <listitem>
-                    <para>
-                      Boot device order for instances. Several single
-                      letter device entries can be combined together
-                      without a separator. If not specified, the value
-                      cd will be used. Available boot device entries are:
-                    <para>
-                      <variablelist>
-                        <varlistentry>
-                          <term>a</term>
-                          <listitem>
-                            <para>
-                              floppy drive
-                            </para>
-                          </listitem>
-                        </varlistentry>
-                        <varlistentry>
-                          <term>c</term>
-                          <listitem>
-                            <para>
-                              hard disk
-                            </para>
-                          </listitem>
-                        </varlistentry>
-                        <varlistentry>
-                          <term>d</term>
-                          <listitem>
-                            <para>
-                              CDROM drive
-                            </para>
-                          </listitem>
-                        </varlistentry>
-                        <varlistentry>
-                          <term>n</term>
-                          <listitem>
-                            <para>
-                              network boot (PXE)
-                            </para>
-                          </listitem>
-                        </varlistentry>
-                      </variablelist>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                    cdrom_image_path
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the path to the file Xen uses to
-                      emulate a virtual CDROM drive for
-                      instances. Valid values are either an absolute
-                      path to an existing file or the value None,
-                      which disables virtual CDROM support. If not
-                      specified, the value None will be used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                    nic_type
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the NIC type Xen should use for this
-                      HVM instance. Valid choices are rtl8139,
-                      ne2k_pci, ne2k_isa and paravirtual. The
-                      paravirtual setting is intended for use with the
-                      GPL PV drivers inside HVM Windows instances. If
-                      not specified, the value rtl8139 will be used.
-                      </para>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                      disk_type
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the disk type Xen should use for the
-                      HVM instance. Valid choices are ioemu and
-                      paravirtual. The paravirtual setting is intended
-                      for use with the GPL PV drivers inside HVM
-                      Windows instances. If not specified, the value
-                      ioemu will be used.
-                      </para>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                    vnc_bind_address
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the address that the VNC listener for
-                      this instance should bind to. Valid  values
-                      are IPv4 addresses. Use the address 0.0.0.0 to
-                      bind to all available interfaces or specify the
-                      address of one of the interfaces on the node to
-                      restrict listening to that interface. If not
-                      specified, the value 0.0.0.0 will be used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                    acpi
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets if Xen should enable ACPI support for
-                      HVM instances. Valid values are true or
-                      false. If not specified, the value true will be
-                      used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                    pae
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets if Xen should enabled PAE support for
-                      this HVM instance. Valid values are true or
-                      false. If not specified, the value true will be
-                      used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-              </variablelist>
-            </listitem>
-          </varlistentry>
-          <varlistentry>
-            <term>kvm</term>
-            <listitem>
-              <variablelist>
-                <varlistentry>
-                  <term>
-                    kernel_path
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the path to the instance kernel, if not
-                      specified, the valee /boot/vmlinuz-2.6-xenU will
-                      be used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-                <varlistentry>
-                  <term>
-                    initrd_path
-                  </term>
-                  <listitem>
-                    <para>
-                      Sets the path to the instance initrd, if not
-                      specified, no initrd will be used.
-                    </para>
-                  </listitem>
-                </varlistentry>
-              </variablelist>
-            </listitem>
-          </varlistentry>
-          <varlistentry>
-            <term>fake</term>
-            <listitem>
-              <para>
-                There are currently no parameters for the fake
-                hypervisor.
-              </para>
-            </listitem>
-          </varlistentry>
-        </variablelist>
+        key=value pairs. The keys available for each hypervisors are
+        detailed int the <citerefentry>
+        <refentrytitle>gnt-instance</refentrytitle>
+        <manvolnum>8</manvolnum> </citerefentry> man page, in the
+        <command>add</command> command.
       </para>
 
     </refsect2>
@@ -651,14 +454,21 @@
 
       <cmdsynopsis>
         <command>modify</command>
+        <sbr>
         <arg choice="opt">-g <replaceable>vg-name</replaceable></arg>
+        <sbr>
         <arg choice="opt">--no-lvm-storage</arg>
+        <sbr>
         <arg choice="opt">--enabled-hypervisors
         <replaceable>hypervisors</replaceable></arg>
+        <sbr>
         <arg choice="opt">--hypervisor-parameters
         <replaceable>hv-params</replaceable></arg>
+        <sbr>
         <arg choice="opt">--backend-parameters
         <replaceable>be-params</replaceable></arg>
+        <sbr>
+        <arg>-C <replaceable>candidate_pool_size</replaceable></arg>
 
       </cmdsynopsis>
 
@@ -673,6 +483,18 @@
           <option>--backend-parameters</option> options are
           described in the <command>init</command> command.
         </para>
+
+      <para>
+        The <option>-C</option> options specifies the
+        <varname>candidate_pool_size</varname> cluster parameter. This
+        is the number of nodes that the master will try to keep as
+        <literal>master_candidates</literal>. For more details about
+        this role and other node roles, see the <citerefentry>
+        <refentrytitle>ganeti</refentrytitle><manvolnum>7</manvolnum>
+        </citerefentry>. If you increase the size, the master will
+        automatically promote as many nodes as required and possible
+        to reach the intended number.
+      </para>
     </refsect2>
 
     <refsect2>
@@ -707,6 +529,29 @@
       </para>
     </refsect2>
 
+    <refsect2>
+      <title>redist-conf</title>
+      <cmdsynopsis>
+        <command>redist-conf</command>
+          <arg>--submit</arg>
+      </cmdsynopsis>
+
+      <para>
+        This command forces a full push of configuration files from
+        the master node to the other nodes in the cluster. This is
+        normally not needed, but can be run if the
+        <command>verify</command> complains about configuration
+        mismatches.
+      </para>
+
+      <para>
+        The <option>--submit</option> option is used to send the job
+        to the master daemon but not wait for its completion. The job
+        ID will be shown so that it can be examined via
+        <command>gnt-job info</command>.
+      </para>
+
+    </refsect2>
     <refsect2>
       <title>REMOVE-TAGS</title>
 

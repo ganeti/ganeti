@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>May 29, 2008</date>">
+  <!ENTITY dhdate      "<date>February 11, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -21,6 +21,7 @@
       <year>2006</year>
       <year>2007</year>
       <year>2008</year>
+      <year>2009</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -29,7 +30,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 1.2</refmiscinfo>
+    <refmiscinfo>ganeti 2.0</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
@@ -63,48 +64,18 @@
         <title>ADD</title>
         <cmdsynopsis>
           <command>add</command>
-          <arg>-s <replaceable>disksize</replaceable></arg>
-          <arg>--swap-size <replaceable>disksize</replaceable></arg>
-          <arg>-m <replaceable>memsize</replaceable></arg>
+          <sbr>
+          <arg rep="repeat">--disk=<replaceable>N</replaceable>:size=<replaceable>VAL</replaceable><arg>,mode=<replaceable>ro|rw</replaceable></arg></arg>
+          <sbr>
+          <group>
+            <arg rep="repeat">--net=<replaceable>N</replaceable><arg rep="repeat">:options</arg></arg>
+            <arg>--no-nics</arg>
+          </group>
+          <sbr>
+          <arg>-B <replaceable>BEPARAMS</replaceable></arg>
           <sbr>
 
-          <arg>-b <replaceable>bridge</replaceable></arg>
-          <arg>--mac <replaceable>MAC-address</replaceable></arg>
-          <sbr>
-
-          <arg>--hvm-boot-order <replaceable>boot-order</replaceable></arg>
-          <arg>--hvm-acpi <replaceable>ACPI-support</replaceable></arg>
-          <sbr>
-
-          <arg>--hvm-pae <replaceable>PAE-support</replaceable></arg>
-          <sbr>
-
-          <arg>--hvm-cdrom-image-path
-            <replaceable>cdrom-image-path</replaceable></arg>
-          <sbr>
-
-          <arg>--hvm-nic-type <replaceable>NICTYPE</replaceable></arg>
-          <sbr>
-
-          <arg>--hvm-disk-type
-          <replaceable>DISKTYPE</replaceable></arg>
-          <sbr>
-
-          <arg>--vnc-bind-address
-            <replaceable>vnc-bind-address</replaceable></arg>
-          <sbr>
-
-          <arg>--kernel<group choice="req">
-              <arg>default</arg>
-              <arg><replaceable>kernel_path</replaceable></arg>
-            </group></arg>
-          <sbr>
-
-          <arg>--initrd<group choice="req">
-              <arg>default</arg>
-              <arg>none</arg>
-              <arg><replaceable>initrd_path</replaceable></arg>
-            </group></arg>
+          <arg>-H <replaceable>HYPERVISOR</replaceable><arg>:<arg choice="plain" rep="repeat">option=<replaceable>value</replaceable></arg></arg></arg>
           <sbr>
 
           <arg>--file-storage-dir <replaceable>dir_path</replaceable></arg>
@@ -130,39 +101,76 @@
 
           <arg choice="req">-o <replaceable>os-type</replaceable></arg>
           <sbr>
+          <arg>--submit</arg>
+          <sbr>
 
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Creates a new instance on the specified
-          host. <replaceable>instance</replaceable> must be in DNS and
-          resolve to a IP in the same network as the nodes in the
-          cluster.
+          Creates a new instance on the specified host. The
+          <replaceable>instance</replaceable> argument must be in DNS,
+          but depending on the bridge setup, need not be in the same
+          network as the nodes in the cluster.
         </para>
 
         <para>
-          The <option>-s</option> option specifies the disk size for
-          the instance, in mebibytes (defaults to
-          <constant>20480MiB</constant> =
-          <constant>20GiB</constant>). You can also use one of the
-          suffixes <literal>m</literal>, <literal>g</literal> or
+          The <option>disk</option> option specifies the parameters
+          for the disks of the instance. The numbering of disks starts
+          at zero, and at least one disk needs to be passed. For each
+          disk, at least the size needs to be given, and optionally
+          the access mode (read-only or the default of read-write) can
+          also be specified.  The size is interpreted (when no unit is
+          given) in mebibytes. You can also use one of the suffixes
+          <literal>m</literal>, <literal>g</literal> or
           <literal>t</literal> to specificy the exact the units used;
           these suffixes map to mebibytes, gibibytes and tebibytes.
         </para>
 
         <para>
-          The <option>--swap-size</option> option specifies the swap
-          disk size (in mebibytes) for the instance (the one presented
-          as <filename class="devicefile">/dev/sdb</filename>). The
-          default is <constant>4096MiB</constant>. As for the disk
-          size, you can specify other suffixes.
+          The minimum disk specification is therefore
+          <userinput>--disk 0:size=20G</userinput>, and a three-disk
+          instance can be specified as <userinput>--disk 0:size=20G
+            --disk 1:size=4G --disk 2:size=100G</userinput>.
         </para>
 
         <para>
-          The <option>-m</option> option specifies the memory size for
-          the instance, in mebibytes (defaults to 128 MiB). Again, you
-          can use other suffixes (e.g. <userinput>2g</userinput>).
+          The NICs of the instances can be specified via the
+          <option>--nic</option> option. By default, one NIC is
+          created for the instance, with a random MAC, and connected
+          to the default bridge. Each NIC can take up to three
+          parameters (all optional):
+          <variablelist>
+            <varlistentry>
+              <term>mac</term>
+              <listitem>
+                <simpara>either a value or <constant>GENERATE</constant>
+                  to generate a new unique MAC</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>ip</term>
+              <listitem>
+                <simpara>specifies the IP address assigned to the
+                  instance from the Ganeti side (this is not necessarily
+                  what the instance will use, but what the node expects
+                  the instance to use)</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>bridge</term>
+              <listitem>
+                <simpara>specifies the bridge to attach this NIC
+                  to</simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+
+        <para>
+          Alternatively, if no network is desired for the instance, you
+          can prevent the default of one NIC with the
+          <option>--no-nics</option> option.
         </para>
 
         <para>
@@ -172,117 +180,284 @@
         </para>
 
         <para>
-          The <option>-b</option> option specifies the bridge to which the
-          instance will be connected. (defaults to the cluster-wide default
-          bridge specified at cluster initialization time).
-        </para>
-
-        <para>
-          The <option>--mac</option> option specifies the MAC address
-          of the ethernet interface for the instance. If this option
-          is not specified, a new MAC address is generated randomly with
-          the configured MAC prefix. The randomly generated MAC
-          address is guaranteed to be unique among the instances of
-          this cluster.
-        </para>
-
-        <para>
-          The <option>--hvm-boot-order</option> option specifies the
-          boot device order for Xen HVM instances. The boot order is a
-          string of letters listing the boot devices, with valid
-          device letters being:
-        </para>
-
-        <para>
+          The <option>-B</option> option specifies the backend
+          parameters for the instance. If no such parameters are
+          specified, the values are inherited from the cluster. Possible
+          parameters are:
           <variablelist>
             <varlistentry>
-              <term>a</term>
+              <term>memory</term>
               <listitem>
-                <para>
-                  floppy drive
-                </para>
+                <simpara>the memory size of the instance; as usual,
+                  suffixes can be used to denote the unit, otherwise the
+                  value is taken in mebibites</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>c</term>
+              <term>vcpus</term>
               <listitem>
-                <para>
-                  hard disk
-                </para>
+                <simpara>the number of VCPUs to assign to the instance
+                  (if this value makes sense for the hypervisor)</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>d</term>
+              <term>auto_balance</term>
               <listitem>
-                <para>
-                  CDROM drive
-                </para>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
-              <term>n</term>
-              <listitem>
-                <para>
-                  network boot (PXE)
-                </para>
+                <simpara>whether the instance is considered in the N+1
+                  cluster checks (enough redundancy in the cluster to
+                  survive a node failure)</simpara>
               </listitem>
             </varlistentry>
           </variablelist>
         </para>
 
         <para>
-          The default is not to set an HVM boot order which is
-          interpreted as 'dc'. This option, like all options starting
-          with 'hvm', is only relevant for Xen HVM instances and
-          ignored by all other instance types.
+          The <option>-H</option> option specified the hypervisor to
+          use for the instance (must be one of the enabled hypervisors
+          on the cluster) and optionally custom parameters for this
+          instance. If not other options are used (i.e. the invocation
+          is just <userinput>-H
+          <replaceable>NAME</replaceable></userinput>) the instance
+          will inherit the cluster options. The defaults below show
+          the cluster defaults at cluster creation time.
         </para>
 
         <para>
-          The <option>--hvm-acpi</option> option specifies if Xen
-          should enable ACPI support for this HVM instance. Valid
-          values are true or false. The default value is false,
-          disabling ACPI support for this instance.
+          The possible hypervisor options are as follows:
+          <variablelist>
+            <varlistentry>
+              <term>boot_order</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM
+                hypervisors.</simpara>
+
+                <simpara>A string value denoting the boot order. This
+                has different meaning for the Xen HVM hypervisor and
+                for the KVM one.</simpara>
+
+                <simpara>
+                  For Xen HVM, The boot order is a string of letters
+                  listing the boot devices, with valid device letters
+                  being:
+                </simpara>
+                  <variablelist>
+                    <varlistentry>
+                      <term>a</term>
+                      <listitem>
+                        <para>
+                          floppy drive
+                        </para>
+                      </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                      <term>c</term>
+                      <listitem>
+                        <para>
+                          hard disk
+                        </para>
+                      </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                      <term>d</term>
+                      <listitem>
+                        <para>
+                          CDROM drive
+                        </para>
+                      </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                      <term>n</term>
+                      <listitem>
+                        <para>
+                          network boot (PXE)
+                        </para>
+                      </listitem>
+                    </varlistentry>
+                  </variablelist>
+                <simpara>
+                  The default is not to set an HVM boot order which is
+                  interpreted as 'dc'.
+                </simpara>
+
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>cdrom_image_path</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM hypervisors.</simpara>
+
+                <simpara>The path to a CDROM image to attach to the
+                instance.</simpara>
+
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic_type</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM hypervisors.</simpara>
+
+                <para>
+                  This parameter determines the way the network cards
+                  are presented to the instance. The possible options are:
+                  <simplelist>
+                    <member>rtl8139 (default for Xen HVM) (HVM & KVM)</member>
+                    <member>ne2k_isa (HVM & KVM)</member>
+                    <member>ne2k_pci (HVM & KVM)</member>
+                    <member>i82551 (KVM)</member>
+                    <member>i82557b (KVM)</member>
+                    <member>i82559er (KVM)</member>
+                    <member>pcnet (KVM)</member>
+                    <member>e1000 (KVM)</member>
+                    <member>paravirtual (default for KVM) (HVM & KVM)</member>
+                  </simplelist>
+                </para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>disk_type</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM hypervisors.</simpara>
+
+                <para>
+                  This parameter determines the way the disks are
+                  presented to the instance. The possible options are:
+                  <simplelist>
+                    <member>ioemu (default for HVM & KVM) (HVM & KVM)</member>
+                    <member>ide (HVM & KVM)</member>
+                    <member>scsi (KVM)</member>
+                    <member>sd (KVM)</member>
+                    <member>mtd (KVM)</member>
+                    <member>pflash (KVM)</member>
+                  </simplelist>
+                </para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>vnc_bind_address</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM hypervisors.</simpara>
+
+                <para>Specifies the address that the VNC listener for
+                this instance should bind to. Valid values are IPv4
+                addresses. Use the address 0.0.0.0 to bind to all
+                available interfaces (this is the default) or specify
+                the address of one of the interfaces on the node to
+                restrict listening to that interface.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>vnc_tls</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>A boolean option that controls whether the
+                VNC connection is secured with TLS.</simpara>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>vnc_x509_path</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <para>If <option>vnc_tls</option> is enabled, this
+                options specifies the path to the x509 certificate to
+                use.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>vnc_x509_verify</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>acpi</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM hypervisors.</simpara>
+
+                <para>
+                  A boolean option that specifies if the hypervisor
+                  should enable ACPI support for this instance. By
+                  default, ACPI is disabled.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>pae</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM hypervisors.</simpara>
+
+                <para>
+                  A boolean option that specifies if the hypervisor
+                  should enabled PAE support for this instance. The
+                  default is false, disabling PAE support.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>kernel_path</term>
+              <listitem>
+                <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
+
+                <para>
+                  This option specifies the path (on the node) to the
+                  kernel to boot the instance with. Xen PVM instances
+                  always require this, while for KVM if this option is
+                  empty, it will cause the machine to load the kernel
+                  from its disks.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>initrd_path</term>
+              <listitem>
+                <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
+
+                <para>
+                  This option specifies the path (on the node) to the
+                  initrd to boot the instance with. Xen PVM instances
+                  can use this always, while for KVM if this option is
+                  only used if the <option>kernel_path</option> option
+                  is also specified.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>root_path</term>
+              <listitem>
+                <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
+
+                <para>
+                  This options specifies the name of the root
+                  device. This is always needed for Xen PVM, while for
+                  KVM it is only used if the
+                  <option>kernel_path</option> option is also
+                  specified.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>serial_console</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>This boolean option specifies whether to
+                emulate a serial console for the instance.</simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
         </para>
 
         <para>
-          The <option>--hvm-pae</option> option specifies if Xen
-          should enabled PAE support for this HVM instance. Valid
-          values are true or false. The default is false, disabling
-          PAE support for this instance.
-        </para>
-
-        <para>
-          The <option>--hvm-cdrom-image-path</option> option specifies the
-          path to the file Xen uses to emulate a virtual CDROM drive
-          for this HVM instance. Valid values are either an
-          absolute path to an existing file or None, which disables
-          virtual CDROM support for this instance. The default is
-          None, disabling virtual CDROM support.
-        </para>
-
-        <para>
-          The <option>--hvm-nic-type</option> specifies the NIC type
-          Xen should use for this HVM instance. Valid choices are
-          rtl8139, ne2k_pci, ne2k_isa and paravirtual with rtl8139
-          as the default. The paravirtual setting is intended for use
-          with the GPL PV drivers inside HVM Windows instances.
-        </para>
-
-        <para>
-          The <option>--hvm-disk-type</option> specifies the disk type
-          Xen should use for the HVM instance. Valid choices are ioemu
-          and paravirtual with ioemu as the default. The paravirtual
-          setting is intended for use with the GPL PV drivers inside
-          HVM Windows instances.
-        </para>
-
-        <para>
-          The <option>--vnc-bind-address</option> option specifies the
-          address that the VNC listener for this instance should bind
-          to. Valid values are IPv4 addresses. Use the address 0.0.0.0
-          to bind to all available interfaces (this is the default)
-          or specify the address of one of the interfaces on the node
-          to restrict listening to that interface.
         </para>
 
         <para>
@@ -291,27 +466,6 @@
           will select nodes for this instance automatically, so you don't need
           to pass them with the <option>-n</option> option. For more
           information please refer to the instance allocator documentation.
-        </para>
-
-        <para>
-          The <option>--kernel</option> option allows the instance to
-          use a custom kernel (if a filename is passed) or to use the
-          default kernel (<filename>@CUSTOM_XEN_KERNEL@</filename>), if the
-          string <constant>default</constant> is passed.
-        </para>
-
-        <para>
-          The <option>--initrd</option> option is similar: it allows
-          the instance to use a custom initrd (if a filename is
-          passed) or to use the default initrd
-          (<filename>@CUSTOM_XEN_INITRD@</filename>), if the string
-          <constant>default</constant> is passed, or to disable the
-          use of an initrd, if the string <constant>none</constant> is
-          passed. Note that in the case the instance is set to use the
-          default initrd and it doesn't exist, it will be silently
-          ignored; if the instance is set to use a custom initrd and
-          it doesn't exist, this will be treated as an error and will
-          prevent the startup of the instance.
         </para>
 
         <para>
@@ -382,47 +536,186 @@
             <varlistentry>
               <term>loop</term>
               <listitem>
-                <para>Kernel loopback driver.</para>
+                <para>
+                  Kernel loopback driver. This driver uses loopback
+                  devices to access the filesystem within the
+                  file. However, running I/O intensive applications in
+                  your instance using the loop driver might result in
+                  slowdowns.  Furthermore, if you use the loopback
+                  driver consider increasing the maximum amount of
+                  loopback devices (on most systems it's 8) using the
+                  max_loop param.
+                </para>
               </listitem>
             </varlistentry>
             <varlistentry>
               <term>blktap</term>
               <listitem>
-                <para>blktap driver.</para>
+                <para>The blktap driver (for Xen hypervisors). In
+                order to be able to use the blktap driver you should
+                check if the 'blktapctrl' user space disk agent is
+                running (usually automatically started via xend). This
+                user-level disk I/O interface has the advantage of
+                better performance. Especially if you use a network
+                file system (e.g. NFS) to store your instances this is
+                the recommended choice.
+                </para>
               </listitem>
             </varlistentry>
           </variablelist>
         </para>
 
         <para>
-          The loop driver uses loopback devices to access the filesystem
-          within the file. However, running I/O intensive applications
-          in your instance using the loop driver might result in slowdowns.
-          Furthermore, if you use the loopback driver consider increasing
-          the maximum amount of loopback devices (on most systems it's 8)
-          using the max_loop param.
-        </para>
-
-        <para>
-          In order to be able to use the blktap driver you should check
-          if the 'blktapctrl' user space disk agent is running (usually
-          automatically started via xend). This user-level disk I/O
-          interface has the advantage of better performance. Especially
-          if you use a network file system (e.g. NFS) to store your instances
-          this is the recommended choice.
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
         </para>
 
         <para>
           Example:
           <screen>
-# gnt-instance add -t file -s 30g -m 512 -o debian-etch \
+# gnt-instance add -t file --disk 0:size=30g -B memory=512 -o debian-etch \
   -n node1.example.com --file-storage-dir=mysubdir instance1.example.com
-# gnt-instance add -t plain -s 30g -m 512 -o debian-etch \
+# gnt-instance add -t plain --disk 0:size=30g -B memory=512 -o debian-etch \
   -n node1.example.com instance1.example.com
-# gnt-instance add -t drbd -s 30g -m 512 -o debian-etch \
+# gnt-instance add -t drbd --disk 0:size=30g -B memory=512 -o debian-etch \
   -n node1.example.com:node2.example.com instance2.example.com
           </screen>
         </para>
+      </refsect3>
+
+      <refsect3>
+        <title>BATCH-CREATE</title>
+        <cmdsynopsis>
+          <command>batch-create</command>
+          <arg choice="req">instances_file.json</arg>
+        </cmdsynopsis>
+
+        <para>
+          This command (similar to the Ganeti 1.2
+          <command>batcher</command> tool) submits multiple instance
+          creation jobs based on a definition file. The instance
+          configurations do not encompass all the possible options for
+          the <command>add</command> command, but only a subset.
+        </para>
+
+        <para>
+          The instance file should be a valid-formed JSON file,
+          containing a dictionary with instance name and instance
+          parameters. The accepted parameters are:
+
+          <variablelist>
+            <varlistentry>
+              <term>disk_size</term>
+              <listitem>
+                <simpara>The size of the disks of the instance.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>disk_templace</term>
+              <listitem>
+                <simpara>The disk template to use for the instance,
+                the same as in the <command>add</command>
+                command.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>backend</term>
+              <listitem>
+                <simpara>A dictionary of backend parameters.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>hypervisor</term>
+              <listitem>
+                <simpara>A dictionary with a single key (the
+                hypervisor name), and as value the hypervisor
+                options. If not passed, the default hypervisor and
+                hypervisor options will be inherited.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>mac, ip, bridge</term>
+              <listitem>
+                <simpara>Specifications for the one NIC that will be
+                created for the instance.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>primary_node, secondary_node</term>
+              <listitem>
+                <simpara>The primary and optionally the secondary node
+                to use for the instance (in case an iallocator script
+                is not used).</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>iallocator</term>
+              <listitem>
+                <simpara>Instead of specifying the nodes, an
+                iallocator script can be used to automatically compute
+                them.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>start</term>
+              <listitem>
+                <simpara>whether to start the instance</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>ip_check</term>
+              <listitem>
+                <simpara>Skip the check for already-in-use instance;
+                see the description in the <command>add</command>
+                command for details.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>file_storage_dir, file_driver</term>
+              <listitem>
+                <simpara>Configuration for the <literal>file</literal>
+                disk type, see the <command>add</command> command for
+                details.</simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+        </para>
+
+        <para>
+          A simple definition for one instance can be (with most of
+          the parameters taken from the cluster defaults):
+          <screen>
+{
+  "instance3": {
+    "template": "drbd",
+    "os": "debootstrap",
+    "disk_size": ["25G"],
+    "iallocator": "dumb"
+  },
+  "instance5": {
+    "template": "drbd",
+    "os": "debootstrap",
+    "disk_size": ["25G"],
+    "iallocator": "dumb",
+    "hypervisor": "xen-hvm",
+    "hvparams": {"acpi": true},
+    "backend": {"memory": 512}
+  }
+}
+</screen>
+        </para>
+
+        <para>
+          The command will display the job id for each submitted instance, as follows:
+          <screen>
+# gnt-instance batch-create instances.json
+instance3: 11224
+instance5: 11225
+</screen>
+        </para>
+
       </refsect3>
 
       <refsect3>
@@ -431,6 +724,7 @@
         <cmdsynopsis>
           <command>remove</command>
           <arg>--ignore-failures</arg>
+          <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -452,6 +746,13 @@
         </para>
 
         <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
+        <para>
           Example:
           <screen>
 # gnt-instance remove instance1.example.com
@@ -467,13 +768,13 @@
           <arg>--no-headers</arg>
           <arg>--separator=<replaceable>SEPARATOR</replaceable></arg>
           <arg>-o <replaceable>[+]FIELD,...</replaceable></arg>
+          <arg rep="repeat">instance</arg>
         </cmdsynopsis>
 
         <para>
           Shows the currently configured instances with memory usage,
-          disk usage, the node they are running on, and the CPU time,
-          counted in seconds, used by each instance since its latest
-          restart.
+          disk usage, the node they are running on, and their run
+          status.
         </para>
 
         <para>
@@ -522,12 +823,6 @@
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>admin_ram</term>
-              <listitem>
-                <simpara>the desired memory for the instance</simpara>
-              </listitem>
-            </varlistentry>
-            <varlistentry>
               <term>disk_template</term>
               <listitem>
                 <simpara>the disk template of the instance</simpara>
@@ -570,19 +865,19 @@
               <term>ip</term>
               <listitem>
                 <simpara>the ip address ganeti recognizes as associated with
-                the instance interface</simpara>
+                the first instance interface</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
               <term>mac</term>
               <listitem>
-                <simpara>the instance interface MAC address</simpara>
+                <simpara>the first instance interface MAC address</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
               <term>bridge</term>
               <listitem>
-                <simpara>bridge the instance is connected to
+                <simpara>the bridge of the first instance NIC
                 </simpara>
               </listitem>
             </varlistentry>
@@ -595,7 +890,8 @@
             <varlistentry>
               <term>sdb_size</term>
               <listitem>
-                <simpara>the size of the instance's second disk</simpara>
+                <simpara>the size of the instance's second disk, if
+                any</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
@@ -618,7 +914,129 @@
                 <simpara>the so called 'serial number' of the
                 instance; this is a numeric field that is incremented
                 each time the instance is modified, and it can be used
-                to detect modifications</simpara>
+                to track modifications</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>network_port</term>
+              <listitem>
+                <simpara>If the instance has a network port assigned
+                to it (e.g. for VNC connections), this will be shown,
+                otherwise <literal>-</literal> will be
+                displayed.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>beparams</term>
+              <listitem>
+                <simpara>A text format of the entire beparams for the
+                instance. It's more useful to select individual fields
+                from this dictionary, see below.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>disk.count</term>
+              <listitem>
+                <simpara>The number of instance disks.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>disk.size/N</term>
+              <listitem>
+                <simpara>The size of the instance's Nth disk. This is
+                a more generic form of the <literal>sda_size</literal>
+                and <literal>sdb_size</literal> fields.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>disk.sizes</term>
+              <listitem>
+                <simpara>A comma-separated list of the disk sizes for
+                this instance.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>disk_usage</term>
+              <listitem>
+                <simpara>The total disk space used by this instance on
+                each of its nodes. This is not the instance-visible
+                disk size, but the actual disk "cost" of the
+                instance.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.mac/N</term>
+              <listitem>
+                <simpara>The MAC of the Nth instance NIC.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.ip/N</term>
+              <listitem>
+                <simpara>The IP address of the Nth instance NIC.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.bridge/N</term>
+              <listitem>
+                <simpara>The bridge the Nth instance NIC is attached
+                to.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.macs</term>
+              <listitem>
+                <simpara>A comma-separated list of all the MACs of the
+                instance's NICs.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.ips</term>
+              <listitem>
+                <simpara>A comma-separated list of all the IP
+                addresses of the instance's NICs.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.bridges</term>
+              <listitem>
+                <simpara>A comma-separated list of all the bridges of the
+                instance's NICs.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.count</term>
+              <listitem>
+                <simpara>The number of instance nics.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>hv/<replaceable>NAME</replaceable></term>
+              <listitem>
+                <simpara>The value of the hypervisor parameter called
+                <replaceable>NAME</replaceable>. For details of what
+                hypervisor parameters exist and their meaning, see the
+                <command>add</command> command.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>be/memory</term>
+              <listitem>
+                <simpara>The configured memory for the instance.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>be/vcpus</term>
+              <listitem>
+                <simpara>The configured number of VCPUs for the
+                instance.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>be/auto_balance</term>
+              <listitem>
+                <simpara>Whether the instance is considered in N+1
+                checks.</simpara>
               </listitem>
             </varlistentry>
           </variablelist>
@@ -626,7 +1044,7 @@
 
         <para>
           If the value of the option starts with the character
-          <constant>+</constant>, the new fields will be added to the
+          <constant>+</constant>, the new field(s) will be added to the
           default list. This allows to quickly see the default list
           plus a few other fields, instead of retyping the entire list
           of fields.
@@ -687,99 +1105,70 @@
 
         <cmdsynopsis>
           <command>modify</command>
-          <arg choice="opt">-m <replaceable>memsize</replaceable></arg>
-          <arg choice="opt">-p <replaceable>vcpus</replaceable></arg>
-          <arg choice="opt">-i <replaceable>ip</replaceable></arg>
-          <arg choice="opt">-b <replaceable>bridge</replaceable></arg>
-          <arg choice="opt">--mac <replaceable>MAC-address</replaceable></arg>
-          <arg>--hvm-boot-order <replaceable>boot-order</replaceable></arg>
-          <arg>--hvm-acpi <replaceable>ACPI-support</replaceable></arg>
-          <arg>--hvm-pae <replaceable>PAE-support</replaceable></arg>
-          <arg>--hvm-cdrom-image-path
-            <replaceable>cdrom-image-path</replaceable></arg>
-          <arg>--hvm-nic-type <replaceable>NICTYPE</replaceable></arg>
-          <arg>--hvm-disk-type <replaceable>DISKTYPE</replaceable></arg>
-          <arg>--vnc-bind-address
-            <replaceable>vnc-bind-address</replaceable></arg>
+          <sbr>
+          <arg choice="opt">-H <replaceable>HYPERVISOR_PARAMETERS</replaceable></arg>
+          <sbr>
+          <arg choice="opt">-B <replaceable>BACKEND_PARAMETERS</replaceable></arg>
+          <sbr>
+          <group>
+            <arg>--net add<replaceable><optional>:options</optional></replaceable></arg>
+            <arg>--net remove</arg>
+            <arg>--net <replaceable>N:options</replaceable></arg>
+          </group>
+          <sbr>
+          <group>
+            <arg>--disk add:size=<replaceable>SIZE</replaceable></arg>
+            <arg>--disk remove</arg>
+            <arg>--disk <replaceable>N</replaceable>:mode=<replaceable>MODE</replaceable></arg>
+          </group>
 
           <sbr>
-          <arg>--kernel <group choice="req">
-              <arg>default</arg>
-              <arg><replaceable>kernel_path</replaceable></arg>
-            </group></arg>
-          <sbr>
-          <arg>--initrd <group choice="req">
-              <arg>default</arg>
-              <arg>none</arg>
-              <arg><replaceable>initrd_path</replaceable></arg>
-            </group> </arg>
+          <arg>--submit</arg>
           <sbr>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Modify the memory size, number of vcpus, ip address, MAC
-          address and/or bridge for an instance.
+          Modifies the memory size, number of vcpus, ip address, MAC
+          address and/or bridge for an instance. It can also add and
+          remove disks and NICs to/from the instance. Note that you
+          need to give at least one of the arguments, otherwise the
+          command complains.
         </para>
 
         <para>
-          The memory size is given in MiB. Note that you need to give
-          at least one of the arguments, otherwise the command
-          complains.
+          The <option>-H</option> option specifies hypervisor options
+          in the form of <userinput>name=value[,...]</userinput>. For details which options can be specified, see the <command>add</command> command.
         </para>
 
         <para>
-          The <option>--kernel</option>, <option>--initrd</option>
-          and <option>--hvm-boot-order</option>
-          options are described in the <command>add</command> command.
+          The <option>--disk
+          add:size=<replaceable>SIZE</replaceable></option> option
+          adds a disk to the instance. The <option>--disk
+          remove</option> will remove the last disk of the
+          instance. The <option>--disk
+          <replaceable>N</replaceable>:mode=<replaceable>MODE</replaceable></option>
+          option will change the mode of the Nth disk of the instance
+          between read-only (<literal>ro</literal>) and read-write
+          (<literal>rw</literal>).
         </para>
 
         <para>
-          Additionally, the HVM boot order can be reset to the default
-          values by using <option>--hvm-boot-order=default</option>.
+          The <option>--nic
+          add:<replaceable>options</replaceable></option> option will
+          add a new NIC to the instance. The available options are the
+          same as in the <command>add</command> command (mac, ip,
+          bridge). The <option>--nice remove</option> will remove the
+          last NIC of the instance, while the <option>--nic
+          <replaceable>N</replaceable>:<replaceable>options</replaceable></option>
+          option will change the parameters of the Nth instance NIC.
         </para>
 
         <para>
-          The <option>--hvm-acpi</option> option specifies if Xen
-          should enable ACPI support for this HVM instance. Valid
-          values are true or false.
-        </para>
-
-        <para>
-          The <option>--hvm-pae</option> option specifies if Xen
-          should enabled PAE support for this HVM instance. Valid
-          values are true or false.
-        </para>
-
-        <para>
-          The <option>--hvm-cdrom-image-path</option> specifies the
-          path to the file xen uses to emulate a virtual CDROM drive
-          for this HVM instance. Valid values are either an
-          absolute path to an existing file or None, which disables
-          virtual CDROM support for this instance.
-        </para>
-
-        <para>
-          The <option>--hvm-nic-type</option> specifies the NIC type
-          Xen should use for this HVM instance. Valid choices are
-          rtl8139, ne2k_pci, ne2k_isa and paravirtual with rtl8139
-          as the default. The paravirtual setting is intended for use
-          with the GPL PV drivers inside HVM Windows instances.
-        </para>
-
-        <para>
-          The <option>--hvm-disk-type</option> specifies the disk type
-          Xen should use for the HVM instance. Valid choices are ioemu
-          and paravirtual with ioemu as the default. The paravirtual
-          setting is intended for use with the GPL PV drivers inside
-          HVM Windows instances.
-        </para>
-
-        <para>
-          The <option>--vnc-bind-address</option> specifies the
-          address that the VNC listener for this instance should bind
-          to. Valid values are IPv4 addresses. Use the address 0.0.0.0
-          to bind to all available interfaces.
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
         </para>
 
         <para>
@@ -796,6 +1185,7 @@
           <arg choice="opt">-o <replaceable>os-type</replaceable></arg>
           <arg choice="opt">-f <replaceable>force</replaceable></arg>
           <arg>--select-os</arg>
+          <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -811,6 +1201,15 @@
           interactive OS reinstall. The user is prompted to select the OS
           template from the list of available OS templates.
         </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
+
       </refsect3>
 
       <refsect3>
@@ -819,6 +1218,7 @@
         <cmdsynopsis>
           <command>rename</command>
           <arg>--no-ip-check</arg>
+          <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
           <arg choice="req"><replaceable>new_name</replaceable></arg>
         </cmdsynopsis>
@@ -832,6 +1232,14 @@
           instance is started). The IP test can be skipped if the
           <option>--no-ip-check</option> option is passed.
         </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
       </refsect3>
 
     </refsect2>
@@ -844,8 +1252,11 @@
 
         <cmdsynopsis>
           <command>startup</command>
+          <sbr>
           <arg>--extra=<replaceable>PARAMS</replaceable></arg>
           <arg>--force</arg>
+          <sbr>
+          <arg>--force-multiple</arg>
           <sbr>
           <group choice="opt">
             <arg>--instance</arg>
@@ -854,6 +1265,8 @@
             <arg>--secondary</arg>
             <arg>--all</arg>
           </group>
+          <sbr>
+          <arg>--submit</arg>
           <sbr>
           <arg choice="opt"
           rep="repeat"><replaceable>name</replaceable></arg>
@@ -924,6 +1337,19 @@
         </para>
 
         <para>
+          The <option>--force-multiple</option> will skip the
+          interactive confirmation in the case the more than one
+          instance will be affected.
+        </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
+        <para>
           Example:
           <screen>
 # gnt-instance start instance1.example.com
@@ -940,6 +1366,8 @@
         <cmdsynopsis>
           <command>shutdown</command>
           <sbr>
+          <arg>--force-multiple</arg>
+          <sbr>
           <group choice="opt">
             <arg>--instance</arg>
             <arg>--node</arg>
@@ -948,7 +1376,8 @@
             <arg>--all</arg>
           </group>
           <sbr>
-
+          <arg>--submit</arg>
+          <sbr>
           <arg choice="opt"
           rep="repeat"><replaceable>name</replaceable></arg>
         </cmdsynopsis>
@@ -967,6 +1396,14 @@
           <command>startup</command> command and they influence the
           actual instances being shutdown.
         </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
 
         <para>
           Example:
@@ -999,7 +1436,8 @@
             <arg>--all</arg>
           </group>
           <sbr>
-
+          <arg>--submit</arg>
+          <sbr>
           <arg choice="opt"
           rep="repeat"><replaceable>name</replaceable></arg>
         </cmdsynopsis>
@@ -1029,9 +1467,9 @@
         </para>
 
         <para>
-          Use the <option>--force-multiple</option> option to keep
-          gnt-instance from asking for confirmation when more than one
-          instance is affected.
+          The <option>--force-multiple</option> will skip the
+          interactive confirmation in the case the more than one
+          instance will be affected.
         </para>
 
         <para>
@@ -1052,16 +1490,18 @@
         </cmdsynopsis>
 
         <para>
-          Connects to the console of the given instance. If the instance
-          is not up, an error is returned. Use the <option>--show-cmd</option>
-          option to display the command instead of executing it.
+          Connects to the console of the given instance. If the
+          instance is not up, an error is returned. Use the
+          <option>--show-cmd</option> option to display the command
+          instead of executing it.
         </para>
 
         <para>
-          For HVM instances, this will attempt to connect to the serial
-          console of the instance. To connect to the virtualized
-          "physical" console of a HVM instance, use a VNC client with
-          the connection info from gnt-instance info.
+          For HVM instances, this will attempt to connect to the
+          serial console of the instance. To connect to the
+          virtualized "physical" console of a HVM instance, use a VNC
+          client with the connection info from the
+          <command>info</command> command.
         </para>
 
         <para>
@@ -1082,20 +1522,21 @@
 
         <cmdsynopsis>
           <command>replace-disks</command>
+          <arg>--submit</arg>
           <arg choice="req">-p</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <cmdsynopsis>
           <command>replace-disks</command>
-
+          <arg>--submit</arg>
           <arg choice="req">-s</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <cmdsynopsis>
           <command>replace-disks</command>
-
+          <arg>--submit</arg>
           <group choice="req">
             <arg>--iallocator <replaceable>name</replaceable></arg>
             <arg>--new-secondary <replaceable>NODE</replaceable></arg>
@@ -1127,6 +1568,19 @@
           otherwise the new secondary node will be the one chosen
           manually via the <option>--new-secondary</option> option.
         </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
+        <para>
+          Note that it is not possible to select an offline or drained
+          node as a new secondary.
+        </para>
+
       </refsect3>
 
       <refsect3>
@@ -1134,6 +1588,7 @@
 
         <cmdsynopsis>
           <command>activate-disks</command>
+          <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
         <para>
@@ -1141,17 +1596,25 @@
           successful, the command will show the location and name of
           the block devices:
           <screen>
-node1.example.com:sda:/dev/drbd0
-node1.example.com:sdb:/dev/drbd1
+node1.example.com:disk/0:/dev/drbd0
+node1.example.com:disk/1:/dev/drbd1
           </screen>
 
           In this example, <emphasis>node1.example.com</emphasis> is
           the name of the node on which the devices have been
-          activated. The <emphasis>sda</emphasis> and
-          <emphasis>sdb</emphasis> are the names of the block devices
-          inside the instance. <emphasis>/dev/drbd0</emphasis> and
-          <emphasis>/dev/drbd1</emphasis> are the names of the block
-          devices as visible on the node.
+          activated. The <emphasis>disk/0</emphasis> and
+          <emphasis>disk/1</emphasis> are the Ganeti-names of the
+          instance disks; how they are visible inside the instance is
+          hypervisor-specific. <emphasis>/dev/drbd0</emphasis> and
+          <emphasis>/dev/drbd1</emphasis> are the actual block devices
+          as visible on the node.
+        </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
         </para>
 
         <para>
@@ -1165,6 +1628,7 @@ node1.example.com:sdb:/dev/drbd1
 
         <cmdsynopsis>
           <command>deactivate-disks</command>
+          <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
         <para>
@@ -1176,6 +1640,13 @@ node1.example.com:sdb:/dev/drbd1
           breaking the replication.
         </para>
 
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
       </refsect3>
 
       <refsect3>
@@ -1183,6 +1654,7 @@ node1.example.com:sdb:/dev/drbd1
         <cmdsynopsis>
           <command>grow-disk</command>
           <arg>--no-wait-for-sync</arg>
+          <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
           <arg choice="req"><replaceable>disk</replaceable></arg>
           <arg choice="req"><replaceable>amount</replaceable></arg>
@@ -1223,8 +1695,8 @@ node1.example.com:sdb:/dev/drbd1
 
 
         <para>
-          The <replaceable>disk</replaceable> argument is either
-          <literal>sda</literal> or <literal>sdb</literal>. The
+          The <replaceable>disk</replaceable> argument is the index of
+          the instance disk to grow. The
           <replaceable>amount</replaceable> argument is given either
           as a number (and it represents the amount to increase the
           disk with in mebibytes) or can be given similar to the
@@ -1245,15 +1717,22 @@ node1.example.com:sdb:/dev/drbd1
           <option>--no-wait-for-sync</option> option.
         </para>
 
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
 
-        <para>Example (increase sda for instance1 by 16GiB):
+
+        <para>Example (increase the first disk for instance1 by 16GiB):
           <screen>
-# gnt-instance grow-disk instance1.example.com sda 16g
+# gnt-instance grow-disk instance1.example.com 0 16g
           </screen>
         </para>
 
         <para>
-          Also note that disk shrinking will not be supported; use
+          Also note that disk shrinking is not supported; use
           <command>gnt-backup export</command> and then
           <command>gnt-backup import</command> to reduce the disk size
           of an instance.
@@ -1272,6 +1751,7 @@ node1.example.com:sdb:/dev/drbd1
           <command>failover</command>
           <arg>-f</arg>
           <arg>--ignore-consistency</arg>
+          <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -1293,9 +1773,94 @@ node1.example.com:sdb:/dev/drbd1
         </para>
 
         <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
+        <para>
           Example:
           <screen>
 # gnt-instance failover instance1.example.com
+          </screen>
+        </para>
+      </refsect3>
+
+      <refsect3>
+        <title>MIGRATE</title>
+
+        <cmdsynopsis>
+          <command>migrate</command>
+          <arg>-f</arg>
+          <arg choice="req">--cleanup</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <cmdsynopsis>
+          <command>migrate</command>
+          <arg>-f</arg>
+          <arg>--non-live</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Migrate will move the instance to its secondary node without
+          shutdown. It only works for instances having the drbd8 disk
+          template type.
+        </para>
+
+        <para>
+          The migration command needs a perfectly healthy instance, as
+          we rely on the dual-master capability of drbd8 and the disks
+          of the instance are not allowed to be degraded.
+        </para>
+
+        <para>
+          The <option>--non-live</option> option will switch (for the
+          hypervisors that support it) between a "fully live"
+          (i.e. the interruption is as minimal as possible) migration
+          and one in which the instance is frozen, its state saved and
+          transported to the remote node, and then resumed there. This
+          all depends on the hypervisor support for two different
+          methods. In any case, it is not an error to pass this
+          parameter (it will just be ignored if the hypervisor doesn't
+          support it).
+        </para>
+
+        <para>
+          If the <option>--cleanup</option> option is passed, the
+          operation changes from migration to attempting recovery from
+          a failed previous migration. In this mode, ganeti checks if
+          the instance runs on the correct node (and updates its
+          configuration if not) and ensures the instances's disks are
+          configured correctly. In this mode, the
+          <option>--non-live</option> option is ignored.
+        </para>
+
+        <para>
+          The option <option>-f</option> will skip the prompting for
+          confirmation.
+        </para>
+        <para>
+          Example (and expected output):
+          <screen>
+# gnt-instance migrate instance1
+Migrate will happen to the instance instance1. Note that migration is
+**experimental** in this version. This might impact the instance if
+anything goes wrong. Continue?
+y/[n]/?: y
+* checking disk consistency between source and target
+* ensuring the target is in secondary mode
+* changing disks into dual-master mode
+ - INFO: Waiting for instance instance1 to sync disks.
+ - INFO: Instance instance1's disks are in sync.
+* migrating instance to node2.example.com
+* changing the instance's disks on source node to secondary
+ - INFO: Waiting for instance instance1 to sync disks.
+ - INFO: Instance instance1's disks are in sync.
+* changing the instance's disks to single-master
+#
           </screen>
         </para>
       </refsect3>
