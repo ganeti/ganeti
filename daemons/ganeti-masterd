@@ -367,6 +367,10 @@ def ParseOptions():
   parser.add_option("-d", "--debug", dest="debug",
                     help="Enable some debug messages",
                     default=False, action="store_true")
+  parser.add_option("--no-voting", dest="no_voting",
+                    help="Do not check that the nodes agree on this node"
+                    " being the master and start the daemon unconditionally",
+                    default=False, action="store_true")
   options, args = parser.parse_args()
   return options, args
 
@@ -443,8 +447,18 @@ def main():
     ssconf.CheckMaster(options.debug)
 
     # we believe we are the master, let's ask the other nodes...
-    if not CheckAgreement():
-      return
+    if options.no_voting:
+      sys.stdout.write("The 'no voting' option has been selected.\n")
+      sys.stdout.write("This is dangerous, please confirm by"
+                       " typing uppercase 'yes': ")
+      sys.stdout.flush()
+      confirmation = sys.stdin.readline().strip()
+      if confirmation != "YES":
+        print "Aborting."
+        return
+    else:
+      if not CheckAgreement():
+        return
 
     dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE),
             (constants.SOCKET_DIR, constants.SOCKET_DIR_MODE),
