@@ -4434,7 +4434,6 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
                                  " instances")
 
-
     if self.op.mode == constants.INSTANCE_IMPORT:
       src_node = self.op.src_node
       src_path = self.op.src_path
@@ -4500,6 +4499,7 @@ class LUCreateInstance(LogicalUnit):
             nic_mac_ini = 'nic%d_mac' % idx
             nic.mac = export_info.get(constants.INISECT_INS, nic_mac_ini)
 
+    # ENDIF: self.op.mode == constants.INSTANCE_IMPORT
     # ip ping checks (we use the same ip that was resolved in ExpandNames)
     if self.op.start and not self.op.ip_check:
       raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
@@ -4509,6 +4509,18 @@ class LUCreateInstance(LogicalUnit):
       if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
                                    (self.check_ip, self.op.instance_name))
+
+    #### mac address generation
+    # By generating here the mac address both the allocator and the hooks get
+    # the real final mac address rather than the 'auto' or 'generate' value.
+    # There is a race condition between the generation and the instance object
+    # creation, which means that we know the mac is valid now, but we're not
+    # sure it will be when we actually add the instance. If things go bad
+    # adding the instance will abort because of a duplicate mac, and the
+    # creation job will fail.
+    for nic in self.nics:
+      if nic.mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+        nic.mac = self.cfg.GenerateMAC()
 
     #### allocator run
 
@@ -4598,10 +4610,6 @@ class LUCreateInstance(LogicalUnit):
     """
     instance = self.op.instance_name
     pnode_name = self.pnode.name
-
-    for nic in self.nics:
-      if nic.mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-        nic.mac = self.cfg.GenerateMAC()
 
     ht_kind = self.op.hypervisor
     if ht_kind in constants.HTS_REQ_PORT:
