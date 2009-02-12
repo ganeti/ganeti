@@ -305,7 +305,6 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@LOCALSTATEDIR@#$(localstatedir)#g'; \
 	  echo 's#@SBINDIR@#$(sbindir)#g'; \
 	  echo 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
-	  echo 's#@LOCALSTATEDIR@#$(localstatedir)#g'; \
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
 	  echo '/@INCLUDE_RAPI_RESOURCES@/ {'; \
