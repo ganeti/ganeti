@@ -3141,11 +3141,11 @@ class LUQueryInstances(NoHooksLU):
                                     "disk_template", "ip", "mac", "bridge",
                                     "sda_size", "sdb_size", "vcpus", "tags",
                                     "network_port", "beparams",
-                                    "(disk).(size)/([0-9]+)",
-                                    "(disk).(sizes)", "disk_usage",
-                                    "(nic).(mac|ip|bridge)/([0-9]+)",
-                                    "(nic).(macs|ips|bridges)",
-                                    "(disk|nic).(count)",
+                                    r"(disk)\.(size)/([0-9]+)",
+                                    r"(disk)\.(sizes)", "disk_usage",
+                                    r"(nic)\.(mac|ip|bridge)/([0-9]+)",
+                                    r"(nic)\.(macs|ips|bridges)",
+                                    r"(disk|nic)\.(count)",
                                     "serial_no", "hypervisor", "hvparams",] +
                                   ["hv/%s" % name
                                    for name in constants.HVS_PARAMETERS] +
