@@ -30,7 +30,7 @@ the same minimum length.
 
 So basically we aim to determine here: what is the minimum number of instances
 that need to be removed (this is called the removal depth) and which are the
-actual combinations that fit (called the list of removal sets). 
+actual combinations that fit (called the list of removal sets).
 
 In phase 2, for each removal set computed in the previous phase, we take the
 removed instances and try to determine where we can put them so that the
@@ -228,9 +228,9 @@ Integration with Ganeti
 The programs needs only the output of the node list and instance list. That is,
 they need the following two commands to be run::
 
-    gnt-node list -oname,mtotal,mfree,dtotal,dfree,pinst_list,sinst_list \
+    gnt-node list -oname,mtotal,mfree,dtotal,dfree \
       --separator '|' --no-headers > nodes
-    gnt-instance list -oname,admin_ram,sda_size \
+    gnt-instance list -oname,admin_ram,sda_size,pnode,snodes \
       --separator '|' --no-head > instances
 
 These two files should be saved under the names of 'nodes' and 'instances'.

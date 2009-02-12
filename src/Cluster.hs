@@ -588,30 +588,25 @@ loadTabular text_data convert_fn set_fn =
                   (zip [0..] kerows)
     in unzip idxrows
 
--- | Set the primary or secondary node indices on the instance list.
-fixInstances :: [(Int, Node.Node)]
-             -> (Node.Node -> [Int]) -- ^ Either 'Node.slist' or 'Node.plist'
-             -> (Instance.Instance -> Int -> Instance.Instance)
-                -- ^ Either 'Instance.setSec' or 'Instance.setPri'
-             -> [(Int, Instance.Instance)]
-             -> [(Int, Instance.Instance)]
-fixInstances nl list_fn set_fn il =
-    concat $ map
-               (\ (n_idx, n) ->
-                   map
-                   (\ i_idx ->
-                        let oldi = fromJust (lookup i_idx il)
-                        in
-                          (i_idx, set_fn oldi n_idx)
-                   ) (list_fn n)
-              ) nl
+-- | For each instance, add its index to its primary and secondary nodes
+fixNodes :: [(Int, Node.Node)]
+         -> [(Int, Instance.Instance)]
+         -> [(Int, Node.Node)]
+fixNodes nl il =
+    foldl (\accu (idx, inst) ->
+               let
+                   assocEqual = (\ (i, _) (j, _) -> i == j)
+                   pdx = Instance.pnode inst
+                   sdx = Instance.snode inst
+                   pold = fromJust $ lookup pdx nl
+                   sold = fromJust $ lookup sdx nl
+                   pnew = Node.setPri pold idx
+                   snew = Node.setSec sold idx
+                   ac1 = deleteBy assocEqual (pdx, pold) accu
+                   ac2 = deleteBy assocEqual (sdx, sold) ac1
+                   ac3 = (pdx, pnew):(sdx, snew):ac2
+               in ac3) nl il
 
--- | Splits and returns a list of indexes based on an Instance assoc list.
-csi :: String -> [(String, Int)] -> [Int]
-csi values il =
-    map
-    (\ x -> fromJust (lookup x il))
-    (commaSplit values)
 
 {-| Initializer function that loads the data from a node and list file
     and massages it into the correct format. -}
@@ -621,18 +616,21 @@ loadData :: String -- ^ Node data in text format
              Container.Container Instance.Instance,
              [(Int, String)], [(Int, String)])
 loadData ndata idata =
-    {- instance file: name mem disk -}
-    let (kti, il) = loadTabular idata
-                    (\ (i:j:k:[]) -> (i, Instance.create j k)) Instance.setIdx
-    {- node file: name mem disk plist slist -}
+    let
+    {- node file: name mem disk -}
         (ktn, nl) = loadTabular ndata
-                    (\ (i:jt:jf:kt:kf:l:m:[]) ->
-                         (i, Node.create jt jf kt kf (csi l kti) (csi m kti)))
+                    (\ (i:jt:jf:kt:kf:[]) -> (i, Node.create jt jf kt kf))
                     Node.setIdx
-        il2 = fixInstances nl Node.slist Instance.setSec $
-              fixInstances nl Node.plist Instance.setPri il
-        il3 = Container.fromAssocList il2
+    {- instance file: name mem disk -}
+        (kti, il) = loadTabular idata
+                    (\ (i:j:k:l:m:[]) -> (i,
+                                           Instance.create j k
+                                               (fromJust $ lookup l ktn)
+                                               (fromJust $ lookup m ktn)))
+                    Instance.setIdx
+        nl2 = fixNodes nl il
+        il3 = Container.fromAssocList il
         nl3 = Container.fromAssocList
-             (map (\ (k, v) -> (k, Node.buildPeers v il3 (length nl))) nl)
+             (map (\ (k, v) -> (k, Node.buildPeers v il3 (length nl2))) nl2)
     in
       (nl3, il3, swapPairs ktn, swapPairs kti)

@@ -13,12 +13,12 @@ data Instance = Instance { mem :: Int -- ^ memory of the instance
                          , idx :: Int -- ^ internal index for book-keeping
                          } deriving (Show)
 
-create :: String -> String -> Instance
-create mem_init disk_init = Instance {
+create :: String -> String -> Int -> Int -> Instance
+create mem_init disk_init pn sn = Instance {
                               mem = read mem_init,
                               disk = read disk_init,
-                              pnode = -1,
-                              snode = -1,
+                              pnode = pn,
+                              snode = sn,
                               idx = -1
                             }
 

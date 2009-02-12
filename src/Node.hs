@@ -17,6 +17,8 @@ module Node
     , removeSec
     , addPri
     , addSec
+    , setPri
+    , setSec
     -- * Statistics
     , normUsed
     -- * Formatting
@@ -52,16 +54,16 @@ The index and the peers maps are empty, and will be need to be update
 later via the 'setIdx' and 'buildPeers' functions.
 
 -}
-create :: String -> String -> String -> String -> [Int] -> [Int] -> Node
+create :: String -> String -> String -> String -> Node
 create mem_t_init mem_f_init disk_t_init disk_f_init
-       plist_init slist_init = Node
+    = Node
     {
       t_mem = read mem_t_init,
       f_mem = read mem_f_init,
       t_disk = read disk_t_init,
       f_disk = read disk_f_init,
-      plist = plist_init,
-      slist = slist_init,
+      plist = [],
+      slist = [],
       failN1 = True,
       idx = -1,
       peers = PeerMap.empty,
@@ -157,6 +159,14 @@ addSec t inst pdx =
         Just t {slist = new_slist, f_disk = new_disk,
                 peers = new_peers, failN1 = new_failn1,
                 maxRes = new_rmem}
+
+-- | Add a primary instance to a node without other updates
+setPri :: Node -> Int -> Node
+setPri t idx = t { plist = idx:(plist t) }
+
+-- | Add a secondary instance to a node without other updates
+setSec :: Node -> Int -> Node
+setSec t idx = t { slist = idx:(slist t) }
 
 -- | Simple converter to string.
 str :: Node -> String
