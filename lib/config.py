@@ -243,14 +243,16 @@ class ConfigWriter:
 
     """
     result = []
-    if disk.logical_id in l_ids:
-      result.append("duplicate logical id %s" % str(disk.logical_id))
-    else:
-      l_ids.append(disk.logical_id)
-    if disk.physical_id in p_ids:
-      result.append("duplicate physical id %s" % str(disk.physical_id))
-    else:
-      p_ids.append(disk.physical_id)
+    if disk.logical_id is not None:
+      if disk.logical_id in l_ids:
+        result.append("duplicate logical id %s" % str(disk.logical_id))
+      else:
+        l_ids.append(disk.logical_id)
+    if disk.physical_id is not None:
+      if disk.physical_id in p_ids:
+        result.append("duplicate physical id %s" % str(disk.physical_id))
+      else:
+        p_ids.append(disk.physical_id)
 
     if disk.children:
       for child in disk.children:
