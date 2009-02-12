@@ -79,6 +79,7 @@ class ConfigWriter:
       self._cfg_file = cfg_file
     self._temporary_ids = set()
     self._temporary_drbds = {}
+    self._temporary_macs = set()
     # Note: in order to prevent errors when resolving our name in
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
@@ -110,11 +111,12 @@ class ConfigWriter:
       byte2 = random.randrange(0, 256)
       byte3 = random.randrange(0, 256)
       mac = "%s:%02x:%02x:%02x" % (prefix, byte1, byte2, byte3)
-      if mac not in all_macs:
+      if mac not in all_macs and mac not in self._temporary_macs:
         break
       retries -= 1
     else:
       raise errors.ConfigurationError("Can't generate unique MAC")
+    self._temporary_macs.add(mac)
     return mac
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -126,7 +128,7 @@ class ConfigWriter:
 
     """
     all_macs = self._AllMACs()
-    return mac in all_macs
+    return mac in all_macs or mac in self._temporary_macs
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GenerateDRBDSecret(self):
@@ -687,6 +689,8 @@ class ConfigWriter:
     self._config_data.instances[instance.name] = instance
     self._config_data.cluster.serial_no += 1
     self._UnlockedReleaseDRBDMinors(instance.name)
+    for nic in instance.nics:
+      self._temporary_macs.discard(nic.mac)
     self._WriteConfig()
 
   def _SetInstanceStatus(self, instance_name, status):
@@ -1236,5 +1240,7 @@ class ConfigWriter:
 
     if isinstance(target, objects.Instance):
       self._UnlockedReleaseDRBDMinors(target.name)
+      for nic in target.nics:
+        self._temporary_macs.discard(nic.mac)
 
     self._WriteConfig()
