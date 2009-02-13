@@ -797,7 +797,7 @@ def GenerateTable(headers, fields, separator, data,
   format_fields = []
   for field in fields:
     if headers and field not in headers:
-      # FIXME: handle better unknown fields (either revert to old
+      # TODO: handle better unknown fields (either revert to old
       # style of raising exception, or deal more intelligently with
       # variable fields)
       headers[field] = field

@@ -575,7 +575,6 @@ def GetInstanceList(hypervisor_list):
       results.extend(names)
     except errors.HypervisorError, err:
       logging.exception("Error enumerating instances for hypevisor %s", hname)
-      # FIXME: should we somehow not propagate this to the master?
       raise
 
   return results
@@ -1666,7 +1665,6 @@ def OSEnvironment(instance, debug=0):
                                     str(disk))
     real_disk.Open()
     result['DISK_%d_PATH' % idx] = real_disk.dev_path
-    # FIXME: When disks will have read-only mode, populate this
     result['DISK_%d_ACCESS' % idx] = disk.mode
     if constants.HV_DISK_TYPE in instance.hvparams:
       result['DISK_%d_FRONTEND_TYPE' % idx] = \
