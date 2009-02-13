@@ -35,6 +35,7 @@ from ganeti import http
 from ganeti import daemon
 from ganeti import ssconf
 from ganeti import utils
+from ganeti import luxi
 from ganeti.rapi import connector
 
 import ganeti.http.auth
@@ -144,6 +145,10 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
       sn = ctx.handler.getSerialNumber()
       if sn:
         req.response_headers[http.HTTP_ETAG] = str(sn)
+    except luxi.TimeoutError:
+      raise http.HttpGatewayTimeout()
+    except luxi.ProtocolError, err:
+      raise http.HttpBadGateway(str(err))
     except:
       method = req.request_method.upper()
       logging.exception("Error while handling the %s request", method)

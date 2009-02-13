@@ -255,6 +255,17 @@ class HttpNotImplemented(HttpException):
   code = 501
 
 
+class HttpBadGateway(HttpException):
+  """502 Bad Gateway
+
+  RFC2616, 10.5.3: The server, while acting as a gateway or proxy,
+  received an invalid response from the upstream server it accessed in
+  attempting to fulfill the request.
+
+  """
+  code = 502
+
+
 class HttpServiceUnavailable(HttpException):
   """503 Service Unavailable
 
@@ -263,6 +274,19 @@ class HttpServiceUnavailable(HttpException):
 
   """
   code = 503
+
+
+class HttpGatewayTimeout(HttpException):
+  """504 Gateway Timeout
+
+  RFC2616, 10.5.5: The server, while acting as a gateway or proxy, did
+  not receive a timely response from the upstream server specified by
+  the URI (e.g.  HTTP, FTP, LDAP) or some other auxiliary server
+  (e.g. DNS) it needed to access in attempting to complete the
+  request.
+
+  """
+  code = 504
 
 
 class HttpVersionNotSupported(HttpException):
