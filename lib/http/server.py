@@ -207,7 +207,7 @@ class _HttpClientToServerMessageReader(http.HttpMessageReader):
     return http.HttpClientToServerStartLine(method, path, version)
 
 
-class _HttpServerRequestExecutor(object):
+class HttpServerRequestExecutor(object):
   """Implements server side of HTTP.
 
   This class implements the server side of HTTP. It's based on code of
@@ -405,8 +405,18 @@ class _HttpServerRequestExecutor(object):
     headers[http.HTTP_CONTENT_TYPE] = self.error_content_type
     self.response_msg.headers = headers
 
-    self.response_msg.body = self.error_message_format % values
+    self.response_msg.body = self._FormatErrorMessage(values)
 
+  def _FormatErrorMessage(self, values):
+    """Formats the body of an error message.
+
+    @type values: dict
+    @param values: dictionary with keys code, message and explain.
+    @rtype: string
+    @return: the body of the message
+
+    """
+    return self.error_message_format % values
 
 class HttpServer(http.HttpBase):
   """Generic HTTP server class
@@ -417,7 +427,8 @@ class HttpServer(http.HttpBase):
   MAX_CHILDREN = 20
 
   def __init__(self, mainloop, local_address, port,
-               ssl_params=None, ssl_verify_peer=False):
+               ssl_params=None, ssl_verify_peer=False,
+               request_executor_class=None):
     """Initializes the HTTP server
 
     @type mainloop: ganeti.daemon.Mainloop
@@ -431,9 +442,17 @@ class HttpServer(http.HttpBase):
     @type ssl_verify_peer: bool
     @param ssl_verify_peer: Whether to require client certificate
         and compare it with our certificate
+    @type request_executor_class: class
+    @param request_executor_class: an class derived from the
+        HttpServerRequestExecutor class
 
     """
     http.HttpBase.__init__(self)
+
+    if request_executor_class is None:
+      self.request_executor = HttpServerRequestExecutor
+    else:
+      self.request_executor = request_executor_class
 
     self.mainloop = mainloop
     self.local_address = local_address
@@ -505,7 +524,7 @@ class HttpServer(http.HttpBase):
     if pid == 0:
       # Child process
       try:
-        _HttpServerRequestExecutor(self, connection, client_addr)
+        self.request_executor(self, connection, client_addr)
       except Exception:
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])

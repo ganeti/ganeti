@@ -36,6 +36,7 @@ from ganeti import daemon
 from ganeti import ssconf
 from ganeti import utils
 from ganeti import luxi
+from ganeti import serializer
 from ganeti.rapi import connector
 
 import ganeti.http.auth
@@ -50,6 +51,24 @@ class RemoteApiRequestContext(object):
     self.handler = None
     self.handler_fn = None
     self.handler_access = None
+
+
+class JsonErrorRequestExecutor(http.server.HttpServerRequestExecutor):
+  """Custom Request Executor class that formats HTTP errors in JSON.
+
+  """
+  error_content_type = "application/json"
+
+  def _FormatErrorMessage(self, values):
+    """Formats the body of an error message.
+
+    @type values: dict
+    @param values: dictionary with keys code, message and explain.
+    @rtype: string
+    @return: the body of the message
+
+    """
+    return serializer.DumpJson(values, indent=True)
 
 
 class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
@@ -233,7 +252,9 @@ def main():
   try:
     mainloop = daemon.Mainloop()
     server = RemoteApiHttpServer(mainloop, "", options.port,
-                                 ssl_params=ssl_params, ssl_verify_peer=False)
+                                 ssl_params=ssl_params, ssl_verify_peer=False,
+                                 request_executor_class=
+                                 JsonErrorRequestExecutor)
     server.Start()
     try:
       mainloop.Run()
