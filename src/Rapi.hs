@@ -9,7 +9,7 @@ import Network.Curl
 import Network.Curl.Types ()
 import Network.Curl.Code
 import Data.Either ()
-import Data.Maybe ()
+import Data.Maybe
 import Control.Monad
 import Text.JSON
 import Text.Printf (printf)
@@ -47,22 +47,25 @@ listHead lst =
 loadJSArray :: String -> Either String [JSObject JSValue]
 loadJSArray s = resultToEither $ decodeStrict s
 
+fromObj :: JSON a => String -> JSObject JSValue -> Either String a
+fromObj k o =
+    case lookup k (fromJSObject o) of
+      Nothing -> Left $ printf "key '%s' not found" k
+      Just val -> resultToEither $ readJSON val
+
 getStringElement :: String -> JSObject JSValue -> Either String String
-getStringElement key o =
-    resultToEither $ valFromObj key o
+getStringElement key o = fromObj key o
 
 getIntElement :: String -> JSObject JSValue -> Either String String
 getIntElement key o =
-    let tmp = resultToEither $ ((valFromObj key o)::Result Int)
+    let tmp = (fromObj key o)::Either String Int
     in case tmp of
          Left x -> Left x
          Right x -> Right $ show x
 
 getListElement :: String -> JSObject JSValue
                -> Either String [JSValue]
-getListElement key o =
-    let tmp = resultToEither $ ((valFromObj key o)::Result [JSValue])
-    in tmp
+getListElement key o = fromObj key o
 
 readString :: JSValue -> Either String String
 readString v =
@@ -70,14 +73,20 @@ readString v =
       JSString s -> Right $ fromJSString s
       _ -> Left "Wrong JSON type"
 
-concatElems a b =
-    case a of
-      Left _ -> a
-      Right [] -> b
-      Right x ->
-          case b of
-            Left _ -> b
-            Right y ->  Right (x ++ "|" ++ y)
+concatElems :: Either String String
+            -> Either String String
+            -> Either String String
+concatElems = apply2 (\x y -> x ++ "|" ++ y)
+
+apply2 :: (a -> b -> c)
+       -> Either String a
+       -> Either String b
+       -> Either String c
+apply2 fn a b =
+    case (a, b) of
+      (Right x, Right y) -> Right $ fn x y
+      (Left x, _) -> Left x
+      (_, Left y) -> Left y
 
 getUrl :: String -> IO (Either String String)
 getUrl url = do
@@ -85,21 +94,35 @@ getUrl url = do
                                      CurlSSLVerifyHost 0]
   return (case code of
             CurlOK -> Right body
-            _ -> Left $ printf "url:%s, error: %s" url (show code))
+            _ -> Left $ printf "Curl error for '%s', error %s"
+                 url (show code))
+
+tryRapi :: String -> String -> IO (Either String String)
+tryRapi url1 url2 =
+    do
+      body1 <- getUrl url1
+      body2 <- getUrl url2
+      return (case body1 of
+                Left _ -> body2
+                Right _ -> body1)
 
 getInstances :: String -> IO (Either String String)
 getInstances master =
-    let url = printf "https://%s:5080/2/instances?bulk=1" master
+    let
+        url2 = printf "https://%s:5080/2/instances?bulk=1" master
+        url1 = printf "http://%s:5080/instances?bulk=1" master
     in do
-      body <- getUrl  url
+      body <- tryRapi url1 url2
       let inst = body `combine` loadJSArray `combine` (parseList parseInstance)
       return inst
 
 getNodes :: String -> IO (Either String String)
 getNodes master =
-    let url = printf "https://%s:5080/2/nodes?bulk=1" master
+    let
+        url2 = printf "https://%s:5080/2/nodes?bulk=1" master
+        url1 = printf "http://%s:5080/nodes?bulk=1" master
     in do
-      body <- getUrl  url
+      body <- tryRapi url1 url2
       let inst = body `combine` loadJSArray `combine` (parseList parseNode)
       return inst
 
@@ -114,17 +137,19 @@ parseInstance :: JSObject JSValue -> Either String String
 parseInstance a =
     let name = getStringElement "name" a
         disk = case getIntElement "disk_usage" a of
-                 Left _ -> getIntElement "sda_size" a
+                 Left _ -> apply2 (\x y -> show $ ((read x)::Int) + ((read y)::Int))
+                           (getIntElement "sda_size" a)
+                           (getIntElement "sdb_size" a)
                  Right x -> Right x
-        bep = (resultToEither $ valFromObj "beparams" a)
+        bep = fromObj "beparams" a
         pnode = getStringElement "pnode" a
         snode = (listHead $ getListElement "snodes" a) `combine` readString
+        mem = case bep of
+                Left _ -> getIntElement "admin_ram" a
+                Right _ -> bep
     in
-      case bep of
-        Left x -> Left x
-        Right x -> let mem = getIntElement "memory" x
-                   in concatElems name $ concatElems mem $
-                      concatElems disk $ concatElems pnode snode
+      concatElems name $ concatElems mem $
+                  concatElems disk $ concatElems pnode snode
 
 parseNode :: JSObject JSValue -> Either String String
 parseNode a =
