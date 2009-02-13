@@ -188,9 +188,26 @@ class R_Generic(object):
     try:
       val = int(val)
     except (ValueError, TypeError), err:
-      raise http.HttpBadRequest(message="Invalid value for the"
+      raise http.HttpBadRequest("Invalid value for the"
                                 " '%s' parameter" % (name,))
     return val
+
+  def getBodyParameter(self, name, *args):
+    """Check and return the value for a given parameter.
+
+    If a second parameter is not given, an error will be returned,
+    otherwise this parameter specifies the default value.
+
+    @param name: the required parameter
+
+    """
+    if name in self.req.request_body:
+      return self.req.request_body[name]
+    elif args:
+      return args[0]
+    else:
+      raise http.HttpBadRequest("Required parameter '%s' is missing" %
+                                name)
 
   def useLocking(self):
     """Check if the request specifies locking.

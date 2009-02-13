@@ -47,6 +47,7 @@
 
     </cmdsynopsis>
   </refsynopsisdiv>
+
   <refsect1>
     <title>DESCRIPTION</title>
 
@@ -81,6 +82,38 @@
 
   </refsect1>
 
+  <refsect1>
+    <title>ACCESS CONTROLS</title>
+
+    <para>
+      All query operations are allowed without authentication. Only
+      the modification operations require authentication, in the form
+      of basic authentication.
+    </para>
+
+    <para>
+      The users and their rights are defined in a file named
+      <filename>rapi_users</filename>, located in the <filename
+      class="directory">@LOCALSTATEDIR@/ganeti</filename>
+      directory. The users should be listed one per line, in the
+      following format:
+    </para>
+
+    <screen>username password options</screen>
+
+    <para>
+      Currently the <replaceable>options</replaceable> field should
+      equal the string <emphasis>write</emphasis> in order to actually
+      give write permission for the given users. Example:
+    </para>
+    <screen>rclient   secret    write
+guest   tespw
+</screen>
+    <para>The first user (<userinput>rclient</userinput>) will have
+    read-write rights, whereas the second user does only have read
+    (query) rights, and as such is no different than not using
+    authentication at all.</para>
+  </refsect1>
   &footer;
 
 </refentry>

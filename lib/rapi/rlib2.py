@@ -324,32 +324,48 @@ class R_2_instances(baserlib.R_Generic):
     @returns: a job id
 
     """
-    opts = self.req.request_post_data
+    if not isinstance(self.req.request_body, dict):
+      raise http.HttpBadRequest("Invalid body contents, not a dictionary")
 
-    beparams = baserlib.MakeParamsDict(opts, constants.BES_PARAMETERS)
-    hvparams = baserlib.MakeParamsDict(opts, constants.HVS_PARAMETERS)
+    beparams = baserlib.MakeParamsDict(self.req.request_body,
+                                       constants.BES_PARAMETERS)
+    hvparams = baserlib.MakeParamsDict(self.req.request_body,
+                                       constants.HVS_PARAMETERS)
+    fn = self.getBodyParameter
+
+    # disk processing
+    disk_data = fn('disks')
+    if not isinstance(disk_data, list):
+      raise http.HttpBadRequest("The 'disks' parameter should be a list")
+    disks = []
+    for idx, d in enumerate(disk_data):
+      if not isinstance(d, int):
+        raise http.HttpBadRequest("Disk %d specification wrong: should"
+                                  " be an integer")
+      disks.append({"size": d})
+    # nic processing (one nic only)
+    nics = [{"mac": fn("mac", constants.VALUE_AUTO),
+             "ip": fn("ip", None),
+             "bridge": fn("bridge", None)}]
 
     op = ganeti.opcodes.OpCreateInstance(
-        instance_name=opts.get('name'),
-        disk_size=opts.get('size', 20 * 1024),
-        swap_size=opts.get('swap', 4 * 1024),
-        disk_template=opts.get('disk_template', None),
         mode=constants.INSTANCE_CREATE,
-        os_type=opts.get('os'),
-        pnode=opts.get('pnode'),
-        snode=opts.get('snode'),
-        ip=opts.get('ip', 'none'),
-        bridge=opts.get('bridge', None),
-        start=opts.get('start', True),
-        ip_check=opts.get('ip_check', True),
-        wait_for_sync=opts.get('wait_for_sync', True),
-        mac=opts.get('mac', 'auto'),
-        hypervisor=opts.get('hypervisor', None),
+        instance_name=fn('name'),
+        disks=disks,
+        disk_template=fn('disk_template'),
+        os_type=fn('os'),
+        pnode=fn('pnode', None),
+        snode=fn('snode', None),
+        iallocator=fn('iallocator', None),
+        nics=nics,
+        start=fn('start', True),
+        ip_check=fn('ip_check', True),
+        wait_for_sync=True,
+        hypervisor=fn('hypervisor', None),
         hvparams=hvparams,
         beparams=beparams,
-        iallocator=opts.get('iallocator', None),
-        file_storage_dir=opts.get('file_storage_dir', None),
-        file_driver=opts.get('file_driver', 'loop'),
+        file_storage_dir=fn('file_storage_dir', None),
+        file_driver=fn('file_driver', 'loop'),
         )
 
     job_id = ganeti.cli.SendJob([op])
@@ -372,6 +388,15 @@ class R_2_instances_name(baserlib.R_Generic):
                                    use_locking=self.useLocking())
 
     return baserlib.MapFields(I_FIELDS, result[0])
+
+  def DELETE(self):
+    """Delete an instance.
+
+    """
+    op = ganeti.opcodes.OpRemoveInstance(instance_name=self.items[0],
+                                         ignore_failures=False)
+    job_id = ganeti.cli.SendJob([op])
+    return job_id
 
 
 class R_2_instances_name_reboot(baserlib.R_Generic):
@@ -489,8 +514,11 @@ class _R_Tags(baserlib.R_Generic):
     you'll have back a job id.
 
     """
+    if 'tag' not in self.queryargs:
+      raise http.HttpBadRequest("Please specify tag(s) to add using the"
+                                " the 'tag' parameter")
     return baserlib._Tags_PUT(self.TAG_LEVEL,
-                              self.req.request_post_data, name=self.name)
+                              self.queryargs['tag'], name=self.name)
 
   def DELETE(self):
     """Delete a tag.
@@ -502,7 +530,8 @@ class _R_Tags(baserlib.R_Generic):
     """
     if 'tag' not in self.queryargs:
       # no we not gonna delete all tags
-      raise http.HttpNotImplemented()
+      raise http.HttpBadRequest("Cannot delete all tags - please specify"
+                                " tag(s) using the 'tag' parameter")
     return baserlib._Tags_DELETE(self.TAG_LEVEL,
                                  self.queryargs['tag'],
                                  name=self.name)
