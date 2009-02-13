@@ -598,8 +598,8 @@ fixNodes nl il =
                    assocEqual = (\ (i, _) (j, _) -> i == j)
                    pdx = Instance.pnode inst
                    sdx = Instance.snode inst
-                   pold = fromJust $ lookup pdx nl
-                   sold = fromJust $ lookup sdx nl
+                   pold = fromJust $ lookup pdx accu
+                   sold = fromJust $ lookup sdx accu
                    pnew = Node.setPri pold idx
                    snew = Node.setSec sold idx
                    ac1 = deleteBy assocEqual (pdx, pold) accu
