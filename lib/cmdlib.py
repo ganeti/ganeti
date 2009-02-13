@@ -5722,7 +5722,37 @@ class LUSetInstanceParams(LogicalUnit):
       args['memory'] = self.be_new[constants.BE_MEMORY]
     if constants.BE_VCPUS in self.be_new:
       args['vcpus'] = self.be_new[constants.BE_VCPUS]
-    # FIXME: readd disk/nic changes
+    # TODO: export disk changes. Note: _BuildInstanceHookEnv* don't export disk
+    # information at all.
+    if self.op.nics:
+      args['nics'] = []
+      nic_override = dict(self.op.nics)
+      for idx, nic in enumerate(self.instance.nics):
+        if idx in nic_override:
+          this_nic_override = nic_override[idx]
+        else:
+          this_nic_override = {}
+        if 'ip' in this_nic_override:
+          ip = this_nic_override['ip']
+        else:
+          ip = nic.ip
+        if 'bridge' in this_nic_override:
+          bridge = this_nic_override['bridge']
+        else:
+          bridge = nic.bridge
+        if 'mac' in this_nic_override:
+          mac = this_nic_override['mac']
+        else:
+          mac = nic.mac
+        args['nics'].append((ip, bridge, mac))
+      if constants.DDM_ADD in nic_override:
+        ip = nic_override[constants.DDM_ADD].get('ip', None)
+        bridge = nic_override[constants.DDM_ADD]['bridge']
+        mac = nic_override[constants.DDM_ADD]['mac']
+        args['nics'].append((ip, bridge, mac))
+      elif constants.DDM_REMOVE in nic_override:
+        del args['nics'][-1]
+
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
