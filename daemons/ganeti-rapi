@@ -207,8 +207,12 @@ def main():
 
   if options.ssl:
     # Read SSL certificate
-    ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
-                                    ssl_cert_path=options.ssl_cert)
+    try:
+      ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
+                                      ssl_cert_path=options.ssl_cert)
+    except Exception, err:
+      sys.stderr.write("Can't load the SSL certificate/key: %s\n" % (err,))
+      sys.exit(1)
   else:
     ssl_params = None
 
