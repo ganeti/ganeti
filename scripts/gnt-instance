@@ -332,13 +332,18 @@ def AddInstance(opts, args):
     nics = [{}]
 
   if opts.disk_template == constants.DT_DISKLESS:
-    if opts.disks:
+    if opts.disks or opts.sd_size is not None:
       raise errors.OpPrereqError("Diskless instance but disk"
                                  " information passed")
     disks = []
   else:
-    if not opts.disks:
+    if not opts.disks and not opts.sd_size:
       raise errors.OpPrereqError("No disk information specified")
+    if opts.disks and opts.sd_size is not None:
+      raise errors.OpPrereqError("Please use either the '--disk' or"
+                                 " '-s' option")
+    if opts.sd_size is not None:
+      opts.disks = [(0, {"size": opts.sd_size})]
     try:
       disk_max = max(int(didx[0])+1 for didx in opts.disks)
     except ValueError, err:
@@ -1276,6 +1281,10 @@ add_opts = [
   make_option("-t", "--disk-template", dest="disk_template",
               help="Custom disk setup (diskless, file, plain or drbd)",
               default=None, metavar="TEMPL"),
+  cli_option("-s", "--os-size", dest="sd_size", help="Disk size for a"
+             " single-disk configuration, when not using the --disk option,"
+             " in MiB unless a suffix is used",
+             default=None, type="unit", metavar="<size>"),
   ikv_option("--disk", help="Disk information",
              default=[], dest="disks",
              action="append",

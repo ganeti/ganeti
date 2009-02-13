@@ -65,7 +65,18 @@
         <cmdsynopsis>
           <command>add</command>
           <sbr>
-          <arg rep="repeat">--disk=<replaceable>N</replaceable>:size=<replaceable>VAL</replaceable><arg>,mode=<replaceable>ro|rw</replaceable></arg></arg>
+          <arg choice="req">-t<group choice="req">
+              <arg>diskless</arg>
+              <arg>file</arg>
+              <arg>plain</arg>
+              <arg>drbd</arg>
+            </group></arg>
+          <sbr>
+
+          <group choice="req">
+            <arg rep="repeat">--disk=<replaceable>N</replaceable>:size=<replaceable>VAL</replaceable><arg>,mode=<replaceable>ro|rw</replaceable></arg></arg>
+            <arg>-s <replaceable>SIZE</replaceable></arg>
+          </group>
           <sbr>
           <group>
             <arg rep="repeat">--net=<replaceable>N</replaceable><arg rep="repeat">:options</arg></arg>
@@ -82,14 +93,6 @@
           <arg>--file-driver<group choice="req">
               <arg>loop</arg>
               <arg>blktap</arg>
-            </group></arg>
-          <sbr>
-
-          <arg choice="req">-t<group choice="req">
-              <arg>diskless</arg>
-              <arg>file</arg>
-              <arg>plain</arg>
-              <arg>drbd</arg>
             </group></arg>
           <sbr>
 
@@ -128,10 +131,19 @@
         </para>
 
         <para>
+          Alternatively, a single-disk instance can be created via the
+          <option>-s</option> option which takes a single argument,
+          the size of the disk. This is similar to the Ganeti 1.2
+          version (but will only create one disk).
+        </para>
+
+        <para>
           The minimum disk specification is therefore
-          <userinput>--disk 0:size=20G</userinput>, and a three-disk
-          instance can be specified as <userinput>--disk 0:size=20G
-            --disk 1:size=4G --disk 2:size=100G</userinput>.
+          <userinput>--disk 0:size=20G</userinput> (or <userinput>-s
+          20G</userinput> when using the <option>-s</option> option),
+          and a three-disk instance can be specified as
+          <userinput>--disk 0:size=20G --disk 1:size=4G --disk
+          2:size=100G</userinput>.
         </para>
 
         <para>
