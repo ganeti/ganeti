@@ -74,19 +74,33 @@ class R_2_info(baserlib.R_Generic):
 
     Example::
 
-      {
-        "config_version": 3,
-        "name": "cluster1.example.com",
-        "software_version": "1.2.4",
-        "os_api_version": 5,
-        "export_version": 0,
-        "master": "node1.example.com",
-        "architecture": [
-          "64bit",
-          "x86_64"
-        ],
-        "hypervisor_type": "xen-pvm",
-        "protocol_version": 12
+    {
+      "config_version": 2000000,
+      "name": "cluster",
+      "software_version": "2.0.0~beta1",
+      "os_api_version": 10,
+      "export_version": 0,
+      "candidate_pool_size": 10,
+      "enabled_hypervisors": [
+        "fake"
+      ],
+      "hvparams": {
+        "fake": {}
+       },
+      "default_hypervisor": "fake",
+      "master": "node1.example.com",
+      "architecture": [
+        "64bit",
+        "x86_64"
+      ],
+      "protocol_version": 20,
+      "beparams": {
+        "default": {
+          "auto_balance": true,
+          "vcpus": 1,
+          "memory": 128
+         }
+        }
       }
 
     """
@@ -284,20 +298,25 @@ class R_2_instances(baserlib.R_Generic):
       [
         {
            "status": "running",
-           "bridge": "xen-br0",
+           "disk_usage": 20480,
+           "nic.bridges": [
+             "xen-br0"
+            ],
            "name": "web.example.com",
            "tags": ["tag1", "tag2"],
-           "admin_ram": 512,
-           "sda_size": 20480,
+           "beparams": {
+             "vcpus": 2,
+             "memory": 512
+           },
+           "disk.sizes": [
+               20480
+           ],
            "pnode": "node1.example.com",
-           "mac": "01:23:45:67:89:01",
-           "sdb_size": 4096,
+           "nic.macs": ["01:23:45:67:89:01"],
            "snodes": ["node2.example.com"],
            "disk_template": "drbd",
-           "ip": null,
            "admin_state": true,
            "os": "debian-etch",
-           "vcpus": 2,
            "oper_state": true
         },
         ...

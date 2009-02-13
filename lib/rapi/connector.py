@@ -134,7 +134,7 @@ def _getResources(id):
 
 
 class R_2(baserlib.R_Generic):
-  """ /2 resourse.
+  """ /2 resource, the root of the version 2 API.
 
   """
   DOC_URI = "/2"
