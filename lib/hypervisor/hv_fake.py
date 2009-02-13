@@ -65,11 +65,11 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     if not os.path.exists(file_name):
       return None
     try:
-      fh = file(file_name, "r")
+      fh = open(file_name, "r")
       try:
         inst_id = fh.readline().strip()
-        memory = fh.readline().strip()
-        vcpus = fh.readline().strip()
+        memory = utils.TryConvert(int, fh.readline().strip())
+        vcpus = utils.TryConvert(fh.readline().strip())
         stat = "---b-"
         times = "0"
         return (instance_name, inst_id, memory, vcpus, stat, times)
@@ -88,15 +88,16 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     data = []
     for file_name in os.listdir(self._ROOT_DIR):
       try:
-        fh = file(self._ROOT_DIR+"/"+file_name, "r")
+        fh = open(self._ROOT_DIR+"/"+file_name, "r")
         inst_id = "-1"
-        memory = "0"
+        memory = 0
+        vcpus = 1
         stat = "-----"
         times = "-1"
         try:
           inst_id = fh.readline().strip()
-          memory = fh.readline().strip()
-          vcpus = fh.readline().strip()
+          memory = utils.TryConvert(int, fh.readline().strip())
+          vcpus = utils.TryConvert(int, fh.readline().strip())
           stat = "---b-"
           times = "0"
         finally:
@@ -188,6 +189,11 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         elif key == 'Active':
           result['memory_dom0'] = int(val.split()[0])/1024
     result['memory_free'] = sum_free
+
+    # substract running instances
+    all_instances = self.GetAllInstancesInfo()
+    result['memory_free'] -= min(result['memory_free'],
+                                 sum([row[2] for row in all_instances]))
 
     cpu_total = 0
     try:
