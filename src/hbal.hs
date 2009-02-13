@@ -17,6 +17,7 @@ import Text.Printf (printf)
 import qualified Container
 import qualified Cluster
 import Rapi
+import Utils
 
 -- | Command line options structure.
 data Options = Options
@@ -25,6 +26,7 @@ data Options = Options
     , optNodef     :: FilePath
     , optInstf     :: FilePath
     , optMaxRounds :: Int
+    , optMaster    :: String
     } deriving Show
 
 -- | Default values for the command line options.
@@ -35,6 +37,7 @@ defaultOptions  = Options
  , optNodef     = "nodes"
  , optInstf     = "instances"
  , optMaxRounds = -1
+ , optMaster    = ""
  }
 
 {- | Start computing the solution at the given depth and recurse until
@@ -93,6 +96,9 @@ options =
      , Option ['i']     ["instances"]
       (ReqArg (\ f opts -> opts { optInstf =  f }) "FILE")
       "the instance list FILE"
+     , Option ['m']     ["master"]
+      (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
+      "collect data via RAPI at the given ADDRESS"
      , Option ['r']     ["max-rounds"]
       (ReqArg (\ i opts -> opts { optMaxRounds =  (read i)::Int }) "N")
       "do not run for more than R rounds(useful for very unbalanced clusters)"
@@ -108,18 +114,32 @@ parseOpts argv =
           ioError (userError (concat errs ++ usageInfo header options))
       where header = "Usage: hbal [OPTION...]"
 
+-- | Get a Right result or print the error and exit
+readData :: (String -> IO (Either String String)) -> String -> IO String
+readData fn host = do
+  nd <- fn host
+  when (isLeft nd) $
+       do
+         putStrLn $ fromLeft nd
+         exitWith $ ExitFailure 1
+  return $ fromRight nd
+
 -- | Main function.
 main :: IO ()
 main = do
-  i <- getInstances "gnta1"
-  n <- getNodes "gnta1"
-  print i
-  print n
   cmd_args <- System.getArgs
   (opts, _) <- parseOpts cmd_args
-  (nl, il, ktn, kti) <- liftM2 Cluster.loadData
-                        (readFile $ optNodef opts)
-                        (readFile $ optInstf opts)
+
+  let (node_data, inst_data) =
+          case optMaster opts of
+            "" -> (readFile $ optNodef opts,
+                   readFile $ optInstf opts)
+            host -> (readData getNodes host,
+                     readData getInstances host)
+
+  (nl, il, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+
+
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)
