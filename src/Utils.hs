@@ -3,12 +3,26 @@
 module Utils where
 
 import Data.List
+import Data.Either
 
 import Debug.Trace
 
 -- | To be used only for debugging, breaks referential integrity.
 debug :: Show a => a -> a
 debug x = trace (show x) x
+
+-- | Check if the given argument is Left something
+isLeft :: Either a b -> Bool
+isLeft val =
+    case val of
+      Left _ -> True
+      _ -> False
+
+fromLeft :: Either a b -> a
+fromLeft = either (\x -> x) (\_ -> undefined)
+
+fromRight :: Either a b -> b
+fromRight = either (\_ -> undefined) id
 
 -- | Comma-join a string list.
 commaJoin :: [String] -> String
