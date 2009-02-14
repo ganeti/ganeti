@@ -54,18 +54,14 @@ fromObj k o =
       Just val -> resultToEither $ readJSON val
 
 getStringElement :: String -> JSObject JSValue -> Either String String
-getStringElement key o = fromObj key o
+getStringElement = fromObj
 
-getIntElement :: String -> JSObject JSValue -> Either String String
-getIntElement key o =
-    let tmp = (fromObj key o)::Either String Int
-    in case tmp of
-         Left x -> Left x
-         Right x -> Right $ show x
+getIntElement :: String -> JSObject JSValue -> Either String Int
+getIntElement = fromObj
 
 getListElement :: String -> JSObject JSValue
                -> Either String [JSValue]
-getListElement key o = fromObj key o
+getListElement = fromObj
 
 readString :: JSValue -> Either String String
 readString v =
@@ -77,6 +73,12 @@ concatElems :: Either String String
             -> Either String String
             -> Either String String
 concatElems = apply2 (\x y -> x ++ "|" ++ y)
+
+apply1 :: (a -> b) -> Either String a -> Either String b
+apply1 fn a =
+    case a of
+      Left x -> Left x
+      Right y -> Right $ fn y
 
 apply2 :: (a -> b -> c)
        -> Either String a
@@ -137,7 +139,7 @@ parseInstance :: JSObject JSValue -> Either String String
 parseInstance a =
     let name = getStringElement "name" a
         disk = case getIntElement "disk_usage" a of
-                 Left _ -> apply2 (\x y -> show $ ((read x)::Int) + ((read y)::Int))
+                 Left _ -> apply2 (+)
                            (getIntElement "sda_size" a)
                            (getIntElement "sdb_size" a)
                  Right x -> Right x
@@ -146,10 +148,12 @@ parseInstance a =
         snode = (listHead $ getListElement "snodes" a) `combine` readString
         mem = case bep of
                 Left _ -> getIntElement "admin_ram" a
-                Right _ -> bep
+                Right o -> getIntElement "memory" o
     in
-      concatElems name $ concatElems mem $
-                  concatElems disk $ concatElems pnode snode
+      concatElems name $
+                  concatElems (show `apply1` mem) $
+                  concatElems (show `apply1` disk) $
+                  concatElems pnode snode
 
 parseNode :: JSObject JSValue -> Either String String
 parseNode a =
@@ -158,5 +162,7 @@ parseNode a =
         mfree = getIntElement "mfree" a
         dtotal = getIntElement "dtotal" a
         dfree = getIntElement "dfree" a
-    in concatElems name $ concatElems mtotal $ concatElems mfree $
-       concatElems dtotal dfree
+    in concatElems name $
+       concatElems (show `apply1` mtotal) $
+       concatElems (show `apply1` mfree) $
+       concatElems (show `apply1` dtotal) (show `apply1` dfree)
