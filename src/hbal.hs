@@ -121,16 +121,6 @@ parseOpts argv =
           ioError (userError (concat errs ++ usageInfo header options))
       where header = "Usage: hbal [OPTION...]"
 
--- | Get a Right result or print the error and exit
-readData :: (String -> IO (Either String String)) -> String -> IO String
-readData fn host = do
-  nd <- fn host
-  when (isLeft nd) $
-       do
-         putStrLn $ fromLeft nd
-         exitWith $ ExitFailure 1
-  return $ fromRight nd
-
 -- | Main function.
 main :: IO ()
 main = do

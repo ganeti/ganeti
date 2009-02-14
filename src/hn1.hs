@@ -17,6 +17,8 @@ import Text.Printf (printf)
 import qualified Container
 import qualified Instance
 import qualified Cluster
+import Utils
+import Rapi
 
 -- | Command line options structure.
 data Options = Options
@@ -28,6 +30,7 @@ data Options = Options
     , optMaxRemovals :: Int
     , optMinDelta    :: Int
     , optMaxDelta    :: Int
+    , optMaster    :: String
     } deriving Show
 
 -- | Default values for the command line options.
@@ -41,6 +44,7 @@ defaultOptions    = Options
  , optMaxRemovals = -1
  , optMinDelta    = 0
  , optMaxDelta    = -1
+ , optMaster    = ""
  }
 
 {- | Start computing the solution at the given depth and recurse until
@@ -99,6 +103,9 @@ options =
      , Option ['l']     ["min-delta"]
       (ReqArg (\ i opts -> opts { optMinDelta =  (read i)::Int }) "L")
       "return once a solution with delta L or lower has been found"
+     , Option ['m']     ["master"]
+      (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
+      "collect data via RAPI at the given ADDRESS"
      ]
 
 -- | Command line parser, using the 'options' structure.
@@ -117,9 +124,15 @@ main = do
   cmd_args <- System.getArgs
   (opts, _) <- parseOpts cmd_args
   let min_depth = optMinDepth opts
-  (nl, il, ktn, kti) <- liftM2 Cluster.loadData
-                        (readFile $ optNodef opts)
-                        (readFile $ optInstf opts)
+  let (node_data, inst_data) =
+          case optMaster opts of
+            "" -> (readFile $ optNodef opts,
+                   readFile $ optInstf opts)
+            host -> (readData getNodes host,
+                     readData getInstances host)
+
+  (nl, il, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)

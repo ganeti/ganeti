@@ -3,7 +3,10 @@
 -}
 
 module Rapi
-    where
+    (
+      getNodes
+    , getInstances
+    ) where
 
 import Network.Curl
 import Network.Curl.Types ()

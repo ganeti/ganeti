@@ -4,6 +4,9 @@ module Utils where
 
 import Data.List
 import Data.Either
+import System
+import System.IO
+import Monad
 
 import Debug.Trace
 
@@ -65,3 +68,13 @@ stdDev lst =
 -- | Coefficient of variation.
 varianceCoeff :: Floating a => [a] -> a
 varianceCoeff lst = (stdDev lst) / (fromIntegral $ length lst)
+
+-- | Get a Right result or print the error and exit
+readData :: (String -> IO (Either String String)) -> String -> IO String
+readData fn host = do
+  nd <- fn host
+  when (isLeft nd) $
+       do
+         putStrLn $ fromLeft nd
+         exitWith $ ExitFailure 1
+  return $ fromRight nd
