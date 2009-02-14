@@ -103,10 +103,9 @@ tryRapi :: String -> String -> IO (Either String String)
 tryRapi url1 url2 =
     do
       body1 <- getUrl url1
-      body2 <- getUrl url2
-      return (case body1 of
-                Left _ -> body2
-                Right _ -> body1)
+      (case body1 of
+         Left _ -> getUrl url2
+         Right _ -> return body1)
 
 getInstances :: String -> IO (Either String String)
 getInstances master =
