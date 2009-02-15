@@ -613,19 +613,19 @@ fixNodes :: [(Int, Node.Node)]
          -> [(Int, Instance.Instance)]
          -> [(Int, Node.Node)]
 fixNodes nl il =
-    foldl (\accu (idx, inst) ->
-               let
-                   assocEqual = (\ (i, _) (j, _) -> i == j)
-                   pdx = Instance.pnode inst
-                   sdx = Instance.snode inst
-                   pold = fromJust $ lookup pdx accu
-                   sold = fromJust $ lookup sdx accu
-                   pnew = Node.setPri pold idx
-                   snew = Node.setSec sold idx
-                   ac1 = deleteBy assocEqual (pdx, pold) accu
-                   ac2 = deleteBy assocEqual (sdx, sold) ac1
-                   ac3 = (pdx, pnew):(sdx, snew):ac2
-               in ac3) nl il
+    foldl' (\accu (idx, inst) ->
+                let
+                    assocEqual = (\ (i, _) (j, _) -> i == j)
+                    pdx = Instance.pnode inst
+                    sdx = Instance.snode inst
+                    pold = fromJust $ lookup pdx accu
+                    sold = fromJust $ lookup sdx accu
+                    pnew = Node.setPri pold idx
+                    snew = Node.setSec sold idx
+                    ac1 = deleteBy assocEqual (pdx, pold) accu
+                    ac2 = deleteBy assocEqual (sdx, sold) ac1
+                    ac3 = (pdx, pnew):(sdx, snew):ac2
+                in ac3) nl il
 
 
 {-| Initializer function that loads the data from a node and list file
