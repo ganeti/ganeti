@@ -397,20 +397,13 @@ checkInstanceMove nodes_idx ini_tbl target =
     let
         opdx = Instance.pnode target
         osdx = Instance.snode target
-        nodes = filter (\idx -> idx /= opdx && idx /= osdx)
-                nodes_idx
+        nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
         aft_failover = checkSingleStep ini_tbl target ini_tbl Failover
+        all_moves = concatMap (\idx -> [ReplacePrimary idx,
+                                        ReplaceSecondary idx]) nodes
     in
       -- iterate over the possible nodes for this instance
-      foldl'
-      (\ accu_p new_idx ->
-           let
-               pmoves = [ReplacePrimary new_idx,
-                         ReplaceSecondary new_idx]
-           in
-             foldl' -- while doing both possible moves
-             (checkSingleStep ini_tbl target) accu_p pmoves
-      ) aft_failover nodes
+      foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
 
 -- | Compute the best next move.
 checkMove :: [Int]               -- ^ Allowed target node indices
