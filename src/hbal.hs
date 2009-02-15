@@ -52,9 +52,10 @@ iterateDepth :: Cluster.Table    -- The starting table
              -> Bool             -- ^ Wheter to be silent
              -> IO Cluster.Table -- The resulting table
 iterateDepth ini_tbl cur_round max_rounds oneline =
-    let Cluster.Table _ ini_il ini_cv ini_plc = ini_tbl
+    let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
         all_inst = Container.elems ini_il
-        fin_tbl = Cluster.checkMove ini_tbl all_inst
+        node_idx = Container.keys ini_nl
+        fin_tbl = Cluster.checkMove node_idx ini_tbl all_inst
         (Cluster.Table _ _ fin_cv fin_plc) = fin_tbl
         ini_plc_len = length ini_plc
         fin_plc_len = length fin_plc

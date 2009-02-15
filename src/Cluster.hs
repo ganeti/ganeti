@@ -389,24 +389,22 @@ checkSingleStep ini_tbl target cur_tbl move =
           in
             compareTables cur_tbl upd_tbl
 
-checkInstanceMove :: Table             -- original Table
-                  -> Instance.Instance -- instance to move
-                  -> Table             -- best new table for this instance
-checkInstanceMove ini_tbl target =
+checkInstanceMove :: [Int]             -- Allowed target node indices
+                  -> Table             -- Original table
+                  -> Instance.Instance -- Instance to move
+                  -> Table             -- Best new table for this instance
+checkInstanceMove nodes_idx ini_tbl target =
     let
-        Table ini_nl _ _ _ = ini_tbl
         opdx = Instance.pnode target
         osdx = Instance.snode target
-        nodes = filter (\node -> let idx = Node.idx node
-                                 in idx /= opdx && idx /= osdx)
-                $ Container.elems ini_nl
+        nodes = filter (\idx -> idx /= opdx && idx /= osdx)
+                nodes_idx
         aft_failover = checkSingleStep ini_tbl target ini_tbl Failover
     in
       -- iterate over the possible nodes for this instance
       foldl'
-      (\ accu_p new_node ->
+      (\ accu_p new_idx ->
            let
-               new_idx = Node.idx new_node
                pmoves = [ReplacePrimary new_idx,
                          ReplaceSecondary new_idx]
            in
@@ -415,16 +413,18 @@ checkInstanceMove ini_tbl target =
       ) aft_failover nodes
 
 -- | Compute the best next move.
-checkMove :: Table            -- ^ The current solution
+checkMove :: [Int]               -- ^ Allowed target node indices
+          -> Table               -- ^ The current solution
           -> [Instance.Instance] -- ^ List of instances still to move
-          -> Table            -- ^ The new solution
-checkMove ini_tbl victims =
+          -> Table               -- ^ The new solution
+checkMove nodes_idx ini_tbl victims =
     let Table _ _ _ ini_plc = ini_tbl
         -- iterate over all instances, computing the best move
-        best_tbl = foldl'
-                   (\ step_tbl elem -> compareTables step_tbl $
-                                       checkInstanceMove ini_tbl elem)
-                   ini_tbl victims
+        best_tbl =
+            foldl'
+            (\ step_tbl elem -> compareTables step_tbl $
+                                checkInstanceMove nodes_idx ini_tbl elem)
+            ini_tbl victims
     in let
         Table _ _ _ best_plc = best_tbl
         (target, _, _) = head best_plc
@@ -436,7 +436,7 @@ checkMove ini_tbl victims =
              ini_tbl
          else
              if null vtail then best_tbl
-             else checkMove best_tbl vtail
+             else checkMove nodes_idx best_tbl vtail
 
 
 {- | Auxiliary function for solution computation.
