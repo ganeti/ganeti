@@ -21,6 +21,7 @@ module Container
     , remove
     -- * Conversion
     , elems
+    , keys
     ) where
 
 import qualified Data.IntMap as IntMap
@@ -55,6 +56,10 @@ remove = IntMap.delete
 -- | Return the list of values in the map.
 elems :: Container a -> [a]
 elems = IntMap.elems
+
+-- | Return the list of keys in the map.
+keys :: Container a -> [Key]
+keys = IntMap.keys
 
 -- | Create a map from an association list.
 fromAssocList :: [(Key, a)] -> Container a
