@@ -389,41 +389,47 @@ checkSingleStep ini_tbl target cur_tbl move =
           in
             compareTables cur_tbl upd_tbl
 
+checkInstanceMove :: Table             -- original Table
+                  -> Instance.Instance -- instance to move
+                  -> Table             -- best new table for this instance
+checkInstanceMove ini_tbl target =
+    let
+        Table ini_nl _ _ _ = ini_tbl
+        opdx = Instance.pnode target
+        osdx = Instance.snode target
+        nodes = filter (\node -> let idx = Node.idx node
+                                 in idx /= opdx && idx /= osdx)
+                $ Container.elems ini_nl
+        aft_failover = checkSingleStep ini_tbl target ini_tbl Failover
+    in
+      -- iterate over the possible nodes for this instance
+      foldl'
+      (\ accu_p new_node ->
+           let
+               new_idx = Node.idx new_node
+               pmoves = [ReplacePrimary new_idx,
+                         ReplaceSecondary new_idx]
+           in
+             foldl' -- while doing both possible moves
+             (checkSingleStep ini_tbl target) accu_p pmoves
+      ) aft_failover nodes
+
 -- | Compute the best next move.
 checkMove :: Table            -- ^ The current solution
           -> [Instance.Instance] -- ^ List of instances still to move
           -> Table            -- ^ The new solution
 checkMove ini_tbl victims =
-    let Table ini_nl _ _ ini_plc = ini_tbl
-        best_tbl =
-            foldl -- iterate over all instances, computing the best move
-            (\ step_tbl target ->
-                 let
-                     opdx = Instance.pnode target
-                     osdx = Instance.snode target
-                     nodes = filter (\node -> let idx = Node.idx node
-                                              in idx /= opdx && idx /= osdx)
-                             $ Container.elems ini_nl
-                     aft_failover = checkSingleStep ini_tbl
-                                    target ini_tbl Failover
-                     next_tbl = -- iterate over the possible nodes for
-                                -- this instance
-                         foldl'
-                         (\ accu_p new_node ->
-                              let
-                                  new_idx = Node.idx new_node
-                                  pmoves = [ReplacePrimary new_idx,
-                                            ReplaceSecondary new_idx]
-                              in
-                                foldl' -- while doing both possible moves
-                                (checkSingleStep ini_tbl target) accu_p pmoves
-                         ) aft_failover nodes
-                 in
-                   compareTables step_tbl next_tbl
-            ) ini_tbl victims
+    let Table _ _ _ ini_plc = ini_tbl
+        -- iterate over all instances, computing the best move
+        best_tbl = foldl'
+                   (\ step_tbl elem -> compareTables step_tbl $
+                                       checkInstanceMove ini_tbl elem)
+                   ini_tbl victims
     in let
         Table _ _ _ best_plc = best_tbl
         (target, _, _) = head best_plc
+        -- remove the last placed instance from the victims list, it will
+        -- get another chance the next round
         vtail = filter (\inst -> Instance.idx inst /= target) victims
        in
          if length best_plc == length ini_plc then -- no advancement
