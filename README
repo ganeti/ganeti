@@ -112,11 +112,15 @@ Command line usage
 
 Synopsis::
 
-    hn1 [-n NODES_FILE] [-i INSTANCES_FILE] [-d START_DEPTH] \
+    hn1 { [-n NODES_FILE] [-i INSTANCES_FILE] | [-m CLUSTER] } \
+        [-d START_DEPTH] \
         [-r MAX_REMOVALS] [-l MIN_DELTA] [-L MAX_DELTA] \
         [-p] [-C]
 
-The -n and -i options change the names of the input files. The -d option
+The -n and -i options change the names of the input files.
+Alternatively, the -m option specifies collection of data via RAPI.
+
+The -d option
 changes the start depth, as a higher depth can give (with a longer computation
 time) a solution with better delta. The -r option restricts at each depth the
 number of solutions considered - with r=1000 for example even depth=10 finishes
@@ -211,22 +215,30 @@ Command line usage
 
 Synopsis::
 
-    hbal [-n NODES_FILE] [-i INSTANCES_FILE] \
+    hbal { [-n NODES_FILE] [-i INSTANCES_FILE] | [-m CLUSTER] } \
          [-r MAX_ROUNDS] \
-         [-p] [-C]
+         [-p] [-C] [-o]
 
-The -n and -i options change the names of the input files. The -r option
-restricts the maximum number of rounds (and is more of safety measure).
+The -n and -i options change the names of the input files.
+Alternatively, the -m option specifies collection of data via RAPI.
+
+The -r option restricts the maximum number of rounds (and is more of
+safety measure).
 
 The -p option will show the cluster state after the solution is implemented,
 while the -C option will show the needed gnt-instance commands to implement
-it.
+it. The -o option specifies that instead the default, quite verbose
+output, a single line of output should be shown, in the format::
+
+  initial_score number_of_moves final_score improvement
+
 
 Integration with Ganeti
 -----------------------
 
-The programs needs only the output of the node list and instance list. That is,
-they need the following two commands to be run::
+The programs can either get their input from text files, or directly
+from a cluster via RAPI. For text files, the following two commands
+should be run::
 
     gnt-node list -oname,mtotal,mfree,dtotal,dfree \
       --separator '|' --no-headers > nodes
@@ -234,6 +246,9 @@ they need the following two commands to be run::
       --separator '|' --no-head > instances
 
 These two files should be saved under the names of 'nodes' and 'instances'.
+
+For RAPI, the "-m" argument to both hn1 and hbal should specify the
+cluster or master node name.
 
 When run, the programs will show some informational messages and output the
 chosen solution, in the form of a list of instance name and chosen

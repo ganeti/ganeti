@@ -431,7 +431,6 @@ checkMove nodes_idx ini_tbl victims =
              if null vtail then best_tbl
              else checkMove nodes_idx best_tbl vtail
 
-
 {- | Auxiliary function for solution computation.
 
 We write this in an explicit recursive fashion in order to control
