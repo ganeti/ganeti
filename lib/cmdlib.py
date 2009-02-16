@@ -2795,6 +2795,8 @@ class LURebootInstance(LogicalUnit):
 
     if reboot_type in [constants.INSTANCE_REBOOT_SOFT,
                        constants.INSTANCE_REBOOT_HARD]:
+      for disk in instance.disks:
+        self.cfg.SetDiskID(disk, node_current)
       result = self.rpc.call_instance_reboot(node_current, instance,
                                              reboot_type, extra_args)
       msg = result.RemoteFailMsg()

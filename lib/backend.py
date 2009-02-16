@@ -977,8 +977,10 @@ def InstanceReboot(instance, reboot_type, extra_args):
       return (False, msg)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
-      InstanceShutdown(instance)
-      StartInstance(instance, extra_args)
+      stop_result = InstanceShutdown(instance)
+      if not stop_result[0]:
+        return stop_result
+      return StartInstance(instance, extra_args)
     except errors.HypervisorError, err:
       msg = "Failed to hard reboot instance %s: %s" % (instance.name, err)
       logging.error(msg)
