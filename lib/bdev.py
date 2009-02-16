@@ -639,11 +639,18 @@ class BaseDRBD(BlockDev):
     """Return data from /proc/drbd.
 
     """
-    stat = open(filename, "r")
     try:
-      data = stat.read().splitlines()
-    finally:
-      stat.close()
+      stat = open(filename, "r")
+      try:
+        data = stat.read().splitlines()
+      finally:
+        stat.close()
+    except EnvironmentError, err:
+      if err.errno == errno.ENOENT:
+        _ThrowError("The file %s cannot be opened, check if the module"
+                    " is loaded (%s)", filename, str(err))
+      else:
+        _ThrowError("Can't read the DRBD proc file %s: %s", filename, str(err))
     if not data:
       _ThrowError("Can't read any data from %s", filename)
     return data

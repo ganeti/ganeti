@@ -757,15 +757,19 @@ class LUVerifyCluster(LogicalUnit):
 
     # check used drbd list
     used_minors = node_result.get(constants.NV_DRBDLIST, [])
-    for minor, (iname, must_exist) in drbd_map.items():
-      if minor not in used_minors and must_exist:
-        feedback_fn("  - ERROR: drbd minor %d of instance %s is not active" %
-                    (minor, iname))
-        bad = True
-    for minor in used_minors:
-      if minor not in drbd_map:
-        feedback_fn("  - ERROR: unallocated drbd minor %d is in use" % minor)
-        bad = True
+    if not isinstance(used_minors, (tuple, list)):
+      feedback_fn("  - ERROR: cannot parse drbd status file: %s" %
+                  str(used_minors))
+    else:
+      for minor, (iname, must_exist) in drbd_map.items():
+        if minor not in used_minors and must_exist:
+          feedback_fn("  - ERROR: drbd minor %d of instance %s is not active" %
+                      (minor, iname))
+          bad = True
+      for minor in used_minors:
+        if minor not in drbd_map:
+          feedback_fn("  - ERROR: unallocated drbd minor %d is in use" % minor)
+          bad = True
 
     return bad
 

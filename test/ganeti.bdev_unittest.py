@@ -106,6 +106,13 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
     self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)
 
+  def testIOErrors(self):
+    """Test handling of errors while reading the proc file."""
+    temp_file = self._CreateTempFile()
+    os.unlink(temp_file)
+    self.failUnlessRaises(errors.BlockDeviceError,
+                          bdev.DRBD8._GetProcData, filename=temp_file)
+
   def testMinorNotFound(self):
     """Test not-found-minor in /proc"""
     self.failUnless(9 not in self.mass_data)
