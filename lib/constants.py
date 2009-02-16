@@ -473,7 +473,7 @@ HVC_DEFAULTS = {
   HT_XEN_PVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
     HV_INITRD_PATH: '',
-    HV_ROOT_PATH: '/dev/sda',
+    HV_ROOT_PATH: '/dev/sda1',
     },
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
@@ -487,7 +487,7 @@ HVC_DEFAULTS = {
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
     HV_INITRD_PATH: '',
-    HV_ROOT_PATH: '/dev/vda',
+    HV_ROOT_PATH: '/dev/vda1',
     HV_ACPI: True,
     HV_SERIAL_CONSOLE: True,
     HV_VNC_BIND_ADDRESS: '',
