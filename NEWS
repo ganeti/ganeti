@@ -1,3 +1,16 @@
+Version 2.0 beta 2
+  - Xen PVM and KVM have switched the default value for the instance
+    root disk to the first partition on the first drive, instead of the
+    whole drive; this means that the OS installation scripts must be
+    changed accordingly
+  - Man pages have been updated
+  - RAPI has been switched by default to HTTPS, and the exported
+    functions should all work correctly
+  - RAPI v1 has been removed
+  - Many improvements to the KVM hypervisor
+  - Block device errors are now better reported
+  - Many other bugfixes and small improvements
+
 Version 2.0 beta 1
   - Version 2 is a general rewrite of the code and therefore the
     differences are too many to list, see the design document for 2.0 in
