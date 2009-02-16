@@ -588,14 +588,15 @@ class Burner(object):
     rename = self.opts.rename
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
-      op_stop = self.StopInstanceOp(instance)
+      op_stop1 = self.StopInstanceOp(instance)
+      op_stop2 = self.StopInstanceOp(rename)
       op_rename1 = self.RenameInstanceOp(instance, rename)
       op_rename2 = self.RenameInstanceOp(rename, instance)
       op_start1 = self.StartInstanceOp(rename)
       op_start2 = self.StartInstanceOp(instance)
-      self.ExecOp(op_stop, op_rename1, op_start1)
+      self.ExecOp(op_stop1, op_rename1, op_start1)
       self._CheckInstanceAlive(rename)
-      self.ExecOp(op_stop, op_rename2, op_start2)
+      self.ExecOp(op_stop2, op_rename2, op_start2)
       self._CheckInstanceAlive(instance)
 
   def BurnReinstall(self):
