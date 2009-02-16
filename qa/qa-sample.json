@@ -90,7 +90,8 @@
     "burnin-instances": 2,
     "burnin-disk-template": "drbd",
     "burnin-in-parallel": false,
-    "burnin-check-instances": false
+    "burnin-check-instances": false,
+    "burnin-rename": "xen-test-rename"
   },
 
   "# vim: set syntax=javascript :": null

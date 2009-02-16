@@ -152,6 +152,7 @@ def TestClusterBurnin():
   disk_template = options.get('burnin-disk-template', 'drbd')
   parallel = options.get('burnin-in-parallel', False)
   check_inst = options.get('burnin-check-instances', False)
+  do_rename = options.get('burnin-rename', '')
 
   # Get as many instances as we need
   instances = []
@@ -179,6 +180,8 @@ def TestClusterBurnin():
         cmd.append('--parallel')
       if check_inst:
         cmd.append('--http-check')
+      if do_rename:
+        cmd.append('--rename=%s' % do_rename)
       cmd += [inst['name'] for inst in instances]
       AssertEqual(StartSSH(master['primary'],
                            utils.ShellQuoteArgs(cmd)).wait(), 0)
