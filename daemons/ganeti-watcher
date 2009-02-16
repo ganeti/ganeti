@@ -276,22 +276,31 @@ class Watcher(object):
   to restart machines that are down.
 
   """
-  def __init__(self):
+  def __init__(self, opts):
     master = client.QueryConfigValues(["master_node"])[0]
     if master != utils.HostInfo().name:
       raise NotMasterError("This is not the master node")
     self.instances = GetInstanceList()
     self.bootids = GetNodeBootIDs()
     self.started_instances = set()
+    self.opts = opts
 
   def Run(self):
     notepad = WatcherState()
     try:
+      self.ArchiveJobs(self.opts.job_age)
       self.CheckInstances(notepad)
       self.CheckDisks(notepad)
       self.VerifyDisks()
     finally:
       notepad.Save()
+
+  def ArchiveJobs(self, age):
+    """Archive old jobs.
+
+    """
+    arch_count, left_count = client.AutoArchiveJobs(age)
+    logging.debug("Archived %s jobs, left %s" % (arch_count, left_count))
 
   def CheckDisks(self, notepad):
     """Check all nodes for restarted ones.
@@ -408,7 +417,11 @@ def ParseOptions():
   parser.add_option("-d", "--debug", dest="debug",
                     help="Write all messages to stderr",
                     default=False, action="store_true")
+  parser.add_option("-A", "--job-age", dest="job_age",
+                    help="Autoarchive jobs older than this age (default"
+                    " 6 hours)", default=6*3600)
   options, args = parser.parse_args()
+  options.job_age = cli.ParseTimespec(options.job_age)
   return options, args
 
 
@@ -427,7 +440,7 @@ def main():
     client = cli.GetClient()
 
     try:
-      watcher = Watcher()
+      watcher = Watcher(options)
     except errors.ConfigurationError:
       # Just exit if there's no configuration
       sys.exit(constants.EXIT_SUCCESS)
