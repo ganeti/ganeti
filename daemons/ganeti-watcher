@@ -340,7 +340,7 @@ class Watcher(object):
 
       # Keep changed boot IDs
       for name in check_nodes:
-        notepad.SetNodeBootID(name, self.bootids[name])
+        notepad.SetNodeBootID(name, self.bootids[name][0])
 
   def CheckInstances(self, notepad):
     """Make a pass over the list of instances, restarting downed ones.
