@@ -98,7 +98,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if result.failed:
       raise errors.HypervisorError("xm list failed, retries"
                                    " exceeded (%s): %s" %
-                                   (result.fail_reason, result.stderr))
+                                   (result.fail_reason, result.output))
 
     # skip over the heading
     lines = result.stdout.splitlines()[1:]
@@ -183,8 +183,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd(command)
 
     if result.failed:
-      raise errors.HypervisorError("Failed to stop instance %s: %s" %
-                                   (instance.name, result.fail_reason))
+      raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
+                                   (instance.name, result.fail_reason,
+                                    result.output))
 
   def RebootInstance(self, instance):
     """Reboot an instance.
@@ -193,8 +194,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd(["xm", "reboot", instance.name])
 
     if result.failed:
-      raise errors.HypervisorError("Failed to reboot instance %s: %s" %
-                                   (instance.name, result.fail_reason))
+      raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
+                                   (instance.name, result.fail_reason,
+                                    result.output))
 
   def GetNodeInfo(self):
     """Return information about the node.
@@ -263,7 +265,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     result = utils.RunCmd(["xm", "info"])
     if result.failed:
-      return "'xm info' failed: %s" % result.fail_reason
+      return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
 
   @staticmethod
   def _GetConfigFileDiskData(disk_template, block_devices):
