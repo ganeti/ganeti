@@ -4,18 +4,18 @@
   <articleinfo>
     <title>Ganeti installation tutorial</title>
   </articleinfo>
-  <para>Documents Ganeti version 1.2</para>
+  <para>Documents Ganeti version 2.0</para>
 
   <sect1>
     <title>Introduction</title>
 
     <para>
       Ganeti is a cluster virtualization management system based on
-      Xen. This document explains how to bootstrap a Ganeti node (Xen
-      <literal>dom0</literal>), create a running cluster and install
-      virtual instance (Xen <literal>domU</literal>).  You need to
-      repeat most of the steps in this document for every node you
-      want to install, but of course we recommend creating some
+      Xen or KVM. This document explains how to bootstrap a Ganeti
+      node (Xen <literal>dom0</literal>), create a running cluster and
+      install virtual instance (Xen <literal>domU</literal>).  You
+      need to repeat most of the steps in this document for every node
+      you want to install, but of course we recommend creating some
       semi-automatic procedure if you plan to deploy Ganeti on a
       medium/large scale.
     </para>
@@ -29,11 +29,11 @@
 
     <para>
       Ganeti has been developed for Linux and is
-      distribution-agnostic.  This documentation will use Debian Etch
+      distribution-agnostic.  This documentation will use Debian Lenny
       as an example system but the examples can easily be translated
       to any other distribution.  You are expected to be familiar with
-      your distribution, its package management system, and Xen before
-      trying to use Ganeti.
+      your distribution, its package management system, and Xen or KVM
+      before trying to use Ganeti.
     </para>
 
     <para>This document is divided into two main sections:
@@ -90,9 +90,14 @@
         at this stage is to partition leaving enough space for a big
         (<emphasis role="strong">minimum
         <constant>20GiB</constant></emphasis>) LVM volume group which
-        will then host your instance filesystems. The volume group
-        name Ganeti 1.2 uses (by default) is
-        <emphasis>xenvg</emphasis>.
+        will then host your instance filesystems, if you want to use
+        all Ganeti features. The volume group name Ganeti 2.0 uses (by
+        default) is <emphasis>xenvg</emphasis>.
+      </para>
+
+      <para>
+        You can also use file-based storage only, without LVM, but
+        this is not detailed in this document.
       </para>
 
       <para>
@@ -122,7 +127,7 @@
         <formalpara>
           <title>Debian</title>
           <para>
-            Note that Debian Etch configures the hostname differently
+            Note that Debian Lenny configures the hostname differently
             than you need it for Ganeti. For example, this is what
             Etch puts in <filename>/etc/hosts</filename> in certain
             situations:
@@ -158,9 +163,9 @@
 
       <para>
         While Ganeti is developed with the ability to modularly run on
-        different virtualization environments in mind the only one
-        currently useable on a live system is <ulink
-        url="http://xen.xensource.com/">Xen</ulink>. Supported
+        different virtualization environments in mind the only two
+        currently useable on a live system are <ulink
+        url="http://xen.xensource.com/">Xen</ulink> and KVM. Supported
         versions are: <simplelist type="inline">
         <member><literal>3.0.3</literal></member>
         <member><literal>3.0.4</literal></member>
@@ -170,25 +175,25 @@
       <para>
         Please follow your distribution's recommended way to install
         and set up Xen, or install Xen from the upstream source, if
-        you wish, following their manual.
+        you wish, following their manual. For KVM, make sure you have
+        a KVM-enabled kernel and the KVM tools.
       </para>
 
       <para>
-        After installing Xen you need to reboot into your Xen-ified
-        dom0 system. On some distributions this might involve
+        After installing either hypervisor, you need to reboot into
+        your new system. On some distributions this might involve
         configuring GRUB appropriately, whereas others will configure
-        it automatically when you install Xen from a package.
+        it automatically when you install the respective kernels.
       </para>
 
       <formalpara><title>Debian</title>
       <para>
-        Under Debian Etch or Sarge+backports you can install the
-        relevant <literal>xen-linux-system</literal> package, which
-        will pull in both the hypervisor and the relevant
-        kernel. Also, if you are installing a 32-bit Etch, you should
-        install the <computeroutput>libc6-xen</computeroutput> package
-        (run <computeroutput>apt-get install
-        libc6-xen</computeroutput>).
+        Under Debian Lenny or Etch you can install the relevant
+        <literal>xen-linux-system</literal> package, which will pull
+        in both the hypervisor and the relevant kernel. Also, if you
+        are installing a 32-bit Lenny/Etch, you should install the
+        <computeroutput>libc6-xen</computeroutput> package (run
+        <computeroutput>apt-get install libc6-xen</computeroutput>).
       </para>
       </formalpara>
 
@@ -197,8 +202,9 @@
 
         <para>
           It's recommended that dom0 is restricted to a low amount of
-          memory (<constant>512MiB</constant> is reasonable) and that
-          memory ballooning is disabled in the file
+          memory (<constant>512MiB</constant> or
+          <constant>1GiB</constant> is reasonable) and that memory
+          ballooning is disabled in the file
           <filename>/etc/xen/xend-config.sxp</filename> by setting the
           value <literal>dom0-min-mem</literal> to
           <constant>0</constant>, like this:
@@ -228,10 +234,10 @@
             set the memory and nosmp parameters in the file
             <filename>/boot/grub/menu.lst</filename>. You need to
             modify the variable <literal>xenhopt</literal> to add
-            <userinput>dom0_mem=512M</userinput> like this:
+            <userinput>dom0_mem=1024M</userinput> like this:
 <screen>
 ## Xen hypervisor options to use with the default Xen boot option
-# xenhopt=dom0_mem=512M
+# xenhopt=dom0_mem=1024M
 </screen>
             and the <literal>xenkopt</literal> needs to include the
             <userinput>nosmp</userinput> option like this:
@@ -250,9 +256,9 @@
           </para>
         </formalpara>
         <para>
-          If you want to test the HVM support
-          with Ganeti and want VNC access to the console of your
-          instances, set the following two entries in
+          If you want to run HVM instances too with Ganeti and want
+          VNC access to the console of your instances, set the
+          following two entries in
           <filename>/etc/xen/xend-config.sxp</filename>:
 <screen>
 (vnc-listen '0.0.0.0')
@@ -315,7 +321,7 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
 
       <para>
         Supported DRBD versions: <literal>8.0.x</literal>.
-        It's recommended to have at least version <literal>8.0.7</literal>.
+        It's recommended to have at least version <literal>8.0.12</literal>.
       </para>
 
       <para>
@@ -346,7 +352,7 @@ ln -s initrd.img-2.6.18-5-xen-686 initrd-2.6-xenU
       </formalpara>
 
       <screen>
-apt-get install -t etch-backports drbd8-source drbd8-utils
+apt-get install drbd8-source drbd8-utils
 m-a update
 m-a a-i drbd8
 echo drbd minor_count=128 >> /etc/modules
@@ -442,7 +448,7 @@ skip resource "r1" {
       </formalpara>
       <screen>
 # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-  python2.4 python-pyopenssl openssl python-pyparsing python-simplejson
+  python python-pyopenssl openssl python-pyparsing python-simplejson
       </screen>
 
     </sect2>
@@ -628,19 +634,24 @@ mkdir /srv/ganeti/ /srv/ganeti/os /srv/ganeti/export
 
       <para>
         To be able to install instances you need to have an Operating
-        System installation script. An example for Debian Etch is
+        System installation script. An example OS that works under
+        Debian and can install Debian and Ubuntu instace OSes is
         provided on the project web site.  Download it from <ulink
         url="http://code.google.com/p/ganeti/"></ulink> and follow the
         instructions in the <filename>README</filename> file.  Here is
-        the installation procedure (replace <constant>0.2</constant>
+        the installation procedure (replace <constant>0.7</constant>
         with the latest version that is compatible with your ganeti
         version):
       </para>
 
       <screen>
-cd /srv/ganeti/os
-tar xvf ganeti-instance-debian-etch-0.4.tar
-mv ganeti-instance-debian-etch-0.4 debian-etch
+cd /usr/local/src/
+wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-0.7.tar.gz
+tar xzf ganeti-instance-debootstrap-0.7.tar.gz
+cd ganeti-instance-debootstrap-0.7
+./configure
+make
+make install
       </screen>
 
       <para>
@@ -652,7 +663,10 @@ mv ganeti-instance-debian-etch-0.4 debian-etch
         </citerefentry> and <citerefentry>
         <refentrytitle>restore</refentrytitle>
         <manvolnum>8</manvolnum> </citerefentry> commands installed on
-        all nodes.
+        all nodes. Also, if the OS is configured to partition the
+        instance's disk in
+        <filename>/etc/default/ganeti-instance-debootstrap</filename>,
+        you will need <command>kpartx</command> installed.
       </para>
       <formalpara>
         <title>Debian</title>
@@ -660,7 +674,7 @@ mv ganeti-instance-debian-etch-0.4 debian-etch
           Use this command on all nodes to install the required
           packages:
 
-          <screen>apt-get install debootstrap dump</screen>
+          <screen>apt-get install debootstrap dump kpartx</screen>
         </para>
       </formalpara>
 
@@ -682,8 +696,10 @@ mv ganeti-instance-debian-etch-0.4 debian-etch
       node per cluster.</para>
 
 
-      <para>The last step is to initialize the cluster. After you've repeated
-        the above process on all of your nodes, choose one as the master, and execute:
+      <para>
+        The last step is to initialize the cluster. After you've
+        repeated the above process on all of your nodes, choose one as
+        the master, and execute:
       </para>
 
       <screen>
@@ -699,8 +715,8 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
         choice is to have a unique name for a cluster, even if it
         consists of only one machine, as you will be able to expand it
         later without any problems. Please note that the hostname used
-        for this must resolve to an IP address reserved exclusively
-        for this purpose.
+        for this must resolve to an IP address reserved <emphasis
+        role="strong">exclusively</emphasis> for this purpose.
       </para>
 
       <para>
@@ -723,16 +739,19 @@ gnt-cluster init <replaceable>CLUSTERNAME</replaceable>
 
       <para>
         To set up the cluster as an HVM cluster, use the
-        <option>--hypervisor=xen-hvm3.1</option> option to use
-        the Xen 3.1 HVM hypervisor. Note that with the
-        HVM support, you will only be able to create
-        HVM instances in a cluster set to this hypervisor type. Mixed
-        PVM/HVM clusters are not supported by the Ganeti 1.2
-        HVM support. You will also need to create the VNC
-        cluster password  file
-        <filename>/etc/ganeti/vnc-cluster-password</filename>
+        <option>--enabled-hypervisors=xen-hvm</option> option to
+        enable the HVM hypervisor (you can also add
+        <userinput>,xen-pvm</userinput> to enable the PVM one
+        too). You will also need to create the VNC cluster password
+        file <filename>/etc/ganeti/vnc-cluster-password</filename>
         which contains one line with the default VNC password for the
         cluster.
+      </para>
+
+      <para>
+        To setup the cluster for KVM-only usage (KVM and Xen cannot be
+        mixed), pass <option>--enabled-hypervisors=kvm</option> to the
+        init command.
       </para>
 
       <para>
@@ -815,7 +834,7 @@ node1.example.com 197404 197404   2047  1896   125     0     0
         instance for you:
       </para>
       <screen>
-gnt-instance add --node=node1 -o debian-etch -t plain inst1.example.com
+gnt-instance add --node=node1 -o debootstrap -t plain inst1.example.com
 * creating instance disks...
 adding instance inst1.example.com to cluster config
 Waiting for instance inst1.example.com to sync disks.
@@ -844,7 +863,7 @@ creating os for instance inst1.example.com on node node1.example.com
       </para>
 
       <screen>
-# gnt-instance add -t drbd -n node1:node2 -o debian-etch instance2
+# gnt-instance add -t drbd -n node1:node2 -o debootstrap instance2
 * creating instance disks...
 adding instance instance2 to cluster config
 Waiting for instance instance1 to sync disks.

@@ -4,23 +4,29 @@
   <articleinfo>
     <title>Ganeti administrator's guide</title>
   </articleinfo>
-  <para>Documents Ganeti version 1.3</para>
+  <para>Documents Ganeti version 2.0</para>
   <sect1>
     <title>Introduction</title>
 
-    <para>Ganeti is a virtualization cluster management software. You are
-    expected to be a system administrator familiar with your Linux distribution
-    and the Xen virtualization environment before using it.
+    <para>
+      Ganeti is a virtualization cluster management software. You are
+      expected to be a system administrator familiar with your Linux
+      distribution and the Xen or KVM virtualization environments
+      before using it.
     </para>
 
-    <para>The various components of Ganeti all have man pages and interactive
-    help. This manual though will help you getting familiar with the system by
-    explaining the most common operations, grouped by related use.
+    <para>
+      The various components of Ganeti all have man pages and
+      interactive help. This manual though will help you getting
+      familiar with the system by explaining the most common
+      operations, grouped by related use.
     </para>
 
-    <para>After a terminology glossary and a section on the prerequisites
-    needed to use this manual, the rest of this document is divided in three
-    main sections, which group different features of Ganeti:
+    <para>
+      After a terminology glossary and a section on the prerequisites
+      needed to use this manual, the rest of this document is divided
+      in three main sections, which group different features of
+      Ganeti:
       <itemizedlist>
         <listitem>
           <simpara>Instance Management</simpara>
@@ -122,33 +128,32 @@
         Adding a new virtual instance to your Ganeti cluster is really easy.
         The command is:
 
-        <synopsis>gnt-instance add -n <replaceable>TARGET_NODE</replaceable> -o <replaceable>OS_TYPE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance add -n <replaceable>TARGET_NODE<optional>:SECONDARY_NODE</optional></replaceable> -o <replaceable>OS_TYPE</replaceable> -t <replaceable>DISK_TEMPLATE</replaceable> <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         The instance name must be resolvable (e.g. exist in DNS) and
-        of course map to an address in the same subnet as the cluster
+        usually to an address in the same subnet as the cluster
         itself. Options you can give to this command include:
 
       <itemizedlist>
         <listitem>
-          <simpara>The disk size (<option>-s</option>)</simpara>
+            <simpara>The disk size (<option>-s</option>) for a
+            single-disk instance, or multiple <option>--disk
+            <replaceable>N</replaceable>:size=<replaceable>SIZE</replaceable></option>
+            options for multi-instance disks</simpara>
         </listitem>
         <listitem>
-          <simpara>The swap size (<option>--swap-size</option>)</simpara>
+          <simpara>The memory size (<option>-B memory</option>)</simpara>
         </listitem>
         <listitem>
-          <simpara>The memory size (<option>-m</option>)</simpara>
+          <simpara>The number of virtual CPUs (<option>-B vcpus</option>)</simpara>
         </listitem>
         <listitem>
-          <simpara>The number of virtual CPUs (<option>-p</option>)</simpara>
-        </listitem>
-        <listitem>
-          <simpara>The instance ip address (<option>-i</option>) (use the value
-            <literal>auto</literal> to make Ganeti record the address from
-            dns)</simpara>
-        </listitem>
-        <listitem>
-          <simpara>The bridge to connect the instance to (<option>-b</option>),
-            if you don't want to use the default one</simpara>
+            <para>
+              Arguments for the NICs of the instance; by default, a
+              single-NIC instance is created. The IP and/or bridge of
+              the NIC can be changed via <option>--nic
+              0:ip=<replaceable>IP</replaceable>,bridge=<replaceable>BRIDGE</replaceable></option>
+            </para>
         </listitem>
       </itemizedlist>
       </para>
@@ -161,6 +166,15 @@
           <listitem>
             <para>The instance has no disks. Only used for special purpouse
               operating systems or for testing.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term>file</term>
+          <listitem>
+            <para>The instance will use plain files as backend for its
+            disks.  No redundancy is provided, and this is somewhat
+            more difficult to configure for high performance.</para>
           </listitem>
         </varlistentry>
 
@@ -200,9 +214,9 @@
       </para>
 
       <para>
-        Removing an instance is even easier than creating one. This operation
-        is non-reversible and destroys all the contents of your instance. Use
-        with care:
+        Removing an instance is even easier than creating one. This
+        operation is irrereversible and destroys all the contents of
+        your instance. Use with care:
 
         <synopsis>gnt-instance remove <replaceable>INSTANCE_NAME</replaceable></synopsis>
       </para>
@@ -296,6 +310,21 @@
     </sect2>
 
     <sect2>
+      <title>Live migrating an instance</title>
+
+      <para>
+        If an instance is built in highly available mode, it currently
+        runs and both its nodes are running fine, you can at migrate
+        it over to its secondary node, without dowtime. On the master
+        node you need to run:
+
+        <synopsis>gnt-instance migrate <replaceable>INSTANCE_NAME</replaceable></synopsis>
+
+      </para>
+    </sect2>
+
+
+    <sect2>
       <title>Replacing an instance disks</title>
 
       <para>
@@ -304,13 +333,14 @@
         you failed over all its instances, but it's still secondary
         for some? The solution here is to replace the instance disks,
         changing the secondary node:
-        <synopsis>gnt-instance replace-disks <option>-s</option> <option>--new-secondary <replaceable>NODE</replaceable></option> <replaceable>INSTANCE_NAME</replaceable></synopsis>
+        <synopsis>gnt-instance replace-disks <option>-n <replaceable>NODE</replaceable></option> <replaceable>INSTANCE_NAME</replaceable></synopsis>
 
         This process is a bit long, but involves no instance
         downtime, and at the end of it the instance has changed its
         secondary node, to which it can if necessary be failed over.
       </para>
     </sect2>
+
     <sect2>
       <title>Failing over the master node</title>
 
@@ -408,6 +438,7 @@
 gnt-cluster command
 gnt-cluster copyfile
 gnt-cluster verify
+gnt-cluster verify-disks
 gnt-cluster getmaster
 gnt-cluster version
       </screen>
