@@ -77,7 +77,7 @@ class R_2_info(baserlib.R_Generic):
     {
       "config_version": 2000000,
       "name": "cluster",
-      "software_version": "2.0.0~beta1",
+      "software_version": "2.0.0~beta2",
       "os_api_version": 10,
       "export_version": 0,
       "candidate_pool_size": 10,
