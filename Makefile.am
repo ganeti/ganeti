@@ -53,6 +53,7 @@ CLEANFILES = \
 	lib/rapi/*.py[co] \
 	man/*.[78] \
 	man/*.in \
+	man/*.html \
 	qa/*.py[co] \
 	test/*.py[co] \
 	stamp-directories \
@@ -125,6 +126,8 @@ doc_DATA = \
 	$(patsubst %.sgml,%.html,$(docsgml)) \
 	$(patsubst %.sgml,%.pdf,$(docsgml))
 
+noinst_DATA = $(manhtml)
+
 dist_sbin_SCRIPTS = \
 	daemons/ganeti-noded \
 	daemons/ganeti-watcher \
@@ -194,6 +197,7 @@ man_MANS = \
 
 maninput = $(patsubst %.7,%.in,$(patsubst %.8,%.in,$(man_MANS)))
 mansgml = $(patsubst %.in,%.sgml,$(maninput))
+manhtml = $(patsubst %.in,%.html,$(maninput))
 
 TEST_FILES = \
 	test/data/bdev-both.txt \
@@ -264,6 +268,9 @@ man/%.7: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
 
 man/%.8: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $@
+
+man/%.html: man/%.in $(DOCBOOK_WRAPPER)
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $@
 
 man/footer.sgml $(TESTS): srclinks
 
