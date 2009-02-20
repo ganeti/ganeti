@@ -77,7 +77,7 @@ def main():
   offline_nodes = [name for name in nodes if nodes[name]["offline"]]
   drained_nodes = [name for name in nodes if nodes[name]["offline"]]
   if req_type == "allocate":
-    forbidden_nodes = offline_nodes
+    forbidden_nodes = offline_nodes + drained_nodes
     inst_data = request
   elif req_type == "relocate":
     idict = data["instances"][request["name"]]
