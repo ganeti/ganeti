@@ -1,4 +1,5 @@
-HSRCS := $(wildcard src/*.hs)
+HPROGS = hbal hn1
+HSRCS := $(filter-out $(HPROGS), $(wildcard src/*.hs))
 HDDIR = apidoc
 
 # Haskell rules
@@ -17,9 +18,8 @@ doc: README.html
         HsColour -css -anchor \
         $$file > $(HDDIR)/src/`basename $$file .hs`.html ; \
     done
-	ln -sf hn1.html $(HDDIR)/src/Main.html
 	haddock --odir $(HDDIR) --html --ignore-all-exports \
-	    -t hn1 -p haddock-prologue \
+	    -t htools -p haddock-prologue \
         --source-module="src/%{MODULE/.//}.html" \
         --source-entity="src/%{MODULE/.//}.html#%{NAME}" \
 	    $(HSRCS)
