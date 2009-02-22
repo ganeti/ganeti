@@ -32,12 +32,12 @@ import qualified PeerMap
 
 import Utils
 
-data Node = Node { t_mem :: Int -- ^ total memory (Mib)
-                 , f_mem :: Int -- ^ free memory (MiB)
-                 , t_dsk :: Int -- ^ total disk space (MiB)
-                 , f_dsk :: Int -- ^ free disk space (MiB)
-                 , plist :: [Int] -- ^ list of primary instance indices
-                 , slist :: [Int] -- ^ list of secondary instance indices
+data Node = Node { t_mem :: Double -- ^ total memory (Mib)
+                 , f_mem :: Int    -- ^ free memory (MiB)
+                 , t_dsk :: Double -- ^ total disk space (MiB)
+                 , f_dsk :: Int    -- ^ free disk space (MiB)
+                 , plist :: [Int]  -- ^ list of primary instance indices
+                 , slist :: [Int]  -- ^ list of secondary instance indices
                  , idx :: Int -- ^ internal index for book-keeping
                  , peers:: PeerMap.PeerMap -- ^ primary node to instance
                                            -- mapping
@@ -110,8 +110,8 @@ removePri t inst =
         new_plist = delete iname (plist t)
         new_mem = f_mem t + Instance.mem inst
         new_dsk = f_dsk t + Instance.dsk inst
-        new_mp = (fromIntegral new_mem) / (fromIntegral $ t_mem t)
-        new_dp = (fromIntegral new_dsk) / (fromIntegral $ t_dsk t)
+        new_mp = (fromIntegral new_mem) / (t_mem t)
+        new_dp = (fromIntegral new_dsk) / (t_dsk t)
         new_failn1 = computeFailN1 (maxRes t) new_mem new_dsk
     in t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
           failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp}
@@ -133,7 +133,7 @@ removeSec t inst =
                    else
                        computeMaxRes new_peers
         new_failn1 = computeFailN1 new_rmem (f_mem t) new_dsk
-        new_dp = (fromIntegral new_dsk) / (fromIntegral $ t_dsk t)
+        new_dp = (fromIntegral new_dsk) / (t_dsk t)
     in t {slist = new_slist, f_dsk = new_dsk, peers = new_peers,
           failN1 = new_failn1, maxRes = new_rmem, p_dsk = new_dp}
 
@@ -148,8 +148,8 @@ addPri t inst =
         Nothing
       else
         let new_plist = iname:(plist t)
-            new_mp = (fromIntegral new_mem) / (fromIntegral $ t_mem t)
-            new_dp = (fromIntegral new_dsk) / (fromIntegral $ t_dsk t)
+            new_mp = (fromIntegral new_mem) / (t_mem t)
+            new_dp = (fromIntegral new_dsk) / (t_dsk t)
         in
         Just t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
                 failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp}
@@ -168,7 +168,7 @@ addSec t inst pdx =
         Nothing
     else
         let new_slist = iname:(slist t)
-            new_dp = (fromIntegral new_dsk) / (fromIntegral $ t_dsk t)
+            new_dp = (fromIntegral new_dsk) / (t_dsk t)
         in
         Just t {slist = new_slist, f_dsk = new_dsk,
                 peers = new_peers, failN1 = new_failn1,
