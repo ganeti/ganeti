@@ -562,8 +562,10 @@ printNodes ktn nl =
 -- | Compute the mem and disk covariance.
 compDetailedCV :: NodeList -> (Double, Double)
 compDetailedCV nl =
-    let nstats = map Node.normUsed $ Container.elems nl
-        (mem_l, dsk_l) = unzip nstats
+    let
+        nodes = Container.elems nl
+        mem_l = map Node.p_mem nodes
+        dsk_l = map Node.p_dsk nodes
         mem_cv = varianceCoeff mem_l
         dsk_cv = varianceCoeff dsk_l
     in (mem_cv, dsk_cv)

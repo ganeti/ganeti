@@ -6,7 +6,7 @@
 
 module Node
     (
-      Node(failN1, idx, f_mem, f_disk, slist, plist)
+      Node(failN1, idx, f_mem, f_disk, p_mem, p_dsk, slist, plist)
     -- * Constructor
     , create
     -- ** Finalization after data loading
@@ -19,8 +19,6 @@ module Node
     , addSec
     , setPri
     , setSec
-    -- * Statistics
-    , normUsed
     -- * Formatting
     , list
     ) where
@@ -45,7 +43,9 @@ data Node = Node { t_mem :: Int -- ^ total memory (Mib)
                                            -- mapping
                  , failN1:: Bool -- ^ whether the node has failed n1
                  , maxRes :: Int -- ^ maximum memory needed for
-                                   -- failover by primaries of this node
+                                 -- failover by primaries of this node
+                 , p_mem :: Double
+                 , p_dsk :: Double
   } deriving (Show)
 
 {- | Create a new node.
@@ -55,20 +55,27 @@ later via the 'setIdx' and 'buildPeers' functions.
 
 -}
 create :: String -> String -> String -> String -> Node
-create mem_t_init mem_f_init disk_t_init disk_f_init
-    = Node
-    {
-      t_mem = read mem_t_init,
-      f_mem = read mem_f_init,
-      t_disk = read disk_t_init,
-      f_disk = read disk_f_init,
-      plist = [],
-      slist = [],
-      failN1 = True,
-      idx = -1,
-      peers = PeerMap.empty,
-      maxRes = 0
-    }
+create mem_t_init mem_f_init disk_t_init disk_f_init =
+    let mem_t = read mem_t_init
+        mem_f = read mem_f_init
+        disk_t = read disk_t_init
+        disk_f = read disk_f_init
+    in
+      Node
+      {
+       t_mem = read mem_t_init,
+       f_mem = read mem_f_init,
+       t_disk = read disk_t_init,
+       f_disk = read disk_f_init,
+       plist = [],
+       slist = [],
+       failN1 = True,
+       idx = -1,
+       peers = PeerMap.empty,
+       maxRes = 0,
+       p_mem = (fromIntegral mem_f) / (fromIntegral mem_t),
+       p_dsk = (fromIntegral disk_f) / (fromIntegral disk_t)
+      }
 
 -- | Changes the index.
 -- This is used only during the building of the data structures.
@@ -79,7 +86,6 @@ setIdx t i = t {idx = i}
 computeFailN1 :: Int -> Int -> Int -> Bool
 computeFailN1 new_rmem new_mem new_disk =
     new_mem <= new_rmem || new_disk <= 0
-
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
@@ -104,9 +110,11 @@ removePri t inst =
         new_plist = delete iname (plist t)
         new_mem = f_mem t + Instance.mem inst
         new_disk = f_disk t + Instance.disk inst
+        new_mp = (fromIntegral new_mem) / (fromIntegral $ t_mem t)
+        new_dp = (fromIntegral new_disk) / (fromIntegral $ t_disk t)
         new_failn1 = computeFailN1 (maxRes t) new_mem new_disk
     in t {plist = new_plist, f_mem = new_mem, f_disk = new_disk,
-          failN1 = new_failn1}
+          failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp}
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
@@ -125,8 +133,9 @@ removeSec t inst =
                    else
                        computeMaxRes new_peers
         new_failn1 = computeFailN1 new_rmem (f_mem t) new_disk
+        new_dp = (fromIntegral new_disk) / (fromIntegral $ t_disk t)
     in t {slist = new_slist, f_disk = new_disk, peers = new_peers,
-          failN1 = new_failn1, maxRes = new_rmem}
+          failN1 = new_failn1, maxRes = new_rmem, p_dsk = new_dp}
 
 -- | Adds a primary instance.
 addPri :: Node -> Instance.Instance -> Maybe Node
@@ -138,9 +147,12 @@ addPri t inst =
       if new_failn1 then
         Nothing
       else
-        let new_plist = iname:(plist t) in
+        let new_plist = iname:(plist t)
+            new_mp = (fromIntegral new_mem) / (fromIntegral $ t_mem t)
+            new_dp = (fromIntegral new_disk) / (fromIntegral $ t_disk t)
+        in
         Just t {plist = new_plist, f_mem = new_mem, f_disk = new_disk,
-                failN1 = new_failn1}
+                failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp}
 
 -- | Adds a secondary instance.
 addSec :: Node -> Instance.Instance -> Int -> Maybe Node
@@ -155,10 +167,12 @@ addSec t inst pdx =
     if new_failn1 then
         Nothing
     else
-        let new_slist = iname:(slist t) in
+        let new_slist = iname:(slist t)
+            new_dp = (fromIntegral new_disk) / (fromIntegral $ t_disk t)
+        in
         Just t {slist = new_slist, f_disk = new_disk,
                 peers = new_peers, failN1 = new_failn1,
-                maxRes = new_rmem}
+                maxRes = new_rmem, p_dsk = new_dp}
 
 -- | Add a primary instance to a node without other updates
 setPri :: Node -> Int -> Node
@@ -182,7 +196,8 @@ list :: String -> Node -> String
 list n t =
     let pl = plist t
         sl = slist t
-        (mp, dp) = normUsed t
+        mp = p_mem t
+        dp = p_dsk t
     in
       printf "  %s(%d)\t%5d\t%5d\t%3d\t%3d\t%s\t%s\t%.5f\t%.5f"
                  n (idx t) (f_mem t) ((f_disk t) `div` 1024)
@@ -190,13 +205,3 @@ list n t =
                  (commaJoin (map show pl))
                  (commaJoin (map show sl))
                  mp dp
-
--- | Normalize the usage status
--- This converts the used memory and disk values into a normalized integer
--- value, currently expresed as per mille of totals
-
-normUsed :: Node -> (Double, Double)
-normUsed n =
-    let mp = (fromIntegral $ f_mem n) / (fromIntegral $ t_mem n)
-        dp = (fromIntegral $ f_disk n) / (fromIntegral $ t_disk n)
-    in (mp, dp)
