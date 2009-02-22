@@ -7,16 +7,16 @@ intelligence is in the "Node" and "Cluster" modules.
 module Instance where
 
 data Instance = Instance { mem :: Int -- ^ memory of the instance
-                         , disk :: Int -- ^ disk size of instance
+                         , dsk :: Int -- ^ disk size of instance
                          , pnode :: Int -- ^ original primary node
                          , snode :: Int -- ^ original secondary node
                          , idx :: Int -- ^ internal index for book-keeping
                          } deriving (Show)
 
 create :: String -> String -> Int -> Int -> Instance
-create mem_init disk_init pn sn = Instance {
+create mem_init dsk_init pn sn = Instance {
                               mem = read mem_init,
-                              disk = read disk_init,
+                              dsk = read dsk_init,
                               pnode = pn,
                               snode = sn,
                               idx = -1

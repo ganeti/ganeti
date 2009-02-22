@@ -125,8 +125,8 @@ removeInstances = foldl' removeInstance
 totalResources :: Container.Container Node.Node -> (Int, Int)
 totalResources nl =
     foldl'
-    (\ (mem, disk) node -> (mem + (Node.f_mem node),
-                            disk + (Node.f_disk node)))
+    (\ (mem, dsk) node -> (mem + (Node.f_mem node),
+                           dsk + (Node.f_dsk node)))
     (0, 0) (Container.elems nl)
 
 {- | Compute a new version of a cluster given a solution.
