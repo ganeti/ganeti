@@ -110,12 +110,12 @@ http_PYTHON = \
 docsgml = \
 	doc/hooks.sgml \
 	doc/install.sgml \
-	doc/rapi.sgml \
-	doc/iallocator.sgml
+	doc/rapi.sgml
 
 docrst = \
 	doc/admin.rst \
 	doc/design-2.0.rst \
+	doc/iallocator.rst \
 	doc/security.rst
 
 docdot = \
