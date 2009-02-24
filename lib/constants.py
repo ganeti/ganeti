@@ -299,6 +299,7 @@ HV_VNC_X509 = "vnc_x509_path"
 HV_VNC_X509_VERIFY = "vnc_x509_verify"
 HV_ACPI = "acpi"
 HV_PAE = "pae"
+HV_KERNEL_ARGS = "kernel_args"
 HV_KERNEL_PATH = "kernel_path"
 HV_INITRD_PATH = "initrd_path"
 HV_ROOT_PATH = "root_path"
@@ -317,6 +318,7 @@ HVS_PARAMETER_TYPES = {
   HV_ACPI: VTYPE_BOOL,
   HV_PAE: VTYPE_BOOL,
   HV_KERNEL_PATH: VTYPE_STRING,
+  HV_KERNEL_ARGS: VTYPE_STRING,
   HV_INITRD_PATH: VTYPE_STRING,
   HV_ROOT_PATH: VTYPE_STRING,
   HV_SERIAL_CONSOLE: VTYPE_BOOL,
@@ -474,6 +476,7 @@ HVC_DEFAULTS = {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-xenU",
     HV_INITRD_PATH: '',
     HV_ROOT_PATH: '/dev/sda1',
+    HV_KERNEL_ARGS: 'ro',
     },
   HT_XEN_HVM: {
     HV_BOOT_ORDER: "cd",
@@ -487,6 +490,7 @@ HVC_DEFAULTS = {
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
     HV_INITRD_PATH: '',
+    HV_KERNEL_ARGS: 'ro',
     HV_ROOT_PATH: '/dev/vda1',
     HV_ACPI: True,
     HV_SERIAL_CONSOLE: True,
