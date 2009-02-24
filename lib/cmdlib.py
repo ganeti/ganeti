@@ -5515,11 +5515,14 @@ class LUQueryInstanceData(NoHooksLU):
     if not static:
       self.cfg.SetDiskID(dev, instance.primary_node)
       dev_pstatus = self.rpc.call_blockdev_find(instance.primary_node, dev)
-      msg = dev_pstatus.RemoteFailMsg()
-      if msg:
-        raise errors.OpExecError("Can't compute disk status for %s: %s" %
-                                 (instance.name, msg))
-      dev_pstatus = dev_pstatus.payload
+      if dev_pstatus.offline:
+        dev_pstatus = None
+      else:
+        msg = dev_pstatus.RemoteFailMsg()
+        if msg:
+          raise errors.OpExecError("Can't compute disk status for %s: %s" %
+                                   (instance.name, msg))
+        dev_pstatus = dev_pstatus.payload
     else:
       dev_pstatus = None
 
@@ -5533,11 +5536,14 @@ class LUQueryInstanceData(NoHooksLU):
     if snode and not static:
       self.cfg.SetDiskID(dev, snode)
       dev_sstatus = self.rpc.call_blockdev_find(snode, dev)
-      msg = dev_sstatus.RemoteFailMsg()
-      if msg:
-        raise errors.OpExecError("Can't compute disk status for %s: %s" %
-                                 (instance.name, msg))
-      dev_sstatus = dev_sstatus.payload
+      if dev_sstatus.offline:
+        dev_sstatus = None
+      else:
+        msg = dev_sstatus.RemoteFailMsg()
+        if msg:
+          raise errors.OpExecError("Can't compute disk status for %s: %s" %
+                                   (instance.name, msg))
+        dev_sstatus = dev_sstatus.payload
     else:
       dev_sstatus = None
 
