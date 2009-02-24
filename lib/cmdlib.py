@@ -2720,7 +2720,6 @@ class LUStartupInstance(LogicalUnit):
     """
     instance = self.instance
     force = self.op.force
-    extra_args = getattr(self.op, "extra_args", "")
 
     self.cfg.MarkInstanceUp(instance.name)
 
@@ -2728,7 +2727,7 @@ class LUStartupInstance(LogicalUnit):
 
     _StartInstanceDisks(self, instance, force)
 
-    result = self.rpc.call_instance_start(node_current, instance, extra_args)
+    result = self.rpc.call_instance_start(node_current, instance)
     msg = result.RemoteFailMsg()
     if msg:
       _ShutdownInstanceDisks(self, instance)
@@ -2789,7 +2788,6 @@ class LURebootInstance(LogicalUnit):
     instance = self.instance
     ignore_secondaries = self.op.ignore_secondaries
     reboot_type = self.op.reboot_type
-    extra_args = getattr(self.op, "extra_args", "")
 
     node_current = instance.primary_node
 
@@ -2798,7 +2796,7 @@ class LURebootInstance(LogicalUnit):
       for disk in instance.disks:
         self.cfg.SetDiskID(disk, node_current)
       result = self.rpc.call_instance_reboot(node_current, instance,
-                                             reboot_type, extra_args)
+                                             reboot_type)
       msg = result.RemoteFailMsg()
       if msg:
         raise errors.OpExecError("Could not reboot instance: %s" % msg)
@@ -2810,7 +2808,7 @@ class LURebootInstance(LogicalUnit):
                                  " full reboot: %s" % msg)
       _ShutdownInstanceDisks(self, instance)
       _StartInstanceDisks(self, instance, ignore_secondaries)
-      result = self.rpc.call_instance_start(node_current, instance, extra_args)
+      result = self.rpc.call_instance_start(node_current, instance)
       msg = result.RemoteFailMsg()
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -3500,7 +3498,7 @@ class LUFailoverInstance(LogicalUnit):
         raise errors.OpExecError("Can't activate the instance's disks")
 
       feedback_fn("* starting the instance on the target node")
-      result = self.rpc.call_instance_start(target_node, instance, None)
+      result = self.rpc.call_instance_start(target_node, instance)
       msg = result.RemoteFailMsg()
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -4741,7 +4739,7 @@ class LUCreateInstance(LogicalUnit):
       self.cfg.Update(iobj)
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
-      result = self.rpc.call_instance_start(pnode_name, iobj, None)
+      result = self.rpc.call_instance_start(pnode_name, iobj)
       msg = result.RemoteFailMsg()
       if msg:
         raise errors.OpExecError("Could not start instance: %s" % msg)
@@ -6189,7 +6187,7 @@ class LUExportInstance(LogicalUnit):
 
     finally:
       if self.op.shutdown and instance.admin_up:
-        result = self.rpc.call_instance_start(src_node, instance, None)
+        result = self.rpc.call_instance_start(src_node, instance)
         msg = result.RemoteFailMsg()
         if msg:
           _ShutdownInstanceDisks(self, instance)

@@ -382,7 +382,7 @@ class OpStartupInstance(OpCode):
   """Startup an instance."""
   OP_ID = "OP_INSTANCE_STARTUP"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name", "force", "extra_args"]
+  __slots__ = ["instance_name", "force"]
 
 
 class OpShutdownInstance(OpCode):
@@ -396,8 +396,7 @@ class OpRebootInstance(OpCode):
   """Reboot an instance."""
   OP_ID = "OP_INSTANCE_REBOOT"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name", "reboot_type", "extra_args",
-               "ignore_secondaries" ]
+  __slots__ = ["instance_name", "reboot_type", "ignore_secondaries" ]
 
 
 class OpReplaceDisks(OpCode):

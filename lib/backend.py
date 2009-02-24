@@ -856,7 +856,7 @@ def _GatherAndLinkBlockDevs(instance):
   return block_devices
 
 
-def StartInstance(instance, extra_args):
+def StartInstance(instance):
   """Start an instance.
 
   @type instance: L{objects.Instance}
@@ -873,7 +873,7 @@ def StartInstance(instance, extra_args):
   try:
     block_devices = _GatherAndLinkBlockDevs(instance)
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
-    hyper.StartInstance(instance, block_devices, extra_args)
+    hyper.StartInstance(instance, block_devices)
   except errors.BlockDeviceError, err:
     logging.exception("Failed to start instance")
     return (False, "Block device error: %s" % str(err))
@@ -941,7 +941,7 @@ def InstanceShutdown(instance):
   return (True, "Instance has been shutdown successfully")
 
 
-def InstanceReboot(instance, reboot_type, extra_args):
+def InstanceReboot(instance, reboot_type):
   """Reboot an instance.
 
   @type instance: L{objects.Instance}
@@ -980,7 +980,7 @@ def InstanceReboot(instance, reboot_type, extra_args):
       stop_result = InstanceShutdown(instance)
       if not stop_result[0]:
         return stop_result
-      return StartInstance(instance, extra_args)
+      return StartInstance(instance)
     except errors.HypervisorError, err:
       msg = "Failed to hard reboot instance %s: %s" % (instance.name, err)
       logging.error(msg)

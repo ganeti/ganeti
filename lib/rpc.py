@@ -425,14 +425,14 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "bridges_exist", [bridges_list])
 
-  def call_instance_start(self, node, instance, extra_args):
+  def call_instance_start(self, node, instance):
     """Starts an instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_start",
-                                [self._InstDict(instance), extra_args])
+                                [self._InstDict(instance)])
 
   def call_instance_shutdown(self, node, instance):
     """Stops an instance.
@@ -515,15 +515,14 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_migrate",
                                 [self._InstDict(instance), target, live])
 
-  def call_instance_reboot(self, node, instance, reboot_type, extra_args):
+  def call_instance_reboot(self, node, instance, reboot_type):
     """Reboots an instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_reboot",
-                                [self._InstDict(instance), reboot_type,
-                                 extra_args])
+                                [self._InstDict(instance), reboot_type])
 
   def call_instance_os_add(self, node, inst):
     """Installs an OS on the given instance.

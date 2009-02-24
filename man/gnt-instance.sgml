@@ -428,6 +428,29 @@
             </varlistentry>
 
             <varlistentry>
+              <term>kernel_args</term>
+              <listitem>
+                <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
+
+                <para>
+                  This options specifies extra arguments to the kernel
+                  that will be loaded.  device. This is always used
+                  for Xen PVM, while for KVM it is only used if the
+                  <option>kernel_path</option> option is also
+                  specified.
+                </para>
+
+                <para>
+                  The default setting for this value is simply
+                  <constant>"ro"</constant>, which mounts the root
+                  disk (initially) in read-only one. For example,
+                  setting this to <userinput>single</userinput> will
+                  cause the instance to start in single-user mode.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term>initrd_path</term>
               <listitem>
                 <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
@@ -1265,7 +1288,6 @@ instance5: 11225
         <cmdsynopsis>
           <command>startup</command>
           <sbr>
-          <arg>--extra=<replaceable>PARAMS</replaceable></arg>
           <arg>--force</arg>
           <sbr>
           <arg>--force-multiple</arg>
@@ -1336,14 +1358,6 @@ instance5: 11225
         </para>
 
         <para>
-          The <option>--extra</option> option is used to pass
-          additional argument to the instance's kernel for this start
-          only. Currently there is no way to specify a persistent set
-          of arguments (beside the one hardcoded). Note that this may
-          not apply to all virtualization types.
-        </para>
-
-        <para>
           Use <option>--force</option> to start even if secondary disks are
           failing.
         </para>
@@ -1365,7 +1379,6 @@ instance5: 11225
           Example:
           <screen>
 # gnt-instance start instance1.example.com
-# gnt-instance start --extra single test1.example.com
 # gnt-instance start --node node1.example.com node2.example.com
 # gnt-instance start --all
           </screen>
@@ -1431,8 +1444,6 @@ instance5: 11225
 
         <cmdsynopsis>
           <command>reboot</command>
-          <sbr>
-          <arg>--extra=<replaceable>PARAMS</replaceable></arg>
           <sbr>
           <arg>--type=<replaceable>REBOOT-TYPE</replaceable></arg>
           <sbr>

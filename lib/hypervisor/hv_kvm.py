@@ -52,6 +52,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KERNEL_PATH,
     constants.HV_INITRD_PATH,
     constants.HV_ROOT_PATH,
+    constants.HV_KERNEL_ARGS,
     constants.HV_ACPI,
     constants.HV_SERIAL_CONSOLE,
     constants.HV_VNC_BIND_ADDRESS,
@@ -219,7 +220,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return data
 
-  def _GenerateKVMRuntime(self, instance, block_devices, extra_args):
+  def _GenerateKVMRuntime(self, instance, block_devices):
     """Generate KVM information to start an instance.
 
     """
@@ -281,11 +282,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       initrd_path = hvp[constants.HV_INITRD_PATH]
       if initrd_path:
         kvm_cmd.extend(['-initrd', initrd_path])
-      root_append = 'root=%s ro' % instance.hvparams[constants.HV_ROOT_PATH]
-      if instance.hvparams[constants.HV_SERIAL_CONSOLE]:
-        kvm_cmd.extend(['-append', 'console=ttyS0,38400 %s' % root_append])
-      else:
-        kvm_cmd.extend(['-append', root_append])
+      root_append = ['root=%s' % hvp[constants.HV_ROOT_PATH],
+                     hvp[constants.HV_KERNEL_ARGS]]
+      if hvp[constants.HV_SERIAL_CONSOLE]:
+        root_append.append('console=ttyS0,38400')
+      kvm_cmd.extend(['-append', ' '.join(root_append)])
 
     mouse_type = hvp[constants.HV_USB_MOUSE]
     if mouse_type:
@@ -435,7 +436,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     for filename in temp_files:
       utils.RemoveFile(filename)
 
-  def StartInstance(self, instance, block_devices, extra_args):
+  def StartInstance(self, instance, block_devices):
     """Start an instance.
 
     """
@@ -444,7 +445,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, "already running"))
 
-    kvm_runtime = self._GenerateKVMRuntime(instance, block_devices, extra_args)
+    kvm_runtime = self._GenerateKVMRuntime(instance, block_devices)
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
 

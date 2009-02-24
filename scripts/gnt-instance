@@ -709,8 +709,7 @@ def StartupInstance(opts, args):
   jex = cli.JobExecutor(verbose=multi_on, cl=cl)
   for name in inames:
     op = opcodes.OpStartupInstance(instance_name=name,
-                                   force=opts.force,
-                                   extra_args=opts.extra_args)
+                                   force=opts.force)
     jex.QueueJob(name, op)
   jex.WaitOrShow(not opts.submit_only)
   return 0
@@ -1457,9 +1456,6 @@ commands = {
                "<instance>", "Stops an instance"),
   'startup': (StartupInstance, ARGS_ANY,
               [DEBUG_OPT, FORCE_OPT, m_force_multi,
-               make_option("-e", "--extra", dest="extra_args",
-                           help="Extra arguments for the instance's kernel",
-                           default=None, type="string", metavar="<PARAMS>"),
                m_node_opt, m_pri_node_opt, m_sec_node_opt,
                m_clust_opt, m_inst_opt,
                SUBMIT_OPT,
@@ -1468,9 +1464,6 @@ commands = {
 
   'reboot': (RebootInstance, ARGS_ANY,
               [DEBUG_OPT, m_force_multi,
-               make_option("-e", "--extra", dest="extra_args",
-                           help="Extra arguments for the instance's kernel",
-                           default=None, type="string", metavar="<PARAMS>"),
                make_option("-t", "--type", dest="reboot_type",
                            help="Type of reboot: soft/hard/full",
                            default=constants.INSTANCE_REBOOT_HARD,

@@ -44,7 +44,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
   """
 
   @classmethod
-  def _WriteConfigFile(cls, instance, block_devices, extra_args):
+  def _WriteConfigFile(cls, instance, block_devices):
     """Write the Xen config file for the instance.
 
     """
@@ -159,11 +159,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
     xm_list = self._GetXMList(False)
     return xm_list
 
-  def StartInstance(self, instance, block_devices, extra_args):
+  def StartInstance(self, instance, block_devices):
     """Start an instance.
 
     """
-    self._WriteConfigFile(instance, block_devices, extra_args)
+    self._WriteConfigFile(instance, block_devices)
     result = utils.RunCmd(["xm", "create", instance.name])
 
     if result.failed:
@@ -386,6 +386,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_KERNEL_PATH,
     constants.HV_INITRD_PATH,
     constants.HV_ROOT_PATH,
+    constants.HV_KERNEL_ARGS,
     ]
 
   @classmethod
@@ -435,7 +436,7 @@ class XenPvmHypervisor(XenHypervisor):
                                    " not a file" % initrd_path)
 
   @classmethod
-  def _WriteConfigFile(cls, instance, block_devices, extra_args):
+  def _WriteConfigFile(cls, instance, block_devices):
     """Write the Xen config file for the instance.
 
     """
@@ -470,13 +471,11 @@ class XenPvmHypervisor(XenHypervisor):
                  cls._GetConfigFileDiskData(instance.disk_template,
                                             block_devices)))
 
-    rpath = instance.hvparams[constants.HV_ROOT_PATH]
-    config.write("root = '%s ro'\n" % rpath)
+    config.write("root = '%s'\n" % hvp[constants.HV_ROOT_PATH])
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
     config.write("on_crash = 'restart'\n")
-    if extra_args:
-      config.write("extra = '%s'\n" % extra_args)
+    config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
@@ -563,7 +562,7 @@ class XenHvmHypervisor(XenHypervisor):
                                    iso_path)
 
   @classmethod
-  def _WriteConfigFile(cls, instance, block_devices, extra_args):
+  def _WriteConfigFile(cls, instance, block_devices):
     """Create a Xen 3.1 HVM config file.
 
     """
@@ -654,8 +653,7 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
     config.write("on_crash = 'restart'\n")
-    if extra_args:
-      config.write("extra = '%s'\n" % extra_args)
+    config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:

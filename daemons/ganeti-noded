@@ -400,8 +400,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     instance = objects.Instance.FromDict(params[0])
-    extra_args = params[1]
-    return backend.StartInstance(instance, extra_args)
+    return backend.StartInstance(instance)
 
   @staticmethod
   def perspective_migration_info(params):
@@ -445,8 +444,7 @@ class NodeHttpServer(http.server.HttpServer):
     """
     instance = objects.Instance.FromDict(params[0])
     reboot_type = params[1]
-    extra_args = params[2]
-    return backend.InstanceReboot(instance, reboot_type, extra_args)
+    return backend.InstanceReboot(instance, reboot_type)
 
   @staticmethod
   def perspective_instance_info(params):

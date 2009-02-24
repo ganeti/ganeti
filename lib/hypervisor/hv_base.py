@@ -38,7 +38,7 @@ class BaseHypervisor(object):
   def __init__(self):
     pass
 
-  def StartInstance(self, instance, block_devices, extra_args):
+  def StartInstance(self, instance, block_devices):
     """Start an instance."""
     raise NotImplementedError
 
