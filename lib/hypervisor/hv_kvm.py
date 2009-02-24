@@ -235,14 +235,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(['-no-acpi'])
 
-    boot_disk = (instance.hvparams[constants.HV_BOOT_ORDER] == "disk")
-    boot_cdrom = (instance.hvparams[constants.HV_BOOT_ORDER] == "cdrom")
-    boot_network = (instance.hvparams[constants.HV_BOOT_ORDER] == "network")
+    hvp = instance.hvparams
+    boot_disk = hvp[constants.HV_BOOT_ORDER] == "disk"
+    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == "cdrom"
+    boot_network = hvp[constants.HV_BOOT_ORDER] == "network"
 
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])
 
-    disk_type = instance.hvparams[constants.HV_DISK_TYPE]
+    disk_type = hvp[constants.HV_DISK_TYPE]
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
       if_val = ',if=virtio'
     else:
@@ -263,7 +264,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = 'file=%s,format=raw%s%s' % (dev_path, if_val, boot_val)
       kvm_cmd.extend(['-drive', drive_val])
 
-    iso_image = instance.hvparams[constants.HV_CDROM_IMAGE_PATH]
+    iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_image:
       options = ',format=raw,media=cdrom'
       if boot_cdrom:
@@ -274,10 +275,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       drive_val = 'file=%s%s' % (iso_image, options)
       kvm_cmd.extend(['-drive', drive_val])
 
-    kernel_path = instance.hvparams[constants.HV_KERNEL_PATH]
+    kernel_path = hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
       kvm_cmd.extend(['-kernel', kernel_path])
-      initrd_path = instance.hvparams[constants.HV_INITRD_PATH]
+      initrd_path = hvp[constants.HV_INITRD_PATH]
       if initrd_path:
         kvm_cmd.extend(['-initrd', initrd_path])
       root_append = 'root=%s ro' % instance.hvparams[constants.HV_ROOT_PATH]
@@ -286,13 +287,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         kvm_cmd.extend(['-append', root_append])
 
-    mouse_type = instance.hvparams[constants.HV_USB_MOUSE]
+    mouse_type = hvp[constants.HV_USB_MOUSE]
     if mouse_type:
       kvm_cmd.extend(['-usb'])
       kvm_cmd.extend(['-usbdevice', mouse_type])
 
     # FIXME: handle vnc password
-    vnc_bind_address = instance.hvparams[constants.HV_VNC_BIND_ADDRESS]
+    vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
       if utils.IsValidIP(vnc_bind_address):
         if instance.network_port > constants.VNC_BASE_PORT:
@@ -311,14 +312,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         # Only allow tls and other option when not binding to a file, for now.
         # kvm/qemu gets confused otherwise about the filename to use.
         vnc_append = ''
-        if instance.hvparams[constants.HV_VNC_TLS]:
+        if hvp[constants.HV_VNC_TLS]:
           vnc_append = '%s,tls' % vnc_append
-          if instance.hvparams[constants.HV_VNC_X509_VERIFY]:
+          if hvp[constants.HV_VNC_X509_VERIFY]:
             vnc_append = '%s,x509verify=%s' % (vnc_append,
-              instance.hvparams[constants.HV_VNC_X509])
-          elif instance.hvparams[constants.HV_VNC_X509]:
+                                               hvp[constants.HV_VNC_X509])
+          elif hvp[constants.HV_VNC_X509]:
             vnc_append = '%s,x509=%s' % (vnc_append,
-              instance.hvparams[constants.HV_VNC_X509])
+                                         hvp[constants.HV_VNC_X509])
         vnc_arg = '%s%s' % (vnc_arg, vnc_append)
 
       else:
@@ -331,8 +332,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     monitor_dev = 'unix:%s,server,nowait' % \
       self._InstanceMonitor(instance.name)
     kvm_cmd.extend(['-monitor', monitor_dev])
-    if instance.hvparams[constants.HV_SERIAL_CONSOLE]:
-      serial_dev = 'unix:%s,server,nowait' % self._InstanceSerial(instance.name)
+    if hvp[constants.HV_SERIAL_CONSOLE]:
+      serial_dev = ('unix:%s,server,nowait' %
+                    self._InstanceSerial(instance.name))
       kvm_cmd.extend(['-serial', serial_dev])
     else:
       kvm_cmd.extend(['-serial', 'none'])
@@ -340,7 +342,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.
     kvm_nics = instance.nics
-    hvparams = instance.hvparams
+    hvparams = hvp
 
     return (kvm_cmd, kvm_nics, hvparams)
 
