@@ -660,9 +660,14 @@ def GetAllInstancesInfo(hypervisor_list):
           'state': state,
           'time': times,
           }
-        if name in output and output[name] != value:
-          raise errors.HypervisorError("Instance %s running duplicate"
-                                       " with different parameters" % name)
+        if name in output:
+          # we only check static parameters, like memory and vcpus,
+          # and not state and time which can change between the
+          # invocations of the different hypervisors
+          for key in 'memory', 'vcpus':
+            if value[key] != output[name][key]:
+              raise errors.HypervisorError("Instance %s is running twice"
+                                           " with different parameters" % name)
         output[name] = value
 
   return output
