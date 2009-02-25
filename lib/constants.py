@@ -24,7 +24,7 @@
 from ganeti import _autoconf
 
 # various versions
-PROTOCOL_VERSION = 13
+PROTOCOL_VERSION = 20
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_VERSION = 10
 EXPORT_VERSION = 0
@@ -148,7 +148,7 @@ HOOKS_BASE_DIR = _autoconf.SYSCONFDIR + "/ganeti/hooks"
 HOOKS_PHASE_PRE = "pre"
 HOOKS_PHASE_POST = "post"
 HOOKS_NAME_CFGUPDATE = "config-update"
-HOOKS_VERSION = 1
+HOOKS_VERSION = 2
 
 # hooks subject type (what object type does the LU deal with)
 HTYPE_CLUSTER = "CLUSTER"
