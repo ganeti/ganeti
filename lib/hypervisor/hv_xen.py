@@ -653,7 +653,6 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("on_poweroff = 'destroy'\n")
     config.write("on_reboot = 'restart'\n")
     config.write("on_crash = 'restart'\n")
-    config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
     # just in case it exists
     utils.RemoveFile("/etc/xen/auto/%s" % instance.name)
     try:
