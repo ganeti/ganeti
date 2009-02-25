@@ -454,7 +454,7 @@ def _CheckNodeNotDrained(lu, node):
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
-                          memory, vcpus, nics):
+                          memory, vcpus, nics, disk_template, disks):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -476,6 +476,10 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @type nics: list
   @param nics: list of tuples (ip, bridge, mac) representing
       the NICs the instance  has
+  @type disk_template: string
+  @param disk_template: the distk template of the instance
+  @type disks: list
+  @param disks: the list of (size, mode) pairs
   @rtype: dict
   @return: the hook environment for this instance
 
@@ -493,6 +497,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_STATUS": str_status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
+    "INSTANCE_DISK_TEMPLATE": disk_template,
   }
 
   if nics:
@@ -502,11 +507,21 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
         ip = ""
       env["INSTANCE_NIC%d_IP" % idx] = ip
       env["INSTANCE_NIC%d_BRIDGE" % idx] = bridge
-      env["INSTANCE_NIC%d_HWADDR" % idx] = mac
+      env["INSTANCE_NIC%d_MAC" % idx] = mac
   else:
     nic_count = 0
 
   env["INSTANCE_NIC_COUNT"] = nic_count
+
+  if disks:
+    disk_count = len(disks)
+    for idx, (size, mode) in enumerate(disks):
+      env["INSTANCE_DISK%d_SIZE" % idx] = size
+      env["INSTANCE_DISK%d_MODE" % idx] = mode
+  else:
+    disk_count = 0
+
+  env["INSTANCE_DISK_COUNT"] = disk_count
 
   return env
 
@@ -536,6 +551,8 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'memory': bep[constants.BE_MEMORY],
     'vcpus': bep[constants.BE_VCPUS],
     'nics': [(nic.ip, nic.bridge, nic.mac) for nic in instance.nics],
+    'disk_template': instance.disk_template,
+    'disks': [(disk.size, disk.mode) for disk in instance.disks],
   }
   if override:
     args.update(override)
@@ -2761,6 +2778,7 @@ class LURebootInstance(LogicalUnit):
     """
     env = {
       "IGNORE_SECONDARIES": self.op.ignore_secondaries,
+      "REBOOT_TYPE": self.op.reboot_type,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
@@ -3535,6 +3553,8 @@ class LUMigrateInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
+    env["MIGRATE_LIVE"] = self.op.live
+    env["MIGRATE_CLEANUP"] = self.op.cleanup
     nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
     return env, nl, nl
 
@@ -4405,16 +4425,15 @@ class LUCreateInstance(LogicalUnit):
 
     """
     env = {
-      "INSTANCE_DISK_TEMPLATE": self.op.disk_template,
-      "INSTANCE_DISK_SIZE": ",".join(str(d["size"]) for d in self.disks),
-      "INSTANCE_ADD_MODE": self.op.mode,
+      "ADD_MODE": self.op.mode,
       }
     if self.op.mode == constants.INSTANCE_IMPORT:
-      env["INSTANCE_SRC_NODE"] = self.op.src_node
-      env["INSTANCE_SRC_PATH"] = self.op.src_path
-      env["INSTANCE_SRC_IMAGES"] = self.src_images
+      env["SRC_NODE"] = self.op.src_node
+      env["SRC_PATH"] = self.op.src_path
+      env["SRC_IMAGES"] = self.src_images
 
-    env.update(_BuildInstanceHookEnv(name=self.op.instance_name,
+    env.update(_BuildInstanceHookEnv(
+      name=self.op.instance_name,
       primary_node=self.op.pnode,
       secondary_nodes=self.secondaries,
       status=self.op.start,
@@ -4422,6 +4441,8 @@ class LUCreateInstance(LogicalUnit):
       memory=self.be_full[constants.BE_MEMORY],
       vcpus=self.be_full[constants.BE_VCPUS],
       nics=[(n.ip, n.bridge, n.mac) for n in self.nics],
+      disk_template=self.op.disk_template,
+      disks=[(d["size"], d["mode"]) for d in self.disks],
     ))
 
     nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
