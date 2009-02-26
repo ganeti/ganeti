@@ -45,6 +45,7 @@ CLEANFILES = \
 	doc/*.pdf \
 	$(patsubst %.dot,%.png,$(docdot)) \
 	doc/rapi-resources.sgml \
+	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
 	lib/*.py[co] \
@@ -156,6 +157,7 @@ EXTRA_DIST = \
 	$(docdot) \
 	$(docsgml) \
 	doc/build-rapi-resources-doc \
+	doc/examples/bash_completion.in \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
