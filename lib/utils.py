@@ -1215,7 +1215,7 @@ def WriteFile(file_name, fn=None, data=None,
   mtime/atime of the file.
 
   If the function doesn't raise an exception, it has succeeded and the
-  target file has the new contents. If the file has raised an
+  target file has the new contents. If the function has raised an
   exception, an existing target file should be unmodified and the
   temporary file should be removed.
 
@@ -1224,7 +1224,7 @@ def WriteFile(file_name, fn=None, data=None,
   @type fn: callable
   @param fn: content writing function, called with
       file descriptor as parameter
-  @type data: sr
+  @type data: str
   @param data: contents of the file
   @type mode: int
   @param mode: file mode
@@ -1247,7 +1247,7 @@ def WriteFile(file_name, fn=None, data=None,
   @return: None if the 'close' parameter evaluates to True,
       otherwise the file descriptor
 
-  @raise errors.ProgrammerError: if an of the arguments are not valid
+  @raise errors.ProgrammerError: if any of the arguments are not valid
 
   """
   if not os.path.isabs(file_name):
