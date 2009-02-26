@@ -228,13 +228,14 @@ TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir)
 
 
 all-local: stamp-directories lib/_autoconf.py devel/upload \
+	doc/examples/bash_completion \
 	doc/examples/ganeti.initd doc/examples/ganeti.cron
 
 devel/upload: devel/upload.in stamp-directories $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod u+x $@
 
-doc/examples/ganeti.%: doc/examples/ganeti.%.in stamp-directories \
+doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 

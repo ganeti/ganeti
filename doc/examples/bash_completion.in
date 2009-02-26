@@ -1,0 +1,537 @@
+_gnt_backup()
+{
+  local cur prev base_cmd cmds ilist nlist
+  COMPREPLY=()
+  cur="$2"
+  prev="$3"
+  #
+  #  The basic options we'll complete.
+  #
+  cmds="export import list remove"
+
+  # default completion is empty
+  COMPREPLY=()
+
+  if [[ ! -f "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    # cluster not initialized
+    return 0
+  fi
+
+  ilist=$(< "@LOCALSTATEDIR@/lib/ganeti/ssconf_instance_list")
+  nlist=$(< "@LOCALSTATEDIR@/lib/ganeti/ssconf_node_list")
+
+  case "$COMP_CWORD" in
+    1)
+      # complete the command name
+      COMPREPLY=( $(compgen -W "$cmds" -- ${cur}) )
+      ;;
+    *)
+      # we're doing options to commands
+      base_cmd="${COMP_WORDS[1]}"
+      case "${base_cmd}" in
+        export)
+          case "$COMP_CWORD" in
+            2)
+              # options or instances
+              COMPREPLY=( $(compgen -W "--no-shutdown -n $ilist" -- ${cur}) )
+              ;;
+            3)
+              # if previous was option, we allow instance
+              case "$prev" in
+                -*)
+                  COMPREPLY=( $(compgen -W "$ilist" -- ${cur}) )
+                  ;;
+              esac
+          esac
+          ;;
+        import)
+          case "$prev" in
+            -t)
+              COMPREPLY=( $(compgen -W "diskless file plain drbd" -- ${cur}) )
+              ;;
+            --src-node)
+              COMPREPLY=( $(compgen -W "$nlist" -- ${cur}) )
+              ;;
+            --file-driver)
+              COMPREPLY=( $(compgen -W "loop blktap" -- ${cur}) )
+              ;;
+            -*)
+              # arguments to other options, we don't have completion yet
+              ;;
+            *)
+              COMPREPLY=( $(compgen -W "-t -n -B -H -s --disks --net \
+                              --no-nics --no-start --no-ip-check -I \
+                              --src-node --src-dir --file-driver \
+                              --file-storage-dir" -- ${cur}) )
+              ;;
+          esac
+          ;;
+        remove)
+          if [[ "$COMP_CWORD" -eq 2 ]]; then
+            COMPREPLY=( $(compgen -W "$ilist" -- ${cur}) )
+          fi
+          ;;
+      esac
+  esac
+
+  return 0
+}
+
+complete -F _gnt_backup gnt-backup
+
+_gnt_cluster()
+{
+  local cur prev cmds
+  cur="$2"
+  prev="$3"
+  #
+  #  The basic options we'll complete.
+  #
+  if [[ -e "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    cmds="add-tags command copyfile destroy getmaster info list-tags \
+          masterfailover modify queue redist-conf remove-tags rename \
+          search-tags verify verify-disks version"
+  else
+    cmds="init"
+  fi
+
+  # default completion is empty
+  COMPREPLY=()
+  case "$COMP_CWORD" in
+    1)
+      # complete the command name
+      COMPREPLY=($(compgen -W "$cmds" -- ${cur}))
+      ;;
+    2)
+      # complete arguments to the command
+      case "$prev" in
+        "queue")
+        COMPREPLY=( $(compgen -W "drain undrain info" -- ${cur}) )
+        ;;
+      *)
+        ;;
+      esac
+  esac
+
+  return 0
+}
+
+complete -F _gnt_cluster gnt-cluster
+
+_gnt_debug()
+{
+  local cur prev cmds
+  cur="$2"
+  prev="$3"
+
+  cmds="allocator delay submit-job"
+
+  # default completion is empty
+  COMPREPLY=()
+
+  if [[ ! -f "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    # cluster not initialized
+    return 0
+  fi
+
+  case "$COMP_CWORD" in
+    1)
+      # complete the command name
+      COMPREPLY=( $(compgen -W "$cmds" -- ${cur}) )
+      ;;
+    *)
+      # we're doing options to commands
+      base_cmd="${COMP_WORDS[1]}"
+      case "${base_cmd}" in
+        delay)
+          if [[ "$prev" != -* ]]; then
+            COMPREPLY=( $(compgen -W "--no-master -n" -- ${cur}) )
+          fi
+          ;;
+        submit-job)
+          if [[ "$COMP_CWORD" -eq 2 ]]; then
+            COMPREPLY=( $(compgen -f -- ${cur}) )
+          fi
+          ;;
+      esac
+  esac
+
+  return 0
+}
+
+complete -F _gnt_debug gnt-debug
+
+_gnt_instance()
+{
+  local cur prev base_cmd cmds ilist nlist
+  COMPREPLY=()
+  cur="$2"
+  prev="$3"
+  #
+  #  The basic options we'll complete.
+  #
+  cmds="activate-disks add add-tags batch-create console deactivate-disks \
+        failover grow-disk info list list-tags migrate modify reboot \
+        reinstall remove remove-tags rename replace-disks shutdown startup"
+
+  # default completion is empty
+  COMPREPLY=()
+
+  if [[ ! -f "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    # cluster not initialized
+    return 0
+  fi
+
+  ilist=$(< "@LOCALSTATEDIR@/lib/ganeti/ssconf_instance_list")
+  nlist=$(< "@LOCALSTATEDIR@/lib/ganeti/ssconf_node_list")
+
+  case "$COMP_CWORD" in
+    1)
+      # complete the command name
+      COMPREPLY=( $(compgen -W "$cmds" -- ${cur}) )
+      ;;
+    *)
+      # we're doing options to commands
+      base_cmd="${COMP_WORDS[1]}"
+      case "${base_cmd}" in
+        # first, rules for multiple commands
+        activate-disks|console|deactivate-disks|list-tags|rename|remove)
+          # commands with only one instance argument, nothing else
+          if [[ "$COMP_CWORD" -eq 2 ]]; then
+            COMPREPLY=( $(compgen -W "$ilist" -- ${cur}) )
+          fi
+          ;;
+        info)
+          # commands with more than one instance
+          COMPREPLY=( $(compgen -W "$ilist" -- ${cur}) )
+          ;;
+        add-tags|grow-disk|reinstall|remove-tags|replace-disks)
+          # not very well handled
+          COMPREPLY=( $(compgen -W "$ilist" -- ${cur}) )
+          ;;
+        startup|start|shutdown|stop|reboot)
+          COMPREPLY=( $(compgen -W "--force-multiple --node --primary \
+                          --secondary --all --submit $ilist" -- ${cur}) )
+          ;;
+        # individual commands
+        add)
+          case "$prev" in
+            -t)
+              COMPREPLY=( $(compgen -W "diskless file plain drbd" -- ${cur}) )
+              ;;
+            --file-driver)
+              COMPREPLY=( $(compgen -W "loop blktap" -- ${cur}) )
+              ;;
+            -*)
+              # arguments to other options, we don't have completion yet
+              ;;
+            *)
+              COMPREPLY=( $(compgen -W "-t -n -o -B -H -s --disks --net \
+                            --no-nics --no-start --no-ip-check -I \
+                            --file-driver --file-storage-dir --submit" \
+                -- ${cur}) )
+              ;;
+          esac
+          ;;
+        batch-create)
+          # this only takes one file name
+          COMPREPLY=( $(compgen -A file -- ${cur}) )
+          ;;
+        failover)
+          case "$COMP_CWORD" in
+            2)
+              # options or instances
+              COMPREPLY=( $(compgen -W "--ignore-failures $ilist" -- ${cur}) )
+              ;;
+            3)
+              # if previous was option, we allow instance
+              case "$prev" in
+                -*)
+                  COMPREPLY=( $(compgen -W "$ilist" -- ${cur}) )
+                  ;;
+              esac
+          esac
+          ;;
+        list)
+          COMPREPLY=( $(compgen -W "--no-headers --separator --units -o \
+                          --sync $ilist" -- ${cur}) )
+          ;;
+        modify)
+          COMPREPLY=( $(compgen -W "-H -B --disk --net $ilist" -- ${cur}) )
+          ;;
+        migrate)
+          case "$COMP_CWORD" in
+            2)
+              # options or instances
+              COMPREPLY=( $(compgen -W "--non-live --cleanup $ilist" -- \
+                ${cur}) )
+              ;;
+            3)
+              # if previous was option, we allow instance
+              case "$prev" in
+                -*)
+                  COMPREPLY=( $(compgen -W "$ilist" -- ${cur}) )
+                  ;;
+              esac
+          esac
+      esac
+  esac
+
+  return 0
+}
+
+complete -F _gnt_instance gnt-instance
+
+_gnt_job()
+{
+  local cur prev cmds
+  cur="$2"
+  prev="$3"
+
+  cmds="archive autoarchive cancel info list"
+
+  # default completion is empty
+  COMPREPLY=()
+
+  if [[ ! -f "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    # cluster not initialized
+    return 0
+  fi
+
+  case "$COMP_CWORD" in
+    1)
+      # complete the command name
+      COMPREPLY=( $(compgen -W "$cmds" -- ${cur}) )
+      ;;
+    *)
+      # we're doing options to commands
+      base_cmd="${COMP_WORDS[1]}"
+      case "${base_cmd}" in
+        archive|cancel|info)
+          # FIXME: this is really going into the internals of the job queue
+          jlist=$( cd @LOCALSTATEDIR@/lib/ganeti/queue; echo job-*)
+          jlist=${jlist//job-/}
+          COMPREPLY=( $(compgen -W "$jlist" -- ${cur}) )
+          ;;
+        list)
+          COMPREPLY=( $(compgen -W "--no-headers --separator -o" -- ${cur}) )
+          ;;
+
+      esac
+  esac
+
+  return 0
+}
+
+complete -F _gnt_job gnt-job
+
+_gnt_os()
+{
+  local cur prev cmds
+  cur="$2"
+  prev="$3"
+
+  cmds="list diagnose"
+
+  # default completion is empty
+  COMPREPLY=()
+
+  if [[ ! -f "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    # cluster not initialized
+    return 0
+  fi
+
+  case "$COMP_CWORD" in
+    1)
+      # complete the command name
+      COMPREPLY=( $(compgen -W "$cmds" -- ${cur}) )
+      ;;
+    *)
+      # we're doing options to commands
+      base_cmd="${COMP_WORDS[1]}"
+      case "${base_cmd}" in
+        list)
+          if [[ "$COMP_CWORD" -eq 2 ]]; then
+            COMPREPLY=( $(compgen -W "--no-headers" -- ${cur}) )
+          fi
+          ;;
+      esac
+  esac
+
+  return 0
+}
+
+complete -F _gnt_os gnt-os
+
+_gnt_node()
+{
+  local cur prev cmds base_cmd
+  cur="$2"
+  prev="$3"
+
+  cmds="add add-tags evacuate failover info list list-tags migrate modify \
+          remove remove-tags volumes"
+
+  # default completion is empty
+  COMPREPLY=()
+
+  if [[ ! -f "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    # cluster not initialized
+    return 0
+  fi
+
+  nlist=$(< "@LOCALSTATEDIR@/lib/ganeti/ssconf_node_list")
+
+  case "$COMP_CWORD" in
+    1)
+      # complete the command name
+      COMPREPLY=( $(compgen -W "$cmds" -- ${cur}) )
+      ;;
+    *)
+      # we're doing options to commands
+      base_cmd="${COMP_WORDS[1]}"
+      case "${base_cmd}" in
+        # first rules for multiple commands
+        list-tags|remove)
+          # commands with only one instance argument, nothing else
+          if [[ "$COMP_CWORD" -eq 2 ]]; then
+            COMPREPLY=( $(compgen -W "$nlist" -- ${cur}) )
+          fi
+          ;;
+        add-tags|info|remove-tags|volumes)
+          COMPREPLY=( $(compgen -W "$nlist" -- ${cur}) )
+          ;;
+        # individual commands
+        add)
+          # options or instances
+          COMPREPLY=( $(compgen -W "-s --readd --no-ssh-key-check" -- ${cur}) )
+          ;;
+        evacuate)
+          case "$COMP_CWORD" in
+            2)
+              # options or instances
+              COMPREPLY=( $(compgen -W "-n -I $nlist" -- ${cur}) )
+              ;;
+            3)
+              # if previous was option, we allow node
+              case "$prev" in
+                -*)
+                  COMPREPLY=( $(compgen -W "$nlist" -- ${cur}) )
+                  ;;
+              esac
+          esac
+          ;;
+        failover)
+          case "$COMP_CWORD" in
+            2)
+              # options or instances
+              COMPREPLY=( $(compgen -W "--ignore-failures $nlist" -- ${cur}) )
+              ;;
+            3)
+              # if previous was option, we allow node
+              case "$prev" in
+                -*)
+                  COMPREPLY=( $(compgen -W "$nlist" -- ${cur}) )
+                  ;;
+              esac
+          esac
+          ;;
+        list)
+          COMPREPLY=( $(compgen -W "--no-headers --separator --units -o \
+                          --sync $nlist" -- ${cur}) )
+          ;;
+        modify)
+          # TODO: after a non-option, don't allow options
+          if [[ "$COMP_CWORD" -eq 2 || "$prev" != -* ]]; then
+            COMPREPLY=( $(compgen -W "-C -O -D $nlist" -- ${cur}) )
+          elif [[ "$prev" == -* ]]; then
+            COMPREPLY=( $(compgen -W "yes no" -- ${cur}) )
+          fi
+          ;;
+        migrate)
+          case "$COMP_CWORD" in
+            2)
+              # options or nodes
+              COMPREPLY=( $(compgen -W "--non-live $nlist" -- ${cur}) )
+              ;;
+            3)
+              # if previous was option, we allow node
+              case "$prev" in
+                -*)
+                  COMPREPLY=( $(compgen -W "$nlist" -- ${cur}) )
+                  ;;
+              esac
+          esac
+      esac
+  esac
+
+  return 0
+}
+
+complete -F _gnt_node gnt-node
+
+# other tools
+
+_gnt_tool_burnin()
+{
+  local cur prev
+  cur="$2"
+  prev="$3"
+
+  # default completion is empty
+  COMPREPLY=()
+
+  if [[ ! -f "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
+    # cluster not initialized
+    return 0
+  fi
+
+  nlist=$(< "@LOCALSTATEDIR@/lib/ganeti/ssconf_node_list")
+
+  case "$prev" in
+    -t)
+      COMPREPLY=( $(compgen -W "diskless file plain drbd" -- ${cur}) )
+      ;;
+    --rename)
+      # this needs an unused host name, so we don't complete it
+      ;;
+    -n|--nodes)
+      # nodes from the cluster, comma separated
+      # FIXME: make completion work for comma-separated values
+      COMPREPLY=( $(compgen -W "$nlist" -- ${cur}) )
+      ;;
+    -o|--os)
+      # the os list
+      COMPREPLY=( $(compgen -W "$(gnt-os list --no-headers)" -- ${cur}) )
+      ;;
+    --disk-size|--disk-growth)
+      # these take a number or unit, we can't really autocomplete, but
+      # we show a couple of examples
+      COMPREPLY=( $(compgen -W "128M 512M 1G 4G 1G,256M 4G,1G,1G 10G" -- \
+        ${cur}) )
+      ;;
+    --mem-size)
+      # this takes a number or unit, we can't really autocomplete, but
+      # we show a couple of examples
+      COMPREPLY=( $(compgen -W "128M 256M 512M 1G 4G 8G 12G 16G" -- ${cur}) )
+      ;;
+    --net-timeout)
+      # this takes a number in seconds; again, we can't really complete
+      COMPREPLY=( $(compgen -W "15 60 300 900" -- ${cur}) )
+      ;;
+    *)
+      # all other, we just list the whole options
+      COMPREPLY=( $(compgen -W "-o --disk-size --disk-growth --mem-size \
+                      -v --verbose --no-replace1 --no-replace2 --no-failover \
+                      --no-migrate --no-importexport --no-startstop \
+                      --no-reinstall --no-reboot --no-activate-disks \
+                      --no-add-disks --no-add-nics --no-nics \
+                      --rename -t -n --nodes -I --iallocator -p --parallel \
+                      --net-timeout -C --http-check -K --keep-instances" \
+        -- ${cur}) )
+  esac
+
+  return 0
+}
+
+complete -F _gnt_tool_burnin @PREFIX@/lib/ganeti/tools/burnin
