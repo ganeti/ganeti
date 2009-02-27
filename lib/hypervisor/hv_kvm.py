@@ -73,9 +73,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     hv_base.BaseHypervisor.__init__(self)
     # Let's make sure the directories we need exist, even if the RUN_DIR lives
     # in a tmpfs filesystem or has been otherwise wiped out.
-    for mydir in self._DIRS:
-      if not os.path.exists(mydir):
-        os.mkdir(mydir)
+    dirs = [(dir, constants.RUN_DIRS_MODE) for dir in self._DIRS]
+    utils.EnsureDirs(dirs)
 
   def _InstancePidAlive(self, instance_name):
     """Returns the instance pid and pidfile
