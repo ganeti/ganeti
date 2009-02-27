@@ -20,6 +20,9 @@
 
 """Script to generate documentation for remote API resources.
 
+This is hard-coded to the section numbering we have in the master RST
+document.
+
 """
 
 import re
@@ -33,6 +36,29 @@ from ganeti.rapi import connector
 CHECKED_COMMANDS = ["GET", "POST", "PUT", "DELETE"]
 
 
+def beautify(text):
+  """A couple of small enhancements, epydoc-to-rst.
+
+  """
+  pairs = [
+    ("@return:", "Returns:"),
+    ]
+
+  for old, new in pairs:
+    text = text.replace(old, new)
+
+  return text
+
+
+def indent(text):
+  """Returns a text block with all lines indented.
+
+  """
+  lines = text.splitlines()
+  lines = ["  " + l for l in lines]
+  return "\n".join(lines)
+
+
 def main():
   # Get list of all resources
   all = list(connector.CONNECTOR.itervalues())
@@ -40,48 +66,35 @@ def main():
   # Sort rlib by URI
   all.sort(cmp=lambda a, b: cmp(a.DOC_URI, b.DOC_URI))
 
-  print "<!-- Automatically generated, do not edit -->"
+  print ".. Automatically generated, do not edit\n"
 
   for cls in all:
-    print "<sect2>"
-    print "<title>%s</title>" % cgi.escape(cls.DOC_URI)
+    title = cls.DOC_URI
+    print "%s\n%s\n" % (title, "+" * len(title))
 
     # Class docstring
     description = inspect.getdoc(cls)
     if description:
-      print ("<literallayout>%s</literallayout>" %
-             cgi.escape(description.strip()))
-
-    print '<informaltable><tgroup cols="2">'
-    print '<colspec colwidth="1*">'
-    print '<colspec colwidth="5*">'
-    print "<thead>"
-    print "  <row>"
-    print "    <entry>Method</entry>"
-    print "    <entry>Description</entry>"
-    print "  </row>"
-    print "</thead>"
-    print '<tbody valign="top">'
+      print "::\n"
+      print indent(description.strip())
+    print
+    supported = [cmd for cmd in CHECKED_COMMANDS if hasattr(cls, cmd)]
+    print "It supports the following commands: %s." % (", ".join(supported))
+    print
 
     for cmd in CHECKED_COMMANDS:
       if not hasattr(cls, cmd):
         continue
 
+      print "%s\n%s\n" % (cmd, "~" * len(cmd))
+
       # Get docstring
       text = inspect.getdoc(getattr(cls, cmd))
-      if not text:
-        text = ""
-
-      print "<row>"
-      print "  <entry>%s</entry>" % cgi.escape(cmd)
-      print ("  <entry><literallayout>%s</literallayout></entry>" %
-             cgi.escape(text.strip()))
-      print "</row>"
-
-    print "</tbody>"
-    print "</tgroup></informaltable>"
-
-    print "</sect2>"
+      if text:
+        text = beautify(text)
+        print "::\n"
+        print indent(text)
+        print
 
 
 if __name__ == "__main__":

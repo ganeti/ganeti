@@ -36,7 +36,7 @@
 /doc/*.in
 /doc/*.pdf
 /doc/*.png
-/doc/rapi-resources.sgml
+/doc/rapi-resources.gen
 
 # doc/examples
 /doc/examples/bash_completion

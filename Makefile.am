@@ -44,7 +44,7 @@ CLEANFILES = \
 	doc/*.in \
 	doc/*.pdf \
 	$(patsubst %.dot,%.png,$(docdot)) \
-	doc/rapi-resources.sgml \
+	doc/rapi-resources.gen \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
@@ -108,9 +108,6 @@ http_PYTHON = \
 	lib/http/server.py
 
 
-docsgml = \
-	doc/rapi.sgml
-
 docrst = \
 	doc/admin.rst \
 	doc/design-2.0.rst \
@@ -123,9 +120,7 @@ docdot = \
 	doc/arch-2.0.dot
 
 doc_DATA = \
-	$(patsubst %.rst,%.html,$(docrst)) \
-	$(patsubst %.sgml,%.html,$(docsgml)) \
-	$(patsubst %.sgml,%.pdf,$(docsgml))
+	$(patsubst %.rst,%.html,$(docrst))
 
 noinst_DATA = $(manhtml)
 
@@ -155,7 +150,6 @@ EXTRA_DIST = \
 	devel/upload.in \
 	$(docrst) \
 	$(docdot) \
-	$(docsgml) \
 	doc/build-rapi-resources-doc \
 	doc/examples/bash_completion.in \
 	doc/examples/ganeti.initd.in \
@@ -228,6 +222,7 @@ TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir)
 
+RAPI_RESOURCES = $(wildcard lib/rapi/*.py)
 
 all-local: stamp-directories lib/_autoconf.py devel/upload \
 	doc/examples/bash_completion \
@@ -250,9 +245,6 @@ man/%.in: man/%.sgml stamp-directories $(REPLACE_VARS_SED)
 doc/%.pdf: doc/%.in $(DOCBOOK_WRAPPER)
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2PDF)" $< $@
 
-doc/%.html: doc/%.in $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $@
-
 doc/%.html: doc/%.rst
 	$(RST2HTML) $< $@
 
@@ -261,10 +253,11 @@ doc/%.png: doc/%.dot
 
 doc/design-2.0.html: doc/design-2.0.rst doc/arch-2.0.png
 
-doc/rapi.pdf doc/rapi.html doc/rapi.in: doc/rapi-resources.sgml
+doc/rapi.pdf doc/rapi.html: doc/rapi-resources.gen
 
-doc/rapi-resources.sgml: $(BUILD_RAPI_RESOURCE_DOC) lib/rapi/connector.py
-	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || rm -f $@
+doc/rapi-resources.gen: $(BUILD_RAPI_RESOURCE_DOC) $(RAPI_RESOURCES)
+	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || \
+	  rm -f $@
 
 man/%.7: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $@
@@ -322,10 +315,6 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
 	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
-	  echo '/@INCLUDE_RAPI_RESOURCES@/ {'; \
-	  echo '  r $(abs_top_builddir)/doc/rapi-resources.sgml'; \
-	  echo '  d'; \
-	  echo '}'; \
 	} > $@
 
 # We need to create symlinks because "make distcheck" will not install Python
