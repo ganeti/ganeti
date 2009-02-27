@@ -1446,7 +1446,7 @@ def Daemonize(logfile):
   @type logfile: str
   @param logfile: the logfile to which we should redirect stdout/stderr
   @rtype: int
-  @returns: the value zero
+  @return: the value zero
 
   """
   UMASK = 077

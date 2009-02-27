@@ -282,7 +282,7 @@ def InitConfig(version, cluster_config, master_node_config,
   @param cfg_file: configuration file path
 
   @rtype: L{ssconf.SimpleConfigWriter}
-  @returns: initialized config instance
+  @return: initialized config instance
 
   """
   nodes = {

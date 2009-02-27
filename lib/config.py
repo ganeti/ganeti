@@ -827,7 +827,7 @@ class ConfigWriter:
     """Get the configuration of all instances.
 
     @rtype: dict
-    @returns: dict of (instance, instance_info), where instance_info is what
+    @return: dict of (instance, instance_info), where instance_info is what
               would GetInstanceInfo return for the node
 
     """

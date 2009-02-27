@@ -322,7 +322,7 @@ class R_2_instances(baserlib.R_Generic):
         ...
       ]
 
-    @returns: a dictionary with 'name' and 'uri' keys for each of them.
+    @return: a dictionary with 'name' and 'uri' keys for each of them.
 
     """
     client = luxi.Client()
@@ -340,7 +340,7 @@ class R_2_instances(baserlib.R_Generic):
   def POST(self):
     """Create an instance.
 
-    @returns: a job id
+    @return: a job id
 
     """
     if not isinstance(self.req.request_body, dict):

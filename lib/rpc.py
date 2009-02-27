@@ -217,7 +217,7 @@ class Client:
     """Call nodes and return results.
 
     @rtype: list
-    @returns: List of RPC results
+    @return: List of RPC results
 
     """
     assert _http_manager, "RPC module not intialized"

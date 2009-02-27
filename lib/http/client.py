@@ -368,7 +368,7 @@ class HttpClientManager(object):
     @type requests: List of HttpClientRequest instances
     @param requests: The requests to execute
     @rtype: List of HttpClientRequest instances
-    @returns: The list of requests passed in
+    @return: The list of requests passed in
 
     """
     # _HttpClientPendingRequest is used for internal thread synchronization

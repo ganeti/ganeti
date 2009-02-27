@@ -856,7 +856,7 @@ def FormatTimestamp(ts):
   @param ts: a timeval-type timestamp, a tuple of seconds and microseconds
 
   @rtype: string
-  @returns: a string with the formatted timestamp
+  @return: a string with the formatted timestamp
 
   """
   if not isinstance (ts, (tuple, list)) or len(ts) != 2:

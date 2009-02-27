@@ -1670,7 +1670,7 @@ class LUDiagnoseOS(NoHooksLU):
     @param rlist: a map with node names as keys and OS objects as values
 
     @rtype: dict
-    @returns: a dictionary with osnames as keys and as value another map, with
+    @return: a dictionary with osnames as keys and as value another map, with
         nodes as keys and list of OS objects as values, eg::
 
           {"debian-etch": {"node1": [<object>,...],
