@@ -109,7 +109,6 @@ http_PYTHON = \
 
 
 docsgml = \
-	doc/install.sgml \
 	doc/rapi.sgml
 
 docrst = \
@@ -117,6 +116,7 @@ docrst = \
 	doc/design-2.0.rst \
 	doc/hooks.rst \
 	doc/iallocator.rst \
+	doc/install.rst \
 	doc/security.rst
 
 docdot = \
