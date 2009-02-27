@@ -205,6 +205,9 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     raise errors.OpPrereqError("Init.d script '%s' missing or not"
                                " executable." % constants.NODE_INITD_SCRIPT)
 
+  dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE)]
+  utils.EnsureDirs(dirs)
+
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
   # hvparams is a mapping of hypervisor->hvparams dict
   for hv_name, hv_params in hvparams.iteritems():

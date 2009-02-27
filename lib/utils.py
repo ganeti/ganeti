@@ -1182,6 +1182,24 @@ def GenerateSecret():
   return sha.new(os.urandom(64)).hexdigest()
 
 
+def EnsureDirs(dirs):
+  """Make required directories, if they don't exist.
+
+  @param dirs: list of tuples (dir_name, dir_mode)
+  @type dirs: list of (string, integer)
+
+  """
+  for dir_name, dir_mode in dirs:
+    try:
+      os.mkdir(dir_name, mode)
+    except EnvironmentError, err:
+      if err.errno != errno.EEXIST:
+        raise errors.GenericError("Cannot create needed directory"
+          " '%s': %s" % (dir_name, err))
+    if not os.path.isdir(dir_name):
+      raise errors.GenericError("%s is not a directory" % dir_name)
+
+
 def ReadFile(file_name, size=None):
   """Reads a file.
 
