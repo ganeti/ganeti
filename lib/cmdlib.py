@@ -647,7 +647,7 @@ class LUVerifyCluster(LogicalUnit):
 
   def _VerifyNode(self, nodeinfo, file_list, local_cksum,
                   node_result, feedback_fn, master_files,
-                  drbd_map):
+                  drbd_map, vg_name):
     """Run multiple tests against a node.
 
     Test list:
@@ -667,6 +667,7 @@ class LUVerifyCluster(LogicalUnit):
     @param drbd_map: the useddrbd minors for this node, in
         form of minor: (instance, must_exist) which correspond to instances
         and their running status
+    @param vg_name: Ganeti Volume Group (result of self.cfg.GetVGName())
 
     """
     node = nodeinfo.name
@@ -700,18 +701,18 @@ class LUVerifyCluster(LogicalUnit):
                   (constants.RELEASE_VERSION, node, remote_version[1]))
 
     # checks vg existence and size > 20G
-
-    vglist = node_result.get(constants.NV_VGLIST, None)
-    if not vglist:
-      feedback_fn("  - ERROR: unable to check volume groups on node %s." %
-                      (node,))
-      bad = True
-    else:
-      vgstatus = utils.CheckVolumeGroupSize(vglist, self.cfg.GetVGName(),
-                                            constants.MIN_VG_SIZE)
-      if vgstatus:
-        feedback_fn("  - ERROR: %s on node %s" % (vgstatus, node))
+    if vg_name is not None:
+      vglist = node_result.get(constants.NV_VGLIST, None)
+      if not vglist:
+        feedback_fn("  - ERROR: unable to check volume groups on node %s." %
+                        (node,))
         bad = True
+      else:
+        vgstatus = utils.CheckVolumeGroupSize(vglist, vg_name,
+                                              constants.MIN_VG_SIZE)
+        if vgstatus:
+          feedback_fn("  - ERROR: %s on node %s" % (vgstatus, node))
+          bad = True
 
     # checks config file checksum
 
@@ -773,20 +774,21 @@ class LUVerifyCluster(LogicalUnit):
                       (hv_name, hv_result))
 
     # check used drbd list
-    used_minors = node_result.get(constants.NV_DRBDLIST, [])
-    if not isinstance(used_minors, (tuple, list)):
-      feedback_fn("  - ERROR: cannot parse drbd status file: %s" %
-                  str(used_minors))
-    else:
-      for minor, (iname, must_exist) in drbd_map.items():
-        if minor not in used_minors and must_exist:
-          feedback_fn("  - ERROR: drbd minor %d of instance %s is not active" %
-                      (minor, iname))
-          bad = True
-      for minor in used_minors:
-        if minor not in drbd_map:
-          feedback_fn("  - ERROR: unallocated drbd minor %d is in use" % minor)
-          bad = True
+    if vg_name is not None:
+      used_minors = node_result.get(constants.NV_DRBDLIST, [])
+      if not isinstance(used_minors, (tuple, list)):
+        feedback_fn("  - ERROR: cannot parse drbd status file: %s" %
+                    str(used_minors))
+      else:
+        for minor, (iname, must_exist) in drbd_map.items():
+          if minor not in used_minors and must_exist:
+            feedback_fn("  - ERROR: drbd minor %d of instance %s is not active" %
+                        (minor, iname))
+            bad = True
+        for minor in used_minors:
+          if minor not in drbd_map:
+            feedback_fn("  - ERROR: unallocated drbd minor %d is in use" % minor)
+            bad = True
 
     return bad
 
@@ -962,13 +964,14 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_NODENETTEST: [(node.name, node.primary_ip,
                                   node.secondary_ip) for node in nodeinfo
                                  if not node.offline],
-      constants.NV_LVLIST: vg_name,
       constants.NV_INSTANCELIST: hypervisors,
-      constants.NV_VGLIST: None,
       constants.NV_VERSION: None,
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
-      constants.NV_DRBDLIST: None,
       }
+    if vg_name is not None:
+      node_verify_param[constants.NV_VGLIST] = None
+      node_verify_param[constants.NV_LVLIST] = vg_name
+      node_verify_param[constants.NV_DRBDLIST] = None
     all_nvinfo = self.rpc.call_node_verify(nodelist, node_verify_param,
                                            self.cfg.GetClusterName())
 
@@ -1007,11 +1010,13 @@ class LUVerifyCluster(LogicalUnit):
         node_drbd[minor] = (instance.name, instance.admin_up)
       result = self._VerifyNode(node_i, file_names, local_checksums,
                                 nresult, feedback_fn, master_files,
-                                node_drbd)
+                                node_drbd, vg_name)
       bad = bad or result
 
       lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
-      if isinstance(lvdata, basestring):
+      if vg_name is None:
+        node_volume[node] = {}
+      elif isinstance(lvdata, basestring):
         feedback_fn("  - ERROR: LVM problem on node %s: %s" %
                     (node, utils.SafeEncode(lvdata)))
         bad = True
@@ -1043,7 +1048,6 @@ class LUVerifyCluster(LogicalUnit):
       try:
         node_info[node] = {
           "mfree": int(nodeinfo['memory_free']),
-          "dfree": int(nresult[constants.NV_VGLIST][vg_name]),
           "pinst": [],
           "sinst": [],
           # dictionary holding all instances this node is secondary for,
@@ -1054,6 +1058,9 @@ class LUVerifyCluster(LogicalUnit):
           # secondary.
           "sinst-by-pnode": {},
         }
+        # FIXME: devise a free space model for file based instances as well
+        if vg_name is not None:
+          node_info[node]["dfree"] = int(nresult[constants.NV_VGLIST][vg_name])
       except ValueError:
         feedback_fn("  - ERROR: invalid value returned from node %s" % (node,))
         bad = True
