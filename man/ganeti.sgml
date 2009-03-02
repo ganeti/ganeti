@@ -93,6 +93,19 @@
       <para>Each node can be in one of the following states:
         <variablelist>
           <varlistentry>
+            <term>master</term>
+            <listitem>
+              <para>
+                Only one node per cluster can be in this role, and
+                this node is the one holding the authoritative copy of
+                the cluster configuration and the one that can
+                actually execute commands on the cluster and modify
+                the cluster state. See more details under
+                <emphasis>Cluster configuration</emphasis>.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
             <term>master_candidate</term>
             <listitem>
               <para>The node receives the full cluster configuration

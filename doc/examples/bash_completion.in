@@ -106,10 +106,10 @@ _gnt_cluster()
       # complete arguments to the command
       case "$prev" in
         "queue")
-        COMPREPLY=( $(compgen -W "drain undrain info" -- ${cur}) )
-        ;;
-      *)
-        ;;
+          COMPREPLY=( $(compgen -W "drain undrain info" -- ${cur}) )
+          ;;
+	*)
+          ;;
       esac
   esac
 
