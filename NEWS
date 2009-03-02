@@ -1,3 +1,12 @@
+Version 2.0 release candidate 1
+  - More documentation updates, now all docs should be more-or-less
+    up-to-date
+  - A couple of small fixes (mixed hypervisor clusters, offline nodes,
+    etc.)
+  - Added a customizable HV_KERNEL_ARGS hypervisor parameter (for Xen
+    PVM and KVM)
+  - Fix an issue related to $libdir/run/ganeti and cluster creation
+
 Version 2.0 beta 2
   - Xen PVM and KVM have switched the default value for the instance
     root disk to the first partition on the first drive, instead of the
