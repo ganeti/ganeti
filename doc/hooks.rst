@@ -304,7 +304,7 @@ post-execution hooks, in order to allow administrators to enhance the
 cluster verification procedure.
 
 :directory: cluster-verify
-:env. vars: CLUSTER, MASTER
+:env. vars: CLUSTER, MASTER, CLUSTER_TAGS, NODE_TAGS_<name>
 :pre-execution: none
 :post-execution: all nodes
 
@@ -477,6 +477,12 @@ EXPORT_DO_SHUTDOWN
   filesystem is consistent, whereas in the "did not shutdown" case,
   the filesystem would need a check (journal replay or full fsck) in
   order to guarantee consistency.
+
+CLUSTER_TAGS
+  The list of cluster tags, space separated.
+
+NODE_TAGS_<name>
+  The list of tags for node *<name>*, space separated.
 
 Examples
 --------

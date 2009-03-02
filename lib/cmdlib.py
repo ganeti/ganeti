@@ -782,12 +782,13 @@ class LUVerifyCluster(LogicalUnit):
       else:
         for minor, (iname, must_exist) in drbd_map.items():
           if minor not in used_minors and must_exist:
-            feedback_fn("  - ERROR: drbd minor %d of instance %s is not active" %
-                        (minor, iname))
+            feedback_fn("  - ERROR: drbd minor %d of instance %s is"
+                        " not active" % (minor, iname))
             bad = True
         for minor in used_minors:
           if minor not in drbd_map:
-            feedback_fn("  - ERROR: unallocated drbd minor %d is in use" % minor)
+            feedback_fn("  - ERROR: unallocated drbd minor %d is in use" %
+                        minor)
             bad = True
 
     return bad
@@ -915,8 +916,12 @@ class LUVerifyCluster(LogicalUnit):
 
     """
     all_nodes = self.cfg.GetNodeList()
-    # TODO: populate the environment with useful information for verify hooks
-    env = {}
+    env = {
+      "CLUSTER_TAGS": " ".join(self.cfg.GetClusterInfo().GetTags())
+      }
+    for node in self.cfg.GetAllNodesInfo().values():
+      env["NODE_TAGS_%s" % node.name] = " ".join(node.GetTags())
+
     return env, [], all_nodes
 
   def Exec(self, feedback_fn):
