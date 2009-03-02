@@ -179,7 +179,7 @@ class TaggableObject(ConfigObject):
                             constants.MAX_TAG_LEN)
     if not tag:
       raise errors.TagError("Tags cannot be empty")
-    if not re.match("^[ \w.+*/:-]+$", tag):
+    if not re.match("^[\w.+*/:-]+$", tag):
       raise errors.TagError("Tag contains invalid characters")
 
   def GetTags(self):
