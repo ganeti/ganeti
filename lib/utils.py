@@ -1191,11 +1191,11 @@ def EnsureDirs(dirs):
   """
   for dir_name, dir_mode in dirs:
     try:
-      os.mkdir(dir_name, mode)
+      os.mkdir(dir_name, dir_mode)
     except EnvironmentError, err:
       if err.errno != errno.EEXIST:
         raise errors.GenericError("Cannot create needed directory"
-          " '%s': %s" % (dir_name, err))
+                                  " '%s': %s" % (dir_name, err))
     if not os.path.isdir(dir_name):
       raise errors.GenericError("%s is not a directory" % dir_name)
 
