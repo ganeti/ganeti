@@ -72,13 +72,16 @@ the following:
 
 version
   the version of the protocol; this document
-  specifies version 1
+  specifies version 2
 
 cluster_name
   the cluster name
 
 cluster_tags
   the list of cluster tags
+
+enabled_hypervisors
+  the list of enabled hypervisors
 
 request
   a dictionary containing the request data:
@@ -148,6 +151,9 @@ request
   tags
     the list of the instance's tags
 
+  hypervisor
+    the hypervisor of this instance
+
 
   If the request is of type relocate, then there is one more entry in
   the request dictionary, named ``relocate_from``, and it contains a
@@ -160,7 +166,7 @@ instances
   cluster, indexed by instance name; the contents are similar to the
   instance definitions for the allocate mode, with the addition of:
 
-  should_run
+  admin_up
     if this instance is set to run (but not the actual status of the
     instance)
 
@@ -199,6 +205,26 @@ nodes
 
   tags
     list with the tags of the node
+
+  master_candidate:
+    a boolean flag denoting whether this node is a master candidate
+
+  drained:
+    a boolean flag denoting whether this node is being drained
+
+  offline:
+    a boolean flag denoting whether this node is offline
+
+  i_pri_memory:
+    total memory required by primary instances
+
+  i_pri_up_memory:
+    total memory required by running primary instances
+
+  No allocations should be made on nodes having either the ``drained``
+  or ``offline`` flags set. More details about these of node status
+  flags is available in the manpage *ganeti(7)*.
+
 
 Respone message
 ~~~~~~~~~~~~~~~

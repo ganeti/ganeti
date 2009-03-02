@@ -1,7 +1,7 @@
 Ganeti installation tutorial
 ============================
 
-Documents Ganeti version 2.0.
+Documents Ganeti version 2.0
 
 .. contents::
 

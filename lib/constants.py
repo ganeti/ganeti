@@ -402,6 +402,7 @@ NV_VGLIST = "vglist"
 NV_DRBDLIST = "drbd-list"
 
 # Allocator framework constants
+IALLOCATOR_VERSION = 2
 IALLOCATOR_DIR_IN = "in"
 IALLOCATOR_DIR_OUT = "out"
 IALLOCATOR_MODE_ALLOC = "allocate"

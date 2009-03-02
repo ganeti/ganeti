@@ -6587,7 +6587,7 @@ class IAllocator(object):
     cluster_info = cfg.GetClusterInfo()
     # cluster data
     data = {
-      "version": 1,
+      "version": constants.IALLOCATOR_VERSION,
       "cluster_name": cfg.GetClusterName(),
       "cluster_tags": list(cluster_info.GetTags()),
       "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
