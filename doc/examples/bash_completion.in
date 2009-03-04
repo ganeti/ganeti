@@ -108,6 +108,12 @@ _gnt_cluster()
         "queue")
           COMPREPLY=( $(compgen -W "drain undrain info" -- ${cur}) )
           ;;
+        "copyfile")
+          COMPREPLY=( $(compgen -f -- ${cur}) )
+          ;;
+        "command")
+          COMPREPLY=( $(compgen -c -- ${cur}) )
+          ;;
 	*)
           ;;
       esac
