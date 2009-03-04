@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2007, 2008 Google Inc.
+# Copyright (C) 2007, 2008, 2009 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
 
 """Tool to upgrade the configuration file.
 
-This code handles only the types supported by simplejson. As an example, "set"
-is a "list".
+This code handles only the types supported by simplejson. As an
+example, 'set' is a 'list'.
 
 """
 
@@ -39,6 +39,7 @@ from ganeti import constants
 from ganeti import serializer
 from ganeti import utils
 from ganeti import cli
+from ganeti import bootstrap
 
 
 # We need to keep filenames locally because they might be renamed between
@@ -59,6 +60,13 @@ NoDefault = object()
 class Error(Exception):
   """Generic exception"""
   pass
+
+
+def SsconfName(key):
+  """Returns the file name of an (old) ssconf key.
+
+  """
+  return "%s/ssconf_%s" % (constants.DATA_DIR, key)
 
 
 def ReadFile(file_name, default=NoDefault):
@@ -108,6 +116,63 @@ def SetupLogging():
   root_logger.addHandler(stderr_handler)
 
 
+def Cluster12To20(cluster):
+  """Upgrades the cluster object from 1.2 to 2.0.
+
+  """
+  logging.info("Upgrading the cluster object")
+  # Upgrade the configuration version
+  if 'config_version' in cluster:
+    del cluster['config_version']
+
+  # Add old ssconf keys back to config
+  logging.info(" - importing ssconf keys")
+  for key in ('master_node', 'master_ip', 'master_netdev', 'cluster_name'):
+    if key not in cluster:
+      cluster[key] = ReadFile(SsconfName(key)).strip()
+
+  if 'default_hypervisor' not in cluster:
+    old_hyp = ReadFile(SsconfName('hypervisor')).strip()
+    if old_hyp == "xen-3.0":
+      hyp = "xen-pvm"
+    elif old_hyp == "xen-hvm-3.1":
+      hyp = "xen-hvm"
+    elif old_hyp == "fake":
+      hyp = "fake"
+    else:
+      raise Error("Unknown old hypervisor name '%s'" % old_hyp)
+
+    logging.info("Setting the default and enabled hypervisor")
+    cluster['default_hypervisor'] = hyp
+    cluster['enabled_hypervisors'] = [hyp]
+
+  # hv/be params
+  if 'hvparams' not in cluster:
+    logging.info(" - adding hvparams")
+    cluster['hvparams'] = constants.HVC_DEFAULTS
+  if 'beparams' not in cluster:
+    logging.info(" - adding beparams")
+    cluster['beparams'] = {constants.BEGR_DEFAULT: constants.BEC_DEFAULTS}
+
+  # file storage
+  if 'file_storage_dir' not in cluster:
+    cluster['file_storage_dir'] = constants.DEFAULT_FILE_STORAGE_DIR
+
+
+def Node12To20(node):
+  """Upgrades a node from 1.2 to 2.0.
+
+  """
+  logging.info("Upgrading node %s" % node['name'])
+  if 'serial_no' not in node:
+    node['serial_no'] = 1
+  if 'master_candidate' not in node:
+    node['master_candidate'] = True
+  for key in 'offline', 'drained':
+    if key not in node:
+      node[key] = False
+
+
 def main():
   """Main program.
 
@@ -124,7 +189,7 @@ def main():
                          " output file")
   parser.add_option(cli.FORCE_OPT)
   parser.add_option(cli.DEBUG_OPT)
-  parser.add_option('--verbose', dest='verbose',
+  parser.add_option('-v', '--verbose', dest='verbose',
                     action="store_true",
                     help="Verbose output")
   (options, args) = parser.parse_args()
@@ -136,8 +201,8 @@ def main():
     raise Error("No arguments expected")
 
   if not options.force:
-    usertext = ("%s MUST run on the master node. Is this the master"
-                " node?" % program)
+    usertext = ("%s MUST be run on the master node. Is this the master"
+                " node and are ALL instances down?" % program)
     if not cli.AskUser(usertext):
       sys.exit(1)
 
@@ -157,11 +222,17 @@ def main():
   if config_version == "1.2":
     logging.info("Found a Ganeti 1.2 configuration")
 
-    old_config_version = config_data["cluster"].get("config_version", None)
+    cluster = config_data["cluster"]
+
+    old_config_version = cluster.get("config_version", None)
     logging.info("Found old configuration version %s", old_config_version)
     if old_config_version not in (3, ):
       raise Error("Unsupported configuration version: %s" %
                   old_config_version)
+    if 'version' not in config_data:
+      config_data['version'] = constants.BuildVersion(2, 0, 0)
+    if 'serial_no' not in config_data:
+      config_data['serial_no'] = 1
 
     # Make sure no instance uses remote_raid1 anymore
     remote_raid1_instances = []
@@ -174,14 +245,23 @@ def main():
       raise Error("Unable to convert configuration as long as there are"
                   " instances using remote_raid1 disk template")
 
-    # The configuration version will be stored in a ssconf file
-    if 'config_version' in config_data['cluster']:
-      del config_data['cluster']['config_version']
-
     # Build content of new known_hosts file
     cluster_name = ReadFile(SSCONF_CLUSTER_NAME_PATH).rstrip()
-    cluster_key = config_data['cluster']['rsahostkeypub']
+    cluster_key = cluster['rsahostkeypub']
     known_hosts = "%s ssh-rsa %s\n" % (cluster_name, cluster_key)
+
+    Cluster12To20(cluster)
+
+    # Add node attributes
+    logging.info("Upgrading nodes")
+    # stable-sort the names to have repeatable runs
+    for node_name in utils.NiceSort(config_data['nodes'].keys()):
+      Node12To20(config_data['nodes'][node_name])
+
+    # instance changes
+    # TODO: add instance upgrade
+    for instance in config_data['instances'].values():
+      pass
 
   else:
     logging.info("Found a Ganeti 2.0 configuration")
@@ -192,18 +272,18 @@ def main():
 
     known_hosts = None
 
-  config_version_str = "%s\n" % constants.BuildVersion(2, 0, 0)
   try:
     logging.info("Writing configuration file")
     WriteFile(CONFIG_DATA_PATH, serializer.DumpJson(config_data))
 
-    logging.info("Writing configuration version %s",
-                 config_version_str.strip())
-    WriteFile(SSCONF_CONFIG_VERSION_PATH, config_version_str)
-
     if known_hosts is not None:
       logging.info("Writing SSH known_hosts file (%s)", known_hosts.strip())
       WriteFile(KNOWN_HOSTS_PATH, known_hosts)
+
+    if not options.dry_run:
+      if not os.path.exists(constants.RAPI_CERT_FILE):
+        bootstrap._GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
+
   except:
     logging.critical("Writing configuration failed. It is proably in an"
                      " inconsistent state and needs manual intervention.")
