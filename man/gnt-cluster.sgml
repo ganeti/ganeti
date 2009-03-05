@@ -229,9 +229,9 @@
         <sbr>
         <arg>-t <replaceable>hypervisor name</replaceable></arg>
         <sbr>
-        <arg>--hypervisor-parameters <replaceable>hv-params</replaceable></arg>
+        <arg>--hypervisor-parameters <replaceable>hypervisor</replaceable>:<replaceable>hv-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>hv-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
-        <arg>--backend-parameters <replaceable>be-params</replaceable></arg>
+        <arg>--backend-parameters <replaceable>be-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>be-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
@@ -462,11 +462,9 @@
         <arg choice="opt">--enabled-hypervisors
         <replaceable>hypervisors</replaceable></arg>
         <sbr>
-        <arg choice="opt">--hypervisor-parameters
-        <replaceable>hv-params</replaceable></arg>
+        <arg choice="opt">--hypervisor-parameters <replaceable>hypervisor</replaceable>:<replaceable>hv-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>hv-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
-        <arg choice="opt">--backend-parameters
-        <replaceable>be-params</replaceable></arg>
+        <arg choice="opt">--backend-parameters <replaceable>be-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>be-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
         <arg>-C <replaceable>candidate_pool_size</replaceable></arg>
 
