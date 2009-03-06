@@ -69,6 +69,10 @@ INST_BE_CHG = {
   'auto_balance': constants.BE_AUTO_BALANCE,
   }
 
+# Field names
+F_SERIAL = 'serial_no'
+
+
 class Error(Exception):
   """Generic exception"""
   pass
@@ -197,8 +201,8 @@ def Node12To20(node):
 
   """
   logging.info("Upgrading node %s" % node['name'])
-  if 'serial_no' not in node:
-    node['serial_no'] = 1
+  if F_SERIAL not in node:
+    node[F_SERIAL] = 1
   if 'master_candidate' not in node:
     node['master_candidate'] = True
   for key in 'offline', 'drained':
@@ -210,6 +214,9 @@ def Instance12To20(drbd_minors, secrets, hypervisor, instance):
   """Upgrades an instance from 1.2 to 2.0.
 
   """
+  if F_SERIAL not in instance:
+    instance[F_SERIAL] = 1
+
   if 'hypervisor' not in instance:
     instance['hypervisor'] = hypervisor
 
@@ -332,8 +339,8 @@ def main():
                   old_config_version)
     if 'version' not in config_data:
       config_data['version'] = constants.BuildVersion(2, 0, 0)
-    if 'serial_no' not in config_data:
-      config_data['serial_no'] = 1
+    if F_SERIAL not in config_data:
+      config_data[F_SERIAL] = 1
 
     # Make sure no instance uses remote_raid1 anymore
     remote_raid1_instances = []
