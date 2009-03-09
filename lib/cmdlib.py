@@ -5297,7 +5297,7 @@ class LUReplaceDisks(LogicalUnit):
       try:
         _CreateSingleBlockDev(self, new_node, instance, new_drbd,
                               _GetInstanceInfoText(instance), False)
-      except errors.BlockDeviceError:
+      except errors.GenericError:
         self.cfg.ReleaseDRBDMinors(instance.name)
         raise
 
