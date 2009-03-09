@@ -1011,8 +1011,16 @@ class LUVerifyCluster(LogicalUnit):
 
       node_drbd = {}
       for minor, instance in all_drbd_map[node].items():
-        instance = instanceinfo[instance]
-        node_drbd[minor] = (instance.name, instance.admin_up)
+        if instance not in instanceinfo:
+          feedback_fn("  - ERROR: ghost instance '%s' in temporary DRBD map" %
+                      instance)
+          # ghost instance should not be running, but otherwise we
+          # don't give double warnings (both ghost instance and
+          # unallocated minor in use)
+          node_drbd[minor] = (instance, False)
+        else:
+          instance = instanceinfo[instance]
+          node_drbd[minor] = (instance.name, instance.admin_up)
       result = self._VerifyNode(node_i, file_names, local_checksums,
                                 nresult, feedback_fn, master_files,
                                 node_drbd, vg_name)
