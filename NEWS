@@ -1,0 +1,22 @@
+Version 0.0.5:
+  - a few small improvements for hbal (possibly undone by later
+    changes), hbal is now quite faster
+  - fix documentation building
+  - allow hbal to work on non N+1 compliant clusters, but without
+    guarantees that the end cluster will be compliant; in any case, this
+    should give a smaller number of nodes that are not compliant if the
+    cluster state permits it
+  - strip common domain suffix from nodes and instances, so that output
+    is shorter and hopefully clearer
+
+Version 0.0.4:
+  - better balancing algorithm in hbal
+  - implemented an RAPI collector, now the cluster data can be gathered
+    automatically via RAPI and doesn't need manual export of node and
+    instance list
+
+Version 0.0.3:
+  - initial release of the hbal, a cluster rebalancing tool
+  - input data format changed due to hbal requirements
+
+Previous version was initial announcement.
