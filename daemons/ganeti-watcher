@@ -274,7 +274,8 @@ class Watcher(object):
   to restart machines that are down.
 
   """
-  def __init__(self, opts):
+  def __init__(self, opts, notepad):
+    self.notepad = notepad
     master = client.QueryConfigValues(["master_node"])[0]
     if master != utils.HostInfo().name:
       raise NotMasterError("This is not the master node")
@@ -284,14 +285,14 @@ class Watcher(object):
     self.opts = opts
 
   def Run(self):
-    notepad = WatcherState()
-    try:
-      self.ArchiveJobs(self.opts.job_age)
-      self.CheckInstances(notepad)
-      self.CheckDisks(notepad)
-      self.VerifyDisks()
-    finally:
-      notepad.Save()
+    """Watcher run sequence.
+
+    """
+    notepad = self.notepad
+    self.ArchiveJobs(self.opts.job_age)
+    self.CheckInstances(notepad)
+    self.CheckDisks(notepad)
+    self.VerifyDisks()
 
   def ArchiveJobs(self, age):
     """Archive old jobs.
@@ -435,15 +436,19 @@ def main():
                      stderr_logging=options.debug)
 
   try:
-    client = cli.GetClient()
-
+    notepad = WatcherState()
     try:
-      watcher = Watcher(options)
-    except errors.ConfigurationError:
-      # Just exit if there's no configuration
-      sys.exit(constants.EXIT_SUCCESS)
+      client = cli.GetClient()
 
-    watcher.Run()
+      try:
+        watcher = Watcher(options, notepad)
+      except errors.ConfigurationError:
+        # Just exit if there's no configuration
+        sys.exit(constants.EXIT_SUCCESS)
+
+      watcher.Run()
+    finally:
+      notepad.Save()
   except SystemExit:
     raise
   except NotMasterError:
