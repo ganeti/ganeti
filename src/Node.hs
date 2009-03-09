@@ -87,6 +87,10 @@ computeFailN1 :: Int -> Int -> Int -> Bool
 computeFailN1 new_rmem new_mem new_dsk =
     new_mem <= new_rmem || new_dsk <= 0
 
+-- | Given the new free memory and disk, fail if any of them is below zero.
+failHealth :: Int -> Int -> Bool
+failHealth new_mem new_dsk = new_mem <= 0 || new_dsk <= 0
+
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
 computeMaxRes new_peers = PeerMap.maxElem new_peers
@@ -144,7 +148,7 @@ addPri t inst =
         new_mem = f_mem t - Instance.mem inst
         new_dsk = f_dsk t - Instance.dsk inst
         new_failn1 = computeFailN1 (maxRes t) new_mem new_dsk in
-      if new_failn1 then
+      if (failHealth new_mem new_dsk) || (new_failn1 && not (failN1 t)) then
         Nothing
       else
         let new_plist = iname:(plist t)
@@ -159,12 +163,13 @@ addSec :: Node -> Instance.Instance -> Int -> Maybe Node
 addSec t inst pdx =
     let iname = Instance.idx inst
         old_peers = peers t
+        old_mem = f_mem t
         new_dsk = f_dsk t - Instance.dsk inst
         new_peem = PeerMap.find pdx old_peers + Instance.mem inst
         new_peers = PeerMap.add pdx new_peem old_peers
         new_rmem = max (maxRes t) new_peem
-        new_failn1 = computeFailN1 new_rmem (f_mem t) new_dsk in
-    if new_failn1 then
+        new_failn1 = computeFailN1 new_rmem old_mem new_dsk in
+    if (failHealth old_mem new_dsk) || (new_failn1 && not (failN1 t)) then
         Nothing
     else
         let new_slist = iname:(slist t)
