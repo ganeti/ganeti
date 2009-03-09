@@ -621,6 +621,24 @@ fixNodes nl il =
                     ac3 = (pdx, pnew):(sdx, snew):ac2
                 in ac3) nl il
 
+-- | Compute the longest common suffix of a [(Int, String)] list that
+-- | starts with a dot
+longestDomain :: [(Int, String)] -> String
+longestDomain [] = ""
+longestDomain ((_,x):xs) =
+    let
+        onlyStrings = snd $ unzip xs
+    in
+      foldr (\ suffix accu -> if all (isSuffixOf suffix) onlyStrings
+                              then suffix
+                              else accu)
+      "" $ filter (isPrefixOf ".") (tails x)
+
+-- | Remove tails from the (Int, String) lists
+stripSuffix :: String -> [(Int, String)] -> [(Int, String)]
+stripSuffix suffix lst =
+    let sflen = length suffix in
+    map (\ (key, name) -> (key, take ((length name) - sflen) name)) lst
 
 {-| Initializer function that loads the data from a node and list file
     and massages it into the correct format. -}
@@ -628,7 +646,7 @@ loadData :: String -- ^ Node data in text format
          -> String -- ^ Instance data in text format
          -> (Container.Container Node.Node,
              Container.Container Instance.Instance,
-             [(Int, String)], [(Int, String)])
+             String, [(Int, String)], [(Int, String)])
 loadData ndata idata =
     let
     {- node file: name mem disk -}
@@ -646,5 +664,10 @@ loadData ndata idata =
         il3 = Container.fromAssocList il
         nl3 = Container.fromAssocList
              (map (\ (k, v) -> (k, Node.buildPeers v il3 (length nl2))) nl2)
+        xtn = swapPairs ktn
+        xti = swapPairs kti
+        common_suffix = longestDomain (xti ++ xtn)
+        stn = stripSuffix common_suffix xtn
+        sti = stripSuffix common_suffix xti
     in
-      (nl3, il3, swapPairs ktn, swapPairs kti)
+      (nl3, il3, common_suffix, stn, sti)

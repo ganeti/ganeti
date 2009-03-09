@@ -131,11 +131,15 @@ main = do
             host -> (readData getNodes host,
                      readData getInstances host)
 
-  (nl, il, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+  (nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
 
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)
+
+  when (length csf > 0) $ do
+         printf "Note: Stripping common suffix of '%s' from names\n" csf
+
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
   printf "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)

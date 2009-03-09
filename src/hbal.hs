@@ -136,12 +136,15 @@ main = do
             host -> (readData getNodes host,
                      readData getInstances host)
 
-  (nl, il, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
-
+  (nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
 
   unless oneline $ printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)
+
+  when (length csf > 0 && not oneline) $ do
+         printf "Note: Stripping common suffix of '%s' from names\n" csf
+
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
   unless oneline $ printf
              "Initial check done: %d bad nodes, %d bad instances.\n"
