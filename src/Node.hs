@@ -198,8 +198,10 @@ list n t =
         sl = slist t
         mp = p_mem t
         dp = p_dsk t
+        fn = failN1 t
     in
-      printf "  %s(%d)\t%5d\t%5d\t%3d\t%3d\t%s\t%s\t%.5f\t%.5f"
+      printf " %c %s(%d)\t%5d\t%5d\t%3d\t%3d\t%s\t%s\t%.5f\t%.5f"
+                 (if fn then '*' else ' ')
                  n (idx t) (f_mem t) ((f_dsk t) `div` 1024)
                  (length pl) (length sl)
                  (commaJoin (map show pl))
