@@ -151,7 +151,8 @@ main = do
              (length bad_nodes) (length bad_instances)
 
   when (length bad_nodes > 0) $ do
-         putStrLn "Cluster is not N+1 happy, continuing but no guarantee that cluster will end N+1 happy."
+         putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
+                  \that the cluster will end N+1 happy."
 
   when (optShowNodes opts) $
        do
