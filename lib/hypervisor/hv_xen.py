@@ -597,7 +597,7 @@ class XenHvmHypervisor(XenHypervisor):
     if hvp[constants.HV_VNC_BIND_ADDRESS] is None:
       config.write("vnclisten = '%s'\n" % constants.VNC_DEFAULT_BIND_ADDRESS)
     else:
-      config.write("vnclisten = '%s'\n" % hvp["vnc_bind_address"])
+      config.write("vnclisten = '%s'\n" % hvp[constants.HV_VNC_BIND_ADDRESS])
 
     if instance.network_port > constants.VNC_BASE_PORT:
       display = instance.network_port - constants.VNC_BASE_PORT
