@@ -536,21 +536,29 @@ printSolution :: InstanceList
               -> [Placement]
               -> ([String], [[String]])
 printSolution il ktn kti sol =
-  unzip $ map
-    (\ (i, p, s) ->
-       let inst = Container.find i il
-           inam = fromJust $ lookup (Instance.idx inst) kti
-           npri = fromJust $ lookup p ktn
-           nsec = fromJust $ lookup s ktn
-           opri = fromJust $ lookup (Instance.pnode inst) ktn
-           osec = fromJust $ lookup (Instance.snode inst) ktn
-           (moves, cmds) =  computeMoves inam opri osec npri nsec
-
-       in
-         (printf "  I: %s\to: %s+>%s\tn: %s+>%s\ta: %s"
-                 inam opri osec npri nsec moves,
-          cmds)
-    ) sol
+    let
+        mlen_fn = maximum . (map length) . snd . unzip
+        imlen = mlen_fn kti
+        nmlen = mlen_fn ktn
+        pmlen = (2*nmlen + 1)
+    in
+      unzip $ map
+                (\ (i, p, s) ->
+                 let inst = Container.find i il
+                     inam = fromJust $ lookup (Instance.idx inst) kti
+                     npri = fromJust $ lookup p ktn
+                     nsec = fromJust $ lookup s ktn
+                     opri = fromJust $ lookup (Instance.pnode inst) ktn
+                     osec = fromJust $ lookup (Instance.snode inst) ktn
+                     (moves, cmds) =  computeMoves inam opri osec npri nsec
+                     ostr = (printf "%s:%s" opri osec)::String
+                     nstr = (printf "%s:%s" npri nsec)::String
+                 in
+                   (printf "  %-*s %-*s => %-*s a=%s"
+                           imlen inam pmlen ostr
+                           pmlen nstr moves,
+                    cmds)
+                ) sol
 
 -- | Print the node list.
 printNodes :: [(Int, String)] -> NodeList -> String
