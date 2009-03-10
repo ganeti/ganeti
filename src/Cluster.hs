@@ -565,7 +565,9 @@ printNodes :: [(Int, String)] -> NodeList -> String
 printNodes ktn nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
         snl' = map (\ n -> ((fromJust $ lookup (Node.idx n) ktn), n)) snl
-    in unlines $ map (uncurry Node.list) snl'
+        m_name = maximum . (map length) . fst . unzip $ snl'
+        helper = Node.list m_name
+    in unlines $ map (uncurry helper) snl'
 
 -- | Compute the mem and disk covariance.
 compDetailedCV :: NodeList -> (Double, Double)
