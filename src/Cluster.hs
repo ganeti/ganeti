@@ -46,7 +46,7 @@ type InstanceList = Container.Container Instance.Instance
 type Score = Double
 
 -- | The description of an instance placement.
-type Placement = (Int, Int, Int)
+type Placement = (Int, Int, Int, Score)
 
 {- | A cluster solution described as the solution delta and the list
 of placements.
@@ -140,9 +140,9 @@ their new nodes.
  -}
 applySolution :: NodeList -> InstanceList -> [Placement] -> NodeList
 applySolution nl il sol =
-    let odxes = map (\ (a, b, c) -> (Container.find a il,
-                                     Node.idx (Container.find b nl),
-                                     Node.idx (Container.find c nl))
+    let odxes = map (\ (a, b, c, _) -> (Container.find a il,
+                                        Node.idx (Container.find b nl),
+                                        Node.idx (Container.find c nl))
                     ) sol
         idxes = (\ (x, _, _) -> x) (unzip3 odxes)
         nc = removeInstances nl idxes
@@ -285,6 +285,7 @@ checkPlacement nl victims current current_delta prev_sol max_delta =
       vtail = tail victims
       have_tail = (length vtail) > 0
       nodes = Container.elems nl
+      iidx = Instance.idx target
   in
     foldl'
     (\ accu_p pri ->
@@ -309,7 +310,8 @@ checkPlacement nl victims current current_delta prev_sol max_delta =
                           isNothing new_sec then accu
                        else let
                            nx = Container.add sec_idx (fromJust new_sec) pri_nl
-                           plc = (Instance.idx target, pri_idx, sec_idx)
+                           upd_cv = compCV nx
+                           plc = (iidx, pri_idx, sec_idx, upd_cv)
                            c2 = plc:current
                            result =
                                if have_tail then
@@ -383,8 +385,8 @@ checkSingleStep ini_tbl target cur_tbl move =
               upd_nl = fromJust tmp_nl
               upd_cvar = compCV upd_nl
               upd_il = Container.add tgt_idx new_inst ini_il
-              tmp_plc = filter (\ (t, _, _) -> t /= tgt_idx) ini_plc
-              upd_plc = (tgt_idx, pri_idx, sec_idx):tmp_plc
+              tmp_plc = filter (\ (t, _, _, _) -> t /= tgt_idx) ini_plc
+              upd_plc = (tgt_idx, pri_idx, sec_idx, upd_cvar):tmp_plc
               upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
           in
             compareTables cur_tbl upd_tbl
@@ -420,7 +422,7 @@ checkMove nodes_idx ini_tbl victims =
             ini_tbl victims
     in let
         Table _ _ _ best_plc = best_tbl
-        (target, _, _) = head best_plc
+        (target, _, _, _) = head best_plc
         -- remove the last placed instance from the victims list, it will
         -- get another chance the next round
         vtail = filter (\inst -> Instance.idx inst /= target) victims
@@ -543,7 +545,7 @@ printSolution il ktn kti sol =
         pmlen = (2*nmlen + 1)
     in
       unzip $ map
-                (\ (i, p, s) ->
+                (\ (i, p, s, c) ->
                  let inst = Container.find i il
                      inam = fromJust $ lookup (Instance.idx inst) kti
                      npri = fromJust $ lookup p ktn
@@ -554,9 +556,9 @@ printSolution il ktn kti sol =
                      ostr = (printf "%s:%s" opri osec)::String
                      nstr = (printf "%s:%s" npri nsec)::String
                  in
-                   (printf "  %-*s %-*s => %-*s a=%s"
+                   (printf "  %-*s %-*s => %-*s %.8f a=%s"
                            imlen inam pmlen ostr
-                           pmlen nstr moves,
+                           pmlen nstr c moves,
                     cmds)
                 ) sol
 
