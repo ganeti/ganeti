@@ -580,11 +580,11 @@ compDetailedCV nl =
         dsk_l = map Node.p_dsk nodes
         mem_cv = varianceCoeff mem_l
         dsk_cv = varianceCoeff dsk_l
-        n1_l = map (\n -> if Node.failN1 n then 1 else 0) nodes
-        n1_cv = varianceCoeff n1_l
+        n1_l = length $ filter Node.failN1 nodes
+        n1_score = (fromIntegral n1_l) / (fromIntegral $ length nodes)
         res_l = map Node.p_rem nodes
         res_cv = varianceCoeff res_l
-    in (mem_cv, dsk_cv, n1_cv, res_cv)
+    in (mem_cv, dsk_cv, n1_score, res_cv)
 
 -- | Compute the 'total' variance.
 compCV :: NodeList -> Double
