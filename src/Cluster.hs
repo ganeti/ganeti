@@ -572,7 +572,7 @@ printNodes ktn nl =
     in unlines $ map (uncurry helper) snl'
 
 -- | Compute the mem and disk covariance.
-compDetailedCV :: NodeList -> (Double, Double)
+compDetailedCV :: NodeList -> (Double, Double, Double, Double)
 compDetailedCV nl =
     let
         nodes = Container.elems nl
@@ -580,18 +580,23 @@ compDetailedCV nl =
         dsk_l = map Node.p_dsk nodes
         mem_cv = varianceCoeff mem_l
         dsk_cv = varianceCoeff dsk_l
-    in (mem_cv, dsk_cv)
+        n1_l = map (\n -> if Node.failN1 n then 1 else 0) nodes
+        n1_cv = varianceCoeff n1_l
+        res_l = map Node.p_rem nodes
+        res_cv = varianceCoeff res_l
+    in (mem_cv, dsk_cv, n1_cv, res_cv)
 
 -- | Compute the 'total' variance.
 compCV :: NodeList -> Double
 compCV nl =
-    let (mem_cv, dsk_cv) = compDetailedCV nl
-    in mem_cv + dsk_cv
+    let (mem_cv, dsk_cv, n1_score, res_cv) = compDetailedCV nl
+    in mem_cv + dsk_cv + n1_score + res_cv
 
 printStats :: NodeList -> String
 printStats nl =
-    let (mem_cv, dsk_cv) = compDetailedCV nl
-    in printf "mem=%.8f, dsk=%.8f" mem_cv dsk_cv
+    let (mem_cv, dsk_cv, n1_score, res_cv) = compDetailedCV nl
+    in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f"
+       mem_cv res_cv dsk_cv n1_score
 
 -- Balancing functions
 
