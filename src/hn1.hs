@@ -153,6 +153,10 @@ main = do
                 min_depth
          exitWith $ ExitFailure 2
 
+  let ini_cv = Cluster.compCV nl
+  printf "Initial coefficients: overall %.8f, %s\n"
+         ini_cv (Cluster.printStats nl)
+
   putStr "Computing solution: depth "
   hFlush stdout
 
@@ -160,13 +164,23 @@ main = do
             (optMinDelta opts) (optMaxDelta opts)
   let (min_d, solution) =
           case result of
-            Just (Cluster.Solution a b) -> (a, b)
+            Just (Cluster.Solution a b) -> (a, reverse b)
             Nothing -> (-1, [])
   when (min_d == -1) $ do
          putStrLn "failed. Try to run with higher depth."
          exitWith $ ExitFailure 1
 
-  printf "found.\nSolution (delta=%d):\n" $! min_d
+  printf "found.\n"
+
+  let
+      ns = Cluster.applySolution nl il solution
+      fin_cv = Cluster.compCV ns
+
+  printf "Final coefficients:   overall %.8f, %s\n"
+         fin_cv
+         (Cluster.printStats ns)
+
+  printf "Solution (delta=%d):\n" $! min_d
   let (sol_strs, cmd_strs) = Cluster.printSolution il ktn kti solution
   putStr $ unlines $ sol_strs
   when (optShowCmds opts) $
@@ -177,7 +191,6 @@ main = do
   when (optShowNodes opts) $
        do
          let (orig_mem, orig_disk) = Cluster.totalResources nl
-             ns = Cluster.applySolution nl il solution
              (final_mem, final_disk) = Cluster.totalResources ns
          putStrLn ""
          putStrLn "Final cluster status:"
