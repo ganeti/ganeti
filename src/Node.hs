@@ -6,7 +6,7 @@
 
 module Node
     (
-      Node(failN1, idx, f_mem, f_dsk, p_mem, p_dsk, slist, plist)
+      Node(failN1, idx, f_mem, f_dsk, p_mem, p_dsk, slist, plist, p_rem)
     -- * Constructor
     , create
     -- ** Finalization after data loading
@@ -46,6 +46,7 @@ data Node = Node { t_mem :: Double -- ^ total memory (Mib)
                                  -- failover by primaries of this node
                  , p_mem :: Double
                  , p_dsk :: Double
+                 , p_rem :: Double
   } deriving (Show)
 
 {- | Create a new node.
@@ -74,7 +75,8 @@ create mem_t_init mem_f_init dsk_t_init dsk_f_init =
        peers = PeerMap.empty,
        maxRes = 0,
        p_mem = (fromIntegral mem_f) / (fromIntegral mem_t),
-       p_dsk = (fromIntegral dsk_f) / (fromIntegral dsk_t)
+       p_dsk = (fromIntegral dsk_f) / (fromIntegral dsk_t),
+       p_rem = 0
       }
 
 -- | Changes the index.
@@ -105,7 +107,8 @@ buildPeers t il num_nodes =
         pmap = PeerMap.accumArray (+) 0 (0, num_nodes - 1) mdata
         new_rmem = computeMaxRes pmap
         new_failN1 = computeFailN1 new_rmem (f_mem t) (f_dsk t)
-    in t {peers=pmap, failN1 = new_failN1, maxRes = new_rmem}
+        new_prem = (fromIntegral new_rmem) / (t_mem t)
+    in t {peers=pmap, failN1 = new_failN1, maxRes = new_rmem, p_rem = new_prem}
 
 -- | Removes a primary instance.
 removePri :: Node -> Instance.Instance -> Node
@@ -136,10 +139,12 @@ removeSec t inst =
                        old_rmem
                    else
                        computeMaxRes new_peers
+        new_prem = (fromIntegral new_rmem) / (t_mem t)
         new_failn1 = computeFailN1 new_rmem (f_mem t) new_dsk
         new_dp = (fromIntegral new_dsk) / (t_dsk t)
     in t {slist = new_slist, f_dsk = new_dsk, peers = new_peers,
-          failN1 = new_failn1, maxRes = new_rmem, p_dsk = new_dp}
+          failN1 = new_failn1, maxRes = new_rmem, p_dsk = new_dp,
+          p_rem = new_prem}
 
 -- | Adds a primary instance.
 addPri :: Node -> Instance.Instance -> Maybe Node
@@ -168,6 +173,7 @@ addSec t inst pdx =
         new_peem = PeerMap.find pdx old_peers + Instance.mem inst
         new_peers = PeerMap.add pdx new_peem old_peers
         new_rmem = max (maxRes t) new_peem
+        new_prem = (fromIntegral new_rmem) / (t_mem t)
         new_failn1 = computeFailN1 new_rmem old_mem new_dsk in
     if (failHealth old_mem new_dsk) || (new_failn1 && not (failN1 t)) then
         Nothing
@@ -177,7 +183,8 @@ addSec t inst pdx =
         in
         Just t {slist = new_slist, f_dsk = new_dsk,
                 peers = new_peers, failN1 = new_failn1,
-                maxRes = new_rmem, p_dsk = new_dp}
+                maxRes = new_rmem, p_dsk = new_dp,
+                p_rem = new_prem}
 
 -- | Add a primary instance to a node without other updates
 setPri :: Node -> Int -> Node
