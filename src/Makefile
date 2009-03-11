@@ -7,7 +7,7 @@ hbal:
 	ghc --make -O2 -W hbal
 
 clean:
-	rm -f *.o *.cmi *.cmo *.cmx *.old hn1 zn1 *.prof *.ps *.stat *.aux \
-        gmon.out *.hi README.html TAGS
+	rm -f *.o *.old hn1 hbal *.prof *.ps *.stat *.aux \
+        *.hi README.html TAGS
 
 .PHONY : all clean hn1 hbal
