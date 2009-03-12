@@ -1,0 +1,6 @@
+module Version
+    (
+      version -- ^ the version of the tree
+    ) where
+
+version = "(htools) version %ver%"

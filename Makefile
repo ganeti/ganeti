@@ -4,7 +4,7 @@ HDDIR = apidoc
 
 # Haskell rules
 
-all:
+all: version
 	$(MAKE) -C src
 
 README.html: README
@@ -15,17 +15,26 @@ doc: README.html
 	mkdir -p $(HDDIR)/src
 	cp hscolour.css $(HDDIR)/src
 	for file in $(HSRCS); do \
-        HsColour -css -anchor \
-        $$file > $(HDDIR)/src/`basename $$file .hs`.html ; \
-    done
+		HsColour -css -anchor \
+		$$file > $(HDDIR)/src/`basename $$file .hs`.html ; \
+	done
 	haddock --odir $(HDDIR) --html --ignore-all-exports \
-	    -t htools -p haddock-prologue \
-        --source-module="src/%{MODULE/.//}.html" \
-        --source-entity="src/%{MODULE/.//}.html#%{NAME}" \
-	    $(HSRCS)
+		-t htools -p haddock-prologue \
+		--source-module="src/%{MODULE/.//}.html" \
+		--source-entity="src/%{MODULE/.//}.html#%{NAME}" \
+		$(HSRCS)
 
 clean:
 	rm -f *.o *.cmi *.cmo *.cmx *.old hn1 zn1 *.prof *.ps *.stat *.aux \
-        gmon.out *.hi README.html TAGS
+        gmon.out *.hi README.html TAGS version
 
-.PHONY : all doc clean hn1
+version:
+	git describe > $@
+
+dist: version
+	VN=$$(cat version|sed 's/^v//') ; \
+	ANAME="htools-$$VN.tar" ; \
+    git archive --format=tar --prefix=htools-$$VN/ HEAD > $$ANAME ; \
+	tar -r -f $$ANAME --transform="s,^,htools-$$VN/," version
+
+.PHONY : all doc clean hn1 dist

@@ -16,6 +16,7 @@ import Text.Printf (printf)
 
 import qualified Container
 import qualified Cluster
+import qualified Version
 import Rapi
 import Utils
 
@@ -120,7 +121,8 @@ parseOpts argv =
           return (foldl (flip id) defaultOptions o, n)
       (_,_,errs) ->
           ioError (userError (concat errs ++ usageInfo header options))
-      where header = "Usage: hbal [OPTION...]"
+      where header = printf "hbal %s\nUsage: hbal [OPTION...]"
+                     Version.version
 
 -- | Main function.
 main :: IO ()
