@@ -569,7 +569,11 @@ printNodes ktn nl =
         snl' = map (\ n -> ((fromJust $ lookup (Node.idx n) ktn), n)) snl
         m_name = maximum . (map length) . fst . unzip $ snl'
         helper = Node.list m_name
-    in unlines $ map (uncurry helper) snl'
+        header = printf "%2s %-*s %5s %5s %5s %5s %5s %3s %3s %7s %7s"
+                 "N1" m_name "Name" "t_mem" "f_mem" "r_mem"
+                 "t_dsk" "f_dsk"
+                 "pri" "sec" "p_fmem" "p_fdsk"
+    in unlines $ (header:map (uncurry helper) snl')
 
 -- | Compute the mem and disk covariance.
 compDetailedCV :: NodeList -> (Double, Double, Double, Double)
