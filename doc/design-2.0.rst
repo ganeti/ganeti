@@ -8,7 +8,7 @@ the 1.2 version.
 The 2.0 version will constitute a rewrite of the 'core' architecture,
 paving the way for additional features in future 2.x versions.
 
-.. contents::
+.. contents:: :depth: 3
 
 Objective
 =========
@@ -841,6 +841,9 @@ Node parameters
 Node-related parameters are very few, and we will continue using the
 same model for these as previously (attributes on the Node object).
 
+There are three new node flags, described in a separate section "node
+flags" below.
+
 Instance parameters
 +++++++++++++++++++
 
@@ -975,6 +978,182 @@ config data while purging the sensitive value.
 
 E.g. for the drbd shared secrets, we could export these with the
 values replaced by an empty string.
+
+Node flags
+~~~~~~~~~~
+
+Ganeti 2.0 adds three node flags that change the way nodes are handled
+within Ganeti and the related infrastructure (iallocator interaction,
+RAPI data export).
+
+*master candidate* flag
++++++++++++++++++++++++
+
+Ganeti 2.0 allows more scalability in operation by introducing
+parallelization. However, a new bottleneck is reached that is the
+synchronization and replication of cluster configuration to all nodes
+in the cluster.
+
+This breaks scalability as the speed of the replication decreases
+roughly with the size of the nodes in the cluster. The goal of the
+master candidate flag is to change this O(n) into O(1) with respect to
+job and configuration data propagation.
+
+Only nodes having this flag set (let's call this set of nodes the
+*candidate pool*) will have jobs and configuration data replicated.
+
+The cluster will have a new parameter (runtime changeable) called
+``candidate_pool_size`` which represents the number of candidates the
+cluster tries to maintain (preferably automatically).
+
+This will impact the cluster operations as follows:
+
+- jobs and config data will be replicated only to a fixed set of nodes
+- master fail-over will only be possible to a node in the candidate pool
+- cluster verify needs changing to account for these two roles
+- external scripts will no longer have access to the configuration
+  file (this is not recommended anyway)
+
+
+The caveats of this change are:
+
+- if all candidates are lost (completely), cluster configuration is
+  lost (but it should be backed up external to the cluster anyway)
+
+- failed nodes which are candidate must be dealt with properly, so
+  that we don't lose too many candidates at the same time; this will be
+  reported in cluster verify
+
+- the 'all equal' concept of ganeti is no longer true
+
+- the partial distribution of config data means that all nodes will
+  have to revert to ssconf files for master info (as in 1.2)
+
+Advantages:
+
+- speed on a 100+ nodes simulated cluster is greatly enhanced, even
+  for a simple operation; ``gnt-instance remove`` on a diskless instance
+  remove goes from ~9seconds to ~2 seconds
+
+- node failure of non-candidates will be less impacting on the cluster
+
+The default value for the candidate pool size will be set to 10 but
+this can be changed at cluster creation and modified any time later.
+
+Testing on simulated big clusters with sequential and parallel jobs
+show that this value (10) is a sweet-spot from performance and load
+point of view.
+
+*offline* flag
+++++++++++++++
+
+In order to support better the situation in which nodes are offline
+(e.g. for repair) without altering the cluster configuration, Ganeti
+needs to be told and needs to properly handle this state for nodes.
+
+This will result in simpler procedures, and less mistakes, when the
+amount of node failures is high on an absolute scale (either due to
+high failure rate or simply big clusters).
+
+Nodes having this attribute set will not be contacted for inter-node
+RPC calls, will not be master candidates, and will not be able to host
+instances as primaries.
+
+Setting this attribute on a node:
+
+- will not be allowed if the node is the master
+- will not be allowed if the node has primary instances
+- will cause the node to be demoted from the master candidate role (if
+  it was), possibly causing another node to be promoted to that role
+
+This attribute will impact the cluster operations as follows:
+
+- querying these nodes for anything will fail instantly in the RPC
+  library, with a specific RPC error (RpcResult.offline == True)
+
+- they will be listed in the Other section of cluster verify
+
+The code is changed in the following ways:
+
+- RPC calls were be converted to skip such nodes:
+
+  - RpcRunner-instance-based RPC calls are easy to convert
+
+  - static/classmethod RPC calls are harder to convert, and were left
+    alone
+
+- the RPC results were unified so that this new result state (offline)
+  can be differentiated
+
+- master voting still queries in repair nodes, as we need to ensure
+  consistency in case the (wrong) masters have old data, and nodes have
+  come back from repairs
+
+Caveats:
+
+- some operation semantics are less clear (e.g. what to do on instance
+  start with offline secondary?); for now, these will just fail as if the
+  flag is not set (but faster)
+- 2-node cluster with one node offline needs manual startup of the
+  master with a special flag to skip voting (as the master can't get a
+  quorum there)
+
+One of the advantages of implementing this flag is that it will allow
+in the future automation tools to automatically put the node in
+repairs and recover from this state, and the code (should/will) handle
+this much better than just timing out. So, future possible
+improvements (for later versions):
+
+- watcher will detect nodes which fail RPC calls, will attempt to ssh
+  to them, if failure will put them offline
+- watcher will try to ssh and query the offline nodes, if successful
+  will take them off the repair list
+
+Alternatives considered: The RPC call model in 2.0 is, by default,
+much nicer - errors are logged in the background, and job/opcode
+execution is clearer, so we could simply not introduce this. However,
+having this state will make both the codepaths clearer (offline
+vs. temporary failure) and the operational model (it's not a node with
+errors, but an offline node).
+
+
+*drained* flag
+++++++++++++++
+
+Due to parallel execution of jobs in Ganeti 2.0, we could have the
+following situation:
+
+- gnt-node migrate + failover is run
+- gnt-node evacuate is run, which schedules a long-running 6-opcode
+  job for the node
+- partway through, a new job comes in that runs an iallocator script,
+  which finds the above node as empty and a very good candidate
+- gnt-node evacuate has finished, but now it has to be run again, to
+  clean the above instance(s)
+
+In order to prevent this situation, and to be able to get nodes into
+proper offline status easily, a new *drained* flag was added to the nodes.
+
+This flag (which actually means "is being, or was drained, and is
+expected to go offline"), will prevent allocations on the node, but
+otherwise all other operations (start/stop instance, query, etc.) are
+working without any restrictions.
+
+Interaction between flags
++++++++++++++++++++++++++
+
+While these flags are implemented as separate flags, they are
+mutually-exclusive and are acting together with the master node role
+as a single *node status* value. In other words, a flag is only in one
+of these roles at a given time. The lack of any of these flags denote
+a regular node.
+
+The current node status is visible in the ``gnt-cluster verify``
+output, and the individual flags can be examined via separate flags in
+the ``gnt-node list`` output.
+
+These new flags will be exported in both the iallocator input message
+and via RAPI, see the respective man pages for the exact names.
 
 Feature changes
 ---------------
