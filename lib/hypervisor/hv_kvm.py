@@ -301,7 +301,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           if vnc_bind_address == '0.0.0.0':
             vnc_arg = ':%d' % (display)
           else:
-            vnc_arg = '%s:%d' % (constants.HV_VNC_BIND_ADDRESS, display)
+            vnc_arg = '%s:%d' % (vnc_bind_address, display)
         else:
           logging.error("Network port is not a valid VNC display (%d < %d)."
                         " Not starting VNC" %
