@@ -376,8 +376,7 @@ checkSingleStep :: Table -- ^ The original table
 checkSingleStep ini_tbl target cur_tbl move =
     let
         Table ini_nl ini_il _ ini_plc = ini_tbl
-        (tmp_nl, new_inst, pri_idx, sec_idx) =
-            applyMove ini_nl target move
+        (tmp_nl, new_inst, pri_idx, sec_idx) = applyMove ini_nl target move
     in
       if isNothing tmp_nl then cur_tbl
       else
@@ -385,8 +384,7 @@ checkSingleStep ini_tbl target cur_tbl move =
               upd_nl = fromJust tmp_nl
               upd_cvar = compCV upd_nl
               upd_il = Container.add tgt_idx new_inst ini_il
-              tmp_plc = filter (\ (t, _, _, _) -> t /= tgt_idx) ini_plc
-              upd_plc = (tgt_idx, pri_idx, sec_idx, upd_cvar):tmp_plc
+              upd_plc = (tgt_idx, pri_idx, sec_idx, upd_cvar):ini_plc
               upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
           in
             compareTables cur_tbl upd_tbl
@@ -420,18 +418,14 @@ checkMove nodes_idx ini_tbl victims =
             (\ step_tbl elem -> compareTables step_tbl $
                                 checkInstanceMove nodes_idx ini_tbl elem)
             ini_tbl victims
-    in let
         Table _ _ _ best_plc = best_tbl
-        (target, _, _, _) = head best_plc
-        -- remove the last placed instance from the victims list, it will
-        -- get another chance the next round
-        vtail = filter (\inst -> Instance.idx inst /= target) victims
-       in
-         if length best_plc == length ini_plc then -- no advancement
-             ini_tbl
-         else
-             if null vtail then best_tbl
-             else checkMove nodes_idx best_tbl vtail
+    in
+      if length best_plc == length ini_plc then -- no advancement
+          ini_tbl
+      else
+          -- FIXME: replace 100 with a real constant
+          if (length best_plc > 100) then best_tbl
+          else checkMove nodes_idx best_tbl victims
 
 {- | Auxiliary function for solution computation.
 
