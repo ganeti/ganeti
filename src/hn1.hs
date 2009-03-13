@@ -187,7 +187,8 @@ main = do
        do
          putStrLn ""
          putStrLn "Commands to run to reach the above solution:"
-         putStr $ unlines $ map ("  echo gnt-instance " ++) $ concat cmd_strs
+         putStr . Cluster.formatCmds . reverse $ cmd_strs
+
   when (optShowNodes opts) $
        do
          let (orig_mem, orig_disk) = Cluster.totalResources nl

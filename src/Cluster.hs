@@ -23,6 +23,7 @@ module Cluster
     , applySolution
     , printSolution
     , printSolutionLine
+    , formatCmds
     , printNodes
     -- * Balacing functions
     , checkMove
@@ -568,6 +569,13 @@ printSolutionLine il ktn kti nmlen imlen plc =
        imlen inam pmlen ostr
        pmlen nstr c moves,
        cmds)
+
+formatCmds :: [[String]] -> String
+formatCmds cmd_strs =
+    unlines $ map ("  echo " ++) $
+    concat $ map (\(a, b) ->
+        (printf "step %d" (a::Int)):(map ("gnt-instance" ++) b)) $
+        zip [1..] cmd_strs
 
 {-| Converts a solution to string format -}
 printSolution :: InstanceList
