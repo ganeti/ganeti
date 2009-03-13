@@ -22,6 +22,7 @@ module Cluster
     , computeSolution
     , applySolution
     , printSolution
+    , printSolutionLine
     , printNodes
     -- * Balacing functions
     , checkMove
@@ -423,9 +424,7 @@ checkMove nodes_idx ini_tbl victims =
       if length best_plc == length ini_plc then -- no advancement
           ini_tbl
       else
-          -- FIXME: replace 100 with a real constant
-          if (length best_plc > 100) then best_tbl
-          else checkMove nodes_idx best_tbl victims
+          best_tbl
 
 {- | Auxiliary function for solution computation.
 

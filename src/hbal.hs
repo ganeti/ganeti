@@ -27,7 +27,7 @@ data Options = Options
     , optOneline   :: Bool
     , optNodef     :: FilePath
     , optInstf     :: FilePath
-    , optMaxRounds :: Int
+    , optMaxLength :: Int
     , optMaster    :: String
     } deriving Show
 
@@ -39,7 +39,7 @@ defaultOptions  = Options
  , optOneline   = False
  , optNodef     = "nodes"
  , optInstf     = "instances"
- , optMaxRounds = -1
+ , optMaxLength = -1
  , optMaster    = ""
  }
 
@@ -47,12 +47,17 @@ defaultOptions  = Options
 we find a valid solution or we exceed the maximum depth.
 
 -}
-iterateDepth :: Cluster.Table    -- The starting table
-             -> Int              -- ^ Current round
-             -> Int              -- ^ Max rounds
+iterateDepth :: Cluster.Table    -- ^ The starting table
+             -> Int              -- ^ Remaining length
+             -> [(Int, String)]  -- ^ Node idx to name list
+             -> [(Int, String)]  -- ^ Inst idx to name list
+             -> Int              -- ^ Max node name len
+             -> Int              -- ^ Max instance name len
+             -> [[String]]       -- ^ Current command list
              -> Bool             -- ^ Wheter to be silent
-             -> IO Cluster.Table -- The resulting table
-iterateDepth ini_tbl cur_round max_rounds oneline =
+             -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
+                                               -- commands
+iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
     let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
         all_inst = Container.elems ini_il
         node_idx = Container.keys ini_nl
@@ -60,32 +65,24 @@ iterateDepth ini_tbl cur_round max_rounds oneline =
         (Cluster.Table _ _ fin_cv fin_plc) = fin_tbl
         ini_plc_len = length ini_plc
         fin_plc_len = length fin_plc
-        allowed_next = (max_rounds < 0 || cur_round < max_rounds)
+        allowed_next = (max_rounds < 0 || length fin_plc < max_rounds)
     in
       do
-        unless oneline $ printf "  - round %d: " cur_round
-        hFlush stdout
-        let msg =
-                if fin_cv < ini_cv then
-                    if not allowed_next then
-                        printf "%.8f, %d moves (stopping due to round limit)\n"
-                               fin_cv
-                               (fin_plc_len - ini_plc_len)
-                    else
-                        printf "%.8f, %d moves\n" fin_cv
-                                   (fin_plc_len - ini_plc_len)
-                else
-                    "no improvement, stopping\n"
-        unless oneline $ do
-          putStr msg
+        let
+            (sol_line, cmds) = Cluster.printSolutionLine ini_il ktn kti
+                               nmlen imlen (head fin_plc)
+            upd_cmd_strs = cmds:cmd_strs
+        unless (oneline || fin_plc_len == ini_plc_len) $ do
+          putStrLn sol_line
           hFlush stdout
         (if fin_cv < ini_cv then -- this round made success, try deeper
              if allowed_next
-             then iterateDepth fin_tbl (cur_round + 1) max_rounds oneline
+             then iterateDepth fin_tbl max_rounds ktn kti
+                  nmlen imlen upd_cmd_strs oneline
              -- don't go deeper, but return the better solution
-             else return fin_tbl
+             else return (fin_tbl, upd_cmd_strs)
          else
-             return ini_tbl)
+             return (ini_tbl, cmd_strs))
 
 -- | Options list and functions
 options :: [OptDescr (Options -> Options)]
@@ -108,9 +105,10 @@ options =
      , Option ['m']     ["master"]
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
       "collect data via RAPI at the given ADDRESS"
-     , Option ['r']     ["max-rounds"]
-      (ReqArg (\ i opts -> opts { optMaxRounds =  (read i)::Int }) "N")
-      "do not run for more than R rounds(useful for very unbalanced clusters)"
+     , Option ['l']     ["max-length"]
+      (ReqArg (\ i opts -> opts { optMaxLength =  (read i)::Int }) "N")
+      "cap the solution at this many moves (useful for very unbalanced \
+      \clusters)"
      ]
 
 -- | Command line parser, using the 'options' structure.
@@ -167,22 +165,28 @@ main = do
          ini_cv (Cluster.printStats nl)
 
   unless oneline $ putStrLn "Trying to minimize the CV..."
-  fin_tbl <- iterateDepth ini_tbl 1 (optMaxRounds opts) oneline
+  let mlen_fn = maximum . (map length) . snd . unzip
+      imlen = mlen_fn kti
+      nmlen = mlen_fn ktn
+
+  (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
+                         ktn kti nmlen imlen [] oneline
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
-  unless oneline $ printf "Final coefficients:   overall %.8f, %s\n"
-         fin_cv
-         (Cluster.printStats fin_nl)
+  unless oneline $ do
+         (if null fin_plc
+          then printf "No solution found\n"
+          else printf "Final coefficients:   overall %.8f, %s\n"
+               fin_cv (Cluster.printStats fin_nl))
 
   unless oneline $ printf "Solution length=%d\n" (length ord_plc)
 
-  let (sol_strs, cmd_strs) = Cluster.printSolution il ktn kti ord_plc
-  unless oneline $ putStr $ unlines $ sol_strs
   when (optShowCmds opts) $
        do
          putStrLn ""
          putStrLn "Commands to run to reach the above solution:"
-         putStr $ unlines $ map ("  echo gnt-instance " ++) $ concat cmd_strs
+         putStr $ unlines $ map ("  echo gnt-instance " ++)
+                    $ concat $ reverse cmd_strs
   when (optShowNodes opts) $
        do
          let (orig_mem, orig_disk) = Cluster.totalResources nl
