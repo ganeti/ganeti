@@ -69,6 +69,7 @@ data Removal = Removal NodeList [Instance.Instance]
 data IMove = Failover
            | ReplacePrimary Int
            | ReplaceSecondary Int
+           | ReplaceAndFailover Int
              deriving (Show)
 
 -- | The complete state for the balancing solution
@@ -369,6 +370,22 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
                       old_sdx int_s nl
     in (new_nl, Instance.setSec inst new_sdx, old_pdx, new_sdx)
 
+applyMove nl inst (ReplaceAndFailover new_pdx) =
+    let old_pdx = Instance.pnode inst
+        old_sdx = Instance.snode inst
+        old_p = Container.find old_pdx nl
+        old_s = Container.find old_sdx nl
+        tgt_n = Container.find new_pdx nl
+        int_p = Node.removePri old_p inst
+        int_s = Node.removeSec old_s inst
+        new_p = Node.addPri tgt_n inst
+        new_s = Node.addSec int_p inst new_pdx
+        new_nl = if isNothing(new_p) || isNothing(new_s) then Nothing
+                 else Just $ Container.add new_pdx (fromJust new_p) $
+                      Container.addTwo old_pdx (fromJust new_s)
+                               old_sdx int_s nl
+    in (new_nl, Instance.setBoth inst new_pdx old_pdx, new_pdx, old_pdx)
+
 checkSingleStep :: Table -- ^ The original table
                 -> Instance.Instance -- ^ The instance to move
                 -> Table -- ^ The current best table
@@ -401,7 +418,8 @@ checkInstanceMove nodes_idx ini_tbl target =
         nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
         aft_failover = checkSingleStep ini_tbl target ini_tbl Failover
         all_moves = concatMap (\idx -> [ReplacePrimary idx,
-                                        ReplaceSecondary idx]) nodes
+                                        ReplaceSecondary idx,
+                                        ReplaceAndFailover idx]) nodes
     in
       -- iterate over the possible nodes for this instance
       foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
