@@ -6,11 +6,11 @@ intelligence is in the "Node" and "Cluster" modules.
 -}
 module Instance where
 
-data Instance = Instance { mem :: Int -- ^ memory of the instance
-                         , dsk :: Int -- ^ disk size of instance
+data Instance = Instance { mem :: Int   -- ^ memory of the instance
+                         , dsk :: Int   -- ^ disk size of instance
                          , pnode :: Int -- ^ original primary node
                          , snode :: Int -- ^ original secondary node
-                         , idx :: Int -- ^ internal index for book-keeping
+                         , idx :: Int   -- ^ internal index for book-keeping
                          } deriving (Show)
 
 create :: String -> String -> Int -> Int -> Instance
@@ -23,27 +23,27 @@ create mem_init dsk_init pn sn = Instance {
                             }
 
 -- | Changes the primary node of the instance.
-setPri :: Instance -- ^ the original instance
-        -> Int -- ^ the new primary node
+setPri :: Instance  -- ^ the original instance
+        -> Int      -- ^ the new primary node
         -> Instance -- ^ the modified instance
 setPri t p = t { pnode = p }
 
 -- | Changes the secondary node of the instance.
-setSec :: Instance -- ^ the original instance
-        -> Int  -- ^ the new secondary node
+setSec :: Instance  -- ^ the original instance
+        -> Int      -- ^ the new secondary node
         -> Instance -- ^ the modified instance
 setSec t s = t { snode = s }
 
 -- | Changes both nodes of the instance.
-setBoth :: Instance -- ^ the original instance
-         -> Int -- ^ new primary node index
-         -> Int -- ^ new secondary node index
+setBoth :: Instance  -- ^ the original instance
+         -> Int      -- ^ new primary node index
+         -> Int      -- ^ new secondary node index
          -> Instance -- ^ the modified instance
 setBoth t p s = t { pnode = p, snode = s }
 
 -- | Changes the index.
 -- This is used only during the building of the data structures.
-setIdx :: Instance -- ^ the original instance
-        -> Int -- ^ new index
+setIdx :: Instance  -- ^ the original instance
+        -> Int      -- ^ new index
         -> Instance -- ^ the modified instance
 setIdx t i = t { idx = i }
