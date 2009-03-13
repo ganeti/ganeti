@@ -525,6 +525,33 @@ computeMoves i a b c d =
                       printf "failover %s" i,
                       printf "replace-disks -n %s %s" d i])
 
+{-| Converts a placement to string format -}
+printSolutionLine :: InstanceList
+              -> [(Int, String)]
+              -> [(Int, String)]
+              -> Int
+              -> Int
+              -> Placement
+              -> (String, [String])
+printSolutionLine il ktn kti nmlen imlen plc =
+    let
+        pmlen = (2*nmlen + 1)
+        (i, p, s, c) = plc
+        inst = Container.find i il
+        inam = fromJust $ lookup (Instance.idx inst) kti
+        npri = fromJust $ lookup p ktn
+        nsec = fromJust $ lookup s ktn
+        opri = fromJust $ lookup (Instance.pnode inst) ktn
+        osec = fromJust $ lookup (Instance.snode inst) ktn
+        (moves, cmds) =  computeMoves inam opri osec npri nsec
+        ostr = (printf "%s:%s" opri osec)::String
+        nstr = (printf "%s:%s" npri nsec)::String
+    in
+      (printf "  %-*s %-*s => %-*s %.8f a=%s"
+       imlen inam pmlen ostr
+       pmlen nstr c moves,
+       cmds)
+
 {-| Converts a solution to string format -}
 printSolution :: InstanceList
               -> [(Int, String)]
@@ -536,25 +563,8 @@ printSolution il ktn kti sol =
         mlen_fn = maximum . (map length) . snd . unzip
         imlen = mlen_fn kti
         nmlen = mlen_fn ktn
-        pmlen = (2*nmlen + 1)
     in
-      unzip $ map
-                (\ (i, p, s, c) ->
-                 let inst = Container.find i il
-                     inam = fromJust $ lookup (Instance.idx inst) kti
-                     npri = fromJust $ lookup p ktn
-                     nsec = fromJust $ lookup s ktn
-                     opri = fromJust $ lookup (Instance.pnode inst) ktn
-                     osec = fromJust $ lookup (Instance.snode inst) ktn
-                     (moves, cmds) =  computeMoves inam opri osec npri nsec
-                     ostr = (printf "%s:%s" opri osec)::String
-                     nstr = (printf "%s:%s" npri nsec)::String
-                 in
-                   (printf "  %-*s %-*s => %-*s %.8f a=%s"
-                           imlen inam pmlen ostr
-                           pmlen nstr c moves,
-                    cmds)
-                ) sol
+      unzip $ map (printSolutionLine il ktn kti nmlen imlen) sol
 
 -- | Print the node list.
 printNodes :: [(Int, String)] -> NodeList -> String
