@@ -67,10 +67,11 @@ solutionDelta sol = case sol of
 data Removal = Removal NodeList [Instance.Instance]
 
 -- | An instance move definition
-data IMove = Failover
-           | ReplacePrimary Int
-           | ReplaceSecondary Int
-           | ReplaceAndFailover Int
+data IMove = Failover                -- ^ Failover the instance (f)
+           | ReplacePrimary Int      -- ^ Replace the primary (f, r:np, f)
+           | ReplaceSecondary Int    -- ^ Replace the secondary (r:ns)
+           | ReplaceAndFailover Int  -- ^ Replace the secondary and
+                                     -- failover (r:ns, f)
              deriving (Show)
 
 -- | The complete state for the balancing solution
@@ -329,6 +330,7 @@ checkPlacement nl victims current current_delta prev_sol max_delta =
 -- | Apply a move
 applyMove :: NodeList -> Instance.Instance
           -> IMove -> (Maybe NodeList, Instance.Instance, Int, Int)
+-- Failover (f)
 applyMove nl inst Failover =
     let old_pdx = Instance.pnode inst
         old_sdx = Instance.snode inst
@@ -343,6 +345,7 @@ applyMove nl inst Failover =
                       old_sdx (fromJust new_p) nl
     in (new_nl, Instance.setBoth inst old_sdx old_pdx, old_sdx, old_pdx)
 
+-- Replace the primary (f:, r:np, f)
 applyMove nl inst (ReplacePrimary new_pdx) =
     let old_pdx = Instance.pnode inst
         old_sdx = Instance.snode inst
@@ -359,6 +362,7 @@ applyMove nl inst (ReplacePrimary new_pdx) =
                                old_sdx (fromJust new_s) nl
     in (new_nl, Instance.setPri inst new_pdx, new_pdx, old_sdx)
 
+-- Replace the secondary (r:ns)
 applyMove nl inst (ReplaceSecondary new_sdx) =
     let old_pdx = Instance.pnode inst
         old_sdx = Instance.snode inst
@@ -371,6 +375,7 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
                       old_sdx int_s nl
     in (new_nl, Instance.setSec inst new_sdx, old_pdx, new_sdx)
 
+-- Replace the secondary and failover (r:np, f)
 applyMove nl inst (ReplaceAndFailover new_pdx) =
     let old_pdx = Instance.pnode inst
         old_sdx = Instance.snode inst
