@@ -72,7 +72,7 @@ iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
       do
         let
             (sol_line, cmds) = Cluster.printSolutionLine ini_il ktn kti
-                               nmlen imlen (head fin_plc)
+                               nmlen imlen (head fin_plc) fin_plc_len
             upd_cmd_strs = cmds:cmd_strs
         unless (oneline || fin_plc_len == ini_plc_len) $ do
           putStrLn sol_line

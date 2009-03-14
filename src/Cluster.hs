@@ -573,8 +573,9 @@ printSolutionLine :: InstanceList
               -> Int
               -> Int
               -> Placement
+              -> Int
               -> (String, [String])
-printSolutionLine il ktn kti nmlen imlen plc =
+printSolutionLine il ktn kti nmlen imlen plc pos =
     let
         pmlen = (2*nmlen + 1)
         (i, p, s, c) = plc
@@ -588,8 +589,8 @@ printSolutionLine il ktn kti nmlen imlen plc =
         ostr = (printf "%s:%s" opri osec)::String
         nstr = (printf "%s:%s" npri nsec)::String
     in
-      (printf "  %-*s %-*s => %-*s %.8f a=%s"
-       imlen inam pmlen ostr
+      (printf "  %3d. %-*s %-*s => %-*s %.8f a=%s"
+       pos imlen inam pmlen ostr
        pmlen nstr c moves,
        cmds)
 
@@ -612,7 +613,8 @@ printSolution il ktn kti sol =
         imlen = mlen_fn kti
         nmlen = mlen_fn ktn
     in
-      unzip $ map (printSolutionLine il ktn kti nmlen imlen) sol
+      unzip $ map (uncurry $ printSolutionLine il ktn kti nmlen imlen) $
+            zip sol [1..]
 
 -- | Print the node list.
 printNodes :: [(Int, String)] -> NodeList -> String
