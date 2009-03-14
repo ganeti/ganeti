@@ -1,0 +1,360 @@
+.TH HBAL 2 2009-03-13 htools "Ganeti H-tools"
+.SH NAME
+hbal \- Cluster balancer for Ganeti
+
+.SH SYNOPSIS
+.B hbal
+.B "[-C]"
+.B "[-p]"
+.B "[-o]"
+.B "-l"
+.BI "[ -m " cluster "]"
+.BI "[-n " nodes-file " ]"
+.BI "[ -i " instances-file "]"
+
+.SH DESCRIPTION
+hbal is a cluster balancer that looks at the current state of the
+cluster (nodes with their total and free disk, memory, etc.) and
+instance placement and computes a series of steps designed to bring
+the cluster into a better state.
+
+The algorithm to do so is designed to be stable (i.e. it will give you
+the same results when restarting it from the middle of the solution)
+and reasonably fast. It is not, however, designed to be a perfect
+algorithm - it is possible to make it go into a corner from which it
+can find no improvement, because it only look one "step" ahead.
+
+By default, the program will show the solution incrementally as it is
+computed, in a somewhat cryptic format; for getting the actual Ganeti
+command list, use the \fB-C\fR option.
+
+.SS ALGORITHM
+
+The program works in indepentent steps; at each step, we compute the
+best instance move that lowers the cluster score.
+
+The possible move type for an instance are combinations of
+failover/migrate and replace-disks such that we change one of the
+instance nodes, and the other one remains (but possibly with changed
+role, e.g. from primary it becomes secondary). The list is:
+  - failover (f)
+  - replace secondary (r)
+  - replace primary, a composite move (f, r, f)
+  - failover and replace secondary, also composite (f, r)
+  - replace secondary and failover, also composite (r, f)
+
+We don't do the only remaining possibility of replacing both nodes
+(r,f,r,f or the equivalent f,r,f,r) since these move needs an
+exhaustive search over both candidate primary and secondary nodes, and
+is O(n*n) in the number of nodes. Furthermore, it doesn't seems to
+give better scores but will result in more disk replacements.
+
+.SS CLUSTER SCORING
+
+As said before, the algorithm tries to minimize the cluster score at
+each step. Currently this score is computed as a sum of the following
+components:
+  - coefficient of variance of the percent of free memory
+  - coefficient of variance of the percent of reserved memory
+  - coefficient of variance of the percent of free disk
+  - percentage of nodes failing N+1 check
+
+The free memory and free disk values help ensure that all nodes are
+somewhat balanced in their resource usage. The reserved memory helps
+to ensure that nodes are somewhat balanced in holding secondary
+instances, and that no node keeps too much memory reserved for
+N+1. And finally, the N+1 percentage helps guide the algorithm towards
+eliminating N+1 failures, if possible.
+
+Except for the N+1 failures, we use the coefficient of variance since
+this brings the values into the same unit so to speak, and with a
+restrict domain of values (between zero and one). The percentange of
+N+1 failures, while also in this numeric range, doesn't actually has
+the same meaning, but it has shown to work well.
+
+The other alternative, using for N+1 checks the coefficient of
+variance of (N+1 fail=1, N+1 pass=0) across nodes could hint the
+algorithm to make more N+1 failures if most nodes are N+1 fail
+already. Since this (making N+1 failures) is not allowed by other
+rules of the algorithm, so the N+1 checks would simply not work
+anymore in this case.
+
+On a perfectly balanced cluster (all nodes the same size, all
+instances the same size and spread across the nodes equally), all
+values would be zero. This doesn't happen too often in practice :)
+
+.SS OTHER POSSIBLE METRICS
+
+It would be desirable to add more metrics to the algorithm, especially
+dynamically-computed metrics, such as:
+  - CPU usage of instances, combined with VCPU versus PCPU count
+  - Disk IO usage
+  - Network IO
+
+.SH OPTIONS
+The options that can be passed to the program are as follows:
+.TP
+.B -C, --print-commands
+Print the command list at the end of the run. Without this, the
+program will only show a shorter, but cryptic output.
+.TP
+.B -p, --print-nodes
+Prints the before and after node status, in a format designed to allow
+the user to understand the node's most important parameters.
+
+The node list will contain these informations:
+  - a character denoting the N+1 status of the node, with blank
+    meaning pass and an asterisk ('*') meaning fail
+  - the node name
+  - the total node memory
+  - the free node memory
+  - the reserved node memory, which is the amount of free memory
+    needed for N+1 compliancy
+  - total disk
+  - free disk
+  - number of primary instances
+  - number of secondary instances
+  - percent of free memory
+  - percent of free disk
+
+.TP
+.B -o, --oneline
+Only shows a one-line output from the program, designed for the case
+when one wants to look at multiple clusters at once and check their
+status.
+
+The line will contain four fields:
+  - initial cluster score
+  - number of steps in the solution
+  - final cluster score
+  - improvement in the cluster score
+
+.TP
+.BI "-n" nodefile ", --nodes=" nodefile
+The name of the file holding node information (if not collecting via
+RAPI), instead of the default
+.I nodes
+file.
+
+.TP
+.BI "-i" instancefile ", --instances=" instancefile
+The name of the file holding instance information (if not collecting
+via RAPI), instead of the default
+.I instances
+file.
+
+.TP
+.BI "-m" cluster
+Collect data not from files but directly from the
+.I cluster
+given as an argument via RAPI. This work for both Ganeti 1.2 and
+Ganeti 2.0.
+
+.TP
+.BI "-l" N ", --max-length=" N
+Restrict the solution to this length. This can be used for example to
+automate the execution of the balancing.
+
+.TP
+.B -v, --verbose
+Increase the output verbosity. Each usage of this option will increase
+the verbosity (currently more than 2 doesn't make sense) from the
+default of zero.
+
+.TP
+.B -V, --version
+Just show the program version and exit.
+
+.SH EXIT STATUS
+
+The exist status of the command will be zero, unless for some reason
+the algorithm fatally failed (e.g. wrong node or instance data).
+
+.SH BUGS
+
+The program does not check its input data for consistency, and aborts
+with cryptic errors messages in this case.
+
+The algorithm is not perfect.
+
+The output format is not easily scriptable, and the program should
+feed moves directly into Ganeti (either via RAPI or via a gnt-debug
+input file).
+
+.SH EXAMPLE
+
+.SS Default output
+
+With the default options, the program shows each individual step and
+the improvements it brings in cluster score:
+
+.in +4n
+.nf
+.RB "$" " hbal"
+Loaded 20 nodes, 80 instances
+Cluster is not N+1 happy, continuing but no guarantee that the cluster will end N+1 happy.
+Initial score: 0.52329131
+Trying to minimize the CV...
+    1. instance14  node1:node10  => node16:node10 0.42109120 a=f r:node16 f
+    2. instance54  node4:node15  => node16:node15 0.31904594 a=f r:node16 f
+    3. instance4   node5:node2   => node2:node16  0.26611015 a=f r:node16
+    4. instance48  node18:node20 => node2:node18  0.21361717 a=r:node2 f
+    5. instance93  node19:node18 => node16:node19 0.16166425 a=r:node16 f
+    6. instance89  node3:node20  => node2:node3   0.11005629 a=r:node2 f
+    7. instance5   node6:node2   => node16:node6  0.05841589 a=r:node16 f
+    8. instance94  node7:node20  => node20:node16 0.00658759 a=f r:node16
+    9. instance44  node20:node2  => node2:node15  0.00438740 a=f r:node15
+   10. instance62  node14:node18 => node14:node16 0.00390087 a=r:node16
+   11. instance13  node11:node14 => node11:node16 0.00361787 a=r:node16
+   12. instance19  node10:node11 => node10:node7  0.00336636 a=r:node7
+   13. instance43  node12:node13 => node12:node1  0.00305681 a=r:node1
+   14. instance1   node1:node2   => node1:node4   0.00263124 a=r:node4
+   15. instance58  node19:node20 => node19:node17 0.00252594 a=r:node17
+Cluster score improved from 0.52329131 to 0.00252594
+.fi
+.in
+
+In the above output, we can see:
+  - the input data (here from files) shows a cluster with 20 nodes and
+    80 instances
+  - the cluster is not initially N+1 compliant
+  - the initial score is 0.52329131
+
+The step list follows, showing the instance, its initial
+primary/secondary nodes, the new primary secondary, the cluster list,
+and the actions taken in this step (with 'f' denoting failover/migrate
+and 'r' denoting replace secondary).
+
+Finally, the program shows the improvement in cluster score.
+
+A more detailed output is obtained via the \fB-C\fR and \fB-p\fR options:
+
+.in +4n
+.nf
+.RB "$" " hbal"
+Loaded 20 nodes, 80 instances
+Cluster is not N+1 happy, continuing but no guarantee that the cluster will end N+1 happy.
+Initial cluster status:
+N1 Name   t_mem f_mem r_mem t_dsk f_dsk pri sec  p_fmem  p_fdsk
+ * node1  32762  1280  6000  1861  1026   5   3 0.03907 0.55179
+   node2  32762 31280 12000  1861  1026   0   8 0.95476 0.55179
+ * node3  32762  1280  6000  1861  1026   5   3 0.03907 0.55179
+ * node4  32762  1280  6000  1861  1026   5   3 0.03907 0.55179
+ * node5  32762  1280  6000  1861   978   5   5 0.03907 0.52573
+ * node6  32762  1280  6000  1861  1026   5   3 0.03907 0.55179
+ * node7  32762  1280  6000  1861  1026   5   3 0.03907 0.55179
+   node8  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node9  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+ * node10 32762  7280 12000  1861  1026   4   4 0.22221 0.55179
+   node11 32762  7280  6000  1861   922   4   5 0.22221 0.49577
+   node12 32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node13 32762  7280  6000  1861   922   4   5 0.22221 0.49577
+   node14 32762  7280  6000  1861   922   4   5 0.22221 0.49577
+ * node15 32762  7280 12000  1861  1131   4   3 0.22221 0.60782
+   node16 32762 31280     0  1861  1860   0   0 0.95476 1.00000
+   node17 32762  7280  6000  1861  1106   5   3 0.22221 0.59479
+ * node18 32762  1280  6000  1396   561   5   3 0.03907 0.40239
+ * node19 32762  1280  6000  1861  1026   5   3 0.03907 0.55179
+   node20 32762 13280 12000  1861   689   3   9 0.40535 0.37068
+
+Initial score: 0.52329131
+Trying to minimize the CV...
+    1. instance14  node1:node10  => node16:node10 0.42109120 a=f r:node16 f
+    2. instance54  node4:node15  => node16:node15 0.31904594 a=f r:node16 f
+    3. instance4   node5:node2   => node2:node16  0.26611015 a=f r:node16
+    4. instance48  node18:node20 => node2:node18  0.21361717 a=r:node2 f
+    5. instance93  node19:node18 => node16:node19 0.16166425 a=r:node16 f
+    6. instance89  node3:node20  => node2:node3   0.11005629 a=r:node2 f
+    7. instance5   node6:node2   => node16:node6  0.05841589 a=r:node16 f
+    8. instance94  node7:node20  => node20:node16 0.00658759 a=f r:node16
+    9. instance44  node20:node2  => node2:node15  0.00438740 a=f r:node15
+   10. instance62  node14:node18 => node14:node16 0.00390087 a=r:node16
+   11. instance13  node11:node14 => node11:node16 0.00361787 a=r:node16
+   12. instance19  node10:node11 => node10:node7  0.00336636 a=r:node7
+   13. instance43  node12:node13 => node12:node1  0.00305681 a=r:node1
+   14. instance1   node1:node2   => node1:node4   0.00263124 a=r:node4
+   15. instance58  node19:node20 => node19:node17 0.00252594 a=r:node17
+Cluster score improved from 0.52329131 to 0.00252594
+
+Commands to run to reach the above solution:
+  echo step 1
+  echo gnt-instance migrate instance14
+  echo gnt-instance replace-disks -n node16 instance14
+  echo gnt-instance migrate instance14
+  echo step 2
+  echo gnt-instance migrate instance54
+  echo gnt-instance replace-disks -n node16 instance54
+  echo gnt-instance migrate instance54
+  echo step 3
+  echo gnt-instance migrate instance4
+  echo gnt-instance replace-disks -n node16 instance4
+  echo step 4
+  echo gnt-instance replace-disks -n node2 instance48
+  echo gnt-instance migrate instance48
+  echo step 5
+  echo gnt-instance replace-disks -n node16 instance93
+  echo gnt-instance migrate instance93
+  echo step 6
+  echo gnt-instance replace-disks -n node2 instance89
+  echo gnt-instance migrate instance89
+  echo step 7
+  echo gnt-instance replace-disks -n node16 instance5
+  echo gnt-instance migrate instance5
+  echo step 8
+  echo gnt-instance migrate instance94
+  echo gnt-instance replace-disks -n node16 instance94
+  echo step 9
+  echo gnt-instance migrate instance44
+  echo gnt-instance replace-disks -n node15 instance44
+  echo step 10
+  echo gnt-instance replace-disks -n node16 instance62
+  echo step 11
+  echo gnt-instance replace-disks -n node16 instance13
+  echo step 12
+  echo gnt-instance replace-disks -n node7 instance19
+  echo step 13
+  echo gnt-instance replace-disks -n node1 instance43
+  echo step 14
+  echo gnt-instance replace-disks -n node4 instance1
+  echo step 15
+  echo gnt-instance replace-disks -n node17 instance58
+
+Final cluster status:
+N1 Name   t_mem f_mem r_mem t_dsk f_dsk pri sec  p_fmem  p_fdsk
+   node1  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node2  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node3  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node4  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node5  32762  7280  6000  1861  1078   4   5 0.22221 0.57947
+   node6  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node7  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node8  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node9  32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node10 32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node11 32762  7280  6000  1861  1022   4   4 0.22221 0.54951
+   node12 32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node13 32762  7280  6000  1861  1022   4   4 0.22221 0.54951
+   node14 32762  7280  6000  1861  1022   4   4 0.22221 0.54951
+   node15 32762  7280  6000  1861  1031   4   4 0.22221 0.55408
+   node16 32762  7280  6000  1861  1060   4   4 0.22221 0.57007
+   node17 32762  7280  6000  1861  1006   5   4 0.22221 0.54105
+   node18 32762  7280  6000  1396   761   4   2 0.22221 0.54570
+   node19 32762  7280  6000  1861  1026   4   4 0.22221 0.55179
+   node20 32762 13280  6000  1861  1089   3   5 0.40535 0.58565
+
+.fi
+.in
+
+Here we see, beside the step list, the initial and final cluster
+status, with the final one showing all nodes being N+1 compliant, and
+the command list to reach the final solution. In the initial listing,
+we see which nodes are not N+1 compliant.
+
+The algorithm is stable as long as each step above is fully completed,
+e.g. in step 8, both the migrate and the replace-disks are
+done. Otherwise, if only the migrate is done, the input data is
+changed in a way that the program will output a different solution
+list (but hopefully will end in the same state).
+
+.SH SEE ALSO
+ganeti(7), gnt-instance(8), gnt-node(8)
