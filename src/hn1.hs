@@ -17,6 +17,7 @@ import Text.Printf (printf)
 import qualified Container
 import qualified Instance
 import qualified Cluster
+import qualified Version
 import Utils
 import Rapi
 
@@ -30,7 +31,8 @@ data Options = Options
     , optMaxRemovals :: Int
     , optMinDelta    :: Int
     , optMaxDelta    :: Int
-    , optMaster    :: String
+    , optMaster      :: String
+    , optShowVer     :: Bool     -- ^ Just show the program version
     } deriving Show
 
 -- | Default values for the command line options.
@@ -45,6 +47,7 @@ defaultOptions    = Options
  , optMinDelta    = 0
  , optMaxDelta    = -1
  , optMaster    = ""
+ , optShowVer   = False
  }
 
 {- | Start computing the solution at the given depth and recurse until
@@ -85,28 +88,31 @@ options =
     , Option ['C']     ["print-commands"]
       (NoArg (\ opts -> opts { optShowCmds = True }))
       "print the ganeti command list for reaching the solution"
-     , Option ['n']     ["nodes"]
+    , Option ['n']     ["nodes"]
       (ReqArg (\ f opts -> opts { optNodef = f }) "FILE")
       "the node list FILE"
-     , Option ['i']     ["instances"]
+    , Option ['i']     ["instances"]
       (ReqArg (\ f opts -> opts { optInstf =  f }) "FILE")
       "the instance list FILE"
-     , Option ['d']     ["depth"]
+    , Option ['d']     ["depth"]
       (ReqArg (\ i opts -> opts { optMinDepth =  (read i)::Int }) "D")
       "start computing the solution at depth D"
-     , Option ['r']     ["max-removals"]
+    , Option ['r']     ["max-removals"]
       (ReqArg (\ i opts -> opts { optMaxRemovals =  (read i)::Int }) "R")
       "do not process more than R removal sets (useful for high depths)"
-     , Option ['L']     ["max-delta"]
+    , Option ['L']     ["max-delta"]
       (ReqArg (\ i opts -> opts { optMaxDelta =  (read i)::Int }) "L")
       "refuse solutions with delta higher than L"
-     , Option ['l']     ["min-delta"]
+    , Option ['l']     ["min-delta"]
       (ReqArg (\ i opts -> opts { optMinDelta =  (read i)::Int }) "L")
       "return once a solution with delta L or lower has been found"
-     , Option ['m']     ["master"]
+    , Option ['m']     ["master"]
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
       "collect data via RAPI at the given ADDRESS"
-     ]
+    , Option ['V']     ["version"]
+      (NoArg (\ opts -> opts { optShowVer = True}))
+      "show the version of the program"
+    ]
 
 -- | Command line parser, using the 'options' structure.
 parseOpts :: [String] -> IO (Options, [String])
@@ -116,13 +122,19 @@ parseOpts argv =
           return (foldl (flip id) defaultOptions o, n)
       (_,_,errs) ->
           ioError (userError (concat errs ++ usageInfo header options))
-      where header = "Usage: hn1 [OPTION...]"
+      where header = printf "hn1 %s\nUsage: hn1 [OPTION...]"
+                     Version.version
 
 -- | Main function.
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
   (opts, _) <- parseOpts cmd_args
+
+  when (optShowVer opts) $ do
+         printf "hn1 %s\n" Version.version
+         exitWith ExitSuccess
+
   let min_depth = optMinDepth opts
   let (node_data, inst_data) =
           case optMaster opts of

@@ -30,6 +30,7 @@ data Options = Options
     , optMaxLength :: Int      -- ^ Stop after this many steps
     , optMaster    :: String   -- ^ Collect data from RAPI
     , optVerbose   :: Int      -- ^ Verbosity level
+    , optShowVer   :: Bool     -- ^ Just show the program version
     } deriving Show
 
 -- | Default values for the command line options.
@@ -43,6 +44,7 @@ defaultOptions  = Options
  , optMaxLength = -1
  , optMaster    = ""
  , optVerbose   = 0
+ , optShowVer   = False
  }
 
 -- | Options list and functions
@@ -74,7 +76,10 @@ options =
       (NoArg (\ opts -> let nv = (optVerbose opts)
                         in opts { optVerbose = nv + 1 }))
       "increase the verbosity level"
-     ]
+    , Option ['V']     ["version"]
+      (NoArg (\ opts -> opts { optShowVer = True}))
+      "show the version of the program"
+    ]
 
 -- | Command line parser, using the 'options' structure.
 parseOpts :: [String] -> IO (Options, [String])
@@ -133,6 +138,10 @@ main :: IO ()
 main = do
   cmd_args <- System.getArgs
   (opts, _) <- parseOpts cmd_args
+
+  when (optShowVer opts) $ do
+         printf "hbal %s\n" Version.version
+         exitWith ExitSuccess
 
   let oneline = optOneline opts
       verbose = optVerbose opts
