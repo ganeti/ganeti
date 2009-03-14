@@ -22,13 +22,14 @@ import Utils
 
 -- | Command line options structure.
 data Options = Options
-    { optShowNodes :: Bool
-    , optShowCmds  :: Bool
-    , optOneline   :: Bool
-    , optNodef     :: FilePath
-    , optInstf     :: FilePath
-    , optMaxLength :: Int
-    , optMaster    :: String
+    { optShowNodes :: Bool     -- ^ Whether to show node status
+    , optShowCmds  :: Bool     -- ^ Whether to show the command list
+    , optOneline   :: Bool     -- ^ Switch output to a single line
+    , optNodef     :: FilePath -- ^ Path to the nodes file
+    , optInstf     :: FilePath -- ^ Path to the instances file
+    , optMaxLength :: Int      -- ^ Stop after this many steps
+    , optMaster    :: String   -- ^ Collect data from RAPI
+    , optVerbose   :: Int      -- ^ Verbosity level
     } deriving Show
 
 -- | Default values for the command line options.
@@ -41,6 +42,7 @@ defaultOptions  = Options
  , optInstf     = "instances"
  , optMaxLength = -1
  , optMaster    = ""
+ , optVerbose   = 0
  }
 
 {- | Start computing the solution at the given depth and recurse until
@@ -96,19 +98,23 @@ options =
     , Option ['o']     ["oneline"]
       (NoArg (\ opts -> opts { optOneline = True }))
       "print the ganeti command list for reaching the solution"
-     , Option ['n']     ["nodes"]
+    , Option ['n']     ["nodes"]
       (ReqArg (\ f opts -> opts { optNodef = f }) "FILE")
       "the node list FILE"
-     , Option ['i']     ["instances"]
+    , Option ['i']     ["instances"]
       (ReqArg (\ f opts -> opts { optInstf =  f }) "FILE")
       "the instance list FILE"
-     , Option ['m']     ["master"]
+    , Option ['m']     ["master"]
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
       "collect data via RAPI at the given ADDRESS"
-     , Option ['l']     ["max-length"]
+    , Option ['l']     ["max-length"]
       (ReqArg (\ i opts -> opts { optMaxLength =  (read i)::Int }) "N")
       "cap the solution at this many moves (useful for very unbalanced \
       \clusters)"
+    , Option ['v']     ["verbose"]
+      (NoArg (\ opts -> let nv = (optVerbose opts)
+                        in opts { optVerbose = nv + 1 }))
+      "increase the verbosity level"
      ]
 
 -- | Command line parser, using the 'options' structure.
@@ -129,7 +135,8 @@ main = do
   (opts, _) <- parseOpts cmd_args
 
   let oneline = optOneline opts
-  let (node_data, inst_data) =
+      verbose = optVerbose opts
+      (node_data, inst_data) =
           case optMaster opts of
             "" -> (readFile $ optNodef opts,
                    readFile $ optInstf opts)
@@ -142,11 +149,11 @@ main = do
              (Container.size nl)
              (Container.size il)
 
-  when (length csf > 0 && not oneline) $ do
+  when (length csf > 0 && not oneline && verbose > 0) $ do
          printf "Note: Stripping common suffix of '%s' from names\n" csf
 
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
-  unless oneline $ printf
+  unless (oneline || verbose == 0) $ printf
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
@@ -161,8 +168,11 @@ main = do
 
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
-  unless oneline $ printf "Initial coefficients: overall %.8f, %s\n"
-         ini_cv (Cluster.printStats nl)
+  unless oneline (if verbose > 1 then
+                      printf "Initial coefficients: overall %.8f, %s\n"
+                      ini_cv (Cluster.printStats nl)
+                  else
+                      printf "Initial score: %.8f\n" ini_cv)
 
   unless oneline $ putStrLn "Trying to minimize the CV..."
   let mlen_fn = maximum . (map length) . snd . unzip
@@ -173,13 +183,19 @@ main = do
                          ktn kti nmlen imlen [] oneline
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
-  unless oneline $ do
-         (if null fin_plc
-          then printf "No solution found\n"
-          else printf "Final coefficients:   overall %.8f, %s\n"
-               fin_cv (Cluster.printStats fin_nl))
+      sol_msg = if null fin_plc
+                then printf "No solution found\n"
+                else (if verbose > 1
+                      then printf "Final coefficients:   overall %.8f, %s\n"
+                           fin_cv (Cluster.printStats fin_nl)
+                      else printf "Cluster score improved from %.8f to %.8f\n"
+                           ini_cv fin_cv
+                     )
 
-  unless oneline $ printf "Solution length=%d\n" (length ord_plc)
+  unless oneline $ putStr sol_msg
+
+  unless (oneline || verbose == 0) $
+         printf "Solution length=%d\n" (length ord_plc)
 
   when (optShowCmds opts) $
        do
@@ -193,8 +209,10 @@ main = do
          putStrLn ""
          putStrLn "Final cluster status:"
          putStrLn $ Cluster.printNodes ktn fin_nl
-         printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
-         printf "Final:    mem=%d disk=%d\n" final_mem final_disk
+         when (verbose > 2) $
+              do
+                printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
+                printf "Final:    mem=%d disk=%d\n" final_mem final_disk
   when oneline $ do
          printf "%.8f %d %.8f %8.3f\n"
                 ini_cv (length ord_plc) fin_cv (ini_cv / fin_cv)
