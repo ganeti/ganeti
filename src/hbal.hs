@@ -140,7 +140,7 @@ main = do
   (opts, _) <- parseOpts cmd_args
 
   when (optShowVer opts) $ do
-         printf "hbal %s\n" Version.version
+         putStr $ showVersion "hbal"
          exitWith ExitSuccess
 
   let oneline = optOneline opts

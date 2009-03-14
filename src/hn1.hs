@@ -132,7 +132,7 @@ main = do
   (opts, _) <- parseOpts cmd_args
 
   when (optShowVer opts) $ do
-         printf "hn1 %s\n" Version.version
+         printf $ showVersion "hn1"
          exitWith ExitSuccess
 
   let min_depth = optMinDepth opts

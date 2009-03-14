@@ -2,11 +2,15 @@
 
 module Utils where
 
-import Data.List
 import Data.Either
+import Data.List
+import qualified Data.Version
+import Monad
 import System
 import System.IO
-import Monad
+import System.Info
+import Text.Printf
+import qualified Version
 
 import Debug.Trace
 
@@ -78,3 +82,11 @@ readData fn host = do
          putStrLn $ fromLeft nd
          exitWith $ ExitFailure 1
   return $ fromRight nd
+
+showVersion :: String -- ^ The program name
+            -> String -- ^ The formatted version and other information data
+showVersion name =
+    printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
+           name Version.version
+           compilerName (Data.Version.showVersion compilerVersion)
+           os arch
