@@ -1,0 +1,172 @@
+.TH HN1 1 2009-03-14 htools "Ganeti H-tools"
+.SH NAME
+hn1 \- N+1 fixer for Ganeti
+
+.SH SYNOPSIS
+.B hn1
+.B "[-C]"
+.B "[-p]"
+.B "[-o]"
+.BI "[ -m " cluster "]"
+.BI "[-n " nodes-file " ]"
+.BI "[ -i " instances-file "]"
+.BI "[-d " depth "]"
+.BI "[-r " max-removals "]"
+.BI "[-L " max-delta "]"
+.BI "[-l " min-delta "]"
+
+.B hn1
+.B --version
+
+.SH DESCRIPTION
+hn1 is a cluster N+1 fixer that tries to compute the minimum number of
+moves needed for getting all nodes to be N+1 compliant.
+
+The algorithm is designed to be a 'perfect' algorithm, so that we
+always examine the entire solution space until we find the minimum
+solution. The algorithm can be tweaked via the \fB-d\fR, \fB-r\fR,
+\fB-L\fR and \fB-l\fR options.
+
+By default, the program will show the solution in a somewhat cryptic
+format; for getting the actual Ganeti command list, use the \fB-C\fR
+option.
+
+\fBNote:\fR this program is somewhat deprecated; \fBhbal(1)\fR gives
+usually much faster results, and a better cluster. It is recommended
+to use this program only when \fBhbal\fR doesn't give a N+1 compliant
+cluster.
+
+.SS ALGORITHM
+
+The algorithm works in multiple rounds, of increasing \fIdepth\fR,
+until we have a solution.
+
+First, before starting the solution computation, we compute all the
+N+1-fail nodes and the instances they hold. These instances are
+candidate for replacement (and only these!).
+
+The program start then with \fIdepth\fR one (unless overridden via the
+\fB-d\fR option), and at each round:
+  - it tries to remove from the cluster as many instances as the
+    current depth in order to make the cluster N+1 compliant
+  - then, for each of the possible instance combinations that allow
+    this (unless the total size is reduced via the \fB-r\fR option),
+    it tries to put them back on the cluster while maintaining N+1
+    compliance
+
+It might be that at a given round, the results are:
+  - no instance combination that can be put back; this means it is not
+    possible to make the cluster N+1 compliant with this number of
+    instances being moved, so we increase the depth and go on to the
+    next round
+  - one or more successful result, in which case we take the one that
+    has as few changes as possible (by change meaning a replace-disks
+    needed)
+
+The main problem with the algorithm is that, being an exhaustive
+search, the CPU time required grows very very quickly based on
+depth. On a 20-node, 80-instances cluster, depths up to 5-6 are
+quickly computed, and depth 10 could already take days.
+
+Since the algorithm is designed to prune the search space as quickly
+as possible, is by luck we find a good solution early at a given
+depth, then the other solutions which would result in a bigger delta
+(the number of changes) will not be investigated, and the program will
+finish fast. Since this is random and depends on where in the full
+solution space the good solution will be, there are two options for
+cutting down the time needed:
+  - \fB-l\fR makes any solution that has delta lower than its
+    parameter succeed instantly
+  - \fB-L\fR makes any solution with delta higher than its parameter
+    being rejected instantly (and not descend on the search tree)
+
+.SH OPTIONS
+The options that can be passed to the program are as follows:
+.TP
+.B -C, --print-commands
+Print the command list at the end of the run. Without this, the
+program will only show a shorter, but cryptic output.
+.TP
+.B -p, --print-nodes
+Prints the before and after node status, in a format designed to allow
+the user to understand the node's most important parameters.
+
+The node list will contain these informations:
+  - a character denoting the N+1 status of the node, with blank
+    meaning pass and an asterisk ('*') meaning fail
+  - the node name
+  - the total node memory
+  - the free node memory
+  - the reserved node memory, which is the amount of free memory
+    needed for N+1 compliance
+  - total disk
+  - free disk
+  - number of primary instances
+  - number of secondary instances
+  - percent of free memory
+  - percent of free disk
+
+.TP
+.BI "-n" nodefile ", --nodes=" nodefile
+The name of the file holding node information (if not collecting via
+RAPI), instead of the default
+.I nodes
+file.
+
+.TP
+.BI "-i" instancefile ", --instances=" instancefile
+The name of the file holding instance information (if not collecting
+via RAPI), instead of the default
+.I instances
+file.
+
+.TP
+.BI "-m" cluster
+Collect data not from files but directly from the
+.I cluster
+given as an argument via RAPI. This work for both Ganeti 1.2 and
+Ganeti 2.0.
+
+.TP
+.BI "-d" DEPTH ", --depth=" DEPTH
+Start the algorithm directly at depth \fID\fR, so that we don't
+examine lower depth. This will be faster if we know a solution is not
+found a lower depths, and thus it's unneeded to search them.
+
+.TP
+.BI "-l" MIN-DELTA ", --min-delta=" MIN-DELTA
+If we find a solution with delta lower or equal to \fIMIN-DELTA\fR,
+consider this a success and don't examine further.
+
+.TP
+.BI "-L" MAX-DELTA ", --max-delta=" MAX-DELTA
+If while computing a solution, it's intermediate delta is already
+higher or equal to \fIMAX-DELTA\fR, consider this a failure and abort
+(as if N+1 checks have failed).
+
+.TP
+.B -V, --version
+Just show the program version and exit.
+
+.SH EXIT STATUS
+
+The exist status of the command will be zero, unless for some reason
+the algorithm fatally failed (e.g. wrong node or instance data).
+
+.SH BUGS
+
+The program does not check its input data for consistency, and aborts
+with cryptic errors messages in this case.
+
+The algorithm doesn't know when it won't be possible to reach N+1
+compliance at all, and will happily churn CPU for ages without
+realising it won't reach a solution.
+
+The algorithm is too slow.
+
+The output format is not easily scriptable, and the program should
+feed moves directly into Ganeti (either via RAPI or via a gnt-debug
+input file).
+
+.SH SEE ALSO
+hbal(1), ganeti(7), gnt-instance(8), gnt-node(8)

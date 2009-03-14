@@ -1,4 +1,4 @@
-.TH HBAL 2 2009-03-13 htools "Ganeti H-tools"
+.TH HBAL 1 2009-03-14 htools "Ganeti H-tools"
 .SH NAME
 hbal \- Cluster balancer for Ganeti
 
@@ -11,6 +11,9 @@ hbal \- Cluster balancer for Ganeti
 .BI "[ -m " cluster "]"
 .BI "[-n " nodes-file " ]"
 .BI "[ -i " instances-file "]"
+
+.B hbal
+.B --version
 
 .SH DESCRIPTION
 hbal is a cluster balancer that looks at the current state of the
@@ -30,7 +33,7 @@ command list, use the \fB-C\fR option.
 
 .SS ALGORITHM
 
-The program works in indepentent steps; at each step, we compute the
+The program works in independent steps; at each step, we compute the
 best instance move that lowers the cluster score.
 
 The possible move type for an instance are combinations of
@@ -51,7 +54,7 @@ give better scores but will result in more disk replacements.
 
 .SS CLUSTER SCORING
 
-As said before, the algorithm tries to minimize the cluster score at
+As said before, the algorithm tries to minimise the cluster score at
 each step. Currently this score is computed as a sum of the following
 components:
   - coefficient of variance of the percent of free memory
@@ -68,7 +71,7 @@ eliminating N+1 failures, if possible.
 
 Except for the N+1 failures, we use the coefficient of variance since
 this brings the values into the same unit so to speak, and with a
-restrict domain of values (between zero and one). The percentange of
+restrict domain of values (between zero and one). The percentage of
 N+1 failures, while also in this numeric range, doesn't actually has
 the same meaning, but it has shown to work well.
 
@@ -109,7 +112,7 @@ The node list will contain these informations:
   - the total node memory
   - the free node memory
   - the reserved node memory, which is the amount of free memory
-    needed for N+1 compliancy
+    needed for N+1 compliance
   - total disk
   - free disk
   - number of primary instances
@@ -357,4 +360,4 @@ changed in a way that the program will output a different solution
 list (but hopefully will end in the same state).
 
 .SH SEE ALSO
-ganeti(7), gnt-instance(8), gnt-node(8)
+hn1(1), ganeti(7), gnt-instance(8), gnt-node(8)
