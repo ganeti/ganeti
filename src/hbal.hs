@@ -45,47 +45,6 @@ defaultOptions  = Options
  , optVerbose   = 0
  }
 
-{- | Start computing the solution at the given depth and recurse until
-we find a valid solution or we exceed the maximum depth.
-
--}
-iterateDepth :: Cluster.Table    -- ^ The starting table
-             -> Int              -- ^ Remaining length
-             -> [(Int, String)]  -- ^ Node idx to name list
-             -> [(Int, String)]  -- ^ Inst idx to name list
-             -> Int              -- ^ Max node name len
-             -> Int              -- ^ Max instance name len
-             -> [[String]]       -- ^ Current command list
-             -> Bool             -- ^ Wheter to be silent
-             -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
-                                               -- commands
-iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
-    let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
-        all_inst = Container.elems ini_il
-        node_idx = Container.keys ini_nl
-        fin_tbl = Cluster.checkMove node_idx ini_tbl all_inst
-        (Cluster.Table _ _ fin_cv fin_plc) = fin_tbl
-        ini_plc_len = length ini_plc
-        fin_plc_len = length fin_plc
-        allowed_next = (max_rounds < 0 || length fin_plc < max_rounds)
-    in
-      do
-        let
-            (sol_line, cmds) = Cluster.printSolutionLine ini_il ktn kti
-                               nmlen imlen (head fin_plc) fin_plc_len
-            upd_cmd_strs = cmds:cmd_strs
-        unless (oneline || fin_plc_len == ini_plc_len) $ do
-          putStrLn sol_line
-          hFlush stdout
-        (if fin_cv < ini_cv then -- this round made success, try deeper
-             if allowed_next
-             then iterateDepth fin_tbl max_rounds ktn kti
-                  nmlen imlen upd_cmd_strs oneline
-             -- don't go deeper, but return the better solution
-             else return (fin_tbl, upd_cmd_strs)
-         else
-             return (ini_tbl, cmd_strs))
-
 -- | Options list and functions
 options :: [OptDescr (Options -> Options)]
 options =
@@ -127,6 +86,47 @@ parseOpts argv =
           ioError (userError (concat errs ++ usageInfo header options))
       where header = printf "hbal %s\nUsage: hbal [OPTION...]"
                      Version.version
+
+{- | Start computing the solution at the given depth and recurse until
+we find a valid solution or we exceed the maximum depth.
+
+-}
+iterateDepth :: Cluster.Table    -- ^ The starting table
+             -> Int              -- ^ Remaining length
+             -> [(Int, String)]  -- ^ Node idx to name list
+             -> [(Int, String)]  -- ^ Inst idx to name list
+             -> Int              -- ^ Max node name len
+             -> Int              -- ^ Max instance name len
+             -> [[String]]       -- ^ Current command list
+             -> Bool             -- ^ Wheter to be silent
+             -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
+                                               -- commands
+iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
+    let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
+        all_inst = Container.elems ini_il
+        node_idx = Container.keys ini_nl
+        fin_tbl = Cluster.checkMove node_idx ini_tbl all_inst
+        (Cluster.Table _ _ fin_cv fin_plc) = fin_tbl
+        ini_plc_len = length ini_plc
+        fin_plc_len = length fin_plc
+        allowed_next = (max_rounds < 0 || length fin_plc < max_rounds)
+    in
+      do
+        let
+            (sol_line, cmds) = Cluster.printSolutionLine ini_il ktn kti
+                               nmlen imlen (head fin_plc) fin_plc_len
+            upd_cmd_strs = cmds:cmd_strs
+        unless (oneline || fin_plc_len == ini_plc_len) $ do
+          putStrLn sol_line
+          hFlush stdout
+        (if fin_cv < ini_cv then -- this round made success, try deeper
+             if allowed_next
+             then iterateDepth fin_tbl max_rounds ktn kti
+                  nmlen imlen upd_cmd_strs oneline
+             -- don't go deeper, but return the better solution
+             else return (fin_tbl, upd_cmd_strs)
+         else
+             return (ini_tbl, cmd_strs))
 
 -- | Main function.
 main :: IO ()
