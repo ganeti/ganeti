@@ -68,10 +68,10 @@ data Removal = Removal NodeList [Instance.Instance]
 
 -- | An instance move definition
 data IMove = Failover                -- ^ Failover the instance (f)
-           | ReplacePrimary Int      -- ^ Replace the primary (f, r:np, f)
-           | ReplaceSecondary Int    -- ^ Replace the secondary (r:ns)
-           | ReplaceAndFailover Int  -- ^ Replace the secondary and
-                                     -- failover (r:ns, f)
+           | ReplacePrimary Int      -- ^ Replace primary (f, r:np, f)
+           | ReplaceSecondary Int    -- ^ Replace secondary (r:ns)
+           | ReplaceAndFailover Int  -- ^ Replace secondary, failover (r:np, f)
+           | FailoverAndReplace Int  -- ^ Failover, replace secondary (f, r:ns)
              deriving (Show)
 
 -- | The complete state for the balancing solution
@@ -392,6 +392,23 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
                                old_sdx int_s nl
     in (new_nl, Instance.setBoth inst new_pdx old_pdx, new_pdx, old_pdx)
 
+-- Failver and replace the secondary (f, r:ns)
+applyMove nl inst (FailoverAndReplace new_sdx) =
+    let old_pdx = Instance.pnode inst
+        old_sdx = Instance.snode inst
+        old_p = Container.find old_pdx nl
+        old_s = Container.find old_sdx nl
+        tgt_n = Container.find new_sdx nl
+        int_p = Node.removePri old_p inst
+        int_s = Node.removeSec old_s inst
+        new_p = Node.addPri int_s inst
+        new_s = Node.addSec tgt_n inst old_sdx
+        new_nl = if isNothing(new_p) || isNothing(new_s) then Nothing
+                 else Just $ Container.add new_sdx (fromJust new_s) $
+                      Container.addTwo old_sdx (fromJust new_p)
+                               old_pdx int_p nl
+    in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
+
 checkSingleStep :: Table -- ^ The original table
                 -> Instance.Instance -- ^ The instance to move
                 -> Table -- ^ The current best table
@@ -425,7 +442,8 @@ checkInstanceMove nodes_idx ini_tbl target =
         aft_failover = checkSingleStep ini_tbl target ini_tbl Failover
         all_moves = concatMap (\idx -> [ReplacePrimary idx,
                                         ReplaceSecondary idx,
-                                        ReplaceAndFailover idx]) nodes
+                                        ReplaceAndFailover idx,
+                                        FailoverAndReplace idx]) nodes
     in
       -- iterate over the possible nodes for this instance
       foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
