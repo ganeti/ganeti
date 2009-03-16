@@ -1,4 +1,25 @@
-Version 0.0.5:
+Version 0.0.6 (Mon, 16 Mar 2009):
+  - refactored the hbal algorithm to make it stable in the sense that it
+    gives the same solution when restarted from the middle; barring
+    rouding of disk/memory and incomplete reporting from Ganeti (for
+    1.2), it should be now feasible to rely on its output without
+    generating moves ad infinitum
+  - the hbal algorithm now uses two more variables: the node N+1
+    failures and the amount of reserved memory; the first of which tries
+    to ‘fix’ the N+1 status, the latter tries to distribute secondaries
+    more equally
+  - the hbal algorithm now uses two more moves at each step:
+    replace+failover and failover+replace (besides the original
+    failover, replace, and failover+replace+failover)
+  - slightly changed the build system to embed GIT version/tags into the
+    binaries so that we know for a binary from which tree it was done,
+    either via ‘--version’ or via “strings hbal|grep version”
+  - changed the solution list and in general the hbal output to be more
+    clear by default, and changed “gnt-instance failover” to
+    “gnt-instance migrate”
+  - added man pages for the two binaries
+
+Version 0.0.5 (Mon, 09 Mar 2009):
   - a few small improvements for hbal (possibly undone by later
     changes), hbal is now quite faster
   - fix documentation building
@@ -9,13 +30,13 @@ Version 0.0.5:
   - strip common domain suffix from nodes and instances, so that output
     is shorter and hopefully clearer
 
-Version 0.0.4:
+Version 0.0.4 (Sun, 15 Feb 2009):
   - better balancing algorithm in hbal
   - implemented an RAPI collector, now the cluster data can be gathered
     automatically via RAPI and doesn't need manual export of node and
     instance list
 
-Version 0.0.3:
+Version 0.0.3 (Wed, 28 Jan 2009):
   - initial release of the hbal, a cluster rebalancing tool
   - input data format changed due to hbal requirements
 
