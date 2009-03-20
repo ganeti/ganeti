@@ -17,6 +17,7 @@ import Text.Printf (printf)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Version as Version
+import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Rapi
 import Ganeti.HTools.Utils
 
@@ -31,6 +32,7 @@ data Options = Options
     , optMaster    :: String   -- ^ Collect data from RAPI
     , optVerbose   :: Int      -- ^ Verbosity level
     , optShowVer   :: Bool     -- ^ Just show the program version
+    , optOffline   :: [String] -- ^ Names of offline nodes
     } deriving Show
 
 -- | Default values for the command line options.
@@ -45,6 +47,7 @@ defaultOptions  = Options
  , optMaster    = ""
  , optVerbose   = 0
  , optShowVer   = False
+ , optOffline   = []
  }
 
 -- | Options list and functions
@@ -79,6 +82,9 @@ options =
     , Option ['V']     ["version"]
       (NoArg (\ opts -> opts { optShowVer = True}))
       "show the version of the program"
+    , Option ['O']     ["offline"]
+      (ReqArg (\ n opts -> opts { optOffline = n:optOffline opts }) "NODE")
+       " set node as offline"
     ]
 
 -- | Command line parser, using the 'options' structure.
@@ -109,7 +115,8 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
 iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
     let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
         all_inst = Container.elems ini_il
-        node_idx = Container.keys ini_nl
+        node_idx = map Node.idx . filter (not . Node.offline) $
+                   Container.elems ini_nl
         fin_tbl = Cluster.checkMove node_idx ini_tbl all_inst
         (Cluster.Table _ _ fin_cv fin_plc) = fin_tbl
         ini_plc_len = length ini_plc
@@ -152,7 +159,15 @@ main = do
             host -> (readData getNodes host,
                      readData getInstances host)
 
-  (nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+  (loaded_nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+
+  let offline_names = optOffline opts
+      offline_indices = fst . unzip .
+                        filter (\(_, n) -> elem n offline_names) $ ktn
+
+  let nl = Container.map (\n -> if elem (Node.idx n) offline_indices
+                                then Node.setOffline n True
+                                else n) loaded_nl
 
   unless oneline $ printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
