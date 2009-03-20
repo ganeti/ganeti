@@ -132,6 +132,7 @@ class Mainloop(object):
           # Calculate timeout again if required
           if timeout_needs_update:
             timeout = self._CalcTimeout(time.time())
+            timeout_needs_update = False
 
           # Wait for I/O events
           try:
