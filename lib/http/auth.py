@@ -40,7 +40,7 @@ HTTP_BASIC_AUTH = "Basic"
 HTTP_DIGEST_AUTH = "Digest"
 
 # Not exactly as described in RFC2616, section 2.2, but good enough
-_NOQUOTE = re.compile(r"^[-_a-z0-9]$", re.I)
+_NOQUOTE = re.compile(r"^[-_a-z0-9]+$", re.I)
 
 
 def _FormatAuthHeader(scheme, params):
