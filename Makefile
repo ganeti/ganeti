@@ -8,7 +8,7 @@ DOCS = README.html NEWS.html
 
 all: $(HPROGS)
 
-hn1 hbal: Ganeti/HTools/Version.hs
+hn1 hbal: % : %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
 	ghc --make -O2 -W $@
 
 $(DOCS) : %.html : %
