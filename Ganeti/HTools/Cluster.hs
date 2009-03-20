@@ -5,7 +5,7 @@ goes into the "Main" module.
 
 -}
 
-module Cluster
+module Ganeti.HTools.Cluster
     (
      -- * Types
      NodeList
@@ -38,10 +38,10 @@ import Data.Maybe (isNothing, fromJust)
 import Text.Printf (printf)
 import Data.Function
 
-import qualified Container
-import qualified Instance
-import qualified Node
-import Utils
+import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Node as Node
+import Ganeti.HTools.Utils
 
 type NodeList = Container.Container Node.Node
 type InstanceList = Container.Container Instance.Instance
@@ -224,10 +224,10 @@ checkRemoval nl victims =
 
 
 -- | Computes the removals list for a given depth
-computeRemovals :: Cluster.NodeList
+computeRemovals :: NodeList
                  -> [Instance.Instance]
                  -> Int
-                 -> [Maybe Cluster.Removal]
+                 -> [Maybe Removal]
 computeRemovals nl bad_instances depth =
     map (checkRemoval nl) $ genNames depth bad_instances
 

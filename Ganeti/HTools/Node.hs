@@ -4,7 +4,7 @@
     updated value.
 -}
 
-module Node
+module Ganeti.HTools.Node
     (
       Node(failN1, idx, f_mem, f_dsk, p_mem, p_dsk, slist, plist, p_rem)
     -- * Constructor
@@ -26,11 +26,11 @@ module Node
 import Data.List
 import Text.Printf (printf)
 
-import qualified Container
-import qualified Instance
-import qualified PeerMap
+import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.PeerMap as PeerMap
 
-import Utils
+import Ganeti.HTools.Utils
 
 data Node = Node { t_mem :: Double -- ^ total memory (Mib)
                  , f_mem :: Int    -- ^ free memory (MiB)

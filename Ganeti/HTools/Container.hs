@@ -5,7 +5,7 @@ give the best performance for our workload.
 
 -}
 
-module Container
+module Ganeti.HTools.Container
     (
      -- * Types
      Container

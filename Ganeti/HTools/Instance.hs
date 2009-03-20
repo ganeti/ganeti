@@ -4,7 +4,7 @@ The instance data type holds very few fields, the algorithm
 intelligence is in the "Node" and "Cluster" modules.
 
 -}
-module Instance where
+module Ganeti.HTools.Instance where
 
 data Instance = Instance { mem :: Int   -- ^ memory of the instance
                          , dsk :: Int   -- ^ disk size of instance

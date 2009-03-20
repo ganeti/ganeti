@@ -7,19 +7,19 @@ implementation should be easy in case it's needed.
 
 -}
 
-module PeerMap (
-                PeerMap,
-                Key,
-                Elem,
-                empty,
-                create,
-                accumArray,
-                PeerMap.find,
-                add,
-                remove,
-                maxElem
-                )
-    where
+module Ganeti.HTools.PeerMap
+    (
+     PeerMap,
+     Key,
+     Elem,
+     empty,
+     create,
+     accumArray,
+     Ganeti.HTools.PeerMap.find,
+     add,
+     remove,
+     maxElem
+    ) where
 
 import Data.Maybe (fromMaybe)
 import Data.List

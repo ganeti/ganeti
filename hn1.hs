@@ -14,12 +14,12 @@ import qualified System
 
 import Text.Printf (printf)
 
-import qualified Container
-import qualified Instance
-import qualified Cluster
-import qualified Version
-import Utils
-import Rapi
+import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Version as Version
+import Ganeti.HTools.Rapi
+import Ganeti.HTools.Utils
 
 -- | Command line options structure.
 data Options = Options

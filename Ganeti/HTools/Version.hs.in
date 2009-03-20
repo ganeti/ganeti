@@ -1,4 +1,4 @@
-module Version
+module Ganeti.HTools.Version
     (
       version -- ^ the version of the tree
     ) where

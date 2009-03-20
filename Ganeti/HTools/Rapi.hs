@@ -2,7 +2,7 @@
 
 -}
 
-module Rapi
+module Ganeti.HTools.Rapi
     (
       getNodes
     , getInstances
@@ -16,7 +16,7 @@ import Data.Maybe
 import Control.Monad
 import Text.JSON
 import Text.Printf (printf)
-import Utils ()
+import Ganeti.HTools.Utils ()
 
 
 {-- Our cheap monad-like stuff.

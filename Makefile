@@ -4,8 +4,10 @@ HDDIR = apidoc
 
 # Haskell rules
 
-all: version
-	$(MAKE) -C src
+all: hbal hn1
+
+hn1 hbal: Ganeti/HTools/Version.hs
+	ghc --make -O2 -W $@
 
 README.html: README
 	rst2html $< $@
@@ -25,16 +27,24 @@ doc: README.html
 		$(HSRCS)
 
 clean:
-	rm -f *.o *.cmi *.cmo *.cmx *.old hn1 zn1 *.prof *.ps *.stat *.aux \
-        gmon.out *.hi README.html TAGS version
+	rm -f *.o hn1 zn1 *.prof *.ps *.stat *.aux \
+	    gmon.out *.hi README.html TAGS Ganeti/HTools/Version.hs
+	git describe >/dev/null && rm -f version
 
 version:
 	git describe > $@
 
+Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
+	sed -e "s/%ver%/$$(cat ../version)/" < $< > $@
+
 dist: version
 	VN=$$(cat version|sed 's/^v//') ; \
 	ANAME="htools-$$VN.tar" ; \
-    git archive --format=tar --prefix=htools-$$VN/ HEAD > $$ANAME ; \
-	tar -r -f $$ANAME --transform="s,^,htools-$$VN/," version
+	rm -f $$ANAME $$ANAME.gz ; \
+	git archive --format=tar --prefix=htools-$$VN/ HEAD > $$ANAME ; \
+	tar -r -f $$ANAME --owner root --group root \
+	    --transform="s,^,htools-$$VN/," version ; \
+	gzip -v9 $$ANAME ; \
+	tar tzvf $$ANAME.gz
 
 .PHONY : all doc clean hn1 dist

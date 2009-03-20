@@ -1,6 +1,6 @@
 {-| Utility functions -}
 
-module Utils where
+module Ganeti.HTools.Utils where
 
 import Data.Either
 import Data.List
@@ -10,7 +10,7 @@ import System
 import System.IO
 import System.Info
 import Text.Printf
-import qualified Version
+import qualified Ganeti.HTools.Version as Version
 
 import Debug.Trace
 
