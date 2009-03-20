@@ -431,6 +431,21 @@ checkSingleStep ini_tbl target cur_tbl move =
           in
             compareTables cur_tbl upd_tbl
 
+-- | Given the status of the current secondary as a valid new node
+-- and the current candidate target node,
+-- generate the possible moves for a instance.
+possibleMoves :: Bool -> Int -> [IMove]
+possibleMoves True tdx =
+    [ReplaceSecondary tdx,
+     ReplaceAndFailover tdx,
+     ReplacePrimary tdx,
+     FailoverAndReplace tdx]
+
+possibleMoves False tdx =
+    [ReplaceSecondary tdx,
+     ReplaceAndFailover tdx]
+
+-- | Compute the best move for a given instance.
 checkInstanceMove :: [Int]             -- Allowed target node indices
                   -> Table             -- Original table
                   -> Instance.Instance -- Instance to move
@@ -440,11 +455,11 @@ checkInstanceMove nodes_idx ini_tbl target =
         opdx = Instance.pnode target
         osdx = Instance.snode target
         nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
-        aft_failover = checkSingleStep ini_tbl target ini_tbl Failover
-        all_moves = concatMap (\idx -> [ReplacePrimary idx,
-                                        ReplaceSecondary idx,
-                                        ReplaceAndFailover idx,
-                                        FailoverAndReplace idx]) nodes
+        use_secondary = elem osdx nodes_idx
+        aft_failover = if use_secondary -- if allowed to failover
+                       then checkSingleStep ini_tbl target ini_tbl Failover
+                       else ini_tbl
+        all_moves = concatMap (possibleMoves use_secondary) nodes
     in
       -- iterate over the possible nodes for this instance
       foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
