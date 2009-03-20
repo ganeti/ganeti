@@ -6,12 +6,14 @@
 
 module Ganeti.HTools.Node
     (
-      Node(failN1, idx, f_mem, f_dsk, p_mem, p_dsk, slist, plist, p_rem)
+      Node(failN1, idx, f_mem, f_dsk, p_mem, p_dsk, slist, plist,
+           p_rem, offline)
     -- * Constructor
     , create
     -- ** Finalization after data loading
     , buildPeers
     , setIdx
+    , setOffline
     -- * Instance (re)location
     , removePri
     , removeSec
@@ -46,6 +48,9 @@ data Node = Node { t_mem :: Double -- ^ total memory (Mib)
                  , p_mem :: Double -- ^ percent of free memory
                  , p_dsk :: Double -- ^ percent of free disk
                  , p_rem :: Double -- ^ percent of reserved memory
+                 , offline :: Bool -- ^ whether the node should not be used
+                                   -- for allocations and skipped from
+                                   -- score computations
   } deriving (Show)
 
 {- | Create a new node.
@@ -75,13 +80,18 @@ create mem_t_init mem_f_init dsk_t_init dsk_f_init =
        r_mem = 0,
        p_mem = (fromIntegral mem_f) / (fromIntegral mem_t),
        p_dsk = (fromIntegral dsk_f) / (fromIntegral dsk_t),
-       p_rem = 0
+       p_rem = 0,
+       offline = False
       }
 
 -- | Changes the index.
 -- This is used only during the building of the data structures.
 setIdx :: Node -> Int -> Node
 setIdx t i = t {idx = i}
+
+-- | Sets the offline attribute
+setOffline :: Node -> Bool -> Node
+setOffline t val = t { offline = val }
 
 -- | Given the rmem, free memory and disk, computes the failn1 status.
 computeFailN1 :: Int -> Int -> Int -> Bool
