@@ -506,6 +506,9 @@ def QueueOps(opts, args):
     else:
       val = "unset"
     ToStdout("The drain flag is %s" % val)
+  else:
+    raise errors.OpPrereqError("Command '%s' is not valid." % command)
+
   return 0
 
 # this is an option common to more than one command, so we declare
