@@ -1,6 +1,9 @@
+-- Hey Emacs, this is a -*- haskell -*- file
+
 module Ganeti.HTools.Version
     (
-      version -- ^ the version of the tree
+      version
     ) where
 
+-- | The version of the tree
 version = "(htools) version %ver%"

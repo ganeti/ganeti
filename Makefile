@@ -24,8 +24,8 @@ doc: $(DOCS)
 	done
 	haddock --odir $(HDDIR) --html --ignore-all-exports \
 		-t htools -p haddock-prologue \
-		--source-module="Ganeti/HTools/%{MODULE/.//}.html" \
-		--source-entity="Ganeti/HTools/%{MODULE/.//}.html#%{NAME}" \
+		--source-module="%{MODULE/.//}.html" \
+		--source-entity="%{MODULE/.//}.html#%{NAME}" \
 		$(HSRCS)
 
 clean:

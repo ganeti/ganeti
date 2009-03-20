@@ -1,7 +1,7 @@
 {-| Implementation of cluster-wide logic.
 
 This module holds all pure cluster-logic; I\/O related functionality
-goes into the "Main" module.
+goes into the "Main" module for the individual binaries.
 
 -}
 
@@ -45,6 +45,7 @@ import Ganeti.HTools.Utils
 
 type NodeList = Container.Container Node.Node
 type InstanceList = Container.Container Instance.Instance
+-- | A separate name for the cluster score type
 type Score = Double
 
 -- | The description of an instance placement.
