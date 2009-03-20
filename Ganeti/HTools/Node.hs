@@ -39,14 +39,13 @@ data Node = Node { t_mem :: Double -- ^ total memory (Mib)
                  , plist :: [Int]  -- ^ list of primary instance indices
                  , slist :: [Int]  -- ^ list of secondary instance indices
                  , idx :: Int      -- ^ internal index for book-keeping
-                 , peers:: PeerMap.PeerMap -- ^ primary node to instance
-                                           -- mapping
-                 , failN1:: Bool -- ^ whether the node has failed n1
-                 , r_mem :: Int  -- ^ maximum memory needed for
-                                 -- failover by primaries of this node
-                 , p_mem :: Double
-                 , p_dsk :: Double
-                 , p_rem :: Double
+                 , peers :: PeerMap.PeerMap -- ^ pnode to instance mapping
+                 , failN1:: Bool   -- ^ whether the node has failed n1
+                 , r_mem :: Int    -- ^ maximum memory needed for
+                                   -- failover by primaries of this node
+                 , p_mem :: Double -- ^ percent of free memory
+                 , p_dsk :: Double -- ^ percent of free disk
+                 , p_rem :: Double -- ^ percent of reserved memory
   } deriving (Show)
 
 {- | Create a new node.
