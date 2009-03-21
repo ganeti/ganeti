@@ -754,7 +754,7 @@ loadData ndata idata =
         (ktn, nl) = loadTabular ndata
                     (\ (i:jt:jf:kt:kf:[]) -> (i, Node.create jt jf kt kf))
                     Node.setIdx
-    {- instance file: name mem disk -}
+    {- instance file: name mem disk pnode snode -}
         (kti, il) = loadTabular idata
                     (\ (i:j:k:l:m:[]) -> (i,
                                            Instance.create j k

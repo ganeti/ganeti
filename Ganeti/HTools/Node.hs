@@ -6,8 +6,8 @@
 
 module Ganeti.HTools.Node
     (
-      Node(failN1, idx, f_mem, f_dsk, p_mem, p_dsk, slist, plist,
-           p_rem, offline)
+      Node(failN1, idx, t_mem, f_mem, t_dsk, f_dsk, p_mem, p_dsk, p_rem,
+           plist, slist, offline)
     -- * Constructor
     , create
     -- ** Finalization after data loading
