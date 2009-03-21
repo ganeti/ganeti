@@ -161,10 +161,12 @@ parseNode :: JSObject JSValue -> Either String String
 parseNode a =
     let name = getStringElement "name" a
         mtotal = getIntElement "mtotal" a
+        mnode = getIntElement "mnode" a
         mfree = getIntElement "mfree" a
         dtotal = getIntElement "dtotal" a
         dfree = getIntElement "dfree" a
     in concatElems name $
        concatElems (show `apply1` mtotal) $
+       concatElems (show `apply1` mnode) $
        concatElems (show `apply1` mfree) $
        concatElems (show `apply1` dtotal) (show `apply1` dfree)

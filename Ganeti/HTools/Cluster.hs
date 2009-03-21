@@ -642,8 +642,8 @@ printNodes ktn nl =
         snl' = map (\ n -> ((fromJust $ lookup (Node.idx n) ktn), n)) snl
         m_name = maximum . (map length) . fst . unzip $ snl'
         helper = Node.list m_name
-        header = printf "%2s %-*s %5s %5s %5s %5s %5s %3s %3s %7s %7s"
-                 " F" m_name "Name" "t_mem" "f_mem" "r_mem"
+        header = printf "%2s %-*s %5s %5s %5s %5s %5s %5s %3s %3s %7s %7s"
+                 " F" m_name "Name" "t_mem" "n_mem" "f_mem" "r_mem"
                  "t_dsk" "f_dsk"
                  "pri" "sec" "p_fmem" "p_fdsk"
     in unlines $ (header:map (uncurry helper) snl')
@@ -750,11 +750,12 @@ loadData :: String -- ^ Node data in text format
              String, NameList, NameList)
 loadData ndata idata =
     let
-    {- node file: name t_mem f_mem t_disk f_disk -}
+    {- node file: name t_mem n_mem f_mem t_disk f_disk -}
         (ktn, nl) = loadTabular ndata
-                    (\ (name:tm:fm:td:fd:[]) ->
+                    (\ (name:tm:nm:fm:td:fd:[]) ->
                          (name,
-                          Node.create (read tm) (read fm) (read td) (read fd)))
+                          Node.create (read tm) (read nm)
+                                  (read fm) (read td) (read fd)))
                     Node.setIdx
     {- instance file: name mem disk pnode snode -}
         (kti, il) = loadTabular idata

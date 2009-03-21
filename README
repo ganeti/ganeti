@@ -240,7 +240,7 @@ The programs can either get their input from text files, or directly
 from a cluster via RAPI. For text files, the following two commands
 should be run::
 
-    gnt-node list -oname,mtotal,mfree,dtotal,dfree \
+    gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree \
       --separator '|' --no-headers > nodes
     gnt-instance list -oname,admin_ram,sda_size,pnode,snodes \
       --separator '|' --no-head > instances

@@ -6,7 +6,8 @@
 
 module Ganeti.HTools.Node
     (
-      Node(failN1, idx, t_mem, f_mem, t_dsk, f_dsk, p_mem, p_dsk, p_rem,
+      Node(failN1, idx, t_mem, n_mem, f_mem, t_dsk, f_dsk,
+           p_mem, p_dsk, p_rem,
            plist, slist, offline)
     -- * Constructor
     , create
@@ -34,7 +35,8 @@ import qualified Ganeti.HTools.PeerMap as PeerMap
 
 import Ganeti.HTools.Utils
 
-data Node = Node { t_mem :: Double -- ^ total memory (Mib)
+data Node = Node { t_mem :: Double -- ^ total memory (MiB)
+                 , n_mem :: Int    -- ^ node memory (MiB)
                  , f_mem :: Int    -- ^ free memory (MiB)
                  , t_dsk :: Double -- ^ total disk space (MiB)
                  , f_dsk :: Int    -- ^ free disk space (MiB)
@@ -59,11 +61,12 @@ The index and the peers maps are empty, and will be need to be update
 later via the 'setIdx' and 'buildPeers' functions.
 
 -}
-create :: Double -> Int -> Double -> Int -> Node
-create mem_t_init mem_f_init dsk_t_init dsk_f_init =
+create :: Double -> Int -> Int -> Double -> Int -> Node
+create mem_t_init mem_n_init mem_f_init dsk_t_init dsk_f_init =
     Node
     {
       t_mem = mem_t_init,
+      n_mem = mem_n_init,
       f_mem = mem_f_init,
       t_dsk = dsk_t_init,
       f_dsk = dsk_f_init,
@@ -217,9 +220,9 @@ list mname n t =
         off = offline t
         fn = failN1 t
     in
-      printf " %c %-*s %5.0f %5d %5d %5.0f %5d %3d %3d %.5f %.5f"
+      printf " %c %-*s %5.0f %5d %5d %5d %5.0f %5d %3d %3d %.5f %.5f"
                  (if off then '-' else if fn then '*' else ' ')
-                 mname n (t_mem t) (f_mem t) (r_mem t)
+                 mname n (t_mem t) (n_mem t) (f_mem t) (r_mem t)
                  ((t_dsk t) / 1024) ((f_dsk t) `div` 1024)
                  (length pl) (length sl)
                  mp dp
