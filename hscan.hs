@@ -82,8 +82,8 @@ serializeNodes nl csf ktn =
         nlines = map
                  (\node ->
                       let name = (fromJust $ lookup (Node.idx node) etn)
-                          t_mem = (truncate $ Node.t_mem node)::Integer
-                          t_dsk = (truncate $ Node.t_dsk node)::Integer
+                          t_mem = (truncate $ Node.t_mem node)::Int
+                          t_dsk = (truncate $ Node.t_dsk node)::Int
                       in
                         printf "%s|%d|%d|%d|%d" name
                                    t_mem (Node.f_mem node)
