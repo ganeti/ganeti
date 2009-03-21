@@ -104,8 +104,8 @@ we find a valid solution or we exceed the maximum depth.
 -}
 iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
-             -> [(Int, String)]  -- ^ Node idx to name list
-             -> [(Int, String)]  -- ^ Inst idx to name list
+             -> Cluster.NameList -- ^ Node idx to name list
+             -> Cluster.NameList -- ^ Inst idx to name list
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [[String]]       -- ^ Current command list

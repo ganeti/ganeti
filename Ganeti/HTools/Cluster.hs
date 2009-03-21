@@ -10,6 +10,7 @@ module Ganeti.HTools.Cluster
      -- * Types
      NodeList
     , InstanceList
+    , NameList
     , Placement
     , Solution(..)
     , Table(..)
@@ -45,6 +46,8 @@ import Ganeti.HTools.Utils
 
 type NodeList = Container.Container Node.Node
 type InstanceList = Container.Container Instance.Instance
+-- | The type used to hold idx-to-name mappings
+type NameList = [(Int, String)]
 -- | A separate name for the cluster score type
 type Score = Double
 
@@ -584,8 +587,8 @@ computeMoves i a b c d =
 
 {-| Converts a placement to string format -}
 printSolutionLine :: InstanceList
-              -> [(Int, String)]
-              -> [(Int, String)]
+              -> NameList
+              -> NameList
               -> Int
               -> Int
               -> Placement
@@ -619,8 +622,8 @@ formatCmds cmd_strs =
 
 {-| Converts a solution to string format -}
 printSolution :: InstanceList
-              -> [(Int, String)]
-              -> [(Int, String)]
+              -> NameList
+              -> NameList
               -> [Placement]
               -> ([String], [[String]])
 printSolution il ktn kti sol =
@@ -633,7 +636,7 @@ printSolution il ktn kti sol =
             zip sol [1..]
 
 -- | Print the node list.
-printNodes :: [(Int, String)] -> NodeList -> String
+printNodes :: NameList -> NodeList -> String
 printNodes ktn nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
         snl' = map (\ n -> ((fromJust $ lookup (Node.idx n) ktn), n)) snl
@@ -719,9 +722,9 @@ fixNodes nl il =
                     ac3 = (pdx, pnew):(sdx, snew):ac2
                 in ac3) nl il
 
--- | Compute the longest common suffix of a [(Int, String)] list that
+-- | Compute the longest common suffix of a NameList list that
 -- | starts with a dot
-longestDomain :: [(Int, String)] -> String
+longestDomain :: NameList -> String
 longestDomain [] = ""
 longestDomain ((_,x):xs) =
     let
@@ -733,7 +736,7 @@ longestDomain ((_,x):xs) =
       "" $ filter (isPrefixOf ".") (tails x)
 
 -- | Remove tails from the (Int, String) lists
-stripSuffix :: String -> [(Int, String)] -> [(Int, String)]
+stripSuffix :: String -> NameList -> NameList
 stripSuffix suffix lst =
     let sflen = length suffix in
     map (\ (key, name) -> (key, take ((length name) - sflen) name)) lst
@@ -744,7 +747,7 @@ loadData :: String -- ^ Node data in text format
          -> String -- ^ Instance data in text format
          -> (Container.Container Node.Node,
              Container.Container Instance.Instance,
-             String, [(Int, String)], [(Int, String)])
+             String, NameList, NameList)
 loadData ndata idata =
     let
     {- node file: name mem disk -}
