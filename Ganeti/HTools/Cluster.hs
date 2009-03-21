@@ -646,10 +646,11 @@ printNodes ktn nl =
     in unlines $ (header:map (uncurry helper) snl')
 
 -- | Compute the mem and disk covariance.
-compDetailedCV :: NodeList -> (Double, Double, Double, Double)
+compDetailedCV :: NodeList -> (Double, Double, Double, Double, Double)
 compDetailedCV nl =
     let
-        nodes = Container.elems nl
+        all_nodes = Container.elems nl
+        (offline, nodes) = partition Node.offline all_nodes
         mem_l = map Node.p_mem nodes
         dsk_l = map Node.p_dsk nodes
         mem_cv = varianceCoeff mem_l
@@ -658,19 +659,25 @@ compDetailedCV nl =
         n1_score = (fromIntegral n1_l) / (fromIntegral $ length nodes)
         res_l = map Node.p_rem nodes
         res_cv = varianceCoeff res_l
-    in (mem_cv, dsk_cv, n1_score, res_cv)
+        offline_inst = sum . map (\n -> (length . Node.plist $ n) +
+                                        (length . Node.slist $ n)) $ offline
+        online_inst = sum . map (\n -> (length . Node.plist $ n) +
+                                       (length . Node.slist $ n)) $ nodes
+        off_score = (fromIntegral offline_inst) /
+                    (fromIntegral $ online_inst + offline_inst)
+    in (mem_cv, dsk_cv, n1_score, res_cv, off_score)
 
 -- | Compute the 'total' variance.
 compCV :: NodeList -> Double
 compCV nl =
-    let (mem_cv, dsk_cv, n1_score, res_cv) = compDetailedCV nl
-    in mem_cv + dsk_cv + n1_score + res_cv
+    let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
+    in mem_cv + dsk_cv + n1_score + res_cv + off_score
 
 printStats :: NodeList -> String
 printStats nl =
-    let (mem_cv, dsk_cv, n1_score, res_cv) = compDetailedCV nl
-    in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f"
-       mem_cv res_cv dsk_cv n1_score
+    let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
+    in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f, uf=%.3f"
+       mem_cv res_cv dsk_cv n1_score off_score
 
 -- Balancing functions
 
