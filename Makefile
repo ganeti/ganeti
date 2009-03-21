@@ -1,4 +1,4 @@
-HPROGS = hbal hn1
+HPROGS = hbal hn1 hscan
 HSRCS := $(wildcard Ganeti/HTools/*.hs)
 HDDIR = apidoc
 
