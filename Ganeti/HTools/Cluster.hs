@@ -640,7 +640,7 @@ printNodes ktn nl =
         m_name = maximum . (map length) . fst . unzip $ snl'
         helper = Node.list m_name
         header = printf "%2s %-*s %5s %5s %5s %5s %5s %3s %3s %7s %7s"
-                 "N1" m_name "Name" "t_mem" "f_mem" "r_mem"
+                 " F" m_name "Name" "t_mem" "f_mem" "r_mem"
                  "t_dsk" "f_dsk"
                  "pri" "sec" "p_fmem" "p_fdsk"
     in unlines $ (header:map (uncurry helper) snl')
