@@ -750,16 +750,19 @@ loadData :: String -- ^ Node data in text format
              String, NameList, NameList)
 loadData ndata idata =
     let
-    {- node file: name mem disk -}
+    {- node file: name t_mem f_mem t_disk f_disk -}
         (ktn, nl) = loadTabular ndata
-                    (\ (i:jt:jf:kt:kf:[]) -> (i, Node.create jt jf kt kf))
+                    (\ (name:tm:fm:td:fd:[]) ->
+                         (name,
+                          Node.create (read tm) (read fm) (read td) (read fd)))
                     Node.setIdx
     {- instance file: name mem disk pnode snode -}
         (kti, il) = loadTabular idata
-                    (\ (i:j:k:l:m:[]) -> (i,
-                                           Instance.create j k
-                                               (fromJust $ lookup l ktn)
-                                               (fromJust $ lookup m ktn)))
+                    (\ (name:mem:dsk:pnode:snode:[]) ->
+                         (name,
+                          Instance.create (read mem) (read dsk)
+                              (fromJust $ lookup pnode ktn)
+                              (fromJust $ lookup snode ktn)))
                     Instance.setIdx
         nl2 = fixNodes nl il
         il3 = Container.fromAssocList il

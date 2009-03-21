@@ -59,30 +59,25 @@ The index and the peers maps are empty, and will be need to be update
 later via the 'setIdx' and 'buildPeers' functions.
 
 -}
-create :: String -> String -> String -> String -> Node
+create :: Double -> Int -> Double -> Int -> Node
 create mem_t_init mem_f_init dsk_t_init dsk_f_init =
-    let mem_t = read mem_t_init
-        mem_f = read mem_f_init
-        dsk_t = read dsk_t_init
-        dsk_f = read dsk_f_init
-    in
-      Node
-      {
-       t_mem = read mem_t_init,
-       f_mem = read mem_f_init,
-       t_dsk = read dsk_t_init,
-       f_dsk = read dsk_f_init,
-       plist = [],
-       slist = [],
-       failN1 = True,
-       idx = -1,
-       peers = PeerMap.empty,
-       r_mem = 0,
-       p_mem = (fromIntegral mem_f) / (fromIntegral mem_t),
-       p_dsk = (fromIntegral dsk_f) / (fromIntegral dsk_t),
-       p_rem = 0,
-       offline = False
-      }
+    Node
+    {
+      t_mem = mem_t_init,
+      f_mem = mem_f_init,
+      t_dsk = dsk_t_init,
+      f_dsk = dsk_f_init,
+      plist = [],
+      slist = [],
+      failN1 = True,
+      idx = -1,
+      peers = PeerMap.empty,
+      r_mem = 0,
+      p_mem = (fromIntegral mem_f_init) / mem_t_init,
+      p_dsk = (fromIntegral dsk_f_init) / dsk_t_init,
+      p_rem = 0,
+      offline = False
+    }
 
 -- | Changes the index.
 -- This is used only during the building of the data structures.

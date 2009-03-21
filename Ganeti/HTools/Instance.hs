@@ -13,14 +13,15 @@ data Instance = Instance { mem :: Int   -- ^ memory of the instance
                          , idx :: Int   -- ^ internal index for book-keeping
                          } deriving (Show)
 
-create :: String -> String -> Int -> Int -> Instance
-create mem_init dsk_init pn sn = Instance {
-                              mem = read mem_init,
-                              dsk = read dsk_init,
-                              pnode = pn,
-                              snode = sn,
-                              idx = -1
-                            }
+create :: Int -> Int -> Int -> Int -> Instance
+create mem_init dsk_init pn sn =
+    Instance {
+          mem = mem_init,
+          dsk = dsk_init,
+          pnode = pn,
+          snode = sn,
+          idx = -1
+        }
 
 -- | Changes the primary node of the instance.
 setPri :: Instance  -- ^ the original instance
