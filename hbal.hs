@@ -153,6 +153,11 @@ main = do
                      readData getInstances host)
 
   (loaded_nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+  let (fix_msgs, fixed_nl) = Cluster.checkData loaded_nl il ktn kti
+
+  unless (null fix_msgs) $ do
+         putStrLn "Warning: cluster has inconsistent data:"
+         putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
 
   let offline_names = optOffline opts
       offline_indices = fst . unzip .
@@ -160,7 +165,7 @@ main = do
 
   let nl = Container.map (\n -> if elem (Node.idx n) offline_indices
                                 then Node.setOffline n True
-                                else n) loaded_nl
+                                else n) fixed_nl
 
   unless oneline $ printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)

@@ -137,7 +137,13 @@ main = do
             host -> (readData getNodes host,
                      readData getInstances host)
 
-  (nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+  (loaded_nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
+
+  let (fix_msgs, nl) = Cluster.checkData loaded_nl il ktn kti
+
+  unless (null fix_msgs) $ do
+         putStrLn "Warning: cluster has inconsistent data:"
+         putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
 
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)

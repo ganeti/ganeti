@@ -217,10 +217,15 @@ list mname n t =
         dp = p_dsk t
         off = offline t
         fn = failN1 t
+        tmem = t_mem t
+        nmem = n_mem t
+        xmem = x_mem t
+        fmem = f_mem t
+        imem = (truncate tmem) - nmem - xmem - fmem
     in
-      printf " %c %-*s %5.0f %5d %5d %5d %5.0f %5d %3d %3d %.5f %.5f"
+      printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d %3d %3d %.5f %.5f"
                  (if off then '-' else if fn then '*' else ' ')
-                 mname n (t_mem t) (n_mem t) (f_mem t) (r_mem t)
+                 mname n tmem nmem imem xmem fmem (r_mem t)
                  ((t_dsk t) / 1024) ((f_dsk t) `div` 1024)
                  (length pl) (length sl)
                  mp dp
