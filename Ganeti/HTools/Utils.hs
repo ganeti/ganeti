@@ -1,16 +1,22 @@
 {-| Utility functions -}
 
-module Ganeti.HTools.Utils where
+module Ganeti.HTools.Utils
+    (
+      debug
+    , isLeft
+    , fromLeft
+    , fromRight
+    , sepSplit
+    , swapPairs
+    , varianceCoeff
+    , readData
+    ) where
 
 import Data.Either
 import Data.List
-import qualified Data.Version
 import Monad
 import System
 import System.IO
-import System.Info
-import Text.Printf
-import qualified Ganeti.HTools.Version as Version
 
 import Debug.Trace
 
@@ -68,7 +74,6 @@ stdDev lst =
         bv = sqrt (av / (fromIntegral $ length lst))
     in bv
 
-
 -- | Coefficient of variation.
 varianceCoeff :: Floating a => [a] -> a
 varianceCoeff lst = (stdDev lst) / (fromIntegral $ length lst)
@@ -82,11 +87,3 @@ readData fn host = do
          putStrLn $ fromLeft nd
          exitWith $ ExitFailure 1
   return $ fromRight nd
-
-showVersion :: String -- ^ The program name
-            -> String -- ^ The formatted version and other information data
-showVersion name =
-    printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
-           name Version.version
-           compilerName (Data.Version.showVersion compilerVersion)
-           os arch

@@ -18,9 +18,9 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
-import qualified Ganeti.HTools.Version as Version
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.Rapi
 import Ganeti.HTools.Utils
 
@@ -29,8 +29,9 @@ data Options = Options
     { optShowNodes :: Bool     -- ^ Whether to show node status
     , optOutPath   :: FilePath -- ^ Path to the output directory
     , optVerbose   :: Int      -- ^ Verbosity level
-    , optShowVer   :: Bool     -- ^ Just show the program version
     , optNoHeader  :: Bool     -- ^ Do not show a header line
+    , optShowVer   :: Bool     -- ^ Just show the program version
+    , optShowHelp  :: Bool     -- ^ Just show the help
     } deriving Show
 
 -- | Default values for the command line options.
@@ -39,8 +40,9 @@ defaultOptions  = Options
  { optShowNodes = False
  , optOutPath   = "."
  , optVerbose   = 0
- , optShowVer   = False
  , optNoHeader  = False
+ , optShowVer   = False
+ , optShowHelp  = False
  }
 
 -- | Options list and functions
@@ -55,24 +57,16 @@ options =
     , Option ['v']     ["verbose"]
       (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) + 1 }))
       "increase the verbosity level"
-    , Option ['V']     ["version"]
-      (NoArg (\ opts -> opts { optShowVer = True}))
-      "show the version of the program"
     , Option []        ["no-headers"]
       (NoArg (\ opts -> opts { optNoHeader = True }))
       "do not show a header line"
+    , Option ['V']     ["version"]
+      (NoArg (\ opts -> opts { optShowVer = True}))
+      "show the version of the program"
+    , Option ['h']     ["help"]
+      (NoArg (\ opts -> opts { optShowHelp = True}))
+      "show help"
     ]
-
--- | Command line parser, using the 'options' structure.
-parseOpts :: [String] -> IO (Options, [String])
-parseOpts argv =
-    case getOpt Permute options argv of
-      (o, n, []) ->
-          return (foldl (flip id) defaultOptions o, n)
-      (_, _, errs) ->
-          ioError (userError (concat errs ++ usageInfo header options))
-      where header = printf "hscan %s\nUsage: hscan [OPTION...] cluster..."
-                     Version.version
 
 -- | Generate node file data from node objects
 serializeNodes :: Cluster.NodeList -> String -> Cluster.NameList -> String
@@ -137,10 +131,11 @@ printCluster nl il ktn kti =
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (opts, clusters) <- parseOpts cmd_args
+  (opts, clusters) <- CLI.parseOpts cmd_args "hscan" options
+                      defaultOptions optShowHelp
 
   when (optShowVer opts) $ do
-         putStr $ showVersion "hscan"
+         putStr $ CLI.showVersion "hscan"
          exitWith ExitSuccess
 
   let odir = optOutPath opts

@@ -17,7 +17,7 @@ import Text.Printf (printf)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Cluster as Cluster
-import qualified Ganeti.HTools.Version as Version
+import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.Rapi
 import Ganeti.HTools.Utils
 
@@ -33,6 +33,7 @@ data Options = Options
     , optMaxDelta    :: Int
     , optMaster      :: String
     , optShowVer     :: Bool     -- ^ Just show the program version
+    , optShowHelp    :: Bool     -- ^ Just show the help
     } deriving Show
 
 -- | Default values for the command line options.
@@ -48,6 +49,7 @@ defaultOptions    = Options
  , optMaxDelta    = -1
  , optMaster    = ""
  , optShowVer   = False
+ , optShowHelp  = False
  }
 
 {- | Start computing the solution at the given depth and recurse until
@@ -112,27 +114,19 @@ options =
     , Option ['V']     ["version"]
       (NoArg (\ opts -> opts { optShowVer = True}))
       "show the version of the program"
+    , Option ['h']     ["help"]
+      (NoArg (\ opts -> opts { optShowHelp = True}))
+      "show help"
     ]
-
--- | Command line parser, using the 'options' structure.
-parseOpts :: [String] -> IO (Options, [String])
-parseOpts argv =
-    case getOpt Permute options argv of
-      (o,n,[]  ) ->
-          return (foldl (flip id) defaultOptions o, n)
-      (_,_,errs) ->
-          ioError (userError (concat errs ++ usageInfo header options))
-      where header = printf "hn1 %s\nUsage: hn1 [OPTION...]"
-                     Version.version
 
 -- | Main function.
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (opts, _) <- parseOpts cmd_args
+  (opts, _) <- CLI.parseOpts cmd_args "hn1" options defaultOptions optShowHelp
 
   when (optShowVer opts) $ do
-         printf $ showVersion "hn1"
+         printf $ CLI.showVersion "hn1"
          exitWith ExitSuccess
 
   let min_depth = optMinDepth opts

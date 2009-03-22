@@ -16,8 +16,8 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
-import qualified Ganeti.HTools.Version as Version
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.Rapi
 import Ganeti.HTools.Utils
 
@@ -31,8 +31,9 @@ data Options = Options
     , optMaxLength :: Int      -- ^ Stop after this many steps
     , optMaster    :: String   -- ^ Collect data from RAPI
     , optVerbose   :: Int      -- ^ Verbosity level
-    , optShowVer   :: Bool     -- ^ Just show the program version
     , optOffline   :: [String] -- ^ Names of offline nodes
+    , optShowVer   :: Bool     -- ^ Just show the program version
+    , optShowHelp  :: Bool     -- ^ Just show the help
     } deriving Show
 
 -- | Default values for the command line options.
@@ -46,8 +47,9 @@ defaultOptions  = Options
  , optMaxLength = -1
  , optMaster    = ""
  , optVerbose   = 0
- , optShowVer   = False
  , optOffline   = []
+ , optShowVer   = False
+ , optShowHelp  = False
  }
 
 -- | Options list and functions
@@ -76,27 +78,18 @@ options =
       "cap the solution at this many moves (useful for very unbalanced \
       \clusters)"
     , Option ['v']     ["verbose"]
-      (NoArg (\ opts -> let nv = (optVerbose opts)
-                        in opts { optVerbose = nv + 1 }))
+      (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) + 1 }))
       "increase the verbosity level"
-    , Option ['V']     ["version"]
-      (NoArg (\ opts -> opts { optShowVer = True}))
-      "show the version of the program"
     , Option ['O']     ["offline"]
       (ReqArg (\ n opts -> opts { optOffline = n:optOffline opts }) "NODE")
        " set node as offline"
+    , Option ['V']     ["version"]
+      (NoArg (\ opts -> opts { optShowVer = True}))
+      "show the version of the program"
+    , Option ['h']     ["help"]
+      (NoArg (\ opts -> opts { optShowHelp = True}))
+      "show help"
     ]
-
--- | Command line parser, using the 'options' structure.
-parseOpts :: [String] -> IO (Options, [String])
-parseOpts argv =
-    case getOpt Permute options argv of
-      (o,n,[]  ) ->
-          return (foldl (flip id) defaultOptions o, n)
-      (_,_,errs) ->
-          ioError (userError (concat errs ++ usageInfo header options))
-      where header = printf "hbal %s\nUsage: hbal [OPTION...]"
-                     Version.version
 
 {- | Start computing the solution at the given depth and recurse until
 we find a valid solution or we exceed the maximum depth.
@@ -144,10 +137,10 @@ iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (opts, _) <- parseOpts cmd_args
+  (opts, _) <- CLI.parseOpts cmd_args "hbal" options defaultOptions optShowHelp
 
   when (optShowVer opts) $ do
-         putStr $ showVersion "hbal"
+         putStr $ CLI.showVersion "hbal"
          exitWith ExitSuccess
 
   let oneline = optOneline opts
