@@ -151,10 +151,12 @@ parseInstance a =
         mem = case bep of
                 Left _ -> getIntElement "admin_ram" a
                 Right o -> getIntElement "memory" o
+        running = getStringElement "status" a
     in
       concatElems name $
                   concatElems (show `apply1` mem) $
                   concatElems (show `apply1` disk) $
+                  concatElems running $
                   concatElems pnode snode
 
 parseNode :: JSObject JSValue -> Either String String

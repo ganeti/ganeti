@@ -99,8 +99,9 @@ serializeInstances il csf ktn kti =
                           pnode = fromJust $ lookup (Instance.pnode inst) etn
                           snode = fromJust $ lookup (Instance.snode inst) etn
                       in
-                        printf "%s|%d|%d|%s|%s"
+                        printf "%s|%d|%d|%s|%s|%s"
                                iname (Instance.mem inst) (Instance.dsk inst)
+                               (Instance.run_st inst)
                                pnode snode
                  )
                  instances

@@ -6,18 +6,27 @@ intelligence is in the "Node" and "Cluster" modules.
 -}
 module Ganeti.HTools.Instance where
 
-data Instance = Instance { mem :: Int   -- ^ memory of the instance
-                         , dsk :: Int   -- ^ disk size of instance
-                         , pnode :: Int -- ^ original primary node
-                         , snode :: Int -- ^ original secondary node
-                         , idx :: Int   -- ^ internal index for book-keeping
+data Instance = Instance { mem :: Int       -- ^ memory of the instance
+                         , dsk :: Int       -- ^ disk size of instance
+                         , running :: Bool  -- ^ whether the instance
+                                            -- is running
+                         , run_st :: String -- ^ original (text) run status
+                         , pnode :: Int     -- ^ original primary node
+                         , snode :: Int     -- ^ original secondary node
+                         , idx :: Int       -- ^ internal index for
+                                            -- book-keeping
                          } deriving (Show)
 
-create :: Int -> Int -> Int -> Int -> Instance
-create mem_init dsk_init pn sn =
+create :: Int -> Int -> String -> Int -> Int -> Instance
+create mem_init dsk_init run_init pn sn =
     Instance {
           mem = mem_init,
           dsk = dsk_init,
+          running = case run_init of
+                      "running" -> True
+                      "ERROR_up" -> True
+                      _ -> False,
+          run_st = run_init,
           pnode = pn,
           snode = sn,
           idx = -1

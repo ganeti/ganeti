@@ -760,11 +760,12 @@ loadData ndata idata =
                           Node.create (read tm) (read nm)
                                   (read fm) (read td) (read fd)))
                     Node.setIdx
-    {- instance file: name mem disk pnode snode -}
+    {- instance file: name mem disk status pnode snode -}
         (kti, il) = loadTabular idata
-                    (\ (name:mem:dsk:pnode:snode:[]) ->
+                    (\ (name:mem:dsk:status:pnode:snode:[]) ->
                          (name,
                           Instance.create (read mem) (read dsk)
+                              status
                               (fromJust $ lookup pnode ktn)
                               (fromJust $ lookup snode ktn)))
                     Instance.setIdx
