@@ -19,6 +19,11 @@ import Text.Printf (printf)
 import Ganeti.HTools.Utils ()
 
 
+-- Some constants
+
+-- | The fixed drbd overhead per disk (only used with 1.2's sdx_size)
+drbdOverhead = 128
+
 {-- Our cheap monad-like stuff.
 
 Thi is needed since Either e a is already a monad instance somewhere
@@ -141,9 +146,10 @@ parseInstance :: JSObject JSValue -> Either String String
 parseInstance a =
     let name = getStringElement "name" a
         disk = case getIntElement "disk_usage" a of
-                 Left _ -> apply2 (+)
-                           (getIntElement "sda_size" a)
-                           (getIntElement "sdb_size" a)
+                 Left _ -> let log_sz = apply2 (+)
+                                        (getIntElement "sda_size" a)
+                                        (getIntElement "sdb_size" a)
+                           in apply2 (+) log_sz (Right $ drbdOverhead * 2)
                  Right x -> Right x
         bep = fromObj "beparams" a
         pnode = getStringElement "pnode" a
