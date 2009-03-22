@@ -32,6 +32,7 @@ module Ganeti.HTools.Cluster
     , printStats
     -- * Loading functions
     , loadData
+    , checkData
     ) where
 
 import Data.List
@@ -776,3 +777,31 @@ loadData ndata idata =
         sti = stripSuffix common_suffix xti
     in
       (nl3, il3, common_suffix, stn, sti)
+
+-- | Compute the amount of memory used by primary instances on a node.
+nodeImem :: Node.Node -> InstanceList -> Int
+nodeImem node il =
+    let rfind = flip Container.find $ il
+    in sum . map Instance.mem .
+       map rfind $ Node.plist node
+
+
+-- | Check cluster data for consistency
+checkData :: NodeList -> InstanceList -> NameList -> NameList
+          -> ([String], NodeList)
+checkData nl il ktn kti =
+    Container.mapAccum
+        (\ msgs node ->
+             let nname = fromJust $ lookup (Node.idx node) ktn
+                 delta_mem = (truncate $ Node.t_mem node) -
+                             (Node.n_mem node) -
+                             (Node.f_mem node) -
+                             (nodeImem node il)
+                 newn = Node.setXmem node delta_mem
+                 umsg = if delta_mem > 16
+                        then (printf "node %s has %6d MB of unaccounted \
+                                     \memory "
+                                     nname delta_mem):msgs
+                        else msgs
+             in (umsg, newn)
+        ) [] nl

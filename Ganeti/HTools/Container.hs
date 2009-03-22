@@ -20,6 +20,7 @@ module Ganeti.HTools.Container
     , addTwo
     , remove
     , IntMap.map
+    , IntMap.mapAccum
     -- * Conversion
     , elems
     , keys
