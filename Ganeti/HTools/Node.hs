@@ -16,6 +16,7 @@ module Ganeti.HTools.Node
     , setIdx
     , setOffline
     , setXmem
+    , setFmem
     -- * Instance (re)location
     , removePri
     , removeSec
@@ -97,6 +98,10 @@ setOffline t val = t { offline = val }
 -- | Sets the unnaccounted memory
 setXmem :: Node -> Int -> Node
 setXmem t val = t { x_mem = val }
+
+-- | Sets the free memory
+setFmem :: Node -> Int -> Node
+setFmem t val = t { f_mem = val }
 
 -- | Given the rmem, free memory and disk, computes the failn1 status.
 computeFailN1 :: Int -> Int -> Int -> Bool

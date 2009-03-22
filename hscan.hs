@@ -162,9 +162,9 @@ main = do
                           idata = fromRight inst_data
                           (nl, il, csf, ktn, kti) =
                               Cluster.loadData ndata idata
-                      putStrLn $ printCluster nl il ktn kti
+                          (_, fix_nl) = Cluster.checkData nl il ktn kti
+                      putStrLn $ printCluster fix_nl il ktn kti
                       when (optShowNodes opts) $ do
-                           let (_, fix_nl) = Cluster.checkData nl il ktn kti
                            putStr $ Cluster.printNodes ktn fix_nl
                       let ndata = serializeNodes nl csf ktn
                           idata = serializeInstances il csf ktn kti

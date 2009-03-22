@@ -792,15 +792,20 @@ nodeImem node il =
 -- | Check cluster data for consistency
 checkData :: NodeList -> InstanceList -> NameList -> NameList
           -> ([String], NodeList)
-checkData nl il ktn kti =
+checkData nl il ktn _ =
     Container.mapAccum
         (\ msgs node ->
              let nname = fromJust $ lookup (Node.idx node) ktn
-                 delta_mem = (truncate $ Node.t_mem node) -
-                             (Node.n_mem node) -
-                             (Node.f_mem node) -
-                             (nodeImem node il)
-                 newn = Node.setXmem node delta_mem
+                 nilst = map (flip Container.find $ il) (Node.plist node)
+                 dilst = filter (not . Instance.running) nilst
+                 adj_mem = sum . map Instance.mem $ dilst
+                 delta_mem = (truncate $ Node.t_mem node)
+                             - (Node.n_mem node)
+                             - (Node.f_mem node)
+                             - (nodeImem node il)
+                             + adj_mem
+                 newn = Node.setFmem (Node.setXmem node delta_mem)
+                        (Node.f_mem node - adj_mem)
                  umsg = if delta_mem > 16
                         then (printf "node %s has %6d MB of unaccounted \
                                      \memory "
