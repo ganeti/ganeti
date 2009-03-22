@@ -201,15 +201,6 @@ setPri t idx = t { plist = idx:(plist t) }
 setSec :: Node -> Int -> Node
 setSec t idx = t { slist = idx:(slist t) }
 
--- | Simple converter to string.
-str :: Node -> String
-str t =
-    printf ("Node %d (mem=%5d MiB, disk=%5.2f GiB)\n  Primaries:" ++
-            " %s\nSecondaries: %s")
-      (idx t) (f_mem t) ((f_dsk t) `div` 1024)
-      (commaJoin (map show (plist t)))
-      (commaJoin (map show (slist t)))
-
 -- | String converter for the node list functionality.
 list :: Int -> String -> Node -> String
 list mname n t =
