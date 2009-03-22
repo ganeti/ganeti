@@ -101,7 +101,11 @@ setXmem t val = t { x_mem = val }
 
 -- | Sets the free memory
 setFmem :: Node -> Int -> Node
-setFmem t val = t { f_mem = val }
+setFmem t new_mem =
+    let new_n1 = computeFailN1 (r_mem t) new_mem (f_dsk t)
+        new_mp = (fromIntegral new_mem) / (t_mem t)
+    in
+      t { f_mem = new_mem, failN1 = new_n1, p_mem = new_mp }
 
 -- | Given the rmem, free memory and disk, computes the failn1 status.
 computeFailN1 :: Int -> Int -> Int -> Bool
