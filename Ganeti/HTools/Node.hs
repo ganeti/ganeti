@@ -15,6 +15,7 @@ module Ganeti.HTools.Node
     , buildPeers
     , setIdx
     , setOffline
+    , setXmem
     -- * Instance (re)location
     , removePri
     , removeSec
@@ -38,6 +39,7 @@ import Ganeti.HTools.Utils
 data Node = Node { t_mem :: Double -- ^ total memory (MiB)
                  , n_mem :: Int    -- ^ node memory (MiB)
                  , f_mem :: Int    -- ^ free memory (MiB)
+                 , x_mem :: Int    -- ^ unaccounted memory (MiB)
                  , t_dsk :: Double -- ^ total disk space (MiB)
                  , f_dsk :: Int    -- ^ free disk space (MiB)
                  , plist :: [Int]  -- ^ list of primary instance indices
@@ -79,7 +81,8 @@ create mem_t_init mem_n_init mem_f_init dsk_t_init dsk_f_init =
       p_mem = (fromIntegral mem_f_init) / mem_t_init,
       p_dsk = (fromIntegral dsk_f_init) / dsk_t_init,
       p_rem = 0,
-      offline = False
+      offline = False,
+      x_mem = 0
     }
 
 -- | Changes the index.
@@ -90,6 +93,10 @@ setIdx t i = t {idx = i}
 -- | Sets the offline attribute
 setOffline :: Node -> Bool -> Node
 setOffline t val = t { offline = val }
+
+-- | Sets the unnaccounted memory
+setXmem :: Node -> Int -> Node
+setXmem t val = t { x_mem = val }
 
 -- | Given the rmem, free memory and disk, computes the failn1 status.
 computeFailN1 :: Int -> Int -> Int -> Bool
