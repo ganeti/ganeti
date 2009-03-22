@@ -788,6 +788,14 @@ nodeImem node il =
     in sum . map Instance.mem .
        map rfind $ Node.plist node
 
+-- | Compute the amount of disk used by instances on a node (either primary
+-- or secondary).
+nodeIdsk :: Node.Node -> InstanceList -> Int
+nodeIdsk node il =
+    let rfind = flip Container.find $ il
+    in sum . map Instance.dsk .
+       map rfind $ (Node.plist node) ++ (Node.slist node)
+
 
 -- | Check cluster data for consistency
 checkData :: NodeList -> InstanceList -> NameList -> NameList
@@ -804,12 +812,15 @@ checkData nl il ktn _ =
                              - (Node.f_mem node)
                              - (nodeImem node il)
                              + adj_mem
+                 delta_dsk = (truncate $ Node.t_dsk node)
+                             - (Node.f_dsk node)
+                             - (nodeIdsk node il)
                  newn = Node.setFmem (Node.setXmem node delta_mem)
                         (Node.f_mem node - adj_mem)
-                 umsg = if delta_mem > 16
-                        then (printf "node %s has %6d MB of unaccounted \
-                                     \memory "
-                                     nname delta_mem):msgs
-                        else msgs
-             in (umsg, newn)
+                 umsg1 = if delta_mem > 16 || delta_dsk > 1024
+                         then [printf "node %s is missing %d MB ram \
+                                     \and %d GB disk"
+                                     nname delta_mem (delta_dsk `div` 1024)]
+                         else []
+             in (msgs ++ umsg1, newn)
         ) [] nl
