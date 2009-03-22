@@ -242,7 +242,7 @@ should be run::
 
     gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree \
       --separator '|' --no-headers > nodes
-    gnt-instance list -oname,admin_ram,sda_size,pnode,snodes \
+    gnt-instance list -oname,admin_ram,sda_size,status,pnode,snodes \
       --separator '|' --no-head > instances
 
 These two files should be saved under the names of 'nodes' and 'instances'.

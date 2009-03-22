@@ -1,4 +1,4 @@
-.TH HBAL 1 2009-03-14 htools "Ganeti H-tools"
+.TH HBAL 1 2009-03-22 htools "Ganeti H-tools"
 .SH NAME
 hbal \- Cluster balancer for Ganeti
 
@@ -7,10 +7,11 @@ hbal \- Cluster balancer for Ganeti
 .B "[-C]"
 .B "[-p]"
 .B "[-o]"
-.B "-l"
-.BI "[ -m " cluster "]"
+.BI "[-l" limit "]"
+.BI "[-O" name... "]"
+.BI "[-m " cluster "]"
 .BI "[-n " nodes-file " ]"
-.BI "[ -i " instances-file "]"
+.BI "[-i " instances-file "]"
 
 .B hbal
 .B --version
@@ -61,6 +62,8 @@ components:
   - coefficient of variance of the percent of reserved memory
   - coefficient of variance of the percent of free disk
   - percentage of nodes failing N+1 check
+  - percentage of instances living (either as primary or secondary) on
+    offline nodes
 
 The free memory and free disk values help ensure that all nodes are
 somewhat balanced in their resource usage. The reserved memory helps
@@ -69,11 +72,12 @@ instances, and that no node keeps too much memory reserved for
 N+1. And finally, the N+1 percentage helps guide the algorithm towards
 eliminating N+1 failures, if possible.
 
-Except for the N+1 failures, we use the coefficient of variance since
-this brings the values into the same unit so to speak, and with a
-restrict domain of values (between zero and one). The percentage of
-N+1 failures, while also in this numeric range, doesn't actually has
-the same meaning, but it has shown to work well.
+Except for the N+1 failures and offline instances percentage, we use
+the coefficient of variance since this brings the values into the same
+unit so to speak, and with a restrict domain of values (between zero
+and one). The percentage of N+1 failures, while also in this numeric
+range, doesn't actually has the same meaning, but it has shown to work
+well.
 
 The other alternative, using for N+1 checks the coefficient of
 variance of (N+1 fail=1, N+1 pass=0) across nodes could hint the
@@ -81,6 +85,12 @@ algorithm to make more N+1 failures if most nodes are N+1 fail
 already. Since this (making N+1 failures) is not allowed by other
 rules of the algorithm, so the N+1 checks would simply not work
 anymore in this case.
+
+The offline instances percentage (meaning the percentage of instances
+living on offline nodes) will cause the algorithm to actively move
+instances away from offline nodes. This, coupled with the restriction
+on placement given by offline nodes, will cause evacuation of such
+nodes.
 
 On a perfectly balanced cluster (all nodes the same size, all
 instances the same size and spread across the nodes equally), all
@@ -106,21 +116,54 @@ Prints the before and after node status, in a format designed to allow
 the user to understand the node's most important parameters.
 
 The node list will contain these informations:
-  - a character denoting the status of the node, with '-' meaning an
-    offline node, '*' meaning N+1 failure and blank meaning a good
-    node
-  - the node name
-  - the total node memory
-  - the memory used by the node itself
-  - the free node memory
-  - the reserved node memory, which is the amount of free memory
-    needed for N+1 compliance
-  - total disk
-  - free disk
-  - number of primary instances
-  - number of secondary instances
-  - percent of free memory
-  - percent of free disk
+.RS
+.TP
+.B F
+a character denoting the status of the node, with '-' meaning an
+offline node, '*' meaning N+1 failure and blank meaning a good node
+.TP
+.B Name
+the node name
+.TP
+.B t_mem
+the total node memory
+.TP
+.B n_mem
+the memory used by the node itself
+.TP
+.B i_mem
+the memory used by instances
+.TP
+.B x_mem
+amount memory which seems to be in use but cannot be determined why or
+by which instance; usually this means that the hypervisor has some
+overhead or that there are other reporting errors
+.TP
+.B f_mem
+the free node memory
+.TP
+.B r_mem
+the reserved node memory, which is the amount of free memory needed
+for N+1 compliance
+.TP
+.B t_dsk
+total disk
+.TP
+.B f_dsk
+free disk
+.TP
+.B pri
+number of primary instances
+.TP
+.B sec
+number of secondary instances
+.TP
+.B p_fmem
+percent of free memory
+.TP
+.B p_fdsk
+percent of free disk
+.RE
 
 .TP
 .B -o, --oneline
@@ -133,6 +176,22 @@ The line will contain four fields:
   - number of steps in the solution
   - final cluster score
   - improvement in the cluster score
+
+.TP
+.BI "-O " name
+This option (which can be given multiple times) will mark nodes as
+being \fIoffline\fR. This means a couple of things:
+.RS
+.TP
+-
+instances won't be placed on these nodes, not even temporarily;
+e.g. the \fIreplace primary\fR move is not available if the secondary
+node is offline, since this move requires a failover.
+.TP
+-
+these nodes will not be included in the score calculation (except for
+the percentage of instances on offline nodes)
+.RE
 
 .TP
 .BI "-n" nodefile ", --nodes=" nodefile
@@ -187,6 +246,9 @@ feed moves directly into Ganeti (either via RAPI or via a gnt-debug
 input file).
 
 .SH EXAMPLE
+
+Note that this example are not for the latest version (they don't have
+full node data).
 
 .SS Default output
 
@@ -362,4 +424,5 @@ changed in a way that the program will output a different solution
 list (but hopefully will end in the same state).
 
 .SH SEE ALSO
-hn1(1), ganeti(7), gnt-instance(8), gnt-node(8)
+.BR hn1 "(1), " hscan "(1), " ganeti "(7), " gnt-instance "(8), "
+.BR gnt-node "(8)"

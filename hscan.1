@@ -1,0 +1,59 @@
+.TH HSCAN 1 2009-03-22 htools "Ganeti H-tools"
+.SH NAME
+hscan \- Scan clusters via RAPI and save node/instance data
+
+.SH SYNOPSIS
+.B hscan
+.B "[-p]"
+.B "[--no-headers]"
+.BI "[-d " path "]"
+.I cluster...
+
+.B hscan
+.B --version
+
+.SH DESCRIPTION
+hscan is a tool for scanning clusters via RAPI and saving their data
+in the input format used by
+.BR hbal "(1) and " hn1 "(1)."
+It will also show a one-line score for each cluster scanned or, if
+desired, the cluster state as show by the \fB-p\fR option to the other
+tools.
+
+For each cluster, two files named \fIcluster\fB.instances\fR and
+\fIcluster\fB.nodes\fR will be generated holding the instance and node
+data. These files can then be used in \fBhbal\fR(1) or \fBhn1\fR(1)
+via the \fB-i\fR and \fB-n\fR options.
+
+.SH OPTIONS
+The options that can be passed to the program are as follows:
+
+.TP
+.B -p, --print-nodes
+Prints the node status for each cluster after the cluster's one-line
+status display, in a format designed to allow the user to understand
+the node's most important parameters. For details, see the man page
+for \fBhbal\fR(1).
+
+.TP
+.BI "-d " path
+Save the node and instance data for each cluster under \fIpath\fR,
+instead of the current directory.
+
+.TP
+.B -V, --version
+Just show the program version and exit.
+
+.SH EXIT STATUS
+
+The exist status of the command will be zero, unless for some reason
+loading the input data failed fatally (e.g. wrong node or instance
+data).
+
+.SH BUGS
+
+The program does not check its input data for consistency, and aborts
+with cryptic errors messages in this case.
+
+.SH SEE ALSO
+.BR hbal "(1), " hn1 "(1), " ganeti "(7), " gnt-instance "(8), " gnt-node "(8)"
