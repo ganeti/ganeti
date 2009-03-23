@@ -1,7 +1,25 @@
+Version 0.0.7 (Mon, 23 Mar 2009):
+  - added support for offline nodes, which are not used as targets for
+    instance relocation and if they hold instances the hbal algorithm
+    will attempt to relocate these away
+  - added support for offline instances, which now will no longer skew
+    the free memory estimation of nodes; the algorithm will no longer
+    create conditions for N+1 failures when such instances are later
+    started
+  - implemented a complete model of node resources, in order to
+    prevent an unintended re-occurrence of cases like the offline
+    instance were we miscalculate some node resource; this gives warning
+    now in case the node reported free disk or free memory deviates by
+    more than a set amount from the expected value
+  - a new tool *hscan* that can generate the input text-file for the
+    other tools by collection via RAPI
+  - some small changes to the build system to make it more friendly;
+    also included the generated documentation in the source archive
+
 Version 0.0.6 (Mon, 16 Mar 2009):
-  - refactored the hbal algorithm to make it stable in the sense that it
+  - re-factored the hbal algorithm to make it stable in the sense that it
     gives the same solution when restarted from the middle; barring
-    rouding of disk/memory and incomplete reporting from Ganeti (for
+    rounding of disk/memory and incomplete reporting from Ganeti (for
     1.2), it should be now feasible to rely on its output without
     generating moves ad infinitum
   - the hbal algorithm now uses two more variables: the node N+1
@@ -40,4 +58,11 @@ Version 0.0.3 (Wed, 28 Jan 2009):
   - initial release of the hbal, a cluster rebalancing tool
   - input data format changed due to hbal requirements
 
-Previous version was initial announcement.
+Version 0.0.2 (Tue, 06 Jan 2009):
+  - fix handling of some common cases (cluster N+1 compliant from the
+    start, too big depth given, failure to compute solution)
+  - add option to print the needed command list for reaching the
+    proposed solution
+
+Version 0.0.1 (Tue, 06 Jan 2009):
+  - initial release of hn1 tool
