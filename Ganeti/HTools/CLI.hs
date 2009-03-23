@@ -2,7 +2,7 @@
 
 This module holds the common cli-related functions for the binaries,
 separated into this module since Utils.hs is used in many other places
-and this is more I/O oriented.
+and this is more IO oriented.
 
 -}
 

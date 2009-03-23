@@ -47,7 +47,7 @@ dist: version doc
 	rm -f $$ANAME $$ANAME.gz ; \
 	git archive --format=tar --prefix=htools-$$VN/ HEAD > $$ANAME ; \
 	tar -r -f $$ANAME --owner root --group root \
-	    --transform="s,^,htools-$$VN/," version ; \
+	    --transform="s,^,htools-$$VN/," version apidoc $(DOCS) ; \
 	gzip -v9 $$ANAME ; \
 	tar tzvf $$ANAME.gz
 
