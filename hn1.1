@@ -1,4 +1,4 @@
-.TH HN1 1 2009-03-22 htools "Ganeti H-tools"
+.TH HN1 1 2009-03-23 htools "Ganeti H-tools"
 .SH NAME
 hn1 \- N+1 fixer for Ganeti
 
@@ -47,38 +47,113 @@ candidate for replacement (and only these!).
 
 The program start then with \fIdepth\fR one (unless overridden via the
 \fB-d\fR option), and at each round:
-  - it tries to remove from the cluster as many instances as the
-    current depth in order to make the cluster N+1 compliant
-  - then, for each of the possible instance combinations that allow
-    this (unless the total size is reduced via the \fB-r\fR option),
-    it tries to put them back on the cluster while maintaining N+1
-    compliance
+.RS 4
+.TP 3
+\(em
+it tries to remove from the cluster as many instances as the current
+depth in order to make the cluster N+1 compliant
+
+.TP
+\(em
+then, for each of the possible instance combinations that allow this
+(unless the total size is reduced via the \fB-r\fR option), it tries
+to put them back on the cluster while maintaining N+1 compliance
+.RE
 
 It might be that at a given round, the results are:
-  - no instance combination that can be put back; this means it is not
-    possible to make the cluster N+1 compliant with this number of
-    instances being moved, so we increase the depth and go on to the
-    next round
-  - one or more successful result, in which case we take the one that
-    has as few changes as possible (by change meaning a replace-disks
-    needed)
+.RS 4
+.TP 3
+\(em
+no instance combination that can be put back; this means it is not
+possible to make the cluster N+1 compliant with this number of
+instances being moved, so we increase the depth and go on to the next
+round
+.TP
+\(em
+one or more successful result, in which case we take the one that has
+as few changes as possible (by change meaning a replace-disks needed)
+.RE
 
 The main problem with the algorithm is that, being an exhaustive
 search, the CPU time required grows very very quickly based on
 depth. On a 20-node, 80-instances cluster, depths up to 5-6 are
 quickly computed, and depth 10 could already take days.
 
-Since the algorithm is designed to prune the search space as quickly
-as possible, is by luck we find a good solution early at a given
-depth, then the other solutions which would result in a bigger delta
-(the number of changes) will not be investigated, and the program will
-finish fast. Since this is random and depends on where in the full
-solution space the good solution will be, there are two options for
-cutting down the time needed:
-  - \fB-l\fR makes any solution that has delta lower than its
-    parameter succeed instantly
-  - \fB-L\fR makes any solution with delta higher than its parameter
-    being rejected instantly (and not descend on the search tree)
+The main factors that influence the run time are:
+.RS 4
+.TP 3
+\(em
+the removal depth; for each increase with one of the depth, we grow
+the solution space by the number of nodes squared (since a new
+instance can live any two nodes as primary/secondary, therefore
+(almost) N times N); i.e., depth=1 will create a N^2 solution space,
+depth two will make this N^4, depth three will be N^6, etc.
+
+.TP
+\(em
+the removal depth again; for each increase in the depth, there will be
+more valid removal sets, and the space of solutions increases linearly
+with the number of removal sets
+.RE
+
+Therefore, the smaller the depth the faster the algorithm will be; it doesn't
+seem like this algorithm will work for clusters of 100 nodes and many many
+small instances (e.g. 256MB instances on 16GB nodes).
+
+As an optimisation, since the algorithm is designed to prune the
+search space as quickly as possible, is by luck we find a good
+solution early at a given depth, then the other solutions which would
+result in a bigger delta (the number of changes) will not be
+investigated, and the program will finish fast. Since this is random
+and depends on where in the full solution space the good solution will
+be, there are two options for cutting down the time needed:
+.RS 4
+.TP 3
+\(em
+\fB-l\fR makes any solution that has delta lower than its parameter
+succeed instantly; the default value for this parameter is zero, so
+once we find a "perfect" solution we finish early
+
+.TP
+\(em
+\fB-L\fR makes any solution with delta higher than its parameter being
+rejected instantly (and not descend on the search tree); this can
+reduce the depth of the search tree, with sometimes significant
+speedups; by default, this optimization is not used
+.RE
+
+The algorithm also has some other internal optimisations:
+.RS 4
+.TP 3
+\(em
+when choosing where to place an instance in phase two, there are
+N*(N-1) possible primary/secondary options; however, if instead of
+iterating over all p * s pairs, we first determine the set of primary
+nodes that can hold this instance (without failing N+1), we can cut
+(N-1) secondary placements for each primary node removed; and since
+this applies at every iteration of phase 2 it linearly decreases the
+solution space, and on full clusters, this can mean a four-five times
+reductions of solution space
+
+.TP
+\(em
+since the number of solutions is very high even for smaller depths (on
+the test data, depth=4 results in 1.8M solutions) we can't compare
+them at the end, so at each iteration in phase 2 we only promote the
+best solution out of our own set of solutions
+
+.TP
+\(em
+since the placement of instances can only increase the delta of the
+solution (placing a new instance will add zero or more replace-disks
+steps), it means the delta will only increase while recursing during
+phase 2; therefore, if we know at one point that we have a current
+delta that is equal or higher to the delta of the best solution so
+far, we can abort the recursion; this cuts a tremendous number of
+branches; further promotion of the best solution from one removal set
+to another can cut entire removal sets after a few recursions
+
+.RE
 
 .SH OPTIONS
 The options that can be passed to the program are as follows:
@@ -192,6 +267,9 @@ the algorithm fatally failed (e.g. wrong node or instance data).
 
 The program does not check its input data for consistency, and aborts
 with cryptic errors messages in this case.
+
+The algorithm doesn't deal with non-\fBdrbd\fR instances, and chokes
+on input data which has such instances.
 
 The algorithm doesn't know when it won't be possible to reach N+1
 compliance at all, and will happily churn CPU for ages without

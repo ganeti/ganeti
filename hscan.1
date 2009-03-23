@@ -1,4 +1,4 @@
-.TH HSCAN 1 2009-03-22 htools "Ganeti H-tools"
+.TH HSCAN 1 2009-03-23 htools "Ganeti H-tools"
 .SH NAME
 hscan \- Scan clusters via RAPI and save node/instance data
 
@@ -24,6 +24,49 @@ For each cluster, two files named \fIcluster\fB.instances\fR and
 \fIcluster\fB.nodes\fR will be generated holding the instance and node
 data. These files can then be used in \fBhbal\fR(1) or \fBhn1\fR(1)
 via the \fB-i\fR and \fB-n\fR options.
+
+The one-line output for each cluster will show the following:
+.RS
+.TP
+.B Name
+The name of the cluster (or the IP address that was given, etc.)
+.TP
+.B Nodes
+The number of nodes in the cluster
+.TP
+.B Inst
+The number of instances in the cluster
+.TP
+.B BNode
+The number of nodes failing N+1
+.TP
+.B BInst
+The number of instances living on N+1-failed nodes
+.TP
+.B t_mem
+Total memory in the cluster
+.TP
+.B f_mem
+Free memory in the cluster
+.TP
+.B t_disk
+Total disk in the cluster
+.TP
+.B f_disk
+Free disk space in the cluster
+.TP
+.B Score
+The score of the cluster, as would be reported by \fBhscan\fR(1) if
+run on the generated data files.
+
+.RE
+
+In case of errors while collecting data, all fields after the name of
+the cluster are replaced with the error display.
+
+.B Note:
+this output format is not yet final so it should not be used for
+scripting yet.
 
 .SH OPTIONS
 The options that can be passed to the program are as follows:
@@ -54,6 +97,22 @@ data).
 
 The program does not check its input data for consistency, and aborts
 with cryptic errors messages in this case.
+
+The RAPI collection doesn't deal with non-\fBdrbd\fR instances, and
+chokes on input data which has such instances.
+
+.SH EXAMPLE
+
+.in +4n
+.nf
+.RB "$ " "hscan cluster1"
+Name     Nodes  Inst BNode BInst  t_mem  f_mem t_disk f_disk      Score
+cluster1     2     2     0     0   1008    652    255    253 0.24404762
+.RB "$ " "ls -l cluster1.*"
+-rw-r--r-- 1 root root 163 2009-03-23 07:26 cluster1.instances
+-rw-r--r-- 1 root root  90 2009-03-23 07:26 cluster1.nodes
+.fi
+.in
 
 .SH SEE ALSO
 .BR hbal "(1), " hn1 "(1), " ganeti "(7), " gnt-instance "(8), " gnt-node "(8)"

@@ -1,4 +1,4 @@
-.TH HBAL 1 2009-03-22 htools "Ganeti H-tools"
+.TH HBAL 1 2009-03-23 htools "Ganeti H-tools"
 .SH NAME
 hbal \- Cluster balancer for Ganeti
 
@@ -41,11 +41,23 @@ The possible move type for an instance are combinations of
 failover/migrate and replace-disks such that we change one of the
 instance nodes, and the other one remains (but possibly with changed
 role, e.g. from primary it becomes secondary). The list is:
-  - failover (f)
-  - replace secondary (r)
-  - replace primary, a composite move (f, r, f)
-  - failover and replace secondary, also composite (f, r)
-  - replace secondary and failover, also composite (r, f)
+.RS 4
+.TP 3
+\(em
+failover (f)
+.TP
+\(em
+replace secondary (r)
+.TP
+\(em
+replace primary, a composite move (f, r, f)
+.TP
+\(em
+failover and replace secondary, also composite (f, r)
+.TP
+\(em
+replace secondary and failover, also composite (r, f)
+.RE
 
 We don't do the only remaining possibility of replacing both nodes
 (r,f,r,f or the equivalent f,r,f,r) since these move needs an
@@ -58,12 +70,24 @@ give better scores but will result in more disk replacements.
 As said before, the algorithm tries to minimise the cluster score at
 each step. Currently this score is computed as a sum of the following
 components:
-  - coefficient of variance of the percent of free memory
-  - coefficient of variance of the percent of reserved memory
-  - coefficient of variance of the percent of free disk
-  - percentage of nodes failing N+1 check
-  - percentage of instances living (either as primary or secondary) on
-    offline nodes
+.RS 4
+.TP 3
+\(em
+coefficient of variance of the percent of free memory
+.TP
+\(em
+coefficient of variance of the percent of reserved memory
+.TP
+\(em
+coefficient of variance of the percent of free disk
+.TP
+\(em
+percentage of nodes failing N+1 check
+.TP
+\(em
+percentage of instances living (either as primary or secondary) on
+offline nodes
+.RE
 
 The free memory and free disk values help ensure that all nodes are
 somewhat balanced in their resource usage. The reserved memory helps
@@ -96,13 +120,29 @@ On a perfectly balanced cluster (all nodes the same size, all
 instances the same size and spread across the nodes equally), all
 values would be zero. This doesn't happen too often in practice :)
 
+.SS OFFLINE INSTANCES
+
+Since current Ganeti versions do not report the memory used by offline
+(down) instances, ignoring the run status of instances will cause
+wrong calculations. For this reason, the algorithm subtracts the
+memory size of down instances from the free node memory of their
+primary node, in effect simulating the startup of such instances.
+
 .SS OTHER POSSIBLE METRICS
 
 It would be desirable to add more metrics to the algorithm, especially
 dynamically-computed metrics, such as:
-  - CPU usage of instances, combined with VCPU versus PCPU count
-  - Disk IO usage
-  - Network IO
+.RS 4
+.TP 3
+\(em
+CPU usage of instances, combined with VCPU versus PCPU count
+.TP
+\(em
+Disk IO usage
+.TP
+\(em
+Network IO
+.RE
 
 .SH OPTIONS
 The options that can be passed to the program are as follows:
@@ -172,25 +212,39 @@ when one wants to look at multiple clusters at once and check their
 status.
 
 The line will contain four fields:
-  - initial cluster score
-  - number of steps in the solution
-  - final cluster score
-  - improvement in the cluster score
+.RS
+.RS 4
+.TP 3
+\(em
+initial cluster score
+.TP
+\(em
+number of steps in the solution
+.TP
+\(em
+final cluster score
+.TP
+\(em
+improvement in the cluster score
+.RE
+.RE
 
 .TP
 .BI "-O " name
 This option (which can be given multiple times) will mark nodes as
 being \fIoffline\fR. This means a couple of things:
 .RS
-.TP
--
+.RS 4
+.TP 3
+\(em
 instances won't be placed on these nodes, not even temporarily;
 e.g. the \fIreplace primary\fR move is not available if the secondary
 node is offline, since this move requires a failover.
 .TP
--
+\(em
 these nodes will not be included in the score calculation (except for
 the percentage of instances on offline nodes)
+.RE
 .RE
 
 .TP
@@ -240,6 +294,9 @@ The program does not check its input data for consistency, and aborts
 with cryptic errors messages in this case.
 
 The algorithm is not perfect.
+
+The algorithm doesn't deal with non-\fBdrbd\fR instances, and chokes
+on input data which has such instances.
 
 The output format is not easily scriptable, and the program should
 feed moves directly into Ganeti (either via RAPI or via a gnt-debug
