@@ -1,3 +1,12 @@
+Version 2.0 release candidate 2
+  - Now the cfgupgrade scripts works and can upgrade 1.2.7 clusters to
+    2.0
+  - Fix watcher startup sequence, improves the behaviour of busy
+    clusters
+  - Some other fixes in cluster verify, replace-disks, gnt-instance add,
+    gnt-cluster queue, KVM VNC bind address and other places
+  - Some documentation fixes and updates
+
 Version 2.0 release candidate 1
   - More documentation updates, now all docs should be more-or-less
     up-to-date
