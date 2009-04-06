@@ -126,6 +126,7 @@ class SimpleStore(object):
   _SS_FILEPREFIX = "ssconf_"
   _VALID_KEYS = (
     constants.SS_CLUSTER_NAME,
+    constants.SS_CLUSTER_TAGS,
     constants.SS_FILE_STORAGE_DIR,
     constants.SS_MASTER_CANDIDATES,
     constants.SS_MASTER_IP,

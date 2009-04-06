@@ -458,6 +458,7 @@ MAX_DISKS = 16
 
 # SSCONF keys
 SS_CLUSTER_NAME = "cluster_name"
+SS_CLUSTER_TAGS = "cluster_tags"
 SS_FILE_STORAGE_DIR = "file_storage_dir"
 SS_MASTER_CANDIDATES = "master_candidates"
 SS_MASTER_IP = "master_ip"

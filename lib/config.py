@@ -1128,8 +1128,10 @@ class ConfigWriter:
     node_data = fn(node_names)
 
     cluster = self._config_data.cluster
+    cluster_tags = fn(cluster.GetTags())
     return {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
+      constants.SS_CLUSTER_TAGS: cluster_tags,
       constants.SS_FILE_STORAGE_DIR: cluster.file_storage_dir,
       constants.SS_MASTER_CANDIDATES: mc_data,
       constants.SS_MASTER_IP: cluster.master_ip,
