@@ -42,6 +42,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
   all the functionality that is identical for both.
 
   """
+  REBOOT_RETRY_COUNT = 60
+  REBOOT_RETRY_INTERVAL = 10
 
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices):
@@ -191,12 +193,29 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Reboot an instance.
 
     """
+    ini_info = self.GetInstanceInfo(instance.name)
     result = utils.RunCmd(["xm", "reboot", instance.name])
 
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
                                    (instance.name, result.fail_reason,
                                     result.output))
+    done = False
+    retries = self.REBOOT_RETRY_COUNT
+    while retries > 0:
+      new_info = self.GetInstanceInfo(instance.name)
+      # check if the domain ID has changed or the run time has
+      # decreased
+      if new_info[1] != ini_info[1] or new_info[5] < ini_info[5]:
+        done = True
+        break
+      time.sleep(self.REBOOT_RETRY_INTERVAL)
+      retries -= 1
+
+    if not done:
+      raise errors.HypervisorError("Failed to reboot instance %s: instance"
+                                   " did not reboot in the expected interval" %
+                                   (instance.name, ))
 
   def GetNodeInfo(self):
     """Return information about the node.
