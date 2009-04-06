@@ -88,11 +88,15 @@ class WatcherState(object):
     utils.LockFile(self.statefile.fileno())
 
     try:
-      self._data = serializer.Load(self.statefile.read())
+      state_data = self.statefile.read()
+      if not state_data:
+        self._data = {}
+      else:
+        self._data = serializer.Load(state_data)
     except Exception, msg:
       # Ignore errors while loading the file and treat it as empty
       self._data = {}
-      logging.warning(("Empty or invalid state file. Using defaults."
+      logging.warning(("Invalid state file. Using defaults."
                        " Error message: %s"), msg)
 
     if "instance" not in self._data:
@@ -440,7 +444,11 @@ def main():
   try:
     notepad = WatcherState()
     try:
-      client = cli.GetClient()
+      try:
+        client = cli.GetClient()
+      except errors.OpPrereqError:
+        # this is, from cli.GetClient, a not-master case
+        sys.exit(constants.EXIT_SUCCESS)
 
       try:
         watcher = Watcher(options, notepad)
