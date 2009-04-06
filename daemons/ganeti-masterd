@@ -247,6 +247,8 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_INSTANCES:
       (names, fields, use_locking) = args
       logging.info("Received instance query request for %s", names)
+      if use_locking:
+        raise errors.OpPrereqError("Sync queries are not allowed")
       op = opcodes.OpQueryInstances(names=names, output_fields=fields,
                                     use_locking=use_locking)
       return self._Query(op)
@@ -254,12 +256,16 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_NODES:
       (names, fields, use_locking) = args
       logging.info("Received node query request for %s", names)
+      if use_locking:
+        raise errors.OpPrereqError("Sync queries are not allowed")
       op = opcodes.OpQueryNodes(names=names, output_fields=fields,
                                 use_locking=use_locking)
       return self._Query(op)
 
     elif method == luxi.REQ_QUERY_EXPORTS:
       nodes, use_locking = args
+      if use_locking:
+        raise errors.OpPrereqError("Sync queries are not allowed")
       logging.info("Received exports query request")
       op = opcodes.OpQueryExports(nodes=nodes, use_locking=use_locking)
       return self._Query(op)

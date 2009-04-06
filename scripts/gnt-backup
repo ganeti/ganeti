@@ -45,7 +45,7 @@ def PrintExportList(opts, args):
   @return: the desired exit code
 
   """
-  exports = GetClient().QueryExports(opts.nodes, True)
+  exports = GetClient().QueryExports(opts.nodes, False)
   retcode = 0
   for node in exports:
     ToStdout("Node: %s", node)

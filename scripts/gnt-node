@@ -77,7 +77,7 @@ def AddNode(opts, args):
 
   try:
     output = cl.QueryNodes(names=[node], fields=['name', 'sip'],
-                           use_locking=True)
+                           use_locking=False)
     node_exists, sip = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
     node_exists = ""
@@ -206,7 +206,7 @@ def EvacuateNode(opts, args):
   src_node = args[0]
 
   result = cl.QueryNodes(names=[src_node], fields=selected_fields,
-                         use_locking=True)
+                         use_locking=False)
   src_node, sinst = result[0]
 
   if not sinst:
@@ -214,7 +214,8 @@ def EvacuateNode(opts, args):
     return constants.EXIT_SUCCESS
 
   if dst_node is not None:
-    result = cl.QueryNodes(names=[dst_node], fields=["name"], use_locking=True)
+    result = cl.QueryNodes(names=[dst_node], fields=["name"],
+                           use_locking=False)
     dst_node = result[0][0]
 
     if src_node == dst_node:
@@ -263,7 +264,7 @@ def FailoverNode(opts, args):
   # these fields are static data anyway, so it doesn't matter, but
   # locking=True should be safer
   result = cl.QueryNodes(names=args, fields=selected_fields,
-                         use_locking=True)
+                         use_locking=False)
   node, pinst = result[0]
 
   if not pinst:
@@ -301,7 +302,7 @@ def MigrateNode(opts, args):
   force = opts.force
   selected_fields = ["name", "pinst_list"]
 
-  result = cl.QueryNodes(names=args, fields=selected_fields, use_locking=True)
+  result = cl.QueryNodes(names=args, fields=selected_fields, use_locking=False)
   node, pinst = result[0]
 
   if not pinst:
@@ -348,7 +349,7 @@ def ShowNodeConfig(opts, args):
   result = cl.QueryNodes(fields=["name", "pip", "sip",
                                  "pinst_list", "sinst_list",
                                  "master_candidate", "drained", "offline"],
-                         names=args, use_locking=True)
+                         names=args, use_locking=False)
 
   for (name, primary_ip, secondary_ip, pinst, sinst,
        is_mc, drained, offline) in result:
