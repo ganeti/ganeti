@@ -128,21 +128,14 @@ AC_ARG_VAR(DOCBOOK2MAN, [docbook2man path])
 AC_PATH_PROG(DOCBOOK2MAN, [docbook2man], [])
 if test -z "$DOCBOOK2MAN"
 then
-  AC_MSG_ERROR([docbook2man not found])
-fi
-
-AC_ARG_VAR(DOCBOOK2PDF, [docbook2pdf path])
-AC_PATH_PROG(DOCBOOK2PDF, [docbook2pdf], [])
-if test -z "$DOCBOOK2PDF"
-then
-  AC_MSG_ERROR([docbook2pdf not found])
+  AC_MSG_WARN([docbook2man not found, man pages rebuild will not be possible])
 fi
 
 AC_ARG_VAR(DOCBOOK2HTML, [docbook2html path])
 AC_PATH_PROG(DOCBOOK2HTML, [docbook2html], [])
 if test -z "$DOCBOOK2HTML"
 then
-  AC_MSG_ERROR([docbook2html not found])
+  AC_MSG_WARN([docbook2html not found, man pages rebuild will not be possible])
 fi
 
 # Check for rst programs
@@ -150,7 +143,7 @@ AC_ARG_VAR(RST2HTML, [rst2html path])
 AC_PATH_PROG(RST2HTML, [rst2html], [])
 if test -z "$RST2HTML"
 then
-  AC_MSG_ERROR([rst2html not found])
+  AC_MSG_WARN([rst2html not found, documentation rebuild will not be possible])
 fi
 
 # Check for graphviz (dot)
@@ -158,7 +151,7 @@ AC_ARG_VAR(DOT, [dot path])
 AC_PATH_PROG(DOT, [dot], [])
 if test -z "$DOT"
 then
-  AC_MSG_ERROR([dot (from the graphviz suite) not found])
+  AC_MSG_WARN([dot (from the graphviz suite) not found, documentation rebuild not possible])
 fi
 
 # Check for Python

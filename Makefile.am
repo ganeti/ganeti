@@ -37,13 +37,14 @@ DIRS = \
 	test/data \
 	tools
 
+MAINTAINERCLEANFILES = \
+	$(dochtml) \
+	$(patsubst %.dot,%.png,$(docdot)) \
+	$(maninput)
+
 CLEANFILES = \
 	autotools/replace_vars.sed \
 	devel/upload \
-	doc/*.html \
-	doc/*.in \
-	doc/*.pdf \
-	$(patsubst %.dot,%.png,$(docdot)) \
 	doc/rapi-resources.gen \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
@@ -52,9 +53,8 @@ CLEANFILES = \
 	lib/http/*.py[co] \
 	lib/hypervisor/*.py[co] \
 	lib/rapi/*.py[co] \
-	man/*.[78] \
-	man/*.in \
-	man/*.html \
+	$(man_MANS) \
+	$(manhtml) \
 	qa/*.py[co] \
 	test/*.py[co] \
 	stamp-directories \
@@ -116,11 +116,12 @@ docrst = \
 	doc/install.rst \
 	doc/security.rst
 
+dochtml = $(patsubst %.rst,%.html,$(docrst))
+
 docdot = \
 	doc/arch-2.0.dot
 
-doc_DATA = \
-	$(patsubst %.rst,%.html,$(docrst))
+doc_DATA = $(dochtml)
 
 noinst_DATA = $(manhtml)
 
@@ -144,6 +145,7 @@ dist_tools_SCRIPTS = \
 	tools/lvmstrap
 
 EXTRA_DIST = \
+	$(MAINTAINERCLEANFILES) \
 	NEWS \
 	DEVNOTES \
 	autotools/docbook-wrapper \
@@ -161,7 +163,7 @@ EXTRA_DIST = \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	man/footer.sgml \
-	$(mansgml) \
+	$(mansgml) $(maninput) \
 	qa/ganeti-qa.py \
 	qa/qa-sample.json \
 	qa/qa_cluster.py \
@@ -191,9 +193,9 @@ man_MANS = \
 	man/gnt-node.8 \
 	man/gnt-os.8
 
-maninput = $(patsubst %.7,%.in,$(patsubst %.8,%.in,$(man_MANS)))
-mansgml = $(patsubst %.in,%.sgml,$(maninput))
-manhtml = $(patsubst %.in,%.html,$(maninput))
+mansgml = $(patsubst %.7,%.sgml,$(patsubst %.8,%.sgml,$(man_MANS)))
+manhtml = $(patsubst %.sgml,%.html,$(mansgml))
+maninput = $(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) $(patsubst %.html,%.html.in,$(manhtml))
 
 TEST_FILES = \
 	test/data/bdev-both.txt \
@@ -236,37 +238,46 @@ doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/%.in: doc/%.sgml stamp-directories $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-
-man/%.in: man/%.sgml stamp-directories $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
-
-doc/%.pdf: doc/%.in $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2PDF)" $< $@
-
 doc/%.html: doc/%.rst
+	@test -n "$(RST2HTML)" || { echo 'rst2html' not found during configure; exit 1; }
 	$(RST2HTML) $< $@
 
 doc/%.png: doc/%.dot
+	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
 	$(DOT) -Tpng -o $@ $<
 
 doc/design-2.0.html: doc/design-2.0.rst doc/arch-2.0.png
 
-doc/rapi.pdf doc/rapi.html: doc/rapi-resources.gen
+doc/rapi.html: doc/rapi-resources.gen
 
 doc/rapi-resources.gen: $(BUILD_RAPI_RESOURCE_DOC) $(RAPI_RESOURCES)
 	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || \
 	  rm -f $@
 
-man/%.7: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $@
+man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
+	@test -n "$(DOCBOOK2MAN)" || { echo 'doocbook2html' not found during configure; exit 1; }
+	TMPDIR=`mktemp -d` && { \
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $$TMPDIR/$(patsubst man/%.in,%,$@) ; \
+	mv $$TMPDIR/$(patsubst man/%.in,%,$@) $@ ; \
+	rm -rf "$$TMPDIR" ; \
+	}
 
-man/%.8: man/%.in man/footer.sgml $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $@
+man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
+	@test -n "$(DOCBOOK2HTML)" || { echo 'doocbook2html' not found during configure; exit 1; }
+	TMPDIR=`mktemp -d` && { \
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $$TMPDIR/$(patsubst man/%.in,%,$@) ; \
+	mv $$TMPDIR/$(patsubst man/%.in,%,$@) $@ ; \
+	rm -rf "$$TMPDIR" ; \
+	}
 
-man/%.html: man/%.in $(DOCBOOK_WRAPPER)
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $@
+man/%.7: man/%.7.in stamp-directories $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+
+man/%.8: man/%.8.in stamp-directories $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+
+man/%.html: man/%.html.in stamp-directories $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 man/footer.sgml $(TESTS): srclinks
 
