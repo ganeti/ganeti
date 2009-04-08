@@ -1,3 +1,12 @@
+Version 2.0 release candidate 3
+  - Change the internal locking model of some gnt-node commands, in
+    order to reduce contention (and blocking of master daemon) when
+    batching many creation/reinstall jobs
+  - Fixes to Xen soft reboot
+  - No longer build documentation at 'make' time, instead distribute it
+    in the archive, in order to reduce the need for the whole
+    docbook/rst toolchains
+
 Version 2.0 release candidate 2
   - Now the cfgupgrade scripts works and can upgrade 1.2.7 clusters to
     2.0
