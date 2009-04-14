@@ -896,8 +896,10 @@ class DRBD8(BaseDRBD):
     # value types
     value = pyp.Word(pyp.alphanums + '_-/.:')
     quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
-    addr_port = (pyp.Word(pyp.nums + '.') + pyp.Literal(':').suppress() +
-                 number)
+    addr_type = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
+                 pyp.Optional(pyp.Literal("ipv6")).suppress())
+    addr_port = (addr_type + pyp.Word(pyp.nums + '.') +
+                 pyp.Literal(':').suppress() + number)
     # meta device, extended syntax
     meta_value = ((value ^ quoted) + pyp.Literal('[').suppress() +
                   number + pyp.Word(']').suppress())
