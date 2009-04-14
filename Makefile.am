@@ -255,7 +255,7 @@ doc/rapi-resources.gen: $(BUILD_RAPI_RESOURCE_DOC) $(RAPI_RESOURCES)
 	  rm -f $@
 
 man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
-	@test -n "$(DOCBOOK2MAN)" || { echo 'doocbook2html' not found during configure; exit 1; }
+	@test -n "$(DOCBOOK2MAN)" || { echo 'docbook2html' not found during configure; exit 1; }
 	TMPDIR=`mktemp -d` && { \
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $$TMPDIR/$(patsubst man/%.in,%,$@) ; \
 	mv $$TMPDIR/$(patsubst man/%.in,%,$@) $@ ; \
@@ -263,7 +263,7 @@ man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	}
 
 man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
-	@test -n "$(DOCBOOK2HTML)" || { echo 'doocbook2html' not found during configure; exit 1; }
+	@test -n "$(DOCBOOK2HTML)" || { echo 'docbook2html' not found during configure; exit 1; }
 	TMPDIR=`mktemp -d` && { \
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $$TMPDIR/$(patsubst man/%.in,%,$@) ; \
 	mv $$TMPDIR/$(patsubst man/%.in,%,$@) $@ ; \
