@@ -1225,10 +1225,16 @@ instance5: 11225
         </cmdsynopsis>
 
         <para>
-          Reinstalls the operating system on the given instance. The instance
-          must be stopped when running this command. If the
-          <option>--os-type</option> is specified, the operating system is
-          changed.
+          Reinstalls the operating system on the given instance. The
+          instance must be stopped when running this command. If the
+          <option>--os-type</option> is specified, the operating
+          system is changed.
+        </para>
+
+        <para>
+          Since reinstall is potentially dangerous command, the user
+          will be required to confirm this action, unless the
+          <option>-f</option> flag is passed.
         </para>
 
         <para>
@@ -1547,6 +1553,7 @@ instance5: 11225
           <command>replace-disks</command>
           <arg>--submit</arg>
           <arg choice="req">-p</arg>
+          <arg>--disks <replaceable>idx</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -1554,6 +1561,7 @@ instance5: 11225
           <command>replace-disks</command>
           <arg>--submit</arg>
           <arg choice="req">-s</arg>
+          <arg>--disks <replaceable>idx</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
@@ -1569,16 +1577,22 @@ instance5: 11225
         </cmdsynopsis>
 
         <para>
-          This command is a generalized form for adding and replacing
-          disks. It is currently only valid for the mirrored (DRBD)
-          disk template.
+          This command is a generalized form for replacing disks. It
+          is currently only valid for the mirrored (DRBD) disk
+          template.
         </para>
 
         <para>
           The first form (when passing the <option>-p</option> option)
           will replace the disks on the primary, while the second form
           (when passing the <option>-s</option> option will replace
-          the disks on the secondary node.
+          the disks on the secondary node. For these two cases (as the
+          node doesn't change), it is possible to only run the replace
+          for a subset of the disks, using the option
+          <option>--disks</option> which takes a list of
+          comma-delimited disk indices (zero-based),
+          e.g. <userinput>0,2</userinput> to replace only the first
+          and third disks.
         </para>
 
         <para>

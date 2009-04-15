@@ -2335,7 +2335,7 @@ class LUSetNodeParams(LogicalUnit):
         ((node.offline and not self.op.offline == False) or
          (node.drained and not self.op.drained == False))):
       raise errors.OpPrereqError("Node '%s' is offline or drained, can't set"
-                                 " to master_candidate")
+                                 " to master_candidate" % node.name)
 
     return
 

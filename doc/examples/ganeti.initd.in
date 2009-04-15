@@ -64,7 +64,7 @@ check_exitcode() {
 start_action() {
     # called as start_action daemon pidfile
     local daemon="$1"; shift
-    local pidfile="$2"; shift
+    local pidfile="$1"; shift
     log_action_begin_msg "$daemon"
     start-stop-daemon --start --quiet --exec "$daemon" --pidfile "$pidfile" \
         -- "$@"

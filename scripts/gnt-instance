@@ -543,7 +543,7 @@ def ReinstallInstance(opts, args):
       number = number + 1
 
     choices.append(('x', 'exit', 'Exit gnt-instance reinstall'))
-    selected = AskUser("Enter OS template name or number (or x to abort):",
+    selected = AskUser("Enter OS template number (or x to abort):",
                        choices)
 
     if selected == 'exit':
@@ -1416,9 +1416,9 @@ commands = {
                                  help=("Replace the disk(s) on the secondary"
                                        " node (only for the drbd template)")),
                      make_option("--disks", dest="disks", default=None,
-                                 help=("Comma-separated list of disks"
-                                       " to replace (e.g. sda) (optional,"
-                                       " defaults to all disks")),
+                                 help="Comma-separated list of disks"
+                                 " indices to replace (e.g. 0,2) (optional,"
+                                 " defaults to all disks)"),
                      make_option("-I", "--iallocator", metavar="<NAME>",
                                  help="Select new secondary for the instance"
                                  " automatically using the"

@@ -503,6 +503,51 @@
     </refsect2>
 
     <refsect2>
+      <title>MODIFY</title>
+      <cmdsynopsis>
+        <command>modify</command>
+        <arg>-f</arg>
+        <arg>--submit</arg>
+        <arg>--master-candidate=<option>yes|no</option></arg>
+        <arg>--drained=<option>yes|no</option></arg>
+        <arg>--offline=<option>yes|no</option></arg>
+        <arg choice="req"><replaceable>node</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        This command changes the role of the node. Each options takes
+        either a literal <literal>yes</literal> or
+        <literal>no</literal>, and only one option should be given as
+        <literal>yes</literal>. The meaning of the roles are described
+        in the manpage <citerefentry>
+        <refentrytitle>ganeti</refentrytitle> <manvolnum>7</manvolnum>
+        </citerefentry>.
+      </para>
+
+      <para>
+        In case a node is demoted from the master candidate role, but
+        there are not enough new nodes for this case, the operation
+        will be refused. To override this check, pass the
+        <option>--force</option> option.
+      </para>
+
+      <para>
+        Example (setting a node offline, which will demote it from
+        master candidate role if is in that role):
+        <screen>
+# gnt-node modify --offline=yes node1.example.com
+        </screen>
+      </para>
+
+      <para>Example (setting the node back to online and master candidate):
+        <screen>
+# gnt-node modify --offline=no --master-candidate=yes node1.example.com
+        </screen>
+      </para>
+
+    </refsect2>
+
+    <refsect2>
       <title>REMOVE</title>
 
       <cmdsynopsis>

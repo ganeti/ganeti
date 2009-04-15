@@ -331,6 +331,7 @@
 <screen>
 # gnt-backup list --nodes node1 --nodes node2
 </screen>
+      </para>
     </refsect2>
 
     <refsect2>
