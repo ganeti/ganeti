@@ -10,6 +10,7 @@ module Ganeti.HTools.Utils
     , swapPairs
     , varianceCoeff
     , readData
+    , commaJoin
     ) where
 
 import Data.Either

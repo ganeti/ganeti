@@ -160,8 +160,15 @@ main = do
          putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
 
   let offline_names = optOffline opts
+      all_names = snd . unzip $ ktn
+      offline_wrong = filter (\n -> not $ elem n all_names) offline_names
       offline_indices = fst . unzip .
                         filter (\(_, n) -> elem n offline_names) $ ktn
+
+  when (length offline_wrong > 0) $ do
+         printf "Wrong node name(s) set as offline: %s\n"
+                (commaJoin offline_wrong)
+         exitWith $ ExitFailure 1
 
   let nl = Container.map (\n -> if elem (Node.idx n) offline_indices
                                 then Node.setOffline n True
