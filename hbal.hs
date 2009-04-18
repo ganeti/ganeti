@@ -6,6 +6,7 @@ module Main (main) where
 
 import Data.List
 import Data.Function
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import Monad
 import System
 import System.IO
@@ -23,24 +24,24 @@ import Ganeti.HTools.Utils
 
 -- | Command line options structure.
 data Options = Options
-    { optShowNodes :: Bool     -- ^ Whether to show node status
-    , optShowCmds  :: Bool     -- ^ Whether to show the command list
-    , optOneline   :: Bool     -- ^ Switch output to a single line
-    , optNodef     :: FilePath -- ^ Path to the nodes file
-    , optInstf     :: FilePath -- ^ Path to the instances file
-    , optMaxLength :: Int      -- ^ Stop after this many steps
-    , optMaster    :: String   -- ^ Collect data from RAPI
-    , optVerbose   :: Int      -- ^ Verbosity level
-    , optOffline   :: [String] -- ^ Names of offline nodes
-    , optShowVer   :: Bool     -- ^ Just show the program version
-    , optShowHelp  :: Bool     -- ^ Just show the help
+    { optShowNodes :: Bool           -- ^ Whether to show node status
+    , optShowCmds  :: Maybe FilePath -- ^ Whether to show the command list
+    , optOneline   :: Bool           -- ^ Switch output to a single line
+    , optNodef     :: FilePath       -- ^ Path to the nodes file
+    , optInstf     :: FilePath       -- ^ Path to the instances file
+    , optMaxLength :: Int            -- ^ Stop after this many steps
+    , optMaster    :: String         -- ^ Collect data from RAPI
+    , optVerbose   :: Int            -- ^ Verbosity level
+    , optOffline   :: [String]       -- ^ Names of offline nodes
+    , optShowVer   :: Bool           -- ^ Just show the program version
+    , optShowHelp  :: Bool           -- ^ Just show the help
     } deriving Show
 
 -- | Default values for the command line options.
 defaultOptions :: Options
 defaultOptions  = Options
  { optShowNodes = False
- , optShowCmds  = False
+ , optShowCmds  = Nothing
  , optOneline   = False
  , optNodef     = "nodes"
  , optInstf     = "instances"
@@ -59,8 +60,11 @@ options =
       (NoArg (\ opts -> opts { optShowNodes = True }))
       "print the final node list"
     , Option ['C']     ["print-commands"]
-      (NoArg (\ opts -> opts { optShowCmds = True }))
-      "print the ganeti command list for reaching the solution"
+      (OptArg ((\ f opts -> opts { optShowCmds = Just f }) . fromMaybe "-")
+                  "FILE")
+      "print the ganeti command list for reaching the solution,\
+      \if an argument is passed then write the commands to a file named\
+      \ as such"
     , Option ['o']     ["oneline"]
       (NoArg (\ opts -> opts { optOneline = True }))
       "print the ganeti command list for reaching the solution"
@@ -226,11 +230,21 @@ main = do
   unless (oneline || verbose == 0) $
          printf "Solution length=%d\n" (length ord_plc)
 
-  when (optShowCmds opts) $
+  let cmd_data = Cluster.formatCmds . reverse $ cmd_strs
+
+  when (isJust $ optShowCmds opts) $
        do
+         let out_path = fromJust $ optShowCmds opts
          putStrLn ""
-         putStrLn "Commands to run to reach the above solution:"
-         putStr . Cluster.formatCmds . reverse $ cmd_strs
+         (if out_path == "-" then
+              printf "Commands to run to reach the above solution:\n%s"
+                     (unlines . map ("  " ++) .
+                      filter (/= "check") .
+                      lines $ cmd_data)
+          else do
+            writeFile out_path (CLI.shTemplate ++ cmd_data)
+            printf "The commands have been written to file '%s'\n" out_path)
+
   when (optShowNodes opts) $
        do
          let (orig_mem, orig_disk) = Cluster.totalResources nl

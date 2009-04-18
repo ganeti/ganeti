@@ -563,27 +563,27 @@ computeMoves i a b c d =
     else
         if c == b then {- Failover and ... -}
             if d == a then {- that's all -}
-                ("f", [printf "migrate %s" i])
+                ("f", [printf "migrate -f %s" i])
             else
                 (printf "f r:%s" d,
-                 [printf "migrate %s" i,
+                 [printf "migrate -f %s" i,
                   printf "replace-disks -n %s %s" d i])
         else
             if d == a then {- ... and keep primary as secondary -}
                 (printf "r:%s f" c,
                  [printf "replace-disks -n %s %s" c i,
-                  printf "migrate %s" i])
+                  printf "migrate -f %s" i])
             else
                 if d == b then {- ... keep same secondary -}
                     (printf "f r:%s f" c,
-                     [printf "migrate %s" i,
+                     [printf "migrate -f %s" i,
                       printf "replace-disks -n %s %s" c i,
-                      printf "migrate %s" i])
+                      printf "migrate -f %s" i])
 
                 else {- Nothing in common -}
                     (printf "r:%s f r:%s" c d,
                      [printf "replace-disks -n %s %s" c i,
-                      printf "migrate %s" i,
+                      printf "migrate -f %s" i,
                       printf "replace-disks -n %s %s" d i])
 
 {-| Converts a placement to string format -}
@@ -616,9 +616,11 @@ printSolutionLine il ktn kti nmlen imlen plc pos =
 
 formatCmds :: [[String]] -> String
 formatCmds cmd_strs =
-    unlines $ map ("  echo " ++) $
+    unlines $
     concat $ map (\(a, b) ->
-        (printf "step %d" (a::Int)):(map ("gnt-instance " ++) b)) $
+        (printf "echo step %d" (a::Int)):
+        (printf "check"):
+        (map ("gnt-instance " ++) b)) $
         zip [1..] cmd_strs
 
 {-| Converts a solution to string format -}
