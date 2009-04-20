@@ -29,7 +29,7 @@ doc: $(DOCS)
 		$(HSRCS)
 
 clean:
-	rm -f hbal hn1
+	rm -f $(HPROGS)
 	rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	rm -f $(DOCS) TAGS Ganeti/HTools/Version.hs
