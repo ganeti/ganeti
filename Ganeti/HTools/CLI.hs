@@ -9,11 +9,13 @@ and this is more IO oriented.
 module Ganeti.HTools.CLI
     (
       parseOpts
+    , parseEnv
     , showVersion
     , shTemplate
     ) where
 
 import System.Console.GetOpt
+import System.Posix.Env
 import System.IO
 import System.Info
 import System
@@ -46,6 +48,13 @@ parseOpts argv progname options defaultOptions fn =
       where header = printf "%s %s\nUsage: %s [OPTION...]"
                      progname Version.version progname
 
+-- | Parse the environment and return the node/instance names.
+-- This also hardcodes here the default node/instance file names.
+parseEnv :: () -> IO (String, String)
+parseEnv () = do
+  a <- getEnvDefault "HTOOLS_NODES" "nodes"
+  b <- getEnvDefault "HTOOLS_INSTANCES" "instances"
+  return (a, b)
 
 -- | Return a version string for the program
 showVersion :: String -- ^ The program name

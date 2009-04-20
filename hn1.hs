@@ -26,7 +26,9 @@ data Options = Options
     { optShowNodes   :: Bool
     , optShowCmds    :: Bool
     , optNodef       :: FilePath
-    , optInstf       :: FilePath
+    , optNodeSet     :: Bool     -- ^ The nodes have been set by options
+    , optInstf       :: FilePath -- ^ Path to the instances file
+    , optInstSet     :: Bool     -- ^ The insts have been set by options
     , optMinDepth    :: Int
     , optMaxRemovals :: Int
     , optMinDelta    :: Int
@@ -42,14 +44,16 @@ defaultOptions    = Options
  { optShowNodes   = False
  , optShowCmds    = False
  , optNodef       = "nodes"
+ , optNodeSet     = False
  , optInstf       = "instances"
+ , optInstSet     = False
  , optMinDepth    = 1
  , optMaxRemovals = -1
  , optMinDelta    = 0
  , optMaxDelta    = -1
- , optMaster    = ""
- , optShowVer   = False
- , optShowHelp  = False
+ , optMaster      = ""
+ , optShowVer     = False
+ , optShowHelp    = False
  }
 
 {- | Start computing the solution at the given depth and recurse until
@@ -91,10 +95,10 @@ options =
       (NoArg (\ opts -> opts { optShowCmds = True }))
       "print the ganeti command list for reaching the solution"
     , Option ['n']     ["nodes"]
-      (ReqArg (\ f opts -> opts { optNodef = f }) "FILE")
+      (ReqArg (\ f opts -> opts { optNodef = f, optNodeSet = True }) "FILE")
       "the node list FILE"
     , Option ['i']     ["instances"]
-      (ReqArg (\ f opts -> opts { optInstf =  f }) "FILE")
+      (ReqArg (\ f opts -> opts { optInstf =  f, optInstSet = True }) "FILE")
       "the instance list FILE"
     , Option ['d']     ["depth"]
       (ReqArg (\ i opts -> opts { optMinDepth =  (read i)::Int }) "D")
@@ -134,11 +138,16 @@ main = do
          printf $ CLI.showVersion "hn1"
          exitWith ExitSuccess
 
-  let min_depth = optMinDepth opts
-  let (node_data, inst_data) =
+  (env_node, env_inst) <- CLI.parseEnv ()
+  let nodef = if optNodeSet opts then optNodef opts
+              else env_node
+      instf = if optInstSet opts then optInstf opts
+              else env_inst
+      min_depth = optMinDepth opts
+      (node_data, inst_data) =
           case optMaster opts of
-            "" -> (readFile $ optNodef opts,
-                   readFile $ optInstf opts)
+            "" -> (readFile nodef,
+                   readFile instf)
             host -> (readData getNodes host,
                      readData getInstances host)
 

@@ -28,7 +28,9 @@ data Options = Options
     , optShowCmds  :: Maybe FilePath -- ^ Whether to show the command list
     , optOneline   :: Bool           -- ^ Switch output to a single line
     , optNodef     :: FilePath       -- ^ Path to the nodes file
+    , optNodeSet   :: Bool           -- ^ The nodes have been set by options
     , optInstf     :: FilePath       -- ^ Path to the instances file
+    , optInstSet   :: Bool           -- ^ The insts have been set by options
     , optMaxLength :: Int            -- ^ Stop after this many steps
     , optMaster    :: String         -- ^ Collect data from RAPI
     , optVerbose   :: Int            -- ^ Verbosity level
@@ -44,7 +46,9 @@ defaultOptions  = Options
  , optShowCmds  = Nothing
  , optOneline   = False
  , optNodef     = "nodes"
+ , optNodeSet   = False
  , optInstf     = "instances"
+ , optInstSet   = False
  , optMaxLength = -1
  , optMaster    = ""
  , optVerbose   = 0
@@ -69,10 +73,10 @@ options =
       (NoArg (\ opts -> opts { optOneline = True }))
       "print the ganeti command list for reaching the solution"
     , Option ['n']     ["nodes"]
-      (ReqArg (\ f opts -> opts { optNodef = f }) "FILE")
+      (ReqArg (\ f opts -> opts { optNodef = f, optNodeSet = True }) "FILE")
       "the node list FILE"
     , Option ['i']     ["instances"]
-      (ReqArg (\ f opts -> opts { optInstf =  f }) "FILE")
+      (ReqArg (\ f opts -> opts { optInstf =  f, optInstSet = True }) "FILE")
       "the instance list FILE"
     , Option ['m']     ["master"]
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
@@ -152,12 +156,17 @@ main = do
          putStr $ CLI.showVersion "hbal"
          exitWith ExitSuccess
 
-  let oneline = optOneline opts
+  (env_node, env_inst) <- CLI.parseEnv ()
+  let nodef = if optNodeSet opts then optNodef opts
+              else env_node
+      instf = if optInstSet opts then optInstf opts
+              else env_inst
+      oneline = optOneline opts
       verbose = optVerbose opts
       (node_data, inst_data) =
           case optMaster opts of
-            "" -> (readFile $ optNodef opts,
-                   readFile $ optInstf opts)
+            "" -> (readFile nodef,
+                   readFile instf)
             host -> (readData getNodes host,
                      readData getInstances host)
 
