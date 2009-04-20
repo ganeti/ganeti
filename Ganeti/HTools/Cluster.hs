@@ -819,7 +819,7 @@ checkData nl il ktn _ =
                              - (nodeIdsk node il)
                  newn = Node.setFmem (Node.setXmem node delta_mem)
                         (Node.f_mem node - adj_mem)
-                 umsg1 = if delta_mem > 16 || delta_dsk > 1024
+                 umsg1 = if delta_mem > 512 || delta_dsk > 1024
                          then [printf "node %s is missing %d MB ram \
                                      \and %d GB disk"
                                      nname delta_mem (delta_dsk `div` 1024)]
