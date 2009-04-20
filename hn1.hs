@@ -123,7 +123,12 @@ options =
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (opts, _) <- CLI.parseOpts cmd_args "hn1" options defaultOptions optShowHelp
+  (opts, args) <- CLI.parseOpts cmd_args "hn1" options
+                  defaultOptions optShowHelp
+
+  unless (null args) $ do
+         hPutStrLn stderr "Error: this program doesn't take any arguments."
+         exitWith $ ExitFailure 1
 
   when (optShowVer opts) $ do
          printf $ CLI.showVersion "hn1"
