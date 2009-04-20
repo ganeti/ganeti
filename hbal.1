@@ -250,16 +250,14 @@ the percentage of instances on offline nodes)
 .TP
 .BI "-n" nodefile ", --nodes=" nodefile
 The name of the file holding node information (if not collecting via
-RAPI), instead of the default
-.I nodes
-file.
+RAPI), instead of the default \fInodes\fR file (but see below how to
+customize the default value via the environment).
 
 .TP
 .BI "-i" instancefile ", --instances=" instancefile
 The name of the file holding instance information (if not collecting
-via RAPI), instead of the default
-.I instances
-file.
+via RAPI), instead of the default \fIinstances\fR file (but see below
+how to customize the default value via the environment).
 
 .TP
 .BI "-m" cluster
@@ -287,6 +285,13 @@ Just show the program version and exit.
 
 The exist status of the command will be zero, unless for some reason
 the algorithm fatally failed (e.g. wrong node or instance data).
+
+.SH ENVIRONMENT
+
+If the variables \fBHTOOLS_NODES\fR and \fBHTOOLS_INSTANCES\fR are
+present in the environment, they will override the default names for
+the nodes and instances files. These will have of course no effect
+when RAPI is used.
 
 .SH BUGS
 
