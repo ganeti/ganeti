@@ -1,3 +1,14 @@
+Version 0.0.8 (Tue, 21 Apr 2009):
+  - hbal: prevent mismatches in wrong node names being passed to -O, by
+	aborting in this case
+  - add the ability to write the commands (-C) to a script via (-C<file>), so
+	that it can be later executed directly; this has also changed the commands
+	to include the ncessary -f flags to skip confirmations
+  - add checks for extra argument in hbal and hn1, so that unintended errors
+	are catched
+  - raise the accepted “missing” memory limit to 512MB, to cover usual Xen
+	reservations
+
 Version 0.0.7 (Mon, 23 Mar 2009):
   - added support for offline nodes, which are not used as targets for
     instance relocation and if they hold instances the hbal algorithm
