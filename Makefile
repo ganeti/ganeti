@@ -41,7 +41,7 @@ version:
 Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
 	sed -e "s/%ver%/$$(cat version)/" < $< > $@
 
-dist: version doc
+dist: Ganeti/HTools/Version.hs version doc
 	VN=$$(cat version|sed 's/^v//') ; \
 	ANAME="htools-$$VN.tar" ; \
 	rm -f $$ANAME $$ANAME.gz ; \
