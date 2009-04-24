@@ -1073,9 +1073,17 @@ class LUVerifyCluster(LogicalUnit):
         }
         # FIXME: devise a free space model for file based instances as well
         if vg_name is not None:
+          if (constants.NV_VGLIST not in nresult or
+              vg_name not in nresult[constants.NV_VGLIST]):
+            feedback_fn("  - ERROR: node %s didn't return data for the"
+                        " volume group '%s' - it is either missing or broken" %
+                        (node, vg_name))
+            bad = True
+            continue
           node_info[node]["dfree"] = int(nresult[constants.NV_VGLIST][vg_name])
-      except ValueError:
-        feedback_fn("  - ERROR: invalid value returned from node %s" % (node,))
+      except (ValueError, KeyError):
+        feedback_fn("  - ERROR: invalid nodeinfo value returned"
+                    " from node %s" % (node,))
         bad = True
         continue
 
