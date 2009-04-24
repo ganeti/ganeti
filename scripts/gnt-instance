@@ -1084,6 +1084,15 @@ def ShowInstanceConfig(opts, args):
   @return: the desired exit code
 
   """
+  if not args and not opts.show_all:
+    ToStderr("No instance selected."
+             " Please pass in --all if you want to query all instances.\n"
+             "Note that this can take a long time on a big cluster.")
+    return 1
+  elif args and opts.show_all:
+    ToStderr("Cannot use --all if you specify instance names.")
+    return 1
+
   retcode = 0
   op = opcodes.OpQueryInstanceData(instances=args, static=opts.static)
   result = SubmitOpCode(op)
@@ -1360,7 +1369,11 @@ commands = {
             make_option("-s", "--static", dest="static",
                         action="store_true", default=False,
                         help="Only show configuration data, not runtime data"),
-            ], "[-s] [<instance>...]",
+            make_option("--all", dest="show_all",
+                        default=False, action="store_true",
+                        help="Show info on all instances on the cluster."
+                        " This can take a long time to run, use wisely."),
+            ], "[-s] {--all | <instance>...}",
            "Show information on the specified instance(s)"),
   'list': (ListInstances, ARGS_ANY,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
