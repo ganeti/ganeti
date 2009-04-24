@@ -1682,9 +1682,11 @@ class LUDiagnoseOS(NoHooksLU):
                        selected=self.op.output_fields)
 
     # Lock all nodes, in shared mode
+    # Temporary removal of locks, should be reverted later
+    # TODO: reintroduce locks when they are lighter-weight
     self.needed_locks = {}
-    self.share_locks[locking.LEVEL_NODE] = 1
-    self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+    #self.share_locks[locking.LEVEL_NODE] = 1
+    #self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1708,6 +1710,11 @@ class LUDiagnoseOS(NoHooksLU):
 
     """
     all_os = {}
+    # we build here the list of nodes that didn't fail the RPC (at RPC
+    # level), so that nodes with a non-responding node daemon don't
+    # make all OSes invalid
+    good_nodes = [node_name for node_name in rlist
+                  if not rlist[node_name].failed]
     for node_name, nr in rlist.iteritems():
       if nr.failed or not nr.data:
         continue
@@ -1716,7 +1723,7 @@ class LUDiagnoseOS(NoHooksLU):
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
           all_os[os_obj.name] = {}
-          for nname in node_list:
+          for nname in good_nodes:
             all_os[os_obj.name][nname] = []
         all_os[os_obj.name][node_name].append(os_obj)
     return all_os
@@ -1725,9 +1732,7 @@ class LUDiagnoseOS(NoHooksLU):
     """Compute the list of OSes.
 
     """
-    node_list = self.acquired_locks[locking.LEVEL_NODE]
-    valid_nodes = [node for node in self.cfg.GetOnlineNodeList()
-                   if node in node_list]
+    valid_nodes = [node for node in self.cfg.GetOnlineNodeList()]
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     if node_data == False:
       raise errors.OpExecError("Can't gather the list of OSes")
