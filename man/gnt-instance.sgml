@@ -1118,20 +1118,28 @@ instance5: 11225
             <arg>-s</arg>
             <arg>--static</arg>
           </group>
-          <arg rep="repeat"><replaceable>instance</replaceable></arg>
+          <group choice="req">
+            <arg>--all</arg>
+            <arg rep="repeat"><replaceable>instance</replaceable></arg>
+          </group>
         </cmdsynopsis>
 
         <para>
-          Show detailed information about the (given) instances. This
-          is different from <command>list</command> as it shows
-          detailed data about the instance's disks (especially useful
-          for drbd disk template).
+          Show detailed information about the given instance(s). This is
+          different from <command>list</command> as it shows detailed data
+          about the instance's disks (especially useful for the drbd disk 
+          template).
         </para>
 
         <para>
           If the option <option>-s</option> is used, only information
           available in the configuration file is returned, without
           querying nodes, making the operation faster.
+        </para>
+
+        <para>
+          Use the <option>--all</option> to get info about all instances,
+          rather than explicitely passing the ones you're interested in.
         </para>
       </refsect3>
 
