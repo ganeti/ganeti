@@ -1135,6 +1135,7 @@ class LUVerifyDisks(NoHooksLU):
       if isinstance(lvs, basestring):
         logger.Info("error enumerating LVs on node %s: %s" % (node, lvs))
         res_nlvm[node] = lvs
+        continue
       elif not isinstance(lvs, dict):
         logger.Info("connection to node %s failed or invalid data returned" %
                     (node,))
