@@ -9,6 +9,7 @@ hbal \- Cluster balancer for Ganeti
 .B "[-o]"
 .BI "[-l" limit "]"
 .BI "[-O" name... "]"
+.BI "[-e" score "]"
 .BI "[-m " cluster "]"
 .BI "[-n " nodes-file " ]"
 .BI "[-i " instances-file "]"
@@ -245,6 +246,25 @@ node is offline, since this move requires a failover.
 these nodes will not be included in the score calculation (except for
 the percentage of instances on offline nodes)
 .RE
+.RE
+
+.TP
+.BI "-e" score ", --min-score=" score
+This parameter denotes the minimum score we are happy with and alters
+the computation in two ways:
+.RS
+.RS 4
+.TP 3
+\(em
+if the cluster has the initial score lower than this value, then we
+don't enter the algorithm at all, and exit with success
+.TP
+\(em
+during the iterative process, if we reach a score lower than this
+value, we exit the algorithm
+.RE
+The default value of the parameter is currently \fI1e-9\fR (chosen
+empirically).
 .RE
 
 .TP

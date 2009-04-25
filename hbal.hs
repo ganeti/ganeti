@@ -35,6 +35,7 @@ data Options = Options
     , optMaster    :: String         -- ^ Collect data from RAPI
     , optVerbose   :: Int            -- ^ Verbosity level
     , optOffline   :: [String]       -- ^ Names of offline nodes
+    , optMinScore  :: Cluster.Score  -- ^ The minimum score we aim for
     , optShowVer   :: Bool           -- ^ Just show the program version
     , optShowHelp  :: Bool           -- ^ Just show the help
     } deriving Show
@@ -53,6 +54,7 @@ defaultOptions  = Options
  , optMaster    = ""
  , optVerbose   = 0
  , optOffline   = []
+ , optMinScore  = 1e-9
  , optShowVer   = False
  , optShowHelp  = False
  }
@@ -90,7 +92,10 @@ options =
       "increase the verbosity level"
     , Option ['O']     ["offline"]
       (ReqArg (\ n opts -> opts { optOffline = n:optOffline opts }) "NODE")
-       " set node as offline"
+      " set node as offline"
+    , Option ['e']     ["min-score"]
+      (ReqArg (\ e opts -> opts { optMinScore = read e }) "EPSILON")
+      " mininum score to aim for"
     , Option ['V']     ["version"]
       (NoArg (\ opts -> opts { optShowVer = True}))
       "show the version of the program"
@@ -111,9 +116,11 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Max instance name len
              -> [[String]]       -- ^ Current command list
              -> Bool             -- ^ Wheter to be silent
+             -> Cluster.Score    -- ^ Score at which to stop
              -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
                                                -- commands
-iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
+iterateDepth ini_tbl max_rounds ktn kti nmlen imlen
+             cmd_strs oneline min_score =
     let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
         all_inst = Container.elems ini_il
         node_idx = map Node.idx . filter (not . Node.offline) $
@@ -133,9 +140,9 @@ iterateDepth ini_tbl max_rounds ktn kti nmlen imlen cmd_strs oneline =
           putStrLn sol_line
           hFlush stdout
         (if fin_cv < ini_cv then -- this round made success, try deeper
-             if allowed_next
+             if allowed_next && fin_cv > min_score
              then iterateDepth fin_tbl max_rounds ktn kti
-                  nmlen imlen upd_cmd_strs oneline
+                  nmlen imlen upd_cmd_strs oneline min_score
              -- don't go deeper, but return the better solution
              else return (fin_tbl, upd_cmd_strs)
          else
@@ -215,6 +222,17 @@ main = do
 
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
+      min_cv = optMinScore opts
+
+  when (ini_cv < min_cv) $ do
+         (if oneline then
+              printf "%.8f %d %.8f %8.3f\n"
+                     ini_cv (0::Integer) ini_cv (1::Double)
+          else printf "Cluster is already well balanced (initial score %.6g,\n\
+                      \minimum score %.6g).\nNothing to do, exiting\n"
+                      ini_cv min_cv)
+         exitWith ExitSuccess
+
   unless oneline (if verbose > 1 then
                       printf "Initial coefficients: overall %.8f, %s\n"
                       ini_cv (Cluster.printStats nl)
@@ -227,7 +245,7 @@ main = do
       nmlen = mlen_fn ktn
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
-                         ktn kti nmlen imlen [] oneline
+                         ktn kti nmlen imlen [] oneline min_cv
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
       sol_msg = if null fin_plc

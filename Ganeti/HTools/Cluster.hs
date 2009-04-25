@@ -15,6 +15,7 @@ module Ganeti.HTools.Cluster
     , Solution(..)
     , Table(..)
     , Removal
+    , Score
     -- * Generic functions
     , totalResources
     -- * First phase functions
