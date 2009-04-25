@@ -343,11 +343,10 @@ applyMove nl inst Failover =
         old_s = Container.find old_sdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
-        new_p = Node.addPri int_s inst
-        new_s = Node.addSec int_p inst old_sdx
-        new_nl = if isNothing(new_p) || isNothing(new_s) then Nothing
-                 else Just $ Container.addTwo old_pdx (fromJust new_s)
-                      old_sdx (fromJust new_p) nl
+        new_nl = do -- Maybe monad
+          new_p <- Node.addPri int_s inst
+          new_s <- Node.addSec int_p inst old_sdx
+          return $ Container.addTwo old_pdx new_s old_sdx new_p nl
     in (new_nl, Instance.setBoth inst old_sdx old_pdx, old_sdx, old_pdx)
 
 -- Replace the primary (f:, r:np, f)
@@ -359,12 +358,11 @@ applyMove nl inst (ReplacePrimary new_pdx) =
         tgt_n = Container.find new_pdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
-        new_p = Node.addPri tgt_n inst
-        new_s = Node.addSec int_s inst new_pdx
-        new_nl = if isNothing(new_p) || isNothing(new_s) then Nothing
-                 else Just $ Container.add new_pdx (fromJust new_p) $
-                      Container.addTwo old_pdx int_p
-                               old_sdx (fromJust new_s) nl
+        new_nl = do -- Maybe monad
+          new_p <- Node.addPri tgt_n inst
+          new_s <- Node.addSec int_s inst new_pdx
+          return $ Container.add new_pdx new_p $
+                 Container.addTwo old_pdx int_p old_sdx new_s nl
     in (new_nl, Instance.setPri inst new_pdx, new_pdx, old_sdx)
 
 -- Replace the secondary (r:ns)
@@ -374,10 +372,9 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
         old_s = Container.find old_sdx nl
         tgt_n = Container.find new_sdx nl
         int_s = Node.removeSec old_s inst
-        new_s = Node.addSec tgt_n inst old_pdx
-        new_nl = if isNothing(new_s) then Nothing
-                 else Just $ Container.addTwo new_sdx (fromJust new_s)
-                      old_sdx int_s nl
+        new_nl = Node.addSec tgt_n inst old_pdx >>=
+                 \new_s -> return $ Container.addTwo new_sdx
+                           new_s old_sdx int_s nl
     in (new_nl, Instance.setSec inst new_sdx, old_pdx, new_sdx)
 
 -- Replace the secondary and failover (r:np, f)
@@ -389,12 +386,11 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
         tgt_n = Container.find new_pdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
-        new_p = Node.addPri tgt_n inst
-        new_s = Node.addSec int_p inst new_pdx
-        new_nl = if isNothing(new_p) || isNothing(new_s) then Nothing
-                 else Just $ Container.add new_pdx (fromJust new_p) $
-                      Container.addTwo old_pdx (fromJust new_s)
-                               old_sdx int_s nl
+        new_nl = do -- Maybe monad
+          new_p <- Node.addPri tgt_n inst
+          new_s <- Node.addSec int_p inst new_pdx
+          return $ Container.add new_pdx new_p $
+                 Container.addTwo old_pdx new_s old_sdx int_s nl
     in (new_nl, Instance.setBoth inst new_pdx old_pdx, new_pdx, old_pdx)
 
 -- Failver and replace the secondary (f, r:ns)
@@ -406,12 +402,11 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
         tgt_n = Container.find new_sdx nl
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
-        new_p = Node.addPri int_s inst
-        new_s = Node.addSec tgt_n inst old_sdx
-        new_nl = if isNothing(new_p) || isNothing(new_s) then Nothing
-                 else Just $ Container.add new_sdx (fromJust new_s) $
-                      Container.addTwo old_sdx (fromJust new_p)
-                               old_pdx int_p nl
+        new_nl = do -- Maybe monad
+          new_p <- Node.addPri int_s inst
+          new_s <- Node.addSec tgt_n inst old_sdx
+          return $ Container.add new_sdx new_s $
+                 Container.addTwo old_sdx new_p old_pdx int_p nl
     in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
 
 checkSingleStep :: Table -- ^ The original table
