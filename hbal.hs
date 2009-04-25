@@ -148,6 +148,12 @@ iterateDepth ini_tbl max_rounds ktn kti nmlen imlen
          else
              return (ini_tbl, cmd_strs))
 
+-- | Formats the solution for the oneline display
+formatOneline :: Double -> Int -> Double -> String
+formatOneline ini_cv plc_len fin_cv =
+    printf "%.8f %d %.8f %8.3f" ini_cv plc_len fin_cv
+               (if fin_cv == 0 then 1 else (ini_cv / fin_cv))
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -201,8 +207,7 @@ main = do
 
   when (Container.size il == 0) $ do
          (if oneline then
-              printf "%.8f %d %.8f %8.3f\n"
-                         (0::Double) (0::Integer) (0::Double) (1::Double)
+              putStrLn $ formatOneline 0 0 0
           else
               printf "Cluster is empty, exiting.\n")
          exitWith ExitSuccess
@@ -235,8 +240,7 @@ main = do
 
   when (ini_cv < min_cv) $ do
          (if oneline then
-              printf "%.8f %d %.8f %8.3f\n"
-                     ini_cv (0::Integer) ini_cv (1::Double)
+              putStrLn $ formatOneline ini_cv 0 ini_cv
           else printf "Cluster is already well balanced (initial score %.6g,\n\
                       \minimum score %.6g).\nNothing to do, exiting\n"
                       ini_cv min_cv)
@@ -297,6 +301,5 @@ main = do
               do
                 printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
                 printf "Final:    mem=%d disk=%d\n" final_mem final_disk
-  when oneline $ do
-         printf "%.8f %d %.8f %8.3f\n"
-                ini_cv (length ord_plc) fin_cv (ini_cv / fin_cv)
+  when oneline $
+         putStrLn $ formatOneline ini_cv (length ord_plc) fin_cv
