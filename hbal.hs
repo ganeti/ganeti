@@ -199,6 +199,15 @@ main = do
                                 then Node.setOffline n True
                                 else n) fixed_nl
 
+  when (Container.size il == 0) $ do
+         (if oneline then
+              printf "%.8f %d %.8f %8.3f\n"
+                         (0::Double) (0::Integer) (0::Double) (1::Double)
+          else
+              printf "Cluster is empty, exiting.\n")
+         exitWith ExitSuccess
+
+
   unless oneline $ printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)
