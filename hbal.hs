@@ -52,7 +52,7 @@ defaultOptions  = Options
  , optInstSet   = False
  , optMaxLength = -1
  , optMaster    = ""
- , optVerbose   = 0
+ , optVerbose   = 1
  , optOffline   = []
  , optMinScore  = 1e-9
  , optShowVer   = False
@@ -90,6 +90,9 @@ options =
     , Option ['v']     ["verbose"]
       (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) + 1 }))
       "increase the verbosity level"
+    , Option ['q']     ["quiet"]
+      (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) - 1 }))
+      "decrease the verbosity level"
     , Option ['O']     ["offline"]
       (ReqArg (\ n opts -> opts { optOffline = n:optOffline opts }) "NODE")
       " set node as offline"
@@ -186,7 +189,7 @@ main = do
   (loaded_nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
   let (fix_msgs, fixed_nl) = Cluster.checkData loaded_nl il ktn kti
 
-  unless (null fix_msgs) $ do
+  unless (null fix_msgs || verbose == 0) $ do
          putStrLn "Warning: cluster has inconsistent data:"
          putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
 
@@ -217,7 +220,7 @@ main = do
              (Container.size nl)
              (Container.size il)
 
-  when (length csf > 0 && not oneline && verbose > 0) $ do
+  when (length csf > 0 && not oneline && verbose > 1) $ do
          printf "Note: Stripping common suffix of '%s' from names\n" csf
 
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
@@ -246,7 +249,7 @@ main = do
                       ini_cv min_cv)
          exitWith ExitSuccess
 
-  unless oneline (if verbose > 1 then
+  unless oneline (if verbose > 2 then
                       printf "Initial coefficients: overall %.8f, %s\n"
                       ini_cv (Cluster.printStats nl)
                   else
@@ -263,7 +266,7 @@ main = do
       ord_plc = reverse fin_plc
       sol_msg = if null fin_plc
                 then printf "No solution found\n"
-                else (if verbose > 1
+                else (if verbose > 2
                       then printf "Final coefficients:   overall %.8f, %s\n"
                            fin_cv (Cluster.printStats fin_nl)
                       else printf "Cluster score improved from %.8f to %.8f\n"
@@ -297,7 +300,7 @@ main = do
          putStrLn ""
          putStrLn "Final cluster status:"
          putStrLn $ Cluster.printNodes ktn fin_nl
-         when (verbose > 2) $
+         when (verbose > 3) $
               do
                 printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
                 printf "Final:    mem=%d disk=%d\n" final_mem final_disk

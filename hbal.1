@@ -7,6 +7,7 @@ hbal \- Cluster balancer for Ganeti
 .B "[-C]"
 .B "[-p]"
 .B "[-o]"
+.B "[-v... | -q]"
 .BI "[-l" limit "]"
 .BI "[-O" name... "]"
 .BI "[-e" score "]"
@@ -295,7 +296,13 @@ automate the execution of the balancing.
 .B -v, --verbose
 Increase the output verbosity. Each usage of this option will increase
 the verbosity (currently more than 2 doesn't make sense) from the
-default of zero.
+default of one.
+
+.TP
+.B -q, --quiet
+Decrease the output verbosity. Each usage of this option will decrease
+the verbosity (less than zero doesn't make sense) from the default of
+one.
 
 .TP
 .B -V, --version
