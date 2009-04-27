@@ -1,3 +1,14 @@
+Version 2.0 release candidate 4
+  - change the OS list to not require locks; this helps with big
+    clusters
+  - fix gnt-cluster verify and gnt-cluster verify-disks when the volume
+    group is broken
+  - “gnt-instance info”, without any arguments, doesn't run for all
+    instances anymore; either pass ‘--all’ or pass the desired
+    instances; this helps against mistakes on big clusters where listing
+    the information for all instances takes a long time
+  - miscellaneous doc and man pages fixes
+
 Version 2.0 release candidate 3
   - Change the internal locking model of some gnt-node commands, in
     order to reduce contention (and blocking of master daemon) when
