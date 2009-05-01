@@ -146,12 +146,12 @@
       <cmdsynopsis>
         <command>submit-job</command>
 
-        <arg choice="req">opcodes_file</arg>
+        <arg choice="req" rep="repeat">opcodes_file</arg>
       </cmdsynopsis>
 
       <para>
-        This command builds a list of opcodes from a JSON-format file
-        and submits them as a single job to the master daemon. It can
+        This command builds a list of opcodes from JSON-format files
+        and submits for each file a job to the master daemon. It can
         be used to test some options that are not available via the
         command line.
       </para>

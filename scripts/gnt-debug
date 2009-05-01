@@ -71,12 +71,19 @@ def GenericOpCodes(opts, args):
 
   """
   cl = cli.GetClient()
-  fname = args[0]
-  op_data = simplejson.loads(open(fname).read())
-  op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
-  jid = cli.SendJob(op_list, cl=cl)
-  ToStdout("Job id: %s", jid)
-  cli.PollJob(jid, cl=cl)
+  job_data = []
+  job_ids = []
+  for fname in args:
+    op_data = simplejson.loads(open(fname).read())
+    op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
+    job_data.append((fname, op_list))
+  for fname, op_list in job_data:
+    jid = cli.SendJob(op_list, cl=cl)
+    ToStdout("File '%s', job id: %s", fname, jid)
+    job_ids.append(jid)
+  for jid in job_ids:
+    ToStdout("Waiting for job id %s", jid)
+    cli.PollJob(jid, cl=cl)
   return 0
 
 
@@ -139,11 +146,11 @@ commands = {
                          help="Select nodes to sleep on"),
              ],
             "[opts...] <duration>", "Executes a TestDelay OpCode"),
-  'submit-job': (GenericOpCodes, ARGS_ONE,
+  'submit-job': (GenericOpCodes, ARGS_ATLEAST(1),
                  [DEBUG_OPT,
                   ],
-                 "<op_list_file>", "Submits a job built from a json-file"
-                 " with a list of serialized opcodes"),
+                 "<op_list_file...>", "Submits jobs built from json files"
+                 " containing a list of serialized opcodes"),
   'allocator': (TestAllocator, ARGS_ONE,
                 [DEBUG_OPT,
                  make_option("--dir", dest="direction",
