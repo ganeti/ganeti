@@ -1284,6 +1284,7 @@ def WriteFile(file_name, fn=None, data=None,
 
   dir_name, base_name = os.path.split(file_name)
   fd, new_name = tempfile.mkstemp('.new', base_name, dir_name)
+  do_remove = True
   # here we need to make sure we remove the temp file, if any error
   # leaves it in place
   try:
@@ -1304,13 +1305,15 @@ def WriteFile(file_name, fn=None, data=None,
       os.utime(new_name, (atime, mtime))
     if not dry_run:
       os.rename(new_name, file_name)
+      do_remove = False
   finally:
     if close:
       os.close(fd)
       result = None
     else:
       result = fd
-    RemoveFile(new_name)
+    if do_remove:
+      RemoveFile(new_name)
 
   return result
 
