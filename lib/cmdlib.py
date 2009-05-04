@@ -4234,8 +4234,8 @@ def _CheckHVParams(lu, nodenames, hvname, hvparams):
       continue
     msg = info.RemoteFailMsg()
     if msg:
-      raise errors.OpPrereqError("Hypervisor parameter validation failed:"
-                                 " %s" % msg)
+      raise errors.OpPrereqError("Hypervisor parameter validation"
+                                 " failed on node %s: %s" % (node, msg))
 
 
 class LUCreateInstance(LogicalUnit):
