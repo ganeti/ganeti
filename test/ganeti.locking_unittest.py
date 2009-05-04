@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ import testutils
 
 # This is used to test the ssynchronize decorator.
 # Since it's passed as input to a decorator it must be declared as a global.
-_decoratorlock = locking.SharedLock()
+_decoratorlock = locking.SharedLock("decorator lock")
 
 #: List for looping tests
 ITERATIONS = range(8)
@@ -256,7 +256,7 @@ class TestSharedLock(_ThreadedTestCase):
 
   def setUp(self):
     _ThreadedTestCase.setUp(self)
-    self.sl = locking.SharedLock()
+    self.sl = locking.SharedLock("TestSharedLock")
 
   def testSequenceAndOwnership(self):
     self.assertFalse(self.sl._is_owned())
@@ -350,7 +350,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.sl.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), 'DEL')
-    self.sl = locking.SharedLock()
+    self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
   def testExclusiveBlocksSharer(self):
@@ -378,7 +378,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.sl.release()
     self._waitThreads()
     self.failUnlessEqual(self.done.get_nowait(), 'DEL')
-    self.sl = locking.SharedLock()
+    self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
   def testWaitingExclusiveBlocksSharer(self):
@@ -441,7 +441,7 @@ class TestSharedLock(_ThreadedTestCase):
     # The threads who were pending return ERR
     for _ in range(4):
       self.assertEqual(self.done.get_nowait(), 'ERR')
-    self.sl = locking.SharedLock()
+    self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
   def testDeletePendingDeleteExclusiveSharers(self):
@@ -457,7 +457,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertEqual(self.done.get_nowait(), 'ERR')
     self.assertEqual(self.done.get_nowait(), 'ERR')
     self.assertEqual(self.done.get_nowait(), 'ERR')
-    self.sl = locking.SharedLock()
+    self.sl = locking.SharedLock(self.sl.name)
 
   @_Repeat
   def testExclusiveAcquireTimeout(self):
@@ -703,7 +703,7 @@ class TestSharedLockInCondition(_ThreadedTestCase):
 
   def setUp(self):
     _ThreadedTestCase.setUp(self)
-    self.sl = locking.SharedLock()
+    self.sl = locking.SharedLock("TestSharedLockInCondition")
     self.setCondition()
 
   def setCondition(self):
@@ -796,11 +796,11 @@ class TestLockSet(_ThreadedTestCase):
   def _setUpLS(self):
     """Helper to (re)initialize the lock set"""
     self.resources = ['one', 'two', 'three']
-    self.ls = locking.LockSet(members=self.resources)
+    self.ls = locking.LockSet(self.resources, "TestLockSet")
 
   def testResources(self):
     self.assertEquals(self.ls._names(), set(self.resources))
-    newls = locking.LockSet()
+    newls = locking.LockSet([], "TestLockSet.testResources")
     self.assertEquals(newls._names(), set())
 
   def testAcquireRelease(self):
@@ -1288,19 +1288,19 @@ class TestGanetiLockManager(_ThreadedTestCase):
 
   def testInitAndResources(self):
     locking.GanetiLockManager._instance = None
-    self.GL = locking.GanetiLockManager()
+    self.GL = locking.GanetiLockManager([], [])
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
 
     locking.GanetiLockManager._instance = None
-    self.GL = locking.GanetiLockManager(nodes=self.nodes)
+    self.GL = locking.GanetiLockManager(self.nodes, [])
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set(self.nodes))
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE), set())
 
     locking.GanetiLockManager._instance = None
-    self.GL = locking.GanetiLockManager(instances=self.instances)
+    self.GL = locking.GanetiLockManager([], self.instances)
     self.assertEqual(self.GL._names(locking.LEVEL_CLUSTER), set(['BGL']))
     self.assertEqual(self.GL._names(locking.LEVEL_NODE), set())
     self.assertEqual(self.GL._names(locking.LEVEL_INSTANCE),

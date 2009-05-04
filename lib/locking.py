@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -404,6 +404,9 @@ class SharedLock(object):
   the shared lock in the order they queued for it, just that they will
   eventually do so.
 
+  @type name: string
+  @ivar name: the name of the lock
+
   """
   __slots__ = [
     "__active_shr_c",
@@ -413,15 +416,20 @@ class SharedLock(object):
     "__lock",
     "__pending",
     "__shr",
+    "name",
     ]
 
   __condition_class = PipeCondition
 
-  def __init__(self):
+  def __init__(self, name):
     """Construct a new SharedLock.
+
+    @param name: the name of the lock
 
     """
     object.__init__(self)
+
+    self.name = name
 
     # Internal lock
     self.__lock = threading.Lock()
@@ -445,7 +453,7 @@ class SharedLock(object):
 
     """
     if self.__deleted:
-      raise errors.LockError("Deleted lock")
+      raise errors.LockError("Deleted lock %s" % self.name)
 
   def __is_sharer(self):
     """Is the current thread sharing the lock at this time?
@@ -537,7 +545,8 @@ class SharedLock(object):
     self.__check_deleted()
 
     # We cannot acquire the lock if we already have it
-    assert not self.__is_owned(), "double acquire() on a non-recursive lock"
+    assert not self.__is_owned(), ("double acquire() on a non-recursive lock"
+                                   " %s" % self.name)
 
     # Check whether someone else holds the lock or there are pending acquires.
     if not self.__pending and self.__can_acquire(shared):
@@ -700,24 +709,29 @@ class LockSet:
 
   All the locks needed in the same set must be acquired together, though.
 
+  @type name: string
+  @ivar name: the name of the lockset
+
   """
-  def __init__(self, members=None):
+  def __init__(self, members, name):
     """Constructs a new LockSet.
 
     @type members: list of strings
     @param members: initial members of the set
 
     """
+    assert members is not None, "members parameter is not a list"
+    self.name = name
+
     # Used internally to guarantee coherency.
-    self.__lock = SharedLock()
+    self.__lock = SharedLock(name)
 
     # The lockdict indexes the relationship name -> lock
     # The order-of-locking is implied by the alphabetical order of names
     self.__lockdict = {}
 
-    if members is not None:
-      for name in members:
-        self.__lockdict[name] = SharedLock()
+    for mname in members:
+      self.__lockdict[mname] = SharedLock("%s/%s" % (name, mname))
 
     # The owner dict contains the set of locks each thread owns. For
     # performance each thread can access its own key without a global lock on
@@ -824,7 +838,8 @@ class LockSet:
     assert timeout is None or timeout >= 0.0
 
     # Check we don't already own locks at this level
-    assert not self._is_owned(), "Cannot acquire locks in the same set twice"
+    assert not self._is_owned(), ("Cannot acquire locks in the same set twice"
+                                  " (lockset %s)" % self.name)
 
     # We need to keep track of how long we spent waiting for a lock. The
     # timeout passed to this function is over all lock acquires.
@@ -894,7 +909,8 @@ class LockSet:
           # element is not there anymore.
           continue
 
-        raise errors.LockError("Non-existing lock in set (%s)" % lname)
+        raise errors.LockError("Non-existing lock %s in set %s" %
+                               (lname, self.name))
 
       acquire_list.append((lname, lock))
 
@@ -925,14 +941,16 @@ class LockSet:
             # particular element is not there anymore.
             continue
 
-          raise errors.LockError("Non-existing lock in set (%s)" % lname)
+          raise errors.LockError("Non-existing lock %s in set %s" %
+                                 (lname, self.name))
 
         if not acq_success:
           # Couldn't get lock or timeout occurred
           if timeout is None:
             # This shouldn't happen as SharedLock.acquire(timeout=None) is
             # blocking.
-            raise errors.LockError("Failed to get lock %s" % lname)
+            raise errors.LockError("Failed to get lock %s (set %s)" %
+                                   (lname, self.name))
 
           raise _AcquireTimeout()
 
@@ -967,7 +985,8 @@ class LockSet:
         (defaults to all the locks acquired at that level).
 
     """
-    assert self._is_owned(), "release() on lock set while not owner"
+    assert self._is_owned(), ("release() on lock set %s while not owner" %
+                              self.name)
 
     # Support passing in a single resource to release rather than many
     if isinstance(names, basestring):
@@ -978,8 +997,8 @@ class LockSet:
     else:
       names = set(names)
       assert self._list_owned().issuperset(names), (
-               "release() on unheld resources %s" %
-               names.difference(self._list_owned()))
+               "release() on unheld resources %s (set %s)" %
+               (names.difference(self._list_owned()), self.name))
 
     # First of all let's release the "all elements" lock, if set.
     # After this 'add' can work again
@@ -1006,7 +1025,8 @@ class LockSet:
     """
     # Check we don't already own locks at this level
     assert not self._is_owned() or self.__lock._is_owned(shared=0), \
-      "Cannot add locks if the set is only partially owned, or shared"
+      ("Cannot add locks if the set %s is only partially owned, or shared" %
+       self.name)
 
     # Support passing in a single resource to add rather than many
     if isinstance(names, basestring):
@@ -1025,10 +1045,11 @@ class LockSet:
         # This must be an explicit raise, not an assert, because assert is
         # turned off when using optimization, and this can happen because of
         # concurrency even if the user doesn't want it.
-        raise errors.LockError("duplicate add() (%s)" % invalid_names)
+        raise errors.LockError("duplicate add(%s) on lockset %s" %
+                               (invalid_names, self.name))
 
       for lockname in names:
-        lock = SharedLock()
+        lock = SharedLock("%s/%s" % (self.name, lockname))
 
         if acquired:
           lock.acquire(shared=shared)
@@ -1076,7 +1097,8 @@ class LockSet:
     # to delete. The ownership must also be exclusive, but that will be checked
     # by the lock itself.
     assert not self._is_owned() or self._list_owned().issuperset(names), (
-      "remove() on acquired lockset while not owning all elements")
+      "remove() on acquired lockset %s while not owning all elements" %
+      self.name)
 
     removed = []
 
@@ -1091,7 +1113,8 @@ class LockSet:
         removed.append(lname)
       except (KeyError, errors.LockError):
         # This cannot happen if we were already holding it, verify:
-        assert not self._is_owned(), "remove failed while holding lockset"
+        assert not self._is_owned(), ("remove failed while holding lockset %s"
+                                      % self.name)
       else:
         # If no LockError was raised we are the ones who deleted the lock.
         # This means we can safely remove it from lockdict, as any further or
@@ -1167,9 +1190,9 @@ class GanetiLockManager:
     # The keyring contains all the locks, at their level and in the correct
     # locking order.
     self.__keyring = {
-      LEVEL_CLUSTER: LockSet([BGL]),
-      LEVEL_NODE: LockSet(nodes),
-      LEVEL_INSTANCE: LockSet(instances),
+      LEVEL_CLUSTER: LockSet([BGL], "bgl lockset"),
+      LEVEL_NODE: LockSet(nodes, "nodes lockset"),
+      LEVEL_INSTANCE: LockSet(instances, "instances lockset"),
     }
 
   def _names(self, level):

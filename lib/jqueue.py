@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -855,7 +855,7 @@ class JobQueue(object):
     # shared mode, including itself. In order not to acquire it at all
     # concurrency must be guaranteed with all code acquiring it in shared mode
     # and all code acquiring it exclusively.
-    self._lock = locking.SharedLock()
+    self._lock = locking.SharedLock("JobQueue")
 
     self.acquire = self._lock.acquire
     self.release = self._lock.release
