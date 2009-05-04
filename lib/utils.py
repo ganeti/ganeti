@@ -151,11 +151,18 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
   if env is not None:
     cmd_env.update(env)
 
-  if output is None:
-    out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd)
-  else:
-    status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
-    out = err = ""
+  try:
+    if output is None:
+      out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd)
+    else:
+      status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
+      out = err = ""
+  except OSError, err:
+    if err.errno == errno.ENOENT:
+      raise errors.OpExecError("Can't execute '%s': not found (%s)" %
+                               (strcmd, err))
+    else:
+      raise
 
   if status >= 0:
     exitcode = status
