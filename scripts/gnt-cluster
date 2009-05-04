@@ -207,7 +207,8 @@ def ShowClusterMaster(opts, args):
   @return: the desired exit code
 
   """
-  ToStdout("%s", GetClient().QueryConfigValues(["master_node"])[0])
+  master = bootstrap.GetMaster()
+  ToStdout(master)
   return 0
 
 

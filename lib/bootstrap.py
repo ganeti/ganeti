@@ -446,6 +446,22 @@ def MasterFailover():
   return rcode
 
 
+def GetMaster():
+  """Returns the current master node.
+
+  This is a separate function in bootstrap since it's needed by
+  gnt-cluster, and instead of importing directly ssconf, it's better
+  to abstract it in bootstrap, where we do use ssconf in other
+  functions too.
+
+  """
+  sstore = ssconf.SimpleStore()
+
+  old_master, _ = ssconf.GetMasterAndMyself(sstore)
+
+  return old_master
+
+
 def GatherMasterVotes(node_list):
   """Check the agreement on who is the master.
 
