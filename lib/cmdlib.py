@@ -1418,7 +1418,7 @@ class LUSetClusterParams(LogicalUnit):
   _OP_REQP = []
   REQ_BGL = False
 
-  def CheckParameters(self):
+  def CheckArguments(self):
     """Check parameters
 
     """
@@ -1427,7 +1427,7 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.candidate_pool_size is not None:
       try:
         self.op.candidate_pool_size = int(self.op.candidate_pool_size)
-      except ValueError, err:
+      except (ValueError, TypeError), err:
         raise errors.OpPrereqError("Invalid candidate_pool_size value: %s" %
                                    str(err))
       if self.op.candidate_pool_size < 1:
