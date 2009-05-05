@@ -21,14 +21,17 @@ GANETI_DEFAULTS_FILE="@SYSCONFDIR@/default/ganeti"
 NODED_NAME="ganeti-noded"
 NODED="@PREFIX@/sbin/${NODED_NAME}"
 NODED_PID="${GANETIRUNDIR}/${NODED_NAME}.pid"
+NODED_ARGS=""
 
 MASTERD_NAME="ganeti-masterd"
 MASTERD="@PREFIX@/sbin/${MASTERD_NAME}"
 MASTERD_PID="${GANETIRUNDIR}/${MASTERD_NAME}.pid"
+MASTERD_ARGS=""
 
 RAPI_NAME="ganeti-rapi"
 RAPI="@PREFIX@/sbin/${RAPI_NAME}"
 RAPI_PID="${GANETIRUNDIR}/${RAPI_NAME}.pid"
+RAPI_ARGS=""
 
 SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 
@@ -90,9 +93,9 @@ case "$1" in
     start)
         log_daemon_msg "Starting $DESC" "$NAME"
         check_config
-        start_action $NODED $NODED_PID
-        start_action $MASTERD $MASTERD_PID
-        start_action $RAPI $RAPI_PID
+        start_action $NODED $NODED_PID $NODED_ARGS
+        start_action $MASTERD $MASTERD_PID $MASTERD_ARGS
+        start_action $RAPI $RAPI_PID $RAPI_ARGS
         ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
