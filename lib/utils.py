@@ -29,7 +29,6 @@ the command line scripts.
 
 import sys
 import os
-import sha
 import time
 import subprocess
 import re
@@ -46,6 +45,12 @@ import logging
 import signal
 
 from cStringIO import StringIO
+
+try:
+  from hashlib import sha1
+except ImportError:
+  import sha
+  sha1 = sha.new
 
 from ganeti import errors
 from ganeti import constants
@@ -330,7 +335,7 @@ def _FingerprintFile(filename):
 
   f = open(filename)
 
-  fp = sha.sha()
+  fp = sha1()
   while True:
     data = f.read(4096)
     if not data:
@@ -1179,7 +1184,7 @@ def GenerateSecret():
   @return: a sha1 hexdigest of a block of 64 random bytes
 
   """
-  return sha.new(os.urandom(64)).hexdigest()
+  return sha1(os.urandom(64)).hexdigest()
 
 
 def EnsureDirs(dirs):
