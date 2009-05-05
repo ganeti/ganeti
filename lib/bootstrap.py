@@ -25,7 +25,6 @@
 
 import os
 import os.path
-import sha
 import re
 import logging
 import tempfile
