@@ -16,6 +16,8 @@ DESC="Ganeti cluster"
 
 GANETIRUNDIR="@LOCALSTATEDIR@/run/ganeti"
 
+GANETI_DEFAULTS_FILE="@SYSCONFDIR@/default/ganeti"
+
 NODED_NAME="ganeti-noded"
 NODED="@PREFIX@/sbin/${NODED_NAME}"
 NODED_PID="${GANETIRUNDIR}/${NODED_NAME}.pid"
@@ -33,6 +35,10 @@ SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 test -f $NODED || exit 0
 
 . /lib/lsb/init-functions
+
+if [ -s $GANETI_DEFAULTS_FILE ]; then
+    . $GANETI_DEFAULTS_FILE
+fi
 
 check_config() {
     for fname in \
