@@ -222,7 +222,7 @@ nodist_TESTS =
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
-TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir)
+TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir) $(PYTHON)
 
 RAPI_RESOURCES = $(wildcard lib/rapi/*.py)
 
