@@ -87,13 +87,13 @@ case "$1" in
         start_action $NODED $NODED_PID
         start_action $MASTERD $MASTERD_PID
         start_action $RAPI $RAPI_PID
-     ;;
+        ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
         stop_action $RAPI $RAPI_PID
         stop_action $MASTERD $MASTERD_PID
         stop_action $NODED $NODED_PID
-    ;;
+        ;;
     restart|force-reload)
         log_daemon_msg "Reloading $DESC"
         stop_action $RAPI $RAPI_PID
@@ -103,11 +103,11 @@ case "$1" in
         start_action $NODED $NODED_PID
         start_action $MASTERD $MASTERD_PID
         start_action $RAPI $RAPI_PID
-     ;;
+        ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"
         exit 1
-    ;;
+        ;;
 esac
 
 exit 0
