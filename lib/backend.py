@@ -673,11 +673,13 @@ def GetAllInstancesInfo(hypervisor_list):
   return output
 
 
-def InstanceOsAdd(instance):
+def InstanceOsAdd(instance, reinstall):
   """Add an OS to an instance.
 
   @type instance: L{objects.Instance}
   @param instance: Instance whose OS is to be installed
+  @type reinstall: boolean
+  @param reinstall: whether this is an instance reinstall
   @rtype: boolean
   @return: the success of the operation
 
@@ -693,6 +695,8 @@ def InstanceOsAdd(instance):
               (os_name, os_dir, os_err))
 
   create_env = OSEnvironment(instance)
+  if reinstall:
+    create_env['INSTANCE_REINSTALL'] = "1"
 
   logfile = "%s/add-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
                                      instance.name, int(time.time()))

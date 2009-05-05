@@ -365,7 +365,8 @@ class NodeHttpServer(http.server.HttpServer):
     """
     inst_s = params[0]
     inst = objects.Instance.FromDict(inst_s)
-    return backend.InstanceOsAdd(inst)
+    reinstall = params[1]
+    return backend.InstanceOsAdd(inst, reinstall)
 
   @staticmethod
   def perspective_instance_run_rename(params):

@@ -524,14 +524,14 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_reboot",
                                 [self._InstDict(instance), reboot_type])
 
-  def call_instance_os_add(self, node, inst):
+  def call_instance_os_add(self, node, inst, reinstall):
     """Installs an OS on the given instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_os_add",
-                                [self._InstDict(inst)])
+                                [self._InstDict(inst), reinstall])
 
   def call_instance_run_rename(self, node, inst, old_name):
     """Run the OS rename script for an instance.

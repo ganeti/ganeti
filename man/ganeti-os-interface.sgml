@@ -215,6 +215,11 @@
       according to this name. It can configure the IP statically or
       not, depending on the deployment environment.</para>
 
+      <para>The <envar>INSTANCE_REINSTALL</envar> variable is set to '1' when
+      this create request is reinstalling and existing instance, rather than
+      creating one anew. This can be used, for example, to preserve some
+      data in the old instance in an os-specific way.</para>
+
     </refsect2>
 
     <refsect2>
