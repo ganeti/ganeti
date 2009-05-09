@@ -305,6 +305,7 @@ HV_INITRD_PATH = "initrd_path"
 HV_ROOT_PATH = "root_path"
 HV_SERIAL_CONSOLE = "serial_console"
 HV_USB_MOUSE = "usb_mouse"
+HV_INIT_SCRIPT = "init_script"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -323,6 +324,7 @@ HVS_PARAMETER_TYPES = {
   HV_ROOT_PATH: VTYPE_STRING,
   HV_SERIAL_CONSOLE: VTYPE_BOOL,
   HV_USB_MOUSE: VTYPE_STRING,
+  HV_INIT_SCRIPT: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -348,7 +350,8 @@ HT_XEN_PVM = "xen-pvm"
 HT_FAKE = "fake"
 HT_XEN_HVM = "xen-hvm"
 HT_KVM = "kvm"
-HYPER_TYPES = frozenset([HT_XEN_PVM, HT_FAKE, HT_XEN_HVM, HT_KVM])
+HT_CHROOT = "chroot"
+HYPER_TYPES = frozenset([HT_XEN_PVM, HT_FAKE, HT_XEN_HVM, HT_KVM, HT_CHROOT])
 HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
 HTS_COPY_VNC_PASSWORD = frozenset([HT_XEN_HVM])
 
@@ -507,6 +510,9 @@ HVC_DEFAULTS = {
     HV_USB_MOUSE: '',
     },
   HT_FAKE: {
+    },
+  HT_CHROOT: {
+    HV_INIT_SCRIPT: "/ganeti-chroot",
     },
   }
 
