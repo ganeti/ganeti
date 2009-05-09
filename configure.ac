@@ -138,12 +138,12 @@ then
   AC_MSG_WARN([docbook2html not found, man pages rebuild will not be possible])
 fi
 
-# Check for rst programs
-AC_ARG_VAR(RST2HTML, [rst2html path])
-AC_PATH_PROG(RST2HTML, [rst2html], [])
-if test -z "$RST2HTML"
+# Check for python-sphinx
+AC_ARG_VAR(SPHINX, [sphinx-build path])
+AC_PATH_PROG(SPHINX, [sphinx-build], [])
+if test -z "$SPHINX"
 then
-  AC_MSG_WARN([rst2html not found, documentation rebuild will not be possible])
+  AC_MSG_WARN([sphinx-build not found, documentation rebuild will not be possible])
 fi
 
 # Check for graphviz (dot)
