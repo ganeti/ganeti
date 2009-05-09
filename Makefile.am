@@ -11,7 +11,6 @@ abs_top_srcdir = @abs_top_srcdir@
 
 ACLOCAL_AMFLAGS = -I autotools
 DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
-BUILD_RAPI_RESOURCE_DOC = $(top_srcdir)/doc/build-rapi-resources-doc
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -45,7 +44,6 @@ MAINTAINERCLEANFILES = \
 CLEANFILES = \
 	autotools/replace_vars.sed \
 	devel/upload \
-	doc/rapi-resources.gen \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
@@ -114,6 +112,7 @@ docrst = \
 	doc/hooks.rst \
 	doc/iallocator.rst \
 	doc/install.rst \
+	doc/rapi.rst \
 	doc/security.rst
 
 dochtml = $(patsubst %.rst,%.html,$(docrst))
@@ -152,7 +151,6 @@ EXTRA_DIST = \
 	devel/upload.in \
 	$(docrst) \
 	$(docdot) \
-	doc/build-rapi-resources-doc \
 	doc/examples/bash_completion.in \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
@@ -224,8 +222,6 @@ TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir)
 
-RAPI_RESOURCES = $(wildcard lib/rapi/*.py)
-
 all-local: stamp-directories lib/_autoconf.py devel/upload \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd doc/examples/ganeti.cron
@@ -247,12 +243,6 @@ doc/%.png: doc/%.dot
 	$(DOT) -Tpng -o $@ $<
 
 doc/design-2.0.html: doc/design-2.0.rst doc/arch-2.0.png
-
-doc/rapi.html: doc/rapi-resources.gen
-
-doc/rapi-resources.gen: $(BUILD_RAPI_RESOURCE_DOC) $(RAPI_RESOURCES)
-	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || \
-	  rm -f $@
 
 man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2MAN)" || { echo 'docbook2html' not found during configure; exit 1; }
@@ -281,7 +271,7 @@ man/%.html: man/%.html.in stamp-directories $(REPLACE_VARS_SED)
 
 man/footer.sgml $(TESTS): srclinks
 
-$(TESTS) $(BUILD_RAPI_RESOURCE_DOC): ganeti lib/_autoconf.py
+$(TESTS): ganeti lib/_autoconf.py
 
 lib/_autoconf.py: Makefile stamp-directories
 	set -e; \
