@@ -1,7 +1,7 @@
 Ganeti installation tutorial
 ============================
 
-Documents Ganeti version 2.0
+Documents Ganeti version |version|
 
 .. contents::
 
@@ -450,7 +450,7 @@ installed.
      apt-get install debootstrap dump kpartx
 
 Alternatively, you can create your own OS definitions. See the manpage
-*ganeti-os-interface*.
+:manpage:`ganeti-os-interface`.
 
 Initializing the cluster
 ++++++++++++++++++++++++

@@ -1,7 +1,7 @@
 Ganeti administrator's guide
 ============================
 
-Documents Ganeti version 2.0
+Documents Ganeti version |version|
 
 .. contents::
 
@@ -173,8 +173,8 @@ Importing an instance is similar to creating a new one. The command is::
   gnt-backup import -n TARGET_NODE -t DISK_TEMPLATE \
     --src-node=NODE --src-dir=DIR INSTANCE_NAME
 
-Most of the options available for the command *gnt-instance add* are
-supported here too.
+Most of the options available for the command :command:`gnt-instance
+add` are supported here too.
 
 High availability features
 --------------------------
@@ -262,6 +262,7 @@ you can deactivate them with the deactivate-disks command, which works
 in the same way.
 
 Accessing an instance's console
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The command to access a running instance's console is::
 
@@ -281,8 +282,8 @@ command to ran to see a complete status for all your nodes is::
 Cluster-wide debugging
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The *gnt-cluster* command offers several options to run tests or
-execute cluster-wide operations. For example::
+The :command:`gnt-cluster` command offers several options to run tests
+or execute cluster-wide operations. For example::
 
   gnt-cluster command
   gnt-cluster copyfile
@@ -291,4 +292,4 @@ execute cluster-wide operations. For example::
   gnt-cluster getmaster
   gnt-cluster version
 
-See the man page *gnt-cluster* to know more about their usage.
+See the man page :manpage:`gnt-cluster` to know more about their usage.
