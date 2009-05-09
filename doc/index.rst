@@ -13,8 +13,10 @@ Contents:
    admin.rst
    security.rst
    design-2.0.rst
+   design-2.1.rst
    hooks.rst
    iallocator.rst
    rapi.rst
+   glossary.rst
 
 Also see the :ref:`search`.

@@ -332,9 +332,10 @@ and instead have always one logfile per daemon model:
 - rapi-access.log, an additional log file for the RAPI that will be
   in the standard HTTP log format for possible parsing by other tools
 
-Since the `watcher`_ will only submit jobs to the master for startup
-of the instances, its log file will contain less information than
-before, mainly that it will start the instance, but not the results.
+Since the :term:`watcher` will only submit jobs to the master for
+startup of the instances, its log file will contain less information
+than before, mainly that it will start the instance, but not the
+results.
 
 Node daemon changes
 +++++++++++++++++++
@@ -799,7 +800,7 @@ The following definitions for instance parameters will be used below:
   a hypervisor parameter (or hypervisor specific parameter) is defined
   as a parameter that is interpreted by the hypervisor support code in
   Ganeti and usually is specific to a particular hypervisor (like the
-  kernel path for `PVM`_ which makes no sense for `HVM`_).
+  kernel path for :term:`PVM` which makes no sense for :term:`HVM`).
 
 :backend parameter:
   a backend parameter is defined as an instance parameter that can be
@@ -1991,41 +1992,3 @@ option is::
   to set, string
 :$OPTION: cluster default option, string,
 :$VALUE: cluster default option value, string.
-
-Glossary
-========
-
-Since this document is only a delta from the Ganeti 1.2, there are
-some unexplained terms. Here is a non-exhaustive list.
-
-.. _HVM:
-
-HVM
-  hardware virtualization mode, where the virtual machine is oblivious
-  to the fact that's being virtualized and all the hardware is emulated
-
-.. _LU:
-
-LogicalUnit
-  the code associated with an OpCode, i.e. the code that implements the
-  startup of an instance
-
-.. _opcode:
-
-OpCode
-  a data structure encapsulating a basic cluster operation; for example,
-  start instance, add instance, etc.;
-
-.. _PVM:
-
-PVM
-  para-virtualization mode, where the virtual machine knows it's being
-  virtualized and as such there is no need for hardware emulation
-
-.. _watcher:
-
-watcher
-  ``ganeti-watcher`` is a tool that should be run regularly from cron
-  and takes care of restarting failed instances, restarting secondary
-  DRBD devices, etc. For more details, see the man page
-  ``ganeti-watcher(8)``.

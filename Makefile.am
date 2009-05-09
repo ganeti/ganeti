@@ -111,6 +111,7 @@ http_PYTHON = \
 docrst = \
 	doc/admin.rst \
 	doc/design-2.0.rst \
+	doc/glossary.rst \
 	doc/hooks.rst \
 	doc/iallocator.rst \
 	doc/index.rst \
