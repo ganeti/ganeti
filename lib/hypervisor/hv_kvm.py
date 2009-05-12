@@ -107,6 +107,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     return '%s/%s.runtime' % (cls._CONF_DIR, instance_name)
 
+  @classmethod
+  def _RemoveInstanceRuntimeFiles(cls, pidfile, instance_name):
+    """Removes an instance's rutime sockets/files.
+
+    """
+    utils.RemoveFile(pidfile)
+    utils.RemoveFile(cls._InstanceMonitor(instance_name))
+    utils.RemoveFile(cls._InstanceSerial(instance_name))
+    utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
+
   def _WriteNetScript(self, instance, seq, nic):
     """Write a script to connect a net interface to the proper bridge.
 
@@ -492,10 +502,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         self._RetryInstancePowerdown(instance, pid)
 
     if not utils.IsProcessAlive(pid):
-      utils.RemoveFile(pidfile)
-      utils.RemoveFile(self._InstanceMonitor(instance.name))
-      utils.RemoveFile(self._InstanceSerial(instance.name))
-      utils.RemoveFile(self._InstanceKVMRuntime(instance.name))
+      self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
       return True
     else:
       return False
@@ -610,10 +617,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           time.sleep(2)
 
     utils.KillProcess(pid)
-    utils.RemoveFile(pidfile)
-    utils.RemoveFile(self._InstanceMonitor(instance_name))
-    utils.RemoveFile(self._InstanceSerial(instance_name))
-    utils.RemoveFile(self._InstanceKVMRuntime(instance_name))
+    self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
 
   def GetNodeInfo(self):
     """Return information about the node.
