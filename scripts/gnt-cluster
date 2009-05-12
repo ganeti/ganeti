@@ -467,6 +467,8 @@ def SetClusterParams(opts, args):
   if not opts.lvm_storage and opts.vg_name:
     ToStdout("Options --no-lvm-storage and --vg-name conflict.")
     return 1
+  elif not opts.lvm_storage:
+    vg_name = ''
 
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:
@@ -480,7 +482,7 @@ def SetClusterParams(opts, args):
   beparams = opts.beparams
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
 
-  op = opcodes.OpSetClusterParams(vg_name=opts.vg_name,
+  op = opcodes.OpSetClusterParams(vg_name=vg_name,
                                   enabled_hypervisors=hvlist,
                                   hvparams=hvparams,
                                   beparams=beparams,
