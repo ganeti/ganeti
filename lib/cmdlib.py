@@ -2264,16 +2264,6 @@ class LUAddNode(LogicalUnit):
         if to_result.failed or not to_result.data:
           logging.error("Copy of file %s to node %s failed", fname, to_node)
 
-    to_copy = []
-    enabled_hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
-    if constants.HTS_COPY_VNC_PASSWORD.intersection(enabled_hypervisors):
-      to_copy.append(constants.VNC_PASSWORD_FILE)
-
-    for fname in to_copy:
-      result = self.rpc.call_upload_file([node], fname)
-      if result[node].failed or not result[node]:
-        logging.error("Could not copy file %s to node %s", fname, node)
-
     if self.op.readd:
       self.context.ReaddNode(new_node)
     else:
