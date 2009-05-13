@@ -29,7 +29,8 @@ Detailed design
 
 As for 2.0 we divide the 2.1 design into three areas:
 
-- core changes, which affect the master daemon/job queue/locking
+- core changes, which affect the master daemon/job queue/locking or all/most
+  logical units
 - logical unit/feature changes
 - external interface changes (eg. command line, os api, hooks, ...)
 
