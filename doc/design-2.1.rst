@@ -84,3 +84,81 @@ files will be automatically shipped to new master candidates as they are set).
 External interface changes
 --------------------------
 
+OS API
+~~~~~~
+
+The OS API of Ganeti 2.0 has been built with extensibility in mind. Since we
+pass everything as environment variables it's a lot easier to send new
+information to the OSes without breaking retrocompatibility. This section of
+the design outlines the proposed extensions to the API and their
+implementation.
+
+API Version Compatibility Handling
+++++++++++++++++++++++++++++++++++
+
+In 2.1 there will be a new OS API version (eg. 15), which should be mostly
+compatible with api 10, except for some new added variables. Since it's easy
+not to pass some variables we'll be able to handle Ganeti 2.0 OSes by just
+filtering out the newly added piece of information. We will still encourage
+OSes to declare support for the new API after checking that the new variables
+don't provide any conflict for them, and we will drop api 10 support after
+ganeti 2.1 has released.
+
+New Environment variables
++++++++++++++++++++++++++
+
+Some variables have never been added to the OS api but would definitely be
+useful for the OSes. We plan to add an INSTANCE_HYPERVISOR variable to allow
+the OS to make changes relevant to the virtualization the instance is going to
+use. Since this field is immutable for each instance, the os can tight the
+install without caring of making sure the instance can run under any
+virtualization technology.
+
+We also want the OS to know the particular hypervisor parameters, to be able to
+customize the install even more.  Since the parameters can change, though, we
+will pass them only as an "FYI": if an OS ties some instance functionality to
+the value of a particular hypervisor parameter manual changes or a reinstall
+may be needed to adapt the instance to the new environment. This is not a
+regression as of today, because even if the OSes are left blind about this
+information, sometimes they still need to make compromises and cannot satisfy
+all possible parameter values.
+
+OS Parameters
++++++++++++++
+
+Currently we are assisting to some degree of "os proliferation" just to change
+a simple installation behavior. This means that the same OS gets installed on
+the cluster multiple times, with different names, to customize just one
+installation behavior. Usually such OSes try to share as much as possible
+through symlinks, but this still causes complications on the user side,
+especially when multiple parameters must be cross-matched.
+
+For example today if you want to install debian etch, lenny or squeeze you
+probably need to install the debootstrap OS multiple times, changing its
+configuration file, and calling it debootstrap-etch, debootstrap-lenny or
+debootstrap-squeeze. Furthermore if you have for example a "server" and a
+"development" environment which installs different packages/configuration files
+and must be available for all installs you'll probably end  up with
+deboostrap-etch-server, debootstrap-etch-dev, debootrap-lenny-server,
+debootstrap-lenny-dev, etc. Crossing more than two parameters quickly becomes
+not manageable.
+
+In order to avoid this we plan to make OSes more customizable, by allowing
+arbitrary flags to be passed to them. These will be special "OS parameters"
+which will be handled by Ganeti mostly as hypervisor or be parameters. This
+slightly complicates the interface, but allows one OS (for example
+"debootstrap" to be customizable and not require copies to perform different
+cations).
+
+Each OS will be able to declare which parameters it supports by listing them
+one per line in a special "parameters" file in the OS dir. The parameters can
+have a per-os cluster default, or be specified at instance creation time.  They
+will then be passed to the OS scripts as: INSTANCE_OS_PARAMETER_<NAME> with
+their specified value. The only value checking that will be performed is that
+the os parameter value is a string, with only "normal" characters in it.
+
+It will be impossible to change parameters for an instance, except at reinstall
+time. Upon reinstall with a different OS the parameters will be by default
+discarded and reset to the default (or passed) values, unless a special
+--keep-known-os-parameters flag is passed.
+
