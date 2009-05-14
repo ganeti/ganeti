@@ -81,6 +81,35 @@ This code will be also shared (via tasklets or by other means, if tasklets are
 not ready for 2.1) with the AddNode and SetNodeParams LUs (so that the relevant
 files will be automatically shipped to new master candidates as they are set).
 
+VNC Console Password
+~~~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently just the xen-hvm hypervisor supports setting a password to connect
+the the instances' VNC console, and has one common password stored in a file.
+
+This doesn't allow different passwords for different instances/groups of
+instances, and makes it necessary to remember to copy the file around the
+cluster when the password changes.
+
+Proposed changes
+++++++++++++++++
+
+We'll change the VNC password file to a vnc_password_file hypervisor parameter.
+This way it can have a cluster default, but also a different value for each
+instance. The VNC enabled hypervisors (xen and kvm) will publish all the
+password files in use through the cluster so that a redistribute-config will
+ship them to all nodes (see the Redistribute Config proposed changes above).
+
+The current VNC_PASSWORD_FILE constant will be removed, but its value will be
+used as the default HV_VNC_PASSWORD_FILE value, thus retaining backwards
+compatibility with 2.0.
+
+The code to export the list of VNC password files from the hypervisors to
+RedistributeConfig will be shared between the KVM and xen-hvm hypervisors.
+
 External interface changes
 --------------------------
 
