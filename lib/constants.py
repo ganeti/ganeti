@@ -305,6 +305,7 @@ HV_INITRD_PATH = "initrd_path"
 HV_ROOT_PATH = "root_path"
 HV_SERIAL_CONSOLE = "serial_console"
 HV_USB_MOUSE = "usb_mouse"
+HV_DEVICE_MODEL = "device_model"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -323,6 +324,7 @@ HVS_PARAMETER_TYPES = {
   HV_ROOT_PATH: VTYPE_STRING,
   HV_SERIAL_CONSOLE: VTYPE_BOOL,
   HV_USB_MOUSE: VTYPE_STRING,
+  HV_DEVICE_MODEL: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -489,6 +491,7 @@ HVC_DEFAULTS = {
     HV_ACPI: True,
     HV_PAE: True,
     HV_KERNEL_PATH: "/usr/lib/xen/boot/hvmloader",
+    HV_DEVICE_MODEL: "/usr/lib/xen/bin/qemu-dm",
     },
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",

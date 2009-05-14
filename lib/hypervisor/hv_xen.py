@@ -519,6 +519,7 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_PAE,
     constants.HV_VNC_BIND_ADDRESS,
     constants.HV_KERNEL_PATH,
+    constants.HV_DEVICE_MODEL,
     ]
 
   @classmethod
@@ -566,6 +567,13 @@ class XenHvmHypervisor(XenHypervisor):
     if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
       raise errors.HypervisorError("The kernel path must be an absolute path")
 
+    if not hvparams[constants.HV_DEVICE_MODEL]:
+      raise errors.HypervisorError("Need a device model for the instance")
+
+    if not os.path.isabs(hvparams[constants.HV_DEVICE_MODEL]):
+      raise errors.HypervisorError("The device model must be an absolute path")
+
+
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.
 
@@ -592,6 +600,11 @@ class XenHvmHypervisor(XenHypervisor):
       raise errors.HypervisorError("Instance kernel '%s' not found or"
                                    " not a file" % kernel_path)
 
+    device_model = hvparams[constants.HV_DEVICE_MODEL]
+    if not os.path.isfile(device_model):
+      raise errors.HypervisorError("Device model '%s' not found or"
+                                   " not a file" % device_model)
+
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices):
     """Create a Xen 3.1 HVM config file.
@@ -610,20 +623,16 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("memory = %d\n" % instance.beparams[constants.BE_MEMORY])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
     config.write("name = '%s'\n" % instance.name)
-    if instance.hvparams[constants.HV_PAE]:
+    if hvp[constants.HV_PAE]:
       config.write("pae = 1\n")
     else:
       config.write("pae = 0\n")
-    if instance.hvparams[constants.HV_ACPI]:
+    if hvp[constants.HV_ACPI]:
       config.write("acpi = 1\n")
     else:
       config.write("acpi = 0\n")
     config.write("apic = 1\n")
-    arch = os.uname()[4]
-    if '64' in arch:
-      config.write("device_model = '/usr/lib64/xen/bin/qemu-dm'\n")
-    else:
-      config.write("device_model = '/usr/lib/xen/bin/qemu-dm'\n")
+    config.write("device_model = '%s'\n" % hvp[constants.HV_DEVICE_MODEL])
     config.write("boot = '%s'\n" % hvp[constants.HV_BOOT_ORDER])
     config.write("sdl = 0\n")
     config.write("usb = 1\n")
