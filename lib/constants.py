@@ -510,6 +510,7 @@ HVC_DEFAULTS = {
     HV_VNC_BIND_ADDRESS: '0.0.0.0',
     HV_ACPI: True,
     HV_PAE: True,
+    HV_KERNEL_PATH: "/usr/lib/xen/boot/hvmloader",
     },
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
