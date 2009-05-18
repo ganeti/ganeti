@@ -21,6 +21,9 @@ module Ganeti.HTools.Utils
     , getStringElement
     , getIntElement
     , getListElement
+    , getObjectElement
+    , asJSObject
+    , asObjectList
     , concatEitherElems
     , applyEither1
     , applyEither2
@@ -165,6 +168,18 @@ getIntElement = fromObj
 getListElement :: String -> JSObject JSValue
                -> Either String [JSValue]
 getListElement = fromObj
+
+getObjectElement :: String -> JSObject JSValue
+                 -> Either String (JSObject JSValue)
+getObjectElement = fromObj
+
+asJSObject :: JSValue -> Either String (JSObject JSValue)
+asJSObject (JSObject a) = Right a
+asJSObject _ = Left "not an object"
+
+asObjectList :: [JSValue] -> Either String [JSObject JSValue]
+asObjectList =
+    ensureEitherList . map asJSObject
 
 concatEitherElems :: Either String String
             -> Either String String

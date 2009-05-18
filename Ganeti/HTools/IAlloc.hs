@@ -13,49 +13,72 @@ import Data.Maybe
 import Control.Monad
 import Text.JSON
 import Text.Printf (printf)
-import Ganeti.HTools.Utils ()
+import Ganeti.HTools.Utils
 
-
-parseInstance :: JSObject JSValue -> Either String String
-parseInstance a =
-    let name = getStringElement "name" a
+parseInstance :: String -> JSObject JSValue -> Either String String
+parseInstance n a =
+    let name = Right n
         disk = case getIntElement "disk_usage" a of
-                 Left _ -> let log_sz = apply2 (+)
-                                        (getIntElement "sda_size" a)
-                                        (getIntElement "sdb_size" a)
-                           in apply2 (+) log_sz (Right $ 128 * 2)
+                 Left _ -> let all_d = getListElement "disks" a `combineEithers`
+                                       asObjectList
+                               szd = all_d `combineEithers`
+                                     (ensureEitherList .
+                                      map (getIntElement "size"))
+                               sze = applyEither1 (map (+128)) szd
+                               szf = applyEither1 sum sze
+                           in szf
                  Right x -> Right x
-        bep = fromObj "beparams" a
-        pnode = getStringElement "pnode" a
-        snode = (listHead $ getListElement "snodes" a) `combine` readString
-        mem = case bep of
-                Left _ -> getIntElement "admin_ram" a
-                Right o -> getIntElement "memory" o
-        running = getStringElement "status" a
+        nodes = getListElement "nodes" a
+        pnode = eitherListHead nodes
+                `combineEithers` readEitherString
+        snode = applyEither1 (head . tail) nodes
+                `combineEithers` readEitherString
+        mem = getIntElement "memory" a
+        running = Right "running" --getStringElement "status" a
     in
-      concatElems name $
-                  concatElems (show `apply1` mem) $
-                  concatElems (show `apply1` disk) $
-                  concatElems running $
-                  concatElems pnode snode
+      concatEitherElems name $
+                  concatEitherElems (show `applyEither1` mem) $
+                  concatEitherElems (show `applyEither1` disk) $
+                  concatEitherElems running $
+                  concatEitherElems pnode snode
 
-parseNode :: JSObject JSValue -> Either String String
-parseNode a =
-    let name = getStringElement "name" a
-        mtotal = getIntElement "mtotal" a
-        mnode = getIntElement "mnode" a
-        mfree = getIntElement "mfree" a
-        dtotal = getIntElement "dtotal" a
-        dfree = getIntElement "dfree" a
-    in concatElems name $
-       concatElems (show `apply1` mtotal) $
-       concatElems (show `apply1` mnode) $
-       concatElems (show `apply1` mfree) $
-       concatElems (show `apply1` dtotal) (show `apply1` dfree)
+parseNode :: String -> JSObject JSValue -> Either String String
+parseNode n a =
+    let name = Right n
+        mtotal = getIntElement "total_memory" a
+        mnode = getIntElement "reserved_memory" a
+        mfree = getIntElement "free_memory" a
+        dtotal = getIntElement "total_disk" a
+        dfree = getIntElement "free_disk" a
+    in concatEitherElems name $
+       concatEitherElems (show `applyEither1` mtotal) $
+       concatEitherElems (show `applyEither1` mnode) $
+       concatEitherElems (show `applyEither1` mfree) $
+       concatEitherElems (show `applyEither1` dtotal)
+                             (show `applyEither1` dfree)
 
-parseData :: String -> Maybe String
-
-parseData x = Just x
+parseData :: String -> Either String (String, String)
+parseData body =
+    let
+        decoded = resultToEither $ decodeStrict body
+        obj = decoded -- decoded `combineEithers` fromJSObject
+        request = obj `combineEithers` getObjectElement "request"
+        rname = request `combineEithers` getStringElement "name"
+        ilist = obj `combineEithers` getObjectElement "instances"
+        nlist = obj `combineEithers` getObjectElement "nodes"
+        idata = applyEither1 fromJSObject ilist
+        ndata = applyEither1 fromJSObject nlist
+        iobj = idata `combineEithers` (ensureEitherList .
+                                       map (\(x,y) ->
+                                           asJSObject y `combineEithers`
+                                                      parseInstance x))
+        ilines = iobj `combineEithers` (Right . unlines)
+        nobj = ndata `combineEithers` (ensureEitherList .
+                                       map (\(x,y) ->
+                                           asJSObject y `combineEithers`
+                                                      parseNode x))
+        nlines = nobj `combineEithers` (Right . unlines)
+    in applyEither2 (,) nlines ilines
 
 formatResponse :: Bool -> String -> [String] -> String
 formatResponse success info nodes =
