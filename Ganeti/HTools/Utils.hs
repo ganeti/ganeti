@@ -11,6 +11,19 @@ module Ganeti.HTools.Utils
     , varianceCoeff
     , readData
     , commaJoin
+    , combineEithers
+    , ensureEitherList
+    , eitherListHead
+    , readEitherString
+    , parseEitherList
+    , loadJSArray
+    , fromObj
+    , getStringElement
+    , getIntElement
+    , getListElement
+    , concatEitherElems
+    , applyEither1
+    , applyEither2
     ) where
 
 import Data.Either
@@ -18,6 +31,8 @@ import Data.List
 import Monad
 import System
 import System.IO
+import Text.JSON
+import Text.Printf (printf)
 
 import Debug.Trace
 
@@ -88,3 +103,86 @@ readData fn host = do
          putStrLn $ fromLeft nd
          exitWith $ ExitFailure 1
   return $ fromRight nd
+
+{-- Our cheap monad-like stuff.
+
+Thi is needed since Either e a is already a monad instance somewhere
+in the standard libraries (Control.Monad.Error) and we don't need that
+entire thing.
+
+-}
+combineEithers :: (Either String a)
+               -> (a -> Either String b)
+               -> (Either String b)
+combineEithers (Left s) _ = Left s
+combineEithers (Right s) f = f s
+
+ensureEitherList :: [Either String a] -> Either String [a]
+ensureEitherList lst =
+    foldr (\elem accu ->
+               case (elem, accu) of
+                 (Left x, _) -> Left x
+                 (_, Left x) -> Left x -- should never happen
+                 (Right e, Right a) -> Right (e:a)
+          )
+    (Right []) lst
+
+eitherListHead :: Either String [a] -> Either String a
+eitherListHead lst =
+    case lst of
+      Left x -> Left x
+      Right (x:_) -> Right x
+      Right [] -> Left "List empty"
+
+readEitherString :: JSValue -> Either String String
+readEitherString v =
+    case v of
+      JSString s -> Right $ fromJSString s
+      _ -> Left "Wrong JSON type"
+
+parseEitherList :: (JSObject JSValue -> Either String String)
+          -> [JSObject JSValue]
+          -> Either String String
+parseEitherList fn idata =
+    let ml = ensureEitherList $ map fn idata
+    in ml `combineEithers` (Right . unlines)
+
+loadJSArray :: String -> Either String [JSObject JSValue]
+loadJSArray s = resultToEither $ decodeStrict s
+
+fromObj :: JSON a => String -> JSObject JSValue -> Either String a
+fromObj k o =
+    case lookup k (fromJSObject o) of
+      Nothing -> Left $ printf "key '%s' not found" k
+      Just val -> resultToEither $ readJSON val
+
+getStringElement :: String -> JSObject JSValue -> Either String String
+getStringElement = fromObj
+
+getIntElement :: String -> JSObject JSValue -> Either String Int
+getIntElement = fromObj
+
+getListElement :: String -> JSObject JSValue
+               -> Either String [JSValue]
+getListElement = fromObj
+
+concatEitherElems :: Either String String
+            -> Either String String
+            -> Either String String
+concatEitherElems = applyEither2 (\x y -> x ++ "|" ++ y)
+
+applyEither1 :: (a -> b) -> Either String a -> Either String b
+applyEither1 fn a =
+    case a of
+      Left x -> Left x
+      Right y -> Right $ fn y
+
+applyEither2 :: (a -> b -> c)
+       -> Either String a
+       -> Either String b
+       -> Either String c
+applyEither2 fn a b =
+    case (a, b) of
+      (Right x, Right y) -> Right $ fn x y
+      (Left x, _) -> Left x
+      (_, Left y) -> Left y
