@@ -29,6 +29,7 @@ doc: $(DOCS)
 		$(HSRCS)
 
 clean:
+	rm -rf $(HDDIR)
 	rm -f $(HPROGS)
 	rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
