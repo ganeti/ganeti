@@ -236,9 +236,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-no-acpi'])
 
     hvp = instance.hvparams
-    boot_disk = hvp[constants.HV_BOOT_ORDER] == "disk"
-    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == "cdrom"
-    boot_network = hvp[constants.HV_BOOT_ORDER] == "network"
+    boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
+    boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])
@@ -723,35 +723,39 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    " an absolute path, if defined")
 
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if boot_order not in ('cdrom', 'disk', 'network'):
-      raise errors.HypervisorError("The boot order must be 'cdrom', 'disk' or"
-                                   " 'network'")
+    if boot_order not in constants.HT_KVM_VALID_BO_TYPES:
+      raise errors.HypervisorError(\
+        "The boot order must be one of %s" %
+        utils.CommaJoin(constants.HT_KVM_VALID_BO_TYPES))
 
-    if boot_order == 'cdrom' and not iso_path:
-      raise errors.HypervisorError("Cannot boot from cdrom without an ISO path")
+    if boot_order == constants.HT_BO_CDROM and not iso_path:
+      raise errors.HypervisorError("Cannot boot from cdrom without an"
+                                   " ISO path")
 
     nic_type = hvparams[constants.HV_NIC_TYPE]
     if nic_type not in constants.HT_KVM_VALID_NIC_TYPES:
-      raise errors.HypervisorError("Invalid NIC type %s specified for the KVM"
-                                   " hypervisor. Please choose one of: %s" %
-                                   (nic_type,
-                                    constants.HT_KVM_VALID_NIC_TYPES))
-    elif boot_order == 'network' and nic_type == constants.HT_NIC_PARAVIRTUAL:
+      raise errors.HypervisorError(\
+        "Invalid NIC type %s specified for the KVM"
+        " hypervisor. Please choose one of: %s" %
+        (nic_type, utils.CommaJoin(constants.HT_KVM_VALID_NIC_TYPES)))
+    elif (boot_order == constants.HT_BO_NETWORK and
+          nic_type == constants.HT_NIC_PARAVIRTUAL):
       raise errors.HypervisorError("Cannot boot from a paravirtual NIC. Please"
-                                   " change the nic type.")
+                                   " change the NIC type.")
 
     disk_type = hvparams[constants.HV_DISK_TYPE]
     if disk_type not in constants.HT_KVM_VALID_DISK_TYPES:
-      raise errors.HypervisorError("Invalid disk type %s specified for the KVM"
-                                   " hypervisor. Please choose one of: %s" %
-                                   (disk_type,
-                                    constants.HT_KVM_VALID_DISK_TYPES))
+      raise errors.HypervisorError(\
+        "Invalid disk type %s specified for the KVM"
+        " hypervisor. Please choose one of: %s" %
+        (disk_type, utils.CommaJoin(constants.HT_KVM_VALID_DISK_TYPES)))
 
     mouse_type = hvparams[constants.HV_USB_MOUSE]
-    if mouse_type and mouse_type not in ('mouse', 'tablet'):
-      raise errors.HypervisorError("Invalid usb mouse type %s specified for"
-                                   " the KVM hyervisor. Please choose"
-                                   " 'mouse' or 'tablet'" % mouse_type)
+    if mouse_type and mouse_type not in constants.HT_KVM_VALID_MOUSE_TYPES:
+      raise errors.HypervisorError(\
+        "Invalid usb mouse type %s specified for the KVM hypervisor. Please"
+        " choose one of %s" %
+        utils.CommaJoin(constants.HT_KVM_VALID_MOUSE_TYPES))
 
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.

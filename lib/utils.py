@@ -1833,6 +1833,16 @@ def SafeEncode(text):
   return text
 
 
+def CommaJoin(names):
+  """Nicely join a set of identifiers.
+
+  @param names: set, list or tuple
+  @return: a string with the formatted results
+
+  """
+  return ", ".join(["'%s'" % val for val in names])
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 

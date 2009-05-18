@@ -356,7 +356,7 @@ VNC_BASE_PORT = 5900
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
 VNC_DEFAULT_BIND_ADDRESS = '0.0.0.0'
 
-# Device types
+# NIC types
 HT_NIC_RTL8139 = "rtl8139"
 HT_NIC_NE2K_PCI = "ne2k_pci"
 HT_NIC_NE2K_ISA = "ne2k_isa"
@@ -366,6 +366,15 @@ HT_NIC_I8259ER = "i82559er"
 HT_NIC_PCNET = "pcnet"
 HT_NIC_E1000 = "e1000"
 HT_NIC_PARAVIRTUAL = HT_DISK_PARAVIRTUAL = "paravirtual"
+
+HT_HVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
+                                    HT_NIC_NE2K_ISA, HT_NIC_PARAVIRTUAL])
+HT_KVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
+                                    HT_NIC_NE2K_ISA, HT_NIC_I82551,
+                                    HT_NIC_I85557B, HT_NIC_I8259ER,
+                                    HT_NIC_PCNET, HT_NIC_E1000,
+                                    HT_NIC_PARAVIRTUAL])
+# Disk types
 HT_DISK_IOEMU = "ioemu"
 HT_DISK_IDE = "ide"
 HT_DISK_SCSI = "scsi"
@@ -373,17 +382,23 @@ HT_DISK_SD = "sd"
 HT_DISK_MTD = "mtd"
 HT_DISK_PFLASH = "pflash"
 
-HT_HVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
-                                    HT_NIC_NE2K_ISA, HT_NIC_PARAVIRTUAL])
 HT_HVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IOEMU])
-HT_KVM_VALID_NIC_TYPES = frozenset([HT_NIC_RTL8139, HT_NIC_NE2K_PCI,
-                                    HT_NIC_NE2K_ISA, HT_NIC_I82551,
-                                    HT_NIC_I85557B, HT_NIC_I8259ER,
-                                    HT_NIC_PCNET, HT_NIC_E1000,
-                                    HT_NIC_PARAVIRTUAL])
 HT_KVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IDE,
                                      HT_DISK_SCSI, HT_DISK_SD, HT_DISK_MTD,
                                      HT_DISK_PFLASH])
+
+# Mouse types:
+HT_MOUSE_MOUSE = "mouse"
+HT_MOUSE_TABLET = "tablet"
+
+HT_KVM_VALID_MOUSE_TYPES = frozenset([HT_MOUSE_MOUSE, HT_MOUSE_TABLET])
+
+# Boot order
+HT_BO_CDROM = "cdrom"
+HT_BO_DISK = "disk"
+HT_BO_NETWORK = "network"
+
+HT_KVM_VALID_BO_TYPES = frozenset([HT_BO_CDROM, HT_BO_DISK, HT_BO_NETWORK])
 
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
@@ -501,7 +516,7 @@ HVC_DEFAULTS = {
     HV_VNC_X509: '',
     HV_VNC_X509_VERIFY: False,
     HV_CDROM_IMAGE_PATH: '',
-    HV_BOOT_ORDER: "disk",
+    HV_BOOT_ORDER: HT_BO_DISK,
     HV_NIC_TYPE: HT_NIC_PARAVIRTUAL,
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
     HV_USB_MOUSE: '',
