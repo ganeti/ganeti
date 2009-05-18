@@ -260,7 +260,7 @@ class RpcRunner(object):
     self._cfg = cfg
     self.port = utils.GetNodeDaemonPort()
 
-  def _InstDict(self, instance):
+  def _InstDict(self, instance, hvp=None, bep=None):
     """Convert the given instance to a dict.
 
     This is done via the instance's ToDict() method and additionally
@@ -268,6 +268,10 @@ class RpcRunner(object):
 
     @type instance: L{objects.Instance}
     @param instance: an Instance object
+    @type hvp: dict or None
+    @param hvp: a dictionary with overriden hypervisor parameters
+    @type bep: dict or None
+    @param bep: a dictionary with overriden backend parameters
     @rtype: dict
     @return: the instance dict, with the hvparams filled with the
         cluster defaults
@@ -276,7 +280,11 @@ class RpcRunner(object):
     idict = instance.ToDict()
     cluster = self._cfg.GetClusterInfo()
     idict["hvparams"] = cluster.FillHV(instance)
+    if hvp is not None:
+      idict["hvparams"].update(hvp)
     idict["beparams"] = cluster.FillBE(instance)
+    if bep is not None:
+      idict["beparams"].update(bep)
     return idict
 
   def _ConnectList(self, client, node_list, call):
@@ -425,14 +433,14 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "bridges_exist", [bridges_list])
 
-  def call_instance_start(self, node, instance):
+  def call_instance_start(self, node, instance, hvp, bep):
     """Starts an instance.
 
     This is a single-node call.
 
     """
-    return self._SingleNodeCall(node, "instance_start",
-                                [self._InstDict(instance)])
+    idict = self._InstDict(instance, hvp=hvp, bep=bep)
+    return self._SingleNodeCall(node, "instance_start", [idict])
 
   def call_instance_shutdown(self, node, instance):
     """Stops an instance.
