@@ -15,6 +15,11 @@ import Text.JSON
 import Text.Printf (printf)
 import Ganeti.HTools.Utils
 
+data RqType
+    = Allocate
+    | Relocate
+    deriving (Show)
+
 parseInstance :: String -> JSObject JSValue -> Either String String
 parseInstance n a =
     let name = Right n
@@ -57,22 +62,34 @@ parseNode n a =
        concatEitherElems (show `applyEither1` dtotal)
                              (show `applyEither1` dfree)
 
+validateRequest :: String -> Either String RqType
+validateRequest rq =
+    case rq of
+      "allocate" -> Right Allocate
+      "relocate" -> Right Relocate
+      _ -> Left ("Invalid request type '" ++ rq ++ "'")
+
 parseData :: String -> Either String (String, String)
 parseData body =
     let
         decoded = resultToEither $ decodeStrict body
         obj = decoded -- decoded `combineEithers` fromJSObject
+        -- request parser
         request = obj `combineEithers` getObjectElement "request"
         rname = request `combineEithers` getStringElement "name"
+        rtype = request `combineEithers` getStringElement "type"
+                `combineEithers` validateRequest
+        -- existing intstance parsing
         ilist = obj `combineEithers` getObjectElement "instances"
-        nlist = obj `combineEithers` getObjectElement "nodes"
         idata = applyEither1 fromJSObject ilist
-        ndata = applyEither1 fromJSObject nlist
         iobj = idata `combineEithers` (ensureEitherList .
                                        map (\(x,y) ->
                                            asJSObject y `combineEithers`
                                                       parseInstance x))
         ilines = iobj `combineEithers` (Right . unlines)
+        -- existing node parsing
+        nlist = obj `combineEithers` getObjectElement "nodes"
+        ndata = applyEither1 fromJSObject nlist
         nobj = ndata `combineEithers` (ensureEitherList .
                                        map (\(x,y) ->
                                            asJSObject y `combineEithers`
