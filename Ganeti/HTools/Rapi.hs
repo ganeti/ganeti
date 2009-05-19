@@ -33,37 +33,23 @@ getUrl url = do
             _ -> Left $ printf "Curl error for '%s', error %s"
                  url (show code))
 
-tryRapi :: String -> String -> IO (Either String String)
-tryRapi url1 url2 =
-    do
-      body1 <- getUrl url1
-      (case body1 of
-         Left _ -> getUrl url2
-         Right _ -> return body1)
-
 getInstances :: String -> IO (Either String String)
-getInstances master =
-    let
-        url2 = printf "https://%s:5080/2/instances?bulk=1" master
-        url1 = printf "http://%s:5080/instances?bulk=1" master
-    in do
-      body <- tryRapi url1 url2
-      let inst = body `combineEithers`
-                 loadJSArray `combineEithers`
-                 (parseEitherList parseInstance)
-      return inst
+getInstances master = do
+  let url2 = printf "https://%s:5080/2/instances?bulk=1" master
+  body <- getUrl url2
+  let inst = body `combineEithers`
+             loadJSArray `combineEithers`
+             (parseEitherList parseInstance)
+  return inst
 
 getNodes :: String -> IO (Either String String)
-getNodes master =
-    let
-        url2 = printf "https://%s:5080/2/nodes?bulk=1" master
-        url1 = printf "http://%s:5080/nodes?bulk=1" master
-    in do
-      body <- tryRapi url1 url2
-      let inst = body `combineEithers`
-                 loadJSArray `combineEithers`
-                 (parseEitherList parseNode)
-      return inst
+getNodes master = do
+  let url2 = printf "https://%s:5080/2/nodes?bulk=1" master
+  body <- getUrl url2
+  let inst = body `combineEithers`
+             loadJSArray `combineEithers`
+             (parseEitherList parseNode)
+  return inst
 
 parseInstance :: JSObject JSValue -> Either String String
 parseInstance a =
