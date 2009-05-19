@@ -36,7 +36,6 @@ import collections
 import Queue
 import random
 import signal
-import simplejson
 import logging
 
 from cStringIO import StringIO
@@ -55,6 +54,7 @@ from ganeti import ssconf
 from ganeti import workerpool
 from ganeti import rpc
 from ganeti import bootstrap
+from ganeti import serializer
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -152,7 +152,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
         logging.debug("client closed connection")
         break
 
-      request = simplejson.loads(msg)
+      request = serializer.LoadJson(msg)
       logging.debug("request: %s", request)
       if not isinstance(request, dict):
         logging.error("wrong request received: %s", msg)
@@ -181,7 +181,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
         luxi.KEY_RESULT: result,
         }
       logging.debug("response: %s", response)
-      self.send_message(simplejson.dumps(response))
+      self.send_message(serializer.DumpJson(response))
 
   def read_message(self):
     while not self._msgs:

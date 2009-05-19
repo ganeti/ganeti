@@ -25,7 +25,6 @@
 
 import os
 import os.path
-import sha
 import time
 import tempfile
 import re
@@ -1524,8 +1523,11 @@ class LUSetClusterParams(LogicalUnit):
 
     """
     if self.op.vg_name is not None:
-      if self.op.vg_name != self.cfg.GetVGName():
-        self.cfg.SetVGName(self.op.vg_name)
+      new_volume = self.op.vg_name
+      if not new_volume:
+        new_volume = None
+      if new_volume != self.cfg.GetVGName():
+        self.cfg.SetVGName(new_volume)
       else:
         feedback_fn("Cluster LVM configuration already in desired"
                     " state, not changing")
@@ -2441,6 +2443,10 @@ class LUQueryClusterInfo(NoHooksLU):
                         for hypervisor in cluster.enabled_hypervisors]),
       "beparams": cluster.beparams,
       "candidate_pool_size": cluster.candidate_pool_size,
+      "default_bridge": cluster.default_bridge,
+      "master_netdev": cluster.master_netdev,
+      "volume_group_name": cluster.volume_group_name,
+      "file_storage_dir": cluster.file_storage_dir,
       }
 
     return result
@@ -2755,15 +2761,48 @@ class LUStartupInstance(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
+    # extra beparams
+    self.beparams = getattr(self.op, "beparams", {})
+    if self.beparams:
+      if not isinstance(self.beparams, dict):
+        raise errors.OpPrereqError("Invalid beparams passed: %s, expected"
+                                   " dict" % (type(self.beparams), ))
+      # fill the beparams dict
+      utils.ForceDictType(self.beparams, constants.BES_PARAMETER_TYPES)
+      self.op.beparams = self.beparams
+
+    # extra hvparams
+    self.hvparams = getattr(self.op, "hvparams", {})
+    if self.hvparams:
+      if not isinstance(self.hvparams, dict):
+        raise errors.OpPrereqError("Invalid hvparams passed: %s, expected"
+                                   " dict" % (type(self.hvparams), ))
+
+      # check hypervisor parameter syntax (locally)
+      cluster = self.cfg.GetClusterInfo()
+      utils.ForceDictType(self.hvparams, constants.HVS_PARAMETER_TYPES)
+      filled_hvp = cluster.FillDict(cluster.hvparams[instance.hypervisor],
+                                    instance.hvparams)
+      filled_hvp.update(self.hvparams)
+      hv_type = hypervisor.GetHypervisor(instance.hypervisor)
+      hv_type.CheckParameterSyntax(filled_hvp)
+      _CheckHVParams(self, instance.all_nodes, instance.hypervisor, filled_hvp)
+      self.op.hvparams = self.hvparams
+
     _CheckNodeOnline(self, instance.primary_node)
 
     bep = self.cfg.GetClusterInfo().FillBE(instance)
     # check bridges existance
     _CheckInstanceBridgesExist(self, instance)
 
-    _CheckNodeFreeMemory(self, instance.primary_node,
-                         "starting instance %s" % instance.name,
-                         bep[constants.BE_MEMORY], instance.hypervisor)
+    remote_info = self.rpc.call_instance_info(instance.primary_node,
+                                              instance.name,
+                                              instance.hypervisor)
+    remote_info.Raise()
+    if not remote_info.data:
+      _CheckNodeFreeMemory(self, instance.primary_node,
+                           "starting instance %s" % instance.name,
+                           bep[constants.BE_MEMORY], instance.hypervisor)
 
   def Exec(self, feedback_fn):
     """Start the instance.
@@ -2778,7 +2817,8 @@ class LUStartupInstance(LogicalUnit):
 
     _StartInstanceDisks(self, instance, force)
 
-    result = self.rpc.call_instance_start(node_current, instance)
+    result = self.rpc.call_instance_start(node_current, instance,
+                                          self.hvparams, self.beparams)
     msg = result.RemoteFailMsg()
     if msg:
       _ShutdownInstanceDisks(self, instance)
@@ -2860,7 +2900,7 @@ class LURebootInstance(LogicalUnit):
                                  " full reboot: %s" % msg)
       _ShutdownInstanceDisks(self, instance)
       _StartInstanceDisks(self, instance, ignore_secondaries)
-      result = self.rpc.call_instance_start(node_current, instance)
+      result = self.rpc.call_instance_start(node_current, instance, None, None)
       msg = result.RemoteFailMsg()
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -2960,7 +3000,8 @@ class LUReinstallInstance(LogicalUnit):
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
                                               instance.hypervisor)
-    if remote_info.failed or remote_info.data:
+    remote_info.Raise()
+    if remote_info.data:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
                                   instance.primary_node))
@@ -3550,7 +3591,7 @@ class LUFailoverInstance(LogicalUnit):
         raise errors.OpExecError("Can't activate the instance's disks")
 
       feedback_fn("* starting the instance on the target node")
-      result = self.rpc.call_instance_start(target_node, instance)
+      result = self.rpc.call_instance_start(target_node, instance, None, None)
       msg = result.RemoteFailMsg()
       if msg:
         _ShutdownInstanceDisks(self, instance)
@@ -4794,7 +4835,7 @@ class LUCreateInstance(LogicalUnit):
       self.cfg.Update(iobj)
       logging.info("Starting instance %s on node %s", instance, pnode_name)
       feedback_fn("* starting instance...")
-      result = self.rpc.call_instance_start(pnode_name, iobj)
+      result = self.rpc.call_instance_start(pnode_name, iobj, None, None)
       msg = result.RemoteFailMsg()
       if msg:
         raise errors.OpExecError("Could not start instance: %s" % msg)
@@ -6242,7 +6283,7 @@ class LUExportInstance(LogicalUnit):
 
     finally:
       if self.op.shutdown and instance.admin_up:
-        result = self.rpc.call_instance_start(src_node, instance)
+        result = self.rpc.call_instance_start(src_node, instance, None, None)
         msg = result.RemoteFailMsg()
         if msg:
           _ShutdownInstanceDisks(self, instance)

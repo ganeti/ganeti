@@ -537,16 +537,16 @@ class XenHvmHypervisor(XenHypervisor):
     # device type checks
     nic_type = hvparams[constants.HV_NIC_TYPE]
     if nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
-      raise errors.HypervisorError("Invalid NIC type %s specified for the Xen"
-                                   " HVM hypervisor. Please choose one of: %s"
-                                   % (nic_type,
-                                      constants.HT_HVM_VALID_NIC_TYPES))
+      raise errors.HypervisorError(\
+        "Invalid NIC type %s specified for the Xen"
+        " HVM hypervisor. Please choose one of: %s"
+        % (nic_type, utils.CommaJoin(constants.HT_HVM_VALID_NIC_TYPES)))
     disk_type = hvparams[constants.HV_DISK_TYPE]
     if disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
-      raise errors.HypervisorError("Invalid disk type %s specified for the Xen"
-                                   " HVM hypervisor. Please choose one of: %s"
-                                   % (disk_type,
-                                      constants.HT_HVM_VALID_DISK_TYPES))
+      raise errors.HypervisorError(\
+        "Invalid disk type %s specified for the Xen"
+        " HVM hypervisor. Please choose one of: %s"
+        % (disk_type, utils.CommaJoin(constants.HT_HVM_VALID_DISK_TYPES)))
     # vnc_bind_address verification
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:

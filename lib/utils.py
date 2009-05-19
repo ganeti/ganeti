@@ -156,11 +156,18 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
   if env is not None:
     cmd_env.update(env)
 
-  if output is None:
-    out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd)
-  else:
-    status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
-    out = err = ""
+  try:
+    if output is None:
+      out, err, status = _RunCmdPipe(cmd, cmd_env, shell, cwd)
+    else:
+      status = _RunCmdFile(cmd, cmd_env, shell, output, cwd)
+      out = err = ""
+  except OSError, err:
+    if err.errno == errno.ENOENT:
+      raise errors.OpExecError("Can't execute '%s': not found (%s)" %
+                               (strcmd, err))
+    else:
+      raise
 
   if status >= 0:
     exitcode = status
@@ -1289,6 +1296,7 @@ def WriteFile(file_name, fn=None, data=None,
 
   dir_name, base_name = os.path.split(file_name)
   fd, new_name = tempfile.mkstemp('.new', base_name, dir_name)
+  do_remove = True
   # here we need to make sure we remove the temp file, if any error
   # leaves it in place
   try:
@@ -1309,13 +1317,15 @@ def WriteFile(file_name, fn=None, data=None,
       os.utime(new_name, (atime, mtime))
     if not dry_run:
       os.rename(new_name, file_name)
+      do_remove = False
   finally:
     if close:
       os.close(fd)
       result = None
     else:
       result = fd
-    RemoveFile(new_name)
+    if do_remove:
+      RemoveFile(new_name)
 
   return result
 
@@ -1821,6 +1831,16 @@ def SafeEncode(text):
   text = text.encode('ascii', 'backslashreplace')
   text = text.encode('string_escape')
   return text
+
+
+def CommaJoin(names):
+  """Nicely join a set of identifiers.
+
+  @param names: set, list or tuple
+  @return: a string with the formatted results
+
+  """
+  return ", ".join(["'%s'" % val for val in names])
 
 
 def LockedMethod(fn):

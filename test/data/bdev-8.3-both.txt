@@ -1,0 +1,36 @@
+disk {
+	size            	0s _is_default; # bytes
+	on-io-error     	detach;
+	fencing         	dont-care _is_default;
+	max-bio-bvecs   	0 _is_default;
+}
+net {
+	timeout         	60 _is_default; # 1/10 seconds
+	max-epoch-size  	2048 _is_default;
+	max-buffers     	2048 _is_default;
+	unplug-watermark	128 _is_default;
+	connect-int     	10 _is_default; # seconds
+	ping-int        	10 _is_default; # seconds
+	sndbuf-size     	131070 _is_default; # bytes
+	ko-count        	0 _is_default;
+	after-sb-0pri   	discard-zero-changes;
+	after-sb-1pri   	consensus;
+	after-sb-2pri   	disconnect _is_default;
+	rr-conflict     	disconnect _is_default;
+	ping-timeout    	5 _is_default; # 1/10 seconds
+}
+syncer {
+	rate            	61440k; # bytes/second
+	after           	-1 _is_default;
+	al-extents      	257;
+}
+protocol C;
+_this_host {
+	device			minor 0;
+	disk			"/dev/xenvg/test.data";
+	meta-disk		"/dev/xenvg/test.meta" [ 0 ];
+	address			ipv4 192.168.1.1:11000;
+}
+_remote_host {
+	address			ipv4 192.168.1.2:11000;
+}

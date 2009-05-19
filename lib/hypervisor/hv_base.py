@@ -23,6 +23,9 @@
 
 """
 
+import re
+
+
 from ganeti import errors
 
 
@@ -187,3 +190,64 @@ class BaseHypervisor(object):
 
     """
     pass
+
+  def GetLinuxNodeInfo(self):
+    """For linux systems, return actual OS information.
+
+    This is an abstraction for all non-hypervisor-based classes, where
+    the node actually sees all the memory and CPUs via the /proc
+    interface and standard commands. The other case if for example
+    xen, where you only see the hardware resources via xen-specific
+    tools.
+
+    @return: a dict with the following keys (values in MiB):
+          - memory_total: the total memory size on the node
+          - memory_free: the available memory on the node for instances
+          - memory_dom0: the memory used by the node itself, if available
+
+    """
+    try:
+      fh = file("/proc/meminfo")
+      try:
+        data = fh.readlines()
+      finally:
+        fh.close()
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to list node info: %s" % (err,))
+
+    result = {}
+    sum_free = 0
+    try:
+      for line in data:
+        splitfields = line.split(":", 1)
+
+        if len(splitfields) > 1:
+          key = splitfields[0].strip()
+          val = splitfields[1].strip()
+          if key == 'MemTotal':
+            result['memory_total'] = int(val.split()[0])/1024
+          elif key in ('MemFree', 'Buffers', 'Cached'):
+            sum_free += int(val.split()[0])/1024
+          elif key == 'Active':
+            result['memory_dom0'] = int(val.split()[0])/1024
+    except (ValueError, TypeError), err:
+      raise errors.HypervisorError("Failed to compute memory usage: %s" %
+                                   (err,))
+    result['memory_free'] = sum_free
+
+    cpu_total = 0
+    try:
+      fh = open("/proc/cpuinfo")
+      try:
+        cpu_total = len(re.findall("(?m)^processor\s*:\s*[0-9]+\s*$",
+                                   fh.read()))
+      finally:
+        fh.close()
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to list node info: %s" % (err,))
+    result['cpu_total'] = cpu_total
+    # FIXME: export correct data here
+    result['cpu_nodes'] = 1
+    result['cpu_sockets'] = 1
+
+    return result

@@ -722,7 +722,7 @@ def ParseOptions():
 
   """
   parser = OptionParser(description="Ganeti node daemon",
-                        usage="%prog [-f] [-d]",
+                        usage="%prog [-f] [-d] [-b ADDRESS]",
                         version="%%prog (ganeti) %s" %
                         constants.RELEASE_VERSION)
 
@@ -732,6 +732,10 @@ def ParseOptions():
   parser.add_option("-d", "--debug", dest="debug",
                     help="Enable some debug messages",
                     default=False, action="store_true")
+  parser.add_option("-b", "--bind", dest="bind_address",
+                    help="Bind address",
+                    default="", metavar="ADDRESS")
+
   options, args = parser.parse_args()
   return options, args
 
@@ -782,7 +786,7 @@ def main():
     queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
 
     mainloop = daemon.Mainloop()
-    server = NodeHttpServer(mainloop, "", port,
+    server = NodeHttpServer(mainloop, options.bind_address, port,
                             ssl_params=ssl_params, ssl_verify_peer=True)
     server.Start()
     try:

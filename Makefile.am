@@ -212,9 +212,11 @@ maninput = $(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) $(patsubst 
 
 TEST_FILES = \
 	test/data/bdev-both.txt \
+	test/data/bdev-8.3-both.txt \
 	test/data/bdev-disk.txt \
 	test/data/bdev-net.txt \
-	test/data/proc_drbd8.txt
+	test/data/proc_drbd8.txt \
+	test/data/proc_drbd83.txt
 
 dist_TESTS = \
 	test/ganeti.bdev_unittest.py \
@@ -235,7 +237,7 @@ nodist_TESTS =
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
-TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir)
+TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir) $(PYTHON)
 
 all-local: stamp-directories lib/_autoconf.py devel/upload \
 	doc/examples/bash_completion \

@@ -710,6 +710,11 @@ def StartupInstance(opts, args):
   for name in inames:
     op = opcodes.OpStartupInstance(instance_name=name,
                                    force=opts.force)
+    # do not add these parameters to the opcode unless they're defined
+    if opts.hvparams:
+      op.hvparams = opts.hvparams
+    if opts.beparams:
+      op.beparams = opts.beparams
     jex.QueueJob(name, op)
   jex.WaitOrShow(not opts.submit_only)
   return 0
@@ -1472,8 +1477,14 @@ commands = {
                m_node_opt, m_pri_node_opt, m_sec_node_opt,
                m_clust_opt, m_inst_opt,
                SUBMIT_OPT,
+               keyval_option("-H", "--hypervisor", type="keyval",
+                             default={}, dest="hvparams",
+                             help="Temporary hypervisor parameters"),
+               keyval_option("-B", "--backend", type="keyval",
+                             default={}, dest="beparams",
+                             help="Temporary backend parameters"),
                ],
-            "<instance>", "Starts an instance"),
+              "<instance>", "Starts an instance"),
 
   'reboot': (RebootInstance, ARGS_ANY,
               [DEBUG_OPT, m_force_multi,
