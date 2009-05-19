@@ -1,3 +1,10 @@
+Version 0.1.0 (Tue, 19 May 2009):
+  - Drop compatibility with Ganeti 1.2
+  - Add a new minimum score option (with a very low default), should
+    help with very good clusters (but is still not optimal)
+  - Add a --quiet option to hbal
+  - Add support for reading offline nodes directly from the cluster
+
 Version 0.0.8 (Tue, 21 Apr 2009):
   - hbal: prevent mismatches in wrong node names being passed to -O, by
 	aborting in this case
