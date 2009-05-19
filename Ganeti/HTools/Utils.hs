@@ -20,6 +20,7 @@ module Ganeti.HTools.Utils
     , fromObj
     , getStringElement
     , getIntElement
+    , getBoolElement
     , getListElement
     , getObjectElement
     , asJSObject
@@ -164,6 +165,9 @@ getStringElement = fromObj
 
 getIntElement :: String -> JSObject JSValue -> Either String Int
 getIntElement = fromObj
+
+getBoolElement :: String -> JSObject JSValue -> Either String Bool
+getBoolElement = fromObj
 
 getListElement :: String -> JSObject JSValue
                -> Either String [JSValue]

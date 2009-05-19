@@ -64,8 +64,9 @@ The index and the peers maps are empty, and will be need to be update
 later via the 'setIdx' and 'buildPeers' functions.
 
 -}
-create :: Double -> Int -> Int -> Double -> Int -> Node
-create mem_t_init mem_n_init mem_f_init dsk_t_init dsk_f_init =
+create :: Double -> Int -> Int -> Double -> Int -> Bool -> Node
+create mem_t_init mem_n_init mem_f_init dsk_t_init dsk_f_init
+       offline_init =
     Node
     {
       t_mem = mem_t_init,
@@ -82,7 +83,7 @@ create mem_t_init mem_n_init mem_f_init dsk_t_init dsk_f_init =
       p_mem = (fromIntegral mem_f_init) / mem_t_init,
       p_dsk = (fromIntegral dsk_f_init) / dsk_t_init,
       p_rem = 0,
-      offline = False,
+      offline = offline_init,
       x_mem = 0
     }
 

@@ -247,6 +247,9 @@ node is offline, since this move requires a failover.
 these nodes will not be included in the score calculation (except for
 the percentage of instances on offline nodes)
 .RE
+Note that hbal will also mark as offline any nodes which are reported
+by RAPI as such, or that have "?" in file-based input in any numeric
+fields.
 .RE
 
 .TP

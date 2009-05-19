@@ -90,17 +90,28 @@ parseInstance a =
                   concatEitherElems running $
                   concatEitherElems pnode snode
 
+boolToYN :: Bool -> Either String String
+boolToYN True = Right "Y"
+boolToYN _ = Right "N"
+
 parseNode :: JSObject JSValue -> Either String String
 parseNode a =
     let name = getStringElement "name" a
+        offline = getBoolElement "offline" a
+        drained = getBoolElement "drained" a
         mtotal = getIntElement "mtotal" a
         mnode = getIntElement "mnode" a
         mfree = getIntElement "mfree" a
         dtotal = getIntElement "dtotal" a
         dfree = getIntElement "dfree" a
     in concatEitherElems name $
-       concatEitherElems (show `applyEither1` mtotal) $
-       concatEitherElems (show `applyEither1` mnode) $
-       concatEitherElems (show `applyEither1` mfree) $
-       concatEitherElems (show `applyEither1` dtotal)
-                             (show `applyEither1` dfree)
+       (case offline of
+          Right True -> Right "0|0|0|0|0|Y"
+          _ ->
+              concatEitherElems (show `applyEither1` mtotal) $
+              concatEitherElems (show `applyEither1` mnode) $
+              concatEitherElems (show `applyEither1` mfree) $
+              concatEitherElems (show `applyEither1` dtotal) $
+              concatEitherElems (show `applyEither1` dfree)
+              ((applyEither2 (||) offline drained) `combineEithers` boolToYN)
+       )

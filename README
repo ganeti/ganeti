@@ -2,7 +2,8 @@ Ganeti Cluster tools (htools)
 =============================
 
 These are some simple cluster tools for fixing common problems. Right
-now N+1 and rebalancing are included.
+now N+1 and rebalancing are included. Starting with version 0.1.0,
+only Ganeti 2.0 is supported.
 
 
 Cluster N+1 solver
@@ -37,7 +38,7 @@ gathering if RAPI is available, which is better since it can extract
 more precise information. In case RAPI is not usable for whatever
 reason, the following two commands should be run::
 
-    gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree \
+    gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree,offline \
       --separator '|' --no-headers > nodes
     gnt-instance list -oname,admin_ram,sda_size,status,pnode,snodes \
       --separator '|' --no-head > instances

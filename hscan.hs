@@ -79,9 +79,11 @@ serializeNodes nl csf ktn =
                           t_mem = (truncate $ Node.t_mem node)::Int
                           t_dsk = (truncate $ Node.t_dsk node)::Int
                       in
-                        printf "%s|%d|%d|%d|%d|%d" name
+                        printf "%s|%d|%d|%d|%d|%d|%c" name
                                    t_mem (Node.n_mem node) (Node.f_mem node)
-                                   t_dsk (Node.f_dsk node))
+                                   t_dsk (Node.f_dsk node)
+                                   (if Node.offline node then 'Y' else 'N')
+                 )
                  nodes
     in unlines nlines
 

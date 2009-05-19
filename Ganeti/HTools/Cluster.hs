@@ -753,10 +753,14 @@ loadData ndata idata =
     let
     {- node file: name t_mem n_mem f_mem t_disk f_disk -}
         (ktn, nl) = loadTabular ndata
-                    (\ (name:tm:nm:fm:td:fd:[]) ->
+                    (\ (name:tm:nm:fm:td:fd:fo:[]) ->
                          (name,
-                          Node.create (read tm) (read nm)
-                                  (read fm) (read td) (read fd)))
+                          if any (== "?") [tm,nm,fm,td,fd] || fo == "Y" then
+                              Node.create 0 0 0 0 0 True
+                          else
+                              Node.create (read tm) (read nm) (read fm)
+                                      (read td) (read fd) False
+                         ))
                     Node.setIdx
     {- instance file: name mem disk status pnode snode -}
         (kti, il) = loadTabular idata
