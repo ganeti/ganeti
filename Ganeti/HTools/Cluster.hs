@@ -203,7 +203,7 @@ those nodes.
 computeBadItems :: NodeList -> InstanceList ->
                    ([Node.Node], [Instance.Instance])
 computeBadItems nl il =
-  let bad_nodes = verifyN1 $ Container.elems nl
+  let bad_nodes = verifyN1 $ filter (not . Node.offline) $ Container.elems nl
       bad_instances = map (\idx -> Container.find idx il) $
                       sort $ nub $ concat $
                       map (\ n -> (Node.slist n) ++ (Node.plist n)) bad_nodes
