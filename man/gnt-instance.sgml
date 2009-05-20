@@ -460,7 +460,10 @@
                   initrd to boot the instance with. Xen PVM instances
                   can use this always, while for KVM if this option is
                   only used if the <option>kernel_path</option> option
-                  is also specified.
+                  is also specified. You can pass here either an
+                  absolute filename (the path to the initrd) if you
+                  want to use an initrd, or use the format
+                  <userinput>no_initrd_path</userinput> for no initrd.
                 </para>
               </listitem>
             </varlistentry>

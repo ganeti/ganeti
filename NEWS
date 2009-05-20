@@ -1,3 +1,9 @@
+Version 2.0 release candidate 5
+  - fix a couple of bugs (validation, argument checks)
+  - fix gnt-cluster getmaster on non-master nodes (regression)
+  - some small improvements to RAPI and IAllocator
+  - make watcher automatically start the master daemon if down
+
 Version 2.0 release candidate 4
   - change the OS list to not require locks; this helps with big
     clusters
