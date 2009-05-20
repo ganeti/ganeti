@@ -14,7 +14,7 @@ import Network.Curl.Code
 import Data.Either ()
 import Data.Maybe
 import Control.Monad
-import Text.JSON
+import Text.JSON (JSObject, JSValue)
 import Text.Printf (printf)
 import Ganeti.HTools.Utils
 
@@ -24,63 +24,60 @@ import Ganeti.HTools.Utils
 -- | The fixed drbd overhead per disk (only used with 1.2's sdx_size)
 drbdOverhead = 128
 
-getUrl :: String -> IO (Either String String)
+getUrl :: String -> IO (Result String)
 getUrl url = do
   (code, body) <- curlGetString url [CurlSSLVerifyPeer False,
                                      CurlSSLVerifyHost 0]
   return (case code of
-            CurlOK -> Right body
-            _ -> Left $ printf "Curl error for '%s', error %s"
+            CurlOK -> Ok body
+            _ -> Bad $ printf "Curl error for '%s', error %s"
                  url (show code))
 
-getInstances :: String -> IO (Either String String)
+getInstances :: String -> IO (Result String)
 getInstances master = do
   let url2 = printf "https://%s:5080/2/instances?bulk=1" master
   body <- getUrl url2
-  let inst = body `combineEithers`
-             loadJSArray `combineEithers`
-             (parseEitherList parseInstance)
-  return inst
+  return $ (body >>= \x -> do
+              arr <- loadJSArray x
+              ilist <- mapM parseInstance arr
+              return $ unlines ilist)
 
-getNodes :: String -> IO (Either String String)
+getNodes :: String -> IO (Result String)
 getNodes master = do
   let url2 = printf "https://%s:5080/2/nodes?bulk=1" master
   body <- getUrl url2
-  let inst = body `combineEithers`
-             loadJSArray `combineEithers`
-             (parseEitherList parseNode)
-  return inst
+  return $ (body >>= \x -> do
+             arr <- loadJSArray x
+             nlist <- mapM parseNode arr
+             return $ unlines nlist)
 
-parseInstance :: JSObject JSValue -> Either String String
+parseInstance :: JSObject JSValue -> Result String
 parseInstance a =
     let name = getStringElement "name" a
         disk = case getIntElement "disk_usage" a of
-                 Left _ -> let log_sz = applyEither2 (+)
-                                        (getIntElement "sda_size" a)
-                                        (getIntElement "sdb_size" a)
-                           in applyEither2 (+) log_sz
-                                  (Right $ drbdOverhead * 2)
-                 Right x -> Right x
+                 Bad _ -> let log_sz = liftM2 (+)
+                                       (getIntElement "sda_size" a)
+                                       (getIntElement "sdb_size" a)
+                          in liftM2 (+) log_sz (Ok $ drbdOverhead * 2)
+                 x@(Ok _) -> x
         bep = fromObj "beparams" a
         pnode = getStringElement "pnode" a
-        snode = (eitherListHead $ getListElement "snodes" a)
-                `combineEithers` readEitherString
+        snode = (liftM head $ getListElement "snodes" a)
+                >>= readEitherString
         mem = case bep of
-                Left _ -> getIntElement "admin_ram" a
-                Right o -> getIntElement "memory" o
+                Bad _ -> getIntElement "admin_ram" a
+                Ok o -> getIntElement "memory" o
         running = getStringElement "status" a
     in
-      concatEitherElems name $
-                  concatEitherElems (show `applyEither1` mem) $
-                  concatEitherElems (show `applyEither1` disk) $
-                  concatEitherElems running $
-                  concatEitherElems pnode snode
+      name |+ (show `liftM` mem) |+
+              (show `liftM` disk) |+
+              running |+ pnode |+ snode
 
-boolToYN :: Bool -> Either String String
-boolToYN True = Right "Y"
-boolToYN _ = Right "N"
+boolToYN :: Bool -> Result String
+boolToYN True = Ok "Y"
+boolToYN _ = Ok "N"
 
-parseNode :: JSObject JSValue -> Either String String
+parseNode :: JSObject JSValue -> Result String
 parseNode a =
     let name = getStringElement "name" a
         offline = getBoolElement "offline" a
@@ -90,14 +87,12 @@ parseNode a =
         mfree = getIntElement "mfree" a
         dtotal = getIntElement "dtotal" a
         dfree = getIntElement "dfree" a
-    in concatEitherElems name $
+    in name |+
        (case offline of
-          Right True -> Right "0|0|0|0|0|Y"
+          Ok True -> Ok "0|0|0|0|0|Y"
           _ ->
-              concatEitherElems (show `applyEither1` mtotal) $
-              concatEitherElems (show `applyEither1` mnode) $
-              concatEitherElems (show `applyEither1` mfree) $
-              concatEitherElems (show `applyEither1` dtotal) $
-              concatEitherElems (show `applyEither1` dfree)
-              ((applyEither2 (||) offline drained) `combineEithers` boolToYN)
+              (show `liftM` mtotal) |+ (show `liftM` mnode) |+
+              (show `liftM` mfree) |+ (show `liftM` dtotal) |+
+              (show `liftM` dfree) |+
+              ((liftM2 (||) offline drained) >>= boolToYN)
        )

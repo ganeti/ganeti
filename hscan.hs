@@ -155,23 +155,23 @@ main = do
               hFlush stdout
               node_data <- getNodes name
               inst_data <- getInstances name
-              (if isLeft(node_data)
-               then putStrLn $ fromLeft node_data
-               else if isLeft(inst_data)
-                    then putStrLn $ fromLeft inst_data
-                    else do
-                      let ndata = fromRight node_data
-                          idata = fromRight inst_data
-                          (nl, il, csf, ktn, kti) =
-                              Cluster.loadData ndata idata
-                          (_, fix_nl) = Cluster.checkData nl il ktn kti
-                      putStrLn $ printCluster fix_nl il ktn kti
-                      when (optShowNodes opts) $ do
-                           putStr $ Cluster.printNodes ktn fix_nl
-                      let ndata = serializeNodes nl csf ktn
-                          idata = serializeInstances il csf ktn kti
-                          oname = odir </> name
-                      writeFile (oname <.> "nodes") ndata
-                      writeFile (oname <.> "instances") idata)
+              (case node_data of
+                 Bad err -> putStrLn err
+                 Ok ndata ->
+                     case inst_data of
+                       Bad err -> putStrLn err
+                       Ok idata ->
+                           do
+                             let  (nl, il, csf, ktn, kti) =
+                                      Cluster.loadData ndata idata
+                                  (_, fix_nl) = Cluster.checkData nl il ktn kti
+                             putStrLn $ printCluster fix_nl il ktn kti
+                             when (optShowNodes opts) $ do
+                                      putStr $ Cluster.printNodes ktn fix_nl
+                             let ndata = serializeNodes nl csf ktn
+                                 idata = serializeInstances il csf ktn kti
+                                 oname = odir </> name
+                             writeFile (oname <.> "nodes") ndata
+                             writeFile (oname <.> "instances") idata)
        ) clusters
   exitWith ExitSuccess

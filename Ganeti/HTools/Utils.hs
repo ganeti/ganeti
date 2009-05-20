@@ -3,19 +3,12 @@
 module Ganeti.HTools.Utils
     (
       debug
-    , isLeft
-    , fromLeft
-    , fromRight
     , sepSplit
     , swapPairs
     , varianceCoeff
     , readData
     , commaJoin
-    , combineEithers
-    , ensureEitherList
-    , eitherListHead
     , readEitherString
-    , parseEitherList
     , loadJSArray
     , fromObj
     , getStringElement
@@ -25,17 +18,17 @@ module Ganeti.HTools.Utils
     , getObjectElement
     , asJSObject
     , asObjectList
-    , concatEitherElems
-    , applyEither1
-    , applyEither2
+    , Result(Ok, Bad)
+    , fromJResult
+    , (|+)
     ) where
 
 import Data.Either
 import Data.List
-import Monad
+import Control.Monad
 import System
 import System.IO
-import Text.JSON
+import qualified Text.JSON as J
 import Text.Printf (printf)
 
 import Debug.Trace
@@ -44,18 +37,29 @@ import Debug.Trace
 debug :: Show a => a -> a
 debug x = trace (show x) x
 
--- | Check if the given argument is Left something
-isLeft :: Either a b -> Bool
-isLeft val =
-    case val of
-      Left _ -> True
-      _ -> False
 
-fromLeft :: Either a b -> a
-fromLeft = either (\x -> x) (\_ -> undefined)
+{-
 
-fromRight :: Either a b -> b
-fromRight = either (\_ -> undefined) id
+This is similar to the JSON library Result type - *very* similar, but
+we want to use it in multiple places, so we abstract it into a
+mini-library here
+
+-}
+
+data Result a
+    = Bad String
+    | Ok a
+    deriving (Show)
+
+instance Monad Result where
+    (>>=) (Bad x) _ = Bad x
+    (>>=) (Ok x) fn = fn x
+    return = Ok
+    fail = Bad
+
+fromJResult :: J.Result a -> Result a
+fromJResult (J.Error x) = Bad x
+fromJResult (J.Ok x) = Ok x
 
 -- | Comma-join a string list.
 commaJoin :: [String] -> String
@@ -98,110 +102,53 @@ stdDev lst =
 varianceCoeff :: Floating a => [a] -> a
 varianceCoeff lst = (stdDev lst) / (fromIntegral $ length lst)
 
--- | Get a Right result or print the error and exit
-readData :: (String -> IO (Either String String)) -> String -> IO String
-readData fn host = do
-  nd <- fn host
-  when (isLeft nd) $
-       do
-         putStrLn $ fromLeft nd
+-- | Get an Ok result or print the error and exit
+readData :: Result a -> IO a
+readData nd =
+    (case nd of
+       Bad x -> do
+         putStrLn x
          exitWith $ ExitFailure 1
-  return $ fromRight nd
+       Ok x -> return x)
 
-{-- Our cheap monad-like stuff.
-
-Thi is needed since Either e a is already a monad instance somewhere
-in the standard libraries (Control.Monad.Error) and we don't need that
-entire thing.
-
--}
-combineEithers :: (Either String a)
-               -> (a -> Either String b)
-               -> (Either String b)
-combineEithers (Left s) _ = Left s
-combineEithers (Right s) f = f s
-
-ensureEitherList :: [Either String a] -> Either String [a]
-ensureEitherList lst =
-    foldr (\elem accu ->
-               case (elem, accu) of
-                 (Left x, _) -> Left x
-                 (_, Left x) -> Left x -- should never happen
-                 (Right e, Right a) -> Right (e:a)
-          )
-    (Right []) lst
-
-eitherListHead :: Either String [a] -> Either String a
-eitherListHead lst =
-    case lst of
-      Left x -> Left x
-      Right (x:_) -> Right x
-      Right [] -> Left "List empty"
-
-readEitherString :: JSValue -> Either String String
+readEitherString :: J.JSValue -> Result String
 readEitherString v =
     case v of
-      JSString s -> Right $ fromJSString s
-      _ -> Left "Wrong JSON type"
+      J.JSString s -> Ok $ J.fromJSString s
+      _ -> Bad "Wrong JSON type"
 
-parseEitherList :: (JSObject JSValue -> Either String String)
-          -> [JSObject JSValue]
-          -> Either String String
-parseEitherList fn idata =
-    let ml = ensureEitherList $ map fn idata
-    in ml `combineEithers` (Right . unlines)
+loadJSArray :: String -> Result [J.JSObject J.JSValue]
+loadJSArray s = fromJResult $ J.decodeStrict s
 
-loadJSArray :: String -> Either String [JSObject JSValue]
-loadJSArray s = resultToEither $ decodeStrict s
-
-fromObj :: JSON a => String -> JSObject JSValue -> Either String a
+fromObj :: J.JSON a => String -> J.JSObject J.JSValue -> Result a
 fromObj k o =
-    case lookup k (fromJSObject o) of
-      Nothing -> Left $ printf "key '%s' not found" k
-      Just val -> resultToEither $ readJSON val
+    case lookup k (J.fromJSObject o) of
+      Nothing -> Bad $ printf "key '%s' not found" k
+      Just val -> fromJResult $ J.readJSON val
 
-getStringElement :: String -> JSObject JSValue -> Either String String
+getStringElement :: String -> J.JSObject J.JSValue -> Result String
 getStringElement = fromObj
 
-getIntElement :: String -> JSObject JSValue -> Either String Int
+getIntElement :: String -> J.JSObject J.JSValue -> Result Int
 getIntElement = fromObj
 
-getBoolElement :: String -> JSObject JSValue -> Either String Bool
+getBoolElement :: String -> J.JSObject J.JSValue -> Result Bool
 getBoolElement = fromObj
 
-getListElement :: String -> JSObject JSValue
-               -> Either String [JSValue]
+getListElement :: String -> J.JSObject J.JSValue -> Result [J.JSValue]
 getListElement = fromObj
 
-getObjectElement :: String -> JSObject JSValue
-                 -> Either String (JSObject JSValue)
+getObjectElement :: String -> J.JSObject J.JSValue
+                 -> Result (J.JSObject J.JSValue)
 getObjectElement = fromObj
 
-asJSObject :: JSValue -> Either String (JSObject JSValue)
-asJSObject (JSObject a) = Right a
-asJSObject _ = Left "not an object"
+asJSObject :: J.JSValue -> Result (J.JSObject J.JSValue)
+asJSObject (J.JSObject a) = Ok a
+asJSObject _ = Bad "not an object"
 
-asObjectList :: [JSValue] -> Either String [JSObject JSValue]
-asObjectList =
-    ensureEitherList . map asJSObject
+asObjectList :: [J.JSValue] -> Result [J.JSObject J.JSValue]
+asObjectList = sequence . map asJSObject
 
-concatEitherElems :: Either String String
-            -> Either String String
-            -> Either String String
-concatEitherElems = applyEither2 (\x y -> x ++ "|" ++ y)
-
-applyEither1 :: (a -> b) -> Either String a -> Either String b
-applyEither1 fn a =
-    case a of
-      Left x -> Left x
-      Right y -> Right $ fn y
-
-applyEither2 :: (a -> b -> c)
-       -> Either String a
-       -> Either String b
-       -> Either String c
-applyEither2 fn a b =
-    case (a, b) of
-      (Right x, Right y) -> Right $ fn x y
-      (Left x, _) -> Left x
-      (_, Left y) -> Left y
+-- | Function to concat two strings with a separator under a monad
+(|+) :: (Monad m) => m String -> m String -> m String
+(|+) = liftM2 (\x y -> x ++ "|" ++ y)

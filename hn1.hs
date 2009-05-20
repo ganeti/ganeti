@@ -148,8 +148,8 @@ main = do
           case optMaster opts of
             "" -> (readFile nodef,
                    readFile instf)
-            host -> (readData getNodes host,
-                     readData getInstances host)
+            host -> (getNodes host >>= readData,
+                     getInstances host >>= readData)
 
   (loaded_nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
 

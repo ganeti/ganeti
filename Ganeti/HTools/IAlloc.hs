@@ -11,91 +11,94 @@ module Ganeti.HTools.IAlloc
 import Data.Either ()
 import Data.Maybe
 import Control.Monad
-import Text.JSON
+import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
+                  makeObj, encodeStrict, decodeStrict,
+                  fromJSObject, toJSString)
 import Text.Printf (printf)
 import Ganeti.HTools.Utils
+import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Instance as Instance
 
 data RqType
     = Allocate
     | Relocate
-    deriving (Show)
+    deriving (Eq, Show)
 
-parseInstance :: String -> JSObject JSValue -> Either String String
+data Request
+    = RqAlloc String String String
+    | RqReloc String String String
+
+parseInstance :: String -> JSObject JSValue -> Result String
 parseInstance n a =
-    let name = Right n
+    let name = Ok n
         disk = case getIntElement "disk_usage" a of
-                 Left _ -> let all_d = getListElement "disks" a `combineEithers`
-                                       asObjectList
-                               szd = all_d `combineEithers`
-                                     (ensureEitherList .
-                                      map (getIntElement "size"))
-                               sze = applyEither1 (map (+128)) szd
-                               szf = applyEither1 sum sze
+                 Bad _ -> let all_d = getListElement "disks" a >>= asObjectList
+                              szd = all_d >>=
+                                    (sequence .
+                                     map (getIntElement "size"))
+                              sze = liftM (map (+128)) szd
+                              szf = liftM sum sze
                            in szf
-                 Right x -> Right x
+                 x@(Ok _) -> x
         nodes = getListElement "nodes" a
-        pnode = eitherListHead nodes
-                `combineEithers` readEitherString
-        snode = applyEither1 (head . tail) nodes
-                `combineEithers` readEitherString
+        pnode = liftM head nodes >>= readEitherString
+        snode = liftM (head . tail) nodes >>= readEitherString
         mem = getIntElement "memory" a
-        running = Right "running" --getStringElement "status" a
+        running = Ok "running" --getStringElement "status" a
     in
-      concatEitherElems name $
-                  concatEitherElems (show `applyEither1` mem) $
-                  concatEitherElems (show `applyEither1` disk) $
-                  concatEitherElems running $
-                  concatEitherElems pnode snode
+      name |+ (show `liftM` mem) |+
+              (show `liftM` disk) |+ running |+ pnode |+ snode
 
-parseNode :: String -> JSObject JSValue -> Either String String
+parseNode :: String -> JSObject JSValue -> Result String
 parseNode n a =
-    let name = Right n
+    let name = Ok n
         mtotal = getIntElement "total_memory" a
         mnode = getIntElement "reserved_memory" a
         mfree = getIntElement "free_memory" a
         dtotal = getIntElement "total_disk" a
         dfree = getIntElement "free_disk" a
-    in concatEitherElems name $
-       concatEitherElems (show `applyEither1` mtotal) $
-       concatEitherElems (show `applyEither1` mnode) $
-       concatEitherElems (show `applyEither1` mfree) $
-       concatEitherElems (show `applyEither1` dtotal)
-                             (show `applyEither1` dfree)
+    in name |+ (show `liftM` mtotal) |+
+              (show `liftM` mnode) |+
+              (show `liftM` mfree) |+
+              (show `liftM` dtotal) |+
+              (show `liftM` dfree)
 
-validateRequest :: String -> Either String RqType
+validateRequest :: String -> Result RqType
 validateRequest rq =
     case rq of
-      "allocate" -> Right Allocate
-      "relocate" -> Right Relocate
-      _ -> Left ("Invalid request type '" ++ rq ++ "'")
+      "allocate" -> Ok Allocate
+      "relocate" -> Ok Relocate
+      _ -> Bad ("Invalid request type '" ++ rq ++ "'")
 
-parseData :: String -> Either String (String, String)
+parseData :: String -> Result Request
 parseData body =
-    let
-        decoded = resultToEither $ decodeStrict body
-        obj = decoded -- decoded `combineEithers` fromJSObject
+    do
+      decoded <- fromJResult $ decodeStrict body
+      let obj = decoded -- decoded `combineEithers` fromJSObject
         -- request parser
-        request = obj `combineEithers` getObjectElement "request"
-        rname = request `combineEithers` getStringElement "name"
-        rtype = request `combineEithers` getStringElement "type"
-                `combineEithers` validateRequest
-        -- existing intstance parsing
-        ilist = obj `combineEithers` getObjectElement "instances"
-        idata = applyEither1 fromJSObject ilist
-        iobj = idata `combineEithers` (ensureEitherList .
-                                       map (\(x,y) ->
-                                           asJSObject y `combineEithers`
-                                                      parseInstance x))
-        ilines = iobj `combineEithers` (Right . unlines)
-        -- existing node parsing
-        nlist = obj `combineEithers` getObjectElement "nodes"
-        ndata = applyEither1 fromJSObject nlist
-        nobj = ndata `combineEithers` (ensureEitherList .
-                                       map (\(x,y) ->
-                                           asJSObject y `combineEithers`
-                                                      parseNode x))
-        nlines = nobj `combineEithers` (Right . unlines)
-    in applyEither2 (,) nlines ilines
+      request <- getObjectElement "request" obj
+      rname <- getStringElement "name" request
+      rtype <-  getStringElement "type" request >>= validateRequest
+      inew <- (\x -> if x == Allocate then parseInstance rname request
+                     else Ok "") rtype
+      -- existing intstance parsing
+      ilist <- getObjectElement "instances" obj
+      let idata = fromJSObject ilist
+      iobj <- (sequence . map (\(x,y) -> asJSObject y >>= parseInstance x))
+              idata
+      let ilines = unlines iobj
+      -- existing node parsing
+      nlist <- getObjectElement "nodes" obj
+      let ndata = fromJSObject nlist
+      nobj <- (sequence . map (\(x,y) -> asJSObject y >>= parseNode x))
+              ndata
+      let nlines = unlines nobj
+      return $ (\ r nl il inew rnam ->
+                    case r of
+                      Allocate -> RqAlloc inew nl il
+                      Relocate -> RqReloc rnam nl il)
+                 rtype nlines ilines inew rname
+
 
 formatResponse :: Bool -> String -> [String] -> String
 formatResponse success info nodes =
