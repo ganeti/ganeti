@@ -18,19 +18,14 @@ import Text.JSON (JSObject, JSValue)
 import Text.Printf (printf)
 import Ganeti.HTools.Utils
 
-
--- Some constants
-
--- | The fixed drbd overhead per disk (only used with 1.2's sdx_size)
-drbdOverhead = 128
-
-getUrl :: String -> IO (Result String)
+-- | Read an URL via curl and return the body if successful
+getUrl :: (Monad m) => String -> IO (m String)
 getUrl url = do
   (code, body) <- curlGetString url [CurlSSLVerifyPeer False,
                                      CurlSSLVerifyHost 0]
   return (case code of
-            CurlOK -> Ok body
-            _ -> Bad $ printf "Curl error for '%s', error %s"
+            CurlOK -> return body
+            _ -> fail $ printf "Curl error for '%s', error %s"
                  url (show code))
 
 getInstances :: String -> IO (Result String)
@@ -54,19 +49,10 @@ getNodes master = do
 parseInstance :: JSObject JSValue -> Result String
 parseInstance a =
     let name = getStringElement "name" a
-        disk = case getIntElement "disk_usage" a of
-                 Bad _ -> let log_sz = liftM2 (+)
-                                       (getIntElement "sda_size" a)
-                                       (getIntElement "sdb_size" a)
-                          in liftM2 (+) log_sz (Ok $ drbdOverhead * 2)
-                 x@(Ok _) -> x
-        bep = fromObj "beparams" a
+        disk = getIntElement "disk_usage" a
+        mem = getObjectElement "beparams" a >>= getIntElement "memory"
         pnode = getStringElement "pnode" a
-        snode = (liftM head $ getListElement "snodes" a)
-                >>= readEitherString
-        mem = case bep of
-                Bad _ -> getIntElement "admin_ram" a
-                Ok o -> getIntElement "memory" o
+        snode = (liftM head $ getListElement "snodes" a) >>= readEitherString
         running = getStringElement "status" a
     in
       name |+ (show `liftM` mem) |+
