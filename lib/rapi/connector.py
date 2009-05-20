@@ -92,8 +92,6 @@ class R_root(baserlib.R_Generic):
   """/ resource.
 
   """
-  DOC_URI = "/"
-
   def GET(self):
     """Show the list of mapped resources.
 
@@ -137,8 +135,6 @@ class R_2(baserlib.R_Generic):
   """ /2 resource, the root of the version 2 API.
 
   """
-  DOC_URI = "/2"
-
   def GET(self):
     """Show the list of mapped resources.
 
