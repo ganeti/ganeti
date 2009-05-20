@@ -170,7 +170,7 @@ def TestInstanceModify(instance):
     ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, test_kernel)],
     ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, constants.VALUE_DEFAULT)],
     ["-H", "%s=%s" % (constants.HV_INITRD_PATH, test_initrd)],
-    ["-H", "%s=%s" % (constants.HV_INITRD_PATH, constants.VALUE_NONE)],
+    ["-H", "no_%s" % (constants.HV_INITRD_PATH, )],
     ["-H", "%s=%s" % (constants.HV_INITRD_PATH, constants.VALUE_DEFAULT)],
 
     # TODO: bridge tests

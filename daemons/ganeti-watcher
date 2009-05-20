@@ -39,6 +39,7 @@ from ganeti import serializer
 from ganeti import errors
 from ganeti import opcodes
 from ganeti import cli
+from ganeti import luxi
 
 
 MAXTRIES = 5
@@ -67,6 +68,16 @@ def Indent(s, prefix='| '):
 
   """
   return "%s%s\n" % (prefix, ('\n' + prefix).join(s.splitlines()))
+
+
+def StartMaster():
+  """Try to start the master daemon.
+
+  """
+  result = utils.RunCmd(['ganeti-masterd'])
+  if result.failed:
+    logging.error("Can't start the master daemon: output '%s'", result.output)
+  return not result.failed
 
 
 class WatcherState(object):
@@ -448,6 +459,7 @@ def main():
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)
 
+  update_file = True
   try:
     notepad = WatcherState()
     try:
@@ -455,7 +467,17 @@ def main():
         client = cli.GetClient()
       except errors.OpPrereqError:
         # this is, from cli.GetClient, a not-master case
+        logging.debug("Not on master, exiting")
         sys.exit(constants.EXIT_SUCCESS)
+      except luxi.NoMasterError, err:
+        logging.warning("Master seems to be down (%s), trying to restart",
+                        str(err))
+        if not StartMaster():
+          logging.critical("Can't start the master, exiting")
+          update_file = False
+          sys.exit(constants.EXIT_FAILURE)
+        # else retry the connection
+        client = cli.GetClient()
 
       try:
         watcher = Watcher(options, notepad)
@@ -465,7 +487,10 @@ def main():
 
       watcher.Run()
     finally:
-      notepad.Save()
+      if update_file:
+        notepad.Save()
+      else:
+        logging.debug("Not updating status file due to failure")
   except SystemExit:
     raise
   except NotMasterError:

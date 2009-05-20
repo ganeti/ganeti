@@ -1417,7 +1417,7 @@ class LUSetClusterParams(LogicalUnit):
   _OP_REQP = []
   REQ_BGL = False
 
-  def CheckParameters(self):
+  def CheckArguments(self):
     """Check parameters
 
     """
@@ -1426,7 +1426,7 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.candidate_pool_size is not None:
       try:
         self.op.candidate_pool_size = int(self.op.candidate_pool_size)
-      except ValueError, err:
+      except (ValueError, TypeError), err:
         raise errors.OpPrereqError("Invalid candidate_pool_size value: %s" %
                                    str(err))
       if self.op.candidate_pool_size < 1:
@@ -5939,7 +5939,7 @@ class LUSetInstanceParams(LogicalUnit):
         self.warn.append("Can't get info from primary node %s" % pnode)
       else:
         if not instance_info.failed and instance_info.data:
-          current_mem = instance_info.data['memory']
+          current_mem = int(instance_info.data['memory'])
         else:
           # Assume instance not running
           # (there is a slight race condition here, but it's not very probable,
@@ -6752,6 +6752,8 @@ class IAllocator(object):
         "disk_template": iinfo.disk_template,
         "hypervisor": iinfo.hypervisor,
         }
+      pir["disk_space_total"] = _ComputeDiskSize(iinfo.disk_template,
+                                                 pir["disks"])
       instance_data[iinfo.name] = pir
 
     data["instances"] = instance_data

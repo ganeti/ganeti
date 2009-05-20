@@ -194,9 +194,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     while arg_list:
       arg =  arg_list.pop(0)
       if arg == '-m':
-        memory = arg_list.pop(0)
+        memory = int(arg_list.pop(0))
       elif arg == '-smp':
-        vcpus = arg_list.pop(0)
+        vcpus = int(arg_list.pop(0))
 
     return (instance_name, pid, memory, vcpus, stat, times)
 
