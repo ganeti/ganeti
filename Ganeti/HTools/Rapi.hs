@@ -39,19 +39,19 @@ getInstances :: String -> IO (Result String)
 getInstances master = do
   let url2 = printf "%s/2/instances?bulk=1" (formatHost master)
   body <- getUrl url2
-  return $ (body >>= \x -> do
-              arr <- loadJSArray x
-              ilist <- mapM parseInstance arr
-              return $ unlines ilist)
+  return $ (do x <- body
+               arr <- loadJSArray x
+               ilist <- mapM parseInstance arr
+               return $ unlines ilist)
 
 getNodes :: String -> IO (Result String)
 getNodes master = do
   let url2 = printf "%s/2/nodes?bulk=1" (formatHost master)
   body <- getUrl url2
-  return $ (body >>= \x -> do
-             arr <- loadJSArray x
-             nlist <- mapM parseNode arr
-             return $ unlines nlist)
+  return $ (do x <- body
+               arr <- loadJSArray x
+               nlist <- mapM parseNode arr
+               return $ unlines nlist)
 
 parseInstance :: JSObject JSValue -> Result String
 parseInstance a =
