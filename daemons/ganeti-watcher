@@ -244,10 +244,17 @@ def GetClusterData():
 
   all_results = cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)
 
+  logging.debug("Got data from cluster, writing instance status file")
+
   result = all_results[0]
   smap = {}
 
   instances = {}
+
+  # write the upfile
+  up_data = "".join(["%s %s\n" % (fields[0], fields[1]) for fields in result])
+  utils.WriteFile(file_name=constants.INSTANCE_UPFILE, data=up_data)
+
   for fields in result:
     (name, status, autostart, snodes) = fields
 
