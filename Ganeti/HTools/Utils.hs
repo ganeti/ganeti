@@ -57,9 +57,9 @@ instance Monad Result where
     return = Ok
     fail = Bad
 
-fromJResult :: J.Result a -> Result a
-fromJResult (J.Error x) = Bad x
-fromJResult (J.Ok x) = Ok x
+fromJResult :: Monad m => J.Result a -> m a
+fromJResult (J.Error x) = fail x
+fromJResult (J.Ok x) = return x
 
 -- | Comma-join a string list.
 commaJoin :: [String] -> String
@@ -111,42 +111,42 @@ readData nd =
          exitWith $ ExitFailure 1
        Ok x -> return x)
 
-readEitherString :: J.JSValue -> Result String
+readEitherString :: (Monad m) => J.JSValue -> m String
 readEitherString v =
     case v of
-      J.JSString s -> Ok $ J.fromJSString s
-      _ -> Bad "Wrong JSON type"
+      J.JSString s -> return $ J.fromJSString s
+      _ -> fail "Wrong JSON type"
 
-loadJSArray :: String -> Result [J.JSObject J.JSValue]
+loadJSArray :: (Monad m) => String -> m [J.JSObject J.JSValue]
 loadJSArray s = fromJResult $ J.decodeStrict s
 
-fromObj :: J.JSON a => String -> J.JSObject J.JSValue -> Result a
+fromObj :: (J.JSON a, Monad m) => String -> J.JSObject J.JSValue -> m a
 fromObj k o =
     case lookup k (J.fromJSObject o) of
-      Nothing -> Bad $ printf "key '%s' not found" k
+      Nothing -> fail $ printf "key '%s' not found" k
       Just val -> fromJResult $ J.readJSON val
 
-getStringElement :: String -> J.JSObject J.JSValue -> Result String
+getStringElement :: (Monad m) => String -> J.JSObject J.JSValue -> m String
 getStringElement = fromObj
 
-getIntElement :: String -> J.JSObject J.JSValue -> Result Int
+getIntElement :: (Monad m) => String -> J.JSObject J.JSValue -> m Int
 getIntElement = fromObj
 
-getBoolElement :: String -> J.JSObject J.JSValue -> Result Bool
+getBoolElement :: (Monad m) => String -> J.JSObject J.JSValue -> m Bool
 getBoolElement = fromObj
 
-getListElement :: String -> J.JSObject J.JSValue -> Result [J.JSValue]
+getListElement :: (Monad m) => String -> J.JSObject J.JSValue -> m [J.JSValue]
 getListElement = fromObj
 
-getObjectElement :: String -> J.JSObject J.JSValue
-                 -> Result (J.JSObject J.JSValue)
+getObjectElement :: (Monad m) => String -> J.JSObject J.JSValue
+                 -> m (J.JSObject J.JSValue)
 getObjectElement = fromObj
 
-asJSObject :: J.JSValue -> Result (J.JSObject J.JSValue)
-asJSObject (J.JSObject a) = Ok a
-asJSObject _ = Bad "not an object"
+asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)
+asJSObject (J.JSObject a) = return a
+asJSObject _ = fail "not an object"
 
-asObjectList :: [J.JSValue] -> Result [J.JSObject J.JSValue]
+asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
 asObjectList = sequence . map asJSObject
 
 -- | Function to concat two strings with a separator under a monad

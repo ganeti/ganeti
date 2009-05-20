@@ -73,9 +73,9 @@ parseInstance a =
               (show `liftM` disk) |+
               running |+ pnode |+ snode
 
-boolToYN :: Bool -> Result String
-boolToYN True = Ok "Y"
-boolToYN _ = Ok "N"
+boolToYN :: (Monad m) => Bool -> m String
+boolToYN True = return "Y"
+boolToYN _ = return "N"
 
 parseNode :: JSObject JSValue -> Result String
 parseNode a =
