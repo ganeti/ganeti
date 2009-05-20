@@ -23,7 +23,9 @@ tools.
 For each cluster, two files named \fIcluster\fB.instances\fR and
 \fIcluster\fB.nodes\fR will be generated holding the instance and node
 data. These files can then be used in \fBhbal\fR(1) or \fBhn1\fR(1)
-via the \fB-i\fR and \fB-n\fR options.
+via the \fB-i\fR and \fB-n\fR options. In case the cluster name
+contains slashes (as it can happen when the cluster is a
+fully-specified URL), these will be replaced with underscores.
 
 The one-line output for each cluster will show the following:
 .RS

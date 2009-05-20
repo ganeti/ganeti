@@ -130,6 +130,11 @@ printCluster nl il ktn kti =
                  ccv
 
 
+-- | Replace slashes with underscore for saving to filesystem
+
+fixSlash :: String -> String
+fixSlash = map (\x -> if x == '/' then '_' else x)
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -170,7 +175,7 @@ main = do
                                       putStr $ Cluster.printNodes ktn fix_nl
                              let ndata = serializeNodes nl csf ktn
                                  idata = serializeInstances il csf ktn kti
-                                 oname = odir </> name
+                                 oname = odir </> (fixSlash name)
                              writeFile (oname <.> "nodes") ndata
                              writeFile (oname <.> "instances") idata)
        ) clusters
