@@ -13,6 +13,7 @@ import Network.Curl.Types ()
 import Network.Curl.Code
 import Data.Either ()
 import Data.Maybe
+import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue)
 import Text.Printf (printf)
@@ -28,9 +29,15 @@ getUrl url = do
             _ -> fail $ printf "Curl error for '%s', error %s"
                  url (show code))
 
+-- | Append the default port if not passed in
+formatHost :: String -> String
+formatHost master =
+    if elem ':' master then  master
+    else "https://" ++ master ++ ":5080"
+
 getInstances :: String -> IO (Result String)
 getInstances master = do
-  let url2 = printf "https://%s:5080/2/instances?bulk=1" master
+  let url2 = printf "%s/2/instances?bulk=1" (formatHost master)
   body <- getUrl url2
   return $ (body >>= \x -> do
               arr <- loadJSArray x
@@ -39,7 +46,7 @@ getInstances master = do
 
 getNodes :: String -> IO (Result String)
 getNodes master = do
-  let url2 = printf "https://%s:5080/2/nodes?bulk=1" master
+  let url2 = printf "%s/2/nodes?bulk=1" (formatHost master)
   body <- getUrl url2
   return $ (body >>= \x -> do
              arr <- loadJSArray x

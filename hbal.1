@@ -287,8 +287,10 @@ how to customize the default value via the environment).
 .BI "-m" cluster
 Collect data not from files but directly from the
 .I cluster
-given as an argument via RAPI. This work for both Ganeti 1.2 and
-Ganeti 2.0.
+given as an argument via RAPI. If the argument doesn't contain a colon
+(:), then it is converted into a fully-built URL via prepending
+https:// and appending the default RAPI port, otherwise it's
+considered a fully-specified URL and is used unchanged.
 
 .TP
 .BI "-l" N ", --max-length=" N
