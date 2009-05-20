@@ -154,29 +154,26 @@ main = do
                 "Name" "Nodes" "Inst" "BNode" "BInst" "t_mem" "f_mem"
                 "t_disk" "f_disk" "Score"
 
-  mapM (\ name ->
+  mapM_ (\ name ->
             do
               printf "%-*s " nlen name
               hFlush stdout
               node_data <- getNodes name
               inst_data <- getInstances name
-              (case node_data of
-                 Bad err -> putStrLn err
-                 Ok ndata ->
-                     case inst_data of
-                       Bad err -> putStrLn err
-                       Ok idata ->
-                           do
-                             let  (nl, il, csf, ktn, kti) =
-                                      Cluster.loadData ndata idata
-                                  (_, fix_nl) = Cluster.checkData nl il ktn kti
-                             putStrLn $ printCluster fix_nl il ktn kti
-                             when (optShowNodes opts) $ do
-                                      putStr $ Cluster.printNodes ktn fix_nl
-                             let ndata = serializeNodes nl csf ktn
-                                 idata = serializeInstances il csf ktn kti
-                                 oname = odir </> (fixSlash name)
-                             writeFile (oname <.> "nodes") ndata
-                             writeFile (oname <.> "instances") idata)
+              let ldresult = join $
+                             liftM2 Cluster.loadData node_data inst_data
+              (case ldresult of
+                 Bad err -> printf "\nError: failed to load data. \
+                                   \Details:\n%s\n" err
+                 Ok x -> do
+                   let (nl, il, csf, ktn, kti) = x
+                       (_, fix_nl) = Cluster.checkData nl il ktn kti
+                   putStrLn $ printCluster fix_nl il ktn kti
+                   when (optShowNodes opts) $ do
+                           putStr $ Cluster.printNodes ktn fix_nl
+                   let ndata = serializeNodes nl csf ktn
+                       idata = serializeInstances il csf ktn kti
+                       oname = odir </> (fixSlash name)
+                   writeFile (oname <.> "nodes") ndata
+                   writeFile (oname <.> "instances") idata)
        ) clusters
-  exitWith ExitSuccess

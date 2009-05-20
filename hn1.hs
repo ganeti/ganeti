@@ -135,7 +135,7 @@ main = do
          exitWith $ ExitFailure 1
 
   when (optShowVer opts) $ do
-         printf $ CLI.showVersion "hn1"
+         putStr $ CLI.showVersion "hn1"
          exitWith ExitSuccess
 
   (env_node, env_inst) <- CLI.parseEnv ()
@@ -151,8 +151,14 @@ main = do
             host -> (getNodes host >>= readData,
                      getInstances host >>= readData)
 
-  (loaded_nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
-
+  ldresult <- liftM2 Cluster.loadData node_data inst_data
+  (loaded_nl, il, csf, ktn, kti) <-
+      (case ldresult of
+         Ok x -> return x
+         Bad s -> do
+           printf "Error: failed to load data. Details:\n%s\n" s
+           exitWith $ ExitFailure 1
+      )
   let (fix_msgs, nl) = Cluster.checkData loaded_nl il ktn kti
 
   unless (null fix_msgs) $ do

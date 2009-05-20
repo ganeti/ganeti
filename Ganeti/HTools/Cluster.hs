@@ -746,9 +746,9 @@ stripSuffix suffix lst =
     and massages it into the correct format. -}
 loadData :: String -- ^ Node data in text format
          -> String -- ^ Instance data in text format
-         -> (Container.Container Node.Node,
-             Container.Container Instance.Instance,
-             String, NameList, NameList)
+         -> Result (Container.Container Node.Node,
+                    Container.Container Instance.Instance,
+                    String, NameList, NameList)
 loadData ndata idata =
     let
     {- node file: name t_mem n_mem f_mem t_disk f_disk -}
@@ -781,7 +781,7 @@ loadData ndata idata =
         stn = stripSuffix common_suffix xtn
         sti = stripSuffix common_suffix xti
     in
-      (nl3, il3, common_suffix, stn, sti)
+      Ok (nl3, il3, common_suffix, stn, sti)
 
 -- | Compute the amount of memory used by primary instances on a node.
 nodeImem :: Node.Node -> InstanceList -> Int
