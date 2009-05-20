@@ -100,6 +100,7 @@ class BaseHypervisor(object):
 
   """
   PARAMETERS = {}
+  ANCILLARY_FILES = []
 
   def __init__(self):
     pass
@@ -156,6 +157,19 @@ class BaseHypervisor(object):
 
     """
     raise NotImplementedError
+
+  @classmethod
+  def GetAncillaryFiles(cls):
+    """Return a list of ancillary files to be copied to all nodes as ancillary
+    configuration files.
+
+    @rtype: list of strings
+    @return: list of absolute paths of files to ship cluster-wide
+
+    """
+    # By default we return a member variable, so that if an hypervisor has just
+    # a static list of files it doesn't have to override this function.
+    return cls.ANCILLARY_FILES
 
   def Verify(self):
     """Verify the hypervisor.

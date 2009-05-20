@@ -1572,6 +1572,12 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
                     constants.RAPI_CERT_FILE,
                     constants.RAPI_USERS_FILE,
                    ])
+
+  enabled_hypervisors = lu.cfg.GetClusterInfo().enabled_hypervisors
+  for hv_name in enabled_hypervisors:
+    hv_class = hypervisor.GetHypervisor(hv_name)
+    dist_files.update(hv_class.GetAncillaryFiles())
+
   # 3. Perform the files upload
   for fname in dist_files:
     if os.path.exists(fname):
