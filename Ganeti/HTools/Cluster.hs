@@ -750,6 +750,28 @@ lookupNode node inst ktn =
       Nothing -> fail $ "Unknown node " ++ node ++ " for instance " ++ inst
       Just idx -> return idx
 
+loadNode :: (Monad m) => [String] -> m (String, Node.Node)
+loadNode (name:tm:nm:fm:td:fd:fo:[]) = do
+  let new_node =
+          if any (== "?") [tm,nm,fm,td,fd] || fo == "Y" then
+              Node.create 0 0 0 0 0 True
+          else
+              Node.create (read tm) (read nm) (read fm)
+                      (read td) (read fd) False
+  return (name, new_node)
+loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
+
+loadInst :: (Monad m) =>
+            [(String, Int)] -> [String] -> m (String, Instance.Instance)
+loadInst ktn (name:mem:dsk:status:pnode:snode:[]) = do
+  pidx <- lookupNode pnode name ktn
+  sidx <- lookupNode snode name ktn
+  when (sidx == pidx) $ fail $ "Instance " ++ name ++
+           " has same primary and secondary node - " ++ pnode
+  let newinst = Instance.create (read mem) (read dsk) status pidx sidx
+  return (name, newinst)
+loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ (show s) ++ "'"
+
 {-| Initializer function that loads the data from a node and list file
     and massages it into the correct format. -}
 loadData :: String -- ^ Node data in text format
@@ -759,26 +781,9 @@ loadData :: String -- ^ Node data in text format
                     String, NameList, NameList)
 loadData ndata idata = do
   {- node file: name t_mem n_mem f_mem t_disk f_disk -}
-  (ktn, nl) <- loadTabular ndata
-               (\ (name:tm:nm:fm:td:fd:fo:[]) ->
-                    return (name,
-                            if any (== "?") [tm,nm,fm,td,fd] || fo == "Y" then
-                                Node.create 0 0 0 0 0 True
-                            else
-                                Node.create (read tm) (read nm) (read fm)
-                                        (read td) (read fd) False
-                           ))
-               Node.setIdx
+  (ktn, nl) <- loadTabular ndata loadNode Node.setIdx
       {- instance file: name mem disk status pnode snode -}
-  (kti, il) <- loadTabular idata
-                  (\ (name:mem:dsk:status:pnode:snode:[]) -> do
-                     pidx <- lookupNode pnode name ktn
-                     sidx <- lookupNode snode name ktn
-                     let newinst = Instance.create (read mem) (read dsk)
-                                   status pidx sidx
-                     return (name, newinst)
-                  )
-                  Instance.setIdx
+  (kti, il) <- loadTabular idata (loadInst ktn) Instance.setIdx
   let
       nl2 = fixNodes nl il
       il3 = Container.fromAssocList il
