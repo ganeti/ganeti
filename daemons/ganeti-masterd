@@ -214,6 +214,13 @@ class ClientOps:
       ops = [opcodes.OpCode.LoadOpCode(state) for state in args]
       return queue.SubmitJob(ops)
 
+    if method == luxi.REQ_SUBMIT_MANY_JOBS:
+      logging.info("Received multiple jobs")
+      jobs = []
+      for ops in args:
+        jobs.append([opcodes.OpCode.LoadOpCode(state) for state in ops])
+      return queue.SubmitManyJobs(jobs)
+
     elif method == luxi.REQ_CANCEL_JOB:
       job_id = args
       logging.info("Received job cancel request for %s", job_id)
