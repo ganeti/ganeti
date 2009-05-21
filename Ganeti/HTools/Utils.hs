@@ -123,7 +123,7 @@ loadJSArray s = fromJResult $ J.decodeStrict s
 fromObj :: (J.JSON a, Monad m) => String -> J.JSObject J.JSValue -> m a
 fromObj k o =
     case lookup k (J.fromJSObject o) of
-      Nothing -> fail $ printf "key '%s' not found" k
+      Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
       Just val -> fromJResult $ J.readJSON val
 
 getStringElement :: (Monad m) => String -> J.JSObject J.JSValue -> m String

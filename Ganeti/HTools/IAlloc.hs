@@ -9,12 +9,12 @@ module Ganeti.HTools.IAlloc
     ) where
 
 import Data.Either ()
-import Data.Maybe
+--import Data.Maybe
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
                   makeObj, encodeStrict, decodeStrict,
                   fromJSObject, toJSString)
-import Text.Printf (printf)
+--import Text.Printf (printf)
 import Ganeti.HTools.Utils
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -27,9 +27,10 @@ data RqType
 data Request
     = RqAlloc String String String
     | RqReloc String String String
+    deriving (Show)
 
-parseInstance :: String -> JSObject JSValue -> Result String
-parseInstance n a =
+parseBaseInstance :: String -> JSObject JSValue -> Result String
+parseBaseInstance n a =
     let name = Ok n
         disk = case getIntElement "disk_usage" a of
                  Bad _ -> let all_d = getListElement "disks" a >>= asObjectList
@@ -40,14 +41,21 @@ parseInstance n a =
                               szf = liftM sum sze
                            in szf
                  x@(Ok _) -> x
-        nodes = getListElement "nodes" a
-        pnode = liftM head nodes >>= readEitherString
-        snode = liftM (head . tail) nodes >>= readEitherString
         mem = getIntElement "memory" a
         running = Ok "running" --getStringElement "status" a
     in
       name |+ (show `liftM` mem) |+
-              (show `liftM` disk) |+ running |+ pnode |+ snode
+              (show `liftM` disk) |+ running
+
+parseInstance :: String -> JSObject JSValue -> Result String
+parseInstance n a = do
+    base <- parseBaseInstance n a
+    let
+        nodes = getListElement "nodes" a
+        pnode = liftM head nodes >>= readEitherString
+        snode = liftM (head . tail) nodes >>= readEitherString
+    return base |+ pnode |+ snode
+
 
 parseNode :: String -> JSObject JSValue -> Result String
 parseNode n a =
@@ -74,14 +82,14 @@ parseData :: String -> Result Request
 parseData body =
     do
       decoded <- fromJResult $ decodeStrict body
-      let obj = decoded -- decoded `combineEithers` fromJSObject
-        -- request parser
+      let obj = decoded
+      -- request parser
       request <- getObjectElement "request" obj
       rname <- getStringElement "name" request
       rtype <-  getStringElement "type" request >>= validateRequest
-      inew <- (\x -> if x == Allocate then parseInstance rname request
+      inew <- (\x -> if x == Allocate then parseBaseInstance rname request
                      else Ok "") rtype
-      -- existing intstance parsing
+      -- existing instance parsing
       ilist <- getObjectElement "instances" obj
       let idata = fromJSObject ilist
       iobj <- (sequence . map (\(x,y) -> asJSObject y >>= parseInstance x))
@@ -98,7 +106,6 @@ parseData body =
                       Allocate -> RqAlloc inew nl il
                       Relocate -> RqReloc rnam nl il)
                  rtype nlines ilines inew rname
-
 
 formatResponse :: Bool -> String -> [String] -> String
 formatResponse success info nodes =
