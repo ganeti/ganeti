@@ -1690,6 +1690,10 @@ def OSEnvironment(instance, debug=0):
       result['NIC_%d_FRONTEND_TYPE' % idx] = \
         instance.hvparams[constants.HV_NIC_TYPE]
 
+  for source, kind in [(instance.beparams, "BE"), (instance.hvparams, "HV")]:
+    for key, value in source.items():
+      env["INSTANCE_%s_%s" % (kind, key)] = value
+
   return result
 
 def BlockdevGrow(disk, amount):

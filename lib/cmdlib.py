@@ -453,7 +453,8 @@ def _CheckNodeNotDrained(lu, node):
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
-                          memory, vcpus, nics, disk_template, disks):
+                          memory, vcpus, nics, disk_template, disks,
+                          bep, hvp, hypervisor):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -479,6 +480,12 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param disk_template: the distk template of the instance
   @type disks: list
   @param disks: the list of (size, mode) pairs
+  @type bep: dict
+  @param bep: the backend parameters for the instance
+  @type hvp: dict
+  @param hvp: the hypervisor parameters for the instance
+  @type hypervisor: string
+  @param hypervisor: the hypervisor for the instance
   @rtype: dict
   @return: the hook environment for this instance
 
@@ -497,6 +504,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
+    "INSTANCE_HYPERVISOR": hypervisor,
   }
 
   if nics:
@@ -522,6 +530,10 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   env["INSTANCE_DISK_COUNT"] = disk_count
 
+  for source, kind in [(bep, "BE"), (hvp, "HV")]:
+    for key, value in source.items():
+      env["INSTANCE_%s_%s" % (kind, key)] = value
+
   return env
 
 
@@ -540,7 +552,9 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   @return: the hook environment dictionary
 
   """
-  bep = lu.cfg.GetClusterInfo().FillBE(instance)
+  cluster = lu.cfg.GetClusterInfo()
+  bep = cluster.FillBE(instance)
+  hvp = cluster.FillHV(instance)
   args = {
     'name': instance.name,
     'primary_node': instance.primary_node,
@@ -552,6 +566,9 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'nics': [(nic.ip, nic.bridge, nic.mac) for nic in instance.nics],
     'disk_template': instance.disk_template,
     'disks': [(disk.size, disk.mode) for disk in instance.disks],
+    'bep': bep,
+    'hvp': hvp,
+    'hypervisor': instance.hypervisor,
   }
   if override:
     args.update(override)
@@ -4341,6 +4358,7 @@ class LUCreateInstance(LogicalUnit):
                                   self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
+    self.hv_full = filled_hvp
 
     # fill and remember the beparams dict
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
@@ -4518,6 +4536,9 @@ class LUCreateInstance(LogicalUnit):
       nics=[(n.ip, n.bridge, n.mac) for n in self.nics],
       disk_template=self.op.disk_template,
       disks=[(d["size"], d["mode"]) for d in self.disks],
+      bep=self.be_full,
+      hvp=self.hv_full,
+      hypervisor=self.op.hypervisor,
     ))
 
     nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
