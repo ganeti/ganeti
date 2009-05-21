@@ -78,6 +78,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _KVM_NETWORK_SCRIPT = constants.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
 
+  ANCILLARY_FILES = [
+    _KVM_NETWORK_SCRIPT,
+    ]
+
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
     # Let's make sure the directories we need exist, even if the RUN_DIR lives
