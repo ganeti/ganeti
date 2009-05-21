@@ -76,6 +76,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
                                     re.M | re.I)
 
+  _KVM_NETWORK_SCRIPT = constants.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
+
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
     # Let's make sure the directories we need exist, even if the RUN_DIR lives
@@ -148,9 +150,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     script.write("export BRIDGE=%s\n" % nic.bridge)
     script.write("export INTERFACE=$1\n")
     # TODO: make this configurable at ./configure time
-    script.write("if [ -x /etc/ganeti/kvm-vif-bridge ]; then\n")
+    script.write("if [ -x '%s' ]; then\n" % self._KVM_NETWORK_SCRIPT)
     script.write("  # Execute the user-specific vif file\n")
-    script.write("  /etc/ganeti/kvm-vif-bridge\n")
+    script.write("  %s\n" % self._KVM_NETWORK_SCRIPT)
     script.write("else\n")
     script.write("  # Connect the interface to the bridge\n")
     script.write("  /sbin/ifconfig $INTERFACE 0.0.0.0 up\n")

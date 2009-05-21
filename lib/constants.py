@@ -101,6 +101,7 @@ RAPI_USERS_FILE = DATA_DIR + "/rapi_users"
 QUEUE_DIR = DATA_DIR + "/queue"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
+SYSCONFDIR = _autoconf.SYSCONFDIR
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
