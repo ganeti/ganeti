@@ -3536,10 +3536,15 @@ class LUFailoverInstance(LogicalUnit):
     target_node = secondary_nodes[0]
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
-    # check memory requirements on the secondary node
-    _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
-                         instance.name, bep[constants.BE_MEMORY],
-                         instance.hypervisor)
+
+    if instance.admin_up:
+      # check memory requirements on the secondary node
+      _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
+                           instance.name, bep[constants.BE_MEMORY],
+                           instance.hypervisor)
+    else:
+      self.LogInfo("Not checking memory on the secondary node as"
+                   " instance will not be started")
 
     # check bridge existance
     brlist = [nic.bridge for nic in instance.nics]
