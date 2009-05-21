@@ -757,9 +757,10 @@ tryRead name s =
 lookupNode :: (Monad m) => String -> String -> [(String, Int)] -> m Int
 lookupNode node inst ktn =
     case lookup node ktn of
-      Nothing -> fail $ "Unknown node " ++ node ++ " for instance " ++ inst
+      Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
       Just idx -> return idx
 
+-- | Load a node from a field list
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
 loadNode (name:tm:nm:fm:td:fd:fo:[]) = do
   new_node <-
@@ -775,6 +776,7 @@ loadNode (name:tm:nm:fm:td:fd:fo:[]) = do
   return (name, new_node)
 loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
 
+-- | Load an instance from a field list
 loadInst :: (Monad m) =>
             [(String, Int)] -> [String] -> m (String, Instance.Instance)
 loadInst ktn (name:mem:dsk:status:pnode:snode:[]) = do
@@ -826,7 +828,6 @@ nodeIdsk node il =
     let rfind = flip Container.find $ il
     in sum . map Instance.dsk .
        map rfind $ (Node.plist node) ++ (Node.slist node)
-
 
 -- | Check cluster data for consistency
 checkData :: NodeList -> InstanceList -> NameList -> NameList
