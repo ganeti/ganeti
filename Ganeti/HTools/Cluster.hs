@@ -85,6 +85,10 @@ data IMove = Failover                -- ^ Failover the instance (f)
 data Table = Table NodeList InstanceList Score [Placement]
              deriving (Show)
 
+-- | Constant node index for a non-moveable instance
+noSecondary :: Int
+noSecondary = -1
+
 -- General functions
 
 -- | Cap the removal list if needed.
@@ -475,8 +479,10 @@ checkMove nodes_idx ini_tbl victims =
         -- iterate over all instances, computing the best move
         best_tbl =
             foldl'
-            (\ step_tbl elem -> compareTables step_tbl $
-                                checkInstanceMove nodes_idx ini_tbl elem)
+            (\ step_tbl elem ->
+                 if Instance.snode elem == noSecondary then step_tbl
+                    else compareTables step_tbl $
+                         checkInstanceMove nodes_idx ini_tbl elem)
             ini_tbl victims
         Table _ _ _ best_plc = best_tbl
     in
@@ -716,13 +722,20 @@ fixNodes nl il =
                     pdx = Instance.pnode inst
                     sdx = Instance.snode inst
                     pold = fromJust $ lookup pdx accu
-                    sold = fromJust $ lookup sdx accu
                     pnew = Node.setPri pold idx
-                    snew = Node.setSec sold idx
                     ac1 = deleteBy assocEqual (pdx, pold) accu
-                    ac2 = deleteBy assocEqual (sdx, sold) ac1
-                    ac3 = (pdx, pnew):(sdx, snew):ac2
-                in ac3) nl il
+                    ac2 = (pdx, pnew):ac1
+                in
+                  if sdx /= noSecondary then
+                      let
+                          sold = fromJust $ lookup sdx accu
+                          snew = Node.setSec sold idx
+                          ac3 = deleteBy assocEqual (sdx, sold) ac2
+                          ac4 = (sdx, snew):ac3
+                      in ac4
+                  else
+                      ac2
+           ) nl il
 
 -- | Compute the longest common suffix of a NameList list that
 -- | starts with a dot
@@ -781,7 +794,8 @@ loadInst :: (Monad m) =>
             [(String, Int)] -> [String] -> m (String, Instance.Instance)
 loadInst ktn (name:mem:dsk:status:pnode:snode:[]) = do
   pidx <- lookupNode pnode name ktn
-  sidx <- lookupNode snode name ktn
+  sidx <- (if null snode then return noSecondary
+           else lookupNode snode name ktn)
   vmem <- tryRead name mem
   vdsk <- tryRead name dsk
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
