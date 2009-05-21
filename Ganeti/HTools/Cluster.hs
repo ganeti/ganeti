@@ -743,6 +743,16 @@ stripSuffix suffix lst =
     let sflen = length suffix in
     map (\ (key, name) -> (key, take ((length name) - sflen) name)) lst
 
+-- | Safe 'read' function returning data encapsulated in a Result
+tryRead :: (Monad m, Read a) => String -> String -> m a
+tryRead name s =
+    let sols = readsPrec 0 s
+    in case sols of
+         (v, ""):[] -> return v
+         (_, e):[] -> fail $ name ++ ": leftover characters when parsing '"
+                      ++ s ++ "': '" ++ e ++ "'"
+         _ -> fail $ name ++ ": cannot parse string '" ++ s ++ "'"
+
 -- | Lookups a node into an assoc list
 lookupNode :: (Monad m) => String -> String -> [(String, Int)] -> m Int
 lookupNode node inst ktn =
@@ -752,12 +762,16 @@ lookupNode node inst ktn =
 
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
 loadNode (name:tm:nm:fm:td:fd:fo:[]) = do
-  let new_node =
-          if any (== "?") [tm,nm,fm,td,fd] || fo == "Y" then
-              Node.create 0 0 0 0 0 True
-          else
-              Node.create (read tm) (read nm) (read fm)
-                      (read td) (read fd) False
+  new_node <-
+      if any (== "?") [tm,nm,fm,td,fd] || fo == "Y" then
+          return $ Node.create 0 0 0 0 0 True
+      else do
+        vtm <- tryRead name tm
+        vnm <- tryRead name nm
+        vfm <- tryRead name fm
+        vtd <- tryRead name td
+        vfd <- tryRead name fd
+        return $ Node.create vtm vnm vfm vtd vfd False
   return (name, new_node)
 loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
 
@@ -766,9 +780,11 @@ loadInst :: (Monad m) =>
 loadInst ktn (name:mem:dsk:status:pnode:snode:[]) = do
   pidx <- lookupNode pnode name ktn
   sidx <- lookupNode snode name ktn
+  vmem <- tryRead name mem
+  vdsk <- tryRead name dsk
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
-  let newinst = Instance.create (read mem) (read dsk) status pidx sidx
+  let newinst = Instance.create vmem vdsk status pidx sidx
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ (show s) ++ "'"
 
