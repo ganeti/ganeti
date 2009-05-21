@@ -401,58 +401,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
 class XenPvmHypervisor(XenHypervisor):
   """Xen PVM hypervisor interface"""
 
-  PARAMETERS = [
-    constants.HV_KERNEL_PATH,
-    constants.HV_INITRD_PATH,
-    constants.HV_ROOT_PATH,
-    constants.HV_KERNEL_ARGS,
-    ]
-
-  @classmethod
-  def CheckParameterSyntax(cls, hvparams):
-    """Check the given parameters for validity.
-
-    For the PVM hypervisor, this only check the existence of the
-    kernel.
-
-    @type hvparams:  dict
-    @param hvparams: dictionary with parameter names/value
-    @raise errors.HypervisorError: when a parameter is not valid
-
-    """
-    super(XenPvmHypervisor, cls).CheckParameterSyntax(hvparams)
-
-    if not hvparams[constants.HV_KERNEL_PATH]:
-      raise errors.HypervisorError("Need a kernel for the instance")
-
-    if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
-      raise errors.HypervisorError("The kernel path must be an absolute path")
-
-    if not hvparams[constants.HV_ROOT_PATH]:
-      raise errors.HypervisorError("Need a root partition for the instance")
-
-    if hvparams[constants.HV_INITRD_PATH]:
-      if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):
-        raise errors.HypervisorError("The initrd path must be an absolute path"
-                                     ", if defined")
-
-  def ValidateParameters(self, hvparams):
-    """Check the given parameters for validity.
-
-    For the PVM hypervisor, this only check the existence of the
-    kernel.
-
-    """
-    super(XenPvmHypervisor, self).ValidateParameters(hvparams)
-
-    kernel_path = hvparams[constants.HV_KERNEL_PATH]
-    if not os.path.isfile(kernel_path):
-      raise errors.HypervisorError("Instance kernel '%s' not found or"
-                                   " not a file" % kernel_path)
-    initrd_path = hvparams[constants.HV_INITRD_PATH]
-    if initrd_path and not os.path.isfile(initrd_path):
-      raise errors.HypervisorError("Instance initrd '%s' not found or"
-                                   " not a file" % initrd_path)
+  PARAMETERS = {
+    constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
+    constants.HV_INITRD_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_ROOT_PATH: hv_base.REQUIRED_CHECK,
+    constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
+    }
 
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices):
@@ -510,75 +464,24 @@ class XenPvmHypervisor(XenHypervisor):
 class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
 
-  PARAMETERS = [
-    constants.HV_ACPI,
-    constants.HV_BOOT_ORDER,
-    constants.HV_CDROM_IMAGE_PATH,
-    constants.HV_DISK_TYPE,
-    constants.HV_NIC_TYPE,
-    constants.HV_PAE,
-    constants.HV_VNC_BIND_ADDRESS,
-    ]
-
-  @classmethod
-  def CheckParameterSyntax(cls, hvparams):
-    """Check the given parameter syntax.
-
-    """
-    super(XenHvmHypervisor, cls).CheckParameterSyntax(hvparams)
-    # boot order verification
-    boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if not boot_order or len(boot_order.strip("acdn")) != 0:
-      raise errors.HypervisorError("Invalid boot order '%s' specified,"
-                                   " must be one or more of [acdn]" %
-                                   boot_order)
-    # device type checks
-    nic_type = hvparams[constants.HV_NIC_TYPE]
-    if nic_type not in constants.HT_HVM_VALID_NIC_TYPES:
-      raise errors.HypervisorError("Invalid NIC type %s specified for the Xen"
-                                   " HVM hypervisor. Please choose one of: %s"
-                                   % (nic_type,
-                                      constants.HT_HVM_VALID_NIC_TYPES))
-    disk_type = hvparams[constants.HV_DISK_TYPE]
-    if disk_type not in constants.HT_HVM_VALID_DISK_TYPES:
-      raise errors.HypervisorError("Invalid disk type %s specified for the Xen"
-                                   " HVM hypervisor. Please choose one of: %s"
-                                   % (disk_type,
-                                      constants.HT_HVM_VALID_DISK_TYPES))
-    # vnc_bind_address verification
-    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
-    if vnc_bind_address:
-      if not utils.IsValidIP(vnc_bind_address):
-        raise errors.OpPrereqError("given VNC bind address '%s' doesn't look"
-                                   " like a valid IP address" %
-                                   vnc_bind_address)
-
-    iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
-    if iso_path and not os.path.isabs(iso_path):
-      raise errors.HypervisorError("The path to the HVM CDROM image must"
-                                   " be an absolute path or None, not %s" %
-                                   iso_path)
-
-  def ValidateParameters(self, hvparams):
-    """Check the given parameters for validity.
-
-    For the PVM hypervisor, this only check the existence of the
-    kernel.
-
-    @type hvparams:  dict
-    @param hvparams: dictionary with parameter names/value
-    @raise errors.HypervisorError: when a parameter is not valid
-
-    """
-    super(XenHvmHypervisor, self).ValidateParameters(hvparams)
-
-    # hvm_cdrom_image_path verification
-    iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
-    if iso_path and not os.path.isfile(iso_path):
-      raise errors.HypervisorError("The HVM CDROM image must either be a"
-                                   " regular file or a symlink pointing to"
-                                   " an existing regular file, not %s" %
-                                   iso_path)
+  PARAMETERS = {
+    constants.HV_ACPI: hv_base.NO_CHECK,
+    constants.HV_BOOT_ORDER: (True, ) + \
+    (lambda x: x and len(x.strip("acdn")) == 0,
+     "Invalid boot order specified, must be one or more of [acdn]",
+     None, None),
+    constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_DISK_TYPE: \
+    hv_base.ParamInSet(True, constants.HT_HVM_VALID_DISK_TYPES),
+    constants.HV_NIC_TYPE: \
+    hv_base.ParamInSet(True, constants.HT_HVM_VALID_NIC_TYPES),
+    constants.HV_PAE: hv_base.NO_CHECK,
+    constants.HV_VNC_BIND_ADDRESS: \
+    (False, utils.IsValidIP,
+     "VNC bind address is not a valid IP address", None, None),
+    constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
+    constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,
+    }
 
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices):
@@ -589,25 +492,25 @@ class XenHvmHypervisor(XenHypervisor):
 
     config = StringIO()
     config.write("# this is autogenerated by Ganeti, please do not edit\n#\n")
-    config.write("kernel = '/usr/lib/xen/boot/hvmloader'\n")
+
+    # kernel handling
+    kpath = hvp[constants.HV_KERNEL_PATH]
+    config.write("kernel = '%s'\n" % kpath)
+
     config.write("builder = 'hvm'\n")
     config.write("memory = %d\n" % instance.beparams[constants.BE_MEMORY])
     config.write("vcpus = %d\n" % instance.beparams[constants.BE_VCPUS])
     config.write("name = '%s'\n" % instance.name)
-    if instance.hvparams[constants.HV_PAE]:
+    if hvp[constants.HV_PAE]:
       config.write("pae = 1\n")
     else:
       config.write("pae = 0\n")
-    if instance.hvparams[constants.HV_ACPI]:
+    if hvp[constants.HV_ACPI]:
       config.write("acpi = 1\n")
     else:
       config.write("acpi = 0\n")
     config.write("apic = 1\n")
-    arch = os.uname()[4]
-    if '64' in arch:
-      config.write("device_model = '/usr/lib64/xen/bin/qemu-dm'\n")
-    else:
-      config.write("device_model = '/usr/lib/xen/bin/qemu-dm'\n")
+    config.write("device_model = '%s'\n" % hvp[constants.HV_DEVICE_MODEL])
     config.write("boot = '%s'\n" % hvp[constants.HV_BOOT_ORDER])
     config.write("sdl = 0\n")
     config.write("usb = 1\n")

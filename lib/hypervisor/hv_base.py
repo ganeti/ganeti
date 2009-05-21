@@ -21,9 +21,65 @@
 
 """Base class for all hypervisors
 
+The syntax for the _CHECK variables and the contents of the PARAMETERS
+dict is the same, see the docstring for L{BaseHypervisor.PARAMETERS}.
+
+@var _FILE_CHECK: stub for file checks, without the required flag
+@var _DIR_CHECK: stub for directory checks, without the required flag
+@var REQ_FILE_CHECK: mandatory file parameter
+@var OPT_FILE_CHECK: optional file parameter
+@var REQ_DIR_CHECK: mandatory directory parametr
+@var OPT_DIR_CHECK: optional directory parameter
+@var NO_CHECK: parameter without any checks at all
+@var REQUIRED_CHECK: parameter required to exist (and non-false), but
+    without other checks; beware that this can't be used for boolean
+    parameters, where you should use NO_CHECK or a custom checker
+
 """
 
+import os
+import re
+
+
 from ganeti import errors
+from ganeti import utils
+
+
+# Read the BaseHypervisor.PARAMETERS docstring for the syntax of the
+# _CHECK values
+
+# must be afile
+_FILE_CHECK = (os.path.isabs, "must be an absolute path",
+              os.path.isfile, "not found or not a file")
+
+# must be a directory
+_DIR_CHECK = (os.path.isabs, "must be an absolute path",
+             os.path.isdir, "not found or not a directory")
+
+# nice wrappers for users
+REQ_FILE_CHECK = (True, ) + _FILE_CHECK
+OPT_FILE_CHECK = (False, ) + _FILE_CHECK
+REQ_DIR_CHECK = (True, ) + _DIR_CHECK
+OPT_DIR_CHECK = (False, ) + _DIR_CHECK
+
+# no checks at all
+NO_CHECK = (False, None, None, None, None)
+
+# required, but no other checks
+REQUIRED_CHECK = (True, None, None, None, None)
+
+def ParamInSet(required, my_set):
+  """Builds parameter checker for set membership.
+
+  @type required: boolean
+  @param required: whether this is a required parameter
+  @type my_set: tuple, list or set
+  @param my_set: allowed values set
+
+  """
+  fn = lambda x: x in my_set
+  err = ("The value must be one of: %s" % utils.CommaJoin(my_set))
+  return (required, fn, err, None, None)
 
 
 class BaseHypervisor(object):
@@ -32,8 +88,18 @@ class BaseHypervisor(object):
   The goal is that all aspects of the virtualisation technology are
   abstracted away from the rest of code.
 
+  @cvar PARAMETERS: a dict of parameter name: check type; the check type is
+      a five-tuple containing:
+          - the required flag (boolean)
+          - a function to check for syntax, that will be used in
+            L{CheckParameterSyntax}, in the master daemon process
+          - an error message for the above function
+          - a function to check for parameter validity on the remote node,
+            in the L{ValidateParameters} function
+          - an error message for the above function
+
   """
-  PARAMETERS = []
+  PARAMETERS = {}
 
   def __init__(self):
     pass
@@ -168,14 +234,25 @@ class BaseHypervisor(object):
     """
     for key in hvparams:
       if key not in cls.PARAMETERS:
-        raise errors.HypervisorError("Hypervisor parameter '%s'"
-                                     " not supported" % key)
-    for key in cls.PARAMETERS:
-      if key not in hvparams:
-        raise errors.HypervisorError("Hypervisor parameter '%s'"
-                                     " missing" % key)
+        raise errors.HypervisorError("Parameter '%s' is not supported" % key)
 
-  def ValidateParameters(self, hvparams):
+    # cheap tests that run on the master, should not access the world
+    for name, (required, check_fn, errstr, _, _) in cls.PARAMETERS.items():
+      if name not in hvparams:
+        raise errors.HypervisorError("Parameter '%s' is missing" % name)
+      value = hvparams[name]
+      if not required and not value:
+        continue
+      if not value:
+        raise errors.HypervisorError("Parameter '%s' is required but"
+                                     " is currently not defined" % (name, ))
+      if check_fn is not None and not check_fn(value):
+        raise errors.HypervisorError("Parameter '%s' fails syntax"
+                                     " check: %s (current value: '%s')" %
+                                     (name, errstr, value))
+
+  @classmethod
+  def ValidateParameters(cls, hvparams):
     """Check the given parameters for validity.
 
     This should check the passed set of parameters for
@@ -186,4 +263,72 @@ class BaseHypervisor(object):
     @raise errors.HypervisorError: when a parameter is not valid
 
     """
-    pass
+    for name, (required, _, _, check_fn, errstr) in cls.PARAMETERS.items():
+      value = hvparams[name]
+      if not required and not value:
+        continue
+      if check_fn is not None and not check_fn(value):
+        raise errors.HypervisorError("Parameter '%s' fails"
+                                     " validation: %s (current value: '%s')" %
+                                     (name, errstr, value))
+
+  def GetLinuxNodeInfo(self):
+    """For linux systems, return actual OS information.
+
+    This is an abstraction for all non-hypervisor-based classes, where
+    the node actually sees all the memory and CPUs via the /proc
+    interface and standard commands. The other case if for example
+    xen, where you only see the hardware resources via xen-specific
+    tools.
+
+    @return: a dict with the following keys (values in MiB):
+          - memory_total: the total memory size on the node
+          - memory_free: the available memory on the node for instances
+          - memory_dom0: the memory used by the node itself, if available
+
+    """
+    try:
+      fh = file("/proc/meminfo")
+      try:
+        data = fh.readlines()
+      finally:
+        fh.close()
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to list node info: %s" % (err,))
+
+    result = {}
+    sum_free = 0
+    try:
+      for line in data:
+        splitfields = line.split(":", 1)
+
+        if len(splitfields) > 1:
+          key = splitfields[0].strip()
+          val = splitfields[1].strip()
+          if key == 'MemTotal':
+            result['memory_total'] = int(val.split()[0])/1024
+          elif key in ('MemFree', 'Buffers', 'Cached'):
+            sum_free += int(val.split()[0])/1024
+          elif key == 'Active':
+            result['memory_dom0'] = int(val.split()[0])/1024
+    except (ValueError, TypeError), err:
+      raise errors.HypervisorError("Failed to compute memory usage: %s" %
+                                   (err,))
+    result['memory_free'] = sum_free
+
+    cpu_total = 0
+    try:
+      fh = open("/proc/cpuinfo")
+      try:
+        cpu_total = len(re.findall("(?m)^processor\s*:\s*[0-9]+\s*$",
+                                   fh.read()))
+      finally:
+        fh.close()
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to list node info: %s" % (err,))
+    result['cpu_total'] = cpu_total
+    # FIXME: export correct data here
+    result['cpu_nodes'] = 1
+    result['cpu_sockets'] = 1
+
+    return result

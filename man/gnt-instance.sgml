@@ -460,7 +460,10 @@
                   initrd to boot the instance with. Xen PVM instances
                   can use this always, while for KVM if this option is
                   only used if the <option>kernel_path</option> option
-                  is also specified.
+                  is also specified. You can pass here either an
+                  absolute filename (the path to the initrd) if you
+                  want to use an initrd, or use the format
+                  <userinput>no_initrd_path</userinput> for no initrd.
                 </para>
               </listitem>
             </varlistentry>
@@ -1127,7 +1130,7 @@ instance5: 11225
         <para>
           Show detailed information about the given instance(s). This is
           different from <command>list</command> as it shows detailed data
-          about the instance's disks (especially useful for the drbd disk 
+          about the instance's disks (especially useful for the drbd disk
           template).
         </para>
 
@@ -1314,6 +1317,9 @@ instance5: 11225
             <arg>--all</arg>
           </group>
           <sbr>
+          <arg>-H <option>key=value...</option></arg>
+          <arg>-B <option>key=value...</option></arg>
+          <sbr>
           <arg>--submit</arg>
           <sbr>
           <arg choice="opt"
@@ -1380,6 +1386,23 @@ instance5: 11225
           The <option>--force-multiple</option> will skip the
           interactive confirmation in the case the more than one
           instance will be affected.
+        </para>
+
+        <para>
+          The <option>-H</option> and <option>-B</option> options
+          specify extra, temporary hypervisor and backend parameters
+          that can be used to start an instance with modified
+          parameters. They can be useful for quick testing without
+          having to modify an instance back and forth, e.g.:
+          <screen>
+# gnt-instance start -H root_args="single" instance1
+# gnt-instance start -B memory=2048 instance2
+          </screen>
+          The first form will start the instance
+          <userinput>instance1</userinput> in single-user mode, and
+          the instance <userinput>instance2</userinput> with 2GB of
+          RAM (this time only, unless that is the actual instance
+          memory size already).
         </para>
 
         <para>

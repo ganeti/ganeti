@@ -1,7 +1,7 @@
 Ganeti remote API
 =================
 
-Documents Ganeti version 2.0
+Documents Ganeti version |version|
 
 .. contents::
 
@@ -34,9 +34,11 @@ long as it supports network connections.
 Shell
 +++++
 
+.. highlight:: sh
+
 Using wget::
 
-  wget -q -O - https://CLUSTERNAME:5080/2/info
+   wget -q -O - https://CLUSTERNAME:5080/2/info
 
 or curl::
 
@@ -46,10 +48,10 @@ or curl::
 Python
 ++++++
 
-::
+.. highlight: python
 
   import urllib2
-  f = urllib2.urlopen('https://CLUSTERNAME:5080/info')
+  f = urllib2.urlopen('https://CLUSTERNAME:5080/2/info')
   print f.read()
 
 
@@ -61,9 +63,11 @@ JavaScript
   non-standard ports or different domain names. Fetching the data
   on the webserver is easier.
 
+.. highlight:: javascript
+
 ::
 
-  var url = 'https://CLUSTERNAME:5080/info';
+  var url = 'https://CLUSTERNAME:5080/2/info';
   var info;
   var xmlreq = new XMLHttpRequest();
   xmlreq.onreadystatechange = function () {
@@ -82,4 +86,432 @@ JavaScript
 Resources
 ---------
 
-.. include:: rapi-resources.gen
+.. highlight:: javascript
+
+``/``
++++++
+
+The root resource.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Shows the list of mapped resources.
+
+Returns: a dictionary with 'name' and 'uri' keys for each of them.
+
+``/2``
+++++++
+
+The ``/2`` resource, the root of the version 2 API.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Show the list of mapped resources.
+
+Returns: a dictionary with ``name`` and ``uri`` keys for each of them.
+
+``/2/info``
++++++++++++
+
+Cluster information resource.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Returns cluster information.
+
+Example::
+
+  {
+    "config_version": 2000000,
+    "name": "cluster",
+    "software_version": "2.0.0~beta2",
+    "os_api_version": 10,
+    "export_version": 0,
+    "candidate_pool_size": 10,
+    "enabled_hypervisors": [
+      "fake"
+    ],
+    "hvparams": {
+      "fake": {}
+     },
+    "default_hypervisor": "fake",
+    "master": "node1.example.com",
+    "architecture": [
+      "64bit",
+      "x86_64"
+    ],
+    "protocol_version": 20,
+    "beparams": {
+      "default": {
+        "auto_balance": true,
+        "vcpus": 1,
+        "memory": 128
+       }
+      }
+    }
+
+``/2/instances``
+++++++++++++++++
+
+The instances resource.
+
+It supports the following commands: ``GET``, ``POST``.
+
+``GET``
+~~~~~~~
+
+Returns a list of all available instances.
+
+
+Example::
+
+    [
+      {
+        "name": "web.example.com",
+        "uri": "\/instances\/web.example.com"
+      },
+      {
+        "name": "mail.example.com",
+        "uri": "\/instances\/mail.example.com"
+      }
+    ]
+
+If the optional *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about
+instances as a list.
+
+Example::
+
+    [
+      {
+         "status": "running",
+         "disk_usage": 20480,
+         "nic.bridges": [
+           "xen-br0"
+          ],
+         "name": "web.example.com",
+         "tags": ["tag1", "tag2"],
+         "beparams": {
+           "vcpus": 2,
+           "memory": 512
+         },
+         "disk.sizes": [
+             20480
+         ],
+         "pnode": "node1.example.com",
+         "nic.macs": ["01:23:45:67:89:01"],
+         "snodes": ["node2.example.com"],
+         "disk_template": "drbd",
+         "admin_state": true,
+         "os": "debian-etch",
+         "oper_state": true
+      },
+      ...
+    ]
+
+
+``POST``
+~~~~~~~~
+
+Creates an instance.
+
+Returns: a job ID that can be used later for polling.
+
+``/2/instances/[instance_name]``
+++++++++++++++++++++++++++++++++
+
+Instance-specific resource.
+
+It supports the following commands: ``GET``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns information about an instance, similar to the bulk output from
+the instance list.
+
+``DELETE``
+~~~~~~~~~~
+
+Deletes an instance.
+
+
+``/2/instances/[instance_name]/reboot``
++++++++++++++++++++++++++++++++++++++++
+
+Reboots URI for an instance.
+
+It supports the following commands: ``POST``.
+
+``POST``
+~~~~~~~~
+
+Reboots the instance.
+
+The URI takes optional ``type=hard|soft|full`` and
+``ignore_secondaries=False|True`` parameters.
+
+``/2/instances/[instance_name]/shutdown``
++++++++++++++++++++++++++++++++++++++++++
+
+Instance shutdown URI.
+
+It supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Shutdowns an instance.
+
+
+``/2/instances/[instance_name]/startup``
+++++++++++++++++++++++++++++++++++++++++
+
+Instance startup URI.
+
+It supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Startup an instance.
+
+The URI takes an optional ``force=False|True`` parameter to start the
+instance if even if secondary disks are failing.
+
+``/2/instances/[instance_name]/tags``
++++++++++++++++++++++++++++++++++++++
+
+Manages per-instance tags.
+
+It supports the following commands: ``GET``, ``PUT``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns a list of tags.
+
+Example::
+
+    ["tag1", "tag2", "tag3"]
+
+``PUT``
+~~~~~~~
+
+Add a set of tags.
+
+The request as a list of strings should be ``PUT`` to this URI. The
+result willl be a job id.
+
+``DELETE``
+~~~~~~~~~~
+
+Delete a tag.
+
+In order to delete a set of tags, the DELETE request should be
+addressed to URI like::
+
+    /tags?tag=[tag]&tag=[tag]
+
+``/2/jobs``
++++++++++++
+
+The ``/2/jobs`` resource.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Returns a dictionary of jobs.
+
+Returns: a dictionary with jobs id and uri.
+
+``/2/jobs/[job_id]``
+++++++++++++++++++++
+
+
+Individual job URI.
+
+It supports the following commands: ``GET``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns a job status.
+
+Returns: a dictionary with job parameters.
+
+The result includes:
+
+- id: job ID as a number
+- status: current job status as a string
+- ops: involved OpCodes as a list of dictionaries for each
+  opcodes in the job
+- opstatus: OpCodes status as a list
+- opresult: OpCodes results as a list of lists
+
+``DELETE``
+~~~~~~~~~~
+
+Cancel a not-yet-started job.
+
+``/2/nodes``
+++++++++++++
+
+Nodes resource.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Returns a list of all nodes.
+
+Example::
+
+    [
+      {
+        "id": "node1.example.com",
+        "uri": "\/instances\/node1.example.com"
+      },
+      {
+        "id": "node2.example.com",
+        "uri": "\/instances\/node2.example.com"
+      }
+    ]
+
+If the optional 'bulk' argument is provided and set to 'true' value
+(i.e '?bulk=1'), the output contains detailed information about nodes
+as a list.
+
+Example::
+
+    [
+      {
+        "pinst_cnt": 1,
+        "mfree": 31280,
+        "mtotal": 32763,
+        "name": "www.example.com",
+        "tags": [],
+        "mnode": 512,
+        "dtotal": 5246208,
+        "sinst_cnt": 2,
+        "dfree": 5171712,
+        "offline": false
+      },
+      ...
+    ]
+
+``/2/nodes/[node_name]/tags``
++++++++++++++++++++++++++++++
+
+Manages per-node tags.
+
+It supports the following commands: ``GET``, ``PUT``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns a list of tags.
+
+Example::
+
+    ["tag1", "tag2", "tag3"]
+
+``PUT``
+~~~~~~~
+
+Add a set of tags.
+
+The request as a list of strings should be PUT to this URI. The result
+will be a job id.
+
+``DELETE``
+~~~~~~~~~~
+
+Deletes tags.
+
+In order to delete a set of tags, the DELETE request should be
+addressed to URI like::
+
+    /tags?tag=[tag]&tag=[tag]
+
+``/2/os``
++++++++++
+
+OS resource.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Return a list of all OSes.
+
+Can return error 500 in case of a problem. Since this is a costly
+operation for Ganeti 2.0, it is not recommended to execute it too
+often.
+
+Example::
+
+    ["debian-etch"]
+
+``/2/tags``
++++++++++++
+
+Manages cluster tags.
+
+It supports the following commands: ``GET``, ``PUT``, ``DELETE``.
+
+``GET``
+~~~~~~~
+
+Returns the cluster tags.
+
+Example::
+
+    ["tag1", "tag2", "tag3"]
+
+``PUT``
+~~~~~~~
+
+Adds a set of tags.
+
+The request as a list of strings should be PUT to this URI. The result
+will be a job id.
+
+``DELETE``
+~~~~~~~~~~
+
+Deletes tags.
+
+In order to delete a set of tags, the DELETE request should be
+addressed to URI like::
+
+    /tags?tag=[tag]&tag=[tag]
+
+``/version``
+++++++++++++
+
+The version resource.
+
+This resource should be used to determine the remote API version and
+to adapt clients accordingly.
+
+It supports the following commands: ``GET``.
+
+``GET``
+~~~~~~~
+
+Returns the remote API version. Ganeti 1.2 returned ``1`` and Ganeti
+2.0 returns ``2``.

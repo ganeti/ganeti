@@ -223,7 +223,7 @@ nodes
 
   No allocations should be made on nodes having either the ``drained``
   or ``offline`` flags set. More details about these of node status
-  flags is available in the manpage *ganeti(7)*.
+  flags is available in the manpage :manpage:`ganeti(7)`.
 
 
 Respone message

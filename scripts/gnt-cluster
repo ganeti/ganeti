@@ -243,6 +243,10 @@ def ShowClusterConfig(opts, args):
 
   ToStdout("Cluster parameters:")
   ToStdout("  - candidate pool size: %s", result["candidate_pool_size"])
+  ToStdout("  - master netdev: %s", result["master_netdev"])
+  ToStdout("  - default bridge: %s", result["default_bridge"])
+  ToStdout("  - lvm volume group: %s", result["volume_group_name"])
+  ToStdout("  - file storage path: %s", result["file_storage_dir"])
 
   ToStdout("Default instance parameters:")
   for gr_name, gr_dict in result["beparams"].items():
@@ -463,6 +467,8 @@ def SetClusterParams(opts, args):
   if not opts.lvm_storage and opts.vg_name:
     ToStdout("Options --no-lvm-storage and --vg-name conflict.")
     return 1
+  elif not opts.lvm_storage:
+    vg_name = ''
 
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:
@@ -476,7 +482,7 @@ def SetClusterParams(opts, args):
   beparams = opts.beparams
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
 
-  op = opcodes.OpSetClusterParams(vg_name=opts.vg_name,
+  op = opcodes.OpSetClusterParams(vg_name=vg_name,
                                   enabled_hypervisors=hvlist,
                                   hvparams=hvparams,
                                   beparams=beparams,

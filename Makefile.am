@@ -11,7 +11,6 @@ abs_top_srcdir = @abs_top_srcdir@
 
 ACLOCAL_AMFLAGS = -I autotools
 DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
-BUILD_RAPI_RESOURCE_DOC = $(top_srcdir)/doc/build-rapi-resources-doc
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -38,14 +37,15 @@ DIRS = \
 	tools
 
 MAINTAINERCLEANFILES = \
-	$(dochtml) \
-	$(patsubst %.dot,%.png,$(docdot)) \
+	$(docpng) \
 	$(maninput)
+
+maintainer-clean-local:
+	-rm -rf doc/api doc/build doc/html
 
 CLEANFILES = \
 	autotools/replace_vars.sed \
 	devel/upload \
-	doc/rapi-resources.gen \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
@@ -112,19 +112,31 @@ http_PYTHON = \
 docrst = \
 	doc/admin.rst \
 	doc/design-2.0.rst \
+	doc/glossary.rst \
 	doc/hooks.rst \
 	doc/iallocator.rst \
+	doc/index.rst \
 	doc/install.rst \
+	doc/rapi.rst \
 	doc/security.rst
 
-dochtml = $(patsubst %.rst,%.html,$(docrst))
+doc/html: $(docrst) $(docpng) doc/conf.py configure.ac
+	@test -n "$(SPHINX)" || \
+	    { echo 'sphinx-build' not found during configure; exit 1; }
+	mkdir -p doc/build/doctrees
+	PYTHONPATH=.:$(top_builddir) sphinx-build -q -b html \
+	    -d doc/build/doctrees \
+	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
+	    -D release="$(PACKAGE_VERSION)" \
+	    $(top_srcdir)/doc doc/html
+	touch "$@"
 
 docdot = \
 	doc/arch-2.0.dot
 
-doc_DATA = $(dochtml)
+docpng = $(patsubst %.dot,%.png,$(docdot))
 
-noinst_DATA = $(manhtml)
+noinst_DATA = $(manhtml) doc/html
 
 dist_sbin_SCRIPTS = \
 	daemons/ganeti-noded \
@@ -151,9 +163,10 @@ EXTRA_DIST = \
 	DEVNOTES \
 	autotools/docbook-wrapper \
 	devel/upload.in \
-	$(docrst) \
 	$(docdot) \
-	doc/build-rapi-resources-doc \
+	$(docrst) \
+	doc/conf.py \
+	doc/html \
 	doc/examples/bash_completion.in \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
@@ -200,9 +213,11 @@ maninput = $(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) $(patsubst 
 
 TEST_FILES = \
 	test/data/bdev-both.txt \
+	test/data/bdev-8.3-both.txt \
 	test/data/bdev-disk.txt \
 	test/data/bdev-net.txt \
-	test/data/proc_drbd8.txt
+	test/data/proc_drbd8.txt \
+	test/data/proc_drbd83.txt
 
 dist_TESTS = \
 	test/ganeti.bdev_unittest.py \
@@ -223,9 +238,7 @@ nodist_TESTS =
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
-TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir)
-
-RAPI_RESOURCES = $(wildcard lib/rapi/*.py)
+TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir) $(PYTHON)
 
 all-local: stamp-directories lib/_autoconf.py devel/upload \
 	doc/examples/bash_completion \
@@ -239,21 +252,9 @@ doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/%.html: doc/%.rst
-	@test -n "$(RST2HTML)" || { echo 'rst2html' not found during configure; exit 1; }
-	$(RST2HTML) $< $@
-
 doc/%.png: doc/%.dot
 	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
 	$(DOT) -Tpng -o $@ $<
-
-doc/design-2.0.html: doc/design-2.0.rst doc/arch-2.0.png
-
-doc/rapi.html: doc/rapi-resources.gen
-
-doc/rapi-resources.gen: $(BUILD_RAPI_RESOURCE_DOC) $(RAPI_RESOURCES)
-	PYTHONPATH=.:$(top_builddir) $(BUILD_RAPI_RESOURCE_DOC) > $@ || \
-	  rm -f $@
 
 man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2MAN)" || { echo 'docbook2html' not found during configure; exit 1; }
@@ -282,7 +283,7 @@ man/%.html: man/%.html.in stamp-directories $(REPLACE_VARS_SED)
 
 man/footer.sgml $(TESTS): srclinks
 
-$(TESTS) $(BUILD_RAPI_RESOURCE_DOC): ganeti lib/_autoconf.py
+$(TESTS): ganeti lib/_autoconf.py
 
 lib/_autoconf.py: Makefile stamp-directories
 	set -e; \

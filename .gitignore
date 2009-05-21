@@ -32,11 +32,10 @@
 
 # doc
 /doc/api
-/doc/*.html
+/doc/build
+/doc/html
 /doc/*.in
-/doc/*.pdf
 /doc/*.png
-/doc/rapi-resources.gen
 
 # doc/examples
 /doc/examples/bash_completion

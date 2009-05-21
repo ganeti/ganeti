@@ -56,6 +56,7 @@ Before initialising the cluster, on each node you need to create the following
 directories:
 
   - /etc/ganeti
+  - /var/lib/ganeti, /var/log/ganeti
   - /srv/ganeti, /srv/ganeti/os, /srv/ganeti/export
 
 After this, use ``gnt-cluster init``.

@@ -563,7 +563,7 @@ class DRBD8Status(object):
 
   """
   UNCONF_RE = re.compile(r"\s*[0-9]+:\s*cs:Unconfigured$")
-  LINE_RE = re.compile(r"\s*[0-9]+:\s*cs:(\S+)\s+st:([^/]+)/(\S+)"
+  LINE_RE = re.compile(r"\s*[0-9]+:\s*cs:(\S+)\s+(?:st|ro):([^/]+)/(\S+)"
                        "\s+ds:([^/]+)/(\S+)\s+.*$")
   SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
                        "\sfinish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
@@ -896,15 +896,20 @@ class DRBD8(BaseDRBD):
     # value types
     value = pyp.Word(pyp.alphanums + '_-/.:')
     quoted = dbl_quote + pyp.CharsNotIn('"') + dbl_quote
-    addr_port = (pyp.Word(pyp.nums + '.') + pyp.Literal(':').suppress() +
-                 number)
+    addr_type = (pyp.Optional(pyp.Literal("ipv4")).suppress() +
+                 pyp.Optional(pyp.Literal("ipv6")).suppress())
+    addr_port = (addr_type + pyp.Word(pyp.nums + '.') +
+                 pyp.Literal(':').suppress() + number)
     # meta device, extended syntax
     meta_value = ((value ^ quoted) + pyp.Literal('[').suppress() +
                   number + pyp.Word(']').suppress())
+    # device name, extended syntax
+    device_value = pyp.Literal("minor").suppress() + number
 
     # a statement
     stmt = (~rbrace + keyword + ~lbrace +
-            pyp.Optional(addr_port ^ value ^ quoted ^ meta_value) +
+            pyp.Optional(addr_port ^ value ^ quoted ^ meta_value ^
+                         device_value) +
             pyp.Optional(defa) + semi +
             pyp.Optional(pyp.restOfLine).suppress())
 

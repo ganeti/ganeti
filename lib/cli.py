@@ -815,6 +815,8 @@ def GenerateTable(headers, fields, separator, data,
     format = separator.replace("%", "%%").join(format_fields)
 
   for row in data:
+    if row is None:
+      continue
     for idx, val in enumerate(row):
       if unitfields.Matches(fields[idx]):
         try:
@@ -840,6 +842,8 @@ def GenerateTable(headers, fields, separator, data,
 
   for line in data:
     args = []
+    if line is None:
+      line = ['-' for _ in fields]
     for idx in xrange(len(fields)):
       if separator is None:
         args.append(mlens[idx])

@@ -85,7 +85,11 @@ def ListJobs(opts, args):
     headers = None
 
   # change raw values to nicer strings
-  for row in output:
+  for row_id, row in enumerate(output):
+    if row is None:
+      ToStderr("No such job: %s" % args[row_id])
+      continue
+
     for idx, field in enumerate(selected_fields):
       val = row[idx]
       if field == "status":

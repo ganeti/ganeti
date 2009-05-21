@@ -48,23 +48,30 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _CONF_DIR = _ROOT_DIR + "/conf" # contains instances startup data
   _DIRS = [_ROOT_DIR, _PIDS_DIR, _CTRL_DIR, _CONF_DIR]
 
-  PARAMETERS = [
-    constants.HV_KERNEL_PATH,
-    constants.HV_INITRD_PATH,
-    constants.HV_ROOT_PATH,
-    constants.HV_KERNEL_ARGS,
-    constants.HV_ACPI,
-    constants.HV_SERIAL_CONSOLE,
-    constants.HV_VNC_BIND_ADDRESS,
-    constants.HV_VNC_TLS,
-    constants.HV_VNC_X509,
-    constants.HV_VNC_X509_VERIFY,
-    constants.HV_CDROM_IMAGE_PATH,
-    constants.HV_BOOT_ORDER,
-    constants.HV_NIC_TYPE,
-    constants.HV_DISK_TYPE,
-    constants.HV_USB_MOUSE,
-    ]
+  PARAMETERS = {
+    constants.HV_KERNEL_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_INITRD_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_ROOT_PATH: hv_base.NO_CHECK,
+    constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
+    constants.HV_ACPI: hv_base.NO_CHECK,
+    constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
+    constants.HV_VNC_BIND_ADDRESS: \
+    (False, lambda x: (utils.IsValidIP(x) or os.path.isabs(x)),
+     "the VNC bind address must be either a valid IP address or an absolute"
+     " pathname", None, None),
+    constants.HV_VNC_TLS: hv_base.NO_CHECK,
+    constants.HV_VNC_X509: hv_base.OPT_DIR_CHECK,
+    constants.HV_VNC_X509_VERIFY: hv_base.NO_CHECK,
+    constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_BOOT_ORDER: \
+    hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
+    constants.HV_NIC_TYPE: \
+    hv_base.ParamInSet(True, constants.HT_KVM_VALID_NIC_TYPES),
+    constants.HV_DISK_TYPE: \
+    hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
+    constants.HV_USB_MOUSE: \
+    hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
+    }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
                                     re.M | re.I)
@@ -106,6 +113,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     return '%s/%s.runtime' % (cls._CONF_DIR, instance_name)
+
+  @classmethod
+  def _RemoveInstanceRuntimeFiles(cls, pidfile, instance_name):
+    """Removes an instance's rutime sockets/files.
+
+    """
+    utils.RemoveFile(pidfile)
+    utils.RemoveFile(cls._InstanceMonitor(instance_name))
+    utils.RemoveFile(cls._InstanceSerial(instance_name))
+    utils.RemoveFile(cls._InstanceKVMRuntime(instance_name))
 
   def _WriteNetScript(self, instance, seq, nic):
     """Write a script to connect a net interface to the proper bridge.
@@ -194,9 +211,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     while arg_list:
       arg =  arg_list.pop(0)
       if arg == '-m':
-        memory = arg_list.pop(0)
+        memory = int(arg_list.pop(0))
       elif arg == '-smp':
-        vcpus = arg_list.pop(0)
+        vcpus = int(arg_list.pop(0))
 
     return (instance_name, pid, memory, vcpus, stat, times)
 
@@ -236,9 +253,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-no-acpi'])
 
     hvp = instance.hvparams
-    boot_disk = hvp[constants.HV_BOOT_ORDER] == "disk"
-    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == "cdrom"
-    boot_network = hvp[constants.HV_BOOT_ORDER] == "network"
+    boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
+    boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])
@@ -492,10 +509,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         self._RetryInstancePowerdown(instance, pid)
 
     if not utils.IsProcessAlive(pid):
-      utils.RemoveFile(pidfile)
-      utils.RemoveFile(self._InstanceMonitor(instance.name))
-      utils.RemoveFile(self._InstanceSerial(instance.name))
-      utils.RemoveFile(self._InstanceKVMRuntime(instance.name))
+      self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
       return True
     else:
       return False
@@ -610,13 +624,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           time.sleep(2)
 
     utils.KillProcess(pid)
-    utils.RemoveFile(pidfile)
-    utils.RemoveFile(self._InstanceMonitor(instance_name))
-    utils.RemoveFile(self._InstanceSerial(instance_name))
-    utils.RemoveFile(self._InstanceKVMRuntime(instance_name))
+    self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
 
   def GetNodeInfo(self):
     """Return information about the node.
+
+    This is just a wrapper over the base GetLinuxNodeInfo method.
 
     @return: a dict with the following keys (values in MiB):
           - memory_total: the total memory size on the node
@@ -624,51 +637,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           - memory_dom0: the memory used by the node itself, if available
 
     """
-    # global ram usage from the xm info command
-    # memory                 : 3583
-    # free_memory            : 747
-    # note: in xen 3, memory has changed to total_memory
-    try:
-      fh = file("/proc/meminfo")
-      try:
-        data = fh.readlines()
-      finally:
-        fh.close()
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Failed to list node info: %s" % err)
-
-    result = {}
-    sum_free = 0
-    for line in data:
-      splitfields = line.split(":", 1)
-
-      if len(splitfields) > 1:
-        key = splitfields[0].strip()
-        val = splitfields[1].strip()
-        if key == 'MemTotal':
-          result['memory_total'] = int(val.split()[0])/1024
-        elif key in ('MemFree', 'Buffers', 'Cached'):
-          sum_free += int(val.split()[0])/1024
-        elif key == 'Active':
-          result['memory_dom0'] = int(val.split()[0])/1024
-    result['memory_free'] = sum_free
-
-    cpu_total = 0
-    try:
-      fh = open("/proc/cpuinfo")
-      try:
-        cpu_total = len(re.findall("(?m)^processor\s*:\s*[0-9]+\s*$",
-                                   fh.read()))
-      finally:
-        fh.close()
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Failed to list node info: %s" % err)
-    result['cpu_total'] = cpu_total
-    # FIXME: export correct data here
-    result['cpu_nodes'] = 1
-    result['cpu_sockets'] = 1
-
-    return result
+    return self.GetLinuxNodeInfo()
 
   @classmethod
   def GetShellCommandForConsole(cls, instance, hvparams, beparams):
@@ -726,105 +695,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kernel_path = hvparams[constants.HV_KERNEL_PATH]
     if kernel_path:
-      if not os.path.isabs(hvparams[constants.HV_KERNEL_PATH]):
-        raise errors.HypervisorError("The kernel path must be an absolute path"
-                                     ", if defined")
-
       if not hvparams[constants.HV_ROOT_PATH]:
-        raise errors.HypervisorError("Need a root partition for the instance"
-                                     ", if a kernel is defined")
+        raise errors.HypervisorError("Need a root partition for the instance,"
+                                     " if a kernel is defined")
 
-    if hvparams[constants.HV_INITRD_PATH]:
-      if not os.path.isabs(hvparams[constants.HV_INITRD_PATH]):
-        raise errors.HypervisorError("The initrd path must an absolute path"
-                                     ", if defined")
-
-    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
-    if vnc_bind_address:
-      if not utils.IsValidIP(vnc_bind_address):
-        if not os.path.isabs(vnc_bind_address):
-          raise errors.HypervisorError("The VNC bind address must be either"
-                                       " a valid IP address or an absolute"
-                                       " pathname. '%s' given" %
-                                       vnc_bind_address)
-
-    if hvparams[constants.HV_VNC_X509_VERIFY] and \
-      not hvparams[constants.HV_VNC_X509]:
-        raise errors.HypervisorError("%s must be defined, if %s is" %
-                                     (constants.HV_VNC_X509,
-                                      constants.HV_VNC_X509_VERIFY))
-
-    if hvparams[constants.HV_VNC_X509]:
-      if not os.path.isabs(hvparams[constants.HV_VNC_X509]):
-        raise errors.HypervisorError("The vnc x509 path must an absolute path"
-                                     ", if defined")
-
-    iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
-    if iso_path and not os.path.isabs(iso_path):
-      raise errors.HypervisorError("The path to the CDROM image must be"
-                                   " an absolute path, if defined")
+    if (hvparams[constants.HV_VNC_X509_VERIFY] and
+        not hvparams[constants.HV_VNC_X509]):
+      raise errors.HypervisorError("%s must be defined, if %s is" %
+                                   (constants.HV_VNC_X509,
+                                    constants.HV_VNC_X509_VERIFY))
 
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if boot_order not in ('cdrom', 'disk', 'network'):
-      raise errors.HypervisorError("The boot order must be 'cdrom', 'disk' or"
-                                   " 'network'")
 
-    if boot_order == 'cdrom' and not iso_path:
-      raise errors.HypervisorError("Cannot boot from cdrom without an ISO path")
-
-    nic_type = hvparams[constants.HV_NIC_TYPE]
-    if nic_type not in constants.HT_KVM_VALID_NIC_TYPES:
-      raise errors.HypervisorError("Invalid NIC type %s specified for the KVM"
-                                   " hypervisor. Please choose one of: %s" %
-                                   (nic_type,
-                                    constants.HT_KVM_VALID_NIC_TYPES))
-    elif boot_order == 'network' and nic_type == constants.HT_NIC_PARAVIRTUAL:
+    if (boot_order == constants.HT_BO_CDROM and
+        not hvparams[constants.HV_CDROM_IMAGE_PATH]):
+      raise errors.HypervisorError("Cannot boot from cdrom without an"
+                                   " ISO path")
+    if (boot_order == constants.HT_BO_NETWORK and
+        hvparams[constants.HV_NIC_TYPE] == constants.HT_NIC_PARAVIRTUAL):
       raise errors.HypervisorError("Cannot boot from a paravirtual NIC. Please"
-                                   " change the nic type.")
-
-    disk_type = hvparams[constants.HV_DISK_TYPE]
-    if disk_type not in constants.HT_KVM_VALID_DISK_TYPES:
-      raise errors.HypervisorError("Invalid disk type %s specified for the KVM"
-                                   " hypervisor. Please choose one of: %s" %
-                                   (disk_type,
-                                    constants.HT_KVM_VALID_DISK_TYPES))
-
-    mouse_type = hvparams[constants.HV_USB_MOUSE]
-    if mouse_type and mouse_type not in ('mouse', 'tablet'):
-      raise errors.HypervisorError("Invalid usb mouse type %s specified for"
-                                   " the KVM hyervisor. Please choose"
-                                   " 'mouse' or 'tablet'" % mouse_type)
-
-  def ValidateParameters(self, hvparams):
-    """Check the given parameters for validity.
-
-    For the KVM hypervisor, this checks the existence of the
-    kernel.
-
-    """
-    super(KVMHypervisor, self).ValidateParameters(hvparams)
-
-    kernel_path = hvparams[constants.HV_KERNEL_PATH]
-    if kernel_path and not os.path.isfile(kernel_path):
-      raise errors.HypervisorError("Instance kernel '%s' not found or"
-                                   " not a file" % kernel_path)
-    initrd_path = hvparams[constants.HV_INITRD_PATH]
-    if initrd_path and not os.path.isfile(initrd_path):
-      raise errors.HypervisorError("Instance initrd '%s' not found or"
-                                   " not a file" % initrd_path)
-
-    vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
-    if vnc_bind_address and not utils.IsValidIP(vnc_bind_address) and \
-       not os.path.isdir(vnc_bind_address):
-       raise errors.HypervisorError("Instance vnc bind address must be either"
-                                    " an ip address or an existing directory")
-
-    vnc_x509 = hvparams[constants.HV_VNC_X509]
-    if vnc_x509 and not os.path.isdir(vnc_x509):
-      raise errors.HypervisorError("Instance vnc x509 path '%s' not found"
-                                   " or not a directory" % vnc_x509)
-
-    iso_path = hvparams[constants.HV_CDROM_IMAGE_PATH]
-    if iso_path and not os.path.isfile(iso_path):
-      raise errors.HypervisorError("Instance cdrom image '%s' not found or"
-                                   " not a file" % iso_path)
+                                   " change the NIC type.")

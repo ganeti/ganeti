@@ -154,29 +154,6 @@ def _ConfirmOperation(inames, text):
   return choice
 
 
-def _TransformPath(user_input):
-  """Transform a user path into a canonical value.
-
-  This function transforms the a path passed as textual information
-  into the constants that the LU code expects.
-
-  """
-  if user_input:
-    if user_input.lower() == "default":
-      result_path = constants.VALUE_DEFAULT
-    elif user_input.lower() == "none":
-      result_path = constants.VALUE_NONE
-    else:
-      if not os.path.isabs(user_input):
-        raise errors.OpPrereqError("Path '%s' is not an absolute filename" %
-                                   user_input)
-      result_path = user_input
-  else:
-    result_path = constants.VALUE_DEFAULT
-
-  return result_path
-
-
 def _EnsureInstancesExist(client, names):
   """Check for and ensure the given instance names exist.
 
@@ -710,6 +687,11 @@ def StartupInstance(opts, args):
   for name in inames:
     op = opcodes.OpStartupInstance(instance_name=name,
                                    force=opts.force)
+    # do not add these parameters to the opcode unless they're defined
+    if opts.hvparams:
+      op.hvparams = opts.hvparams
+    if opts.beparams:
+      op.beparams = opts.beparams
     jex.QueueJob(name, op)
   jex.WaitOrShow(not opts.submit_only)
   return 0
@@ -1472,8 +1454,14 @@ commands = {
                m_node_opt, m_pri_node_opt, m_sec_node_opt,
                m_clust_opt, m_inst_opt,
                SUBMIT_OPT,
+               keyval_option("-H", "--hypervisor", type="keyval",
+                             default={}, dest="hvparams",
+                             help="Temporary hypervisor parameters"),
+               keyval_option("-B", "--backend", type="keyval",
+                             default={}, dest="beparams",
+                             help="Temporary backend parameters"),
                ],
-            "<instance>", "Starts an instance"),
+              "<instance>", "Starts an instance"),
 
   'reboot': (RebootInstance, ARGS_ANY,
               [DEBUG_OPT, m_force_multi,

@@ -34,6 +34,7 @@ I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
             "nic.ips", "nic.macs", "nic.bridges",
+            "network_port",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
             "oper_state", "oper_ram", "status",
@@ -54,8 +55,6 @@ class R_version(baserlib.R_Generic):
   to adapt clients accordingly.
 
   """
-  DOC_URI = "/version"
-
   def GET(self):
     """Returns the remote API version.
 
@@ -67,41 +66,8 @@ class R_2_info(baserlib.R_Generic):
   """Cluster info.
 
   """
-  DOC_URI = "/2/info"
-
   def GET(self):
     """Returns cluster information.
-
-    Example::
-
-    {
-      "config_version": 2000000,
-      "name": "cluster",
-      "software_version": "2.0.0~beta2",
-      "os_api_version": 10,
-      "export_version": 0,
-      "candidate_pool_size": 10,
-      "enabled_hypervisors": [
-        "fake"
-      ],
-      "hvparams": {
-        "fake": {}
-       },
-      "default_hypervisor": "fake",
-      "master": "node1.example.com",
-      "architecture": [
-        "64bit",
-        "x86_64"
-      ],
-      "protocol_version": 20,
-      "beparams": {
-        "default": {
-          "auto_balance": true,
-          "vcpus": 1,
-          "memory": 128
-         }
-        }
-      }
 
     """
     client = luxi.Client()
@@ -112,8 +78,6 @@ class R_2_os(baserlib.R_Generic):
   """/2/os resource.
 
   """
-  DOC_URI = "/2/os"
-
   def GET(self):
     """Return a list of all OSes.
 
@@ -136,8 +100,6 @@ class R_2_jobs(baserlib.R_Generic):
   """/2/jobs resource.
 
   """
-  DOC_URI = "/2/jobs"
-
   def GET(self):
     """Returns a dictionary of jobs.
 
@@ -155,8 +117,6 @@ class R_2_jobs_id(baserlib.R_Generic):
   """/2/jobs/[job_id] resource.
 
   """
-  DOC_URI = "/2/jobs/[job_id]"
-
   def GET(self):
     """Returns a job status.
 
@@ -193,47 +153,8 @@ class R_2_nodes(baserlib.R_Generic):
   """/2/nodes resource.
 
   """
-  DOC_URI = "/2/nodes"
-
   def GET(self):
     """Returns a list of all nodes.
-
-    Example::
-
-      [
-        {
-          "id": "node1.example.com",
-          "uri": "\/instances\/node1.example.com"
-        },
-        {
-          "id": "node2.example.com",
-          "uri": "\/instances\/node2.example.com"
-        }
-      ]
-
-    If the optional 'bulk' argument is provided and set to 'true'
-    value (i.e '?bulk=1'), the output contains detailed
-    information about nodes as a list.
-
-    Example::
-
-      [
-        {
-          "pinst_cnt": 1,
-          "mfree": 31280,
-          "mtotal": 32763,
-          "name": "www.example.com",
-          "tags": [],
-          "mnode": 512,
-          "dtotal": 5246208,
-          "sinst_cnt": 2,
-          "dfree": 5171712,
-          "offline": false
-        },
-        ...
-      ]
-
-    @return: a dictionary with 'name' and 'uri' keys for each of them
 
     """
     client = luxi.Client()
@@ -252,8 +173,6 @@ class R_2_nodes_name(baserlib.R_Generic):
   """/2/nodes/[node_name] resources.
 
   """
-  DOC_URI = "/nodes/[node_name]"
-
   def GET(self):
     """Send information about a node.
 
@@ -270,59 +189,8 @@ class R_2_instances(baserlib.R_Generic):
   """/2/instances resource.
 
   """
-  DOC_URI = "/2/instances"
-
   def GET(self):
     """Returns a list of all available instances.
-
-
-    Example::
-
-      [
-        {
-          "name": "web.example.com",
-          "uri": "\/instances\/web.example.com"
-        },
-        {
-          "name": "mail.example.com",
-          "uri": "\/instances\/mail.example.com"
-        }
-      ]
-
-    If the optional 'bulk' argument is provided and set to 'true'
-    value (i.e '?bulk=1'), the output contains detailed
-    information about instances as a list.
-
-    Example::
-
-      [
-        {
-           "status": "running",
-           "disk_usage": 20480,
-           "nic.bridges": [
-             "xen-br0"
-            ],
-           "name": "web.example.com",
-           "tags": ["tag1", "tag2"],
-           "beparams": {
-             "vcpus": 2,
-             "memory": 512
-           },
-           "disk.sizes": [
-               20480
-           ],
-           "pnode": "node1.example.com",
-           "nic.macs": ["01:23:45:67:89:01"],
-           "snodes": ["node2.example.com"],
-           "disk_template": "drbd",
-           "admin_state": true,
-           "os": "debian-etch",
-           "oper_state": true
-        },
-        ...
-      ]
-
-    @return: a dictionary with 'name' and 'uri' keys for each of them.
 
     """
     client = luxi.Client()
@@ -395,8 +263,6 @@ class R_2_instances_name(baserlib.R_Generic):
   """/2/instances/[instance_name] resources.
 
   """
-  DOC_URI = "/2/instances/[instance_name]"
-
   def GET(self):
     """Send information about an instance.
 
@@ -424,9 +290,6 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
   Implements an instance reboot.
 
   """
-
-  DOC_URI = "/2/instances/[instance_name]/reboot"
-
   def POST(self):
     """Reboot an instance.
 
@@ -455,9 +318,6 @@ class R_2_instances_name_startup(baserlib.R_Generic):
   Implements an instance startup.
 
   """
-
-  DOC_URI = "/2/instances/[instance_name]/startup"
-
   def PUT(self):
     """Startup an instance.
 
@@ -481,9 +341,6 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
   Implements an instance shutdown.
 
   """
-
-  DOC_URI = "/2/instances/[instance_name]/shutdown"
-
   def PUT(self):
     """Shutdown an instance.
 
@@ -499,7 +356,7 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 
-  Manages tags. Inheriting this class you suppose to define DOC_URI and
+  Manages tags. When inheriting this class you must define the
   TAG_LEVEL for it.
 
   """
@@ -562,7 +419,6 @@ class R_2_instances_name_tags(_R_Tags):
   Manages per-instance tags.
 
   """
-  DOC_URI = "/2/instances/[instance_name]/tags"
   TAG_LEVEL = constants.TAG_INSTANCE
 
 
@@ -572,7 +428,6 @@ class R_2_nodes_name_tags(_R_Tags):
   Manages per-node tags.
 
   """
-  DOC_URI = "/2/nodes/[node_name]/tags"
   TAG_LEVEL = constants.TAG_NODE
 
 
@@ -582,5 +437,4 @@ class R_2_tags(_R_Tags):
   Manages cluster tags.
 
   """
-  DOC_URI = "/2/tags"
   TAG_LEVEL = constants.TAG_CLUSTER

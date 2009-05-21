@@ -382,7 +382,7 @@ class OpStartupInstance(OpCode):
   """Startup an instance."""
   OP_ID = "OP_INSTANCE_STARTUP"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name", "force"]
+  __slots__ = ["instance_name", "force", "hvparams", "beparams"]
 
 
 class OpShutdownInstance(OpCode):
