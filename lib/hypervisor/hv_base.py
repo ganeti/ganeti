@@ -49,11 +49,11 @@ from ganeti import utils
 # _CHECK values
 
 # must be afile
-_FILE_CHECK = (os.path.isabs, "must be an absolute path",
+_FILE_CHECK = (utils.IsNormAbsPath, "must be an absolute normal path",
               os.path.isfile, "not found or not a file")
 
 # must be a directory
-_DIR_CHECK = (os.path.isabs, "must be an absolute path",
+_DIR_CHECK = (utils.IsNormAbsPath, "must be an absolute normal path",
              os.path.isdir, "not found or not a directory")
 
 # nice wrappers for users
