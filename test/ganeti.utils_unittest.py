@@ -44,7 +44,7 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
-     TailFile, ForceDictType
+     TailFile, ForceDictType, IsNormAbsPath
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -968,6 +968,24 @@ class TestForceDictType(unittest.TestCase):
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': 'astring'})
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': '4 L'})
 
+
+class TestIsAbsNormPath(unittest.TestCase):
+  """Testing case for IsProcessAlive"""
+
+  def _pathTestHelper(self, path, result):
+    if result:
+      self.assert_(IsNormAbsPath(path),
+          "Path %s should be absolute and normal" % path)
+    else:
+      self.assert_(not IsNormAbsPath(path),
+          "Path %s should not be absolute and normal" % path)
+
+  def testBase(self):
+    self._pathTestHelper('/etc', True)
+    self._pathTestHelper('/srv', True)
+    self._pathTestHelper('etc', False)
+    self._pathTestHelper('/etc/../root', False)
+    self._pathTestHelper('/etc/', False)
 
 if __name__ == '__main__':
   unittest.main()

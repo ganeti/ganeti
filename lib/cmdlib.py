@@ -1548,6 +1548,45 @@ class LUSetClusterParams(LogicalUnit):
       _AdjustCandidatePool(self)
 
 
+def _RedistributeAncillaryFiles(lu, additional_nodes=None):
+  """Distribute additional files which are part of the cluster configuration.
+
+  ConfigWriter takes care of distributing the config and ssconf files, but
+  there are more files which should be distributed to all nodes. This function
+  makes sure those are copied.
+
+  @param lu: calling logical unit
+  @param additional_nodes: list of nodes not in the config to distribute to
+
+  """
+  # 1. Gather target nodes
+  myself = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
+  dist_nodes = lu.cfg.GetNodeList()
+  if additional_nodes is not None:
+    dist_nodes.extend(additional_nodes)
+  if myself.name in dist_nodes:
+    dist_nodes.remove(myself.name)
+  # 2. Gather files to distribute
+  dist_files = set([constants.ETC_HOSTS,
+                    constants.SSH_KNOWN_HOSTS_FILE,
+                    constants.RAPI_CERT_FILE,
+                    constants.RAPI_USERS_FILE,
+                   ])
+
+  enabled_hypervisors = lu.cfg.GetClusterInfo().enabled_hypervisors
+  for hv_name in enabled_hypervisors:
+    hv_class = hypervisor.GetHypervisor(hv_name)
+    dist_files.update(hv_class.GetAncillaryFiles())
+
+  # 3. Perform the files upload
+  for fname in dist_files:
+    if os.path.exists(fname):
+      result = lu.rpc.call_upload_file(dist_nodes, fname)
+      for to_node, to_result in result.items():
+        if to_result.failed or not to_result.data:
+          logging.error("Copy of file %s to node %s failed", fname, to_node)
+
+
 class LURedistributeConfig(NoHooksLU):
   """Force the redistribution of cluster configuration.
 
@@ -1573,6 +1612,7 @@ class LURedistributeConfig(NoHooksLU):
 
     """
     self.cfg.Update(self.cfg.GetClusterInfo())
+    _RedistributeAncillaryFiles(self)
 
 
 def _WaitForSync(lu, instance, oneshot=False, unlock=False):
@@ -2248,35 +2288,11 @@ class LUAddNode(LogicalUnit):
                       (verifier, result[verifier].data['nodelist'][failed]))
         raise errors.OpExecError("ssh/hostname verification failed.")
 
-    # Distribute updated /etc/hosts and known_hosts to all nodes,
-    # including the node just added
-    myself = self.cfg.GetNodeInfo(self.cfg.GetMasterNode())
-    dist_nodes = self.cfg.GetNodeList()
-    if not self.op.readd:
-      dist_nodes.append(node)
-    if myself.name in dist_nodes:
-      dist_nodes.remove(myself.name)
-
-    logging.debug("Copying hosts and known_hosts to all nodes")
-    for fname in (constants.ETC_HOSTS, constants.SSH_KNOWN_HOSTS_FILE):
-      result = self.rpc.call_upload_file(dist_nodes, fname)
-      for to_node, to_result in result.iteritems():
-        if to_result.failed or not to_result.data:
-          logging.error("Copy of file %s to node %s failed", fname, to_node)
-
-    to_copy = []
-    enabled_hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
-    if constants.HTS_COPY_VNC_PASSWORD.intersection(enabled_hypervisors):
-      to_copy.append(constants.VNC_PASSWORD_FILE)
-
-    for fname in to_copy:
-      result = self.rpc.call_upload_file([node], fname)
-      if result[node].failed or not result[node]:
-        logging.error("Could not copy file %s to node %s", fname, node)
-
     if self.op.readd:
+      _RedistributeAncillaryFiles(self)
       self.context.ReaddNode(new_node)
     else:
+      _RedistributeAncillaryFiles(self, additional_nodes=node)
       self.context.AddNode(new_node)
 
 

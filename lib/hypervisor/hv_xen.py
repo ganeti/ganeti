@@ -45,6 +45,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
   REBOOT_RETRY_COUNT = 60
   REBOOT_RETRY_INTERVAL = 10
 
+  ANCILLARY_FILES = [
+    '/etc/xen/xend-config.sxp',
+    '/etc/xen/scripts/vif-bridge',
+    ]
+
   @classmethod
   def _WriteConfigFile(cls, instance, block_devices):
     """Write the Xen config file for the instance.
@@ -463,6 +468,9 @@ class XenPvmHypervisor(XenHypervisor):
 
 class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
+
+  ANCILLARY_FILES = XenHypervisor.ANCILLARY_FILES + \
+    [constants.VNC_PASSWORD_FILE]
 
   PARAMETERS = {
     constants.HV_ACPI: hv_base.NO_CHECK,

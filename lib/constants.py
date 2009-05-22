@@ -101,6 +101,7 @@ RAPI_USERS_FILE = DATA_DIR + "/rapi_users"
 QUEUE_DIR = DATA_DIR + "/queue"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
+SYSCONFDIR = _autoconf.SYSCONFDIR
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
@@ -355,7 +356,6 @@ HT_KVM = "kvm"
 HT_CHROOT = "chroot"
 HYPER_TYPES = frozenset([HT_XEN_PVM, HT_FAKE, HT_XEN_HVM, HT_KVM, HT_CHROOT])
 HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
-HTS_COPY_VNC_PASSWORD = frozenset([HT_XEN_HVM])
 
 VNC_BASE_PORT = 5900
 VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
