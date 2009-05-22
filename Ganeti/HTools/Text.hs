@@ -31,14 +31,14 @@ loadNode :: (Monad m) => [String] -> m (String, Node.Node)
 loadNode (name:tm:nm:fm:td:fd:fo:[]) = do
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd] || fo == "Y" then
-          return $ Node.create 0 0 0 0 0 True
+          return $ Node.create name 0 0 0 0 0 True
       else do
         vtm <- tryRead name tm
         vnm <- tryRead name nm
         vfm <- tryRead name fm
         vtd <- tryRead name td
         vfd <- tryRead name fd
-        return $ Node.create vtm vnm vfm vtd vfd False
+        return $ Node.create name vtm vnm vfm vtd vfd False
   return (name, new_node)
 loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
 
@@ -53,7 +53,7 @@ loadInst ktn (name:mem:dsk:status:pnode:snode:[]) = do
   vdsk <- tryRead name dsk
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
-  let newinst = Instance.create vmem vdsk status pidx sidx
+  let newinst = Instance.create name vmem vdsk status pidx sidx
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ (show s) ++ "'"
 

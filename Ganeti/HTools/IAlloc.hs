@@ -43,7 +43,7 @@ parseBaseInstance n a = do
             x@(Ok _) -> x
   mem <- fromObj "memory" a
   let running = "running"
-  return $ (n, Instance.create mem disk running 0 0)
+  return $ (n, Instance.create n mem disk running 0 0)
 
 parseInstance :: NameAssoc
               -> String
@@ -68,7 +68,7 @@ parseNode n a = do
     dfree <- fromObj "free_disk" a
     offline <- fromObj "offline" a
     drained <- fromObj "offline" a
-    return $ (name, Node.create mtotal mnode mfree dtotal dfree
+    return $ (name, Node.create n mtotal mnode mfree dtotal dfree
                       (offline || drained))
 
 parseData :: String -> Result Request

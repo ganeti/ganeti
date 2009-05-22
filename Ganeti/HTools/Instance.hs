@@ -6,7 +6,8 @@ intelligence is in the "Node" and "Cluster" modules.
 -}
 module Ganeti.HTools.Instance where
 
-data Instance = Instance { mem :: Int       -- ^ memory of the instance
+data Instance = Instance { name :: String   -- ^ the instance name
+                         , mem :: Int       -- ^ memory of the instance
                          , dsk :: Int       -- ^ disk size of instance
                          , running :: Bool  -- ^ whether the instance
                                             -- is running
@@ -20,9 +21,10 @@ data Instance = Instance { mem :: Int       -- ^ memory of the instance
 -- | A simple name for the int, instance association list
 type AssocList = [(Int, Instance)]
 
-create :: Int -> Int -> String -> Int -> Int -> Instance
-create mem_init dsk_init run_init pn sn =
+create :: String -> Int -> Int -> String -> Int -> Int -> Instance
+create name_init mem_init dsk_init run_init pn sn =
     Instance {
+          name = name_init,
           mem = mem_init,
           dsk = dsk_init,
           running = case run_init of

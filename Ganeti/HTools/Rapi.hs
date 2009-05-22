@@ -63,7 +63,7 @@ parseInstance ktn a = do
   snode <- (if null snodes then return Node.noSecondary
             else readEitherString (head snodes) >>= lookupNode ktn name)
   running <- fromObj "status" a
-  let inst = Instance.create mem disk running pnode snode
+  let inst = Instance.create name mem disk running pnode snode
   return (name, inst)
 
 parseNode :: JSObject JSValue -> Result (String, Node.Node)
@@ -71,7 +71,7 @@ parseNode a = do
     name <- fromObj "name" a
     offline <- fromObj "offline" a
     node <- (case offline of
-               True -> return $ Node.create 0 0 0 0 0 True
+               True -> return $ Node.create name 0 0 0 0 0 True
                _ -> do
                  drained <- fromObj "drained" a
                  mtotal <- fromObj "mtotal" a
@@ -79,7 +79,7 @@ parseNode a = do
                  mfree <- fromObj "mfree" a
                  dtotal <- fromObj "dtotal" a
                  dfree <- fromObj "dfree" a
-                 return $ Node.create mtotal mnode mfree
+                 return $ Node.create name mtotal mnode mfree
                         dtotal dfree (offline || drained))
     return (name, node)
 

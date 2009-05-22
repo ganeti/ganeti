@@ -6,7 +6,7 @@
 
 module Ganeti.HTools.Node
     (
-      Node(failN1, idx, t_mem, n_mem, f_mem, t_dsk, f_dsk,
+      Node(failN1, name, idx, t_mem, n_mem, f_mem, t_dsk, f_dsk,
            p_mem, p_dsk, p_rem,
            plist, slist, offline)
     -- * Constructor
@@ -38,7 +38,8 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.PeerMap as PeerMap
 
-data Node = Node { t_mem :: Double -- ^ total memory (MiB)
+data Node = Node { name  :: String -- ^ the node name
+                 , t_mem :: Double -- ^ total memory (MiB)
                  , n_mem :: Int    -- ^ node memory (MiB)
                  , f_mem :: Int    -- ^ free memory (MiB)
                  , x_mem :: Int    -- ^ unaccounted memory (MiB)
@@ -72,11 +73,12 @@ The index and the peers maps are empty, and will be need to be update
 later via the 'setIdx' and 'buildPeers' functions.
 
 -}
-create :: Double -> Int -> Int -> Double -> Int -> Bool -> Node
-create mem_t_init mem_n_init mem_f_init dsk_t_init dsk_f_init
-       offline_init =
+create :: String -> Double -> Int -> Int -> Double -> Int -> Bool -> Node
+create name_init mem_t_init mem_n_init mem_f_init
+       dsk_t_init dsk_f_init offline_init =
     Node
     {
+      name  = name_init,
       t_mem = mem_t_init,
       n_mem = mem_n_init,
       f_mem = mem_f_init,
