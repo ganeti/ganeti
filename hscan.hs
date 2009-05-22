@@ -22,7 +22,8 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Rapi as Rapi
-import Ganeti.HTools.Utils
+import qualified Ganeti.HTools.Loader as Loader
+import Ganeti.HTools.Types
 
 -- | Command line options structure.
 data Options = Options
@@ -159,7 +160,7 @@ main = do
               printf "%-*s " nlen name
               hFlush stdout
               input_data <- Rapi.loadData name
-              let ldresult = input_data >>= Cluster.loadData
+              let ldresult = input_data >>= Loader.mergeData
               (case ldresult of
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err

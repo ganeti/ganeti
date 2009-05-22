@@ -17,6 +17,7 @@ import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Loader
+import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -58,7 +59,7 @@ parseInstance ktn a = do
   disk <- fromObj "disk_usage" a
   mem <- fromObj "beparams" a >>= fromObj "memory"
   pnode <- fromObj "pnode" a >>= lookupNode ktn name
-  snodes <- getListElement "snodes" a
+  snodes <- fromObj "snodes" a
   snode <- (if null snodes then return Node.noSecondary
             else readEitherString (head snodes) >>= lookupNode ktn name)
   running <- fromObj "status" a

@@ -4,26 +4,17 @@ module Ganeti.HTools.Utils
     (
       debug
     , sepSplit
-    , swapPairs
     , varianceCoeff
     , readData
     , commaJoin
     , readEitherString
     , loadJSArray
     , fromObj
-    , getStringElement
-    , getIntElement
-    , getBoolElement
-    , getListElement
-    , getObjectElement
     , asJSObject
     , asObjectList
-    , Result(Ok, Bad)
     , fromJResult
-    , (|+)
     ) where
 
-import Data.Either
 import Data.List
 import Control.Monad
 import System
@@ -31,31 +22,14 @@ import System.IO
 import qualified Text.JSON as J
 import Text.Printf (printf)
 
+import Ganeti.HTools.Types
+
 import Debug.Trace
 
 -- | To be used only for debugging, breaks referential integrity.
 debug :: Show a => a -> a
 debug x = trace (show x) x
 
-
-{-
-
-This is similar to the JSON library Result type - *very* similar, but
-we want to use it in multiple places, so we abstract it into a
-mini-library here
-
--}
-
-data Result a
-    = Bad String
-    | Ok a
-    deriving (Show)
-
-instance Monad Result where
-    (>>=) (Bad x) _ = Bad x
-    (>>=) (Ok x) fn = fn x
-    return = Ok
-    fail = Bad
 
 fromJResult :: Monad m => J.Result a -> m a
 fromJResult (J.Error x) = fail x
@@ -78,10 +52,6 @@ sepSplit sep s
 -- | Partial application of sepSplit to @'.'@
 commaSplit :: String -> [String]
 commaSplit = sepSplit ','
-
--- | Swap a list of @(a, b)@ into @(b, a)@
-swapPairs :: [(a, b)] -> [(b, a)]
-swapPairs = map (\ (a, b) -> (b, a))
 
 -- Simple and slow statistical functions, please replace with better versions
 
@@ -126,29 +96,9 @@ fromObj k o =
       Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
       Just val -> fromJResult $ J.readJSON val
 
-getStringElement :: (Monad m) => String -> J.JSObject J.JSValue -> m String
-getStringElement = fromObj
-
-getIntElement :: (Monad m) => String -> J.JSObject J.JSValue -> m Int
-getIntElement = fromObj
-
-getBoolElement :: (Monad m) => String -> J.JSObject J.JSValue -> m Bool
-getBoolElement = fromObj
-
-getListElement :: (Monad m) => String -> J.JSObject J.JSValue -> m [J.JSValue]
-getListElement = fromObj
-
-getObjectElement :: (Monad m) => String -> J.JSObject J.JSValue
-                 -> m (J.JSObject J.JSValue)
-getObjectElement = fromObj
-
 asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)
 asJSObject (J.JSObject a) = return a
 asJSObject _ = fail "not an object"
 
 asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
 asObjectList = sequence . map asJSObject
-
--- | Function to concat two strings with a separator under a monad
-(|+) :: (Monad m) => m String -> m String -> m String
-(|+) = liftM2 (\x y -> x ++ "|" ++ y)

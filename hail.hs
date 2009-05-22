@@ -21,6 +21,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Utils
+import Ganeti.HTools.Types
 
 -- | Command line options structure.
 data Options = Options

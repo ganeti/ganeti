@@ -15,97 +15,94 @@ import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
                   makeObj, encodeStrict, decodeStrict,
                   fromJSObject, toJSString)
 --import Text.Printf (printf)
-import Ganeti.HTools.Utils
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import Ganeti.HTools.Loader
+import Ganeti.HTools.Utils
+import Ganeti.HTools.Types
 
 data RqType
-    = Allocate
-    | Relocate
-    deriving (Eq, Show)
-
-data Request
-    = RqAlloc String String String
-    | RqReloc String String String
+    = Allocate String Instance.Instance
+    | Relocate Int
     deriving (Show)
 
-parseBaseInstance :: String -> JSObject JSValue -> Result String
-parseBaseInstance n a =
-    let name = Ok n
-        disk = case getIntElement "disk_usage" a of
-                 Bad _ -> let all_d = getListElement "disks" a >>= asObjectList
-                              szd = all_d >>=
-                                    (sequence .
-                                     map (getIntElement "size"))
-                              sze = liftM (map (+128)) szd
-                              szf = liftM sum sze
-                           in szf
-                 x@(Ok _) -> x
-        mem = getIntElement "memory" a
-        running = Ok "running" --getStringElement "status" a
-    in
-      name |+ (show `liftM` mem) |+
-              (show `liftM` disk) |+ running
+data Request = Request RqType IdxNode IdxInstance NameList NameList
+    deriving (Show)
 
-parseInstance :: String -> JSObject JSValue -> Result String
-parseInstance n a = do
+parseBaseInstance :: String
+                  -> JSObject JSValue
+                  -> Result (String, Instance.Instance)
+parseBaseInstance n a = do
+  disk <- case fromObj "disk_usage" a of
+            Bad _ -> do
+                all_d <- fromObj "disks" a >>= asObjectList
+                szd <- mapM (fromObj "size") all_d
+                let sze = map (+128) szd
+                    szf = (sum sze)::Int
+                return szf
+            x@(Ok _) -> x
+  mem <- fromObj "memory" a
+  let running = "running"
+  return $ (n, Instance.create mem disk running 0 0)
+
+parseInstance :: NameAssoc
+              -> String
+              -> JSObject JSValue
+              -> Result (String, Instance.Instance)
+parseInstance ktn n a = do
     base <- parseBaseInstance n a
-    let
-        nodes = getListElement "nodes" a
-        pnode = liftM head nodes >>= readEitherString
-        snode = liftM (head . tail) nodes >>= readEitherString
-    return base |+ pnode |+ snode
+    nodes <- fromObj "nodes" a
+    pnode <- readEitherString $ head nodes
+    snode <- readEitherString $ (head . tail) nodes
+    pidx <- lookupNode ktn n pnode
+    sidx <- lookupNode ktn n snode
+    return (n, Instance.setBoth (snd base) pidx sidx)
 
-
-parseNode :: String -> JSObject JSValue -> Result String
-parseNode n a =
-    let name = Ok n
-        mtotal = getIntElement "total_memory" a
-        mnode = getIntElement "reserved_memory" a
-        mfree = getIntElement "free_memory" a
-        dtotal = getIntElement "total_disk" a
-        dfree = getIntElement "free_disk" a
-    in name |+ (show `liftM` mtotal) |+
-              (show `liftM` mnode) |+
-              (show `liftM` mfree) |+
-              (show `liftM` dtotal) |+
-              (show `liftM` dfree)
-
-validateRequest :: String -> Result RqType
-validateRequest rq =
-    case rq of
-      "allocate" -> Ok Allocate
-      "relocate" -> Ok Relocate
-      _ -> Bad ("Invalid request type '" ++ rq ++ "'")
+parseNode :: String -> JSObject JSValue -> Result (String, Node.Node)
+parseNode n a = do
+    let name = n
+    mtotal <- fromObj "total_memory" a
+    mnode <- fromObj "reserved_memory" a
+    mfree <- fromObj "free_memory" a
+    dtotal <- fromObj "total_disk" a
+    dfree <- fromObj "free_disk" a
+    offline <- fromObj "offline" a
+    drained <- fromObj "offline" a
+    return $ (name, Node.create mtotal mnode mfree dtotal dfree
+                      (offline || drained))
 
 parseData :: String -> Result Request
-parseData body =
-    do
-      decoded <- fromJResult $ decodeStrict body
-      let obj = decoded
-      -- request parser
-      request <- getObjectElement "request" obj
-      rname <- getStringElement "name" request
-      rtype <-  getStringElement "type" request >>= validateRequest
-      inew <- (\x -> if x == Allocate then parseBaseInstance rname request
-                     else Ok "") rtype
-      -- existing instance parsing
-      ilist <- getObjectElement "instances" obj
-      let idata = fromJSObject ilist
-      iobj <- (sequence . map (\(x,y) -> asJSObject y >>= parseInstance x))
-              idata
-      let ilines = unlines iobj
-      -- existing node parsing
-      nlist <- getObjectElement "nodes" obj
-      let ndata = fromJSObject nlist
-      nobj <- (sequence . map (\(x,y) -> asJSObject y >>= parseNode x))
-              ndata
-      let nlines = unlines nobj
-      return $ (\ r nl il inew rnam ->
-                    case r of
-                      Allocate -> RqAlloc inew nl il
-                      Relocate -> RqReloc rnam nl il)
-                 rtype nlines ilines inew rname
+parseData body = do
+  decoded <- fromJResult $ decodeStrict body
+  let obj = decoded
+  -- request parser
+  request <- fromObj "request" obj
+  rname <- fromObj "name" request
+  -- existing node parsing
+  nlist <- fromObj "nodes" obj
+  let ndata = fromJSObject nlist
+  nobj <- (mapM (\(x,y) -> asJSObject y >>= parseNode x)) ndata
+  let (ktn, nl) = assignIndices Node.setIdx nobj
+  -- existing instance parsing
+  ilist <- fromObj "instances" obj
+  let idata = fromJSObject ilist
+  iobj <- (mapM (\(x,y) -> asJSObject y >>= parseInstance ktn x)) idata
+  let (kti, il) = assignIndices Instance.setIdx iobj
+  optype <- fromObj "type" request
+  rqtype <-
+      case optype of
+        "allocate" ->
+            do
+              inew <- parseBaseInstance rname request
+              let (iname, io) = inew
+              return $ Allocate iname io
+        "relocate" ->
+            do
+              ridx <- lookupNode kti rname rname
+              return $ Relocate ridx
+        other -> fail $ ("Invalid request type '" ++ other ++ "'")
+
+  return $ Request rqtype nl il (swapPairs ktn) (swapPairs kti)
 
 formatResponse :: Bool -> String -> [String] -> String
 formatResponse success info nodes =

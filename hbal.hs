@@ -21,8 +21,10 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Rapi as Rapi
 import qualified Ganeti.HTools.Text as Text
+import qualified Ganeti.HTools.Loader as Loader
 
 import Ganeti.HTools.Utils
+import Ganeti.HTools.Types
 
 -- | Command line options structure.
 data Options = Options
@@ -186,7 +188,7 @@ main = do
         "" -> Text.loadData nodef instf
         host -> Rapi.loadData host
 
-  let ldresult = input_data >> Cluster.loadData
+  let ldresult = input_data >>= Loader.mergeData
 
   (loaded_nl, il, csf, ktn, kti) <-
       (case ldresult of

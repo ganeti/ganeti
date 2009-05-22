@@ -20,7 +20,8 @@ import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Rapi as Rapi
 import qualified Ganeti.HTools.Text as Text
-import Ganeti.HTools.Utils
+import qualified Ganeti.HTools.Loader as Loader
+import Ganeti.HTools.Types
 
 -- | Command line options structure.
 data Options = Options
@@ -61,7 +62,7 @@ defaultOptions    = Options
 we find a valid solution or we exceed the maximum depth.
 
 -}
-iterateDepth :: Cluster.NodeList
+iterateDepth :: NodeList
              -> [Instance.Instance]
              -> Int
              -> Int
@@ -150,7 +151,7 @@ main = do
       case optMaster opts of
         "" -> Text.loadData nodef instf
         host -> Rapi.loadData host
-  let ldresult = input_data >>= Cluster.loadData
+  let ldresult = input_data >>= Loader.mergeData
 
   (loaded_nl, il, csf, ktn, kti) <-
       (case ldresult of

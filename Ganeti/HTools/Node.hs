@@ -38,8 +38,6 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.PeerMap as PeerMap
 
-import Ganeti.HTools.Utils
-
 data Node = Node { t_mem :: Double -- ^ total memory (MiB)
                  , n_mem :: Int    -- ^ node memory (MiB)
                  , f_mem :: Int    -- ^ free memory (MiB)

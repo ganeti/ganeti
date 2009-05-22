@@ -12,6 +12,7 @@ import Control.Monad
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Loader
+import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
