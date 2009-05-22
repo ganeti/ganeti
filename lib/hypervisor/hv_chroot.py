@@ -60,9 +60,11 @@ class ChrootManager(hv_base.BaseHypervisor):
   """
   _ROOT_DIR = constants.RUN_GANETI_DIR + "/chroot-hypervisor"
 
-  PARAMETERS = [
-    constants.HV_INIT_SCRIPT,
-    ]
+  PARAMETERS = {
+    constants.HV_INIT_SCRIPT: (True, utils.IsNormAbsPath,
+                               "must be an absolute normalized path",
+                               None, None)
+    }
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
