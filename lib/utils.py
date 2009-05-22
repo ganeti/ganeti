@@ -1786,7 +1786,7 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
       raise
 
 def IsNormAbsPath(path):
-  """Check whether a path is absolute and also "normal".
+  """Check whether a path is absolute and also normalized
 
   This avoids things like /dir/../../other/path to be valid.
 

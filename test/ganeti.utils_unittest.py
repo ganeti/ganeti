@@ -975,10 +975,10 @@ class TestIsAbsNormPath(unittest.TestCase):
   def _pathTestHelper(self, path, result):
     if result:
       self.assert_(IsNormAbsPath(path),
-          "Path %s should be absolute and normal" % path)
+          "Path %s should result absolute and normalized" % path)
     else:
       self.assert_(not IsNormAbsPath(path),
-          "Path %s should not be absolute and normal" % path)
+          "Path %s should not result absolute and normalized" % path)
 
   def testBase(self):
     self._pathTestHelper('/etc', True)
