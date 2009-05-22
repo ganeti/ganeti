@@ -440,6 +440,8 @@ def BatchCreate(opts, args):
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
+  jex = JobExecutor()
+
   # Iterate over the instances and do:
   #  * Populate the specs with default value
   #  * Validate the instance specs
@@ -485,7 +487,9 @@ def BatchCreate(opts, args):
                                   file_storage_dir=specs['file_storage_dir'],
                                   file_driver=specs['file_driver'])
 
-    ToStdout("%s: %s", name, cli.SendJob([op]))
+    jex.QueueJob(name, op)
+  # we never want to wait, just show the submitted job IDs
+  jex.WaitOrShow(False)
 
   return 0
 
