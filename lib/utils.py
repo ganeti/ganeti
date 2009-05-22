@@ -1785,6 +1785,13 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
       # we need to re-raise the exception
       raise
 
+def IsNormAbsPath(path):
+  """Check whether a path is absolute and also "normal".
+
+  This avoids things like /dir/../../other/path to be valid.
+
+  """
+  return os.path.normpath(path) == path and os.path.isabs(path)
 
 def TailFile(fname, lines=20):
   """Return the last lines from a file.
