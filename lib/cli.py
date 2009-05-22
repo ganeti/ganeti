@@ -994,15 +994,24 @@ class JobExecutor(object):
       cl = GetClient()
     self.cl = cl
     self.verbose = verbose
+    self.jobs = []
 
   def QueueJob(self, name, *ops):
-    """Submit a job for execution.
+    """Record a job for later submit.
 
     @type name: string
     @param name: a description of the job, will be used in WaitJobSet
     """
-    job_id = SendJob(ops, cl=self.cl)
-    self.queue.append((job_id, name))
+    self.queue.append((name, ops))
+
+
+  def SubmitPending(self):
+    """Submit all pending jobs.
+
+    """
+    results = self.cl.SubmitManyJobs([row[1] for row in self.queue])
+    for ((status, data), (name, _)) in zip(results, self.queue):
+      self.jobs.append((status, data, name))
 
   def GetResults(self):
     """Wait for and return the results of all jobs.
@@ -1013,10 +1022,18 @@ class JobExecutor(object):
         there will be the error message
 
     """
+    if not self.jobs:
+      self.SubmitPending()
     results = []
     if self.verbose:
-      ToStdout("Submitted jobs %s", ", ".join(row[0] for row in self.queue))
-    for jid, name in self.queue:
+      ok_jobs = [row[1] for row in self.jobs if row[0]]
+      if ok_jobs:
+        ToStdout("Submitted jobs %s", ", ".join(ok_jobs))
+    for submit_status, jid, name in self.jobs:
+      if not submit_status:
+        ToStderr("Failed to submit job for %s: %s", name, jid)
+        results.append((False, jid))
+        continue
       if self.verbose:
         ToStdout("Waiting for job %s for %s...", jid, name)
       try:
@@ -1041,5 +1058,10 @@ class JobExecutor(object):
     if wait:
       return self.GetResults()
     else:
-      for jid, name in self.queue:
-        ToStdout("%s: %s", jid, name)
+      if not self.jobs:
+        self.SubmitPending()
+      for status, result, name in self.jobs:
+        if status:
+          ToStdout("%s: %s", result, name)
+        else:
+          ToStderr("Failure for %s: %s", name, result)
