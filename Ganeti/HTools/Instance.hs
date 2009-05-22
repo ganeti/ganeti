@@ -17,6 +17,9 @@ data Instance = Instance { mem :: Int       -- ^ memory of the instance
                                             -- book-keeping
                          } deriving (Show)
 
+-- | A simple name for the int, instance association list
+type AssocList = [(Int, Instance)]
+
 create :: Int -> Int -> String -> Int -> Int -> Instance
 create mem_init dsk_init run_init pn sn =
     Instance {

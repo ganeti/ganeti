@@ -19,7 +19,9 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.CLI as CLI
-import Ganeti.HTools.Rapi
+import qualified Ganeti.HTools.Rapi as Rapi
+import qualified Ganeti.HTools.Text as Text
+
 import Ganeti.HTools.Utils
 
 -- | Command line options structure.
@@ -179,14 +181,13 @@ main = do
               else env_inst
       oneline = optOneline opts
       verbose = optVerbose opts
-      (node_data, inst_data) =
-          case optMaster opts of
-            "" -> (readFile nodef,
-                   readFile instf)
-            host -> (getNodes host >>= readData,
-                     getInstances host >>= readData)
+  input_data <-
+      case optMaster opts of
+        "" -> Text.loadData nodef instf
+        host -> Rapi.loadData host
 
-  ldresult <- liftM2 Cluster.loadData node_data inst_data
+  let ldresult = input_data >> Cluster.loadData
+
   (loaded_nl, il, csf, ktn, kti) <-
       (case ldresult of
          Ok x -> return x

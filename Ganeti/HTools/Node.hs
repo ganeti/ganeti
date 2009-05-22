@@ -26,6 +26,9 @@ module Ganeti.HTools.Node
     , setSec
     -- * Formatting
     , list
+    -- * Misc stuff
+    , AssocList
+    , noSecondary
     ) where
 
 import Data.List
@@ -57,6 +60,13 @@ data Node = Node { t_mem :: Double -- ^ total memory (MiB)
                                    -- for allocations and skipped from
                                    -- score computations
   } deriving (Show)
+
+-- | A simple name for the int, node association list
+type AssocList = [(Int, Node)]
+
+-- | Constant node index for a non-moveable instance
+noSecondary :: Int
+noSecondary = -1
 
 {- | Create a new node.
 

@@ -4,20 +4,21 @@
 
 module Ganeti.HTools.Rapi
     (
-      getNodes
-    , getInstances
+      loadData
     ) where
 
 import Network.Curl
 import Network.Curl.Types ()
 import Network.Curl.Code
-import Data.Either ()
-import Data.Maybe
 import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue)
 import Text.Printf (printf)
+
 import Ganeti.HTools.Utils
+import Ganeti.HTools.Loader
+import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Instance as Instance
 
 -- | Read an URL via curl and return the body if successful
 getUrl :: (Monad m) => String -> IO (m String)
@@ -35,57 +36,62 @@ formatHost master =
     if elem ':' master then  master
     else "https://" ++ master ++ ":5080"
 
-getInstances :: String -> IO (Result String)
-getInstances master = do
-  let url2 = printf "%s/2/instances?bulk=1" (formatHost master)
-  body <- getUrl url2
-  return $ (do x <- body
-               arr <- loadJSArray x
-               ilist <- mapM parseInstance arr
-               return $ unlines ilist)
+getInstances :: NameAssoc
+             -> String
+             -> Result [(String, Instance.Instance)]
+getInstances ktn body = do
+  arr <- loadJSArray body
+  ilist <- mapM (parseInstance ktn) arr
+  return ilist
 
-getNodes :: String -> IO (Result String)
-getNodes master = do
-  let url2 = printf "%s/2/nodes?bulk=1" (formatHost master)
-  body <- getUrl url2
-  return $ (do x <- body
-               arr <- loadJSArray x
-               nlist <- mapM parseNode arr
-               return $ unlines nlist)
+getNodes :: String -> Result [(String, Node.Node)]
+getNodes body = do
+  arr <- loadJSArray body
+  nlist <- mapM parseNode arr
+  return nlist
 
-parseInstance :: JSObject JSValue -> Result String
-parseInstance a =
-    let name = getStringElement "name" a
-        disk = getIntElement "disk_usage" a
-        mem = getObjectElement "beparams" a >>= getIntElement "memory"
-        pnode = getStringElement "pnode" a
-        snode = (liftM head $ getListElement "snodes" a) >>= readEitherString
-        running = getStringElement "status" a
-    in
-      name |+ (show `liftM` mem) |+
-              (show `liftM` disk) |+
-              running |+ pnode |+ snode
+parseInstance :: [(String, Int)]
+              -> JSObject JSValue
+              -> Result (String, Instance.Instance)
+parseInstance ktn a = do
+  name <- fromObj "name" a
+  disk <- fromObj "disk_usage" a
+  mem <- fromObj "beparams" a >>= fromObj "memory"
+  pnode <- fromObj "pnode" a >>= lookupNode ktn name
+  snodes <- getListElement "snodes" a
+  snode <- (if null snodes then return Node.noSecondary
+            else readEitherString (head snodes) >>= lookupNode ktn name)
+  running <- fromObj "status" a
+  let inst = Instance.create mem disk running pnode snode
+  return (name, inst)
 
-boolToYN :: (Monad m) => Bool -> m String
-boolToYN True = return "Y"
-boolToYN _ = return "N"
+parseNode :: JSObject JSValue -> Result (String, Node.Node)
+parseNode a = do
+    name <- fromObj "name" a
+    offline <- fromObj "offline" a
+    node <- (case offline of
+               True -> return $ Node.create 0 0 0 0 0 True
+               _ -> do
+                 drained <- fromObj "drained" a
+                 mtotal <- fromObj "mtotal" a
+                 mnode <- fromObj "mnode" a
+                 mfree <- fromObj "mfree" a
+                 dtotal <- fromObj "dtotal" a
+                 dfree <- fromObj "dfree" a
+                 return $ Node.create mtotal mnode mfree
+                        dtotal dfree (offline || drained))
+    return (name, node)
 
-parseNode :: JSObject JSValue -> Result String
-parseNode a =
-    let name = getStringElement "name" a
-        offline = getBoolElement "offline" a
-        drained = getBoolElement "drained" a
-        mtotal = getIntElement "mtotal" a
-        mnode = getIntElement "mnode" a
-        mfree = getIntElement "mfree" a
-        dtotal = getIntElement "dtotal" a
-        dfree = getIntElement "dfree" a
-    in name |+
-       (case offline of
-          Ok True -> Ok "0|0|0|0|0|Y"
-          _ ->
-              (show `liftM` mtotal) |+ (show `liftM` mnode) |+
-              (show `liftM` mfree) |+ (show `liftM` dtotal) |+
-              (show `liftM` dfree) |+
-              ((liftM2 (||) offline drained) >>= boolToYN)
-       )
+loadData :: String -- ^ Cluster/URL to use as source
+         -> IO (Result (NameAssoc, Node.AssocList,
+                        NameAssoc, Instance.AssocList))
+loadData master = do -- IO monad
+  let url = formatHost master
+  node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
+  inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
+  return $ do -- Result monad
+    node_data <- node_body >>= getNodes
+    let (node_names, node_idx) = assignIndices Node.setIdx node_data
+    inst_data <- inst_body >>= getInstances node_names
+    let (inst_names, inst_idx) = assignIndices Instance.setIdx inst_data
+    return (node_names, node_idx, inst_names, inst_idx)

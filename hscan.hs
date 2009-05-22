@@ -21,7 +21,7 @@ import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.CLI as CLI
-import Ganeti.HTools.Rapi
+import qualified Ganeti.HTools.Rapi as Rapi
 import Ganeti.HTools.Utils
 
 -- | Command line options structure.
@@ -158,10 +158,8 @@ main = do
             do
               printf "%-*s " nlen name
               hFlush stdout
-              node_data <- getNodes name
-              inst_data <- getInstances name
-              let ldresult = join $
-                             liftM2 Cluster.loadData node_data inst_data
+              input_data <- Rapi.loadData name
+              let ldresult = input_data >>= Cluster.loadData
               (case ldresult of
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err
