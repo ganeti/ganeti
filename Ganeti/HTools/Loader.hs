@@ -9,7 +9,6 @@ module Ganeti.HTools.Loader
     , checkData
     , assignIndices
     , lookupNode
-    , swapPairs
     ) where
 
 import Data.List
