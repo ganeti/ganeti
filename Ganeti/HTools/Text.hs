@@ -75,8 +75,7 @@ loadTabular text_data convert_fn = do
 
 loadData :: String -- ^ Node data in string format
          -> String -- ^ Instance data in string format
-         -> IO (Result (NameAssoc, Node.AssocList,
-                        NameAssoc, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList))
 loadData nfile ifile = do -- IO monad
   ndata <- readFile nfile
   idata <- readFile ifile
@@ -84,5 +83,5 @@ loadData nfile ifile = do -- IO monad
     {- node file: name t_mem n_mem f_mem t_disk f_disk -}
     (ktn, nl) <- loadTabular ndata loadNode
     {- instance file: name mem disk status pnode snode -}
-    (kti, il) <- loadTabular idata (loadInst ktn)
-    return (ktn, nl, kti, il)
+    (_, il) <- loadTabular idata (loadInst ktn)
+    return (nl, il)

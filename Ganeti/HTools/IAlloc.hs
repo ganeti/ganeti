@@ -101,7 +101,7 @@ parseData body = do
               ridx <- lookupNode kti rname rname
               return $ Relocate ridx
         other -> fail $ ("Invalid request type '" ++ other ++ "'")
-  (map_n, map_i, csf) <- mergeData (ktn, nl, kti, il)
+  (map_n, map_i, csf) <- mergeData (nl, il)
   return $ Request rqtype map_n map_i csf
 
 formatResponse :: Bool -> String -> [String] -> String

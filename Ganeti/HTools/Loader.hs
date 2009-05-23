@@ -21,11 +21,6 @@ import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.Types
 
-
--- | Swap a list of @(a, b)@ into @(b, a)@
-swapPairs :: [(a, b)] -> [(b, a)]
-swapPairs = map (\ (a, b) -> (b, a))
-
 -- | Lookups a node into an assoc list
 lookupNode :: (Monad m) => NameAssoc -> String -> String -> m Int
 lookupNode ktn inst node =
@@ -82,12 +77,11 @@ stripSuffix sflen name = take ((length name) - sflen) name
 
 {-| Initializer function that loads the data from a node and list file
     and massages it into the correct format. -}
-mergeData :: ([(String, Int)], Node.AssocList,
-              [(String, Int)], Instance.AssocList) -- ^ Data from either
-                                                   -- Text.loadData
-                                                   -- or Rapi.loadData
+mergeData :: (Node.AssocList,
+              Instance.AssocList) -- ^ Data from either Text.loadData
+                                  -- or Rapi.loadData
           -> Result (NodeList, InstanceList, String)
-mergeData (ktn, nl, kti, il) = do
+mergeData (nl, il) = do
   let
       nl2 = fixNodes nl il
       il3 = Container.fromAssocList il
