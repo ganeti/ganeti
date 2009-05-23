@@ -18,9 +18,6 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.CLI as CLI
-import qualified Ganeti.HTools.Rapi as Rapi
-import qualified Ganeti.HTools.Text as Text
-import qualified Ganeti.HTools.Loader as Loader
 import Ganeti.HTools.Types
 
 -- | Command line options structure.
@@ -43,6 +40,14 @@ data Options = Options
 instance CLI.CLIOptions Options where
     showVersion = optShowVer
     showHelp    = optShowHelp
+
+instance CLI.EToolOptions Options where
+    nodeFile   = optNodef
+    nodeSet    = optNodeSet
+    instFile   = optInstf
+    instSet    = optInstSet
+    masterName = optMaster
+    silent _   = False
 
 -- | Default values for the command line options.
 defaultOptions :: Options
@@ -140,31 +145,7 @@ main = do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
 
-  (env_node, env_inst) <- CLI.parseEnv ()
-  let nodef = if optNodeSet opts then optNodef opts
-              else env_node
-      instf = if optInstSet opts then optInstf opts
-              else env_inst
-      min_depth = optMinDepth opts
-
-  input_data <-
-      case optMaster opts of
-        "" -> Text.loadData nodef instf
-        host -> Rapi.loadData host
-  let ldresult = input_data >>= Loader.mergeData
-
-  (loaded_nl, il, csf, ktn, kti) <-
-      (case ldresult of
-         Ok x -> return x
-         Bad s -> do
-           printf "Error: failed to load data. Details:\n%s\n" s
-           exitWith $ ExitFailure 1
-      )
-  let (fix_msgs, nl) = Loader.checkData loaded_nl il ktn kti
-
-  unless (null fix_msgs) $ do
-         putStrLn "Warning: cluster has inconsistent data:"
-         putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
+  (nl, il, csf, ktn, kti) <- CLI.loadExternalData opts
 
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
@@ -174,6 +155,8 @@ main = do
          printf "Note: Stripping common suffix of '%s' from names\n" csf
 
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
+      min_depth = optMinDepth opts
+
   printf "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 

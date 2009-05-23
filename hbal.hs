@@ -19,9 +19,6 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.CLI as CLI
-import qualified Ganeti.HTools.Rapi as Rapi
-import qualified Ganeti.HTools.Text as Text
-import qualified Ganeti.HTools.Loader as Loader
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
@@ -47,6 +44,14 @@ data Options = Options
 instance CLI.CLIOptions Options where
     showVersion = optShowVer
     showHelp    = optShowHelp
+
+instance CLI.EToolOptions Options where
+    nodeFile   = optNodef
+    nodeSet    = optNodeSet
+    instFile   = optInstf
+    instSet    = optInstSet
+    masterName = optMaster
+    silent a   = (optVerbose a) == 0
 
 -- | Default values for the command line options.
 defaultOptions :: Options
@@ -175,32 +180,10 @@ main = do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
 
-  (env_node, env_inst) <- CLI.parseEnv ()
-  let nodef = if optNodeSet opts then optNodef opts
-              else env_node
-      instf = if optInstSet opts then optInstf opts
-              else env_inst
-      oneline = optOneline opts
+  let oneline = optOneline opts
       verbose = optVerbose opts
-  input_data <-
-      case optMaster opts of
-        "" -> Text.loadData nodef instf
-        host -> Rapi.loadData host
 
-  let ldresult = input_data >>= Loader.mergeData
-
-  (loaded_nl, il, csf, ktn, kti) <-
-      (case ldresult of
-         Ok x -> return x
-         Bad s -> do
-           printf "Error: failed to load data. Details:\n%s\n" s
-           exitWith $ ExitFailure 1
-      )
-  let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il ktn kti
-
-  unless (null fix_msgs || verbose == 0) $ do
-         putStrLn "Warning: cluster has inconsistent data:"
-         putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
+  (fixed_nl, il, csf, ktn, kti) <- CLI.loadExternalData opts
 
   let offline_names = optOffline opts
       all_names = snd . unzip $ ktn

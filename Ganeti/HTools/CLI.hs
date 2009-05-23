@@ -8,9 +8,11 @@ and this is more IO oriented.
 
 module Ganeti.HTools.CLI
     ( CLIOptions(..)
+    , EToolOptions(..)
     , parseOpts
     , parseEnv
     , shTemplate
+    , loadExternalData
     ) where
 
 import System.Console.GetOpt
@@ -23,11 +25,25 @@ import Text.Printf (printf)
 import qualified Data.Version
 
 import qualified Ganeti.HTools.Version as Version(version)
+import qualified Ganeti.HTools.Rapi as Rapi
+import qualified Ganeti.HTools.Text as Text
+import qualified Ganeti.HTools.Loader as Loader
+
+import Ganeti.HTools.Types
 
 -- | Class for types which support show help and show version
 class CLIOptions a where
     showHelp    :: a -> Bool
     showVersion :: a -> Bool
+
+-- | Class for types which support the -i/-n/-m options
+class EToolOptions a where
+    nodeFile   :: a -> FilePath
+    nodeSet    :: a -> Bool
+    instFile   :: a -> FilePath
+    instSet    :: a -> Bool
+    masterName :: a -> String
+    silent     :: a -> Bool
 
 -- | Command line parser, using the 'options' structure.
 parseOpts :: (CLIOptions b) =>
@@ -78,3 +94,34 @@ shTemplate =
            \    exit 0\n\
            \  fi\n\
            \}\n\n"
+
+-- | External tool data loader from a variety of sources
+loadExternalData :: (EToolOptions a) =>
+                    a
+                 -> IO (NodeList, InstanceList, String, NameList, NameList)
+loadExternalData opts = do
+  (env_node, env_inst) <- parseEnv ()
+  let nodef = if nodeSet opts then nodeFile opts
+              else env_node
+      instf = if instSet opts then instFile opts
+              else env_inst
+  input_data <-
+      case masterName opts of
+        "" -> Text.loadData nodef instf
+        host -> Rapi.loadData host
+
+  let ldresult = input_data >>= Loader.mergeData
+  (loaded_nl, il, csf, ktn, kti) <-
+      (case ldresult of
+         Ok x -> return x
+         Bad s -> do
+           printf "Error: failed to load data. Details:\n%s\n" s
+           exitWith $ ExitFailure 1
+      )
+  let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il ktn kti
+
+  unless (null fix_msgs || silent opts) $ do
+         putStrLn "Warning: cluster has inconsistent data:"
+         putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
+
+  return (fixed_nl, il, csf, ktn, kti)
