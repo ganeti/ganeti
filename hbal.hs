@@ -201,12 +201,9 @@ main = do
                                 else n) fixed_nl
 
   when (Container.size il == 0) $ do
-         (if oneline then
-              putStrLn $ formatOneline 0 0 0
-          else
-              printf "Cluster is empty, exiting.\n")
+         (if oneline then putStrLn $ formatOneline 0 0 0
+          else printf "Cluster is empty, exiting.\n")
          exitWith ExitSuccess
-
 
   unless oneline $ printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
