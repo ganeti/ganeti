@@ -145,7 +145,7 @@ main = do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
 
-  (nl, il, csf, _, _) <- CLI.loadExternalData opts
+  (nl, il, csf) <- CLI.loadExternalData opts
 
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)

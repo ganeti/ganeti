@@ -26,7 +26,7 @@ data RqType
     | Relocate Int
     deriving (Show)
 
-data Request = Request RqType NodeList InstanceList String NameList NameList
+data Request = Request RqType NodeList InstanceList String
     deriving (Show)
 
 parseBaseInstance :: String
@@ -101,8 +101,8 @@ parseData body = do
               ridx <- lookupNode kti rname rname
               return $ Relocate ridx
         other -> fail $ ("Invalid request type '" ++ other ++ "'")
-  (map_n, map_i, csf, xtn, xti) <- mergeData (ktn, nl, kti, il)
-  return $ Request rqtype map_n map_i csf xtn xti
+  (map_n, map_i, csf) <- mergeData (ktn, nl, kti, il)
+  return $ Request rqtype map_n map_i csf
 
 formatResponse :: Bool -> String -> [String] -> String
 formatResponse success info nodes =

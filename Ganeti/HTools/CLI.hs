@@ -98,7 +98,7 @@ shTemplate =
 -- | External tool data loader from a variety of sources
 loadExternalData :: (EToolOptions a) =>
                     a
-                 -> IO (NodeList, InstanceList, String, NameList, NameList)
+                 -> IO (NodeList, InstanceList, String)
 loadExternalData opts = do
   (env_node, env_inst) <- parseEnv ()
   let nodef = if nodeSet opts then nodeFile opts
@@ -111,7 +111,7 @@ loadExternalData opts = do
         host -> Rapi.loadData host
 
   let ldresult = input_data >>= Loader.mergeData
-  (loaded_nl, il, csf, ktn, kti) <-
+  (loaded_nl, il, csf) <-
       (case ldresult of
          Ok x -> return x
          Bad s -> do
@@ -124,4 +124,4 @@ loadExternalData opts = do
          putStrLn "Warning: cluster has inconsistent data:"
          putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
 
-  return (fixed_nl, il, csf, ktn, kti)
+  return (fixed_nl, il, csf)

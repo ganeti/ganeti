@@ -6,7 +6,6 @@ module Main (main) where
 
 import Data.List
 import Data.Function
-import Data.Maybe(fromJust)
 import Monad
 import System
 import System.IO
@@ -162,7 +161,7 @@ main = do
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err
                  Ok x -> do
-                   let (nl, il, csf, _, _) = x
+                   let (nl, il, csf) = x
                        (_, fix_nl) = Loader.checkData nl il
                    putStrLn $ printCluster fix_nl il
                    when (optShowNodes opts) $ do

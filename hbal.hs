@@ -181,7 +181,7 @@ main = do
   let oneline = optOneline opts
       verbose = optVerbose opts
 
-  (fixed_nl, il, csf, _, _) <- CLI.loadExternalData opts
+  (fixed_nl, il, csf) <- CLI.loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl

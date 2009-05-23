@@ -68,13 +68,10 @@ fixNodes nl il =
 
 -- | Compute the longest common suffix of a NameList list that
 -- | starts with a dot
-longestDomain :: NameList -> String
+longestDomain :: [String] -> String
 longestDomain [] = ""
-longestDomain ((_,x):xs) =
-    let
-        onlyStrings = snd $ unzip xs
-    in
-      foldr (\ suffix accu -> if all (isSuffixOf suffix) onlyStrings
+longestDomain (x:xs) =
+      foldr (\ suffix accu -> if all (isSuffixOf suffix) xs
                               then suffix
                               else accu)
       "" $ filter (isPrefixOf ".") (tails x)
@@ -89,22 +86,20 @@ mergeData :: ([(String, Int)], Node.AssocList,
               [(String, Int)], Instance.AssocList) -- ^ Data from either
                                                    -- Text.loadData
                                                    -- or Rapi.loadData
-          -> Result (NodeList, InstanceList, String, NameList, NameList)
+          -> Result (NodeList, InstanceList, String)
 mergeData (ktn, nl, kti, il) = do
   let
       nl2 = fixNodes nl il
       il3 = Container.fromAssocList il
       nl3 = Container.fromAssocList
             (map (\ (k, v) -> (k, Node.buildPeers v il3 (length nl2))) nl2)
-      xtn = swapPairs ktn
-      xti = swapPairs kti
-      common_suffix = longestDomain (xti ++ xtn)
+      node_names = map Node.name $ Container.elems nl3
+      inst_names = map Instance.name $ Container.elems il3
+      common_suffix = longestDomain (node_names ++ inst_names)
       csl = length common_suffix
-      stn = map (\(x, y) -> (x, stripSuffix csl y)) xtn
-      sti = map (\(x, y) -> (x, stripSuffix csl y)) xti
       snl = Container.map (\n -> setName n (stripSuffix csl $ name n)) nl3
       sil = Container.map (\i -> setName i (stripSuffix csl $ name i)) il3
-  return (snl, sil, common_suffix, stn, sti)
+  return (snl, sil, common_suffix)
 
 -- | Check cluster data for consistency
 checkData :: NodeList -> InstanceList
