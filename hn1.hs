@@ -160,7 +160,7 @@ main = do
            printf "Error: failed to load data. Details:\n%s\n" s
            exitWith $ ExitFailure 1
       )
-  let (fix_msgs, nl) = Cluster.checkData loaded_nl il ktn kti
+  let (fix_msgs, nl) = Loader.checkData loaded_nl il ktn kti
 
   unless (null fix_msgs) $ do
          putStrLn "Warning: cluster has inconsistent data:"

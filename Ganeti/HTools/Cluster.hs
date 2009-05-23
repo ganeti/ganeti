@@ -31,8 +31,6 @@ module Ganeti.HTools.Cluster
     , checkMove
     , compCV
     , printStats
-    -- * Loading functions
-    , checkData
     ) where
 
 import Data.List
@@ -681,50 +679,3 @@ printStats nl =
     let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
     in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f, uf=%.3f"
        mem_cv res_cv dsk_cv n1_score off_score
-
--- Balancing functions
-
--- Loading functions
-
--- | Compute the amount of memory used by primary instances on a node.
-nodeImem :: Node.Node -> InstanceList -> Int
-nodeImem node il =
-    let rfind = flip Container.find $ il
-    in sum . map Instance.mem .
-       map rfind $ Node.plist node
-
--- | Compute the amount of disk used by instances on a node (either primary
--- or secondary).
-nodeIdsk :: Node.Node -> InstanceList -> Int
-nodeIdsk node il =
-    let rfind = flip Container.find $ il
-    in sum . map Instance.dsk .
-       map rfind $ (Node.plist node) ++ (Node.slist node)
-
--- | Check cluster data for consistency
-checkData :: NodeList -> InstanceList -> NameList -> NameList
-          -> ([String], NodeList)
-checkData nl il ktn _ =
-    Container.mapAccum
-        (\ msgs node ->
-             let nname = fromJust $ lookup (Node.idx node) ktn
-                 nilst = map (flip Container.find $ il) (Node.plist node)
-                 dilst = filter (not . Instance.running) nilst
-                 adj_mem = sum . map Instance.mem $ dilst
-                 delta_mem = (truncate $ Node.t_mem node)
-                             - (Node.n_mem node)
-                             - (Node.f_mem node)
-                             - (nodeImem node il)
-                             + adj_mem
-                 delta_dsk = (truncate $ Node.t_dsk node)
-                             - (Node.f_dsk node)
-                             - (nodeIdsk node il)
-                 newn = Node.setFmem (Node.setXmem node delta_mem)
-                        (Node.f_mem node - adj_mem)
-                 umsg1 = if delta_mem > 512 || delta_dsk > 1024
-                         then [printf "node %s is missing %d MB ram \
-                                     \and %d GB disk"
-                                     nname delta_mem (delta_dsk `div` 1024)]
-                         else []
-             in (msgs ++ umsg1, newn)
-        ) [] nl

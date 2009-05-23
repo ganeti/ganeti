@@ -166,7 +166,7 @@ main = do
                                    \Details:\n%s\n" err
                  Ok x -> do
                    let (nl, il, csf, ktn, kti) = x
-                       (_, fix_nl) = Cluster.checkData nl il ktn kti
+                       (_, fix_nl) = Loader.checkData nl il ktn kti
                    putStrLn $ printCluster fix_nl il ktn kti
                    when (optShowNodes opts) $ do
                            putStr $ Cluster.printNodes ktn fix_nl
