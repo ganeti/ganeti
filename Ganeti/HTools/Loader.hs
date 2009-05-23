@@ -28,11 +28,11 @@ lookupNode ktn inst node =
       Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
       Just idx -> return idx
 
-assignIndices :: (a -> Int -> a)
-              -> [(String, a)]
+assignIndices :: (Element a) =>
+                 [(String, a)]
               -> (NameAssoc, [(Int, a)])
-assignIndices set_fn =
-    unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, set_fn v idx)))
+assignIndices =
+    unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
           . zip [0..]
 
 -- | For each instance, add its index to its primary and secondary nodes

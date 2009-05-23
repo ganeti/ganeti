@@ -82,12 +82,12 @@ parseData body = do
   nlist <- fromObj "nodes" obj
   let ndata = fromJSObject nlist
   nobj <- (mapM (\(x,y) -> asJSObject y >>= parseNode x)) ndata
-  let (ktn, nl) = assignIndices Node.setIdx nobj
+  let (ktn, nl) = assignIndices nobj
   -- existing instance parsing
   ilist <- fromObj "instances" obj
   let idata = fromJSObject ilist
   iobj <- (mapM (\(x,y) -> asJSObject y >>= parseInstance ktn x)) idata
-  let (kti, il) = assignIndices Instance.setIdx iobj
+  let (kti, il) = assignIndices iobj
   optype <- fromObj "type" request
   rqtype <-
       case optype of

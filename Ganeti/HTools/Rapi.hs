@@ -92,7 +92,7 @@ loadData master = do -- IO monad
   inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
   return $ do -- Result monad
     node_data <- node_body >>= getNodes
-    let (node_names, node_idx) = assignIndices Node.setIdx node_data
+    let (node_names, node_idx) = assignIndices node_data
     inst_data <- inst_body >>= getInstances node_names
-    let (inst_names, inst_idx) = assignIndices Instance.setIdx inst_data
+    let (inst_names, inst_idx) = assignIndices inst_data
     return (node_names, node_idx, inst_names, inst_idx)

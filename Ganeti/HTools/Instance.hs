@@ -62,3 +62,7 @@ setIdx :: Instance  -- ^ the original instance
         -> Int      -- ^ new index
         -> Instance -- ^ the modified instance
 setIdx t i = t { idx = i }
+
+-- | Changes the name
+-- This is used only during the building of the data structures.
+setName t s = t {name = s}

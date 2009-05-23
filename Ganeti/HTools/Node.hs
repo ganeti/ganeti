@@ -14,6 +14,7 @@ module Ganeti.HTools.Node
     -- ** Finalization after data loading
     , buildPeers
     , setIdx
+    , setName
     , setOffline
     , setXmem
     , setFmem
@@ -101,6 +102,10 @@ create name_init mem_t_init mem_n_init mem_f_init
 -- This is used only during the building of the data structures.
 setIdx :: Node -> Int -> Node
 setIdx t i = t {idx = i}
+
+-- | Changes the name
+-- This is used only during the building of the data structures.
+setName t s = t {name = s}
 
 -- | Sets the offline attribute
 setOffline :: Node -> Bool -> Node

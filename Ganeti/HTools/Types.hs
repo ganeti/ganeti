@@ -39,3 +39,24 @@ instance Monad Result where
     (>>=) (Ok x) fn = fn x
     return = Ok
     fail = Bad
+
+-- | A generic class for nodes and instances
+class Element a where
+    name    :: a -> String
+    idx     :: a -> Int
+    setName :: a -> String -> a
+    setIdx  :: a -> Int -> a
+
+-- Let's make nodes elements of the cluster
+instance Element Node.Node where
+    name = Node.name
+    idx = Node.idx
+    setName = Node.setName
+    setIdx = Node.setIdx
+
+-- And instances too
+instance Element Instance.Instance where
+    name = Instance.name
+    idx = Instance.idx
+    setName = Instance.setName
+    setIdx = Instance.setIdx
