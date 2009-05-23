@@ -79,11 +79,9 @@ longestDomain ((_,x):xs) =
                               else accu)
       "" $ filter (isPrefixOf ".") (tails x)
 
--- | Remove tails from the (Int, String) lists
-stripSuffix :: String -> NameList -> NameList
-stripSuffix suffix lst =
-    let sflen = length suffix in
-    map (\ (key, name) -> (key, take ((length name) - sflen) name)) lst
+-- | Remove tail suffix from a string
+stripSuffix :: Int -> String -> String
+stripSuffix sflen name = take ((length name) - sflen) name
 
 {-| Initializer function that loads the data from a node and list file
     and massages it into the correct format. -}
@@ -101,9 +99,12 @@ mergeData (ktn, nl, kti, il) = do
       xtn = swapPairs ktn
       xti = swapPairs kti
       common_suffix = longestDomain (xti ++ xtn)
-      stn = stripSuffix common_suffix xtn
-      sti = stripSuffix common_suffix xti
-  return (nl3, il3, common_suffix, stn, sti)
+      csl = length common_suffix
+      stn = map (\(x, y) -> (x, stripSuffix csl y)) xtn
+      sti = map (\(x, y) -> (x, stripSuffix csl y)) xti
+      snl = Container.map (\n -> setName n (stripSuffix csl $ name n)) nl3
+      sil = Container.map (\i -> setName i (stripSuffix csl $ name i)) il3
+  return (snl, sil, common_suffix, stn, sti)
 
 -- | Check cluster data for consistency
 checkData :: NodeList -> InstanceList -> NameList -> NameList
