@@ -41,6 +41,10 @@ data Options = Options
     , optShowHelp  :: Bool           -- ^ Just show the help
     } deriving Show
 
+instance CLI.CLIOptions Options where
+    showVersion = optShowVer
+    showHelp    = optShowHelp
+
 -- | Default values for the command line options.
 defaultOptions :: Options
 defaultOptions  = Options
@@ -163,11 +167,7 @@ main :: IO ()
 main = do
   cmd_args <- System.getArgs
   (opts, args) <- CLI.parseOpts cmd_args "hail" options
-                  defaultOptions optShowHelp
-
-  when (optShowVer opts) $ do
-         putStr $ CLI.showVersion "hbal"
-         exitWith ExitSuccess
+                  defaultOptions
 
   when (null args) $ do
          hPutStrLn stderr "Error: this program needs an input file."

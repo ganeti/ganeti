@@ -44,6 +44,10 @@ data Options = Options
     , optShowHelp  :: Bool           -- ^ Just show the help
     } deriving Show
 
+instance CLI.CLIOptions Options where
+    showVersion = optShowVer
+    showHelp    = optShowHelp
+
 -- | Default values for the command line options.
 defaultOptions :: Options
 defaultOptions  = Options
@@ -165,16 +169,11 @@ formatOneline ini_cv plc_len fin_cv =
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (opts, args) <- CLI.parseOpts cmd_args "hbal" options
-                  defaultOptions optShowHelp
+  (opts, args) <- CLI.parseOpts cmd_args "hbal" options defaultOptions
 
   unless (null args) $ do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
-
-  when (optShowVer opts) $ do
-         putStr $ CLI.showVersion "hbal"
-         exitWith ExitSuccess
 
   (env_node, env_inst) <- CLI.parseEnv ()
   let nodef = if optNodeSet opts then optNodef opts

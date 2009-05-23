@@ -35,6 +35,10 @@ data Options = Options
     , optShowHelp  :: Bool     -- ^ Just show the help
     } deriving Show
 
+instance CLI.CLIOptions Options where
+    showVersion = optShowVer
+    showHelp    = optShowHelp
+
 -- | Default values for the command line options.
 defaultOptions :: Options
 defaultOptions  = Options
@@ -141,11 +145,7 @@ main :: IO ()
 main = do
   cmd_args <- System.getArgs
   (opts, clusters) <- CLI.parseOpts cmd_args "hscan" options
-                      defaultOptions optShowHelp
-
-  when (optShowVer opts) $ do
-         putStr $ CLI.showVersion "hscan"
-         exitWith ExitSuccess
+                      defaultOptions
 
   let odir = optOutPath opts
       nlen = maximum . map length $ clusters
