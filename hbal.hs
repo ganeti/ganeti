@@ -127,7 +127,6 @@ we find a valid solution or we exceed the maximum depth.
 iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
              -> Cluster.NameList -- ^ Node idx to name list
-             -> Cluster.NameList -- ^ Inst idx to name list
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [[String]]       -- ^ Current command list
@@ -135,7 +134,7 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Cluster.Score    -- ^ Score at which to stop
              -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
                                                -- commands
-iterateDepth ini_tbl max_rounds ktn kti nmlen imlen
+iterateDepth ini_tbl max_rounds ktn nmlen imlen
              cmd_strs oneline min_score =
     let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
         all_inst = Container.elems ini_il
@@ -149,7 +148,7 @@ iterateDepth ini_tbl max_rounds ktn kti nmlen imlen
     in
       do
         let
-            (sol_line, cmds) = Cluster.printSolutionLine ini_il ktn kti
+            (sol_line, cmds) = Cluster.printSolutionLine ini_il ktn
                                nmlen imlen (head fin_plc) fin_plc_len
             upd_cmd_strs = cmds:cmd_strs
         unless (oneline || fin_plc_len == ini_plc_len) $ do
@@ -157,7 +156,7 @@ iterateDepth ini_tbl max_rounds ktn kti nmlen imlen
           hFlush stdout
         (if fin_cv < ini_cv then -- this round made success, try deeper
              if allowed_next && fin_cv > min_score
-             then iterateDepth fin_tbl max_rounds ktn kti
+             then iterateDepth fin_tbl max_rounds ktn
                   nmlen imlen upd_cmd_strs oneline min_score
              -- don't go deeper, but return the better solution
              else return (fin_tbl, upd_cmd_strs)
@@ -224,7 +223,7 @@ main = do
   when (optShowNodes opts) $
        do
          putStrLn "Initial cluster status:"
-         putStrLn $ Cluster.printNodes ktn nl
+         putStrLn $ Cluster.printNodes nl
 
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
@@ -250,7 +249,7 @@ main = do
       nmlen = mlen_fn ktn
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
-                         ktn kti nmlen imlen [] oneline min_cv
+                         ktn nmlen imlen [] oneline min_cv
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
       sol_msg = if null fin_plc
@@ -288,7 +287,7 @@ main = do
              (final_mem, final_disk) = Cluster.totalResources fin_nl
          putStrLn ""
          putStrLn "Final cluster status:"
-         putStrLn $ Cluster.printNodes ktn fin_nl
+         putStrLn $ Cluster.printNodes fin_nl
          when (verbose > 3) $
               do
                 printf "Original: mem=%d disk=%d\n" orig_mem orig_disk

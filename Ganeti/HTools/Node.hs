@@ -234,8 +234,8 @@ setSec :: Node -> Int -> Node
 setSec t idx = t { slist = idx:(slist t) }
 
 -- | String converter for the node list functionality.
-list :: Int -> String -> Node -> String
-list mname n t =
+list :: Int -> Node -> String
+list mname t =
     let pl = plist t
         sl = slist t
         mp = p_mem t
@@ -250,7 +250,7 @@ list mname n t =
     in
       printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d %3d %3d %.5f %.5f"
                  (if off then '-' else if fn then '*' else ' ')
-                 mname n tmem nmem imem xmem fmem (r_mem t)
+                 mname (name t) tmem nmem imem xmem fmem (r_mem t)
                  ((t_dsk t) / 1024) ((f_dsk t) `div` 1024)
                  (length pl) (length sl)
                  mp dp

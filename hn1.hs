@@ -211,6 +211,6 @@ main = do
              (final_mem, final_disk) = Cluster.totalResources ns
          putStrLn ""
          putStrLn "Final cluster status:"
-         putStrLn $ Cluster.printNodes ktn ns
+         putStrLn $ Cluster.printNodes ns
          printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
          printf "Final:    mem=%d disk=%d\n" final_mem final_disk

@@ -582,18 +582,17 @@ computeMoves i a b c d =
 {-| Converts a placement to string format -}
 printSolutionLine :: InstanceList
               -> NameList
-              -> NameList
               -> Int
               -> Int
               -> Placement
               -> Int
               -> (String, [String])
-printSolutionLine il ktn kti nmlen imlen plc pos =
+printSolutionLine il ktn nmlen imlen plc pos =
     let
         pmlen = (2*nmlen + 1)
         (i, p, s, c) = plc
         inst = Container.find i il
-        inam = fromJust $ lookup (Instance.idx inst) kti
+        inam = Instance.name inst
         npri = fromJust $ lookup p ktn
         nsec = fromJust $ lookup s ktn
         opri = fromJust $ lookup (Instance.pnode inst) ktn
@@ -628,15 +627,14 @@ printSolution il ktn kti sol =
         imlen = mlen_fn kti
         nmlen = mlen_fn ktn
     in
-      unzip $ map (uncurry $ printSolutionLine il ktn kti nmlen imlen) $
+      unzip $ map (uncurry $ printSolutionLine il ktn nmlen imlen) $
             zip sol [1..]
 
 -- | Print the node list.
-printNodes :: NameList -> NodeList -> String
-printNodes ktn nl =
+printNodes :: NodeList -> String
+printNodes nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
-        snl' = map (\ n -> ((fromJust $ lookup (Node.idx n) ktn), n)) snl
-        m_name = maximum . (map length) . fst . unzip $ snl'
+        m_name = maximum . map (length . Node.name) $ snl
         helper = Node.list m_name
         header = printf
                  "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %3s %3s %7s %7s"
@@ -644,7 +642,7 @@ printNodes ktn nl =
                  "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
                  "t_dsk" "f_dsk"
                  "pri" "sec" "p_fmem" "p_fdsk"
-    in unlines $ (header:map (uncurry helper) snl')
+    in unlines $ (header:map helper snl)
 
 -- | Compute the mem and disk covariance.
 compDetailedCV :: NodeList -> (Double, Double, Double, Double, Double)

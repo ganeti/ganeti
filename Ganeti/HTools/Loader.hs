@@ -107,12 +107,12 @@ mergeData (ktn, nl, kti, il) = do
   return (snl, sil, common_suffix, stn, sti)
 
 -- | Check cluster data for consistency
-checkData :: NodeList -> InstanceList -> NameList -> NameList
+checkData :: NodeList -> InstanceList
           -> ([String], NodeList)
-checkData nl il ktn _ =
+checkData nl il =
     Container.mapAccum
         (\ msgs node ->
-             let nname = fromJust $ lookup (Node.idx node) ktn
+             let nname = Node.name node
                  nilst = map (flip Container.find $ il) (Node.plist node)
                  dilst = filter (not . Instance.running) nilst
                  adj_mem = sum . map Instance.mem $ dilst

@@ -74,13 +74,12 @@ options =
     ]
 
 -- | Generate node file data from node objects
-serializeNodes :: Cluster.NodeList -> String -> Cluster.NameList -> String
-serializeNodes nl csf ktn =
-    let etn = map (\(idx, name) -> (idx, name ++ csf)) ktn
-        nodes = Container.elems nl
+serializeNodes :: Cluster.NodeList -> String -> String
+serializeNodes nl csf =
+    let nodes = Container.elems nl
         nlines = map
                  (\node ->
-                      let name = (fromJust $ lookup (Node.idx node) etn)
+                      let name = Node.name node ++ csf
                           t_mem = (truncate $ Node.t_mem node)::Int
                           t_dsk = (truncate $ Node.t_dsk node)::Int
                       in
@@ -94,15 +93,14 @@ serializeNodes nl csf ktn =
 
 -- | Generate instance file data from instance objects
 serializeInstances :: Cluster.InstanceList -> String
-                   -> Cluster.NameList -> Cluster.NameList -> String
-serializeInstances il csf ktn kti =
+                   -> Cluster.NameList -> String
+serializeInstances il csf ktn =
     let etn = map (\(idx, name) -> (idx, name ++ csf)) ktn
-        eti = map (\(idx, name) -> (idx, name ++ csf)) kti
         instances = Container.elems il
         nlines = map
                  (\inst ->
                       let
-                          iname = fromJust $ lookup (Instance.idx inst) eti
+                          iname = Instance.name inst ++ csf
                           pnode = fromJust $ lookup (Instance.pnode inst) etn
                           snode = fromJust $ lookup (Instance.snode inst) etn
                       in
@@ -116,19 +114,19 @@ serializeInstances il csf ktn kti =
 
 -- | Return a one-line summary of cluster state
 printCluster :: Cluster.NodeList -> Cluster.InstanceList
-             -> Cluster.NameList -> Cluster.NameList
              -> String
-printCluster nl il ktn kti =
+printCluster nl il =
     let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
         ccv = Cluster.compCV nl
         nodes = Container.elems nl
+        insts = Container.elems il
         t_ram = truncate . sum . map Node.t_mem $ nodes
         t_dsk = truncate . sum . map Node.t_dsk $ nodes
         f_ram = sum . map Node.f_mem $ nodes
         f_dsk = sum . map Node.f_dsk $ nodes
     in
       printf "%5d %5d %5d %5d %6d %6d %6d %6d %.8f"
-                 (length ktn) (length kti)
+                 (length nodes) (length insts)
                  (length bad_nodes) (length bad_instances)
                  (t_ram::Integer) f_ram
                  ((t_dsk::Integer) `div` 1024) (f_dsk `div` 1024)
@@ -165,13 +163,13 @@ main = do
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err
                  Ok x -> do
-                   let (nl, il, csf, ktn, kti) = x
-                       (_, fix_nl) = Loader.checkData nl il ktn kti
-                   putStrLn $ printCluster fix_nl il ktn kti
+                   let (nl, il, csf, ktn, _) = x
+                       (_, fix_nl) = Loader.checkData nl il
+                   putStrLn $ printCluster fix_nl il
                    when (optShowNodes opts) $ do
-                           putStr $ Cluster.printNodes ktn fix_nl
-                   let ndata = serializeNodes nl csf ktn
-                       idata = serializeInstances il csf ktn kti
+                           putStr $ Cluster.printNodes fix_nl
+                   let ndata = serializeNodes nl csf
+                       idata = serializeInstances il csf ktn
                        oname = odir </> (fixSlash name)
                    writeFile (oname <.> "nodes") ndata
                    writeFile (oname <.> "instances") idata)

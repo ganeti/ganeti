@@ -118,7 +118,7 @@ loadExternalData opts = do
            printf "Error: failed to load data. Details:\n%s\n" s
            exitWith $ ExitFailure 1
       )
-  let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il ktn kti
+  let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il
 
   unless (null fix_msgs || silent opts) $ do
          putStrLn "Warning: cluster has inconsistent data:"
