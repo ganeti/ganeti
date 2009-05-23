@@ -580,23 +580,23 @@ computeMoves i a b c d =
                       printf "replace-disks -n %s %s" d i])
 
 {-| Converts a placement to string format -}
-printSolutionLine :: InstanceList
-              -> NameList
-              -> Int
-              -> Int
-              -> Placement
-              -> Int
-              -> (String, [String])
-printSolutionLine il ktn nmlen imlen plc pos =
+printSolutionLine :: NodeList
+                  -> InstanceList
+                  -> Int
+                  -> Int
+                  -> Placement
+                  -> Int
+                  -> (String, [String])
+printSolutionLine nl il nmlen imlen plc pos =
     let
         pmlen = (2*nmlen + 1)
         (i, p, s, c) = plc
         inst = Container.find i il
         inam = Instance.name inst
-        npri = fromJust $ lookup p ktn
-        nsec = fromJust $ lookup s ktn
-        opri = fromJust $ lookup (Instance.pnode inst) ktn
-        osec = fromJust $ lookup (Instance.snode inst) ktn
+        npri = cNameOf nl p
+        nsec = cNameOf nl s
+        opri = cNameOf nl $ Instance.pnode inst
+        osec = cNameOf nl $ Instance.snode inst
         (moves, cmds) =  computeMoves inam opri osec npri nsec
         ostr = (printf "%s:%s" opri osec)::String
         nstr = (printf "%s:%s" npri nsec)::String
@@ -616,18 +616,16 @@ formatCmds cmd_strs =
         zip [1..] cmd_strs
 
 {-| Converts a solution to string format -}
-printSolution :: InstanceList
-              -> NameList
-              -> NameList
+printSolution :: NodeList
+              -> InstanceList
               -> [Placement]
               -> ([String], [[String]])
-printSolution il ktn kti sol =
+printSolution nl il sol =
     let
-        mlen_fn = maximum . (map length) . snd . unzip
-        imlen = mlen_fn kti
-        nmlen = mlen_fn ktn
+        nmlen = cMaxNamelen nl
+        imlen = cMaxNamelen il
     in
-      unzip $ map (uncurry $ printSolutionLine il ktn nmlen imlen) $
+      unzip $ map (uncurry $ printSolutionLine nl il nmlen imlen) $
             zip sol [1..]
 
 -- | Print the node list.

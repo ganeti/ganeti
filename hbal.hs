@@ -126,7 +126,6 @@ we find a valid solution or we exceed the maximum depth.
 -}
 iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
-             -> Cluster.NameList -- ^ Node idx to name list
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [[String]]       -- ^ Current command list
@@ -134,7 +133,7 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Cluster.Score    -- ^ Score at which to stop
              -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
                                                -- commands
-iterateDepth ini_tbl max_rounds ktn nmlen imlen
+iterateDepth ini_tbl max_rounds nmlen imlen
              cmd_strs oneline min_score =
     let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
         all_inst = Container.elems ini_il
@@ -148,7 +147,7 @@ iterateDepth ini_tbl max_rounds ktn nmlen imlen
     in
       do
         let
-            (sol_line, cmds) = Cluster.printSolutionLine ini_il ktn
+            (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
                                nmlen imlen (head fin_plc) fin_plc_len
             upd_cmd_strs = cmds:cmd_strs
         unless (oneline || fin_plc_len == ini_plc_len) $ do
@@ -156,7 +155,7 @@ iterateDepth ini_tbl max_rounds ktn nmlen imlen
           hFlush stdout
         (if fin_cv < ini_cv then -- this round made success, try deeper
              if allowed_next && fin_cv > min_score
-             then iterateDepth fin_tbl max_rounds ktn
+             then iterateDepth fin_tbl max_rounds
                   nmlen imlen upd_cmd_strs oneline min_score
              -- don't go deeper, but return the better solution
              else return (fin_tbl, upd_cmd_strs)
@@ -182,13 +181,15 @@ main = do
   let oneline = optOneline opts
       verbose = optVerbose opts
 
-  (fixed_nl, il, csf, ktn, kti) <- CLI.loadExternalData opts
+  (fixed_nl, il, csf, _, _) <- CLI.loadExternalData opts
 
   let offline_names = optOffline opts
-      all_names = snd . unzip $ ktn
+      all_nodes = Container.elems fixed_nl
+      all_names = map Node.name all_nodes
       offline_wrong = filter (\n -> not $ elem n all_names) offline_names
-      offline_indices = fst . unzip .
-                        filter (\(_, n) -> elem n offline_names) $ ktn
+      offline_indices = map Node.idx $
+                        filter (\n -> elem (Node.name n) offline_names)
+                               all_nodes
 
   when (length offline_wrong > 0) $ do
          printf "Wrong node name(s) set as offline: %s\n"
@@ -244,12 +245,11 @@ main = do
                       printf "Initial score: %.8f\n" ini_cv)
 
   unless oneline $ putStrLn "Trying to minimize the CV..."
-  let mlen_fn = maximum . (map length) . snd . unzip
-      imlen = mlen_fn kti
-      nmlen = mlen_fn ktn
+  let imlen = cMaxNamelen il
+      nmlen = cMaxNamelen nl
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
-                         ktn nmlen imlen [] oneline min_cv
+                         nmlen imlen [] oneline min_cv
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
       sol_msg = if null fin_plc

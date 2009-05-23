@@ -92,17 +92,16 @@ serializeNodes nl csf =
     in unlines nlines
 
 -- | Generate instance file data from instance objects
-serializeInstances :: Cluster.InstanceList -> String
-                   -> Cluster.NameList -> String
-serializeInstances il csf ktn =
-    let etn = map (\(idx, name) -> (idx, name ++ csf)) ktn
-        instances = Container.elems il
+serializeInstances :: Cluster.NodeList -> Cluster.InstanceList
+                   -> String -> String
+serializeInstances nl il csf =
+    let instances = Container.elems il
         nlines = map
                  (\inst ->
                       let
                           iname = Instance.name inst ++ csf
-                          pnode = fromJust $ lookup (Instance.pnode inst) etn
-                          snode = fromJust $ lookup (Instance.snode inst) etn
+                          pnode = cNameOf nl $ Instance.pnode inst
+                          snode = cNameOf nl $ Instance.snode inst
                       in
                         printf "%s|%d|%d|%s|%s|%s"
                                iname (Instance.mem inst) (Instance.dsk inst)
@@ -163,13 +162,13 @@ main = do
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err
                  Ok x -> do
-                   let (nl, il, csf, ktn, _) = x
+                   let (nl, il, csf, _, _) = x
                        (_, fix_nl) = Loader.checkData nl il
                    putStrLn $ printCluster fix_nl il
                    when (optShowNodes opts) $ do
                            putStr $ Cluster.printNodes fix_nl
                    let ndata = serializeNodes nl csf
-                       idata = serializeInstances il csf ktn
+                       idata = serializeInstances nl il csf
                        oname = odir </> (fixSlash name)
                    writeFile (oname <.> "nodes") ndata
                    writeFile (oname <.> "instances") idata)

@@ -145,7 +145,7 @@ main = do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
 
-  (nl, il, csf, ktn, kti) <- CLI.loadExternalData opts
+  (nl, il, csf, _, _) <- CLI.loadExternalData opts
 
   printf "Loaded %d nodes, %d instances\n"
              (Container.size nl)
@@ -197,7 +197,7 @@ main = do
          (Cluster.printStats ns)
 
   printf "Solution (delta=%d):\n" $! min_d
-  let (sol_strs, cmd_strs) = Cluster.printSolution il ktn kti solution
+  let (sol_strs, cmd_strs) = Cluster.printSolution ns il solution
   putStr $ unlines $ sol_strs
   when (optShowCmds opts) $
        do
