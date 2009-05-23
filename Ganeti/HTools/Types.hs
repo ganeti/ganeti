@@ -60,3 +60,11 @@ instance Element Instance.Instance where
     idx = Instance.idx
     setName = Instance.setName
     setIdx = Instance.setIdx
+
+-- | Compute the name of an element in a container
+cNameOf :: (Element a) => Container.Container a -> Container.Key -> String
+cNameOf c k = name $ Container.find k c
+
+-- | Compute the maximum name length in an Element Container
+cMaxNamelen :: (Element a) => Container.Container a -> Int
+cMaxNamelen = maximum . map (length . name) . Container.elems

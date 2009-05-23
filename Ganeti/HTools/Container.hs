@@ -9,6 +9,7 @@ module Ganeti.HTools.Container
     (
      -- * Types
      Container
+    , Key
      -- * Creation
     , empty
     , fromAssocList
