@@ -18,6 +18,7 @@ import Text.Printf (printf)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Utils
@@ -112,11 +113,25 @@ options =
       "show help"
     ]
 
--- | Formats the solution for the oneline display
-formatOneline :: Double -> Int -> Double -> String
-formatOneline ini_cv plc_len fin_cv =
-    printf "%.8f %d %.8f %8.3f" ini_cv plc_len fin_cv
-               (if fin_cv == 0 then 1 else (ini_cv / fin_cv))
+-- | Try to allocate an instance on the cluster
+tryAlloc :: NodeList
+         -> InstanceList
+         -> Instance.Instance
+         -> Int
+         -> Result [Node.Node]
+tryAlloc nl il xi _ = Bad "alloc not implemented"
+
+-- | Try to allocate an instance on the cluster
+tryReloc :: NodeList
+         -> InstanceList
+         -> Int
+         -> Int
+         -> [Int]
+         -> Result [Node.Node]
+tryReloc nl il xid reqn ex_idx =
+    let all_nodes = Container.elems nl
+        valid_nodes = filter (not . flip elem ex_idx . idx) all_nodes
+    in Ok (take reqn valid_nodes)
 
 -- | Main function.
 main :: IO ()
@@ -138,127 +153,13 @@ main = do
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
-  putStrLn $ show request
-  exitWith ExitSuccess
-{-
-  (loaded_nl, il, csf, ktn, kti) <- liftM2 Cluster.loadData node_data inst_data
-  let (fix_msgs, fixed_nl) = Cluster.checkData loaded_nl il ktn kti
-
-  unless (null fix_msgs || verbose == 0) $ do
-         putStrLn "Warning: cluster has inconsistent data:"
-         putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
-
-  let offline_names = optOffline opts
-      all_names = snd . unzip $ ktn
-      offline_wrong = filter (\n -> not $ elem n all_names) offline_names
-      offline_indices = fst . unzip .
-                        filter (\(_, n) -> elem n offline_names) $ ktn
-
-  when (length offline_wrong > 0) $ do
-         printf "Wrong node name(s) set as offline: %s\n"
-                (commaJoin offline_wrong)
-         exitWith $ ExitFailure 1
-
-  let nl = Container.map (\n -> if elem (Node.idx n) offline_indices
-                                then Node.setOffline n True
-                                else n) fixed_nl
-
-  when (Container.size il == 0) $ do
-         (if oneline then
-              putStrLn $ formatOneline 0 0 0
-          else
-              printf "Cluster is empty, exiting.\n")
-         exitWith ExitSuccess
-
-
-  unless oneline $ printf "Loaded %d nodes, %d instances\n"
-             (Container.size nl)
-             (Container.size il)
-
-  when (length csf > 0 && not oneline && verbose > 1) $ do
-         printf "Note: Stripping common suffix of '%s' from names\n" csf
-
-  let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
-  unless (oneline || verbose == 0) $ printf
-             "Initial check done: %d bad nodes, %d bad instances.\n"
-             (length bad_nodes) (length bad_instances)
-
-  when (length bad_nodes > 0) $ do
-         putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
-                  \that the cluster will end N+1 happy."
-
-  when (optShowNodes opts) $
-       do
-         putStrLn "Initial cluster status:"
-         putStrLn $ Cluster.printNodes ktn nl
-
-  let ini_cv = Cluster.compCV nl
-      ini_tbl = Cluster.Table nl il ini_cv []
-      min_cv = optMinScore opts
-
-  when (ini_cv < min_cv) $ do
-         (if oneline then
-              putStrLn $ formatOneline ini_cv 0 ini_cv
-          else printf "Cluster is already well balanced (initial score %.6g,\n\
-                      \minimum score %.6g).\nNothing to do, exiting\n"
-                      ini_cv min_cv)
-         exitWith ExitSuccess
-
-  unless oneline (if verbose > 2 then
-                      printf "Initial coefficients: overall %.8f, %s\n"
-                      ini_cv (Cluster.printStats nl)
-                  else
-                      printf "Initial score: %.8f\n" ini_cv)
-
-  unless oneline $ putStrLn "Trying to minimize the CV..."
-  let mlen_fn = maximum . (map length) . snd . unzip
-      imlen = mlen_fn kti
-      nmlen = mlen_fn ktn
-
-  (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
-                         ktn kti nmlen imlen [] oneline min_cv
-  let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
-      ord_plc = reverse fin_plc
-      sol_msg = if null fin_plc
-                then printf "No solution found\n"
-                else (if verbose > 2
-                      then printf "Final coefficients:   overall %.8f, %s\n"
-                           fin_cv (Cluster.printStats fin_nl)
-                      else printf "Cluster score improved from %.8f to %.8f\n"
-                           ini_cv fin_cv
-                     )
-
-  unless oneline $ putStr sol_msg
-
-  unless (oneline || verbose == 0) $
-         printf "Solution length=%d\n" (length ord_plc)
-
-  let cmd_data = Cluster.formatCmds . reverse $ cmd_strs
-
-  when (isJust $ optShowCmds opts) $
-       do
-         let out_path = fromJust $ optShowCmds opts
-         putStrLn ""
-         (if out_path == "-" then
-              printf "Commands to run to reach the above solution:\n%s"
-                     (unlines . map ("  " ++) .
-                      filter (/= "check") .
-                      lines $ cmd_data)
-          else do
-            writeFile out_path (CLI.shTemplate ++ cmd_data)
-            printf "The commands have been written to file '%s'\n" out_path)
-
-  when (optShowNodes opts) $
-       do
-         let (orig_mem, orig_disk) = Cluster.totalResources nl
-             (final_mem, final_disk) = Cluster.totalResources fin_nl
-         putStrLn ""
-         putStrLn "Final cluster status:"
-         putStrLn $ Cluster.printNodes ktn fin_nl
-         when (verbose > 3) $
-              do
-                printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
-                printf "Final:    mem=%d disk=%d\n" final_mem final_disk
-  when oneline $
-         putStrLn $ formatOneline ini_cv (length ord_plc) fin_cv
--}
+  let Request rqtype nl il csf = request
+      new_nodes = case rqtype of
+                    Allocate xi reqn -> tryAlloc nl il xi reqn
+                    Relocate idx reqn exnodes ->
+                        tryReloc nl il idx reqn exnodes
+  let (ok, info, rn) = case new_nodes of
+               Ok sn -> (True, "Request successfull", map name sn)
+               Bad s -> (False, "Request failed: " ++ s, [])
+      resp = formatResponse ok info rn
+  putStrLn resp

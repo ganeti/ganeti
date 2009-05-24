@@ -9,6 +9,7 @@ module Ganeti.HTools.Loader
     , checkData
     , assignIndices
     , lookupNode
+    , stripSuffix
     ) where
 
 import Data.List

@@ -6,6 +6,8 @@ module Ganeti.HTools.IAlloc
     (
       parseData
     , formatResponse
+    , RqType(..)
+    , Request(..)
     ) where
 
 import Data.Either ()
@@ -22,8 +24,8 @@ import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
 data RqType
-    = Allocate String Instance.Instance
-    | Relocate Int
+    = Allocate Instance.Instance Int
+    | Relocate Int Int [Int]
     deriving (Show)
 
 data Request = Request RqType NodeList InstanceList String
@@ -88,20 +90,24 @@ parseData body = do
   let idata = fromJSObject ilist
   iobj <- (mapM (\(x,y) -> asJSObject y >>= parseInstance ktn x)) idata
   let (kti, il) = assignIndices iobj
+  (map_n, map_i, csf) <- mergeData (nl, il)
+  req_nodes <- fromObj "required_nodes" request
   optype <- fromObj "type" request
   rqtype <-
       case optype of
         "allocate" ->
             do
               inew <- parseBaseInstance rname request
-              let (iname, io) = inew
-              return $ Allocate iname io
+              let io = snd inew
+              return $ Allocate io req_nodes
         "relocate" ->
             do
               ridx <- lookupNode kti rname rname
-              return $ Relocate ridx
+              ex_nodes <- fromObj "relocate_from" request
+              let ex_nodes' = map (stripSuffix $ length csf) ex_nodes
+              ex_idex <- mapM (findByName map_n) ex_nodes'
+              return $ Relocate ridx req_nodes ex_idex
         other -> fail $ ("Invalid request type '" ++ other ++ "'")
-  (map_n, map_i, csf) <- mergeData (nl, il)
   return $ Request rqtype map_n map_i csf
 
 formatResponse :: Bool -> String -> [String] -> String

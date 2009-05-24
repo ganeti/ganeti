@@ -68,3 +68,17 @@ cNameOf c k = name $ Container.find k c
 -- | Compute the maximum name length in an Element Container
 cMaxNamelen :: (Element a) => Container.Container a -> Int
 cMaxNamelen = maximum . map (length . name) . Container.elems
+
+-- | Find an element by name in a Container; this is a very slow function
+findByName :: (Element a, Monad m) =>
+              Container.Container a -> String -> m Container.Key
+findByName c n =
+    let all_elems = Container.elems c
+        result = filter ((== n) . name) all_elems
+        nems = length result
+    in
+      if nems /= 1 then
+          fail $ "Wrong number of elems (" ++ (show nems) ++
+                   ") found with name " ++ n
+      else
+          return $ idx $ head result
