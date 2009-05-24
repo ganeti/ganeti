@@ -33,6 +33,8 @@ module Ganeti.HTools.Cluster
     , checkMove
     , compCV
     , printStats
+    -- * IAllocator functions
+    , allocateOn
     ) where
 
 import Data.List
@@ -406,6 +408,16 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
           return $ Container.add new_sdx new_s $
                  Container.addTwo old_sdx new_p old_pdx int_p nl
     in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
+
+allocateOn nl inst new_pdx new_sdx =
+    let
+        tgt_p = Container.find new_pdx nl
+        tgt_s = Container.find new_sdx nl
+        new_nl = do -- Maybe monad
+          new_p <- Node.addPri tgt_p inst
+          new_s <- Node.addSec tgt_s inst new_pdx
+          return $ Container.addTwo new_pdx new_p new_sdx new_s nl
+    in (new_nl, Instance.setBoth inst new_pdx new_sdx)
 
 checkSingleStep :: Table -- ^ The original table
                 -> Instance.Instance -- ^ The instance to move

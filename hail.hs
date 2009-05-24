@@ -119,7 +119,42 @@ tryAlloc :: NodeList
          -> Instance.Instance
          -> Int
          -> Result (String, [Node.Node])
-tryAlloc nl il xi _ = Bad "alloc not implemented"
+tryAlloc nl il inst 2 =
+    let all_nodes = Container.elems nl
+        all_nidx = map Node.idx all_nodes
+        all_pairs = liftM2 (,) all_nodes all_nodes
+        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
+        sols1 = map (\(p, s) -> let pdx = Node.idx p
+                                    sdx = Node.idx s
+                                    (mnl, _) = Cluster.allocateOn nl
+                                               inst pdx sdx
+                                in (mnl, (p, s))
+                     ) ok_pairs
+        sols2 = filter (isJust . fst) sols1
+    in if null sols1 then
+           Bad "No pairs onto which to allocate at all"
+       else if null sols2 then
+                Bad "No valid allocation solutions"
+            else
+                let sols3 = map (\(x, (y, z)) ->
+                                      (Cluster.compCV $ fromJust x,
+                                                  (fromJust x, y, z)))
+                             sols2
+                    sols4 = sortBy (compare `on` fst) sols3
+                    (best, (final_nl, w1, w2)) = head sols4
+                    (worst, (_, l1, l2)) = last sols4
+                    info = printf "Valid results: %d, best score: %.8f \
+                                  \(nodes %s/%s), worst score: %.8f (nodes \
+                                  \%s/%s)"
+                                  (length sols3)
+                                  best (Node.name w1) (Node.name w2)
+                                  worst (Node.name l1) (Node.name w2)
+                in Ok (info, [w1, w2])
+
+
+tryAlloc _ _ _ reqn = Bad $ "Unsupported number of alllocation \
+                               \destinations required (" ++ (show reqn) ++
+                                                 "), only two supported"
 
 -- | Try to allocate an instance on the cluster
 tryReloc :: NodeList
