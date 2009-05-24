@@ -118,7 +118,7 @@ tryAlloc :: NodeList
          -> InstanceList
          -> Instance.Instance
          -> Int
-         -> Result [Node.Node]
+         -> Result (String, [Node.Node])
 tryAlloc nl il xi _ = Bad "alloc not implemented"
 
 -- | Try to allocate an instance on the cluster
@@ -127,11 +127,44 @@ tryReloc :: NodeList
          -> Int
          -> Int
          -> [Int]
-         -> Result [Node.Node]
-tryReloc nl il xid reqn ex_idx =
+         -> Result (String, [Node.Node])
+tryReloc nl il xid 1 ex_idx =
     let all_nodes = Container.elems nl
+        inst = Container.find xid il
         valid_nodes = filter (not . flip elem ex_idx . idx) all_nodes
-    in Ok (take reqn valid_nodes)
+        valid_idxes = map Node.idx valid_nodes
+        nl' = Container.map (\n -> if elem (Node.idx n) ex_idx then
+                                       Node.setOffline n True
+                                   else n) nl
+        sols1 = map (\x -> let (mnl, _, _, _) =
+                                    Cluster.applyMove nl' inst
+                                               (Cluster.ReplaceSecondary x)
+                            in (mnl, x)
+                     ) valid_idxes
+        sols2 = filter (isJust . fst) sols1
+    in if null sols1 then
+           Bad "No nodes onto which to relocate at all"
+       else if null sols2 then
+                Bad "No valid solutions"
+            else
+                let sols3 = map (\(x, y) ->
+                                      (Cluster.compCV $ fromJust x,
+                                                  (fromJust x, y)))
+                             sols2
+                    sols4 = sortBy (compare `on` fst) sols3
+                    (best, (final_nl, winner)) = head sols4
+                    (worst, (_, loser)) = last sols4
+                    wnode = Container.find winner final_nl
+                    lnode = Container.find loser nl
+                    info = printf "Valid results: %d, best score: %.8f \
+                                  \(node %s), worst score: %.8f (node %s)"
+                                  (length sols3) best (Node.name wnode)
+                                  worst (Node.name lnode)
+                in Ok (info, [wnode])
+
+tryReloc _ _ _ reqn _  = Bad $ "Unsupported number of relocation \
+                               \destinations required (" ++ (show reqn) ++
+                                                 "), only one supported"
 
 -- | Main function.
 main :: IO ()
@@ -159,7 +192,8 @@ main = do
                     Relocate idx reqn exnodes ->
                         tryReloc nl il idx reqn exnodes
   let (ok, info, rn) = case new_nodes of
-               Ok sn -> (True, "Request successfull", map name sn)
+               Ok (info, sn) -> (True, "Request successful: " ++ info,
+                                     map name sn)
                Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rn
   putStrLn resp

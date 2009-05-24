@@ -16,6 +16,7 @@ module Ganeti.HTools.Cluster
     , Table(..)
     , Removal
     , Score
+    , IMove(..)
     -- * Generic functions
     , totalResources
     -- * First phase functions
@@ -28,6 +29,7 @@ module Ganeti.HTools.Cluster
     , formatCmds
     , printNodes
     -- * Balacing functions
+    , applyMove
     , checkMove
     , compCV
     , printStats
