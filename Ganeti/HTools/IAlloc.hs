@@ -55,9 +55,10 @@ parseInstance ktn n a = do
     base <- parseBaseInstance n a
     nodes <- fromObj "nodes" a
     pnode <- readEitherString $ head nodes
-    snode <- readEitherString $ (head . tail) nodes
     pidx <- lookupNode ktn n pnode
-    sidx <- lookupNode ktn n snode
+    let snodes = tail nodes
+    sidx <- (if null snodes then return Node.noSecondary
+             else (readEitherString $ head snodes) >>= lookupNode ktn n)
     return (n, Instance.setBoth (snd base) pidx sidx)
 
 parseNode :: String -> JSObject JSValue -> Result (String, Node.Node)
