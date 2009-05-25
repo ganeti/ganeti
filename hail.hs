@@ -92,15 +92,13 @@ tryReloc :: (Monad m) =>
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = getOnline nl
         inst = Container.find xid il
-        valid_nodes = filter (not . flip elem ex_idx . idx) all_nodes
+        ex_idx' = (Instance.pnode inst):ex_idx
+        valid_nodes = filter (not . flip elem ex_idx' . idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
-        nl' = Container.map (\n -> if elem (Node.idx n) ex_idx then
-                                       Node.setOffline n True
-                                   else n) nl
         sols1 = map (\x -> let (mnl, _, _, _) =
-                                    Cluster.applyMove nl' inst
+                                    Cluster.applyMove nl inst
                                                (Cluster.ReplaceSecondary x)
-                            in (mnl, [Container.find x nl'])
+                            in (mnl, [Container.find x nl])
                      ) valid_idxes
     in return sols1
 
