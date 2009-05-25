@@ -34,7 +34,8 @@ module Ganeti.HTools.Cluster
     , compCV
     , printStats
     -- * IAllocator functions
-    , allocateOn
+    , allocateOnSingle
+    , allocateOnPair
     ) where
 
 import Data.List
@@ -409,10 +410,19 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
                  Container.addTwo old_sdx new_p old_pdx int_p nl
     in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
 
-allocateOn nl inst new_pdx new_sdx =
-    let
-        tgt_p = Container.find new_pdx nl
-        tgt_s = Container.find new_sdx nl
+allocateOnSingle :: NodeList -> Instance.Instance -> Node.Node
+                 -> (Maybe NodeList, Instance.Instance)
+allocateOnSingle nl inst p =
+    let new_pdx = Node.idx p
+        new_nl = Node.addPri p inst >>= \new_p ->
+                 return $ Container.add new_pdx new_p nl
+    in (new_nl, Instance.setBoth inst new_pdx Node.noSecondary)
+
+allocateOnPair :: NodeList -> Instance.Instance -> Node.Node -> Node.Node
+               -> (Maybe NodeList, Instance.Instance)
+allocateOnPair nl inst tgt_p tgt_s =
+    let new_pdx = Node.idx tgt_p
+        new_sdx = Node.idx tgt_s
         new_nl = do -- Maybe monad
           new_p <- Node.addPri tgt_p inst
           new_s <- Node.addSec tgt_s inst new_pdx

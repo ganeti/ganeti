@@ -21,7 +21,6 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.IAlloc
-import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
 -- | Command line options structure.
@@ -120,17 +119,20 @@ tryAlloc :: (Monad m) =>
          -> Instance.Instance
          -> Int
          -> m [(Maybe NodeList, [Node.Node])]
-tryAlloc nl il inst 2 =
+tryAlloc nl _ inst 2 =
     let all_nodes = Container.elems nl
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
-        sols1 = map (\(p, s) -> let pdx = Node.idx p
-                                    sdx = Node.idx s
-                                    (mnl, _) = Cluster.allocateOn nl
-                                               inst pdx sdx
-                                in (mnl, [p, s])
-                     ) ok_pairs
-    in return sols1
+        sols = map (\(p, s) ->
+                        (fst $ Cluster.allocateOnPair nl inst p s, [p, s]))
+               ok_pairs
+    in return sols
+
+tryAlloc nl _ inst 1 =
+    let all_nodes = Container.elems nl
+        sols = map (\p -> (fst $ Cluster.allocateOnSingle nl inst p, [p]))
+               all_nodes
+    in return sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
                              \destinations required (" ++ (show reqn) ++
@@ -180,8 +182,8 @@ processResults sols =
         sols'' = sortBy (compare `on` fst) sols'
         (best, w) = head sols''
         (worst, l) = last sols''
-        info = printf "Valid results: %d, best score: %.8f (nodes %s), \
-                      \worst score: %.8f (nodes %s)" (length sols'')
+        info = printf "Valid results: %d, best score: %.8f for node(s) %s, \
+                      \worst score: %.8f for node(s) %s" (length sols'')
                       best (intercalate "/" . map Node.name $ w)
                       worst (intercalate "/" . map Node.name $ l)
     in return (info, w)
