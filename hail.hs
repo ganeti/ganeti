@@ -51,6 +51,10 @@ options =
       "show help"
     ]
 
+-- | Compute online nodes from a NodeList
+getOnline :: NodeList -> [Node.Node]
+getOnline = filter (not . Node.offline) . Container.elems
+
 -- | Try to allocate an instance on the cluster
 tryAlloc :: (Monad m) =>
             NodeList
@@ -59,7 +63,7 @@ tryAlloc :: (Monad m) =>
          -> Int
          -> m [(Maybe NodeList, [Node.Node])]
 tryAlloc nl _ inst 2 =
-    let all_nodes = Container.elems nl
+    let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
         sols = map (\(p, s) ->
@@ -68,7 +72,7 @@ tryAlloc nl _ inst 2 =
     in return sols
 
 tryAlloc nl _ inst 1 =
-    let all_nodes = Container.elems nl
+    let all_nodes = getOnline nl
         sols = map (\p -> (fst $ Cluster.allocateOnSingle nl inst p, [p]))
                all_nodes
     in return sols
@@ -86,7 +90,7 @@ tryReloc :: (Monad m) =>
          -> [Int]
          -> m [(Maybe NodeList, [Node.Node])]
 tryReloc nl il xid 1 ex_idx =
-    let all_nodes = Container.elems nl
+    let all_nodes = getOnline nl
         inst = Container.find xid il
         valid_nodes = filter (not . flip elem ex_idx . idx) all_nodes
         valid_idxes = map Node.idx valid_nodes

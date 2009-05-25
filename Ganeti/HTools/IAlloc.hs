@@ -69,7 +69,7 @@ parseNode n a = do
     dtotal <- fromObj "total_disk" a
     dfree <- fromObj "free_disk" a
     offline <- fromObj "offline" a
-    drained <- fromObj "offline" a
+    drained <- fromObj "drained" a
     return $ (name, Node.create n mtotal mnode mfree dtotal dfree
                       (offline || drained))
 
