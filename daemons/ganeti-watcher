@@ -298,6 +298,9 @@ class Watcher(object):
     master = client.QueryConfigValues(["master_node"])[0]
     if master != utils.HostInfo().name:
       raise NotMasterError("This is not the master node")
+    # first archive old jobs
+    self.ArchiveJobs(opts.job_age)
+    # and only then submit new ones
     self.instances, self.bootids, self.smap = GetClusterData()
     self.started_instances = set()
     self.opts = opts
@@ -307,12 +310,12 @@ class Watcher(object):
 
     """
     notepad = self.notepad
-    self.ArchiveJobs(self.opts.job_age)
     self.CheckInstances(notepad)
     self.CheckDisks(notepad)
     self.VerifyDisks()
 
-  def ArchiveJobs(self, age):
+  @staticmethod
+  def ArchiveJobs(age):
     """Archive old jobs.
 
     """
@@ -459,7 +462,7 @@ def main():
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)
 
-  update_file = True
+  update_file = False
   try:
     notepad = WatcherState()
     try:
@@ -468,13 +471,13 @@ def main():
       except errors.OpPrereqError:
         # this is, from cli.GetClient, a not-master case
         logging.debug("Not on master, exiting")
+        update_file = True
         sys.exit(constants.EXIT_SUCCESS)
       except luxi.NoMasterError, err:
         logging.warning("Master seems to be down (%s), trying to restart",
                         str(err))
         if not StartMaster():
           logging.critical("Can't start the master, exiting")
-          update_file = False
           sys.exit(constants.EXIT_FAILURE)
         # else retry the connection
         client = cli.GetClient()
@@ -483,9 +486,12 @@ def main():
         watcher = Watcher(options, notepad)
       except errors.ConfigurationError:
         # Just exit if there's no configuration
+        update_file = True
         sys.exit(constants.EXIT_SUCCESS)
 
       watcher.Run()
+      update_file = True
+
     finally:
       if update_file:
         notepad.Save()
@@ -499,6 +505,10 @@ def main():
   except errors.ResolverError, err:
     logging.error("Cannot resolve hostname '%s', exiting.", err.args[0])
     sys.exit(constants.EXIT_NODESETUP_ERROR)
+  except errors.JobQueueFull:
+    logging.error("Job queue is full, can't query cluster state")
+  except errors.JobQueueDrainError:
+    logging.error("Job queue is drained, can't maintain cluster state")
   except Exception, err:
     logging.error(str(err), exc_info=True)
     sys.exit(constants.EXIT_FAILURE)
