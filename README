@@ -6,16 +6,6 @@ now N+1 and rebalancing are included. Starting with version 0.1.0,
 only Ganeti 2.0 is supported.
 
 
-Cluster N+1 solver
-------------------
-
-This program runs a very simple brute force algorithm over the instance
-placement space in order to determine the shortest number of replace-disks
-needed to fix the cluster. Note this means we won't get a balanced cluster,
-just one that passes N+1 checks.
-
-For algorithm details and usage, see the man page hn1(1).
-
 Cluster rebalancer
 ------------------
 
@@ -25,13 +15,35 @@ becomes better. We stop when no further move can improve the score.
 
 For algorithm details and usage, see the man page hbal(1).
 
+Cluster N+1 solver
+------------------
+
+This program runs a very simple brute force algorithm over the instance
+placement space in order to determine the shortest number of replace-disks
+needed to fix the cluster. Note this means we won't get a balanced cluster,
+just one that passes N+1 checks.
+
+For algorithm details and usage, see the man page hn1(1). **Note**:
+this program is deprecated, hbal should be used instead.
+
+IAllocator plugin
+-----------------
+
+The ``hail`` iallocator plugin can be used for allocations of mirrored
+and non-mirrored instances and for relocations of mirrored
+instances. It needs to be installed in Ganeti's iallocator search
+path—usually ``/usr/lib/ganeti/iallocators`` or
+``/usr/local/lib/ganeti/iallocators``.
+
 Integration with Ganeti
 -----------------------
 
-The programs can either get their input from text files, or online
-from a cluster via RAPI. For online collection via RAPI, the "-m"
-argument to both hn1 and hbal should specify the cluster or master
-node name.
+The ``hbal`` and ``hn1`` programs can either get their input from text
+files, or online from a cluster via RAPI. For online collection via
+RAPI, the "-m" argument to both hn1 and hbal should specify the
+cluster or master node name. ``hail`` uses the standard iallocator API
+and thus doesn't need any special setup (just needs to be installed in
+the right directory).
 
 For text files, a separate tool (hscan) is provided to automate their
 gathering if RAPI is available, which is better since it can extract
@@ -43,7 +55,8 @@ reason, the following two commands should be run::
     gnt-instance list -oname,admin_ram,sda_size,status,pnode,snodes \
       --separator '|' --no-head > instances
 
-These two files should be saved under the names of *nodes* and *instances*.
+These two files should be saved under the names of *nodes* and
+*instances*.
 
 Installation
 ------------
@@ -55,8 +68,8 @@ installed manually:
 - json
 - curl
 
-One these are available, just typing *make* in the top-level directory
-should be enough.
+Once these are available, just typing *make* in the top-level
+directory should be enough.
 
 Internal (implementation) documentation is available in the ``apidoc``
 directory.
