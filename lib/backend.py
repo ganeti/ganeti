@@ -1692,7 +1692,7 @@ def OSEnvironment(instance, debug=0):
 
   for source, kind in [(instance.beparams, "BE"), (instance.hvparams, "HV")]:
     for key, value in source.items():
-      env["INSTANCE_%s_%s" % (kind, key)] = value
+      result["INSTANCE_%s_%s" % (kind, key)] = str(value)
 
   return result
 
