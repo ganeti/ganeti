@@ -250,6 +250,14 @@ class SimpleStore(object):
     nl = data.splitlines(False)
     return nl
 
+  def GetClusterTags(self):
+    """Return the cluster tags.
+
+    """
+    data = self._ReadFile(constants.SS_CLUSTER_TAGS)
+    nl = data.splitlines(False)
+    return nl
+
 
 def GetMasterAndMyself(ss=None):
   """Get the master node and my own hostname.

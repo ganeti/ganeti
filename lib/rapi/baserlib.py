@@ -29,6 +29,8 @@ import ganeti.opcodes
 from ganeti import luxi
 from ganeti import rapi
 from ganeti import http
+from ganeti import ssconf
+from ganeti import constants
 
 
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
@@ -81,8 +83,22 @@ def _Tags_GET(kind, name=""):
   """Helper function to retrieve tags.
 
   """
-  op = ganeti.opcodes.OpGetTags(kind=kind, name=name)
-  tags = ganeti.cli.SubmitOpCode(op)
+  if kind == constants.TAG_INSTANCE or kind == constants.TAG_NODE:
+    if not name:
+      raise HttpBadRequest("Missing name on tag request")
+    cl = luxi.Client()
+    if kind == constants.TAG_INSTANCE:
+      fn = cl.QueryInstances
+    else:
+      fn = cl.QueryNodes
+    result = fn(names=[name], fields=["tags"], use_locking=False)
+    if not result or not result[0]:
+      raise http.HttpBadGateway("Invalid response from tag query")
+    tags = result[0][0]
+  elif kind == constants.TAG_CLUSTER:
+    ssc = ssconf.SimpleStore()
+    tags = ssc.GetClusterTags()
+
   return list(tags)
 
 
