@@ -83,7 +83,7 @@ parseNode a = do
                         dtotal dfree (offline || drained))
     return (name, node)
 
-loadData :: String -- ^ Cluster/URL to use as source
+loadData :: String -- ^ Cluster or URL to use as source
          -> IO (Result (Node.AssocList, Instance.AssocList))
 loadData master = do -- IO monad
   let url = formatHost master

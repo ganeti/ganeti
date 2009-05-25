@@ -1,7 +1,7 @@
 {-| Parsing data from text-files
 
 This module holds the code for loading the cluster state from text
-files, as produced by gnt-node/gnt-instance list.
+files, as produced by gnt-node and gnt-instance list.
 
 -}
 
