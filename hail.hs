@@ -114,55 +114,36 @@ options =
     ]
 
 -- | Try to allocate an instance on the cluster
-tryAlloc :: NodeList
+tryAlloc :: (Monad m) =>
+            NodeList
          -> InstanceList
          -> Instance.Instance
          -> Int
-         -> Result (String, [Node.Node])
+         -> m [(Maybe NodeList, [Node.Node])]
 tryAlloc nl il inst 2 =
     let all_nodes = Container.elems nl
-        all_nidx = map Node.idx all_nodes
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
         sols1 = map (\(p, s) -> let pdx = Node.idx p
                                     sdx = Node.idx s
                                     (mnl, _) = Cluster.allocateOn nl
                                                inst pdx sdx
-                                in (mnl, (p, s))
+                                in (mnl, [p, s])
                      ) ok_pairs
-        sols2 = filter (isJust . fst) sols1
-    in if null sols1 then
-           Bad "No pairs onto which to allocate at all"
-       else if null sols2 then
-                Bad "No valid allocation solutions"
-            else
-                let sols3 = map (\(x, (y, z)) ->
-                                      (Cluster.compCV $ fromJust x,
-                                                  (fromJust x, y, z)))
-                             sols2
-                    sols4 = sortBy (compare `on` fst) sols3
-                    (best, (final_nl, w1, w2)) = head sols4
-                    (worst, (_, l1, l2)) = last sols4
-                    info = printf "Valid results: %d, best score: %.8f \
-                                  \(nodes %s/%s), worst score: %.8f (nodes \
-                                  \%s/%s)"
-                                  (length sols3)
-                                  best (Node.name w1) (Node.name w2)
-                                  worst (Node.name l1) (Node.name w2)
-                in Ok (info, [w1, w2])
+    in return sols1
 
-
-tryAlloc _ _ _ reqn = Bad $ "Unsupported number of alllocation \
-                               \destinations required (" ++ (show reqn) ++
-                                                 "), only two supported"
+tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
+                             \destinations required (" ++ (show reqn) ++
+                                               "), only two supported"
 
 -- | Try to allocate an instance on the cluster
-tryReloc :: NodeList
+tryReloc :: (Monad m) =>
+            NodeList
          -> InstanceList
          -> Int
          -> Int
          -> [Int]
-         -> Result (String, [Node.Node])
+         -> m [(Maybe NodeList, [Node.Node])]
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = Container.elems nl
         inst = Container.find xid il
@@ -174,32 +155,36 @@ tryReloc nl il xid 1 ex_idx =
         sols1 = map (\x -> let (mnl, _, _, _) =
                                     Cluster.applyMove nl' inst
                                                (Cluster.ReplaceSecondary x)
-                            in (mnl, x)
+                            in (mnl, [Container.find x nl'])
                      ) valid_idxes
-        sols2 = filter (isJust . fst) sols1
-    in if null sols1 then
-           Bad "No nodes onto which to relocate at all"
-       else if null sols2 then
-                Bad "No valid solutions"
-            else
-                let sols3 = map (\(x, y) ->
-                                      (Cluster.compCV $ fromJust x,
-                                                  (fromJust x, y)))
-                             sols2
-                    sols4 = sortBy (compare `on` fst) sols3
-                    (best, (final_nl, winner)) = head sols4
-                    (worst, (_, loser)) = last sols4
-                    wnode = Container.find winner final_nl
-                    lnode = Container.find loser nl
-                    info = printf "Valid results: %d, best score: %.8f \
-                                  \(node %s), worst score: %.8f (node %s)"
-                                  (length sols3) best (Node.name wnode)
-                                  worst (Node.name lnode)
-                in Ok (info, [wnode])
+    in return sols1
 
-tryReloc _ _ _ reqn _  = Bad $ "Unsupported number of relocation \
-                               \destinations required (" ++ (show reqn) ++
-                                                 "), only one supported"
+tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
+                                \destinations required (" ++ (show reqn) ++
+                                                  "), only one supported"
+
+filterFails :: (Monad m) => [(Maybe NodeList, [Node.Node])]
+            -> m [(NodeList, [Node.Node])]
+filterFails sols =
+    if null sols then fail "No nodes onto which to allocate at all"
+    else let sols' = filter (isJust . fst) sols
+         in if null sols' then
+                fail "No valid allocation solutions"
+            else
+                return $ map (\(x, y) -> (fromJust x, y)) sols'
+
+processResults :: (Monad m) => [(NodeList, [Node.Node])]
+               -> m (String, [Node.Node])
+processResults sols =
+    let sols' = map (\(nl', ns) -> (Cluster.compCV  nl', ns)) sols
+        sols'' = sortBy (compare `on` fst) sols'
+        (best, w) = head sols''
+        (worst, l) = last sols''
+        info = printf "Valid results: %d, best score: %.8f (nodes %s), \
+                      \worst score: %.8f (nodes %s)" (length sols'')
+                      best (intercalate "/" . map Node.name $ w)
+                      worst (intercalate "/" . map Node.name $ l)
+    in return (info, w)
 
 -- | Main function.
 main :: IO ()
@@ -226,9 +211,10 @@ main = do
                     Allocate xi reqn -> tryAlloc nl il xi reqn
                     Relocate idx reqn exnodes ->
                         tryReloc nl il idx reqn exnodes
-  let (ok, info, rn) = case new_nodes of
+  let sols = new_nodes >>= filterFails >>= processResults
+  let (ok, info, rn) = case sols of
                Ok (info, sn) -> (True, "Request successful: " ++ info,
-                                     map name sn)
+                                     map ((++ csf) . name) sn)
                Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rn
   putStrLn resp
