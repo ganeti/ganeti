@@ -80,6 +80,20 @@ def StartMaster():
   return not result.failed
 
 
+def EnsureDaemon(daemon):
+  """Check for and start daemon if not alive.
+
+  """
+  pidfile = utils.DaemonPidFileName(daemon)
+  pid = utils.ReadPidFile(pidfile)
+  if pid == 0 or not utils.IsProcessAlive(pid): # no file or dead pid
+    logging.debug("Daemon '%s' not alive, trying to restart", daemon)
+    result = utils.RunCmd([daemon])
+    if not result:
+      logging.error("Can't start daemon '%s', failure %s, output: %s",
+                    daemon, result.fail_reason, result.output)
+
+
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
@@ -464,6 +478,10 @@ def main():
 
   update_file = False
   try:
+    # on master or not, try to start the node dameon (use _PID but is
+    # the same as daemon name)
+    EnsureDaemon(constants.NODED_PID)
+
     notepad = WatcherState()
     try:
       try:
@@ -481,6 +499,9 @@ def main():
           sys.exit(constants.EXIT_FAILURE)
         # else retry the connection
         client = cli.GetClient()
+
+      # we are on master now (use _PID but is the same as daemon name)
+      EnsureDaemon(constants.RAPI_PID)
 
       try:
         watcher = Watcher(options, notepad)
