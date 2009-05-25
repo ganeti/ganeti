@@ -1,3 +1,17 @@
+Version 0.1.1 ( Mon, 25 May 2009):
+  - Add a new program, “hail”, which is an iallocator plugin and can
+    allocate/relocate instances
+  - Experimental support for non-mirrored instances (hail supports them,
+    hbal should no longer abort when it finds such instances and simply
+    ignore them)
+  - The RAPI port and/or scheme can be overriden now, and even “file://”
+    schemes can be used if the message body has been saved under the
+    appropriate name
+  - Lots of code reorganization, esp. rewritten loading pipeline
+  - Better data checking and better error messages in case validation
+    fails; tools now consider nodes with error in input data (‘?’
+    returned by ganeti) as offline
+
 Version 0.1.0 (Tue, 19 May 2009):
   - Drop compatibility with Ganeti 1.2
   - Add a new minimum score option (with a very low default), should
@@ -7,14 +21,15 @@ Version 0.1.0 (Tue, 19 May 2009):
 
 Version 0.0.8 (Tue, 21 Apr 2009):
   - hbal: prevent mismatches in wrong node names being passed to -O, by
-	aborting in this case
-  - add the ability to write the commands (-C) to a script via (-C<file>), so
-	that it can be later executed directly; this has also changed the commands
-	to include the ncessary -f flags to skip confirmations
-  - add checks for extra argument in hbal and hn1, so that unintended errors
-	are catched
-  - raise the accepted “missing” memory limit to 512MB, to cover usual Xen
-	reservations
+    aborting in this case
+  - add the ability to write the commands (-C) to a script via
+    (-C<file>), so that it can be later executed directly; this has also
+    changed the commands to include the ncessary -f flags to skip
+    confirmations
+  - add checks for extra argument in hbal and hn1, so that unintended
+    errors are catched
+  - raise the accepted “missing” memory limit to 512MB, to cover usual
+    Xen reservations
 
 Version 0.0.7 (Mon, 23 Mar 2009):
   - added support for offline nodes, which are not used as targets for
