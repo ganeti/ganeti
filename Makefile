@@ -28,13 +28,14 @@ doc: $(DOCS)
 		--source-entity="%{MODULE/.//}.html#%{NAME}" \
 		$(HSRCS)
 
-clean:
+maintainer-clean:
 	rm -rf $(HDDIR)
+	rm -f $(DOCS) TAGS version Ganeti/HTools/Version.hs
+
+clean:
 	rm -f $(HPROGS)
 	rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
-	rm -f $(DOCS) TAGS Ganeti/HTools/Version.hs
-	git describe >/dev/null 2>&1 && rm -f version || true
 
 version:
 	git describe > $@
@@ -52,4 +53,4 @@ dist: Ganeti/HTools/Version.hs version doc
 	gzip -v9 $$ANAME ; \
 	tar tzvf $$ANAME.gz
 
-.PHONY : all doc clean dist
+.PHONY : all doc maintainer-clean clean dist
