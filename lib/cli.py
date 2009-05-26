@@ -51,7 +51,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
            "ToStderr", "ToStdout", "UsesRPC",
-           "GetOnlineNodes", "JobExecutor", "SYNC_OPT",
+           "GetOnlineNodes", "JobExecutor", "SYNC_OPT", "CONFIRM_OPT",
            ]
 
 
@@ -181,6 +181,9 @@ FIELDS_OPT = make_option("-o", "--output", dest="output", action="store",
 
 FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
                         default=False, help="Force the operation")
+
+CONFIRM_OPT = make_option("--yes", dest="confirm", action="store_true",
+                          default=False, help="Do not require confirmation")
 
 TAG_SRC_OPT = make_option("--from", dest="tags_source",
                           default=None, help="File with tag names")
