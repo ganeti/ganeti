@@ -1,4 +1,4 @@
-Version 0.1.1 ( Mon, 25 May 2009):
+Version 0.1.1 (Tue, 26 May 2009):
   - Add a new program, “hail”, which is an iallocator plugin and can
     allocate/relocate instances
   - Experimental support for non-mirrored instances (hail supports them,
@@ -11,6 +11,7 @@ Version 0.1.1 ( Mon, 25 May 2009):
   - Better data checking and better error messages in case validation
     fails; tools now consider nodes with error in input data (‘?’
     returned by ganeti) as offline
+  - Small enhancement to the makefile for simpler packaging
 
 Version 0.1.0 (Tue, 19 May 2009):
   - Drop compatibility with Ganeti 1.2
