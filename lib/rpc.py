@@ -1030,6 +1030,16 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "node_demote_from_mc", [])
 
+
+  def call_node_powercycle(self, node, hypervisor):
+    """Tries to powercycle a node.
+
+    This is a single-node call.
+
+    """
+    return self._SingleNodeCall(node, "node_powercycle", [hypervisor])
+
+
   def call_test_delay(self, node_list, duration):
     """Sleep for a fixed time on given node(s).
 

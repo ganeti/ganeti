@@ -286,6 +286,18 @@ class BaseHypervisor(object):
                                      " validation: %s (current value: '%s')" %
                                      (name, errstr, value))
 
+  @classmethod
+  def PowercycleNode(cls):
+    """Hard powercycle a node using hypervisor specific methods.
+
+    This method should hard powercycle the node, using whatever
+    methods the hypervisor provides. Note that this means that all
+    instances running on the node must be stopped too.
+
+    """
+    raise NotImplementedError
+
+
   def GetLinuxNodeInfo(self):
     """For linux systems, return actual OS information.
 
@@ -346,3 +358,20 @@ class BaseHypervisor(object):
     result['cpu_sockets'] = 1
 
     return result
+
+  @classmethod
+  def LinuxPowercycle(cls):
+    """Linux-specific powercycle method.
+
+    """
+    try:
+      fd = os.open("/proc/sysrq-trigger", os.O_WRONLY)
+      try:
+        os.write(fd, "b")
+      finally:
+        fd.close()
+    except OSError:
+      logging.exception("Can't open the sysrq-trigger file")
+      result = utils.RunCmd(["reboot", "-n", "-f"])
+      if not result:
+        logging.error("Can't run shutdown: %s", result.output)

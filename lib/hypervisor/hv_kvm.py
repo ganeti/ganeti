@@ -721,3 +721,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         hvparams[constants.HV_NIC_TYPE] == constants.HT_NIC_PARAVIRTUAL):
       raise errors.HypervisorError("Cannot boot from a paravirtual NIC. Please"
                                    " change the NIC type.")
+
+  @classmethod
+  def PowercycleNode(cls):
+    """KVM powercycle, just a wrapper over Linux powercycle.
+
+    """
+    cls.LinuxPowercycle()

@@ -402,6 +402,23 @@ class XenHypervisor(hv_base.BaseHypervisor):
     except EnvironmentError:
       logging.exception("Failure while removing instance config file")
 
+  @classmethod
+  def PowercycleNode(cls):
+    """Xen-specific powercycle.
+
+    This first does a Linux reboot (which triggers automatically a Xen
+    reboot), and if that fails it tries to do a Xen reboot. The reason
+    we don't try a Xen reboot first is that the xen reboot launches an
+    external command which connects to the Xen hypervisor, and that
+    won't work in case the root filesystem is broken and/or the xend
+    daemon is not working.
+
+    """
+    try:
+      cls.LinuxPowercycle()
+    finally:
+      utils.RunCmd(["xm", "debug", "R"])
+
 
 class XenPvmHypervisor(XenHypervisor):
   """Xen PVM hypervisor interface"""

@@ -2423,6 +2423,51 @@ class LUSetNodeParams(LogicalUnit):
     return result
 
 
+class LUPowercycleNode(NoHooksLU):
+  """Powercycles a node.
+
+  """
+  _OP_REQP = ["node_name", "force"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    node_name = self.cfg.ExpandNodeName(self.op.node_name)
+    if node_name is None:
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+    self.op.node_name = node_name
+    if node_name == self.cfg.GetMasterNode() and not self.op.force:
+      raise errors.OpPrereqError("The node is the master and the force"
+                                 " parameter was not set")
+
+  def ExpandNames(self):
+    """Locking for PowercycleNode.
+
+    This is a last-resource option and shouldn't block on other
+    jobs. Therefore, we grab no locks.
+
+    """
+    self.needed_locks = {}
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This LU has no prereqs.
+
+    """
+    pass
+
+  def Exec(self, feedback_fn):
+    """Reboots a node.
+
+    """
+    result = self.rpc.call_node_powercycle(self.op.node_name,
+                                           self.cfg.GetHypervisorType())
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Failed to schedule the reboot: %s" % msg)
+    return result.payload
+
+
 class LUQueryClusterInfo(NoHooksLU):
   """Query cluster configuration.
 

@@ -340,6 +340,16 @@ class OpSetNodeParams(OpCode):
     "drained",
     ]
 
+
+class OpPowercycleNode(OpCode):
+  """Tries to powercycle a node."""
+  OP_ID = "OP_NODE_POWERCYCLE"
+  OP_DSC_FIELD = "node_name"
+  __slots__ = [
+    "node_name",
+    "force",
+    ]
+
 # instance opcodes
 
 class OpCreateInstance(OpCode):

@@ -2437,6 +2437,25 @@ def DrbdWaitSync(nodes_ip, disks):
   return (not failure, (alldone, min_resync))
 
 
+def PowercycleNode(hypervisor_type):
+  """Hard-powercycle the node.
+
+  Because we need to return first, and schedule the powercycle in the
+  background, we won't be able to report failures nicely.
+
+  """
+  hyper = hypervisor.GetHypervisor(hypervisor_type)
+  try:
+    pid = os.fork()
+  except OSError, err:
+    # if we can't fork, we'll pretend that we're in the child process
+    pid = 0
+  if pid > 0:
+    return (True, "Reboot scheduled in 5 seconds")
+  time.sleep(5)
+  hyper.PowercycleNode()
+
+
 class HooksRunner(object):
   """Hook runner.
 

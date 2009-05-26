@@ -186,3 +186,10 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     """
     if not os.path.exists(self._ROOT_DIR):
       return "The required directory '%s' does not exist." % self._ROOT_DIR
+
+  @classmethod
+  def PowercycleNode(cls):
+    """Fake hypervisor powercycle, just a wrapper over Linux powercycle.
+
+    """
+    cls.LinuxPowercycle()

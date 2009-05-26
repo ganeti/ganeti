@@ -391,6 +391,28 @@ def RemoveNode(opts, args):
   return 0
 
 
+def PowercycleNode(opts, args):
+  """Remove a node from the cluster.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the name of
+      the node to be removed
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  node = args[0]
+  if (not opts.confirm and
+      not AskUser("Are you sure you want to hard powercycle node %s?" % node)):
+    return 2
+
+  op = opcodes.OpPowercycleNode(node_name=node, force=opts.force)
+  result = SubmitOpCode(op)
+  ToStderr(result)
+  return 0
+
+
 def ListVolumes(opts, args):
   """List logical volumes on node(s).
 
@@ -552,6 +574,8 @@ commands = {
                           help="Set the drained flag on the node"),
               ],
              "<instance>", "Alters the parameters of an instance"),
+  'powercycle': (PowercycleNode, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, CONFIRM_OPT],
+                 "<node_name>", "Tries to forcefully powercycle a node"),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
              "<node_name>", "Removes a node from the cluster"),
   'volumes': (ListVolumes, ARGS_ANY,

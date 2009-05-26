@@ -684,6 +684,36 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
       </para>
     </refsect2>
 
+    <refsect2>
+      <title>POWERCYCLE</title>
+
+      <cmdsynopsis>
+        <command>powercycle</command>
+        <arg><option>--confirm</option></arg>
+        <arg><option>--force</option></arg>
+        <arg choice="req"><replaceable>node</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        This commands (tries to) forcefully reboot a node. It is a
+        command that can be used if the node environemnt is broken,
+        such that the admin can no longer login over ssh, but the
+        ganeti node daemon is still working.
+      </para>
+
+      <para>
+        Note that this command is not guaranteed to work; it depends
+        on the hypervisor how effective is the reboot attempt. For
+        Linux, this command require that the kernel option
+        <literal>CONFIG_MAGIC_SYSRQ</literal> is enabled.
+      </para>
+
+      <para>
+        The <option>--yes</option> option can be used to skip
+        confirmation, while the <option>--force</option> option is
+        needed if the target node is the master node.
+      </para>
+
   </refsect1>
 
   &footer;
