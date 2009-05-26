@@ -64,15 +64,19 @@ parseInstance ktn n a = do
 parseNode :: String -> JSObject JSValue -> Result (String, Node.Node)
 parseNode n a = do
     let name = n
-    mtotal <- fromObj "total_memory" a
-    mnode <- fromObj "reserved_memory" a
-    mfree <- fromObj "free_memory" a
-    dtotal <- fromObj "total_disk" a
-    dfree <- fromObj "free_disk" a
     offline <- fromObj "offline" a
     drained <- fromObj "drained" a
-    return $ (name, Node.create n mtotal mnode mfree dtotal dfree
-                      (offline || drained))
+    node <- (case offline of
+               True -> return $ Node.create name 0 0 0 0 0 True
+               _ -> do
+                 mtotal <- fromObj "total_memory" a
+                 mnode <- fromObj "reserved_memory" a
+                 mfree <- fromObj "free_memory" a
+                 dtotal <- fromObj "total_disk" a
+                 dfree <- fromObj "free_disk" a
+                 return $ Node.create n mtotal mnode mfree
+                        dtotal dfree (offline || drained))
+    return (name, node)
 
 parseData :: String -> Result Request
 parseData body = do
