@@ -81,7 +81,7 @@ stripSuffix sflen name = take ((length name) - sflen) name
 mergeData :: (Node.AssocList,
               Instance.AssocList) -- ^ Data from either Text.loadData
                                   -- or Rapi.loadData
-          -> Result (NodeList, InstanceList, String)
+          -> Result (Node.List, Instance.List, String)
 mergeData (nl, il) = do
   let
       nl2 = fixNodes nl il
@@ -92,13 +92,13 @@ mergeData (nl, il) = do
       inst_names = map Instance.name $ Container.elems il3
       common_suffix = longestDomain (node_names ++ inst_names)
       csl = length common_suffix
-      snl = Container.map (\n -> setName n (stripSuffix csl $ name n)) nl3
-      sil = Container.map (\i -> setName i (stripSuffix csl $ name i)) il3
+      snl = Container.map (\n -> setName n (stripSuffix csl $ nameOf n)) nl3
+      sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il3
   return (snl, sil, common_suffix)
 
 -- | Check cluster data for consistency
-checkData :: NodeList -> InstanceList
-          -> ([String], NodeList)
+checkData :: Node.List -> Instance.List
+          -> ([String], Node.List)
 checkData nl il =
     Container.mapAccum
         (\ msgs node ->
@@ -125,7 +125,7 @@ checkData nl il =
         ) [] nl
 
 -- | Compute the amount of memory used by primary instances on a node.
-nodeImem :: Node.Node -> InstanceList -> Int
+nodeImem :: Node.Node -> Instance.List -> Int
 nodeImem node il =
     let rfind = flip Container.find $ il
     in sum . map Instance.mem .
@@ -133,7 +133,7 @@ nodeImem node il =
 
 -- | Compute the amount of disk used by instances on a node (either primary
 -- or secondary).
-nodeIdsk :: Node.Node -> InstanceList -> Int
+nodeIdsk :: Node.Node -> Instance.List -> Int
 nodeIdsk node il =
     let rfind = flip Container.find $ il
     in sum . map Instance.dsk .

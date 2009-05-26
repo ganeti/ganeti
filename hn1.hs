@@ -16,9 +16,9 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.CLI as CLI
-import Ganeti.HTools.Types
 
 -- | Command line options structure.
 data Options = Options
@@ -71,7 +71,7 @@ defaultOptions    = Options
 we find a valid solution or we exceed the maximum depth.
 
 -}
-iterateDepth :: NodeList
+iterateDepth :: Node.List
              -> [Instance.Instance]
              -> Int
              -> Int

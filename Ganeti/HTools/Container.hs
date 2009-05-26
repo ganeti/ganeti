@@ -25,9 +25,15 @@ module Ganeti.HTools.Container
     -- * Conversion
     , elems
     , keys
+    -- * Element functions
+    , nameOf
+    , maxNameLen
+    , findByName
     ) where
 
 import qualified Data.IntMap as IntMap
+
+import qualified Ganeti.HTools.Types as T
 
 type Key = IntMap.Key
 type Container = IntMap.IntMap
@@ -79,3 +85,25 @@ fold = IntMap.fold
 -- | Add or update two elements of the map.
 addTwo :: Key -> a -> Key -> a -> Container a -> Container a
 addTwo k1 v1 k2 v2 c = add k1 v1 $ add k2 v2 c
+
+-- | Compute the name of an element in a container
+nameOf :: (T.Element a) => Container a -> Key -> String
+nameOf c k = T.nameOf $ find k c
+
+-- | Compute the maximum name length in an Element Container
+maxNameLen :: (T.Element a) => Container a -> Int
+maxNameLen = maximum . map (length . T.nameOf) . elems
+
+-- | Find an element by name in a Container; this is a very slow function
+findByName :: (T.Element a, Monad m) =>
+              Container a -> String -> m Key
+findByName c n =
+    let all_elems = elems c
+        result = filter ((== n) . T.nameOf) all_elems
+        nems = length result
+    in
+      if nems /= 1 then
+          fail $ "Wrong number of elems (" ++ (show nems) ++
+                   ") found with name " ++ n
+      else
+          return $ T.idxOf $ head result

@@ -17,6 +17,7 @@ import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
                   makeObj, encodeStrict, decodeStrict,
                   fromJSObject, toJSString)
 --import Text.Printf (printf)
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader
@@ -28,7 +29,7 @@ data RqType
     | Relocate Int Int [Int]
     deriving (Show)
 
-data Request = Request RqType NodeList InstanceList String
+data Request = Request RqType Node.List Instance.List String
     deriving (Show)
 
 parseBaseInstance :: String
@@ -110,7 +111,7 @@ parseData body = do
               ridx <- lookupNode kti rname rname
               ex_nodes <- fromObj "relocate_from" request
               let ex_nodes' = map (stripSuffix $ length csf) ex_nodes
-              ex_idex <- mapM (findByName map_n) ex_nodes'
+              ex_idex <- mapM (Container.findByName map_n) ex_nodes'
               return $ Relocate ridx req_nodes ex_idex
         other -> fail $ ("Invalid request type '" ++ other ++ "'")
   return $ Request rqtype map_n map_i csf

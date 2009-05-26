@@ -5,10 +5,10 @@
 -}
 
 module Ganeti.HTools.Node
-    (
-      Node(failN1, name, idx, t_mem, n_mem, f_mem, t_dsk, f_dsk,
+    ( Node(failN1, name, idx, t_mem, n_mem, f_mem, t_dsk, f_dsk,
            p_mem, p_dsk, p_rem,
            plist, slist, offline)
+    , List
     -- * Constructor
     , create
     -- ** Finalization after data loading
@@ -39,6 +39,8 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.PeerMap as PeerMap
 
+import qualified Ganeti.HTools.Types as T
+
 data Node = Node { name  :: String -- ^ the node name
                  , t_mem :: Double -- ^ total memory (MiB)
                  , n_mem :: Int    -- ^ node memory (MiB)
@@ -61,8 +63,17 @@ data Node = Node { name  :: String -- ^ the node name
                                    -- score computations
   } deriving (Show)
 
+instance T.Element Node where
+    nameOf = name
+    idxOf = idx
+    setName = setName
+    setIdx = setIdx
+
 -- | A simple name for the int, node association list
 type AssocList = [(Int, Node)]
+
+-- | A simple name for a node map
+type List = Container.Container Node
 
 -- | Constant node index for a non-moveable instance
 noSecondary :: Int

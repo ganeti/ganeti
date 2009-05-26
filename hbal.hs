@@ -21,7 +21,6 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.CLI as CLI
 
 import Ganeti.HTools.Utils
-import Ganeti.HTools.Types
 
 -- | Command line options structure.
 data Options = Options
@@ -245,8 +244,8 @@ main = do
                       printf "Initial score: %.8f\n" ini_cv)
 
   unless oneline $ putStrLn "Trying to minimize the CV..."
-  let imlen = cMaxNamelen il
-      nmlen = cMaxNamelen nl
+  let imlen = Container.maxNameLen il
+      nmlen = Container.maxNameLen nl
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
                          nmlen imlen [] oneline min_cv

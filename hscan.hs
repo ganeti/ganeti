@@ -73,7 +73,7 @@ options =
     ]
 
 -- | Generate node file data from node objects
-serializeNodes :: Cluster.NodeList -> String -> String
+serializeNodes :: Node.List -> String -> String
 serializeNodes nl csf =
     let nodes = Container.elems nl
         nlines = map
@@ -91,7 +91,7 @@ serializeNodes nl csf =
     in unlines nlines
 
 -- | Generate instance file data from instance objects
-serializeInstances :: Cluster.NodeList -> Cluster.InstanceList
+serializeInstances :: Node.List -> Instance.List
                    -> String -> String
 serializeInstances nl il csf =
     let instances = Container.elems il
@@ -99,8 +99,8 @@ serializeInstances nl il csf =
                  (\inst ->
                       let
                           iname = Instance.name inst ++ csf
-                          pnode = cNameOf nl $ Instance.pnode inst
-                          snode = cNameOf nl $ Instance.snode inst
+                          pnode = Container.nameOf nl $ Instance.pnode inst
+                          snode = Container.nameOf nl $ Instance.snode inst
                       in
                         printf "%s|%d|%d|%s|%s|%s"
                                iname (Instance.mem inst) (Instance.dsk inst)
@@ -111,7 +111,7 @@ serializeInstances nl il csf =
     in unlines nlines
 
 -- | Return a one-line summary of cluster state
-printCluster :: Cluster.NodeList -> Cluster.InstanceList
+printCluster :: Node.List -> Instance.List
              -> String
 printCluster nl il =
     let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il

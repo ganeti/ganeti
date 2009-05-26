@@ -51,17 +51,17 @@ options =
       "show help"
     ]
 
--- | Compute online nodes from a NodeList
-getOnline :: NodeList -> [Node.Node]
+-- | Compute online nodes from a Node.List
+getOnline :: Node.List -> [Node.Node]
 getOnline = filter (not . Node.offline) . Container.elems
 
 -- | Try to allocate an instance on the cluster
 tryAlloc :: (Monad m) =>
-            NodeList
-         -> InstanceList
+            Node.List
+         -> Instance.List
          -> Instance.Instance
          -> Int
-         -> m [(Maybe NodeList, [Node.Node])]
+         -> m [(Maybe Node.List, [Node.Node])]
 tryAlloc nl _ inst 2 =
     let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
@@ -83,17 +83,17 @@ tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
 
 -- | Try to allocate an instance on the cluster
 tryReloc :: (Monad m) =>
-            NodeList
-         -> InstanceList
+            Node.List
+         -> Instance.List
          -> Int
          -> Int
          -> [Int]
-         -> m [(Maybe NodeList, [Node.Node])]
+         -> m [(Maybe Node.List, [Node.Node])]
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = getOnline nl
         inst = Container.find xid il
         ex_idx' = (Instance.pnode inst):ex_idx
-        valid_nodes = filter (not . flip elem ex_idx' . idx) all_nodes
+        valid_nodes = filter (not . flip elem ex_idx' . idxOf) all_nodes
         valid_idxes = map Node.idx valid_nodes
         sols1 = map (\x -> let (mnl, _, _, _) =
                                     Cluster.applyMove nl inst
@@ -106,8 +106,8 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
                                 \destinations required (" ++ (show reqn) ++
                                                   "), only one supported"
 
-filterFails :: (Monad m) => [(Maybe NodeList, [Node.Node])]
-            -> m [(NodeList, [Node.Node])]
+filterFails :: (Monad m) => [(Maybe Node.List, [Node.Node])]
+            -> m [(Node.List, [Node.Node])]
 filterFails sols =
     if null sols then fail "No nodes onto which to allocate at all"
     else let sols' = filter (isJust . fst) sols
@@ -116,7 +116,7 @@ filterFails sols =
             else
                 return $ map (\(x, y) -> (fromJust x, y)) sols'
 
-processResults :: (Monad m) => [(NodeList, [Node.Node])]
+processResults :: (Monad m) => [(Node.List, [Node.Node])]
                -> m (String, [Node.Node])
 processResults sols =
     let sols' = map (\(nl', ns) -> (Cluster.compCV  nl', ns)) sols
@@ -156,7 +156,7 @@ main = do
   let sols = new_nodes >>= filterFails >>= processResults
   let (ok, info, rn) = case sols of
                Ok (info, sn) -> (True, "Request successful: " ++ info,
-                                     map ((++ csf) . name) sn)
+                                     map ((++ csf) . Node.name) sn)
                Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rn
   putStrLn resp

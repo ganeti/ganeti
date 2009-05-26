@@ -28,6 +28,8 @@ import qualified Ganeti.HTools.Version as Version(version)
 import qualified Ganeti.HTools.Rapi as Rapi
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Loader as Loader
+import qualified Ganeti.HTools.Instance as Instance
+import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.Types
 
@@ -98,7 +100,7 @@ shTemplate =
 -- | External tool data loader from a variety of sources
 loadExternalData :: (EToolOptions a) =>
                     a
-                 -> IO (NodeList, InstanceList, String)
+                 -> IO (Node.List, Instance.List, String)
 loadExternalData opts = do
   (env_node, env_inst) <- parseEnv ()
   let nodef = if nodeSet opts then nodeFile opts

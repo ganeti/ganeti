@@ -8,9 +8,7 @@ goes into the "Main" module for the individual binaries.
 module Ganeti.HTools.Cluster
     (
      -- * Types
-     NodeList
-    , InstanceList
-    , NameList
+     NameList
     , Placement
     , Solution(..)
     , Table(..)
@@ -70,7 +68,7 @@ solutionDelta sol = case sol of
                       _ -> -1
 
 -- | A removal set.
-data Removal = Removal NodeList [Instance.Instance]
+data Removal = Removal Node.List [Instance.Instance]
 
 -- | An instance move definition
 data IMove = Failover                -- ^ Failover the instance (f)
@@ -81,7 +79,7 @@ data IMove = Failover                -- ^ Failover the instance (f)
              deriving (Show)
 
 -- | The complete state for the balancing solution
-data Table = Table NodeList InstanceList Score [Placement]
+data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show)
 
 -- General functions
@@ -103,8 +101,8 @@ verifyN1 :: [Node.Node] -> [Node.Node]
 verifyN1 nl = filter Node.failN1 nl
 
 {-| Add an instance and return the new node and instance maps. -}
-addInstance :: NodeList -> Instance.Instance ->
-               Node.Node -> Node.Node -> Maybe NodeList
+addInstance :: Node.List -> Instance.Instance ->
+               Node.Node -> Node.Node -> Maybe Node.List
 addInstance nl idata pri sec =
   let pdx = Node.idx pri
       sdx = Node.idx sec
@@ -116,7 +114,7 @@ addInstance nl idata pri sec =
       return new_nl
 
 -- | Remove an instance and return the new node and instance maps.
-removeInstance :: NodeList -> Instance.Instance -> NodeList
+removeInstance :: Node.List -> Instance.Instance -> Node.List
 removeInstance nl idata =
   let pnode = Instance.pnode idata
       snode = Instance.snode idata
@@ -128,7 +126,7 @@ removeInstance nl idata =
   new_nl
 
 -- | Remove an instance and return the new node map.
-removeInstances :: NodeList -> [Instance.Instance] -> NodeList
+removeInstances :: Node.List -> [Instance.Instance] -> Node.List
 removeInstances = foldl' removeInstance
 
 -- | Compute the total free disk and memory in the cluster.
@@ -148,7 +146,7 @@ It first removes the relocated instances after which it places them on
 their new nodes.
 
  -}
-applySolution :: NodeList -> InstanceList -> [Placement] -> NodeList
+applySolution :: Node.List -> Instance.List -> [Placement] -> Node.List
 applySolution nl il sol =
     let odxes = map (\ (a, b, c, _) -> (Container.find a il,
                                         Node.idx (Container.find b nl),
@@ -200,7 +198,7 @@ bad instance list is the list of primary and secondary instances of
 those nodes.
 
 -}
-computeBadItems :: NodeList -> InstanceList ->
+computeBadItems :: Node.List -> Instance.List ->
                    ([Node.Node], [Instance.Instance])
 computeBadItems nl il =
   let bad_nodes = verifyN1 $ filter (not . Node.offline) $ Container.elems nl
@@ -218,7 +216,7 @@ nodes, since the cluster is known to be not healthy; only the check
 placement can make this shortcut.
 
 -}
-checkRemoval :: NodeList -> [Instance.Instance] -> Maybe Removal
+checkRemoval :: Node.List -> [Instance.Instance] -> Maybe Removal
 checkRemoval nl victims =
   let nx = removeInstances nl victims
       failN1 = verifyN1Check (Container.elems nx)
@@ -230,7 +228,7 @@ checkRemoval nl victims =
 
 
 -- | Computes the removals list for a given depth
-computeRemovals :: NodeList
+computeRemovals :: Node.List
                  -> [Instance.Instance]
                  -> Int
                  -> [Maybe Removal]
@@ -281,7 +279,7 @@ tooHighDelta sol new_delta max_delta =
     solution by recursing until all target instances are placed.
 
 -}
-checkPlacement :: NodeList            -- ^ The current node list
+checkPlacement :: Node.List            -- ^ The current node list
                -> [Instance.Instance] -- ^ List of instances still to place
                -> [Placement]         -- ^ Partial solution until now
                -> Int                 -- ^ The delta of the partial solution
@@ -334,8 +332,8 @@ checkPlacement nl victims current current_delta prev_sol max_delta =
     ) prev_sol nodes
 
 -- | Apply a move
-applyMove :: NodeList -> Instance.Instance
-          -> IMove -> (Maybe NodeList, Instance.Instance, Int, Int)
+applyMove :: Node.List -> Instance.Instance
+          -> IMove -> (Maybe Node.List, Instance.Instance, Int, Int)
 -- Failover (f)
 applyMove nl inst Failover =
     let old_pdx = Instance.pnode inst
@@ -410,16 +408,16 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
                  Container.addTwo old_sdx new_p old_pdx int_p nl
     in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
 
-allocateOnSingle :: NodeList -> Instance.Instance -> Node.Node
-                 -> (Maybe NodeList, Instance.Instance)
+allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
+                 -> (Maybe Node.List, Instance.Instance)
 allocateOnSingle nl inst p =
     let new_pdx = Node.idx p
         new_nl = Node.addPri p inst >>= \new_p ->
                  return $ Container.add new_pdx new_p nl
     in (new_nl, Instance.setBoth inst new_pdx Node.noSecondary)
 
-allocateOnPair :: NodeList -> Instance.Instance -> Node.Node -> Node.Node
-               -> (Maybe NodeList, Instance.Instance)
+allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
+               -> (Maybe Node.List, Instance.Instance)
 allocateOnPair nl inst tgt_p tgt_s =
     let new_pdx = Node.idx tgt_p
         new_sdx = Node.idx tgt_s
@@ -543,7 +541,7 @@ This is a wrapper over both computeRemovals and
 solutionFromRemovals. In case we have no solution, we return Nothing.
 
 -}
-computeSolution :: NodeList        -- ^ The original node data
+computeSolution :: Node.List        -- ^ The original node data
                 -> [Instance.Instance] -- ^ The list of /bad/ instances
                 -> Int             -- ^ The /depth/ of removals
                 -> Int             -- ^ Maximum number of removals to process
@@ -604,8 +602,8 @@ computeMoves i a b c d =
                       printf "replace-disks -n %s %s" d i])
 
 {-| Converts a placement to string format -}
-printSolutionLine :: NodeList
-                  -> InstanceList
+printSolutionLine :: Node.List
+                  -> Instance.List
                   -> Int
                   -> Int
                   -> Placement
@@ -617,10 +615,10 @@ printSolutionLine nl il nmlen imlen plc pos =
         (i, p, s, c) = plc
         inst = Container.find i il
         inam = Instance.name inst
-        npri = cNameOf nl p
-        nsec = cNameOf nl s
-        opri = cNameOf nl $ Instance.pnode inst
-        osec = cNameOf nl $ Instance.snode inst
+        npri = Container.nameOf nl p
+        nsec = Container.nameOf nl s
+        opri = Container.nameOf nl $ Instance.pnode inst
+        osec = Container.nameOf nl $ Instance.snode inst
         (moves, cmds) =  computeMoves inam opri osec npri nsec
         ostr = (printf "%s:%s" opri osec)::String
         nstr = (printf "%s:%s" npri nsec)::String
@@ -640,20 +638,20 @@ formatCmds cmd_strs =
         zip [1..] cmd_strs
 
 {-| Converts a solution to string format -}
-printSolution :: NodeList
-              -> InstanceList
+printSolution :: Node.List
+              -> Instance.List
               -> [Placement]
               -> ([String], [[String]])
 printSolution nl il sol =
     let
-        nmlen = cMaxNamelen nl
-        imlen = cMaxNamelen il
+        nmlen = Container.maxNameLen nl
+        imlen = Container.maxNameLen il
     in
       unzip $ map (uncurry $ printSolutionLine nl il nmlen imlen) $
             zip sol [1..]
 
 -- | Print the node list.
-printNodes :: NodeList -> String
+printNodes :: Node.List -> String
 printNodes nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
         m_name = maximum . map (length . Node.name) $ snl
@@ -667,7 +665,7 @@ printNodes nl =
     in unlines $ (header:map helper snl)
 
 -- | Compute the mem and disk covariance.
-compDetailedCV :: NodeList -> (Double, Double, Double, Double, Double)
+compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double)
 compDetailedCV nl =
     let
         all_nodes = Container.elems nl
@@ -689,12 +687,12 @@ compDetailedCV nl =
     in (mem_cv, dsk_cv, n1_score, res_cv, off_score)
 
 -- | Compute the 'total' variance.
-compCV :: NodeList -> Double
+compCV :: Node.List -> Double
 compCV nl =
     let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
     in mem_cv + dsk_cv + n1_score + res_cv + off_score
 
-printStats :: NodeList -> String
+printStats :: Node.List -> String
 printStats nl =
     let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
     in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f, uf=%.3f"

@@ -6,6 +6,9 @@ intelligence is in the "Node" and "Cluster" modules.
 -}
 module Ganeti.HTools.Instance where
 
+import qualified Ganeti.HTools.Types as T
+import qualified Ganeti.HTools.Container as Container
+
 data Instance = Instance { name :: String   -- ^ the instance name
                          , mem :: Int       -- ^ memory of the instance
                          , dsk :: Int       -- ^ disk size of instance
@@ -18,8 +21,17 @@ data Instance = Instance { name :: String   -- ^ the instance name
                                             -- book-keeping
                          } deriving (Show)
 
+instance T.Element Instance where
+    nameOf  = name
+    idxOf   = idx
+    setName = setName
+    setIdx  = setIdx
+
 -- | A simple name for the int, instance association list
 type AssocList = [(Int, Instance)]
+
+-- | A simple name for an instance map
+type List = Container.Container Instance
 
 create :: String -> Int -> Int -> String -> Int -> Int -> Instance
 create name_init mem_init dsk_init run_init pn sn =
@@ -65,4 +77,4 @@ setIdx t i = t { idx = i }
 
 -- | Changes the name
 -- This is used only during the building of the data structures.
-setName t s = t {name = s}
+setName t s = t { name = s }
