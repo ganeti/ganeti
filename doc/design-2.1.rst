@@ -110,6 +110,50 @@ compatibility with 2.0.
 The code to export the list of VNC password files from the hypervisors to
 RedistributeConfig will be shared between the KVM and xen-hvm hypervisors.
 
+Disk/Net parameters
+~~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently disks and network interfaces have a few tweakable options and all the
+rest is left to a default we chose. We're finding that we need more and more to
+tweak some of these parameters, for example to disable barriers for DRBD
+devices, or allow striping for the LVM volumes.
+
+Moreover for many of these parameters it will be nice to have cluster-wide
+defaults, and then be able to change them per disk/interface.
+
+Proposed changes
+++++++++++++++++
+
+We will add new cluster level diskparams and netparams, which will contain all
+the tweakable parameters. All values which have a sensible cluster-wide default
+will go into this new structure while parameters which have unique values will not.
+
+Example of network parameters:
+  - mode: bridge/route
+  - link: for mode "bridge" the bridge to connect to, for mode route it can
+    contain the routing table, or the destination interface
+
+Example of disk parameters:
+  - stripe: lvm stripes
+  - stripe_size: lvm stripe size
+  - meta_flushes: drbd, enable/disable metadata "barriers"
+  - data_flushes: drbd, enable/disable data "barriers"
+
+Some parameters are bound to be disk-type specific (drbd, vs lvm, vs files) or
+hypervisor specific (nic models for example), but for now they will all live in
+the same structure. Each component is supposed to validate only the parameters
+it knows about, and ganeti itself will make sure that no "globally unknown"
+parameters are added, and that no parameters have overridden meanings for
+different components.
+
+The parameters will be kept, as for the BEPARAMS into a "default" category,
+which will allow us to expand on by creating instance "classes" in the future.
+Instance classes is not a feature we plan implementing in 2.1, though.
+
+
 External interface changes
 --------------------------
 
