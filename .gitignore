@@ -1,4 +1,6 @@
-apidoc
+/apidoc/
+/.hpc/
+/coverage/
 
 *.o
 *.patch
@@ -15,8 +17,10 @@ hn1
 hbal
 hscan
 hail
+test
 *.prof*
 *.stat
+*.tix
 
 version
 Version.hs

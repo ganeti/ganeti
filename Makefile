@@ -1,15 +1,20 @@
-HPROGS = hbal hn1 hscan hail
+HPROGS = hbal hn1 hscan hail test
 HSRCS := $(wildcard Ganeti/HTools/*.hs)
 HDDIR = apidoc
 
 DOCS = README.html NEWS.html
+
+HFLAGS = -O2 -W -fwarn-monomorphism-restriction -fwarn-tabs
+HEXTRA =
+
+HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
 
 # Haskell rules
 
 all: $(HPROGS)
 
 $(HPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
-	ghc --make -O2 -W $@
+	ghc --make $(HFLAGS) $(HEXTRA) $@
 
 $(DOCS) : %.html : %
 	rst2html $< $@
@@ -53,4 +58,15 @@ dist: Ganeti/HTools/Version.hs version doc
 	gzip -v9 $$ANAME ; \
 	tar tzvf $$ANAME.gz
 
-.PHONY : all doc maintainer-clean clean dist
+check:
+	rm -f *.tix *.mix test
+	$(MAKE) HEXTRA=-fhpc test
+	./test
+ifeq ($(T),markup)
+	mkdir -p coverage
+	hpc markup --destdir=coverage test $(HPCEXCL)
+else
+	hpc report test $(HPCEXCL)
+endif
+
+.PHONY : all doc maintainer-clean clean dist check

@@ -5,7 +5,7 @@
 -}
 
 module Ganeti.HTools.Node
-    ( Node(failN1, name, idx, t_mem, n_mem, f_mem, t_dsk, f_dsk,
+    ( Node(failN1, name, idx, t_mem, n_mem, f_mem, r_mem, t_dsk, f_dsk,
            p_mem, p_dsk, p_rem,
            plist, slist, offline)
     , List
