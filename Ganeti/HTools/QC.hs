@@ -18,7 +18,7 @@ import qualified Ganeti.HTools.Utils as Utils
 
 -- copied from the introduction to quickcheck
 instance Arbitrary Char where
-    arbitrary     = choose ('\32', '\128')
+    arbitrary = choose ('\32', '\128')
 
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
@@ -80,6 +80,17 @@ prop_PeerMap_maxElem pmap =
                              else (maximum . snd . unzip) puniq
     where _types = pmap::PeerMap.PeerMap
           puniq = PeerMap.accumArray const pmap
+
+-- Container tests
+
+prop_Container_addTwo cdata i1 i2 =
+    fn i1 i2 cont == fn i2 i1 cont &&
+       fn i1 i2 cont == fn i1 i2 (fn i1 i2 cont)
+    where _types = (cdata::[Int],
+                    i1::Int, i2::Int)
+          cont = foldl (\c x -> Container.add x x c) Container.empty cdata
+          fn x1 x2 = Container.addTwo x1 x1 x2 x2
+
 
 -- Simple instance tests, we only have setter/getters
 

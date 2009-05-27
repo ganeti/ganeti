@@ -21,6 +21,9 @@ main = do
        , run prop_PeerMap_findMissing
        ]
 
+  runTests "Container" options
+       [ run prop_Container_addTwo ]
+
   runTests "Instance" options
        [ run prop_Instance_setIdx
        , run prop_Instance_setName
