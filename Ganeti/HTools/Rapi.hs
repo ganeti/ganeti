@@ -51,7 +51,7 @@ getNodes body = do
   nlist <- mapM parseNode arr
   return nlist
 
-parseInstance :: [(String, Int)]
+parseInstance :: [(String, Ndx)]
               -> JSObject JSValue
               -> Result (String, Instance.Instance)
 parseInstance ktn a = do

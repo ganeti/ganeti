@@ -44,7 +44,7 @@ loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
 
 -- | Load an instance from a field list
 loadInst :: (Monad m) =>
-            [(String, Int)] -> [String] -> m (String, Instance.Instance)
+            [(String, Ndx)] -> [String] -> m (String, Instance.Instance)
 loadInst ktn (name:mem:dsk:status:pnode:snode:[]) = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary

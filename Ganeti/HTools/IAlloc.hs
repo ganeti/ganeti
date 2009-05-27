@@ -26,7 +26,7 @@ import Ganeti.HTools.Types
 
 data RqType
     = Allocate Instance.Instance Int
-    | Relocate Int Int [Int]
+    | Relocate Idx Int [Ndx]
     deriving (Show)
 
 data Request = Request RqType Node.List Instance.List String

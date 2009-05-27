@@ -23,7 +23,7 @@ import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types
 
 -- | Lookups a node into an assoc list
-lookupNode :: (Monad m) => NameAssoc -> String -> String -> m Int
+lookupNode :: (Monad m) => [(String, Ndx)] -> String -> String -> m Ndx
 lookupNode ktn inst node =
     case lookup node ktn of
       Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
@@ -37,9 +37,9 @@ assignIndices =
           . zip [0..]
 
 -- | For each instance, add its index to its primary and secondary nodes
-fixNodes :: [(Int, Node.Node)]
-         -> [(Int, Instance.Instance)]
-         -> [(Int, Node.Node)]
+fixNodes :: [(Ndx, Node.Node)]
+         -> [(Idx, Instance.Instance)]
+         -> [(Ndx, Node.Node)]
 fixNodes nl il =
     foldl' (\accu (idx, inst) ->
                 let

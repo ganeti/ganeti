@@ -48,9 +48,9 @@ data Node = Node { name  :: String -- ^ the node name
                  , x_mem :: Int    -- ^ unaccounted memory (MiB)
                  , t_dsk :: Double -- ^ total disk space (MiB)
                  , f_dsk :: Int    -- ^ free disk space (MiB)
-                 , plist :: [Int]  -- ^ list of primary instance indices
-                 , slist :: [Int]  -- ^ list of secondary instance indices
-                 , idx :: Int      -- ^ internal index for book-keeping
+                 , plist :: [T.Idx]-- ^ list of primary instance indices
+                 , slist :: [T.Idx]-- ^ list of secondary instance indices
+                 , idx :: T.Ndx    -- ^ internal index for book-keeping
                  , peers :: PeerMap.PeerMap -- ^ pnode to instance mapping
                  , failN1:: Bool   -- ^ whether the node has failed n1
                  , r_mem :: Int    -- ^ maximum memory needed for
@@ -70,13 +70,13 @@ instance T.Element Node where
     setIdx = setIdx
 
 -- | A simple name for the int, node association list
-type AssocList = [(Int, Node)]
+type AssocList = [(T.Ndx, Node)]
 
 -- | A simple name for a node map
 type List = Container.Container Node
 
 -- | Constant node index for a non-moveable instance
-noSecondary :: Int
+noSecondary :: T.Ndx
 noSecondary = -1
 
 {- | Create a new node.
@@ -111,7 +111,7 @@ create name_init mem_t_init mem_n_init mem_f_init
 
 -- | Changes the index.
 -- This is used only during the building of the data structures.
-setIdx :: Node -> Int -> Node
+setIdx :: Node -> T.Ndx -> Node
 setIdx t i = t {idx = i}
 
 -- | Changes the name
@@ -148,7 +148,7 @@ computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
 computeMaxRes new_peers = PeerMap.maxElem new_peers
 
 -- | Builds the peer map for a given node.
-buildPeers :: Node -> Container.Container Instance.Instance -> Int -> Node
+buildPeers :: Node -> Instance.List -> Int -> Node
 buildPeers t il num_nodes =
     let mdata = map
                 (\i_idx -> let inst = Container.find i_idx il
@@ -214,7 +214,7 @@ addPri t inst =
                 failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp}
 
 -- | Adds a secondary instance.
-addSec :: Node -> Instance.Instance -> Int -> Maybe Node
+addSec :: Node -> Instance.Instance -> T.Ndx -> Maybe Node
 addSec t inst pdx =
     let iname = Instance.idx inst
         old_peers = peers t
@@ -237,11 +237,11 @@ addSec t inst pdx =
                 p_rem = new_prem}
 
 -- | Add a primary instance to a node without other updates
-setPri :: Node -> Int -> Node
+setPri :: Node -> T.Idx -> Node
 setPri t idx = t { plist = idx:(plist t) }
 
 -- | Add a secondary instance to a node without other updates
-setSec :: Node -> Int -> Node
+setSec :: Node -> T.Idx -> Node
 setSec t idx = t { slist = idx:(slist t) }
 
 -- | String converter for the node list functionality.

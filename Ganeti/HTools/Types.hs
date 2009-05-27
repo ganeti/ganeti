@@ -5,6 +5,12 @@
 module Ganeti.HTools.Types
     where
 
+-- | The instance index type
+type Idx = Int
+
+-- | The node index type
+type Ndx = Int
+
 -- | The type used to hold idx-to-name mappings
 type NameList = [(Int, String)]
 

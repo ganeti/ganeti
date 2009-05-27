@@ -52,7 +52,7 @@ import Ganeti.HTools.Utils
 type Score = Double
 
 -- | The description of an instance placement.
-type Placement = (Int, Int, Int, Score)
+type Placement = (Idx, Ndx, Ndx, Score)
 
 {- | A cluster solution described as the solution delta and the list
 of placements.
@@ -72,10 +72,10 @@ data Removal = Removal Node.List [Instance.Instance]
 
 -- | An instance move definition
 data IMove = Failover                -- ^ Failover the instance (f)
-           | ReplacePrimary Int      -- ^ Replace primary (f, r:np, f)
-           | ReplaceSecondary Int    -- ^ Replace secondary (r:ns)
-           | ReplaceAndFailover Int  -- ^ Replace secondary, failover (r:np, f)
-           | FailoverAndReplace Int  -- ^ Failover, replace secondary (f, r:ns)
+           | ReplacePrimary Ndx      -- ^ Replace primary (f, r:np, f)
+           | ReplaceSecondary Ndx    -- ^ Replace secondary (r:ns)
+           | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)
+           | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
              deriving (Show)
 
 -- | The complete state for the balancing solution
@@ -238,7 +238,7 @@ computeRemovals nl bad_instances depth =
 -- Second phase functions
 
 -- | Single-node relocation cost
-nodeDelta :: Int -> Int -> Int -> Int
+nodeDelta :: Ndx -> Ndx -> Ndx -> Int
 nodeDelta i p s =
     if i == p || i == s then
         0
@@ -333,7 +333,7 @@ checkPlacement nl victims current current_delta prev_sol max_delta =
 
 -- | Apply a move
 applyMove :: Node.List -> Instance.Instance
-          -> IMove -> (Maybe Node.List, Instance.Instance, Int, Int)
+          -> IMove -> (Maybe Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
 applyMove nl inst Failover =
     let old_pdx = Instance.pnode inst
@@ -451,7 +451,7 @@ checkSingleStep ini_tbl target cur_tbl move =
 -- | Given the status of the current secondary as a valid new node
 -- and the current candidate target node,
 -- generate the possible moves for a instance.
-possibleMoves :: Bool -> Int -> [IMove]
+possibleMoves :: Bool -> Ndx -> [IMove]
 possibleMoves True tdx =
     [ReplaceSecondary tdx,
      ReplaceAndFailover tdx,
@@ -463,7 +463,7 @@ possibleMoves False tdx =
      ReplaceAndFailover tdx]
 
 -- | Compute the best move for a given instance.
-checkInstanceMove :: [Int]             -- Allowed target node indices
+checkInstanceMove :: [Ndx]             -- Allowed target node indices
                   -> Table             -- Original table
                   -> Instance.Instance -- Instance to move
                   -> Table             -- Best new table for this instance
@@ -482,7 +482,7 @@ checkInstanceMove nodes_idx ini_tbl target =
       foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
 
 -- | Compute the best next move.
-checkMove :: [Int]               -- ^ Allowed target node indices
+checkMove :: [Ndx]               -- ^ Allowed target node indices
           -> Table               -- ^ The current solution
           -> [Instance.Instance] -- ^ List of instances still to move
           -> Table               -- ^ The new solution

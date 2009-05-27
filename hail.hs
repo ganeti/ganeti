@@ -85,15 +85,15 @@ tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
 tryReloc :: (Monad m) =>
             Node.List
          -> Instance.List
+         -> Idx
          -> Int
-         -> Int
-         -> [Int]
+         -> [Ndx]
          -> m [(Maybe Node.List, [Node.Node])]
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = getOnline nl
         inst = Container.find xid il
         ex_idx' = (Instance.pnode inst):ex_idx
-        valid_nodes = filter (not . flip elem ex_idx' . idxOf) all_nodes
+        valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
         sols1 = map (\x -> let (mnl, _, _, _) =
                                     Cluster.applyMove nl inst

@@ -26,7 +26,9 @@ import Data.List
 import Data.Function
 import Data.Ord
 
-type Key = Int
+import Ganeti.HTools.Types
+
+type Key = Ndx
 type Elem = Int
 type PeerMap = [(Key, Elem)]
 
