@@ -9,6 +9,7 @@ module Ganeti.HTools.Loader
     , checkData
     , assignIndices
     , lookupNode
+    , lookupInstance
     , stripSuffix
     ) where
 
@@ -29,6 +30,14 @@ lookupNode ktn inst node =
       Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
       Just idx -> return idx
 
+-- | Lookups an instance into an assoc list
+lookupInstance :: (Monad m) => [(String, Idx)] -> String -> m Idx
+lookupInstance kti inst =
+    case lookup inst kti of
+      Nothing -> fail $ "Unknown instance '" ++ inst ++ "'"
+      Just idx -> return idx
+
+-- | Given a list of elements (and their names), assign indices to them
 assignIndices :: (Element a) =>
                  [(String, a)]
               -> (NameAssoc, [(Int, a)])

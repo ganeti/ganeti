@@ -108,7 +108,7 @@ parseData body = do
               return $ Allocate io req_nodes
         "relocate" ->
             do
-              ridx <- lookupNode kti rname rname
+              ridx <- lookupInstance kti rname
               ex_nodes <- fromObj "relocate_from" request
               let ex_nodes' = map (stripSuffix $ length csf) ex_nodes
               ex_idex <- mapM (Container.findByName map_n) ex_nodes'
