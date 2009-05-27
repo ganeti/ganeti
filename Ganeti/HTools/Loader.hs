@@ -96,7 +96,7 @@ mergeData (nl, il) = do
       nl2 = fixNodes nl il
       il3 = Container.fromAssocList il
       nl3 = Container.fromAssocList
-            (map (\ (k, v) -> (k, Node.buildPeers v il3 (length nl2))) nl2)
+            (map (\ (k, v) -> (k, Node.buildPeers v il3)) nl2)
       node_names = map Node.name $ Container.elems nl3
       inst_names = map Instance.name $ Container.elems il3
       common_suffix = longestDomain (node_names ++ inst_names)

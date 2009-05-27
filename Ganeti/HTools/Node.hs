@@ -148,8 +148,8 @@ computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
 computeMaxRes new_peers = PeerMap.maxElem new_peers
 
 -- | Builds the peer map for a given node.
-buildPeers :: Node -> Instance.List -> Int -> Node
-buildPeers t il num_nodes =
+buildPeers :: Node -> Instance.List -> Node
+buildPeers t il =
     let mdata = map
                 (\i_idx -> let inst = Container.find i_idx il
                            in (Instance.pnode inst, Instance.mem inst))

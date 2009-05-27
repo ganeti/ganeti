@@ -41,10 +41,9 @@ instance Arbitrary Node.Node where
       dsk_t <- arbitrary
       dsk_f <- choose (0, dsk_t)
       offl <- arbitrary
-      npeers <- choose (0, 100)
       let n = Node.create name (fromIntegral mem_t) mem_n mem_f
               (fromIntegral dsk_t) dsk_f offl
-          n' = Node.buildPeers n Container.empty npeers
+          n' = Node.buildPeers n Container.empty
       return n'
 
 -- | Make sure add is idempotent
