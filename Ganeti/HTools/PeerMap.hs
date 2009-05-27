@@ -42,6 +42,7 @@ create _ = []
 pmCompare :: (Key, Elem) -> (Key, Elem) -> Ordering
 pmCompare a b = (compare `on` snd) b a
 
+-- | Add or update (via a custom function) an element
 addWith :: (Elem -> Elem -> Elem) -> Key -> Elem -> PeerMap -> PeerMap
 addWith fn k v lst =
     let r = lookup k lst
@@ -50,12 +51,14 @@ addWith fn k v lst =
         Nothing -> insertBy pmCompare (k, v) lst
         Just o -> insertBy pmCompare (k, fn o v) (remove k lst)
 
-accumArray :: (Elem -> Elem -> Elem) -> Elem -> (Key, Key) ->
-              [(Key, Elem)] -> PeerMap
-accumArray fn _ _ lst =
+-- | Create a PeerMap from an association list, with possible duplicates
+accumArray :: (Elem -> Elem -> Elem) -- ^ function used to merge the elements
+              -> [(Key, Elem)]       -- ^ source data
+              -> PeerMap             -- ^ results
+accumArray fn lst =
     case lst of
       [] -> empty
-      (k, v):xs -> addWith fn k v $ accumArray fn undefined undefined xs
+      (k, v):xs -> addWith fn k v $ accumArray fn xs
 
 find :: Key -> PeerMap -> Elem
 find k c = fromMaybe 0 $ lookup k c

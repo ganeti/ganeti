@@ -154,7 +154,7 @@ buildPeers t il num_nodes =
                 (\i_idx -> let inst = Container.find i_idx il
                            in (Instance.pnode inst, Instance.mem inst))
                 (slist t)
-        pmap = PeerMap.accumArray (+) 0 (0, num_nodes - 1) mdata
+        pmap = PeerMap.accumArray (+) mdata
         new_rmem = computeMaxRes pmap
         new_failN1 = computeFailN1 new_rmem (f_mem t) (f_dsk t)
         new_prem = (fromIntegral new_rmem) / (t_mem t)
