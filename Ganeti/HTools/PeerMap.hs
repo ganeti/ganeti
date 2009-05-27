@@ -8,17 +8,15 @@ implementation should be easy in case it's needed.
 -}
 
 module Ganeti.HTools.PeerMap
-    (
-     PeerMap,
-     Key,
-     Elem,
-     empty,
-     create,
-     accumArray,
-     Ganeti.HTools.PeerMap.find,
-     add,
-     remove,
-     maxElem
+    ( PeerMap
+    , Key
+    , Elem
+    , empty
+    , accumArray
+    , Ganeti.HTools.PeerMap.find
+    , add
+    , remove
+    , maxElem
     ) where
 
 import Data.Maybe (fromMaybe)
@@ -32,11 +30,9 @@ type Key = Ndx
 type Elem = Int
 type PeerMap = [(Key, Elem)]
 
+-- | Create a new empty map
 empty :: PeerMap
 empty = []
-
-create :: Key -> PeerMap
-create _ = []
 
 -- | Our reverse-compare function
 pmCompare :: (Key, Elem) -> (Key, Elem) -> Ordering
@@ -64,7 +60,7 @@ find :: Key -> PeerMap -> Elem
 find k c = fromMaybe 0 $ lookup k c
 
 add :: Key -> Elem -> PeerMap -> PeerMap
-add k v c = addWith (\_ n -> n) k v c
+add k v c = addWith (flip const) k v c
 
 remove :: Key -> PeerMap -> PeerMap
 remove k c = case c of
@@ -72,10 +68,7 @@ remove k c = case c of
                (x@(x', _)):xs -> if k == x' then xs
                             else x:(remove k xs)
 
-to_list :: PeerMap -> [Elem]
-to_list c = snd $ unzip c
-
+-- | Find the maximum element. Since this is a sorted list, we just
+-- get the first one
 maxElem :: PeerMap -> Elem
-maxElem c = case c of
-              [] -> 0
-              (_, v):_ -> v
+maxElem c = if null c then 0 else snd . head $ c
