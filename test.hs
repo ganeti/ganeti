@@ -21,6 +21,14 @@ main = do
        , run prop_PeerMap_findMissing
        ]
 
+  runTests "Instance" options
+       [ run prop_Instance_setIdx
+       , run prop_Instance_setName
+       , run prop_Instance_setPri
+       , run prop_Instance_setSec
+       , run prop_Instance_setBoth
+       ]
+
   runTests "Node" options
        [ run prop_Node_addPri
        , run prop_Node_addSec

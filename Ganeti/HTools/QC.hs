@@ -49,42 +49,62 @@ instance Arbitrary Node.Node where
 -- | Make sure add is idempotent
 prop_PeerMap_addIdempotent pmap key elem =
     fn puniq == fn (fn puniq)
-    where fn = PeerMap.add key elem
-          puniq = PeerMap.accumArray const pmap
-          _types = (pmap::PeerMap.PeerMap,
+    where _types = (pmap::PeerMap.PeerMap,
                     key::PeerMap.Key, elem::PeerMap.Elem)
+          fn = PeerMap.add key elem
+          puniq = PeerMap.accumArray const pmap
 
 -- | Make sure remove is idempotent
 prop_PeerMap_removeIdempotent pmap key =
     fn puniq == fn (fn puniq)
-    where fn = PeerMap.remove key
+    where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
+          fn = PeerMap.remove key
           puniq = PeerMap.accumArray const pmap
-          _types = (pmap::PeerMap.PeerMap,
-                    key::PeerMap.Key)
 
 -- | Make sure a missing item returns 0
 prop_PeerMap_findMissing pmap key =
     PeerMap.find key (PeerMap.remove key puniq) == 0
-    where fn = PeerMap.remove key
+    where _types = (pmap::PeerMap.PeerMap, key::PeerMap.Key)
           puniq = PeerMap.accumArray const pmap
-          _types = (pmap::PeerMap.PeerMap,
-                    key::PeerMap.Key)
 
 -- | Make sure an added item is found
 prop_PeerMap_addFind pmap key elem =
     PeerMap.find key (PeerMap.add key elem puniq) == elem
-    where puniq = PeerMap.accumArray const pmap
-          _types = (pmap::PeerMap.PeerMap,
+    where _types = (pmap::PeerMap.PeerMap,
                     key::PeerMap.Key, elem::PeerMap.Elem)
+          puniq = PeerMap.accumArray const pmap
 
 -- | Manual check that maxElem returns the maximum indeed, or 0 for null
 prop_PeerMap_maxElem pmap =
     PeerMap.maxElem puniq == if null puniq then 0
                              else (maximum . snd . unzip) puniq
-    where
+    where _types = pmap::PeerMap.PeerMap
           puniq = PeerMap.accumArray const pmap
-          _types = pmap::PeerMap.PeerMap
 
+-- Simple instance tests, we only have setter/getters
+
+prop_Instance_setIdx inst idx =
+    Instance.idx (Instance.setIdx inst idx) == idx
+    where _types = (inst::Instance.Instance, idx::Types.Idx)
+
+prop_Instance_setName inst name =
+    Instance.name (Instance.setName inst name) == name
+    where _types = (inst::Instance.Instance, name::String)
+
+prop_Instance_setPri inst pdx =
+    Instance.pnode (Instance.setPri inst pdx) == pdx
+    where _types = (inst::Instance.Instance, pdx::Types.Ndx)
+
+prop_Instance_setSec inst sdx =
+    Instance.snode (Instance.setSec inst sdx) == sdx
+    where _types = (inst::Instance.Instance, sdx::Types.Ndx)
+
+prop_Instance_setBoth inst pdx sdx =
+    Instance.pnode si == pdx && Instance.snode si == sdx
+    where _types = (inst::Instance.Instance, pdx::Types.Ndx, sdx::Types.Ndx)
+          si = Instance.setBoth inst pdx sdx
+
+-- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
                               Instance.dsk inst >= Node.f_dsk node) &&
                              (not $ Node.failN1 node)
@@ -92,6 +112,8 @@ prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
                              isNothing(Node.addPri node inst)
     where _types = (node::Node.Node, inst::Instance.Instance)
 
+
+-- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addSec node inst pdx =
     (Instance.mem inst >= (Node.f_mem node - Node.r_mem node) ||
      Instance.dsk inst >= Node.f_dsk node) &&
