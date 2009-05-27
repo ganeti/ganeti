@@ -71,7 +71,7 @@ fixNodes nl il =
                       ac2
            ) nl il
 
--- | Compute the longest common suffix of a NameList list that
+-- | Compute the longest common suffix of a list of strings that
 -- | starts with a dot
 longestDomain :: [String] -> String
 longestDomain [] = ""

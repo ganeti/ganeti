@@ -8,8 +8,7 @@ goes into the "Main" module for the individual binaries.
 module Ganeti.HTools.Cluster
     (
      -- * Types
-     NameList
-    , Placement
+      Placement
     , Solution(..)
     , Table(..)
     , Removal

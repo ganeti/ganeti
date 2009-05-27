@@ -11,9 +11,6 @@ type Idx = Int
 -- | The node index type
 type Ndx = Int
 
--- | The type used to hold idx-to-name mappings
-type NameList = [(Int, String)]
-
 -- | The type used to hold name-to-idx mappings
 type NameAssoc = [(String, Int)]
 
