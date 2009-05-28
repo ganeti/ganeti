@@ -1124,7 +1124,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       clist.append(crdev)
 
   try:
-    device = bdev.Create(disk.dev_type, disk.physical_id, clist, size)
+    device = bdev.Create(disk.dev_type, disk.physical_id, clist, disk.size)
   except errors.BlockDeviceError, err:
     return False, "Can't create block device: %s" % str(err)
 
@@ -1234,7 +1234,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
       children.append(cdev)
 
   if as_primary or disk.AssembleOnSecondary():
-    r_dev = bdev.Assemble(disk.dev_type, disk.physical_id, children)
+    r_dev = bdev.Assemble(disk.dev_type, disk.physical_id, children, disk.size)
     r_dev.SetSyncSpeed(constants.SYNC_SPEED)
     result = r_dev
     if as_primary or disk.OpenOnSecondary():
@@ -1404,7 +1404,7 @@ def _RecursiveFindBD(disk):
     for chdisk in disk.children:
       children.append(_RecursiveFindBD(chdisk))
 
-  return bdev.FindDevice(disk.dev_type, disk.physical_id, children)
+  return bdev.FindDevice(disk.dev_type, disk.physical_id, children, disk.size)
 
 
 def BlockdevFind(disk):

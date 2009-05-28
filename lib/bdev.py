@@ -108,13 +108,14 @@ class BlockDev(object):
   after assembly we'll have our correct major/minor.
 
   """
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     self._children = children
     self.dev_path = None
     self.unique_id = unique_id
     self.major = None
     self.minor = None
     self.attached = False
+    self.size = size
 
   def Assemble(self):
     """Assemble the device from its components.
@@ -286,13 +287,13 @@ class LogicalVolume(BlockDev):
   """Logical Volume block device.
 
   """
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     """Attaches to a LV device.
 
     The unique_id is a tuple (vg_name, lv_name)
 
     """
-    super(LogicalVolume, self).__init__(unique_id, children)
+    super(LogicalVolume, self).__init__(unique_id, children, size)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
@@ -329,7 +330,7 @@ class LogicalVolume(BlockDev):
     if result.failed:
       _ThrowError("LV create failed (%s): %s",
                   result.fail_reason, result.output)
-    return LogicalVolume(unique_id, children)
+    return LogicalVolume(unique_id, children, size)
 
   @staticmethod
   def GetPVInfo(vg_name):
@@ -500,7 +501,7 @@ class LogicalVolume(BlockDev):
     snap_name = self._lv_name + ".snap"
 
     # remove existing snapshot if found
-    snap = LogicalVolume((self._vg_name, snap_name), None)
+    snap = LogicalVolume((self._vg_name, snap_name), None, size)
     _IgnoreError(snap.Remove)
 
     pvs_info = self.GetPVInfo(self._vg_name)
@@ -805,10 +806,10 @@ class DRBD8(BaseDRBD):
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
 
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     if children and children.count(None) > 0:
       children = []
-    super(DRBD8, self).__init__(unique_id, children)
+    super(DRBD8, self).__init__(unique_id, children, size)
     self.major = self._DRBD_MAJOR
     version = self._GetVersion()
     if version['k_major'] != 8 :
@@ -1535,7 +1536,7 @@ class DRBD8(BaseDRBD):
                   aminor, meta)
     cls._CheckMetaSize(meta.dev_path)
     cls._InitMeta(aminor, meta.dev_path)
-    return cls(unique_id, children)
+    return cls(unique_id, children, size)
 
   def Grow(self, amount):
     """Resize the DRBD device and its backing storage.
@@ -1559,13 +1560,13 @@ class FileStorage(BlockDev):
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
   """
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     """Initalizes a file device backend.
 
     """
     if children:
       raise errors.BlockDeviceError("Invalid setup for file device")
-    super(FileStorage, self).__init__(unique_id, children)
+    super(FileStorage, self).__init__(unique_id, children, size)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.driver = unique_id[0]
@@ -1653,7 +1654,7 @@ class FileStorage(BlockDev):
     except IOError, err:
       _ThrowError("Error in file creation: %", str(err))
 
-    return FileStorage(unique_id, children)
+    return FileStorage(unique_id, children, size)
 
 
 DEV_MAP = {
@@ -1663,7 +1664,7 @@ DEV_MAP = {
   }
 
 
-def FindDevice(dev_type, unique_id, children):
+def FindDevice(dev_type, unique_id, children, size):
   """Search for an existing, assembled device.
 
   This will succeed only if the device exists and is assembled, but it
@@ -1672,13 +1673,13 @@ def FindDevice(dev_type, unique_id, children):
   """
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
-  device = DEV_MAP[dev_type](unique_id, children)
+  device = DEV_MAP[dev_type](unique_id, children, size)
   if not device.attached:
     return None
   return device
 
 
-def Assemble(dev_type, unique_id, children):
+def Assemble(dev_type, unique_id, children, size):
   """Try to attach or assemble an existing device.
 
   This will attach to assemble the device, as needed, to bring it
@@ -1687,7 +1688,7 @@ def Assemble(dev_type, unique_id, children):
   """
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
-  device = DEV_MAP[dev_type](unique_id, children)
+  device = DEV_MAP[dev_type](unique_id, children, size)
   device.Assemble()
   return device
 
