@@ -23,12 +23,17 @@
 
 """
 
+import logging
+
 import ganeti.cli
-import ganeti.opcodes
 
 from ganeti import luxi
 from ganeti import rapi
 from ganeti import http
+from ganeti import ssconf
+from ganeti import constants
+from ganeti import opcodes
+from ganeti import errors
 
 
 def BuildUriList(ids, uri_format, uri_fields=("name", "uri")):
@@ -81,8 +86,22 @@ def _Tags_GET(kind, name=""):
   """Helper function to retrieve tags.
 
   """
-  op = ganeti.opcodes.OpGetTags(kind=kind, name=name)
-  tags = ganeti.cli.SubmitOpCode(op)
+  if kind == constants.TAG_INSTANCE or kind == constants.TAG_NODE:
+    if not name:
+      raise http.HttpBadRequest("Missing name on tag request")
+    cl = GetClient()
+    if kind == constants.TAG_INSTANCE:
+      fn = cl.QueryInstances
+    else:
+      fn = cl.QueryNodes
+    result = fn(names=[name], fields=["tags"], use_locking=False)
+    if not result or not result[0]:
+      raise http.HttpBadGateway("Invalid response from tag query")
+    tags = result[0][0]
+  elif kind == constants.TAG_CLUSTER:
+    ssc = ssconf.SimpleStore()
+    tags = ssc.GetClusterTags()
+
   return list(tags)
 
 
@@ -90,18 +109,14 @@ def _Tags_PUT(kind, tags, name=""):
   """Helper function to set tags.
 
   """
-  cl = luxi.Client()
-  return cl.SubmitJob([ganeti.opcodes.OpAddTags(kind=kind, name=name,
-                                                tags=tags)])
+  return SubmitJob([opcodes.OpAddTags(kind=kind, name=name, tags=tags)])
 
 
 def _Tags_DELETE(kind, tags, name=""):
   """Helper function to delete tags.
 
   """
-  cl = luxi.Client()
-  return cl.SubmitJob([ganeti.opcodes.OpDelTags(kind=kind, name=name,
-                                                tags=tags)])
+  return SubmitJob([opcodes.OpDelTags(kind=kind, name=name, tags=tags)])
 
 
 def MapBulkFields(itemslist, fields):
@@ -145,6 +160,51 @@ def MakeParamsDict(opts, params):
     result[p] = value
 
   return result
+
+
+def SubmitJob(op, cl=None):
+  """Generic wrapper for submit job, for better http compatibility.
+
+  @type op: list
+  @param op: the list of opcodes for the job
+  @type cl: None or luxi.Client
+  @param cl: optional luxi client to use
+  @rtype: string
+  @return: the job ID
+
+  """
+  try:
+    if cl is None:
+      cl = GetClient()
+    return cl.SubmitJob(op)
+  except errors.JobQueueFull:
+    raise http.HttpServiceUnavailable("Job queue is full, needs archiving")
+  except errors.JobQueueDrainError:
+    raise http.HttpServiceUnavailable("Job queue is drained, cannot submit")
+  except luxi.NoMasterError, err:
+    raise http.HttpBadGateway("Master seems to unreachable: %s" % str(err))
+  except luxi.TimeoutError, err:
+    raise http.HttpGatewayTimeout("Timeout while talking to the master"
+                                  " daemon. Error: %s" % str(err))
+
+def GetClient():
+  """Geric wrapper for luxi.Client(), for better http compatiblity.
+
+  """
+  try:
+    return luxi.Client()
+  except luxi.NoMasterError, err:
+    raise http.HttpBadGateway("Master seems to unreachable: %s" % str(err))
+
+
+def FeedbackFn(ts, log_type, log_msg):
+  """Feedback logging function for http case.
+
+  We don't have a stdout for printing log messages, so log them to the
+  http log at least.
+
+  """
+  logging.info("%s: %s", log_type, log_msg)
 
 
 class R_Generic(object):

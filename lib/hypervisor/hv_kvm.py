@@ -236,9 +236,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-no-acpi'])
 
     hvp = instance.hvparams
-    boot_disk = hvp[constants.HV_BOOT_ORDER] == "disk"
-    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == "cdrom"
-    boot_network = hvp[constants.HV_BOOT_ORDER] == "network"
+    boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+    boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
+    boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
 
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])
@@ -618,57 +618,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def GetNodeInfo(self):
     """Return information about the node.
 
+    This is just a wrapper over the base GetLinuxNodeInfo method.
+
     @return: a dict with the following keys (values in MiB):
           - memory_total: the total memory size on the node
           - memory_free: the available memory on the node for instances
           - memory_dom0: the memory used by the node itself, if available
 
     """
-    # global ram usage from the xm info command
-    # memory                 : 3583
-    # free_memory            : 747
-    # note: in xen 3, memory has changed to total_memory
-    try:
-      fh = file("/proc/meminfo")
-      try:
-        data = fh.readlines()
-      finally:
-        fh.close()
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Failed to list node info: %s" % err)
-
-    result = {}
-    sum_free = 0
-    for line in data:
-      splitfields = line.split(":", 1)
-
-      if len(splitfields) > 1:
-        key = splitfields[0].strip()
-        val = splitfields[1].strip()
-        if key == 'MemTotal':
-          result['memory_total'] = int(val.split()[0])/1024
-        elif key in ('MemFree', 'Buffers', 'Cached'):
-          sum_free += int(val.split()[0])/1024
-        elif key == 'Active':
-          result['memory_dom0'] = int(val.split()[0])/1024
-    result['memory_free'] = sum_free
-
-    cpu_total = 0
-    try:
-      fh = open("/proc/cpuinfo")
-      try:
-        cpu_total = len(re.findall("(?m)^processor\s*:\s*[0-9]+\s*$",
-                                   fh.read()))
-      finally:
-        fh.close()
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Failed to list node info: %s" % err)
-    result['cpu_total'] = cpu_total
-    # FIXME: export correct data here
-    result['cpu_nodes'] = 1
-    result['cpu_sockets'] = 1
-
-    return result
+    return self.GetLinuxNodeInfo()
 
   @classmethod
   def GetShellCommandForConsole(cls, instance, hvparams, beparams):
@@ -765,35 +723,39 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    " an absolute path, if defined")
 
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-    if boot_order not in ('cdrom', 'disk', 'network'):
-      raise errors.HypervisorError("The boot order must be 'cdrom', 'disk' or"
-                                   " 'network'")
+    if boot_order not in constants.HT_KVM_VALID_BO_TYPES:
+      raise errors.HypervisorError(\
+        "The boot order must be one of %s" %
+        utils.CommaJoin(constants.HT_KVM_VALID_BO_TYPES))
 
-    if boot_order == 'cdrom' and not iso_path:
-      raise errors.HypervisorError("Cannot boot from cdrom without an ISO path")
+    if boot_order == constants.HT_BO_CDROM and not iso_path:
+      raise errors.HypervisorError("Cannot boot from cdrom without an"
+                                   " ISO path")
 
     nic_type = hvparams[constants.HV_NIC_TYPE]
     if nic_type not in constants.HT_KVM_VALID_NIC_TYPES:
-      raise errors.HypervisorError("Invalid NIC type %s specified for the KVM"
-                                   " hypervisor. Please choose one of: %s" %
-                                   (nic_type,
-                                    constants.HT_KVM_VALID_NIC_TYPES))
-    elif boot_order == 'network' and nic_type == constants.HT_NIC_PARAVIRTUAL:
+      raise errors.HypervisorError(\
+        "Invalid NIC type %s specified for the KVM"
+        " hypervisor. Please choose one of: %s" %
+        (nic_type, utils.CommaJoin(constants.HT_KVM_VALID_NIC_TYPES)))
+    elif (boot_order == constants.HT_BO_NETWORK and
+          nic_type == constants.HT_NIC_PARAVIRTUAL):
       raise errors.HypervisorError("Cannot boot from a paravirtual NIC. Please"
-                                   " change the nic type.")
+                                   " change the NIC type.")
 
     disk_type = hvparams[constants.HV_DISK_TYPE]
     if disk_type not in constants.HT_KVM_VALID_DISK_TYPES:
-      raise errors.HypervisorError("Invalid disk type %s specified for the KVM"
-                                   " hypervisor. Please choose one of: %s" %
-                                   (disk_type,
-                                    constants.HT_KVM_VALID_DISK_TYPES))
+      raise errors.HypervisorError(\
+        "Invalid disk type %s specified for the KVM"
+        " hypervisor. Please choose one of: %s" %
+        (disk_type, utils.CommaJoin(constants.HT_KVM_VALID_DISK_TYPES)))
 
     mouse_type = hvparams[constants.HV_USB_MOUSE]
-    if mouse_type and mouse_type not in ('mouse', 'tablet'):
-      raise errors.HypervisorError("Invalid usb mouse type %s specified for"
-                                   " the KVM hyervisor. Please choose"
-                                   " 'mouse' or 'tablet'" % mouse_type)
+    if mouse_type and mouse_type not in constants.HT_KVM_VALID_MOUSE_TYPES:
+      raise errors.HypervisorError(\
+        "Invalid usb mouse type %s specified for the KVM hypervisor. Please"
+        " choose one of %s" %
+        utils.CommaJoin(constants.HT_KVM_VALID_MOUSE_TYPES))
 
   def ValidateParameters(self, hvparams):
     """Check the given parameters for validity.

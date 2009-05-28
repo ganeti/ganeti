@@ -16,23 +16,32 @@ DESC="Ganeti cluster"
 
 GANETIRUNDIR="@LOCALSTATEDIR@/run/ganeti"
 
+GANETI_DEFAULTS_FILE="@SYSCONFDIR@/default/ganeti"
+
 NODED_NAME="ganeti-noded"
 NODED="@PREFIX@/sbin/${NODED_NAME}"
 NODED_PID="${GANETIRUNDIR}/${NODED_NAME}.pid"
+NODED_ARGS=""
 
 MASTERD_NAME="ganeti-masterd"
 MASTERD="@PREFIX@/sbin/${MASTERD_NAME}"
 MASTERD_PID="${GANETIRUNDIR}/${MASTERD_NAME}.pid"
+MASTERD_ARGS=""
 
 RAPI_NAME="ganeti-rapi"
 RAPI="@PREFIX@/sbin/${RAPI_NAME}"
 RAPI_PID="${GANETIRUNDIR}/${RAPI_NAME}.pid"
+RAPI_ARGS=""
 
 SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 
 test -f $NODED || exit 0
 
 . /lib/lsb/init-functions
+
+if [ -s $GANETI_DEFAULTS_FILE ]; then
+    . $GANETI_DEFAULTS_FILE
+fi
 
 check_config() {
     for fname in \
@@ -84,16 +93,16 @@ case "$1" in
     start)
         log_daemon_msg "Starting $DESC" "$NAME"
         check_config
-        start_action $NODED $NODED_PID
-        start_action $MASTERD $MASTERD_PID
-        start_action $RAPI $RAPI_PID
-     ;;
+        start_action $NODED $NODED_PID $NODED_ARGS
+        start_action $MASTERD $MASTERD_PID $MASTERD_ARGS
+        start_action $RAPI $RAPI_PID $RAPI_ARGS
+        ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
         stop_action $RAPI $RAPI_PID
         stop_action $MASTERD $MASTERD_PID
         stop_action $NODED $NODED_PID
-    ;;
+        ;;
     restart|force-reload)
         log_daemon_msg "Reloading $DESC"
         stop_action $RAPI $RAPI_PID
@@ -103,11 +112,11 @@ case "$1" in
         start_action $NODED $NODED_PID
         start_action $MASTERD $MASTERD_PID
         start_action $RAPI $RAPI_PID
-     ;;
+        ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"
         exit 1
-    ;;
+        ;;
 esac
 
 exit 0

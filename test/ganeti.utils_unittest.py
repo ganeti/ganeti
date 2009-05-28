@@ -33,6 +33,7 @@ import socket
 import shutil
 import re
 import select
+import string
 
 import ganeti
 import testutils
@@ -44,7 +45,7 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
-     TailFile, ForceDictType
+     TailFile, ForceDictType, SafeEncode
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -967,6 +968,25 @@ class TestForceDictType(unittest.TestCase):
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'c': True})
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': 'astring'})
     self.assertRaises(errors.TypeEnforcementError, self._fdt, {'d': '4 L'})
+
+
+class TestSafeEncode(unittest.TestCase):
+  """Test case for SafeEncode"""
+
+  def testAscii(self):
+    for txt in [string.digits, string.letters, string.punctuation]:
+      self.failUnlessEqual(txt, SafeEncode(txt))
+
+  def testDoubleEncode(self):
+    for i in range(255):
+      txt = SafeEncode(chr(i))
+      self.failUnlessEqual(txt, SafeEncode(txt))
+
+  def testUnicode(self):
+    # 1024 is high enough to catch non-direct ASCII mappings
+    for i in range(1024):
+      txt = SafeEncode(unichr(i))
+      self.failUnlessEqual(txt, SafeEncode(txt))
 
 
 if __name__ == '__main__':
