@@ -58,6 +58,7 @@ class ConfigObject(object):
   def __init__(self, **kwargs):
     for k, v in kwargs.iteritems():
       setattr(self, k, v)
+    self.UpgradeConfig()
 
   def __getattr__(self, name):
     if name not in self.__slots__:
@@ -156,6 +157,15 @@ class ConfigObject(object):
   def __repr__(self):
     """Implement __repr__ for ConfigObjects."""
     return repr(self.ToDict())
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    This method will be called at object init time, and its implementation will
+    be object dependent.
+
+    """
+    pass
 
 
 class TaggableObject(ConfigObject):
