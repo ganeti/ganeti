@@ -126,7 +126,8 @@ def _InitGanetiServerSetup():
 def InitCluster(cluster_name, mac_prefix, def_bridge,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None, hvparams=None,
-                enabled_hypervisors=None, default_hypervisor=None):
+                enabled_hypervisors=None, default_hypervisor=None,
+                modify_etc_hosts=True):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -236,7 +237,9 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     f.close()
   sshkey = sshline.split(" ")[1]
 
-  utils.AddHostToEtcHosts(hostname.name)
+  if modify_etc_hosts:
+    utils.AddHostToEtcHosts(hostname.name)
+
   _InitSSHSetup()
 
   # init of cluster config file
@@ -258,6 +261,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     beparams={constants.BEGR_DEFAULT: beparams},
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
+    modify_etc_hosts=opts.modify_etc_hosts,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
