@@ -5382,7 +5382,8 @@ class LUReplaceDisks(LogicalUnit):
                     new_net_id)
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
                               logical_id=new_alone_id,
-                              children=dev.children)
+                              children=dev.children,
+                              size=dev.size)
       try:
         _CreateSingleBlockDev(self, new_node, instance, new_drbd,
                               _GetInstanceInfoText(instance), False)
