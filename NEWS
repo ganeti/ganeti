@@ -1,3 +1,9 @@
+Version 1.2.8
+  - Fix a potential bug in export instance
+  - Fix compatibility with Twisted 8.x
+  - Fix “gnt-cluster verify-disks” with broken volume groups
+  - Fix a couple of typos in error messages
+
 Version 1.2.7
   - Change the default reboot type in gnt-instance reboot to "hard"
   - Reuse the old instance mac address by default on instance import,
