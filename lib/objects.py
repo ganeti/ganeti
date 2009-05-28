@@ -735,7 +735,15 @@ class Cluster(TaggableObject):
     "hvparams",
     "beparams",
     "candidate_pool_size",
+    "modify_etc_hosts",
     ]
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    if self.modify_etc_hosts is None:
+      self.modify_etc_hosts = True
 
   def ToDict(self):
     """Custom function for cluster.

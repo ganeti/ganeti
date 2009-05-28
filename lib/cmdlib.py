@@ -2265,7 +2265,8 @@ class LUAddNode(LogicalUnit):
                                " new node: %s" % msg)
 
     # Add node to our /etc/hosts, and add key to known_hosts
-    utils.AddHostToEtcHosts(new_node.name)
+    if self.cfg.GetClusterInfo().modify_etc_hosts:
+      utils.AddHostToEtcHosts(new_node.name)
 
     if new_node.secondary_ip != new_node.primary_ip:
       result = self.rpc.call_node_has_ip_address(new_node.name,
