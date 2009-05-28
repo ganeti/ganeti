@@ -1066,10 +1066,12 @@ class ConfigWriter:
 
     result = rpc.RpcRunner.call_upload_file(node_list, self._cfg_file,
                                             address_list=addr_list)
-    for node in node_list:
-      if not result[node]:
-        logging.error("copy of file %s to node %s failed",
-                      self._cfg_file, node)
+    for to_node, to_result in result.items():
+      msg = to_result.RemoteFailMsg()
+      if msg:
+        msg = ("Copy of file %s to node %s failed: %s" %
+                (self._cfg_file, node, msg))
+        logging.error(msg)
         bad = True
     return not bad
 

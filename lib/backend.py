@@ -1459,9 +1459,9 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
   """
   if not os.path.isabs(file_name):
-    logging.error("Filename passed to UploadFile is not absolute: '%s'",
-                  file_name)
-    return False
+    err = "Filename passed to UploadFile is not absolute: '%s'" % file_name
+    logging.error(err)
+    return (False, err)
 
   allowed_files = set([
     constants.CLUSTER_CONF_FILE,
@@ -1477,15 +1477,16 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
     allowed_files.update(hv_class.GetAncillaryFiles())
 
   if file_name not in allowed_files:
-    logging.error("Filename passed to UploadFile not in allowed"
-                 " upload targets: '%s'", file_name)
-    return False
+    err = "Filename passed to UploadFile not in allowed upload targets: '%s'" \
+          % file_name
+    logging.error(err)
+    return (False, err)
 
   raw_data = _Decompress(data)
 
   utils.WriteFile(file_name, data=raw_data, mode=mode, uid=uid, gid=gid,
                   atime=atime, mtime=mtime)
-  return True
+  return (True, "success")
 
 
 def WriteSsconfFiles(values):
