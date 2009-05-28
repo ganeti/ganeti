@@ -759,6 +759,20 @@ class Cluster(TaggableObject):
     """Fill defaults for missing configuration values.
 
     """
+    if self.hvparams is None:
+      self.hvparams = constants.HVC_DEFAULTS
+    else:
+      for hypervisor in self.hvparams:
+        self.hvparams[hypervisor] = self.FillDict(
+            constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
+
+    if self.beparams is None:
+      self.beparams = {constants.BEGR_DEFAULT: constants.BEC_DEFAULTS}
+    else:
+      for begroup in self.beparams:
+        self.beparams[begroup] = self.FillDict(constants.BEC_DEFAULTS,
+                                               self.beparams[begroup])
+
     if self.modify_etc_hosts is None:
       self.modify_etc_hosts = True
 
