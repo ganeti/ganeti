@@ -1463,12 +1463,18 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                   file_name)
     return False
 
-  allowed_files = [
+  allowed_files = set([
     constants.CLUSTER_CONF_FILE,
     constants.ETC_HOSTS,
     constants.SSH_KNOWN_HOSTS_FILE,
     constants.VNC_PASSWORD_FILE,
-    ]
+    constants.RAPI_CERT_FILE,
+    constants.RAPI_USERS_FILE,
+    ])
+
+  for hv_name in constants.HYPER_TYPES:
+    hv_class = hypervisor.GetHypervisor(hv_name)
+    allowed_files.update(hv_class.GetAncillaryFiles())
 
   if file_name not in allowed_files:
     logging.error("Filename passed to UploadFile not in allowed"
