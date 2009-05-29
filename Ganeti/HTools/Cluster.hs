@@ -47,24 +47,18 @@ import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
 
--- | A separate name for the cluster score type
+-- * Types
+
+-- | A separate name for the cluster score type.
 type Score = Double
 
 -- | The description of an instance placement.
 type Placement = (Idx, Ndx, Ndx, Score)
 
-{- | A cluster solution described as the solution delta and the list
-of placements.
-
--}
+-- | A cluster solution described as the solution delta and the list
+-- of placements.
 data Solution = Solution Int [Placement]
                 deriving (Eq, Ord, Show)
-
--- | Returns the delta of a solution or -1 for Nothing
-solutionDelta :: Maybe Solution -> Int
-solutionDelta sol = case sol of
-                      Just (Solution d _) -> d
-                      _ -> -1
 
 -- | A removal set.
 data Removal = Removal Node.List [Instance.Instance]
@@ -81,7 +75,13 @@ data IMove = Failover                -- ^ Failover the instance (f)
 data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show)
 
--- General functions
+-- * Utility functions
+
+-- | Returns the delta of a solution or -1 for Nothing.
+solutionDelta :: Maybe Solution -> Int
+solutionDelta sol = case sol of
+                      Just (Solution d _) -> d
+                      _ -> -1
 
 -- | Cap the removal list if needed.
 capRemovals :: [a] -> Int -> [a]
@@ -99,7 +99,62 @@ verifyN1Check nl = any Node.failN1 nl
 verifyN1 :: [Node.Node] -> [Node.Node]
 verifyN1 nl = filter Node.failN1 nl
 
-{-| Add an instance and return the new node and instance maps. -}
+{-| Computes the pair of bad nodes and instances.
+
+The bad node list is computed via a simple 'verifyN1' check, and the
+bad instance list is the list of primary and secondary instances of
+those nodes.
+
+-}
+computeBadItems :: Node.List -> Instance.List ->
+                   ([Node.Node], [Instance.Instance])
+computeBadItems nl il =
+  let bad_nodes = verifyN1 $ filter (not . Node.offline) $ Container.elems nl
+      bad_instances = map (\idx -> Container.find idx il) $
+                      sort $ nub $ concat $
+                      map (\ n -> (Node.slist n) ++ (Node.plist n)) bad_nodes
+  in
+    (bad_nodes, bad_instances)
+
+-- | Compute the total free disk and memory in the cluster.
+totalResources :: Container.Container Node.Node -> (Int, Int)
+totalResources nl =
+    foldl'
+    (\ (mem, dsk) node -> (mem + (Node.f_mem node),
+                           dsk + (Node.f_dsk node)))
+    (0, 0) (Container.elems nl)
+
+-- | Compute the mem and disk covariance.
+compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double)
+compDetailedCV nl =
+    let
+        all_nodes = Container.elems nl
+        (offline, nodes) = partition Node.offline all_nodes
+        mem_l = map Node.p_mem nodes
+        dsk_l = map Node.p_dsk nodes
+        mem_cv = varianceCoeff mem_l
+        dsk_cv = varianceCoeff dsk_l
+        n1_l = length $ filter Node.failN1 nodes
+        n1_score = (fromIntegral n1_l) / (fromIntegral $ length nodes)
+        res_l = map Node.p_rem nodes
+        res_cv = varianceCoeff res_l
+        offline_inst = sum . map (\n -> (length . Node.plist $ n) +
+                                        (length . Node.slist $ n)) $ offline
+        online_inst = sum . map (\n -> (length . Node.plist $ n) +
+                                       (length . Node.slist $ n)) $ nodes
+        off_score = (fromIntegral offline_inst) /
+                    (fromIntegral $ online_inst + offline_inst)
+    in (mem_cv, dsk_cv, n1_score, res_cv, off_score)
+
+-- | Compute the /total/ variance.
+compCV :: Node.List -> Double
+compCV nl =
+    let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
+    in mem_cv + dsk_cv + n1_score + res_cv + off_score
+
+-- * hn1 functions
+
+-- | Add an instance and return the new node and instance maps.
 addInstance :: Node.List -> Instance.Instance ->
                Node.Node -> Node.Node -> Maybe Node.List
 addInstance nl idata pri sec =
@@ -128,15 +183,8 @@ removeInstance nl idata =
 removeInstances :: Node.List -> [Instance.Instance] -> Node.List
 removeInstances = foldl' removeInstance
 
--- | Compute the total free disk and memory in the cluster.
-totalResources :: Container.Container Node.Node -> (Int, Int)
-totalResources nl =
-    foldl'
-    (\ (mem, dsk) node -> (mem + (Node.f_mem node),
-                           dsk + (Node.f_dsk node)))
-    (0, 0) (Container.elems nl)
 
-{- | Compute a new version of a cluster given a solution.
+{-| Compute a new version of a cluster given a solution.
 
 This is not used for computing the solutions, but for applying a
 (known-good) solution to the original cluster for final display.
@@ -161,9 +209,9 @@ applySolution nl il sol =
            ) nc odxes
 
 
--- First phase functions
+-- ** First phase functions
 
-{- | Given a list 1,2,3..n build a list of pairs [(1, [2..n]), (2,
+{-| Given a list 1,2,3..n build a list of pairs [(1, [2..n]), (2,
     [3..n]), ...]
 
 -}
@@ -190,25 +238,7 @@ genNames count1 names1 =
   in
     aux_fn count1 names1 []
 
-{- | Computes the pair of bad nodes and instances.
-
-The bad node list is computed via a simple 'verifyN1' check, and the
-bad instance list is the list of primary and secondary instances of
-those nodes.
-
--}
-computeBadItems :: Node.List -> Instance.List ->
-                   ([Node.Node], [Instance.Instance])
-computeBadItems nl il =
-  let bad_nodes = verifyN1 $ filter (not . Node.offline) $ Container.elems nl
-      bad_instances = map (\idx -> Container.find idx il) $
-                      sort $ nub $ concat $
-                      map (\ n -> (Node.slist n) ++ (Node.plist n)) bad_nodes
-  in
-    (bad_nodes, bad_instances)
-
-
-{- | Checks if removal of instances results in N+1 pass.
+{-| Checks if removal of instances results in N+1 pass.
 
 Note: the check removal cannot optimize by scanning only the affected
 nodes, since the cluster is known to be not healthy; only the check
@@ -226,7 +256,7 @@ checkRemoval nl victims =
       Just $ Removal nx victims
 
 
--- | Computes the removals list for a given depth
+-- | Computes the removals list for a given depth.
 computeRemovals :: Node.List
                  -> [Instance.Instance]
                  -> Int
@@ -234,9 +264,9 @@ computeRemovals :: Node.List
 computeRemovals nl bad_instances depth =
     map (checkRemoval nl) $ genNames depth bad_instances
 
--- Second phase functions
+-- ** Second phase functions
 
--- | Single-node relocation cost
+-- | Single-node relocation cost.
 nodeDelta :: Ndx -> Ndx -> Ndx -> Int
 nodeDelta i p s =
     if i == p || i == s then
@@ -244,21 +274,15 @@ nodeDelta i p s =
     else
         1
 
-{-| Compute best solution.
-
-    This function compares two solutions, choosing the minimum valid
-    solution.
--}
+-- | Compute best solution.
+--
+-- This function compares two solutions, choosing the minimum valid
+-- solution.
 compareSolutions :: Maybe Solution -> Maybe Solution -> Maybe Solution
 compareSolutions a b = case (a, b) of
   (Nothing, x) -> x
   (x, Nothing) -> x
   (x, y) -> min x y
-
--- | Compute best table. Note that the ordering of the arguments is important.
-compareTables :: Table -> Table -> Table
-compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
-    if a_cv > b_cv then b else a
 
 -- | Check if a given delta is worse then an existing solution.
 tooHighDelta :: Maybe Solution -> Int -> Int -> Bool
@@ -330,7 +354,66 @@ checkPlacement nl victims current current_delta prev_sol max_delta =
                 ) accu_p nodes
     ) prev_sol nodes
 
--- | Apply a move
+{-| Auxiliary function for solution computation.
+
+We write this in an explicit recursive fashion in order to control
+early-abort in case we have met the min delta. We can't use foldr
+instead of explicit recursion since we need the accumulator for the
+abort decision.
+
+-}
+advanceSolution :: [Maybe Removal] -- ^ The removal to process
+                -> Int             -- ^ Minimum delta parameter
+                -> Int             -- ^ Maximum delta parameter
+                -> Maybe Solution  -- ^ Current best solution
+                -> Maybe Solution  -- ^ New best solution
+advanceSolution [] _ _ sol = sol
+advanceSolution (Nothing:xs) m n sol = advanceSolution xs m n sol
+advanceSolution ((Just (Removal nx removed)):xs) min_d max_d prev_sol =
+    let new_sol = checkPlacement nx removed [] 0 prev_sol max_d
+        new_delta = solutionDelta $! new_sol
+    in
+      if new_delta >= 0 && new_delta <= min_d then
+          new_sol
+      else
+          advanceSolution xs min_d max_d new_sol
+
+-- | Computes the placement solution.
+solutionFromRemovals :: [Maybe Removal] -- ^ The list of (possible) removals
+                     -> Int             -- ^ Minimum delta parameter
+                     -> Int             -- ^ Maximum delta parameter
+                     -> Maybe Solution  -- ^ The best solution found
+solutionFromRemovals removals min_delta max_delta =
+    advanceSolution removals min_delta max_delta Nothing
+
+{-| Computes the solution at the given depth.
+
+This is a wrapper over both computeRemovals and
+solutionFromRemovals. In case we have no solution, we return Nothing.
+
+-}
+computeSolution :: Node.List        -- ^ The original node data
+                -> [Instance.Instance] -- ^ The list of /bad/ instances
+                -> Int             -- ^ The /depth/ of removals
+                -> Int             -- ^ Maximum number of removals to process
+                -> Int             -- ^ Minimum delta parameter
+                -> Int             -- ^ Maximum delta parameter
+                -> Maybe Solution  -- ^ The best solution found (or Nothing)
+computeSolution nl bad_instances depth max_removals min_delta max_delta =
+  let
+      removals = computeRemovals nl bad_instances depth
+      removals' = capRemovals removals max_removals
+  in
+    solutionFromRemovals removals' min_delta max_delta
+
+-- * hbal functions
+
+-- | Compute best table. Note that the ordering of the arguments is important.
+compareTables :: Table -> Table -> Table
+compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
+    if a_cv > b_cv then b else a
+
+-- | Applies an instance move to a given node list and instance.
 applyMove :: Node.List -> Instance.Instance
           -> IMove -> (Maybe Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
@@ -407,6 +490,7 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
                  Container.addTwo old_sdx new_p old_pdx int_p nl
     in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
 
+-- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
                  -> (Maybe Node.List, Instance.Instance)
 allocateOnSingle nl inst p =
@@ -415,6 +499,7 @@ allocateOnSingle nl inst p =
                  return $ Container.add new_pdx new_p nl
     in (new_nl, Instance.setBoth inst new_pdx Node.noSecondary)
 
+-- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
                -> (Maybe Node.List, Instance.Instance)
 allocateOnPair nl inst tgt_p tgt_s =
@@ -426,6 +511,8 @@ allocateOnPair nl inst tgt_p tgt_s =
           return $ Container.addTwo new_pdx new_p new_sdx new_s nl
     in (new_nl, Instance.setBoth inst new_pdx new_sdx)
 
+-- | Tries to perform an instance move and returns the best table
+-- between the original one and the new one.
 checkSingleStep :: Table -- ^ The original table
                 -> Instance.Instance -- ^ The instance to move
                 -> Table -- ^ The current best table
@@ -502,59 +589,8 @@ checkMove nodes_idx ini_tbl victims =
       else
           best_tbl
 
-{- | Auxiliary function for solution computation.
 
-We write this in an explicit recursive fashion in order to control
-early-abort in case we have met the min delta. We can't use foldr
-instead of explicit recursion since we need the accumulator for the
-abort decision.
-
--}
-advanceSolution :: [Maybe Removal] -- ^ The removal to process
-                -> Int             -- ^ Minimum delta parameter
-                -> Int             -- ^ Maximum delta parameter
-                -> Maybe Solution  -- ^ Current best solution
-                -> Maybe Solution  -- ^ New best solution
-advanceSolution [] _ _ sol = sol
-advanceSolution (Nothing:xs) m n sol = advanceSolution xs m n sol
-advanceSolution ((Just (Removal nx removed)):xs) min_d max_d prev_sol =
-    let new_sol = checkPlacement nx removed [] 0 prev_sol max_d
-        new_delta = solutionDelta $! new_sol
-    in
-      if new_delta >= 0 && new_delta <= min_d then
-          new_sol
-      else
-          advanceSolution xs min_d max_d new_sol
-
--- | Computes the placement solution.
-solutionFromRemovals :: [Maybe Removal] -- ^ The list of (possible) removals
-                     -> Int             -- ^ Minimum delta parameter
-                     -> Int             -- ^ Maximum delta parameter
-                     -> Maybe Solution  -- ^ The best solution found
-solutionFromRemovals removals min_delta max_delta =
-    advanceSolution removals min_delta max_delta Nothing
-
-{- | Computes the solution at the given depth.
-
-This is a wrapper over both computeRemovals and
-solutionFromRemovals. In case we have no solution, we return Nothing.
-
--}
-computeSolution :: Node.List        -- ^ The original node data
-                -> [Instance.Instance] -- ^ The list of /bad/ instances
-                -> Int             -- ^ The /depth/ of removals
-                -> Int             -- ^ Maximum number of removals to process
-                -> Int             -- ^ Minimum delta parameter
-                -> Int             -- ^ Maximum delta parameter
-                -> Maybe Solution  -- ^ The best solution found (or Nothing)
-computeSolution nl bad_instances depth max_removals min_delta max_delta =
-  let
-      removals = computeRemovals nl bad_instances depth
-      removals' = capRemovals removals max_removals
-  in
-    solutionFromRemovals removals' min_delta max_delta
-
--- Solution display functions (pure)
+-- * Formatting functions
 
 -- | Given the original and final nodes, computes the relocation description.
 computeMoves :: String -- ^ The instance name
@@ -600,13 +636,14 @@ computeMoves i a b c d =
                       printf "migrate -f %s" i,
                       printf "replace-disks -n %s %s" d i])
 
-{-| Converts a placement to string format -}
-printSolutionLine :: Node.List
-                  -> Instance.List
-                  -> Int
-                  -> Int
-                  -> Placement
-                  -> Int
+-- | Converts a placement to string format.
+printSolutionLine :: Node.List     -- ^ The node list
+                  -> Instance.List -- ^ The instance list
+                  -> Int           -- ^ Maximum node name length
+                  -> Int           -- ^ Maximum instance name length
+                  -> Placement     -- ^ The current placement
+                  -> Int           -- ^ The index of the placement in
+                                   -- the solution
                   -> (String, [String])
 printSolutionLine nl il nmlen imlen plc pos =
     let
@@ -627,6 +664,8 @@ printSolutionLine nl il nmlen imlen plc pos =
        pmlen nstr c moves,
        cmds)
 
+-- | Given a list of commands, prefix them with @gnt-instance@ and
+-- also beautify the display a little.
 formatCmds :: [[String]] -> String
 formatCmds cmd_strs =
     unlines $
@@ -636,7 +675,7 @@ formatCmds cmd_strs =
         (map ("gnt-instance " ++) b)) $
         zip [1..] cmd_strs
 
-{-| Converts a solution to string format -}
+-- | Converts a solution to string format.
 printSolution :: Node.List
               -> Instance.List
               -> [Placement]
@@ -663,34 +702,7 @@ printNodes nl =
                  "pri" "sec" "p_fmem" "p_fdsk"
     in unlines $ (header:map helper snl)
 
--- | Compute the mem and disk covariance.
-compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double)
-compDetailedCV nl =
-    let
-        all_nodes = Container.elems nl
-        (offline, nodes) = partition Node.offline all_nodes
-        mem_l = map Node.p_mem nodes
-        dsk_l = map Node.p_dsk nodes
-        mem_cv = varianceCoeff mem_l
-        dsk_cv = varianceCoeff dsk_l
-        n1_l = length $ filter Node.failN1 nodes
-        n1_score = (fromIntegral n1_l) / (fromIntegral $ length nodes)
-        res_l = map Node.p_rem nodes
-        res_cv = varianceCoeff res_l
-        offline_inst = sum . map (\n -> (length . Node.plist $ n) +
-                                        (length . Node.slist $ n)) $ offline
-        online_inst = sum . map (\n -> (length . Node.plist $ n) +
-                                       (length . Node.slist $ n)) $ nodes
-        off_score = (fromIntegral offline_inst) /
-                    (fromIntegral $ online_inst + offline_inst)
-    in (mem_cv, dsk_cv, n1_score, res_cv, off_score)
-
--- | Compute the 'total' variance.
-compCV :: Node.List -> Double
-compCV nl =
-    let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
-    in mem_cv + dsk_cv + n1_score + res_cv + off_score
-
+-- | Shows statistics for a given node list.
 printStats :: Node.List -> String
 printStats nl =
     let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl

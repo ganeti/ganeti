@@ -22,8 +22,8 @@ test: HEXTRA=-fhpc
 $(DOCS) : %.html : %
 	rst2html $< $@
 
-doc: $(DOCS)
-	rm -rf $(HDDIR)
+doc: $(DOCS) Ganeti/HTools/Version.hs
+	rm -rf $(HDDIR)/*
 	mkdir -p $(HDDIR)/Ganeti/HTools
 	cp hscolour.css $(HDDIR)/Ganeti/HTools
 	for file in $(HSRCS); do \

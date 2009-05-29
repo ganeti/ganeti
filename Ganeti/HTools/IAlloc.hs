@@ -11,12 +11,10 @@ module Ganeti.HTools.IAlloc
     ) where
 
 import Data.Either ()
---import Data.Maybe
 import Control.Monad
 import Text.JSON (JSObject, JSValue(JSBool, JSString, JSArray),
                   makeObj, encodeStrict, decodeStrict,
                   fromJSObject, toJSString)
---import Text.Printf (printf)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -24,14 +22,22 @@ import Ganeti.HTools.Loader
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 
+-- | The request type.
 data RqType
-    = Allocate Instance.Instance Int
-    | Relocate Idx Int [Ndx]
+    = Allocate Instance.Instance Int -- ^ A new instance allocation
+    | Relocate Idx Int [Ndx]         -- ^ Move an instance to a new
+                                     -- secondary node
     deriving (Show)
 
+-- | A complete request, as received from Ganeti.
 data Request = Request RqType Node.List Instance.List String
     deriving (Show)
 
+-- | Parse the basic specifications of an instance.
+--
+-- Instances in the cluster instance list and the instance in an
+-- 'Allocate' request share some common properties, which are read by
+-- this function.
 parseBaseInstance :: String
                   -> JSObject JSValue
                   -> Result (String, Instance.Instance)
@@ -48,9 +54,10 @@ parseBaseInstance n a = do
   let running = "running"
   return $ (n, Instance.create n mem disk running 0 0)
 
-parseInstance :: NameAssoc
-              -> String
-              -> JSObject JSValue
+-- | Parses an instance as found in the cluster instance list.
+parseInstance :: NameAssoc        -- ^ The node name-to-index association list
+              -> String           -- ^ The name of the instance
+              -> JSObject JSValue -- ^ The JSON object
               -> Result (String, Instance.Instance)
 parseInstance ktn n a = do
     base <- parseBaseInstance n a
@@ -62,7 +69,10 @@ parseInstance ktn n a = do
              else (readEitherString $ head snodes) >>= lookupNode ktn n)
     return (n, Instance.setBoth (snd base) pidx sidx)
 
-parseNode :: String -> JSObject JSValue -> Result (String, Node.Node)
+-- | Parses a node as found in the cluster node list.
+parseNode :: String           -- ^ The node's name
+          -> JSObject JSValue -- ^ The JSON object
+          -> Result (String, Node.Node)
 parseNode n a = do
     let name = n
     offline <- fromObj "offline" a
@@ -79,7 +89,9 @@ parseNode n a = do
                         dtotal dfree (offline || drained))
     return (name, node)
 
-parseData :: String -> Result Request
+-- | Top-level parser.
+parseData :: String         -- ^ The JSON message as received from Ganeti
+          -> Result Request -- ^ A (possible valid) request
 parseData body = do
   decoded <- fromJResult $ decodeStrict body
   let obj = decoded
@@ -116,7 +128,11 @@ parseData body = do
         other -> fail $ ("Invalid request type '" ++ other ++ "'")
   return $ Request rqtype map_n map_i csf
 
-formatResponse :: Bool -> String -> [String] -> String
+-- | Formats the response into a valid IAllocator response message.
+formatResponse :: Bool     -- ^ Whether the request was successful
+               -> String   -- ^ Information text
+               -> [String] -- ^ The list of chosen nodes
+               -> String   -- ^ The JSON-formatted message
 formatResponse success info nodes =
     let
         e_success = ("success", JSBool success)

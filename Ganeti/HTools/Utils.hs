@@ -26,14 +26,13 @@ import Ganeti.HTools.Types
 
 import Debug.Trace
 
+-- * Debug functions
+
 -- | To be used only for debugging, breaks referential integrity.
 debug :: Show a => a -> a
 debug x = trace (show x) x
 
-
-fromJResult :: Monad m => J.Result a -> m a
-fromJResult (J.Error x) = fail x
-fromJResult (J.Ok x) = return x
+-- * Miscelaneous
 
 -- | Comma-join a string list.
 commaJoin :: [String] -> String
@@ -52,6 +51,8 @@ sepSplit sep s
 -- | Partial application of sepSplit to @'.'@
 commaSplit :: String -> [String]
 commaSplit = sepSplit ','
+
+-- * Mathematical functions
 
 -- Simple and slow statistical functions, please replace with better versions
 
@@ -72,7 +73,7 @@ stdDev lst =
 varianceCoeff :: Floating a => [a] -> a
 varianceCoeff lst = (stdDev lst) / (fromIntegral $ length lst)
 
--- | Get an Ok result or print the error and exit
+-- | Get an Ok result or print the error and exit.
 readData :: Result a -> IO a
 readData nd =
     (case nd of
@@ -81,24 +82,39 @@ readData nd =
          exitWith $ ExitFailure 1
        Ok x -> return x)
 
+-- * JSON-related functions
+
+-- | Converts a JSON Result into a monadic value.
+fromJResult :: Monad m => J.Result a -> m a
+fromJResult (J.Error x) = fail x
+fromJResult (J.Ok x) = return x
+
+-- | Tries to read a string from a JSON value.
+--
+-- In case the value was not a string, we fail the read (in the
+-- context of the current monad.
 readEitherString :: (Monad m) => J.JSValue -> m String
 readEitherString v =
     case v of
       J.JSString s -> return $ J.fromJSString s
       _ -> fail "Wrong JSON type"
 
+-- | Converts a JSON message into an array of JSON objects.
 loadJSArray :: (Monad m) => String -> m [J.JSObject J.JSValue]
 loadJSArray s = fromJResult $ J.decodeStrict s
 
+-- | Reads a the value of a key in a JSON object.
 fromObj :: (J.JSON a, Monad m) => String -> J.JSObject J.JSValue -> m a
 fromObj k o =
     case lookup k (J.fromJSObject o) of
       Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
       Just val -> fromJResult $ J.readJSON val
 
+-- | Converts a JSON value into a JSON object.
 asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)
 asJSObject (J.JSObject a) = return a
 asJSObject _ = fail "not an object"
 
+-- | Coneverts a list of JSON values into a list of JSON objects.
 asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
 asObjectList = sequence . map asJSObject

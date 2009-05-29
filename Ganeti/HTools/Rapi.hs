@@ -21,7 +21,7 @@ import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
--- | Read an URL via curl and return the body if successful
+-- | Read an URL via curl and return the body if successful.
 getUrl :: (Monad m) => String -> IO (m String)
 getUrl url = do
   (code, body) <- curlGetString url [CurlSSLVerifyPeer False,
@@ -31,12 +31,13 @@ getUrl url = do
             _ -> fail $ printf "Curl error for '%s', error %s"
                  url (show code))
 
--- | Append the default port if not passed in
+-- | Append the default port if not passed in.
 formatHost :: String -> String
 formatHost master =
     if elem ':' master then  master
     else "https://" ++ master ++ ":5080"
 
+-- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
              -> String
              -> Result [(String, Instance.Instance)]
@@ -45,12 +46,14 @@ getInstances ktn body = do
   ilist <- mapM (parseInstance ktn) arr
   return ilist
 
+-- | Parse a node list in JSON format.
 getNodes :: String -> Result [(String, Node.Node)]
 getNodes body = do
   arr <- loadJSArray body
   nlist <- mapM parseNode arr
   return nlist
 
+-- | Construct an instance from a JSON object.
 parseInstance :: [(String, Ndx)]
               -> JSObject JSValue
               -> Result (String, Instance.Instance)
@@ -66,6 +69,7 @@ parseInstance ktn a = do
   let inst = Instance.create name mem disk running pnode snode
   return (name, inst)
 
+-- | Construct a node from a JSON object.
 parseNode :: JSObject JSValue -> Result (String, Node.Node)
 parseNode a = do
     name <- fromObj "name" a
@@ -83,6 +87,7 @@ parseNode a = do
                         dtotal dfree (offline || drained))
     return (name, node)
 
+-- | Builds the cluster data from an URL.
 loadData :: String -- ^ Cluster or URL to use as source
          -> IO (Result (Node.AssocList, Instance.AssocList))
 loadData master = do -- IO monad

@@ -18,13 +18,13 @@ module Ganeti.HTools.Node
     , setOffline
     , setXmem
     , setFmem
+    , setPri
+    , setSec
     -- * Instance (re)location
     , removePri
     , removeSec
     , addPri
     , addSec
-    , setPri
-    , setSec
     -- * Formatting
     , list
     -- * Misc stuff
@@ -41,24 +41,27 @@ import qualified Ganeti.HTools.PeerMap as PeerMap
 
 import qualified Ganeti.HTools.Types as T
 
-data Node = Node { name  :: String -- ^ the node name
-                 , t_mem :: Double -- ^ total memory (MiB)
-                 , n_mem :: Int    -- ^ node memory (MiB)
-                 , f_mem :: Int    -- ^ free memory (MiB)
-                 , x_mem :: Int    -- ^ unaccounted memory (MiB)
-                 , t_dsk :: Double -- ^ total disk space (MiB)
-                 , f_dsk :: Int    -- ^ free disk space (MiB)
-                 , plist :: [T.Idx]-- ^ list of primary instance indices
-                 , slist :: [T.Idx]-- ^ list of secondary instance indices
-                 , idx :: T.Ndx    -- ^ internal index for book-keeping
-                 , peers :: PeerMap.PeerMap -- ^ pnode to instance mapping
-                 , failN1:: Bool   -- ^ whether the node has failed n1
-                 , r_mem :: Int    -- ^ maximum memory needed for
+-- * Type declarations
+
+-- | The node type.
+data Node = Node { name  :: String -- ^ The node name
+                 , t_mem :: Double -- ^ Total memory (MiB)
+                 , n_mem :: Int    -- ^ Node memory (MiB)
+                 , f_mem :: Int    -- ^ Free memory (MiB)
+                 , x_mem :: Int    -- ^ Unaccounted memory (MiB)
+                 , t_dsk :: Double -- ^ Total disk space (MiB)
+                 , f_dsk :: Int    -- ^ Free disk space (MiB)
+                 , plist :: [T.Idx]-- ^ List of primary instance indices
+                 , slist :: [T.Idx]-- ^ List of secondary instance indices
+                 , idx :: T.Ndx    -- ^ Internal index for book-keeping
+                 , peers :: PeerMap.PeerMap -- ^ Pnode to instance mapping
+                 , failN1:: Bool   -- ^ Whether the node has failed n1
+                 , r_mem :: Int    -- ^ Maximum memory needed for
                                    -- failover by primaries of this node
-                 , p_mem :: Double -- ^ percent of free memory
-                 , p_dsk :: Double -- ^ percent of free disk
-                 , p_rem :: Double -- ^ percent of reserved memory
-                 , offline :: Bool -- ^ whether the node should not be used
+                 , p_mem :: Double -- ^ Percent of free memory
+                 , p_dsk :: Double -- ^ Percent of free disk
+                 , p_rem :: Double -- ^ Percent of reserved memory
+                 , offline :: Bool -- ^ Whether the node should not be used
                                    -- for allocations and skipped from
                                    -- score computations
   } deriving (Show)
@@ -69,22 +72,22 @@ instance T.Element Node where
     setName = setName
     setIdx = setIdx
 
--- | A simple name for the int, node association list
+-- | A simple name for the int, node association list.
 type AssocList = [(T.Ndx, Node)]
 
--- | A simple name for a node map
+-- | A simple name for a node map.
 type List = Container.Container Node
 
--- | Constant node index for a non-moveable instance
+-- | Constant node index for a non-moveable instance.
 noSecondary :: T.Ndx
 noSecondary = -1
 
-{- | Create a new node.
+-- * Initialization functions
 
-The index and the peers maps are empty, and will be need to be update
-later via the 'setIdx' and 'buildPeers' functions.
-
--}
+-- | Create a new node.
+--
+-- The index and the peers maps are empty, and will be need to be
+-- update later via the 'setIdx' and 'buildPeers' functions.
 create :: String -> Double -> Int -> Int -> Double -> Int -> Bool -> Node
 create name_init mem_t_init mem_n_init mem_f_init
        dsk_t_init dsk_f_init offline_init =
@@ -110,38 +113,24 @@ create name_init mem_t_init mem_n_init mem_f_init
     }
 
 -- | Changes the index.
+--
 -- This is used only during the building of the data structures.
 setIdx :: Node -> T.Ndx -> Node
 setIdx t i = t {idx = i}
 
--- | Changes the name
+-- | Changes the name.
+--
 -- This is used only during the building of the data structures.
+setName :: Node -> String -> Node
 setName t s = t {name = s}
 
--- | Sets the offline attribute
+-- | Sets the offline attribute.
 setOffline :: Node -> Bool -> Node
 setOffline t val = t { offline = val }
 
--- | Sets the unnaccounted memory
+-- | Sets the unnaccounted memory.
 setXmem :: Node -> Int -> Node
 setXmem t val = t { x_mem = val }
-
--- | Sets the free memory
-setFmem :: Node -> Int -> Node
-setFmem t new_mem =
-    let new_n1 = computeFailN1 (r_mem t) new_mem (f_dsk t)
-        new_mp = (fromIntegral new_mem) / (t_mem t)
-    in
-      t { f_mem = new_mem, failN1 = new_n1, p_mem = new_mp }
-
--- | Given the rmem, free memory and disk, computes the failn1 status.
-computeFailN1 :: Int -> Int -> Int -> Bool
-computeFailN1 new_rmem new_mem new_dsk =
-    new_mem <= new_rmem || new_dsk <= 0
-
--- | Given the new free memory and disk, fail if any of them is below zero.
-failHealth :: Int -> Int -> Bool
-failHealth new_mem new_dsk = new_mem <= 0 || new_dsk <= 0
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
@@ -159,6 +148,33 @@ buildPeers t il =
         new_failN1 = computeFailN1 new_rmem (f_mem t) (f_dsk t)
         new_prem = (fromIntegral new_rmem) / (t_mem t)
     in t {peers=pmap, failN1 = new_failN1, r_mem = new_rmem, p_rem = new_prem}
+
+-- | Assigns an instance to a node as primary without other updates.
+setPri :: Node -> T.Idx -> Node
+setPri t idx = t { plist = idx:(plist t) }
+
+-- | Assigns an instance to a node as secondary without other updates.
+setSec :: Node -> T.Idx -> Node
+setSec t idx = t { slist = idx:(slist t) }
+
+-- * Update functions
+
+-- | Sets the free memory.
+setFmem :: Node -> Int -> Node
+setFmem t new_mem =
+    let new_n1 = computeFailN1 (r_mem t) new_mem (f_dsk t)
+        new_mp = (fromIntegral new_mem) / (t_mem t)
+    in
+      t { f_mem = new_mem, failN1 = new_n1, p_mem = new_mp }
+
+-- | Given the rmem, free memory and disk, computes the failn1 status.
+computeFailN1 :: Int -> Int -> Int -> Bool
+computeFailN1 new_rmem new_mem new_dsk =
+    new_mem <= new_rmem || new_dsk <= 0
+
+-- | Given the new free memory and disk, fail if any of them is below zero.
+failHealth :: Int -> Int -> Bool
+failHealth new_mem new_dsk = new_mem <= 0 || new_dsk <= 0
 
 -- | Removes a primary instance.
 removePri :: Node -> Instance.Instance -> Node
@@ -236,13 +252,7 @@ addSec t inst pdx =
                 r_mem = new_rmem, p_dsk = new_dp,
                 p_rem = new_prem}
 
--- | Add a primary instance to a node without other updates
-setPri :: Node -> T.Idx -> Node
-setPri t idx = t { plist = idx:(plist t) }
-
--- | Add a secondary instance to a node without other updates
-setSec :: Node -> T.Idx -> Node
-setSec t idx = t { slist = idx:(slist t) }
+-- * Display functions
 
 -- | String converter for the node list functionality.
 list :: Int -> Node -> String

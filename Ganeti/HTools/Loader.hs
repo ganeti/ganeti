@@ -23,21 +23,21 @@ import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.Types
 
--- | Lookups a node into an assoc list
+-- | Lookups a node into an assoc list.
 lookupNode :: (Monad m) => [(String, Ndx)] -> String -> String -> m Ndx
 lookupNode ktn inst node =
     case lookup node ktn of
       Nothing -> fail $ "Unknown node '" ++ node ++ "' for instance " ++ inst
       Just idx -> return idx
 
--- | Lookups an instance into an assoc list
+-- | Lookups an instance into an assoc list.
 lookupInstance :: (Monad m) => [(String, Idx)] -> String -> m Idx
 lookupInstance kti inst =
     case lookup inst kti of
       Nothing -> fail $ "Unknown instance '" ++ inst ++ "'"
       Just idx -> return idx
 
--- | Given a list of elements (and their names), assign indices to them
+-- | Given a list of elements (and their names), assign indices to them.
 assignIndices :: (Element a) =>
                  [(String, a)]
               -> (NameAssoc, [(Int, a)])
@@ -45,7 +45,7 @@ assignIndices =
     unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
           . zip [0..]
 
--- | For each instance, add its index to its primary and secondary nodes
+-- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: [(Ndx, Node.Node)]
          -> [(Idx, Instance.Instance)]
          -> [(Ndx, Node.Node)]
@@ -72,7 +72,7 @@ fixNodes nl il =
            ) nl il
 
 -- | Compute the longest common suffix of a list of strings that
--- | starts with a dot
+-- | starts with a dot.
 longestDomain :: [String] -> String
 longestDomain [] = ""
 longestDomain (x:xs) =
@@ -81,12 +81,12 @@ longestDomain (x:xs) =
                               else accu)
       "" $ filter (isPrefixOf ".") (tails x)
 
--- | Remove tail suffix from a string
+-- | Remove tail suffix from a string.
 stripSuffix :: Int -> String -> String
 stripSuffix sflen name = take ((length name) - sflen) name
 
-{-| Initializer function that loads the data from a node and list file
-    and massages it into the correct format. -}
+-- | Initializer function that loads the data from a node and instance
+-- list and massages it into the correct format.
 mergeData :: (Node.AssocList,
               Instance.AssocList) -- ^ Data from either Text.loadData
                                   -- or Rapi.loadData
@@ -105,7 +105,7 @@ mergeData (nl, il) = do
       sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il3
   return (snl, sil, common_suffix)
 
--- | Check cluster data for consistency
+-- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List
           -> ([String], Node.List)
 checkData nl il =
