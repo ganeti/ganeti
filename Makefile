@@ -1,4 +1,5 @@
-HPROGS = hbal hn1 hscan hail test
+HPROGS = hbal hn1 hscan hail
+HALLPROGS = $(HPROGS) test
 HSRCS := $(wildcard Ganeti/HTools/*.hs)
 HDDIR = apidoc
 
@@ -13,8 +14,10 @@ HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
 
 all: $(HPROGS)
 
-$(HPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
+$(HALLPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
 	ghc --make $(HFLAGS) $(HEXTRA) $@
+
+test: HEXTRA=-fhpc
 
 $(DOCS) : %.html : %
 	rst2html $< $@
@@ -38,7 +41,7 @@ maintainer-clean:
 	rm -f $(DOCS) TAGS version Ganeti/HTools/Version.hs
 
 clean:
-	rm -f $(HPROGS)
+	rm -f $(HALLPROGS)
 	rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 
@@ -58,9 +61,8 @@ dist: Ganeti/HTools/Version.hs version doc
 	gzip -v9 $$ANAME ; \
 	tar tzvf $$ANAME.gz
 
-check:
-	rm -f *.tix *.mix test
-	$(MAKE) HEXTRA=-fhpc test
+check: test
+	rm -f *.tix *.mix
 	./test
 ifeq ($(T),markup)
 	mkdir -p coverage
