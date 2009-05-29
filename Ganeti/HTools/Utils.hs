@@ -5,7 +5,6 @@ module Ganeti.HTools.Utils
       debug
     , sepSplit
     , varianceCoeff
-    , readData
     , commaJoin
     , readEitherString
     , loadJSArray
@@ -72,15 +71,6 @@ stdDev lst =
 -- | Coefficient of variation.
 varianceCoeff :: Floating a => [a] -> a
 varianceCoeff lst = (stdDev lst) / (fromIntegral $ length lst)
-
--- | Get an Ok result or print the error and exit.
-readData :: Result a -> IO a
-readData nd =
-    (case nd of
-       Bad x -> do
-         putStrLn x
-         exitWith $ ExitFailure 1
-       Ok x -> return x)
 
 -- * JSON-related functions
 

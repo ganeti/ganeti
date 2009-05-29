@@ -117,7 +117,7 @@ computeBadItems nl il =
     (bad_nodes, bad_instances)
 
 -- | Compute the total free disk and memory in the cluster.
-totalResources :: Container.Container Node.Node -> (Int, Int)
+totalResources :: Node.List -> (Int, Int)
 totalResources nl =
     foldl'
     (\ (mem, dsk) node -> (mem + (Node.f_mem node),
