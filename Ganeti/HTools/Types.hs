@@ -3,7 +3,12 @@
 -}
 
 module Ganeti.HTools.Types
-    where
+    ( Idx
+    , Ndx
+    , NameAssoc
+    , Result(..)
+    , Element(..)
+    ) where
 
 -- | The instance index type.
 type Idx = Int

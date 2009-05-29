@@ -3,11 +3,8 @@
 -}
 
 module Ganeti.HTools.IAlloc
-    (
-      parseData
+    ( parseData
     , formatResponse
-    , RqType(..)
-    , Request(..)
     ) where
 
 import Data.Either ()
@@ -21,17 +18,6 @@ import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
-
--- | The request type.
-data RqType
-    = Allocate Instance.Instance Int -- ^ A new instance allocation
-    | Relocate Idx Int [Ndx]         -- ^ Move an instance to a new
-                                     -- secondary node
-    deriving (Show)
-
--- | A complete request, as received from Ganeti.
-data Request = Request RqType Node.List Instance.List String
-    deriving (Show)
 
 -- | Parse the basic specifications of an instance.
 --

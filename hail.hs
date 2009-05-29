@@ -22,6 +22,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Types
+import Ganeti.HTools.Loader (RqType(..), Request(..))
 
 -- | Command line options structure.
 data Options = Options

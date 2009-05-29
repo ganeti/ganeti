@@ -11,6 +11,8 @@ module Ganeti.HTools.Loader
     , lookupNode
     , lookupInstance
     , stripSuffix
+    , RqType(..)
+    , Request(..)
     ) where
 
 import Data.List
@@ -22,6 +24,26 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.Types
+
+-- * Types
+
+{-| The request type.
+
+This type denotes what request we got from Ganeti and also holds
+request-specific fields.
+
+-}
+data RqType
+    = Allocate Instance.Instance Int -- ^ A new instance allocation
+    | Relocate Idx Int [Ndx]         -- ^ Move an instance to a new
+                                     -- secondary node
+    deriving (Show)
+
+-- | A complete request, as received from Ganeti.
+data Request = Request RqType Node.List Instance.List String
+    deriving (Show)
+
+-- * Functions
 
 -- | Lookups a node into an assoc list.
 lookupNode :: (Monad m) => [(String, Ndx)] -> String -> String -> m Ndx
