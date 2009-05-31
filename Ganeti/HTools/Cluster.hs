@@ -639,7 +639,7 @@ tryReloc nl il xid 1 ex_idx =
         valid_idxes = map Node.idx valid_nodes
         sols1 = map (\x -> let (mnl, _, _, _) =
                                     applyMove nl inst (ReplaceSecondary x)
-                            in (mnl, [Container.find x nl])
+                           in (mnl, [Container.find x nl])
                      ) valid_idxes
     in return sols1
 
