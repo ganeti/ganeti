@@ -52,60 +52,6 @@ options =
       "show help"
     ]
 
--- | Compute online nodes from a Node.List
-getOnline :: Node.List -> [Node.Node]
-getOnline = filter (not . Node.offline) . Container.elems
-
--- | Try to allocate an instance on the cluster
-tryAlloc :: (Monad m) =>
-            Node.List
-         -> Instance.List
-         -> Instance.Instance
-         -> Int
-         -> m [(Maybe Node.List, [Node.Node])]
-tryAlloc nl _ inst 2 =
-    let all_nodes = getOnline nl
-        all_pairs = liftM2 (,) all_nodes all_nodes
-        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
-        sols = map (\(p, s) ->
-                        (fst $ Cluster.allocateOnPair nl inst p s, [p, s]))
-               ok_pairs
-    in return sols
-
-tryAlloc nl _ inst 1 =
-    let all_nodes = getOnline nl
-        sols = map (\p -> (fst $ Cluster.allocateOnSingle nl inst p, [p]))
-               all_nodes
-    in return sols
-
-tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
-                             \destinations required (" ++ (show reqn) ++
-                                               "), only two supported"
-
--- | Try to allocate an instance on the cluster
-tryReloc :: (Monad m) =>
-            Node.List
-         -> Instance.List
-         -> Idx
-         -> Int
-         -> [Ndx]
-         -> m [(Maybe Node.List, [Node.Node])]
-tryReloc nl il xid 1 ex_idx =
-    let all_nodes = getOnline nl
-        inst = Container.find xid il
-        ex_idx' = (Instance.pnode inst):ex_idx
-        valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
-        valid_idxes = map Node.idx valid_nodes
-        sols1 = map (\x -> let (mnl, _, _, _) =
-                                    Cluster.applyMove nl inst
-                                               (Cluster.ReplaceSecondary x)
-                            in (mnl, [Container.find x nl])
-                     ) valid_idxes
-    in return sols1
-
-tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
-                                \destinations required (" ++ (show reqn) ++
-                                                  "), only one supported"
 
 filterFails :: (Monad m) => [(Maybe Node.List, [Node.Node])]
             -> m [(Node.List, [Node.Node])]
@@ -151,9 +97,9 @@ main = do
 
   let Request rqtype nl il csf = request
       new_nodes = case rqtype of
-                    Allocate xi reqn -> tryAlloc nl il xi reqn
+                    Allocate xi reqn -> Cluster.tryAlloc nl il xi reqn
                     Relocate idx reqn exnodes ->
-                        tryReloc nl il idx reqn exnodes
+                        Cluster.tryReloc nl il idx reqn exnodes
   let sols = new_nodes >>= filterFails >>= processResults
   let (ok, info, rn) = case sols of
                Ok (info, sn) -> (True, "Request successful: " ++ info,

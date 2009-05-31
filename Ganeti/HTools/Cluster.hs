@@ -33,6 +33,8 @@ module Ganeti.HTools.Cluster
     -- * IAllocator functions
     , allocateOnSingle
     , allocateOnPair
+    , tryAlloc
+    , tryReloc
     ) where
 
 import Data.List
@@ -109,7 +111,7 @@ those nodes.
 computeBadItems :: Node.List -> Instance.List ->
                    ([Node.Node], [Instance.Instance])
 computeBadItems nl il =
-  let bad_nodes = verifyN1 $ filter (not . Node.offline) $ Container.elems nl
+  let bad_nodes = verifyN1 $ getOnline nl
       bad_instances = map (\idx -> Container.find idx il) $
                       sort $ nub $ concat $
                       map (\ n -> (Node.slist n) ++ (Node.plist n)) bad_nodes
@@ -151,6 +153,10 @@ compCV :: Node.List -> Double
 compCV nl =
     let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
     in mem_cv + dsk_cv + n1_score + res_cv + off_score
+
+-- | Compute online nodes from a Node.List
+getOnline :: Node.List -> [Node.Node]
+getOnline = filter (not . Node.offline) . Container.elems
 
 -- * hn1 functions
 
@@ -589,6 +595,57 @@ checkMove nodes_idx ini_tbl victims =
       else
           best_tbl
 
+-- * Alocation functions
+
+-- | Try to allocate an instance on the cluster.
+tryAlloc :: (Monad m) =>
+            Node.List         -- ^ The node list
+         -> Instance.List     -- ^ The instance list
+         -> Instance.Instance -- ^ The instance to allocate
+         -> Int               -- ^ Required number of nodes
+         -> m [(Maybe Node.List, [Node.Node])] -- ^ Possible solution list
+tryAlloc nl _ inst 2 =
+    let all_nodes = getOnline nl
+        all_pairs = liftM2 (,) all_nodes all_nodes
+        ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
+        sols = map (\(p, s) ->
+                        (fst $ allocateOnPair nl inst p s, [p, s]))
+               ok_pairs
+    in return sols
+
+tryAlloc nl _ inst 1 =
+    let all_nodes = getOnline nl
+        sols = map (\p -> (fst $ allocateOnSingle nl inst p, [p]))
+               all_nodes
+    in return sols
+
+tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
+                             \destinations required (" ++ (show reqn) ++
+                                               "), only two supported"
+
+-- | Try to allocate an instance on the cluster.
+tryReloc :: (Monad m) =>
+            Node.List     -- ^ The node list
+         -> Instance.List -- ^ The instance list
+         -> Idx           -- ^ The index of the instance to move
+         -> Int           -- ^ The numver of nodes required
+         -> [Ndx]         -- ^ Nodes which should not be used
+         -> m [(Maybe Node.List, [Node.Node])] -- ^ Solution list
+tryReloc nl il xid 1 ex_idx =
+    let all_nodes = getOnline nl
+        inst = Container.find xid il
+        ex_idx' = (Instance.pnode inst):ex_idx
+        valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
+        valid_idxes = map Node.idx valid_nodes
+        sols1 = map (\x -> let (mnl, _, _, _) =
+                                    applyMove nl inst (ReplaceSecondary x)
+                            in (mnl, [Container.find x nl])
+                     ) valid_idxes
+    in return sols1
+
+tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
+                                \destinations required (" ++ (show reqn) ++
+                                                  "), only one supported"
 
 -- * Formatting functions
 
