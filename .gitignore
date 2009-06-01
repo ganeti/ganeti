@@ -17,6 +17,7 @@ hn1
 hbal
 hscan
 hail
+hspace
 test
 *.prof*
 *.stat
