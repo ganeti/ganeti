@@ -290,7 +290,7 @@ Collect data not from files but directly from the
 given as an argument via RAPI. If the argument doesn't contain a colon
 (:), then it is converted into a fully-built URL via prepending
 https:// and appending the default RAPI port, otherwise it's
-considered a fully-specified URL and is used unchanged.
+considered a fully-specified URL and is used as-is.
 
 .TP
 .BI "-l" N ", --max-length=" N
@@ -331,9 +331,6 @@ The program does not check its input data for consistency, and aborts
 with cryptic errors messages in this case.
 
 The algorithm is not perfect.
-
-The algorithm doesn't deal with non-\fBdrbd\fR instances, and chokes
-on input data which has such instances.
 
 The output format is not easily scriptable, and the program should
 feed moves directly into Ganeti (either via RAPI or via a gnt-debug

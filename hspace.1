@@ -1,0 +1,235 @@
+.TH HSPACE 1 2009-06-01 htools "Ganeti H-tools"
+.SH NAME
+hspace \- Cluster space analyzer for Ganeti
+
+.SH SYNOPSIS
+.B hspace
+.B "[-p]"
+.B "[-v... | -q]"
+.BI "[-O" name... "]"
+.BI "[-m " cluster "]"
+.BI "[-n " nodes-file " ]"
+.BI "[-i " instances-file "]"
+.BI "[--memory " mem "]"
+.BI "[--disk " disk "]"
+.BI "[--req-nodes " req-nodes "]"
+
+.B hspace
+.B --version
+
+.SH DESCRIPTION
+hspace computes how many additional instances can be fit on a cluster,
+while maintaining N+1 status.
+
+The program will try to place instances, all of the same size, on the
+cluster, until the point where we don't have any N+1 possible
+allocation. It uses the exact same allocation algorithm as the hail
+iallocator plugin.
+
+With default options, the output of the program is designed to be
+parseable; when the -p option is passed, this is no longer true.
+
+.SH OPTIONS
+The options that can be passed to the program are as follows:
+
+.TP
+.BI "--memory " mem
+The memory size of the instances to be placed (defaults to 4GiB).
+
+.TP
+.BI "--disk " disk
+The disk size of the instances to be placed (defaults to 100GiB).
+
+.TP
+.BI "--req-nodes " num-nodes
+The number of nodes for the instances; the default of two means
+mirrored instances, while passing one means plain type instances.
+
+.TP
+.B -p, --print-nodes
+Prints the before and after node status, in a format designed to allow
+the user to understand the node's most important parameters.
+
+The node list will contain these informations:
+.RS
+.TP
+.B F
+a character denoting the status of the node, with '-' meaning an
+offline node, '*' meaning N+1 failure and blank meaning a good node
+.TP
+.B Name
+the node name
+.TP
+.B t_mem
+the total node memory
+.TP
+.B n_mem
+the memory used by the node itself
+.TP
+.B i_mem
+the memory used by instances
+.TP
+.B x_mem
+amount memory which seems to be in use but cannot be determined why or
+by which instance; usually this means that the hypervisor has some
+overhead or that there are other reporting errors
+.TP
+.B f_mem
+the free node memory
+.TP
+.B r_mem
+the reserved node memory, which is the amount of free memory needed
+for N+1 compliance
+.TP
+.B t_dsk
+total disk
+.TP
+.B f_dsk
+free disk
+.TP
+.B pri
+number of primary instances
+.TP
+.B sec
+number of secondary instances
+.TP
+.B p_fmem
+percent of free memory
+.TP
+.B p_fdsk
+percent of free disk
+.RE
+
+.TP
+.BI "-O " name
+This option (which can be given multiple times) will mark nodes as
+being \fIoffline\fR, and instances won't be placed on these nodes.
+
+Note that hspace will also mark as offline any nodes which are
+reported by RAPI as such, or that have "?" in file-based input in any
+numeric fields.
+.RE
+
+.TP
+.BI "-n" nodefile ", --nodes=" nodefile
+The name of the file holding node information (if not collecting via
+RAPI), instead of the default \fInodes\fR file (but see below how to
+customize the default value via the environment).
+
+.TP
+.BI "-i" instancefile ", --instances=" instancefile
+The name of the file holding instance information (if not collecting
+via RAPI), instead of the default \fIinstances\fR file (but see below
+how to customize the default value via the environment).
+
+.TP
+.BI "-m" cluster
+Collect data not from files but directly from the
+.I cluster
+given as an argument via RAPI. If the argument doesn't contain a colon
+(:), then it is converted into a fully-built URL via prepending
+https:// and appending the default RAPI port, otherwise it's
+considered a fully-specified URL and is used as-is.
+
+.TP
+.B -v, --verbose
+Increase the output verbosity. Each usage of this option will increase
+the verbosity (currently more than 2 doesn't make sense) from the
+default of one. At verbosity 2 the location of the new instances is
+shown in program output.
+
+.TP
+.B -q, --quiet
+Decrease the output verbosity. Each usage of this option will decrease
+the verbosity (less than zero doesn't make sense) from the default of
+one.
+
+.TP
+.B -V, --version
+Just show the program version and exit.
+
+.SH EXIT STATUS
+
+The exist status of the command will be zero, unless for some reason
+the algorithm fatally failed (e.g. wrong node or instance data).
+
+.SH BUGS
+
+The algorithm is highly dependent on the number of nodes; its runtime
+grows exponentially with this number, and as such is impractical for
+really big clusters.
+
+The algorithm doesn't rebalance the cluster or try to get the optimal
+fit; it just allocates in the best place for the current step, without
+taking into consideration the impact on future placements.
+
+.SH EXAMPLE
+
+.SS Default output
+
+.in +4n
+.nf
+.RB "$" " hspace --mem 16 --disk 16 --req-nodes 2"
+Initial score: 0.38988095
+Initial instances: 3
+Initial free RAM: 546
+Initial free disk: 260600
+Final score: 0.32638889
+Final instances: 7
+Final free RAM: 482
+Final free disk: 260472
+Usage: 0.43
+Allocations: 4
+.fi
+.in
+
+This shows that (on this fake cluster), starting from 3 initial
+instances, using the hail iallocator plugin, it would be possible to
+add four (Allocations: 4) new instances to the cluster.
+
+.SS Verbose output
+
+For the same cluster as above:
+.in +4n
+.nf
+.RB "$" " hspace --mem 16 --disk 16 --req-nodes 2 -v"
+Initial score: 0.38988095
+Initial instances: 3
+Initial free RAM: 546
+Initial free disk: 260600
+Final score: 0.32638889
+Final instances: 7
+Final free RAM: 482
+Final free disk: 260472
+Usage: 0.43
+Allocations: 4
+Inst: new-0 node2 node1
+Inst: new-1 node2 node1
+Inst: new-2 node2 node1
+Inst: new-3 node2 node1
+.fi
+.in
+
+The output now includes the placement for the new instances (named
+\fBnew-\fInumber\fR).
+
+.SH ENVIRONMENT
+
+If the variables \fBHTOOLS_NODES\fR and \fBHTOOLS_INSTANCES\fR are
+present in the environment, they will override the default names for
+the nodes and instances files. These will have of course no effect
+when RAPI is used.
+
+.SH SEE ALSO
+.BR hbal "(1), " hscan "(1), " ganeti "(7), " gnt-instance "(8), "
+.BR gnt-node "(8)"
+
+.SH "COPYRIGHT"
+.PP
+Copyright (C) 2009 Google Inc. Permission is granted to copy,
+distribute and/or modify under the terms of the GNU General Public
+License as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+.PP
+On Debian systems, the complete text of the GNU General Public License
+can be found in /usr/share/common-licenses/GPL.
