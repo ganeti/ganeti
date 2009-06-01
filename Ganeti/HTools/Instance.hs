@@ -83,9 +83,9 @@ create name_init mem_init dsk_init run_init pn sn =
 -- | Changes the index.
 --
 -- This is used only during the building of the data structures.
-setIdx :: Instance  -- ^ the original instance
-        -> T.Idx    -- ^ new index
-        -> Instance -- ^ the modified instance
+setIdx :: Instance -- ^ The original instance
+       -> T.Idx    -- ^ New index
+       -> Instance -- ^ The modified instance
 setIdx t i = t { idx = i }
 
 -- | Changes the name.
@@ -93,7 +93,7 @@ setIdx t i = t { idx = i }
 -- This is used only during the building of the data structures.
 setName :: Instance -- ^ The original instance
         -> String   -- ^ New name
-        -> Instance
+        -> Instance -- ^ The modified instance
 setName t s = t { name = s }
 
 -- * Update functions
