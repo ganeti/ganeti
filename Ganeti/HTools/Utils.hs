@@ -25,6 +25,7 @@ module Ganeti.HTools.Utils
     (
       debug
     , sepSplit
+    , fst3
     , varianceCoeff
     , commaJoin
     , readEitherString
@@ -71,6 +72,10 @@ sepSplit sep s
 -- | Partial application of sepSplit to @'.'@
 commaSplit :: String -> [String]
 commaSplit = sepSplit ','
+
+-- | Simple version of 'fst' for a triple
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
 
 -- * Mathematical functions
 
