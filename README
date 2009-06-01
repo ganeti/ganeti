@@ -8,6 +8,13 @@ Note that these tools are most useful for bigger cluster sizes
 (e.g. more than five or ten machines); at lower sizes, the
 computations they do can also be done manually.
 
+Most of the tools revolve around the concept of keeping the cluster
+N+1 compliant: this means that in case of failure of any node, the
+instances affected can be failed over (via ``gnt-node failover`` or
+``gnt-instance failover``) to their secondary node, and there is
+enough memory reserved for this operation without needing to shutdown
+other instances or rebalance the cluster.
+
 Available tools
 ---------------
 
@@ -41,6 +48,15 @@ and non-mirrored instances and for relocations of mirrored
 instances. It needs to be installed in Ganeti's iallocator search
 path—usually ``/usr/lib/ganeti/iallocators`` or
 ``/usr/local/lib/ganeti/iallocators``. See the man page hail(1).
+
+Cluster capacity estimator
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``hspace`` program will, given an input instance specification,
+estimate how many instances of those type can be place on the cluster
+before it will become full (as in any new allocation would fail N+1
+checks). For more details, see the man page hspace(1).
+
 
 Integration with Ganeti
 -----------------------
