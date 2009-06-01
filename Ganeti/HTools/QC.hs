@@ -1,4 +1,4 @@
-{-| Unittests for htools
+{-| Unittests for ganeti-htools
 
 -}
 

@@ -1,4 +1,4 @@
-{-| Unittest runner for htools
+{-| Unittest runner for ganeti-htools
 
 -}
 

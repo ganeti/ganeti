@@ -1,6 +1,6 @@
-/apidoc/
-/.hpc/
-/coverage/
+/apidoc
+/.hpc
+/coverage
 
 *.o
 *.patch
@@ -25,5 +25,5 @@ test
 version
 Version.hs
 
-htools-*.tar.gz
-htools-*.tar.gz.asc
+*.tar.gz
+*.tar.gz.asc

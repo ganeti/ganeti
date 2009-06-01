@@ -31,7 +31,7 @@ doc: $(DOCS) Ganeti/HTools/Version.hs
 		$$file > $(HDDIR)/Ganeti/HTools/`basename $$file .hs`.html ; \
 	done
 	haddock --odir $(HDDIR) --html --ignore-all-exports \
-		-t htools -p haddock-prologue \
+		-t ganeti-htools -p haddock-prologue \
 		--source-module="%{MODULE/.//}.html" \
 		--source-entity="%{MODULE/.//}.html#%{NAME}" \
 		$(HSRCS)
@@ -53,11 +53,12 @@ Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
 
 dist: Ganeti/HTools/Version.hs version doc
 	VN=$$(cat version|sed 's/^v//') ; \
-	ANAME="htools-$$VN.tar" ; \
+	PFX="ganeti-htools-$$VN" ; \
+	ANAME="$$PFX.tar" ; \
 	rm -f $$ANAME $$ANAME.gz ; \
-	git archive --format=tar --prefix=htools-$$VN/ HEAD > $$ANAME ; \
+	git archive --format=tar --prefix=$$PFX/ HEAD > $$ANAME ; \
 	tar -r -f $$ANAME --owner root --group root \
-	    --transform="s,^,htools-$$VN/," version apidoc $(DOCS) ; \
+	    --transform="s,^,$$PFX/," version apidoc $(DOCS) ; \
 	gzip -v9 $$ANAME ; \
 	tar tzvf $$ANAME.gz
 
