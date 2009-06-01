@@ -194,10 +194,15 @@ main = do
       offline_indices = map Node.idx $
                         filter (\n -> elem (Node.name n) offline_names)
                                all_nodes
+      req_nodes = optINodes opts
 
   when (length offline_wrong > 0) $ do
          printf "Error: Wrong node name(s) set as offline: %s\n"
                 (commaJoin offline_wrong)
+         exitWith $ ExitFailure 1
+
+  when (req_nodes /= 1 && req_nodes /= 2) $ do
+         printf "Error: Invalid required nodes (%d)\n" req_nodes
          exitWith $ ExitFailure 1
 
   let nl = Container.map (\n -> if elem (Node.idx n) offline_indices
@@ -233,8 +238,7 @@ main = do
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
                 "ADMIN_down" (-1) (-1)
 
-  let (fin_nl, ixes) =
-          iterateDepth nl il newinst (optINodes opts) []
+  let (fin_nl, ixes) = iterateDepth nl il newinst req_nodes []
       allocs = length ixes
       fin_instances = num_instances + allocs
       fin_ixes = reverse ixes
@@ -245,14 +249,16 @@ main = do
   printf "Final instances: %d\n" (num_instances + allocs)
   printf "Final free RAM: %d\n" final_mem
   printf "Final free disk: %d\n" final_disk
-  printf "Usage: %.2f\n" (((fromIntegral num_instances)::Double) /
+  printf "Usage: %.5f\n" (((fromIntegral num_instances)::Double) /
                           (fromIntegral fin_instances))
   printf "Allocations: %d\n" allocs
   when (verbose > 1) $ do
          putStr . unlines . map (\i -> printf "Inst: %*s %-*s %-*s"
                      ix_namelen (Instance.name i)
                      nmlen (Container.nameOf fin_nl $ Instance.pnode i)
-                     nmlen (Container.nameOf fin_nl $ Instance.snode i))
+                     nmlen (let sdx = Instance.snode i
+                            in if sdx == Node.noSecondary then ""
+                               else Container.nameOf fin_nl sdx))
          $ fin_ixes
 
   when (optShowNodes opts) $
