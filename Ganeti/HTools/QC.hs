@@ -1,7 +1,12 @@
 module Ganeti.HTools.QC
-    where
+    ( test_PeerMap
+    , test_Container
+    , test_Instance
+    , test_Node
+    ) where
 
 import Test.QuickCheck
+import Test.QuickCheck.Batch
 import Data.Maybe
 import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -81,6 +86,14 @@ prop_PeerMap_maxElem pmap =
     where _types = pmap::PeerMap.PeerMap
           puniq = PeerMap.accumArray const pmap
 
+test_PeerMap =
+    [ run prop_PeerMap_addIdempotent
+    , run prop_PeerMap_removeIdempotent
+    , run prop_PeerMap_maxElem
+    , run prop_PeerMap_addFind
+    , run prop_PeerMap_findMissing
+    ]
+
 -- Container tests
 
 prop_Container_addTwo cdata i1 i2 =
@@ -91,6 +104,8 @@ prop_Container_addTwo cdata i1 i2 =
           cont = foldl (\c x -> Container.add x x c) Container.empty cdata
           fn x1 x2 = Container.addTwo x1 x1 x2 x2
 
+test_Container =
+    [ run prop_Container_addTwo ]
 
 -- Simple instance tests, we only have setter/getters
 
@@ -115,6 +130,16 @@ prop_Instance_setBoth inst pdx sdx =
     where _types = (inst::Instance.Instance, pdx::Types.Ndx, sdx::Types.Ndx)
           si = Instance.setBoth inst pdx sdx
 
+test_Instance =
+    [ run prop_Instance_setIdx
+    , run prop_Instance_setName
+    , run prop_Instance_setPri
+    , run prop_Instance_setSec
+    , run prop_Instance_setBoth
+    ]
+
+-- Node tests
+
 -- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
                               Instance.dsk inst >= Node.f_dsk node) &&
@@ -131,3 +156,8 @@ prop_Node_addSec node inst pdx =
     (not $ Node.failN1 node)
     ==> isNothing(Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
+
+test_Node =
+    [ run prop_Node_addPri
+    , run prop_Node_addSec
+    ]

@@ -13,26 +13,7 @@ options = TestOptions
       , debug_tests         = False }
 
 main = do
-  runTests "PeerMap" options
-       [ run prop_PeerMap_addIdempotent
-       , run prop_PeerMap_removeIdempotent
-       , run prop_PeerMap_maxElem
-       , run prop_PeerMap_addFind
-       , run prop_PeerMap_findMissing
-       ]
-
-  runTests "Container" options
-       [ run prop_Container_addTwo ]
-
-  runTests "Instance" options
-       [ run prop_Instance_setIdx
-       , run prop_Instance_setName
-       , run prop_Instance_setPri
-       , run prop_Instance_setSec
-       , run prop_Instance_setBoth
-       ]
-
-  runTests "Node" options
-       [ run prop_Node_addPri
-       , run prop_Node_addSec
-       ]
+  runTests "PeerMap" options test_PeerMap
+  runTests "Container" options test_Container
+  runTests "Instance" options test_Instance
+  runTests "Node" options test_Node
