@@ -624,19 +624,21 @@ tryAlloc :: (Monad m) =>
          -> Instance.List     -- ^ The instance list
          -> Instance.Instance -- ^ The instance to allocate
          -> Int               -- ^ Required number of nodes
-         -> m [(Maybe Node.List, [Node.Node])] -- ^ Possible solution list
+         -> m [(Maybe Node.List, Instance.Instance, [Node.Node])]
+                              -- ^ Possible solution list
 tryAlloc nl _ inst 2 =
     let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
-        sols = map (\(p, s) ->
-                        (fst $ allocateOnPair nl inst p s, [p, s]))
+        sols = map (\(p, s) -> let (mnl, i) = allocateOnPair nl inst p s
+                               in (mnl, i, [p, s]))
                ok_pairs
     in return sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
-        sols = map (\p -> (fst $ allocateOnSingle nl inst p, [p]))
+        sols = map (\p -> let (mnl, i) = allocateOnSingle nl inst p
+                          in (mnl, i, [p]))
                all_nodes
     in return sols
 
@@ -651,16 +653,17 @@ tryReloc :: (Monad m) =>
          -> Idx           -- ^ The index of the instance to move
          -> Int           -- ^ The numver of nodes required
          -> [Ndx]         -- ^ Nodes which should not be used
-         -> m [(Maybe Node.List, [Node.Node])] -- ^ Solution list
+         -> m [(Maybe Node.List, Instance.Instance, [Node.Node])]
+                          -- ^ Solution list
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = getOnline nl
         inst = Container.find xid il
         ex_idx' = (Instance.pnode inst):ex_idx
         valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
-        sols1 = map (\x -> let (mnl, _, _, _) =
-                                    applyMove nl inst (ReplaceSecondary x)
-                           in (mnl, [Container.find x nl])
+        sols1 = map (\x -> let (mnl, i, _, _) =
+                                   applyMove nl inst (ReplaceSecondary x)
+                           in (mnl, i, [Container.find x nl])
                      ) valid_idxes
     in return sols1
 

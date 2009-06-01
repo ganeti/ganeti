@@ -132,20 +132,20 @@ options =
       "show help"
     ]
 
-filterFails :: (Monad m) => [(Maybe Node.List, [Node.Node])]
-            -> m [(Node.List, [Node.Node])]
+filterFails :: (Monad m) => [(Maybe Node.List, Instance.Instance, [Node.Node])]
+            -> m [(Node.List, Instance.Instance, [Node.Node])]
 filterFails sols =
     if null sols then fail "No nodes onto which to allocate at all"
-    else let sols' = filter (isJust . fst) sols
+    else let sols' = filter (isJust . fst3) sols
          in if null sols' then
                 fail "No valid allocation solutions"
             else
-                return $ map (\(x, y) -> (fromJust x, y)) sols'
+                return $ map (\(x, y, z) -> (fromJust x, y, z)) sols'
 
-processResults :: (Monad m) => [(Node.List, [Node.Node])]
-               -> m (Node.List, [Node.Node])
+processResults :: (Monad m) => [(Node.List, Instance.Instance, [Node.Node])]
+               -> m (Node.List, Instance.Instance, [Node.Node])
 processResults sols =
-    let sols' = map (\(nl', ns) -> (Cluster.compCV  nl', (nl', ns))) sols
+    let sols' = map (\e@(nl', _, _) -> (Cluster.compCV  nl', e)) sols
         sols'' = sortBy (compare `on` fst) sols'
     in return $ snd $ head sols''
 
@@ -153,21 +153,23 @@ iterateDepth :: Node.List
              -> Instance.List
              -> Instance.Instance
              -> Int
-             -> Int
-             -> (Node.List, Int)
-iterateDepth nl il newinst nreq depth =
-      let newname = printf "new-%d" depth
+             -> [Instance.Instance]
+             -> (Node.List, [Instance.Instance])
+iterateDepth nl il newinst nreq ixes =
+      let depth = length ixes
+          newname = printf "new-%d" depth
           newidx = (length $ Container.elems il) + depth
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
           sols = Cluster.tryAlloc nl il newi2 nreq
-          orig = (nl, depth)
+          orig = (nl, ixes)
       in
         if isNothing sols then orig
         else let sols' = fromJust sols
                  sols'' = filterFails sols'
              in if isNothing sols'' then orig
-                else let (xnl, _) = fromJust $ processResults $ fromJust sols''
-                     in iterateDepth xnl il newinst nreq (depth+1)
+                else let (xnl, xi, _) = fromJust $ processResults $
+                                        fromJust sols''
+                     in iterateDepth xnl il newinst nreq (xi:ixes)
 
 
 -- | Main function.
@@ -183,6 +185,7 @@ main = do
   let verbose = optVerbose opts
 
   (fixed_nl, il, csf) <- CLI.loadExternalData opts
+  let num_instances = length $ Container.elems il
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
@@ -193,7 +196,7 @@ main = do
                                all_nodes
 
   when (length offline_wrong > 0) $ do
-         printf "Wrong node name(s) set as offline: %s\n"
+         printf "Error: Wrong node name(s) set as offline: %s\n"
                 (commaJoin offline_wrong)
          exitWith $ ExitFailure 1
 
@@ -206,7 +209,7 @@ main = do
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
   when (length bad_nodes > 0) $ do
-         putStrLn "Cluster not N+1, no space to allocate."
+         putStrLn "Error: Cluster not N+1, no space to allocate."
          exitWith $ ExitFailure 1
 
   when (optShowNodes opts) $
@@ -215,22 +218,42 @@ main = do
          putStrLn $ Cluster.printNodes nl
 
   let ini_cv = Cluster.compCV nl
+      (orig_mem, orig_disk) = Cluster.totalResources nl
 
   (if verbose > 2 then
        printf "Initial coefficients: overall %.8f, %s\n"
        ini_cv (Cluster.printStats nl)
    else
        printf "Initial score: %.8f\n" ini_cv)
+  printf "Initial instances: %d\n" num_instances
+  printf "Initial free RAM: %d\n" orig_mem
+  printf "Initial free disk: %d\n" orig_disk
 
-  let imlen = Container.maxNameLen il
-      nmlen = Container.maxNameLen nl
+  let nmlen = Container.maxNameLen nl
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
                 "ADMIN_down" (-1) (-1)
 
-  let (fin_nl, fin_depth) = iterateDepth nl il newinst (optINodes opts) 0
+  let (fin_nl, ixes) =
+          iterateDepth nl il newinst (optINodes opts) []
+      allocs = length ixes
+      fin_instances = num_instances + allocs
+      fin_ixes = reverse ixes
+      ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
+      (final_mem, final_disk) = Cluster.totalResources fin_nl
 
-  unless (verbose == 0) $
-         printf "Solution length=%d\n" fin_depth
+  printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
+  printf "Final instances: %d\n" (num_instances + allocs)
+  printf "Final free RAM: %d\n" final_mem
+  printf "Final free disk: %d\n" final_disk
+  printf "Usage: %.2f\n" (((fromIntegral num_instances)::Double) /
+                          (fromIntegral fin_instances))
+  printf "Allocations: %d\n" allocs
+  when (verbose > 1) $ do
+         putStr . unlines . map (\i -> printf "Inst: %*s %-*s %-*s"
+                     ix_namelen (Instance.name i)
+                     nmlen (Container.nameOf fin_nl $ Instance.pnode i)
+                     nmlen (Container.nameOf fin_nl $ Instance.snode i))
+         $ fin_ixes
 
   when (optShowNodes opts) $
        do

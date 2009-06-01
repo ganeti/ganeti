@@ -44,6 +44,7 @@ import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader (RqType(..), Request(..))
+import Ganeti.HTools.Utils
 
 -- | Command line options structure.
 data Options = Options
@@ -74,15 +75,15 @@ options =
     ]
 
 
-filterFails :: (Monad m) => [(Maybe Node.List, [Node.Node])]
+filterFails :: (Monad m) => [(Maybe Node.List, Instance.Instance, [Node.Node])]
             -> m [(Node.List, [Node.Node])]
 filterFails sols =
     if null sols then fail "No nodes onto which to allocate at all"
-    else let sols' = filter (isJust . fst) sols
+    else let sols' = filter (isJust . fst3) sols
          in if null sols' then
                 fail "No valid allocation solutions"
             else
-                return $ map (\(x, y) -> (fromJust x, y)) sols'
+                return $ map (\(x, _, y) -> (fromJust x, y)) sols'
 
 processResults :: (Monad m) => [(Node.List, [Node.Node])]
                -> m (String, [Node.Node])
