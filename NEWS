@@ -1,3 +1,9 @@
+Version 0.1.2 (Tue, 02 Jun 2009):
+  - Add a new program, “hspace”, which computes the free space on a
+    cluster (based on a given instance spec)
+  - Improvements in API docs and partially in the user docs
+  - Started adding unittests
+
 Version 0.1.1 (Tue, 26 May 2009):
   - Add a new program, “hail”, which is an iallocator plugin and can
     allocate/relocate instances
