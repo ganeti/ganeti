@@ -1032,12 +1032,15 @@ class DRBD8(BaseDRBD):
     return retval
 
   @classmethod
-  def _AssembleLocal(cls, minor, backend, meta):
+  def _AssembleLocal(cls, minor, backend, meta, size):
     """Configure the local part of a DRBD device.
 
     """
     args = ["drbdsetup", cls._DevPath(minor), "disk",
-            backend, meta, "0", "-e", "detach", "--create-device"]
+            backend, meta, "0",
+            "-d", "%sm" % size,
+            "-e", "detach",
+            "--create-device"]
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
@@ -1114,7 +1117,7 @@ class DRBD8(BaseDRBD):
     self._CheckMetaSize(meta.dev_path)
     self._InitMeta(self._FindUnusedMinor(), meta.dev_path)
 
-    self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path)
+    self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path, self.size)
     self._children = devices
 
   def RemoveChildren(self, devices):
@@ -1397,7 +1400,7 @@ class DRBD8(BaseDRBD):
       if match_r and "local_dev" not in info:
         # no local disk, but network attached and it matches
         self._AssembleLocal(minor, self._children[0].dev_path,
-                            self._children[1].dev_path)
+                            self._children[1].dev_path, self.size)
         if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
           break
         else:
@@ -1448,7 +1451,7 @@ class DRBD8(BaseDRBD):
     minor = self._aminor
     if self._children and self._children[0] and self._children[1]:
       self._AssembleLocal(minor, self._children[0].dev_path,
-                          self._children[1].dev_path)
+                          self._children[1].dev_path, self.size)
     if self._lhost and self._lport and self._rhost and self._rport:
       self._AssembleNet(minor,
                         (self._lhost, self._lport, self._rhost, self._rport),
