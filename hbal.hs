@@ -72,7 +72,7 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [[String]]       -- ^ Current command list
-             -> Bool             -- ^ Wheter to be silent
+             -> Bool             -- ^ Whether to be silent
              -> Cluster.Score    -- ^ Score at which to stop
              -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
                                                -- commands
