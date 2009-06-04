@@ -467,8 +467,12 @@ applyMove nl inst (ReplacePrimary new_pdx) =
         int_p = Node.removePri old_p inst
         int_s = Node.removeSec old_s inst
         new_nl = do -- Maybe monad
+          -- check that the current secondary can host the instance
+          -- during the migration
+          tmp_s <- Node.addPri int_s inst
+          let tmp_s' = Node.removePri tmp_s inst
           new_p <- Node.addPri tgt_n inst
-          new_s <- Node.addSec int_s inst new_pdx
+          new_s <- Node.addSec tmp_s' inst new_pdx
           return $ Container.add new_pdx new_p $
                  Container.addTwo old_pdx int_p old_sdx new_s nl
     in (new_nl, Instance.setPri inst new_pdx, new_pdx, old_sdx)
