@@ -153,6 +153,39 @@ The parameters will be kept, as for the BEPARAMS into a "default" category,
 which will allow us to expand on by creating instance "classes" in the future.
 Instance classes is not a feature we plan implementing in 2.1, though.
 
+Non bridged instances support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently each instance NIC must be connected to a bridge, and if the bridge is
+not specified the default cluster one is used. This makes it impossible to use
+the vif-route xen network scripts, or other alternative mechanisms that don't
+need a bridge to work.
+
+Proposed changes
+++++++++++++++++
+
+The new "mode" network parameter will distinguish between bridged interfaces
+and routed ones.
+
+When mode is "bridge" the "link" parameter will contain the bridge the instance
+should be connected to, effectively making things as today. The value has been
+migrated from a nic field to a parameter to allow for an easier manipulation of
+the cluster default.
+
+When mode is "route" the ip field of the interface will become mandatory, to
+allow for a route to be set. In the future we may want also to accept multiple
+IPs or IP/mask values for this purpose. We will evaluate possible meanings of
+the link parameter to signify a routing table to be used, which would allow for
+insulation between instance groups (as today happens for different bridges).
+
+For now we won't add a parameter to specify which network script gets called
+for which instance, so in a mixed cluster the network script must be able to
+handle both cases. The default kvm vif script will be changed to do so. (Xen
+doesn't have a ganeti provided script, so nothing will be done for that
+hypervisor)
 
 External interface changes
 --------------------------
