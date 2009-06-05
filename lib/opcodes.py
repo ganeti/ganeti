@@ -262,6 +262,7 @@ class OpSetClusterParams(OpCode):
     "enabled_hypervisors",
     "hvparams",
     "beparams",
+    "nicparams",
     "candidate_pool_size",
     ]
 

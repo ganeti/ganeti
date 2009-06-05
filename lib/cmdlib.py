@@ -1486,11 +1486,17 @@ class LUSetClusterParams(LogicalUnit):
                                      (node, vgstatus))
 
     self.cluster = cluster = self.cfg.GetClusterInfo()
-    # validate beparams changes
+    # validate params changes
     if self.op.beparams:
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
       self.new_beparams = objects.FillDict(
         cluster.beparams[constants.PP_DEFAULT], self.op.beparams)
+
+    if self.op.nicparams:
+      utils.ForceDictType(self.op.nicparams, constants.NICS_PARAMETER_TYPES)
+      self.new_nicparams = objects.FillDict(
+        cluster.nicparams[constants.PP_DEFAULT], self.op.nicparams)
+      objects.NIC.CheckParameterSyntax(self.new_nicparams)
 
     # hypervisor list/parameters
     self.new_hvparams = objects.FillDict(cluster.hvparams, {})
@@ -1539,6 +1545,9 @@ class LUSetClusterParams(LogicalUnit):
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
     if self.op.beparams:
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
+    if self.op.nicparams:
+      self.cluster.nicparams[constants.PP_DEFAULT] = self.new_nicparams
+
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
 

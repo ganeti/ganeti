@@ -457,7 +457,8 @@ def SetClusterParams(opts, args):
   """
   if not (not opts.lvm_storage or opts.vg_name or
           opts.enabled_hypervisors or opts.hvparams or
-          opts.beparams or opts.candidate_pool_size is not None):
+          opts.beparams or opts.nicparams or
+          opts.candidate_pool_size is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -480,10 +481,14 @@ def SetClusterParams(opts, args):
   beparams = opts.beparams
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
 
+  nicparams = opts.nicparams
+  utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
+
   op = opcodes.OpSetClusterParams(vg_name=vg_name,
                                   enabled_hypervisors=hvlist,
                                   hvparams=hvparams,
                                   beparams=beparams,
+                                  nicparams=nicparams,
                                   candidate_pool_size=opts.candidate_pool_size)
   SubmitOpCode(op)
   return 0
@@ -667,6 +672,9 @@ commands = {
               keyval_option("-B", "--backend-parameters", dest="beparams",
                             type="keyval", default={},
                             help="Backend parameters"),
+              keyval_option("-N", "--nic-parameters", dest="nicparams",
+                            type="keyval", default={},
+                            help="NIC parameters"),
               make_option("-C", "--candidate-pool-size", default=None,
                           help="Set the candidate pool size",
                           dest="candidate_pool_size", type="int"),
