@@ -34,6 +34,7 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import bootstrap
 from ganeti import ssh
+from ganeti import objects
 
 
 @UsesRPC
@@ -70,27 +71,17 @@ def InitCluster(opts, args):
     return 1
 
   hvparams = dict(opts.hvparams)
-
   beparams = opts.beparams
-  # check for invalid parameters
-  for parameter in beparams:
-    if parameter not in constants.BES_PARAMETERS:
-      ToStderr("Invalid backend parameter: %s", parameter)
-      return 1
 
   # prepare beparams dict
-  for parameter in constants.BES_PARAMETERS:
-    if parameter not in beparams:
-      beparams[parameter] = constants.BEC_DEFAULTS[parameter]
+  beparams = objects.FillDict(constants.BEC_DEFAULTS, beparams)
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
 
   # prepare hvparams dict
   for hv in constants.HYPER_TYPES:
     if hv not in hvparams:
       hvparams[hv] = {}
-    for parameter in constants.HVC_DEFAULTS[hv]:
-      if parameter not in hvparams[hv]:
-        hvparams[hv][parameter] = constants.HVC_DEFAULTS[hv][parameter]
+    hvparams[hv] = objects.FillDict(constants.HVC_DEFAULTS[hv], hvparams[hv])
     utils.ForceDictType(hvparams[hv], constants.HVS_PARAMETER_TYPES)
 
   for hv in hvlist:
