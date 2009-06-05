@@ -122,9 +122,9 @@ def _InitGanetiServerSetup():
 
 def InitCluster(cluster_name, mac_prefix, def_bridge,
                 master_netdev, file_storage_dir, candidate_pool_size,
-                secondary_ip=None, vg_name=None, beparams=None, hvparams=None,
-                enabled_hypervisors=None, default_hypervisor=None,
-                modify_etc_hosts=True):
+                secondary_ip=None, vg_name=None, beparams=None,
+                nicparams=None, hvparams=None, enabled_hypervisors=None,
+                default_hypervisor=None, modify_etc_hosts=True):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -209,6 +209,9 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
   utils.EnsureDirs(dirs)
 
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
+  objects.NIC.CheckParameterSyntax(nicparams)
+
   # hvparams is a mapping of hypervisor->hvparams dict
   for hv_name, hv_params in hvparams.iteritems():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
@@ -248,6 +251,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     enabled_hypervisors=enabled_hypervisors,
     default_hypervisor=default_hypervisor,
     beparams={constants.PP_DEFAULT: beparams},
+    nicparams={constants.PP_DEFAULT: nicparams},
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
     modify_etc_hosts=modify_etc_hosts,
