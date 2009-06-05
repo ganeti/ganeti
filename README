@@ -15,6 +15,15 @@ instances affected can be failed over (via ``gnt-node failover`` or
 enough memory reserved for this operation without needing to shutdown
 other instances or rebalance the cluster.
 
+**Quick start** (see the installation section for more details):
+
+- (have the ghc compiler and the prerequisite libraries installed)
+- make
+- ./hbal -m $cluster -C -p
+- look at the original and final cluster layout, and if acceptable,
+  execute the given commands
+
+
 Available tools
 ---------------
 
@@ -47,7 +56,9 @@ The ``hail`` iallocator plugin can be used for allocations of mirrored
 and non-mirrored instances and for relocations of mirrored
 instances. It needs to be installed in Ganeti's iallocator search
 path—usually ``/usr/lib/ganeti/iallocators`` or
-``/usr/local/lib/ganeti/iallocators``. See the man page hail(1).
+``/usr/local/lib/ganeti/iallocators``, and after that it can be used
+via ganeti's ``--iallocator`` option (in various gnt-node/gnt-instance
+commands). See the man page hail(1) for more details.
 
 Cluster capacity estimator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,17 +72,17 @@ checks). For more details, see the man page hspace(1).
 Integration with Ganeti
 -----------------------
 
-The ``hbal`` and ``hn1`` programs can either get their input from text
-files, or online from a cluster via RAPI. For online collection via
-RAPI, the "-m" argument to both hn1 and hbal should specify the
-cluster or master node name. ``hail`` uses the standard iallocator API
-and thus doesn't need any special setup (just needs to be installed in
-the right directory).
+The ``hbal``, ``hspace`` and ``hn1`` programs can either get their
+input from text files, or online from a cluster via RAPI. For online
+collection via RAPI, the "-m" argument to both hn1 and hbal should
+specify the cluster or master node name. ``hail`` uses the standard
+iallocator API and thus doesn't need any special setup (just needs to
+be installed in the right directory).
 
-For generating the text files, a separate tool (hscan) is provided to
-automate their gathering if RAPI is available, which is better since
-it can extract more precise information. In case RAPI is not usable
-for whatever reason, the following two commands should be run::
+For generating the text files, a separate tool (``hscan``) is provided
+to automate their gathering if RAPI is available, which is better
+since it can extract more precise information. In case RAPI is not
+usable for whatever reason, the following two commands should be run::
 
     gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree,offline \
       --separator '|' --no-headers > nodes
@@ -81,6 +92,9 @@ for whatever reason, the following two commands should be run::
 These two files should be saved under the names of *nodes* and
 *instances*.
 
+The ``hail`` program gets its data automatically from Ganeti when used
+as described in its section.
+
 Installation
 ------------
 
@@ -88,11 +102,17 @@ If installing from source, you need a working ghc compiler (6.8 at
 least) and some extra Haskell libraries which usually need to be
 installed manually:
 
-- json
-- curl
+- json (http://hackage.haskell.org/cgi-bin/hackage-scripts/package/json)
+- curl (http://hackage.haskell.org/cgi-bin/hackage-scripts/package/curl)
 
-Once these are available, just typing *make* in the top-level
+Once these are installed, just typing *make* in the top-level
 directory should be enough.
+
+Only the ``hail`` program needs to be installed in a specific place,
+the other tools are not location-dependent.
+
+For running the (admittedly small) unittest suite (via *make check*),
+the QuickCheck version 1 library is needed.
 
 Internal (implementation) documentation is available in the ``apidoc``
 directory.
