@@ -346,6 +346,21 @@ BES_PARAMETERS = frozenset(BES_PARAMETER_TYPES.keys())
 # Instance Parameters Profile
 PP_DEFAULT = "default"
 
+NIC_MODE = "mode"
+NIC_LINK = "link"
+
+NIC_MODE_BRIDGED = "bridged"
+NIC_MODE_ROUTED = "routed"
+
+NIC_VALID_MODES = frozenset([NIC_MODE_BRIDGED, NIC_MODE_ROUTED])
+
+NICS_PARAMETER_TYPES = {
+    NIC_MODE: VTYPE_STRING,
+    NIC_LINK: VTYPE_STRING,
+    }
+
+NICS_PARAMETERS = frozenset(NICS_PARAMETER_TYPES.keys())
+
 # Hypervisor constants
 HT_XEN_PVM = "xen-pvm"
 HT_FAKE = "fake"
@@ -533,6 +548,11 @@ BEC_DEFAULTS = {
   BE_MEMORY: 128,
   BE_VCPUS: 1,
   BE_AUTO_BALANCE: True,
+  }
+
+NICC_DEFAULTS = {
+  NIC_MODE: NIC_MODE_BRIDGED,
+  NIC_LINK: DEFAULT_BRIDGE,
   }
 
 MASTER_POOL_SIZE_DEFAULT = 10
