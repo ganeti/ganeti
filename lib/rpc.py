@@ -1135,6 +1135,6 @@ class RpcRunner(object):
 
     """
     cluster = self._cfg.GetClusterInfo()
-    hv_full = cluster.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
+    hv_full = objects.FillDict(cluster.hvparams.get(hvname, {}), hvparams)
     return self._MultiNodeCall(node_list, "hypervisor_validate_params",
                                [hvname, hv_full])

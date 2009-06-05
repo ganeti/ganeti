@@ -37,8 +37,22 @@ from ganeti import constants
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
-           "OS", "Node", "Cluster"]
+           "OS", "Node", "Cluster", "FillDict"]
 
+def FillDict(defaults_dict, custom_dict):
+    """Basic function to apply settings on top a default dict.
+
+    @type defaults_dict: dict
+    @param defaults_dict: dictionary holding the default values
+    @type custom_dict: dict
+    @param custom_dict: dictionary holding customized value
+    @rtype: dict
+    @return: dict with the 'full' values
+
+    """
+    ret_dict = copy.deepcopy(defaults_dict)
+    ret_dict.update(custom_dict)
+    return ret_dict
 
 class ConfigObject(object):
   """A generic config object.
@@ -746,14 +760,14 @@ class Cluster(TaggableObject):
       self.hvparams = constants.HVC_DEFAULTS
     else:
       for hypervisor in self.hvparams:
-        self.hvparams[hypervisor] = self.FillDict(
+        self.hvparams[hypervisor] = FillDict(
             constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
 
     if self.beparams is None:
       self.beparams = {constants.BEGR_DEFAULT: constants.BEC_DEFAULTS}
     else:
       for begroup in self.beparams:
-        self.beparams[begroup] = self.FillDict(constants.BEC_DEFAULTS,
+        self.beparams[begroup] = FillDict(constants.BEC_DEFAULTS,
                                                self.beparams[begroup])
 
     if self.modify_etc_hosts is None:
@@ -777,22 +791,6 @@ class Cluster(TaggableObject):
       obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
     return obj
 
-  @staticmethod
-  def FillDict(defaults_dict, custom_dict):
-    """Basic function to apply settings on top a default dict.
-
-    @type defaults_dict: dict
-    @param defaults_dict: dictionary holding the default values
-    @type custom_dict: dict
-    @param custom_dict: dictionary holding customized value
-    @rtype: dict
-    @return: dict with the 'full' values
-
-    """
-    ret_dict = copy.deepcopy(defaults_dict)
-    ret_dict.update(custom_dict)
-    return ret_dict
-
   def FillHV(self, instance):
     """Fill an instance's hvparams dict.
 
@@ -803,7 +801,7 @@ class Cluster(TaggableObject):
         the cluster defaults
 
     """
-    return self.FillDict(self.hvparams.get(instance.hypervisor, {}),
+    return FillDict(self.hvparams.get(instance.hypervisor, {}),
                          instance.hvparams)
 
   def FillBE(self, instance):
@@ -816,7 +814,7 @@ class Cluster(TaggableObject):
         the cluster defaults
 
     """
-    return self.FillDict(self.beparams.get(constants.BEGR_DEFAULT, {}),
+    return FillDict(self.beparams.get(constants.BEGR_DEFAULT, {}),
                          instance.beparams)
 
 

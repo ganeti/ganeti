@@ -1489,11 +1489,11 @@ class LUSetClusterParams(LogicalUnit):
     # validate beparams changes
     if self.op.beparams:
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-      self.new_beparams = cluster.FillDict(
+      self.new_beparams = objects.FillDict(
         cluster.beparams[constants.BEGR_DEFAULT], self.op.beparams)
 
     # hypervisor list/parameters
-    self.new_hvparams = cluster.FillDict(cluster.hvparams, {})
+    self.new_hvparams = objects.FillDict(cluster.hvparams, {})
     if self.op.hvparams:
       if not isinstance(self.op.hvparams, dict):
         raise errors.OpPrereqError("Invalid 'hvparams' parameter on input")
@@ -2848,7 +2848,7 @@ class LUStartupInstance(LogicalUnit):
       # check hypervisor parameter syntax (locally)
       cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(self.hvparams, constants.HVS_PARAMETER_TYPES)
-      filled_hvp = cluster.FillDict(cluster.hvparams[instance.hypervisor],
+      filled_hvp = objects.FillDict(cluster.hvparams[instance.hypervisor],
                                     instance.hvparams)
       filled_hvp.update(self.hvparams)
       hv_type = hypervisor.GetHypervisor(instance.hypervisor)
@@ -4404,14 +4404,14 @@ class LUCreateInstance(LogicalUnit):
 
     # check hypervisor parameter syntax (locally)
     utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
-    filled_hvp = cluster.FillDict(cluster.hvparams[self.op.hypervisor],
+    filled_hvp = objects.FillDict(cluster.hvparams[self.op.hypervisor],
                                   self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
 
     # fill and remember the beparams dict
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-    self.be_full = cluster.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
+    self.be_full = objects.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
                                     self.op.beparams)
 
     #### instance parameters check
@@ -5963,7 +5963,7 @@ class LUSetInstanceParams(LogicalUnit):
           i_hvdict[key] = val
       cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(i_hvdict, constants.HVS_PARAMETER_TYPES)
-      hv_new = cluster.FillDict(cluster.hvparams[instance.hypervisor],
+      hv_new = objects.FillDict(cluster.hvparams[instance.hypervisor],
                                 i_hvdict)
       # local check
       hypervisor.GetHypervisor(
@@ -5987,7 +5987,7 @@ class LUSetInstanceParams(LogicalUnit):
           i_bedict[key] = val
       cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
-      be_new = cluster.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
+      be_new = objects.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
                                 i_bedict)
       self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)
