@@ -1326,15 +1326,16 @@ def BlockdevAddchildren(parent_cdev, new_cdevs):
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
   if parent_bdev is None:
-    logging.error("Can't find parent device")
-    return False
+    msg = "Can't find parent device %s" % str(parent_cdev)
+    logging.error("BlockdevAddchildren: %s", msg)
+    return (False, msg)
   new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
   if new_bdevs.count(None) > 0:
-    logging.error("Can't find new device(s) to add: %s:%s",
-                  new_bdevs, new_cdevs)
-    return False
+    msg = "Can't find new device(s) to add: %s:%s" % (new_bdevs, new_cdevs)
+    logging.error(msg)
+    return (False, msg)
   parent_bdev.AddChildren(new_bdevs)
-  return True
+  return (True, None)
 
 
 def BlockdevRemovechildren(parent_cdev, new_cdevs):

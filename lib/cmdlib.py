@@ -5275,13 +5275,14 @@ class LUReplaceDisks(LogicalUnit):
       # now that the new lvs have the old name, we can add them to the device
       info("adding new mirror component on %s" % tgt_node)
       result = self.rpc.call_blockdev_addchildren(tgt_node, dev, new_lvs)
-      if result.failed or not result.data:
+      msg = result.RemoteFailMsg()
+      if msg:
         for new_lv in new_lvs:
           msg = self.rpc.call_blockdev_remove(tgt_node, new_lv).RemoteFailMsg()
           if msg:
             warning("Can't rollback device %s: %s", dev, msg,
                     hint="cleanup manually the unused logical volumes")
-        raise errors.OpExecError("Can't add local storage to drbd")
+        raise errors.OpExecError("Can't add local storage to drbd: %s" % msg)
 
       dev.children = new_lvs
       cfg.Update(instance)
