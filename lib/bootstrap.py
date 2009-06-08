@@ -250,7 +250,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     beparams={constants.BEGR_DEFAULT: beparams},
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
-    modify_etc_hosts=opts.modify_etc_hosts,
+    modify_etc_hosts=modify_etc_hosts,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
