@@ -1326,7 +1326,7 @@ def BlockdevAddchildren(parent_cdev, new_cdevs):
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
   if parent_bdev is None:
-    msg = "Can't find parent device %s" % str(parent_cdev)
+    msg = "Can't find parent device '%s' in add children" % str(parent_cdev)
     logging.error("BlockdevAddchildren: %s", msg)
     return (False, msg)
   new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
@@ -1351,23 +1351,24 @@ def BlockdevRemovechildren(parent_cdev, new_cdevs):
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
   if parent_bdev is None:
-    logging.error("Can't find parent in remove children: %s", parent_cdev)
-    return False
+    msg = "Can't find parent device '%s' in remove children" % str(parent_cdev)
+    logging.error(msg)
+    return (False, msg)
   devs = []
   for disk in new_cdevs:
     rpath = disk.StaticDevPath()
     if rpath is None:
       bd = _RecursiveFindBD(disk)
       if bd is None:
-        logging.error("Can't find dynamic device %s while removing children",
-                      disk)
-        return False
+        msg = "Can't find device %s while removing children" % (disk,)
+        logging.error(msg)
+        return (False, msg)
       else:
         devs.append(bd.dev_path)
     else:
       devs.append(rpath)
   parent_bdev.RemoveChildren(devs)
-  return True
+  return (True, None)
 
 
 def BlockdevGetmirrorstatus(disks):

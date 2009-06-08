@@ -5224,10 +5224,11 @@ class LUReplaceDisks(LogicalUnit):
     for dev, old_lvs, new_lvs in iv_names.itervalues():
       info("detaching %s drbd from local storage" % dev.iv_name)
       result = self.rpc.call_blockdev_removechildren(tgt_node, dev, old_lvs)
-      result.Raise()
-      if not result.data:
+      msg = result.RemoteFailMsg()
+      if msg:
         raise errors.OpExecError("Can't detach drbd from local storage on node"
-                                 " %s for device %s" % (tgt_node, dev.iv_name))
+                                 " %s for device %s: %s" %
+                                 (tgt_node, dev.iv_name, msg))
       #dev.children = []
       #cfg.Update(instance)
 
