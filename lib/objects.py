@@ -764,7 +764,7 @@ class Cluster(TaggableObject):
             constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
 
     if self.beparams is None:
-      self.beparams = {constants.BEGR_DEFAULT: constants.BEC_DEFAULTS}
+      self.beparams = {constants.PP_DEFAULT: constants.BEC_DEFAULTS}
     else:
       for begroup in self.beparams:
         self.beparams[begroup] = FillDict(constants.BEC_DEFAULTS,
@@ -814,8 +814,8 @@ class Cluster(TaggableObject):
         the cluster defaults
 
     """
-    return FillDict(self.beparams.get(constants.BEGR_DEFAULT, {}),
-                         instance.beparams)
+    return FillDict(self.beparams.get(constants.PP_DEFAULT, {}),
+                          instance.beparams)
 
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):

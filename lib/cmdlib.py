@@ -1490,7 +1490,7 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.beparams:
       utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
       self.new_beparams = objects.FillDict(
-        cluster.beparams[constants.BEGR_DEFAULT], self.op.beparams)
+        cluster.beparams[constants.PP_DEFAULT], self.op.beparams)
 
     # hypervisor list/parameters
     self.new_hvparams = objects.FillDict(cluster.hvparams, {})
@@ -1538,7 +1538,7 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.enabled_hypervisors is not None:
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
     if self.op.beparams:
-      self.cluster.beparams[constants.BEGR_DEFAULT] = self.new_beparams
+      self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
 
@@ -4411,7 +4411,7 @@ class LUCreateInstance(LogicalUnit):
 
     # fill and remember the beparams dict
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
-    self.be_full = objects.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
+    self.be_full = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
                                     self.op.beparams)
 
     #### instance parameters check
@@ -5987,7 +5987,7 @@ class LUSetInstanceParams(LogicalUnit):
           i_bedict[key] = val
       cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
-      be_new = objects.FillDict(cluster.beparams[constants.BEGR_DEFAULT],
+      be_new = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
                                 i_bedict)
       self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)

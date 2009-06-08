@@ -343,8 +343,8 @@ BES_PARAMETER_TYPES = {
 
 BES_PARAMETERS = frozenset(BES_PARAMETER_TYPES.keys())
 
-# BE GROUP
-BEGR_DEFAULT = "default"
+# Instance Parameters Profile
+PP_DEFAULT = "default"
 
 # Hypervisor constants
 HT_XEN_PVM = "xen-pvm"
