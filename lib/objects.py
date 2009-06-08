@@ -54,6 +54,24 @@ def FillDict(defaults_dict, custom_dict):
     ret_dict.update(custom_dict)
     return ret_dict
 
+
+def UpgradeGroupedParams(target, defaults):
+  """Update all groups for the target parameter.
+
+  @type target: dict of dicts
+  @param target: {group: {parameter: value}}
+  @type defaults: dict
+  @param defaults: default parameter values
+
+  """
+  if target is None:
+    target = {constants.PP_DEFAULT: defaults}
+  else:
+    for group in target:
+      target[group] = FillDict(defaults, target[group])
+  return target
+
+
 class ConfigObject(object):
   """A generic config object.
 
@@ -763,12 +781,8 @@ class Cluster(TaggableObject):
         self.hvparams[hypervisor] = FillDict(
             constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
 
-    if self.beparams is None:
-      self.beparams = {constants.PP_DEFAULT: constants.BEC_DEFAULTS}
-    else:
-      for begroup in self.beparams:
-        self.beparams[begroup] = FillDict(constants.BEC_DEFAULTS,
-                                               self.beparams[begroup])
+    self.beparams = UpgradeGroupedParams(self.beparams,
+                                         constants.BEC_DEFAULTS)
 
     if self.modify_etc_hosts is None:
       self.modify_etc_hosts = True
