@@ -784,6 +784,7 @@ class Cluster(TaggableObject):
     "enabled_hypervisors",
     "hvparams",
     "beparams",
+    "nicparams",
     "candidate_pool_size",
     "modify_etc_hosts",
     ]
@@ -801,6 +802,12 @@ class Cluster(TaggableObject):
 
     self.beparams = UpgradeGroupedParams(self.beparams,
                                          constants.BEC_DEFAULTS)
+    migrate_default_bridge = not self.nicparams
+    self.nicparams = UpgradeGroupedParams(self.nicparams,
+                                          constants.NICC_DEFAULTS)
+    if migrate_default_bridge:
+      self.nicparams[constants.PP_DEFAULT][constants.NIC_LINK] = \
+        self.default_bridge
 
     if self.modify_etc_hosts is None:
       self.modify_etc_hosts = True
