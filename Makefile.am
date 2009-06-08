@@ -375,4 +375,11 @@ apidoc:
 		rm -rf $$TMPDIR ; \
 	}
 
+.PHONY: TAGS
+TAGS:
+	rm -f TAGS
+	find . -path './lib/*.py' -o -path 'scripts/gnt-*' -o \
+	  -path 'daemons/ganeti-*' -o -path 'tools/*' | \
+	  etags -
+
 # vim: set noet :
