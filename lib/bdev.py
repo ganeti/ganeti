@@ -569,10 +569,51 @@ class DRBD8Status(object):
   SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
                        "\sfinish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
 
+  CS_UNCONFIGURED = "Unconfigured"
+  CS_STANDALONE = "StandAlone"
+  CS_WFCONNECTION = "WFConnection"
+  CS_WFREPORTPARAMS = "WFReportParams"
+  CS_CONNECTED = "Connected"
+  CS_STARTINGSYNCS = "StartingSyncS"
+  CS_STARTINGSYNCT = "StartingSyncT"
+  CS_WFBITMAPS = "WFBitMapS"
+  CS_WFBITMAPT = "WFBitMapT"
+  CS_WFSYNCUUID = "WFSyncUUID"
+  CS_SYNCSOURCE = "SyncSource"
+  CS_SYNCTARGET = "SyncTarget"
+  CS_PAUSEDSYNCS = "PausedSyncS"
+  CS_PAUSEDSYNCT = "PausedSyncT"
+  CSET_SYNC = frozenset([
+    CS_WFREPORTPARAMS,
+    CS_STARTINGSYNCS,
+    CS_STARTINGSYNCT,
+    CS_WFBITMAPS,
+    CS_WFBITMAPT,
+    CS_WFSYNCUUID,
+    CS_SYNCSOURCE,
+    CS_SYNCTARGET,
+    CS_PAUSEDSYNCS,
+    CS_PAUSEDSYNCT,
+    ])
+
+  DS_DISKLESS = "Diskless"
+  DS_ATTACHING = "Attaching" # transient state
+  DS_FAILED = "Failed" # transient state, next: diskless
+  DS_NEGOTIATING = "Negotiating" # transient state
+  DS_INCONSISTENT = "Inconsistent" # while syncing or after creation
+  DS_OUTDATED = "Outdated"
+  DS_DUNKNOWN = "DUnknown" # shown for peer disk when not connected
+  DS_CONSISTENT = "Consistent"
+  DS_UPTODATE = "UpToDate" # normal state
+
+  RO_PRIMARY = "Primary"
+  RO_SECONDARY = "Secondary"
+  RO_UNKNOWN = "Unknown"
+
   def __init__(self, procline):
     u = self.UNCONF_RE.match(procline)
     if u:
-      self.cstatus = "Unconfigured"
+      self.cstatus = self.CS_UNCONFIGURED
       self.lrole = self.rrole = self.ldisk = self.rdisk = None
     else:
       m = self.LINE_RE.match(procline)
@@ -586,21 +627,21 @@ class DRBD8Status(object):
 
     # end reading of data from the LINE_RE or UNCONF_RE
 
-    self.is_standalone = self.cstatus == "StandAlone"
-    self.is_wfconn = self.cstatus == "WFConnection"
-    self.is_connected = self.cstatus == "Connected"
-    self.is_primary = self.lrole == "Primary"
-    self.is_secondary = self.lrole == "Secondary"
-    self.peer_primary = self.rrole == "Primary"
-    self.peer_secondary = self.rrole == "Secondary"
+    self.is_standalone = self.cstatus == self.CS_STANDALONE
+    self.is_wfconn = self.cstatus == self.CS_WFCONNECTION
+    self.is_connected = self.cstatus == self.CS_CONNECTED
+    self.is_primary = self.lrole == self.RO_PRIMARY
+    self.is_secondary = self.lrole == self.RO_SECONDARY
+    self.peer_primary = self.rrole == self.RO_PRIMARY
+    self.peer_secondary = self.rrole == self.RO_SECONDARY
     self.both_primary = self.is_primary and self.peer_primary
     self.both_secondary = self.is_secondary and self.peer_secondary
 
-    self.is_diskless = self.ldisk == "Diskless"
-    self.is_disk_uptodate = self.ldisk == "UpToDate"
+    self.is_diskless = self.ldisk == self.DS_DISKLESS
+    self.is_disk_uptodate = self.ldisk == self.DS_UPTODATE
 
-    self.is_in_resync = self.cstatus in ("SyncSource", "SyncTarget")
-    self.is_in_use = self.cstatus != "Unconfigured"
+    self.is_in_resync = self.cstatus in self.CSET_SYNC
+    self.is_in_use = self.cstatus != self.CS_UNCONFIGURED
 
     m = self.SYNC_RE.match(procline)
     if m:
@@ -610,12 +651,15 @@ class DRBD8Status(object):
       seconds = int(m.group(4))
       self.est_time = hours * 3600 + minutes * 60 + seconds
     else:
-      self.sync_percent = None
+      # we have (in this if branch) no percent information, but if
+      # we're resyncing we need to 'fake' a sync percent information,
+      # as this is how cmdlib determines if it makes sense to wait for
+      # resyncing or not
+      if self.is_in_resync:
+        self.sync_percent = 0
+      else:
+        self.sync_percent = None
       self.est_time = None
-
-    self.is_sync_target = self.peer_sync_source = self.cstatus == "SyncTarget"
-    self.peer_sync_target = self.is_sync_source = self.cstatus == "SyncSource"
-    self.is_resync = self.is_sync_target or self.is_sync_source
 
 
 class BaseDRBD(BlockDev):
