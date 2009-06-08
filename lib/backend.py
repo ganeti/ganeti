@@ -46,6 +46,35 @@ from ganeti import objects
 from ganeti import ssconf
 
 
+class RPCFail(Exception):
+  """Class denoting RPC failure.
+
+  Its argument is the error message.
+
+  """
+
+def _Fail(msg, *args, **kwargs):
+  """Log an error and the raise an RPCFail exception.
+
+  This exception is then handled specially in the ganeti daemon and
+  turned into a 'failed' return type. As such, this function is a
+  useful shortcut for logging the error and returning it to the master
+  daemon.
+
+  @type msg: string
+  @param msg: the text of the exception
+  @raise RPCFail
+
+  """
+  if args:
+    msg = msg % args
+  if "exc" in kwargs and kwargs["exc"]:
+    logging.exception(msg)
+  else:
+    logging.error(msg)
+  raise RPCFail(msg)
+
+
 def _GetConfig():
   """Simple wrapper to return a SimpleStore.
 
@@ -260,9 +289,7 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
     priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS,
                                                     mkdir=True)
   except errors.OpExecError, err:
-    msg = "Error while processing user ssh files"
-    logging.exception(msg)
-    return (False, "%s: %s" % (msg, err))
+    _Fail("Error while processing user ssh files: %s", err, exc=True)
 
   for name, content in [(priv_key, sshkey), (pub_key, sshpub)]:
     utils.WriteFile(name, data=content, mode=0600)
@@ -884,12 +911,10 @@ def StartInstance(instance):
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
     hyper.StartInstance(instance, block_devices)
   except errors.BlockDeviceError, err:
-    logging.exception("Failed to start instance")
-    return (False, "Block device error: %s" % str(err))
+    _Fail("Block device error: %s", err, exc=True)
   except errors.HypervisorError, err:
-    logging.exception("Failed to start instance")
     _RemoveBlockDevLinks(instance.name, instance.disks)
-    return (False, "Hypervisor error: %s" % str(err))
+    _Fail("Hypervisor error: %s", err, exc=True)
 
   return (True, "Instance started successfully")
 
@@ -915,9 +940,7 @@ def InstanceShutdown(instance):
   try:
     hyper.StopInstance(instance)
   except errors.HypervisorError, err:
-    msg = "Failed to stop instance %s: %s" % (instance.name, err)
-    logging.error(msg)
-    return (False, msg)
+    _Fail("Failed to stop instance %s: %s", instance.name, err)
 
   # test every 10secs for 2min
 
@@ -934,16 +957,11 @@ def InstanceShutdown(instance):
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      msg = "Failed to force stop instance %s: %s" % (instance.name, err)
-      logging.error(msg)
-      return (False, msg)
+      _Fail("Failed to force stop instance %s: %s", instance.name, err)
 
     time.sleep(1)
     if instance.name in GetInstanceList([hv_name]):
-      msg = ("Could not shutdown instance %s even by destroy" %
-             instance.name)
-      logging.error(msg)
-      return (False, msg)
+      _Fail("Could not shutdown instance %s even by destroy", instance.name)
 
   _RemoveBlockDevLinks(instance.name, instance.disks)
 
@@ -972,18 +990,14 @@ def InstanceReboot(instance, reboot_type):
   running_instances = GetInstanceList([instance.hypervisor])
 
   if instance.name not in running_instances:
-    msg = "Cannot reboot instance %s that is not running" % instance.name
-    logging.error(msg)
-    return (False, msg)
+    _Fail("Cannot reboot instance %s that is not running", instance.name)
 
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
   if reboot_type == constants.INSTANCE_REBOOT_SOFT:
     try:
       hyper.RebootInstance(instance)
     except errors.HypervisorError, err:
-      msg = "Failed to soft reboot instance %s: %s" % (instance.name, err)
-      logging.error(msg)
-      return (False, msg)
+      _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       stop_result = InstanceShutdown(instance)
@@ -991,11 +1005,9 @@ def InstanceReboot(instance, reboot_type):
         return stop_result
       return StartInstance(instance)
     except errors.HypervisorError, err:
-      msg = "Failed to hard reboot instance %s: %s" % (instance.name, err)
-      logging.error(msg)
-      return (False, msg)
+      _Fail("Failed to hard reboot instance %s: %s", instance.name, err)
   else:
-    return (False, "Invalid reboot_type received: %s" % (reboot_type,))
+    _Fail("Invalid reboot_type received: %s", reboot_type)
 
   return (True, "Reboot successful")
 
@@ -1011,9 +1023,7 @@ def MigrationInfo(instance):
   try:
     info = hyper.MigrationInfo(instance)
   except errors.HypervisorError, err:
-    msg = "Failed to fetch migration information"
-    logging.exception(msg)
-    return (False, '%s: %s' % (msg, err))
+    _Fail("Failed to fetch migration information: %s", err, exc=True)
   return (True, info)
 
 
@@ -1032,9 +1042,7 @@ def AcceptInstance(instance, info, target):
   try:
     hyper.AcceptInstance(instance, info, target)
   except errors.HypervisorError, err:
-    msg = "Failed to accept instance"
-    logging.exception(msg)
-    return (False, '%s: %s' % (msg, err))
+    _Fail("Failed to accept instance: %s", err, exc=True)
   return (True, "Accept successfull")
 
 
@@ -1053,9 +1061,7 @@ def FinalizeMigration(instance, info, success):
   try:
     hyper.FinalizeMigration(instance, info, success)
   except errors.HypervisorError, err:
-    msg = "Failed to finalize migration"
-    logging.exception(msg)
-    return (False, '%s: %s' % (msg, err))
+    _Fail("Failed to finalize migration: %s", err, exc=True)
   return (True, "Migration Finalized")
 
 
@@ -1080,9 +1086,7 @@ def MigrateInstance(instance, target, live):
   try:
     hyper.MigrateInstance(instance.name, target, live)
   except errors.HypervisorError, err:
-    msg = "Failed to migrate instance"
-    logging.exception(msg)
-    return (False, "%s: %s" % (msg, err))
+    _Fail("Failed to migrate instance: %s", err, exc=True)
   return (True, "Migration successfull")
 
 
@@ -1113,42 +1117,32 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       try:
         crdev = _RecursiveAssembleBD(child, owner, on_primary)
       except errors.BlockDeviceError, err:
-        errmsg = "Can't assemble device %s: %s" % (child, err)
-        logging.error(errmsg)
-        return False, errmsg
+        _Fail("Can't assemble device %s: %s", child, err)
       if on_primary or disk.AssembleOnSecondary():
         # we need the children open in case the device itself has to
         # be assembled
         try:
           crdev.Open()
         except errors.BlockDeviceError, err:
-          errmsg = "Can't make child '%s' read-write: %s" % (child, err)
-          logging.error(errmsg)
-          return False, errmsg
+          _Fail("Can't make child '%s' read-write: %s", child, err)
       clist.append(crdev)
 
   try:
     device = bdev.Create(disk.dev_type, disk.physical_id, clist, size)
   except errors.BlockDeviceError, err:
-    return False, "Can't create block device: %s" % str(err)
+    _Fail("Can't create block device: %s", err)
 
   if on_primary or disk.AssembleOnSecondary():
     try:
       device.Assemble()
     except errors.BlockDeviceError, err:
-      errmsg = ("Can't assemble device after creation, very"
-                " unusual event: %s" % str(err))
-      logging.error(errmsg)
-      return False, errmsg
+      _Fail("Can't assemble device after creation, unusual event: %s", err)
     device.SetSyncSpeed(constants.SYNC_SPEED)
     if on_primary or disk.OpenOnSecondary():
       try:
         device.Open(force=True)
       except errors.BlockDeviceError, err:
-        errmsg = ("Can't make device r/w after creation, very"
-                  " unusual event: %s" % str(err))
-        logging.error(errmsg)
-        return False, errmsg
+        _Fail("Can't make device r/w after creation, unusual event: %s", err)
     DevCacheManager.UpdateCache(device.dev_path, owner,
                                 on_primary, disk.iv_name)
 
@@ -1326,14 +1320,10 @@ def BlockdevAddchildren(parent_cdev, new_cdevs):
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
   if parent_bdev is None:
-    msg = "Can't find parent device '%s' in add children" % str(parent_cdev)
-    logging.error("BlockdevAddchildren: %s", msg)
-    return (False, msg)
+    _Fail("Can't find parent device '%s' in add children", parent_cdev)
   new_bdevs = [_RecursiveFindBD(disk) for disk in new_cdevs]
   if new_bdevs.count(None) > 0:
-    msg = "Can't find new device(s) to add: %s:%s" % (new_bdevs, new_cdevs)
-    logging.error(msg)
-    return (False, msg)
+    _Fail("Can't find new device(s) to add: %s:%s", new_bdevs, new_cdevs)
   parent_bdev.AddChildren(new_bdevs)
   return (True, None)
 
@@ -1351,18 +1341,14 @@ def BlockdevRemovechildren(parent_cdev, new_cdevs):
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
   if parent_bdev is None:
-    msg = "Can't find parent device '%s' in remove children" % str(parent_cdev)
-    logging.error(msg)
-    return (False, msg)
+    _Fail("Can't find parent device '%s' in remove children", parent_cdev)
   devs = []
   for disk in new_cdevs:
     rpath = disk.StaticDevPath()
     if rpath is None:
       bd = _RecursiveFindBD(disk)
       if bd is None:
-        msg = "Can't find device %s while removing children" % (disk,)
-        logging.error(msg)
-        return (False, msg)
+        _Fail("Can't find device %s while removing children", disk)
       else:
         devs.append(bd.dev_path)
     else:
@@ -1429,7 +1415,7 @@ def BlockdevFind(disk):
   try:
     rbd = _RecursiveFindBD(disk)
   except errors.BlockDeviceError, err:
-    return (False, str(err))
+    _Fail("Failed to find device: %s", err, exc=True)
   if rbd is None:
     return (True, None)
   return (True, (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus())
@@ -1461,9 +1447,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
   """
   if not os.path.isabs(file_name):
-    err = "Filename passed to UploadFile is not absolute: '%s'" % file_name
-    logging.error(err)
-    return (False, err)
+    _Fail("Filename passed to UploadFile is not absolute: '%s'", file_name)
 
   allowed_files = set([
     constants.CLUSTER_CONF_FILE,
@@ -1479,10 +1463,8 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
     allowed_files.update(hv_class.GetAncillaryFiles())
 
   if file_name not in allowed_files:
-    err = "Filename passed to UploadFile not in allowed upload targets: '%s'" \
-          % file_name
-    logging.error(err)
-    return (False, err)
+    _Fail("Filename passed to UploadFile not in allowed upload targets: '%s'",
+          file_name)
 
   raw_data = _Decompress(data)
 
@@ -1726,7 +1708,7 @@ def BlockdevGrow(disk, amount):
   try:
     r_dev.Grow(amount)
   except errors.BlockDeviceError, err:
-    return False, str(err)
+    _Fail("Failed to grow block device: %s", err, exc=True)
 
   return True, None
 
@@ -2269,7 +2251,7 @@ def BlockdevClose(instance_name, disks):
   for cf in disks:
     rd = _RecursiveFindBD(cf)
     if rd is None:
-      return (False, "Can't find device %s" % cf)
+      _Fail("Can't find device %s", cf)
     bdevs.append(rd)
 
   msg = []
@@ -2360,8 +2342,8 @@ def DrbdDisconnectNet(nodes_ip, disks):
     try:
       rd.DisconnectNet()
     except errors.BlockDeviceError, err:
-      logging.exception("Failed to go into standalone mode")
-      return (False, "Can't change network configuration: %s" % str(err))
+      _Fail("Can't change network configuration to standalone mode: %s",
+            err, exc=True)
   return (True, "All disks are now disconnected")
 
 
@@ -2378,14 +2360,14 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
       try:
         _SymlinkBlockDev(instance_name, rd.dev_path, idx)
       except EnvironmentError, err:
-        return (False, "Can't create symlink: %s" % str(err))
+        _Fail("Can't create symlink: %s", err)
   # reconnect disks, switch to new master configuration and if
   # needed primary mode
   for rd in bdevs:
     try:
       rd.AttachNet(multimaster)
     except errors.BlockDeviceError, err:
-      return (False, "Can't change network configuration: %s" % str(err))
+      _Fail("Can't change network configuration: %s", err)
   # wait until the disks are connected; we need to retry the re-attach
   # if the device becomes standalone, as this might happen if the one
   # node disconnects and reconnects in a different mode before the
@@ -2407,7 +2389,7 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
         try:
           rd.ReAttachNet(multimaster)
         except errors.BlockDeviceError, err:
-          return (False, "Can't change network configuration: %s" % str(err))
+          _Fail("Can't change network configuration: %s", err)
     if all_connected:
       break
     time.sleep(sleep_time)
@@ -2420,7 +2402,7 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
       try:
         rd.Open()
       except errors.BlockDeviceError, err:
-        return (False, "Can't change to primary mode: %s" % str(err))
+        _Fail("Can't change to primary mode: %s", err)
   if multimaster:
     msg = "multi-master and primary"
   else:

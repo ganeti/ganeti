@@ -95,6 +95,11 @@ class NodeHttpServer(http.server.HttpServer):
     try:
       try:
         return method(req.request_body)
+      except backend.RPCFail, err:
+        # our custom failure exception; str(err) works fine if the
+        # exception was constructed with a single argument, and in
+        # this case, err.message == err.args[0] == str(err)
+        return (False, str(err))
       except:
         logging.exception("Error in RPC call")
         raise
