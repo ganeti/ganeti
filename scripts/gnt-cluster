@@ -209,6 +209,17 @@ def ShowClusterMaster(opts, args):
   ToStdout(master)
   return 0
 
+def _PrintGroupedParams(paramsdict):
+  """Print Grouped parameters (be, nic, disk) by group.
+
+  @type paramsdict: dict of dicts
+  @param paramsdict: {group: {param: value, ...}, ...}
+
+  """
+  for gr_name, gr_dict in paramsdict.items():
+    ToStdout("  - %s:", gr_name)
+    for item, val in gr_dict.iteritems():
+      ToStdout("      %s: %s", item, val)
 
 def ShowClusterConfig(opts, args):
   """Shows cluster information.
@@ -234,10 +245,7 @@ def ShowClusterConfig(opts, args):
   ToStdout("Enabled hypervisors: %s", ", ".join(result["enabled_hypervisors"]))
 
   ToStdout("Hypervisor parameters:")
-  for hv_name, hv_dict in result["hvparams"].items():
-    ToStdout("  - %s:", hv_name)
-    for item, val in hv_dict.iteritems():
-      ToStdout("      %s: %s", item, val)
+  _PrintGroupedParams(result["hvparams"])
 
   ToStdout("Cluster parameters:")
   ToStdout("  - candidate pool size: %s", result["candidate_pool_size"])
@@ -247,10 +255,10 @@ def ShowClusterConfig(opts, args):
   ToStdout("  - file storage path: %s", result["file_storage_dir"])
 
   ToStdout("Default instance parameters:")
-  for gr_name, gr_dict in result["beparams"].items():
-    ToStdout("  - %s:", gr_name)
-    for item, val in gr_dict.iteritems():
-      ToStdout("      %s: %s", item, val)
+  _PrintGroupedParams(result["beparams"])
+
+  ToStdout("Default nic parameters:")
+  _PrintGroupedParams(result["nicparams"])
 
   return 0
 

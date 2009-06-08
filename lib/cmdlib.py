@@ -2518,6 +2518,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "hvparams": dict([(hypervisor, cluster.hvparams[hypervisor])
                         for hypervisor in cluster.enabled_hypervisors]),
       "beparams": cluster.beparams,
+      "nicparams": cluster.nicparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "default_bridge": cluster.default_bridge,
       "master_netdev": cluster.master_netdev,
