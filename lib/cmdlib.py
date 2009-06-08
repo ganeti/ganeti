@@ -5251,16 +5251,18 @@ class LUReplaceDisks(LogicalUnit):
 
       info("renaming the old LVs on the target node")
       result = self.rpc.call_blockdev_rename(tgt_node, rlist)
-      result.Raise()
-      if not result.data:
-        raise errors.OpExecError("Can't rename old LVs on node %s" % tgt_node)
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Can't rename old LVs on node %s: %s" %
+                                 (tgt_node, msg))
       # now we rename the new LVs to the old LVs
       info("renaming the new LVs on the target node")
       rlist = [(new, old.physical_id) for old, new in zip(old_lvs, new_lvs)]
       result = self.rpc.call_blockdev_rename(tgt_node, rlist)
-      result.Raise()
-      if not result.data:
-        raise errors.OpExecError("Can't rename new LVs on node %s" % tgt_node)
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Can't rename new LVs on node %s: %s" %
+                                 (tgt_node, msg))
 
       for old, new in zip(old_lvs, new_lvs):
         new.logical_id = old.logical_id

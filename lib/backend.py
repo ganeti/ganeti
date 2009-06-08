@@ -2013,10 +2013,12 @@ def BlockdevRename(devlist):
   @return: True if all renames succeeded, False otherwise
 
   """
+  msgs = []
   result = True
   for disk, unique_id in devlist:
     dev = _RecursiveFindBD(disk)
     if dev is None:
+      msgs.append("Can't find device %s in rename" % str(disk))
       result = False
       continue
     try:
@@ -2031,9 +2033,11 @@ def BlockdevRename(devlist):
         # cache? for now, we only lose lvm data when we rename, which
         # is less critical than DRBD or MD
     except errors.BlockDeviceError, err:
+      msgs.append("Can't rename device '%s' to '%s': %s" %
+                  (dev, unique_id, err))
       logging.exception("Can't rename device '%s' to '%s'", dev, unique_id)
       result = False
-  return result
+  return (result, "; ".join(msgs))
 
 
 def _TransformFileStorageDir(file_storage_dir):
