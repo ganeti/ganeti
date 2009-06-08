@@ -319,14 +319,23 @@ class LogicalVolume(BlockDev):
 
     pvlist = [ pv[1] for pv in pvs_info ]
     free_size = sum([ pv[0] for pv in pvs_info ])
+    current_pvs = len(pvlist)
+    stripes = min(current_pvs, constants.LVM_STRIPECOUNT)
 
     # The size constraint should have been checked from the master before
     # calling the create function.
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)
-    result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-n%s" % lv_name,
-                           vg_name] + pvlist)
+    cmd = ["lvcreate", "-L%dm" % size, "-n%s" % lv_name]
+    # If the free space is not well distributed, we won't be able to
+    # create an optimally-striped volume; in that case, we want to try
+    # with N, N-1, ..., 2, and finally 1 (non-stripped) number of
+    # stripes
+    for stripes_arg in range(stripes, 0, -1):
+      result = utils.RunCmd(cmd + ["-i%d" % stripes_arg] + [vg_name] + pvlist)
+      if not result.failed:
+        break
     if result.failed:
       _ThrowError("LV create failed (%s): %s",
                   result.fail_reason, result.output)
