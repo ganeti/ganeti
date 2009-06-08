@@ -152,6 +152,24 @@ class TestConfigRunner(unittest.TestCase):
     # but the fake_instance update should still fail
     self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance)
 
+  def testNICParameterSyntaxCheck(self):
+    """Test the NIC's CheckParameterSyntax function"""
+    mode = constants.NIC_MODE
+    link = constants.NIC_LINK
+    m_bridged = constants.NIC_MODE_BRIDGED
+    m_routed = constants.NIC_MODE_ROUTED
+    CheckSyntax = objects.NIC.CheckParameterSyntax
+
+    CheckSyntax(constants.NICC_DEFAULTS)
+    CheckSyntax({mode: m_bridged, link: 'br1'})
+    CheckSyntax({mode: m_routed, link: 'default'})
+    self.assertRaises(errors.ConfigurationError,
+                      CheckSyntax, {mode: '000invalid', link: 'any'})
+    self.assertRaises(errors.ConfigurationError,
+                      CheckSyntax, {mode: m_bridged, link: None})
+    self.assertRaises(errors.ConfigurationError,
+                      CheckSyntax, {mode: m_bridged, link: ''})
+
 
 if __name__ == '__main__':
   unittest.main()

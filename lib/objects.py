@@ -312,6 +312,24 @@ class NIC(ConfigObject):
   """Config object representing a network card."""
   __slots__ = ["mac", "ip", "bridge"]
 
+  @classmethod
+  def CheckParameterSyntax(cls, nicparams):
+    """Check the given parameters for validity.
+
+    @type nicparams:  dict
+    @param nicparams: dictionary with parameter names/value
+    @raise errors.ConfigurationError: when a parameter is not valid
+
+    """
+    if nicparams[constants.NIC_MODE] not in constants.NIC_VALID_MODES:
+      err = "Invalid nic mode: %s" % nicparams[constants.NIC_MODE]
+      raise errors.ConfigurationError(err)
+
+    if (nicparams[constants.NIC_MODE] is constants.NIC_MODE_BRIDGED and
+        not nicparams[constants.NIC_LINK]):
+      err = "Missing bridged nic link"
+      raise errors.ConfigurationError(err)
+
 
 class Disk(ConfigObject):
   """Config object representing a block device."""
