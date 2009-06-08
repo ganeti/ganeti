@@ -119,6 +119,16 @@ AC_ARG_WITH([socat-path],
   [socat_path="/usr/bin/socat"])
 AC_SUBST(SOCAT_PATH, $socat_path)
 
+# ---with-lvm-stripecount=...
+AC_ARG_WITH([lvm-stripecount],
+  [AS_HELP_STRING([--with-lvm-stripecount=NUM],
+    [the number of stripes to use for LVM volumes]
+    [ (default is 3)]
+  )],
+  [lvm_stripecount="$withval"],
+  [lvm_stripecount="3"])
+AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
+
 # Check common programs
 AC_PROG_INSTALL
 AC_PROG_LN_S
