@@ -1608,6 +1608,7 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
     lu.cfg.SetDiskID(dev, node)
 
   retries = 0
+  degr_retries = 10 # in seconds, as we sleep 1 second each time
   while True:
     max_time = 0
     done = True
@@ -1640,6 +1641,16 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
           rem_time = "no time estimate"
         lu.proc.LogInfo("- device %s: %5.2f%% done, %s" %
                         (instance.disks[i].iv_name, perc_done, rem_time))
+
+    # if we're done but degraded, let's do a few small retries, to
+    # make sure we see a stable and not transient situation; therefore
+    # we force restart of the loop
+    if (done or oneshot) and cumul_degraded and degr_retries > 0:
+      logging.info("Degraded disks found, %d retries left", degr_retries)
+      degr_retries -= 1
+      time.sleep(1)
+      continue
+
     if done or oneshot:
       break
 
@@ -6294,12 +6305,12 @@ class LUExportInstance(LogicalUnit):
       self.cfg.SetDiskID(disk, src_node)
 
     try:
-      for disk in instance.disks:
+      for idx, disk in enumerate(instance.disks):
         # new_dev_name will be a snapshot of an lvm leaf of the one we passed
         new_dev_name = self.rpc.call_blockdev_snapshot(src_node, disk)
         if new_dev_name.failed or not new_dev_name.data:
-          self.LogWarning("Could not snapshot block device %s on node %s",
-                          disk.logical_id[1], src_node)
+          self.LogWarning("Could not snapshot disk/%d on node %s",
+                          idx, src_node)
           snap_disks.append(False)
         else:
           new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
@@ -6324,13 +6335,12 @@ class LUExportInstance(LogicalUnit):
         result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
                                                instance, cluster_name, idx)
         if result.failed or not result.data:
-          self.LogWarning("Could not export block device %s from node %s to"
-                          " node %s", dev.logical_id[1], src_node,
-                          dst_node.name)
+          self.LogWarning("Could not export disk/%d from node %s to"
+                          " node %s", idx, src_node, dst_node.name)
         msg = self.rpc.call_blockdev_remove(src_node, dev).RemoteFailMsg()
         if msg:
-          self.LogWarning("Could not remove snapshot block device %s from node"
-                          " %s: %s", dev.logical_id[1], src_node, msg)
+          self.LogWarning("Could not remove snapshot for disk/%d from node"
+                          " %s: %s", idx, src_node, msg)
 
     result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
     if result.failed or not result.data:
