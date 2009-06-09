@@ -574,18 +574,32 @@ def _AdjustCandidatePool(lu):
                (mc_now, mc_max))
 
 
-def _CheckInstanceBridgesExist(lu, instance):
+def _CheckNicsBridgesExist(lu, target_nics, target_node,
+                               profile=constants.PP_DEFAULT):
+  """Check that the brigdes needed by a list of nics exist.
+
+  """
+  c_nicparams = lu.cfg.GetClusterInfo().nicparams[profile]
+  paramslist = [objects.FillDict(c_nicparams, nic.nicparams)
+                for nic in target_nics]
+  brlist = [params[constants.NIC_LINK] for params in paramslist
+            if params[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED]
+  if brlist:
+    result = lu.rpc.call_bridges_exist(target_node, brlist)
+    result.Raise()
+    if not result.data:
+      raise errors.OpPrereqError("One or more target bridges %s does not"
+                                 " exist on destination node '%s'" %
+                                 (brlist, target_node))
+
+
+def _CheckInstanceBridgesExist(lu, instance, node=None):
   """Check that the brigdes needed by an instance exist.
 
   """
-  # check bridges existance
-  brlist = [nic.bridge for nic in instance.nics]
-  result = lu.rpc.call_bridges_exist(instance.primary_node, brlist)
-  result.Raise()
-  if not result.data:
-    raise errors.OpPrereqError("One or more target bridges %s does not"
-                               " exist on destination node '%s'" %
-                               (brlist, instance.primary_node))
+  if node is None:
+    node=instance.primary_node
+  _CheckNicsBridgesExist(lu, instance.nics, node)
 
 
 class LUDestroyCluster(NoHooksLU):
@@ -3600,15 +3614,8 @@ class LUFailoverInstance(LogicalUnit):
     _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
                          instance.name, bep[constants.BE_MEMORY],
                          instance.hypervisor)
-
     # check bridge existance
-    brlist = [nic.bridge for nic in instance.nics]
-    result = self.rpc.call_bridges_exist(target_node, brlist)
-    result.Raise()
-    if not result.data:
-      raise errors.OpPrereqError("One or more target bridges %s does not"
-                                 " exist on destination node '%s'" %
-                                 (brlist, target_node))
+    _CheckInstanceBridgesExist(self, instance, node=target_node)
 
   def Exec(self, feedback_fn):
     """Failover an instance.
@@ -3740,12 +3747,7 @@ class LUMigrateInstance(LogicalUnit):
                          instance.hypervisor)
 
     # check bridge existance
-    brlist = [nic.bridge for nic in instance.nics]
-    result = self.rpc.call_bridges_exist(target_node, brlist)
-    if result.failed or not result.data:
-      raise errors.OpPrereqError("One or more target bridges %s does not"
-                                 " exist on destination node '%s'" %
-                                 (brlist, target_node))
+    _CheckInstanceBridgesExist(self, instance, node=target_node)
 
     if not self.op.cleanup:
       _CheckNodeNotDrained(self, target_node)
@@ -4795,14 +4797,7 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("OS '%s' not in supported os list for"
                                  " primary node"  % self.op.os_type)
 
-    # bridge check on primary node
-    bridges = [n.bridge for n in self.nics]
-    result = self.rpc.call_bridges_exist(self.pnode.name, bridges)
-    result.Raise()
-    if not result.data:
-      raise errors.OpPrereqError("One of the target bridges '%s' does not"
-                                 " exist on destination node '%s'" %
-                                 (",".join(bridges), pnode.name))
+    _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
 
     # memory check on primary node
     if self.op.start:
