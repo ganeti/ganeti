@@ -120,7 +120,7 @@ def _InitGanetiServerSetup():
                              (result.cmd, result.exit_code, result.output))
 
 
-def InitCluster(cluster_name, mac_prefix, def_bridge,
+def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
@@ -241,7 +241,6 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     highest_used_port=(constants.FIRST_DRBD_PORT - 1),
     mac_prefix=mac_prefix,
     volume_group_name=vg_name,
-    default_bridge=def_bridge,
     tcpudp_port_pool=set(),
     master_node=hostname.name,
     master_ip=clustername.ip,

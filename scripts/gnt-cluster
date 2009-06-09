@@ -98,7 +98,6 @@ def InitCluster(opts, args):
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
                         mac_prefix=opts.mac_prefix,
-                        def_bridge=opts.def_bridge,
                         master_netdev=opts.master_netdev,
                         file_storage_dir=opts.file_storage_dir,
                         enabled_hypervisors=hvlist,
@@ -554,12 +553,6 @@ commands = {
                         " (cluster-wide) for disk allocation [xenvg]",
                         metavar="VG",
                         default=None,),
-            make_option("-b", "--bridge", dest="def_bridge",
-                        help="Specify the default bridge name (cluster-wide)"
-                          " to connect the instances to [%s]" %
-                          constants.DEFAULT_BRIDGE,
-                        metavar="BRIDGE",
-                        default=constants.DEFAULT_BRIDGE,),
             make_option("--master-netdev", dest="master_netdev",
                         help="Specify the node interface (cluster-wide)"
                           " on which the master IP address will be added "
