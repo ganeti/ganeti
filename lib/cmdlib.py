@@ -4688,11 +4688,12 @@ class LUCreateInstance(LogicalUnit):
 
       _CheckNodeOnline(self, src_node)
       result = self.rpc.call_export_info(src_node, src_path)
-      result.Raise()
-      if not result.data:
-        raise errors.OpPrereqError("No export found in dir %s" % src_path)
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpPrereqError("No export or invalid export found in"
+                                   " dir %s: %s" % (src_path, msg))
 
-      export_info = result.data
+      export_info = objects.SerializableConfigParser.Loads(str(result.payload))
       if not export_info.has_section(constants.INISECT_EXP):
         raise errors.ProgrammerError("Corrupted export config")
 

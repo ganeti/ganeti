@@ -1900,9 +1900,9 @@ def ExportInfo(dest):
 
   if (not config.has_section(constants.INISECT_EXP) or
       not config.has_section(constants.INISECT_INS)):
-    return None
+    _Fail("Export info file doesn't have the required fields")
 
-  return config
+  return True, config.Dumps()
 
 
 def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):

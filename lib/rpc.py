@@ -974,10 +974,7 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    result = self._SingleNodeCall(node, "export_info", [path])
-    if not result.failed and result.data:
-      result.data = objects.SerializableConfigParser.Loads(str(result.data))
-    return result
+    return self._SingleNodeCall(node, "export_info", [path])
 
   def call_instance_os_import(self, node, inst, src_node, src_images,
                               cluster_name):

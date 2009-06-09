@@ -310,10 +310,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     path = params[0]
-    einfo = backend.ExportInfo(path)
-    if einfo is None:
-      return einfo
-    return einfo.Dumps()
+    return backend.ExportInfo(path)
 
   @staticmethod
   def perspective_export_list(params):
