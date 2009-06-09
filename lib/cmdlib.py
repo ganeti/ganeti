@@ -610,11 +610,10 @@ def _CheckNicsBridgesExist(lu, target_nics, target_node,
             if params[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED]
   if brlist:
     result = lu.rpc.call_bridges_exist(target_node, brlist)
-    result.Raise()
-    if not result.data:
-      raise errors.OpPrereqError("One or more target bridges %s does not"
-                                 " exist on destination node '%s'" %
-                                 (brlist, target_node))
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpPrereqError("Error checking bridges on destination node"
+                                 " '%s': %s" % (target_node, msg))
 
 
 def _CheckInstanceBridgesExist(lu, instance, node=None):
@@ -6166,10 +6165,9 @@ class LUSetInstanceParams(LogicalUnit):
       if new_nic_mode == constants.NIC_MODE_BRIDGED:
         nic_bridge = new_filled_nic_params[constants.NIC_LINK]
         result = self.rpc.call_bridges_exist(pnode, [nic_bridge])
-        result.Raise()
-        if not result.data:
-          msg = ("Bridge '%s' doesn't exist on one of"
-                 " the instance nodes" % nic_bridge)
+        msg = result.RemoteFailMsg()
+        if msg:
+          msg = "Error checking bridges on node %s: %s" % (pnode, msg)
           if self.force:
             self.warn.append(msg)
           else:

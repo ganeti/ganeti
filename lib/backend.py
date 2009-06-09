@@ -574,11 +574,15 @@ def BridgesExist(bridges_list):
   @return: C{True} if all of them exist, C{False} otherwise
 
   """
+  missing = []
   for bridge in bridges_list:
     if not utils.BridgeExists(bridge):
-      return False
+      missing.append(bridge)
 
-  return True
+  if missing:
+    return False, "Missing bridges %s" % (", ".join(missing),)
+
+  return True, None
 
 
 def GetInstanceList(hypervisor_list):
