@@ -5985,6 +5985,7 @@ class LUSetInstanceParams(LogicalUnit):
     # checking the new params on the primary/secondary nodes
 
     instance = self.instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    cluster = self.cluster = self.cfg.GetClusterInfo()
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     pnode = instance.primary_node
@@ -6001,7 +6002,6 @@ class LUSetInstanceParams(LogicalUnit):
             pass
         else:
           i_hvdict[key] = val
-      cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(i_hvdict, constants.HVS_PARAMETER_TYPES)
       hv_new = objects.FillDict(cluster.hvparams[instance.hypervisor],
                                 i_hvdict)
@@ -6025,7 +6025,6 @@ class LUSetInstanceParams(LogicalUnit):
             pass
         else:
           i_bedict[key] = val
-      cluster = self.cfg.GetClusterInfo()
       utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
       be_new = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
                                 i_bedict)
