@@ -5898,10 +5898,16 @@ class LUSetInstanceParams(LogicalUnit):
           if not utils.IsValidIP(nic_ip):
             raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip)
 
+      nic_bridge = nic_dict.get('bridge', None)
+      nic_link = nic_dict.get('link', None)
+      if nic_bridge and nic_link:
+        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link' at the same time")
+      elif nic_bridge and nic_bridge.lower() == constants.VALUE_NONE:
+        nic_dict['bridge'] = None
+      elif nic_link and nic_link.lower() == constants.VALUE_NONE:
+        nic_dict['link'] = None
+
       if nic_op == constants.DDM_ADD:
-        nic_bridge = nic_dict.get('bridge', None)
-        if nic_bridge is None:
-          nic_dict['bridge'] = self.cfg.GetDefBridge()
         nic_mac = nic_dict.get('mac', None)
         if nic_mac is None:
           nic_dict['mac'] = constants.VALUE_AUTO
@@ -6089,6 +6095,8 @@ class LUSetInstanceParams(LogicalUnit):
                              " secondary node %s" % node)
 
     # NIC processing
+    self.nic_pnew = {}
+    self.nic_pinst = {}
     for nic_op, nic_dict in self.op.nics:
       if nic_op == constants.DDM_REMOVE:
         if not instance.nics:
@@ -6100,17 +6108,47 @@ class LUSetInstanceParams(LogicalUnit):
           raise errors.OpPrereqError("Invalid NIC index %s, valid values"
                                      " are 0 to %d" %
                                      (nic_op, len(instance.nics)))
+        old_nic_params = instance.nics[nic_op].nicparams
+        old_nic_ip = instance.nics[nic_op].ip
+      else:
+        old_nic_params = {}
+        old_nic_ip = None
+
+      update_params_dict = dict([(key, nic_dict[key])
+                                 for key in constants.NICS_PARAMETERS
+                                 if key in nic_dict])
+
       if 'bridge' in nic_dict:
-        nic_bridge = nic_dict['bridge']
-        if nic_bridge is None:
-          raise errors.OpPrereqError('Cannot set the nic bridge to None')
-        if not self.rpc.call_bridges_exist(pnode, [nic_bridge]):
+        update_params_dict[constants.NIC_LINK] = nic_dict['bridge']
+
+      new_nic_params, new_filled_nic_params = \
+          self._GetUpdatedParams(old_nic_params, update_params_dict,
+                                 cluster.nicparams[constants.PP_DEFAULT],
+                                 constants.NICS_PARAMETER_TYPES)
+      objects.NIC.CheckParameterSyntax(new_filled_nic_params)
+      self.nic_pinst[nic_op] = new_nic_params
+      self.nic_pnew[nic_op] = new_filled_nic_params
+      new_nic_mode = new_filled_nic_params[constants.NIC_MODE]
+
+      if new_nic_mode == constants.NIC_MODE_BRIDGED:
+        nic_bridge = new_filled_nic_params[constants.NIC_LINK]
+        result = self.rpc.call_bridges_exist(pnode, [nic_bridge])
+        result.Raise()
+        if not result.data:
           msg = ("Bridge '%s' doesn't exist on one of"
                  " the instance nodes" % nic_bridge)
           if self.force:
             self.warn.append(msg)
           else:
             raise errors.OpPrereqError(msg)
+      if new_nic_mode == constants.NIC_MODE_ROUTED:
+        if 'ip' in nic_dict:
+          nic_ip = nic_dict['ip']
+        else:
+          nic_ip = old_nic_ip
+        if nic_ip is None:
+          raise errors.OpPrereqError('Cannot set the nic ip to None'
+                                     ' on a routed nic')
       if 'mac' in nic_dict:
         nic_mac = nic_dict['mac']
         if nic_mac is None:
@@ -6167,6 +6205,7 @@ class LUSetInstanceParams(LogicalUnit):
 
     result = []
     instance = self.instance
+    cluster = self.cluster
     # disk changes
     for disk_op, disk_dict in self.op.disks:
       if disk_op == constants.DDM_REMOVE:
@@ -6227,19 +6266,24 @@ class LUSetInstanceParams(LogicalUnit):
       elif nic_op == constants.DDM_ADD:
         # mac and bridge should be set, by now
         mac = nic_dict['mac']
-        bridge = nic_dict['bridge']
-        new_nic = objects.NIC(mac=mac, ip=nic_dict.get('ip', None),
-                              bridge=bridge)
+        ip = nic_dict.get('ip', None)
+        nicparams = self.nic_pinst[constants.DDM_ADD]
+        new_nic = objects.NIC(mac=mac, ip=ip, nicparams=nicparams)
         instance.nics.append(new_nic)
         result.append(("nic.%d" % (len(instance.nics) - 1),
-                       "add:mac=%s,ip=%s,bridge=%s" %
-                       (new_nic.mac, new_nic.ip, new_nic.bridge)))
+                       "add:mac=%s,ip=%s,mode=%s,link=%s" %
+                       (new_nic.mac, new_nic.ip,
+                        self.nic_pnew[constants.DDM_ADD][constants.NIC_MODE],
+                        self.nic_pnew[constants.DDM_ADD][constants.NIC_LINK]
+                       )))
       else:
-        # change a given nic
-        for key in 'mac', 'ip', 'bridge':
+        for key in 'mac', 'ip':
           if key in nic_dict:
             setattr(instance.nics[nic_op], key, nic_dict[key])
-            result.append(("nic.%s/%d" % (key, nic_op), nic_dict[key]))
+        if nic_op in self.nic_pnew:
+          instance.nics[nic_op].nicparams = self.nic_pnew[nic_op]
+        for key, val in nic_dict.iteritems():
+          result.append(("nic.%s/%d" % (key, nic_op), val))
 
     # hvparams changes
     if self.op.hvparams:
