@@ -2769,14 +2769,14 @@ def _SafeShutdownInstanceDisks(lu, instance):
   _ShutdownInstanceDisks.
 
   """
-  ins_l = lu.rpc.call_instance_list([instance.primary_node],
-                                      [instance.hypervisor])
-  ins_l = ins_l[instance.primary_node]
-  if ins_l.failed or not isinstance(ins_l.data, list):
-    raise errors.OpExecError("Can't contact node '%s'" %
-                             instance.primary_node)
+  pnode = instance.primary_node
+  ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])
+  ins_l = ins_l[pnode]
+  msg = ins_l.RemoteFailMsg()
+  if msg:
+    raise errors.OpExecError("Can't contact node %s: %s" % (pnode, msg))
 
-  if instance.name in ins_l.data:
+  if instance.name in ins_l.payload:
     raise errors.OpExecError("Instance is running, can't shutdown"
                              " block devices.")
 
@@ -3890,12 +3890,12 @@ class LUMigrateInstance(LogicalUnit):
                      " a bad state)")
     ins_l = self.rpc.call_instance_list(self.all_nodes, [instance.hypervisor])
     for node, result in ins_l.items():
-      result.Raise()
-      if not isinstance(result.data, list):
-        raise errors.OpExecError("Can't contact node '%s'" % node)
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Can't contact node %s: %s" % (node, msg))
 
-    runningon_source = instance.name in ins_l[source_node].data
-    runningon_target = instance.name in ins_l[target_node].data
+    runningon_source = instance.name in ins_l[source_node].payload
+    runningon_target = instance.name in ins_l[target_node].payload
 
     if runningon_source and runningon_target:
       raise errors.OpExecError("Instance seems to be running on two nodes,"
@@ -5010,9 +5010,12 @@ class LUConnectConsole(NoHooksLU):
 
     node_insts = self.rpc.call_instance_list([node],
                                              [instance.hypervisor])[node]
-    node_insts.Raise()
+    msg = node_insts.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Can't get node information from %s: %s" %
+                               (node, msg))
 
-    if instance.name not in node_insts.data:
+    if instance.name not in node_insts.payload:
       raise errors.OpExecError("Instance %s is not running." % instance.name)
 
     logging.debug("Connecting to console of %s on %s", instance.name, node)
@@ -6217,9 +6220,11 @@ class LUSetInstanceParams(LogicalUnit):
                                      " an instance")
         ins_l = self.rpc.call_instance_list([pnode], [instance.hypervisor])
         ins_l = ins_l[pnode]
-        if ins_l.failed or not isinstance(ins_l.data, list):
-          raise errors.OpPrereqError("Can't contact node '%s'" % pnode)
-        if instance.name in ins_l.data:
+        msg = ins_l.RemoteFailMsg()
+        if msg:
+          raise errors.OpPrereqError("Can't contact node %s: %s" %
+                                     (pnode, msg))
+        if instance.name in ins_l.payload:
           raise errors.OpPrereqError("Instance is running, can't remove"
                                      " disks.")
 

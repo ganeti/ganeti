@@ -476,7 +476,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query the list of running instances.
 
     """
-    return backend.GetInstanceList(params[0])
+    return True, backend.GetInstanceList(params[0])
 
   # node --------------------------
 

@@ -603,8 +603,8 @@ def GetInstanceList(hypervisor_list):
       names = hypervisor.GetHypervisor(hname).ListInstances()
       results.extend(names)
     except errors.HypervisorError, err:
-      logging.exception("Error enumerating instances for hypevisor %s", hname)
-      raise
+      _Fail("Error enumerating instances (hypervisor %s): %s",
+            hname, err, exc=True)
 
   return results
 
