@@ -1688,15 +1688,16 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
     done = True
     cumul_degraded = False
     rstats = lu.rpc.call_blockdev_getmirrorstatus(node, instance.disks)
-    if rstats.failed or not rstats.data:
-      lu.LogWarning("Can't get any data from node %s", node)
+    msg = rstats.RemoteFailMsg()
+    if msg:
+      lu.LogWarning("Can't get any data from node %s: %s", node, msg)
       retries += 1
       if retries >= 10:
         raise errors.RemoteError("Can't contact node %s for mirror data,"
                                  " aborting." % node)
       time.sleep(6)
       continue
-    rstats = rstats.data
+    rstats = rstats.payload
     retries = 0
     for i, mstat in enumerate(rstats):
       if mstat is None:

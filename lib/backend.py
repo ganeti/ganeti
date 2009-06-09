@@ -1374,9 +1374,9 @@ def BlockdevGetmirrorstatus(disks):
   for dsk in disks:
     rbd = _RecursiveFindBD(dsk)
     if rbd is None:
-      raise errors.BlockDeviceError("Can't find device %s" % str(dsk))
+      _Fail("Can't find device %s", dsk)
     stats.append(rbd.CombinedSyncStatus())
-  return stats
+  return True, stats
 
 
 def _RecursiveFindBD(disk):
