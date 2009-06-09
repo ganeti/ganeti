@@ -2912,8 +2912,11 @@ class LUStartupInstance(LogicalUnit):
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
                                               instance.hypervisor)
-    remote_info.Raise()
-    if not remote_info.data:
+    msg = remote_info.RemoteFailMsg()
+    if msg:
+      raise errors.OpPrereqError("Error checking node %s: %s" %
+                                 (instance.primary_node, msg))
+    if not remote_info.payload: # not running already
       _CheckNodeFreeMemory(self, instance.primary_node,
                            "starting instance %s" % instance.name,
                            bep[constants.BE_MEMORY], instance.hypervisor)
@@ -3114,8 +3117,11 @@ class LUReinstallInstance(LogicalUnit):
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
                                               instance.hypervisor)
-    remote_info.Raise()
-    if remote_info.data:
+    msg = remote_info.RemoteFailMsg()
+    if msg:
+      raise errors.OpPrereqError("Error checking node %s: %s" %
+                                 (instance.primary_node, msg))
+    if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
                                   instance.primary_node))
@@ -3198,8 +3204,11 @@ class LURenameInstance(LogicalUnit):
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
                                               instance.hypervisor)
-    remote_info.Raise()
-    if remote_info.data:
+    msg = remote_info.RemoteFailMsg()
+    if msg:
+      raise errors.OpPrereqError("Error checking node %s: %s" %
+                                 (instance.primary_node, msg))
+    if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
                                   instance.primary_node))
@@ -5807,8 +5816,11 @@ class LUQueryInstanceData(NoHooksLU):
         remote_info = self.rpc.call_instance_info(instance.primary_node,
                                                   instance.name,
                                                   instance.hypervisor)
-        remote_info.Raise()
-        remote_info = remote_info.data
+        msg = remote_info.RemoteFailMsg()
+        if msg:
+          raise errors.OpExecError("Error checking node %s: %s" %
+                                   (instance.primary_node, msg))
+        remote_info = remote_info.payload
         if remote_info and "state" in remote_info:
           remote_state = "up"
         else:
@@ -6099,9 +6111,12 @@ class LUSetInstanceParams(LogicalUnit):
       if nodeinfo[pnode].failed or not isinstance(nodeinfo[pnode].data, dict):
         # Assume the primary node is unreachable and go ahead
         self.warn.append("Can't get info from primary node %s" % pnode)
+      elif instance_info.RemoteFailMsg():
+        self.warn.append("Can't get instance runtime information: %s" %
+                        instance_info.RemoteFailMsg())
       else:
-        if not instance_info.failed and instance_info.data:
-          current_mem = int(instance_info.data['memory'])
+        if instance_info.payload:
+          current_mem = int(instance_info.payload['memory'])
         else:
           # Assume instance not running
           # (there is a slight race condition here, but it's not very probable,

@@ -632,7 +632,7 @@ def GetInstanceInfo(instance, hname):
     output['state'] = iinfo[4]
     output['time'] = iinfo[5]
 
-  return output
+  return True, output
 
 
 def GetInstanceMigratable(instance):
