@@ -1948,13 +1948,12 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
         logging.error("Disk import command '%s' returned error: %s"
                       " output: %s", command, result.fail_reason,
                       result.output)
-        final_result.append(False)
-      else:
-        final_result.append(True)
-    else:
-      final_result.append(True)
+        final_result.append("error importing disk %d: %s, %s" %
+                            (idx, result.fail_reason, result.output[-100]))
 
-  return final_result
+  if final_result:
+    return False, "; ".join(final_result)
+  return True, None
 
 
 def ListExports():

@@ -4947,12 +4947,10 @@ class LUCreateInstance(LogicalUnit):
         import_result = self.rpc.call_instance_os_import(pnode_name, iobj,
                                                          src_node, src_images,
                                                          cluster_name)
-        import_result.Raise()
-        for idx, result in enumerate(import_result.data):
-          if not result:
-            self.LogWarning("Could not import the image %s for instance"
-                            " %s, disk %d, on node %s" %
-                            (src_images[idx], instance, idx, pnode_name))
+        msg = import_result.RemoteFailMsg()
+        if msg:
+          self.LogWarning("Error while importing the disk images for instance"
+                          " %s on node %s: %s" % (instance, pnode_name, msg))
       else:
         # also checked in the prereq part
         raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
