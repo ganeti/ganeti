@@ -695,11 +695,11 @@ def GetAllInstancesInfo(hypervisor_list):
           # invocations of the different hypervisors
           for key in 'memory', 'vcpus':
             if value[key] != output[name][key]:
-              raise errors.HypervisorError("Instance %s is running twice"
-                                           " with different parameters" % name)
+              _Fail("Instance %s is running twice"
+                    " with different parameters", name)
         output[name] = value
 
-  return output
+  return True, output
 
 
 def InstanceOsAdd(instance, reinstall):

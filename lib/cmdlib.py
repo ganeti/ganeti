@@ -3446,12 +3446,12 @@ class LUQueryInstances(NoHooksLU):
         if result.offline:
           # offline nodes will be in both lists
           off_nodes.append(name)
-        if result.failed:
+        if result.failed or result.RemoteFailMsg():
           bad_nodes.append(name)
         else:
-          if result.data:
-            live_data.update(result.data)
-            # else no instance is alive
+          if result.payload:
+            live_data.update(result.payload)
+          # else no instance is alive
     else:
       live_data = dict([(name, {}) for name in instance_names])
 
@@ -6914,6 +6914,10 @@ class IAllocator(object):
         nresult.Raise()
         if not isinstance(nresult.data, dict):
           raise errors.OpExecError("Can't get data for node %s" % nname)
+        msg = node_iinfo[nname].RemoteFailMsg()
+        if msg:
+          raise errors.OpExecError("Can't get node instance info"
+                                   " from node %s: %s" % (nname, msg))
         remote_info = nresult.data
         for attr in ['memory_total', 'memory_free', 'memory_dom0',
                      'vg_size', 'vg_free', 'cpu_total']:
@@ -6930,10 +6934,10 @@ class IAllocator(object):
         for iinfo, beinfo in i_list:
           if iinfo.primary_node == nname:
             i_p_mem += beinfo[constants.BE_MEMORY]
-            if iinfo.name not in node_iinfo[nname].data:
+            if iinfo.name not in node_iinfo[nname].payload:
               i_used_mem = 0
             else:
-              i_used_mem = int(node_iinfo[nname].data[iinfo.name]['memory'])
+              i_used_mem = int(node_iinfo[nname].payload[iinfo.name]['memory'])
             i_mem_diff = beinfo[constants.BE_MEMORY] - i_used_mem
             remote_info['memory_free'] -= max(0, i_mem_diff)
 
