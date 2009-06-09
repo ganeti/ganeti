@@ -339,6 +339,10 @@ class NIC(ConfigObject):
       if self.bridge is not None:
         self.nicparams[constants.NIC_MODE] = constants.NIC_MODE_BRIDGED
         self.nicparams[constants.NIC_LINK] = self.bridge
+    # bridge is no longer used it 2.1. The slot is left there to support
+    # upgrading, but will be removed in 2.2
+    if self.bridge is not None:
+      self.bridge = None
 
 
 class Disk(ConfigObject):
@@ -821,6 +825,11 @@ class Cluster(TaggableObject):
 
     if self.modify_etc_hosts is None:
       self.modify_etc_hosts = True
+
+    # default_bridge is no longer used it 2.1. The slot is left there to
+    # support auto-upgrading, but will be removed in 2.2
+    if self.default_bridge is not None:
+      self.default_bridge = None
 
   def ToDict(self):
     """Custom function for cluster.
