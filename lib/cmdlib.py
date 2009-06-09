@@ -1510,11 +1510,13 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.vg_name:
       vglist = self.rpc.call_vg_list(node_list)
       for node in node_list:
-        if vglist[node].failed:
+        msg = vglist[node].RemoteFailMsg()
+        if msg:
           # ignoring down node
-          self.LogWarning("Node %s unreachable/error, ignoring" % node)
+          self.LogWarning("Error while gathering data on node %s"
+                          " (ignoring node): %s", node, msg)
           continue
-        vgstatus = utils.CheckVolumeGroupSize(vglist[node].data,
+        vgstatus = utils.CheckVolumeGroupSize(vglist[node].payload,
                                               self.op.vg_name,
                                               constants.MIN_VG_SIZE)
         if vgstatus:
@@ -5226,7 +5228,10 @@ class LUReplaceDisks(LogicalUnit):
       raise errors.OpExecError("Can't list volume groups on the nodes")
     for node in oth_node, tgt_node:
       res = results[node]
-      if res.failed or not res.data or my_vg not in res.data:
+      msg = res.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Error checking node %s: %s" % (node, msg))
+      if my_vg not in res.payload:
         raise errors.OpExecError("Volume group '%s' not found on %s" %
                                  (my_vg, node))
     for idx, dev in enumerate(instance.disks):
@@ -5422,7 +5427,10 @@ class LUReplaceDisks(LogicalUnit):
     results = self.rpc.call_vg_list([pri_node, new_node])
     for node in pri_node, new_node:
       res = results[node]
-      if res.failed or not res.data or my_vg not in res.data:
+      msg = res.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Error checking node %s: %s" % (node, msg))
+      if my_vg not in res.payload:
         raise errors.OpExecError("Volume group '%s' not found on %s" %
                                  (my_vg, node))
     for idx, dev in enumerate(instance.disks):

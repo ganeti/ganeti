@@ -451,7 +451,7 @@ def VerifyNode(what, cluster_name):
       what[constants.NV_INSTANCELIST])
 
   if constants.NV_VGLIST in what:
-    result[constants.NV_VGLIST] = ListVolumeGroups()
+    result[constants.NV_VGLIST] = utils.ListVolumeGroups()
 
   if constants.NV_VERSION in what:
     result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,
@@ -519,7 +519,7 @@ def ListVolumeGroups():
       size of the volume
 
   """
-  return utils.ListVolumeGroups()
+  return True, utils.ListVolumeGroups()
 
 
 def NodeVolumes():
