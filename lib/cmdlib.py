@@ -4440,10 +4440,21 @@ class LUCreateInstance(LogicalUnit):
 
     # NIC buildup
     self.nics = []
-    for nic in self.op.nics:
+    for idx, nic in enumerate(self.op.nics):
+      nic_mode_req = nic.get("mode", None)
+      nic_mode = nic_mode_req
+      if nic_mode is None:
+        nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
+
+      # in routed mode, for the first nic, the default ip is 'auto'
+      if nic_mode == constants.NIC_MODE_ROUTED and idx == 0:
+        default_ip_mode = constants.VALUE_AUTO
+      else:
+        default_ip_mode = constants.VALUE_NONE
+
       # ip validity checks
-      ip = nic.get("ip", None)
-      if ip is None or ip.lower() == "none":
+      ip = nic.get("ip", default_ip_mode)
+      if ip is None or ip.lower() == constants.VALUE_NONE:
         nic_ip = None
       elif ip.lower() == constants.VALUE_AUTO:
         nic_ip = hostname1.ip
@@ -4453,6 +4464,10 @@ class LUCreateInstance(LogicalUnit):
                                      " like a valid IP" % ip)
         nic_ip = ip
 
+      # TODO: check the ip for uniqueness !!
+      if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
+        raise errors.OpPrereqError("Routed nic mode requires an ip address")
+
       # MAC address verification
       mac = nic.get("mac", constants.VALUE_AUTO)
       if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
@@ -4461,9 +4476,24 @@ class LUCreateInstance(LogicalUnit):
                                      mac)
       # bridge verification
       bridge = nic.get("bridge", None)
-      if bridge is None:
-        bridge = self.cfg.GetDefBridge()
-      self.nics.append(objects.NIC(mac=mac, ip=nic_ip, bridge=bridge))
+      link = nic.get("link", None)
+      if bridge and link:
+        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link' at the same time")
+      elif bridge and nic_mode == constants.NIC_MODE_ROUTED:
+        raise errors.OpPrereqError("Cannot pass 'bridge' on a routed nic")
+      elif bridge:
+        link = bridge
+
+      nicparams = {}
+      if nic_mode_req:
+        nicparams[constants.NIC_MODE] = nic_mode_req
+      if link:
+        nicparams[constants.NIC_LINK] = link
+
+      check_params = objects.FillDict(cluster.nicparams[constants.PP_DEFAULT],
+                                      nicparams)
+      objects.NIC.CheckParameterSyntax(check_params)
+      self.nics.append(objects.NIC(mac=mac, ip=nic_ip, nicparams=nicparams))
 
     # disk checks/pre-build
     self.disks = []
