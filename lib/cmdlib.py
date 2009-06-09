@@ -4672,11 +4672,13 @@ class LUCreateInstance(LogicalUnit):
       src_path = self.op.src_path
 
       if src_node is None:
-        exp_list = self.rpc.call_export_list(
-          self.acquired_locks[locking.LEVEL_NODE])
+        locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
+        exp_list = self.rpc.call_export_list(locked_nodes)
         found = False
         for node in exp_list:
-          if not exp_list[node].failed and src_path in exp_list[node].data:
+          if exp_list[node].RemoteFailMsg():
+            continue
+          if src_path in exp_list[node].payload:
             found = True
             self.op.src_node = src_node = node
             self.op.src_path = src_path = os.path.join(constants.EXPORT_DIR,
@@ -6361,10 +6363,10 @@ class LUQueryExports(NoHooksLU):
     rpcresult = self.rpc.call_export_list(self.nodes)
     result = {}
     for node in rpcresult:
-      if rpcresult[node].failed:
+      if rpcresult[node].RemoteFailMsg():
         result[node] = False
       else:
-        result[node] = rpcresult[node].data
+        result[node] = rpcresult[node].payload
 
     return result
 
@@ -6517,9 +6519,9 @@ class LUExportInstance(LogicalUnit):
     if nodelist:
       exportlist = self.rpc.call_export_list(nodelist)
       for node in exportlist:
-        if exportlist[node].failed:
+        if exportlist[node].RemoteFailMsg():
           continue
-        if instance.name in exportlist[node].data:
+        if instance.name in exportlist[node].payload:
           if not self.rpc.call_export_remove(node, instance.name):
             self.LogWarning("Could not remove older export for instance %s"
                             " on node %s", instance.name, node)
@@ -6556,14 +6558,15 @@ class LURemoveExport(NoHooksLU):
       fqdn_warn = True
       instance_name = self.op.instance_name
 
-    exportlist = self.rpc.call_export_list(self.acquired_locks[
-      locking.LEVEL_NODE])
+    locked_nodes = self.acquired_locks[locking.LEVEL_NODE]
+    exportlist = self.rpc.call_export_list(locked_nodes)
     found = False
     for node in exportlist:
-      if exportlist[node].failed:
-        self.LogWarning("Failed to query node %s, continuing" % node)
+      msg = exportlist[node].RemoteFailMsg()
+      if msg:
+        self.LogWarning("Failed to query node %s (continuing): %s", node, msg)
         continue
-      if instance_name in exportlist[node].data:
+      if instance_name in exportlist[node].payload:
         found = True
         result = self.rpc.call_export_remove(node, instance_name)
         if result.failed or not result.data:

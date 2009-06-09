@@ -1963,9 +1963,9 @@ def ListExports():
 
   """
   if os.path.isdir(constants.EXPORT_DIR):
-    return utils.ListVisibleFiles(constants.EXPORT_DIR)
+    return True, utils.ListVisibleFiles(constants.EXPORT_DIR)
   else:
-    return []
+    return False, "No exports directory"
 
 
 def RemoveExport(export):
