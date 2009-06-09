@@ -6462,16 +6462,17 @@ class LUExportInstance(LogicalUnit):
 
     try:
       for disk in instance.disks:
-        # new_dev_name will be a snapshot of an lvm leaf of the one we passed
-        new_dev_name = self.rpc.call_blockdev_snapshot(src_node, disk)
-        if new_dev_name.failed or not new_dev_name.data:
-          self.LogWarning("Could not snapshot block device %s on node %s",
-                          disk.logical_id[1], src_node)
+        # result.payload will be a snapshot of an lvm leaf of the one we passed
+        result = self.rpc.call_blockdev_snapshot(src_node, disk)
+        msg = result.RemoteFailMsg()
+        if msg:
+          self.LogWarning("Could not snapshot block device %s on node %s: %s",
+                          disk.logical_id[1], src_node, msg)
           snap_disks.append(False)
         else:
+          disk_id = (vgname, result.payload)
           new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
-                                 logical_id=(vgname, new_dev_name.data),
-                                 physical_id=(vgname, new_dev_name.data),
+                                 logical_id=disk_id, physical_id=disk_id,
                                  iv_name=disk.iv_name)
           snap_disks.append(new_dev)
 

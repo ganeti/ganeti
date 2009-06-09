@@ -1743,13 +1743,12 @@ def BlockdevSnapshot(disk):
     r_dev = _RecursiveFindBD(disk)
     if r_dev is not None:
       # let's stay on the safe side and ask for the full size, for now
-      return r_dev.Snapshot(disk.size)
+      return True, r_dev.Snapshot(disk.size)
     else:
-      return None
+      _Fail("Cannot find block device %s", disk)
   else:
-    raise errors.ProgrammerError("Cannot snapshot non-lvm block device"
-                                 " '%s' of type '%s'" %
-                                 (disk.unique_id, disk.dev_type))
+    _Fail("Cannot snapshot non-lvm block device '%s' of type '%s'",
+          disk.unique_id, disk.dev_type)
 
 
 def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
