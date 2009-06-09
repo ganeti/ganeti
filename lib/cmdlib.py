@@ -6491,10 +6491,11 @@ class LUExportInstance(LogicalUnit):
       if dev:
         result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
                                                instance, cluster_name, idx)
-        if result.failed or not result.data:
+        msg = result.RemoteFailMsg()
+        if msg:
           self.LogWarning("Could not export block device %s from node %s to"
-                          " node %s", dev.logical_id[1], src_node,
-                          dst_node.name)
+                          " node %s: %s", dev.logical_id[1], src_node,
+                          dst_node.name, msg)
         msg = self.rpc.call_blockdev_remove(src_node, dev).RemoteFailMsg()
         if msg:
           self.LogWarning("Could not remove snapshot block device %s from node"

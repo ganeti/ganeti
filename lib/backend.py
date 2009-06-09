@@ -1780,8 +1780,8 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
     os.mkdir(constants.LOG_OS_DIR, 0750)
   real_disk = _RecursiveFindBD(disk)
   if real_disk is None:
-    raise errors.BlockDeviceError("Block device '%s' is not set up" %
-                                  str(disk))
+    _Fail("Block device '%s' is not set up", disk)
+
   real_disk.Open()
 
   export_env['EXPORT_DEVICE'] = real_disk.dev_path
@@ -1810,11 +1810,10 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   result = utils.RunCmd(command, env=export_env)
 
   if result.failed:
-    logging.error("os snapshot export command '%s' returned error: %s"
-                  " output: %s", command, result.fail_reason, result.output)
-    return False
+    _Fail("OS snapshot export command '%s' returned error: %s"
+          " output: %s", command, result.fail_reason, result.output)
 
-  return True
+  return (True, None)
 
 
 def FinalizeExport(instance, snap_disks):
