@@ -249,7 +249,6 @@ def ShowClusterConfig(opts, args):
   ToStdout("Cluster parameters:")
   ToStdout("  - candidate pool size: %s", result["candidate_pool_size"])
   ToStdout("  - master netdev: %s", result["master_netdev"])
-  ToStdout("  - default bridge: %s", result["default_bridge"])
   ToStdout("  - lvm volume group: %s", result["volume_group_name"])
   ToStdout("  - file storage path: %s", result["file_storage_dir"])
 

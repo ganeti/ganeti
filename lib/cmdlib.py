@@ -2534,7 +2534,6 @@ class LUQueryClusterInfo(NoHooksLU):
       "beparams": cluster.beparams,
       "nicparams": cluster.nicparams,
       "candidate_pool_size": cluster.candidate_pool_size,
-      "default_bridge": cluster.default_bridge,
       "master_netdev": cluster.master_netdev,
       "volume_group_name": cluster.volume_group_name,
       "file_storage_dir": cluster.file_storage_dir,
