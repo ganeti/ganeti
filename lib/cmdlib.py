@@ -1289,8 +1289,13 @@ class LUVerifyDisks(NoHooksLU):
   def Exec(self, feedback_fn):
     """Verify integrity of cluster disks.
 
+    @rtype: tuple of three items
+    @return: a tuple of (dict of node-to-node_error, list of instances
+        which need activate-disks, dict of instance: (node, volume) for
+        missing volumes
+
     """
-    result = res_nodes, res_nlvm, res_instances, res_missing = [], {}, [], {}
+    result = res_nodes, res_instances, res_missing = {}, [], {}
 
     vg_name = self.cfg.GetVGName()
     nodes = utils.NiceSort(self.cfg.GetNodeList())
@@ -1317,24 +1322,17 @@ class LUVerifyDisks(NoHooksLU):
     to_act = set()
     for node in nodes:
       # node_volume
-      lvs = node_lvs[node]
-      if lvs.failed:
-        if not lvs.offline:
-          self.LogWarning("Connection to node %s failed: %s" %
-                          (node, lvs.data))
+      node_res = node_lvs[node]
+      if node_res.offline:
         continue
-      lvs = lvs.data
-      if isinstance(lvs, basestring):
-        logging.warning("Error enumerating LVs on node %s: %s", node, lvs)
-        res_nlvm[node] = lvs
-        continue
-      elif not isinstance(lvs, dict):
-        logging.warning("Connection to node %s failed or invalid data"
-                        " returned", node)
-        res_nodes.append(node)
+      msg = node_res.RemoteFailMsg()
+      if msg:
+        logging.warning("Error enumerating LVs on node %s: %s", node, msg)
+        res_nodes[node] = msg
         continue
 
-      for lv_name, (_, lv_inactive, lv_online) in lvs.iteritems():
+      lvs = node_res.payload
+      for lv_name, (_, lv_inactive, lv_online) in lvs.items():
         inst = nv_dict.pop((node, lv_name), None)
         if (not lv_online and inst is not None
             and inst.name not in res_instances):

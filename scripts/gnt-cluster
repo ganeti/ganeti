@@ -361,20 +361,16 @@ def VerifyDisks(opts, args):
   """
   op = opcodes.OpVerifyDisks()
   result = SubmitOpCode(op)
-  if not isinstance(result, (list, tuple)) or len(result) != 4:
+  if not isinstance(result, (list, tuple)) or len(result) != 3:
     raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
 
-  nodes, nlvm, instances, missing = result
+  bad_nodes, instances, missing = result
 
-  if nodes:
-    ToStdout("Nodes unreachable or with bad data:")
-    for name in nodes:
-      ToStdout("\t%s", name)
   retcode = constants.EXIT_SUCCESS
 
-  if nlvm:
-    for node, text in nlvm.iteritems():
-      ToStdout("Error on node %s: LVM error: %s",
+  if bad_nodes:
+    for node, text in bad_nodes.items():
+      ToStdout("Error gathering data on node %s: %s",
                node, utils.SafeEncode(text[-400:]))
       retcode |= 1
       ToStdout("You need to fix these nodes first before fixing instances")
@@ -394,7 +390,7 @@ def VerifyDisks(opts, args):
 
   if missing:
     for iname, ival in missing.iteritems():
-      all_missing = utils.all(ival, lambda x: x[0] in nlvm)
+      all_missing = utils.all(ival, lambda x: x[0] in bad_nodes)
       if all_missing:
         ToStdout("Instance %s cannot be verified as it lives on"
                  " broken nodes", iname)
@@ -402,7 +398,7 @@ def VerifyDisks(opts, args):
         ToStdout("Instance %s has missing logical volumes:", iname)
         ival.sort()
         for node, vol in ival:
-          if node in nlvm:
+          if node in bad_nodes:
             ToStdout("\tbroken node %s /dev/xenvg/%s", node, vol)
           else:
             ToStdout("\t%s /dev/xenvg/%s", node, vol)

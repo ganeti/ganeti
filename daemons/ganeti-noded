@@ -339,7 +339,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     vgname = params[0]
-    return backend.GetVolumeList(vgname)
+    return True, backend.GetVolumeList(vgname)
 
   @staticmethod
   def perspective_vg_list(params):

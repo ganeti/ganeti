@@ -494,9 +494,7 @@ def GetVolumeList(vg_name):
                          "--separator=%s" % sep,
                          "-olv_name,lv_size,lv_attr", vg_name])
   if result.failed:
-    logging.error("Failed to list logical volumes, lvs output: %s",
-                  result.output)
-    return result.output
+    _Fail("Failed to list logical volumes, lvs output: %s", result.output)
 
   valid_line_re = re.compile("^ *([^|]+)\|([0-9.]+)\|([^|]{6})\|?$")
   for line in result.stdout.splitlines():
