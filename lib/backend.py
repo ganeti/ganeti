@@ -1879,7 +1879,7 @@ def FinalizeExport(instance, snap_disks):
   shutil.rmtree(finaldestdir, True)
   shutil.move(destdir, finaldestdir)
 
-  return True
+  return True, None
 
 
 def ExportInfo(dest):

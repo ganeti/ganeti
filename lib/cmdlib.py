@@ -6502,9 +6502,10 @@ class LUExportInstance(LogicalUnit):
                           " %s: %s", dev.logical_id[1], src_node, msg)
 
     result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
-    if result.failed or not result.data:
-      self.LogWarning("Could not finalize export for instance %s on node %s",
-                      instance.name, dst_node.name)
+    msg = result.RemoteFailMsg()
+    if msg:
+      self.LogWarning("Could not finalize export for instance %s"
+                      " on node %s: %s", instance.name, dst_node.name, msg)
 
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(dst_node.name)
