@@ -6516,15 +6516,17 @@ class LUExportInstance(LogicalUnit):
     # on one-node clusters nodelist will be empty after the removal
     # if we proceed the backup would be removed because OpQueryExports
     # substitutes an empty list with the full cluster node list.
+    iname = instance.name
     if nodelist:
       exportlist = self.rpc.call_export_list(nodelist)
       for node in exportlist:
         if exportlist[node].RemoteFailMsg():
           continue
-        if instance.name in exportlist[node].payload:
-          if not self.rpc.call_export_remove(node, instance.name):
+        if iname in exportlist[node].payload:
+          msg = self.rpc.call_export_remove(node, iname).RemoteFailMsg()
+          if msg:
             self.LogWarning("Could not remove older export for instance %s"
-                            " on node %s", instance.name, node)
+                            " on node %s: %s", iname, node, msg)
 
 
 class LURemoveExport(NoHooksLU):
@@ -6569,9 +6571,10 @@ class LURemoveExport(NoHooksLU):
       if instance_name in exportlist[node].payload:
         found = True
         result = self.rpc.call_export_remove(node, instance_name)
-        if result.failed or not result.data:
+        msg = result.RemoteFailMsg()
+        if msg:
           logging.error("Could not remove export for instance %s"
-                        " on node %s", instance_name, node)
+                        " on node %s: %s", instance_name, node, msg)
 
     if fqdn_warn and not found:
       feedback_fn("Export not found. If trying to remove an export belonging"

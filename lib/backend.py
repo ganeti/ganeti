@@ -1979,11 +1979,12 @@ def RemoveExport(export):
   """
   target = os.path.join(constants.EXPORT_DIR, export)
 
-  shutil.rmtree(target)
-  # TODO: catch some of the relevant exceptions and provide a pretty
-  # error message if rmtree fails.
+  try:
+    shutil.rmtree(target)
+  except EnvironmentError, err:
+    _Fail("Error while removing the export: %s", err, exc=True)
 
-  return True
+  return True, None
 
 
 def BlockdevRename(devlist):
