@@ -66,7 +66,7 @@ class TestConfigRunner(unittest.TestCase):
       highest_used_port=(constants.FIRST_DRBD_PORT - 1),
       mac_prefix="aa:00:00",
       volume_group_name="xenvg",
-      default_bridge=constants.DEFAULT_BRIDGE,
+      nicparams={constants.PP_DEFAULT: constants.NICC_DEFAULTS},
       tcpudp_port_pool=set(),
       default_hypervisor=constants.HT_FAKE,
       master_node=me.name,
