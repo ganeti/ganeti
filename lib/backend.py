@@ -550,9 +550,8 @@ def NodeVolumes():
                          "--separator=|",
                          "--options=lv_name,lv_size,devices,vg_name"])
   if result.failed:
-    logging.error("Failed to list logical volumes, lvs output: %s",
-                  result.output)
-    return []
+    _Fail("Failed to list logical volumes, lvs output: %s",
+          result.output)
 
   def parse_dev(dev):
     if '(' in dev:
@@ -568,8 +567,9 @@ def NodeVolumes():
       'vg': line[3].strip(),
     }
 
-  return [map_line(line.split('|')) for line in result.stdout.splitlines()
-          if line.count('|') >= 3]
+  return True, [map_line(line.split('|'))
+                for line in result.stdout.splitlines()
+                if line.count('|') >= 3]
 
 
 def BridgesExist(bridges_list):

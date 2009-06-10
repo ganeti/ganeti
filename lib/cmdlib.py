@@ -2129,10 +2129,15 @@ class LUQueryNodeVolumes(NoHooksLU):
 
     output = []
     for node in nodenames:
-      if node not in volumes or volumes[node].failed or not volumes[node].data:
+      nresult = volumes[node]
+      if nresult.offline:
+        continue
+      msg = nresult.RemoteFailMsg()
+      if msg:
+        self.LogWarning("Can't compute volume data on node %s: %s", node, msg)
         continue
 
-      node_vols = volumes[node].data[:]
+      node_vols = nresult.payload[:]
       node_vols.sort(key=lambda vol: vol['dev'])
 
       for vol in node_vols:
