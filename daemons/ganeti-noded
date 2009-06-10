@@ -493,7 +493,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Checks if a node has the given ip address.
 
     """
-    return utils.OwnIpAddress(params[0])
+    return True, utils.OwnIpAddress(params[0])
 
   @staticmethod
   def perspective_node_info(params):
