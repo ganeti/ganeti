@@ -285,6 +285,10 @@ class RpcRunner(object):
     idict["beparams"] = cluster.FillBE(instance)
     if bep is not None:
       idict["beparams"].update(bep)
+    for nic in idict["nics"]:
+      nic['nicparams'] = objects.FillDict(
+        cluster.nicparams[constants.PP_DEFAULT],
+        nic['nicparams'])
     return idict
 
   def _ConnectList(self, client, node_list, call):
