@@ -1387,9 +1387,9 @@ def TestDelay(duration):
 
   """
   if duration < 0:
-    return False
+    return False, "Invalid sleep duration"
   time.sleep(duration)
-  return True
+  return True, None
 
 
 def _CloseFDNoErr(fd, retries=5):

@@ -6841,13 +6841,11 @@ class LUTestDelay(NoHooksLU):
         raise errors.OpExecError("Error during master delay test")
     if self.op.on_nodes:
       result = self.rpc.call_test_delay(self.op.on_nodes, self.op.duration)
-      if not result:
-        raise errors.OpExecError("Complete failure from rpc call")
       for node, node_result in result.items():
-        node_result.Raise()
-        if not node_result.data:
-          raise errors.OpExecError("Failure during rpc call to node %s,"
-                                   " result: %s" % (node, node_result.data))
+        msg = node_result.RemoteFailMsg()
+        if msg:
+          raise errors.OpExecError("Failure during rpc call to node %s: %s"
+                                   % (node, msg))
 
 
 class IAllocator(object):
