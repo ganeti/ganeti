@@ -574,7 +574,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query version information.
 
     """
-    return constants.PROTOCOL_VERSION
+    return True, constants.PROTOCOL_VERSION
 
   @staticmethod
   def perspective_upload_file(params):

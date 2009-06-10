@@ -2287,17 +2287,17 @@ class LUAddNode(LogicalUnit):
 
     # check connectivity
     result = self.rpc.call_version([node])[node]
-    result.Raise()
-    if result.data:
-      if constants.PROTOCOL_VERSION == result.data:
-        logging.info("Communication to node %s fine, sw version %s match",
-                     node, result.data)
-      else:
-        raise errors.OpExecError("Version mismatch master version %s,"
-                                 " node version %s" %
-                                 (constants.PROTOCOL_VERSION, result.data))
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Can't get version information from"
+                               " node %s: %s" % (node, msg))
+    if constants.PROTOCOL_VERSION == result.payload:
+      logging.info("Communication to node %s fine, sw version %s match",
+                   node, result.payload)
     else:
-      raise errors.OpExecError("Cannot get version from the new node")
+      raise errors.OpExecError("Version mismatch master version %s,"
+                               " node version %s" %
+                               (constants.PROTOCOL_VERSION, result.payload))
 
     # setup ssh on node
     logging.info("Copy ssh key to node %s", node)
