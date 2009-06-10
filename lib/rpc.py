@@ -864,13 +864,7 @@ class RpcRunner(object):
     This is a multi-node call.
 
     """
-    result = self._MultiNodeCall(node_list, "os_diagnose", [])
-
-    for node_result in result.values():
-      if not node_result.failed and node_result.data:
-        node_result.data = [objects.OS.FromDict(oss)
-                            for oss in node_result.data]
-    return result
+    return self._MultiNodeCall(node_list, "os_diagnose", [])
 
   def call_os_get(self, node, name):
     """Returns an OS definition.

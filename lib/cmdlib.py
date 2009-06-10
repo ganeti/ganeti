@@ -1811,11 +1811,12 @@ class LUDiagnoseOS(NoHooksLU):
     # level), so that nodes with a non-responding node daemon don't
     # make all OSes invalid
     good_nodes = [node_name for node_name in rlist
-                  if not rlist[node_name].failed]
-    for node_name, nr in rlist.iteritems():
-      if nr.failed or not nr.data:
+                  if not rlist[node_name].RemoteFailMsg()]
+    for node_name, nr in rlist.items():
+      if nr.RemoteFailMsg() or not nr.payload:
         continue
-      for os_obj in nr.data:
+      for os_serialized in nr.payload:
+        os_obj = objects.OS.FromDict(os_serialized)
         if os_obj.name not in all_os:
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
@@ -1831,11 +1832,9 @@ class LUDiagnoseOS(NoHooksLU):
     """
     valid_nodes = [node for node in self.cfg.GetOnlineNodeList()]
     node_data = self.rpc.call_os_diagnose(valid_nodes)
-    if node_data == False:
-      raise errors.OpExecError("Can't gather the list of OSes")
     pol = self._DiagnoseByOS(valid_nodes, node_data)
     output = []
-    for os_name, os_data in pol.iteritems():
+    for os_name, os_data in pol.items():
       row = []
       for field in self.op.output_fields:
         if field == "name":

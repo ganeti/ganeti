@@ -608,7 +608,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query detailed information about existing OSes.
 
     """
-    return [os_obj.ToDict() for os_obj in backend.DiagnoseOS()]
+    return True, [os_obj.ToDict() for os_obj in backend.DiagnoseOS()]
 
   @staticmethod
   def perspective_os_get(params):
