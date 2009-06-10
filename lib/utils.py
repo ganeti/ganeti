@@ -373,32 +373,6 @@ def FingerprintFiles(files):
   return ret
 
 
-def CheckDict(target, template, logname=None):
-  """Ensure a dictionary has a required set of keys.
-
-  For the given dictionaries I{target} and I{template}, ensure
-  I{target} has all the keys from I{template}. Missing keys are added
-  with values from template.
-
-  @type target: dict
-  @param target: the dictionary to update
-  @type template: dict
-  @param template: the dictionary holding the default values
-  @type logname: str or None
-  @param logname: if not None, causes the missing keys to be
-      logged with this name
-
-  """
-  missing = []
-  for k in template:
-    if k not in target:
-      missing.append(k)
-      target[k] = template[k]
-
-  if missing and logname:
-    logging.warning('%s missing keys %s', logname, ', '.join(missing))
-
-
 def ForceDictType(target, key_types, allowed_values=None):
   """Force the values of a dict to have certain types.
 

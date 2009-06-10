@@ -40,7 +40,7 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import errors
 from ganeti.utils import IsProcessAlive, RunCmd, \
-     RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
+     RemoveFile, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
@@ -304,27 +304,6 @@ class TestRename(unittest.TestCase):
     """Rename with mkdir"""
     utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "test/xyz"),
                      mkdir=True)
-
-
-class TestCheckdict(unittest.TestCase):
-  """Test case for the CheckDict function"""
-
-  def testAdd(self):
-    """Test that CheckDict adds a missing key with the correct value"""
-
-    tgt = {'a':1}
-    tmpl = {'b': 2}
-    CheckDict(tgt, tmpl)
-    if 'b' not in tgt or tgt['b'] != 2:
-      self.fail("Failed to update dict")
-
-
-  def testNoUpdate(self):
-    """Test that CheckDict does not overwrite an existing key"""
-    tgt = {'a':1, 'b': 3}
-    tmpl = {'b': 2}
-    CheckDict(tgt, tmpl)
-    self.failUnlessEqual(tgt['b'], 3)
 
 
 class TestMatchNameComponent(unittest.TestCase):
