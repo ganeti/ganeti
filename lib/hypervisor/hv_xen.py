@@ -455,11 +455,13 @@ class XenPvmHypervisor(XenHypervisor):
 
     vif_data = []
     for nic in instance.nics:
-      nic_str = "mac=%s, bridge=%s" % (nic.mac, nic.bridge)
+      nic_str = "mac=%s" % (nic.mac)
       ip = getattr(nic, "ip", None)
       if ip is not None:
         nic_str += ", ip=%s" % ip
       vif_data.append("'%s'" % nic_str)
+      if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+        nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
     config.write("disk = [%s]\n" % ",".join(
@@ -575,11 +577,13 @@ class XenHvmHypervisor(XenHypervisor):
     else:
       nic_type_str = ", model=%s, type=ioemu" % nic_type
     for nic in instance.nics:
-      nic_str = "mac=%s, bridge=%s%s" % (nic.mac, nic.bridge, nic_type_str)
+      nic_str = "mac=%s%s" % (nic.mac, nic_type_str)
       ip = getattr(nic, "ip", None)
       if ip is not None:
         nic_str += ", ip=%s" % ip
       vif_data.append("'%s'" % nic_str)
+      if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+        nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
     disk_data = cls._GetConfigFileDiskData(instance.disk_template,
