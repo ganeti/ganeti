@@ -469,7 +469,7 @@ def VerifyNode(what, cluster_name):
       used_minors = str(err)
     result[constants.NV_DRBDLIST] = used_minors
 
-  return result
+  return True, result
 
 
 def GetVolumeList(vg_name):

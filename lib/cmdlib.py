@@ -1022,7 +1022,6 @@ class LUVerifyCluster(LogicalUnit):
 
     for node_i in nodeinfo:
       node = node_i.name
-      nresult = all_nvinfo[node].data
 
       if node_i.offline:
         feedback_fn("* Skipping offline node %s" % (node,))
@@ -1040,11 +1039,13 @@ class LUVerifyCluster(LogicalUnit):
         ntype = "regular"
       feedback_fn("* Verifying node %s (%s)" % (node, ntype))
 
-      if all_nvinfo[node].failed or not isinstance(nresult, dict):
-        feedback_fn("  - ERROR: connection to %s failed" % (node,))
+      msg = all_nvinfo[node].RemoteFailMsg()
+      if msg:
+        feedback_fn("  - ERROR: while contacting node %s: %s" % (node, msg))
         bad = True
         continue
 
+      nresult = all_nvinfo[node].payload
       node_drbd = {}
       for minor, instance in all_drbd_map[node].items():
         if instance not in instanceinfo:
@@ -2336,13 +2337,15 @@ class LUAddNode(LogicalUnit):
     result = self.rpc.call_node_verify(node_verify_list, node_verify_param,
                                        self.cfg.GetClusterName())
     for verifier in node_verify_list:
-      if result[verifier].failed or not result[verifier].data:
-        raise errors.OpExecError("Cannot communicate with %s's node daemon"
-                                 " for remote verification" % verifier)
-      if result[verifier].data['nodelist']:
-        for failed in result[verifier].data['nodelist']:
+      msg = result[verifier].RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Cannot communicate with node %s: %s" %
+                                 (verifier, msg))
+      nl_payload = result[verifier].payload['nodelist']
+      if nl_payload:
+        for failed in nl_payload:
           feedback_fn("ssh/hostname verification failed %s -> %s" %
-                      (verifier, result[verifier].data['nodelist'][failed]))
+                      (verifier, nl_payload[failed]))
         raise errors.OpExecError("ssh/hostname verification failed.")
 
     if self.op.readd:
