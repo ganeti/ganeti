@@ -2307,7 +2307,7 @@ class LUAddNode(LogicalUnit):
       _RedistributeAncillaryFiles(self)
       self.context.ReaddNode(new_node)
     else:
-      _RedistributeAncillaryFiles(self, additional_nodes=node)
+      _RedistributeAncillaryFiles(self, additional_nodes=[node])
       self.context.AddNode(new_node)
 
 
