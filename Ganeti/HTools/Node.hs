@@ -223,8 +223,11 @@ removePri t inst =
         new_mp = (fromIntegral new_mem) / (t_mem t)
         new_dp = (fromIntegral new_dsk) / (t_dsk t)
         new_failn1 = computeFailN1 (r_mem t) new_mem new_dsk
+        new_ucpu = (u_cpu t) - (Instance.vcpus inst)
+        new_rcpu = (fromIntegral new_ucpu) / (t_cpu t)
     in t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
-          failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp}
+          failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
+          u_cpu = new_ucpu, p_cpu = new_rcpu}
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
@@ -255,7 +258,10 @@ addPri t inst =
     let iname = Instance.idx inst
         new_mem = f_mem t - Instance.mem inst
         new_dsk = f_dsk t - Instance.dsk inst
-        new_failn1 = computeFailN1 (r_mem t) new_mem new_dsk in
+        new_failn1 = computeFailN1 (r_mem t) new_mem new_dsk
+        new_ucpu = (u_cpu t) + (Instance.vcpus inst)
+        new_pcpu = (fromIntegral new_ucpu) / (t_cpu t)
+    in
       if (failHealth new_mem new_dsk) || (new_failn1 && not (failN1 t)) then
         Nothing
       else
@@ -264,7 +270,8 @@ addPri t inst =
             new_dp = (fromIntegral new_dsk) / (t_dsk t)
         in
         Just t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
-                failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp}
+                failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
+                u_cpu = new_ucpu, p_cpu = new_pcpu}
 
 -- | Adds a secondary instance.
 addSec :: Node -> Instance.Instance -> T.Ndx -> Maybe Node
