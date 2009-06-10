@@ -148,7 +148,7 @@ totalResources nl =
     (0, 0) (Container.elems nl)
 
 -- | Compute the mem and disk covariance.
-compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double)
+compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double, Double)
 compDetailedCV nl =
     let
         all_nodes = Container.elems nl
@@ -167,13 +167,16 @@ compDetailedCV nl =
                                        (length . Node.slist $ n)) $ nodes
         off_score = (fromIntegral offline_inst) /
                     (fromIntegral $ online_inst + offline_inst)
-    in (mem_cv, dsk_cv, n1_score, res_cv, off_score)
+        cpu_l = map Node.p_cpu nodes
+        cpu_cv = varianceCoeff cpu_l
+    in (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv)
 
 -- | Compute the /total/ variance.
 compCV :: Node.List -> Double
 compCV nl =
-    let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
-    in mem_cv + dsk_cv + n1_score + res_cv + off_score
+    let (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv) =
+            compDetailedCV nl
+    in mem_cv + dsk_cv + n1_score + res_cv + off_score + cpu_cv
 
 -- | Compute online nodes from a Node.List
 getOnline :: Node.List -> [Node.Node]
@@ -790,6 +793,8 @@ printNodes nl =
 -- | Shows statistics for a given node list.
 printStats :: Node.List -> String
 printStats nl =
-    let (mem_cv, dsk_cv, n1_score, res_cv, off_score) = compDetailedCV nl
-    in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f, uf=%.3f"
-       mem_cv res_cv dsk_cv n1_score off_score
+    let (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv) =
+            compDetailedCV nl
+    in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f, \
+              \uf=%.3f, r_cpu=%.3f"
+       mem_cv res_cv dsk_cv n1_score off_score cpu_cv
