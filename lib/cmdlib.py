@@ -3273,19 +3273,13 @@ class LURenameInstance(LogicalUnit):
       result = self.rpc.call_file_storage_dir_rename(inst.primary_node,
                                                      old_file_storage_dir,
                                                      new_file_storage_dir)
-      result.Raise()
-      if not result.data:
-        raise errors.OpExecError("Could not connect to node '%s' to rename"
+      msg = result.RemoteFailMsg()
+      if msg:
+        raise errors.OpExecError("Could not rename on node %s"
                                  " directory '%s' to '%s' (but the instance"
-                                 " has been renamed in Ganeti)" % (
-                                 inst.primary_node, old_file_storage_dir,
-                                 new_file_storage_dir))
-
-      if not result.data[0]:
-        raise errors.OpExecError("Could not rename directory '%s' to '%s'"
-                                 " (but the instance has been renamed in"
-                                 " Ganeti)" % (old_file_storage_dir,
-                                               new_file_storage_dir))
+                                 " has been renamed in Ganeti): %s" %
+                                 (inst.primary_node, old_file_storage_dir,
+                                  new_file_storage_dir, msg))
 
     _StartInstanceDisks(self, inst, None)
     try:
@@ -4304,12 +4298,11 @@ def _CreateDisks(lu, instance):
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_create(pnode, file_storage_dir)
 
-    if result.failed or not result.data:
-      raise errors.OpExecError("Could not connect to node '%s'" % pnode)
+    msg = result.RemoteFailMsg()
 
-    if not result.data[0]:
-      raise errors.OpExecError("Failed to create directory '%s'" %
-                               file_storage_dir)
+    if msg:
+      raise errors.OpExecError("Failed to create directory '%s' on"
+                               " node %s: %s" % (file_storage_dir, msg))
 
   # Note: this needs to be kept in sync with adding of disks in
   # LUSetInstanceParams
@@ -4354,8 +4347,10 @@ def _RemoveDisks(lu, instance):
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_remove(instance.primary_node,
                                                  file_storage_dir)
-    if result.failed or not result.data:
-      logging.error("Could not remove directory '%s'", file_storage_dir)
+    msg = result.RemoteFailMsg()
+    if msg:
+      lu.LogWarning("Could not remove directory '%s' on node %s: %s",
+                    file_storage_dir, instance.primary_node, msg)
       all_result = False
 
   return all_result

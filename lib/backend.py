@@ -2050,10 +2050,8 @@ def _TransformFileStorageDir(file_storage_dir):
   base_file_storage_dir = cfg.GetFileStorageDir()
   if (not os.path.commonprefix([file_storage_dir, base_file_storage_dir]) ==
       base_file_storage_dir):
-    logging.error("file storage directory '%s' is not under base file"
-                  " storage directory '%s'",
-                  file_storage_dir, base_file_storage_dir)
-    return None
+    _Fail("File storage directory '%s' is not under base file"
+          " storage directory '%s'", file_storage_dir, base_file_storage_dir)
   return file_storage_dir
 
 
@@ -2069,22 +2067,17 @@ def CreateFileStorageDir(file_storage_dir):
 
   """
   file_storage_dir = _TransformFileStorageDir(file_storage_dir)
-  result = True,
-  if not file_storage_dir:
-    result = False,
+  if os.path.exists(file_storage_dir):
+    if not os.path.isdir(file_storage_dir):
+      _Fail("Specified storage dir '%s' is not a directory",
+            file_storage_dir)
   else:
-    if os.path.exists(file_storage_dir):
-      if not os.path.isdir(file_storage_dir):
-        logging.error("'%s' is not a directory", file_storage_dir)
-        result = False,
-    else:
-      try:
-        os.makedirs(file_storage_dir, 0750)
-      except OSError, err:
-        logging.error("Cannot create file storage directory '%s': %s",
-                      file_storage_dir, err)
-        result = False,
-  return result
+    try:
+      os.makedirs(file_storage_dir, 0750)
+    except OSError, err:
+      _Fail("Cannot create file storage directory '%s': %s",
+            file_storage_dir, err, exc=True)
+  return True, None
 
 
 def RemoveFileStorageDir(file_storage_dir):
@@ -2100,22 +2093,18 @@ def RemoveFileStorageDir(file_storage_dir):
 
   """
   file_storage_dir = _TransformFileStorageDir(file_storage_dir)
-  result = True,
-  if not file_storage_dir:
-    result = False,
-  else:
-    if os.path.exists(file_storage_dir):
-      if not os.path.isdir(file_storage_dir):
-        logging.error("'%s' is not a directory", file_storage_dir)
-        result = False,
-      # deletes dir only if empty, otherwise we want to return False
-      try:
-        os.rmdir(file_storage_dir)
-      except OSError, err:
-        logging.exception("Cannot remove file storage directory '%s'",
-                          file_storage_dir)
-        result = False,
-  return result
+  if os.path.exists(file_storage_dir):
+    if not os.path.isdir(file_storage_dir):
+      _Fail("Specified Storage directory '%s' is not a directory",
+            file_storage_dir)
+    # deletes dir only if empty, otherwise we want to return False
+    try:
+      os.rmdir(file_storage_dir)
+    except OSError, err:
+      _Fail("Cannot remove file storage directory '%s': %s",
+            file_storage_dir, err)
+
+  return True, None
 
 
 def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
@@ -2132,27 +2121,21 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
   """
   old_file_storage_dir = _TransformFileStorageDir(old_file_storage_dir)
   new_file_storage_dir = _TransformFileStorageDir(new_file_storage_dir)
-  result = True,
-  if not old_file_storage_dir or not new_file_storage_dir:
-    result = False,
-  else:
-    if not os.path.exists(new_file_storage_dir):
-      if os.path.isdir(old_file_storage_dir):
-        try:
-          os.rename(old_file_storage_dir, new_file_storage_dir)
-        except OSError, err:
-          logging.exception("Cannot rename '%s' to '%s'",
-                            old_file_storage_dir, new_file_storage_dir)
-          result =  False,
-      else:
-        logging.error("'%s' is not a directory", old_file_storage_dir)
-        result = False,
+  if not os.path.exists(new_file_storage_dir):
+    if os.path.isdir(old_file_storage_dir):
+      try:
+        os.rename(old_file_storage_dir, new_file_storage_dir)
+      except OSError, err:
+        _Fail("Cannot rename '%s' to '%s': %s",
+              old_file_storage_dir, new_file_storage_dir, err)
     else:
-      if os.path.exists(old_file_storage_dir):
-        logging.error("Cannot rename '%s' to '%s'. Both locations exist.",
-                      old_file_storage_dir, new_file_storage_dir)
-        result = False,
-  return result
+      _Fail("Specified storage dir '%s' is not a directory",
+            old_file_storage_dir)
+  else:
+    if os.path.exists(old_file_storage_dir):
+      _Fail("Cannot rename '%s' to '%s': both locations exist",
+            old_file_storage_dir, new_file_storage_dir)
+  return True, None
 
 
 def _IsJobQueueFile(file_name):
