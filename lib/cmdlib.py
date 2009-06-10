@@ -501,12 +501,15 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   if nics:
     nic_count = len(nics)
-    for idx, (ip, bridge, mac) in enumerate(nics):
+    for idx, (ip, mac, mode, link) in enumerate(nics):
       if ip is None:
         ip = ""
       env["INSTANCE_NIC%d_IP" % idx] = ip
-      env["INSTANCE_NIC%d_BRIDGE" % idx] = bridge
       env["INSTANCE_NIC%d_MAC" % idx] = mac
+      env["INSTANCE_NIC%d_MODE" % idx] = mode
+      env["INSTANCE_NIC%d_LINK" % idx] = link
+      if mode == constants.NIC_MODE_BRIDGED:
+        env["INSTANCE_NIC%d_BRIDGE" % idx] = link
   else:
     nic_count = 0
 
@@ -524,6 +527,27 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   return env
 
+def _PreBuildNICHooksList(lu, nics):
+  """Build a list of nic information tuples.
+
+  This list is suitable to be passed to _BuildInstanceHookEnv.
+
+  @type lu:  L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type nics: list of L{objects.NIC}
+  @param nics: list of nics to convert to hooks tuples
+
+  """
+  hooks_nics = []
+  c_nicparams = lu.cfg.GetClusterInfo().nicparams[constants.PP_DEFAULT]
+  for nic in nics:
+    ip = nic.ip
+    mac = nic.mac
+    filled_params = objects.FillDict(c_nicparams, nic.nicparams)
+    mode = filled_params[constants.NIC_MODE]
+    link = filled_params[constants.NIC_LINK]
+    hooks_nics.append((ip, mac, mode, link))
+  return hooks_nics
 
 def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   """Builds instance related env variables for hooks from an object.
@@ -549,7 +573,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'status': instance.admin_up,
     'memory': bep[constants.BE_MEMORY],
     'vcpus': bep[constants.BE_VCPUS],
-    'nics': [(nic.ip, nic.bridge, nic.mac) for nic in instance.nics],
+    'nics': _PreBuildNICHooksList(lu, instance.nics),
     'disk_template': instance.disk_template,
     'disks': [(disk.size, disk.mode) for disk in instance.disks],
   }
@@ -4623,7 +4647,7 @@ class LUCreateInstance(LogicalUnit):
       os_type=self.op.os_type,
       memory=self.be_full[constants.BE_MEMORY],
       vcpus=self.be_full[constants.BE_VCPUS],
-      nics=[(n.ip, n.bridge, n.mac) for n in self.nics],
+      nics=_PreBuildNICHooksList(self, self.nics),
       disk_template=self.op.disk_template,
       disks=[(d["size"], d["mode"]) for d in self.disks],
     ))
@@ -5944,6 +5968,7 @@ class LUSetInstanceParams(LogicalUnit):
     if self.op.nics:
       args['nics'] = []
       nic_override = dict(self.op.nics)
+      c_nicparams = self.cluster.nicparams[constants.PP_DEFAULT]
       for idx, nic in enumerate(self.instance.nics):
         if idx in nic_override:
           this_nic_override = nic_override[idx]
@@ -5953,20 +5978,24 @@ class LUSetInstanceParams(LogicalUnit):
           ip = this_nic_override['ip']
         else:
           ip = nic.ip
-        if 'bridge' in this_nic_override:
-          bridge = this_nic_override['bridge']
-        else:
-          bridge = nic.bridge
         if 'mac' in this_nic_override:
           mac = this_nic_override['mac']
         else:
           mac = nic.mac
-        args['nics'].append((ip, bridge, mac))
+        if idx in self.nic_pnew:
+          nicparams = self.nic_pnew[idx]
+        else:
+          nicparams = objects.FillDict(c_nicparams, nic.nicparams)
+        mode = nicparams[constants.NIC_MODE]
+        link = nicparams[constants.NIC_LINK]
+        args['nics'].append((ip, mac, mode, link))
       if constants.DDM_ADD in nic_override:
         ip = nic_override[constants.DDM_ADD].get('ip', None)
-        bridge = nic_override[constants.DDM_ADD]['bridge']
         mac = nic_override[constants.DDM_ADD]['mac']
-        args['nics'].append((ip, bridge, mac))
+        nicparams = self.nic_pnew[constants.DDM_ADD]
+        mode = nicparams[constants.NIC_MODE]
+        link = nicparams[constants.NIC_LINK]
+        args['nics'].append((ip, mac, mode, link))
       elif constants.DDM_REMOVE in nic_override:
         del args['nics'][-1]
 
