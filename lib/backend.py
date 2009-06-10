@@ -367,7 +367,7 @@ def GetNodeInfo(vgname, hypervisor_type):
   finally:
     f.close()
 
-  return outputarray
+  return True, outputarray
 
 
 def VerifyNode(what, cluster_name):

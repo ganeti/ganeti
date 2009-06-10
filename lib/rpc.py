@@ -647,25 +647,8 @@ class RpcRunner(object):
         memory information
 
     """
-    retux = self._MultiNodeCall(node_list, "node_info",
-                                [vg_name, hypervisor_type])
-
-    for result in retux.itervalues():
-      if result.failed or not isinstance(result.data, dict):
-        result.data = {}
-      if result.offline:
-        log_name = None
-      else:
-        log_name = "call_node_info"
-
-      utils.CheckDict(result.data, {
-        'memory_total' : '-',
-        'memory_dom0' : '-',
-        'memory_free' : '-',
-        'vg_size' : 'node_unreachable',
-        'vg_free' : '-',
-        }, log_name)
-    return retux
+    return self._MultiNodeCall(node_list, "node_info",
+                               [vg_name, hypervisor_type])
 
   def call_node_add(self, node, dsa, dsapub, rsa, rsapub, ssh, sshpub):
     """Add a node to the cluster.

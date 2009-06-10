@@ -1999,8 +1999,8 @@ class LUQueryNodes(NoHooksLU):
                                           self.cfg.GetHypervisorType())
       for name in nodenames:
         nodeinfo = node_data[name]
-        if not nodeinfo.failed and nodeinfo.data:
-          nodeinfo = nodeinfo.data
+        if not nodeinfo.RemoteFailMsg() and nodeinfo.payload:
+          nodeinfo = nodeinfo.payload
           fn = utils.TryConvert
           live_data[name] = {
             "mtotal": fn(int, nodeinfo.get('memory_total', None)),
@@ -2833,15 +2833,17 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
 
   """
   nodeinfo = lu.rpc.call_node_info([node], lu.cfg.GetVGName(), hypervisor_name)
-  nodeinfo[node].Raise()
-  free_mem = nodeinfo[node].data.get('memory_free')
+  msg = nodeinfo[node].RemoteFailMsg()
+  if msg:
+    raise errors.OpPrereqError("Can't get data from node %s: %s" % (node, msg))
+  free_mem = nodeinfo[node].payload.get('memory_free', None)
   if not isinstance(free_mem, int):
     raise errors.OpPrereqError("Can't compute free memory on node %s, result"
-                             " was '%s'" % (node, free_mem))
+                               " was '%s'" % (node, free_mem))
   if requested > free_mem:
     raise errors.OpPrereqError("Not enough memory on node %s for %s:"
-                             " needed %s MiB, available %s MiB" %
-                             (node, reason, requested, free_mem))
+                               " needed %s MiB, available %s MiB" %
+                               (node, reason, requested, free_mem))
 
 
 class LUStartupInstance(LogicalUnit):
@@ -4813,19 +4815,19 @@ class LUCreateInstance(LogicalUnit):
                                          self.op.hypervisor)
       for node in nodenames:
         info = nodeinfo[node]
-        info.Raise()
-        info = info.data
-        if not info:
+        msg = info.RemoteFailMsg()
+        if msg:
           raise errors.OpPrereqError("Cannot get current information"
-                                     " from node '%s'" % node)
+                                     " from node %s: %s" % (node, msg))
+        info = info.payload
         vg_free = info.get('vg_free', None)
         if not isinstance(vg_free, int):
           raise errors.OpPrereqError("Can't compute free disk space on"
                                      " node %s" % node)
-        if req_size > info['vg_free']:
+        if req_size > vg_free:
           raise errors.OpPrereqError("Not enough disk space on target node %s."
                                      " %d MB available, %d MB required" %
-                                     (node, info['vg_free'], req_size))
+                                     (node, vg_free, req_size))
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
@@ -5673,10 +5675,11 @@ class LUGrowDisk(LogicalUnit):
                                        instance.hypervisor)
     for node in nodenames:
       info = nodeinfo[node]
-      if info.failed or not info.data:
+      msg = info.RemoteFailMsg()
+      if msg:
         raise errors.OpPrereqError("Cannot get current information"
-                                   " from node '%s'" % node)
-      vg_free = info.data.get('vg_free', None)
+                                   " from node %s:" % (node, msg))
+      vg_free = info.payload.get('vg_free', None)
       if not isinstance(vg_free, int):
         raise errors.OpPrereqError("Can't compute free disk space on"
                                    " node %s" % node)
@@ -6115,9 +6118,15 @@ class LUSetInstanceParams(LogicalUnit):
                                                   instance.hypervisor)
       nodeinfo = self.rpc.call_node_info(mem_check_list, self.cfg.GetVGName(),
                                          instance.hypervisor)
-      if nodeinfo[pnode].failed or not isinstance(nodeinfo[pnode].data, dict):
+      pninfo = nodeinfo[pnode]
+      msg = pninfo.RemoteFailMsg()
+      if msg:
         # Assume the primary node is unreachable and go ahead
-        self.warn.append("Can't get info from primary node %s" % pnode)
+        self.warn.append("Can't get info from primary node %s: %s" %
+                         (pnode,  msg))
+      elif not isinstance(pninfo.payload.get('memory_free', None), int):
+        self.warn.append("Node data from primary node %s doesn't contain"
+                         " free memory information" % pnode)
       elif instance_info.RemoteFailMsg():
         self.warn.append("Can't get instance runtime information: %s" %
                         instance_info.RemoteFailMsg())
@@ -6130,19 +6139,24 @@ class LUSetInstanceParams(LogicalUnit):
           # and we have no other way to check)
           current_mem = 0
         miss_mem = (be_new[constants.BE_MEMORY] - current_mem -
-                    nodeinfo[pnode].data['memory_free'])
+                    pninfo.payload['memory_free'])
         if miss_mem > 0:
           raise errors.OpPrereqError("This change will prevent the instance"
                                      " from starting, due to %d MB of memory"
                                      " missing on its primary node" % miss_mem)
 
       if be_new[constants.BE_AUTO_BALANCE]:
-        for node, nres in nodeinfo.iteritems():
+        for node, nres in nodeinfo.items():
           if node not in instance.secondary_nodes:
             continue
-          if nres.failed or not isinstance(nres.data, dict):
-            self.warn.append("Can't get info from secondary node %s" % node)
-          elif be_new[constants.BE_MEMORY] > nres.data['memory_free']:
+          msg = nres.RemoteFailMsg()
+          if msg:
+            self.warn.append("Can't get info from secondary node %s: %s" %
+                             (node, msg))
+          elif not isinstance(nres.payload.get('memory_free', None), int):
+            self.warn.append("Secondary node %s didn't return free"
+                             " memory information" % node)
+          elif be_new[constants.BE_MEMORY] > nres.payload['memory_free']:
             self.warn.append("Not enough memory to failover instance to"
                              " secondary node %s" % node)
 
@@ -6920,24 +6934,24 @@ class IAllocator(object):
         }
 
       if not ninfo.offline:
-        nresult.Raise()
-        if not isinstance(nresult.data, dict):
-          raise errors.OpExecError("Can't get data for node %s" % nname)
+        msg = nresult.RemoteFailMsg()
+        if msg:
+          raise errors.OpExecError("Can't get data for node %s: %s" %
+                                   (nname, msg))
         msg = node_iinfo[nname].RemoteFailMsg()
         if msg:
           raise errors.OpExecError("Can't get node instance info"
                                    " from node %s: %s" % (nname, msg))
-        remote_info = nresult.data
+        remote_info = nresult.payload
         for attr in ['memory_total', 'memory_free', 'memory_dom0',
                      'vg_size', 'vg_free', 'cpu_total']:
           if attr not in remote_info:
             raise errors.OpExecError("Node '%s' didn't return attribute"
                                      " '%s'" % (nname, attr))
-          try:
-            remote_info[attr] = int(remote_info[attr])
-          except ValueError, err:
+          if not isinstance(remote_info[attr], int):
             raise errors.OpExecError("Node '%s' returned invalid value"
-                                     " for '%s': %s" % (nname, attr, err))
+                                     " for '%s': %s" %
+                                     (nname, attr, remote_info[attr]))
         # compute memory used by primary instances
         i_p_mem = i_p_up_mem = 0
         for iinfo, beinfo in i_list:
