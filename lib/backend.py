@@ -1680,7 +1680,11 @@ def OSEnvironment(instance, debug=0):
     result['NIC_%d_MAC' % idx] = nic.mac
     if nic.ip:
       result['NIC_%d_IP' % idx] = nic.ip
-    result['NIC_%d_BRIDGE' % idx] = nic.bridge
+    result['NIC_%d_MODE' % idx] = nic.nicparams[constants.NIC_MODE]
+    if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+      result['NIC_%d_BRIDGE' % idx] = nic.nicparams[constants.NIC_LINK]
+    if nic.nicparams[constants.NIC_LINK]:
+      result['NIC_%d_LINK' % idx] = nic.nicparams[constants.NIC_LINK]
     if constants.HV_NIC_TYPE in instance.hvparams:
       result['NIC_%d_FRONTEND_TYPE' % idx] = \
         instance.hvparams[constants.HV_NIC_TYPE]
