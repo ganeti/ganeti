@@ -1485,6 +1485,7 @@ def WriteSsconfFiles(values):
 
   """
   ssconf.SimpleStore().WriteFiles(values)
+  return True, None
 
 
 def _ErrnoOrStr(err):

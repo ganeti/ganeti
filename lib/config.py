@@ -1106,8 +1106,14 @@ class ConfigWriter:
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
-        rpc.RpcRunner.call_write_ssconf_files(self._UnlockedGetNodeList(),
-                                              self._UnlockedGetSsconfValues())
+        result = rpc.RpcRunner.call_write_ssconf_files(\
+          self._UnlockedGetNodeList(),
+          self._UnlockedGetSsconfValues())
+        for nname, nresu in result.items():
+          msg = nresu.RemoteFailMsg()
+          if msg:
+            logging.warning("Error while uploading ssconf files to"
+                            " node %s: %s", nname, msg)
       self._last_cluster_serial = self._config_data.cluster.serial_no
 
   def _UnlockedGetSsconfValues(self):
