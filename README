@@ -86,7 +86,7 @@ usable for whatever reason, the following two commands should be run::
 
     gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree,offline \
       --separator '|' --no-headers > nodes
-    gnt-instance list -oname,be/memory,sda_size,status,pnode,snodes \
+    gnt-instance list -oname,be/memory,sda_size,be/vcpus,status,pnode,snodes \
       --separator '|' --no-head > instances
 
 These two files should be saved under the names of *nodes* and

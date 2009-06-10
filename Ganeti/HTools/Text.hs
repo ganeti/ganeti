@@ -66,15 +66,16 @@ loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
             [(String, Ndx)] -> [String] -> m (String, Instance.Instance)
-loadInst ktn (name:mem:dsk:status:pnode:snode:[]) = do
+loadInst ktn (name:mem:dsk:vcpus:status:pnode:snode:[]) = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary
            else lookupNode ktn name snode)
   vmem <- tryRead name mem
   vdsk <- tryRead name dsk
+  vvcpus <- tryRead name vcpus
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
-  let newinst = Instance.create name vmem vdsk status pidx sidx
+  let newinst = Instance.create name vmem vdsk vvcpus status pidx sidx
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ (show s) ++ "'"
 

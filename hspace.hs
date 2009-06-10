@@ -56,6 +56,7 @@ data Options = Options
     , optOffline   :: [String]       -- ^ Names of offline nodes
     , optIMem      :: Int            -- ^ Instance memory
     , optIDsk      :: Int            -- ^ Instance disk
+    , optIVCPUs    :: Int            -- ^ Instance VCPUs
     , optINodes    :: Int            -- ^ Nodes required for an instance
     , optShowVer   :: Bool           -- ^ Just show the program version
     , optShowHelp  :: Bool           -- ^ Just show the help
@@ -86,6 +87,7 @@ defaultOptions  = Options
  , optOffline   = []
  , optIMem      = 4096
  , optIDsk      = 102400
+ , optIVCPUs    = 1
  , optINodes    = 2
  , optShowVer   = False
  , optShowHelp  = False
@@ -121,6 +123,9 @@ options =
     , Option []        ["disk"]
       (ReqArg (\ d opts -> opts { optIDsk = read d }) "DISK")
       "disk size for instances"
+    , Option []        ["vcpus"]
+      (ReqArg (\ p opts -> opts { optIVCPUs = read p }) "NUM")
+      "number of virtual cpus for instances"
     , Option []        ["req-nodes"]
       (ReqArg (\ n opts -> opts { optINodes = read n }) "NODES")
       "number of nodes for the new instances (1=plain, 2=mirrored)"
@@ -236,7 +241,7 @@ main = do
 
   let nmlen = Container.maxNameLen nl
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
-                "ADMIN_down" (-1) (-1)
+                (optIVCPUs opts) "ADMIN_down" (-1) (-1)
 
   let (fin_nl, ixes) = iterateDepth nl il newinst req_nodes []
       allocs = length ixes

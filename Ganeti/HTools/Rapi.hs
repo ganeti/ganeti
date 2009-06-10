@@ -82,12 +82,13 @@ parseInstance ktn a = do
   name <- fromObj "name" a
   disk <- fromObj "disk_usage" a
   mem <- fromObj "beparams" a >>= fromObj "memory"
+  vcpus <- fromObj "beparams" a >>= fromObj "vcpus"
   pnode <- fromObj "pnode" a >>= lookupNode ktn name
   snodes <- fromObj "snodes" a
   snode <- (if null snodes then return Node.noSecondary
             else readEitherString (head snodes) >>= lookupNode ktn name)
   running <- fromObj "status" a
-  let inst = Instance.create name mem disk running pnode snode
+  let inst = Instance.create name mem disk vcpus running pnode snode
   return (name, inst)
 
 -- | Construct a node from a JSON object.
