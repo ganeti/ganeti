@@ -6931,8 +6931,19 @@ class IAllocator(object):
     # instance data
     instance_data = {}
     for iinfo, beinfo in i_list:
-      nic_data = [{"mac": n.mac, "ip": n.ip, "bridge": n.bridge}
-                  for n in iinfo.nics]
+      nic_data = []
+      for nic in iinfo.nics:
+        filled_params = objects.FillDict(
+            cluster_info.nicparams[constants.PP_DEFAULT],
+            nic.nicparams)
+        nic_dict = {"mac": nic.mac,
+                    "ip": nic.ip,
+                    "mode": filled_params[constants.NIC_MODE],
+                    "link": filled_params[constants.NIC_LINK],
+                   }
+        if filled_params[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+          nic_dict["bridge"] = filled_params[constants.NIC_LINK]
+        nic_data.append(nic_dict)
       pir = {
         "tags": list(iinfo.GetTags()),
         "admin_up": iinfo.admin_up,
