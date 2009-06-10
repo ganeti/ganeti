@@ -189,25 +189,27 @@ def StartMaster(start_daemons):
   @rtype: None
 
   """
-  ok = True
   master_netdev, master_ip, _ = GetMasterInfo()
   if not master_netdev:
-    return False
+    return False, "Cluster configuration incomplete, cannot read ssconf files"
 
+  payload = []
   if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
     if utils.OwnIpAddress(master_ip):
       # we already have the ip:
-      logging.debug("Already started")
+      logging.debug("Master IP already configured, doing nothing")
     else:
-      logging.error("Someone else has the master ip, not activating")
-      ok = False
+      msg = "Someone else has the master ip, not activating"
+      logging.error(msg)
+      payload.append(msg)
   else:
     result = utils.RunCmd(["ip", "address", "add", "%s/32" % master_ip,
                            "dev", master_netdev, "label",
                            "%s:0" % master_netdev])
     if result.failed:
-      logging.error("Can't activate master IP: %s", result.output)
-      ok = False
+      msg = "Can't activate master IP: %s" % result.output
+      logging.error(msg)
+      payload.append(msg)
 
     result = utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev,
                            "-s", master_ip, master_ip])
@@ -218,9 +220,11 @@ def StartMaster(start_daemons):
     for daemon in 'ganeti-masterd', 'ganeti-rapi':
       result = utils.RunCmd([daemon])
       if result.failed:
-        logging.error("Can't start daemon %s: %s", daemon, result.output)
-        ok = False
-  return ok
+        msg = "Can't start daemon %s: %s" % (daemon, result.output)
+        logging.error(msg)
+        payload.append(msg)
+
+  return not payload, "; ".join(payload)
 
 
 def StopMaster(stop_daemons):

@@ -1425,9 +1425,10 @@ class LURenameCluster(LogicalUnit):
 
     finally:
       result = self.rpc.call_node_start_master(master, False)
-      if result.failed or not result.data:
+      msg = result.RemoteFailMsg()
+      if msg:
         self.LogWarning("Could not re-enable the master role on"
-                        " the master, please restart manually.")
+                        " the master, please restart manually: %s", msg)
 
 
 def _RecursiveCheckIfLVMBased(disk):

@@ -520,8 +520,10 @@ def main():
     try:
       # activate ip
       master_node = ssconf.SimpleConfigReader().GetMasterNode()
-      if not rpc.RpcRunner.call_node_start_master(master_node, False):
-        logging.error("Can't activate master IP address")
+      result = rpc.RpcRunner.call_node_start_master(master_node, False)
+      msg = result.RemoteFailMsg()
+      if msg:
+        logging.error("Can't activate master IP address: %s", msg)
 
       master.setup_queue()
       try:

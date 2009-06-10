@@ -271,6 +271,7 @@ def InitCluster(cluster_name, mac_prefix,
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
+  # TODO: Warn on failed start master
   rpc.RpcRunner.call_node_start_master(hostname.name, True)
 
 
@@ -444,9 +445,10 @@ def MasterFailover():
   cfg.Update(cluster_info)
 
   result = rpc.RpcRunner.call_node_start_master(new_master, True)
-  if result.failed or not result.data:
+  msg = result.RemoteFailMsg()
+  if msg:
     logging.error("Could not start the master role on the new master"
-                  " %s, please check", new_master)
+                  " %s, please check: %s", new_master, msg)
     rcode = 1
 
   return rcode
