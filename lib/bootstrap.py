@@ -511,9 +511,16 @@ def GatherMasterVotes(node_list):
   votes = {}
   for node in results:
     nres = results[node]
-    data = nres.data
-    if nres.failed or not isinstance(data, (tuple, list)) or len(data) < 3:
-      # here the rpc layer should have already logged errors
+    data = nres.payload
+    msg = nres.RemoteFailMsg()
+    fail = False
+    if msg:
+      logging.warning("Error contacting node %s: %s", node, msg)
+      fail = True
+    elif not isinstance(data, (tuple, list)) or len(data) < 3:
+      logging.warning("Invalid data received from node %s: %s", node, data)
+      fail = True
+    if fail:
       if None not in votes:
         votes[None] = 0
       votes[None] += 1

@@ -161,8 +161,8 @@ def GetMasterInfo():
   for consumption here or from the node daemon.
 
   @rtype: tuple
-  @return: (master_netdev, master_ip, master_name) if we have a good
-      configuration, otherwise (None, None, None)
+  @return: True, (master_netdev, master_ip, master_name) in case of success
+  @raise RPCFail: in case of errors
 
   """
   try:
@@ -171,9 +171,8 @@ def GetMasterInfo():
     master_ip = cfg.GetMasterIP()
     master_node = cfg.GetMasterNode()
   except errors.ConfigurationError, err:
-    logging.exception("Cluster configuration incomplete")
-    return (None, None, None)
-  return (master_netdev, master_ip, master_node)
+    _Fail("Cluster configuration incomplete", exc=True)
+  return True, (master_netdev, master_ip, master_node)
 
 
 def StartMaster(start_daemons):
@@ -189,9 +188,8 @@ def StartMaster(start_daemons):
   @rtype: None
 
   """
-  master_netdev, master_ip, _ = GetMasterInfo()
-  if not master_netdev:
-    return False, "Cluster configuration incomplete, cannot read ssconf files"
+  # GetMasterInfo will raise an exception if not able to return data
+  master_netdev, master_ip, _ = GetMasterInfo()[1]
 
   payload = []
   if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
@@ -242,9 +240,9 @@ def StopMaster(stop_daemons):
   """
   # TODO: log and report back to the caller the error failures; we
   # need to decide in which case we fail the RPC for this
-  master_netdev, master_ip, _ = GetMasterInfo()
-  if not master_netdev:
-    return False, "Cluster configuration incomplete, cannot read ssconf files"
+
+  # GetMasterInfo will raise an exception if not able to return data
+  master_netdev, master_ip, _ = GetMasterInfo()[1]
 
   result = utils.RunCmd(["ip", "address", "del", "%s/32" % master_ip,
                          "dev", master_netdev])
