@@ -340,12 +340,14 @@ class HooksMaster(object):
         raise errors.HooksFailure("Communication failure")
       for node_name in results:
         res = results[node_name]
-        if res.failed or res.data is False or not isinstance(res.data, list):
-          if not res.offline:
-            self.proc.LogWarning("Communication failure to node %s" %
-                                 node_name)
+        if res.offline:
           continue
-        for script, hkr, output in res.data:
+        msg = res.RemoteFailMsg()
+        if msg:
+          self.proc.LogWarning("Communication failure to node %s: %s",
+                               node_name, msg)
+          continue
+        for script, hkr, output in res.payload:
           if hkr == constants.HKR_FAIL:
             errs.append((node_name, script, output))
       if errs:

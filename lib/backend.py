@@ -2557,7 +2557,8 @@ class HooksRunner(object):
     elif phase == constants.HOOKS_PHASE_POST:
       suffix = "post"
     else:
-      raise errors.ProgrammerError("Unknown hooks phase: '%s'" % phase)
+      _Fail("Unknown hooks phase '%s'", phase)
+
     rr = []
 
     subdir = "%s-%s.d" % (hpath, suffix)
@@ -2566,7 +2567,7 @@ class HooksRunner(object):
       dir_contents = utils.ListVisibleFiles(dir_name)
     except OSError, err:
       # FIXME: must log output in case of failures
-      return rr
+      return True, rr
 
     # we use the standard python sort order,
     # so 00name is the recommended naming scheme
@@ -2585,7 +2586,7 @@ class HooksRunner(object):
           rrval = constants.HKR_SUCCESS
       rr.append(("%s/%s" % (subdir, relname), rrval, output))
 
-    return rr
+    return True, rr
 
 
 class IAllocatorRunner(object):

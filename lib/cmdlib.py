@@ -1242,14 +1242,16 @@ class LUVerifyCluster(LogicalUnit):
         for node_name in hooks_results:
           show_node_header = True
           res = hooks_results[node_name]
-          if res.failed or res.data is False or not isinstance(res.data, list):
+          msg = res.RemoteFailMsg()
+          if msg:
             if res.offline:
               # no need to warn or set fail return value
               continue
-            feedback_fn("    Communication failure in hooks execution")
+            feedback_fn("    Communication failure in hooks execution: %s" %
+                        msg)
             lu_result = 1
             continue
-          for script, hkr, output in res.data:
+          for script, hkr, output in res.payload:
             if hkr == constants.HKR_FAIL:
               # The node header is only shown once, if there are
               # failing hooks on that node
