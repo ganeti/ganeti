@@ -554,7 +554,7 @@ def ReinstallInstance(opts, args):
   else:
     if not opts.force:
       usertext = ("This will reinstall the instance %s and remove"
-                  " all data. Continue?") % instance_name
+                  " all data. Continue?") % inames[0]
       if not AskUser(usertext):
         return 1
 
