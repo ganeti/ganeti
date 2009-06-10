@@ -49,14 +49,7 @@ parseBaseInstance :: String
                   -> JSObject JSValue
                   -> Result (String, Instance.Instance)
 parseBaseInstance n a = do
-  disk <- case fromObj "disk_usage" a of
-            Bad _ -> do
-                all_d <- fromObj "disks" a >>= asObjectList
-                szd <- mapM (fromObj "size") all_d
-                let sze = map (+128) szd
-                    szf = (sum sze)::Int
-                return szf
-            x@(Ok _) -> x
+  disk <- fromObj "disk_space_total" a
   mem <- fromObj "memory" a
   let running = "running"
   return $ (n, Instance.create n mem disk running 0 0)
