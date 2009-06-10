@@ -26,8 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Node
-    ( Node(failN1, name, idx, t_mem, n_mem, f_mem, r_mem, t_dsk, f_dsk,
-           p_mem, p_dsk, p_rem,
+    ( Node(failN1, name, idx, t_mem, n_mem, f_mem, r_mem,
+           t_dsk, f_dsk,
+           t_cpu, u_cpu,
+           p_mem, p_dsk, p_rem, p_cpu,
            plist, slist, offline)
     , List
     -- * Constructor
@@ -41,6 +43,7 @@ module Ganeti.HTools.Node
     , setFmem
     , setPri
     , setSec
+    , addCpus
     -- * Instance (re)location
     , removePri
     , removeSec
@@ -72,6 +75,8 @@ data Node = Node { name  :: String -- ^ The node name
                  , x_mem :: Int    -- ^ Unaccounted memory (MiB)
                  , t_dsk :: Double -- ^ Total disk space (MiB)
                  , f_dsk :: Int    -- ^ Free disk space (MiB)
+                 , t_cpu :: Double -- ^ Total CPU count
+                 , u_cpu :: Int    -- ^ Used VCPU count
                  , plist :: [T.Idx]-- ^ List of primary instance indices
                  , slist :: [T.Idx]-- ^ List of secondary instance indices
                  , idx :: T.Ndx    -- ^ Internal index for book-keeping
@@ -82,6 +87,7 @@ data Node = Node { name  :: String -- ^ The node name
                  , p_mem :: Double -- ^ Percent of free memory
                  , p_dsk :: Double -- ^ Percent of free disk
                  , p_rem :: Double -- ^ Percent of reserved memory
+                 , p_cpu :: Double -- ^ Ratio of virtual to physical CPUs
                  , offline :: Bool -- ^ Whether the node should not be used
                                    -- for allocations and skipped from
                                    -- score computations
@@ -109,9 +115,10 @@ noSecondary = -1
 --
 -- The index and the peers maps are empty, and will be need to be
 -- update later via the 'setIdx' and 'buildPeers' functions.
-create :: String -> Double -> Int -> Int -> Double -> Int -> Bool -> Node
+create :: String -> Double -> Int -> Int -> Double
+       -> Int -> Double -> Bool -> Node
 create name_init mem_t_init mem_n_init mem_f_init
-       dsk_t_init dsk_f_init offline_init =
+       dsk_t_init dsk_f_init cpu_t_init offline_init =
     Node
     {
       name  = name_init,
@@ -120,6 +127,8 @@ create name_init mem_t_init mem_n_init mem_f_init
       f_mem = mem_f_init,
       t_dsk = dsk_t_init,
       f_dsk = dsk_f_init,
+      t_cpu = cpu_t_init,
+      u_cpu = 0,
       plist = [],
       slist = [],
       failN1 = True,
@@ -129,6 +138,7 @@ create name_init mem_t_init mem_n_init mem_f_init
       p_mem = (fromIntegral mem_f_init) / mem_t_init,
       p_dsk = (fromIntegral dsk_f_init) / dsk_t_init,
       p_rem = 0,
+      p_cpu = 0,
       offline = offline_init,
       x_mem = 0
     }
@@ -177,6 +187,12 @@ setPri t idx = t { plist = idx:(plist t) }
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> T.Idx -> Node
 setSec t idx = t { slist = idx:(slist t) }
+
+-- | Add primary cpus to a node
+addCpus :: Node -> Int -> Node
+addCpus t count =
+    let new_count = (u_cpu t) + count
+    in t { u_cpu = new_count, p_cpu = (fromIntegral new_count) / (t_cpu t) }
 
 -- * Update functions
 
@@ -282,6 +298,7 @@ list mname t =
         sl = slist t
         mp = p_mem t
         dp = p_dsk t
+        cp = p_cpu t
         off = offline t
         fn = failN1 t
         tmem = t_mem t
@@ -290,9 +307,10 @@ list mname t =
         fmem = f_mem t
         imem = (truncate tmem) - nmem - xmem - fmem
     in
-      printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d %3d %3d %.5f %.5f"
+      printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d %3d %3d\
+             \ %.5f %.5f %.5f"
                  (if off then '-' else if fn then '*' else ' ')
                  mname (name t) tmem nmem imem xmem fmem (r_mem t)
                  ((t_dsk t) / 1024) ((f_dsk t) `div` 1024)
                  (length pl) (length sl)
-                 mp dp
+                 mp dp cp

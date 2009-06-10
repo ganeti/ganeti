@@ -780,11 +780,11 @@ printNodes nl =
         m_name = maximum . map (length . Node.name) $ snl
         helper = Node.list m_name
         header = printf
-                 "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %3s %3s %7s %7s"
+                 "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %3s %3s %7s %7s %7s"
                  " F" m_name "Name"
                  "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
                  "t_dsk" "f_dsk"
-                 "pri" "sec" "p_fmem" "p_fdsk"
+                 "pri" "sec" "p_fmem" "p_fdsk" "r_cpu"
     in unlines $ (header:map helper snl)
 
 -- | Shows statistics for a given node list.

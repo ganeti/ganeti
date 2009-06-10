@@ -100,8 +100,9 @@ fixNodes nl il =
                     sdx = Instance.snode inst
                     pold = fromJust $ lookup pdx accu
                     pnew = Node.setPri pold idx
+                    pnew' = Node.addCpus pnew (Instance.vcpus inst)
                     ac1 = deleteBy assocEqual (pdx, pold) accu
-                    ac2 = (pdx, pnew):ac1
+                    ac2 = (pdx, pnew'):ac1
                 in
                   if sdx /= Node.noSecondary then
                       let

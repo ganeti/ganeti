@@ -97,16 +97,17 @@ parseNode a = do
     name <- fromObj "name" a
     offline <- fromObj "offline" a
     node <- (case offline of
-               True -> return $ Node.create name 0 0 0 0 0 True
+               True -> return $ Node.create name 0 0 0 0 0 0 True
                _ -> do
                  drained <- fromObj "drained" a
-                 mtotal <- fromObj "mtotal" a
-                 mnode <- fromObj "mnode" a
-                 mfree <- fromObj "mfree" a
-                 dtotal <- fromObj "dtotal" a
-                 dfree <- fromObj "dfree" a
+                 mtotal  <- fromObj "mtotal"  a
+                 mnode   <- fromObj "mnode"   a
+                 mfree   <- fromObj "mfree"   a
+                 dtotal  <- fromObj "dtotal"  a
+                 dfree   <- fromObj "dfree"   a
+                 ctotal  <- fromObj "ctotal"  a
                  return $ Node.create name mtotal mnode mfree
-                        dtotal dfree (offline || drained))
+                        dtotal dfree ctotal (offline || drained))
     return (name, node)
 
 -- | Builds the cluster data from an URL.

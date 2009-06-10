@@ -49,17 +49,18 @@ tryRead name s =
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
-loadNode (name:tm:nm:fm:td:fd:fo:[]) = do
+loadNode (name:tm:nm:fm:td:fd:tc:fo:[]) = do
   new_node <-
-      if any (== "?") [tm,nm,fm,td,fd] || fo == "Y" then
-          return $ Node.create name 0 0 0 0 0 True
+      if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
+          return $ Node.create name 0 0 0 0 0 0 True
       else do
         vtm <- tryRead name tm
         vnm <- tryRead name nm
         vfm <- tryRead name fm
         vtd <- tryRead name td
         vfd <- tryRead name fd
-        return $ Node.create name vtm vnm vfm vtd vfd False
+        vtc <- tryRead name tc
+        return $ Node.create name vtm vnm vfm vtd vfd vtc False
   return (name, new_node)
 loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
 
