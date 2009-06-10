@@ -1917,7 +1917,11 @@ class LURemoveNode(LogicalUnit):
 
     self.context.RemoveNode(node.name)
 
-    self.rpc.call_node_leave_cluster(node.name)
+    result = self.rpc.call_node_leave_cluster(node.name)
+    msg = result.RemoteFailMsg()
+    if msg:
+      self.LogWarning("Errors encountered on the remote node while leaving"
+                      " the cluster: %s", msg)
 
     # Promote nodes to master candidate as needed
     _AdjustCandidatePool(self)

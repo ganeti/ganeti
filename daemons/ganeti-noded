@@ -93,19 +93,23 @@ class NodeHttpServer(http.server.HttpServer):
       raise http.HttpNotFound()
 
     try:
-      try:
-        return method(req.request_body)
-      except backend.RPCFail, err:
-        # our custom failure exception; str(err) works fine if the
-        # exception was constructed with a single argument, and in
-        # this case, err.message == err.args[0] == str(err)
-        return (False, str(err))
-      except:
-        logging.exception("Error in RPC call")
-        raise
+      return method(req.request_body)
+    except backend.RPCFail, err:
+      # our custom failure exception; str(err) works fine if the
+      # exception was constructed with a single argument, and in
+      # this case, err.message == err.args[0] == str(err)
+      return (False, str(err))
     except errors.QuitGanetiException, err:
       # Tell parent to quit
+      logging.info("Shutting down the node daemon, arguments: %s",
+                   str(err.args))
       os.kill(self.noded_pid, signal.SIGTERM)
+      # And return the error's arguments, which must be already in
+      # correct tuple format
+      return err.args
+    except:
+      logging.exception("Error in RPC call")
+      raise
 
   # the new block devices  --------------------------
 

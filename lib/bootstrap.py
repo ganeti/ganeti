@@ -322,8 +322,10 @@ def FinalizeClusterDestroy(master):
   if msg:
     logging.warning("Could not disable the master role: %s" % msg)
   result = rpc.RpcRunner.call_node_leave_cluster(master)
-  if result.failed or not result.data:
-    logging.warning("Could not shutdown the node daemon and cleanup the node")
+  msg = result.RemoteFailMsg()
+  if msg:
+    logging.warning("Could not shutdown the node daemon and cleanup"
+                    " the node: %s", msg)
 
 
 def SetupNodeDaemon(cluster_name, node, ssh_key_check):

@@ -323,21 +323,20 @@ def LeaveCluster():
 
   try:
     priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
+
+    f = open(pub_key, 'r')
+    try:
+      utils.RemoveAuthorizedKey(auth_keys, f.read(8192))
+    finally:
+      f.close()
+
+    utils.RemoveFile(priv_key)
+    utils.RemoveFile(pub_key)
   except errors.OpExecError:
     logging.exception("Error while processing ssh files")
-    return
 
-  f = open(pub_key, 'r')
-  try:
-    utils.RemoveAuthorizedKey(auth_keys, f.read(8192))
-  finally:
-    f.close()
-
-  utils.RemoveFile(priv_key)
-  utils.RemoveFile(pub_key)
-
-  # Return a reassuring string to the caller, and quit
-  raise errors.QuitGanetiException(False, 'Shutdown scheduled')
+  # Raise a custom exception (handled in ganeti-noded)
+  raise errors.QuitGanetiException(True, 'Shutdown scheduled')
 
 
 def GetNodeInfo(vgname, hypervisor_type):
