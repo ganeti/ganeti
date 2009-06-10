@@ -147,11 +147,13 @@ def _CleanDirectory(path, exclude=None):
 def JobQueuePurge():
   """Removes job queue files and archived jobs.
 
-  @rtype: None
+  @rtype: tuple
+  @return: True, None
 
   """
   _CleanDirectory(constants.QUEUE_DIR, exclude=[constants.JOB_QUEUE_LOCK_FILE])
   _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
+  return True, None
 
 
 def GetMasterInfo():
@@ -2138,23 +2140,21 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
   return True, None
 
 
-def _IsJobQueueFile(file_name):
+def _EnsureJobQueueFile(file_name):
   """Checks whether the given filename is in the queue directory.
 
   @type file_name: str
   @param file_name: the file name we should check
-  @rtype: boolean
-  @return: whether the file is under the queue directory
+  @rtype: None
+  @raises RPCFail: if the file is not valid
 
   """
   queue_dir = os.path.normpath(constants.QUEUE_DIR)
   result = (os.path.commonprefix([queue_dir, file_name]) == queue_dir)
 
   if not result:
-    logging.error("'%s' is not a file in the queue directory",
-                  file_name)
-
-  return result
+    _Fail("Passed job queue file '%s' does not belong to"
+          " the queue directory '%s'", file_name, queue_dir)
 
 
 def JobQueueUpdate(file_name, content):
@@ -2171,13 +2171,12 @@ def JobQueueUpdate(file_name, content):
   @return: the success of the operation
 
   """
-  if not _IsJobQueueFile(file_name):
-    return False
+  _EnsureJobQueueFile(file_name)
 
   # Write and replace the file atomically
   utils.WriteFile(file_name, data=_Decompress(content))
 
-  return True
+  return True, None
 
 
 def JobQueueRename(old, new):
@@ -2189,16 +2188,16 @@ def JobQueueRename(old, new):
   @param old: the old (actual) file name
   @type new: str
   @param new: the desired file name
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: tuple
+  @return: the success of the operation and payload
 
   """
-  if not (_IsJobQueueFile(old) and _IsJobQueueFile(new)):
-    return False
+  _EnsureJobQueueFile(old)
+  _EnsureJobQueueFile(new)
 
   utils.RenameFile(old, new, mkdir=True)
 
-  return True
+  return True, None
 
 
 def JobQueueSetDrainFlag(drain_flag):
@@ -2208,8 +2207,8 @@ def JobQueueSetDrainFlag(drain_flag):
 
   @type drain_flag: boolean
   @param drain_flag: if True, will set the drain flag, otherwise reset it.
-  @rtype: boolean
-  @return: always True
+  @rtype: truple
+  @return: always True, None
   @warning: the function always returns True
 
   """
@@ -2218,7 +2217,7 @@ def JobQueueSetDrainFlag(drain_flag):
   else:
     utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
 
-  return True
+  return True, None
 
 
 def BlockdevClose(instance_name, disks):
