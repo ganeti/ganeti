@@ -2605,17 +2605,15 @@ class IAllocatorRunner(object):
     @param idata: the allocator input data
 
     @rtype: tuple
-    @return: four element tuple of:
-       - run status (one of the IARUN_ constants)
-       - stdout
-       - stderr
-       - fail reason (as from L{utils.RunResult})
+    @return: two element tuple of:
+       - status
+       - either error message or stdout of allocator (for success)
 
     """
     alloc_script = utils.FindFile(name, constants.IALLOCATOR_SEARCH_PATH,
                                   os.path.isfile)
     if alloc_script is None:
-      return (constants.IARUN_NOTFOUND, None, None, None)
+      _Fail("iallocator module '%s' not found in the search path", name)
 
     fd, fin_name = tempfile.mkstemp(prefix="ganeti-iallocator.")
     try:
@@ -2623,12 +2621,12 @@ class IAllocatorRunner(object):
       os.close(fd)
       result = utils.RunCmd([alloc_script, fin_name])
       if result.failed:
-        return (constants.IARUN_FAILURE, result.stdout, result.stderr,
-                result.fail_reason)
+        _Fail("iallocator module '%s' failed: %s, output '%s'",
+              name, result.fail_reason, result.output)
     finally:
       os.unlink(fin_name)
 
-    return (constants.IARUN_SUCCESS, result.stdout, result.stderr, None)
+    return True, result.stdout
 
 
 class DevCacheManager(object):

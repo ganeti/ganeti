@@ -7123,19 +7123,12 @@ class IAllocator(object):
     data = self.in_text
 
     result = call_fn(self.lu.cfg.GetMasterNode(), name, self.in_text)
-    result.Raise()
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Failure while running the iallocator"
+                               " script: %s" % msg)
 
-    if not isinstance(result.data, (list, tuple)) or len(result.data) != 4:
-      raise errors.OpExecError("Invalid result from master iallocator runner")
-
-    rcode, stdout, stderr, fail = result.data
-
-    if rcode == constants.IARUN_NOTFOUND:
-      raise errors.OpExecError("Can't find allocator '%s'" % name)
-    elif rcode == constants.IARUN_FAILURE:
-      raise errors.OpExecError("Instance allocator call failed: %s,"
-                               " output: %s" % (fail, stdout+stderr))
-    self.out_text = stdout
+    self.out_text = result.payload
     if validate:
       self._ValidateResult()
 
