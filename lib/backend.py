@@ -240,9 +240,11 @@ def StopMaster(stop_daemons):
   @rtype: None
 
   """
+  # TODO: log and report back to the caller the error failures; we
+  # need to decide in which case we fail the RPC for this
   master_netdev, master_ip, _ = GetMasterInfo()
   if not master_netdev:
-    return False
+    return False, "Cluster configuration incomplete, cannot read ssconf files"
 
   result = utils.RunCmd(["ip", "address", "del", "%s/32" % master_ip,
                          "dev", master_netdev])
@@ -255,7 +257,7 @@ def StopMaster(stop_daemons):
     for daemon in constants.RAPI_PID, constants.MASTERD_PID:
       utils.KillProcess(utils.ReadPidFile(utils.DaemonPidFileName(daemon)))
 
-  return True
+  return True, None
 
 
 def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):

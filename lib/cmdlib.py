@@ -656,9 +656,9 @@ class LUDestroyCluster(NoHooksLU):
     """
     master = self.cfg.GetMasterNode()
     result = self.rpc.call_node_stop_master(master, False)
-    result.Raise()
-    if not result.data:
-      raise errors.OpExecError("Could not disable the master role")
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Could not disable the master role: %s" % msg)
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
     utils.CreateBackup(priv_key)
     utils.CreateBackup(pub_key)
@@ -1398,8 +1398,9 @@ class LURenameCluster(LogicalUnit):
     # shutdown the master IP
     master = self.cfg.GetMasterNode()
     result = self.rpc.call_node_stop_master(master, False)
-    if result.failed or not result.data:
-      raise errors.OpExecError("Could not disable the master role")
+    msg = result.RemoteFailMsg()
+    if msg:
+      raise errors.OpExecError("Could not disable the master role: %s" % msg)
 
     try:
       cluster = self.cfg.GetClusterInfo()

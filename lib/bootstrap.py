@@ -318,8 +318,9 @@ def FinalizeClusterDestroy(master):
 
   """
   result = rpc.RpcRunner.call_node_stop_master(master, True)
-  if result.failed or not result.data:
-    logging.warning("Could not disable the master role")
+  msg = result.RemoteFailMsg()
+  if msg:
+    logging.warning("Could not disable the master role: %s" % msg)
   result = rpc.RpcRunner.call_node_leave_cluster(master)
   if result.failed or not result.data:
     logging.warning("Could not shutdown the node daemon and cleanup the node")
@@ -428,9 +429,10 @@ def MasterFailover():
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
   result = rpc.RpcRunner.call_node_stop_master(old_master, True)
-  if result.failed or not result.data:
+  msg = result.RemoteFailMsg()
+  if msg:
     logging.error("Could not disable the master role on the old master"
-                 " %s, please disable manually", old_master)
+                 " %s, please disable manually: %s", old_master, msg)
 
   # Here we have a phase where no master should be running
 
