@@ -1070,7 +1070,7 @@ class ConfigWriter:
       msg = to_result.RemoteFailMsg()
       if msg:
         msg = ("Copy of file %s to node %s failed: %s" %
-                (self._cfg_file, node, msg))
+               (self._cfg_file, to_node, msg))
         logging.error(msg)
         bad = True
     return not bad
