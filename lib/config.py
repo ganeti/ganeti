@@ -1189,13 +1189,6 @@ class ConfigWriter:
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetDefBridge(self):
-    """Return the default bridge.
-
-    """
-    return self._config_data.cluster.default_bridge
-
-  @locking.ssynchronized(_config_lock, shared=1)
   def GetMACPrefix(self):
     """Return the mac prefix.
 
