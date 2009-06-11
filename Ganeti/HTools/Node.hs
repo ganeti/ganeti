@@ -30,6 +30,7 @@ module Ganeti.HTools.Node
            t_dsk, f_dsk,
            t_cpu, u_cpu,
            p_mem, p_dsk, p_rem, p_cpu,
+           m_dsk, m_cpu,
            plist, slist, offline)
     , List
     -- * Constructor
@@ -43,6 +44,8 @@ module Ganeti.HTools.Node
     , setFmem
     , setPri
     , setSec
+    , setMdsk
+    , setMcpu
     , addCpus
     -- * Instance (re)location
     , removePri
@@ -88,6 +91,8 @@ data Node = Node { name  :: String -- ^ The node name
                  , p_dsk :: Double -- ^ Percent of free disk
                  , p_rem :: Double -- ^ Percent of reserved memory
                  , p_cpu :: Double -- ^ Ratio of virtual to physical CPUs
+                 , m_dsk :: Double -- ^ Minimum free disk ratio
+                 , m_cpu :: Double -- ^ Max ratio of virt-to-phys CPUs
                  , offline :: Bool -- ^ Whether the node should not be used
                                    -- for allocations and skipped from
                                    -- score computations
@@ -140,7 +145,9 @@ create name_init mem_t_init mem_n_init mem_f_init
       p_rem = 0,
       p_cpu = 0,
       offline = offline_init,
-      x_mem = 0
+      x_mem = 0,
+      m_dsk = -1,
+      m_cpu = -1
     }
 
 -- | Changes the index.
@@ -162,6 +169,14 @@ setOffline t val = t { offline = val }
 -- | Sets the unnaccounted memory.
 setXmem :: Node -> Int -> Node
 setXmem t val = t { x_mem = val }
+
+-- | Sets the max disk usage ratio
+setMdsk :: Node -> Double -> Node
+setMdsk t val = t { m_dsk = val }
+
+-- | Sets the max cpu usage ratio
+setMcpu :: Node -> Double -> Node
+setMcpu t val = t { m_cpu = val }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
