@@ -5974,6 +5974,38 @@ class LUSetInstanceParams(LogicalUnit):
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
+  def _GetUpdatedParams(self, old_params, update_dict,
+                        default_values, parameter_types):
+    """Return the new params dict for the given params.
+
+    @type old_params: dict
+    @type old_params: old parameters
+    @type update_dict: dict
+    @type update_dict: dict containing new parameter values,
+                       or constants.VALUE_DEFAULT to reset the
+                       parameter to its default value
+    @type default_values: dict
+    @param default_values: default values for the filled parameters
+    @type parameter_types: dict
+    @param parameter_types: dict mapping target dict keys to types
+                            in constants.ENFORCEABLE_TYPES
+    @rtype: (dict, dict)
+    @return: (new_parameters, filled_parameters)
+
+    """
+    params_copy = copy.deepcopy(old_params)
+    for key, val in update_dict.iteritems():
+      if val == constants.VALUE_DEFAULT:
+        try:
+          del params_copy[key]
+        except KeyError:
+          pass
+      else:
+        params_copy[key] = val
+    utils.ForceDictType(params_copy, parameter_types)
+    params_filled = objects.FillDict(default_values, params_copy)
+    return (params_copy, params_filled)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -5993,18 +6025,10 @@ class LUSetInstanceParams(LogicalUnit):
 
     # hvparams processing
     if self.op.hvparams:
-      i_hvdict = copy.deepcopy(instance.hvparams)
-      for key, val in self.op.hvparams.iteritems():
-        if val == constants.VALUE_DEFAULT:
-          try:
-            del i_hvdict[key]
-          except KeyError:
-            pass
-        else:
-          i_hvdict[key] = val
-      utils.ForceDictType(i_hvdict, constants.HVS_PARAMETER_TYPES)
-      hv_new = objects.FillDict(cluster.hvparams[instance.hypervisor],
-                                i_hvdict)
+      i_hvdict, hv_new = self._GetUpdatedParams(
+                             instance.hvparams, self.op.hvparams,
+                             cluster.hvparams[instance.hypervisor],
+                             constants.HVS_PARAMETER_TYPES)
       # local check
       hypervisor.GetHypervisor(
         instance.hypervisor).CheckParameterSyntax(hv_new)
@@ -6016,18 +6040,10 @@ class LUSetInstanceParams(LogicalUnit):
 
     # beparams processing
     if self.op.beparams:
-      i_bedict = copy.deepcopy(instance.beparams)
-      for key, val in self.op.beparams.iteritems():
-        if val == constants.VALUE_DEFAULT:
-          try:
-            del i_bedict[key]
-          except KeyError:
-            pass
-        else:
-          i_bedict[key] = val
-      utils.ForceDictType(i_bedict, constants.BES_PARAMETER_TYPES)
-      be_new = objects.FillDict(cluster.beparams[constants.PP_DEFAULT],
-                                i_bedict)
+      i_bedict, be_new = self._GetUpdatedParams(
+                             instance.beparams, self.op.beparams,
+                             cluster.beparams[constants.PP_DEFAULT],
+                             constants.BES_PARAMETER_TYPES)
       self.be_new = be_new # the new actual values
       self.be_inst = i_bedict # the new dict (without defaults)
     else:
