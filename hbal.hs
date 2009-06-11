@@ -272,14 +272,14 @@ main = do
                          nmlen imlen [] oneline min_cv
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
-      sol_msg = if null fin_plc
-                then printf "No solution found\n"
-                else (if verbose > 2
-                      then printf "Final coefficients:   overall %.8f, %s\n"
-                           fin_cv (Cluster.printStats fin_nl)
-                      else printf "Cluster score improved from %.8f to %.8f\n"
-                           ini_cv fin_cv
-                     )
+      sol_msg = (if null fin_plc
+                 then printf "No solution found\n"
+                 else (if verbose > 2
+                       then printf "Final coefficients:   overall %.8f, %s\n"
+                            fin_cv (Cluster.printStats fin_nl)
+                       else printf "Cluster score improved from %.8f to %.8f\n"
+                            ini_cv fin_cv
+                      ))::String
 
   unless oneline $ putStr sol_msg
 

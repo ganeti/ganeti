@@ -93,43 +93,40 @@ options =
       "show help"
     ]
 
+-- | Serialize a single node
+serializeNode :: String -> Node.Node -> String
+serializeNode csf node =
+    let name = Node.name node ++ csf
+        t_mem = (truncate $ Node.t_mem node)::Int
+        t_dsk = (truncate $ Node.t_dsk node)::Int
+    in
+      printf "%s|%d|%d|%d|%d|%d|%c" name
+             t_mem (Node.n_mem node) (Node.f_mem node)
+             t_dsk (Node.f_dsk node)
+             (if Node.offline node then 'Y' else 'N')
+
 -- | Generate node file data from node objects
-serializeNodes :: Node.List -> String -> String
-serializeNodes nl csf =
-    let nodes = Container.elems nl
-        nlines = map
-                 (\node ->
-                      let name = Node.name node ++ csf
-                          t_mem = (truncate $ Node.t_mem node)::Int
-                          t_dsk = (truncate $ Node.t_dsk node)::Int
-                      in
-                        printf "%s|%d|%d|%d|%d|%d|%c" name
-                                   t_mem (Node.n_mem node) (Node.f_mem node)
-                                   t_dsk (Node.f_dsk node)
-                                   (if Node.offline node then 'Y' else 'N')
-                 )
-                 nodes
-    in unlines nlines
+serializeNodes :: String -> Node.List -> String
+serializeNodes csf =
+    unlines . map (serializeNode csf) . Container.elems
+
+-- | Serialize a single instance
+serializeInstance :: String -> Node.List -> Instance.Instance -> String
+serializeInstance csf nl inst =
+    let
+        iname = Instance.name inst ++ csf
+        pnode = Container.nameOf nl $ Instance.pnode inst
+        snode = Container.nameOf nl $ Instance.snode inst
+    in
+      printf "%s|%d|%d|%s|%s|%s"
+             iname (Instance.mem inst) (Instance.dsk inst)
+             (Instance.run_st inst)
+             pnode snode
 
 -- | Generate instance file data from instance objects
-serializeInstances :: Node.List -> Instance.List
-                   -> String -> String
-serializeInstances nl il csf =
-    let instances = Container.elems il
-        nlines = map
-                 (\inst ->
-                      let
-                          iname = Instance.name inst ++ csf
-                          pnode = Container.nameOf nl $ Instance.pnode inst
-                          snode = Container.nameOf nl $ Instance.snode inst
-                      in
-                        printf "%s|%d|%d|%s|%s|%s"
-                               iname (Instance.mem inst) (Instance.dsk inst)
-                               (Instance.run_st inst)
-                               pnode snode
-                 )
-                 instances
-    in unlines nlines
+serializeInstances :: String -> Node.List -> Instance.List -> String
+serializeInstances csf nl =
+    unlines . map (serializeInstance csf nl) . Container.elems
 
 -- | Return a one-line summary of cluster state
 printCluster :: Node.List -> Instance.List
@@ -139,16 +136,16 @@ printCluster nl il =
         ccv = Cluster.compCV nl
         nodes = Container.elems nl
         insts = Container.elems il
-        t_ram = truncate . sum . map Node.t_mem $ nodes
-        t_dsk = truncate . sum . map Node.t_dsk $ nodes
+        t_ram = sum . map Node.t_mem $ nodes
+        t_dsk = sum . map Node.t_dsk $ nodes
         f_ram = sum . map Node.f_mem $ nodes
         f_dsk = sum . map Node.f_dsk $ nodes
     in
-      printf "%5d %5d %5d %5d %6d %6d %6d %6d %.8f"
+      printf "%5d %5d %5d %5d %6.0f %6d %6.0f %6d %.8f"
                  (length nodes) (length insts)
                  (length bad_nodes) (length bad_instances)
-                 (t_ram::Integer) f_ram
-                 ((t_dsk::Integer) `div` 1024) (f_dsk `div` 1024)
+                 t_ram f_ram
+                 (t_dsk / 1024) (f_dsk `div` 1024)
                  ccv
 
 
@@ -187,8 +184,8 @@ main = do
                    putStrLn $ printCluster fix_nl il
                    when (optShowNodes opts) $ do
                            putStr $ Cluster.printNodes fix_nl
-                   let ndata = serializeNodes nl csf
-                       idata = serializeInstances nl il csf
+                   let ndata = serializeNodes csf nl
+                       idata = serializeInstances csf nl il
                        oname = odir </> (fixSlash name)
                    writeFile (oname <.> "nodes") ndata
                    writeFile (oname <.> "instances") idata)

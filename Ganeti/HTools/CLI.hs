@@ -76,6 +76,12 @@ class EToolOptions a where
     -- | Whether to be less verbose.
     silent     :: a -> Bool
 
+-- | Usage info
+usageHelp :: (CLIOptions a) => String -> [OptDescr (a -> a)] -> String
+usageHelp progname options =
+    usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
+               progname Version.version progname) options
+
 -- | Command line parser, using the 'options' structure.
 parseOpts :: (CLIOptions b) =>
              [String]            -- ^ The command line arguments
@@ -90,7 +96,7 @@ parseOpts argv progname options defaultOptions =
           do
             let resu@(po, _) = (foldl (flip id) defaultOptions o, n)
             when (showHelp po) $ do
-              putStr $ usageInfo header options
+              putStr $ usageHelp progname options
               exitWith ExitSuccess
             when (showVersion po) $ do
               printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
@@ -100,9 +106,7 @@ parseOpts argv progname options defaultOptions =
               exitWith ExitSuccess
             return resu
       (_, _, errs) ->
-          ioError (userError (concat errs ++ usageInfo header options))
-      where header = printf "%s %s\nUsage: %s [OPTION...]"
-                     progname Version.version progname
+          ioError (userError (concat errs ++ usageHelp progname options))
 
 -- | Parse the environment and return the node\/instance names.
 --

@@ -37,15 +37,17 @@ import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
+-- | Parse results from readsPrec
+parseChoices :: (Monad m, Read a) => String -> String -> [(a, String)] -> m a
+parseChoices _ _ ((v, ""):[]) = return v
+parseChoices name s ((_, e):[]) =
+    fail $ name ++ ": leftover characters when parsing '"
+           ++ s ++ "': '" ++ e ++ "'"
+parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
+
 -- | Safe 'read' function returning data encapsulated in a Result.
 tryRead :: (Monad m, Read a) => String -> String -> m a
-tryRead name s =
-    let sols = readsPrec 0 s
-    in case sols of
-         (v, ""):[] -> return v
-         (_, e):[] -> fail $ name ++ ": leftover characters when parsing '"
-                      ++ s ++ "': '" ++ e ++ "'"
-         _ -> fail $ name ++ ": cannot parse string '" ++ s ++ "'"
+tryRead name s = parseChoices name s $ readsPrec 0 s
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)

@@ -85,11 +85,14 @@ fst3 (a, _, _) = a
 meanValue :: Floating a => [a] -> a
 meanValue lst = (sum lst) / (fromIntegral $ length lst)
 
+-- | Squaring function
+square :: (Num a) => a -> a
+square = (^ 2)
+
 -- | Standard deviation.
 stdDev :: Floating a => [a] -> a
 stdDev lst =
     let mv = meanValue lst
-        square = (^ (2::Int)) -- silences "defaulting the constraint..."
         av = sum $ map square $ map (\e -> e - mv) lst
         bv = sqrt (av / (fromIntegral $ length lst))
     in bv

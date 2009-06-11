@@ -36,6 +36,7 @@ module Ganeti.HTools.Loader
     , Request(..)
     ) where
 
+import Data.Function (on)
 import Data.List
 import Data.Maybe (fromJust)
 import Text.Printf (printf)
@@ -88,6 +89,10 @@ assignIndices =
     unzip . map (\ (idx, (k, v)) -> ((k, idx), (idx, setIdx v idx)))
           . zip [0..]
 
+-- | Assoc element comparator
+assocEqual :: (Eq a) => (a, b) -> (a, b) -> Bool
+assocEqual = (==) `on` fst
+
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: [(Ndx, Node.Node)]
          -> [(Idx, Instance.Instance)]
@@ -95,7 +100,6 @@ fixNodes :: [(Ndx, Node.Node)]
 fixNodes nl il =
     foldl' (\accu (idx, inst) ->
                 let
-                    assocEqual = (\ (i, _) (j, _) -> i == j)
                     pdx = Instance.pnode inst
                     sdx = Instance.snode inst
                     pold = fromJust $ lookup pdx accu
@@ -169,11 +173,11 @@ checkData nl il =
                              - (nodeIdsk node il)
                  newn = Node.setFmem (Node.setXmem node delta_mem)
                         (Node.f_mem node - adj_mem)
-                 umsg1 = if delta_mem > 512 || delta_dsk > 1024
-                         then [printf "node %s is missing %d MB ram \
-                                     \and %d GB disk"
-                                     nname delta_mem (delta_dsk `div` 1024)]
-                         else []
+                 umsg1 = (if delta_mem > 512 || delta_dsk > 1024
+                          then [printf "node %s is missing %d MB ram \
+                                       \and %d GB disk"
+                                       nname delta_mem (delta_dsk `div` 1024)]
+                          else [])::[String]
              in (msgs ++ umsg1, newn)
         ) [] nl
 

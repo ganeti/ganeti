@@ -92,11 +92,21 @@ processResults sols =
         sols'' = sortBy (compare `on` fst) sols'
         (best, w) = head sols''
         (worst, l) = last sols''
-        info = printf "Valid results: %d, best score: %.8f for node(s) %s, \
-                      \worst score: %.8f for node(s) %s" (length sols'')
-                      best (intercalate "/" . map Node.name $ w)
-                      worst (intercalate "/" . map Node.name $ l)
+        info = (printf "Valid results: %d, best score: %.8f for node(s) %s, \
+                       \worst score: %.8f for node(s) %s" (length sols'')
+                       best (intercalate "/" . map Node.name $ w)
+                       worst (intercalate "/" . map Node.name $ l))::String
     in return (info, w)
+
+-- | Process a request and return new node lists
+processRequest ::
+                  Request
+               -> Result [(Maybe Node.List, Instance.Instance, [Node.Node])]
+processRequest request =
+  let Request rqtype nl il _ = request
+  in case rqtype of
+       Allocate xi reqn -> Cluster.tryAlloc nl il xi reqn
+       Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
 
 -- | Main function.
 main :: IO ()
@@ -117,12 +127,8 @@ main = do
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
-  let Request rqtype nl il csf = request
-      new_nodes = case rqtype of
-                    Allocate xi reqn -> Cluster.tryAlloc nl il xi reqn
-                    Relocate idx reqn exnodes ->
-                        Cluster.tryReloc nl il idx reqn exnodes
-  let sols = new_nodes >>= filterFails >>= processResults
+  let Request _ _ _ csf = request
+      sols = processRequest request >>= filterFails >>= processResults
   let (ok, info, rn) = case sols of
                Ok (info, sn) -> (True, "Request successful: " ++ info,
                                      map ((++ csf) . Node.name) sn)

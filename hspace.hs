@@ -137,13 +137,13 @@ options =
       "show help"
     ]
 
-filterFails :: (Monad m) => [(Maybe Node.List, Instance.Instance, [Node.Node])]
-            -> m [(Node.List, Instance.Instance, [Node.Node])]
+filterFails :: Cluster.AllocSolution
+            -> Maybe [(Node.List, Instance.Instance, [Node.Node])]
 filterFails sols =
-    if null sols then fail "No nodes onto which to allocate at all"
+    if null sols then Nothing -- No nodes onto which to allocate at all
     else let sols' = filter (isJust . fst3) sols
          in if null sols' then
-                fail "No valid allocation solutions"
+                Nothing -- No valid allocation solutions
             else
                 return $ map (\(x, y, z) -> (fromJust x, y, z)) sols'
 
@@ -162,10 +162,11 @@ iterateDepth :: Node.List
              -> (Node.List, [Instance.Instance])
 iterateDepth nl il newinst nreq ixes =
       let depth = length ixes
-          newname = printf "new-%d" depth
+          newname = (printf "new-%d" depth)::String
           newidx = (length $ Container.elems il) + depth
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
-          sols = Cluster.tryAlloc nl il newi2 nreq
+          sols = (Cluster.tryAlloc nl il newi2 nreq)::
+                 Maybe Cluster.AllocSolution
           orig = (nl, ixes)
       in
         if isNothing sols then orig

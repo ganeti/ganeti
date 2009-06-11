@@ -30,6 +30,7 @@ module Ganeti.HTools.Cluster
     (
      -- * Types
       Placement
+    , AllocSolution
     , Solution(..)
     , Table(..)
     , Removal
@@ -77,6 +78,9 @@ type Score = Double
 
 -- | The description of an instance placement.
 type Placement = (Idx, Ndx, Ndx, Score)
+
+-- | Allocation/relocation solution.
+type AllocSolution = [(Maybe Node.List, Instance.Instance, [Node.Node])]
 
 -- | A cluster solution described as the solution delta and the list
 -- of placements.
@@ -158,15 +162,16 @@ compDetailedCV nl =
         mem_cv = varianceCoeff mem_l
         dsk_cv = varianceCoeff dsk_l
         n1_l = length $ filter Node.failN1 nodes
-        n1_score = (fromIntegral n1_l) / (fromIntegral $ length nodes)
+        n1_score = ((fromIntegral n1_l) /
+                    (fromIntegral $ length nodes))::Double
         res_l = map Node.p_rem nodes
         res_cv = varianceCoeff res_l
         offline_inst = sum . map (\n -> (length . Node.plist $ n) +
                                         (length . Node.slist $ n)) $ offline
         online_inst = sum . map (\n -> (length . Node.plist $ n) +
                                        (length . Node.slist $ n)) $ nodes
-        off_score = (fromIntegral offline_inst) /
-                    (fromIntegral $ online_inst + offline_inst)
+        off_score = ((fromIntegral offline_inst) /
+                     (fromIntegral $ online_inst + offline_inst))::Double
         cpu_l = map Node.p_cpu nodes
         cpu_cv = varianceCoeff cpu_l
     in (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv)
@@ -631,8 +636,7 @@ tryAlloc :: (Monad m) =>
          -> Instance.List     -- ^ The instance list
          -> Instance.Instance -- ^ The instance to allocate
          -> Int               -- ^ Required number of nodes
-         -> m [(Maybe Node.List, Instance.Instance, [Node.Node])]
-                              -- ^ Possible solution list
+         -> m AllocSolution   -- ^ Possible solution list
 tryAlloc nl _ inst 2 =
     let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
@@ -655,13 +659,12 @@ tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
 
 -- | Try to allocate an instance on the cluster.
 tryReloc :: (Monad m) =>
-            Node.List     -- ^ The node list
-         -> Instance.List -- ^ The instance list
-         -> Idx           -- ^ The index of the instance to move
-         -> Int           -- ^ The numver of nodes required
-         -> [Ndx]         -- ^ Nodes which should not be used
-         -> m [(Maybe Node.List, Instance.Instance, [Node.Node])]
-                          -- ^ Solution list
+            Node.List       -- ^ The node list
+         -> Instance.List   -- ^ The instance list
+         -> Idx             -- ^ The index of the instance to move
+         -> Int             -- ^ The numver of nodes required
+         -> [Ndx]           -- ^ Nodes which should not be used
+         -> m AllocSolution -- ^ Solution list
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = getOnline nl
         inst = Container.find xid il
@@ -782,13 +785,13 @@ printNodes nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
         m_name = maximum . map (length . Node.name) $ snl
         helper = Node.list m_name
-        header = printf
-                 "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %4s %4s \
-                 \%3s %3s %6s %6s %5s"
-                 " F" m_name "Name"
-                 "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
-                 "t_dsk" "f_dsk" "pcpu" "vcpu"
-                 "pri" "sec" "p_fmem" "p_fdsk" "r_cpu"
+        header = (printf
+                  "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %4s %4s \
+                  \%3s %3s %6s %6s %5s"
+                  " F" m_name "Name"
+                  "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
+                  "t_dsk" "f_dsk" "pcpu" "vcpu"
+                  "pri" "sec" "p_fmem" "p_fdsk" "r_cpu")::String
     in unlines $ (header:map helper snl)
 
 -- | Shows statistics for a given node list.
