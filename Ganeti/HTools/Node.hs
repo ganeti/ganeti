@@ -301,8 +301,8 @@ addSec t inst pdx =
 -- | String converter for the node list functionality.
 list :: Int -> Node -> String
 list mname t =
-    let pl = plist t
-        sl = slist t
+    let pl = length $ plist t
+        sl = length $ slist t
         mp = p_mem t
         dp = p_dsk t
         cp = p_cpu t
@@ -314,10 +314,14 @@ list mname t =
         fmem = f_mem t
         imem = (truncate tmem) - nmem - xmem - fmem
     in
-      printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d %3d %3d\
-             \ %.5f %.5f %.5f"
+      if off
+         then printf " - %-*s %57s %3d %3d"
+              mname (name t) "" pl sl
+         else
+             printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d\
+                    \ %4.0f %4d %3d %3d %6.4f %6.4f %5.2f"
                  (if off then '-' else if fn then '*' else ' ')
                  mname (name t) tmem nmem imem xmem fmem (r_mem t)
                  ((t_dsk t) / 1024) ((f_dsk t) `div` 1024)
-                 (length pl) (length sl)
-                 mp dp cp
+                 (t_cpu t) (u_cpu t)
+                 pl sl mp dp cp
