@@ -1414,11 +1414,11 @@ class LURenameCluster(LogicalUnit):
       result = self.rpc.call_upload_file(node_list,
                                          constants.SSH_KNOWN_HOSTS_FILE)
       for to_node, to_result in result.iteritems():
-         msg = to_result.fail_msg
-         if msg:
-           msg = ("Copy of file %s to node %s failed: %s" %
-                   (constants.SSH_KNOWN_HOSTS_FILE, to_node, msg))
-           self.proc.LogWarning(msg)
+        msg = to_result.fail_msg
+        if msg:
+          msg = ("Copy of file %s to node %s failed: %s" %
+                 (constants.SSH_KNOWN_HOSTS_FILE, to_node, msg))
+          self.proc.LogWarning(msg)
 
     finally:
       result = self.rpc.call_node_start_master(master, False)
@@ -1630,11 +1630,11 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
     if os.path.exists(fname):
       result = lu.rpc.call_upload_file(dist_nodes, fname)
       for to_node, to_result in result.items():
-         msg = to_result.fail_msg
-         if msg:
-           msg = ("Copy of file %s to node %s failed: %s" %
-                   (fname, to_node, msg))
-           lu.proc.LogWarning(msg)
+        msg = to_result.fail_msg
+        if msg:
+          msg = ("Copy of file %s to node %s failed: %s" %
+                 (fname, to_node, msg))
+          lu.proc.LogWarning(msg)
 
 
 class LURedistributeConfig(NoHooksLU):
