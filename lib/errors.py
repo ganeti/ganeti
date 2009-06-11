@@ -98,20 +98,6 @@ class RemoteError(GenericError):
   pass
 
 
-class InvalidOS(GenericError):
-  """Missing OS on node.
-
-  This is raised when an OS exists on the master (or is otherwise
-  requested to the code) but not on the target node.
-
-  This exception has three arguments:
-    - the name of the os
-    - the source directory, if any
-    - the reason why we consider this an invalid OS (text of error message)
-
-  """
-
-
 class ParameterError(GenericError):
   """A passed parameter to a command is invalid.
 

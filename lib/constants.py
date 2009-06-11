@@ -251,7 +251,6 @@ DEFAULT_MAC_PREFIX = "aa:00:00"
  RPC_ENCODING_ZLIB_BASE64) = range(2)
 
 # os related constants
-OS_VALID_STATUS = "VALID"
 OS_SCRIPT_CREATE = 'create'
 OS_SCRIPT_IMPORT = 'import'
 OS_SCRIPT_EXPORT = 'export'

@@ -1511,11 +1511,9 @@ def _OSOndiskVersion(name, os_dir):
   @param name: the OS name we should look for
   @type os_dir: str
   @param os_dir: the directory inwhich we should look for the OS
-  @rtype: int or None
-  @return:
-      Either an integer denoting the version or None in the
-      case when this is not a valid OS name.
-  @raise errors.InvalidOS: if the OS cannot be found
+  @rtype: tuple
+  @return: tuple (status, data) with status denoting the validity and
+      data holding either the vaid versions or an error message
 
   """
   api_file = os.path.sep.join([os_dir, "ganeti_api_version"])
@@ -1593,8 +1591,7 @@ def _TryOSFromDisk(name, base_dir=None):
   """Create an OS instance from disk.
 
   This function will return an OS instance if the given name is a
-  valid OS name. Otherwise, it will raise an appropriate
-  L{errors.InvalidOS} exception, detailing why this is not a valid OS.
+  valid OS name.
 
   @type base_dir: string
   @keyword base_dir: Base directory containing OS installations.
@@ -1640,7 +1637,7 @@ def _TryOSFromDisk(name, base_dir=None):
       return False, ("Script '%s' under path '%s' is not a regular file" %
                      (script, os_dir))
 
-  os_obj = objects.OS(name=name, path=os_dir, status=constants.OS_VALID_STATUS,
+  os_obj = objects.OS(name=name, path=os_dir,
                       create_script=os_scripts[constants.OS_SCRIPT_CREATE],
                       export_script=os_scripts[constants.OS_SCRIPT_EXPORT],
                       import_script=os_scripts[constants.OS_SCRIPT_IMPORT],
