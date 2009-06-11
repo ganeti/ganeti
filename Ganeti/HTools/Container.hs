@@ -71,10 +71,6 @@ size = IntMap.size
 find :: Key -> Container a -> a
 find k c = c IntMap.! k
 
--- | Locate a keyin the map returning a default value if not existing.
-findWithDefault :: a -> Key -> Container a -> a
-findWithDefault = IntMap.findWithDefault
-
 -- | Add or update one element to the map.
 add :: Key -> a -> Container a -> Container a
 add k v c = IntMap.insert k v c
@@ -94,14 +90,6 @@ keys = IntMap.keys
 -- | Create a map from an association list.
 fromAssocList :: [(Key, a)] -> Container a
 fromAssocList = IntMap.fromList
-
--- | Create a map from an association list with a combining function.
-fromListWith :: (a -> a -> a) -> [(Key, a)] -> Container a
-fromListWith = IntMap.fromListWith
-
--- | Fold over the values of the map.
-fold :: (a -> b -> b) -> b -> Container a -> b
-fold = IntMap.fold
 
 -- | Add or update two elements of the map.
 addTwo :: Key -> a -> Key -> a -> Container a -> Container a

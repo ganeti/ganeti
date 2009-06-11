@@ -27,7 +27,7 @@ module Main (main) where
 
 import Data.List
 import Data.Function
-import Data.Maybe (isJust, fromJust, fromMaybe, isNothing)
+import Data.Maybe (isJust, fromJust, isNothing)
 import Monad
 import System
 import System.IO

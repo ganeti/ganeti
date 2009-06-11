@@ -36,7 +36,6 @@ import qualified System
 
 import Text.Printf (printf)
 
-import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance

@@ -38,12 +38,8 @@ module Ganeti.HTools.Utils
 
 import Data.List
 import Control.Monad
-import System
-import System.IO
 import qualified Text.JSON as J
 import Text.Printf (printf)
-
-import Ganeti.HTools.Types
 
 import Debug.Trace
 
@@ -68,10 +64,6 @@ sepSplit sep s
     | otherwise           = x:(sepSplit sep ys)
     where (x, xs) = break (== sep) s
           ys = drop 1 xs
-
--- | Partial application of sepSplit to @'.'@
-commaSplit :: String -> [String]
-commaSplit = sepSplit ','
 
 -- | Simple version of 'fst' for a triple
 fst3 :: (a, b, c) -> a
