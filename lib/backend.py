@@ -68,10 +68,11 @@ def _Fail(msg, *args, **kwargs):
   """
   if args:
     msg = msg % args
-  if "exc" in kwargs and kwargs["exc"]:
-    logging.exception(msg)
-  else:
-    logging.error(msg)
+  if "log" not in kwargs or kwargs["log"]: # if we should log this error
+    if "exc" in kwargs and kwargs["exc"]:
+      logging.exception(msg)
+    else:
+      logging.error(msg)
   raise RPCFail(msg)
 
 
@@ -224,7 +225,10 @@ def StartMaster(start_daemons):
         logging.error(msg)
         payload.append(msg)
 
-  return not payload, "; ".join(payload)
+  if payload:
+    _Fail("; ".join(payload))
+
+  return True, None
 
 
 def StopMaster(stop_daemons):
@@ -585,7 +589,7 @@ def BridgesExist(bridges_list):
       missing.append(bridge)
 
   if missing:
-    return False, "Missing bridges %s" % (", ".join(missing),)
+    _Fail("Missing bridges %s", ", ".join(missing))
 
   return True, None
 
@@ -653,15 +657,16 @@ def GetInstanceMigratable(instance):
 
   """
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
-  if instance.name not in hyper.ListInstances():
-    return (False, 'not running')
+  iname = instance.name
+  if iname not in hyper.ListInstances():
+    _Fail("Instance %s is not running", iname)
 
   for idx in range(len(instance.disks)):
-    link_name = _GetBlockDevSymlinkPath(instance.name, idx)
+    link_name = _GetBlockDevSymlinkPath(iname, idx)
     if not os.path.islink(link_name):
-      return (False, 'not restarted since ganeti 1.2.5')
+      _Fail("Instance %s was not restarted since ganeti 1.2.5", iname)
 
-  return (True, '')
+  return True, None
 
 
 def GetAllInstancesInfo(hypervisor_list):
@@ -736,8 +741,8 @@ def InstanceOsAdd(instance, reinstall):
                   result.output)
     lines = [utils.SafeEncode(val)
              for val in utils.TailFile(logfile, lines=20)]
-    return (False, "OS create script failed (%s), last lines in the"
-            " log file:\n%s" % (result.fail_reason, "\n".join(lines)))
+    _Fail("OS create script failed (%s), last lines in the"
+          " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
 
   return (True, "Successfully installed")
 
@@ -770,8 +775,8 @@ def RunRenameInstance(instance, old_name):
                   result.cmd, result.fail_reason, result.output)
     lines = [utils.SafeEncode(val)
              for val in utils.TailFile(logfile, lines=20)]
-    return (False, "OS rename script failed (%s), last lines in the"
-            " log file:\n%s" % (result.fail_reason, "\n".join(lines)))
+    _Fail("OS rename script failed (%s), last lines in the"
+          " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
 
   return (True, "Rename successful")
 
@@ -1188,7 +1193,10 @@ def BlockdevRemove(disk):
       if c_msg: # not an empty message
         msgs.append(c_msg)
 
-  return (result, "; ".join(msgs))
+  if not result:
+    _Fail("; ".join(msgs))
+
+  return True, None
 
 
 def _RecursiveAssembleBD(disk, owner, as_primary):
@@ -1255,16 +1263,14 @@ def BlockdevAssemble(disk, owner, as_primary):
       C{True} for secondary nodes
 
   """
-  status = True
-  result = "no error information"
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, bdev.BlockDev):
       result = result.dev_path
   except errors.BlockDeviceError, err:
-    result = "Error while assembling disk: %s" % str(err)
-    status = False
-  return (status, result)
+    _Fail("Error while assembling disk: %s", err, exc=True)
+
+  return True, result
 
 
 def BlockdevShutdown(disk):
@@ -1304,7 +1310,9 @@ def BlockdevShutdown(disk):
       if c_msg: # not an empty message
         msgs.append(c_msg)
 
-  return (result, "; ".join(msgs))
+  if not result:
+    _Fail("; ".join(msgs))
+  return (True, None)
 
 
 def BlockdevAddchildren(parent_cdev, new_cdevs):
@@ -1740,7 +1748,7 @@ def BlockdevGrow(disk, amount):
   """
   r_dev = _RecursiveFindBD(disk)
   if r_dev is None:
-    return False, "Cannot find block device %s" % (disk,)
+    _Fail("Cannot find block device %s", disk)
 
   try:
     r_dev.Grow(amount)
@@ -1983,7 +1991,7 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
                             (idx, result.fail_reason, result.output[-100]))
 
   if final_result:
-    return False, "; ".join(final_result)
+    _Fail("; ".join(final_result), log=False)
   return True, None
 
 
@@ -1997,7 +2005,7 @@ def ListExports():
   if os.path.isdir(constants.EXPORT_DIR):
     return True, utils.ListVisibleFiles(constants.EXPORT_DIR)
   else:
-    return False, "No exports directory"
+    _Fail("No exports directory")
 
 
 def RemoveExport(export):
@@ -2056,7 +2064,9 @@ def BlockdevRename(devlist):
                   (dev, unique_id, err))
       logging.exception("Can't rename device '%s' to '%s'", dev, unique_id)
       result = False
-  return (result, "; ".join(msgs))
+  if not result:
+    _Fail("; ".join(msgs))
+  return True, None
 
 
 def _TransformFileStorageDir(file_storage_dir):
@@ -2124,7 +2134,7 @@ def RemoveFileStorageDir(file_storage_dir):
     if not os.path.isdir(file_storage_dir):
       _Fail("Specified Storage directory '%s' is not a directory",
             file_storage_dir)
-    # deletes dir only if empty, otherwise we want to return False
+    # deletes dir only if empty, otherwise we want to fail the rpc call
     try:
       os.rmdir(file_storage_dir)
     except OSError, err:
@@ -2276,7 +2286,7 @@ def BlockdevClose(instance_name, disks):
     except errors.BlockDeviceError, err:
       msg.append(str(err))
   if msg:
-    return (False, "Can't make devices secondary: %s" % ",".join(msg))
+    _Fail("Can't make devices secondary: %s", ",".join(msg))
   else:
     if instance_name:
       _RemoveBlockDevLinks(instance_name, disks)
@@ -2302,7 +2312,7 @@ def ValidateHVParams(hvname, hvparams):
     hv_type.ValidateParameters(hvparams)
     return (True, "Validation passed")
   except errors.HypervisorError, err:
-    return (False, str(err))
+    _Fail(str(err), log=False)
 
 
 def DemoteFromMC():
@@ -2312,15 +2322,15 @@ def DemoteFromMC():
   # try to ensure we're not the master by mistake
   master, myself = ssconf.GetMasterAndMyself()
   if master == myself:
-    return (False, "ssconf status shows I'm the master node, will not demote")
+    _Fail("ssconf status shows I'm the master node, will not demote")
   pid_file = utils.DaemonPidFileName(constants.MASTERD_PID)
   if utils.IsProcessAlive(utils.ReadPidFile(pid_file)):
-    return (False, "The master daemon is running, will not demote")
+    _Fail("The master daemon is running, will not demote")
   try:
     utils.CreateBackup(constants.CLUSTER_CONF_FILE)
   except EnvironmentError, err:
     if err.errno != errno.ENOENT:
-      return (False, "Error while backing up cluster file: %s" % str(err))
+      _Fail("Error while backing up cluster file: %s", err, exc=True)
   utils.RemoveFile(constants.CLUSTER_CONF_FILE)
   return (True, "Done")
 
@@ -2406,7 +2416,7 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
     time.sleep(sleep_time)
     sleep_time = min(5, sleep_time * 1.5)
   if not all_connected:
-    return (False, "Timeout in disk reconnecting")
+    _Fail("Timeout in disk reconnecting")
   if multimaster:
     # change to primary mode
     for rd in bdevs:
@@ -2433,12 +2443,12 @@ def DrbdWaitSync(nodes_ip, disks):
   for rd in bdevs:
     stats = rd.GetProcStatus()
     if not (stats.is_connected or stats.is_in_resync):
-      failure = True
-      break
+      _Fail("DRBD device %s is not in sync: stats=%s", rd, stats)
     alldone = alldone and (not stats.is_in_resync)
     if stats.sync_percent is not None:
       min_resync = min(min_resync, stats.sync_percent)
-  return (not failure, (alldone, min_resync))
+
+  return (True, (alldone, min_resync))
 
 
 def PowercycleNode(hypervisor_type):
