@@ -627,7 +627,7 @@
         Example:
       </para>
 <screen>
-# gnt-cluster search time
+# gnt-cluster search-tags time
 /cluster ctime:2007-09-01
 /nodes/node1.example.com mtime:2007-10-04
 </screen>
