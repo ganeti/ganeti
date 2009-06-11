@@ -93,7 +93,16 @@ class NodeHttpServer(http.server.HttpServer):
       raise http.HttpNotFound()
 
     try:
-      return method(req.request_body)
+      rvalue = method(req.request_body)
+      if not isinstance(rvalue, tuple):
+        return (False, "Invalid result from backend function: expected"
+                " tuple, got %s" % type(rvalue))
+      elif len(rvalue) != 2:
+        return (False, "Invalid result from backend function: expected"
+                " 2-element tuple, got tuple of length %d" % len(rvalue))
+      else:
+        return rvalue
+
     except backend.RPCFail, err:
       # our custom failure exception; str(err) works fine if the
       # exception was constructed with a single argument, and in
@@ -107,9 +116,9 @@ class NodeHttpServer(http.server.HttpServer):
       # And return the error's arguments, which must be already in
       # correct tuple format
       return err.args
-    except:
+    except Exception, err:
       logging.exception("Error in RPC call")
-      raise
+      return False, "Error while executing backend function: %s" % str(err)
 
   # the new block devices  --------------------------
 
