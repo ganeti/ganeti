@@ -2339,18 +2339,16 @@ def _FindDisks(nodes_ip, disks):
   for cf in disks:
     rd = _RecursiveFindBD(cf)
     if rd is None:
-      return (False, "Can't find device %s" % cf)
+      _Fail("Can't find device %s", cf)
     bdevs.append(rd)
-  return (True, bdevs)
+  return bdevs
 
 
 def DrbdDisconnectNet(nodes_ip, disks):
   """Disconnects the network on a list of drbd devices.
 
   """
-  status, bdevs = _FindDisks(nodes_ip, disks)
-  if not status:
-    return status, bdevs
+  bdevs = _FindDisks(nodes_ip, disks)
 
   # disconnect disks
   for rd in bdevs:
@@ -2366,9 +2364,7 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
   """Attaches the network on a list of drbd devices.
 
   """
-  status, bdevs = _FindDisks(nodes_ip, disks)
-  if not status:
-    return status, bdevs
+  bdevs = _FindDisks(nodes_ip, disks)
 
   if multimaster:
     for idx, rd in enumerate(bdevs):
@@ -2429,9 +2425,7 @@ def DrbdWaitSync(nodes_ip, disks):
   """Wait until DRBDs have synchronized.
 
   """
-  status, bdevs = _FindDisks(nodes_ip, disks)
-  if not status:
-    return status, bdevs
+  bdevs = _FindDisks(nodes_ip, disks)
 
   min_resync = 100
   alldone = True
