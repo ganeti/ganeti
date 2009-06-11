@@ -85,7 +85,7 @@ class RpcResult(object):
 
   @ivar data: the data payload, for successfull results, or None
   @type failed: boolean
-  @ivar failed: whether the operation failed at RPC level (not
+  @ivar failed: whether the operation failed at transport level (not
       application level on the remote node)
   @ivar call: the name of the RPC call
   @ivar node: the name of the node to which we made the call
@@ -93,6 +93,7 @@ class RpcResult(object):
       offline, as opposed to actual failure; offline=True will always
       imply failed=True, in order to allow simpler checking if
       the user doesn't care about the exact failure mode
+  @ivar error: the error message if the call failed
 
   """
   def __init__(self, data=None, failed=False, offline=False,
@@ -106,15 +107,30 @@ class RpcResult(object):
       self.error = "Node is marked offline"
       self.data = self.payload = None
     elif failed:
-      self.error = data
+      self.error = self._EnsureErr(data)
       self.data = self.payload = None
     else:
       self.data = data
-      self.error = None
-      if isinstance(data, (tuple, list)) and len(data) == 2:
-        self.payload = data[1]
+      if not isinstance(self.data, (tuple, list)):
+        self.error = ("RPC layer error: invalid result type (%s)" %
+                      type(self.data))
+      elif len(data) != 2:
+        self.error = ("RPC layer error: invalid result length (%d), "
+                      "expected 2" % len(self.data))
+      elif not self.data[0]:
+        self.error = self._EnsureErr(self.data[1])
       else:
-        self.payload = None
+        # finally success
+        self.error = None
+        self.payload = data[1]
+
+  @staticmethod
+  def _EnsureErr(val):
+    """Helper to ensure we return a 'True' value for error."""
+    if val:
+      return val
+    else:
+      return "No error information"
 
   def Raise(self):
     """If the result has failed, raise an OpExecError.
@@ -130,28 +146,10 @@ class RpcResult(object):
   def RemoteFailMsg(self):
     """Check if the remote procedure failed.
 
-    This is valid only for RPC calls which return result of the form
-    (status, data | error_msg).
-
-    @return: empty string for succcess, otherwise an error message
+    @return: the fail_msg attribute
 
     """
-    def _EnsureErr(val):
-      """Helper to ensure we return a 'True' value for error."""
-      if val:
-        return val
-      else:
-        return "No error information"
-
-    if self.failed:
-      return _EnsureErr(self.error)
-    if not isinstance(self.data, (tuple, list)):
-      return "Invalid result type (%s)" % type(self.data)
-    if len(self.data) != 2:
-      return "Invalid result length (%d), expected 2" % len(self.data)
-    if not self.data[0]:
-      return _EnsureErr(self.data[1])
-    return ""
+    return self.error
 
 
 class Client:
