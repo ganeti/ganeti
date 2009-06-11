@@ -154,7 +154,6 @@ def JobQueuePurge():
   """
   _CleanDirectory(constants.QUEUE_DIR, exclude=[constants.JOB_QUEUE_LOCK_FILE])
   _CleanDirectory(constants.JOB_QUEUE_ARCHIVE_DIR)
-  return True, None
 
 
 def GetMasterInfo():
@@ -164,7 +163,7 @@ def GetMasterInfo():
   for consumption here or from the node daemon.
 
   @rtype: tuple
-  @return: True, (master_netdev, master_ip, master_name) in case of success
+  @return: master_netdev, master_ip, master_name
   @raise RPCFail: in case of errors
 
   """
@@ -175,7 +174,7 @@ def GetMasterInfo():
     master_node = cfg.GetMasterNode()
   except errors.ConfigurationError, err:
     _Fail("Cluster configuration incomplete", exc=True)
-  return True, (master_netdev, master_ip, master_node)
+  return master_netdev, master_ip, master_node
 
 
 def StartMaster(start_daemons):
@@ -186,7 +185,7 @@ def StartMaster(start_daemons):
   based on the start_daemons parameter.
 
   @type start_daemons: boolean
-  @param start_daemons: whther to also start the master
+  @param start_daemons: whether to also start the master
       daemons (ganeti-masterd and ganeti-rapi)
   @rtype: None
 
@@ -228,8 +227,6 @@ def StartMaster(start_daemons):
   if payload:
     _Fail("; ".join(payload))
 
-  return True, None
-
 
 def StopMaster(stop_daemons):
   """Deactivate this node as master.
@@ -260,8 +257,6 @@ def StopMaster(stop_daemons):
     # stop/kill the rapi and the master daemon
     for daemon in constants.RAPI_PID, constants.MASTERD_PID:
       utils.KillProcess(utils.ReadPidFile(utils.DaemonPidFileName(daemon)))
-
-  return True, None
 
 
 def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
@@ -307,8 +302,6 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
   utils.AddAuthorizedKey(auth_keys, sshpub)
 
   utils.RunCmd([constants.SSH_INITD_SCRIPT, "restart"])
-
-  return (True, "Node added successfully")
 
 
 def LeaveCluster():
@@ -376,7 +369,7 @@ def GetNodeInfo(vgname, hypervisor_type):
   finally:
     f.close()
 
-  return True, outputarray
+  return outputarray
 
 
 def VerifyNode(what, cluster_name):
@@ -478,7 +471,7 @@ def VerifyNode(what, cluster_name):
       used_minors = str(err)
     result[constants.NV_DRBDLIST] = used_minors
 
-  return True, result
+  return result
 
 
 def GetVolumeList(vg_name):
@@ -528,7 +521,7 @@ def ListVolumeGroups():
       size of the volume
 
   """
-  return True, utils.ListVolumeGroups()
+  return utils.ListVolumeGroups()
 
 
 def NodeVolumes():
@@ -571,9 +564,8 @@ def NodeVolumes():
       'vg': line[3].strip(),
     }
 
-  return True, [map_line(line.split('|'))
-                for line in result.stdout.splitlines()
-                if line.count('|') >= 3]
+  return [map_line(line.split('|')) for line in result.stdout.splitlines()
+          if line.count('|') >= 3]
 
 
 def BridgesExist(bridges_list):
@@ -590,8 +582,6 @@ def BridgesExist(bridges_list):
 
   if missing:
     _Fail("Missing bridges %s", ", ".join(missing))
-
-  return True, None
 
 
 def GetInstanceList(hypervisor_list):
@@ -641,7 +631,7 @@ def GetInstanceInfo(instance, hname):
     output['state'] = iinfo[4]
     output['time'] = iinfo[5]
 
-  return True, output
+  return output
 
 
 def GetInstanceMigratable(instance):
@@ -665,8 +655,6 @@ def GetInstanceMigratable(instance):
     link_name = _GetBlockDevSymlinkPath(iname, idx)
     if not os.path.islink(link_name):
       _Fail("Instance %s was not restarted since ganeti 1.2.5", iname)
-
-  return True, None
 
 
 def GetAllInstancesInfo(hypervisor_list):
@@ -709,7 +697,7 @@ def GetAllInstancesInfo(hypervisor_list):
                     " with different parameters", name)
         output[name] = value
 
-  return True, output
+  return output
 
 
 def InstanceOsAdd(instance, reinstall):
@@ -719,12 +707,10 @@ def InstanceOsAdd(instance, reinstall):
   @param instance: Instance whose OS is to be installed
   @type reinstall: boolean
   @param reinstall: whether this is an instance reinstall
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   inst_os = OSFromDisk(instance.os)
-
 
   create_env = OSEnvironment(instance)
   if reinstall:
@@ -743,8 +729,6 @@ def InstanceOsAdd(instance, reinstall):
              for val in utils.TailFile(logfile, lines=20)]
     _Fail("OS create script failed (%s), last lines in the"
           " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
-
-  return (True, "Successfully installed")
 
 
 def RunRenameInstance(instance, old_name):
@@ -777,8 +761,6 @@ def RunRenameInstance(instance, old_name):
              for val in utils.TailFile(logfile, lines=20)]
     _Fail("OS rename script failed (%s), last lines in the"
           " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
-
-  return (True, "Rename successful")
 
 
 def _GetVGInfo(vg_name):
@@ -902,14 +884,14 @@ def StartInstance(instance):
 
   @type instance: L{objects.Instance}
   @param instance: the instance object
-  @rtype: boolean
-  @return: whether the startup was successful or not
+  @rtype: None
 
   """
   running_instances = GetInstanceList([instance.hypervisor])
 
   if instance.name in running_instances:
-    return (True, "Already running")
+    logging.info("Instance %s already running, not starting", instance.name)
+    return
 
   try:
     block_devices = _GatherAndLinkBlockDevs(instance)
@@ -921,8 +903,6 @@ def StartInstance(instance):
     _RemoveBlockDevLinks(instance.name, instance.disks)
     _Fail("Hypervisor error: %s", err, exc=True)
 
-  return (True, "Instance started successfully")
-
 
 def InstanceShutdown(instance):
   """Shut an instance down.
@@ -931,21 +911,22 @@ def InstanceShutdown(instance):
 
   @type instance: L{objects.Instance}
   @param instance: the instance object
-  @rtype: boolean
-  @return: whether the startup was successful or not
+  @rtype: None
 
   """
   hv_name = instance.hypervisor
   running_instances = GetInstanceList([hv_name])
+  iname = instance.name
 
-  if instance.name not in running_instances:
-    return (True, "Instance already stopped")
+  if iname not in running_instances:
+    logging.info("Instance %s not running, doing nothing", iname)
+    return
 
   hyper = hypervisor.GetHypervisor(hv_name)
   try:
     hyper.StopInstance(instance)
   except errors.HypervisorError, err:
-    _Fail("Failed to stop instance %s: %s", instance.name, err)
+    _Fail("Failed to stop instance %s: %s", iname, err)
 
   # test every 10secs for 2min
 
@@ -956,21 +937,18 @@ def InstanceShutdown(instance):
     time.sleep(10)
   else:
     # the shutdown did not succeed
-    logging.error("Shutdown of '%s' unsuccessful, using destroy",
-                  instance.name)
+    logging.error("Shutdown of '%s' unsuccessful, using destroy", iname)
 
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      _Fail("Failed to force stop instance %s: %s", instance.name, err)
+      _Fail("Failed to force stop instance %s: %s", iname, err)
 
     time.sleep(1)
     if instance.name in GetInstanceList([hv_name]):
-      _Fail("Could not shutdown instance %s even by destroy", instance.name)
+      _Fail("Could not shutdown instance %s even by destroy", iname)
 
-  _RemoveBlockDevLinks(instance.name, instance.disks)
-
-  return (True, "Instance has been shutdown successfully")
+  _RemoveBlockDevLinks(iname, instance.disks)
 
 
 def InstanceReboot(instance, reboot_type):
@@ -988,8 +966,7 @@ def InstanceReboot(instance, reboot_type):
       - the other reboot type (L{constants.INSTANCE_REBOOT_HARD})
         is not accepted here, since that mode is handled
         differently
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   running_instances = GetInstanceList([instance.hypervisor])
@@ -1005,16 +982,12 @@ def InstanceReboot(instance, reboot_type):
       _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
-      stop_result = InstanceShutdown(instance)
-      if not stop_result[0]:
-        return stop_result
+      InstanceShutdown(instance)
       return StartInstance(instance)
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance %s: %s", instance.name, err)
   else:
     _Fail("Invalid reboot_type received: %s", reboot_type)
-
-  return (True, "Reboot successful")
 
 
 def MigrationInfo(instance):
@@ -1029,7 +1002,7 @@ def MigrationInfo(instance):
     info = hyper.MigrationInfo(instance)
   except errors.HypervisorError, err:
     _Fail("Failed to fetch migration information: %s", err, exc=True)
-  return (True, info)
+  return info
 
 
 def AcceptInstance(instance, info, target):
@@ -1048,7 +1021,6 @@ def AcceptInstance(instance, info, target):
     hyper.AcceptInstance(instance, info, target)
   except errors.HypervisorError, err:
     _Fail("Failed to accept instance: %s", err, exc=True)
-  return (True, "Accept successfull")
 
 
 def FinalizeMigration(instance, info, success):
@@ -1067,7 +1039,6 @@ def FinalizeMigration(instance, info, success):
     hyper.FinalizeMigration(instance, info, success)
   except errors.HypervisorError, err:
     _Fail("Failed to finalize migration: %s", err, exc=True)
-  return (True, "Migration Finalized")
 
 
 def MigrateInstance(instance, target, live):
@@ -1092,7 +1063,6 @@ def MigrateInstance(instance, target, live):
     hyper.MigrateInstance(instance.name, target, live)
   except errors.HypervisorError, err:
     _Fail("Failed to migrate instance: %s", err, exc=True)
-  return (True, "Migration successfull")
 
 
 def BlockdevCreate(disk, size, owner, on_primary, info):
@@ -1153,8 +1123,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
 
   device.SetInfo(info)
 
-  physical_id = device.unique_id
-  return True, physical_id
+  return device.unique_id
 
 
 def BlockdevRemove(disk):
@@ -1169,7 +1138,6 @@ def BlockdevRemove(disk):
 
   """
   msgs = []
-  result = True
   try:
     rdev = _RecursiveFindBD(disk)
   except errors.BlockDeviceError, err:
@@ -1182,21 +1150,18 @@ def BlockdevRemove(disk):
       rdev.Remove()
     except errors.BlockDeviceError, err:
       msgs.append(str(err))
-      result = False
-    if result:
+    if not msgs:
       DevCacheManager.RemoveCache(r_path)
 
   if disk.children:
     for child in disk.children:
-      c_status, c_msg = BlockdevRemove(child)
-      result = result and c_status
-      if c_msg: # not an empty message
-        msgs.append(c_msg)
+      try:
+        BlockdevRemove(child)
+      except RPCFail, err:
+        msgs.append(str(err))
 
-  if not result:
+  if msgs:
     _Fail("; ".join(msgs))
-
-  return True, None
 
 
 def _RecursiveAssembleBD(disk, owner, as_primary):
@@ -1270,7 +1235,7 @@ def BlockdevAssemble(disk, owner, as_primary):
   except errors.BlockDeviceError, err:
     _Fail("Error while assembling disk: %s", err, exc=True)
 
-  return True, result
+  return result
 
 
 def BlockdevShutdown(disk):
@@ -1287,12 +1252,10 @@ def BlockdevShutdown(disk):
   @type disk: L{objects.Disk}
   @param disk: the description of the disk we should
       shutdown
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   msgs = []
-  result = True
   r_dev = _RecursiveFindBD(disk)
   if r_dev is not None:
     r_path = r_dev.dev_path
@@ -1301,18 +1264,16 @@ def BlockdevShutdown(disk):
       DevCacheManager.RemoveCache(r_path)
     except errors.BlockDeviceError, err:
       msgs.append(str(err))
-      result = False
 
   if disk.children:
     for child in disk.children:
-      c_status, c_msg = BlockdevShutdown(child)
-      result = result and c_status
-      if c_msg: # not an empty message
-        msgs.append(c_msg)
+      try:
+        BlockdevShutdown(child)
+      except RPCFail, err:
+        msgs.append(str(err))
 
-  if not result:
+  if msgs:
     _Fail("; ".join(msgs))
-  return (True, None)
 
 
 def BlockdevAddchildren(parent_cdev, new_cdevs):
@@ -1322,8 +1283,7 @@ def BlockdevAddchildren(parent_cdev, new_cdevs):
   @param parent_cdev: the disk to which we should add children
   @type new_cdevs: list of L{objects.Disk}
   @param new_cdevs: the list of children which we should add
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
@@ -1333,7 +1293,6 @@ def BlockdevAddchildren(parent_cdev, new_cdevs):
   if new_bdevs.count(None) > 0:
     _Fail("Can't find new device(s) to add: %s:%s", new_bdevs, new_cdevs)
   parent_bdev.AddChildren(new_bdevs)
-  return (True, None)
 
 
 def BlockdevRemovechildren(parent_cdev, new_cdevs):
@@ -1343,8 +1302,7 @@ def BlockdevRemovechildren(parent_cdev, new_cdevs):
   @param parent_cdev: the disk from which we should remove children
   @type new_cdevs: list of L{objects.Disk}
   @param new_cdevs: the list of children which we should remove
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   parent_bdev = _RecursiveFindBD(parent_cdev)
@@ -1362,7 +1320,6 @@ def BlockdevRemovechildren(parent_cdev, new_cdevs):
     else:
       devs.append(rpath)
   parent_bdev.RemoveChildren(devs)
-  return (True, None)
 
 
 def BlockdevGetmirrorstatus(disks):
@@ -1384,7 +1341,7 @@ def BlockdevGetmirrorstatus(disks):
     if rbd is None:
       _Fail("Can't find device %s", dsk)
     stats.append(rbd.CombinedSyncStatus())
-  return True, stats
+  return stats
 
 
 def _RecursiveFindBD(disk):
@@ -1425,8 +1382,8 @@ def BlockdevFind(disk):
   except errors.BlockDeviceError, err:
     _Fail("Failed to find device: %s", err, exc=True)
   if rbd is None:
-    return (True, None)
-  return (True, (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus())
+    return None
+  return (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus()
 
 
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
@@ -1449,9 +1406,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   @param atime: the atime to set on the file (can be None)
   @type mtime: float
   @param mtime: the mtime to set on the file (can be None)
-  @rtype: boolean
-  @return: the success of the operation; errors are logged
-      in the node daemon log
+  @rtype: None
 
   """
   if not os.path.isabs(file_name):
@@ -1478,7 +1433,6 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
 
   utils.WriteFile(file_name, data=raw_data, mode=mode, uid=uid, gid=gid,
                   atime=atime, mtime=mtime)
-  return (True, "success")
 
 
 def WriteSsconfFiles(values):
@@ -1488,7 +1442,6 @@ def WriteSsconfFiles(values):
 
   """
   ssconf.SimpleStore().WriteFiles(values)
-  return True, None
 
 
 def _ErrnoOrStr(err):
@@ -1592,7 +1545,7 @@ def DiagnoseOS(top_dirs=None):
           diagnose = os_inst
         result.append((name, os_path, status, diagnose))
 
-  return True, result
+  return result
 
 
 def _TryOSFromDisk(name, base_dir=None):
@@ -1755,8 +1708,6 @@ def BlockdevGrow(disk, amount):
   except errors.BlockDeviceError, err:
     _Fail("Failed to grow block device: %s", err, exc=True)
 
-  return True, None
-
 
 def BlockdevSnapshot(disk):
   """Create a snapshot copy of a block device.
@@ -1784,7 +1735,7 @@ def BlockdevSnapshot(disk):
     r_dev = _RecursiveFindBD(disk)
     if r_dev is not None:
       # let's stay on the safe side and ask for the full size, for now
-      return True, r_dev.Snapshot(disk.size)
+      return r_dev.Snapshot(disk.size)
     else:
       _Fail("Cannot find block device %s", disk)
   else:
@@ -1806,8 +1757,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   @type idx: int
   @param idx: the index of the disk in the instance's disk list,
       used to export to the OS scripts environment
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   export_env = OSEnvironment(instance)
@@ -1854,8 +1804,6 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
     _Fail("OS snapshot export command '%s' returned error: %s"
           " output: %s", command, result.fail_reason, result.output)
 
-  return (True, None)
-
 
 def FinalizeExport(instance, snap_disks):
   """Write out the export configuration information.
@@ -1867,8 +1815,7 @@ def FinalizeExport(instance, snap_disks):
   @param snap_disks: list of snapshot block devices, which
       will be used to get the actual name of the dump file
 
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   destdir = os.path.join(constants.EXPORT_DIR, instance.name + ".new")
@@ -1920,8 +1867,6 @@ def FinalizeExport(instance, snap_disks):
   shutil.rmtree(finaldestdir, True)
   shutil.move(destdir, finaldestdir)
 
-  return True, None
-
 
 def ExportInfo(dest):
   """Get export configuration information.
@@ -1943,7 +1888,7 @@ def ExportInfo(dest):
       not config.has_section(constants.INISECT_INS)):
     _Fail("Export info file doesn't have the required fields")
 
-  return True, config.Dumps()
+  return config.Dumps()
 
 
 def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
@@ -1992,7 +1937,6 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
 
   if final_result:
     _Fail("; ".join(final_result), log=False)
-  return True, None
 
 
 def ListExports():
@@ -2003,7 +1947,7 @@ def ListExports():
 
   """
   if os.path.isdir(constants.EXPORT_DIR):
-    return True, utils.ListVisibleFiles(constants.EXPORT_DIR)
+    return utils.ListVisibleFiles(constants.EXPORT_DIR)
   else:
     _Fail("No exports directory")
 
@@ -2013,8 +1957,7 @@ def RemoveExport(export):
 
   @type export: str
   @param export: the name of the export to remove
-  @rtype: boolean
-  @return: the success of the operation
+  @rtype: None
 
   """
   target = os.path.join(constants.EXPORT_DIR, export)
@@ -2023,8 +1966,6 @@ def RemoveExport(export):
     shutil.rmtree(target)
   except EnvironmentError, err:
     _Fail("Error while removing the export: %s", err, exc=True)
-
-  return True, None
 
 
 def BlockdevRename(devlist):
@@ -2066,7 +2007,6 @@ def BlockdevRename(devlist):
       result = False
   if not result:
     _Fail("; ".join(msgs))
-  return True, None
 
 
 def _TransformFileStorageDir(file_storage_dir):
@@ -2114,7 +2054,6 @@ def CreateFileStorageDir(file_storage_dir):
     except OSError, err:
       _Fail("Cannot create file storage directory '%s': %s",
             file_storage_dir, err, exc=True)
-  return True, None
 
 
 def RemoveFileStorageDir(file_storage_dir):
@@ -2140,8 +2079,6 @@ def RemoveFileStorageDir(file_storage_dir):
     except OSError, err:
       _Fail("Cannot remove file storage directory '%s': %s",
             file_storage_dir, err)
-
-  return True, None
 
 
 def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
@@ -2172,7 +2109,6 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
     if os.path.exists(old_file_storage_dir):
       _Fail("Cannot rename '%s' to '%s': both locations exist",
             old_file_storage_dir, new_file_storage_dir)
-  return True, None
 
 
 def _EnsureJobQueueFile(file_name):
@@ -2211,8 +2147,6 @@ def JobQueueUpdate(file_name, content):
   # Write and replace the file atomically
   utils.WriteFile(file_name, data=_Decompress(content))
 
-  return True, None
-
 
 def JobQueueRename(old, new):
   """Renames a job queue file.
@@ -2232,8 +2166,6 @@ def JobQueueRename(old, new):
 
   utils.RenameFile(old, new, mkdir=True)
 
-  return True, None
-
 
 def JobQueueSetDrainFlag(drain_flag):
   """Set the drain flag for the queue.
@@ -2251,8 +2183,6 @@ def JobQueueSetDrainFlag(drain_flag):
     utils.WriteFile(constants.JOB_QUEUE_DRAIN_FILE, data="", close=True)
   else:
     utils.RemoveFile(constants.JOB_QUEUE_DRAIN_FILE)
-
-  return True, None
 
 
 def BlockdevClose(instance_name, disks):
@@ -2290,7 +2220,6 @@ def BlockdevClose(instance_name, disks):
   else:
     if instance_name:
       _RemoveBlockDevLinks(instance_name, disks)
-    return (True, "All devices secondary")
 
 
 def ValidateHVParams(hvname, hvparams):
@@ -2300,17 +2229,12 @@ def ValidateHVParams(hvname, hvparams):
   @param hvname: the hypervisor name
   @type hvparams: dict
   @param hvparams: the hypervisor parameters to be validated
-  @rtype: tuple (success, message)
-  @return: a tuple of success and message, where success
-      indicates the succes of the operation, and message
-      which will contain the error details in case we
-      failed
+  @rtype: None
 
   """
   try:
     hv_type = hypervisor.GetHypervisor(hvname)
     hv_type.ValidateParameters(hvparams)
-    return (True, "Validation passed")
   except errors.HypervisorError, err:
     _Fail(str(err), log=False)
 
@@ -2332,7 +2256,6 @@ def DemoteFromMC():
     if err.errno != errno.ENOENT:
       _Fail("Error while backing up cluster file: %s", err, exc=True)
   utils.RemoveFile(constants.CLUSTER_CONF_FILE)
-  return (True, "Done")
 
 
 def _FindDisks(nodes_ip, disks):
@@ -2367,7 +2290,6 @@ def DrbdDisconnectNet(nodes_ip, disks):
     except errors.BlockDeviceError, err:
       _Fail("Can't change network configuration to standalone mode: %s",
             err, exc=True)
-  return (True, "All disks are now disconnected")
 
 
 def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
@@ -2424,11 +2346,6 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
         rd.Open()
       except errors.BlockDeviceError, err:
         _Fail("Can't change to primary mode: %s", err)
-  if multimaster:
-    msg = "multi-master and primary"
-  else:
-    msg = "single-master"
-  return (True, "Disks are now configured as %s" % msg)
 
 
 def DrbdWaitSync(nodes_ip, disks):
@@ -2448,7 +2365,7 @@ def DrbdWaitSync(nodes_ip, disks):
     if stats.sync_percent is not None:
       min_resync = min(min_resync, stats.sync_percent)
 
-  return (True, (alldone, min_resync))
+  return (alldone, min_resync)
 
 
 def PowercycleNode(hypervisor_type):
@@ -2465,7 +2382,7 @@ def PowercycleNode(hypervisor_type):
     # if we can't fork, we'll pretend that we're in the child process
     pid = 0
   if pid > 0:
-    return (True, "Reboot scheduled in 5 seconds")
+    return "Reboot scheduled in 5 seconds"
   time.sleep(5)
   hyper.PowercycleNode()
 
@@ -2578,7 +2495,7 @@ class HooksRunner(object):
       dir_contents = utils.ListVisibleFiles(dir_name)
     except OSError, err:
       # FIXME: must log output in case of failures
-      return True, rr
+      return rr
 
     # we use the standard python sort order,
     # so 00name is the recommended naming scheme
@@ -2597,7 +2514,7 @@ class HooksRunner(object):
           rrval = constants.HKR_SUCCESS
       rr.append(("%s/%s" % (subdir, relname), rrval, output))
 
-    return True, rr
+    return rr
 
 
 class IAllocatorRunner(object):
@@ -2637,7 +2554,7 @@ class IAllocatorRunner(object):
     finally:
       os.unlink(fin_name)
 
-    return True, result.stdout
+    return result.stdout
 
 
 class DevCacheManager(object):

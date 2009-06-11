@@ -94,14 +94,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     try:
       rvalue = method(req.request_body)
-      if not isinstance(rvalue, tuple):
-        return (False, "Invalid result from backend function: expected"
-                " tuple, got %s" % type(rvalue))
-      elif len(rvalue) != 2:
-        return (False, "Invalid result from backend function: expected"
-                " 2-element tuple, got tuple of length %d" % len(rvalue))
-      else:
-        return rvalue
+      return True, rvalue
 
     except backend.RPCFail, err:
       # our custom failure exception; str(err) works fine if the
@@ -352,7 +345,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     vgname = params[0]
-    return True, backend.GetVolumeList(vgname)
+    return backend.GetVolumeList(vgname)
 
   @staticmethod
   def perspective_vg_list(params):
@@ -489,7 +482,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query the list of running instances.
 
     """
-    return True, backend.GetInstanceList(params[0])
+    return backend.GetInstanceList(params[0])
 
   # node --------------------------
 
@@ -506,7 +499,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Checks if a node has the given ip address.
 
     """
-    return True, utils.OwnIpAddress(params[0])
+    return utils.OwnIpAddress(params[0])
 
   @staticmethod
   def perspective_node_info(params):
@@ -583,7 +576,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query version information.
 
     """
-    return True, constants.PROTOCOL_VERSION
+    return constants.PROTOCOL_VERSION
 
   @staticmethod
   def perspective_upload_file(params):
@@ -626,7 +619,7 @@ class NodeHttpServer(http.server.HttpServer):
     """
     name = params[0]
     os_obj = backend.OSFromDisk(name)
-    return True, os_obj.ToDict()
+    return os_obj.ToDict()
 
   # hooks -----------------------
 
@@ -658,7 +651,10 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     duration = params[0]
-    return utils.TestDelay(duration)
+    status, rval = utils.TestDelay(duration)
+    if not status:
+      raise backend.RPCFail(rval)
+    return rval
 
   # file storage ---------------
 
@@ -714,7 +710,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     # TODO: What if a file fails to rename?
-    return True, [backend.JobQueueRename(old, new) for old, new in params]
+    return [backend.JobQueueRename(old, new) for old, new in params]
 
   @staticmethod
   def perspective_jobqueue_set_drain(params):
