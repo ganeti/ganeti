@@ -718,15 +718,8 @@ def InstanceOsAdd(instance, reinstall):
   @return: the success of the operation
 
   """
-  try:
-    inst_os = OSFromDisk(instance.os)
-  except errors.InvalidOS, err:
-    os_name, os_dir, os_err = err.args
-    if os_dir is None:
-      return (False, "Can't find OS '%s': %s" % (os_name, os_err))
-    else:
-      return (False, "Error parsing OS '%s' in directory %s: %s" %
-              (os_name, os_dir, os_err))
+  inst_os = OSFromDisk(instance.os)
+
 
   create_env = OSEnvironment(instance)
   if reinstall:
@@ -1530,12 +1523,12 @@ def _OSOndiskVersion(name, os_dir):
   try:
     st = os.stat(api_file)
   except EnvironmentError, err:
-    raise errors.InvalidOS(name, os_dir, "'ganeti_api_version' file not"
-                           " found (%s)" % _ErrnoOrStr(err))
+    return False, ("Required file 'ganeti_api_version' file not"
+                   " found under path %s: %s" % (os_dir, _ErrnoOrStr(err)))
 
   if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-    raise errors.InvalidOS(name, os_dir, "'ganeti_api_version' file is not"
-                           " a regular file")
+    return False, ("File 'ganeti_api_version' file at %s is not"
+                   " a regular file" % os_dir)
 
   try:
     f = open(api_file)
@@ -1544,17 +1537,17 @@ def _OSOndiskVersion(name, os_dir):
     finally:
       f.close()
   except EnvironmentError, err:
-    raise errors.InvalidOS(name, os_dir, "error while reading the"
-                           " API version (%s)" % _ErrnoOrStr(err))
+    return False, ("Error while reading the API version file at %s: %s" %
+                   (api_file, _ErrnoOrStr(err)))
 
   api_versions = [version.strip() for version in api_versions]
   try:
     api_versions = [int(version) for version in api_versions]
   except (TypeError, ValueError), err:
-    raise errors.InvalidOS(name, os_dir,
-                           "API version is not integer (%s)" % str(err))
+    return False, ("API version(s) can't be converted to integer: %s" %
+                   str(err))
 
-  return api_versions
+  return True, api_versions
 
 
 def DiagnoseOS(top_dirs=None):
@@ -1565,8 +1558,12 @@ def DiagnoseOS(top_dirs=None):
       search (if not given defaults to
       L{constants.OS_SEARCH_PATH})
   @rtype: list of L{objects.OS}
-  @return: an OS object for each name in all the given
-      directories
+  @return: a list of tuples (name, path, status, diagnose)
+      for all (potential) OSes under all search paths, where:
+          - name is the (potential) OS name
+          - path is the full path to the OS
+          - status True/False is the validity of the OS
+          - diagnose is the error message for an invalid OS, otherwise empty
 
   """
   if top_dirs is None:
@@ -1581,16 +1578,18 @@ def DiagnoseOS(top_dirs=None):
         logging.exception("Can't list the OS directory %s", dir_name)
         break
       for name in f_names:
-        try:
-          os_inst = OSFromDisk(name, base_dir=dir_name)
-          result.append(os_inst)
-        except errors.InvalidOS, err:
-          result.append(objects.OS.FromInvalidOS(err))
+        os_path = os.path.sep.join([dir_name, name])
+        status, os_inst = _TryOSFromDisk(name, base_dir=dir_name)
+        if status:
+          diagnose = ""
+        else:
+          diagnose = os_inst
+        result.append((name, os_path, status, diagnose))
 
-  return result
+  return True, result
 
 
-def OSFromDisk(name, base_dir=None):
+def _TryOSFromDisk(name, base_dir=None):
   """Create an OS instance from disk.
 
   This function will return an OS instance if the given name is a
@@ -1600,24 +1599,26 @@ def OSFromDisk(name, base_dir=None):
   @type base_dir: string
   @keyword base_dir: Base directory containing OS installations.
                      Defaults to a search in all the OS_SEARCH_PATH dirs.
-  @rtype: L{objects.OS}
-  @return: the OS instance if we find a valid one
-  @raise errors.InvalidOS: if we don't find a valid OS
+  @rtype: tuple
+  @return: success and either the OS instance if we find a valid one,
+      or error message
 
   """
   if base_dir is None:
     os_dir = utils.FindFile(name, constants.OS_SEARCH_PATH, os.path.isdir)
     if os_dir is None:
-      raise errors.InvalidOS(name, None, "OS dir not found in search path")
+      return False, "Directory for OS %s not found in search path" % name
   else:
     os_dir = os.path.sep.join([base_dir, name])
 
-  api_versions = _OSOndiskVersion(name, os_dir)
+  status, api_versions = _OSOndiskVersion(name, os_dir)
+  if not status:
+    # push the error up
+    return status, api_versions
 
   if constants.OS_API_VERSION not in api_versions:
-    raise errors.InvalidOS(name, os_dir, "API version mismatch"
-                           " (found %s want %s)"
-                           % (api_versions, constants.OS_API_VERSION))
+    return False, ("API version mismatch for path '%s': found %s, want %s." %
+                   (os_dir, api_versions, constants.OS_API_VERSION))
 
   # OS Scripts dictionary, we will populate it with the actual script names
   os_scripts = dict.fromkeys(constants.OS_SCRIPTS)
@@ -1628,24 +1629,51 @@ def OSFromDisk(name, base_dir=None):
     try:
       st = os.stat(os_scripts[script])
     except EnvironmentError, err:
-      raise errors.InvalidOS(name, os_dir, "'%s' script missing (%s)" %
-                             (script, _ErrnoOrStr(err)))
+      return False, ("Script '%s' under path '%s' is missing (%s)" %
+                     (script, os_dir, _ErrnoOrStr(err)))
 
     if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
-      raise errors.InvalidOS(name, os_dir, "'%s' script not executable" %
-                             script)
+      return False, ("Script '%s' under path '%s' is not executable" %
+                     (script, os_dir))
 
     if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-      raise errors.InvalidOS(name, os_dir, "'%s' is not a regular file" %
-                             script)
+      return False, ("Script '%s' under path '%s' is not a regular file" %
+                     (script, os_dir))
+
+  os_obj = objects.OS(name=name, path=os_dir, status=constants.OS_VALID_STATUS,
+                      create_script=os_scripts[constants.OS_SCRIPT_CREATE],
+                      export_script=os_scripts[constants.OS_SCRIPT_EXPORT],
+                      import_script=os_scripts[constants.OS_SCRIPT_IMPORT],
+                      rename_script=os_scripts[constants.OS_SCRIPT_RENAME],
+                      api_versions=api_versions)
+  return True, os_obj
 
 
-  return objects.OS(name=name, path=os_dir, status=constants.OS_VALID_STATUS,
-                    create_script=os_scripts[constants.OS_SCRIPT_CREATE],
-                    export_script=os_scripts[constants.OS_SCRIPT_EXPORT],
-                    import_script=os_scripts[constants.OS_SCRIPT_IMPORT],
-                    rename_script=os_scripts[constants.OS_SCRIPT_RENAME],
-                    api_versions=api_versions)
+def OSFromDisk(name, base_dir=None):
+  """Create an OS instance from disk.
+
+  This function will return an OS instance if the given name is a
+  valid OS name. Otherwise, it will raise an appropriate
+  L{RPCFail} exception, detailing why this is not a valid OS.
+
+  This is just a wrapper over L{_TryOSFromDisk}, which doesn't raise
+  an exception but returns true/false status data.
+
+  @type base_dir: string
+  @keyword base_dir: Base directory containing OS installations.
+                     Defaults to a search in all the OS_SEARCH_PATH dirs.
+  @rtype: L{objects.OS}
+  @return: the OS instance if we find a valid one
+  @raise RPCFail: if we don't find a valid OS
+
+  """
+  status, payload = _TryOSFromDisk(name, base_dir)
+
+  if not status:
+    _Fail(payload)
+
+  return payload
+
 
 def OSEnvironment(instance, debug=0):
   """Calculate the environment for an os script.

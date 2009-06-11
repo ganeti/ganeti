@@ -608,7 +608,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query detailed information about existing OSes.
 
     """
-    return True, [os_obj.ToDict() for os_obj in backend.DiagnoseOS()]
+    return backend.DiagnoseOS()
 
   @staticmethod
   def perspective_os_get(params):
@@ -616,11 +616,8 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     name = params[0]
-    try:
-      os_obj = backend.OSFromDisk(name)
-    except errors.InvalidOS, err:
-      os_obj = objects.OS.FromInvalidOS(err)
-    return os_obj.ToDict()
+    os_obj = backend.OSFromDisk(name)
+    return True, os_obj.ToDict()
 
   # hooks -----------------------
 

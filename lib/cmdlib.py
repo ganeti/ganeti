@@ -1801,10 +1801,11 @@ class LUDiagnoseOS(NoHooksLU):
 
     @rtype: dict
     @return: a dictionary with osnames as keys and as value another map, with
-        nodes as keys and list of OS objects as values, eg::
+        nodes as keys and tuples of (path, status, diagnose) as values, eg::
 
-          {"debian-etch": {"node1": [<object>,...],
-                           "node2": [<object>,]}
+          {"debian-etch": {"node1": [(/usr/lib/..., True, ""),
+                                     (/srv/..., False, "invalid api")],
+                           "node2": [(/srv/..., True, "")]}
           }
 
     """
@@ -1817,15 +1818,14 @@ class LUDiagnoseOS(NoHooksLU):
     for node_name, nr in rlist.items():
       if nr.RemoteFailMsg() or not nr.payload:
         continue
-      for os_serialized in nr.payload:
-        os_obj = objects.OS.FromDict(os_serialized)
-        if os_obj.name not in all_os:
+      for name, path, status, diagnose in nr.payload:
+        if name not in all_os:
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
-          all_os[os_obj.name] = {}
+          all_os[name] = {}
           for nname in good_nodes:
-            all_os[os_obj.name][nname] = []
-        all_os[os_obj.name][node_name].append(os_obj)
+            all_os[name][nname] = []
+        all_os[name][node_name].append((path, status, diagnose))
     return all_os
 
   def Exec(self, feedback_fn):
@@ -1842,11 +1842,12 @@ class LUDiagnoseOS(NoHooksLU):
         if field == "name":
           val = os_name
         elif field == "valid":
-          val = utils.all([osl and osl[0] for osl in os_data.values()])
+          val = utils.all([osl and osl[0][1] for osl in os_data.values()])
         elif field == "node_status":
+          # this is just a copy of the dict
           val = {}
-          for node_name, nos_list in os_data.iteritems():
-            val[node_name] = [(v.status, v.path) for v in nos_list]
+          for node_name, nos_list in os_data.items():
+            val[node_name] = nos_list
         else:
           raise errors.ParameterError(field)
         row.append(val)
@@ -3156,10 +3157,11 @@ class LUReinstallInstance(LogicalUnit):
         raise errors.OpPrereqError("Primary node '%s' is unknown" %
                                    self.op.pnode)
       result = self.rpc.call_os_get(pnode.name, self.op.os_type)
-      result.Raise()
-      if not isinstance(result.data, objects.OS):
+      msg = result.RemoteFailMsg()
+      if msg:
         raise errors.OpPrereqError("OS '%s' not in supported OS list for"
-                                   " primary node"  % self.op.os_type)
+                                   " primary node %s: %s"  %
+                                   (self.op.os_type, pnode.pname, msg))
 
     self.instance = instance
 
@@ -4843,10 +4845,11 @@ class LUCreateInstance(LogicalUnit):
 
     # os verification
     result = self.rpc.call_os_get(pnode.name, self.op.os_type)
-    result.Raise()
-    if not isinstance(result.data, objects.OS):
+    msg = result.RemoteFailMsg()
+    if msg:
       raise errors.OpPrereqError("OS '%s' not in supported os list for"
-                                 " primary node"  % self.op.os_type)
+                                 " primary node %s: %s"  %
+                                 (self.op.os_type, pnode.name, msg))
 
     _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
 
