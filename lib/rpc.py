@@ -93,7 +93,7 @@ class RpcResult(object):
       offline, as opposed to actual failure; offline=True will always
       imply failed=True, in order to allow simpler checking if
       the user doesn't care about the exact failure mode
-  @ivar error: the error message if the call failed
+  @ivar fail_msg: the error message if the call failed
 
   """
   def __init__(self, data=None, failed=False, offline=False,
@@ -104,24 +104,24 @@ class RpcResult(object):
     self.node = node
     if offline:
       self.failed = True
-      self.error = "Node is marked offline"
+      self.fail_msg = "Node is marked offline"
       self.data = self.payload = None
     elif failed:
-      self.error = self._EnsureErr(data)
+      self.fail_msg = self._EnsureErr(data)
       self.data = self.payload = None
     else:
       self.data = data
       if not isinstance(self.data, (tuple, list)):
-        self.error = ("RPC layer error: invalid result type (%s)" %
-                      type(self.data))
+        self.fail_msg = ("RPC layer error: invalid result type (%s)" %
+                         type(self.data))
       elif len(data) != 2:
-        self.error = ("RPC layer error: invalid result length (%d), "
-                      "expected 2" % len(self.data))
+        self.fail_msg = ("RPC layer error: invalid result length (%d), "
+                         "expected 2" % len(self.data))
       elif not self.data[0]:
-        self.error = self._EnsureErr(self.data[1])
+        self.fail_msg = self._EnsureErr(self.data[1])
       else:
         # finally success
-        self.error = None
+        self.fail_msg = None
         self.payload = data[1]
 
   @staticmethod
@@ -132,16 +132,26 @@ class RpcResult(object):
     else:
       return "No error information"
 
-  def Raise(self):
+  def Raise(self, msg, prereq=False):
     """If the result has failed, raise an OpExecError.
 
     This is used so that LU code doesn't have to check for each
     result, but instead can call this function.
 
     """
-    if self.failed:
-      raise errors.OpExecError("Call '%s' to node '%s' has failed: %s" %
-                               (self.call, self.node, self.error))
+    if not self.fail_msg:
+      return
+
+    if not msg: # one could pass None for default message
+      msg = ("Call '%s' to node '%s' has failed: %s" %
+             (self.call, self.node, self.fail_msg))
+    else:
+      msg = "%s: %s" % (msg, self.fail_msg)
+    if prereq:
+      ec = errors.OpPrereqError
+    else:
+      ec = errors.OpExecError
+    raise ec(msg)
 
   def RemoteFailMsg(self):
     """Check if the remote procedure failed.
@@ -149,7 +159,7 @@ class RpcResult(object):
     @return: the fail_msg attribute
 
     """
-    return self.error
+    return self.fail_msg
 
 
 class Client:
