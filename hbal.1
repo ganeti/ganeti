@@ -14,6 +14,8 @@ hbal \- Cluster balancer for Ganeti
 .BI "[-m " cluster "]"
 .BI "[-n " nodes-file " ]"
 .BI "[-i " instances-file "]"
+.BI "[--max-cpu " cpu-ratio "]"
+.BI "[--min-disk " disk-ratio "]"
 
 .B hbal
 .B --version
@@ -89,6 +91,10 @@ percentage of nodes failing N+1 check
 \(em
 percentage of instances living (either as primary or secondary) on
 offline nodes
+.TP
+\(em
+coefficent of variance of the ratio of virtual-to-physical cpus (for
+primary instaces of the node)
 .RE
 
 The free memory and free disk values help ensure that all nodes are
@@ -137,7 +143,7 @@ dynamically-computed metrics, such as:
 .RS 4
 .TP 3
 \(em
-CPU usage of instances, combined with VCPU versus PCPU count
+CPU usage of instances
 .TP
 \(em
 Disk IO usage
@@ -194,6 +200,12 @@ total disk
 .B f_dsk
 free disk
 .TP
+.B pcpu
+the number of physical cpus on the node
+.TP
+.B vcpu
+the number of virtual cpus allocated to primary instances
+.TP
 .B pri
 number of primary instances
 .TP
@@ -205,6 +217,9 @@ percent of free memory
 .TP
 .B p_fdsk
 percent of free disk
+.TP
+.B r_cpu
+ratio of virtual to physical cpus
 .RE
 
 .TP
@@ -296,6 +311,21 @@ considered a fully-specified URL and is used as-is.
 .BI "-l" N ", --max-length=" N
 Restrict the solution to this length. This can be used for example to
 automate the execution of the balancing.
+
+.TP
+.BI "--max-cpu " cpu-ratio
+The maximum virtual-to-physical cpu ratio, as a floating point number
+between zero and one. For example, specifying \fIcpu-ratio\fR as
+\fB2.5\fR means that, for a 4-cpu machine, a maximum of 10 virtual
+cpus should be allowed to be in use for primary instances. A value of
+one doesn't make sense though, as that means no disk space can be used
+on it.
+
+.TP
+.BI "--min-disk " disk-ratio
+The minimum amount of free disk space remaining, as a floating point
+number. For example, specifying \fIdisk-ratio\fR as \fB0.25\fR means
+that at least one quarter of disk space should be left free on nodes.
 
 .TP
 .B -v, --verbose

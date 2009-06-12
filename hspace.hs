@@ -136,7 +136,7 @@ options =
     , Option []        ["max-cpu"]
       (ReqArg (\ n opts -> opts { optMcpu = read n }) "RATIO")
       "maximum virtual-to-physical cpu ratio for nodes"
-    , Option []        ["max-disk"]
+    , Option []        ["min-disk"]
       (ReqArg (\ n opts -> opts { optMdsk = read n }) "RATIO")
       "minimum free disk space for nodes (between 0 and 1)"
     , Option ['V']     ["version"]

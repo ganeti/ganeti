@@ -13,6 +13,8 @@ hspace \- Cluster space analyzer for Ganeti
 .BI "[--memory " mem "]"
 .BI "[--disk " disk "]"
 .BI "[--req-nodes " req-nodes "]"
+.BI "[--max-cpu " cpu-ratio "]"
+.BI "[--min-disk " disk-ratio "]"
 
 .B hspace
 .B --version
@@ -44,6 +46,21 @@ The disk size of the instances to be placed (defaults to 100GiB).
 .BI "--req-nodes " num-nodes
 The number of nodes for the instances; the default of two means
 mirrored instances, while passing one means plain type instances.
+
+.TP
+.BI "--max-cpu " cpu-ratio
+The maximum virtual-to-physical cpu ratio, as a floating point number
+between zero and one. For example, specifying \fIcpu-ratio\fR as
+\fB2.5\fR means that, for a 4-cpu machine, a maximum of 10 virtual
+cpus should be allowed to be in use for primary instances. A value of
+one doesn't make sense though, as that means no disk space can be used
+on it.
+
+.TP
+.BI "--min-disk " disk-ratio
+The minimum amount of free disk space remaining, as a floating point
+number. For example, specifying \fIdisk-ratio\fR as \fB0.25\fR means
+that at least one quarter of disk space should be left free on nodes.
 
 .TP
 .B -p, --print-nodes
@@ -87,6 +104,12 @@ total disk
 .B f_dsk
 free disk
 .TP
+.B pcpu
+the number of physical cpus on the node
+.TP
+.B vcpu
+the number of virtual cpus allocated to primary instances
+.TP
 .B pri
 number of primary instances
 .TP
@@ -98,6 +121,9 @@ percent of free memory
 .TP
 .B p_fdsk
 percent of free disk
+.TP
+.B r_cpu
+ratio of virtual to physical cpus
 .RE
 
 .TP
