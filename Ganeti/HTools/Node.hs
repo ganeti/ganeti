@@ -114,6 +114,10 @@ type List = Container.Container Node
 noSecondary :: T.Ndx
 noSecondary = -1
 
+-- | No limit value
+noLimit :: Double
+noLimit = -1
+
 -- * Initialization functions
 
 -- | Create a new node.
@@ -146,8 +150,8 @@ create name_init mem_t_init mem_n_init mem_f_init
       p_cpu = 0,
       offline = offline_init,
       x_mem = 0,
-      m_dsk = -1,
-      m_cpu = -1
+      m_dsk = noLimit,
+      m_cpu = noLimit
     }
 
 -- | Changes the index.
@@ -228,6 +232,13 @@ computeFailN1 new_rmem new_mem new_dsk =
 failHealth :: Int -> Int -> Bool
 failHealth new_mem new_dsk = new_mem <= 0 || new_dsk <= 0
 
+-- | Given new limits, check if any of them are overtaken
+failLimits :: Node -> Double -> Double -> Bool
+failLimits t new_dsk new_cpu =
+    let l_dsk = m_dsk t
+        l_cpu = m_cpu t
+    in (l_dsk > new_dsk) || (l_cpu >= 0 && l_cpu < new_cpu)
+
 -- | Removes a primary instance.
 removePri :: Node -> Instance.Instance -> Node
 removePri t inst =
@@ -276,13 +287,15 @@ addPri t inst =
         new_failn1 = computeFailN1 (r_mem t) new_mem new_dsk
         new_ucpu = (u_cpu t) + (Instance.vcpus inst)
         new_pcpu = (fromIntegral new_ucpu) / (t_cpu t)
+        new_dp = (fromIntegral new_dsk) / (t_dsk t)
     in
-      if (failHealth new_mem new_dsk) || (new_failn1 && not (failN1 t)) then
+      if (failHealth new_mem new_dsk) || (new_failn1 && not (failN1 t)) ||
+         (failLimits t new_dp new_pcpu)
+      then
         Nothing
       else
         let new_plist = iname:(plist t)
             new_mp = (fromIntegral new_mem) / (t_mem t)
-            new_dp = (fromIntegral new_dsk) / (t_dsk t)
         in
         Just t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
                 failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
@@ -299,17 +312,19 @@ addSec t inst pdx =
         new_peers = PeerMap.add pdx new_peem old_peers
         new_rmem = max (r_mem t) new_peem
         new_prem = (fromIntegral new_rmem) / (t_mem t)
-        new_failn1 = computeFailN1 new_rmem old_mem new_dsk in
-    if (failHealth old_mem new_dsk) || (new_failn1 && not (failN1 t)) then
-        Nothing
-    else
-        let new_slist = iname:(slist t)
-            new_dp = (fromIntegral new_dsk) / (t_dsk t)
-        in
-        Just t {slist = new_slist, f_dsk = new_dsk,
-                peers = new_peers, failN1 = new_failn1,
-                r_mem = new_rmem, p_dsk = new_dp,
-                p_rem = new_prem}
+        new_failn1 = computeFailN1 new_rmem old_mem new_dsk
+        new_dp = (fromIntegral new_dsk) / (t_dsk t)
+    in if (failHealth old_mem new_dsk) || (new_failn1 && not (failN1 t)) ||
+          (failLimits t new_dp noLimit)
+       then
+           Nothing
+       else
+           let new_slist = iname:(slist t)
+           in
+             Just t {slist = new_slist, f_dsk = new_dsk,
+                     peers = new_peers, failN1 = new_failn1,
+                     r_mem = new_rmem, p_dsk = new_dp,
+                     p_rem = new_prem}
 
 -- * Display functions
 
