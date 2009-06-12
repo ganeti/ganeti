@@ -1,4 +1,4 @@
-{-| Solver for N+1 cluster errors
+{-| Cluster rebalancer
 
 -}
 
@@ -57,6 +57,8 @@ data Options = Options
     , optVerbose   :: Int            -- ^ Verbosity level
     , optOffline   :: [String]       -- ^ Names of offline nodes
     , optMinScore  :: Cluster.Score  -- ^ The minimum score we aim for
+    , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
+    , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
     , optShowVer   :: Bool           -- ^ Just show the program version
     , optShowHelp  :: Bool           -- ^ Just show the help
     } deriving Show
@@ -88,6 +90,8 @@ defaultOptions  = Options
  , optVerbose   = 1
  , optOffline   = []
  , optMinScore  = 1e-9
+ , optMcpu      = -1
+ , optMdsk      = -1
  , optShowVer   = False
  , optShowHelp  = False
  }
@@ -132,6 +136,12 @@ options =
     , Option ['e']     ["min-score"]
       (ReqArg (\ e opts -> opts { optMinScore = read e }) "EPSILON")
       " mininum score to aim for"
+    , Option []        ["max-cpu"]
+      (ReqArg (\ n opts -> opts { optMcpu = read n }) "RATIO")
+      "maximum virtual-to-physical cpu ratio for nodes"
+    , Option []        ["max-disk"]
+      (ReqArg (\ n opts -> opts { optMdsk = read n }) "RATIO")
+      "minimum free disk space for nodes (between 0 and 1)"
     , Option ['V']     ["version"]
       (NoArg (\ opts -> opts { optShowVer = True}))
       "show the version of the program"
@@ -210,15 +220,19 @@ main = do
       offline_indices = map Node.idx $
                         filter (\n -> elem (Node.name n) offline_names)
                                all_nodes
+      m_cpu = optMcpu opts
+      m_dsk = optMdsk opts
 
   when (length offline_wrong > 0) $ do
          printf "Wrong node name(s) set as offline: %s\n"
                 (commaJoin offline_wrong)
          exitWith $ ExitFailure 1
 
-  let nl = Container.map (\n -> if elem (Node.idx n) offline_indices
+  let nm = Container.map (\n -> if elem (Node.idx n) offline_indices
                                 then Node.setOffline n True
                                 else n) fixed_nl
+      nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
+           nm
 
   when (Container.size il == 0) $ do
          (if oneline then putStrLn $ formatOneline 0 0 0
