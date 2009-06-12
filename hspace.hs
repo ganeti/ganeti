@@ -58,6 +58,8 @@ data Options = Options
     , optIDsk      :: Int            -- ^ Instance disk
     , optIVCPUs    :: Int            -- ^ Instance VCPUs
     , optINodes    :: Int            -- ^ Nodes required for an instance
+    , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
+    , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
     , optShowVer   :: Bool           -- ^ Just show the program version
     , optShowHelp  :: Bool           -- ^ Just show the help
     } deriving Show
@@ -89,6 +91,8 @@ defaultOptions  = Options
  , optIDsk      = 102400
  , optIVCPUs    = 1
  , optINodes    = 2
+ , optMcpu      = -1
+ , optMdsk      = -1
  , optShowVer   = False
  , optShowHelp  = False
  }
@@ -129,6 +133,12 @@ options =
     , Option []        ["req-nodes"]
       (ReqArg (\ n opts -> opts { optINodes = read n }) "NODES")
       "number of nodes for the new instances (1=plain, 2=mirrored)"
+    , Option []        ["max-cpu"]
+      (ReqArg (\ n opts -> opts { optMcpu = read n }) "RATIO")
+      "maximum virtual-to-physical cpu ratio for nodes"
+    , Option []        ["max-disk"]
+      (ReqArg (\ n opts -> opts { optMdsk = read n }) "RATIO")
+      "minimum free disk space for nodes (between 0 and 1)"
     , Option ['V']     ["version"]
       (NoArg (\ opts -> opts { optShowVer = True}))
       "show the version of the program"
@@ -201,6 +211,8 @@ main = do
                         filter (\n -> elem (Node.name n) offline_names)
                                all_nodes
       req_nodes = optINodes opts
+      m_cpu = optMcpu opts
+      m_dsk = optMdsk opts
 
   when (length offline_wrong > 0) $ do
          printf "Error: Wrong node name(s) set as offline: %s\n"
@@ -211,9 +223,11 @@ main = do
          printf "Error: Invalid required nodes (%d)\n" req_nodes
          exitWith $ ExitFailure 1
 
-  let nl = Container.map (\n -> if elem (Node.idx n) offline_indices
+  let nm = Container.map (\n -> if elem (Node.idx n) offline_indices
                                 then Node.setOffline n True
                                 else n) fixed_nl
+      nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
+           nm
 
   when (length csf > 0 && verbose > 1) $ do
          printf "Note: Stripping common suffix of '%s' from names\n" csf
