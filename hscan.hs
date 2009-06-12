@@ -96,14 +96,10 @@ options =
 -- | Serialize a single node
 serializeNode :: String -> Node.Node -> String
 serializeNode csf node =
-    let name = Node.name node ++ csf
-        t_mem = (truncate $ Node.t_mem node)::Int
-        t_dsk = (truncate $ Node.t_dsk node)::Int
-    in
-      printf "%s|%d|%d|%d|%d|%d|%c" name
-             t_mem (Node.n_mem node) (Node.f_mem node)
-             t_dsk (Node.f_dsk node)
-             (if Node.offline node then 'Y' else 'N')
+    printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c" (Node.name node ++ csf)
+               (Node.t_mem node) (Node.n_mem node) (Node.f_mem node)
+               (Node.t_dsk node) (Node.f_dsk node) (Node.t_cpu node)
+               (if Node.offline node then 'Y' else 'N')
 
 -- | Generate node file data from node objects
 serializeNodes :: String -> Node.List -> String
@@ -115,12 +111,15 @@ serializeInstance :: String -> Node.List -> Instance.Instance -> String
 serializeInstance csf nl inst =
     let
         iname = Instance.name inst ++ csf
-        pnode = Container.nameOf nl $ Instance.pnode inst
-        snode = Container.nameOf nl $ Instance.snode inst
+        pnode = (Container.nameOf nl $ Instance.pnode inst) ++ csf
+        sidx = Instance.snode inst
+        snode = (if sidx == Node.noSecondary
+                    then ""
+                    else (Container.nameOf nl sidx) ++ csf)
     in
-      printf "%s|%d|%d|%s|%s|%s"
+      printf "%s|%d|%d|%d|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
-             (Instance.run_st inst)
+             (Instance.vcpus inst) (Instance.run_st inst)
              pnode snode
 
 -- | Generate instance file data from instance objects
