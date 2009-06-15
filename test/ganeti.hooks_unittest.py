@@ -75,8 +75,7 @@ class TestHooksRunner(unittest.TestCase):
   def testEmpty(self):
     """Test no hooks"""
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, []))
+      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}), [])
 
   def testSkipNonExec(self):
     """Test skip non-exec file"""
@@ -86,7 +85,7 @@ class TestHooksRunner(unittest.TestCase):
       f.close()
       self.torm.append((fname, False))
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, [(self._rname(fname), HKR_SKIP, "")]))
+                           [(self._rname(fname), HKR_SKIP, "")])
 
   def testSkipInvalidName(self):
     """Test skip script with invalid name"""
@@ -98,7 +97,7 @@ class TestHooksRunner(unittest.TestCase):
       os.chmod(fname, 0700)
       self.torm.append((fname, False))
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, [(self._rname(fname), HKR_SKIP, "")]))
+                           [(self._rname(fname), HKR_SKIP, "")])
 
   def testSkipDir(self):
     """Test skip directory"""
@@ -107,7 +106,7 @@ class TestHooksRunner(unittest.TestCase):
       os.mkdir(fname)
       self.torm.append((fname, True))
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, [(self._rname(fname), HKR_SKIP, "")]))
+                           [(self._rname(fname), HKR_SKIP, "")])
 
   def testSuccess(self):
     """Test success execution"""
@@ -119,7 +118,7 @@ class TestHooksRunner(unittest.TestCase):
       self.torm.append((fname, False))
       os.chmod(fname, 0700)
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, [(self._rname(fname), HKR_SUCCESS, "")]))
+                           [(self._rname(fname), HKR_SUCCESS, "")])
 
   def testSymlink(self):
     """Test running a symlink"""
@@ -128,7 +127,7 @@ class TestHooksRunner(unittest.TestCase):
       os.symlink("/bin/true", fname)
       self.torm.append((fname, False))
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, [(self._rname(fname), HKR_SUCCESS, "")]))
+                           [(self._rname(fname), HKR_SUCCESS, "")])
 
   def testFail(self):
     """Test success execution"""
@@ -140,7 +139,7 @@ class TestHooksRunner(unittest.TestCase):
       self.torm.append((fname, False))
       os.chmod(fname, 0700)
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, [(self._rname(fname), HKR_FAIL, "")]))
+                           [(self._rname(fname), HKR_FAIL, "")])
 
   def testCombined(self):
     """Test success, failure and skip all in one test"""
@@ -157,8 +156,7 @@ class TestHooksRunner(unittest.TestCase):
         self.torm.append((fname, False))
         os.chmod(fname, 0700)
         expect.append((self._rname(fname), rs, ""))
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, expect))
+      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}), expect)
 
   def testOrdering(self):
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
@@ -174,8 +172,7 @@ class TestHooksRunner(unittest.TestCase):
         self.torm.append((fname, False))
         expect.append((self._rname(fname), HKR_SUCCESS, ""))
       expect.sort()
-      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}),
-                           (True, expect))
+      self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, {}), expect)
 
   def testEnv(self):
     """Test environment execution"""
@@ -187,8 +184,7 @@ class TestHooksRunner(unittest.TestCase):
       env_snt = {"PHASE": phase}
       env_exp = "PHASE=%s" % phase
       self.failUnlessEqual(self.hr.RunHooks(self.hpath, phase, env_snt),
-                           (True, [(self._rname(fname), HKR_SUCCESS,
-                                    env_exp)]))
+                           [(self._rname(fname), HKR_SUCCESS, env_exp)])
 
 
 class TestHooksMaster(unittest.TestCase):
