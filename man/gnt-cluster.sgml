@@ -373,7 +373,7 @@
       </para>
 
       <para>
-        The <option>--backend</option> option allows you to set
+        The <option>--backend-parameters</option> option allows you to set
         the default backend parameters for the cluster. The parameter
         format is a comma-separated list of key=value pairs with the
         following supported keys:
