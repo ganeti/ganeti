@@ -3508,11 +3508,20 @@ class LUQueryInstances(NoHooksLU):
         elif field == "disk_template":
           val = instance.disk_template
         elif field == "ip":
-          val = instance.nics[0].ip
+          if instance.nics:
+            val = instance.nics[0].ip
+          else:
+            val = None
         elif field == "bridge":
-          val = instance.nics[0].bridge
+          if instance.nics:
+            val = instance.nics[0].bridge
+          else:
+            val = None
         elif field == "mac":
-          val = instance.nics[0].mac
+          if instance.nics:
+            val = instance.nics[0].mac
+          else:
+            val = None
         elif field == "sda_size" or field == "sdb_size":
           idx = ord(field[2]) - ord('a')
           try:
