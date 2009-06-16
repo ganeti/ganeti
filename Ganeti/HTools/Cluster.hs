@@ -79,7 +79,7 @@ type Score = Double
 -- | The description of an instance placement.
 type Placement = (Idx, Ndx, Ndx, Score)
 
--- | Allocation/relocation solution.
+-- | Allocation\/relocation solution.
 type AllocSolution = [(Maybe Node.List, Instance.Instance, [Node.Node])]
 
 -- | A cluster solution described as the solution delta and the list
