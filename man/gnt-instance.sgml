@@ -148,7 +148,7 @@
 
         <para>
           The NICs of the instances can be specified via the
-          <option>--nic</option> option. By default, one NIC is
+          <option>--net</option> option. By default, one NIC is
           created for the instance, with a random MAC, and connected
           to the default bridge. Each NIC can take up to three
           parameters (all optional):
@@ -1200,12 +1200,12 @@ instance5: 11225
         </para>
 
         <para>
-          The <option>--nic
+          The <option>--net
           add:<replaceable>options</replaceable></option> option will
           add a new NIC to the instance. The available options are the
           same as in the <command>add</command> command (mac, ip,
-          bridge). The <option>--nice remove</option> will remove the
-          last NIC of the instance, while the <option>--nic
+          bridge). The <option>--net remove</option> will remove the
+          last NIC of the instance, while the <option>--net
           <replaceable>N</replaceable>:<replaceable>options</replaceable></option>
           option will change the parameters of the Nth instance NIC.
         </para>

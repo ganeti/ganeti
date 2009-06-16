@@ -2392,7 +2392,7 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
         # standalone, even though this should not happen with the
         # new staged way of changing disk configs
         try:
-          rd.ReAttachNet(multimaster)
+          rd.AttachNet(multimaster)
         except errors.BlockDeviceError, err:
           return (False, "Can't change network configuration: %s" % str(err))
     if all_connected:
