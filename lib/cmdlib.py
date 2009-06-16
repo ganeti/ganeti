@@ -3360,12 +3360,14 @@ class LUQueryInstances(NoHooksLU):
   _FIELDS_STATIC = utils.FieldSet(*["name", "os", "pnode", "snodes",
                                     "admin_state",
                                     "disk_template", "ip", "mac", "bridge",
+                                    "nic_mode", "nic_link",
                                     "sda_size", "sdb_size", "vcpus", "tags",
                                     "network_port", "beparams",
                                     r"(disk)\.(size)/([0-9]+)",
                                     r"(disk)\.(sizes)", "disk_usage",
-                                    r"(nic)\.(mac|ip|bridge)/([0-9]+)",
-                                    r"(nic)\.(macs|ips|bridges)",
+                                    r"(nic)\.(mac|ip|mode|link)/([0-9]+)",
+                                    r"(nic)\.(bridge)/([0-9]+)",
+                                    r"(nic)\.(macs|ips|modes|links|bridges)",
                                     r"(disk|nic)\.(count)",
                                     "serial_no", "hypervisor", "hvparams",] +
                                   ["hv/%s" % name
@@ -3461,10 +3463,13 @@ class LUQueryInstances(NoHooksLU):
     HVPREFIX = "hv/"
     BEPREFIX = "be/"
     output = []
+    cluster = self.cfg.GetClusterInfo()
     for instance in instance_list:
       iout = []
-      i_hv = self.cfg.GetClusterInfo().FillHV(instance)
-      i_be = self.cfg.GetClusterInfo().FillBE(instance)
+      i_hv = cluster.FillHV(instance)
+      i_be = cluster.FillBE(instance)
+      i_nicp = [objects.FillDict(cluster.nicparams[constants.PP_DEFAULT],
+                                 nic.nicparams) for nic in instance.nics]
       for field in self.op.output_fields:
         st_match = self._FIELDS_STATIC.Matches(field)
         if field == "name":
@@ -3513,9 +3518,20 @@ class LUQueryInstances(NoHooksLU):
             val = instance.nics[0].ip
           else:
             val = None
-        elif field == "bridge":
+        elif field == "nic_mode":
           if instance.nics:
-            val = instance.nics[0].bridge
+            val = i_nicp[0][constants.NIC_MODE]
+          else:
+            val = None
+        elif field == "nic_link":
+          if instance.nics:
+            val = i_nicp[0][constants.NIC_LINK]
+          else:
+            val = None
+        elif field == "bridge":
+          if (instance.nics and
+              i_nicp[0][constants.NIC_MODE] == constants.NIC_MODE_BRIDGED):
+            val = i_nicp[0][constants.NIC_LINK]
           else:
             val = None
         elif field == "mac":
@@ -3572,8 +3588,17 @@ class LUQueryInstances(NoHooksLU):
               val = [nic.mac for nic in instance.nics]
             elif st_groups[1] == "ips":
               val = [nic.ip for nic in instance.nics]
+            elif st_groups[1] == "modes":
+              val = [nicp[constants.NIC_MODE] for nicp in i_nicp]
+            elif st_groups[1] == "links":
+              val = [nicp[constants.NIC_LINK] for nicp in i_nicp]
             elif st_groups[1] == "bridges":
-              val = [nic.bridge for nic in instance.nics]
+              val = []
+              for nicp in i_nicp:
+                if nicp[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+                  val.append(nicp[constants.NIC_LINK])
+                else:
+                  val.append(None)
             else:
               # index-based item
               nic_idx = int(st_groups[2])
@@ -3584,8 +3609,16 @@ class LUQueryInstances(NoHooksLU):
                   val = instance.nics[nic_idx].mac
                 elif st_groups[1] == "ip":
                   val = instance.nics[nic_idx].ip
+                elif st_groups[1] == "mode":
+                  val = i_nicp[nic_idx][constants.NIC_MODE]
+                elif st_groups[1] == "link":
+                  val = i_nicp[nic_idx][constants.NIC_LINK]
                 elif st_groups[1] == "bridge":
-                  val = instance.nics[nic_idx].bridge
+                  nic_mode = i_nicp[nic_idx][constants.NIC_MODE]
+                  if nic_mode == constants.NIC_MODE_BRIDGED:
+                    val = i_nicp[nic_idx][constants.NIC_LINK]
+                  else:
+                    val = None
                 else:
                   assert False, "Unhandled NIC parameter"
           else:

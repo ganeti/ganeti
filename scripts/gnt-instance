@@ -201,6 +201,7 @@ def ListInstances(opts, args):
       "oper_state": "Running",
       "oper_ram": "Memory", "disk_template": "Disk_template",
       "ip": "IP_address", "mac": "MAC_address",
+      "nic_mode": "NIC_Mode", "nic_link": "NIC_Link",
       "bridge": "Bridge",
       "sda_size": "Disk/0", "sdb_size": "Disk/1",
       "disk_usage": "DiskUsage",
@@ -222,6 +223,7 @@ def ListInstances(opts, args):
       "be/auto_balance": "Auto_balance",
       "disk.count": "Disks", "disk.sizes": "Disk_sizes",
       "nic.count": "NICs", "nic.ips": "NIC_IPs",
+      "nic.modes": "NIC_modes", "nic.links": "NIC_links",
       "nic.bridges": "NIC_bridges", "nic.macs": "NIC_MACs",
       }
   else:
@@ -231,8 +233,8 @@ def ListInstances(opts, args):
   numfields = ["be/memory", "oper_ram", "sd(a|b)_size", "be/vcpus",
                "serial_no", "(disk|nic)\.count", "disk\.size/.*"]
 
-  list_type_fields = ("tags", "disk.sizes",
-                      "nic.macs", "nic.ips", "nic.bridges")
+  list_type_fields = ("tags", "disk.sizes", "nic.macs", "nic.ips",
+                      "nic.modes", "nic.links", "nic.bridges")
   # change raw values to nicer strings
   for row in output:
     for idx, field in enumerate(selected_fields):
