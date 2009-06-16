@@ -168,7 +168,7 @@
 
       <para>
         The NICs of the instances can be specified via the
-        <option>--nic</option> option. By default, one NIC is created
+        <option>--net</option> option. By default, one NIC is created
         for the instance, with the MAC set to the original MAC of the
         instance (as it was at export time). Each NIC can take up to
         three parameters (all optional):
