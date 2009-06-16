@@ -1,3 +1,33 @@
+Version 2.0.1
+  - added -H/-B startup parameters to gnt-instance, which will allow
+    re-adding the start in single-user option (regression from 1.2)
+  - the watcher writes the instance status to a file, to allow
+    monitoring to report the instance status (from the master) based on
+    cached results of the watcher's queries; while this can get stale if
+    the watcher is being locked due to other work on the cluster, this
+    is still an improvement
+  - the watcher now also restarts the node daemon and the rapi daemon if
+    they died
+  - fixed the watcher to handle full and drained queue cases
+  - hooks export more instance data in the environment, which helps if
+    hook scripts need to take action based on the instance's properties
+    (no longer need to query back into ganeti)
+  - instance failovers when the instance is stopped do not check for
+    free RAM, so that failing over a stopped instance is possible in low
+    memory situations
+  - rapi uses queries for tags instead of jobs (for less job traffic),
+    and for cluster tags it won't talk to masterd at all but read them
+    from ssconf
+  - a couple of error handling fixes in RAPI
+  - drbd handling: improved the error handling of inconsistent disks
+    after resync to reduce the frequency of "there are some degraded
+    disks for this instance" message
+  - fixed a bug in live migration when DRBD doesn't want to reconnect
+    (the error handling path called a wrong function name)
+
+Version 2.0.0 final
+  - no changes from rc5
+
 Version 2.0 release candidate 5
   - fix a couple of bugs (validation, argument checks)
   - fix gnt-cluster getmaster on non-master nodes (regression)

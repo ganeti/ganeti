@@ -1103,7 +1103,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       clist.append(crdev)
 
   try:
-    device = bdev.Create(disk.dev_type, disk.physical_id, clist, size)
+    device = bdev.Create(disk.dev_type, disk.physical_id, clist, disk.size)
   except errors.BlockDeviceError, err:
     _Fail("Can't create block device: %s", err)
 
@@ -1205,7 +1205,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
       children.append(cdev)
 
   if as_primary or disk.AssembleOnSecondary():
-    r_dev = bdev.Assemble(disk.dev_type, disk.physical_id, children)
+    r_dev = bdev.Assemble(disk.dev_type, disk.physical_id, children, disk.size)
     r_dev.SetSyncSpeed(constants.SYNC_SPEED)
     result = r_dev
     if as_primary or disk.OpenOnSecondary():
@@ -1361,7 +1361,7 @@ def _RecursiveFindBD(disk):
     for chdisk in disk.children:
       children.append(_RecursiveFindBD(chdisk))
 
-  return bdev.FindDevice(disk.dev_type, disk.physical_id, children)
+  return bdev.FindDevice(disk.dev_type, disk.physical_id, children, disk.size)
 
 
 def BlockdevFind(disk):
@@ -1682,6 +1682,10 @@ def OSEnvironment(instance, debug=0):
     if constants.HV_NIC_TYPE in instance.hvparams:
       result['NIC_%d_FRONTEND_TYPE' % idx] = \
         instance.hvparams[constants.HV_NIC_TYPE]
+
+  for source, kind in [(instance.beparams, "BE"), (instance.hvparams, "HV")]:
+    for key, value in source.items():
+      result["INSTANCE_%s_%s" % (kind, key)] = str(value)
 
   return result
 
@@ -2330,7 +2334,7 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
         # standalone, even though this should not happen with the
         # new staged way of changing disk configs
         try:
-          rd.ReAttachNet(multimaster)
+          rd.AttachNet(multimaster)
         except errors.BlockDeviceError, err:
           _Fail("Can't change network configuration: %s", err)
     if all_connected:

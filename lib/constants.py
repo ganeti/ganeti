@@ -96,6 +96,7 @@ CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
+INSTANCE_UPFILE = RUN_GANETI_DIR + "/instance-status"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 RAPI_USERS_FILE = DATA_DIR + "/rapi_users"
 QUEUE_DIR = DATA_DIR + "/queue"
@@ -245,6 +246,7 @@ DEFAULT_VG = "xenvg"
 BIND_ADDRESS_GLOBAL = "0.0.0.0"
 MIN_VG_SIZE = 20480
 DEFAULT_MAC_PREFIX = "aa:00:00"
+LVM_STRIPECOUNT = _autoconf.LVM_STRIPECOUNT
 
 # RPC constants
 (RPC_ENCODING_NONE,

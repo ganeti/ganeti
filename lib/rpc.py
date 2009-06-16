@@ -948,7 +948,10 @@ class RpcRunner(object):
     """
     flat_disks = []
     for disk in snap_disks:
-      flat_disks.append(disk.ToDict())
+      if isinstance(disk, bool):
+        flat_disks.append(disk)
+      else:
+        flat_disks.append(disk.ToDict())
 
     return self._SingleNodeCall(node, "finalize_export",
                                 [self._InstDict(instance), flat_disks])

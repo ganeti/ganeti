@@ -108,13 +108,14 @@ class BlockDev(object):
   after assembly we'll have our correct major/minor.
 
   """
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     self._children = children
     self.dev_path = None
     self.unique_id = unique_id
     self.major = None
     self.minor = None
     self.attached = False
+    self.size = size
 
   def Assemble(self):
     """Assemble the device from its components.
@@ -286,13 +287,13 @@ class LogicalVolume(BlockDev):
   """Logical Volume block device.
 
   """
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     """Attaches to a LV device.
 
     The unique_id is a tuple (vg_name, lv_name)
 
     """
-    super(LogicalVolume, self).__init__(unique_id, children)
+    super(LogicalVolume, self).__init__(unique_id, children, size)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
@@ -318,18 +319,27 @@ class LogicalVolume(BlockDev):
 
     pvlist = [ pv[1] for pv in pvs_info ]
     free_size = sum([ pv[0] for pv in pvs_info ])
+    current_pvs = len(pvlist)
+    stripes = min(current_pvs, constants.LVM_STRIPECOUNT)
 
     # The size constraint should have been checked from the master before
     # calling the create function.
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)
-    result = utils.RunCmd(["lvcreate", "-L%dm" % size, "-n%s" % lv_name,
-                           vg_name] + pvlist)
+    cmd = ["lvcreate", "-L%dm" % size, "-n%s" % lv_name]
+    # If the free space is not well distributed, we won't be able to
+    # create an optimally-striped volume; in that case, we want to try
+    # with N, N-1, ..., 2, and finally 1 (non-stripped) number of
+    # stripes
+    for stripes_arg in range(stripes, 0, -1):
+      result = utils.RunCmd(cmd + ["-i%d" % stripes_arg] + [vg_name] + pvlist)
+      if not result.failed:
+        break
     if result.failed:
       _ThrowError("LV create failed (%s): %s",
                   result.fail_reason, result.output)
-    return LogicalVolume(unique_id, children)
+    return LogicalVolume(unique_id, children, size)
 
   @staticmethod
   def GetPVInfo(vg_name):
@@ -500,7 +510,7 @@ class LogicalVolume(BlockDev):
     snap_name = self._lv_name + ".snap"
 
     # remove existing snapshot if found
-    snap = LogicalVolume((self._vg_name, snap_name), None)
+    snap = LogicalVolume((self._vg_name, snap_name), None, size)
     _IgnoreError(snap.Remove)
 
     pvs_info = self.GetPVInfo(self._vg_name)
@@ -568,10 +578,51 @@ class DRBD8Status(object):
   SYNC_RE = re.compile(r"^.*\ssync'ed:\s*([0-9.]+)%.*"
                        "\sfinish: ([0-9]+):([0-9]+):([0-9]+)\s.*$")
 
+  CS_UNCONFIGURED = "Unconfigured"
+  CS_STANDALONE = "StandAlone"
+  CS_WFCONNECTION = "WFConnection"
+  CS_WFREPORTPARAMS = "WFReportParams"
+  CS_CONNECTED = "Connected"
+  CS_STARTINGSYNCS = "StartingSyncS"
+  CS_STARTINGSYNCT = "StartingSyncT"
+  CS_WFBITMAPS = "WFBitMapS"
+  CS_WFBITMAPT = "WFBitMapT"
+  CS_WFSYNCUUID = "WFSyncUUID"
+  CS_SYNCSOURCE = "SyncSource"
+  CS_SYNCTARGET = "SyncTarget"
+  CS_PAUSEDSYNCS = "PausedSyncS"
+  CS_PAUSEDSYNCT = "PausedSyncT"
+  CSET_SYNC = frozenset([
+    CS_WFREPORTPARAMS,
+    CS_STARTINGSYNCS,
+    CS_STARTINGSYNCT,
+    CS_WFBITMAPS,
+    CS_WFBITMAPT,
+    CS_WFSYNCUUID,
+    CS_SYNCSOURCE,
+    CS_SYNCTARGET,
+    CS_PAUSEDSYNCS,
+    CS_PAUSEDSYNCT,
+    ])
+
+  DS_DISKLESS = "Diskless"
+  DS_ATTACHING = "Attaching" # transient state
+  DS_FAILED = "Failed" # transient state, next: diskless
+  DS_NEGOTIATING = "Negotiating" # transient state
+  DS_INCONSISTENT = "Inconsistent" # while syncing or after creation
+  DS_OUTDATED = "Outdated"
+  DS_DUNKNOWN = "DUnknown" # shown for peer disk when not connected
+  DS_CONSISTENT = "Consistent"
+  DS_UPTODATE = "UpToDate" # normal state
+
+  RO_PRIMARY = "Primary"
+  RO_SECONDARY = "Secondary"
+  RO_UNKNOWN = "Unknown"
+
   def __init__(self, procline):
     u = self.UNCONF_RE.match(procline)
     if u:
-      self.cstatus = "Unconfigured"
+      self.cstatus = self.CS_UNCONFIGURED
       self.lrole = self.rrole = self.ldisk = self.rdisk = None
     else:
       m = self.LINE_RE.match(procline)
@@ -585,21 +636,21 @@ class DRBD8Status(object):
 
     # end reading of data from the LINE_RE or UNCONF_RE
 
-    self.is_standalone = self.cstatus == "StandAlone"
-    self.is_wfconn = self.cstatus == "WFConnection"
-    self.is_connected = self.cstatus == "Connected"
-    self.is_primary = self.lrole == "Primary"
-    self.is_secondary = self.lrole == "Secondary"
-    self.peer_primary = self.rrole == "Primary"
-    self.peer_secondary = self.rrole == "Secondary"
+    self.is_standalone = self.cstatus == self.CS_STANDALONE
+    self.is_wfconn = self.cstatus == self.CS_WFCONNECTION
+    self.is_connected = self.cstatus == self.CS_CONNECTED
+    self.is_primary = self.lrole == self.RO_PRIMARY
+    self.is_secondary = self.lrole == self.RO_SECONDARY
+    self.peer_primary = self.rrole == self.RO_PRIMARY
+    self.peer_secondary = self.rrole == self.RO_SECONDARY
     self.both_primary = self.is_primary and self.peer_primary
     self.both_secondary = self.is_secondary and self.peer_secondary
 
-    self.is_diskless = self.ldisk == "Diskless"
-    self.is_disk_uptodate = self.ldisk == "UpToDate"
+    self.is_diskless = self.ldisk == self.DS_DISKLESS
+    self.is_disk_uptodate = self.ldisk == self.DS_UPTODATE
 
-    self.is_in_resync = self.cstatus in ("SyncSource", "SyncTarget")
-    self.is_in_use = self.cstatus != "Unconfigured"
+    self.is_in_resync = self.cstatus in self.CSET_SYNC
+    self.is_in_use = self.cstatus != self.CS_UNCONFIGURED
 
     m = self.SYNC_RE.match(procline)
     if m:
@@ -609,12 +660,15 @@ class DRBD8Status(object):
       seconds = int(m.group(4))
       self.est_time = hours * 3600 + minutes * 60 + seconds
     else:
-      self.sync_percent = None
+      # we have (in this if branch) no percent information, but if
+      # we're resyncing we need to 'fake' a sync percent information,
+      # as this is how cmdlib determines if it makes sense to wait for
+      # resyncing or not
+      if self.is_in_resync:
+        self.sync_percent = 0
+      else:
+        self.sync_percent = None
       self.est_time = None
-
-    self.is_sync_target = self.peer_sync_source = self.cstatus == "SyncTarget"
-    self.peer_sync_target = self.is_sync_source = self.cstatus == "SyncSource"
-    self.is_resync = self.is_sync_target or self.is_sync_source
 
 
 class BaseDRBD(BlockDev):
@@ -805,10 +859,10 @@ class DRBD8(BaseDRBD):
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
 
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     if children and children.count(None) > 0:
       children = []
-    super(DRBD8, self).__init__(unique_id, children)
+    super(DRBD8, self).__init__(unique_id, children, size)
     self.major = self._DRBD_MAJOR
     version = self._GetVersion()
     if version['k_major'] != 8 :
@@ -1031,12 +1085,15 @@ class DRBD8(BaseDRBD):
     return retval
 
   @classmethod
-  def _AssembleLocal(cls, minor, backend, meta):
+  def _AssembleLocal(cls, minor, backend, meta, size):
     """Configure the local part of a DRBD device.
 
     """
     args = ["drbdsetup", cls._DevPath(minor), "disk",
-            backend, meta, "0", "-e", "detach", "--create-device"]
+            backend, meta, "0",
+            "-d", "%sm" % size,
+            "-e", "detach",
+            "--create-device"]
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
@@ -1113,7 +1170,7 @@ class DRBD8(BaseDRBD):
     self._CheckMetaSize(meta.dev_path)
     self._InitMeta(self._FindUnusedMinor(), meta.dev_path)
 
-    self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path)
+    self._AssembleLocal(self.minor, backend.dev_path, meta.dev_path, self.size)
     self._children = devices
 
   def RemoveChildren(self, devices):
@@ -1396,7 +1453,7 @@ class DRBD8(BaseDRBD):
       if match_r and "local_dev" not in info:
         # no local disk, but network attached and it matches
         self._AssembleLocal(minor, self._children[0].dev_path,
-                            self._children[1].dev_path)
+                            self._children[1].dev_path, self.size)
         if self._MatchesNet(self._GetDevInfo(self._GetShowData(minor))):
           break
         else:
@@ -1447,7 +1504,7 @@ class DRBD8(BaseDRBD):
     minor = self._aminor
     if self._children and self._children[0] and self._children[1]:
       self._AssembleLocal(minor, self._children[0].dev_path,
-                          self._children[1].dev_path)
+                          self._children[1].dev_path, self.size)
     if self._lhost and self._lport and self._rhost and self._rport:
       self._AssembleNet(minor,
                         (self._lhost, self._lport, self._rhost, self._rport),
@@ -1535,7 +1592,7 @@ class DRBD8(BaseDRBD):
                   aminor, meta)
     cls._CheckMetaSize(meta.dev_path)
     cls._InitMeta(aminor, meta.dev_path)
-    return cls(unique_id, children)
+    return cls(unique_id, children, size)
 
   def Grow(self, amount):
     """Resize the DRBD device and its backing storage.
@@ -1559,13 +1616,13 @@ class FileStorage(BlockDev):
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
   """
-  def __init__(self, unique_id, children):
+  def __init__(self, unique_id, children, size):
     """Initalizes a file device backend.
 
     """
     if children:
       raise errors.BlockDeviceError("Invalid setup for file device")
-    super(FileStorage, self).__init__(unique_id, children)
+    super(FileStorage, self).__init__(unique_id, children, size)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.driver = unique_id[0]
@@ -1653,7 +1710,7 @@ class FileStorage(BlockDev):
     except IOError, err:
       _ThrowError("Error in file creation: %", str(err))
 
-    return FileStorage(unique_id, children)
+    return FileStorage(unique_id, children, size)
 
 
 DEV_MAP = {
@@ -1663,7 +1720,7 @@ DEV_MAP = {
   }
 
 
-def FindDevice(dev_type, unique_id, children):
+def FindDevice(dev_type, unique_id, children, size):
   """Search for an existing, assembled device.
 
   This will succeed only if the device exists and is assembled, but it
@@ -1672,13 +1729,13 @@ def FindDevice(dev_type, unique_id, children):
   """
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
-  device = DEV_MAP[dev_type](unique_id, children)
+  device = DEV_MAP[dev_type](unique_id, children, size)
   if not device.attached:
     return None
   return device
 
 
-def Assemble(dev_type, unique_id, children):
+def Assemble(dev_type, unique_id, children, size):
   """Try to attach or assemble an existing device.
 
   This will attach to assemble the device, as needed, to bring it
@@ -1687,7 +1744,7 @@ def Assemble(dev_type, unique_id, children):
   """
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
-  device = DEV_MAP[dev_type](unique_id, children)
+  device = DEV_MAP[dev_type](unique_id, children, size)
   device.Assemble()
   return device
 

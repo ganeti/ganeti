@@ -80,6 +80,20 @@ def StartMaster():
   return not result.failed
 
 
+def EnsureDaemon(daemon):
+  """Check for and start daemon if not alive.
+
+  """
+  pidfile = utils.DaemonPidFileName(daemon)
+  pid = utils.ReadPidFile(pidfile)
+  if pid == 0 or not utils.IsProcessAlive(pid): # no file or dead pid
+    logging.debug("Daemon '%s' not alive, trying to restart", daemon)
+    result = utils.RunCmd([daemon])
+    if not result:
+      logging.error("Can't start daemon '%s', failure %s, output: %s",
+                    daemon, result.fail_reason, result.output)
+
+
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
@@ -255,10 +269,17 @@ def GetClusterData():
 
   all_results = cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)
 
+  logging.debug("Got data from cluster, writing instance status file")
+
   result = all_results[0]
   smap = {}
 
   instances = {}
+
+  # write the upfile
+  up_data = "".join(["%s %s\n" % (fields[0], fields[1]) for fields in result])
+  utils.WriteFile(file_name=constants.INSTANCE_UPFILE, data=up_data)
+
   for fields in result:
     (name, status, autostart, snodes) = fields
 
@@ -291,6 +312,9 @@ class Watcher(object):
     master = client.QueryConfigValues(["master_node"])[0]
     if master != utils.HostInfo().name:
       raise NotMasterError("This is not the master node")
+    # first archive old jobs
+    self.ArchiveJobs(opts.job_age)
+    # and only then submit new ones
     self.instances, self.bootids, self.smap = GetClusterData()
     self.started_instances = set()
     self.opts = opts
@@ -300,12 +324,12 @@ class Watcher(object):
 
     """
     notepad = self.notepad
-    self.ArchiveJobs(self.opts.job_age)
     self.CheckInstances(notepad)
     self.CheckDisks(notepad)
     self.VerifyDisks()
 
-  def ArchiveJobs(self, age):
+  @staticmethod
+  def ArchiveJobs(age):
     """Archive old jobs.
 
     """
@@ -452,8 +476,12 @@ def main():
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)
 
-  update_file = True
+  update_file = False
   try:
+    # on master or not, try to start the node dameon (use _PID but is
+    # the same as daemon name)
+    EnsureDaemon(constants.NODED_PID)
+
     notepad = WatcherState()
     try:
       try:
@@ -461,24 +489,30 @@ def main():
       except errors.OpPrereqError:
         # this is, from cli.GetClient, a not-master case
         logging.debug("Not on master, exiting")
+        update_file = True
         sys.exit(constants.EXIT_SUCCESS)
       except luxi.NoMasterError, err:
         logging.warning("Master seems to be down (%s), trying to restart",
                         str(err))
         if not StartMaster():
           logging.critical("Can't start the master, exiting")
-          update_file = False
           sys.exit(constants.EXIT_FAILURE)
         # else retry the connection
         client = cli.GetClient()
+
+      # we are on master now (use _PID but is the same as daemon name)
+      EnsureDaemon(constants.RAPI_PID)
 
       try:
         watcher = Watcher(options, notepad)
       except errors.ConfigurationError:
         # Just exit if there's no configuration
+        update_file = True
         sys.exit(constants.EXIT_SUCCESS)
 
       watcher.Run()
+      update_file = True
+
     finally:
       if update_file:
         notepad.Save()
@@ -492,6 +526,10 @@ def main():
   except errors.ResolverError, err:
     logging.error("Cannot resolve hostname '%s', exiting.", err.args[0])
     sys.exit(constants.EXIT_NODESETUP_ERROR)
+  except errors.JobQueueFull:
+    logging.error("Job queue is full, can't query cluster state")
+  except errors.JobQueueDrainError:
+    logging.error("Job queue is drained, can't maintain cluster state")
   except Exception, err:
     logging.error(str(err), exc_info=True)
     sys.exit(constants.EXIT_FAILURE)

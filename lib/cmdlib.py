@@ -453,7 +453,8 @@ def _CheckNodeNotDrained(lu, node):
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
-                          memory, vcpus, nics, disk_template, disks):
+                          memory, vcpus, nics, disk_template, disks,
+                          bep, hvp, hypervisor):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -479,6 +480,12 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param disk_template: the distk template of the instance
   @type disks: list
   @param disks: the list of (size, mode) pairs
+  @type bep: dict
+  @param bep: the backend parameters for the instance
+  @type hvp: dict
+  @param hvp: the hypervisor parameters for the instance
+  @type hypervisor: string
+  @param hypervisor: the hypervisor for the instance
   @rtype: dict
   @return: the hook environment for this instance
 
@@ -497,6 +504,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
+    "INSTANCE_HYPERVISOR": hypervisor,
   }
 
   if nics:
@@ -524,6 +532,10 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     disk_count = 0
 
   env["INSTANCE_DISK_COUNT"] = disk_count
+
+  for source, kind in [(bep, "BE"), (hvp, "HV")]:
+    for key, value in source.items():
+      env["INSTANCE_%s_%s" % (kind, key)] = value
 
   return env
 
@@ -564,7 +576,9 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   @return: the hook environment dictionary
 
   """
-  bep = lu.cfg.GetClusterInfo().FillBE(instance)
+  cluster = lu.cfg.GetClusterInfo()
+  bep = cluster.FillBE(instance)
+  hvp = cluster.FillHV(instance)
   args = {
     'name': instance.name,
     'primary_node': instance.primary_node,
@@ -576,6 +590,9 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'nics': _PreBuildNICHooksList(lu, instance.nics),
     'disk_template': instance.disk_template,
     'disks': [(disk.size, disk.mode) for disk in instance.disks],
+    'bep': bep,
+    'hvp': hvp,
+    'hypervisor': instance.hypervisor,
   }
   if override:
     args.update(override)
@@ -1681,6 +1698,7 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
     lu.cfg.SetDiskID(dev, node)
 
   retries = 0
+  degr_retries = 10 # in seconds, as we sleep 1 second each time
   while True:
     max_time = 0
     done = True
@@ -1714,6 +1732,16 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
           rem_time = "no time estimate"
         lu.proc.LogInfo("- device %s: %5.2f%% done, %s" %
                         (instance.disks[i].iv_name, perc_done, rem_time))
+
+    # if we're done but degraded, let's do a few small retries, to
+    # make sure we see a stable and not transient situation; therefore
+    # we force restart of the loop
+    if (done or oneshot) and cumul_degraded and degr_retries > 0:
+      logging.info("Degraded disks found, %d retries left", degr_retries)
+      degr_retries -= 1
+      time.sleep(1)
+      continue
+
     if done or oneshot:
       break
 
@@ -3614,10 +3642,15 @@ class LUFailoverInstance(LogicalUnit):
     target_node = secondary_nodes[0]
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
-    # check memory requirements on the secondary node
-    _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
-                         instance.name, bep[constants.BE_MEMORY],
-                         instance.hypervisor)
+    if instance.admin_up:
+      # check memory requirements on the secondary node
+      _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
+                           instance.name, bep[constants.BE_MEMORY],
+                           instance.hypervisor)
+    else:
+      self.LogInfo("Not checking memory on the secondary node as"
+                   " instance will not be started")
+
     # check bridge existance
     _CheckInstanceBridgesExist(self, instance, node=target_node)
 
@@ -4399,6 +4432,7 @@ class LUCreateInstance(LogicalUnit):
                                   self.op.hvparams)
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
+    self.hv_full = filled_hvp
 
     # fill and remember the beparams dict
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
@@ -4606,6 +4640,9 @@ class LUCreateInstance(LogicalUnit):
       nics=_PreBuildNICHooksList(self, self.nics),
       disk_template=self.op.disk_template,
       disks=[(d["size"], d["mode"]) for d in self.disks],
+      bep=self.be_full,
+      hvp=self.hv_full,
+      hypervisor=self.op.hypervisor,
     ))
 
     nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
@@ -5422,7 +5459,8 @@ class LUReplaceDisks(LogicalUnit):
                     new_net_id)
       new_drbd = objects.Disk(dev_type=constants.LD_DRBD8,
                               logical_id=new_alone_id,
-                              children=dev.children)
+                              children=dev.children,
+                              size=dev.size)
       try:
         _CreateSingleBlockDev(self, new_node, instance, new_drbd,
                               _GetInstanceInfoText(instance), False)
@@ -6397,13 +6435,13 @@ class LUExportInstance(LogicalUnit):
       self.cfg.SetDiskID(disk, src_node)
 
     try:
-      for disk in instance.disks:
+      for idx, disk in enumerate(instance.disks):
         # result.payload will be a snapshot of an lvm leaf of the one we passed
         result = self.rpc.call_blockdev_snapshot(src_node, disk)
         msg = result.fail_msg
         if msg:
-          self.LogWarning("Could not snapshot block device %s on node %s: %s",
-                          disk.logical_id[1], src_node, msg)
+          self.LogWarning("Could not snapshot disk/%s on node %s: %s",
+                          idx, src_node, msg)
           snap_disks.append(False)
         else:
           disk_id = (vgname, result.payload)
@@ -6429,13 +6467,12 @@ class LUExportInstance(LogicalUnit):
                                                instance, cluster_name, idx)
         msg = result.fail_msg
         if msg:
-          self.LogWarning("Could not export block device %s from node %s to"
-                          " node %s: %s", dev.logical_id[1], src_node,
-                          dst_node.name, msg)
+          self.LogWarning("Could not export disk/%s from node %s to"
+                          " node %s: %s", idx, src_node, dst_node.name, msg)
         msg = self.rpc.call_blockdev_remove(src_node, dev).fail_msg
         if msg:
-          self.LogWarning("Could not remove snapshot block device %s from node"
-                          " %s: %s", dev.logical_id[1], src_node, msg)
+          self.LogWarning("Could not remove snapshot for disk/%d from node"
+                          " %s: %s", idx, src_node, msg)
 
     result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
     msg = result.fail_msg

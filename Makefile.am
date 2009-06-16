@@ -315,6 +315,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
 	  echo "KVM_MIGRATION_PORT = '$(KVM_MIGRATION_PORT)'"; \
 	  echo "SOCAT_PATH = '$(SOCAT_PATH)'"; \
+	  echo "LVM_STRIPECOUNT = $(LVM_STRIPECOUNT)" ; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile stamp-directories

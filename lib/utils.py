@@ -1797,11 +1797,13 @@ def SafeEncode(text):
   """Return a 'safe' version of a source string.
 
   This function mangles the input string and returns a version that
-  should be safe to disply/encode as ASCII. To this end, we first
+  should be safe to display/encode as ASCII. To this end, we first
   convert it to ASCII using the 'backslashreplace' encoding which
-  should get rid of any non-ASCII chars, and then we again encode it
-  via 'string_escape' which converts '\n' into '\\n' so that log
-  messages remain one-line.
+  should get rid of any non-ASCII chars, and then we process it
+  through a loop copied from the string repr sources in the python; we
+  don't use string_escape anymore since that escape single quotes and
+  backslashes too, and that is too much; and that escaping is not
+  stable, i.e. string_escape(string_escape(x)) != string_escape(x).
 
   @type text: str or unicode
   @param text: input data
@@ -1809,9 +1811,23 @@ def SafeEncode(text):
   @return: a safe version of text
 
   """
-  text = text.encode('ascii', 'backslashreplace')
-  text = text.encode('string_escape')
-  return text
+  if isinstance(text, unicode):
+    # onli if unicode; if str already, we handle it below
+    text = text.encode('ascii', 'backslashreplace')
+  resu = ""
+  for char in text:
+    c = ord(char)
+    if char  == '\t':
+      resu += r'\t'
+    elif char == '\n':
+      resu += r'\n'
+    elif char == '\r':
+      resu += r'\'r'
+    elif c < 32 or c >= 127: # non-printable
+      resu += "\\x%02x" % (c & 0xff)
+    else:
+      resu += char
+  return resu
 
 
 def CommaJoin(names):
