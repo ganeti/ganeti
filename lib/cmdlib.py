@@ -474,8 +474,8 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @type vcpus: string
   @param vcpus: the count of VCPUs the instance has
   @type nics: list
-  @param nics: list of tuples (ip, bridge, mac) representing
-      the NICs the instance  has
+  @param nics: list of tuples (ip, mac, mode, link) representing
+      the NICs the instance has
   @type disk_template: string
   @param disk_template: the distk template of the instance
   @type disks: list
