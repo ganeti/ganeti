@@ -764,7 +764,7 @@ class Cluster(TaggableObject):
   def FillHV(self, instance):
     """Fill an instance's hvparams dict.
 
-    @type instance: object
+    @type instance: L{objects.Instance}
     @param instance: the instance parameter to fill
     @rtype: dict
     @return: a copy of the instance's hvparams with missing keys filled from
@@ -777,7 +777,7 @@ class Cluster(TaggableObject):
   def FillBE(self, instance):
     """Fill an instance's beparams dict.
 
-    @type instance: object
+    @type instance: L{objects.Instance}
     @param instance: the instance parameter to fill
     @rtype: dict
     @return: a copy of the instance's beparams with missing keys filled from
