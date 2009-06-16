@@ -5830,7 +5830,8 @@ class LUQueryInstanceData(NoHooksLU):
         "pnode": instance.primary_node,
         "snodes": instance.secondary_nodes,
         "os": instance.os,
-        "nics": [(nic.mac, nic.ip, nic.bridge) for nic in instance.nics],
+        # this happens to be the same format used for hooks
+        "nics": _NICListToTuple(self, instance.nics),
         "disks": disks,
         "hypervisor": instance.hypervisor,
         "network_port": instance.network_port,

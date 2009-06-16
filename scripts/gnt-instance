@@ -1158,9 +1158,9 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - memory: %dMiB\n" %
               instance["be_actual"][constants.BE_MEMORY])
     buf.write("    - NICs:\n")
-    for idx, (mac, ip, bridge) in enumerate(instance["nics"]):
-      buf.write("      - nic/%d: MAC: %s, IP: %s, bridge: %s\n" %
-                (idx, mac, ip, bridge))
+    for idx, (mac, ip, mode, link) in enumerate(instance["nics"]):
+      buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %
+                (idx, mac, ip, mode, link))
     buf.write("  Disks:\n")
 
     for idx, device in enumerate(instance["disks"]):
@@ -1388,7 +1388,7 @@ commands = {
            "Lists the instances and their status. The available fields are"
            " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
-           " ip, mac, bridge, sda_size, sdb_size, vcpus, serial_no,"
+           " ip, mac, mode, link, sda_size, sdb_size, vcpus, serial_no,"
            " hypervisor."
            " The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
