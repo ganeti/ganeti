@@ -34,7 +34,7 @@ from ganeti.rapi import baserlib
 I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
-            "nic.ips", "nic.macs", "nic.bridges",
+            "nic.ips", "nic.macs", "nic.modes", "nic.links",
             "network_port",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
@@ -236,9 +236,15 @@ class R_2_instances(baserlib.R_Generic):
                                   " be an integer")
       disks.append({"size": d})
     # nic processing (one nic only)
-    nics = [{"mac": fn("mac", constants.VALUE_AUTO),
-             "ip": fn("ip", None),
-             "bridge": fn("bridge", None)}]
+    nics = [{"mac": fn("mac", constants.VALUE_AUTO)}]
+    if fn("ip", None) is not None:
+      nics[0]["ip"] = fn("ip")
+    if fn("mode", None) is not None:
+      nics[0]["mode"] = fn("mode")
+    if fn("link", None) is not None:
+      nics[0]["link"] = fn("link")
+    if fn("bridge", None) is not None:
+       nics[0]["bridge"] = fn("bridge")
 
     op = opcodes.OpCreateInstance(
       mode=constants.INSTANCE_CREATE,
