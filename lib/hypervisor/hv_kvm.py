@@ -641,7 +641,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           time.sleep(2)
 
     utils.KillProcess(pid)
-    self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
+    self._RemoveInstanceRuntimeFiles(pidfile, instance_name)
 
   def GetNodeInfo(self):
     """Return information about the node.
