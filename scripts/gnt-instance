@@ -396,9 +396,7 @@ def BatchCreate(opts, args):
                     "iallocator": None,
                     "primary_node": None,
                     "secondary_node": None,
-                    "ip": 'none',
-                    "mac": 'auto',
-                    "bridge": None,
+                    "nics": None,
                     "start": True,
                     "ip_check": True,
                     "hypervisor": None,
@@ -466,10 +464,23 @@ def BatchCreate(opts, args):
                                    (elem, name, err))
       disks.append({"size": size})
 
-    nic0 = {'ip': specs['ip'], 'bridge': specs['bridge'], 'mac': specs['mac']}
-
     utils.ForceDictType(specs['backend'], constants.BES_PARAMETER_TYPES)
     utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
+
+    tmp_nics = []
+    for field in ('ip', 'mac', 'mode', 'link', 'bridge'):
+      if field in specs:
+        if not tmp_nics:
+          tmp_nics.append({})
+        tmp_nics[0][field] = specs[field]
+
+    if specs['nics'] is not None and tmp_nics:
+      raise errors.OpPrereqError("'nics' list incompatible with using"
+                                 " individual nic fields as well")
+    elif specs['nics'] is not None:
+      tmp_nics = specs['nics']
+    elif not tmp_nics:
+      tmp_nics = [{}]
 
     op = opcodes.OpCreateInstance(instance_name=name,
                                   disks=disks,
@@ -478,7 +489,7 @@ def BatchCreate(opts, args):
                                   os_type=specs['os'],
                                   pnode=specs['primary_node'],
                                   snode=specs['secondary_node'],
-                                  nics=[nic0],
+                                  nics=tmp_nics,
                                   start=specs['start'],
                                   ip_check=specs['ip_check'],
                                   wait_for_sync=True,
