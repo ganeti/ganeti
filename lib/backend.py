@@ -191,7 +191,7 @@ def StartMaster(start_daemons):
 
   """
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _ = GetMasterInfo()[1]
+  master_netdev, master_ip, _ = GetMasterInfo()
 
   payload = []
   if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
@@ -245,7 +245,7 @@ def StopMaster(stop_daemons):
   # need to decide in which case we fail the RPC for this
 
   # GetMasterInfo will raise an exception if not able to return data
-  master_netdev, master_ip, _ = GetMasterInfo()[1]
+  master_netdev, master_ip, _ = GetMasterInfo()
 
   result = utils.RunCmd(["ip", "address", "del", "%s/32" % master_ip,
                          "dev", master_netdev])
