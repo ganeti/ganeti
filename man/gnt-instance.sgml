@@ -113,8 +113,8 @@
         <para>
           Creates a new instance on the specified host. The
           <replaceable>instance</replaceable> argument must be in DNS,
-          but depending on the bridge setup, need not be in the same
-          network as the nodes in the cluster.
+          but depending on the bridge/routing setup, need not be in
+          the same network as the nodes in the cluster.
         </para>
 
         <para>
@@ -149,9 +149,9 @@
         <para>
           The NICs of the instances can be specified via the
           <option>--net</option> option. By default, one NIC is
-          created for the instance, with a random MAC, and connected
-          to the default bridge. Each NIC can take up to three
-          parameters (all optional):
+          created for the instance, with a random MAC, and set
+          up according the the cluster level nic parameters.
+          Each NIC can take these parameters (all optional):
           <variablelist>
             <varlistentry>
               <term>mac</term>
@@ -170,13 +170,25 @@
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>bridge</term>
+              <term>mode</term>
               <listitem>
-                <simpara>specifies the bridge to attach this NIC
-                  to</simpara>
+                <simpara>specifies the connection mode for this nic:
+                  routed or bridged.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>link</term>
+              <listitem>
+                <simpara>in bridged mode specifies the bridge to attach
+                  this NIC to, in routed mode it's intended to
+                  differentiate between different routing tables/instance
+                  groups (but the meaning is dependent on the network
+                  script)</simpara>
               </listitem>
             </varlistentry>
           </variablelist>
+          Of these "mode" and "link" are nic parameters, and inherit their
+          default at cluster level.
         </para>
 
         <para>
@@ -674,7 +686,7 @@
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>mac, ip, bridge</term>
+              <term>mac, ip, mode, link</term>
               <listitem>
                 <simpara>Specifications for the one NIC that will be
                 created for the instance.</simpara>
@@ -912,10 +924,18 @@ instance5: 11225
                 <simpara>the first instance interface MAC address</simpara>
               </listitem>
             </varlistentry>
+
             <varlistentry>
-              <term>bridge</term>
+              <term>mode</term>
               <listitem>
-                <simpara>the bridge of the first instance NIC
+                <simpara>the mode of the first instance NIC
+                (routed or bridged)</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>link</term>
+              <listitem>
+                <simpara>the link of the first instance NIC
                 </simpara>
               </listitem>
             </varlistentry>
@@ -1015,10 +1035,15 @@ instance5: 11225
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>nic.bridge/N</term>
+              <term>nic.mode/N</term>
               <listitem>
-                <simpara>The bridge the Nth instance NIC is attached
-                to.</simpara>
+                <simpara>The mode of the Nth instance NIC</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.link/N</term>
+              <listitem>
+                <simpara>The link of the Nth instance NIC</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
@@ -1036,10 +1061,17 @@ instance5: 11225
               </listitem>
             </varlistentry>
             <varlistentry>
-              <term>nic.bridges</term>
+              <term>nic.modes</term>
               <listitem>
-                <simpara>A comma-separated list of all the bridges of the
+                <simpara>A comma-separated list of all the modes of the
                 instance's NICs.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nic.links</term>
+              <listitem>
+                <simpara>A comma-separated list of all the link parameters
+                of the instance's NICs.</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
@@ -1176,10 +1208,10 @@ instance5: 11225
 
         <para>
           Modifies the memory size, number of vcpus, ip address, MAC
-          address and/or bridge for an instance. It can also add and
-          remove disks and NICs to/from the instance. Note that you
-          need to give at least one of the arguments, otherwise the
-          command complains.
+          address and/or nic parameters for an instance. It can also
+          add and remove disks and NICs to/from the instance. Note
+          that you need to give at least one of the arguments, otherwise
+          the command complains.
         </para>
 
         <para>
@@ -1203,8 +1235,8 @@ instance5: 11225
           The <option>--net
           add:<replaceable>options</replaceable></option> option will
           add a new NIC to the instance. The available options are the
-          same as in the <command>add</command> command (mac, ip,
-          bridge). The <option>--net remove</option> will remove the
+          same as in the <command>add</command> command (mac, ip, link,
+          mode). The <option>--net remove</option> will remove the
           last NIC of the instance, while the <option>--net
           <replaceable>N</replaceable>:<replaceable>options</replaceable></option>
           option will change the parameters of the Nth instance NIC.
