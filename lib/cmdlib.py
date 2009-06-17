@@ -539,10 +539,11 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   return env
 
-def _PreBuildNICHooksList(lu, nics):
+def _NICListToTuple(lu, nics):
   """Build a list of nic information tuples.
 
-  This list is suitable to be passed to _BuildInstanceHookEnv.
+  This list is suitable to be passed to _BuildInstanceHookEnv or as a return
+  value in LUQueryInstanceData.
 
   @type lu:  L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
@@ -587,7 +588,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'status': instance.admin_up,
     'memory': bep[constants.BE_MEMORY],
     'vcpus': bep[constants.BE_VCPUS],
-    'nics': _PreBuildNICHooksList(lu, instance.nics),
+    'nics': _NICListToTuple(lu, instance.nics),
     'disk_template': instance.disk_template,
     'disks': [(disk.size, disk.mode) for disk in instance.disks],
     'bep': bep,
@@ -4646,7 +4647,7 @@ class LUCreateInstance(LogicalUnit):
       os_type=self.op.os_type,
       memory=self.be_full[constants.BE_MEMORY],
       vcpus=self.be_full[constants.BE_VCPUS],
-      nics=_PreBuildNICHooksList(self, self.nics),
+      nics=_NICListToTuple(self, self.nics),
       disk_template=self.op.disk_template,
       disks=[(d["size"], d["mode"]) for d in self.disks],
       bep=self.be_full,
