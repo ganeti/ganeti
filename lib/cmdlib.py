@@ -5703,6 +5703,7 @@ class LUQueryInstanceData(NoHooksLU):
       "sstatus": dev_sstatus,
       "children": dev_children,
       "mode": dev.mode,
+      "size": dev.size,
       }
 
     return data

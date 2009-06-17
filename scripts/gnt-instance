@@ -998,7 +998,11 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
       txt = "disk %d" % idx
   else:
     txt = "child %d" % idx
-  d1 = ["- %s: %s" % (txt, dev["dev_type"])]
+  if isinstance(dev["size"], int):
+    nice_size = utils.FormatUnit(dev["size"], "h")
+  else:
+    nice_size = dev["size"]
+  d1 = ["- %s: %s, size %s" % (txt, dev["dev_type"], nice_size)]
   data = []
   if top_level:
     data.append(("access mode", dev["mode"]))
