@@ -3410,6 +3410,8 @@ class LUQueryInstances(NoHooksLU):
             val = live_data[instance.name].get("memory", "?")
           else:
             val = "-"
+        elif field == "vcpus":
+          val = i_be[constants.BE_VCPUS]
         elif field == "disk_template":
           val = instance.disk_template
         elif field == "ip":
@@ -3493,9 +3495,10 @@ class LUQueryInstances(NoHooksLU):
                 else:
                   assert False, "Unhandled NIC parameter"
           else:
-            assert False, "Unhandled variable parameter"
+            assert False, ("Declared but unhandled variable parameter '%s'" %
+                           field)
         else:
-          raise errors.ParameterError(field)
+          assert False, "Declared but unhandled parameter '%s'" % field
         iout.append(val)
       output.append(iout)
 

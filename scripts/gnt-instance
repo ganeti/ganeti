@@ -219,6 +219,7 @@ def ListInstances(opts, args):
       "hvparams": "Hypervisor_parameters",
       "be/memory": "Configured_memory",
       "be/vcpus": "VCPUs",
+      "vcpus": "VCPUs",
       "be/auto_balance": "Auto_balance",
       "disk.count": "Disks", "disk.sizes": "Disk_sizes",
       "nic.count": "NICs", "nic.ips": "NIC_IPs",
