@@ -4730,7 +4730,7 @@ class LUCreateInstance(LogicalUnit):
     # os verification
     result = self.rpc.call_os_get(pnode.name, self.op.os_type)
     result.Raise()
-    if not isinstance(result.data, objects.OS):
+    if not isinstance(result.data, objects.OS) or not result.data:
       raise errors.OpPrereqError("OS '%s' not in supported os list for"
                                  " primary node"  % self.op.os_type)
 
