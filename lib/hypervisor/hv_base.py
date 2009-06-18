@@ -39,6 +39,7 @@ dict is the same, see the docstring for L{BaseHypervisor.PARAMETERS}.
 
 import os
 import re
+import logging
 
 
 from ganeti import errors

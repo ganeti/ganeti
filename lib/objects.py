@@ -40,19 +40,19 @@ __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
            "OS", "Node", "Cluster", "FillDict"]
 
 def FillDict(defaults_dict, custom_dict):
-    """Basic function to apply settings on top a default dict.
+  """Basic function to apply settings on top a default dict.
 
-    @type defaults_dict: dict
-    @param defaults_dict: dictionary holding the default values
-    @type custom_dict: dict
-    @param custom_dict: dictionary holding customized value
-    @rtype: dict
-    @return: dict with the 'full' values
+  @type defaults_dict: dict
+  @param defaults_dict: dictionary holding the default values
+  @type custom_dict: dict
+  @param custom_dict: dictionary holding customized value
+  @rtype: dict
+  @return: dict with the 'full' values
 
-    """
-    ret_dict = copy.deepcopy(defaults_dict)
-    ret_dict.update(custom_dict)
-    return ret_dict
+  """
+  ret_dict = copy.deepcopy(defaults_dict)
+  ret_dict.update(custom_dict)
+  return ret_dict
 
 
 def UpgradeGroupedParams(target, defaults):
@@ -578,10 +578,10 @@ class Disk(ConfigObject):
     """Checks that this disk is correctly configured.
 
     """
-    errors = []
+    errs = []
     if self.mode not in constants.DISK_ACCESS_SET:
-      errors.append("Disk access mode '%s' is invalid" % (self.mode, ))
-    return errors
+      errs.append("Disk access mode '%s' is invalid" % (self.mode, ))
+    return errs
 
 
 class Instance(TaggableObject):

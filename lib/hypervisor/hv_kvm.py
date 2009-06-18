@@ -56,7 +56,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_ACPI: hv_base.NO_CHECK,
     constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
     constants.HV_VNC_BIND_ADDRESS: \
-    (False, lambda x: (utils.IsValidIP(x) or utils.IsAbsNormPath(x)),
+    (False, lambda x: (utils.IsValidIP(x) or utils.IsNormAbsPath(x)),
      "the VNC bind address must be either a valid IP address or an absolute"
      " pathname", None, None),
     constants.HV_VNC_TLS: hv_base.NO_CHECK,
@@ -86,7 +86,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     hv_base.BaseHypervisor.__init__(self)
     # Let's make sure the directories we need exist, even if the RUN_DIR lives
     # in a tmpfs filesystem or has been otherwise wiped out.
-    dirs = [(dir, constants.RUN_DIRS_MODE) for dir in self._DIRS]
+    dirs = [(dname, constants.RUN_DIRS_MODE) for dname in self._DIRS]
     utils.EnsureDirs(dirs)
 
   def _InstancePidAlive(self, instance_name):

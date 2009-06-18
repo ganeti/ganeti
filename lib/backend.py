@@ -173,7 +173,7 @@ def GetMasterInfo():
     master_ip = cfg.GetMasterIP()
     master_node = cfg.GetMasterNode()
   except errors.ConfigurationError, err:
-    _Fail("Cluster configuration incomplete", exc=True)
+    _Fail("Cluster configuration incomplete: %s", err, exc=True)
   return master_netdev, master_ip, master_node
 
 
@@ -680,7 +680,7 @@ def GetAllInstancesInfo(hypervisor_list):
   for hname in hypervisor_list:
     iinfo = hypervisor.GetHypervisor(hname).GetAllInstancesInfo()
     if iinfo:
-      for name, inst_id, memory, vcpus, state, times in iinfo:
+      for name, _, memory, vcpus, state, times in iinfo:
         value = {
           'memory': memory,
           'vcpus': vcpus,
@@ -796,7 +796,7 @@ def _GetVGInfo(vg_name):
         "pv_count": int(valarr[2]),
         }
     except ValueError, err:
-      logging.exception("Fail to parse vgs output")
+      logging.exception("Fail to parse vgs output: %s", err)
   else:
     logging.error("vgs output has the wrong number of fields (expected"
                   " three): %s", str(valarr))
@@ -840,7 +840,7 @@ def _RemoveBlockDevLinks(instance_name, disks):
   """Remove the block device symlinks belonging to the given instance.
 
   """
-  for idx, disk in enumerate(disks):
+  for idx, _ in enumerate(disks):
     link_name = _GetBlockDevSymlinkPath(instance_name, idx)
     if os.path.islink(link_name):
       try:
@@ -1534,7 +1534,7 @@ def DiagnoseOS(top_dirs=None):
       try:
         f_names = utils.ListVisibleFiles(dir_name)
       except EnvironmentError, err:
-        logging.exception("Can't list the OS directory %s", dir_name)
+        logging.exception("Can't list the OS directory %s: %s", dir_name, err)
         break
       for name in f_names:
         os_path = os.path.sep.join([dir_name, name])
@@ -2360,7 +2360,6 @@ def DrbdWaitSync(nodes_ip, disks):
 
   min_resync = 100
   alldone = True
-  failure = False
   for rd in bdevs:
     stats = rd.GetProcStatus()
     if not (stats.is_connected or stats.is_in_resync):
@@ -2382,7 +2381,7 @@ def PowercycleNode(hypervisor_type):
   hyper = hypervisor.GetHypervisor(hypervisor_type)
   try:
     pid = os.fork()
-  except OSError, err:
+  except OSError:
     # if we can't fork, we'll pretend that we're in the child process
     pid = 0
   if pid > 0:
@@ -2497,7 +2496,7 @@ class HooksRunner(object):
     dir_name = "%s/%s" % (self._BASE_DIR, subdir)
     try:
       dir_contents = utils.ListVisibleFiles(dir_name)
-    except OSError, err:
+    except OSError:
       # FIXME: must log output in case of failures
       return rr
 
@@ -2619,7 +2618,7 @@ class DevCacheManager(object):
     try:
       utils.WriteFile(fpath, data=fdata)
     except EnvironmentError, err:
-      logging.exception("Can't update bdev cache for %s", dev_path)
+      logging.exception("Can't update bdev cache for %s: %s", dev_path, err)
 
   @classmethod
   def RemoveCache(cls, dev_path):
@@ -2641,4 +2640,4 @@ class DevCacheManager(object):
     try:
       utils.RemoveFile(fpath)
     except EnvironmentError, err:
-      logging.exception("Can't update bdev cache for %s", dev_path)
+      logging.exception("Can't update bdev cache for %s: %s", dev_path, err)

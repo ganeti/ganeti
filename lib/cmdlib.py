@@ -26,12 +26,10 @@
 import os
 import os.path
 import time
-import tempfile
 import re
 import platform
 import logging
 import copy
-import random
 
 from ganeti import ssh
 from ganeti import utils
@@ -40,7 +38,6 @@ from ganeti import hypervisor
 from ganeti import locking
 from ganeti import constants
 from ganeti import objects
-from ganeti import opcodes
 from ganeti import serializer
 from ganeti import ssconf
 
@@ -637,7 +634,7 @@ def _CheckInstanceBridgesExist(lu, instance, node=None):
 
   """
   if node is None:
-    node=instance.primary_node
+    node = instance.primary_node
   _CheckNicsBridgesExist(lu, instance.nics, node)
 
 
@@ -2582,8 +2579,8 @@ class LUQueryClusterInfo(NoHooksLU):
       "master": cluster.master_node,
       "default_hypervisor": cluster.default_hypervisor,
       "enabled_hypervisors": cluster.enabled_hypervisors,
-      "hvparams": dict([(hypervisor, cluster.hvparams[hypervisor])
-                        for hypervisor in cluster.enabled_hypervisors]),
+      "hvparams": dict([(hvname, cluster.hvparams[hvname])
+                        for hvname in cluster.enabled_hypervisors]),
       "beparams": cluster.beparams,
       "nicparams": cluster.nicparams,
       "candidate_pool_size": cluster.candidate_pool_size,
@@ -4536,7 +4533,8 @@ class LUCreateInstance(LogicalUnit):
       bridge = nic.get("bridge", None)
       link = nic.get("link", None)
       if bridge and link:
-        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link' at the same time")
+        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
+                                   " at the same time")
       elif bridge and nic_mode == constants.NIC_MODE_ROUTED:
         raise errors.OpPrereqError("Cannot pass 'bridge' on a routed nic")
       elif bridge:
@@ -5927,7 +5925,8 @@ class LUSetInstanceParams(LogicalUnit):
       nic_bridge = nic_dict.get('bridge', None)
       nic_link = nic_dict.get('link', None)
       if nic_bridge and nic_link:
-        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link' at the same time")
+        raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
+                                   " at the same time")
       elif nic_bridge and nic_bridge.lower() == constants.VALUE_NONE:
         nic_dict['bridge'] = None
       elif nic_link and nic_link.lower() == constants.VALUE_NONE:

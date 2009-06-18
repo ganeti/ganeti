@@ -396,19 +396,19 @@ def ForceDictType(target, key_types, allowed_values=None):
     if target[key] in allowed_values:
       continue
 
-    type = key_types[key]
-    if type not in constants.ENFORCEABLE_TYPES:
-      msg = "'%s' has non-enforceable type %s" % (key, type)
+    ktype = key_types[key]
+    if ktype not in constants.ENFORCEABLE_TYPES:
+      msg = "'%s' has non-enforceable type %s" % (key, ktype)
       raise errors.ProgrammerError(msg)
 
-    if type == constants.VTYPE_STRING:
+    if ktype == constants.VTYPE_STRING:
       if not isinstance(target[key], basestring):
         if isinstance(target[key], bool) and not target[key]:
           target[key] = ''
         else:
           msg = "'%s' (value %s) is not a valid string" % (key, target[key])
           raise errors.TypeEnforcementError(msg)
-    elif type == constants.VTYPE_BOOL:
+    elif ktype == constants.VTYPE_BOOL:
       if isinstance(target[key], basestring) and target[key]:
         if target[key].lower() == constants.VALUE_FALSE:
           target[key] = False
@@ -421,14 +421,14 @@ def ForceDictType(target, key_types, allowed_values=None):
         target[key] = True
       else:
         target[key] = False
-    elif type == constants.VTYPE_SIZE:
+    elif ktype == constants.VTYPE_SIZE:
       try:
         target[key] = ParseUnit(target[key])
       except errors.UnitParseError, err:
         msg = "'%s' (value %s) is not a valid size. error: %s" % \
               (key, target[key], err)
         raise errors.TypeEnforcementError(msg)
-    elif type == constants.VTYPE_INT:
+    elif ktype == constants.VTYPE_INT:
       try:
         target[key] = int(target[key])
       except (ValueError, TypeError):
@@ -1526,7 +1526,6 @@ def RemovePidFile(name):
   @param name: the daemon name used to derive the pidfile name
 
   """
-  pid = os.getpid()
   pidfilename = DaemonPidFileName(name)
   # TODO: we could check here that the file contains our pid
   try:

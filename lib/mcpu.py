@@ -364,4 +364,4 @@ class HooksMaster(object):
     phase = constants.HOOKS_PHASE_POST
     hpath = constants.HOOKS_NAME_CFGUPDATE
     nodes = [self.lu.cfg.GetMasterNode()]
-    results = self._RunWrapper(nodes, hpath, phase)
+    self._RunWrapper(nodes, hpath, phase)
