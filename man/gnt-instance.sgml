@@ -689,7 +689,18 @@
               <term>mac, ip, mode, link</term>
               <listitem>
                 <simpara>Specifications for the one NIC that will be
-                created for the instance.</simpara>
+                created for the instance. 'bridge' is also accepted
+                as a backwards compatibile key.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>nics</term>
+              <listitem>
+                <simpara>List of nics that will be created for the
+                instance. Each entry should be a dict, with mac, ip, mode
+                and link as possible keys. Please don't provide the "mac,
+                ip, mode, link" parent keys if you use this method for
+                specifying nics.</simpara>
               </listitem>
             </varlistentry>
             <varlistentry>
