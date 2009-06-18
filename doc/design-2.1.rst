@@ -268,3 +268,71 @@ time. Upon reinstall with a different OS the parameters will be by default
 discarded and reset to the default (or passed) values, unless a special
 --keep-known-os-parameters flag is passed.
 
+IAllocator changes
+~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+The iallocator interface allows creation of instances without manually
+specifying nodes, but instead by specifying plugins which will do the
+required computations and produce a valid node list.
+
+However, the interface is quite akward to use:
+
+- one cannot set a 'default' iallocator script
+- one cannot use it to easily test if allocation would succeed
+- some new functionality, such as rebalancing clusters and calculating
+  capacity estimates is needed
+
+Proposed changes
+++++++++++++++++
+
+There are two area of improvements proposed:
+
+- improving the use of the current interface
+- extending the IAllocator API to cover more automation
+
+
+Default iallocator names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The cluster will hold, for each type of iallocator, a (possibly empty)
+list of modules that will be used automatically.
+
+If the list is empty, the behaviour will remain the same.
+
+If the list has one entry, then ganeti will behave as if
+'--iallocator' was specifyed on the command line. I.e. use this
+allocator by default. If the user however passed nodes, those will be
+used in preference.
+
+If the list has multiple entries, they will be tried in order until
+one gives a successful answer.
+
+Dry-run allocation
+^^^^^^^^^^^^^^^^^^
+
+The create instance LU will get a new 'dry-run' option that will just
+simulate the placement, and return the chosen node-lists after running
+all the usual checks.
+
+Cluster balancing
+^^^^^^^^^^^^^^^^^
+
+Instance add/removals/moves can create a situation where load on the
+nodes is not spread equally. For this, a new iallocator mode will be
+implemented called ``balance`` in which the plugin, given the current
+cluster state, and a maximum number of operations, will need to
+compute the instance relocations needed in order to achieve a "better"
+(for whatever the script believes it's better) cluster.
+
+Cluster capacity calculation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this mode, called ``capacity``, given an instance specification and
+the current cluster state (similar to the ``allocate`` mode), the
+plugin needs to return:
+
+- how many instances can be allocated on the cluster with that specification
+- on which nodes these will be allocated (in order)
