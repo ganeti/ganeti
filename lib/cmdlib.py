@@ -56,6 +56,9 @@ class LogicalUnit(object):
 
   Note that all commands require root permissions.
 
+  @ivar dry_run_result: the value (if any) that will be returned to the caller
+      in dry-run mode (signalled by opcode dry_run parameter)
+
   """
   HPATH = None
   HTYPE = None
@@ -86,6 +89,8 @@ class LogicalUnit(object):
     # logging
     self.LogWarning = processor.LogWarning
     self.LogInfo = processor.LogInfo
+    # support for dry-run
+    self.dry_run_result = None
 
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)

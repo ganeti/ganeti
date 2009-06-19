@@ -103,11 +103,13 @@ class OpCode(BaseOpCode):
   from this class should override OP_ID.
 
   @cvar OP_ID: The ID of this opcode. This should be unique amongst all
-               childre of this class.
+               children of this class.
+  @ivar dry_run: Whether the LU should be run in dry-run mode, i.e. just
+                 the check steps
 
   """
   OP_ID = "OP_ABSTRACT"
-  __slots__ = BaseOpCode.__slots__ + []
+  __slots__ = BaseOpCode.__slots__ + ["dry_run"]
 
   def __getstate__(self):
     """Specialized getstate for opcodes.

@@ -113,6 +113,15 @@ class Processor(object):
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
                      self._feedback_fn, None)
+
+    if getattr(lu.op, "dry_run", False):
+      # in this mode, no post-hooks are run, and the config is not
+      # written (as it might have been modified by another LU, and we
+      # shouldn't do writeout on behalf of other threads
+      self.LogInfo("dry-run mode requested, not actually executing"
+                   " the operation")
+      return lu.dry_run_result
+
     try:
       result = lu.Exec(self._feedback_fn)
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
