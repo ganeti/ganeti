@@ -6015,11 +6015,11 @@ class LUSetInstanceParams(LogicalUnit):
     """Return the new params dict for the given params.
 
     @type old_params: dict
-    @type old_params: old parameters
+    @param old_params: old parameters
     @type update_dict: dict
-    @type update_dict: dict containing new parameter values,
-                       or constants.VALUE_DEFAULT to reset the
-                       parameter to its default value
+    @param update_dict: dict containing new parameter values,
+                        or constants.VALUE_DEFAULT to reset the
+                        parameter to its default value
     @type default_values: dict
     @param default_values: default values for the filled parameters
     @type parameter_types: dict

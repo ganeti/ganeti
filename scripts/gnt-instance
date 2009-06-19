@@ -160,7 +160,7 @@ def _EnsureInstancesExist(client, names):
   This function will raise an OpPrereqError in case they don't
   exist. Otherwise it will exit cleanly.
 
-  @type client: L{luxi.Client}
+  @type client: L{ganeti.luxi.Client}
   @param client: the client to use for the query
   @type names: list
   @param names: the list of instance names to query
