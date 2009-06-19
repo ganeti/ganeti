@@ -4863,6 +4863,8 @@ class LUCreateInstance(LogicalUnit):
                            self.be_full[constants.BE_MEMORY],
                            self.op.hypervisor)
 
+    self.dry_run_result = list(nodenames)
+
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
 
@@ -4991,6 +4993,8 @@ class LUCreateInstance(LogicalUnit):
       feedback_fn("* starting instance...")
       result = self.rpc.call_instance_start(pnode_name, iobj, None, None)
       result.Raise("Could not start instance")
+
+    return list(iobj.all_nodes)
 
 
 class LUConnectConsole(NoHooksLU):
