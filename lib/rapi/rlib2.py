@@ -264,6 +264,7 @@ class R_2_instances(baserlib.R_Generic):
       beparams=beparams,
       file_storage_dir=fn('file_storage_dir', None),
       file_driver=fn('file_driver', 'loop'),
+      dry_run=bool(self.dryRun()),
       )
 
     return baserlib.SubmitJob([op])
@@ -289,7 +290,8 @@ class R_2_instances_name(baserlib.R_Generic):
 
     """
     op = opcodes.OpRemoveInstance(instance_name=self.items[0],
-                                  ignore_failures=False)
+                                  ignore_failures=False,
+                                  dry_run=bool(self.dryRun()))
     return baserlib.SubmitJob([op])
 
 
@@ -313,7 +315,8 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
                                                  [False])[0])
     op = opcodes.OpRebootInstance(instance_name=instance_name,
                                   reboot_type=reboot_type,
-                                  ignore_secondaries=ignore_secondaries)
+                                  ignore_secondaries=ignore_secondaries,
+                                  dry_run=bool(self.dryRun()))
 
     return baserlib.SubmitJob([op])
 
@@ -334,7 +337,8 @@ class R_2_instances_name_startup(baserlib.R_Generic):
     instance_name = self.items[0]
     force_startup = bool(self.queryargs.get('force', [False])[0])
     op = opcodes.OpStartupInstance(instance_name=instance_name,
-                                   force=force_startup)
+                                   force=force_startup,
+                                   dry_run=bool(self.dryRun()))
 
     return baserlib.SubmitJob([op])
 
@@ -350,7 +354,8 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    op = opcodes.OpShutdownInstance(instance_name=instance_name)
+    op = opcodes.OpShutdownInstance(instance_name=instance_name,
+                                    dry_run=bool(self.dryRun()))
 
     return baserlib.SubmitJob([op])
 
@@ -396,7 +401,8 @@ class _R_Tags(baserlib.R_Generic):
       raise http.HttpBadRequest("Please specify tag(s) to add using the"
                                 " the 'tag' parameter")
     return baserlib._Tags_PUT(self.TAG_LEVEL,
-                              self.queryargs['tag'], name=self.name)
+                              self.queryargs['tag'], name=self.name,
+                              dry_run=bool(self.dryRun()))
 
   def DELETE(self):
     """Delete a tag.
@@ -412,7 +418,8 @@ class _R_Tags(baserlib.R_Generic):
                                 " tag(s) using the 'tag' parameter")
     return baserlib._Tags_DELETE(self.TAG_LEVEL,
                                  self.queryargs['tag'],
-                                 name=self.name)
+                                 name=self.name,
+                                 dry_run=bool(self.dryRun()))
 
 
 class R_2_instances_name_tags(_R_Tags):

@@ -280,3 +280,9 @@ class R_Generic(object):
 
     """
     return self._checkIntVariable('bulk')
+
+  def dryRun(self):
+    """Check if the request specifies dry-run mode.
+
+    """
+    return self._checkIntVariable('dry-run')
