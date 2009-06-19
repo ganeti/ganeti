@@ -198,6 +198,11 @@ SYNC_OPT = make_option("--sync", dest="do_locking",
                        help="Grab locks while doing the queries"
                        " in order to ensure more consistent results")
 
+_DRY_RUN_OPT = make_option("--dry-run", default=False,
+                          action="store_true",
+                          help="Do not execute the operation, just run the"
+                          " check steps and verify it it could be executed")
+
 
 def ARGS_FIXED(val):
   """Macro-like function denoting a fixed number of arguments"""
@@ -380,7 +385,7 @@ def _ParseArgs(argv, commands, aliases):
     cmd = aliases[cmd]
 
   func, nargs, parser_opts, usage, description = commands[cmd]
-  parser = OptionParser(option_list=parser_opts,
+  parser = OptionParser(option_list=parser_opts + [_DRY_RUN_OPT],
                         description=description,
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))
@@ -605,7 +610,11 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
   whether to just send the job and print its identifier. It is used in
   order to simplify the implementation of the '--submit' option.
 
+  It will also add the dry-run parameter from the options passed, if true.
+
   """
+  if opts and opts.dry_run:
+    op.dry_run = opts.dry_run
   if opts and opts.submit_only:
     job_id = SendJob([op], cl=cl)
     raise JobSubmittedException(job_id)
