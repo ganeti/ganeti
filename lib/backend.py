@@ -712,7 +712,7 @@ def InstanceOsAdd(instance, reinstall):
   """
   inst_os = OSFromDisk(instance.os)
 
-  create_env = OSEnvironment(instance)
+  create_env = OSEnvironment(instance, inst_os)
   if reinstall:
     create_env['INSTANCE_REINSTALL'] = "1"
 
@@ -744,7 +744,7 @@ def RunRenameInstance(instance, old_name):
   """
   inst_os = OSFromDisk(instance.os)
 
-  rename_env = OSEnvironment(instance)
+  rename_env = OSEnvironment(instance, inst_os)
   rename_env['OLD_INSTANCE_NAME'] = old_name
 
   logfile = "%s/rename-%s-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
@@ -1569,9 +1569,9 @@ def _TryOSFromDisk(name, base_dir=None):
     # push the error up
     return status, api_versions
 
-  if constants.OS_API_VERSION not in api_versions:
+  if not constants.OS_API_VERSIONS.intersection(api_versions):
     return False, ("API version mismatch for path '%s': found %s, want %s." %
-                   (os_dir, api_versions, constants.OS_API_VERSION))
+                   (os_dir, api_versions, constants.OS_API_VERSIONS))
 
   # OS Scripts dictionary, we will populate it with the actual script names
   os_scripts = dict.fromkeys(constants.OS_SCRIPTS)
@@ -1628,11 +1628,13 @@ def OSFromDisk(name, base_dir=None):
   return payload
 
 
-def OSEnvironment(instance, debug=0):
+def OSEnvironment(instance, os, debug=0):
   """Calculate the environment for an os script.
 
   @type instance: L{objects.Instance}
   @param instance: target instance for the os script run
+  @type os: L{objects.OS}
+  @param os: operating system for which the environment is being built
   @type debug: integer
   @param debug: debug level (0 or 1, for OS Api 10)
   @rtype: dict
@@ -1642,7 +1644,8 @@ def OSEnvironment(instance, debug=0):
 
   """
   result = {}
-  result['OS_API_VERSION'] = '%d' % constants.OS_API_VERSION
+  api_version = max(constants.OS_API_VERSIONS.intersection(os.api_versions))
+  result['OS_API_VERSION'] = '%d' % api_version
   result['INSTANCE_NAME'] = instance.name
   result['INSTANCE_OS'] = instance.os
   result['HYPERVISOR'] = instance.hypervisor
@@ -1759,9 +1762,9 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   @rtype: None
 
   """
-  export_env = OSEnvironment(instance)
-
   inst_os = OSFromDisk(instance.os)
+  export_env = OSEnvironment(instance, inst_os)
+
   export_script = inst_os.export_script
 
   logfile = "%s/exp-%s-%s-%s.log" % (constants.LOG_OS_DIR, inst_os.name,
@@ -1903,8 +1906,8 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
   @return: each boolean represent the success of importing the n-th disk
 
   """
-  import_env = OSEnvironment(instance)
   inst_os = OSFromDisk(instance.os)
+  import_env = OSEnvironment(instance, inst_os)
   import_script = inst_os.import_script
 
   logfile = "%s/import-%s-%s-%s.log" % (constants.LOG_OS_DIR, instance.os,

@@ -72,7 +72,7 @@ def _SetupTempOs(node, dir, valid):
   if valid:
     parts.append(sq(["ln", "-fs", "/bin/true", "create"]))
 
-  parts.append(sq(["echo", str(constants.OS_API_VERSION)]) +
+  parts.append(sq(["echo", str(constants.OS_API_V10)]) +
                " >ganeti_api_version")
 
   cmd = ' && '.join(parts)

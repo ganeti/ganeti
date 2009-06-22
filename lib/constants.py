@@ -26,7 +26,9 @@ from ganeti import _autoconf
 # various versions
 PROTOCOL_VERSION = 20
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
-OS_API_VERSION = 10
+OS_API_V10 = 10
+OS_API_V15 = 15
+OS_API_VERSIONS = frozenset([OS_API_V10, OS_API_V15])
 EXPORT_VERSION = 0
 RAPI_VERSION = 2
 

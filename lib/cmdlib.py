@@ -2577,7 +2577,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "software_version": constants.RELEASE_VERSION,
       "protocol_version": constants.PROTOCOL_VERSION,
       "config_version": constants.CONFIG_VERSION,
-      "os_api_version": constants.OS_API_VERSION,
+      "os_api_version": max(constants.OS_API_VERSIONS),
       "export_version": constants.EXPORT_VERSION,
       "architecture": (platform.architecture()[0], platform.machine()),
       "name": cluster.cluster_name,
