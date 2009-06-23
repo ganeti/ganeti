@@ -193,7 +193,7 @@ def StartMaster(start_daemons):
   # GetMasterInfo will raise an exception if not able to return data
   master_netdev, master_ip, _ = GetMasterInfo()
 
-  payload = []
+  err_msgs = []
   if utils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
     if utils.OwnIpAddress(master_ip):
       # we already have the ip:
@@ -201,7 +201,7 @@ def StartMaster(start_daemons):
     else:
       msg = "Someone else has the master ip, not activating"
       logging.error(msg)
-      payload.append(msg)
+      err_msgs.append(msg)
   else:
     result = utils.RunCmd(["ip", "address", "add", "%s/32" % master_ip,
                            "dev", master_netdev, "label",
@@ -209,7 +209,7 @@ def StartMaster(start_daemons):
     if result.failed:
       msg = "Can't activate master IP: %s" % result.output
       logging.error(msg)
-      payload.append(msg)
+      err_msgs.append(msg)
 
     result = utils.RunCmd(["arping", "-q", "-U", "-c 3", "-I", master_netdev,
                            "-s", master_ip, master_ip])
@@ -222,10 +222,10 @@ def StartMaster(start_daemons):
       if result.failed:
         msg = "Can't start daemon %s: %s" % (daemon, result.output)
         logging.error(msg)
-        payload.append(msg)
+        err_msgs.append(msg)
 
-  if payload:
-    _Fail("; ".join(payload))
+  if err_msgs:
+    _Fail("; ".join(err_msgs))
 
 
 def StopMaster(stop_daemons):
