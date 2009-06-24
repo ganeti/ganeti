@@ -1462,7 +1462,7 @@ def _ErrnoOrStr(err):
   return detail
 
 
-def _OSOndiskVersion(name, os_dir):
+def _OSOndiskAPIVersion(name, os_dir):
   """Compute and return the API version of a given OS.
 
   This function will try to read the API version of the OS given by
@@ -1569,7 +1569,7 @@ def _TryOSFromDisk(name, base_dir=None):
   else:
     os_dir = os.path.sep.join([base_dir, name])
 
-  status, api_versions = _OSOndiskVersion(name, os_dir)
+  status, api_versions = _OSOndiskAPIVersion(name, os_dir)
   if not status:
     # push the error up
     return status, api_versions
