@@ -166,15 +166,11 @@ class SimpleStore(object):
     """
     filename = self.KeyToFilename(key)
     try:
-      fh = file(filename, 'r')
-      try:
-        data = fh.read(self._MAX_SIZE)
-        data = data.rstrip('\n')
-      finally:
-        fh.close()
+      data = utils.ReadFile(filename, size=self._MAX_SIZE)
     except EnvironmentError, err:
       raise errors.ConfigurationError("Can't read from the ssconf file:"
                                       " '%s'" % str(err))
+    data = data.rstrip('\n')
     return data
 
   def WriteFiles(self, values):
