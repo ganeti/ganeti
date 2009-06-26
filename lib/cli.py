@@ -54,6 +54,8 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "GetOnlineNodes", "JobExecutor", "SYNC_OPT", "CONFIRM_OPT",
            ]
 
+NO_PREFIX = "no_"
+UN_PREFIX = "-"
 
 def _ExtractTagsObject(opts, args):
   """Extract the tag type object.
@@ -256,8 +258,6 @@ def _SplitKeyVal(opt, data):
   @raises errors.ParameterError: if there are duplicate keys
 
   """
-  NO_PREFIX = "no_"
-  UN_PREFIX = "-"
   kv_dict = {}
   if data:
     for elem in data.split(","):
@@ -282,9 +282,21 @@ def check_ident_key_val(option, opt, value):
 
   """
   if ":" not in value:
-    retval =  (value, {})
+    ident, rest = value, ''
   else:
     ident, rest = value.split(":", 1)
+
+  if ident.startswith(NO_PREFIX):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(NO_PREFIX):], False)
+  elif ident.startswith(UN_PREFIX):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(UN_PREFIX):], None)
+  else:
     kv_dict = _SplitKeyVal(opt, rest)
     retval = (ident, kv_dict)
   return retval

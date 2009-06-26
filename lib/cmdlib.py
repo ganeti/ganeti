@@ -5887,6 +5887,10 @@ class LUSetInstanceParams(LogicalUnit):
       else:
         if not isinstance(disk_op, int):
           raise errors.OpPrereqError("Invalid disk index")
+        if not isinstance(disk_dict, dict):
+          msg = "Invalid disk value: expected dict, got '%s'" % disk_dict
+          raise errors.OpPrereqError(msg)
+
       if disk_op == constants.DDM_ADD:
         mode = disk_dict.setdefault('mode', constants.DISK_RDWR)
         if mode not in constants.DISK_ACCESS_SET:
@@ -5921,6 +5925,9 @@ class LUSetInstanceParams(LogicalUnit):
       else:
         if not isinstance(nic_op, int):
           raise errors.OpPrereqError("Invalid nic index")
+        if not isinstance(nic_dict, dict):
+          msg = "Invalid nic value: expected dict, got '%s'" % nic_dict
+          raise errors.OpPrereqError(msg)
 
       # nic_dict should be a dict
       nic_ip = nic_dict.get('ip', None)

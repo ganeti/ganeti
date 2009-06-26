@@ -388,6 +388,10 @@ def ForceDictType(target, key_types, allowed_values=None):
   if allowed_values is None:
     allowed_values = []
 
+  if not isinstance(target, dict):
+    msg = "Expected dictionary, got '%s'" % target
+    raise errors.TypeEnforcementError(msg)
+
   for key in target:
     if key not in key_types:
       msg = "Unknown key '%s'" % key

@@ -302,6 +302,9 @@ def AddInstance(opts, args):
     nics = [{}] * nic_max
     for nidx, ndict in opts.nics:
       nidx = int(nidx)
+      if not isinstance(ndict, dict):
+        msg = "Invalid nic/%d value: expected dict, got %s" % (nidx, ndict)
+        raise errors.OpPrereqError(msg)
       nics[nidx] = ndict
   elif opts.no_nics:
     # no nics
@@ -330,7 +333,10 @@ def AddInstance(opts, args):
     disks = [{}] * disk_max
     for didx, ddict in opts.disks:
       didx = int(didx)
-      if "size" not in ddict:
+      if not isinstance(ddict, dict):
+        msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
+        raise errors.OpPrereqError(msg)
+      elif "size" not in ddict:
         raise errors.OpPrereqError("Missing size for disk %d" % didx)
       try:
         ddict["size"] = utils.ParseUnit(ddict["size"])
