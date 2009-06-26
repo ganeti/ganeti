@@ -44,7 +44,7 @@ import sys
 import optparse
 import time
 
-from ganeti.utils import RunCmd
+from ganeti.utils import RunCmd, ReadFile
 from ganeti import constants
 
 USAGE = ("\tlvmstrap diskinfo\n"
@@ -424,9 +424,7 @@ def GetMountInfo():
    a mountpoint: device number dictionary
   """
 
-  f = open("/proc/mounts", "r")
-  mountlines = f.readlines()
-  f.close()
+  mountlines = ReadFile("/proc/mounts").splitlines()
   mounts = {}
   for line in mountlines:
     device, mountpoint, fstype, rest = line.split(None, 3)

@@ -315,11 +315,7 @@ class BaseHypervisor(object):
 
     """
     try:
-      fh = file("/proc/meminfo")
-      try:
-        data = fh.readlines()
-      finally:
-        fh.close()
+      data = utils.ReadFile("/proc/meminfo").splitlines()
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list node info: %s" % (err,))
 

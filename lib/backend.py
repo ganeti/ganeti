@@ -1490,11 +1490,7 @@ def _OSOndiskAPIVersion(name, os_dir):
                    " a regular file" % os_dir)
 
   try:
-    f = open(api_file)
-    try:
-      api_versions = f.readlines()
-    finally:
-      f.close()
+    api_versions = utils.ReadFile(api_file).splitlines()
   except EnvironmentError, err:
     return False, ("Error while reading the API version file at %s: %s" %
                    (api_file, _ErrnoOrStr(err)))
