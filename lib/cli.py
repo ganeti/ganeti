@@ -259,20 +259,21 @@ def _SplitKeyVal(opt, data):
   NO_PREFIX = "no_"
   UN_PREFIX = "-"
   kv_dict = {}
-  for elem in data.split(","):
-    if "=" in elem:
-      key, val = elem.split("=", 1)
-    else:
-      if elem.startswith(NO_PREFIX):
-        key, val = elem[len(NO_PREFIX):], False
-      elif elem.startswith(UN_PREFIX):
-        key, val = elem[len(UN_PREFIX):], None
+  if data:
+    for elem in data.split(","):
+      if "=" in elem:
+        key, val = elem.split("=", 1)
       else:
-        key, val = elem, True
-    if key in kv_dict:
-      raise errors.ParameterError("Duplicate key '%s' in option %s" %
-                                  (key, opt))
-    kv_dict[key] = val
+        if elem.startswith(NO_PREFIX):
+          key, val = elem[len(NO_PREFIX):], False
+        elif elem.startswith(UN_PREFIX):
+          key, val = elem[len(UN_PREFIX):], None
+        else:
+          key, val = elem, True
+      if key in kv_dict:
+        raise errors.ParameterError("Duplicate key '%s' in option %s" %
+                                    (key, opt))
+      kv_dict[key] = val
   return kv_dict
 
 

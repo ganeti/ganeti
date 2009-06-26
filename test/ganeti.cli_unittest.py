@@ -75,6 +75,10 @@ class TestSplitKeyVal(unittest.TestCase):
       self.failUnlessRaises(ParameterError, cli._SplitKeyVal,
                             "option", data)
 
+  def testEmptyData(self):
+    """Test how we handle splitting an empty string"""
+    self.failUnlessEqual(cli._SplitKeyVal("option", ""), {})
+
 
 class TestToStream(unittest.TestCase):
   """Thes the ToStream functions"""
