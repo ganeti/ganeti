@@ -1495,9 +1495,8 @@ def _OSOndiskAPIVersion(name, os_dir):
     return False, ("Error while reading the API version file at %s: %s" %
                    (api_file, _ErrnoOrStr(err)))
 
-  api_versions = [version.strip() for version in api_versions]
   try:
-    api_versions = [int(version) for version in api_versions]
+    api_versions = [int(version.strip()) for version in api_versions]
   except (TypeError, ValueError), err:
     return False, ("API version(s) can't be converted to integer: %s" %
                    str(err))
