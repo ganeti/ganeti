@@ -1878,6 +1878,7 @@ class LUQueryNodes(NoHooksLU):
     "master",
     "offline",
     "drained",
+    "role",
     )
 
   def ExpandNames(self):
@@ -2006,6 +2007,17 @@ class LUQueryNodes(NoHooksLU):
           val = node.drained
         elif self._FIELDS_DYNAMIC.Matches(field):
           val = live_data[node.name].get(field, None)
+        elif field == "role":
+          if node.name == master_node:
+            val = "M"
+          elif node.master_candidate:
+            val = "C"
+          elif node.drained:
+            val = "D"
+          elif node.offline:
+            val = "O"
+          else:
+            val = "R"
         else:
           raise errors.ParameterError(field)
         node_output.append(val)
