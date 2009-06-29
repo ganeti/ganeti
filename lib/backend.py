@@ -963,9 +963,10 @@ def InstanceReboot(instance, reboot_type):
         instance OS, do not recreate the VM
       - L{constants.INSTANCE_REBOOT_HARD}: tear down and
         restart the VM (at the hypervisor level)
-      - the other reboot type (L{constants.INSTANCE_REBOOT_HARD})
-        is not accepted here, since that mode is handled
-        differently
+      - the other reboot type (L{constants.INSTANCE_REBOOT_FULL}) is
+        not accepted here, since that mode is handled differently, in
+        cmdlib, and translates into full stop and start of the
+        instance (instead of a call_instance_reboot RPC)
   @rtype: None
 
   """

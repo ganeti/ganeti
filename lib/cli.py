@@ -701,6 +701,8 @@ def FormatError(err):
                " job submissions until old jobs are archived\n")
   elif isinstance(err, errors.TypeEnforcementError):
     obuf.write("Parameter Error: %s" % msg)
+  elif isinstance(err, errors.ParameterError):
+    obuf.write("Failure: unknown/wrong parameter name '%s'" % msg)
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, luxi.NoMasterError):

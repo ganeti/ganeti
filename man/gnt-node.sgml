@@ -423,6 +423,38 @@
               <simpara>whether the node is offline or not</simpara>
             </listitem>
           </varlistentry>
+          <varlistentry>
+            <term>role</term>
+            <listitem>
+              <para>
+                A condensed version of the node flags; this field will
+                output a one-character field, with the following
+                possible values:
+                <itemizedlist>
+                  <listitem>
+                    <simpara><emphasis>M</emphasis> for the master
+                    node</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>C</emphasis> for a master
+                    candidate</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>R</emphasis> for a regular
+                    node</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>D</emphasis> for a drained
+                    node</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>O</emphasis> for an offline
+                    node</simpara>
+                  </listitem>
+                </itemizedlist>
+              </para>
+            </listitem>
+          </varlistentry>
         </variablelist>
       </para>
 

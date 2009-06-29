@@ -1606,13 +1606,10 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
+      # we need to update the pool size here, otherwise the save will fail
+      _AdjustCandidatePool(self)
 
     self.cfg.Update(self.cluster)
-
-    # we want to update nodes after the cluster so that if any errors
-    # happen, we have recorded and saved the cluster info
-    if self.op.candidate_pool_size is not None:
-      _AdjustCandidatePool(self)
 
 
 def _RedistributeAncillaryFiles(lu, additional_nodes=None):
@@ -1976,6 +1973,7 @@ class LUQueryNodes(NoHooksLU):
     "master",
     "offline",
     "drained",
+    "role",
     )
 
   def ExpandNames(self):
@@ -2104,6 +2102,17 @@ class LUQueryNodes(NoHooksLU):
           val = node.drained
         elif self._FIELDS_DYNAMIC.Matches(field):
           val = live_data[node.name].get(field, None)
+        elif field == "role":
+          if node.name == master_node:
+            val = "M"
+          elif node.master_candidate:
+            val = "C"
+          elif node.drained:
+            val = "D"
+          elif node.offline:
+            val = "O"
+          else:
+            val = "R"
         else:
           raise errors.ParameterError(field)
         node_output.append(val)
@@ -3513,6 +3522,8 @@ class LUQueryInstances(NoHooksLU):
             val = live_data[instance.name].get("memory", "?")
           else:
             val = "-"
+        elif field == "vcpus":
+          val = i_be[constants.BE_VCPUS]
         elif field == "disk_template":
           val = instance.disk_template
         elif field == "ip":
@@ -3624,9 +3635,10 @@ class LUQueryInstances(NoHooksLU):
                 else:
                   assert False, "Unhandled NIC parameter"
           else:
-            assert False, "Unhandled variable parameter"
+            assert False, ("Declared but unhandled variable parameter '%s'" %
+                           field)
         else:
-          raise errors.ParameterError(field)
+          assert False, "Declared but unhandled parameter '%s'" % field
         iout.append(val)
       output.append(iout)
 
@@ -5799,6 +5811,7 @@ class LUQueryInstanceData(NoHooksLU):
       "sstatus": dev_sstatus,
       "children": dev_children,
       "mode": dev.mode,
+      "size": dev.size,
       }
 
     return data

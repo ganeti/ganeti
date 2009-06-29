@@ -56,6 +56,7 @@ _LIST_HEADERS = {
   "master_candidate": "MasterC",
   "master": "IsMaster",
   "offline": "Offline", "drained": "Drained",
+  "role": "Role",
   }
 
 
