@@ -1556,13 +1556,10 @@ class LUSetClusterParams(LogicalUnit):
       self.cluster.beparams[constants.BEGR_DEFAULT] = self.new_beparams
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
+      # we need to update the pool size here, otherwise the save will fail
+      _AdjustCandidatePool(self)
 
     self.cfg.Update(self.cluster)
-
-    # we want to update nodes after the cluster so that if any errors
-    # happen, we have recorded and saved the cluster info
-    if self.op.candidate_pool_size is not None:
-      _AdjustCandidatePool(self)
 
 
 class LURedistributeConfig(NoHooksLU):
