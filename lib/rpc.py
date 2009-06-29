@@ -417,13 +417,13 @@ class RpcRunner(object):
   # Begin RPC calls
   #
 
-  def call_volume_list(self, node_list, vg_name):
+  def call_lv_list(self, node_list, vg_name):
     """Gets the logical volumes present in a given volume group.
 
     This is a multi-node call.
 
     """
-    return self._MultiNodeCall(node_list, "volume_list", [vg_name])
+    return self._MultiNodeCall(node_list, "lv_list", [vg_name])
 
   def call_vg_list(self, node_list):
     """Gets the volume group list.

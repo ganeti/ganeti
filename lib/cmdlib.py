@@ -1335,7 +1335,7 @@ class LUVerifyDisks(NoHooksLU):
     if not nv_dict:
       return result
 
-    node_lvs = self.rpc.call_volume_list(nodes, vg_name)
+    node_lvs = self.rpc.call_lv_list(nodes, vg_name)
 
     to_act = set()
     for node in nodes:

@@ -340,7 +340,7 @@ class NodeHttpServer(http.server.HttpServer):
   # volume  --------------------------
 
   @staticmethod
-  def perspective_volume_list(params):
+  def perspective_lv_list(params):
     """Query the list of logical volumes in a given volume group.
 
     """
