@@ -747,7 +747,13 @@ def GenericMain(commands, override=None, aliases=None):
   if aliases is None:
     aliases = {}
 
-  func, options, args = _ParseArgs(sys.argv, commands, aliases)
+  try:
+    func, options, args = _ParseArgs(sys.argv, commands, aliases)
+  except errors.ParameterError, err:
+    result, err_msg = FormatError(err)
+    ToStderr(err_msg)
+    return 1
+
   if func is None: # parse error
     return 1
 
