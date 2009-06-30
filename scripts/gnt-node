@@ -100,18 +100,7 @@ def AddNode(opts, args):
   output = cl.QueryConfigValues(['cluster_name'])
   cluster_name = output[0]
 
-  if readd:
-    # clear the offline and drain flags on the node
-    ToStdout("Resetting the 'offline' and 'drained' flags due to re-add")
-    op = opcodes.OpSetNodeParams(node_name=node, force=True,
-                                 offline=False, drained=False)
-
-    result = SubmitOpCode(op, cl=cl)
-    if result:
-      ToStdout("Modified:")
-      for param, data in result:
-        ToStdout(" - %-5s -> %s", param, data)
-  else:
+  if not readd:
     ToStderr("-- WARNING -- \n"
              "Performing this operation is going to replace the ssh daemon"
              " keypair\n"

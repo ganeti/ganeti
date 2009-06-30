@@ -2202,14 +2202,24 @@ class LUAddNode(LogicalUnit):
                                    " based ping to noded port")
 
     cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-    mc_now, _ = self.cfg.GetMasterCandidateStats()
-    master_candidate = mc_now < cp_size
+    if self.op.readd:
+      exceptions = [node]
+    else:
+      exceptions = []
+    mc_now, mc_max = self.cfg.GetMasterCandidateStats(exceptions)
+    # the new node will increase mc_max with one, so:
+    mc_max = min(mc_max + 1, cp_size)
+    self.master_candidate = mc_now < mc_max
 
-    self.new_node = objects.Node(name=node,
-                                 primary_ip=primary_ip,
-                                 secondary_ip=secondary_ip,
-                                 master_candidate=master_candidate,
-                                 offline=False, drained=False)
+    if self.op.readd:
+      self.new_node = self.cfg.GetNodeInfo(node)
+      assert self.new_node is not None, "Can't retrieve locked node %s" % node
+    else:
+      self.new_node = objects.Node(name=node,
+                                   primary_ip=primary_ip,
+                                   secondary_ip=secondary_ip,
+                                   master_candidate=self.master_candidate,
+                                   offline=False, drained=False)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
@@ -2217,6 +2227,20 @@ class LUAddNode(LogicalUnit):
     """
     new_node = self.new_node
     node = new_node.name
+
+    # for re-adds, reset the offline/drained/master-candidate flags;
+    # we need to reset here, otherwise offline would prevent RPC calls
+    # later in the procedure; this also means that if the re-add
+    # fails, we are left with a non-offlined, broken node
+    if self.op.readd:
+      new_node.drained = new_node.offline = False
+      self.LogInfo("Readding a node, the offline/drained flags were reset")
+      # if we demote the node, we do cleanup later in the procedure
+      new_node.master_candidate = self.master_candidate
+
+    # notify the user about any possible mc promotion
+    if new_node.master_candidate:
+      self.LogInfo("Node will be a master candidate")
 
     # check connectivity
     result = self.rpc.call_version([node])[node]
@@ -2313,6 +2337,15 @@ class LUAddNode(LogicalUnit):
 
     if self.op.readd:
       self.context.ReaddNode(new_node)
+      # make sure we redistribute the config
+      self.cfg.Update(new_node)
+      # and make sure the new node will not have old files around
+      if not new_node.master_candidate:
+        result = self.rpc.call_node_demote_from_mc(new_node.name)
+        msg = result.RemoteFailMsg()
+        if msg:
+          self.LogWarning("Node failed to demote itself from master"
+                          " candidate status: %s" % msg)
     else:
       self.context.AddNode(new_node)
 
