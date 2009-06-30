@@ -2308,7 +2308,8 @@ def DemoteFromMC():
   if utils.IsProcessAlive(utils.ReadPidFile(pid_file)):
     return (False, "The master daemon is running, will not demote")
   try:
-    utils.CreateBackup(constants.CLUSTER_CONF_FILE)
+    if os.path.isfile(constants.CLUSTER_CONF_FILE):
+      utils.CreateBackup(constants.CLUSTER_CONF_FILE)
   except EnvironmentError, err:
     if err.errno != errno.ENOENT:
       return (False, "Error while backing up cluster file: %s" % str(err))
