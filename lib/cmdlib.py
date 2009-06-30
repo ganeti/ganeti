@@ -2464,6 +2464,10 @@ class LUSetNodeParams(LogicalUnit):
           node.master_candidate = False
           changed_mc = True
           result.append(("master_candidate", "auto-demotion due to drain"))
+          rrc = self.rpc.call_node_demote_from_mc(node.name)
+          msg = rrc.RemoteFailMsg()
+          if msg:
+            self.LogWarning("Node failed to demote itself: %s" % msg)
         if node.offline:
           node.offline = False
           result.append(("offline", "clear offline status due to drain"))
