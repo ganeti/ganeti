@@ -945,15 +945,19 @@ class ConfigWriter:
                     for node in self._UnlockedGetNodeList()])
     return my_dict
 
-  def _UnlockedGetMasterCandidateStats(self):
+  def _UnlockedGetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum desired and possible candidates.
 
+    @type exceptions: list
+    @param exceptions: if passed, list of nodes that should be ignored
     @rtype: tuple
     @return: tuple of (current, desired and possible)
 
     """
     mc_now = mc_max = 0
-    for node in self._config_data.nodes.itervalues():
+    for node in self._config_data.nodes.values():
+      if exceptions and node.name in exceptions:
+        continue
       if not (node.offline or node.drained):
         mc_max += 1
       if node.master_candidate:
@@ -962,16 +966,18 @@ class ConfigWriter:
     return (mc_now, mc_max)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetMasterCandidateStats(self):
+  def GetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum possible candidates.
 
     This is just a wrapper over L{_UnlockedGetMasterCandidateStats}.
 
+    @type exceptions: list
+    @param exceptions: if passed, list of nodes that should be ignored
     @rtype: tuple
     @return: tuple of (current, max)
 
     """
-    return self._UnlockedGetMasterCandidateStats()
+    return self._UnlockedGetMasterCandidateStats(exceptions)
 
   @locking.ssynchronized(_config_lock)
   def MaintainCandidatePool(self):
