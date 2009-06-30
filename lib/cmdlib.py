@@ -751,8 +751,8 @@ class LUVerifyCluster(LogicalUnit):
           else:
             # not candidate and this is not a must-have file
             bad = True
-            feedback_fn("  - ERROR: non master-candidate has old/wrong file"
-                        " '%s'" % file_name)
+            feedback_fn("  - ERROR: file '%s' should not exist on non master"
+                        " candidates (and the file is outdated)" % file_name)
         else:
           # all good, except non-master/non-must have combination
           if not node_is_mc and not must_have_file:
