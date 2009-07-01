@@ -80,7 +80,7 @@ class HttpServerRequestAuthentication(object):
   def GetAuthRealm(self, req):
     """Returns the authentication realm for a request.
 
-    MAY be overriden by a subclass, which then can return different realms for
+    MAY be overridden by a subclass, which then can return different realms for
     different paths. Returning "None" means no authentication is needed for a
     request.
 
@@ -195,7 +195,7 @@ class HttpServerRequestAuthentication(object):
   def Authenticate(self, req, user, password):
     """Checks the password for a user.
 
-    This function MUST be overriden by a subclass.
+    This function MUST be overridden by a subclass.
 
     """
     raise NotImplementedError()

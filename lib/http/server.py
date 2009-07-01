@@ -536,14 +536,14 @@ class HttpServer(http.HttpBase):
   def PreHandleRequest(self, req):
     """Called before handling a request.
 
-    Can be overriden by a subclass.
+    Can be overridden by a subclass.
 
     """
 
   def HandleRequest(self, req):
     """Handles a request.
 
-    Must be overriden by subclass.
+    Must be overridden by subclass.
 
     """
     raise NotImplementedError()

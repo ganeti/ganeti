@@ -136,7 +136,7 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
       directory for the command; the default will be /
   @rtype: L{RunResult}
   @return: RunResult instance
-  @raise erors.ProgrammerError: if we call this when forks are disabled
+  @raise errors.ProgrammerError: if we call this when forks are disabled
 
   """
   if no_fork:
@@ -701,7 +701,7 @@ def IsValidIP(ip):
   @type ip: str
   @param ip: the address to be checked
   @rtype: a regular expression match object
-  @return: a regular epression match object, or None if the
+  @return: a regular expression match object, or None if the
       address is not valid
 
   """
@@ -734,7 +734,7 @@ def BuildShellCmd(template, *args):
 
   This function will check all arguments in the args list so that they
   are valid shell parameters (i.e. they don't contain shell
-  metacharaters). If everything is ok, it will return the result of
+  metacharacters). If everything is ok, it will return the result of
   template % args.
 
   @type template: str
@@ -1063,7 +1063,7 @@ def ShellQuoteArgs(args):
   @type args: list
   @param args: list of arguments to be quoted
   @rtype: str
-  @return: the quoted arguments concatenaned with spaces
+  @return: the quoted arguments concatenated with spaces
 
   """
   return ' '.join([ShellQuote(i) for i in args])
@@ -1080,7 +1080,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   @type port: int
   @param port: the port to connect to
   @type timeout: int
-  @param timeout: the timeout on the connection attemp
+  @param timeout: the timeout on the connection attempt
   @type live_port_needed: boolean
   @param live_port_needed: whether a closed port will cause the
       function to return failure, as if there was a timeout
@@ -1122,7 +1122,7 @@ def OwnIpAddress(address):
   address.
 
   @type address: string
-  @param address: the addres to check
+  @param address: the address to check
   @rtype: bool
   @return: True if we own the address
 
@@ -1218,7 +1218,7 @@ def ReadFile(file_name, size=None):
   @type size: None or int
   @param size: Read at most size bytes
   @rtype: str
-  @return: the (possibly partial) conent of the file
+  @return: the (possibly partial) content of the file
 
   """
   f = open(file_name, "r")
@@ -1378,7 +1378,7 @@ def UniqueSequence(seq):
   Element order is preserved.
 
   @type seq: sequence
-  @param seq: the sequence with the source elementes
+  @param seq: the sequence with the source elements
   @rtype: list
   @return: list of unique elements from seq
 
@@ -1390,7 +1390,7 @@ def UniqueSequence(seq):
 def IsValidMac(mac):
   """Predicate to check if a MAC address is valid.
 
-  Checks wether the supplied MAC address is formally correct, only
+  Checks whether the supplied MAC address is formally correct, only
   accepts colon separated format.
 
   @type mac: str
@@ -1831,7 +1831,7 @@ def SafeEncode(text):
 
   """
   if isinstance(text, unicode):
-    # onli if unicode; if str already, we handle it below
+    # only if unicode; if str already, we handle it below
     text = text.encode('ascii', 'backslashreplace')
   resu = ""
   for char in text:

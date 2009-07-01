@@ -104,7 +104,7 @@ The scripts will be run as follows:
   be left
 
 
-All informations about the cluster is passed using environment
+All information about the cluster is passed using environment
 variables. Different operations will have sligthly different
 environments, but most of the variables are common.
 

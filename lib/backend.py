@@ -308,7 +308,7 @@ def LeaveCluster():
 
 
 def GetNodeInfo(vgname, hypervisor_type):
-  """Gives back a hash with different informations about the node.
+  """Gives back a hash with different information about the node.
 
   @type vgname: C{string}
   @param vgname: the name of the volume group to ask for disk space information
@@ -581,7 +581,7 @@ def GetInstanceList(hypervisor_list):
 
 
 def GetInstanceInfo(instance, hname):
-  """Gives back the informations about an instance as a dictionary.
+  """Gives back the information about an instance as a dictionary.
 
   @type instance: string
   @param instance: the instance name
@@ -746,7 +746,7 @@ def RunRenameInstance(instance, old_name):
 
 
 def _GetVGInfo(vg_name):
-  """Get informations about the volume group.
+  """Get information about the volume group.
 
   @type vg_name: str
   @param vg_name: the volume group which we query
@@ -1032,7 +1032,7 @@ def AcceptInstance(instance, info, target):
     msg = "Failed to accept instance"
     logging.exception(msg)
     return (False, '%s: %s' % (msg, err))
-  return (True, "Accept successfull")
+  return (True, "Accept successful")
 
 
 def FinalizeMigration(instance, info, success):
@@ -1080,7 +1080,7 @@ def MigrateInstance(instance, target, live):
     msg = "Failed to migrate instance"
     logging.exception(msg)
     return (False, "%s: %s" % (msg, err))
-  return (True, "Migration successfull")
+  return (True, "Migration successful")
 
 
 def BlockdevCreate(disk, size, owner, on_primary, info):
@@ -1273,7 +1273,7 @@ def BlockdevAssemble(disk, owner, as_primary):
 def BlockdevShutdown(disk):
   """Shut down a block device.
 
-  First, if the device is assembled (Attach() is successfull), then
+  First, if the device is assembled (Attach() is successful), then
   the device is shutdown. Then the children of the device are
   shutdown.
 
@@ -1391,7 +1391,7 @@ def BlockdevGetmirrorstatus(disks):
 def _RecursiveFindBD(disk):
   """Check if a device is activated.
 
-  If so, return informations about the real device.
+  If so, return information about the real device.
 
   @type disk: L{objects.Disk}
   @param disk: the disk object we need to find
@@ -1411,7 +1411,7 @@ def _RecursiveFindBD(disk):
 def BlockdevFind(disk):
   """Check if a device is activated.
 
-  If it is, return informations about the real device.
+  If it is, return information about the real device.
 
   @type disk: L{objects.Disk}
   @param disk: the disk to find
@@ -2094,7 +2094,7 @@ def RemoveFileStorageDir(file_storage_dir):
   @param file_storage_dir: the directory we should cleanup
   @rtype: tuple (success,)
   @return: tuple of one element, C{success}, denoting
-      whether the operation was successfull
+      whether the operation was successful
 
   """
   file_storage_dir = _TransformFileStorageDir(file_storage_dir)

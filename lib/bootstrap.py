@@ -477,7 +477,7 @@ def GatherMasterVotes(node_list):
 
   @type node_list: list
   @param node_list: the list of nodes to query for master info; the current
-      node wil be removed if it is in the list
+      node will be removed if it is in the list
   @rtype: list
   @return: list of (node, votes)
 

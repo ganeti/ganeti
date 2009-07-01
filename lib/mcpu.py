@@ -158,7 +158,7 @@ class Processor(object):
           self.context.glm.add(level, add_locks, acquired=1, shared=share)
         except errors.LockError:
           raise errors.OpPrereqError(
-            "Coudn't add locks (%s), probably because of a race condition"
+            "Couldn't add locks (%s), probably because of a race condition"
             " with another job, who added them first" % add_locks)
       try:
         try:
@@ -187,7 +187,7 @@ class Processor(object):
     @type run_notifier: callable (no arguments) or None
     @param run_notifier:  this function (if callable) will be called when
                           we are about to call the lu's Exec() method, that
-                          is, after we have aquired all locks
+                          is, after we have acquired all locks
 
     """
     if not isinstance(op, opcodes.OpCode):

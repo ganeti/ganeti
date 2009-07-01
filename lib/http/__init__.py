@@ -744,7 +744,7 @@ class HttpMessageWriter(object):
   def HasMessageBody(self):
     """Checks whether the HTTP message contains a body.
 
-    Can be overriden by subclasses.
+    Can be overridden by subclasses.
 
     """
     return bool(self._msg.body)
@@ -937,7 +937,7 @@ class HttpMessageReader(object):
   def ParseStartLine(self, start_line):
     """Parses the start line of a message.
 
-    Must be overriden by subclass.
+    Must be overridden by subclass.
 
     @type start_line: string
     @param start_line: Start line string

@@ -796,7 +796,7 @@ class ConfigWriter:
                                     self._config_data.instances.keys())
 
   def _UnlockedGetInstanceInfo(self, instance_name):
-    """Returns informations about an instance.
+    """Returns information about an instance.
 
     This function is for internal use, when the config lock is already held.
 
@@ -808,9 +808,9 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceInfo(self, instance_name):
-    """Returns informations about an instance.
+    """Returns information about an instance.
 
-    It takes the information from the configuration file. Other informations of
+    It takes the information from the configuration file. Other information of
     an instance are taken from the live systems.
 
     @param instance_name: name of the instance, e.g.
@@ -1208,7 +1208,7 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetClusterInfo(self):
-    """Returns informations about the cluster
+    """Returns information about the cluster
 
     @rtype: L{objects.Cluster}
     @return: the cluster object

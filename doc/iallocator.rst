@@ -233,7 +233,7 @@ The response message is much more simple than the input one. It is
 also a dict having three keys:
 
 success
-  a boolean value denoting if the allocation was successfull or not
+  a boolean value denoting if the allocation was successful or not
 
 info
   a string with information from the scripts; if the allocation fails,

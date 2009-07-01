@@ -320,7 +320,7 @@ keyval_option = KeyValOption
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
 
-  This function parses the arguements and returns the function which
+  This function parses the arguments and returns the function which
   must be executed together with its (modified) arguments.
 
   @param argv: the command line
@@ -438,10 +438,10 @@ def AskUser(text, choices=None):
     choices = [('y', True, 'Perform the operation'),
                ('n', False, 'Do not perform the operation')]
   if not choices or not isinstance(choices, list):
-    raise errors.ProgrammerError("Invalid choiches argument to AskUser")
+    raise errors.ProgrammerError("Invalid choices argument to AskUser")
   for entry in choices:
     if not isinstance(entry, tuple) or len(entry) < 3 or entry[0] == '?':
-      raise errors.ProgrammerError("Invalid choiches element to AskUser")
+      raise errors.ProgrammerError("Invalid choices element to AskUser")
 
   answer = choices[-1][1]
   new_text = []
@@ -747,7 +747,7 @@ def GenericMain(commands, override=None, aliases=None):
   except (errors.GenericError, luxi.ProtocolError,
           JobSubmittedException), err:
     result, err_msg = FormatError(err)
-    logging.exception("Error durring command processing")
+    logging.exception("Error during command processing")
     ToStderr(err_msg)
 
   return result

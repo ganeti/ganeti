@@ -68,7 +68,7 @@ class LogicalUnit(object):
   def __init__(self, processor, op, context, rpc):
     """Constructor for LogicalUnit.
 
-    This needs to be overriden in derived classes in order to check op
+    This needs to be overridden in derived classes in order to check op
     validity.
 
     """
@@ -116,7 +116,7 @@ class LogicalUnit(object):
     CheckPrereq, doing these separate is better because:
 
       - ExpandNames is left as as purely a lock-related function
-      - CheckPrereq is run after we have aquired locks (and possible
+      - CheckPrereq is run after we have acquired locks (and possible
         waited for them)
 
     The function is allowed to change the self.op attribute so that
@@ -477,7 +477,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param nics: list of tuples (ip, bridge, mac) representing
       the NICs the instance  has
   @type disk_template: string
-  @param disk_template: the distk template of the instance
+  @param disk_template: the disk template of the instance
   @type disks: list
   @param disks: the list of (size, mode) pairs
   @type bep: dict
@@ -592,10 +592,10 @@ def _AdjustCandidatePool(lu):
 
 
 def _CheckInstanceBridgesExist(lu, instance):
-  """Check that the brigdes needed by an instance exist.
+  """Check that the bridges needed by an instance exist.
 
   """
-  # check bridges existance
+  # check bridges existence
   brlist = [nic.bridge for nic in instance.nics]
   result = lu.rpc.call_bridges_exist(instance.primary_node, brlist)
   result.Raise()
@@ -616,7 +616,7 @@ class LUDestroyCluster(NoHooksLU):
 
     This checks whether the cluster is empty.
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     master = self.cfg.GetMasterNode()
@@ -669,7 +669,7 @@ class LUVerifyCluster(LogicalUnit):
     Test list:
 
       - compares ganeti version
-      - checks vg existance and size > 20G
+      - checks vg existence and size > 20G
       - checks config file checksum
       - checks ssh to other nodes
 
@@ -908,7 +908,7 @@ class LUVerifyCluster(LogicalUnit):
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
         if nodeinfo['mfree'] < needed_mem:
-          feedback_fn("  - ERROR: not enough memory on node %s to accomodate"
+          feedback_fn("  - ERROR: not enough memory on node %s to accommodate"
                       " failovers should node %s fail" % (node, prinode))
           bad = True
     return bad
@@ -927,7 +927,7 @@ class LUVerifyCluster(LogicalUnit):
   def BuildHooksEnv(self):
     """Build hooks env.
 
-    Cluster-Verify hooks just rone in the post phase and their failure makes
+    Cluster-Verify hooks just ran in the post phase and their failure makes
     the output be logged in the verify output and the verification to fail.
 
     """
@@ -1194,7 +1194,7 @@ class LUVerifyCluster(LogicalUnit):
     return not bad
 
   def HooksCallBack(self, phase, hooks_results, feedback_fn, lu_result):
-    """Analize the post-hooks' result
+    """Analyze the post-hooks' result
 
     This method analyses the hook result, handles it, and sends some
     nicely-formatted feedback back to the user.
@@ -1414,7 +1414,7 @@ def _RecursiveCheckIfLVMBased(disk):
 
   @type disk: L{objects.Disk}
   @param disk: the disk to check
-  @rtype: booleean
+  @rtype: boolean
   @return: boolean indicating whether a LD_LV dev_type was found or not
 
   """
@@ -1815,7 +1815,7 @@ class LURemoveNode(LogicalUnit):
      - it does not have primary or secondary instances
      - it's not the master
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.node_name))
@@ -2136,7 +2136,7 @@ class LUAddNode(LogicalUnit):
      - it is resolvable
      - its parameters (single/dual homed) matches the cluster
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     node_name = self.op.node_name
@@ -2190,7 +2190,7 @@ class LUAddNode(LogicalUnit):
         raise errors.OpPrereqError("The master has a private ip but the"
                                    " new node doesn't have one")
 
-    # checks reachablity
+    # checks reachability
     if not utils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Node not reachable by ping")
 
@@ -2866,7 +2866,7 @@ class LUStartupInstance(LogicalUnit):
     _CheckNodeOnline(self, instance.primary_node)
 
     bep = self.cfg.GetClusterInfo().FillBE(instance)
-    # check bridges existance
+    # check bridges existence
     _CheckInstanceBridgesExist(self, instance)
 
     remote_info = self.rpc.call_instance_info(instance.primary_node,
@@ -2944,7 +2944,7 @@ class LURebootInstance(LogicalUnit):
 
     _CheckNodeOnline(self, instance.primary_node)
 
-    # check bridges existance
+    # check bridges existence
     _CheckInstanceBridgesExist(self, instance)
 
   def Exec(self, feedback_fn):
@@ -3615,7 +3615,7 @@ class LUFailoverInstance(LogicalUnit):
       self.LogInfo("Not checking memory on the secondary node as"
                    " instance will not be started")
 
-    # check bridge existance
+    # check bridge existence
     brlist = [nic.bridge for nic in instance.nics]
     result = self.rpc.call_bridges_exist(target_node, brlist)
     result.Raise()
@@ -3753,7 +3753,7 @@ class LUMigrateInstance(LogicalUnit):
                          instance.name, i_be[constants.BE_MEMORY],
                          instance.hypervisor)
 
-    # check bridge existance
+    # check bridge existence
     brlist = [nic.bridge for nic in instance.nics]
     result = self.rpc.call_bridges_exist(target_node, brlist)
     if result.failed or not result.data:
@@ -6289,7 +6289,7 @@ class LUExportInstance(LogicalUnit):
     # remove it from its current node. In the future we could fix this by:
     #  - making a tasklet to search (share-lock all), then create the new one,
     #    then one to remove, after
-    #  - removing the removal operation altoghether
+    #  - removing the removal operation altogether
     self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def DeclareLocks(self, level):
