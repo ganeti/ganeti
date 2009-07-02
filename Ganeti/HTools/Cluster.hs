@@ -36,6 +36,7 @@ module Ganeti.HTools.Cluster
     , Removal
     , Score
     , IMove(..)
+    , CStats(..)
     -- * Generic functions
     , totalResources
     -- * First phase functions
@@ -102,6 +103,16 @@ data IMove = Failover                -- ^ Failover the instance (f)
 data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show)
 
+data CStats = CStats { cs_fmem :: Int -- ^ Cluster free mem
+                     , cs_fdsk :: Int -- ^ Cluster free disk
+                     , cs_amem :: Int -- ^ Cluster allocatable mem
+                     , cs_adsk :: Int -- ^ Cluster allocatable disk
+                     , cs_acpu :: Int -- ^ Cluster allocatable cpus
+                     , cs_mmem :: Int -- ^ Max node allocatable mem
+                     , cs_mdsk :: Int -- ^ Max node allocatable disk
+                     , cs_mcpu :: Int -- ^ Max node allocatable cpu
+                     }
+
 -- * Utility functions
 
 -- | Returns the delta of a solution or -1 for Nothing.
@@ -143,19 +154,38 @@ computeBadItems nl il =
   in
     (bad_nodes, bad_instances)
 
+emptyCStats :: CStats
+emptyCStats = CStats { cs_fmem = 0
+                     , cs_fdsk = 0
+                     , cs_amem = 0
+                     , cs_adsk = 0
+                     , cs_acpu = 0
+                     , cs_mmem = 0
+                     , cs_mdsk = 0
+                     , cs_mcpu = 0
+                     }
+
+updateCStats :: CStats -> Node.Node -> CStats
+updateCStats cs node =
+    let CStats { cs_fmem = x_fmem, cs_fdsk = x_fdsk,
+                 cs_amem = x_amem, cs_acpu = x_acpu, cs_adsk = x_adsk,
+                 cs_mmem = x_mmem, cs_mdsk = x_mdsk, cs_mcpu = x_mcpu }
+            = cs
+        inc_amem = (Node.f_mem node) - (Node.r_mem node)
+        inc_amem' = if inc_amem > 0 then inc_amem else 0
+    in CStats { cs_fmem = x_fmem + (Node.f_mem node)
+              , cs_fdsk = x_fdsk + (Node.f_dsk node)
+              , cs_amem = x_amem + inc_amem'
+              , cs_adsk = x_adsk
+              , cs_acpu = x_acpu
+              , cs_mmem = max x_mmem inc_amem'
+              , cs_mdsk = max x_mdsk (Node.f_dsk node)
+              , cs_mcpu = x_mcpu
+              }
+
 -- | Compute the total free disk and memory in the cluster.
-totalResources :: Node.List -> (Int, Int, Int, Int, Int)
-totalResources nl =
-    foldl'
-    (\ (mem, dsk, amem, mmem, mdsk) node ->
-         let inc_amem = (Node.f_mem node) - (Node.r_mem node)
-         in (mem + (Node.f_mem node),
-             dsk + (Node.f_dsk node),
-             amem + (if inc_amem > 0 then inc_amem else 0),
-             max mmem inc_amem,
-             max mdsk (Node.f_dsk node)
-            )
-    ) (0, 0, 0, 0, 0) (Container.elems nl)
+totalResources :: Node.List -> CStats
+totalResources = foldl' updateCStats emptyCStats . Container.elems
 
 -- | Compute the mem and disk covariance.
 compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double, Double)

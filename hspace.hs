@@ -187,13 +187,13 @@ iterateDepth nl il newinst nreq ixes =
                                         fromJust sols''
                      in iterateDepth xnl il newinst nreq (xi:ixes)
 
-printStats :: String -> (Int, Int, Int, Int, Int) -> IO ()
-printStats kind (mem, dsk, amem, mmem, mdsk) = do
-  printf "%s free RAM: %d\n" kind mem
-  printf "%s allocatable RAM: %d\n" kind amem
-  printf "%s free disk: %d\n" kind dsk
-  printf "%s max node allocatable RAM: %d\n" kind mmem
-  printf "%s max node allocatable disk: %d\n" kind mdsk
+printStats :: String -> Cluster.CStats -> IO ()
+printStats kind cs = do
+  printf "%s free RAM: %d\n" kind (Cluster.cs_fmem cs)
+  printf "%s allocatable RAM: %d\n" kind (Cluster.cs_amem cs)
+  printf "%s free disk: %d\n" kind (Cluster.cs_fdsk cs)
+  printf "%s max node allocatable RAM: %d\n" kind (Cluster.cs_mmem cs)
+  printf "%s max node allocatable disk: %d\n" kind (Cluster.cs_mdsk cs)
 
 -- | Main function.
 main :: IO ()

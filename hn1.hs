@@ -228,10 +228,12 @@ main = do
 
   when (optShowNodes opts) $
        do
-         let (orig_mem, orig_disk,  _, _, _) = Cluster.totalResources nl
-             (final_mem, final_disk, _, _, _) = Cluster.totalResources ns
+         let ini_cs = Cluster.totalResources nl
+             fin_cs = Cluster.totalResources ns
          putStrLn ""
          putStrLn "Final cluster status:"
          putStrLn $ Cluster.printNodes ns
-         printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
-         printf "Final:    mem=%d disk=%d\n" final_mem final_disk
+         printf "Original: mem=%d disk=%d\n"
+                    (Cluster.cs_fmem ini_cs) (Cluster.cs_fdsk ini_cs)
+         printf "Final:    mem=%d disk=%d\n"
+                    (Cluster.cs_fmem fin_cs) (Cluster.cs_fdsk fin_cs)
