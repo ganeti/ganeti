@@ -195,6 +195,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
 
   def send_message(self, msg):
     #print "sending", msg
+    # TODO: sendall is not guaranteed to send everything
     self.request.sendall(msg + self.EOM)
 
 
