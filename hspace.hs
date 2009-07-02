@@ -187,6 +187,13 @@ iterateDepth nl il newinst nreq ixes =
                                         fromJust sols''
                      in iterateDepth xnl il newinst nreq (xi:ixes)
 
+printStats :: String -> (Int, Int, Int, Int, Int) -> IO ()
+printStats kind (mem, dsk, amem, mmem, mdsk) = do
+  printf "%s free RAM: %d\n" kind mem
+  printf "%s allocatable RAM: %d\n" kind amem
+  printf "%s free disk: %d\n" kind dsk
+  printf "%s max node allocatable RAM: %d\n" kind mmem
+  printf "%s max node allocatable disk: %d\n" kind mdsk
 
 -- | Main function.
 main :: IO ()
@@ -243,8 +250,7 @@ main = do
          putStrLn $ Cluster.printNodes nl
 
   let ini_cv = Cluster.compCV nl
-      (ini_mem, ini_disk, ini_amem, ini_mmem, ini_mdsk) =
-          Cluster.totalResources nl
+      ini_stats = Cluster.totalResources nl
 
   (if verbose > 2 then
        printf "Initial coefficients: overall %.8f, %s\n"
@@ -252,9 +258,7 @@ main = do
    else
        printf "Initial score: %.8f\n" ini_cv)
   printf "Initial instances: %d\n" num_instances
-  printf "Initial free RAM: %d\n" ini_mem
-  printf "Initial allocatable RAM: %d\n" ini_amem
-  printf "Initial free disk: %d\n" ini_disk
+  printStats "Initial" ini_stats
 
   let nmlen = Container.maxNameLen nl
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
@@ -265,14 +269,11 @@ main = do
       fin_instances = num_instances + allocs
       fin_ixes = reverse ixes
       ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
-      (fin_mem, fin_disk, fin_amem, fin_mmem, fin_mdsk) =
-          Cluster.totalResources fin_nl
+      fin_stats = Cluster.totalResources fin_nl
 
   printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
   printf "Final instances: %d\n" (num_instances + allocs)
-  printf "Final free RAM: %d\n" fin_mem
-  printf "Final allocatable RAM: %d\n" fin_amem
-  printf "Final free disk: %d\n" fin_disk
+  printStats "Final" fin_stats
   printf "Usage: %.5f\n" (((fromIntegral num_instances)::Double) /
                           (fromIntegral fin_instances))
   printf "Allocations: %d\n" allocs
