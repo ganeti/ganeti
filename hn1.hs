@@ -228,8 +228,8 @@ main = do
 
   when (optShowNodes opts) $
        do
-         let (orig_mem, orig_disk) = Cluster.totalResources nl
-             (final_mem, final_disk) = Cluster.totalResources ns
+         let (orig_mem, orig_disk,  _, _, _) = Cluster.totalResources nl
+             (final_mem, final_disk, _, _, _) = Cluster.totalResources ns
          putStrLn ""
          putStrLn "Final cluster status:"
          putStrLn $ Cluster.printNodes ns

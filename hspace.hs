@@ -243,7 +243,8 @@ main = do
          putStrLn $ Cluster.printNodes nl
 
   let ini_cv = Cluster.compCV nl
-      (orig_mem, orig_disk) = Cluster.totalResources nl
+      (ini_mem, ini_disk, ini_amem, ini_mmem, ini_mdsk) =
+          Cluster.totalResources nl
 
   (if verbose > 2 then
        printf "Initial coefficients: overall %.8f, %s\n"
@@ -251,8 +252,9 @@ main = do
    else
        printf "Initial score: %.8f\n" ini_cv)
   printf "Initial instances: %d\n" num_instances
-  printf "Initial free RAM: %d\n" orig_mem
-  printf "Initial free disk: %d\n" orig_disk
+  printf "Initial free RAM: %d\n" ini_mem
+  printf "Initial allocatable RAM: %d\n" ini_amem
+  printf "Initial free disk: %d\n" ini_disk
 
   let nmlen = Container.maxNameLen nl
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
@@ -263,12 +265,14 @@ main = do
       fin_instances = num_instances + allocs
       fin_ixes = reverse ixes
       ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
-      (final_mem, final_disk) = Cluster.totalResources fin_nl
+      (fin_mem, fin_disk, fin_amem, fin_mmem, fin_mdsk) =
+          Cluster.totalResources fin_nl
 
   printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
   printf "Final instances: %d\n" (num_instances + allocs)
-  printf "Final free RAM: %d\n" final_mem
-  printf "Final free disk: %d\n" final_disk
+  printf "Final free RAM: %d\n" fin_mem
+  printf "Final allocatable RAM: %d\n" fin_amem
+  printf "Final free disk: %d\n" fin_disk
   printf "Usage: %.5f\n" (((fromIntegral num_instances)::Double) /
                           (fromIntegral fin_instances))
   printf "Allocations: %d\n" allocs
@@ -283,12 +287,6 @@ main = do
 
   when (optShowNodes opts) $
        do
-         let (orig_mem, orig_disk) = Cluster.totalResources nl
-             (final_mem, final_disk) = Cluster.totalResources fin_nl
          putStrLn ""
          putStrLn "Final cluster status:"
          putStrLn $ Cluster.printNodes fin_nl
-         when (verbose > 3) $
-              do
-                printf "Original: mem=%d disk=%d\n" orig_mem orig_disk
-                printf "Final:    mem=%d disk=%d\n" final_mem final_disk

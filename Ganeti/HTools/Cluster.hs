@@ -144,12 +144,18 @@ computeBadItems nl il =
     (bad_nodes, bad_instances)
 
 -- | Compute the total free disk and memory in the cluster.
-totalResources :: Node.List -> (Int, Int)
+totalResources :: Node.List -> (Int, Int, Int, Int, Int)
 totalResources nl =
     foldl'
-    (\ (mem, dsk) node -> (mem + (Node.f_mem node),
-                           dsk + (Node.f_dsk node)))
-    (0, 0) (Container.elems nl)
+    (\ (mem, dsk, amem, mmem, mdsk) node ->
+         let inc_amem = (Node.f_mem node) - (Node.r_mem node)
+         in (mem + (Node.f_mem node),
+             dsk + (Node.f_dsk node),
+             amem + (if inc_amem > 0 then inc_amem else 0),
+             max mmem inc_amem,
+             max mdsk (Node.f_dsk node)
+            )
+    ) (0, 0, 0, 0, 0) (Container.elems nl)
 
 -- | Compute the mem and disk covariance.
 compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double, Double)
