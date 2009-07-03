@@ -148,6 +148,7 @@ EXTRA_DIST = \
 	$(MAINTAINERCLEANFILES) \
 	NEWS \
 	DEVNOTES \
+	pylintrc \
 	autotools/docbook-wrapper \
 	devel/upload.in \
 	$(docrst) \
