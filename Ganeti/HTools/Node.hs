@@ -30,7 +30,7 @@ module Ganeti.HTools.Node
            t_dsk, f_dsk,
            t_cpu, u_cpu,
            p_mem, p_dsk, p_rem, p_cpu,
-           m_dsk, m_cpu,
+           m_dsk, m_cpu, lo_dsk, hi_cpu,
            plist, slist, offline)
     , List
     -- * Constructor
@@ -93,6 +93,10 @@ data Node = Node { name  :: String -- ^ The node name
                  , p_cpu :: Double -- ^ Ratio of virtual to physical CPUs
                  , m_dsk :: Double -- ^ Minimum free disk ratio
                  , m_cpu :: Double -- ^ Max ratio of virt-to-phys CPUs
+                 , lo_dsk :: Int   -- ^ Autocomputed from m_dsk low disk
+                                   -- threshold
+                 , hi_cpu :: Int   -- ^ Autocomputed from m_cpu high cpu
+                                   -- threshold
                  , offline :: Bool -- ^ Whether the node should not be used
                                    -- for allocations and skipped from
                                    -- score computations
@@ -117,6 +121,10 @@ noSecondary = -1
 -- | No limit value
 noLimit :: Double
 noLimit = -1
+
+-- | No limit int value
+noLimitInt :: Int
+noLimitInt = -1
 
 -- * Initialization functions
 
@@ -151,7 +159,9 @@ create name_init mem_t_init mem_n_init mem_f_init
       offline = offline_init,
       x_mem = 0,
       m_dsk = noLimit,
-      m_cpu = noLimit
+      m_cpu = noLimit,
+      lo_dsk = noLimitInt,
+      hi_cpu = noLimitInt
     }
 
 -- | Changes the index.
@@ -176,11 +186,14 @@ setXmem t val = t { x_mem = val }
 
 -- | Sets the max disk usage ratio
 setMdsk :: Node -> Double -> Node
-setMdsk t val = t { m_dsk = val }
+setMdsk t val = t { m_dsk = val,
+                    lo_dsk = if val == noLimit
+                             then noLimitInt
+                             else floor (val * (t_dsk t)) }
 
 -- | Sets the max cpu usage ratio
 setMcpu :: Node -> Double -> Node
-setMcpu t val = t { m_cpu = val }
+setMcpu t val = t { m_cpu = val, hi_cpu = floor (val * (t_cpu t)) }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
