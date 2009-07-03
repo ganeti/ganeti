@@ -27,7 +27,6 @@ the command line scripts.
 """
 
 
-import sys
 import os
 import time
 import subprocess
@@ -59,7 +58,6 @@ from ganeti import constants
 _locksheld = []
 _re_shell_unquoted = re.compile('^[-.,=:/_+@A-Za-z0-9]+$')
 
-debug = False
 debug_locks = False
 
 #: when set to True, L{RunCmd} is disabled
@@ -687,7 +685,7 @@ def TryConvert(fn, val):
   """
   try:
     nv = fn(val)
-  except (ValueError, TypeError), err:
+  except (ValueError, TypeError):
     nv = val
   return nv
 
@@ -1097,7 +1095,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   if source is not None:
     try:
       sock.bind((source, 0))
-    except socket.error, (errcode, errstring):
+    except socket.error, (errcode, _):
       if errcode == errno.EADDRNOTAVAIL:
         success = False
 
@@ -1360,14 +1358,14 @@ def FirstFree(seq, base=0):
 
 def all(seq, pred=bool):
   "Returns True if pred(x) is True for every element in the iterable"
-  for elem in itertools.ifilterfalse(pred, seq):
+  for _ in itertools.ifilterfalse(pred, seq):
     return False
   return True
 
 
 def any(seq, pred=bool):
   "Returns True if pred(x) is True for at least one element in the iterable"
-  for elem in itertools.ifilter(pred, seq):
+  for _ in itertools.ifilter(pred, seq):
     return True
   return False
 
@@ -1552,7 +1550,6 @@ def RemovePidFile(name):
   @param name: the daemon name used to derive the pidfile name
 
   """
-  pid = os.getpid()
   pidfilename = DaemonPidFileName(name)
   # TODO: we could check here that the file contains our pid
   try:

@@ -504,10 +504,10 @@ class Disk(ConfigObject):
     """Checks that this disk is correctly configured.
 
     """
-    errors = []
+    all_errors = []
     if self.mode not in constants.DISK_ACCESS_SET:
-      errors.append("Disk access mode '%s' is invalid" % (self.mode, ))
-    return errors
+      all_errors.append("Disk access mode '%s' is invalid" % (self.mode, ))
+    return all_errors
 
 
 class Instance(TaggableObject):

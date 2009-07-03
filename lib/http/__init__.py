@@ -367,15 +367,12 @@ def SocketOperation(sock, op, arg1, timeout):
   # TODO: event_poll/event_check/override
   if op in (SOCKOP_SEND, SOCKOP_HANDSHAKE):
     event_poll = select.POLLOUT
-    event_check = select.POLLOUT
 
   elif op == SOCKOP_RECV:
     event_poll = select.POLLIN
-    event_check = select.POLLIN | select.POLLPRI
 
   elif op == SOCKOP_SHUTDOWN:
     event_poll = None
-    event_check = None
 
     # The timeout is only used when OpenSSL requests polling for a condition.
     # It is not advisable to have no timeout for shutdown.

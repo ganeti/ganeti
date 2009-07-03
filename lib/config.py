@@ -474,8 +474,8 @@ class ConfigWriter:
     def _AppendUsedPorts(instance_name, disk, used):
       duplicates = []
       if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
-        nodeA, nodeB, dummy, minorA, minorB = disk.logical_id[:5]
-        for node, port in ((nodeA, minorA), (nodeB, minorB)):
+        node_a, node_b, _, minor_a, minor_b = disk.logical_id[:5]
+        for node, port in ((node_a, minor_a), (node_b, minor_b)):
           assert node in used, ("Node '%s' of instance '%s' not found"
                                 " in node list" % (node, instance_name))
           if port in used[node]:

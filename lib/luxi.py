@@ -284,7 +284,7 @@ class Client(object):
       old_transp = self.transport
       self.transport = None
       old_transp.Close()
-    except Exception, err:
+    except Exception:
       pass
 
   def CallMethod(self, method, args):

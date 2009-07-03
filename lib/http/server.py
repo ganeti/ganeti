@@ -31,9 +31,6 @@ import socket
 import time
 import signal
 
-from ganeti import constants
-from ganeti import serializer
-from ganeti import utils
 from ganeti import http
 
 
@@ -498,7 +495,7 @@ class HttpServer(http.HttpBase):
           # As soon as too many children run, we'll not respond to new
           # requests. The real solution would be to add a timeout for children
           # and killing them after some time.
-          pid, status = os.waitpid(0, 0)
+          pid, _ = os.waitpid(0, 0)
         except os.error:
           pid = None
         if pid and pid in self._children:

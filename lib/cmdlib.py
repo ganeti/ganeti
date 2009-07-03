@@ -26,12 +26,10 @@
 import os
 import os.path
 import time
-import tempfile
 import re
 import platform
 import logging
 import copy
-import random
 
 from ganeti import ssh
 from ganeti import utils
@@ -40,7 +38,6 @@ from ganeti import hypervisor
 from ganeti import locking
 from ganeti import constants
 from ganeti import objects
-from ganeti import opcodes
 from ganeti import serializer
 from ganeti import ssconf
 
@@ -454,7 +451,7 @@ def _CheckNodeNotDrained(lu, node):
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           memory, vcpus, nics, disk_template, disks,
-                          bep, hvp, hypervisor):
+                          bep, hvp, hypervisor_name):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -484,8 +481,8 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param bep: the backend parameters for the instance
   @type hvp: dict
   @param hvp: the hypervisor parameters for the instance
-  @type hypervisor: string
-  @param hypervisor: the hypervisor for the instance
+  @type hypervisor_name: string
+  @param hypervisor_name: the hypervisor for the instance
   @rtype: dict
   @return: the hook environment for this instance
 
@@ -504,7 +501,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
-    "INSTANCE_HYPERVISOR": hypervisor,
+    "INSTANCE_HYPERVISOR": hypervisor_name,
   }
 
   if nics:
@@ -1293,7 +1290,6 @@ class LUVerifyDisks(NoHooksLU):
 
     node_lvs = self.rpc.call_volume_list(nodes, vg_name)
 
-    to_act = set()
     for node in nodes:
       # node_volume
       lvs = node_lvs[node]
@@ -2513,8 +2509,8 @@ class LUQueryClusterInfo(NoHooksLU):
       "master": cluster.master_node,
       "default_hypervisor": cluster.default_hypervisor,
       "enabled_hypervisors": cluster.enabled_hypervisors,
-      "hvparams": dict([(hypervisor, cluster.hvparams[hypervisor])
-                        for hypervisor in cluster.enabled_hypervisors]),
+      "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor])
+                        for hypervisor_name in cluster.enabled_hypervisors]),
       "beparams": cluster.beparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "default_bridge": cluster.default_bridge,
@@ -2677,7 +2673,7 @@ def _StartInstanceDisks(lu, instance, force):
   """Start the disks of an instance.
 
   """
-  disks_ok, dummy = _AssembleInstanceDisks(lu, instance,
+  disks_ok, _ = _AssembleInstanceDisks(lu, instance,
                                            ignore_secondaries=force)
   if not disks_ok:
     _ShutdownInstanceDisks(lu, instance)
@@ -3675,7 +3671,7 @@ class LUFailoverInstance(LogicalUnit):
       logging.info("Starting instance %s on node %s",
                    instance.name, target_node)
 
-      disks_ok, dummy = _AssembleInstanceDisks(self, instance,
+      disks_ok, _ = _AssembleInstanceDisks(self, instance,
                                                ignore_secondaries=True)
       if not disks_ok:
         _ShutdownInstanceDisks(self, instance)
@@ -5431,7 +5427,6 @@ class LUReplaceDisks(LogicalUnit):
     logging.debug("Allocated minors %s" % (minors,))
     self.proc.LogStep(4, steps_total, "changing drbd configuration")
     for idx, (dev, new_minor) in enumerate(zip(instance.disks, minors)):
-      size = dev.size
       info("activating a new drbd on %s for disk/%d" % (new_node, idx))
       # create new devices on new_node; note that we create two IDs:
       # one without port, so the drbd will be activated without
@@ -5966,7 +5961,7 @@ class LUSetInstanceParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
-    force = self.force = self.op.force
+    self.force = self.op.force
 
     # checking the new params on the primary/secondary nodes
 
@@ -6942,7 +6937,6 @@ class IAllocator(object):
     """
     if call_fn is None:
       call_fn = self.lu.rpc.call_iallocator_runner
-    data = self.in_text
 
     result = call_fn(self.lu.cfg.GetMasterNode(), name, self.in_text)
     result.Raise()

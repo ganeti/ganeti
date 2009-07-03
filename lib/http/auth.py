@@ -23,12 +23,10 @@
 """
 
 import logging
-import time
 import re
 import base64
 import binascii
 
-from ganeti import constants
 from ganeti import utils
 from ganeti import http
 

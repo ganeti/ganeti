@@ -31,7 +31,6 @@
 # R0904: Too many public methods
 
 import os
-import socket
 import logging
 import zlib
 import base64

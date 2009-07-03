@@ -141,7 +141,7 @@ def GetMasterInfo():
     master_netdev = cfg.GetMasterNetdev()
     master_ip = cfg.GetMasterIP()
     master_node = cfg.GetMasterNode()
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError:
     logging.exception("Cluster configuration incomplete")
     return (None, None, None)
   return (master_netdev, master_ip, master_node)
@@ -573,7 +573,7 @@ def GetInstanceList(hypervisor_list):
     try:
       names = hypervisor.GetHypervisor(hname).ListInstances()
       results.extend(names)
-    except errors.HypervisorError, err:
+    except errors.HypervisorError:
       logging.exception("Error enumerating instances for hypevisor %s", hname)
       raise
 
@@ -918,7 +918,7 @@ def InstanceShutdown(instance):
   # test every 10secs for 2min
 
   time.sleep(1)
-  for dummy in range(11):
+  for _ in range(11):
     if instance.name not in GetInstanceList([hv_name]):
       break
     time.sleep(10)
@@ -2024,7 +2024,7 @@ def BlockdevRename(devlist):
         # but we don't have the owner here - maybe parse from existing
         # cache? for now, we only lose lvm data when we rename, which
         # is less critical than DRBD or MD
-    except errors.BlockDeviceError, err:
+    except errors.BlockDeviceError:
       logging.exception("Can't rename device '%s' to '%s'", dev, unique_id)
       result = False
   return result
@@ -2109,7 +2109,7 @@ def RemoveFileStorageDir(file_storage_dir):
       # deletes dir only if empty, otherwise we want to return False
       try:
         os.rmdir(file_storage_dir)
-      except OSError, err:
+      except OSError:
         logging.exception("Cannot remove file storage directory '%s'",
                           file_storage_dir)
         result = False,
@@ -2138,7 +2138,7 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
       if os.path.isdir(old_file_storage_dir):
         try:
           os.rename(old_file_storage_dir, new_file_storage_dir)
-        except OSError, err:
+        except OSError:
           logging.exception("Cannot rename '%s' to '%s'",
                             old_file_storage_dir, new_file_storage_dir)
           result =  False,
@@ -2544,7 +2544,7 @@ class HooksRunner(object):
     dir_name = "%s/%s" % (self._BASE_DIR, subdir)
     try:
       dir_contents = utils.ListVisibleFiles(dir_name)
-    except OSError, err:
+    except OSError:
       # FIXME: must log output in case of failures
       return rr
 
@@ -2667,7 +2667,7 @@ class DevCacheManager(object):
     fdata = "%s %s %s\n" % (str(owner), state, iv_name)
     try:
       utils.WriteFile(fpath, data=fdata)
-    except EnvironmentError, err:
+    except EnvironmentError:
       logging.exception("Can't update bdev cache for %s", dev_path)
 
   @classmethod
@@ -2689,5 +2689,5 @@ class DevCacheManager(object):
     fpath = cls._ConvertPath(dev_path)
     try:
       utils.RemoveFile(fpath)
-    except EnvironmentError, err:
+    except EnvironmentError:
       logging.exception("Can't update bdev cache for %s", dev_path)
