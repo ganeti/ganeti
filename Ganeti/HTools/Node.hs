@@ -52,6 +52,8 @@ module Ganeti.HTools.Node
     , removeSec
     , addPri
     , addSec
+    -- * Stats
+    , availDisk
     -- * Formatting
     , list
     -- * Misc stuff
@@ -338,6 +340,20 @@ addSec t inst pdx =
                      peers = new_peers, failN1 = new_failn1,
                      r_mem = new_rmem, p_dsk = new_dp,
                      p_rem = new_prem}
+
+-- * Stats functions
+
+-- | Computes the amount of available disk on a given node
+availDisk :: Node -> Int
+availDisk t =
+    let _f = f_dsk t
+        _l = lo_dsk t
+    in
+      if _l == noLimitInt
+      then _f
+      else if _f < _l
+           then 0
+           else _f - _l
 
 -- * Display functions
 
