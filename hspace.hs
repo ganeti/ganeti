@@ -192,6 +192,7 @@ printStats kind cs = do
   printf "%s free RAM: %d\n" kind (Cluster.cs_fmem cs)
   printf "%s allocatable RAM: %d\n" kind (Cluster.cs_amem cs)
   printf "%s free disk: %d\n" kind (Cluster.cs_fdsk cs)
+  printf "%s allocatable disk: %d\n" kind (Cluster.cs_adsk cs)
   printf "%s max node allocatable RAM: %d\n" kind (Cluster.cs_mmem cs)
   printf "%s max node allocatable disk: %d\n" kind (Cluster.cs_mdsk cs)
 

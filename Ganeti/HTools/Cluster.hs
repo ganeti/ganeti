@@ -173,13 +173,14 @@ updateCStats cs node =
             = cs
         inc_amem = (Node.f_mem node) - (Node.r_mem node)
         inc_amem' = if inc_amem > 0 then inc_amem else 0
+        inc_adsk = Node.availDisk node
     in CStats { cs_fmem = x_fmem + (Node.f_mem node)
               , cs_fdsk = x_fdsk + (Node.f_dsk node)
               , cs_amem = x_amem + inc_amem'
-              , cs_adsk = x_adsk
+              , cs_adsk = x_adsk + inc_adsk
               , cs_acpu = x_acpu
               , cs_mmem = max x_mmem inc_amem'
-              , cs_mdsk = max x_mdsk (Node.f_dsk node)
+              , cs_mdsk = max x_mdsk inc_adsk
               , cs_mcpu = x_mcpu
               }
 
