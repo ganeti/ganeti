@@ -1,4 +1,4 @@
-HPROGS = hbal hn1 hscan hail hspace
+HPROGS = hbal hscan hail hspace
 HALLPROGS = $(HPROGS) test
 HSRCS := $(wildcard Ganeti/HTools/*.hs)
 HDDIR = apidoc

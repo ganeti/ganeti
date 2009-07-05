@@ -37,18 +37,6 @@ becomes better. We stop when no further move can improve the score.
 
 For algorithm details and usage, see the man page hbal(1).
 
-Cluster N+1 solver
-~~~~~~~~~~~~~~~~~~
-
-This program runs a very simple brute force algorithm over the instance
-placement space in order to determine the shortest number of replace-disks
-needed to fix the cluster. Note this means we won't get a balanced cluster,
-just one that passes N+1 checks.
-
-For algorithm details and usage, see the man page hn1(1).
-
-.. note:: This program is deprecated, hbal should be used instead.
-
 IAllocator plugin
 ~~~~~~~~~~~~~~~~~
 
@@ -72,12 +60,12 @@ checks). For more details, see the man page hspace(1).
 Integration with Ganeti
 -----------------------
 
-The ``hbal``, ``hspace`` and ``hn1`` programs can either get their
-input from text files, or online from a cluster via RAPI. For online
-collection via RAPI, the "-m" argument to both hn1 and hbal should
-specify the cluster or master node name. ``hail`` uses the standard
-iallocator API and thus doesn't need any special setup (just needs to
-be installed in the right directory).
+The ``hbal`` and ``hspace`` programs can either get their input from
+text files, or online from a cluster via RAPI. For online collection
+via RAPI, the "-m" argument to both hbal and hspace should specify the
+cluster or master node name. ``hail`` uses the standard iallocator API
+and thus doesn't need any special setup (just needs to be installed in
+the right directory).
 
 For generating the text files, a separate tool (``hscan``) is provided
 to automate their gathering if RAPI is available, which is better

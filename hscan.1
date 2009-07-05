@@ -15,14 +15,14 @@ hscan \- Scan clusters via RAPI and save node/instance data
 .SH DESCRIPTION
 hscan is a tool for scanning clusters via RAPI and saving their data
 in the input format used by
-.BR hbal "(1) and " hn1 "(1)."
+.BR hbal "(1) and " hspace "(1)."
 It will also show a one-line score for each cluster scanned or, if
 desired, the cluster state as show by the \fB-p\fR option to the other
 tools.
 
 For each cluster, two files named \fIcluster\fB.instances\fR and
 \fIcluster\fB.nodes\fR will be generated holding the instance and node
-data. These files can then be used in \fBhbal\fR(1) or \fBhn1\fR(1)
+data. These files can then be used in \fBhbal\fR(1) or \fBhspace\fR(1)
 via the \fB-i\fR and \fB-n\fR options. In case the cluster name
 contains slashes (as it can happen when the cluster is a
 fully-specified URL), these will be replaced with underscores.
@@ -117,7 +117,8 @@ cluster1     2     2     0     0   1008    652    255    253 0.24404762
 .in
 
 .SH SEE ALSO
-.BR hbal "(1), " hn1 "(1), " ganeti "(7), " gnt-instance "(8), " gnt-node "(8)"
+.BR hbal "(1), " hspace "(1), " hail "(1), "
+.BR ganeti "(7), " gnt-instance "(8), " gnt-node "(8)"
 
 .SH "COPYRIGHT"
 .PP
