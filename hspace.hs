@@ -27,7 +27,6 @@ module Main (main) where
 
 import Data.List
 import Data.Function
-import Data.Maybe (isJust, fromJust, isNothing)
 import Monad
 import System
 import System.IO
@@ -43,6 +42,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.CLI as CLI
 
 import Ganeti.HTools.Utils
+import Ganeti.HTools.Types
 
 -- | Command line options structure.
 data Options = Options
@@ -148,21 +148,25 @@ options =
     ]
 
 filterFails :: Cluster.AllocSolution
-            -> Maybe [(Node.List, Instance.Instance, [Node.Node])]
+            -> OpResult [(Node.List, Instance.Instance, [Node.Node])]
 filterFails sols =
-    if null sols then Nothing -- No nodes onto which to allocate at all
-    else let sols' = filter (isJust . fst3) sols
-         in if null sols' then
-                Nothing -- No valid allocation solutions
-            else
-                return $ map (\(x, y, z) -> (fromJust x, y, z)) sols'
+    let sols' = concat . map (\ (onl, i, nn) ->
+                                  case onl of
+                                    OpFail _ -> []
+                                    OpGood gnl -> [(gnl, i, nn)]
+                             ) $ sols
+    in
+      if null sols' then
+          OpFail FailN1
+      else
+          return sols'
 
-processResults :: (Monad m) => [(Node.List, Instance.Instance, [Node.Node])]
-               -> m (Node.List, Instance.Instance, [Node.Node])
+processResults :: [(Node.List, Instance.Instance, [Node.Node])]
+               -> (Node.List, Instance.Instance, [Node.Node])
 processResults sols =
     let sols' = map (\e@(nl', _, _) -> (Cluster.compCV  nl', e)) sols
         sols'' = sortBy (compare `on` fst) sols'
-    in return $ snd $ head sols''
+    in snd $ head sols''
 
 iterateDepth :: Node.List
              -> Instance.List
@@ -176,16 +180,18 @@ iterateDepth nl il newinst nreq ixes =
           newidx = (length $ Container.elems il) + depth
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
           sols = (Cluster.tryAlloc nl il newi2 nreq)::
-                 Maybe Cluster.AllocSolution
+                 OpResult Cluster.AllocSolution
           orig = (nl, ixes)
-      in
-        if isNothing sols then orig
-        else let sols' = fromJust sols
-                 sols'' = filterFails sols'
-             in if isNothing sols'' then orig
-                else let (xnl, xi, _) = fromJust $ processResults $
-                                        fromJust sols''
-                     in iterateDepth xnl il newinst nreq (xi:ixes)
+      in case sols of
+           OpFail _ -> orig
+           OpGood sols' ->
+               let
+                   sols'' = filterFails sols'
+               in case sols'' of
+                    OpFail _ -> orig
+                    OpGood sols''' ->
+                        let (xnl, xi, _) = processResults sols'''
+                        in iterateDepth xnl il newinst nreq (xi:ixes)
 
 printStats :: String -> Cluster.CStats -> IO ()
 printStats kind cs = do

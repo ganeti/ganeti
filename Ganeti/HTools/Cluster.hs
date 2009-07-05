@@ -57,7 +57,6 @@ module Ganeti.HTools.Cluster
     ) where
 
 import Data.List
-import Data.Maybe (isNothing, fromJust)
 import Text.Printf (printf)
 import Data.Function
 import Control.Monad
@@ -77,7 +76,7 @@ type Score = Double
 type Placement = (Idx, Ndx, Ndx, Score)
 
 -- | Allocation\/relocation solution.
-type AllocSolution = [(Maybe Node.List, Instance.Instance, [Node.Node])]
+type AllocSolution = [(OpResult Node.List, Instance.Instance, [Node.Node])]
 
 -- | An instance move definition
 data IMove = Failover                -- ^ Failover the instance (f)
@@ -203,7 +202,7 @@ compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
 
 -- | Applies an instance move to a given node list and instance.
 applyMove :: Node.List -> Instance.Instance
-          -> IMove -> (Maybe Node.List, Instance.Instance, Ndx, Ndx)
+          -> IMove -> (OpResult Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
 applyMove nl inst Failover =
     let old_pdx = Instance.pnode inst
@@ -284,7 +283,7 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
-                 -> (Maybe Node.List, Instance.Instance)
+                 -> (OpResult Node.List, Instance.Instance)
 allocateOnSingle nl inst p =
     let new_pdx = Node.idx p
         new_nl = Node.addPri p inst >>= \new_p ->
@@ -293,7 +292,7 @@ allocateOnSingle nl inst p =
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
-               -> (Maybe Node.List, Instance.Instance)
+               -> (OpResult Node.List, Instance.Instance)
 allocateOnPair nl inst tgt_p tgt_s =
     let new_pdx = Node.idx tgt_p
         new_sdx = Node.idx tgt_s
@@ -315,16 +314,16 @@ checkSingleStep ini_tbl target cur_tbl move =
         Table ini_nl ini_il _ ini_plc = ini_tbl
         (tmp_nl, new_inst, pri_idx, sec_idx) = applyMove ini_nl target move
     in
-      if isNothing tmp_nl then cur_tbl
-      else
-          let tgt_idx = Instance.idx target
-              upd_nl = fromJust tmp_nl
-              upd_cvar = compCV upd_nl
-              upd_il = Container.add tgt_idx new_inst ini_il
-              upd_plc = (tgt_idx, pri_idx, sec_idx, upd_cvar):ini_plc
-              upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
-          in
-            compareTables cur_tbl upd_tbl
+      case tmp_nl of
+        OpFail _ -> cur_tbl
+        OpGood upd_nl ->
+            let tgt_idx = Instance.idx target
+                upd_cvar = compCV upd_nl
+                upd_il = Container.add tgt_idx new_inst ini_il
+                upd_plc = (tgt_idx, pri_idx, sec_idx, upd_cvar):ini_plc
+                upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
+            in
+              compareTables cur_tbl upd_tbl
 
 -- | Given the status of the current secondary as a valid new node
 -- and the current candidate target node,

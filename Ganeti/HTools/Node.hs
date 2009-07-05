@@ -294,7 +294,7 @@ removeSec t inst =
           p_rem = new_prem}
 
 -- | Adds a primary instance.
-addPri :: Node -> Instance.Instance -> Maybe Node
+addPri :: Node -> Instance.Instance -> T.OpResult Node
 addPri t inst =
     let iname = Instance.idx inst
         new_mem = f_mem t - Instance.mem inst
@@ -307,17 +307,17 @@ addPri t inst =
       if (failHealth new_mem new_dsk) || (new_failn1 && not (failN1 t)) ||
          (failLimits t new_dp new_pcpu)
       then
-        Nothing
+        T.OpFail T.FailN1
       else
         let new_plist = iname:(plist t)
             new_mp = (fromIntegral new_mem) / (t_mem t)
         in
-        Just t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
-                failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
-                u_cpu = new_ucpu, p_cpu = new_pcpu}
+        T.OpGood t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
+                    failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
+                    u_cpu = new_ucpu, p_cpu = new_pcpu}
 
 -- | Adds a secondary instance.
-addSec :: Node -> Instance.Instance -> T.Ndx -> Maybe Node
+addSec :: Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
 addSec t inst pdx =
     let iname = Instance.idx inst
         old_peers = peers t
@@ -332,14 +332,14 @@ addSec t inst pdx =
     in if (failHealth old_mem new_dsk) || (new_failn1 && not (failN1 t)) ||
           (failLimits t new_dp noLimit)
        then
-           Nothing
+           T.OpFail T.FailN1
        else
            let new_slist = iname:(slist t)
            in
-             Just t {slist = new_slist, f_dsk = new_dsk,
-                     peers = new_peers, failN1 = new_failn1,
-                     r_mem = new_rmem, p_dsk = new_dp,
-                     p_rem = new_prem}
+             T.OpGood t {slist = new_slist, f_dsk = new_dsk,
+                         peers = new_peers, failN1 = new_failn1,
+                         r_mem = new_rmem, p_dsk = new_dp,
+                         p_rem = new_prem}
 
 -- * Stats functions
 

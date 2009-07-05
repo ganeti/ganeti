@@ -27,7 +27,6 @@ module Main (main) where
 
 import Data.List
 import Data.Function
-import Data.Maybe (isJust, fromJust)
 import Monad
 import System
 import System.IO
@@ -43,7 +42,6 @@ import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader (RqType(..), Request(..))
-import Ganeti.HTools.Utils
 
 -- | Command line options structure.
 data Options = Options
@@ -74,15 +72,21 @@ options =
     ]
 
 
-filterFails :: (Monad m) => [(Maybe Node.List, Instance.Instance, [Node.Node])]
+filterFails :: (Monad m) => [(OpResult Node.List,
+                              Instance.Instance, [Node.Node])]
             -> m [(Node.List, [Node.Node])]
 filterFails sols =
     if null sols then fail "No nodes onto which to allocate at all"
-    else let sols' = filter (isJust . fst3) sols
-         in if null sols' then
-                fail "No valid allocation solutions"
-            else
-                return $ map (\(x, _, y) -> (fromJust x, y)) sols'
+    else let sols' = concat . map (\ (onl, _, nn) ->
+                                       case onl of
+                                         OpFail _ -> []
+                                         OpGood gnl -> [(gnl, nn)]
+                                  ) $ sols
+         in
+           if null sols' then
+               fail "No valid allocation solutions"
+           else
+               return sols'
 
 processResults :: (Monad m) => [(Node.List, [Node.Node])]
                -> m (String, [Node.Node])
@@ -98,9 +102,8 @@ processResults sols =
     in return (info, w)
 
 -- | Process a request and return new node lists
-processRequest ::
-                  Request
-               -> Result [(Maybe Node.List, Instance.Instance, [Node.Node])]
+processRequest :: Request
+               -> Result [(OpResult Node.List, Instance.Instance, [Node.Node])]
 processRequest request =
   let Request rqtype nl il _ = request
   in case rqtype of

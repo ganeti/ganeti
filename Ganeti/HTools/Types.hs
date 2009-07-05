@@ -29,6 +29,8 @@ module Ganeti.HTools.Types
     , NameAssoc
     , Result(..)
     , Element(..)
+    , FailMode(..)
+    , OpResult(..)
     ) where
 
 -- | The instance index type.
@@ -57,6 +59,21 @@ instance Monad Result where
     (>>=) (Ok x) fn = fn x
     return = Ok
     fail = Bad
+
+-- | Reason for an operation's falure
+data FailMode = FailMem  -- ^ Failed due to not enough RAM
+              | FailDisk -- ^ Failed due to not enough disk
+              | FailCPU  -- ^ Failed due to not enough CPU capacity
+              | FailN1   -- ^ Failed due to not passing N1 checks
+
+-- | Either-like data-type customized for our failure modes
+data OpResult a = OpFail FailMode -- ^ Failed operation
+                | OpGood a        -- ^ Success operation
+
+instance Monad OpResult where
+    (OpGood x) >>= fn = fn x
+    (OpFail y) >>= _ = OpFail y
+    return = OpGood
 
 -- | A generic class for items that have updateable names and indices.
 class Element a where
