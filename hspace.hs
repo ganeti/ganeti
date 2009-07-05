@@ -147,19 +147,26 @@ options =
       "show help"
     ]
 
+concatFailure :: [(FailMode, Int)] -> FailMode -> [(FailMode, Int)]
+concatFailure flst reason =
+    let cval = lookup reason flst
+    in case cval of
+         Nothing -> (reason, 1):flst
+         Just val -> let plain = filter (\(x, _) -> x /= reason) flst
+                     in (reason, val+1):plain
+
 filterFails :: Cluster.AllocSolution
-            -> OpResult [(Node.List, Instance.Instance, [Node.Node])]
+            -> ([(FailMode, Int)],
+                [(Node.List, Instance.Instance, [Node.Node])])
 filterFails sols =
-    let sols' = concat . map (\ (onl, i, nn) ->
-                                  case onl of
-                                    OpFail _ -> []
-                                    OpGood gnl -> [(gnl, i, nn)]
-                             ) $ sols
-    in
-      if null sols' then
-          OpFail FailN1
-      else
-          return sols'
+    let (alst, blst) = unzip . map (\ (onl, i, nn) ->
+                                        case onl of
+                                          OpFail reason -> ([reason], [])
+                                          OpGood gnl -> ([], [(gnl, i, nn)])
+                                   ) $ sols
+        aval = concat alst
+        bval = concat blst
+    in (foldl' concatFailure [] aval, bval)
 
 processResults :: [(Node.List, Instance.Instance, [Node.Node])]
                -> (Node.List, Instance.Instance, [Node.Node])
@@ -173,7 +180,7 @@ iterateDepth :: Node.List
              -> Instance.Instance
              -> Int
              -> [Instance.Instance]
-             -> (Node.List, [Instance.Instance])
+             -> ([(FailMode, Int)], Node.List, [Instance.Instance])
 iterateDepth nl il newinst nreq ixes =
       let depth = length ixes
           newname = (printf "new-%d" depth)::String
@@ -181,17 +188,14 @@ iterateDepth nl il newinst nreq ixes =
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
           sols = (Cluster.tryAlloc nl il newi2 nreq)::
                  OpResult Cluster.AllocSolution
-          orig = (nl, ixes)
       in case sols of
-           OpFail _ -> orig
+           OpFail _ -> ([], nl, ixes)
            OpGood sols' ->
-               let
-                   sols'' = filterFails sols'
-               in case sols'' of
-                    OpFail _ -> orig
-                    OpGood sols''' ->
-                        let (xnl, xi, _) = processResults sols'''
-                        in iterateDepth xnl il newinst nreq (xi:ixes)
+               let (errs, sols3) = filterFails sols'
+               in if null sols3
+                  then (errs, nl, ixes)
+                  else let (xnl, xi, _) = processResults sols3
+                       in iterateDepth xnl il newinst nreq (xi:ixes)
 
 printStats :: String -> Cluster.CStats -> IO ()
 printStats kind cs = do
@@ -275,12 +279,13 @@ main = do
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
                 (optIVCPUs opts) "ADMIN_down" (-1) (-1)
 
-  let (fin_nl, ixes) = iterateDepth nl il newinst req_nodes []
+  let (ereason, fin_nl, ixes) = iterateDepth nl il newinst req_nodes []
       allocs = length ixes
       fin_instances = num_instances + allocs
       fin_ixes = reverse ixes
       ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
       fin_stats = Cluster.totalResources fin_nl
+      sreason = reverse $ sortBy (compare `on` snd) ereason
 
   printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
   printf "Final instances: %d\n" (num_instances + allocs)
@@ -288,6 +293,9 @@ main = do
   printf "Usage: %.5f\n" (((fromIntegral num_instances)::Double) /
                           (fromIntegral fin_instances))
   printf "Allocations: %d\n" allocs
+  putStr (unlines . map (\(x, y) -> printf "%s: %d" (show x) y) $ sreason)
+  printf "Most likely fail reason: %s\n" (show . fst . head $ sreason)
+
   when (verbose > 1) $ do
          putStr . unlines . map (\i -> printf "Inst: %*s %-*s %-*s"
                      ix_namelen (Instance.name i)
