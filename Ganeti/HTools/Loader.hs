@@ -95,29 +95,24 @@ assocEqual = (==) `on` fst
 
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: [(Ndx, Node.Node)]
-         -> [(Idx, Instance.Instance)]
+         -> (Idx, Instance.Instance)
          -> [(Ndx, Node.Node)]
-fixNodes =
-    foldl' (\accu (idx, inst) ->
-                let
-                    pdx = Instance.pnode inst
-                    sdx = Instance.snode inst
-                    pold = fromJust $ lookup pdx accu
-                    pnew = Node.setPri pold idx
-                    pnew' = Node.addCpus pnew (Instance.vcpus inst)
-                    ac1 = deleteBy assocEqual (pdx, pold) accu
-                    ac2 = (pdx, pnew'):ac1
-                in
-                  if sdx /= Node.noSecondary then
-                      let
-                          sold = fromJust $ lookup sdx accu
-                          snew = Node.setSec sold idx
-                          ac3 = deleteBy assocEqual (sdx, sold) ac2
-                          ac4 = (sdx, snew):ac3
-                      in ac4
-                  else
-                      ac2
-           )
+fixNodes accu (idx, inst) =
+    let
+        pdx = Instance.pnode inst
+        sdx = Instance.snode inst
+        pold = fromJust $ lookup pdx accu
+        pnew = Node.setPri pold idx
+        pnew' = Node.addCpus pnew (Instance.vcpus inst)
+        ac1 = deleteBy assocEqual (pdx, pold) accu
+        ac2 = (pdx, pnew'):ac1
+    in
+      if sdx /= Node.noSecondary
+      then let sold = fromJust $ lookup sdx accu
+               snew = Node.setSec sold idx
+               ac3 = deleteBy assocEqual (sdx, sold) ac2
+           in (sdx, snew):ac3
+      else ac2
 
 -- | Compute the longest common suffix of a list of strings that
 -- | starts with a dot.
@@ -141,7 +136,7 @@ mergeData :: (Node.AssocList,
           -> Result (Node.List, Instance.List, String)
 mergeData (nl, il) = do
   let
-      nl2 = fixNodes nl il
+      nl2 = foldl' fixNodes nl il
       il3 = Container.fromAssocList il
       nl3 = Container.fromAssocList
             (map (\ (k, v) -> (k, Node.buildPeers v il3)) nl2)
