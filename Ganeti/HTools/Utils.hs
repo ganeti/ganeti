@@ -77,15 +77,11 @@ fst3 (a, _, _) = a
 meanValue :: Floating a => [a] -> a
 meanValue lst = sum lst / fromIntegral (length lst)
 
--- | Squaring function
-square :: (Num a) => a -> a
-square = (^ 2)
-
 -- | Standard deviation.
 stdDev :: Floating a => [a] -> a
 stdDev lst =
     let mv = meanValue lst
-        av = sum $ map (square . (\e -> e - mv)) lst
+        av = foldl' (\accu elem -> let d = elem - mv in accu + d * d) 0.0 lst
         bv = sqrt (av / fromIntegral (length lst))
     in bv
 
