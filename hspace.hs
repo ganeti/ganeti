@@ -220,6 +220,11 @@ main = do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
 
+  printf "Spec RAM: %d\n" (optIMem opts)
+  printf "Spec disk: %d\n" (optIDsk opts)
+  printf "Spec CPUs: %d\n" (optIVCPUs opts)
+  printf "Spec nodes: %d\n" (optINodes opts)
+
   let verbose = optVerbose opts
 
   (fixed_nl, il, csf) <- CLI.loadExternalData opts
