@@ -147,6 +147,7 @@ options =
       "show help"
     ]
 
+-- | Build failure stats out of a list of failure reasons
 concatFailure :: [(FailMode, Int)] -> FailMode -> [(FailMode, Int)]
 concatFailure flst reason =
     let cval = lookup reason flst
@@ -155,6 +156,8 @@ concatFailure flst reason =
          Just val -> let plain = filter (\(x, _) -> x /= reason) flst
                      in (reason, val+1):plain
 
+-- | Build list of failures and placements out of an list of possible
+-- | allocations
 filterFails :: Cluster.AllocSolution
             -> ([(FailMode, Int)],
                 [(Node.List, Instance.Instance, [Node.Node])])
@@ -168,6 +171,7 @@ filterFails sols =
         bval = concat blst
     in (foldl' concatFailure [] aval, bval)
 
+-- | Get the placement with best score out of a list of possible placements
 processResults :: [(Node.List, Instance.Instance, [Node.Node])]
                -> (Node.List, Instance.Instance, [Node.Node])
 processResults sols =
@@ -175,6 +179,7 @@ processResults sols =
         sols'' = sortBy (compare `on` fst) sols'
     in snd $ head sols''
 
+-- | Recursively place instances on the cluster until we're out of space
 iterateDepth :: Node.List
              -> Instance.List
              -> Instance.Instance
@@ -197,6 +202,7 @@ iterateDepth nl il newinst nreq ixes =
                   else let (xnl, xi, _) = processResults sols3
                        in iterateDepth xnl il newinst nreq (xi:ixes)
 
+-- | Function to print stats for a given phase
 printStats :: String -> Cluster.CStats -> IO ()
 printStats kind cs = do
   printf "%s free RAM: %d\n" kind (Cluster.cs_fmem cs)
