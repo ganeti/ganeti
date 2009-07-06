@@ -73,7 +73,7 @@ find k c = c IntMap.! k
 
 -- | Add or update one element to the map.
 add :: Key -> a -> Container a -> Container a
-add k v c = IntMap.insert k v c
+add = IntMap.insert
 
 -- | Remove an element from the map.
 remove :: Key -> Container a -> Container a
@@ -93,7 +93,7 @@ fromAssocList = IntMap.fromList
 
 -- | Add or update two elements of the map.
 addTwo :: Key -> a -> Key -> a -> Container a -> Container a
-addTwo k1 v1 k2 v2 c = add k1 v1 $ add k2 v2 c
+addTwo k1 v1 k2 v2 = add k1 v1 . add k2 v2
 
 -- | Compute the name of an element in a container.
 nameOf :: (T.Element a) => Container a -> Key -> String
@@ -112,7 +112,7 @@ findByName c n =
         nems = length result
     in
       if nems /= 1 then
-          fail $ "Wrong number of elems (" ++ (show nems) ++
+          fail $ "Wrong number of elems (" ++ show nems ++
                    ") found with name " ++ n
       else
           return $ T.idxOf $ head result

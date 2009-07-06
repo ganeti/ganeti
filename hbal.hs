@@ -73,7 +73,7 @@ instance CLI.EToolOptions Options where
     instFile   = optInstf
     instSet    = optInstSet
     masterName = optMaster
-    silent a   = (optVerbose a) == 0
+    silent a   = optVerbose a == 0
 
 -- | Default values for the command line options.
 defaultOptions :: Options
@@ -121,14 +121,14 @@ options =
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
       "collect data via RAPI at the given ADDRESS"
     , Option ['l']     ["max-length"]
-      (ReqArg (\ i opts -> opts { optMaxLength =  (read i)::Int }) "N")
+      (ReqArg (\ i opts -> opts { optMaxLength =  read i::Int }) "N")
       "cap the solution at this many moves (useful for very unbalanced \
       \clusters)"
     , Option ['v']     ["verbose"]
-      (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) + 1 }))
+      (NoArg (\ opts -> opts { optVerbose = optVerbose opts + 1 }))
       "increase the verbosity level"
     , Option ['q']     ["quiet"]
-      (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) - 1 }))
+      (NoArg (\ opts -> opts { optVerbose = optVerbose opts - 1 }))
       "decrease the verbosity level"
     , Option ['O']     ["offline"]
       (ReqArg (\ n opts -> opts { optOffline = n:optOffline opts }) "NODE")
@@ -196,7 +196,7 @@ iterateDepth ini_tbl max_rounds nmlen imlen
 formatOneline :: Double -> Int -> Double -> String
 formatOneline ini_cv plc_len fin_cv =
     printf "%.8f %d %.8f %8.3f" ini_cv plc_len fin_cv
-               (if fin_cv == 0 then 1 else (ini_cv / fin_cv))
+               (if fin_cv == 0 then 1 else ini_cv / fin_cv)
 
 -- | Main function.
 main :: IO ()
@@ -216,7 +216,7 @@ main = do
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
       all_names = map Node.name all_nodes
-      offline_wrong = filter (\n -> not $ elem n all_names) offline_names
+      offline_wrong = filter (flip notElem all_names) offline_names
       offline_indices = map Node.idx $
                         filter (\n -> elem (Node.name n) offline_names)
                                all_nodes
@@ -243,15 +243,15 @@ main = do
              (Container.size nl)
              (Container.size il)
 
-  when (length csf > 0 && not oneline && verbose > 1) $ do
-         printf "Note: Stripping common suffix of '%s' from names\n" csf
+  when (length csf > 0 && not oneline && verbose > 1) $
+       printf "Note: Stripping common suffix of '%s' from names\n" csf
 
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
   unless (oneline || verbose == 0) $ printf
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
-  when (length bad_nodes > 0) $ do
+  when (length bad_nodes > 0) $
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
 
@@ -286,14 +286,14 @@ main = do
                          nmlen imlen [] oneline min_cv
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
-      sol_msg = (if null fin_plc
-                 then printf "No solution found\n"
-                 else (if verbose > 2
-                       then printf "Final coefficients:   overall %.8f, %s\n"
-                            fin_cv (Cluster.printStats fin_nl)
-                       else printf "Cluster score improved from %.8f to %.8f\n"
-                            ini_cv fin_cv
-                      ))::String
+      sol_msg = if null fin_plc
+                then printf "No solution found\n"
+                else if verbose > 2
+                     then printf "Final coefficients:   overall %.8f, %s\n"
+                          fin_cv (Cluster.printStats fin_nl)
+                     else printf "Cluster score improved from %.8f to %.8f\n"
+                          ini_cv fin_cv
+                              ::String
 
   unless oneline $ putStr sol_msg
 

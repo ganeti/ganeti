@@ -77,16 +77,15 @@ filterFails :: (Monad m) => [(OpResult Node.List,
             -> m [(Node.List, [Node.Node])]
 filterFails sols =
     if null sols then fail "No nodes onto which to allocate at all"
-    else let sols' = concat . map (\ (onl, _, nn) ->
-                                       case onl of
-                                         OpFail _ -> []
-                                         OpGood gnl -> [(gnl, nn)]
-                                  ) $ sols
+    else let sols' = concatMap (\ (onl, _, nn) ->
+                                    case onl of
+                                      OpFail _ -> []
+                                      OpGood gnl -> [(gnl, nn)]
+                               ) sols
          in
-           if null sols' then
-               fail "No valid allocation solutions"
-           else
-               return sols'
+           if null sols'
+           then fail "No valid allocation solutions"
+           else return sols'
 
 processResults :: (Monad m) => [(Node.List, [Node.Node])]
                -> m (String, [Node.Node])
@@ -95,10 +94,10 @@ processResults sols =
         sols'' = sortBy (compare `on` fst) sols'
         (best, w) = head sols''
         (worst, l) = last sols''
-        info = (printf "Valid results: %d, best score: %.8f for node(s) %s, \
-                       \worst score: %.8f for node(s) %s" (length sols'')
-                       best (intercalate "/" . map Node.name $ w)
-                       worst (intercalate "/" . map Node.name $ l))::String
+        info = printf "Valid results: %d, best score: %.8f for node(s) %s, \
+                      \worst score: %.8f for node(s) %s" (length sols'')
+                      best (intercalate "/" . map Node.name $ w)
+                      worst (intercalate "/" . map Node.name $ l)::String
     in return (info, w)
 
 -- | Process a request and return new node lists

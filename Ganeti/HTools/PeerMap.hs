@@ -83,18 +83,18 @@ accumArray fn lst =
 
 -- | Returns either the value for a key or zero if not found
 find :: Key -> PeerMap -> Elem
-find k c = fromMaybe 0 $ lookup k c
+find k = fromMaybe 0 . lookup k
 
 -- | Add an element to a peermap, overwriting the previous value
 add :: Key -> Elem -> PeerMap -> PeerMap
-add k v c = addWith (flip const) k v c
+add = addWith (flip const)
 
 -- | Remove an element from a peermap
 remove :: Key -> PeerMap -> PeerMap
 remove k c = case c of
                [] -> []
                (x@(x', _)):xs -> if k == x' then xs
-                            else x:(remove k xs)
+                            else x:remove k xs
 
 -- | Find the maximum element.
 --

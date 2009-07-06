@@ -74,7 +74,7 @@ instance CLI.EToolOptions Options where
     instFile   = optInstf
     instSet    = optInstSet
     masterName = optMaster
-    silent a   = (optVerbose a) == 0
+    silent a   = optVerbose a == 0
 
 -- | Default values for the command line options.
 defaultOptions :: Options
@@ -113,10 +113,10 @@ options =
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
       "collect data via RAPI at the given ADDRESS"
     , Option ['v']     ["verbose"]
-      (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) + 1 }))
+      (NoArg (\ opts -> opts { optVerbose = optVerbose opts + 1 }))
       "increase the verbosity level"
     , Option ['q']     ["quiet"]
-      (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) - 1 }))
+      (NoArg (\ opts -> opts { optVerbose = optVerbose opts - 1 }))
       "decrease the verbosity level"
     , Option ['O']     ["offline"]
       (ReqArg (\ n opts -> opts { optOffline = n:optOffline opts }) "NODE")
@@ -183,10 +183,10 @@ iterateDepth :: Node.List
              -> ([(FailMode, Int)], Node.List, [Instance.Instance])
 iterateDepth nl il newinst nreq ixes =
       let depth = length ixes
-          newname = (printf "new-%d" depth)::String
-          newidx = (length $ Container.elems il) + depth
+          newname = printf "new-%d" depth::String
+          newidx = length (Container.elems il) + depth
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
-          sols = (Cluster.tryAlloc nl il newi2 nreq)::
+          sols = Cluster.tryAlloc nl il newi2 nreq::
                  OpResult Cluster.AllocSolution
       in case sols of
            OpFail _ -> ([], nl, ixes)
@@ -201,12 +201,12 @@ printStats :: String -> Cluster.CStats -> IO ()
 printStats kind cs = do
   printf "%s free RAM: %d\n" kind (Cluster.cs_fmem cs)
   printf "%s allocatable RAM: %d\n" kind (Cluster.cs_amem cs)
-  printf "%s reserved RAM: %d\n" kind ((Cluster.cs_fmem cs) -
-                                       (Cluster.cs_amem cs))
+  printf "%s reserved RAM: %d\n" kind (Cluster.cs_fmem cs -
+                                       Cluster.cs_amem cs)
   printf "%s free disk: %d\n" kind (Cluster.cs_fdsk cs)
   printf "%s allocatable disk: %d\n" kind (Cluster.cs_adsk cs)
-  printf "%s reserved disk: %d\n" kind ((Cluster.cs_fdsk cs) -
-                                        (Cluster.cs_adsk cs))
+  printf "%s reserved disk: %d\n" kind (Cluster.cs_fdsk cs -
+                                        Cluster.cs_adsk cs)
   printf "%s max node allocatable RAM: %d\n" kind (Cluster.cs_mmem cs)
   printf "%s max node allocatable disk: %d\n" kind (Cluster.cs_mdsk cs)
 
@@ -228,7 +228,7 @@ main = do
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
       all_names = map Node.name all_nodes
-      offline_wrong = filter (\n -> not $ elem n all_names) offline_names
+      offline_wrong = filter (flip notElem all_names) offline_names
       offline_indices = map Node.idx $
                         filter (\n -> elem (Node.name n) offline_names)
                                all_nodes
@@ -251,8 +251,8 @@ main = do
       nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
            nm
 
-  when (length csf > 0 && verbose > 1) $ do
-         printf "Note: Stripping common suffix of '%s' from names\n" csf
+  when (length csf > 0 && verbose > 1) $
+       printf "Note: Stripping common suffix of '%s' from names\n" csf
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
   when (length bad_nodes > 0) $ do
@@ -290,13 +290,13 @@ main = do
   printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
   printf "Final instances: %d\n" (num_instances + allocs)
   printStats "Final" fin_stats
-  printf "Usage: %.5f\n" (((fromIntegral num_instances)::Double) /
-                          (fromIntegral fin_instances))
+  printf "Usage: %.5f\n" ((fromIntegral num_instances::Double) /
+                          fromIntegral fin_instances)
   printf "Allocations: %d\n" allocs
   putStr (unlines . map (\(x, y) -> printf "%s: %d" (show x) y) $ sreason)
   printf "Most likely fail reason: %s\n" (show . fst . head $ sreason)
 
-  when (verbose > 1) $ do
+  when (verbose > 1) $
          putStr . unlines . map (\i -> printf "Inst: %*s %-*s %-*s"
                      ix_namelen (Instance.name i)
                      nmlen (Container.nameOf fin_nl $ Instance.pnode i)

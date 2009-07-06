@@ -154,8 +154,8 @@ create name_init mem_t_init mem_n_init mem_f_init
       idx = -1,
       peers = PeerMap.empty,
       r_mem = 0,
-      p_mem = (fromIntegral mem_f_init) / mem_t_init,
-      p_dsk = (fromIntegral dsk_f_init) / dsk_t_init,
+      p_mem = fromIntegral mem_f_init / mem_t_init,
+      p_dsk = fromIntegral dsk_f_init / dsk_t_init,
       p_rem = 0,
       p_cpu = 0,
       offline = offline_init,
@@ -191,15 +191,15 @@ setMdsk :: Node -> Double -> Node
 setMdsk t val = t { m_dsk = val,
                     lo_dsk = if val == noLimit
                              then noLimitInt
-                             else floor (val * (t_dsk t)) }
+                             else floor (val * t_dsk t) }
 
 -- | Sets the max cpu usage ratio
 setMcpu :: Node -> Double -> Node
-setMcpu t val = t { m_cpu = val, hi_cpu = floor (val * (t_cpu t)) }
+setMcpu t val = t { m_cpu = val, hi_cpu = floor (val * t_cpu t) }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
-computeMaxRes new_peers = PeerMap.maxElem new_peers
+computeMaxRes = PeerMap.maxElem
 
 -- | Builds the peer map for a given node.
 buildPeers :: Node -> Instance.List -> Node
@@ -210,31 +210,31 @@ buildPeers t il =
                 (slist t)
         pmap = PeerMap.accumArray (+) mdata
         new_rmem = computeMaxRes pmap
-        new_failN1 = (f_mem t) <= new_rmem
-        new_prem = (fromIntegral new_rmem) / (t_mem t)
+        new_failN1 = f_mem t <= new_rmem
+        new_prem = fromIntegral new_rmem / t_mem t
     in t {peers=pmap, failN1 = new_failN1, r_mem = new_rmem, p_rem = new_prem}
 
 -- | Assigns an instance to a node as primary without other updates.
 setPri :: Node -> T.Idx -> Node
-setPri t idx = t { plist = idx:(plist t) }
+setPri t idx = t { plist = idx:plist t }
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> T.Idx -> Node
-setSec t idx = t { slist = idx:(slist t) }
+setSec t idx = t { slist = idx:slist t }
 
 -- | Add primary cpus to a node
 addCpus :: Node -> Int -> Node
 addCpus t count =
-    let new_count = (u_cpu t) + count
-    in t { u_cpu = new_count, p_cpu = (fromIntegral new_count) / (t_cpu t) }
+    let new_count = u_cpu t + count
+    in t { u_cpu = new_count, p_cpu = fromIntegral new_count / t_cpu t }
 
 -- * Update functions
 
 -- | Sets the free memory.
 setFmem :: Node -> Int -> Node
 setFmem t new_mem =
-    let new_n1 = new_mem <= (r_mem t)
-        new_mp = (fromIntegral new_mem) / (t_mem t)
+    let new_n1 = new_mem <= r_mem t
+        new_mp = fromIntegral new_mem / t_mem t
     in
       t { f_mem = new_mem, failN1 = new_n1, p_mem = new_mp }
 
@@ -245,11 +245,11 @@ removePri t inst =
         new_plist = delete iname (plist t)
         new_mem = f_mem t + Instance.mem inst
         new_dsk = f_dsk t + Instance.dsk inst
-        new_mp = (fromIntegral new_mem) / (t_mem t)
-        new_dp = (fromIntegral new_dsk) / (t_dsk t)
-        new_failn1 = new_mem <= (r_mem t)
-        new_ucpu = (u_cpu t) - (Instance.vcpus inst)
-        new_rcpu = (fromIntegral new_ucpu) / (t_cpu t)
+        new_mp = fromIntegral new_mem / t_mem t
+        new_dp = fromIntegral new_dsk / t_dsk t
+        new_failn1 = new_mem <= r_mem t
+        new_ucpu = u_cpu t - Instance.vcpus inst
+        new_rcpu = fromIntegral new_ucpu / t_cpu t
     in t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
           failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
           u_cpu = new_ucpu, p_cpu = new_rcpu}
@@ -263,16 +263,16 @@ removeSec t inst =
         new_dsk = f_dsk t + Instance.dsk inst
         old_peers = peers t
         old_peem = PeerMap.find pnode old_peers
-        new_peem =  old_peem - (Instance.mem inst)
+        new_peem =  old_peem - Instance.mem inst
         new_peers = PeerMap.add pnode new_peem old_peers
         old_rmem = r_mem t
         new_rmem = if old_peem < old_rmem then
                        old_rmem
                    else
                        computeMaxRes new_peers
-        new_prem = (fromIntegral new_rmem) / (t_mem t)
-        new_failn1 = (f_mem t) <= new_rmem
-        new_dp = (fromIntegral new_dsk) / (t_dsk t)
+        new_prem = fromIntegral new_rmem / t_mem t
+        new_failn1 = f_mem t <= new_rmem
+        new_dp = fromIntegral new_dsk / t_dsk t
     in t {slist = new_slist, f_dsk = new_dsk, peers = new_peers,
           failN1 = new_failn1, r_mem = new_rmem, p_dsk = new_dp,
           p_rem = new_prem}
@@ -283,18 +283,18 @@ addPri t inst =
     let iname = Instance.idx inst
         new_mem = f_mem t - Instance.mem inst
         new_dsk = f_dsk t - Instance.dsk inst
-        new_failn1 = new_mem <= (r_mem t)
-        new_ucpu = (u_cpu t) + (Instance.vcpus inst)
-        new_pcpu = (fromIntegral new_ucpu) / (t_cpu t)
-        new_dp = (fromIntegral new_dsk) / (t_dsk t)
+        new_failn1 = new_mem <= r_mem t
+        new_ucpu = u_cpu t + Instance.vcpus inst
+        new_pcpu = fromIntegral new_ucpu / t_cpu t
+        new_dp = fromIntegral new_dsk / t_dsk t
         l_cpu = m_cpu t
     in if new_mem <= 0 then T.OpFail T.FailMem
        else if new_dsk <= 0 || m_dsk t > new_dp then T.OpFail T.FailDisk
-       else if (new_failn1 && not (failN1 t)) then T.OpFail T.FailMem
+       else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
        else if l_cpu >= 0 && l_cpu < new_pcpu then T.OpFail T.FailCPU
        else
-           let new_plist = iname:(plist t)
-               new_mp = (fromIntegral new_mem) / (t_mem t)
+           let new_plist = iname:plist t
+               new_mp = fromIntegral new_mem / t_mem t
                r = t { plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
                        failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
                        u_cpu = new_ucpu, p_cpu = new_pcpu }
@@ -310,12 +310,12 @@ addSec t inst pdx =
         new_peem = PeerMap.find pdx old_peers + Instance.mem inst
         new_peers = PeerMap.add pdx new_peem old_peers
         new_rmem = max (r_mem t) new_peem
-        new_prem = (fromIntegral new_rmem) / (t_mem t)
+        new_prem = fromIntegral new_rmem / t_mem t
         new_failn1 = old_mem <= new_rmem
-        new_dp = (fromIntegral new_dsk) / (t_dsk t)
+        new_dp = fromIntegral new_dsk / t_dsk t
     in if new_dsk <= 0 || m_dsk t > new_dp then T.OpFail T.FailDisk
-       else if (new_failn1 && not (failN1 t)) then T.OpFail T.FailMem
-       else let new_slist = iname:(slist t)
+       else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
+       else let new_slist = iname:slist t
                 r = t { slist = new_slist, f_dsk = new_dsk,
                         peers = new_peers, failN1 = new_failn1,
                         r_mem = new_rmem, p_dsk = new_dp,
@@ -352,7 +352,7 @@ list mname t =
         nmem = n_mem t
         xmem = x_mem t
         fmem = f_mem t
-        imem = (truncate tmem) - nmem - xmem - fmem
+        imem = truncate tmem - nmem - xmem - fmem
     in
       if off
          then printf " - %-*s %57s %3d %3d"
@@ -362,6 +362,6 @@ list mname t =
                     \ %4.0f %4d %3d %3d %6.4f %6.4f %5.2f"
                  (if off then '-' else if fn then '*' else ' ')
                  mname (name t) tmem nmem imem xmem fmem (r_mem t)
-                 ((t_dsk t) / 1024) ((f_dsk t) `div` 1024)
+                 (t_dsk t / 1024) (f_dsk t `div` 1024)
                  (t_cpu t) (u_cpu t)
                  pl sl mp dp cp

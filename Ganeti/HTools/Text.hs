@@ -47,7 +47,7 @@ parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
 
 -- | Safe 'read' function returning data encapsulated in a Result.
 tryRead :: (Monad m, Read a) => String -> String -> m a
-tryRead name s = parseChoices name s $ readsPrec 0 s
+tryRead name s = parseChoices name s $ reads s
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
@@ -64,7 +64,7 @@ loadNode (name:tm:nm:fm:td:fd:tc:fo:[]) = do
         vtc <- tryRead name tc
         return $ Node.create name vtm vnm vfm vtd vfd vtc False
   return (name, new_node)
-loadNode s = fail $ "Invalid/incomplete node data: '" ++ (show s) ++ "'"
+loadNode s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
@@ -80,7 +80,7 @@ loadInst ktn (name:mem:dsk:vcpus:status:pnode:snode:[]) = do
            " has same primary and secondary node - " ++ pnode
   let newinst = Instance.create name vmem vdsk vvcpus status pidx sidx
   return (name, newinst)
-loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ (show s) ++ "'"
+loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
 -- | Convert newline and delimiter-separated text.
 --

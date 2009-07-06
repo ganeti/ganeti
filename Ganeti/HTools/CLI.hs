@@ -78,9 +78,9 @@ class EToolOptions a where
 
 -- | Usage info
 usageHelp :: (CLIOptions a) => String -> [OptDescr (a -> a)] -> String
-usageHelp progname options =
+usageHelp progname =
     usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
-               progname Version.version progname) options
+               progname Version.version progname)
 
 -- | Command line parser, using the 'options' structure.
 parseOpts :: (CLIOptions b) =>
@@ -158,6 +158,6 @@ loadExternalData opts = do
 
   unless (null fix_msgs || silent opts) $ do
          putStrLn "Warning: cluster has inconsistent data:"
-         putStrLn . unlines . map (\s -> printf "  - %s" s) $ fix_msgs
+         putStrLn . unlines . map (printf "  - %s") $ fix_msgs
 
   return (fixed_nl, il, csf)

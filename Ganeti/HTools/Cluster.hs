@@ -104,7 +104,7 @@ data CStats = CStats { cs_fmem :: Int -- ^ Cluster free mem
 
 -- | Verifies the N+1 status and return the affected nodes.
 verifyN1 :: [Node.Node] -> [Node.Node]
-verifyN1 nl = filter Node.failN1 nl
+verifyN1 = filter Node.failN1
 
 {-| Computes the pair of bad nodes and instances.
 
@@ -117,9 +117,9 @@ computeBadItems :: Node.List -> Instance.List ->
                    ([Node.Node], [Instance.Instance])
 computeBadItems nl il =
   let bad_nodes = verifyN1 $ getOnline nl
-      bad_instances = map (\idx -> Container.find idx il) $
-                      sort $ nub $ concat $
-                      map (\ n -> (Node.slist n) ++ (Node.plist n)) bad_nodes
+      bad_instances = map (\idx -> Container.find idx il) .
+                      sort . nub $
+                      concatMap (\ n -> Node.slist n ++ Node.plist n) bad_nodes
   in
     (bad_nodes, bad_instances)
 
@@ -140,11 +140,11 @@ updateCStats cs node =
                  cs_amem = x_amem, cs_acpu = x_acpu, cs_adsk = x_adsk,
                  cs_mmem = x_mmem, cs_mdsk = x_mdsk, cs_mcpu = x_mcpu }
             = cs
-        inc_amem = (Node.f_mem node) - (Node.r_mem node)
+        inc_amem = Node.f_mem node - Node.r_mem node
         inc_amem' = if inc_amem > 0 then inc_amem else 0
         inc_adsk = Node.availDisk node
-    in CStats { cs_fmem = x_fmem + (Node.f_mem node)
-              , cs_fdsk = x_fdsk + (Node.f_dsk node)
+    in CStats { cs_fmem = x_fmem + Node.f_mem node
+              , cs_fdsk = x_fdsk + Node.f_dsk node
               , cs_amem = x_amem + inc_amem'
               , cs_adsk = x_adsk + inc_adsk
               , cs_acpu = x_acpu
@@ -168,16 +168,16 @@ compDetailedCV nl =
         mem_cv = varianceCoeff mem_l
         dsk_cv = varianceCoeff dsk_l
         n1_l = length $ filter Node.failN1 nodes
-        n1_score = ((fromIntegral n1_l) /
-                    (fromIntegral $ length nodes))::Double
+        n1_score = fromIntegral n1_l /
+                   fromIntegral (length nodes)::Double
         res_l = map Node.p_rem nodes
         res_cv = varianceCoeff res_l
         offline_inst = sum . map (\n -> (length . Node.plist $ n) +
                                         (length . Node.slist $ n)) $ offline
         online_inst = sum . map (\n -> (length . Node.plist $ n) +
                                        (length . Node.slist $ n)) $ nodes
-        off_score = ((fromIntegral offline_inst) /
-                     (fromIntegral $ online_inst + offline_inst))::Double
+        off_score = fromIntegral offline_inst /
+                    fromIntegral (online_inst + offline_inst)::Double
         cpu_l = map Node.p_cpu nodes
         cpu_cv = varianceCoeff cpu_l
     in (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv)
@@ -233,7 +233,7 @@ applyMove nl inst (ReplacePrimary new_pdx) =
           let tmp_s' = Node.removePri tmp_s inst
           new_p <- Node.addPri tgt_n inst
           new_s <- Node.addSec tmp_s' inst new_pdx
-          return $ Container.add new_pdx new_p $
+          return . Container.add new_pdx new_p $
                  Container.addTwo old_pdx int_p old_sdx new_s nl
     in (new_nl, Instance.setPri inst new_pdx, new_pdx, old_sdx)
 
@@ -261,7 +261,7 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
         new_nl = do -- Maybe monad
           new_p <- Node.addPri tgt_n inst
           new_s <- Node.addSec int_p inst new_pdx
-          return $ Container.add new_pdx new_p $
+          return . Container.add new_pdx new_p $
                  Container.addTwo old_pdx new_s old_sdx int_s nl
     in (new_nl, Instance.setBoth inst new_pdx old_pdx, new_pdx, old_pdx)
 
@@ -277,7 +277,7 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
         new_nl = do -- Maybe monad
           new_p <- Node.addPri int_s inst
           new_s <- Node.addSec tgt_n inst old_sdx
-          return $ Container.add new_sdx new_s $
+          return . Container.add new_sdx new_s $
                  Container.addTwo old_sdx new_p old_pdx int_p nl
     in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
 
@@ -406,7 +406,7 @@ tryAlloc nl _ inst 1 =
     in return sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
-                             \destinations required (" ++ (show reqn) ++
+                             \destinations required (" ++ show reqn ++
                                                "), only two supported"
 
 -- | Try to allocate an instance on the cluster.
@@ -420,7 +420,7 @@ tryReloc :: (Monad m) =>
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = getOnline nl
         inst = Container.find xid il
-        ex_idx' = (Instance.pnode inst):ex_idx
+        ex_idx' = Instance.pnode inst:ex_idx
         valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
         sols1 = map (\x -> let (mnl, i, _, _) =
@@ -430,7 +430,7 @@ tryReloc nl il xid 1 ex_idx =
     in return sols1
 
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
-                                \destinations required (" ++ (show reqn) ++
+                                \destinations required (" ++ show reqn ++
                                                   "), only one supported"
 
 -- * Formatting functions
@@ -499,8 +499,8 @@ printSolutionLine nl il nmlen imlen plc pos =
         opri = Container.nameOf nl $ Instance.pnode inst
         osec = Container.nameOf nl $ Instance.snode inst
         (moves, cmds) =  computeMoves inam opri osec npri nsec
-        ostr = (printf "%s:%s" opri osec)::String
-        nstr = (printf "%s:%s" npri nsec)::String
+        ostr = printf "%s:%s" opri osec::String
+        nstr = printf "%s:%s" npri nsec::String
     in
       (printf "  %3d. %-*s %-*s => %-*s %.8f a=%s"
        pos imlen inam pmlen ostr
@@ -510,13 +510,14 @@ printSolutionLine nl il nmlen imlen plc pos =
 -- | Given a list of commands, prefix them with @gnt-instance@ and
 -- also beautify the display a little.
 formatCmds :: [[String]] -> String
-formatCmds cmd_strs =
-    unlines $
-    concat $ map (\(a, b) ->
-        (printf "echo step %d" (a::Int)):
-        (printf "check"):
-        (map ("gnt-instance " ++) b)) $
-        zip [1..] cmd_strs
+formatCmds =
+    unlines .
+    concatMap (\(a, b) ->
+               printf "echo step %d" (a::Int):
+               printf "check":
+               map ("gnt-instance " ++) b
+              ) .
+    zip [1..]
 
 -- | Converts a solution to string format.
 printSolution :: Node.List
@@ -528,8 +529,7 @@ printSolution nl il sol =
         nmlen = Container.maxNameLen nl
         imlen = Container.maxNameLen il
     in
-      unzip $ map (uncurry $ printSolutionLine nl il nmlen imlen) $
-            zip sol [1..]
+      unzip $ zipWith (printSolutionLine nl il nmlen imlen) sol [1..]
 
 -- | Print the node list.
 printNodes :: Node.List -> String
@@ -537,14 +537,14 @@ printNodes nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
         m_name = maximum . map (length . Node.name) $ snl
         helper = Node.list m_name
-        header = (printf
-                  "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %4s %4s \
-                  \%3s %3s %6s %6s %5s"
-                  " F" m_name "Name"
-                  "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
-                  "t_dsk" "f_dsk" "pcpu" "vcpu"
-                  "pri" "sec" "p_fmem" "p_fdsk" "r_cpu")::String
-    in unlines $ (header:map helper snl)
+        header = printf
+                 "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %4s %4s \
+                 \%3s %3s %6s %6s %5s"
+                 " F" m_name "Name"
+                 "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
+                 "t_dsk" "f_dsk" "pcpu" "vcpu"
+                 "pri" "sec" "p_fmem" "p_fdsk" "r_cpu"::String
+    in unlines (header:map helper snl)
 
 -- | Shows statistics for a given node list.
 printStats :: Node.List -> String

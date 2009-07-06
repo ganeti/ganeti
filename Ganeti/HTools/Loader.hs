@@ -97,7 +97,7 @@ assocEqual = (==) `on` fst
 fixNodes :: [(Ndx, Node.Node)]
          -> [(Idx, Instance.Instance)]
          -> [(Ndx, Node.Node)]
-fixNodes nl il =
+fixNodes =
     foldl' (\accu (idx, inst) ->
                 let
                     pdx = Instance.pnode inst
@@ -117,7 +117,7 @@ fixNodes nl il =
                       in ac4
                   else
                       ac2
-           ) nl il
+           )
 
 -- | Compute the longest common suffix of a list of strings that
 -- | starts with a dot.
@@ -131,7 +131,7 @@ longestDomain (x:xs) =
 
 -- | Remove tail suffix from a string.
 stripSuffix :: Int -> String -> String
-stripSuffix sflen name = take ((length name) - sflen) name
+stripSuffix sflen name = take (length name - sflen) name
 
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
@@ -160,38 +160,37 @@ checkData nl il =
     Container.mapAccum
         (\ msgs node ->
              let nname = Node.name node
-                 nilst = map (flip Container.find $ il) (Node.plist node)
+                 nilst = map (flip Container.find il) (Node.plist node)
                  dilst = filter (not . Instance.running) nilst
                  adj_mem = sum . map Instance.mem $ dilst
-                 delta_mem = (truncate $ Node.t_mem node)
-                             - (Node.n_mem node)
-                             - (Node.f_mem node)
-                             - (nodeImem node il)
+                 delta_mem = truncate (Node.t_mem node)
+                             - Node.n_mem node
+                             - Node.f_mem node
+                             - nodeImem node il
                              + adj_mem
-                 delta_dsk = (truncate $ Node.t_dsk node)
-                             - (Node.f_dsk node)
-                             - (nodeIdsk node il)
+                 delta_dsk = truncate (Node.t_dsk node)
+                             - Node.f_dsk node
+                             - nodeIdsk node il
                  newn = Node.setFmem (Node.setXmem node delta_mem)
                         (Node.f_mem node - adj_mem)
-                 umsg1 = (if delta_mem > 512 || delta_dsk > 1024
-                          then [printf "node %s is missing %d MB ram \
-                                       \and %d GB disk"
-                                       nname delta_mem (delta_dsk `div` 1024)]
-                          else [])::[String]
+                 umsg1 = [printf "node %s is missing %d MB ram \
+                                 \and %d GB disk"
+                                 nname delta_mem (delta_dsk `div` 1024) |
+                                 delta_mem > 512 || delta_dsk > 1024]::[String]
              in (msgs ++ umsg1, newn)
         ) [] nl
 
 -- | Compute the amount of memory used by primary instances on a node.
 nodeImem :: Node.Node -> Instance.List -> Int
 nodeImem node il =
-    let rfind = flip Container.find $ il
-    in sum . map Instance.mem .
-       map rfind $ Node.plist node
+    let rfind = flip Container.find il
+    in sum . map (Instance.mem . rfind)
+           $ Node.plist node
 
 -- | Compute the amount of disk used by instances on a node (either primary
 -- or secondary).
 nodeIdsk :: Node.Node -> Instance.List -> Int
 nodeIdsk node il =
-    let rfind = flip Container.find $ il
-    in sum . map Instance.dsk .
-       map rfind $ (Node.plist node) ++ (Node.slist node)
+    let rfind = flip Container.find il
+    in sum . map (Instance.dsk . rfind)
+           $ Node.plist node ++ Node.slist node

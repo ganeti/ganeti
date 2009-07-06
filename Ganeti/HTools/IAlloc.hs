@@ -53,7 +53,7 @@ parseBaseInstance n a = do
   mem <- fromObj "memory" a
   vcpus <- fromObj "vcpus" a
   let running = "running"
-  return $ (n, Instance.create n mem disk vcpus running 0 0)
+  return (n, Instance.create n mem disk vcpus running 0 0)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc        -- ^ The node name-to-index association list
@@ -67,7 +67,7 @@ parseInstance ktn n a = do
     pidx <- lookupNode ktn n pnode
     let snodes = tail nodes
     sidx <- (if null snodes then return Node.noSecondary
-             else (readEitherString $ head snodes) >>= lookupNode ktn n)
+             else readEitherString (head snodes) >>= lookupNode ktn n)
     return (n, Instance.setBoth (snd base) pidx sidx)
 
 -- | Parses a node as found in the cluster node list.
@@ -78,17 +78,17 @@ parseNode n a = do
     let name = n
     offline <- fromObj "offline" a
     drained <- fromObj "drained" a
-    node <- (case offline of
-               True -> return $ Node.create name 0 0 0 0 0 0 True
-               _ -> do
-                 mtotal <- fromObj "total_memory" a
-                 mnode  <- fromObj "reserved_memory" a
-                 mfree  <- fromObj "free_memory"  a
-                 dtotal <- fromObj "total_disk"   a
-                 dfree  <- fromObj "free_disk"    a
-                 ctotal <- fromObj "total_cpus"   a
-                 return $ Node.create n mtotal mnode mfree
-                        dtotal dfree ctotal (offline || drained))
+    node <- (if offline
+             then return $ Node.create name 0 0 0 0 0 0 True
+             else do
+               mtotal <- fromObj "total_memory" a
+               mnode  <- fromObj "reserved_memory" a
+               mfree  <- fromObj "free_memory"  a
+               dtotal <- fromObj "total_disk"   a
+               dfree  <- fromObj "free_disk"    a
+               ctotal <- fromObj "total_cpus"   a
+               return $ Node.create n mtotal mnode mfree
+                      dtotal dfree ctotal (offline || drained))
     return (name, node)
 
 -- | Top-level parser.
@@ -103,12 +103,12 @@ parseData body = do
   -- existing node parsing
   nlist <- fromObj "nodes" obj
   let ndata = fromJSObject nlist
-  nobj <- (mapM (\(x,y) -> asJSObject y >>= parseNode x)) ndata
+  nobj <- mapM (\(x,y) -> asJSObject y >>= parseNode x) ndata
   let (ktn, nl) = assignIndices nobj
   -- existing instance parsing
   ilist <- fromObj "instances" obj
   let idata = fromJSObject ilist
-  iobj <- (mapM (\(x,y) -> asJSObject y >>= parseInstance ktn x)) idata
+  iobj <- mapM (\(x,y) -> asJSObject y >>= parseInstance ktn x) idata
   let (kti, il) = assignIndices iobj
   (map_n, map_i, csf) <- mergeData (nl, il)
   req_nodes <- fromObj "required_nodes" request
@@ -127,7 +127,7 @@ parseData body = do
               let ex_nodes' = map (stripSuffix $ length csf) ex_nodes
               ex_idex <- mapM (Container.findByName map_n) ex_nodes'
               return $ Relocate ridx req_nodes ex_idex
-        other -> fail $ ("Invalid request type '" ++ other ++ "'")
+        other -> fail ("Invalid request type '" ++ other ++ "'")
   return $ Request rqtype map_n map_i csf
 
 -- | Formats the response into a valid IAllocator response message.

@@ -60,8 +60,8 @@ sepSplit :: Char -> String -> [String]
 sepSplit sep s
     | x == "" && xs == [] = []
     | xs == []            = [x]
-    | ys == []            = x:"":[]
-    | otherwise           = x:(sepSplit sep ys)
+    | ys == []            = [x,""]
+    | otherwise           = x:sepSplit sep ys
     where (x, xs) = break (== sep) s
           ys = drop 1 xs
 
@@ -75,7 +75,7 @@ fst3 (a, _, _) = a
 
 -- | Mean value of a list.
 meanValue :: Floating a => [a] -> a
-meanValue lst = (sum lst) / (fromIntegral $ length lst)
+meanValue lst = sum lst / fromIntegral (length lst)
 
 -- | Squaring function
 square :: (Num a) => a -> a
@@ -85,13 +85,13 @@ square = (^ 2)
 stdDev :: Floating a => [a] -> a
 stdDev lst =
     let mv = meanValue lst
-        av = sum $ map square $ map (\e -> e - mv) lst
-        bv = sqrt (av / (fromIntegral $ length lst))
+        av = sum $ map (square . (\e -> e - mv)) lst
+        bv = sqrt (av / fromIntegral (length lst))
     in bv
 
 -- | Coefficient of variation.
 varianceCoeff :: Floating a => [a] -> a
-varianceCoeff lst = (stdDev lst) / (fromIntegral $ length lst)
+varianceCoeff lst = stdDev lst / fromIntegral (length lst)
 
 -- * JSON-related functions
 
@@ -112,7 +112,7 @@ readEitherString v =
 
 -- | Converts a JSON message into an array of JSON objects.
 loadJSArray :: (Monad m) => String -> m [J.JSObject J.JSValue]
-loadJSArray s = fromJResult $ J.decodeStrict s
+loadJSArray = fromJResult . J.decodeStrict
 
 -- | Reads a the value of a key in a JSON object.
 fromObj :: (J.JSON a, Monad m) => String -> J.JSObject J.JSValue -> m a
@@ -128,4 +128,4 @@ asJSObject _ = fail "not an object"
 
 -- | Coneverts a list of JSON values into a list of JSON objects.
 asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
-asObjectList = sequence . map asJSObject
+asObjectList = mapM asJSObject

@@ -80,7 +80,7 @@ options =
       (ReqArg (\ d opts -> opts { optOutPath = d }) "PATH")
       "directory in which to write output files"
     , Option ['v']     ["verbose"]
-      (NoArg (\ opts -> opts { optVerbose = (optVerbose opts) + 1 }))
+      (NoArg (\ opts -> opts { optVerbose = optVerbose opts + 1 }))
       "increase the verbosity level"
     , Option []        ["no-headers"]
       (NoArg (\ opts -> opts { optNoHeader = True }))
@@ -111,11 +111,11 @@ serializeInstance :: String -> Node.List -> Instance.Instance -> String
 serializeInstance csf nl inst =
     let
         iname = Instance.name inst ++ csf
-        pnode = (Container.nameOf nl $ Instance.pnode inst) ++ csf
+        pnode = Container.nameOf nl (Instance.pnode inst) ++ csf
         sidx = Instance.snode inst
         snode = (if sidx == Node.noSecondary
                     then ""
-                    else (Container.nameOf nl sidx) ++ csf)
+                    else Container.nameOf nl sidx ++ csf)
     in
       printf "%s|%d|%d|%d|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
@@ -181,11 +181,11 @@ main = do
                    let (nl, il, csf) = x
                        (_, fix_nl) = Loader.checkData nl il
                    putStrLn $ printCluster fix_nl il
-                   when (optShowNodes opts) $ do
-                           putStr $ Cluster.printNodes fix_nl
+                   when (optShowNodes opts) $
+                        putStr $ Cluster.printNodes fix_nl
                    let ndata = serializeNodes csf nl
                        idata = serializeInstances csf nl il
-                       oname = odir </> (fixSlash name)
+                       oname = odir </> fixSlash name
                    writeFile (oname <.> "nodes") ndata
                    writeFile (oname <.> "instances") idata)
        ) clusters

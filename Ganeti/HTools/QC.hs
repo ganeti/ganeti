@@ -168,7 +168,7 @@ test_Instance =
 -- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
                               Instance.dsk inst >= Node.f_dsk node) &&
-                             (not $ Node.failN1 node)
+                             not (Node.failN1 node)
                              ==>
                              isNothing(Node.addPri node inst)
     where _types = (node::Node.Node, inst::Instance.Instance)
@@ -178,7 +178,7 @@ prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
 prop_Node_addSec node inst pdx =
     (Instance.mem inst >= (Node.f_mem node - Node.r_mem node) ||
      Instance.dsk inst >= Node.f_dsk node) &&
-    (not $ Node.failN1 node)
+    not (Node.failN1 node)
     ==> isNothing(Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 

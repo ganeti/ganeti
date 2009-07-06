@@ -62,17 +62,11 @@ formatHost master =
 getInstances :: NameAssoc
              -> String
              -> Result [(String, Instance.Instance)]
-getInstances ktn body = do
-  arr <- loadJSArray body
-  ilist <- mapM (parseInstance ktn) arr
-  return ilist
+getInstances ktn body = loadJSArray body >>= mapM (parseInstance ktn)
 
 -- | Parse a node list in JSON format.
 getNodes :: String -> Result [(String, Node.Node)]
-getNodes body = do
-  arr <- loadJSArray body
-  nlist <- mapM parseNode arr
-  return nlist
+getNodes body = loadJSArray body >>= mapM parseNode
 
 -- | Construct an instance from a JSON object.
 parseInstance :: [(String, Ndx)]
@@ -96,18 +90,18 @@ parseNode :: JSObject JSValue -> Result (String, Node.Node)
 parseNode a = do
     name <- fromObj "name" a
     offline <- fromObj "offline" a
-    node <- (case offline of
-               True -> return $ Node.create name 0 0 0 0 0 0 True
-               _ -> do
-                 drained <- fromObj "drained" a
-                 mtotal  <- fromObj "mtotal"  a
-                 mnode   <- fromObj "mnode"   a
-                 mfree   <- fromObj "mfree"   a
-                 dtotal  <- fromObj "dtotal"  a
-                 dfree   <- fromObj "dfree"   a
-                 ctotal  <- fromObj "ctotal"  a
-                 return $ Node.create name mtotal mnode mfree
-                        dtotal dfree ctotal (offline || drained))
+    node <- (if offline
+             then return $ Node.create name 0 0 0 0 0 0 True
+             else do
+               drained <- fromObj "drained" a
+               mtotal  <- fromObj "mtotal"  a
+               mnode   <- fromObj "mnode"   a
+               mfree   <- fromObj "mfree"   a
+               dtotal  <- fromObj "dtotal"  a
+               dfree   <- fromObj "dfree"   a
+               ctotal  <- fromObj "ctotal"  a
+               return $ Node.create name mtotal mnode mfree
+                      dtotal dfree ctotal (offline || drained))
     return (name, node)
 
 -- | Builds the cluster data from an URL.
