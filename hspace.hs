@@ -216,6 +216,21 @@ printStats kind cs = do
   printf "%s max node allocatable RAM: %d\n" kind (Cluster.cs_mmem cs)
   printf "%s max node allocatable disk: %d\n" kind (Cluster.cs_mdsk cs)
 
+-- | Print final stats and related metrics
+printResults :: Node.List -> Int -> Int -> [(FailMode, Int)] -> IO ()
+printResults fin_nl num_instances allocs sreason = do
+  let fin_stats = Cluster.totalResources fin_nl
+      fin_instances = num_instances + allocs
+
+  printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
+  printf "Final instances: %d\n" (num_instances + allocs)
+  printStats "Final" fin_stats
+  printf "Usage: %.5f\n" ((fromIntegral num_instances::Double) /
+                          fromIntegral fin_instances)
+  printf "Allocations: %d\n" allocs
+  putStr (unlines . map (\(x, y) -> printf "%s: %d" (show x) y) $ sreason)
+  printf "Most likely fail reason: %s\n" (show . fst . head $ sreason)
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -265,11 +280,6 @@ main = do
   when (length csf > 0 && verbose > 1) $
        printf "Note: Stripping common suffix of '%s' from names\n" csf
 
-  let bad_nodes = fst $ Cluster.computeBadItems nl il
-  when (length bad_nodes > 0) $ do
-         putStrLn "Error: Cluster not N+1, no space to allocate."
-         exitWith $ ExitFailure 1
-
   when (optShowNodes opts) $
        do
          putStrLn "Initial cluster status:"
@@ -286,26 +296,24 @@ main = do
   printf "Initial instances: %d\n" num_instances
   printStats "Initial" ini_stats
 
+  let bad_nodes = fst $ Cluster.computeBadItems nl il
+  when (length bad_nodes > 0) $ do
+         -- This is failn1 case, so we print the same final stats and
+         -- exit early
+         printResults nl num_instances 0 [(FailN1, 1)]
+         exitWith ExitSuccess
+
   let nmlen = Container.maxNameLen nl
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
                 (optIVCPUs opts) "ADMIN_down" (-1) (-1)
 
   let (ereason, fin_nl, ixes) = iterateDepth nl il newinst req_nodes []
       allocs = length ixes
-      fin_instances = num_instances + allocs
       fin_ixes = reverse ixes
       ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
-      fin_stats = Cluster.totalResources fin_nl
       sreason = reverse $ sortBy (compare `on` snd) ereason
 
-  printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
-  printf "Final instances: %d\n" (num_instances + allocs)
-  printStats "Final" fin_stats
-  printf "Usage: %.5f\n" ((fromIntegral num_instances::Double) /
-                          fromIntegral fin_instances)
-  printf "Allocations: %d\n" allocs
-  putStr (unlines . map (\(x, y) -> printf "%s: %d" (show x) y) $ sreason)
-  printf "Most likely fail reason: %s\n" (show . fst . head $ sreason)
+  printResults fin_nl num_instances allocs sreason
 
   when (verbose > 1) $
          putStr . unlines . map (\i -> printf "Inst: %*s %-*s %-*s"
