@@ -446,38 +446,29 @@ computeMoves :: String -- ^ The instance name
                 -- either @/f/@ for failover or @/r:name/@ for replace
                 -- secondary, while the command list holds gnt-instance
                 -- commands (without that prefix), e.g \"@failover instance1@\"
-computeMoves i a b c d =
-    if c == a then {- Same primary -}
-        if d == b then {- Same sec??! -}
-            ("-", [])
+computeMoves i a b c d
+    -- same primary
+    | c == a =
+        if d == b
+        then {- Same sec??! -} ("-", [])
         else {- Change of secondary -}
-            (printf "r:%s" d,
-             [printf "replace-disks -n %s %s" d i])
-    else
-        if c == b then {- Failover and ... -}
-            if d == a then {- that's all -}
-                ("f", [printf "migrate -f %s" i])
-            else
-                (printf "f r:%s" d,
-                 [printf "migrate -f %s" i,
-                  printf "replace-disks -n %s %s" d i])
-        else
-            if d == a then {- ... and keep primary as secondary -}
-                (printf "r:%s f" c,
-                 [printf "replace-disks -n %s %s" c i,
-                  printf "migrate -f %s" i])
-            else
-                if d == b then {- ... keep same secondary -}
-                    (printf "f r:%s f" c,
-                     [printf "migrate -f %s" i,
-                      printf "replace-disks -n %s %s" c i,
-                      printf "migrate -f %s" i])
-
-                else {- Nothing in common -}
-                    (printf "r:%s f r:%s" c d,
-                     [printf "replace-disks -n %s %s" c i,
-                      printf "migrate -f %s" i,
-                      printf "replace-disks -n %s %s" d i])
+            (printf "r:%s" d, [rep d])
+    -- failover and ...
+    | c == b =
+        if d == a
+        then {- that's all -} ("f", [mig])
+        else (printf "f r:%s" d, [mig, rep d])
+    -- ... and keep primary as secondary
+    | d == a =
+        (printf "r:%s f" c, [rep c, mig])
+    -- ... keep same secondary
+    | d == b =
+        (printf "f r:%s f" c, [mig, rep c, mig])
+    -- nothing in common -
+    | otherwise =
+        (printf "r:%s f r:%s" c d, [rep c, mig, rep d])
+    where mig = printf "migrate -f %s" i::String
+          rep n = printf "replace-disks -n %s %s" n i
 
 -- | Converts a placement to string format.
 printSolutionLine :: Node.List     -- ^ The node list
