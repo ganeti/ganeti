@@ -517,7 +517,7 @@ def main():
     try:
       # activate ip
       master_node = ssconf.SimpleConfigReader().GetMasterNode()
-      if not rpc.RpcRunner.call_node_start_master(master_node, False):
+      if not rpc.RpcRunner.call_node_start_master(master_node, False, False):
         logging.error("Can't activate master IP address")
 
       master.setup_queue()

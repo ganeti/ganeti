@@ -682,14 +682,14 @@ class RpcRunner(object):
                                [checkdict, cluster_name])
 
   @classmethod
-  def call_node_start_master(cls, node, start_daemons):
+  def call_node_start_master(cls, node, start_daemons, no_voting):
     """Tells a node to activate itself as a master.
 
     This is a single-node call.
 
     """
     return cls._StaticSingleNodeCall(node, "node_start_master",
-                                     [start_daemons])
+                                     [start_daemons, no_voting])
 
   @classmethod
   def call_node_stop_master(cls, node, stop_daemons):

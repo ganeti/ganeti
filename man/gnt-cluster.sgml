@@ -460,14 +460,6 @@
         and gnt-cluster redist-conf to make sure the cluster is consistent again.
       </para>
 
-      <para>
-        In version 2.0.X ganeti-masterd will not be able to start if
-        masterfailover is called with the --no-voting option (which, again,
-        should only be used on 2 nodes clusters with the former master being
-        down). In that case just start it manually passing --no-voting to it
-        as well, until you have restored cluster redundancy.
-      </para>
-
     </refsect2>
 
     <refsect2>

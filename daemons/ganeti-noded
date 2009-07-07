@@ -520,7 +520,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Promote this node to master status.
 
     """
-    return backend.StartMaster(params[0])
+    return backend.StartMaster(params[0], params[1])
 
   @staticmethod
   def perspective_node_stop_master(params):

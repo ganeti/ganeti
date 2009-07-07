@@ -1403,7 +1403,7 @@ class LURenameCluster(LogicalUnit):
                         constants.SSH_KNOWN_HOSTS_FILE, to_node)
 
     finally:
-      result = self.rpc.call_node_start_master(master, False)
+      result = self.rpc.call_node_start_master(master, False, False)
       if result.failed or not result.data:
         self.LogWarning("Could not re-enable the master role on"
                         " the master, please restart manually.")
