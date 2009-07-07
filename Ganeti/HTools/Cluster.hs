@@ -176,8 +176,10 @@ compDetailedCV nl =
                                         (length . Node.slist $ n)) $ offline
         online_inst = sum . map (\n -> (length . Node.plist $ n) +
                                        (length . Node.slist $ n)) $ nodes
-        off_score = fromIntegral offline_inst /
-                    fromIntegral (online_inst + offline_inst)::Double
+        off_score = if offline_inst == 0
+                    then 0::Double
+                    else fromIntegral offline_inst /
+                         fromIntegral (offline_inst + online_inst)::Double
         cpu_l = map Node.p_cpu nodes
         cpu_cv = varianceCoeff cpu_l
     in (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv)
