@@ -26,7 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Node
-    ( Node(failN1, name, idx, t_mem, n_mem, f_mem, r_mem,
+    ( Node(failN1, name, idx,
+           t_mem, n_mem, f_mem, r_mem, x_mem,
            t_dsk, f_dsk,
            t_cpu, u_cpu,
            p_mem, p_dsk, p_rem, p_cpu,

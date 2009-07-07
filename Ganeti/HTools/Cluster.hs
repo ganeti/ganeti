@@ -90,14 +90,22 @@ data IMove = Failover                -- ^ Failover the instance (f)
 data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show)
 
-data CStats = CStats { cs_fmem :: Int -- ^ Cluster free mem
-                     , cs_fdsk :: Int -- ^ Cluster free disk
-                     , cs_amem :: Int -- ^ Cluster allocatable mem
-                     , cs_adsk :: Int -- ^ Cluster allocatable disk
-                     , cs_acpu :: Int -- ^ Cluster allocatable cpus
-                     , cs_mmem :: Int -- ^ Max node allocatable mem
-                     , cs_mdsk :: Int -- ^ Max node allocatable disk
-                     , cs_mcpu :: Int -- ^ Max node allocatable cpu
+data CStats = CStats { cs_fmem :: Int    -- ^ Cluster free mem
+                     , cs_fdsk :: Int    -- ^ Cluster free disk
+                     , cs_amem :: Int    -- ^ Cluster allocatable mem
+                     , cs_adsk :: Int    -- ^ Cluster allocatable disk
+                     , cs_acpu :: Int    -- ^ Cluster allocatable cpus
+                     , cs_mmem :: Int    -- ^ Max node allocatable mem
+                     , cs_mdsk :: Int    -- ^ Max node allocatable disk
+                     , cs_mcpu :: Int    -- ^ Max node allocatable cpu
+                     , cs_imem :: Int    -- ^ Instance used mem
+                     , cs_idsk :: Int    -- ^ Instance used disk
+                     , cs_icpu :: Int    -- ^ Instance used cpu
+                     , cs_tmem :: Double -- ^ Cluster total mem
+                     , cs_tdsk :: Double -- ^ Cluster total disk
+                     , cs_tcpu :: Double -- ^ Cluster total cpus
+                     , cs_xmem :: Int    -- ^ Unnacounted for mem
+                     , cs_nmem :: Int    -- ^ Node own memory
                      }
 
 -- * Utility functions
@@ -132,17 +140,34 @@ emptyCStats = CStats { cs_fmem = 0
                      , cs_mmem = 0
                      , cs_mdsk = 0
                      , cs_mcpu = 0
+                     , cs_imem = 0
+                     , cs_idsk = 0
+                     , cs_icpu = 0
+                     , cs_tmem = 0
+                     , cs_tdsk = 0
+                     , cs_tcpu = 0
+                     , cs_xmem = 0
+                     , cs_nmem = 0
                      }
 
 updateCStats :: CStats -> Node.Node -> CStats
 updateCStats cs node =
     let CStats { cs_fmem = x_fmem, cs_fdsk = x_fdsk,
                  cs_amem = x_amem, cs_acpu = x_acpu, cs_adsk = x_adsk,
-                 cs_mmem = x_mmem, cs_mdsk = x_mdsk, cs_mcpu = x_mcpu }
+                 cs_mmem = x_mmem, cs_mdsk = x_mdsk, cs_mcpu = x_mcpu,
+                 cs_imem = x_imem, cs_idsk = x_idsk, cs_icpu = x_icpu,
+                 cs_tmem = x_tmem, cs_tdsk = x_tdsk, cs_tcpu = x_tcpu,
+                 cs_xmem = x_xmem, cs_nmem = x_nmem
+               }
             = cs
         inc_amem = Node.f_mem node - Node.r_mem node
         inc_amem' = if inc_amem > 0 then inc_amem else 0
         inc_adsk = Node.availDisk node
+        inc_imem = truncate (Node.t_mem node) - Node.n_mem node
+                   - Node.x_mem node - Node.f_mem node
+        inc_icpu = Node.u_cpu node
+        inc_idsk = truncate (Node.t_dsk node) - Node.f_dsk node
+
     in CStats { cs_fmem = x_fmem + Node.f_mem node
               , cs_fdsk = x_fdsk + Node.f_dsk node
               , cs_amem = x_amem + inc_amem'
@@ -151,6 +176,14 @@ updateCStats cs node =
               , cs_mmem = max x_mmem inc_amem'
               , cs_mdsk = max x_mdsk inc_adsk
               , cs_mcpu = x_mcpu
+              , cs_imem = x_imem + inc_imem
+              , cs_idsk = x_idsk + inc_idsk
+              , cs_icpu = x_icpu + inc_icpu
+              , cs_tmem = x_tmem + Node.t_mem node
+              , cs_tdsk = x_tdsk + Node.t_dsk node
+              , cs_tcpu = x_tcpu + Node.t_cpu node
+              , cs_xmem = x_xmem + Node.x_mem node
+              , cs_nmem = x_nmem + Node.n_mem node
               }
 
 -- | Compute the total free disk and memory in the cluster.

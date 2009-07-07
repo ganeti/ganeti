@@ -209,10 +209,20 @@ printStats kind cs = do
   printf "%s allocatable RAM: %d\n" kind (Cluster.cs_amem cs)
   printf "%s reserved RAM: %d\n" kind (Cluster.cs_fmem cs -
                                        Cluster.cs_amem cs)
+  printf "%s instance RAM: %d\n" kind (Cluster.cs_imem cs)
+  printf "%s overhead RAM: %d\n" kind (Cluster.cs_xmem cs + Cluster.cs_nmem cs)
+  printf "%s RAM usage efficiency: %.8f\n"
+         kind (fromIntegral (Cluster.cs_imem cs) / Cluster.cs_tmem cs)
   printf "%s free disk: %d\n" kind (Cluster.cs_fdsk cs)
   printf "%s allocatable disk: %d\n" kind (Cluster.cs_adsk cs)
   printf "%s reserved disk: %d\n" kind (Cluster.cs_fdsk cs -
                                         Cluster.cs_adsk cs)
+  printf "%s instance disk: %d\n" kind (Cluster.cs_idsk cs)
+  printf "%s disk usage efficiency: %.8f\n"
+         kind (fromIntegral (Cluster.cs_idsk cs) / Cluster.cs_tdsk cs)
+  printf "%s instance cpus: %d\n" kind (Cluster.cs_icpu cs)
+  printf "%s cpu usage efficiency: %.8f\n"
+         kind (fromIntegral (Cluster.cs_icpu cs) / Cluster.cs_tcpu cs)
   printf "%s max node allocatable RAM: %d\n" kind (Cluster.cs_mmem cs)
   printf "%s max node allocatable disk: %d\n" kind (Cluster.cs_mdsk cs)
 
@@ -294,6 +304,9 @@ main = do
        ini_cv (Cluster.printStats nl)
    else
        printf "Initial score: %.8f\n" ini_cv)
+  printf "Cluster RAM: %.0f\n" (Cluster.cs_tmem ini_stats)
+  printf "Cluster disk: %.0f\n" (Cluster.cs_tdsk ini_stats)
+  printf "Cluster cpus: %.0f\n" (Cluster.cs_tcpu ini_stats)
   printf "Initial instances: %d\n" num_instances
   printStats "Initial" ini_stats
 
