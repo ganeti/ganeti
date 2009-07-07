@@ -42,7 +42,7 @@ import System.IO
 import System.Info
 import System
 import Monad
-import Text.Printf (printf)
+import Text.Printf (printf, hPrintf)
 import qualified Data.Version
 
 import qualified Ganeti.HTools.Version as Version(version)
@@ -151,13 +151,13 @@ loadExternalData opts = do
       (case ldresult of
          Ok x -> return x
          Bad s -> do
-           printf "Error: failed to load data. Details:\n%s\n" s
+           hPrintf stderr "Error: failed to load data. Details:\n%s\n" s
            exitWith $ ExitFailure 1
       )
   let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il
 
   unless (null fix_msgs || silent opts) $ do
-         putStrLn "Warning: cluster has inconsistent data:"
-         putStrLn . unlines . map (printf "  - %s") $ fix_msgs
+         hPutStrLn stderr "Warning: cluster has inconsistent data:"
+         hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
   return (fixed_nl, il, csf)

@@ -34,7 +34,7 @@ import System.IO
 import System.Console.GetOpt
 import qualified System
 
-import Text.Printf (printf)
+import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -224,8 +224,8 @@ main = do
       m_dsk = optMdsk opts
 
   when (length offline_wrong > 0) $ do
-         printf "Wrong node name(s) set as offline: %s\n"
-                (commaJoin offline_wrong)
+         hPrintf stderr "Wrong node name(s) set as offline: %s\n"
+                     (commaJoin offline_wrong)
          exitWith $ ExitFailure 1
 
   let nm = Container.map (\n -> if elem (Node.idx n) offline_indices

@@ -33,7 +33,7 @@ import System.IO
 import System.Console.GetOpt
 import qualified System
 
-import Text.Printf (printf)
+import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -241,14 +241,15 @@ main = do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
          exitWith $ ExitFailure 1
 
+  let verbose = optVerbose opts
+
+  (fixed_nl, il, csf) <- CLI.loadExternalData opts
+
   printf "Spec RAM: %d\n" (optIMem opts)
   printf "Spec disk: %d\n" (optIDsk opts)
   printf "Spec CPUs: %d\n" (optIVCPUs opts)
   printf "Spec nodes: %d\n" (optINodes opts)
 
-  let verbose = optVerbose opts
-
-  (fixed_nl, il, csf) <- CLI.loadExternalData opts
   let num_instances = length $ Container.elems il
 
   let offline_names = optOffline opts
@@ -263,12 +264,12 @@ main = do
       m_dsk = optMdsk opts
 
   when (length offline_wrong > 0) $ do
-         printf "Error: Wrong node name(s) set as offline: %s\n"
-                (commaJoin offline_wrong)
+         hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
+                     (commaJoin offline_wrong)
          exitWith $ ExitFailure 1
 
   when (req_nodes /= 1 && req_nodes /= 2) $ do
-         printf "Error: Invalid required nodes (%d)\n" req_nodes
+         hPrintf stderr "Error: Invalid required nodes (%d)\n" req_nodes
          exitWith $ ExitFailure 1
 
   let nm = Container.map (\n -> if elem (Node.idx n) offline_indices

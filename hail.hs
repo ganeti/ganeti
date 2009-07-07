@@ -124,7 +124,7 @@ main = do
 
   request <- case (parseData input_data) of
                Bad err -> do
-                 putStrLn $ "Error: " ++ err
+                 hPutStrLn stderr $ "Error: " ++ err
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
