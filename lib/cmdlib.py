@@ -1440,7 +1440,7 @@ class LURenameCluster(LogicalUnit):
           self.proc.LogWarning(msg)
 
     finally:
-      result = self.rpc.call_node_start_master(master, False)
+      result = self.rpc.call_node_start_master(master, False, False)
       msg = result.fail_msg
       if msg:
         self.LogWarning("Could not re-enable the master role on"

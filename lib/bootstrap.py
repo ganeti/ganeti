@@ -275,7 +275,7 @@ def InitCluster(cluster_name, mac_prefix,
   # start the master ip
   # TODO: Review rpc call from bootstrap
   # TODO: Warn on failed start master
-  rpc.RpcRunner.call_node_start_master(hostname.name, True)
+  rpc.RpcRunner.call_node_start_master(hostname.name, True, False)
 
 
 def InitConfig(version, cluster_config, master_node_config,
@@ -457,8 +457,7 @@ def MasterFailover(no_voting=False):
   # cluster info
   cfg.Update(cluster_info)
 
-  # 2.0.X: Don't start the master if no_voting is true
-  result = rpc.RpcRunner.call_node_start_master(new_master, not no_voting)
+  result = rpc.RpcRunner.call_node_start_master(new_master, True, no_voting)
   msg = result.RemoteFailMsg()
   if msg:
     logging.error("Could not start the master role on the new master"

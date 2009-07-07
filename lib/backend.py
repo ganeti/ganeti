@@ -177,7 +177,7 @@ def GetMasterInfo():
   return (master_netdev, master_ip, master_node)
 
 
-def StartMaster(start_daemons):
+def StartMaster(start_daemons, no_voting):
   """Activate local node as master node.
 
   The function will always try activate the IP address of the master
@@ -187,6 +187,9 @@ def StartMaster(start_daemons):
   @type start_daemons: boolean
   @param start_daemons: whether to also start the master
       daemons (ganeti-masterd and ganeti-rapi)
+  @type no_voting: boolean
+  @param no_voting: whether to start ganeti-masterd without a node vote
+      (if start_daemons is True), but still non-interactively
   @rtype: None
 
   """
@@ -217,8 +220,17 @@ def StartMaster(start_daemons):
 
   # and now start the master and rapi daemons
   if start_daemons:
-    for daemon in 'ganeti-masterd', 'ganeti-rapi':
-      result = utils.RunCmd([daemon])
+    daemons_params = {
+        'ganeti-masterd': [],
+        'ganeti-rapi': [],
+        }
+    if no_voting:
+      daemons_params['ganeti-masterd'].append('--no-voting')
+      daemons_params['ganeti-masterd'].append('--yes-do-it')
+    for daemon in daemons_params:
+      cmd = [daemon]
+      cmd.extend(daemons_params[daemon])
+      result = utils.RunCmd(cmd)
       if result.failed:
         msg = "Can't start daemon %s: %s" % (daemon, result.output)
         logging.error(msg)
