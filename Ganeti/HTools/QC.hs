@@ -46,6 +46,11 @@ import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Types as Types
 import qualified Ganeti.HTools.Utils as Utils
 
+-- | Simple checker for whether OpResult is fail or pass
+isFailure :: Types.OpResult a -> Bool
+isFailure (Types.OpFail _) = True
+isFailure _ = False
+
 -- copied from the introduction to quickcheck
 instance Arbitrary Char where
     arbitrary = choose ('\32', '\128')
@@ -59,7 +64,8 @@ instance Arbitrary Instance.Instance where
       run_st <- arbitrary
       pn <- arbitrary
       sn <- arbitrary
-      return $ Instance.create name mem dsk run_st pn sn
+      vcpus <- arbitrary
+      return $ Instance.create name mem dsk vcpus run_st pn sn
 
 -- and a random node
 instance Arbitrary Node.Node where
@@ -70,9 +76,10 @@ instance Arbitrary Node.Node where
       mem_n <- choose (0, mem_t - mem_f)
       dsk_t <- arbitrary
       dsk_f <- choose (0, dsk_t)
+      cpu_t <- arbitrary
       offl <- arbitrary
       let n = Node.create name (fromIntegral mem_t) mem_n mem_f
-              (fromIntegral dsk_t) dsk_f offl
+              (fromIntegral dsk_t) dsk_f cpu_t offl
           n' = Node.buildPeers n Container.empty
       return n'
 
@@ -170,7 +177,7 @@ prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
                               Instance.dsk inst >= Node.f_dsk node) &&
                              not (Node.failN1 node)
                              ==>
-                             isNothing(Node.addPri node inst)
+                             isFailure (Node.addPri node inst)
     where _types = (node::Node.Node, inst::Instance.Instance)
 
 
@@ -179,7 +186,7 @@ prop_Node_addSec node inst pdx =
     (Instance.mem inst >= (Node.f_mem node - Node.r_mem node) ||
      Instance.dsk inst >= Node.f_dsk node) &&
     not (Node.failN1 node)
-    ==> isNothing(Node.addSec node inst pdx)
+    ==> isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
 test_Node =
