@@ -65,7 +65,7 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailDisk -- ^ Failed due to not enough disk
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
-                deriving (Eq, Show)
+                deriving (Eq, Enum, Bounded, Show)
 
 -- | Either-like data-type customized for our failure modes
 data OpResult a = OpFail FailMode -- ^ Failed operation

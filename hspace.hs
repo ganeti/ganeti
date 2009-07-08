@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
+import Data.Char (toUpper)
 import Data.List
 import Data.Function
 import Monad
@@ -147,6 +148,50 @@ options =
       "show help"
     ]
 
+data Phase = PInitial | PFinal
+
+statsData :: [(String, Cluster.CStats -> String)]
+statsData = [ ("SCORE", printf "%.8f" . Cluster.cs_score)
+            , ("INST_CNT", printf "%d" . Cluster.cs_ninst)
+            , ("MEM_FREE", printf "%d" . Cluster.cs_fmem)
+            , ("MEM_AVAIL", printf "%d" . Cluster.cs_amem)
+            , ("MEM_RESVD",
+               \cs -> printf "%d" (Cluster.cs_fmem cs - Cluster.cs_amem cs))
+            , ("MEM_INST", printf "%d" . Cluster.cs_imem)
+            , ("MEM_OVERHEAD",
+               \cs -> printf "%d" (Cluster.cs_xmem cs + Cluster.cs_nmem cs))
+            , ("MEM_EFF",
+               \cs -> printf "%.8f" (fromIntegral (Cluster.cs_imem cs) /
+                                     Cluster.cs_tmem cs))
+            , ("DSK_FREE", printf "%d" . Cluster.cs_fdsk)
+            , ("DSK_AVAIL", printf "%d ". Cluster.cs_adsk)
+            , ("DSK_RESVD",
+               \cs -> printf "%d" (Cluster.cs_fdsk cs - Cluster.cs_adsk cs))
+            , ("DSK_INST", printf "%d" . Cluster.cs_idsk)
+            , ("DSK_EFF",
+               \cs -> printf "%.8f" (fromIntegral (Cluster.cs_idsk cs) /
+                                    Cluster.cs_tdsk cs))
+            , ("CPU_INST", printf "%d" . Cluster.cs_icpu)
+            , ("CPU_EFF",
+               \cs -> printf "%.8f" (fromIntegral (Cluster.cs_icpu cs) /
+                                     Cluster.cs_tcpu cs))
+            , ("MNODE_MEM_AVAIL", printf "%d" . Cluster.cs_mmem)
+            , ("MNODE_DSK_AVAIL", printf "%d" . Cluster.cs_mdsk)
+            ]
+
+specData :: [(String, Options -> String)]
+specData = [ ("MEM", printf "%d" . optIMem)
+           , ("DSK", printf "%d" . optIDsk)
+           , ("CPU", printf "%d" . optIVCPUs)
+           , ("RQN", printf "%d" . optINodes)
+           ]
+
+clusterData :: [(String, Cluster.CStats -> String)]
+clusterData = [ ("MEM", printf "%.0f" . Cluster.cs_tmem)
+              , ("DSK", printf "%.0f" . Cluster.cs_tdsk)
+              , ("CPU", printf "%.0f" . Cluster.cs_tcpu)
+              ]
+
 -- | Build failure stats out of a list of failure reasons
 concatFailure :: [(FailMode, Int)] -> FailMode -> [(FailMode, Int)]
 concatFailure flst reason =
@@ -169,7 +214,7 @@ filterFails sols =
                                    ) $ sols
         aval = concat alst
         bval = concat blst
-    in (foldl' concatFailure [] aval, bval)
+    in (foldl' concatFailure [(x, 0) | x <- [minBound..maxBound]] aval, bval)
 
 -- | Get the placement with best score out of a list of possible placements
 processResults :: [(Node.List, Instance.Instance, [Node.Node])]
@@ -203,30 +248,12 @@ iterateDepth nl il newinst nreq ixes =
                        in iterateDepth xnl il newinst nreq (xi:ixes)
 
 -- | Function to print stats for a given phase
-printStats :: String -> Cluster.CStats -> IO ()
-printStats kind cs = do
-  printf "%s score: %.8f\n" kind (Cluster.cs_score cs)
-  printf "%s instances: %d\n" kind (Cluster.cs_ninst cs)
-  printf "%s free RAM: %d\n" kind (Cluster.cs_fmem cs)
-  printf "%s allocatable RAM: %d\n" kind (Cluster.cs_amem cs)
-  printf "%s reserved RAM: %d\n" kind (Cluster.cs_fmem cs -
-                                       Cluster.cs_amem cs)
-  printf "%s instance RAM: %d\n" kind (Cluster.cs_imem cs)
-  printf "%s overhead RAM: %d\n" kind (Cluster.cs_xmem cs + Cluster.cs_nmem cs)
-  printf "%s RAM usage efficiency: %.8f\n"
-         kind (fromIntegral (Cluster.cs_imem cs) / Cluster.cs_tmem cs)
-  printf "%s free disk: %d\n" kind (Cluster.cs_fdsk cs)
-  printf "%s allocatable disk: %d\n" kind (Cluster.cs_adsk cs)
-  printf "%s reserved disk: %d\n" kind (Cluster.cs_fdsk cs -
-                                        Cluster.cs_adsk cs)
-  printf "%s instance disk: %d\n" kind (Cluster.cs_idsk cs)
-  printf "%s disk usage efficiency: %.8f\n"
-         kind (fromIntegral (Cluster.cs_idsk cs) / Cluster.cs_tdsk cs)
-  printf "%s instance cpus: %d\n" kind (Cluster.cs_icpu cs)
-  printf "%s cpu usage efficiency: %.8f\n"
-         kind (fromIntegral (Cluster.cs_icpu cs) / Cluster.cs_tcpu cs)
-  printf "%s max node allocatable RAM: %d\n" kind (Cluster.cs_mmem cs)
-  printf "%s max node allocatable disk: %d\n" kind (Cluster.cs_mdsk cs)
+printStats :: Phase -> Cluster.CStats -> [(String, String)]
+printStats ph cs =
+  map (\(s, fn) -> (printf "%s_%s" kind s, fn cs)) statsData
+  where kind = case ph of
+                 PInitial -> "INI"
+                 PFinal -> "FIN"
 
 -- | Print final stats and related metrics
 printResults :: Node.List -> Int -> Int -> [(FailMode, Int)] -> IO ()
@@ -241,12 +268,21 @@ printResults fin_nl num_instances allocs sreason = do
                                  (Cluster.cs_ninst fin_stats)
          exitWith $ ExitFailure 1
 
-  printStats "Final" fin_stats
-  printf "Usage: %.5f\n" ((fromIntegral num_instances::Double) /
-                          fromIntegral fin_instances)
-  printf "Allocations: %d\n" allocs
-  putStr (unlines . map (\(x, y) -> printf "%s: %d" (show x) y) $ sreason)
-  printf "Most likely fail reason: %s\n" (show . fst . head $ sreason)
+  printKeys $ printStats PFinal fin_stats
+  printKeys [ ("ALLOC_USAGE", printf "%.8f"
+                                ((fromIntegral num_instances::Double) /
+                                 fromIntegral fin_instances))
+            , ("ALLOC_COUNT", printf "%d" allocs)
+            , ("ALLOC_FAIL_REASON", map toUpper . show . fst $ head sreason)
+            ]
+  printKeys $ map (\(x, y) -> (printf "ALLOC_%s_CNT" (show x),
+                               printf "%d" y)) sreason
+  -- this should be the final entry
+  printKeys [("OK", "1")]
+
+-- | Format a list of key/values as a shell fragment
+printKeys :: [(String, String)] -> IO ()
+printKeys = mapM_ (\(k, v) -> printf "HTS_%s=%s\n" (map toUpper k) v)
 
 -- | Main function.
 main :: IO ()
@@ -262,10 +298,7 @@ main = do
 
   (fixed_nl, il, csf) <- CLI.loadExternalData opts
 
-  printf "Spec RAM: %d\n" (optIMem opts)
-  printf "Spec disk: %d\n" (optIDsk opts)
-  printf "Spec CPUs: %d\n" (optIVCPUs opts)
-  printf "Spec nodes: %d\n" (optINodes opts)
+  printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn opts)) specData
 
   let num_instances = length $ Container.elems il
 
@@ -296,24 +329,23 @@ main = do
            nm
 
   when (length csf > 0 && verbose > 1) $
-       printf "Note: Stripping common suffix of '%s' from names\n" csf
+       hPrintf stderr "Note: Stripping common suffix of '%s' from names\n" csf
 
   when (optShowNodes opts) $
        do
-         putStrLn "Initial cluster status:"
-         putStrLn $ Cluster.printNodes nl
+         hPutStrLn stderr "Initial cluster status:"
+         hPutStrLn stderr $ Cluster.printNodes nl
 
   let ini_cv = Cluster.compCV nl
       ini_stats = Cluster.totalResources nl
 
   when (verbose > 2) $ do
-         printf "Initial coefficients: overall %.8f, %s\n"
-                ini_cv (Cluster.printStats nl)
+         hPrintf stderr "Initial coefficients: overall %.8f, %s\n"
+                 ini_cv (Cluster.printStats nl)
 
-  printf "Cluster RAM: %.0f\n" (Cluster.cs_tmem ini_stats)
-  printf "Cluster disk: %.0f\n" (Cluster.cs_tdsk ini_stats)
-  printf "Cluster cpus: %.0f\n" (Cluster.cs_tcpu ini_stats)
-  printStats "Initial" ini_stats
+  printKeys $ map (\(a, fn) -> ("CLUSTER_" ++ a, fn ini_stats)) clusterData
+  printKeys [("CLUSTER_NODES", printf "%d" (length all_nodes))]
+  printKeys $ printStats PInitial ini_stats
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
   when (length bad_nodes > 0) $ do
@@ -332,19 +364,20 @@ main = do
       ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
       sreason = reverse $ sortBy (compare `on` snd) ereason
 
-  printResults fin_nl num_instances allocs sreason
-
   when (verbose > 1) $
-         putStr . unlines . map (\i -> printf "Inst: %*s %-*s %-*s"
-                     ix_namelen (Instance.name i)
-                     nmlen (Container.nameOf fin_nl $ Instance.pnode i)
-                     nmlen (let sdx = Instance.snode i
-                            in if sdx == Node.noSecondary then ""
-                               else Container.nameOf fin_nl sdx))
-         $ fin_ixes
+         hPutStr stderr . unlines $
+         map (\i -> printf "Inst: %*s %-*s %-*s"
+                    ix_namelen (Instance.name i)
+                    nmlen (Container.nameOf fin_nl $ Instance.pnode i)
+                    nmlen (let sdx = Instance.snode i
+                           in if sdx == Node.noSecondary then ""
+                              else Container.nameOf fin_nl sdx)
+             ) fin_ixes
 
   when (optShowNodes opts) $
        do
-         putStrLn ""
-         putStrLn "Final cluster status:"
-         putStrLn $ Cluster.printNodes fin_nl
+         hPutStrLn stderr ""
+         hPutStrLn stderr "Final cluster status:"
+         hPutStrLn stderr $ Cluster.printNodes fin_nl
+
+  printResults fin_nl num_instances allocs sreason

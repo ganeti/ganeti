@@ -28,8 +28,121 @@ cluster, until the point where we don't have any N+1 possible
 allocation. It uses the exact same allocation algorithm as the hail
 iallocator plugin.
 
-With default options, the output of the program is designed to be
-parseable; when the -p option is passed, this is no longer true.
+The output of the program is designed to interpreted as a shell
+fragment (or parsed as a \fIkey=value\fR file). Options which extend
+the output (e.g. -p, -v) will output the additional information on
+stderr (such that the stdout is still parseable).
+
+The following keys are available in the output of the script (all
+prefixed with \fIHTS_\fR):
+.TP
+.I SPEC_MEM, SPEC_DSK, SPEC_CPU, SPEC_RQN
+These represent the specifications of the instance model used for
+allocation (the memory, disk, cpu, requested nodes).
+
+.TP
+.I CLUSTER_MEM, CLUSTER_DSK, CLUSTER_CPU, CLUSTER_NODES
+These represent the total memory, disk, CPU count and total nodes in
+the cluster.
+
+.TP
+.I INI_SCORE, FIN_SCORE
+These are the initial (current) and final cluster score (see the hbal
+man page for details about the scoring algorithm).
+
+.TP
+.I INI_INST_CNT, FIN_INST_CNT
+The initial and final instance count.
+
+.TP
+.I INI_MEM_FREE, FIN_MEM_FREE
+The initial and final total free memory in the cluster (but this
+doesn't necessarily mean available for use).
+
+.TP
+.I INI_MEM_AVAIL, FIN_MEM_AVAIL
+The initial and final total available memory for allocation in the
+cluster. If allocating redundant instances, new instances could
+increase the reserved memory so it doesn't necessarily mean the
+entirety of this memory can be used for new instance allocations.
+
+.TP
+.I INI_MEM_RESVD, FIN_MEM_RESVD
+The initial and final reserved memory (for redundancy/N+1 purposes).
+
+.TP
+.I INI_MEM_INST, FIN_MEM_INST
+The initial and final memory used for instances (actual runtime used
+RAM).
+
+.TP
+.I INI_MEM_OVERHEAD, FIN_MEM_OVERHEAD
+The initial and final memory overhead - memory used for the node
+itself and unacounted memory (e.g. due to hypervisor overhead).
+
+.TP
+.I INI_MEM_EFF, HTS_INI_MEM_EFF
+The initial and final memory efficiency, represented as instance
+memory divided by total memory.
+
+.TP
+.I INI_DSK_FREE, INI_DSK_AVAIL, INI_DSK_RESVD, INI_DSK_INST, INI_DSK_EFF
+Initial disk stats, similar to the memory ones.
+
+.TP
+.I FIN_DSK_FREE, FIN_DSK_AVAIL, FIN_DSK_RESVD, FIN_DSK_INST, FIN_DSK_EFF
+Final disk stats, similar to the memory ones.
+
+.TP
+.I INI_CPU_INST, FIN_CPU_INST
+Initial and final number of virtual CPUs used by instances.
+
+.TP
+.I INI_CPU_EFF, FIN_CPU_EFF
+The initial and final CPU efficiency, represented as the count of
+virtual instance CPUs divided by the total physical CPU count.
+
+.TP
+.I INI_MNODE_MEM_AVAIL, FIN_MNODE_MEM_AVAIL
+The initial and final maximum per-node available memory. This is not
+very useful as a metric but can give an impression of the status of
+the nodes; as an example, this value restricts the maximum instance
+size that can be still created on the cluster.
+
+.TP
+.I INI_MNODE_DSK_AVAIL, FIN_MNODE_DSK_AVAIL
+Like the above but for disk.
+
+.TP
+.I ALLOC_USAGE
+The current usage represented as initial number of instances divided
+per final number of instances.
+
+.TP
+.I ALLOC_COUNT
+The number of instances allocated (delta between FIN_INST_CNT and
+INI_INST_CNT).
+
+.TP
+.I ALLOC_FAIL*_CNT
+For the last attemp at allocations (which would have increased
+FIN_INST_CNT with one, if it had succeeded), this is the count of the
+failure reasons per failure type; currently defined are FAILMEM,
+FAILDISK and FAILCPU which represent errors due to not enough memory,
+disk and CPUs, and FAILN1 which represents a non N+1 compliant cluster
+on which we can't allocate instances at all.
+
+.TP
+.I ALLOC_FAIL_REASON
+The reason for most of the failures, being one of the above FAIL*
+strings.
+
+.TP
+.I OK
+A marker representing the successful end of the computation, and
+having value "1". If this key is not present in the output it means
+that the computation failed and any values present should not be
+relied upon.
 
 .SH OPTIONS
 The options that can be passed to the program are as follows:
@@ -162,7 +275,7 @@ considered a fully-specified URL and is used as-is.
 Increase the output verbosity. Each usage of this option will increase
 the verbosity (currently more than 2 doesn't make sense) from the
 default of one. At verbosity 2 the location of the new instances is
-shown in program output.
+shown in the standard error.
 
 .TP
 .B -q, --quiet
@@ -188,56 +301,6 @@ really big clusters.
 The algorithm doesn't rebalance the cluster or try to get the optimal
 fit; it just allocates in the best place for the current step, without
 taking into consideration the impact on future placements.
-
-.SH EXAMPLE
-
-.SS Default output
-
-.in +4n
-.nf
-.RB "$" " hspace --mem 16 --disk 16 --req-nodes 2"
-Initial score: 0.38988095
-Initial instances: 3
-Initial free RAM: 546
-Initial free disk: 260600
-Final score: 0.32638889
-Final instances: 7
-Final free RAM: 482
-Final free disk: 260472
-Usage: 0.43
-Allocations: 4
-.fi
-.in
-
-This shows that (on this fake cluster), starting from 3 initial
-instances, using the hail iallocator plugin, it would be possible to
-add four (Allocations: 4) new instances to the cluster.
-
-.SS Verbose output
-
-For the same cluster as above:
-.in +4n
-.nf
-.RB "$" " hspace --mem 16 --disk 16 --req-nodes 2 -v"
-Initial score: 0.38988095
-Initial instances: 3
-Initial free RAM: 546
-Initial free disk: 260600
-Final score: 0.32638889
-Final instances: 7
-Final free RAM: 482
-Final free disk: 260472
-Usage: 0.43
-Allocations: 4
-Inst: new-0 node2 node1
-Inst: new-1 node2 node1
-Inst: new-2 node2 node1
-Inst: new-3 node2 node1
-.fi
-.in
-
-The output now includes the placement for the new instances (named
-\fBnew-\fInumber\fR).
 
 .SH ENVIRONMENT
 
