@@ -207,10 +207,11 @@ filterFails :: Cluster.AllocSolution
             -> ([(FailMode, Int)],
                 [(Node.List, Instance.Instance, [Node.Node])])
 filterFails sols =
-    let (alst, blst) = unzip . map (\ (onl, i, nn) ->
-                                        case onl of
+    let (alst, blst) = unzip . map (\ e  ->
+                                        case e of
                                           OpFail reason -> ([reason], [])
-                                          OpGood gnl -> ([], [(gnl, i, nn)])
+                                          OpGood (gnl, i, nn) ->
+                                              ([], [(gnl, i, nn)])
                                    ) $ sols
         aval = concat alst
         bval = concat blst

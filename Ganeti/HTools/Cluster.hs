@@ -76,7 +76,7 @@ type Score = Double
 type Placement = (Idx, Ndx, Ndx, Score)
 
 -- | Allocation\/relocation solution.
-type AllocSolution = [(OpResult Node.List, Instance.Instance, [Node.Node])]
+type AllocSolution = [OpResult (Node.List, Instance.Instance, [Node.Node])]
 
 -- | An instance move definition
 data IMove = Failover                -- ^ Failover the instance (f)
@@ -244,7 +244,7 @@ compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
 
 -- | Applies an instance move to a given node list and instance.
 applyMove :: Node.List -> Instance.Instance
-          -> IMove -> (OpResult Node.List, Instance.Instance, Ndx, Ndx)
+          -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
 applyMove nl inst Failover =
     let old_pdx = Instance.pnode inst
@@ -256,8 +256,10 @@ applyMove nl inst Failover =
         new_nl = do -- Maybe monad
           new_p <- Node.addPri int_s inst
           new_s <- Node.addSec int_p inst old_sdx
-          return $ Container.addTwo old_pdx new_s old_sdx new_p nl
-    in (new_nl, Instance.setBoth inst old_sdx old_pdx, old_sdx, old_pdx)
+          let new_inst = Instance.setBoth inst old_sdx old_pdx
+          return (Container.addTwo old_pdx new_s old_sdx new_p nl,
+                  new_inst, old_sdx, old_pdx)
+    in new_nl
 
 -- Replace the primary (f:, r:np, f)
 applyMove nl inst (ReplacePrimary new_pdx) =
@@ -275,9 +277,11 @@ applyMove nl inst (ReplacePrimary new_pdx) =
           let tmp_s' = Node.removePri tmp_s inst
           new_p <- Node.addPri tgt_n inst
           new_s <- Node.addSec tmp_s' inst new_pdx
-          return . Container.add new_pdx new_p $
-                 Container.addTwo old_pdx int_p old_sdx new_s nl
-    in (new_nl, Instance.setPri inst new_pdx, new_pdx, old_sdx)
+          let new_inst = Instance.setPri inst new_pdx
+          return (Container.add new_pdx new_p $
+                  Container.addTwo old_pdx int_p old_sdx new_s nl,
+                  new_inst, new_pdx, old_sdx)
+    in new_nl
 
 -- Replace the secondary (r:ns)
 applyMove nl inst (ReplaceSecondary new_sdx) =
@@ -286,10 +290,12 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
         old_s = Container.find old_sdx nl
         tgt_n = Container.find new_sdx nl
         int_s = Node.removeSec old_s inst
+        new_inst = Instance.setSec inst new_sdx
         new_nl = Node.addSec tgt_n inst old_pdx >>=
-                 \new_s -> return $ Container.addTwo new_sdx
-                           new_s old_sdx int_s nl
-    in (new_nl, Instance.setSec inst new_sdx, old_pdx, new_sdx)
+                 \new_s -> return (Container.addTwo new_sdx
+                                   new_s old_sdx int_s nl,
+                                   new_inst, old_pdx, new_sdx)
+    in new_nl
 
 -- Replace the secondary and failover (r:np, f)
 applyMove nl inst (ReplaceAndFailover new_pdx) =
@@ -303,9 +309,11 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
         new_nl = do -- Maybe monad
           new_p <- Node.addPri tgt_n inst
           new_s <- Node.addSec int_p inst new_pdx
-          return . Container.add new_pdx new_p $
-                 Container.addTwo old_pdx new_s old_sdx int_s nl
-    in (new_nl, Instance.setBoth inst new_pdx old_pdx, new_pdx, old_pdx)
+          let new_inst = Instance.setBoth inst new_pdx old_pdx
+          return (Container.add new_pdx new_p $
+                  Container.addTwo old_pdx new_s old_sdx int_s nl,
+                  new_inst, new_pdx, old_pdx)
+    in new_nl
 
 -- Failver and replace the secondary (f, r:ns)
 applyMove nl inst (FailoverAndReplace new_sdx) =
@@ -319,30 +327,34 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
         new_nl = do -- Maybe monad
           new_p <- Node.addPri int_s inst
           new_s <- Node.addSec tgt_n inst old_sdx
-          return . Container.add new_sdx new_s $
-                 Container.addTwo old_sdx new_p old_pdx int_p nl
-    in (new_nl, Instance.setBoth inst old_sdx new_sdx, old_sdx, new_sdx)
+          let new_inst = Instance.setBoth inst old_sdx new_sdx
+          return (Container.add new_sdx new_s $
+                  Container.addTwo old_sdx new_p old_pdx int_p nl,
+                  new_inst, old_sdx, new_sdx)
+    in new_nl
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
-                 -> (OpResult Node.List, Instance.Instance)
+                 -> OpResult (Node.List, Instance.Instance)
 allocateOnSingle nl inst p =
     let new_pdx = Node.idx p
+        new_inst = Instance.setBoth inst new_pdx Node.noSecondary
         new_nl = Node.addPri p inst >>= \new_p ->
-                 return $ Container.add new_pdx new_p nl
-    in (new_nl, Instance.setBoth inst new_pdx Node.noSecondary)
+                 return (Container.add new_pdx new_p nl, new_inst)
+    in new_nl
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
-               -> (OpResult Node.List, Instance.Instance)
+               -> OpResult (Node.List, Instance.Instance)
 allocateOnPair nl inst tgt_p tgt_s =
     let new_pdx = Node.idx tgt_p
         new_sdx = Node.idx tgt_s
         new_nl = do -- Maybe monad
           new_p <- Node.addPri tgt_p inst
           new_s <- Node.addSec tgt_s inst new_pdx
-          return $ Container.addTwo new_pdx new_p new_sdx new_s nl
-    in (new_nl, Instance.setBoth inst new_pdx new_sdx)
+          let new_inst = Instance.setBoth inst new_pdx new_sdx
+          return (Container.addTwo new_pdx new_p new_sdx new_s nl, new_inst)
+    in new_nl
 
 -- | Tries to perform an instance move and returns the best table
 -- between the original one and the new one.
@@ -354,11 +366,11 @@ checkSingleStep :: Table -- ^ The original table
 checkSingleStep ini_tbl target cur_tbl move =
     let
         Table ini_nl ini_il _ ini_plc = ini_tbl
-        (tmp_nl, new_inst, pri_idx, sec_idx) = applyMove ini_nl target move
+        tmp_resu = applyMove ini_nl target move
     in
-      case tmp_nl of
+      case tmp_resu of
         OpFail _ -> cur_tbl
-        OpGood upd_nl ->
+        OpGood (upd_nl, new_inst, pri_idx, sec_idx)  ->
             let tgt_idx = Instance.idx target
                 upd_cvar = compCV upd_nl
                 upd_il = Container.add tgt_idx new_inst ini_il
@@ -435,15 +447,17 @@ tryAlloc nl _ inst 2 =
     let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
-        sols = map (\(p, s) -> let (mnl, i) = allocateOnPair nl inst p s
-                               in (mnl, i, [p, s]))
+        sols = map (\(p, s) -> do
+                      (mnl, i) <- allocateOnPair nl inst p s
+                      return (mnl, i, [p, s]))
                ok_pairs
     in return sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
-        sols = map (\p -> let (mnl, i) = allocateOnSingle nl inst p
-                          in (mnl, i, [p]))
+        sols = map (\p -> do
+                      (mnl, i) <- allocateOnSingle nl inst p
+                      return (mnl, i, [p]))
                all_nodes
     in return sols
 
@@ -465,9 +479,9 @@ tryReloc nl il xid 1 ex_idx =
         ex_idx' = Instance.pnode inst:ex_idx
         valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
-        sols1 = map (\x -> let (mnl, i, _, _) =
-                                   applyMove nl inst (ReplaceSecondary x)
-                           in (mnl, i, [Container.find x nl])
+        sols1 = map (\x -> do
+                       (mnl, i, _, _) <- applyMove nl inst (ReplaceSecondary x)
+                       return (mnl, i, [Container.find x nl])
                      ) valid_idxes
     in return sols1
 

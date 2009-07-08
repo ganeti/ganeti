@@ -72,15 +72,15 @@ options =
     ]
 
 
-filterFails :: (Monad m) => [(OpResult Node.List,
-                              Instance.Instance, [Node.Node])]
+filterFails :: (Monad m) =>
+               [OpResult (Node.List, Instance.Instance, [Node.Node])]
             -> m [(Node.List, [Node.Node])]
 filterFails sols =
     if null sols then fail "No nodes onto which to allocate at all"
-    else let sols' = concatMap (\ (onl, _, nn) ->
-                                    case onl of
+    else let sols' = concatMap (\ e ->
+                                    case e of
                                       OpFail _ -> []
-                                      OpGood gnl -> [(gnl, nn)]
+                                      OpGood (gnl, _, nn) -> [(gnl, nn)]
                                ) sols
          in
            if null sols'
@@ -102,7 +102,7 @@ processResults sols =
 
 -- | Process a request and return new node lists
 processRequest :: Request
-               -> Result [(OpResult Node.List, Instance.Instance, [Node.Node])]
+               -> Result [OpResult (Node.List, Instance.Instance, [Node.Node])]
 processRequest request =
   let Request rqtype nl il _ = request
   in case rqtype of
