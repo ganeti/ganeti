@@ -205,6 +205,8 @@ iterateDepth nl il newinst nreq ixes =
 -- | Function to print stats for a given phase
 printStats :: String -> Cluster.CStats -> IO ()
 printStats kind cs = do
+  printf "%s score: %.8f\n" kind (Cluster.cs_score cs)
+  printf "%s instances: %d\n" kind (Cluster.cs_ninst cs)
   printf "%s free RAM: %d\n" kind (Cluster.cs_fmem cs)
   printf "%s allocatable RAM: %d\n" kind (Cluster.cs_amem cs)
   printf "%s reserved RAM: %d\n" kind (Cluster.cs_fmem cs -
@@ -232,8 +234,13 @@ printResults fin_nl num_instances allocs sreason = do
   let fin_stats = Cluster.totalResources fin_nl
       fin_instances = num_instances + allocs
 
-  printf "Final score: %.8f\n" (Cluster.compCV fin_nl)
-  printf "Final instances: %d\n" (num_instances + allocs)
+  when (num_instances + allocs /= Cluster.cs_ninst fin_stats) $
+       do
+         hPrintf stderr "ERROR: internal inconsistency, allocated (%d)\
+                        \ != counted (%d)\n" (num_instances + allocs)
+                                 (Cluster.cs_ninst fin_stats)
+         exitWith $ ExitFailure 1
+
   printStats "Final" fin_stats
   printf "Usage: %.5f\n" ((fromIntegral num_instances::Double) /
                           fromIntegral fin_instances)
@@ -299,15 +306,13 @@ main = do
   let ini_cv = Cluster.compCV nl
       ini_stats = Cluster.totalResources nl
 
-  (if verbose > 2 then
-       printf "Initial coefficients: overall %.8f, %s\n"
-       ini_cv (Cluster.printStats nl)
-   else
-       printf "Initial score: %.8f\n" ini_cv)
+  when (verbose > 2) $ do
+         printf "Initial coefficients: overall %.8f, %s\n"
+                ini_cv (Cluster.printStats nl)
+
   printf "Cluster RAM: %.0f\n" (Cluster.cs_tmem ini_stats)
   printf "Cluster disk: %.0f\n" (Cluster.cs_tdsk ini_stats)
   printf "Cluster cpus: %.0f\n" (Cluster.cs_tcpu ini_stats)
-  printf "Initial instances: %d\n" num_instances
   printStats "Initial" ini_stats
 
   let bad_nodes = fst $ Cluster.computeBadItems nl il
