@@ -45,13 +45,10 @@ module Ganeti.HTools.Cluster
     , formatCmds
     , printNodes
     -- * Balacing functions
-    , applyMove
     , checkMove
     , compCV
     , printStats
     -- * IAllocator functions
-    , allocateOnSingle
-    , allocateOnPair
     , tryAlloc
     , tryReloc
     ) where
@@ -335,17 +332,17 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
-                 -> OpResult (Node.List, Instance.Instance)
+                 -> OpResult (Node.List, Instance.Instance, [Node.Node])
 allocateOnSingle nl inst p =
     let new_pdx = Node.idx p
         new_inst = Instance.setBoth inst new_pdx Node.noSecondary
         new_nl = Node.addPri p inst >>= \new_p ->
-                 return (Container.add new_pdx new_p nl, new_inst)
+                 return (Container.add new_pdx new_p nl, new_inst, [new_p])
     in new_nl
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
-               -> OpResult (Node.List, Instance.Instance)
+               -> OpResult (Node.List, Instance.Instance, [Node.Node])
 allocateOnPair nl inst tgt_p tgt_s =
     let new_pdx = Node.idx tgt_p
         new_sdx = Node.idx tgt_s
@@ -353,7 +350,8 @@ allocateOnPair nl inst tgt_p tgt_s =
           new_p <- Node.addPri tgt_p inst
           new_s <- Node.addSec tgt_s inst new_pdx
           let new_inst = Instance.setBoth inst new_pdx new_sdx
-          return (Container.addTwo new_pdx new_p new_sdx new_s nl, new_inst)
+          return (Container.addTwo new_pdx new_p new_sdx new_s nl, new_inst,
+                 [new_p, new_s])
     in new_nl
 
 -- | Tries to perform an instance move and returns the best table
@@ -447,18 +445,12 @@ tryAlloc nl _ inst 2 =
     let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
-        sols = map (\(p, s) -> do
-                      (mnl, i) <- allocateOnPair nl inst p s
-                      return (mnl, i, [p, s]))
-               ok_pairs
+        sols = map (uncurry $ allocateOnPair nl inst) ok_pairs
     in return sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
-        sols = map (\p -> do
-                      (mnl, i) <- allocateOnSingle nl inst p
-                      return (mnl, i, [p]))
-               all_nodes
+        sols = map (allocateOnSingle nl inst) all_nodes
     in return sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
