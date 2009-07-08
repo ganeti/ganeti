@@ -424,7 +424,15 @@ def MasterFailover(opts, args):
   @return: the desired exit code
 
   """
-  return bootstrap.MasterFailover()
+  if opts.no_voting:
+    usertext = ("This will perform the failover even if most other nodes"
+                " are down, or if this node is outdated. This is dangerous"
+                " as it can lead to a non-consistent cluster. Check the"
+                " gnt-cluster(8) man page before proceeding. Continue?")
+    if not AskUser(usertext):
+      return 1
+
+  return bootstrap.MasterFailover(no_voting=opts.no_voting)
 
 
 def SearchTags(opts, args):
@@ -619,7 +627,12 @@ commands = {
              "", "Does a check on the cluster configuration"),
   'verify-disks': (VerifyDisks, ARGS_NONE, [DEBUG_OPT],
                    "", "Does a check on the cluster disk status"),
-  'masterfailover': (MasterFailover, ARGS_NONE, [DEBUG_OPT],
+  'masterfailover': (MasterFailover, ARGS_NONE, [DEBUG_OPT,
+                     make_option("--no-voting", dest="no_voting",
+                                 help="Skip node agreement check (dangerous)",
+                                 action="store_true",
+                                 default=False,),
+                     ],
                      "", "Makes the current node the master"),
   'version': (ShowClusterVersion, ARGS_NONE, [DEBUG_OPT],
               "", "Shows the cluster version"),

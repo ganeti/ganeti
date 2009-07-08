@@ -25,7 +25,6 @@
 
 import os
 import os.path
-import re
 
 from ganeti import utils
 from ganeti import constants

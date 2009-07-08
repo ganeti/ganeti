@@ -161,7 +161,7 @@ class BlockDev(object):
     """Remove this device.
 
     This makes sense only for some of the device types: LV and file
-    storeage. Also note that if the device can't attach, the removal
+    storage. Also note that if the device can't attach, the removal
     can't be completed.
 
     """
@@ -444,7 +444,7 @@ class LogicalVolume(BlockDev):
   def Assemble(self):
     """Assemble the device.
 
-    We alway run `lvchange -ay` on the LV to ensure it's active before
+    We always run `lvchange -ay` on the LV to ensure it's active before
     use, as there were cases when xenvg was not active after boot
     (also possibly after disk issues).
 
@@ -828,7 +828,13 @@ class BaseDRBD(BlockDev):
     bytes = sectors * 512
     if bytes < 128 * 1024 * 1024: # less than 128MiB
       _ThrowError("Meta device too small (%.2fMib)", (bytes / 1024 / 1024))
-    if bytes > (128 + 32) * 1024 * 1024: # account for an extra (big) PE on LVM
+    # the maximum *valid* size of the meta device when living on top
+    # of LVM is hard to compute: it depends on the number of stripes
+    # and the PE size; e.g. a 2-stripe, 64MB PE will result in a 128MB
+    # (normal size), but an eight-stripe 128MB PE will result in a 1GB
+    # size meta device; as such, we restrict it to 1GB (a little bit
+    # too generous, but making assumptions about PE size is hard)
+    if bytes > 1024 * 1024 * 1024:
       _ThrowError("Meta device too big (%.2fMiB)", (bytes / 1024 / 1024))
 
   def Rename(self, new_id):
@@ -1252,14 +1258,14 @@ class DRBD8(BaseDRBD):
 
 
     If sync_percent is None, it means all is ok
-    If estimated_time is None, it means we can't esimate
+    If estimated_time is None, it means we can't estimate
     the time needed, otherwise it's the time left in seconds.
 
 
     We set the is_degraded parameter to True on two conditions:
     network not connected or local disk missing.
 
-    We compute the ldisk parameter based on wheter we have a local
+    We compute the ldisk parameter based on whether we have a local
     disk or not.
 
     @rtype: tuple
@@ -1329,14 +1335,14 @@ class DRBD8(BaseDRBD):
 
     ever_disconnected = _IgnoreError(self._ShutdownNet, self.minor)
     timeout_limit = time.time() + self._NET_RECONFIG_TIMEOUT
-    sleep_time = 0.100 # we start the retry time at 100 miliseconds
+    sleep_time = 0.100 # we start the retry time at 100 milliseconds
     while time.time() < timeout_limit:
       status = self.GetProcStatus()
       if status.is_standalone:
         break
       # retry the disconnect, it seems possible that due to a
       # well-time disconnect on the peer, my disconnect command might
-      # be ingored and forgotten
+      # be ignored and forgotten
       ever_disconnected = _IgnoreError(self._ShutdownNet, self.minor) or \
                           ever_disconnected
       time.sleep(sleep_time)
@@ -1641,7 +1647,7 @@ class FileStorage(BlockDev):
   def Shutdown(self):
     """Shutdown the device.
 
-    This is a no-op for the file type, as we don't deacivate
+    This is a no-op for the file type, as we don't deactivate
     the file on shutdown.
 
     """

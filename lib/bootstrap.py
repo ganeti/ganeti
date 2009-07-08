@@ -79,24 +79,27 @@ def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
   """
   (fd, tmp_file_name) = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
-    # Set permissions before writing key
-    os.chmod(tmp_file_name, 0600)
+    try:
+      # Set permissions before writing key
+      os.chmod(tmp_file_name, 0600)
 
-    result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
-                           "-days", str(validity), "-nodes", "-x509",
-                           "-keyout", tmp_file_name, "-out", tmp_file_name,
-                           "-batch"])
-    if result.failed:
-      raise errors.OpExecError("Could not generate SSL certificate, command"
-                               " %s had exitcode %s and error message %s" %
-                               (result.cmd, result.exit_code, result.output))
+      result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
+                             "-days", str(validity), "-nodes", "-x509",
+                             "-keyout", tmp_file_name, "-out", tmp_file_name,
+                             "-batch"])
+      if result.failed:
+        raise errors.OpExecError("Could not generate SSL certificate, command"
+                                 " %s had exitcode %s and error message %s" %
+                                 (result.cmd, result.exit_code, result.output))
 
-    # Make read-only
-    os.chmod(tmp_file_name, 0400)
+      # Make read-only
+      os.chmod(tmp_file_name, 0400)
 
-    os.rename(tmp_file_name, file_name)
+      os.rename(tmp_file_name, file_name)
+    finally:
+      utils.RemoveFile(tmp_file_name)
   finally:
-    utils.RemoveFile(tmp_file_name)
+    os.close(fd)
 
 
 def _InitGanetiServerSetup():
@@ -384,12 +387,16 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                              (node, result.fail_reason, result.output))
 
 
-def MasterFailover():
+def MasterFailover(no_voting=False):
   """Failover the master node.
 
   This checks that we are not already the master, and will cause the
   current master to cease being master, and the non-master to become
   new master.
+
+  @type no_voting: boolean
+  @param no_voting: force the operation without remote nodes agreement
+                      (dangerous)
 
   """
   sstore = ssconf.SimpleStore()
@@ -412,18 +419,20 @@ def MasterFailover():
                                " master candidates is:\n"
                                "%s" % ('\n'.join(mc_no_master)))
 
-  vote_list = GatherMasterVotes(node_list)
+  if not no_voting:
+    vote_list = GatherMasterVotes(node_list)
 
-  if vote_list:
-    voted_master = vote_list[0][0]
-    if voted_master is None:
-      raise errors.OpPrereqError("Cluster is inconsistent, most nodes did not"
-                                 " respond.")
-    elif voted_master != old_master:
-      raise errors.OpPrereqError("I have wrong configuration, I believe the"
-                                 " master is %s but the other nodes voted for"
-                                 " %s. Please resync the configuration of"
-                                 " this node." % (old_master, voted_master))
+    if vote_list:
+      voted_master = vote_list[0][0]
+      if voted_master is None:
+        raise errors.OpPrereqError("Cluster is inconsistent, most nodes did"
+                                   " not respond.")
+      elif voted_master != old_master:
+        raise errors.OpPrereqError("I have a wrong configuration, I believe"
+                                   " the master is %s but the other nodes"
+                                   " voted %s. Please resync the configuration"
+                                   " of this node." %
+                                   (old_master, voted_master))
   # end checks
 
   rcode = 0
@@ -448,7 +457,8 @@ def MasterFailover():
   # cluster info
   cfg.Update(cluster_info)
 
-  result = rpc.RpcRunner.call_node_start_master(new_master, True)
+  # 2.0.X: Don't start the master if no_voting is true
+  result = rpc.RpcRunner.call_node_start_master(new_master, not no_voting)
   msg = result.RemoteFailMsg()
   if msg:
     logging.error("Could not start the master role on the new master"
@@ -490,7 +500,7 @@ def GatherMasterVotes(node_list):
 
   @type node_list: list
   @param node_list: the list of nodes to query for master info; the current
-      node wil be removed if it is in the list
+      node will be removed if it is in the list
   @rtype: list
   @return: list of (node, votes)
 

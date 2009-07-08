@@ -25,8 +25,6 @@
 
 import logging
 
-import ganeti.cli
-
 from ganeti import luxi
 from ganeti import rapi
 from ganeti import http
@@ -247,7 +245,7 @@ class R_Generic(object):
         val = 0
     try:
       val = int(val)
-    except (ValueError, TypeError), err:
+    except (ValueError, TypeError):
       raise http.HttpBadRequest("Invalid value for the"
                                 " '%s' parameter" % (name,))
     return val

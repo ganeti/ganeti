@@ -195,6 +195,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
 
   def send_message(self, msg):
     #print "sending", msg
+    # TODO: sendall is not guaranteed to send everything
     self.request.sendall(msg + self.EOM)
 
 
@@ -403,6 +404,10 @@ def ParseOptions():
                     help="Do not check that the nodes agree on this node"
                     " being the master and start the daemon unconditionally",
                     default=False, action="store_true")
+  parser.add_option("--yes-do-it", dest="yes_do_it",
+                    help="Override interactive check for --no-voting",
+                    default=False, action="store_true")
+
   options, args = parser.parse_args()
   return options, args
 
@@ -479,7 +484,7 @@ def main():
     ssconf.CheckMaster(options.debug)
 
     # we believe we are the master, let's ask the other nodes...
-    if options.no_voting:
+    if options.no_voting and not options.yes_do_it:
       sys.stdout.write("The 'no voting' option has been selected.\n")
       sys.stdout.write("This is dangerous, please confirm by"
                        " typing uppercase 'yes': ")
@@ -488,7 +493,7 @@ def main():
       if confirmation != "YES":
         print "Aborting."
         return
-    else:
+    elif not options.no_voting:
       if not CheckAgreement():
         return
 

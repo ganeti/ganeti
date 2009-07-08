@@ -474,8 +474,8 @@ class ConfigWriter:
     def _AppendUsedPorts(instance_name, disk, used):
       duplicates = []
       if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
-        nodeA, nodeB, dummy, minorA, minorB = disk.logical_id[:5]
-        for node, port in ((nodeA, minorA), (nodeB, minorB)):
+        node_a, node_b, _, minor_a, minor_b = disk.logical_id[:5]
+        for node, port in ((node_a, minor_a), (node_b, minor_b)):
           assert node in used, ("Node '%s' of instance '%s' not found"
                                 " in node list" % (node, instance_name))
           if port in used[node]:
@@ -796,7 +796,7 @@ class ConfigWriter:
                                     self._config_data.instances.keys())
 
   def _UnlockedGetInstanceInfo(self, instance_name):
-    """Returns informations about an instance.
+    """Returns information about an instance.
 
     This function is for internal use, when the config lock is already held.
 
@@ -808,9 +808,9 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceInfo(self, instance_name):
-    """Returns informations about an instance.
+    """Returns information about an instance.
 
-    It takes the information from the configuration file. Other informations of
+    It takes the information from the configuration file. Other information of
     an instance are taken from the live systems.
 
     @param instance_name: name of the instance, e.g.
@@ -945,15 +945,19 @@ class ConfigWriter:
                     for node in self._UnlockedGetNodeList()])
     return my_dict
 
-  def _UnlockedGetMasterCandidateStats(self):
+  def _UnlockedGetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum desired and possible candidates.
 
+    @type exceptions: list
+    @param exceptions: if passed, list of nodes that should be ignored
     @rtype: tuple
     @return: tuple of (current, desired and possible)
 
     """
     mc_now = mc_max = 0
-    for node in self._config_data.nodes.itervalues():
+    for node in self._config_data.nodes.values():
+      if exceptions and node.name in exceptions:
+        continue
       if not (node.offline or node.drained):
         mc_max += 1
       if node.master_candidate:
@@ -962,16 +966,18 @@ class ConfigWriter:
     return (mc_now, mc_max)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetMasterCandidateStats(self):
+  def GetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum possible candidates.
 
     This is just a wrapper over L{_UnlockedGetMasterCandidateStats}.
 
+    @type exceptions: list
+    @param exceptions: if passed, list of nodes that should be ignored
     @rtype: tuple
     @return: tuple of (current, max)
 
     """
-    return self._UnlockedGetMasterCandidateStats()
+    return self._UnlockedGetMasterCandidateStats(exceptions)
 
   @locking.ssynchronized(_config_lock)
   def MaintainCandidatePool(self):
@@ -1203,7 +1209,7 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetClusterInfo(self):
-    """Returns informations about the cluster
+    """Returns information about the cluster
 
     @rtype: L{objects.Cluster}
     @return: the cluster object

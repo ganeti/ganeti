@@ -68,7 +68,7 @@ class LogicalUnit(object):
   def __init__(self, processor, op, context, rpc):
     """Constructor for LogicalUnit.
 
-    This needs to be overriden in derived classes in order to check op
+    This needs to be overridden in derived classes in order to check op
     validity.
 
     """
@@ -118,7 +118,7 @@ class LogicalUnit(object):
     CheckPrereq, doing these separate is better because:
 
       - ExpandNames is left as as purely a lock-related function
-      - CheckPrereq is run after we have aquired locks (and possible
+      - CheckPrereq is run after we have acquired locks (and possible
         waited for them)
 
     The function is allowed to change the self.op attribute so that
@@ -456,7 +456,7 @@ def _CheckNodeNotDrained(lu, node):
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           memory, vcpus, nics, disk_template, disks,
-                          bep, hvp, hypervisor):
+                          bep, hvp, hypervisor_name):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -479,15 +479,15 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param nics: list of tuples (ip, mac, mode, link) representing
       the NICs the instance has
   @type disk_template: string
-  @param disk_template: the distk template of the instance
+  @param disk_template: the disk template of the instance
   @type disks: list
   @param disks: the list of (size, mode) pairs
   @type bep: dict
   @param bep: the backend parameters for the instance
   @type hvp: dict
   @param hvp: the hypervisor parameters for the instance
-  @type hypervisor: string
-  @param hypervisor: the hypervisor for the instance
+  @type hypervisor_name: string
+  @param hypervisor_name: the hypervisor for the instance
   @rtype: dict
   @return: the hook environment for this instance
 
@@ -506,7 +506,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
-    "INSTANCE_HYPERVISOR": hypervisor,
+    "INSTANCE_HYPERVISOR": hypervisor_name,
   }
 
   if nics:
@@ -654,7 +654,7 @@ class LUDestroyCluster(NoHooksLU):
 
     This checks whether the cluster is empty.
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     master = self.cfg.GetMasterNode()
@@ -705,7 +705,7 @@ class LUVerifyCluster(LogicalUnit):
     Test list:
 
       - compares ganeti version
-      - checks vg existance and size > 20G
+      - checks vg existence and size > 20G
       - checks config file checksum
       - checks ssh to other nodes
 
@@ -787,8 +787,8 @@ class LUVerifyCluster(LogicalUnit):
           else:
             # not candidate and this is not a must-have file
             bad = True
-            feedback_fn("  - ERROR: non master-candidate has old/wrong file"
-                        " '%s'" % file_name)
+            feedback_fn("  - ERROR: file '%s' should not exist on non master"
+                        " candidates (and the file is outdated)" % file_name)
         else:
           # all good, except non-master/non-must have combination
           if not node_is_mc and not must_have_file:
@@ -944,7 +944,7 @@ class LUVerifyCluster(LogicalUnit):
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
         if nodeinfo['mfree'] < needed_mem:
-          feedback_fn("  - ERROR: not enough memory on node %s to accomodate"
+          feedback_fn("  - ERROR: not enough memory on node %s to accommodate"
                       " failovers should node %s fail" % (node, prinode))
           bad = True
     return bad
@@ -963,7 +963,7 @@ class LUVerifyCluster(LogicalUnit):
   def BuildHooksEnv(self):
     """Build hooks env.
 
-    Cluster-Verify hooks just rone in the post phase and their failure makes
+    Cluster-Verify hooks just ran in the post phase and their failure makes
     the output be logged in the verify output and the verification to fail.
 
     """
@@ -1231,7 +1231,7 @@ class LUVerifyCluster(LogicalUnit):
     return not bad
 
   def HooksCallBack(self, phase, hooks_results, feedback_fn, lu_result):
-    """Analize the post-hooks' result
+    """Analyze the post-hooks' result
 
     This method analyses the hook result, handles it, and sends some
     nicely-formatted feedback back to the user.
@@ -1337,7 +1337,6 @@ class LUVerifyDisks(NoHooksLU):
 
     node_lvs = self.rpc.call_lv_list(nodes, vg_name)
 
-    to_act = set()
     for node in nodes:
       # node_volume
       node_res = node_lvs[node]
@@ -1453,7 +1452,7 @@ def _RecursiveCheckIfLVMBased(disk):
 
   @type disk: L{objects.Disk}
   @param disk: the disk to check
-  @rtype: booleean
+  @rtype: boolean
   @return: boolean indicating whether a LD_LV dev_type was found or not
 
   """
@@ -1909,7 +1908,7 @@ class LURemoveNode(LogicalUnit):
      - it does not have primary or secondary instances
      - it's not the master
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.node_name))
@@ -2239,7 +2238,7 @@ class LUAddNode(LogicalUnit):
      - it is resolvable
      - its parameters (single/dual homed) matches the cluster
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     node_name = self.op.node_name
@@ -2293,7 +2292,7 @@ class LUAddNode(LogicalUnit):
         raise errors.OpPrereqError("The master has a private ip but the"
                                    " new node doesn't have one")
 
-    # checks reachablity
+    # checks reachability
     if not utils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Node not reachable by ping")
 
@@ -2305,14 +2304,24 @@ class LUAddNode(LogicalUnit):
                                    " based ping to noded port")
 
     cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-    mc_now, _ = self.cfg.GetMasterCandidateStats()
-    master_candidate = mc_now < cp_size
+    if self.op.readd:
+      exceptions = [node]
+    else:
+      exceptions = []
+    mc_now, mc_max = self.cfg.GetMasterCandidateStats(exceptions)
+    # the new node will increase mc_max with one, so:
+    mc_max = min(mc_max + 1, cp_size)
+    self.master_candidate = mc_now < mc_max
 
-    self.new_node = objects.Node(name=node,
-                                 primary_ip=primary_ip,
-                                 secondary_ip=secondary_ip,
-                                 master_candidate=master_candidate,
-                                 offline=False, drained=False)
+    if self.op.readd:
+      self.new_node = self.cfg.GetNodeInfo(node)
+      assert self.new_node is not None, "Can't retrieve locked node %s" % node
+    else:
+      self.new_node = objects.Node(name=node,
+                                   primary_ip=primary_ip,
+                                   secondary_ip=secondary_ip,
+                                   master_candidate=self.master_candidate,
+                                   offline=False, drained=False)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
@@ -2320,6 +2329,20 @@ class LUAddNode(LogicalUnit):
     """
     new_node = self.new_node
     node = new_node.name
+
+    # for re-adds, reset the offline/drained/master-candidate flags;
+    # we need to reset here, otherwise offline would prevent RPC calls
+    # later in the procedure; this also means that if the re-add
+    # fails, we are left with a non-offlined, broken node
+    if self.op.readd:
+      new_node.drained = new_node.offline = False
+      self.LogInfo("Readding a node, the offline/drained flags were reset")
+      # if we demote the node, we do cleanup later in the procedure
+      new_node.master_candidate = self.master_candidate
+
+    # notify the user about any possible mc promotion
+    if new_node.master_candidate:
+      self.LogInfo("Node will be a master candidate")
 
     # check connectivity
     result = self.rpc.call_version([node])[node]
@@ -2386,6 +2409,15 @@ class LUAddNode(LogicalUnit):
     if self.op.readd:
       _RedistributeAncillaryFiles(self)
       self.context.ReaddNode(new_node)
+      # make sure we redistribute the config
+      self.cfg.Update(new_node)
+      # and make sure the new node will not have old files around
+      if not new_node.master_candidate:
+        result = self.rpc.call_node_demote_from_mc(new_node.name)
+        msg = result.RemoteFailMsg()
+        if msg:
+          self.LogWarning("Node failed to demote itself from master"
+                          " candidate status: %s" % msg)
     else:
       _RedistributeAncillaryFiles(self, additional_nodes=[node])
       self.context.AddNode(new_node)
@@ -2505,6 +2537,10 @@ class LUSetNodeParams(LogicalUnit):
           node.master_candidate = False
           changed_mc = True
           result.append(("master_candidate", "auto-demotion due to drain"))
+          rrc = self.rpc.call_node_demote_from_mc(node.name)
+          msg = rrc.RemoteFailMsg()
+          if msg:
+            self.LogWarning("Node failed to demote itself: %s" % msg)
         if node.offline:
           node.offline = False
           result.append(("offline", "clear offline status due to drain"))
@@ -2593,8 +2629,8 @@ class LUQueryClusterInfo(NoHooksLU):
       "master": cluster.master_node,
       "default_hypervisor": cluster.default_hypervisor,
       "enabled_hypervisors": cluster.enabled_hypervisors,
-      "hvparams": dict([(hvname, cluster.hvparams[hvname])
-                        for hvname in cluster.enabled_hypervisors]),
+      "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor])
+                        for hypervisor_name in cluster.enabled_hypervisors]),
       "beparams": cluster.beparams,
       "nicparams": cluster.nicparams,
       "candidate_pool_size": cluster.candidate_pool_size,
@@ -2757,7 +2793,7 @@ def _StartInstanceDisks(lu, instance, force):
   """Start the disks of an instance.
 
   """
-  disks_ok, dummy = _AssembleInstanceDisks(lu, instance,
+  disks_ok, _ = _AssembleInstanceDisks(lu, instance,
                                            ignore_secondaries=force)
   if not disks_ok:
     _ShutdownInstanceDisks(lu, instance)
@@ -2943,7 +2979,7 @@ class LUStartupInstance(LogicalUnit):
     _CheckNodeOnline(self, instance.primary_node)
 
     bep = self.cfg.GetClusterInfo().FillBE(instance)
-    # check bridges existance
+    # check bridges existence
     _CheckInstanceBridgesExist(self, instance)
 
     remote_info = self.rpc.call_instance_info(instance.primary_node,
@@ -3022,7 +3058,7 @@ class LURebootInstance(LogicalUnit):
 
     _CheckNodeOnline(self, instance.primary_node)
 
-    # check bridges existance
+    # check bridges existence
     _CheckInstanceBridgesExist(self, instance)
 
   def Exec(self, feedback_fn):
@@ -3762,7 +3798,7 @@ class LUFailoverInstance(LogicalUnit):
       logging.info("Starting instance %s on node %s",
                    instance.name, target_node)
 
-      disks_ok, dummy = _AssembleInstanceDisks(self, instance,
+      disks_ok, _ = _AssembleInstanceDisks(self, instance,
                                                ignore_secondaries=True)
       if not disks_ok:
         _ShutdownInstanceDisks(self, instance)
@@ -5501,7 +5537,6 @@ class LUReplaceDisks(LogicalUnit):
     logging.debug("Allocated minors %s" % (minors,))
     self.proc.LogStep(4, steps_total, "changing drbd configuration")
     for idx, (dev, new_minor) in enumerate(zip(instance.disks, minors)):
-      size = dev.size
       info("activating a new drbd on %s for disk/%d" % (new_node, idx))
       # create new devices on new_node; note that we create two IDs:
       # one without port, so the drbd will be activated without
@@ -6077,7 +6112,7 @@ class LUSetInstanceParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
-    force = self.force = self.op.force
+    self.force = self.op.force
 
     # checking the new params on the primary/secondary nodes
 
@@ -6435,7 +6470,7 @@ class LUExportInstance(LogicalUnit):
     # remove it from its current node. In the future we could fix this by:
     #  - making a tasklet to search (share-lock all), then create the new one,
     #    then one to remove, after
-    #  - removing the removal operation altoghether
+    #  - removing the removal operation altogether
     self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def DeclareLocks(self, level):
@@ -7097,7 +7132,6 @@ class IAllocator(object):
     """
     if call_fn is None:
       call_fn = self.lu.rpc.call_iallocator_runner
-    data = self.in_text
 
     result = call_fn(self.lu.cfg.GetMasterNode(), name, self.in_text)
     result.Raise("Failure while running the iallocator script")

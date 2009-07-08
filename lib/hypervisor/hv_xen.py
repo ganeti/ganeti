@@ -94,7 +94,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: list of (name, id, memory, vcpus, state, time spent)
 
     """
-    for dummy in range(5):
+    for _ in range(5):
       result = utils.RunCmd(["xm", "list"])
       if not result.failed:
         break
