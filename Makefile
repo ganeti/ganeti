@@ -72,4 +72,7 @@ else
 	hpc report test $(HPCEXCL)
 endif
 
-.PHONY : all doc maintainer-clean clean dist check
+tags:
+	find -name '*.hs' | xargs hasktags -e
+
+.PHONY : all doc maintainer-clean clean dist check tags
