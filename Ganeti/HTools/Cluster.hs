@@ -488,7 +488,7 @@ tryAlloc nl _ inst 1 =
                       ) ([], 0, Nothing) all_nodes
     in return sols
 
-tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
+tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
                              \destinations required (" ++ show reqn ++
                                                "), only two supported"
 

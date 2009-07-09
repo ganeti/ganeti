@@ -198,19 +198,17 @@ iterateDepth :: Node.List
              -> Instance.Instance
              -> Int
              -> [Instance.Instance]
-             -> ([(FailMode, Int)], Node.List, [Instance.Instance])
+             -> Result (FailStats, Node.List, [Instance.Instance])
 iterateDepth nl il newinst nreq ixes =
       let depth = length ixes
           newname = printf "new-%d" depth::String
           newidx = length (Container.elems il) + depth
           newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
-          sols = Cluster.tryAlloc nl il newi2 nreq::
-                 OpResult Cluster.AllocSolution
-      in case sols of
-           OpFail _ -> ([], nl, ixes)
-           OpGood (errs, _, sols3) ->
+      in case Cluster.tryAlloc nl il newi2 nreq of
+           Bad s -> Bad s
+           Ok (errs, _, sols3) ->
                case sols3 of
-                 Nothing -> (Cluster.collapseFailures errs, nl, ixes)
+                 Nothing -> Ok (Cluster.collapseFailures errs, nl, ixes)
                  Just (_, (xnl, xi, _)) ->
                      iterateDepth xnl il newinst nreq $! (xi:ixes)
 
@@ -239,7 +237,7 @@ printResults fin_nl num_instances allocs sreason = do
   printKeys [ ("ALLOC_USAGE", printf "%.8f"
                                 ((fromIntegral num_instances::Double) /
                                  fromIntegral fin_instances))
-            , ("ALLOC_COUNT", printf "%d" allocs)
+            , ("ALLOC_INSTANCES", printf "%d" allocs)
             , ("ALLOC_FAIL_REASON", map toUpper . show . fst $ head sreason)
             ]
   printKeys $ map (\(x, y) -> (printf "ALLOC_%s_CNT" (show x),
@@ -325,8 +323,13 @@ main = do
       newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
                 (optIVCPUs opts) "ADMIN_down" (-1) (-1)
 
-  let (ereason, fin_nl, ixes) = iterateDepth nl il newinst req_nodes []
-      allocs = length ixes
+  let result = iterateDepth nl il newinst req_nodes []
+  (ereason, fin_nl, ixes) <- (case result of
+                                Bad s -> do
+                                  hPrintf stderr "Failure: %s\n" s
+                                  exitWith $ ExitFailure 1
+                                Ok x -> return x)
+  let allocs = length ixes
       fin_ixes = reverse ixes
       ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
       sreason = reverse $ sortBy (compare `on` snd) ereason
