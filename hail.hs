@@ -37,7 +37,6 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.CLI as CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Types
@@ -72,37 +71,21 @@ options =
     ]
 
 
-filterFails :: (Monad m) =>
-               [OpResult (Node.List, Instance.Instance, [Node.Node])]
-            -> m [(Node.List, [Node.Node])]
-filterFails sols =
-    if null sols then fail "No nodes onto which to allocate at all"
-    else let sols' = concatMap (\ e ->
-                                    case e of
-                                      OpFail _ -> []
-                                      OpGood (gnl, _, nn) -> [(gnl, nn)]
-                               ) sols
-         in
-           if null sols'
-           then fail "No valid allocation solutions"
-           else return sols'
-
-processResults :: (Monad m) => [(Node.List, [Node.Node])]
-               -> m (String, [Node.Node])
-processResults sols =
-    let sols' = map (\(nl', ns) -> (Cluster.compCV  nl', ns)) sols
-        sols'' = sortBy (compare `on` fst) sols'
-        (best, w) = head sols''
-        (worst, l) = last sols''
-        info = printf "Valid results: %d, best score: %.8f for node(s) %s, \
-                      \worst score: %.8f for node(s) %s" (length sols'')
-                      best (intercalate "/" . map Node.name $ w)
-                      worst (intercalate "/" . map Node.name $ l)::String
-    in return (info, w)
+processResults :: (Monad m) => Cluster.AllocSolution -> m (String, [Node.Node])
+processResults (fstats, succ, sols) =
+    case sols of
+      Nothing -> fail "No valid allocation solutions"
+      Just (best, (_, _, w)) ->
+          let tfails = length fstats
+              info = printf "successes %d, failures %d,\
+                            \ best score: %.8f for node(s) %s"
+                            succ tfails
+                            best (intercalate "/" . map Node.name $ w)::String
+          in return (info, w)
 
 -- | Process a request and return new node lists
 processRequest :: Request
-               -> Result [OpResult (Node.List, Instance.Instance, [Node.Node])]
+               -> Result Cluster.AllocSolution
 processRequest request =
   let Request rqtype nl il _ = request
   in case rqtype of
@@ -129,10 +112,11 @@ main = do
                Ok rq -> return rq
 
   let Request _ _ _ csf = request
-      sols = processRequest request >>= filterFails >>= processResults
-  let (ok, info, rn) = case sols of
-               Ok (info, sn) -> (True, "Request successful: " ++ info,
-                                     map ((++ csf) . Node.name) sn)
-               Bad s -> (False, "Request failed: " ++ s, [])
+      sols = processRequest request >>= processResults
+  let (ok, info, rn) =
+          case sols of
+            Ok (info, sn) -> (True, "Request successful: " ++ info,
+                                  map ((++ csf) . Node.name) sn)
+            Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rn
   putStrLn resp

@@ -30,6 +30,7 @@ module Ganeti.HTools.Types
     , Result(..)
     , Element(..)
     , FailMode(..)
+    , FailStats
     , OpResult(..)
     ) where
 
@@ -66,6 +67,9 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
                 deriving (Eq, Enum, Bounded, Show)
+
+-- | List with failure statistics
+type FailStats = [(FailMode, Int)]
 
 -- | Either-like data-type customized for our failure modes
 data OpResult a = OpFail FailMode -- ^ Failed operation

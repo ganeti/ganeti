@@ -192,39 +192,6 @@ clusterData = [ ("MEM", printf "%.0f" . Cluster.cs_tmem)
               , ("CPU", printf "%.0f" . Cluster.cs_tcpu)
               ]
 
--- | Build failure stats out of a list of failure reasons
-concatFailure :: [(FailMode, Int)] -> FailMode -> [(FailMode, Int)]
-concatFailure flst reason =
-    let cval = lookup reason flst
-    in case cval of
-         Nothing -> (reason, 1):flst
-         Just val -> let plain = filter (\(x, _) -> x /= reason) flst
-                     in (reason, val+1):plain
-
--- | Build list of failures and placements out of an list of possible
--- | allocations
-filterFails :: Cluster.AllocSolution
-            -> ([(FailMode, Int)],
-                [(Node.List, Instance.Instance, [Node.Node])])
-filterFails sols =
-    let (alst, blst) = unzip . map (\ e  ->
-                                        case e of
-                                          OpFail reason -> ([reason], [])
-                                          OpGood (gnl, i, nn) ->
-                                              ([], [(gnl, i, nn)])
-                                   ) $ sols
-        aval = concat alst
-        bval = concat blst
-    in (foldl' concatFailure [(x, 0) | x <- [minBound..maxBound]] aval, bval)
-
--- | Get the placement with best score out of a list of possible placements
-processResults :: [(Node.List, Instance.Instance, [Node.Node])]
-               -> (Node.List, Instance.Instance, [Node.Node])
-processResults sols =
-    let sols' = map (\e@(nl', _, _) -> (Cluster.compCV  nl', e)) sols
-        sols'' = sortBy (compare `on` fst) sols'
-    in snd $ head sols''
-
 -- | Recursively place instances on the cluster until we're out of space
 iterateDepth :: Node.List
              -> Instance.List
@@ -241,12 +208,11 @@ iterateDepth nl il newinst nreq ixes =
                  OpResult Cluster.AllocSolution
       in case sols of
            OpFail _ -> ([], nl, ixes)
-           OpGood sols' ->
-               let (errs, sols3) = filterFails sols'
-               in if null sols3
-                  then (errs, nl, ixes)
-                  else let (xnl, xi, _) = processResults sols3
-                       in iterateDepth xnl il newinst nreq (xi:ixes)
+           OpGood (errs, _, sols3) ->
+               case sols3 of
+                 Nothing -> (Cluster.collapseFailures errs, nl, ixes)
+                 Just (_, (xnl, xi, _)) ->
+                     iterateDepth xnl il newinst nreq $! (xi:ixes)
 
 -- | Function to print stats for a given phase
 printStats :: Phase -> Cluster.CStats -> [(String, String)]

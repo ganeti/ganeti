@@ -51,6 +51,7 @@ module Ganeti.HTools.Cluster
     -- * IAllocator functions
     , tryAlloc
     , tryReloc
+    , collapseFailures
     ) where
 
 import Data.List
@@ -73,7 +74,10 @@ type Score = Double
 type Placement = (Idx, Ndx, Ndx, Score)
 
 -- | Allocation\/relocation solution.
-type AllocSolution = [OpResult (Node.List, Instance.Instance, [Node.Node])]
+type AllocSolution = ([FailMode], Int, Maybe (Score, AllocElement))
+
+-- | Allocation\/relocation element.
+type AllocElement = (Node.List, Instance.Instance, [Node.Node])
 
 -- | An instance move definition
 data IMove = Failover                -- ^ Failover the instance (f)
@@ -332,7 +336,7 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
-                 -> OpResult (Node.List, Instance.Instance, [Node.Node])
+                 -> OpResult AllocElement
 allocateOnSingle nl inst p =
     let new_pdx = Node.idx p
         new_inst = Instance.setBoth inst new_pdx Node.noSecondary
@@ -342,7 +346,7 @@ allocateOnSingle nl inst p =
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
-               -> OpResult (Node.List, Instance.Instance, [Node.Node])
+               -> OpResult AllocElement
 allocateOnPair nl inst tgt_p tgt_s =
     let new_pdx = Node.idx tgt_p
         new_sdx = Node.idx tgt_s
@@ -432,7 +436,34 @@ checkMove nodes_idx ini_tbl victims =
       else
           best_tbl
 
--- * Alocation functions
+-- * Allocation functions
+
+-- | Build failure stats out of a list of failures
+collapseFailures :: [FailMode] -> FailStats
+collapseFailures flst =
+    map (\k -> (k, length $ filter ((==) k) flst)) [minBound..maxBound]
+
+-- | Update current Allocation solution and failure stats with new
+-- elements
+concatAllocs :: AllocSolution -> OpResult AllocElement -> AllocSolution
+concatAllocs (flst, succ, sols) (OpFail reason) = (reason:flst, succ, sols)
+
+concatAllocs (flst, succ, osols) (OpGood ns@(nl, _, _)) =
+    let nscore = compCV nl
+        -- Choose the old or new solution, based on the cluster score
+        nsols = case osols of
+                  Nothing -> Just (nscore, ns)
+                  Just (oscore, _) ->
+                      if oscore < nscore
+                      then osols
+                      else Just (nscore, ns)
+        nsuc = succ + 1
+    -- Note: we force evaluation of nsols here in order to keep the
+    -- memory profile low - we know that we will need nsols for sure
+    -- in the next cycle, so we force evaluation of nsols, since the
+    -- foldl' in the caller will only evaluate the tuple, but not the
+    -- *elements* of the tuple
+    in nsols `seq` nsuc `seq` (flst, nsuc, nsols)
 
 -- | Try to allocate an instance on the cluster.
 tryAlloc :: (Monad m) =>
@@ -445,12 +476,16 @@ tryAlloc nl _ inst 2 =
     let all_nodes = getOnline nl
         all_pairs = liftM2 (,) all_nodes all_nodes
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
-        sols = map (uncurry $ allocateOnPair nl inst) ok_pairs
+        sols = foldl' (\cstate (p, s) ->
+                           concatAllocs cstate $ allocateOnPair nl inst p s
+                      ) ([], 0, Nothing) ok_pairs
     in return sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
-        sols = map (allocateOnSingle nl inst) all_nodes
+        sols = foldl' (\cstate p ->
+                           concatAllocs cstate $ allocateOnSingle nl inst p
+                      ) ([], 0, Nothing) all_nodes
     in return sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of alllocation \
@@ -462,7 +497,7 @@ tryReloc :: (Monad m) =>
             Node.List       -- ^ The node list
          -> Instance.List   -- ^ The instance list
          -> Idx             -- ^ The index of the instance to move
-         -> Int             -- ^ The numver of nodes required
+         -> Int             -- ^ The number of nodes required
          -> [Ndx]           -- ^ Nodes which should not be used
          -> m AllocSolution -- ^ Solution list
 tryReloc nl il xid 1 ex_idx =
@@ -471,10 +506,13 @@ tryReloc nl il xid 1 ex_idx =
         ex_idx' = Instance.pnode inst:ex_idx
         valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
-        sols1 = map (\x -> do
-                       (mnl, i, _, _) <- applyMove nl inst (ReplaceSecondary x)
-                       return (mnl, i, [Container.find x nl])
-                     ) valid_idxes
+        sols1 = foldl' (\cstate x ->
+                            let elem = do
+                                  (mnl, i, _, _) <-
+                                      applyMove nl inst (ReplaceSecondary x)
+                                  return (mnl, i, [Container.find x mnl])
+                            in concatAllocs cstate elem
+                       ) ([], 0, Nothing) valid_idxes
     in return sols1
 
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
