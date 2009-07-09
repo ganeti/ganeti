@@ -1,3 +1,12 @@
+Version 0.1.5 (Thu, 09 Jul 2009):
+  - Removed obsolete hn1 program; this allowed removal of a lot of
+    supporting code
+  - Lots of changes in hspace: the output now is a shell fragment in
+    order for script to source it or parse it easier; added failure
+    reasons; optimised to use less memory for large clusters
+  - Optimized the scoring algorithm (used by all tools) so that now
+    computations should be faster
+
 Version 0.1.4 (Tue, 16 Jun 2009):
   - Added CPU count/ratio of virtual-to-physical CPUs to the cluster
     scoring methods; this means that now the balancer, the iallocator
