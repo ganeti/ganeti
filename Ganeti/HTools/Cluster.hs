@@ -462,7 +462,7 @@ concatAllocs (flst, succ, osols) (OpGood ns@(nl, _, _)) =
     -- memory profile low - we know that we will need nsols for sure
     -- in the next cycle, so we force evaluation of nsols, since the
     -- foldl' in the caller will only evaluate the tuple, but not the
-    -- *elements* of the tuple
+    -- elements of the tuple
     in nsols `seq` nsuc `seq` (flst, nsuc, nsols)
 
 -- | Try to allocate an instance on the cluster.
