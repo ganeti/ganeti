@@ -2509,7 +2509,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "master": cluster.master_node,
       "default_hypervisor": cluster.default_hypervisor,
       "enabled_hypervisors": cluster.enabled_hypervisors,
-      "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor])
+      "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor_name])
                         for hypervisor_name in cluster.enabled_hypervisors]),
       "beparams": cluster.beparams,
       "candidate_pool_size": cluster.candidate_pool_size,
