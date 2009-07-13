@@ -50,6 +50,12 @@ This is useful in trying to determine (without guarantees though, as
 in the meantime the cluster state could have changed) if the operation
 is likely to succeed or at least start executing.
 
+``force``
++++++++++++
+
+Force operation to continue even if it will cause the cluster to become
+inconsistent (e.g. because there are not enough master candidates).
+
 Usage examples
 --------------
 

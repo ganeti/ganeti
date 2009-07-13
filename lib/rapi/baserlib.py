@@ -279,6 +279,12 @@ class R_Generic(object):
     """
     return self._checkIntVariable('bulk')
 
+  def useForce(self):
+    """Check if the request specifies a forced operation.
+
+    """
+    return self._checkIntVariable('force')
+
   def dryRun(self):
     """Check if the request specifies dry-run mode.
 
