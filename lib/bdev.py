@@ -299,7 +299,7 @@ class LogicalVolume(BlockDev):
     self._vg_name, self._lv_name = unique_id
     self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
     self._degraded = True
-    self.major = self.minor = None
+    self.major = self.minor = self.pe_size = self.stripe_count = None
     self.Attach()
 
   @classmethod
@@ -411,19 +411,30 @@ class LogicalVolume(BlockDev):
     """
     self.attached = False
     result = utils.RunCmd(["lvs", "--noheadings", "--separator=,",
-                           "-olv_attr,lv_kernel_major,lv_kernel_minor",
-                           self.dev_path])
+                           "--units=m", "--nosuffix",
+                           "-olv_attr,lv_kernel_major,lv_kernel_minor,"
+                           "vg_extent_size,stripes", self.dev_path])
     if result.failed:
       logging.error("Can't find LV %s: %s, %s",
                     self.dev_path, result.fail_reason, result.output)
       return False
-    out = result.stdout.strip().rstrip(',')
+    # the output can (and will) have multiple lines for multi-segment
+    # LVs, as the 'stripes' parameter is a segment one, so we take
+    # only the last entry, which is the one we're interested in; note
+    # that with LVM2 anyway the 'stripes' value must be constant
+    # across segments, so this is a no-op actually
+    out = result.stdout.splitlines()
+    if not out: # totally empty result? splitlines() returns at least
+                # one line for any non-empty string
+      logging.error("Can't parse LVS output, no lines? Got '%s'", str(out))
+      return False
+    out = out[-1].strip().rstrip(',')
     out = out.split(",")
-    if len(out) != 3:
-      logging.error("Can't parse LVS output, len(%s) != 3", str(out))
+    if len(out) != 5:
+      logging.error("Can't parse LVS output, len(%s) != 5", str(out))
       return False
 
-    status, major, minor = out[:3]
+    status, major, minor, pe_size, stripes = out
     if len(status) != 6:
       logging.error("lvs lv_attr is not 6 characters (%s)", status)
       return False
@@ -434,8 +445,22 @@ class LogicalVolume(BlockDev):
     except ValueError, err:
       logging.error("lvs major/minor cannot be parsed: %s", str(err))
 
+    try:
+      pe_size = int(float(pe_size))
+    except (TypeError, ValueError), err:
+      logging.error("Can't parse vg extent size: %s", err)
+      return False
+
+    try:
+      stripes = int(stripes)
+    except (TypeError, ValueError), err:
+      logging.error("Can't parse the number of stripes: %s", err)
+      return False
+
     self.major = major
     self.minor = minor
+    self.pe_size = pe_size
+    self.stripe_count = stripes
     self._degraded = status[0] == 'v' # virtual volume, i.e. doesn't backing
                                       # storage
     self.attached = True
@@ -554,6 +579,13 @@ class LogicalVolume(BlockDev):
     """Grow the logical volume.
 
     """
+    if self.pe_size is None or self.stripe_count is None:
+      if not self.Attach():
+        _ThrowError("Can't attach to LV during Grow()")
+    full_stripe_size = self.pe_size * self.stripe_count
+    rest = amount % full_stripe_size
+    if rest != 0:
+      amount += full_stripe_size - rest
     # we try multiple algorithms since the 'best' ones might not have
     # space available in the right place, but later ones might (since
     # they have less constraints); also note that only recent LVM
@@ -1609,7 +1641,8 @@ class DRBD8(BaseDRBD):
     if len(self._children) != 2 or None in self._children:
       _ThrowError("drbd%d: cannot grow diskless device", self.minor)
     self._children[0].Grow(amount)
-    result = utils.RunCmd(["drbdsetup", self.dev_path, "resize"])
+    result = utils.RunCmd(["drbdsetup", self.dev_path, "resize", "-s",
+                           "%dm" % (self.size + amount)])
     if result.failed:
       _ThrowError("drbd%d: resize failed: %s", self.minor, result.output)
 
