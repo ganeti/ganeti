@@ -30,7 +30,6 @@ from ganeti import cli
 from ganeti.rapi import baserlib
 
 
-
 I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
@@ -47,6 +46,20 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "pinst_cnt", "sinst_cnt", "tags",
             "ctotal", "cnodes", "csockets",
             ]
+
+_NR_DRAINED = "drained"
+_NR_MASTER_CANDIATE = "master-candidate"
+_NR_MASTER = "master"
+_NR_OFFLINE = "offline"
+_NR_REGULAR = "regular"
+
+_NR_MAP = {
+  "M": _NR_MASTER,
+  "C": _NR_MASTER_CANDIATE,
+  "D": _NR_DRAINED,
+  "O": _NR_OFFLINE,
+  "R": _NR_REGULAR,
+  }
 
 
 class R_version(baserlib.R_Generic):
@@ -188,6 +201,64 @@ class R_2_nodes_name(baserlib.R_Generic):
                                use_locking=self.useLocking())
 
     return baserlib.MapFields(N_FIELDS, result[0])
+
+
+class R_2_nodes_name_role(baserlib.R_Generic):
+  """ /2/nodes/[node_name]/role resource.
+
+  """
+  def GET(self):
+    """Returns the current node role.
+
+    @return: Node role
+
+    """
+    node_name = self.items[0]
+    client = baserlib.GetClient()
+    result = client.QueryNodes(names=[node_name], fields=["role"],
+                               use_locking=self.useLocking())
+
+    return _NR_MAP[result[0][0]]
+
+  def PUT(self):
+    """Sets the node role.
+
+    @return: a job id
+
+    """
+    if not isinstance(self.req.request_body, basestring):
+      raise http.HttpBadRequest("Invalid body contents, not a string")
+
+    node_name = self.items[0]
+    role = self.req.request_body
+
+    if role == _NR_REGULAR:
+      candidate = False
+      offline = False
+      drained = False
+
+    elif role == _NR_MASTER_CANDIATE:
+      candidate = True
+      offline = drained = None
+
+    elif role == _NR_DRAINED:
+      drained = True
+      candidate = offline = None
+
+    elif role == _NR_OFFLINE:
+      offline = True
+      candidate = drained = None
+
+    else:
+      raise http.HttpBadRequest("Can't set '%s' role" % role)
+
+    op = opcodes.OpSetNodeParams(node_name=node_name,
+                                 master_candidate=candidate,
+                                 offline=offline,
+                                 drained=drained,
+                                 force=bool(self.useForce()))
+
+    return baserlib.SubmitJob([op])
 
 
 class R_2_instances(baserlib.R_Generic):

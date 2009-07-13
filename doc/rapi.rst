@@ -464,6 +464,40 @@ Example::
       ...
     ]
 
+``/2/nodes/[node_name]/role``
++++++++++++++++++++++++++++++
+
+Manages node role.
+
+It supports the following commands: ``GET``, ``PUT``.
+
+The role is always one of the following:
+
+  - drained
+  - master
+  - master-candidate
+  - offline
+  - regular
+
+``GET``
+~~~~~~~
+
+Returns the current node role.
+
+Example::
+
+    "master-candidate"
+
+``PUT``
+~~~~~~~
+
+Change the node role.
+
+The request is a string which should be PUT to this URI. The result will be a
+job id.
+
+It supports the ``force`` argument.
+
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++
 
