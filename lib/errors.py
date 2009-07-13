@@ -98,6 +98,17 @@ class RemoteError(GenericError):
   pass
 
 
+class SignatureError(GenericError):
+  """Error authenticating a remote message.
+
+  This is raised when the hmac signature on a message doesn't verify correctly
+  to the message itself. It can happen because of network unreliability or
+  because of spurious traffic.
+
+  """
+  pass
+
+
 class ParameterError(GenericError):
   """A passed parameter to a command is invalid.
 
