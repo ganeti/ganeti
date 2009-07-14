@@ -61,18 +61,21 @@ Integration with Ganeti
 -----------------------
 
 The ``hbal`` and ``hspace`` programs can either get their input from
-text files, or online from a cluster via RAPI. For online collection
-via RAPI, the "-m" argument to both hbal and hspace should specify the
-cluster or master node name. ``hail`` uses the standard iallocator API
-and thus doesn't need any special setup (just needs to be installed in
-the right directory).
+text files, locally from the master daemon (when run on the master
+node of a cluster), or remote from a cluster via RAPI. The "-L"
+argument enables local collection (with an optional path to the unix
+socket). For online collection via RAPI, the "-m" argument should
+specify the cluster or master node name. Only ``hbal`` and ``hspace``
+use these arguments, ``hail`` uses the standard iallocator API and
+thus doesn't need any special setup (just needs to be installed in the
+right directory).
 
 For generating the text files, a separate tool (``hscan``) is provided
 to automate their gathering if RAPI is available, which is better
 since it can extract more precise information. In case RAPI is not
 usable for whatever reason, the following two commands should be run::
 
-    gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree,offline \
+    gnt-node list -oname,mtotal,mnode,mfree,dtotal,dfree,ctotal,offline \
       --separator '|' --no-headers > nodes
     gnt-instance list -oname,be/memory,sda_size,be/vcpus,status,pnode,snodes \
       --separator '|' --no-head > instances

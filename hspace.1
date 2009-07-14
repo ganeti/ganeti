@@ -8,6 +8,7 @@ hspace \- Cluster space analyzer for Ganeti
 .B "[-v... | -q]"
 .BI "[-O" name... "]"
 .BI "[-m " cluster "]"
+.BI "[-L[" path "]]"
 .BI "[-n " nodes-file " ]"
 .BI "[-i " instances-file "]"
 .BI "[--memory " mem "]"
@@ -269,6 +270,14 @@ given as an argument via RAPI. If the argument doesn't contain a colon
 (:), then it is converted into a fully-built URL via prepending
 https:// and appending the default RAPI port, otherwise it's
 considered a fully-specified URL and is used as-is.
+
+.TP
+.BI "-L[" path "]"
+Collect data not from files but directly from the master daemon, which
+is to be contacted via the luxi (an internal Ganeti protocol). An
+optional \fIpath\fR argument is interpreted as the path to the unix
+socket on which the master daemon listens; otherwise, the default path
+used by ganeti when installed with "--localstatedir=/var" is used.
 
 .TP
 .B -v, --verbose
