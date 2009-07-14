@@ -4685,7 +4685,7 @@ class LUCreateInstance(LogicalUnit):
 
     """
     nics = [n.ToDict() for n in self.nics]
-    ial = IAllocator(self,
+    ial = IAllocator(self.cfg, self.rpc,
                      mode=constants.IALLOCATOR_MODE_ALLOC,
                      name=self.op.instance_name,
                      disk_template=self.op.disk_template,
@@ -5168,7 +5168,7 @@ class LUReplaceDisks(LogicalUnit):
     """Compute a new secondary node using an IAllocator.
 
     """
-    ial = IAllocator(self,
+    ial = IAllocator(self.cfg, self.rpc,
                      mode=constants.IALLOCATOR_MODE_RELOC,
                      name=self.op.instance_name,
                      relocate_from=[self.sec_node])
@@ -6895,8 +6895,9 @@ class IAllocator(object):
     "relocate_from",
     ]
 
-  def __init__(self, lu, mode, name, **kwargs):
-    self.lu = lu
+  def __init__(self, cfg, rpc, mode, name, **kwargs):
+    self.cfg = cfg
+    self.rpc = rpc
     # init buffer variables
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
@@ -6934,7 +6935,7 @@ class IAllocator(object):
     This is the data that is independent of the actual operation.
 
     """
-    cfg = self.lu.cfg
+    cfg = self.cfg
     cluster_info = cfg.GetClusterInfo()
     # cluster data
     data = {
@@ -6956,10 +6957,11 @@ class IAllocator(object):
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       hypervisor_name = cfg.GetInstanceInfo(self.name).hypervisor
 
-    node_data = self.lu.rpc.call_node_info(node_list, cfg.GetVGName(),
-                                           hypervisor_name)
-    node_iinfo = self.lu.rpc.call_all_instances_info(node_list,
-                       cluster_info.enabled_hypervisors)
+    node_data = self.rpc.call_node_info(node_list, cfg.GetVGName(),
+                                        hypervisor_name)
+    node_iinfo = \
+      self.rpc.call_all_instances_info(node_list,
+                                       cluster_info.enabled_hypervisors)
     for nname, nresult in node_data.items():
       # first fill in static (config-based) values
       ninfo = cfg.GetNodeInfo(nname)
@@ -7096,7 +7098,7 @@ class IAllocator(object):
     done.
 
     """
-    instance = self.lu.cfg.GetInstanceInfo(self.name)
+    instance = self.cfg.GetInstanceInfo(self.name)
     if instance is None:
       raise errors.ProgrammerError("Unknown instance '%s' passed to"
                                    " IAllocator" % self.name)
@@ -7138,9 +7140,9 @@ class IAllocator(object):
 
     """
     if call_fn is None:
-      call_fn = self.lu.rpc.call_iallocator_runner
+      call_fn = self.rpc.call_iallocator_runner
 
-    result = call_fn(self.lu.cfg.GetMasterNode(), name, self.in_text)
+    result = call_fn(self.cfg.GetMasterNode(), name, self.in_text)
     result.Raise("Failure while running the iallocator script")
 
     self.out_text = result.payload
@@ -7244,7 +7246,7 @@ class LUTestAllocator(NoHooksLU):
 
     """
     if self.op.mode == constants.IALLOCATOR_MODE_ALLOC:
-      ial = IAllocator(self,
+      ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        name=self.op.name,
                        mem_size=self.op.mem_size,
@@ -7257,7 +7259,7 @@ class LUTestAllocator(NoHooksLU):
                        hypervisor=self.op.hypervisor,
                        )
     else:
-      ial = IAllocator(self,
+      ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        name=self.op.name,
                        relocate_from=list(self.relocate_from),
