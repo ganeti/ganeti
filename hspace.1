@@ -33,6 +33,7 @@ Request options:
 .BI "[--memory " mem "]"
 .BI "[--disk " disk "]"
 .BI "[--req-nodes " req-nodes "]"
+.BI "[--vcpus " vcpus "]"
 
 
 .SH DESCRIPTION
@@ -175,6 +176,10 @@ The disk size of the instances to be placed (defaults to 100GiB).
 .BI "--req-nodes " num-nodes
 The number of nodes for the instances; the default of two means
 mirrored instances, while passing one means plain type instances.
+
+.TP
+.BI "--vcpus " vcpus
+The number of VCPUs of the instances to be placed (defaults to 1).
 
 .TP
 .BI "--max-cpu " cpu-ratio
