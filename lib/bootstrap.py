@@ -265,11 +265,9 @@ def InitCluster(cluster_name, mac_prefix,
                                     master_candidate=True,
                                     offline=False, drained=False,
                                     )
-
-  sscfg = InitConfig(constants.CONFIG_VERSION,
-                     cluster_config, master_node_config)
-  ssh.WriteKnownHostsFile(sscfg, constants.SSH_KNOWN_HOSTS_FILE)
+  InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
   cfg = config.ConfigWriter()
+  ssh.WriteKnownHostsFile(cfg, constants.SSH_KNOWN_HOSTS_FILE)
   cfg.Update(cfg.GetClusterInfo())
 
   # start the master ip
