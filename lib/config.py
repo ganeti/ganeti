@@ -1150,32 +1150,6 @@ class ConfigWriter:
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       }
 
-  @locking.ssynchronized(_config_lock)
-  def InitConfig(self, version, cluster_config, master_node_config):
-    """Create the initial cluster configuration.
-
-    It will contain the current node, which will also be the master
-    node, and no instances.
-
-    @type version: int
-    @param version: Configuration version
-    @type cluster_config: objects.Cluster
-    @param cluster_config: Cluster configuration
-    @type master_node_config: objects.Node
-    @param master_node_config: Master node configuration
-
-    """
-    nodes = {
-      master_node_config.name: master_node_config,
-      }
-
-    self._config_data = objects.ConfigData(version=version,
-                                           cluster=cluster_config,
-                                           nodes=nodes,
-                                           instances={},
-                                           serial_no=1)
-    self._WriteConfig()
-
   @locking.ssynchronized(_config_lock, shared=1)
   def GetVGName(self):
     """Return the volume group name.
