@@ -34,18 +34,21 @@ module Ganeti.HTools.CLI
     , parseEnv
     , shTemplate
     , loadExternalData
+    , defaultLuxiSocket
     ) where
 
+import Data.Maybe (isJust, fromJust)
+import qualified Data.Version
+import Monad
 import System.Console.GetOpt
 import System.Posix.Env
 import System.IO
 import System.Info
 import System
-import Monad
 import Text.Printf (printf, hPrintf)
-import qualified Data.Version
 
 import qualified Ganeti.HTools.Version as Version(version)
+import qualified Ganeti.HTools.Luxi as Luxi
 import qualified Ganeti.HTools.Rapi as Rapi
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Loader as Loader
@@ -53,6 +56,10 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.Types
+
+-- | The default value for the luxi socket
+defaultLuxiSocket :: FilePath
+defaultLuxiSocket = "/var/run/ganeti/socket/ganeti-master"
 
 -- | Class for types which support show help and show version.
 class CLIOptions a where
@@ -73,6 +80,8 @@ class EToolOptions a where
     instSet    :: a -> Bool
     -- | Rapi target, if one has been passed.
     masterName :: a -> String
+    -- | Whether to connect to a local luxi socket.
+    luxiSocket :: a -> Maybe FilePath
     -- | Whether to be less verbose.
     silent     :: a -> Bool
 
@@ -141,10 +150,13 @@ loadExternalData opts = do
               else env_node
       instf = if instSet opts then instFile opts
               else env_inst
+      mhost = masterName opts
+      lsock = luxiSocket opts
   input_data <-
-      case masterName opts of
-        "" -> Text.loadData nodef instf
-        host -> Rapi.loadData host
+      case () of
+        _ | mhost /= "" -> Rapi.loadData mhost
+          | isJust lsock -> Luxi.loadData $ fromJust lsock
+          | otherwise -> Text.loadData nodef instf
 
   let ldresult = input_data >>= Loader.mergeData
   (loaded_nl, il, csf) <-

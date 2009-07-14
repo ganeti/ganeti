@@ -54,6 +54,7 @@ data Options = Options
     , optInstSet   :: Bool           -- ^ The insts have been set by options
     , optMaxLength :: Int            -- ^ Stop after this many steps
     , optMaster    :: String         -- ^ Collect data from RAPI
+    , optLuxi      :: Maybe FilePath -- ^ Collect data from Luxi
     , optVerbose   :: Int            -- ^ Verbosity level
     , optOffline   :: [String]       -- ^ Names of offline nodes
     , optMinScore  :: Cluster.Score  -- ^ The minimum score we aim for
@@ -73,6 +74,7 @@ instance CLI.EToolOptions Options where
     instFile   = optInstf
     instSet    = optInstSet
     masterName = optMaster
+    luxiSocket = optLuxi
     silent a   = optVerbose a == 0
 
 -- | Default values for the command line options.
@@ -87,6 +89,7 @@ defaultOptions  = Options
  , optInstSet   = False
  , optMaxLength = -1
  , optMaster    = ""
+ , optLuxi      = Nothing
  , optVerbose   = 1
  , optOffline   = []
  , optMinScore  = 1e-9
@@ -120,6 +123,10 @@ options =
     , Option ['m']     ["master"]
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
       "collect data via RAPI at the given ADDRESS"
+    , Option ['L']     ["luxi"]
+      (OptArg ((\ f opts -> opts { optLuxi = Just f }) .
+               fromMaybe CLI.defaultLuxiSocket) "SOCKET")
+       "collect data via Luxi, optionally using the given SOCKET path"
     , Option ['l']     ["max-length"]
       (ReqArg (\ i opts -> opts { optMaxLength =  read i::Int }) "N")
       "cap the solution at this many moves (useful for very unbalanced \

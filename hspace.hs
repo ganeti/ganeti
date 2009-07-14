@@ -28,6 +28,7 @@ module Main (main) where
 import Data.Char (toUpper)
 import Data.List
 import Data.Function
+import Data.Maybe (fromMaybe)
 import Monad
 import System
 import System.IO
@@ -53,6 +54,7 @@ data Options = Options
     , optInstf     :: FilePath       -- ^ Path to the instances file
     , optInstSet   :: Bool           -- ^ The insts have been set by options
     , optMaster    :: String         -- ^ Collect data from RAPI
+    , optLuxi      :: Maybe FilePath -- ^ Collect data from Luxi
     , optVerbose   :: Int            -- ^ Verbosity level
     , optOffline   :: [String]       -- ^ Names of offline nodes
     , optIMem      :: Int            -- ^ Instance memory
@@ -75,6 +77,7 @@ instance CLI.EToolOptions Options where
     instFile   = optInstf
     instSet    = optInstSet
     masterName = optMaster
+    luxiSocket = optLuxi
     silent a   = optVerbose a == 0
 
 -- | Default values for the command line options.
@@ -86,6 +89,7 @@ defaultOptions  = Options
  , optInstf     = "instances"
  , optInstSet   = False
  , optMaster    = ""
+ , optLuxi      = Nothing
  , optVerbose   = 1
  , optOffline   = []
  , optIMem      = 4096
@@ -113,6 +117,10 @@ options =
     , Option ['m']     ["master"]
       (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
       "collect data via RAPI at the given ADDRESS"
+    , Option ['L']     ["luxi"]
+      (OptArg ((\ f opts -> opts { optLuxi = Just f }) .
+               fromMaybe CLI.defaultLuxiSocket) "SOCKET")
+       "collect data via Luxi, optionally using the given SOCKET path"
     , Option ['v']     ["verbose"]
       (NoArg (\ opts -> opts { optVerbose = optVerbose opts + 1 }))
       "increase the verbosity level"
