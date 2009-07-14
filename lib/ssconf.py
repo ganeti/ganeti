@@ -290,3 +290,29 @@ def CheckMaster(debug, ss=None):
     if debug:
       sys.stderr.write("Not master, exiting.\n")
     sys.exit(constants.EXIT_NOTMASTER)
+
+
+def CheckMasterCandidate(debug, ss=None):
+  """Checks the node setup.
+
+  If this is a master candidate, the function will return. Otherwise it will
+  exit with an exit code based on the node status.
+
+  """
+  try:
+    if ss is None:
+      ss = SimpleStore()
+    myself = utils.HostInfo().name
+    candidates = ss.GetMasterCandidates()
+  except errors.ConfigurationError, err:
+    print "Cluster configuration incomplete: '%s'" % str(err)
+    sys.exit(constants.EXIT_NODESETUP_ERROR)
+  except errors.ResolverError, err:
+    sys.stderr.write("Cannot resolve my own name (%s)\n" % err.args[0])
+    sys.exit(constants.EXIT_NODESETUP_ERROR)
+
+  if myself not in candidates:
+    if debug:
+      sys.stderr.write("Not master candidate, exiting.\n")
+    sys.exit(constants.EXIT_NOTCANDIDATE)
+
