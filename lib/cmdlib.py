@@ -80,7 +80,7 @@ class LogicalUnit(object):
     # Dicts used to declare locking needs to mcpu
     self.needed_locks = None
     self.acquired_locks = {}
-    self.share_locks = dict(((i, 0) for i in locking.LEVELS))
+    self.share_locks = dict.fromkeys(locking.LEVELS, 0)
     self.add_locks = {}
     self.remove_locks = {}
     # Used to force good behavior when calling helper functions
@@ -695,7 +695,7 @@ class LUVerifyCluster(LogicalUnit):
       locking.LEVEL_NODE: locking.ALL_SET,
       locking.LEVEL_INSTANCE: locking.ALL_SET,
     }
-    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
   def _VerifyNode(self, nodeinfo, file_list, local_cksum,
                   node_result, feedback_fn, master_files,
@@ -1294,7 +1294,7 @@ class LUVerifyDisks(NoHooksLU):
       locking.LEVEL_NODE: locking.ALL_SET,
       locking.LEVEL_INSTANCE: locking.ALL_SET,
     }
-    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5760,7 +5760,7 @@ class LUQueryInstanceData(NoHooksLU):
 
   def ExpandNames(self):
     self.needed_locks = {}
-    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
+    self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
     if not isinstance(self.op.instances, list):
       raise errors.OpPrereqError("Invalid argument type 'instances'")
