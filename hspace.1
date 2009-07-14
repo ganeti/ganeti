@@ -4,21 +4,36 @@ hspace \- Cluster space analyzer for Ganeti
 
 .SH SYNOPSIS
 .B hspace
+.B "[backend options...]"
+.B "[algorithm options...]"
+.B "[request options..."]
 .B "[-p]"
 .B "[-v... | -q]"
-.BI "[-O" name... "]"
-.BI "[-m " cluster "]"
-.BI "[-L[" path "]]"
-.BI "[-n " nodes-file " ]"
-.BI "[-i " instances-file "]"
-.BI "[--memory " mem "]"
-.BI "[--disk " disk "]"
-.BI "[--req-nodes " req-nodes "]"
-.BI "[--max-cpu " cpu-ratio "]"
-.BI "[--min-disk " disk-ratio "]"
 
 .B hspace
 .B --version
+
+.TP
+Backend options:
+.BI "[ -m " cluster " ]"
+|
+.BI "[ -L[" path "]]"
+|
+.BI "[ -n " nodes-file " ]"
+.BI "[ -i " instances-file " ]"
+
+.TP
+Algorithm options:
+.BI "[ --max-cpu " cpu-ratio " ]"
+.BI "[ --min-disk " disk-ratio " ]"
+.BI "[ -O " name... " ]"
+
+.TP
+Request options:
+.BI "[--memory " mem "]"
+.BI "[--disk " disk "]"
+.BI "[--req-nodes " req-nodes "]"
+
 
 .SH DESCRIPTION
 hspace computes how many additional instances can be fit on a cluster,

@@ -4,22 +4,37 @@ hbal \- Cluster balancer for Ganeti
 
 .SH SYNOPSIS
 .B hbal
-.BI "[-C[" file "]]"
-.B "[-p]"
-.B "[-o]"
-.B "[-v... | -q]"
-.BI "[-l" limit "]"
-.BI "[-O" name... "]"
-.BI "[-e" score "]"
-.BI "[-m " cluster "]"
-.BI "[-L[" path "]]"
-.BI "[-n " nodes-file " ]"
-.BI "[-i " instances-file "]"
-.BI "[--max-cpu " cpu-ratio "]"
-.BI "[--min-disk " disk-ratio "]"
+.B "[backend options...]"
+.B "[algorithm options...]"
+.B "[reporting options...]"
 
 .B hbal
 .B --version
+
+.TP
+Backend options:
+.BI "[ -m " cluster " ]"
+|
+.BI "[ -L[" path "]]"
+|
+.BI "[ -n " nodes-file " ]"
+.BI "[ -i " instances-file " ]"
+
+.TP
+Algorithm options:
+.BI "[ --max-cpu " cpu-ratio " ]"
+.BI "[ --min-disk " disk-ratio " ]"
+.BI "[ -l " limit " ]"
+.BI "[ -e " score " ]"
+.BI "[ -O " name... " ]"
+
+.TP
+Reporting options:
+.BI "[ -C[" file "] ]"
+.B "[ -p ]"
+.B "[ -o ]"
+.B "[ -v... | -q ]"
+
 
 .SH DESCRIPTION
 hbal is a cluster balancer that looks at the current state of the
