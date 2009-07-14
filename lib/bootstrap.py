@@ -37,6 +37,7 @@ from ganeti import config
 from ganeti import constants
 from ganeti import objects
 from ganeti import ssconf
+from ganeti import serializer
 from ganeti import hypervisor
 
 
@@ -292,9 +293,6 @@ def InitConfig(version, cluster_config, master_node_config,
   @type cfg_file: string
   @param cfg_file: configuration file path
 
-  @rtype: L{ssconf.SimpleConfigWriter}
-  @return: initialized config instance
-
   """
   nodes = {
     master_node_config.name: master_node_config,
@@ -305,10 +303,9 @@ def InitConfig(version, cluster_config, master_node_config,
                                    nodes=nodes,
                                    instances={},
                                    serial_no=1)
-  cfg = ssconf.SimpleConfigWriter.FromDict(config_data.ToDict(), cfg_file)
-  cfg.Save()
-
-  return cfg
+  utils.WriteFile(cfg_file,
+                  data=serializer.Dump(config_data.ToDict()),
+                  mode=0600)
 
 
 def FinalizeClusterDestroy(master):

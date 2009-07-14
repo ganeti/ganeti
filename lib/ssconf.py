@@ -79,32 +79,6 @@ class SimpleConfigReader(object):
   def GetNodeList(self):
     return self._config_data["nodes"].keys()
 
-  @classmethod
-  def FromDict(cls, val, cfg_file=constants.CLUSTER_CONF_FILE):
-    """Alternative construction from a dictionary.
-
-    """
-    obj = SimpleConfigReader.__new__(cls)
-    obj._config_data = val
-    obj._file_name = cfg_file
-    return obj
-
-
-class SimpleConfigWriter(SimpleConfigReader):
-  """Simple class to write configuration file.
-
-  """
-  def Save(self):
-    """Writes configuration file.
-
-    Warning: Doesn't take care of locking or synchronizing with other
-    processes.
-
-    """
-    utils.WriteFile(self._file_name,
-                    data=serializer.Dump(self._config_data),
-                    mode=0600)
-
 
 class SimpleStore(object):
   """Interface to static cluster data.
