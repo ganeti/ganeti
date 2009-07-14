@@ -313,8 +313,9 @@
         The <option>--enabled-hypervisors</option> option allows you
         to set the list of hypervisors that will be enabled for
         this cluster. Instance hypervisors can only be choosen from
-        the list of enabled hypervisors. Currently, the following
-        hypervisors are available:
+        the list of enabled hypervisors, and the first entry of this list
+        will be used by default. Currently, the following hypervisors are
+        available:
       </para>
 
       <para>
@@ -358,13 +359,6 @@
         Either a single hypervisor name or a comma-separated list of
         hypervisor names can be specified. If this option is not
         specified, only the xen-pvm hypervisor is enabled by default.
-      </para>
-
-      <para>
-        With the <option>-t</option> option, the default hypervisor
-        can be set. It has to be a member of the list of enabled
-        hypervisors. If not specified, the first entry on the list of
-        enabled hypervisors will be used by default.
       </para>
 
       <para>

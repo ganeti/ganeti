@@ -2627,7 +2627,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "architecture": (platform.architecture()[0], platform.machine()),
       "name": cluster.cluster_name,
       "master": cluster.master_node,
-      "default_hypervisor": cluster.default_hypervisor,
+      "default_hypervisor": cluster.enabled_hypervisors[0],
       "enabled_hypervisors": cluster.enabled_hypervisors,
       "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor_name])
                         for hypervisor_name in cluster.enabled_hypervisors]),

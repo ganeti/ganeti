@@ -811,6 +811,14 @@ class Cluster(TaggableObject):
     if self.default_bridge is not None:
       self.default_bridge = None
 
+    # default_hypervisor is just the first enabled one in 2.1
+    if self.default_hypervisor is not None:
+      self.enabled_hypervisors = [self.default_hypervisor] + \
+        [hvname for hvname in self.enabled_hypervisors
+         if hvname != self.default_hypervisor]
+      self.default_hypervisor = None
+
+
   def ToDict(self):
     """Custom function for cluster.
 
