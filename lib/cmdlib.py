@@ -4185,7 +4185,7 @@ def _GenerateDiskTemplate(lu, template_name,
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
 
-    names = _GenerateUniqueNames(lu, [".disk%d" % i
+    names = _GenerateUniqueNames(lu, [".disk%d" % (base_index + i)
                                       for i in range(disk_count)])
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
@@ -4202,7 +4202,7 @@ def _GenerateDiskTemplate(lu, template_name,
       [primary_node, remote_node] * len(disk_info), instance_name)
 
     names = []
-    for lv_prefix in _GenerateUniqueNames(lu, [".disk%d" % i
+    for lv_prefix in _GenerateUniqueNames(lu, [".disk%d" % (base_index + i)
                                                for i in range(disk_count)]):
       names.append(lv_prefix + "_data")
       names.append(lv_prefix + "_meta")
