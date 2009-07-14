@@ -46,7 +46,10 @@ import qualified Ganeti.HTools.Instance as Instance
 getUrl :: (Monad m) => String -> IO (m String)
 getUrl url = do
   (code, body) <- curlGetString url [CurlSSLVerifyPeer False,
-                                     CurlSSLVerifyHost 0]
+                                     CurlSSLVerifyHost 0,
+                                     CurlTimeout (fromIntegral queryTimeout),
+                                     CurlConnectTimeout
+                                     (fromIntegral connTimeout)]
   return (case code of
             CurlOK -> return body
             _ -> fail $ printf "Curl error for '%s', error %s"

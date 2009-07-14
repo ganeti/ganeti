@@ -32,6 +32,8 @@ module Ganeti.HTools.Types
     , FailMode(..)
     , FailStats
     , OpResult(..)
+    , connTimeout
+    , queryTimeout
     ) where
 
 -- | The instance index type.
@@ -42,6 +44,14 @@ type Ndx = Int
 
 -- | The type used to hold name-to-idx mappings.
 type NameAssoc = [(String, Int)]
+
+-- | Connection timeout (when using non-file methods).
+connTimeout :: Int
+connTimeout = 15
+
+-- | The default timeout for queries (when using non-file methods).
+queryTimeout :: Int
+queryTimeout = 60
 
 {-|
 
