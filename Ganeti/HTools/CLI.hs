@@ -152,6 +152,16 @@ loadExternalData opts = do
               else env_inst
       mhost = masterName opts
       lsock = luxiSocket opts
+      setRapi = mhost /= ""
+      setLuxi = isJust lsock
+      setFiles = nodeSet opts || instSet opts
+      allSet = filter id [setRapi, setLuxi, setFiles]
+  when (length allSet > 1) $
+       do
+         hPutStrLn stderr "Error: Only one of the rapi, luxi, and data\
+                          \ files options should be given."
+         exitWith $ ExitFailure 1
+
   input_data <-
       case () of
         _ | mhost /= "" -> Rapi.loadData mhost
