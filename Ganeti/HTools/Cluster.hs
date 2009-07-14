@@ -483,8 +483,8 @@ tryAlloc nl _ inst 2 =
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
-        sols = foldl' (\cstate p ->
-                           concatAllocs cstate $ allocateOnSingle nl inst p
+        sols = foldl' (\cstate ->
+                           concatAllocs cstate . allocateOnSingle nl inst
                       ) ([], 0, Nothing) all_nodes
     in return sols
 

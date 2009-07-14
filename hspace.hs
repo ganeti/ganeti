@@ -312,7 +312,7 @@ main = do
   let ini_cv = Cluster.compCV nl
       ini_stats = Cluster.totalResources nl
 
-  when (verbose > 2) $ do
+  when (verbose > 2) $
          hPrintf stderr "Initial coefficients: overall %.8f, %s\n"
                  ini_cv (Cluster.printStats nl)
 

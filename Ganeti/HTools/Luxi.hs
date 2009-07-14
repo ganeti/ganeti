@@ -266,7 +266,7 @@ parseNode v = fail ("Invalid node query result: " ++ show v)
 -- | Builds the cluster data from an URL.
 loadData :: String -- ^ Unix socket to use as source
          -> IO (Result (Node.AssocList, Instance.AssocList))
-loadData master = do -- IO monad
+loadData master =
   E.bracket
        (getClient master)
        closeClient
