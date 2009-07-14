@@ -229,8 +229,8 @@ regression as of today, because even if the OSes are left blind about this
 information, sometimes they still need to make compromises and cannot satisfy
 all possible parameter values.
 
-OS Parameters
-+++++++++++++
+OS Flavours
++++++++++++
 
 Currently we are assisting to some degree of "os proliferation" just to change
 a simple installation behavior. This means that the same OS gets installed on
@@ -249,24 +249,30 @@ deboostrap-etch-server, debootstrap-etch-dev, debootrap-lenny-server,
 debootstrap-lenny-dev, etc. Crossing more than two parameters quickly becomes
 not manageable.
 
-In order to avoid this we plan to make OSes more customizable, by allowing
-arbitrary flags to be passed to them. These will be special "OS parameters"
-which will be handled by Ganeti mostly as hypervisor or be parameters. This
-slightly complicates the interface, but allows one OS (for example
-"debootstrap" to be customizable and not require copies to perform different
-cations).
+In order to avoid this we plan to make OSes more customizable, by allowing each
+OS to declare a list of flavours which can be used to customize it. The
+flavours list is mandatory for new API OSes and must contain at least one
+supported flavour. When choosing the OS exactly one flavour will have to be
+specified, and will be encoded in the os name as <OS-name>+<flavour>. As for
+today it will be possible to change an instance's OS at creation or install
+time.
 
-Each OS will be able to declare which parameters it supports by listing them
-one per line in a special "parameters" file in the OS dir. The parameters can
-have a per-os cluster default, or be specified at instance creation time.  They
-will then be passed to the OS scripts as: INSTANCE_OS_PARAMETER_<NAME> with
-their specified value. The only value checking that will be performed is that
-the os parameter value is a string, with only "normal" characters in it.
+The 2.1 OS list will be the combination of each OS, plus its supported
+flavours. This will cause the name name proliferation to remain, but at least
+the internal OS code will be simplified to just parsing the passed flavour,
+without the need for symlinks or code duplication.
 
-It will be impossible to change parameters for an instance, except at reinstall
-time. Upon reinstall with a different OS the parameters will be by default
-discarded and reset to the default (or passed) values, unless a special
---keep-known-os-parameters flag is passed.
+Also we expect the OSes to declare only "interesting" flavours, but to accept
+some non-declared ones which a user will be able to pass in by overriding the
+checks ganeti does. This will be useful for allowing some variations to be used
+without polluting the OS list (per-OS documentation should list all supported
+flavours). If a flavour which is not internally supported is forced through,
+the OS scripts should abort.
+
+In the future (post 2.1) we may want to move to full fledged orthogonal
+parameters for the OSes. In this case we envision the flavours to be moved
+inside of Ganeti and be associated with lists parameter->values associations,
+which will then be passed to the OS.
 
 IAllocator changes
 ~~~~~~~~~~~~~~~~~~
