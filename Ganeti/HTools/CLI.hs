@@ -60,6 +60,7 @@ module Ganeti.HTools.CLI
     , oShowHelp
     ) where
 
+import Control.Exception
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import qualified Data.Version
 import Monad
@@ -312,6 +313,12 @@ shTemplate =
            \  fi\n\
            \}\n\n"
 
+-- | Error beautifier
+wrapIO :: IO (Result a) -> IO (Result a)
+wrapIO act =
+    handle (\e -> return $ Bad $ show e)
+    act
+
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
                  -> IO (Node.List, Instance.List, String)
@@ -335,9 +342,9 @@ loadExternalData opts = do
 
   input_data <-
       case () of
-        _ | mhost /= "" -> Rapi.loadData mhost
-          | isJust lsock -> Luxi.loadData $ fromJust lsock
-          | otherwise -> Text.loadData nodef instf
+        _ | setRapi -> wrapIO $ Rapi.loadData mhost
+          | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
+          | otherwise -> wrapIO $ Text.loadData nodef instf
 
   let ldresult = input_data >>= Loader.mergeData
   (loaded_nl, il, csf) <-
