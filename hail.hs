@@ -30,46 +30,21 @@ import Data.Function
 import Monad
 import System
 import System.IO
-import System.Console.GetOpt
 import qualified System
 
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.CLI as CLI
+
+import Ganeti.HTools.CLI
 import Ganeti.HTools.IAlloc
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader (RqType(..), Request(..))
 
--- | Command line options structure.
-data Options = Options
-    { optShowVer   :: Bool           -- ^ Just show the program version
-    , optShowHelp  :: Bool           -- ^ Just show the help
-    } deriving Show
-
--- | Default values for the command line options.
-defaultOptions :: Options
-defaultOptions  = Options
- { optShowVer   = False
- , optShowHelp  = False
- }
-
-instance CLI.CLIOptions Options where
-    showVersion = optShowVer
-    showHelp    = optShowHelp
-
 -- | Options list and functions
-options :: [OptDescr (Options -> Options)]
-options =
-    [ Option ['V']     ["version"]
-      (NoArg (\ opts -> opts { optShowVer = True}))
-      "show the version of the program"
-    , Option ['h']     ["help"]
-      (NoArg (\ opts -> opts { optShowHelp = True}))
-      "show help"
-    ]
-
+options :: [OptType]
+options = [oShowVer, oShowHelp]
 
 processResults :: (Monad m) => Cluster.AllocSolution -> m (String, [Node.Node])
 processResults (fstats, succ, sols) =
@@ -96,7 +71,7 @@ processRequest request =
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (_, args) <- CLI.parseOpts cmd_args "hail" options defaultOptions
+  (_, args) <- parseOpts cmd_args "hail" options
 
   when (null args) $ do
          hPutStrLn stderr "Error: this program needs an input file."

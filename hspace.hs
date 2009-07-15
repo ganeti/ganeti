@@ -28,11 +28,9 @@ module Main (main) where
 import Data.Char (toUpper)
 import Data.List
 import Data.Function
-import Data.Maybe (fromMaybe)
 import Monad
 import System
 import System.IO
-import System.Console.GetOpt
 import qualified System
 
 import Text.Printf (printf, hPrintf)
@@ -41,119 +39,30 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import qualified Ganeti.HTools.CLI as CLI
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
-
--- | Command line options structure.
-data Options = Options
-    { optShowNodes :: Bool           -- ^ Whether to show node status
-    , optNodef     :: FilePath       -- ^ Path to the nodes file
-    , optNodeSet   :: Bool           -- ^ The nodes have been set by options
-    , optInstf     :: FilePath       -- ^ Path to the instances file
-    , optInstSet   :: Bool           -- ^ The insts have been set by options
-    , optMaster    :: String         -- ^ Collect data from RAPI
-    , optLuxi      :: Maybe FilePath -- ^ Collect data from Luxi
-    , optVerbose   :: Int            -- ^ Verbosity level
-    , optOffline   :: [String]       -- ^ Names of offline nodes
-    , optIMem      :: Int            -- ^ Instance memory
-    , optIDsk      :: Int            -- ^ Instance disk
-    , optIVCPUs    :: Int            -- ^ Instance VCPUs
-    , optINodes    :: Int            -- ^ Nodes required for an instance
-    , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
-    , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
-    , optShowVer   :: Bool           -- ^ Just show the program version
-    , optShowHelp  :: Bool           -- ^ Just show the help
-    } deriving Show
-
-instance CLI.CLIOptions Options where
-    showVersion = optShowVer
-    showHelp    = optShowHelp
-
-instance CLI.EToolOptions Options where
-    nodeFile   = optNodef
-    nodeSet    = optNodeSet
-    instFile   = optInstf
-    instSet    = optInstSet
-    masterName = optMaster
-    luxiSocket = optLuxi
-    silent a   = optVerbose a == 0
-
--- | Default values for the command line options.
-defaultOptions :: Options
-defaultOptions  = Options
- { optShowNodes = False
- , optNodef     = "nodes"
- , optNodeSet   = False
- , optInstf     = "instances"
- , optInstSet   = False
- , optMaster    = ""
- , optLuxi      = Nothing
- , optVerbose   = 1
- , optOffline   = []
- , optIMem      = 4096
- , optIDsk      = 102400
- , optIVCPUs    = 1
- , optINodes    = 2
- , optMcpu      = -1
- , optMdsk      = -1
- , optShowVer   = False
- , optShowHelp  = False
- }
+import Ganeti.HTools.CLI
 
 -- | Options list and functions
-options :: [OptDescr (Options -> Options)]
+options :: [OptType]
 options =
-    [ Option ['p']     ["print-nodes"]
-      (NoArg (\ opts -> opts { optShowNodes = True }))
-      "print the final node list"
-    , Option ['n']     ["nodes"]
-      (ReqArg (\ f opts -> opts { optNodef = f, optNodeSet = True }) "FILE")
-      "the node list FILE"
-    , Option ['i']     ["instances"]
-      (ReqArg (\ f opts -> opts { optInstf =  f, optInstSet = True }) "FILE")
-      "the instance list FILE"
-    , Option ['m']     ["master"]
-      (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
-      "collect data via RAPI at the given ADDRESS"
-    , Option ['L']     ["luxi"]
-      (OptArg ((\ f opts -> opts { optLuxi = Just f }) .
-               fromMaybe CLI.defaultLuxiSocket) "SOCKET")
-       "collect data via Luxi, optionally using the given SOCKET path"
-    , Option ['v']     ["verbose"]
-      (NoArg (\ opts -> opts { optVerbose = optVerbose opts + 1 }))
-      "increase the verbosity level"
-    , Option ['q']     ["quiet"]
-      (NoArg (\ opts -> opts { optVerbose = optVerbose opts - 1 }))
-      "decrease the verbosity level"
-    , Option ['O']     ["offline"]
-      (ReqArg (\ n opts -> opts { optOffline = n:optOffline opts }) "NODE")
-      "set node as offline"
-    , Option []        ["memory"]
-      (ReqArg (\ m opts -> opts { optIMem = read m }) "MEMORY")
-      "memory size for instances"
-    , Option []        ["disk"]
-      (ReqArg (\ d opts -> opts { optIDsk = read d }) "DISK")
-      "disk size for instances"
-    , Option []        ["vcpus"]
-      (ReqArg (\ p opts -> opts { optIVCPUs = read p }) "NUM")
-      "number of virtual cpus for instances"
-    , Option []        ["req-nodes"]
-      (ReqArg (\ n opts -> opts { optINodes = read n }) "NODES")
-      "number of nodes for the new instances (1=plain, 2=mirrored)"
-    , Option []        ["max-cpu"]
-      (ReqArg (\ n opts -> opts { optMcpu = read n }) "RATIO")
-      "maximum virtual-to-physical cpu ratio for nodes"
-    , Option []        ["min-disk"]
-      (ReqArg (\ n opts -> opts { optMdsk = read n }) "RATIO")
-      "minimum free disk space for nodes (between 0 and 1)"
-    , Option ['V']     ["version"]
-      (NoArg (\ opts -> opts { optShowVer = True}))
-      "show the version of the program"
-    , Option ['h']     ["help"]
-      (NoArg (\ opts -> opts { optShowHelp = True}))
-      "show help"
+    [ oPrintNodes
+    , oNodeFile
+    , oInstFile
+    , oRapiMaster
+    , oLuxiSocket
+    , oVerbose
+    , oQuiet
+    , oOfflineNode
+    , oIMem
+    , oIDisk
+    , oIVcpus
+    , oINodes
+    , oMaxCpu
+    , oMinDisk
+    , oShowVer
+    , oShowHelp
     ]
 
 data Phase = PInitial | PFinal
@@ -261,7 +170,7 @@ printKeys = mapM_ (\(k, v) -> printf "HTS_%s=%s\n" (map toUpper k) v)
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (opts, args) <- CLI.parseOpts cmd_args "hspace" options defaultOptions
+  (opts, args) <- parseOpts cmd_args "hspace" options
 
   unless (null args) $ do
          hPutStrLn stderr "Error: this program doesn't take any arguments."
@@ -269,7 +178,7 @@ main = do
 
   let verbose = optVerbose opts
 
-  (fixed_nl, il, csf) <- CLI.loadExternalData opts
+  (fixed_nl, il, csf) <- loadExternalData opts
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn opts)) specData
 

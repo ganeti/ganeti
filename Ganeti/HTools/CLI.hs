@@ -28,16 +28,39 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.CLI
-    ( CLIOptions(..)
-    , EToolOptions(..)
+    ( Options(..)
+    , OptType
     , parseOpts
     , parseEnv
     , shTemplate
     , loadExternalData
     , defaultLuxiSocket
+    -- * The options
+    , oPrintNodes
+    , oPrintCommands
+    , oOneline
+    , oNoHeaders
+    , oOutputDir
+    , oNodeFile
+    , oInstFile
+    , oRapiMaster
+    , oLuxiSocket
+    , oMaxSolLength
+    , oVerbose
+    , oQuiet
+    , oOfflineNode
+    , oMinScore
+    , oIMem
+    , oIDisk
+    , oIVcpus
+    , oINodes
+    , oMaxCpu
+    , oMinDisk
+    , oShowVer
+    , oShowHelp
     ) where
 
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import qualified Data.Version
 import Monad
 import System.Console.GetOpt
@@ -54,6 +77,7 @@ import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.HTools.Types
 
@@ -61,53 +85,201 @@ import Ganeti.HTools.Types
 defaultLuxiSocket :: FilePath
 defaultLuxiSocket = "/var/run/ganeti/socket/ganeti-master"
 
--- | Class for types which support show help and show version.
-class CLIOptions a where
-    -- | Denotes whether the show help option has been passed.
-    showHelp    :: a -> Bool
-    -- | Denotes whether the show version option has been passed.
-    showVersion :: a -> Bool
+-- | Command line options structure.
+data Options = Options
+    { optShowNodes :: Bool           -- ^ Whether to show node status
+    , optShowCmds  :: Maybe FilePath -- ^ Whether to show the command list
+    , optOneline   :: Bool           -- ^ Switch output to a single line
+    , optOutPath   :: FilePath       -- ^ Path to the output directory
+    , optNoHeaders :: Bool           -- ^ Do not show a header line
+    , optNodeFile  :: FilePath       -- ^ Path to the nodes file
+    , optNodeSet   :: Bool           -- ^ The nodes have been set by options
+    , optInstFile  :: FilePath       -- ^ Path to the instances file
+    , optInstSet   :: Bool           -- ^ The insts have been set by options
+    , optMaxLength :: Int            -- ^ Stop after this many steps
+    , optMaster    :: String         -- ^ Collect data from RAPI
+    , optLuxi      :: Maybe FilePath -- ^ Collect data from Luxi
+    , optOffline   :: [String]       -- ^ Names of offline nodes
+    , optIMem      :: Int            -- ^ Instance memory
+    , optIDsk      :: Int            -- ^ Instance disk
+    , optIVCPUs    :: Int            -- ^ Instance VCPUs
+    , optINodes    :: Int            -- ^ Nodes required for an instance
+    , optMinScore  :: Cluster.Score  -- ^ The minimum score we aim for
+    , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
+    , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
+    , optVerbose   :: Int            -- ^ Verbosity level
+    , optShowVer   :: Bool           -- ^ Just show the program version
+    , optShowHelp  :: Bool           -- ^ Just show the help
+    } deriving Show
 
--- | Class for types which support the -i\/-n\/-m options.
-class EToolOptions a where
-    -- | Returns the node file name.
-    nodeFile   :: a -> FilePath
-    -- | Tells whether the node file has been passed as an option.
-    nodeSet    :: a -> Bool
-    -- | Returns the instance file name.
-    instFile   :: a -> FilePath
-    -- | Tells whether the instance file has been passed as an option.
-    instSet    :: a -> Bool
-    -- | Rapi target, if one has been passed.
-    masterName :: a -> String
-    -- | Whether to connect to a local luxi socket.
-    luxiSocket :: a -> Maybe FilePath
-    -- | Whether to be less verbose.
-    silent     :: a -> Bool
+-- | Default values for the command line options.
+defaultOptions :: Options
+defaultOptions  = Options
+ { optShowNodes = False
+ , optShowCmds  = Nothing
+ , optOneline   = False
+ , optNoHeaders = False
+ , optOutPath   = "."
+ , optNodeFile  = "nodes"
+ , optNodeSet   = False
+ , optInstFile  = "instances"
+ , optInstSet   = False
+ , optMaxLength = -1
+ , optMaster    = ""
+ , optLuxi      = Nothing
+ , optOffline   = []
+ , optIMem      = 4096
+ , optIDsk      = 102400
+ , optIVCPUs    = 1
+ , optINodes    = 2
+ , optMinScore  = 1e-9
+ , optMcpu      = -1
+ , optMdsk      = -1
+ , optVerbose   = 1
+ , optShowVer   = False
+ , optShowHelp  = False
+ }
+
+-- | Abrreviation for the option type
+type OptType = OptDescr (Options -> Options)
+
+oPrintNodes :: OptType
+oPrintNodes = Option "p" ["print-nodes"]
+              (NoArg (\ opts -> opts { optShowNodes = True }))
+              "print the final node list"
+
+oPrintCommands :: OptType
+oPrintCommands = Option "C" ["print-commands"]
+                 (OptArg ((\ f opts -> opts { optShowCmds = Just f }) .
+                          fromMaybe "-")
+                  "FILE")
+                 "print the ganeti command list for reaching the solution,\
+                 \ if an argument is passed then write the commands to a\
+                 \ file named as such"
+
+oOneline :: OptType
+oOneline = Option "o" ["oneline"]
+           (NoArg (\ opts -> opts { optOneline = True }))
+           "print the ganeti command list for reaching the solution"
+
+oNoHeaders :: OptType
+oNoHeaders = Option "" ["no-headers"]
+             (NoArg (\ opts -> opts { optNoHeaders = True }))
+             "do not show a header line"
+
+oOutputDir :: OptType
+oOutputDir = Option "d" ["output-dir"]
+             (ReqArg (\ d opts -> opts { optOutPath = d }) "PATH")
+             "directory in which to write output files"
+
+oNodeFile :: OptType
+oNodeFile = Option "n" ["nodes"]
+            (ReqArg (\ f o -> o { optNodeFile = f, optNodeSet = True }) "FILE")
+            "the node list FILE"
+
+oInstFile :: OptType
+oInstFile = Option "i" ["instances"]
+            (ReqArg (\ f o -> o { optInstFile = f, optInstSet = True }) "FILE")
+            "the instance list FILE"
+
+oRapiMaster :: OptType
+oRapiMaster = Option "m" ["master"]
+              (ReqArg (\ m opts -> opts { optMaster = m }) "ADDRESS")
+              "collect data via RAPI at the given ADDRESS"
+
+oLuxiSocket :: OptType
+oLuxiSocket = Option "L" ["luxi"]
+              (OptArg ((\ f opts -> opts { optLuxi = Just f }) .
+                       fromMaybe defaultLuxiSocket) "SOCKET")
+              "collect data via Luxi, optionally using the given SOCKET path"
+
+oVerbose :: OptType
+oVerbose = Option "v" ["verbose"]
+           (NoArg (\ opts -> opts { optVerbose = optVerbose opts + 1 }))
+           "increase the verbosity level"
+
+oQuiet :: OptType
+oQuiet = Option "q" ["quiet"]
+         (NoArg (\ opts -> opts { optVerbose = optVerbose opts - 1 }))
+         "decrease the verbosity level"
+
+oOfflineNode :: OptType
+oOfflineNode = Option "O" ["offline"]
+               (ReqArg (\ n o -> o { optOffline = n:optOffline o }) "NODE")
+               "set node as offline"
+
+oMaxSolLength :: OptType
+oMaxSolLength = Option "l" ["max-length"]
+                (ReqArg (\ i opts -> opts { optMaxLength =  read i::Int }) "N")
+                "cap the solution at this many moves (useful for very\
+                \ unbalanced clusters)"
+
+oMinScore :: OptType
+oMinScore = Option "e" ["min-score"]
+            (ReqArg (\ e opts -> opts { optMinScore = read e }) "EPSILON")
+            " mininum score to aim for"
+
+oIMem :: OptType
+oIMem = Option "" ["memory"]
+        (ReqArg (\ m opts -> opts { optIMem = read m }) "MEMORY")
+        "memory size for instances"
+
+oIDisk :: OptType
+oIDisk = Option "" ["disk"]
+         (ReqArg (\ d opts -> opts { optIDsk = read d }) "DISK")
+         "disk size for instances"
+
+oIVcpus :: OptType
+oIVcpus = Option "" ["vcpus"]
+          (ReqArg (\ p opts -> opts { optIVCPUs = read p }) "NUM")
+          "number of virtual cpus for instances"
+
+oINodes :: OptType
+oINodes = Option "" ["req-nodes"]
+          (ReqArg (\ n opts -> opts { optINodes = read n }) "NODES")
+          "number of nodes for the new instances (1=plain, 2=mirrored)"
+
+oMaxCpu :: OptType
+oMaxCpu = Option "" ["max-cpu"]
+          (ReqArg (\ n opts -> opts { optMcpu = read n }) "RATIO")
+          "maximum virtual-to-physical cpu ratio for nodes"
+
+oMinDisk :: OptType
+oMinDisk = Option "" ["min-disk"]
+           (ReqArg (\ n opts -> opts { optMdsk = read n }) "RATIO")
+           "minimum free disk space for nodes (between 0 and 1)"
+
+oShowVer :: OptType
+oShowVer = Option "V" ["version"]
+           (NoArg (\ opts -> opts { optShowVer = True}))
+           "show the version of the program"
+
+oShowHelp :: OptType
+oShowHelp = Option "h" ["help"]
+            (NoArg (\ opts -> opts { optShowHelp = True}))
+            "show help"
 
 -- | Usage info
-usageHelp :: (CLIOptions a) => String -> [OptDescr (a -> a)] -> String
+usageHelp :: String -> [OptType] -> String
 usageHelp progname =
     usageInfo (printf "%s %s\nUsage: %s [OPTION...]"
                progname Version.version progname)
 
 -- | Command line parser, using the 'options' structure.
-parseOpts :: (CLIOptions b) =>
-             [String]            -- ^ The command line arguments
-          -> String              -- ^ The program name
-          -> [OptDescr (b -> b)] -- ^ The supported command line options
-          -> b                   -- ^ The default options record
-          -> IO (b, [String])    -- ^ The resulting options a leftover
-                                 -- arguments
-parseOpts argv progname options defaultOptions =
+parseOpts :: [String]               -- ^ The command line arguments
+          -> String                 -- ^ The program name
+          -> [OptType]              -- ^ The supported command line options
+          -> IO (Options, [String]) -- ^ The resulting options and leftover
+                                    -- arguments
+parseOpts argv progname options =
     case getOpt Permute options argv of
       (o, n, []) ->
           do
             let resu@(po, _) = (foldl (flip id) defaultOptions o, n)
-            when (showHelp po) $ do
+            when (optShowHelp po) $ do
               putStr $ usageHelp progname options
               exitWith ExitSuccess
-            when (showVersion po) $ do
+            when (optShowVer po) $ do
               printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
                      progname Version.version
                      compilerName (Data.Version.showVersion compilerVersion)
@@ -141,20 +313,19 @@ shTemplate =
            \}\n\n"
 
 -- | External tool data loader from a variety of sources.
-loadExternalData :: (EToolOptions a) =>
-                    a
+loadExternalData :: Options
                  -> IO (Node.List, Instance.List, String)
 loadExternalData opts = do
   (env_node, env_inst) <- parseEnv ()
-  let nodef = if nodeSet opts then nodeFile opts
+  let nodef = if optNodeSet opts then optNodeFile opts
               else env_node
-      instf = if instSet opts then instFile opts
+      instf = if optInstSet opts then optInstFile opts
               else env_inst
-      mhost = masterName opts
-      lsock = luxiSocket opts
+      mhost = optMaster opts
+      lsock = optLuxi opts
       setRapi = mhost /= ""
       setLuxi = isJust lsock
-      setFiles = nodeSet opts || instSet opts
+      setFiles = optNodeSet opts || optInstSet opts
       allSet = filter id [setRapi, setLuxi, setFiles]
   when (length allSet > 1) $
        do
@@ -178,7 +349,7 @@ loadExternalData opts = do
       )
   let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il
 
-  unless (null fix_msgs || silent opts) $ do
+  unless (null fix_msgs || optVerbose opts == 0) $ do
          hPutStrLn stderr "Warning: cluster has inconsistent data:"
          hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 

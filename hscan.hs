@@ -31,7 +31,6 @@ import Monad
 import System
 import System.IO
 import System.FilePath
-import System.Console.GetOpt
 import qualified System
 
 import Text.Printf (printf)
@@ -40,57 +39,21 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import qualified Ganeti.HTools.CLI as CLI
 import qualified Ganeti.HTools.Rapi as Rapi
 import qualified Ganeti.HTools.Loader as Loader
+
+import Ganeti.HTools.CLI
 import Ganeti.HTools.Types
 
--- | Command line options structure.
-data Options = Options
-    { optShowNodes :: Bool     -- ^ Whether to show node status
-    , optOutPath   :: FilePath -- ^ Path to the output directory
-    , optVerbose   :: Int      -- ^ Verbosity level
-    , optNoHeader  :: Bool     -- ^ Do not show a header line
-    , optShowVer   :: Bool     -- ^ Just show the program version
-    , optShowHelp  :: Bool     -- ^ Just show the help
-    } deriving Show
-
-instance CLI.CLIOptions Options where
-    showVersion = optShowVer
-    showHelp    = optShowHelp
-
--- | Default values for the command line options.
-defaultOptions :: Options
-defaultOptions  = Options
- { optShowNodes = False
- , optOutPath   = "."
- , optVerbose   = 0
- , optNoHeader  = False
- , optShowVer   = False
- , optShowHelp  = False
- }
-
 -- | Options list and functions
-options :: [OptDescr (Options -> Options)]
+options :: [OptType]
 options =
-    [ Option ['p']     ["print-nodes"]
-      (NoArg (\ opts -> opts { optShowNodes = True }))
-      "print the final node list"
-    , Option ['d']     ["output-dir"]
-      (ReqArg (\ d opts -> opts { optOutPath = d }) "PATH")
-      "directory in which to write output files"
-    , Option ['v']     ["verbose"]
-      (NoArg (\ opts -> opts { optVerbose = optVerbose opts + 1 }))
-      "increase the verbosity level"
-    , Option []        ["no-headers"]
-      (NoArg (\ opts -> opts { optNoHeader = True }))
-      "do not show a header line"
-    , Option ['V']     ["version"]
-      (NoArg (\ opts -> opts { optShowVer = True}))
-      "show the version of the program"
-    , Option ['h']     ["help"]
-      (NoArg (\ opts -> opts { optShowHelp = True}))
-      "show help"
+    [ oPrintNodes
+    , oOutputDir
+    , oVerbose
+    , oNoHeaders
+    , oShowVer
+    , oShowHelp
     ]
 
 -- | Serialize a single node
@@ -157,13 +120,12 @@ fixSlash = map (\x -> if x == '/' then '_' else x)
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (opts, clusters) <- CLI.parseOpts cmd_args "hscan" options
-                      defaultOptions
+  (opts, clusters) <- parseOpts cmd_args "hscan" options
 
   let odir = optOutPath opts
       nlen = maximum . map length $ clusters
 
-  unless (optNoHeader opts) $
+  unless (optNoHeaders opts) $
          printf "%-*s %5s %5s %5s %5s %6s %6s %6s %6s %10s\n" nlen
                 "Name" "Nodes" "Inst" "BNode" "BInst" "t_mem" "f_mem"
                 "t_disk" "f_disk" "Score"
