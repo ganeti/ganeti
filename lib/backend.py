@@ -163,6 +163,7 @@ def _BuildUploadFileList():
     constants.VNC_PASSWORD_FILE,
     constants.RAPI_CERT_FILE,
     constants.RAPI_USERS_FILE,
+    constants.HMAC_CLUSTER_KEY,
     ])
 
   for hv_name in constants.HYPER_TYPES:

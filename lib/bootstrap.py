@@ -116,6 +116,11 @@ def _InitGanetiServerSetup():
   if not os.path.exists(constants.RAPI_CERT_FILE):
     _GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
 
+  if not os.path.exists(constants.HMAC_CLUSTER_KEY):
+    utils.WriteFile(constants.HMAC_CLUSTER_KEY,
+                    data=utils.GenerateSecret(),
+                    mode=0400)
+
   result = utils.RunCmd([constants.NODE_INITD_SCRIPT, "restart"])
 
   if result.failed:
