@@ -4615,7 +4615,7 @@ class LUCreateInstance(LogicalUnit):
       disks=[(d["size"], d["mode"]) for d in self.disks],
       bep=self.be_full,
       hvp=self.hv_full,
-      hypervisor=self.op.hypervisor,
+      hypervisor_name=self.op.hypervisor,
     ))
 
     nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
