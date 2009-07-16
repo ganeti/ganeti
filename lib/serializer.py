@@ -28,10 +28,13 @@ backend (currently json).
 import simplejson
 import re
 import hmac
-import hashlib
 
 from ganeti import errors
 
+try:
+  from hashlib import sha1
+except ImportError:
+  import sha as sha1
 
 # Check whether the simplejson module supports indentation
 _JSON_INDENT = 2
@@ -88,7 +91,7 @@ def DumpSignedJson(data, key, salt=None):
   signed_dict = {
     'msg': txt,
     'salt': salt,
-    'hmac': hmac.new(key, salt + txt, hashlib.sha256).hexdigest(),
+    'hmac': hmac.new(key, salt + txt, sha1).hexdigest(),
   }
   return DumpJson(signed_dict)
 
@@ -120,7 +123,7 @@ def LoadSignedJson(txt, key, salt_verifier=None):
     if not salt_verifier(salt):
       raise errors.SignatureError('Invalid salt')
 
-  if hmac.new(key, salt + msg, hashlib.sha256).hexdigest() != hmac_sign:
+  if hmac.new(key, salt + msg, sha1).hexdigest() != hmac_sign:
     raise errors.SignatureError('Invalid Signature')
   return LoadJson(msg)
 
