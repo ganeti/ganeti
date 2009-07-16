@@ -273,6 +273,20 @@ class ConfigWriter:
     data = self._config_data
     seen_lids = []
     seen_pids = []
+
+    # global cluster checks
+    if not data.cluster.enabled_hypervisors:
+      result.append("enabled hypervisors list doesn't have any entries")
+    invalid_hvs = set(data.cluster.enabled_hypervisors) - constants.HYPER_TYPES
+    if invalid_hvs:
+      result.append("enabled hypervisors contains invalid entries: %s" %
+                    invalid_hvs)
+
+    if data.cluster.master_node not in data.nodes:
+      result.append("cluster has invalid primary node '%s'" %
+                    data.cluster.master_node)
+
+    # per-instance checks
     for instance_name in data.instances:
       instance = data.instances[instance_name]
       if instance.primary_node not in data.nodes:
