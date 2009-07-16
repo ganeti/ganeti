@@ -123,10 +123,10 @@ AC_SUBST(SOCAT_PATH, $socat_path)
 AC_ARG_WITH([lvm-stripecount],
   [AS_HELP_STRING([--with-lvm-stripecount=NUM],
     [the number of stripes to use for LVM volumes]
-    [ (default is 3)]
+    [ (default is 1)]
   )],
   [lvm_stripecount="$withval"],
-  [lvm_stripecount="3"])
+  [lvm_stripecount="1"])
 AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
 
 # Check common programs
