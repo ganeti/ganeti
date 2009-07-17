@@ -95,6 +95,13 @@ class SimpleConfigReader(object):
       raise errors.ConfigurationError("Cannot load config file %s: %s" %
                                       (self._file_name, err))
 
+    self._ip_to_instance = {}
+    for iname in self._config_data['instances']:
+      instance = self._config_data['instances'][iname]
+      for nic in instance['nics']:
+        if 'ip' in nic and nic['ip']:
+          self._ip_to_instance[nic['ip']] = iname
+
     return True
 
   # Clients can request a reload of the config file, so we export our internal
@@ -147,6 +154,37 @@ class SimpleConfigReader(object):
     drained = self._config_data["nodes"][node]["drained"]
     offline = self._config_data["nodes"][node]["offline"]
     return master_candidate, drained, offline
+
+  def GetInstanceByIp(self, ip):
+    if ip not in self._ip_to_instance:
+      return None
+    return self._ip_to_instance[ip]
+
+  def GetNodePrimaryIp(self, node):
+    """Get a node's primary ip
+
+    @type node: string
+    @param node: node name
+    @rtype: string, or None
+    @return: node's primary ip, or None if no such node
+
+    """
+    if node not in self._config_data["nodes"]:
+      return None
+    return self._config_data["nodes"][node]["primary_ip"]
+
+  def GetInstancePrimaryNode(self, instance):
+    """Get an instance's primary node
+
+    @type instance: string
+    @param instance: instance name
+    @rtype: string, or None
+    @return: primary node, or None if no such instance
+
+    """
+    if instance not in self._config_data["instances"]:
+      return None
+    return self._config_data["instances"][instance]["primary_node"]
 
 
 class SimpleStore(object):
