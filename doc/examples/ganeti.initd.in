@@ -109,9 +109,9 @@ case "$1" in
         stop_action $MASTERD $MASTERD_PID
         stop_action $NODED $NODED_PID
         check_config
-        start_action $NODED $NODED_PID
-        start_action $MASTERD $MASTERD_PID
-        start_action $RAPI $RAPI_PID
+        start_action $NODED $NODED_PID $NODED_ARGS
+        start_action $MASTERD $MASTERD_PID $MASTERD_ARGS
+        start_action $RAPI $RAPI_PID $RAPI_ARGS
         ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"
