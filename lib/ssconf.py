@@ -52,8 +52,14 @@ class SimpleConfigReader(object):
 
     """
     self._file_name = file_name
-    self._config_data = serializer.Load(utils.ReadFile(file_name))
-    # TODO: Error handling
+    try:
+      self._config_data = serializer.Load(utils.ReadFile(file_name))
+    except IOError, err:
+      raise errors.ConfigurationError("Cannot read config file %s: %s" %
+                                      (file_name, err))
+    except ValueError, err:
+      raise errors.ConfigurationError("Cannot load config file %s: %s" %
+                                      (file_name, err))
 
   def GetClusterName(self):
     return self._config_data["cluster"]["cluster_name"]
