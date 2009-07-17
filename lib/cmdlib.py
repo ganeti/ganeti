@@ -1566,6 +1566,13 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.enabled_hypervisors is not None:
       self.hv_list = self.op.enabled_hypervisors
+      if not self.hv_list:
+        raise errors.OpPrereqError("Enabled hypervisors list must contain at"
+                                   " least one member")
+      invalid_hvs = set(self.hv_list) - constants.HYPER_TYPES
+      if invalid_hvs:
+        raise errors.OpPrereqError("Enabled hypervisors contains invalid"
+                                   " entries: %s" % invalid_hvs)
     else:
       self.hv_list = cluster.enabled_hypervisors
 
@@ -4736,7 +4743,7 @@ class LUCreateInstance(LogicalUnit):
       disks=[(d["size"], d["mode"]) for d in self.disks],
       bep=self.be_full,
       hvp=self.hv_full,
-      hypervisor=self.op.hypervisor,
+      hypervisor_name=self.op.hypervisor,
     ))
 
     nl = ([self.cfg.GetMasterNode(), self.op.pnode] +

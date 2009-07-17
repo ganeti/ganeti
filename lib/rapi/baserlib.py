@@ -250,6 +250,18 @@ class R_Generic(object):
                                 " '%s' parameter" % (name,))
     return val
 
+  def _checkStringVariable(self, name, default=None):
+    """Return the parsed value of an int argument.
+
+    """
+    val = self.queryargs.get(name, default)
+    if isinstance(val, list):
+      if val:
+        val = val[0]
+      else:
+        val = default
+    return val
+
   def getBodyParameter(self, name, *args):
     """Check and return the value for a given parameter.
 

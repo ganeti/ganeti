@@ -414,13 +414,18 @@
           <varlistentry>
             <term>drained</term>
             <listitem>
-              <simpara>whether the node is drained or not</simpara>
+              <simpara>whether the node is drained or not; the cluster
+              still communicates with drained nodes but excludes them
+              from allocation operations</simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
             <term>offline</term>
             <listitem>
-              <simpara>whether the node is offline or not</simpara>
+              <simpara>whether the node is offline or not; if offline,
+              the cluster does not communicate with offline nodes;
+              useful for nodes that are not reachable in order to
+              avoid delays</simpara>
             </listitem>
           </varlistentry>
           <varlistentry>

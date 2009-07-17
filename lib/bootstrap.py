@@ -139,6 +139,14 @@ def InitCluster(cluster_name, mac_prefix,
   if config.ConfigWriter.IsCluster():
     raise errors.OpPrereqError("Cluster is already initialised")
 
+  if not enabled_hypervisors:
+    raise errors.OpPrereqError("Enabled hypervisors list must contain at"
+                               " least one member")
+  invalid_hvs = set(enabled_hypervisors) - constants.HYPER_TYPES
+  if invalid_hvs:
+    raise errors.OpPrereqError("Enabled hypervisors contains invalid"
+                               " entries: %s" % invalid_hvs)
+
   hostname = utils.HostInfo()
 
   if hostname.ip.startswith("127."):

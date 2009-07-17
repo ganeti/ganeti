@@ -160,6 +160,8 @@ CONNECTOR.update({
   re.compile(r'^/2/instances/([\w\._-]+)/tags$'): rlib2.R_2_instances_name_tags,
   re.compile(r'^/2/instances/([\w\._-]+)/reboot$'):
       rlib2.R_2_instances_name_reboot,
+  re.compile(r'^/2/instances/([\w\._-]+)/reinstall$'):
+      rlib2.R_2_instances_name_reinstall,
   re.compile(r'^/2/instances/([\w\._-]+)/shutdown$'):
       rlib2.R_2_instances_name_shutdown,
   re.compile(r'^/2/instances/([\w\._-]+)/startup$'):

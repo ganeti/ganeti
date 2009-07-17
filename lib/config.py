@@ -273,6 +273,20 @@ class ConfigWriter:
     data = self._config_data
     seen_lids = []
     seen_pids = []
+
+    # global cluster checks
+    if not data.cluster.enabled_hypervisors:
+      result.append("enabled hypervisors list doesn't have any entries")
+    invalid_hvs = set(data.cluster.enabled_hypervisors) - constants.HYPER_TYPES
+    if invalid_hvs:
+      result.append("enabled hypervisors contains invalid entries: %s" %
+                    invalid_hvs)
+
+    if data.cluster.master_node not in data.nodes:
+      result.append("cluster has invalid primary node '%s'" %
+                    data.cluster.master_node)
+
+    # per-instance checks
     for instance_name in data.instances:
       instance = data.instances[instance_name]
       if instance.primary_node not in data.nodes:
@@ -1157,32 +1171,6 @@ class ConfigWriter:
       constants.SS_INSTANCE_LIST: instance_data,
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       }
-
-  @locking.ssynchronized(_config_lock)
-  def InitConfig(self, version, cluster_config, master_node_config):
-    """Create the initial cluster configuration.
-
-    It will contain the current node, which will also be the master
-    node, and no instances.
-
-    @type version: int
-    @param version: Configuration version
-    @type cluster_config: objects.Cluster
-    @param cluster_config: Cluster configuration
-    @type master_node_config: objects.Node
-    @param master_node_config: Master node configuration
-
-    """
-    nodes = {
-      master_node_config.name: master_node_config,
-      }
-
-    self._config_data = objects.ConfigData(version=version,
-                                           cluster=cluster_config,
-                                           nodes=nodes,
-                                           instances={},
-                                           serial_no=1)
-    self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetVGName(self):

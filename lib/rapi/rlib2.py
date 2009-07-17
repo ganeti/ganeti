@@ -431,6 +431,36 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_instances_name_reinstall(baserlib.R_Generic):
+  """/2/instances/[instance_name]/reinstall resource.
+
+  Implements an instance reinstall.
+
+  """
+
+  DOC_URI = "/2/instances/[instance_name]/reinstall"
+
+  def POST(self):
+    """Reinstall an instance.
+
+    The URI takes os=name and nostartup=[0|1] optional
+    parameters. By default, the instance will be started
+    automatically.
+
+    """
+    instance_name = self.items[0]
+    ostype = self._checkStringVariable('os')
+    nostartup = self._checkIntVariable('nostartup')
+    ops = [
+      opcodes.OpShutdownInstance(instance_name=instance_name),
+      opcodes.OpReinstallInstance(instance_name=instance_name, os_type=ostype),
+      ]
+    if not nostartup:
+      ops.append(opcodes.OpStartupInstance(instance_name=instance_name,
+                                           force=False))
+    return baserlib.SubmitJob(ops)
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 

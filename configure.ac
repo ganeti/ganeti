@@ -1,7 +1,7 @@
 # Configure script for Ganeti
 m4_define([gnt_version_major], [2])
 m4_define([gnt_version_minor], [0])
-m4_define([gnt_version_revision], [1])
+m4_define([gnt_version_revision], [2])
 m4_define([gnt_version_suffix], [])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
@@ -123,10 +123,10 @@ AC_SUBST(SOCAT_PATH, $socat_path)
 AC_ARG_WITH([lvm-stripecount],
   [AS_HELP_STRING([--with-lvm-stripecount=NUM],
     [the number of stripes to use for LVM volumes]
-    [ (default is 3)]
+    [ (default is 1)]
   )],
   [lvm_stripecount="$withval"],
-  [lvm_stripecount="3"])
+  [lvm_stripecount="1"])
 AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
 
 # Check common programs

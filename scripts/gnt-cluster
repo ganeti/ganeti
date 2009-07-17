@@ -79,11 +79,6 @@ def InitCluster(opts, args):
     hvparams[hv] = objects.FillDict(constants.HVC_DEFAULTS[hv], hvparams[hv])
     utils.ForceDictType(hvparams[hv], constants.HVS_PARAMETER_TYPES)
 
-  for hv in hvlist:
-    if hv not in constants.HYPER_TYPES:
-      ToStderr("invalid hypervisor: %s", hv)
-      return 1
-
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
