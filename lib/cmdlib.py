@@ -565,7 +565,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'disks': [(disk.size, disk.mode) for disk in instance.disks],
     'bep': bep,
     'hvp': hvp,
-    'hypervisor': instance.hypervisor,
+    'hypervisor_name': instance.hypervisor,
   }
   if override:
     args.update(override)
