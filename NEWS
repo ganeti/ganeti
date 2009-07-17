@@ -1,3 +1,33 @@
+Version 2.0.2
+  - Added experimental support for stripped logical volumes; this should
+    enhance performance but comes with a higher complexity in the block
+    device handling; stripping is only enabled when passing
+    --with-lvm-stripecount=N to configure, but codepaths are affected
+    even in the non-stripped mode
+  - Improved resiliency against transient failures at the end of DRBD
+    resyncs, and in general of DRBD resync checks
+  - Fixed a couple of issues with exports and snapshot errors
+  - Fixed a couple of issues in instance listing
+  - Added display of the disk size in “gnt-instance info”
+  - Fixed checking for valid OSes in instance creation
+  - Fixed handling of the ‘vcpus’ parameter in instance listing and in
+    general of invalid parameters
+  - Fixed http server library, and thus RAPI, to handle invalid
+    username/password combinations correctly; this means that now they
+    report unauthorized for queries too, not only for modifications,
+    allowing earlier detect of configuration problems
+  - Added a new ‘role’ node list field, equivalent to the master/master
+    candidate/drained/offline flags combinations
+  - Fixed cluster modify and changes of candidate pool size
+  - Fixed cluster verify error messages for wrong files on regular nodes
+  - Fixed a couple of issues with node demotion from master candidate
+    role
+  - Fixed node readd issues
+  - Added non-interactive mode for “ganeti-masterd --no-voting” startup
+  - Added a new ‘--no-voting’ option for masterfailover to fix failover
+    on two-nodes clusters when the former master node is unreachable
+  - Added instance reinstall over RAPI
+
 Version 2.0.1
   - added -H/-B startup parameters to gnt-instance, which will allow
     re-adding the start in single-user option (regression from 1.2)
