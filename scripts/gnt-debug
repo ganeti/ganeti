@@ -71,19 +71,14 @@ def GenericOpCodes(opts, args):
 
   """
   cl = cli.GetClient()
-  job_data = []
-  job_ids = []
+  jex = cli.JobExecutor(cl=cl)
+
   for fname in args:
     op_data = simplejson.loads(open(fname).read())
     op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
-    job_data.append((fname, op_list))
-  for fname, op_list in job_data:
-    jid = cli.SendJob(op_list, cl=cl)
-    ToStdout("File '%s', job id: %s", fname, jid)
-    job_ids.append(jid)
-  for jid in job_ids:
-    ToStdout("Waiting for job id %s", jid)
-    cli.PollJob(jid, cl=cl)
+    jex.QueueJob("file %s" % fname, *op_list)
+
+  jex.GetResults()
   return 0
 
 

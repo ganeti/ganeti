@@ -1035,7 +1035,6 @@ class JobExecutor(object):
     """
     self.queue.append((name, ops))
 
-
   def SubmitPending(self):
     """Submit all pending jobs.
 
