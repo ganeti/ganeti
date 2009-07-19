@@ -289,7 +289,7 @@ class RpcRunner(object):
   def _ConnectList(self, client, node_list, call):
     """Helper for computing node addresses.
 
-    @type client: L{Client}
+    @type client: L{ganeti.rpc.Client}
     @param client: a C{Client} instance
     @type node_list: list
     @param node_list: the node list we should connect
@@ -319,7 +319,7 @@ class RpcRunner(object):
   def _ConnectNode(self, client, node, call):
     """Helper for computing one node's address.
 
-    @type client: L{Client}
+    @type client: L{ganeti.rpc.Client}
     @param client: a C{Client} instance
     @type node: str
     @param node: the node we should connect
