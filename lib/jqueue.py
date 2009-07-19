@@ -362,6 +362,15 @@ class _JobQueueWorker(workerpool.BaseWorker):
         count = len(job.ops)
         for idx, op in enumerate(job.ops):
           op_summary = op.input.Summary()
+          if op.status == constants.OP_STATUS_SUCCESS:
+            # this is a job that was partially completed before master
+            # daemon shutdown, so it can be expected that some opcodes
+            # are already completed successfully (if any did error
+            # out, then the whole job should have been aborted and not
+            # resubmitted for processing)
+            logging.info("Op %s/%s: opcode %s already processed, skipping",
+                         idx + 1, count, op_summary)
+            continue
           try:
             logging.info("Op %s/%s: Starting opcode %s", idx + 1, count,
                          op_summary)
