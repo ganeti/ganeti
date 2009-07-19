@@ -19,7 +19,12 @@
 # 02110-1301, USA.
 
 
-"""Functions used by the node daemon"""
+"""Functions used by the node daemon
+
+@var _ALLOWED_UPLOAD_FILES: denotes which files are accepted in
+     the L{UploadFile} function
+
+"""
 
 
 import os
@@ -113,6 +118,23 @@ def _CleanDirectory(path, exclude=None):
       continue
     if os.path.isfile(full_name) and not os.path.islink(full_name):
       utils.RemoveFile(full_name)
+
+
+def _BuildUploadFileList():
+  """Build the list of allowed upload files.
+
+  This is abstracted so that it's built only once at module import time.
+
+  """
+  return frozenset([
+      constants.CLUSTER_CONF_FILE,
+      constants.ETC_HOSTS,
+      constants.SSH_KNOWN_HOSTS_FILE,
+      constants.VNC_PASSWORD_FILE,
+      ])
+
+
+_ALLOWED_UPLOAD_FILES = _BuildUploadFileList()
 
 
 def JobQueuePurge():
@@ -1460,14 +1482,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                   file_name)
     return False
 
-  allowed_files = [
-    constants.CLUSTER_CONF_FILE,
-    constants.ETC_HOSTS,
-    constants.SSH_KNOWN_HOSTS_FILE,
-    constants.VNC_PASSWORD_FILE,
-    ]
-
-  if file_name not in allowed_files:
+  if file_name not in _ALLOWED_UPLOAD_FILES:
     logging.error("Filename passed to UploadFile not in allowed"
                  " upload targets: '%s'", file_name)
     return False
