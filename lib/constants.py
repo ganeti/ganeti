@@ -453,13 +453,19 @@ JOB_STATUS_CANCELED = "canceled"
 JOB_STATUS_SUCCESS = "success"
 JOB_STATUS_ERROR = "error"
 
+# OpCode status
+# not yet finalized
 OP_STATUS_QUEUED = "queued"
 OP_STATUS_WAITLOCK = "waiting"
 OP_STATUS_CANCELING = "canceling"
 OP_STATUS_RUNNING = "running"
+# finalized
 OP_STATUS_CANCELED = "canceled"
 OP_STATUS_SUCCESS = "success"
 OP_STATUS_ERROR = "error"
+OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
+                           OP_STATUS_SUCCESS,
+                           OP_STATUS_ERROR])
 
 # Execution log types
 ELOG_MESSAGE = "message"
