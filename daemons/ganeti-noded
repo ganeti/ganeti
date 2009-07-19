@@ -93,14 +93,25 @@ class NodeHttpServer(http.server.HttpServer):
       raise http.HttpNotFound()
 
     try:
-      try:
-        return method(req.request_body)
-      except:
-        logging.exception("Error in RPC call")
-        raise
+      rvalue = method(req.request_body)
+      return True, rvalue
+
+    except backend.RPCFail, err:
+      # our custom failure exception; str(err) works fine if the
+      # exception was constructed with a single argument, and in
+      # this case, err.message == err.args[0] == str(err)
+      return (False, str(err))
     except errors.QuitGanetiException, err:
       # Tell parent to quit
+      logging.info("Shutting down the node daemon, arguments: %s",
+                   str(err.args))
       os.kill(self.noded_pid, signal.SIGTERM)
+      # And return the error's arguments, which must be already in
+      # correct tuple format
+      return err.args
+    except Exception, err:
+      logging.exception("Error in RPC call")
+      return False, "Error while executing backend function: %s" % str(err)
 
   # the new block devices  --------------------------
 
@@ -305,10 +316,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     path = params[0]
-    einfo = backend.ExportInfo(path)
-    if einfo is None:
-      return einfo
-    return einfo.Dumps()
+    return backend.ExportInfo(path)
 
   @staticmethod
   def perspective_export_list(params):
@@ -332,7 +340,7 @@ class NodeHttpServer(http.server.HttpServer):
   # volume  --------------------------
 
   @staticmethod
-  def perspective_volume_list(params):
+  def perspective_lv_list(params):
     """Query the list of logical volumes in a given volume group.
 
     """
@@ -521,7 +529,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Promote this node to master status.
 
     """
-    return backend.StartMaster(params[0])
+    return backend.StartMaster(params[0], params[1])
 
   @staticmethod
   def perspective_node_stop_master(params):
@@ -550,6 +558,15 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     return backend.DemoteFromMC()
+
+
+  @staticmethod
+  def perspective_node_powercycle(params):
+    """Tries to powercycle the nod.
+
+    """
+    hypervisor_type = params[0]
+    return backend.PowercycleNode(hypervisor_type)
 
 
   # cluster --------------------------
@@ -593,7 +610,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Query detailed information about existing OSes.
 
     """
-    return [os_obj.ToDict() for os_obj in backend.DiagnoseOS()]
+    return backend.DiagnoseOS()
 
   @staticmethod
   def perspective_os_get(params):
@@ -601,10 +618,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     name = params[0]
-    try:
-      os_obj = backend.OSFromDisk(name)
-    except errors.InvalidOS, err:
-      os_obj = objects.OS.FromInvalidOS(err)
+    os_obj = backend.OSFromDisk(name)
     return os_obj.ToDict()
 
   # hooks -----------------------
@@ -637,7 +651,10 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     duration = params[0]
-    return utils.TestDelay(duration)
+    status, rval = utils.TestDelay(duration)
+    if not status:
+      raise backend.RPCFail(rval)
+    return rval
 
   # file storage ---------------
 

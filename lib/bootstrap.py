@@ -37,6 +37,7 @@ from ganeti import config
 from ganeti import constants
 from ganeti import objects
 from ganeti import ssconf
+from ganeti import serializer
 from ganeti import hypervisor
 
 
@@ -79,24 +80,27 @@ def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
   """
   (fd, tmp_file_name) = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
-    # Set permissions before writing key
-    os.chmod(tmp_file_name, 0600)
+    try:
+      # Set permissions before writing key
+      os.chmod(tmp_file_name, 0600)
 
-    result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
-                           "-days", str(validity), "-nodes", "-x509",
-                           "-keyout", tmp_file_name, "-out", tmp_file_name,
-                           "-batch"])
-    if result.failed:
-      raise errors.OpExecError("Could not generate SSL certificate, command"
-                               " %s had exitcode %s and error message %s" %
-                               (result.cmd, result.exit_code, result.output))
+      result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
+                             "-days", str(validity), "-nodes", "-x509",
+                             "-keyout", tmp_file_name, "-out", tmp_file_name,
+                             "-batch"])
+      if result.failed:
+        raise errors.OpExecError("Could not generate SSL certificate, command"
+                                 " %s had exitcode %s and error message %s" %
+                                 (result.cmd, result.exit_code, result.output))
 
-    # Make read-only
-    os.chmod(tmp_file_name, 0400)
+      # Make read-only
+      os.chmod(tmp_file_name, 0400)
 
-    os.rename(tmp_file_name, file_name)
+      os.rename(tmp_file_name, file_name)
+    finally:
+      utils.RemoveFile(tmp_file_name)
   finally:
-    utils.RemoveFile(tmp_file_name)
+    os.close(fd)
 
 
 def _InitGanetiServerSetup():
@@ -120,10 +124,11 @@ def _InitGanetiServerSetup():
                              (result.cmd, result.exit_code, result.output))
 
 
-def InitCluster(cluster_name, mac_prefix, def_bridge,
+def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
-                secondary_ip=None, vg_name=None, beparams=None, hvparams=None,
-                enabled_hypervisors=None, default_hypervisor=None):
+                secondary_ip=None, vg_name=None, beparams=None,
+                nicparams=None, hvparams=None, enabled_hypervisors=None,
+                modify_etc_hosts=True):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -133,6 +138,14 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
   # TODO: complete the docstring
   if config.ConfigWriter.IsCluster():
     raise errors.OpPrereqError("Cluster is already initialised")
+
+  if not enabled_hypervisors:
+    raise errors.OpPrereqError("Enabled hypervisors list must contain at"
+                               " least one member")
+  invalid_hvs = set(enabled_hypervisors) - constants.HYPER_TYPES
+  if invalid_hvs:
+    raise errors.OpPrereqError("Enabled hypervisors contains invalid"
+                               " entries: %s" % invalid_hvs)
 
   hostname = utils.HostInfo()
 
@@ -208,6 +221,9 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
   utils.EnsureDirs(dirs)
 
   utils.ForceDictType(beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(nicparams, constants.NICS_PARAMETER_TYPES)
+  objects.NIC.CheckParameterSyntax(nicparams)
+
   # hvparams is a mapping of hypervisor->hvparams dict
   for hv_name, hv_params in hvparams.iteritems():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
@@ -225,7 +241,9 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     f.close()
   sshkey = sshline.split(" ")[1]
 
-  utils.AddHostToEtcHosts(hostname.name)
+  if modify_etc_hosts:
+    utils.AddHostToEtcHosts(hostname.name)
+
   _InitSSHSetup()
 
   # init of cluster config file
@@ -235,7 +253,6 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     highest_used_port=(constants.FIRST_DRBD_PORT - 1),
     mac_prefix=mac_prefix,
     volume_group_name=vg_name,
-    default_bridge=def_bridge,
     tcpudp_port_pool=set(),
     master_node=hostname.name,
     master_ip=clustername.ip,
@@ -243,10 +260,11 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     cluster_name=clustername.name,
     file_storage_dir=file_storage_dir,
     enabled_hypervisors=enabled_hypervisors,
-    default_hypervisor=default_hypervisor,
-    beparams={constants.BEGR_DEFAULT: beparams},
+    beparams={constants.PP_DEFAULT: beparams},
+    nicparams={constants.PP_DEFAULT: nicparams},
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
+    modify_etc_hosts=modify_etc_hosts,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
@@ -255,16 +273,15 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
                                     master_candidate=True,
                                     offline=False, drained=False,
                                     )
-
-  sscfg = InitConfig(constants.CONFIG_VERSION,
-                     cluster_config, master_node_config)
-  ssh.WriteKnownHostsFile(sscfg, constants.SSH_KNOWN_HOSTS_FILE)
+  InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
   cfg = config.ConfigWriter()
+  ssh.WriteKnownHostsFile(cfg, constants.SSH_KNOWN_HOSTS_FILE)
   cfg.Update(cfg.GetClusterInfo())
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
-  rpc.RpcRunner.call_node_start_master(hostname.name, True)
+  # TODO: Warn on failed start master
+  rpc.RpcRunner.call_node_start_master(hostname.name, True, False)
 
 
 def InitConfig(version, cluster_config, master_node_config,
@@ -283,9 +300,6 @@ def InitConfig(version, cluster_config, master_node_config,
   @type cfg_file: string
   @param cfg_file: configuration file path
 
-  @rtype: L{ssconf.SimpleConfigWriter}
-  @return: initialized config instance
-
   """
   nodes = {
     master_node_config.name: master_node_config,
@@ -296,10 +310,9 @@ def InitConfig(version, cluster_config, master_node_config,
                                    nodes=nodes,
                                    instances={},
                                    serial_no=1)
-  cfg = ssconf.SimpleConfigWriter.FromDict(config_data.ToDict(), cfg_file)
-  cfg.Save()
-
-  return cfg
+  utils.WriteFile(cfg_file,
+                  data=serializer.Dump(config_data.ToDict()),
+                  mode=0600)
 
 
 def FinalizeClusterDestroy(master):
@@ -310,11 +323,14 @@ def FinalizeClusterDestroy(master):
 
   """
   result = rpc.RpcRunner.call_node_stop_master(master, True)
-  if result.failed or not result.data:
-    logging.warning("Could not disable the master role")
+  msg = result.RemoteFailMsg()
+  if msg:
+    logging.warning("Could not disable the master role: %s" % msg)
   result = rpc.RpcRunner.call_node_leave_cluster(master)
-  if result.failed or not result.data:
-    logging.warning("Could not shutdown the node daemon and cleanup the node")
+  msg = result.RemoteFailMsg()
+  if msg:
+    logging.warning("Could not shutdown the node daemon and cleanup"
+                    " the node: %s", msg)
 
 
 def SetupNodeDaemon(cluster_name, node, ssh_key_check):
@@ -373,12 +389,16 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                              (node, result.fail_reason, result.output))
 
 
-def MasterFailover():
+def MasterFailover(no_voting=False):
   """Failover the master node.
 
   This checks that we are not already the master, and will cause the
   current master to cease being master, and the non-master to become
   new master.
+
+  @type no_voting: boolean
+  @param no_voting: force the operation without remote nodes agreement
+                      (dangerous)
 
   """
   sstore = ssconf.SimpleStore()
@@ -401,18 +421,20 @@ def MasterFailover():
                                " master candidates is:\n"
                                "%s" % ('\n'.join(mc_no_master)))
 
-  vote_list = GatherMasterVotes(node_list)
+  if not no_voting:
+    vote_list = GatherMasterVotes(node_list)
 
-  if vote_list:
-    voted_master = vote_list[0][0]
-    if voted_master is None:
-      raise errors.OpPrereqError("Cluster is inconsistent, most nodes did not"
-                                 " respond.")
-    elif voted_master != old_master:
-      raise errors.OpPrereqError("I have wrong configuration, I believe the"
-                                 " master is %s but the other nodes voted for"
-                                 " %s. Please resync the configuration of"
-                                 " this node." % (old_master, voted_master))
+    if vote_list:
+      voted_master = vote_list[0][0]
+      if voted_master is None:
+        raise errors.OpPrereqError("Cluster is inconsistent, most nodes did"
+                                   " not respond.")
+      elif voted_master != old_master:
+        raise errors.OpPrereqError("I have a wrong configuration, I believe"
+                                   " the master is %s but the other nodes"
+                                   " voted %s. Please resync the configuration"
+                                   " of this node." %
+                                   (old_master, voted_master))
   # end checks
 
   rcode = 0
@@ -420,9 +442,10 @@ def MasterFailover():
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
   result = rpc.RpcRunner.call_node_stop_master(old_master, True)
-  if result.failed or not result.data:
+  msg = result.RemoteFailMsg()
+  if msg:
     logging.error("Could not disable the master role on the old master"
-                 " %s, please disable manually", old_master)
+                 " %s, please disable manually: %s", old_master, msg)
 
   # Here we have a phase where no master should be running
 
@@ -436,10 +459,11 @@ def MasterFailover():
   # cluster info
   cfg.Update(cluster_info)
 
-  result = rpc.RpcRunner.call_node_start_master(new_master, True)
-  if result.failed or not result.data:
+  result = rpc.RpcRunner.call_node_start_master(new_master, True, no_voting)
+  msg = result.RemoteFailMsg()
+  if msg:
     logging.error("Could not start the master role on the new master"
-                  " %s, please check", new_master)
+                  " %s, please check: %s", new_master, msg)
     rcode = 1
 
   return rcode
@@ -477,7 +501,7 @@ def GatherMasterVotes(node_list):
 
   @type node_list: list
   @param node_list: the list of nodes to query for master info; the current
-      node wil be removed if it is in the list
+      node will be removed if it is in the list
   @rtype: list
   @return: list of (node, votes)
 
@@ -498,9 +522,16 @@ def GatherMasterVotes(node_list):
   votes = {}
   for node in results:
     nres = results[node]
-    data = nres.data
-    if nres.failed or not isinstance(data, (tuple, list)) or len(data) < 3:
-      # here the rpc layer should have already logged errors
+    data = nres.payload
+    msg = nres.RemoteFailMsg()
+    fail = False
+    if msg:
+      logging.warning("Error contacting node %s: %s", node, msg)
+      fail = True
+    elif not isinstance(data, (tuple, list)) or len(data) < 3:
+      logging.warning("Invalid data received from node %s: %s", node, data)
+      fail = True
+    if fail:
       if None not in votes:
         votes[None] = 0
       votes[None] += 1

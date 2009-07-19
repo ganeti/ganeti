@@ -51,9 +51,11 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
            "ToStderr", "ToStdout", "UsesRPC",
-           "GetOnlineNodes", "JobExecutor", "SYNC_OPT",
+           "GetOnlineNodes", "JobExecutor", "SYNC_OPT", "CONFIRM_OPT",
            ]
 
+NO_PREFIX = "no_"
+UN_PREFIX = "-"
 
 def _ExtractTagsObject(opts, args):
   """Extract the tag type object.
@@ -182,6 +184,9 @@ FIELDS_OPT = make_option("-o", "--output", dest="output", action="store",
 FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
                         default=False, help="Force the operation")
 
+CONFIRM_OPT = make_option("--yes", dest="confirm", action="store_true",
+                          default=False, help="Do not require confirmation")
+
 TAG_SRC_OPT = make_option("--from", dest="tags_source",
                           default=None, help="File with tag names")
 
@@ -194,6 +199,11 @@ SYNC_OPT = make_option("--sync", dest="do_locking",
                        default=False, action="store_true",
                        help="Grab locks while doing the queries"
                        " in order to ensure more consistent results")
+
+_DRY_RUN_OPT = make_option("--dry-run", default=False,
+                          action="store_true",
+                          help="Do not execute the operation, just run the"
+                          " check steps and verify it it could be executed")
 
 
 def ARGS_FIXED(val):
@@ -248,23 +258,22 @@ def _SplitKeyVal(opt, data):
   @raises errors.ParameterError: if there are duplicate keys
 
   """
-  NO_PREFIX = "no_"
-  UN_PREFIX = "-"
   kv_dict = {}
-  for elem in data.split(","):
-    if "=" in elem:
-      key, val = elem.split("=", 1)
-    else:
-      if elem.startswith(NO_PREFIX):
-        key, val = elem[len(NO_PREFIX):], False
-      elif elem.startswith(UN_PREFIX):
-        key, val = elem[len(UN_PREFIX):], None
+  if data:
+    for elem in data.split(","):
+      if "=" in elem:
+        key, val = elem.split("=", 1)
       else:
-        key, val = elem, True
-    if key in kv_dict:
-      raise errors.ParameterError("Duplicate key '%s' in option %s" %
-                                  (key, opt))
-    kv_dict[key] = val
+        if elem.startswith(NO_PREFIX):
+          key, val = elem[len(NO_PREFIX):], False
+        elif elem.startswith(UN_PREFIX):
+          key, val = elem[len(UN_PREFIX):], None
+        else:
+          key, val = elem, True
+      if key in kv_dict:
+        raise errors.ParameterError("Duplicate key '%s' in option %s" %
+                                    (key, opt))
+      kv_dict[key] = val
   return kv_dict
 
 
@@ -273,9 +282,21 @@ def check_ident_key_val(option, opt, value):
 
   """
   if ":" not in value:
-    retval =  (value, {})
+    ident, rest = value, ''
   else:
     ident, rest = value.split(":", 1)
+
+  if ident.startswith(NO_PREFIX):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(NO_PREFIX):], False)
+  elif ident.startswith(UN_PREFIX):
+    if rest:
+      msg = "Cannot pass options when removing parameter groups: %s" % value
+      raise errors.ParameterError(msg)
+    retval = (ident[len(UN_PREFIX):], None)
+  else:
     kv_dict = _SplitKeyVal(opt, rest)
     retval = (ident, kv_dict)
   return retval
@@ -320,7 +341,7 @@ keyval_option = KeyValOption
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
 
-  This function parses the arguements and returns the function which
+  This function parses the arguments and returns the function which
   must be executed together with its (modified) arguments.
 
   @param argv: the command line
@@ -377,7 +398,7 @@ def _ParseArgs(argv, commands, aliases):
     cmd = aliases[cmd]
 
   func, nargs, parser_opts, usage, description = commands[cmd]
-  parser = OptionParser(option_list=parser_opts,
+  parser = OptionParser(option_list=parser_opts + [_DRY_RUN_OPT],
                         description=description,
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))
@@ -438,10 +459,10 @@ def AskUser(text, choices=None):
     choices = [('y', True, 'Perform the operation'),
                ('n', False, 'Do not perform the operation')]
   if not choices or not isinstance(choices, list):
-    raise errors.ProgrammerError("Invalid choiches argument to AskUser")
+    raise errors.ProgrammerError("Invalid choices argument to AskUser")
   for entry in choices:
     if not isinstance(entry, tuple) or len(entry) < 3 or entry[0] == '?':
-      raise errors.ProgrammerError("Invalid choiches element to AskUser")
+      raise errors.ProgrammerError("Invalid choices element to AskUser")
 
   answer = choices[-1][1]
   new_text = []
@@ -602,7 +623,11 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
   whether to just send the job and print its identifier. It is used in
   order to simplify the implementation of the '--submit' option.
 
+  It will also add the dry-run parameter from the options passed, if true.
+
   """
+  if opts and opts.dry_run:
+    op.dry_run = opts.dry_run
   if opts and opts.submit_only:
     job_id = SendJob([op], cl=cl)
     raise JobSubmittedException(job_id)
@@ -676,6 +701,8 @@ def FormatError(err):
                " job submissions until old jobs are archived\n")
   elif isinstance(err, errors.TypeEnforcementError):
     obuf.write("Parameter Error: %s" % msg)
+  elif isinstance(err, errors.ParameterError):
+    obuf.write("Failure: unknown/wrong parameter name '%s'" % msg)
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, luxi.NoMasterError):
@@ -722,7 +749,13 @@ def GenericMain(commands, override=None, aliases=None):
   if aliases is None:
     aliases = {}
 
-  func, options, args = _ParseArgs(sys.argv, commands, aliases)
+  try:
+    func, options, args = _ParseArgs(sys.argv, commands, aliases)
+  except errors.ParameterError, err:
+    result, err_msg = FormatError(err)
+    ToStderr(err_msg)
+    return 1
+
   if func is None: # parse error
     return 1
 
@@ -745,7 +778,7 @@ def GenericMain(commands, override=None, aliases=None):
   except (errors.GenericError, luxi.ProtocolError,
           JobSubmittedException), err:
     result, err_msg = FormatError(err)
-    logging.exception("Error durring command processing")
+    logging.exception("Error during command processing")
     ToStderr(err_msg)
 
   return result

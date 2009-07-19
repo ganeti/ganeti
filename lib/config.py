@@ -273,6 +273,20 @@ class ConfigWriter:
     data = self._config_data
     seen_lids = []
     seen_pids = []
+
+    # global cluster checks
+    if not data.cluster.enabled_hypervisors:
+      result.append("enabled hypervisors list doesn't have any entries")
+    invalid_hvs = set(data.cluster.enabled_hypervisors) - constants.HYPER_TYPES
+    if invalid_hvs:
+      result.append("enabled hypervisors contains invalid entries: %s" %
+                    invalid_hvs)
+
+    if data.cluster.master_node not in data.nodes:
+      result.append("cluster has invalid primary node '%s'" %
+                    data.cluster.master_node)
+
+    # per-instance checks
     for instance_name in data.instances:
       instance = data.instances[instance_name]
       if instance.primary_node not in data.nodes:
@@ -474,8 +488,8 @@ class ConfigWriter:
     def _AppendUsedPorts(instance_name, disk, used):
       duplicates = []
       if disk.dev_type == constants.LD_DRBD8 and len(disk.logical_id) >= 5:
-        nodeA, nodeB, dummy, minorA, minorB = disk.logical_id[:5]
-        for node, port in ((nodeA, minorA), (nodeB, minorB)):
+        node_a, node_b, _, minor_a, minor_b = disk.logical_id[:5]
+        for node, port in ((node_a, minor_a), (node_b, minor_b)):
           assert node in used, ("Node '%s' of instance '%s' not found"
                                 " in node list" % (node, instance_name))
           if port in used[node]:
@@ -658,7 +672,7 @@ class ConfigWriter:
     """Get the hypervisor type for this cluster.
 
     """
-    return self._config_data.cluster.default_hypervisor
+    return self._config_data.cluster.enabled_hypervisors[0]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetHostKey(self):
@@ -796,7 +810,7 @@ class ConfigWriter:
                                     self._config_data.instances.keys())
 
   def _UnlockedGetInstanceInfo(self, instance_name):
-    """Returns informations about an instance.
+    """Returns information about an instance.
 
     This function is for internal use, when the config lock is already held.
 
@@ -808,9 +822,9 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceInfo(self, instance_name):
-    """Returns informations about an instance.
+    """Returns information about an instance.
 
-    It takes the information from the configuration file. Other informations of
+    It takes the information from the configuration file. Other information of
     an instance are taken from the live systems.
 
     @param instance_name: name of the instance, e.g.
@@ -945,15 +959,19 @@ class ConfigWriter:
                     for node in self._UnlockedGetNodeList()])
     return my_dict
 
-  def _UnlockedGetMasterCandidateStats(self):
+  def _UnlockedGetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum desired and possible candidates.
 
+    @type exceptions: list
+    @param exceptions: if passed, list of nodes that should be ignored
     @rtype: tuple
     @return: tuple of (current, desired and possible)
 
     """
     mc_now = mc_max = 0
-    for node in self._config_data.nodes.itervalues():
+    for node in self._config_data.nodes.values():
+      if exceptions and node.name in exceptions:
+        continue
       if not (node.offline or node.drained):
         mc_max += 1
       if node.master_candidate:
@@ -962,16 +980,18 @@ class ConfigWriter:
     return (mc_now, mc_max)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetMasterCandidateStats(self):
+  def GetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum possible candidates.
 
     This is just a wrapper over L{_UnlockedGetMasterCandidateStats}.
 
+    @type exceptions: list
+    @param exceptions: if passed, list of nodes that should be ignored
     @rtype: tuple
     @return: tuple of (current, max)
 
     """
-    return self._UnlockedGetMasterCandidateStats()
+    return self._UnlockedGetMasterCandidateStats(exceptions)
 
   @locking.ssynchronized(_config_lock)
   def MaintainCandidatePool(self):
@@ -1066,10 +1086,12 @@ class ConfigWriter:
 
     result = rpc.RpcRunner.call_upload_file(node_list, self._cfg_file,
                                             address_list=addr_list)
-    for node in node_list:
-      if not result[node]:
-        logging.error("copy of file %s to node %s failed",
-                      self._cfg_file, node)
+    for to_node, to_result in result.items():
+      msg = to_result.RemoteFailMsg()
+      if msg:
+        msg = ("Copy of file %s to node %s failed: %s" %
+               (self._cfg_file, to_node, msg))
+        logging.error(msg)
         bad = True
     return not bad
 
@@ -1104,8 +1126,14 @@ class ConfigWriter:
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
-        rpc.RpcRunner.call_write_ssconf_files(self._UnlockedGetNodeList(),
-                                              self._UnlockedGetSsconfValues())
+        result = rpc.RpcRunner.call_write_ssconf_files(\
+          self._UnlockedGetNodeList(),
+          self._UnlockedGetSsconfValues())
+        for nname, nresu in result.items():
+          msg = nresu.RemoteFailMsg()
+          if msg:
+            logging.warning("Error while uploading ssconf files to"
+                            " node %s: %s", nname, msg)
       self._last_cluster_serial = self._config_data.cluster.serial_no
 
   def _UnlockedGetSsconfValues(self):
@@ -1144,32 +1172,6 @@ class ConfigWriter:
       constants.SS_RELEASE_VERSION: constants.RELEASE_VERSION,
       }
 
-  @locking.ssynchronized(_config_lock)
-  def InitConfig(self, version, cluster_config, master_node_config):
-    """Create the initial cluster configuration.
-
-    It will contain the current node, which will also be the master
-    node, and no instances.
-
-    @type version: int
-    @param version: Configuration version
-    @type cluster_config: objects.Cluster
-    @param cluster_config: Cluster configuration
-    @type master_node_config: objects.Node
-    @param master_node_config: Master node configuration
-
-    """
-    nodes = {
-      master_node_config.name: master_node_config,
-      }
-
-    self._config_data = objects.ConfigData(version=version,
-                                           cluster=cluster_config,
-                                           nodes=nodes,
-                                           instances={},
-                                           serial_no=1)
-    self._WriteConfig()
-
   @locking.ssynchronized(_config_lock, shared=1)
   def GetVGName(self):
     """Return the volume group name.
@@ -1187,13 +1189,6 @@ class ConfigWriter:
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GetDefBridge(self):
-    """Return the default bridge.
-
-    """
-    return self._config_data.cluster.default_bridge
-
-  @locking.ssynchronized(_config_lock, shared=1)
   def GetMACPrefix(self):
     """Return the mac prefix.
 
@@ -1202,7 +1197,7 @@ class ConfigWriter:
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetClusterInfo(self):
-    """Returns informations about the cluster
+    """Returns information about the cluster
 
     @rtype: L{objects.Cluster}
     @return: the cluster object

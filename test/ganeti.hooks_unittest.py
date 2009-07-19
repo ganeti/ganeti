@@ -213,8 +213,10 @@ class TestHooksMaster(unittest.TestCase):
     @return: script execution failure from all nodes
 
     """
-    return dict([(node, rpc.RpcResult([("utest", constants.HKR_FAIL, "err")],
-                  node=node, call='FakeScriptFail')) for node in node_list])
+    rr = rpc.RpcResult
+    return dict([(node, rr((True, [("utest", constants.HKR_FAIL, "err")]),
+                           node=node, call='FakeScriptFail'))
+                  for node in node_list])
 
   @staticmethod
   def _call_script_succeed(node_list, hpath, phase, env):
@@ -224,8 +226,10 @@ class TestHooksMaster(unittest.TestCase):
     @return: script execution from all nodes
 
     """
-    return dict([(node, rpc.RpcResult([("utest", constants.HKR_SUCCESS, "ok")],
-                  node=node, call='FakeScriptOk')) for node in node_list])
+    rr = rpc.RpcResult
+    return dict([(node, rr(True, [("utest", constants.HKR_SUCCESS, "ok")],
+                           node=node, call='FakeScriptOk'))
+                 for node in node_list])
 
   def setUp(self):
     self.op = opcodes.OpCode()

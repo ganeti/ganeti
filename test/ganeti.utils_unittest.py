@@ -33,6 +33,7 @@ import socket
 import shutil
 import re
 import select
+import string
 
 import ganeti
 import testutils
@@ -40,11 +41,11 @@ from ganeti import constants
 from ganeti import utils
 from ganeti import errors
 from ganeti.utils import IsProcessAlive, RunCmd, \
-     RemoveFile, CheckDict, MatchNameComponent, FormatUnit, \
+     RemoveFile, MatchNameComponent, FormatUnit, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
-     TailFile, ForceDictType, IsNormAbsPath
+     TailFile, ForceDictType, SafeEncode, IsNormAbsPath
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -304,27 +305,6 @@ class TestRename(unittest.TestCase):
     """Rename with mkdir"""
     utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "test/xyz"),
                      mkdir=True)
-
-
-class TestCheckdict(unittest.TestCase):
-  """Test case for the CheckDict function"""
-
-  def testAdd(self):
-    """Test that CheckDict adds a missing key with the correct value"""
-
-    tgt = {'a':1}
-    tmpl = {'b': 2}
-    CheckDict(tgt, tmpl)
-    if 'b' not in tgt or tgt['b'] != 2:
-      self.fail("Failed to update dict")
-
-
-  def testNoUpdate(self):
-    """Test that CheckDict does not overwrite an existing key"""
-    tgt = {'a':1, 'b': 3}
-    tmpl = {'b': 2}
-    CheckDict(tgt, tmpl)
-    self.failUnlessEqual(tgt['b'], 3)
 
 
 class TestMatchNameComponent(unittest.TestCase):
@@ -975,10 +955,10 @@ class TestIsAbsNormPath(unittest.TestCase):
   def _pathTestHelper(self, path, result):
     if result:
       self.assert_(IsNormAbsPath(path),
-          "Path %s should be absolute and normal" % path)
+          "Path %s should result absolute and normalized" % path)
     else:
       self.assert_(not IsNormAbsPath(path),
-          "Path %s should not be absolute and normal" % path)
+          "Path %s should not result absolute and normalized" % path)
 
   def testBase(self):
     self._pathTestHelper('/etc', True)
@@ -986,6 +966,26 @@ class TestIsAbsNormPath(unittest.TestCase):
     self._pathTestHelper('etc', False)
     self._pathTestHelper('/etc/../root', False)
     self._pathTestHelper('/etc/', False)
+
+
+class TestSafeEncode(unittest.TestCase):
+  """Test case for SafeEncode"""
+
+  def testAscii(self):
+    for txt in [string.digits, string.letters, string.punctuation]:
+      self.failUnlessEqual(txt, SafeEncode(txt))
+
+  def testDoubleEncode(self):
+    for i in range(255):
+      txt = SafeEncode(chr(i))
+      self.failUnlessEqual(txt, SafeEncode(txt))
+
+  def testUnicode(self):
+    # 1024 is high enough to catch non-direct ASCII mappings
+    for i in range(1024):
+      txt = SafeEncode(unichr(i))
+      self.failUnlessEqual(txt, SafeEncode(txt))
+
 
 if __name__ == '__main__':
   unittest.main()

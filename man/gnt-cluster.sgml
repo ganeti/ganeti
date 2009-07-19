@@ -213,8 +213,6 @@
         <sbr>
         <arg>-s <replaceable>secondary_ip</replaceable></arg>
         <sbr>
-        <arg>-b <replaceable>bridge</replaceable></arg>
-        <sbr>
         <arg>-g <replaceable>vg-name</replaceable></arg>
         <sbr>
         <arg>--master-netdev <replaceable>vg-name</replaceable></arg>
@@ -232,6 +230,8 @@
         <arg>--hypervisor-parameters <replaceable>hypervisor</replaceable>:<replaceable>hv-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>hv-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
         <arg>--backend-parameters <replaceable>be-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>be-param</replaceable>=<replaceable>value</replaceable></arg></arg>
+        <sbr>
+        <arg>--nic-parameters <replaceable>nic-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>nic-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
         <arg choice="req"><replaceable>clustername</replaceable></arg>
       </cmdsynopsis>
@@ -268,11 +268,6 @@
         network is actually a separate physical network, or is done
         using tunneling, etc. For performance reasons, it's
         recommended to use a separate network, of course.
-      </para>
-
-      <para>
-        The <option>-b</option> option specifies the default bridge
-        for instances.
       </para>
 
       <para>
@@ -318,8 +313,9 @@
         The <option>--enabled-hypervisors</option> option allows you
         to set the list of hypervisors that will be enabled for
         this cluster. Instance hypervisors can only be choosen from
-        the list of enabled hypervisors. Currently, the following
-        hypervisors are available:
+        the list of enabled hypervisors, and the first entry of this list
+        will be used by default. Currently, the following hypervisors are
+        available:
       </para>
 
       <para>
@@ -366,14 +362,7 @@
       </para>
 
       <para>
-        With the <option>-t</option> option, the default hypervisor
-        can be set. It has to be a member of the list of enabled
-        hypervisors. If not specified, the first entry on the list of
-        enabled hypervisors will be used by default.
-      </para>
-
-      <para>
-        The <option>--backend</option> option allows you to set
+        The <option>--backend-parameters</option> option allows you to set
         the default backend parameters for the cluster. The parameter
         format is a comma-separated list of key=value pairs with the
         following supported keys:
@@ -425,6 +414,34 @@
         <command>add</command> command.
       </para>
 
+      <para>
+        The <option>--nic-parameters</option> option allows you to set
+        the default nic parameters for the cluster. The parameter
+        format is a comma-separated list of key=value pairs with the
+        following supported keys:
+        <variablelist>
+          <varlistentry>
+            <term>mode</term>
+            <listitem>
+              <para>
+                The default nic mode, 'routed' or 'bridged'.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>link</term>
+            <listitem>
+              <para>
+                In bridged mode the default NIC bridge. In routed mode
+                it represents an hypervisor-vif-script dependent value
+                to allow different instance groups (perhaps via multiple
+                routing tables)
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+
     </refsect2>
 
     <refsect2>
@@ -442,11 +459,24 @@
 
       <cmdsynopsis>
         <command>masterfailover</command>
+        <arg>--no-voting</arg>
       </cmdsynopsis>
 
       <para>
         Failover the master role to the current node.
       </para>
+
+      <para>
+        The <option>--no-voting</option> option skips the remote node agreement
+        checks. This is dangerous, but necessary in some cases (for example
+        failing over the master role in a 2 node cluster with the original master
+        down). If the original master then comes up, it won't be able to start
+        its master daemon because it won't have enough votes, but so won't the
+        new master, if the master daemon ever needs a restart. You can pass
+        --no-voting to ganeti-masterd on the new master to solve this problem,
+        and gnt-cluster redist-conf to make sure the cluster is consistent again.
+      </para>
+
     </refsect2>
 
     <refsect2>
@@ -466,6 +496,8 @@
         <sbr>
         <arg choice="opt">--backend-parameters <replaceable>be-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>be-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
+        <arg choice="opt">--nic-parameters <replaceable>nic-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>nic-param</replaceable>=<replaceable>value</replaceable></arg></arg>
+        <sbr>
         <arg>-C <replaceable>candidate_pool_size</replaceable></arg>
 
       </cmdsynopsis>
@@ -477,8 +509,9 @@
         <para>
           The <option>-g</option>, <option>--no-lvm-storarge</option>,
           <option>--enabled-hypervisors</option>,
-          <option>--hypervisor-parameters</option> and
-          <option>--backend-parameters</option> options are
+          <option>--hypervisor-parameters</option>,
+          <option>--backend-parameters</option> and
+          <option>--nic-parameters</option> and options are
           described in the <command>init</command> command.
         </para>
 
@@ -627,7 +660,7 @@
         Example:
       </para>
 <screen>
-# gnt-cluster search time
+# gnt-cluster search-tags time
 /cluster ctime:2007-09-01
 /nodes/node1.example.com mtime:2007-10-04
 </screen>

@@ -23,17 +23,17 @@
 
 """
 
-import ganeti.opcodes
+from ganeti import opcodes
 from ganeti import http
-from ganeti import luxi
 from ganeti import constants
+from ganeti import cli
 from ganeti.rapi import baserlib
 
 
 I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
-            "nic.ips", "nic.macs", "nic.bridges",
+            "nic.ips", "nic.macs", "nic.modes", "nic.links",
             "network_port",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
@@ -46,6 +46,20 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "pinst_cnt", "sinst_cnt", "tags",
             "ctotal", "cnodes", "csockets",
             ]
+
+_NR_DRAINED = "drained"
+_NR_MASTER_CANDIATE = "master-candidate"
+_NR_MASTER = "master"
+_NR_OFFLINE = "offline"
+_NR_REGULAR = "regular"
+
+_NR_MAP = {
+  "M": _NR_MASTER,
+  "C": _NR_MASTER_CANDIATE,
+  "D": _NR_DRAINED,
+  "O": _NR_OFFLINE,
+  "R": _NR_REGULAR,
+  }
 
 
 class R_version(baserlib.R_Generic):
@@ -70,7 +84,7 @@ class R_2_info(baserlib.R_Generic):
     """Returns cluster information.
 
     """
-    client = luxi.Client()
+    client = baserlib.GetClient()
     return client.QueryClusterInfo()
 
 
@@ -86,12 +100,15 @@ class R_2_os(baserlib.R_Generic):
     Example: ["debian-etch"]
 
     """
-    op = ganeti.opcodes.OpDiagnoseOS(output_fields=["name", "valid"],
-                                     names=[])
-    diagnose_data = ganeti.cli.SubmitOpCode(op)
+    cl = baserlib.GetClient()
+    op = opcodes.OpDiagnoseOS(output_fields=["name", "valid"], names=[])
+    job_id = baserlib.SubmitJob([op], cl)
+    # we use custom feedback function, instead of print we log the status
+    result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)
+    diagnose_data = result[0]
 
     if not isinstance(diagnose_data, list):
-      raise http.HttpInternalServerError(message="Can't get OS list")
+      raise http.HttpBadGateway(message="Can't get OS list")
 
     return [row[0] for row in diagnose_data if row[1]]
 
@@ -107,8 +124,9 @@ class R_2_jobs(baserlib.R_Generic):
 
     """
     fields = ["id"]
+    cl = baserlib.GetClient()
     # Convert the list of lists to the list of ids
-    result = [job_id for [job_id] in luxi.Client().QueryJobs(None, fields)]
+    result = [job_id for [job_id] in cl.QueryJobs(None, fields)]
     return baserlib.BuildUriList(result, "/2/jobs/%s",
                                  uri_fields=("id", "uri"))
 
@@ -135,7 +153,7 @@ class R_2_jobs_id(baserlib.R_Generic):
               "received_ts", "start_ts", "end_ts",
               ]
     job_id = self.items[0]
-    result = luxi.Client().QueryJobs([job_id, ], fields)[0]
+    result = baserlib.GetClient().QueryJobs([job_id, ], fields)[0]
     if result is None:
       raise http.HttpNotFound()
     return baserlib.MapFields(fields, result)
@@ -145,7 +163,7 @@ class R_2_jobs_id(baserlib.R_Generic):
 
     """
     job_id = self.items[0]
-    result = luxi.Client().CancelJob(job_id)
+    result = baserlib.GetClient().CancelJob(job_id)
     return result
 
 
@@ -157,7 +175,7 @@ class R_2_nodes(baserlib.R_Generic):
     """Returns a list of all nodes.
 
     """
-    client = luxi.Client()
+    client = baserlib.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryNodes([], N_FIELDS, False)
@@ -178,11 +196,69 @@ class R_2_nodes_name(baserlib.R_Generic):
 
     """
     node_name = self.items[0]
-    client = luxi.Client()
+    client = baserlib.GetClient()
     result = client.QueryNodes(names=[node_name], fields=N_FIELDS,
                                use_locking=self.useLocking())
 
     return baserlib.MapFields(N_FIELDS, result[0])
+
+
+class R_2_nodes_name_role(baserlib.R_Generic):
+  """ /2/nodes/[node_name]/role resource.
+
+  """
+  def GET(self):
+    """Returns the current node role.
+
+    @return: Node role
+
+    """
+    node_name = self.items[0]
+    client = baserlib.GetClient()
+    result = client.QueryNodes(names=[node_name], fields=["role"],
+                               use_locking=self.useLocking())
+
+    return _NR_MAP[result[0][0]]
+
+  def PUT(self):
+    """Sets the node role.
+
+    @return: a job id
+
+    """
+    if not isinstance(self.req.request_body, basestring):
+      raise http.HttpBadRequest("Invalid body contents, not a string")
+
+    node_name = self.items[0]
+    role = self.req.request_body
+
+    if role == _NR_REGULAR:
+      candidate = False
+      offline = False
+      drained = False
+
+    elif role == _NR_MASTER_CANDIATE:
+      candidate = True
+      offline = drained = None
+
+    elif role == _NR_DRAINED:
+      drained = True
+      candidate = offline = None
+
+    elif role == _NR_OFFLINE:
+      offline = True
+      candidate = drained = None
+
+    else:
+      raise http.HttpBadRequest("Can't set '%s' role" % role)
+
+    op = opcodes.OpSetNodeParams(node_name=node_name,
+                                 master_candidate=candidate,
+                                 offline=offline,
+                                 drained=drained,
+                                 force=bool(self.useForce()))
+
+    return baserlib.SubmitJob([op])
 
 
 class R_2_instances(baserlib.R_Generic):
@@ -193,7 +269,7 @@ class R_2_instances(baserlib.R_Generic):
     """Returns a list of all available instances.
 
     """
-    client = luxi.Client()
+    client = baserlib.GetClient()
 
     use_locking = self.useLocking()
     if self.useBulk():
@@ -231,32 +307,38 @@ class R_2_instances(baserlib.R_Generic):
                                   " be an integer")
       disks.append({"size": d})
     # nic processing (one nic only)
-    nics = [{"mac": fn("mac", constants.VALUE_AUTO),
-             "ip": fn("ip", None),
-             "bridge": fn("bridge", None)}]
+    nics = [{"mac": fn("mac", constants.VALUE_AUTO)}]
+    if fn("ip", None) is not None:
+      nics[0]["ip"] = fn("ip")
+    if fn("mode", None) is not None:
+      nics[0]["mode"] = fn("mode")
+    if fn("link", None) is not None:
+      nics[0]["link"] = fn("link")
+    if fn("bridge", None) is not None:
+       nics[0]["bridge"] = fn("bridge")
 
-    op = ganeti.opcodes.OpCreateInstance(
-        mode=constants.INSTANCE_CREATE,
-        instance_name=fn('name'),
-        disks=disks,
-        disk_template=fn('disk_template'),
-        os_type=fn('os'),
-        pnode=fn('pnode', None),
-        snode=fn('snode', None),
-        iallocator=fn('iallocator', None),
-        nics=nics,
-        start=fn('start', True),
-        ip_check=fn('ip_check', True),
-        wait_for_sync=True,
-        hypervisor=fn('hypervisor', None),
-        hvparams=hvparams,
-        beparams=beparams,
-        file_storage_dir=fn('file_storage_dir', None),
-        file_driver=fn('file_driver', 'loop'),
-        )
+    op = opcodes.OpCreateInstance(
+      mode=constants.INSTANCE_CREATE,
+      instance_name=fn('name'),
+      disks=disks,
+      disk_template=fn('disk_template'),
+      os_type=fn('os'),
+      pnode=fn('pnode', None),
+      snode=fn('snode', None),
+      iallocator=fn('iallocator', None),
+      nics=nics,
+      start=fn('start', True),
+      ip_check=fn('ip_check', True),
+      wait_for_sync=True,
+      hypervisor=fn('hypervisor', None),
+      hvparams=hvparams,
+      beparams=beparams,
+      file_storage_dir=fn('file_storage_dir', None),
+      file_driver=fn('file_driver', 'loop'),
+      dry_run=bool(self.dryRun()),
+      )
 
-    job_id = ganeti.cli.SendJob([op])
-    return job_id
+    return baserlib.SubmitJob([op])
 
 
 class R_2_instances_name(baserlib.R_Generic):
@@ -267,7 +349,7 @@ class R_2_instances_name(baserlib.R_Generic):
     """Send information about an instance.
 
     """
-    client = luxi.Client()
+    client = baserlib.GetClient()
     instance_name = self.items[0]
     result = client.QueryInstances(names=[instance_name], fields=I_FIELDS,
                                    use_locking=self.useLocking())
@@ -278,10 +360,10 @@ class R_2_instances_name(baserlib.R_Generic):
     """Delete an instance.
 
     """
-    op = ganeti.opcodes.OpRemoveInstance(instance_name=self.items[0],
-                                         ignore_failures=False)
-    job_id = ganeti.cli.SendJob([op])
-    return job_id
+    op = opcodes.OpRemoveInstance(instance_name=self.items[0],
+                                  ignore_failures=False,
+                                  dry_run=bool(self.dryRun()))
+    return baserlib.SubmitJob([op])
 
 
 class R_2_instances_name_reboot(baserlib.R_Generic):
@@ -302,14 +384,12 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
                                      [constants.INSTANCE_REBOOT_HARD])[0]
     ignore_secondaries = bool(self.queryargs.get('ignore_secondaries',
                                                  [False])[0])
-    op = ganeti.opcodes.OpRebootInstance(
-        instance_name=instance_name,
-        reboot_type=reboot_type,
-        ignore_secondaries=ignore_secondaries)
+    op = opcodes.OpRebootInstance(instance_name=instance_name,
+                                  reboot_type=reboot_type,
+                                  ignore_secondaries=ignore_secondaries,
+                                  dry_run=bool(self.dryRun()))
 
-    job_id = ganeti.cli.SendJob([op])
-
-    return job_id
+    return baserlib.SubmitJob([op])
 
 
 class R_2_instances_name_startup(baserlib.R_Generic):
@@ -327,12 +407,11 @@ class R_2_instances_name_startup(baserlib.R_Generic):
     """
     instance_name = self.items[0]
     force_startup = bool(self.queryargs.get('force', [False])[0])
-    op = ganeti.opcodes.OpStartupInstance(instance_name=instance_name,
-                                          force=force_startup)
+    op = opcodes.OpStartupInstance(instance_name=instance_name,
+                                   force=force_startup,
+                                   dry_run=bool(self.dryRun()))
 
-    job_id = ganeti.cli.SendJob([op])
-
-    return job_id
+    return baserlib.SubmitJob([op])
 
 
 class R_2_instances_name_shutdown(baserlib.R_Generic):
@@ -346,11 +425,40 @@ class R_2_instances_name_shutdown(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    op = ganeti.opcodes.OpShutdownInstance(instance_name=instance_name)
+    op = opcodes.OpShutdownInstance(instance_name=instance_name,
+                                    dry_run=bool(self.dryRun()))
 
-    job_id = ganeti.cli.SendJob([op])
+    return baserlib.SubmitJob([op])
 
-    return job_id
+
+class R_2_instances_name_reinstall(baserlib.R_Generic):
+  """/2/instances/[instance_name]/reinstall resource.
+
+  Implements an instance reinstall.
+
+  """
+
+  DOC_URI = "/2/instances/[instance_name]/reinstall"
+
+  def POST(self):
+    """Reinstall an instance.
+
+    The URI takes os=name and nostartup=[0|1] optional
+    parameters. By default, the instance will be started
+    automatically.
+
+    """
+    instance_name = self.items[0]
+    ostype = self._checkStringVariable('os')
+    nostartup = self._checkIntVariable('nostartup')
+    ops = [
+      opcodes.OpShutdownInstance(instance_name=instance_name),
+      opcodes.OpReinstallInstance(instance_name=instance_name, os_type=ostype),
+      ]
+    if not nostartup:
+      ops.append(opcodes.OpStartupInstance(instance_name=instance_name,
+                                           force=False))
+    return baserlib.SubmitJob(ops)
 
 
 class _R_Tags(baserlib.R_Generic):
@@ -394,7 +502,8 @@ class _R_Tags(baserlib.R_Generic):
       raise http.HttpBadRequest("Please specify tag(s) to add using the"
                                 " the 'tag' parameter")
     return baserlib._Tags_PUT(self.TAG_LEVEL,
-                              self.queryargs['tag'], name=self.name)
+                              self.queryargs['tag'], name=self.name,
+                              dry_run=bool(self.dryRun()))
 
   def DELETE(self):
     """Delete a tag.
@@ -410,7 +519,8 @@ class _R_Tags(baserlib.R_Generic):
                                 " tag(s) using the 'tag' parameter")
     return baserlib._Tags_DELETE(self.TAG_LEVEL,
                                  self.queryargs['tag'],
-                                 name=self.name)
+                                 name=self.name,
+                                 dry_run=bool(self.dryRun()))
 
 
 class R_2_instances_name_tags(_R_Tags):

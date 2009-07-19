@@ -168,7 +168,7 @@
 
       <para>
         The NICs of the instances can be specified via the
-        <option>--nic</option> option. By default, one NIC is created
+        <option>--net</option> option. By default, one NIC is created
         for the instance, with the MAC set to the original MAC of the
         instance (as it was at export time). Each NIC can take up to
         three parameters (all optional):
@@ -190,14 +190,26 @@
               the instance to use)</simpara>
             </listitem>
           </varlistentry>
-          <varlistentry>
-            <term>bridge</term>
-            <listitem>
-              <simpara>specifies the bridge to attach this NIC
-              to</simpara>
-            </listitem>
-          </varlistentry>
-        </variablelist>
+            <varlistentry>
+              <term>mode</term>
+              <listitem>
+                <simpara>specifies the connection mode for this nic:
+                  routed or bridged.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>link</term>
+              <listitem>
+                <simpara>in bridged mode specifies the bridge to attach
+                  this NIC to, in routed mode it's intended to
+                  differentiate between different routing tables/instance
+                  groups (but the meaning is dependent on the network
+                  script)</simpara>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+          Of these "mode" and "link" are nic parameters, and inherit their
+          default at cluster level.
       </para>
 
       <para>

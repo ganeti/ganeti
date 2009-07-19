@@ -91,7 +91,7 @@
         discussion in <citerefentry>
         <refentrytitle>gnt-cluster</refentrytitle>
         <manvolnum>8</manvolnum> </citerefentry> for more
-        informations.
+        information.
       </para>
 
       <para>
@@ -414,13 +414,50 @@
           <varlistentry>
             <term>drained</term>
             <listitem>
-              <simpara>whether the node is drained or not</simpara>
+              <simpara>whether the node is drained or not; the cluster
+              still communicates with drained nodes but excludes them
+              from allocation operations</simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
             <term>offline</term>
             <listitem>
-              <simpara>whether the node is offline or not</simpara>
+              <simpara>whether the node is offline or not; if offline,
+              the cluster does not communicate with offline nodes;
+              useful for nodes that are not reachable in order to
+              avoid delays</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>role</term>
+            <listitem>
+              <para>
+                A condensed version of the node flags; this field will
+                output a one-character field, with the following
+                possible values:
+                <itemizedlist>
+                  <listitem>
+                    <simpara><emphasis>M</emphasis> for the master
+                    node</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>C</emphasis> for a master
+                    candidate</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>R</emphasis> for a regular
+                    node</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>D</emphasis> for a drained
+                    node</simpara>
+                  </listitem>
+                  <listitem>
+                    <simpara><emphasis>O</emphasis> for an offline
+                    node</simpara>
+                  </listitem>
+                </itemizedlist>
+              </para>
             </listitem>
           </varlistentry>
         </variablelist>
@@ -683,6 +720,36 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
         </screen>
       </para>
     </refsect2>
+
+    <refsect2>
+      <title>POWERCYCLE</title>
+
+      <cmdsynopsis>
+        <command>powercycle</command>
+        <arg><option>--confirm</option></arg>
+        <arg><option>--force</option></arg>
+        <arg choice="req"><replaceable>node</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        This commands (tries to) forcefully reboot a node. It is a
+        command that can be used if the node environemnt is broken,
+        such that the admin can no longer login over ssh, but the
+        ganeti node daemon is still working.
+      </para>
+
+      <para>
+        Note that this command is not guaranteed to work; it depends
+        on the hypervisor how effective is the reboot attempt. For
+        Linux, this command require that the kernel option
+        <literal>CONFIG_MAGIC_SYSRQ</literal> is enabled.
+      </para>
+
+      <para>
+        The <option>--yes</option> option can be used to skip
+        confirmation, while the <option>--force</option> option is
+        needed if the target node is the master node.
+      </para>
 
   </refsect1>
 

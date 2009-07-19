@@ -39,6 +39,7 @@ dict is the same, see the docstring for L{BaseHypervisor.PARAMETERS}.
 
 import os
 import re
+import logging
 
 
 from ganeti import errors
@@ -49,11 +50,11 @@ from ganeti import utils
 # _CHECK values
 
 # must be afile
-_FILE_CHECK = (utils.IsNormAbsPath, "must be an absolute normal path",
+_FILE_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
               os.path.isfile, "not found or not a file")
 
 # must be a directory
-_DIR_CHECK = (utils.IsNormAbsPath, "must be an absolute normal path",
+_DIR_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
              os.path.isdir, "not found or not a directory")
 
 # nice wrappers for users
@@ -286,6 +287,18 @@ class BaseHypervisor(object):
                                      " validation: %s (current value: '%s')" %
                                      (name, errstr, value))
 
+  @classmethod
+  def PowercycleNode(cls):
+    """Hard powercycle a node using hypervisor specific methods.
+
+    This method should hard powercycle the node, using whatever
+    methods the hypervisor provides. Note that this means that all
+    instances running on the node must be stopped too.
+
+    """
+    raise NotImplementedError
+
+
   def GetLinuxNodeInfo(self):
     """For linux systems, return actual OS information.
 
@@ -302,11 +315,7 @@ class BaseHypervisor(object):
 
     """
     try:
-      fh = file("/proc/meminfo")
-      try:
-        data = fh.readlines()
-      finally:
-        fh.close()
+      data = utils.ReadFile("/proc/meminfo").splitlines()
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list node info: %s" % (err,))
 
@@ -346,3 +355,20 @@ class BaseHypervisor(object):
     result['cpu_sockets'] = 1
 
     return result
+
+  @classmethod
+  def LinuxPowercycle(cls):
+    """Linux-specific powercycle method.
+
+    """
+    try:
+      fd = os.open("/proc/sysrq-trigger", os.O_WRONLY)
+      try:
+        os.write(fd, "b")
+      finally:
+        fd.close()
+    except OSError:
+      logging.exception("Can't open the sysrq-trigger file")
+      result = utils.RunCmd(["reboot", "-n", "-f"])
+      if not result:
+        logging.error("Can't run shutdown: %s", result.output)

@@ -23,6 +23,7 @@
 
 
 import unittest
+import re
 
 from ganeti import constants
 
@@ -53,6 +54,18 @@ class TestConstants(unittest.TestCase):
                     (constants.CONFIG_MAJOR, constants.CONFIG_MINOR,
                      constants.CONFIG_REVISION))
 
+
+class TestParameterNames(unittest.TestCase):
+  """HV/BE parameter tests"""
+  VALID_NAME = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+  def testNoDashes(self):
+    for kind, source in [('hypervisor', constants.HVS_PARAMETER_TYPES),
+                         ('backend', constants.BES_PARAMETER_TYPES)]:
+      for key in source:
+        self.failUnless(self.VALID_NAME.match(key),
+                        "The %s parameter '%s' contains invalid characters" %
+                        (kind, key))
 
 if __name__ == '__main__':
   unittest.main()

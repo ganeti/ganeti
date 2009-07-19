@@ -79,38 +79,6 @@ class SimpleConfigReader(object):
   def GetNodeList(self):
     return self._config_data["nodes"].keys()
 
-  @classmethod
-  def FromDict(cls, val, cfg_file=constants.CLUSTER_CONF_FILE):
-    """Alternative construction from a dictionary.
-
-    """
-    obj = SimpleConfigReader.__new__(cls)
-    obj._config_data = val
-    obj._file_name = cfg_file
-    return obj
-
-
-class SimpleConfigWriter(SimpleConfigReader):
-  """Simple class to write configuration file.
-
-  """
-  def SetMasterNode(self, node):
-    """Change master node.
-
-    """
-    self._config_data["cluster"]["master_node"] = node
-
-  def Save(self):
-    """Writes configuration file.
-
-    Warning: Doesn't take care of locking or synchronizing with other
-    processes.
-
-    """
-    utils.WriteFile(self._file_name,
-                    data=serializer.Dump(self._config_data),
-                    mode=0600)
-
 
 class SimpleStore(object):
   """Interface to static cluster data.
@@ -166,15 +134,11 @@ class SimpleStore(object):
     """
     filename = self.KeyToFilename(key)
     try:
-      fh = file(filename, 'r')
-      try:
-        data = fh.read(self._MAX_SIZE)
-        data = data.rstrip('\n')
-      finally:
-        fh.close()
+      data = utils.ReadFile(filename, size=self._MAX_SIZE)
     except EnvironmentError, err:
       raise errors.ConfigurationError("Can't read from the ssconf file:"
                                       " '%s'" % str(err))
+    data = data.rstrip('\n')
     return data
 
   def WriteFiles(self, values):
@@ -247,6 +211,14 @@ class SimpleStore(object):
 
     """
     data = self._ReadFile(constants.SS_NODE_LIST)
+    nl = data.splitlines(False)
+    return nl
+
+  def GetClusterTags(self):
+    """Return the cluster tags.
+
+    """
+    data = self._ReadFile(constants.SS_CLUSTER_TAGS)
     nl = data.splitlines(False)
     return nl
 

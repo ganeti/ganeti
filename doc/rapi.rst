@@ -25,6 +25,37 @@ principle.
 .. _JSON: http://www.json.org/
 .. _REST: http://en.wikipedia.org/wiki/Representational_State_Transfer
 
+Generic parameters
+------------------
+
+A few parameter mean the same thing across all resources which implement it.
+
+``bulk``
+++++++++
+
+Bulk-mode means that for the resources which usually return just a
+list of child resources (e.g. ``/2/instances`` which returns just
+instance names), the output will instead contain detailed data for all
+these subresources. This is more efficient than query-ing the
+sub-resources themselves.
+
+``dry-run``
++++++++++++
+
+The optional *dry-run* argument, if provided and set to a positive
+integer value (e.g. ``?dry-run=1``), signals to Ganeti that the job
+should not be executed, only the pre-execution checks will be done.
+
+This is useful in trying to determine (without guarantees though, as
+in the meantime the cluster state could have changed) if the operation
+is likely to succeed or at least start executing.
+
+``force``
++++++++++++
+
+Force operation to continue even if it will cause the cluster to become
+inconsistent (e.g. because there are not enough master candidates).
+
 Usage examples
 --------------
 
@@ -58,10 +89,10 @@ Python
 JavaScript
 ++++++++++
 
-.. warning:: While it's possible to use JavaScript, it poses several potential
-  problems, including browser blocking request due to
-  non-standard ports or different domain names. Fetching the data
-  on the webserver is easier.
+.. warning:: While it's possible to use JavaScript, it poses several
+  potential problems, including browser blocking request due to
+  non-standard ports or different domain names. Fetching the data on
+  the webserver is easier.
 
 .. highlight:: javascript
 
@@ -171,7 +202,6 @@ It supports the following commands: ``GET``, ``POST``.
 
 Returns a list of all available instances.
 
-
 Example::
 
     [
@@ -224,6 +254,12 @@ Example::
 
 Creates an instance.
 
+If the optional *dry-run* argument is provided and set to a positive
+integer valu (e.g. ``?dry-run=1``), the job will not be actually
+executed, only the pre-execution checks will be done. Query-ing the
+job result will return, in both dry-run and normal case, the list of
+nodes selected for the instance.
+
 Returns: a job ID that can be used later for polling.
 
 ``/2/instances/[instance_name]``
@@ -244,6 +280,8 @@ the instance list.
 
 Deletes an instance.
 
+It supports the ``dry-run`` argument.
+
 
 ``/2/instances/[instance_name]/reboot``
 +++++++++++++++++++++++++++++++++++++++
@@ -260,6 +298,9 @@ Reboots the instance.
 The URI takes optional ``type=hard|soft|full`` and
 ``ignore_secondaries=False|True`` parameters.
 
+It supports the ``dry-run`` argument.
+
+
 ``/2/instances/[instance_name]/shutdown``
 +++++++++++++++++++++++++++++++++++++++++
 
@@ -271,6 +312,8 @@ It supports the following commands: ``PUT``.
 ~~~~~~~
 
 Shutdowns an instance.
+
+It supports the ``dry-run`` argument.
 
 
 ``/2/instances/[instance_name]/startup``
@@ -287,6 +330,9 @@ Startup an instance.
 
 The URI takes an optional ``force=False|True`` parameter to start the
 instance if even if secondary disks are failing.
+
+It supports the ``dry-run`` argument.
+
 
 ``/2/instances/[instance_name]/tags``
 +++++++++++++++++++++++++++++++++++++
@@ -312,6 +358,9 @@ Add a set of tags.
 The request as a list of strings should be ``PUT`` to this URI. The
 result willl be a job id.
 
+It supports the ``dry-run`` argument.
+
+
 ``DELETE``
 ~~~~~~~~~~
 
@@ -321,6 +370,9 @@ In order to delete a set of tags, the DELETE request should be
 addressed to URI like::
 
     /tags?tag=[tag]&tag=[tag]
+
+It supports the ``dry-run`` argument.
+
 
 ``/2/jobs``
 +++++++++++
@@ -412,6 +464,40 @@ Example::
       ...
     ]
 
+``/2/nodes/[node_name]/role``
++++++++++++++++++++++++++++++
+
+Manages node role.
+
+It supports the following commands: ``GET``, ``PUT``.
+
+The role is always one of the following:
+
+  - drained
+  - master
+  - master-candidate
+  - offline
+  - regular
+
+``GET``
+~~~~~~~
+
+Returns the current node role.
+
+Example::
+
+    "master-candidate"
+
+``PUT``
+~~~~~~~
+
+Change the node role.
+
+The request is a string which should be PUT to this URI. The result will be a
+job id.
+
+It supports the ``force`` argument.
+
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++
 
@@ -436,6 +522,8 @@ Add a set of tags.
 The request as a list of strings should be PUT to this URI. The result
 will be a job id.
 
+It supports the ``dry-run`` argument.
+
 ``DELETE``
 ~~~~~~~~~~
 
@@ -445,6 +533,9 @@ In order to delete a set of tags, the DELETE request should be
 addressed to URI like::
 
     /tags?tag=[tag]&tag=[tag]
+
+It supports the ``dry-run`` argument.
+
 
 ``/2/os``
 +++++++++
@@ -490,6 +581,9 @@ Adds a set of tags.
 The request as a list of strings should be PUT to this URI. The result
 will be a job id.
 
+It supports the ``dry-run`` argument.
+
+
 ``DELETE``
 ~~~~~~~~~~
 
@@ -499,6 +593,9 @@ In order to delete a set of tags, the DELETE request should be
 addressed to URI like::
 
     /tags?tag=[tag]&tag=[tag]
+
+It supports the ``dry-run`` argument.
+
 
 ``/version``
 ++++++++++++

@@ -37,7 +37,39 @@ from ganeti import constants
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
-           "OS", "Node", "Cluster"]
+           "OS", "Node", "Cluster", "FillDict"]
+
+def FillDict(defaults_dict, custom_dict):
+  """Basic function to apply settings on top a default dict.
+
+  @type defaults_dict: dict
+  @param defaults_dict: dictionary holding the default values
+  @type custom_dict: dict
+  @param custom_dict: dictionary holding customized value
+  @rtype: dict
+  @return: dict with the 'full' values
+
+  """
+  ret_dict = copy.deepcopy(defaults_dict)
+  ret_dict.update(custom_dict)
+  return ret_dict
+
+
+def UpgradeGroupedParams(target, defaults):
+  """Update all groups for the target parameter.
+
+  @type target: dict of dicts
+  @param target: {group: {parameter: value}}
+  @type defaults: dict
+  @param defaults: default parameter values
+
+  """
+  if target is None:
+    target = {constants.PP_DEFAULT: defaults}
+  else:
+    for group in target:
+      target[group] = FillDict(defaults, target[group])
+  return target
 
 
 class ConfigObject(object):
@@ -58,6 +90,7 @@ class ConfigObject(object):
   def __init__(self, **kwargs):
     for k, v in kwargs.iteritems():
       setattr(self, k, v)
+    self.UpgradeConfig()
 
   def __getattr__(self, name):
     if name not in self.__slots__:
@@ -156,6 +189,15 @@ class ConfigObject(object):
   def __repr__(self):
     """Implement __repr__ for ConfigObjects."""
     return repr(self.ToDict())
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    This method will be called at object init time, and its implementation will
+    be object dependent.
+
+    """
+    pass
 
 
 class TaggableObject(ConfigObject):
@@ -268,7 +310,39 @@ class ConfigData(ConfigObject):
 
 class NIC(ConfigObject):
   """Config object representing a network card."""
-  __slots__ = ["mac", "ip", "bridge"]
+  __slots__ = ["mac", "ip", "bridge", "nicparams"]
+
+  @classmethod
+  def CheckParameterSyntax(cls, nicparams):
+    """Check the given parameters for validity.
+
+    @type nicparams:  dict
+    @param nicparams: dictionary with parameter names/value
+    @raise errors.ConfigurationError: when a parameter is not valid
+
+    """
+    if nicparams[constants.NIC_MODE] not in constants.NIC_VALID_MODES:
+      err = "Invalid nic mode: %s" % nicparams[constants.NIC_MODE]
+      raise errors.ConfigurationError(err)
+
+    if (nicparams[constants.NIC_MODE] is constants.NIC_MODE_BRIDGED and
+        not nicparams[constants.NIC_LINK]):
+      err = "Missing bridged nic link"
+      raise errors.ConfigurationError(err)
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    if self.nicparams is None:
+      self.nicparams = {}
+      if self.bridge is not None:
+        self.nicparams[constants.NIC_MODE] = constants.NIC_MODE_BRIDGED
+        self.nicparams[constants.NIC_LINK] = self.bridge
+    # bridge is no longer used it 2.1. The slot is left there to support
+    # upgrading, but will be removed in 2.2
+    if self.bridge is not None:
+      self.bridge = None
 
 
 class Disk(ConfigObject):
@@ -504,10 +578,10 @@ class Disk(ConfigObject):
     """Checks that this disk is correctly configured.
 
     """
-    errors = []
+    all_errors = []
     if self.mode not in constants.DISK_ACCESS_SET:
-      errors.append("Disk access mode '%s' is invalid" % (self.mode, ))
-    return errors
+      all_errors.append("Disk access mode '%s' is invalid" % (self.mode, ))
+    return all_errors
 
 
 class Instance(TaggableObject):
@@ -664,32 +738,12 @@ class OS(ConfigObject):
   __slots__ = [
     "name",
     "path",
-    "status",
     "api_versions",
     "create_script",
     "export_script",
     "import_script",
     "rename_script",
     ]
-
-  @classmethod
-  def FromInvalidOS(cls, err):
-    """Create an OS from an InvalidOS error.
-
-    This routine knows how to convert an InvalidOS error to an OS
-    object representing the broken OS with a meaningful error message.
-
-    """
-    if not isinstance(err, errors.InvalidOS):
-      raise errors.ProgrammerError("Trying to initialize an OS from an"
-                                   " invalid object of type %s" % type(err))
-
-    return cls(name=err.args[0], path=err.args[1], status=err.args[2])
-
-  def __nonzero__(self):
-    return self.status == constants.OS_VALID_STATUS
-
-  __bool__ = __nonzero__
 
 
 class Node(TaggableObject):
@@ -724,8 +778,46 @@ class Cluster(TaggableObject):
     "enabled_hypervisors",
     "hvparams",
     "beparams",
+    "nicparams",
     "candidate_pool_size",
+    "modify_etc_hosts",
     ]
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    if self.hvparams is None:
+      self.hvparams = constants.HVC_DEFAULTS
+    else:
+      for hypervisor in self.hvparams:
+        self.hvparams[hypervisor] = FillDict(
+            constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
+
+    self.beparams = UpgradeGroupedParams(self.beparams,
+                                         constants.BEC_DEFAULTS)
+    migrate_default_bridge = not self.nicparams
+    self.nicparams = UpgradeGroupedParams(self.nicparams,
+                                          constants.NICC_DEFAULTS)
+    if migrate_default_bridge:
+      self.nicparams[constants.PP_DEFAULT][constants.NIC_LINK] = \
+        self.default_bridge
+
+    if self.modify_etc_hosts is None:
+      self.modify_etc_hosts = True
+
+    # default_bridge is no longer used it 2.1. The slot is left there to
+    # support auto-upgrading, but will be removed in 2.2
+    if self.default_bridge is not None:
+      self.default_bridge = None
+
+    # default_hypervisor is just the first enabled one in 2.1
+    if self.default_hypervisor is not None:
+      self.enabled_hypervisors = [self.default_hypervisor] + \
+        [hvname for hvname in self.enabled_hypervisors
+         if hvname != self.default_hypervisor]
+      self.default_hypervisor = None
+
 
   def ToDict(self):
     """Custom function for cluster.
@@ -745,47 +837,31 @@ class Cluster(TaggableObject):
       obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
     return obj
 
-  @staticmethod
-  def FillDict(defaults_dict, custom_dict):
-    """Basic function to apply settings on top a default dict.
-
-    @type defaults_dict: dict
-    @param defaults_dict: dictionary holding the default values
-    @type custom_dict: dict
-    @param custom_dict: dictionary holding customized value
-    @rtype: dict
-    @return: dict with the 'full' values
-
-    """
-    ret_dict = copy.deepcopy(defaults_dict)
-    ret_dict.update(custom_dict)
-    return ret_dict
-
   def FillHV(self, instance):
     """Fill an instance's hvparams dict.
 
-    @type instance: object
+    @type instance: L{objects.Instance}
     @param instance: the instance parameter to fill
     @rtype: dict
     @return: a copy of the instance's hvparams with missing keys filled from
         the cluster defaults
 
     """
-    return self.FillDict(self.hvparams.get(instance.hypervisor, {}),
+    return FillDict(self.hvparams.get(instance.hypervisor, {}),
                          instance.hvparams)
 
   def FillBE(self, instance):
     """Fill an instance's beparams dict.
 
-    @type instance: object
+    @type instance: L{objects.Instance}
     @param instance: the instance parameter to fill
     @rtype: dict
     @return: a copy of the instance's beparams with missing keys filled from
         the cluster defaults
 
     """
-    return self.FillDict(self.beparams.get(constants.BEGR_DEFAULT, {}),
-                         instance.beparams)
+    return FillDict(self.beparams.get(constants.PP_DEFAULT, {}),
+                          instance.beparams)
 
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):

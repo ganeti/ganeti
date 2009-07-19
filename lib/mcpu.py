@@ -56,6 +56,7 @@ class Processor(object):
     opcodes.OpQueryNodeVolumes: cmdlib.LUQueryNodeVolumes,
     opcodes.OpRemoveNode: cmdlib.LURemoveNode,
     opcodes.OpSetNodeParams: cmdlib.LUSetNodeParams,
+    opcodes.OpPowercycleNode: cmdlib.LUPowercycleNode,
     # instance lu
     opcodes.OpCreateInstance: cmdlib.LUCreateInstance,
     opcodes.OpReinstallInstance: cmdlib.LUReinstallInstance,
@@ -112,6 +113,15 @@ class Processor(object):
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
                      self._feedback_fn, None)
+
+    if getattr(lu.op, "dry_run", False):
+      # in this mode, no post-hooks are run, and the config is not
+      # written (as it might have been modified by another LU, and we
+      # shouldn't do writeout on behalf of other threads
+      self.LogInfo("dry-run mode requested, not actually executing"
+                   " the operation")
+      return lu.dry_run_result
+
     try:
       result = lu.Exec(self._feedback_fn)
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
@@ -158,7 +168,7 @@ class Processor(object):
           self.context.glm.add(level, add_locks, acquired=1, shared=share)
         except errors.LockError:
           raise errors.OpPrereqError(
-            "Coudn't add locks (%s), probably because of a race condition"
+            "Couldn't add locks (%s), probably because of a race condition"
             " with another job, who added them first" % add_locks)
       try:
         try:
@@ -187,7 +197,7 @@ class Processor(object):
     @type run_notifier: callable (no arguments) or None
     @param run_notifier:  this function (if callable) will be called when
                           we are about to call the lu's Exec() method, that
-                          is, after we have aquired all locks
+                          is, after we have acquired all locks
 
     """
     if not isinstance(op, opcodes.OpCode):
@@ -339,12 +349,14 @@ class HooksMaster(object):
         raise errors.HooksFailure("Communication failure")
       for node_name in results:
         res = results[node_name]
-        if res.failed or res.data is False or not isinstance(res.data, list):
-          if not res.offline:
-            self.proc.LogWarning("Communication failure to node %s" %
-                                 node_name)
+        if res.offline:
           continue
-        for script, hkr, output in res.data:
+        msg = res.RemoteFailMsg()
+        if msg:
+          self.proc.LogWarning("Communication failure to node %s: %s",
+                               node_name, msg)
+          continue
+        for script, hkr, output in res.payload:
           if hkr == constants.HKR_FAIL:
             errs.append((node_name, script, output))
       if errs:
@@ -361,4 +373,4 @@ class HooksMaster(object):
     phase = constants.HOOKS_PHASE_POST
     hpath = constants.HOOKS_NAME_CFGUPDATE
     nodes = [self.lu.cfg.GetMasterNode()]
-    results = self._RunWrapper(nodes, hpath, phase)
+    self._RunWrapper(nodes, hpath, phase)

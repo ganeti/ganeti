@@ -110,6 +110,83 @@ compatibility with 2.0.
 The code to export the list of VNC password files from the hypervisors to
 RedistributeConfig will be shared between the KVM and xen-hvm hypervisors.
 
+Disk/Net parameters
+~~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently disks and network interfaces have a few tweakable options and all the
+rest is left to a default we chose. We're finding that we need more and more to
+tweak some of these parameters, for example to disable barriers for DRBD
+devices, or allow striping for the LVM volumes.
+
+Moreover for many of these parameters it will be nice to have cluster-wide
+defaults, and then be able to change them per disk/interface.
+
+Proposed changes
+++++++++++++++++
+
+We will add new cluster level diskparams and netparams, which will contain all
+the tweakable parameters. All values which have a sensible cluster-wide default
+will go into this new structure while parameters which have unique values will not.
+
+Example of network parameters:
+  - mode: bridge/route
+  - link: for mode "bridge" the bridge to connect to, for mode route it can
+    contain the routing table, or the destination interface
+
+Example of disk parameters:
+  - stripe: lvm stripes
+  - stripe_size: lvm stripe size
+  - meta_flushes: drbd, enable/disable metadata "barriers"
+  - data_flushes: drbd, enable/disable data "barriers"
+
+Some parameters are bound to be disk-type specific (drbd, vs lvm, vs files) or
+hypervisor specific (nic models for example), but for now they will all live in
+the same structure. Each component is supposed to validate only the parameters
+it knows about, and ganeti itself will make sure that no "globally unknown"
+parameters are added, and that no parameters have overridden meanings for
+different components.
+
+The parameters will be kept, as for the BEPARAMS into a "default" category,
+which will allow us to expand on by creating instance "classes" in the future.
+Instance classes is not a feature we plan implementing in 2.1, though.
+
+Non bridged instances support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently each instance NIC must be connected to a bridge, and if the bridge is
+not specified the default cluster one is used. This makes it impossible to use
+the vif-route xen network scripts, or other alternative mechanisms that don't
+need a bridge to work.
+
+Proposed changes
+++++++++++++++++
+
+The new "mode" network parameter will distinguish between bridged interfaces
+and routed ones.
+
+When mode is "bridge" the "link" parameter will contain the bridge the instance
+should be connected to, effectively making things as today. The value has been
+migrated from a nic field to a parameter to allow for an easier manipulation of
+the cluster default.
+
+When mode is "route" the ip field of the interface will become mandatory, to
+allow for a route to be set. In the future we may want also to accept multiple
+IPs or IP/mask values for this purpose. We will evaluate possible meanings of
+the link parameter to signify a routing table to be used, which would allow for
+insulation between instance groups (as today happens for different bridges).
+
+For now we won't add a parameter to specify which network script gets called
+for which instance, so in a mixed cluster the network script must be able to
+handle both cases. The default kvm vif script will be changed to do so. (Xen
+doesn't have a ganeti provided script, so nothing will be done for that
+hypervisor)
+
 External interface changes
 --------------------------
 
@@ -152,8 +229,8 @@ regression as of today, because even if the OSes are left blind about this
 information, sometimes they still need to make compromises and cannot satisfy
 all possible parameter values.
 
-OS Parameters
-+++++++++++++
+OS Flavours
++++++++++++
 
 Currently we are assisting to some degree of "os proliferation" just to change
 a simple installation behavior. This means that the same OS gets installed on
@@ -172,22 +249,96 @@ deboostrap-etch-server, debootstrap-etch-dev, debootrap-lenny-server,
 debootstrap-lenny-dev, etc. Crossing more than two parameters quickly becomes
 not manageable.
 
-In order to avoid this we plan to make OSes more customizable, by allowing
-arbitrary flags to be passed to them. These will be special "OS parameters"
-which will be handled by Ganeti mostly as hypervisor or be parameters. This
-slightly complicates the interface, but allows one OS (for example
-"debootstrap" to be customizable and not require copies to perform different
-cations).
+In order to avoid this we plan to make OSes more customizable, by allowing each
+OS to declare a list of flavours which can be used to customize it. The
+flavours list is mandatory for new API OSes and must contain at least one
+supported flavour. When choosing the OS exactly one flavour will have to be
+specified, and will be encoded in the os name as <OS-name>+<flavour>. As for
+today it will be possible to change an instance's OS at creation or install
+time.
 
-Each OS will be able to declare which parameters it supports by listing them
-one per line in a special "parameters" file in the OS dir. The parameters can
-have a per-os cluster default, or be specified at instance creation time.  They
-will then be passed to the OS scripts as: INSTANCE_OS_PARAMETER_<NAME> with
-their specified value. The only value checking that will be performed is that
-the os parameter value is a string, with only "normal" characters in it.
+The 2.1 OS list will be the combination of each OS, plus its supported
+flavours. This will cause the name name proliferation to remain, but at least
+the internal OS code will be simplified to just parsing the passed flavour,
+without the need for symlinks or code duplication.
 
-It will be impossible to change parameters for an instance, except at reinstall
-time. Upon reinstall with a different OS the parameters will be by default
-discarded and reset to the default (or passed) values, unless a special
---keep-known-os-parameters flag is passed.
+Also we expect the OSes to declare only "interesting" flavours, but to accept
+some non-declared ones which a user will be able to pass in by overriding the
+checks ganeti does. This will be useful for allowing some variations to be used
+without polluting the OS list (per-OS documentation should list all supported
+flavours). If a flavour which is not internally supported is forced through,
+the OS scripts should abort.
 
+In the future (post 2.1) we may want to move to full fledged orthogonal
+parameters for the OSes. In this case we envision the flavours to be moved
+inside of Ganeti and be associated with lists parameter->values associations,
+which will then be passed to the OS.
+
+IAllocator changes
+~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+The iallocator interface allows creation of instances without manually
+specifying nodes, but instead by specifying plugins which will do the
+required computations and produce a valid node list.
+
+However, the interface is quite akward to use:
+
+- one cannot set a 'default' iallocator script
+- one cannot use it to easily test if allocation would succeed
+- some new functionality, such as rebalancing clusters and calculating
+  capacity estimates is needed
+
+Proposed changes
+++++++++++++++++
+
+There are two area of improvements proposed:
+
+- improving the use of the current interface
+- extending the IAllocator API to cover more automation
+
+
+Default iallocator names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The cluster will hold, for each type of iallocator, a (possibly empty)
+list of modules that will be used automatically.
+
+If the list is empty, the behaviour will remain the same.
+
+If the list has one entry, then ganeti will behave as if
+'--iallocator' was specifyed on the command line. I.e. use this
+allocator by default. If the user however passed nodes, those will be
+used in preference.
+
+If the list has multiple entries, they will be tried in order until
+one gives a successful answer.
+
+Dry-run allocation
+^^^^^^^^^^^^^^^^^^
+
+The create instance LU will get a new 'dry-run' option that will just
+simulate the placement, and return the chosen node-lists after running
+all the usual checks.
+
+Cluster balancing
+^^^^^^^^^^^^^^^^^
+
+Instance add/removals/moves can create a situation where load on the
+nodes is not spread equally. For this, a new iallocator mode will be
+implemented called ``balance`` in which the plugin, given the current
+cluster state, and a maximum number of operations, will need to
+compute the instance relocations needed in order to achieve a "better"
+(for whatever the script believes it's better) cluster.
+
+Cluster capacity calculation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this mode, called ``capacity``, given an instance specification and
+the current cluster state (similar to the ``allocate`` mode), the
+plugin needs to return:
+
+- how many instances can be allocated on the cluster with that specification
+- on which nodes these will be allocated (in order)

@@ -75,6 +75,27 @@ class TestSplitKeyVal(unittest.TestCase):
       self.failUnlessRaises(ParameterError, cli._SplitKeyVal,
                             "option", data)
 
+  def testEmptyData(self):
+    """Test how we handle splitting an empty string"""
+    self.failUnlessEqual(cli._SplitKeyVal("option", ""), {})
+
+class TestIdentKeyVal(unittest.TestCase):
+  """Testing case for cli.check_ident_key_val"""
+
+  def testIdentKeyVal(self):
+    """Test identkeyval"""
+    def cikv(value):
+      return cli.check_ident_key_val("option", "opt", value)
+
+    self.assertEqual(cikv("foo:bar"), ("foo", {"bar": True}))
+    self.assertEqual(cikv("foo:bar=baz"), ("foo", {"bar": "baz"}))
+    self.assertEqual(cikv("bar:b=c,c=a"), ("bar", {"b": "c", "c": "a"}))
+    self.assertEqual(cikv("no_bar"), ("bar", False))
+    self.assertRaises(ParameterError, cikv, "no_bar:foo")
+    self.assertRaises(ParameterError, cikv, "no_bar:foo=baz")
+    self.assertEqual(cikv("-foo"), ("foo", None))
+    self.assertRaises(ParameterError, cikv, "-foo:a=c")
+
 
 class TestToStream(unittest.TestCase):
   """Thes the ToStream functions"""

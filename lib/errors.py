@@ -98,18 +98,15 @@ class RemoteError(GenericError):
   pass
 
 
-class InvalidOS(GenericError):
-  """Missing OS on node.
+class SignatureError(GenericError):
+  """Error authenticating a remote message.
 
-  This is raised when an OS exists on the master (or is otherwise
-  requested to the code) but not on the target node.
-
-  This exception has three arguments:
-    - the name of the os
-    - the source directory, if any
-    - the reason why we consider this an invalid OS (text of error message)
+  This is raised when the hmac signature on a message doesn't verify correctly
+  to the message itself. It can happen because of network unreliability or
+  because of spurious traffic.
 
   """
+  pass
 
 
 class ParameterError(GenericError):
@@ -226,18 +223,21 @@ class CommandError(GenericError):
 class QuitGanetiException(Exception):
   """Signal that Ganeti that it must quit.
 
-  This is not necessarily an error (and thus not a subclass of GenericError),
-  but it's an exceptional circumstance and it is thus treated. This instance
-  should be instantiated with two values. The first one will specify whether an
-  error should returned to the caller, and the second one will be the returned
-  result (either as an error or as a normal result).
+  This is not necessarily an error (and thus not a subclass of
+  GenericError), but it's an exceptional circumstance and it is thus
+  treated. This instance should be instantiated with two values. The
+  first one will specify the return code to the caller, and the second
+  one will be the returned result (either as an error or as a normal
+  result). Usually only the leave cluster rpc call should return
+  status True (as there it's expected we quit), every other call will
+  return status False (as a critical error was encountered).
 
   Examples::
 
     # Return a result of "True" to the caller, but quit ganeti afterwards
-    raise QuitGanetiException(False, True)
+    raise QuitGanetiException(True, None)
     # Send an error to the caller, and quit ganeti
-    raise QuitGanetiException(True, "Fatal safety violation, shutting down")
+    raise QuitGanetiException(False, "Fatal safety violation, shutting down")
 
   """
 

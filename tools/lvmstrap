@@ -44,7 +44,7 @@ import sys
 import optparse
 import time
 
-from ganeti.utils import RunCmd
+from ganeti.utils import RunCmd, ReadFile
 from ganeti import constants
 
 USAGE = ("\tlvmstrap diskinfo\n"
@@ -267,7 +267,7 @@ def CheckSysDev(name, devnum):
    devnum: the device number, e.g. 0x803 (2051 in decimal) for sda3
 
   Returns:
-    None; failure of the check is signalled by raising a
+    None; failure of the check is signaled by raising a
       SysconfigError exception
   """
 
@@ -424,9 +424,7 @@ def GetMountInfo():
    a mountpoint: device number dictionary
   """
 
-  f = open("/proc/mounts", "r")
-  mountlines = f.readlines()
-  f.close()
+  mountlines = ReadFile("/proc/mounts").splitlines()
   mounts = {}
   for line in mountlines:
     device, mountpoint, fstype, rest = line.split(None, 3)
@@ -449,7 +447,7 @@ def GetMountInfo():
 
 
 def DevInfo(name, dev, mountinfo):
-  """Computes miscellaneous informations about a block device.
+  """Computes miscellaneous information about a block device.
 
   Args:
     name: the device name, e.g. sda
@@ -478,7 +476,7 @@ def DevInfo(name, dev, mountinfo):
 def ShowDiskInfo(opts):
   """Shows a nicely formatted block device list for this system.
 
-  This function shows the user a table with the informations gathered
+  This function shows the user a table with the information gathered
   by the other functions defined, in order to help the user make a
   choice about which disks should be allocated to our volume group.
 

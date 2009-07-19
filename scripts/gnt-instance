@@ -160,7 +160,7 @@ def _EnsureInstancesExist(client, names):
   This function will raise an OpPrereqError in case they don't
   exist. Otherwise it will exit cleanly.
 
-  @type client: L{luxi.Client}
+  @type client: L{ganeti.luxi.Client}
   @param client: the client to use for the query
   @type names: list
   @param names: the list of instance names to query
@@ -201,6 +201,7 @@ def ListInstances(opts, args):
       "oper_state": "Running",
       "oper_ram": "Memory", "disk_template": "Disk_template",
       "ip": "IP_address", "mac": "MAC_address",
+      "nic_mode": "NIC_Mode", "nic_link": "NIC_Link",
       "bridge": "Bridge",
       "sda_size": "Disk/0", "sdb_size": "Disk/1",
       "disk_usage": "DiskUsage",
@@ -219,9 +220,11 @@ def ListInstances(opts, args):
       "hvparams": "Hypervisor_parameters",
       "be/memory": "Configured_memory",
       "be/vcpus": "VCPUs",
+      "vcpus": "VCPUs",
       "be/auto_balance": "Auto_balance",
       "disk.count": "Disks", "disk.sizes": "Disk_sizes",
       "nic.count": "NICs", "nic.ips": "NIC_IPs",
+      "nic.modes": "NIC_modes", "nic.links": "NIC_links",
       "nic.bridges": "NIC_bridges", "nic.macs": "NIC_MACs",
       }
   else:
@@ -231,8 +234,8 @@ def ListInstances(opts, args):
   numfields = ["be/memory", "oper_ram", "sd(a|b)_size", "be/vcpus",
                "serial_no", "(disk|nic)\.count", "disk\.size/.*"]
 
-  list_type_fields = ("tags", "disk.sizes",
-                      "nic.macs", "nic.ips", "nic.bridges")
+  list_type_fields = ("tags", "disk.sizes", "nic.macs", "nic.ips",
+                      "nic.modes", "nic.links", "nic.bridges")
   # change raw values to nicer strings
   for row in output:
     for idx, field in enumerate(selected_fields):
@@ -300,6 +303,9 @@ def AddInstance(opts, args):
     nics = [{}] * nic_max
     for nidx, ndict in opts.nics:
       nidx = int(nidx)
+      if not isinstance(ndict, dict):
+        msg = "Invalid nic/%d value: expected dict, got %s" % (nidx, ndict)
+        raise errors.OpPrereqError(msg)
       nics[nidx] = ndict
   elif opts.no_nics:
     # no nics
@@ -328,7 +334,10 @@ def AddInstance(opts, args):
     disks = [{}] * disk_max
     for didx, ddict in opts.disks:
       didx = int(didx)
-      if "size" not in ddict:
+      if not isinstance(ddict, dict):
+        msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
+        raise errors.OpPrereqError(msg)
+      elif "size" not in ddict:
         raise errors.OpPrereqError("Missing size for disk %d" % didx)
       try:
         ddict["size"] = utils.ParseUnit(ddict["size"])
@@ -394,9 +403,7 @@ def BatchCreate(opts, args):
                     "iallocator": None,
                     "primary_node": None,
                     "secondary_node": None,
-                    "ip": 'none',
-                    "mac": 'auto',
-                    "bridge": None,
+                    "nics": None,
                     "start": True,
                     "ip_check": True,
                     "hypervisor": None,
@@ -464,10 +471,23 @@ def BatchCreate(opts, args):
                                    (elem, name, err))
       disks.append({"size": size})
 
-    nic0 = {'ip': specs['ip'], 'bridge': specs['bridge'], 'mac': specs['mac']}
-
     utils.ForceDictType(specs['backend'], constants.BES_PARAMETER_TYPES)
     utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
+
+    tmp_nics = []
+    for field in ('ip', 'mac', 'mode', 'link', 'bridge'):
+      if field in specs:
+        if not tmp_nics:
+          tmp_nics.append({})
+        tmp_nics[0][field] = specs[field]
+
+    if specs['nics'] is not None and tmp_nics:
+      raise errors.OpPrereqError("'nics' list incompatible with using"
+                                 " individual nic fields as well")
+    elif specs['nics'] is not None:
+      tmp_nics = specs['nics']
+    elif not tmp_nics:
+      tmp_nics = [{}]
 
     op = opcodes.OpCreateInstance(instance_name=name,
                                   disks=disks,
@@ -476,7 +496,7 @@ def BatchCreate(opts, args):
                                   os_type=specs['os'],
                                   pnode=specs['primary_node'],
                                   snode=specs['secondary_node'],
-                                  nics=[nic0],
+                                  nics=tmp_nics,
                                   start=specs['start'],
                                   ip_check=specs['ip_check'],
                                   wait_for_sync=True,
@@ -553,7 +573,7 @@ def ReinstallInstance(opts, args):
   else:
     if not opts.force:
       usertext = ("This will reinstall the instance %s and remove"
-                  " all data. Continue?") % instance_name
+                  " all data. Continue?") % inames[0]
       if not AskUser(usertext):
         return 1
 
@@ -1021,7 +1041,11 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
       txt = "disk %d" % idx
   else:
     txt = "child %d" % idx
-  d1 = ["- %s: %s" % (txt, dev["dev_type"])]
+  if isinstance(dev["size"], int):
+    nice_size = utils.FormatUnit(dev["size"], "h")
+  else:
+    nice_size = dev["size"]
+  d1 = ["- %s: %s, size %s" % (txt, dev["dev_type"], nice_size)]
   data = []
   if top_level:
     data.append(("access mode", dev["mode"]))
@@ -1156,9 +1180,9 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - memory: %dMiB\n" %
               instance["be_actual"][constants.BE_MEMORY])
     buf.write("    - NICs:\n")
-    for idx, (mac, ip, bridge) in enumerate(instance["nics"]):
-      buf.write("      - nic/%d: MAC: %s, IP: %s, bridge: %s\n" %
-                (idx, mac, ip, bridge))
+    for idx, (mac, ip, mode, link) in enumerate(instance["nics"]):
+      buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %
+                (idx, mac, ip, mode, link))
     buf.write("  Disks:\n")
 
     for idx, device in enumerate(instance["disks"]):
@@ -1386,7 +1410,7 @@ commands = {
            "Lists the instances and their status. The available fields are"
            " (see the man page for details): status, oper_state, oper_ram,"
            " name, os, pnode, snodes, admin_state, admin_ram, disk_template,"
-           " ip, mac, bridge, sda_size, sdb_size, vcpus, serial_no,"
+           " ip, mac, mode, link, sda_size, sdb_size, vcpus, serial_no,"
            " hypervisor."
            " The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),

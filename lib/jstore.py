@@ -22,9 +22,7 @@
 """Module implementing the job queue handling."""
 
 import os
-import logging
 import errno
-import re
 
 from ganeti import constants
 from ganeti import errors

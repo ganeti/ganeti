@@ -185,7 +185,7 @@ def Cluster12To20(cluster):
     cluster['hvparams'] = constants.HVC_DEFAULTS
   if 'beparams' not in cluster:
     logging.info(" - adding beparams")
-    cluster['beparams'] = {constants.BEGR_DEFAULT: constants.BEC_DEFAULTS}
+    cluster['beparams'] = {constants.PP_DEFAULT: constants.BEC_DEFAULTS}
 
   # file storage
   if 'file_storage_dir' not in cluster:
