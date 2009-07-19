@@ -784,7 +784,14 @@ class Burner(object):
         Log(self.GetFeedbackBuf())
         Log("\n\n")
       if not self.opts.keep_instances:
-        self.BurnRemove()
+        try:
+          self.BurnRemove()
+        except Exception, err:
+          if has_err: # already detected errors, so errors in removal
+                      # are quite expected
+            Log("Note: error detected during instance remove: %s" % str(err))
+          else: # non-expected error
+            raise
 
     return 0
 
