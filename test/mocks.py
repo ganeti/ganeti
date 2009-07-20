@@ -61,6 +61,10 @@ class FakeProc:
     def LogInfo(self, msg, *args, **kwargs):
         pass
 
+    def LogStep(self, current, total, message):
+        pass
+
+
 class FakeContext:
     """Fake context object"""
 
