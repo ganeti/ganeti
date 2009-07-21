@@ -5190,8 +5190,8 @@ class LUReplaceDisks(LogicalUnit):
     if not hasattr(self.op, "iallocator"):
       self.op.iallocator = None
 
-    _DiskReplacer.CheckArguments(self.op.mode, self.op.remote_node,
-                                 self.op.iallocator)
+    TLReplaceDisks.CheckArguments(self.op.mode, self.op.remote_node,
+                                  self.op.iallocator)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -5218,9 +5218,11 @@ class LUReplaceDisks(LogicalUnit):
       self.needed_locks[locking.LEVEL_NODE] = []
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
 
-    self.replacer = _DiskReplacer(self, self.op.instance_name, self.op.mode,
-                                  self.op.iallocator, self.op.remote_node,
-                                  self.op.disks)
+    self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
+                                   self.op.iallocator, self.op.remote_node,
+                                   self.op.disks)
+
+    self.tasklets.append(self.replacer)
 
   def DeclareLocks(self, level):
     # If we're not already locking all nodes in the set we have to declare the
@@ -5250,24 +5252,8 @@ class LUReplaceDisks(LogicalUnit):
       nl.append(self.op.remote_node)
     return env, nl, nl
 
-  def CheckPrereq(self):
-    """Check prerequisites.
 
-    This checks that the instance is in the cluster.
-
-    """
-    self.replacer.CheckPrereq()
-
-  def Exec(self, feedback_fn):
-    """Execute disk replacement.
-
-    This dispatches the disk replacement to the appropriate handler.
-
-    """
-    self.replacer.Exec()
-
-
-class _DiskReplacer:
+class TLReplaceDisks(Tasklet):
   """Replaces disks for an instance.
 
   Note: Locking is not within the scope of this class.
@@ -5300,6 +5286,9 @@ class _DiskReplacer:
 
   @staticmethod
   def CheckArguments(mode, remote_node, iallocator):
+    """Helper function for users of this class.
+
+    """
     # check for valid parameter combination
     cnt = [remote_node, iallocator].count(None)
     if mode == constants.REPLACE_DISK_CHG:
@@ -5428,7 +5417,7 @@ class _DiskReplacer:
 
     self.node_secondary_ip = node_2nd_ip
 
-  def Exec(self):
+  def Exec(self, feedback_fn):
     """Execute disk replacement.
 
     This dispatches the disk replacement to the appropriate handler.
