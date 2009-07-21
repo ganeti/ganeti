@@ -699,6 +699,19 @@ def _CheckInstanceBridgesExist(lu, instance, node=None):
   _CheckNicsBridgesExist(lu, instance.nics, node)
 
 
+def _GetNodeSecondaryInstances(cfg, node_name):
+  """Returns secondary instances on a node.
+
+  """
+  instances = []
+
+  for (_, inst) in cfg.GetAllInstancesInfo().iteritems():
+    if node_name in inst.secondary_nodes:
+      instances.append(inst)
+
+  return instances
+
+
 class LUDestroyCluster(NoHooksLU):
   """Logical unit for destroying the cluster.
 
