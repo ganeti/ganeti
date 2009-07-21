@@ -247,6 +247,18 @@ class Burner(object):
       raise BurninFailure()
     return results
 
+  def _DoCheckInstances(fn):
+    """Decorator for checking instances.
+
+    """
+    def wrapper(self, *args, **kwargs):
+      val = fn(self, *args, **kwargs)
+      for instance in self.instances:
+        self._CheckInstanceAlive(instance)
+      return val
+
+    return wrapper
+
   def ParseOptions(self):
     """Parses the command line options.
 
@@ -415,6 +427,7 @@ class Burner(object):
     if self.opts.os not in os_set:
       Err("OS '%s' not found" % self.opts.os)
 
+  @_DoCheckInstances
   def BurnCreateInstances(self):
     """Create the given instances.
 
@@ -462,9 +475,6 @@ class Burner(object):
       self.to_rem.append(instance)
 
     self.CommitQueue()
-
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
 
   def BurnGrowDisks(self):
     """Grow both the os and the swap disks by the requested amount, if any."""
@@ -520,6 +530,7 @@ class Burner(object):
       self.ExecOrQueue(instance, op)
     self.CommitQueue()
 
+  @_DoCheckInstances
   def BurnFailover(self):
     """Failover the instances."""
     Log("Failing over instances")
@@ -531,8 +542,6 @@ class Burner(object):
 
       self.ExecOrQueue(instance, op)
     self.CommitQueue()
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
 
   def BurnMigrate(self):
     """Migrate the instances."""
@@ -549,6 +558,7 @@ class Burner(object):
       self.ExecOrQueue(instance, op1, op2)
     self.CommitQueue()
 
+  @_DoCheckInstances
   def BurnImportExport(self):
     """Export the instance, delete it, and import it back.
 
@@ -615,8 +625,6 @@ class Burner(object):
       self.ExecOrQueue(instance, exp_op, rem_op, imp_op, erem_op)
 
     self.CommitQueue()
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
 
   def StopInstanceOp(self, instance):
     """Stop given instance."""
@@ -631,6 +639,7 @@ class Burner(object):
     return opcodes.OpRenameInstance(instance_name=instance,
                                     new_name=instance_new)
 
+  @_DoCheckInstances
   def BurnStopStart(self):
     """Stop/start the instances."""
     Log("Stopping and starting instances")
@@ -642,9 +651,6 @@ class Burner(object):
       self.ExecOrQueue(instance, op1, op2)
 
     self.CommitQueue()
-
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
 
   def BurnRemove(self):
     """Remove the instances."""
@@ -680,6 +686,7 @@ class Burner(object):
       self.ExecOp(False, op_stop2, op_rename2, op_start2)
       self._CheckInstanceAlive(instance)
 
+  @_DoCheckInstances
   def BurnReinstall(self):
     """Reinstall the instances."""
     Log("Reinstalling instances")
@@ -697,9 +704,7 @@ class Burner(object):
 
     self.CommitQueue()
 
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
-
+  @_DoCheckInstances
   def BurnReboot(self):
     """Reboot the instances."""
     Log("Rebooting instances")
@@ -717,9 +722,7 @@ class Burner(object):
 
     self.CommitQueue()
 
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
-
+  @_DoCheckInstances
   def BurnActivateDisks(self):
     """Activate and deactivate disks of the instances."""
     Log("Activating/deactivating disks")
@@ -735,9 +738,8 @@ class Burner(object):
       Log("deactivate disks (when offline)", indent=2)
       self.ExecOrQueue(instance, op_act, op_stop, op_act, op_deact, op_start)
     self.CommitQueue()
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
 
+  @_DoCheckInstances
   def BurnAddRemoveDisks(self):
     """Add and remove an extra disk for the instances."""
     Log("Adding and removing disks")
@@ -755,8 +757,6 @@ class Burner(object):
       Log("removing last disk", indent=2)
       self.ExecOrQueue(instance, op_add, op_stop, op_rem, op_start)
     self.CommitQueue()
-    for instance in self.instances:
-      self._CheckInstanceAlive(instance)
 
   def BurnAddRemoveNICs(self):
     """Add and remove an extra NIC for the instances."""
