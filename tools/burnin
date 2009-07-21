@@ -259,6 +259,25 @@ class Burner(object):
 
     return wrapper
 
+  def _DoBatch(retry):
+    """Decorator for possible batch operations.
+
+    Must come after the _DoCheckInstances decorator (if any).
+
+    @param retry: whether this is a retryable batch, will be
+        passed to StartBatch
+
+    """
+    def wrap(fn):
+      def batched(self, *args, **kwargs):
+        self.StartBatch(retry)
+        val = fn(self, *args, **kwargs)
+        self.CommitQueue()
+        return val
+      return batched
+
+    return wrap
+
   def ParseOptions(self):
     """Parses the command line options.
 
@@ -428,11 +447,11 @@ class Burner(object):
       Err("OS '%s' not found" % self.opts.os)
 
   @_DoCheckInstances
+  @_DoBatch(False)
   def BurnCreateInstances(self):
     """Create the given instances.
 
     """
-    self.StartBatch(False)
     self.to_rem = []
     mytor = izip(cycle(self.nodes),
                  islice(cycle(self.nodes), 1, None),
@@ -474,12 +493,10 @@ class Burner(object):
       self.ExecOrQueue(instance, op)
       self.to_rem.append(instance)
 
-    self.CommitQueue()
-
+  @_DoBatch(False)
   def BurnGrowDisks(self):
     """Grow both the os and the swap disks by the requested amount, if any."""
     Log("Growing disks")
-    self.StartBatch(False)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       for idx, growth in enumerate(self.disk_growth):
@@ -488,12 +505,11 @@ class Burner(object):
                                   amount=growth, wait_for_sync=True)
           Log("increase disk/%s by %s MB" % (idx, growth), indent=2)
           self.ExecOrQueue(instance, op)
-    self.CommitQueue()
 
+  @_DoBatch(True)
   def BurnReplaceDisks1D8(self):
     """Replace disks on primary and secondary for drbd8."""
     Log("Replacing disks on the same nodes")
-    self.StartBatch(True)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       ops = []
@@ -504,12 +520,11 @@ class Burner(object):
         Log("run %s" % mode, indent=2)
         ops.append(op)
       self.ExecOrQueue(instance, *ops)
-    self.CommitQueue()
 
+  @_DoBatch(True)
   def BurnReplaceDisks2(self):
     """Replace secondary node."""
     Log("Changing the secondary node")
-    self.StartBatch(True)
     mode = constants.REPLACE_DISK_CHG
 
     mytor = izip(islice(cycle(self.nodes), 2, None),
@@ -528,25 +543,23 @@ class Burner(object):
                                   disks=[i for i in range(self.disk_count)])
       Log("run %s %s" % (mode, msg), indent=2)
       self.ExecOrQueue(instance, op)
-    self.CommitQueue()
 
   @_DoCheckInstances
+  @_DoBatch(False)
   def BurnFailover(self):
     """Failover the instances."""
     Log("Failing over instances")
-    self.StartBatch(False)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       op = opcodes.OpFailoverInstance(instance_name=instance,
                                       ignore_consistency=False)
 
       self.ExecOrQueue(instance, op)
-    self.CommitQueue()
 
+  @_DoBatch(False)
   def BurnMigrate(self):
     """Migrate the instances."""
     Log("Migrating instances")
-    self.StartBatch(False)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       op1 = opcodes.OpMigrateInstance(instance_name=instance, live=True,
@@ -556,15 +569,14 @@ class Burner(object):
                                       cleanup=True)
       Log("migration and migration cleanup", indent=2)
       self.ExecOrQueue(instance, op1, op2)
-    self.CommitQueue()
 
   @_DoCheckInstances
+  @_DoBatch(False)
   def BurnImportExport(self):
     """Export the instance, delete it, and import it back.
 
     """
     Log("Exporting and re-importing instances")
-    self.StartBatch(False)
     mytor = izip(cycle(self.nodes),
                  islice(cycle(self.nodes), 1, None),
                  islice(cycle(self.nodes), 2, None),
@@ -624,8 +636,6 @@ class Burner(object):
       Log("remove export", indent=2)
       self.ExecOrQueue(instance, exp_op, rem_op, imp_op, erem_op)
 
-    self.CommitQueue()
-
   def StopInstanceOp(self, instance):
     """Stop given instance."""
     return opcodes.OpShutdownInstance(instance_name=instance)
@@ -640,29 +650,25 @@ class Burner(object):
                                     new_name=instance_new)
 
   @_DoCheckInstances
+  @_DoBatch(True)
   def BurnStopStart(self):
     """Stop/start the instances."""
     Log("Stopping and starting instances")
-    self.StartBatch(True)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       op1 = self.StopInstanceOp(instance)
       op2 = self.StartInstanceOp(instance)
       self.ExecOrQueue(instance, op1, op2)
 
-    self.CommitQueue()
-
+  @_DoBatch(False)
   def BurnRemove(self):
     """Remove the instances."""
-    self.StartBatch(False)
     Log("Removing instances")
     for instance in self.to_rem:
       Log("instance %s" % instance, indent=1)
       op = opcodes.OpRemoveInstance(instance_name=instance,
                                     ignore_failures=True)
       self.ExecOrQueue(instance, op)
-
-    self.CommitQueue()
 
   def BurnRename(self):
     """Rename the instances.
@@ -687,10 +693,10 @@ class Burner(object):
       self._CheckInstanceAlive(instance)
 
   @_DoCheckInstances
+  @_DoBatch(True)
   def BurnReinstall(self):
     """Reinstall the instances."""
     Log("Reinstalling instances")
-    self.StartBatch(True)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       op1 = self.StopInstanceOp(instance)
@@ -702,13 +708,11 @@ class Burner(object):
       op4 = self.StartInstanceOp(instance)
       self.ExecOrQueue(instance, op1, op2, op3, op4)
 
-    self.CommitQueue()
-
   @_DoCheckInstances
+  @_DoBatch(True)
   def BurnReboot(self):
     """Reboot the instances."""
     Log("Rebooting instances")
-    self.StartBatch(True)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       ops = []
@@ -720,13 +724,11 @@ class Burner(object):
         ops.append(op)
       self.ExecOrQueue(instance, *ops)
 
-    self.CommitQueue()
-
   @_DoCheckInstances
+  @_DoBatch(True)
   def BurnActivateDisks(self):
     """Activate and deactivate disks of the instances."""
     Log("Activating/deactivating disks")
-    self.StartBatch(True)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       op_start = self.StartInstanceOp(instance)
@@ -737,13 +739,12 @@ class Burner(object):
       Log("activate disks when offline", indent=2)
       Log("deactivate disks (when offline)", indent=2)
       self.ExecOrQueue(instance, op_act, op_stop, op_act, op_deact, op_start)
-    self.CommitQueue()
 
   @_DoCheckInstances
+  @_DoBatch(False)
   def BurnAddRemoveDisks(self):
     """Add and remove an extra disk for the instances."""
     Log("Adding and removing disks")
-    self.StartBatch(False)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       op_add = opcodes.OpSetInstanceParams(\
@@ -756,12 +757,11 @@ class Burner(object):
       Log("adding a disk", indent=2)
       Log("removing last disk", indent=2)
       self.ExecOrQueue(instance, op_add, op_stop, op_rem, op_start)
-    self.CommitQueue()
 
+  @_DoBatch(False)
   def BurnAddRemoveNICs(self):
     """Add and remove an extra NIC for the instances."""
     Log("Adding and removing NICs")
-    self.StartBatch(False)
     for instance in self.instances:
       Log("instance %s" % instance, indent=1)
       op_add = opcodes.OpSetInstanceParams(\
@@ -771,7 +771,6 @@ class Burner(object):
       Log("adding a NIC", indent=2)
       Log("removing last NIC", indent=2)
       self.ExecOrQueue(instance, op_add, op_rem)
-    self.CommitQueue()
 
   def _CheckInstanceAlive(self, instance):
     """Check if an instance is alive by doing http checks.
