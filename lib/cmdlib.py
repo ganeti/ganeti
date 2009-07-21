@@ -3905,8 +3905,13 @@ class LUMigrateInstance(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+
     self.needed_locks[locking.LEVEL_NODE] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+
+    self._migrater = TLMigrateInstance(self, self.op.instance_name,
+                                       self.op.live, self.op.cleanup)
+    self.tasklets.append(self._migrater)
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -3918,11 +3923,28 @@ class LUMigrateInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = _BuildInstanceHookEnvByObject(self, self.instance)
+    instance = self._migrater.instance
+    env = _BuildInstanceHookEnvByObject(self, instance)
     env["MIGRATE_LIVE"] = self.op.live
     env["MIGRATE_CLEANUP"] = self.op.cleanup
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
+    nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
     return env, nl, nl
+
+
+class TLMigrateInstance(Tasklet):
+  def __init__(self, lu, instance_name, live, cleanup):
+    """Initializes this class.
+
+    """
+    # Parameters
+    self.lu = lu
+    self.instance_name = instance_name
+    self.live = live
+    self.cleanup = cleanup
+
+    # Shortcuts
+    self.cfg = lu.cfg
+    self.rpc = lu.rpc
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -3931,10 +3953,10 @@ class LUMigrateInstance(LogicalUnit):
 
     """
     instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
+      self.cfg.ExpandInstanceName(self.instance_name))
     if instance is None:
       raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name)
+                                 self.instance_name)
 
     if instance.disk_template != constants.DT_DRBD8:
       raise errors.OpPrereqError("Instance's disk layout is not"
@@ -3956,7 +3978,7 @@ class LUMigrateInstance(LogicalUnit):
     # check bridge existance
     _CheckInstanceBridgesExist(self, instance, node=target_node)
 
-    if not self.op.cleanup:
+    if not self.cleanup:
       _CheckNodeNotDrained(self, target_node)
       result = self.rpc.call_instance_migratable(instance.primary_node,
                                                  instance)
@@ -4103,10 +4125,10 @@ class LUMigrateInstance(LogicalUnit):
       self._GoReconnect(False)
       self._WaitUntilSync()
     except errors.OpExecError, err:
-      self.LogWarning("Migration failed and I can't reconnect the"
-                      " drives: error '%s'\n"
-                      "Please look and recover the instance status" %
-                      str(err))
+      self.lu.LogWarning("Migration failed and I can't reconnect the"
+                         " drives: error '%s'\n"
+                         "Please look and recover the instance status" %
+                         str(err))
 
   def _AbortMigration(self):
     """Call the hypervisor code to abort a started migration.
@@ -4186,7 +4208,7 @@ class LUMigrateInstance(LogicalUnit):
     time.sleep(10)
     result = self.rpc.call_instance_migrate(source_node, instance,
                                             self.nodes_ip[target_node],
-                                            self.op.live)
+                                            self.live)
     msg = result.fail_msg
     if msg:
       logging.error("Instance migration failed, trying to revert"
@@ -4233,7 +4255,8 @@ class LUMigrateInstance(LogicalUnit):
       self.source_node: self.cfg.GetNodeInfo(self.source_node).secondary_ip,
       self.target_node: self.cfg.GetNodeInfo(self.target_node).secondary_ip,
       }
-    if self.op.cleanup:
+
+    if self.cleanup:
       return self._ExecCleanup()
     else:
       return self._ExecMigration()
