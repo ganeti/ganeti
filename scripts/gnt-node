@@ -224,17 +224,9 @@ def EvacuateNode(opts, args):
                                src_node, txt_msg)):
     return constants.EXIT_CONFIRMATION
 
-  ops = []
-  for iname in sinst:
-    op = opcodes.OpReplaceDisks(instance_name=iname,
-                                remote_node=dst_node,
-                                mode=constants.REPLACE_DISK_CHG,
-                                iallocator=iallocator,
-                                disks=[])
-    ops.append(op)
-
-  job_id = cli.SendJob(ops, cl=cl)
-  cli.PollJob(job_id, cl=cl)
+  op = opcodes.OpEvacuateNode(node_name=args[0], remote_node=dst_node,
+                              iallocator=iallocator)
+  SubmitOpCode(op, cl=cl)
 
 
 def FailoverNode(opts, args):
