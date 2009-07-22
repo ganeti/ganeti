@@ -1,0 +1,238 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2009, Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Ganeti configuration daemon
+
+Ganeti-confd is a daemon to query master candidates for configuration values.
+It uses UDP+HMAC for authentication with a global cluster key.
+
+"""
+
+import os
+import sys
+import traceback
+import errno
+import logging
+import time
+import asyncore
+import socket
+import pyinotify
+
+from optparse import OptionParser
+
+from ganeti import constants
+from ganeti import objects
+from ganeti import errors
+from ganeti import daemon
+from ganeti import utils
+from ganeti import ssconf
+from ganeti import serializer
+from ganeti.asyncnotifier import AsyncNotifier
+from ganeti.confd.server import ConfdProcessor
+
+
+class ConfdAsyncUDPServer(asyncore.dispatcher):
+  """The confd udp server, suitable for use with asyncore.
+
+  """
+  def __init__(self, bind_address, port, processor):
+    """Constructor for ConfdAsyncUDPServer
+
+    @type bind_address: string
+    @param bind_address: socket bind address ('' for all)
+    @type port: int
+    @param port: udp port
+    @type processor: L{confd.server.ConfdProcessor}
+    @param reader: ConfigReader to use to access the config
+
+    """
+    asyncore.dispatcher.__init__(self)
+    self.bind_address = bind_address
+    self.port = port
+    self.processor = processor
+    self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self.bind((bind_address, port))
+    logging.debug("listening on ('%s':%d)" % (bind_address, port))
+
+  # this method is overriding an asyncore.dispatcher method
+  def handle_connect(self):
+    # Python thinks that the first udp message from a source qualifies as a
+    # "connect" and further ones are part of the same connection. We beg to
+    # differ and treat all messages equally.
+    pass
+
+  # this method is overriding an asyncore.dispatcher method
+  def handle_read(self):
+    try:
+      payload_in, address = self.recvfrom(4096)
+      ip, port = address
+      payload_out =  self.processor.ExecQuery(payload_in, ip, port)
+      if payload_out is not None:
+        self.sendto(payload_out, 0, (ip, port))
+    except:
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed handling a single request, we still want the confd to
+      # continue working.
+      logging.error("Unexpected exception", exc_info=True)
+
+  # this method is overriding an asyncore.dispatcher method
+  def writable(self):
+    # No need to check if we can write to the UDP socket
+    return False
+
+
+class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
+
+  def __init__(self, watch_manager, reader,
+               file=constants.CLUSTER_CONF_FILE):
+    """Constructor for ConfdInotifyEventHandler
+
+    @type watch_manager: L{pyinotify.WatchManager}
+    @param watch_manager: ganeti-confd inotify watch manager
+    @type reader: L{ssconf.SimpleConfigReader}
+    @param reader: ganeti-confd SimpleConfigReader
+    @type file: string
+    @param file: config file to watch
+
+    """
+    # no need to call the parent's constructor
+    self.watch_manager = watch_manager
+    self.reader = reader
+    self.mask = pyinotify.EventsCodes.IN_IGNORED | \
+                pyinotify.EventsCodes.IN_MODIFY
+    self.file = file
+    self.add_config_watch()
+
+  def add_config_watch(self):
+    """Add a watcher for the ganeti config file
+
+    """
+    result = self.watch_manager.add_watch(self.file, self.mask)
+    if not result[self.file] > 0:
+      raise errors.ConfdFatalError("Could not add inotify watcher")
+
+  def reload_config(self):
+    try:
+      reloaded = self.reader.Reload()
+      if reloaded:
+        logging.info("Reloaded ganeti config")
+      else:
+        logging.debug("Skipped double config reload")
+    except errors.ConfigurationError:
+      # transform a ConfigurationError in a fatal error, that will cause confd
+      # to quit.
+      raise errors.ConfdFatalError(err)
+
+  def process_IN_IGNORED(self, event):
+    # Due to the fact that we monitor just for the cluster config file (rather
+    # than for the whole data dir) when the file is replaced with another one
+    # (which is what happens normally in ganeti) we're going to receive an
+    # IN_IGNORED event from inotify, because of the file removal (which is
+    # contextual with the replacement). In such a case we need to create
+    # another watcher for the "new" file.
+    logging.debug("Received 'ignored' inotify event for %s" % event.path)
+
+    try:
+      # Since the kernel believes the file we were interested in is gone, it's
+      # not going to notify us of any other events, until we set up, here, the
+      # new watch. This is not a race condition, though, since we're anyway
+      # going to realod the file after setting up the new watch.
+      self.add_config_watch()
+      self.reload_config()
+    except errors.ConfdFatalError, err:
+      logging.critical("Critical error, shutting down: %s" % err)
+      sys.exit(constants.EXIT_FAILURE)
+    except:
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed handling a single request, we still want the confd to
+      # continue working.
+      logging.error("Unexpected exception", exc_info=True)
+
+  def process_IN_MODIFY(self, event):
+    # This gets called when the config file is modified. Note that this doesn't
+    # usually happen in Ganeti, as the config file is normally replaced by a
+    # new one, at filesystem level, rather than actually modified (see
+    # utils.WriteFile)
+    logging.debug("Received 'modify' inotify event for %s" % event.path)
+
+    try:
+      self.reload_config()
+    except errors.ConfdFatalError, err:
+      logging.critical("Critical error, shutting down: %s" % err)
+      sys.exit(constants.EXIT_FAILURE)
+    except:
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed handling a single request, we still want the confd to
+      # continue working.
+      logging.error("Unexpected exception", exc_info=True)
+
+  def process_default(self, event):
+    logging.error("Received unhandled inotify event: %s" % event)
+
+
+def CheckCONFD(options, args):
+  """Initial checks whether to run exit with a failure
+
+  """
+  # TODO: collapse HMAC daemons handling in daemons GenericMain, when we'll
+  # have more than one.
+  if not os.path.isfile(constants.HMAC_CLUSTER_KEY):
+    print >> sys.stderr, "Need HMAC key %s to run" % constants.HMAC_CLUSTER_KEY
+    sys.exit(constants.EXIT_FAILURE)
+
+  ssconf.CheckMasterCandidate(options.debug)
+
+
+def ExecCONFD(options, args):
+  """Main CONFD function, executed with pidfile held
+
+  """
+  # confd-level SimpleConfigReader
+  reader = ssconf.SimpleConfigReader()
+
+  # Asyncronous confd UDP server
+  processor = ConfdProcessor(reader)
+  server = ConfdAsyncUDPServer(options.bind_address, options.port, processor)
+
+  # Asyncronous inotify handler for config changes
+  wm = pyinotify.WatchManager()
+  confd_event_handler = ConfdInotifyEventHandler(wm, reader)
+  notifier = AsyncNotifier(wm, confd_event_handler)
+  asyncore.loop()
+
+
+def main():
+  """Main function for the confd daemon.
+
+  """
+  parser = OptionParser(description="Ganeti configuration daemon",
+                        usage="%prog [-f] [-d] [-b ADDRESS]",
+                        version="%%prog (ganeti) %s" %
+                        constants.RELEASE_VERSION)
+
+  dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
+  dirs.append((constants.LOG_OS_DIR, 0750))
+  dirs.append((constants.LOCK_DIR, 1777))
+  daemon.GenericMain(constants.CONFD, parser, dirs, CheckCONFD, ExecCONFD)
+
+
+if __name__ == '__main__':
+  main()

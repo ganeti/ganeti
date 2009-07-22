@@ -150,6 +150,7 @@ dist_sbin_SCRIPTS = \
 	daemons/ganeti-noded \
 	daemons/ganeti-watcher \
 	daemons/ganeti-masterd \
+	daemons/ganeti-confd \
 	daemons/ganeti-rapi \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
