@@ -339,6 +339,45 @@ class NoHooksLU(LogicalUnit):
   HTYPE = None
 
 
+class Tasklet:
+  """Tasklet base class.
+
+  Tasklets are subcomponents for LUs. LUs can consist entirely of tasklets or
+  they can mix legacy code with tasklets. Locking needs to be done in the LU,
+  tasklets know nothing about locks.
+
+  Subclasses must follow these rules:
+    - Implement CheckPrereq
+    - Implement Exec
+
+  """
+  def CheckPrereq(self):
+    """Check prerequisites for this tasklets.
+
+    This method should check whether the prerequisites for the execution of
+    this tasklet are fulfilled. It can do internode communication, but it
+    should be idempotent - no cluster or system changes are allowed.
+
+    The method should raise errors.OpPrereqError in case something is not
+    fulfilled. Its return value is ignored.
+
+    This method should also update all parameters to their canonical form if it
+    hasn't been done before.
+
+    """
+    raise NotImplementedError
+
+  def Exec(self, feedback_fn):
+    """Execute the tasklet.
+
+    This method should implement the actual work. It should raise
+    errors.OpExecError for failures that are somewhat dealt with in code, or
+    expected.
+
+    """
+    raise NotImplementedError
+
+
 def _GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
 
