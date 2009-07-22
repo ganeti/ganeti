@@ -115,7 +115,15 @@ NODED_PID = "ganeti-noded"
 RAPI_PID = "ganeti-rapi"
 
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
-DEFAULT_NODED_PORT = 1811
+
+NODED = "ganeti-noded"
+
+DAEMONS_PORTS = {
+  # daemon-name: ("proto", "default-port")
+  NODED: ("tcp", 1811),
+}
+DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
+
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
 MASTER_SCRIPT = "ganeti-master"

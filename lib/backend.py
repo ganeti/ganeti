@@ -476,7 +476,7 @@ def VerifyNode(what, cluster_name):
       tmp[my_name] = ("Can't find my own primary/secondary IP"
                       " in the node list")
     else:
-      port = utils.GetNodeDaemonPort()
+      port = utils.GetDaemonPort(constants.NODED)
       for name, pip, sip in what[constants.NV_NODENETTEST]:
         fail = []
         if not utils.TcpPing(pip, port, source=my_pip):

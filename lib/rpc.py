@@ -265,7 +265,7 @@ class RpcRunner(object):
 
     """
     self._cfg = cfg
-    self.port = utils.GetNodeDaemonPort()
+    self.port = utils.GetDaemonPort(constants.NODED)
 
   def _InstDict(self, instance, hvp=None, bep=None):
     """Convert the given instance to a dict.
@@ -366,7 +366,7 @@ class RpcRunner(object):
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, utils.GetNodeDaemonPort())
+    c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
     c.ConnectList(node_list, address_list=address_list)
     return c.GetResults()
 
@@ -388,7 +388,7 @@ class RpcRunner(object):
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, utils.GetNodeDaemonPort())
+    c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
     c.ConnectNode(node)
     return c.GetResults()[node]
 

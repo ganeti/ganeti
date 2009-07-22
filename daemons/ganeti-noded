@@ -773,7 +773,7 @@ def main():
       print "config %s not there, will not run." % fname
       sys.exit(constants.EXIT_NOTCLUSTER)
 
-  port = utils.GetNodeDaemonPort()
+  port = utils.GetDaemonPort(constants.NODED)
 
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
