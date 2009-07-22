@@ -47,8 +47,8 @@ class LogicalUnit(object):
 
   Subclasses must follow these rules:
     - implement ExpandNames
-    - implement CheckPrereq
-    - implement Exec
+    - implement CheckPrereq (except when tasklets are used)
+    - implement Exec (except when tasklets are used)
     - implement BuildHooksEnv
     - redefine HPATH and HTYPE
     - optionally redefine their run requirements:
@@ -93,11 +93,15 @@ class LogicalUnit(object):
     # support for dry-run
     self.dry_run_result = None
 
+    # Tasklets
+    self.tasklets = []
+
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)
       if attr_val is None:
         raise errors.OpPrereqError("Required parameter '%s' missing" %
                                    attr_name)
+
     self.CheckArguments()
 
   def __GetSSH(self):
@@ -148,6 +152,10 @@ class LogicalUnit(object):
     If you need to share locks (rather than acquire them exclusively) at one
     level you can modify self.share_locks, setting a true value (usually 1) for
     that level. By default locks are not shared.
+
+    This function can also define a list of tasklets, which then will be
+    executed in order instead of the usual LU-level CheckPrereq and Exec
+    functions, if those are not defined by the LU.
 
     Examples::
 
@@ -205,7 +213,11 @@ class LogicalUnit(object):
     their canonical form if it hasn't been done by ExpandNames before.
 
     """
-    raise NotImplementedError
+    if self.tasklets:
+      for tl in self.tasklets:
+        tl.CheckPrereq()
+    else:
+      raise NotImplementedError
 
   def Exec(self, feedback_fn):
     """Execute the LU.
@@ -215,7 +227,11 @@ class LogicalUnit(object):
     code, or expected.
 
     """
-    raise NotImplementedError
+    if self.tasklets:
+      for tl in self.tasklets:
+        tl.Exec(feedback_fn)
+    else:
+      raise NotImplementedError
 
   def BuildHooksEnv(self):
     """Build hooks environment for this LU.
