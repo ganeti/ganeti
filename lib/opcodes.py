@@ -350,6 +350,16 @@ class OpPowercycleNode(OpCode):
     "force",
     ]
 
+
+class OpEvacuateNode(OpCode):
+  """Relocate secondary instances from a node."""
+  OP_ID = "OP_NODE_EVACUATE"
+  OP_DSC_FIELD = "node_name"
+  __slots__ = OpCode.__slots__ + [
+    "node_name", "remote_node", "iallocator",
+    ]
+
+
 # instance opcodes
 
 class OpCreateInstance(OpCode):

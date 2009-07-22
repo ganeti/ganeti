@@ -5253,6 +5253,97 @@ class LUReplaceDisks(LogicalUnit):
     return env, nl, nl
 
 
+class LUEvacuateNode(LogicalUnit):
+  """Relocate the secondary instances from a node.
+
+  """
+  HPATH = "node-evacuate"
+  HTYPE = constants.HTYPE_NODE
+  _OP_REQP = ["node_name"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
+    if not hasattr(self.op, "iallocator"):
+      self.op.iallocator = None
+
+    TLReplaceDisks.CheckArguments(constants.REPLACE_DISK_CHG,
+                                  self.op.remote_node,
+                                  self.op.iallocator)
+
+  def ExpandNames(self):
+    self.op.node_name = self.cfg.ExpandNodeName(self.op.node_name)
+    if self.op.node_name is None:
+      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name)
+
+    self.needed_locks = {}
+
+    # Declare node locks
+    if self.op.iallocator is not None:
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+
+    elif self.op.remote_node is not None:
+      remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
+      if remote_node is None:
+        raise errors.OpPrereqError("Node '%s' not known" %
+                                   self.op.remote_node)
+
+      self.op.remote_node = remote_node
+
+      # Warning: do not remove the locking of the new secondary here
+      # unless DRBD8.AddChildren is changed to work in parallel;
+      # currently it doesn't since parallel invocations of
+      # FindUnusedMinor will conflict
+      self.needed_locks[locking.LEVEL_NODE] = [remote_node]
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+
+    else:
+      raise errors.OpPrereqError("Invalid parameters")
+
+    # Create tasklets for replacing disks for all secondary instances on this
+    # node
+    names = []
+
+    for inst in _GetNodeSecondaryInstances(self.cfg, self.op.node_name):
+      logging.debug("Replacing disks for instance %s", inst.name)
+      names.append(inst.name)
+
+      replacer = TLReplaceDisks(self, inst.name, constants.REPLACE_DISK_CHG,
+                                self.op.iallocator, self.op.remote_node, [])
+      self.tasklets.append(replacer)
+
+    self.instance_names = names
+
+    # Declare instance locks
+    self.needed_locks[locking.LEVEL_INSTANCE] = self.instance_names
+
+  def DeclareLocks(self, level):
+    # If we're not already locking all nodes in the set we have to declare the
+    # instance's primary/secondary nodes.
+    if (level == locking.LEVEL_NODE and
+        self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET):
+      self._LockInstancesNodes()
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on the master, the primary and all the secondaries.
+
+    """
+    env = {
+      "NODE_NAME": self.op.node_name,
+      }
+
+    nl = [self.cfg.GetMasterNode()]
+
+    if self.op.remote_node is not None:
+      env["NEW_SECONDARY"] = self.op.remote_node
+      nl.append(self.op.remote_node)
+
+    return (env, nl, nl)
+
+
 class TLReplaceDisks(Tasklet):
   """Replaces disks for an instance.
 
@@ -5423,6 +5514,8 @@ class TLReplaceDisks(Tasklet):
     This dispatches the disk replacement to the appropriate handler.
 
     """
+    feedback_fn("Replacing disks for %s" % self.instance.name)
+
     activate_disks = (not self.instance.admin_up)
 
     # Activate the instance disks if we're replacing them on a down instance
