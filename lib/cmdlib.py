@@ -367,6 +367,13 @@ class Tasklet:
     - Implement Exec
 
   """
+  def __init__(self, lu):
+    self.lu = lu
+
+    # Shortcuts
+    self.cfg = lu.cfg
+    self.rpc = lu.rpc
+
   def CheckPrereq(self):
     """Check prerequisites for this tasklets.
 
@@ -3936,15 +3943,12 @@ class TLMigrateInstance(Tasklet):
     """Initializes this class.
 
     """
+    Tasklet.__init__(self, lu)
+
     # Parameters
-    self.lu = lu
     self.instance_name = instance_name
     self.live = live
     self.cleanup = cleanup
-
-    # Shortcuts
-    self.cfg = lu.cfg
-    self.rpc = lu.rpc
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -5378,17 +5382,14 @@ class TLReplaceDisks(Tasklet):
     """Initializes this class.
 
     """
+    Tasklet.__init__(self, lu)
+
     # Parameters
-    self.lu = lu
     self.instance_name = instance_name
     self.mode = mode
     self.iallocator_name = iallocator_name
     self.remote_node = remote_node
     self.disks = disks
-
-    # Shortcuts
-    self.cfg = lu.cfg
-    self.rpc = lu.rpc
 
     # Runtime data
     self.instance = None
