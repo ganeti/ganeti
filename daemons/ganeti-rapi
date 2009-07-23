@@ -184,16 +184,12 @@ def ParseOptions():
 
   """
   parser = optparse.OptionParser(description="Ganeti Remote API",
-                    usage="%prog [-d] [-p port]",
+                    usage="%prog [-d]",
                     version="%%prog (ganeti) %s" %
                                  constants.RAPI_VERSION)
   parser.add_option("-d", "--debug", dest="debug",
                     help="Enable some debug messages",
                     default=False, action="store_true")
-  parser.add_option("-p", "--port", dest="port",
-                    help="Port to run API (%s default)." %
-                                 constants.RAPI_PORT,
-                    default=constants.RAPI_PORT, type="int")
   parser.add_option("--no-ssl", dest="ssl",
                     help="Do not secure HTTP protocol with SSL",
                     default=True, action="store_false")
@@ -213,7 +209,7 @@ def ParseOptions():
   options, args = parser.parse_args()
 
   if len(args) != 0:
-    print >> sys.stderr, "Usage: %s [-d] [-p port]" % sys.argv[0]
+    print >> sys.stderr, "Usage: %s [-d]" % sys.argv[0]
     sys.exit(constants.EXIT_FAILURE)
 
   if options.ssl and not (options.ssl_cert and options.ssl_key):
@@ -245,6 +241,7 @@ def main():
     ssl_params = None
 
   ssconf.CheckMaster(options.debug)
+  port = utils.GetDaemonPort(constants.RAPI)
 
   if options.fork:
     utils.Daemonize(logfile=constants.LOG_RAPISERVER)
@@ -255,7 +252,7 @@ def main():
   utils.WritePidFile(constants.RAPI_PID)
   try:
     mainloop = daemon.Mainloop()
-    server = RemoteApiHttpServer(mainloop, options.bind_address, options.port,
+    server = RemoteApiHttpServer(mainloop, options.bind_address, port,
                                  ssl_params=ssl_params, ssl_verify_peer=False,
                                  request_executor_class=
                                  JsonErrorRequestExecutor)

@@ -117,12 +117,15 @@ RAPI_PID = "ganeti-rapi"
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 
 NODED = "ganeti-noded"
+RAPI = "ganeti-rapi"
 
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
   NODED: ("tcp", 1811),
+  RAPI: ("tcp", 5080),
 }
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
+DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
 
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
@@ -495,8 +498,6 @@ OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
 # Execution log types
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
-
-RAPI_PORT = 5080
 
 # max dynamic devices
 MAX_NICS = 8

@@ -64,7 +64,7 @@ def Enabled():
 def _DoTests(uris):
   master = qa_config.GetMasterNode()
   host = master["primary"]
-  port = qa_config.get("rapi-port", default=constants.RAPI_PORT)
+  port = qa_config.get("rapi-port", default=constants.DEFAULT_RAPI_PORT)
 
   for uri, verify in uris:
     assert uri.startswith("/")
