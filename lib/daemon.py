@@ -26,8 +26,10 @@ import select
 import signal
 import errno
 import time
+import logging
 
 from ganeti import utils
+from ganeti import constants
 
 
 class Timer(object):
@@ -297,3 +299,65 @@ class Mainloop(object):
 
     """
     self._timer_remove.append(timer_id)
+
+
+def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
+  """Shared main function for daemons.
+
+  @type daemon_name: string
+  @param daemon_name: daemon name
+  @type optionparser: L{optparse.OptionParser}
+  @param optionparser: initialized optionparser with daemon-specific options
+                       (common -f -d options will be handled by this module)
+  @type options: object @param options: OptionParser result, should contain at
+                 least the fork and the debug options
+  @type dirs: list of strings
+  @param dirs: list of directories that must exist for this daemon to work
+  @type check_fn: function which accepts (options, args)
+  @param check_fn: function that checks start conditions and exits if they're
+                   not met
+  @type exec_fn: function which accepts (options, args)
+  @param exec_fn: function that's executed with the daemon's pid file held, and
+                  runs the daemon itself.
+
+  """
+  optionparser.add_option("-f", "--foreground", dest="fork",
+                          help="Don't detach from the current terminal",
+                          default=True, action="store_false")
+  optionparser.add_option("-d", "--debug", dest="debug",
+                          help="Enable some debug messages",
+                          default=False, action="store_true")
+  if daemon_name in constants.DAEMONS_PORTS:
+    # for networked daemons we also allow choosing the bind port and address.
+    # by default we use the port provided by utils.GetDaemonPort, and bind to
+    # 0.0.0.0 (which is represented by and empty bind address.
+    port = utils.GetDaemonPort(daemon_name)
+    optionparser.add_option("-p", "--port", dest="port",
+                            help="Network port (%s default)." % port,
+                            default=port, type="int")
+    optionparser.add_option("-b", "--bind", dest="bind_address",
+                            help="Bind address",
+                            default="", metavar="ADDRESS")
+
+  multithread = utils.no_fork = daemon_name in constants.MULTITHREADED_DAEMONS
+
+  options, args = optionparser.parse_args()
+
+  check_fn(options, args)
+  utils.EnsureDirs(dirs)
+
+  if options.fork:
+    utils.CloseFDs()
+    utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
+
+  utils.WritePidFile(daemon_name)
+  try:
+    utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
+                       debug=options.debug,
+                       stderr_logging=not options.fork,
+                       multithreaded=multithread)
+    logging.info("%s daemon startup" % daemon_name)
+    exec_fn(options, args)
+  finally:
+    utils.RemovePidFile(daemon_name)
+

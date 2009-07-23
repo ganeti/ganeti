@@ -115,6 +115,8 @@ NODED = "ganeti-noded"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
 
+MULTITHREADED_DAEMONS = frozenset([MASTERD])
+
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
   NODED: ("tcp", 1811),

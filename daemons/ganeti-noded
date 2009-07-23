@@ -732,83 +732,51 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.ValidateHVParams(hvname, hvparams)
 
 
-def ParseOptions():
-  """Parse the command line options.
-
-  @return: (options, args) as from OptionParser.parse_args()
+def CheckNODED(options, args):
+  """Initial checks whether to run exit with a failure
 
   """
-  parser = OptionParser(description="Ganeti node daemon",
-                        usage="%prog [-f] [-d] [-b ADDRESS]",
-                        version="%%prog (ganeti) %s" %
-                        constants.RELEASE_VERSION)
+  for fname in (constants.SSL_CERT_FILE,):
+    if not os.path.isfile(fname):
+      print "config %s not there, will not run." % fname
+      sys.exit(constants.EXIT_NOTCLUSTER)
 
-  parser.add_option("-f", "--foreground", dest="fork",
-                    help="Don't detach from the current terminal",
-                    default=True, action="store_false")
-  parser.add_option("-d", "--debug", dest="debug",
-                    help="Enable some debug messages",
-                    default=False, action="store_true")
-  parser.add_option("-b", "--bind", dest="bind_address",
-                    help="Bind address",
-                    default="", metavar="ADDRESS")
 
-  options, args = parser.parse_args()
-  return options, args
+def ExecNODED(options, args):
+  """Main NODED function, executed with the pidfile held.
+
+  """
+  global queue_lock
+
+  # Read SSL certificate
+  ssl_params = http.HttpSslParams(ssl_key_path=constants.SSL_CERT_FILE,
+                                  ssl_cert_path=constants.SSL_CERT_FILE)
+
+  # Prepare job queue
+  queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
+
+  mainloop = daemon.Mainloop()
+  server = NodeHttpServer(mainloop, options.bind_address, options.port,
+                          ssl_params=ssl_params, ssl_verify_peer=True)
+  server.Start()
+  try:
+    mainloop.Run()
+  finally:
+    server.Stop()
 
 
 def main():
   """Main function for the node daemon.
 
   """
-  global queue_lock
-  daemon_name = constants.NODED
-
-  options, args = ParseOptions()
-
-  if options.fork:
-    utils.CloseFDs()
-
-  for fname in (constants.SSL_CERT_FILE,):
-    if not os.path.isfile(fname):
-      print "config %s not there, will not run." % fname
-      sys.exit(constants.EXIT_NOTCLUSTER)
-
-  port = utils.GetDaemonPort(constants.NODED)
-
+  parser = OptionParser(description="Ganeti node daemon",
+                        usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
+                        version="%%prog (ganeti) %s" %
+                        constants.RELEASE_VERSION)
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
-  utils.EnsureDirs(dirs)
-
-  # become a daemon
-  if options.fork:
-    utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
-
-  utils.WritePidFile(daemon_name)
-  try:
-    utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
-                       debug=options.debug,
-                       stderr_logging=not options.fork)
-    logging.info("ganeti node daemon startup")
-
-    # Read SSL certificate
-    ssl_params = http.HttpSslParams(ssl_key_path=constants.SSL_CERT_FILE,
-                                    ssl_cert_path=constants.SSL_CERT_FILE)
-
-    # Prepare job queue
-    queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
-
-    mainloop = daemon.Mainloop()
-    server = NodeHttpServer(mainloop, options.bind_address, port,
-                            ssl_params=ssl_params, ssl_verify_peer=True)
-    server.Start()
-    try:
-      mainloop.Run()
-    finally:
-      server.Stop()
-  finally:
-    utils.RemovePidFile(daemon_name)
+  daemon.GenericMain(constants.NODED, parser, dirs, CheckNODED, ExecNODED)
 
 
 if __name__ == '__main__':
