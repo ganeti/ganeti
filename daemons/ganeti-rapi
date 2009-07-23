@@ -225,6 +225,7 @@ def main():
 
   """
   options, args = ParseOptions()
+  daemon_name = constants.RAPI
 
   if options.fork:
     utils.CloseFDs()
@@ -244,9 +245,9 @@ def main():
   port = utils.GetDaemonPort(constants.RAPI)
 
   if options.fork:
-    utils.Daemonize(logfile=constants.LOG_RAPISERVER)
+    utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
 
-  utils.SetupLogging(constants.LOG_RAPISERVER, debug=options.debug,
+  utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name], debug=options.debug,
                      stderr_logging=not options.fork)
 
   utils.WritePidFile(constants.RAPI_PID)

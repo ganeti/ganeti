@@ -474,6 +474,7 @@ def main():
 
   options, args = ParseOptions()
   utils.no_fork = True
+  daemon_name = constants.MASTERD
 
   if options.fork:
     utils.CloseFDs()
@@ -511,11 +512,12 @@ def main():
 
   # become a daemon
   if options.fork:
-    utils.Daemonize(logfile=constants.LOG_MASTERDAEMON)
+    utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
 
   utils.WritePidFile(constants.MASTERD_PID)
   try:
-    utils.SetupLogging(constants.LOG_MASTERDAEMON, debug=options.debug,
+    utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name],
+                       debug=options.debug,
                        stderr_logging=not options.fork, multithreaded=True)
 
     logging.info("Ganeti master daemon startup")

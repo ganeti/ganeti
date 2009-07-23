@@ -118,6 +118,7 @@ NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 
 NODED = "ganeti-noded"
 RAPI = "ganeti-rapi"
+MASTERD = "ganeti-masterd"
 
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
@@ -132,11 +133,14 @@ LAST_DRBD_PORT = 14999
 MASTER_SCRIPT = "ganeti-master"
 
 LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti/"
+DAEMONS_LOGFILES = {
+ # "daemon-name": "logfile"
+ NODED: LOG_DIR + "node-daemon.log",
+ RAPI: LOG_DIR + "rapi-daemon.log",
+ MASTERD: LOG_DIR + "master-daemon.log",
+}
 LOG_OS_DIR = LOG_DIR + "os"
-LOG_NODESERVER = LOG_DIR + "node-daemon.log"
 LOG_WATCHER = LOG_DIR + "watcher.log"
-LOG_MASTERDAEMON = LOG_DIR + "master-daemon.log"
-LOG_RAPISERVER = LOG_DIR + "rapi-daemon.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"
 LOG_BURNIN = LOG_DIR + "burnin.log"
 

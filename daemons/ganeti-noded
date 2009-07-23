@@ -762,6 +762,7 @@ def main():
 
   """
   global queue_lock
+  daemon_name = constants.NODED
 
   options, args = ParseOptions()
 
@@ -782,11 +783,12 @@ def main():
 
   # become a daemon
   if options.fork:
-    utils.Daemonize(logfile=constants.LOG_NODESERVER)
+    utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
 
   utils.WritePidFile(constants.NODED_PID)
   try:
-    utils.SetupLogging(logfile=constants.LOG_NODESERVER, debug=options.debug,
+    utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
+                       debug=options.debug,
                        stderr_logging=not options.fork)
     logging.info("ganeti node daemon startup")
 
