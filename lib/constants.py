@@ -472,8 +472,6 @@ OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
 
-# Temporary RAPI constants until we have cluster parameters
-RAPI_ENABLE = True
 RAPI_PORT = 5080
 
 # max dynamic devices
