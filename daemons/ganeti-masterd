@@ -514,7 +514,7 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
 
-  utils.WritePidFile(constants.MASTERD_PID)
+  utils.WritePidFile(daemon_name)
   try:
     utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name],
                        debug=options.debug,
@@ -539,7 +539,7 @@ def main():
     finally:
       rpc.Shutdown()
   finally:
-    utils.RemovePidFile(constants.MASTERD_PID)
+    utils.RemovePidFile(daemon_name)
     utils.RemoveFile(constants.MASTER_SOCKET)
 
 

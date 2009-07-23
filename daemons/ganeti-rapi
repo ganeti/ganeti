@@ -250,7 +250,7 @@ def main():
   utils.SetupLogging(constants.DAEMONS_LOGFILES[daemon_name], debug=options.debug,
                      stderr_logging=not options.fork)
 
-  utils.WritePidFile(constants.RAPI_PID)
+  utils.WritePidFile(daemon_name)
   try:
     mainloop = daemon.Mainloop()
     server = RemoteApiHttpServer(mainloop, options.bind_address, port,
@@ -263,7 +263,7 @@ def main():
     finally:
       server.Stop()
   finally:
-    utils.RemovePidFile(constants.RAPI_PID)
+    utils.RemovePidFile(daemon_name)
 
 
 if __name__ == '__main__':

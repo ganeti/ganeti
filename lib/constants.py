@@ -109,11 +109,6 @@ SYSCONFDIR = _autoconf.SYSCONFDIR
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
-# PID files
-MASTERD_PID = "ganeti-masterd"
-NODED_PID = "ganeti-noded"
-RAPI_PID = "ganeti-rapi"
-
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 
 NODED = "ganeti-noded"

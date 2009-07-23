@@ -785,7 +785,7 @@ def main():
   if options.fork:
     utils.Daemonize(logfile=constants.DAEMONS_LOGFILES[daemon_name])
 
-  utils.WritePidFile(constants.NODED_PID)
+  utils.WritePidFile(daemon_name)
   try:
     utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
                        debug=options.debug,
@@ -808,7 +808,7 @@ def main():
     finally:
       server.Stop()
   finally:
-    utils.RemovePidFile(constants.NODED_PID)
+    utils.RemovePidFile(daemon_name)
 
 
 if __name__ == '__main__':

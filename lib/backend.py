@@ -298,7 +298,7 @@ def StopMaster(stop_daemons):
 
   if stop_daemons:
     # stop/kill the rapi and the master daemon
-    for daemon in constants.RAPI_PID, constants.MASTERD_PID:
+    for daemon in constants.RAPI, constants.MASTERD:
       utils.KillProcess(utils.ReadPidFile(utils.DaemonPidFileName(daemon)))
 
 
@@ -2280,7 +2280,7 @@ def DemoteFromMC():
   master, myself = ssconf.GetMasterAndMyself()
   if master == myself:
     _Fail("ssconf status shows I'm the master node, will not demote")
-  pid_file = utils.DaemonPidFileName(constants.MASTERD_PID)
+  pid_file = utils.DaemonPidFileName(constants.MASTERD)
   if utils.IsProcessAlive(utils.ReadPidFile(pid_file)):
     _Fail("The master daemon is running, will not demote")
   try:
