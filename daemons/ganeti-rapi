@@ -206,6 +206,9 @@ def ParseOptions():
   parser.add_option("-f", "--foreground", dest="fork",
                     help="Don't detach from the current terminal",
                     default=True, action="store_false")
+  parser.add_option("-b", "--bind", dest="bind_address",
+                     help="Bind address",
+                     default="", metavar="ADDRESS")
 
   options, args = parser.parse_args()
 
@@ -252,7 +255,7 @@ def main():
   utils.WritePidFile(constants.RAPI_PID)
   try:
     mainloop = daemon.Mainloop()
-    server = RemoteApiHttpServer(mainloop, "", options.port,
+    server = RemoteApiHttpServer(mainloop, options.bind_address, options.port,
                                  ssl_params=ssl_params, ssl_verify_peer=False,
                                  request_executor_class=
                                  JsonErrorRequestExecutor)
