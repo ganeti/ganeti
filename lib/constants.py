@@ -228,6 +228,7 @@ DDM_REMOVE = 'remove'
 # common exit codes
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
+EXIT_NOTCLUSTER = 5
 EXIT_NOTMASTER = 11
 EXIT_NODESETUP_ERROR = 12
 EXIT_CONFIRMATION = 13 # need user confirmation
@@ -487,8 +488,6 @@ OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
 
-# Temporary RAPI constants until we have cluster parameters
-RAPI_ENABLE = True
 RAPI_PORT = 5080
 
 # max dynamic devices

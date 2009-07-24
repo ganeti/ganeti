@@ -206,17 +206,20 @@ def ParseOptions():
   parser.add_option("-f", "--foreground", dest="fork",
                     help="Don't detach from the current terminal",
                     default=True, action="store_false")
+  parser.add_option("-b", "--bind", dest="bind_address",
+                     help="Bind address",
+                     default="", metavar="ADDRESS")
 
   options, args = parser.parse_args()
 
   if len(args) != 0:
     print >> sys.stderr, "Usage: %s [-d] [-p port]" % sys.argv[0]
-    sys.exit(1)
+    sys.exit(constants.EXIT_FAILURE)
 
   if options.ssl and not (options.ssl_cert and options.ssl_key):
     print >> sys.stderr, ("For secure mode please provide "
-                         "--ssl-key and --ssl-cert arguments")
-    sys.exit(1)
+                          "--ssl-key and --ssl-cert arguments")
+    sys.exit(constants.EXIT_FAILURE)
 
   return options, args
 
@@ -237,7 +240,7 @@ def main():
                                       ssl_cert_path=options.ssl_cert)
     except Exception, err:
       sys.stderr.write("Can't load the SSL certificate/key: %s\n" % (err,))
-      sys.exit(1)
+      sys.exit(constants.EXIT_FAILURE)
   else:
     ssl_params = None
 
@@ -252,7 +255,7 @@ def main():
   utils.WritePidFile(constants.RAPI_PID)
   try:
     mainloop = daemon.Mainloop()
-    server = RemoteApiHttpServer(mainloop, "", options.port,
+    server = RemoteApiHttpServer(mainloop, options.bind_address, options.port,
                                  ssl_params=ssl_params, ssl_verify_peer=False,
                                  request_executor_class=
                                  JsonErrorRequestExecutor)
