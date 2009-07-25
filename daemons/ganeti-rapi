@@ -186,16 +186,6 @@ def CheckRAPI(options, args):
         sys.argv[0]
     sys.exit(constants.EXIT_FAILURE)
 
-  if options.ssl:
-    if not (options.ssl_cert and options.ssl_key):
-      print >> sys.stderr, ("For secure mode please provide "
-                            "--ssl-key and --ssl-cert arguments")
-      sys.exit(constants.EXIT_FAILURE)
-    for fname in (options.ssl_cert, options.ssl_key):
-      if not os.path.isfile(fname):
-        print >> sys.stderr, "config %s not there, will not run." % fname
-        sys.exit(constants.EXIT_FAILURE)
-
   ssconf.CheckMaster(options.debug)
 
 
@@ -228,15 +218,6 @@ def main():
   parser = optparse.OptionParser(description="Ganeti Remote API",
                     usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
                     version="%%prog (ganeti) %s" % constants.RAPI_VERSION)
-  parser.add_option("--no-ssl", dest="ssl",
-                    help="Do not secure HTTP protocol with SSL",
-                    default=True, action="store_false")
-  parser.add_option("-K", "--ssl-key", dest="ssl_key",
-                    help="SSL key",
-                    default=constants.RAPI_CERT_FILE, type="string")
-  parser.add_option("-C", "--ssl-cert", dest="ssl_cert",
-                    help="SSL certificate",
-                    default=constants.RAPI_CERT_FILE, type="string")
 
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))

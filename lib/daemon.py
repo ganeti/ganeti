@@ -22,6 +22,7 @@
 """Module with helper classes and functions for daemons"""
 
 
+import os
 import select
 import signal
 import errno
@@ -339,11 +340,34 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
                             help="Bind address",
                             default="", metavar="ADDRESS")
 
+  if daemon_name in constants.DAEMONS_SSL:
+    default_cert, default_key = constants.DAEMONS_SSL[daemon_name]
+    optionparser.add_option("--no-ssl", dest="ssl",
+                            help="Do not secure HTTP protocol with SSL",
+                            default=True, action="store_false")
+    optionparser.add_option("-K", "--ssl-key", dest="ssl_key",
+                            help="SSL key",
+                            default=default_key, type="string")
+    optionparser.add_option("-C", "--ssl-cert", dest="ssl_cert",
+                            help="SSL certificate",
+                            default=default_cert, type="string")
+
   multithread = utils.no_fork = daemon_name in constants.MULTITHREADED_DAEMONS
 
   options, args = optionparser.parse_args()
 
-  check_fn(options, args)
+  if hasattr(options, 'ssl') and options.ssl:
+    if not (options.ssl_cert and options.ssl_key):
+      print >> sys.stderr, "Need key and certificate to use ssl"
+      sys.exit(constants.EXIT_FAILURE)
+    for fname in (options.ssl_cert, options.ssl_key):
+      if not os.path.isfile(fname):
+        print >> sys.stderr, "Need ssl file %s to run" % fname
+        sys.exit(constants.EXIT_FAILURE)
+
+  if check_fn is not None:
+    check_fn(options, args)
+
   utils.EnsureDirs(dirs)
 
   if options.fork:

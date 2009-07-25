@@ -117,6 +117,12 @@ MASTERD = "ganeti-masterd"
 
 MULTITHREADED_DAEMONS = frozenset([MASTERD])
 
+DAEMONS_SSL = {
+  # daemon-name: (default-cert-path, default-key-path)
+  NODED: (SSL_CERT_FILE, SSL_CERT_FILE),
+  RAPI: (RAPI_CERT_FILE, RAPI_CERT_FILE),
+}
+
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
   NODED: ("tcp", 1811),
