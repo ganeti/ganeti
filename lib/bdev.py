@@ -277,6 +277,23 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
+  def GetActualSize(self):
+    """Return the actual disk size.
+
+    @note: the device needs to be active when this is called
+
+    """
+    assert self.attached, "BlockDevice not attached in GetActualSize()"
+    result = utils.RunCmd(["blockdev", "--getsize64", self.dev_path])
+    if result.failed:
+      _ThrowError("blockdev failed (%s): %s",
+                  result.fail_reason, result.output)
+    try:
+      sz = int(result.output.strip())
+    except (ValueError, TypeError), err:
+      _ThrowError("Failed to parse blockdev output: %s", str(err))
+    return sz
+
   def __repr__(self):
     return ("<%s: unique_id: %s, children: %s, %s:%s, %s>" %
             (self.__class__, self.unique_id, self._children,
@@ -1727,6 +1744,19 @@ class FileStorage(BlockDev):
     """
     self.attached = os.path.exists(self.dev_path)
     return self.attached
+
+  def GetActualSize(self):
+    """Return the actual disk size.
+
+    @note: the device needs to be active when this is called
+
+    """
+    assert self.attached, "BlockDevice not attached in GetActualSize()"
+    try:
+      st = os.stat(self.dev_path)
+      return st.st_size
+    except OSError, err:
+      _ThrowError("Can't stat %s: %s", self.dev_path, err)
 
   @classmethod
   def Create(cls, unique_id, children, size):
