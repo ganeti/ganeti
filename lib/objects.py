@@ -396,6 +396,15 @@ class Disk(ConfigObject):
       raise errors.ProgrammerError("Disk.RecordGrow called for unsupported"
                                    " disk type %s" % self.dev_type)
 
+  def UnsetSize(self):
+    """Sets recursively the size to zero for the disk and its children.
+
+    """
+    if self.children:
+      for child in self.children:
+        child.UnsetSize()
+    self.size = 0
+
   def SetPhysicalID(self, target_node, nodes_ip):
     """Convert the logical ID to the physical ID.
 
