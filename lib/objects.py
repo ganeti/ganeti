@@ -153,6 +153,14 @@ class ConfigObject(object):
                       " _ContainerFromDicts" % c_type)
     return ret
 
+  def Copy(self):
+    """Makes a deep copy of the current object and its children.
+
+    """
+    dict_form = self.ToDict()
+    clone_obj = self.__class__.FromDict(dict_form)
+    return clone_obj
+
   def __repr__(self):
     """Implement __repr__ for ConfigObjects."""
     return repr(self.ToDict())
