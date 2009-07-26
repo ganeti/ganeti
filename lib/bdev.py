@@ -1129,9 +1129,10 @@ class DRBD8(BaseDRBD):
     """
     args = ["drbdsetup", cls._DevPath(minor), "disk",
             backend, meta, "0",
-            "-d", "%sm" % size,
             "-e", "detach",
             "--create-device"]
+    if size:
+      args.extend(["-d", "%sm" % size])
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)
