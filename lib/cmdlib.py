@@ -2604,7 +2604,8 @@ class LUActivateInstanceDisks(NoHooksLU):
     return disks_info
 
 
-def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
+def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
+                           ignore_size=False):
   """Prepare the block devices for an instance.
 
   This sets up the block devices on all nodes.
@@ -2616,6 +2617,10 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
   @type ignore_secondaries: boolean
   @param ignore_secondaries: if true, errors on secondary nodes
       won't result in an error return from the function
+  @type ignore_size: boolean
+  @param ignore_size: if true, the current known size of the disk
+      will not be used during the disk activation, useful for cases
+      when the size is wrong
   @return: False if the operation failed, otherwise a list of
       (host, instance_visible_name, node_visible_name)
       with the mapping from node devices to instance devices
@@ -2636,6 +2641,9 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
   # 1st pass, assemble on all nodes in secondary mode
   for inst_disk in instance.disks:
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
+      if ignore_size:
+        node_disk = node_disk.Copy()
+        node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, False)
       msg = result.RemoteFailMsg()
@@ -2653,6 +2661,9 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
       if node != instance.primary_node:
         continue
+      if ignore_size:
+        node_disk = node_disk.Copy()
+        node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, True)
       msg = result.RemoteFailMsg()
