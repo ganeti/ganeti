@@ -2592,12 +2592,16 @@ class LUActivateInstanceDisks(NoHooksLU):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
+    if not hasattr(self.op, "ignore_size"):
+      self.op.ignore_size = False
 
   def Exec(self, feedback_fn):
     """Activate the disks.
 
     """
-    disks_ok, disks_info = _AssembleInstanceDisks(self, self.instance)
+    disks_ok, disks_info = \
+              _AssembleInstanceDisks(self, self.instance,
+                                     ignore_size=self.op.ignore_size)
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block devices")
 

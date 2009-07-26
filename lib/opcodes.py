@@ -438,7 +438,7 @@ class OpActivateInstanceDisks(OpCode):
   """Activate an instance's disks."""
   OP_ID = "OP_INSTANCE_ACTIVATE_DISKS"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = ["instance_name"]
+  __slots__ = ["instance_name", "ignore_size"]
 
 
 class OpDeactivateInstanceDisks(OpCode):
