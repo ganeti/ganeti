@@ -1847,6 +1847,51 @@ def CommaJoin(names):
   return ", ".join(["'%s'" % val for val in names])
 
 
+def BytesToMebibyte(value):
+  """Converts bytes to mebibytes.
+
+  @type value: int
+  @param value: Value in bytes
+  @rtype: int
+  @return: Value in mebibytes
+
+  """
+  return int(round(value / (1024.0 * 1024.0), 0))
+
+
+def CalculateDirectorySize(path):
+  """Calculates the size of a directory recursively.
+
+  @type path: string
+  @param path: Path to directory
+  @rtype: int
+  @return: Size in mebibytes
+
+  """
+  size = 0
+
+  for (curpath, _, files) in os.walk(path):
+    for file in files:
+      st = os.lstat(os.path.join(curpath, file))
+      size += st.st_size
+
+  return BytesToMebibyte(size)
+
+
+def GetFreeFilesystemSpace(path):
+  """Returns the free space on a filesystem.
+
+  @type path: string
+  @param path: Path on filesystem to be examined
+  @rtype: int
+  @return: Free space in mebibytes
+
+  """
+  st = os.statvfs(path)
+
+  return BytesToMebibyte(st.f_bavail * st.f_frsize)
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 
