@@ -187,6 +187,20 @@ ST_FILE = "file"
 ST_LVM_PV = "lvm-pv"
 ST_LVM_VG = "lvm-vg"
 
+# Storage fields
+SF_NAME = "name"
+SF_SIZE = "size"
+SF_FREE = "free"
+SF_USED = "used"
+SF_ALLOCATABLE = "allocatable"
+
+# Available fields per storage type
+VALID_STORAGE_FIELDS = {
+  ST_FILE: frozenset([SF_NAME, SF_USED, SF_FREE]),
+  ST_LVM_PV: frozenset([SF_NAME, SF_SIZE, SF_USED, SF_FREE, SF_ALLOCATABLE]),
+  ST_LVM_VG: frozenset([SF_NAME, SF_SIZE]),
+  }
+
 # disk template types
 DT_DISKLESS = "diskless"
 DT_PLAIN = "plain"

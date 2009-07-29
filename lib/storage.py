@@ -31,13 +31,6 @@ from ganeti import constants
 from ganeti import utils
 
 
-COL_NAME = "name"
-COL_SIZE = "size"
-COL_FREE = "free"
-COL_USED = "used"
-COL_ALLOCATABLE = "allocatable"
-
-
 def _ParseSize(value):
   return int(round(float(value), 0))
 
@@ -102,24 +95,25 @@ class FileStorage(_Base):
     values = []
 
     # Pre-calculate information in case it's requested more than once
-    if COL_USED in fields:
+    if constants.SF_USED in fields:
       dirsize = utils.CalculateDirectorySize(path)
     else:
       dirsize = None
 
-    if COL_FREE in fields:
+    if constants.SF_FREE in fields:
       fsfree = utils.GetFreeFilesystemSpace(path)
     else:
       fsfree = None
 
+    # Make sure to update constants.VALID_STORAGE_FIELDS when changing fields.
     for field_name in fields:
-      if field_name == COL_NAME:
+      if field_name == constants.SF_NAME:
         values.append(path)
 
-      elif field_name == COL_USED:
+      elif field_name == constants.SF_USED:
         values.append(dirsize)
 
-      elif field_name == COL_FREE:
+      elif field_name == constants.SF_FREE:
         values.append(fsfree)
 
       else:
@@ -293,12 +287,15 @@ class LvmPvStorage(_LvmBase):
       return False
 
   LIST_COMMAND = "pvs"
+
+  # Make sure to update constants.VALID_STORAGE_FIELDS when changing field
+  # definitions.
   LIST_FIELDS = [
-    (COL_NAME, "pv_name", None),
-    (COL_SIZE, "pv_size", _ParseSize),
-    (COL_USED, "pv_used", _ParseSize),
-    (COL_FREE, "pv_free", _ParseSize),
-    (COL_ALLOCATABLE, "pv_attr", _GetAllocatable),
+    (constants.SF_NAME, "pv_name", None),
+    (constants.SF_SIZE, "pv_size", _ParseSize),
+    (constants.SF_USED, "pv_used", _ParseSize),
+    (constants.SF_FREE, "pv_free", _ParseSize),
+    (constants.SF_ALLOCATABLE, "pv_attr", _GetAllocatable),
     ]
 
 
@@ -307,9 +304,12 @@ class LvmVgStorage(_LvmBase):
 
   """
   LIST_COMMAND = "vgs"
+
+  # Make sure to update constants.VALID_STORAGE_FIELDS when changing field
+  # definitions.
   LIST_FIELDS = [
-    (COL_NAME, "vg_name", None),
-    (COL_SIZE, "vg_size", _ParseSize),
+    (constants.SF_NAME, "vg_name", None),
+    (constants.SF_SIZE, "vg_size", _ParseSize),
     ]
 
 
