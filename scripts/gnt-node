@@ -425,6 +425,54 @@ def ListVolumes(opts, args):
   return 0
 
 
+def ListPhysicalVolumes(opts, args):
+  """List physical volumes on node(s).
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should either be an empty list, in which case
+      we list data for all nodes, or contain a list of nodes
+      to display data only for those
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  if opts.output is None:
+    selected_fields = ["node", constants.SF_NAME, constants.SF_SIZE,
+                       constants.SF_USED, constants.SF_FREE]
+  else:
+    selected_fields = opts.output.split(",")
+
+  op = opcodes.OpQueryNodeStorage(nodes=args,
+                                  storage_type=constants.ST_LVM_PV,
+                                  output_fields=selected_fields)
+  output = SubmitOpCode(op)
+
+  if not opts.no_headers:
+    headers = {
+      "node": "Node",
+      constants.SF_NAME: "Name",
+      constants.SF_SIZE: "Size",
+      constants.SF_USED: "Used",
+      constants.SF_FREE: "Free",
+      constants.SF_ALLOCATABLE: "Allocatable",
+      }
+  else:
+    headers = None
+
+  unitfields = [constants.SF_SIZE, constants.SF_USED, constants.SF_FREE]
+  numfields = [constants.SF_SIZE, constants.SF_USED, constants.SF_FREE]
+
+  data = GenerateTable(separator=opts.separator, headers=headers,
+                       fields=selected_fields, unitfields=unitfields,
+                       numfields=numfields, data=output, units=opts.units)
+
+  for line in data:
+    ToStdout(line)
+
+  return 0
+
+
 def SetNodeParams(opts, args):
   """Modifies a node.
 
@@ -551,6 +599,11 @@ commands = {
   'volumes': (ListVolumes, ARGS_ANY,
               [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
               "[<node_name>...]", "List logical volumes on node(s)"),
+  'physical-volumes': (ListPhysicalVolumes, ARGS_ANY,
+                       [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT,
+                        FIELDS_OPT],
+                       "[<node_name>...]",
+                       "List physical volumes on node(s)"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
                 "<node_name>", "List the tags of the given node"),
   'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
