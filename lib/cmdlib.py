@@ -2306,6 +2306,106 @@ class LUQueryNodeVolumes(NoHooksLU):
     return output
 
 
+class LUQueryNodeStorage(NoHooksLU):
+  """Logical unit for getting information on storage units on node(s).
+
+  """
+  _OP_REQP = ["nodes", "storage_type", "output_fields"]
+  REQ_BGL = False
+  _FIELDS_STATIC = utils.FieldSet("node")
+
+  def ExpandNames(self):
+    storage_type = self.op.storage_type
+
+    if storage_type not in constants.VALID_STORAGE_FIELDS:
+      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type)
+
+    dynamic_fields = constants.VALID_STORAGE_FIELDS[storage_type]
+
+    _CheckOutputFields(static=self._FIELDS_STATIC,
+                       dynamic=utils.FieldSet(*dynamic_fields),
+                       selected=self.op.output_fields)
+
+    self.needed_locks = {}
+    self.share_locks[locking.LEVEL_NODE] = 1
+
+    if self.op.nodes:
+      self.needed_locks[locking.LEVEL_NODE] = \
+        _GetWantedNodes(self, self.op.nodes)
+    else:
+      self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the fields required are valid output fields.
+
+    """
+    self.op.name = getattr(self.op, "name", None)
+
+    self.nodes = self.acquired_locks[locking.LEVEL_NODE]
+
+  def Exec(self, feedback_fn):
+    """Computes the list of nodes and their attributes.
+
+    """
+    # Special case for file storage
+    if self.op.storage_type == constants.ST_FILE:
+      st_args = [self.cfg.GetFileStorageDir()]
+    else:
+      st_args = []
+
+    # Always get name to sort by
+    if constants.SF_NAME in self.op.output_fields:
+      fields = self.op.output_fields[:]
+    else:
+      fields = [constants.SF_NAME] + self.op.output_fields
+
+    # Never ask for node as it's only known to the LU
+    while "node" in fields:
+      fields.remove("node")
+
+    field_idx = dict([(name, idx) for (idx, name) in enumerate(fields)])
+    name_idx = field_idx[constants.SF_NAME]
+
+    data = self.rpc.call_storage_list(self.nodes,
+                                      self.op.storage_type, st_args,
+                                      self.op.name, fields)
+
+    result = []
+
+    for node in utils.NiceSort(self.nodes):
+      nresult = data[node]
+      if nresult.offline:
+        continue
+
+      msg = nresult.fail_msg
+      if msg:
+        self.LogWarning("Can't get storage data from node %s: %s", node, msg)
+        continue
+
+      rows = dict([(row[name_idx], row) for row in nresult.payload])
+
+      for name in utils.NiceSort(rows.keys()):
+        row = rows[name]
+
+        out = []
+
+        for field in self.op.output_fields:
+          if field == "node":
+            val = node
+          elif field in field_idx:
+            val = row[field_idx[field]]
+          else:
+            raise errors.ParameterError(field)
+
+          out.append(val)
+
+        result.append(out)
+
+    return result
+
+
 class LUAddNode(LogicalUnit):
   """Logical unit for adding node to the cluster.
 

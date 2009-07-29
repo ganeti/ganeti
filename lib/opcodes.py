@@ -328,6 +328,17 @@ class OpQueryNodeVolumes(OpCode):
   __slots__ = OpCode.__slots__ + ["nodes", "output_fields"]
 
 
+class OpQueryNodeStorage(OpCode):
+  """Get information on storage for node(s)."""
+  OP_ID = "OP_NODE_QUERY_STORAGE"
+  __slots__ = OpCode.__slots__ + [
+    "nodes",
+    "storage_type",
+    "name",
+    "output_fields",
+    ]
+
+
 class OpSetNodeParams(OpCode):
   """Change the parameters of a node."""
   OP_ID = "OP_NODE_SET_PARAMS"
