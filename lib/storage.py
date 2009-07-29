@@ -102,7 +102,7 @@ class FileStorage(_Base):
     values = []
 
     # Pre-calculate information in case it's requested more than once
-    if COL_SIZE in fields:
+    if COL_USED in fields:
       dirsize = utils.CalculateDirectorySize(path)
     else:
       dirsize = None
@@ -116,7 +116,7 @@ class FileStorage(_Base):
       if field_name == COL_NAME:
         values.append(path)
 
-      elif field_name == COL_SIZE:
+      elif field_name == COL_USED:
         values.append(dirsize)
 
       elif field_name == COL_FREE:
