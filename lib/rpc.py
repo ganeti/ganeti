@@ -432,6 +432,15 @@ class RpcRunner(object):
     """
     return self._MultiNodeCall(node_list, "vg_list", [])
 
+  def call_storage_list(self, node_list, su_name, su_args, name, fields):
+    """Get list of storage units..
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(node_list, "storage_list",
+                               [su_name, su_args, name, fields])
+
   def call_bridges_exist(self, node, bridges_list):
     """Checks if a node has all the bridges given.
 

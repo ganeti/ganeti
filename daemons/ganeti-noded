@@ -42,6 +42,7 @@ from ganeti import jstore
 from ganeti import daemon
 from ganeti import http
 from ganeti import utils
+from ganeti import storage
 
 import ganeti.http.server
 
@@ -353,6 +354,16 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     return backend.ListVolumeGroups()
+
+  # Storage --------------------------
+
+  @staticmethod
+  def perspective_storage_list(params):
+    """Get list of storage units.
+
+    """
+    (su_name, su_args, name, fields) = params
+    return storage.GetStorage(su_name, *su_args).List(name, fields)
 
   # bridge  --------------------------
 
