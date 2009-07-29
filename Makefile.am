@@ -85,6 +85,7 @@ pkgpython_PYTHON = \
 	lib/serializer.py \
 	lib/ssconf.py \
 	lib/ssh.py \
+	lib/storage.py \
 	lib/utils.py \
 	lib/workerpool.py
 

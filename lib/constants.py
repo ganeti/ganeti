@@ -182,6 +182,11 @@ HKR_SKIP = 0
 HKR_FAIL = 1
 HKR_SUCCESS = 2
 
+# Storage types
+ST_FILE = "file"
+ST_LVM_PV = "lvm-pv"
+ST_LVM_VG = "lvm-vg"
+
 # disk template types
 DT_DISKLESS = "diskless"
 DT_PLAIN = "plain"
