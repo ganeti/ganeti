@@ -37,6 +37,49 @@ As for 2.0 we divide the 2.1 design into three areas:
 Core changes
 ------------
 
+Storage units modelling
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently, Ganeti has a good model of the block devices for instances
+(e.g. LVM logical volumes, files, DRBD devices, etc.) but none of the
+storage pools that are providing the space for these front-end
+devices. For example, there are hardcoded inter-node RPC calls for
+volume group listing, file storage creation/deletion, etc.
+
+The storage units framework will implement a generic handling for all
+kinds of storage backends:
+
+- LVM physical volumes
+- LVM volume groups
+- File-based storage directories
+- any other future storage method
+
+There will be a generic list of methods that each storage unit type
+will provide, like:
+
+- list of storage units of this type
+- check status of the storage unit
+
+Additionally, there will be specific methods for each method, for example:
+
+- enable/disable allocations on a specific PV
+- file storage directory creation/deletion
+- VG consistency fixing
+
+This will allow a much better modeling and unification of the various
+RPC calls related to backend storage pool in the future. Ganeti 2.1 is
+intended to add the basics of the framework, and not necessarilly move
+all the curent VG/FileBased operations to it.
+
+Note that while we model both LVM PVs and LVM VGs, the framework will
+**not** model any relationship between the different types. In other
+words, we don't model neither inheritances nor stacking, since this is
+too complex for our needs. While a ``vgreduce`` operation on a LVM VG
+could actually remove a PV from it, this will not be handled at the
+framework level, but at individual operation level. The goal is that
+this is a lightweight framework, for abstracting the different storage
+operation, and not for modelling the storage hierarchy.
+
 Feature changes
 ---------------
 
