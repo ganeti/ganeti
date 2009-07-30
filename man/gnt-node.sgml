@@ -810,6 +810,31 @@ node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
     </refsect2>
 
     <refsect2>
+      <title>MODIFY-VOLUME</title>
+
+      <cmdsynopsis>
+        <command>modify-volume</command>
+        <arg><option>--allocatable=yes|no</option></arg>
+        <sbr>
+        <arg><replaceable>node</replaceable></arg>
+        <arg><replaceable>storage-type</replaceable></arg>
+        <arg><replaceable>volume-name</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Modifies storage volumes on a node. Only LVM physical volumes can be
+        modified at the moment. They have a storage type of <quote>lvm-pv</quote>.
+      </para>
+
+      <para>
+        Example:
+        <screen>
+# gnt-node modify-volume --allocatable no node5.example.com lvm-pv /dev/sdb1
+        </screen>
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>POWERCYCLE</title>
 
       <cmdsynopsis>
