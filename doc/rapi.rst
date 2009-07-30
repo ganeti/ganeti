@@ -480,6 +480,20 @@ parameters must be passed:
     evacuate?iallocator=[iallocator]
     evacuate?remote_node=[nodeX.example.com]
 
+``/2/nodes/[node_name]/migrate``
++++++++++++++++++++++++++++++++++
+
+Migrates all primary instances from a node.
+
+It supports the following commands: ``POST``.
+
+``POST``
+~~~~~~~~
+
+No parameters are required, but ``live`` can be set to a boolean value.
+
+    migrate?live=[0|1]
+
 ``/2/nodes/[node_name]/role``
 +++++++++++++++++++++++++++++
 

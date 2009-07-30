@@ -280,6 +280,22 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_nodes_name_migrate(baserlib.R_Generic):
+  """/2/nodes/[node_name]/evacuate migrate.
+
+  """
+  def POST(self):
+    """Migrate all primary instances from a node.
+
+    """
+    node_name = self.items[0]
+    live = bool(self._checkIntVariable("live", default=1))
+
+    op = opcodes.OpMigrateNode(node_name=node_name, live=live)
+
+    return baserlib.SubmitJob([op])
+
+
 class R_2_instances(baserlib.R_Generic):
   """/2/instances resource.
 
