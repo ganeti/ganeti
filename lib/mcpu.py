@@ -58,6 +58,7 @@ class Processor(object):
     opcodes.OpSetNodeParams: cmdlib.LUSetNodeParams,
     opcodes.OpPowercycleNode: cmdlib.LUPowercycleNode,
     opcodes.OpEvacuateNode: cmdlib.LUEvacuateNode,
+    opcodes.OpMigrateNode: cmdlib.LUMigrateNode,
     # instance lu
     opcodes.OpCreateInstance: cmdlib.LUCreateInstance,
     opcodes.OpReinstallInstance: cmdlib.LUReinstallInstance,

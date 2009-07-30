@@ -360,6 +360,16 @@ class OpEvacuateNode(OpCode):
     ]
 
 
+class OpMigrateNode(OpCode):
+  """Migrate all instances from a node."""
+  OP_ID = "OP_NODE_MIGRATE"
+  OP_DSC_FIELD = "node_name"
+  __slots__ = OpCode.__slots__ + [
+    "node_name",
+    "live",
+    ]
+
+
 # instance opcodes
 
 class OpCreateInstance(OpCode):

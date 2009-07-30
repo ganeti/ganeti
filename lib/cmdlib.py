@@ -709,6 +709,19 @@ def _CheckInstanceBridgesExist(lu, instance, node=None):
   _CheckNicsBridgesExist(lu, instance.nics, node)
 
 
+def _GetNodePrimaryInstances(cfg, node_name):
+  """Returns primary instances on a node.
+
+  """
+  instances = []
+
+  for (_, inst) in cfg.GetAllInstancesInfo().iteritems():
+    if node_name == inst.primary_node:
+      instances.append(inst)
+
+  return instances
+
+
 def _GetNodeSecondaryInstances(cfg, node_name):
   """Returns secondary instances on a node.
 
@@ -3941,6 +3954,60 @@ class LUMigrateInstance(LogicalUnit):
     return env, nl, nl
 
 
+class LUMigrateNode(LogicalUnit):
+  """Migrate all instances from a node.
+
+  """
+  HPATH = "node-migrate"
+  HTYPE = constants.HTYPE_NODE
+  _OP_REQP = ["node_name", "live"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.op.node_name = self.cfg.ExpandNodeName(self.op.node_name)
+    if self.op.node_name is None:
+      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name)
+
+    self.needed_locks = {
+      locking.LEVEL_NODE: [self.op.node_name],
+      }
+
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+
+    # Create tasklets for migrating instances for all instances on this node
+    names = []
+    tasklets = []
+
+    for inst in _GetNodePrimaryInstances(self.cfg, self.op.node_name):
+      logging.debug("Migrating instance %s", inst.name)
+      names.append(inst.name)
+
+      tasklets.append(TLMigrateInstance(self, inst.name, self.op.live, False))
+
+    self.tasklets = tasklets
+
+    # Declare instance locks
+    self.needed_locks[locking.LEVEL_INSTANCE] = names
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes()
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on the master, the primary and all the secondaries.
+
+    """
+    env = {
+      "NODE_NAME": self.op.node_name,
+      }
+
+    nl = [self.cfg.GetMasterNode()]
+
+    return (env, nl, nl)
+
+
 class TLMigrateInstance(Tasklet):
   def __init__(self, lu, instance_name, live, cleanup):
     """Initializes this class.
@@ -4253,6 +4320,8 @@ class TLMigrateInstance(Tasklet):
     """Perform the migration.
 
     """
+    feedback_fn("Migrating instance %s" % self.instance.name)
+
     self.feedback_fn = feedback_fn
 
     self.source_node = self.instance.primary_node
