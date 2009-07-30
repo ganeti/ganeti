@@ -261,6 +261,25 @@ class R_2_nodes_name_role(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_nodes_name_evacuate(baserlib.R_Generic):
+  """/2/nodes/[node_name]/evacuate resource.
+
+  """
+  def POST(self):
+    """Evacuate all secondary instances off a node.
+
+    """
+    node_name = self.items[0]
+    remote_node = self._checkStringVariable("remote_node", default=None)
+    iallocator = self._checkStringVariable("iallocator", default=None)
+
+    op = opcodes.OpEvacuateNode(node_name=node_name,
+                                remote_node=remote_node,
+                                iallocator=iallocator)
+
+    return baserlib.SubmitJob([op])
+
+
 class R_2_instances(baserlib.R_Generic):
   """/2/instances resource.
 
