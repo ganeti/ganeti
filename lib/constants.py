@@ -201,6 +201,10 @@ VALID_STORAGE_FIELDS = {
   ST_LVM_VG: frozenset([SF_NAME, SF_SIZE]),
   }
 
+MODIFIABLE_STORAGE_FIELDS = {
+  ST_LVM_PV: frozenset([SF_ALLOCATABLE]),
+  }
+
 # disk template types
 DT_DISKLESS = "diskless"
 DT_PLAIN = "plain"

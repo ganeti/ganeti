@@ -55,6 +55,7 @@ class Processor(object):
     opcodes.OpQueryNodes: cmdlib.LUQueryNodes,
     opcodes.OpQueryNodeVolumes: cmdlib.LUQueryNodeVolumes,
     opcodes.OpQueryNodeStorage: cmdlib.LUQueryNodeStorage,
+    opcodes.OpModifyNodeStorage: cmdlib.LUModifyNodeStorage,
     opcodes.OpRemoveNode: cmdlib.LURemoveNode,
     opcodes.OpSetNodeParams: cmdlib.LUSetNodeParams,
     opcodes.OpPowercycleNode: cmdlib.LUPowercycleNode,

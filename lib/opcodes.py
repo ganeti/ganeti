@@ -339,6 +339,17 @@ class OpQueryNodeStorage(OpCode):
     ]
 
 
+class OpModifyNodeStorage(OpCode):
+  """"""
+  OP_ID = "OP_NODE_MODIFY_STORAGE"
+  __slots__ = OpCode.__slots__ + [
+    "node_name",
+    "storage_type",
+    "name",
+    "changes",
+    ]
+
+
 class OpSetNodeParams(OpCode):
   """Change the parameters of a node."""
   OP_ID = "OP_NODE_SET_PARAMS"

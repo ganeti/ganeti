@@ -735,6 +735,17 @@ def _GetNodeSecondaryInstances(cfg, node_name):
   return instances
 
 
+def _GetStorageTypeArgs(cfg, storage_type):
+  """Returns the arguments for a storage type.
+
+  """
+  # Special case for file storage
+  if storage_type == constants.ST_FILE:
+    return [cfg.GetFileStorageDir()]
+
+  return []
+
+
 class LUDestroyCluster(NoHooksLU):
   """Logical unit for destroying the cluster.
 
@@ -2349,12 +2360,6 @@ class LUQueryNodeStorage(NoHooksLU):
     """Computes the list of nodes and their attributes.
 
     """
-    # Special case for file storage
-    if self.op.storage_type == constants.ST_FILE:
-      st_args = [self.cfg.GetFileStorageDir()]
-    else:
-      st_args = []
-
     # Always get name to sort by
     if constants.SF_NAME in self.op.output_fields:
       fields = self.op.output_fields[:]
@@ -2368,6 +2373,7 @@ class LUQueryNodeStorage(NoHooksLU):
     field_idx = dict([(name, idx) for (idx, name) in enumerate(fields)])
     name_idx = field_idx[constants.SF_NAME]
 
+    st_args = _GetStorageTypeArgs(self.cfg, self.op.storage_type)
     data = self.rpc.call_storage_list(self.nodes,
                                       self.op.storage_type, st_args,
                                       self.op.name, fields)
@@ -2404,6 +2410,59 @@ class LUQueryNodeStorage(NoHooksLU):
         result.append(out)
 
     return result
+
+
+class LUModifyNodeStorage(NoHooksLU):
+  """Logical unit for modifying a storage volume on a node.
+
+  """
+  _OP_REQP = ["node_name", "storage_type", "name", "changes"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    node_name = self.cfg.ExpandNodeName(self.op.node_name)
+    if node_name is None:
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+
+    self.op.node_name = node_name
+
+    storage_type = self.op.storage_type
+    if storage_type not in constants.VALID_STORAGE_FIELDS:
+      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type)
+
+  def ExpandNames(self):
+    self.needed_locks = {
+      locking.LEVEL_NODE: self.op.node_name,
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    storage_type = self.op.storage_type
+
+    try:
+      modifiable = constants.MODIFIABLE_STORAGE_FIELDS[storage_type]
+    except KeyError:
+      raise errors.OpPrereqError("Storage units of type '%s' can not be"
+                                 " modified" % storage_type)
+
+    diff = set(self.op.changes.keys()) - modifiable
+    if diff:
+      raise errors.OpPrereqError("The following fields can not be modified for"
+                                 " storage units of type '%s': %r" %
+                                 (storage_type, list(diff)))
+
+  def Exec(self, feedback_fn):
+    """Computes the list of nodes and their attributes.
+
+    """
+    st_args = _GetStorageTypeArgs(self.cfg, self.op.storage_type)
+    result = self.rpc.call_storage_modify(self.op.node_name,
+                                          self.op.storage_type, st_args,
+                                          self.op.name, self.op.changes)
+    result.Raise("Failed to modify storage unit '%s' on %s" %
+                 (self.op.name, self.op.node_name))
 
 
 class LUAddNode(LogicalUnit):
@@ -2773,7 +2832,7 @@ class LUPowercycleNode(NoHooksLU):
   def ExpandNames(self):
     """Locking for PowercycleNode.
 
-    This is a last-resource option and shouldn't block on other
+    This is a last-resort option and shouldn't block on other
     jobs. Therefore, we grab no locks.
 
     """
