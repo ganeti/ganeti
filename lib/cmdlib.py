@@ -94,7 +94,7 @@ class LogicalUnit(object):
     self.dry_run_result = None
 
     # Tasklets
-    self.tasklets = []
+    self.tasklets = None
 
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)
@@ -213,7 +213,7 @@ class LogicalUnit(object):
     their canonical form if it hasn't been done by ExpandNames before.
 
     """
-    if self.tasklets:
+    if self.tasklets is not None:
       for tl in self.tasklets:
         tl.CheckPrereq()
     else:
@@ -227,7 +227,7 @@ class LogicalUnit(object):
     code, or expected.
 
     """
-    if self.tasklets:
+    if self.tasklets is not None:
       for tl in self.tasklets:
         tl.Exec(feedback_fn)
     else:
@@ -3918,7 +3918,7 @@ class LUMigrateInstance(LogicalUnit):
 
     self._migrater = TLMigrateInstance(self, self.op.instance_name,
                                        self.op.live, self.op.cleanup)
-    self.tasklets.append(self._migrater)
+    self.tasklets = [self._migrater]
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
@@ -5249,7 +5249,7 @@ class LUReplaceDisks(LogicalUnit):
                                    self.op.iallocator, self.op.remote_node,
                                    self.op.disks)
 
-    self.tasklets.append(self.replacer)
+    self.tasklets = [self.replacer]
 
   def DeclareLocks(self, level):
     # If we're not already locking all nodes in the set we have to declare the
@@ -5331,6 +5331,7 @@ class LUEvacuateNode(LogicalUnit):
     # Create tasklets for replacing disks for all secondary instances on this
     # node
     names = []
+    tasklets = []
 
     for inst in _GetNodeSecondaryInstances(self.cfg, self.op.node_name):
       logging.debug("Replacing disks for instance %s", inst.name)
@@ -5338,8 +5339,9 @@ class LUEvacuateNode(LogicalUnit):
 
       replacer = TLReplaceDisks(self, inst.name, constants.REPLACE_DISK_CHG,
                                 self.op.iallocator, self.op.remote_node, [])
-      self.tasklets.append(replacer)
+      tasklets.append(replacer)
 
+    self.tasklets = tasklets
     self.instance_names = names
 
     # Declare instance locks
