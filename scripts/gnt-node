@@ -299,20 +299,8 @@ def MigrateNode(opts, args):
                                (",".join("'%s'" % name for name in pinst))):
     return 2
 
-  jex = JobExecutor(cl=cl)
-  for iname in pinst:
-    op = opcodes.OpMigrateInstance(instance_name=iname, live=opts.live,
-                                   cleanup=False)
-    jex.QueueJob(iname, op)
-
-  results = jex.GetResults()
-  bad_cnt = len([row for row in results if not row[0]])
-  if bad_cnt == 0:
-    ToStdout("All %d instance(s) migrated successfully.", len(results))
-  else:
-    ToStdout("There were errors during the migration:\n"
-             "%d error(s) out of %d instance(s).", bad_cnt, len(results))
-  return retcode
+  op = opcodes.OpMigrateNode(node_name=args[0], live=opts.live)
+  SubmitOpCode(op, cl=cl)
 
 
 def ShowNodeConfig(opts, args):
