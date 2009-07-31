@@ -231,6 +231,20 @@
       </para>
 
     </refsect2>
+
+    <refsect2>
+      <title>WATCH</title>
+      <cmdsynopsis>
+        <command>watch</command>
+        <arg>id</arg>
+      </cmdsynopsis>
+
+      <para>
+        This command follows the output of the job by the given
+        <replaceable>id</replaceable> and prints it.
+      </para>
+    </refsect2>
+
   </refsect1>
 
   &footer;
