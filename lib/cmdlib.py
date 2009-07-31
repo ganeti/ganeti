@@ -215,8 +215,8 @@ class LogicalUnit(object):
     """
     if self.tasklets is not None:
       for (idx, tl) in enumerate(self.tasklets):
-        logging.info("Checking prerequisites for tasklet %s/%s",
-                     idx + 1, len(self.tasklets))
+        logging.debug("Checking prerequisites for tasklet %s/%s",
+                      idx + 1, len(self.tasklets))
         tl.CheckPrereq()
     else:
       raise NotImplementedError
@@ -231,7 +231,7 @@ class LogicalUnit(object):
     """
     if self.tasklets is not None:
       for (idx, tl) in enumerate(self.tasklets):
-        logging.info("Executing tasklet %s/%s", idx + 1, len(self.tasklets))
+        logging.debug("Executing tasklet %s/%s", idx + 1, len(self.tasklets))
         tl.Exec(feedback_fn)
     else:
       raise NotImplementedError
