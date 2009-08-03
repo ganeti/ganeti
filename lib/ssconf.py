@@ -28,6 +28,7 @@ configuration data, which is mostly static and available to all nodes.
 
 import sys
 import re
+import os
 
 from ganeti import errors
 from ganeti import constants
@@ -52,12 +53,39 @@ class SimpleConfigReader(object):
 
     """
     self._file_name = file_name
-    self._Load()
+    self._last_inode = None
+    self._last_mtime = None
+    self._last_size = None
+    # we need a forced reload at class init time, to initialize _last_*
+    self._Load(force=True)
 
-  def _Load(self):
+  def _Load(self, force=False):
     """Loads (or reloads) the config file.
 
+    @type force: boolean
+    @param force: whether to force the reload without checking the mtime
+    @rtype: boolean
+    @return: boolean values that says whether we reloaded the configuration or not
+             (because we decided it was already up-to-date)
+
     """
+    cfg_stat = os.stat(self._file_name)
+    inode = cfg_stat.st_ino
+    mtime = cfg_stat.st_mtime
+    size = cfg_stat.st_size
+
+    reload = False
+    if force or inode != self._last_inode or \
+       mtime > self._last_mtime or \
+       size != self._last_size:
+      self._last_inode = inode
+      self._last_mtime = mtime
+      self._last_size = size
+      reload = True
+
+    if not reload:
+      return False
+
     try:
       self._config_data = serializer.Load(utils.ReadFile(self._file_name))
     except IOError, err:
@@ -66,6 +94,8 @@ class SimpleConfigReader(object):
     except ValueError, err:
       raise errors.ConfigurationError("Cannot load config file %s: %s" %
                                       (self._file_name, err))
+
+    return True
 
   # Clients can request a reload of the config file, so we export our internal
   # _Load function as Reload.
