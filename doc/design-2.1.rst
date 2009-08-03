@@ -285,6 +285,65 @@ handle both cases. The default kvm vif script will be changed to do so. (Xen
 doesn't have a ganeti provided script, so nothing will be done for that
 hypervisor)
 
+
+Automated disk repairs infrastructure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Replacing defective disks in an automated fashion is quite difficult with the
+current version of Ganeti. These changes will introduce additional
+functionality and interfaces to simplify automating disk replacements on a
+Ganeti node.
+
+Fix node volume group
++++++++++++++++++++++
+
+This is the most difficult addition, as it can lead to dataloss if it's not
+properly safeguarded.
+
+The operation must be done only when all the other nodes that have instances in
+common with the target node are fine, i.e. this is the only node with problems,
+and also we have to double-check that all instances on this node have at least
+a good copy of the data.
+
+This might mean that we have to enhance the GetMirrorStatus calls, and
+introduce and a smarter version that can tell us more about the status of an
+instance.
+
+Stop allocation on a given PV
++++++++++++++++++++++++++++++
+
+This is somewhat simple. First we need a "list PVs" opcode (and its associated
+logical unit) and then a set PV status opcode/LU. These in combination should
+allow both checking and changing the disk/PV status.
+
+Instance disk status
+++++++++++++++++++++
+
+This new opcode or opcode change must list the instance-disk-index and node
+combinations of the instance together with their status. This will allow
+determining what part of the instance is broken (if any).
+
+Repair instance
++++++++++++++++
+
+This new opcode/LU/RAPI call will run ``replace-disks -p`` as needed, in order
+to fix the instance status. It only affects primary instances; secondaries can
+just be moved away.
+
+Migrate node
+++++++++++++
+
+This new opcode/LU/RAPI call will take over the current ``gnt-node migrate``
+code and run migrate for all instances on the node.
+
+Evacuate node
+++++++++++++++
+
+This new opcode/LU/RAPI call will take over the current ``gnt-node evacuate``
+code and run replace-secondary with an iallocator script for all instances on
+the node.
+
+
 External interface changes
 --------------------------
 
