@@ -28,6 +28,11 @@ MASTERD="@PREFIX@/sbin/${MASTERD_NAME}"
 MASTERD_PID="${GANETIRUNDIR}/${MASTERD_NAME}.pid"
 MASTERD_ARGS=""
 
+CONFD_NAME="ganeti-confd"
+CONFD="@PREFIX@/sbin/${CONFD_NAME}"
+CONFD_PID="${GANETIRUNDIR}/${CONFD_NAME}.pid"
+CONFD_ARGS=""
+
 RAPI_NAME="ganeti-rapi"
 RAPI="@PREFIX@/sbin/${RAPI_NAME}"
 RAPI_PID="${GANETIRUNDIR}/${RAPI_NAME}.pid"
@@ -95,22 +100,26 @@ case "$1" in
         check_config
         start_action $NODED $NODED_PID $NODED_ARGS
         start_action $MASTERD $MASTERD_PID $MASTERD_ARGS
+        start_action $CONFD $CONFD_PID $CONFD_ARGS
         start_action $RAPI $RAPI_PID $RAPI_ARGS
         ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$NAME"
         stop_action $RAPI $RAPI_PID
         stop_action $MASTERD $MASTERD_PID
+        stop_action $CONFD $CONFD_PID
         stop_action $NODED $NODED_PID
         ;;
     restart|force-reload)
         log_daemon_msg "Reloading $DESC"
         stop_action $RAPI $RAPI_PID
         stop_action $MASTERD $MASTERD_PID
+        stop_action $CONFD $CONFD_PID
         stop_action $NODED $NODED_PID
         check_config
         start_action $NODED $NODED_PID $NODED_ARGS
         start_action $MASTERD $MASTERD_PID $MASTERD_ARGS
+        start_action $CONFD $CONFD_PID $CONFD_ARGS
         start_action $RAPI $RAPI_PID $RAPI_ARGS
         ;;
     *)
