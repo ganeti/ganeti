@@ -1,0 +1,186 @@
+#!/bin/bash
+
+# Copyright (C) 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# To set user mappings, use this command:
+#   git config gnt-review.johndoe 'John Doe <johndoe@domain.tld>'
+
+set -e
+
+# Get absolute path to myself
+me_plain="$0"
+me=$(readlink -f "$me_plain")
+
+add_reviewed_by() {
+  local msgfile="$1"
+
+  grep -q '^Reviewed-by: ' "$msgfile" && return
+
+  perl -i -e '
+  my $sob = 0;
+  while (<>) {
+    if ($sob == 0 and m/^Signed-off-by:/) {
+      $sob = 1;
+
+    } elsif ($sob == 1 and not m/^Signed-off-by:/) {
+      print "Reviewed-by: \n";
+      $sob = -1;
+    }
+
+    print;
+  }
+
+  if ($sob == 1) {
+    print "Reviewed-by: \n";
+  }
+  ' "$msgfile"
+}
+
+replace_users() {
+  local msgfile="$1"
+
+  perl -i -e '
+  sub map_username {
+    my ($name) = @_;
+
+    return $name unless $name;
+
+    my @cmd = ("git", "config", "--get", "gnt-review.$name");
+
+    open(my $fh, "-|", @cmd) or die "Command \"@cmd\" failed: $!";
+    my $output = do { local $/ = undef; <$fh> };
+    close($fh);
+
+    if ($? == 0) {
+      chomp $output;
+      $output =~ s/\s+/ /;
+      return $output;
+    }
+
+    return $name;
+  }
+
+  while (<>) {
+    if (m/^Reviewed-by:(.*)$/) {
+      my @names = grep {
+        # Ignore empty entries
+        !/^$/
+      } map {
+        # Normalize whitespace
+        $_ =~ s/(^\s+|\s+$)//g;
+        $_ =~ s/\s+/ /g;
+
+        # Map names
+        $_ = map_username($_);
+
+        $_;
+      } split(m/,/, $1);
+
+      foreach (sort @names) {
+        print "Reviewed-by: $_\n";
+      }
+    } else {
+      print;
+    }
+  }
+  ' "$msgfile"
+
+  if ! grep -q '^Reviewed-by: ' "$msgfile"
+  then
+    echo 'Missing Reviewed-by: line' >&2
+    sleep 1
+    return 1
+  fi
+
+  return 0
+}
+
+run_editor() {
+  local filename="$1"
+  local editor=${EDITOR:-vi}
+  local args
+
+  case "$(basename "$editor")" in
+    vi* | *vim)
+      # Start edit mode at Reviewed-by: line
+      args='+/^Reviewed-by: +nohlsearch +startinsert!'
+    ;;
+    *)
+      args=
+    ;;
+  esac
+
+  $editor $args "$filename"
+}
+
+commit_editor() {
+  local msgfile="$1"
+
+  local tmpf=$(mktemp)
+  trap "rm -f $tmpf" EXIT
+
+  cp "$msgfile" "$tmpf"
+
+  while :
+  do
+    add_reviewed_by "$tmpf"
+
+    run_editor "$tmpf"
+
+    replace_users "$tmpf" && break
+  done
+
+  cp "$tmpf" "$msgfile"
+}
+
+copy_commit() {
+  local rev="$1" target_branch="$2"
+
+  echo "Copying commit $rev ..."
+
+  git cherry-pick -n "$rev"
+  GIT_EDITOR="$me --commit-editor \"\$@\"" git commit -c "$rev" -s
+}
+
+main() {
+  local range="$1" target_branch="$2"
+
+  if [[ -z "$target_branch" || "$range" != *..* ]]
+  then
+    echo "Usage: $me_plain <from..to> <target-branch>" >&2
+    exit 1
+  fi
+
+  git checkout "$target_branch"
+  local old_head=$(git rev-parse HEAD)
+
+  for rev in $(git rev-list --reverse "$range")
+  do
+    copy_commit "$rev"
+  done
+
+  git log "$old_head..$target_branch"
+}
+
+if [[ "$1" == --commit-editor ]]
+then
+  shift
+  commit_editor "$@"
+else
+  main "$@"
+fi
