@@ -1442,6 +1442,32 @@ def BlockdevFind(disk):
   return (True, (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus())
 
 
+def BlockdevGetsize(disks):
+  """Computes the size of the given disks.
+
+  If a disk is not found, returns None instead.
+
+  @type disks: list of L{objects.Disk}
+  @param disks: the list of disk to compute the size for
+  @rtype: list
+  @return: list with elements None if the disk cannot be found,
+      otherwise the size
+
+  """
+  result = []
+  for cf in disks:
+    try:
+      rbd = _RecursiveFindBD(cf)
+    except errors.BlockDeviceError, err:
+      result.append(None)
+      continue
+    if rbd is None:
+      result.append(None)
+    else:
+      result.append(rbd.GetActualSize())
+  return result
+
+
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   """Write a file to the filesystem.
 

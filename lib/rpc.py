@@ -807,6 +807,15 @@ class RpcRunner(object):
     params = [instance_name, [cf.ToDict() for cf in disks]]
     return self._SingleNodeCall(node, "blockdev_close", params)
 
+  def call_blockdev_getsizes(self, node, disks):
+    """Returns the size of the given disks.
+
+    This is a single-node call.
+
+    """
+    params = [[cf.ToDict() for cf in disks]]
+    return self._SingleNodeCall(node, "blockdev_getsize", params)
+
   def call_drbd_disconnect_net(self, node_list, nodes_ip, disks):
     """Disconnects the network of the given drbd devices.
 
