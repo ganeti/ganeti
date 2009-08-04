@@ -31,6 +31,7 @@ import logging
 from ganeti import utils
 from ganeti import errors
 from ganeti import constants
+from ganeti import objects
 
 
 def _IgnoreError(fn, *args, **kwargs):
@@ -228,12 +229,16 @@ class BlockDev(object):
     data. This is only valid for some devices, the rest will always
     return False (not degraded).
 
-    @rtype: tuple
-    @return: (sync_percent, estimated_time, is_degraded, ldisk)
+    @rtype: objects.BlockDevStatus
 
     """
-    return None, None, False, False
-
+    return objects.BlockDevStatus(dev_path=self.dev_path,
+                                  major=self.major,
+                                  minor=self.minor,
+                                  sync_percent=None,
+                                  estimated_time=None,
+                                  is_degraded=False,
+                                  ldisk_degraded=False)
 
   def CombinedSyncStatus(self):
     """Calculate the mirror status recursively for our children.
@@ -242,22 +247,40 @@ class BlockDev(object):
     minimum percent and maximum time are calculated across our
     children.
 
+    @rtype: objects.BlockDevStatus
+
     """
-    min_percent, max_time, is_degraded, ldisk = self.GetSyncStatus()
+    status = self.GetSyncStatus()
+
+    min_percent = status.sync_percent
+    max_time = status.estimated_time
+    is_degraded = status.is_degraded
+    ldisk_degraded = status.ldisk_degraded
+
     if self._children:
       for child in self._children:
-        c_percent, c_time, c_degraded, c_ldisk = child.GetSyncStatus()
+        child_status = child.GetSyncStatus()
+
         if min_percent is None:
-          min_percent = c_percent
-        elif c_percent is not None:
-          min_percent = min(min_percent, c_percent)
+          min_percent = child_status.sync_percent
+        elif child_status.sync_percent is not None:
+          min_percent = min(min_percent, child_status.sync_percent)
+
         if max_time is None:
-          max_time = c_time
-        elif c_time is not None:
-          max_time = max(max_time, c_time)
-        is_degraded = is_degraded or c_degraded
-        ldisk = ldisk or c_ldisk
-    return min_percent, max_time, is_degraded, ldisk
+          max_time = child_status.estimated_time
+        elif child_status.estimated_time is not None:
+          max_time = max(max_time, child_status.estimated_time)
+
+        is_degraded = is_degraded or child_status.is_degraded
+        ldisk_degraded = ldisk_degraded or child_status.ldisk_degraded
+
+    return objects.BlockDevStatus(dev_path=self.dev_path,
+                                  major=self.major,
+                                  minor=self.minor,
+                                  sync_percent=min_percent,
+                                  estimated_time=max_time,
+                                  is_degraded=is_degraded,
+                                  ldisk_degraded=ldisk_degraded)
 
 
   def SetInfo(self, text):
@@ -506,11 +529,16 @@ class LogicalVolume(BlockDev):
 
     The status was already read in Attach, so we just return it.
 
-    @rtype: tuple
-    @return: (sync_percent, estimated_time, is_degraded, ldisk)
+    @rtype: objects.BlockDevStatus
 
     """
-    return None, None, self._degraded, self._degraded
+    return objects.BlockDevStatus(dev_path=self.dev_path,
+                                  major=self.major,
+                                  minor=self.minor,
+                                  sync_percent=None,
+                                  estimated_time=None,
+                                  is_degraded=self._degraded,
+                                  ldisk_degraded=self._degraded)
 
   def Open(self, force=False):
     """Make the device ready for I/O.
@@ -1300,16 +1328,23 @@ class DRBD8(BaseDRBD):
     We compute the ldisk parameter based on whether we have a local
     disk or not.
 
-    @rtype: tuple
-    @return: (sync_percent, estimated_time, is_degraded, ldisk)
+    @rtype: objects.BlockDevStatus
 
     """
     if self.minor is None and not self.Attach():
       _ThrowError("drbd%d: can't Attach() in GetSyncStatus", self._aminor)
+
     stats = self.GetProcStatus()
-    ldisk = not stats.is_disk_uptodate
+    ldisk_degraded = not stats.is_disk_uptodate
     is_degraded = not stats.is_connected
-    return stats.sync_percent, stats.est_time, is_degraded or ldisk, ldisk
+
+    return objects.BlockDevStatus(dev_path=self.dev_path,
+                                  major=self.major,
+                                  minor=self.minor,
+                                  sync_percent=stats.sync_percent,
+                                  estimated_time=stats.est_time,
+                                  is_degraded=(is_degraded or ldisk_degraded),
+                                  ldisk_degraded=ldisk_degraded)
 
   def Open(self, force=False):
     """Make the local state primary.

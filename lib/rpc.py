@@ -808,7 +808,10 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    return self._SingleNodeCall(node, "blockdev_find", [disk.ToDict()])
+    result = self._SingleNodeCall(node, "blockdev_find", [disk.ToDict()])
+    if not result.failed and result.payload is not None:
+      result.payload = objects.BlockDevStatus.FromDict(result.payload)
+    return result
 
   def call_blockdev_close(self, node, instance_name, disks):
     """Closes the given block devices.

@@ -213,7 +213,7 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     disk = objects.Disk.FromDict(params[0])
-    return backend.BlockdevFind(disk)
+    return backend.BlockdevFind(disk).ToDict()
 
   @staticmethod
   def perspective_blockdev_snapshot(params):

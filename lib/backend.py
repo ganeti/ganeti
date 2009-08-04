@@ -1384,7 +1384,12 @@ def BlockdevGetmirrorstatus(disks):
     rbd = _RecursiveFindBD(dsk)
     if rbd is None:
       _Fail("Can't find device %s", dsk)
-    stats.append(rbd.CombinedSyncStatus())
+
+    dstatus = rbd.CombinedSyncStatus()
+
+    stats.append((dstatus.sync_percent, dstatus.estimated_time,
+                  dstatus.is_degraded, dstatus.ldisk_degraded))
+
   return stats
 
 
@@ -1415,19 +1420,20 @@ def BlockdevFind(disk):
 
   @type disk: L{objects.Disk}
   @param disk: the disk to find
-  @rtype: None or tuple
-  @return: None if the disk cannot be found, otherwise a
-      tuple (device_path, major, minor, sync_percent,
-      estimated_time, is_degraded)
+  @rtype: None or objects.BlockDevStatus
+  @return: None if the disk cannot be found, otherwise a the current
+           information
 
   """
   try:
     rbd = _RecursiveFindBD(disk)
   except errors.BlockDeviceError, err:
     _Fail("Failed to find device: %s", err, exc=True)
+
   if rbd is None:
     return None
-  return (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus()
+
+  return rbd.GetSyncStatus()
 
 
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):

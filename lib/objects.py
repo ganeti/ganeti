@@ -39,6 +39,7 @@ from ganeti import constants
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
            "OS", "Node", "Cluster", "FillDict"]
 
+
 def FillDict(defaults_dict, custom_dict):
   """Basic function to apply settings on top a default dict.
 
@@ -862,6 +863,27 @@ class Cluster(TaggableObject):
     """
     return FillDict(self.beparams.get(constants.PP_DEFAULT, {}),
                           instance.beparams)
+
+
+class BlockDevStatus(ConfigObject):
+  """Config object representing the status of a block device."""
+  __slots__ = [
+    "dev_path",
+    "major",
+    "minor",
+    "sync_percent",
+    "estimated_time",
+    "is_degraded",
+    "ldisk_degraded",
+    ]
+
+  def ToLegacyStatus(self):
+    """Converts the device status to a legacy tuple.
+
+    """
+    return (self.dev_path, self.major, self.minor,
+            self.sync_percent, self.estimated_time,
+            self.is_degraded, self.ldisk_degraded)
 
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):

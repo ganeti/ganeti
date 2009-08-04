@@ -607,6 +607,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
 
   return env
 
+
 def _NICListToTuple(lu, nics):
   """Build a list of nic information tuples.
 
@@ -629,6 +630,7 @@ def _NICListToTuple(lu, nics):
     link = filled_params[constants.NIC_LINK]
     hooks_nics.append((ip, mac, mode, link))
   return hooks_nics
+
 
 def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   """Builds instance related env variables for hooks from an object.
@@ -1872,12 +1874,9 @@ def _CheckDiskConsistency(lu, dev, node, on_primary, ldisk=False):
 
   """
   lu.cfg.SetDiskID(dev, node)
-  if ldisk:
-    idx = 6
-  else:
-    idx = 5
 
   result = True
+
   if on_primary or dev.AssembleOnSecondary():
     rstats = lu.rpc.call_blockdev_find(node, dev)
     msg = rstats.fail_msg
@@ -1888,7 +1887,11 @@ def _CheckDiskConsistency(lu, dev, node, on_primary, ldisk=False):
       lu.LogWarning("Can't find disk on node %s", node)
       result = False
     else:
-      result = result and (not rstats.payload[idx])
+      if ldisk:
+        result = result and not rstats.payload.ldisk_degraded
+      else:
+        result = result and not rstats.payload.is_degraded
+
   if dev.children:
     for child in dev.children:
       result = result and _CheckDiskConsistency(lu, child, node, on_primary)
@@ -5885,7 +5888,7 @@ class TLReplaceDisks(Tasklet):
         raise errors.OpExecError("Can't find DRBD device %s: %s" %
                                  (name, msg))
 
-      if result.payload[5]:
+      if result.payload.is_degraded:
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
   def _RemoveOldStorage(self, node_name, iv_names):
@@ -6302,7 +6305,7 @@ class LUQueryInstanceData(NoHooksLU):
         dev_pstatus = None
       else:
         dev_pstatus.Raise("Can't compute disk status for %s" % instance.name)
-        dev_pstatus = dev_pstatus.payload
+        dev_pstatus = dev_pstatus.payload.ToLegacyStatus()
     else:
       dev_pstatus = None
 
@@ -6320,7 +6323,7 @@ class LUQueryInstanceData(NoHooksLU):
         dev_sstatus = None
       else:
         dev_sstatus.Raise("Can't compute disk status for %s" % instance.name)
-        dev_sstatus = dev_sstatus.payload
+        dev_sstatus = dev_sstatus.payload.ToLegacyStatus()
     else:
       dev_sstatus = None
 
