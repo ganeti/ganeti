@@ -741,7 +741,8 @@ def _GetStorageTypeArgs(cfg, storage_type):
   """
   # Special case for file storage
   if storage_type == constants.ST_FILE:
-    return [cfg.GetFileStorageDir()]
+    # storage.FileStorage wants a list of storage directories
+    return [[cfg.GetFileStorageDir()]]
 
   return []
 
