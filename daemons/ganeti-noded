@@ -202,8 +202,9 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     disks = [objects.Disk.FromDict(dsk_s)
-            for dsk_s in params]
-    return backend.BlockdevGetmirrorstatus(disks)
+             for dsk_s in params]
+    return [status.ToDict()
+            for status in backend.BlockdevGetmirrorstatus(disks)]
 
   @staticmethod
   def perspective_blockdev_find(params):

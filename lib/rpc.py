@@ -799,8 +799,12 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    return self._SingleNodeCall(node, "blockdev_getmirrorstatus",
-                                [dsk.ToDict() for dsk in disks])
+    result = self._SingleNodeCall(node, "blockdev_getmirrorstatus",
+                                  [dsk.ToDict() for dsk in disks])
+    if not result.failed:
+      result.payload = [objects.BlockDevStatus.FromDict(i)
+                        for i in result.payload]
+    return result
 
   def call_blockdev_find(self, node, disk):
     """Request identification of a given block device.

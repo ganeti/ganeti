@@ -1833,18 +1833,18 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
         lu.LogWarning("Can't compute data for node %s/%s",
                            node, instance.disks[i].iv_name)
         continue
-      # we ignore the ldisk parameter
-      perc_done, est_time, is_degraded, _ = mstat
-      cumul_degraded = cumul_degraded or (is_degraded and perc_done is None)
-      if perc_done is not None:
+
+      cumul_degraded = (cumul_degraded or
+                        (mstat.is_degraded and mstat.sync_percent is None))
+      if mstat.sync_percent is not None:
         done = False
-        if est_time is not None:
-          rem_time = "%d estimated seconds remaining" % est_time
-          max_time = est_time
+        if mstat.estimated_time is not None:
+          rem_time = "%d estimated seconds remaining" % mstat.estimated_time
+          max_time = mstat.estimated_time
         else:
           rem_time = "no time estimate"
         lu.proc.LogInfo("- device %s: %5.2f%% done, %s" %
-                        (instance.disks[i].iv_name, perc_done, rem_time))
+                        (instance.disks[i].iv_name, mstat.sync_percent, rem_time))
 
     # if we're done but degraded, let's do a few small retries, to
     # make sure we see a stable and not transient situation; therefore

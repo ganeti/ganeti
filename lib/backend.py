@@ -1385,10 +1385,7 @@ def BlockdevGetmirrorstatus(disks):
     if rbd is None:
       _Fail("Can't find device %s", dsk)
 
-    dstatus = rbd.CombinedSyncStatus()
-
-    stats.append((dstatus.sync_percent, dstatus.estimated_time,
-                  dstatus.is_degraded, dstatus.ldisk_degraded))
+    stats.append(rbd.CombinedSyncStatus())
 
   return stats
 
