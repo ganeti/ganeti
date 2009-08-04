@@ -50,6 +50,20 @@ class _Base:
     """
     raise NotImplementedError()
 
+  def Modify(self, name, changes):
+    """Modifies an entity within the storage unit.
+
+    @type name: string
+    @param name: Entity name
+    @type changes: dict
+    @param changes: New field values
+
+    """
+    # Don't raise an error if no changes are requested
+    if changes:
+      raise errors.ProgrammerError("Unable to modify the following"
+                                   "fields: %r" % (changes.keys(), ))
+
 
 class FileStorage(_Base):
   """File storage unit.
@@ -297,6 +311,43 @@ class LvmPvStorage(_LvmBase):
     (constants.SF_FREE, "pv_free", _ParseSize),
     (constants.SF_ALLOCATABLE, "pv_attr", _GetAllocatable),
     ]
+
+  def _SetAllocatable(self, name, allocatable):
+    """Sets the "allocatable" flag on a physical volume.
+
+    @type name: string
+    @param name: Physical volume name
+    @type allocatable: bool
+    @param allocatable: Whether to set the "allocatable" flag
+
+    """
+    args = ["pvchange", "--allocatable"]
+
+    if allocatable:
+      args.append("y")
+    else:
+      args.append("n")
+
+    args.append(name)
+
+    result = utils.RunCmd(args)
+    if result.failed:
+      raise errors.StorageError("Failed to modify physical volume,"
+                                " pvchange output: %s" %
+                                result.output)
+
+  def Modify(self, name, changes):
+    """Modifies flags on a physical volume.
+
+    See L{_Base.Modify}.
+
+    """
+    if constants.SF_ALLOCATABLE in changes:
+      self._SetAllocatable(name, changes[constants.SF_ALLOCATABLE])
+      del changes[constants.SF_ALLOCATABLE]
+
+    # Other changes will be handled (and maybe refused) by the base class.
+    return _LvmBase.Modify(self, name, changes)
 
 
 class LvmVgStorage(_LvmBase):
