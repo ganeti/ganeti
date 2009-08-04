@@ -102,7 +102,7 @@ def ImportInstance(opts, args):
     except ValueError, err:
       raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
     nics = [{}] * nic_max
-    for nidx, ndict in opts.nics.items():
+    for nidx, ndict in opts.nics:
       nidx = int(nidx)
       nics[nidx] = ndict
   elif opts.no_nics:
