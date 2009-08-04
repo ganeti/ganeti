@@ -1329,6 +1329,100 @@ class LUVerifyDisks(NoHooksLU):
     return result
 
 
+class LURepairDiskSizes(NoHooksLU):
+  """Verifies the cluster disks sizes.
+
+  """
+  _OP_REQP = ["instances"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+
+    if not isinstance(self.op.instances, list):
+      raise errors.OpPrereqError("Invalid argument type 'instances'")
+
+    if self.op.instances:
+      self.wanted_names = []
+      for name in self.op.instances:
+        full_name = self.cfg.ExpandInstanceName(name)
+        if full_name is None:
+          raise errors.OpPrereqError("Instance '%s' not known" % name)
+        self.wanted_names.append(full_name)
+      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
+      self.needed_locks = {
+        locking.LEVEL_NODE: [],
+        locking.LEVEL_INSTANCE: self.wanted_names,
+        }
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    else:
+      self.wanted_names = None
+      self.needed_locks = {
+        locking.LEVEL_NODE: locking.ALL_SET,
+        locking.LEVEL_INSTANCE: locking.ALL_SET,
+        }
+    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE and self.wanted_names is not None:
+      self._LockInstancesNodes(primary_only=True)
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This only checks the optional instance list against the existing names.
+
+    """
+    if self.wanted_names is None:
+      self.wanted_names = self.acquired_locks[locking.LEVEL_INSTANCE]
+
+    self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
+                             in self.wanted_names]
+
+  def Exec(self, feedback_fn):
+    """Verify the size of cluster disks.
+
+    """
+    # TODO: check child disks too
+    # TODO: check differences in size between primary/secondary nodes
+    per_node_disks = {}
+    for instance in self.wanted_instances:
+      pnode = instance.primary_node
+      if pnode not in per_node_disks:
+        per_node_disks[pnode] = []
+      for idx, disk in enumerate(instance.disks):
+        per_node_disks[pnode].append((instance, idx, disk))
+
+    changed = []
+    for node, dskl in per_node_disks.items():
+      result = self.rpc.call_blockdev_getsizes(node, [v[2] for v in dskl])
+      if result.failed:
+        self.LogWarning("Failure in blockdev_getsizes call to node"
+                        " %s, ignoring", node)
+        continue
+      if len(result.data) != len(dskl):
+        self.LogWarning("Invalid result from node %s, ignoring node results",
+                        node)
+        continue
+      for ((instance, idx, disk), size) in zip(dskl, result.data):
+        if size is None:
+          self.LogWarning("Disk %d of instance %s did not return size"
+                          " information, ignoring", idx, instance.name)
+          continue
+        if not isinstance(size, (int, long)):
+          self.LogWarning("Disk %d of instance %s did not return valid"
+                          " size information, ignoring", idx, instance.name)
+          continue
+        size = size >> 20
+        if size != disk.size:
+          self.LogInfo("Disk %d of instance %s has mismatched size,"
+                       " correcting: recorded %d, actual %d", idx,
+                       instance.name, disk.size, size)
+          disk.size = size
+          self.cfg.Update(instance)
+          changed.append((instance.name, idx, size))
+    return changed
+
+
 class LURenameCluster(LogicalUnit):
   """Rename the cluster.
 

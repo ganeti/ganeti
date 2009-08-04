@@ -409,6 +409,20 @@ def VerifyDisks(opts, args):
   return retcode
 
 
+def RepairDiskSizes(opts, args):
+  """Verify sizes of cluster disks.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: optional list of instances to restrict check to
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  op = opcodes.OpRepairDiskSizes(instances=args)
+  SubmitOpCode(op)
+
+
 @UsesRPC
 def MasterFailover(opts, args):
   """Failover the master node.
@@ -621,6 +635,8 @@ commands = {
              "", "Does a check on the cluster configuration"),
   'verify-disks': (VerifyDisks, ARGS_NONE, [DEBUG_OPT],
                    "", "Does a check on the cluster disk status"),
+  'repair-disk-sizes': (RepairDiskSizes, ARGS_ANY, [DEBUG_OPT],
+                   "", "Updates mismatches in recorded disk sizes"),
   'masterfailover': (MasterFailover, ARGS_NONE, [DEBUG_OPT,
                      make_option("--no-voting", dest="no_voting",
                                  help="Skip node agreement check (dangerous)",

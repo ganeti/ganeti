@@ -50,6 +50,7 @@ class Processor(object):
     opcodes.OpVerifyDisks: cmdlib.LUVerifyDisks,
     opcodes.OpSetClusterParams: cmdlib.LUSetClusterParams,
     opcodes.OpRedistributeConfig: cmdlib.LURedistributeConfig,
+    opcodes.OpRepairDiskSizes: cmdlib.LURepairDiskSizes,
     # node lu
     opcodes.OpAddNode: cmdlib.LUAddNode,
     opcodes.OpQueryNodes: cmdlib.LUQueryNodes,

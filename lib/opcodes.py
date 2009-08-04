@@ -229,6 +229,26 @@ class OpVerifyDisks(OpCode):
   __slots__ = []
 
 
+class OpRepairDiskSizes(OpCode):
+  """Verify the disk sizes of the instances and fixes configuration
+  mimatches.
+
+  Parameters: optional instances list, in case we want to restrict the
+  checks to only a subset of the instances.
+
+  Result: a list of tuples, (instance, disk, new-size) for changed
+  configurations.
+
+  In normal operation, the list should be empty.
+
+  @type instances: list
+  @ivar instances: the list of instances to check, or empty for all instances
+
+  """
+  OP_ID = "OP_CLUSTER_REPAIR_DISK_SIZES"
+  __slots__ = ["instances"]
+
+
 class OpQueryConfigValues(OpCode):
   """Query cluster configuration values."""
   OP_ID = "OP_CLUSTER_CONFIG_QUERY"
