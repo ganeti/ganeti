@@ -722,13 +722,14 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
     </refsect2>
 
     <refsect2>
-      <title>VOLUMES</title>
+      <title>PHYSICAL-VOLUMES</title>
 
       <cmdsynopsis>
         <command>physical-volumes</command>
         <arg>--no-headers</arg>
         <arg>--human-readable</arg>
         <arg>--separator=<replaceable>SEPARATOR</replaceable></arg>
+        <arg>--storage-type=<replaceable>STORAGE_TYPE</replaceable></arg>
         <arg>--output=<replaceable>FIELDS</replaceable></arg>
         <sbr>
         <arg rep="repeat"><replaceable>node</replaceable></arg>
@@ -756,6 +757,13 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
       </para>
 
       <para>
+        The <option>--storage-type</option> option can be used to choose a
+        storage unit type. Possible choices are <literal>lvm-pv</literal>,
+        <literal>lvm-vg</literal> or <literal>file</literal>. Depending on the
+        storage type, the available output fields change.
+      </para>
+
+      <para>
         The <option>-o</option> option takes a comma-separated list of
         output fields. The available fields and their meaning are:
         <variablelist>
@@ -774,25 +782,37 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
           <varlistentry>
             <term>size</term>
             <listitem>
-              <simpara>the physical drive size</simpara>
+              <simpara>
+                the physical drive size
+                (<literal>lvm-pv</literal> and <literal>lvm-vg</literal> only)
+              </simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
             <term>used</term>
             <listitem>
-              <simpara>used disk space</simpara>
+              <simpara>
+                used disk space
+                (<literal>lvm-pv</literal> and <literal>file</literal> only)
+              </simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
             <term>free</term>
             <listitem>
-              <simpara>available disk space</simpara>
+              <simpara>
+                available disk space
+                (<literal>lvm-pv</literal> and <literal>file</literal> only)
+              </simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
             <term>allocatable</term>
             <listitem>
-              <simpara>whether physical volume is allocatable</simpara>
+              <simpara>
+                whether physical volume is allocatable
+                (<literal>lvm-pv</literal> only)
+              </simpara>
             </listitem>
           </varlistentry>
         </variablelist>

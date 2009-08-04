@@ -444,14 +444,41 @@ def ListPhysicalVolumes(opts, args):
   @return: the desired exit code
 
   """
+  # TODO: Default to ST_FILE if LVM is disabled on the cluster
+  if opts.user_storage_type is None:
+    opts.user_storage_type = constants.ST_LVM_PV
+
+  try:
+    storage_type = _USER_STORAGE_TYPE[opts.user_storage_type]
+  except KeyError:
+    raise errors.OpPrereqError("Unknown storage type: %s" % user_storage_type)
+
+  default_fields = {
+    constants.ST_FILE: [
+      constants.SF_NAME,
+      constants.SF_USED,
+      constants.SF_FREE,
+      ],
+    constants.ST_LVM_PV: [
+      constants.SF_NAME,
+      constants.SF_SIZE,
+      constants.SF_USED,
+      constants.SF_FREE,
+      ],
+    constants.ST_LVM_VG: [
+      constants.SF_NAME,
+      constants.SF_SIZE,
+      ],
+  }
+
   if opts.output is None:
-    selected_fields = ["node", constants.SF_NAME, constants.SF_SIZE,
-                       constants.SF_USED, constants.SF_FREE]
+    selected_fields = ["node"]
+    selected_fields.extend(default_fields[storage_type])
   else:
     selected_fields = opts.output.split(",")
 
   op = opcodes.OpQueryNodeStorage(nodes=args,
-                                  storage_type=constants.ST_LVM_PV,
+                                  storage_type=storage_type,
                                   output_fields=selected_fields)
   output = SubmitOpCode(op)
 
@@ -637,7 +664,15 @@ commands = {
               "[<node_name>...]", "List logical volumes on node(s)"),
   'physical-volumes': (ListPhysicalVolumes, ARGS_ANY,
                        [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT,
-                        FIELDS_OPT],
+                        FIELDS_OPT,
+                        make_option("--storage-type",
+                                    dest="user_storage_type",
+                                    choices=_USER_STORAGE_TYPE.keys(),
+                                    default=None,
+                                    metavar="STORAGE_TYPE",
+                                    help=("Storage type (%s)" %
+                                          utils.CommaJoin(_USER_STORAGE_TYPE.keys()))),
+                       ],
                        "[<node_name>...]",
                        "List physical volumes on node(s)"),
   'modify-volume': (ModifyVolume, ARGS_FIXED(3),
