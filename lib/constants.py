@@ -97,6 +97,7 @@ SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
 SSL_CERT_FILE = DATA_DIR + "/server.pem"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
+HMAC_CLUSTER_KEY = DATA_DIR + "/hmac.key"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
 INSTANCE_UPFILE = RUN_GANETI_DIR + "/instance-status"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
@@ -108,23 +109,41 @@ SYSCONFDIR = _autoconf.SYSCONFDIR
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
-# PID files
-MASTERD_PID = "ganeti-masterd"
-NODED_PID = "ganeti-noded"
-RAPI_PID = "ganeti-rapi"
-
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
-DEFAULT_NODED_PORT = 1811
+
+NODED = "ganeti-noded"
+RAPI = "ganeti-rapi"
+MASTERD = "ganeti-masterd"
+
+MULTITHREADED_DAEMONS = frozenset([MASTERD])
+
+DAEMONS_SSL = {
+  # daemon-name: (default-cert-path, default-key-path)
+  NODED: (SSL_CERT_FILE, SSL_CERT_FILE),
+  RAPI: (RAPI_CERT_FILE, RAPI_CERT_FILE),
+}
+
+DAEMONS_PORTS = {
+  # daemon-name: ("proto", "default-port")
+  NODED: ("tcp", 1811),
+  RAPI: ("tcp", 5080),
+}
+DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
+DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
+
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
 MASTER_SCRIPT = "ganeti-master"
 
 LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti/"
+DAEMONS_LOGFILES = {
+ # "daemon-name": "logfile"
+ NODED: LOG_DIR + "node-daemon.log",
+ RAPI: LOG_DIR + "rapi-daemon.log",
+ MASTERD: LOG_DIR + "master-daemon.log",
+}
 LOG_OS_DIR = LOG_DIR + "os"
-LOG_NODESERVER = LOG_DIR + "node-daemon.log"
 LOG_WATCHER = LOG_DIR + "watcher.log"
-LOG_MASTERDAEMON = LOG_DIR + "master-daemon.log"
-LOG_RAPISERVER = LOG_DIR + "rapi-daemon.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"
 LOG_BURNIN = LOG_DIR + "burnin.log"
 
@@ -162,6 +181,25 @@ HTYPE_INSTANCE = "INSTANCE"
 HKR_SKIP = 0
 HKR_FAIL = 1
 HKR_SUCCESS = 2
+
+# Storage types
+ST_FILE = "file"
+ST_LVM_PV = "lvm-pv"
+ST_LVM_VG = "lvm-vg"
+
+# Storage fields
+SF_NAME = "name"
+SF_SIZE = "size"
+SF_FREE = "free"
+SF_USED = "used"
+SF_ALLOCATABLE = "allocatable"
+
+# Available fields per storage type
+VALID_STORAGE_FIELDS = {
+  ST_FILE: frozenset([SF_NAME, SF_USED, SF_FREE]),
+  ST_LVM_PV: frozenset([SF_NAME, SF_SIZE, SF_USED, SF_FREE, SF_ALLOCATABLE]),
+  ST_LVM_VG: frozenset([SF_NAME, SF_SIZE]),
+  }
 
 # disk template types
 DT_DISKLESS = "diskless"
@@ -227,6 +265,7 @@ DDM_REMOVE = 'remove'
 # common exit codes
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
+EXIT_NOTCLUSTER = 5
 EXIT_NOTMASTER = 11
 EXIT_NODESETUP_ERROR = 12
 EXIT_CONFIRMATION = 13 # need user confirmation
@@ -471,21 +510,23 @@ JOB_STATUS_CANCELED = "canceled"
 JOB_STATUS_SUCCESS = "success"
 JOB_STATUS_ERROR = "error"
 
+# OpCode status
+# not yet finalized
 OP_STATUS_QUEUED = "queued"
 OP_STATUS_WAITLOCK = "waiting"
 OP_STATUS_CANCELING = "canceling"
 OP_STATUS_RUNNING = "running"
+# finalized
 OP_STATUS_CANCELED = "canceled"
 OP_STATUS_SUCCESS = "success"
 OP_STATUS_ERROR = "error"
+OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
+                           OP_STATUS_SUCCESS,
+                           OP_STATUS_ERROR])
 
 # Execution log types
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
-
-# Temporary RAPI constants until we have cluster parameters
-RAPI_ENABLE = True
-RAPI_PORT = 5080
 
 # max dynamic devices
 MAX_NICS = 8

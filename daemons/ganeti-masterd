@@ -43,6 +43,7 @@ from optparse import OptionParser
 
 from ganeti import config
 from ganeti import constants
+from ganeti import daemon
 from ganeti import mcpu
 from ganeti import opcodes
 from ganeti import jqueue
@@ -383,35 +384,6 @@ class GanetiContext(object):
     self.glm.remove(locking.LEVEL_NODE, name)
 
 
-def ParseOptions():
-  """Parse the command line options.
-
-  @return: (options, args) as from OptionParser.parse_args()
-
-  """
-  parser = OptionParser(description="Ganeti master daemon",
-                        usage="%prog [-f] [-d]",
-                        version="%%prog (ganeti) %s" %
-                        constants.RELEASE_VERSION)
-
-  parser.add_option("-f", "--foreground", dest="fork",
-                    help="Don't detach from the current terminal",
-                    default=True, action="store_false")
-  parser.add_option("-d", "--debug", dest="debug",
-                    help="Enable some debug messages",
-                    default=False, action="store_true")
-  parser.add_option("--no-voting", dest="no_voting",
-                    help="Do not check that the nodes agree on this node"
-                    " being the master and start the daemon unconditionally",
-                    default=False, action="store_true")
-  parser.add_option("--yes-do-it", dest="yes_do_it",
-                    help="Override interactive check for --no-voting",
-                    default=False, action="store_true")
-
-  options, args = parser.parse_args()
-  return options, args
-
-
 def CheckAgreement():
   """Check the agreement on who is the master.
 
@@ -468,17 +440,10 @@ def CheckAgreement():
 
   return result
 
+def CheckMASTERD(options, args):
+  """Initial checks whether to run or exit with a failure
 
-def main():
-  """Main function"""
-
-  options, args = ParseOptions()
-  utils.debug = options.debug
-  utils.no_fork = True
-
-  if options.fork:
-    utils.CloseFDs()
-
+  """
   rpc.Init()
   try:
     ssconf.CheckMaster(options.debug)
@@ -496,31 +461,20 @@ def main():
     elif not options.no_voting:
       if not CheckAgreement():
         return
-
-    dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE),
-            (constants.SOCKET_DIR, constants.SOCKET_DIR_MODE),
-           ]
-    utils.EnsureDirs(dirs)
-
-    # This is safe to do as the pid file guarantees against
-    # concurrent execution.
-    utils.RemoveFile(constants.MASTER_SOCKET)
-
-    master = IOServer(constants.MASTER_SOCKET, ClientRqHandler)
   finally:
     rpc.Shutdown()
 
-  # become a daemon
-  if options.fork:
-    utils.Daemonize(logfile=constants.LOG_MASTERDAEMON)
 
-  utils.WritePidFile(constants.MASTERD_PID)
+def ExecMASTERD(options, args):
+  """Main MASTERD function, executed with the pidfile held.
+
+  """
+  # This is safe to do as the pid file guarantees against
+  # concurrent execution.
+  utils.RemoveFile(constants.MASTER_SOCKET)
+
+  master = IOServer(constants.MASTER_SOCKET, ClientRqHandler)
   try:
-    utils.SetupLogging(constants.LOG_MASTERDAEMON, debug=options.debug,
-                       stderr_logging=not options.fork, multithreaded=True)
-
-    logging.info("Ganeti master daemon startup")
-
     rpc.Init()
     try:
       # activate ip
@@ -538,9 +492,27 @@ def main():
     finally:
       rpc.Shutdown()
   finally:
-    utils.RemovePidFile(constants.MASTERD_PID)
     utils.RemoveFile(constants.MASTER_SOCKET)
 
+
+def main():
+  """Main function"""
+  parser = OptionParser(description="Ganeti master daemon",
+                        usage="%prog [-f] [-d]",
+                        version="%%prog (ganeti) %s" %
+                        constants.RELEASE_VERSION)
+  parser.add_option("--no-voting", dest="no_voting",
+                    help="Do not check that the nodes agree on this node"
+                    " being the master and start the daemon unconditionally",
+                    default=False, action="store_true")
+  parser.add_option("--yes-do-it", dest="yes_do_it",
+                    help="Override interactive check for --no-voting",
+                    default=False, action="store_true")
+  dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE),
+          (constants.SOCKET_DIR, constants.SOCKET_DIR_MODE),
+         ]
+  daemon.GenericMain(constants.MASTERD, parser, dirs,
+                     CheckMASTERD, ExecMASTERD)
 
 if __name__ == "__main__":
   main()

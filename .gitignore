@@ -6,6 +6,7 @@
 
 # global ignores
 *.py[co]
+*.swp
 
 # /
 /Makefile

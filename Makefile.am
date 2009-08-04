@@ -85,6 +85,7 @@ pkgpython_PYTHON = \
 	lib/serializer.py \
 	lib/ssconf.py \
 	lib/ssh.py \
+	lib/storage.py \
 	lib/utils.py \
 	lib/workerpool.py
 
@@ -112,6 +113,7 @@ http_PYTHON = \
 docrst = \
 	doc/admin.rst \
 	doc/design-2.0.rst \
+	doc/design-2.1.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
 	doc/iallocator.rst \

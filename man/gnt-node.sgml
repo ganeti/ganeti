@@ -722,6 +722,94 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
     </refsect2>
 
     <refsect2>
+      <title>VOLUMES</title>
+
+      <cmdsynopsis>
+        <command>physical-volumes</command>
+        <arg>--no-headers</arg>
+        <arg>--human-readable</arg>
+        <arg>--separator=<replaceable>SEPARATOR</replaceable></arg>
+        <arg>--output=<replaceable>FIELDS</replaceable></arg>
+        <sbr>
+        <arg rep="repeat"><replaceable>node</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Lists all physical volumes and their details from the node(s) provided.
+      </para>
+
+      <para>
+        The <option>--no-headers</option> option will skip the initial header
+        line. The <option>--separator</option> option takes an argument which
+        denotes what will be used between the output fields. Both these options
+        are to help scripting.
+      </para>
+
+      <para>
+        The units used to display the numeric values in the output varies,
+        depending on the options given. By default, the values will be
+        formatted in the most appropriate unit. If the
+        <option>--separator</option> option is given, then the values are shown
+        in mebibytes to allow parsing by scripts. In both cases, the
+        <option>--units</option> option can be used to enforce a given output
+        unit.
+      </para>
+
+      <para>
+        The <option>-o</option> option takes a comma-separated list of
+        output fields. The available fields and their meaning are:
+        <variablelist>
+          <varlistentry>
+            <term>node</term>
+            <listitem>
+              <simpara>the node name on which the volume exists</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>name</term>
+            <listitem>
+              <simpara>the physical drive name</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>size</term>
+            <listitem>
+              <simpara>the physical drive size</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>used</term>
+            <listitem>
+              <simpara>used disk space</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>free</term>
+            <listitem>
+              <simpara>available disk space</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>allocatable</term>
+            <listitem>
+              <simpara>whether physical volume is allocatable</simpara>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+
+      <para>
+        Example:
+        <screen>
+# gnt-node physical-volumes node5.example.com
+Node              Name        Size Used   Free
+node5.example.com /dev/sda7 673.8G   0M 673.8G
+node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
+        </screen>
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>POWERCYCLE</title>
 
       <cmdsynopsis>

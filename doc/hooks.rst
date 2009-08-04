@@ -145,6 +145,16 @@ Changes a node's parameters.
 :pre-execution: master node, the target node
 :post-execution: master node, the target node
 
+OP_NODE_EVACUATE
+++++++++++++++++
+
+Relocate secondary instances from a node.
+
+:directory: node-evacuate
+:env. vars: NEW_SECONDARY, NODE_NAME
+:pre-execution: master node, target node
+:post-execution: master node, target node
+
 
 Instance operations
 ~~~~~~~~~~~~~~~~~~~

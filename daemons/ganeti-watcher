@@ -478,9 +478,8 @@ def main():
 
   update_file = False
   try:
-    # on master or not, try to start the node dameon (use _PID but is
-    # the same as daemon name)
-    EnsureDaemon(constants.NODED_PID)
+    # on master or not, try to start the node dameon
+    EnsureDaemon(constants.NODED)
 
     notepad = WatcherState()
     try:
@@ -500,8 +499,8 @@ def main():
         # else retry the connection
         client = cli.GetClient()
 
-      # we are on master now (use _PID but is the same as daemon name)
-      EnsureDaemon(constants.RAPI_PID)
+      # we are on master now
+      EnsureDaemon(constants.RAPI)
 
       try:
         watcher = Watcher(options, notepad)

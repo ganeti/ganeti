@@ -195,10 +195,12 @@ class UnitParseError(GenericError):
 
   """
 
+
 class TypeEnforcementError(GenericError):
   """Unable to enforce data type.
 
   """
+
 
 class SshKeyError(GenericError):
   """Invalid SSH key.
@@ -216,6 +218,12 @@ class TagError(GenericError):
 
 class CommandError(GenericError):
   """External command error.
+
+  """
+
+
+class StorageError(GenericError):
+  """Storage-related exception.
 
   """
 

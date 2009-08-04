@@ -233,16 +233,16 @@ class R_Generic(object):
     """
     return self.sn
 
-  def _checkIntVariable(self, name):
+  def _checkIntVariable(self, name, default=0):
     """Return the parsed value of an int argument.
 
     """
-    val = self.queryargs.get(name, 0)
+    val = self.queryargs.get(name, default)
     if isinstance(val, list):
       if val:
         val = val[0]
       else:
-        val = 0
+        val = default
     try:
       val = int(val)
     except (ValueError, TypeError):

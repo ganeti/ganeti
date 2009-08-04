@@ -766,8 +766,6 @@ def GenericMain(commands, override=None, aliases=None):
   utils.SetupLogging(constants.LOG_COMMANDS, debug=options.debug,
                      stderr_logging=True, program=binary)
 
-  utils.debug = options.debug
-
   if old_cmdline:
     logging.info("run with arguments '%s'", old_cmdline)
   else:
@@ -1034,7 +1032,6 @@ class JobExecutor(object):
     @param name: a description of the job, will be used in WaitJobSet
     """
     self.queue.append((name, ops))
-
 
   def SubmitPending(self):
     """Submit all pending jobs.

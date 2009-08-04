@@ -40,7 +40,6 @@
       <command>&dhpackage; </command>
       <arg>-d</arg>
       <arg>-f</arg>
-      <arg>-p <replaceable>PORT</replaceable></arg>
       <arg>--no-ssl</arg>
       <arg>-K <replaceable>SSL_KEY_FILE</replaceable></arg>
       <arg>-C <replaceable>SSL_CERT_FILE</replaceable></arg>
@@ -65,8 +64,8 @@
     </para>
 
     <para>
-      The daemon will listen by default on the port 5080, but this can
-      be changed via the <option>-p</option> option.
+      The daemon will listen to the "ganeti-rapi" tcp port, as listed in the
+      system services database, or to port 5080 by default.
     </para>
 
     <para>

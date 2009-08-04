@@ -29,6 +29,7 @@ from ganeti.cli import *
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
+from ganeti import cli
 
 
 #: default list of fields for L{ListJobs}
@@ -312,6 +313,32 @@ def ShowJobs(opts, args):
   return 0
 
 
+def WatchJob(opts, args):
+  """Follow a job and print its output as it arrives.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: Contains the job ID
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  job_id = args[0]
+
+  msg = ("Output from job %s follows" % job_id)
+  ToStdout(msg)
+  ToStdout("-" * len(msg))
+
+  retcode = 0
+  try:
+    cli.PollJob(job_id)
+  except errors.GenericError, err:
+    (retcode, job_result) = cli.FormatError(err)
+    ToStderr("Job %s failed: %s", job_id, job_result)
+
+  return retcode
+
+
 commands = {
   'list': (ListJobs, ARGS_ANY,
             [DEBUG_OPT, NOHDR_OPT, SEP_OPT, FIELDS_OPT],
@@ -336,6 +363,9 @@ commands = {
   'info': (ShowJobs, ARGS_ANY, [DEBUG_OPT],
            "<job-id> [<job-id> ...]",
            "Show detailed information about the specified jobs"),
+  'watch': (WatchJob, ARGS_ONE, [DEBUG_OPT],
+           "<job-id>",
+           "Follows a job and prints its output as it arrives"),
   }
 
 

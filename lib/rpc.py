@@ -265,7 +265,7 @@ class RpcRunner(object):
 
     """
     self._cfg = cfg
-    self.port = utils.GetNodeDaemonPort()
+    self.port = utils.GetDaemonPort(constants.NODED)
 
   def _InstDict(self, instance, hvp=None, bep=None):
     """Convert the given instance to a dict.
@@ -301,7 +301,7 @@ class RpcRunner(object):
   def _ConnectList(self, client, node_list, call):
     """Helper for computing node addresses.
 
-    @type client: L{Client}
+    @type client: L{ganeti.rpc.Client}
     @param client: a C{Client} instance
     @type node_list: list
     @param node_list: the node list we should connect
@@ -331,7 +331,7 @@ class RpcRunner(object):
   def _ConnectNode(self, client, node, call):
     """Helper for computing one node's address.
 
-    @type client: L{Client}
+    @type client: L{ganeti.rpc.Client}
     @param client: a C{Client} instance
     @type node: str
     @param node: the node we should connect
@@ -366,7 +366,7 @@ class RpcRunner(object):
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, utils.GetNodeDaemonPort())
+    c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
     c.ConnectList(node_list, address_list=address_list)
     return c.GetResults()
 
@@ -388,7 +388,7 @@ class RpcRunner(object):
 
     """
     body = serializer.DumpJson(args, indent=False)
-    c = Client(procedure, body, utils.GetNodeDaemonPort())
+    c = Client(procedure, body, utils.GetDaemonPort(constants.NODED))
     c.ConnectNode(node)
     return c.GetResults()[node]
 
@@ -431,6 +431,15 @@ class RpcRunner(object):
 
     """
     return self._MultiNodeCall(node_list, "vg_list", [])
+
+  def call_storage_list(self, node_list, su_name, su_args, name, fields):
+    """Get list of storage units..
+
+    This is a multi-node call.
+
+    """
+    return self._MultiNodeCall(node_list, "storage_list",
+                               [su_name, su_args, name, fields])
 
   def call_bridges_exist(self, node, bridges_list):
     """Checks if a node has all the bridges given.

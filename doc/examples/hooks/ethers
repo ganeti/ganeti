@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Copyright (C) 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# This is an example ganeti hook that writes the instance mac addresses in the
+# node's /etc/ether file. It will pic up the first nic connected to the
+# TARGET_BRIDGE bridge, and write it down with the syntax "MAC	INSTANCE_NAME".
+
+# The hook will also send a HUP signal the daemon whose PID is in
+# DAEMON_PID_FILE, so that it can load the new /etc/ethers file and use it.
+# This has been tested in conjunction with dnsmasq's dhcp implementation.
+
+# It will also remove any other occurrences for the same instance in the
+# aformentioned file. This hook supports the "instance-add", "instance-modify"
+# "instance-remove", and "instance-mirror-replace" ganeti post hook paths. To
+# install it add a symlink from those hooks' directories to where this file is
+# installed (with a mode which permits execution).
+
+# TARGET_BRIDGE: We'll only add the first nic which gets connected to this
+# bridge to /etc/ethers.
+TARGET_BRIDGE="br0"
+DAEMON_PID_FILE="/var/run/dnsmasq.pid"
+LOCKFILE="/var/lock/ganeti_ethers.lock"
+
+hooks_path=$GANETI_HOOKS_PATH
+[ -n "$hooks_path" ] || exit 1
+instance=$GANETI_INSTANCE_NAME
+[ -n "$instance" ] || exit 1
+nic_count=$GANETI_INSTANCE_NIC_COUNT
+
+acquire_lockfile() {
+  if ! ( set -o noclobber; echo "$$" > $LOCKFILE) 2> /dev/null; then
+    logger -s "Cannot acquire lockfile for ethers update"
+    exit 1
+  fi
+  trap "rm -f $LOCKFILE" EXIT
+}
+
+update_ethers_from_new() {
+  chmod 644 /etc/ethers.new
+  mv /etc/ethers.new /etc/ethers
+  [ -f "$DAEMON_PID_FILE" ] && kill -HUP $(< $DAEMON_PID_FILE)
+}
+
+if [ "$hooks_path" = "instance-add" -o \
+     "$hooks_path" = "instance-modify" -o \
+     "$hooks_path" = "instance-mirror-replace" ]
+then
+  for i in $(seq 0 $((nic_count - 1)) ); do
+    bridge_var="GANETI_INSTANCE_NIC${i}_BRIDGE"
+    bridge=${!bridge_var}
+    if [ -n "$bridge" -a "$bridge" = "$TARGET_BRIDGE" ]; then
+      mac_var="GANETI_INSTANCE_NIC${i}_MAC"
+      mac=${!mac_var}
+      acquire_lockfile
+      cat /etc/ethers | awk -- "! /^([[:xdigit:]:]*)[[:blank:]]+$instance\>/;
+      END {print \"$mac\t$instance\"}" > /etc/ethers.new
+      update_ethers_from_new
+      break
+    fi
+  done
+fi
+if [ "$hooks_path" = "instance-remove" -o \
+       \( "$hooks_path" = "instance-modify" -a "$nic_count" -eq 0 \) ]; then
+  acquire_lockfile
+  cat /etc/ethers | awk -- "! /^([[:xdigit:]:]*)[[:blank:]]+$instance\>/" \
+    > /etc/ethers.new
+  update_ethers_from_new
+fi
+

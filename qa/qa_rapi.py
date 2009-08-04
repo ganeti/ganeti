@@ -58,25 +58,13 @@ def Enabled():
   """Return whether remote API tests should be run.
 
   """
-  return constants.RAPI_ENABLE and qa_config.TestEnabled('rapi')
-
-
-def PrintRemoteAPIWarning():
-  """Print warning if remote API is not enabled.
-
-  """
-  if constants.RAPI_ENABLE or not qa_config.TestEnabled('rapi'):
-    return
-  msg = ("Remote API is not enabled in this Ganeti build. Please run"
-         " `configure [...] --enable-rapi'.")
-  print
-  print qa_utils.FormatWarning(msg)
+  return qa_config.TestEnabled('rapi')
 
 
 def _DoTests(uris):
   master = qa_config.GetMasterNode()
   host = master["primary"]
-  port = qa_config.get("rapi-port", default=constants.RAPI_PORT)
+  port = qa_config.get("rapi-port", default=constants.DEFAULT_RAPI_PORT)
 
   for uri, verify in uris:
     assert uri.startswith("/")

@@ -1679,20 +1679,26 @@ def MergeTime(timetuple):
   return float(seconds) + (float(microseconds) * 0.000001)
 
 
-def GetNodeDaemonPort():
-  """Get the node daemon port for this cluster.
+def GetDaemonPort(daemon_name):
+  """Get the daemon port for this cluster.
 
   Note that this routine does not read a ganeti-specific file, but
   instead uses C{socket.getservbyname} to allow pre-customization of
   this parameter outside of Ganeti.
 
+  @type daemon_name: string
+  @param daemon_name: daemon name (in constants.DAEMONS_PORTS)
   @rtype: int
 
   """
+  if daemon_name not in constants.DAEMONS_PORTS:
+    raise errors.ProgrammerError("Unknown daemon: %s" % daemon_name)
+
+  (proto, default_port) = constants.DAEMONS_PORTS[daemon_name]
   try:
-    port = socket.getservbyname("ganeti-noded", "tcp")
+    port = socket.getservbyname(daemon_name, proto)
   except socket.error:
-    port = constants.DEFAULT_NODED_PORT
+    port = default_port
 
   return port
 
@@ -1839,6 +1845,51 @@ def CommaJoin(names):
 
   """
   return ", ".join(["'%s'" % val for val in names])
+
+
+def BytesToMebibyte(value):
+  """Converts bytes to mebibytes.
+
+  @type value: int
+  @param value: Value in bytes
+  @rtype: int
+  @return: Value in mebibytes
+
+  """
+  return int(round(value / (1024.0 * 1024.0), 0))
+
+
+def CalculateDirectorySize(path):
+  """Calculates the size of a directory recursively.
+
+  @type path: string
+  @param path: Path to directory
+  @rtype: int
+  @return: Size in mebibytes
+
+  """
+  size = 0
+
+  for (curpath, _, files) in os.walk(path):
+    for file in files:
+      st = os.lstat(os.path.join(curpath, file))
+      size += st.st_size
+
+  return BytesToMebibyte(size)
+
+
+def GetFreeFilesystemSpace(path):
+  """Returns the free space on a filesystem.
+
+  @type path: string
+  @param path: Path on filesystem to be examined
+  @rtype: int
+  @return: Free space in mebibytes
+
+  """
+  st = os.statvfs(path)
+
+  return BytesToMebibyte(st.f_bavail * st.f_frsize)
 
 
 def LockedMethod(fn):

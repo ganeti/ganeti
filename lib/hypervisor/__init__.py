@@ -41,11 +41,11 @@ _HYPERVISOR_MAP = {
   }
 
 
-def GetHypervisor(ht_kind):
-  """Return a Hypervisor instance.
+def GetHypervisorClass(ht_kind):
+  """Return a Hypervisor class.
 
-  This function parses the cluster hypervisor configuration file and
-  instantiates a class based on the value of this file.
+  This function returns the hypervisor class corresponding to the
+  given hypervisor name.
 
   @type ht_kind: string
   @param ht_kind: The requested hypervisor type
@@ -55,4 +55,19 @@ def GetHypervisor(ht_kind):
     raise errors.HypervisorError("Unknown hypervisor type '%s'" % ht_kind)
 
   cls = _HYPERVISOR_MAP[ht_kind]
+  return cls
+
+
+def GetHypervisor(ht_kind):
+  """Return a Hypervisor instance.
+
+  This is a wrapper over L{GetHypervisorClass} which returns an
+  instance of the class.
+
+  @type ht_kind: string
+  @param ht_kind: The requested hypervisor type
+
+  """
+  cls = GetHypervisorClass(ht_kind)
+
   return cls()

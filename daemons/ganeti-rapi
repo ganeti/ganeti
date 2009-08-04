@@ -177,92 +177,51 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
     return result
 
 
-def ParseOptions():
-  """Parse the command line options.
-
-  @return: (options, args) as from OptionParser.parse_args()
+def CheckRAPI(options, args):
+  """Initial checks whether to run or exit with a failure
 
   """
-  parser = optparse.OptionParser(description="Ganeti Remote API",
-                    usage="%prog [-d] [-p port]",
-                    version="%%prog (ganeti) %s" %
-                                 constants.RAPI_VERSION)
-  parser.add_option("-d", "--debug", dest="debug",
-                    help="Enable some debug messages",
-                    default=False, action="store_true")
-  parser.add_option("-p", "--port", dest="port",
-                    help="Port to run API (%s default)." %
-                                 constants.RAPI_PORT,
-                    default=constants.RAPI_PORT, type="int")
-  parser.add_option("--no-ssl", dest="ssl",
-                    help="Do not secure HTTP protocol with SSL",
-                    default=True, action="store_false")
-  parser.add_option("-K", "--ssl-key", dest="ssl_key",
-                    help="SSL key",
-                    default=constants.RAPI_CERT_FILE, type="string")
-  parser.add_option("-C", "--ssl-cert", dest="ssl_cert",
-                    help="SSL certificate",
-                    default=constants.RAPI_CERT_FILE, type="string")
-  parser.add_option("-f", "--foreground", dest="fork",
-                    help="Don't detach from the current terminal",
-                    default=True, action="store_false")
-
-  options, args = parser.parse_args()
-
   if len(args) != 0:
-    print >> sys.stderr, "Usage: %s [-d] [-p port]" % sys.argv[0]
-    sys.exit(1)
+    print >> sys.stderr, "Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" % \
+        sys.argv[0]
+    sys.exit(constants.EXIT_FAILURE)
 
-  if options.ssl and not (options.ssl_cert and options.ssl_key):
-    print >> sys.stderr, ("For secure mode please provide "
-                         "--ssl-key and --ssl-cert arguments")
-    sys.exit(1)
+  ssconf.CheckMaster(options.debug)
 
-  return options, args
+
+def ExecRAPI(options, args):
+  """Main RAPI function, executed with the pidfile held.
+
+  """
+  # Read SSL certificate
+  if options.ssl:
+    ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
+                                    ssl_cert_path=options.ssl_cert)
+  else:
+    ssl_params = None
+
+  mainloop = daemon.Mainloop()
+  server = RemoteApiHttpServer(mainloop, options.bind_address, options.port,
+                               ssl_params=ssl_params, ssl_verify_peer=False,
+                               request_executor_class=JsonErrorRequestExecutor)
+  server.Start()
+  try:
+    mainloop.Run()
+  finally:
+    server.Stop()
 
 
 def main():
   """Main function.
 
   """
-  options, args = ParseOptions()
+  parser = optparse.OptionParser(description="Ganeti Remote API",
+                    usage="%prog [-f] [-d] [-p port] [-b ADDRESS]",
+                    version="%%prog (ganeti) %s" % constants.RAPI_VERSION)
 
-  if options.fork:
-    utils.CloseFDs()
-
-  if options.ssl:
-    # Read SSL certificate
-    try:
-      ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
-                                      ssl_cert_path=options.ssl_cert)
-    except Exception, err:
-      sys.stderr.write("Can't load the SSL certificate/key: %s\n" % (err,))
-      sys.exit(1)
-  else:
-    ssl_params = None
-
-  ssconf.CheckMaster(options.debug)
-
-  if options.fork:
-    utils.Daemonize(logfile=constants.LOG_RAPISERVER)
-
-  utils.SetupLogging(constants.LOG_RAPISERVER, debug=options.debug,
-                     stderr_logging=not options.fork)
-
-  utils.WritePidFile(constants.RAPI_PID)
-  try:
-    mainloop = daemon.Mainloop()
-    server = RemoteApiHttpServer(mainloop, "", options.port,
-                                 ssl_params=ssl_params, ssl_verify_peer=False,
-                                 request_executor_class=
-                                 JsonErrorRequestExecutor)
-    server.Start()
-    try:
-      mainloop.Run()
-    finally:
-      server.Stop()
-  finally:
-    utils.RemovePidFile(constants.RAPI_PID)
+  dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
+  dirs.append((constants.LOG_OS_DIR, 0750))
+  daemon.GenericMain(constants.RAPI, parser, dirs, CheckRAPI, ExecRAPI)
 
 
 if __name__ == '__main__':

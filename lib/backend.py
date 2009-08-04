@@ -19,7 +19,12 @@
 # 02110-1301, USA.
 
 
-"""Functions used by the node daemon"""
+"""Functions used by the node daemon
+
+@var _ALLOWED_UPLOAD_FILES: denotes which files are accepted in
+     the L{UploadFile} function
+
+"""
 
 
 import os
@@ -145,6 +150,32 @@ def _CleanDirectory(path, exclude=None):
       utils.RemoveFile(full_name)
 
 
+def _BuildUploadFileList():
+  """Build the list of allowed upload files.
+
+  This is abstracted so that it's built only once at module import time.
+
+  """
+  allowed_files = set([
+    constants.CLUSTER_CONF_FILE,
+    constants.ETC_HOSTS,
+    constants.SSH_KNOWN_HOSTS_FILE,
+    constants.VNC_PASSWORD_FILE,
+    constants.RAPI_CERT_FILE,
+    constants.RAPI_USERS_FILE,
+    constants.HMAC_CLUSTER_KEY,
+    ])
+
+  for hv_name in constants.HYPER_TYPES:
+    hv_class = hypervisor.GetHypervisorClass(hv_name)
+    allowed_files.update(hv_class.GetAncillaryFiles())
+
+  return frozenset(allowed_files)
+
+
+_ALLOWED_UPLOAD_FILES = _BuildUploadFileList()
+
+
 def JobQueuePurge():
   """Removes job queue files and archived jobs.
 
@@ -267,7 +298,7 @@ def StopMaster(stop_daemons):
 
   if stop_daemons:
     # stop/kill the rapi and the master daemon
-    for daemon in constants.RAPI_PID, constants.MASTERD_PID:
+    for daemon in constants.RAPI, constants.MASTERD:
       utils.KillProcess(utils.ReadPidFile(utils.DaemonPidFileName(daemon)))
 
 
@@ -445,7 +476,7 @@ def VerifyNode(what, cluster_name):
       tmp[my_name] = ("Can't find my own primary/secondary IP"
                       " in the node list")
     else:
-      port = utils.GetNodeDaemonPort()
+      port = utils.GetDaemonPort(constants.NODED)
       for name, pip, sip in what[constants.NV_NODENETTEST]:
         fail = []
         if not utils.TcpPing(pip, port, source=my_pip):
@@ -1425,20 +1456,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   if not os.path.isabs(file_name):
     _Fail("Filename passed to UploadFile is not absolute: '%s'", file_name)
 
-  allowed_files = set([
-    constants.CLUSTER_CONF_FILE,
-    constants.ETC_HOSTS,
-    constants.SSH_KNOWN_HOSTS_FILE,
-    constants.VNC_PASSWORD_FILE,
-    constants.RAPI_CERT_FILE,
-    constants.RAPI_USERS_FILE,
-    ])
-
-  for hv_name in constants.HYPER_TYPES:
-    hv_class = hypervisor.GetHypervisor(hv_name)
-    allowed_files.update(hv_class.GetAncillaryFiles())
-
-  if file_name not in allowed_files:
+  if file_name not in _ALLOWED_UPLOAD_FILES:
     _Fail("Filename passed to UploadFile not in allowed upload targets: '%s'",
           file_name)
 
@@ -2262,7 +2280,7 @@ def DemoteFromMC():
   master, myself = ssconf.GetMasterAndMyself()
   if master == myself:
     _Fail("ssconf status shows I'm the master node, will not demote")
-  pid_file = utils.DaemonPidFileName(constants.MASTERD_PID)
+  pid_file = utils.DaemonPidFileName(constants.MASTERD)
   if utils.IsProcessAlive(utils.ReadPidFile(pid_file)):
     _Fail("The master daemon is running, will not demote")
   try:

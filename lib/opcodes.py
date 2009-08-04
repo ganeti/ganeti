@@ -328,6 +328,17 @@ class OpQueryNodeVolumes(OpCode):
   __slots__ = OpCode.__slots__ + ["nodes", "output_fields"]
 
 
+class OpQueryNodeStorage(OpCode):
+  """Get information on storage for node(s)."""
+  OP_ID = "OP_NODE_QUERY_STORAGE"
+  __slots__ = OpCode.__slots__ + [
+    "nodes",
+    "storage_type",
+    "name",
+    "output_fields",
+    ]
+
+
 class OpSetNodeParams(OpCode):
   """Change the parameters of a node."""
   OP_ID = "OP_NODE_SET_PARAMS"
@@ -349,6 +360,26 @@ class OpPowercycleNode(OpCode):
     "node_name",
     "force",
     ]
+
+
+class OpEvacuateNode(OpCode):
+  """Relocate secondary instances from a node."""
+  OP_ID = "OP_NODE_EVACUATE"
+  OP_DSC_FIELD = "node_name"
+  __slots__ = OpCode.__slots__ + [
+    "node_name", "remote_node", "iallocator",
+    ]
+
+
+class OpMigrateNode(OpCode):
+  """Migrate all instances from a node."""
+  OP_ID = "OP_NODE_MIGRATE"
+  OP_DSC_FIELD = "node_name"
+  __slots__ = OpCode.__slots__ + [
+    "node_name",
+    "live",
+    ]
+
 
 # instance opcodes
 
