@@ -51,10 +51,10 @@ acquire_lockfile() {
   while ! ( set -o noclobber; echo "$$" > $LOCKFILE) 2> /dev/null ; do
     NOW=$(date +%s)
     if [ $NOW -ge $TIMEOUT ]; then
-      echo "Cannot acquire lockfile for ethers update, giving up"
+      logger -s "Cannot acquire lockfile for ethers update, giving up"
       exit 1
     fi
-    echo "Cannot acquire lockfile for ethers update, waiting"
+    logger -s "Cannot acquire lockfile for ethers update, waiting"
     sleep $LOCKSLEEP
   done
   trap "rm -f $LOCKFILE" EXIT
