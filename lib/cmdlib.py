@@ -6293,22 +6293,31 @@ class LUQueryInstanceData(NoHooksLU):
                              in self.wanted_names]
     return
 
+  def _ComputeBlockdevStatus(self, node, instance_name, dev):
+    """Returns the status of a block device
+
+    """
+    if self.op.static:
+      return None
+
+    self.cfg.SetDiskID(dev, node)
+
+    result = self.rpc.call_blockdev_find(node, dev)
+    if result.offline:
+      return None
+
+    result.Raise("Can't compute disk status for %s" % instance_name)
+
+    status = result.payload
+
+    return (status.dev_path, status.major, status.minor,
+            status.sync_percent, status.estimated_time,
+            status.is_degraded, status.ldisk_degraded)
+
   def _ComputeDiskStatus(self, instance, snode, dev):
     """Compute block device status.
 
     """
-    static = self.op.static
-    if not static:
-      self.cfg.SetDiskID(dev, instance.primary_node)
-      dev_pstatus = self.rpc.call_blockdev_find(instance.primary_node, dev)
-      if dev_pstatus.offline:
-        dev_pstatus = None
-      else:
-        dev_pstatus.Raise("Can't compute disk status for %s" % instance.name)
-        dev_pstatus = dev_pstatus.payload.ToLegacyStatus()
-    else:
-      dev_pstatus = None
-
     if dev.dev_type in constants.LDS_DRBD:
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
@@ -6316,16 +6325,9 @@ class LUQueryInstanceData(NoHooksLU):
       else:
         snode = dev.logical_id[0]
 
-    if snode and not static:
-      self.cfg.SetDiskID(dev, snode)
-      dev_sstatus = self.rpc.call_blockdev_find(snode, dev)
-      if dev_sstatus.offline:
-        dev_sstatus = None
-      else:
-        dev_sstatus.Raise("Can't compute disk status for %s" % instance.name)
-        dev_sstatus = dev_sstatus.payload.ToLegacyStatus()
-    else:
-      dev_sstatus = None
+    dev_pstatus = self._ComputeBlockdevStatus(instance.primary_node,
+                                              instance.name, dev)
+    dev_sstatus = self._ComputeBlockdevStatus(snode, instance.name, dev)
 
     if dev.children:
       dev_children = [self._ComputeDiskStatus(instance, snode, child)

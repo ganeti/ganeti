@@ -1102,6 +1102,7 @@ def _FormatList(buf, data, indent_level):
     elif isinstance(elem, list):
       _FormatList(buf, elem, indent_level+1)
 
+
 def ShowInstanceConfig(opts, args):
   """Compute instance run-time status.
 

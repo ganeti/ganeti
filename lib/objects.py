@@ -877,14 +877,6 @@ class BlockDevStatus(ConfigObject):
     "ldisk_degraded",
     ]
 
-  def ToLegacyStatus(self):
-    """Converts the device status to a legacy tuple.
-
-    """
-    return (self.dev_path, self.major, self.minor,
-            self.sync_percent, self.estimated_time,
-            self.is_degraded, self.ldisk_degraded)
-
 
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
   """Simple wrapper over ConfigParse that allows serialization.
