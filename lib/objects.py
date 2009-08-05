@@ -104,13 +104,6 @@ class ConfigObject(object):
       raise KeyError(key)
     setattr(self, key, value)
 
-  def __getstate__(self):
-    state = {}
-    for name in self.__slots__:
-      if hasattr(self, name):
-        state[name] = getattr(self, name)
-    return state
-
   def __setstate__(self, state):
     for name in state:
       if name in self.__slots__:
@@ -126,7 +119,14 @@ class ConfigObject(object):
     make sure all objects returned are only standard python types.
 
     """
-    return dict([(k, getattr(self, k, None)) for k in self.__slots__])
+    result = {}
+    for name in self.__slots__:
+      value = getattr(self, name, None)
+      if value is not None:
+        result[name] = value
+    return result
+
+  __getstate__ = ToDict
 
   @classmethod
   def FromDict(cls, val):
