@@ -878,6 +878,40 @@ class BlockDevStatus(ConfigObject):
     ]
 
 
+class ConfdRequest(ConfigObject):
+  """Object holding a confd request.
+
+  @ivar protocol: confd protocol version
+  @ivar type: confd query type
+  @ivar query: query request
+  @ivar rsalt: requested reply salt
+
+  """
+  __slots__ = [
+    "protocol",
+    "type",
+    "query",
+    "rsalt",
+    ]
+
+
+class ConfdReply(ConfigObject):
+  """Object holding a confd reply.
+
+  @ivar protocol: confd protocol version
+  @ivar status: reply status code (ok, error)
+  @ivar answer: confd query reply
+  @ivar serial: configuration serial number
+
+  """
+  __slots__ = [
+    "protocol",
+    "status",
+    "answer",
+    "serial",
+    ]
+
+
 class SerializableConfigParser(ConfigParser.SafeConfigParser):
   """Simple wrapper over ConfigParse that allows serialization.
 
