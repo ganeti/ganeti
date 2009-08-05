@@ -36,6 +36,8 @@
 TARGET_BRIDGE="br0"
 DAEMON_PID_FILE="/var/run/dnsmasq.pid"
 LOCKFILE="/var/lock/ganeti_ethers.lock"
+LOCKTIMEOUT=10
+LOCKSLEEP=2
 
 hooks_path=$GANETI_HOOKS_PATH
 [ -n "$hooks_path" ] || exit 1
@@ -44,10 +46,17 @@ instance=$GANETI_INSTANCE_NAME
 nic_count=$GANETI_INSTANCE_NIC_COUNT
 
 acquire_lockfile() {
-  if ! ( set -o noclobber; echo "$$" > $LOCKFILE) 2> /dev/null; then
-    logger -s "Cannot acquire lockfile for ethers update"
-    exit 1
-  fi
+  NOW=$(date +%s)
+  TIMEOUT=$(($NOW + $LOCKTIMEOUT))
+  while ! ( set -o noclobber; echo "$$" > $LOCKFILE) 2> /dev/null ; do
+    NOW=$(date +%s)
+    if [ $NOW -ge $TIMEOUT ]; then
+      echo "Cannot acquire lockfile for ethers update, giving up"
+      exit 1
+    fi
+    echo "Cannot acquire lockfile for ethers update, waiting"
+    sleep $LOCKSLEEP
+  done
   trap "rm -f $LOCKFILE" EXIT
 }
 
