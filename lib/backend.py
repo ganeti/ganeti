@@ -1838,8 +1838,8 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   # the target command is built out of three individual commands,
   # which are joined by pipes; we check each individual command for
   # valid parameters
-  expcmd = utils.BuildShellCmd("cd %s; %s 2>%s", inst_os.path,
-                               export_script, logfile)
+  expcmd = utils.BuildShellCmd("set -e; set -o pipefail; cd %s; %s 2>%s",
+                               inst_os.path, export_script, logfile)
 
   comprcmd = "gzip"
 
@@ -1852,7 +1852,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   # all commands have been checked, so we're safe to combine them
   command = '|'.join([expcmd, comprcmd, utils.ShellQuoteArgs(remotecmd)])
 
-  result = utils.RunCmd(command, env=export_env)
+  result = utils.RunCmd(["bash", "-c", command], env=export_env)
 
   if result.failed:
     logging.error("os snapshot export command '%s' returned error: %s"
