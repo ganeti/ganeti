@@ -61,7 +61,9 @@ class TestParameterNames(unittest.TestCase):
 
   def testNoDashes(self):
     for kind, source in [('hypervisor', constants.HVS_PARAMETER_TYPES),
-                         ('backend', constants.BES_PARAMETER_TYPES)]:
+                         ('backend', constants.BES_PARAMETER_TYPES),
+                         ('nic', constants.NICS_PARAMETER_TYPES),
+                        ]:
       for key in source:
         self.failUnless(self.VALID_NAME.match(key),
                         "The %s parameter '%s' contains invalid characters" %
