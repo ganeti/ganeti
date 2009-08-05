@@ -103,7 +103,7 @@ def LoadSignedJson(txt, key, salt_verifier=None):
   @param key: shared hmac key
   @param salt_verifier: function taking a salt as input and returning boolean
   @rtype: tuple of original data, string
-  @return: (original data, salt)
+  @return: original data
   @raises errors.SignatureError: if the message signature doesn't verify
 
   """
@@ -141,7 +141,7 @@ def SaltEqualTo(expected):
 
 
 def SaltIn(expected):
-  """Helper salt verifier function that checks for equality.
+  """Helper salt verifier function that checks for membership.
 
   @type expected: collection
   @param expected: collection of possible valid salts
@@ -153,7 +153,7 @@ def SaltIn(expected):
 
 
 def SaltInRange(min, max):
-  """Helper salt verifier function that checks for equality.
+  """Helper salt verifier function that checks for integer range.
 
   @type min: integer
   @param min: minimum salt value
