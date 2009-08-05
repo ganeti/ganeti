@@ -6472,6 +6472,8 @@ class LUExportInstance(LogicalUnit):
     for disk in instance.disks:
       self.cfg.SetDiskID(disk, src_node)
 
+    # per-disk results
+    dresults = []
     try:
       for idx, disk in enumerate(instance.disks):
         # new_dev_name will be a snapshot of an lvm leaf of the one we passed
@@ -6505,15 +6507,22 @@ class LUExportInstance(LogicalUnit):
         if result.failed or not result.data:
           self.LogWarning("Could not export disk/%d from node %s to"
                           " node %s", idx, src_node, dst_node.name)
+          dresults.append(False)
+        else:
+          dresults.append(True)
         msg = self.rpc.call_blockdev_remove(src_node, dev).RemoteFailMsg()
         if msg:
           self.LogWarning("Could not remove snapshot for disk/%d from node"
                           " %s: %s", idx, src_node, msg)
+      else:
+        dresults.append(False)
 
     result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
+    fin_resu = True
     if result.failed or not result.data:
       self.LogWarning("Could not finalize export for instance %s on node %s",
                       instance.name, dst_node.name)
+      fin_resu = False
 
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(dst_node.name)
@@ -6530,6 +6539,7 @@ class LUExportInstance(LogicalUnit):
           if not self.rpc.call_export_remove(node, instance.name):
             self.LogWarning("Could not remove older export for instance %s"
                             " on node %s", instance.name, node)
+    return fin_resu, dresults
 
 
 class LURemoveExport(NoHooksLU):

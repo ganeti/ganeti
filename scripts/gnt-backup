@@ -74,8 +74,27 @@ def ExportInstance(opts, args):
                                 target_node=opts.node,
                                 shutdown=opts.shutdown)
 
-  SubmitOpCode(op)
-
+  fin_resu, dlist = SubmitOpCode(op)
+  if not isinstance(dlist, list):
+    ToStderr("Cannot parse execution results")
+    return 1
+  tot_dsk = len(dlist)
+  # TODO: handle diskless instances
+  if dlist.count(False) == 0:
+    # all OK
+    rcode = 0
+  elif dlist.count(True) == 0:
+    ToStderr("Error: No disks were backed up successfully."
+             " The export doesn't have any valid data,"
+             " it is recommended to retry the operation.")
+    rcode = 1
+  else:
+    ToStderr("Partial export failure: %d disks backed up, %d disks failed.",
+             dlist.count(True), dlist.count(False))
+    rcode = 2
+  if not fin_resu:
+    rcode = 1
+  return rcode
 
 def ImportInstance(opts, args):
   """Add an instance to the cluster.
