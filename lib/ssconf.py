@@ -97,6 +97,7 @@ class SimpleStore(object):
     constants.SS_CLUSTER_TAGS,
     constants.SS_FILE_STORAGE_DIR,
     constants.SS_MASTER_CANDIDATES,
+    constants.SS_MASTER_CANDIDATES_IPS,
     constants.SS_MASTER_IP,
     constants.SS_MASTER_NETDEV,
     constants.SS_MASTER_NODE,
@@ -187,6 +188,14 @@ class SimpleStore(object):
 
     """
     data = self._ReadFile(constants.SS_MASTER_CANDIDATES)
+    nl = data.splitlines(False)
+    return nl
+
+  def GetMasterCandidatesIPList(self):
+    """Return the list of master candidates' primary IP.
+
+    """
+    data = self._ReadFile(constants.SS_MASTER_CANDIDATES_IPS)
     nl = data.splitlines(False)
     return nl
 

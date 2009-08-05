@@ -1155,6 +1155,8 @@ class ConfigWriter:
     off_data = fn(node.name for node in node_info if node.offline)
     on_data = fn(node.name for node in node_info if not node.offline)
     mc_data = fn(node.name for node in node_info if node.master_candidate)
+    mc_ips_data = fn(node.primary_ip for node in node_info
+                     if node.master_candidate)
     node_data = fn(node_names)
     node_pri_ips_data = fn(node_pri_ips)
     node_snd_ips_data = fn(node_snd_ips)
@@ -1166,6 +1168,7 @@ class ConfigWriter:
       constants.SS_CLUSTER_TAGS: cluster_tags,
       constants.SS_FILE_STORAGE_DIR: cluster.file_storage_dir,
       constants.SS_MASTER_CANDIDATES: mc_data,
+      constants.SS_MASTER_CANDIDATES_IPS: mc_ips_data,
       constants.SS_MASTER_IP: cluster.master_ip,
       constants.SS_MASTER_NETDEV: cluster.master_netdev,
       constants.SS_MASTER_NODE: cluster.master_node,
