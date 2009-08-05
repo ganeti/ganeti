@@ -101,6 +101,8 @@ class SimpleStore(object):
     constants.SS_MASTER_NETDEV,
     constants.SS_MASTER_NODE,
     constants.SS_NODE_LIST,
+    constants.SS_NODE_PRIMARY_IPS,
+    constants.SS_NODE_SECONDARY_IPS,
     constants.SS_OFFLINE_NODES,
     constants.SS_ONLINE_NODES,
     constants.SS_INSTANCE_LIST,
@@ -211,6 +213,22 @@ class SimpleStore(object):
 
     """
     data = self._ReadFile(constants.SS_NODE_LIST)
+    nl = data.splitlines(False)
+    return nl
+
+  def GetNodePrimaryIPList(self):
+    """Return the list of cluster nodes' primary IP.
+
+    """
+    data = self._ReadFile(constants.SS_NODE_PRIMARY_IPS)
+    nl = data.splitlines(False)
+    return nl
+
+  def GetNodeSecondaryIPList(self):
+    """Return the list of cluster nodes' secondary IP.
+
+    """
+    data = self._ReadFile(constants.SS_NODE_SECONDARY_IPS)
     nl = data.splitlines(False)
     return nl
 

@@ -1148,12 +1148,16 @@ class ConfigWriter:
     instance_names = utils.NiceSort(self._UnlockedGetInstanceList())
     node_names = utils.NiceSort(self._UnlockedGetNodeList())
     node_info = [self._UnlockedGetNodeInfo(name) for name in node_names]
+    node_pri_ips = [ninfo.primary_ip for ninfo in node_info]
+    node_snd_ips = [ninfo.secondary_ip for ninfo in node_info]
 
     instance_data = fn(instance_names)
     off_data = fn(node.name for node in node_info if node.offline)
     on_data = fn(node.name for node in node_info if not node.offline)
     mc_data = fn(node.name for node in node_info if node.master_candidate)
     node_data = fn(node_names)
+    node_pri_ips_data = fn(node_pri_ips)
+    node_snd_ips_data = fn(node_snd_ips)
 
     cluster = self._config_data.cluster
     cluster_tags = fn(cluster.GetTags())
@@ -1166,6 +1170,8 @@ class ConfigWriter:
       constants.SS_MASTER_NETDEV: cluster.master_netdev,
       constants.SS_MASTER_NODE: cluster.master_node,
       constants.SS_NODE_LIST: node_data,
+      constants.SS_NODE_PRIMARY_IPS: node_pri_ips_data,
+      constants.SS_NODE_SECONDARY_IPS: node_snd_ips_data,
       constants.SS_OFFLINE_NODES: off_data,
       constants.SS_ONLINE_NODES: on_data,
       constants.SS_INSTANCE_LIST: instance_data,
