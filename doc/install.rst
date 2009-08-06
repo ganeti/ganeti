@@ -281,10 +281,11 @@ nodes):
 
 - Python OpenSSL bindings, `<http://pyopenssl.sourceforge.net/>`_
 
-
 - simplejson Python module, `<http://www.undefined.org/python/#simplejson>`_
 
 - pyparsing Python module, `<http://pyparsing.wikispaces.com/>`_
+
+- pyinotify Python module, `<http://trac.dbzteam.org/pyinotify>`_
 
 These programs are supplied as part of most Linux distributions, so
 usually they can be installed via apt or similar methods. Also many of
@@ -296,7 +297,8 @@ them will already be installed on a standard machine.
    You can use this command line to install all needed packages::
 
      # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-     python python-pyopenssl openssl python-pyparsing python-simplejson
+     python python-pyopenssl openssl python-pyparsing python-simplejson \
+     python-pyinotify
 
 Setting up the environment for Ganeti
 -------------------------------------

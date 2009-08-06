@@ -170,6 +170,7 @@ AM_PATH_PYTHON(2.4)
 AC_PYTHON_MODULE(OpenSSL, t)
 AC_PYTHON_MODULE(simplejson, t)
 AC_PYTHON_MODULE(pyparsing, t)
+AC_PYTHON_MODULE(pyinotify, t)
 
 AC_CONFIG_FILES([ Makefile ])
 
