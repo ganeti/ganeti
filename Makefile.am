@@ -65,6 +65,7 @@ nodist_pkgpython_PYTHON = \
 
 pkgpython_PYTHON = \
 	lib/__init__.py \
+	lib/asyncnotifier.py \
 	lib/backend.py \
 	lib/bdev.py \
 	lib/bootstrap.py \
