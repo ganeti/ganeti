@@ -91,6 +91,12 @@ class SimpleConfigReader(object):
   def GetNodeList(self):
     return self._config_data["nodes"].keys()
 
+  def GetConfigSerialNo(self):
+    return self._config_data["serial_no"]
+
+  def GetClusterSerialNo(self):
+    return self._config_data["cluster"]["serial_no"]
+
 
 class SimpleStore(object):
   """Interface to static cluster data.
