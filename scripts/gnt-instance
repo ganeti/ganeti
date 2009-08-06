@@ -995,7 +995,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
     if not status:
       return "not active"
     txt = ""
-    (path, major, minor, syncp, estt, degr, ldisk) = status
+    (path, major, minor, syncp, estt, degr, ldisk_status) = status
     if major is None:
       major_string = "N/A"
     else:
@@ -1020,13 +1020,15 @@ def _FormatBlockDevInfo(idx, top_level, dev, static):
         degr_text = "*DEGRADED*"
       else:
         degr_text = "ok"
-      if ldisk:
+      if ldisk_status == constants.LDS_FAULTY:
         ldisk_text = " *MISSING DISK*"
+      elif ldisk_status == constants.LDS_UNKNOWN:
+        ldisk_text = " *UNCERTAIN STATE*"
       else:
         ldisk_text = ""
       txt += (" %s, status %s%s" % (sync_text, degr_text, ldisk_text))
     elif dtype == constants.LD_LV:
-      if ldisk:
+      if ldisk_status == constants.LDS_FAULTY:
         ldisk_text = " *FAILED* (failed drive?)"
       else:
         ldisk_text = ""

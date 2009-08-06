@@ -874,7 +874,7 @@ class BlockDevStatus(ConfigObject):
     "sync_percent",
     "estimated_time",
     "is_degraded",
-    "ldisk_degraded",
+    "ldisk_status",
     ]
 
 

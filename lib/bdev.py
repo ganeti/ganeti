@@ -238,7 +238,7 @@ class BlockDev(object):
                                   sync_percent=None,
                                   estimated_time=None,
                                   is_degraded=False,
-                                  ldisk_degraded=False)
+                                  ldisk_status=constants.LDS_OKAY)
 
   def CombinedSyncStatus(self):
     """Calculate the mirror status recursively for our children.
@@ -255,7 +255,7 @@ class BlockDev(object):
     min_percent = status.sync_percent
     max_time = status.estimated_time
     is_degraded = status.is_degraded
-    ldisk_degraded = status.ldisk_degraded
+    ldisk_status = status.ldisk_status
 
     if self._children:
       for child in self._children:
@@ -272,7 +272,11 @@ class BlockDev(object):
           max_time = max(max_time, child_status.estimated_time)
 
         is_degraded = is_degraded or child_status.is_degraded
-        ldisk_degraded = ldisk_degraded or child_status.ldisk_degraded
+
+        if ldisk_status is None:
+          ldisk_status = child_status.ldisk_status
+        elif child_status.ldisk_status is not None:
+          ldisk_status = max(ldisk_status, child_status.ldisk_status)
 
     return objects.BlockDevStatus(dev_path=self.dev_path,
                                   major=self.major,
@@ -280,7 +284,7 @@ class BlockDev(object):
                                   sync_percent=min_percent,
                                   estimated_time=max_time,
                                   is_degraded=is_degraded,
-                                  ldisk_degraded=ldisk_degraded)
+                                  ldisk_status=ldisk_status)
 
 
   def SetInfo(self, text):
@@ -532,13 +536,18 @@ class LogicalVolume(BlockDev):
     @rtype: objects.BlockDevStatus
 
     """
+    if self._degraded:
+      ldisk_status = constants.LDS_FAULTY
+    else:
+      ldisk_status = constants.LDS_OKAY
+
     return objects.BlockDevStatus(dev_path=self.dev_path,
                                   major=self.major,
                                   minor=self.minor,
                                   sync_percent=None,
                                   estimated_time=None,
                                   is_degraded=self._degraded,
-                                  ldisk_degraded=self._degraded)
+                                  ldisk_status=ldisk_status)
 
   def Open(self, force=False):
     """Make the device ready for I/O.
@@ -1335,16 +1344,22 @@ class DRBD8(BaseDRBD):
       _ThrowError("drbd%d: can't Attach() in GetSyncStatus", self._aminor)
 
     stats = self.GetProcStatus()
-    ldisk_degraded = not stats.is_disk_uptodate
-    is_degraded = not stats.is_connected
+    is_degraded = not stats.is_connected or not stats.is_disk_uptodate
+
+    if stats.is_disk_uptodate:
+      ldisk_status = constants.LDS_OKAY
+    elif stats.is_diskless:
+      ldisk_status = constants.LDS_FAULTY
+    else:
+      ldisk_status = constants.LDS_UNKNOWN
 
     return objects.BlockDevStatus(dev_path=self.dev_path,
                                   major=self.major,
                                   minor=self.minor,
                                   sync_percent=stats.sync_percent,
                                   estimated_time=stats.est_time,
-                                  is_degraded=(is_degraded or ldisk_degraded),
-                                  ldisk_degraded=ldisk_degraded)
+                                  is_degraded=is_degraded,
+                                  ldisk_status=ldisk_status)
 
   def Open(self, force=False):
     """Make the local state primary.

@@ -1888,7 +1888,7 @@ def _CheckDiskConsistency(lu, dev, node, on_primary, ldisk=False):
       result = False
     else:
       if ldisk:
-        result = result and not rstats.payload.ldisk_degraded
+        result = result and rstats.payload.ldisk_status == constants.LDS_OKAY
       else:
         result = result and not rstats.payload.is_degraded
 
@@ -6314,7 +6314,7 @@ class LUQueryInstanceData(NoHooksLU):
 
     return (status.dev_path, status.major, status.minor,
             status.sync_percent, status.estimated_time,
-            status.is_degraded, status.ldisk_degraded)
+            status.is_degraded, status.ldisk_status)
 
   def _ComputeDiskStatus(self, instance, snode, dev):
     """Compute block device status.
