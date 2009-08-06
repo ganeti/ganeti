@@ -63,36 +63,16 @@ class TestSerializer(unittest.TestCase):
   def testSignedMessage(self):
     LoadSigned = serializer.LoadSigned
     DumpSigned = serializer.DumpSigned
-    SaltEqualTo = serializer.SaltEqualTo
-    SaltIn = serializer.SaltIn
-    SaltInRange = serializer.SaltInRange
 
     for data in self._TESTDATA:
-      self.assertEqual(LoadSigned(DumpSigned(data, "mykey"), "mykey"), data)
+      self.assertEqual(LoadSigned(DumpSigned(data, "mykey"), "mykey"),
+                       (data, ''))
       self.assertEqual(LoadSigned(
                          DumpSigned(data, "myprivatekey", "mysalt"),
-                         "myprivatekey", SaltEqualTo("mysalt")), data)
-      self.assertEqual(LoadSigned(
-                         DumpSigned(data, "myprivatekey", "mysalt"),
-                         "myprivatekey", SaltIn(["notmysalt", "mysalt"])), data)
-      self.assertEqual(LoadSigned(
-                         DumpSigned(data, "myprivatekey", "12345"),
-                         "myprivatekey", SaltInRange(12340, 12346)), data)
+                         "myprivatekey"), (data, "mysalt"))
     self.assertRaises(errors.SignatureError, serializer.LoadSigned,
                       serializer.DumpSigned("test", "myprivatekey"),
                       "myotherkey")
-    self.assertRaises(errors.SignatureError, serializer.LoadSigned,
-                      serializer.DumpSigned("test", "myprivatekey", "salt"),
-                      "myprivatekey")
-    self.assertRaises(errors.SignatureError, serializer.LoadSigned,
-                      serializer.DumpSigned("test", "myprivatekey", "salt"),
-                      "myprivatekey", SaltIn(["notmysalt", "morenotmysalt"]))
-    self.assertRaises(errors.SignatureError, serializer.LoadSigned,
-                      serializer.DumpSigned("test", "myprivatekey", "salt"),
-                      "myprivatekey", SaltInRange(1, 2))
-    self.assertRaises(errors.SignatureError, serializer.LoadSigned,
-                      serializer.DumpSigned("test", "myprivatekey", "12345"),
-                      "myprivatekey", SaltInRange(1, 2))
 
   def _TestSerializer(self, dump_fn, load_fn):
     for data in self._TESTDATA:
