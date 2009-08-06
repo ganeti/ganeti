@@ -6309,6 +6309,8 @@ class LUQueryInstanceData(NoHooksLU):
     result.Raise("Can't compute disk status for %s" % instance_name)
 
     status = result.payload
+    if status is None:
+      return None
 
     return (status.dev_path, status.major, status.minor,
             status.sync_percent, status.estimated_time,
