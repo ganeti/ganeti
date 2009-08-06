@@ -205,6 +205,12 @@ MODIFIABLE_STORAGE_FIELDS = {
   ST_LVM_PV: frozenset([SF_ALLOCATABLE]),
   }
 
+# Local disk status
+# Note: Code depends on LDS_OKAY < LDS_UNKNOWN < LDS_FAULTY
+(LDS_OKAY,
+ LDS_UNKNOWN,
+ LDS_FAULTY) = range(1, 4)
+
 # disk template types
 DT_DISKLESS = "diskless"
 DT_PLAIN = "plain"

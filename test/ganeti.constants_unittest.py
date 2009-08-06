@@ -54,6 +54,10 @@ class TestConstants(unittest.TestCase):
                     (constants.CONFIG_MAJOR, constants.CONFIG_MINOR,
                      constants.CONFIG_REVISION))
 
+  def testDiskStatus(self):
+    self.failUnless(constants.LDS_OKAY < constants.LDS_UNKNOWN)
+    self.failUnless(constants.LDS_UNKNOWN < constants.LDS_FAULTY)
+
 
 class TestParameterNames(unittest.TestCase):
   """HV/BE parameter tests"""
@@ -68,6 +72,7 @@ class TestParameterNames(unittest.TestCase):
         self.failUnless(self.VALID_NAME.match(key),
                         "The %s parameter '%s' contains invalid characters" %
                         (kind, key))
+
 
 if __name__ == '__main__':
   unittest.main()
