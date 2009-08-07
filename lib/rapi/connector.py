@@ -159,6 +159,8 @@ CONNECTOR.update({
       rlib2.R_2_nodes_name_evacuate,
   re.compile(r'^/2/nodes/([\w\._-]+)/migrate$'):
       rlib2.R_2_nodes_name_migrate,
+  re.compile(r'^/2/nodes/([\w\._-]+)/storage$'):
+      rlib2.R_2_nodes_name_storage,
   "/2/instances": rlib2.R_2_instances,
   re.compile(r'^/2/instances/([\w\._-]+)$'): rlib2.R_2_instances_name,
   re.compile(r'^/2/instances/([\w\._-]+)/tags$'): rlib2.R_2_instances_name_tags,

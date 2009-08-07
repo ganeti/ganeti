@@ -281,7 +281,7 @@ class R_2_nodes_name_evacuate(baserlib.R_Generic):
 
 
 class R_2_nodes_name_migrate(baserlib.R_Generic):
-  """/2/nodes/[node_name]/evacuate migrate.
+  """/2/nodes/[node_name]/migrate resource.
 
   """
   def POST(self):
@@ -293,6 +293,32 @@ class R_2_nodes_name_migrate(baserlib.R_Generic):
 
     op = opcodes.OpMigrateNode(node_name=node_name, live=live)
 
+    return baserlib.SubmitJob([op])
+
+
+class R_2_nodes_name_storage(baserlib.R_Generic):
+  """/2/nodes/[node_name]/storage ressource.
+
+  """
+  # LUQueryNodeStorage acquires locks, hence restricting access to GET
+  GET_ACCESS = [rapi.RAPI_ACCESS_WRITE]
+
+  def GET(self):
+    node_name = self.items[0]
+
+    storage_type = self._checkStringVariable("storage_type", None)
+    if not storage_type:
+      raise http.HttpBadRequest("Missing the required 'storage_type'"
+                                " parameter")
+
+    output_fields = self._checkStringVariable("output_fields", None)
+    if not output_fields:
+      raise http.HttpBadRequest("Missing the required 'output_fields'"
+                                " parameter")
+
+    op = opcodes.OpQueryNodeStorage(nodes=[node_name],
+                                    storage_type=storage_type,
+                                    output_fields=output_fields.split(","))
     return baserlib.SubmitJob([op])
 
 

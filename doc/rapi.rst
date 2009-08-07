@@ -528,6 +528,19 @@ job id.
 
 It supports the ``force`` argument.
 
+``/2/nodes/[node_name]/storage``
+++++++++++++++++++++++++++++++++
+
+Manages storage units on the node.
+
+``GET``
+~~~~~~~
+
+Requests a list of storage units on a node. Requires the parameters
+``storage_type`` (one of ``file``, ``lvm-pv`` or ``lvm-vg``) and
+``output_fields``. The result will be a job id, using which the result can be
+retrieved.
+
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++
 
