@@ -90,7 +90,7 @@ _gnt_cluster()
   if [[ -e "@LOCALSTATEDIR@/lib/ganeti/ssconf_cluster_name" ]]; then
     cmds="add-tags command copyfile destroy getmaster info list-tags \
           masterfailover modify queue redist-conf remove-tags rename \
-          search-tags verify verify-disks version"
+          repair-disk-sizes search-tags verify verify-disks version"
   else
     cmds="init"
   fi

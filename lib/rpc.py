@@ -681,14 +681,14 @@ class RpcRunner(object):
                                [checkdict, cluster_name])
 
   @classmethod
-  def call_node_start_master(cls, node, start_daemons):
+  def call_node_start_master(cls, node, start_daemons, no_voting):
     """Tells a node to activate itself as a master.
 
     This is a single-node call.
 
     """
     return cls._StaticSingleNodeCall(node, "node_start_master",
-                                     [start_daemons])
+                                     [start_daemons, no_voting])
 
   @classmethod
   def call_node_stop_master(cls, node, stop_daemons):
@@ -805,6 +805,15 @@ class RpcRunner(object):
     """
     params = [instance_name, [cf.ToDict() for cf in disks]]
     return self._SingleNodeCall(node, "blockdev_close", params)
+
+  def call_blockdev_getsizes(self, node, disks):
+    """Returns the size of the given disks.
+
+    This is a single-node call.
+
+    """
+    params = [[cf.ToDict() for cf in disks]]
+    return self._SingleNodeCall(node, "blockdev_getsize", params)
 
   def call_drbd_disconnect_net(self, node_list, nodes_ip, disks):
     """Disconnects the network of the given drbd devices.

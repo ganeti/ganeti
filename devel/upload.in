@@ -27,14 +27,22 @@
 
 set -e
 
+PREFIX='@PREFIX@'
+SYSCONFDIR='@SYSCONFDIR@'
+PKGLIBDIR='@PKGLIBDIR@'
+
 NO_RESTART=
+NO_CRON=
 hosts=
 while [ "$#" -gt 0 ]; do
   opt="$1"
   case "$opt" in
     --no-restart)
       NO_RESTART=1
-    ;;
+      ;;
+    --no-cron)
+      NO_CRON=1
+      ;;
     -h|--help)
       echo "Usage: $0 [--no-restart] hosts..."
       exit 0
@@ -42,10 +50,10 @@ while [ "$#" -gt 0 ]; do
     -*)
       echo "Unknown option: $opt" >&2
       exit 1
-    ;;
+      ;;
     *)
       hosts="$hosts $opt"
-    ;;
+      ;;
   esac
   shift
 done
@@ -58,37 +66,34 @@ trap 'rm -rf $TXD' EXIT
 # install ganeti as a real tree
 make install DESTDIR="$TXD"
 
+# copy additional needed files
+install -D --mode=0755 doc/examples/ganeti.initd \
+  "$TXD/$SYSCONFDIR/init.d/ganeti"
+
+install -D --mode=0644 doc/examples/bash_completion \
+  "$TXD/$SYSCONFDIR/bash_completion.d/ganeti"
+
+if [ -z "$NO_CRON" ]; then
+  install -D --mode=0644 doc/examples/ganeti.cron \
+    "$TXD/$SYSCONFDIR/cron.d/ganeti"
+fi
+
+install -D --mode=0755 doc/examples/dumb-allocator \
+  "$TXD/$PKGLIBDIR/iallocators/dumb"
+
 echo ---
 
 ( cd "$TXD" && find; )
 
 echo ---
 
-PREFIX='@PREFIX@'
-
 # and now put it under $prefix on the target node(s)
 for host; do
   echo Uploading code to ${host}...
   rsync -v -rlDc --exclude="*.py[oc]" --exclude="*.pdf" --exclude="*.html" \
-    "$TXD/$PREFIX/" \
-    root@${host}:$PREFIX/ &
+    "$TXD/" \
+    root@${host}:/ &
 done
-wait
-
-INIT_SCRIPT="$TXD/ganeti.initd"
-install --mode=0755 doc/examples/ganeti.initd $INIT_SCRIPT
-for host; do
-  echo Uploading init script to ${host}...
-  scp $INIT_SCRIPT root@${host}:/etc/init.d/ganeti &
-done
-wait
-
-if [ -f ganeti-master-cron ]; then
-  for host; do
-    echo Uploading cron files to ${host}...
-    scp ganeti-master-cron root@${host}:/etc/ganeti/master-cron &
-  done
-fi
 wait
 
 if test -z "${NO_RESTART}"; then

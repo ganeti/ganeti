@@ -169,7 +169,7 @@ def GetMasterInfo():
   return (master_netdev, master_ip, master_node)
 
 
-def StartMaster(start_daemons):
+def StartMaster(start_daemons, no_voting):
   """Activate local node as master node.
 
   The function will always try activate the IP address of the master
@@ -179,6 +179,9 @@ def StartMaster(start_daemons):
   @type start_daemons: boolean
   @param start_daemons: whther to also start the master
       daemons (ganeti-masterd and ganeti-rapi)
+  @type no_voting: boolean
+  @param no_voting: whether to start ganeti-masterd without a node vote
+      (if start_daemons is True), but still non-interactively
   @rtype: None
 
   """
@@ -208,8 +211,17 @@ def StartMaster(start_daemons):
 
   # and now start the master and rapi daemons
   if start_daemons:
-    for daemon in 'ganeti-masterd', 'ganeti-rapi':
-      result = utils.RunCmd([daemon])
+    daemons_params = {
+        'ganeti-masterd': [],
+        'ganeti-rapi': [],
+        }
+    if no_voting:
+      daemons_params['ganeti-masterd'].append('--no-voting')
+      daemons_params['ganeti-masterd'].append('--yes-do-it')
+    for daemon in daemons_params:
+      cmd = [daemon]
+      cmd.extend(daemons_params[daemon])
+      result = utils.RunCmd(cmd)
       if result.failed:
         logging.error("Can't start daemon %s: %s", daemon, result.output)
         ok = False
@@ -1452,6 +1464,32 @@ def BlockdevFind(disk):
   return (True, (rbd.dev_path, rbd.major, rbd.minor) + rbd.GetSyncStatus())
 
 
+def BlockdevGetsize(disks):
+  """Computes the size of the given disks.
+
+  If a disk is not found, returns None instead.
+
+  @type disks: list of L{objects.Disk}
+  @param disks: the list of disk to compute the size for
+  @rtype: list
+  @return: list with elements None if the disk cannot be found,
+      otherwise the size
+
+  """
+  result = []
+  for cf in disks:
+    try:
+      rbd = _RecursiveFindBD(cf)
+    except errors.BlockDeviceError, err:
+      result.append(None)
+      continue
+    if rbd is None:
+      result.append(None)
+    else:
+      result.append(rbd.GetActualSize())
+  return result
+
+
 def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
   """Write a file to the filesystem.
 
@@ -1815,8 +1853,8 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   # the target command is built out of three individual commands,
   # which are joined by pipes; we check each individual command for
   # valid parameters
-  expcmd = utils.BuildShellCmd("cd %s; %s 2>%s", inst_os.path,
-                               export_script, logfile)
+  expcmd = utils.BuildShellCmd("set -e; set -o pipefail; cd %s; %s 2>%s",
+                               inst_os.path, export_script, logfile)
 
   comprcmd = "gzip"
 
@@ -1829,7 +1867,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   # all commands have been checked, so we're safe to combine them
   command = '|'.join([expcmd, comprcmd, utils.ShellQuoteArgs(remotecmd)])
 
-  result = utils.RunCmd(command, env=export_env)
+  result = utils.RunCmd(["bash", "-c", command], env=export_env)
 
   if result.failed:
     logging.error("os snapshot export command '%s' returned error: %s"

@@ -1673,6 +1673,7 @@ instance5: 11225
         <cmdsynopsis>
           <command>activate-disks</command>
           <arg>--submit</arg>
+          <arg>--ignore-size</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
         <para>
@@ -1699,6 +1700,16 @@ node1.example.com:disk/1:/dev/drbd1
           the master daemon but not wait for its completion. The job
           ID will be shown so that it can be examined via
           <command>gnt-job info</command>.
+        </para>
+
+        <para>
+          The <option>--ignore-size</option> option can be used to
+          activate disks ignoring the currently configured size in
+          Ganeti. This can be used in cases where the configuration
+          has gotten out of sync with the real-world (e.g. after a
+          partially-failed grow-disk operation or due to rounding in
+          LVM devices). This should not be used in normal cases, but
+          only when activate-disks fails without it.
         </para>
 
         <para>

@@ -460,14 +460,6 @@
         and gnt-cluster redist-conf to make sure the cluster is consistent again.
       </para>
 
-      <para>
-        In version 2.0.X ganeti-masterd will not be able to start if
-        masterfailover is called with the --no-voting option (which, again,
-        should only be used on 2 nodes clusters with the former master being
-        down). In that case just start it manually passing --no-voting to it
-        as well, until you have restored cluster redundancy.
-      </para>
-
     </refsect2>
 
     <refsect2>
@@ -615,6 +607,38 @@
         Note that since this command can be dangerous (especially when
         run over SSH), the command will require confirmation unless
         run with the <option>-f</option> option.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>REPAIR-DISK-SIZES</title>
+
+      <cmdsynopsis>
+        <command>repair-disk-sizes</command>
+        <arg rep="repeat">instance</arg>
+      </cmdsynopsis>
+
+      <para>
+        This command checks that the recorded size of the given
+        instance's disks matches the actual size and updates any
+        mismatches found. This is needed if the Ganeti configuration
+        is no longer consistent with reality, as it will impact some
+        disk operations. If no arguments are given, all instances will
+        be checked.
+      </para>
+
+      <para>
+        Note that only active disks can be checked by this command; in
+        case a disk cannot be activated it's advised to use
+        <command>gnt-instance activate-disks --ignore-size
+        ...</command> to force activation without regard to the
+        current size.
+      </para>
+
+      <para>
+        When the all disk sizes are consistent, the command will
+        return no output. Otherwise it will log details about the
+        inconsistencies in the configuration.
       </para>
     </refsect2>
 

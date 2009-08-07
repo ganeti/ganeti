@@ -1325,6 +1325,100 @@ class LUVerifyDisks(NoHooksLU):
     return result
 
 
+class LURepairDiskSizes(NoHooksLU):
+  """Verifies the cluster disks sizes.
+
+  """
+  _OP_REQP = ["instances"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+
+    if not isinstance(self.op.instances, list):
+      raise errors.OpPrereqError("Invalid argument type 'instances'")
+
+    if self.op.instances:
+      self.wanted_names = []
+      for name in self.op.instances:
+        full_name = self.cfg.ExpandInstanceName(name)
+        if full_name is None:
+          raise errors.OpPrereqError("Instance '%s' not known" % name)
+        self.wanted_names.append(full_name)
+      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
+      self.needed_locks = {
+        locking.LEVEL_NODE: [],
+        locking.LEVEL_INSTANCE: self.wanted_names,
+        }
+      self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    else:
+      self.wanted_names = None
+      self.needed_locks = {
+        locking.LEVEL_NODE: locking.ALL_SET,
+        locking.LEVEL_INSTANCE: locking.ALL_SET,
+        }
+    self.share_locks = dict(((i, 1) for i in locking.LEVELS))
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE and self.wanted_names is not None:
+      self._LockInstancesNodes(primary_only=True)
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This only checks the optional instance list against the existing names.
+
+    """
+    if self.wanted_names is None:
+      self.wanted_names = self.acquired_locks[locking.LEVEL_INSTANCE]
+
+    self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
+                             in self.wanted_names]
+
+  def Exec(self, feedback_fn):
+    """Verify the size of cluster disks.
+
+    """
+    # TODO: check child disks too
+    # TODO: check differences in size between primary/secondary nodes
+    per_node_disks = {}
+    for instance in self.wanted_instances:
+      pnode = instance.primary_node
+      if pnode not in per_node_disks:
+        per_node_disks[pnode] = []
+      for idx, disk in enumerate(instance.disks):
+        per_node_disks[pnode].append((instance, idx, disk))
+
+    changed = []
+    for node, dskl in per_node_disks.items():
+      result = self.rpc.call_blockdev_getsizes(node, [v[2] for v in dskl])
+      if result.failed:
+        self.LogWarning("Failure in blockdev_getsizes call to node"
+                        " %s, ignoring", node)
+        continue
+      if len(result.data) != len(dskl):
+        self.LogWarning("Invalid result from node %s, ignoring node results",
+                        node)
+        continue
+      for ((instance, idx, disk), size) in zip(dskl, result.data):
+        if size is None:
+          self.LogWarning("Disk %d of instance %s did not return size"
+                          " information, ignoring", idx, instance.name)
+          continue
+        if not isinstance(size, (int, long)):
+          self.LogWarning("Disk %d of instance %s did not return valid"
+                          " size information, ignoring", idx, instance.name)
+          continue
+        size = size >> 20
+        if size != disk.size:
+          self.LogInfo("Disk %d of instance %s has mismatched size,"
+                       " correcting: recorded %d, actual %d", idx,
+                       instance.name, disk.size, size)
+          disk.size = size
+          self.cfg.Update(instance)
+          changed.append((instance.name, idx, size))
+    return changed
+
+
 class LURenameCluster(LogicalUnit):
   """Rename the cluster.
 
@@ -1399,7 +1493,7 @@ class LURenameCluster(LogicalUnit):
                         constants.SSH_KNOWN_HOSTS_FILE, to_node)
 
     finally:
-      result = self.rpc.call_node_start_master(master, False)
+      result = self.rpc.call_node_start_master(master, False, False)
       if result.failed or not result.data:
         self.LogWarning("Could not re-enable the master role on"
                         " the master, please restart manually.")
@@ -2595,19 +2689,24 @@ class LUActivateInstanceDisks(NoHooksLU):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
+    if not hasattr(self.op, "ignore_size"):
+      self.op.ignore_size = False
 
   def Exec(self, feedback_fn):
     """Activate the disks.
 
     """
-    disks_ok, disks_info = _AssembleInstanceDisks(self, self.instance)
+    disks_ok, disks_info = \
+              _AssembleInstanceDisks(self, self.instance,
+                                     ignore_size=self.op.ignore_size)
     if not disks_ok:
       raise errors.OpExecError("Cannot activate block devices")
 
     return disks_info
 
 
-def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
+def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
+                           ignore_size=False):
   """Prepare the block devices for an instance.
 
   This sets up the block devices on all nodes.
@@ -2619,6 +2718,10 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
   @type ignore_secondaries: boolean
   @param ignore_secondaries: if true, errors on secondary nodes
       won't result in an error return from the function
+  @type ignore_size: boolean
+  @param ignore_size: if true, the current known size of the disk
+      will not be used during the disk activation, useful for cases
+      when the size is wrong
   @return: False if the operation failed, otherwise a list of
       (host, instance_visible_name, node_visible_name)
       with the mapping from node devices to instance devices
@@ -2639,6 +2742,9 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
   # 1st pass, assemble on all nodes in secondary mode
   for inst_disk in instance.disks:
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
+      if ignore_size:
+        node_disk = node_disk.Copy()
+        node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, False)
       msg = result.RemoteFailMsg()
@@ -2656,6 +2762,9 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False):
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
       if node != instance.primary_node:
         continue
+      if ignore_size:
+        node_disk = node_disk.Copy()
+        node_disk.UnsetSize()
       lu.cfg.SetDiskID(node_disk, node)
       result = lu.rpc.call_blockdev_assemble(node, node_disk, iname, True)
       msg = result.RemoteFailMsg()
@@ -6365,6 +6474,8 @@ class LUExportInstance(LogicalUnit):
     for disk in instance.disks:
       self.cfg.SetDiskID(disk, src_node)
 
+    # per-disk results
+    dresults = []
     try:
       for idx, disk in enumerate(instance.disks):
         # new_dev_name will be a snapshot of an lvm leaf of the one we passed
@@ -6398,15 +6509,22 @@ class LUExportInstance(LogicalUnit):
         if result.failed or not result.data:
           self.LogWarning("Could not export disk/%d from node %s to"
                           " node %s", idx, src_node, dst_node.name)
+          dresults.append(False)
+        else:
+          dresults.append(True)
         msg = self.rpc.call_blockdev_remove(src_node, dev).RemoteFailMsg()
         if msg:
           self.LogWarning("Could not remove snapshot for disk/%d from node"
                           " %s: %s", idx, src_node, msg)
+      else:
+        dresults.append(False)
 
     result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
+    fin_resu = True
     if result.failed or not result.data:
       self.LogWarning("Could not finalize export for instance %s on node %s",
                       instance.name, dst_node.name)
+      fin_resu = False
 
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(dst_node.name)
@@ -6423,6 +6541,7 @@ class LUExportInstance(LogicalUnit):
           if not self.rpc.call_export_remove(node, instance.name):
             self.LogWarning("Could not remove older export for instance %s"
                             " on node %s", instance.name, node)
+    return fin_resu, dresults
 
 
 class LURemoveExport(NoHooksLU):
