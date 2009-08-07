@@ -451,7 +451,7 @@ regression as of today, because even if the OSes are left blind about this
 information, sometimes they still need to make compromises and cannot satisfy
 all possible parameter values.
 
-OS Flavours
+OS Variants
 +++++++++++
 
 Currently we are assisting to some degree of "os proliferation" just to change
@@ -472,29 +472,34 @@ debootstrap-lenny-dev, etc. Crossing more than two parameters quickly becomes
 not manageable.
 
 In order to avoid this we plan to make OSes more customizable, by allowing each
-OS to declare a list of flavours which can be used to customize it. The
-flavours list is mandatory for new API OSes and must contain at least one
-supported flavour. When choosing the OS exactly one flavour will have to be
-specified, and will be encoded in the os name as <OS-name>+<flavour>. As for
+OS to declare a list of variants which can be used to customize it. The
+variants list is mandatory and must be written, one variant per line, in the
+new "variants.list" file inside the main os dir. At least one supported variant
+must be supported. When choosing the OS exactly one variant will have to be
+specified, and will be encoded in the os name as <OS-name>+<variant>. As for
 today it will be possible to change an instance's OS at creation or install
 time.
 
 The 2.1 OS list will be the combination of each OS, plus its supported
-flavours. This will cause the name name proliferation to remain, but at least
-the internal OS code will be simplified to just parsing the passed flavour,
+variants. This will cause the name name proliferation to remain, but at least
+the internal OS code will be simplified to just parsing the passed variant,
 without the need for symlinks or code duplication.
 
-Also we expect the OSes to declare only "interesting" flavours, but to accept
+Also we expect the OSes to declare only "interesting" variants, but to accept
 some non-declared ones which a user will be able to pass in by overriding the
 checks ganeti does. This will be useful for allowing some variations to be used
 without polluting the OS list (per-OS documentation should list all supported
-flavours). If a flavour which is not internally supported is forced through,
+variants). If a variant which is not internally supported is forced through,
 the OS scripts should abort.
 
-In the future (post 2.1) we may want to move to full fledged orthogonal
-parameters for the OSes. In this case we envision the flavours to be moved
-inside of Ganeti and be associated with lists parameter->values associations,
-which will then be passed to the OS.
+In the future (post 2.1) we may want to move to full fledged parameters all
+orthogonal to each other (for example "architecture" (i386, amd64), "suite"
+(lenny, squeeze, ...), etc). (As opposed to the variant, which is a single
+parameter, and you need a different variant for all the set of combinations you
+want to support).  In this case we envision the variants to be moved inside of
+Ganeti and be associated with lists parameter->values associations, which will
+then be passed to the OS.
+
 
 IAllocator changes
 ~~~~~~~~~~~~~~~~~~
