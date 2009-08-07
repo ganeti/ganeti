@@ -93,7 +93,7 @@ def DumpSignedJson(data, key, salt=None):
     'salt': salt,
     'hmac': hmac.new(key, salt + txt, sha1).hexdigest(),
   }
-  return DumpJson(signed_dict)
+  return DumpJson(signed_dict, indent=False)
 
 
 def LoadSignedJson(txt, key):
