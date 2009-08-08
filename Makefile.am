@@ -15,6 +15,7 @@ REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
 httpdir = $(pkgpythondir)/http
+confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
 toolsdir = $(pkglibdir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
@@ -29,6 +30,7 @@ DIRS = \
 	lib/http \
 	lib/hypervisor \
 	lib/rapi \
+	lib/confd \
 	man \
 	qa \
 	scripts \
@@ -110,6 +112,8 @@ http_PYTHON = \
 	lib/http/client.py \
 	lib/http/server.py
 
+confd_PYTHON = \
+	lib/confd/__init__.py
 
 docrst = \
 	doc/admin.rst \
@@ -342,7 +346,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 srclinks: stamp-directories
 	set -e; \
 	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) \
-			$(rapi_PYTHON) $(http_PYTHON); do \
+			$(rapi_PYTHON) $(http_PYTHON) $(confd_PYTHON); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \
