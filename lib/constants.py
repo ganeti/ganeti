@@ -112,6 +112,7 @@ MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
 
 NODED = "ganeti-noded"
+CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
 
@@ -126,9 +127,11 @@ DAEMONS_SSL = {
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
   NODED: ("tcp", 1811),
+  CONFD: ("udp", 1814),
   RAPI: ("tcp", 5080),
 }
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
+DEFAULT_CONFD_PORT = DAEMONS_PORTS[CONFD][1]
 DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
 
 FIRST_DRBD_PORT = 11000
@@ -139,6 +142,7 @@ LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti/"
 DAEMONS_LOGFILES = {
  # "daemon-name": "logfile"
  NODED: LOG_DIR + "node-daemon.log",
+ CONFD: LOG_DIR + "conf-daemon.log",
  RAPI: LOG_DIR + "rapi-daemon.log",
  MASTERD: LOG_DIR + "master-daemon.log",
 }
