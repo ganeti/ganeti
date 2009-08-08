@@ -113,7 +113,8 @@ http_PYTHON = \
 	lib/http/server.py
 
 confd_PYTHON = \
-	lib/confd/__init__.py
+	lib/confd/__init__.py \
+	lib/confd/server.py
 
 docrst = \
 	doc/admin.rst \
