@@ -52,10 +52,10 @@ class SimpleConfigReader(object):
 
     """
     self._file_name = file_name
-    self.Reload()
+    self._Load()
 
-  def Reload(self):
-    """Reloads the config file.
+  def _Load(self):
+    """Loads (or reloads) the config file.
 
     """
     try:
@@ -66,6 +66,10 @@ class SimpleConfigReader(object):
     except ValueError, err:
       raise errors.ConfigurationError("Cannot load config file %s: %s" %
                                       (self._file_name, err))
+
+  # Clients can request a reload of the config file, so we export our internal
+  # _Load function as Reload.
+  Reload = _Load
 
   def GetClusterName(self):
     return self._config_data["cluster"]["cluster_name"]
