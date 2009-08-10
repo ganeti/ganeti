@@ -26,9 +26,7 @@
 
 import os
 import sys
-import traceback
 import SocketServer
-import errno
 import logging
 import signal
 
