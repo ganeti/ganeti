@@ -44,7 +44,7 @@ class ConfdProcessor(object):
   }
 
   def __init__(self, reader):
-    """Constructor for ConfdAsyncUDPServer
+    """Constructor for ConfdProcessor
 
     @type reader: L{ssconf.SimpleConfigReader}
     @param reader: ConfigReader to use to access the config
