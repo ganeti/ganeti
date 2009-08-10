@@ -39,7 +39,7 @@ DAEMON_PID_FILE="/var/run/dnsmasq.pid"
 # In order to handle concurrent execution of this lock, we use the $LOCKFILE.
 # LOCKFILE_CREATE and LOCKFILE_REMOVE are the path names for the lockfile-progs
 # programs which we use as helpers.
-LOCKFILE="/var/lock/ganeti_ethers.lock"
+LOCKFILE="/var/lock/ganeti_ethers"
 LOCKFILE_CREATE="/usr/bin/lockfile-create"
 LOCKFILE_REMOVE="/usr/bin/lockfile-remove"
 
@@ -50,8 +50,8 @@ instance=$GANETI_INSTANCE_NAME
 nic_count=$GANETI_INSTANCE_NIC_COUNT
 
 acquire_lockfile() {
-  $LOCKFILE_CREATE -l $LOCKFILE || exit 1
-  trap "$LOCKFILE_REMOVE -l $LOCKFILE" EXIT
+  $LOCKFILE_CREATE $LOCKFILE || exit 1
+  trap "$LOCKFILE_REMOVE $LOCKFILE" EXIT
 }
 
 update_ethers_from_new() {
