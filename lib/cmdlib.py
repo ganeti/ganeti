@@ -1348,7 +1348,6 @@ class LURepairDiskSizes(NoHooksLU):
         if full_name is None:
           raise errors.OpPrereqError("Instance '%s' not known" % name)
         self.wanted_names.append(full_name)
-      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
       self.needed_locks = {
         locking.LEVEL_NODE: [],
         locking.LEVEL_INSTANCE: self.wanted_names,
