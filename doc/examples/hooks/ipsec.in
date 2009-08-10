@@ -1,0 +1,268 @@
+#!/bin/bash
+
+# Copyright (C) 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+# This is an example ganeti hook that sets up an IPsec ESP link between all the
+# nodes of a cluster for a given list of protocols.
+
+# When run on cluster initialization it will create the shared key to be used
+# for all the links. When run on node add/removal it will reconfigure IPsec
+# on each node of the cluster.
+
+set -e
+
+LOCALSTATEDIR=@LOCALSTATEDIR@
+SYSCONFDIR=@SYSCONFDIR@
+
+GNTDATA=${LOCALSTATEDIR}/lib/ganeti
+
+LOCKFILE=${LOCALSTATEDIR}/lock/ganeti_ipsec
+CRYPTALGO=rijndael-cbc
+KEYPATH=${GNTDATA}/ipsec.key
+KEYSIZE=24
+PROTOSTOSEC="icmp tcp"
+TCPTOIGNORE="22 1811"
+# On debian/ubuntu this file is automatically reloaded on boot
+SETKEYCONF=${SYSCONFDIR}/ipsec-tools.conf
+SETKEYCUSTOMCONF=${SYSCONFDIR}/ipsec-tools-custom.conf
+AUTOMATIC_MARKER="# Automatically generated rules"
+REGEN_KEY_WAIT=2
+
+NODES=${GNTDATA}/ssconf_node_secondary_ips
+MASTERNAME_FILE=${GNTDATA}/ssconf_master_node
+MASTERIP_FILE=${GNTDATA}/ssconf_master_ip
+
+SSHOPTS="-q -oUserKnownHostsFile=/dev/null -oStrictHostKeyChecking=no \
+         -oGlobalKnownHostsFile=${GNTDATA}/known_hosts"
+SCPOPTS="-p $SSHOPTS"
+
+CLEANUP=( )
+
+cleanup() {
+  # Perform all registered cleanup operation
+  local i
+  for (( i=${#CLEANUP[@]}; i >= 0 ; --i )); do
+    ${CLEANUP[$i]}
+  done
+}
+
+acquire_lockfile() {
+  # Acquire the lockfile associated with system ipsec configuration.
+  lockfile-create "$LOCKFILE" || exit 1
+  CLEANUP+=("lockfile-remove $LOCKFILE")
+}
+
+update_system_ipsec() {
+  # Update system ipsec configuration.
+  # $1 : temporary location of a working configuration
+  local TMPCONF="$1"
+  acquire_lockfile
+  mv "$TMPCONF" "$SETKEYCONF"
+  setkey -f "$SETKEYCONF"
+}
+
+update_keyfile() {
+  # Obtain the IPsec keyfile from the master.
+  local MASTERIP=$(< "$MASTERIP_FILE")
+  scp $SCPOPTS "$MASTERIP":"$KEYPATH" "$KEYPATH"
+}
+
+gather_key() {
+  # Output IPsec key, if no key is present on the node
+  # obtain it from master.
+  if [[ ! -f "$KEYPATH" ]]; then
+    update_keyfile
+  fi
+  cut -d ' ' -f2 "$KEYPATH"
+}
+
+gather_key_seqno() {
+  # Output IPsec key sequence number, if no key is present
+  # on the node exit with error.
+  if [[ ! -f "$KEYPATH" ]]; then
+    echo 'Cannot obtain key timestamp, no key file.' >&2
+    exit 1
+  fi
+  cut -d ' ' -f1 "$KEYPATH"
+}
+
+update_ipsec_conf() {
+  # Generate a new IPsec configuration and update the system.
+  local TMPCONF=$(mktemp)
+  CLEANUP+=("rm -f $TMPCONF")
+  ESCAPED_HOSTNAME=$(sed 's/\./\\./g' <<< "$HOSTNAME")
+  local MYADDR=$(grep -E "^$ESCAPED_HOSTNAME\\>" "$NODES" | cut -d ' ' -f2)
+  local KEY=$(gather_key)
+  local SETKEYPATH=$(which setkey)
+
+  {
+  echo "#!$SETKEYPATH -f"
+  echo
+  echo "# Configuration for $MYADDR"
+  echo
+  echo '# This file has been automatically generated. Do not modify by hand,'
+  echo "# add your own rules to $SETKEYCUSTOMCONF instead."
+  echo
+  echo '# Flush SAD and SPD'
+  echo 'flush;'
+  echo 'spdflush;'
+  echo
+  if [[ -f "$SETKEYCUSTOMCONF" ]]; then
+    echo "# Begin custom rules from $SETKEYCUSTOMCONF"
+    cat "$SETKEYCUSTOMCONF"
+    echo "# End custom rules from $SETKEYCUSTOMCONF"
+    echo
+  fi
+  echo "$AUTOMATIC_MARKER"
+  for node in $(cut -d ' ' -f2 "$NODES") ; do
+    if [[ "$node" != "$MYADDR" ]]; then
+      # Traffic to ignore
+      for port in $TCPTOIGNORE ; do
+        echo "spdadd $MYADDR[$port] $node tcp -P out none;"
+        echo "spdadd $node $MYADDR[$port] tcp -P in none;"
+        echo "spdadd $MYADDR $node[$port] tcp -P out none;"
+        echo "spdadd $node[$port] $MYADDR tcp -P in none;"
+      done
+      # IPsec ESP rules
+      echo "add $MYADDR $node esp 0x201 -E $CRYPTALGO $KEY;"
+      echo "add $node $MYADDR esp 0x201 -E $CRYPTALGO $KEY;"
+      for proto in $PROTOSTOSEC ; do
+        echo "spdadd $MYADDR $node $proto -P out ipsec esp/transport//require;"
+        echo "spdadd $node $MYADDR $proto -P in ipsec esp/transport//require;"
+      done
+      echo
+    fi
+  done
+  } > "$TMPCONF"
+
+  chmod 400 "$TMPCONF"
+  update_system_ipsec "$TMPCONF"
+}
+
+regen_ipsec_conf() {
+  # Reconfigure IPsec on the system when a new key is generated
+  # on the master (assuming the current configuration is working
+  # and a new key is about to be generated on the master).
+  if [[ ! -f "$KEYPATH" ]]; then
+    echo 'Asking to regenerate with new key, but no old key.' >&2
+    exit 1
+  fi
+  local CURSEQNO=$(gather_key_seqno)
+  update_keyfile
+  local NEWSEQNO=$(gather_key_seqno)
+  while [[ $NEWSEQNO -le $CURSEQNO ]]; do
+    # Master did not update yet, wait..
+    sleep $REGEN_KEY_WAIT
+    update_keyfile
+    NEWSEQNO=$(gather_key_seqno)
+  done
+  update_ipsec_conf
+}
+
+clean_ipsec_conf() {
+  # Unconfigure IPsec on the system, removing the key and
+  # the rules previously generated.
+  rm -f "$KEYPATH"
+
+  local TMPCONF=$(mktemp)
+  CLEANUP+=("rm -f $TMPCONF")
+  # Remove all auto-generated rules
+  sed "/$AUTOMATIC_MARKER/q" "$SETKEYCONF" > "$TMPCONF"
+  chmod 400 "$TMPCONF"
+  update_system_ipsec "$TMPCONF"
+}
+
+generate_secret() {
+  # Generate a random HEX string (length specified by global variable KEYSIZE)
+  python -c "from ganeti import utils; print utils.GenerateSecret($KEYSIZE)"
+}
+
+gen_key() {
+  # Generate a new random key to be used for IPsec, the key is associated with
+  # a sequence number.
+  local KEY=$(generate_secret)
+  if [[ ! -f "$KEYPATH" ]]; then
+    # New environment/cluster, let's start from scratch
+    local SEQNO="0"
+  else
+    local SEQNO=$(( $(gather_key_seqno) + 1 ))
+  fi
+  local TMPKEYPATH=$(mktemp)
+  CLEANUP+=("rm -f $TMPKEYPATH")
+  echo -n "$SEQNO 0x$KEY" > "$TMPKEYPATH"
+  chmod 400 "$TMPKEYPATH"
+  mv "$TMPKEYPATH" "$KEYPATH"
+}
+
+trap cleanup EXIT
+
+hooks_path="$GANETI_HOOKS_PATH"
+if [[ ! -n "$hooks_path" ]]; then
+  echo '\$GANETI_HOOKS_PATH not specified.' >&2
+  exit 1
+fi
+hooks_phase="$GANETI_HOOKS_PHASE"
+if [[ ! -n "$hooks_phase" ]]; then
+  echo '\$GANETI_HOOKS_PHASE not specified.' >&2
+  exit 1
+fi
+
+if [[ "$hooks_phase" = post ]]; then
+  case "$hooks_path" in
+    cluster-init)
+        gen_key
+        ;;
+    cluster-destroy)
+        clean_ipsec_conf
+        ;;
+    cluster-regenkey)
+        # This hook path is not yet implemented in Ganeti, here we suppose it
+        # runs on all the nodes.
+        MASTERNAME=$(< "$MASTERNAME_FILE")
+        if [[ "$MASTERNAME" = "$HOSTNAME" ]]; then
+          gen_key
+          update_ipsec_conf
+        else
+          regen_ipsec_conf
+        fi
+        ;;
+    node-add)
+        update_ipsec_conf
+        ;;
+    node-remove)
+        node_name="$GANETI_NODE_NAME"
+        if [[ ! -n "$node_name" ]]; then
+          echo '\$GANETI_NODE_NAME not specified.' >&2
+          exit 1
+        fi
+        if [[ "$node_name" = "$HOSTNAME" ]]; then
+          clean_ipsec_conf
+        else
+          update_ipsec_conf
+        fi
+        ;;
+    *)
+        echo "Hooks path $hooks_path is not for us." >&2
+        ;;
+  esac
+else
+  echo "Hooks phase $hooks_phase is not for us." >&2
+fi
+
+
