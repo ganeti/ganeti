@@ -26,6 +26,7 @@ DIRS = \
 	devel \
 	doc \
 	doc/examples \
+	doc/examples/hooks \
 	lib \
 	lib/http \
 	lib/hypervisor \
@@ -158,6 +159,7 @@ EXTRA_DIST = \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
+	doc/examples/hooks/ethers \
 	doc/locking.txt \
 	test/testutils.py \
 	test/mocks.py \
