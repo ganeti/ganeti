@@ -26,17 +26,13 @@ It uses UDP+HMAC for authentication with a global cluster key.
 
 """
 
-import sys
 import logging
 import time
-
-from optparse import OptionParser
 
 from ganeti import constants
 from ganeti import objects
 from ganeti import errors
 from ganeti import utils
-from ganeti import ssconf
 from ganeti import serializer
 
 

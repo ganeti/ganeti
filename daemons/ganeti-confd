@@ -28,10 +28,7 @@ It uses UDP+HMAC for authentication with a global cluster key.
 
 import os
 import sys
-import traceback
-import errno
 import logging
-import time
 import asyncore
 import socket
 import pyinotify
@@ -39,12 +36,9 @@ import pyinotify
 from optparse import OptionParser
 
 from ganeti import constants
-from ganeti import objects
 from ganeti import errors
 from ganeti import daemon
-from ganeti import utils
 from ganeti import ssconf
-from ganeti import serializer
 from ganeti.asyncnotifier import AsyncNotifier
 from ganeti.confd.server import ConfdProcessor
 
