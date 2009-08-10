@@ -170,6 +170,17 @@ class OpCode(BaseOpCode):
 
 # cluster opcodes
 
+class OpPostInitCluster(OpCode):
+  """Post cluster initialization.
+
+  This opcode does not touch the cluster at all. Its purpose is to run hooks
+  after the cluster has been initialized.
+
+  """
+  OP_ID = "OP_CLUSTER_POST_INIT"
+  __slots__ = OpCode.__slots__ + []
+
+
 class OpDestroyCluster(OpCode):
   """Destroy the cluster.
 

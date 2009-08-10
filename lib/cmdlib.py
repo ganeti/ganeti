@@ -749,6 +749,35 @@ def _GetStorageTypeArgs(cfg, storage_type):
   return []
 
 
+class LUPostInitCluster(LogicalUnit):
+  """Logical unit for running hooks after cluster initialization.
+
+  """
+  HPATH = "cluster-init"
+  HTYPE = constants.HTYPE_CLUSTER
+  _OP_REQP = []
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {"OP_TARGET": self.cfg.GetClusterName()}
+    mn = self.cfg.GetMasterNode()
+    return env, [], [mn]
+
+  def CheckPrereq(self):
+    """No prerequisites to check.
+
+    """
+    return True
+
+  def Exec(self, feedback_fn):
+    """Nothing to do.
+
+    """
+    return True
+
+
 class LUDestroyCluster(NoHooksLU):
   """Logical unit for destroying the cluster.
 
