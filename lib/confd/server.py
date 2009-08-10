@@ -35,12 +35,17 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import serializer
 
+from ganeti.confd import querylib
+
 
 class ConfdProcessor(object):
   """A processor for confd requests.
 
   """
   DISPATCH_TABLE = {
+      constants.CONFD_REQ_PING: querylib.PingQuery,
+      constants.CONFD_REQ_NODE_ROLE_BYNAME: querylib.ConfdQuery,
+      constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP: querylib.ConfdQuery,
   }
 
   def __init__(self, reader):
@@ -127,16 +132,17 @@ class ConfdProcessor(object):
       raise errors.ConfdRequestError(msg)
 
     if request.type not in self.DISPATCH_TABLE:
-      answer = 'not implemented'
-      status = constants.CONFD_REPL_STATUS_NOTIMPLEMENTED
-      reply = objects.ConfdReply(
-                protocol=constants.CONFD_PROTOCOL_VERSION,
-                status=status,
-                answer=answer,
-                )
-    else:
-      # TODO: actually dispatch queries to some classes to handle them
-      assert False, "DISPATCH_TABLE is populated but handler is not"
+      msg = "Valid request %d not in DISPATCH_TABLE" % request.type
+      raise errors.ProgrammerError(msg)
+
+    query_object = self.DISPATCH_TABLE[request.type](self.reader)
+    status, answer = query_object.Exec(request.query)
+    reply = objects.ConfdReply(
+              protocol=constants.CONFD_PROTOCOL_VERSION,
+              status=status,
+              answer=answer,
+              serial=self.reader.GetConfigSerialNo(),
+              )
 
     logging.debug("Sending reply: %s" % reply)
 

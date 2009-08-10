@@ -114,7 +114,8 @@ http_PYTHON = \
 
 confd_PYTHON = \
 	lib/confd/__init__.py \
-	lib/confd/server.py
+	lib/confd/server.py \
+	lib/confd/querylib.py
 
 docrst = \
 	doc/admin.rst \
