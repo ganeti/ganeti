@@ -57,6 +57,9 @@ class ConfdProcessor(object):
     """
     self.reader = reader
     self.hmac_key = utils.ReadFile(constants.HMAC_CLUSTER_KEY)
+    assert \
+      not constants.CONFD_REQS.symmetric_difference(self.DISPATCH_TABLE), \
+      "DISPATCH_TABLE is unaligned with CONFD_REQS"
 
   def ExecQuery(self, payload_in, ip, port):
     """Process a single UDP request from a client.
@@ -130,10 +133,6 @@ class ConfdProcessor(object):
     if not rsalt:
       msg = "missing requested salt"
       raise errors.ConfdRequestError(msg)
-
-    if request.type not in self.DISPATCH_TABLE:
-      msg = "Valid request %d not in DISPATCH_TABLE" % request.type
-      raise errors.ProgrammerError(msg)
 
     query_object = self.DISPATCH_TABLE[request.type](self.reader)
     status, answer = query_object.Exec(request.query)
