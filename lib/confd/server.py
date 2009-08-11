@@ -44,7 +44,7 @@ class ConfdProcessor(object):
   """
   DISPATCH_TABLE = {
       constants.CONFD_REQ_PING: querylib.PingQuery,
-      constants.CONFD_REQ_NODE_ROLE_BYNAME: querylib.ConfdQuery,
+      constants.CONFD_REQ_NODE_ROLE_BYNAME: querylib.NodeRoleQuery,
       constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP: querylib.ConfdQuery,
   }
 

@@ -75,3 +75,37 @@ class PingQuery(ConfdQuery):
 
     return status, answer
 
+
+class NodeRoleQuery(ConfdQuery):
+  """An empty confd query.
+
+  It will return success on an empty argument, and an error on any other argument.
+
+  """
+  def Exec(self, query):
+    """EmptyQuery main execution
+
+    """
+    node = query
+    if self.reader.GetMasterNode() == node:
+      status = constants.CONFD_REPL_STATUS_OK
+      answer = constants.CONFD_NODE_ROLE_MASTER
+      return status, answer
+    flags = self.reader.GetNodeStatusFlags(node)
+    if flags is None:
+      status = constants.CONFD_REPL_STATUS_ERROR
+      answer = constants.CONFD_ERROR_UNKNOWN_ENTRY
+      return status, answer
+
+    master_candidate, drained, offline = flags
+    if master_candidate:
+      answer = constants.CONFD_NODE_ROLE_CANDIDATE
+    elif drained:
+      answer = constants.CONFD_NODE_ROLE_DRAINED
+    elif offline:
+      answer = constants.CONFD_NODE_ROLE_OFFLINE
+    else:
+      answer = constants.CONFD_NODE_ROLE_REGULAR
+
+    return constants.CONFD_REPL_STATUS_OK, answer
+
