@@ -106,10 +106,11 @@ QUEUE_DIR = DATA_DIR + "/queue"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 SYSCONFDIR = _autoconf.SYSCONFDIR
+CONF_DIR = SYSCONFDIR + "/ganeti"
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
-NODE_INITD_SCRIPT = _autoconf.SYSCONFDIR + "/init.d/ganeti"
+NODE_INITD_SCRIPT = SYSCONFDIR + "/init.d/ganeti"
 
 NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
@@ -171,7 +172,7 @@ VALUE_TRUE = "true"
 VALUE_FALSE = "false"
 
 # hooks-related constants
-HOOKS_BASE_DIR = _autoconf.SYSCONFDIR + "/ganeti/hooks"
+HOOKS_BASE_DIR = CONF_DIR + "/hooks"
 HOOKS_PHASE_PRE = "pre"
 HOOKS_PHASE_POST = "post"
 HOOKS_NAME_CFGUPDATE = "config-update"
@@ -430,7 +431,7 @@ HYPER_TYPES = frozenset([HT_XEN_PVM, HT_FAKE, HT_XEN_HVM, HT_KVM, HT_CHROOT])
 HTS_REQ_PORT = frozenset([HT_XEN_HVM, HT_KVM])
 
 VNC_BASE_PORT = 5900
-VNC_PASSWORD_FILE = _autoconf.SYSCONFDIR + "/ganeti/vnc-cluster-password"
+VNC_PASSWORD_FILE = CONF_DIR + "/vnc-cluster-password"
 VNC_DEFAULT_BIND_ADDRESS = '0.0.0.0'
 
 # NIC types
