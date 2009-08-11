@@ -131,6 +131,23 @@ class SimpleConfigReader(object):
   def GetClusterSerialNo(self):
     return self._config_data["cluster"]["serial_no"]
 
+  def GetNodeStatusFlags(self, node):
+    """Get a node's status flags
+
+    @type node: string
+    @param node: node name
+    @rtype: (bool, bool, bool)
+    @return: (master_candidate, drained, offline) (or None if no such node)
+
+    """
+    if node not in self._config_data["nodes"]:
+      return None
+
+    master_candidate = self._config_data["nodes"][node]["master_candidate"]
+    drained = self._config_data["nodes"][node]["drained"]
+    offline = self._config_data["nodes"][node]["offline"]
+    return master_candidate, drained, offline
+
 
 class SimpleStore(object):
   """Interface to static cluster data.
