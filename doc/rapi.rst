@@ -541,6 +541,19 @@ Requests a list of storage units on a node. Requires the parameters
 ``output_fields``. The result will be a job id, using which the result can be
 retrieved.
 
+``/2/nodes/[node_name]/storage/modify``
++++++++++++++++++++++++++++++++++++++++
+
+Modifies storage units on the node.
+
+``PUT``
+~~~~~~~
+
+Modifies parameters of storage units on the node. Requires the parameters
+``storage_type`` (one of ``file``, ``lvm-pv`` or ``lvm-vg``) and ``name`` (name
+of the storage unit).  Parameters can be passed additionally. Currently only
+``allocatable`` (bool) is supported. The result will be a job id.
+
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++
 
