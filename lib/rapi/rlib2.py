@@ -27,6 +27,7 @@ from ganeti import opcodes
 from ganeti import http
 from ganeti import constants
 from ganeti import cli
+from ganeti import rapi
 from ganeti.rapi import baserlib
 
 
