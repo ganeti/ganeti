@@ -1148,9 +1148,9 @@ class ConfigWriter:
     instance_names = utils.NiceSort(self._UnlockedGetInstanceList())
     node_names = utils.NiceSort(self._UnlockedGetNodeList())
     node_info = [self._UnlockedGetNodeInfo(name) for name in node_names]
-    node_pri_ips = ["%s,%s" % (ninfo.name, ninfo.primary_ip)
+    node_pri_ips = ["%s %s" % (ninfo.name, ninfo.primary_ip)
                     for ninfo in node_info]
-    node_snd_ips = ["%s,%s" % (ninfo.name, ninfo.secondary_ip)
+    node_snd_ips = ["%s %s" % (ninfo.name, ninfo.secondary_ip)
                     for ninfo in node_info]
 
     instance_data = fn(instance_names)
