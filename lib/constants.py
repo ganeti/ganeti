@@ -648,7 +648,9 @@ CONFD_REPL_STATUSES = frozenset([
 (CONFD_NODE_ROLE_MASTER,
  CONFD_NODE_ROLE_CANDIDATE,
  CONFD_NODE_ROLE_OFFLINE,
- CONFD_NODE_ROLE_DRAINED) = range(4)
+ CONFD_NODE_ROLE_DRAINED,
+ CONFD_NODE_ROLE_REGULAR,
+ ) = range(5)
 
 # Each request is "salted" by the current timestamp.
 # This constants decides how many seconds of skew to accept.
