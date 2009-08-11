@@ -5671,20 +5671,21 @@ class TLReplaceDisks(Tasklet):
 
     """
     # check for valid parameter combination
-    cnt = [remote_node, iallocator].count(None)
     if mode == constants.REPLACE_DISK_CHG:
-      if cnt == 2:
+      if remote_node is None and iallocator is None:
         raise errors.OpPrereqError("When changing the secondary either an"
                                    " iallocator script must be used or the"
                                    " new node given")
-      elif cnt == 0:
+
+      if remote_node is not None and iallocator is not None:
         raise errors.OpPrereqError("Give either the iallocator or the new"
                                    " secondary, not both")
-    else: # not replacing the secondary
-      if cnt != 2:
-        raise errors.OpPrereqError("The iallocator and new node options can"
-                                   " be used only when changing the"
-                                   " secondary node")
+
+    elif remote_node is not None or iallocator is not None:
+      # Not replacing the secondary
+      raise errors.OpPrereqError("The iallocator and new node options can"
+                                 " only be used when changing the"
+                                 " secondary node")
 
   @staticmethod
   def _RunAllocator(lu, iallocator_name, instance_name, relocate_from):
