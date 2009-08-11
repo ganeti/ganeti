@@ -652,6 +652,9 @@ CONFD_REPL_STATUSES = frozenset([
  CONFD_NODE_ROLE_REGULAR,
  ) = range(5)
 
+# A few common errors for confd
+CONFD_ERROR_UNKNOWN_ENTRY = 1
+
 # Each request is "salted" by the current timestamp.
 # This constants decides how many seconds of skew to accept.
 # TODO: make this a default and allow the value to be more configurable
