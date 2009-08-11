@@ -23,6 +23,8 @@
 
 """
 
+import logging
+
 from ganeti import constants
 
 # constants for some common errors to return from a query
@@ -111,4 +113,34 @@ class NodeRoleQuery(ConfdQuery):
       answer = constants.CONFD_NODE_ROLE_REGULAR
 
     return constants.CONFD_REPL_STATUS_OK, answer
+
+
+class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
+  """An empty confd query.
+
+  It will return success on an empty argument, and an error on any other argument.
+
+  """
+  def Exec(self, query):
+    """EmptyQuery main execution
+
+    """
+    instance_ip = query
+    instance = self.reader.GetInstanceByIp(instance_ip)
+    if instance is None:
+      return QUERY_UNKNOWN_ENTRY_ERROR
+
+    pnode = self.reader.GetInstancePrimaryNode(instance)
+    if pnode is None:
+      # this shouldn't happen
+      logging.error("Internal configuration inconsistent (instance-to-pnode)")
+      return QUERY_INTERNAL_ERROR
+
+    pnode_primary_ip = self.reader.GetNodePrimaryIp(pnode)
+    if pnode_primary_ip is None:
+      # this shouldn't happen
+      logging.error("Internal configuration inconsistent (node-to-primary-ip)")
+      return QUERY_INTERNAL_ERROR
+
+    return constants.CONFD_REPL_STATUS_OK, pnode_primary_ip
 
