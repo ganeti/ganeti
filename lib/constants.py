@@ -654,6 +654,7 @@ CONFD_REPL_STATUSES = frozenset([
 
 # A few common errors for confd
 CONFD_ERROR_UNKNOWN_ENTRY = 1
+CONFD_ERROR_INTERNAL = 2
 
 # Each request is "salted" by the current timestamp.
 # This constants decides how many seconds of skew to accept.

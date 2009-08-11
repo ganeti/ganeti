@@ -25,6 +25,11 @@
 
 from ganeti import constants
 
+# constants for some common errors to return from a query
+QUERY_UNKNOWN_ENTRY_ERROR = (constants.CONFD_REPL_STATUS_ERROR,
+                             constants.CONFD_ERROR_UNKNOWN_ENTRY)
+QUERY_INTERNAL_ERROR = (constants.CONFD_REPL_STATUS_ERROR,
+                        constants.CONFD_ERROR_INTERNAL)
 
 class ConfdQuery(object):
   """Confd Query base class.
@@ -93,9 +98,7 @@ class NodeRoleQuery(ConfdQuery):
       return status, answer
     flags = self.reader.GetNodeStatusFlags(node)
     if flags is None:
-      status = constants.CONFD_REPL_STATUS_ERROR
-      answer = constants.CONFD_ERROR_UNKNOWN_ENTRY
-      return status, answer
+      return QUERY_UNKNOWN_ENTRY_ERROR
 
     master_candidate, drained, offline = flags
     if master_candidate:
