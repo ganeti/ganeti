@@ -234,11 +234,10 @@ Proposed changes
 ++++++++++++++++
 
 RedistributeConfig will be changed to copy also the rapi files, and to call
-every enabled hypervisor asking for a list of additional files to copy. We also
-may want to add a global list of files on the cluster object, which will be
-propagated as well, or a hook to calculate them. If we implement this feature
-there should be a way to specify whether a file must be shipped to all nodes or
-just master candidates.
+every enabled hypervisor asking for a list of additional files to copy. Users
+will have the possibility to populate a file containing a list of files to be
+distributed; this file will be propagated as well. Such solution is really
+simple to implement and it's easily usable by scripts.
 
 This code will be also shared (via tasklets or by other means, if tasklets are
 not ready for 2.1) with the AddNode and SetNodeParams LUs (so that the relevant
