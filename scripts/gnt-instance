@@ -826,15 +826,20 @@ def ReplaceDisks(opts, args):
       disks = [int(i) for i in opts.disks.split(",")]
     except ValueError, err:
       raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
-  cnt = [opts.on_primary, opts.on_secondary,
+  cnt = [opts.on_primary, opts.on_secondary, opts.auto,
          new_2ndary is not None, iallocator is not None].count(True)
   if cnt != 1:
-    raise errors.OpPrereqError("One and only one of the -p, -s, -n and -i"
+    raise errors.OpPrereqError("One and only one of the -p, -s, -a, -n and -i"
                                " options must be passed")
   elif opts.on_primary:
     mode = constants.REPLACE_DISK_PRI
   elif opts.on_secondary:
     mode = constants.REPLACE_DISK_SEC
+  elif opts.auto:
+    mode = constants.REPLACE_DISK_AUTO
+    if disks:
+      raise errors.OpPrereqError("Cannot specify disks when using automatic"
+                                 " mode")
   elif new_2ndary is not None or iallocator is not None:
     # replace secondary
     mode = constants.REPLACE_DISK_CHG
@@ -1463,6 +1468,10 @@ commands = {
                                  default=False, action="store_true",
                                  help=("Replace the disk(s) on the secondary"
                                        " node (only for the drbd template)")),
+                     make_option("-a", "--auto", dest="auto",
+                                 default=False, action="store_true",
+                                 help=("Automatically replace faulty disks"
+                                       " (only for the drbd template)")),
                      make_option("--disks", dest="disks", default=None,
                                  help="Comma-separated list of disks"
                                  " indices to replace (e.g. 0,2) (optional,"

@@ -1666,6 +1666,13 @@ instance5: 11225
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
+        <cmdsynopsis>
+          <command>replace-disks</command>
+          <arg>--submit</arg>
+          <arg choice="req">--auto</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
         <para>
           This command is a generalized form for replacing disks. It
           is currently only valid for the mirrored (DRBD) disk
@@ -1694,6 +1701,15 @@ instance5: 11225
           selected automatically by the specified allocator plugin,
           otherwise the new secondary node will be the one chosen
           manually via the <option>--new-secondary</option> option.
+        </para>
+
+        <para>
+          The fourth form (when using <option>--auto</option>) will
+          automatically determine which disks of an instance are faulty and
+          replace them within the same node. The <option>--auto</option>
+          option works only when an instance has only faulty disks on
+          either the primary or secondary node; it doesn't work when
+          both sides have faulty disks.
         </para>
 
         <para>
