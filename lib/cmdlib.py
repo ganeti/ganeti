@@ -6907,7 +6907,7 @@ class IAllocator(object):
         "master_candidate": ninfo.master_candidate,
         }
 
-      if not ninfo.offline:
+      if not (ninfo.offline or ninfo.drained):
         nresult.Raise()
         if not isinstance(nresult.data, dict):
           raise errors.OpExecError("Can't get data for node %s" % nname)
