@@ -334,6 +334,22 @@ instance if even if secondary disks are failing.
 It supports the ``dry-run`` argument.
 
 
+``/2/instances/[instance_name]/replace-disks``
+++++++++++++++++++++++++++++++++++++++++++++++
+
+Replaces disks on an instance.
+
+It supports the following commands: ``POST``.
+
+``POST``
+~~~~~~~~
+
+Takes the parameters ``mode`` (one of ``replace_on_primary``,
+``replace_on_secondary``, ``replace_new_secondary`` or ``replace_auto``),
+``disks`` (comma separated list of disk indexes), ``remote_node`` and
+``iallocator``.
+
+
 ``/2/instances/[instance_name]/tags``
 +++++++++++++++++++++++++++++++++++++
 

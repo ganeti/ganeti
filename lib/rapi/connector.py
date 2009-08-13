@@ -170,6 +170,8 @@ CONNECTOR.update({
       rlib2.R_2_instances_name_reboot,
   re.compile(r'^/2/instances/([\w\._-]+)/reinstall$'):
       rlib2.R_2_instances_name_reinstall,
+  re.compile(r'^/2/instances/([\w\._-]+)/replace-disks$'):
+      rlib2.R_2_instances_name_replace_disks,
   re.compile(r'^/2/instances/([\w\._-]+)/shutdown$'):
       rlib2.R_2_instances_name_shutdown,
   re.compile(r'^/2/instances/([\w\._-]+)/startup$'):

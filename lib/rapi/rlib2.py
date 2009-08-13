@@ -550,6 +550,37 @@ class R_2_instances_name_reinstall(baserlib.R_Generic):
     return baserlib.SubmitJob(ops)
 
 
+class R_2_instances_name_replace_disks(baserlib.R_Generic):
+  """/2/instances/[instance_name]/replace-disks resource.
+
+  """
+  def POST(self):
+    """Replaces disks on an instance.
+
+    """
+    instance_name = self.items[0]
+    remote_node = self._checkStringVariable("remote_node", default=None)
+    mode = self._checkStringVariable("mode", default=None)
+    raw_disks = self._checkStringVariable("disks", default=None)
+    iallocator = self._checkStringVariable("iallocator", default=None)
+
+    if raw_disks:
+      try:
+        disks = [int(part) for part in raw_disks.split(",")]
+      except ValueError, err:
+        raise http.HttpBadRequest("Invalid disk index passed: %s" % str(err))
+    else:
+      disks = []
+
+    op = opcodes.OpReplaceDisks(instance_name=instance_name,
+                                remote_node=remote_node,
+                                mode=mode,
+                                disks=disks,
+                                iallocator=iallocator)
+
+    return baserlib.SubmitJob([op])
+
+
 class _R_Tags(baserlib.R_Generic):
   """ Quasiclass for tagging resources
 
