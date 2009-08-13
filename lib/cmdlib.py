@@ -5883,10 +5883,11 @@ class TLReplaceDisks(Tasklet):
       raise errors.OpPrereqError("The specified node is already the"
                                  " secondary node of the instance.")
 
-    if self.mode == constants.REPLACE_DISK_AUTO:
-      if self.disks:
-        raise errors.OpPrereqError("Cannot specify disks to be replaced")
+    if self.disks and self.mode in (constants.REPLACE_DISK_AUTO,
+                                    constants.REPLACE_DISK_CHG):
+      raise errors.OpPrereqError("Cannot specify disks to be replaced")
 
+    if self.mode == constants.REPLACE_DISK_AUTO:
       faulty_primary = self._FindFaultyDisks(self.instance.primary_node)
       faulty_secondary = self._FindFaultyDisks(secondary_node)
 
