@@ -26,6 +26,7 @@ DIRS = \
 	devel \
 	doc \
 	doc/examples \
+	doc/examples/hooks \
 	lib \
 	lib/http \
 	lib/hypervisor \
@@ -182,6 +183,7 @@ EXTRA_DIST = \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
+	doc/examples/hooks/ethers \
 	doc/locking.txt \
 	test/testutils.py \
 	test/mocks.py \
@@ -341,6 +343,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
 	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
+	  echo 's#@PKGLIBDIR@#$(pkglibdir)#g'; \
 	} > $@
 
 # We need to create symlinks because "make distcheck" will not install Python

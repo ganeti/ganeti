@@ -187,6 +187,14 @@ class ConfigObject(object):
                       " _ContainerFromDicts" % c_type)
     return ret
 
+  def Copy(self):
+    """Makes a deep copy of the current object and its children.
+
+    """
+    dict_form = self.ToDict()
+    clone_obj = self.__class__.FromDict(dict_form)
+    return clone_obj
+
   def __repr__(self):
     """Implement __repr__ for ConfigObjects."""
     return repr(self.ToDict())
@@ -462,6 +470,15 @@ class Disk(ConfigObject):
     else:
       raise errors.ProgrammerError("Disk.RecordGrow called for unsupported"
                                    " disk type %s" % self.dev_type)
+
+  def UnsetSize(self):
+    """Sets recursively the size to zero for the disk and its children.
+
+    """
+    if self.children:
+      for child in self.children:
+        child.UnsetSize()
+    self.size = 0
 
   def SetPhysicalID(self, target_node, nodes_ip):
     """Convert the logical ID to the physical ID.

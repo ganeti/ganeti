@@ -651,7 +651,8 @@ def ActivateDisks(opts, args):
 
   """
   instance_name = args[0]
-  op = opcodes.OpActivateInstanceDisks(instance_name=instance_name)
+  op = opcodes.OpActivateInstanceDisks(instance_name=instance_name,
+                                       ignore_size=opts.ignore_size)
   disks_info = SubmitOrSend(op, opts)
   for host, iname, nname in disks_info:
     ToStdout("%s:%s:%s", host, iname, nname)
@@ -1539,7 +1540,14 @@ commands = {
                SUBMIT_OPT,
                ],
             "<instance>", "Reboots an instance"),
-  'activate-disks': (ActivateDisks, ARGS_ONE, [DEBUG_OPT, SUBMIT_OPT],
+  'activate-disks': (ActivateDisks, ARGS_ONE,
+                     [DEBUG_OPT, SUBMIT_OPT,
+                      make_option("--ignore-size", dest="ignore_size",
+                                  default=False, action="store_true",
+                                  help="Ignore current recorded size"
+                                  " (useful for forcing activation when"
+                                  " the recorded size is wrong)"),
+                      ],
                      "<instance>",
                      "Activate an instance's disks"),
   'deactivate-disks': (DeactivateDisks, ARGS_ONE, [DEBUG_OPT, SUBMIT_OPT],

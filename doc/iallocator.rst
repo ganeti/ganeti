@@ -176,7 +176,7 @@ instances
 
 nodes
   dictionary with the data for the nodes in the cluster, indexed by
-  the node name; the dict contains:
+  the node name; the dict contains [*]_ :
 
   total_disk
     the total disk size of this node (mebibytes)
@@ -225,9 +225,13 @@ nodes
   or ``offline`` flags set. More details about these of node status
   flags is available in the manpage :manpage:`ganeti(7)`.
 
+.. [*] Note that no run-time data is present for offline or drained nodes;
+   this means the tags total_memory, reserved_memory, free_memory, total_disk,
+   free_disk, total_cpus, i_pri_memory and i_pri_up memory will be absent
 
-Respone message
-~~~~~~~~~~~~~~~
+
+Response message
+~~~~~~~~~~~~~~~~
 
 The response message is much more simple than the input one. It is
 also a dict having three keys:

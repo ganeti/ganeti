@@ -661,4 +661,3 @@ CONFD_ERROR_INTERNAL = 2
 # This constants decides how many seconds of skew to accept.
 # TODO: make this a default and allow the value to be more configurable
 CONFD_MAX_CLOCK_SKEW = 300
-

@@ -1,3 +1,15 @@
+Version 2.0.3
+  - Added “--ignore-size” to the “gnt-instance activate-disks” command
+    to allow using the pre-2.0.2 behaviour in activation, if any
+    existing instances have mismatched disk sizes in the configuration
+  - Added “gnt-cluster repair-disk-sizes” command to check and update
+    any configuration mismatches for disk sizes
+  - Added “gnt-master cluste-failover --no-voting” to allow master
+    failover to work on two-node clusters
+  - Fixed the ‘--net’ option of “gnt-backup import”, which was unusable
+  - Fixed detection of OS script errors in “gnt-backup export”
+  - Fixed exit code of “gnt-backup export”
+
 Version 2.0.2
   - Added experimental support for stripped logical volumes; this should
     enhance performance but comes with a higher complexity in the block

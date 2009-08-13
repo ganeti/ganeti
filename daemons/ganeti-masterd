@@ -28,13 +28,10 @@ inheritance from parent classes requires it.
 
 
 import os
-import errno
 import sys
 import SocketServer
 import time
 import collections
-import Queue
-import random
 import signal
 import logging
 
