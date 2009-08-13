@@ -18,24 +18,18 @@ GANETIRUNDIR="@LOCALSTATEDIR@/run/ganeti"
 
 GANETI_DEFAULTS_FILE="@SYSCONFDIR@/default/ganeti"
 
-NODED_NAME="ganeti-noded"
-NODED="@PREFIX@/sbin/${NODED_NAME}"
-NODED_PID="${GANETIRUNDIR}/${NODED_NAME}.pid"
+NODED="ganeti-noded"
 NODED_ARGS=""
 
-MASTERD_NAME="ganeti-masterd"
-MASTERD="@PREFIX@/sbin/${MASTERD_NAME}"
-MASTERD_PID="${GANETIRUNDIR}/${MASTERD_NAME}.pid"
+MASTERD="ganeti-masterd"
 MASTERD_ARGS=""
 
-RAPI_NAME="ganeti-rapi"
-RAPI="@PREFIX@/sbin/${RAPI_NAME}"
-RAPI_PID="${GANETIRUNDIR}/${RAPI_NAME}.pid"
+RAPI="ganeti-rapi"
 RAPI_ARGS=""
 
 SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 
-test -f $NODED || exit 0
+test -f "@PREFIX@/sbin/$NODED" || exit 0
 
 . /lib/lsb/init-functions
 
@@ -71,47 +65,66 @@ check_exitcode() {
 }
 
 start_action() {
-    # called as start_action daemon pidfile
+    # called as start_action daemon-name
     local daemon="$1"; shift
-    local pidfile="$1"; shift
     log_action_begin_msg "$daemon"
-    start-stop-daemon --start --quiet --exec "$daemon" --pidfile "$pidfile" \
+    start-stop-daemon --start --quiet \
+        --pidfile "${GANETIRUNDIR}/${daemon}.pid" \
+        --startas "@PREFIX@/sbin/$daemon" \
+        --oknodo \
         -- "$@"
     check_exitcode $?
 }
 
 stop_action() {
-    # called as stop_action daemon pidfile
-    log_action_begin_msg "$1"
+    # called as stop_action daemon-name
+    local daemon="$1"
+    log_action_begin_msg "$daemon"
     start-stop-daemon --stop --quiet --oknodo \
-        --retry 30 --pidfile "$2"
+        --retry 30 --pidfile "${GANETIRUNDIR}/${daemon}.pid"
     check_exitcode $?
 }
 
+maybe_do() {
+    requested="$1"; shift
+    action="$1"; shift
+    target="$1"
+    if [ -z "$requested" -o "$requested" = "$target" ]; then
+        $action "$@"
+    fi
+}
+
+if [ -n "$2" -a \
+    "$2" != "$NODED" -a \
+    "$2" != "$MASTERD" -a \
+    "$2" != "$RAPI" ]; then
+    log_failure_msg "Unknown daemon '$2' requested"
+    exit 1
+fi
 
 case "$1" in
     start)
-        log_daemon_msg "Starting $DESC" "$NAME"
+        log_daemon_msg "Starting $DESC" "$2"
         check_config
-        start_action $NODED $NODED_PID $NODED_ARGS
-        start_action $MASTERD $MASTERD_PID $MASTERD_ARGS
-        start_action $RAPI $RAPI_PID $RAPI_ARGS
+        maybe_do "$2" start_action $NODED $NODED_ARGS
+        maybe_do "$2" start_action $MASTERD $MASTERD_ARGS
+        maybe_do "$2" start_action $RAPI $RAPI_ARGS
         ;;
     stop)
-        log_daemon_msg "Stopping $DESC" "$NAME"
-        stop_action $RAPI $RAPI_PID
-        stop_action $MASTERD $MASTERD_PID
-        stop_action $NODED $NODED_PID
+        log_daemon_msg "Stopping $DESC" "$2"
+        maybe_do "$2" stop_action $RAPI
+        maybe_do "$2" stop_action $MASTERD
+        maybe_do "$2" stop_action $NODED
         ;;
     restart|force-reload)
-        log_daemon_msg "Reloading $DESC"
-        stop_action $RAPI $RAPI_PID
-        stop_action $MASTERD $MASTERD_PID
-        stop_action $NODED $NODED_PID
+        log_daemon_msg "Reloading $DESC" "$2"
+        maybe_do "$2" stop_action $RAPI
+        maybe_do "$2" stop_action $MASTERD
+        maybe_do "$2" stop_action $NODED
         check_config
-        start_action $NODED $NODED_PID $NODED_ARGS
-        start_action $MASTERD $MASTERD_PID $MASTERD_ARGS
-        start_action $RAPI $RAPI_PID $RAPI_ARGS
+        maybe_do "$2" start_action $NODED $NODED_ARGS
+        maybe_do "$2" start_action $MASTERD $MASTERD_ARGS
+        maybe_do "$2" start_action $RAPI $RAPI_ARGS
         ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"
