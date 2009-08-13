@@ -254,6 +254,7 @@ DISK_ACCESS_SET = frozenset([DISK_RDONLY, DISK_RDWR])
 REPLACE_DISK_PRI = "replace_on_primary"    # replace disks on primary
 REPLACE_DISK_SEC = "replace_on_secondary"  # replace disks on secondary
 REPLACE_DISK_CHG = "replace_new_secondary" # change secondary node
+REPLACE_DISK_AUTO = "replace_auto"
 
 # lock recalculate mode
 LOCKS_REPLACE = 'replace'

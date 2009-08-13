@@ -5715,6 +5715,23 @@ class TLReplaceDisks(Tasklet):
 
     return remote_node_name
 
+  def _FindFaultyDisks(self, node_name):
+    faulty = []
+
+    for dev in self.instance.disks:
+      self.cfg.SetDiskID(dev, node_name)
+
+    result = self.rpc.call_blockdev_getmirrorstatus(node_name,
+                                                    self.instance.disks)
+    result.Raise("Failed to get disk status from node %s" % node_name,
+                 prereq=True)
+
+    for idx, bdev_status in enumerate(result.payload):
+      if bdev_status and bdev_status.ldisk_status == constants.LDS_FAULTY:
+        faulty.append(idx)
+
+    return faulty
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -5757,34 +5774,62 @@ class TLReplaceDisks(Tasklet):
       raise errors.OpPrereqError("The specified node is already the"
                                  " secondary node of the instance.")
 
-    if self.mode == constants.REPLACE_DISK_PRI:
-      self.target_node = self.instance.primary_node
-      self.other_node = secondary_node
-      check_nodes = [self.target_node, self.other_node]
+    if self.mode == constants.REPLACE_DISK_AUTO:
+      if self.disks:
+        raise errors.OpPrereqError("Cannot specify disks to be replaced")
 
-    elif self.mode == constants.REPLACE_DISK_SEC:
-      self.target_node = secondary_node
-      self.other_node = self.instance.primary_node
-      check_nodes = [self.target_node, self.other_node]
+      faulty_primary = self._FindFaultyDisks(self.instance.primary_node)
+      faulty_secondary = self._FindFaultyDisks(secondary_node)
 
-    elif self.mode == constants.REPLACE_DISK_CHG:
-      self.new_node = remote_node
-      self.other_node = self.instance.primary_node
-      self.target_node = secondary_node
-      check_nodes = [self.new_node, self.other_node]
+      if faulty_primary and faulty_secondary:
+        raise errors.OpPrereqError("Instance %s has faulty disks on more than"
+                                   " one node and can not be repaired"
+                                   " automatically" % self.instance_name)
 
-      _CheckNodeNotDrained(self.lu, remote_node)
+      if faulty_primary:
+        self.disks = faulty_primary
+        self.target_node = self.instance.primary_node
+        self.other_node = secondary_node
+        check_nodes = [self.target_node, self.other_node]
+      elif faulty_secondary:
+        self.disks = faulty_secondary
+        self.target_node = secondary_node
+        self.other_node = self.instance.primary_node
+        check_nodes = [self.target_node, self.other_node]
+      else:
+        self.disks = []
+        check_nodes = []
 
     else:
-      raise errors.ProgrammerError("Unhandled disk replace mode (%s)" %
-                                   self.mode)
+      # Non-automatic modes
+      if self.mode == constants.REPLACE_DISK_PRI:
+        self.target_node = self.instance.primary_node
+        self.other_node = secondary_node
+        check_nodes = [self.target_node, self.other_node]
+
+      elif self.mode == constants.REPLACE_DISK_SEC:
+        self.target_node = secondary_node
+        self.other_node = self.instance.primary_node
+        check_nodes = [self.target_node, self.other_node]
+
+      elif self.mode == constants.REPLACE_DISK_CHG:
+        self.new_node = remote_node
+        self.other_node = self.instance.primary_node
+        self.target_node = secondary_node
+        check_nodes = [self.new_node, self.other_node]
+
+        _CheckNodeNotDrained(self.lu, remote_node)
+
+      else:
+        raise errors.ProgrammerError("Unhandled disk replace mode (%s)" %
+                                     self.mode)
+
+      # If not specified all disks should be replaced
+      if not self.disks:
+        self.disks = range(len(self.instance.disks))
 
     for node in check_nodes:
       _CheckNodeOnline(self.lu, node)
-
-    # If not specified all disks should be replaced
-    if not self.disks:
-      self.disks = range(len(self.instance.disks))
 
     # Check whether disks are valid
     for disk_idx in self.disks:
@@ -5805,7 +5850,12 @@ class TLReplaceDisks(Tasklet):
     This dispatches the disk replacement to the appropriate handler.
 
     """
-    feedback_fn("Replacing disks for %s" % self.instance.name)
+    if not self.disks:
+      feedback_fn("No disks need replacement")
+      return
+
+    feedback_fn("Replacing disk(s) %s for %s" %
+                (", ".join([str(i) for i in self.disks]), self.instance.name))
 
     activate_disks = (not self.instance.admin_up)
 
@@ -5814,7 +5864,8 @@ class TLReplaceDisks(Tasklet):
       _StartInstanceDisks(self.lu, self.instance, True)
 
     try:
-      if self.mode == constants.REPLACE_DISK_CHG:
+      # Should we replace the secondary node?
+      if self.new_node is not None:
         return self._ExecDrbd8Secondary()
       else:
         return self._ExecDrbd8DiskOnly()
