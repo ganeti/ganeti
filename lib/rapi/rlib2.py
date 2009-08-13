@@ -529,9 +529,6 @@ class R_2_instances_name_reinstall(baserlib.R_Generic):
   Implements an instance reinstall.
 
   """
-
-  DOC_URI = "/2/instances/[instance_name]/reinstall"
-
   def POST(self):
     """Reinstall an instance.
 
