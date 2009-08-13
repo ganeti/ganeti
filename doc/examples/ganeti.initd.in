@@ -3,12 +3,12 @@
 # based on skeleton from Debian GNU/Linux
 ### BEGIN INIT INFO
 # Provides:          ganeti
-# Required-Start:    $syslog $remote_fs xend
-# Required-Stop:     $syslog $remote_fs xend
+# Required-Start:    $syslog $remote_fs
+# Required-Stop:     $syslog $remote_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Ganeti Xen Cluster Manager
-# Description:       Ganeti Xen Cluster Manager
+# Short-Description: Ganeti Cluster Manager
+# Description:       Ganeti Cluster Manager
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
