@@ -64,6 +64,17 @@ class _Base:
       raise errors.ProgrammerError("Unable to modify the following"
                                    "fields: %r" % (changes.keys(), ))
 
+  def Execute(self, name, op):
+    """Executes an operation on an entity within the storage unit.
+
+    @type name: string
+    @param name: Entity name
+    @type op: string
+    @param op: Operation name
+
+    """
+    raise NotImplementedError()
+
 
 class FileStorage(_Base):
   """File storage unit.

@@ -210,6 +210,9 @@ MODIFIABLE_STORAGE_FIELDS = {
   ST_LVM_PV: frozenset([SF_ALLOCATABLE]),
   }
 
+VALID_STORAGE_OPERATIONS = {
+  }
+
 # Local disk status
 # Note: Code depends on LDS_OKAY < LDS_UNKNOWN < LDS_FAULTY
 (LDS_OKAY,
