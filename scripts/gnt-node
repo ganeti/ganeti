@@ -541,6 +541,26 @@ def ModifyVolume(opts, args):
     SubmitOpCode(op)
 
 
+def RepairVolume(opts, args):
+  """Repairs a storage volume on a node.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain 3 items: node name, storage type and volume name
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  (node_name, user_storage_type, volume_name) = args
+
+  storage_type = ConvertStorageType(user_storage_type)
+
+  op = opcodes.OpRepairNodeStorage(node_name=node_name,
+                                   storage_type=storage_type,
+                                   name=volume_name)
+  SubmitOpCode(op)
+
+
 def SetNodeParams(opts, args):
   """Modifies a node.
 
@@ -688,6 +708,10 @@ commands = {
                      ],
                     "<node_name> <storage_type> <name>",
                     "Modify storage volume on a node"),
+  'repair-volume': (RepairVolume, ARGS_FIXED(3),
+                    [DEBUG_OPT],
+                    "<node_name> <storage_type> <name>",
+                    "Repairs a storage volume on a node"),
   'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
                 "<node_name>", "List the tags of the given node"),
   'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],

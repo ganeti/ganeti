@@ -855,6 +855,41 @@ node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
     </refsect2>
 
     <refsect2>
+      <title>REPAIR-VOLUME</title>
+
+      <cmdsynopsis>
+        <command>repair-volume</command>
+        <arg><replaceable>node</replaceable></arg>
+        <arg><replaceable>storage-type</replaceable></arg>
+        <arg><replaceable>volume-name</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        Repairs a storage volume on a node. Only LVM volume groups can be
+        repaired at this time. They have the storage type
+        <quote>lvm-vg</quote>.
+      </para>
+
+      <para>
+        On LVM volume groups, <command>repair-volume</command> runs
+        <quote>vgreduce --removemissing</quote>.
+      </para>
+
+      <caution>
+        <para>
+          Running this command can lead to data loss. Use it with care.
+        </para>
+      </caution>
+
+      <para>
+        Example:
+        <screen>
+# gnt-node repair-volume node5.example.com lvm-vg xenvg
+        </screen>
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>POWERCYCLE</title>
 
       <cmdsynopsis>
