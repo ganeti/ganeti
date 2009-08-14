@@ -441,8 +441,7 @@ class R_2_instances_name_reboot(baserlib.R_Generic):
     instance_name = self.items[0]
     reboot_type = self.queryargs.get('type',
                                      [constants.INSTANCE_REBOOT_HARD])[0]
-    ignore_secondaries = bool(self.queryargs.get('ignore_secondaries',
-                                                 [False])[0])
+    ignore_secondaries = bool(self._checkIntVariable('ignore_secondaries'))
     op = opcodes.OpRebootInstance(instance_name=instance_name,
                                   reboot_type=reboot_type,
                                   ignore_secondaries=ignore_secondaries)
@@ -467,7 +466,7 @@ class R_2_instances_name_startup(baserlib.R_Generic):
 
     """
     instance_name = self.items[0]
-    force_startup = bool(self.queryargs.get('force', [False])[0])
+    force_startup = bool(self._checkIntVariable('force'))
     op = opcodes.OpStartupInstance(instance_name=instance_name,
                                    force=force_startup)
 
