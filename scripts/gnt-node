@@ -67,6 +67,16 @@ _USER_STORAGE_TYPE = {
   }
 
 
+def ConvertStorageType(user_storage_type):
+  """Converts a user storage type to its internal name.
+
+  """
+  try:
+    return _USER_STORAGE_TYPE[user_storage_type]
+  except KeyError:
+    raise errors.OpPrereqError("Unknown storage type: %s" % user_storage_type)
+
+
 @UsesRPC
 def AddNode(opts, args):
   """Add a node to the cluster.
@@ -448,10 +458,7 @@ def ListPhysicalVolumes(opts, args):
   if opts.user_storage_type is None:
     opts.user_storage_type = constants.ST_LVM_PV
 
-  try:
-    storage_type = _USER_STORAGE_TYPE[opts.user_storage_type]
-  except KeyError:
-    raise errors.OpPrereqError("Unknown storage type: %s" % user_storage_type)
+  storage_type = ConvertStorageType(opts.user_storage_type)
 
   default_fields = {
     constants.ST_FILE: [
@@ -519,10 +526,7 @@ def ModifyVolume(opts, args):
   """
   (node_name, user_storage_type, volume_name) = args
 
-  try:
-    storage_type = _USER_STORAGE_TYPE[user_storage_type]
-  except KeyError:
-    raise errors.OpPrereqError("Unknown storage type: %s" % user_storage_type)
+  storage_type = ConvertStorageType(user_storage_type)
 
   changes = {}
 
