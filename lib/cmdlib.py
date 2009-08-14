@@ -3626,6 +3626,89 @@ class LUReinstallInstance(LogicalUnit):
       _ShutdownInstanceDisks(self, inst)
 
 
+class LURecreateInstanceDisks(LogicalUnit):
+  """Recreate an instance's missing disks.
+
+  """
+  HPATH = "instance-recreate-disks"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name", "disks"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    if not isinstance(self.op.disks, list):
+      raise errors.OpPrereqError("Invalid disks parameter")
+    for item in self.op.disks:
+      if (not isinstance(item, int) or
+          item < 0):
+        raise errors.OpPrereqError("Invalid disk specification '%s'" %
+                                   str(item))
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on master, primary and secondary nodes of the instance.
+
+    """
+    env = _BuildInstanceHookEnvByObject(self, self.instance)
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster and is not running.
+
+    """
+    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
+    _CheckNodeOnline(self, instance.primary_node)
+
+    if instance.disk_template == constants.DT_DISKLESS:
+      raise errors.OpPrereqError("Instance '%s' has no disks" %
+                                 self.op.instance_name)
+    if instance.admin_up:
+      raise errors.OpPrereqError("Instance '%s' is marked to be up" %
+                                 self.op.instance_name)
+    remote_info = self.rpc.call_instance_info(instance.primary_node,
+                                              instance.name,
+                                              instance.hypervisor)
+    remote_info.Raise("Error checking node %s" % instance.primary_node,
+                      prereq=True)
+    if remote_info.payload:
+      raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
+                                 (self.op.instance_name,
+                                  instance.primary_node))
+
+    if not self.op.disks:
+      self.op.disks = range(len(instance.disks))
+    else:
+      for idx in self.op.disks:
+        if idx >= len(instance.disks):
+          raise errors.OpPrereqError("Invalid disk index passed '%s'" % idx)
+
+    self.instance = instance
+
+  def Exec(self, feedback_fn):
+    """Recreate the disks.
+
+    """
+    to_skip = []
+    for idx, disk in enumerate(self.instance.disks):
+      if idx not in self.op.disks: # disk idx has not been passed in
+        to_skip.append(idx)
+        continue
+
+    _CreateDisks(self, self.instance, to_skip=to_skip)
+
+
 class LURenameInstance(LogicalUnit):
   """Rename an instance.
 
@@ -4818,7 +4901,7 @@ def _GetInstanceInfoText(instance):
   return "originstname+%s" % instance.name
 
 
-def _CreateDisks(lu, instance):
+def _CreateDisks(lu, instance, to_skip=None):
   """Create all disks for an instance.
 
   This abstracts away some work from AddInstance.
@@ -4827,6 +4910,8 @@ def _CreateDisks(lu, instance):
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should create
+  @type to_skip: list
+  @param to_skip: list of indices to skip
   @rtype: boolean
   @return: the success of the creation
 
@@ -4843,7 +4928,9 @@ def _CreateDisks(lu, instance):
 
   # Note: this needs to be kept in sync with adding of disks in
   # LUSetInstanceParams
-  for device in instance.disks:
+  for idx, device in enumerate(instance.disks):
+    if to_skip and idx in to_skip:
+      continue
     logging.info("Creating volume %s for instance %s",
                  device.iv_name, instance.name)
     #HARDCODE

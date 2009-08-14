@@ -540,6 +540,13 @@ class OpDeactivateInstanceDisks(OpCode):
   __slots__ = OpCode.__slots__ + ["instance_name"]
 
 
+class OpRecreateInstanceDisks(OpCode):
+  """Deactivate an instance's disks."""
+  OP_ID = "OP_INSTANCE_RECREATE_DISKS"
+  OP_DSC_FIELD = "instance_name"
+  __slots__ = OpCode.__slots__ + ["instance_name", "disks"]
+
+
 class OpQueryInstances(OpCode):
   """Compute the list of instances."""
   OP_ID = "OP_INSTANCE_QUERY"

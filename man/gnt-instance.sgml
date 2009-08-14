@@ -1893,6 +1893,31 @@ node1.example.com:disk/1:/dev/drbd1
         </para>
       </refsect3>
 
+      <refsect3>
+        <title>RECREATE-DISKS</title>
+
+        <cmdsynopsis>
+          <command>recreate-disks</command>
+          <arg>--submit</arg>
+          <arg>--disks=<option>indices</option></arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+        <para>
+          Recreates the disks of the given instance, or only a subset
+          of the disks (if the option <option>disks</option> is
+          passed, which must be a comma-separated list of disk
+          indices, starting from zero).
+        </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
+      </refsect3>
+
     </refsect2>
 
     <refsect2>

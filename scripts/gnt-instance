@@ -660,7 +660,7 @@ def ActivateDisks(opts, args):
 
 
 def DeactivateDisks(opts, args):
-  """Deactivate an instance's disks..
+  """Deactivate an instance's disks.
 
   This function takes the instance name, looks for its primary node
   and the tries to shutdown its block devices on that node.
@@ -674,6 +674,32 @@ def DeactivateDisks(opts, args):
   """
   instance_name = args[0]
   op = opcodes.OpDeactivateInstanceDisks(instance_name=instance_name)
+  SubmitOrSend(op, opts)
+  return 0
+
+
+def RecreateDisks(opts, args):
+  """Recreate an instance's disks.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  instance_name = args[0]
+  if opts.disks:
+    try:
+      opts.disks = [int(v) for v in opts.disks.split(",")]
+    except (ValueError, TypeError), err:
+      ToStderr("Invalid disks value: %s" % str(err))
+      return 1
+  else:
+    opts.disks = []
+
+  op = opcodes.OpRecreateInstanceDisks(instance_name=instance_name,
+                                       disks=opts.disks)
   SubmitOrSend(op, opts)
   return 0
 
@@ -1553,6 +1579,15 @@ commands = {
   'deactivate-disks': (DeactivateDisks, ARGS_ONE, [DEBUG_OPT, SUBMIT_OPT],
                        "<instance>",
                        "Deactivate an instance's disks"),
+  'recreate-disks': (RecreateDisks, ARGS_ONE,
+                     [DEBUG_OPT, SUBMIT_OPT,
+                     make_option("--disks", dest="disks", default=None,
+                                 help="Comma-separated list of disks"
+                                 " indices to replace (e.g. 0,2) (optional,"
+                                 " defaults to all disks)"),
+                      ],
+                     "<instance>",
+                     "Recreate an instance's disks"),
   'grow-disk': (GrowDisk, ARGS_FIXED(3),
                 [DEBUG_OPT, SUBMIT_OPT,
                  make_option("--no-wait-for-sync",
