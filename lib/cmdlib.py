@@ -749,6 +749,23 @@ def _GetStorageTypeArgs(cfg, storage_type):
   return []
 
 
+def _FindFaultyInstanceDisks(cfg, rpc, instance, node_name, prereq):
+  faulty = []
+
+  for dev in instance.disks:
+    cfg.SetDiskID(dev, node_name)
+
+  result = rpc.call_blockdev_getmirrorstatus(node_name, instance.disks)
+  result.Raise("Failed to get disk status from node %s" % node_name,
+               prereq=prereq)
+
+  for idx, bdev_status in enumerate(result.payload):
+    if bdev_status and bdev_status.ldisk_status == constants.LDS_FAULTY:
+      faulty.append(idx)
+
+  return faulty
+
+
 class LUPostInitCluster(LogicalUnit):
   """Logical unit for running hooks after cluster initialization.
 
@@ -5912,21 +5929,8 @@ class TLReplaceDisks(Tasklet):
     return remote_node_name
 
   def _FindFaultyDisks(self, node_name):
-    faulty = []
-
-    for dev in self.instance.disks:
-      self.cfg.SetDiskID(dev, node_name)
-
-    result = self.rpc.call_blockdev_getmirrorstatus(node_name,
-                                                    self.instance.disks)
-    result.Raise("Failed to get disk status from node %s" % node_name,
-                 prereq=True)
-
-    for idx, bdev_status in enumerate(result.payload):
-      if bdev_status and bdev_status.ldisk_status == constants.LDS_FAULTY:
-        faulty.append(idx)
-
-    return faulty
+    return _FindFaultyInstanceDisks(self.cfg, self.rpc, self.instance,
+                                    node_name, True)
 
   def CheckPrereq(self):
     """Check prerequisites.
