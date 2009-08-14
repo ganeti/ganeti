@@ -385,6 +385,14 @@ class NodeHttpServer(http.server.HttpServer):
     (su_name, su_args, name, changes) = params
     return storage.GetStorage(su_name, *su_args).Modify(name, changes)
 
+  @staticmethod
+  def perspective_storage_execute(params):
+    """Execute an operation on a storage unit.
+
+    """
+    (su_name, su_args, name, op) = params
+    return storage.GetStorage(su_name, *su_args).Execute(name, op)
+
   # bridge  --------------------------
 
   @staticmethod

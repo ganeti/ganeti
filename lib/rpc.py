@@ -450,6 +450,15 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "storage_modify",
                                 [su_name, su_args, name, changes])
 
+  def call_storage_execute(self, node, su_name, su_args, name, op):
+    """Executes an operation on a storage unit.
+
+    This is a single-node call.
+
+    """
+    return self._SingleNodeCall(node, "storage_execute",
+                                [su_name, su_args, name, op])
+
   def call_bridges_exist(self, node, bridges_list):
     """Checks if a node has all the bridges given.
 
