@@ -189,7 +189,7 @@ def EvacuateNode(opts, args):
 
   cnt = [dst_node, iallocator].count(None)
   if cnt != 1:
-    raise errors.OpPrereqError("One and only one of the -n and -i"
+    raise errors.OpPrereqError("One and only one of the -n and -I"
                                " options must be passed")
 
   selected_fields = ["name", "sinst_list"]
