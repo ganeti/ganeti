@@ -570,6 +570,18 @@ Modifies parameters of storage units on the node. Requires the parameters
 of the storage unit).  Parameters can be passed additionally. Currently only
 ``allocatable`` (bool) is supported. The result will be a job id.
 
+``/2/nodes/[node_name]/storage/repair``
++++++++++++++++++++++++++++++++++++++++
+
+Repairs a storage unit on the node.
+
+``PUT``
+~~~~~~~
+
+Repairs a storage unit on the node. Requires the parameters ``storage_type``
+(currently only ``lvm-vg`` can be repaired) and ``name`` (name of the storage
+unit). The result will be a job id.
+
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++
 
