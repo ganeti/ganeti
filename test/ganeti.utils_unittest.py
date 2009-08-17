@@ -45,7 +45,7 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
-     TailFile, ForceDictType, SafeEncode, IsNormAbsPath
+     TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -985,6 +985,22 @@ class TestSafeEncode(unittest.TestCase):
     for i in range(1024):
       txt = SafeEncode(unichr(i))
       self.failUnlessEqual(txt, SafeEncode(txt))
+
+
+class TestFormatTime(unittest.TestCase):
+  """Testing case for FormatTime"""
+
+  def testNone(self):
+    self.failUnlessEqual(FormatTime(None), "N/A")
+
+  def testInvalid(self):
+    self.failUnlessEqual(FormatTime(()), "N/A")
+
+  def testNow(self):
+    # tests that we accept time.time input
+    FormatTime(time.time())
+    # tests that we accept int input
+    FormatTime(int(time.time()))
 
 
 if __name__ == '__main__':

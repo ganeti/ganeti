@@ -1934,6 +1934,21 @@ def LockFile(fd):
     raise
 
 
+def FormatTime(val):
+  """Formats a time value.
+
+  @type val: float or None
+  @param val: the timestamp as returned by time.time()
+  @return: a string value or N/A if we don't have a valid timestamp
+
+  """
+  if val is None or not isinstance(val, (int, float)):
+    return "N/A"
+  # these two codes works on Linux, but they are not guaranteed on all
+  # platforms
+  return time.strftime("%F %T", time.localtime(val))
+
+
 class FileLock(object):
   """Utility class for file locks.
 
