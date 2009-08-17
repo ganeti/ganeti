@@ -715,6 +715,14 @@ def _GetNodeInstancesInner(cfg, fn):
   return [i for i in cfg.GetAllInstancesInfo().values() if fn(i)]
 
 
+def _GetNodeInstances(cfg, node_name):
+  """Returns a list of all primary and secondary instances on a node.
+
+  """
+
+  return _GetNodeInstancesInner(cfg, lambda inst: node_name in inst.all_nodes)
+
+
 def _GetNodePrimaryInstances(cfg, node_name):
   """Returns primary instances on a node.
 
