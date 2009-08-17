@@ -57,6 +57,7 @@ _LIST_HEADERS = {
   "master": "IsMaster",
   "offline": "Offline", "drained": "Drained",
   "role": "Role",
+  "ctime": "CTime", "mtime": "MTime",
   }
 
 #: User-facing storage unit types
@@ -175,6 +176,8 @@ def ListNodes(opts, args):
           val = 'Y'
         else:
           val = 'N'
+      elif field == "ctime" or field == "mtime":
+        val = utils.FormatTime(val)
       elif val is None:
         val = "?"
       row[idx] = str(val)

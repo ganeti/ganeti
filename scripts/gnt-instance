@@ -27,6 +27,7 @@ import sys
 import os
 import itertools
 import simplejson
+import time
 from optparse import make_option
 from cStringIO import StringIO
 
@@ -226,6 +227,7 @@ def ListInstances(opts, args):
       "nic.count": "NICs", "nic.ips": "NIC_IPs",
       "nic.modes": "NIC_modes", "nic.links": "NIC_links",
       "nic.bridges": "NIC_bridges", "nic.macs": "NIC_MACs",
+      "ctime": "CTime", "mtime": "MTime",
       }
   else:
     headers = None
@@ -260,6 +262,8 @@ def ListInstances(opts, args):
       elif field == "sda_size" or field == "sdb_size":
         if val is None:
           val = "N/A"
+      elif field == "ctime" or field == "mtime":
+        val = utils.FormatTime(val)
       elif field in list_type_fields:
         val = ",".join(str(item) for item in val)
       elif val is None:
@@ -1169,6 +1173,9 @@ def ShowInstanceConfig(opts, args):
   for instance_name in result:
     instance = result[instance_name]
     buf.write("Instance name: %s\n" % instance["name"])
+    buf.write("Serial number: %s\n" % instance["serial_no"])
+    buf.write("Creation time: %s\n" % utils.FormatTime(instance["ctime"]))
+    buf.write("Modification time: %s\n" % utils.FormatTime(instance["mtime"]))
     buf.write("State: configured to be %s" % instance["config_state"])
     if not opts.static:
       buf.write(", actual state is %s" % instance["run_state"])

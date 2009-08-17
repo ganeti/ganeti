@@ -986,6 +986,34 @@ instance5: 11225
                 to track modifications</simpara>
               </listitem>
             </varlistentry>
+          <varlistentry>
+            <term>ctime</term>
+            <listitem>
+              <para>
+                the creation time of the instance; note that this
+                field contains spaces and as such it's harder to parse
+              </para>
+              <para>
+                if this attribute is not present (e.g. when upgrading
+                from older versions), then "N/A" will be shown instead
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>mtime</term>
+            <listitem>
+              <para>
+                the last modification time of the instance; note that
+                this field contains spaces and as such it's harder to
+                parse
+              </para>
+              <para>
+                if this attribute is not present (e.g. when upgrading
+                from older versions), then "N/A" will be shown instead
+              </para>
+            </listitem>
+          </varlistentry>
+
             <varlistentry>
               <term>network_port</term>
               <listitem>

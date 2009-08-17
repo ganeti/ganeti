@@ -2224,7 +2224,7 @@ class LUQueryNodes(NoHooksLU):
     "name", "pinst_cnt", "sinst_cnt",
     "pinst_list", "sinst_list",
     "pip", "sip", "tags",
-    "serial_no",
+    "serial_no", "ctime", "mtime",
     "master_candidate",
     "master",
     "offline",
@@ -2348,6 +2348,10 @@ class LUQueryNodes(NoHooksLU):
           val = list(node.GetTags())
         elif field == "serial_no":
           val = node.serial_no
+        elif field == "ctime":
+          val = node.ctime
+        elif field == "mtime":
+          val = node.mtime
         elif field == "master_candidate":
           val = node.master_candidate
         elif field == "master":
@@ -3042,6 +3046,8 @@ class LUQueryClusterInfo(NoHooksLU):
       "master_netdev": cluster.master_netdev,
       "volume_group_name": cluster.volume_group_name,
       "file_storage_dir": cluster.file_storage_dir,
+      "ctime": cluster.ctime,
+      "mtime": cluster.mtime,
       }
 
     return result
@@ -3919,7 +3925,9 @@ class LUQueryInstances(NoHooksLU):
                                     r"(nic)\.(bridge)/([0-9]+)",
                                     r"(nic)\.(macs|ips|modes|links|bridges)",
                                     r"(disk|nic)\.(count)",
-                                    "serial_no", "hypervisor", "hvparams",] +
+                                    "serial_no", "hypervisor", "hvparams",
+                                    "ctime", "mtime",
+                                    ] +
                                   ["hv/%s" % name
                                    for name in constants.HVS_PARAMETERS] +
                                   ["be/%s" % name
@@ -4104,6 +4112,10 @@ class LUQueryInstances(NoHooksLU):
           val = list(instance.GetTags())
         elif field == "serial_no":
           val = instance.serial_no
+        elif field == "ctime":
+          val = instance.ctime
+        elif field == "mtime":
+          val = instance.mtime
         elif field == "network_port":
           val = instance.network_port
         elif field == "hypervisor":
@@ -6734,6 +6746,9 @@ class LUQueryInstanceData(NoHooksLU):
         "hv_actual": cluster.FillHV(instance),
         "be_instance": instance.beparams,
         "be_actual": cluster.FillBE(instance),
+        "serial_no": instance.serial_no,
+        "mtime": instance.mtime,
+        "ctime": instance.ctime,
         }
 
       result[instance.name] = idict

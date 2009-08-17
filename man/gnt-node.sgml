@@ -379,10 +379,36 @@
           <varlistentry>
             <term>serial_no</term>
             <listitem>
-              <simpara>the so called 'serial number' of the instance;
+              <simpara>the so called 'serial number' of the node;
               this is a numeric field that is incremented each time
-              the instance is modified, and it can be used to detect
+              the node is modified, and it can be used to detect
               modifications</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>ctime</term>
+            <listitem>
+              <para>
+                the creation time of the node; note that this field
+                contains spaces and as such it's harder to parse
+              </para>
+              <para>
+                if this attribute is not present (e.g. when upgrading
+                from older versions), then "N/A" will be shown instead
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>mtime</term>
+            <listitem>
+              <para>
+                the last modification time of the node; note that this
+                field contains spaces and as such it's harder to parse
+              </para>
+              <para>
+                if this attribute is not present (e.g. when upgrading
+                from older versions), then "N/A" will be shown instead
+              </para>
             </listitem>
           </varlistentry>
           <varlistentry>

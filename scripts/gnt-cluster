@@ -221,6 +221,9 @@ def ShowClusterConfig(opts, args):
 
   ToStdout("Cluster name: %s", result["name"])
 
+  ToStdout("Creation time: %s", utils.FormatTime(result["ctime"]))
+  ToStdout("Modification time: %s", utils.FormatTime(result["mtime"]))
+
   ToStdout("Master node: %s", result["master"])
 
   ToStdout("Architecture (this node): %s (%s)",
