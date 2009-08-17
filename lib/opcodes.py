@@ -381,6 +381,17 @@ class OpModifyNodeStorage(OpCode):
     ]
 
 
+class OpRepairNodeStorage(OpCode):
+  """Repairs the volume group on a node."""
+  OP_ID = "OP_REPAIR_NODE_STORAGE"
+  OP_DSC_FIELD = "node_name"
+  __slots__ = OpCode.__slots__ + [
+    "node_name",
+    "storage_type",
+    "name",
+    ]
+
+
 class OpSetNodeParams(OpCode):
   """Change the parameters of a node."""
   OP_ID = "OP_NODE_SET_PARAMS"
@@ -679,6 +690,7 @@ class OpTestAllocator(OpCode):
     "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",
     ]
+
 
 OP_MAPPING = dict([(v.OP_ID, v) for v in globals().values()
                    if (isinstance(v, type) and issubclass(v, OpCode) and

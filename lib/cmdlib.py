@@ -6441,6 +6441,62 @@ class TLReplaceDisks(Tasklet):
     self._RemoveOldStorage(self.target_node, iv_names)
 
 
+class LURepairNodeStorage(NoHooksLU):
+  """Repairs the volume group on a node.
+
+  """
+  _OP_REQP = ["node_name"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    node_name = self.cfg.ExpandNodeName(self.op.node_name)
+    if node_name is None:
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+
+    self.op.node_name = node_name
+
+  def ExpandNames(self):
+    self.needed_locks = {
+      locking.LEVEL_NODE: [self.op.node_name],
+      }
+
+  def _CheckFaultyDisks(self, instance, node_name):
+    if _FindFaultyInstanceDisks(self.cfg, self.rpc, instance,
+                                node_name, True):
+      raise errors.OpPrereqError("Instance '%s' has faulty disks on"
+                                 " node '%s'" % (inst.name, node_name))
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+    storage_type = self.op.storage_type
+
+    if (constants.SO_FIX_CONSISTENCY not in
+        constants.VALID_STORAGE_OPERATIONS.get(storage_type, [])):
+      raise errors.OpPrereqError("Storage units of type '%s' can not be"
+                                 " repaired" % storage_type)
+
+    # Check whether any instance on this node has faulty disks
+    for inst in _GetNodeInstances(self.cfg, self.op.node_name):
+      check_nodes = set(inst.all_nodes)
+      check_nodes.discard(self.op.node_name)
+      for inst_node_name in check_nodes:
+        self._CheckFaultyDisks(inst, inst_node_name)
+
+  def Exec(self, feedback_fn):
+    feedback_fn("Repairing storage unit '%s' on %s ..." %
+                (self.op.name, self.op.node_name))
+
+    st_args = _GetStorageTypeArgs(self.cfg, self.op.storage_type)
+    result = self.rpc.call_storage_execute(self.op.node_name,
+                                           self.op.storage_type, st_args,
+                                           self.op.name,
+                                           constants.SO_FIX_CONSISTENCY)
+    result.Raise("Failed to repair storage unit '%s' on %s" %
+                 (self.op.name, self.op.node_name))
+
+
 class LUGrowDisk(LogicalUnit):
   """Grow a disk of an instance.
 
