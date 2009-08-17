@@ -540,7 +540,7 @@ class Burner(object):
                                   mode=mode,
                                   remote_node=tnode,
                                   iallocator=self.opts.iallocator,
-                                  disks=[i for i in range(self.disk_count)])
+                                  disks=[])
       Log("run %s %s" % (mode, msg), indent=2)
       self.ExecOrQueue(instance, op)
 
