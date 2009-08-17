@@ -28,6 +28,7 @@ import os.path
 import re
 import logging
 import tempfile
+import time
 
 from ganeti import rpc
 from ganeti import ssh
@@ -310,11 +311,13 @@ def InitConfig(version, cluster_config, master_node_config,
     master_node_config.name: master_node_config,
     }
 
+  now = time.time()
   config_data = objects.ConfigData(version=version,
                                    cluster=cluster_config,
                                    nodes=nodes,
                                    instances={},
-                                   serial_no=1)
+                                   serial_no=1,
+                                   ctime=now, mtime=now)
   utils.WriteFile(cfg_file,
                   data=serializer.Dump(config_data.ToDict()),
                   mode=0600)

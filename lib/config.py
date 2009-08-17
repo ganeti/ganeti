@@ -35,6 +35,7 @@ import os
 import tempfile
 import random
 import logging
+import time
 
 from ganeti import errors
 from ganeti import locking
@@ -708,6 +709,7 @@ class ConfigWriter:
           " MAC address '%s' already in use." % (instance.name, nic.mac))
 
     instance.serial_no = 1
+    instance.ctime = instance.mtime = time.time()
     self._config_data.instances[instance.name] = instance
     self._config_data.cluster.serial_no += 1
     self._UnlockedReleaseDRBDMinors(instance.name)
@@ -729,6 +731,7 @@ class ConfigWriter:
     if instance.admin_up != status:
       instance.admin_up = status
       instance.serial_no += 1
+      instance.mtime = time.time()
       self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -860,6 +863,7 @@ class ConfigWriter:
     logging.info("Adding node %s to configuration" % node.name)
 
     node.serial_no = 1
+    node.ctime = node.mtime = time.time()
     self._config_data.nodes[node.name] = node
     self._config_data.cluster.serial_no += 1
     self._WriteConfig()
@@ -1031,6 +1035,7 @@ class ConfigWriter:
 
     """
     self._config_data.serial_no += 1
+    self._config_data.mtime = time.time()
 
   def _OpenConfig(self):
     """Read the config data from disk.
@@ -1249,10 +1254,12 @@ class ConfigWriter:
       raise errors.ConfigurationError("Configuration updated since object"
                                       " has been read or unknown object")
     target.serial_no += 1
+    target.mtime = now = time.time()
 
     if update_serial:
       # for node updates, we need to increase the cluster serial too
       self._config_data.cluster.serial_no += 1
+      self._config_data.cluster.mtime = now
 
     if isinstance(target, objects.Instance):
       self._UnlockedReleaseDRBDMinors(target.name)

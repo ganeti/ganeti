@@ -39,6 +39,7 @@ from ganeti import constants
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
            "OS", "Node", "Cluster", "FillDict"]
 
+_TIMESTAMPS = ["ctime", "mtime"]
 
 def FillDict(defaults_dict, custom_dict):
   """Basic function to apply settings on top a default dict.
@@ -284,7 +285,8 @@ class TaggableObject(ConfigObject):
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
-  __slots__ = ["version", "cluster", "nodes", "instances", "serial_no"]
+  __slots__ = ["version", "cluster", "nodes", "instances", "serial_no"] + \
+              _TIMESTAMPS
 
   def ToDict(self):
     """Custom function for top-level config data.
@@ -612,7 +614,7 @@ class Instance(TaggableObject):
     "disk_template",
     "network_port",
     "serial_no",
-    ]
+    ] + _TIMESTAMPS
 
   def _ComputeSecondaryNodes(self):
     """Compute the list of secondary nodes.
@@ -769,7 +771,7 @@ class Node(TaggableObject):
     "master_candidate",
     "offline",
     "drained",
-    ]
+    ] + _TIMESTAMPS
 
 
 class Cluster(TaggableObject):
@@ -794,7 +796,7 @@ class Cluster(TaggableObject):
     "nicparams",
     "candidate_pool_size",
     "modify_etc_hosts",
-    ]
+    ] + _TIMESTAMPS
 
   def UpgradeConfig(self):
     """Fill defaults for missing configuration values.
