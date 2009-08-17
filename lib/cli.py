@@ -44,7 +44,7 @@ from optparse import (OptionParser, make_option, TitledHelpFormatter,
 
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "SubmitOpCode", "GetClient",
-           "cli_option", "ikv_option", "keyval_option",
+           "cli_option",
            "GenerateTable", "AskUser",
            "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT", "SUBMIT_OPT",
@@ -233,15 +233,6 @@ def check_unit(option, opt, value):
     raise OptionValueError("option %s: %s" % (opt, err))
 
 
-class CliOption(Option):
-  """Custom option class for optparse.
-
-  """
-  TYPES = Option.TYPES + ("unit",)
-  TYPE_CHECKER = copy.copy(Option.TYPE_CHECKER)
-  TYPE_CHECKER["unit"] = check_unit
-
-
 def _SplitKeyVal(opt, data):
   """Convert a KeyVal string into a dict.
 
@@ -280,7 +271,10 @@ def _SplitKeyVal(opt, data):
 
 
 def check_ident_key_val(option, opt, value):
-  """Custom parser for the IdentKeyVal option type.
+  """Custom parser for ident:key=val,key=val options.
+
+  This will store the parsed values as a tuple (ident, {key: val}). As such,
+  multiple uses of this option via action=append is possible.
 
   """
   if ":" not in value:
@@ -304,40 +298,32 @@ def check_ident_key_val(option, opt, value):
   return retval
 
 
-class IdentKeyValOption(Option):
-  """Custom option class for ident:key=val,key=val options.
-
-  This will store the parsed values as a tuple (ident, {key: val}). As
-  such, multiple uses of this option via action=append is possible.
-
-  """
-  TYPES = Option.TYPES + ("identkeyval",)
-  TYPE_CHECKER = copy.copy(Option.TYPE_CHECKER)
-  TYPE_CHECKER["identkeyval"] = check_ident_key_val
-
-
 def check_key_val(option, opt, value):
-  """Custom parser for the KeyVal option type.
+  """Custom parser class for key=val,key=val options.
+
+  This will store the parsed values as a dict {key: val}.
 
   """
   return _SplitKeyVal(opt, value)
 
 
-class KeyValOption(Option):
-  """Custom option class for key=val,key=val options.
-
-  This will store the parsed values as a dict {key: val}.
+class CliOption(Option):
+  """Custom option class for optparse.
 
   """
-  TYPES = Option.TYPES + ("keyval",)
-  TYPE_CHECKER = copy.copy(Option.TYPE_CHECKER)
+  TYPES = Option.TYPES + (
+    "identkeyval",
+    "keyval",
+    "unit",
+    )
+  TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+  TYPE_CHECKER["identkeyval"] = check_ident_key_val
   TYPE_CHECKER["keyval"] = check_key_val
+  TYPE_CHECKER["unit"] = check_unit
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
 cli_option = CliOption
-ikv_option = IdentKeyValOption
-keyval_option = KeyValOption
 
 
 def _ParseArgs(argv, commands, aliases):
