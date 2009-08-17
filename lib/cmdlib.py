@@ -711,30 +711,24 @@ def _CheckInstanceBridgesExist(lu, instance, node=None):
   _CheckNicsBridgesExist(lu, instance.nics, node)
 
 
+def _GetNodeInstancesInner(cfg, fn):
+  return [i for i in cfg.GetAllInstancesInfo().values() if fn(i)]
+
+
 def _GetNodePrimaryInstances(cfg, node_name):
   """Returns primary instances on a node.
 
   """
-  instances = []
-
-  for (_, inst) in cfg.GetAllInstancesInfo().iteritems():
-    if node_name == inst.primary_node:
-      instances.append(inst)
-
-  return instances
+  return _GetNodeInstancesInner(cfg,
+                                lambda inst: node_name == inst.primary_node)
 
 
 def _GetNodeSecondaryInstances(cfg, node_name):
   """Returns secondary instances on a node.
 
   """
-  instances = []
-
-  for (_, inst) in cfg.GetAllInstancesInfo().iteritems():
-    if node_name in inst.secondary_nodes:
-      instances.append(inst)
-
-  return instances
+  return _GetNodeInstancesInner(cfg,
+                                lambda inst: node_name in inst.secondary_nodes)
 
 
 def _GetStorageTypeArgs(cfg, storage_type):
