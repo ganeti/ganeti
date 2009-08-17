@@ -374,6 +374,39 @@ class LvmVgStorage(_LvmBase):
     (constants.SF_SIZE, "vg_size", _ParseSize),
     ]
 
+  def _RemoveMissing(self, name):
+    """Runs "vgreduce --removemissing" on a volume group.
+
+    @type name: string
+    @param name: Volume group name
+
+    """
+    # Ignoring vgreduce exit code. Older versions exit with an error even tough
+    # the VG is already consistent. This was fixed in later versions, but we
+    # cannot depend on it.
+    result = utils.RunCmd(["vgreduce", "--removemissing", name])
+
+    # Keep output in case something went wrong
+    vgreduce_output = result.output
+
+    result = utils.RunCmd(["vgs", "--noheadings", "--nosuffix", name])
+    if result.failed:
+      raise errors.StorageError(("Volume group '%s' still not consistent,"
+                                 " 'vgreduce' output: %r,"
+                                 " 'vgs' output: %r") %
+                                (name, vgreduce_output, result.output))
+
+  def Execute(self, name, op):
+    """Executes an operation on a virtual volume.
+
+    See L{_Base.Execute}.
+
+    """
+    if op == constants.SO_FIX_CONSISTENCY:
+      return self._RemoveMissing(name)
+
+    return _LvmBase.Execute(self, name, op)
+
 
 # Lookup table for storage types
 _STORAGE_TYPES = {

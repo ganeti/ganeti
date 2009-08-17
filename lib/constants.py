@@ -199,6 +199,9 @@ SF_FREE = "free"
 SF_USED = "used"
 SF_ALLOCATABLE = "allocatable"
 
+# Storage operations
+SO_FIX_CONSISTENCY = "fix-consistency"
+
 # Available fields per storage type
 VALID_STORAGE_FIELDS = {
   ST_FILE: frozenset([SF_NAME, SF_USED, SF_FREE]),
@@ -211,6 +214,7 @@ MODIFIABLE_STORAGE_FIELDS = {
   }
 
 VALID_STORAGE_OPERATIONS = {
+  ST_LVM_VG: frozenset([SO_FIX_CONSISTENCY]),
   }
 
 # Local disk status
