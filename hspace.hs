@@ -50,6 +50,7 @@ options =
     [ oPrintNodes
     , oNodeFile
     , oInstFile
+    , oNodeSim
     , oRapiMaster
     , oLuxiSocket
     , oVerbose

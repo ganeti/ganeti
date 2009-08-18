@@ -43,6 +43,7 @@ module Ganeti.HTools.CLI
     , oOutputDir
     , oNodeFile
     , oInstFile
+    , oNodeSim
     , oRapiMaster
     , oLuxiSocket
     , oMaxSolLength
@@ -74,6 +75,7 @@ import Text.Printf (printf, hPrintf)
 import qualified Ganeti.HTools.Version as Version(version)
 import qualified Ganeti.HTools.Luxi as Luxi
 import qualified Ganeti.HTools.Rapi as Rapi
+import qualified Ganeti.HTools.Simu as Simu
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Instance as Instance
@@ -97,6 +99,7 @@ data Options = Options
     , optNodeSet   :: Bool           -- ^ The nodes have been set by options
     , optInstFile  :: FilePath       -- ^ Path to the instances file
     , optInstSet   :: Bool           -- ^ The insts have been set by options
+    , optNodeSim   :: Maybe String   -- ^ Cluster simulation mode
     , optMaxLength :: Int            -- ^ Stop after this many steps
     , optMaster    :: String         -- ^ Collect data from RAPI
     , optLuxi      :: Maybe FilePath -- ^ Collect data from Luxi
@@ -125,6 +128,7 @@ defaultOptions  = Options
  , optNodeSet   = False
  , optInstFile  = "instances"
  , optInstSet   = False
+ , optNodeSim   = Nothing
  , optMaxLength = -1
  , optMaster    = ""
  , optLuxi      = Nothing
@@ -182,6 +186,11 @@ oInstFile :: OptType
 oInstFile = Option "i" ["instances"]
             (ReqArg (\ f o -> o { optInstFile = f, optInstSet = True }) "FILE")
             "the instance list FILE"
+
+oNodeSim :: OptType
+oNodeSim = Option "" ["simulate"]
+            (ReqArg (\ f o -> o { optNodeSim = Just f }) "SPEC")
+            "simulate an empty cluster, given as 'num_nodes,disk,memory,cpus'"
 
 oRapiMaster :: OptType
 oRapiMaster = Option "m" ["master"]
@@ -330,8 +339,10 @@ loadExternalData opts = do
               else env_inst
       mhost = optMaster opts
       lsock = optLuxi opts
+      simdata = optNodeSim opts
       setRapi = mhost /= ""
       setLuxi = isJust lsock
+      setSim = isJust simdata
       setFiles = optNodeSet opts || optInstSet opts
       allSet = filter id [setRapi, setLuxi, setFiles]
   when (length allSet > 1) $
@@ -344,6 +355,7 @@ loadExternalData opts = do
       case () of
         _ | setRapi -> wrapIO $ Rapi.loadData mhost
           | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
+          | setSim -> Simu.loadData $ fromJust simdata
           | otherwise -> wrapIO $ Text.loadData nodef instf
 
   let ldresult = input_data >>= Loader.mergeData

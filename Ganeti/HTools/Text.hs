@@ -27,7 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Text
-    where
+    (
+      loadData
+    ) where
 
 import Control.Monad
 
