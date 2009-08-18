@@ -481,6 +481,22 @@ class R_2_instances_name(baserlib.R_Generic):
     return baserlib.SubmitJob([op])
 
 
+class R_2_instances_name_info(baserlib.R_Generic):
+  """/2/instances/[instance_name]/info resource.
+
+  """
+  def GET(self):
+    """Request detailed instance information.
+
+    """
+    instance_name = self.items[0]
+    static = bool(self._checkIntVariable("static", default=0))
+
+    op = opcodes.OpQueryInstanceData(instances=[instance_name],
+                                     static=static)
+    return baserlib.SubmitJob([op])
+
+
 class R_2_instances_name_reboot(baserlib.R_Generic):
   """/2/instances/[instance_name]/reboot resource.
 
