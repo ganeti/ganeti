@@ -41,9 +41,8 @@ class Mainloop(object):
 
     """
     self._io_wait = {}
-    self._io_wait_add = []
-    self._io_wait_remove = []
     self._signal_wait = []
+    self._poller = select.poll()
 
   def Run(self, handle_sigchld=True, handle_sigterm=True, stop_on_empty=False):
     """Runs the mainloop.
@@ -57,8 +56,6 @@ class Mainloop(object):
                           unregistered
 
     """
-    poller = select.poll()
-
     # Setup signal handlers
     if handle_sigchld:
       sigchld_handler = utils.SignalHandler([signal.SIGCHLD])
@@ -75,33 +72,13 @@ class Mainloop(object):
 
         # Start actual main loop
         while running:
-          # Entries could be added again afterwards, hence removing first
-          if self._io_wait_remove:
-            for fd in self._io_wait_remove:
-              try:
-                poller.unregister(fd)
-              except KeyError:
-                pass
-              try:
-                del self._io_wait[fd]
-              except KeyError:
-                pass
-            self._io_wait_remove = []
-
-          # Add new entries
-          if self._io_wait_add:
-            for (owner, fd, conditions) in self._io_wait_add:
-              self._io_wait[fd] = owner
-              poller.register(fd, conditions)
-            self._io_wait_add = []
-
           # Stop if nothing is listening anymore
           if stop_on_empty and not (self._io_wait):
             break
 
           # Wait for I/O events
           try:
-            io_events = poller.poll(None)
+            io_events = self._poller.poll(None)
           except select.error, err:
             # EINTR can happen when signals are sent
             if err.args and err.args[0] in (errno.EINTR,):
@@ -161,22 +138,8 @@ class Mainloop(object):
     assert isinstance(fd, (int, long)), \
       "Only integers are supported for file descriptors"
 
-    self._io_wait_add.append((owner, fd, condition))
-
-  def UnregisterIO(self, fd):
-    """Unregister a file descriptor.
-
-    It'll be unregistered the next time the mainloop checks for it.
-
-    @type fd: int
-    @param fd: File descriptor
-
-    """
-    # select.Poller also supports file() like objects, but we don't.
-    assert isinstance(fd, (int, long)), \
-      "Only integers are supported for file descriptors"
-
-    self._io_wait_remove.append(fd)
+    self._io_wait[fd] = owner
+    self._poller.register(fd, condition)
 
   def RegisterSignal(self, owner):
     """Registers a receiver for signal notifications
