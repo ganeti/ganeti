@@ -2068,6 +2068,43 @@ class FileLock(object):
                 "Failed to unlock %s" % self.filename)
 
 
+def SignalHandled(signums):
+  """Signal Handled decoration.
+
+  This special decorator installs a signal handler and then calls the target
+  function. The function must accept a 'signal_handlers' keyword argument,
+  which will contain a dict indexed by signal number, with SignalHandler
+  objects as values.
+
+  The decorator can be safely stacked with iself, to handle multiple signals
+  with different handlers.
+
+  @type signums: list
+  @param signums: signals to intercept
+
+  """
+  def wrap(fn):
+    def sig_function(*args, **kwargs):
+      assert 'signal_handlers' not in kwargs or \
+             kwargs['signal_handlers'] is None or \
+             isinstance(kwargs['signal_handlers'], dict), \
+             "Wrong signal_handlers parameter in original function call"
+      if 'signal_handlers' in kwargs and kwargs['signal_handlers'] is not None:
+        signal_handlers = kwargs['signal_handlers']
+      else:
+        signal_handlers = {}
+        kwargs['signal_handlers'] = signal_handlers
+      sighandler = SignalHandler(signums)
+      try:
+        for sig in signums:
+          signal_handlers[sig] = sighandler
+        return fn(*args, **kwargs)
+      finally:
+        sighandler.Reset()
+    return sig_function
+  return wrap
+
+
 class SignalHandler(object):
   """Generic signal handler class.
 
