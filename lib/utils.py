@@ -2089,11 +2089,7 @@ class SignalHandler(object):
     @param signum: Single signal number or set of signal numbers
 
     """
-    if isinstance(signum, (int, long)):
-      self.signum = set([signum])
-    else:
-      self.signum = set(signum)
-
+    self.signum = set(signum)
     self.called = False
 
     self._previous = {}
