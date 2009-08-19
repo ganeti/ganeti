@@ -28,9 +28,47 @@ import select
 import signal
 import errno
 import logging
+import sched
+import time
 
 from ganeti import utils
 from ganeti import constants
+from ganeti import errors
+
+
+class SchedulerBreakout(Exception):
+  """Exception used to get out of the scheduler loop
+
+  """
+
+
+def AsyncoreDelayFunction(timeout):
+  """Asyncore-compatible scheduler delay function.
+
+  This is a delay function for sched that, rather than actually sleeping,
+  executes asyncore events happening in the meantime.
+
+  After an event has occurred, rather than returning, it raises a
+  SchedulerBreakout exception, which will force the current scheduler.run()
+  invocation to terminate, so that we can also check for signals. The main loop
+  will then call the scheduler run again, which will allow it to actually
+  process any due events.
+
+  This is needed because scheduler.run() doesn't support a count=..., as
+  asyncore loop, and the scheduler module documents throwing exceptions from
+  inside the delay function as an allowed usage model.
+
+  """
+  asyncore.loop(timeout=timeout, count=1, use_poll=True)
+  raise SchedulerBreakout()
+
+
+class AsyncoreScheduler(sched.scheduler):
+  """Event scheduler integrated with asyncore
+
+  """
+  def __init__(self, timefunc):
+    sched.scheduler.__init__(self, timefunc, AsyncoreDelayFunction)
 
 
 class Mainloop(object):
@@ -40,8 +78,12 @@ class Mainloop(object):
   def __init__(self):
     """Constructs a new Mainloop instance.
 
+    @ivar scheduler: A L{sched.scheduler} object, which can be used to register
+    timed events
+
     """
     self._signal_wait = []
+    self.scheduler = AsyncoreScheduler(time.time)
 
   @utils.SignalHandled([signal.SIGCHLD])
   @utils.SignalHandled([signal.SIGTERM])
@@ -65,7 +107,13 @@ class Mainloop(object):
       if stop_on_empty and not (self._io_wait):
         break
 
-      asyncore.loop(timeout=5, count=1, use_poll=True)
+      if not self.scheduler.empty():
+        try:
+          self.scheduler.run()
+        except SchedulerBreakout:
+          pass
+      else:
+        asyncore.loop(count=1, use_poll=True)
 
       # Check whether a signal was raised
       for sig in signal_handlers:
