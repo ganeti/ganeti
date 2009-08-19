@@ -22,6 +22,7 @@
 """Module with helper classes and functions for daemons"""
 
 
+import asyncore
 import os
 import select
 import signal
@@ -40,9 +41,7 @@ class Mainloop(object):
     """Constructs a new Mainloop instance.
 
     """
-    self._io_wait = {}
     self._signal_wait = []
-    self._poller = select.poll()
 
   @utils.SignalHandled([signal.SIGCHLD])
   @utils.SignalHandled([signal.SIGTERM])
@@ -66,22 +65,7 @@ class Mainloop(object):
       if stop_on_empty and not (self._io_wait):
         break
 
-      # Wait for I/O events
-      try:
-        io_events = self._poller.poll(None)
-      except select.error, err:
-        # EINTR can happen when signals are sent
-        if err.args and err.args[0] in (errno.EINTR,):
-          io_events = None
-        else:
-          raise
-
-      if io_events:
-        # Check for I/O events
-        for (evfd, evcond) in io_events:
-          owner = self._io_wait.get(evfd, None)
-          if owner:
-            owner.OnIO(evfd, evcond)
+      asyncore.loop(timeout=5, count=1, use_poll=True)
 
       # Check whether a signal was raised
       for sig in signal_handlers:
@@ -100,27 +84,6 @@ class Mainloop(object):
     """
     for owner in self._signal_wait:
       owner.OnSignal(signal.SIGCHLD)
-
-  def RegisterIO(self, owner, fd, condition):
-    """Registers a receiver for I/O notifications
-
-    The receiver must support a "OnIO(self, fd, conditions)" function.
-
-    @type owner: instance
-    @param owner: Receiver
-    @type fd: int
-    @param fd: File descriptor
-    @type condition: int
-    @param condition: ORed field of conditions to be notified
-                      (see select module)
-
-    """
-    # select.Poller also supports file() like objects, but we don't.
-    assert isinstance(fd, (int, long)), \
-      "Only integers are supported for file descriptors"
-
-    self._io_wait[fd] = owner
-    self._poller.register(fd, condition)
 
   def RegisterSignal(self, owner):
     """Registers a receiver for signal notifications
