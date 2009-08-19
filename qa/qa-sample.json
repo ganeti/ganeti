@@ -1,7 +1,7 @@
 {
   "name": "xen-test",
   "rename": "xen-test-rename",
-  "default-hypervisor": "xen-pvm",
+  "enabled-hypervisors": "xen-pvm",
 
   "os": "debian-etch",
   "mem": "512M",
