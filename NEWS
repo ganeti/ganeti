@@ -1,3 +1,11 @@
+Version 0.1.6 (Wed, 19 Aug 2009):
+  - Added support for Luxi (the native Ganeti protocol)
+  - Added support for simulated clusters (for hspace only)
+  - Added timeouts for the RAPI backend
+  - Fixed a few inconsistencies in the command line handling
+  - Fixed handling of errors while loading data
+  - The 'network' is a new dependency due to the Luxi addition
+
 Version 0.1.5 (Thu, 09 Jul 2009):
   - Removed obsolete hn1 program; this allowed removal of a lot of
     supporting code

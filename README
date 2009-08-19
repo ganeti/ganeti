@@ -93,8 +93,9 @@ If installing from source, you need a working ghc compiler (6.8 at
 least) and some extra Haskell libraries which usually need to be
 installed manually:
 
-- json (http://hackage.haskell.org/cgi-bin/hackage-scripts/package/json)
-- curl (http://hackage.haskell.org/cgi-bin/hackage-scripts/package/curl)
+- json (http://hackage.haskell.org/package/json)
+- curl (http://hackage.haskell.org/package/curl)
+- network (http://hackage.haskell.org/package/network)
 
 Once these are installed, just typing *make* in the top-level
 directory should be enough.
