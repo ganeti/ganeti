@@ -296,8 +296,10 @@ parseOpts argv progname options =
                      os arch
               exitWith ExitSuccess
             return resu
-      (_, _, errs) ->
-          ioError (userError (concat errs ++ usageHelp progname options))
+      (_, _, errs) -> do
+        hPutStrLn stderr $ "Command line error: "  ++ concat errs
+        hPutStrLn stderr $ usageHelp progname options
+        exitWith $ ExitFailure 2
 
 -- | Parse the environment and return the node\/instance names.
 --
