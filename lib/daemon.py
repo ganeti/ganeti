@@ -44,71 +44,52 @@ class Mainloop(object):
     self._signal_wait = []
     self._poller = select.poll()
 
-  def Run(self, handle_sigchld=True, handle_sigterm=True, stop_on_empty=False):
+  @utils.SignalHandled([signal.SIGCHLD])
+  @utils.SignalHandled([signal.SIGTERM])
+  def Run(self, stop_on_empty=False, signal_handlers=None):
     """Runs the mainloop.
 
-    @type handle_sigchld: bool
-    @param handle_sigchld: Whether to install handler for SIGCHLD
-    @type handle_sigterm: bool
-    @param handle_sigterm: Whether to install handler for SIGTERM
     @type stop_on_empty: bool
     @param stop_on_empty: Whether to stop mainloop once all I/O waiters
                           unregistered
+    @type signal_handlers: dict
+    @param signal_handlers: signal->L{utils.SignalHandler} passed by decorator
 
     """
-    # Setup signal handlers
-    if handle_sigchld:
-      sigchld_handler = utils.SignalHandler([signal.SIGCHLD])
-    else:
-      sigchld_handler = None
-    try:
-      if handle_sigterm:
-        sigterm_handler = utils.SignalHandler([signal.SIGTERM])
-      else:
-        sigterm_handler = None
+    assert isinstance(signal_handlers, dict) and \
+           len(signal_handlers) > 0, \
+           "Broken SignalHandled decorator"
+    running = True
+    # Start actual main loop
+    while running:
+      # Stop if nothing is listening anymore
+      if stop_on_empty and not (self._io_wait):
+        break
 
+      # Wait for I/O events
       try:
-        running = True
+        io_events = self._poller.poll(None)
+      except select.error, err:
+        # EINTR can happen when signals are sent
+        if err.args and err.args[0] in (errno.EINTR,):
+          io_events = None
+        else:
+          raise
 
-        # Start actual main loop
-        while running:
-          # Stop if nothing is listening anymore
-          if stop_on_empty and not (self._io_wait):
-            break
+      if io_events:
+        # Check for I/O events
+        for (evfd, evcond) in io_events:
+          owner = self._io_wait.get(evfd, None)
+          if owner:
+            owner.OnIO(evfd, evcond)
 
-          # Wait for I/O events
-          try:
-            io_events = self._poller.poll(None)
-          except select.error, err:
-            # EINTR can happen when signals are sent
-            if err.args and err.args[0] in (errno.EINTR,):
-              io_events = None
-            else:
-              raise
-
-          if io_events:
-            # Check for I/O events
-            for (evfd, evcond) in io_events:
-              owner = self._io_wait.get(evfd, None)
-              if owner:
-                owner.OnIO(evfd, evcond)
-
-          # Check whether signal was raised
-          if sigchld_handler and sigchld_handler.called:
-            self._CallSignalWaiters(signal.SIGCHLD)
-            sigchld_handler.Clear()
-
-          if sigterm_handler and sigterm_handler.called:
-            self._CallSignalWaiters(signal.SIGTERM)
-            running = False
-            sigterm_handler.Clear()
-      finally:
-        # Restore signal handlers
-        if sigterm_handler:
-          sigterm_handler.Reset()
-    finally:
-      if sigchld_handler:
-        sigchld_handler.Reset()
+      # Check whether a signal was raised
+      for sig in signal_handlers:
+        handler = signal_handlers[sig]
+        if handler.called:
+          self._CallSignalWaiters(sig)
+          running = (sig != signal.SIGTERM)
+          handler.Clear()
 
   def _CallSignalWaiters(self, signum):
     """Calls all signal waiters for a certain signal.
