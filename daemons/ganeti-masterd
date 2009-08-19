@@ -108,14 +108,17 @@ class IOServer(SocketServer.UnixStreamServer):
     """
     self.request_workers.AddTask(self, request, client_address)
 
-  def serve_forever(self):
+  @utils.SignalHandled([signal.SIGINT, signal.SIGTERM])
+  def serve_forever(self, signal_handlers=None):
     """Handle one request at a time until told to quit."""
-    sighandler = utils.SignalHandler([signal.SIGINT, signal.SIGTERM])
-    try:
-      while not sighandler.called:
-        self.handle_request()
-    finally:
-      sighandler.Reset()
+    assert isinstance(signal_handlers, dict) and \
+           len(signal_handlers) > 0, \
+           "Broken SignalHandled decorator"
+    # Since we use SignalHandled only once, the resulting dict will map all
+    # signals to the same handler. We'll just use the first one.
+    sighandler = signal_handlers.values()[0]
+    while not sighandler.called:
+      self.handle_request()
 
   def server_cleanup(self):
     """Cleanup the server.
