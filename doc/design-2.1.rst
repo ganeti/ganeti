@@ -114,7 +114,9 @@ Proposed changes
 In order to allow fast and highly available access read-only to some
 configuration values, we'll create a new ganeti-confd daemon, which will run on
 master candidates. This daemon will talk via UDP, and authenticate messages
-using HMAC with a cluster-wide shared key.
+using HMAC with a cluster-wide shared key. This key will be generated at
+cluster init time, and stored on the clusters alongside the ganeti SSL keys,
+and readable only by root.
 
 An interested client can query a value by making a request to a subset of the
 cluster master candidates. It will then wait to get a few responses, and use
