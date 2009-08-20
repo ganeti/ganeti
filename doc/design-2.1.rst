@@ -118,10 +118,11 @@ using HMAC with a cluster-wide shared key.
 
 An interested client can query a value by making a request to a subset of the
 cluster master candidates. It will then wait to get a few responses, and use
-the one with the highest configuration serial number (which will be always
-included in the answer). If some candidates are stale, or we are in the middle
-of a configuration update, various master candidates may return different
-values, and this should make sure the most recent information is used.
+the one with the highest configuration serial number. Since the configuration
+serial number is increased each time the ganeti config is updated, and the
+serial number is included in all answers, this can be used to make sure to use
+the most recent answer, in case some master candidates are stale or in the
+middle of a configuration update.
 
 In order to prevent replay attacks queries will contain the current unix
 timestamp according to the client, and the server will verify that its
