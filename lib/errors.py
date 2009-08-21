@@ -228,6 +228,12 @@ class StorageError(GenericError):
   """
 
 
+class InotifyError(GenericError):
+  """Error raised when there is a failure setting up an inotify watcher.
+
+  """
+
+
 class QuitGanetiException(Exception):
   """Signal that Ganeti that it must quit.
 
