@@ -128,6 +128,9 @@ OPTIONS = [
   cli.cli_option("--no-migrate", dest="do_migrate",
                  help="Skip instance live migration",
                  action="store_false", default=True),
+  cli.cli_option("--no-move", dest="do_move",
+                 help="Skip instance moves", action="store_false",
+                 default=True),
   cli.cli_option("--no-importexport", dest="do_importexport",
                  help="Skip instance export/import", action="store_false",
                  default=True),
@@ -562,7 +565,19 @@ class Burner(object):
       Log("instance %s" % instance, indent=1)
       op = opcodes.OpFailoverInstance(instance_name=instance,
                                       ignore_consistency=False)
+      self.ExecOrQueue(instance, op)
 
+  @_DoCheckInstances
+  @_DoBatch(False)
+  def BurnMove(self):
+    """Move the instances."""
+    Log("Moving instances")
+    mytor = izip(islice(cycle(self.nodes), 1, None),
+                 self.instances)
+    for tnode, instance in mytor:
+      Log("instance %s" % instance, indent=1)
+      op = opcodes.OpMoveInstance(instance_name=instance,
+                                  target_node=tnode)
       self.ExecOrQueue(instance, op)
 
   @_DoBatch(False)
@@ -844,6 +859,10 @@ class Burner(object):
 
       if opts.do_migrate and opts.disk_template == constants.DT_DRBD8:
         self.BurnMigrate()
+
+      if opts.do_move and opts.disk_template in [constants.DT_PLAIN,
+                                                 constants.DT_FILE]:
+        self.BurnMove()
 
       if (opts.do_importexport and
           opts.disk_template not in (constants.DT_DISKLESS,
