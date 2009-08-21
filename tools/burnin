@@ -296,11 +296,15 @@ class Burner(object):
                       metavar="<OS>")
     parser.add_option("--disk-size", dest="disk_size",
                       help="Disk size (determines disk count)",
-                      default="128m", type="string", metavar="<size,size,...>")
+                      default="128m", type="string", metavar="<size,size,...>",
+                      completion_suggest=("128M 512M 1G 4G 1G,256M"
+                                          " 4G,1G,1G 10G").split())
     parser.add_option("--disk-growth", dest="disk_growth", help="Disk growth",
                       default="128m", type="string", metavar="<size,size,...>")
     parser.add_option("--mem-size", dest="mem_size", help="Memory size",
-                      default=128, type="unit", metavar="<size>")
+                      default=128, type="unit", metavar="<size>",
+                      completion_suggest=("128M 256M 512M 1G 4G 8G"
+                                          " 12G 16G").split())
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose", default=False,
                       help="print command execution messages to stdout")
@@ -364,7 +368,8 @@ class Burner(object):
     parser.add_option("--net-timeout", default=15, type="int",
                       dest="net_timeout",
                       help="The instance check network timeout in seconds"
-                      " (defaults to 15 seconds)")
+                      " (defaults to 15 seconds)",
+                      completion_suggest="15 60 300 900".split())
     parser.add_option("-C", "--http-check", default=False, action="store_true",
                       dest="http_check",
                       help="Enable checking of instance status via http,"
