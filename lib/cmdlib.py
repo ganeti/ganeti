@@ -4369,6 +4369,181 @@ class LUMigrateInstance(LogicalUnit):
     return env, nl, nl
 
 
+class LUMoveInstance(LogicalUnit):
+  """Move an instance by data-copying.
+
+  """
+  HPATH = "instance-move"
+  HTYPE = constants.HTYPE_INSTANCE
+  _OP_REQP = ["instance_name", "target_node"]
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+    target_node = self.cfg.ExpandNodeName(self.op.target_node)
+    if target_node is None:
+      raise errors.OpPrereqError("Node '%s' not known" %
+                                  self.op.target_node)
+    self.op.target_node = target_node
+    self.needed_locks[locking.LEVEL_NODE] = [target_node]
+    self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE:
+      self._LockInstancesNodes(primary_only=True)
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    This runs on master, primary and secondary nodes of the instance.
+
+    """
+    env = {
+      "TARGET_NODE": self.op.target_node,
+      }
+    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
+    nl = [self.cfg.GetMasterNode()] + [self.instance.primary_node,
+                                       self.op.target_node]
+    return env, nl, nl
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks that the instance is in the cluster.
+
+    """
+    self.instance = instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert self.instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
+
+    node = self.cfg.GetNodeInfo(self.op.target_node)
+    assert node is not None, \
+      "Cannot retrieve locked node %s" % self.op.target_node
+
+    self.target_node = target_node = node.name
+
+    if target_node == instance.primary_node:
+      raise errors.OpPrereqError("Instance %s is already on the node %s" %
+                                 (instance.name, target_node))
+
+    bep = self.cfg.GetClusterInfo().FillBE(instance)
+
+    for idx, dsk in enumerate(instance.disks):
+      if dsk.dev_type not in (constants.LD_LV, constants.LD_FILE):
+        raise errors.OpPrereqError("Instance disk %d has a complex layout,"
+                                   " cannot copy")
+
+    _CheckNodeOnline(self, target_node)
+    _CheckNodeNotDrained(self, target_node)
+
+    if instance.admin_up:
+      # check memory requirements on the secondary node
+      _CheckNodeFreeMemory(self, target_node, "failing over instance %s" %
+                           instance.name, bep[constants.BE_MEMORY],
+                           instance.hypervisor)
+    else:
+      self.LogInfo("Not checking memory on the secondary node as"
+                   " instance will not be started")
+
+    # check bridge existance
+    _CheckInstanceBridgesExist(self, instance, node=target_node)
+
+  def Exec(self, feedback_fn):
+    """Move an instance.
+
+    The move is done by shutting it down on its present node, copying
+    the data over (slow) and starting it on the new node.
+
+    """
+    instance = self.instance
+
+    source_node = instance.primary_node
+    target_node = self.target_node
+
+    self.LogInfo("Shutting down instance %s on source node %s",
+                 instance.name, source_node)
+
+    result = self.rpc.call_instance_shutdown(source_node, instance)
+    msg = result.fail_msg
+    if msg:
+      if self.op.ignore_consistency:
+        self.proc.LogWarning("Could not shutdown instance %s on node %s."
+                             " Proceeding anyway. Please make sure node"
+                             " %s is down. Error details: %s",
+                             instance.name, source_node, source_node, msg)
+      else:
+        raise errors.OpExecError("Could not shutdown instance %s on"
+                                 " node %s: %s" %
+                                 (instance.name, source_node, msg))
+
+    # create the target disks
+    try:
+      _CreateDisks(self, instance, target_node=target_node)
+    except errors.OpExecError:
+      self.LogWarning("Device creation failed, reverting...")
+      try:
+        _RemoveDisks(self, instance, target_node=target_node)
+      finally:
+        self.cfg.ReleaseDRBDMinors(instance.name)
+        raise
+
+    cluster_name = self.cfg.GetClusterInfo().cluster_name
+
+    errs = []
+    # activate, get path, copy the data over
+    for idx, disk in enumerate(instance.disks):
+      self.LogInfo("Copying data for disk %d", idx)
+      result = self.rpc.call_blockdev_assemble(target_node, disk,
+                                               instance.name, True)
+      if result.fail_msg:
+        self.LogWarning("Can't assemble newly created disk %d: %s",
+                        idx, result.fail_msg)
+        errs.append(result.fail_msg)
+        break
+      dev_path = result.payload
+      result = self.rpc.call_blockdev_export(source_node, disk,
+                                             target_node, dev_path,
+                                             cluster_name)
+      if result.fail_msg:
+        self.LogWarning("Can't copy data over for disk %d: %s",
+                        idx, result.fail_msg)
+        errs.append(result.fail_msg)
+        break
+
+    if errs:
+      self.LogWarning("Some disks failed to copy, aborting")
+      try:
+        _RemoveDisks(self, instance, target_node=target_node)
+      finally:
+        self.cfg.ReleaseDRBDMinors(instance.name)
+        raise errors.OpExecError("Errors during disk copy: %s" %
+                                 (",".join(errs),))
+
+    instance.primary_node = target_node
+    self.cfg.Update(instance)
+
+    self.LogInfo("Removing the disks on the original node")
+    _RemoveDisks(self, instance, target_node=source_node)
+
+    # Only start the instance if it's marked as up
+    if instance.admin_up:
+      self.LogInfo("Starting instance %s on node %s",
+                   instance.name, target_node)
+
+      disks_ok, _ = _AssembleInstanceDisks(self, instance,
+                                           ignore_secondaries=True)
+      if not disks_ok:
+        _ShutdownInstanceDisks(self, instance)
+        raise errors.OpExecError("Can't activate the instance's disks")
+
+      result = self.rpc.call_instance_start(target_node, instance, None, None)
+      msg = result.fail_msg
+      if msg:
+        _ShutdownInstanceDisks(self, instance)
+        raise errors.OpExecError("Could not start instance %s on node %s: %s" %
+                                 (instance.name, target_node, msg))
+
+
 class LUMigrateNode(LogicalUnit):
   """Migrate all instances from a node.
 

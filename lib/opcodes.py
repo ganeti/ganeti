@@ -530,6 +530,21 @@ class OpMigrateInstance(OpCode):
   __slots__ = OpCode.__slots__ + ["instance_name", "live", "cleanup"]
 
 
+class OpMoveInstance(OpCode):
+  """Move an instance.
+
+  This move (with shutting down an instance and data copying) to an
+  arbitrary node.
+
+  @ivar instance_name: the name of the instance
+  @ivar target_node: the destination node
+
+  """
+  OP_ID = "OP_INSTANCE_MOVE"
+  OP_DSC_FIELD = "instance_name"
+  __slots__ = OpCode.__slots__ + ["instance_name", "target_node"]
+
+
 class OpConnectConsole(OpCode):
   """Connect to an instance's console."""
   OP_ID = "OP_INSTANCE_CONSOLE"
