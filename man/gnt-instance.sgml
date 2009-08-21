@@ -2072,6 +2072,44 @@ y/[n]/?: y
         </para>
       </refsect3>
 
+      <refsect3>
+        <title>MOVE</title>
+
+        <cmdsynopsis>
+          <command>move</command>
+          <arg>-f</arg>
+          <arg>-n <replaceable>node</replaceable></arg>
+          <arg>--submit</arg>
+          <arg choice="req"><replaceable>instance</replaceable></arg>
+        </cmdsynopsis>
+
+        <para>
+          Move will move the instance to an arbitrary node in the
+          cluster. This works only for instances having a plain or
+          file disk template.
+        </para>
+
+        <para>
+          Note that since this operation is done via data copy, it
+          will take a long time for big disks (similar to
+          replace-disks for a drbd instance).
+        </para>
+
+        <para>
+          The <option>--submit</option> option is used to send the job to
+          the master daemon but not wait for its completion. The job
+          ID will be shown so that it can be examined via
+          <command>gnt-job info</command>.
+        </para>
+
+        <para>
+          Example:
+          <screen>
+# gnt-instance move -n node3.example.com instance1.example.com
+          </screen>
+        </para>
+      </refsect3>
+
     </refsect2>
 
     <refsect2>

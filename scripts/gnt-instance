@@ -952,6 +952,33 @@ def MigrateInstance(opts, args):
   return 0
 
 
+def MoveInstance(opts, args):
+  """Move an instance.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the instance name
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  cl = GetClient()
+  instance_name = args[0]
+  force = opts.force
+
+  if not force:
+    usertext = ("Instance %s will be moved."
+                " This requires a shutdown of the instance. Continue?" %
+                (instance_name,))
+    if not AskUser(usertext):
+      return 1
+
+  op = opcodes.OpMoveInstance(instance_name=instance_name,
+                              target_node=opts.target_node)
+  SubmitOrSend(op, opts, cl=cl)
+  return 0
+
+
 def ConnectToInstanceConsole(opts, args):
   """Connect to the console of an instance.
 
@@ -1435,6 +1462,15 @@ commands = {
                "[-f] <instance>",
                "Migrate instance to its secondary node"
                " (only for instances of type drbd)"),
+  'move': (MoveInstance, ARGS_ONE,
+           [DEBUG_OPT, FORCE_OPT, SUBMIT_OPT,
+            make_option("-n", "--new-node", dest="target_node",
+                        help="Destinattion node", metavar="NODE",
+                        default=None),
+            ],
+           "[-f] <instance>",
+           "Move instance to an arbitrary node"
+           " (only for instances of type file and lv)"),
   'info': (ShowInstanceConfig, ARGS_ANY,
            [DEBUG_OPT,
             make_option("-s", "--static", dest="static",
