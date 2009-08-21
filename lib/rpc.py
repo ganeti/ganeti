@@ -961,6 +961,17 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_grow",
                                 [cf_bdev.ToDict(), amount])
 
+  def call_blockdev_export(self, node, cf_bdev,
+                           dest_node, dest_path, cluster_name):
+    """Export a given disk to another node.
+
+    This is a single-node call.
+
+    """
+    return self._SingleNodeCall(node, "blockdev_export",
+                                [cf_bdev.ToDict(), dest_node, dest_path,
+                                 cluster_name])
+
   def call_blockdev_snapshot(self, node, cf_bdev):
     """Request a snapshot of the given block device.
 
