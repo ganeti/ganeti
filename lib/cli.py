@@ -53,10 +53,81 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "JobSubmittedException", "FormatTimestamp", "ParseTimespec",
            "ToStderr", "ToStdout", "UsesRPC",
            "GetOnlineNodes", "JobExecutor", "SYNC_OPT", "CONFIRM_OPT",
+           "ArgJobId", "ArgSuggest", "ArgUnknown", "ArgFile", "ArgCommand",
+           "ArgInstance", "ArgNode", "ArgChoice",
            ]
 
 NO_PREFIX = "no_"
 UN_PREFIX = "-"
+
+
+class _Argument:
+  def __init__(self, min=0, max=None, suggest=None):
+    self.min = min
+    self.max = max
+
+  def __repr__(self):
+    return ("<%s min=%s max=%s>" %
+            (self.__class__.__name__, self.min, self.max))
+
+
+class ArgSuggest(_Argument):
+  """Suggesting argument.
+
+  Value can be any of the ones passed to the constructor.
+
+  """
+  def __init__(self, min=0, max=None, choices=None):
+    _Argument.__init__(self, min=min, max=max)
+    self.choices = choices
+
+  def __repr__(self):
+    return ("<%s min=%s max=%s choices=%r>" %
+            (self.__class__.__name__, self.min, self.max, self.choices))
+
+
+class ArgChoice(ArgSuggest):
+  """Choice argument.
+
+  Value can be any of the ones passed to the constructor. Like L{ArgSuggest},
+  but value must be one of the choices.
+
+  """
+
+
+class ArgUnknown(_Argument):
+  """Unknown argument to program (e.g. determined at runtime).
+
+  """
+
+
+class ArgInstance(_Argument):
+  """Instances argument.
+
+  """
+
+
+class ArgNode(_Argument):
+  """Node argument.
+
+  """
+
+class ArgJobId(_Argument):
+  """Job ID argument.
+
+  """
+
+
+class ArgFile(_Argument):
+  """File path argument.
+
+  """
+
+
+class ArgCommand(_Argument):
+  """Command argument.
+
+  """
 
 
 def _ExtractTagsObject(opts, args):
@@ -311,6 +382,9 @@ class CliOption(Option):
   """Custom option class for optparse.
 
   """
+  ATTRS = Option.ATTRS + [
+    "completion_suggest",
+    ]
   TYPES = Option.TYPES + (
     "identkeyval",
     "keyval",
