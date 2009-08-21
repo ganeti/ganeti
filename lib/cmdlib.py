@@ -4932,7 +4932,7 @@ def _GetInstanceInfoText(instance):
   return "originstname+%s" % instance.name
 
 
-def _CreateDisks(lu, instance, to_skip=None):
+def _CreateDisks(lu, instance, to_skip=None, target_node=None):
   """Create all disks for an instance.
 
   This abstracts away some work from AddInstance.
@@ -4943,12 +4943,19 @@ def _CreateDisks(lu, instance, to_skip=None):
   @param instance: the instance whose disks we should create
   @type to_skip: list
   @param to_skip: list of indices to skip
+  @type target_node: string
+  @param target_node: if passed, overrides the target node for creation
   @rtype: boolean
   @return: the success of the creation
 
   """
   info = _GetInstanceInfoText(instance)
-  pnode = instance.primary_node
+  if target_node is None:
+    pnode = instance.primary_node
+    all_nodes = instance.all_nodes
+  else:
+    pnode = target_node
+    all_nodes = [pnode]
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
@@ -4965,12 +4972,12 @@ def _CreateDisks(lu, instance, to_skip=None):
     logging.info("Creating volume %s for instance %s",
                  device.iv_name, instance.name)
     #HARDCODE
-    for node in instance.all_nodes:
+    for node in all_nodes:
       f_create = node == pnode
       _CreateBlockDev(lu, node, instance, device, f_create, info, f_create)
 
 
-def _RemoveDisks(lu, instance):
+def _RemoveDisks(lu, instance, target_node=None):
   """Remove all disks for an instance.
 
   This abstracts away some work from `AddInstance()` and
@@ -4982,6 +4989,8 @@ def _RemoveDisks(lu, instance):
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should remove
+  @type target_node: string
+  @param target_node: used to override the node on which to remove the disks
   @rtype: boolean
   @return: the success of the removal
 
@@ -4990,7 +4999,11 @@ def _RemoveDisks(lu, instance):
 
   all_result = True
   for device in instance.disks:
-    for node, disk in device.ComputeNodeTree(instance.primary_node):
+    if target_node:
+      edata = [(target_node, device)]
+    else:
+      edata = device.ComputeNodeTree(instance.primary_node)
+    for node, disk in edata:
       lu.cfg.SetDiskID(disk, node)
       msg = lu.rpc.call_blockdev_remove(node, disk).fail_msg
       if msg:
@@ -5000,12 +5013,14 @@ def _RemoveDisks(lu, instance):
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
-    result = lu.rpc.call_file_storage_dir_remove(instance.primary_node,
-                                                 file_storage_dir)
-    msg = result.fail_msg
-    if msg:
+    if target_node is node:
+      tgt = instance.primary_node
+    else:
+      tgt = instance.target_node
+    result = lu.rpc.call_file_storage_dir_remove(tgt, file_storage_dir)
+    if result.fail_msg:
       lu.LogWarning("Could not remove directory '%s' on node %s: %s",
-                    file_storage_dir, instance.primary_node, msg)
+                    file_storage_dir, instance.primary_node, result.fail_msg)
       all_result = False
 
   return all_result
