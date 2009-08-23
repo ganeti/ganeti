@@ -113,15 +113,28 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     self.mask = pyinotify.EventsCodes.IN_IGNORED | \
                 pyinotify.EventsCodes.IN_MODIFY
     self.file = file
-    self.add_config_watch()
+    self.watch_handle = None
+    self.enable()
 
-  def add_config_watch(self):
-    """Add a watcher for the ganeti config file
+  def enable(self):
+    """Watch the given file
 
     """
-    result = self.watch_manager.add_watch(self.file, self.mask)
-    if not result[self.file] > 0:
-      raise errors.ConfdFatalError("Could not add inotify watcher")
+    if self.watch_handle is None:
+      result = self.watch_manager.add_watch(self.file, self.mask)
+      if not self.file in result or result[self.file] <= 0:
+        raise errors.ConfdFatalError("Could not add inotify watcher")
+      else:
+        self.watch_handle = result[self.file]
+
+  def disable(self):
+    """Stop watching the given file
+
+    """
+    if self.watch_handle is not None:
+      result = self.watch_manager.rm_watch(self.watch_handle)
+      if result[self.watch_handle]:
+        self.watch_handle = None
 
   def reload_config(self):
     try:
@@ -143,13 +156,14 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     # contextual with the replacement). In such a case we need to create
     # another watcher for the "new" file.
     logging.debug("Received 'ignored' inotify event for %s" % event.path)
+    self.watch_handle = None
 
     try:
       # Since the kernel believes the file we were interested in is gone, it's
       # not going to notify us of any other events, until we set up, here, the
       # new watch. This is not a race condition, though, since we're anyway
       # going to realod the file after setting up the new watch.
-      self.add_config_watch()
+      self.enable()
       self.reload_config()
     except errors.ConfdFatalError, err:
       logging.critical("Critical error, shutting down: %s" % err)
