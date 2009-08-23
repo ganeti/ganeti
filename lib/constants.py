@@ -670,3 +670,12 @@ CONFD_ERROR_INTERNAL = 2
 # This constants decides how many seconds of skew to accept.
 # TODO: make this a default and allow the value to be more configurable
 CONFD_MAX_CLOCK_SKEW = 300
+
+# When we haven't reloaded the config for more than this amount of seconds, we
+# force a test to see if inotify is betraying us.
+CONFD_CONFIG_RELOAD_TIMEOUT = 60
+
+# If we receive more than one update in this amount of seconds, we move to
+# polling every RATELIMIT seconds, rather than relying on inotify, to be able
+# to serve more requests.
+CONFD_CONFIG_RELOAD_RATELIMIT = 2
