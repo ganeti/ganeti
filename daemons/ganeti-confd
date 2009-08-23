@@ -32,6 +32,7 @@ import logging
 import asyncore
 import socket
 import pyinotify
+import time
 
 from optparse import OptionParser
 
@@ -191,19 +192,28 @@ class ConfdConfigurationReloader(object):
   check, to verify that the reload hasn't failed.
 
   """
-  def __init__(self, reader):
+  def __init__(self, reader, mainloop):
     """Constructor for ConfdConfigurationReloader
 
     @type reader: L{ssconf.SimpleConfigReader}
     @param reader: ganeti-confd SimpleConfigReader
+    @type mainloop: L{daemon.Mainloop}
+    @param mainloop: ganeti-confd mainloop
 
     """
     self.reader = reader
+    self.mainloop = mainloop
+
+    self.polling = False
+    self.last_notification = 0
 
     # Asyncronous inotify handler for config changes
     self.wm = pyinotify.WatchManager()
     self.inotify_handler = ConfdInotifyEventHandler(self.wm, self.OnInotify)
     self.notifier = AsyncNotifier(self.wm, self.inotify_handler)
+
+    self.timer_handle = None
+    self._EnableTimer()
 
   def OnInotify(self, notifier_enabled):
     """Receive an inotify notification.
@@ -212,7 +222,17 @@ class ConfdConfigurationReloader(object):
     @param notifier_enabled: whether the notifier is still enabled
 
     """
-    if not notifier_enabled:
+    current_time = time.time()
+    time_delta = current_time - self.last_notification
+    self.last_notification = current_time
+
+    if time_delta < constants.CONFD_CONFIG_RELOAD_RATELIMIT:
+      logging.debug("Moving from inotify mode to polling mode")
+      self.polling = True
+      if notifier_enabled:
+        self.confd_event_handler.disable()
+
+    if not self.polling and not notifier_enabled:
       try:
         self.inotify_handler.enable()
       except errors.InotifyError:
@@ -229,6 +249,56 @@ class ConfdConfigurationReloader(object):
       # to quit.
       raise errors.ConfdFatalError(err)
 
+    # Reset the timer. If we're polling it will go to the polling rate, if
+    # we're not it will delay it again to its base safe timeout.
+    self._DisableTimer()
+    self._EnableTimer()
+
+  def _DisableTimer(self):
+    if self.timer_handle is not None:
+      self.mainloop.scheduler.cancel(self.timer_handle)
+      self.timer_handle = None
+
+  def _EnableTimer(self):
+    if self.polling:
+      timeout = constants.CONFD_CONFIG_RELOAD_RATELIMIT
+    else:
+      timeout = constants.CONFD_CONFIG_RELOAD_TIMEOUT
+
+    if self.timer_handle is None:
+      self.timer_handle = self.mainloop.scheduler.enter(
+        timeout, 1, self.OnTimer, [])
+
+  def OnTimer(self):
+    """Function called when the timer fires
+
+    """
+    self.timer_handle = None
+    try:
+      reloaded = self.reader.Reload()
+    except errors.ConfigurationError:
+      # transform a ConfigurationError in a fatal error, that will cause confd
+      # to quit.
+      raise errors.ConfdFatalError(err)
+
+    if self.polling and reloaded:
+      logging.info("Reloaded ganeti config")
+    elif reloaded:
+      # We have reloaded the config files, but received no inotify event.  If
+      # an event is pending though, we just happen to have timed out before
+      # receiving it, so this is not a problem, and we shouldn't alert
+      if not self.notifier.check_events():
+        logging.warning("Config file reload at timeout (inotify failure)")
+    elif self.polling:
+      # We're polling, but we haven't reloaded the config:
+      # Going back to inotify mode
+      logging.debug("Moving from polling mode to inotify mode")
+      self.polling = False
+      self.inotify_handler.enable()
+    else:
+      logging.debug("Performed configuration check")
+
+    self._EnableTimer()
 
 
 def CheckConfd(options, args):
@@ -258,7 +328,7 @@ def ExecConfd(options, args):
   server = ConfdAsyncUDPServer(options.bind_address, options.port, processor)
 
   # Configuration reloader
-  reloader = ConfdConfigurationReloader(reader)
+  reloader = ConfdConfigurationReloader(reader, mainloop)
 
   mainloop.Run()
 
