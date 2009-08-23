@@ -123,7 +123,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     if self.watch_handle is None:
       result = self.watch_manager.add_watch(self.file, self.mask)
       if not self.file in result or result[self.file] <= 0:
-        raise errors.ConfdFatalError("Could not add inotify watcher")
+        raise errors.InotifyError("Could not add inotify watcher")
       else:
         self.watch_handle = result[self.file]
 
@@ -213,7 +213,10 @@ class ConfdConfigurationReloader(object):
 
     """
     if not notifier_enabled:
-      self.inotify_handler.enable()
+      try:
+        self.inotify_handler.enable()
+      except errors.InotifyError:
+        raise errors.ConfdFatalError(err)
 
     try:
       reloaded = self.reader.Reload()
