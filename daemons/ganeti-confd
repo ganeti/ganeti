@@ -196,6 +196,29 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     logging.error("Received unhandled inotify event: %s" % event)
 
 
+class ConfdConfigurationReloader(object):
+  """Logic to control when to reload the ganeti configuration
+
+  This class is able to alter between inotify and polling, to rate-limit the
+  number of reloads. When using inotify it also supports a fallback timed
+  check, to verify that the reload hasn't failed.
+
+  """
+  def __init__(self, reader):
+    """Constructor for ConfdConfigurationReloader
+
+    @type reader: L{ssconf.SimpleConfigReader}
+    @param reader: ganeti-confd SimpleConfigReader
+
+    """
+    self.reader = reader
+
+    # Asyncronous inotify handler for config changes
+    self.wm = pyinotify.WatchManager()
+    self.inotify_handler = ConfdInotifyEventHandler(self.wm, reader)
+    self.notifier = AsyncNotifier(self.wm, self.confd_event_handler)
+
+
 def CheckConfd(options, args):
   """Initial checks whether to run exit with a failure.
 
@@ -222,10 +245,8 @@ def ExecConfd(options, args):
   processor = ConfdProcessor(reader)
   server = ConfdAsyncUDPServer(options.bind_address, options.port, processor)
 
-  # Asyncronous inotify handler for config changes
-  wm = pyinotify.WatchManager()
-  confd_event_handler = ConfdInotifyEventHandler(wm, reader)
-  notifier = AsyncNotifier(wm, confd_event_handler)
+  # Configuration reloader
+  reloader = ConfdConfigurationReloader(reader)
 
   mainloop.Run()
 
