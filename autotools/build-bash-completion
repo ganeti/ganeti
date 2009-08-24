@@ -321,6 +321,9 @@ class CompletionWriter:
         elif isinstance(arg, cli.ArgCommand):
           choices = ""
           compgenargs.append("-c")
+        elif isinstance(arg, cli.ArgHost):
+          choices = ""
+          compgenargs.append("-A hostname")
         else:
           raise Exception("Unknown argument type %r" % arg)
 

@@ -541,7 +541,7 @@ node_option = cli_option("-n", "--node", action="append", dest="nodes",
                          metavar="<node>", default=[])
 
 commands = {
-  'init': (InitCluster, [ArgUnknown(min=1, max=1)],
+  'init': (InitCluster, [ArgHost(min=1, max=1)],
            [DEBUG_OPT,
             cli_option("-s", "--secondary-ip", dest="secondary_ip",
                        help="Specify the secondary ip for this node;"
@@ -608,7 +608,7 @@ commands = {
                           action="store_true"),
               ],
               "", "Destroy cluster"),
-  'rename': (RenameCluster, [ArgUnknown(min=1, max=1)],
+  'rename': (RenameCluster, [ArgHost(min=1, max=1)],
              [DEBUG_OPT, FORCE_OPT],
              "<new_name>",
              "Renames the cluster"),

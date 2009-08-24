@@ -1418,7 +1418,7 @@ add_opts = [
   ]
 
 commands = {
-  'add': (AddInstance, [ArgUnknown(min=1, max=1)], add_opts,
+  'add': (AddInstance, [ArgHost(min=1, max=1)], add_opts,
           "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
           "Creates and adds a new instance to the cluster"),
   'batch-create': (BatchCreate, [ArgFile(min=1, max=1)],
@@ -1517,7 +1517,7 @@ commands = {
               ],
              "[-f] <instance>", "Shuts down the instance and removes it"),
   'rename': (RenameInstance,
-             [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1)],
+             [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],
              [DEBUG_OPT,
               cli_option("--no-ip-check", dest="ignore_ip",
                          help="Do not check that the IP of the new name"

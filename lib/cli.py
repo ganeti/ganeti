@@ -53,7 +53,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "ToStderr", "ToStdout", "UsesRPC",
            "GetOnlineNodes", "JobExecutor", "SYNC_OPT", "CONFIRM_OPT",
            "ArgJobId", "ArgSuggest", "ArgUnknown", "ArgFile", "ArgCommand",
-           "ArgInstance", "ArgNode", "ArgChoice",
+           "ArgInstance", "ArgNode", "ArgChoice", "ArgHost",
            "ARGS_NONE", "ARGS_ONE_INSTANCE", "ARGS_ONE_NODE",
            "ARGS_MANY_INSTANCES", "ARGS_MANY_NODES",
            ]
@@ -127,6 +127,12 @@ class ArgFile(_Argument):
 
 class ArgCommand(_Argument):
   """Command argument.
+
+  """
+
+
+class ArgHost(_Argument):
+  """Host argument.
 
   """
 
