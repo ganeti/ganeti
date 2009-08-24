@@ -128,12 +128,13 @@ Adds a node to the cluster.
 OP_REMOVE_NODE
 ++++++++++++++
 
-Removes a node from the cluster.
+Removes a node from the cluster. On the removed node the hooks are called
+during the execution of the operation and not after its completion.
 
 :directory: node-remove
 :env. vars: NODE_NAME
 :pre-execution: all existing nodes except the removed node
-:post-execution: all existing nodes except the removed node
+:post-execution: all existing nodes
 
 OP_NODE_SET_PARAMS
 ++++++++++++++++++

@@ -111,6 +111,7 @@ class Processor(object):
     self._feedback_fn = None
     self.exclusive_BGL = False
     self.rpc = rpc.RpcRunner(context.cfg)
+    self.hmclass = HooksMaster
 
   def _ExecLU(self, lu):
     """Logical Unit execution sequence.

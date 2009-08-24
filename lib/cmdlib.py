@@ -2155,7 +2155,8 @@ class LURemoveNode(LogicalUnit):
       "NODE_NAME": self.op.node_name,
       }
     all_nodes = self.cfg.GetNodeList()
-    all_nodes.remove(self.op.node_name)
+    if self.op.node_name in all_nodes:
+      all_nodes.remove(self.op.node_name)
     return env, all_nodes, all_nodes
 
   def CheckPrereq(self):
@@ -2197,6 +2198,26 @@ class LURemoveNode(LogicalUnit):
                  node.name)
 
     self.context.RemoveNode(node.name)
+
+    # Run post hooks on the node before it's removed
+    hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
+    try:
+      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
+    finally:
+      res = h_results[node.name]
+      if res.fail_msg:
+        if not res.offline:
+          self.LogError("Failed to start hooks on %s: %s" %
+                        (node.name, res.fail_msg))
+      for script, hkr, output in res.payload:
+        if hkr != constants.HKR_FAIL:
+	  continue
+        if output:
+          self.LogWarning("On %s script %s failed, output:  %s" %
+                          (node.name, script, output))
+        else:
+	  self.LogWarning("On %s script %s failed (no output)." %
+                          (node.name, script))
 
     result = self.rpc.call_node_leave_cluster(node.name)
     msg = result.fail_msg
