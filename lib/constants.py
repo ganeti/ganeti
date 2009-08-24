@@ -106,6 +106,7 @@ QUEUE_DIR = DATA_DIR + "/queue"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 SYSCONFDIR = _autoconf.SYSCONFDIR
+TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
