@@ -117,7 +117,7 @@ class Processor(object):
     """
     write_count = self.context.cfg.write_count
     lu.CheckPrereq()
-    hm = HooksMaster(self.rpc.call_hooks_runner, self, lu)
+    hm = HooksMaster(self.rpc.call_hooks_runner, lu)
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
                      self._feedback_fn, None)
@@ -282,9 +282,8 @@ class HooksMaster(object):
   which behaves the same works.
 
   """
-  def __init__(self, callfn, proc, lu):
+  def __init__(self, callfn, lu):
     self.callfn = callfn
-    self.proc = proc
     self.lu = lu
     self.op = lu.op
     self.env, node_list_pre, node_list_post = self._BuildEnv()
@@ -361,8 +360,8 @@ class HooksMaster(object):
           continue
         msg = res.RemoteFailMsg()
         if msg:
-          self.proc.LogWarning("Communication failure to node %s: %s",
-                               node_name, msg)
+          self.lu.LogWarning("Communication failure to node %s: %s",
+                             node_name, msg)
           continue
         for script, hkr, output in res.payload:
           if hkr == constants.HKR_FAIL:

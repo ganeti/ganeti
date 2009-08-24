@@ -240,14 +240,14 @@ class TestHooksMaster(unittest.TestCase):
 
   def testTotalFalse(self):
     """Test complete rpc failure"""
-    hm = mcpu.HooksMaster(self._call_false, FakeProc(), self.lu)
+    hm = mcpu.HooksMaster(self._call_false, self.lu)
     self.failUnlessRaises(errors.HooksFailure,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
   def testIndividualFalse(self):
     """Test individual node failure"""
-    hm = mcpu.HooksMaster(self._call_nodes_false, FakeProc(), self.lu)
+    hm = mcpu.HooksMaster(self._call_nodes_false, self.lu)
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
     #self.failUnlessRaises(errors.HooksFailure,
     #                      hm.RunPhase, constants.HOOKS_PHASE_PRE)
@@ -255,14 +255,14 @@ class TestHooksMaster(unittest.TestCase):
 
   def testScriptFalse(self):
     """Test individual rpc failure"""
-    hm = mcpu.HooksMaster(self._call_script_fail, FakeProc(), self.lu)
+    hm = mcpu.HooksMaster(self._call_script_fail, self.lu)
     self.failUnlessRaises(errors.HooksAbort,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
   def testScriptSucceed(self):
     """Test individual rpc failure"""
-    hm = mcpu.HooksMaster(self._call_script_succeed, FakeProc(), self.lu)
+    hm = mcpu.HooksMaster(self._call_script_succeed, self.lu)
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
       hm.RunPhase(phase)
 
