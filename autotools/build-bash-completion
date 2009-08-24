@@ -1,0 +1,498 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+import imp
+import optparse
+import os
+import sys
+import re
+from cStringIO import StringIO
+
+from ganeti import constants
+from ganeti import cli
+from ganeti import utils
+
+# _autoconf shouldn't be imported from anywhere except constants.py, but we're
+# making an exception here because this script is only used at build time.
+from ganeti import _autoconf
+
+
+class ShellWriter:
+  """Helper class to write scripts with indentation.
+
+  """
+  INDENT_STR = "  "
+
+  def __init__(self, fh):
+    self._fh = fh
+    self._indent = 0
+
+  def IncIndent(self):
+    """Increase indentation level by 1.
+
+    """
+    self._indent += 1
+
+  def DecIndent(self):
+    """Decrease indentation level by 1.
+
+    """
+    assert self._indent > 0
+    self._indent -= 1
+
+  def Write(self, txt, *args):
+    """Write line to output file.
+
+    """
+    self._fh.write(self._indent * self.INDENT_STR)
+
+    if args:
+      self._fh.write(txt % args)
+    else:
+      self._fh.write(txt)
+
+    self._fh.write("\n")
+
+
+def WritePreamble(sw):
+  """Writes the script preamble.
+
+  Helper functions should be written here.
+
+  """
+  sw.Write("# This script is automatically generated at build time.")
+  sw.Write("# Do not modify manually.")
+
+  sw.Write("_ganeti_nodes() {")
+  sw.IncIndent()
+  try:
+    node_list_path = os.path.join(constants.DATA_DIR, "ssconf_node_list")
+    sw.Write("cat %s", utils.ShellQuote(node_list_path))
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+  sw.Write("_ganeti_instances() {")
+  sw.IncIndent()
+  try:
+    instance_list_path = os.path.join(constants.DATA_DIR,
+                                      "ssconf_instance_list")
+    sw.Write("cat %s", utils.ShellQuote(instance_list_path))
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+  sw.Write("_ganeti_jobs() {")
+  sw.IncIndent()
+  try:
+    # FIXME: this is really going into the internals of the job queue
+    sw.Write("local jlist=$( cd %s && echo job-*; )",
+             utils.ShellQuote(constants.QUEUE_DIR))
+    sw.Write("echo ${jlist//job-/}")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+  sw.Write("_ganeti_os() {")
+  sw.IncIndent()
+  try:
+    # FIXME: Make querying the master for all OSes cheap
+    for path in constants.OS_SEARCH_PATH:
+      sw.Write("( cd %s && echo *; )", utils.ShellQuote(path))
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+  # Params: <offset> <options with values> <options without values>
+  # Result variable: $first_arg_idx
+  sw.Write("_ganeti_find_first_arg() {")
+  sw.IncIndent()
+  try:
+    sw.Write("local w i")
+
+    sw.Write("first_arg_idx=")
+    sw.Write("for (( i=$1; i < COMP_CWORD; ++i )); do")
+    sw.IncIndent()
+    try:
+      sw.Write("w=${COMP_WORDS[$i]}")
+
+      # Skip option value
+      sw.Write("""if [[ -n "$2" && "$w" == @($2) ]]; then let ++i""")
+
+      # Skip
+      sw.Write("""elif [[ -n "$3" && "$w" == @($3) ]]; then :""")
+
+      # Ah, we found the first argument
+      sw.Write("else first_arg_idx=$i; break;")
+      sw.Write("fi")
+    finally:
+      sw.DecIndent()
+    sw.Write("done")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+  # Params: <list of options separated by space>
+  # Input variable: $first_arg_idx
+  # Result variables: $arg_idx, $choices
+  sw.Write("_ganeti_list_options() {")
+  sw.IncIndent()
+  try:
+    sw.Write("""if [[ -z "$first_arg_idx" ]]; then""")
+    sw.IncIndent()
+    try:
+      sw.Write("arg_idx=0")
+      # Show options only if the current word starts with a dash
+      sw.Write("""if [[ "$cur" == -* ]]; then""")
+      sw.IncIndent()
+      try:
+        sw.Write("choices=$1")
+      finally:
+        sw.DecIndent()
+      sw.Write("fi")
+      sw.Write("return")
+    finally:
+      sw.DecIndent()
+    sw.Write("fi")
+
+    # Calculate position of current argument
+    sw.Write("arg_idx=$(( COMP_CWORD - first_arg_idx ))")
+    sw.Write("choices=")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+
+def WriteCompReply(sw, args):
+  sw.Write("""COMPREPLY=( $(compgen %s -- "$cur") )""", args)
+  sw.Write("return")
+
+
+class CompletionWriter:
+  """Command completion writer class.
+
+  """
+  def __init__(self, arg_offset, opts, args):
+    self.arg_offset = arg_offset
+    self.opts = opts
+    self.args = args
+
+    for opt in opts:
+      opt.all_names = sorted(opt._short_opts + opt._long_opts)
+
+  def _FindFirstArgument(self, sw):
+    ignore = []
+    skip_one = []
+
+    for opt in self.opts:
+      if opt.takes_value():
+        # Ignore value
+        for i in opt.all_names:
+          ignore.append("%s=*" % utils.ShellQuote(i))
+          skip_one.append(utils.ShellQuote(i))
+      else:
+        ignore.extend([utils.ShellQuote(i) for i in opt.all_names])
+
+    ignore = sorted(utils.UniqueSequence(ignore))
+    skip_one = sorted(utils.UniqueSequence(skip_one))
+
+    if ignore or skip_one:
+      # Try to locate first argument
+      sw.Write("_ganeti_find_first_arg %s %s %s",
+               self.arg_offset + 1,
+               utils.ShellQuote("|".join(skip_one)),
+               utils.ShellQuote("|".join(ignore)))
+    else:
+      # When there are no options the first argument is always at position
+      # offset + 1
+      sw.Write("first_arg_idx=%s", self.arg_offset + 1)
+
+  def _CompleteOptionValues(self, sw):
+    # Group by values
+    # "values" -> [optname1, optname2, ...]
+    values = {}
+
+    for opt in self.opts:
+      if not opt.takes_value():
+        continue
+
+      # Only static choices implemented so far (e.g. no node list)
+      suggest = getattr(opt, "completion_suggest", None)
+
+      if not suggest:
+        suggest = opt.choices
+
+      if suggest:
+        suggest_text = " ".join(sorted(suggest))
+      else:
+        suggest_text = ""
+
+      values.setdefault(suggest_text, []).extend(opt.all_names)
+
+    # Don't write any code if there are no option values
+    if not values:
+      return
+
+    sw.Write("if [[ $COMP_CWORD -gt %s ]]; then", self.arg_offset + 1)
+    sw.IncIndent()
+    try:
+      sw.Write("""case "$prev" in""")
+      for (choices, names) in values.iteritems():
+        # TODO: Implement completion for --foo=bar form
+        sw.Write("%s)", "|".join([utils.ShellQuote(i) for i in names]))
+        sw.IncIndent()
+        try:
+          WriteCompReply(sw, "-W %s" % utils.ShellQuote(choices))
+        finally:
+          sw.DecIndent()
+        sw.Write(";;")
+      sw.Write("""esac""")
+    finally:
+      sw.DecIndent()
+    sw.Write("""fi""")
+
+  def _CompleteArguments(self, sw):
+    if not (self.opts or self.args):
+      return
+
+    all_option_names = []
+    for opt in self.opts:
+      all_option_names.extend(opt.all_names)
+    all_option_names.sort()
+
+    # List options if no argument has been specified yet
+    sw.Write("_ganeti_list_options %s",
+             utils.ShellQuote(" ".join(all_option_names)))
+
+    if self.args:
+      last_idx = len(self.args) - 1
+      last_arg_end = 0
+      varlen_arg_idx = None
+      wrote_arg = False
+
+      # Write some debug comments
+      for idx, arg in enumerate(self.args):
+        sw.Write("# %s: %r", idx, arg)
+
+      sw.Write("compgenargs=")
+
+      for idx, arg in enumerate(self.args):
+        assert arg.min is not None and arg.min >= 0
+        assert not (idx < last_idx and arg.max is None)
+
+        if arg.min != arg.max or arg.max is None:
+          if varlen_arg_idx is not None:
+            raise Exception("Only one argument can have a variable length")
+          varlen_arg_idx = idx
+
+        compgenargs = []
+
+        if isinstance(arg, cli.ArgUnknown):
+          choices = ""
+        elif isinstance(arg, cli.ArgSuggest):
+          choices = utils.ShellQuote(" ".join(arg.choices))
+        elif isinstance(arg, cli.ArgInstance):
+          choices = "$(_ganeti_instances)"
+        elif isinstance(arg, cli.ArgNode):
+          choices = "$(_ganeti_nodes)"
+        elif isinstance(arg, cli.ArgJobId):
+          choices = "$(_ganeti_jobs)"
+        elif isinstance(arg, cli.ArgFile):
+          choices = ""
+          compgenargs.append("-f")
+        elif isinstance(arg, cli.ArgCommand):
+          choices = ""
+          compgenargs.append("-c")
+        else:
+          raise Exception("Unknown argument type %r" % arg)
+
+        if arg.min == 1 and arg.max == 1:
+          cmpcode = """"$arg_idx" == %d""" % (last_arg_end)
+        elif arg.min == arg.max:
+          cmpcode = (""""$arg_idx" -ge %d && "$arg_idx" -lt %d""" %
+                     (last_arg_end, last_arg_end + arg.max))
+        elif arg.max is None:
+          cmpcode = """"$arg_idx" -ge %d""" % (last_arg_end)
+        else:
+          raise Exception("Unable to generate argument position condition")
+
+        last_arg_end += arg.min
+
+        if choices or compgenargs:
+          if wrote_arg:
+            condcmd = "elif"
+          else:
+            condcmd = "if"
+
+          sw.Write("""%s [[ %s ]]; then""", condcmd, cmpcode)
+          sw.IncIndent()
+          try:
+            if choices:
+              sw.Write("""choices="$choices "%s""", choices)
+            if compgenargs:
+              sw.Write("compgenargs=%s", utils.ShellQuote(" ".join(compgenargs)))
+          finally:
+            sw.DecIndent()
+
+          wrote_arg = True
+
+      if wrote_arg:
+        sw.Write("fi")
+
+    if self.args:
+      WriteCompReply(sw, """-W "$choices" $compgenargs""")
+    else:
+      # $compgenargs exists only if there are arguments
+      WriteCompReply(sw, '-W "$choices"')
+
+  def WriteTo(self, sw):
+    self._FindFirstArgument(sw)
+    self._CompleteOptionValues(sw)
+    self._CompleteArguments(sw)
+
+
+def WriteCompletion(sw, scriptname, funcname,
+                    commands=None,
+                    opts=None, args=None):
+  """Writes the completion code for one command.
+
+  @type sw: ShellWriter
+  @param sw: Script writer
+  @type scriptname: string
+  @param scriptname: Name of command line program
+  @type funcname: string
+  @param funcname: Shell function name
+  @type commands: list
+  @param commands: List of all subcommands in this program
+
+  """
+  sw.Write("%s() {", funcname)
+  sw.IncIndent()
+  try:
+    sw.Write('local cur="$2" prev="$3"')
+    sw.Write("local i first_arg_idx choices compgenargs arg_idx")
+
+    sw.Write("COMPREPLY=()")
+
+    if opts is not None and args is not None:
+      assert not commands
+      CompletionWriter(0, opts, args).WriteTo(sw)
+
+    else:
+      sw.Write("""if [[ "$COMP_CWORD" == 1 ]]; then""")
+      sw.IncIndent()
+      try:
+        # Complete the command name
+        WriteCompReply(sw,
+                       ("-W %s" %
+                        utils.ShellQuote(" ".join(sorted(commands.keys())))))
+      finally:
+        sw.DecIndent()
+      sw.Write("fi")
+
+      # We're doing options and arguments to commands
+      sw.Write("""case "${COMP_WORDS[1]}" in""")
+      for cmd, (_, argdef, optdef, _, _) in commands.iteritems():
+        if not (argdef or optdef):
+          continue
+
+        # TODO: Group by arguments and options
+        sw.Write("%s)", utils.ShellQuote(cmd))
+        sw.IncIndent()
+        try:
+          CompletionWriter(1, optdef, argdef).WriteTo(sw)
+        finally:
+          sw.DecIndent()
+
+        sw.Write(";;")
+      sw.Write("esac")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
+  sw.Write("complete -F %s -o filenames %s",
+           utils.ShellQuote(funcname),
+           utils.ShellQuote(scriptname))
+
+
+def GetFunctionName(name):
+  return "_" + re.sub(r"[^a-z0-9]+", "_", name.lower())
+
+
+def LoadModule(filename):
+  """Loads an external module by filename.
+
+  """
+  (name, ext) = os.path.splitext(filename)
+
+  fh = open(filename, "U")
+  try:
+    return imp.load_module(name, fh, filename, (ext, "U", imp.PY_SOURCE))
+  finally:
+    fh.close()
+
+
+def GetCommands(filename, module):
+  """Returns the commands defined in a module.
+
+  Aliases are also added as commands.
+
+  """
+  try:
+    commands = getattr(module, "commands")
+  except AttributeError, err:
+    raise Exception("Script %s doesn't have 'commands' attribute" %
+                    filename)
+
+  # Use aliases
+  aliases = getattr(module, "aliases", {})
+  if aliases:
+    commands = commands.copy()
+    for name, target in aliases.iteritems():
+      commands[name] = commands[target]
+
+  return commands
+
+
+def main():
+  buf = StringIO()
+  sw = ShellWriter(buf)
+
+  WritePreamble(sw)
+
+  # gnt-* scripts
+  for scriptname in _autoconf.GNT_SCRIPTS:
+    filename = "scripts/%s" % scriptname
+
+    WriteCompletion(sw, scriptname,
+                    GetFunctionName(scriptname),
+                    commands=GetCommands(filename, LoadModule(filename)))
+
+  # Burnin script
+  burnin = LoadModule("tools/burnin")
+  WriteCompletion(sw, "%s/burnin" % constants.TOOLSDIR, "_ganeti_burnin",
+                  opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
+
+  print buf.getvalue()
+
+
+if __name__ == "__main__":
+  main()

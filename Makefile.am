@@ -11,6 +11,7 @@ abs_top_srcdir = @abs_top_srcdir@
 
 ACLOCAL_AMFLAGS = -I autotools
 DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
+BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -148,12 +149,7 @@ docpng = $(patsubst %.dot,%.png,$(docdot))
 
 noinst_DATA = $(manhtml) doc/html
 
-dist_sbin_SCRIPTS = \
-	daemons/ganeti-noded \
-	daemons/ganeti-watcher \
-	daemons/ganeti-masterd \
-	daemons/ganeti-confd \
-	daemons/ganeti-rapi \
+gnt_scripts = \
 	scripts/gnt-backup \
 	scripts/gnt-cluster \
 	scripts/gnt-debug \
@@ -161,6 +157,14 @@ dist_sbin_SCRIPTS = \
 	scripts/gnt-job \
 	scripts/gnt-node \
 	scripts/gnt-os
+
+dist_sbin_SCRIPTS = \
+	daemons/ganeti-noded \
+	daemons/ganeti-watcher \
+	daemons/ganeti-masterd \
+	daemons/ganeti-confd \
+	daemons/ganeti-rapi \
+	$(gnt_scripts)
 
 dist_tools_SCRIPTS = \
 	tools/burnin \
@@ -179,7 +183,6 @@ EXTRA_DIST = \
 	$(docrst) \
 	doc/conf.py \
 	doc/html \
-	doc/examples/bash_completion.in \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
@@ -266,6 +269,18 @@ doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
+doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) lib/_autoconf.py \
+	lib/cli.py $(gnt_scripts) tools/burnin
+	TMPDIR=`mktemp -d ./buildtmpXXXXXX` && \
+	cp -r scripts lib tools $$TMPDIR && \
+	( \
+		CDIR=`pwd` && \
+		cd $$TMPDIR && \
+		mv lib ganeti && \
+		PYTHONPATH=. $$CDIR/$(BUILD_BASH_COMPLETION) > $$CDIR/$@; \
+	); \
+	rm -rf $$TMPDIR
+
 doc/%.png: doc/%.dot
 	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
 	$(DOT) -Tpng -o $@ $<
@@ -332,6 +347,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "SOCAT_PATH = '$(SOCAT_PATH)'"; \
 	  echo "LVM_STRIPECOUNT = $(LVM_STRIPECOUNT)"; \
 	  echo "TOOLSDIR = '$(toolsdir)'"; \
+	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile stamp-directories
