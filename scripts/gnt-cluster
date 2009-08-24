@@ -24,7 +24,6 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 
 import sys
-from optparse import make_option
 import os.path
 
 from ganeti.cli import *
@@ -536,57 +535,56 @@ def QueueOps(opts, args):
 
 # this is an option common to more than one command, so we declare
 # it here and reuse it
-node_option = make_option("-n", "--node", action="append", dest="nodes",
-                          help="Node to copy to (if not given, all nodes),"
-                               " can be given multiple times",
-                          metavar="<node>", default=[])
+node_option = cli_option("-n", "--node", action="append", dest="nodes",
+                         help="Node to copy to (if not given, all nodes),"
+                              " can be given multiple times",
+                         metavar="<node>", default=[])
 
 commands = {
   'init': (InitCluster, [ArgUnknown(min=1, max=1)],
            [DEBUG_OPT,
-            make_option("-s", "--secondary-ip", dest="secondary_ip",
-                        help="Specify the secondary ip for this node;"
-                        " if given, the entire cluster must have secondary"
-                        " addresses",
-                        metavar="ADDRESS", default=None),
-            make_option("-m", "--mac-prefix", dest="mac_prefix",
-                        help="Specify the mac prefix for the instance IP"
-                        " addresses, in the format XX:XX:XX",
-                        metavar="PREFIX",
-                        default=constants.DEFAULT_MAC_PREFIX,),
-            make_option("-g", "--vg-name", dest="vg_name",
-                        help="Specify the volume group name "
-                        " (cluster-wide) for disk allocation [xenvg]",
-                        metavar="VG",
-                        default=None,),
-            make_option("--master-netdev", dest="master_netdev",
-                        help="Specify the node interface (cluster-wide)"
-                          " on which the master IP address will be added "
-                          " [%s]" % constants.DEFAULT_BRIDGE,
-                        metavar="NETDEV",
-                        default=constants.DEFAULT_BRIDGE,),
-            make_option("--file-storage-dir", dest="file_storage_dir",
-                        help="Specify the default directory (cluster-wide)"
-                             " for storing the file-based disks [%s]" %
-                             constants.DEFAULT_FILE_STORAGE_DIR,
-                        metavar="DIR",
-                        default=constants.DEFAULT_FILE_STORAGE_DIR,),
-            make_option("--no-lvm-storage", dest="lvm_storage",
-                        help="No support for lvm based instances"
-                             " (cluster-wide)",
-                        action="store_false", default=True,),
-            make_option("--no-etc-hosts", dest="modify_etc_hosts",
-                        help="Don't modify /etc/hosts"
-                             " (cluster-wide)",
-                        action="store_false", default=True,),
-            make_option("--enabled-hypervisors", dest="enabled_hypervisors",
-                        help="Comma-separated list of hypervisors",
-                        type="string",
-                        default=constants.DEFAULT_ENABLED_HYPERVISOR),
+            cli_option("-s", "--secondary-ip", dest="secondary_ip",
+                       help="Specify the secondary ip for this node;"
+                       " if given, the entire cluster must have secondary"
+                       " addresses",
+                       metavar="ADDRESS", default=None),
+            cli_option("-m", "--mac-prefix", dest="mac_prefix",
+                       help="Specify the mac prefix for the instance IP"
+                       " addresses, in the format XX:XX:XX",
+                       metavar="PREFIX",
+                       default=constants.DEFAULT_MAC_PREFIX,),
+            cli_option("-g", "--vg-name", dest="vg_name",
+                       help="Specify the volume group name "
+                       " (cluster-wide) for disk allocation [xenvg]",
+                       metavar="VG",
+                       default=None,),
+            cli_option("--master-netdev", dest="master_netdev",
+                       help="Specify the node interface (cluster-wide)"
+                         " on which the master IP address will be added "
+                         " [%s]" % constants.DEFAULT_BRIDGE,
+                       metavar="NETDEV",
+                       default=constants.DEFAULT_BRIDGE,),
+            cli_option("--file-storage-dir", dest="file_storage_dir",
+                       help="Specify the default directory (cluster-wide)"
+                            " for storing the file-based disks [%s]" %
+                            constants.DEFAULT_FILE_STORAGE_DIR,
+                       metavar="DIR",
+                       default=constants.DEFAULT_FILE_STORAGE_DIR,),
+            cli_option("--no-lvm-storage", dest="lvm_storage",
+                       help="No support for lvm based instances"
+                            " (cluster-wide)",
+                       action="store_false", default=True,),
+            cli_option("--no-etc-hosts", dest="modify_etc_hosts",
+                       help="Don't modify /etc/hosts"
+                            " (cluster-wide)",
+                       action="store_false", default=True,),
+            cli_option("--enabled-hypervisors", dest="enabled_hypervisors",
+                       help="Comma-separated list of hypervisors",
+                       type="string",
+                       default=constants.DEFAULT_ENABLED_HYPERVISOR),
             cli_option("-H", "--hypervisor-parameters", dest="hvparams",
-                       help="Hypervisor and hypervisor options, in the"
-                         " format"
-                       " hypervisor:option=value,option=value,...",
+                       help="Hypervisor and hypervisor options, in the format"
+                            " hypervisor:option=value,option=value,...",
                        default=[],
                        action="append",
                        type="identkeyval"),
@@ -596,18 +594,18 @@ commands = {
             cli_option("-N", "--nic-parameters", dest="nicparams",
                        type="keyval", default={},
                        help="NIC parameters"),
-            make_option("-C", "--candidate-pool-size",
-                        default=constants.MASTER_POOL_SIZE_DEFAULT,
-                        help="Set the candidate pool size",
-                        dest="candidate_pool_size", type="int"),
+            cli_option("-C", "--candidate-pool-size",
+                       default=constants.MASTER_POOL_SIZE_DEFAULT,
+                       help="Set the candidate pool size",
+                       dest="candidate_pool_size", type="int"),
             ],
            "[opts...] <cluster_name>",
            "Initialises a new cluster configuration"),
   'destroy': (DestroyCluster, [],
               [DEBUG_OPT,
-               make_option("--yes-do-it", dest="yes_do_it",
-                           help="Destroy cluster",
-                           action="store_true"),
+               cli_option("--yes-do-it", dest="yes_do_it",
+                          help="Destroy cluster",
+                          action="store_true"),
               ],
               "", "Destroy cluster"),
   'rename': (RenameCluster, [ArgUnknown(min=1, max=1)],
@@ -619,10 +617,10 @@ commands = {
                   "Forces a push of the configuration file and ssconf files"
                   " to the nodes in the cluster"),
   'verify': (VerifyCluster, [], [DEBUG_OPT,
-             make_option("--no-nplus1-mem", dest="skip_nplusone_mem",
-                         help="Skip N+1 memory redundancy tests",
-                         action="store_true",
-                         default=False,),
+             cli_option("--no-nplus1-mem", dest="skip_nplusone_mem",
+                        help="Skip N+1 memory redundancy tests",
+                        action="store_true",
+                        default=False,),
              ],
              "", "Does a check on the cluster configuration"),
   'verify-disks': (VerifyDisks, [], [DEBUG_OPT],
@@ -630,10 +628,10 @@ commands = {
   'repair-disk-sizes': (RepairDiskSizes, [ArgInstance()], [DEBUG_OPT],
                    "", "Updates mismatches in recorded disk sizes"),
   'masterfailover': (MasterFailover, [], [DEBUG_OPT,
-                     make_option("--no-voting", dest="no_voting",
-                                 help="Skip node agreement check (dangerous)",
-                                 action="store_true",
-                                 default=False,),
+                     cli_option("--no-voting", dest="no_voting",
+                                help="Skip node agreement check (dangerous)",
+                                action="store_true",
+                                default=False,),
                      ],
                      "", "Makes the current node the master"),
   'version': (ShowClusterVersion, [], [DEBUG_OPT],
@@ -664,18 +662,18 @@ commands = {
             "drain|undrain|info", "Change queue properties"),
   'modify': (SetClusterParams, [],
              [DEBUG_OPT,
-              make_option("-g", "--vg-name", dest="vg_name",
-                          help="Specify the volume group name "
-                          " (cluster-wide) for disk allocation "
-                          "and enable lvm based storage",
-                          metavar="VG",),
-              make_option("--no-lvm-storage", dest="lvm_storage",
-                          help="Disable support for lvm based instances"
-                               " (cluster-wide)",
-                          action="store_false", default=True,),
-              make_option("--enabled-hypervisors", dest="enabled_hypervisors",
-                          help="Comma-separated list of hypervisors",
-                          type="string", default=None),
+              cli_option("-g", "--vg-name", dest="vg_name",
+                         help="Specify the volume group name "
+                         " (cluster-wide) for disk allocation "
+                         "and enable lvm based storage",
+                         metavar="VG",),
+              cli_option("--no-lvm-storage", dest="lvm_storage",
+                         help="Disable support for lvm based instances"
+                              " (cluster-wide)",
+                         action="store_false", default=True,),
+              cli_option("--enabled-hypervisors", dest="enabled_hypervisors",
+                         help="Comma-separated list of hypervisors",
+                         type="string", default=None),
               cli_option("-H", "--hypervisor-parameters", dest="hvparams",
                          help="Hypervisor and hypervisor options, in the"
                          " format"
@@ -689,9 +687,9 @@ commands = {
               cli_option("-N", "--nic-parameters", dest="nicparams",
                          type="keyval", default={},
                          help="NIC parameters"),
-              make_option("-C", "--candidate-pool-size", default=None,
-                          help="Set the candidate pool size",
-                          dest="candidate_pool_size", type="int"),
+              cli_option("-C", "--candidate-pool-size", default=None,
+                         help="Set the candidate pool size",
+                         dest="candidate_pool_size", type="int"),
               ],
              "[opts...]",
              "Alters the parameters of the cluster"),

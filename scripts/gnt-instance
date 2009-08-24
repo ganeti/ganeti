@@ -28,7 +28,6 @@ import os
 import itertools
 import simplejson
 import time
-from optparse import make_option
 from cStringIO import StringIO
 
 from ganeti.cli import *
@@ -1332,52 +1331,52 @@ def SetInstanceParams(opts, args):
 
 
 # options used in more than one cmd
-node_opt = make_option("-n", "--node", dest="node", help="Target node",
-                       metavar="<node>")
+node_opt = cli_option("-n", "--node", dest="node", help="Target node",
+                      metavar="<node>")
 
 os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>")
 
 # multi-instance selection options
-m_force_multi = make_option("--force-multiple", dest="force_multi",
-                            help="Do not ask for confirmation when more than"
-                            " one instance is affected",
-                            action="store_true", default=False)
+m_force_multi = cli_option("--force-multiple", dest="force_multi",
+                           help="Do not ask for confirmation when more than"
+                           " one instance is affected",
+                           action="store_true", default=False)
 
-m_pri_node_opt = make_option("--primary", dest="multi_mode",
-                             help="Filter by nodes (primary only)",
-                             const=_SHUTDOWN_NODES_PRI, action="store_const")
+m_pri_node_opt = cli_option("--primary", dest="multi_mode",
+                            help="Filter by nodes (primary only)",
+                            const=_SHUTDOWN_NODES_PRI, action="store_const")
 
-m_sec_node_opt = make_option("--secondary", dest="multi_mode",
-                             help="Filter by nodes (secondary only)",
-                             const=_SHUTDOWN_NODES_SEC, action="store_const")
+m_sec_node_opt = cli_option("--secondary", dest="multi_mode",
+                            help="Filter by nodes (secondary only)",
+                            const=_SHUTDOWN_NODES_SEC, action="store_const")
 
-m_node_opt = make_option("--node", dest="multi_mode",
-                         help="Filter by nodes (primary and secondary)",
-                         const=_SHUTDOWN_NODES_BOTH, action="store_const")
+m_node_opt = cli_option("--node", dest="multi_mode",
+                        help="Filter by nodes (primary and secondary)",
+                        const=_SHUTDOWN_NODES_BOTH, action="store_const")
 
-m_clust_opt = make_option("--all", dest="multi_mode",
-                          help="Select all instances in the cluster",
-                          const=_SHUTDOWN_CLUSTER, action="store_const")
+m_clust_opt = cli_option("--all", dest="multi_mode",
+                         help="Select all instances in the cluster",
+                         const=_SHUTDOWN_CLUSTER, action="store_const")
 
-m_inst_opt = make_option("--instance", dest="multi_mode",
-                         help="Filter by instance name [default]",
-                         const=_SHUTDOWN_INSTANCES, action="store_const")
+m_inst_opt = cli_option("--instance", dest="multi_mode",
+                        help="Filter by instance name [default]",
+                        const=_SHUTDOWN_INSTANCES, action="store_const")
 
 
 # this is defined separately due to readability only
 add_opts = [
   DEBUG_OPT,
-  make_option("-n", "--node", dest="node",
-              help="Target node and optional secondary node",
-              metavar="<pnode>[:<snode>]"),
+  cli_option("-n", "--node", dest="node",
+             help="Target node and optional secondary node",
+             metavar="<pnode>[:<snode>]"),
   os_opt,
   cli_option("-B", "--backend", dest="beparams",
              type="keyval", default={},
              help="Backend parameters"),
-  make_option("-t", "--disk-template", dest="disk_template",
-              help="Custom disk setup (diskless, file, plain or drbd)",
-              default=None, metavar="TEMPL"),
+  cli_option("-t", "--disk-template", dest="disk_template",
+             help="Custom disk setup (diskless, file, plain or drbd)",
+             default=None, metavar="TEMPL"),
   cli_option("-s", "--os-size", dest="sd_size", help="Disk size for a"
              " single-disk configuration, when not using the --disk option,"
              " in MiB unless a suffix is used",
@@ -1390,29 +1389,29 @@ add_opts = [
              default=[], dest="nics",
              action="append",
              type="identkeyval"),
-  make_option("--no-nics", default=False, action="store_true",
-              help="Do not create any network cards for the instance"),
-  make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
-              action="store_false", help="Don't wait for sync (DANGEROUS!)"),
-  make_option("--no-start", dest="start", default=True,
-              action="store_false", help="Don't start the instance after"
-              " creation"),
-  make_option("--no-ip-check", dest="ip_check", default=True,
-              action="store_false", help="Don't check that the instance's IP"
-              " is alive (only valid with --no-start)"),
-  make_option("--file-storage-dir", dest="file_storage_dir",
-              help="Relative path under default cluster-wide file storage dir"
-              " to store file-based disks", default=None,
-              metavar="<DIR>"),
-  make_option("--file-driver", dest="file_driver", help="Driver to use"
-              " for image files", default="loop", metavar="<DRIVER>"),
-  make_option("-I", "--iallocator", metavar="<NAME>",
-              help="Select nodes for the instance automatically using the"
-              " <NAME> iallocator plugin", default=None, type="string"),
+  cli_option("--no-nics", default=False, action="store_true",
+             help="Do not create any network cards for the instance"),
+  cli_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
+             action="store_false", help="Don't wait for sync (DANGEROUS!)"),
+  cli_option("--no-start", dest="start", default=True,
+             action="store_false", help="Don't start the instance after"
+             " creation"),
+  cli_option("--no-ip-check", dest="ip_check", default=True,
+             action="store_false", help="Don't check that the instance's IP"
+             " is alive (only valid with --no-start)"),
+  cli_option("--file-storage-dir", dest="file_storage_dir",
+             help="Relative path under default cluster-wide file storage dir"
+             " to store file-based disks", default=None,
+             metavar="<DIR>"),
+  cli_option("--file-driver", dest="file_driver", help="Driver to use"
+             " for image files", default="loop", metavar="<DRIVER>"),
+  cli_option("-I", "--iallocator", metavar="<NAME>",
+             help="Select nodes for the instance automatically using the"
+             " <NAME> iallocator plugin", default=None, type="string"),
   cli_option("-H", "--hypervisor", dest="hypervisor",
-              help="Hypervisor and hypervisor options, in the format"
-              " hypervisor:option=value,option=value,...", default=None,
-              type="identkeyval"),
+             help="Hypervisor and hypervisor options, in the format"
+             " hypervisor:option=value,option=value,...", default=None,
+             type="identkeyval"),
   SUBMIT_OPT,
   ]
 
@@ -1426,17 +1425,17 @@ commands = {
                    "Create a bunch of instances based on specs in the file."),
   'console': (ConnectToInstanceConsole, [ArgInstance(min=1, max=1)],
               [DEBUG_OPT,
-               make_option("--show-cmd", dest="show_command",
-                           action="store_true", default=False,
-                           help=("Show command instead of executing it"))],
+               cli_option("--show-cmd", dest="show_command",
+                          action="store_true", default=False,
+                          help=("Show command instead of executing it"))],
               "[--show-cmd] <instance>",
               "Opens a console on the specified instance"),
   'failover': (FailoverInstance, [ArgInstance(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
-                make_option("--ignore-consistency", dest="ignore_consistency",
-                            action="store_true", default=False,
-                            help="Ignore the consistency of the disks on"
-                            " the secondary"),
+                cli_option("--ignore-consistency", dest="ignore_consistency",
+                           action="store_true", default=False,
+                           help="Ignore the consistency of the disks on"
+                           " the secondary"),
                 SUBMIT_OPT,
                 ],
                "[-f] <instance>",
@@ -1444,42 +1443,42 @@ commands = {
                " the remote mirror (only for instances of type drbd)"),
   'migrate': (MigrateInstance, [ArgInstance(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
-                make_option("--non-live", dest="live",
-                            default=True, action="store_false",
-                            help="Do a non-live migration (this usually means"
-                            " freeze the instance, save the state,"
-                            " transfer and only then resume running on the"
-                            " secondary node)"),
-                make_option("--cleanup", dest="cleanup",
-                            default=False, action="store_true",
-                            help="Instead of performing the migration, try to"
-                            " recover from a failed cleanup. This is safe"
-                            " to run even if the instance is healthy, but it"
-                            " will create extra replication traffic and "
-                            " disrupt briefly the replication (like during the"
-                            " migration"),
+                cli_option("--non-live", dest="live",
+                           default=True, action="store_false",
+                           help="Do a non-live migration (this usually means"
+                           " freeze the instance, save the state,"
+                           " transfer and only then resume running on the"
+                           " secondary node)"),
+                cli_option("--cleanup", dest="cleanup",
+                           default=False, action="store_true",
+                           help="Instead of performing the migration, try to"
+                           " recover from a failed cleanup. This is safe"
+                           " to run even if the instance is healthy, but it"
+                           " will create extra replication traffic and "
+                           " disrupt briefly the replication (like during the"
+                           " migration"),
                 ],
                "[-f] <instance>",
                "Migrate instance to its secondary node"
                " (only for instances of type drbd)"),
   'move': (MoveInstance, [ArgInstance(min=1, max=1)],
            [DEBUG_OPT, FORCE_OPT, SUBMIT_OPT,
-            make_option("-n", "--new-node", dest="target_node",
-                        help="Destinattion node", metavar="NODE",
-                        default=None),
+            cli_option("-n", "--new-node", dest="target_node",
+                       help="Destinattion node", metavar="NODE",
+                       default=None),
             ],
            "[-f] <instance>",
            "Move instance to an arbitrary node"
            " (only for instances of type file and lv)"),
   'info': (ShowInstanceConfig, [ArgInstance()],
            [DEBUG_OPT,
-            make_option("-s", "--static", dest="static",
-                        action="store_true", default=False,
-                        help="Only show configuration data, not runtime data"),
-            make_option("--all", dest="show_all",
-                        default=False, action="store_true",
-                        help="Show info on all instances on the cluster."
-                        " This can take a long time to run, use wisely."),
+            cli_option("-s", "--static", dest="static",
+                       action="store_true", default=False,
+                       help="Only show configuration data, not runtime data"),
+            cli_option("--all", dest="show_all",
+                       default=False, action="store_true",
+                       help="Show info on all instances on the cluster."
+                       " This can take a long time to run, use wisely."),
             ], "[-s] {--all | <instance>...}",
            "Show information on the specified instance(s)"),
   'list': (ListInstances, [ArgInstance()],
@@ -1498,61 +1497,61 @@ commands = {
                  m_force_multi,
                  m_node_opt, m_pri_node_opt, m_sec_node_opt,
                  m_clust_opt, m_inst_opt,
-                 make_option("--select-os", dest="select_os",
-                             action="store_true", default=False,
-                             help="Interactive OS reinstall, lists available"
-                             " OS templates for selection"),
+                 cli_option("--select-os", dest="select_os",
+                            action="store_true", default=False,
+                            help="Interactive OS reinstall, lists available"
+                            " OS templates for selection"),
                  SUBMIT_OPT,
                  ],
                 "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (RemoveInstance, [ArgInstance(min=1, max=1)],
              [DEBUG_OPT, FORCE_OPT,
-              make_option("--ignore-failures", dest="ignore_failures",
-                          action="store_true", default=False,
-                          help=("Remove the instance from the cluster even"
-                                " if there are failures during the removal"
-                                " process (shutdown, disk removal, etc.)")),
+              cli_option("--ignore-failures", dest="ignore_failures",
+                         action="store_true", default=False,
+                         help=("Remove the instance from the cluster even"
+                               " if there are failures during the removal"
+                               " process (shutdown, disk removal, etc.)")),
               SUBMIT_OPT,
               ],
              "[-f] <instance>", "Shuts down the instance and removes it"),
   'rename': (RenameInstance,
              [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1)],
              [DEBUG_OPT,
-              make_option("--no-ip-check", dest="ignore_ip",
-                          help="Do not check that the IP of the new name"
-                          " is alive",
-                          default=False, action="store_true"),
+              cli_option("--no-ip-check", dest="ignore_ip",
+                         help="Do not check that the IP of the new name"
+                         " is alive",
+                         default=False, action="store_true"),
               SUBMIT_OPT,
               ],
              "<instance> <new_name>", "Rename the instance"),
   'replace-disks': (ReplaceDisks, [ArgInstance(min=1, max=1)],
                     [DEBUG_OPT,
-                     make_option("-n", "--new-secondary", dest="new_secondary",
-                                 help=("New secondary node (for secondary"
-                                       " node change)"), metavar="NODE",
-                                 default=None),
-                     make_option("-p", "--on-primary", dest="on_primary",
-                                 default=False, action="store_true",
-                                 help=("Replace the disk(s) on the primary"
-                                       " node (only for the drbd template)")),
-                     make_option("-s", "--on-secondary", dest="on_secondary",
-                                 default=False, action="store_true",
-                                 help=("Replace the disk(s) on the secondary"
-                                       " node (only for the drbd template)")),
-                     make_option("-a", "--auto", dest="auto",
-                                 default=False, action="store_true",
-                                 help=("Automatically replace faulty disks"
-                                       " (only for the drbd template)")),
-                     make_option("--disks", dest="disks", default=None,
-                                 help="Comma-separated list of disks"
-                                 " indices to replace (e.g. 0,2) (optional,"
-                                 " defaults to all disks)"),
-                     make_option("-I", "--iallocator", metavar="<NAME>",
-                                 help="Select new secondary for the instance"
-                                 " automatically using the"
-                                 " <NAME> iallocator plugin (enables"
-                                 " secondary node replacement)",
-                                 default=None, type="string"),
+                     cli_option("-n", "--new-secondary", dest="new_secondary",
+                                help=("New secondary node (for secondary"
+                                      " node change)"), metavar="NODE",
+                                default=None),
+                     cli_option("-p", "--on-primary", dest="on_primary",
+                                default=False, action="store_true",
+                                help=("Replace the disk(s) on the primary"
+                                      " node (only for the drbd template)")),
+                     cli_option("-s", "--on-secondary", dest="on_secondary",
+                                default=False, action="store_true",
+                                help=("Replace the disk(s) on the secondary"
+                                      " node (only for the drbd template)")),
+                     cli_option("-a", "--auto", dest="auto",
+                                default=False, action="store_true",
+                                help=("Automatically replace faulty disks"
+                                      " (only for the drbd template)")),
+                     cli_option("--disks", dest="disks", default=None,
+                                help="Comma-separated list of disks"
+                                " indices to replace (e.g. 0,2) (optional,"
+                                " defaults to all disks)"),
+                     cli_option("-I", "--iallocator", metavar="<NAME>",
+                                help="Select new secondary for the instance"
+                                " automatically using the"
+                                " <NAME> iallocator plugin (enables"
+                                " secondary node replacement)",
+                                default=None, type="string"),
                      SUBMIT_OPT,
                      ],
                     "[-s|-p|-n NODE|-I NAME] <instance>",
@@ -1591,19 +1590,19 @@ commands = {
                           default={}, dest="hvparams",
                           help="Temporary hypervisor parameters"),
                cli_option("-B", "--backend", type="keyval",
-                           default={}, dest="beparams",
-                           help="Temporary backend parameters"),
+                          default={}, dest="beparams",
+                          help="Temporary backend parameters"),
                ],
               "<instance>", "Starts an instance"),
   'reboot': (RebootInstance, [ArgInstance(min=1)],
               [DEBUG_OPT, m_force_multi,
-               make_option("-t", "--type", dest="reboot_type",
-                           help="Type of reboot: soft/hard/full",
-                           default=constants.INSTANCE_REBOOT_HARD,
-                           type="string", metavar="<REBOOT>"),
-               make_option("--ignore-secondaries", dest="ignore_secondaries",
-                           default=False, action="store_true",
-                           help="Ignore errors from secondaries"),
+               cli_option("-t", "--type", dest="reboot_type",
+                          help="Type of reboot: soft/hard/full",
+                          default=constants.INSTANCE_REBOOT_HARD,
+                          type="string", metavar="<REBOOT>"),
+               cli_option("--ignore-secondaries", dest="ignore_secondaries",
+                          default=False, action="store_true",
+                          help="Ignore errors from secondaries"),
                m_node_opt, m_pri_node_opt, m_sec_node_opt,
                m_clust_opt, m_inst_opt,
                SUBMIT_OPT,
@@ -1611,11 +1610,11 @@ commands = {
             "<instance>", "Reboots an instance"),
   'activate-disks': (ActivateDisks, [ArgInstance(min=1, max=1)],
                      [DEBUG_OPT, SUBMIT_OPT,
-                      make_option("--ignore-size", dest="ignore_size",
-                                  default=False, action="store_true",
-                                  help="Ignore current recorded size"
-                                  " (useful for forcing activation when"
-                                  " the recorded size is wrong)"),
+                      cli_option("--ignore-size", dest="ignore_size",
+                                 default=False, action="store_true",
+                                 help="Ignore current recorded size"
+                                 " (useful for forcing activation when"
+                                 " the recorded size is wrong)"),
                       ],
                      "<instance>",
                      "Activate an instance's disks"),
@@ -1625,10 +1624,10 @@ commands = {
                        "Deactivate an instance's disks"),
   'recreate-disks': (RecreateDisks, [ArgInstance(min=1, max=1)],
                      [DEBUG_OPT, SUBMIT_OPT,
-                     make_option("--disks", dest="disks", default=None,
-                                 help="Comma-separated list of disks"
-                                 " indices to replace (e.g. 0,2) (optional,"
-                                 " defaults to all disks)"),
+                     cli_option("--disks", dest="disks", default=None,
+                                help="Comma-separated list of disks"
+                                " indices to replace (e.g. 0,2) (optional,"
+                                " defaults to all disks)"),
                       ],
                      "<instance>",
                      "Recreate an instance's disks"),
@@ -1636,10 +1635,10 @@ commands = {
                 [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1),
                  ArgUnknown(min=1, max=1)],
                 [DEBUG_OPT, SUBMIT_OPT,
-                 make_option("--no-wait-for-sync",
-                             dest="wait_for_sync", default=True,
-                             action="store_false",
-                             help="Don't wait for sync (DANGEROUS!)"),
+                 cli_option("--no-wait-for-sync",
+                            dest="wait_for_sync", default=True,
+                            action="store_false",
+                            help="Don't wait for sync (DANGEROUS!)"),
                  ],
                 "<instance> <disk> <size>", "Grow an instance's disk"),
   'list-tags': (ListTags, [ArgInstance(min=1, max=1)], [DEBUG_OPT],

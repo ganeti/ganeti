@@ -24,7 +24,6 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 
 import sys
-from optparse import make_option
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -212,15 +211,15 @@ def RemoveExport(opts, args):
 # this is defined separately due to readability only
 import_opts = [
   DEBUG_OPT,
-  make_option("-n", "--node", dest="node",
-              help="Target node and optional secondary node",
-              metavar="<pnode>[:<snode>]"),
+  cli_option("-n", "--node", dest="node",
+             help="Target node and optional secondary node",
+             metavar="<pnode>[:<snode>]"),
   cli_option("-B", "--backend", dest="beparams",
              type="keyval", default={},
              help="Backend parameters"),
-  make_option("-t", "--disk-template", dest="disk_template",
-              help="Custom disk setup (diskless, file, plain, drbd)",
-              default=None, metavar="TEMPL"),
+  cli_option("-t", "--disk-template", dest="disk_template",
+             help="Custom disk setup (diskless, file, plain, drbd)",
+             default=None, metavar="TEMPL"),
   cli_option("--disk", help="Disk information",
              default=[], dest="disks",
              action="append",
@@ -233,47 +232,47 @@ import_opts = [
              default=[], dest="nics",
              action="append",
              type="identkeyval"),
-  make_option("--no-nics", default=False, action="store_true",
-              help="Do not create any network cards for the instance"),
-  make_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
-              action="store_false", help="Don't wait for sync (DANGEROUS!)"),
-  make_option("--src-node", dest="src_node", help="Source node",
-              metavar="<node>"),
-  make_option("--src-dir", dest="src_dir", help="Source directory",
-              metavar="<dir>"),
-  make_option("--no-ip-check", dest="ip_check", default=True,
-              action="store_false", help="Don't check that the instance's IP"
-              " is alive"),
-  make_option("-I", "--iallocator", metavar="<NAME>",
-              help="Select nodes for the instance automatically using the"
-              " <NAME> iallocator plugin", default=None, type="string"),
-  make_option("--file-storage-dir", dest="file_storage_dir",
-              help="Relative path under default cluster-wide file storage dir"
-              " to store file-based disks", default=None,
-              metavar="<DIR>"),
-  make_option("--file-driver", dest="file_driver", help="Driver to use"
-              " for image files", default="loop", metavar="<DRIVER>"),
+  cli_option("--no-nics", default=False, action="store_true",
+             help="Do not create any network cards for the instance"),
+  cli_option("--no-wait-for-sync", dest="wait_for_sync", default=True,
+             action="store_false", help="Don't wait for sync (DANGEROUS!)"),
+  cli_option("--src-node", dest="src_node", help="Source node",
+             metavar="<node>"),
+  cli_option("--src-dir", dest="src_dir", help="Source directory",
+             metavar="<dir>"),
+  cli_option("--no-ip-check", dest="ip_check", default=True,
+             action="store_false", help="Don't check that the instance's IP"
+             " is alive"),
+  cli_option("-I", "--iallocator", metavar="<NAME>",
+             help="Select nodes for the instance automatically using the"
+             " <NAME> iallocator plugin", default=None, type="string"),
+  cli_option("--file-storage-dir", dest="file_storage_dir",
+             help="Relative path under default cluster-wide file storage dir"
+             " to store file-based disks", default=None,
+             metavar="<DIR>"),
+  cli_option("--file-driver", dest="file_driver", help="Driver to use"
+             " for image files", default="loop", metavar="<DRIVER>"),
   cli_option("-H", "--hypervisor", dest="hypervisor",
-              help="Hypervisor and hypervisor options, in the format"
-              " hypervisor:option=value,option=value,...", default=None,
-              type="identkeyval"),
+             help="Hypervisor and hypervisor options, in the format"
+             " hypervisor:option=value,option=value,...", default=None,
+             type="identkeyval"),
   ]
 
 commands = {
   'list': (PrintExportList, [],
            [DEBUG_OPT,
-            make_option("--node", dest="nodes", default=[], action="append",
-                        help="List only backups stored on this node"
-                             " (can be used multiple times)"),
+            cli_option("--node", dest="nodes", default=[], action="append",
+                       help="List only backups stored on this node"
+                            " (can be used multiple times)"),
             ],
            "", "Lists instance exports available in the ganeti cluster"),
   'export': (ExportInstance, [ArgInstance(min=1, max=1)],
              [DEBUG_OPT, FORCE_OPT,
-              make_option("-n", "--node", dest="node", help="Target node",
-                          metavar="<node>"),
-              make_option("","--noshutdown", dest="shutdown",
-                          action="store_false", default=True,
-                          help="Don't shutdown the instance (unsafe)"), ],
+              cli_option("-n", "--node", dest="node", help="Target node",
+                         metavar="<node>"),
+              cli_option("","--noshutdown", dest="shutdown",
+                         action="store_false", default=True,
+                         help="Don't shutdown the instance (unsafe)"), ],
              "-n <target_node> [opts...] <name>",
              "Exports an instance to an image"),
   'import': (ImportInstance, [ArgInstance(min=1, max=1)], import_opts,

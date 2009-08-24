@@ -24,7 +24,6 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 
 import sys
-from optparse import make_option
 
 from ganeti.cli import *
 from ganeti import cli
@@ -625,50 +624,50 @@ def SetNodeParams(opts, args):
 commands = {
   'add': (AddNode, [ArgUnknown(min=1, max=1)],
           [DEBUG_OPT,
-           make_option("-s", "--secondary-ip", dest="secondary_ip",
-                       help="Specify the secondary ip for the node",
-                       metavar="ADDRESS", default=None),
-           make_option("--readd", dest="readd",
-                       default=False, action="store_true",
-                       help="Readd old node after replacing it"),
-           make_option("--no-ssh-key-check", dest="ssh_key_check",
-                       default=True, action="store_false",
-                       help="Disable SSH key fingerprint checking"),
+           cli_option("-s", "--secondary-ip", dest="secondary_ip",
+                      help="Specify the secondary ip for the node",
+                      metavar="ADDRESS", default=None),
+           cli_option("--readd", dest="readd",
+                      default=False, action="store_true",
+                      help="Readd old node after replacing it"),
+           cli_option("--no-ssh-key-check", dest="ssh_key_check",
+                      default=True, action="store_false",
+                      help="Disable SSH key fingerprint checking"),
            ],
           "[-s ip] [--readd] [--no-ssh-key-check] <node_name>",
           "Add a node to the cluster"),
   'evacuate': (EvacuateNode, [ArgNode(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
-                make_option("-n", "--new-secondary", dest="dst_node",
-                            help="New secondary node", metavar="NODE",
-                            default=None),
-                make_option("-I", "--iallocator", metavar="<NAME>",
-                            help="Select new secondary for the instance"
-                            " automatically using the"
-                            " <NAME> iallocator plugin",
-                            default=None, type="string"),
+                cli_option("-n", "--new-secondary", dest="dst_node",
+                           help="New secondary node", metavar="NODE",
+                           default=None),
+                cli_option("-I", "--iallocator", metavar="<NAME>",
+                           help="Select new secondary for the instance"
+                           " automatically using the"
+                           " <NAME> iallocator plugin",
+                           default=None, type="string"),
                 ],
                "[-f] {-I <iallocator> | -n <dst>} <node>",
                "Relocate the secondary instances from a node"
                " to other nodes (only for instances with drbd disk template)"),
   'failover': (FailoverNode, [ArgNode(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
-                make_option("--ignore-consistency", dest="ignore_consistency",
-                            action="store_true", default=False,
-                            help="Ignore the consistency of the disks on"
-                            " the secondary"),
+                cli_option("--ignore-consistency", dest="ignore_consistency",
+                           action="store_true", default=False,
+                           help="Ignore the consistency of the disks on"
+                           " the secondary"),
                 ],
                "[-f] <node>",
                "Stops the primary instances on a node and start them on their"
                " secondary node (only for instances with drbd disk template)"),
   'migrate': (MigrateNode, [ArgNode(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
-                make_option("--non-live", dest="live",
-                            default=True, action="store_false",
-                            help="Do a non-live migration (this usually means"
-                            " freeze the instance, save the state,"
-                            " transfer and only then resume running on the"
-                            " secondary node)"),
+                cli_option("--non-live", dest="live",
+                           default=True, action="store_false",
+                           help="Do a non-live migration (this usually means"
+                           " freeze the instance, save the state,"
+                           " transfer and only then resume running on the"
+                           " secondary node)"),
                 ],
                "[-f] <node>",
                "Migrate all the primary instance on a node away from it"
@@ -685,16 +684,16 @@ commands = {
   'modify': (SetNodeParams, [ArgNode(min=1, max=1)],
              [DEBUG_OPT, FORCE_OPT,
               SUBMIT_OPT,
-              make_option("-C", "--master-candidate", dest="master_candidate",
-                          choices=('yes', 'no'), default=None,
-                          metavar="yes|no",
-                          help="Set the master_candidate flag on the node"),
-              make_option("-O", "--offline", dest="offline", metavar="yes|no",
-                          choices=('yes', 'no'), default=None,
-                          help="Set the offline flag on the node"),
-              make_option("-D", "--drained", dest="drained", metavar="yes|no",
-                          choices=('yes', 'no'), default=None,
-                          help="Set the drained flag on the node"),
+              cli_option("-C", "--master-candidate", dest="master_candidate",
+                         choices=('yes', 'no'), default=None,
+                         metavar="yes|no",
+                         help="Set the master_candidate flag on the node"),
+              cli_option("-O", "--offline", dest="offline", metavar="yes|no",
+                         choices=('yes', 'no'), default=None,
+                         help="Set the offline flag on the node"),
+              cli_option("-D", "--drained", dest="drained", metavar="yes|no",
+                         choices=('yes', 'no'), default=None,
+                         help="Set the drained flag on the node"),
               ],
              "<node>", "Alters the parameters of a node"),
   'powercycle': (PowercycleNode, [ArgNode(min=1, max=1)],
@@ -716,10 +715,10 @@ commands = {
                                choices=_MODIFIABLE_STORAGE_TYPES),
                      ArgFile(min=1, max=1)],
                     [DEBUG_OPT,
-                     make_option("--allocatable", dest="allocatable",
-                                 choices=["yes", "no"], default=None,
-                                 metavar="yes|no",
-                                 help="Set the allocatable flag on a volume"),
+                     cli_option("--allocatable", dest="allocatable",
+                                choices=["yes", "no"], default=None,
+                                metavar="yes|no",
+                                help="Set the allocatable flag on a volume"),
                      ],
                     "<node_name> <storage_type> <name>",
                     "Modify storage volume on a node"),

@@ -38,7 +38,7 @@ from ganeti import luxi
 from ganeti import ssconf
 from ganeti import rpc
 
-from optparse import (OptionParser, make_option, TitledHelpFormatter,
+from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
 
 
@@ -231,53 +231,6 @@ def RemoveTags(opts, args):
   SubmitOpCode(op)
 
 
-DEBUG_OPT = make_option("-d", "--debug", default=False,
-                        action="store_true",
-                        help="Turn debugging on")
-
-NOHDR_OPT = make_option("--no-headers", default=False,
-                        action="store_true", dest="no_headers",
-                        help="Don't display column headers")
-
-SEP_OPT = make_option("--separator", default=None,
-                      action="store", dest="separator",
-                      help="Separator between output fields"
-                      " (defaults to one space)")
-
-USEUNITS_OPT = make_option("--units", default=None,
-                           dest="units", choices=('h', 'm', 'g', 't'),
-                           help="Specify units for output (one of hmgt)")
-
-FIELDS_OPT = make_option("-o", "--output", dest="output", action="store",
-                         type="string", help="Comma separated list of"
-                         " output fields",
-                         metavar="FIELDS")
-
-FORCE_OPT = make_option("-f", "--force", dest="force", action="store_true",
-                        default=False, help="Force the operation")
-
-CONFIRM_OPT = make_option("--yes", dest="confirm", action="store_true",
-                          default=False, help="Do not require confirmation")
-
-TAG_SRC_OPT = make_option("--from", dest="tags_source",
-                          default=None, help="File with tag names")
-
-SUBMIT_OPT = make_option("--submit", dest="submit_only",
-                         default=False, action="store_true",
-                         help="Submit the job and return the job ID, but"
-                         " don't wait for the job to finish")
-
-SYNC_OPT = make_option("--sync", dest="do_locking",
-                       default=False, action="store_true",
-                       help="Grab locks while doing the queries"
-                       " in order to ensure more consistent results")
-
-_DRY_RUN_OPT = make_option("--dry-run", default=False,
-                          action="store_true",
-                          help="Do not execute the operation, just run the"
-                          " check steps and verify it it could be executed")
-
-
 def check_unit(option, opt, value):
   """OptParsers custom converter for units.
 
@@ -382,6 +335,53 @@ class CliOption(Option):
 
 # optparse.py sets make_option, so we do it for our own option class, too
 cli_option = CliOption
+
+
+DEBUG_OPT = cli_option("-d", "--debug", default=False,
+                       action="store_true",
+                       help="Turn debugging on")
+
+NOHDR_OPT = cli_option("--no-headers", default=False,
+                       action="store_true", dest="no_headers",
+                       help="Don't display column headers")
+
+SEP_OPT = cli_option("--separator", default=None,
+                     action="store", dest="separator",
+                     help=("Separator between output fields"
+                           " (defaults to one space)"))
+
+USEUNITS_OPT = cli_option("--units", default=None,
+                          dest="units", choices=('h', 'm', 'g', 't'),
+                          help="Specify units for output (one of hmgt)")
+
+FIELDS_OPT = cli_option("-o", "--output", dest="output", action="store",
+                        type="string", metavar="FIELDS",
+                        help="Comma separated list of output fields")
+
+FORCE_OPT = cli_option("-f", "--force", dest="force", action="store_true",
+                       default=False, help="Force the operation")
+
+CONFIRM_OPT = cli_option("--yes", dest="confirm", action="store_true",
+                         default=False, help="Do not require confirmation")
+
+TAG_SRC_OPT = cli_option("--from", dest="tags_source",
+                         default=None, help="File with tag names")
+
+SUBMIT_OPT = cli_option("--submit", dest="submit_only",
+                        default=False, action="store_true",
+                        help=("Submit the job and return the job ID, but"
+                              " don't wait for the job to finish"))
+
+SYNC_OPT = cli_option("--sync", dest="do_locking",
+                      default=False, action="store_true",
+                      help=("Grab locks while doing the queries"
+                            " in order to ensure more consistent results"))
+
+_DRY_RUN_OPT = cli_option("--dry-run", default=False,
+                          action="store_true",
+                          help=("Do not execute the operation, just run the"
+                                " check steps and verify it it could be"
+                                " executed"))
 
 
 def _ParseArgs(argv, commands, aliases):

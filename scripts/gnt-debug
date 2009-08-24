@@ -27,8 +27,6 @@ import sys
 import simplejson
 import time
 
-from optparse import make_option
-
 from ganeti.cli import *
 from ganeti import cli
 from ganeti import opcodes
@@ -133,12 +131,12 @@ def TestAllocator(opts, args):
 commands = {
   'delay': (Delay, [ArgUnknown(min=1, max=1)],
             [DEBUG_OPT,
-             make_option("--no-master", dest="on_master", default=True,
-                         action="store_false",
-                         help="Do not sleep in the master code"),
-             make_option("-n", dest="on_nodes", default=[],
-                         action="append",
-                         help="Select nodes to sleep on"),
+             cli_option("--no-master", dest="on_master", default=True,
+                        action="store_false",
+                        help="Do not sleep in the master code"),
+             cli_option("-n", dest="on_nodes", default=[],
+                        action="append",
+                        help="Select nodes to sleep on"),
              ],
             "[opts...] <duration>", "Executes a TestDelay OpCode"),
   'submit-job': (GenericOpCodes, [ArgFile(min=1)], [DEBUG_OPT],
@@ -146,33 +144,33 @@ commands = {
                  " containing a list of serialized opcodes"),
   'allocator': (TestAllocator, [ArgInstance(min=1, max=1)],
                 [DEBUG_OPT,
-                 make_option("--dir", dest="direction",
-                             default="in", choices=["in", "out"],
-                             help="Show allocator input (in) or allocator"
-                             " results (out)"),
-                 make_option("--algorithm", dest="allocator",
-                             default=None,
-                             help="Allocator algorithm name"),
-                 make_option("-m", "--mode", default="relocate",
-                             choices=["relocate", "allocate"],
-                             help="Request mode, either allocate or"
-                             " relocate"),
+                 cli_option("--dir", dest="direction",
+                            default="in", choices=["in", "out"],
+                            help="Show allocator input (in) or allocator"
+                            " results (out)"),
+                 cli_option("--algorithm", dest="allocator",
+                            default=None,
+                            help="Allocator algorithm name"),
+                 cli_option("-m", "--mode", default="relocate",
+                            choices=["relocate", "allocate"],
+                            help="Request mode, either allocate or"
+                            " relocate"),
                  cli_option("--mem", default=128, type="unit",
                             help="Memory size for the instance (MiB)"),
-                 make_option("--disks", default="4096,4096",
-                             help="Comma separated list of disk sizes (MiB)"),
-                 make_option("-t", "--disk-template", default="drbd",
-                             help="Select the disk template"),
-                 make_option("--nics", default="00:11:22:33:44:55",
-                             help="Comma separated list of nics, each nic"
-                             " definition is of form mac/ip/bridge, if"
-                             " missing values are replace by None"),
-                 make_option("-o", "--os-type", default=None,
-                             help="Select os for the instance"),
-                 make_option("-p", "--vcpus", default=1, type="int",
-                             help="Select number of VCPUs for the instance"),
-                 make_option("--tags", default=None,
-                             help="Comma separated list of tags"),
+                 cli_option("--disks", default="4096,4096",
+                            help="Comma separated list of disk sizes (MiB)"),
+                 cli_option("-t", "--disk-template", default="drbd",
+                            help="Select the disk template"),
+                 cli_option("--nics", default="00:11:22:33:44:55",
+                            help="Comma separated list of nics, each nic"
+                            " definition is of form mac/ip/bridge, if"
+                            " missing values are replace by None"),
+                 cli_option("-o", "--os-type", default=None,
+                            help="Select os for the instance"),
+                 cli_option("-p", "--vcpus", default=1, type="int",
+                            help="Select number of VCPUs for the instance"),
+                 cli_option("--tags", default=None,
+                            help="Comma separated list of tags"),
                  ],
                 "{opts...} <instance>", "Executes a TestAllocator OpCode"),
   }
