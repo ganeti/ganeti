@@ -142,7 +142,7 @@ commands = {
   'submit-job': (GenericOpCodes, [ArgFile(min=1)], [DEBUG_OPT],
                  "<op_list_file...>", "Submits jobs built from json files"
                  " containing a list of serialized opcodes"),
-  'allocator': (TestAllocator, [ArgInstance(min=1, max=1)],
+  'allocator': (TestAllocator, ARGS_ONE_INSTANCE,
                 [DEBUG_OPT,
                  cli_option("--dir", dest="direction",
                             default="in", choices=["in", "out"],

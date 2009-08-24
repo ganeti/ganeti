@@ -261,14 +261,14 @@ import_opts = [
   ]
 
 commands = {
-  'list': (PrintExportList, [],
+  'list': (PrintExportList, ARGS_NONE,
            [DEBUG_OPT,
             cli_option("--node", dest="nodes", default=[], action="append",
                        help="List only backups stored on this node"
                             " (can be used multiple times)"),
             ],
            "", "Lists instance exports available in the ganeti cluster"),
-  'export': (ExportInstance, [ArgInstance(min=1, max=1)],
+  'export': (ExportInstance, ARGS_ONE_INSTANCE,
              [DEBUG_OPT, FORCE_OPT,
               cli_option("-n", "--node", dest="node", help="Target node",
                          metavar="<node>"),
@@ -277,7 +277,7 @@ commands = {
                          help="Don't shutdown the instance (unsafe)"), ],
              "-n <target_node> [opts...] <name>",
              "Exports an instance to an image"),
-  'import': (ImportInstance, [ArgInstance(min=1, max=1)], import_opts,
+  'import': (ImportInstance, ARGS_ONE_INSTANCE, import_opts,
              ("[...] -t disk-type -n node[:secondary-node]"
               " <name>"),
              "Imports an instance from an exported image"),
