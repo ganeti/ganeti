@@ -146,9 +146,9 @@ def DiagnoseOS(opts, args):
 
 
 commands = {
-  'list': (ListOS, ARGS_NONE, [DEBUG_OPT, NOHDR_OPT], "",
+  'list': (ListOS, [], [DEBUG_OPT, NOHDR_OPT], "",
            "Lists all valid OSes on the master"),
-  'diagnose': (DiagnoseOS, ARGS_NONE, [DEBUG_OPT], "",
+  'diagnose': (DiagnoseOS, [], [DEBUG_OPT], "",
                "Diagnose all OSes"),
   }
 

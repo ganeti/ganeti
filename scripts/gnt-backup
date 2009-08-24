@@ -35,6 +35,7 @@ from ganeti import utils
 
 _VALUE_TRUE = "true"
 
+
 def PrintExportList(opts, args):
   """Prints a list of all the exported system images.
 
@@ -259,14 +260,14 @@ import_opts = [
   ]
 
 commands = {
-  'list': (PrintExportList, ARGS_NONE,
+  'list': (PrintExportList, [],
            [DEBUG_OPT,
             make_option("--node", dest="nodes", default=[], action="append",
                         help="List only backups stored on this node"
                              " (can be used multiple times)"),
             ],
            "", "Lists instance exports available in the ganeti cluster"),
-  'export': (ExportInstance, ARGS_ONE,
+  'export': (ExportInstance, [ArgInstance(min=1, max=1)],
              [DEBUG_OPT, FORCE_OPT,
               make_option("-n", "--node", dest="node", help="Target node",
                           metavar="<node>"),
@@ -275,15 +276,16 @@ commands = {
                           help="Don't shutdown the instance (unsafe)"), ],
              "-n <target_node> [opts...] <name>",
              "Exports an instance to an image"),
-  'import': (ImportInstance, ARGS_ONE, import_opts,
+  'import': (ImportInstance, [ArgInstance(min=1, max=1)], import_opts,
              ("[...] -t disk-type -n node[:secondary-node]"
               " <name>"),
              "Imports an instance from an exported image"),
-  'remove': (RemoveExport, ARGS_ONE,
+  'remove': (RemoveExport, [ArgUnknown(min=1, max=1)],
              [DEBUG_OPT],
              "<name>",
              "Remove exports of named instance from the filesystem."),
   }
+
 
 if __name__ == '__main__':
   sys.exit(GenericMain(commands))

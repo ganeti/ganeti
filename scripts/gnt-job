@@ -340,32 +340,31 @@ def WatchJob(opts, args):
 
 
 commands = {
-  'list': (ListJobs, ARGS_ANY,
-            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, FIELDS_OPT],
-            "[job_id ...]",
+  'list': (ListJobs, [ArgJobId()],
+           [DEBUG_OPT, NOHDR_OPT, SEP_OPT, FIELDS_OPT],
+           "[job_id ...]",
            "List the jobs and their status. The available fields are"
            " (see the man page for details): id, status, op_list,"
            " op_status, op_result."
            " The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS)),
-  'archive': (ArchiveJobs, ARGS_ANY,
-              [DEBUG_OPT],
+  'archive': (ArchiveJobs, [ArgJobId(min=1)], [DEBUG_OPT],
               "<job-id> [<job-id> ...]",
               "Archive specified jobs"),
-  'autoarchive': (AutoArchiveJobs, ARGS_ONE,
-              [DEBUG_OPT],
-              "<age>",
-              "Auto archive jobs older than the given age"),
-  'cancel': (CancelJobs, ARGS_ANY,
-             [DEBUG_OPT],
+  'autoarchive': (AutoArchiveJobs,
+                  [ArgSuggest(min=1, max=1, choices=["1d", "1w", "4w"])],
+                  [DEBUG_OPT],
+                  "<age>",
+                  "Auto archive jobs older than the given age"),
+  'cancel': (CancelJobs, [ArgJobId(min=1)], [DEBUG_OPT],
              "<job-id> [<job-id> ...]",
              "Cancel specified jobs"),
-  'info': (ShowJobs, ARGS_ANY, [DEBUG_OPT],
+  'info': (ShowJobs, [ArgJobId(min=1)], [DEBUG_OPT],
            "<job-id> [<job-id> ...]",
            "Show detailed information about the specified jobs"),
-  'watch': (WatchJob, ARGS_ONE, [DEBUG_OPT],
-           "<job-id>",
-           "Follows a job and prints its output as it arrives"),
+  'watch': (WatchJob, [ArgJobId(min=1, max=1)], [DEBUG_OPT],
+            "<job-id>",
+            "Follows a job and prints its output as it arrives"),
   }
 
 

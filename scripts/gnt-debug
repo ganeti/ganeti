@@ -131,7 +131,7 @@ def TestAllocator(opts, args):
 
 
 commands = {
-  'delay': (Delay, ARGS_ONE,
+  'delay': (Delay, [ArgUnknown(min=1, max=1)],
             [DEBUG_OPT,
              make_option("--no-master", dest="on_master", default=True,
                          action="store_false",
@@ -141,12 +141,10 @@ commands = {
                          help="Select nodes to sleep on"),
              ],
             "[opts...] <duration>", "Executes a TestDelay OpCode"),
-  'submit-job': (GenericOpCodes, ARGS_ATLEAST(1),
-                 [DEBUG_OPT,
-                  ],
+  'submit-job': (GenericOpCodes, [ArgFile(min=1)], [DEBUG_OPT],
                  "<op_list_file...>", "Submits jobs built from json files"
                  " containing a list of serialized opcodes"),
-  'allocator': (TestAllocator, ARGS_ONE,
+  'allocator': (TestAllocator, [ArgInstance(min=1, max=1)],
                 [DEBUG_OPT,
                  make_option("--dir", dest="direction",
                              default="in", choices=["in", "out"],

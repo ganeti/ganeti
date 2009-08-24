@@ -67,6 +67,21 @@ _USER_STORAGE_TYPE = {
   constants.ST_LVM_VG: "lvm-vg",
   }
 
+_STORAGE_TYPE_OPT = \
+  cli_option("--storage-type",
+             dest="user_storage_type",
+             choices=_USER_STORAGE_TYPE.keys(),
+             default=None,
+             metavar="STORAGE_TYPE",
+             help=("Storage type (%s)" %
+                   utils.CommaJoin(_USER_STORAGE_TYPE.keys())))
+
+_REPAIRABLE_STORAGE_TYPES = \
+  [st for st, so in constants.VALID_STORAGE_OPERATIONS.iteritems()
+   if constants.SO_FIX_CONSISTENCY in so]
+
+_MODIFIABLE_STORAGE_TYPES = constants.MODIFIABLE_STORAGE_FIELDS.keys()
+
 
 def ConvertStorageType(user_storage_type):
   """Converts a user storage type to its internal name.
@@ -608,7 +623,7 @@ def SetNodeParams(opts, args):
 
 
 commands = {
-  'add': (AddNode, ARGS_ONE,
+  'add': (AddNode, [ArgUnknown(min=1, max=1)],
           [DEBUG_OPT,
            make_option("-s", "--secondary-ip", dest="secondary_ip",
                        help="Specify the secondary ip for the node",
@@ -622,7 +637,7 @@ commands = {
            ],
           "[-s ip] [--readd] [--no-ssh-key-check] <node_name>",
           "Add a node to the cluster"),
-  'evacuate': (EvacuateNode, ARGS_ONE,
+  'evacuate': (EvacuateNode, [ArgNode(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
                 make_option("-n", "--new-secondary", dest="dst_node",
                             help="New secondary node", metavar="NODE",
@@ -636,7 +651,7 @@ commands = {
                "[-f] {-I <iallocator> | -n <dst>} <node>",
                "Relocate the secondary instances from a node"
                " to other nodes (only for instances with drbd disk template)"),
-  'failover': (FailoverNode, ARGS_ONE,
+  'failover': (FailoverNode, [ArgNode(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
                 make_option("--ignore-consistency", dest="ignore_consistency",
                             action="store_true", default=False,
@@ -646,7 +661,7 @@ commands = {
                "[-f] <node>",
                "Stops the primary instances on a node and start them on their"
                " secondary node (only for instances with drbd disk template)"),
-  'migrate': (MigrateNode, ARGS_ONE,
+  'migrate': (MigrateNode, [ArgNode(min=1, max=1)],
                [DEBUG_OPT, FORCE_OPT,
                 make_option("--non-live", dest="live",
                             default=True, action="store_false",
@@ -658,16 +673,16 @@ commands = {
                "[-f] <node>",
                "Migrate all the primary instance on a node away from it"
                " (only for instances of type drbd)"),
-  'info': (ShowNodeConfig, ARGS_ANY, [DEBUG_OPT],
+  'info': (ShowNodeConfig, [ArgNode()], [DEBUG_OPT],
            "[<node_name>...]", "Show information about the node(s)"),
-  'list': (ListNodes, ARGS_ANY,
+  'list': (ListNodes, [ArgNode()],
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
            "[nodes...]",
            "Lists the nodes in the cluster. The available fields"
            " are (see the man page for details): %s"
            " The default field list is (in order): %s." %
            (", ".join(_LIST_HEADERS), ", ".join(_LIST_DEF_FIELDS))),
-  'modify': (SetNodeParams, ARGS_ONE,
+  'modify': (SetNodeParams, [ArgNode(min=1, max=1)],
              [DEBUG_OPT, FORCE_OPT,
               SUBMIT_OPT,
               make_option("-C", "--master-candidate", dest="master_candidate",
@@ -681,28 +696,25 @@ commands = {
                           choices=('yes', 'no'), default=None,
                           help="Set the drained flag on the node"),
               ],
-             "<instance>", "Alters the parameters of an instance"),
-  'powercycle': (PowercycleNode, ARGS_ONE, [DEBUG_OPT, FORCE_OPT, CONFIRM_OPT],
+             "<node>", "Alters the parameters of a node"),
+  'powercycle': (PowercycleNode, [ArgNode(min=1, max=1)],
+                 [DEBUG_OPT, FORCE_OPT, CONFIRM_OPT],
                  "<node_name>", "Tries to forcefully powercycle a node"),
-  'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
+  'remove': (RemoveNode, [ArgNode(min=1, max=1)], [DEBUG_OPT],
              "<node_name>", "Removes a node from the cluster"),
-  'volumes': (ListVolumes, ARGS_ANY,
+  'volumes': (ListVolumes, [ArgNode()],
               [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
               "[<node_name>...]", "List logical volumes on node(s)"),
-  'physical-volumes': (ListPhysicalVolumes, ARGS_ANY,
+  'physical-volumes': (ListPhysicalVolumes, [ArgNode()],
                        [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT,
-                        FIELDS_OPT,
-                        make_option("--storage-type",
-                                    dest="user_storage_type",
-                                    choices=_USER_STORAGE_TYPE.keys(),
-                                    default=None,
-                                    metavar="STORAGE_TYPE",
-                                    help=("Storage type (%s)" %
-                                          utils.CommaJoin(_USER_STORAGE_TYPE.keys()))),
-                       ],
+                        FIELDS_OPT, _STORAGE_TYPE_OPT],
                        "[<node_name>...]",
                        "List physical volumes on node(s)"),
-  'modify-volume': (ModifyVolume, ARGS_FIXED(3),
+  'modify-volume': (ModifyVolume,
+                    [ArgNode(min=1, max=1),
+                     ArgChoice(min=1, max=1,
+                               choices=_MODIFIABLE_STORAGE_TYPES),
+                     ArgFile(min=1, max=1)],
                     [DEBUG_OPT,
                      make_option("--allocatable", dest="allocatable",
                                  choices=["yes", "no"], default=None,
@@ -711,15 +723,21 @@ commands = {
                      ],
                     "<node_name> <storage_type> <name>",
                     "Modify storage volume on a node"),
-  'repair-volume': (RepairVolume, ARGS_FIXED(3),
+  'repair-volume': (RepairVolume,
+                    [ArgNode(min=1, max=1),
+                     ArgChoice(min=1, max=1,
+                               choices=_REPAIRABLE_STORAGE_TYPES),
+                     ArgFile(min=1, max=1)],
                     [DEBUG_OPT],
                     "<node_name> <storage_type> <name>",
                     "Repairs a storage volume on a node"),
-  'list-tags': (ListTags, ARGS_ONE, [DEBUG_OPT],
+  'list-tags': (ListTags, [ArgNode(min=1, max=1)], [DEBUG_OPT],
                 "<node_name>", "List the tags of the given node"),
-  'add-tags': (AddTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
+  'add-tags': (AddTags, [ArgNode(min=1, max=1), ArgUnknown()],
+               [DEBUG_OPT, TAG_SRC_OPT],
                "<node_name> tag...", "Add tags to the given node"),
-  'remove-tags': (RemoveTags, ARGS_ATLEAST(1), [DEBUG_OPT, TAG_SRC_OPT],
+  'remove-tags': (RemoveTags, [ArgNode(min=1, max=1), ArgUnknown()],
+                  [DEBUG_OPT, TAG_SRC_OPT],
                   "<node_name> tag...", "Remove tags from the given node"),
   }
 

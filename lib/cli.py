@@ -46,7 +46,6 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "SubmitOpCode", "GetClient",
            "cli_option",
            "GenerateTable", "AskUser",
-           "ARGS_NONE", "ARGS_FIXED", "ARGS_ATLEAST", "ARGS_ANY", "ARGS_ONE",
            "USEUNITS_OPT", "FIELDS_OPT", "FORCE_OPT", "SUBMIT_OPT",
            "ListTags", "AddTags", "RemoveTags", "TAG_SRC_OPT",
            "FormatError", "SplitNodeOption", "SubmitOrSend",
@@ -279,21 +278,6 @@ _DRY_RUN_OPT = make_option("--dry-run", default=False,
                           " check steps and verify it it could be executed")
 
 
-def ARGS_FIXED(val):
-  """Macro-like function denoting a fixed number of arguments"""
-  return -val
-
-
-def ARGS_ATLEAST(val):
-  """Macro-like function denoting a minimum number of arguments"""
-  return val
-
-
-ARGS_NONE = None
-ARGS_ONE = ARGS_FIXED(1)
-ARGS_ANY = ARGS_ATLEAST(0)
-
-
 def check_unit(option, opt, value):
   """OptParsers custom converter for units.
 
@@ -464,25 +448,89 @@ def _ParseArgs(argv, commands, aliases):
 
     cmd = aliases[cmd]
 
-  func, nargs, parser_opts, usage, description = commands[cmd]
+  func, args_def, parser_opts, usage, description = commands[cmd]
   parser = OptionParser(option_list=parser_opts + [_DRY_RUN_OPT],
                         description=description,
                         formatter=TitledHelpFormatter(),
                         usage="%%prog %s %s" % (cmd, usage))
   parser.disable_interspersed_args()
   options, args = parser.parse_args()
-  if nargs is None:
-    if len(args) != 0:
-      ToStderr("Error: Command %s expects no arguments", cmd)
-      return None, None, None
-  elif nargs < 0 and len(args) != -nargs:
-    ToStderr("Error: Command %s expects %d argument(s)", cmd, -nargs)
-    return None, None, None
-  elif nargs >= 0 and len(args) < nargs:
-    ToStderr("Error: Command %s expects at least %d argument(s)", cmd, nargs)
+
+  if not _CheckArguments(cmd, args_def, args):
     return None, None, None
 
   return func, options, args
+
+
+def _CheckArguments(cmd, args_def, args):
+  """Verifies the arguments using the argument definition.
+
+  Algorithm:
+
+    1. Abort with error if values specified by user but none expected.
+
+    1. For each argument in definition
+
+      1. Keep running count of minimum number of values (min_count)
+      1. Keep running count of maximum number of values (max_count)
+      1. If it has an unlimited number of values
+
+        1. Abort with error if it's not the last argument in the definition
+
+    1. If last argument has limited number of values
+
+      1. Abort with error if number of values doesn't match or is too large
+
+    1. Abort with error if user didn't pass enough values (min_count)
+
+  """
+  if args and not args_def:
+    ToStderr("Error: Command %s expects no arguments", cmd)
+    return False
+
+  min_count = None
+  max_count = None
+  check_max = None
+
+  last_idx = len(args_def) - 1
+
+  for idx, arg in enumerate(args_def):
+    if min_count is None:
+      min_count = arg.min
+    elif arg.min is not None:
+      min_count += arg.min
+
+    if max_count is None:
+      max_count = arg.max
+    elif arg.max is not None:
+      max_count += arg.max
+
+    if idx == last_idx:
+      check_max = (arg.max is not None)
+
+    elif arg.max is None:
+      raise errors.ProgrammerError("Only the last argument can have max=None")
+
+  if check_max:
+    # Command with exact number of arguments
+    if (min_count is not None and max_count is not None and
+        min_count == max_count and len(args) != min_count):
+      ToStderr("Error: Command %s expects %d argument(s)", cmd, min_count)
+      return False
+
+    # Command with limited number of arguments
+    if max_count is not None and len(args) > max_count:
+      ToStderr("Error: Command %s expects only %d argument(s)",
+               cmd, max_count)
+      return False
+
+  # Command with some required arguments
+  if min_count is not None and len(args) < min_count:
+    ToStderr("Error: Command %s expects at least %d argument(s)",
+             cmd, min_count)
+    return False
+
+  return True
 
 
 def SplitNodeOption(value):
