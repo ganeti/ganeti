@@ -333,24 +333,28 @@ class HooksMaster(object):
 
     return self.callfn(node_list, hpath, phase, env)
 
-  def RunPhase(self, phase):
+  def RunPhase(self, phase, nodes=None):
     """Run all the scripts for a phase.
 
     This is the main function of the HookMaster.
 
     @param phase: one of L{constants.HOOKS_PHASE_POST} or
         L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
+    @param nodes: overrides the predefined list of nodes for the given phase
     @return: the processed results of the hooks multi-node rpc call
     @raise errors.HooksFailure: on communication failure to the nodes
 
     """
-    if not self.node_list[phase]:
+    if not self.node_list[phase] and not nodes:
       # empty node list, we should not attempt to run this as either
       # we're in the cluster init phase and the rpc client part can't
       # even attempt to run, or this LU doesn't do hooks at all
       return
     hpath = self.lu.HPATH
-    results = self._RunWrapper(self.node_list[phase], hpath, phase)
+    if nodes is not None:
+      results = self._RunWrapper(nodes, hpath, phase)
+    else:
+      results = self._RunWrapper(self.node_list[phase], hpath, phase)
     if phase == constants.HOOKS_PHASE_PRE:
       errs = []
       if not results:
