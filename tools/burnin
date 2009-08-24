@@ -98,6 +98,103 @@ class SimpleOpener(urllib.FancyURLopener):
                        (errcode, errmsg))
 
 
+OPTIONS = [
+  cli.cli_option("-o", "--os", dest="os", default=None,
+                 help="OS to use during burnin",
+                 metavar="<OS>"),
+  cli.cli_option("--disk-size", dest="disk_size",
+                 help="Disk size (determines disk count)",
+                 default="128m", type="string", metavar="<size,size,...>",
+                 completion_suggest=("128M 512M 1G 4G 1G,256M"
+                                     " 4G,1G,1G 10G").split()),
+  cli.cli_option("--disk-growth", dest="disk_growth", help="Disk growth",
+                 default="128m", type="string", metavar="<size,size,...>"),
+  cli.cli_option("--mem-size", dest="mem_size", help="Memory size",
+                 default=128, type="unit", metavar="<size>",
+                 completion_suggest=("128M 256M 512M 1G 4G 8G"
+                                     " 12G 16G").split()),
+  cli.cli_option("-v", "--verbose",
+                 action="store_true", dest="verbose", default=False,
+                 help="print command execution messages to stdout"),
+  cli.cli_option("--no-replace1", dest="do_replace1",
+                 help="Skip disk replacement with the same secondary",
+                 action="store_false", default=True),
+  cli.cli_option("--no-replace2", dest="do_replace2",
+                 help="Skip disk replacement with a different secondary",
+                 action="store_false", default=True),
+  cli.cli_option("--no-failover", dest="do_failover",
+                 help="Skip instance failovers", action="store_false",
+                 default=True),
+  cli.cli_option("--no-migrate", dest="do_migrate",
+                 help="Skip instance live migration",
+                 action="store_false", default=True),
+  cli.cli_option("--no-importexport", dest="do_importexport",
+                 help="Skip instance export/import", action="store_false",
+                 default=True),
+  cli.cli_option("--no-startstop", dest="do_startstop",
+                 help="Skip instance stop/start", action="store_false",
+                 default=True),
+  cli.cli_option("--no-reinstall", dest="do_reinstall",
+                 help="Skip instance reinstall", action="store_false",
+                 default=True),
+  cli.cli_option("--no-reboot", dest="do_reboot",
+                 help="Skip instance reboot", action="store_false",
+                 default=True),
+  cli.cli_option("--no-activate-disks", dest="do_activate_disks",
+                 help="Skip disk activation/deactivation",
+                 action="store_false", default=True),
+  cli.cli_option("--no-add-disks", dest="do_addremove_disks",
+                 help="Skip disk addition/removal",
+                 action="store_false", default=True),
+  cli.cli_option("--no-add-nics", dest="do_addremove_nics",
+                 help="Skip NIC addition/removal",
+                 action="store_false", default=True),
+  cli.cli_option("--no-nics", dest="nics",
+                 help="No network interfaces", action="store_const",
+                 const=[], default=[{}]),
+  cli.cli_option("--rename", dest="rename", default=None,
+                 help=("Give one unused instance name which is taken"
+                       " to start the renaming sequence"),
+                 metavar="<instance_name>"),
+  cli.cli_option("-t", "--disk-template", dest="disk_template",
+                 choices=list(constants.DISK_TEMPLATES),
+                 default=constants.DT_DRBD8,
+                 help="Disk template (diskless, file, plain or drbd) [drbd]"),
+  cli.cli_option("-n", "--nodes", dest="nodes", default="",
+                 help=("Comma separated list of nodes to perform"
+                       " the burnin on (defaults to all nodes)")),
+  cli.cli_option("-I", "--iallocator", dest="iallocator",
+                 default=None, type="string",
+                 help=("Perform the allocation using an iallocator"
+                       " instead of fixed node spread (node restrictions no"
+                       " longer apply, therefore -n/--nodes must not be"
+                       " used")),
+  cli.cli_option("-p", "--parallel", default=False, action="store_true",
+                 dest="parallel",
+                 help=("Enable parallelization of some operations in"
+                       " order to speed burnin or to test granular locking")),
+  cli.cli_option("--net-timeout", default=15, type="int",
+                 dest="net_timeout",
+                 help=("The instance check network timeout in seconds"
+                       " (defaults to 15 seconds)"),
+                 completion_suggest="15 60 300 900".split()),
+  cli.cli_option("-C", "--http-check", default=False, action="store_true",
+                 dest="http_check",
+                 help=("Enable checking of instance status via http,"
+                       " looking for /hostname.txt that should contain the"
+                       " name of the instance")),
+  cli.cli_option("-K", "--keep-instances", default=False,
+                 action="store_true",
+                 dest="keep_instances",
+                 help=("Leave instances on the cluster after burnin,"
+                       " for investigation in case of errors or simply"
+                       " to use them")),
+  ]
+
+# Mainly used for bash completion
+ARGUMENTS = [cli.ArgInstance(min=1)]
+
+
 class Burner(object):
   """Burner class."""
 
@@ -285,103 +382,10 @@ class Burner(object):
     program.
 
     """
-
     parser = optparse.OptionParser(usage="\n%s" % USAGE,
-                                   version="%%prog (ganeti) %s" %
-                                   constants.RELEASE_VERSION,
-                                   option_class=cli.CliOption)
-
-    parser.add_option("-o", "--os", dest="os", default=None,
-                      help="OS to use during burnin",
-                      metavar="<OS>")
-    parser.add_option("--disk-size", dest="disk_size",
-                      help="Disk size (determines disk count)",
-                      default="128m", type="string", metavar="<size,size,...>",
-                      completion_suggest=("128M 512M 1G 4G 1G,256M"
-                                          " 4G,1G,1G 10G").split())
-    parser.add_option("--disk-growth", dest="disk_growth", help="Disk growth",
-                      default="128m", type="string", metavar="<size,size,...>")
-    parser.add_option("--mem-size", dest="mem_size", help="Memory size",
-                      default=128, type="unit", metavar="<size>",
-                      completion_suggest=("128M 256M 512M 1G 4G 8G"
-                                          " 12G 16G").split())
-    parser.add_option("-v", "--verbose",
-                      action="store_true", dest="verbose", default=False,
-                      help="print command execution messages to stdout")
-    parser.add_option("--no-replace1", dest="do_replace1",
-                      help="Skip disk replacement with the same secondary",
-                      action="store_false", default=True)
-    parser.add_option("--no-replace2", dest="do_replace2",
-                      help="Skip disk replacement with a different secondary",
-                      action="store_false", default=True)
-    parser.add_option("--no-failover", dest="do_failover",
-                      help="Skip instance failovers", action="store_false",
-                      default=True)
-    parser.add_option("--no-migrate", dest="do_migrate",
-                      help="Skip instance live migration",
-                      action="store_false", default=True)
-    parser.add_option("--no-importexport", dest="do_importexport",
-                      help="Skip instance export/import", action="store_false",
-                      default=True)
-    parser.add_option("--no-startstop", dest="do_startstop",
-                      help="Skip instance stop/start", action="store_false",
-                      default=True)
-    parser.add_option("--no-reinstall", dest="do_reinstall",
-                      help="Skip instance reinstall", action="store_false",
-                      default=True)
-    parser.add_option("--no-reboot", dest="do_reboot",
-                      help="Skip instance reboot", action="store_false",
-                      default=True)
-    parser.add_option("--no-activate-disks", dest="do_activate_disks",
-                      help="Skip disk activation/deactivation",
-                      action="store_false", default=True)
-    parser.add_option("--no-add-disks", dest="do_addremove_disks",
-                      help="Skip disk addition/removal",
-                      action="store_false", default=True)
-    parser.add_option("--no-add-nics", dest="do_addremove_nics",
-                      help="Skip NIC addition/removal",
-                      action="store_false", default=True)
-    parser.add_option("--no-nics", dest="nics",
-                      help="No network interfaces", action="store_const",
-                      const=[], default=[{}])
-    parser.add_option("--rename", dest="rename", default=None,
-                      help="Give one unused instance name which is taken"
-                           " to start the renaming sequence",
-                      metavar="<instance_name>")
-    parser.add_option("-t", "--disk-template", dest="disk_template",
-                      choices=("diskless", "file", "plain", "drbd"),
-                      default="drbd",
-                      help="Disk template (diskless, file, plain or drbd)"
-                            " [drbd]")
-    parser.add_option("-n", "--nodes", dest="nodes", default="",
-                      help="Comma separated list of nodes to perform"
-                      " the burnin on (defaults to all nodes)")
-    parser.add_option("-I", "--iallocator", dest="iallocator",
-                      default=None, type="string",
-                      help="Perform the allocation using an iallocator"
-                      " instead of fixed node spread (node restrictions no"
-                      " longer apply, therefore -n/--nodes must not be used")
-    parser.add_option("-p", "--parallel", default=False, action="store_true",
-                      dest="parallel",
-                      help="Enable parallelization of some operations in"
-                      " order to speed burnin or to test granular locking")
-    parser.add_option("--net-timeout", default=15, type="int",
-                      dest="net_timeout",
-                      help="The instance check network timeout in seconds"
-                      " (defaults to 15 seconds)",
-                      completion_suggest="15 60 300 900".split())
-    parser.add_option("-C", "--http-check", default=False, action="store_true",
-                      dest="http_check",
-                      help="Enable checking of instance status via http,"
-                      " looking for /hostname.txt that should contain the"
-                      " name of the instance")
-    parser.add_option("-K", "--keep-instances", default=False,
-                      action="store_true",
-                      dest="keep_instances",
-                      help="Leave instances on the cluster after burnin,"
-                      " for investigation in case of errors or simply"
-                      " to use them")
-
+                                   version=("%%prog (ganeti) %s" %
+                                            constants.RELEASE_VERSION),
+                                   option_list=OPTIONS)
 
     options, args = parser.parse_args()
     if len(args) < 1 or options.os is None:
