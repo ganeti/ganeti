@@ -6649,7 +6649,7 @@ class LUQueryInstanceData(NoHooksLU):
     """Returns the status of a block device
 
     """
-    if self.op.static:
+    if self.op.static or not node:
       return None
 
     self.cfg.SetDiskID(dev, node)
