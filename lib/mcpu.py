@@ -343,6 +343,7 @@ class HooksMaster(object):
     @param nodes: overrides the predefined list of nodes for the given phase
     @return: the processed results of the hooks multi-node rpc call
     @raise errors.HooksFailure: on communication failure to the nodes
+    @raise errors.HooksAbort: on failure of one of the hooks
 
     """
     if not self.node_list[phase] and not nodes:
