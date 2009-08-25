@@ -797,11 +797,20 @@ class LUPostInitCluster(LogicalUnit):
     return True
 
 
-class LUDestroyCluster(NoHooksLU):
+class LUDestroyCluster(LogicalUnit):
   """Logical unit for destroying the cluster.
 
   """
+  HPATH = "cluster-destroy"
+  HTYPE = constants.HTYPE_CLUSTER
   _OP_REQP = []
+
+  def BuildHooksEnv(self):
+    """Build hooks env.
+
+    """
+    env = {"OP_TARGET": self.cfg.GetClusterName()}
+    return env, [], []
 
   def CheckPrereq(self):
     """Check prerequisites.
