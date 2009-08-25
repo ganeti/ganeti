@@ -64,6 +64,11 @@ CLEANFILES = \
 	stamp-directories \
 	$(nodist_pkgpython_PYTHON)
 
+BUILT_SOURCES = \
+	ganeti \
+	srclinks \
+	lib/_autoconf.py
+
 nodist_pkgpython_PYTHON = \
 	lib/_autoconf.py
 
@@ -257,7 +262,7 @@ TESTS = $(dist_TESTS) $(nodist_TESTS)
 
 TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir) $(PYTHON)
 
-all-local: stamp-directories lib/_autoconf.py devel/upload \
+all-local: stamp-directories devel/upload \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd doc/examples/ganeti.cron
 
@@ -269,7 +274,7 @@ doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) lib/_autoconf.py \
+doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) \
 	lib/cli.py $(gnt_scripts) tools/burnin
 	TMPDIR=`mktemp -d ./buildtmpXXXXXX` && \
 	cp -r scripts lib tools $$TMPDIR && \
@@ -301,10 +306,6 @@ man/%.8: man/%.8.in stamp-directories $(REPLACE_VARS_SED)
 
 man/%.html: man/%.html.in stamp-directories $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
-
-man/footer.sgml $(TESTS): srclinks
-
-$(TESTS): ganeti lib/_autoconf.py
 
 lib/_autoconf.py: Makefile stamp-directories
 	set -e; \
@@ -357,7 +358,6 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 
 # We need to create symlinks because "make distcheck" will not install Python
 # files when building.
-#.PHONY: srclinks
 srclinks: stamp-directories
 	set -e; \
 	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) \
