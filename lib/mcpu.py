@@ -364,6 +364,7 @@ class HooksMaster(object):
         raise errors.HooksFailure(msg)
       else:
         self.lu.LogWarning(msg)
+	return results
     for node_name in results:
       res = results[node_name]
       if res.offline:
