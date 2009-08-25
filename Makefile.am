@@ -287,19 +287,11 @@ doc/%.png: doc/%.dot
 
 man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2MAN)" || { echo 'docbook2man' not found during configure; exit 1; }
-	TMPDIR=`mktemp -d` && { \
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $$TMPDIR/$(patsubst man/%.in,%,$@) ; \
-	mv $$TMPDIR/$(patsubst man/%.in,%,$@) $@ ; \
-	rm -rf "$$TMPDIR" ; \
-	}
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $(notdir $(@:.in=)) $@
 
 man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2HTML)" || { echo 'docbook2html' not found during configure; exit 1; }
-	TMPDIR=`mktemp -d` && { \
-	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $$TMPDIR/$(patsubst man/%.in,%,$@) ; \
-	mv $$TMPDIR/$(patsubst man/%.in,%,$@) $@ ; \
-	rm -rf "$$TMPDIR" ; \
-	}
+	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $(notdir $(@:.in=)) $@
 
 man/%.7: man/%.7.in stamp-directories $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
