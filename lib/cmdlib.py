@@ -836,6 +836,14 @@ class LUDestroyCluster(LogicalUnit):
 
     """
     master = self.cfg.GetMasterNode()
+
+    # Run post hooks on master node before it's removed
+    hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
+    try:
+      hm.RunPhase(constants.HOOKS_PHASE_POST, [master])
+    except:
+      self.LogWarning("Errors occurred running hooks on %s" % master)
+
     result = self.rpc.call_node_stop_master(master, False)
     result.Raise("Could not disable the master role")
     priv_key, pub_key, _ = ssh.GetUserFiles(constants.GANETI_RUNAS)
