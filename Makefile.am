@@ -183,6 +183,7 @@ EXTRA_DIST = \
 	NEWS \
 	DEVNOTES \
 	pylintrc \
+	autotools/build-bash-completion \
 	autotools/docbook-wrapper \
 	autotools/run-in-tempdir \
 	devel/upload.in \
@@ -355,7 +356,8 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 srclinks: stamp-directories
 	set -e; \
 	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) \
-			$(rapi_PYTHON) $(http_PYTHON) $(confd_PYTHON); do \
+			$(rapi_PYTHON) $(http_PYTHON) $(confd_PYTHON) \
+			$(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \
