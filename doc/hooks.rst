@@ -306,6 +306,16 @@ Renames an instance.
 Cluster operations
 ~~~~~~~~~~~~~~~~~~
 
+OP_POST_INIT_CLUSTER
+++++++++++++++++++++
+
+This hook is called via a special "empty" LU right after cluster initialization.
+
+:directory: cluster-init
+:env. vars: none
+:pre-execution: none
+:post-execution: master node
+
 OP_CLUSTER_VERIFY
 +++++++++++++++++
 
