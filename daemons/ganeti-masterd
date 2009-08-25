@@ -440,8 +440,9 @@ def CheckAgreement():
 
   return result
 
-def CheckMASTERD(options, args):
-  """Initial checks whether to run or exit with a failure
+
+def CheckMasterd(options, args):
+  """Initial checks whether to run or exit with a failure.
 
   """
   rpc.Init()
@@ -465,8 +466,8 @@ def CheckMASTERD(options, args):
     rpc.Shutdown()
 
 
-def ExecMASTERD(options, args):
-  """Main MASTERD function, executed with the pidfile held.
+def ExecMasterd (options, args):
+  """Main master daemon function, executed with the PID file held.
 
   """
   # This is safe to do as the pid file guarantees against
@@ -512,7 +513,8 @@ def main():
           (constants.SOCKET_DIR, constants.SOCKET_DIR_MODE),
          ]
   daemon.GenericMain(constants.MASTERD, parser, dirs,
-                     CheckMASTERD, ExecMASTERD)
+                     CheckMasterd, ExecMasterd)
+
 
 if __name__ == "__main__":
   main()

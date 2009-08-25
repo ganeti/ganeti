@@ -182,8 +182,8 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     logging.error("Received unhandled inotify event: %s" % event)
 
 
-def CheckCONFD(options, args):
-  """Initial checks whether to run exit with a failure
+def CheckConfd(options, args):
+  """Initial checks whether to run exit with a failure.
 
   """
   # TODO: collapse HMAC daemons handling in daemons GenericMain, when we'll
@@ -195,8 +195,8 @@ def CheckCONFD(options, args):
   ssconf.CheckMasterCandidate(options.debug)
 
 
-def ExecCONFD(options, args):
-  """Main CONFD function, executed with pidfile held
+def ExecConfd(options, args):
+  """Main confd function, executed with PID file held
 
   """
   mainloop = daemon.Mainloop()
@@ -228,8 +228,8 @@ def main():
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
-  daemon.GenericMain(constants.CONFD, parser, dirs, CheckCONFD, ExecCONFD)
+  daemon.GenericMain(constants.CONFD, parser, dirs, CheckConfd, ExecConfd)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   main()

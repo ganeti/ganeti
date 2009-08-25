@@ -177,8 +177,8 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
     return result
 
 
-def CheckRAPI(options, args):
-  """Initial checks whether to run or exit with a failure
+def CheckRapi(options, args):
+  """Initial checks whether to run or exit with a failure.
 
   """
   if len(args) != 0:
@@ -189,8 +189,8 @@ def CheckRAPI(options, args):
   ssconf.CheckMaster(options.debug)
 
 
-def ExecRAPI(options, args):
-  """Main RAPI function, executed with the pidfile held.
+def ExecRapi(options, args):
+  """Main remote API function, executed with the PID file held.
 
   """
   # Read SSL certificate
@@ -221,8 +221,8 @@ def main():
 
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
-  daemon.GenericMain(constants.RAPI, parser, dirs, CheckRAPI, ExecRAPI)
+  daemon.GenericMain(constants.RAPI, parser, dirs, CheckRapi, ExecRapi)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   main()
