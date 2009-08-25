@@ -85,7 +85,7 @@ def WritePreamble(sw):
   sw.IncIndent()
   try:
     node_list_path = os.path.join(constants.DATA_DIR, "ssconf_node_list")
-    sw.Write("cat %s", utils.ShellQuote(node_list_path))
+    sw.Write("cat %s 2>/dev/null || :", utils.ShellQuote(node_list_path))
   finally:
     sw.DecIndent()
   sw.Write("}")
@@ -95,7 +95,7 @@ def WritePreamble(sw):
   try:
     instance_list_path = os.path.join(constants.DATA_DIR,
                                       "ssconf_instance_list")
-    sw.Write("cat %s", utils.ShellQuote(instance_list_path))
+    sw.Write("cat %s 2>/dev/null || :", utils.ShellQuote(instance_list_path))
   finally:
     sw.DecIndent()
   sw.Write("}")
@@ -104,9 +104,10 @@ def WritePreamble(sw):
   sw.IncIndent()
   try:
     # FIXME: this is really going into the internals of the job queue
-    sw.Write("local jlist=$( cd %s && echo job-*; )",
+    sw.Write(("local jlist=$( shopt -s nullglob &&"
+              " cd %s 2>/dev/null && echo job-* || : )"),
              utils.ShellQuote(constants.QUEUE_DIR))
-    sw.Write("echo ${jlist//job-/}")
+    sw.Write('echo "${jlist//job-/}"')
   finally:
     sw.DecIndent()
   sw.Write("}")
@@ -116,7 +117,8 @@ def WritePreamble(sw):
   try:
     # FIXME: Make querying the master for all OSes cheap
     for path in constants.OS_SEARCH_PATH:
-      sw.Write("( cd %s && echo *; )", utils.ShellQuote(path))
+      sw.Write("( shopt -s nullglob && cd %s 2>/dev/null && echo * || : )",
+               utils.ShellQuote(path))
   finally:
     sw.DecIndent()
   sw.Write("}")
