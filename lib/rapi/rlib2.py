@@ -46,6 +46,8 @@ N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "mtotal", "mnode", "mfree",
             "pinst_cnt", "sinst_cnt", "tags",
             "ctotal", "cnodes", "csockets",
+            "pip", "sip", "serial_no", "role",
+            "pinst_list", "sinst_list",
             ]
 
 
