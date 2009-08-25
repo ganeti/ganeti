@@ -2203,21 +2203,8 @@ class LURemoveNode(LogicalUnit):
     hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
     try:
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
-    finally:
-      res = h_results[node.name]
-      if res.fail_msg:
-        if not res.offline:
-          self.LogError("Failed to start hooks on %s: %s" %
-                        (node.name, res.fail_msg))
-      for script, hkr, output in res.payload:
-        if hkr != constants.HKR_FAIL:
-	  continue
-        if output:
-          self.LogWarning("On %s script %s failed, output:  %s" %
-                          (node.name, script, output))
-        else:
-	  self.LogWarning("On %s script %s failed (no output)." %
-                          (node.name, script))
+    except:
+      self.LogWarning("Errors occurred running hooks on %s" % node.name)
 
     result = self.rpc.call_node_leave_cluster(node.name)
     msg = result.fail_msg
