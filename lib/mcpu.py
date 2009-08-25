@@ -357,24 +357,33 @@ class HooksMaster(object):
       results = self._RunWrapper(nodes, hpath, phase)
     else:
       results = self._RunWrapper(self.node_list[phase], hpath, phase)
-    if phase == constants.HOOKS_PHASE_PRE:
-      errs = []
-      if not results:
-        raise errors.HooksFailure("Communication failure")
-      for node_name in results:
-        res = results[node_name]
-        if res.offline:
-          continue
-        msg = res.RemoteFailMsg()
-        if msg:
-          self.lu.LogWarning("Communication failure to node %s: %s",
-                             node_name, msg)
-          continue
-        for script, hkr, output in res.payload:
-          if hkr == constants.HKR_FAIL:
+    errs = []
+    if not results:
+      msg = "Communication Failure"
+      if phase == constants.HOOKS_PHASE_PRE:
+        raise errors.HooksFailure(msg)
+      else:
+        self.lu.LogWarning(msg)
+    for node_name in results:
+      res = results[node_name]
+      if res.offline:
+        continue
+      msg = res.RemoteFailMsg()
+      if msg:
+        self.lu.LogWarning("Communication failure to node %s: %s",
+                           node_name, msg)
+        continue
+      for script, hkr, output in res.payload:
+        if hkr == constants.HKR_FAIL:
+          if phase == constants.HOOKS_PHASE_PRE:
             errs.append((node_name, script, output))
-      if errs:
-        raise errors.HooksAbort(errs)
+          else:
+            if not output:
+	      output = "(no output)"
+            self.lu.LogWarning("On %s script %s failed, output: %s" %
+                               (node_name, script, output))
+    if errs and phase == constants.HOOKS_PHASE_PRE:
+      raise errors.HooksAbort(errs)
     return results
 
   def RunConfigUpdate(self):
