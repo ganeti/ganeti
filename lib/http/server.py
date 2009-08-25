@@ -522,6 +522,16 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     if pid == 0:
       # Child process
       try:
+        # The client shouldn't keep the listening socket open. If the parent
+        # process is restarted, it would fail when there's already something
+        # listening (in this case its own child from a previous run) on the
+        # same port.
+        try:
+          self.socket.close()
+        except socket.error:
+          pass
+        self.socket = None
+
         self.request_executor(self, connection, client_addr)
       except Exception:
         logging.exception("Error while handling request from %s:%s",
