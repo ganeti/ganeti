@@ -12,6 +12,7 @@ abs_top_srcdir = @abs_top_srcdir@
 ACLOCAL_AMFLAGS = -I autotools
 DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
+RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -183,6 +184,7 @@ EXTRA_DIST = \
 	DEVNOTES \
 	pylintrc \
 	autotools/docbook-wrapper \
+	autotools/run-in-tempdir \
 	devel/upload.in \
 	$(docdot) \
 	$(docrst) \
@@ -274,17 +276,9 @@ doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) \
+doc/examples/bash_completion: $(BUILD_BASH_COMPLETION) $(RUN_IN_TEMPDIR) \
 	lib/cli.py $(gnt_scripts) tools/burnin
-	TMPDIR=`mktemp -d ./buildtmpXXXXXX` && \
-	cp -r scripts lib tools $$TMPDIR && \
-	( \
-		CDIR=`pwd` && \
-		cd $$TMPDIR && \
-		mv lib ganeti && \
-		PYTHONPATH=. $$CDIR/$(BUILD_BASH_COMPLETION) > $$CDIR/$@; \
-	); \
-	rm -rf $$TMPDIR
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_BASH_COMPLETION) > $@
 
 doc/%.png: doc/%.dot
 	@test -n "$(DOT)" || { echo 'dot' not found during configure; exit 1; }
@@ -388,18 +382,11 @@ stamp-directories: Makefile
 	touch $@
 
 .PHONY: apidoc
-apidoc:
+apidoc: epydoc.conf $(RUN_IN_TEMPDIR)
 	test -e doc/api || mkdir doc/api
-	TMPDIR=`mktemp -d ` && { \
-		cp -r scripts daemons lib $$TMPDIR && \
-		( \
-			CDIR=`pwd` && \
-			cd $$TMPDIR && \
-			mv lib ganeti && \
-			epydoc -v --conf $$CDIR/epydoc.conf -o $$CDIR/doc/api \
-		) ; \
-		rm -rf $$TMPDIR ; \
-	}
+	$(RUN_IN_TEMPDIR) epydoc -v \
+		--conf $(CURDIR)/epydoc.conf \
+		--output $(CURDIR)/doc/api
 
 .PHONY: TAGS
 TAGS:

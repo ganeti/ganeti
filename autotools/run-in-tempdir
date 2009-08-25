@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+tmpdir=$(mktemp -d -t gntbuild.XXXXXXXX)
+trap "rm -rf $tmpdir" EXIT
+
+cp -r scripts lib tools test $tmpdir
+mv $tmpdir/lib $tmpdir/ganeti
+
+cd $tmpdir && "$@"
