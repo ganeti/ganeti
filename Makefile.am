@@ -263,7 +263,9 @@ nodist_TESTS =
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
-TESTS_ENVIRONMENT = PYTHONPATH=.:$(top_builddir) $(PYTHON)
+TESTS_ENVIRONMENT = \
+	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) \
+	$(RUN_IN_TEMPDIR) $(PYTHON)
 
 all-local: stamp-directories devel/upload \
 	doc/examples/bash_completion \
@@ -357,7 +359,8 @@ srclinks: stamp-directories
 	set -e; \
 	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) \
 			$(rapi_PYTHON) $(http_PYTHON) $(confd_PYTHON) \
-			$(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS); do \
+			$(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS) \
+			$(dist_TESTS); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \

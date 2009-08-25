@@ -83,10 +83,8 @@ class GanetiTestCase(unittest.TestCase):
         be used in 'make distcheck' rules
 
     """
-    prefix = os.environ.get("srcdir", "")
-    if prefix:
-      prefix = prefix + "/test/"
-    return "%sdata/%s" % (prefix, name)
+    prefix = os.environ.get("TOP_SRCDIR", ".")
+    return "%s/test/data/%s" % (prefix, name)
 
   @classmethod
   def _ReadTestData(cls, name):
