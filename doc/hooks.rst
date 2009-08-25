@@ -316,6 +316,17 @@ This hook is called via a special "empty" LU right after cluster initialization.
 :pre-execution: none
 :post-execution: master node
 
+OP_DESTROY_CLUSTER
+++++++++++++++++++
+
+The post phase of this hook is called during the execution of destroy operation
+and not after its completion.
+
+:directory: cluster-destroy
+:env. vars: none
+:pre-execution: none
+:post-execution: master node
+
 OP_CLUSTER_VERIFY
 +++++++++++++++++
 
