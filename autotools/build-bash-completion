@@ -331,7 +331,7 @@ class CompletionWriter:
 
         if arg.min == 1 and arg.max == 1:
           cmpcode = """"$arg_idx" == %d""" % (last_arg_end)
-        elif arg.min == arg.max:
+        elif arg.min <= arg.max:
           cmpcode = (""""$arg_idx" -ge %d && "$arg_idx" -lt %d""" %
                      (last_arg_end, last_arg_end + arg.max))
         elif arg.max is None:
