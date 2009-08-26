@@ -57,6 +57,7 @@ module Ganeti.HTools.CLI
     , oINodes
     , oMaxCpu
     , oMinDisk
+    , oDiskMoves
     , oShowVer
     , oShowHelp
     ) where
@@ -111,6 +112,7 @@ data Options = Options
     , optMinScore  :: Cluster.Score  -- ^ The minimum score we aim for
     , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
     , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
+    , optDiskMoves :: Bool           -- ^ Allow disk moves
     , optVerbose   :: Int            -- ^ Verbosity level
     , optShowVer   :: Bool           -- ^ Just show the program version
     , optShowHelp  :: Bool           -- ^ Just show the help
@@ -140,6 +142,7 @@ defaultOptions  = Options
  , optMinScore  = 1e-9
  , optMcpu      = -1
  , optMdsk      = -1
+ , optDiskMoves = True
  , optVerbose   = 1
  , optShowVer   = False
  , optShowHelp  = False
@@ -258,6 +261,12 @@ oMinDisk :: OptType
 oMinDisk = Option "" ["min-disk"]
            (ReqArg (\ n opts -> opts { optMdsk = read n }) "RATIO")
            "minimum free disk space for nodes (between 0 and 1)"
+
+oDiskMoves :: OptType
+oDiskMoves = Option "" ["no-disk-moves"]
+             (NoArg (\ opts -> opts { optDiskMoves = False}))
+             "disallow disk moves from the list of allowed instance changes,\
+             \ thus allowing only the 'cheap' failover/migrate operations"
 
 oShowVer :: OptType
 oShowVer = Option "V" ["version"]

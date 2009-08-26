@@ -381,10 +381,12 @@ checkSingleStep ini_tbl target cur_tbl move =
             in
               compareTables cur_tbl upd_tbl
 
--- | Given the status of the current secondary as a valid new node
--- and the current candidate target node,
--- generate the possible moves for a instance.
-possibleMoves :: Bool -> Ndx -> [IMove]
+-- | Given the status of the current secondary as a valid new node and
+-- the current candidate target node, generate the possible moves for
+-- a instance.
+possibleMoves :: Bool      -- ^ Whether the secondary node is a valid new node
+              -> Ndx       -- ^ Target node candidate
+              -> [IMove]   -- ^ List of valid result moves
 possibleMoves True tdx =
     [ReplaceSecondary tdx,
      ReplaceAndFailover tdx,
@@ -396,11 +398,12 @@ possibleMoves False tdx =
      ReplaceAndFailover tdx]
 
 -- | Compute the best move for a given instance.
-checkInstanceMove :: [Ndx]             -- Allowed target node indices
-                  -> Table             -- Original table
-                  -> Instance.Instance -- Instance to move
-                  -> Table             -- Best new table for this instance
-checkInstanceMove nodes_idx ini_tbl target =
+checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
+                  -> Bool              -- ^ Whether disk moves are allowed
+                  -> Table             -- ^ Original table
+                  -> Instance.Instance -- ^ Instance to move
+                  -> Table             -- ^ Best new table for this instance
+checkInstanceMove nodes_idx disk_moves ini_tbl target =
     let
         opdx = Instance.pnode target
         osdx = Instance.snode target
@@ -409,17 +412,20 @@ checkInstanceMove nodes_idx ini_tbl target =
         aft_failover = if use_secondary -- if allowed to failover
                        then checkSingleStep ini_tbl target ini_tbl Failover
                        else ini_tbl
-        all_moves = concatMap (possibleMoves use_secondary) nodes
+        all_moves = if disk_moves
+                    then concatMap (possibleMoves use_secondary) nodes
+                    else []
     in
       -- iterate over the possible nodes for this instance
       foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
 
 -- | Compute the best next move.
 checkMove :: [Ndx]               -- ^ Allowed target node indices
+          -> Bool                -- ^ Whether disk moves are allowed
           -> Table               -- ^ The current solution
           -> [Instance.Instance] -- ^ List of instances still to move
           -> Table               -- ^ The new solution
-checkMove nodes_idx ini_tbl victims =
+checkMove nodes_idx disk_moves ini_tbl victims =
     let Table _ _ _ ini_plc = ini_tbl
         -- iterate over all instances, computing the best move
         best_tbl =
@@ -427,7 +433,7 @@ checkMove nodes_idx ini_tbl victims =
             (\ step_tbl elem ->
                  if Instance.snode elem == Node.noSecondary then step_tbl
                     else compareTables step_tbl $
-                         checkInstanceMove nodes_idx ini_tbl elem)
+                         checkInstanceMove nodes_idx disk_moves ini_tbl elem)
             ini_tbl victims
         Table _ _ _ best_plc = best_tbl
     in

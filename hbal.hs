@@ -59,6 +59,7 @@ options =
     , oMinScore
     , oMaxCpu
     , oMinDisk
+    , oDiskMoves
     , oShowVer
     , oShowHelp
     ]
@@ -69,6 +70,7 @@ we find a valid solution or we exceed the maximum depth.
 -}
 iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
+             -> Bool             -- ^ Allow disk moves
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [[String]]       -- ^ Current command list
@@ -76,13 +78,13 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Cluster.Score    -- ^ Score at which to stop
              -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
                                                -- commands
-iterateDepth ini_tbl max_rounds nmlen imlen
+iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
              cmd_strs oneline min_score =
     let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
         all_inst = Container.elems ini_il
         node_idx = map Node.idx . filter (not . Node.offline) $
                    Container.elems ini_nl
-        fin_tbl = Cluster.checkMove node_idx ini_tbl all_inst
+        fin_tbl = Cluster.checkMove node_idx disk_moves ini_tbl all_inst
         (Cluster.Table _ _ fin_cv fin_plc) = fin_tbl
         ini_plc_len = length ini_plc
         fin_plc_len = length fin_plc
@@ -98,7 +100,7 @@ iterateDepth ini_tbl max_rounds nmlen imlen
           hFlush stdout
         (if fin_cv < ini_cv then -- this round made success, try deeper
              if allowed_next && fin_cv > min_score
-             then iterateDepth fin_tbl max_rounds
+             then iterateDepth fin_tbl max_rounds disk_moves
                   nmlen imlen upd_cmd_strs oneline min_score
              -- don't go deeper, but return the better solution
              else return (fin_tbl, upd_cmd_strs)
@@ -196,6 +198,7 @@ main = do
       nmlen = Container.maxNameLen nl
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
+                         (optDiskMoves opts)
                          nmlen imlen [] oneline min_cv
   let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc

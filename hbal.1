@@ -27,6 +27,7 @@ Algorithm options:
 .BI "[ -l " limit " ]"
 .BI "[ -e " score " ]"
 .BI "[ -O " name... " ]"
+.B "[ --no-disk-moves ]"
 
 .TP
 Reporting options:
@@ -301,6 +302,13 @@ value, we exit the algorithm
 The default value of the parameter is currently \fI1e-9\fR (chosen
 empirically).
 .RE
+
+.TP
+.BI "--no-disk-moves"
+This parameter prevent hbal from using disk move (i.e. "gnt-instance
+replace-disks") operations. This will result in a much quicker
+balancing, but of course the improvements are limited. It is up to the
+user to decide when to use one or another.
 
 .TP
 .BI "-n" nodefile ", --nodes=" nodefile
