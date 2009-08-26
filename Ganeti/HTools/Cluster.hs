@@ -522,7 +522,8 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
 -- * Formatting functions
 
 -- | Given the original and final nodes, computes the relocation description.
-computeMoves :: String -- ^ The instance name
+computeMoves :: Instance.Instance -- ^ The instance to be moved
+             -> String -- ^ The instance name
              -> String -- ^ Original primary
              -> String -- ^ Original secondary
              -> String -- ^ New primary
@@ -532,7 +533,7 @@ computeMoves :: String -- ^ The instance name
                 -- either @/f/@ for failover or @/r:name/@ for replace
                 -- secondary, while the command list holds gnt-instance
                 -- commands (without that prefix), e.g \"@failover instance1@\"
-computeMoves i a b c d
+computeMoves i inam a b c d
     -- same primary
     | c == a =
         if d == b
@@ -553,8 +554,9 @@ computeMoves i a b c d
     -- nothing in common -
     | otherwise =
         (printf "r:%s f r:%s" c d, [rep c, mig, rep d])
-    where mig = printf "migrate -f %s" i::String
-          rep n = printf "replace-disks -n %s %s" n i
+    where morf = if Instance.running i then "migrate" else "failover"
+          mig = printf "%s -f %s" morf inam::String
+          rep n = printf "replace-disks -n %s %s" n inam
 
 -- | Converts a placement to string format.
 printSolutionLine :: Node.List     -- ^ The node list
@@ -575,7 +577,7 @@ printSolutionLine nl il nmlen imlen plc pos =
         nsec = Container.nameOf nl s
         opri = Container.nameOf nl $ Instance.pnode inst
         osec = Container.nameOf nl $ Instance.snode inst
-        (moves, cmds) =  computeMoves inam opri osec npri nsec
+        (moves, cmds) =  computeMoves inst inam opri osec npri nsec
         ostr = printf "%s:%s" opri osec::String
         nstr = printf "%s:%s" npri nsec::String
     in
