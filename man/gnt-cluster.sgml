@@ -561,6 +561,37 @@
     </refsect2>
 
     <refsect2>
+      <title>WATCHER</title>
+
+      <cmdsynopsis>
+        <command>watcher</command>
+        <group choice="req">
+          <arg>pause <replaceable>duration</replaceable></arg>
+          <arg>continue</arg>
+          <arg>info</arg>
+        </group>
+      </cmdsynopsis>
+
+      <para>
+        Make the watcher pause or let it continue.
+      </para>
+
+      <para>
+        The <option>pause</option> option causes the watcher to pause for
+        <replaceable>duration</replaceable> seconds.
+      </para>
+
+      <para>
+        The <option>continue</option> option will let the watcher continue.
+      </para>
+
+      <para>
+        The <option>info</option> option shows whether the watcher is currently
+        paused.
+      </para>
+    </refsect2>
+
+    <refsect2>
       <title>redist-conf</title>
       <cmdsynopsis>
         <command>redist-conf</command>

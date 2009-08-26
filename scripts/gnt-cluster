@@ -25,6 +25,7 @@
 
 import sys
 import os.path
+import time
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -533,6 +534,43 @@ def QueueOps(opts, args):
 
   return 0
 
+
+def WatcherOps(opts, args):
+  """Watcher operations.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the subcommand
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  command = args[0]
+  client = GetClient()
+
+  if command == "continue":
+    client.SetWatcherPause(None)
+
+  elif command == "pause":
+    if len(args) < 2:
+      raise errors.OpPrereqError("Missing pause duration")
+
+    until = time.time() + ParseTimespec(args[1])
+    client.SetWatcherPause(until)
+
+  elif command == "info":
+    result = client.QueryConfigValues(["watcher_pause"])
+    if result is None or result < time.time():
+      ToStdout("The watcher is not paused.")
+    else:
+      ToStdout("The watcher is paused until %s.", time.ctime(result))
+
+  else:
+    raise errors.OpPrereqError("Command '%s' is not valid." % command)
+
+  return 0
+
+
 # this is an option common to more than one command, so we declare
 # it here and reuse it
 node_option = cli_option("-n", "--node", action="append", dest="nodes",
@@ -660,6 +698,12 @@ commands = {
             [ArgChoice(min=1, max=1, choices=["drain", "undrain", "info"])],
             [DEBUG_OPT],
             "drain|undrain|info", "Change queue properties"),
+  'watcher': (WatcherOps,
+              [ArgChoice(min=1, max=1,
+                         choices=["pause", "continue", "info"]),
+               ArgSuggest(min=0, max=1, choices=["30m", "1h", "4h"])],
+              [DEBUG_OPT],
+              "{pause <timespec>|continue|info}", "Change watcher properties"),
   'modify': (SetClusterParams, ARGS_NONE,
              [DEBUG_OPT,
               cli_option("-g", "--vg-name", dest="vg_name",
