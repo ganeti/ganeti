@@ -31,6 +31,7 @@ import os
 import sys
 import time
 import logging
+import errno
 from optparse import OptionParser
 
 from ganeti import utils
@@ -68,6 +69,13 @@ def Indent(s, prefix='| '):
 
   """
   return "%s%s\n" % (prefix, ('\n' + prefix).join(s.splitlines()))
+
+
+def ShouldPause():
+  """Check whether we should pause.
+
+  """
+  return bool(utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE))
 
 
 def StartMaster():
@@ -475,6 +483,10 @@ def main():
 
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)
+
+  if ShouldPause():
+    logging.debug("Pause has been set, exiting")
+    sys.exit(constants.EXIT_SUCCESS)
 
   update_file = False
   try:
