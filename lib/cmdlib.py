@@ -7597,8 +7597,10 @@ class LUExportInstance(LogicalUnit):
     instance = self.instance
     dst_node = self.dst_node
     src_node = instance.primary_node
+
     if self.op.shutdown:
       # shutdown the instance, but not the disks
+      feedback_fn("Shutting down instance %s" % instance.name)
       result = self.rpc.call_instance_shutdown(src_node, instance)
       result.Raise("Could not shutdown instance %s on"
                    " node %s" % (instance.name, src_node))
@@ -7616,6 +7618,9 @@ class LUExportInstance(LogicalUnit):
     dresults = []
     try:
       for idx, disk in enumerate(instance.disks):
+        feedback_fn("Creating a snapshot of disk/%s on node %s" %
+                    (idx, src_node))
+
         # result.payload will be a snapshot of an lvm leaf of the one we passed
         result = self.rpc.call_blockdev_snapshot(src_node, disk)
         msg = result.fail_msg
@@ -7632,6 +7637,7 @@ class LUExportInstance(LogicalUnit):
 
     finally:
       if self.op.shutdown and instance.admin_up:
+        feedback_fn("Starting instance %s" % instance.name)
         result = self.rpc.call_instance_start(src_node, instance, None, None)
         msg = result.fail_msg
         if msg:
@@ -7642,6 +7648,8 @@ class LUExportInstance(LogicalUnit):
 
     cluster_name = self.cfg.GetClusterName()
     for idx, dev in enumerate(snap_disks):
+      feedback_fn("Exporting snapshot %s from %s to %s" %
+                  (idx, src_node, dst_node.name))
       if dev:
         result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
                                                instance, cluster_name, idx)
@@ -7659,6 +7667,7 @@ class LUExportInstance(LogicalUnit):
       else:
         dresults.append(False)
 
+    feedback_fn("Finalizing export on %s" % dst_node.name)
     result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
     fin_resu = True
     msg = result.fail_msg
@@ -7675,6 +7684,7 @@ class LUExportInstance(LogicalUnit):
     # substitutes an empty list with the full cluster node list.
     iname = instance.name
     if nodelist:
+      feedback_fn("Removing old exports for instance %s" % iname)
       exportlist = self.rpc.call_export_list(nodelist)
       for node in exportlist:
         if exportlist[node].fail_msg:
