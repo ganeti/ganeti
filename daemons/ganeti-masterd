@@ -296,6 +296,22 @@ class ClientOps:
                    drain_flag)
       return queue.SetDrainFlag(drain_flag)
 
+    elif method == luxi.REQ_SET_WATCHER_PAUSE:
+      (until, ) = args
+
+      if until is None:
+        logging.info("Received request to no longer pause the watcher")
+      else:
+        if not isinstance(until, (int, float)):
+          raise TypeError("Duration must be an integer or float")
+
+        if until < time.time():
+          raise errors.GenericError("Unable to set pause end time in the past")
+
+        logging.info("Received request to pause the watcher until %s", until)
+
+      return _SetWatcherPause(until)
+
     else:
       logging.info("Received invalid request '%s'", method)
       raise ValueError("Invalid operation '%s'" % method)
@@ -382,6 +398,20 @@ class GanetiContext(object):
 
     # Remove the node from the Ganeti Lock Manager
     self.glm.remove(locking.LEVEL_NODE, name)
+
+
+def _SetWatcherPause(until):
+  """Creates or removes the watcher pause file.
+
+  @type until: None or int
+  @param until: Unix timestamp saying until when the watcher shouldn't run
+
+  """
+  if until is None:
+    utils.RemoveFile(constants.WATCHER_PAUSEFILE)
+  else:
+    utils.WriteFile(constants.WATCHER_PAUSEFILE,
+                    data="%d\n" % (until, ))
 
 
 def CheckAgreement():

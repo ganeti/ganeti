@@ -1951,6 +1951,33 @@ def FormatTime(val):
   return time.strftime("%F %T", time.localtime(val))
 
 
+def ReadWatcherPauseFile(filename, now=None):
+  """Reads the watcher pause file.
+
+  """
+  if now is None:
+    now = time.time()
+
+  try:
+    value = ReadFile(filename)
+  except IOError, err:
+    if err.errno != errno.ENOENT:
+      raise
+    value = None
+
+  if value is not None:
+    try:
+      value = int(value)
+    except ValueError:
+      value = None
+
+    if value is not None:
+      if now > value:
+        value = None
+
+  return value
+
+
 class FileLock(object):
   """Utility class for file locks.
 

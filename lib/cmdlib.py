@@ -3086,7 +3086,8 @@ class LUQueryConfigValues(NoHooksLU):
   _OP_REQP = []
   REQ_BGL = False
   _FIELDS_DYNAMIC = utils.FieldSet()
-  _FIELDS_STATIC = utils.FieldSet("cluster_name", "master_node", "drain_flag")
+  _FIELDS_STATIC = utils.FieldSet("cluster_name", "master_node", "drain_flag",
+                                  "watcher_pause")
 
   def ExpandNames(self):
     self.needed_locks = {}
@@ -3113,6 +3114,8 @@ class LUQueryConfigValues(NoHooksLU):
         entry = self.cfg.GetMasterNode()
       elif field == "drain_flag":
         entry = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
+      elif field == "watcher_pause":
+        return utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
       else:
         raise errors.ParameterError(field)
       values.append(entry)
