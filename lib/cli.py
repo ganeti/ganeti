@@ -63,7 +63,7 @@ UN_PREFIX = "-"
 
 
 class _Argument:
-  def __init__(self, min=0, max=None, suggest=None):
+  def __init__(self, min=0, max=None):
     self.min = min
     self.max = max
 
