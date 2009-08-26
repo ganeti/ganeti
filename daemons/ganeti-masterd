@@ -427,6 +427,7 @@ def CheckAgreement():
   # here a real node is at the top of the list
   all_votes = sum(item[1] for item in votes)
   top_node, top_votes = votes[0]
+
   result = False
   if top_node != myself:
     logging.critical("It seems we are not the master (top-voted node"
@@ -464,6 +465,50 @@ def CheckMasterd(options, args):
         return
   finally:
     rpc.Shutdown()
+
+
+def _RunInSeparateProcess(fn):
+  """Runs a function in a separate process.
+
+  Note: Only boolean return values are supported.
+
+  @type fn: callable
+  @param fn: Function to be called
+  @rtype: bool
+
+  """
+  pid = os.fork()
+  if pid == 0:
+    # Child process
+    try:
+      # Call function
+      result = int(bool(fn()))
+      assert result in (0, 1)
+    except:
+      logging.exception("Error while calling function in separate process")
+      # 0 and 1 are reserved for the return value
+      result = 33
+
+    os._exit(result)
+
+  # Parent process
+
+  # Avoid zombies and check exit code
+  (_, status) = os.waitpid(pid, 0)
+
+  if os.WIFSIGNALED(status):
+    signum = os.WTERMSIG(status)
+    exitcode = None
+  else:
+    signum = None
+    exitcode = os.WEXITSTATUS(status)
+
+  if not (exitcode in (0, 1) and signum is None):
+    logging.error("Child program failed (code=%s, signal=%s)",
+                  exitcode, signum)
+    sys.exit(constants.EXIT_FAILURE)
+
+  return bool(exitcode)
 
 
 def ExecMasterd (options, args):
