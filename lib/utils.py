@@ -1951,8 +1951,16 @@ def FormatTime(val):
   return time.strftime("%F %T", time.localtime(val))
 
 
-def ReadWatcherPauseFile(filename, now=None):
+def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
   """Reads the watcher pause file.
+
+  @type filename: string
+  @param filename: Path to watcher pause file
+  @type now: None, float or int
+  @param now: Current time as Unix timestamp
+  @type remove_after: int
+  @param remove_after: Remove watcher pause file after specified amount of
+    seconds past the pause end time
 
   """
   if now is None:
@@ -1969,10 +1977,18 @@ def ReadWatcherPauseFile(filename, now=None):
     try:
       value = int(value)
     except ValueError:
+      logging.warning(("Watcher pause file (%s) contains invalid value,"
+                       " removing it"), filename)
+      RemoveFile(filename)
       value = None
 
     if value is not None:
-      if now > value:
+      # Remove file if it's outdated
+      if now > (value + remove_after):
+        RemoveFile(filename)
+        value = None
+
+      elif now > value:
         value = None
 
   return value
