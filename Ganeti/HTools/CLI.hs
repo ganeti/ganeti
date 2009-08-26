@@ -326,9 +326,7 @@ shTemplate =
 
 -- | Error beautifier
 wrapIO :: IO (Result a) -> IO (Result a)
-wrapIO act =
-    handle (\e -> return $ Bad $ show e)
-    act
+wrapIO = handle (return . Bad . show)
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
