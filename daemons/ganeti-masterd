@@ -442,27 +442,10 @@ def CheckAgreement():
   return result
 
 
-def CheckMasterd(options, args):
-  """Initial checks whether to run or exit with a failure.
-
-  """
+def CheckAgreementWithRpc():
   rpc.Init()
   try:
-    ssconf.CheckMaster(options.debug)
-
-    # we believe we are the master, let's ask the other nodes...
-    if options.no_voting and not options.yes_do_it:
-      sys.stdout.write("The 'no voting' option has been selected.\n")
-      sys.stdout.write("This is dangerous, please confirm by"
-                       " typing uppercase 'yes': ")
-      sys.stdout.flush()
-      confirmation = sys.stdin.readline().strip()
-      if confirmation != "YES":
-        print "Aborting."
-        return
-    elif not options.no_voting:
-      if not CheckAgreement():
-        return
+    return CheckAgreement()
   finally:
     rpc.Shutdown()
 
@@ -509,6 +492,36 @@ def _RunInSeparateProcess(fn):
     sys.exit(constants.EXIT_FAILURE)
 
   return bool(exitcode)
+
+
+def CheckMasterd(options, args):
+  """Initial checks whether to run or exit with a failure.
+
+  """
+  ssconf.CheckMaster(options.debug)
+
+  # If CheckMaster didn't fail we believe we are the master, but we have to
+  # confirm with the other nodes.
+  if options.no_voting:
+    if options.yes_do_it:
+      return
+
+    sys.stdout.write("The 'no voting' option has been selected.\n")
+    sys.stdout.write("This is dangerous, please confirm by"
+                     " typing uppercase 'yes': ")
+    sys.stdout.flush()
+
+    confirmation = sys.stdin.readline().strip()
+    if confirmation != "YES":
+      print >>sys.stderr, "Aborting."
+      sys.exit(constants.EXIT_FAILURE)
+
+    return
+
+  # CheckAgreement uses RPC and threads, hence it needs to be run in a separate
+  # process before we call utils.Daemonize in the current process.
+  if not _RunInSeparateProcess(CheckAgreementWithRpc):
+    sys.exit(constants.EXIT_FAILURE)
 
 
 def ExecMasterd (options, args):
