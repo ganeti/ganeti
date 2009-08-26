@@ -1157,17 +1157,19 @@ def NewUUID():
     f.close()
 
 
-def GenerateSecret():
+def GenerateSecret(numbytes=20):
   """Generates a random secret.
 
-  This will generate a pseudo-random secret, and return its sha digest
+  This will generate a pseudo-random secret returning an hex string
   (so that it can be used where an ASCII string is needed).
 
+  @param numbytes: the number of bytes which will be represented by the returned
+      string (defaulting to 20, the length of a SHA1 hash)
   @rtype: str
-  @return: a sha1 hexdigest of a block of 64 random bytes
+  @return: an hex representation of the pseudo-random sequence
 
   """
-  return sha1(os.urandom(64)).hexdigest()
+  return os.urandom(numbytes).encode('hex')
 
 
 def EnsureDirs(dirs):
