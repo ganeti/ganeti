@@ -208,7 +208,8 @@ class CompletionWriter:
       if opt.takes_value():
         # Ignore value
         for i in opt.all_names:
-          ignore.append("%s=*" % utils.ShellQuote(i))
+          if i.startswith("--"):
+            ignore.append("%s=*" % utils.ShellQuote(i))
           skip_one.append(utils.ShellQuote(i))
       else:
         ignore.extend([utils.ShellQuote(i) for i in opt.all_names])
@@ -392,8 +393,14 @@ def WriteCompletion(sw, scriptname, funcname,
   sw.Write("%s() {", funcname)
   sw.IncIndent()
   try:
-    sw.Write('local cur="$2" prev="$3"')
-    sw.Write("local i first_arg_idx choices compgenargs arg_idx")
+    sw.Write("local "
+             ' cur="${COMP_WORDS[$COMP_CWORD]}"'
+             ' prev="${COMP_WORDS[COMP_CWORD-1]}"'
+             ' i first_arg_idx choices compgenargs arg_idx')
+
+    # Useful for debugging:
+    #sw.Write("echo cur=\"$cur\" prev=\"$prev\"")
+    #sw.Write("set | grep ^COMP_")
 
     sw.Write("COMPREPLY=()")
 
