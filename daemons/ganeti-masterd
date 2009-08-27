@@ -171,7 +171,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
         success = True
       except errors.GenericError, err:
         success = False
-        result = (err.__class__.__name__, err.args)
+        result = errors.EncodeException(err)
       except:
         logging.error("Unexpected exception", exc_info=True)
         err = sys.exc_info()

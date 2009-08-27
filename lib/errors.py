@@ -311,3 +311,35 @@ def GetErrorClass(name):
             issubclass(item, GenericError)):
       item = None
   return item
+
+
+def EncodeException(err):
+  """Encodes an exception into a format that L{MaybeRaise} will recognise.
+
+  The passed L{err} argument will be formatted as a tuple (exception
+  name, arguments) that the MaybeRaise function will recognise.
+
+  @type err: GenericError child
+  @param err: usually a child of GenericError (but any exception
+      will be accepted)
+  @rtype: tuple
+  @return: tuple of (exception name, exception arguments)
+
+  """
+  return (err.__class__.__name__, err.args)
+
+
+def MaybeRaise(result):
+  """Is this looks like an encoded Ganeti exception, raise it.
+
+  This function tries to parse the passed argument and if it looks
+  like an encoding done by EncodeException, it will re-raise it.
+
+  """
+  tlt = (tuple, list)
+  if (isinstance(result, tlt) and len(result) == 2 and
+      isinstance(result[1], tlt)):
+    # custom ganeti errors
+    err_class = GetErrorClass(result[0])
+    if err_class is not None:
+      raise err_class, tuple(result[1])

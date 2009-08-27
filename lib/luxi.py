@@ -325,14 +325,7 @@ class Client(object):
     result = data[KEY_RESULT]
 
     if not data[KEY_SUCCESS]:
-      # TODO: decide on a standard exception
-      if (isinstance(result, (tuple, list)) and len(result) == 2 and
-          isinstance(result[1], (tuple, list))):
-        # custom ganeti errors
-        err_class = errors.GetErrorClass(result[0])
-        if err_class is not None:
-          raise err_class, tuple(result[1])
-
+      errors.MaybeRaise(result)
       raise RequestError(result)
 
     return result
