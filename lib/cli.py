@@ -56,6 +56,9 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "ArgInstance", "ArgNode", "ArgChoice", "ArgHost",
            "ARGS_NONE", "ARGS_ONE_INSTANCE", "ARGS_ONE_NODE",
            "ARGS_MANY_INSTANCES", "ARGS_MANY_NODES",
+           "OPT_COMPL_ONE_NODE", "OPT_COMPL_ONE_INSTANCE",
+           "OPT_COMPL_MANY_NODES",
+           "OPT_COMPL_ONE_OS", "OPT_COMPL_ONE_IALLOCATOR",
            ]
 
 NO_PREFIX = "no_"
@@ -328,6 +331,23 @@ def check_key_val(option, opt, value):
 
   """
   return _SplitKeyVal(opt, value)
+
+
+# completion_suggestion is normally a list. Using numeric values not evaluating
+# to False for dynamic completion.
+(OPT_COMPL_MANY_NODES,
+ OPT_COMPL_ONE_NODE,
+ OPT_COMPL_ONE_INSTANCE,
+ OPT_COMPL_ONE_OS,
+ OPT_COMPL_ONE_IALLOCATOR) = range(100, 105)
+
+OPT_COMPL_ALL = frozenset([
+  OPT_COMPL_MANY_NODES,
+  OPT_COMPL_ONE_NODE,
+  OPT_COMPL_ONE_INSTANCE,
+  OPT_COMPL_ONE_OS,
+  OPT_COMPL_ONE_IALLOCATOR,
+  ])
 
 
 class CliOption(Option):

@@ -273,12 +273,15 @@ class CompletionWriter:
       if not suggest:
         suggest = opt.choices
 
-      if suggest:
-        suggest_text = " ".join(sorted(suggest))
+      if (isinstance(suggest, (int, long)) and
+          suggest in cli.OPT_COMPL_ALL):
+        key = suggest
+      elif suggest:
+        key = " ".join(sorted(suggest))
       else:
-        suggest_text = ""
+        key = ""
 
-      values.setdefault(suggest_text, []).extend(opt.all_names)
+      values.setdefault(key, []).extend(opt.all_names)
 
     # Don't write any code if there are no option values
     if not values:
@@ -301,7 +304,19 @@ class CompletionWriter:
                utils.ShellQuote("|".join(allnames)))
       sw.IncIndent()
       try:
-        WriteCompReply(sw, "-W %s" % utils.ShellQuote(suggest), cur=cur)
+        if suggest == cli.OPT_COMPL_MANY_NODES:
+          # TODO: Implement comma-separated values
+          WriteCompReply(sw, "-W ''", cur=cur)
+        elif suggest == cli.OPT_COMPL_ONE_NODE:
+          WriteCompReply(sw, "-W \"$(_ganeti_nodes)\"", cur=cur)
+        elif suggest == cli.OPT_COMPL_ONE_INSTANCE:
+          WriteCompReply(sw, "-W \"$(_ganeti_instances)\"", cur=cur)
+        elif suggest == cli.OPT_COMPL_ONE_OS:
+          WriteCompReply(sw, "-W \"$(_ganeti_os)\"", cur=cur)
+        elif suggest == cli.OPT_COMPL_ONE_IALLOCATOR:
+          WriteCompReply(sw, "-W \"$(_ganeti_iallocator)\"", cur=cur)
+        else:
+          WriteCompReply(sw, "-W %s" % utils.ShellQuote(suggest), cur=cur)
       finally:
         sw.DecIndent()
 
