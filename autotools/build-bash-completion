@@ -183,8 +183,8 @@ def WritePreamble(sw):
   sw.Write("}")
 
 
-def WriteCompReply(sw, args):
-  sw.Write("""COMPREPLY=( $(compgen %s -- "$cur") )""", args)
+def WriteCompReply(sw, args, cur="\"$cur\""):
+  sw.Write("""COMPREPLY=( $(compgen %s -- %s) )""", args, cur)
   sw.Write("return")
 
 
@@ -257,9 +257,9 @@ class CompletionWriter:
     sw.Write("if [[ $COMP_CWORD -gt %s ]]; then", self.arg_offset + 1)
     sw.IncIndent()
     try:
+      # --foo value
       sw.Write("""case "$prev" in""")
       for (choices, names) in values.iteritems():
-        # TODO: Implement completion for --foo=bar form
         sw.Write("%s)", "|".join([utils.ShellQuote(i) for i in names]))
         sw.IncIndent()
         try:
@@ -271,6 +271,28 @@ class CompletionWriter:
     finally:
       sw.DecIndent()
     sw.Write("""fi""")
+
+    # --foo=value
+    values_longopts = {}
+
+    for (choices, names) in values.iteritems():
+      longnames = [i for i in names if i.startswith("--")]
+      if longnames:
+        values_longopts[choices] = longnames
+
+    if values_longopts:
+      sw.Write("""case "$cur" in""")
+      for (choices, names) in values_longopts.iteritems():
+        sw.Write("%s)", "|".join([utils.ShellQuote(i) + "=*" for i in names]))
+        sw.IncIndent()
+        try:
+          # Shell expression to get option value
+          cur="\"${cur#--*=}\""
+          WriteCompReply(sw, "-W %s" % utils.ShellQuote(choices), cur=cur)
+        finally:
+          sw.DecIndent()
+        sw.Write(";;")
+      sw.Write("""esac""")
 
   def _CompleteArguments(self, sw):
     if not (self.opts or self.args):
@@ -394,7 +416,7 @@ def WriteCompletion(sw, scriptname, funcname,
   sw.IncIndent()
   try:
     sw.Write("local "
-             ' cur="${COMP_WORDS[$COMP_CWORD]}"'
+             ' cur="${COMP_WORDS[COMP_CWORD]}"'
              ' prev="${COMP_WORDS[COMP_CWORD-1]}"'
              ' i first_arg_idx choices compgenargs arg_idx')
 
