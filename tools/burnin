@@ -101,7 +101,8 @@ class SimpleOpener(urllib.FancyURLopener):
 OPTIONS = [
   cli.cli_option("-o", "--os", dest="os", default=None,
                  help="OS to use during burnin",
-                 metavar="<OS>"),
+                 metavar="<OS>",
+                 completion_suggest=cli.OPT_COMPL_ONE_OS),
   cli.cli_option("--disk-size", dest="disk_size",
                  help="Disk size (determines disk count)",
                  default="128m", type="string", metavar="<size,size,...>",
@@ -165,13 +166,15 @@ OPTIONS = [
                  help="Disk template (diskless, file, plain or drbd) [drbd]"),
   cli.cli_option("-n", "--nodes", dest="nodes", default="",
                  help=("Comma separated list of nodes to perform"
-                       " the burnin on (defaults to all nodes)")),
+                       " the burnin on (defaults to all nodes)"),
+                 completion_suggest=cli.OPT_COMPL_MANY_NODES),
   cli.cli_option("-I", "--iallocator", dest="iallocator",
                  default=None, type="string",
                  help=("Perform the allocation using an iallocator"
                        " instead of fixed node spread (node restrictions no"
                        " longer apply, therefore -n/--nodes must not be"
-                       " used")),
+                       " used"),
+                 completion_suggest=cli.OPT_COMPL_ONE_IALLOCATOR),
   cli.cli_option("-p", "--parallel", default=False, action="store_true",
                  dest="parallel",
                  help=("Enable parallelization of some operations in"

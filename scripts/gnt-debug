@@ -150,7 +150,8 @@ commands = {
                             " results (out)"),
                  cli_option("--algorithm", dest="allocator",
                             default=None,
-                            help="Allocator algorithm name"),
+                            help="Allocator algorithm name",
+                            completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
                  cli_option("-m", "--mode", default="relocate",
                             choices=["relocate", "allocate"],
                             help="Request mode, either allocate or"
@@ -167,7 +168,8 @@ commands = {
                             " definition is of form mac/ip/bridge, if"
                             " missing values are replace by None"),
                  cli_option("-o", "--os-type", default=None,
-                            help="Select os for the instance"),
+                            help="Select os for the instance",
+                            completion_suggest=OPT_COMPL_ONE_OS),
                  cli_option("-p", "--vcpus", default=1, type="int",
                             help="Select number of VCPUs for the instance"),
                  cli_option("--tags", default=None,

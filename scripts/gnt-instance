@@ -1332,10 +1332,12 @@ def SetInstanceParams(opts, args):
 
 # options used in more than one cmd
 node_opt = cli_option("-n", "--node", dest="node", help="Target node",
-                      metavar="<node>")
+                      metavar="<node>",
+                      completion_suggest=OPT_COMPL_ONE_NODE)
 
 os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
-                    metavar="<os>")
+                    metavar="<os>",
+                    completion_suggest=OPT_COMPL_ONE_OS)
 
 # multi-instance selection options
 m_force_multi = cli_option("--force-multiple", dest="force_multi",
@@ -1409,7 +1411,8 @@ add_opts = [
              choices=list(constants.FILE_DRIVER)),
   cli_option("-I", "--iallocator", metavar="<NAME>",
              help="Select nodes for the instance automatically using the"
-             " <NAME> iallocator plugin", default=None, type="string"),
+             " <NAME> iallocator plugin", default=None, type="string",
+             completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
   cli_option("-H", "--hypervisor", dest="hypervisor",
              help="Hypervisor and hypervisor options, in the format"
              " hypervisor:option=value,option=value,...", default=None,
@@ -1467,7 +1470,8 @@ commands = {
            [DEBUG_OPT, FORCE_OPT, SUBMIT_OPT,
             cli_option("-n", "--new-node", dest="target_node",
                        help="Destinattion node", metavar="NODE",
-                       default=None),
+                       default=None,
+                       completion_suggest=OPT_COMPL_ONE_NODE),
             ],
            "[-f] <instance>",
            "Move instance to an arbitrary node"
@@ -1531,7 +1535,8 @@ commands = {
                      cli_option("-n", "--new-secondary", dest="new_secondary",
                                 help=("New secondary node (for secondary"
                                       " node change)"), metavar="NODE",
-                                default=None),
+                                default=None,
+                                completion_suggest=OPT_COMPL_ONE_NODE),
                      cli_option("-p", "--on-primary", dest="on_primary",
                                 default=False, action="store_true",
                                 help=("Replace the disk(s) on the primary"
@@ -1553,7 +1558,8 @@ commands = {
                                 " automatically using the"
                                 " <NAME> iallocator plugin (enables"
                                 " secondary node replacement)",
-                                default=None, type="string"),
+                                default=None, type="string",
+                                completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
                      SUBMIT_OPT,
                      ],
                     "[-s|-p|-n NODE|-I NAME] <instance>",
@@ -1601,7 +1607,8 @@ commands = {
                cli_option("-t", "--type", dest="reboot_type",
                           help="Type of reboot: soft/hard/full",
                           default=constants.INSTANCE_REBOOT_HARD,
-                          type="string", metavar="<REBOOT>"),
+                          metavar="<REBOOT>",
+                          choices=list(constants.REBOOT_TYPES)),
                cli_option("--ignore-secondaries", dest="ignore_secondaries",
                           default=False, action="store_true",
                           help="Ignore errors from secondaries"),

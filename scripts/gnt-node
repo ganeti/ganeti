@@ -640,12 +640,14 @@ commands = {
                [DEBUG_OPT, FORCE_OPT,
                 cli_option("-n", "--new-secondary", dest="dst_node",
                            help="New secondary node", metavar="NODE",
-                           default=None),
+                           default=None,
+                           completion_suggest=OPT_COMPL_ONE_NODE),
                 cli_option("-I", "--iallocator", metavar="<NAME>",
                            help="Select new secondary for the instance"
                            " automatically using the"
                            " <NAME> iallocator plugin",
-                           default=None, type="string"),
+                           default=None, type="string",
+                           completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
                 ],
                "[-f] {-I <iallocator> | -n <dst>} <node>",
                "Relocate the secondary instances from a node"
