@@ -572,6 +572,7 @@ def PollJob(job_id, cl=None, feedback_fn=None):
       if status == constants.OP_STATUS_SUCCESS:
         has_ok = True
       elif status == constants.OP_STATUS_ERROR:
+        errors.MaybeRaise(msg)
         if has_ok:
           raise errors.OpExecError("partial failure (opcode %d): %s" %
                                    (idx, msg))
