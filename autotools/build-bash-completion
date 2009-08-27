@@ -182,6 +182,32 @@ def WritePreamble(sw):
     sw.DecIndent()
   sw.Write("}")
 
+  # Params: <long options with equal sign> <all options>
+  # Result variable: $optcur
+  sw.Write("_ganeti_checkopt() {")
+  sw.IncIndent()
+  try:
+    sw.Write("""if [[ -n "$1" && "$cur" == @($1) ]]; then""")
+    sw.IncIndent()
+    try:
+      sw.Write("optcur=\"${cur#--*=}\"")
+      sw.Write("return 0")
+    finally:
+      sw.DecIndent()
+    sw.Write("""elif [[ -n "$2" && "$prev" == @($2) ]]; then""")
+    sw.IncIndent()
+    try:
+      sw.Write("optcur=\"$cur\"")
+      sw.Write("return 0")
+    finally:
+      sw.DecIndent()
+    sw.Write("fi")
+
+    sw.Write("return 1")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
 
 def WriteCompReply(sw, args, cur="\"$cur\""):
   sw.Write("""COMPREPLY=( $(compgen %s -- %s) )""", args, cur)
@@ -254,45 +280,33 @@ class CompletionWriter:
     if not values:
       return
 
-    sw.Write("if [[ $COMP_CWORD -gt %s ]]; then", self.arg_offset + 1)
-    sw.IncIndent()
-    try:
-      # --foo value
-      sw.Write("""case "$prev" in""")
-      for (choices, names) in values.iteritems():
-        sw.Write("%s)", "|".join([utils.ShellQuote(i) for i in names]))
-        sw.IncIndent()
-        try:
-          WriteCompReply(sw, "-W %s" % utils.ShellQuote(choices))
-        finally:
-          sw.DecIndent()
-        sw.Write(";;")
-      sw.Write("""esac""")
-    finally:
-      sw.DecIndent()
-    sw.Write("""fi""")
+    cur = "\"$optcur\""
 
-    # --foo=value
-    values_longopts = {}
+    wrote_opt = False
 
-    for (choices, names) in values.iteritems():
-      longnames = [i for i in names if i.startswith("--")]
-      if longnames:
-        values_longopts[choices] = longnames
+    for (suggest, allnames) in values.iteritems():
+      longnames = [i for i in allnames if i.startswith("--")]
 
-    if values_longopts:
-      sw.Write("""case "$cur" in""")
-      for (choices, names) in values_longopts.iteritems():
-        sw.Write("%s)", "|".join([utils.ShellQuote(i) + "=*" for i in names]))
-        sw.IncIndent()
-        try:
-          # Shell expression to get option value
-          cur="\"${cur#--*=}\""
-          WriteCompReply(sw, "-W %s" % utils.ShellQuote(choices), cur=cur)
-        finally:
-          sw.DecIndent()
-        sw.Write(";;")
-      sw.Write("""esac""")
+      if wrote_opt:
+        condcmd = "elif"
+      else:
+        condcmd = "if"
+
+      sw.Write("%s _ganeti_checkopt %s %s; then", condcmd,
+               utils.ShellQuote("|".join(["%s=*" % i for i in longnames])),
+               utils.ShellQuote("|".join(allnames)))
+      sw.IncIndent()
+      try:
+        WriteCompReply(sw, "-W %s" % utils.ShellQuote(suggest), cur=cur)
+      finally:
+        sw.DecIndent()
+
+      wrote_opt = True
+
+    if wrote_opt:
+      sw.Write("fi")
+
+    return
 
   def _CompleteArguments(self, sw):
     if not (self.opts or self.args):
@@ -418,7 +432,7 @@ def WriteCompletion(sw, scriptname, funcname,
     sw.Write("local "
              ' cur="${COMP_WORDS[COMP_CWORD]}"'
              ' prev="${COMP_WORDS[COMP_CWORD-1]}"'
-             ' i first_arg_idx choices compgenargs arg_idx')
+             ' i first_arg_idx choices compgenargs arg_idx optcur')
 
     # Useful for debugging:
     #sw.Write("echo cur=\"$cur\" prev=\"$prev\"")
