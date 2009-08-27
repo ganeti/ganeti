@@ -112,16 +112,20 @@ def WritePreamble(sw):
     sw.DecIndent()
   sw.Write("}")
 
-  sw.Write("_ganeti_os() {")
-  sw.IncIndent()
-  try:
-    # FIXME: Make querying the master for all OSes cheap
-    for path in constants.OS_SEARCH_PATH:
-      sw.Write("( shopt -s nullglob && cd %s 2>/dev/null && echo * || : )",
-               utils.ShellQuote(path))
-  finally:
-    sw.DecIndent()
-  sw.Write("}")
+  for (fnname, paths) in [
+      ("os", constants.OS_SEARCH_PATH),
+      ("iallocator", constants.IALLOCATOR_SEARCH_PATH),
+      ]:
+    sw.Write("_ganeti_%s() {", fnname)
+    sw.IncIndent()
+    try:
+      # FIXME: Make querying the master for all OSes cheap
+      for path in paths:
+        sw.Write("( shopt -s nullglob && cd %s 2>/dev/null && echo * || : )",
+                 utils.ShellQuote(path))
+    finally:
+      sw.DecIndent()
+    sw.Write("}")
 
   # Params: <offset> <options with values> <options without values>
   # Result variable: $first_arg_idx
