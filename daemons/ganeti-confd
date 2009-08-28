@@ -286,7 +286,7 @@ class ConfdConfigurationReloader(object):
       else:
         reloaded = self.processor.reader.Reload()
     except errors.ConfigurationError:
-      self.DisableConfd()
+      self.DisableConfd(silent=was_disabled)
       return
 
     if self.polling and reloaded:
@@ -311,11 +311,12 @@ class ConfdConfigurationReloader(object):
 
     self._EnableTimer()
 
-  def DisableConfd(self):
+  def DisableConfd(self, silent=False):
     """Puts confd in non-serving mode
 
     """
-    logging.warning("Confd is being disabled")
+    if not silent:
+      logging.warning("Confd is being disabled")
     self.processor.Disable()
     self.polling = False
     self._ResetTimer()
@@ -350,6 +351,7 @@ def ExecConfd(options, args):
     processor.Enable()
   except errors.ConfigurationError:
     # If enabling the processor has failed, we can still go on, but confd will be disabled
+    logging.warning("Confd is starting in disabled mode")
     pass
   server = ConfdAsyncUDPServer(options.bind_address, options.port, processor)
 
