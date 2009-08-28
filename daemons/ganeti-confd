@@ -115,7 +115,6 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
                 pyinotify.EventsCodes.IN_MODIFY
     self.file = file
     self.watch_handle = None
-    self.enable()
 
   def enable(self):
     """Watch the given file
@@ -204,7 +203,7 @@ class ConfdConfigurationReloader(object):
     self.processor = processor
     self.mainloop = mainloop
 
-    self.polling = False
+    self.polling = True
     self.last_notification = 0
 
     # Asyncronous inotify handler for config changes
