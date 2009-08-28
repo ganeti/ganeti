@@ -128,12 +128,14 @@ def TestNodeEvacuate(node, node2):
                                        " it to have no secondary instances.")
 
     # Evacuate all secondary instances
-    cmd = ['gnt-node', 'evacuate', '-f', node2['primary'], node3['primary']]
+    cmd = ['gnt-node', 'evacuate', '-f',
+           "--new-secondary=%s" % node3['primary'], node2['primary']]
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
 
     # ... and back again.
-    cmd = ['gnt-node', 'evacuate', '-f', node3['primary'], node2['primary']]
+    cmd = ['gnt-node', 'evacuate', '-f',
+           "--new-secondary=%s" % node2['primary'], node3['primary']]
     AssertEqual(StartSSH(master['primary'],
                          utils.ShellQuoteArgs(cmd)).wait(), 0)
   finally:
