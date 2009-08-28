@@ -192,16 +192,16 @@ class ConfdConfigurationReloader(object):
   check, to verify that the reload hasn't failed.
 
   """
-  def __init__(self, reader, mainloop):
+  def __init__(self, processor, mainloop):
     """Constructor for ConfdConfigurationReloader
 
-    @type reader: L{ssconf.SimpleConfigReader}
-    @param reader: ganeti-confd SimpleConfigReader
+    @type processor: L{confd.server.ConfdProcessor}
+    @param processor: ganeti-confd ConfdProcessor
     @type mainloop: L{daemon.Mainloop}
     @param mainloop: ganeti-confd mainloop
 
     """
-    self.reader = reader
+    self.processor = processor
     self.mainloop = mainloop
 
     self.polling = False
@@ -239,7 +239,7 @@ class ConfdConfigurationReloader(object):
         raise errors.ConfdFatalError(err)
 
     try:
-      reloaded = self.reader.Reload()
+      reloaded = self.processor.reader.Reload()
       if reloaded:
         logging.info("Reloaded ganeti config")
       else:
@@ -275,7 +275,7 @@ class ConfdConfigurationReloader(object):
     """
     self.timer_handle = None
     try:
-      reloaded = self.reader.Reload()
+      reloaded = self.processor.reader.Reload()
     except errors.ConfigurationError:
       # transform a ConfigurationError in a fatal error, that will cause confd
       # to quit.
@@ -320,15 +320,12 @@ def ExecConfd(options, args):
   """
   mainloop = daemon.Mainloop()
 
-  # confd-level SimpleConfigReader
-  reader = ssconf.SimpleConfigReader()
-
   # Asyncronous confd UDP server
-  processor = ConfdProcessor(reader)
+  processor = ConfdProcessor()
   server = ConfdAsyncUDPServer(options.bind_address, options.port, processor)
 
   # Configuration reloader
-  reloader = ConfdConfigurationReloader(reader, mainloop)
+  reloader = ConfdConfigurationReloader(processor, mainloop)
 
   mainloop.Run()
 

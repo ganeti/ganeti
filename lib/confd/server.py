@@ -34,12 +34,15 @@ from ganeti import objects
 from ganeti import errors
 from ganeti import utils
 from ganeti import serializer
+from ganeti import ssconf
 
 from ganeti.confd import querylib
 
 
 class ConfdProcessor(object):
   """A processor for confd requests.
+
+  @ivar reader: confd SimpleConfigReader
 
   """
   DISPATCH_TABLE = {
@@ -49,14 +52,11 @@ class ConfdProcessor(object):
         querylib.InstanceIpToNodePrimaryIpQuery,
   }
 
-  def __init__(self, reader):
+  def __init__(self):
     """Constructor for ConfdProcessor
 
-    @type reader: L{ssconf.SimpleConfigReader}
-    @param reader: ConfigReader to use to access the config
-
     """
-    self.reader = reader
+    self.reader = ssconf.SimpleConfigReader()
     self.hmac_key = utils.ReadFile(constants.HMAC_CLUSTER_KEY)
     assert \
       not constants.CONFD_REQS.symmetric_difference(self.DISPATCH_TABLE), \
