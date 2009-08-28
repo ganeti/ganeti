@@ -230,7 +230,7 @@ class ConfdConfigurationReloader(object):
       logging.debug("Moving from inotify mode to polling mode")
       self.polling = True
       if notifier_enabled:
-        self.confd_event_handler.disable()
+        self.inotify_handler.disable()
 
     if not self.polling and not notifier_enabled:
       try:
