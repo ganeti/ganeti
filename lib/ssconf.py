@@ -69,7 +69,11 @@ class SimpleConfigReader(object):
              (because we decided it was already up-to-date)
 
     """
-    cfg_stat = os.stat(self._file_name)
+    try:
+      cfg_stat = os.stat(self._file_name)
+    except EnvironmentError, err:
+      raise errors.ConfigurationError("Cannot stat config file %s: %s" %
+                                      (self._file_name, err))
     inode = cfg_stat.st_ino
     mtime = cfg_stat.st_mtime
     size = cfg_stat.st_size
@@ -88,7 +92,7 @@ class SimpleConfigReader(object):
 
     try:
       self._config_data = serializer.Load(utils.ReadFile(self._file_name))
-    except IOError, err:
+    except EnvironmentError, err:
       raise errors.ConfigurationError("Cannot read config file %s: %s" %
                                       (self._file_name, err))
     except ValueError, err:
