@@ -50,6 +50,7 @@ maintainer-clean-local:
 
 CLEANFILES = \
 	autotools/replace_vars.sed \
+	daemons/ganeti-cleaner \
 	devel/upload \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
@@ -172,6 +173,9 @@ dist_sbin_SCRIPTS = \
 	daemons/ganeti-rapi \
 	$(gnt_scripts)
 
+nodist_sbin_SCRIPTS = \
+	daemons/ganeti-cleaner
+
 dist_tools_SCRIPTS = \
 	tools/burnin \
 	tools/cfgshell \
@@ -186,6 +190,7 @@ EXTRA_DIST = \
 	autotools/build-bash-completion \
 	autotools/docbook-wrapper \
 	autotools/run-in-tempdir \
+	daemons/ganeti-cleaner.in \
 	devel/upload.in \
 	$(docdot) \
 	$(docrst) \
@@ -274,6 +279,11 @@ all-local: stamp-directories devel/upload \
 devel/upload: devel/upload.in stamp-directories $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod u+x $@
+
+daemons/ganeti-cleaner: daemons/ganeti-cleaner.in stamp-directories \
+		$(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
 
 doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)

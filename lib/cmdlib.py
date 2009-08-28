@@ -2909,12 +2909,16 @@ class LUSetNodeParams(LogicalUnit):
     """
     node = self.node = self.cfg.GetNodeInfo(self.op.node_name)
 
+    if (self.op.master_candidate is not None or
+        self.op.drained is not None or
+        self.op.offline is not None):
+      # we can't change the master's node flags
+      if self.op.node_name == self.cfg.GetMasterNode():
+        raise errors.OpPrereqError("The master role can be changed"
+                                   " only via masterfailover")
+
     if ((self.op.master_candidate == False or self.op.offline == True or
          self.op.drained == True) and node.master_candidate):
-      # we will demote the node from master_candidate
-      if self.op.node_name == self.cfg.GetMasterNode():
-        raise errors.OpPrereqError("The master node has to be a"
-                                   " master candidate, online and not drained")
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
       num_candidates, _ = self.cfg.GetMasterCandidateStats()
       if num_candidates <= cp_size:

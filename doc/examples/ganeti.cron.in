@@ -1,3 +1,7 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
-# restart failed instances
+
+# Restart failed instances (every 5 minutes)
 */5 * * * * root [ -x @SBINDIR@/ganeti-watcher ] && @SBINDIR@/ganeti-watcher
+
+# Clean job archive (at 01:45 AM)
+45 1 * * * root [ -x @SBINDIR@/ganeti-cleaner ] && @SBINDIR@/ganeti-cleaner

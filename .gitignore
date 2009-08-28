@@ -27,6 +27,9 @@
 /*.tar.bz2
 /*.tar.gz
 
+# daemons
+/daemons/ganeti-cleaner
+
 # devel
 /devel/clean-cluster
 /devel/upload

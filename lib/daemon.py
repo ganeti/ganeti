@@ -131,7 +131,7 @@ class Mainloop(object):
 
     """
     for owner in self._signal_wait:
-      owner.OnSignal(signal.SIGCHLD)
+      owner.OnSignal(signum)
 
   def RegisterSignal(self, owner):
     """Registers a receiver for signal notifications
