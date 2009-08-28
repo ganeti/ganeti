@@ -43,6 +43,7 @@ class ConfdProcessor(object):
   """A processor for confd requests.
 
   @ivar reader: confd SimpleConfigReader
+  @ivar disabled: whether confd serving is disabled
 
   """
   DISPATCH_TABLE = {
@@ -56,11 +57,24 @@ class ConfdProcessor(object):
     """Constructor for ConfdProcessor
 
     """
-    self.reader = ssconf.SimpleConfigReader()
+    self.disabled = True
     self.hmac_key = utils.ReadFile(constants.HMAC_CLUSTER_KEY)
+    self.reader = None
     assert \
       not constants.CONFD_REQS.symmetric_difference(self.DISPATCH_TABLE), \
       "DISPATCH_TABLE is unaligned with CONFD_REQS"
+
+  def Enable(self):
+    try:
+      self.reader = ssconf.SimpleConfigReader()
+      self.disabled = False
+    except errors.ConfigurationError:
+      self.disabled = True
+      raise
+
+  def Disable(self):
+    self.disabled = True
+    self.reader = None
 
   def ExecQuery(self, payload_in, ip, port):
     """Process a single UDP request from a client.
@@ -73,6 +87,9 @@ class ConfdProcessor(object):
     @type port: source port
 
     """
+    if self.disabled:
+      logging.debug('Confd is disabled. Ignoring query.')
+      return
     try:
       request = self.ExtractRequest(payload_in)
       reply, rsalt = self.ProcessRequest(request)

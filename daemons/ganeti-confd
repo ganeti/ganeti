@@ -322,6 +322,11 @@ def ExecConfd(options, args):
 
   # Asyncronous confd UDP server
   processor = ConfdProcessor()
+  try:
+    processor.Enable()
+  except errors.ConfigurationError:
+    # If enabling the processor has failed, we can still go on, but confd will be disabled
+    pass
   server = ConfdAsyncUDPServer(options.bind_address, options.port, processor)
 
   # Configuration reloader
