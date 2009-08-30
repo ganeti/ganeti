@@ -46,6 +46,7 @@ module Ganeti.HTools.Cluster
     , printNodes
     -- * Balacing functions
     , checkMove
+    , tryBalance
     , compCV
     , printStats
     -- * IAllocator functions
@@ -441,6 +442,31 @@ checkMove nodes_idx disk_moves ini_tbl victims =
           ini_tbl
       else
           best_tbl
+
+-- | Run a balance move
+
+tryBalance :: Table       -- ^ The starting table
+           -> Int         -- ^ Remaining length
+           -> Bool        -- ^ Allow disk moves
+           -> Score       -- ^ Score at which to stop
+           -> Maybe Table -- ^ The resulting table and commands
+tryBalance ini_tbl max_rounds disk_moves min_score =
+    let Table ini_nl ini_il ini_cv ini_plc = ini_tbl
+        ini_plc_len = length ini_plc
+        allowed_next = (max_rounds < 0 || ini_plc_len < max_rounds) &&
+                       ini_cv > min_score
+    in
+      if allowed_next
+      then let all_inst = Container.elems ini_il
+               node_idx = map Node.idx . filter (not . Node.offline) $
+                          Container.elems ini_nl
+               fin_tbl = checkMove node_idx disk_moves ini_tbl all_inst
+               (Table _ _ fin_cv _) = fin_tbl
+           in
+             if fin_cv < ini_cv
+             then Just fin_tbl -- this round made success, try deeper
+             else Nothing
+      else Nothing
 
 -- * Allocation functions
 

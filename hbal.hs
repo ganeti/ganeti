@@ -80,32 +80,24 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
                                                -- commands
 iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
              cmd_strs oneline min_score =
-    let Cluster.Table ini_nl ini_il ini_cv ini_plc = ini_tbl
-        all_inst = Container.elems ini_il
-        node_idx = map Node.idx . filter (not . Node.offline) $
-                   Container.elems ini_nl
-        fin_tbl = Cluster.checkMove node_idx disk_moves ini_tbl all_inst
-        (Cluster.Table _ _ fin_cv fin_plc) = fin_tbl
-        ini_plc_len = length ini_plc
-        fin_plc_len = length fin_plc
-        allowed_next = (max_rounds < 0 || length fin_plc < max_rounds)
+    let Cluster.Table ini_nl ini_il _ _ = ini_tbl
+        m_fin_tbl = Cluster.tryBalance ini_tbl max_rounds disk_moves min_score
     in
-      do
-        let
-            (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
-                               nmlen imlen (head fin_plc) fin_plc_len
-            upd_cmd_strs = cmds:cmd_strs
-        unless (oneline || fin_plc_len == ini_plc_len) $ do
-          putStrLn sol_line
-          hFlush stdout
-        (if fin_cv < ini_cv then -- this round made success, try deeper
-             if allowed_next && fin_cv > min_score
-             then iterateDepth fin_tbl max_rounds disk_moves
-                  nmlen imlen upd_cmd_strs oneline min_score
-             -- don't go deeper, but return the better solution
-             else return (fin_tbl, upd_cmd_strs)
-         else
-             return (ini_tbl, cmd_strs))
+      case m_fin_tbl of
+        Just fin_tbl ->
+            do
+              let
+                  (Cluster.Table _ _ _ fin_plc) = fin_tbl
+                  fin_plc_len = length fin_plc
+                  (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
+                                     nmlen imlen (head fin_plc) fin_plc_len
+                  upd_cmd_strs = cmds:cmd_strs
+              unless oneline $ do
+                       putStrLn sol_line
+                       hFlush stdout
+              iterateDepth fin_tbl max_rounds disk_moves
+                           nmlen imlen upd_cmd_strs oneline min_score
+        Nothing -> return (ini_tbl, cmd_strs)
 
 -- | Formats the solution for the oneline display
 formatOneline :: Double -> Int -> Double -> String
