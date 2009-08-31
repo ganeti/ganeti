@@ -130,9 +130,6 @@ class SimpleConfigReader(object):
   def GetFileStorageDir(self):
     return self._config_data["cluster"]["file_storage_dir"]
 
-  def GetHypervisorType(self):
-    return self._config_data["cluster"]["hypervisor"]
-
   def GetNodeList(self):
     return self._config_data["nodes"].keys()
 
