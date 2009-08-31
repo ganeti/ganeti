@@ -70,7 +70,7 @@ class PingQuery(ConfdQuery):
 
   """
   def Exec(self, query):
-    """EmptyQuery main execution
+    """PingQuery main execution.
 
     """
     if query is None:
@@ -84,9 +84,9 @@ class PingQuery(ConfdQuery):
 
 
 class NodeRoleQuery(ConfdQuery):
-  """An empty confd query.
+  """A query for the role of a node.
 
-  It will return success on an empty argument, and an error on any other argument.
+  It will return one of CONFD_NODE_ROLE_*, or an error for non-existing nodes.
 
   """
   def Exec(self, query):
@@ -116,13 +116,14 @@ class NodeRoleQuery(ConfdQuery):
 
 
 class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
-  """An empty confd query.
+  """A query for the location of an instance's ip.
 
-  It will return success on an empty argument, and an error on any other argument.
+  It returns the primary ip of the node hosting the instance having the
+  requested ip address, or an error if no such address is known.
 
   """
   def Exec(self, query):
-    """EmptyQuery main execution
+    """InstanceIpToNodePrimaryIpQuery main execution.
 
     """
     instance_ip = query
