@@ -82,6 +82,25 @@ class PingQuery(ConfdQuery):
 
     return status, answer
 
+class ClusterMasterQuery(ConfdQuery):
+  """Cluster master query.
+
+  It accepts no arguments, and returns the current cluster master.
+
+  """
+  def Exec(self, query):
+    """ClusterMasterQuery main execution
+
+    """
+    if query is None:
+      status = constants.CONFD_REPL_STATUS_OK
+      answer = self.reader.GetMasterNode()
+    else:
+      status = constants.CONFD_REPL_STATUS_ERROR
+      answer = 'master query accepts no query argument'
+
+    return status, answer
+
 
 class NodeRoleQuery(ConfdQuery):
   """A query for the role of a node.

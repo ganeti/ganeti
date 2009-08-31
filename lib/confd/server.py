@@ -51,6 +51,7 @@ class ConfdProcessor(object):
       constants.CONFD_REQ_NODE_ROLE_BYNAME: querylib.NodeRoleQuery,
       constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP:
         querylib.InstanceIpToNodePrimaryIpQuery,
+      constants.CONFD_REQ_CLUSTER_MASTER: querylib.ClusterMasterQuery,
   }
 
   def __init__(self):
