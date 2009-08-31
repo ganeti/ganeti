@@ -355,6 +355,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	{ echo 's#@PREFIX@#$(prefix)#g'; \
 	  echo 's#@SYSCONFDIR@#$(sysconfdir)#g'; \
 	  echo 's#@LOCALSTATEDIR@#$(localstatedir)#g'; \
+	  echo 's#@BINDIR@#$(bindir)#g'; \
 	  echo 's#@SBINDIR@#$(sbindir)#g'; \
 	  echo 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
