@@ -55,6 +55,7 @@ CLEANFILES = \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
+	doc/examples/hooks/ipsec \
 	lib/*.py[co] \
 	lib/http/*.py[co] \
 	lib/hypervisor/*.py[co] \
@@ -200,6 +201,7 @@ EXTRA_DIST = \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
 	doc/examples/hooks/ethers \
+	doc/examples/hooks/ipsec.in \
 	doc/locking.txt \
 	test/testutils.py \
 	test/mocks.py \
@@ -274,7 +276,8 @@ TESTS_ENVIRONMENT = \
 
 all-local: stamp-directories devel/upload \
 	doc/examples/bash_completion \
-	doc/examples/ganeti.initd doc/examples/ganeti.cron
+	doc/examples/ganeti.initd doc/examples/ganeti.cron \
+	doc/examples/hooks/ipsec
 
 devel/upload: devel/upload.in stamp-directories $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
@@ -286,6 +289,10 @@ daemons/ganeti-cleaner: daemons/ganeti-cleaner.in stamp-directories \
 	chmod +x $@
 
 doc/examples/%: doc/examples/%.in stamp-directories \
+		$(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+
+doc/examples/hooks/%: doc/examples/hooks/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
