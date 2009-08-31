@@ -63,8 +63,15 @@ set ${hosts}
 TXD=`mktemp -d`
 trap 'rm -rf $TXD' EXIT
 
+if [[ -f /proc/cpuinfo ]]; then
+  cpu_count=$(grep -E -c '^processor\s*:' /proc/cpuinfo)
+  make_args=-j$(( cpu_count + 1 ))
+else
+  make_args=
+fi
+
 # install ganeti as a real tree
-make install DESTDIR="$TXD"
+make $make_args install DESTDIR="$TXD"
 
 # copy additional needed files
 install -D --mode=0755 doc/examples/ganeti.initd \
