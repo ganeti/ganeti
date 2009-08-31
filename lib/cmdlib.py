@@ -2623,6 +2623,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "master_netdev": cluster.master_netdev,
       "volume_group_name": cluster.volume_group_name,
       "file_storage_dir": cluster.file_storage_dir,
+      "tags": list(cluster.GetTags()),
       }
 
     return result
