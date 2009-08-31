@@ -29,6 +29,7 @@ module Ganeti.HTools.QC
     , test_Instance
     , test_Node
     , test_Text
+    , test_Cluster
     ) where
 
 import Test.QuickCheck
@@ -242,4 +243,23 @@ prop_Node_addSec node inst pdx =
 test_Node =
     [ run prop_Node_addPri
     , run prop_Node_addSec
+    ]
+
+
+-- Cluster tests
+
+-- | Check that the cluster score is close to zero for a homogeneous cluster
+prop_Score_Zero node count =
+    ((not $ Node.offline node) && (not $ Node.failN1 node) && (count > 0) &&
+     (Node.t_dsk node > 0) && (Node.t_mem node > 0)) ==>
+    let fn = Node.buildPeers node Container.empty
+        nlst = (zip [1..] $ replicate count fn)::[(Types.Ndx, Node.Node)]
+        nl = Container.fromAssocList nlst
+        score = Cluster.compCV nl
+    -- we can't say == 0 here as the floating point errors accumulate;
+    -- this should be much lower than the default score in CLI.hs
+    in score > 1e-15
+
+test_Cluster =
+    [ run prop_Score_Zero
     ]

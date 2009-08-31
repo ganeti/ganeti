@@ -39,3 +39,4 @@ main = do
   runTests "Instance" options test_Instance
   runTests "Node" options test_Node
   runTests "Text" options test_Text
+  runTests "Cluster" options test_Cluster
