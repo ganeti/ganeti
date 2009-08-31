@@ -229,6 +229,13 @@ def ShowClusterConfig(opts, args):
   ToStdout("Architecture (this node): %s (%s)",
            result["architecture"][0], result["architecture"][1])
 
+  if result["tags"]:
+    tags = ", ".join(utils.NiceSort(result["tags"]))
+  else:
+    tags = "(none)"
+
+  ToStdout("Tags: %s", tags)
+
   ToStdout("Default hypervisor: %s", result["default_hypervisor"])
   ToStdout("Enabled hypervisors: %s", ", ".join(result["enabled_hypervisors"]))
 
