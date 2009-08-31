@@ -38,3 +38,4 @@ main = do
   runTests "Container" options test_Container
   runTests "Instance" options test_Instance
   runTests "Node" options test_Node
+  runTests "Text" options test_Text

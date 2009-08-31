@@ -28,6 +28,7 @@ module Ganeti.HTools.QC
     , test_Container
     , test_Instance
     , test_Node
+    , test_Text
     ) where
 
 import Test.QuickCheck
@@ -61,7 +62,10 @@ instance Arbitrary Instance.Instance where
       name <- arbitrary
       mem <- choose(0, 100)
       dsk <- choose(0, 100)
-      run_st <- arbitrary
+      run_st <- elements ["ERROR_up", "ERROR_down", "ADMIN_down"
+                         , "ERROR_nodedown", "ERROR_nodeoffline"
+                         , "running"
+                         , "no_such_status1", "no_such_status2"]
       pn <- arbitrary
       sn <- arbitrary
       vcpus <- arbitrary
@@ -162,12 +166,58 @@ prop_Instance_setBoth inst pdx sdx =
     where _types = (inst::Instance.Instance, pdx::Types.Ndx, sdx::Types.Ndx)
           si = Instance.setBoth inst pdx sdx
 
+prop_Instance_runStatus_True inst =
+    let run_st = Instance.running inst
+        run_tx = Instance.run_st inst
+    in
+      run_tx == "running" || run_tx == "ERROR_up" ==> run_st == True
+
+prop_Instance_runStatus_False inst =
+    let run_st = Instance.running inst
+        run_tx = Instance.run_st inst
+    in
+      run_tx /= "running" && run_tx /= "ERROR_up" ==> run_st == False
+
 test_Instance =
     [ run prop_Instance_setIdx
     , run prop_Instance_setName
     , run prop_Instance_setPri
     , run prop_Instance_setSec
     , run prop_Instance_setBoth
+    , run prop_Instance_runStatus_True
+    , run prop_Instance_runStatus_False
+    ]
+
+-- Instance text loader tests
+
+prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
+    let vcpus_s = show vcpus
+        dsk_s = show dsk
+        mem_s = show mem
+        rsnode = snode ++ "a" -- non-empty secondary node
+        rsdx = if pdx == sdx
+               then sdx + 1
+               else sdx
+        ndx = [(pnode, pdx), (rsnode, rsdx)]
+        inst = Text.loadInst ndx
+               (name:mem_s:dsk_s:vcpus_s:status:pnode:rsnode:[])::
+               Maybe (String, Instance.Instance)
+        _types = ( name::String, mem::Int, dsk::Int
+                 , vcpus::Int, status::String
+                 , pnode::String, snode::String
+                 , pdx::Types.Ndx, sdx::Types.Ndx)
+    in
+      case inst of
+        Nothing -> False
+        Just (_, i) ->
+            (Instance.name i == name &&
+             Instance.vcpus i == vcpus &&
+             Instance.mem i == mem &&
+             Instance.pnode i == pdx &&
+             Instance.snode i == rsdx)
+
+test_Text =
+    [ run prop_Text_Load_Instance
     ]
 
 -- Node tests
