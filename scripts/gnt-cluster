@@ -542,6 +542,13 @@ def QueueOps(opts, args):
   return 0
 
 
+def _ShowWatcherPause(until):
+  if until is None or until < time.time():
+    ToStdout("The watcher is not paused.")
+  else:
+    ToStdout("The watcher is paused until %s.", time.ctime(until))
+
+
 def WatcherOps(opts, args):
   """Watcher operations.
 
@@ -557,20 +564,18 @@ def WatcherOps(opts, args):
 
   if command == "continue":
     client.SetWatcherPause(None)
+    ToStdout("The watcher is no longer paused.")
 
   elif command == "pause":
     if len(args) < 2:
       raise errors.OpPrereqError("Missing pause duration")
 
-    until = time.time() + ParseTimespec(args[1])
-    client.SetWatcherPause(until)
+    result = client.SetWatcherPause(time.time() + ParseTimespec(args[1]))
+    _ShowWatcherPause(result)
 
   elif command == "info":
     result = client.QueryConfigValues(["watcher_pause"])
-    if result is None or result < time.time():
-      ToStdout("The watcher is not paused.")
-    else:
-      ToStdout("The watcher is paused until %s.", time.ctime(result))
+    _ShowWatcherPause(result)
 
   else:
     raise errors.OpPrereqError("Command '%s' is not valid." % command)

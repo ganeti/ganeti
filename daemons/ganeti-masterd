@@ -413,6 +413,8 @@ def _SetWatcherPause(until):
     utils.WriteFile(constants.WATCHER_PAUSEFILE,
                     data="%d\n" % (until, ))
 
+  return until
+
 
 def CheckAgreement():
   """Check the agreement on who is the master.
