@@ -347,6 +347,18 @@ instance if even if secondary disks are failing.
 
 It supports the ``dry-run`` argument.
 
+``/2/instances/[instance_name]/reinstall``
+++++++++++++++++++++++++++++++++++++++++++++++
+
+Installs the operating system again.
+
+It supports the following commands: ``POST``.
+
+``POST``
+~~~~~~~~
+
+Takes the parameters ``os`` (OS template name) and ``nostartup`` (bool).
+
 
 ``/2/instances/[instance_name]/replace-disks``
 ++++++++++++++++++++++++++++++++++++++++++++++
@@ -493,6 +505,13 @@ Example::
       },
       ...
     ]
+
+``/2/nodes/[node_name]``
++++++++++++++++++++++++++++++++++
+
+Returns information about a node.
+
+It supports the following commands: ``GET``.
 
 ``/2/nodes/[node_name]/evacuate``
 +++++++++++++++++++++++++++++++++
