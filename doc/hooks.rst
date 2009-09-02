@@ -156,6 +156,16 @@ Relocate secondary instances from a node.
 :pre-execution: master node, target node
 :post-execution: master node, target node
 
+OP_NODE_MIGRATE
+++++++++++++++++
+
+Relocate secondary instances from a node.
+
+:directory: node-migrate
+:env. vars: NODE_NAME
+:pre-execution: master node
+:post-execution: master node
+
 
 Instance operations
 ~~~~~~~~~~~~~~~~~~~
@@ -217,7 +227,7 @@ OP_INSTANCE_SHUTDOWN
 
 Stops an instance.
 
-:directory: instance-shutdown
+:directory: instance-stop
 :env. vars: INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARIES
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
@@ -257,7 +267,7 @@ OP_INSTANCE_MIGRATE
 
 Migrates an instance.
 
-:directory: instance-failover
+:directory: instance-migrate
 :env. vars: INSTANCE_MIGRATE_LIVE, INSTANCE_MIGRATE_CLEANUP
 :pre-execution: master node, secondary node
 :post-execution: master node, secondary node
@@ -302,6 +312,37 @@ Renames an instance.
 :env. vars: INSTANCE_NEW_NAME
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
+
+OP_INSTANCE_MOVE
+++++++++++++++++
+
+Move an instance by data-copying.
+
+:directory: instance-move
+:env. vars: TARGET_NODE
+:pre-execution: master node, primary and target nodes
+:post-execution: master node, primary and target nodes
+
+OP_INSTANCE_RECREATE_DISKS
+++++++++++++++++++++++++++
+
+Recreate an instance's missing disks.
+
+:directory: instance-recreate-disks
+:env. vars: only the standard instance vars
+:pre-execution: master node, primary and secondary nodes
+:post-execution: master node, primary and secondary nodes
+
+OP_INSTANCE_REPLACE_DISKS
++++++++++++++++++++++++++
+
+Replace the disks of an instance.
+
+:directory: mirrors-replace
+:env. vars: MODE, NEW_SECONDARY, OLD_SECONDARY
+:pre-execution: master node, primary and new secondary nodes
+:post-execution: master node, primary and new secondary nodes
+
 
 Cluster operations
 ~~~~~~~~~~~~~~~~~~
