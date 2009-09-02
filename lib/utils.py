@@ -1871,8 +1871,8 @@ def CalculateDirectorySize(path):
   size = 0
 
   for (curpath, _, files) in os.walk(path):
-    for file in files:
-      st = os.lstat(os.path.join(curpath, file))
+    for filename in files:
+      st = os.lstat(os.path.join(curpath, filename))
       size += st.st_size
 
   return BytesToMebibyte(size)
