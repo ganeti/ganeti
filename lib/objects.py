@@ -285,8 +285,8 @@ class TaggableObject(ConfigObject):
 
 class ConfigData(ConfigObject):
   """Top-level config object."""
-  __slots__ = ["version", "cluster", "nodes", "instances", "serial_no"] + \
-              _TIMESTAMPS
+  __slots__ = (["version", "cluster", "nodes", "instances", "serial_no"] +
+               _TIMESTAMPS)
 
   def ToDict(self):
     """Custom function for top-level config data.
@@ -828,11 +828,10 @@ class Cluster(TaggableObject):
 
     # default_hypervisor is just the first enabled one in 2.1
     if self.default_hypervisor is not None:
-      self.enabled_hypervisors = [self.default_hypervisor] + \
+      self.enabled_hypervisors = ([self.default_hypervisor] +
         [hvname for hvname in self.enabled_hypervisors
-         if hvname != self.default_hypervisor]
+         if hvname != self.default_hypervisor])
       self.default_hypervisor = None
-
 
   def ToDict(self):
     """Custom function for cluster.

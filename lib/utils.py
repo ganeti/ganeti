@@ -1767,6 +1767,7 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
       # we need to re-raise the exception
       raise
 
+
 def IsNormAbsPath(path):
   """Check whether a path is absolute and also normalized
 
@@ -1774,6 +1775,7 @@ def IsNormAbsPath(path):
 
   """
   return os.path.normpath(path) == path and os.path.isabs(path)
+
 
 def TailFile(fname, lines=20):
   """Return the last lines from a file.

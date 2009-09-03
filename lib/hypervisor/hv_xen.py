@@ -493,19 +493,19 @@ class XenHvmHypervisor(XenHypervisor):
 
   PARAMETERS = {
     constants.HV_ACPI: hv_base.NO_CHECK,
-    constants.HV_BOOT_ORDER: (True, ) + \
-    (lambda x: x and len(x.strip("acdn")) == 0,
-     "Invalid boot order specified, must be one or more of [acdn]",
-     None, None),
+    constants.HV_BOOT_ORDER: (True, ) +
+      (lambda x: x and len(x.strip("acdn")) == 0,
+       "Invalid boot order specified, must be one or more of [acdn]",
+       None, None),
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
-    constants.HV_DISK_TYPE: \
-    hv_base.ParamInSet(True, constants.HT_HVM_VALID_DISK_TYPES),
-    constants.HV_NIC_TYPE: \
-    hv_base.ParamInSet(True, constants.HT_HVM_VALID_NIC_TYPES),
+    constants.HV_DISK_TYPE:
+      hv_base.ParamInSet(True, constants.HT_HVM_VALID_DISK_TYPES),
+    constants.HV_NIC_TYPE:
+      hv_base.ParamInSet(True, constants.HT_HVM_VALID_NIC_TYPES),
     constants.HV_PAE: hv_base.NO_CHECK,
-    constants.HV_VNC_BIND_ADDRESS: \
-    (False, utils.IsValidIP,
-     "VNC bind address is not a valid IP address", None, None),
+    constants.HV_VNC_BIND_ADDRESS:
+      (False, utils.IsValidIP,
+       "VNC bind address is not a valid IP address", None, None),
     constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,
     }
