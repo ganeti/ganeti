@@ -63,11 +63,7 @@ def _InitSSHSetup():
     raise errors.OpExecError("Could not generate ssh keypair, error %s" %
                              result.output)
 
-  f = open(pub_key, 'r')
-  try:
-    utils.AddAuthorizedKey(auth_keys, f.read(8192))
-  finally:
-    f.close()
+  utils.AddAuthorizedKey(auth_keys, utils.ReadFile(auth_keys))
 
 
 def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
@@ -240,11 +236,7 @@ def InitCluster(cluster_name, mac_prefix,
   _InitGanetiServerSetup()
 
   # set up ssh config and /etc/hosts
-  f = open(constants.SSH_HOST_RSA_PUB, 'r')
-  try:
-    sshline = f.read()
-  finally:
-    f.close()
+  sshline = utils.ReadFile(constants.SSH_HOST_RSA_PUB)
   sshkey = sshline.split(" ")[1]
 
   if modify_etc_hosts:

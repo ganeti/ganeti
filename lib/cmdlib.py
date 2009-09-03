@@ -2799,11 +2799,7 @@ class LUAddNode(LogicalUnit):
                 priv_key, pub_key]
 
     for i in keyfiles:
-      f = open(i, 'r')
-      try:
-        keyarray.append(f.read())
-      finally:
-        f.close()
+      keyarray.append(utils.ReadFile(i))
 
     result = self.rpc.call_node_add(node, keyarray[0], keyarray[1],
                                     keyarray[2],

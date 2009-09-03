@@ -1041,14 +1041,12 @@ class ConfigWriter:
     """Read the config data from disk.
 
     """
-    f = open(self._cfg_file, 'r')
+    raw_data = utils.ReadFile(self._cfg_file)
+
     try:
-      try:
-        data = objects.ConfigData.FromDict(serializer.Load(f.read()))
-      except Exception, err:
-        raise errors.ConfigurationError(err)
-    finally:
-      f.close()
+      data = objects.ConfigData.FromDict(serializer.Load(raw_data))
+    except Exception, err:
+      raise errors.ConfigurationError(err)
 
     # Make sure the configuration has the right version
     _ValidateConfig(data)
@@ -1113,16 +1111,9 @@ class ConfigWriter:
       destination = self._cfg_file
     self._BumpSerialNo()
     txt = serializer.Dump(self._config_data.ToDict())
-    dir_name, file_name = os.path.split(destination)
-    fd, name = tempfile.mkstemp('.newconfig', file_name, dir_name)
-    f = os.fdopen(fd, 'w')
-    try:
-      f.write(txt)
-      os.fsync(f.fileno())
-    finally:
-      f.close()
-    # we don't need to do os.close(fd) as f.close() did it
-    os.rename(name, destination)
+
+    utils.WriteFile(destination, data=txt)
+
     self.write_count += 1
 
     # and redistribute the config file to master candidates

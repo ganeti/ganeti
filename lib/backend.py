@@ -51,12 +51,16 @@ from ganeti import objects
 from ganeti import ssconf
 
 
+_BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
+
+
 class RPCFail(Exception):
   """Class denoting RPC failure.
 
   Its argument is the error message.
 
   """
+
 
 def _Fail(msg, *args, **kwargs):
   """Log an error and the raise an RPCFail exception.
@@ -364,11 +368,7 @@ def LeaveCluster():
   try:
     priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
 
-    f = open(pub_key, 'r')
-    try:
-      utils.RemoveAuthorizedKey(auth_keys, f.read(8192))
-    finally:
-      f.close()
+    utils.RemoveAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
     utils.RemoveFile(priv_key)
     utils.RemoveFile(pub_key)
@@ -406,11 +406,7 @@ def GetNodeInfo(vgname, hypervisor_type):
   if hyp_info is not None:
     outputarray.update(hyp_info)
 
-  f = open("/proc/sys/kernel/random/boot_id", 'r')
-  try:
-    outputarray["bootid"] = f.read(128).rstrip("\n")
-  finally:
-    f.close()
+  outputarray["bootid"] = utils.ReadFile(_BOOT_ID_PATH, size=128).rstrip("\n")
 
   return outputarray
 

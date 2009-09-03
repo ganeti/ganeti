@@ -72,7 +72,7 @@ def GenericOpCodes(opts, args):
   jex = cli.JobExecutor(cl=cl)
 
   for fname in args:
-    op_data = simplejson.loads(open(fname).read())
+    op_data = simplejson.loads(utils.ReadFile(fname))
     op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
     jex.QueueJob("file %s" % fname, *op_list)
 

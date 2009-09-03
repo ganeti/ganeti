@@ -63,6 +63,8 @@ debug_locks = False
 #: when set to True, L{RunCmd} is disabled
 no_fork = False
 
+_RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
+
 
 class RunResult(object):
   """Holds the result of running external programs.
@@ -472,14 +474,14 @@ def ReadPidFile(pidfile):
 
   """
   try:
-    pf = open(pidfile, 'r')
+    raw_data = ReadFile(pidfile)
   except EnvironmentError, err:
     if err.errno != errno.ENOENT:
-      logging.exception("Can't read pid file?!")
+      logging.exception("Can't read pid file")
     return 0
 
   try:
-    pid = int(pf.read())
+    pid = int(raw_data)
   except ValueError, err:
     logging.info("Can't parse pid file contents", exc_info=True)
     return 0
@@ -1150,11 +1152,7 @@ def NewUUID():
   @rtype: str
 
   """
-  f = open("/proc/sys/kernel/random/uuid", "r")
-  try:
-    return f.read(128).rstrip("\n")
-  finally:
-    f.close()
+  return ReadFile(_RANDOM_UUID_FILE, size=128).rstrip("\n")
 
 
 def GenerateSecret(numbytes=20):

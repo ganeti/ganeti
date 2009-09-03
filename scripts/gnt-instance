@@ -443,9 +443,7 @@ def BatchCreate(opts, args):
 
   json_filename = args[0]
   try:
-    fd = open(json_filename, 'r')
-    instance_data = simplejson.load(fd)
-    fd.close()
+    instance_data = simplejson.loads(utils.ReadFile(json_filename))
   except Exception, err:
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1

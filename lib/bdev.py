@@ -780,11 +780,7 @@ class BaseDRBD(BlockDev):
 
     """
     try:
-      stat = open(filename, "r")
-      try:
-        data = stat.read().splitlines()
-      finally:
-        stat.close()
+      data = utils.ReadFile(filename).splitlines()
     except EnvironmentError, err:
       if err.errno == errno.ENOENT:
         _ThrowError("The file %s cannot be opened, check if the module"
