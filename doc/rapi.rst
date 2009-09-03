@@ -190,6 +190,20 @@ Example::
       }
     }
 
+
+``/2/redistribute-config``
+++++++++++++++++++++++++++
+
+Redistribute configuration to all nodes.
+
+It supports the following commands: ``PUT``.
+
+``PUT``
+~~~~~~~
+
+Redistribute configuration to all nodes. The result will be a job id.
+
+
 ``/2/instances``
 ++++++++++++++++
 
@@ -398,7 +412,7 @@ Example::
 Add a set of tags.
 
 The request as a list of strings should be ``PUT`` to this URI. The
-result willl be a job id.
+result will be a job id.
 
 It supports the ``dry-run`` argument.
 

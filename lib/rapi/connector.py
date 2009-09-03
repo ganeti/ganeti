@@ -201,6 +201,7 @@ def GetHandlers(node_name_pattern, instance_name_pattern, job_id_pattern):
     "/2/tags": rlib2.R_2_tags,
     "/2/info": rlib2.R_2_info,
     "/2/os": rlib2.R_2_os,
+    "/2/redistribute-config": rlib2.R_2_redist_config,
     }
 
 

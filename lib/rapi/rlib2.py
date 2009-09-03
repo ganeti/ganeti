@@ -116,6 +116,17 @@ class R_2_os(baserlib.R_Generic):
     return [row[0] for row in diagnose_data if row[1]]
 
 
+class R_2_redist_config(baserlib.R_Generic):
+  """/2/redistribute-config resource.
+
+  """
+  def PUT(self):
+    """Redistribute configuration to all nodes.
+
+    """
+    return baserlib.SubmitJob([opcodes.OpRedistributeConfig()])
+
+
 class R_2_jobs(baserlib.R_Generic):
   """/2/jobs resource.
 
