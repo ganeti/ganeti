@@ -29,6 +29,10 @@ import unittest
 from ganeti import utils
 
 
+def GetSourceDir():
+  return os.environ.get("TOP_SRCDIR", ".")
+
+
 class GanetiTestCase(unittest.TestCase):
   """Helper class for unittesting.
 
@@ -83,8 +87,7 @@ class GanetiTestCase(unittest.TestCase):
         be used in 'make distcheck' rules
 
     """
-    prefix = os.environ.get("TOP_SRCDIR", ".")
-    return "%s/test/data/%s" % (prefix, name)
+    return "%s/test/data/%s" % (GetSourceDir(), name)
 
   @classmethod
   def _ReadTestData(cls, name):

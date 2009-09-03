@@ -264,7 +264,8 @@ dist_TESTS = \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
 	test/ganeti.utils_unittest.py \
-	test/ganeti.workerpool_unittest.py
+	test/ganeti.workerpool_unittest.py \
+	test/docs_unittest.py
 
 nodist_TESTS =
 
