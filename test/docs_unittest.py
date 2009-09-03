@@ -26,6 +26,7 @@ import re
 
 from ganeti import utils
 from ganeti import cmdlib
+from ganeti.rapi import connector
 
 import testutils
 
@@ -64,6 +65,54 @@ class TestDocs(unittest.TestCase):
     self.assert_(re.findall(pattern, hooksdoc, re.M),
                  msg=("Missing documentation for hook %s/%s" %
                       (lucls.HTYPE, lucls.HPATH)))
+
+
+  def testRapiDocs(self):
+    """Check whether all RAPI resources are documented.
+
+    """
+    rapidoc = self._ReadDocFile("rapi.rst")
+
+    node_name = "[node_name]"
+    instance_name = "[instance_name]"
+    job_id = "[job_id]"
+
+    resources = connector.GetHandlers(re.escape(node_name),
+                                      re.escape(instance_name),
+                                      re.escape(job_id))
+
+    titles = []
+
+    prevline = None
+    for line in rapidoc.splitlines():
+      if re.match(r"^\++$", line):
+        titles.append(prevline)
+
+      prevline = line
+
+    undocumented = []
+
+    for key, handler in resources.iteritems():
+      # Regex objects
+      if hasattr(key, "match"):
+        found = False
+        for title in titles:
+          if (title.startswith("``") and
+              title.endswith("``") and
+              key.match(title[2:-2])):
+            found = True
+            break
+
+        if not found:
+          # TODO: Find better way of identifying resource
+          undocumented.append(str(handler))
+
+      elif ("``%s``" % key) not in titles:
+        undocumented.append(key)
+
+    self.failIf(undocumented,
+                msg=("Missing RAPI resource documentation for %s" %
+                     utils.CommaJoin(undocumented)))
 
 
 if __name__ == "__main__":
