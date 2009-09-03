@@ -69,6 +69,7 @@ NO_CHECK = (False, None, None, None, None)
 # required, but no other checks
 REQUIRED_CHECK = (True, None, None, None, None)
 
+
 def ParamInSet(required, my_set):
   """Builds parameter checker for set membership.
 

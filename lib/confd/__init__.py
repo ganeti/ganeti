@@ -22,4 +22,3 @@
 """Ganeti confd library
 
 """
-

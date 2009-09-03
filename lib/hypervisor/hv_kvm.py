@@ -55,22 +55,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
     constants.HV_ACPI: hv_base.NO_CHECK,
     constants.HV_SERIAL_CONSOLE: hv_base.NO_CHECK,
-    constants.HV_VNC_BIND_ADDRESS: \
-    (False, lambda x: (utils.IsValidIP(x) or utils.IsNormAbsPath(x)),
-     "the VNC bind address must be either a valid IP address or an absolute"
-     " pathname", None, None),
+    constants.HV_VNC_BIND_ADDRESS:
+      (False, lambda x: (utils.IsValidIP(x) or utils.IsNormAbsPath(x)),
+       "the VNC bind address must be either a valid IP address or an absolute"
+       " pathname", None, None),
     constants.HV_VNC_TLS: hv_base.NO_CHECK,
     constants.HV_VNC_X509: hv_base.OPT_DIR_CHECK,
     constants.HV_VNC_X509_VERIFY: hv_base.NO_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
-    constants.HV_BOOT_ORDER: \
-    hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
-    constants.HV_NIC_TYPE: \
-    hv_base.ParamInSet(True, constants.HT_KVM_VALID_NIC_TYPES),
-    constants.HV_DISK_TYPE: \
-    hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
-    constants.HV_USB_MOUSE: \
-    hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
+    constants.HV_BOOT_ORDER:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
+    constants.HV_NIC_TYPE:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_NIC_TYPES),
+    constants.HV_DISK_TYPE:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
+    constants.HV_USB_MOUSE:
+      hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -177,8 +177,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # mounted noexec sometimes, so we'll have to find another place.
     (tmpfd, tmpfile_name) = tempfile.mkstemp()
     tmpfile = os.fdopen(tmpfd, 'w')
-    tmpfile.write(script.getvalue())
-    tmpfile.close()
+    try:
+      tmpfile.write(script.getvalue())
+    finally:
+      tmpfile.close()
     os.chmod(tmpfile_name, 0755)
     return tmpfile_name
 

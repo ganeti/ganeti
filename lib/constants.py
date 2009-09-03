@@ -143,12 +143,12 @@ MASTER_SCRIPT = "ganeti-master"
 
 LOG_DIR = _autoconf.LOCALSTATEDIR + "/log/ganeti/"
 DAEMONS_LOGFILES = {
- # "daemon-name": "logfile"
- NODED: LOG_DIR + "node-daemon.log",
- CONFD: LOG_DIR + "conf-daemon.log",
- RAPI: LOG_DIR + "rapi-daemon.log",
- MASTERD: LOG_DIR + "master-daemon.log",
-}
+  # "daemon-name": "logfile"
+  NODED: LOG_DIR + "node-daemon.log",
+  CONFD: LOG_DIR + "conf-daemon.log",
+  RAPI: LOG_DIR + "rapi-daemon.log",
+  MASTERD: LOG_DIR + "master-daemon.log",
+  }
 LOG_OS_DIR = LOG_DIR + "os"
 LOG_WATCHER = LOG_DIR + "watcher.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"

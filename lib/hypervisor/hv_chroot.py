@@ -63,7 +63,7 @@ class ChrootManager(hv_base.BaseHypervisor):
   PARAMETERS = {
     constants.HV_INIT_SCRIPT: (True, utils.IsNormAbsPath,
                                "must be an absolute normalized path",
-                               None, None)
+                               None, None),
     }
 
   def __init__(self):
@@ -116,11 +116,11 @@ class ChrootManager(hv_base.BaseHypervisor):
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
 
-    Args:
-      instance_name: the instance name
+    @type instance_name: string
+    @param instance_name: the instance name
 
-    Returns:
-      (name, id, memory, vcpus, stat, times)
+    @return: (name, id, memory, vcpus, stat, times)
+
     """
     dir_name = "%s/%s" % (self._ROOT_DIR, instance_name)
     if not self._IsDirLive(dir_name):
@@ -130,8 +130,8 @@ class ChrootManager(hv_base.BaseHypervisor):
   def GetAllInstancesInfo(self):
     """Get properties of all instances.
 
-    Returns:
-      [(name, id, memory, vcpus, stat, times),...]
+    @return: [(name, id, memory, vcpus, stat, times),...]
+
     """
     data = []
     for file_name in os.listdir(self._ROOT_DIR):
@@ -252,8 +252,7 @@ class ChrootManager(hv_base.BaseHypervisor):
   def Verify(self):
     """Verify the hypervisor.
 
-    For the chroot manager, it just checks the existence of the base
-    dir.
+    For the chroot manager, it just checks the existence of the base dir.
 
     """
     if not os.path.exists(self._ROOT_DIR):

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2009, Google Inc.
@@ -47,12 +47,12 @@ class ConfdProcessor(object):
 
   """
   DISPATCH_TABLE = {
-      constants.CONFD_REQ_PING: querylib.PingQuery,
-      constants.CONFD_REQ_NODE_ROLE_BYNAME: querylib.NodeRoleQuery,
-      constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP:
-        querylib.InstanceIpToNodePrimaryIpQuery,
-      constants.CONFD_REQ_CLUSTER_MASTER: querylib.ClusterMasterQuery,
-  }
+    constants.CONFD_REQ_PING: querylib.PingQuery,
+    constants.CONFD_REQ_NODE_ROLE_BYNAME: querylib.NodeRoleQuery,
+    constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP:
+      querylib.InstanceIpToNodePrimaryIpQuery,
+    constants.CONFD_REQ_CLUSTER_MASTER: querylib.ClusterMasterQuery,
+    }
 
   def __init__(self):
     """Constructor for ConfdProcessor
@@ -174,4 +174,3 @@ class ConfdProcessor(object):
 
     """
     return serializer.DumpSigned(reply.ToDict(), self.hmac_key, rsalt)
-

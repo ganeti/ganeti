@@ -87,7 +87,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     data = []
     for file_name in os.listdir(self._ROOT_DIR):
       try:
-        fh = open(self._ROOT_DIR+"/"+file_name, "r")
+        fh = open(self._ROOT_DIR + "/" + file_name, "r")
         inst_id = "-1"
         memory = 0
         vcpus = 1

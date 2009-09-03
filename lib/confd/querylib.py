@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#
 #
 
 # Copyright (C) 2009, Google Inc.
@@ -27,11 +27,13 @@ import logging
 
 from ganeti import constants
 
+
 # constants for some common errors to return from a query
 QUERY_UNKNOWN_ENTRY_ERROR = (constants.CONFD_REPL_STATUS_ERROR,
                              constants.CONFD_ERROR_UNKNOWN_ENTRY)
 QUERY_INTERNAL_ERROR = (constants.CONFD_REPL_STATUS_ERROR,
                         constants.CONFD_ERROR_INTERNAL)
+
 
 class ConfdQuery(object):
   """Confd Query base class.
@@ -81,6 +83,7 @@ class PingQuery(ConfdQuery):
       answer = 'non-empty ping query'
 
     return status, answer
+
 
 class ClusterMasterQuery(ConfdQuery):
   """Cluster master query.
@@ -163,4 +166,3 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
       return QUERY_INTERNAL_ERROR
 
     return constants.CONFD_REPL_STATUS_OK, pnode_primary_ip
-
