@@ -19,7 +19,6 @@
 # 02110-1301, USA.
 
 
-import imp
 import optparse
 import os
 import sys
@@ -504,19 +503,6 @@ def GetFunctionName(name):
   return "_" + re.sub(r"[^a-z0-9]+", "_", name.lower())
 
 
-def LoadModule(filename):
-  """Loads an external module by filename.
-
-  """
-  (name, ext) = os.path.splitext(filename)
-
-  fh = open(filename, "U")
-  try:
-    return imp.load_module(name, fh, filename, (ext, "U", imp.PY_SOURCE))
-  finally:
-    fh.close()
-
-
 def GetCommands(filename, module):
   """Returns the commands defined in a module.
 
@@ -551,10 +537,11 @@ def main():
 
     WriteCompletion(sw, scriptname,
                     GetFunctionName(scriptname),
-                    commands=GetCommands(filename, LoadModule(filename)))
+                    commands=GetCommands(filename,
+                                         utils.LoadModule(filename)))
 
   # Burnin script
-  burnin = LoadModule("tools/burnin")
+  burnin = utils.LoadModule("tools/burnin")
   WriteCompletion(sw, "%s/burnin" % constants.TOOLSDIR, "_ganeti_burnin",
                   opts=burnin.OPTIONS, args=burnin.ARGUMENTS)
 
