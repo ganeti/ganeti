@@ -212,11 +212,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     cmdline_file = "/proc/%s/cmdline" % pid
     try:
-      fh = open(cmdline_file, 'r')
-      try:
-        cmdline = fh.read()
-      finally:
-        fh.close()
+      cmdline = utils.ReadFile(cmdline_file)
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to list instance %s: %s" %
                                    (instance_name, err))
