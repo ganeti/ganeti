@@ -692,7 +692,7 @@ Locking in the job queue is a complicated topic. It is called from more than
 one thread and must be thread-safe. For simplicity, a single lock is used for
 the whole job queue.
 
-A more detailed description can be found in doc/locking.txt.
+A more detailed description can be found in doc/locking.rst.
 
 
 Internal RPC

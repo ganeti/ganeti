@@ -14,6 +14,7 @@ Contents:
    security.rst
    design-2.0.rst
    design-2.1.rst
+   locking.rst
    hooks.rst
    iallocator.rst
    rapi.rst

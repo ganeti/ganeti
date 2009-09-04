@@ -19,10 +19,10 @@ the Processor (in mcpu.py) with the aid of the Ganeti Locking Library
     acquire it in a shared fashion, and are able to execute all toghether
     (baring other lock waits) while old LUs acquire it exclusively and can only
     execute one at a time, and not at the same time with new LUs.
-  * Instance locks: can be declared in ExpandNames() o DeclareLocks() by an LU,
+  * Instance locks: can be declared in ExpandNames() or DeclareLocks() by an LU,
     and have the same name as the instance itself. They are acquired as a set.
     Internally the locking library acquired them in alphabetical order.
-  * Node locks: can be declared in ExpandNames() o DeclareLocks() by an LU, and
+  * Node locks: can be declared in ExpandNames() or DeclareLocks() by an LU, and
     have the same name as the node itself. They are acquired as a set.
     Internally the locking library acquired them in alphabetical order. Given
     this order it's possible to safely acquire a set of instances, and then the

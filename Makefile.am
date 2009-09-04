@@ -136,6 +136,7 @@ docrst = \
 	doc/iallocator.rst \
 	doc/index.rst \
 	doc/install.rst \
+	doc/locking.rst \
 	doc/rapi.rst \
 	doc/security.rst
 
@@ -202,7 +203,6 @@ EXTRA_DIST = \
 	doc/examples/dumb-allocator \
 	doc/examples/hooks/ethers \
 	doc/examples/hooks/ipsec.in \
-	doc/locking.txt \
 	test/testutils.py \
 	test/mocks.py \
 	$(dist_TESTS) \
