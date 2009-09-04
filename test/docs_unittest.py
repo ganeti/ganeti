@@ -24,6 +24,7 @@
 import unittest
 import re
 
+from ganeti import _autoconf
 from ganeti import utils
 from ganeti import cmdlib
 from ganeti.rapi import connector
@@ -113,6 +114,37 @@ class TestDocs(unittest.TestCase):
     self.failIf(undocumented,
                 msg=("Missing RAPI resource documentation for %s" %
                      utils.CommaJoin(undocumented)))
+
+
+class TestManpages(unittest.TestCase):
+  """Manpage tests"""
+
+  @staticmethod
+  def _ReadManFile(name):
+    return utils.ReadFile("%s/man/%s.sgml" %
+                          (testutils.GetSourceDir(), name))
+
+  @staticmethod
+  def _LoadScript(name):
+    return utils.LoadModule("scripts/%s" % name)
+
+  def test(self):
+    for script in _autoconf.GNT_SCRIPTS:
+      self._CheckManpage(script,
+                         self._ReadManFile(script),
+                         self._LoadScript(script).commands.keys())
+
+  def _CheckManpage(self, script, mantext, commands):
+    missing = []
+
+    for cmd in commands:
+      pattern = "<cmdsynopsis>\s*<command>%s</command>" % re.escape(cmd)
+      if not re.findall(pattern, mantext, re.S):
+        missing.append(cmd)
+
+    self.failIf(missing,
+                msg=("Manpage for '%s' missing documentation for %s" %
+                     (script, utils.CommaJoin(missing))))
 
 
 if __name__ == "__main__":
