@@ -339,6 +339,49 @@ class CompletionWriter:
           WriteCompReply(sw, "-W \"$(_ganeti_os)\"", cur=cur)
         elif suggest == cli.OPT_COMPL_ONE_IALLOCATOR:
           WriteCompReply(sw, "-W \"$(_ganeti_iallocator)\"", cur=cur)
+        elif suggest == cli.OPT_COMPL_INST_ADD_NODES:
+          sw.Write("local tmp= node1= pfx= curvalue=\"${optcur#*:}\"")
+
+          sw.Write("if [[ \"$optcur\" == *:* ]]; then")
+          sw.IncIndent()
+          try:
+            sw.Write("node1=\"${optcur%%:*}\"")
+
+            sw.Write("if [[ \"$COMP_WORDBREAKS\" != *:* ]]; then")
+            sw.IncIndent()
+            try:
+              sw.Write("pfx=\"$node1:\"")
+            finally:
+              sw.DecIndent()
+            sw.Write("fi")
+          finally:
+            sw.DecIndent()
+          sw.Write("fi")
+
+          sw.Write("_ganeti_dbglog pfx=\"'$pfx'\" curvalue=\"'$curvalue'\""
+                   " node1=\"'$node1'\"")
+
+          sw.Write("for i in $(_ganeti_nodes); do")
+          sw.IncIndent()
+          try:
+            sw.Write("if [[ -z \"$node1\" ]]; then")
+            sw.IncIndent()
+            try:
+              sw.Write("tmp=\"$tmp $i $i:\"")
+            finally:
+              sw.DecIndent()
+            sw.Write("elif [[ \"$i\" != \"$node1\" ]]; then")
+            sw.IncIndent()
+            try:
+              sw.Write("tmp=\"$tmp $i\"")
+            finally:
+              sw.DecIndent()
+            sw.Write("fi")
+          finally:
+            sw.DecIndent()
+          sw.Write("done")
+
+          WriteCompReply(sw, "-P \"$pfx\" -W \"$tmp\"", cur="\"$curvalue\"")
         else:
           WriteCompReply(sw, "-W %s" % utils.ShellQuote(suggest), cur=cur)
       finally:
