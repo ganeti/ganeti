@@ -45,6 +45,7 @@
 /doc/examples/bash_completion
 /doc/examples/ganeti.cron
 /doc/examples/ganeti.initd
+/doc/examples/hooks/ipsec
 
 # lib
 /lib/_autoconf.py
