@@ -80,6 +80,28 @@ def WritePreamble(sw):
   sw.Write("# This script is automatically generated at build time.")
   sw.Write("# Do not modify manually.")
 
+  sw.Write("_ganeti_dbglog() {")
+  sw.IncIndent()
+  try:
+    sw.Write("if [[ -n \"$GANETI_COMPL_LOG\" ]]; then")
+    sw.IncIndent()
+    try:
+      sw.Write("{")
+      sw.IncIndent()
+      try:
+        sw.Write("echo ---")
+        sw.Write("echo \"$@\"")
+        sw.Write("echo")
+      finally:
+        sw.DecIndent()
+      sw.Write("} >> $GANETI_COMPL_LOG")
+    finally:
+      sw.DecIndent()
+    sw.Write("fi")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
   sw.Write("_ganeti_nodes() {")
   sw.IncIndent()
   try:
@@ -206,6 +228,8 @@ def WritePreamble(sw):
       sw.DecIndent()
     sw.Write("fi")
 
+    sw.Write("_ganeti_dbglog optcur=\"'$optcur'\"")
+
     sw.Write("return 1")
   finally:
     sw.DecIndent()
@@ -214,6 +238,7 @@ def WritePreamble(sw):
 
 def WriteCompReply(sw, args, cur="\"$cur\""):
   sw.Write("""COMPREPLY=( $(compgen %s -- %s) )""", args, cur)
+  sw.Write("_ganeti_dbglog COMPREPLY=\"${COMPREPLY[@]}\"")
   sw.Write("return")
 
 
@@ -452,9 +477,9 @@ def WriteCompletion(sw, scriptname, funcname,
              ' prev="${COMP_WORDS[COMP_CWORD-1]}"'
              ' i first_arg_idx choices compgenargs arg_idx optcur')
 
-    # Useful for debugging:
-    #sw.Write("echo cur=\"$cur\" prev=\"$prev\"")
-    #sw.Write("set | grep ^COMP_")
+    sw.Write("_ganeti_dbglog cur=\"$cur\" prev=\"$prev\"")
+    sw.Write("[[ -n \"$GANETI_COMPL_LOG\" ]] &&"
+             " _ganeti_dbglog \"$(set | grep ^COMP_)\"")
 
     sw.Write("COMPREPLY=()")
 
