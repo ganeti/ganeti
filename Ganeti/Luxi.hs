@@ -146,12 +146,16 @@ recvMsg s = do
   let _recv obuf = do
               nbuf <- withTimeout queryTimeout "reading luxi response" $
                       S.recv (socket s) 4096
-              let (msg, remaining) = break (eOM ==) (obuf ++ nbuf)
+              let (msg, remaining) = break (eOM ==) nbuf
               (if null remaining
-               then _recv msg
-               else return (msg, tail remaining))
+               then _recv (obuf ++ msg)
+               else return (obuf ++ msg, tail remaining))
   cbuf <- readIORef $ rbuf s
-  (msg, nbuf) <- _recv cbuf
+  let (imsg, ibuf) = break (eOM ==) cbuf
+  (msg, nbuf) <-
+      (if null ibuf      -- if old buffer didn't contain a full message
+       then _recv cbuf   -- then we read from network
+       else return (imsg, tail ibuf)) -- else we return data from our buffer
   writeIORef (rbuf s) nbuf
   return msg
 
