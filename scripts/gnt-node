@@ -541,7 +541,7 @@ commands = {
                           choices=('yes', 'no'), default=None,
                           help="Set the drained flag on the node"),
               ],
-             "<instance>", "Alters the parameters of an instance"),
+             "<node_name>", "Alters the parameters of an instance"),
   'remove': (RemoveNode, ARGS_ONE, [DEBUG_OPT],
              "<node_name>", "Removes a node from the cluster"),
   'volumes': (ListVolumes, ARGS_ANY,
