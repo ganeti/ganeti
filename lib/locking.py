@@ -682,6 +682,12 @@ LEVELS = [LEVEL_CLUSTER,
 # Lock levels which are modifiable
 LEVELS_MOD = [LEVEL_NODE, LEVEL_INSTANCE]
 
+LEVEL_NAMES = {
+  LEVEL_CLUSTER: "cluster",
+  LEVEL_INSTANCE: "instance",
+  LEVEL_NODE: "node",
+  }
+
 # Constant for the big ganeti lock
 BGL = 'BGL'
 
