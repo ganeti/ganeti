@@ -64,7 +64,7 @@ TXD=`mktemp -d`
 trap 'rm -rf $TXD' EXIT
 
 if [[ -f /proc/cpuinfo ]]; then
-  cpu_count=$(grep -E -c '^processor\s*:' /proc/cpuinfo)
+  cpu_count=$(grep -E -c '^processor[[:space:]]*:' /proc/cpuinfo)
   make_args=-j$(( cpu_count + 1 ))
 else
   make_args=
