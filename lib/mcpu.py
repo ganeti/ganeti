@@ -364,7 +364,7 @@ class HooksMaster(object):
         raise errors.HooksFailure(msg)
       else:
         self.lu.LogWarning(msg)
-	return results
+        return results
     for node_name in results:
       res = results[node_name]
       if res.offline:
@@ -380,7 +380,7 @@ class HooksMaster(object):
             errs.append((node_name, script, output))
           else:
             if not output:
-	      output = "(no output)"
+              output = "(no output)"
             self.lu.LogWarning("On %s script %s failed, output: %s" %
                                (node_name, script, output))
     if errs and phase == constants.HOOKS_PHASE_PRE:
