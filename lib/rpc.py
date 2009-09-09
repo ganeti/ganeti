@@ -111,12 +111,15 @@ class RpcResult(object):
     else:
       self.data = data
       if not isinstance(self.data, (tuple, list)):
+        self.failed = True
         self.fail_msg = ("RPC layer error: invalid result type (%s)" %
                          type(self.data))
       elif len(data) != 2:
+        self.failed = True
         self.fail_msg = ("RPC layer error: invalid result length (%d), "
                          "expected 2" % len(self.data))
       elif not self.data[0]:
+        self.failed = True
         self.fail_msg = self._EnsureErr(self.data[1])
       else:
         # finally success
@@ -810,7 +813,7 @@ class RpcRunner(object):
     """
     result = self._SingleNodeCall(node, "blockdev_getmirrorstatus",
                                   [dsk.ToDict() for dsk in disks])
-    if not result.failed:
+    if not (result.failed or result.fail_msg):
       result.payload = [objects.BlockDevStatus.FromDict(i)
                         for i in result.payload]
     return result

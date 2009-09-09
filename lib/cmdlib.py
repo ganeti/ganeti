@@ -1544,7 +1544,6 @@ class LURepairDiskSizes(NoHooksLU):
   REQ_BGL = False
 
   def ExpandNames(self):
-
     if not isinstance(self.op.instances, list):
       raise errors.OpPrereqError("Invalid argument type 'instances'")
 
@@ -1602,7 +1601,7 @@ class LURepairDiskSizes(NoHooksLU):
     changed = []
     for node, dskl in per_node_disks.items():
       result = self.rpc.call_blockdev_getsizes(node, [v[2] for v in dskl])
-      if result.failed:
+      if result.failed or result.fail_msg:
         self.LogWarning("Failure in blockdev_getsizes call to node"
                         " %s, ignoring", node)
         continue
