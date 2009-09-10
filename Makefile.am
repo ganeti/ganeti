@@ -280,6 +280,18 @@ TESTS_ENVIRONMENT = \
 	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) \
 	$(RUN_IN_TEMPDIR) $(PYTHON)
 
+srclink_files = \
+	man/footer.sgml \
+	$(dist_sbin_SCRIPTS) \
+	$(dist_tools_SCRIPTS) \
+	$(dist_TESTS) \
+	$(pkgpython_PYTHON) \
+	$(hypervisor_PYTHON) \
+	$(rapi_PYTHON) \
+	$(http_PYTHON) \
+	$(confd_PYTHON) \
+	$(noinst_PYTHON)
+
 all-local: stamp-directories devel/upload \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd doc/examples/ganeti.cron \
@@ -381,10 +393,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 # files when building.
 srclinks: stamp-directories
 	set -e; \
-	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) \
-			$(rapi_PYTHON) $(http_PYTHON) $(confd_PYTHON) \
-			$(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS) \
-			$(dist_TESTS) $(noinst_PYTHON); do \
+	for i in $(srclink_files); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \
