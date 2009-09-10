@@ -30,6 +30,7 @@ DIRS = \
 	doc/examples \
 	doc/examples/hooks \
 	lib \
+	lib/build \
 	lib/http \
 	lib/hypervisor \
 	lib/rapi \
@@ -57,6 +58,7 @@ CLEANFILES = \
 	doc/examples/ganeti.cron \
 	doc/examples/hooks/ipsec \
 	lib/*.py[co] \
+	lib/build/*.py[co] \
 	lib/http/*.py[co] \
 	lib/hypervisor/*.py[co] \
 	lib/rapi/*.py[co] \
@@ -74,6 +76,9 @@ BUILT_SOURCES = \
 
 nodist_pkgpython_PYTHON = \
 	lib/_autoconf.py
+
+noinst_PYTHON = \
+	lib/build/__init__.py
 
 pkgpython_PYTHON = \
 	lib/__init__.py \
@@ -379,7 +384,7 @@ srclinks: stamp-directories
 	for i in man/footer.sgml $(pkgpython_PYTHON) $(hypervisor_PYTHON) \
 			$(rapi_PYTHON) $(http_PYTHON) $(confd_PYTHON) \
 			$(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS) \
-			$(dist_TESTS); do \
+			$(dist_TESTS) $(noinst_PYTHON); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \
