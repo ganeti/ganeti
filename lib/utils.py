@@ -42,7 +42,6 @@ import fcntl
 import resource
 import logging
 import signal
-import imp
 
 from cStringIO import StringIO
 
@@ -1993,25 +1992,6 @@ def ReadWatcherPauseFile(filename, now=None, remove_after=3600):
         value = None
 
   return value
-
-
-def LoadModule(filename):
-  """Loads an external module by filename.
-
-  Use this function with caution. Python will always write the compiled source
-  to a file named "${filename}c".
-
-  @type filename: string
-  @param filename: Path to module
-
-  """
-  (name, ext) = os.path.splitext(filename)
-
-  fh = open(filename, "U")
-  try:
-    return imp.load_module(name, fh, filename, (ext, "U", imp.PY_SOURCE))
-  finally:
-    fh.close()
 
 
 class FileLock(object):

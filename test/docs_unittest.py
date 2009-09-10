@@ -27,6 +27,7 @@ import re
 from ganeti import _autoconf
 from ganeti import utils
 from ganeti import cmdlib
+from ganeti import build
 from ganeti.rapi import connector
 
 import testutils
@@ -126,7 +127,7 @@ class TestManpages(unittest.TestCase):
 
   @staticmethod
   def _LoadScript(name):
-    return utils.LoadModule("scripts/%s" % name)
+    return build.LoadModule("scripts/%s" % name)
 
   def test(self):
     for script in _autoconf.GNT_SCRIPTS:
