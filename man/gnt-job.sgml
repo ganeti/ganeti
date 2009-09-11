@@ -107,7 +107,7 @@
     <refsect2>
       <title>INFO</title>
       <cmdsynopsis>
-        <command>cancel</command>
+        <command>info</command>
         <arg choice="req" rep="repeat"><replaceable>id</replaceable></arg>
       </cmdsynopsis>
 
