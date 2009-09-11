@@ -498,7 +498,7 @@ class LockSet:
           # Of course something is going to be really wrong, after this.
           if lock._is_owned():
             lock.release()
-            raise
+          raise
 
     except:
       # If something went wrong and we had the set-lock let's release it...
