@@ -13,6 +13,7 @@ ACLOCAL_AMFLAGS = -I autotools
 DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
+CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -195,6 +196,7 @@ EXTRA_DIST = \
 	DEVNOTES \
 	pylintrc \
 	autotools/build-bash-completion \
+	autotools/check-python-code \
 	autotools/docbook-wrapper \
 	autotools/run-in-tempdir \
 	daemons/ganeti-cleaner.in \
@@ -280,8 +282,7 @@ TESTS_ENVIRONMENT = \
 	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) \
 	$(RUN_IN_TEMPDIR) $(PYTHON)
 
-srclink_files = \
-	man/footer.sgml \
+all_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
 	$(dist_TESTS) \
@@ -291,6 +292,13 @@ srclink_files = \
 	$(http_PYTHON) \
 	$(confd_PYTHON) \
 	$(noinst_PYTHON)
+
+srclink_files = \
+	man/footer.sgml \
+	$(all_python_code)
+
+check_python_code = \
+	$(all_python_code)
 
 all-local: stamp-directories devel/upload \
 	doc/examples/bash_completion \
@@ -402,6 +410,9 @@ srclinks: stamp-directories
 .PHONY: ganeti
 ganeti:
 	cd $(top_builddir) && test -h "$@" || { rm -f $@ && $(LN_S) lib $@; }
+
+check-local:
+	$(CHECK_PYTHON_CODE) $(check_python_code)
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:
