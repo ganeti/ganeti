@@ -25,6 +25,12 @@ for script; do
     let ++problems
     echo "Found tabs in $script" >&2
   fi
+
+  if grep -H -E '[[:space:]]$' "$script"; then
+    let ++problems
+    echo "Found end-of-line-whitespace in $script" >&2
+  fi
+
   if [[ "$(wc --max-line-length < "$script")" -gt 80 ]]; then
     let ++problems
     echo "Longest line in $script is longer than 80 characters" >&2
@@ -32,6 +38,6 @@ for script; do
 done
 
 if [[ "$problems" -gt 0 ]]; then
-  echo "Found $problems problems while checking code." >&2
+  echo "Found $problems problem(s) while checking code." >&2
   exit 1
 fi
