@@ -26,6 +26,7 @@
 /*.patch
 /*.tar.bz2
 /*.tar.gz
+/ganeti-[0-9]*.[0-9]*.[0-9]*
 
 # daemons
 /daemons/ganeti-cleaner
