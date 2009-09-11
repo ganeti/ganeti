@@ -6696,7 +6696,7 @@ class LURepairNodeStorage(NoHooksLU):
     if _FindFaultyInstanceDisks(self.cfg, self.rpc, instance,
                                 node_name, True):
       raise errors.OpPrereqError("Instance '%s' has faulty disks on"
-                                 " node '%s'" % (inst.name, node_name))
+                                 " node '%s'" % (instance.name, node_name))
 
   def CheckPrereq(self):
     """Check prerequisites.
