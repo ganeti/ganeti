@@ -68,7 +68,8 @@ class ConfdQuery(object):
 class PingQuery(ConfdQuery):
   """An empty confd query.
 
-  It will return success on an empty argument, and an error on any other argument.
+  It will return success on an empty argument, and an error on any other
+  argument.
 
   """
   def Exec(self, query):

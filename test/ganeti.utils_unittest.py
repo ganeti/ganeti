@@ -879,7 +879,8 @@ class TestTimeFunctions(unittest.TestCase):
     self.assertEqual(utils.MergeTime((1, 500000)), 1.5)
     self.assertEqual(utils.MergeTime((1218448917, 500000)), 1218448917.5)
 
-    self.assertEqual(round(utils.MergeTime((1218448917, 481000)), 3), 1218448917.481)
+    self.assertEqual(round(utils.MergeTime((1218448917, 481000)), 3),
+                     1218448917.481)
     self.assertEqual(round(utils.MergeTime((1, 801000)), 3), 1.801)
 
     self.assertRaises(AssertionError, utils.MergeTime, (0, -1))

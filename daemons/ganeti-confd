@@ -350,7 +350,8 @@ def ExecConfd(options, args):
   try:
     processor.Enable()
   except errors.ConfigurationError:
-    # If enabling the processor has failed, we can still go on, but confd will be disabled
+    # If enabling the processor has failed, we can still go on, but confd will
+    # be disabled
     logging.warning("Confd is starting in disabled mode")
     pass
   server = ConfdAsyncUDPServer(options.bind_address, options.port, processor)

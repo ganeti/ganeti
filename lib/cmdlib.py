@@ -2004,7 +2004,8 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
         else:
           rem_time = "no time estimate"
         lu.proc.LogInfo("- device %s: %5.2f%% done, %s" %
-                        (instance.disks[i].iv_name, mstat.sync_percent, rem_time))
+                        (instance.disks[i].iv_name, mstat.sync_percent,
+                         rem_time))
 
     # if we're done but degraded, let's do a few small retries, to
     # make sure we see a stable and not transient situation; therefore
@@ -6463,7 +6464,8 @@ class TLReplaceDisks(Tasklet):
     for dev, old_lvs, new_lvs in iv_names.itervalues():
       self.lu.LogInfo("Detaching %s drbd from local storage" % dev.iv_name)
 
-      result = self.rpc.call_blockdev_removechildren(self.target_node, dev, old_lvs)
+      result = self.rpc.call_blockdev_removechildren(self.target_node, dev,
+                                                     old_lvs)
       result.Raise("Can't detach drbd from local storage on node"
                    " %s for device %s" % (self.target_node, dev.iv_name))
       #dev.children = []
@@ -6489,14 +6491,16 @@ class TLReplaceDisks(Tasklet):
           rename_old_to_new.append((to_ren, ren_fn(to_ren, temp_suffix)))
 
       self.lu.LogInfo("Renaming the old LVs on the target node")
-      result = self.rpc.call_blockdev_rename(self.target_node, rename_old_to_new)
+      result = self.rpc.call_blockdev_rename(self.target_node,
+                                             rename_old_to_new)
       result.Raise("Can't rename old LVs on node %s" % self.target_node)
 
       # Now we rename the new LVs to the old LVs
       self.lu.LogInfo("Renaming the new LVs on the target node")
       rename_new_to_old = [(new, old.physical_id)
                            for old, new in zip(old_lvs, new_lvs)]
-      result = self.rpc.call_blockdev_rename(self.target_node, rename_new_to_old)
+      result = self.rpc.call_blockdev_rename(self.target_node,
+                                             rename_new_to_old)
       result.Raise("Can't rename new LVs on node %s" % self.target_node)
 
       for old, new in zip(old_lvs, new_lvs):
@@ -6509,11 +6513,13 @@ class TLReplaceDisks(Tasklet):
 
       # Now that the new lvs have the old name, we can add them to the device
       self.lu.LogInfo("Adding new mirror component on %s" % self.target_node)
-      result = self.rpc.call_blockdev_addchildren(self.target_node, dev, new_lvs)
+      result = self.rpc.call_blockdev_addchildren(self.target_node, dev,
+                                                  new_lvs)
       msg = result.fail_msg
       if msg:
         for new_lv in new_lvs:
-          msg2 = self.rpc.call_blockdev_remove(self.target_node, new_lv).fail_msg
+          msg2 = self.rpc.call_blockdev_remove(self.target_node,
+                                               new_lv).fail_msg
           if msg2:
             self.lu.LogWarning("Can't rollback device %s: %s", dev, msg2,
                                hint=("cleanup manually the unused logical"
@@ -6581,13 +6587,15 @@ class TLReplaceDisks(Tasklet):
     # after this, we must manually remove the drbd minors on both the
     # error and the success paths
     self.lu.LogStep(4, steps_total, "Changing drbd configuration")
-    minors = self.cfg.AllocateDRBDMinor([self.new_node for dev in self.instance.disks],
+    minors = self.cfg.AllocateDRBDMinor([self.new_node
+                                         for dev in self.instance.disks],
                                         self.instance.name)
     logging.debug("Allocated minors %r" % (minors,))
 
     iv_names = {}
     for idx, (dev, new_minor) in enumerate(zip(self.instance.disks, minors)):
-      self.lu.LogInfo("activating a new drbd on %s for disk/%d" % (self.new_node, idx))
+      self.lu.LogInfo("activating a new drbd on %s for disk/%d" %
+                      (self.new_node, idx))
       # create new devices on new_node; note that we create two IDs:
       # one without port, so the drbd will be activated without
       # networking information on the new node at this stage, and one
@@ -6598,8 +6606,10 @@ class TLReplaceDisks(Tasklet):
       else:
         p_minor = o_minor2
 
-      new_alone_id = (self.instance.primary_node, self.new_node, None, p_minor, new_minor, o_secret)
-      new_net_id = (self.instance.primary_node, self.new_node, o_port, p_minor, new_minor, o_secret)
+      new_alone_id = (self.instance.primary_node, self.new_node, None,
+                      p_minor, new_minor, o_secret)
+      new_net_id = (self.instance.primary_node, self.new_node, o_port,
+                    p_minor, new_minor, o_secret)
 
       iv_names[idx] = (dev, dev.children, new_net_id)
       logging.debug("Allocated new_minor: %s, new_logical_id: %s", new_minor,
@@ -6627,8 +6637,10 @@ class TLReplaceDisks(Tasklet):
                                  " soon as possible"))
 
     self.lu.LogInfo("Detaching primary drbds from the network (=> standalone)")
-    result = self.rpc.call_drbd_disconnect_net([self.instance.primary_node], self.node_secondary_ip,
-                                               self.instance.disks)[self.instance.primary_node]
+    result = self.rpc.call_drbd_disconnect_net([self.instance.primary_node],
+                                               self.node_secondary_ip,
+                                               self.instance.disks)\
+                                              [self.instance.primary_node]
 
     msg = result.fail_msg
     if msg:
@@ -6649,13 +6661,17 @@ class TLReplaceDisks(Tasklet):
     # and now perform the drbd attach
     self.lu.LogInfo("Attaching primary drbds to new secondary"
                     " (standalone => connected)")
-    result = self.rpc.call_drbd_attach_net([self.instance.primary_node, self.new_node], self.node_secondary_ip,
-                                           self.instance.disks, self.instance.name,
+    result = self.rpc.call_drbd_attach_net([self.instance.primary_node,
+                                            self.new_node],
+                                           self.node_secondary_ip,
+                                           self.instance.disks,
+                                           self.instance.name,
                                            False)
     for to_node, to_result in result.items():
       msg = to_result.fail_msg
       if msg:
-        self.lu.LogWarning("Can't attach drbd disks on node %s: %s", to_node, msg,
+        self.lu.LogWarning("Can't attach drbd disks on node %s: %s",
+                           to_node, msg,
                            hint=("please do a gnt-instance info to see the"
                                  " status of disks"))
 

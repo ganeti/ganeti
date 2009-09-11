@@ -189,7 +189,8 @@ class _LvmBase(_Base):
 
     """
     field_to_idx = dict([(field_name, idx)
-                         for (idx, (field_name, _, _)) in enumerate(fields_def)])
+                         for (idx, (field_name, _, _)) in
+                         enumerate(fields_def)])
 
     lvm_fields = []
 
@@ -222,7 +223,8 @@ class _LvmBase(_Base):
     lvm_name_to_idx = dict([(lvm_name, idx)
                            for (idx, lvm_name) in enumerate(lvm_fields)])
     field_to_idx = dict([(field_name, idx)
-                         for (idx, (field_name, _, _)) in enumerate(fields_def)])
+                         for (idx, (field_name, _, _)) in
+                         enumerate(fields_def)])
 
     data = []
     for raw_data in cmd_result:

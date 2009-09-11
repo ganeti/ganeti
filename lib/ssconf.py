@@ -65,8 +65,8 @@ class SimpleConfigReader(object):
     @type force: boolean
     @param force: whether to force the reload without checking the mtime
     @rtype: boolean
-    @return: boolean values that says whether we reloaded the configuration or not
-             (because we decided it was already up-to-date)
+    @return: boolean value that says whether we reloaded the configuration or
+             not (because we decided it was already up-to-date)
 
     """
     try:
