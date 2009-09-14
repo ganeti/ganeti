@@ -547,6 +547,11 @@ def GetVolumeList(vg_name):
     name, size, attr = match.groups()
     inactive = attr[4] == '-'
     online = attr[5] == 'o'
+    virtual = attr[0] == 'v'
+    if virtual:
+      # we don't want to report such volumes as existing, since they
+      # don't really hold data
+      continue
     lvs[name] = (size, inactive, online)
 
   return lvs
