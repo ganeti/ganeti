@@ -57,7 +57,7 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
     @type port: int
     @param port: udp port
     @type processor: L{confd.server.ConfdProcessor}
-    @param reader: ConfigReader to use to access the config
+    @param processor: ConfdProcessor to use to handle queries
 
     """
     daemon.AsyncUDPSocket.__init__(self)
