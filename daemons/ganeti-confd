@@ -64,6 +64,7 @@ class ConfdAsyncUDPServer(asyncore.dispatcher):
     self.bind_address = bind_address
     self.port = port
     self.processor = processor
+    self.out_queue = []
     self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
     self.bind((bind_address, port))
     logging.debug("listening on ('%s':%d)" % (bind_address, port))
@@ -90,7 +91,7 @@ class ConfdAsyncUDPServer(asyncore.dispatcher):
       ip, port = address
       payload_out =  self.processor.ExecQuery(payload_in, ip, port)
       if payload_out is not None:
-        self.sendto(payload_out, 0, (ip, port))
+        self.out_queue.append((ip, port, payload_out))
     except:
       # we need to catch any exception here, log it, but proceed, because even
       # if we failed handling a single request, we still want the confd to
@@ -99,8 +100,34 @@ class ConfdAsyncUDPServer(asyncore.dispatcher):
 
   # this method is overriding an asyncore.dispatcher method
   def writable(self):
-    # No need to check if we can write to the UDP socket
-    return False
+    # Only handle writes if we have something enqueued to write
+    if self.out_queue:
+      return True
+    else:
+      return False
+
+  def handle_write(self):
+    try:
+      if not self.out_queue:
+        logging.error("handle_write called with empty output queue")
+        return
+      (ip, port, payload) = self.out_queue[0]
+      try:
+        self.sendto(payload, 0, (ip, port))
+      except socket.error, err:
+        if err.errno == errno.EINTR:
+          # we got a signal while trying to write. no need to do anything,
+          # handle_write will be called again because we haven't emptied the
+          # out_queue, and we'll try again
+          return
+        else:
+          raise
+      self.out_queue.pop(0)
+    except:
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed handling a single request, we still want the confd to
+      # continue working.
+      logging.error("Unexpected exception", exc_info=True)
 
 
 class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
