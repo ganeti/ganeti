@@ -30,6 +30,7 @@ import errno
 import logging
 import sched
 import time
+import socket
 
 from ganeti import utils
 from ganeti import constants
@@ -69,6 +70,85 @@ class AsyncoreScheduler(sched.scheduler):
   """
   def __init__(self, timefunc):
     sched.scheduler.__init__(self, timefunc, AsyncoreDelayFunction)
+
+
+class AsyncUDPSocket(asyncore.dispatcher):
+  """An improved asyncore udp socket.
+
+  """
+  def __init__(self):
+    """Constructor for AsyncUDPSocket
+
+    """
+    asyncore.dispatcher.__init__(self)
+    self._out_queue = []
+    self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+  # this method is overriding an asyncore.dispatcher method
+  def handle_connect(self):
+    # Python thinks that the first udp message from a source qualifies as a
+    # "connect" and further ones are part of the same connection. We beg to
+    # differ and treat all messages equally.
+    pass
+
+  # this method is overriding an asyncore.dispatcher method
+  def handle_read(self):
+    try:
+      try:
+        payload, address = self.recvfrom(4096)
+      except socket.error, err:
+        if err.errno == errno.EINTR:
+          # we got a signal while trying to read. no need to do anything,
+          # handle_read will be called again if there is data on the socket.
+          return
+        else:
+          raise
+      ip, port = address
+      self.handle_datagram(payload, ip, port)
+    except:
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed handling a single request, we still want to continue.
+      logging.error("Unexpected exception", exc_info=True)
+
+  def handle_datagram(self, payload, ip, port):
+    """Handle an already read udp datagram
+
+    """
+    raise NotImplementedError
+
+  # this method is overriding an asyncore.dispatcher method
+  def writable(self):
+    # We should check whether we can write to the socket only if we have
+    # something scheduled to be written
+    return bool(self._out_queue)
+
+  def handle_write(self):
+    try:
+      if not self._out_queue:
+        logging.error("handle_write called with empty output queue")
+        return
+      (ip, port, payload) = self._out_queue[0]
+      try:
+        self.sendto(payload, 0, (ip, port))
+      except socket.error, err:
+        if err.errno == errno.EINTR:
+          # we got a signal while trying to write. no need to do anything,
+          # handle_write will be called again because we haven't emptied the
+          # _out_queue, and we'll try again
+          return
+        else:
+          raise
+      self._out_queue.pop(0)
+    except:
+      # we need to catch any exception here, log it, but proceed, because even
+      # if we failed sending a single datagram we still want to continue.
+      logging.error("Unexpected exception", exc_info=True)
+
+  def enqueue_send(self, ip, port, payload):
+    """Enqueue a datagram to be sent when possible
+
+    """
+    self._out_queue.append((ip, port, payload))
 
 
 class Mainloop(object):
