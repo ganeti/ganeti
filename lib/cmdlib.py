@@ -2822,7 +2822,7 @@ class LUAddNode(LogicalUnit):
 
     node_verify_list = [self.cfg.GetMasterNode()]
     node_verify_param = {
-      'nodelist': [node],
+      constants.NV_NODELIST: [node],
       # TODO: do a node-net-test as well?
     }
 
@@ -2830,7 +2830,7 @@ class LUAddNode(LogicalUnit):
                                        self.cfg.GetClusterName())
     for verifier in node_verify_list:
       result[verifier].Raise("Cannot communicate with node %s" % verifier)
-      nl_payload = result[verifier].payload['nodelist']
+      nl_payload = result[verifier].payload[constants.NV_NODELIST]
       if nl_payload:
         for failed in nl_payload:
           feedback_fn("ssh/hostname verification failed %s -> %s" %
