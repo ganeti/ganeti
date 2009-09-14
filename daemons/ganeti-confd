@@ -69,8 +69,21 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
 
   # this method is overriding a daemon.AsyncUDPSocket method
   def handle_datagram(self, payload_in, ip, port):
-    payload_out =  self.processor.ExecQuery(payload_in, ip, port)
-    if payload_out is not None:
+
+    if len(payload_in) < len(constants.CONFD_MAGIC_FOURCC):
+      logging.debug("Received a query which is too short to be true")
+      return
+
+    magic_number = payload_in[:4]
+    query = payload_in[4:]
+
+    if magic_number != constants.CONFD_MAGIC_FOURCC:
+      logging.debug("Received a query with an unknown magic number")
+      return
+
+    answer =  self.processor.ExecQuery(query, ip, port)
+    if answer is not None:
+      payload_out = ''.join([constants.CONFD_MAGIC_FOURCC, answer])
       self.enqueue_send(ip, port, payload_out)
 
 

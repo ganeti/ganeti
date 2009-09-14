@@ -682,6 +682,12 @@ CONFD_CONFIG_RELOAD_TIMEOUT = 60
 # to serve more requests.
 CONFD_CONFIG_RELOAD_RATELIMIT = 2
 
+# Magic number prepended to all confd queries.
+# This allows us to distinguish different types of confd protocols and handle
+# them. For example by changing this we can move the whole payload to be
+# compressed, or move away from json.
+CONFD_MAGIC_FOURCC = 'plj0'
+
 # Maximum UDP datagram size.
 # On IPv4: 64K - 20 (ip header size) - 8 (udp header size) = 65507
 # On IPv6: 64K - 40 (ip6 header size) - 8 (udp header size) = 65487
