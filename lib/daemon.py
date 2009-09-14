@@ -95,7 +95,7 @@ class AsyncUDPSocket(asyncore.dispatcher):
   def handle_read(self):
     try:
       try:
-        payload, address = self.recvfrom(4096)
+        payload, address = self.recvfrom(constants.MAX_UDP_DATA_SIZE)
       except socket.error, err:
         if err.errno == errno.EINTR:
           # we got a signal while trying to read. no need to do anything,
@@ -148,6 +148,9 @@ class AsyncUDPSocket(asyncore.dispatcher):
     """Enqueue a datagram to be sent when possible
 
     """
+    if len(payload) > constants.MAX_UDP_DATA_SIZE:
+      raise errors.UdpDataSizeError('Packet too big: %s > %s' % (len(payload),
+                                    constants.MAX_UDP_DATA_SIZE))
     self._out_queue.append((ip, port, payload))
 
 

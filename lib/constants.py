@@ -681,3 +681,10 @@ CONFD_CONFIG_RELOAD_TIMEOUT = 60
 # polling every RATELIMIT seconds, rather than relying on inotify, to be able
 # to serve more requests.
 CONFD_CONFIG_RELOAD_RATELIMIT = 2
+
+# Maximum UDP datagram size.
+# On IPv4: 64K - 20 (ip header size) - 8 (udp header size) = 65507
+# On IPv6: 64K - 40 (ip6 header size) - 8 (udp header size) = 65487
+#   (assuming we can't use jumbo frames)
+# We just set this to 60K, which should be enough
+MAX_UDP_DATA_SIZE = 61440

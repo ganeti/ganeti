@@ -297,6 +297,12 @@ class ConfdRequestError(GenericError):
   """
 
 
+class UdpDataSizeError(GenericError):
+  """UDP payload too big.
+
+  """
+
+
 # errors should be added above
 
 
