@@ -33,6 +33,7 @@ import asyncore
 import socket
 import pyinotify
 import time
+import errno
 
 from optparse import OptionParser
 
@@ -77,7 +78,15 @@ class ConfdAsyncUDPServer(asyncore.dispatcher):
   # this method is overriding an asyncore.dispatcher method
   def handle_read(self):
     try:
-      payload_in, address = self.recvfrom(4096)
+      try:
+        payload_in, address = self.recvfrom(4096)
+      except socket.error, err:
+        if err.errno == errno.EINTR:
+          # we got a signal while trying to read. no need to do anything,
+          # handle_read will be called again if there is data on the socket.
+          return
+        else:
+          raise
       ip, port = address
       payload_out =  self.processor.ExecQuery(payload_in, ip, port)
       if payload_out is not None:
