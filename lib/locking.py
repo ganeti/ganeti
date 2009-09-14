@@ -153,6 +153,41 @@ class SharedLock:
 
     assert self.__npass_shr == 0, "SharedLock: internal fairness violation"
 
+  def __shared_acquire(self):
+    """Acquire the lock in shared mode
+
+    This is a private function that presumes you are already holding the
+    internal lock.
+
+    """
+    self.__nwait_shr += 1
+    try:
+      wait = False
+      # If there is an exclusive holder waiting we have to wait.
+      # We'll only do this once, though, when we start waiting for
+      # the lock. Then we'll just wait while there are no
+      # exclusive holders.
+      if self.__nwait_exc > 0:
+        # TODO: if !blocking...
+        wait = True
+        self.__wait(self.__turn_shr)
+
+      while self.__exc is not None:
+        wait = True
+        # TODO: if !blocking...
+        self.__wait(self.__turn_shr)
+
+      self.__shr.add(threading.currentThread())
+
+      # If we were waiting note that we passed
+      if wait:
+        self.__npass_shr -= 1
+
+    finally:
+      self.__nwait_shr -= 1
+
+    assert self.__npass_shr >= 0, "Internal fairness condition weirdness"
+
   def acquire(self, blocking=1, shared=0):
     """Acquire a shared lock.
 
@@ -176,33 +211,7 @@ class SharedLock:
       assert self.__npass_shr >= 0, "Internal fairness condition weirdness"
 
       if shared:
-        self.__nwait_shr += 1
-        try:
-          wait = False
-          # If there is an exclusive holder waiting we have to wait.
-          # We'll only do this once, though, when we start waiting for
-          # the lock. Then we'll just wait while there are no
-          # exclusive holders.
-          if self.__nwait_exc > 0:
-            # TODO: if !blocking...
-            wait = True
-            self.__wait(self.__turn_shr)
-
-          while self.__exc is not None:
-            wait = True
-            # TODO: if !blocking...
-            self.__wait(self.__turn_shr)
-
-          self.__shr.add(threading.currentThread())
-
-          # If we were waiting note that we passed
-          if wait:
-            self.__npass_shr -= 1
-
-        finally:
-          self.__nwait_shr -= 1
-
-        assert self.__npass_shr >= 0, "Internal fairness condition weirdness"
+        self.__shared_acquire()
       else:
         # TODO: if !blocking...
         # (or modify __exclusive_acquire for non-blocking mode)
@@ -352,7 +361,6 @@ class LockSet:
         self.__owners[threading.currentThread()].add(name)
       else:
         self.__owners[threading.currentThread()] = set([name])
-
 
   def _del_owned(self, name=None):
     """Note the current thread owns the given lock"""
