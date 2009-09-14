@@ -697,7 +697,7 @@ commands = {
                          choices=('yes', 'no'), default=None,
                          help="Set the drained flag on the node"),
               ],
-             "<node>", "Alters the parameters of a node"),
+             "<node_name>", "Alters the parameters of a node"),
   'powercycle': (PowercycleNode, ARGS_ONE_NODE,
                  [DEBUG_OPT, FORCE_OPT, CONFIRM_OPT],
                  "<node_name>", "Tries to forcefully powercycle a node"),

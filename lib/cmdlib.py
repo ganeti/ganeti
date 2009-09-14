@@ -5398,6 +5398,12 @@ class LUCreateInstance(LogicalUnit):
         if not utils.IsValidMac(mac.lower()):
           raise errors.OpPrereqError("Invalid MAC address specified: %s" %
                                      mac)
+        else:
+          # or validate/reserve the current one
+          if self.cfg.IsMacInUse(mac):
+            raise errors.OpPrereqError("MAC address %s already in use"
+                                       " in cluster" % mac)
+
       # bridge verification
       bridge = nic.get("bridge", None)
       link = nic.get("link", None)
