@@ -84,7 +84,10 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
     answer =  self.processor.ExecQuery(query, ip, port)
     if answer is not None:
       payload_out = ''.join([constants.CONFD_MAGIC_FOURCC, answer])
-      self.enqueue_send(ip, port, payload_out)
+      try:
+        self.enqueue_send(ip, port, payload_out)
+      except errors.UdpDataSizeError:
+        logging.error("Reply too big to fit in an udp packet.")
 
 
 class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
