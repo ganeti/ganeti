@@ -142,9 +142,7 @@ def ParseOptions():
   parser.add_option("-d", "--disks", dest="disks",
                     help="Choose disks (e.g. hda,hdg)",
                     metavar="DISKLIST")
-  parser.add_option("-v", "--verbose",
-                    action="store_true", dest="verbose", default=False,
-                    help="print command execution messages to stdout")
+  parser.add_option(cli.VERBOSE_OPT)
   parser.add_option("-r", "--allow-removable",
                     action="store_true", dest="removable_ok", default=False,
                     help="allow and use removable devices too")

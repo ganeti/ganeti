@@ -165,7 +165,7 @@ commands = {
              ],
             "[opts...] <duration>", "Executes a TestDelay OpCode"),
   'submit-job': (GenericOpCodes, [ArgFile(min=1)],
-                 [DEBUG_OPT,
+                 [DEBUG_OPT, VERBOSE_OPT,
                   cli_option("--op-repeat", type="int", default="1",
                              dest="rep_op",
                              help="Repeat the opcode sequence this number"
@@ -174,9 +174,6 @@ commands = {
                              dest="rep_job",
                              help="Repeat the job this number"
                              " of times"),
-                  cli_option("-v", "--verbose", default=False,
-                             action="store_true",
-                             help="Make the operation more verbose"),
                   cli_option("--timing-stats", default=False,
                              action="store_true",
                              help="Show timing stats"),

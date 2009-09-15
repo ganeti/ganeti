@@ -287,9 +287,7 @@ def main():
                          " output file")
   parser.add_option(cli.FORCE_OPT)
   parser.add_option(cli.DEBUG_OPT)
-  parser.add_option('-v', '--verbose', dest='verbose',
-                    action="store_true",
-                    help="Verbose output")
+  parser.add_option(cli.VERBOSE_OPT)
   parser.add_option('--path', help="Convert configuration in this"
                     " directory instead of '%s'" % constants.DATA_DIR,
                     default=constants.DATA_DIR, dest="data_dir")

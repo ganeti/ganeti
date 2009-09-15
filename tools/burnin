@@ -114,9 +114,7 @@ OPTIONS = [
                  default=128, type="unit", metavar="<size>",
                  completion_suggest=("128M 256M 512M 1G 4G 8G"
                                      " 12G 16G").split()),
-  cli.cli_option("-v", "--verbose",
-                 action="store_true", dest="verbose", default=False,
-                 help="print command execution messages to stdout"),
+  cli.VERBOSE_OPT,
   cli.cli_option("--no-replace1", dest="do_replace1",
                  help="Skip disk replacement with the same secondary",
                  action="store_false", default=True),

@@ -54,6 +54,7 @@ __all__ = [
   "SYNC_OPT",
   "TAG_SRC_OPT",
   "USEUNITS_OPT",
+  "VERBOSE_OPT",
   # Generic functions for CLI programs
   "GenericMain",
   "GetClient",
@@ -458,6 +459,10 @@ _DRY_RUN_OPT = cli_option("--dry-run", default=False,
                           help=("Do not execute the operation, just run the"
                                 " check steps and verify it it could be"
                                 " executed"))
+
+VERBOSE_OPT = cli_option("-v", "--verbose", default=False,
+                         action="store_true",
+                         help="Increase the verbosity of the operation")
 
 
 def _ParseArgs(argv, commands, aliases):
