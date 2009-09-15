@@ -19,6 +19,6 @@ Configuring for development
 Run the following command (only use ``PYTHON=...`` if you need to use a
 different python version)::
 
-  sh autogen.sh && \
+  ./autogen.sh && \
   ./configure PYTHON=python2.4 \
     --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var

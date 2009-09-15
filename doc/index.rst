@@ -18,6 +18,7 @@ Contents:
    hooks.rst
    iallocator.rst
    rapi.rst
+   devnotes.rst
    glossary.rst
 
 Also see the :ref:`search`.

@@ -137,6 +137,7 @@ docrst = \
 	doc/admin.rst \
 	doc/design-2.0.rst \
 	doc/design-2.1.rst \
+	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
 	doc/iallocator.rst \
@@ -193,7 +194,6 @@ dist_tools_SCRIPTS = \
 EXTRA_DIST = \
 	$(MAINTAINERCLEANFILES) \
 	NEWS \
-	DEVNOTES \
 	pylintrc \
 	autotools/build-bash-completion \
 	autotools/check-python-code \
