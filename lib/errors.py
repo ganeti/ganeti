@@ -297,6 +297,14 @@ class ConfdRequestError(GenericError):
   """
 
 
+class ConfdMagicError(GenericError):
+  """A magic fourcc error in Ganeti confd.
+
+  Errors processing the fourcc in ganeti confd datagrams.
+
+  """
+
+
 class UdpDataSizeError(GenericError):
   """UDP payload too big.
 

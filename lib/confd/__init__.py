@@ -19,6 +19,34 @@
 # 02110-1301, USA.
 
 
-"""Ganeti confd library
+"""Ganeti confd client/server library
 
 """
+
+from ganeti import constants
+
+
+_FOURCC_LEN = 4
+
+
+def PackMagic(payload):
+  """Prepend the confd magic fourcc to a payload.
+
+  """
+  return ''.join([constants.CONFD_MAGIC_FOURCC, payload])
+
+
+def UnpackMagic(payload):
+  """Unpack and check the confd magic fourcc from a payload.
+
+  """
+  if len(payload) < _FOURCC_LEN:
+    raise errors.ConfdMagicError("UDP payload too short to contain the"
+                                 " fourcc code")
+
+  magic_number = payload[:_FOURCC_LEN]
+  if magic_number != constants.CONFD_MAGIC_FOURCC:
+    raise errors.ConfdMagicError("UDP payload contains an unkown fourcc")
+
+  return payload[_FOURCC_LEN:]
+

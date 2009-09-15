@@ -43,6 +43,7 @@ from ganeti import daemon
 from ganeti import ssconf
 from ganeti.asyncnotifier import AsyncNotifier
 from ganeti.confd.server import ConfdProcessor
+from ganeti.confd import PackMagic, UnpackMagic
 
 
 class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
@@ -69,23 +70,16 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
 
   # this method is overriding a daemon.AsyncUDPSocket method
   def handle_datagram(self, payload_in, ip, port):
-
-    if len(payload_in) < len(constants.CONFD_MAGIC_FOURCC):
-      logging.debug("Received a query which is too short to be true")
-      return
-
-    magic_number = payload_in[:4]
-    query = payload_in[4:]
-
-    if magic_number != constants.CONFD_MAGIC_FOURCC:
-      logging.debug("Received a query with an unknown magic number")
+    try:
+      query = UnpackMagic(payload_in)
+    except errors.ConfdMagicError, err:
+      logging.debug(err)
       return
 
     answer =  self.processor.ExecQuery(query, ip, port)
     if answer is not None:
-      payload_out = ''.join([constants.CONFD_MAGIC_FOURCC, answer])
       try:
-        self.enqueue_send(ip, port, payload_out)
+        self.enqueue_send(ip, port, PackMagic(answer))
       except errors.UdpDataSizeError:
         logging.error("Reply too big to fit in an udp packet.")
 
