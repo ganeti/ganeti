@@ -688,6 +688,16 @@ CONFD_CONFIG_RELOAD_RATELIMIT = 2
 # compressed, or move away from json.
 CONFD_MAGIC_FOURCC = 'plj0'
 
+# By default a confd request is sent to the minimum between this number and all
+# MCs. 6 was chosen because even in the case of a disastrous 50% response rate,
+# we should have enough answers to be able to compare more than one.
+CONFD_DEFAULT_REQ_COVERAGE = 6
+
+# Timeout in seconds to expire pending query request in the confd client
+# library. We don't actually expect any answer more than 10 seconds after we
+# sent a request.
+CONFD_CLIENT_EXPIRE_TIMEOUT = 10
+
 # Maximum UDP datagram size.
 # On IPv4: 64K - 20 (ip header size) - 8 (udp header size) = 65507
 # On IPv6: 64K - 40 (ip6 header size) - 8 (udp header size) = 65487
