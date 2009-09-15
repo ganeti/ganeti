@@ -74,5 +74,29 @@ class TestParameterNames(unittest.TestCase):
                         (kind, key))
 
 
+class TestConfdConstants(unittest.TestCase):
+  """Test the confd constants"""
+
+  def testFourCc(self):
+    self.failUnlessEqual(len(constants.CONFD_MAGIC_FOURCC), 4,
+                    "Invalid fourcc len, should be 4")
+
+  def _IsUniqueSequence(self, sequence):
+    seen = set()
+    for member in sequence:
+      if member in seen:
+        return False
+      seen.add(member)
+    return True
+
+  def testReqs(self):
+    self.failUnless(self._IsUniqueSequence(constants.CONFD_REQS),
+                    "Duplicated confd request code")
+
+  def testReplStatuses(self):
+    self.failUnless(self._IsUniqueSequence(constants.CONFD_REPL_STATUSES),
+                    "Duplicated confd reply status code")
+
+
 if __name__ == '__main__':
   unittest.main()
