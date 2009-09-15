@@ -38,6 +38,24 @@ from ganeti import cmdlib
 from ganeti import locking
 
 
+class OpExecCbBase:
+  """Base class for OpCode execution callbacks.
+
+  """
+  def NotifyStart(self):
+    """Called when we are about to execute the LU.
+
+    This function is called when we're about to start the lu's Exec() method,
+    that is, after we have acquired all locks.
+
+    """
+
+  def Feedback(self, *args):
+    """Sends feedback from the LU code to the end-user.
+
+    """
+
+
 class Processor(object):
   """Object which runs OpCodes"""
   DISPATCH_TABLE = {
@@ -103,12 +121,9 @@ class Processor(object):
   def __init__(self, context):
     """Constructor for Processor
 
-    Args:
-     - feedback_fn: the feedback function (taking one string) to be run when
-                    interesting events are happening
     """
     self.context = context
-    self._feedback_fn = None
+    self._cbs = None
     self.exclusive_BGL = False
     self.rpc = rpc.RpcRunner(context.cfg)
     self.hmclass = HooksMaster
@@ -122,7 +137,7 @@ class Processor(object):
     hm = HooksMaster(self.rpc.call_hooks_runner, lu)
     h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
-                     self._feedback_fn, None)
+                     self._Feedback, None)
 
     if getattr(lu.op, "dry_run", False):
       # in this mode, no post-hooks are run, and the config is not
@@ -133,10 +148,10 @@ class Processor(object):
       return lu.dry_run_result
 
     try:
-      result = lu.Exec(self._feedback_fn)
+      result = lu.Exec(self._Feedback)
       h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
       result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
-                                self._feedback_fn, result)
+                                self._Feedback, result)
     finally:
       # FIXME: This needs locks if not lu_class.REQ_BGL
       if write_count != self.context.cfg.write_count:
@@ -155,8 +170,9 @@ class Processor(object):
     adding_locks = level in lu.add_locks
     acquiring_locks = level in lu.needed_locks
     if level not in locking.LEVELS:
-      if callable(self._run_notifier):
-        self._run_notifier()
+      if self._cbs:
+        self._cbs.NotifyStart()
+
       result = self._ExecLU(lu)
     elif adding_locks and acquiring_locks:
       # We could both acquire and add locks at the same level, but for now we
@@ -196,52 +212,57 @@ class Processor(object):
 
     return result
 
-  def ExecOpCode(self, op, feedback_fn, run_notifier):
+  def ExecOpCode(self, op, cbs):
     """Execute an opcode.
 
     @type op: an OpCode instance
     @param op: the opcode to be executed
-    @type feedback_fn: a function that takes a single argument
-    @param feedback_fn: this function will be used as feedback from the LU
-                        code to the end-user
-    @type run_notifier: callable (no arguments) or None
-    @param run_notifier:  this function (if callable) will be called when
-                          we are about to call the lu's Exec() method, that
-                          is, after we have acquired all locks
+    @type cbs: L{OpExecCbBase}
+    @param cbs: Runtime callbacks
 
     """
     if not isinstance(op, opcodes.OpCode):
       raise errors.ProgrammerError("Non-opcode instance passed"
                                    " to ExecOpcode")
 
-    self._feedback_fn = feedback_fn
-    self._run_notifier = run_notifier
-    lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
-    if lu_class is None:
-      raise errors.OpCodeUnknown("Unknown opcode")
-
-    # Acquire the Big Ganeti Lock exclusively if this LU requires it, and in a
-    # shared fashion otherwise (to prevent concurrent run with an exclusive LU.
-    self.context.glm.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
-                             shared=not lu_class.REQ_BGL)
+    self._cbs = cbs
     try:
-      self.exclusive_BGL = lu_class.REQ_BGL
-      lu = lu_class(self, op, self.context, self.rpc)
-      lu.ExpandNames()
-      assert lu.needed_locks is not None, "needed_locks not set by LU"
-      result = self._LockAndExecLU(lu, locking.LEVEL_INSTANCE)
+      lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
+      if lu_class is None:
+        raise errors.OpCodeUnknown("Unknown opcode")
+
+      # Acquire the Big Ganeti Lock exclusively if this LU requires it, and in a
+      # shared fashion otherwise (to prevent concurrent run with an exclusive
+      # LU.
+      self.context.glm.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
+                               shared=not lu_class.REQ_BGL)
+      try:
+        self.exclusive_BGL = lu_class.REQ_BGL
+        lu = lu_class(self, op, self.context, self.rpc)
+        lu.ExpandNames()
+        assert lu.needed_locks is not None, "needed_locks not set by LU"
+        result = self._LockAndExecLU(lu, locking.LEVEL_INSTANCE)
+      finally:
+        self.context.glm.release(locking.LEVEL_CLUSTER)
+        self.exclusive_BGL = False
     finally:
-      self.context.glm.release(locking.LEVEL_CLUSTER)
-      self.exclusive_BGL = False
+      self._cbs = None
 
     return result
+
+  def _Feedback(self, *args):
+    """Forward call to feedback callback function.
+
+    """
+    if self._cbs:
+      self._cbs.Feedback(*args)
 
   def LogStep(self, current, total, message):
     """Log a change in LU execution progress.
 
     """
     logging.debug("Step %d/%d %s", current, total, message)
-    self._feedback_fn("STEP %d/%d %s" % (current, total, message))
+    self._Feedback("STEP %d/%d %s" % (current, total, message))
 
   def LogWarning(self, message, *args, **kwargs):
     """Log a warning to the logs and the user.
@@ -258,9 +279,9 @@ class Processor(object):
       message = message % tuple(args)
     if message:
       logging.warning(message)
-      self._feedback_fn(" - WARNING: %s" % message)
+      self._Feedback(" - WARNING: %s" % message)
     if "hint" in kwargs:
-      self._feedback_fn("      Hint: %s" % kwargs["hint"])
+      self._Feedback("      Hint: %s" % kwargs["hint"])
 
   def LogInfo(self, message, *args):
     """Log an informational message to the logs and the user.
@@ -269,7 +290,7 @@ class Processor(object):
     if args:
       message = message % tuple(args)
     logging.info(message)
-    self._feedback_fn(" - INFO: %s" % message)
+    self._Feedback(" - INFO: %s" % message)
 
 
 class HooksMaster(object):
