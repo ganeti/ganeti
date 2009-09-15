@@ -36,6 +36,7 @@ from ganeti import errors
 from ganeti import rpc
 from ganeti import cmdlib
 from ganeti import locking
+from ganeti import utils
 
 
 class OpExecCbBase:
@@ -52,6 +53,11 @@ class OpExecCbBase:
 
   def Feedback(self, *args):
     """Sends feedback from the LU code to the end-user.
+
+    """
+
+  def ReportLocks(self, msg):
+    """Report lock operations.
 
     """
 
@@ -128,6 +134,48 @@ class Processor(object):
     self.rpc = rpc.RpcRunner(context.cfg)
     self.hmclass = HooksMaster
 
+  def _ReportLocks(self, level, names, shared, acquired):
+    """Reports lock operations.
+
+    @type level: int
+    @param level: Lock level
+    @type names: list or string
+    @param names: Lock names
+    @type shared: bool
+    @param shared: Whether the lock should be acquired in shared mode
+    @type acquired: bool
+    @param acquired: Whether the lock has already been acquired
+
+    """
+    parts = []
+
+    # Build message
+    if acquired:
+      parts.append("acquired")
+    else:
+      parts.append("waiting")
+
+    parts.append(locking.LEVEL_NAMES[level])
+
+    if names == locking.ALL_SET:
+      parts.append("ALL")
+    elif isinstance(names, basestring):
+      parts.append(names)
+    else:
+      parts.append(",".join(names))
+
+    if shared:
+      parts.append("shared")
+    else:
+      parts.append("exclusive")
+
+    msg = "/".join(parts)
+
+    logging.debug("LU locks %s", msg)
+
+    if self._cbs:
+      self._cbs.ReportLocks(msg)
+
   def _ExecLU(self, lu):
     """Logical Unit execution sequence.
 
@@ -184,9 +232,13 @@ class Processor(object):
       share = lu.share_locks[level]
       if acquiring_locks:
         needed_locks = lu.needed_locks[level]
+
+        self._ReportLocks(level, needed_locks, share, False)
         lu.acquired_locks[level] = self.context.glm.acquire(level,
                                                             needed_locks,
                                                             shared=share)
+        self._ReportLocks(level, needed_locks, share, True)
+
       else: # adding_locks
         add_locks = lu.add_locks[level]
         lu.remove_locks[level] = add_locks
@@ -234,8 +286,14 @@ class Processor(object):
       # Acquire the Big Ganeti Lock exclusively if this LU requires it, and in a
       # shared fashion otherwise (to prevent concurrent run with an exclusive
       # LU.
-      self.context.glm.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
-                               shared=not lu_class.REQ_BGL)
+      self._ReportLocks(locking.LEVEL_CLUSTER, [locking.BGL],
+                        not lu_class.REQ_BGL, False)
+      try:
+        self.context.glm.acquire(locking.LEVEL_CLUSTER, [locking.BGL],
+                                 shared=not lu_class.REQ_BGL)
+      finally:
+        self._ReportLocks(locking.LEVEL_CLUSTER, [locking.BGL],
+                          not lu_class.REQ_BGL, True)
       try:
         self.exclusive_BGL = lu_class.REQ_BGL
         lu = lu_class(self, op, self.context, self.rpc)

@@ -153,12 +153,13 @@ class _QueuedJob(object):
   @ivar received_timestamp: the timestamp for when the job was received
   @ivar start_timestmap: the timestamp for start of execution
   @ivar end_timestamp: the timestamp for end of execution
+  @ivar lock_status: In-memory locking information for debugging
   @ivar change: a Condition variable we use for waiting for job changes
 
   """
   __slots__ = ["queue", "id", "ops", "run_op_index", "log_serial",
                "received_timestamp", "start_timestamp", "end_timestamp",
-               "change",
+               "lock_status", "change",
                "__weakref__"]
 
   def __init__(self, queue, job_id, ops):
@@ -186,6 +187,9 @@ class _QueuedJob(object):
     self.start_timestamp = None
     self.end_timestamp = None
 
+    # In-memory attributes
+    self.lock_status = None
+
     # Condition to wait for changes
     self.change = threading.Condition(self.queue._lock)
 
@@ -208,6 +212,9 @@ class _QueuedJob(object):
     obj.received_timestamp = state.get("received_timestamp", None)
     obj.start_timestamp = state.get("start_timestamp", None)
     obj.end_timestamp = state.get("end_timestamp", None)
+
+    # In-memory attributes
+    obj.lock_status = None
 
     obj.ops = []
     obj.log_serial = 0
@@ -334,7 +341,7 @@ class _QueuedJob(object):
       not_marked = False
 
 
-class _OpCodeExecCallbacks(mcpu.OpExecCbBase):
+class _OpExecCallbacks(mcpu.OpExecCbBase):
   def __init__(self, queue, job, op):
     """Initializes this class.
 
@@ -368,6 +375,9 @@ class _OpCodeExecCallbacks(mcpu.OpExecCbBase):
       assert self._op.status in (constants.OP_STATUS_WAITLOCK,
                                  constants.OP_STATUS_CANCELING)
 
+      # All locks are acquired by now
+      self._job.lock_status = None
+
       # Cancel here if we were asked to
       if self._op.status == constants.OP_STATUS_CANCELING:
         raise CancelJob()
@@ -400,6 +410,15 @@ class _OpCodeExecCallbacks(mcpu.OpExecCbBase):
       self._job.change.notifyAll()
     finally:
       self._queue.release()
+
+  def ReportLocks(self, msg):
+    """Write locking information to the job.
+
+    Called whenever the LU processor is waiting for a lock or has acquired one.
+
+    """
+    # Not getting the queue lock because this is a single assignment
+    self._job.lock_status = msg
 
 
 class _JobQueueWorker(workerpool.BaseWorker):
@@ -457,7 +476,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
 
             # Make sure not to hold queue lock while calling ExecOpCode
             result = proc.ExecOpCode(input_opcode,
-                                     _OpCodeExecCallbacks(queue, job, op))
+                                     _OpExecCallbacks(queue, job, op))
 
             queue.acquire()
             try:
@@ -505,6 +524,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
       queue.acquire()
       try:
         try:
+          job.lock_status = None
           job.run_op_index = -1
           job.end_timestamp = TimeStampNow()
           queue.UpdateJobUnlocked(job)
@@ -513,6 +533,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
           status = job.CalcStatus()
       finally:
         queue.release()
+
       logging.info("Worker %s finished job %s, status = %s",
                    self.worker_id, job_id, status)
 
@@ -1080,7 +1101,6 @@ class JobQueue(object):
       results.append((status, data))
 
     return results
-
 
   @_RequireOpenQueue
   def UpdateJobUnlocked(self, job):
