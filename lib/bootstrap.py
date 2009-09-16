@@ -63,7 +63,7 @@ def _InitSSHSetup():
     raise errors.OpExecError("Could not generate ssh keypair, error %s" %
                              result.output)
 
-  utils.AddAuthorizedKey(auth_keys, utils.ReadFile(auth_keys))
+  utils.AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
 
 def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
