@@ -338,7 +338,9 @@ def VerifyCluster(opts, args):
   skip_checks = []
   if opts.skip_nplusone_mem:
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
-  op = opcodes.OpVerifyCluster(skip_checks=skip_checks)
+  op = opcodes.OpVerifyCluster(skip_checks=skip_checks,
+                               verbose=opts.verbose,
+                               error_codes=opts.error_codes)
   if SubmitOpCode(op):
     return 0
   else:
@@ -666,12 +668,15 @@ commands = {
                   "",
                   "Forces a push of the configuration file and ssconf files"
                   " to the nodes in the cluster"),
-  'verify': (VerifyCluster, ARGS_NONE, [DEBUG_OPT,
-             cli_option("--no-nplus1-mem", dest="skip_nplusone_mem",
-                        help="Skip N+1 memory redundancy tests",
-                        action="store_true",
-                        default=False,),
-             ],
+  'verify': (VerifyCluster, ARGS_NONE,
+             [DEBUG_OPT, VERBOSE_OPT,
+              cli_option("--error-codes", dest="error_codes",
+                         help="Enable parseable error messages",
+                         action="store_true", default=False),
+              cli_option("--no-nplus1-mem", dest="skip_nplusone_mem",
+                         help="Skip N+1 memory redundancy tests",
+                         action="store_true", default=False),
+              ],
              "", "Does a check on the cluster configuration"),
   'verify-disks': (VerifyDisks, ARGS_NONE, [DEBUG_OPT],
                    "", "Does a check on the cluster disk status"),
