@@ -106,6 +106,14 @@ class SimpleConfigReader(object):
         if 'ip' in nic and nic['ip']:
           self._ip_to_instance[nic['ip']] = iname
 
+    self._nodes_primary_ips = []
+    self._mc_primary_ips = []
+    for node_name in self._config_data["nodes"]:
+      node = self._config_data["nodes"][node_name]
+      self._nodes_primary_ips.append(node["primary_ip"])
+      if node["master_candidate"]:
+        self._mc_primary_ips.append(node["primary_ip"])
+
     return True
 
   # Clients can request a reload of the config file, so we export our internal
@@ -186,6 +194,12 @@ class SimpleConfigReader(object):
     if instance not in self._config_data["instances"]:
       return None
     return self._config_data["instances"][instance]["primary_node"]
+
+  def GetNodesPrimaryIps(self):
+    return self._nodes_primary_ips
+
+  def GetMasterCandidatesPrimaryIps(self):
+    return self._mc_primary_ips
 
 
 class SimpleStore(object):

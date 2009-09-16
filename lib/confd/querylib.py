@@ -167,3 +167,44 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
       return QUERY_INTERNAL_ERROR
 
     return constants.CONFD_REPL_STATUS_OK, pnode_primary_ip
+
+
+class NodesPipsQuery(ConfdQuery):
+  """A query for nodes primary IPs.
+
+  It returns the list of nodes primary IPs.
+
+  """
+  def Exec(self, query):
+    """NodesPipsQuery main execution.
+
+    """
+    if query is None:
+      status = constants.CONFD_REPL_STATUS_OK
+      answer = self.reader.GetNodesPrimaryIps()
+    else:
+      status = constants.CONFD_REPL_STATUS_ERROR
+      answer = "non-empty node primary IPs query"
+
+    return status, answer
+
+
+class MasterCandidatesPipsQuery(ConfdQuery):
+  """A query for master candidates primary IPs.
+
+  It returns the list of master candidates primary IPs.
+
+  """
+  def Exec(self, query):
+    """MasterCandidatesPipsQuery main execution.
+
+    """
+    if query is None:
+      status = constants.CONFD_REPL_STATUS_OK
+      answer = self.reader.GetMasterCandidatesPrimaryIps()
+    else:
+      status = constants.CONFD_REPL_STATUS_ERROR
+      answer = "non-empty master candidates primary IPs query"
+
+    return status, answer
+
