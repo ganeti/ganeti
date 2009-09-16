@@ -1601,7 +1601,7 @@ class LURepairDiskSizes(NoHooksLU):
     changed = []
     for node, dskl in per_node_disks.items():
       result = self.rpc.call_blockdev_getsizes(node, [v[2] for v in dskl])
-      if result.failed or result.fail_msg:
+      if result.RemoteFailMsg():
         self.LogWarning("Failure in blockdev_getsizes call to node"
                         " %s, ignoring", node)
         continue
@@ -4037,7 +4037,7 @@ class LUQueryInstances(NoHooksLU):
         if result.offline:
           # offline nodes will be in both lists
           off_nodes.append(name)
-        if result.failed or result.fail_msg:
+        if result.RemoteFailMsg():
           bad_nodes.append(name)
         else:
           if result.payload:

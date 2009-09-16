@@ -83,9 +83,6 @@ class RpcResult(object):
   failed, and therefore we use this class to encapsulate the result.
 
   @ivar data: the data payload, for successful results, or None
-  @type failed: boolean
-  @ivar failed: whether the operation failed at transport level (not
-      application level on the remote node)
   @ivar call: the name of the RPC call
   @ivar node: the name of the node to which we made the call
   @ivar offline: whether the operation failed because the node was
@@ -97,12 +94,10 @@ class RpcResult(object):
   """
   def __init__(self, data=None, failed=False, offline=False,
                call=None, node=None):
-    self.failed = failed
     self.offline = offline
     self.call = call
     self.node = node
     if offline:
-      self.failed = True
       self.fail_msg = "Node is marked offline"
       self.data = self.payload = None
     elif failed:
@@ -111,15 +106,12 @@ class RpcResult(object):
     else:
       self.data = data
       if not isinstance(self.data, (tuple, list)):
-        self.failed = True
         self.fail_msg = ("RPC layer error: invalid result type (%s)" %
                          type(self.data))
       elif len(data) != 2:
-        self.failed = True
         self.fail_msg = ("RPC layer error: invalid result length (%d), "
                          "expected 2" % len(self.data))
       elif not self.data[0]:
-        self.failed = True
         self.fail_msg = self._EnsureErr(self.data[1])
       else:
         # finally success
@@ -813,7 +805,7 @@ class RpcRunner(object):
     """
     result = self._SingleNodeCall(node, "blockdev_getmirrorstatus",
                                   [dsk.ToDict() for dsk in disks])
-    if not (result.failed or result.fail_msg):
+    if not result.fail_msg:
       result.payload = [objects.BlockDevStatus.FromDict(i)
                         for i in result.payload]
     return result
@@ -825,7 +817,7 @@ class RpcRunner(object):
 
     """
     result = self._SingleNodeCall(node, "blockdev_find", [disk.ToDict()])
-    if not result.failed and result.payload is not None:
+    if not result.fail_msg and result.payload is not None:
       result.payload = objects.BlockDevStatus.FromDict(result.payload)
     return result
 
@@ -926,7 +918,7 @@ class RpcRunner(object):
 
     """
     result = self._SingleNodeCall(node, "os_get", [name])
-    if not result.failed and isinstance(result.data, dict):
+    if not result.fail_msg and isinstance(result.data, dict):
       result.data = objects.OS.FromDict(result.data)
     return result
 
