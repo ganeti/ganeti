@@ -37,13 +37,13 @@ import errno
 
 from optparse import OptionParser
 
+from ganeti import asyncnotifier
+from ganeti import confd
+from ganeti.confd import server as confd_server
 from ganeti import constants
 from ganeti import errors
 from ganeti import daemon
 from ganeti import ssconf
-from ganeti.asyncnotifier import AsyncNotifier
-from ganeti.confd.server import ConfdProcessor
-from ganeti.confd import PackMagic, UnpackMagic
 
 
 class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
@@ -71,7 +71,7 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
   # this method is overriding a daemon.AsyncUDPSocket method
   def handle_datagram(self, payload_in, ip, port):
     try:
-      query = UnpackMagic(payload_in)
+      query = confd.UnpackMagic(payload_in)
     except errors.ConfdMagicError, err:
       logging.debug(err)
       return
@@ -79,7 +79,7 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
     answer =  self.processor.ExecQuery(query, ip, port)
     if answer is not None:
       try:
-        self.enqueue_send(ip, port, PackMagic(answer))
+        self.enqueue_send(ip, port, confd.PackMagic(answer))
       except errors.UdpDataSizeError:
         logging.error("Reply too big to fit in an udp packet.")
 
@@ -199,7 +199,7 @@ class ConfdConfigurationReloader(object):
     # Asyncronous inotify handler for config changes
     self.wm = pyinotify.WatchManager()
     self.inotify_handler = ConfdInotifyEventHandler(self.wm, self.OnInotify)
-    self.notifier = AsyncNotifier(self.wm, self.inotify_handler)
+    self.notifier = asyncnotifier.AsyncNotifier(self.wm, self.inotify_handler)
 
     self.timer_handle = None
     self._EnableTimer()
@@ -336,7 +336,7 @@ def ExecConfd(options, args):
   mainloop = daemon.Mainloop()
 
   # Asyncronous confd UDP server
-  processor = ConfdProcessor()
+  processor = confd_server.ConfdProcessor()
   try:
     processor.Enable()
   except errors.ConfigurationError:
