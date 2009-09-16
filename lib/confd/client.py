@@ -115,7 +115,7 @@ class ConfdClient:
       else:
         break
 
-  def SendRequest(self, request, callback, args, coverage=None):
+  def SendRequest(self, request, callback, args=None, coverage=None):
     """Send a confd request to some MCs
 
     @type request: L{objects.ConfdRequest}
@@ -123,7 +123,7 @@ class ConfdClient:
     @type callback: f(answer, req_type, req_query, salt, ip, port, args)
     @param callback: answer callback
     @type args: tuple
-    @param args: additional callback arguments
+    @keyword args: additional callback arguments
     @type coverage: integer
     @keyword coverage: number of remote nodes to contact
 
