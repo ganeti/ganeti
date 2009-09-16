@@ -65,7 +65,7 @@ class ConfdClient:
   through asyncore or with your own handling.
 
   """
-  def __init__(self, hmac_key, peers, callback):
+  def __init__(self, hmac_key, peers, callback, port=None):
     """Constructor for ConfdClient
 
     @type hmac_key: string
@@ -74,6 +74,8 @@ class ConfdClient:
     @param peers: list of peer nodes
     @type callback: f(L{ConfdUpcallPayload})
     @param callback: function to call when getting answers
+    @type port: integer
+    @keyword port: confd port (default: use GetDaemonPort)
 
     """
     if not isinstance(peers, list):
@@ -85,9 +87,12 @@ class ConfdClient:
     self._hmac_key = hmac_key
     self._socket = ConfdAsyncUDPClient(self)
     self._callback = callback
+    self._confd_port = port
     self._requests = {}
     self._expire_requests = []
-    self._confd_port = utils.GetDaemonPort(constants.CONFD)
+
+    if self._confd_port is None:
+      self._confd_port = utils.GetDaemonPort(constants.CONFD)
 
   def _PackRequest(self, request, now=None):
     """Prepare a request to be sent on the wire.
