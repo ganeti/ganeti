@@ -584,6 +584,14 @@ def GetCommands(filename, module):
     raise Exception("Script %s doesn't have 'commands' attribute" %
                     filename)
 
+  # Add the implicit "--help" option
+  help_option = cli.cli_option("-h", "--help", default=False,
+                               action="store_true")
+
+  for (_, _, optdef, _, _) in commands.itervalues():
+    if help_option not in optdef:
+      optdef.append(help_option)
+
   # Use aliases
   aliases = getattr(module, "aliases", {})
   if aliases:
