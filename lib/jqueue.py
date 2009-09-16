@@ -673,7 +673,7 @@ class JobQueue(object):
 
     # Clean queue directory on added node
     result = rpc.RpcRunner.call_jobqueue_purge(node_name)
-    msg = result.RemoteFailMsg()
+    msg = result.fail_msg
     if msg:
       logging.warning("Cannot cleanup queue directory on node %s: %s",
                       node_name, msg)
@@ -697,7 +697,7 @@ class JobQueue(object):
       result = rpc.RpcRunner.call_jobqueue_update([node_name],
                                                   [node.primary_ip],
                                                   file_name, content)
-      msg = result[node_name].RemoteFailMsg()
+      msg = result[node_name].fail_msg
       if msg:
         logging.error("Failed to upload file %s to node %s: %s",
                       file_name, node_name, msg)
@@ -737,7 +737,7 @@ class JobQueue(object):
     success = []
 
     for node in nodes:
-      msg = result[node].RemoteFailMsg()
+      msg = result[node].fail_msg
       if msg:
         failed.append(node)
         logging.error("RPC call %s failed on node %s: %s",

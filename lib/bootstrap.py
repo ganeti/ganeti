@@ -323,11 +323,11 @@ def FinalizeClusterDestroy(master):
 
   """
   result = rpc.RpcRunner.call_node_stop_master(master, True)
-  msg = result.RemoteFailMsg()
+  msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master role: %s" % msg)
   result = rpc.RpcRunner.call_node_leave_cluster(master)
-  msg = result.RemoteFailMsg()
+  msg = result.fail_msg
   if msg:
     logging.warning("Could not shutdown the node daemon and cleanup"
                     " the node: %s", msg)
@@ -442,7 +442,7 @@ def MasterFailover(no_voting=False):
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
   result = rpc.RpcRunner.call_node_stop_master(old_master, True)
-  msg = result.RemoteFailMsg()
+  msg = result.fail_msg
   if msg:
     logging.error("Could not disable the master role on the old master"
                  " %s, please disable manually: %s", old_master, msg)
@@ -460,7 +460,7 @@ def MasterFailover(no_voting=False):
   cfg.Update(cluster_info)
 
   result = rpc.RpcRunner.call_node_start_master(new_master, True, no_voting)
-  msg = result.RemoteFailMsg()
+  msg = result.fail_msg
   if msg:
     logging.error("Could not start the master role on the new master"
                   " %s, please check: %s", new_master, msg)
@@ -523,7 +523,7 @@ def GatherMasterVotes(node_list):
   for node in results:
     nres = results[node]
     data = nres.payload
-    msg = nres.RemoteFailMsg()
+    msg = nres.fail_msg
     fail = False
     if msg:
       logging.warning("Error contacting node %s: %s", node, msg)

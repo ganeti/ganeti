@@ -448,7 +448,7 @@ class HooksMaster(object):
       res = results[node_name]
       if res.offline:
         continue
-      msg = res.RemoteFailMsg()
+      msg = res.fail_msg
       if msg:
         self.lu.LogWarning("Communication failure to node %s: %s",
                            node_name, msg)

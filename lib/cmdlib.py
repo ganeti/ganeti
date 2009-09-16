@@ -1641,7 +1641,7 @@ class LURepairDiskSizes(NoHooksLU):
     changed = []
     for node, dskl in per_node_disks.items():
       result = self.rpc.call_blockdev_getsizes(node, [v[2] for v in dskl])
-      if result.RemoteFailMsg():
+      if result.fail_msg:
         self.LogWarning("Failure in blockdev_getsizes call to node"
                         " %s, ignoring", node)
         continue
@@ -2885,7 +2885,7 @@ class LUAddNode(LogicalUnit):
       # and make sure the new node will not have old files around
       if not new_node.master_candidate:
         result = self.rpc.call_node_demote_from_mc(new_node.name)
-        msg = result.RemoteFailMsg()
+        msg = result.fail_msg
         if msg:
           self.LogWarning("Node failed to demote itself from master"
                           " candidate status: %s" % msg)
@@ -3013,7 +3013,7 @@ class LUSetNodeParams(LogicalUnit):
           changed_mc = True
           result.append(("master_candidate", "auto-demotion due to drain"))
           rrc = self.rpc.call_node_demote_from_mc(node.name)
-          msg = rrc.RemoteFailMsg()
+          msg = rrc.fail_msg
           if msg:
             self.LogWarning("Node failed to demote itself: %s" % msg)
         if node.offline:
@@ -4077,7 +4077,7 @@ class LUQueryInstances(NoHooksLU):
         if result.offline:
           # offline nodes will be in both lists
           off_nodes.append(name)
-        if result.RemoteFailMsg():
+        if result.fail_msg:
           bad_nodes.append(name)
         else:
           if result.payload:

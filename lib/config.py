@@ -1090,7 +1090,7 @@ class ConfigWriter:
     result = rpc.RpcRunner.call_upload_file(node_list, self._cfg_file,
                                             address_list=addr_list)
     for to_node, to_result in result.items():
-      msg = to_result.RemoteFailMsg()
+      msg = to_result.fail_msg
       if msg:
         msg = ("Copy of file %s to node %s failed: %s" %
                (self._cfg_file, to_node, msg))
@@ -1126,7 +1126,7 @@ class ConfigWriter:
           self._UnlockedGetNodeList(),
           self._UnlockedGetSsconfValues())
         for nname, nresu in result.items():
-          msg = nresu.RemoteFailMsg()
+          msg = nresu.fail_msg
           if msg:
             logging.warning("Error while uploading ssconf files to"
                             " node %s: %s", nname, msg)

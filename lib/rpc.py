@@ -147,14 +147,6 @@ class RpcResult(object):
       ec = errors.OpExecError
     raise ec(msg)
 
-  def RemoteFailMsg(self):
-    """Check if the remote procedure failed.
-
-    @return: the fail_msg attribute
-
-    """
-    return self.fail_msg
-
 
 class Client:
   """RPC Client class.

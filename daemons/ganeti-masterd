@@ -566,7 +566,7 @@ def ExecMasterd (options, args):
       # activate ip
       master_node = ssconf.SimpleStore().GetMasterNode()
       result = rpc.RpcRunner.call_node_start_master(master_node, False, False)
-      msg = result.RemoteFailMsg()
+      msg = result.fail_msg
       if msg:
         logging.error("Can't activate master IP address: %s", msg)
 
