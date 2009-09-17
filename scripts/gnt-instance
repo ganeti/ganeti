@@ -1428,14 +1428,7 @@ commands = {
                  ],
                 "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (RemoveInstance, ARGS_ONE_INSTANCE,
-             [DEBUG_OPT, FORCE_OPT,
-              cli_option("--ignore-failures", dest="ignore_failures",
-                         action="store_true", default=False,
-                         help=("Remove the instance from the cluster even"
-                               " if there are failures during the removal"
-                               " process (shutdown, disk removal, etc.)")),
-              SUBMIT_OPT,
-              ],
+             [DEBUG_OPT, FORCE_OPT, IGNORE_FAILURES_OPT, SUBMIT_OPT],
              "[-f] <instance>", "Shuts down the instance and removes it"),
   'rename': (RenameInstance,
              [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],

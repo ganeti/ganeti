@@ -61,6 +61,7 @@ __all__ = [
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
   "IGNORE_CONSIST_OPT",
+  "IGNORE_FAILURES_OPT",
   "FORCE_OPT",
   "NET_OPT",
   "NODE_LIST_OPT",
@@ -628,6 +629,12 @@ SELECT_OS_OPT = cli_option("--select-os", dest="select_os",
                            action="store_true", default=False,
                            help="Interactive OS reinstall, lists available"
                            " OS templates for selection")
+
+IGNORE_FAILURES_OPT = cli_option("--ignore-failures", dest="ignore_failures",
+                                 action="store_true", default=False,
+                                 help="Remove the instance from the cluster"
+                                 " configuration even if there are failures"
+                                 " during the removal process")
 
 
 def _ParseArgs(argv, commands, aliases):
