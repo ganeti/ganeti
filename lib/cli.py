@@ -50,6 +50,7 @@ __all__ = [
   "BACKEND_OPT",
   "CLEANUP_OPT",
   "CONFIRM_OPT",
+  "CP_SIZE_OPT",
   "DEBUG_OPT",
   "DEBUG_SIMERR_OPT",
   "DISKIDX_OPT",
@@ -731,6 +732,10 @@ ENABLED_HV_OPT = cli_option("--enabled-hypervisors",
 NIC_PARAMS_OPT = cli_option("-N", "--nic-parameters", dest="nicparams",
                             type="keyval", default={},
                             help="NIC parameters")
+
+CP_SIZE_OPT = cli_option("-C", "--candidate-pool-size", default=None,
+                         dest="candidate_pool_size", type="int",
+                         help="Set the candidate pool size")
 
 
 def _ParseArgs(argv, commands, aliases):

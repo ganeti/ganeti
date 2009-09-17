@@ -81,6 +81,9 @@ def InitCluster(opts, args):
     hvparams[hv] = objects.FillDict(constants.HVC_DEFAULTS[hv], hvparams[hv])
     utils.ForceDictType(hvparams[hv], constants.HVS_PARAMETER_TYPES)
 
+  if opts.candidate_pool_size is None:
+    opts.candidate_pool_size = constants.MASTER_POOL_SIZE_DEFAULT
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -623,10 +626,7 @@ commands = {
             HVLIST_OPT,
             BACKEND_OPT,
             NIC_PARAMS_OPT,
-            cli_option("-C", "--candidate-pool-size",
-                       default=constants.MASTER_POOL_SIZE_DEFAULT,
-                       help="Set the candidate pool size",
-                       dest="candidate_pool_size", type="int"),
+            CP_SIZE_OPT,
             ],
            "[opts...] <cluster_name>",
            "Initialises a new cluster configuration"),
@@ -711,9 +711,7 @@ commands = {
               HVLIST_OPT,
               BACKEND_OPT,
               NIC_PARAMS_OPT,
-              cli_option("-C", "--candidate-pool-size", default=None,
-                         help="Set the candidate pool size",
-                         dest="candidate_pool_size", type="int"),
+              CP_SIZE_OPT,
               ],
              "[opts...]",
              "Alters the parameters of the cluster"),
