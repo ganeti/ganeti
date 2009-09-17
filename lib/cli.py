@@ -57,6 +57,7 @@ __all__ = [
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
   "FORCE_OPT",
+  "NET_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
   "NONICS_OPT",
@@ -539,6 +540,9 @@ NOIPCHECK_OPT = cli_option("--no-ip-check", dest="ip_check", default=True,
                            help="Don't check that the instance's IP"
                            " is alive")
 
+NET_OPT = cli_option("--net",
+                     help="NIC parameters", default=[],
+                     dest="nics", action="append", type="identkeyval")
 
 
 def _ParseArgs(argv, commands, aliases):

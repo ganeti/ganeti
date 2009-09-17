@@ -225,10 +225,7 @@ import_opts = [
              " single-disk configuration, when not using the --disk option,"
              " in MiB unless a suffix is used",
              default=None, type="unit", metavar="<size>"),
-  cli_option("--net", help="NIC information",
-             default=[], dest="nics",
-             action="append",
-             type="identkeyval"),
+  NET_OPT,
   NONICS_OPT,
   NWSYNC_OPT,
   cli_option("--src-node", dest="src_node", help="Source node",
