@@ -72,6 +72,7 @@ __all__ = [
   "OS_OPT",
   "OS_SIZE_OPT",
   "SEP_OPT",
+  "SHOWCMD_OPT",
   "SINGLE_NODE_OPT",
   "SUBMIT_OPT",
   "SYNC_OPT",
@@ -596,6 +597,10 @@ SINGLE_NODE_OPT = cli_option("-n", "--node", dest="node", help="Target node",
 NOSTART_OPT = cli_option("--no-start", dest="start", default=True,
                          action="store_false",
                          help="Don't start the instance after creation")
+
+SHOWCMD_OPT = cli_option("--show-cmd", dest="show_command",
+                         action="store_true", default=False,
+                         help="Show command instead of executing it")
 
 
 def _ParseArgs(argv, commands, aliases):
