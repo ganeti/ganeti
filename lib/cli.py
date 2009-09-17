@@ -63,6 +63,7 @@ __all__ = [
   "IALLOCATOR_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_FAILURES_OPT",
+  "IGNORE_SIZE_OPT",
   "FORCE_OPT",
   "NET_OPT",
   "NEW_SECONDARY_OPT",
@@ -659,6 +660,12 @@ AUTO_REPLACE_OPT = cli_option("-a", "--auto", dest="auto",
                               default=False, action="store_true",
                               help="Automatically replace faulty disks"
                               " (only for the drbd template)")
+
+IGNORE_SIZE_OPT = cli_option("--ignore-size", dest="ignore_size",
+                             default=False, action="store_true",
+                             help="Ignore current recorded size"
+                             " (useful for forcing activation when"
+                             " the recorded size is wrong)")
 
 
 def _ParseArgs(argv, commands, aliases):
