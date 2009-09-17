@@ -64,6 +64,7 @@ __all__ = [
   "IGNORE_FAILURES_OPT",
   "FORCE_OPT",
   "NET_OPT",
+  "NEW_SECONDARY_OPT",
   "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
@@ -635,6 +636,11 @@ IGNORE_FAILURES_OPT = cli_option("--ignore-failures", dest="ignore_failures",
                                  help="Remove the instance from the cluster"
                                  " configuration even if there are failures"
                                  " during the removal process")
+
+NEW_SECONDARY_OPT = cli_option("-n", "--new-secondary", dest="dst_node",
+                               help="Specifies the new secondary node",
+                               metavar="NODE", default=None,
+                               completion_suggest=OPT_COMPL_ONE_NODE)
 
 
 def _ParseArgs(argv, commands, aliases):

@@ -637,12 +637,7 @@ commands = {
           "[-s ip] [--readd] [--no-ssh-key-check] <node_name>",
           "Add a node to the cluster"),
   'evacuate': (EvacuateNode, ARGS_ONE_NODE,
-               [DEBUG_OPT, FORCE_OPT, IALLOCATOR_OPT,
-                cli_option("-n", "--new-secondary", dest="dst_node",
-                           help="New secondary node", metavar="NODE",
-                           default=None,
-                           completion_suggest=OPT_COMPL_ONE_NODE),
-                ],
+               [DEBUG_OPT, FORCE_OPT, IALLOCATOR_OPT, NEW_SECONDARY_OPT],
                "[-f] {-I <iallocator> | -n <dst>} <node>",
                "Relocate the secondary instances from a node"
                " to other nodes (only for instances with drbd disk template)"),

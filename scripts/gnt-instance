@@ -845,7 +845,7 @@ def ReplaceDisks(opts, args):
 
   """
   instance_name = args[0]
-  new_2ndary = opts.new_secondary
+  new_2ndary = opts.dst_node
   iallocator = opts.iallocator
   if opts.disks is None:
     disks = []
@@ -1436,11 +1436,7 @@ commands = {
              "<instance> <new_name>", "Rename the instance"),
   'replace-disks': (ReplaceDisks, ARGS_ONE_INSTANCE,
                     [DEBUG_OPT,
-                     cli_option("-n", "--new-secondary", dest="new_secondary",
-                                help=("New secondary node (for secondary"
-                                      " node change)"), metavar="NODE",
-                                default=None,
-                                completion_suggest=OPT_COMPL_ONE_NODE),
+                     NEW_SECONDARY_OPT,
                      cli_option("-p", "--on-primary", dest="on_primary",
                                 default=False, action="store_true",
                                 help=("Replace the disk(s) on the primary"
