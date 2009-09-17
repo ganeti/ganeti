@@ -82,6 +82,7 @@ __all__ = [
   "NONLIVE_OPT",
   "NOSTART_OPT",
   "NOSSH_KEYCHECK_OPT",
+  "NOVOTING_OPT",
   "NWSYNC_OPT",
   "ON_PRIMARY_OPT",
   "ON_SECONDARY_OPT",
@@ -746,6 +747,10 @@ VG_NAME_OPT = cli_option("-g", "--vg-name", dest="vg_name",
 
 YES_DOIT_OPT = cli_option("--yes-do-it", dest="yes_do_it",
                           help="Destroy cluster", action="store_true")
+
+NOVOTING_OPT = cli_option("--no-voting", dest="no_voting",
+                          help="Skip node agreement check (dangerous)",
+                          action="store_true", default=False)
 
 
 def _ParseArgs(argv, commands, aliases):
