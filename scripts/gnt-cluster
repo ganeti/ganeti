@@ -589,11 +589,7 @@ def WatcherOps(opts, args):
 commands = {
   'init': (InitCluster, [ArgHost(min=1, max=1)],
            [DEBUG_OPT,
-            cli_option("-s", "--secondary-ip", dest="secondary_ip",
-                       help="Specify the secondary ip for this node;"
-                       " if given, the entire cluster must have secondary"
-                       " addresses",
-                       metavar="ADDRESS", default=None),
+            SECONDARY_IP_OPT,
             cli_option("-m", "--mac-prefix", dest="mac_prefix",
                        help="Specify the mac prefix for the instance IP"
                        " addresses, in the format XX:XX:XX",
