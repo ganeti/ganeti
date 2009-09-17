@@ -73,6 +73,7 @@ __all__ = [
   "NONLIVE_OPT",
   "NOSTART_OPT",
   "NWSYNC_OPT",
+  "ON_PRIMARY_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
   "SELECT_OS_OPT",
@@ -641,6 +642,11 @@ NEW_SECONDARY_OPT = cli_option("-n", "--new-secondary", dest="dst_node",
                                help="Specifies the new secondary node",
                                metavar="NODE", default=None,
                                completion_suggest=OPT_COMPL_ONE_NODE)
+
+ON_PRIMARY_OPT = cli_option("-p", "--on-primary", dest="on_primary",
+                            default=False, action="store_true",
+                            help="Replace the disk(s) on the primary"
+                            " node (only for the drbd template)")
 
 
 def _ParseArgs(argv, commands, aliases):

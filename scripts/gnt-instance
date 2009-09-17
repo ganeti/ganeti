@@ -1437,10 +1437,7 @@ commands = {
   'replace-disks': (ReplaceDisks, ARGS_ONE_INSTANCE,
                     [DEBUG_OPT,
                      NEW_SECONDARY_OPT,
-                     cli_option("-p", "--on-primary", dest="on_primary",
-                                default=False, action="store_true",
-                                help=("Replace the disk(s) on the primary"
-                                      " node (only for the drbd template)")),
+                     ON_PRIMARY_OPT,
                      cli_option("-s", "--on-secondary", dest="on_secondary",
                                 default=False, action="store_true",
                                 help=("Replace the disk(s) on the secondary"
