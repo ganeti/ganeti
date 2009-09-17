@@ -1388,8 +1388,7 @@ add_opts = [
              default=[], dest="nics",
              action="append",
              type="identkeyval"),
-  cli_option("--no-nics", default=False, action="store_true",
-             help="Do not create any network cards for the instance"),
+  NONICS_OPT,
   NWSYNC_OPT,
   cli_option("--no-start", dest="start", default=True,
              action="store_false", help="Don't start the instance after"

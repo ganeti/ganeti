@@ -51,6 +51,7 @@ __all__ = [
   "FIELDS_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
+  "NONICS_OPT",
   "NWSYNC_OPT",
   "SEP_OPT",
   "SUBMIT_OPT",
@@ -481,6 +482,10 @@ DISK_TEMPLATE_OPT = cli_option("-t", "--disk-template", dest="disk_template",
                                " plain or drbd)",
                                default=None, metavar="TEMPL",
                                choices=list(constants.DISK_TEMPLATES))
+
+NONICS_OPT = cli_option("--no-nics", default=False, action="store_true",
+                        help="Do not create any network cards for"
+                        " the instance")
 
 
 def _ParseArgs(argv, commands, aliases):
