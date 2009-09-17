@@ -971,7 +971,7 @@ def MoveInstance(opts, args):
       return 1
 
   op = opcodes.OpMoveInstance(instance_name=instance_name,
-                              target_node=opts.target_node)
+                              target_node=opts.node)
   SubmitOrSend(op, opts, cl=cl)
   return 0
 
@@ -1328,11 +1328,6 @@ def SetInstanceParams(opts, args):
   return 0
 
 
-# options used in more than one cmd
-node_opt = cli_option("-n", "--node", dest="node", help="Target node",
-                      metavar="<node>",
-                      completion_suggest=OPT_COMPL_ONE_NODE)
-
 # multi-instance selection options
 m_force_multi = cli_option("--force-multiple", dest="force_multi",
                            help="Do not ask for confirmation when more than"
@@ -1418,12 +1413,7 @@ commands = {
                "Migrate instance to its secondary node"
                " (only for instances of type drbd)"),
   'move': (MoveInstance, ARGS_ONE_INSTANCE,
-           [DEBUG_OPT, FORCE_OPT, SUBMIT_OPT,
-            cli_option("-n", "--new-node", dest="target_node",
-                       help="Destinattion node", metavar="NODE",
-                       default=None,
-                       completion_suggest=OPT_COMPL_ONE_NODE),
-            ],
+           [DEBUG_OPT, FORCE_OPT, SUBMIT_OPT, SINGLE_NODE_OPT],
            "[-f] <instance>",
            "Move instance to an arbitrary node"
            " (only for instances of type file and lv)"),

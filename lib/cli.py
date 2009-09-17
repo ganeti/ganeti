@@ -71,6 +71,7 @@ __all__ = [
   "OS_OPT",
   "OS_SIZE_OPT",
   "SEP_OPT",
+  "SINGLE_NODE_OPT",
   "SUBMIT_OPT",
   "SYNC_OPT",
   "TAG_SRC_OPT",
@@ -586,6 +587,10 @@ NODE_LIST_OPT = cli_option("-n", "--node", dest="nodes", default=[],
                            help="Use only this node (can be used multiple"
                            " times, if not given defaults to all nodes)",
                            completion_suggest=OPT_COMPL_ONE_NODE)
+
+SINGLE_NODE_OPT = cli_option("-n", "--node", dest="node", help="Target node",
+                             metavar="<node>",
+                             completion_suggest=OPT_COMPL_ONE_NODE)
 
 
 def _ParseArgs(argv, commands, aliases):
