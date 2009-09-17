@@ -64,6 +64,7 @@ __all__ = [
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
   "NONICS_OPT",
+  "NONLIVE_OPT",
   "NWSYNC_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
@@ -566,6 +567,12 @@ IGNORE_CONSIST_OPT = cli_option("--ignore-consistency",
                                 action="store_true", default=False,
                                 help="Ignore the consistency of the disks on"
                                 " the secondary")
+
+NONLIVE_OPT = cli_option("--non-live", dest="live",
+                         default=True, action="store_false",
+                         help="Do a non-live migration (this usually means"
+                         " freeze the instance, save the state, transfer and"
+                         " only then resume running on the secondary node)")
 
 
 def _ParseArgs(argv, commands, aliases):

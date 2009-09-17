@@ -652,14 +652,7 @@ commands = {
                "Stops the primary instances on a node and start them on their"
                " secondary node (only for instances with drbd disk template)"),
   'migrate': (MigrateNode, ARGS_ONE_NODE,
-               [DEBUG_OPT, FORCE_OPT,
-                cli_option("--non-live", dest="live",
-                           default=True, action="store_false",
-                           help="Do a non-live migration (this usually means"
-                           " freeze the instance, save the state,"
-                           " transfer and only then resume running on the"
-                           " secondary node)"),
-                ],
+               [DEBUG_OPT, FORCE_OPT, NONLIVE_OPT],
                "[-f] <node>",
                "Migrate all the primary instance on a node away from it"
                " (only for instances of type drbd)"),
