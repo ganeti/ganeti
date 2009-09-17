@@ -71,6 +71,7 @@ __all__ = [
   "MC_OPT",
   "NET_OPT",
   "NEW_SECONDARY_OPT",
+  "NIC_PARAMS_OPT",
   "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
@@ -726,6 +727,10 @@ ENABLED_HV_OPT = cli_option("--enabled-hypervisors",
                             dest="enabled_hypervisors",
                             help="Comma-separated list of hypervisors",
                             type="string", default=None)
+
+NIC_PARAMS_OPT = cli_option("-N", "--nic-parameters", dest="nicparams",
+                            type="keyval", default={},
+                            help="NIC parameters")
 
 
 def _ParseArgs(argv, commands, aliases):
