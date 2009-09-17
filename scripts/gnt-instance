@@ -1333,10 +1333,6 @@ node_opt = cli_option("-n", "--node", dest="node", help="Target node",
                       metavar="<node>",
                       completion_suggest=OPT_COMPL_ONE_NODE)
 
-os_opt = cli_option("-o", "--os-type", dest="os", help="What OS to run",
-                    metavar="<os>",
-                    completion_suggest=OPT_COMPL_ONE_OS)
-
 # multi-instance selection options
 m_force_multi = cli_option("--force-multiple", dest="force_multi",
                            help="Do not ask for confirmation when more than"
@@ -1371,7 +1367,7 @@ add_opts = [
              help="Target node and optional secondary node",
              metavar="<pnode>[:<snode>]",
              completion_suggest=OPT_COMPL_INST_ADD_NODES),
-  os_opt,
+  OS_OPT,
   cli_option("-B", "--backend", dest="beparams",
              type="keyval", default={},
              help="Backend parameters"),
@@ -1485,7 +1481,7 @@ commands = {
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),
   'reinstall': (ReinstallInstance, [ArgInstance(min=1)],
-                [DEBUG_OPT, FORCE_OPT, os_opt,
+                [DEBUG_OPT, FORCE_OPT, OS_OPT,
                  m_force_multi,
                  m_node_opt, m_pri_node_opt, m_sec_node_opt,
                  m_clust_opt, m_inst_opt,

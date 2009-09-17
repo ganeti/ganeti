@@ -200,9 +200,7 @@ commands = {
                             help="Comma separated list of nics, each nic"
                             " definition is of form mac/ip/bridge, if"
                             " missing values are replace by None"),
-                 cli_option("-o", "--os-type", default=None,
-                            help="Select os for the instance",
-                            completion_suggest=OPT_COMPL_ONE_OS),
+                 OS_OPT,
                  cli_option("-p", "--vcpus", default=1, type="int",
                             help="Select number of VCPUs for the instance"),
                  cli_option("--tags", default=None,

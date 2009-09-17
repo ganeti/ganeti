@@ -56,6 +56,7 @@ __all__ = [
   "NOHDR_OPT",
   "NONICS_OPT",
   "NWSYNC_OPT",
+  "OS_OPT",
   "SEP_OPT",
   "SUBMIT_OPT",
   "SYNC_OPT",
@@ -505,6 +506,10 @@ IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
                             " using the <NAME> iallocator plugin",
                             default=None, type="string",
                             completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
+
+OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
+                    metavar="<os>",
+                    completion_suggest=OPT_COMPL_ONE_OS)
 
 
 def _ParseArgs(argv, commands, aliases):
