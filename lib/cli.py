@@ -58,6 +58,7 @@ __all__ = [
   "DISK_TEMPLATE_OPT",
   "DRAINED_OPT",
   "ENABLED_HV_OPT",
+  "ERROR_CODES_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
@@ -84,6 +85,7 @@ __all__ = [
   "NOMODIFY_ETCHOSTS_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
+  "NONPLUS1_OPT",
   "NOSTART_OPT",
   "NOSSH_KEYCHECK_OPT",
   "NOVOTING_OPT",
@@ -780,6 +782,14 @@ GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify /etc/hosts",
                                    action="store_false", default=True)
+
+ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
+                             help="Enable parseable error messages",
+                             action="store_true", default=False)
+
+NONPLUS1_OPT = cli_option("--no-nplus1-mem", dest="skip_nplusone_mem",
+                          help="Skip N+1 memory redundancy tests",
+                          action="store_true", default=False)
 
 
 def _ParseArgs(argv, commands, aliases):
