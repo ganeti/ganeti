@@ -96,6 +96,7 @@ __all__ = [
   "OS_OPT",
   "OS_SIZE_OPT",
   "READD_OPT",
+  "REBOOT_TYPE_OPT",
   "SECONDARY_IP_OPT",
   "SELECT_OS_OPT",
   "SEP_OPT",
@@ -790,6 +791,12 @@ ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
 NONPLUS1_OPT = cli_option("--no-nplus1-mem", dest="skip_nplusone_mem",
                           help="Skip N+1 memory redundancy tests",
                           action="store_true", default=False)
+
+REBOOT_TYPE_OPT = cli_option("-t", "--type", dest="reboot_type",
+                             help="Type of reboot: soft/hard/full",
+                             default=constants.INSTANCE_REBOOT_HARD,
+                             metavar="<REBOOT>",
+                             choices=list(constants.REBOOT_TYPES))
 
 
 def _ParseArgs(argv, commands, aliases):
