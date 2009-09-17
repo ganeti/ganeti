@@ -73,6 +73,7 @@ __all__ = [
   "NWSYNC_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
+  "SELECT_OS_OPT",
   "SEP_OPT",
   "SHOWCMD_OPT",
   "SINGLE_NODE_OPT",
@@ -623,6 +624,10 @@ ALL_OPT = cli_option("--all", dest="show_all",
                      help="Show info on all instances on the cluster."
                      " This can take a long time to run, use wisely")
 
+SELECT_OS_OPT = cli_option("--select-os", dest="select_os",
+                           action="store_true", default=False,
+                           help="Interactive OS reinstall, lists available"
+                           " OS templates for selection")
 
 
 def _ParseArgs(argv, commands, aliases):

@@ -1423,10 +1423,7 @@ commands = {
                  m_force_multi,
                  m_node_opt, m_pri_node_opt, m_sec_node_opt,
                  m_clust_opt, m_inst_opt,
-                 cli_option("--select-os", dest="select_os",
-                            action="store_true", default=False,
-                            help="Interactive OS reinstall, lists available"
-                            " OS templates for selection"),
+                 SELECT_OS_OPT,
                  SUBMIT_OPT,
                  ],
                 "[-f] <instance>", "Reinstall a stopped instance"),
