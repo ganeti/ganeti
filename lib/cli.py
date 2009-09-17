@@ -49,6 +49,7 @@ __all__ = [
   "DEBUG_SIMERR_OPT",
   "DISK_TEMPLATE_OPT",
   "FIELDS_OPT",
+  "FILESTORE_DIR_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
   "NONICS_OPT",
@@ -486,6 +487,11 @@ DISK_TEMPLATE_OPT = cli_option("-t", "--disk-template", dest="disk_template",
 NONICS_OPT = cli_option("--no-nics", default=False, action="store_true",
                         help="Do not create any network cards for"
                         " the instance")
+
+FILESTORE_DIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
+                               help="Relative path under default cluster-wide"
+                               " file storage dir to store file-based disks",
+                               default=None, metavar="<DIR>")
 
 
 def _ParseArgs(argv, commands, aliases):
