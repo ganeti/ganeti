@@ -1438,10 +1438,7 @@ commands = {
                     [DEBUG_OPT,
                      NEW_SECONDARY_OPT,
                      ON_PRIMARY_OPT,
-                     cli_option("-s", "--on-secondary", dest="on_secondary",
-                                default=False, action="store_true",
-                                help=("Replace the disk(s) on the secondary"
-                                      " node (only for the drbd template)")),
+                     ON_SECONDARY_OPT,
                      cli_option("-a", "--auto", dest="auto",
                                 default=False, action="store_true",
                                 help=("Automatically replace faulty disks"
