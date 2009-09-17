@@ -1370,10 +1370,7 @@ add_opts = [
   OS_OPT,
   BACKEND_OPT,
   DISK_TEMPLATE_OPT,
-  cli_option("-s", "--os-size", dest="sd_size", help="Disk size for a"
-             " single-disk configuration, when not using the --disk option,"
-             " in MiB unless a suffix is used",
-             default=None, type="unit", metavar="<size>"),
+  OS_SIZE_OPT,
   DISK_OPT,
   NET_OPT,
   NONICS_OPT,

@@ -65,6 +65,7 @@ __all__ = [
   "NONICS_OPT",
   "NWSYNC_OPT",
   "OS_OPT",
+  "OS_SIZE_OPT",
   "SEP_OPT",
   "SUBMIT_OPT",
   "SYNC_OPT",
@@ -553,6 +554,11 @@ DISKIDX_OPT = cli_option("--disks", dest="disks", default=None,
                          help="Comma-separated list of disks"
                          " indices to act on (e.g. 0,2) (optional,"
                          " defaults to all disks)")
+
+OS_SIZE_OPT = cli_option("-s", "--os-size", dest="sd_size",
+                         help="Enforces a single-disk configuration using the"
+                         " given disk size, in MiB unless a suffix is used",
+                         default=None, type="unit", metavar="<size>")
 
 
 def _ParseArgs(argv, commands, aliases):
