@@ -106,6 +106,24 @@ and not just *node1*.
    need to run the command ``/etc/init.d/hostname.sh start`` after
    changing the file).
 
+.. admonition:: Why a fully qualified host name
+
+   Although most distributions use only the short name in the /etc/hostname
+   file, we still think Ganeti nodes should use the full name. The reason for
+   this is that calling 'hostname --fqdn' requires the resolver library to work
+   and is a 'guess' via heuristics at what is your domain name. Since Ganeti
+   can be used among other things to host DNS servers, we don't want to depend
+   on them as much as possible, and we'd rather have the uname() syscall return
+   the full node name.
+
+   We haven't ever found any breakage in using a full hostname on a Linux
+   system, and anyway we recommend to have only a minimal installation on
+   Ganeti nodes, and to use instances (or other dedicated machines) to run the
+   rest of your network services. By doing this you can change the
+   /etc/hostname file to contain an FQDN without the fear of breaking anything
+   unrelated.
+
+
 Installing Xen
 ++++++++++++++
 
