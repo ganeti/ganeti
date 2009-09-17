@@ -61,6 +61,7 @@ __all__ = [
   "IGNORE_CONSIST_OPT",
   "FORCE_OPT",
   "NET_OPT",
+  "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
   "NONICS_OPT",
@@ -573,6 +574,11 @@ NONLIVE_OPT = cli_option("--non-live", dest="live",
                          help="Do a non-live migration (this usually means"
                          " freeze the instance, save the state, transfer and"
                          " only then resume running on the secondary node)")
+
+NODE_PLACEMENT_OPT = cli_option("-n", "--node", dest="node",
+                                help="Target node and optional secondary node",
+                                metavar="<pnode>[:<snode>]",
+                                completion_suggest=OPT_COMPL_INST_ADD_NODES)
 
 
 def _ParseArgs(argv, commands, aliases):

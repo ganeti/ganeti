@@ -1363,10 +1363,7 @@ m_inst_opt = cli_option("--instance", dest="multi_mode",
 # this is defined separately due to readability only
 add_opts = [
   DEBUG_OPT,
-  cli_option("-n", "--node", dest="node",
-             help="Target node and optional secondary node",
-             metavar="<pnode>[:<snode>]",
-             completion_suggest=OPT_COMPL_INST_ADD_NODES),
+  NODE_PLACEMENT_OPT,
   OS_OPT,
   BACKEND_OPT,
   DISK_TEMPLATE_OPT,
