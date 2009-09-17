@@ -44,6 +44,7 @@ from optparse import (OptionParser, TitledHelpFormatter,
 
 __all__ = [
   # Command line options
+  "BACKEND_OPT",
   "CONFIRM_OPT",
   "DEBUG_OPT",
   "DEBUG_SIMERR_OPT",
@@ -510,6 +511,10 @@ IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
 OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>",
                     completion_suggest=OPT_COMPL_ONE_OS)
+
+BACKEND_OPT = cli_option("-B", "--backend-parameters", dest="beparams",
+                         type="keyval", default={},
+                         help="Backend parameters")
 
 
 def _ParseArgs(argv, commands, aliases):
