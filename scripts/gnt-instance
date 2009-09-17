@@ -1402,13 +1402,7 @@ commands = {
               "[--show-cmd] <instance>",
               "Opens a console on the specified instance"),
   'failover': (FailoverInstance, ARGS_ONE_INSTANCE,
-               [DEBUG_OPT, FORCE_OPT,
-                cli_option("--ignore-consistency", dest="ignore_consistency",
-                           action="store_true", default=False,
-                           help="Ignore the consistency of the disks on"
-                           " the secondary"),
-                SUBMIT_OPT,
-                ],
+               [DEBUG_OPT, FORCE_OPT, IGNORE_CONSIST_OPT, SUBMIT_OPT],
                "[-f] <instance>",
                "Stops the instance and starts it on the backup node, using"
                " the remote mirror (only for instances of type drbd)"),

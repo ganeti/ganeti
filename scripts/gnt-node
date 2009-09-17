@@ -647,12 +647,7 @@ commands = {
                "Relocate the secondary instances from a node"
                " to other nodes (only for instances with drbd disk template)"),
   'failover': (FailoverNode, ARGS_ONE_NODE,
-               [DEBUG_OPT, FORCE_OPT,
-                cli_option("--ignore-consistency", dest="ignore_consistency",
-                           action="store_true", default=False,
-                           help="Ignore the consistency of the disks on"
-                           " the secondary"),
-                ],
+               [DEBUG_OPT, FORCE_OPT, IGNORE_CONSIST_OPT],
                "[-f] <node>",
                "Stops the primary instances on a node and start them on their"
                " secondary node (only for instances with drbd disk template)"),

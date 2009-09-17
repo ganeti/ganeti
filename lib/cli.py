@@ -58,6 +58,7 @@ __all__ = [
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
+  "IGNORE_CONSIST_OPT",
   "FORCE_OPT",
   "NET_OPT",
   "NOHDR_OPT",
@@ -559,6 +560,12 @@ OS_SIZE_OPT = cli_option("-s", "--os-size", dest="sd_size",
                          help="Enforces a single-disk configuration using the"
                          " given disk size, in MiB unless a suffix is used",
                          default=None, type="unit", metavar="<size>")
+
+IGNORE_CONSIST_OPT = cli_option("--ignore-consistency",
+                                dest="ignore_consistency",
+                                action="store_true", default=False,
+                                help="Ignore the consistency of the disks on"
+                                " the secondary")
 
 
 def _ParseArgs(argv, commands, aliases):
