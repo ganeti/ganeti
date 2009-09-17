@@ -48,8 +48,9 @@ __all__ = [
   "CONFIRM_OPT",
   "DEBUG_OPT",
   "DEBUG_SIMERR_OPT",
-  "DISK_TEMPLATE_OPT",
+  "DISKIDX_OPT",
   "DISK_OPT",
+  "DISK_TEMPLATE_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
@@ -547,6 +548,11 @@ NET_OPT = cli_option("--net",
 
 DISK_OPT = cli_option("--disk", help="Disk parameters", default=[],
                       dest="disks", action="append", type="identkeyval")
+
+DISKIDX_OPT = cli_option("--disks", dest="disks", default=None,
+                         help="Comma-separated list of disks"
+                         " indices to act on (e.g. 0,2) (optional,"
+                         " defaults to all disks)")
 
 
 def _ParseArgs(argv, commands, aliases):

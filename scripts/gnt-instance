@@ -1512,10 +1512,7 @@ commands = {
                                 default=False, action="store_true",
                                 help=("Automatically replace faulty disks"
                                       " (only for the drbd template)")),
-                     cli_option("--disks", dest="disks", default=None,
-                                help="Comma-separated list of disks"
-                                " indices to replace (e.g. 0,2) (optional,"
-                                " defaults to all disks)"),
+                     DISKIDX_OPT,
                      IALLOCATOR_OPT,
                      SUBMIT_OPT,
                      ],
@@ -1570,12 +1567,7 @@ commands = {
                        "<instance>",
                        "Deactivate an instance's disks"),
   'recreate-disks': (RecreateDisks, ARGS_ONE_INSTANCE,
-                     [DEBUG_OPT, SUBMIT_OPT,
-                     cli_option("--disks", dest="disks", default=None,
-                                help="Comma-separated list of disks"
-                                " indices to replace (e.g. 0,2) (optional,"
-                                " defaults to all disks)"),
-                      ],
+                     [DEBUG_OPT, SUBMIT_OPT, DISKIDX_OPT],
                      "<instance>",
                      "Recreate an instance's disks"),
   'grow-disk': (GrowDisk,
