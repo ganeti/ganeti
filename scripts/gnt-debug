@@ -186,10 +186,7 @@ commands = {
                             default="in", choices=["in", "out"],
                             help="Show allocator input (in) or allocator"
                             " results (out)"),
-                 cli_option("--algorithm", dest="allocator",
-                            default=None,
-                            help="Allocator algorithm name",
-                            completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
+                 IALLOCATOR_OPT,
                  cli_option("-m", "--mode", default="relocate",
                             choices=["relocate", "allocate"],
                             help="Request mode, either allocate or"

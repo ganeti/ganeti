@@ -241,10 +241,7 @@ import_opts = [
   cli_option("--no-ip-check", dest="ip_check", default=True,
              action="store_false", help="Don't check that the instance's IP"
              " is alive"),
-  cli_option("-I", "--iallocator", metavar="<NAME>",
-             help="Select nodes for the instance automatically using the"
-             " <NAME> iallocator plugin", default=None, type="string",
-             completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
+  IALLOCATOR_OPT,
   FILESTORE_DIR_OPT,
   FILESTORE_DRIVER_OPT,
   cli_option("-H", "--hypervisor", dest="hypervisor",

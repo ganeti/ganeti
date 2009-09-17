@@ -51,6 +51,7 @@ __all__ = [
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
+  "IALLOCATOR_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
   "NONICS_OPT",
@@ -498,6 +499,12 @@ FILESTORE_DRIVER_OPT = cli_option("--file-driver", dest="file_driver",
                                   help="Driver to use for image files",
                                   default="loop", metavar="<DRIVER>",
                                   choices=list(constants.FILE_DRIVER))
+
+IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
+                            help="Select nodes for the instance automatically"
+                            " using the <NAME> iallocator plugin",
+                            default=None, type="string",
+                            completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
 
 
 def _ParseArgs(argv, commands, aliases):

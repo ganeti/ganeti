@@ -1398,10 +1398,7 @@ add_opts = [
              " is alive (only valid with --no-start)"),
   FILESTORE_DIR_OPT,
   FILESTORE_DRIVER_OPT,
-  cli_option("-I", "--iallocator", metavar="<NAME>",
-             help="Select nodes for the instance automatically using the"
-             " <NAME> iallocator plugin", default=None, type="string",
-             completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
+  IALLOCATOR_OPT,
   cli_option("-H", "--hypervisor", dest="hypervisor",
              help="Hypervisor and hypervisor options, in the format"
              " hypervisor:option=value,option=value,...", default=None,
@@ -1542,13 +1539,7 @@ commands = {
                                 help="Comma-separated list of disks"
                                 " indices to replace (e.g. 0,2) (optional,"
                                 " defaults to all disks)"),
-                     cli_option("-I", "--iallocator", metavar="<NAME>",
-                                help="Select new secondary for the instance"
-                                " automatically using the"
-                                " <NAME> iallocator plugin (enables"
-                                " secondary node replacement)",
-                                default=None, type="string",
-                                completion_suggest=OPT_COMPL_ONE_IALLOCATOR),
+                     IALLOCATOR_OPT,
                      SUBMIT_OPT,
                      ],
                     "[-s|-p|-n NODE|-I NAME] <instance>",
