@@ -1394,16 +1394,7 @@ commands = {
                "Stops the instance and starts it on the backup node, using"
                " the remote mirror (only for instances of type drbd)"),
   'migrate': (MigrateInstance, ARGS_ONE_INSTANCE,
-               [DEBUG_OPT, FORCE_OPT, NONLIVE_OPT,
-                cli_option("--cleanup", dest="cleanup",
-                           default=False, action="store_true",
-                           help="Instead of performing the migration, try to"
-                           " recover from a failed cleanup. This is safe"
-                           " to run even if the instance is healthy, but it"
-                           " will create extra replication traffic and "
-                           " disrupt briefly the replication (like during the"
-                           " migration"),
-                ],
+               [DEBUG_OPT, FORCE_OPT, NONLIVE_OPT, CLEANUP_OPT],
                "[-f] <instance>",
                "Migrate instance to its secondary node"
                " (only for instances of type drbd)"),
