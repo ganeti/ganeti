@@ -50,6 +50,7 @@ __all__ = [
   "DISK_TEMPLATE_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
+  "FILESTORE_DRIVER_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
   "NONICS_OPT",
@@ -492,6 +493,11 @@ FILESTORE_DIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                help="Relative path under default cluster-wide"
                                " file storage dir to store file-based disks",
                                default=None, metavar="<DIR>")
+
+FILESTORE_DRIVER_OPT = cli_option("--file-driver", dest="file_driver",
+                                  help="Driver to use for image files",
+                                  default="loop", metavar="<DRIVER>",
+                                  choices=list(constants.FILE_DRIVER))
 
 
 def _ParseArgs(argv, commands, aliases):
