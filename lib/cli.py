@@ -74,6 +74,7 @@ __all__ = [
   "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
+  "NOLVM_STORAGE_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NOSTART_OPT",
@@ -714,6 +715,11 @@ DRAINED_OPT = cli_option("-D", "--drained", dest="drained", metavar=_YORNO,
 ALLOCATABLE_OPT = cli_option("--allocatable", dest="allocatable",
                              choices=_YESNO, default=None, metavar=_YORNO,
                              help="Set the allocatable flag on a volume")
+
+NOLVM_STORAGE_OPT = cli_option("--no-lvm-storage", dest="lvm_storage",
+                               help="Disable support for lvm based instances"
+                               " (cluster-wide)",
+                               action="store_false", default=True)
 
 
 def _ParseArgs(argv, commands, aliases):

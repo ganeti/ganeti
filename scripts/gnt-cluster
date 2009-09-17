@@ -612,10 +612,7 @@ commands = {
                             constants.DEFAULT_FILE_STORAGE_DIR,
                        metavar="DIR",
                        default=constants.DEFAULT_FILE_STORAGE_DIR,),
-            cli_option("--no-lvm-storage", dest="lvm_storage",
-                       help="No support for lvm based instances"
-                            " (cluster-wide)",
-                       action="store_false", default=True,),
+            NOLVM_STORAGE_OPT,
             cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                        help="Don't modify /etc/hosts"
                             " (cluster-wide)",
@@ -712,10 +709,7 @@ commands = {
                          " (cluster-wide) for disk allocation "
                          "and enable lvm based storage",
                          metavar="VG",),
-              cli_option("--no-lvm-storage", dest="lvm_storage",
-                         help="Disable support for lvm based instances"
-                              " (cluster-wide)",
-                         action="store_false", default=True,),
+              NOLVM_STORAGE_OPT,
               cli_option("--enabled-hypervisors", dest="enabled_hypervisors",
                          help="Comma-separated list of hypervisors",
                          type="string", default=None),
