@@ -103,6 +103,7 @@ __all__ = [
   "USEUNITS_OPT",
   "VERBOSE_OPT",
   "VG_NAME_OPT",
+  "YES_DOIT_OPT",
   # Generic functions for CLI programs
   "GenericMain",
   "GetClient",
@@ -743,6 +744,8 @@ VG_NAME_OPT = cli_option("-g", "--vg-name", dest="vg_name",
                          " name (cluster-wide) for disk allocation [xenvg]",
                          metavar="VG", default=None)
 
+YES_DOIT_OPT = cli_option("--yes-do-it", dest="yes_do_it",
+                          help="Destroy cluster", action="store_true")
 
 
 def _ParseArgs(argv, commands, aliases):
