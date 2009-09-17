@@ -600,11 +600,7 @@ commands = {
                        " addresses, in the format XX:XX:XX",
                        metavar="PREFIX",
                        default=constants.DEFAULT_MAC_PREFIX,),
-            cli_option("-g", "--vg-name", dest="vg_name",
-                       help="Specify the volume group name "
-                       " (cluster-wide) for disk allocation [xenvg]",
-                       metavar="VG",
-                       default=None,),
+            VG_NAME_OPT,
             cli_option("--master-netdev", dest="master_netdev",
                        help="Specify the node interface (cluster-wide)"
                          " on which the master IP address will be added "
@@ -700,19 +696,8 @@ commands = {
               [DEBUG_OPT],
               "{pause <timespec>|continue|info}", "Change watcher properties"),
   'modify': (SetClusterParams, ARGS_NONE,
-             [DEBUG_OPT,
-              cli_option("-g", "--vg-name", dest="vg_name",
-                         help="Specify the volume group name "
-                         " (cluster-wide) for disk allocation "
-                         "and enable lvm based storage",
-                         metavar="VG",),
-              NOLVM_STORAGE_OPT,
-              ENABLED_HV_OPT,
-              HVLIST_OPT,
-              BACKEND_OPT,
-              NIC_PARAMS_OPT,
-              CP_SIZE_OPT,
-              ],
+             [DEBUG_OPT, BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT,
+              NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT],
              "[opts...]",
              "Alters the parameters of the cluster"),
   }

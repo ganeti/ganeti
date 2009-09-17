@@ -102,6 +102,7 @@ __all__ = [
   "TAG_SRC_OPT",
   "USEUNITS_OPT",
   "VERBOSE_OPT",
+  "VG_NAME_OPT",
   # Generic functions for CLI programs
   "GenericMain",
   "GetClient",
@@ -736,6 +737,12 @@ NIC_PARAMS_OPT = cli_option("-N", "--nic-parameters", dest="nicparams",
 CP_SIZE_OPT = cli_option("-C", "--candidate-pool-size", default=None,
                          dest="candidate_pool_size", type="int",
                          help="Set the candidate pool size")
+
+VG_NAME_OPT = cli_option("-g", "--vg-name", dest="vg_name",
+                         help="Enables LVM and specifies the volume group"
+                         " name (cluster-wide) for disk allocation [xenvg]",
+                         metavar="VG", default=None)
+
 
 
 def _ParseArgs(argv, commands, aliases):
