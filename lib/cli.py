@@ -44,6 +44,7 @@ from optparse import (OptionParser, TitledHelpFormatter,
 
 __all__ = [
   # Command line options
+  "ALL_OPT",
   "BACKEND_OPT",
   "CLEANUP_OPT",
   "CONFIRM_OPT",
@@ -616,6 +617,12 @@ CLEANUP_OPT = cli_option("--cleanup", dest="cleanup",
 STATIC_OPT = cli_option("-s", "--static", dest="static",
                         action="store_true", default=False,
                         help="Only show configuration data, not runtime data")
+
+ALL_OPT = cli_option("--all", dest="show_all",
+                     default=False, action="store_true",
+                     help="Show info on all instances on the cluster."
+                     " This can take a long time to run, use wisely")
+
 
 
 def _ParseArgs(argv, commands, aliases):

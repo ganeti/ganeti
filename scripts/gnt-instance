@@ -1404,12 +1404,8 @@ commands = {
            "Move instance to an arbitrary node"
            " (only for instances of type file and lv)"),
   'info': (ShowInstanceConfig, ARGS_MANY_INSTANCES,
-           [DEBUG_OPT, STATIC_OPT,
-            cli_option("--all", dest="show_all",
-                       default=False, action="store_true",
-                       help="Show info on all instances on the cluster."
-                       " This can take a long time to run, use wisely."),
-            ], "[-s] {--all | <instance>...}",
+           [DEBUG_OPT, STATIC_OPT, ALL_OPT],
+           "[-s] {--all | <instance>...}",
            "Show information on the specified instance(s)"),
   'list': (ListInstances, ARGS_MANY_INSTANCES,
            [DEBUG_OPT, NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, SYNC_OPT],
