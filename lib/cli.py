@@ -76,6 +76,7 @@ __all__ = [
   "SHOWCMD_OPT",
   "SINGLE_NODE_OPT",
   "SUBMIT_OPT",
+  "STATIC_OPT",
   "SYNC_OPT",
   "TAG_SRC_OPT",
   "USEUNITS_OPT",
@@ -611,6 +612,10 @@ CLEANUP_OPT = cli_option("--cleanup", dest="cleanup",
                          " will create extra replication traffic and "
                          " disrupt briefly the replication (like during the"
                          " migration")
+
+STATIC_OPT = cli_option("-s", "--static", dest="static",
+                        action="store_true", default=False,
+                        help="Only show configuration data, not runtime data")
 
 
 def _ParseArgs(argv, commands, aliases):
