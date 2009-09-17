@@ -52,6 +52,7 @@ __all__ = [
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
+  "HVLIST_OPT",
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
@@ -526,6 +527,11 @@ HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
                             " format hypervisor:option=value,option=value,...",
                             default=None, type="identkeyval")
+
+HVLIST_OPT = cli_option("-H", "--hypervisor-parameters", dest="hvparams",
+                        help="Hypervisor and hypervisor options, in the"
+                        " format hypervisor:option=value,option=value,...",
+                        default=[], action="append", type="identkeyval")
 
 
 def _ParseArgs(argv, commands, aliases):

@@ -635,12 +635,7 @@ commands = {
                        help="Comma-separated list of hypervisors",
                        type="string",
                        default=constants.DEFAULT_ENABLED_HYPERVISOR),
-            cli_option("-H", "--hypervisor-parameters", dest="hvparams",
-                       help="Hypervisor and hypervisor options, in the format"
-                            " hypervisor:option=value,option=value,...",
-                       default=[],
-                       action="append",
-                       type="identkeyval"),
+            HVLIST_OPT,
             BACKEND_OPT,
             cli_option("-N", "--nic-parameters", dest="nicparams",
                        type="keyval", default={},
@@ -734,13 +729,7 @@ commands = {
               cli_option("--enabled-hypervisors", dest="enabled_hypervisors",
                          help="Comma-separated list of hypervisors",
                          type="string", default=None),
-              cli_option("-H", "--hypervisor-parameters", dest="hvparams",
-                         help="Hypervisor and hypervisor options, in the"
-                         " format"
-                         " hypervisor:option=value,option=value,...",
-                         default=[],
-                         action="append",
-                         type="identkeyval"),
+              HVLIST_OPT,
               BACKEND_OPT,
               cli_option("-N", "--nic-parameters", dest="nicparams",
                          type="keyval", default={},
