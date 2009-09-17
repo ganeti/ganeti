@@ -1367,9 +1367,7 @@ add_opts = [
   NET_OPT,
   NONICS_OPT,
   NWSYNC_OPT,
-  cli_option("--no-start", dest="start", default=True,
-             action="store_false", help="Don't start the instance after"
-             " creation"),
+  NOSTART_OPT,
   NOIPCHECK_OPT,
   FILESTORE_DIR_OPT,
   FILESTORE_DRIVER_OPT,

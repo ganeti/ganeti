@@ -67,6 +67,7 @@ __all__ = [
   "NOIPCHECK_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
+  "NOSTART_OPT",
   "NWSYNC_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
@@ -591,6 +592,10 @@ NODE_LIST_OPT = cli_option("-n", "--node", dest="nodes", default=[],
 SINGLE_NODE_OPT = cli_option("-n", "--node", dest="node", help="Target node",
                              metavar="<node>",
                              completion_suggest=OPT_COMPL_ONE_NODE)
+
+NOSTART_OPT = cli_option("--no-start", dest="start", default=True,
+                         action="store_false",
+                         help="Don't start the instance after creation")
 
 
 def _ParseArgs(argv, commands, aliases):
