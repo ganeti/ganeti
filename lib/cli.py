@@ -79,6 +79,7 @@ __all__ = [
   "ON_SECONDARY_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
+  "READD_OPT",
   "SECONDARY_IP_OPT",
   "SELECT_OS_OPT",
   "SEP_OPT",
@@ -680,6 +681,10 @@ SRC_DIR_OPT = cli_option("--src-dir", dest="src_dir", help="Source directory",
 SECONDARY_IP_OPT = cli_option("-s", "--secondary-ip", dest="secondary_ip",
                               help="Specify the secondary ip for the node",
                               metavar="ADDRESS", default=None)
+
+READD_OPT = cli_option("--readd", dest="readd",
+                       default=False, action="store_true",
+                       help="Readd old node after replacing it")
 
 
 def _ParseArgs(argv, commands, aliases):
