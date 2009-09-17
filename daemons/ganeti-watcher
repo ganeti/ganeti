@@ -462,9 +462,7 @@ def ParseOptions():
                         version="%%prog (ganeti) %s" %
                         constants.RELEASE_VERSION)
 
-  parser.add_option("-d", "--debug", dest="debug",
-                    help="Write all messages to stderr",
-                    default=False, action="store_true")
+  parser.add_option(cli.DEBUG_OPT)
   parser.add_option("-A", "--job-age", dest="job_age",
                     help="Autoarchive jobs older than this age (default"
                     " 6 hours)", default=6*3600)
