@@ -233,10 +233,7 @@ commands = {
            [DEBUG_OPT, NODE_LIST_OPT],
            "", "Lists instance exports available in the ganeti cluster"),
   'export': (ExportInstance, ARGS_ONE_INSTANCE,
-             [DEBUG_OPT, FORCE_OPT, SINGLE_NODE_OPT,
-              cli_option("","--noshutdown", dest="shutdown",
-                         action="store_false", default=True,
-                         help="Don't shutdown the instance (unsafe)"), ],
+             [DEBUG_OPT, FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT]
              "-n <target_node> [opts...] <name>",
              "Exports an instance to an image"),
   'import': (ImportInstance, ARGS_ONE_INSTANCE, import_opts,

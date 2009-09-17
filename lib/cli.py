@@ -87,6 +87,7 @@ __all__ = [
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NONPLUS1_OPT",
+  "NOSHUTDOWN_OPT",
   "NOSTART_OPT",
   "NOSSH_KEYCHECK_OPT",
   "NOVOTING_OPT",
@@ -803,6 +804,11 @@ IGNORE_SECONDARIES_OPT = cli_option("--ignore-secondaries",
                                     dest="ignore_secondaries",
                                     default=False, action="store_true",
                                     help="Ignore errors from secondaries")
+
+NOSHUTDOWN_OPT = cli_option("","--noshutdown", dest="shutdown",
+                            action="store_false", default=True,
+                            help="Don't shutdown the instance (unsafe)")
+
 
 
 def _ParseArgs(argv, commands, aliases):
