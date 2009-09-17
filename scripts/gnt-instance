@@ -1387,9 +1387,7 @@ add_opts = [
   cli_option("--no-start", dest="start", default=True,
              action="store_false", help="Don't start the instance after"
              " creation"),
-  cli_option("--no-ip-check", dest="ip_check", default=True,
-             action="store_false", help="Don't check that the instance's IP"
-             " is alive (only valid with --no-start)"),
+  NOIPCHECK_OPT,
   FILESTORE_DIR_OPT,
   FILESTORE_DRIVER_OPT,
   IALLOCATOR_OPT,
@@ -1499,13 +1497,7 @@ commands = {
              "[-f] <instance>", "Shuts down the instance and removes it"),
   'rename': (RenameInstance,
              [ArgInstance(min=1, max=1), ArgHost(min=1, max=1)],
-             [DEBUG_OPT,
-              cli_option("--no-ip-check", dest="ignore_ip",
-                         help="Do not check that the IP of the new name"
-                         " is alive",
-                         default=False, action="store_true"),
-              SUBMIT_OPT,
-              ],
+             [DEBUG_OPT, NOIPCHECK_OPT, SUBMIT_OPT],
              "<instance> <new_name>", "Rename the instance"),
   'replace-disks': (ReplaceDisks, ARGS_ONE_INSTANCE,
                     [DEBUG_OPT,

@@ -236,9 +236,7 @@ import_opts = [
              completion_suggest=OPT_COMPL_ONE_NODE),
   cli_option("--src-dir", dest="src_dir", help="Source directory",
              metavar="<dir>"),
-  cli_option("--no-ip-check", dest="ip_check", default=True,
-             action="store_false", help="Don't check that the instance's IP"
-             " is alive"),
+  NOIPCHECK_OPT,
   IALLOCATOR_OPT,
   FILESTORE_DIR_OPT,
   FILESTORE_DRIVER_OPT,

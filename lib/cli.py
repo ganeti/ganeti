@@ -58,6 +58,7 @@ __all__ = [
   "IALLOCATOR_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
+  "NOIPCHECK_OPT",
   "NONICS_OPT",
   "NWSYNC_OPT",
   "OS_OPT",
@@ -532,6 +533,12 @@ HVLIST_OPT = cli_option("-H", "--hypervisor-parameters", dest="hvparams",
                         help="Hypervisor and hypervisor options, in the"
                         " format hypervisor:option=value,option=value,...",
                         default=[], action="append", type="identkeyval")
+
+NOIPCHECK_OPT = cli_option("--no-ip-check", dest="ip_check", default=True,
+                           action="store_false",
+                           help="Don't check that the instance's IP"
+                           " is alive")
+
 
 
 def _ParseArgs(argv, commands, aliases):
