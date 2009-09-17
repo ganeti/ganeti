@@ -49,6 +49,7 @@ __all__ = [
   "DEBUG_OPT",
   "DEBUG_SIMERR_OPT",
   "DISK_TEMPLATE_OPT",
+  "DISK_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
@@ -543,6 +544,9 @@ NOIPCHECK_OPT = cli_option("--no-ip-check", dest="ip_check", default=True,
 NET_OPT = cli_option("--net",
                      help="NIC parameters", default=[],
                      dest="nics", action="append", type="identkeyval")
+
+DISK_OPT = cli_option("--disk", help="Disk parameters", default=[],
+                      dest="disks", action="append", type="identkeyval")
 
 
 def _ParseArgs(argv, commands, aliases):

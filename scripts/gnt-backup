@@ -217,10 +217,7 @@ import_opts = [
              completion_suggest=OPT_COMPL_INST_ADD_NODES),
   BACKEND_OPT,
   DISK_TEMPLATE_OPT,
-  cli_option("--disk", help="Disk information",
-             default=[], dest="disks",
-             action="append",
-             type="identkeyval"),
+  DISK_OPT,
   cli_option("-s", "--os-size", dest="sd_size", help="Disk size for a"
              " single-disk configuration, when not using the --disk option,"
              " in MiB unless a suffix is used",
