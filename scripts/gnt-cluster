@@ -340,7 +340,8 @@ def VerifyCluster(opts, args):
     skip_checks.append(constants.VERIFY_NPLUSONE_MEM)
   op = opcodes.OpVerifyCluster(skip_checks=skip_checks,
                                verbose=opts.verbose,
-                               error_codes=opts.error_codes)
+                               error_codes=opts.error_codes,
+                               debug_simulate_errors=opts.simulate_errors)
   if SubmitOpCode(op):
     return 0
   else:
@@ -669,7 +670,7 @@ commands = {
                   "Forces a push of the configuration file and ssconf files"
                   " to the nodes in the cluster"),
   'verify': (VerifyCluster, ARGS_NONE,
-             [DEBUG_OPT, VERBOSE_OPT,
+             [DEBUG_OPT, VERBOSE_OPT, DEBUG_SIMERR_OPT,
               cli_option("--error-codes", dest="error_codes",
                          help="Enable parseable error messages",
                          action="store_true", default=False),

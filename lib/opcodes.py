@@ -209,7 +209,8 @@ class OpVerifyCluster(OpCode):
 
   """
   OP_ID = "OP_CLUSTER_VERIFY"
-  __slots__ = OpCode.__slots__ + ["skip_checks", "verbose", "error_codes"]
+  __slots__ = OpCode.__slots__ + ["skip_checks", "verbose", "error_codes",
+                                  "debug_simulate_errors"]
 
 
 class OpVerifyDisks(OpCode):

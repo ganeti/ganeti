@@ -46,6 +46,7 @@ __all__ = [
   # Command line options
   "CONFIRM_OPT",
   "DEBUG_OPT",
+  "DEBUG_SIMERR_OPT",
   "FIELDS_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
@@ -463,6 +464,11 @@ _DRY_RUN_OPT = cli_option("--dry-run", default=False,
 VERBOSE_OPT = cli_option("-v", "--verbose", default=False,
                          action="store_true",
                          help="Increase the verbosity of the operation")
+
+DEBUG_SIMERR_OPT = cli_option("--debug-simulate-errors", default=False,
+                              action="store_true", dest="simulate_errors",
+                              help="Debugging option that makes the operation"
+                              " treat most runtime checks as failed")
 
 
 def _ParseArgs(argv, commands, aliases):

@@ -858,7 +858,7 @@ class LUVerifyCluster(LogicalUnit):
   """
   HPATH = "cluster-verify"
   HTYPE = constants.HTYPE_CLUSTER
-  _OP_REQP = ["skip_checks", "verbose", "error_codes"]
+  _OP_REQP = ["skip_checks", "verbose", "error_codes", "debug_simulate_errors"]
   REQ_BGL = False
 
   TCLUSTER = "cluster"
@@ -885,6 +885,10 @@ class LUVerifyCluster(LogicalUnit):
   ENODESSH = (TNODE, "ENODESSH")
   ENODEVERSION = (TNODE, "ENODEVERSION")
 
+  ETYPE_FIELD = "code"
+  ETYPE_ERROR = "ERROR"
+  ETYPE_WARNING = "WARNING"
+
   def ExpandNames(self):
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
@@ -901,7 +905,7 @@ class LUVerifyCluster(LogicalUnit):
     This must be called only from Exec and functions called from Exec.
 
     """
-    ltype = kwargs.get("code", "ERROR")
+    ltype = kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR)
     itype, etxt = ecode
     # first complete the msg
     if args:
@@ -917,6 +921,17 @@ class LUVerifyCluster(LogicalUnit):
       msg = "%s: %s%s: %s" % (ltype, itype, item, msg)
     # and finally report it via the feedback_fn
     self._feedback_fn("  - %s" % msg)
+
+  def _ErrorIf(self, cond, *args, **kwargs):
+    """Log an error message if the passed condition is True.
+
+    """
+    cond = bool(cond) or self.op.debug_simulate_errors
+    if cond:
+      self._Error(*args, **kwargs)
+    # do not mark the operation as failed for WARN cases only
+    if kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR) == self.ETYPE_ERROR:
+      self.bad = self.bad or cond
 
   def _VerifyNode(self, nodeinfo, file_list, local_cksum,
                   node_result, master_files, drbd_map, vg_name):
@@ -942,138 +957,126 @@ class LUVerifyCluster(LogicalUnit):
 
     """
     node = nodeinfo.name
+    _ErrorIf = self._ErrorIf
 
     # main result, node_result should be a non-empty dict
-    if not node_result or not isinstance(node_result, dict):
-      self._Error(self.ENODERPC, node,
+    test = not node_result or not isinstance(node_result, dict)
+    _ErrorIf(test, self.ENODERPC, node,
                   "unable to verify node: no data returned")
-      return True
+    if test:
+      return
 
     # compares ganeti version
     local_version = constants.PROTOCOL_VERSION
     remote_version = node_result.get('version', None)
-    if not (remote_version and isinstance(remote_version, (list, tuple)) and
-            len(remote_version) == 2):
-      self._Error(self.ENODERPC, node,
-                  "connection to node returned invalid data")
-      return True
+    test = not (remote_version and
+                isinstance(remote_version, (list, tuple)) and
+                len(remote_version) == 2)
+    _ErrorIf(test, self.ENODERPC, node,
+             "connection to node returned invalid data")
+    if test:
+      return
 
-    if local_version != remote_version[0]:
-      self._Error(self.ENODEVERSION, node,
-                  "incompatible protocol versions: master %s,"
-                  " node %s", local_version, remote_version[0])
-      return True
+    test = local_version != remote_version[0]
+    _ErrorIf(test, self.ENODEVERSION, node,
+             "incompatible protocol versions: master %s,"
+             " node %s", local_version, remote_version[0])
+    if test:
+      return
 
     # node seems compatible, we can actually try to look into its results
 
-    bad = False
-
     # full package version
-    if constants.RELEASE_VERSION != remote_version[1]:
-      self._Error(self.ENODEVERSION, node,
+    self._ErrorIf(constants.RELEASE_VERSION != remote_version[1],
+                  self.ENODEVERSION, node,
                   "software version mismatch: master %s, node %s",
                   constants.RELEASE_VERSION, remote_version[1],
-                  code="WARNING")
+                  code=self.ETYPE_WARNING)
 
     # checks vg existence and size > 20G
     if vg_name is not None:
       vglist = node_result.get(constants.NV_VGLIST, None)
-      if not vglist:
-        self._Error(self.ENODELVM, node, "unable to check volume groups")
-        bad = True
-      else:
+      test = not vglist
+      _ErrorIf(test, self.ENODELVM, node, "unable to check volume groups")
+      if not test:
         vgstatus = utils.CheckVolumeGroupSize(vglist, vg_name,
                                               constants.MIN_VG_SIZE)
-        if vgstatus:
-          self._Error(self.ENODELVM, self.TNODE, node, vgstatus)
-          bad = True
+        _ErrorIf(vgstatus, self.ENODELVM, node, vgstatus)
 
     # checks config file checksum
 
     remote_cksum = node_result.get(constants.NV_FILELIST, None)
-    if not isinstance(remote_cksum, dict):
-      bad = True
-      self._Error(self.ENODEFILECHECK, node,
-                  "node hasn't returned file checksum data")
-    else:
+    test = not isinstance(remote_cksum, dict)
+    _ErrorIf(test, self.ENODEFILECHECK, node,
+             "node hasn't returned file checksum data")
+    if not test:
       for file_name in file_list:
         node_is_mc = nodeinfo.master_candidate
-        must_have_file = file_name not in master_files
-        if file_name not in remote_cksum:
-          if node_is_mc or must_have_file:
-            bad = True
-            self._Error(self.ENODEFILECHECK, node,
-                        "file '%s' missing", file_name)
-        elif remote_cksum[file_name] != local_cksum[file_name]:
-          if node_is_mc or must_have_file:
-            bad = True
-            self._Error(self.ENODEFILECHECK, node,
-                        "file '%s' has wrong checksum", file_name)
-          else:
-            # not candidate and this is not a must-have file
-            bad = True
-            self._Error(self.ENODEFILECHECK, node,
-                        "file '%s' should not exist on non master"
-                        " candidates (and the file is outdated)", file_name)
-        else:
-          # all good, except non-master/non-must have combination
-          if not node_is_mc and not must_have_file:
-            self._Error(self.ENODEFILECHECK, node, "file '%s' should not exist"
-                        " on non master candidates", file_name)
+        must_have = (file_name not in master_files) or node_is_mc
+        # missing
+        test1 = file_name not in remote_cksum
+        # invalid checksum
+        test2 = not test1 and remote_cksum[file_name] != local_cksum[file_name]
+        # existing and good
+        test3 = not test1 and remote_cksum[file_name] == local_cksum[file_name]
+        _ErrorIf(test1 and must_have, self.ENODEFILECHECK, node,
+                 "file '%s' missing", file_name)
+        _ErrorIf(test2 and must_have, self.ENODEFILECHECK, node,
+                 "file '%s' has wrong checksum", file_name)
+        # not candidate and this is not a must-have file
+        _ErrorIf(test2 and not must_have, self.ENODEFILECHECK, node,
+                 "file '%s' should not exist on non master"
+                 " candidates (and the file is outdated)", file_name)
+        # all good, except non-master/non-must have combination
+        _ErrorIf(test3 and not must_have, self.ENODEFILECHECK, node,
+                 "file '%s' should not exist"
+                 " on non master candidates", file_name)
 
     # checks ssh to any
 
-    if constants.NV_NODELIST not in node_result:
-      bad = True
-      self._Error(self.ENODESSH, node,
-                  "node hasn't returned node ssh connectivity data")
-    else:
+    test = constants.NV_NODELIST not in node_result
+    _ErrorIf(test, self.ENODESSH, node,
+             "node hasn't returned node ssh connectivity data")
+    if not test:
       if node_result[constants.NV_NODELIST]:
-        bad = True
         for a_node, a_msg in node_result[constants.NV_NODELIST].items():
-          self._Error(self.ENODESSH, node,
-                      "ssh communication with node '%s': %s", a_node, a_msg)
+          _ErrorIf(True, self.ENODESSH, node,
+                   "ssh communication with node '%s': %s", a_node, a_msg)
 
-    if constants.NV_NODENETTEST not in node_result:
-      bad = True
-      self._Error(self.ENODENET, node,
-                  "node hasn't returned node tcp connectivity data")
-    else:
+    test = constants.NV_NODENETTEST not in node_result
+    _ErrorIf(test, self.ENODENET, node,
+             "node hasn't returned node tcp connectivity data")
+    if not test:
       if node_result[constants.NV_NODENETTEST]:
-        bad = True
         nlist = utils.NiceSort(node_result[constants.NV_NODENETTEST].keys())
         for anode in nlist:
-          self._Error(self.ENODENET, node,
-                      "tcp communication with node '%s': %s",
-                      anode, node_result[constants.NV_NODENETTEST][anode])
+          _ErrorIf(True, self.ENODENET, node,
+                   "tcp communication with node '%s': %s",
+                   anode, node_result[constants.NV_NODENETTEST][anode])
 
     hyp_result = node_result.get(constants.NV_HYPERVISOR, None)
     if isinstance(hyp_result, dict):
       for hv_name, hv_result in hyp_result.iteritems():
-        if hv_result is not None:
-          self._Error(self.ENODEHV, node,
-                      "hypervisor %s verify failure: '%s'", hv_name, hv_result)
+        test = hv_result is not None
+        _ErrorIf(test, self.ENODEHV, node,
+                 "hypervisor %s verify failure: '%s'", hv_name, hv_result)
 
     # check used drbd list
     if vg_name is not None:
       used_minors = node_result.get(constants.NV_DRBDLIST, [])
-      if not isinstance(used_minors, (tuple, list)):
-        self._Error(self.ENODEDRBD, node,
-                    "cannot parse drbd status file: %s", str(used_minors))
-      else:
+      test = not isinstance(used_minors, (tuple, list))
+      _ErrorIf(test, self.ENODEDRBD, node,
+               "cannot parse drbd status file: %s", str(used_minors))
+      if not test:
         for minor, (iname, must_exist) in drbd_map.items():
-          if minor not in used_minors and must_exist:
-            self._Error(self.ENODEDRBD, node,
-                        "drbd minor %d of instance %s is not active",
-                        minor, iname)
-            bad = True
+          test = minor not in used_minors and must_exist
+          _ErrorIf(test, self.ENODEDRBD, node,
+                   "drbd minor %d of instance %s is not active",
+                   minor, iname)
         for minor in used_minors:
-          if minor not in drbd_map:
-            self._Error(self.ENODEDRBD, node,
-                        "unallocated drbd minor %d is in use", minor)
-            bad = True
-
-    return bad
+          test = minor not in drbd_map
+          _ErrorIf(test, self.ENODEDRBD, node,
+                   "unallocated drbd minor %d is in use", minor)
 
   def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
                       node_instance, n_offline):
@@ -1083,8 +1086,7 @@ class LUVerifyCluster(LogicalUnit):
     available on the instance's node.
 
     """
-    bad = False
-
+    _ErrorIf = self._ErrorIf
     node_current = instanceconfig.primary_node
 
     node_vol_should = {}
@@ -1095,28 +1097,23 @@ class LUVerifyCluster(LogicalUnit):
         # ignore missing volumes on offline nodes
         continue
       for volume in node_vol_should[node]:
-        if node not in node_vol_is or volume not in node_vol_is[node]:
-          self._Error(self.EINSTANCEMISSINGDISK, instance,
-                      "volume %s missing on node %s", volume, node)
-          bad = True
+        test = node not in node_vol_is or volume not in node_vol_is[node]
+        _ErrorIf(test, self.EINSTANCEMISSINGDISK, instance,
+                 "volume %s missing on node %s", volume, node)
 
     if instanceconfig.admin_up:
-      if ((node_current not in node_instance or
-          not instance in node_instance[node_current]) and
-          node_current not in n_offline):
-        self._Error(self.EINSTANCEDOWN, instance,
-                    "instance not running on its primary node %s",
-                    node_current)
-        bad = True
+      test = ((node_current not in node_instance or
+               not instance in node_instance[node_current]) and
+              node_current not in n_offline)
+      _ErrorIf(test, self.EINSTANCEDOWN, instance,
+               "instance not running on its primary node %s",
+               node_current)
 
     for node in node_instance:
       if (not node == node_current):
-        if instance in node_instance[node]:
-          self._Error(self.EINSTANCEWRONGNODE, instance,
-                      "instance should not run on node %s", node)
-          bad = True
-
-    return bad
+        test = instance in node_instance[node]
+        _ErrorIf(test, self.EINSTANCEWRONGNODE, instance,
+                 "instance should not run on node %s", node)
 
   def _VerifyOrphanVolumes(self, node_vol_should, node_vol_is):
     """Verify if there are any unknown volumes in the cluster.
@@ -1125,15 +1122,12 @@ class LUVerifyCluster(LogicalUnit):
     reported as unknown.
 
     """
-    bad = False
-
     for node in node_vol_is:
       for volume in node_vol_is[node]:
-        if node not in node_vol_should or volume not in node_vol_should[node]:
-          self._Error(self.ENODEORPHANLV, node,
+        test = (node not in node_vol_should or
+                volume not in node_vol_should[node])
+        self._ErrorIf(test, self.ENODEORPHANLV, node,
                       "volume %s is unknown", volume)
-          bad = True
-    return bad
 
   def _VerifyOrphanInstances(self, instancelist, node_instance):
     """Verify the list of running instances.
@@ -1141,14 +1135,11 @@ class LUVerifyCluster(LogicalUnit):
     This checks what instances are running but unknown to the cluster.
 
     """
-    bad = False
     for node in node_instance:
       for o_inst in node_instance[node]:
-        if o_inst not in instancelist:
-          self._Error(self.ENODEORPHANINSTANCE, node,
+        test = o_inst not in instancelist
+        self._ErrorIf(test, self.ENODEORPHANINSTANCE, node,
                       "instance %s on node %s should not exist", o_inst, node)
-          bad = True
-    return bad
 
   def _VerifyNPlusOneMemory(self, node_info, instance_cfg):
     """Verify N+1 Memory Resilience.
@@ -1157,8 +1148,6 @@ class LUVerifyCluster(LogicalUnit):
     was primary for.
 
     """
-    bad = False
-
     for node, nodeinfo in node_info.iteritems():
       # This code checks that every node which is now listed as secondary has
       # enough memory to host all instances it is supposed to should a single
@@ -1174,12 +1163,10 @@ class LUVerifyCluster(LogicalUnit):
           bep = self.cfg.GetClusterInfo().FillBE(instance_cfg[instance])
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
-        if nodeinfo['mfree'] < needed_mem:
-          self._Error(self.ENODEN1, node,
+        test = nodeinfo['mfree'] < needed_mem
+        self._ErrorIf(test, self.ENODEN1, node,
                       "not enough memory on to accommodate"
                       " failovers should peer node %s fail", prinode)
-          bad = True
-    return bad
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1212,12 +1199,13 @@ class LUVerifyCluster(LogicalUnit):
     """Verify integrity of cluster, performing various test on nodes.
 
     """
-    bad = False
+    self.bad = False
+    _ErrorIf = self._ErrorIf
     verbose = self.op.verbose
     self._feedback_fn = feedback_fn
     feedback_fn("* Verifying global settings")
     for msg in self.cfg.VerifyConfig():
-      self._Error(self.ECLUSTERCFG, None, msg)
+      _ErrorIf(True, self.ECLUSTERCFG, None, msg)
 
     vg_name = self.cfg.GetVGName()
     hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
@@ -1293,57 +1281,55 @@ class LUVerifyCluster(LogicalUnit):
         feedback_fn("* Verifying node %s (%s)" % (node, ntype))
 
       msg = all_nvinfo[node].fail_msg
+      _ErrorIf(msg, self.ENODERPC, node, "while contacting node: %s", msg)
       if msg:
-        self._Error(self.ENODERPC, node, "while contacting node: %s", msg)
-        bad = True
         continue
 
       nresult = all_nvinfo[node].payload
       node_drbd = {}
       for minor, instance in all_drbd_map[node].items():
-        if instance not in instanceinfo:
-          self._Error(self.ECLUSTERCFG, None,
-                      "ghost instance '%s' in temporary DRBD map", instance)
+        test = instance not in instanceinfo
+        _ErrorIf(test, self.ECLUSTERCFG, None,
+                 "ghost instance '%s' in temporary DRBD map", instance)
           # ghost instance should not be running, but otherwise we
           # don't give double warnings (both ghost instance and
           # unallocated minor in use)
+        if test:
           node_drbd[minor] = (instance, False)
         else:
           instance = instanceinfo[instance]
           node_drbd[minor] = (instance.name, instance.admin_up)
-      result = self._VerifyNode(node_i, file_names, local_checksums,
-                                nresult, master_files, node_drbd, vg_name)
-      bad = bad or result
+      self._VerifyNode(node_i, file_names, local_checksums,
+                       nresult, master_files, node_drbd, vg_name)
 
       lvdata = nresult.get(constants.NV_LVLIST, "Missing LV data")
       if vg_name is None:
         node_volume[node] = {}
       elif isinstance(lvdata, basestring):
-        self._Error(self.ENODELVM, node, "LVM problem on node: %s",
-                    utils.SafeEncode(lvdata))
-        bad = True
+        _ErrorIf(True, self.ENODELVM, node, "LVM problem on node: %s",
+                 utils.SafeEncode(lvdata))
         node_volume[node] = {}
       elif not isinstance(lvdata, dict):
-        self._Error(self.ENODELVM, node, "rpc call to node failed (lvlist)")
-        bad = True
+        _ErrorIf(True, self.ENODELVM, node, "rpc call to node failed (lvlist)")
         continue
       else:
         node_volume[node] = lvdata
 
       # node_instance
       idata = nresult.get(constants.NV_INSTANCELIST, None)
-      if not isinstance(idata, list):
-        self._Error(self.ENODEHV, "rpc call to node failed (instancelist)")
-        bad = True
+      test = not isinstance(idata, list)
+      _ErrorIf(test, self.ENODEHV, node,
+               "rpc call to node failed (instancelist)")
+      if test:
         continue
 
       node_instance[node] = idata
 
       # node_info
       nodeinfo = nresult.get(constants.NV_HVINFO, None)
-      if not isinstance(nodeinfo, dict):
-        self._Error(self.ENODEHV, node, "rpc call to node failed (hvinfo)")
-        bad = True
+      test = not isinstance(nodeinfo, dict)
+      _ErrorIf(test, self.ENODEHV, node, "rpc call to node failed (hvinfo)")
+      if test:
         continue
 
       try:
@@ -1361,18 +1347,17 @@ class LUVerifyCluster(LogicalUnit):
         }
         # FIXME: devise a free space model for file based instances as well
         if vg_name is not None:
-          if (constants.NV_VGLIST not in nresult or
-              vg_name not in nresult[constants.NV_VGLIST]):
-            self._Error(self.ENODELVM, node,
-                        "node didn't return data for the volume group '%s'"
-                        " - it is either missing or broken", vg_name)
-            bad = True
+          test = (constants.NV_VGLIST not in nresult or
+                  vg_name not in nresult[constants.NV_VGLIST])
+          _ErrorIf(test, self.ENODELVM, node,
+                   "node didn't return data for the volume group '%s'"
+                   " - it is either missing or broken", vg_name)
+          if test:
             continue
           node_info[node]["dfree"] = int(nresult[constants.NV_VGLIST][vg_name])
       except (ValueError, KeyError):
-        self._Error(self.ENODERPC, node,
-                    "node returned invalid nodeinfo, check lvm/hypervisor")
-        bad = True
+        _ErrorIf(True, self.ENODERPC, node,
+                 "node returned invalid nodeinfo, check lvm/hypervisor")
         continue
 
     node_vol_should = {}
@@ -1382,9 +1367,8 @@ class LUVerifyCluster(LogicalUnit):
       if verbose:
         feedback_fn("* Verifying instance %s" % instance)
       inst_config = instanceinfo[instance]
-      result =  self._VerifyInstance(instance, inst_config, node_volume,
-                                     node_instance, n_offline)
-      bad = bad or result
+      self._VerifyInstance(instance, inst_config, node_volume,
+                           node_instance, n_offline)
       inst_nodes_offline = []
 
       inst_config.MapLVsByNode(node_vol_should)
@@ -1392,12 +1376,11 @@ class LUVerifyCluster(LogicalUnit):
       instance_cfg[instance] = inst_config
 
       pnode = inst_config.primary_node
+      _ErrorIf(pnode not in node_info and pnode not in n_offline,
+               self.ENODERPC, pnode, "instance %s, connection to"
+               " primary node failed", instance)
       if pnode in node_info:
         node_info[pnode]['pinst'].append(instance)
-      elif pnode not in n_offline:
-        self._Error(self.ENODERPC, pnode, "instance %s, connection to"
-                    " primary node failed", instance)
-        bad = True
 
       if pnode in n_offline:
         inst_nodes_offline.append(pnode)
@@ -1409,46 +1392,42 @@ class LUVerifyCluster(LogicalUnit):
       # FIXME: does not support file-backed instances
       if len(inst_config.secondary_nodes) == 0:
         i_non_redundant.append(instance)
-      elif len(inst_config.secondary_nodes) > 1:
-        self._Error(self.EINSTANCELAYOUT, instance,
-                    "instance has multiple secondary nodes", code="WARNING")
+      _ErrorIf(len(inst_config.secondary_nodes) > 1,
+               self.EINSTANCELAYOUT, instance,
+               "instance has multiple secondary nodes", code="WARNING")
 
       if not cluster.FillBE(inst_config)[constants.BE_AUTO_BALANCE]:
         i_non_a_balanced.append(instance)
 
       for snode in inst_config.secondary_nodes:
+        _ErrorIf(snode not in node_info and snode not in n_offline,
+                 self.ENODERPC, snode,
+                 "instance %s, connection to secondary node"
+                 "failed", instance)
+
         if snode in node_info:
           node_info[snode]['sinst'].append(instance)
           if pnode not in node_info[snode]['sinst-by-pnode']:
             node_info[snode]['sinst-by-pnode'][pnode] = []
           node_info[snode]['sinst-by-pnode'][pnode].append(instance)
-        elif snode not in n_offline:
-          self._Error(self.ENODERPC, snode,
-                      "instance %s, connection to secondary node"
-                      "failed", instance)
-          bad = True
+
         if snode in n_offline:
           inst_nodes_offline.append(snode)
 
-      if inst_nodes_offline:
-        # warn that the instance lives on offline nodes, and set bad=True
-        self._Error(self.EINSTANCEBADNODE, instance,
-                    "instance lives on offline node(s) %s",
-                    ", ".join(inst_nodes_offline))
-        bad = True
+      # warn that the instance lives on offline nodes
+      _ErrorIf(inst_nodes_offline, self.EINSTANCEBADNODE, instance,
+               "instance lives on offline node(s) %s",
+               ", ".join(inst_nodes_offline))
 
     feedback_fn("* Verifying orphan volumes")
-    result = self._VerifyOrphanVolumes(node_vol_should, node_volume)
-    bad = bad or result
+    self._VerifyOrphanVolumes(node_vol_should, node_volume)
 
     feedback_fn("* Verifying remaining instances")
-    result = self._VerifyOrphanInstances(instancelist, node_instance)
-    bad = bad or result
+    self._VerifyOrphanInstances(instancelist, node_instance)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.skip_set:
       feedback_fn("* Verifying N+1 Memory redundancy")
-      result = self._VerifyNPlusOneMemory(node_info, instance_cfg)
-      bad = bad or result
+      self._VerifyNPlusOneMemory(node_info, instance_cfg)
 
     feedback_fn("* Other Notes")
     if i_non_redundant:
@@ -1465,7 +1444,7 @@ class LUVerifyCluster(LogicalUnit):
     if n_drained:
       feedback_fn("  - NOTICE: %d drained node(s) found." % len(n_drained))
 
-    return not bad
+    return not self.bad
 
   def HooksCallBack(self, phase, hooks_results, feedback_fn, lu_result):
     """Analyze the post-hooks' result
@@ -1494,18 +1473,19 @@ class LUVerifyCluster(LogicalUnit):
         show_node_header = True
         res = hooks_results[node_name]
         msg = res.fail_msg
-        if msg:
-          if res.offline:
-            # no need to warn or set fail return value
-            continue
-          self._Error(self.ENODEHOOKS, node_name,
+        test = msg and not res.offline
+        self._ErrorIf(test, self.ENODEHOOKS, node_name,
                       "Communication failure in hooks execution: %s", msg)
+        if test:
+          # override manually lu_result here as _ErrorIf only
+          # overrides self.bad
           lu_result = 1
           continue
         for script, hkr, output in res.payload:
-          if hkr == constants.HKR_FAIL:
-            self._Error(self.ENODEHOOKS, node_name,
+          test = hkr == constants.HKR_FAIL
+          self._ErrorIf(test, self.ENODEHOOKS, node_name,
                         "Script %s failed, output:", script)
+          if test:
             output = indent_re.sub('      ', output)
             feedback_fn("%s" % output)
             lu_result = 1
