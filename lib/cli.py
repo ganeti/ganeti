@@ -44,6 +44,7 @@ from optparse import (OptionParser, TitledHelpFormatter,
 
 __all__ = [
   # Command line options
+  "ALLOCATABLE_OPT",
   "ALL_OPT",
   "AUTO_REPLACE_OPT",
   "BACKEND_OPT",
@@ -709,6 +710,10 @@ OFFLINE_OPT = cli_option("-O", "--offline", dest="offline", metavar=_YORNO,
 DRAINED_OPT = cli_option("-D", "--drained", dest="drained", metavar=_YORNO,
                          choices=_YESNO, default=None,
                          help="Set the drained flag on the node")
+
+ALLOCATABLE_OPT = cli_option("--allocatable", dest="allocatable",
+                             choices=_YESNO, default=None, metavar=_YORNO,
+                             help="Set the allocatable flag on a volume")
 
 
 def _ParseArgs(argv, commands, aliases):
