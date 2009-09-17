@@ -242,10 +242,7 @@ import_opts = [
   IALLOCATOR_OPT,
   FILESTORE_DIR_OPT,
   FILESTORE_DRIVER_OPT,
-  cli_option("-H", "--hypervisor", dest="hypervisor",
-             help="Hypervisor and hypervisor options, in the format"
-             " hypervisor:option=value,option=value,...", default=None,
-             type="identkeyval"),
+  HYPERVISOR_OPT,
   ]
 
 commands = {
