@@ -74,6 +74,7 @@ __all__ = [
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NOSTART_OPT",
+  "NOSSH_KEYCHECK_OPT",
   "NWSYNC_OPT",
   "ON_PRIMARY_OPT",
   "ON_SECONDARY_OPT",
@@ -685,6 +686,10 @@ SECONDARY_IP_OPT = cli_option("-s", "--secondary-ip", dest="secondary_ip",
 READD_OPT = cli_option("--readd", dest="readd",
                        default=False, action="store_true",
                        help="Readd old node after replacing it")
+
+NOSSH_KEYCHECK_OPT = cli_option("--no-ssh-key-check", dest="ssh_key_check",
+                                default=True, action="store_false",
+                                help="Disable SSH key fingerprint checking")
 
 
 def _ParseArgs(argv, commands, aliases):
