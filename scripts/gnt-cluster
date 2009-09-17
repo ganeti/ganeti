@@ -600,23 +600,10 @@ commands = {
             SECONDARY_IP_OPT,
             MAC_PREFIX_OPT,
             VG_NAME_OPT,
-            cli_option("--master-netdev", dest="master_netdev",
-                       help="Specify the node interface (cluster-wide)"
-                         " on which the master IP address will be added "
-                         " [%s]" % constants.DEFAULT_BRIDGE,
-                       metavar="NETDEV",
-                       default=constants.DEFAULT_BRIDGE,),
-            cli_option("--file-storage-dir", dest="file_storage_dir",
-                       help="Specify the default directory (cluster-wide)"
-                            " for storing the file-based disks [%s]" %
-                            constants.DEFAULT_FILE_STORAGE_DIR,
-                       metavar="DIR",
-                       default=constants.DEFAULT_FILE_STORAGE_DIR,),
+            MASTER_NETDEV_OPT,
+            GLOBAL_FILEDIR_OPT,
             NOLVM_STORAGE_OPT,
-            cli_option("--no-etc-hosts", dest="modify_etc_hosts",
-                       help="Don't modify /etc/hosts"
-                            " (cluster-wide)",
-                       action="store_false", default=True,),
+            NOMODIFY_ETCHOSTS_OPT,
             ENABLED_HV_OPT,
             HVLIST_OPT,
             BACKEND_OPT,

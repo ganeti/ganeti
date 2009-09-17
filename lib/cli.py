@@ -61,6 +61,7 @@ __all__ = [
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
+  "GLOBAL_FILEDIR_OPT",
   "HVLIST_OPT",
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
@@ -70,6 +71,7 @@ __all__ = [
   "IGNORE_SIZE_OPT",
   "FORCE_OPT",
   "MAC_PREFIX_OPT",
+  "MASTER_NETDEV_OPT",
   "MC_OPT",
   "NET_OPT",
   "NEW_SECONDARY_OPT",
@@ -79,6 +81,7 @@ __all__ = [
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
   "NOLVM_STORAGE_OPT",
+  "NOMODIFY_ETCHOSTS_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NOSTART_OPT",
@@ -758,6 +761,25 @@ MAC_PREFIX_OPT = cli_option("-m", "--mac-prefix", dest="mac_prefix",
                             " addresses, in the format XX:XX:XX",
                             metavar="PREFIX",
                             default=None)
+
+MASTER_NETDEV_OPT = cli_option("--master-netdev", dest="master_netdev",
+                               help="Specify the node interface (cluster-wide)"
+                               " on which the master IP address will be added "
+                               " [%s]" % constants.DEFAULT_BRIDGE,
+                               metavar="NETDEV",
+                               default=constants.DEFAULT_BRIDGE)
+
+
+GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
+                                help="Specify the default directory (cluster-"
+                                "wide) for storing the file-based disks [%s]" %
+                                constants.DEFAULT_FILE_STORAGE_DIR,
+                                metavar="DIR",
+                                default=constants.DEFAULT_FILE_STORAGE_DIR)
+
+NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
+                                   help="Don't modify /etc/hosts",
+                                   action="store_false", default=True)
 
 
 def _ParseArgs(argv, commands, aliases):
