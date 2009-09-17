@@ -54,6 +54,7 @@ __all__ = [
   "DISKIDX_OPT",
   "DISK_OPT",
   "DISK_TEMPLATE_OPT",
+  "DRAINED_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
@@ -65,6 +66,7 @@ __all__ = [
   "IGNORE_FAILURES_OPT",
   "IGNORE_SIZE_OPT",
   "FORCE_OPT",
+  "MC_OPT",
   "NET_OPT",
   "NEW_SECONDARY_OPT",
   "NODE_LIST_OPT",
@@ -78,6 +80,7 @@ __all__ = [
   "NWSYNC_OPT",
   "ON_PRIMARY_OPT",
   "ON_SECONDARY_OPT",
+  "OFFLINE_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
   "READD_OPT",
@@ -453,6 +456,9 @@ class CliOption(Option):
 cli_option = CliOption
 
 
+_YESNO = ("yes", "no")
+_YORNO = "yes|no"
+
 DEBUG_OPT = cli_option("-d", "--debug", default=False,
                        action="store_true",
                        help="Turn debugging on")
@@ -690,6 +696,19 @@ READD_OPT = cli_option("--readd", dest="readd",
 NOSSH_KEYCHECK_OPT = cli_option("--no-ssh-key-check", dest="ssh_key_check",
                                 default=True, action="store_false",
                                 help="Disable SSH key fingerprint checking")
+
+
+MC_OPT = cli_option("-C", "--master-candidate", dest="master_candidate",
+                    choices=_YESNO, default=None, metavar=_YORNO,
+                    help="Set the master_candidate flag on the node")
+
+OFFLINE_OPT = cli_option("-O", "--offline", dest="offline", metavar=_YORNO,
+                         choices=_YESNO, default=None,
+                         help="Set the offline flag on the node")
+
+DRAINED_OPT = cli_option("-D", "--drained", dest="drained", metavar=_YORNO,
+                         choices=_YESNO, default=None,
+                         help="Set the drained flag on the node")
 
 
 def _ParseArgs(argv, commands, aliases):
