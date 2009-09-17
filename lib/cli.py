@@ -83,6 +83,8 @@ __all__ = [
   "SEP_OPT",
   "SHOWCMD_OPT",
   "SINGLE_NODE_OPT",
+  "SRC_DIR_OPT",
+  "SRC_NODE_OPT",
   "SUBMIT_OPT",
   "STATIC_OPT",
   "SYNC_OPT",
@@ -666,6 +668,13 @@ IGNORE_SIZE_OPT = cli_option("--ignore-size", dest="ignore_size",
                              help="Ignore current recorded size"
                              " (useful for forcing activation when"
                              " the recorded size is wrong)")
+
+SRC_NODE_OPT = cli_option("--src-node", dest="src_node", help="Source node",
+                          metavar="<node>",
+                          completion_suggest=OPT_COMPL_ONE_NODE)
+
+SRC_DIR_OPT = cli_option("--src-dir", dest="src_dir", help="Source directory",
+                         metavar="<dir>")
 
 
 def _ParseArgs(argv, commands, aliases):
