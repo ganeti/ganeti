@@ -210,7 +210,6 @@ def RemoveExport(opts, args):
 
 # this is defined separately due to readability only
 import_opts = [
-  DEBUG_OPT,
   NODE_PLACEMENT_OPT,
   BACKEND_OPT,
   DISK_TEMPLATE_OPT,
@@ -231,11 +230,11 @@ import_opts = [
 commands = {
   'list': (
     PrintExportList, ARGS_NONE,
-    [DEBUG_OPT, NODE_LIST_OPT],
+    [NODE_LIST_OPT],
     "", "Lists instance exports available in the ganeti cluster"),
   'export': (
     ExportInstance, ARGS_ONE_INSTANCE,
-    [DEBUG_OPT, FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT],
+    [FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT],
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   'import': (
@@ -243,8 +242,7 @@ commands = {
     "[...] -t disk-type -n node[:secondary-node] <name>",
     "Imports an instance from an exported image"),
   'remove': (
-    RemoveExport, [ArgUnknown(min=1, max=1)],
-    [DEBUG_OPT],
+    RemoveExport, [ArgUnknown(min=1, max=1)], [],
     "<name>", "Remove exports of named instance from the filesystem."),
   }
 
