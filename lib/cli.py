@@ -69,6 +69,7 @@ __all__ = [
   "IALLOCATOR_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_FAILURES_OPT",
+  "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
   "FORCE_OPT",
   "MAC_PREFIX_OPT",
@@ -797,6 +798,11 @@ REBOOT_TYPE_OPT = cli_option("-t", "--type", dest="reboot_type",
                              default=constants.INSTANCE_REBOOT_HARD,
                              metavar="<REBOOT>",
                              choices=list(constants.REBOOT_TYPES))
+
+IGNORE_SECONDARIES_OPT = cli_option("--ignore-secondaries",
+                                    dest="ignore_secondaries",
+                                    default=False, action="store_true",
+                                    help="Ignore errors from secondaries")
 
 
 def _ParseArgs(argv, commands, aliases):
