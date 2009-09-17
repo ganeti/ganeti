@@ -50,6 +50,7 @@ __all__ = [
   "FIELDS_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
+  "NWSYNC_OPT",
   "SEP_OPT",
   "SUBMIT_OPT",
   "SYNC_OPT",
@@ -469,6 +470,10 @@ DEBUG_SIMERR_OPT = cli_option("--debug-simulate-errors", default=False,
                               action="store_true", dest="simulate_errors",
                               help="Debugging option that makes the operation"
                               " treat most runtime checks as failed")
+
+NWSYNC_OPT = cli_option("--no-wait-for-sync", dest="wait_for_sync",
+                        default=True, action="store_false",
+                        help="Don't wait for sync (DANGEROUS!)")
 
 
 def _ParseArgs(argv, commands, aliases):
