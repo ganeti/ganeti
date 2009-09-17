@@ -1439,10 +1439,7 @@ commands = {
                      NEW_SECONDARY_OPT,
                      ON_PRIMARY_OPT,
                      ON_SECONDARY_OPT,
-                     cli_option("-a", "--auto", dest="auto",
-                                default=False, action="store_true",
-                                help=("Automatically replace faulty disks"
-                                      " (only for the drbd template)")),
+                     AUTO_REPLACE_OPT,
                      DISKIDX_OPT,
                      IALLOCATOR_OPT,
                      SUBMIT_OPT,

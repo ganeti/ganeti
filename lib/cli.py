@@ -45,6 +45,7 @@ from optparse import (OptionParser, TitledHelpFormatter,
 __all__ = [
   # Command line options
   "ALL_OPT",
+  "AUTO_REPLACE_OPT",
   "BACKEND_OPT",
   "CLEANUP_OPT",
   "CONFIRM_OPT",
@@ -653,6 +654,11 @@ ON_SECONDARY_OPT = cli_option("-s", "--on-secondary", dest="on_secondary",
                               default=False, action="store_true",
                               help="Replace the disk(s) on the secondary"
                               " node (only for the drbd template)")
+
+AUTO_REPLACE_OPT = cli_option("-a", "--auto", dest="auto",
+                              default=False, action="store_true",
+                              help="Automatically replace faulty disks"
+                              " (only for the drbd template)")
 
 
 def _ParseArgs(argv, commands, aliases):
