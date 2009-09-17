@@ -56,6 +56,7 @@ __all__ = [
   "DISK_OPT",
   "DISK_TEMPLATE_OPT",
   "DRAINED_OPT",
+  "ENABLED_HV_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
@@ -720,6 +721,11 @@ NOLVM_STORAGE_OPT = cli_option("--no-lvm-storage", dest="lvm_storage",
                                help="Disable support for lvm based instances"
                                " (cluster-wide)",
                                action="store_false", default=True)
+
+ENABLED_HV_OPT = cli_option("--enabled-hypervisors",
+                            dest="enabled_hypervisors",
+                            help="Comma-separated list of hypervisors",
+                            type="string", default=None)
 
 
 def _ParseArgs(argv, commands, aliases):
