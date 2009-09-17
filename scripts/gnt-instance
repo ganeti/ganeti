@@ -1271,7 +1271,7 @@ def SetInstanceParams(opts, args):
 
   """
   if not (opts.nics or opts.disks or
-          opts.hypervisor or opts.beparams):
+          opts.hvparams or opts.beparams):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1283,12 +1283,12 @@ def SetInstanceParams(opts, args):
   utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES,
                       allowed_values=[constants.VALUE_DEFAULT])
 
-  for param in opts.hypervisor:
-    if isinstance(opts.hypervisor[param], basestring):
-      if opts.hypervisor[param].lower() == "default":
-        opts.hypervisor[param] = constants.VALUE_DEFAULT
+  for param in opts.hvparams:
+    if isinstance(opts.hvparams[param], basestring):
+      if opts.hvparams[param].lower() == "default":
+        opts.hvparams[param] = constants.VALUE_DEFAULT
 
-  utils.ForceDictType(opts.hypervisor, constants.HVS_PARAMETER_TYPES,
+  utils.ForceDictType(opts.hvparams, constants.HVS_PARAMETER_TYPES,
                       allowed_values=[constants.VALUE_DEFAULT])
 
   for idx, (nic_op, nic_dict) in enumerate(opts.nics):
@@ -1312,7 +1312,7 @@ def SetInstanceParams(opts, args):
   op = opcodes.OpSetInstanceParams(instance_name=args[0],
                                    nics=opts.nics,
                                    disks=opts.disks,
-                                   hvparams=opts.hypervisor,
+                                   hvparams=opts.hvparams,
                                    beparams=opts.beparams,
                                    force=opts.force)
 
@@ -1540,9 +1540,7 @@ commands = {
                     "Replaces all disks for the instance"),
   'modify': (SetInstanceParams, ARGS_ONE_INSTANCE,
              [DEBUG_OPT, FORCE_OPT,
-              cli_option("-H", "--hypervisor", type="keyval",
-                         default={}, dest="hypervisor",
-                         help="Change hypervisor parameters"),
+              HVOPTS_OPT,
               BACKEND_OPT,
               cli_option("--disk", help="Disk changes",
                          default=[], dest="disks",
@@ -1566,9 +1564,7 @@ commands = {
                m_node_opt, m_pri_node_opt, m_sec_node_opt,
                m_clust_opt, m_inst_opt,
                SUBMIT_OPT,
-               cli_option("-H", "--hypervisor", type="keyval",
-                          default={}, dest="hvparams",
-                          help="Temporary hypervisor parameters"),
+               HVOPTS_OPT,
                BACKEND_OPT,
                ],
               "<instance>", "Starts an instance"),
