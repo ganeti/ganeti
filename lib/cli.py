@@ -47,6 +47,7 @@ __all__ = [
   "CONFIRM_OPT",
   "DEBUG_OPT",
   "DEBUG_SIMERR_OPT",
+  "DISK_TEMPLATE_OPT",
   "FIELDS_OPT",
   "FORCE_OPT",
   "NOHDR_OPT",
@@ -474,6 +475,12 @@ DEBUG_SIMERR_OPT = cli_option("--debug-simulate-errors", default=False,
 NWSYNC_OPT = cli_option("--no-wait-for-sync", dest="wait_for_sync",
                         default=True, action="store_false",
                         help="Don't wait for sync (DANGEROUS!)")
+
+DISK_TEMPLATE_OPT = cli_option("-t", "--disk-template", dest="disk_template",
+                               help="Custom disk setup (diskless, file,"
+                               " plain or drbd)",
+                               default=None, metavar="TEMPL",
+                               choices=list(constants.DISK_TEMPLATES))
 
 
 def _ParseArgs(argv, commands, aliases):

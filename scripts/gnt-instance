@@ -1375,10 +1375,7 @@ add_opts = [
   cli_option("-B", "--backend", dest="beparams",
              type="keyval", default={},
              help="Backend parameters"),
-  cli_option("-t", "--disk-template", dest="disk_template",
-             help="Custom disk setup (diskless, file, plain or drbd)",
-             default=None, metavar="TEMPL",
-             choices=list(constants.DISK_TEMPLATES)),
+  DISK_TEMPLATE_OPT,
   cli_option("-s", "--os-size", dest="sd_size", help="Disk size for a"
              " single-disk configuration, when not using the --disk option,"
              " in MiB unless a suffix is used",
