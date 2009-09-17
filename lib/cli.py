@@ -69,6 +69,7 @@ __all__ = [
   "IGNORE_FAILURES_OPT",
   "IGNORE_SIZE_OPT",
   "FORCE_OPT",
+  "MAC_PREFIX_OPT",
   "MC_OPT",
   "NET_OPT",
   "NEW_SECONDARY_OPT",
@@ -751,6 +752,12 @@ YES_DOIT_OPT = cli_option("--yes-do-it", dest="yes_do_it",
 NOVOTING_OPT = cli_option("--no-voting", dest="no_voting",
                           help="Skip node agreement check (dangerous)",
                           action="store_true", default=False)
+
+MAC_PREFIX_OPT = cli_option("-m", "--mac-prefix", dest="mac_prefix",
+                            help="Specify the mac prefix for the instance IP"
+                            " addresses, in the format XX:XX:XX",
+                            metavar="PREFIX",
+                            default=None)
 
 
 def _ParseArgs(argv, commands, aliases):
