@@ -61,6 +61,7 @@ __all__ = [
   "IGNORE_CONSIST_OPT",
   "FORCE_OPT",
   "NET_OPT",
+  "NODE_LIST_OPT",
   "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
@@ -579,6 +580,12 @@ NODE_PLACEMENT_OPT = cli_option("-n", "--node", dest="node",
                                 help="Target node and optional secondary node",
                                 metavar="<pnode>[:<snode>]",
                                 completion_suggest=OPT_COMPL_INST_ADD_NODES)
+
+NODE_LIST_OPT = cli_option("-n", "--node", dest="nodes", default=[],
+                           action="append", metavar="<node>",
+                           help="Use only this node (can be used multiple"
+                           " times, if not given defaults to all nodes)",
+                           completion_suggest=OPT_COMPL_ONE_NODE)
 
 
 def _ParseArgs(argv, commands, aliases):

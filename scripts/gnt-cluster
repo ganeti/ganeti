@@ -586,13 +586,6 @@ def WatcherOps(opts, args):
   return 0
 
 
-# this is an option common to more than one command, so we declare
-# it here and reuse it
-node_option = cli_option("-n", "--node", action="append", dest="nodes",
-                         help="Node to copy to (if not given, all nodes),"
-                              " can be given multiple times",
-                         metavar="<node>", default=[])
-
 commands = {
   'init': (InitCluster, [ArgHost(min=1, max=1)],
            [DEBUG_OPT,
@@ -688,10 +681,11 @@ commands = {
   'getmaster': (ShowClusterMaster, ARGS_NONE, [DEBUG_OPT],
                 "", "Shows the cluster master"),
   'copyfile': (ClusterCopyFile, [ArgFile(min=1, max=1)],
-               [DEBUG_OPT, node_option],
+               [DEBUG_OPT, NODE_LIST_OPT],
                "[-n node...] <filename>",
                "Copies a file to all (or only some) nodes"),
-  'command': (RunClusterCommand, [ArgCommand(min=1)], [DEBUG_OPT, node_option],
+  'command': (RunClusterCommand, [ArgCommand(min=1)],
+              [DEBUG_OPT, NODE_LIST_OPT],
               "[-n node...] <command>",
               "Runs a command on all (or only some) nodes"),
   'info': (ShowClusterConfig, ARGS_NONE, [DEBUG_OPT],
