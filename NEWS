@@ -1,322 +1,391 @@
+News
+====
+
 Version 2.0.3
-  - Added “--ignore-size” to the “gnt-instance activate-disks” command
-    to allow using the pre-2.0.2 behaviour in activation, if any
-    existing instances have mismatched disk sizes in the configuration
-  - Added “gnt-cluster repair-disk-sizes” command to check and update
-    any configuration mismatches for disk sizes
-  - Added “gnt-master cluste-failover --no-voting” to allow master
-    failover to work on two-node clusters
-  - Fixed the ‘--net’ option of “gnt-backup import”, which was unusable
-  - Fixed detection of OS script errors in “gnt-backup export”
-  - Fixed exit code of “gnt-backup export”
+-------------
+
+- Added ``--ignore-size`` to the ``gnt-instance activate-disks`` command
+  to allow using the pre-2.0.2 behaviour in activation, if any existing
+  instances have mismatched disk sizes in the configuration
+- Added ``gnt-cluster repair-disk-sizes`` command to check and update any
+  configuration mismatches for disk sizes
+- Added ``gnt-master cluste-failover --no-voting`` to allow master
+  failover to work on two-node clusters
+- Fixed the ‘--net’ option of ``gnt-backup import``, which was unusable
+- Fixed detection of OS script errors in ``gnt-backup export``
+- Fixed exit code of ``gnt-backup export``
+
 
 Version 2.0.2
-  - Added experimental support for stripped logical volumes; this should
-    enhance performance but comes with a higher complexity in the block
-    device handling; stripping is only enabled when passing
-    --with-lvm-stripecount=N to configure, but codepaths are affected
-    even in the non-stripped mode
-  - Improved resiliency against transient failures at the end of DRBD
-    resyncs, and in general of DRBD resync checks
-  - Fixed a couple of issues with exports and snapshot errors
-  - Fixed a couple of issues in instance listing
-  - Added display of the disk size in “gnt-instance info”
-  - Fixed checking for valid OSes in instance creation
-  - Fixed handling of the ‘vcpus’ parameter in instance listing and in
-    general of invalid parameters
-  - Fixed http server library, and thus RAPI, to handle invalid
-    username/password combinations correctly; this means that now they
-    report unauthorized for queries too, not only for modifications,
-    allowing earlier detect of configuration problems
-  - Added a new ‘role’ node list field, equivalent to the master/master
-    candidate/drained/offline flags combinations
-  - Fixed cluster modify and changes of candidate pool size
-  - Fixed cluster verify error messages for wrong files on regular nodes
-  - Fixed a couple of issues with node demotion from master candidate
-    role
-  - Fixed node readd issues
-  - Added non-interactive mode for “ganeti-masterd --no-voting” startup
-  - Added a new ‘--no-voting’ option for masterfailover to fix failover
-    on two-nodes clusters when the former master node is unreachable
-  - Added instance reinstall over RAPI
+-------------
+
+- Added experimental support for stripped logical volumes; this should
+  enhance performance but comes with a higher complexity in the block
+  device handling; stripping is only enabled when passing
+  ``--with-lvm-stripecount=N`` to ``configure``, but codepaths are
+  affected even in the non-stripped mode
+- Improved resiliency against transient failures at the end of DRBD
+  resyncs, and in general of DRBD resync checks
+- Fixed a couple of issues with exports and snapshot errors
+- Fixed a couple of issues in instance listing
+- Added display of the disk size in ``gnt-instance info``
+- Fixed checking for valid OSes in instance creation
+- Fixed handling of the ‘vcpus’ parameter in instance listing and in
+  general of invalid parameters
+- Fixed http server library, and thus RAPI, to handle invalid
+  username/password combinations correctly; this means that now they
+  report unauthorized for queries too, not only for modifications,
+  allowing earlier detect of configuration problems
+- Added a new ‘role’ node list field, equivalent to the master/master
+  candidate/drained/offline flags combinations
+- Fixed cluster modify and changes of candidate pool size
+- Fixed cluster verify error messages for wrong files on regular nodes
+- Fixed a couple of issues with node demotion from master candidate role
+- Fixed node readd issues
+- Added non-interactive mode for ``ganeti-masterd --no-voting`` startup
+- Added a new ‘--no-voting’ option for masterfailover to fix failover on
+  two-nodes clusters when the former master node is unreachable
+- Added instance reinstall over RAPI
+
 
 Version 2.0.1
-  - added -H/-B startup parameters to gnt-instance, which will allow
-    re-adding the start in single-user option (regression from 1.2)
-  - the watcher writes the instance status to a file, to allow
-    monitoring to report the instance status (from the master) based on
-    cached results of the watcher's queries; while this can get stale if
-    the watcher is being locked due to other work on the cluster, this
-    is still an improvement
-  - the watcher now also restarts the node daemon and the rapi daemon if
-    they died
-  - fixed the watcher to handle full and drained queue cases
-  - hooks export more instance data in the environment, which helps if
-    hook scripts need to take action based on the instance's properties
-    (no longer need to query back into ganeti)
-  - instance failovers when the instance is stopped do not check for
-    free RAM, so that failing over a stopped instance is possible in low
-    memory situations
-  - rapi uses queries for tags instead of jobs (for less job traffic),
-    and for cluster tags it won't talk to masterd at all but read them
-    from ssconf
-  - a couple of error handling fixes in RAPI
-  - drbd handling: improved the error handling of inconsistent disks
-    after resync to reduce the frequency of "there are some degraded
-    disks for this instance" message
-  - fixed a bug in live migration when DRBD doesn't want to reconnect
-    (the error handling path called a wrong function name)
+-------------
+
+- added ``-H``/``-B`` startup parameters to ``gnt-instance``, which will
+  allow re-adding the start in single-user option (regression from 1.2)
+- the watcher writes the instance status to a file, to allow monitoring
+  to report the instance status (from the master) based on cached
+  results of the watcher's queries; while this can get stale if the
+  watcher is being locked due to other work on the cluster, this is
+  still an improvement
+- the watcher now also restarts the node daemon and the rapi daemon if
+  they died
+- fixed the watcher to handle full and drained queue cases
+- hooks export more instance data in the environment, which helps if hook
+  scripts need to take action based on the instance's properties (no
+  longer need to query back into ganeti)
+- instance failovers when the instance is stopped do not check for free
+  RAM, so that failing over a stopped instance is possible in low memory
+  situations
+- rapi uses queries for tags instead of jobs (for less job traffic), and
+  for cluster tags it won't talk to masterd at all but read them from
+  ssconf
+- a couple of error handling fixes in RAPI
+- drbd handling: improved the error handling of inconsistent disks after
+  resync to reduce the frequency of "there are some degraded disks for
+  this instance" messages
+- fixed a bug in live migration when DRBD doesn't want to reconnect (the
+  error handling path called a wrong function name)
+
 
 Version 2.0.0 final
-  - no changes from rc5
+-------------------
+
+- no changes from rc5
+
 
 Version 2.0 release candidate 5
-  - fix a couple of bugs (validation, argument checks)
-  - fix gnt-cluster getmaster on non-master nodes (regression)
-  - some small improvements to RAPI and IAllocator
-  - make watcher automatically start the master daemon if down
+-------------------------------
+
+- fix a couple of bugs (validation, argument checks)
+- fix ``gnt-cluster getmaster`` on non-master nodes (regression)
+- some small improvements to RAPI and IAllocator
+- make watcher automatically start the master daemon if down
+
 
 Version 2.0 release candidate 4
-  - change the OS list to not require locks; this helps with big
-    clusters
-  - fix gnt-cluster verify and gnt-cluster verify-disks when the volume
-    group is broken
-  - “gnt-instance info”, without any arguments, doesn't run for all
-    instances anymore; either pass ‘--all’ or pass the desired
-    instances; this helps against mistakes on big clusters where listing
-    the information for all instances takes a long time
-  - miscellaneous doc and man pages fixes
+-------------------------------
+
+- change the OS list to not require locks; this helps with big clusters
+- fix ``gnt-cluster verify`` and ``gnt-cluster verify-disks`` when the
+  volume group is broken
+- ``gnt-instance info``, without any arguments, doesn't run for all
+  instances anymore; either pass ``--all`` or pass the desired
+  instances; this helps against mistakes on big clusters where listing
+  the information for all instances takes a long time
+- miscellaneous doc and man pages fixes
+
 
 Version 2.0 release candidate 3
-  - Change the internal locking model of some gnt-node commands, in
-    order to reduce contention (and blocking of master daemon) when
-    batching many creation/reinstall jobs
-  - Fixes to Xen soft reboot
-  - No longer build documentation at 'make' time, instead distribute it
-    in the archive, in order to reduce the need for the whole
-    docbook/rst toolchains
+-------------------------------
+
+- Change the internal locking model of some ``gnt-node`` commands, in
+  order to reduce contention (and blocking of master daemon) when
+  batching many creation/reinstall jobs
+- Fixes to Xen soft reboot
+- No longer build documentation at build time, instead distribute it in
+  the archive, in order to reduce the need for the whole docbook/rst
+  toolchains
+
 
 Version 2.0 release candidate 2
-  - Now the cfgupgrade scripts works and can upgrade 1.2.7 clusters to
-    2.0
-  - Fix watcher startup sequence, improves the behaviour of busy
-    clusters
-  - Some other fixes in cluster verify, replace-disks, gnt-instance add,
-    gnt-cluster queue, KVM VNC bind address and other places
-  - Some documentation fixes and updates
+-------------------------------
+
+- Now the cfgupgrade scripts works and can upgrade 1.2.7 clusters to 2.0
+- Fix watcher startup sequence, improves the behaviour of busy clusters
+- Some other fixes in ``gnt-cluster verify``, ``gnt-instance
+  replace-disks``, ``gnt-instance add``, ``gnt-cluster queue``, KVM VNC
+  bind address and other places
+- Some documentation fixes and updates
+
 
 Version 2.0 release candidate 1
-  - More documentation updates, now all docs should be more-or-less
-    up-to-date
-  - A couple of small fixes (mixed hypervisor clusters, offline nodes,
-    etc.)
-  - Added a customizable HV_KERNEL_ARGS hypervisor parameter (for Xen
-    PVM and KVM)
-  - Fix an issue related to $libdir/run/ganeti and cluster creation
+-------------------------------
+
+- More documentation updates, now all docs should be more-or-less
+  up-to-date
+- A couple of small fixes (mixed hypervisor clusters, offline nodes,
+  etc.)
+- Added a customizable HV_KERNEL_ARGS hypervisor parameter (for Xen PVM
+  and KVM)
+- Fix an issue related to $libdir/run/ganeti and cluster creation
+
 
 Version 2.0 beta 2
-  - Xen PVM and KVM have switched the default value for the instance
-    root disk to the first partition on the first drive, instead of the
-    whole drive; this means that the OS installation scripts must be
-    changed accordingly
-  - Man pages have been updated
-  - RAPI has been switched by default to HTTPS, and the exported
-    functions should all work correctly
-  - RAPI v1 has been removed
-  - Many improvements to the KVM hypervisor
-  - Block device errors are now better reported
-  - Many other bugfixes and small improvements
+------------------
+
+- Xen PVM and KVM have switched the default value for the instance root
+  disk to the first partition on the first drive, instead of the whole
+  drive; this means that the OS installation scripts must be changed
+  accordingly
+- Man pages have been updated
+- RAPI has been switched by default to HTTPS, and the exported functions
+  should all work correctly
+- RAPI v1 has been removed
+- Many improvements to the KVM hypervisor
+- Block device errors are now better reported
+- Many other bugfixes and small improvements
+
 
 Version 2.0 beta 1
-  - Version 2 is a general rewrite of the code and therefore the
-    differences are too many to list, see the design document for 2.0 in
-    the doc/ subdirectory for more details
-  - In this beta version there is not yet a migration path from 1.2
-    (there will be one in the final 2.0 release)
-  - A few significant changes are:
-    - all commands are executed by a daemon (ganeti-masterd) and the
-      various gnt-* commands are just front-ends to it
-    - all the commands are entered into, and executed from a job queue,
-      see gnt-job(8)
-    - the RAPI daemon supports read-write operations, secured by basic
-      HTTP authentication on top of HTTPS
-    - DRBD version 0.7 support has been removed, DRBD 8 is the only
-      supported version (when migrating from Ganeti 1.2 to 2.0, you need
-      to migrate to DRBD 8 first while still running Ganeti 1.2)
-    - DRBD devices are using statically allocated minor numbers, which
-      will be assigned to existing instances during the migration
-      process
-    - there is support for both Xen PVM and Xen HVM instances running on
-      the same cluster
-    - KVM virtualization is supported too
-    - file-based storage has been implemented, which means that it is
-      possible to run the cluster without LVM and DRBD storage, for
-      example using a shared filesystem exported from shared storage
-      (and still have live migration)
+------------------
+
+- Version 2 is a general rewrite of the code and therefore the
+  differences are too many to list, see the design document for 2.0 in
+  the ``doc/`` subdirectory for more details
+- In this beta version there is not yet a migration path from 1.2 (there
+  will be one in the final 2.0 release)
+- A few significant changes are:
+
+  - all commands are executed by a daemon (``ganeti-masterd``) and the
+    various ``gnt-*`` commands are just front-ends to it
+  - all the commands are entered into, and executed from a job queue, see
+    the ``gnt-job(8)`` manpage
+  - the RAPI daemon supports read-write operations, secured by basic HTTP
+    authentication on top of HTTPS
+  - DRBD version 0.7 support has been removed, DRBD 8 is the only
+    supported version (when migrating from Ganeti 1.2 to 2.0, you need
+    to migrate to DRBD 8 first while still running Ganeti 1.2)
+  - DRBD devices are using statically allocated minor numbers, which
+    will be assigned to existing instances during the migration process
+  - there is support for both Xen PVM and Xen HVM instances running on
+    the same cluster
+  - KVM virtualization is supported too
+  - file-based storage has been implemented, which means that it is
+    possible to run the cluster without LVM and DRBD storage, for
+    example using a shared filesystem exported from shared storage (and
+    still have live migration)
+
 
 Version 1.2.7
-  - Change the default reboot type in gnt-instance reboot to "hard"
-  - Reuse the old instance mac address by default on instance import,
-    if the instance name is the same.
-  - Handle situations in which the node info rpc returns incomplete results
-    (issue 46)
-  - Add checks for tcp/udp ports collisions in gnt-cluster verify
-  - Improved version of batcher:
-    - state file support
-    - instance mac address support
-    - support for HVM clusters/instances
-  - Add an option to show the number of cpu sockets and nodes in gnt-node list
-  - Support OSes that handle more than one version of the OS api
-    (but do not change the current API in any other way)
-  - Fix gnt-node migrate
-  - gnt-debug man page
-  - Fixes various more typos&small issues
-  - Increase disk resync maximum speed to 60MB/s (from 30MB/s)
+-------------
+
+- Change the default reboot type in ``gnt-instance reboot`` to "hard"
+- Reuse the old instance mac address by default on instance import, if
+  the instance name is the same.
+- Handle situations in which the node info rpc returns incomplete results
+  (issue 46)
+- Add checks for tcp/udp ports collisions in ``gnt-cluster verify``
+- Improved version of batcher:
+
+  - state file support
+  - instance mac address support
+  - support for HVM clusters/instances
+
+- Add an option to show the number of cpu sockets and nodes in
+  ``gnt-node list``
+- Support OSes that handle more than one version of the OS api (but do
+  not change the current API in any other way)
+- Fix ``gnt-node migrate``
+- ``gnt-debug`` man page
+- Fixes various more typos and small issues
+- Increase disk resync maximum speed to 60MB/s (from 30MB/s)
+
 
 Version 1.2.6
-  - new --hvm-nic-type and --hvm-disk-type flags to control the type of disk
-    exported to fully virtualized instances.
-  - provide access to the serial console of HVM instances
-  - instance auto_balance flag, set by default. If turned off it will avoid
-    warnings on cluster verify if there is not enough memory to fail over an
-    instance. in the future it will prevent automatically failing it over when
-    we will support that.
-  - batcher tool for instance creation, see /tools/README.batcher
-  - gnt-instance reinstall --select-os to interactively select a new operating
-    system when reinstalling an instance.
-  - when changing the memory amount on instance modify a check has been added
-    that the instance will be able to start. also warnings are emitted if the
-    instance will not be able to fail over, if auto_balance is true.
-  - documentation fixes
-  - sync fields between instance list/modify/add/import
-  - fix a race condition in drbd when the sync speed was set after giving the
-    device a remote peer.
+-------------
+
+- new ``--hvm-nic-type`` and ``--hvm-disk-type`` flags to control the
+  type of disk exported to fully virtualized instances.
+- provide access to the serial console of HVM instances
+- instance auto_balance flag, set by default. If turned off it will avoid
+  warnings on cluster verify if there is not enough memory to fail over
+  an instance. in the future it will prevent automatically failing it
+  over when we will support that.
+- batcher tool for instance creation, see ``tools/README.batcher``
+- ``gnt-instance reinstall --select-os`` to interactively select a new
+  operating system when reinstalling an instance.
+- when changing the memory amount on instance modify a check has been
+  added that the instance will be able to start. also warnings are
+  emitted if the instance will not be able to fail over, if auto_balance
+  is true.
+- documentation fixes
+- sync fields between ``gnt-instance list/modify/add/import``
+- fix a race condition in drbd when the sync speed was set after giving
+  the device a remote peer.
+
 
 Version 1.2.5
-  - note: the allowed size and number of tags per object were reduced
-  - fix a bug in “gnt-cluster verify” with inconsistent volume groups
-  - fixed twisted 8.x compatibility
-  - fixed gnt-instance replace-disks with iallocator
-  - add TCP keepalives on twisted connections to detect restarted nodes
-  - disk increase support, see “gnt-instance grow-disk”
-  - implement bulk node/instance query for RAPI
-  - add tags in node/instance listing (optional)
-  - experimental migration (and live migration) support, read the man
-    page for “gnt-instance migrate”
-  - the ganeti-watcher logs are now timestamped, and the watcher also
-    has some small improvements in handling its state file
+-------------
+
+- note: the allowed size and number of tags per object were reduced
+- fix a bug in ``gnt-cluster verify`` with inconsistent volume groups
+- fixed twisted 8.x compatibility
+- fixed ``gnt-instance replace-disks`` with iallocator
+- add TCP keepalives on twisted connections to detect restarted nodes
+- disk increase support, see ``gnt-instance grow-disk``
+- implement bulk node/instance query for RAPI
+- add tags in node/instance listing (optional)
+- experimental migration (and live migration) support, read the man page
+  for ``gnt-instance migrate``
+- the ``ganeti-watcher`` logs are now timestamped, and the watcher also
+  has some small improvements in handling its state file
+
 
 Version 1.2.4
-  - Experimental readonly, REST-based remote API implementation; automatically
-    started on master node, TCP port 5080, if enabled by --enable-rapi
-    parameter to configure script.
-  - Instance allocator support. Add and import instance accept a --iallocator
-    parameter, and call that instance allocator to decide which node to use for
-    the instance. The iallocator document describes what's expected from an
-    allocator script.
-  - gnt-cluster verify N+1 memory redundancy checks: Unless passed the
-    --no-nplus1-mem option gnt-cluster verify now checks that if a node is lost
-    there is still enough memory to fail over the instances that reside on it.
-  - gnt-cluster verify hooks: it is now possible to add post-hooks to
-    gnt-cluster verify, to check for site-specific compliance. All the hooks
-    will run, and their output, if any, will be displayed. Any failing hook
-    will make the verification return an error value.
-  - gnt-cluster verify now checks that its peers are reachable on the primary
-    and secondary interfaces
-  - gnt-node add now supports the --readd option, to readd a node that is still
-    declared as part of the cluster and has failed.
-  - gnt-* list commands now accept a new -o +field way of specifying output
-    fields, that just adds the chosen fields to the default ones.
-  - gnt-backup now has a new "remove" command to delete an existing export from
-    the filesystem.
-  - New per-instance parameters hvm_acpi, hvm_pae and hvm_cdrom_image_path have
-    been added. Using them you can enable/disable acpi and pae support, and
-    specify a path for a cd image to be exported to the instance. These
-    parameters as the name suggest only work on HVM clusters.
-  - When upgrading an HVM cluster to Ganeti 1.2.4, the values for ACPI and PAE
-    support will be set to the previously hardcoded values, but the (previously
-    hardcoded) path to the CDROM ISO image will be unset and if required, needs
-    to be set manually with gnt-instance modify after the upgrade..
-  - The address to which an instance's VNC console is bound is now selectable
-    per-instance, rather than being cluster wide. Of course this only applies
-    to instances controlled via VNC, so currently just applies to HVM clusters.
+-------------
+
+- Experimental readonly, REST-based remote API implementation;
+  automatically started on master node, TCP port 5080, if enabled by
+  ``--enable-rapi`` parameter to configure script.
+- Instance allocator support. Add and import instance accept a
+  ``--iallocator`` parameter, and call that instance allocator to decide
+  which node to use for the instance. The iallocator document describes
+  what's expected from an allocator script.
+- ``gnt-cluster verify`` N+1 memory redundancy checks: Unless passed the
+  ``--no-nplus1-mem`` option ``gnt-cluster verify`` now checks that if a
+  node is lost there is still enough memory to fail over the instances
+  that reside on it.
+- ``gnt-cluster verify`` hooks: it is now possible to add post-hooks to
+  ``gnt-cluster verify``, to check for site-specific compliance. All the
+  hooks will run, and their output, if any, will be displayed. Any
+  failing hook will make the verification return an error value.
+- ``gnt-cluster verify`` now checks that its peers are reachable on the
+  primary and secondary interfaces
+- ``gnt-node add`` now supports the ``--readd`` option, to readd a node
+  that is still declared as part of the cluster and has failed.
+- ``gnt-* list`` commands now accept a new ``-o +field`` way of
+  specifying output fields, that just adds the chosen fields to the
+  default ones.
+- ``gnt-backup`` now has a new ``remove`` command to delete an existing
+  export from the filesystem.
+- New per-instance parameters hvm_acpi, hvm_pae and hvm_cdrom_image_path
+  have been added. Using them you can enable/disable acpi and pae
+  support, and specify a path for a cd image to be exported to the
+  instance. These parameters as the name suggest only work on HVM
+  clusters.
+- When upgrading an HVM cluster to Ganeti 1.2.4, the values for ACPI and
+  PAE support will be set to the previously hardcoded values, but the
+  (previously hardcoded) path to the CDROM ISO image will be unset and
+  if required, needs to be set manually with ``gnt-instance modify``
+  after the upgrade.
+- The address to which an instance's VNC console is bound is now
+  selectable per-instance, rather than being cluster wide. Of course
+  this only applies to instances controlled via VNC, so currently just
+  applies to HVM clusters.
+
 
 Version 1.2.3
-  - more tweaks to the disk activation code (especially helpful for DRBD)
-  - change the default ‘gnt-instance list’ output format, now there is
-    one combined status field (see the manpage for the exact values this
-    field will have)
-  - some more fixes for the mac export to hooks change
-  - make Ganeti not break with DRBD 8.2.x (which changed the version
-    format in /proc/drbd) (issue 24)
-  - add an upgrade tool from ‘remote_raid1’ disk template to ‘drbd’ disk
-    template, allowing migration from DRBD0.7+MD to DRBD8
+-------------
+
+- more tweaks to the disk activation code (especially helpful for DRBD)
+- change the default ``gnt-instance list`` output format, now there is
+  one combined status field (see the manpage for the exact values this
+  field will have)
+- some more fixes for the mac export to hooks change
+- make Ganeti not break with DRBD 8.2.x (which changed the version
+  format in ``/proc/drbd``) (issue 24)
+- add an upgrade tool from "remote_raid1" disk template to "drbd" disk
+  template, allowing migration from DRBD0.7+MD to DRBD8
+
 
 Version 1.2.2
-  - fix ‘gnt-instance modify’ breakage introduced in 1.2.1 with the HVM
-    support (issue 23)
-  - add command aliases infrastructure and a few aliases
-  - allow listing of VCPUs in the gnt-instance list and improve the man
-    pages and the --help option of gnt-node/gnt-instance list
-  - fix gnt-backup list with down nodes (issue 21)
-  - change the tools location (move from $pkgdatadir to
-    $pkglibdir/tools)
-  - fix the dist archive and add a check for including svn/git files in
-    the future
-  - some developer-related changes: improve the burnin and the QA
-    suite, add an upload script for testing during development
+-------------
+
+- fix ``gnt-instance modify`` breakage introduced in 1.2.1 with the HVM
+  support (issue 23)
+- add command aliases infrastructure and a few aliases
+- allow listing of VCPUs in the ``gnt-instance list`` and improve the
+  man pages and the ``--help`` option of ``gnt-node
+  list``/``gnt-instance list``
+- fix ``gnt-backup list`` with down nodes (issue 21)
+- change the tools location (move from $pkgdatadir to $pkglibdir/tools)
+- fix the dist archive and add a check for including svn/git files in
+  the future
+- some developer-related changes: improve the burnin and the QA suite,
+  add an upload script for testing during development
+
 
 Version 1.2.1
-  - experimental HVM support, read the install document, section
-    "Initializing the cluster"
-  - allow for the PVM hypervisor per-instance kernel and initrd paths
-  - add a new command ‘gnt-cluster verify-disks’ which uses a new
-    algorithm to improve the reconnection of the DRBD pairs if the
-    device on the secondary node has gone away
-  - make logical volume code auto-activate LVs at disk activation time
-  - slightly improve the speed of activating disks
-  - allow specification of the MAC address at instance creation time,
-    and changing it later via ‘gnt-instance modify’
-  - fix handling of external commands that generate lots of output on
-    stderr
-  - update documentation with regard to minimum version of DRBD8
-    supported
+-------------
+
+- experimental HVM support, read the install document, section
+  "Initializing the cluster"
+- allow for the PVM hypervisor per-instance kernel and initrd paths
+- add a new command ``gnt-cluster verify-disks`` which uses a new
+  algorithm to improve the reconnection of the DRBD pairs if the device
+  on the secondary node has gone away
+- make logical volume code auto-activate LVs at disk activation time
+- slightly improve the speed of activating disks
+- allow specification of the MAC address at instance creation time, and
+  changing it later via ``gnt-instance modify``
+- fix handling of external commands that generate lots of output on
+  stderr
+- update documentation with regard to minimum version of DRBD8 supported
+
 
 Version 1.2.0
-  - Log the ‘xm create’ output to the node daemon log on failure (to
-    help diagnosing the error)
-  - In debug mode, log all external commands output if failed to the
-    logs
-  - Change parsing of lvm commands to ignore stderr
+-------------
+
+- Log the ``xm create`` output to the node daemon log on failure (to help
+  diagnosing the error)
+- In debug mode, log all external commands output if failed to the logs
+- Change parsing of lvm commands to ignore stderr
+
 
 Version 1.2b3
-  - Another round of updates to the DRBD 8 code to deal with more
-    failures in the replace secondary node operation
-  - Some more logging of failures in disk operations (lvm, drbd)
-  - A few documentation updates
-  - QA updates
+-------------
+
+- Another round of updates to the DRBD 8 code to deal with more failures
+  in the replace secondary node operation
+- Some more logging of failures in disk operations (lvm, drbd)
+- A few documentation updates
+- QA updates
+
 
 Version 1.2b2
-  - Change configuration file format from Python's Pickle to JSON.
-    Upgrading is possible using the cfgupgrade utility.
-  - Add support for DRBD 8.0 (new disk template `drbd`) which allows for
-    faster replace disks and is more stable (DRBD 8 has many
-    improvements compared to DRBD 0.7)
-  - Added command line tags support (see man pages for gnt-instance,
-    gnt-node, gnt-cluster)
-  - Added instance rename support
-  - Added multi-instance startup/shutdown
-  - Added cluster rename support
-  - Added `gnt-node evacuate` to simplify some node operations
-  - Added instance reboot operation that can speedup reboot as compared
-    to stop and start
-  - Soften the requirement that hostnames are in FQDN format
-  - The ganeti-watcher now activates drbd pairs after secondary node
-    reboots
-  - Removed dependency on debian's patched fping that uses the
-    non-standard -S option
-  - Now the OS definitions are searched for in multiple, configurable
-    paths (easier for distros to package)
-  - Some changes to the hooks infrastructure (especially the new
-    post-configuration update hook)
-  - Other small bugfixes
+-------------
+
+- Change configuration file format from Python's Pickle to JSON.
+  Upgrading is possible using the cfgupgrade utility.
+- Add support for DRBD 8.0 (new disk template ``drbd``) which allows for
+  faster replace disks and is more stable (DRBD 8 has many improvements
+  compared to DRBD 0.7)
+- Added command line tags support (see man pages for ``gnt-instance``,
+  ``gnt-node``, ``gnt-cluster``)
+- Added instance rename support
+- Added multi-instance startup/shutdown
+- Added cluster rename support
+- Added ``gnt-node evacuate`` to simplify some node operations
+- Added instance reboot operation that can speedup reboot as compared to
+  stop and start
+- Soften the requirement that hostnames are in FQDN format
+- The ``ganeti-watcher`` now activates drbd pairs after secondary node
+  reboots
+- Removed dependency on debian's patched fping that uses the
+  non-standard ``-S`` option
+- Now the OS definitions are searched for in multiple, configurable paths
+  (easier for distros to package)
+- Some changes to the hooks infrastructure (especially the new
+  post-configuration update hook)
+- Other small bugfixes
