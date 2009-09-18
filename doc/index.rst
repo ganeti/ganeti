@@ -19,6 +19,7 @@ Contents:
    iallocator.rst
    rapi.rst
    devnotes.rst
+   news.rst
    glossary.rst
 
 Also see the :ref:`search`.
