@@ -1421,7 +1421,7 @@ commands = {
     " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
     ),
   'reinstall': (
-    ReinstallInstance, [ArgInstance(min=1)],
+    ReinstallInstance, [ArgInstance()],
     [FORCE_OPT, OS_OPT, m_force_multi, m_node_opt, m_pri_node_opt,
      m_sec_node_opt, m_clust_opt, m_inst_opt, SELECT_OS_OPT, SUBMIT_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
@@ -1445,18 +1445,18 @@ commands = {
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT],
     "<instance>", "Alters the parameters of an instance"),
   'shutdown': (
-    ShutdownInstance, [ArgInstance(min=1)],
+    ShutdownInstance, [ArgInstance()],
     [m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
      m_inst_opt, m_force_multi, SUBMIT_OPT],
     "<instance>", "Stops an instance"),
   'startup': (
-    StartupInstance, [ArgInstance(min=1)],
+    StartupInstance, [ArgInstance()],
     [FORCE_OPT, m_force_multi, m_node_opt, m_pri_node_opt,
      m_sec_node_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT, HVOPTS_OPT,
      BACKEND_OPT],
     "<instance>", "Starts an instance"),
   'reboot': (
-    RebootInstance, [ArgInstance(min=1)],
+    RebootInstance, [ArgInstance()],
     [m_force_multi, REBOOT_TYPE_OPT, IGNORE_SECONDARIES_OPT, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT],
     "<instance>", "Reboots an instance"),
