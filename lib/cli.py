@@ -116,6 +116,7 @@ __all__ = [
   "YES_DOIT_OPT",
   # Generic functions for CLI programs
   "GenericMain",
+  "GenericInstanceCreate",
   "GetClient",
   "GetOnlineNodes",
   "JobExecutor",
@@ -1321,6 +1322,116 @@ def GenericMain(commands, override=None, aliases=None):
     ToStderr(err_msg)
 
   return result
+
+
+def GenericInstanceCreate(mode, opts, args):
+  """Add an instance to the cluster via either creation or import.
+
+  @param mode: constants.INSTANCE_CREATE or constants.INSTANCE_IMPORT
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should contain only one element, the new instance name
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  instance = args[0]
+
+  (pnode, snode) = SplitNodeOption(opts.node)
+
+  hypervisor = None
+  hvparams = {}
+  if opts.hypervisor:
+    hypervisor, hvparams = opts.hypervisor
+
+  if opts.nics:
+    try:
+      nic_max = max(int(nidx[0])+1 for nidx in opts.nics)
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
+    nics = [{}] * nic_max
+    for nidx, ndict in opts.nics:
+      nidx = int(nidx)
+      if not isinstance(ndict, dict):
+        msg = "Invalid nic/%d value: expected dict, got %s" % (nidx, ndict)
+        raise errors.OpPrereqError(msg)
+      nics[nidx] = ndict
+  elif opts.no_nics:
+    # no nics
+    nics = []
+  else:
+    # default of one nic, all auto
+    nics = [{}]
+
+  if opts.disk_template == constants.DT_DISKLESS:
+    if opts.disks or opts.sd_size is not None:
+      raise errors.OpPrereqError("Diskless instance but disk"
+                                 " information passed")
+    disks = []
+  else:
+    if not opts.disks and not opts.sd_size:
+      raise errors.OpPrereqError("No disk information specified")
+    if opts.disks and opts.sd_size is not None:
+      raise errors.OpPrereqError("Please use either the '--disk' or"
+                                 " '-s' option")
+    if opts.sd_size is not None:
+      opts.disks = [(0, {"size": opts.sd_size})]
+    try:
+      disk_max = max(int(didx[0])+1 for didx in opts.disks)
+    except ValueError, err:
+      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
+    disks = [{}] * disk_max
+    for didx, ddict in opts.disks:
+      didx = int(didx)
+      if not isinstance(ddict, dict):
+        msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
+        raise errors.OpPrereqError(msg)
+      elif "size" not in ddict:
+        raise errors.OpPrereqError("Missing size for disk %d" % didx)
+      try:
+        ddict["size"] = utils.ParseUnit(ddict["size"])
+      except ValueError, err:
+        raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
+                                   (didx, err))
+      disks[didx] = ddict
+
+  utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES)
+  utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
+
+  if mode == constants.INSTANCE_CREATE:
+    start = opts.start
+    os_type = opts.os
+    src_node = None
+    src_path = None
+  elif mode == constants.INSTANCE_IMPORT:
+    start = False
+    os_type = None
+    src_node = opts.src_node
+    src_path = opts.src_dir
+  else:
+    raise errors.ProgrammerError("Invalid creation mode %s" % mode)
+
+  op = opcodes.OpCreateInstance(instance_name=instance,
+                                disks=disks,
+                                disk_template=opts.disk_template,
+                                nics=nics,
+                                pnode=pnode, snode=snode,
+                                ip_check=opts.ip_check,
+                                wait_for_sync=opts.wait_for_sync,
+                                file_storage_dir=opts.file_storage_dir,
+                                file_driver=opts.file_driver,
+                                iallocator=opts.iallocator,
+                                hypervisor=hypervisor,
+                                hvparams=hvparams,
+                                beparams=opts.beparams,
+                                mode=mode,
+                                start=start,
+                                os_type=os_type,
+                                src_node=src_node,
+                                src_path=src_path)
+
+  SubmitOrSend(op, opts)
+  return 0
 
 
 def GenerateTable(headers, fields, separator, data,
