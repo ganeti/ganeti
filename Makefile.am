@@ -160,7 +160,9 @@ doc/html: $(docrst) $(docpng) doc/conf.py configure.ac
 	touch "$@"
 
 docdot = \
-	doc/arch-2.0.dot
+	doc/arch-2.0.dot \
+	doc/design-2.1-lock-acquire.dot \
+	doc/design-2.1-lock-release.dot
 
 docpng = $(patsubst %.dot,%.png,$(docdot))
 

@@ -161,6 +161,127 @@ contention and increased memory usage, with it. As this would be an
 extension of the changes proposed before it could be implemented at a later
 point in time, but we decided to stay with the simpler solution for now.
 
+Implementation details
+++++++++++++++++++++++
+
+``SharedLock`` redesign
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The current design of ``SharedLock`` is not good for supporting timeouts
+when acquiring a lock and there are also minor fairness issues in it. We
+plan to address both with a redesign. A proof of concept implementation was
+written and resulted in significantly simpler code.
+
+Currently ``SharedLock`` uses two separate queues for shared and exclusive
+acquires and waiters get to run in turns. This means if an exclusive acquire
+is released, the lock will allow shared waiters to run and vice versa.
+Although it's still fair in the end there is a slight bias towards shared
+waiters in the current implementation. The same implementation with two
+shared queues can not support timeouts without adding a lot of complexity.
+
+Our proposed redesign changes ``SharedLock`` to have only one single queue.
+There will be one condition (see Condition_ for a note about performance) in
+the queue per exclusive acquire and two for all shared acquires (see below for
+an explanation). The maximum queue length will always be ``2 + (number of
+exclusive acquires waiting)``. The number of queue entries for shared acquires
+can vary from 0 to 2.
+
+The two conditions for shared acquires are a bit special. They will be used
+in turn. When the lock is instantiated, no conditions are in the queue. As
+soon as the first shared acquire arrives (and there are holder(s) or waiting
+acquires; see Acquire_), the active condition is added to the queue. Until
+it becomes the topmost condition in the queue and has been notified, any
+shared acquire is added to this active condition. When the active condition
+is notified, the conditions are swapped and further shared acquires are
+added to the previously inactive condition (which has now become the active
+condition). After all waiters on the previously active (now inactive) and
+now notified condition received the notification, it is removed from the
+queue of pending acquires.
+
+This means shared acquires will skip any exclusive acquire in the queue. We
+believe it's better to improve parallelization on operations only asking for
+shared (or read-only) locks. Exclusive operations holding the same lock can
+not be parallelized.
+
+
+Acquire
+*******
+
+For exclusive acquires a new condition is created and appended to the queue.
+Shared acquires are added to the active condition for shared acquires and if
+the condition is not yet on the queue, it's appended.
+
+The next step is to wait for our condition to be on the top of the queue (to
+guarantee fairness). If the timeout expired, we return to the caller without
+acquiring the lock. On every notification we check whether the lock has been
+deleted, in which case an error is returned to the caller.
+
+The lock can be acquired if we're on top of the queue (there is no one else
+ahead of us). For an exclusive acquire, there must not be other exclusive or
+shared holders. For a shared acquire, there must not be an exclusive holder.
+If these conditions are all true, the lock is acquired and we return to the
+caller. In any other case we wait again on the condition.
+
+If it was the last waiter on a condition, the condition is removed from the
+queue.
+
+Optimization: There's no need to touch the queue if there are no pending
+acquires and no current holders. The caller can have the lock immediately.
+
+.. image:: design-2.1-lock-acquire.png
+
+
+Release
+*******
+
+First the lock removes the caller from the internal owner list. If there are
+pending acquires in the queue, the first (the oldest) condition is notified.
+
+If the first condition was the active condition for shared acquires, the
+inactive condition will be made active. This ensures fairness with exclusive
+locks by forcing consecutive shared acquires to wait in the queue.
+
+.. image:: design-2.1-lock-release.png
+
+
+Delete
+******
+
+The caller must either hold the lock in exclusive mode already or the lock
+must be acquired in exclusive mode. Trying to delete a lock while it's held
+in shared mode must fail.
+
+After ensuring the lock is held in exclusive mode, the lock will mark itself
+as deleted and continue to notify all pending acquires. They will wake up,
+notice the deleted lock and return an error to the caller.
+
+
+Condition
+^^^^^^^^^
+
+Note: This is not necessary for the locking changes above, but it may be a
+good optimization (pending performance tests).
+
+The existing locking code in Ganeti 2.0 uses Python's built-in
+``threading.Condition`` class. Unfortunately ``Condition`` implements
+timeouts by sleeping 1ms to 20ms between tries to acquire the condition lock
+in non-blocking mode. This requires unnecessary context switches and
+contention on the CPython GIL (Global Interpreter Lock).
+
+By using POSIX pipes (see ``pipe(2)``) we can use the operating system's
+support for timeouts on file descriptors (see ``select(2)``). A custom
+condition class will have to be written for this.
+
+On instantiation the class creates a pipe. After each notification the
+previous pipe is abandoned and re-created (technically the old pipe needs to
+stay around until all notifications have been delivered).
+
+All waiting clients of the condition use ``select(2)`` or ``poll(2)`` to
+wait for notifications, optionally with a timeout. A notification will be
+signalled to the waiting clients by closing the pipe. If the pipe wasn't
+closed during the timeout, the waiting function returns to its caller
+nonetheless.
+
 
 Feature changes
 ---------------
