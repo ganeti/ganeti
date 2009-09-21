@@ -5207,7 +5207,7 @@ def _CreateDisks(lu, instance, to_skip=None, target_node=None):
     result = lu.rpc.call_file_storage_dir_create(pnode, file_storage_dir)
 
     result.Raise("Failed to create directory '%s' on"
-                 " node %s: %s" % (file_storage_dir, pnode))
+                 " node %s" % (file_storage_dir, pnode))
 
   # Note: this needs to be kept in sync with adding of disks in
   # LUSetInstanceParams
