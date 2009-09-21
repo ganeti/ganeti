@@ -54,7 +54,6 @@ CLEANFILES = \
 	autotools/replace_vars.sed \
 	daemons/ganeti-cleaner \
 	devel/upload \
-	doc/news.rst \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
@@ -74,7 +73,6 @@ CLEANFILES = \
 BUILT_SOURCES = \
 	ganeti \
 	srclinks \
-	doc/news.rst \
 	lib/_autoconf.py
 
 nodist_pkgpython_PYTHON = \
@@ -150,7 +148,7 @@ docrst = \
 	doc/rapi.rst \
 	doc/security.rst
 
-doc/html: $(docrst) doc/news.rst $(docpng) doc/conf.py configure.ac
+doc/html: $(docrst) $(docpng) doc/conf.py configure.ac
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
 	mkdir -p doc/build/doctrees
@@ -316,14 +314,6 @@ daemons/ganeti-cleaner: daemons/ganeti-cleaner.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
-
-doc/news.rst: NEWS
-	set -e; \
-	{ echo '.. This file is automatically updated at build time from $<.'; \
-	  echo '.. Do not edit.'; \
-		echo; \
-	  cat $<; \
-	} > $@
 
 doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)

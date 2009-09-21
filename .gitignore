@@ -39,7 +39,6 @@
 /doc/api
 /doc/build
 /doc/html
-/doc/news.rst
 /doc/*.in
 /doc/*.png
 
