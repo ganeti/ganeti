@@ -1137,7 +1137,7 @@ def ShowInstanceConfig(opts, args):
     buf.write("    - memory: %dMiB\n" %
               instance["be_actual"][constants.BE_MEMORY])
     buf.write("    - NICs:\n")
-    for idx, (mac, ip, mode, link) in enumerate(instance["nics"]):
+    for idx, (ip, mac, mode, link) in enumerate(instance["nics"]):
       buf.write("      - nic/%d: MAC: %s, IP: %s, mode: %s, link: %s\n" %
                 (idx, mac, ip, mode, link))
     buf.write("  Disks:\n")
