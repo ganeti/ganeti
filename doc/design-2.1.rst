@@ -434,6 +434,59 @@ handle both cases. The default kvm vif script will be changed to do so. (Xen
 doesn't have a ganeti provided script, so nothing will be done for that
 hypervisor)
 
+Introducing persistent UUIDs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Current state and shortcomings
+++++++++++++++++++++++++++++++
+
+Some objects in the Ganeti configurations are tracked by their name
+while also supporting renames. This creates an extra difficulty,
+because neither Ganeti nor external management tools can then track
+the actual entity, and due to the name change it behaves like a new
+one.
+
+Proposed changes part 1
++++++++++++++++++++++++
+
+We will change Ganeti to use UUIDs for entity tracking, but in a
+staggered way. In 2.1, we will simply add an “uuid” attribute to each
+of the instances, nodes and cluster itself. This will be reported on
+instance creation for nodes, and on node adds for the nodes. It will
+be of course avaiblable for querying via the OpQueryNodes/Instance and
+cluster information, and via RAPI as well.
+
+Note that Ganeti will not provide any way to change this attribute.
+
+Upgrading from Ganeti 2.0 will automatically add an ‘uuid’ attribute
+to all entities missing it.
+
+
+Proposed changes part 2
++++++++++++++++++++++++
+
+In the next release (e.g. 2.2), the tracking of objects will change
+from the name to the UUID internally, and externally Ganeti will
+accept both forms of identification; e.g. an RAPI call would be made
+either against ``/2/instances/foo.bar`` or against
+``/2/instances/bb3b2e42…``. Since an FQDN must have at least a dot,
+and dots are not valid characters in UUIDs, we will not have namespace
+issues.
+
+Another change here is that node identification (during cluster
+operations/queries like master startup, “am I the master?” and
+similar) could be done via UUIDs which is more stable than the current
+hostname-based scheme.
+
+Internal tracking refers to the way the configuration is stored; a
+DRBD disk of an instance refers to the node name (so that IPs can be
+changed easily), but this is still a problem for name changes; thus
+these will be changed to point to the node UUID to ease renames.
+
+The advantages of this change (after the second round of changes), is
+that node rename becomes trivial, whereas today node rename would
+require a complete lock of all instances.
+
 
 Automated disk repairs infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
