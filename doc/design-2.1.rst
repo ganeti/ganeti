@@ -87,24 +87,26 @@ Locking improvements
 Current State and shortcomings
 ++++++++++++++++++++++++++++++
 
-The class ``LockSet`` (see ``lib/locking.py``) is a container for one or many
-``SharedLock`` instances. It provides an interface to add/remove locks and to
-acquire and subsequently release any number of those locks contained in it.
+The class ``LockSet`` (see ``lib/locking.py``) is a container for one or
+many ``SharedLock`` instances. It provides an interface to add/remove locks
+and to acquire and subsequently release any number of those locks contained
+in it.
 
-Locks in a ``LockSet`` are always acquired in alphabetic order. Due to the way
-we're using locks for nodes and instances (the single cluster lock isn't
+Locks in a ``LockSet`` are always acquired in alphabetic order. Due to the
+way we're using locks for nodes and instances (the single cluster lock isn't
 affected by this issue) this can lead to long delays when acquiring locks if
 another operation tries to acquire multiple locks but has to wait for yet
 another operation.
 
-In the following demonstration we assume to have the instance locks ``inst1``,
-``inst2``, ``inst3`` and ``inst4``.
+In the following demonstration we assume to have the instance locks
+``inst1``, ``inst2``, ``inst3`` and ``inst4``.
 
 #. Operation A grabs lock for instance ``inst4``.
-#. Operation B wants to acquire all instance locks in alphabetic order, but it
-   has to wait for ``inst4``.
+#. Operation B wants to acquire all instance locks in alphabetic order, but
+   it has to wait for ``inst4``.
 #. Operation C tries to lock ``inst1``, but it has to wait until
-   Operation B (which is trying to acquire all locks) releases the lock again.
+   Operation B (which is trying to acquire all locks) releases the lock
+   again.
 #. Operation A finishes and releases lock on ``inst4``. Operation B can
    continue and eventually releases all locks.
 #. Operation C can get ``inst1`` lock and finishes.
@@ -123,22 +125,22 @@ Acquiring locks for OpCode execution is always done in blocking mode. They
 won't return until the lock has successfully been acquired (or an error
 occurred, although we won't cover that case here).
 
-``SharedLock`` and ``LockSet`` must be able to be acquired in a
-non-blocking way. They must support a timeout and abort trying to acquire
-the lock(s) after the specified amount of time.
+``SharedLock`` and ``LockSet`` must be able to be acquired in a non-blocking
+way. They must support a timeout and abort trying to acquire the lock(s)
+after the specified amount of time.
 
 Retry acquiring locks
 ^^^^^^^^^^^^^^^^^^^^^
 
-To prevent other operations from waiting for a long time, such as described in
-the demonstration before, ``LockSet`` must not keep locks for a prolonged period
-of time when trying to acquire two or more locks. Instead it should, with an
-increasing timeout for acquiring all locks, release all locks again and
-sleep some time if it fails to acquire all requested locks.
+To prevent other operations from waiting for a long time, such as described
+in the demonstration before, ``LockSet`` must not keep locks for a prolonged
+period of time when trying to acquire two or more locks. Instead it should,
+with an increasing timeout for acquiring all locks, release all locks again
+and sleep some time if it fails to acquire all requested locks.
 
 A good timeout value needs to be determined. In any case should ``LockSet``
-proceed to acquire locks in blocking mode after a few (unsuccessful) attempts
-to acquire all requested locks.
+proceed to acquire locks in blocking mode after a few (unsuccessful)
+attempts to acquire all requested locks.
 
 One proposal for the timeout is to use ``2**tries`` seconds, where ``tries``
 is the number of unsuccessful tries.
@@ -151,13 +153,13 @@ Other solutions discussed
 +++++++++++++++++++++++++
 
 There was also some discussion on going one step further and extend the job
-queue (see ``lib/jqueue.py``) to select the next task for a worker depending on
-whether it can acquire the necessary locks. While this may reduce the number of
-necessary worker threads and/or increase throughput on large clusters with many
-jobs, it also brings many potential problems, such as contention and increased
-memory usage, with it. As this would be an extension of the changes proposed
-before it could be implemented at a later point in time, but we decided to stay
-with the simpler solution for now.
+queue (see ``lib/jqueue.py``) to select the next task for a worker depending
+on whether it can acquire the necessary locks. While this may reduce the
+number of necessary worker threads and/or increase throughput on large
+clusters with many jobs, it also brings many potential problems, such as
+contention and increased memory usage, with it. As this would be an
+extension of the changes proposed before it could be implemented at a later
+point in time, but we decided to stay with the simpler solution for now.
 
 
 Feature changes
