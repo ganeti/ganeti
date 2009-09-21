@@ -5258,10 +5258,10 @@ def _RemoveDisks(lu, instance, target_node=None):
 
   if instance.disk_template == constants.DT_FILE:
     file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
-    if target_node is node:
-      tgt = instance.primary_node
+    if target_node:
+      tgt = target_node
     else:
-      tgt = instance.target_node
+      tgt = instance.primary_node
     result = lu.rpc.call_file_storage_dir_remove(tgt, file_storage_dir)
     if result.fail_msg:
       lu.LogWarning("Could not remove directory '%s' on node %s: %s",
