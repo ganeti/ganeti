@@ -432,10 +432,11 @@
             <term>link</term>
             <listitem>
               <para>
-                In bridged mode the default NIC bridge. In routed mode
-                it represents an hypervisor-vif-script dependent value
-                to allow different instance groups (perhaps via multiple
-                routing tables)
+                In bridged mode the default NIC bridge. In routed mode it
+                represents an hypervisor-vif-script dependent value to allow
+                different instance groups. For example under the KVM default
+                network script it is interpreted as a routing table number or
+                name.
               </para>
             </listitem>
           </varlistentry>

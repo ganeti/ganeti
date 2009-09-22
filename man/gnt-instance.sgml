@@ -183,7 +183,7 @@
                   this NIC to, in routed mode it's intended to
                   differentiate between different routing tables/instance
                   groups (but the meaning is dependent on the network
-                  script)</simpara>
+                  script, see gnt-cluster(8) for more details)</simpara>
               </listitem>
             </varlistentry>
           </variablelist>
