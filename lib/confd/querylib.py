@@ -208,3 +208,23 @@ class MasterCandidatesPipsQuery(ConfdQuery):
 
     return status, answer
 
+
+class InstancesIpsQuery(ConfdQuery):
+  """A query for instances IPs.
+
+  It returns the list of instances IPs.
+
+  """
+  def Exec(self, query):
+    """InstancesIpsQuery main execution.
+
+    """
+    if query is None:
+      status = constants.CONFD_REPL_STATUS_OK
+      answer = self.reader.GetInstancesIps()
+    else:
+      status = constants.CONFD_REPL_STATUS_ERROR
+      answer = "non-empty instances IPs query"
+
+    return status, answer
+

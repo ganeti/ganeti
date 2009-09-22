@@ -54,6 +54,7 @@ class ConfdProcessor(object):
     constants.CONFD_REQ_CLUSTER_MASTER: querylib.ClusterMasterQuery,
     constants.CONFD_REQ_NODE_PIP_LIST: querylib.NodesPipsQuery,
     constants.CONFD_REQ_MC_PIP_LIST: querylib.MasterCandidatesPipsQuery,
+    constants.CONFD_REQ_INSTANCES_IPS_LIST: querylib.InstancesIpsQuery,
     }
 
   def __init__(self):

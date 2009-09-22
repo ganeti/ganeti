@@ -100,10 +100,12 @@ class SimpleConfigReader(object):
                                       (self._file_name, err))
 
     self._ip_to_instance = {}
+    self._instances_ips = []
     for iname in self._config_data['instances']:
       instance = self._config_data['instances'][iname]
       for nic in instance['nics']:
         if 'ip' in nic and nic['ip']:
+          self._instances_ips.append(nic['ip'])
           self._ip_to_instance[nic['ip']] = iname
 
     self._nodes_primary_ips = []
@@ -200,6 +202,9 @@ class SimpleConfigReader(object):
 
   def GetMasterCandidatesPrimaryIps(self):
     return self._mc_primary_ips
+
+  def GetInstancesIps(self):
+    return self._instances_ips
 
 
 class SimpleStore(object):
