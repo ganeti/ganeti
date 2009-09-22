@@ -169,7 +169,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       script.write("  /usr/sbin/brctl addif $BRIDGE $INTERFACE\n")
     elif nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED:
       script.write("  # Route traffic targeted at the IP to the interface\n")
-      script.write("  /sbin/ip route add $IP/32 dev $INTERFACE\n")
+      if nic.nicparams[constants.NIC_LINK]:
+        script.write("  /sbin/ip route replace $IP/32 table $LINK dev $INTERFACE\n")
+      else:
+        script.write("  /sbin/ip route replace $IP/32 dev $INTERFACE\n")
       interface_proxy_arp = "/proc/sys/net/ipv4/conf/$INTERFACE/proxy_arp"
       script.write("  /bin/echo 1 > %s\n" % interface_proxy_arp)
     script.write("fi\n\n")
