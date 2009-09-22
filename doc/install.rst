@@ -124,27 +124,27 @@ and not just *node1*.
    unrelated.
 
 
-Installing Xen
-++++++++++++++
+Installing The Hypervisor
++++++++++++++++++++++++++
 
 **Mandatory** on all nodes.
 
-While Ganeti is developed with the ability to modularly run on
-different virtualization environments in mind the only two currently
-useable on a live system are Xen and KVM. Supported
-Xen versions are: 3.0.3, 3.0.4 and 3.1.
+While Ganeti is developed with the ability to modularly run on different
+virtualization environments in mind the only two currently useable on a live
+system are Xen and KVM. Supported Xen versions are: 3.0.3, 3.0.4 and 3.1.
+Supported KVM version are 72 and above.
 
 Please follow your distribution's recommended way to install and set
 up Xen, or install Xen from the upstream source, if you wish,
 following their manual. For KVM, make sure you have a KVM-enabled
 kernel and the KVM tools.
 
-After installing either hypervisor, you need to reboot into your new
-system. On some distributions this might involve configuring GRUB
-appropriately, whereas others will configure it automatically when you
-install the respective kernels.
+After installing Xen, you need to reboot into your new system. On some
+distributions this might involve configuring GRUB appropriately, whereas others
+will configure it automatically when you install the respective kernels. For
+KVM no reboot should be necessary.
 
-.. admonition:: Debian
+.. admonition:: Xen on Debian
 
    Under Lenny or Etch you can install the relevant
    ``xen-linux-system`` package, which will pull in both the
