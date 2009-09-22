@@ -497,7 +497,8 @@ def MatchNameComponent(key, name_list):
   this list, I{'test1'} as well as I{'test1.example'} will match, but
   not I{'test1.ex'}. A multiple match will be considered as no match
   at all (e.g. I{'test1'} against C{['test1.example.com',
-  'test1.example.org']}).
+  'test1.example.org']}), except when the key fully matches an entry
+  (e.g. I{'test1'} against C{['test1', 'test1.example.com']}).
 
   @type key: str
   @param key: the name to be searched
@@ -509,6 +510,8 @@ def MatchNameComponent(key, name_list):
       otherwise the element from the list which matches
 
   """
+  if key in name_list:
+    return key
   mo = re.compile("^%s(\..*)?$" % re.escape(key))
   names_filtered = [name for name in name_list if mo.match(name) is not None]
   if len(names_filtered) != 1:

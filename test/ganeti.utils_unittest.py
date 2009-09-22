@@ -328,6 +328,14 @@ class TestMatchNameComponent(unittest.TestCase):
     for key in "test1", "test1.example":
       self.failUnlessEqual(MatchNameComponent(key, mlist), None)
 
+  def testFullMatch(self):
+    """Test that a full match is returned correctly"""
+    key1 = "test1"
+    key2 = "test1.example"
+    mlist = [key2, key2 + ".com"]
+    self.failUnlessEqual(MatchNameComponent(key1, mlist), None)
+    self.failUnlessEqual(MatchNameComponent(key2, mlist), key2)
+
 
 class TestFormatUnit(unittest.TestCase):
   """Test case for the FormatUnit function"""
