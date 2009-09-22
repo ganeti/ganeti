@@ -1052,6 +1052,10 @@ class ConfigWriter:
         not hasattr(data.cluster, 'rsahostkeypub')):
       raise errors.ConfigurationError("Incomplete configuration"
                                       " (missing cluster.rsahostkeypub)")
+
+    # Upgrade configuration if needed
+    data.UpgradeConfig()
+
     self._config_data = data
     # reset the last serial as -1 so that the next write will cause
     # ssconf update

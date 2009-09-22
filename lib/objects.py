@@ -58,7 +58,6 @@ class ConfigObject(object):
   def __init__(self, **kwargs):
     for k, v in kwargs.iteritems():
       setattr(self, k, v)
-    self.UpgradeConfig()
 
   def __getattr__(self, name):
     if name not in self.__slots__:
@@ -169,8 +168,8 @@ class ConfigObject(object):
   def UpgradeConfig(self):
     """Fill defaults for missing configuration values.
 
-    This method will be called at object init time, and its implementation will
-    be object dependent.
+    This method will be called at configuration load time, and its
+    implementation will be object dependent.
 
     """
     pass
@@ -282,6 +281,16 @@ class ConfigData(ConfigObject):
     obj.nodes = cls._ContainerFromDicts(obj.nodes, dict, Node)
     obj.instances = cls._ContainerFromDicts(obj.instances, dict, Instance)
     return obj
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    self.cluster.UpgradeConfig()
+    for node in self.nodes.values():
+      node.UpgradeConfig()
+    for instance in self.instances.values():
+      instance.UpgradeConfig()
 
 
 class NIC(ConfigObject):
@@ -536,6 +545,15 @@ class Disk(ConfigObject):
       all_errors.append("Disk access mode '%s' is invalid" % (self.mode, ))
     return all_errors
 
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    if self.children:
+      for child in self.children:
+        child.UpgradeConfig()
+    # add here config upgrade for this disk
+
 
 class Instance(TaggableObject):
   """Config object representing an instance."""
@@ -684,6 +702,15 @@ class Instance(TaggableObject):
     obj.nics = cls._ContainerFromDicts(obj.nics, list, NIC)
     obj.disks = cls._ContainerFromDicts(obj.disks, list, Disk)
     return obj
+
+  def UpgradeConfig(self):
+    """Fill defaults for missing configuration values.
+
+    """
+    for nic in self.nics:
+      nic.UpgradeConfig()
+    for disk in self.disks:
+      disk.UpgradeConfig()
 
 
 class OS(ConfigObject):
