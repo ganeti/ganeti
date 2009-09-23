@@ -255,7 +255,7 @@ def ListInstances(opts, args):
       "nic.count": "NICs", "nic.ips": "NIC_IPs",
       "nic.modes": "NIC_modes", "nic.links": "NIC_links",
       "nic.bridges": "NIC_bridges", "nic.macs": "NIC_MACs",
-      "ctime": "CTime", "mtime": "MTime",
+      "ctime": "CTime", "mtime": "MTime", "uuid": "UUID",
       }
   else:
     headers = None
@@ -1088,6 +1088,7 @@ def ShowInstanceConfig(opts, args):
   for instance_name in result:
     instance = result[instance_name]
     buf.write("Instance name: %s\n" % instance["name"])
+    buf.write("UUID: %s\n" % instance["uuid"])
     buf.write("Serial number: %s\n" % instance["serial_no"])
     buf.write("Creation time: %s\n" % utils.FormatTime(instance["ctime"]))
     buf.write("Modification time: %s\n" % utils.FormatTime(instance["mtime"]))

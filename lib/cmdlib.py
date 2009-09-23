@@ -7007,6 +7007,7 @@ class LUQueryInstanceData(NoHooksLU):
         "serial_no": instance.serial_no,
         "mtime": instance.mtime,
         "ctime": instance.ctime,
+        "uuid": instance.uuid,
         }
 
       result[instance.name] = idict
