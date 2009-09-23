@@ -412,6 +412,14 @@
             </listitem>
           </varlistentry>
           <varlistentry>
+            <term>uuid</term>
+            <listitem>
+              <simpara>Show the UUID of the node (generated
+                automatically by Ganeti)</simpara>
+            </listitem>
+          </varlistentry>
+
+          <varlistentry>
             <term>ctotal</term>
             <listitem>
               <simpara>the toal number of logical processors</simpara>
