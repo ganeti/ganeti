@@ -149,7 +149,7 @@ class ConfigWriter:
       raise errors.ConfigurationError("Can't generate unique DRBD secret")
     return secret
 
-  def _ComputeAllLVs(self):
+  def _AllLVs(self):
     """Compute the list of all LVs.
 
     """
@@ -159,6 +159,23 @@ class ConfigWriter:
       for lv_list in node_data.values():
         lvnames.update(lv_list)
     return lvnames
+
+  def _AllIDs(self, include_temporary):
+    """Compute the list of all UUIDs and names we have.
+
+    @type include_temporary: boolean
+    @param include_temporary: whether to include the _temporary_ids set
+    @rtype: set
+    @return: a set of IDs
+
+    """
+    existing = set()
+    if include_temporary:
+      existing.update(self._temporary_ids)
+    existing.update(self._AllLVs())
+    existing.update(self._config_data.instances.keys())
+    existing.update(self._config_data.nodes.keys())
+    return existing
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GenerateUniqueID(self, exceptions=None):
@@ -176,11 +193,7 @@ class ConfigWriter:
     @return: the unique id
 
     """
-    existing = set()
-    existing.update(self._temporary_ids)
-    existing.update(self._ComputeAllLVs())
-    existing.update(self._config_data.instances.keys())
-    existing.update(self._config_data.nodes.keys())
+    existing = self._AllIDs(include_temporary=True)
     if exceptions is not None:
       existing.update(exceptions)
     retries = 64
