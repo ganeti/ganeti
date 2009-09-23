@@ -40,6 +40,7 @@ __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
            "OS", "Node", "Cluster", "FillDict"]
 
 _TIMESTAMPS = ["ctime", "mtime"]
+_UUID = ["uuid"]
 
 def FillDict(defaults_dict, custom_dict):
   """Basic function to apply settings on top a default dict.
@@ -632,7 +633,7 @@ class Instance(TaggableObject):
     "disk_template",
     "network_port",
     "serial_no",
-    ] + _TIMESTAMPS
+    ] + _TIMESTAMPS + _UUID
 
   def _ComputeSecondaryNodes(self):
     """Compute the list of secondary nodes.
@@ -798,7 +799,7 @@ class Node(TaggableObject):
     "master_candidate",
     "offline",
     "drained",
-    ] + _TIMESTAMPS
+    ] + _TIMESTAMPS + _UUID
 
 
 class Cluster(TaggableObject):
@@ -823,7 +824,7 @@ class Cluster(TaggableObject):
     "nicparams",
     "candidate_pool_size",
     "modify_etc_hosts",
-    ] + _TIMESTAMPS
+    ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
     """Fill defaults for missing configuration values.
