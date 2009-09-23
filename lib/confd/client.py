@@ -112,7 +112,8 @@ class ConfdClient:
 
   def _UnpackReply(self, payload):
     in_payload = confd.UnpackMagic(payload)
-    (answer, salt) = serializer.LoadSignedJson(in_payload, self._hmac_key)
+    (dict_answer, salt) = serializer.LoadSignedJson(in_payload, self._hmac_key)
+    answer = objects.ConfdReply.FromDict(dict_answer)
     return answer, salt
 
   def ExpireRequests(self):
