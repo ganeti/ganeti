@@ -206,6 +206,13 @@ class ConfigWriter:
     self._temporary_ids.add(unique_id)
     return unique_id
 
+  def _CleanupTemporaryIDs(self):
+    """Cleanups the _temporary_ids structure.
+
+    """
+    existing = self._AllIDs(include_temporary=False)
+    self._temporary_ids = self._temporary_ids - existing
+
   def _AllMACs(self):
     """Return all MACs present in the config.
 
@@ -1114,6 +1121,10 @@ class ConfigWriter:
     """Write the configuration data to persistent storage.
 
     """
+    # first, cleanup the _temporary_ids set, if an ID is now in the
+    # other objects it should be discarded to prevent unbounded growth
+    # of that structure
+    self._CleanupTemporaryIDs()
     config_errors = self._UnlockedVerifyConfig()
     if config_errors:
       raise errors.ConfigurationError("Configuration data is not"
