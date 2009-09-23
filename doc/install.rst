@@ -647,3 +647,5 @@ To failover an instance to its secondary node (only possible with
 
 For more instance and cluster administration details, see the
 *Ganeti administrator's guide*.
+
+.. vim: set textwidth=72 :

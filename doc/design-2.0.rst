@@ -1992,3 +1992,5 @@ option is::
   to set, string
 :$OPTION: cluster default option, string,
 :$VALUE: cluster default option value, string.
+
+.. vim: set textwidth=72 :

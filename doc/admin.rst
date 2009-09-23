@@ -351,3 +351,5 @@ the SSH changes and log directories:
 
 Otherwise, if you plan to re-create the cluster, you can just go ahead
 and rerun ``gnt-cluster init``.
+
+.. vim: set textwidth=72 :

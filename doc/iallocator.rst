@@ -434,3 +434,5 @@ Command line messages
   # gnt-instance add -t drbd -m 1400m --os-size 1g --swap-size 512m --iallocator dumb-allocator -o etch-image instance5
   Failure: prerequisites not met for this operation:
   Can't compute nodes using iallocator 'dumb-allocator': Can't find a suitable node for position 2 (already selected: node1.example.com)
+
+.. vim: set textwidth=72 :

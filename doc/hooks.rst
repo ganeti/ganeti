@@ -588,3 +588,5 @@ script::
   GANETI_OBJECT_TYPE=INSTANCE
   GANETI_OP_CODE=OP_INSTANCE_STARTUP
   GANETI_OP_TARGET=instance2.example.com
+
+.. vim: set textwidth=72 :

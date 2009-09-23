@@ -389,3 +389,5 @@ Version 1.2b2
 - Some changes to the hooks infrastructure (especially the new
   post-configuration update hook)
 - Other small bugfixes
+
+.. vim: set textwidth=72 :

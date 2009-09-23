@@ -743,3 +743,5 @@ It supports the following commands: ``GET``.
 
 Returns the remote API version. Ganeti 1.2 returned ``1`` and Ganeti
 2.0 returns ``2``.
+
+.. vim: set textwidth=72 :

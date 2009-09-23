@@ -22,3 +22,5 @@ different python version)::
   ./autogen.sh && \
   ./configure PYTHON=python2.4 \
     --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
+
+.. vim: set textwidth=72 :

@@ -67,3 +67,5 @@ running, it must be held for all job queue operations
 There's one special case for the node daemon running on the master node. If
 grabbing the lock in exclusive fails on startup, the code assumes all checks
 have been done by the process keeping the lock.
+
+.. vim: set textwidth=72 :

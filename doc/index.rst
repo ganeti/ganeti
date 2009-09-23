@@ -22,3 +22,5 @@ Contents:
    glossary.rst
 
 Also see the :ref:`search`.
+
+.. vim: set textwidth=72 :

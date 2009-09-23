@@ -827,3 +827,5 @@ plugin needs to return:
 
 - how many instances can be allocated on the cluster with that specification
 - on which nodes these will be allocated (in order)
+
+.. vim: set textwidth=72 :

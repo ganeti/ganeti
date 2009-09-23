@@ -98,3 +98,5 @@ default. It supports Basic authentication as per RFC2617.
 Paths for certificate, private key and CA files required for SSL/TLS will
 be set at source configure time. Symlinks or command line parameters may
 be used to use different files.
+
+.. vim: set textwidth=72 :

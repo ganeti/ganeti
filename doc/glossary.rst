@@ -28,3 +28,5 @@ Glossary
     and takes care of restarting failed instances, restarting secondary
     DRBD devices, etc. For more details, see the man page
     :manpage:`ganeti-watcher(8)`.
+
+.. vim: set textwidth=72 :
