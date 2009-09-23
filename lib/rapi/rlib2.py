@@ -31,6 +31,7 @@ from ganeti import rapi
 from ganeti.rapi import baserlib
 
 
+_COMMON_FIELDS = ["ctime", "mtime", "uuid", "serial_no", "tags"]
 I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
@@ -39,16 +40,16 @@ I_FIELDS = ["name", "admin_state", "os",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
             "oper_state", "oper_ram", "status",
-            "tags"]
+            ] + _COMMON_FIELDS
 
 N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "dtotal", "dfree",
             "mtotal", "mnode", "mfree",
-            "pinst_cnt", "sinst_cnt", "tags",
+            "pinst_cnt", "sinst_cnt",
             "ctotal", "cnodes", "csockets",
-            "pip", "sip", "serial_no", "role",
+            "pip", "sip", "role",
             "pinst_list", "sinst_list",
-            ]
+            ] + _COMMON_FIELDS
 
 _NR_DRAINED = "drained"
 _NR_MASTER_CANDIATE = "master-candidate"
