@@ -2279,6 +2279,10 @@ class LUQueryNodes(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
+
+  _SIMPLE_FIELDS = ["name", "serial_no", "ctime", "mtime", "uuid",
+                    "master_candidate", "offline", "drained"]
+
   _FIELDS_DYNAMIC = utils.FieldSet(
     "dtotal", "dfree",
     "mtotal", "mnode", "mfree",
@@ -2286,16 +2290,12 @@ class LUQueryNodes(NoHooksLU):
     "ctotal", "cnodes", "csockets",
     )
 
-  _FIELDS_STATIC = utils.FieldSet(
-    "name", "pinst_cnt", "sinst_cnt",
+  _FIELDS_STATIC = utils.FieldSet(*[
+    "pinst_cnt", "sinst_cnt",
     "pinst_list", "sinst_list",
     "pip", "sip", "tags",
-    "serial_no", "ctime", "mtime",
-    "master_candidate",
     "master",
-    "offline",
-    "drained",
-    "role",
+    "role"] + _SIMPLE_FIELDS
     )
 
   def ExpandNames(self):
@@ -2396,8 +2396,8 @@ class LUQueryNodes(NoHooksLU):
     for node in nodelist:
       node_output = []
       for field in self.op.output_fields:
-        if field == "name":
-          val = node.name
+        if field in self._SIMPLE_FIELDS:
+          val = getattr(node, field)
         elif field == "pinst_list":
           val = list(node_to_primary[node.name])
         elif field == "sinst_list":
@@ -2412,20 +2412,8 @@ class LUQueryNodes(NoHooksLU):
           val = node.secondary_ip
         elif field == "tags":
           val = list(node.GetTags())
-        elif field == "serial_no":
-          val = node.serial_no
-        elif field == "ctime":
-          val = node.ctime
-        elif field == "mtime":
-          val = node.mtime
-        elif field == "master_candidate":
-          val = node.master_candidate
         elif field == "master":
           val = node.name == master_node
-        elif field == "offline":
-          val = node.offline
-        elif field == "drained":
-          val = node.drained
         elif self._FIELDS_DYNAMIC.Matches(field):
           val = live_data[node.name].get(field, None)
         elif field == "role":
@@ -3983,6 +3971,8 @@ class LUQueryInstances(NoHooksLU):
   """
   _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
+  _SIMPLE_FIELDS = ["name", "os", "network_port", "hypervisor",
+                    "serial_no", "ctime", "mtime", "uuid"]
   _FIELDS_STATIC = utils.FieldSet(*["name", "os", "pnode", "snodes",
                                     "admin_state",
                                     "disk_template", "ip", "mac", "bridge",
@@ -3995,9 +3985,8 @@ class LUQueryInstances(NoHooksLU):
                                     r"(nic)\.(bridge)/([0-9]+)",
                                     r"(nic)\.(macs|ips|modes|links|bridges)",
                                     r"(disk|nic)\.(count)",
-                                    "serial_no", "hypervisor", "hvparams",
-                                    "ctime", "mtime",
-                                    ] +
+                                    "hvparams",
+                                    ] + _SIMPLE_FIELDS +
                                   ["hv/%s" % name
                                    for name in constants.HVS_PARAMETERS] +
                                   ["be/%s" % name
@@ -4100,10 +4089,8 @@ class LUQueryInstances(NoHooksLU):
                                  nic.nicparams) for nic in instance.nics]
       for field in self.op.output_fields:
         st_match = self._FIELDS_STATIC.Matches(field)
-        if field == "name":
-          val = instance.name
-        elif field == "os":
-          val = instance.os
+        if field in self._SIMPLE_FIELDS:
+          val = getattr(instance, field)
         elif field == "pnode":
           val = instance.primary_node
         elif field == "snodes":
@@ -4180,16 +4167,6 @@ class LUQueryInstances(NoHooksLU):
           val = _ComputeDiskSize(instance.disk_template, disk_sizes)
         elif field == "tags":
           val = list(instance.GetTags())
-        elif field == "serial_no":
-          val = instance.serial_no
-        elif field == "ctime":
-          val = instance.ctime
-        elif field == "mtime":
-          val = instance.mtime
-        elif field == "network_port":
-          val = instance.network_port
-        elif field == "hypervisor":
-          val = instance.hypervisor
         elif field == "hvparams":
           val = i_hv
         elif (field.startswith(HVPREFIX) and
