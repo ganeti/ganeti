@@ -3102,6 +3102,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "file_storage_dir": cluster.file_storage_dir,
       "ctime": cluster.ctime,
       "mtime": cluster.mtime,
+      "uuid": cluster.uuid,
       "tags": list(cluster.GetTags()),
       }
 

@@ -228,6 +228,7 @@ def ShowClusterConfig(opts, args):
   result = cl.QueryClusterInfo()
 
   ToStdout("Cluster name: %s", result["name"])
+  ToStdout("Cluster UUID: %s", result["uuid"])
 
   ToStdout("Creation time: %s", utils.FormatTime(result["ctime"]))
   ToStdout("Modification time: %s", utils.FormatTime(result["mtime"]))
