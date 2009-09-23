@@ -65,7 +65,7 @@ class ConfdClient:
   through asyncore or with your own handling.
 
   """
-  def __init__(self, hmac_key, peers, callback, port=None):
+  def __init__(self, hmac_key, peers, callback, port=None, logger=None):
     """Constructor for ConfdClient
 
     @type hmac_key: string
@@ -76,6 +76,8 @@ class ConfdClient:
     @param callback: function to call when getting answers
     @type port: integer
     @keyword port: confd port (default: use GetDaemonPort)
+    @type logger: L{logging.Logger}
+    @keyword logger: optional logger for internal conditions
 
     """
     if not isinstance(peers, list):
@@ -88,6 +90,7 @@ class ConfdClient:
     self._socket = ConfdAsyncUDPClient(self)
     self._callback = callback
     self._confd_port = port
+    self._logger = logger
     self._requests = {}
     self._expire_requests = []
 
@@ -184,14 +187,16 @@ class ConfdClient:
     try:
       try:
         answer, salt = self._UnpackReply(payload)
-      except (errors.SignatureError, errors.ConfdMagicError):
+      except (errors.SignatureError, errors.ConfdMagicError), err:
+        if self._logger:
+          self._logger.debug("Discarding broken package: %s" % err)
         return
 
       try:
         (request, args) = self._requests[salt]
       except KeyError:
-        # If the salt is unkown the answer is probably a replay of an old
-        # expired query. Ignoring it.
+        if self._logger:
+          self._logger.debug("Discarding unknown (expired?) reply: %s" % err)
         return
 
       client_reply = ConfdUpcallPayload(salt=salt,
