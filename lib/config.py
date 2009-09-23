@@ -175,6 +175,7 @@ class ConfigWriter:
     existing.update(self._AllLVs())
     existing.update(self._config_data.instances.keys())
     existing.update(self._config_data.nodes.keys())
+    existing.update([i.uuid for i in self._AllUUIDObjects() if i.uuid])
     return existing
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -1057,6 +1058,14 @@ class ConfigWriter:
     self._config_data.serial_no += 1
     self._config_data.mtime = time.time()
 
+  def _AllUUIDObjects(self):
+    """Returns all objects with uuid attributes.
+
+    """
+    return (self._config_data.instances.values() +
+            self._config_data.nodes.values() +
+            [self._config_data.cluster])
+
   def _OpenConfig(self):
     """Read the config data from disk.
 
@@ -1083,6 +1092,28 @@ class ConfigWriter:
     # reset the last serial as -1 so that the next write will cause
     # ssconf update
     self._last_cluster_serial = -1
+
+    # And finally run our (custom) config upgrade sequence
+    self._UpgradeConfig()
+
+  def _UpgradeConfig(self):
+    """Run upgrade steps that cannot be done purely in the objects.
+
+    This is because some data elements need uniqueness across the
+    whole configuration, etc.
+
+    @warning: this function will call L{_WriteConfig()}, so it needs
+        to either be called with the lock held or from a safe place
+        (the constructor)
+
+    """
+    modified = False
+    for item in self._AllUUIDObjects():
+      if item.uuid is None:
+        item.uuid = self.GenerateUniqueID()
+        modified = True
+    if modified:
+      self._WriteConfig()
 
   def _DistributeConfig(self):
     """Distribute the configuration to the other nodes.
