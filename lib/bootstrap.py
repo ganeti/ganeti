@@ -349,19 +349,23 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
 
   noded_cert = utils.ReadFile(constants.SSL_CERT_FILE)
   rapi_cert = utils.ReadFile(constants.RAPI_CERT_FILE)
+  hmac_key = utils.ReadFile(constants.HMAC_CLUSTER_KEY)
 
   # in the base64 pem encoding, neither '!' nor '.' are valid chars,
   # so we use this to detect an invalid certificate; as long as the
   # cert doesn't contain this, the here-document will be correctly
-  # parsed by the shell sequence below
-  if (re.search('^!EOF\.', noded_cert, re.MULTILINE) or
-      re.search('^!EOF\.', rapi_cert, re.MULTILINE)):
-    raise errors.OpExecError("invalid PEM encoding in the SSL certificate")
+  # parsed by the shell sequence below. HMAC keys are hexadecimal strings,
+  # so the same restrictions apply.
+  for content in (noded_cert, rapi_cert, hmac_key):
+    if re.search('^!EOF\.', content, re.MULTILINE):
+      raise errors.OpExecError("invalid SSL certificate or HMAC key")
 
   if not noded_cert.endswith("\n"):
     noded_cert += "\n"
   if not rapi_cert.endswith("\n"):
     rapi_cert += "\n"
+  if not hmac_key.endswith("\n"):
+    hmac_key += "\n"
 
   # set up inter-node password and certificate and restarts the node daemon
   # and then connect with ssh to set password and start ganeti-noded
@@ -372,11 +376,15 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                "%s!EOF.\n"
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n"
-               "chmod 0400 %s %s && "
+               "cat > '%s' << '!EOF.' && \n"
+               "%s!EOF.\n"
+               "chmod 0400 %s %s %s && "
                "%s restart" %
                (constants.SSL_CERT_FILE, noded_cert,
                 constants.RAPI_CERT_FILE, rapi_cert,
+                constants.HMAC_CLUSTER_KEY, hmac_key,
                 constants.SSL_CERT_FILE, constants.RAPI_CERT_FILE,
+                constants.HMAC_CLUSTER_KEY,
                 constants.NODE_INITD_SCRIPT))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
