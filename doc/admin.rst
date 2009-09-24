@@ -293,3 +293,61 @@ or execute cluster-wide operations. For example::
   gnt-cluster version
 
 See the man page :manpage:`gnt-cluster` to know more about their usage.
+
+Removing a cluster entirely
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The usual method to cleanup a cluster is to run ``gnt-cluster
+destroy`` however if the Ganeti installation is broken in any way then
+this will not run.
+
+It is possible in such a case to cleanup manually most if not all
+traces of a cluster installation by following these steps on all of
+the nodes:
+
+1. Shutdown all instances. This depends on the virtualisation
+   method used (Xen, KVM, etc.):
+
+  - Xen: run ``xm list`` and ``xm destroy`` on all the non-Domain-0
+    instances
+  - KVM: kill all the KVM processes
+  - chroot: kill all processes under the chroot mountpoints
+
+2. If using DRBD, shutdown all DRBD minors (which should by at this
+   time no-longer in use by instances); on each node, run ``drbdsetup
+   /dev/drbdN down`` for each active DRBD minor.
+
+3. If using LVM, cleanup the Ganeti volume group; if only Ganeti
+   created logical volumes (and you are not sharing the volume group
+   with the OS, for example), then simply running ``lvremove -f
+   xenvg`` (replace 'xenvg' with your volume group name) should do the
+   required cleanup.
+
+4. If using file-based storage, remove recursively all files and
+   directories under your file-storage directory: ``rm -rf
+   /srv/ganeti/file-storage/*`` replacing the path with the correct
+   path for your cluster.
+
+5. Stop the ganeti daemons (``/etc/init.d/ganeti stop``) and kill any
+   that remain alive (``pgrep ganeti`` and ``pkill ganeti``).
+
+6. Remove the ganeti state directory (``rm -rf /var/lib/ganeti/*``),
+   replacing the path with the correct path for your installation.
+
+On the master node, remove the cluster from the master-netdev (usually
+``xen-br0`` for bridged mode, otherwise ``eth0`` or similar), by
+running ``ip a del $clusterip/32 dev xen-br0`` (use the correct
+cluster ip and network device name).
+
+At this point, the machines are ready for a cluster creation; in case
+you want to remove Ganeti completely, you need to also undo some of
+the SSH changes and log directories:
+
+- ``rm -rf /var/log/ganeti /srv/ganeti`` (replace with the correct paths)
+- remove from ``/root/.ssh`` the keys that Ganeti added (check
+  the ``authorized_keys`` and ``id_dsa`` files)
+- regenerate the host's SSH keys (check the OpenSSH startup scripts)
+- uninstall Ganeti
+
+Otherwise, if you plan to re-create the cluster, you can just go ahead
+and rerun ``gnt-cluster init``.
