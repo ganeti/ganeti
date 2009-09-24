@@ -170,7 +170,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     elif nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED:
       script.write("  # Route traffic targeted at the IP to the interface\n")
       if nic.nicparams[constants.NIC_LINK]:
-        script.write("  /sbin/ip route replace $IP/32 table $LINK dev $INTERFACE\n")
+        script.write("  /sbin/ip route replace $IP/32 table $LINK"
+                     " dev $INTERFACE\n")
       else:
         script.write("  /sbin/ip route replace $IP/32 dev $INTERFACE\n")
       interface_proxy_arp = "/proc/sys/net/ipv4/conf/$INTERFACE/proxy_arp"
