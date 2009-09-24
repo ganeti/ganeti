@@ -174,7 +174,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         script.write("  /sbin/ip route replace $IP/32 dev $INTERFACE\n")
       interface_proxy_arp = "/proc/sys/net/ipv4/conf/$INTERFACE/proxy_arp"
+      interface_forwarding = "/proc/sys/net/ipv4/conf/$INTERFACE/forwarding"
       script.write("  /bin/echo 1 > %s\n" % interface_proxy_arp)
+      script.write("  /bin/echo 1 > %s\n" % interface_forwarding)
     script.write("fi\n\n")
     # As much as we'd like to put this in our _ROOT_DIR, that will happen to be
     # mounted noexec sometimes, so we'll have to find another place.
