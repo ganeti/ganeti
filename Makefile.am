@@ -264,6 +264,7 @@ dist_TESTS = \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
+	test/ganeti.confd_client_unittest.py \
 	test/ganeti.config_unittest.py \
 	test/ganeti.constants_unittest.py \
 	test/ganeti.hooks_unittest.py \
