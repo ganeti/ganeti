@@ -31,6 +31,7 @@ import logging
 import sched
 import time
 import socket
+import sys
 
 from ganeti import utils
 from ganeti import constants
@@ -310,4 +311,3 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
     exec_fn(options, args)
   finally:
     utils.RemovePidFile(daemon_name)
-
