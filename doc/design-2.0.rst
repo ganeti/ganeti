@@ -30,7 +30,8 @@ following main scalability issues:
 - poor handling of node failures in the cluster
 - mixing hypervisors in a cluster not allowed
 
-It also has a number of artificial restrictions, due to historical design:
+It also has a number of artificial restrictions, due to historical
+design:
 
 - fixed number of disks (two) per instance
 - fixed number of NICs
@@ -55,8 +56,8 @@ operations.  This has been painful at various times, for example:
 
 - It is impossible for two people to efficiently interact with a cluster
   (for example for debugging) at the same time.
-- When batch jobs are running it's impossible to do other work (for example
-  failovers/fixes) on a cluster.
+- When batch jobs are running it's impossible to do other work (for
+  example failovers/fixes) on a cluster.
 
 This poses scalability problems: as clusters grow in node and instance
 size it's a lot more likely that operations which one could conceive
@@ -155,7 +156,8 @@ In Ganeti 2.0, we will have the following *entities*:
 
 The master-daemon related interaction paths are:
 
-- (CLI tools/RAPI daemon) and the master daemon, via the so called *LUXI* API
+- (CLI tools/RAPI daemon) and the master daemon, via the so called
+  *LUXI* API
 - the master daemon and the node daemons, via the node RPC
 
 There are also some additional interaction paths for exceptional cases:
@@ -237,10 +239,10 @@ Responses will follow the same format, with the two fields being:
 There are two special value for the result field:
 
 - in the case that the operation failed, and this field is a list of
-  length two, the client library will try to interpret is as an exception,
-  the first element being the exception type and the second one the
-  actual exception arguments; this will allow a simple method of passing
-  Ganeti-related exception across the interface
+  length two, the client library will try to interpret is as an
+  exception, the first element being the exception type and the second
+  one the actual exception arguments; this will allow a simple method of
+  passing Ganeti-related exception across the interface
 - for the *WaitForChange* call (that waits on the server for a job to
   change status), if the result is equal to ``nochange`` instead of the
   usual result for this call (a list of changes), then the library will
@@ -381,13 +383,14 @@ disadvantages to using it:
 - the more advanced granular locking that we want to implement would
   require, if written in the async-manner, deep integration with the
   Twisted stack, to such an extend that business-logic is inseparable
-  from the protocol coding; we felt that this is an unreasonable request,
-  and that a good protocol library should allow complete separation of
-  low-level protocol calls and business logic; by comparison, the threaded
-  approach combined with HTTPs protocol required (for the first iteration)
-  absolutely no changes from the 1.2 code, and later changes for optimizing
-  the inter-node RPC calls required just syntactic changes (e.g.
-  ``rpc.call_...`` to ``self.rpc.call_...``)
+  from the protocol coding; we felt that this is an unreasonable
+  request, and that a good protocol library should allow complete
+  separation of low-level protocol calls and business logic; by
+  comparison, the threaded approach combined with HTTPs protocol
+  required (for the first iteration) absolutely no changes from the 1.2
+  code, and later changes for optimizing the inter-node RPC calls
+  required just syntactic changes (e.g.  ``rpc.call_...`` to
+  ``self.rpc.call_...``)
 
 Another issue is with the Twisted API stability - during the Ganeti
 1.x lifetime, we had to to implement many times workarounds to changes
@@ -401,9 +404,10 @@ we just reused that for inter-node communication.
 Granular locking
 ~~~~~~~~~~~~~~~~
 
-We want to make sure that multiple operations can run in parallel on a Ganeti
-Cluster. In order for this to happen we need to make sure concurrently run
-operations don't step on each other toes and break the cluster.
+We want to make sure that multiple operations can run in parallel on a
+Ganeti Cluster. In order for this to happen we need to make sure
+concurrently run operations don't step on each other toes and break the
+cluster.
 
 This design addresses how we are going to deal with locking so that:
 
@@ -411,23 +415,25 @@ This design addresses how we are going to deal with locking so that:
 - we prevent deadlocks
 - we prevent job starvation
 
-Reaching the maximum possible parallelism is a Non-Goal. We have identified a
-set of operations that are currently bottlenecks and need to be parallelised
-and have worked on those. In the future it will be possible to address other
-needs, thus making the cluster more and more parallel one step at a time.
+Reaching the maximum possible parallelism is a Non-Goal. We have
+identified a set of operations that are currently bottlenecks and need
+to be parallelised and have worked on those. In the future it will be
+possible to address other needs, thus making the cluster more and more
+parallel one step at a time.
 
 This section only talks about parallelising Ganeti level operations, aka
-Logical Units, and the locking needed for that. Any other synchronization lock
-needed internally by the code is outside its scope.
+Logical Units, and the locking needed for that. Any other
+synchronization lock needed internally by the code is outside its scope.
 
 Library details
 +++++++++++++++
 
 The proposed library has these features:
 
-- internally managing all the locks, making the implementation transparent
-  from their usage
-- automatically grabbing multiple locks in the right order (avoid deadlock)
+- internally managing all the locks, making the implementation
+  transparent from their usage
+- automatically grabbing multiple locks in the right order (avoid
+  deadlock)
 - ability to transparently handle conversion to more granularity
 - support asynchronous operation (future goal)
 
@@ -446,9 +452,9 @@ All the locks will be represented by objects (like
 ``lockings.SharedLock``), and the individual locks for each object
 will be created at initialisation time, from the config file.
 
-The API will have a way to grab one or more than one locks at the same time.
-Any attempt to grab a lock while already holding one in the wrong order will be
-checked for, and fail.
+The API will have a way to grab one or more than one locks at the same
+time.  Any attempt to grab a lock while already holding one in the wrong
+order will be checked for, and fail.
 
 
 The Locks
@@ -460,11 +466,11 @@ At the first stage we have decided to provide the following locks:
 - One lock per node in the cluster
 - One lock per instance in the cluster
 
-All the instance locks will need to be taken before the node locks, and the
-node locks before the config lock. Locks will need to be acquired at the same
-time for multiple instances and nodes, and internal ordering will be dealt
-within the locking library, which, for simplicity, will just use alphabetical
-order.
+All the instance locks will need to be taken before the node locks, and
+the node locks before the config lock. Locks will need to be acquired at
+the same time for multiple instances and nodes, and internal ordering
+will be dealt within the locking library, which, for simplicity, will
+just use alphabetical order.
 
 Each lock has the following three possible statuses:
 
@@ -475,37 +481,39 @@ Each lock has the following three possible statuses:
 Handling conversion to more granularity
 +++++++++++++++++++++++++++++++++++++++
 
-In order to convert to a more granular approach transparently each time we
-split a lock into more we'll create a "metalock", which will depend on those
-sub-locks and live for the time necessary for all the code to convert (or
-forever, in some conditions). When a metalock exists all converted code must
-acquire it in shared mode, so it can run concurrently, but still be exclusive
-with old code, which acquires it exclusively.
+In order to convert to a more granular approach transparently each time
+we split a lock into more we'll create a "metalock", which will depend
+on those sub-locks and live for the time necessary for all the code to
+convert (or forever, in some conditions). When a metalock exists all
+converted code must acquire it in shared mode, so it can run
+concurrently, but still be exclusive with old code, which acquires it
+exclusively.
 
-In the beginning the only such lock will be what replaces the current "command"
-lock, and will acquire all the locks in the system, before proceeding. This
-lock will be called the "Big Ganeti Lock" because holding that one will avoid
-any other concurrent Ganeti operations.
+In the beginning the only such lock will be what replaces the current
+"command" lock, and will acquire all the locks in the system, before
+proceeding. This lock will be called the "Big Ganeti Lock" because
+holding that one will avoid any other concurrent Ganeti operations.
 
-We might also want to devise more metalocks (eg. all nodes, all nodes+config)
-in order to make it easier for some parts of the code to acquire what it needs
-without specifying it explicitly.
+We might also want to devise more metalocks (eg. all nodes, all
+nodes+config) in order to make it easier for some parts of the code to
+acquire what it needs without specifying it explicitly.
 
-In the future things like the node locks could become metalocks, should we
-decide to split them into an even more fine grained approach, but this will
-probably be only after the first 2.0 version has been released.
+In the future things like the node locks could become metalocks, should
+we decide to split them into an even more fine grained approach, but
+this will probably be only after the first 2.0 version has been
+released.
 
 Adding/Removing locks
 +++++++++++++++++++++
 
-When a new instance or a new node is created an associated lock must be added
-to the list. The relevant code will need to inform the locking library of such
-a change.
+When a new instance or a new node is created an associated lock must be
+added to the list. The relevant code will need to inform the locking
+library of such a change.
 
-This needs to be compatible with every other lock in the system, especially
-metalocks that guarantee to grab sets of resources without specifying them
-explicitly. The implementation of this will be handled in the locking library
-itself.
+This needs to be compatible with every other lock in the system,
+especially metalocks that guarantee to grab sets of resources without
+specifying them explicitly. The implementation of this will be handled
+in the locking library itself.
 
 When instances or nodes disappear from the cluster the relevant locks
 must be removed. This is easier than adding new elements, as the code
@@ -517,36 +525,39 @@ Asynchronous operations
 +++++++++++++++++++++++
 
 For the first version the locking library will only export synchronous
-operations, which will block till the needed lock are held, and only fail if
-the request is impossible or somehow erroneous.
+operations, which will block till the needed lock are held, and only
+fail if the request is impossible or somehow erroneous.
 
 In the future we may want to implement different types of asynchronous
 operations such as:
 
 - try to acquire this lock set and fail if not possible
-- try to acquire one of these lock sets and return the first one you were
-  able to get (or after a timeout) (select/poll like)
+- try to acquire one of these lock sets and return the first one you
+  were able to get (or after a timeout) (select/poll like)
 
-These operations can be used to prioritize operations based on available locks,
-rather than making them just blindly queue for acquiring them. The inherent
-risk, though, is that any code using the first operation, or setting a timeout
-for the second one, is susceptible to starvation and thus may never be able to
-get the required locks and complete certain tasks. Considering this
-providing/using these operations should not be among our first priorities.
+These operations can be used to prioritize operations based on available
+locks, rather than making them just blindly queue for acquiring them.
+The inherent risk, though, is that any code using the first operation,
+or setting a timeout for the second one, is susceptible to starvation
+and thus may never be able to get the required locks and complete
+certain tasks. Considering this providing/using these operations should
+not be among our first priorities.
 
 Locking granularity
 +++++++++++++++++++
 
 For the first version of this code we'll convert each Logical Unit to
-acquire/release the locks it needs, so locking will be at the Logical Unit
-level.  In the future we may want to split logical units in independent
-"tasklets" with their own locking requirements. A different design doc (or mini
-design doc) will cover the move from Logical Units to tasklets.
+acquire/release the locks it needs, so locking will be at the Logical
+Unit level.  In the future we may want to split logical units in
+independent "tasklets" with their own locking requirements. A different
+design doc (or mini design doc) will cover the move from Logical Units
+to tasklets.
 
 Code examples
 +++++++++++++
 
-In general when acquiring locks we should use a code path equivalent to::
+In general when acquiring locks we should use a code path equivalent
+to::
 
   lock.acquire()
   try:
@@ -561,10 +572,10 @@ structures in an unusable state. Note that with Python 2.5 a simpler
 syntax will be possible, but we want to keep compatibility with Python
 2.4 so the new constructs should not be used.
 
-In order to avoid this extra indentation and code changes everywhere in the
-Logical Units code, we decided to allow LUs to declare locks, and then execute
-their code with their locks acquired. In the new world LUs are called like
-this::
+In order to avoid this extra indentation and code changes everywhere in
+the Logical Units code, we decided to allow LUs to declare locks, and
+then execute their code with their locks acquired. In the new world LUs
+are called like this::
 
   # user passed names are expanded to the internal lock/resource name,
   # then known needed locks are declared
@@ -579,22 +590,23 @@ this::
   lu.Exec()
   ... locks declared for removal are removed, all acquired locks released ...
 
-The Processor and the LogicalUnit class will contain exact documentation on how
-locks are supposed to be declared.
+The Processor and the LogicalUnit class will contain exact documentation
+on how locks are supposed to be declared.
 
 Caveats
 +++++++
 
 This library will provide an easy upgrade path to bring all the code to
 granular locking without breaking everything, and it will also guarantee
-against a lot of common errors. Code switching from the old "lock everything"
-lock to the new system, though, needs to be carefully scrutinised to be sure it
-is really acquiring all the necessary locks, and none has been overlooked or
-forgotten.
+against a lot of common errors. Code switching from the old "lock
+everything" lock to the new system, though, needs to be carefully
+scrutinised to be sure it is really acquiring all the necessary locks,
+and none has been overlooked or forgotten.
 
-The code can contain other locks outside of this library, to synchronise other
-threaded code (eg for the job queue) but in general these should be leaf locks
-or carefully structured non-leaf ones, to avoid deadlock race conditions.
+The code can contain other locks outside of this library, to synchronise
+other threaded code (eg for the job queue) but in general these should
+be leaf locks or carefully structured non-leaf ones, to avoid deadlock
+race conditions.
 
 
 Job Queue
@@ -614,25 +626,26 @@ will generate N opcodes of type replace disks).
 Job execution—“Life of a Ganeti job”
 ++++++++++++++++++++++++++++++++++++
 
-#. Job gets submitted by the client. A new job identifier is generated and
-   assigned to the job. The job is then automatically replicated [#replic]_
-   to all nodes in the cluster. The identifier is returned to the client.
-#. A pool of worker threads waits for new jobs. If all are busy, the job has
-   to wait and the first worker finishing its work will grab it. Otherwise any
-   of the waiting threads will pick up the new job.
-#. Client waits for job status updates by calling a waiting RPC function.
-   Log message may be shown to the user. Until the job is started, it can also
-   be canceled.
-#. As soon as the job is finished, its final result and status can be retrieved
-   from the server.
+#. Job gets submitted by the client. A new job identifier is generated
+   and assigned to the job. The job is then automatically replicated
+   [#replic]_ to all nodes in the cluster. The identifier is returned to
+   the client.
+#. A pool of worker threads waits for new jobs. If all are busy, the job
+   has to wait and the first worker finishing its work will grab it.
+   Otherwise any of the waiting threads will pick up the new job.
+#. Client waits for job status updates by calling a waiting RPC
+   function. Log message may be shown to the user. Until the job is
+   started, it can also be canceled.
+#. As soon as the job is finished, its final result and status can be
+   retrieved from the server.
 #. If the client archives the job, it gets moved to a history directory.
    There will be a method to archive all jobs older than a a given age.
 
-.. [#replic] We need replication in order to maintain the consistency across
-   all nodes in the system; the master node only differs in the fact that
-   now it is running the master daemon, but it if fails and we do a master
-   failover, the jobs are still visible on the new master (though marked as
-   failed).
+.. [#replic] We need replication in order to maintain the consistency
+   across all nodes in the system; the master node only differs in the
+   fact that now it is running the master daemon, but it if fails and we
+   do a master failover, the jobs are still visible on the new master
+   (though marked as failed).
 
 Failures to replicate a job to other nodes will be only flagged as
 errors in the master daemon log if more than half of the nodes failed,
@@ -654,23 +667,24 @@ The choice of storing each job in its own file was made because:
 
 - a file can be atomically replaced
 - a file can easily be replicated to other nodes
-- checking consistency across nodes can be implemented very easily, since
-  all job files should be (at a given moment in time) identical
+- checking consistency across nodes can be implemented very easily,
+  since all job files should be (at a given moment in time) identical
 
 The other possible choices that were discussed and discounted were:
 
-- single big file with all job data: not feasible due to difficult updates
+- single big file with all job data: not feasible due to difficult
+  updates
 - in-process databases: hard to replicate the entire database to the
-  other nodes, and replicating individual operations does not mean wee keep
-  consistency
+  other nodes, and replicating individual operations does not mean wee
+  keep consistency
 
 
 Queue structure
 +++++++++++++++
 
-All file operations have to be done atomically by writing to a temporary file
-and subsequent renaming. Except for log messages, every change in a job is
-stored and replicated to other nodes.
+All file operations have to be done atomically by writing to a temporary
+file and subsequent renaming. Except for log messages, every change in a
+job is stored and replicated to other nodes.
 
 ::
 
@@ -688,9 +702,9 @@ stored and replicated to other nodes.
 Locking
 +++++++
 
-Locking in the job queue is a complicated topic. It is called from more than
-one thread and must be thread-safe. For simplicity, a single lock is used for
-the whole job queue.
+Locking in the job queue is a complicated topic. It is called from more
+than one thread and must be thread-safe. For simplicity, a single lock
+is used for the whole job queue.
 
 A more detailed description can be found in doc/locking.rst.
 
@@ -711,24 +725,25 @@ jobqueue_rename(old, new)
 Client RPC
 ++++++++++
 
-RPC between Ganeti clients and the Ganeti master daemon supports the following
-operations:
+RPC between Ganeti clients and the Ganeti master daemon supports the
+following operations:
 
 SubmitJob(ops)
-  Submits a list of opcodes and returns the job identifier. The identifier is
-  guaranteed to be unique during the lifetime of a cluster.
+  Submits a list of opcodes and returns the job identifier. The
+  identifier is guaranteed to be unique during the lifetime of a
+  cluster.
 WaitForJobChange(job_id, fields, […], timeout)
-  This function waits until a job changes or a timeout expires. The condition
-  for when a job changed is defined by the fields passed and the last log
-  message received.
+  This function waits until a job changes or a timeout expires. The
+  condition for when a job changed is defined by the fields passed and
+  the last log message received.
 QueryJobs(job_ids, fields)
   Returns field values for the job identifiers passed.
 CancelJob(job_id)
-  Cancels the job specified by identifier. This operation may fail if the job
-  is already running, canceled or finished.
+  Cancels the job specified by identifier. This operation may fail if
+  the job is already running, canceled or finished.
 ArchiveJob(job_id)
-  Moves a job into the …/archive/ directory. This operation will fail if the
-  job has not been canceled or finished.
+  Moves a job into the …/archive/ directory. This operation will fail if
+  the job has not been canceled or finished.
 
 
 Job and opcode status
@@ -749,8 +764,8 @@ Success
 Error
   The job/opcode was aborted with an error.
 
-If the master is aborted while a job is running, the job will be set to the
-Error status once the master started again.
+If the master is aborted while a job is running, the job will be set to
+the Error status once the master started again.
 
 
 History
@@ -810,12 +825,13 @@ The following definitions for instance parameters will be used below:
 
   For example: memory, vcpus, auto_balance
 
-  All these parameters will be encoded into constants.py with the prefix "BE\_"
-  and the whole list of parameters will exist in the set "BES_PARAMETERS"
+  All these parameters will be encoded into constants.py with the prefix
+  "BE\_" and the whole list of parameters will exist in the set
+  "BES_PARAMETERS"
 
 :proper parameter:
-  a parameter whose value is unique to the instance (e.g. the name of a LV,
-  or the MAC of a NIC)
+  a parameter whose value is unique to the instance (e.g. the name of a
+  LV, or the MAC of a NIC)
 
 As a general rule, for all kind of parameters, “None” (or in
 JSON-speak, “nil”) will no longer be a valid value for a parameter. As
@@ -932,10 +948,10 @@ object, via two new methods as follows:
 - ``Cluster.FillBE(instance, be_type="default")``, which returns the
   beparams dict, based on the instance and cluster beparams
 
-The FillHV/BE transformations will be used, for example, in the RpcRunner
-when sending an instance for activation/stop, and the sent instance
-hvparams/beparams will have the final value (noded code doesn't know
-about defaults).
+The FillHV/BE transformations will be used, for example, in the
+RpcRunner when sending an instance for activation/stop, and the sent
+instance hvparams/beparams will have the final value (noded code doesn't
+know about defaults).
 
 LU code will need to self-call the transformation, if needed.
 
@@ -945,9 +961,9 @@ Opcode changes
 The parameter changes will have impact on the OpCodes, especially on
 the following ones:
 
-- ``OpCreateInstance``, where the new hv and be parameters will be sent as
-  dictionaries; note that all hv and be parameters are now optional, as
-  the values can be instead taken from the cluster
+- ``OpCreateInstance``, where the new hv and be parameters will be sent
+  as dictionaries; note that all hv and be parameters are now optional,
+  as the values can be instead taken from the cluster
 - ``OpQueryInstances``, where we have to be able to query these new
   parameters; the syntax for names will be ``hvparam/$NAME`` and
   ``beparam/$NAME`` for querying an individual parameter out of one
@@ -1093,8 +1109,8 @@ The code is changed in the following ways:
 Caveats:
 
 - some operation semantics are less clear (e.g. what to do on instance
-  start with offline secondary?); for now, these will just fail as if the
-  flag is not set (but faster)
+  start with offline secondary?); for now, these will just fail as if
+  the flag is not set (but faster)
 - 2-node cluster with one node offline needs manual startup of the
   master with a special flag to skip voting (as the master can't get a
   quorum there)
@@ -1133,7 +1149,8 @@ following situation:
   clean the above instance(s)
 
 In order to prevent this situation, and to be able to get nodes into
-proper offline status easily, a new *drained* flag was added to the nodes.
+proper offline status easily, a new *drained* flag was added to the
+nodes.
 
 This flag (which actually means "is being, or was drained, and is
 expected to go offline"), will prevent allocations on the node, but
@@ -1173,32 +1190,33 @@ estimated usage patters. However, experience has later shown that some
 assumptions made initially are not true and that more flexibility is
 needed.
 
-One main assumption made was that disk failures should be treated as 'rare'
-events, and that each of them needs to be manually handled in order to ensure
-data safety; however, both these assumptions are false:
+One main assumption made was that disk failures should be treated as
+'rare' events, and that each of them needs to be manually handled in
+order to ensure data safety; however, both these assumptions are false:
 
-- disk failures can be a common occurrence, based on usage patterns or cluster
-  size
-- our disk setup is robust enough (referring to DRBD8 + LVM) that we could
-  automate more of the recovery
+- disk failures can be a common occurrence, based on usage patterns or
+  cluster size
+- our disk setup is robust enough (referring to DRBD8 + LVM) that we
+  could automate more of the recovery
 
-Note that we still don't have fully-automated disk recovery as a goal, but our
-goal is to reduce the manual work needed.
+Note that we still don't have fully-automated disk recovery as a goal,
+but our goal is to reduce the manual work needed.
 
 As such, we plan the following main changes:
 
-- DRBD8 is much more flexible and stable than its previous version (0.7),
-  such that removing the support for the ``remote_raid1`` template and
-  focusing only on DRBD8 is easier
+- DRBD8 is much more flexible and stable than its previous version
+  (0.7), such that removing the support for the ``remote_raid1``
+  template and focusing only on DRBD8 is easier
 
-- dynamic discovery of DRBD devices is not actually needed in a cluster that
-  where the DRBD namespace is controlled by Ganeti; switching to a static
-  assignment (done at either instance creation time or change secondary time)
-  will change the disk activation time from O(n) to O(1), which on big
-  clusters is a significant gain
+- dynamic discovery of DRBD devices is not actually needed in a cluster
+  that where the DRBD namespace is controlled by Ganeti; switching to a
+  static assignment (done at either instance creation time or change
+  secondary time) will change the disk activation time from O(n) to
+  O(1), which on big clusters is a significant gain
 
-- remove the hard dependency on LVM (currently all available storage types are
-  ultimately backed by LVM volumes) by introducing file-based storage
+- remove the hard dependency on LVM (currently all available storage
+  types are ultimately backed by LVM volumes) by introducing file-based
+  storage
 
 Additionally, a number of smaller enhancements are also planned:
 - support variable number of disks
@@ -1326,8 +1344,8 @@ With a modified disk activation sequence, we can implement the
 *failover to any* functionality, removing many of the layout
 restrictions of a cluster:
 
-- the need to reserve memory on the current secondary: this gets reduced to
-  a must to reserve memory anywhere on the cluster
+- the need to reserve memory on the current secondary: this gets reduced
+  to a must to reserve memory anywhere on the cluster
 
 - the need to first failover and then replace secondary for an
   instance: with failover-to-any, we can directly failover to
@@ -1340,7 +1358,8 @@ is fixed to the node the user chooses, but the choice of S2 can be
 made between P1 and S1. This choice can be constrained, depending on
 which of P1 and S1 has failed.
 
-- if P1 has failed, then S1 must become S2, and live migration is not possible
+- if P1 has failed, then S1 must become S2, and live migration is not
+  possible
 - if S1 has failed, then P1 must become S2, and live migration could be
   possible (in theory, but this is not a design goal for 2.0)
 
@@ -1349,13 +1368,13 @@ The algorithm for performing the failover is straightforward:
 - verify that S2 (the node the user has chosen to keep as secondary) has
   valid data (is consistent)
 
-- tear down the current DRBD association and setup a DRBD pairing between
-  P2 (P2 is indicated by the user) and S2; since P2 has no data, it will
-  start re-syncing from S2
+- tear down the current DRBD association and setup a DRBD pairing
+  between P2 (P2 is indicated by the user) and S2; since P2 has no data,
+  it will start re-syncing from S2
 
-- as soon as P2 is in state SyncTarget (i.e. after the resync has started
-  but before it has finished), we can promote it to primary role (r/w)
-  and start the instance on P2
+- as soon as P2 is in state SyncTarget (i.e. after the resync has
+  started but before it has finished), we can promote it to primary role
+  (r/w) and start the instance on P2
 
 - as soon as the P2?S2 sync has finished, we can remove
   the old data on the old node that has not been chosen for
@@ -1426,10 +1445,10 @@ changes.
 OS interface
 ~~~~~~~~~~~~
 
-The current Ganeti OS interface, version 5, is tailored for Ganeti 1.2. The
-interface is composed by a series of scripts which get called with certain
-parameters to perform OS-dependent operations on the cluster. The current
-scripts are:
+The current Ganeti OS interface, version 5, is tailored for Ganeti 1.2.
+The interface is composed by a series of scripts which get called with
+certain parameters to perform OS-dependent operations on the cluster.
+The current scripts are:
 
 create
   called when a new instance is added to the cluster
@@ -1441,18 +1460,20 @@ rename
   called to perform the os-specific operations necessary for renaming an
   instance
 
-Currently these scripts suffer from the limitations of Ganeti 1.2: for example
-they accept exactly one block and one swap devices to operate on, rather than
-any amount of generic block devices, they blindly assume that an instance will
-have just one network interface to operate, they can not be configured to
-optimise the instance for a particular hypervisor.
+Currently these scripts suffer from the limitations of Ganeti 1.2: for
+example they accept exactly one block and one swap devices to operate
+on, rather than any amount of generic block devices, they blindly assume
+that an instance will have just one network interface to operate, they
+can not be configured to optimise the instance for a particular
+hypervisor.
 
-Since in Ganeti 2.0 we want to support multiple hypervisors, and a non-fixed
-number of network and disks the OS interface need to change to transmit the
-appropriate amount of information about an instance to its managing operating
-system, when operating on it. Moreover since some old assumptions usually used
-in OS scripts are no longer valid we need to re-establish a common knowledge on
-what can be assumed and what cannot be regarding Ganeti environment.
+Since in Ganeti 2.0 we want to support multiple hypervisors, and a
+non-fixed number of network and disks the OS interface need to change to
+transmit the appropriate amount of information about an instance to its
+managing operating system, when operating on it. Moreover since some old
+assumptions usually used in OS scripts are no longer valid we need to
+re-establish a common knowledge on what can be assumed and what cannot
+be regarding Ganeti environment.
 
 
 When designing the new OS API our priorities are:
@@ -1461,64 +1482,66 @@ When designing the new OS API our priorities are:
 - ease of porting from the old API
 - modularity
 
-As such we want to limit the number of scripts that must be written to support
-an OS, and make it easy to share code between them by uniforming their input.
-We also will leave the current script structure unchanged, as far as we can,
-and make a few of the scripts (import, export and rename) optional. Most
-information will be passed to the script through environment variables, for
-ease of access and at the same time ease of using only the information a script
-needs.
+As such we want to limit the number of scripts that must be written to
+support an OS, and make it easy to share code between them by uniforming
+their input.  We also will leave the current script structure unchanged,
+as far as we can, and make a few of the scripts (import, export and
+rename) optional. Most information will be passed to the script through
+environment variables, for ease of access and at the same time ease of
+using only the information a script needs.
 
 
 The Scripts
 +++++++++++
 
-As in Ganeti 1.2, every OS which wants to be installed in Ganeti needs to
-support the following functionality, through scripts:
+As in Ganeti 1.2, every OS which wants to be installed in Ganeti needs
+to support the following functionality, through scripts:
 
 create:
-  used to create a new instance running that OS. This script should prepare the
-  block devices, and install them so that the new OS can boot under the
-  specified hypervisor.
+  used to create a new instance running that OS. This script should
+  prepare the block devices, and install them so that the new OS can
+  boot under the specified hypervisor.
 export (optional):
-  used to export an installed instance using the given OS to a format which can
-  be used to import it back into a new instance.
+  used to export an installed instance using the given OS to a format
+  which can be used to import it back into a new instance.
 import (optional):
-  used to import an exported instance into a new one. This script is similar to
-  create, but the new instance should have the content of the export, rather
-  than contain a pristine installation.
+  used to import an exported instance into a new one. This script is
+  similar to create, but the new instance should have the content of the
+  export, rather than contain a pristine installation.
 rename (optional):
-  used to perform the internal OS-specific operations needed to rename an
-  instance.
+  used to perform the internal OS-specific operations needed to rename
+  an instance.
 
-If any optional script is not implemented Ganeti will refuse to perform the
-given operation on instances using the non-implementing OS. Of course the
-create script is mandatory, and it doesn't make sense to support the either the
-export or the import operation but not both.
+If any optional script is not implemented Ganeti will refuse to perform
+the given operation on instances using the non-implementing OS. Of
+course the create script is mandatory, and it doesn't make sense to
+support the either the export or the import operation but not both.
 
 Incompatibilities with 1.2
 __________________________
 
-We expect the following incompatibilities between the OS scripts for 1.2 and
-the ones for 2.0:
+We expect the following incompatibilities between the OS scripts for 1.2
+and the ones for 2.0:
 
-- Input parameters: in 1.2 those were passed on the command line, in 2.0 we'll
-  use environment variables, as there will be a lot more information and not
-  all OSes may care about all of it.
-- Number of calls: export scripts will be called once for each device the
-  instance has, and import scripts once for every exported disk. Imported
-  instances will be forced to have a number of disks greater or equal to the
-  one of the export.
-- Some scripts are not compulsory: if such a script is missing the relevant
-  operations will be forbidden for instances of that OS. This makes it easier
-  to distinguish between unsupported operations and no-op ones (if any).
+- Input parameters: in 1.2 those were passed on the command line, in 2.0
+  we'll use environment variables, as there will be a lot more
+  information and not all OSes may care about all of it.
+- Number of calls: export scripts will be called once for each device
+  the instance has, and import scripts once for every exported disk.
+  Imported instances will be forced to have a number of disks greater or
+  equal to the one of the export.
+- Some scripts are not compulsory: if such a script is missing the
+  relevant operations will be forbidden for instances of that OS. This
+  makes it easier to distinguish between unsupported operations and
+  no-op ones (if any).
 
 
 Input
 _____
 
-Rather than using command line flags, as they do now, scripts will accept
-inputs from environment variables.  We expect the following input values:
+Rather than using command line flags, as they do now, scripts will
+accept inputs from environment variables. We expect the following input
+values:
 
 OS_API_VERSION
   The version of the OS API that the following parameters comply with;
@@ -1528,7 +1551,8 @@ OS_API_VERSION
 INSTANCE_NAME
   Name of the instance acted on
 HYPERVISOR
-  The hypervisor the instance should run on (e.g. 'xen-pvm', 'xen-hvm', 'kvm')
+  The hypervisor the instance should run on (e.g. 'xen-pvm', 'xen-hvm',
+  'kvm')
 DISK_COUNT
   The number of disks this instance will have
 NIC_COUNT
@@ -1539,7 +1563,8 @@ DISK_<N>_ACCESS
   W if read/write, R if read only. OS scripts are not supposed to touch
   read-only disks, but will be passed them to know.
 DISK_<N>_FRONTEND_TYPE
-  Type of the disk as seen by the instance. Can be 'scsi', 'ide', 'virtio'
+  Type of the disk as seen by the instance. Can be 'scsi', 'ide',
+  'virtio'
 DISK_<N>_BACKEND_TYPE
   Type of the disk as seen from the node. Can be 'block', 'file:loop' or
   'file:blktap'
@@ -1553,8 +1578,8 @@ NIC_<N>_FRONTEND_TYPE
   Type of the Nth NIC as seen by the instance. For example 'virtio',
   'rtl8139', etc.
 DEBUG_LEVEL
-  Whether more out should be produced, for debugging purposes. Currently the
-  only valid values are 0 and 1.
+  Whether more out should be produced, for debugging purposes. Currently
+  the only valid values are 0 and 1.
 
 These are only the basic variables we are thinking of now, but more
 may come during the implementation and they will be documented in the
@@ -1567,30 +1592,33 @@ per-script variables, such as for example:
 OLD_INSTANCE_NAME
   rename: the name the instance should be renamed from.
 EXPORT_DEVICE
-  export: device to be exported, a snapshot of the actual device. The data must be exported to stdout.
+  export: device to be exported, a snapshot of the actual device. The
+  data must be exported to stdout.
 EXPORT_INDEX
   export: sequential number of the instance device targeted.
 IMPORT_DEVICE
-  import: device to send the data to, part of the new instance. The data must be imported from stdin.
+  import: device to send the data to, part of the new instance. The data
+  must be imported from stdin.
 IMPORT_INDEX
   import: sequential number of the instance device targeted.
 
-(Rationale for INSTANCE_NAME as an environment variable: the instance name is
-always needed and we could pass it on the command line. On the other hand,
-though, this would force scripts to both access the environment and parse the
-command line, so we'll move it for uniformity.)
+(Rationale for INSTANCE_NAME as an environment variable: the instance
+name is always needed and we could pass it on the command line. On the
+other hand, though, this would force scripts to both access the
+environment and parse the command line, so we'll move it for
+uniformity.)
 
 
 Output/Behaviour
 ________________
 
-As discussed scripts should only send user-targeted information to stderr. The
-create and import scripts are supposed to format/initialise the given block
-devices and install the correct instance data. The export script is supposed to
-export instance data to stdout in a format understandable by the the import
-script. The data will be compressed by Ganeti, so no compression should be
-done. The rename script should only modify the instance's knowledge of what
-its name is.
+As discussed scripts should only send user-targeted information to
+stderr. The create and import scripts are supposed to format/initialise
+the given block devices and install the correct instance data. The
+export script is supposed to export instance data to stdout in a format
+understandable by the the import script. The data will be compressed by
+Ganeti, so no compression should be done. The rename script should only
+modify the instance's knowledge of what its name is.
 
 Other declarative style features
 ++++++++++++++++++++++++++++++++
@@ -1604,22 +1632,23 @@ so an OS supporting both version 5 and version 20 will have a file
 containing two lines. This is different from Ganeti 1.2, which only
 supported one version number.
 
-In addition to that an OS will be able to declare that it does support only a
-subset of the Ganeti hypervisors, by declaring them in the 'hypervisors' file.
+In addition to that an OS will be able to declare that it does support
+only a subset of the Ganeti hypervisors, by declaring them in the
+'hypervisors' file.
 
 
 Caveats/Notes
 +++++++++++++
 
-We might want to have a "default" import/export behaviour that just dumps all
-disks and restores them. This can save work as most systems will just do this,
-while allowing flexibility for different systems.
+We might want to have a "default" import/export behaviour that just
+dumps all disks and restores them. This can save work as most systems
+will just do this, while allowing flexibility for different systems.
 
-Environment variables are limited in size, but we expect that there will be
-enough space to store the information we need. If we discover that this is not
-the case we may want to go to a more complex API such as storing those
-information on the filesystem and providing the OS script with the path to a
-file where they are encoded in some format.
+Environment variables are limited in size, but we expect that there will
+be enough space to store the information we need. If we discover that
+this is not the case we may want to go to a more complex API such as
+storing those information on the filesystem and providing the OS script
+with the path to a file where they are encoded in some format.
 
 
 

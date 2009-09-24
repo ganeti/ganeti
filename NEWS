@@ -7,8 +7,8 @@ Version 2.0.3
 - Added ``--ignore-size`` to the ``gnt-instance activate-disks`` command
   to allow using the pre-2.0.2 behaviour in activation, if any existing
   instances have mismatched disk sizes in the configuration
-- Added ``gnt-cluster repair-disk-sizes`` command to check and update any
-  configuration mismatches for disk sizes
+- Added ``gnt-cluster repair-disk-sizes`` command to check and update
+  any configuration mismatches for disk sizes
 - Added ``gnt-master cluste-failover --no-voting`` to allow master
   failover to work on two-node clusters
 - Fixed the ‘--net’ option of ``gnt-backup import``, which was unusable
@@ -61,9 +61,9 @@ Version 2.0.1
 - the watcher now also restarts the node daemon and the rapi daemon if
   they died
 - fixed the watcher to handle full and drained queue cases
-- hooks export more instance data in the environment, which helps if hook
-  scripts need to take action based on the instance's properties (no
-  longer need to query back into ganeti)
+- hooks export more instance data in the environment, which helps if
+  hook scripts need to take action based on the instance's properties
+  (no longer need to query back into ganeti)
 - instance failovers when the instance is stopped do not check for free
   RAM, so that failing over a stopped instance is possible in low memory
   situations
@@ -169,10 +169,10 @@ Version 2.0 beta 1
 
   - all commands are executed by a daemon (``ganeti-masterd``) and the
     various ``gnt-*`` commands are just front-ends to it
-  - all the commands are entered into, and executed from a job queue, see
-    the ``gnt-job(8)`` manpage
-  - the RAPI daemon supports read-write operations, secured by basic HTTP
-    authentication on top of HTTPS
+  - all the commands are entered into, and executed from a job queue,
+    see the ``gnt-job(8)`` manpage
+  - the RAPI daemon supports read-write operations, secured by basic
+    HTTP authentication on top of HTTPS
   - DRBD version 0.7 support has been removed, DRBD 8 is the only
     supported version (when migrating from Ganeti 1.2 to 2.0, you need
     to migrate to DRBD 8 first while still running Ganeti 1.2)
@@ -193,8 +193,8 @@ Version 1.2.7
 - Change the default reboot type in ``gnt-instance reboot`` to "hard"
 - Reuse the old instance mac address by default on instance import, if
   the instance name is the same.
-- Handle situations in which the node info rpc returns incomplete results
-  (issue 46)
+- Handle situations in which the node info rpc returns incomplete
+  results (issue 46)
 - Add checks for tcp/udp ports collisions in ``gnt-cluster verify``
 - Improved version of batcher:
 
@@ -218,10 +218,10 @@ Version 1.2.6
 - new ``--hvm-nic-type`` and ``--hvm-disk-type`` flags to control the
   type of disk exported to fully virtualized instances.
 - provide access to the serial console of HVM instances
-- instance auto_balance flag, set by default. If turned off it will avoid
-  warnings on cluster verify if there is not enough memory to fail over
-  an instance. in the future it will prevent automatically failing it
-  over when we will support that.
+- instance auto_balance flag, set by default. If turned off it will
+  avoid warnings on cluster verify if there is not enough memory to fail
+  over an instance. in the future it will prevent automatically failing
+  it over when we will support that.
 - batcher tool for instance creation, see ``tools/README.batcher``
 - ``gnt-instance reinstall --select-os`` to interactively select a new
   operating system when reinstalling an instance.
@@ -347,8 +347,8 @@ Version 1.2.1
 Version 1.2.0
 -------------
 
-- Log the ``xm create`` output to the node daemon log on failure (to help
-  diagnosing the error)
+- Log the ``xm create`` output to the node daemon log on failure (to
+  help diagnosing the error)
 - In debug mode, log all external commands output if failed to the logs
 - Change parsing of lvm commands to ignore stderr
 
@@ -384,8 +384,8 @@ Version 1.2b2
   reboots
 - Removed dependency on debian's patched fping that uses the
   non-standard ``-S`` option
-- Now the OS definitions are searched for in multiple, configurable paths
-  (easier for distros to package)
+- Now the OS definitions are searched for in multiple, configurable
+  paths (easier for distros to package)
 - Some changes to the hooks infrastructure (especially the new
   post-configuration update hook)
 - Other small bugfixes

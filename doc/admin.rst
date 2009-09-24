@@ -343,7 +343,8 @@ At this point, the machines are ready for a cluster creation; in case
 you want to remove Ganeti completely, you need to also undo some of
 the SSH changes and log directories:
 
-- ``rm -rf /var/log/ganeti /srv/ganeti`` (replace with the correct paths)
+- ``rm -rf /var/log/ganeti /srv/ganeti`` (replace with the correct
+  paths)
 - remove from ``/root/.ssh`` the keys that Ganeti added (check
   the ``authorized_keys`` and ``id_dsa`` files)
 - regenerate the host's SSH keys (check the OpenSSH startup scripts)

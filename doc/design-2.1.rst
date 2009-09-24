@@ -5,9 +5,9 @@ Ganeti 2.1 design
 This document describes the major changes in Ganeti 2.1 compared to
 the 2.0 version.
 
-The 2.1 version will be a relatively small release. Its main aim is to avoid
-changing too much of the core code, while addressing issues and adding new
-features and improvements over 2.0, in a timely fashion.
+The 2.1 version will be a relatively small release. Its main aim is to
+avoid changing too much of the core code, while addressing issues and
+adding new features and improvements over 2.0, in a timely fashion.
 
 .. contents:: :depth: 4
 
@@ -15,8 +15,8 @@ Objective
 =========
 
 Ganeti 2.1 will add features to help further automatization of cluster
-operations, further improbe scalability to even bigger clusters, and make it
-easier to debug the Ganeti core.
+operations, further improbe scalability to even bigger clusters, and
+make it easier to debug the Ganeti core.
 
 Background
 ==========
@@ -29,8 +29,8 @@ Detailed design
 
 As for 2.0 we divide the 2.1 design into three areas:
 
-- core changes, which affect the master daemon/job queue/locking or all/most
-  logical units
+- core changes, which affect the master daemon/job queue/locking or
+  all/most logical units
 - logical unit/feature changes
 - external interface changes (eg. command line, os api, hooks, ...)
 
@@ -60,7 +60,8 @@ will provide, like:
 - list of storage units of this type
 - check status of the storage unit
 
-Additionally, there will be specific methods for each method, for example:
+Additionally, there will be specific methods for each method, for
+example:
 
 - enable/disable allocations on a specific PV
 - file storage directory creation/deletion
@@ -88,22 +89,22 @@ Current State and shortcomings
 ++++++++++++++++++++++++++++++
 
 The class ``LockSet`` (see ``lib/locking.py``) is a container for one or
-many ``SharedLock`` instances. It provides an interface to add/remove locks
-and to acquire and subsequently release any number of those locks contained
-in it.
+many ``SharedLock`` instances. It provides an interface to add/remove
+locks and to acquire and subsequently release any number of those locks
+contained in it.
 
-Locks in a ``LockSet`` are always acquired in alphabetic order. Due to the
-way we're using locks for nodes and instances (the single cluster lock isn't
-affected by this issue) this can lead to long delays when acquiring locks if
-another operation tries to acquire multiple locks but has to wait for yet
-another operation.
+Locks in a ``LockSet`` are always acquired in alphabetic order. Due to
+the way we're using locks for nodes and instances (the single cluster
+lock isn't affected by this issue) this can lead to long delays when
+acquiring locks if another operation tries to acquire multiple locks but
+has to wait for yet another operation.
 
 In the following demonstration we assume to have the instance locks
 ``inst1``, ``inst2``, ``inst3`` and ``inst4``.
 
 #. Operation A grabs lock for instance ``inst4``.
-#. Operation B wants to acquire all instance locks in alphabetic order, but
-   it has to wait for ``inst4``.
+#. Operation B wants to acquire all instance locks in alphabetic order,
+   but it has to wait for ``inst4``.
 #. Operation C tries to lock ``inst1``, but it has to wait until
    Operation B (which is trying to acquire all locks) releases the lock
    again.
@@ -121,45 +122,47 @@ Proposed changes
 Non-blocking lock acquiring
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Acquiring locks for OpCode execution is always done in blocking mode. They
-won't return until the lock has successfully been acquired (or an error
-occurred, although we won't cover that case here).
+Acquiring locks for OpCode execution is always done in blocking mode.
+They won't return until the lock has successfully been acquired (or an
+error occurred, although we won't cover that case here).
 
-``SharedLock`` and ``LockSet`` must be able to be acquired in a non-blocking
-way. They must support a timeout and abort trying to acquire the lock(s)
-after the specified amount of time.
+``SharedLock`` and ``LockSet`` must be able to be acquired in a
+non-blocking way. They must support a timeout and abort trying to
+acquire the lock(s) after the specified amount of time.
 
 Retry acquiring locks
 ^^^^^^^^^^^^^^^^^^^^^
 
-To prevent other operations from waiting for a long time, such as described
-in the demonstration before, ``LockSet`` must not keep locks for a prolonged
-period of time when trying to acquire two or more locks. Instead it should,
-with an increasing timeout for acquiring all locks, release all locks again
-and sleep some time if it fails to acquire all requested locks.
+To prevent other operations from waiting for a long time, such as
+described in the demonstration before, ``LockSet`` must not keep locks
+for a prolonged period of time when trying to acquire two or more locks.
+Instead it should, with an increasing timeout for acquiring all locks,
+release all locks again and sleep some time if it fails to acquire all
+requested locks.
 
-A good timeout value needs to be determined. In any case should ``LockSet``
-proceed to acquire locks in blocking mode after a few (unsuccessful)
-attempts to acquire all requested locks.
+A good timeout value needs to be determined. In any case should
+``LockSet`` proceed to acquire locks in blocking mode after a few
+(unsuccessful) attempts to acquire all requested locks.
 
-One proposal for the timeout is to use ``2**tries`` seconds, where ``tries``
-is the number of unsuccessful tries.
+One proposal for the timeout is to use ``2**tries`` seconds, where
+``tries`` is the number of unsuccessful tries.
 
-In the demonstration before this would allow Operation C to continue after
-Operation B unsuccessfully tried to acquire all locks and released all
-acquired locks (``inst1``, ``inst2`` and ``inst3``) again.
+In the demonstration before this would allow Operation C to continue
+after Operation B unsuccessfully tried to acquire all locks and released
+all acquired locks (``inst1``, ``inst2`` and ``inst3``) again.
 
 Other solutions discussed
 +++++++++++++++++++++++++
 
-There was also some discussion on going one step further and extend the job
-queue (see ``lib/jqueue.py``) to select the next task for a worker depending
-on whether it can acquire the necessary locks. While this may reduce the
-number of necessary worker threads and/or increase throughput on large
-clusters with many jobs, it also brings many potential problems, such as
-contention and increased memory usage, with it. As this would be an
-extension of the changes proposed before it could be implemented at a later
-point in time, but we decided to stay with the simpler solution for now.
+There was also some discussion on going one step further and extend the
+job queue (see ``lib/jqueue.py``) to select the next task for a worker
+depending on whether it can acquire the necessary locks. While this may
+reduce the number of necessary worker threads and/or increase throughput
+on large clusters with many jobs, it also brings many potential
+problems, such as contention and increased memory usage, with it. As
+this would be an extension of the changes proposed before it could be
+implemented at a later point in time, but we decided to stay with the
+simpler solution for now.
 
 Implementation details
 ++++++++++++++++++++++
@@ -169,64 +172,68 @@ Implementation details
 
 The current design of ``SharedLock`` is not good for supporting timeouts
 when acquiring a lock and there are also minor fairness issues in it. We
-plan to address both with a redesign. A proof of concept implementation was
-written and resulted in significantly simpler code.
+plan to address both with a redesign. A proof of concept implementation
+was written and resulted in significantly simpler code.
 
-Currently ``SharedLock`` uses two separate queues for shared and exclusive
-acquires and waiters get to run in turns. This means if an exclusive acquire
-is released, the lock will allow shared waiters to run and vice versa.
-Although it's still fair in the end there is a slight bias towards shared
-waiters in the current implementation. The same implementation with two
-shared queues can not support timeouts without adding a lot of complexity.
+Currently ``SharedLock`` uses two separate queues for shared and
+exclusive acquires and waiters get to run in turns. This means if an
+exclusive acquire is released, the lock will allow shared waiters to run
+and vice versa.  Although it's still fair in the end there is a slight
+bias towards shared waiters in the current implementation. The same
+implementation with two shared queues can not support timeouts without
+adding a lot of complexity.
 
-Our proposed redesign changes ``SharedLock`` to have only one single queue.
-There will be one condition (see Condition_ for a note about performance) in
-the queue per exclusive acquire and two for all shared acquires (see below for
-an explanation). The maximum queue length will always be ``2 + (number of
-exclusive acquires waiting)``. The number of queue entries for shared acquires
-can vary from 0 to 2.
+Our proposed redesign changes ``SharedLock`` to have only one single
+queue.  There will be one condition (see Condition_ for a note about
+performance) in the queue per exclusive acquire and two for all shared
+acquires (see below for an explanation). The maximum queue length will
+always be ``2 + (number of exclusive acquires waiting)``. The number of
+queue entries for shared acquires can vary from 0 to 2.
 
-The two conditions for shared acquires are a bit special. They will be used
-in turn. When the lock is instantiated, no conditions are in the queue. As
-soon as the first shared acquire arrives (and there are holder(s) or waiting
-acquires; see Acquire_), the active condition is added to the queue. Until
-it becomes the topmost condition in the queue and has been notified, any
-shared acquire is added to this active condition. When the active condition
-is notified, the conditions are swapped and further shared acquires are
-added to the previously inactive condition (which has now become the active
-condition). After all waiters on the previously active (now inactive) and
-now notified condition received the notification, it is removed from the
-queue of pending acquires.
+The two conditions for shared acquires are a bit special. They will be
+used in turn. When the lock is instantiated, no conditions are in the
+queue. As soon as the first shared acquire arrives (and there are
+holder(s) or waiting acquires; see Acquire_), the active condition is
+added to the queue. Until it becomes the topmost condition in the queue
+and has been notified, any shared acquire is added to this active
+condition. When the active condition is notified, the conditions are
+swapped and further shared acquires are added to the previously inactive
+condition (which has now become the active condition). After all waiters
+on the previously active (now inactive) and now notified condition
+received the notification, it is removed from the queue of pending
+acquires.
 
-This means shared acquires will skip any exclusive acquire in the queue. We
-believe it's better to improve parallelization on operations only asking for
-shared (or read-only) locks. Exclusive operations holding the same lock can
-not be parallelized.
+This means shared acquires will skip any exclusive acquire in the queue.
+We believe it's better to improve parallelization on operations only
+asking for shared (or read-only) locks. Exclusive operations holding the
+same lock can not be parallelized.
 
 
 Acquire
 *******
 
-For exclusive acquires a new condition is created and appended to the queue.
-Shared acquires are added to the active condition for shared acquires and if
-the condition is not yet on the queue, it's appended.
+For exclusive acquires a new condition is created and appended to the
+queue.  Shared acquires are added to the active condition for shared
+acquires and if the condition is not yet on the queue, it's appended.
 
-The next step is to wait for our condition to be on the top of the queue (to
-guarantee fairness). If the timeout expired, we return to the caller without
-acquiring the lock. On every notification we check whether the lock has been
-deleted, in which case an error is returned to the caller.
+The next step is to wait for our condition to be on the top of the queue
+(to guarantee fairness). If the timeout expired, we return to the caller
+without acquiring the lock. On every notification we check whether the
+lock has been deleted, in which case an error is returned to the caller.
 
-The lock can be acquired if we're on top of the queue (there is no one else
-ahead of us). For an exclusive acquire, there must not be other exclusive or
-shared holders. For a shared acquire, there must not be an exclusive holder.
-If these conditions are all true, the lock is acquired and we return to the
-caller. In any other case we wait again on the condition.
+The lock can be acquired if we're on top of the queue (there is no one
+else ahead of us). For an exclusive acquire, there must not be other
+exclusive or shared holders. For a shared acquire, there must not be an
+exclusive holder.  If these conditions are all true, the lock is
+acquired and we return to the caller. In any other case we wait again on
+the condition.
 
-If it was the last waiter on a condition, the condition is removed from the
-queue.
+If it was the last waiter on a condition, the condition is removed from
+the queue.
 
 Optimization: There's no need to touch the queue if there are no pending
-acquires and no current holders. The caller can have the lock immediately.
+acquires and no current holders. The caller can have the lock
+immediately.
 
 .. image:: design-2.1-lock-acquire.png
 
@@ -234,12 +241,14 @@ acquires and no current holders. The caller can have the lock immediately.
 Release
 *******
 
-First the lock removes the caller from the internal owner list. If there are
-pending acquires in the queue, the first (the oldest) condition is notified.
+First the lock removes the caller from the internal owner list. If there
+are pending acquires in the queue, the first (the oldest) condition is
+notified.
 
 If the first condition was the active condition for shared acquires, the
-inactive condition will be made active. This ensures fairness with exclusive
-locks by forcing consecutive shared acquires to wait in the queue.
+inactive condition will be made active. This ensures fairness with
+exclusive locks by forcing consecutive shared acquires to wait in the
+queue.
 
 .. image:: design-2.1-lock-release.png
 
@@ -247,40 +256,40 @@ locks by forcing consecutive shared acquires to wait in the queue.
 Delete
 ******
 
-The caller must either hold the lock in exclusive mode already or the lock
-must be acquired in exclusive mode. Trying to delete a lock while it's held
-in shared mode must fail.
+The caller must either hold the lock in exclusive mode already or the
+lock must be acquired in exclusive mode. Trying to delete a lock while
+it's held in shared mode must fail.
 
-After ensuring the lock is held in exclusive mode, the lock will mark itself
-as deleted and continue to notify all pending acquires. They will wake up,
-notice the deleted lock and return an error to the caller.
+After ensuring the lock is held in exclusive mode, the lock will mark
+itself as deleted and continue to notify all pending acquires. They will
+wake up, notice the deleted lock and return an error to the caller.
 
 
 Condition
 ^^^^^^^^^
 
-Note: This is not necessary for the locking changes above, but it may be a
-good optimization (pending performance tests).
+Note: This is not necessary for the locking changes above, but it may be
+a good optimization (pending performance tests).
 
 The existing locking code in Ganeti 2.0 uses Python's built-in
 ``threading.Condition`` class. Unfortunately ``Condition`` implements
-timeouts by sleeping 1ms to 20ms between tries to acquire the condition lock
-in non-blocking mode. This requires unnecessary context switches and
-contention on the CPython GIL (Global Interpreter Lock).
+timeouts by sleeping 1ms to 20ms between tries to acquire the condition
+lock in non-blocking mode. This requires unnecessary context switches
+and contention on the CPython GIL (Global Interpreter Lock).
 
 By using POSIX pipes (see ``pipe(2)``) we can use the operating system's
 support for timeouts on file descriptors (see ``select(2)``). A custom
 condition class will have to be written for this.
 
 On instantiation the class creates a pipe. After each notification the
-previous pipe is abandoned and re-created (technically the old pipe needs to
-stay around until all notifications have been delivered).
+previous pipe is abandoned and re-created (technically the old pipe
+needs to stay around until all notifications have been delivered).
 
 All waiting clients of the condition use ``select(2)`` or ``poll(2)`` to
-wait for notifications, optionally with a timeout. A notification will be
-signalled to the waiting clients by closing the pipe. If the pipe wasn't
-closed during the timeout, the waiting function returns to its caller
-nonetheless.
+wait for notifications, optionally with a timeout. A notification will
+be signalled to the waiting clients by closing the pipe. If the pipe
+wasn't closed during the timeout, the waiting function returns to its
+caller nonetheless.
 
 
 Feature changes
@@ -291,50 +300,53 @@ Ganeti Confd
 
 Current State and shortcomings
 ++++++++++++++++++++++++++++++
-In Ganeti 2.0 all nodes are equal, but some are more equal than others. In
-particular they are divided between "master", "master candidates" and "normal".
-(Moreover they can be offline or drained, but this is not important for the
-current discussion). In general the whole configuration is only replicated to
-master candidates, and some partial information is spread to all nodes via
-ssconf.
 
-This change was done so that the most frequent Ganeti operations didn't need to
-contact all nodes, and so clusters could become bigger. If we want more
-information to be available on all nodes, we need to add more ssconf values,
-which is counter-balancing the change, or to talk with the master node, which
-is not designed to happen now, and requires its availability.
+In Ganeti 2.0 all nodes are equal, but some are more equal than others.
+In particular they are divided between "master", "master candidates" and
+"normal".  (Moreover they can be offline or drained, but this is not
+important for the current discussion). In general the whole
+configuration is only replicated to master candidates, and some partial
+information is spread to all nodes via ssconf.
 
-Information such as the instance->primary_node mapping will be needed on all
-nodes, and we also want to make sure services external to the cluster can query
-this information as well. This information must be available at all times, so
-we can't query it through RAPI, which would be a single point of failure, as
-it's only available on the master.
+This change was done so that the most frequent Ganeti operations didn't
+need to contact all nodes, and so clusters could become bigger. If we
+want more information to be available on all nodes, we need to add more
+ssconf values, which is counter-balancing the change, or to talk with
+the master node, which is not designed to happen now, and requires its
+availability.
+
+Information such as the instance->primary_node mapping will be needed on
+all nodes, and we also want to make sure services external to the
+cluster can query this information as well. This information must be
+available at all times, so we can't query it through RAPI, which would
+be a single point of failure, as it's only available on the master.
 
 
 Proposed changes
 ++++++++++++++++
 
 In order to allow fast and highly available access read-only to some
-configuration values, we'll create a new ganeti-confd daemon, which will run on
-master candidates. This daemon will talk via UDP, and authenticate messages
-using HMAC with a cluster-wide shared key. This key will be generated at
-cluster init time, and stored on the clusters alongside the ganeti SSL keys,
-and readable only by root.
+configuration values, we'll create a new ganeti-confd daemon, which will
+run on master candidates. This daemon will talk via UDP, and
+authenticate messages using HMAC with a cluster-wide shared key. This
+key will be generated at cluster init time, and stored on the clusters
+alongside the ganeti SSL keys, and readable only by root.
 
-An interested client can query a value by making a request to a subset of the
-cluster master candidates. It will then wait to get a few responses, and use
-the one with the highest configuration serial number. Since the configuration
-serial number is increased each time the ganeti config is updated, and the
-serial number is included in all answers, this can be used to make sure to use
-the most recent answer, in case some master candidates are stale or in the
-middle of a configuration update.
+An interested client can query a value by making a request to a subset
+of the cluster master candidates. It will then wait to get a few
+responses, and use the one with the highest configuration serial number.
+Since the configuration serial number is increased each time the ganeti
+config is updated, and the serial number is included in all answers,
+this can be used to make sure to use the most recent answer, in case
+some master candidates are stale or in the middle of a configuration
+update.
 
 In order to prevent replay attacks queries will contain the current unix
 timestamp according to the client, and the server will verify that its
-timestamp is in the same 5 minutes range (this requires synchronized clocks,
-which is a good idea anyway). Queries will also contain a "salt" which they
-expect the answers to be sent with, and clients are supposed to accept only
-answers which contain salt generated by them.
+timestamp is in the same 5 minutes range (this requires synchronized
+clocks, which is a good idea anyway). Queries will also contain a "salt"
+which they expect the answers to be sent with, and clients are supposed
+to accept only answers which contain salt generated by them.
 
 The configuration daemon will be able to answer simple queries such as:
 
@@ -364,20 +376,21 @@ Detailed explanation of the various fields:
 
   - 'protocol', integer, is the confd protocol version (initially just
     constants.CONFD_PROTOCOL_VERSION, with a value of 1)
-  - 'type', integer, is the query type. For example "node role by name" or
-    "node primary ip by instance ip". Constants will be provided for the actual
-    available query types.
-  - 'query', string, is the search key. For example an ip, or a node name.
-  - 'rsalt', string, is the required response salt. The client must use it to
-    recognize which answer it's getting.
+  - 'type', integer, is the query type. For example "node role by name"
+    or "node primary ip by instance ip". Constants will be provided for
+    the actual available query types.
+  - 'query', string, is the search key. For example an ip, or a node
+    name.
+  - 'rsalt', string, is the required response salt. The client must use
+    it to recognize which answer it's getting.
 
-- 'salt' must be the current unix timestamp, according to the client. Servers
-  can refuse messages which have a wrong timing, according to their
-  configuration and clock.
+- 'salt' must be the current unix timestamp, according to the client.
+  Servers can refuse messages which have a wrong timing, according to
+  their configuration and clock.
 - 'hmac' is an hmac signature of salt+msg, with the cluster hmac key
 
-If an answer comes back (which is optional, since confd works over UDP) it will
-be in this format::
+If an answer comes back (which is optional, since confd works over UDP)
+it will be in this format::
 
   {
     "msg": "{\"status\": 0,
@@ -394,18 +407,18 @@ Where:
 
   - 'protocol', integer, is the confd protocol version (initially just
     constants.CONFD_PROTOCOL_VERSION, with a value of 1)
-  - 'status', integer, is the error code. Initially just 0 for 'ok' or '1' for
-    'error' (in which case answer contains an error detail, rather than an
-    answer), but in the future it may be expanded to have more meanings (eg: 2,
-    the answer is compressed)
-  - 'answer', is the actual answer. Its type and meaning is query specific. For
-    example for "node primary ip by instance ip" queries it will be a string
-    containing an IP address, for "node role by name" queries it will be an
-    integer which encodes the role (master, candidate, drained, offline)
-    according to constants.
+  - 'status', integer, is the error code. Initially just 0 for 'ok' or
+    '1' for 'error' (in which case answer contains an error detail,
+    rather than an answer), but in the future it may be expanded to have
+    more meanings (eg: 2, the answer is compressed)
+  - 'answer', is the actual answer. Its type and meaning is query
+    specific. For example for "node primary ip by instance ip" queries
+    it will be a string containing an IP address, for "node role by
+    name" queries it will be an integer which encodes the role (master,
+    candidate, drained, offline) according to constants.
 
-- 'salt' is the requested salt from the query. A client can use it to recognize
-  what query the answer is answering.
+- 'salt' is the requested salt from the query. A client can use it to
+  recognize what query the answer is answering.
 - 'hmac' is an hmac signature of salt+msg, with the cluster hmac key
 
 
@@ -414,40 +427,44 @@ Redistribute Config
 
 Current State and shortcomings
 ++++++++++++++++++++++++++++++
-Currently LURedistributeConfig triggers a copy of the updated configuration
-file to all master candidates and of the ssconf files to all nodes. There are
-other files which are maintained manually but which are important to keep in
-sync. These are:
+
+Currently LURedistributeConfig triggers a copy of the updated
+configuration file to all master candidates and of the ssconf files to
+all nodes. There are other files which are maintained manually but which
+are important to keep in sync. These are:
 
 - rapi SSL key certificate file (rapi.pem) (on master candidates)
 - rapi user/password file rapi_users (on master candidates)
 
-Furthermore there are some files which are hypervisor specific but we may want
-to keep in sync:
+Furthermore there are some files which are hypervisor specific but we
+may want to keep in sync:
 
-- the xen-hvm hypervisor uses one shared file for all vnc passwords, and copies
-  the file once, during node add. This design is subject to revision to be able
-  to have different passwords for different groups of instances via the use of
-  hypervisor parameters, and to allow xen-hvm and kvm to use an equal system to
-  provide password-protected vnc sessions. In general, though, it would be
-  useful if the vnc password files were copied as well, to avoid unwanted vnc
-  password changes on instance failover/migrate.
+- the xen-hvm hypervisor uses one shared file for all vnc passwords, and
+  copies the file once, during node add. This design is subject to
+  revision to be able to have different passwords for different groups
+  of instances via the use of hypervisor parameters, and to allow
+  xen-hvm and kvm to use an equal system to provide password-protected
+  vnc sessions. In general, though, it would be useful if the vnc
+  password files were copied as well, to avoid unwanted vnc password
+  changes on instance failover/migrate.
 
-Optionally the admin may want to also ship files such as the global xend.conf
-file, and the network scripts to all nodes.
+Optionally the admin may want to also ship files such as the global
+xend.conf file, and the network scripts to all nodes.
 
 Proposed changes
 ++++++++++++++++
 
-RedistributeConfig will be changed to copy also the rapi files, and to call
-every enabled hypervisor asking for a list of additional files to copy. Users
-will have the possibility to populate a file containing a list of files to be
-distributed; this file will be propagated as well. Such solution is really
-simple to implement and it's easily usable by scripts.
+RedistributeConfig will be changed to copy also the rapi files, and to
+call every enabled hypervisor asking for a list of additional files to
+copy. Users will have the possibility to populate a file containing a
+list of files to be distributed; this file will be propagated as well.
+Such solution is really simple to implement and it's easily usable by
+scripts.
 
-This code will be also shared (via tasklets or by other means, if tasklets are
-not ready for 2.1) with the AddNode and SetNodeParams LUs (so that the relevant
-files will be automatically shipped to new master candidates as they are set).
+This code will be also shared (via tasklets or by other means, if
+tasklets are not ready for 2.1) with the AddNode and SetNodeParams LUs
+(so that the relevant files will be automatically shipped to new master
+candidates as they are set).
 
 VNC Console Password
 ~~~~~~~~~~~~~~~~~~~~
@@ -455,28 +472,31 @@ VNC Console Password
 Current State and shortcomings
 ++++++++++++++++++++++++++++++
 
-Currently just the xen-hvm hypervisor supports setting a password to connect
-the the instances' VNC console, and has one common password stored in a file.
+Currently just the xen-hvm hypervisor supports setting a password to
+connect the the instances' VNC console, and has one common password
+stored in a file.
 
 This doesn't allow different passwords for different instances/groups of
-instances, and makes it necessary to remember to copy the file around the
-cluster when the password changes.
+instances, and makes it necessary to remember to copy the file around
+the cluster when the password changes.
 
 Proposed changes
 ++++++++++++++++
 
-We'll change the VNC password file to a vnc_password_file hypervisor parameter.
-This way it can have a cluster default, but also a different value for each
-instance. The VNC enabled hypervisors (xen and kvm) will publish all the
-password files in use through the cluster so that a redistribute-config will
-ship them to all nodes (see the Redistribute Config proposed changes above).
+We'll change the VNC password file to a vnc_password_file hypervisor
+parameter.  This way it can have a cluster default, but also a different
+value for each instance. The VNC enabled hypervisors (xen and kvm) will
+publish all the password files in use through the cluster so that a
+redistribute-config will ship them to all nodes (see the Redistribute
+Config proposed changes above).
 
-The current VNC_PASSWORD_FILE constant will be removed, but its value will be
-used as the default HV_VNC_PASSWORD_FILE value, thus retaining backwards
-compatibility with 2.0.
+The current VNC_PASSWORD_FILE constant will be removed, but its value
+will be used as the default HV_VNC_PASSWORD_FILE value, thus retaining
+backwards compatibility with 2.0.
 
-The code to export the list of VNC password files from the hypervisors to
-RedistributeConfig will be shared between the KVM and xen-hvm hypervisors.
+The code to export the list of VNC password files from the hypervisors
+to RedistributeConfig will be shared between the KVM and xen-hvm
+hypervisors.
 
 Disk/Net parameters
 ~~~~~~~~~~~~~~~~~~~
@@ -484,25 +504,27 @@ Disk/Net parameters
 Current State and shortcomings
 ++++++++++++++++++++++++++++++
 
-Currently disks and network interfaces have a few tweakable options and all the
-rest is left to a default we chose. We're finding that we need more and more to
-tweak some of these parameters, for example to disable barriers for DRBD
-devices, or allow striping for the LVM volumes.
+Currently disks and network interfaces have a few tweakable options and
+all the rest is left to a default we chose. We're finding that we need
+more and more to tweak some of these parameters, for example to disable
+barriers for DRBD devices, or allow striping for the LVM volumes.
 
-Moreover for many of these parameters it will be nice to have cluster-wide
-defaults, and then be able to change them per disk/interface.
+Moreover for many of these parameters it will be nice to have
+cluster-wide defaults, and then be able to change them per
+disk/interface.
 
 Proposed changes
 ++++++++++++++++
 
-We will add new cluster level diskparams and netparams, which will contain all
-the tweakable parameters. All values which have a sensible cluster-wide default
-will go into this new structure while parameters which have unique values will not.
+We will add new cluster level diskparams and netparams, which will
+contain all the tweakable parameters. All values which have a sensible
+cluster-wide default will go into this new structure while parameters
+which have unique values will not.
 
 Example of network parameters:
   - mode: bridge/route
-  - link: for mode "bridge" the bridge to connect to, for mode route it can
-    contain the routing table, or the destination interface
+  - link: for mode "bridge" the bridge to connect to, for mode route it
+    can contain the routing table, or the destination interface
 
 Example of disk parameters:
   - stripe: lvm stripes
@@ -510,16 +532,17 @@ Example of disk parameters:
   - meta_flushes: drbd, enable/disable metadata "barriers"
   - data_flushes: drbd, enable/disable data "barriers"
 
-Some parameters are bound to be disk-type specific (drbd, vs lvm, vs files) or
-hypervisor specific (nic models for example), but for now they will all live in
-the same structure. Each component is supposed to validate only the parameters
-it knows about, and ganeti itself will make sure that no "globally unknown"
-parameters are added, and that no parameters have overridden meanings for
-different components.
+Some parameters are bound to be disk-type specific (drbd, vs lvm, vs
+files) or hypervisor specific (nic models for example), but for now they
+will all live in the same structure. Each component is supposed to
+validate only the parameters it knows about, and ganeti itself will make
+sure that no "globally unknown" parameters are added, and that no
+parameters have overridden meanings for different components.
 
-The parameters will be kept, as for the BEPARAMS into a "default" category,
-which will allow us to expand on by creating instance "classes" in the future.
-Instance classes is not a feature we plan implementing in 2.1, though.
+The parameters will be kept, as for the BEPARAMS into a "default"
+category, which will allow us to expand on by creating instance
+"classes" in the future.  Instance classes is not a feature we plan
+implementing in 2.1, though.
 
 Non bridged instances support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -527,33 +550,34 @@ Non bridged instances support
 Current State and shortcomings
 ++++++++++++++++++++++++++++++
 
-Currently each instance NIC must be connected to a bridge, and if the bridge is
-not specified the default cluster one is used. This makes it impossible to use
-the vif-route xen network scripts, or other alternative mechanisms that don't
-need a bridge to work.
+Currently each instance NIC must be connected to a bridge, and if the
+bridge is not specified the default cluster one is used. This makes it
+impossible to use the vif-route xen network scripts, or other
+alternative mechanisms that don't need a bridge to work.
 
 Proposed changes
 ++++++++++++++++
 
-The new "mode" network parameter will distinguish between bridged interfaces
-and routed ones.
+The new "mode" network parameter will distinguish between bridged
+interfaces and routed ones.
 
-When mode is "bridge" the "link" parameter will contain the bridge the instance
-should be connected to, effectively making things as today. The value has been
-migrated from a nic field to a parameter to allow for an easier manipulation of
-the cluster default.
+When mode is "bridge" the "link" parameter will contain the bridge the
+instance should be connected to, effectively making things as today. The
+value has been migrated from a nic field to a parameter to allow for an
+easier manipulation of the cluster default.
 
-When mode is "route" the ip field of the interface will become mandatory, to
-allow for a route to be set. In the future we may want also to accept multiple
-IPs or IP/mask values for this purpose. We will evaluate possible meanings of
-the link parameter to signify a routing table to be used, which would allow for
-insulation between instance groups (as today happens for different bridges).
+When mode is "route" the ip field of the interface will become
+mandatory, to allow for a route to be set. In the future we may want
+also to accept multiple IPs or IP/mask values for this purpose. We will
+evaluate possible meanings of the link parameter to signify a routing
+table to be used, which would allow for insulation between instance
+groups (as today happens for different bridges).
 
-For now we won't add a parameter to specify which network script gets called
-for which instance, so in a mixed cluster the network script must be able to
-handle both cases. The default kvm vif script will be changed to do so. (Xen
-doesn't have a ganeti provided script, so nothing will be done for that
-hypervisor)
+For now we won't add a parameter to specify which network script gets
+called for which instance, so in a mixed cluster the network script must
+be able to handle both cases. The default kvm vif script will be changed
+to do so. (Xen doesn't have a ganeti provided script, so nothing will be
+done for that hypervisor)
 
 Introducing persistent UUIDs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -612,59 +636,59 @@ require a complete lock of all instances.
 Automated disk repairs infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Replacing defective disks in an automated fashion is quite difficult with the
-current version of Ganeti. These changes will introduce additional
-functionality and interfaces to simplify automating disk replacements on a
-Ganeti node.
+Replacing defective disks in an automated fashion is quite difficult
+with the current version of Ganeti. These changes will introduce
+additional functionality and interfaces to simplify automating disk
+replacements on a Ganeti node.
 
 Fix node volume group
 +++++++++++++++++++++
 
-This is the most difficult addition, as it can lead to dataloss if it's not
-properly safeguarded.
+This is the most difficult addition, as it can lead to dataloss if it's
+not properly safeguarded.
 
-The operation must be done only when all the other nodes that have instances in
-common with the target node are fine, i.e. this is the only node with problems,
-and also we have to double-check that all instances on this node have at least
-a good copy of the data.
+The operation must be done only when all the other nodes that have
+instances in common with the target node are fine, i.e. this is the only
+node with problems, and also we have to double-check that all instances
+on this node have at least a good copy of the data.
 
 This might mean that we have to enhance the GetMirrorStatus calls, and
-introduce and a smarter version that can tell us more about the status of an
-instance.
+introduce and a smarter version that can tell us more about the status
+of an instance.
 
 Stop allocation on a given PV
 +++++++++++++++++++++++++++++
 
-This is somewhat simple. First we need a "list PVs" opcode (and its associated
-logical unit) and then a set PV status opcode/LU. These in combination should
-allow both checking and changing the disk/PV status.
+This is somewhat simple. First we need a "list PVs" opcode (and its
+associated logical unit) and then a set PV status opcode/LU. These in
+combination should allow both checking and changing the disk/PV status.
 
 Instance disk status
 ++++++++++++++++++++
 
-This new opcode or opcode change must list the instance-disk-index and node
-combinations of the instance together with their status. This will allow
-determining what part of the instance is broken (if any).
+This new opcode or opcode change must list the instance-disk-index and
+node combinations of the instance together with their status. This will
+allow determining what part of the instance is broken (if any).
 
 Repair instance
 +++++++++++++++
 
-This new opcode/LU/RAPI call will run ``replace-disks -p`` as needed, in order
-to fix the instance status. It only affects primary instances; secondaries can
-just be moved away.
+This new opcode/LU/RAPI call will run ``replace-disks -p`` as needed, in
+order to fix the instance status. It only affects primary instances;
+secondaries can just be moved away.
 
 Migrate node
 ++++++++++++
 
-This new opcode/LU/RAPI call will take over the current ``gnt-node migrate``
-code and run migrate for all instances on the node.
+This new opcode/LU/RAPI call will take over the current ``gnt-node
+migrate`` code and run migrate for all instances on the node.
 
 Evacuate node
 ++++++++++++++
 
-This new opcode/LU/RAPI call will take over the current ``gnt-node evacuate``
-code and run replace-secondary with an iallocator script for all instances on
-the node.
+This new opcode/LU/RAPI call will take over the current ``gnt-node
+evacuate`` code and run replace-secondary with an iallocator script for
+all instances on the node.
 
 
 External interface changes
@@ -673,90 +697,92 @@ External interface changes
 OS API
 ~~~~~~
 
-The OS API of Ganeti 2.0 has been built with extensibility in mind. Since we
-pass everything as environment variables it's a lot easier to send new
-information to the OSes without breaking retrocompatibility. This section of
-the design outlines the proposed extensions to the API and their
-implementation.
+The OS API of Ganeti 2.0 has been built with extensibility in mind.
+Since we pass everything as environment variables it's a lot easier to
+send new information to the OSes without breaking retrocompatibility.
+This section of the design outlines the proposed extensions to the API
+and their implementation.
 
 API Version Compatibility Handling
 ++++++++++++++++++++++++++++++++++
 
-In 2.1 there will be a new OS API version (eg. 15), which should be mostly
-compatible with api 10, except for some new added variables. Since it's easy
-not to pass some variables we'll be able to handle Ganeti 2.0 OSes by just
-filtering out the newly added piece of information. We will still encourage
-OSes to declare support for the new API after checking that the new variables
-don't provide any conflict for them, and we will drop api 10 support after
-ganeti 2.1 has released.
+In 2.1 there will be a new OS API version (eg. 15), which should be
+mostly compatible with api 10, except for some new added variables.
+Since it's easy not to pass some variables we'll be able to handle
+Ganeti 2.0 OSes by just filtering out the newly added piece of
+information. We will still encourage OSes to declare support for the new
+API after checking that the new variables don't provide any conflict for
+them, and we will drop api 10 support after ganeti 2.1 has released.
 
 New Environment variables
 +++++++++++++++++++++++++
 
-Some variables have never been added to the OS api but would definitely be
-useful for the OSes. We plan to add an INSTANCE_HYPERVISOR variable to allow
-the OS to make changes relevant to the virtualization the instance is going to
-use. Since this field is immutable for each instance, the os can tight the
-install without caring of making sure the instance can run under any
-virtualization technology.
+Some variables have never been added to the OS api but would definitely
+be useful for the OSes. We plan to add an INSTANCE_HYPERVISOR variable
+to allow the OS to make changes relevant to the virtualization the
+instance is going to use. Since this field is immutable for each
+instance, the os can tight the install without caring of making sure the
+instance can run under any virtualization technology.
 
-We also want the OS to know the particular hypervisor parameters, to be able to
-customize the install even more.  Since the parameters can change, though, we
-will pass them only as an "FYI": if an OS ties some instance functionality to
-the value of a particular hypervisor parameter manual changes or a reinstall
-may be needed to adapt the instance to the new environment. This is not a
-regression as of today, because even if the OSes are left blind about this
-information, sometimes they still need to make compromises and cannot satisfy
-all possible parameter values.
+We also want the OS to know the particular hypervisor parameters, to be
+able to customize the install even more.  Since the parameters can
+change, though, we will pass them only as an "FYI": if an OS ties some
+instance functionality to the value of a particular hypervisor parameter
+manual changes or a reinstall may be needed to adapt the instance to the
+new environment. This is not a regression as of today, because even if
+the OSes are left blind about this information, sometimes they still
+need to make compromises and cannot satisfy all possible parameter
+values.
 
 OS Variants
 +++++++++++
 
-Currently we are assisting to some degree of "os proliferation" just to change
-a simple installation behavior. This means that the same OS gets installed on
-the cluster multiple times, with different names, to customize just one
-installation behavior. Usually such OSes try to share as much as possible
-through symlinks, but this still causes complications on the user side,
-especially when multiple parameters must be cross-matched.
+Currently we are assisting to some degree of "os proliferation" just to
+change a simple installation behavior. This means that the same OS gets
+installed on the cluster multiple times, with different names, to
+customize just one installation behavior. Usually such OSes try to share
+as much as possible through symlinks, but this still causes
+complications on the user side, especially when multiple parameters must
+be cross-matched.
 
-For example today if you want to install debian etch, lenny or squeeze you
-probably need to install the debootstrap OS multiple times, changing its
-configuration file, and calling it debootstrap-etch, debootstrap-lenny or
-debootstrap-squeeze. Furthermore if you have for example a "server" and a
-"development" environment which installs different packages/configuration files
-and must be available for all installs you'll probably end  up with
-deboostrap-etch-server, debootstrap-etch-dev, debootrap-lenny-server,
-debootstrap-lenny-dev, etc. Crossing more than two parameters quickly becomes
-not manageable.
+For example today if you want to install debian etch, lenny or squeeze
+you probably need to install the debootstrap OS multiple times, changing
+its configuration file, and calling it debootstrap-etch,
+debootstrap-lenny or debootstrap-squeeze. Furthermore if you have for
+example a "server" and a "development" environment which installs
+different packages/configuration files and must be available for all
+installs you'll probably end  up with deboostrap-etch-server,
+debootstrap-etch-dev, debootrap-lenny-server, debootstrap-lenny-dev,
+etc. Crossing more than two parameters quickly becomes not manageable.
 
-In order to avoid this we plan to make OSes more customizable, by allowing each
-OS to declare a list of variants which can be used to customize it. The
-variants list is mandatory and must be written, one variant per line, in the
-new "variants.list" file inside the main os dir. At least one supported variant
-must be supported. When choosing the OS exactly one variant will have to be
-specified, and will be encoded in the os name as <OS-name>+<variant>. As for
-today it will be possible to change an instance's OS at creation or install
-time.
+In order to avoid this we plan to make OSes more customizable, by
+allowing each OS to declare a list of variants which can be used to
+customize it. The variants list is mandatory and must be written, one
+variant per line, in the new "variants.list" file inside the main os
+dir. At least one supported variant must be supported. When choosing the
+OS exactly one variant will have to be specified, and will be encoded in
+the os name as <OS-name>+<variant>. As for today it will be possible to
+change an instance's OS at creation or install time.
 
 The 2.1 OS list will be the combination of each OS, plus its supported
-variants. This will cause the name name proliferation to remain, but at least
-the internal OS code will be simplified to just parsing the passed variant,
-without the need for symlinks or code duplication.
+variants. This will cause the name name proliferation to remain, but at
+least the internal OS code will be simplified to just parsing the passed
+variant, without the need for symlinks or code duplication.
 
-Also we expect the OSes to declare only "interesting" variants, but to accept
-some non-declared ones which a user will be able to pass in by overriding the
-checks ganeti does. This will be useful for allowing some variations to be used
-without polluting the OS list (per-OS documentation should list all supported
-variants). If a variant which is not internally supported is forced through,
-the OS scripts should abort.
+Also we expect the OSes to declare only "interesting" variants, but to
+accept some non-declared ones which a user will be able to pass in by
+overriding the checks ganeti does. This will be useful for allowing some
+variations to be used without polluting the OS list (per-OS
+documentation should list all supported variants). If a variant which is
+not internally supported is forced through, the OS scripts should abort.
 
-In the future (post 2.1) we may want to move to full fledged parameters all
-orthogonal to each other (for example "architecture" (i386, amd64), "suite"
-(lenny, squeeze, ...), etc). (As opposed to the variant, which is a single
-parameter, and you need a different variant for all the set of combinations you
-want to support).  In this case we envision the variants to be moved inside of
-Ganeti and be associated with lists parameter->values associations, which will
-then be passed to the OS.
+In the future (post 2.1) we may want to move to full fledged parameters
+all orthogonal to each other (for example "architecture" (i386, amd64),
+"suite" (lenny, squeeze, ...), etc). (As opposed to the variant, which
+is a single parameter, and you need a different variant for all the set
+of combinations you want to support).  In this case we envision the
+variants to be moved inside of Ganeti and be associated with lists
+parameter->values associations, which will then be passed to the OS.
 
 
 IAllocator changes
@@ -825,7 +851,8 @@ In this mode, called ``capacity``, given an instance specification and
 the current cluster state (similar to the ``allocate`` mode), the
 plugin needs to return:
 
-- how many instances can be allocated on the cluster with that specification
+- how many instances can be allocated on the cluster with that
+  specification
 - on which nodes these will be allocated (in order)
 
 .. vim: set textwidth=72 :

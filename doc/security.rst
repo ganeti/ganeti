@@ -12,8 +12,8 @@ you need to be root to run the cluster commands.
 Host issues
 -----------
 
-For a host on which the Ganeti software has been installed, but not joined to a
-cluster, there are no changes to the system.
+For a host on which the Ganeti software has been installed, but not
+joined to a cluster, there are no changes to the system.
 
 For a host that has been joined to the cluster, there are very important
 changes:
@@ -65,11 +65,11 @@ nodes:
 The SSH traffic is protected (after the initial login to a new node) by
 the cluster-wide shared SSH key.
 
-RPC communication between the master and nodes is protected using SSL/TLS
-encryption. Both the client and the server must have the cluster-wide
-shared SSL/TLS certificate and verify it when establishing the connection
-by comparing fingerprints. We decided not to use a CA to simplify the
-key handling.
+RPC communication between the master and nodes is protected using
+SSL/TLS encryption. Both the client and the server must have the
+cluster-wide shared SSL/TLS certificate and verify it when establishing
+the connection by comparing fingerprints. We decided not to use a CA to
+simplify the key handling.
 
 The DRBD traffic is not protected by encryption, as DRBD does not
 support this. It's therefore recommended to implement host-level
@@ -83,20 +83,20 @@ nodes when configuring the device.
 Master daemon
 -------------
 
-The command-line tools to master daemon communication is done via an UNIX
-socket, whose permissions are reset to ``0600`` after listening but before
-serving requests. This permission-based protection is documented and works on
-Linux, but is not-portable; however, Ganeti doesn't work on non-Linux system at
-the moment.
+The command-line tools to master daemon communication is done via an
+UNIX socket, whose permissions are reset to ``0600`` after listening but
+before serving requests. This permission-based protection is documented
+and works on Linux, but is not-portable; however, Ganeti doesn't work on
+non-Linux system at the moment.
 
 Remote API
 ----------
 
-Starting with Ganeti 2.0, Remote API traffic is encrypted using SSL/TLS by
-default. It supports Basic authentication as per RFC2617.
+Starting with Ganeti 2.0, Remote API traffic is encrypted using SSL/TLS
+by default. It supports Basic authentication as per RFC2617.
 
-Paths for certificate, private key and CA files required for SSL/TLS will
-be set at source configure time. Symlinks or command line parameters may
-be used to use different files.
+Paths for certificate, private key and CA files required for SSL/TLS
+will be set at source configure time. Symlinks or command line
+parameters may be used to use different files.
 
 .. vim: set textwidth=72 :

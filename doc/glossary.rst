@@ -16,8 +16,8 @@ Glossary
     the startup of an instance.
 
   OpCode
-    A data structure encapsulating a basic cluster operation; for example,
-    start instance, add instance, etc.
+    A data structure encapsulating a basic cluster operation; for
+    example, start instance, add instance, etc.
 
   PVM
     Para-virtualization mode, where the virtual machine knows it's being

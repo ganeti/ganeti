@@ -28,7 +28,8 @@ principle.
 Generic parameters
 ------------------
 
-A few parameter mean the same thing across all resources which implement it.
+A few parameter mean the same thing across all resources which implement
+it.
 
 ``bulk``
 ++++++++
@@ -307,8 +308,8 @@ It supports the following commands: ``GET``.
 
 Requests detailed information about the instance. An optional parameter,
 ``static`` (bool), can be set to return only static information from the
-configuration without querying the instance's nodes. The result will be a job
-id.
+configuration without querying the instance's nodes. The result will be
+a job id.
 
 
 ``/2/instances/[instance_name]/reboot``
@@ -385,9 +386,9 @@ It supports the following commands: ``POST``.
 ~~~~~~~~
 
 Takes the parameters ``mode`` (one of ``replace_on_primary``,
-``replace_on_secondary``, ``replace_new_secondary`` or ``replace_auto``),
-``disks`` (comma separated list of disk indexes), ``remote_node`` and
-``iallocator``.
+``replace_on_secondary``, ``replace_new_secondary`` or
+``replace_auto``), ``disks`` (comma separated list of disk indexes),
+``remote_node`` and ``iallocator``.
 
 
 ``/2/instances/[instance_name]/tags``
@@ -586,8 +587,8 @@ Example::
 
 Change the node role.
 
-The request is a string which should be PUT to this URI. The result will be a
-job id.
+The request is a string which should be PUT to this URI. The result will
+be a job id.
 
 It supports the ``force`` argument.
 
@@ -601,8 +602,8 @@ Manages storage units on the node.
 
 Requests a list of storage units on a node. Requires the parameters
 ``storage_type`` (one of ``file``, ``lvm-pv`` or ``lvm-vg``) and
-``output_fields``. The result will be a job id, using which the result can be
-retrieved.
+``output_fields``. The result will be a job id, using which the result
+can be retrieved.
 
 ``/2/nodes/[node_name]/storage/modify``
 +++++++++++++++++++++++++++++++++++++++
@@ -612,10 +613,11 @@ Modifies storage units on the node.
 ``PUT``
 ~~~~~~~
 
-Modifies parameters of storage units on the node. Requires the parameters
-``storage_type`` (one of ``file``, ``lvm-pv`` or ``lvm-vg``) and ``name`` (name
-of the storage unit).  Parameters can be passed additionally. Currently only
-``allocatable`` (bool) is supported. The result will be a job id.
+Modifies parameters of storage units on the node. Requires the
+parameters ``storage_type`` (one of ``file``, ``lvm-pv`` or ``lvm-vg``)
+and ``name`` (name of the storage unit).  Parameters can be passed
+additionally. Currently only ``allocatable`` (bool) is supported. The
+result will be a job id.
 
 ``/2/nodes/[node_name]/storage/repair``
 +++++++++++++++++++++++++++++++++++++++
@@ -625,9 +627,9 @@ Repairs a storage unit on the node.
 ``PUT``
 ~~~~~~~
 
-Repairs a storage unit on the node. Requires the parameters ``storage_type``
-(currently only ``lvm-vg`` can be repaired) and ``name`` (name of the storage
-unit). The result will be a job id.
+Repairs a storage unit on the node. Requires the parameters
+``storage_type`` (currently only ``lvm-vg`` can be repaired) and
+``name`` (name of the storage unit). The result will be a job id.
 
 ``/2/nodes/[node_name]/tags``
 +++++++++++++++++++++++++++++

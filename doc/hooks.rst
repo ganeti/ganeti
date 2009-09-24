@@ -128,8 +128,9 @@ Adds a node to the cluster.
 OP_REMOVE_NODE
 ++++++++++++++
 
-Removes a node from the cluster. On the removed node the hooks are called
-during the execution of the operation and not after its completion.
+Removes a node from the cluster. On the removed node the hooks are
+called during the execution of the operation and not after its
+completion.
 
 :directory: node-remove
 :env. vars: NODE_NAME
@@ -350,7 +351,8 @@ Cluster operations
 OP_POST_INIT_CLUSTER
 ++++++++++++++++++++
 
-This hook is called via a special "empty" LU right after cluster initialization.
+This hook is called via a special "empty" LU right after cluster
+initialization.
 
 :directory: cluster-init
 :env. vars: none
@@ -360,8 +362,8 @@ This hook is called via a special "empty" LU right after cluster initialization.
 OP_DESTROY_CLUSTER
 ++++++++++++++++++
 
-The post phase of this hook is called during the execution of destroy operation
-and not after its completion.
+The post phase of this hook is called during the execution of destroy
+operation and not after its completion.
 
 :directory: cluster-destroy
 :env. vars: none

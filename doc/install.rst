@@ -108,20 +108,21 @@ and not just *node1*.
 
 .. admonition:: Why a fully qualified host name
 
-   Although most distributions use only the short name in the /etc/hostname
-   file, we still think Ganeti nodes should use the full name. The reason for
-   this is that calling 'hostname --fqdn' requires the resolver library to work
-   and is a 'guess' via heuristics at what is your domain name. Since Ganeti
-   can be used among other things to host DNS servers, we don't want to depend
-   on them as much as possible, and we'd rather have the uname() syscall return
-   the full node name.
+   Although most distributions use only the short name in the
+   /etc/hostname file, we still think Ganeti nodes should use the full
+   name. The reason for this is that calling 'hostname --fqdn' requires
+   the resolver library to work and is a 'guess' via heuristics at what
+   is your domain name. Since Ganeti can be used among other things to
+   host DNS servers, we don't want to depend on them as much as
+   possible, and we'd rather have the uname() syscall return the full
+   node name.
 
-   We haven't ever found any breakage in using a full hostname on a Linux
-   system, and anyway we recommend to have only a minimal installation on
-   Ganeti nodes, and to use instances (or other dedicated machines) to run the
-   rest of your network services. By doing this you can change the
-   /etc/hostname file to contain an FQDN without the fear of breaking anything
-   unrelated.
+   We haven't ever found any breakage in using a full hostname on a
+   Linux system, and anyway we recommend to have only a minimal
+   installation on Ganeti nodes, and to use instances (or other
+   dedicated machines) to run the rest of your network services. By
+   doing this you can change the /etc/hostname file to contain an FQDN
+   without the fear of breaking anything unrelated.
 
 
 Installing The Hypervisor
@@ -130,9 +131,9 @@ Installing The Hypervisor
 **Mandatory** on all nodes.
 
 While Ganeti is developed with the ability to modularly run on different
-virtualization environments in mind the only two currently useable on a live
-system are Xen and KVM. Supported Xen versions are: 3.0.3, 3.0.4 and 3.1.
-Supported KVM version are 72 and above.
+virtualization environments in mind the only two currently useable on a
+live system are Xen and KVM. Supported Xen versions are: 3.0.3, 3.0.4
+and 3.1.  Supported KVM version are 72 and above.
 
 Please follow your distribution's recommended way to install and set
 up Xen, or install Xen from the upstream source, if you wish,
@@ -140,9 +141,9 @@ following their manual. For KVM, make sure you have a KVM-enabled
 kernel and the KVM tools.
 
 After installing Xen, you need to reboot into your new system. On some
-distributions this might involve configuring GRUB appropriately, whereas others
-will configure it automatically when you install the respective kernels. For
-KVM no reboot should be necessary.
+distributions this might involve configuring GRUB appropriately, whereas
+others will configure it automatically when you install the respective
+kernels. For KVM no reboot should be necessary.
 
 .. admonition:: Xen on Debian
 
@@ -315,8 +316,8 @@ them will already be installed on a standard machine.
    You can use this command line to install all needed packages::
 
      # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-     python python-pyopenssl openssl python-pyparsing python-simplejson \
-     python-pyinotify
+     python python-pyopenssl openssl python-pyparsing \
+     python-simplejson python-pyinotify
 
 Setting up the environment for Ganeti
 -------------------------------------
@@ -326,34 +327,38 @@ Configuring the network
 
 **Mandatory** on all nodes.
 
-You can run Ganeti either in "bridge mode" or in "routed mode". In bridge
-mode, the default, the instances network interfaces will be attached to a
-software bridge running in dom0. Xen by default creates such a bridge at
-startup, but your distribution might have a different way to do things, and
-you'll definitely need to manually set it up under KVM.
+You can run Ganeti either in "bridge mode" or in "routed mode". In
+bridge mode, the default, the instances network interfaces will be
+attached to a software bridge running in dom0. Xen by default creates
+such a bridge at startup, but your distribution might have a different
+way to do things, and you'll definitely need to manually set it up under
+KVM.
 
 Beware that the default name Ganeti uses is ``xen-br0`` (which was
 used in Xen 2.0) while Xen 3.0 uses ``xenbr0`` by default. The default
 bridge your Ganeti cluster will use for new instances can be specified
 at cluster initialization time.
 
-If you want to run in "routing mode" you need to specify that at cluster init
-time (using the --nicparam option), and then no bridge will be needed. In
-this mode instance traffic will be routed by dom0, instead of bridged.
+If you want to run in "routing mode" you need to specify that at cluster
+init time (using the --nicparam option), and then no bridge will be
+needed. In this mode instance traffic will be routed by dom0, instead of
+bridged.
 
-In order to use "routing mode" under Xen, you'll need to change the relevant
-parameters in the Xen config file. Under KVM instead, no config change is
-necessary, but you still need to set up your network interfaces correctly.
+In order to use "routing mode" under Xen, you'll need to change the
+relevant parameters in the Xen config file. Under KVM instead, no config
+change is necessary, but you still need to set up your network
+interfaces correctly.
 
 By default, under KVM, the "link" parameter you specify per-nic will
-represent, if non-empty, a different routing table name or number to use for
-your instances. This allows insulation between different instance groups,
-and different routing policies between node traffic and instance traffic.
+represent, if non-empty, a different routing table name or number to use
+for your instances. This allows insulation between different instance
+groups, and different routing policies between node traffic and instance
+traffic.
 
-You will need to configure your routing table basic routes and rules outside
-of ganeti. The vif scripts will only add /32 routes to your instances,
-through their interface, in the table you specified (under KVM, and in the
-main table under Xen).
+You will need to configure your routing table basic routes and rules
+outside of ganeti. The vif scripts will only add /32 routes to your
+instances, through their interface, in the table you specified (under
+KVM, and in the main table under Xen).
 
 .. admonition:: Bridging under Debian
 
@@ -512,8 +517,8 @@ that the hostname used for this must resolve to an IP address reserved
 **exclusively** for this purpose, and cannot be the name of the first
 (master) node.
 
-If you want to use a bridge which is not ``xen-br0``, or no bridge at all, use
-the --nicparams
+If you want to use a bridge which is not ``xen-br0``, or no bridge at
+all, use ``--nicparams``.
 
 If the bridge name you are using is not ``xen-br0``, use the *-b
 <BRIDGENAME>* option to specify the bridge name. In this case, you
