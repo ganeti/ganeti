@@ -21,6 +21,23 @@
 
 """Ganeti confd client
 
+Clients can use the confd client library to send requests to a group of master
+candidates running confd. The expected usage is through the asyncore framework,
+by sending queries, and asynchronously receiving replies through a callback.
+
+This way the client library doesn't ever need to "wait" on a particular answer,
+and can proceed even if some udp packets are lost. It's up to the user to
+reschedule queries if they haven't received responses and they need them.
+
+Example usage:
+  client = ConfdClient(...) # includes callback specification
+  req = confd_client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
+  client.SendRequest(req)
+  # then make sure your client calls asyncore.loop() or daemon.Mainloop.Run()
+  # ... wait ...
+  # And your callback will be called by asyncore, when your query gets a
+  # response, or when it expires.
+
 """
 import socket
 import time
