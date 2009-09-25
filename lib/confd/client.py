@@ -335,8 +335,8 @@ class ConfdFilterCallback:
 
   def _HandleExpire(self, up):
     # if we have no answer we have received none, before the expiration.
-    if salt in self._answers:
-      del self._answers[salt]
+    if up.salt in self._answers:
+      del self._answers[up.salt]
 
   def _HandleReply(self, up):
     """Handle a single confd reply, and decide whether to filter it.
