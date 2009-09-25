@@ -43,7 +43,7 @@ NoProxyOpener = urllib2.build_opener(urllib2.ProxyHandler({}))
 INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
                    "admin_state",
                    "disk_template", "disk.sizes",
-                   "nic.ips", "nic.macs", "nic.bridges",
+                   "nic.ips", "nic.macs", "nic.modes", "nic.links",
                    "beparams", "hvparams",
                    "oper_state", "oper_ram", "status", "tags")
 
