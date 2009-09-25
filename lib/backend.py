@@ -375,6 +375,18 @@ def LeaveCluster():
   except errors.OpExecError:
     logging.exception("Error while processing ssh files")
 
+  try:
+    utils.RemoveFile(constants.HMAC_CLUSTER_KEY)
+    utils.RemoveFile(constants.RAPI_CERT_FILE)
+    utils.RemoveFile(constants.SSL_CERT_FILE)
+  except:
+    logging.exception("Error while removing cluster secrets")
+
+  confd_pid = utils.ReadPidFile(utils.DaemonPidFileName(constants.CONFD))
+
+  if confd_pid:
+    utils.KillProcess(confd_pid, timeout=2)
+
   # Raise a custom exception (handled in ganeti-noded)
   raise errors.QuitGanetiException(True, 'Shutdown scheduled')
 
