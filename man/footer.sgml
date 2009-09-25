@@ -60,6 +60,10 @@
         <manvolnum>8</manvolnum>
       </citerefentry> (automatic instance restarter),
       <citerefentry>
+        <refentrytitle>ganeti-cleaner</refentrytitle>
+        <manvolnum>8</manvolnum>
+      </citerefentry> (job queue cleaner),
+      <citerefentry>
         <refentrytitle>ganeti-noded</refentrytitle>
         <manvolnum>8</manvolnum>
       </citerefentry> (node daemon),
