@@ -362,7 +362,6 @@ def main():
                         constants.RELEASE_VERSION)
 
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
-  dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
   daemon.GenericMain(constants.CONFD, parser, dirs, CheckConfd, ExecConfd)
 
