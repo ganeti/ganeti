@@ -31,7 +31,6 @@
 # R0904: Too many public methods
 
 import os
-import socket
 import logging
 import zlib
 import base64
@@ -83,7 +82,7 @@ class RpcResult(object):
   calls we can't raise an exception just because one one out of many
   failed, and therefore we use this class to encapsulate the result.
 
-  @ivar data: the data payload, for successfull results, or None
+  @ivar data: the data payload, for successful results, or None
   @type failed: boolean
   @ivar failed: whether the operation failed at RPC level (not
       application level on the remote node)
@@ -161,7 +160,7 @@ class Client:
   list of nodes, will contact (in parallel) all nodes, and return a
   dict of results (key: node name, value: result).
 
-  One current bug is that generic failure is still signalled by
+  One current bug is that generic failure is still signaled by
   'False' result, which is not good. This overloading of values can
   cause bugs.
 
@@ -220,7 +219,7 @@ class Client:
     @return: List of RPC results
 
     """
-    assert _http_manager, "RPC module not intialized"
+    assert _http_manager, "RPC module not initialized"
 
     _http_manager.ExecRequests(self.nc.values())
 
@@ -269,9 +268,9 @@ class RpcRunner(object):
     @type instance: L{objects.Instance}
     @param instance: an Instance object
     @type hvp: dict or None
-    @param hvp: a dictionary with overriden hypervisor parameters
+    @param hvp: a dictionary with overridden hypervisor parameters
     @type bep: dict or None
-    @param bep: a dictionary with overriden backend parameters
+    @param bep: a dictionary with overridden backend parameters
     @rtype: dict
     @return: the instance dict, with the hvparams filled with the
         cluster defaults
@@ -290,7 +289,7 @@ class RpcRunner(object):
   def _ConnectList(self, client, node_list, call):
     """Helper for computing node addresses.
 
-    @type client: L{Client}
+    @type client: L{ganeti.rpc.Client}
     @param client: a C{Client} instance
     @type node_list: list
     @param node_list: the node list we should connect
@@ -320,7 +319,7 @@ class RpcRunner(object):
   def _ConnectNode(self, client, node, call):
     """Helper for computing one node's address.
 
-    @type client: L{Client}
+    @type client: L{ganeti.rpc.Client}
     @param client: a C{Client} instance
     @type node: str
     @param node: the node we should connect

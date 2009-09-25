@@ -297,7 +297,7 @@ class SharedLock:
 
 
 # Whenever we want to acquire a full LockSet we pass None as the value
-# to acquire.  Hide this behing this nicely named constant.
+# to acquire.  Hide this behind this nicely named constant.
 ALL_SET = None
 
 
@@ -498,7 +498,7 @@ class LockSet:
           # Of course something is going to be really wrong, after this.
           if lock._is_owned():
             lock.release()
-            raise
+          raise
 
     except:
       # If something went wrong and we had the set-lock let's release it...
@@ -689,7 +689,7 @@ BGL = 'BGL'
 class GanetiLockManager:
   """The Ganeti Locking Library
 
-  The purpouse of this small library is to manage locking for ganeti clusters
+  The purpose of this small library is to manage locking for ganeti clusters
   in a central place, while at the same time doing dynamic checks against
   possible deadlocks. It will also make it easier to transition to a different
   lock type should we migrate away from python threads.
@@ -774,7 +774,7 @@ class GanetiLockManager:
     """Acquire a set of resource locks, at the same level.
 
     @param level: the level at which the locks shall be acquired;
-        it must be a memmber of LEVELS.
+        it must be a member of LEVELS.
     @param names: the names of the locks which shall be acquired
         (special lock names, or instance/node names)
     @param shared: whether to acquire in shared mode; by default
@@ -809,7 +809,7 @@ class GanetiLockManager:
     mode, before releasing them.
 
     @param level: the level at which the locks shall be released;
-        it must be a memmber of LEVELS
+        it must be a member of LEVELS
     @param names: the names of the locks which shall be released
         (defaults to all the locks acquired at that level)
 
@@ -827,7 +827,7 @@ class GanetiLockManager:
     """Add locks at the specified level.
 
     @param level: the level at which the locks shall be added;
-        it must be a memmber of LEVELS_MOD.
+        it must be a member of LEVELS_MOD.
     @param names: names of the locks to acquire
     @param acquired: whether to acquire the newly added locks
     @param shared: whether the acquisition will be shared

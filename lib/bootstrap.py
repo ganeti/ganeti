@@ -79,24 +79,27 @@ def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
   """
   (fd, tmp_file_name) = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
-    # Set permissions before writing key
-    os.chmod(tmp_file_name, 0600)
+    try:
+      # Set permissions before writing key
+      os.chmod(tmp_file_name, 0600)
 
-    result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
-                           "-days", str(validity), "-nodes", "-x509",
-                           "-keyout", tmp_file_name, "-out", tmp_file_name,
-                           "-batch"])
-    if result.failed:
-      raise errors.OpExecError("Could not generate SSL certificate, command"
-                               " %s had exitcode %s and error message %s" %
-                               (result.cmd, result.exit_code, result.output))
+      result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
+                             "-days", str(validity), "-nodes", "-x509",
+                             "-keyout", tmp_file_name, "-out", tmp_file_name,
+                             "-batch"])
+      if result.failed:
+        raise errors.OpExecError("Could not generate SSL certificate, command"
+                                 " %s had exitcode %s and error message %s" %
+                                 (result.cmd, result.exit_code, result.output))
 
-    # Make read-only
-    os.chmod(tmp_file_name, 0400)
+      # Make read-only
+      os.chmod(tmp_file_name, 0400)
 
-    os.rename(tmp_file_name, file_name)
+      os.rename(tmp_file_name, file_name)
+    finally:
+      utils.RemoveFile(tmp_file_name)
   finally:
-    utils.RemoveFile(tmp_file_name)
+    os.close(fd)
 
 
 def _InitGanetiServerSetup():
@@ -123,7 +126,8 @@ def _InitGanetiServerSetup():
 def InitCluster(cluster_name, mac_prefix, def_bridge,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None, hvparams=None,
-                enabled_hypervisors=None, default_hypervisor=None):
+                enabled_hypervisors=None, default_hypervisor=None,
+                modify_etc_hosts=True):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -133,6 +137,14 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
   # TODO: complete the docstring
   if config.ConfigWriter.IsCluster():
     raise errors.OpPrereqError("Cluster is already initialised")
+
+  if not enabled_hypervisors:
+    raise errors.OpPrereqError("Enabled hypervisors list must contain at"
+                               " least one member")
+  invalid_hvs = set(enabled_hypervisors) - constants.HYPER_TYPES
+  if invalid_hvs:
+    raise errors.OpPrereqError("Enabled hypervisors contains invalid"
+                               " entries: %s" % invalid_hvs)
 
   hostname = utils.HostInfo()
 
@@ -225,7 +237,9 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     f.close()
   sshkey = sshline.split(" ")[1]
 
-  utils.AddHostToEtcHosts(hostname.name)
+  if modify_etc_hosts:
+    utils.AddHostToEtcHosts(hostname.name)
+
   _InitSSHSetup()
 
   # init of cluster config file
@@ -247,6 +261,7 @@ def InitCluster(cluster_name, mac_prefix, def_bridge,
     beparams={constants.BEGR_DEFAULT: beparams},
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
+    modify_etc_hosts=modify_etc_hosts,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
@@ -483,7 +498,7 @@ def GatherMasterVotes(node_list):
 
   @type node_list: list
   @param node_list: the list of nodes to query for master info; the current
-      node wil be removed if it is in the list
+      node will be removed if it is in the list
   @rtype: list
   @return: list of (node, votes)
 

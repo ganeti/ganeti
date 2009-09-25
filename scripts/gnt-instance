@@ -116,7 +116,7 @@ def _ExpandMultiNames(mode, names, client=None):
   return inames
 
 
-def _ConfirmOperation(inames, text):
+def _ConfirmOperation(inames, text, extra=""):
   """Ask the user to confirm an operation on a list of instances.
 
   This function is used to request confirmation for doing an operation
@@ -133,8 +133,8 @@ def _ConfirmOperation(inames, text):
 
   """
   count = len(inames)
-  msg = ("The %s will operate on %d instances.\n"
-         "Do you want to continue?" % (text, count))
+  msg = ("The %s will operate on %d instances.\n%s"
+         "Do you want to continue?" % (text, count, extra))
   affected = ("\nAffected instances:\n" +
               "\n".join(["  %s" % name for name in inames]))
 
@@ -160,7 +160,7 @@ def _EnsureInstancesExist(client, names):
   This function will raise an OpPrereqError in case they don't
   exist. Otherwise it will exit cleanly.
 
-  @type client: L{luxi.Client}
+  @type client: L{ganeti.luxi.Client}
   @param client: the client to use for the query
   @type names: list
   @param names: the list of instance names to query
@@ -441,6 +441,8 @@ def BatchCreate(opts, args):
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
+  jex = JobExecutor()
+
   # Iterate over the instances and do:
   #  * Populate the specs with default value
   #  * Validate the instance specs
@@ -486,7 +488,9 @@ def BatchCreate(opts, args):
                                   file_storage_dir=specs['file_storage_dir'],
                                   file_driver=specs['file_driver'])
 
-    ToStdout("%s: %s", name, cli.SendJob([op]))
+    jex.QueueJob(name, op)
+  # we never want to wait, just show the submitted job IDs
+  jex.WaitOrShow(False)
 
   return 0
 
@@ -502,8 +506,15 @@ def ReinstallInstance(opts, args):
   @return: the desired exit code
 
   """
-  instance_name = args[0]
+  # first, compute the desired name list
+  if opts.multi_mode is None:
+    opts.multi_mode = _SHUTDOWN_INSTANCES
 
+  inames = _ExpandMultiNames(opts.multi_mode, args)
+  if not inames:
+    raise errors.OpPrereqError("Selection filter does not match any instances")
+
+  # second, if requested, ask for an OS
   if opts.select_os is True:
     op = opcodes.OpDiagnoseOS(output_fields=["name", "valid"], names=[])
     result = SubmitOpCode(op)
@@ -525,23 +536,35 @@ def ReinstallInstance(opts, args):
                        choices)
 
     if selected == 'exit':
-      ToStdout("User aborted reinstall, exiting")
+      ToStderr("User aborted reinstall, exiting")
       return 1
 
     os_name = selected
   else:
     os_name = opts.os
 
-  if not opts.force:
-    usertext = ("This will reinstall the instance %s and remove"
-                " all data. Continue?") % instance_name
-    if not AskUser(usertext):
+  # third, get confirmation: multi-reinstall requires --force-multi
+  # *and* --force, single-reinstall just --force
+  multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
+  if multi_on:
+    warn_msg = "Note: this will remove *all* data for the below instances!\n"
+    if not ((opts.force_multi and opts.force) or
+            _ConfirmOperation(inames, "reinstall", extra=warn_msg)):
       return 1
+  else:
+    if not opts.force:
+      usertext = ("This will reinstall the instance %s and remove"
+                  " all data. Continue?") % inames[0]
+      if not AskUser(usertext):
+        return 1
 
-  op = opcodes.OpReinstallInstance(instance_name=instance_name,
-                                   os_type=os_name)
-  SubmitOrSend(op, opts)
+  jex = JobExecutor(verbose=multi_on)
+  for instance_name in inames:
+    op = opcodes.OpReinstallInstance(instance_name=instance_name,
+                                     os_type=os_name)
+    jex.QueueJob(instance_name, op)
 
+  jex.WaitOrShow(not opts.submit_only)
   return 0
 
 
@@ -1374,8 +1397,11 @@ commands = {
            " The default field"
            " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
            ),
-  'reinstall': (ReinstallInstance, ARGS_ONE,
+  'reinstall': (ReinstallInstance, ARGS_ANY,
                 [DEBUG_OPT, FORCE_OPT, os_opt,
+                 m_force_multi,
+                 m_node_opt, m_pri_node_opt, m_sec_node_opt,
+                 m_clust_opt, m_inst_opt,
                  make_option("--select-os", dest="select_os",
                              action="store_true", default=False,
                              help="Interactive OS reinstall, lists available"

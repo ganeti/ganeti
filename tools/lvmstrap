@@ -46,6 +46,7 @@ import time
 
 from ganeti.utils import RunCmd
 from ganeti import constants
+from ganeti import cli
 
 USAGE = ("\tlvmstrap diskinfo\n"
          "\tlvmstrap [--vgname=NAME] [--allow-removable]"
@@ -267,7 +268,7 @@ def CheckSysDev(name, devnum):
    devnum: the device number, e.g. 0x803 (2051 in decimal) for sda3
 
   Returns:
-    None; failure of the check is signalled by raising a
+    None; failure of the check is signaled by raising a
       SysconfigError exception
   """
 
@@ -449,7 +450,7 @@ def GetMountInfo():
 
 
 def DevInfo(name, dev, mountinfo):
-  """Computes miscellaneous informations about a block device.
+  """Computes miscellaneous information about a block device.
 
   Args:
     name: the device name, e.g. sda
@@ -478,7 +479,7 @@ def DevInfo(name, dev, mountinfo):
 def ShowDiskInfo(opts):
   """Shows a nicely formatted block device list for this system.
 
-  This function shows the user a table with the informations gathered
+  This function shows the user a table with the information gathered
   by the other functions defined, in order to help the user make a
   choice about which disks should be allocated to our volume group.
 
@@ -487,8 +488,15 @@ def ShowDiskInfo(opts):
   dlist = GetDiskList(opts)
 
   print "------- Disk information -------"
-  print ("%5s %7s %4s %5s %-10s %s" %
-         ("Name", "Size[M]", "Used", "Mount", "LVM?", "Info"))
+  headers = {
+      "name": "Name",
+      "size": "Size[M]",
+      "used": "Used",
+      "mount": "Mount",
+      "lvm": "LVM?",
+      "info": "Info"
+      }
+  fields = ["name", "size", "used", "mount", "lvm", "info"]
 
   flatlist = []
   # Flatten the [(disk, [partition,...]), ...] list
@@ -501,6 +509,7 @@ def ShowDiskInfo(opts):
     for partname, partsize, partdev in parts:
       flatlist.append((partname, partsize, partdev, ""))
 
+  strlist = []
   for name, size, dev, in_use in flatlist:
     mp, vgname, fileinfo = DevInfo(name, dev, mounts)
     if mp is None:
@@ -515,8 +524,15 @@ def ShowDiskInfo(opts):
     if len(name) > 3:
       # Indent partitions
       name = " %s" % name
-    print ("%-5s %7.2f %-4s %-5s %-10s %s" %
-           (name, float(size) / 1024 / 1024, in_use, mp, lvminfo, fileinfo))
+
+    strlist.append([name, "%.2f" % (float(size) / 1024 / 1024),
+                    in_use, mp, lvminfo, fileinfo])
+
+  data = cli.GenerateTable(headers, fields, None,
+                           strlist, numfields=["size"])
+
+  for line in data:
+    print line
 
 
 def CheckReread(name):

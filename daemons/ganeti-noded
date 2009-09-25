@@ -26,9 +26,7 @@
 
 import os
 import sys
-import traceback
 import SocketServer
-import errno
 import logging
 import signal
 
@@ -754,7 +752,6 @@ def main():
   global queue_lock
 
   options, args = ParseOptions()
-  utils.debug = options.debug
 
   if options.fork:
     utils.CloseFDs()
@@ -762,13 +759,9 @@ def main():
   for fname in (constants.SSL_CERT_FILE,):
     if not os.path.isfile(fname):
       print "config %s not there, will not run." % fname
-      sys.exit(5)
+      sys.exit(constants.EXIT_NOTCLUSTER)
 
-  try:
-    port = utils.GetNodeDaemonPort()
-  except errors.ConfigurationError, err:
-    print "Cluster configuration incomplete: '%s'" % str(err)
-    sys.exit(5)
+  port = utils.GetNodeDaemonPort()
 
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))

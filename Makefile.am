@@ -26,6 +26,7 @@ DIRS = \
 	devel \
 	doc \
 	doc/examples \
+	doc/examples/hooks \
 	lib \
 	lib/http \
 	lib/hypervisor \
@@ -44,6 +45,7 @@ MAINTAINERCLEANFILES = \
 
 CLEANFILES = \
 	autotools/replace_vars.sed \
+	daemons/ganeti-cleaner \
 	devel/upload \
 	doc/rapi-resources.gen \
 	doc/examples/bash_completion \
@@ -138,6 +140,9 @@ dist_sbin_SCRIPTS = \
 	scripts/gnt-node \
 	scripts/gnt-os
 
+nodist_sbin_SCRIPTS = \
+	daemons/ganeti-cleaner
+
 dist_tools_SCRIPTS = \
 	tools/burnin \
 	tools/cfgshell \
@@ -148,7 +153,9 @@ EXTRA_DIST = \
 	$(MAINTAINERCLEANFILES) \
 	NEWS \
 	DEVNOTES \
+	pylintrc \
 	autotools/docbook-wrapper \
+	daemons/ganeti-cleaner.in \
 	devel/upload.in \
 	$(docrst) \
 	$(docdot) \
@@ -157,6 +164,7 @@ EXTRA_DIST = \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
 	doc/examples/dumb-allocator \
+	doc/examples/hooks/ethers \
 	doc/locking.txt \
 	test/testutils.py \
 	test/mocks.py \
@@ -240,6 +248,11 @@ devel/upload: devel/upload.in stamp-directories $(REPLACE_VARS_SED)
 doc/examples/%: doc/examples/%.in stamp-directories \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
+
+daemons/ganeti-cleaner: daemons/ganeti-cleaner.in stamp-directories \
+		$(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
 
 doc/%.html: doc/%.rst
 	@test -n "$(RST2HTML)" || { echo 'rst2html' not found during configure; exit 1; }

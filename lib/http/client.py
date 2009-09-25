@@ -22,23 +22,13 @@
 
 """
 
-import BaseHTTPServer
-import cgi
-import logging
-import OpenSSL
 import os
 import select
 import socket
-import sys
-import time
-import signal
 import errno
 import threading
 
-from ganeti import constants
-from ganeti import serializer
 from ganeti import workerpool
-from ganeti import utils
 from ganeti import http
 
 

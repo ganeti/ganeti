@@ -19,7 +19,12 @@
 # 02110-1301, USA.
 
 
-"""Functions used by the node daemon"""
+"""Functions used by the node daemon
+
+@var _ALLOWED_UPLOAD_FILES: denotes which files are accepted in
+     the L{UploadFile} function
+
+"""
 
 
 import os
@@ -115,6 +120,23 @@ def _CleanDirectory(path, exclude=None):
       utils.RemoveFile(full_name)
 
 
+def _BuildUploadFileList():
+  """Build the list of allowed upload files.
+
+  This is abstracted so that it's built only once at module import time.
+
+  """
+  return frozenset([
+      constants.CLUSTER_CONF_FILE,
+      constants.ETC_HOSTS,
+      constants.SSH_KNOWN_HOSTS_FILE,
+      constants.VNC_PASSWORD_FILE,
+      ])
+
+
+_ALLOWED_UPLOAD_FILES = _BuildUploadFileList()
+
+
 def JobQueuePurge():
   """Removes job queue files and archived jobs.
 
@@ -141,7 +163,7 @@ def GetMasterInfo():
     master_netdev = cfg.GetMasterNetdev()
     master_ip = cfg.GetMasterIP()
     master_node = cfg.GetMasterNode()
-  except errors.ConfigurationError, err:
+  except errors.ConfigurationError:
     logging.exception("Cluster configuration incomplete")
     return (None, None, None)
   return (master_netdev, master_ip, master_node)
@@ -320,7 +342,7 @@ def LeaveCluster():
 
 
 def GetNodeInfo(vgname, hypervisor_type):
-  """Gives back a hash with different informations about the node.
+  """Gives back a hash with different information about the node.
 
   @type vgname: C{string}
   @param vgname: the name of the volume group to ask for disk space information
@@ -585,7 +607,7 @@ def GetInstanceList(hypervisor_list):
     try:
       names = hypervisor.GetHypervisor(hname).ListInstances()
       results.extend(names)
-    except errors.HypervisorError, err:
+    except errors.HypervisorError:
       logging.exception("Error enumerating instances for hypevisor %s", hname)
       raise
 
@@ -593,7 +615,7 @@ def GetInstanceList(hypervisor_list):
 
 
 def GetInstanceInfo(instance, hname):
-  """Gives back the informations about an instance as a dictionary.
+  """Gives back the information about an instance as a dictionary.
 
   @type instance: string
   @param instance: the instance name
@@ -758,7 +780,7 @@ def RunRenameInstance(instance, old_name):
 
 
 def _GetVGInfo(vg_name):
-  """Get informations about the volume group.
+  """Get information about the volume group.
 
   @type vg_name: str
   @param vg_name: the volume group which we query
@@ -930,7 +952,7 @@ def InstanceShutdown(instance):
   # test every 10secs for 2min
 
   time.sleep(1)
-  for dummy in range(11):
+  for _ in range(11):
     if instance.name not in GetInstanceList([hv_name]):
       break
     time.sleep(10)
@@ -1044,7 +1066,7 @@ def AcceptInstance(instance, info, target):
     msg = "Failed to accept instance"
     logging.exception(msg)
     return (False, '%s: %s' % (msg, err))
-  return (True, "Accept successfull")
+  return (True, "Accept successful")
 
 
 def FinalizeMigration(instance, info, success):
@@ -1092,7 +1114,7 @@ def MigrateInstance(instance, target, live):
     msg = "Failed to migrate instance"
     logging.exception(msg)
     return (False, "%s: %s" % (msg, err))
-  return (True, "Migration successfull")
+  return (True, "Migration successful")
 
 
 def BlockdevCreate(disk, size, owner, on_primary, info):
@@ -1285,7 +1307,7 @@ def BlockdevAssemble(disk, owner, as_primary):
 def BlockdevShutdown(disk):
   """Shut down a block device.
 
-  First, if the device is assembled (Attach() is successfull), then
+  First, if the device is assembled (Attach() is successful), then
   the device is shutdown. Then the children of the device are
   shutdown.
 
@@ -1403,7 +1425,7 @@ def BlockdevGetmirrorstatus(disks):
 def _RecursiveFindBD(disk):
   """Check if a device is activated.
 
-  If so, return informations about the real device.
+  If so, return information about the real device.
 
   @type disk: L{objects.Disk}
   @param disk: the disk object we need to find
@@ -1423,7 +1445,7 @@ def _RecursiveFindBD(disk):
 def BlockdevFind(disk):
   """Check if a device is activated.
 
-  If it is, return informations about the real device.
+  If it is, return information about the real device.
 
   @type disk: L{objects.Disk}
   @param disk: the disk to find
@@ -1498,14 +1520,7 @@ def UploadFile(file_name, data, mode, uid, gid, atime, mtime):
                   file_name)
     return False
 
-  allowed_files = [
-    constants.CLUSTER_CONF_FILE,
-    constants.ETC_HOSTS,
-    constants.SSH_KNOWN_HOSTS_FILE,
-    constants.VNC_PASSWORD_FILE,
-    ]
-
-  if file_name not in allowed_files:
+  if file_name not in _ALLOWED_UPLOAD_FILES:
     logging.error("Filename passed to UploadFile not in allowed"
                  " upload targets: '%s'", file_name)
     return False
@@ -2062,7 +2077,7 @@ def BlockdevRename(devlist):
         # but we don't have the owner here - maybe parse from existing
         # cache? for now, we only lose lvm data when we rename, which
         # is less critical than DRBD or MD
-    except errors.BlockDeviceError, err:
+    except errors.BlockDeviceError:
       logging.exception("Can't rename device '%s' to '%s'", dev, unique_id)
       result = False
   return result
@@ -2132,7 +2147,7 @@ def RemoveFileStorageDir(file_storage_dir):
   @param file_storage_dir: the directory we should cleanup
   @rtype: tuple (success,)
   @return: tuple of one element, C{success}, denoting
-      whether the operation was successfull
+      whether the operation was successful
 
   """
   file_storage_dir = _TransformFileStorageDir(file_storage_dir)
@@ -2147,7 +2162,7 @@ def RemoveFileStorageDir(file_storage_dir):
       # deletes dir only if empty, otherwise we want to return False
       try:
         os.rmdir(file_storage_dir)
-      except OSError, err:
+      except OSError:
         logging.exception("Cannot remove file storage directory '%s'",
                           file_storage_dir)
         result = False,
@@ -2176,7 +2191,7 @@ def RenameFileStorageDir(old_file_storage_dir, new_file_storage_dir):
       if os.path.isdir(old_file_storage_dir):
         try:
           os.rename(old_file_storage_dir, new_file_storage_dir)
-        except OSError, err:
+        except OSError:
           logging.exception("Cannot rename '%s' to '%s'",
                             old_file_storage_dir, new_file_storage_dir)
           result =  False,
@@ -2582,7 +2597,7 @@ class HooksRunner(object):
     dir_name = "%s/%s" % (self._BASE_DIR, subdir)
     try:
       dir_contents = utils.ListVisibleFiles(dir_name)
-    except OSError, err:
+    except OSError:
       # FIXME: must log output in case of failures
       return rr
 
@@ -2705,7 +2720,7 @@ class DevCacheManager(object):
     fdata = "%s %s %s\n" % (str(owner), state, iv_name)
     try:
       utils.WriteFile(fpath, data=fdata)
-    except EnvironmentError, err:
+    except EnvironmentError:
       logging.exception("Can't update bdev cache for %s", dev_path)
 
   @classmethod
@@ -2727,5 +2742,5 @@ class DevCacheManager(object):
     fpath = cls._ConvertPath(dev_path)
     try:
       utils.RemoveFile(fpath)
-    except EnvironmentError, err:
+    except EnvironmentError:
       logging.exception("Can't update bdev cache for %s", dev_path)

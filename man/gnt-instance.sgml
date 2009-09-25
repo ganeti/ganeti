@@ -1229,29 +1229,45 @@ instance5: 11225
         <cmdsynopsis>
           <command>reinstall</command>
           <arg choice="opt">-o <replaceable>os-type</replaceable></arg>
-          <arg choice="opt">-f <replaceable>force</replaceable></arg>
           <arg>--select-os</arg>
+          <arg choice="opt">-f <replaceable>force</replaceable></arg>
+          <arg>--force-multiple</arg>
+          <sbr>
+          <group choice="opt">
+            <arg>--instance</arg>
+            <arg>--node</arg>
+            <arg>--primary</arg>
+            <arg>--secondary</arg>
+            <arg>--all</arg>
+          </group>
           <arg>--submit</arg>
-          <arg choice="req"><replaceable>instance</replaceable></arg>
+          <arg choice="opt" rep="repeat"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
 
         <para>
-          Reinstalls the operating system on the given instance. The
-          instance must be stopped when running this command. If the
+          Reinstalls the operating system on the given instance(s). The
+          instance(s) must be stopped when running this command. If the
           <option>--os-type</option> is specified, the operating
           system is changed.
-        </para>
-
-        <para>
-          Since reinstall is potentially dangerous command, the user
-          will be required to confirm this action, unless the
-          <option>-f</option> flag is passed.
         </para>
 
         <para>
           The <option>--select-os</option> option switches to an
           interactive OS reinstall. The user is prompted to select the OS
           template from the list of available OS templates.
+        </para>
+
+        <para>
+          Since this is a potentially dangerous command, the user will
+          be required to confirm this action, unless the
+          <option>-f</option> flag is passed. When multiple instances
+          are selected (either by passing multiple arguments or by
+          using the <option>--node</option>,
+          <option>--primary</option>, <option>--secondary</option> or
+          <option>--all</option> options), the user must pass both the
+          <option>--force</option> and
+          <option>--force-multiple</option> options to skip the
+          interactive confirmation.
         </para>
 
         <para>

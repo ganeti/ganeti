@@ -6,6 +6,7 @@
 
 # global ignores
 *.py[co]
+*.swp
 
 # /
 /Makefile
@@ -25,6 +26,9 @@
 /*.patch
 /*.tar.bz2
 /*.tar.gz
+
+# daemons
+/daemons/ganeti-cleaner
 
 # devel
 /devel/clean-cluster

@@ -41,6 +41,7 @@ from ganeti import rpc
 from optparse import (OptionParser, make_option, TitledHelpFormatter,
                       Option, OptionValueError)
 
+
 __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "SubmitOpCode", "GetClient",
            "cli_option", "ikv_option", "keyval_option",
@@ -53,6 +54,7 @@ __all__ = ["DEBUG_OPT", "NOHDR_OPT", "SEP_OPT", "GenericMain",
            "ToStderr", "ToStdout", "UsesRPC",
            "GetOnlineNodes", "JobExecutor", "SYNC_OPT",
            ]
+
 
 
 def _ExtractTagsObject(opts, args):
@@ -120,7 +122,7 @@ def ListTags(opts, args):
   result = list(result)
   result.sort()
   for tag in result:
-    print tag
+    ToStdout(tag)
 
 
 def AddTags(opts, args):
@@ -320,7 +322,7 @@ keyval_option = KeyValOption
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
 
-  This function parses the arguements and returns the function which
+  This function parses the arguments and returns the function which
   must be executed together with its (modified) arguments.
 
   @param argv: the command line
@@ -335,7 +337,7 @@ def _ParseArgs(argv, commands, aliases):
     binary = argv[0].split("/")[-1]
 
   if len(argv) > 1 and argv[1] == "--version":
-    print "%s (ganeti) %s" % (binary, constants.RELEASE_VERSION)
+    ToStdout("%s (ganeti) %s", binary, constants.RELEASE_VERSION)
     # Quit right away. That way we don't have to care about this special
     # argument. optparse.py does it the same.
     sys.exit(0)
@@ -345,22 +347,27 @@ def _ParseArgs(argv, commands, aliases):
     # let's do a nice thing
     sortedcmds = commands.keys()
     sortedcmds.sort()
-    print ("Usage: %(bin)s {command} [options...] [argument...]"
-           "\n%(bin)s <command> --help to see details, or"
-           " man %(bin)s\n" % {"bin": binary})
+
+    ToStdout("Usage: %s {command} [options...] [argument...]", binary)
+    ToStdout("%s <command> --help to see details, or man %s", binary, binary)
+    ToStdout("")
+
     # compute the max line length for cmd + usage
     mlen = max([len(" %s" % cmd) for cmd in commands])
     mlen = min(60, mlen) # should not get here...
+
     # and format a nice command list
-    print "Commands:"
+    ToStdout("Commands:")
     for cmd in sortedcmds:
       cmdstr = " %s" % (cmd,)
       help_text = commands[cmd][4]
-      help_lines = textwrap.wrap(help_text, 79-3-mlen)
-      print "%-*s - %s" % (mlen, cmdstr, help_lines.pop(0))
+      help_lines = textwrap.wrap(help_text, 79 - 3 - mlen)
+      ToStdout("%-*s - %s", mlen, cmdstr, help_lines.pop(0))
       for line in help_lines:
-        print "%-*s   %s" % (mlen, "", line)
-    print
+        ToStdout("%-*s   %s", mlen, "", line)
+
+    ToStdout("")
+
     return None, None, None
 
   # get command, unalias it, and look it up in commands
@@ -385,15 +392,13 @@ def _ParseArgs(argv, commands, aliases):
   options, args = parser.parse_args()
   if nargs is None:
     if len(args) != 0:
-      print >> sys.stderr, ("Error: Command %s expects no arguments" % cmd)
+      ToStderr("Error: Command %s expects no arguments", cmd)
       return None, None, None
   elif nargs < 0 and len(args) != -nargs:
-    print >> sys.stderr, ("Error: Command %s expects %d argument(s)" %
-                         (cmd, -nargs))
+    ToStderr("Error: Command %s expects %d argument(s)", cmd, -nargs)
     return None, None, None
   elif nargs >= 0 and len(args) < nargs:
-    print >> sys.stderr, ("Error: Command %s expects at least %d argument(s)" %
-                         (cmd, nargs))
+    ToStderr("Error: Command %s expects at least %d argument(s)", cmd, nargs)
     return None, None, None
 
   return func, options, args
@@ -438,10 +443,10 @@ def AskUser(text, choices=None):
     choices = [('y', True, 'Perform the operation'),
                ('n', False, 'Do not perform the operation')]
   if not choices or not isinstance(choices, list):
-    raise errors.ProgrammerError("Invalid choiches argument to AskUser")
+    raise errors.ProgrammerError("Invalid choices argument to AskUser")
   for entry in choices:
     if not isinstance(entry, tuple) or len(entry) < 3 or entry[0] == '?':
-      raise errors.ProgrammerError("Invalid choiches element to AskUser")
+      raise errors.ProgrammerError("Invalid choices element to AskUser")
 
   answer = choices[-1][1]
   new_text = []
@@ -539,7 +544,7 @@ def PollJob(job_id, cl=None, feedback_fn=None):
           feedback_fn(log_entry[1:])
         else:
           encoded = utils.SafeEncode(message)
-          print "%s %s" % (time.ctime(utils.MergeTime(timestamp)), encoded)
+          ToStdout("%s %s", time.ctime(utils.MergeTime(timestamp)), encoded)
         prev_logmsg_serial = max(prev_logmsg_serial, serial)
 
     # TODO: Handle canceled and archived jobs
@@ -735,8 +740,6 @@ def GenericMain(commands, override=None, aliases=None):
   utils.SetupLogging(constants.LOG_COMMANDS, debug=options.debug,
                      stderr_logging=True, program=binary)
 
-  utils.debug = options.debug
-
   if old_cmdline:
     logging.info("run with arguments '%s'", old_cmdline)
   else:
@@ -747,7 +750,7 @@ def GenericMain(commands, override=None, aliases=None):
   except (errors.GenericError, luxi.ProtocolError,
           JobSubmittedException), err:
     result, err_msg = FormatError(err)
-    logging.exception("Error durring command processing")
+    logging.exception("Error during command processing")
     ToStderr(err_msg)
 
   return result
@@ -994,15 +997,23 @@ class JobExecutor(object):
       cl = GetClient()
     self.cl = cl
     self.verbose = verbose
+    self.jobs = []
 
   def QueueJob(self, name, *ops):
-    """Submit a job for execution.
+    """Record a job for later submit.
 
     @type name: string
     @param name: a description of the job, will be used in WaitJobSet
     """
-    job_id = SendJob(ops, cl=self.cl)
-    self.queue.append((job_id, name))
+    self.queue.append((name, ops))
+
+  def SubmitPending(self):
+    """Submit all pending jobs.
+
+    """
+    results = self.cl.SubmitManyJobs([row[1] for row in self.queue])
+    for ((status, data), (name, _)) in zip(results, self.queue):
+      self.jobs.append((status, data, name))
 
   def GetResults(self):
     """Wait for and return the results of all jobs.
@@ -1013,10 +1024,18 @@ class JobExecutor(object):
         there will be the error message
 
     """
+    if not self.jobs:
+      self.SubmitPending()
     results = []
     if self.verbose:
-      ToStdout("Submitted jobs %s", ", ".join(row[0] for row in self.queue))
-    for jid, name in self.queue:
+      ok_jobs = [row[1] for row in self.jobs if row[0]]
+      if ok_jobs:
+        ToStdout("Submitted jobs %s", ", ".join(ok_jobs))
+    for submit_status, jid, name in self.jobs:
+      if not submit_status:
+        ToStderr("Failed to submit job for %s: %s", name, jid)
+        results.append((False, jid))
+        continue
       if self.verbose:
         ToStdout("Waiting for job %s for %s...", jid, name)
       try:
@@ -1041,5 +1060,10 @@ class JobExecutor(object):
     if wait:
       return self.GetResults()
     else:
-      for jid, name in self.queue:
-        ToStdout("%s: %s", jid, name)
+      if not self.jobs:
+        self.SubmitPending()
+      for status, result, name in self.jobs:
+        if status:
+          ToStdout("%s: %s", result, name)
+        else:
+          ToStderr("Failure for %s: %s", name, result)

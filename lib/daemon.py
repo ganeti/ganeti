@@ -215,7 +215,7 @@ class Mainloop(object):
 
     """
     for owner in self._signal_wait:
-      owner.OnSignal(signal.SIGCHLD)
+      owner.OnSignal(signum)
 
   def RegisterIO(self, owner, fd, condition):
     """Registers a receiver for I/O notifications

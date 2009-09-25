@@ -26,12 +26,10 @@
 import os
 import os.path
 import time
-import tempfile
 import re
 import platform
 import logging
 import copy
-import random
 
 from ganeti import ssh
 from ganeti import utils
@@ -40,7 +38,6 @@ from ganeti import hypervisor
 from ganeti import locking
 from ganeti import constants
 from ganeti import objects
-from ganeti import opcodes
 from ganeti import serializer
 from ganeti import ssconf
 
@@ -68,7 +65,7 @@ class LogicalUnit(object):
   def __init__(self, processor, op, context, rpc):
     """Constructor for LogicalUnit.
 
-    This needs to be overriden in derived classes in order to check op
+    This needs to be overridden in derived classes in order to check op
     validity.
 
     """
@@ -116,7 +113,7 @@ class LogicalUnit(object):
     CheckPrereq, doing these separate is better because:
 
       - ExpandNames is left as as purely a lock-related function
-      - CheckPrereq is run after we have aquired locks (and possible
+      - CheckPrereq is run after we have acquired locks (and possible
         waited for them)
 
     The function is allowed to change the self.op attribute so that
@@ -454,7 +451,7 @@ def _CheckNodeNotDrained(lu, node):
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
                           memory, vcpus, nics, disk_template, disks,
-                          bep, hvp, hypervisor):
+                          bep, hvp, hypervisor_name):
   """Builds instance related env variables for hooks
 
   This builds the hook environment from individual variables.
@@ -477,15 +474,15 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
   @param nics: list of tuples (ip, bridge, mac) representing
       the NICs the instance  has
   @type disk_template: string
-  @param disk_template: the distk template of the instance
+  @param disk_template: the disk template of the instance
   @type disks: list
   @param disks: the list of (size, mode) pairs
   @type bep: dict
   @param bep: the backend parameters for the instance
   @type hvp: dict
   @param hvp: the hypervisor parameters for the instance
-  @type hypervisor: string
-  @param hypervisor: the hypervisor for the instance
+  @type hypervisor_name: string
+  @param hypervisor_name: the hypervisor for the instance
   @rtype: dict
   @return: the hook environment for this instance
 
@@ -504,7 +501,7 @@ def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
     "INSTANCE_MEMORY": memory,
     "INSTANCE_VCPUS": vcpus,
     "INSTANCE_DISK_TEMPLATE": disk_template,
-    "INSTANCE_HYPERVISOR": hypervisor,
+    "INSTANCE_HYPERVISOR": hypervisor_name,
   }
 
   if nics:
@@ -568,7 +565,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
     'disks': [(disk.size, disk.mode) for disk in instance.disks],
     'bep': bep,
     'hvp': hvp,
-    'hypervisor': instance.hypervisor,
+    'hypervisor_name': instance.hypervisor,
   }
   if override:
     args.update(override)
@@ -592,10 +589,10 @@ def _AdjustCandidatePool(lu):
 
 
 def _CheckInstanceBridgesExist(lu, instance):
-  """Check that the brigdes needed by an instance exist.
+  """Check that the bridges needed by an instance exist.
 
   """
-  # check bridges existance
+  # check bridges existence
   brlist = [nic.bridge for nic in instance.nics]
   result = lu.rpc.call_bridges_exist(instance.primary_node, brlist)
   result.Raise()
@@ -616,7 +613,7 @@ class LUDestroyCluster(NoHooksLU):
 
     This checks whether the cluster is empty.
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     master = self.cfg.GetMasterNode()
@@ -669,7 +666,7 @@ class LUVerifyCluster(LogicalUnit):
     Test list:
 
       - compares ganeti version
-      - checks vg existance and size > 20G
+      - checks vg existence and size > 20G
       - checks config file checksum
       - checks ssh to other nodes
 
@@ -908,7 +905,7 @@ class LUVerifyCluster(LogicalUnit):
           if bep[constants.BE_AUTO_BALANCE]:
             needed_mem += bep[constants.BE_MEMORY]
         if nodeinfo['mfree'] < needed_mem:
-          feedback_fn("  - ERROR: not enough memory on node %s to accomodate"
+          feedback_fn("  - ERROR: not enough memory on node %s to accommodate"
                       " failovers should node %s fail" % (node, prinode))
           bad = True
     return bad
@@ -927,7 +924,7 @@ class LUVerifyCluster(LogicalUnit):
   def BuildHooksEnv(self):
     """Build hooks env.
 
-    Cluster-Verify hooks just rone in the post phase and their failure makes
+    Cluster-Verify hooks just ran in the post phase and their failure makes
     the output be logged in the verify output and the verification to fail.
 
     """
@@ -1194,7 +1191,7 @@ class LUVerifyCluster(LogicalUnit):
     return not bad
 
   def HooksCallBack(self, phase, hooks_results, feedback_fn, lu_result):
-    """Analize the post-hooks' result
+    """Analyze the post-hooks' result
 
     This method analyses the hook result, handles it, and sends some
     nicely-formatted feedback back to the user.
@@ -1293,7 +1290,6 @@ class LUVerifyDisks(NoHooksLU):
 
     node_lvs = self.rpc.call_volume_list(nodes, vg_name)
 
-    to_act = set()
     for node in nodes:
       # node_volume
       lvs = node_lvs[node]
@@ -1536,7 +1532,7 @@ def _RecursiveCheckIfLVMBased(disk):
 
   @type disk: L{objects.Disk}
   @param disk: the disk to check
-  @rtype: booleean
+  @rtype: boolean
   @return: boolean indicating whether a LD_LV dev_type was found or not
 
   """
@@ -1642,6 +1638,13 @@ class LUSetClusterParams(LogicalUnit):
 
     if self.op.enabled_hypervisors is not None:
       self.hv_list = self.op.enabled_hypervisors
+      if not self.hv_list:
+        raise errors.OpPrereqError("Enabled hypervisors list must contain at"
+                                   " least one member")
+      invalid_hvs = set(self.hv_list) - constants.HYPER_TYPES
+      if invalid_hvs:
+        raise errors.OpPrereqError("Enabled hypervisors contains invalid"
+                                   " entries: %s" % invalid_hvs)
     else:
       self.hv_list = cluster.enabled_hypervisors
 
@@ -1937,7 +1940,7 @@ class LURemoveNode(LogicalUnit):
      - it does not have primary or secondary instances
      - it's not the master
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.node_name))
@@ -2258,7 +2261,7 @@ class LUAddNode(LogicalUnit):
      - it is resolvable
      - its parameters (single/dual homed) matches the cluster
 
-    Any errors are signalled by raising errors.OpPrereqError.
+    Any errors are signaled by raising errors.OpPrereqError.
 
     """
     node_name = self.op.node_name
@@ -2312,7 +2315,7 @@ class LUAddNode(LogicalUnit):
         raise errors.OpPrereqError("The master has a private ip but the"
                                    " new node doesn't have one")
 
-    # checks reachablity
+    # checks reachability
     if not utils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
       raise errors.OpPrereqError("Node not reachable by ping")
 
@@ -2403,7 +2406,8 @@ class LUAddNode(LogicalUnit):
                                " new node: %s" % msg)
 
     # Add node to our /etc/hosts, and add key to known_hosts
-    utils.AddHostToEtcHosts(new_node.name)
+    if self.cfg.GetClusterInfo().modify_etc_hosts:
+      utils.AddHostToEtcHosts(new_node.name)
 
     if new_node.secondary_ip != new_node.primary_ip:
       result = self.rpc.call_node_has_ip_address(new_node.name,
@@ -2523,12 +2527,16 @@ class LUSetNodeParams(LogicalUnit):
     """
     node = self.node = self.cfg.GetNodeInfo(self.op.node_name)
 
+    if (self.op.master_candidate is not None or
+        self.op.drained is not None or
+        self.op.offline is not None):
+      # we can't change the master's node flags
+      if self.op.node_name == self.cfg.GetMasterNode():
+        raise errors.OpPrereqError("The master role can be changed"
+                                   " only via masterfailover")
+
     if ((self.op.master_candidate == False or self.op.offline == True or
          self.op.drained == True) and node.master_candidate):
-      # we will demote the node from master_candidate
-      if self.op.node_name == self.cfg.GetMasterNode():
-        raise errors.OpPrereqError("The master node has to be a"
-                                   " master candidate, online and not drained")
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
       num_candidates, _ = self.cfg.GetMasterCandidateStats()
       if num_candidates <= cp_size:
@@ -2635,14 +2643,15 @@ class LUQueryClusterInfo(NoHooksLU):
       "master": cluster.master_node,
       "default_hypervisor": cluster.default_hypervisor,
       "enabled_hypervisors": cluster.enabled_hypervisors,
-      "hvparams": dict([(hypervisor, cluster.hvparams[hypervisor])
-                        for hypervisor in cluster.enabled_hypervisors]),
+      "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor_name])
+                        for hypervisor_name in cluster.enabled_hypervisors]),
       "beparams": cluster.beparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "default_bridge": cluster.default_bridge,
       "master_netdev": cluster.master_netdev,
       "volume_group_name": cluster.volume_group_name,
       "file_storage_dir": cluster.file_storage_dir,
+      "tags": list(cluster.GetTags()),
       }
 
     return result
@@ -2814,7 +2823,7 @@ def _StartInstanceDisks(lu, instance, force):
   """Start the disks of an instance.
 
   """
-  disks_ok, dummy = _AssembleInstanceDisks(lu, instance,
+  disks_ok, _ = _AssembleInstanceDisks(lu, instance,
                                            ignore_secondaries=force)
   if not disks_ok:
     _ShutdownInstanceDisks(lu, instance)
@@ -3003,7 +3012,7 @@ class LUStartupInstance(LogicalUnit):
     _CheckNodeOnline(self, instance.primary_node)
 
     bep = self.cfg.GetClusterInfo().FillBE(instance)
-    # check bridges existance
+    # check bridges existence
     _CheckInstanceBridgesExist(self, instance)
 
     remote_info = self.rpc.call_instance_info(instance.primary_node,
@@ -3081,7 +3090,7 @@ class LURebootInstance(LogicalUnit):
 
     _CheckNodeOnline(self, instance.primary_node)
 
-    # check bridges existance
+    # check bridges existence
     _CheckInstanceBridgesExist(self, instance)
 
   def Exec(self, feedback_fn):
@@ -3752,7 +3761,7 @@ class LUFailoverInstance(LogicalUnit):
       self.LogInfo("Not checking memory on the secondary node as"
                    " instance will not be started")
 
-    # check bridge existance
+    # check bridge existence
     brlist = [nic.bridge for nic in instance.nics]
     result = self.rpc.call_bridges_exist(target_node, brlist)
     result.Raise()
@@ -3812,7 +3821,7 @@ class LUFailoverInstance(LogicalUnit):
       logging.info("Starting instance %s on node %s",
                    instance.name, target_node)
 
-      disks_ok, dummy = _AssembleInstanceDisks(self, instance,
+      disks_ok, _ = _AssembleInstanceDisks(self, instance,
                                                ignore_secondaries=True)
       if not disks_ok:
         _ShutdownInstanceDisks(self, instance)
@@ -3890,7 +3899,7 @@ class LUMigrateInstance(LogicalUnit):
                          instance.name, i_be[constants.BE_MEMORY],
                          instance.hypervisor)
 
-    # check bridge existance
+    # check bridge existence
     brlist = [nic.bridge for nic in instance.nics]
     result = self.rpc.call_bridges_exist(target_node, brlist)
     if result.failed or not result.data:
@@ -4326,7 +4335,7 @@ def _GenerateDiskTemplate(lu, template_name,
     if len(secondary_nodes) != 0:
       raise errors.ProgrammerError("Wrong template configuration")
 
-    names = _GenerateUniqueNames(lu, [".disk%d" % i
+    names = _GenerateUniqueNames(lu, [".disk%d" % (base_index + i)
                                       for i in range(disk_count)])
     for idx, disk in enumerate(disk_info):
       disk_index = idx + base_index
@@ -4343,7 +4352,7 @@ def _GenerateDiskTemplate(lu, template_name,
       [primary_node, remote_node] * len(disk_info), instance_name)
 
     names = []
-    for lv_prefix in _GenerateUniqueNames(lu, [".disk%d" % i
+    for lv_prefix in _GenerateUniqueNames(lu, [".disk%d" % (base_index + i)
                                                for i in range(disk_count)]):
       names.append(lv_prefix + "_data")
       names.append(lv_prefix + "_meta")
@@ -4611,6 +4620,12 @@ class LUCreateInstance(LogicalUnit):
         if not utils.IsValidMac(mac.lower()):
           raise errors.OpPrereqError("Invalid MAC address specified: %s" %
                                      mac)
+        else:
+          # or validate/reserve the current one
+          if self.cfg.IsMacInUse(mac):
+            raise errors.OpPrereqError("MAC address %s already in use"
+                                       " in cluster" % mac)
+
       # bridge verification
       bridge = nic.get("bridge", None)
       if bridge is None:
@@ -4749,7 +4764,7 @@ class LUCreateInstance(LogicalUnit):
       disks=[(d["size"], d["mode"]) for d in self.disks],
       bep=self.be_full,
       hvp=self.hv_full,
-      hypervisor=self.op.hypervisor,
+      hypervisor_name=self.op.hypervisor,
     ))
 
     nl = ([self.cfg.GetMasterNode(), self.op.pnode] +
@@ -5568,7 +5583,6 @@ class LUReplaceDisks(LogicalUnit):
     logging.debug("Allocated minors %s" % (minors,))
     self.proc.LogStep(4, steps_total, "changing drbd configuration")
     for idx, (dev, new_minor) in enumerate(zip(instance.disks, minors)):
-      size = dev.size
       info("activating a new drbd on %s for disk/%d" % (new_node, idx))
       # create new devices on new_node; note that we create two IDs:
       # one without port, so the drbd will be activated without
@@ -6103,7 +6117,7 @@ class LUSetInstanceParams(LogicalUnit):
     This only checks the instance list against the existing names.
 
     """
-    force = self.force = self.op.force
+    self.force = self.op.force
 
     # checking the new params on the primary/secondary nodes
 
@@ -6426,7 +6440,7 @@ class LUExportInstance(LogicalUnit):
     # remove it from its current node. In the future we could fix this by:
     #  - making a tasklet to search (share-lock all), then create the new one,
     #    then one to remove, after
-    #  - removing the removal operation altoghether
+    #  - removing the removal operation altogether
     self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
   def DeclareLocks(self, level):
@@ -6932,7 +6946,7 @@ class IAllocator(object):
         "master_candidate": ninfo.master_candidate,
         }
 
-      if not ninfo.offline:
+      if not (ninfo.offline or ninfo.drained):
         nresult.Raise()
         if not isinstance(nresult.data, dict):
           raise errors.OpExecError("Can't get data for node %s" % nname)
@@ -7089,7 +7103,6 @@ class IAllocator(object):
     """
     if call_fn is None:
       call_fn = self.lu.rpc.call_iallocator_runner
-    data = self.in_text
 
     result = call_fn(self.lu.cfg.GetMasterNode(), name, self.in_text)
     result.Raise()

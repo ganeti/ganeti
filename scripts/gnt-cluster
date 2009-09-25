@@ -93,11 +93,6 @@ def InitCluster(opts, args):
         hvparams[hv][parameter] = constants.HVC_DEFAULTS[hv][parameter]
     utils.ForceDictType(hvparams[hv], constants.HVS_PARAMETER_TYPES)
 
-  for hv in hvlist:
-    if hv not in constants.HYPER_TYPES:
-      ToStderr("invalid hypervisor: %s", hv)
-      return 1
-
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -110,6 +105,7 @@ def InitCluster(opts, args):
                         hvparams=hvparams,
                         beparams=beparams,
                         candidate_pool_size=opts.candidate_pool_size,
+                        modify_etc_hosts=opts.modify_etc_hosts,
                         )
   return 0
 
@@ -231,6 +227,13 @@ def ShowClusterConfig(opts, args):
 
   ToStdout("Architecture (this node): %s (%s)",
            result["architecture"][0], result["architecture"][1])
+
+  if result["tags"]:
+    tags = ", ".join(utils.NiceSort(result["tags"]))
+  else:
+    tags = "(none)"
+
+  ToStdout("Tags: %s", tags)
 
   ToStdout("Default hypervisor: %s", result["default_hypervisor"])
   ToStdout("Enabled hypervisors: %s", ", ".join(result["enabled_hypervisors"]))
@@ -585,6 +588,10 @@ commands = {
                         default=constants.DEFAULT_FILE_STORAGE_DIR,),
             make_option("--no-lvm-storage", dest="lvm_storage",
                         help="No support for lvm based instances"
+                             " (cluster-wide)",
+                        action="store_false", default=True,),
+            make_option("--no-etc-hosts", dest="modify_etc_hosts",
+                        help="Don't modify /etc/hosts"
                              " (cluster-wide)",
                         action="store_false", default=True,),
             make_option("--enabled-hypervisors", dest="enabled_hypervisors",

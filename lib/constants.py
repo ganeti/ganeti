@@ -224,6 +224,7 @@ DDM_REMOVE = 'remove'
 # common exit codes
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
+EXIT_NOTCLUSTER = 5
 EXIT_NOTMASTER = 11
 EXIT_NODESETUP_ERROR = 12
 EXIT_CONFIRMATION = 13 # need user confirmation
@@ -307,6 +308,7 @@ HV_INITRD_PATH = "initrd_path"
 HV_ROOT_PATH = "root_path"
 HV_SERIAL_CONSOLE = "serial_console"
 HV_USB_MOUSE = "usb_mouse"
+HV_DEVICE_MODEL = "device_model"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -325,6 +327,7 @@ HVS_PARAMETER_TYPES = {
   HV_ROOT_PATH: VTYPE_STRING,
   HV_SERIAL_CONSOLE: VTYPE_BOOL,
   HV_USB_MOUSE: VTYPE_STRING,
+  HV_DEVICE_MODEL: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -453,20 +456,24 @@ JOB_STATUS_CANCELED = "canceled"
 JOB_STATUS_SUCCESS = "success"
 JOB_STATUS_ERROR = "error"
 
+# OpCode status
+# not yet finalized
 OP_STATUS_QUEUED = "queued"
 OP_STATUS_WAITLOCK = "waiting"
 OP_STATUS_CANCELING = "canceling"
 OP_STATUS_RUNNING = "running"
+# finalized
 OP_STATUS_CANCELED = "canceled"
 OP_STATUS_SUCCESS = "success"
 OP_STATUS_ERROR = "error"
+OPS_FINALIZED = frozenset([OP_STATUS_CANCELED,
+                           OP_STATUS_SUCCESS,
+                           OP_STATUS_ERROR])
 
 # Execution log types
 ELOG_MESSAGE = "message"
 ELOG_PROGRESS = "progress"
 
-# Temporary RAPI constants until we have cluster parameters
-RAPI_ENABLE = True
 RAPI_PORT = 5080
 
 # max dynamic devices
@@ -505,6 +512,8 @@ HVC_DEFAULTS = {
     HV_VNC_BIND_ADDRESS: '0.0.0.0',
     HV_ACPI: True,
     HV_PAE: True,
+    HV_KERNEL_PATH: "/usr/lib/xen/boot/hvmloader",
+    HV_DEVICE_MODEL: "/usr/lib/xen/bin/qemu-dm",
     },
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",

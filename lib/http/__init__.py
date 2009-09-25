@@ -367,15 +367,12 @@ def SocketOperation(sock, op, arg1, timeout):
   # TODO: event_poll/event_check/override
   if op in (SOCKOP_SEND, SOCKOP_HANDSHAKE):
     event_poll = select.POLLOUT
-    event_check = select.POLLOUT
 
   elif op == SOCKOP_RECV:
     event_poll = select.POLLIN
-    event_check = select.POLLIN | select.POLLPRI
 
   elif op == SOCKOP_SHUTDOWN:
     event_poll = None
-    event_check = None
 
     # The timeout is only used when OpenSSL requests polling for a condition.
     # It is not advisable to have no timeout for shutdown.
@@ -744,7 +741,7 @@ class HttpMessageWriter(object):
   def HasMessageBody(self):
     """Checks whether the HTTP message contains a body.
 
-    Can be overriden by subclasses.
+    Can be overridden by subclasses.
 
     """
     return bool(self._msg.body)
@@ -937,7 +934,7 @@ class HttpMessageReader(object):
   def ParseStartLine(self, start_line):
     """Parses the start line of a message.
 
-    Must be overriden by subclass.
+    Must be overridden by subclass.
 
     @type start_line: string
     @param start_line: Start line string

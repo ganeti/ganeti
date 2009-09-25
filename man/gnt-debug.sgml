@@ -145,7 +145,10 @@
 
       <cmdsynopsis>
         <command>submit-job</command>
-
+        <arg choice="opt">--verbose</arg>
+        <arg choice="opt">--timing-stats</arg>
+        <arg choice="opt">--job-repeat <option>N</option></arg>
+        <arg choice="opt">--op-repeat <option>N</option></arg>
         <arg choice="req" rep="repeat">opcodes_file</arg>
       </cmdsynopsis>
 
@@ -154,6 +157,24 @@
         and submits for each file a job to the master daemon. It can
         be used to test some options that are not available via the
         command line.
+      </para>
+
+      <para>
+        The <option>verbose</option> option will job the job IDs of
+        the submitted jobs and the progress in waiting for the jobs;
+        the <option>timing-stats</option> option will show some
+        overall statistics with the number of total opcodes and jobs
+        submitted, and time time for each stage (submit, exec, total).
+      </para>
+
+      <para>
+        The <option>job-repeat</option> and <option>op-repeat</option>
+        options allow to submit multiple copies of the passed
+        arguments; the job repeat will cause N copies of each job
+        (input file) to be submitted (equivalent to passing the
+        arguments N times) while the op repeat will cause each job to
+        contain multiple copies of the opcodes (equivalent to each
+        file containing N copies of the opcodes).
       </para>
 
     </refsect2>

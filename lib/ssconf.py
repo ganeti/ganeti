@@ -94,12 +94,6 @@ class SimpleConfigWriter(SimpleConfigReader):
   """Simple class to write configuration file.
 
   """
-  def SetMasterNode(self, node):
-    """Change master node.
-
-    """
-    self._config_data["cluster"]["master_node"] = node
-
   def Save(self):
     """Writes configuration file.
 

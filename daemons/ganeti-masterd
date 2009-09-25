@@ -28,13 +28,10 @@ inheritance from parent classes requires it.
 
 
 import os
-import errno
 import sys
 import SocketServer
 import time
 import collections
-import Queue
-import random
 import signal
 import logging
 
@@ -195,6 +192,7 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
 
   def send_message(self, msg):
     #print "sending", msg
+    # TODO: sendall is not guaranteed to send everything
     self.request.sendall(msg + self.EOM)
 
 
@@ -212,6 +210,13 @@ class ClientOps:
       logging.info("Received new job")
       ops = [opcodes.OpCode.LoadOpCode(state) for state in args]
       return queue.SubmitJob(ops)
+
+    if method == luxi.REQ_SUBMIT_MANY_JOBS:
+      logging.info("Received multiple jobs")
+      jobs = []
+      for ops in args:
+        jobs.append([opcodes.OpCode.LoadOpCode(state) for state in ops])
+      return queue.SubmitManyJobs(jobs)
 
     elif method == luxi.REQ_CANCEL_JOB:
       job_id = args
@@ -465,7 +470,6 @@ def main():
   """Main function"""
 
   options, args = ParseOptions()
-  utils.debug = options.debug
   utils.no_fork = True
 
   if options.fork:
@@ -516,7 +520,7 @@ def main():
     rpc.Init()
     try:
       # activate ip
-      master_node = ssconf.SimpleConfigReader().GetMasterNode()
+      master_node = ssconf.SimpleStore().GetMasterNode()
       if not rpc.RpcRunner.call_node_start_master(master_node, False, False):
         logging.error("Can't activate master IP address")
 

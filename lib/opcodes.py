@@ -142,14 +142,9 @@ class OpCode(BaseOpCode):
       raise ValueError("Invalid data to LoadOpcode, missing OP_ID")
     op_id = data["OP_ID"]
     op_class = None
-    for item in globals().values():
-      if (isinstance(item, type) and
-          issubclass(item, cls) and
-          hasattr(item, "OP_ID") and
-          getattr(item, "OP_ID") == op_id):
-        op_class = item
-        break
-    if op_class is None:
+    if op_id in OP_MAPPING:
+      op_class = OP_MAPPING[op_id]
+    else:
       raise ValueError("Invalid data to LoadOpCode: OP_ID %s unsupported" %
                        op_id)
     op = op_class()
@@ -598,3 +593,7 @@ class OpTestAllocator(OpCode):
     "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",
     ]
+
+OP_MAPPING = dict([(v.OP_ID, v) for v in globals().values()
+                   if (isinstance(v, type) and issubclass(v, OpCode) and
+                       hasattr(v, "OP_ID"))])
