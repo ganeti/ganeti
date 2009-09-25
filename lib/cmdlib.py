@@ -2431,7 +2431,8 @@ class LUAddNode(LogicalUnit):
                                  " for remote verification" % verifier)
       if result[verifier].data['nodelist']:
         for failed in result[verifier].data['nodelist']:
-          feedback_fn("ssh/hostname verification failed %s -> %s" %
+          feedback_fn("ssh/hostname verification failed"
+                      " (checking from %s): %s" %
                       (verifier, result[verifier].data['nodelist'][failed]))
         raise errors.OpExecError("ssh/hostname verification failed.")
 
