@@ -178,17 +178,16 @@ class ConfigWriter:
     existing.update([i.uuid for i in self._AllUUIDObjects() if i.uuid])
     return existing
 
-  @locking.ssynchronized(_config_lock, shared=1)
-  def GenerateUniqueID(self, exceptions=None):
-    """Generate an unique disk name.
+  def _GenerateUniqueID(self, exceptions=None):
+    """Generate an unique UUID.
 
     This checks the current node, instances and disk names for
     duplicates.
 
-    @param exceptions: a list with some other names which should be checked
-        for uniqueness (used for example when you want to get
-        more than one id at one time without adding each one in
-        turn to the config file)
+    @param exceptions: a list with some other names which should be
+        checked for uniqueness (used for example when you want to get
+        more than one id at one time without adding each one in turn
+        to the config file)
 
     @rtype: string
     @return: the unique id
@@ -207,6 +206,15 @@ class ConfigWriter:
                                       " (last tried ID: %s" % unique_id)
     self._temporary_ids.add(unique_id)
     return unique_id
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GenerateUniqueID(self, exceptions=None):
+    """Generate an unique ID.
+
+    This is just a wrapper over the unlocked version.
+
+    """
+    return self._GenerateUniqueID(exceptions=exceptions)
 
   def _CleanupTemporaryIDs(self):
     """Cleanups the _temporary_ids structure.
@@ -727,7 +735,10 @@ class ConfigWriter:
     for nic in instance.nics:
       if nic.mac in all_macs:
         raise errors.ConfigurationError("Cannot add instance %s:"
-          " MAC address '%s' already in use." % (instance.name, nic.mac))
+                                        " MAC address '%s' already in use." %
+                                        (instance.name, nic.mac))
+
+    self._EnsureUUID(instance)
 
     instance.serial_no = 1
     instance.ctime = instance.mtime = time.time()
@@ -737,6 +748,18 @@ class ConfigWriter:
     for nic in instance.nics:
       self._temporary_macs.discard(nic.mac)
     self._WriteConfig()
+
+  def _EnsureUUID(self, item):
+    """Ensures a given object has a valid UUID.
+
+    @param item: the instance or node to be checked
+
+    """
+    if not item.uuid:
+      item.uuid = self._GenerateUniqueID()
+    elif item.uuid in self._AllIDs(temporary=True):
+      raise errors.ConfigurationError("Cannot add '%s': UUID already in use" %
+                                      (item.name, item.uuid))
 
   def _SetInstanceStatus(self, instance_name, status):
     """Set the instance's status to a given value.
@@ -882,6 +905,8 @@ class ConfigWriter:
 
     """
     logging.info("Adding node %s to configuration" % node.name)
+
+    self._EnsureUUID(node)
 
     node.serial_no = 1
     node.ctime = node.mtime = time.time()
@@ -1110,7 +1135,7 @@ class ConfigWriter:
     modified = False
     for item in self._AllUUIDObjects():
       if item.uuid is None:
-        item.uuid = self.GenerateUniqueID()
+        item.uuid = self._GenerateUniqueID()
         modified = True
     if modified:
       self._WriteConfig()

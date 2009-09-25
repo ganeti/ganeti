@@ -244,6 +244,8 @@ def InitCluster(cluster_name, mac_prefix,
 
   _InitSSHSetup()
 
+  now = time.time()
+
   # init of cluster config file
   cluster_config = objects.Cluster(
     serial_no=1,
@@ -263,6 +265,9 @@ def InitCluster(cluster_name, mac_prefix,
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
     modify_etc_hosts=modify_etc_hosts,
+    ctime=now,
+    mtime=now,
+    uuid=utils.NewUUID(),
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
