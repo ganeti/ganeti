@@ -29,11 +29,8 @@ It uses UDP+HMAC for authentication with a global cluster key.
 import os
 import sys
 import logging
-import asyncore
-import socket
 import pyinotify
 import time
-import errno
 
 from optparse import OptionParser
 
