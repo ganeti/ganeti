@@ -1,3 +1,41 @@
+Version 2.0.4
+  - Fixed many wrong messages
+  - Fixed a few bugs related to the locking library
+  - Fixed MAC checking at instance creation time
+  - Fixed a DRBD parsing bug related to gaps in /proc/drbd
+  - Fixed a few issues related to signal handling in both daemons and
+    scripts
+  - Fixed the example startup script provided
+  - Fixed insserv dependencies in the example startup script (patch
+    from Debian)
+  - Fixed handling of drained nodes in the iallocator framework
+  - Fixed handling of KERNEL_PATH parameter for xen-hvm (Debian bug
+    #528618)
+  - Fixed error related to invalid job IDs in job polling
+  - Fixed job/opcode persistence on unclean master shutdown
+  - Fixed handling of partial job processing after unclean master
+    shutdown
+  - Fixed error reporting from burnin
+  - Decreased significantly the memory usage of the job queue
+  - Optimised slightly multi-job submission
+  - Optimised slightly opcode loading
+  - Backported the multi-job submit framework from the development
+    branch; multi-instance start and stop should be faster
+  - Added script to clean archived jobs after 21 days; this will
+    reduce the size of the queue directory
+  - Added some extra checks in disk size tracking
+  - Added an example ethers hook script
+  - Added a cluster parameter that prevents Ganeti from modifying of
+    /etc/hosts
+  - Added more node information to RAPI responses
+  - Added a “gnt-job watch” command that allows following the ouput of
+    a job
+  - Added a bind-address option to ganeti-rapi
+  - Added more checks to the configuration verify
+  - Enhanced the burnin script such that some operations can be
+    retried automatically
+  - Converted instance reinstall to multi-instance model
+
 Version 2.0.3
   - Added “--ignore-size” to the “gnt-instance activate-disks” command
     to allow using the pre-2.0.2 behaviour in activation, if any
