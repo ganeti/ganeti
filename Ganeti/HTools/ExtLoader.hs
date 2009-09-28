@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 {-| External data loader
 
 This module holds the external data loading, and thus is the only one
@@ -40,7 +42,9 @@ import System
 import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Luxi as Luxi
+#ifndef NO_CURL
 import qualified Ganeti.HTools.Rapi as Rapi
+#endif
 import qualified Ganeti.HTools.Simu as Simu
 import qualified Ganeti.HTools.Text as Text
 import qualified Ganeti.HTools.Loader as Loader
@@ -82,13 +86,18 @@ loadExternalData opts = do
       allSet = filter id [setRapi, setLuxi, setFiles]
   when (length allSet > 1) $
        do
-         hPutStrLn stderr "Error: Only one of the rapi, luxi, and data\
-                          \ files options should be given."
+         hPutStrLn stderr ("Error: Only one of the rapi, luxi, and data" ++
+                           " files options should be given.")
          exitWith $ ExitFailure 1
 
   input_data <-
       case () of
-        _ | setRapi -> wrapIO $ Rapi.loadData mhost
+        _ | setRapi ->
+#ifdef NO_CURL
+              return $ Bad "RAPI/curl backend disabled at compile time"
+#else
+              wrapIO $ Rapi.loadData mhost
+#endif
           | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
           | setSim -> Simu.loadData $ fromJust simdata
           | otherwise -> wrapIO $ Text.loadData nodef instf
