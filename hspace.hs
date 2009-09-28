@@ -43,6 +43,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
+import Ganeti.HTools.ExtLoader
 
 -- | Options list and functions
 options :: [OptType]

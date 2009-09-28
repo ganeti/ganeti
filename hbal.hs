@@ -40,6 +40,7 @@ import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.CLI
+import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Utils
 
 -- | Options list and functions

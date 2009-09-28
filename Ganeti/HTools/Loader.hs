@@ -1,6 +1,7 @@
-{-| Loading data from external sources
+{-| Generic data loader
 
-This module holds the common code for loading the cluster state from external sources.
+This module holds the common code for parsing the input data after it
+has been loaded from external sources.
 
 -}
 
