@@ -74,17 +74,20 @@ fi
 make $make_args install DESTDIR="$TXD"
 
 # copy additional needed files
+[ -f doc/examples/ganeti.initd ] && \
 install -D --mode=0755 doc/examples/ganeti.initd \
   "$TXD/$SYSCONFDIR/init.d/ganeti"
 
+[ -f doc/examples/bash_completion ] && \
 install -D --mode=0644 doc/examples/bash_completion \
   "$TXD/$SYSCONFDIR/bash_completion.d/ganeti"
 
-if [ -z "$NO_CRON" ]; then
+if [ -f doc/examples/ganeti.cron -a -z "$NO_CRON" ]; then
   install -D --mode=0644 doc/examples/ganeti.cron \
     "$TXD/$SYSCONFDIR/cron.d/ganeti"
 fi
 
+[ -f doc/examples/dumb-allocator ] && \
 install -D --mode=0755 doc/examples/dumb-allocator \
   "$TXD/$PKGLIBDIR/iallocators/dumb"
 
