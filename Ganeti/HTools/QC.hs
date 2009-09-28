@@ -257,7 +257,7 @@ prop_Score_Zero node count =
         score = Cluster.compCV nl
     -- we can't say == 0 here as the floating point errors accumulate;
     -- this should be much lower than the default score in CLI.hs
-    in score > 1e-15
+    in score <= 1e-15
 
 test_Cluster =
     [ run prop_Score_Zero
