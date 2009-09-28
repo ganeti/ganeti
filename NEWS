@@ -1,3 +1,14 @@
+Version 0.1.7 (Mon, 28 Sep 2009):
+  - Fixed a bug in the Luxi backend for big responses
+  - Fixed test suite exit code in presence of test failures
+  - Changed the migrate operation to run instead failover for instances
+    which were marked as not running in the input data (this could have
+    been changed since then, but it's better than today's always
+    migrate)
+  - Added support for 'cheap' moves only (only migrate/failover) in
+    balancing
+  - Added support for building without curl (thus no RAPI backend)
+
 Version 0.1.6 (Wed, 19 Aug 2009):
   - Added support for Luxi (the native Ganeti protocol)
   - Added support for simulated clusters (for hspace only)
