@@ -5,7 +5,7 @@ HDDIR = apidoc
 
 DOCS = README.html NEWS.html
 
-HFLAGS = -O2 -W -fwarn-monomorphism-restriction -fwarn-tabs
+HFLAGS = -O2 -Wall -Werror -fwarn-monomorphism-restriction -fwarn-tabs
 HEXTRA =
 
 HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
@@ -17,7 +17,7 @@ all: $(HPROGS)
 $(HALLPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
 	ghc --make $(HFLAGS) $(HEXTRA) $@
 
-test: HEXTRA=-fhpc
+test: HEXTRA=-fhpc -Wwarn
 
 $(DOCS) : %.html : %
 	rst2html $< $@

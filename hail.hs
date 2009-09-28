@@ -47,14 +47,14 @@ options :: [OptType]
 options = [oShowVer, oShowHelp]
 
 processResults :: (Monad m) => Cluster.AllocSolution -> m (String, [Node.Node])
-processResults (fstats, succ, sols) =
+processResults (fstats, successes, sols) =
     case sols of
       Nothing -> fail "No valid allocation solutions"
       Just (best, (_, _, w)) ->
           let tfails = length fstats
               info = printf "successes %d, failures %d,\
                             \ best score: %.8f for node(s) %s"
-                            succ tfails
+                            successes tfails
                             best (intercalate "/" . map Node.name $ w)::String
           in return (info, w)
 
@@ -90,8 +90,8 @@ main = do
       sols = processRequest request >>= processResults
   let (ok, info, rn) =
           case sols of
-            Ok (info, sn) -> (True, "Request successful: " ++ info,
-                                  map ((++ csf) . Node.name) sn)
+            Ok (ginfo, sn) -> (True, "Request successful: " ++ ginfo,
+                                   map ((++ csf) . Node.name) sn)
             Bad s -> (False, "Request failed: " ++ s, [])
       resp = formatResponse ok info rn
   putStrLn resp

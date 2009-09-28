@@ -88,11 +88,11 @@ instance Arbitrary Node.Node where
       return n'
 
 -- | Make sure add is idempotent
-prop_PeerMap_addIdempotent pmap key elem =
+prop_PeerMap_addIdempotent pmap key em =
     fn puniq == fn (fn puniq)
     where _types = (pmap::PeerMap.PeerMap,
-                    key::PeerMap.Key, elem::PeerMap.Elem)
-          fn = PeerMap.add key elem
+                    key::PeerMap.Key, em::PeerMap.Elem)
+          fn = PeerMap.add key em
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure remove is idempotent
@@ -109,10 +109,10 @@ prop_PeerMap_findMissing pmap key =
           puniq = PeerMap.accumArray const pmap
 
 -- | Make sure an added item is found
-prop_PeerMap_addFind pmap key elem =
-    PeerMap.find key (PeerMap.add key elem puniq) == elem
+prop_PeerMap_addFind pmap key em =
+    PeerMap.find key (PeerMap.add key em puniq) == em
     where _types = (pmap::PeerMap.PeerMap,
-                    key::PeerMap.Key, elem::PeerMap.Elem)
+                    key::PeerMap.Key, em::PeerMap.Elem)
           puniq = PeerMap.accumArray const pmap
 
 -- | Manual check that maxElem returns the maximum indeed, or 0 for null

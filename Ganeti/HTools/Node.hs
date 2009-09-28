@@ -217,11 +217,11 @@ buildPeers t il =
 
 -- | Assigns an instance to a node as primary without other updates.
 setPri :: Node -> T.Idx -> Node
-setPri t idx = t { plist = idx:plist t }
+setPri t ix = t { plist = ix:plist t }
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> T.Idx -> Node
-setSec t idx = t { slist = idx:slist t }
+setSec t ix = t { slist = ix:slist t }
 
 -- | Add primary cpus to a node
 addCpus :: Node -> Int -> Node

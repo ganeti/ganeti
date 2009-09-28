@@ -81,7 +81,7 @@ meanValue lst = sum lst / fromIntegral (length lst)
 stdDev :: Floating a => [a] -> a
 stdDev lst =
     let mv = meanValue lst
-        av = foldl' (\accu elem -> let d = elem - mv in accu + d * d) 0.0 lst
+        av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
         bv = sqrt (av / fromIntegral (length lst))
     in bv
 

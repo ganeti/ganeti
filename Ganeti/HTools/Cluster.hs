@@ -431,10 +431,10 @@ checkMove nodes_idx disk_moves ini_tbl victims =
         -- iterate over all instances, computing the best move
         best_tbl =
             foldl'
-            (\ step_tbl elem ->
-                 if Instance.snode elem == Node.noSecondary then step_tbl
+            (\ step_tbl em ->
+                 if Instance.snode em == Node.noSecondary then step_tbl
                     else compareTables step_tbl $
-                         checkInstanceMove nodes_idx disk_moves ini_tbl elem)
+                         checkInstanceMove nodes_idx disk_moves ini_tbl em)
             ini_tbl victims
         Table _ _ _ best_plc = best_tbl
     in
@@ -478,9 +478,9 @@ collapseFailures flst =
 -- | Update current Allocation solution and failure stats with new
 -- elements
 concatAllocs :: AllocSolution -> OpResult AllocElement -> AllocSolution
-concatAllocs (flst, succ, sols) (OpFail reason) = (reason:flst, succ, sols)
+concatAllocs (flst, cntok, sols) (OpFail reason) = (reason:flst, cntok, sols)
 
-concatAllocs (flst, succ, osols) (OpGood ns@(nl, _, _)) =
+concatAllocs (flst, cntok, osols) (OpGood ns@(nl, _, _)) =
     let nscore = compCV nl
         -- Choose the old or new solution, based on the cluster score
         nsols = case osols of
@@ -489,7 +489,7 @@ concatAllocs (flst, succ, osols) (OpGood ns@(nl, _, _)) =
                       if oscore < nscore
                       then osols
                       else Just (nscore, ns)
-        nsuc = succ + 1
+        nsuc = cntok + 1
     -- Note: we force evaluation of nsols here in order to keep the
     -- memory profile low - we know that we will need nsols for sure
     -- in the next cycle, so we force evaluation of nsols, since the
@@ -539,11 +539,11 @@ tryReloc nl il xid 1 ex_idx =
         valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
         sols1 = foldl' (\cstate x ->
-                            let elem = do
+                            let em = do
                                   (mnl, i, _, _) <-
                                       applyMove nl inst (ReplaceSecondary x)
                                   return (mnl, i, [Container.find x mnl])
-                            in concatAllocs cstate elem
+                            in concatAllocs cstate em
                        ) ([], 0, Nothing) valid_idxes
     in return sols1
 
