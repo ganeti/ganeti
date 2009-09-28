@@ -69,6 +69,131 @@ class _ThreadedTestCase(unittest.TestCase):
     self.threads = []
 
 
+class TestPipeCondition(_ThreadedTestCase):
+  """_PipeCondition tests"""
+
+  def setUp(self):
+    _ThreadedTestCase.setUp(self)
+    self.lock = threading.Lock()
+    self.cond = locking._PipeCondition(self.lock)
+    self.done = Queue.Queue(0)
+
+  def testAcquireRelease(self):
+    self.assert_(not self.cond._is_owned())
+    self.assertRaises(RuntimeError, self.cond.wait)
+    self.assertRaises(RuntimeError, self.cond.notifyAll)
+
+    self.cond.acquire()
+    self.assert_(self.cond._is_owned())
+    self.cond.notifyAll()
+    self.assert_(self.cond._is_owned())
+    self.cond.release()
+
+    self.assert_(not self.cond._is_owned())
+    self.assertRaises(RuntimeError, self.cond.wait)
+    self.assertRaises(RuntimeError, self.cond.notifyAll)
+
+  def testNotification(self):
+    def _NotifyAll():
+      self.cond.acquire()
+      self.cond.notifyAll()
+      self.cond.release()
+
+    self.cond.acquire()
+    self._addThread(target=_NotifyAll)
+    self.cond.wait()
+    self.assert_(self.cond._is_owned())
+    self.cond.release()
+    self.assert_(not self.cond._is_owned())
+
+  def _TestWait(self, fn):
+    self._addThread(target=fn)
+    self._addThread(target=fn)
+    self._addThread(target=fn)
+
+    # Wait for threads to be waiting
+    self.assertEqual(self.done.get(True, 1), "A")
+    self.assertEqual(self.done.get(True, 1), "A")
+    self.assertEqual(self.done.get(True, 1), "A")
+
+    self.assertRaises(Queue.Empty, self.done.get_nowait)
+
+    self.cond.acquire()
+    self.assertEqual(self.cond._nwaiters, 3)
+    # This new thread can"t acquire the lock, and thus call wait, before we
+    # release it
+    self._addThread(target=fn)
+    self.cond.notifyAll()
+    self.assertRaises(Queue.Empty, self.done.get_nowait)
+    self.cond.release()
+
+    # We should now get 3 W and 1 A (for the new thread) in whatever order
+    w = 0
+    a = 0
+    for i in range(4):
+      got = self.done.get(True, 1)
+      if got == "W":
+        w += 1
+      elif got == "A":
+        a += 1
+      else:
+        self.fail("Got %s on the done queue" % got)
+
+    self.assertEqual(w, 3)
+    self.assertEqual(a, 1)
+
+    self.cond.acquire()
+    self.cond.notifyAll()
+    self.cond.release()
+    self._waitThreads()
+    self.assertEqual(self.done.get_nowait(), "W")
+    self.assertRaises(Queue.Empty, self.done.get_nowait)
+
+  def testBlockingWait(self):
+    def _BlockingWait():
+      self.cond.acquire()
+      self.done.put("A")
+      self.cond.wait()
+      self.cond.release()
+      self.done.put("W")
+
+    self._TestWait(_BlockingWait)
+
+  def testLongTimeoutWait(self):
+    def _Helper():
+      self.cond.acquire()
+      self.done.put("A")
+      self.cond.wait(15.0)
+      self.cond.release()
+      self.done.put("W")
+
+    self._TestWait(_Helper)
+
+  def _TimeoutWait(self, timeout, check):
+    self.cond.acquire()
+    self.cond.wait(timeout)
+    self.cond.release()
+    self.done.put(check)
+
+  def testShortTimeoutWait(self):
+    self._addThread(target=self._TimeoutWait, args=(0.1, "T1"))
+    self._addThread(target=self._TimeoutWait, args=(0.1, "T1"))
+    self._waitThreads()
+    self.assertEqual(self.done.get_nowait(), "T1")
+    self.assertEqual(self.done.get_nowait(), "T1")
+    self.assertRaises(Queue.Empty, self.done.get_nowait)
+
+  def testZeroTimeoutWait(self):
+    self._addThread(target=self._TimeoutWait, args=(0, "T0"))
+    self._addThread(target=self._TimeoutWait, args=(0, "T0"))
+    self._addThread(target=self._TimeoutWait, args=(0, "T0"))
+    self._waitThreads()
+    self.assertEqual(self.done.get_nowait(), "T0")
+    self.assertEqual(self.done.get_nowait(), "T0")
+    self.assertEqual(self.done.get_nowait(), "T0")
+    self.assertRaises(Queue.Empty, self.done.get_nowait)
+
+
 class TestSingleActionPipeCondition(unittest.TestCase):
   """_SingleActionPipeCondition tests"""
 

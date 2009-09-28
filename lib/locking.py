@@ -223,6 +223,122 @@ class _SingleActionPipeCondition(object):
     self._Cleanup()
 
 
+class _PipeCondition(object):
+  """Group-only non-polling condition with counters.
+
+  This condition class uses pipes and poll, internally, to be able to wait for
+  notification with a timeout, without resorting to polling. It is almost
+  compatible with Python's threading.Condition, but only supports notifyAll and
+  non-recursive locks. As an additional features it's able to report whether
+  there are any waiting threads.
+
+  """
+  __slots__ = [
+    "_lock",
+    "_nwaiters",
+    "_pipe",
+    "acquire",
+    "release",
+    ]
+
+  _pipe_class = _SingleActionPipeCondition
+
+  def __init__(self, lock):
+    """Initializes this class.
+
+    """
+    object.__init__(self)
+
+    # Recursive locks are not supported
+    assert not hasattr(lock, "_acquire_restore")
+    assert not hasattr(lock, "_release_save")
+
+    self._lock = lock
+
+    # Export the lock's acquire() and release() methods
+    self.acquire = lock.acquire
+    self.release = lock.release
+
+    self._nwaiters = 0
+    self._pipe = None
+
+  def _is_owned(self):
+    """Check whether lock is owned by current thread.
+
+    """
+    if self._lock.acquire(0):
+      self._lock.release()
+      return False
+
+    return True
+
+  def _check_owned(self):
+    """Raise an exception if the current thread doesn't own the lock.
+
+    """
+    if not self._is_owned():
+      raise RuntimeError("cannot work with un-aquired lock")
+
+  def wait(self, timeout=None):
+    """Wait for a notification.
+
+    @type timeout: float or None
+    @param timeout: Waiting timeout (can be None)
+
+    """
+    self._check_owned()
+
+    if not self._pipe:
+      self._pipe = self._pipe_class()
+
+    # Keep local reference to the pipe. It could be replaced by another thread
+    # notifying while we're waiting.
+    pipe = self._pipe
+
+    assert self._nwaiters >= 0
+    self._nwaiters += 1
+    try:
+      # Get function to wait on the pipe
+      wait_fn = pipe.StartWaiting()
+      try:
+        # Release lock while waiting
+        self.release()
+        try:
+          # Wait for notification
+          wait_fn(timeout)
+        finally:
+          # Re-acquire lock
+          self.acquire()
+      finally:
+        # Destroy pipe if this was the last waiter and the current pipe is
+        # still the same. The same pipe cannot be reused after cleanup.
+        if pipe.DoneWaiting() and pipe == self._pipe:
+          self._pipe = None
+    finally:
+      assert self._nwaiters > 0
+      self._nwaiters -= 1
+
+  def notifyAll(self):
+    """Notify all currently waiting threads.
+
+    """
+    self._check_owned()
+
+    # Notify and forget pipe. A new one will be created on the next call to
+    # wait.
+    if self._pipe is not None:
+      self._pipe.notifyAll()
+      self._pipe = None
+
+  def has_waiting(self):
+    """Returns whether there are active waiters.
+
+    """
+    self._check_owned()
+
+    return bool(self._nwaiters)
+
+
 class _CountingCondition(object):
   """Wrapper for Python's built-in threading.Condition class.
 
