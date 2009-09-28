@@ -409,7 +409,7 @@ class SharedLock(object):
     "__shr",
     ]
 
-  __condition_class = _CountingCondition
+  __condition_class = _PipeCondition
 
   def __init__(self):
     """Construct a new SharedLock.
