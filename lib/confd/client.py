@@ -151,7 +151,9 @@ class ConfdClient:
         client_reply = ConfdUpcallPayload(salt=rsalt,
                                           type=UPCALL_EXPIRE,
                                           orig_request=request,
-                                          extra_args=args)
+                                          extra_args=args,
+                                          client=self,
+                                          )
         self._callback(client_reply)
       else:
         break
@@ -227,7 +229,9 @@ class ConfdClient:
                                         orig_request=request,
                                         server_ip=ip,
                                         server_port=port,
-                                        extra_args=args)
+                                        extra_args=args,
+                                        client=self,
+                                       )
       self._callback(client_reply)
 
     finally:
@@ -263,6 +267,8 @@ class ConfdUpcallPayload(objects.ConfigObject):
   @ivar server_port: answering server port
   @type extra_args: any
   @ivar extra_args: 'args' argument of the SendRequest function
+  @type client: L{ConfdClient}
+  @ivar client: current confd client instance
 
   """
   __slots__ = [
@@ -273,6 +279,7 @@ class ConfdUpcallPayload(objects.ConfigObject):
     "server_ip",
     "server_port",
     "extra_args",
+    "client",
     ]
 
 
