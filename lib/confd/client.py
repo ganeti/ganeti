@@ -101,12 +101,10 @@ class ConfdClient:
     @keyword logger: optional logger for internal conditions
 
     """
-    if not isinstance(peers, list):
-      raise errors.ProgrammerError("peers must be a list")
     if not callable(callback):
       raise errors.ProgrammerError("callback must be callable")
 
-    self._peers = peers
+    self.UpdatePeerList(peers)
     self._hmac_key = hmac_key
     self._socket = ConfdAsyncUDPClient(self)
     self._callback = callback
@@ -117,6 +115,17 @@ class ConfdClient:
 
     if self._confd_port is None:
       self._confd_port = utils.GetDaemonPort(constants.CONFD)
+
+  def UpdatePeerList(self, peers):
+    """Update the list of peers
+
+    @type peers: list
+    @param peers: list of peer nodes
+
+    """
+    if not isinstance(peers, list):
+      raise errors.ProgrammerError("peers must be a list")
+    self._peers = peers
 
   def _PackRequest(self, request, now=None):
     """Prepare a request to be sent on the wire.
