@@ -61,6 +61,15 @@ AC_ARG_WITH([iallocator-search-path],
   [iallocator_search_path="'$libdir/$PACKAGE_NAME/iallocators'"])
 AC_SUBST(IALLOCATOR_SEARCH_PATH, $iallocator_search_path)
 
+# --with-xen-bootloader=...
+AC_ARG_WITH([xen-bootloader],
+  [AS_HELP_STRING([--with-xen-bootloader=PATH],
+    [bootloader for Xen hypervisor (default is empty)]
+  )],
+  [xen_bootloader="$withval"],
+  [xen_bootloader=])
+AC_SUBST(XEN_BOOTLOADER, $xen_bootloader)
+
 # --with-xen-kernel=...
 AC_ARG_WITH([xen-kernel],
   [AS_HELP_STRING([--with-xen-kernel=PATH],

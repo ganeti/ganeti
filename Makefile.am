@@ -377,6 +377,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "SSH_INITD_SCRIPT = '$(SSH_INITD_SCRIPT)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
+	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "FILE_STORAGE_DIR = '$(FILE_STORAGE_DIR)'"; \
@@ -397,6 +398,7 @@ $(REPLACE_VARS_SED): Makefile stamp-directories
 	  echo 's#@BINDIR@#$(bindir)#g'; \
 	  echo 's#@SBINDIR@#$(sbindir)#g'; \
 	  echo 's#@GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
+	  echo 's#@CUSTOM_XEN_BOOTLOADER@#$(XEN_BOOTLOADER)#g'; \
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
 	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
