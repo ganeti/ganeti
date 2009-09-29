@@ -25,18 +25,49 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main(main) where
 
+import Control.Monad
+import Data.IORef
 import Test.QuickCheck.Batch
+import System.IO
+import System.Exit
+
 import Ganeti.HTools.QC
 
+options :: TestOptions
 options = TestOptions
       { no_of_tests         = 500
       , length_of_tests     = 5
       , debug_tests         = False }
 
+
+incIORef :: IORef Int -> IO ()
+incIORef ir = atomicModifyIORef ir (\x -> (x + 1, ()))
+
+-- | Wrapper over a test runner with error counting
+wrapTest :: IORef Int
+         -> (TestOptions -> IO TestResult)
+         -> TestOptions -> IO TestResult
+wrapTest ir t to = do
+    tr <- t to
+    case tr of
+      TestFailed _ _ -> incIORef ir
+      TestAborted _ -> incIORef ir
+      _ -> return ()
+    return tr
+
+main :: IO ()
 main = do
-  runTests "PeerMap" options test_PeerMap
-  runTests "Container" options test_Container
-  runTests "Instance" options test_Instance
-  runTests "Node" options test_Node
-  runTests "Text" options test_Text
-  runTests "Cluster" options test_Cluster
+  errs <- newIORef 0
+  let wrap lst = map (wrapTest errs) lst
+  runTests "PeerMap" options $ wrap test_PeerMap
+  runTests "Container" options $ wrap test_Container
+  runTests "Instance" options $ wrap test_Instance
+  runTests "Node" options $ wrap test_Node
+  runTests "Text" options $ wrap test_Text
+  runTests "Cluster" options $ wrap test_Cluster
+  terr <- readIORef errs
+  (if (terr > 0)
+   then do
+     hPutStrLn stderr $ "A total of " ++ show terr ++ " tests failed."
+     exitWith $ ExitFailure 1
+   else putStrLn "All tests succeeded.")
