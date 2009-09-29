@@ -871,11 +871,10 @@ class TestLockSet(_ThreadedTestCase):
     self.assert_('one' not in self.ls._names())
 
   def testRemoveNonBlocking(self):
-    self.assertRaises(NotImplementedError, self.ls.remove, 'one', blocking=0)
     self.ls.acquire('one')
-    self.assertEquals(self.ls.remove('one', blocking=0), ['one'])
+    self.assertEquals(self.ls.remove('one'), ['one'])
     self.ls.acquire(['two', 'three'])
-    self.assertEquals(self.ls.remove(['two', 'three'], blocking=0),
+    self.assertEquals(self.ls.remove(['two', 'three']),
                       ['two', 'three'])
 
   def testNoDoubleAdd(self):
