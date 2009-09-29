@@ -207,7 +207,6 @@ OP_BACKUP_EXPORT
 
 Exports the instance.
 
-
 :directory: instance-export
 :env. vars: EXPORT_NODE, EXPORT_DO_SHUTDOWN
 :pre-execution: master node, primary and secondary nodes
@@ -219,7 +218,7 @@ OP_INSTANCE_START
 Starts an instance.
 
 :directory: instance-start
-:env. vars: INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARIES, FORCE
+:env. vars: FORCE
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
@@ -229,7 +228,7 @@ OP_INSTANCE_SHUTDOWN
 Stops an instance.
 
 :directory: instance-stop
-:env. vars: INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARIES
+:env. vars: only the standard instance vars
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
@@ -249,7 +248,7 @@ OP_INSTANCE_MODIFY
 Modifies the instance parameters.
 
 :directory: instance-modify
-:env. vars: INSTANCE_NAME, MEM_SIZE, VCPUS, INSTANCE_IP
+:env. vars: only the standard instance vars
 :pre-execution: master node, primary and secondary nodes
 :post-execution: master node, primary and secondary nodes
 
@@ -269,7 +268,7 @@ OP_INSTANCE_MIGRATE
 Migrates an instance.
 
 :directory: instance-migrate
-:env. vars: INSTANCE_MIGRATE_LIVE, INSTANCE_MIGRATE_CLEANUP
+:env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP
 :pre-execution: master node, secondary node
 :post-execution: master node, secondary node
 
@@ -280,7 +279,7 @@ OP_INSTANCE_REMOVE
 Remove an instance.
 
 :directory: instance-remove
-:env. vars: INSTANCE_NAME, INSTANCE_PRIMARY, INSTANCE_SECONDARIES
+:env. vars: only the standard instance vars
 :pre-execution: master node
 :post-execution: master node
 
