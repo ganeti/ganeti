@@ -255,7 +255,9 @@ Modifies the instance parameters.
 OP_INSTANCE_FAILOVER
 ++++++++++++++++++++
 
-Failovers an instance.
+Failovers an instance. In the post phase INSTANCE_PRIMARY and
+INSTANCE_SECONDARIES refer to the nodes that were repectively primary
+and secondary before failover.
 
 :directory: instance-failover
 :env. vars: IGNORE_CONSISTENCY
@@ -265,7 +267,9 @@ Failovers an instance.
 OP_INSTANCE_MIGRATE
 ++++++++++++++++++++
 
-Migrates an instance.
+Migrates an instance. In the post phase INSTANCE_PRIMARY and
+INSTANCE_SECONDARIES refer to the nodes that were repectively primary
+and secondary before migration.
 
 :directory: instance-migrate
 :env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP
