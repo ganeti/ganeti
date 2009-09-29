@@ -3,7 +3,7 @@
 {-| External data loader
 
 This module holds the external data loading, and thus is the only one
-depending (via the specialized Text/Rapi/Luxi modules) on the actual
+depending (via the specialized Text\/Rapi\/Luxi modules) on the actual
 libraries implementing the low-level protocols.
 
 -}

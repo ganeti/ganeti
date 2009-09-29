@@ -34,7 +34,7 @@ doc: $(DOCS) Ganeti/HTools/Version.hs
 		-t ganeti-htools -p haddock-prologue \
 		--source-module="%{MODULE/.//}.html" \
 		--source-entity="%{MODULE/.//}.html#%{NAME}" \
-		$(HSRCS)
+		$(filter-out Ganeti/HTools/ExtLoader.hs,$(HSRCS))
 
 maintainer-clean:
 	rm -rf $(HDDIR)
