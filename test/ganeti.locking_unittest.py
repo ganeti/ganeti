@@ -494,6 +494,9 @@ class TestSharedLock(_ThreadedTestCase):
       # Start thread to hold lock for 20 ms
       self._addThread(target=_LockExclusive, args=(20.0 / 1000.0, ))
 
+      # Wait for sleep to begin
+      self.assertEqual(self.done.get(), "A: start sleep")
+
       # Wait up to 100 ms to get lock
       self.failUnless(self.sl.acquire(shared=shared, timeout=0.1))
       self.done.put("got 2nd")
@@ -501,7 +504,6 @@ class TestSharedLock(_ThreadedTestCase):
 
       self._waitThreads()
 
-      self.assertEqual(self.done.get_nowait(), "A: start sleep")
       self.assertEqual(self.done.get_nowait(), "A: end sleep")
       self.assertEqual(self.done.get_nowait(), "got 2nd")
       self.assertRaises(Queue.Empty, self.done.get_nowait)
@@ -565,8 +567,17 @@ class TestSharedLock(_ThreadedTestCase):
       self._addThread(target=_Acquire, args=(0, "exclusive D"))
 
     # Expect 6 pending exclusive acquires and 1 for all shared acquires
-    # together
-    self.assertEqual(self.sl._count_pending(), 7)
+    # together. There's no way to wait for SharedLock.acquire to start
+    # its work. Hence the timeout of 2 seconds.
+    pending = 0
+    end_time = time.time() + 2.0
+    while time.time() < end_time:
+      pending = self.sl._count_pending()
+      self.assert_(pending >= 0 and pending <= 7)
+      if pending == 7:
+        break
+      time.sleep(0.05)
+    self.assertEqual(pending, 7)
 
     # Release exclusive lock and wait
     self.sl.release()
@@ -574,10 +585,18 @@ class TestSharedLock(_ThreadedTestCase):
     self._waitThreads()
 
     # Check sequence
+    shr_a = 0
+    shr_c = 0
     for _ in xrange(10):
       # Shared locks aren't guaranteed to be notified in order, but they'll be
       # first
-      self.assert_(self.done.get_nowait() in ("shared A", "shared C"))
+      tmp = self.done.get_nowait()
+      if tmp == "shared A":
+        shr_a += 1
+      elif tmp == "shared C":
+        shr_c += 1
+    self.assertEqual(shr_a, 5)
+    self.assertEqual(shr_c, 5)
 
     for _ in xrange(3):
       self.assertEqual(self.done.get_nowait(), "exclusive B")
