@@ -2970,14 +2970,21 @@ class LUSetNodeParams(LogicalUnit):
         raise errors.OpPrereqError("The master role can be changed"
                                    " only via masterfailover")
 
-    if ((self.op.master_candidate == False or self.op.offline == True or
-         self.op.drained == True) and node.master_candidate):
+    # Boolean value that tells us whether we're offlining or draining the node
+    offline_or_drain = self.op.offline == True or self.op.drained == True
+
+    if (node.master_candidate and
+        (self.op.master_candidate == False or offline_or_drain)):
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-      num_candidates, _, _ = self.cfg.GetMasterCandidateStats()
-      if num_candidates <= cp_size:
+      mc_now, mc_should, mc_max = self.cfg.GetMasterCandidateStats()
+      if mc_now <= cp_size:
         msg = ("Not enough master candidates (desired"
-               " %d, new value will be %d)" % (cp_size, num_candidates-1))
-        if self.op.force:
+               " %d, new value will be %d)" % (cp_size, mc_now-1))
+        # Only allow forcing the operation if it's an offline/drain operation,
+        # and we could not possibly promote more nodes.
+        # FIXME: this can still lead to issues if in any way another node which
+        # could be promoted appears in the meantime.
+        if self.op.force and offline_or_drain and mc_should == mc_max:
           self.LogWarning(msg)
         else:
           raise errors.OpPrereqError(msg)
