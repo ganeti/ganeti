@@ -44,6 +44,8 @@ module Ganeti.HTools.Cluster
     , printSolutionLine
     , formatCmds
     , printNodes
+    , involvedNodes
+    , splitJobs
     -- * Balacing functions
     , checkMove
     , tryBalance
@@ -618,16 +620,47 @@ printSolutionLine nl il nmlen imlen plc pos =
        pmlen nstr c moves,
        cmds)
 
+-- | Return the instance and involved nodes in an instance move.
+involvedNodes :: Instance.List -> Placement -> [Ndx]
+involvedNodes il plc =
+    let (i, np, ns, _) = plc
+        inst = Container.find i il
+        op = Instance.pnode inst
+        os = Instance.snode inst
+    in nub [np, ns, op, os]
+
+-- | Inner function for splitJobs, that either appends the next job to
+-- the current jobset, or starts a new jobset.
+mergeJobs :: ([JobSet], [Ndx]) -> MoveJob -> ([JobSet], [Ndx])
+mergeJobs ([], _) n@(ndx, _) = ([[n]], ndx)
+mergeJobs (cjs@(j:js), nbuf) n@(ndx, _)
+    | null (ndx `intersect` nbuf) = ((n:j):js, ndx ++ nbuf)
+    | otherwise = ([n]:cjs, ndx)
+
+-- | Break a list of moves into independent groups. Note that this
+-- will reverse the order of jobs.
+splitJobs :: [MoveJob] -> [JobSet]
+splitJobs = fst . foldl mergeJobs ([], [])
+
 -- | Given a list of commands, prefix them with @gnt-instance@ and
 -- also beautify the display a little.
-formatCmds :: [[String]] -> String
+formatJob :: Int -> Int -> (Int, MoveJob) -> [String]
+formatJob jsn jsl (sn, (_, cmds)) =
+    let out =
+            printf "  echo job %d/%d" jsn sn:
+            printf "  check":
+            map ("  gnt-instance " ++) cmds
+    in if sn == 1
+       then ["", printf "echo jobset %d, %d jobs" jsn jsl] ++ out
+       else out
+
+-- | Given a list of commands, prefix them with @gnt-instance@ and
+-- also beautify the display a little.
+formatCmds :: [JobSet] -> String
 formatCmds =
     unlines .
-    concatMap (\(a, b) ->
-               printf "echo step %d" (a::Int):
-               printf "check":
-               map ("gnt-instance " ++) b
-              ) .
+    concatMap (\(jsn, js) -> concatMap (formatJob jsn (length js))
+                             (zip [1..] js)) .
     zip [1..]
 
 -- | Converts a solution to string format.

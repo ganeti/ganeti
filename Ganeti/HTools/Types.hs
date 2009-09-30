@@ -27,6 +27,8 @@ module Ganeti.HTools.Types
     ( Idx
     , Ndx
     , NameAssoc
+    , MoveJob
+    , JobSet
     , Result(..)
     , Element(..)
     , FailMode(..)
@@ -44,6 +46,13 @@ type Ndx = Int
 
 -- | The type used to hold name-to-idx mappings.
 type NameAssoc = [(String, Int)]
+
+-- | Formatted solution output for one move (involved nodes and
+-- commands
+type MoveJob = ([Ndx], [String])
+
+-- | A list of command elements
+type JobSet = [MoveJob]
 
 -- | Connection timeout (when using non-file methods).
 connTimeout :: Int

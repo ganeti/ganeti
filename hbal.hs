@@ -42,6 +42,7 @@ import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Utils
+import Ganeti.HTools.Types
 
 -- | Options list and functions
 options :: [OptType]
@@ -74,11 +75,11 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Bool             -- ^ Allow disk moves
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
-             -> [[String]]       -- ^ Current command list
+             -> [MoveJob]        -- ^ Current command list
              -> Bool             -- ^ Whether to be silent
              -> Cluster.Score    -- ^ Score at which to stop
-             -> IO (Cluster.Table, [[String]]) -- ^ The resulting table and
-                                               -- commands
+             -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
+                                              -- and commands
 iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
              cmd_strs oneline min_score =
     let Cluster.Table ini_nl ini_il _ _ = ini_tbl
@@ -90,9 +91,11 @@ iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
               let
                   (Cluster.Table _ _ _ fin_plc) = fin_tbl
                   fin_plc_len = length fin_plc
+                  cur_plc = head fin_plc
                   (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
-                                     nmlen imlen (head fin_plc) fin_plc_len
-                  upd_cmd_strs = cmds:cmd_strs
+                                     nmlen imlen cur_plc fin_plc_len
+                  afn = Cluster.involvedNodes ini_il cur_plc
+                  upd_cmd_strs = (afn, cmds):cmd_strs
               unless oneline $ do
                        putStrLn sol_line
                        hFlush stdout
@@ -209,7 +212,7 @@ main = do
   unless (oneline || verbose == 0) $
          printf "Solution length=%d\n" (length ord_plc)
 
-  let cmd_data = Cluster.formatCmds . reverse $ cmd_strs
+  let cmd_data = Cluster.formatCmds . Cluster.splitJobs $ cmd_strs
 
   when (isJust $ optShowCmds opts) $
        do
@@ -218,7 +221,7 @@ main = do
          (if out_path == "-" then
               printf "Commands to run to reach the above solution:\n%s"
                      (unlines . map ("  " ++) .
-                      filter (/= "check") .
+                      filter (/= "  check") .
                       lines $ cmd_data)
           else do
             writeFile out_path (shTemplate ++ cmd_data)
