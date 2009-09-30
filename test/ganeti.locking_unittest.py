@@ -114,11 +114,37 @@ class _ConditionTestCase(_ThreadedTestCase):
     self.assert_(not self.cond._is_owned())
 
 
-class TestPipeCondition(_ConditionTestCase):
-  """_PipeCondition tests"""
+class TestSingleNotifyPipeCondition(_ConditionTestCase):
+  """SingleNotifyPipeCondition tests"""
 
   def setUp(self):
-    _ConditionTestCase.setUp(self, locking._PipeCondition)
+    _ConditionTestCase.setUp(self, locking.SingleNotifyPipeCondition)
+
+  def testAcquireRelease(self):
+    self._testAcquireRelease()
+
+  def testNotification(self):
+    self._testNotification()
+
+  def testWaitReuse(self):
+    self.cond.acquire()
+    self.cond.wait(0)
+    self.cond.wait(0.1)
+    self.cond.release()
+
+  def testNoNotifyReuse(self):
+    self.cond.acquire()
+    self.cond.notifyAll()
+    self.assertRaises(RuntimeError, self.cond.wait)
+    self.assertRaises(RuntimeError, self.cond.notifyAll)
+    self.cond.release()
+
+
+class TestPipeCondition(_ConditionTestCase):
+  """PipeCondition tests"""
+
+  def setUp(self):
+    _ConditionTestCase.setUp(self, locking.PipeCondition)
 
   def testAcquireRelease(self):
     self._testAcquireRelease()
@@ -212,86 +238,6 @@ class TestPipeCondition(_ConditionTestCase):
     self.assertEqual(self.done.get_nowait(), "T0")
     self.assertEqual(self.done.get_nowait(), "T0")
     self.assertRaises(Queue.Empty, self.done.get_nowait)
-
-
-class TestSingleActionPipeCondition(unittest.TestCase):
-  """_SingleActionPipeCondition tests"""
-
-  def setUp(self):
-    self.cond = locking._SingleActionPipeCondition()
-
-  def testInitialization(self):
-    self.assert_(self.cond._read_fd is not None)
-    self.assert_(self.cond._write_fd is not None)
-    self.assert_(self.cond._poller is not None)
-    self.assertEqual(self.cond._nwaiters, 0)
-
-  def testUsageCount(self):
-    self.cond.StartWaiting()
-    self.assert_(self.cond._read_fd is not None)
-    self.assert_(self.cond._write_fd is not None)
-    self.assert_(self.cond._poller is not None)
-    self.assertEqual(self.cond._nwaiters, 1)
-
-    # use again
-    self.cond.StartWaiting()
-    self.assertEqual(self.cond._nwaiters, 2)
-
-    # there is more than one user
-    self.assert_(not self.cond.DoneWaiting())
-    self.assert_(self.cond._read_fd is not None)
-    self.assert_(self.cond._write_fd is not None)
-    self.assert_(self.cond._poller is not None)
-    self.assertEqual(self.cond._nwaiters, 1)
-
-    self.assert_(self.cond.DoneWaiting())
-    self.assertEqual(self.cond._nwaiters, 0)
-    self.assert_(self.cond._read_fd is None)
-    self.assert_(self.cond._write_fd is None)
-    self.assert_(self.cond._poller is None)
-
-  def testNotify(self):
-    wait1 = self.cond.StartWaiting()
-    wait2 = self.cond.StartWaiting()
-
-    self.assert_(self.cond._read_fd is not None)
-    self.assert_(self.cond._write_fd is not None)
-    self.assert_(self.cond._poller is not None)
-
-    self.cond.notifyAll()
-
-    self.assert_(self.cond._read_fd is not None)
-    self.assert_(self.cond._write_fd is None)
-    self.assert_(self.cond._poller is not None)
-
-    self.assert_(not self.cond.DoneWaiting())
-
-    self.assert_(self.cond._read_fd is not None)
-    self.assert_(self.cond._write_fd is None)
-    self.assert_(self.cond._poller is not None)
-
-    self.assert_(self.cond.DoneWaiting())
-
-    self.assert_(self.cond._read_fd is None)
-    self.assert_(self.cond._write_fd is None)
-    self.assert_(self.cond._poller is None)
-
-  def testReusage(self):
-    self.cond.StartWaiting()
-    self.assert_(self.cond._read_fd is not None)
-    self.assert_(self.cond._write_fd is not None)
-    self.assert_(self.cond._poller is not None)
-
-    self.assert_(self.cond.DoneWaiting())
-
-    self.assertRaises(RuntimeError, self.cond.StartWaiting)
-    self.assert_(self.cond._read_fd is None)
-    self.assert_(self.cond._write_fd is None)
-    self.assert_(self.cond._poller is None)
-
-  def testNotifyTwice(self):
-    self.cond.notifyAll()
-    self.assertRaises(RuntimeError, self.cond.notifyAll)
 
 
 class TestSharedLock(_ThreadedTestCase):
