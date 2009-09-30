@@ -33,7 +33,6 @@ module Ganeti.HTools.ExtLoader
     ( loadExternalData
     ) where
 
-import Control.Exception
 import Data.Maybe (isJust, fromJust)
 import Monad
 import System.Posix.Env
@@ -65,7 +64,7 @@ parseEnv () = do
 
 -- | Error beautifier
 wrapIO :: IO (Result a) -> IO (Result a)
-wrapIO = handle (return . Bad . show)
+wrapIO = flip catch (return . Bad . show)
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
