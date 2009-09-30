@@ -34,6 +34,7 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import utils
 from ganeti import serializer
+from ganeti import objects
 
 
 SSCONF_LOCK_TIMEOUT = 10
@@ -101,12 +102,18 @@ class SimpleConfigReader(object):
 
     self._ip_to_instance = {}
     self._instances_ips = []
+    self._inst_ips_by_link = {}
+    c_nparams = self._config_data['cluster']['nicparams'][constants.PP_DEFAULT]
     for iname in self._config_data['instances']:
       instance = self._config_data['instances'][iname]
       for nic in instance['nics']:
         if 'ip' in nic and nic['ip']:
           self._instances_ips.append(nic['ip'])
           self._ip_to_instance[nic['ip']] = iname
+          params = objects.FillDict(c_nparams, nic['nicparams'])
+          if not params['link'] in self._inst_ips_by_link:
+            self._inst_ips_by_link[params['link']] = []
+          self._inst_ips_by_link[params['link']].append(nic['ip'])
 
     self._nodes_primary_ips = []
     self._mc_primary_ips = []
@@ -203,8 +210,13 @@ class SimpleConfigReader(object):
   def GetMasterCandidatesPrimaryIps(self):
     return self._mc_primary_ips
 
-  def GetInstancesIps(self):
-    return self._instances_ips
+  def GetInstancesIps(self, link):
+    if link is None:
+      return self._instances_ips
+    if link in self._inst_ips_by_link:
+      return self._inst_ips_by_link[link]
+    else:
+      return []
 
 
 class SimpleStore(object):
