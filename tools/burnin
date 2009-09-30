@@ -229,10 +229,10 @@ class Burner(object):
 
   def Feedback(self, msg):
     """Acumulate feedback in our buffer."""
-    self._feed_buf.write("%s %s\n" % (time.ctime(utils.MergeTime(msg[0])),
-                                      msg[2]))
+    formatted_msg = "%s %s" % (time.ctime(utils.MergeTime(msg[0])), msg[2])
+    self._feed_buf.write(formatted_msg + "\n")
     if self.opts.verbose:
-      Log(msg, indent=3)
+      Log(formatted_msg, indent=3)
 
   def MaybeRetry(self, retry_count, msg, fn, *args):
     """Possibly retry a given function execution.

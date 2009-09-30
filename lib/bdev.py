@@ -803,6 +803,8 @@ class BaseDRBD(BlockDev):
     results = {}
     old_minor = old_line = None
     for line in data:
+      if not line: # completely empty lines, as can be returned by drbd8.0+
+        continue
       lresult = lmatch.match(line)
       if lresult is not None:
         if old_minor is not None:

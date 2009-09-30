@@ -1594,7 +1594,6 @@ class LURepairDiskSizes(NoHooksLU):
         if full_name is None:
           raise errors.OpPrereqError("Instance '%s' not known" % name)
         self.wanted_names.append(full_name)
-      self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
       self.needed_locks = {
         locking.LEVEL_NODE: [],
         locking.LEVEL_INSTANCE: self.wanted_names,
@@ -1624,6 +1623,29 @@ class LURepairDiskSizes(NoHooksLU):
     self.wanted_instances = [self.cfg.GetInstanceInfo(name) for name
                              in self.wanted_names]
 
+  def _EnsureChildSizes(self, disk):
+    """Ensure children of the disk have the needed disk size.
+
+    This is valid mainly for DRBD8 and fixes an issue where the
+    children have smaller disk size.
+
+    @param disk: an L{ganeti.objects.Disk} object
+
+    """
+    if disk.dev_type == constants.LD_DRBD8:
+      assert disk.children, "Empty children for DRBD8?"
+      fchild = disk.children[0]
+      mismatch = fchild.size < disk.size
+      if mismatch:
+        self.LogInfo("Child disk has size %d, parent %d, fixing",
+                     fchild.size, disk.size)
+        fchild.size = disk.size
+
+      # and we recurse on this child only, not on the metadev
+      return self._EnsureChildSizes(fchild) or mismatch
+    else:
+      return False
+
   def Exec(self, feedback_fn):
     """Verify the size of cluster disks.
 
@@ -1640,7 +1662,10 @@ class LURepairDiskSizes(NoHooksLU):
 
     changed = []
     for node, dskl in per_node_disks.items():
-      result = self.rpc.call_blockdev_getsizes(node, [v[2] for v in dskl])
+      newl = [v[2].Copy() for v in dskl]
+      for dsk in newl:
+        self.cfg.SetDiskID(dsk, node)
+      result = self.rpc.call_blockdev_getsizes(node, newl)
       if result.fail_msg:
         self.LogWarning("Failure in blockdev_getsizes call to node"
                         " %s, ignoring", node)
@@ -1666,6 +1691,9 @@ class LURepairDiskSizes(NoHooksLU):
           disk.size = size
           self.cfg.Update(instance)
           changed.append((instance.name, idx, size))
+        if self._EnsureChildSizes(disk):
+          self.cfg.Update(instance)
+          changed.append((instance.name, idx, disk.size))
     return changed
 
 
@@ -2861,7 +2889,8 @@ class LUAddNode(LogicalUnit):
       nl_payload = result[verifier].payload[constants.NV_NODELIST]
       if nl_payload:
         for failed in nl_payload:
-          feedback_fn("ssh/hostname verification failed %s -> %s" %
+          feedback_fn("ssh/hostname verification failed"
+                      " (checking from %s): %s" %
                       (verifier, nl_payload[failed]))
         raise errors.OpExecError("ssh/hostname verification failed.")
 

@@ -114,10 +114,13 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     """Read in txt data"""
     testutils.GanetiTestCase.setUp(self)
     proc_data = self._TestDataFilename("proc_drbd8.txt")
+    proc80e_data = self._TestDataFilename("proc_drbd80-emptyline.txt")
     proc83_data = self._TestDataFilename("proc_drbd83.txt")
     self.proc_data = bdev.DRBD8._GetProcData(filename=proc_data)
+    self.proc80e_data = bdev.DRBD8._GetProcData(filename=proc80e_data)
     self.proc83_data = bdev.DRBD8._GetProcData(filename=proc83_data)
     self.mass_data = bdev.DRBD8._MassageProcData(self.proc_data)
+    self.mass80e_data = bdev.DRBD8._MassageProcData(self.proc80e_data)
     self.mass83_data = bdev.DRBD8._MassageProcData(self.proc83_data)
 
   def testIOErrors(self):
@@ -131,6 +134,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     """Test not-found-minor in /proc"""
     self.failUnless(9 not in self.mass_data)
     self.failUnless(9 not in self.mass83_data)
+    self.failUnless(3 not in self.mass80e_data)
 
   def testLineNotMatch(self):
     """Test wrong line passed to DRBD8Status"""
@@ -154,7 +158,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def testMinor2(self):
     """Test unconfigured device"""
-    for data in [self.mass_data, self.mass83_data]:
+    for data in [self.mass_data, self.mass83_data, self.mass80e_data]:
       stats = bdev.DRBD8Status(data[2])
       self.failIf(stats.is_in_use)
 

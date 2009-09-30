@@ -227,7 +227,12 @@ class SshRunner:
     remotehostname = retval.stdout.strip()
 
     if not remotehostname or remotehostname != node:
-      return False, "hostname mismatch, got %s" % remotehostname
+      if node.startswith(remotehostname + "."):
+        msg = "hostname not FQDN"
+      else:
+        msg = "hostname mistmatch"
+      return False, ("%s: expected %s but got %s" %
+                     (msg, node, remotehostname))
 
     return True, "host matches"
 
