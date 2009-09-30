@@ -103,6 +103,55 @@ class _SingleActionPipeConditionWaiter(object):
         remaining_time = start_time + timeout - time.time()
 
 
+class _BaseCondition(object):
+  """Base class containing common code for conditions.
+
+  Some of this code is taken from python's threading module.
+
+  """
+  __slots__ = [
+    "_lock",
+    "acquire",
+    "release",
+    ]
+
+  def __init__(self, lock):
+    """Constructor for _BaseCondition.
+
+    @type lock: L{threading.Lock}
+    @param lock: condition base lock
+
+    """
+    object.__init__(self)
+
+    # Recursive locks are not supported
+    assert not hasattr(lock, "_acquire_restore")
+    assert not hasattr(lock, "_release_save")
+
+    self._lock = lock
+
+    # Export the lock's acquire() and release() methods
+    self.acquire = lock.acquire
+    self.release = lock.release
+
+  def _is_owned(self):
+    """Check whether lock is owned by current thread.
+
+    """
+    if self._lock.acquire(0):
+      self._lock.release()
+      return False
+
+    return True
+
+  def _check_owned(self):
+    """Raise an exception if the current thread doesn't own the lock.
+
+    """
+    if not self._is_owned():
+      raise RuntimeError("cannot work with un-aquired lock")
+
+
 class _SingleActionPipeCondition(object):
   """Wrapper around a pipe for usage inside conditions.
 
@@ -223,7 +272,7 @@ class _SingleActionPipeCondition(object):
     self._Cleanup()
 
 
-class _PipeCondition(object):
+class _PipeCondition(_BaseCondition):
   """Group-only non-polling condition with counters.
 
   This condition class uses pipes and poll, internally, to be able to wait for
@@ -233,12 +282,9 @@ class _PipeCondition(object):
   there are any waiting threads.
 
   """
-  __slots__ = [
-    "_lock",
+  __slots__ = _BaseCondition.__slots__ + [
     "_nwaiters",
     "_pipe",
-    "acquire",
-    "release",
     ]
 
   _pipe_class = _SingleActionPipeCondition
@@ -247,37 +293,9 @@ class _PipeCondition(object):
     """Initializes this class.
 
     """
-    object.__init__(self)
-
-    # Recursive locks are not supported
-    assert not hasattr(lock, "_acquire_restore")
-    assert not hasattr(lock, "_release_save")
-
-    self._lock = lock
-
-    # Export the lock's acquire() and release() methods
-    self.acquire = lock.acquire
-    self.release = lock.release
-
+    _BaseCondition.__init__(self, lock)
     self._nwaiters = 0
     self._pipe = None
-
-  def _is_owned(self):
-    """Check whether lock is owned by current thread.
-
-    """
-    if self._lock.acquire(0):
-      self._lock.release()
-      return False
-
-    return True
-
-  def _check_owned(self):
-    """Raise an exception if the current thread doesn't own the lock.
-
-    """
-    if not self._is_owned():
-      raise RuntimeError("cannot work with un-aquired lock")
 
   def wait(self, timeout=None):
     """Wait for a notification.
