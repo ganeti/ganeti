@@ -2979,6 +2979,7 @@ class LUSetNodeParams(LogicalUnit):
 
     # Boolean value that tells us whether we're offlining or draining the node
     offline_or_drain = self.op.offline == True or self.op.drained == True
+    deoffline_or_drain = self.op.offline == False or self.op.drained == False
 
     if (node.master_candidate and
         (self.op.master_candidate == False or offline_or_drain)):
@@ -3001,6 +3002,13 @@ class LUSetNodeParams(LogicalUnit):
          (node.drained and not self.op.drained == False))):
       raise errors.OpPrereqError("Node '%s' is offline or drained, can't set"
                                  " to master_candidate" % node.name)
+
+    # If we're being deofflined/drained, we'll MC ourself if needed
+    if (deoffline_or_drain and not offline_or_drain and not
+        self.op.master_candidate == True):
+      self.op.master_candidate = _DecideSelfPromotion(self)
+      if self.op.master_candidate:
+        self.LogInfo("Autopromoting node to master candidate")
 
     return
 
