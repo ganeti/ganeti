@@ -670,17 +670,17 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   return _BuildInstanceHookEnv(**args)
 
 
-def _AdjustCandidatePool(lu):
+def _AdjustCandidatePool(lu, exceptions):
   """Adjust the candidate pool after node operations.
 
   """
-  mod_list = lu.cfg.MaintainCandidatePool()
+  mod_list = lu.cfg.MaintainCandidatePool(exceptions)
   if mod_list:
     lu.LogInfo("Promoted nodes to master candidate role: %s",
                ", ".join(node.name for node in mod_list))
     for name in mod_list:
       lu.context.ReaddNode(name)
-  mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats()
+  mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats(exceptions)
   if mc_now > mc_max:
     lu.LogInfo("Note: more nodes are candidates (%d) than desired (%d)" %
                (mc_now, mc_max))
@@ -1946,7 +1946,7 @@ class LUSetClusterParams(LogicalUnit):
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
       # we need to update the pool size here, otherwise the save will fail
-      _AdjustCandidatePool(self)
+      _AdjustCandidatePool(self, [])
 
     self.cfg.Update(self.cluster)
 
@@ -2282,6 +2282,8 @@ class LURemoveNode(LogicalUnit):
     logging.info("Stopping the node daemon and removing configs from node %s",
                  node.name)
 
+    # Promote nodes to master candidate as needed
+    _AdjustCandidatePool(self, exceptions=[node.name])
     self.context.RemoveNode(node.name)
 
     # Run post hooks on the node before it's removed
@@ -2296,9 +2298,6 @@ class LURemoveNode(LogicalUnit):
     if msg:
       self.LogWarning("Errors encountered on the remote node while leaving"
                       " the cluster: %s", msg)
-
-    # Promote nodes to master candidate as needed
-    _AdjustCandidatePool(self)
 
 
 class LUQueryNodes(NoHooksLU):

@@ -1044,14 +1044,16 @@ class ConfigWriter:
     return self._UnlockedGetMasterCandidateStats(exceptions)
 
   @locking.ssynchronized(_config_lock)
-  def MaintainCandidatePool(self):
+  def MaintainCandidatePool(self, exceptions):
     """Try to grow the candidate pool to the desired size.
 
+    @type exceptions: list
+    @param exceptions: if passed, list of nodes that should be ignored
     @rtype: list
     @return: list with the adjusted nodes (L{objects.Node} instances)
 
     """
-    mc_now, mc_max, _ = self._UnlockedGetMasterCandidateStats()
+    mc_now, mc_max, _ = self._UnlockedGetMasterCandidateStats(exceptions)
     mod_list = []
     if mc_now < mc_max:
       node_list = self._config_data.nodes.keys()
@@ -1060,7 +1062,8 @@ class ConfigWriter:
         if mc_now >= mc_max:
           break
         node = self._config_data.nodes[name]
-        if node.master_candidate or node.offline or node.drained:
+        if (node.master_candidate or node.offline or node.drained or
+            node.name in exceptions):
           continue
         mod_list.append(node)
         node.master_candidate = True
