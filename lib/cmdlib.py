@@ -686,6 +686,17 @@ def _AdjustCandidatePool(lu, exceptions):
                (mc_now, mc_max))
 
 
+def _DecideSelfPromotion(lu, exceptions=None):
+  """Decide whether I should promote myself as a master candidate.
+
+  """
+  cp_size = lu.cfg.GetClusterInfo().candidate_pool_size
+  mc_now, mc_should, _ = lu.cfg.GetMasterCandidateStats(exceptions)
+  # the new node will increase mc_max with one, so:
+  mc_should = min(mc_should + 1, cp_size)
+  return mc_now < mc_should
+
+
 def _CheckNicsBridgesExist(lu, target_nics, target_node,
                                profile=constants.PP_DEFAULT):
   """Check that the brigdes needed by a list of nics exist.
@@ -2793,15 +2804,12 @@ class LUAddNode(LogicalUnit):
         raise errors.OpPrereqError("Node secondary ip not reachable by TCP"
                                    " based ping to noded port")
 
-    cp_size = self.cfg.GetClusterInfo().candidate_pool_size
     if self.op.readd:
       exceptions = [node]
     else:
       exceptions = []
-    mc_now, mc_max, _ = self.cfg.GetMasterCandidateStats(exceptions)
-    # the new node will increase mc_max with one, so:
-    mc_max = min(mc_max + 1, cp_size)
-    self.master_candidate = mc_now < mc_max
+
+    self.master_candidate = _DecideSelfPromotion(self, exceptions=exceptions)
 
     if self.op.readd:
       self.new_node = self.cfg.GetNodeInfo(node)
