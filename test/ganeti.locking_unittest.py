@@ -70,15 +70,15 @@ class _ThreadedTestCase(unittest.TestCase):
     self.threads = []
 
 
-class TestPipeCondition(_ThreadedTestCase):
-  """_PipeCondition tests"""
+class _ConditionTestCase(_ThreadedTestCase):
+  """Common test case for conditions"""
 
-  def setUp(self):
+  def setUp(self, cls):
     _ThreadedTestCase.setUp(self)
     self.lock = threading.Lock()
-    self.cond = locking._PipeCondition(self.lock)
+    self.cond = cls(self.lock)
 
-  def testAcquireRelease(self):
+  def _testAcquireRelease(self):
     self.assert_(not self.cond._is_owned())
     self.assertRaises(RuntimeError, self.cond.wait)
     self.assertRaises(RuntimeError, self.cond.notifyAll)
@@ -93,7 +93,7 @@ class TestPipeCondition(_ThreadedTestCase):
     self.assertRaises(RuntimeError, self.cond.wait)
     self.assertRaises(RuntimeError, self.cond.notifyAll)
 
-  def testNotification(self):
+  def _testNotification(self):
     def _NotifyAll():
       self.cond.acquire()
       self.cond.notifyAll()
@@ -105,6 +105,19 @@ class TestPipeCondition(_ThreadedTestCase):
     self.assert_(self.cond._is_owned())
     self.cond.release()
     self.assert_(not self.cond._is_owned())
+
+
+class TestPipeCondition(_ConditionTestCase):
+  """_PipeCondition tests"""
+
+  def setUp(self):
+    _ConditionTestCase.setUp(self, locking._PipeCondition)
+
+  def testAcquireRelease(self):
+    self._testAcquireRelease()
+
+  def testNotification(self):
+    self._testNotification()
 
   def _TestWait(self, fn):
     self._addThread(target=fn)
