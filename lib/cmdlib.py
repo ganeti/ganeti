@@ -680,7 +680,7 @@ def _AdjustCandidatePool(lu):
                ", ".join(node.name for node in mod_list))
     for name in mod_list:
       lu.context.ReaddNode(name)
-  mc_now, mc_max = lu.cfg.GetMasterCandidateStats()
+  mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats()
   if mc_now > mc_max:
     lu.LogInfo("Note: more nodes are candidates (%d) than desired (%d)" %
                (mc_now, mc_max))
@@ -2799,7 +2799,7 @@ class LUAddNode(LogicalUnit):
       exceptions = [node]
     else:
       exceptions = []
-    mc_now, mc_max = self.cfg.GetMasterCandidateStats(exceptions)
+    mc_now, mc_max, _ = self.cfg.GetMasterCandidateStats(exceptions)
     # the new node will increase mc_max with one, so:
     mc_max = min(mc_max + 1, cp_size)
     self.master_candidate = mc_now < mc_max
@@ -2973,7 +2973,7 @@ class LUSetNodeParams(LogicalUnit):
     if ((self.op.master_candidate == False or self.op.offline == True or
          self.op.drained == True) and node.master_candidate):
       cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-      num_candidates, _ = self.cfg.GetMasterCandidateStats()
+      num_candidates, _, _ = self.cfg.GetMasterCandidateStats()
       if num_candidates <= cp_size:
         msg = ("Not enough master candidates (desired"
                " %d, new value will be %d)" % (cp_size, num_candidates-1))

@@ -378,7 +378,7 @@ class ConfigWriter:
       result.append("Master node is not a master candidate")
 
     # master candidate checks
-    mc_now, mc_max = self._UnlockedGetMasterCandidateStats()
+    mc_now, mc_max, _ = self._UnlockedGetMasterCandidateStats()
     if mc_now < mc_max:
       result.append("Not enough master candidates: actual %d, target %d" %
                     (mc_now, mc_max))
@@ -1015,10 +1015,10 @@ class ConfigWriter:
     @type exceptions: list
     @param exceptions: if passed, list of nodes that should be ignored
     @rtype: tuple
-    @return: tuple of (current, desired and possible)
+    @return: tuple of (current, desired and possible, possible)
 
     """
-    mc_now = mc_max = 0
+    mc_now = mc_should = mc_max = 0
     for node in self._config_data.nodes.values():
       if exceptions and node.name in exceptions:
         continue
@@ -1026,8 +1026,8 @@ class ConfigWriter:
         mc_max += 1
       if node.master_candidate:
         mc_now += 1
-    mc_max = min(mc_max, self._config_data.cluster.candidate_pool_size)
-    return (mc_now, mc_max)
+    mc_should = min(mc_max, self._config_data.cluster.candidate_pool_size)
+    return (mc_now, mc_should, mc_max)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterCandidateStats(self, exceptions=None):
@@ -1051,7 +1051,7 @@ class ConfigWriter:
     @return: list with the adjusted nodes (L{objects.Node} instances)
 
     """
-    mc_now, mc_max = self._UnlockedGetMasterCandidateStats()
+    mc_now, mc_max, _ = self._UnlockedGetMasterCandidateStats()
     mod_list = []
     if mc_now < mc_max:
       node_list = self._config_data.nodes.keys()
