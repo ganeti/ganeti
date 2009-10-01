@@ -95,13 +95,20 @@ class _ConditionTestCase(_ThreadedTestCase):
 
   def _testNotification(self):
     def _NotifyAll():
+      self.done.put("NE")
       self.cond.acquire()
+      self.done.put("NA")
       self.cond.notifyAll()
+      self.done.put("NN")
       self.cond.release()
 
     self.cond.acquire()
     self._addThread(target=_NotifyAll)
+    self.assertEqual(self.done.get(True, 1), "NE")
+    self.assertRaises(Queue.Empty, self.done.get_nowait)
     self.cond.wait()
+    self.assertEqual(self.done.get(True, 1), "NA")
+    self.assertEqual(self.done.get(True, 1), "NN")
     self.assert_(self.cond._is_owned())
     self.cond.release()
     self.assert_(not self.cond._is_owned())
