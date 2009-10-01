@@ -447,6 +447,9 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertRaises(errors.LockError, self.sl.acquire, shared=1)
     self.assertRaises(errors.LockError, self.sl.delete)
 
+  def testDeleteTimeout(self):
+    self.sl.delete(timeout=60)
+
   def testNoDeleteIfSharer(self):
     self.sl.acquire(shared=1)
     self.assertRaises(AssertionError, self.sl.delete)
