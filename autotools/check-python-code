@@ -31,6 +31,12 @@ for script; do
     echo "Found end-of-line-whitespace in $script" >&2
   fi
 
+  # FIXME: This will also match "foo.xrange(...)"
+  if grep -n -H -E '^[^#]*\<xrange\>' "$script"; then
+    let ++problems
+    echo "Forbidden function 'xrange' used in $script" >&2
+  fi
+
   if [[ "$(wc --max-line-length < "$script")" -gt 80 ]]; then
     let ++problems
     echo "Longest line in $script is longer than 80 characters" >&2

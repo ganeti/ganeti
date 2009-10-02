@@ -31,7 +31,7 @@ variable-rgx = (_?([a-z_][a-z0-9_]*)|([A-Z0-9_]+))$
 inlinevar-rgx = [A-Za-z_][A-Za-z0-9_]*$
 good-names = i,j,k,_
 bad-names = foo,bar,baz,toto,tutu,tata
-bad-functions =
+bad-functions = xrange
 
 [TYPECHECK]
 ignore-mixin-members = yes
