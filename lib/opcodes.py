@@ -442,8 +442,8 @@ class OpCreateInstance(OpCode):
   OP_ID = "OP_INSTANCE_CREATE"
   OP_DSC_FIELD = "instance_name"
   __slots__ = OpCode.__slots__ + [
-    "instance_name", "os_type", "pnode",
-    "disk_template", "snode", "mode",
+    "instance_name", "os_type", "force_variant",
+    "pnode", "disk_template", "snode", "mode",
     "disks", "nics",
     "src_node", "src_path", "start",
     "wait_for_sync", "ip_check",
@@ -458,7 +458,7 @@ class OpReinstallInstance(OpCode):
   """Reinstall an instance's OS."""
   OP_ID = "OP_INSTANCE_REINSTALL"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = OpCode.__slots__ + ["instance_name", "os_type"]
+  __slots__ = OpCode.__slots__ + ["instance_name", "os_type", "force_variant"]
 
 
 class OpRemoveInstance(OpCode):
