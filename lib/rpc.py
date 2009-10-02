@@ -910,8 +910,8 @@ class RpcRunner(object):
 
     """
     result = self._SingleNodeCall(node, "os_get", [name])
-    if not result.fail_msg and isinstance(result.data, dict):
-      result.data = objects.OS.FromDict(result.data)
+    if not result.fail_msg and isinstance(result.payload, dict):
+      result.payload = objects.OS.FromDict(result.payload)
     return result
 
   def call_hooks_runner(self, node_list, hpath, phase, env):
