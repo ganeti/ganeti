@@ -329,6 +329,7 @@ OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT,
                         OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME])
 
 OS_API_FILE = 'ganeti_api_version'
+OS_VARIANTS_FILE = 'variants.list'
 
 # ssh constants
 SSH_INITD_SCRIPT = _autoconf.SSH_INITD_SCRIPT

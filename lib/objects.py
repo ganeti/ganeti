@@ -786,6 +786,7 @@ class OS(ConfigObject):
     "export_script",
     "import_script",
     "rename_script",
+    "supported_variants",
     ]
 
 
