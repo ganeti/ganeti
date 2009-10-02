@@ -1789,6 +1789,12 @@ def OSEnvironment(instance, os, debug=0):
   result['DISK_COUNT'] = '%d' % len(instance.disks)
   result['NIC_COUNT'] = '%d' % len(instance.nics)
   result['DEBUG_LEVEL'] = '%d' % debug
+  if api_version >= constants.OS_API_V15:
+    try:
+      variant = instance.os.split('+', 1)[1]
+    except IndexError:
+      variant = os.supported_variants[0]
+    result['OS_VARIANT'] = variant
   for idx, disk in enumerate(instance.disks):
     real_disk = _RecursiveFindBD(disk)
     if real_disk is None:
