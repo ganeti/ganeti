@@ -1694,31 +1694,31 @@ def _TryOSFromDisk(name, base_dir=None):
     return False, ("API version mismatch for path '%s': found %s, want %s." %
                    (os_dir, api_versions, constants.OS_API_VERSIONS))
 
-  # OS Scripts dictionary, we will populate it with the actual script names
-  os_scripts = dict.fromkeys(constants.OS_SCRIPTS)
+  # OS Files dictionary, we will populate it with the absolute path names
+  os_files = dict.fromkeys(constants.OS_SCRIPTS)
 
-  for script in os_scripts:
-    os_scripts[script] = os.path.sep.join([os_dir, script])
+  for name in os_files:
+    os_files[name] = os.path.sep.join([os_dir, name])
 
     try:
-      st = os.stat(os_scripts[script])
+      st = os.stat(os_files[name])
     except EnvironmentError, err:
-      return False, ("Script '%s' under path '%s' is missing (%s)" %
-                     (script, os_dir, _ErrnoOrStr(err)))
+      return False, ("File '%s' under path '%s' is missing (%s)" %
+                     (name, os_dir, _ErrnoOrStr(err)))
 
     if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
-      return False, ("Script '%s' under path '%s' is not executable" %
-                     (script, os_dir))
+      return False, ("File '%s' under path '%s' is not executable" %
+                     (name, os_dir))
 
     if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-      return False, ("Script '%s' under path '%s' is not a regular file" %
-                     (script, os_dir))
+      return False, ("File '%s' under path '%s' is not a regular file" %
+                     (name, os_dir))
 
   os_obj = objects.OS(name=name, path=os_dir,
-                      create_script=os_scripts[constants.OS_SCRIPT_CREATE],
-                      export_script=os_scripts[constants.OS_SCRIPT_EXPORT],
-                      import_script=os_scripts[constants.OS_SCRIPT_IMPORT],
-                      rename_script=os_scripts[constants.OS_SCRIPT_RENAME],
+                      create_script=os_files[constants.OS_SCRIPT_CREATE],
+                      export_script=os_files[constants.OS_SCRIPT_EXPORT],
+                      import_script=os_files[constants.OS_SCRIPT_IMPORT],
+                      rename_script=os_files[constants.OS_SCRIPT_RENAME],
                       api_versions=api_versions)
   return True, os_obj
 
