@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 02, 2009</date>">
+  <!ENTITY dhdate      "<date>October 02, 2009</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>7</manvolnum>">
@@ -30,7 +30,7 @@
     &dhucpackage;
 
     &dhsection;
-    <refmiscinfo>ganeti 2.0</refmiscinfo>
+    <refmiscinfo>ganeti 2.1</refmiscinfo>
   </refmeta>
   <refnamediv>
     <refname>ganeti-os-interface</refname>
@@ -55,10 +55,11 @@
     <title>REFERENCE</title>
 
     <para>
-      There are five required files: <filename>create</filename>,
+      There are six required files: <filename>create</filename>,
       <filename>import</filename>, <filename>export</filename>,
-      <filename>rename</filename> (executables) and
-      <filename>ganeti_api_version</filename> (text file).
+      <filename>rename</filename> (executables),
+      <filename>ganeti_api_version</filename> and
+      <filename>variants.list</filename> (text file).
     </para>
 
     <refsect2>
@@ -91,6 +92,19 @@
             it. This can simplify the OS scripts by providing the same
             scripts under multiple names, and then the scripts can use
             this name to alter their behaviour.</simpara>
+            <simpara>Under OS api 15 changing the script behavior based
+            on this variable is deprecated: OS_VARIANT should be used
+            instead (see below).</simpara>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term>OS_VARIANT</term>
+          <listitem>
+            <simpara>The variant of the OS which should be installed. Each OS
+            must support all variants listed under its
+            <filename>variants.list</filename> file, and may support more.
+            Any more supported variants should be properly documented in the
+            per-os documentation.</simpara>
           </listitem>
         </varlistentry>
         <varlistentry>
@@ -302,11 +316,20 @@
         The <filename>ganeti_api_version</filename> file is a plain
         text file containing the version(s) of the guest OS api that
         this OS definition complies with, one per line. The version
-        documented by this man page is 10, so this file must contain
-        the number 10 followed by a newline if only this version is
-        supported. A script compatible with both Ganeti 1.2 and Ganeti
-        2.0 should contain the most recent version first (i.e. 10),
-        followed by the old version(s) (in this case, 5).
+        documented by this man page is 15, so this file must contain
+        the number 15 followed by a newline if only this version is
+        supported. A script compatible more than one ganeti version
+        should contain the most recent version first (i.e. 15),
+        followed by the old version(s) (in this case 10 and/or 5).
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>variants.list</title>
+      <para>
+        <filename>variants.list</filename> is a plain text file
+        containing all the declared supported variants for this
+        OS, one per line. At least one variant must be supported.
       </para>
     </refsect2>
 
@@ -314,6 +337,17 @@
 
   <refsect1>
     <title>NOTES</title>
+
+    <refsect2>
+      <title>Retrocompatibility</title>
+
+      <para>
+        Ganeti 2.1 is compatible with both api version 10, and 15.
+        In api version 10 the <filename>variants.list</filename>
+        file is ignored and no OS_VARIANT environment variable is
+        passed.
+      </para>
+    </refsect2>
 
     <refsect2>
       <title>Common behaviour</title>
@@ -328,6 +362,21 @@
     <refsect2>
       <title>Upgrading from old versions</title>
       <refsect3>
+
+        <title>Version 10 to 15</title>
+
+        <para>
+          The <filename>variants.list</filename> file has been
+          added, so OSes should support at least one variant,
+          declaring it in that file and must be prepared to parse
+          the OS_VARIANT environment variable. OSes are free to
+          support more variants than just the declared ones.
+        </para>
+
+      </refsect3>
+
+      <refsect3>
+
         <title>Version 5 to 10</title>
 
         <para>
