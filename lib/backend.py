@@ -1697,6 +1697,9 @@ def _TryOSFromDisk(name, base_dir=None):
   # OS Files dictionary, we will populate it with the absolute path names
   os_files = dict.fromkeys(constants.OS_SCRIPTS)
 
+  if max(api_versions) >= constants.OS_API_V15:
+    os_files[constants.OS_VARIANTS_FILE] = ''
+
   for name in os_files:
     os_files[name] = os.path.sep.join([os_dir, name])
 
@@ -1715,12 +1718,23 @@ def _TryOSFromDisk(name, base_dir=None):
         return False, ("File '%s' under path '%s' is not executable" %
                        (name, os_dir))
 
+  variants = None
+  if constants.OS_VARIANTS_FILE in os_files:
+    variants_file = os_files[constants.OS_VARIANTS_FILE]
+    try:
+      variants = utils.ReadFile(variants_file).splitlines()
+    except EnvironmentError, err:
+      return False, ("Error while reading the OS variants file at %s: %s" %
+                     (variants_file, _ErrnoOrStr(err)))
+    if not variants:
+      return False, ("No supported os variant found")
 
   os_obj = objects.OS(name=name, path=os_dir,
                       create_script=os_files[constants.OS_SCRIPT_CREATE],
                       export_script=os_files[constants.OS_SCRIPT_EXPORT],
                       import_script=os_files[constants.OS_SCRIPT_IMPORT],
                       rename_script=os_files[constants.OS_SCRIPT_RENAME],
+                      supported_variants=variants,
                       api_versions=api_versions)
   return True, os_obj
 
