@@ -2145,7 +2145,9 @@ class LUDiagnoseOS(NoHooksLU):
   _OP_REQP = ["output_fields", "names"]
   REQ_BGL = False
   _FIELDS_STATIC = utils.FieldSet()
-  _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status")
+  _FIELDS_DYNAMIC = utils.FieldSet("name", "valid", "node_status", "variants")
+  # Fields that need calculation of global os validity
+  _FIELDS_NEEDVALID = frozenset(["valid", "variants"])
 
   def ExpandNames(self):
     if self.op.names:
@@ -2211,18 +2213,38 @@ class LUDiagnoseOS(NoHooksLU):
     node_data = self.rpc.call_os_diagnose(valid_nodes)
     pol = self._DiagnoseByOS(valid_nodes, node_data)
     output = []
+    calc_valid = self._FIELDS_NEEDVALID.intersection(self.op.output_fields)
+    calc_variants = "variants" in self.op.output_fields
+
     for os_name, os_data in pol.items():
       row = []
+      if calc_valid:
+        valid = True
+        variants = None
+        for osl in os_data.values():
+          valid = valid and osl and osl[0][1]
+          if not valid:
+            variants = None
+            break
+          if calc_variants:
+            node_variants = osl[0][3]
+            if variants is None:
+              variants = node_variants
+            else:
+              variants = [v for v in variants if v in node_variants]
+
       for field in self.op.output_fields:
         if field == "name":
           val = os_name
         elif field == "valid":
-          val = utils.all([osl and osl[0][1] for osl in os_data.values()])
+          val = valid
         elif field == "node_status":
           # this is just a copy of the dict
           val = {}
           for node_name, nos_list in os_data.items():
             val[node_name] = nos_list
+        elif field == "variants":
+          val =  variants
         else:
           raise errors.ParameterError(field)
         row.append(val)
