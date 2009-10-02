@@ -722,6 +722,26 @@ def _CheckInstanceBridgesExist(lu, instance, node=None):
   _CheckNicsBridgesExist(lu, instance.nics, node)
 
 
+def _CheckOSVariant(os, name):
+  """Check whether an OS name conforms to the os variants specification.
+
+  @type os: L{objects.OS}
+  @param os: OS object to check
+  @type name: string
+  @param name: OS name passed by the user, to check for validity
+
+  """
+  if not os.supported_variants:
+    return
+  try:
+    variant = name.split("+", 1)[1]
+  except IndexError:
+    raise errors.OpPrereqError("OS name must include a variant")
+
+  if variant not in os.supported_variants:
+    raise errors.OpPrereqError("Unsupported OS variant")
+
+
 def _GetNodeInstancesInner(cfg, fn):
   return [i for i in cfg.GetAllInstancesInfo().values() if fn(i)]
 
@@ -3749,6 +3769,7 @@ class LUReinstallInstance(LogicalUnit):
                                   instance.primary_node))
 
     self.op.os_type = getattr(self.op, "os_type", None)
+    self.op.force_variant = getattr(self.op, "force_variant", False)
     if self.op.os_type is not None:
       # OS verification
       pnode = self.cfg.GetNodeInfo(
@@ -3759,6 +3780,8 @@ class LUReinstallInstance(LogicalUnit):
       result = self.rpc.call_os_get(pnode.name, self.op.os_type)
       result.Raise("OS '%s' not in supported OS list for primary node %s" %
                    (self.op.os_type, pnode.name), prereq=True)
+      if not self.op.force_variant:
+        _CheckOSVariant(result.payload, self.op.os_type)
 
     self.instance = instance
 
@@ -5581,9 +5604,15 @@ class LUCreateInstance(LogicalUnit):
           self.op.src_path = src_path = \
             os.path.join(constants.EXPORT_DIR, src_path)
 
+      # On import force_variant must be True, because if we forced it at
+      # initial install, our only chance when importing it back is that it
+      # works again!
+      self.op.force_variant = True
+
     else: # INSTANCE_CREATE
       if getattr(self.op, "os_type", None) is None:
         raise errors.OpPrereqError("No guest OS specified")
+      self.op.force_variant = getattr(self.op, "force_variant", False)
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -5813,6 +5842,8 @@ class LUCreateInstance(LogicalUnit):
     result = self.rpc.call_os_get(pnode.name, self.op.os_type)
     result.Raise("OS '%s' not in supported os list for primary node %s" %
                  (self.op.os_type, pnode.name), prereq=True)
+    if not self.op.force_variant:
+      _CheckOSVariant(result.payload, self.op.os_type)
 
     _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
 
