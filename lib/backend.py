@@ -1598,17 +1598,17 @@ def _OSOndiskAPIVersion(name, os_dir):
       data holding either the vaid versions or an error message
 
   """
-  api_file = os.path.sep.join([os_dir, "ganeti_api_version"])
+  api_file = os.path.sep.join([os_dir, constants.OS_API_FILE])
 
   try:
     st = os.stat(api_file)
   except EnvironmentError, err:
-    return False, ("Required file 'ganeti_api_version' file not"
-                   " found under path %s: %s" % (os_dir, _ErrnoOrStr(err)))
+    return False, ("Required file '%s' not found under path %s: %s" %
+                   (constants.OS_API_FILE, os_dir, _ErrnoOrStr(err)))
 
   if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-    return False, ("File 'ganeti_api_version' file at %s is not"
-                   " a regular file" % os_dir)
+    return False, ("File '%s' in %s is not a regular file" %
+                   (constants.OS_API_FILE, os_dir))
 
   try:
     api_versions = utils.ReadFile(api_file).splitlines()

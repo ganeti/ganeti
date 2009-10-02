@@ -328,6 +328,8 @@ OS_SCRIPT_RENAME = 'rename'
 OS_SCRIPTS = frozenset([OS_SCRIPT_CREATE, OS_SCRIPT_IMPORT,
                         OS_SCRIPT_EXPORT, OS_SCRIPT_RENAME])
 
+OS_API_FILE = 'ganeti_api_version'
+
 # ssh constants
 SSH_INITD_SCRIPT = _autoconf.SSH_INITD_SCRIPT
 SSH_CONFIG_DIR = "/etc/ssh/"
