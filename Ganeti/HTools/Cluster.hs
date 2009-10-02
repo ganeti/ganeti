@@ -51,6 +51,7 @@ module Ganeti.HTools.Cluster
     , tryBalance
     , compCV
     , printStats
+    , iMoveToJob
     -- * IAllocator functions
     , tryAlloc
     , tryReloc
@@ -67,6 +68,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types
 import Ganeti.HTools.Utils
+import qualified Ganeti.OpCodes as OpCodes
 
 -- * Types
 
@@ -703,3 +705,19 @@ printStats nl =
     in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f, \
               \uf=%.3f, r_cpu=%.3f"
        mem_cv res_cv dsk_cv n1_score off_score cpu_cv
+
+-- | Convert a placement into a list of OpCodes (basically a job).
+iMoveToJob :: String -> Node.List -> Instance.List
+          -> Idx -> IMove -> [OpCodes.OpCode]
+iMoveToJob csf nl il idx move =
+    let iname = Container.nameOf il idx ++ csf
+        lookNode n = Just (Container.nameOf nl n ++ csf)
+        opF = OpCodes.OpFailoverInstance iname False
+        opR n = OpCodes.OpReplaceDisks iname (lookNode n)
+                OpCodes.ReplaceNewSecondary [] Nothing
+    in case move of
+         Failover -> [ opF ]
+         ReplacePrimary np -> [ opF, opR np, opF ]
+         ReplaceSecondary ns -> [ opR ns ]
+         ReplaceAndFailover np -> [ opR np, opF ]
+         FailoverAndReplace ns -> [ opF, opR ns ]
