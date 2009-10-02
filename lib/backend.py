@@ -1706,13 +1706,15 @@ def _TryOSFromDisk(name, base_dir=None):
       return False, ("File '%s' under path '%s' is missing (%s)" %
                      (name, os_dir, _ErrnoOrStr(err)))
 
-    if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
-      return False, ("File '%s' under path '%s' is not executable" %
-                     (name, os_dir))
-
     if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
       return False, ("File '%s' under path '%s' is not a regular file" %
                      (name, os_dir))
+
+    if name in constants.OS_SCRIPTS:
+      if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
+        return False, ("File '%s' under path '%s' is not executable" %
+                       (name, os_dir))
+
 
   os_obj = objects.OS(name=name, path=os_dir,
                       create_script=os_files[constants.OS_SCRIPT_CREATE],
