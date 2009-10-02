@@ -159,7 +159,7 @@ def TestClusterBurnin():
   try:
     try:
       num = qa_config.get('options', {}).get('burnin-instances', 1)
-      for _ in xrange(0, num):
+      for _ in range(0, num):
         instances.append(qa_config.AcquireInstance())
     except qa_error.OutOfInstancesError:
       print "Not enough instances, continuing anyway."

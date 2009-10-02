@@ -64,7 +64,7 @@ class TestWorkerpool(unittest.TestCase):
     try:
       self._CheckWorkerCount(wp, 3)
 
-      for i in xrange(10):
+      for i in range(10):
         wp.AddTask("Hello world %s" % i)
 
       wp.Quiesce()
@@ -101,7 +101,7 @@ class TestWorkerpool(unittest.TestCase):
 
       ctx = ChecksumContext()
       checksum = ChecksumContext.CHECKSUM_START
-      for i in xrange(1, 100):
+      for i in range(1, 100):
         checksum = ChecksumContext.UpdateChecksum(checksum, i)
         wp.AddTask(ctx, i)
 

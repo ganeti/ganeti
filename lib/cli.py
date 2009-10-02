@@ -1527,7 +1527,7 @@ def GenerateTable(headers, fields, separator, data,
     args = []
     if line is None:
       line = ['-' for _ in fields]
-    for idx in xrange(len(fields)):
+    for idx in range(len(fields)):
       if separator is None:
         args.append(mlens[idx])
       args.append(line[idx])

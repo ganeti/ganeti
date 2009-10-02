@@ -492,7 +492,7 @@ class TestSharedLock(_ThreadedTestCase):
       self.sl.acquire()
 
       # Start shared acquires with timeout between 0 and 20 ms
-      for i in xrange(11):
+      for i in range(11):
         self._addThread(target=_AcquireWithTimeout,
                         args=(shared, i * 2.0 / 1000.0))
 
@@ -503,7 +503,7 @@ class TestSharedLock(_ThreadedTestCase):
       # Release lock
       self.sl.release()
 
-      for _ in xrange(11):
+      for _ in range(11):
         self.assertEqual(self.done.get_nowait(), "timeout")
 
       self.assertRaises(Queue.Empty, self.done.get_nowait)
@@ -583,10 +583,10 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertEqual(shrcnt3, 0)
     self.assertEqual(shrcnt3, 0)
 
-    for _ in xrange(3):
+    for _ in range(3):
       self.assertEqual(self.done.get_nowait(), "exclusive 1")
 
-    for _ in xrange(3):
+    for _ in range(3):
       self.assertEqual(self.done.get_nowait(), "exclusive 2")
 
     self.assertRaises(Queue.Empty, self.done.get_nowait)
@@ -615,7 +615,7 @@ class TestSharedLock(_ThreadedTestCase):
       self.sl.release()
 
     acquires = []
-    for _ in xrange(3):
+    for _ in range(3):
       ev = threading.Event()
       self._addThread(target=_AcquireShared, args=(ev, ))
       acquires.append(ev)
@@ -675,7 +675,7 @@ class TestSharedLock(_ThreadedTestCase):
         self.done.put("shared2")
         self.sl.release()
 
-    for _ in xrange(10):
+    for _ in range(10):
       self._addThread(target=_AcquireSharedSimple)
 
     # Tell exclusive lock to release
@@ -691,12 +691,12 @@ class TestSharedLock(_ThreadedTestCase):
     self.assertEqual(self.sl._count_pending(), 0)
 
     # Check sequence
-    for _ in xrange(3):
+    for _ in range(3):
       self.assertEqual(self.done.get_nowait(), "shared")
 
     self.assertEqual(self.done.get_nowait(), "exclusive")
 
-    for _ in xrange(10):
+    for _ in range(10):
       self.assertEqual(self.done.get_nowait(), "shared2")
 
     self.assertRaises(Queue.Empty, self.done.get_nowait)

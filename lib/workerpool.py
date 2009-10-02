@@ -305,7 +305,7 @@ class WorkerPool(object):
 
     elif current_count < num_workers:
       # Create (num_workers - current_count) new workers
-      for _ in xrange(num_workers - current_count):
+      for _ in range(num_workers - current_count):
         worker = self._worker_class(self, self._NewWorkerIdUnlocked())
         self._workers.append(worker)
         worker.start()
