@@ -58,11 +58,15 @@ withTimeout secs descr action = do
 -- | Currently supported Luxi operations.
 data LuxiOp = QueryInstances
             | QueryNodes
+            | QueryJobs
+            | SubmitManyJobs
 
 -- | The serialisation of LuxiOps into strings in messages.
 strOfOp :: LuxiOp -> String
 strOfOp QueryNodes = "QueryNodes"
 strOfOp QueryInstances = "QueryInstances"
+strOfOp QueryJobs = "QueryJobs"
+strOfOp SubmitManyJobs = "SubmitManyJobs"
 
 -- | The end-of-message separator.
 eOM :: Char
