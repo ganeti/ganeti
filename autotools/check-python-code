@@ -21,12 +21,12 @@
 let problems=0
 
 for script; do
-  if grep -H -F $'\t' "$script"; then
+  if grep -n -H -F $'\t' "$script"; then
     let ++problems
     echo "Found tabs in $script" >&2
   fi
 
-  if grep -H -E '[[:space:]]$' "$script"; then
+  if grep -n -H -E '[[:space:]]$' "$script"; then
     let ++problems
     echo "Found end-of-line-whitespace in $script" >&2
   fi
