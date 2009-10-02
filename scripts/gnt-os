@@ -89,8 +89,8 @@ def DiagnoseOS(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "node_status"],
-                            names=[])
+  op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants",
+                                           "node_status"], names=[])
   result = SubmitOpCode(op)
 
   if not result:
@@ -99,7 +99,7 @@ def DiagnoseOS(opts, args):
 
   has_bad = False
 
-  for os_name, os_valid, node_data in result:
+  for os_name, os_valid, os_variants, node_data in result:
     nodes_valid = {}
     nodes_bad = {}
     nodes_hidden = {}
@@ -140,6 +140,8 @@ def DiagnoseOS(opts, args):
           ToStdout(msg)
 
     ToStdout("OS: %s [global status: %s]", os_name, status)
+    if os_variants:
+      ToStdout("  Variants: [%s]" % ', '.join(os_variants))
     _OutputPerNodeOSStatus(nodes_valid)
     _OutputPerNodeOSStatus(nodes_bad)
     ToStdout("")
