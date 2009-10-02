@@ -62,6 +62,8 @@ __all__ = [
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
+  "FORCE_OPT",
+  "FORCE_VARIANT_OPT",
   "GLOBAL_FILEDIR_OPT",
   "HVLIST_OPT",
   "HVOPTS_OPT",
@@ -71,7 +73,6 @@ __all__ = [
   "IGNORE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
-  "FORCE_OPT",
   "MAC_PREFIX_OPT",
   "MASTER_NETDEV_OPT",
   "MC_OPT",
@@ -566,6 +567,10 @@ IALLOCATOR_OPT = cli_option("-I", "--iallocator", metavar="<NAME>",
 OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>",
                     completion_suggest=OPT_COMPL_ONE_OS)
+
+FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
+                               action="store_true", default=False,
+                               help="Force an unknown variant")
 
 BACKEND_OPT = cli_option("-B", "--backend-parameters", dest="beparams",
                          type="keyval", default={},

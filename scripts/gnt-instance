@@ -440,6 +440,7 @@ def BatchCreate(opts, args):
                                   disk_template=specs['template'],
                                   mode=constants.INSTANCE_CREATE,
                                   os_type=specs['os'],
+                                  force_variant=opts.force_variant,
                                   pnode=specs['primary_node'],
                                   snode=specs['secondary_node'],
                                   nics=tmp_nics,
@@ -529,7 +530,8 @@ def ReinstallInstance(opts, args):
   jex = JobExecutor(verbose=multi_on)
   for instance_name in inames:
     op = opcodes.OpReinstallInstance(instance_name=instance_name,
-                                     os_type=os_name)
+                                     os_type=os_name,
+                                     force_variant=opts.force_variant)
     jex.QueueJob(instance_name, op)
 
   jex.WaitOrShow(not opts.submit_only)
@@ -1266,6 +1268,7 @@ add_opts = [
   NOSTART_OPT,
   NWSYNC_OPT,
   OS_OPT,
+  FORCE_VARIANT_OPT,
   OS_SIZE_OPT,
   SUBMIT_OPT,
   ]
@@ -1317,8 +1320,9 @@ commands = {
     ),
   'reinstall': (
     ReinstallInstance, [ArgInstance()],
-    [FORCE_OPT, OS_OPT, m_force_multi, m_node_opt, m_pri_node_opt,
-     m_sec_node_opt, m_clust_opt, m_inst_opt, SELECT_OS_OPT, SUBMIT_OPT],
+    [FORCE_OPT, OS_OPT, FORCE_VARIANT_OPT, m_force_multi, m_node_opt,
+     m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, SELECT_OS_OPT,
+     SUBMIT_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (
     RemoveInstance, ARGS_ONE_INSTANCE,
