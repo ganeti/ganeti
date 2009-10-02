@@ -91,11 +91,11 @@ iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
               let
                   (Cluster.Table _ _ _ fin_plc) = fin_tbl
                   fin_plc_len = length fin_plc
-                  cur_plc = head fin_plc
+                  cur_plc@(_, _, _, move, _) = head fin_plc
                   (sol_line, cmds) = Cluster.printSolutionLine ini_nl ini_il
                                      nmlen imlen cur_plc fin_plc_len
                   afn = Cluster.involvedNodes ini_il cur_plc
-                  upd_cmd_strs = (afn, cmds):cmd_strs
+                  upd_cmd_strs = (afn, move, cmds):cmd_strs
               unless oneline $ do
                        putStrLn sol_line
                        hFlush stdout

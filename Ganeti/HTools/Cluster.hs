@@ -619,8 +619,8 @@ involvedNodes il plc =
 -- | Inner function for splitJobs, that either appends the next job to
 -- the current jobset, or starts a new jobset.
 mergeJobs :: ([JobSet], [Ndx]) -> MoveJob -> ([JobSet], [Ndx])
-mergeJobs ([], _) n@(ndx, _) = ([[n]], ndx)
-mergeJobs (cjs@(j:js), nbuf) n@(ndx, _)
+mergeJobs ([], _) n@(ndx, _, _) = ([[n]], ndx)
+mergeJobs (cjs@(j:js), nbuf) n@(ndx, _, _)
     | null (ndx `intersect` nbuf) = ((n:j):js, ndx ++ nbuf)
     | otherwise = ([n]:cjs, ndx)
 
@@ -632,7 +632,7 @@ splitJobs = fst . foldl mergeJobs ([], [])
 -- | Given a list of commands, prefix them with @gnt-instance@ and
 -- also beautify the display a little.
 formatJob :: Int -> Int -> (Int, MoveJob) -> [String]
-formatJob jsn jsl (sn, (_, cmds)) =
+formatJob jsn jsl (sn, (_, _, cmds)) =
     let out =
             printf "  echo job %d/%d" jsn sn:
             printf "  check":
