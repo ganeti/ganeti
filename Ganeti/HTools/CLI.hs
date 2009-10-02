@@ -69,7 +69,7 @@ import System
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Version as Version(version)
-import qualified Ganeti.HTools.Cluster as Cluster
+import Ganeti.HTools.Types
 
 -- | The default value for the luxi socket
 defaultLuxiSocket :: FilePath
@@ -95,7 +95,7 @@ data Options = Options
     , optIDsk      :: Int            -- ^ Instance disk
     , optIVCPUs    :: Int            -- ^ Instance VCPUs
     , optINodes    :: Int            -- ^ Nodes required for an instance
-    , optMinScore  :: Cluster.Score  -- ^ The minimum score we aim for
+    , optMinScore  :: Score          -- ^ The minimum score we aim for
     , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
     , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
     , optDiskMoves :: Bool           -- ^ Allow disk moves

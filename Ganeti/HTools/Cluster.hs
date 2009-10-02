@@ -32,8 +32,6 @@ module Ganeti.HTools.Cluster
       Placement
     , AllocSolution
     , Table(..)
-    , Score
-    , IMove(..)
     , CStats(..)
     -- * Generic functions
     , totalResources
@@ -72,30 +70,12 @@ import qualified Ganeti.OpCodes as OpCodes
 
 -- * Types
 
--- | A separate name for the cluster score type.
-type Score = Double
-
--- | The description of an instance placement.
-type Placement = ( Idx   -- ^ The index of the instance being moved
-                 , Ndx   -- ^ New primary node
-                 , Ndx   -- ^ New secondary node
-                 , IMove -- ^ The move being performed
-                 , Score -- ^ The score of the cluster after this move
-                 )
-
 -- | Allocation\/relocation solution.
 type AllocSolution = ([FailMode], Int, Maybe (Score, AllocElement))
 
 -- | Allocation\/relocation element.
 type AllocElement = (Node.List, Instance.Instance, [Node.Node])
 
--- | An instance move definition
-data IMove = Failover                -- ^ Failover the instance (f)
-           | ReplacePrimary Ndx      -- ^ Replace primary (f, r:np, f)
-           | ReplaceSecondary Ndx    -- ^ Replace secondary (r:ns)
-           | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)
-           | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
-             deriving (Show)
 
 -- | The complete state for the balancing solution
 data Table = Table Node.List Instance.List Score [Placement]

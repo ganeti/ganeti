@@ -77,7 +77,7 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Max instance name len
              -> [MoveJob]        -- ^ Current command list
              -> Bool             -- ^ Whether to be silent
-             -> Cluster.Score    -- ^ Score at which to stop
+             -> Score            -- ^ Score at which to stop
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
 iterateDepth ini_tbl max_rounds disk_moves nmlen imlen

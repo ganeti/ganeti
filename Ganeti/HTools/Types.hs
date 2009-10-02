@@ -27,6 +27,9 @@ module Ganeti.HTools.Types
     ( Idx
     , Ndx
     , NameAssoc
+    , Score
+    , Placement
+    , IMove(..)
     , MoveJob
     , JobSet
     , Result(..)
@@ -46,6 +49,25 @@ type Ndx = Int
 
 -- | The type used to hold name-to-idx mappings.
 type NameAssoc = [(String, Int)]
+
+-- | A separate name for the cluster score type.
+type Score = Double
+
+-- | The description of an instance placement.
+type Placement = ( Idx   -- ^ The index of the instance being moved
+                 , Ndx   -- ^ New primary node
+                 , Ndx   -- ^ New secondary node
+                 , IMove -- ^ The move being performed
+                 , Score -- ^ The score of the cluster after this move
+                 )
+
+-- | An instance move definition
+data IMove = Failover                -- ^ Failover the instance (f)
+           | ReplacePrimary Ndx      -- ^ Replace primary (f, r:np, f)
+           | ReplaceSecondary Ndx    -- ^ Replace secondary (r:ns)
+           | ReplaceAndFailover Ndx  -- ^ Replace secondary, failover (r:np, f)
+           | FailoverAndReplace Ndx  -- ^ Failover, replace secondary (f, r:ns)
+             deriving (Show)
 
 -- | Formatted solution output for one move (involved nodes and
 -- commands
