@@ -74,7 +74,12 @@ import Ganeti.HTools.Utils
 type Score = Double
 
 -- | The description of an instance placement.
-type Placement = (Idx, Ndx, Ndx, Score)
+type Placement = ( Idx   -- ^ The index of the instance being moved
+                 , Ndx   -- ^ New primary node
+                 , Ndx   -- ^ New secondary node
+                 , IMove -- ^ The move being performed
+                 , Score -- ^ The score of the cluster after this move
+                 )
 
 -- | Allocation\/relocation solution.
 type AllocSolution = ([FailMode], Int, Maybe (Score, AllocElement))
@@ -375,11 +380,11 @@ checkSingleStep ini_tbl target cur_tbl move =
     in
       case tmp_resu of
         OpFail _ -> cur_tbl
-        OpGood (upd_nl, new_inst, pri_idx, sec_idx)  ->
+        OpGood (upd_nl, new_inst, pri_idx, sec_idx) ->
             let tgt_idx = Instance.idx target
                 upd_cvar = compCV upd_nl
                 upd_il = Container.add tgt_idx new_inst ini_il
-                upd_plc = (tgt_idx, pri_idx, sec_idx, upd_cvar):ini_plc
+                upd_plc = (tgt_idx, pri_idx, sec_idx, move, upd_cvar):ini_plc
                 upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
             in
               compareTables cur_tbl upd_tbl
@@ -604,7 +609,7 @@ printSolutionLine :: Node.List     -- ^ The node list
 printSolutionLine nl il nmlen imlen plc pos =
     let
         pmlen = (2*nmlen + 1)
-        (i, p, s, c) = plc
+        (i, p, s, _, c) = plc
         inst = Container.find i il
         inam = Instance.name inst
         npri = Container.nameOf nl p
@@ -623,7 +628,7 @@ printSolutionLine nl il nmlen imlen plc pos =
 -- | Return the instance and involved nodes in an instance move.
 involvedNodes :: Instance.List -> Placement -> [Ndx]
 involvedNodes il plc =
-    let (i, np, ns, _) = plc
+    let (i, np, ns, _, _) = plc
         inst = Container.find i il
         op = Instance.pnode inst
         os = Instance.snode inst
