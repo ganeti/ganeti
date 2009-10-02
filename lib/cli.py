@@ -158,6 +158,7 @@ __all__ = [
   "OPT_COMPL_ONE_OS",
   "cli_option",
   "SplitNodeOption",
+  "CalculateOSNames",
   ]
 
 NO_PREFIX = "no_"
@@ -969,6 +970,23 @@ def SplitNodeOption(value):
     return value.split(':', 1)
   else:
     return (value, None)
+
+
+def CalculateOSNames(os_name, os_variants):
+  """Calculates all the names an OS can be called, according to its variants.
+
+  @type os_name: string
+  @param os_name: base name of the os
+  @type os_variants: list or None
+  @param os_variants: list of supported variants
+  @rtype: list
+  @return: list of valid names
+
+  """
+  if os_variants:
+    return ['%s+%s' % (os_name, v) for v in os_variants]
+  else:
+    return [os_name]
 
 
 def UsesRPC(fn):
