@@ -2193,14 +2193,14 @@ class LUDiagnoseOS(NoHooksLU):
     for node_name, nr in rlist.items():
       if nr.fail_msg or not nr.payload:
         continue
-      for name, path, status, diagnose in nr.payload:
+      for name, path, status, diagnose, variants in nr.payload:
         if name not in all_os:
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
           all_os[name] = {}
           for nname in good_nodes:
             all_os[name][nname] = []
-        all_os[name][node_name].append((path, status, diagnose))
+        all_os[name][node_name].append((path, status, diagnose, variants))
     return all_os
 
   def Exec(self, feedback_fn):

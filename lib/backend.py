@@ -1633,12 +1633,13 @@ def DiagnoseOS(top_dirs=None):
       search (if not given defaults to
       L{constants.OS_SEARCH_PATH})
   @rtype: list of L{objects.OS}
-  @return: a list of tuples (name, path, status, diagnose)
+  @return: a list of tuples (name, path, status, diagnose, variants)
       for all (potential) OSes under all search paths, where:
           - name is the (potential) OS name
           - path is the full path to the OS
           - status True/False is the validity of the OS
           - diagnose is the error message for an invalid OS, otherwise empty
+          - variants is a list of supported OS variants, if any
 
   """
   if top_dirs is None:
@@ -1657,9 +1658,11 @@ def DiagnoseOS(top_dirs=None):
         status, os_inst = _TryOSFromDisk(name, base_dir=dir_name)
         if status:
           diagnose = ""
+          variants = os_inst.supported_variants
         else:
           diagnose = os_inst
-        result.append((name, os_path, status, diagnose))
+          variants = []
+        result.append((name, os_path, status, diagnose, variants))
 
   return result
 
