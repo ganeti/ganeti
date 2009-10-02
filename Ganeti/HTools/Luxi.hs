@@ -1,4 +1,4 @@
-{-| Implementation of the LUXI client interface.
+{-| Implementation of the LUXI loader.
 
 -}
 
@@ -29,17 +29,13 @@ module Ganeti.HTools.Luxi
     ) where
 
 import Data.List
-import Data.IORef
 import qualified Control.Exception as E
 import Control.Monad
-import Text.JSON (JSObject, JSValue, toJSObject, encodeStrict
-                 , decodeStrict, readJSON, JSON)
+import Text.JSON (JSValue, readJSON, JSON)
 import qualified Text.JSON as J
 import Text.JSON.Types
-import System.Timeout
-import qualified Network.Socket as S
 
-import Ganeti.HTools.Utils
+import qualified Ganeti.Luxi as L
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
@@ -60,119 +56,6 @@ toArray v =
     case v of
       JSArray arr -> return arr
       o -> fail ("Invalid input, expected array but got " ++ show o)
-
--- | Wrapper over System.Timeout.timeout that fails in the IO monad.
-withTimeout :: Int -> String -> IO a -> IO a
-withTimeout secs descr action = do
-    result <- timeout (secs * 1000000) action
-    (case result of
-       Nothing -> fail $ "Timeout in " ++ descr
-       Just v -> return v)
-
--- * Generic protocol functionality
-
--- | Currently supported Luxi operations.
-data LuxiOp = QueryInstances
-            | QueryNodes
-
--- | The serialisation of LuxiOps into strings in messages.
-strOfOp :: LuxiOp -> String
-strOfOp QueryNodes = "QueryNodes"
-strOfOp QueryInstances = "QueryInstances"
-
--- | The end-of-message separator.
-eOM :: Char
-eOM = '\3'
-
--- | Valid keys in the requests and responses.
-data MsgKeys = Method
-             | Args
-             | Success
-             | Result
-
--- | The serialisation of MsgKeys into strings in messages.
-strOfKey :: MsgKeys -> String
-strOfKey Method = "method"
-strOfKey Args = "args"
-strOfKey Success = "success"
-strOfKey Result = "result"
-
--- | Luxi client encapsulation.
-data Client = Client { socket :: S.Socket   -- ^ The socket of the client
-                     , rbuf :: IORef String -- ^ Already received buffer
-                     }
-
--- | Connects to the master daemon and returns a luxi Client.
-getClient :: String -> IO Client
-getClient path = do
-    s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
-    withTimeout connTimeout "creating luxi connection" $
-                S.connect s (S.SockAddrUnix path)
-    rf <- newIORef ""
-    return Client { socket=s, rbuf=rf}
-
--- | Closes the client socket.
-closeClient :: Client -> IO ()
-closeClient = S.sClose . socket
-
--- | Sends a message over a luxi transport.
-sendMsg :: Client -> String -> IO ()
-sendMsg s buf =
-    let _send obuf = do
-          sbytes <- withTimeout queryTimeout
-                    "sending luxi message" $
-                    S.send (socket s) obuf
-          (if sbytes == length obuf
-           then return ()
-           else _send (drop sbytes obuf))
-    in _send (buf ++ [eOM])
-
--- | Waits for a message over a luxi transport.
-recvMsg :: Client -> IO String
-recvMsg s = do
-  let _recv obuf = do
-              nbuf <- withTimeout queryTimeout "reading luxi response" $
-                      S.recv (socket s) 4096
-              let (msg, remaining) = break ((==) eOM) (obuf ++ nbuf)
-              (if null remaining
-               then _recv msg
-               else return (msg, tail remaining))
-  cbuf <- readIORef $ rbuf s
-  (msg, nbuf) <- _recv cbuf
-  writeIORef (rbuf s) nbuf
-  return msg
-
--- | Serialize a request to String.
-buildCall :: LuxiOp  -- ^ The method
-          -> JSValue -- ^ The arguments
-          -> String  -- ^ The serialized form
-buildCall msg args =
-    let ja = [(strOfKey Method,
-               JSString $ toJSString $ strOfOp msg::JSValue),
-              (strOfKey Args,
-               args::JSValue)
-             ]
-        jo = toJSObject ja
-    in encodeStrict jo
-
--- | Check that luxi responses contain the required keys and that the
--- call was successful.
-validateResult :: String -> Result JSValue
-validateResult s = do
-  arr <- fromJResult $ decodeStrict s::Result (JSObject JSValue)
-  status <- fromObj (strOfKey Success) arr::Result Bool
-  let rkey = strOfKey Result
-  (if status
-   then fromObj rkey arr
-   else fromObj rkey arr >>= fail)
-
--- | Generic luxi method call.
-callMethod :: LuxiOp -> JSValue -> Client -> IO (Result JSValue)
-callMethod method args s = do
-  sendMsg s $ buildCall method args
-  result <- recvMsg s
-  let rval = validateResult result
-  return rval
 
 -- * Data querying functionality
 
@@ -200,14 +83,13 @@ queryInstancesMsg =
         use_locking = JSBool False
     in JSArray [nnames, fields, use_locking]
 
-
 -- | Wraper over callMethod doing node query.
-queryNodes :: Client -> IO (Result JSValue)
-queryNodes = callMethod QueryNodes queryNodesMsg
+queryNodes :: L.Client -> IO (Result JSValue)
+queryNodes = L.callMethod L.QueryNodes queryNodesMsg
 
 -- | Wraper over callMethod doing instance query.
-queryInstances :: Client -> IO (Result JSValue)
-queryInstances = callMethod QueryInstances queryInstancesMsg
+queryInstances :: L.Client -> IO (Result JSValue)
+queryInstances = L.callMethod L.QueryInstances queryInstancesMsg
 
 -- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
@@ -268,8 +150,8 @@ loadData :: String -- ^ Unix socket to use as source
          -> IO (Result (Node.AssocList, Instance.AssocList))
 loadData master =
   E.bracket
-       (getClient master)
-       closeClient
+       (L.getClient master)
+       L.closeClient
        (\s -> do
           nodes <- queryNodes s
           instances <- queryInstances s

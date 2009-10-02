@@ -1,6 +1,6 @@
 HPROGS = hbal hscan hail hspace
 HALLPROGS = $(HPROGS) test
-HSRCS := $(wildcard Ganeti/HTools/*.hs)
+HSRCS := $(wildcard Ganeti/HTools/*.hs) $(wildcard Ganeti/*.hs)
 HDDIR = apidoc
 
 DOCS = README.html NEWS.html
@@ -43,6 +43,7 @@ maintainer-clean:
 clean:
 	rm -f $(HALLPROGS)
 	rm -f *.o *.prof *.ps *.stat *.aux *.hi
+	cd Ganeti && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 
 version:
