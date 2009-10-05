@@ -42,6 +42,7 @@ import fcntl
 import resource
 import logging
 import signal
+import string
 
 from cStringIO import StringIO
 
@@ -489,7 +490,7 @@ def ReadPidFile(pidfile):
   return pid
 
 
-def MatchNameComponent(key, name_list):
+def MatchNameComponent(key, name_list, case_sensitive=True):
   """Try to match a name against a list.
 
   This function will try to match a name like test1 against a list
@@ -504,6 +505,8 @@ def MatchNameComponent(key, name_list):
   @param key: the name to be searched
   @type name_list: list
   @param name_list: the list of strings against which to search the key
+  @type case_sensitive: boolean
+  @param case_sensitive: whether to provide a case-sensitive match
 
   @rtype: None or str
   @return: None if there is no match I{or} if there are multiple matches,
@@ -512,11 +515,25 @@ def MatchNameComponent(key, name_list):
   """
   if key in name_list:
     return key
-  mo = re.compile("^%s(\..*)?$" % re.escape(key))
-  names_filtered = [name for name in name_list if mo.match(name) is not None]
-  if len(names_filtered) != 1:
-    return None
-  return names_filtered[0]
+
+  re_flags = 0
+  if not case_sensitive:
+    re_flags |= re.IGNORECASE
+    key = string.upper(key)
+  mo = re.compile("^%s(\..*)?$" % re.escape(key), re_flags)
+  names_filtered = []
+  string_matches = []
+  for name in name_list:
+    if mo.match(name) is not None:
+      names_filtered.append(name)
+      if not case_sensitive and key == string.upper(name):
+        string_matches.append(name)
+
+  if len(string_matches) == 1:
+    return string_matches[0]
+  if len(names_filtered) == 1:
+    return names_filtered[0]
+  return None
 
 
 class HostInfo:

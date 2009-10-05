@@ -336,6 +336,36 @@ class TestMatchNameComponent(unittest.TestCase):
     self.failUnlessEqual(MatchNameComponent(key1, mlist), None)
     self.failUnlessEqual(MatchNameComponent(key2, mlist), key2)
 
+  def testCaseInsensitivePartialMatch(self):
+    """Test for the case_insensitive keyword"""
+    mlist = ["test1.example.com", "test2.example.net"]
+    self.assertEqual(MatchNameComponent("test2", mlist, case_sensitive=False),
+                     "test2.example.net")
+    self.assertEqual(MatchNameComponent("Test2", mlist, case_sensitive=False),
+                     "test2.example.net")
+    self.assertEqual(MatchNameComponent("teSt2", mlist, case_sensitive=False),
+                     "test2.example.net")
+    self.assertEqual(MatchNameComponent("TeSt2", mlist, case_sensitive=False),
+                     "test2.example.net")
+
+
+  def testCaseInsensitiveFullMatch(self):
+    mlist = ["ts1.ex", "ts1.ex.org", "ts2.ex", "Ts2.ex"]
+    # Between the two ts1 a full string match non-case insensitive should work
+    self.assertEqual(MatchNameComponent("Ts1", mlist, case_sensitive=False),
+                     None)
+    self.assertEqual(MatchNameComponent("Ts1.ex", mlist, case_sensitive=False),
+                     "ts1.ex")
+    self.assertEqual(MatchNameComponent("ts1.ex", mlist, case_sensitive=False),
+                     "ts1.ex")
+    # Between the two ts2 only case differs, so only case-match works
+    self.assertEqual(MatchNameComponent("ts2.ex", mlist, case_sensitive=False),
+                     "ts2.ex")
+    self.assertEqual(MatchNameComponent("Ts2.ex", mlist, case_sensitive=False),
+                     "Ts2.ex")
+    self.assertEqual(MatchNameComponent("TS2.ex", mlist, case_sensitive=False),
+                     None)
+
 
 class TestFormatUnit(unittest.TestCase):
   """Test case for the FormatUnit function"""
