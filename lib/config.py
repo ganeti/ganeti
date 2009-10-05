@@ -854,7 +854,8 @@ class ConfigWriter:
 
     """
     return utils.MatchNameComponent(short_name,
-                                    self._config_data.instances.keys())
+                                    self._config_data.instances.keys(),
+                                    case_sensitive=False)
 
   def _UnlockedGetInstanceInfo(self, instance_name):
     """Returns information about an instance.
@@ -934,7 +935,8 @@ class ConfigWriter:
 
     """
     return utils.MatchNameComponent(short_name,
-                                    self._config_data.nodes.keys())
+                                    self._config_data.nodes.keys(),
+                                    case_sensitive=False)
 
   def _UnlockedGetNodeInfo(self, node_name):
     """Get the configuration of a node, as stored in the config.
