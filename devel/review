@@ -20,6 +20,12 @@
 # To set user mappings, use this command:
 #   git config gnt-review.johndoe 'John Doe <johndoe@domain.tld>'
 
+# To disable strict mode (enabled by default):
+#   git config gnt-review.strict false
+
+# To enable strict mode:
+#   git config gnt-review.strict true
+
 set -e
 
 # Get absolute path to myself
@@ -54,7 +60,13 @@ add_reviewed_by() {
 replace_users() {
   local msgfile="$1"
 
-  perl -i -e '
+  if perl -i -e '
+  use strict;
+  use warnings;
+
+  my $error = 0;
+  my $strict;
+
   sub map_username {
     my ($name) = @_;
 
@@ -70,6 +82,20 @@ replace_users() {
       chomp $output;
       $output =~ s/\s+/ /;
       return $output;
+    }
+
+    unless (defined $strict) {
+      @cmd = ("git", "config", "--get", "--bool", "gnt-review.strict");
+
+      open($fh, "-|", @cmd) or die "Command \"@cmd\" failed: $!";
+      $output = do { local $/ = undef; <$fh> };
+      close($fh);
+
+      $strict = ($? != 0 or not $output or $output !~ m/^false$/);
+    }
+
+    if ($strict and $name !~ m/^.+<.+\@.+>$/) {
+      $error = 1;
     }
 
     return $name;
@@ -91,6 +117,11 @@ replace_users() {
         $_;
       } split(m/,/, $1);
 
+      # Get unique names
+      my %saw;
+      @names = grep(!$saw{$_}++, @names);
+      undef %saw;
+
       foreach (sort @names) {
         print "Reviewed-by: $_\n";
       }
@@ -98,7 +129,15 @@ replace_users() {
       print;
     }
   }
+
+  exit($error? 33 : 0);
   ' "$msgfile"
+  then
+    :
+  else
+    [[ "$?" == 33 ]] && return 1
+    exit 1
+  fi
 
   if ! grep -q '^Reviewed-by: ' "$msgfile"
   then
