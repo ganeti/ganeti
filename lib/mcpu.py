@@ -130,7 +130,6 @@ class Processor(object):
     """
     self.context = context
     self._cbs = None
-    self.exclusive_BGL = False
     self.rpc = rpc.RpcRunner(context.cfg)
     self.hmclass = HooksMaster
 
@@ -295,14 +294,12 @@ class Processor(object):
         self._ReportLocks(locking.LEVEL_CLUSTER, [locking.BGL],
                           not lu_class.REQ_BGL, True)
       try:
-        self.exclusive_BGL = lu_class.REQ_BGL
         lu = lu_class(self, op, self.context, self.rpc)
         lu.ExpandNames()
         assert lu.needed_locks is not None, "needed_locks not set by LU"
         result = self._LockAndExecLU(lu, locking.LEVEL_INSTANCE)
       finally:
         self.context.glm.release(locking.LEVEL_CLUSTER)
-        self.exclusive_BGL = False
     finally:
       self._cbs = None
 
