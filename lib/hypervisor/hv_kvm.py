@@ -62,6 +62,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VNC_TLS: hv_base.NO_CHECK,
     constants.HV_VNC_X509: hv_base.OPT_DIR_CHECK,
     constants.HV_VNC_X509_VERIFY: hv_base.NO_CHECK,
+    constants.HV_VNC_PASSWORD_FILE: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_BOOT_ORDER:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
@@ -330,7 +331,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-usb'])
       kvm_cmd.extend(['-usbdevice', mouse_type])
 
-    # FIXME: handle vnc password
     vnc_bind_address = hvp[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address:
       if utils.IsValidIP(vnc_bind_address):
@@ -358,6 +358,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           elif hvp[constants.HV_VNC_X509]:
             vnc_append = '%s,x509=%s' % (vnc_append,
                                          hvp[constants.HV_VNC_X509])
+        if hvp[constants.HV_VNC_PASSWORD_FILE]:
+          vnc_append = '%s,password' % vnc_append
+
         vnc_arg = '%s%s' % (vnc_arg, vnc_append)
 
       else:
@@ -432,6 +435,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    hvp = instance.hvparams
     if alive:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, "already running"))
@@ -460,6 +464,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       target, port = incoming
       kvm_cmd.extend(['-incoming', 'tcp:%s:%s' % (target, port)])
 
+    vnc_pwd_file = hvp[constants.HV_VNC_PASSWORD_FILE]
+    vnc_pwd = None
+    if vnc_pwd_file:
+      try:
+        vnc_pwd = utils.ReadFile(vnc_pwd_file)
+      except EnvironmentError, err:
+        raise errors.HypervisorError("Failed to open VNC password file %s: %s"
+                                     % (vnc_pwd_file, err))
+
     result = utils.RunCmd(kvm_cmd)
     if result.failed:
       raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
@@ -469,6 +482,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name))
+
+    if vnc_pwd:
+      change_cmd = 'change vnc password %s' % vnc_pwd
+      self._CallMonitorCommand(instance.name, change_cmd)
 
     for filename in temp_files:
       utils.RemoveFile(filename)

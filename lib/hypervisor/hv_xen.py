@@ -526,6 +526,7 @@ class XenHvmHypervisor(XenHypervisor):
        "VNC bind address is not a valid IP address", None, None),
     constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,
+    constants.HV_VNC_PASSWORD_FILE: hv_base.REQ_FILE_CHECK,
     }
 
   @classmethod
@@ -574,11 +575,12 @@ class XenHvmHypervisor(XenHypervisor):
       config.write("# vncdisplay = 1\n")
       config.write("vncunused = 1\n")
 
+    vnc_pwd_file = hvp[constants.HV_VNC_PASSWORD_FILE]
     try:
-      password = utils.ReadFile(constants.VNC_PASSWORD_FILE)
+      password = utils.ReadFile(vnc_pwd_file)
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to open VNC password file %s: %s" %
-                                   (constants.VNC_PASSWORD_FILE, err))
+                                   (vnc_pwd_file, err))
 
     config.write("vncpasswd = '%s'\n" % password.rstrip())
 
