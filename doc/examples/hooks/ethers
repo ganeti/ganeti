@@ -34,7 +34,7 @@
 # TARGET_BRIDGE: We'll only add the first nic which gets connected to this
 # bridge to /etc/ethers.
 TARGET_BRIDGE="br0"
-DAEMON_PID_FILE="/var/run/dnsmasq.pid"
+DAEMON_PID_FILES="/var/run/dnsmasq.pid /var/run/dnsmasq/dnsmasq.pid"
 
 # In order to handle concurrent execution of this lock, we use the $LOCKFILE.
 # LOCKFILE_CREATE and LOCKFILE_REMOVE are the path names for the lockfile-progs
@@ -57,7 +57,9 @@ acquire_lockfile() {
 update_ethers_from_new() {
   chmod 644 /etc/ethers.new
   mv /etc/ethers.new /etc/ethers
-  [ -f "$DAEMON_PID_FILE" ] && kill -HUP $(< $DAEMON_PID_FILE)
+  for file in $DAEMON_PID_FILES; do
+    [ -f "$file" ] && kill -HUP $(< $file)
+  done
 }
 
 if [ "$hooks_path" = "instance-add" -o \
