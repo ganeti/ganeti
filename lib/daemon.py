@@ -24,7 +24,6 @@
 
 import asyncore
 import os
-import select
 import signal
 import errno
 import logging
@@ -158,12 +157,12 @@ class AsyncUDPSocket(asyncore.dispatcher):
 class Mainloop(object):
   """Generic mainloop for daemons
 
+  @ivar scheduler: A sched.scheduler object, which can be used to register
+    timed events
+
   """
   def __init__(self):
     """Constructs a new Mainloop instance.
-
-    @ivar scheduler: A L{sched.scheduler} object, which can be used to register
-    timed events
 
     """
     self._signal_wait = []
@@ -171,12 +170,9 @@ class Mainloop(object):
 
   @utils.SignalHandled([signal.SIGCHLD])
   @utils.SignalHandled([signal.SIGTERM])
-  def Run(self, stop_on_empty=False, signal_handlers=None):
+  def Run(self, signal_handlers=None):
     """Runs the mainloop.
 
-    @type stop_on_empty: bool
-    @param stop_on_empty: Whether to stop mainloop once all I/O waiters
-                          unregistered
     @type signal_handlers: dict
     @param signal_handlers: signal->L{utils.SignalHandler} passed by decorator
 
@@ -187,10 +183,6 @@ class Mainloop(object):
     running = True
     # Start actual main loop
     while running:
-      # Stop if nothing is listening anymore
-      if stop_on_empty and not (self._io_wait):
-        break
-
       if not self.scheduler.empty():
         try:
           self.scheduler.run()
@@ -234,11 +226,9 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
 
   @type daemon_name: string
   @param daemon_name: daemon name
-  @type optionparser: L{optparse.OptionParser}
+  @type optionparser: optparse.OptionParser
   @param optionparser: initialized optionparser with daemon-specific options
                        (common -f -d options will be handled by this module)
-  @type options: object @param options: OptionParser result, should contain at
-                 least the fork and the debug options
   @type dirs: list of strings
   @param dirs: list of directories that must exist for this daemon to work
   @type check_fn: function which accepts (options, args)

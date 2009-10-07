@@ -31,17 +31,18 @@ class AsyncNotifier(asyncore.file_dispatcher):
 
   """
 
-  def __init__(self, watch_manager,
-               default_proc_fun=None,
-               map=None):
-    """
-    Constructor for AsyncNotifier, a special asyncore file_dispatcher that
-    actually wraps a pyinotify Notifier, making it asyncronous.
+  def __init__(self, watch_manager, default_proc_fun=None, map=None):
+    """Initializes this class.
+
+    This is a a special asyncore file_dispatcher that actually wraps a
+    pyinotify Notifier, making it asyncronous.
 
     """
     if default_proc_fun is None:
-      default_proc_fun=pyinotify.ProcessEvent()
+      default_proc_fun = pyinotify.ProcessEvent()
+
     self.notifier = pyinotify.Notifier(watch_manager, default_proc_fun)
+
     # here we need to steal the file descriptor from the notifier, so we can
     # use it in the global asyncore select, and avoid calling the
     # check_events() function of the notifier (which doesn't allow us to select
@@ -52,4 +53,3 @@ class AsyncNotifier(asyncore.file_dispatcher):
   def handle_read(self):
     self.notifier.read_events()
     self.notifier.process_events()
-

@@ -370,8 +370,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       kvm_cmd.extend(['-nographic'])
 
-    monitor_dev = 'unix:%s,server,nowait' % \
-      self._InstanceMonitor(instance.name)
+    monitor_dev = ("unix:%s,server,nowait" %
+                   self._InstanceMonitor(instance.name))
     kvm_cmd.extend(['-monitor', monitor_dev])
     if hvp[constants.HV_SERIAL_CONSOLE]:
       serial_dev = ('unix:%s,server,nowait' %

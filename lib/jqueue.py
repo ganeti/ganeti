@@ -1027,7 +1027,7 @@ class JobQueue(object):
     queue, in order for it to be picked up by the queue processors.
 
     @type job_id: job ID
-    @param jod_id: the job ID for the new job
+    @param job_id: the job ID for the new job
     @type ops: list
     @param ops: The list of OpCodes that will become the new job.
     @rtype: job ID

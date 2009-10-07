@@ -439,7 +439,7 @@ class R_2_instances(baserlib.R_Generic):
     for idx, d in enumerate(disk_data):
       if not isinstance(d, int):
         raise http.HttpBadRequest("Disk %d specification wrong: should"
-                                  " be an integer")
+                                  " be an integer" % idx)
       disks.append({"size": d})
     # nic processing (one nic only)
     nics = [{"mac": fn("mac", constants.VALUE_AUTO)}]
@@ -450,7 +450,7 @@ class R_2_instances(baserlib.R_Generic):
     if fn("link", None) is not None:
       nics[0]["link"] = fn("link")
     if fn("bridge", None) is not None:
-       nics[0]["bridge"] = fn("bridge")
+      nics[0]["bridge"] = fn("bridge")
 
     op = opcodes.OpCreateInstance(
       mode=constants.INSTANCE_CREATE,

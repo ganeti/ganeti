@@ -57,6 +57,14 @@ class SimpleConfigReader(object):
     self._last_inode = None
     self._last_mtime = None
     self._last_size = None
+
+    self._config_data = None
+    self._instances_ips = None
+    self._inst_ips_by_link = None
+    self._ip_to_instance = None
+    self._mc_primary_ips = None
+    self._nodes_primary_ips = None
+
     # we need a forced reload at class init time, to initialize _last_*
     self._Load(force=True)
 
@@ -79,16 +87,14 @@ class SimpleConfigReader(object):
     mtime = cfg_stat.st_mtime
     size = cfg_stat.st_size
 
-    reload = False
-    if force or inode != self._last_inode or \
-       mtime > self._last_mtime or \
-       size != self._last_size:
+    if (force or inode != self._last_inode or
+        mtime > self._last_mtime or
+        size != self._last_size):
       self._last_inode = inode
       self._last_mtime = mtime
       self._last_size = size
-      reload = True
-
-    if not reload:
+    else:
+      # Don't reload
       return False
 
     try:

@@ -38,7 +38,6 @@ from ganeti import errors
 from ganeti import rpc
 from ganeti import cmdlib
 from ganeti import locking
-from ganeti import utils
 
 
 class _LockAcquireTimeout(Exception):

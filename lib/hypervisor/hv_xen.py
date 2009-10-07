@@ -508,8 +508,9 @@ class XenPvmHypervisor(XenHypervisor):
 class XenHvmHypervisor(XenHypervisor):
   """Xen HVM hypervisor interface"""
 
-  ANCILLARY_FILES = XenHypervisor.ANCILLARY_FILES + \
-    [constants.VNC_PASSWORD_FILE]
+  ANCILLARY_FILES = XenHypervisor.ANCILLARY_FILES + [
+    constants.VNC_PASSWORD_FILE,
+    ]
 
   PARAMETERS = {
     constants.HV_ACPI: hv_base.NO_CHECK,

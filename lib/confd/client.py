@@ -29,7 +29,8 @@ This way the client library doesn't ever need to "wait" on a particular answer,
 and can proceed even if some udp packets are lost. It's up to the user to
 reschedule queries if they haven't received responses and they need them.
 
-Example usage:
+Example usage::
+
   client = ConfdClient(...) # includes callback specification
   req = confd_client.ConfdClientRequest(type=constants.CONFD_REQ_PING)
   client.SendRequest(req)
@@ -43,6 +44,7 @@ You can use the provided ConfdFilterCallback to act as a filter, only passing
 confirming what you already got.
 
 """
+
 import socket
 import time
 import random
@@ -97,7 +99,7 @@ class ConfdClient:
     @param callback: function to call when getting answers
     @type port: integer
     @keyword port: confd port (default: use GetDaemonPort)
-    @type logger: L{logging.Logger}
+    @type logger: logging.Logger
     @keyword logger: optional logger for internal conditions
 
     """
@@ -318,7 +320,7 @@ class ConfdFilterCallback:
 
     @type callback: f(L{ConfdUpcallPayload})
     @param callback: function to call when getting answers
-    @type logger: L{logging.Logger}
+    @type logger: logging.Logger
     @keyword logger: optional logger for internal conditions
 
     """

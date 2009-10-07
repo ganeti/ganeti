@@ -114,7 +114,7 @@ class R_root(baserlib.R_Generic):
     return baserlib.BuildUriList(rootlist, "/%s")
 
 
-def _getResources(id):
+def _getResources(id_):
   """Return a list of resources underneath given id.
 
   This is to generalize querying of version resources lists.
@@ -122,7 +122,7 @@ def _getResources(id):
   @return: a list of resources names.
 
   """
-  r_pattern = re.compile('^R_%s_([a-zA-Z0-9]+)$' % id)
+  r_pattern = re.compile('^R_%s_([a-zA-Z0-9]+)$' % id_)
 
   rlist = []
   for handler in CONNECTOR.values():

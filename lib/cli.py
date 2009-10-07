@@ -25,7 +25,6 @@
 import sys
 import textwrap
 import os.path
-import copy
 import time
 import logging
 from cStringIO import StringIO
@@ -813,7 +812,7 @@ IGNORE_SECONDARIES_OPT = cli_option("--ignore-secondaries",
                                     default=False, action="store_true",
                                     help="Ignore errors from secondaries")
 
-NOSHUTDOWN_OPT = cli_option("","--noshutdown", dest="shutdown",
+NOSHUTDOWN_OPT = cli_option("--noshutdown", dest="shutdown",
                             action="store_false", default=True,
                             help="Don't shutdown the instance (unsafe)")
 

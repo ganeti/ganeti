@@ -18,6 +18,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+# Disable "Invalid name ..." message
+# pylint: disable-msg=C0103
+
 """Module implementing the Ganeti locking code."""
 
 import os
@@ -113,7 +116,7 @@ class _BaseCondition(object):
   def __init__(self, lock):
     """Constructor for _BaseCondition.
 
-    @type lock: L{threading.Lock}
+    @type lock: threading.Lock
     @param lock: condition base lock
 
     """
@@ -180,6 +183,9 @@ class SingleNotifyPipeCondition(_BaseCondition):
     self._poller = None
 
   def _check_unnotified(self):
+    """Throws an exception if already notified.
+
+    """
     if self._notified:
       raise RuntimeError("cannot use already notified condition")
 

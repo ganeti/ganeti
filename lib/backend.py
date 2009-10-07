@@ -1768,7 +1768,7 @@ def OSFromDisk(name, base_dir=None):
   @raise RPCFail: if we don't find a valid OS
 
   """
-  name_only = name.split('+',1)[0]
+  name_only = name.split("+", 1)[0]
   status, payload = _TryOSFromDisk(name_only, base_dir)
 
   if not status:
