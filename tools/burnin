@@ -865,8 +865,8 @@ class Burner(object):
       if opts.do_migrate and opts.disk_template == constants.DT_DRBD8:
         self.BurnMigrate()
 
-      if opts.do_move and opts.disk_template in [constants.DT_PLAIN,
-                                                 constants.DT_FILE]:
+      if (opts.do_move and len(self.nodes) > 1 and
+          opts.disk_template in [constants.DT_PLAIN, constants.DT_FILE]):
         self.BurnMove()
 
       if (opts.do_importexport and
