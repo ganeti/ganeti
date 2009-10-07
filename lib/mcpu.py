@@ -221,7 +221,7 @@ class Processor(object):
     self.rpc = rpc.RpcRunner(context.cfg)
     self.hmclass = HooksMaster
 
-  def _ReportLocks(self, level, names, shared, acquired):
+  def _ReportLocks(self, level, names, shared, timeout, acquired, result):
     """Reports lock operations.
 
     @type level: int
@@ -229,18 +229,29 @@ class Processor(object):
     @type names: list or string
     @param names: Lock names
     @type shared: bool
-    @param shared: Whether the lock should be acquired in shared mode
+    @param shared: Whether the locks should be acquired in shared mode
+    @type timeout: None or float
+    @param timeout: Timeout for acquiring the locks
     @type acquired: bool
-    @param acquired: Whether the lock has already been acquired
+    @param acquired: Whether the locks have already been acquired
+    @type result: None or set
+    @param result: Result from L{locking.GanetiLockManager.acquire}
 
     """
     parts = []
 
     # Build message
     if acquired:
-      parts.append("acquired")
+      if result is None:
+        parts.append("timeout")
+      else:
+        parts.append("acquired")
     else:
       parts.append("waiting")
+      if timeout is None:
+        parts.append("blocking")
+      else:
+        parts.append("timeout=%0.6fs" % timeout)
 
     parts.append(locking.LEVEL_NAMES[level])
 
@@ -262,6 +273,28 @@ class Processor(object):
 
     if self._cbs:
       self._cbs.ReportLocks(msg)
+
+  def _AcquireLocks(self, level, names, shared, timeout):
+    """Acquires locks via the Ganeti lock manager.
+
+    @type level: int
+    @param level: Lock level
+    @type names: list or string
+    @param names: Lock names
+    @type shared: bool
+    @param shared: Whether the locks should be acquired in shared mode
+    @type timeout: None or float
+    @param timeout: Timeout for acquiring the locks
+
+    """
+    self._ReportLocks(level, names, shared, timeout, False, None)
+
+    acquired = self.context.glm.acquire(level, names, shared=shared,
+                                        timeout=timeout)
+
+    self._ReportLocks(level, names, shared, timeout, True, acquired)
+
+    return acquired
 
   def _ExecLU(self, lu):
     """Logical Unit execution sequence.
@@ -328,13 +361,8 @@ class Processor(object):
           # Acquiring locks
           needed_locks = lu.needed_locks[level]
 
-          self._ReportLocks(level, needed_locks, share, False)
-          acquired = self.context.glm.acquire(level,
-                                              needed_locks,
-                                              shared=share,
-                                              timeout=calc_timeout())
-          # TODO: Report timeout
-          self._ReportLocks(level, needed_locks, share, True)
+          acquired = self._AcquireLocks(level, needed_locks, share,
+                                        calc_timeout())
 
           if acquired is None:
             raise _LockAcquireTimeout()
@@ -392,22 +420,11 @@ class Processor(object):
 
       while True:
         try:
-          self._ReportLocks(locking.LEVEL_CLUSTER, [locking.BGL],
-                            not lu_class.REQ_BGL, False)
-          try:
-            # Acquire the Big Ganeti Lock exclusively if this LU requires it,
-            # and in a shared fashion otherwise (to prevent concurrent run with
-            # an exclusive LU.
-            acquired_bgl = self.context.glm.acquire(locking.LEVEL_CLUSTER,
-                                                    [locking.BGL],
-                                                    shared=not lu_class.REQ_BGL,
-                                                    timeout=calc_timeout())
-          finally:
-            # TODO: Report timeout
-            self._ReportLocks(locking.LEVEL_CLUSTER, [locking.BGL],
-                              not lu_class.REQ_BGL, True)
-
-          if acquired_bgl is None:
+          # Acquire the Big Ganeti Lock exclusively if this LU requires it,
+          # and in a shared fashion otherwise (to prevent concurrent run with
+          # an exclusive LU.
+          if self._AcquireLocks(locking.LEVEL_CLUSTER, locking.BGL,
+                                not lu_class.REQ_BGL, calc_timeout()) is None:
             raise _LockAcquireTimeout()
 
           try:
