@@ -46,8 +46,16 @@ clean:
 	cd Ganeti && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 
+.PHONY: version
 version:
-	git describe > $@
+	set -e; \
+	if test -d .git; then \
+	  git describe > $@.tmp; \
+	  cmp -s $@ $@.tmp || mv $@.tmp $@; \
+	  rm -f $@.tmp; \
+	elif test ! -f $@ ; then \
+	  echo "Cannot auto-generate $@ file"; exit 1; \
+	fi
 
 Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
 	sed -e "s/%ver%/$$(cat version)/" < $< > $@
