@@ -272,6 +272,7 @@ dist_TESTS = \
 	test/ganeti.hooks_unittest.py \
 	test/ganeti.http_unittest.py \
 	test/ganeti.locking_unittest.py \
+	test/ganeti.mcpu_unittest.py \
 	test/ganeti.objects_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.serializer_unittest.py \
