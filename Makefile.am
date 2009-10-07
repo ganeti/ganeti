@@ -201,7 +201,7 @@ EXTRA_DIST = \
 	autotools/build-bash-completion \
 	autotools/check-python-code \
 	autotools/docbook-wrapper \
-	autotools/run-in-tempdir \
+	$(RUN_IN_TEMPDIR) \
 	daemons/ganeti-cleaner.in \
 	devel/upload.in \
 	$(docdot) \
