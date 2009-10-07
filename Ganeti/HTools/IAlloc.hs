@@ -78,7 +78,7 @@ parseNode n a = do
     let name = n
     offline <- fromObj "offline" a
     drained <- fromObj "drained" a
-    node <- (if offline
+    node <- (if offline || drained
              then return $ Node.create name 0 0 0 0 0 0 True
              else do
                mtotal <- fromObj "total_memory" a
@@ -88,7 +88,7 @@ parseNode n a = do
                dfree  <- fromObj "free_disk"    a
                ctotal <- fromObj "total_cpus"   a
                return $ Node.create n mtotal mnode mfree
-                      dtotal dfree ctotal (offline || drained))
+                      dtotal dfree ctotal False)
     return (name, node)
 
 -- | Top-level parser.
