@@ -24,6 +24,7 @@
 """
 
 from ganeti import constants
+from ganeti import errors
 
 
 _FOURCC_LEN = 4
