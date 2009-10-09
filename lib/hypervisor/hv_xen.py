@@ -178,10 +178,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, result.fail_reason,
                                     result.output))
 
-  def StopInstance(self, instance, force=False):
+  def StopInstance(self, instance, force=False, retry=False):
     """Stop an instance.
 
     """
+    if retry:
+      return
     self._RemoveConfigFile(instance.name)
     if force:
       command = ["xm", "destroy", instance.name]

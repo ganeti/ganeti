@@ -535,10 +535,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if wait < 5:
         wait *= 1.3
 
-  def StopInstance(self, instance, force=False):
+  def StopInstance(self, instance, force=False, retry=False):
     """Stop an instance.
 
     """
+    if retry:
+      return
     pidfile, pid, alive = self._InstancePidAlive(instance.name)
     if pid > 0 and alive:
       if force or not instance.hvparams[constants.HV_ACPI]:

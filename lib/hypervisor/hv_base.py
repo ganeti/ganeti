@@ -111,8 +111,17 @@ class BaseHypervisor(object):
     """Start an instance."""
     raise NotImplementedError
 
-  def StopInstance(self, instance, force=False):
-    """Stop an instance."""
+  def StopInstance(self, instance, force=False, retry=False):
+    """Stop an instance
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to stop
+    @type force: boolean
+    @param force: whether to do a "hard" stop (destroy)
+    @type retry: boolean
+    @param retry: whether this is just a retry call
+
+    """
     raise NotImplementedError
 
   def RebootInstance(self, instance):
