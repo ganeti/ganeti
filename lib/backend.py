@@ -960,13 +960,15 @@ def StartInstance(instance):
     _Fail("Hypervisor error: %s", err, exc=True)
 
 
-def InstanceShutdown(instance):
+def InstanceShutdown(instance, timeout):
   """Shut an instance down.
 
   @note: this functions uses polling with a hardcoded timeout.
 
   @type instance: L{objects.Instance}
   @param instance: the instance object
+  @type timeout: integer
+  @param timeout: maximum timeout for soft shutdown
   @rtype: None
 
   """
@@ -974,7 +976,6 @@ def InstanceShutdown(instance):
   hyper = hypervisor.GetHypervisor(hv_name)
   running_instances = hyper.ListInstances()
   iname = instance.name
-  timeout = constants.DEFAULT_SHUTDOWN_TIMEOUT
 
   if iname not in running_instances:
     logging.info("Instance %s not running, doing nothing", iname)

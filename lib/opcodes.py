@@ -489,7 +489,7 @@ class OpShutdownInstance(OpCode):
   """Shutdown an instance."""
   OP_ID = "OP_INSTANCE_SHUTDOWN"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = OpCode.__slots__ + ["instance_name"]
+  __slots__ = OpCode.__slots__ + ["instance_name", "timeout"]
 
 
 class OpRebootInstance(OpCode):

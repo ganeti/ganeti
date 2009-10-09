@@ -727,7 +727,8 @@ def _ShutdownInstance(name, opts):
   @return: the opcode needed for the operation
 
   """
-  return opcodes.OpShutdownInstance(instance_name=name)
+  return opcodes.OpShutdownInstance(instance_name=name,
+                                    timeout=opts.timeout)
 
 
 def ReplaceDisks(opts, args):
@@ -1346,7 +1347,7 @@ commands = {
   'shutdown': (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
     [m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
-     m_inst_opt, m_force_multi, SUBMIT_OPT],
+     m_inst_opt, m_force_multi, TIMEOUT_OPT, SUBMIT_OPT],
     "<instance>", "Stops an instance"),
   'startup': (
     GenericManyOps("startup", _StartupInstance), [ArgInstance()],

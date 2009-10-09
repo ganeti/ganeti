@@ -3679,6 +3679,13 @@ class LUShutdownInstance(LogicalUnit):
   _OP_REQP = ["instance_name"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    self.timeout = getattr(self.op, "timeout",
+                           constants.DEFAULT_SHUTDOWN_TIMEOUT)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
 
@@ -3689,6 +3696,7 @@ class LUShutdownInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
+    env["TIMEOUT"] = self.timeout
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
@@ -3709,8 +3717,9 @@ class LUShutdownInstance(LogicalUnit):
     """
     instance = self.instance
     node_current = instance.primary_node
+    timeout = self.timeout
     self.cfg.MarkInstanceDown(instance.name)
-    result = self.rpc.call_instance_shutdown(node_current, instance)
+    result = self.rpc.call_instance_shutdown(node_current, instance, timeout)
     msg = result.fail_msg
     if msg:
       self.proc.LogWarning("Could not shutdown instance: %s" % msg)

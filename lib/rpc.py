@@ -467,14 +467,14 @@ class RpcRunner(object):
     idict = self._InstDict(instance, hvp=hvp, bep=bep)
     return self._SingleNodeCall(node, "instance_start", [idict])
 
-  def call_instance_shutdown(self, node, instance):
+  def call_instance_shutdown(self, node, instance, timeout):
     """Stops an instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_shutdown",
-                                [self._InstDict(instance)])
+                                [self._InstDict(instance), timeout])
 
   def call_migration_info(self, node, instance):
     """Gather the information necessary to prepare an instance migration.
