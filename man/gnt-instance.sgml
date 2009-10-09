@@ -1526,6 +1526,8 @@ instance5: 11225
         <cmdsynopsis>
           <command>shutdown</command>
           <sbr>
+          <arg>--timeout=<replaceable>N</replaceable></arg>
+          <sbr>
           <arg>--force-multiple</arg>
           <sbr>
           <group choice="opt">
@@ -1547,6 +1549,13 @@ instance5: 11225
           cleanly stopped during a hardcoded interval (currently 2
           minutes), it will forcibly stop the instance (equivalent to
           switching off the power on a physical machine).
+        </para>
+
+        <para>
+          The <option>--timeout</option> is used to specify how much time to
+          wait before forcing the shutdown (xm destroy in xen, killing the kvm
+          process, for kvm). By default two minutes are given to each instance
+          to stop.
         </para>
 
         <para>
