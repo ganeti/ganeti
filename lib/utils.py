@@ -1859,16 +1859,6 @@ def SafeEncode(text):
   return resu
 
 
-def CommaJoin(names):
-  """Nicely join a set of identifiers.
-
-  @param names: set, list or tuple
-  @return: a string with the formatted results
-
-  """
-  return ", ".join(["'%s'" % val for val in names])
-
-
 def BytesToMebibyte(value):
   """Converts bytes to mebibytes.
 

@@ -72,8 +72,7 @@ _STORAGE_TYPE_OPT = \
              choices=_USER_STORAGE_TYPE.keys(),
              default=None,
              metavar="STORAGE_TYPE",
-             help=("Storage type (%s)" %
-                   utils.CommaJoin(_USER_STORAGE_TYPE.keys())))
+             help=("Storage type (%s)" % " ,".join(_USER_STORAGE_TYPE.keys())))
 
 _REPAIRABLE_STORAGE_TYPES = \
   [st for st, so in constants.VALID_STORAGE_OPERATIONS.iteritems()

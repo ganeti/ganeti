@@ -1935,8 +1935,7 @@ class LUSetClusterParams(LogicalUnit):
       invalid_hvs = set(self.hv_list) - constants.HYPER_TYPES
       if invalid_hvs:
         raise errors.OpPrereqError("Enabled hypervisors contains invalid"
-                                   " entries: %s" %
-                                   utils.CommaJoin(invalid_hvs))
+                                   " entries: %s" % " ,".join(invalid_hvs))
     else:
       self.hv_list = cluster.enabled_hypervisors
 

@@ -114,7 +114,7 @@ class TestDocs(unittest.TestCase):
 
     self.failIf(undocumented,
                 msg=("Missing RAPI resource documentation for %s" %
-                     utils.CommaJoin(undocumented)))
+                     " ,".join(undocumented)))
 
 
 class TestManpages(unittest.TestCase):
@@ -145,7 +145,7 @@ class TestManpages(unittest.TestCase):
 
     self.failIf(missing,
                 msg=("Manpage for '%s' missing documentation for %s" %
-                     (script, utils.CommaJoin(missing))))
+                     (script, " ,".join(missing))))
 
 
 if __name__ == "__main__":
