@@ -632,6 +632,12 @@ class SharedLock(object):
 ALL_SET = None
 
 
+class _AcquireTimeout(Exception):
+  """Internal exception to abort an acquire on a timeout.
+
+  """
+
+
 class LockSet:
   """Implements a set of locks.
 
@@ -702,6 +708,12 @@ class LockSet:
     else:
       return set()
 
+  def _release_and_delete_owned(self):
+    """Release and delete all resources owned by the current thread"""
+    for lname in self._list_owned():
+      self.__lockdict[lname].release()
+      self._del_owned(name=lname)
+
   def __names(self):
     """Return the current set of names.
 
@@ -730,30 +742,43 @@ class LockSet:
         self.__lock.release()
     return set(result)
 
-  def acquire(self, names, timeout=None, shared=0):
+  def acquire(self, names, timeout=None, shared=0, test_notify=None):
     """Acquire a set of resource locks.
 
     @param names: the names of the locks which shall be acquired
         (special lock names, or instance/node names)
     @param shared: whether to acquire in shared mode; by default an
         exclusive lock will be acquired
-    @type timeout: float
+    @type timeout: float or None
     @param timeout: Maximum time to acquire all locks
+    @type test_notify: callable or None
+    @param test_notify: Special callback function for unittesting
 
-    @return: True when all the locks are successfully acquired
+    @return: Set of all locks successfully acquired or None in case of timeout
 
     @raise errors.LockError: when any lock we try to acquire has
         been deleted before we succeed. In this case none of the
         locks requested will be acquired.
 
     """
-    if timeout is not None:
-      raise NotImplementedError
+    assert timeout is None or timeout >= 0.0
 
     # Check we don't already own locks at this level
     assert not self._is_owned(), "Cannot acquire locks in the same set twice"
 
-    if names is None:
+    # We need to keep track of how long we spent waiting for a lock. The
+    # timeout passed to this function is over all lock acquires.
+    remaining_timeout = timeout
+    if timeout is None:
+      start = None
+      calc_remaining_timeout = lambda: None
+    else:
+      start = time.time()
+      calc_remaining_timeout = lambda: (start + timeout) - time.time()
+
+    want_all = names is None
+
+    if want_all:
       # If no names are given acquire the whole set by not letting new names
       # being added before we release, and getting the current list of names.
       # Some of them may then be deleted later, but we'll cope with this.
@@ -763,7 +788,7 @@ class LockSet:
       # them exclusively though they won't be able to do this anyway, though,
       # so we'll get the list lock exclusively as well in order to be able to
       # do add() on the set while owning it.
-      self.__lock.acquire(shared=shared)
+      self.__lock.acquire(shared=shared, timeout=remaining_timeout)
       try:
         # note we own the set-lock
         self._add_owned()
@@ -775,65 +800,103 @@ class LockSet:
         self.__lock.release()
         raise
 
+      # Re-calculate timeout
+      remaining_timeout = calc_remaining_timeout()
+
     try:
-      # Support passing in a single resource to acquire rather than many
-      if isinstance(names, basestring):
-        names = [names]
-      else:
-        names = sorted(names)
+      try:
+        # Support passing in a single resource to acquire rather than many
+        if isinstance(names, basestring):
+          names = [names]
+        else:
+          names = sorted(names)
 
-      acquire_list = []
-      # First we look the locks up on __lockdict. We have no way of being sure
-      # they will still be there after, but this makes it a lot faster should
-      # just one of them be the already wrong
-      for lname in utils.UniqueSequence(names):
-        try:
-          lock = self.__lockdict[lname] # raises KeyError if lock is not there
-          acquire_list.append((lname, lock))
-        except (KeyError):
-          if self.__lock._is_owned():
-            # We are acquiring all the set, it doesn't matter if this
-            # particular element is not there anymore.
-            continue
+        acquire_list = []
+        # First we look the locks up on __lockdict. We have no way of being sure
+        # they will still be there after, but this makes it a lot faster should
+        # just one of them be the already wrong
+        for lname in utils.UniqueSequence(names):
+          try:
+            lock = self.__lockdict[lname] # raises KeyError if lock is not there
+            acquire_list.append((lname, lock))
+          except KeyError:
+            if want_all:
+              # We are acquiring all the set, it doesn't matter if this
+              # particular element is not there anymore.
+              continue
+            else:
+              raise errors.LockError("Non-existing lock in set (%s)" % lname)
+
+        # This will hold the locknames we effectively acquired.
+        acquired = set()
+
+        # Now acquire_list contains a sorted list of resources and locks we
+        # want.  In order to get them we loop on this (private) list and
+        # acquire() them.  We gave no real guarantee they will still exist till
+        # this is done but .acquire() itself is safe and will alert us if the
+        # lock gets deleted.
+        for (lname, lock) in acquire_list:
+          if __debug__ and callable(test_notify):
+            test_notify_fn = lambda: test_notify(lname)
           else:
-            raise errors.LockError('non-existing lock in set (%s)' % lname)
+            test_notify_fn = None
 
-      # This will hold the locknames we effectively acquired.
-      acquired = set()
-      # Now acquire_list contains a sorted list of resources and locks we want.
-      # In order to get them we loop on this (private) list and acquire() them.
-      # We gave no real guarantee they will still exist till this is done but
-      # .acquire() itself is safe and will alert us if the lock gets deleted.
-      for (lname, lock) in acquire_list:
-        try:
-          lock.acquire(shared=shared) # raises LockError if the lock is deleted
-          # now the lock cannot be deleted, we have it!
-          self._add_owned(name=lname)
-          acquired.add(lname)
-        except (errors.LockError):
-          if self.__lock._is_owned():
-            # We are acquiring all the set, it doesn't matter if this
-            # particular element is not there anymore.
-            continue
-          else:
-            name_fail = lname
-            for lname in self._list_owned():
-              self.__lockdict[lname].release()
-              self._del_owned(name=lname)
-            raise errors.LockError('non-existing lock in set (%s)' % name_fail)
-        except:
-          # We shouldn't have problems adding the lock to the owners list, but
-          # if we did we'll try to release this lock and re-raise exception.
-          # Of course something is going to be really wrong, after this.
-          if lock._is_owned():
-            lock.release()
-          raise
+          try:
+            if timeout is not None and remaining_timeout < 0:
+              raise _AcquireTimeout()
 
-    except:
-      # If something went wrong and we had the set-lock let's release it...
-      if self.__lock._is_owned():
-        self.__lock.release()
-      raise
+            # raises LockError if the lock was deleted
+            if not lock.acquire(shared=shared, timeout=remaining_timeout,
+                                test_notify=test_notify_fn):
+              # Couldn't get lock or timeout occurred
+              if timeout is None:
+                # This shouldn't happen as SharedLock.acquire(timeout=None) is
+                # blocking.
+                raise errors.LockError("Failed to get lock %s" % lname)
+
+              raise _AcquireTimeout()
+
+            # Re-calculate timeout
+            remaining_timeout = calc_remaining_timeout()
+
+            # now the lock cannot be deleted, we have it!
+            self._add_owned(name=lname)
+            acquired.add(lname)
+
+          except _AcquireTimeout:
+            # Release all acquired locks
+            self._release_and_delete_owned()
+            raise
+
+          except errors.LockError:
+            if want_all:
+              # We are acquiring all the set, it doesn't matter if this
+              # particular element is not there anymore.
+              continue
+
+            self._release_and_delete_owned()
+
+            raise errors.LockError("Non-existing lock in set (%s)" % lname)
+
+          except:
+            # We shouldn't have problems adding the lock to the owners list, but
+            # if we did we'll try to release this lock and re-raise exception.
+            # Of course something is going to be really wrong, after this.
+            if lock._is_owned():
+              lock.release()
+            raise
+
+      except:
+        # If something went wrong and we had the set-lock let's release it...
+        if want_all:
+          self.__lock.release()
+        raise
+
+    except _AcquireTimeout:
+      if want_all:
+        self._del_owned()
+
+      return None
 
     return acquired
 
@@ -939,7 +1002,7 @@ class LockSet:
 
     @param names: names of the resource to remove.
 
-    @return:: a list of locks which we removed; the list is always
+    @return: a list of locks which we removed; the list is always
         equal to the names list if we were holding all the locks
         exclusively
 

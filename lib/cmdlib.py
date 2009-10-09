@@ -2396,7 +2396,6 @@ class LUQueryNodes(NoHooksLU):
       # if we don't request only static fields, we need to lock the nodes
       self.needed_locks[locking.LEVEL_NODE] = self.wanted
 
-
   def CheckPrereq(self):
     """Check prerequisites.
 

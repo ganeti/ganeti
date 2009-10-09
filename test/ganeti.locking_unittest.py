@@ -48,6 +48,15 @@ def _Repeat(fn):
   return wrapper
 
 
+def SafeSleep(duration):
+  start = time.time()
+  while True:
+    delay = start + duration - time.time()
+    if delay <= 0.0:
+      break
+    time.sleep(delay)
+
+
 class _ThreadedTestCase(unittest.TestCase):
   """Test class that supports adding/waiting on threads"""
   def setUp(self):
@@ -964,6 +973,125 @@ class TestLockSet(_ThreadedTestCase):
     self._waitThreads()
     for _ in range(6):
       self.failUnlessEqual(self.done.get_nowait(), 'DONE')
+
+  @_Repeat
+  def testSimpleAcquireTimeoutExpiring(self):
+    names = sorted(self.ls._names())
+    self.assert_(len(names) >= 3)
+
+    # Get name of first lock
+    first = names[0]
+
+    # Get name of last lock
+    last = names.pop()
+
+    checks = [
+      # Block first and try to lock it again
+      (first, first),
+
+      # Block last and try to lock all locks
+      (None, first),
+
+      # Block last and try to lock it again
+      (last, last),
+      ]
+
+    for (wanted, block) in checks:
+      # Lock in exclusive mode
+      self.assert_(self.ls.acquire(block, shared=0))
+
+      def _AcquireOne():
+        # Try to get the same lock again with a timeout (should never succeed)
+        if self.ls.acquire(wanted, timeout=0.1, shared=0):
+          self.done.put("acquired")
+          self.ls.release()
+        else:
+          self.assert_(not self.ls._list_owned())
+          self.assert_(not self.ls._is_owned())
+          self.done.put("not acquired")
+
+      self._addThread(target=_AcquireOne)
+
+      # Wait for timeout in thread to expire
+      self._waitThreads()
+
+      # Release exclusive lock again
+      self.ls.release()
+
+      self.assertEqual(self.done.get_nowait(), "not acquired")
+      self.assertRaises(Queue.Empty, self.done.get_nowait)
+
+  @_Repeat
+  def testDelayedAndExpiringLockAcquire(self):
+    self._setUpLS()
+    self.ls.add(['five', 'six', 'seven', 'eight', 'nine'])
+
+    for expire in (False, True):
+      names = sorted(self.ls._names())
+      self.assertEqual(len(names), 8)
+
+      lock_ev = dict([(i, threading.Event()) for i in names])
+
+      # Lock all in exclusive mode
+      self.assert_(self.ls.acquire(names, shared=0))
+
+      if expire:
+        # We'll wait at least 300ms per lock
+        lockwait = len(names) * [0.3]
+
+        # Fail if we can't acquire all locks in 400ms. There are 8 locks, so
+        # this gives us up to 2.4s to fail.
+        lockall_timeout = 0.4
+      else:
+        # This should finish rather quickly
+        lockwait = None
+        lockall_timeout = len(names) * 5.0
+
+      def _LockAll():
+        def acquire_notification(name):
+          if not expire:
+            self.done.put("getting %s" % name)
+
+          # Kick next lock
+          lock_ev[name].set()
+
+        if self.ls.acquire(names, shared=0, timeout=lockall_timeout,
+                           test_notify=acquire_notification):
+          self.done.put("got all")
+          self.ls.release()
+        else:
+          self.done.put("timeout on all")
+
+        # Notify all locks
+        for ev in lock_ev.values():
+          ev.set()
+
+      t = self._addThread(target=_LockAll)
+
+      for idx, name in enumerate(names):
+        # Wait for actual acquire on this lock to start
+        lock_ev[name].wait(10.0)
+
+        if expire and t.isAlive():
+          # Wait some time after getting the notification to make sure the lock
+          # acquire will expire
+          SafeSleep(lockwait[idx])
+
+        self.ls.release(names=name)
+
+      self.assert_(not self.ls._list_owned())
+
+      self._waitThreads()
+
+      if expire:
+        # Not checking which locks were actually acquired. Doing so would be
+        # too timing-dependant.
+        self.assertEqual(self.done.get_nowait(), "timeout on all")
+      else:
+        for i in names:
+          self.assertEqual(self.done.get_nowait(), "getting %s" % i)
+        self.assertEqual(self.done.get_nowait(), "got all")
+      self.assertRaises(Queue.Empty, self.done.get_nowait)
 
   @_Repeat
   def testConcurrentRemove(self):
