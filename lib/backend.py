@@ -971,29 +971,36 @@ def InstanceShutdown(instance):
 
   """
   hv_name = instance.hypervisor
-  running_instances = GetInstanceList([hv_name])
+  hyper = hypervisor.GetHypervisor(hv_name)
+  running_instances = hyper.ListInstances()
   iname = instance.name
+  timeout = constants.DEFAULT_SHUTDOWN_TIMEOUT
 
   if iname not in running_instances:
     logging.info("Instance %s not running, doing nothing", iname)
     return
 
-  hyper = hypervisor.GetHypervisor(hv_name)
-  try:
-    hyper.StopInstance(instance)
-  except errors.HypervisorError, err:
-    _Fail("Failed to stop instance %s: %s", iname, err)
+  start = time.time()
+  end = start + timeout
+  sleep_time = 1
 
-  # test every 10secs for 2min
-
-  time.sleep(1)
-  for _ in range(11):
-    if instance.name not in GetInstanceList([hv_name]):
+  tried_once = False
+  while not tried_once and time.time() < end:
+    try:
+      hyper.StopInstance(instance, retry=tried_once)
+    except errors.HypervisorError, err:
+      _Fail("Failed to stop instance %s: %s", iname, err)
+    tried_once = True
+    time.sleep(sleep_time)
+    if instance.name not in hyper.ListInstances():
       break
-    time.sleep(10)
+    if sleep_time < 5:
+      # 1.2 behaves particularly good for our case:
+      # it gives us 10 increasing steps and caps just slightly above 5 seconds
+      sleep_time *= 1.2
   else:
     # the shutdown did not succeed
-    logging.error("Shutdown of '%s' unsuccessful, using destroy", iname)
+    logging.error("Shutdown of '%s' unsuccessful, forcing", iname)
 
     try:
       hyper.StopInstance(instance, force=True)
