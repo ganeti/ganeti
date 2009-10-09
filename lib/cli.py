@@ -111,6 +111,7 @@ __all__ = [
   "STATIC_OPT",
   "SYNC_OPT",
   "TAG_SRC_OPT",
+  "TIMEOUT_OPT",
   "USEUNITS_OPT",
   "VERBOSE_OPT",
   "VG_NAME_OPT",
@@ -816,6 +817,9 @@ NOSHUTDOWN_OPT = cli_option("","--noshutdown", dest="shutdown",
                             action="store_false", default=True,
                             help="Don't shutdown the instance (unsafe)")
 
+TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
+                         default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
+                         help="Maximum time to wait")
 
 
 def _ParseArgs(argv, commands, aliases):
