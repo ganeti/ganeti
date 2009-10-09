@@ -521,32 +521,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return result
 
-  def _RetryInstancePowerdown(self, instance, pid, timeout=30):
-    """Wait for an instance  to power down.
-
-    """
-    # Wait up to $timeout seconds
-    end = time.time() + timeout
-    wait = 1
-    while time.time() < end and utils.IsProcessAlive(pid):
-      self._CallMonitorCommand(instance.name, 'system_powerdown')
-      time.sleep(wait)
-      # Make wait time longer for next try
-      if wait < 5:
-        wait *= 1.3
-
   def StopInstance(self, instance, force=False, retry=False):
     """Stop an instance.
 
     """
-    if retry:
-      return
     pidfile, pid, alive = self._InstancePidAlive(instance.name)
     if pid > 0 and alive:
       if force or not instance.hvparams[constants.HV_ACPI]:
         utils.KillProcess(pid)
       else:
-        self._RetryInstancePowerdown(instance, pid)
+        self._CallMonitorCommand(instance.name, 'system_powerdown')
 
     if not utils.IsProcessAlive(pid):
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
