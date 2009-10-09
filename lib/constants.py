@@ -315,6 +315,9 @@ BIND_ADDRESS_GLOBAL = "0.0.0.0"
 MIN_VG_SIZE = 20480
 DEFAULT_MAC_PREFIX = "aa:00:00"
 LVM_STRIPECOUNT = _autoconf.LVM_STRIPECOUNT
+# default maximum instance wait time, in seconds.
+DEFAULT_SHUTDOWN_TIMEOUT = 120
+
 
 # RPC constants
 (RPC_ENCODING_NONE,
