@@ -180,43 +180,39 @@ class ChrootManager(hv_base.BaseHypervisor):
       - finally unmount the instance dir
 
     """
-    if retry:
-      return
     root_dir = "%s/%s" % (self._ROOT_DIR, instance.name)
-    if not os.path.exists(root_dir):
+    if not os.path.exists(root_dir) or not self._IsDirLive(root_dir):
       return
 
-    if self._IsDirLive(root_dir):
+    # Run the chroot stop script only once
+    if not retry and not force:
       result = utils.RunCmd(["chroot", root_dir, "/ganeti-chroot", "stop"])
       if result.failed:
         raise HypervisorError("Can't run the chroot stop script: %s" %
                               result.output)
-      retry = 20
-      while not force and self._IsDirLive(root_dir) and retry > 0:
-        time.sleep(1)
-        retry -= 1
-        if retry < 10:
-          result = utils.RunCmd(["fuser", "-k", "-TERM", "-m", root_dir])
-      retry = 5
-      while force and self._IsDirLive(root_dir) and retry > 0:
-        time.sleep(1)
-        retry -= 1
-        utils.RunCmd(["fuser", "-k", "-KILL", "-m", root_dir])
-      if self._IsDirLive(root_dir):
+
+    if not force:
+      utils.RunCmd(["fuser", "-k", "-TERM", "-m", root_dir])
+    else:
+      utils.RunCmd(["fuser", "-k", "-KILL", "-m", root_dir])
+      # 2 seconds at most should be enough for KILL to take action
+      time.sleep(2)
+
+    if self._IsDirLive(root_dir):
+      if force:
         raise HypervisorError("Can't stop the processes using the chroot")
+      return
+
     for mpath in self._GetMountSubdirs(root_dir):
       utils.RunCmd(["umount", mpath])
-    retry = 10
-    while retry > 0:
-      result = utils.RunCmd(["umount", root_dir])
-      if not result.failed:
-        break
-      retry -= 1
-      time.sleep(1)
-    if result.failed:
-      logging.error("Processes still alive in the chroot: %s",
-                    utils.RunCmd("fuser -vm %s" % root_dir).output)
-      raise HypervisorError("Can't umount the chroot dir: %s" % result.output)
+
+    result = utils.RunCmd(["umount", root_dir])
+    if result.failed and force:
+      msg = ("Processes still alive in the chroot: %s" %
+             utils.RunCmd("fuser -vm %s" % root_dir).output)
+      logging.error(msg)
+      raise HypervisorError("Can't umount the chroot dir: %s (%s)" %
+                            (result.output, msg))
 
   def RebootInstance(self, instance):
     """Reboot an instance.
