@@ -27,25 +27,27 @@ import unittest
 from ganeti import mcpu
 
 
-class TestLockTimeoutStrategy(unittest.TestCase):
+class TestLockAttemptTimeoutStrategy(unittest.TestCase):
   def testConstants(self):
-    self.assert_(mcpu._LockTimeoutStrategy._MAX_ATTEMPTS > 0)
-    self.assert_(mcpu._LockTimeoutStrategy._ATTEMPT_FACTOR > 1.0)
+    tpa = mcpu._LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT
+    self.assert_(len(tpa) > 10)
+    self.assert_(sum(tpa) >= 150.0)
 
   def testSimple(self):
-    strat = mcpu._LockTimeoutStrategy(_random_fn=lambda: 0.5)
+    strat = mcpu._LockAttemptTimeoutStrategy(_random_fn=lambda: 0.5,
+                                             _time_fn=lambda: 0.0)
 
-    self.assertEqual(strat._attempts, 0)
+    self.assertEqual(strat._attempt, 0)
 
     prev = None
-    for _ in range(strat._MAX_ATTEMPTS):
+    for _ in range(len(mcpu._LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT)):
       timeout = strat.CalcRemainingTimeout()
       self.assert_(timeout is not None)
 
       self.assert_(timeout <= 10.0)
       self.assert_(prev is None or timeout >= prev)
 
-      strat.NextAttempt()
+      strat = strat.NextAttempt()
 
       prev = timeout
 
