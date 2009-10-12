@@ -1,5 +1,89 @@
 News
 ====
+
+
+Version 2.1.0
+-------------
+
+Ganeti 2.1 brings many improvements with it. Major changes:
+
+- Added infrastructure to ease automated disk repairs
+- Added new daemon to export configuration data in a cheaper way than
+  using the remote API
+- Instance NICs can now be routed instead of being associated with a
+  networking bridge
+- Improved job locking logic to reduce impact of jobs acquiring multiple
+  locks waiting for other long-running jobs
+
+Detailed implementation details can be found in the Ganeti 2.1 design
+document.
+
+Details
+~~~~~~~
+
+- Added chroot hypervisor
+- Added more options to xen-hvm hypervisor (``kernel_path`` and
+  ``device_model``)
+- Added more options to xen-pvm hypervisor (``use_bootloader``,
+  ``bootloader_path`` and ``bootloader_args``)
+- Added luxi call to submit multiple jobs in one go
+- Added cluster initialization time option to not modify ``/etc/hosts``
+  file on nodes
+- Added network interface parameters
+- Added dry run mode to some LUs
+- Added RAPI resources:
+
+  - ``/2/instances/[instance_name]/info``
+  - ``/2/instances/[instance_name]/replace-disks``
+  - ``/2/nodes/[node_name]/evacuate``
+  - ``/2/nodes/[node_name]/migrate``
+  - ``/2/nodes/[node_name]/role``
+  - ``/2/nodes/[node_name]/storage``
+  - ``/2/nodes/[node_name]/storage/modify``
+  - ``/2/nodes/[node_name]/storage/repair``
+
+- Added OpCodes to evacuate or migrate all instances on a node
+- Added new command to list physical volumes on nodes (``gnt-node
+  physical-volumes``) and to modify them (``gnt-node modify-volume``)
+- Added new ssconf files with master candidate IP address
+  (``ssconf_master_candidates_ips``), node primary IP address
+  (``ssconf_node_primary_ips``) and node secondary IP address
+  (``ssconf_node_secondary_ips``)
+- Added ``ganeti-confd`` and a client library to query the Ganeti
+  configuration via UDP
+- Added ability to run hooks after cluster initialization and before
+  cluster destruction
+- Added automatic mode for disk replace (``gnt-instance replace-disks
+  --auto``)
+- Added ``gnt-node repair-volume`` command to repair damanged LVM volume
+  groups
+- Added ``gnt-instance move`` command to move instances
+- Added ``gnt-cluster watcher`` command to control watcher
+- Added ``gnt-node powercycle`` command to powercycle nodes
+- Added new job status field ``lock_status``
+- Added parseable error codes to cluster verification (``gnt-cluster
+  verify --error-codes``) and made output less verbose (use
+  ``--verbose`` to restore previous behaviour)
+- Added UUIDs to all config entities
+- Added support for OS variants
+- Added more unittests
+- Fixed critical bug in ganeti-masterd startup
+- Pass ``INSTANCE_REINSTALL`` variable to OS installation script when
+  reinstalling an instance
+- Converted to Sphinx (http://sphinx.pocoo.org/) for documentation
+- Many documentation updates
+- Distribute hypervisor files on ``gnt-cluster redist-conf``
+- ``gnt-instance reinstall`` can now reinstall multiple instances
+- Updated many command line parameters
+- Introduced new OS API version 15
+- No longer support a default hypervisor
+- Treat virtual LVs as inexistent
+- Improved job locking logic to reduce lock contention
+- Match instance and node names case insensitively
+- Reimplemented bash completion script to be more complete
+- Improved burnin
+
+
 Version 2.0.4
 -------------
 
