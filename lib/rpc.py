@@ -548,14 +548,15 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "instance_migrate",
                                 [self._InstDict(instance), target, live])
 
-  def call_instance_reboot(self, node, instance, reboot_type):
+  def call_instance_reboot(self, node, inst, reboot_type, shutdown_timeout):
     """Reboots an instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_reboot",
-                                [self._InstDict(instance), reboot_type])
+                                [self._InstDict(inst), reboot_type,
+                                 shutdown_timeout])
 
   def call_instance_os_add(self, node, inst, reinstall):
     """Installs an OS on the given instance.

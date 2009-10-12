@@ -497,7 +497,7 @@ class OpRebootInstance(OpCode):
   OP_ID = "OP_INSTANCE_REBOOT"
   OP_DSC_FIELD = "instance_name"
   __slots__ = OpCode.__slots__ + [
-    "instance_name", "reboot_type", "ignore_secondaries",
+    "instance_name", "reboot_type", "ignore_secondaries", "shutdown_timeout",
     ]
 
 
@@ -514,7 +514,9 @@ class OpFailoverInstance(OpCode):
   """Failover an instance."""
   OP_ID = "OP_INSTANCE_FAILOVER"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = OpCode.__slots__ + ["instance_name", "ignore_consistency"]
+  __slots__ = OpCode.__slots__ + [
+    "instance_name", "ignore_consistency", "shutdown_timeout",
+    ]
 
 
 class OpMigrateInstance(OpCode):
@@ -543,7 +545,9 @@ class OpMoveInstance(OpCode):
   """
   OP_ID = "OP_INSTANCE_MOVE"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = OpCode.__slots__ + ["instance_name", "target_node"]
+  __slots__ = OpCode.__slots__ + [
+    "instance_name", "target_node", "shutdown_timeout",
+  ]
 
 
 class OpConnectConsole(OpCode):
@@ -624,7 +628,9 @@ class OpExportInstance(OpCode):
   """Export an instance."""
   OP_ID = "OP_BACKUP_EXPORT"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = OpCode.__slots__ + ["instance_name", "target_node", "shutdown"]
+  __slots__ = OpCode.__slots__ + [
+    "instance_name", "target_node", "shutdown", "shutdown_timeout",
+    ]
 
 
 class OpRemoveExport(OpCode):

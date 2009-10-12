@@ -1015,7 +1015,7 @@ def InstanceShutdown(instance, timeout):
   _RemoveBlockDevLinks(iname, instance.disks)
 
 
-def InstanceReboot(instance, reboot_type):
+def InstanceReboot(instance, reboot_type, shutdown_timeout):
   """Reboot an instance.
 
   @type instance: L{objects.Instance}
@@ -1031,6 +1031,8 @@ def InstanceReboot(instance, reboot_type):
         not accepted here, since that mode is handled differently, in
         cmdlib, and translates into full stop and start of the
         instance (instead of a call_instance_reboot RPC)
+  @type timeout: integer
+  @param timeout: maximum timeout for soft shutdown
   @rtype: None
 
   """
@@ -1047,7 +1049,7 @@ def InstanceReboot(instance, reboot_type):
       _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
-      InstanceShutdown(instance)
+      InstanceShutdown(instance, shutdown_timeout)
       return StartInstance(instance)
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance %s: %s", instance.name, err)

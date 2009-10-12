@@ -3598,6 +3598,13 @@ class LURebootInstance(LogicalUnit):
   _OP_REQP = ["instance_name", "ignore_secondaries", "reboot_type"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
+                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
+
   def ExpandNames(self):
     if self.op.reboot_type not in [constants.INSTANCE_REBOOT_SOFT,
                                    constants.INSTANCE_REBOOT_HARD,
@@ -3617,6 +3624,7 @@ class LURebootInstance(LogicalUnit):
     env = {
       "IGNORE_SECONDARIES": self.op.ignore_secondaries,
       "REBOOT_TYPE": self.op.reboot_type,
+      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
@@ -3652,10 +3660,12 @@ class LURebootInstance(LogicalUnit):
       for disk in instance.disks:
         self.cfg.SetDiskID(disk, node_current)
       result = self.rpc.call_instance_reboot(node_current, instance,
-                                             reboot_type)
+                                             reboot_type,
+                                             self.shutdown_timeout)
       result.Raise("Could not reboot instance")
     else:
-      result = self.rpc.call_instance_shutdown(node_current, instance)
+      result = self.rpc.call_instance_shutdown(node_current, instance,
+                                               self.shutdown_timeout)
       result.Raise("Could not shutdown instance for full reboot")
       _ShutdownInstanceDisks(self, instance)
       _StartInstanceDisks(self, instance, ignore_secondaries)
@@ -4008,6 +4018,13 @@ class LURemoveInstance(LogicalUnit):
   _OP_REQP = ["instance_name", "ignore_failures"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
+                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
@@ -4024,6 +4041,7 @@ class LURemoveInstance(LogicalUnit):
 
     """
     env = _BuildInstanceHookEnvByObject(self, self.instance)
+    env["SHUTDOWN_TIMEOUT"] = self.shutdown_timeout
     nl = [self.cfg.GetMasterNode()]
     return env, nl, nl
 
@@ -4045,7 +4063,8 @@ class LURemoveInstance(LogicalUnit):
     logging.info("Shutting down instance %s on node %s",
                  instance.name, instance.primary_node)
 
-    result = self.rpc.call_instance_shutdown(instance.primary_node, instance)
+    result = self.rpc.call_instance_shutdown(instance.primary_node, instance,
+                                             self.shutdown_timeout)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_failures:
@@ -4356,6 +4375,13 @@ class LUFailoverInstance(LogicalUnit):
   _OP_REQP = ["instance_name", "ignore_consistency"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
+                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     self.needed_locks[locking.LEVEL_NODE] = []
@@ -4373,6 +4399,7 @@ class LUFailoverInstance(LogicalUnit):
     """
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
+      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
@@ -4437,7 +4464,8 @@ class LUFailoverInstance(LogicalUnit):
     logging.info("Shutting down instance %s on node %s",
                  instance.name, source_node)
 
-    result = self.rpc.call_instance_shutdown(source_node, instance)
+    result = self.rpc.call_instance_shutdown(source_node, instance,
+                                             self.shutdown_timeout)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_consistency:
@@ -4529,6 +4557,13 @@ class LUMoveInstance(LogicalUnit):
   _OP_REQP = ["instance_name", "target_node"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
+                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     target_node = self.cfg.ExpandNodeName(self.op.target_node)
@@ -4551,6 +4586,7 @@ class LUMoveInstance(LogicalUnit):
     """
     env = {
       "TARGET_NODE": self.op.target_node,
+      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode()] + [self.instance.primary_node,
@@ -4614,7 +4650,8 @@ class LUMoveInstance(LogicalUnit):
     self.LogInfo("Shutting down instance %s on source node %s",
                  instance.name, source_node)
 
-    result = self.rpc.call_instance_shutdown(source_node, instance)
+    result = self.rpc.call_instance_shutdown(source_node, instance,
+                                             self.shutdown_timeout)
     msg = result.fail_msg
     if msg:
       if self.op.ignore_consistency:
@@ -7687,6 +7724,13 @@ class LUExportInstance(LogicalUnit):
   _OP_REQP = ["instance_name", "target_node", "shutdown"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check the arguments.
+
+    """
+    self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
+                                    constants.DEFAULT_SHUTDOWN_TIMEOUT)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
     # FIXME: lock only instance primary and destination node
@@ -7712,6 +7756,7 @@ class LUExportInstance(LogicalUnit):
     env = {
       "EXPORT_NODE": self.op.target_node,
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
+      "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode(), self.instance.primary_node,
@@ -7756,7 +7801,8 @@ class LUExportInstance(LogicalUnit):
     if self.op.shutdown:
       # shutdown the instance, but not the disks
       feedback_fn("Shutting down instance %s" % instance.name)
-      result = self.rpc.call_instance_shutdown(src_node, instance)
+      result = self.rpc.call_instance_shutdown(src_node, instance,
+                                               self.shutdown_timeout)
       result.Raise("Could not shutdown instance %s on"
                    " node %s" % (instance.name, src_node))
 

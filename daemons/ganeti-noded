@@ -502,7 +502,8 @@ class NodeHttpServer(http.server.HttpServer):
     """
     instance = objects.Instance.FromDict(params[0])
     reboot_type = params[1]
-    return backend.InstanceReboot(instance, reboot_type)
+    shutdown_timeout = params[2]
+    return backend.InstanceReboot(instance, reboot_type, shutdown_timeout)
 
   @staticmethod
   def perspective_instance_info(params):
