@@ -53,13 +53,10 @@ type NameAssoc = [(String, Int)]
 -- | A separate name for the cluster score type.
 type Score = Double
 
--- | The description of an instance placement.
-type Placement = ( Idx   -- ^ The index of the instance being moved
-                 , Ndx   -- ^ New primary node
-                 , Ndx   -- ^ New secondary node
-                 , IMove -- ^ The move being performed
-                 , Score -- ^ The score of the cluster after this move
-                 )
+-- | The description of an instance placement. It contains the
+-- instance index, the new primary and secondary node, the move being
+-- performed and the score of the cluster after the move.
+type Placement = (Idx, Ndx, Ndx, IMove, Score)
 
 -- | An instance move definition
 data IMove = Failover                -- ^ Failover the instance (f)
