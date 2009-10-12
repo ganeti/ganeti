@@ -103,6 +103,7 @@ __all__ = [
   "SELECT_OS_OPT",
   "SEP_OPT",
   "SHOWCMD_OPT",
+  "SHUTDOWN_TIMEOUT_OPT",
   "SINGLE_NODE_OPT",
   "SRC_DIR_OPT",
   "SRC_NODE_OPT",
@@ -819,6 +820,11 @@ NOSHUTDOWN_OPT = cli_option("--noshutdown", dest="shutdown",
 TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait")
+
+SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout", dest="timeout",
+                         type="int",
+                         default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
+                         help="Maximum time to wait for instance shutdown")
 
 
 def _ParseArgs(argv, commands, aliases):
