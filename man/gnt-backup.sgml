@@ -63,8 +63,10 @@
       <cmdsynopsis>
         <command>export</command>
         <arg choice="req">-n <replaceable>node</replaceable></arg>
+        <arg>--shutdown-timeout=<replaceable>N</replaceable></arg>
         <arg>--noshutdown</arg>
         <arg choice="req"><replaceable>instance</replaceable></arg>
+
       </cmdsynopsis>
 
       <para>
@@ -72,6 +74,13 @@
         and its configuration will be exported under the
         /srv/ganeti/export/<replaceable>instance</replaceable>
         directory on the target node.
+      </para>
+
+      <para>
+        The <option>--shutdown-timeout</option> is used to specify how
+        much time to wait before forcing the shutdown (xm destroy in xen,
+        killing the kvm process, for kvm). By default two minutes are
+        given to each instance to stop.
       </para>
 
       <para>

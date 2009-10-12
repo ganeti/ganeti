@@ -785,6 +785,7 @@ instance5: 11225
         <cmdsynopsis>
           <command>remove</command>
           <arg>--ignore-failures</arg>
+          <arg>--shutdown-timeout=<replaceable>N</replaceable></arg>
           <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
@@ -804,6 +805,13 @@ instance5: 11225
           removal of the instance (e.g. during the shutdown or the
           disk removal). If this option is not given, the command will
           stop at the first error.
+        </para>
+
+        <para>
+          The <option>--shutdown-timeout</option> is used to specify how
+          much time to wait before forcing the shutdown (xm destroy in xen,
+          killing the kvm process, for kvm). By default two minutes are
+          given to each instance to stop.
         </para>
 
         <para>
@@ -1593,6 +1601,8 @@ instance5: 11225
           <sbr>
           <arg>--ignore-secondaries</arg>
           <sbr>
+          <arg>--shutdown-timeout=<replaceable>N</replaceable></arg>
+          <sbr>
           <arg>--force-multiple</arg>
           <sbr>
           <group choice="opt">
@@ -1631,6 +1641,13 @@ instance5: 11225
           <option>--all</option> options are similar as for the
           <command>startup</command> command and they influence the
           actual instances being rebooted.
+        </para>
+
+        <para>
+          The <option>--shutdown-timeout</option> is used to specify how
+          much time to wait before forcing the shutdown (xm destroy in xen,
+          killing the kvm process, for kvm). By default two minutes are
+          given to each instance to stop.
         </para>
 
         <para>
@@ -1978,6 +1995,7 @@ node1.example.com:disk/1:/dev/drbd1
           <command>failover</command>
           <arg>-f</arg>
           <arg>--ignore-consistency</arg>
+          <arg>--shutdown-timeout=<replaceable>N</replaceable></arg>
           <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
@@ -1997,6 +2015,13 @@ node1.example.com:disk/1:/dev/drbd1
           shutting down the instance will be ignored, resulting in
           possibly having the instance running on two machines in
           parallel (on disconnected DRBD drives).
+        </para>
+
+        <para>
+          The <option>--shutdown-timeout</option> is used to specify how
+          much time to wait before forcing the shutdown (xm destroy in xen,
+          killing the kvm process, for kvm). By default two minutes are
+          given to each instance to stop.
         </para>
 
         <para>
@@ -2099,6 +2124,7 @@ y/[n]/?: y
           <command>move</command>
           <arg>-f</arg>
           <arg>-n <replaceable>node</replaceable></arg>
+          <arg>--shutdown-timeout=<replaceable>N</replaceable></arg>
           <arg>--submit</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
@@ -2113,6 +2139,13 @@ y/[n]/?: y
           Note that since this operation is done via data copy, it
           will take a long time for big disks (similar to
           replace-disks for a drbd instance).
+        </para>
+
+        <para>
+          The <option>--shutdown-timeout</option> is used to specify how
+          much time to wait before forcing the shutdown (xm destroy in xen,
+          killing the kvm process, for kvm). By default two minutes are
+          given to each instance to stop.
         </para>
 
         <para>
