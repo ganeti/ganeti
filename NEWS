@@ -34,13 +34,14 @@ Version 2.0.4
 - Added a cluster parameter that prevents Ganeti from modifying of
   /etc/hosts
 - Added more node information to RAPI responses
-- Added a “gnt-job watch” command that allows following the ouput of a
+- Added a ``gnt-job watch`` command that allows following the ouput of a
   job
 - Added a bind-address option to ganeti-rapi
 - Added more checks to the configuration verify
 - Enhanced the burnin script such that some operations can be retried
   automatically
 - Converted instance reinstall to multi-instance model
+
 
 Version 2.0.3
 -------------
@@ -52,7 +53,8 @@ Version 2.0.3
   any configuration mismatches for disk sizes
 - Added ``gnt-master cluste-failover --no-voting`` to allow master
   failover to work on two-node clusters
-- Fixed the ‘--net’ option of ``gnt-backup import``, which was unusable
+- Fixed the ``--net`` option of ``gnt-backup import``, which was
+  unusable
 - Fixed detection of OS script errors in ``gnt-backup export``
 - Fixed exit code of ``gnt-backup export``
 
@@ -71,21 +73,21 @@ Version 2.0.2
 - Fixed a couple of issues in instance listing
 - Added display of the disk size in ``gnt-instance info``
 - Fixed checking for valid OSes in instance creation
-- Fixed handling of the ‘vcpus’ parameter in instance listing and in
+- Fixed handling of the "vcpus" parameter in instance listing and in
   general of invalid parameters
 - Fixed http server library, and thus RAPI, to handle invalid
   username/password combinations correctly; this means that now they
   report unauthorized for queries too, not only for modifications,
   allowing earlier detect of configuration problems
-- Added a new ‘role’ node list field, equivalent to the master/master
+- Added a new "role" node list field, equivalent to the master/master
   candidate/drained/offline flags combinations
 - Fixed cluster modify and changes of candidate pool size
 - Fixed cluster verify error messages for wrong files on regular nodes
 - Fixed a couple of issues with node demotion from master candidate role
 - Fixed node readd issues
 - Added non-interactive mode for ``ganeti-masterd --no-voting`` startup
-- Added a new ‘--no-voting’ option for masterfailover to fix failover on
-  two-nodes clusters when the former master node is unreachable
+- Added a new ``--no-voting`` option for masterfailover to fix failover
+  on two-nodes clusters when the former master node is unreachable
 - Added instance reinstall over RAPI
 
 
