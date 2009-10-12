@@ -46,13 +46,13 @@ clean:
 	cd Ganeti && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 
-.PHONY: version
+regen-version:
+	rm -f version
+	$(MAKE) version
+
 version:
-	set -e; \
 	if test -d .git; then \
-	  git describe > $@.tmp; \
-	  cmp -s $@ $@.tmp || mv $@.tmp $@; \
-	  rm -f $@.tmp; \
+	  git describe > $@; \
 	elif test ! -f $@ ; then \
 	  echo "Cannot auto-generate $@ file"; exit 1; \
 	fi
@@ -60,7 +60,7 @@ version:
 Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
 	sed -e "s/%ver%/$$(cat version)/" < $< > $@
 
-dist: Ganeti/HTools/Version.hs version doc
+dist: regen-version Ganeti/HTools/Version.hs doc
 	VN=$$(cat version|sed 's/^v//') ; \
 	PFX="ganeti-htools-$$VN" ; \
 	ANAME="$$PFX.tar" ; \
@@ -84,4 +84,4 @@ endif
 tags:
 	find -name '*.hs' | xargs hasktags -e
 
-.PHONY : all doc maintainer-clean clean dist check tags
+.PHONY : all doc maintainer-clean clean dist check tags regen-version
