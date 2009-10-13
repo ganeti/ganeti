@@ -68,7 +68,7 @@ data IMove = Failover                -- ^ Failover the instance (f)
 
 -- | Formatted solution output for one move (involved nodes and
 -- commands
-type MoveJob = ([Ndx], IMove, [String])
+type MoveJob = ([Ndx], Idx, IMove, [String])
 
 -- | A list of command elements
 type JobSet = [MoveJob]
