@@ -43,6 +43,7 @@ module Ganeti.HTools.CLI
     , oNodeSim
     , oRapiMaster
     , oLuxiSocket
+    , oExecJobs
     , oMaxSolLength
     , oVerbose
     , oQuiet
@@ -90,6 +91,7 @@ data Options = Options
     , optMaxLength :: Int            -- ^ Stop after this many steps
     , optMaster    :: String         -- ^ Collect data from RAPI
     , optLuxi      :: Maybe FilePath -- ^ Collect data from Luxi
+    , optExecJobs  :: Bool           -- ^ Execute the commands via Luxi
     , optOffline   :: [String]       -- ^ Names of offline nodes
     , optIMem      :: Int            -- ^ Instance memory
     , optIDsk      :: Int            -- ^ Instance disk
@@ -120,6 +122,7 @@ defaultOptions  = Options
  , optMaxLength = -1
  , optMaster    = ""
  , optLuxi      = Nothing
+ , optExecJobs  = False
  , optOffline   = []
  , optIMem      = 4096
  , optIDsk      = 102400
@@ -191,6 +194,12 @@ oLuxiSocket = Option "L" ["luxi"]
               (OptArg ((\ f opts -> opts { optLuxi = Just f }) .
                        fromMaybe defaultLuxiSocket) "SOCKET")
               "collect data via Luxi, optionally using the given SOCKET path"
+
+oExecJobs :: OptType
+oExecJobs = Option "X" ["exec"]
+             (NoArg (\ opts -> opts { optExecJobs = True}))
+             "execute the suggested moves via Luxi (only available when using\
+             \ it for data gathering"
 
 oVerbose :: OptType
 oVerbose = Option "v" ["verbose"]
