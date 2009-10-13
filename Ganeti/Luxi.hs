@@ -29,6 +29,8 @@ module Ganeti.Luxi
     , getClient
     , closeClient
     , callMethod
+    , submitManyJobs
+    , queryJobsStatus
     ) where
 
 import Data.List
@@ -42,6 +44,8 @@ import qualified Network.Socket as S
 
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
+
+import Ganeti.Jobs (JobStatus)
 
 -- * Utility functions
 
@@ -161,3 +165,32 @@ callMethod method args s = do
   result <- recvMsg s
   let rval = validateResult result
   return rval
+
+-- | Specialized submitManyJobs call.
+submitManyJobs :: Client -> JSValue -> IO (Result [String])
+submitManyJobs s jobs = do
+  rval <- callMethod SubmitManyJobs jobs s
+  -- map each result (status, payload) pair into a nice Result ADT
+  return $ case rval of
+             Bad x -> Bad x
+             Ok (JSArray r) ->
+                 mapM (\v -> case v of
+                               JSArray [JSBool True, JSString x] ->
+                                   Ok (fromJSString x)
+                               JSArray [JSBool False, JSString x] ->
+                                   Bad (fromJSString x)
+                               _ -> Bad "Unknown result from the master daemon"
+                      ) r
+             x -> Bad ("Cannot parse response from Ganeti: " ++ show x)
+
+-- | Custom queryJobs call.
+queryJobsStatus :: Client -> [String] -> IO (Result [JobStatus])
+queryJobsStatus s jids = do
+  rval <- callMethod QueryJobs (J.showJSON (jids, ["status"])) s
+  return $ case rval of
+             Bad x -> Bad x
+             Ok y -> case J.readJSON y::(J.Result [[JobStatus]]) of
+                       J.Ok vals -> if any null vals
+                                    then Bad "Missing job status field"
+                                    else Ok (map head vals)
+                       J.Error x -> Bad x
