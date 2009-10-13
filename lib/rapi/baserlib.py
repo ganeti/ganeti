@@ -80,7 +80,7 @@ def MapFields(names, data):
   return dict(zip(names, data))
 
 
-def _Tags_GET(kind, name=""):
+def _Tags_GET(kind, name):
   """Helper function to retrieve tags.
 
   """
@@ -103,18 +103,20 @@ def _Tags_GET(kind, name=""):
   return list(tags)
 
 
-def _Tags_PUT(kind, tags, name=""):
+def _Tags_PUT(kind, tags, name, dry_run):
   """Helper function to set tags.
 
   """
-  return SubmitJob([opcodes.OpAddTags(kind=kind, name=name, tags=tags)])
+  return SubmitJob([opcodes.OpAddTags(kind=kind, name=name,
+                                      tags=tags, dry_run=dry_run)])
 
 
-def _Tags_DELETE(kind, tags, name=""):
+def _Tags_DELETE(kind, tags, name, dry_run):
   """Helper function to delete tags.
 
   """
-  return SubmitJob([opcodes.OpDelTags(kind=kind, name=name, tags=tags)])
+  return SubmitJob([opcodes.OpDelTags(kind=kind, name=name,
+                                      tags=tags, dry_run=dry_run)])
 
 
 def MapBulkFields(itemslist, fields):
