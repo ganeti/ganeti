@@ -1002,10 +1002,12 @@ class TestLockSet(_ThreadedTestCase):
 
       def _AcquireOne():
         # Try to get the same lock again with a timeout (should never succeed)
-        if self.ls.acquire(wanted, timeout=0.1, shared=0):
+        acquired = self.ls.acquire(wanted, timeout=0.1, shared=0)
+        if acquired:
           self.done.put("acquired")
           self.ls.release()
         else:
+          self.assert_(acquired is None)
           self.assert_(not self.ls._list_owned())
           self.assert_(not self.ls._is_owned())
           self.done.put("not acquired")
