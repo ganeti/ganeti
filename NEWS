@@ -84,6 +84,7 @@ Details
 - Match instance and node names case insensitively
 - Reimplemented bash completion script to be more complete
 - Improved burnin
+- Added option to specify maximum timeout on instance shutdown
 
 
 Version 2.0.4
