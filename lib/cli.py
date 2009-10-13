@@ -821,8 +821,8 @@ TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait")
 
-SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout", dest="timeout",
-                         type="int",
+SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
+                         dest="shutdown_timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait for instance shutdown")
 

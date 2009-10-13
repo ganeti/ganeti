@@ -564,7 +564,7 @@ def RemoveInstance(opts, args):
 
   op = opcodes.OpRemoveInstance(instance_name=instance_name,
                                 ignore_failures=opts.ignore_failures,
-                                timeout=opts.timeout)
+                                shutdown_timeout=opts.shutdown_timeout)
   SubmitOrSend(op, opts, cl=cl)
   return 0
 
@@ -715,7 +715,7 @@ def _RebootInstance(name, opts):
   return opcodes.OpRebootInstance(instance_name=name,
                                   reboot_type=opts.reboot_type,
                                   ignore_secondaries=opts.ignore_secondaries,
-                                  timeout=opts.timeout)
+                                  shutdown_timeout=opts.shutdown_timeout)
 
 
 def _ShutdownInstance(name, opts):
@@ -806,7 +806,7 @@ def FailoverInstance(opts, args):
 
   op = opcodes.OpFailoverInstance(instance_name=instance_name,
                                   ignore_consistency=opts.ignore_consistency,
-                                  timeout=opts.timeout)
+                                  shutdown_timeout=opts.shutdown_timeout)
   SubmitOrSend(op, opts, cl=cl)
   return 0
 
@@ -872,7 +872,7 @@ def MoveInstance(opts, args):
 
   op = opcodes.OpMoveInstance(instance_name=instance_name,
                               target_node=opts.node,
-                              timeout=opts.timeout)
+                              shutdown_timeout=opts.shutdown_timeout)
   SubmitOrSend(op, opts, cl=cl)
   return 0
 

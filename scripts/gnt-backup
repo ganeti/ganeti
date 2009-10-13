@@ -73,7 +73,7 @@ def ExportInstance(opts, args):
   op = opcodes.OpExportInstance(instance_name=args[0],
                                 target_node=opts.node,
                                 shutdown=opts.shutdown,
-                                timeout=opts.timeout)
+                                shutdown_timeout=opts.shutdown_timeout)
 
   fin_resu, dlist = SubmitOpCode(op)
   if not isinstance(dlist, list):
