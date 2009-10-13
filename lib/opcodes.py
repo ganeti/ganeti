@@ -465,7 +465,11 @@ class OpRemoveInstance(OpCode):
   """Remove an instance."""
   OP_ID = "OP_INSTANCE_REMOVE"
   OP_DSC_FIELD = "instance_name"
-  __slots__ = OpCode.__slots__ + ["instance_name", "ignore_failures"]
+  __slots__ = OpCode.__slots__ + [
+    "instance_name",
+    "ignore_failures",
+    "shutdown_timeout",
+    ]
 
 
 class OpRenameInstance(OpCode):
