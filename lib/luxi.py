@@ -162,7 +162,7 @@ class Transport:
         raise TimeoutError("Connect timed out: %s" % str(err))
       except socket.error, err:
         if err.args[0] in (errno.ENOENT, errno.ECONNREFUSED):
-          raise NoMasterError((address,))
+          raise NoMasterError(address)
         raise
       self.socket.settimeout(self._rwtimeout)
     except (socket.error, NoMasterError):
