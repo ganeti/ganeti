@@ -690,9 +690,12 @@ printStats nl =
 iMoveToJob :: String -> Node.List -> Instance.List
           -> Idx -> IMove -> [OpCodes.OpCode]
 iMoveToJob csf nl il idx move =
-    let iname = Container.nameOf il idx ++ csf
+    let inst = Container.find idx il
+        iname = Instance.name inst ++ csf
         lookNode n = Just (Container.nameOf nl n ++ csf)
-        opF = OpCodes.OpFailoverInstance iname False
+        opF = if Instance.running inst
+              then OpCodes.OpMigrateInstance iname True False
+              else OpCodes.OpFailoverInstance iname False
         opR n = OpCodes.OpReplaceDisks iname (lookNode n)
                 OpCodes.ReplaceNewSecondary [] Nothing
     in case move of
