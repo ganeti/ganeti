@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
+import Control.Concurrent (threadDelay)
+import Control.Exception (bracket)
 import Data.List
 import Data.Function
 import Data.Maybe (isJust, fromJust)
@@ -34,15 +36,21 @@ import System.IO
 import qualified System
 
 import Text.Printf (printf, hPrintf)
+import Text.JSON (showJSON)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.Instance as Instance
 
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Utils
 import Ganeti.HTools.Types
+
+import qualified Ganeti.Luxi as L
+import qualified Ganeti.OpCodes as OpCodes
+import Ganeti.Jobs
 
 -- | Options list and functions
 options :: [OptType]
@@ -54,6 +62,7 @@ options =
     , oInstFile
     , oRapiMaster
     , oLuxiSocket
+    , oExecJobs
     , oMaxSolLength
     , oVerbose
     , oQuiet
@@ -108,6 +117,58 @@ formatOneline :: Double -> Int -> Double -> String
 formatOneline ini_cv plc_len fin_cv =
     printf "%.8f %d %.8f %8.3f" ini_cv plc_len fin_cv
                (if fin_cv == 0 then 1 else ini_cv / fin_cv)
+
+-- | Submits a list of jobs and waits for all to finish execution
+execJobs :: L.Client -> [[OpCodes.OpCode]] -> IO (Result [String])
+execJobs client = L.submitManyJobs client . showJSON
+
+-- | Polls a set of jobs at a fixed interval until all are finished
+-- one way or another
+waitForJobs :: L.Client -> [String] -> IO (Result [JobStatus])
+waitForJobs client jids = do
+  sts <- L.queryJobsStatus client jids
+  case sts of
+    Bad x -> return $ Bad x
+    Ok s -> if any (<= JobRunning) s
+            then do
+              -- TODO: replace hardcoded value with a better thing
+              threadDelay (1000000 * 15)
+              waitForJobs client jids
+            else return $ Ok s
+
+-- | Check that a set of job statuses is all success
+checkJobsStatus :: [JobStatus] -> Bool
+checkJobsStatus = all (== JobSuccess)
+
+-- | Execute an entire jobset
+execJobSet :: String -> String -> Node.List
+           -> Instance.List -> [JobSet] -> IO ()
+execJobSet _      _   _  _  [] = return ()
+execJobSet master csf nl il (js:jss) = do
+  -- map from jobset (htools list of positions) to [[opcodes]]
+  let jobs = map (\(_, idx, move, _) ->
+                      Cluster.iMoveToJob csf nl il idx move) js
+  let descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
+  putStrLn $ "Executing jobset for instances " ++ commaJoin descr
+  jrs <- bracket (L.getClient master) L.closeClient
+         (\client -> do
+            jids <- execJobs client jobs
+            case jids of
+              Bad x -> return $ Bad x
+              Ok x -> do
+                putStrLn $ "Got job IDs " ++ commaJoin x
+                waitForJobs client x
+         )
+  (case jrs of
+     Bad x -> do
+       hPutStrLn stderr $ "Cannot compute job status, aborting: " ++ show x
+       return ()
+     Ok x -> if checkJobsStatus x
+             then execJobSet master csf nl il jss
+             else do
+               hPutStrLn stderr $ "Not all jobs completed successfully: " ++
+                         show x
+               hPutStrLn stderr "Aborting.")
 
 -- | Main function.
 main :: IO ()
@@ -212,7 +273,8 @@ main = do
   unless (oneline || verbose == 0) $
          printf "Solution length=%d\n" (length ord_plc)
 
-  let cmd_data = Cluster.formatCmds . Cluster.splitJobs $ cmd_strs
+  let cmd_jobs = Cluster.splitJobs cmd_strs
+      cmd_data = Cluster.formatCmds cmd_jobs
 
   when (isJust $ optShowCmds opts) $
        do
@@ -226,6 +288,13 @@ main = do
           else do
             writeFile out_path (shTemplate ++ cmd_data)
             printf "The commands have been written to file '%s'\n" out_path)
+
+  when (optExecJobs opts && not (null ord_plc))
+           (case optLuxi opts of
+              Nothing -> do
+                hPutStrLn stderr "Execution of commands possible only on LUXI"
+                exitWith $ ExitFailure 1
+              Just master -> execJobSet master csf fin_nl il cmd_jobs)
 
   when (optShowNodes opts) $
        do
