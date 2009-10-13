@@ -15,7 +15,7 @@ hbal \- Cluster balancer for Ganeti
 Backend options:
 .BI "[ -m " cluster " ]"
 |
-.BI "[ -L[" path "]]"
+.BI "[ -L[" path "] [-X]]"
 |
 .BI "[ -n " nodes-file " ]"
 .BI "[ -i " instances-file " ]"
@@ -175,6 +175,20 @@ The options that can be passed to the program are as follows:
 .B -C, --print-commands
 Print the command list at the end of the run. Without this, the
 program will only show a shorter, but cryptic output.
+
+Note that the moves list will be split into independent steps, called
+"jobsets", but only for visual inspection, not for actually
+parallelisation. It is not possible to parallelise these directly when
+executed via "gnt-instance" commands, since a compound command
+(e.g. failover and replace-disks) must be executed serially. Parallel
+execution is only possible when using the Luxi backend and the
+\fI-L\fR option.
+
+The algorithm for splitting the moves into jobsets is by accumulating
+moves until the next move is touching nodes already touched by the
+current moves; this means we can't execute in parallel (due to
+resource allocation in Ganeti) and thus we start a new jobset.
+
 .TP
 .B -p, --print-nodes
 Prints the before and after node status, in a format designed to allow
@@ -338,6 +352,17 @@ is to be contacted via the luxi (an internal Ganeti protocol). An
 optional \fIpath\fR argument is interpreted as the path to the unix
 socket on which the master daemon listens; otherwise, the default path
 used by ganeti when installed with "--localstatedir=/var" is used.
+
+.TP
+.B "-X"
+When using the Luxi backend, hbal can also execute the given
+commands. The execution method is to execute the individual jobsets
+(see the \fI-C\fR option for details) in separate stages, aborting if
+at any time a jobset doesn't have all jobs successful. Each step in
+the balancing solution will be translated into exactly one Ganeti job
+(having between one and three OpCodes), and all the steps in a jobset
+will be executed in parallel. The jobsets themselves are executed
+serially.
 
 .TP
 .BI "-l" N ", --max-length=" N
