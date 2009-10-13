@@ -381,8 +381,6 @@ class Processor(object):
           if acquired is None:
             raise _LockAcquireTimeout()
 
-          lu.acquired_locks[level] = acquired
-
         else:
           # Adding locks
           add_locks = lu.add_locks[level]
@@ -395,8 +393,11 @@ class Processor(object):
               "Couldn't add locks (%s), probably because of a race condition"
               " with another job, who added them first" % add_locks)
 
-          lu.acquired_locks[level] = add_locks
+          acquired = add_locks
+
         try:
+          lu.acquired_locks[level] = acquired
+
           result = self._LockAndExecLU(lu, level + 1, calc_timeout)
         finally:
           if level in lu.remove_locks:
