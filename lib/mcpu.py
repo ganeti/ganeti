@@ -136,7 +136,8 @@ class _LockAttemptTimeoutStrategy(object):
     remaining_timeout += ((self._random_fn() * variation_range) -
                           (variation_range * 0.5))
 
-    assert remaining_timeout >= 0.0, "Timeout must be positive"
+    # Make sure timeout is >= 0
+    remaining_timeout = max(0.0, remaining_timeout)
 
     return remaining_timeout
 

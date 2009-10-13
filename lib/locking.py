@@ -783,7 +783,7 @@ class LockSet:
       calc_remaining_timeout = lambda: None
     else:
       start = time.time()
-      calc_remaining_timeout = lambda: (start + timeout) - time.time()
+      calc_remaining_timeout = lambda: max(0.0, (start + timeout) - time.time())
 
     try:
       if names is not None:
