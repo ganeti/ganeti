@@ -55,6 +55,8 @@ Details
   cluster destruction
 - Added automatic mode for disk replace (``gnt-instance replace-disks
   --auto``)
+- Added ``gnt-instance recreate-disks`` to re-create (empty) disks
+  after catastrophic data-loss
 - Added ``gnt-node repair-volume`` command to repair damanged LVM volume
   groups
 - Added ``gnt-instance move`` command to move instances
@@ -64,7 +66,7 @@ Details
 - Added parseable error codes to cluster verification (``gnt-cluster
   verify --error-codes``) and made output less verbose (use
   ``--verbose`` to restore previous behaviour)
-- Added UUIDs to all config entities
+- Added UUIDs to the main config entities (cluster, nodes, instances)
 - Added support for OS variants
 - Added more unittests
 - Fixed critical bug in ganeti-masterd startup

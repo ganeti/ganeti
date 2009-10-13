@@ -1975,6 +1975,14 @@ node1.example.com:disk/1:/dev/drbd1
         </para>
 
         <para>
+          Note that this functionality should only be used for missing
+          disks; if any of the given disks already exists, the
+          operation will fail. While this is suboptimal,
+          recreate-disks should hopefully not be needed in normal
+          operation and as such the impact of this is low.
+        </para>
+
+        <para>
           The <option>--submit</option> option is used to send the job to
           the master daemon but not wait for its completion. The job
           ID will be shown so that it can be examined via
