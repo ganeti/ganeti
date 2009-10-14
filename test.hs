@@ -58,7 +58,7 @@ wrapTest ir t to = do
 main :: IO ()
 main = do
   errs <- newIORef 0
-  let wrap lst = map (wrapTest errs) lst
+  let wrap = map (wrapTest errs)
   runTests "PeerMap" options $ wrap testPeerMap
   runTests "Container" options $ wrap testContainer
   runTests "Instance" options $ wrap testInstance
@@ -66,7 +66,7 @@ main = do
   runTests "Text" options $ wrap testText
   runTests "Cluster" options $ wrap testCluster
   terr <- readIORef errs
-  (if (terr > 0)
+  (if terr > 0
    then do
      hPutStrLn stderr $ "A total of " ++ show terr ++ " tests failed."
      exitWith $ ExitFailure 1

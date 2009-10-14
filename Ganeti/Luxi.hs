@@ -114,9 +114,7 @@ sendMsg s buf =
           sbytes <- withTimeout queryTimeout
                     "sending luxi message" $
                     S.send (socket s) obuf
-          (if sbytes == length obuf
-           then return ()
-           else _send (drop sbytes obuf))
+          unless (sbytes == length obuf) $ _send (drop sbytes obuf)
     in _send (buf ++ [eOM])
 
 -- | Waits for a message over a luxi transport.

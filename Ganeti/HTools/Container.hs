@@ -69,7 +69,7 @@ size = IntMap.size
 
 -- | Locate a key in the map (must exist).
 find :: Key -> Container a -> a
-find k c = c IntMap.! k
+find k = (IntMap.! k)
 
 -- | Add or update one element to the map.
 add :: Key -> a -> Container a -> Container a

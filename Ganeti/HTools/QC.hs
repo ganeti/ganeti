@@ -170,13 +170,13 @@ prop_Instance_runStatus_True inst =
     let run_st = Instance.running inst
         run_tx = Instance.runSt inst
     in
-      run_tx == "running" || run_tx == "ERROR_up" ==> run_st == True
+      run_tx == "running" || run_tx == "ERROR_up" ==> run_st
 
 prop_Instance_runStatus_False inst =
     let run_st = Instance.running inst
         run_tx = Instance.runSt inst
     in
-      run_tx /= "running" && run_tx /= "ERROR_up" ==> run_st == False
+      run_tx /= "running" && run_tx /= "ERROR_up" ==> not run_st
 
 testInstance =
     [ run prop_Instance_setIdx
@@ -200,7 +200,7 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
                else sdx
         ndx = [(pnode, pdx), (rsnode, rsdx)]
         inst = Text.loadInst ndx
-               (name:mem_s:dsk_s:vcpus_s:status:pnode:rsnode:[])::
+               [name, mem_s, dsk_s, vcpus_s, status, pnode, rsnode]::
                Maybe (String, Instance.Instance)
         _types = ( name::String, mem::Int, dsk::Int
                  , vcpus::Int, status::String
@@ -249,10 +249,10 @@ testNode =
 
 -- | Check that the cluster score is close to zero for a homogeneous cluster
 prop_Score_Zero node count =
-    ((not $ Node.offline node) && (not $ Node.failN1 node) && (count > 0) &&
+    (not (Node.offline node) && not (Node.failN1 node) && (count > 0) &&
      (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
-        nlst = (zip [1..] $ replicate count fn)::[(Types.Ndx, Node.Node)]
+        nlst = zip [1..] $ replicate count fn::[(Types.Ndx, Node.Node)]
         nl = Container.fromAssocList nlst
         score = Cluster.compCV nl
     -- we can't say == 0 here as the floating point errors accumulate;
