@@ -59,12 +59,12 @@ main :: IO ()
 main = do
   errs <- newIORef 0
   let wrap lst = map (wrapTest errs) lst
-  runTests "PeerMap" options $ wrap test_PeerMap
-  runTests "Container" options $ wrap test_Container
-  runTests "Instance" options $ wrap test_Instance
-  runTests "Node" options $ wrap test_Node
-  runTests "Text" options $ wrap test_Text
-  runTests "Cluster" options $ wrap test_Cluster
+  runTests "PeerMap" options $ wrap testPeerMap
+  runTests "Container" options $ wrap testContainer
+  runTests "Instance" options $ wrap testInstance
+  runTests "Node" options $ wrap testNode
+  runTests "Text" options $ wrap testText
+  runTests "Cluster" options $ wrap testCluster
   terr <- readIORef errs
   (if (terr > 0)
    then do

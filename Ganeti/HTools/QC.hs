@@ -24,12 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.QC
-    ( test_PeerMap
-    , test_Container
-    , test_Instance
-    , test_Node
-    , test_Text
-    , test_Cluster
+    ( testPeerMap
+    , testContainer
+    , testInstance
+    , testNode
+    , testText
+    , testCluster
     ) where
 
 import Test.QuickCheck
@@ -122,7 +122,7 @@ prop_PeerMap_maxElem pmap =
     where _types = pmap::PeerMap.PeerMap
           puniq = PeerMap.accumArray const pmap
 
-test_PeerMap =
+testPeerMap =
     [ run prop_PeerMap_addIdempotent
     , run prop_PeerMap_removeIdempotent
     , run prop_PeerMap_maxElem
@@ -140,7 +140,7 @@ prop_Container_addTwo cdata i1 i2 =
           cont = foldl (\c x -> Container.add x x c) Container.empty cdata
           fn x1 x2 = Container.addTwo x1 x1 x2 x2
 
-test_Container =
+testContainer =
     [ run prop_Container_addTwo ]
 
 -- Simple instance tests, we only have setter/getters
@@ -178,7 +178,7 @@ prop_Instance_runStatus_False inst =
     in
       run_tx /= "running" && run_tx /= "ERROR_up" ==> run_st == False
 
-test_Instance =
+testInstance =
     [ run prop_Instance_setIdx
     , run prop_Instance_setName
     , run prop_Instance_setPri
@@ -216,7 +216,7 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
              Instance.pNode i == pdx &&
              Instance.sNode i == rsdx)
 
-test_Text =
+testText =
     [ run prop_Text_Load_Instance
     ]
 
@@ -239,7 +239,7 @@ prop_Node_addSec node inst pdx =
     ==> isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
 
-test_Node =
+testNode =
     [ run prop_Node_addPri
     , run prop_Node_addSec
     ]
@@ -259,6 +259,6 @@ prop_Score_Zero node count =
     -- this should be much lower than the default score in CLI.hs
     in score <= 1e-15
 
-test_Cluster =
+testCluster =
     [ run prop_Score_Zero
     ]
