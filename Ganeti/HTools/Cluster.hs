@@ -188,8 +188,18 @@ totalResources nl =
     let cs = foldl' updateCStats emptyCStats . Container.elems $ nl
     in cs { cs_score = compCV nl }
 
+-- | The names of the individual elements in the CV list
+detailedCVNames :: [String]
+detailedCVNames = [ "free_mem_cv"
+                  , "free_disk_cv"
+                  , "n1_score"
+                  , "reserved_mem_cv"
+                  , "offline_score"
+                  , "vcpu_ratio_cv"
+                  ]
+
 -- | Compute the mem and disk covariance.
-compDetailedCV :: Node.List -> (Double, Double, Double, Double, Double, Double)
+compDetailedCV :: Node.List -> [Double]
 compDetailedCV nl =
     let
         all_nodes = Container.elems nl
@@ -213,14 +223,11 @@ compDetailedCV nl =
                          fromIntegral (offline_inst + online_inst)::Double
         cpu_l = map Node.p_cpu nodes
         cpu_cv = varianceCoeff cpu_l
-    in (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv)
+    in [mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv]
 
 -- | Compute the /total/ variance.
 compCV :: Node.List -> Double
-compCV nl =
-    let (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv) =
-            compDetailedCV nl
-    in mem_cv + dsk_cv + n1_score + res_cv + off_score + cpu_cv
+compCV = sum . compDetailedCV
 
 -- | Compute online nodes from a Node.List
 getOnline :: Node.List -> [Node.Node]
@@ -680,11 +687,11 @@ printNodes nl =
 -- | Shows statistics for a given node list.
 printStats :: Node.List -> String
 printStats nl =
-    let (mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv) =
-            compDetailedCV nl
-    in printf "f_mem=%.8f, r_mem=%.8f, f_dsk=%.8f, n1=%.3f, \
-              \uf=%.3f, r_cpu=%.3f"
-       mem_cv res_cv dsk_cv n1_score off_score cpu_cv
+    let dcvs = compDetailedCV nl
+        hd = zip (detailedCVNames ++ repeat "unknown") dcvs
+        formatted = map (\(header, val) ->
+                             printf "%s=%.8f" header val::String) hd
+    in intercalate ", " formatted
 
 -- | Convert a placement into a list of OpCodes (basically a job).
 iMoveToJob :: String -> Node.List -> Instance.List
