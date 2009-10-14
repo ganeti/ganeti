@@ -40,9 +40,9 @@ data Instance = Instance { name :: String   -- ^ The instance name
                          , vcpus :: Int     -- ^ Number of VCPUs
                          , running :: Bool  -- ^ Whether the instance
                                             -- is running
-                         , run_st :: String -- ^ Original (text) run status
-                         , pnode :: T.Ndx   -- ^ Original primary node
-                         , snode :: T.Ndx   -- ^ Original secondary node
+                         , runSt :: String  -- ^ Original (text) run status
+                         , pNode :: T.Ndx   -- ^ Original primary node
+                         , sNode :: T.Ndx   -- ^ Original secondary node
                          , idx :: T.Idx     -- ^ Internal index for
                                             -- book-keeping
                          } deriving (Show)
@@ -76,9 +76,9 @@ create name_init mem_init dsk_init vcpus_init run_init pn sn =
                       "running" -> True
                       "ERROR_up" -> True
                       _ -> False,
-          run_st = run_init,
-          pnode = pn,
-          snode = sn,
+          runSt = run_init,
+          pNode = pn,
+          sNode = sn,
           idx = -1
         }
 
@@ -104,17 +104,17 @@ setName t s = t { name = s }
 setPri :: Instance  -- ^ the original instance
         -> T.Ndx    -- ^ the new primary node
         -> Instance -- ^ the modified instance
-setPri t p = t { pnode = p }
+setPri t p = t { pNode = p }
 
 -- | Changes the secondary node of the instance.
 setSec :: Instance  -- ^ the original instance
         -> T.Ndx    -- ^ the new secondary node
         -> Instance -- ^ the modified instance
-setSec t s = t { snode = s }
+setSec t s = t { sNode = s }
 
 -- | Changes both nodes of the instance.
 setBoth :: Instance  -- ^ the original instance
          -> T.Ndx    -- ^ new primary node index
          -> T.Ndx    -- ^ new secondary node index
          -> Instance -- ^ the modified instance
-setBoth t p s = t { pnode = p, snode = s }
+setBoth t p s = t { pNode = p, sNode = s }

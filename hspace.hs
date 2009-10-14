@@ -257,8 +257,8 @@ main = do
          hPutStr stderr . unlines $
          map (\i -> printf "Inst: %*s %-*s %-*s"
                     ix_namelen (Instance.name i)
-                    nmlen (Container.nameOf fin_nl $ Instance.pnode i)
-                    nmlen (let sdx = Instance.snode i
+                    nmlen (Container.nameOf fin_nl $ Instance.pNode i)
+                    nmlen (let sdx = Instance.sNode i
                            in if sdx == Node.noSecondary then ""
                               else Container.nameOf fin_nl sdx)
              ) fin_ixes

@@ -27,12 +27,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.HTools.Node
     ( Node(failN1, name, idx,
-           t_mem, n_mem, f_mem, r_mem, x_mem,
-           t_dsk, f_dsk,
-           t_cpu, u_cpu,
-           p_mem, p_dsk, p_rem, p_cpu,
-           m_dsk, m_cpu, lo_dsk, hi_cpu,
-           plist, slist, offline)
+           tMem, nMem, fMem, rMem, xMem,
+           tDsk, fDsk,
+           tCpu, uCpu,
+           pMem, pDsk, pRem, pCpu,
+           mDsk, mCpu, loDsk, hiCpu,
+           pList, sList, offline)
     , List
     -- * Constructor
     , create
@@ -75,30 +75,30 @@ import qualified Ganeti.HTools.Types as T
 
 -- | The node type.
 data Node = Node { name  :: String -- ^ The node name
-                 , t_mem :: Double -- ^ Total memory (MiB)
-                 , n_mem :: Int    -- ^ Node memory (MiB)
-                 , f_mem :: Int    -- ^ Free memory (MiB)
-                 , x_mem :: Int    -- ^ Unaccounted memory (MiB)
-                 , t_dsk :: Double -- ^ Total disk space (MiB)
-                 , f_dsk :: Int    -- ^ Free disk space (MiB)
-                 , t_cpu :: Double -- ^ Total CPU count
-                 , u_cpu :: Int    -- ^ Used VCPU count
-                 , plist :: [T.Idx]-- ^ List of primary instance indices
-                 , slist :: [T.Idx]-- ^ List of secondary instance indices
+                 , tMem :: Double  -- ^ Total memory (MiB)
+                 , nMem :: Int     -- ^ Node memory (MiB)
+                 , fMem :: Int     -- ^ Free memory (MiB)
+                 , xMem :: Int     -- ^ Unaccounted memory (MiB)
+                 , tDsk :: Double  -- ^ Total disk space (MiB)
+                 , fDsk :: Int     -- ^ Free disk space (MiB)
+                 , tCpu :: Double  -- ^ Total CPU count
+                 , uCpu :: Int     -- ^ Used VCPU count
+                 , pList :: [T.Idx]-- ^ List of primary instance indices
+                 , sList :: [T.Idx]-- ^ List of secondary instance indices
                  , idx :: T.Ndx    -- ^ Internal index for book-keeping
                  , peers :: PeerMap.PeerMap -- ^ Pnode to instance mapping
                  , failN1:: Bool   -- ^ Whether the node has failed n1
-                 , r_mem :: Int    -- ^ Maximum memory needed for
+                 , rMem :: Int     -- ^ Maximum memory needed for
                                    -- failover by primaries of this node
-                 , p_mem :: Double -- ^ Percent of free memory
-                 , p_dsk :: Double -- ^ Percent of free disk
-                 , p_rem :: Double -- ^ Percent of reserved memory
-                 , p_cpu :: Double -- ^ Ratio of virtual to physical CPUs
-                 , m_dsk :: Double -- ^ Minimum free disk ratio
-                 , m_cpu :: Double -- ^ Max ratio of virt-to-phys CPUs
-                 , lo_dsk :: Int   -- ^ Autocomputed from m_dsk low disk
+                 , pMem :: Double  -- ^ Percent of free memory
+                 , pDsk :: Double  -- ^ Percent of free disk
+                 , pRem :: Double  -- ^ Percent of reserved memory
+                 , pCpu :: Double  -- ^ Ratio of virtual to physical CPUs
+                 , mDsk :: Double  -- ^ Minimum free disk ratio
+                 , mCpu :: Double  -- ^ Max ratio of virt-to-phys CPUs
+                 , loDsk :: Int    -- ^ Autocomputed from mDsk low disk
                                    -- threshold
-                 , hi_cpu :: Int   -- ^ Autocomputed from m_cpu high cpu
+                 , hiCpu :: Int    -- ^ Autocomputed from mCpu high cpu
                                    -- threshold
                  , offline :: Bool -- ^ Whether the node should not be used
                                    -- for allocations and skipped from
@@ -142,29 +142,29 @@ create name_init mem_t_init mem_n_init mem_f_init
     Node
     {
       name  = name_init,
-      t_mem = mem_t_init,
-      n_mem = mem_n_init,
-      f_mem = mem_f_init,
-      t_dsk = dsk_t_init,
-      f_dsk = dsk_f_init,
-      t_cpu = cpu_t_init,
-      u_cpu = 0,
-      plist = [],
-      slist = [],
+      tMem = mem_t_init,
+      nMem = mem_n_init,
+      fMem = mem_f_init,
+      tDsk = dsk_t_init,
+      fDsk = dsk_f_init,
+      tCpu = cpu_t_init,
+      uCpu = 0,
+      pList = [],
+      sList = [],
       failN1 = True,
       idx = -1,
       peers = PeerMap.empty,
-      r_mem = 0,
-      p_mem = fromIntegral mem_f_init / mem_t_init,
-      p_dsk = fromIntegral dsk_f_init / dsk_t_init,
-      p_rem = 0,
-      p_cpu = 0,
+      rMem = 0,
+      pMem = fromIntegral mem_f_init / mem_t_init,
+      pDsk = fromIntegral dsk_f_init / dsk_t_init,
+      pRem = 0,
+      pCpu = 0,
       offline = offline_init,
-      x_mem = 0,
-      m_dsk = noLimit,
-      m_cpu = noLimit,
-      lo_dsk = noLimitInt,
-      hi_cpu = noLimitInt
+      xMem = 0,
+      mDsk = noLimit,
+      mCpu = noLimit,
+      loDsk = noLimitInt,
+      hiCpu = noLimitInt
     }
 
 -- | Changes the index.
@@ -185,18 +185,18 @@ setOffline t val = t { offline = val }
 
 -- | Sets the unnaccounted memory.
 setXmem :: Node -> Int -> Node
-setXmem t val = t { x_mem = val }
+setXmem t val = t { xMem = val }
 
 -- | Sets the max disk usage ratio
 setMdsk :: Node -> Double -> Node
-setMdsk t val = t { m_dsk = val,
-                    lo_dsk = if val == noLimit
+setMdsk t val = t { mDsk = val,
+                    loDsk = if val == noLimit
                              then noLimitInt
-                             else floor (val * t_dsk t) }
+                             else floor (val * tDsk t) }
 
 -- | Sets the max cpu usage ratio
 setMcpu :: Node -> Double -> Node
-setMcpu t val = t { m_cpu = val, hi_cpu = floor (val * t_cpu t) }
+setMcpu t val = t { mCpu = val, hiCpu = floor (val * tCpu t) }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
 computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
@@ -207,98 +207,98 @@ buildPeers :: Node -> Instance.List -> Node
 buildPeers t il =
     let mdata = map
                 (\i_idx -> let inst = Container.find i_idx il
-                           in (Instance.pnode inst, Instance.mem inst))
-                (slist t)
+                           in (Instance.pNode inst, Instance.mem inst))
+                (sList t)
         pmap = PeerMap.accumArray (+) mdata
         new_rmem = computeMaxRes pmap
-        new_failN1 = f_mem t <= new_rmem
-        new_prem = fromIntegral new_rmem / t_mem t
-    in t {peers=pmap, failN1 = new_failN1, r_mem = new_rmem, p_rem = new_prem}
+        new_failN1 = fMem t <= new_rmem
+        new_prem = fromIntegral new_rmem / tMem t
+    in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
 -- | Assigns an instance to a node as primary without other updates.
 setPri :: Node -> T.Idx -> Node
-setPri t ix = t { plist = ix:plist t }
+setPri t ix = t { pList = ix:pList t }
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> T.Idx -> Node
-setSec t ix = t { slist = ix:slist t }
+setSec t ix = t { sList = ix:sList t }
 
 -- | Add primary cpus to a node
 addCpus :: Node -> Int -> Node
 addCpus t count =
-    let new_count = u_cpu t + count
-    in t { u_cpu = new_count, p_cpu = fromIntegral new_count / t_cpu t }
+    let new_count = uCpu t + count
+    in t { uCpu = new_count, pCpu = fromIntegral new_count / tCpu t }
 
 -- * Update functions
 
 -- | Sets the free memory.
 setFmem :: Node -> Int -> Node
 setFmem t new_mem =
-    let new_n1 = new_mem <= r_mem t
-        new_mp = fromIntegral new_mem / t_mem t
+    let new_n1 = new_mem <= rMem t
+        new_mp = fromIntegral new_mem / tMem t
     in
-      t { f_mem = new_mem, failN1 = new_n1, p_mem = new_mp }
+      t { fMem = new_mem, failN1 = new_n1, pMem = new_mp }
 
 -- | Removes a primary instance.
 removePri :: Node -> Instance.Instance -> Node
 removePri t inst =
     let iname = Instance.idx inst
-        new_plist = delete iname (plist t)
-        new_mem = f_mem t + Instance.mem inst
-        new_dsk = f_dsk t + Instance.dsk inst
-        new_mp = fromIntegral new_mem / t_mem t
-        new_dp = fromIntegral new_dsk / t_dsk t
-        new_failn1 = new_mem <= r_mem t
-        new_ucpu = u_cpu t - Instance.vcpus inst
-        new_rcpu = fromIntegral new_ucpu / t_cpu t
-    in t {plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
-          failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
-          u_cpu = new_ucpu, p_cpu = new_rcpu}
+        new_plist = delete iname (pList t)
+        new_mem = fMem t + Instance.mem inst
+        new_dsk = fDsk t + Instance.dsk inst
+        new_mp = fromIntegral new_mem / tMem t
+        new_dp = fromIntegral new_dsk / tDsk t
+        new_failn1 = new_mem <= rMem t
+        new_ucpu = uCpu t - Instance.vcpus inst
+        new_rcpu = fromIntegral new_ucpu / tCpu t
+    in t {pList = new_plist, fMem = new_mem, fDsk = new_dsk,
+          failN1 = new_failn1, pMem = new_mp, pDsk = new_dp,
+          uCpu = new_ucpu, pCpu = new_rcpu}
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
 removeSec t inst =
     let iname = Instance.idx inst
-        pnode = Instance.pnode inst
-        new_slist = delete iname (slist t)
-        new_dsk = f_dsk t + Instance.dsk inst
+        pnode = Instance.pNode inst
+        new_slist = delete iname (sList t)
+        new_dsk = fDsk t + Instance.dsk inst
         old_peers = peers t
         old_peem = PeerMap.find pnode old_peers
         new_peem =  old_peem - Instance.mem inst
         new_peers = PeerMap.add pnode new_peem old_peers
-        old_rmem = r_mem t
+        old_rmem = rMem t
         new_rmem = if old_peem < old_rmem then
                        old_rmem
                    else
                        computeMaxRes new_peers
-        new_prem = fromIntegral new_rmem / t_mem t
-        new_failn1 = f_mem t <= new_rmem
-        new_dp = fromIntegral new_dsk / t_dsk t
-    in t {slist = new_slist, f_dsk = new_dsk, peers = new_peers,
-          failN1 = new_failn1, r_mem = new_rmem, p_dsk = new_dp,
-          p_rem = new_prem}
+        new_prem = fromIntegral new_rmem / tMem t
+        new_failn1 = fMem t <= new_rmem
+        new_dp = fromIntegral new_dsk / tDsk t
+    in t {sList = new_slist, fDsk = new_dsk, peers = new_peers,
+          failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp,
+          pRem = new_prem}
 
 -- | Adds a primary instance.
 addPri :: Node -> Instance.Instance -> T.OpResult Node
 addPri t inst =
     let iname = Instance.idx inst
-        new_mem = f_mem t - Instance.mem inst
-        new_dsk = f_dsk t - Instance.dsk inst
-        new_failn1 = new_mem <= r_mem t
-        new_ucpu = u_cpu t + Instance.vcpus inst
-        new_pcpu = fromIntegral new_ucpu / t_cpu t
-        new_dp = fromIntegral new_dsk / t_dsk t
-        l_cpu = m_cpu t
+        new_mem = fMem t - Instance.mem inst
+        new_dsk = fDsk t - Instance.dsk inst
+        new_failn1 = new_mem <= rMem t
+        new_ucpu = uCpu t + Instance.vcpus inst
+        new_pcpu = fromIntegral new_ucpu / tCpu t
+        new_dp = fromIntegral new_dsk / tDsk t
+        l_cpu = mCpu t
     in if new_mem <= 0 then T.OpFail T.FailMem
-       else if new_dsk <= 0 || m_dsk t > new_dp then T.OpFail T.FailDisk
+       else if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
        else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
        else if l_cpu >= 0 && l_cpu < new_pcpu then T.OpFail T.FailCPU
        else
-           let new_plist = iname:plist t
-               new_mp = fromIntegral new_mem / t_mem t
-               r = t { plist = new_plist, f_mem = new_mem, f_dsk = new_dsk,
-                       failN1 = new_failn1, p_mem = new_mp, p_dsk = new_dp,
-                       u_cpu = new_ucpu, p_cpu = new_pcpu }
+           let new_plist = iname:pList t
+               new_mp = fromIntegral new_mem / tMem t
+               r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk,
+                       failN1 = new_failn1, pMem = new_mp, pDsk = new_dp,
+                       uCpu = new_ucpu, pCpu = new_pcpu }
            in T.OpGood r
 
 -- | Adds a secondary instance.
@@ -306,21 +306,21 @@ addSec :: Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
 addSec t inst pdx =
     let iname = Instance.idx inst
         old_peers = peers t
-        old_mem = f_mem t
-        new_dsk = f_dsk t - Instance.dsk inst
+        old_mem = fMem t
+        new_dsk = fDsk t - Instance.dsk inst
         new_peem = PeerMap.find pdx old_peers + Instance.mem inst
         new_peers = PeerMap.add pdx new_peem old_peers
-        new_rmem = max (r_mem t) new_peem
-        new_prem = fromIntegral new_rmem / t_mem t
+        new_rmem = max (rMem t) new_peem
+        new_prem = fromIntegral new_rmem / tMem t
         new_failn1 = old_mem <= new_rmem
-        new_dp = fromIntegral new_dsk / t_dsk t
-    in if new_dsk <= 0 || m_dsk t > new_dp then T.OpFail T.FailDisk
+        new_dp = fromIntegral new_dsk / tDsk t
+    in if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
        else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
-       else let new_slist = iname:slist t
-                r = t { slist = new_slist, f_dsk = new_dsk,
+       else let new_slist = iname:sList t
+                r = t { sList = new_slist, fDsk = new_dsk,
                         peers = new_peers, failN1 = new_failn1,
-                        r_mem = new_rmem, p_dsk = new_dp,
-                        p_rem = new_prem }
+                        rMem = new_rmem, pDsk = new_dp,
+                        pRem = new_prem }
            in T.OpGood r
 
 -- * Stats functions
@@ -328,8 +328,8 @@ addSec t inst pdx =
 -- | Computes the amount of available disk on a given node
 availDisk :: Node -> Int
 availDisk t =
-    let _f = f_dsk t
-        _l = lo_dsk t
+    let _f = fDsk t
+        _l = loDsk t
     in
       if _l == noLimitInt
       then _f
@@ -342,17 +342,17 @@ availDisk t =
 -- | String converter for the node list functionality.
 list :: Int -> Node -> String
 list mname t =
-    let pl = length $ plist t
-        sl = length $ slist t
-        mp = p_mem t
-        dp = p_dsk t
-        cp = p_cpu t
+    let pl = length $ pList t
+        sl = length $ sList t
+        mp = pMem t
+        dp = pDsk t
+        cp = pCpu t
         off = offline t
         fn = failN1 t
-        tmem = t_mem t
-        nmem = n_mem t
-        xmem = x_mem t
-        fmem = f_mem t
+        tmem = tMem t
+        nmem = nMem t
+        xmem = xMem t
+        fmem = fMem t
         imem = truncate tmem - nmem - xmem - fmem
     in
       if off
@@ -362,7 +362,7 @@ list mname t =
              printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d\
                     \ %4.0f %4d %3d %3d %6.4f %6.4f %5.2f"
                  (if off then '-' else if fn then '*' else ' ')
-                 mname (name t) tmem nmem imem xmem fmem (r_mem t)
-                 (t_dsk t / 1024) (f_dsk t `div` 1024)
-                 (t_cpu t) (u_cpu t)
+                 mname (name t) tmem nmem imem xmem fmem (rMem t)
+                 (tDsk t / 1024) (fDsk t `div` 1024)
+                 (tCpu t) (uCpu t)
                  pl sl mp dp cp

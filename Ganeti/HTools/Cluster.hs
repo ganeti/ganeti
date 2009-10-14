@@ -120,7 +120,7 @@ computeBadItems nl il =
   let bad_nodes = verifyN1 $ getOnline nl
       bad_instances = map (\idx -> Container.find idx il) .
                       sort . nub $
-                      concatMap (\ n -> Node.slist n ++ Node.plist n) bad_nodes
+                      concatMap (\ n -> Node.sList n ++ Node.pList n) bad_nodes
   in
     (bad_nodes, bad_instances)
 
@@ -155,16 +155,16 @@ updateCStats cs node =
                  cs_xmem = x_xmem, cs_nmem = x_nmem, cs_ninst = x_ninst
                }
             = cs
-        inc_amem = Node.f_mem node - Node.r_mem node
+        inc_amem = Node.fMem node - Node.rMem node
         inc_amem' = if inc_amem > 0 then inc_amem else 0
         inc_adsk = Node.availDisk node
-        inc_imem = truncate (Node.t_mem node) - Node.n_mem node
-                   - Node.x_mem node - Node.f_mem node
-        inc_icpu = Node.u_cpu node
-        inc_idsk = truncate (Node.t_dsk node) - Node.f_dsk node
+        inc_imem = truncate (Node.tMem node) - Node.nMem node
+                   - Node.xMem node - Node.fMem node
+        inc_icpu = Node.uCpu node
+        inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
 
-    in cs { cs_fmem = x_fmem + Node.f_mem node
-          , cs_fdsk = x_fdsk + Node.f_dsk node
+    in cs { cs_fmem = x_fmem + Node.fMem node
+          , cs_fdsk = x_fdsk + Node.fDsk node
           , cs_amem = x_amem + inc_amem'
           , cs_adsk = x_adsk + inc_adsk
           , cs_acpu = x_acpu
@@ -174,12 +174,12 @@ updateCStats cs node =
           , cs_imem = x_imem + inc_imem
           , cs_idsk = x_idsk + inc_idsk
           , cs_icpu = x_icpu + inc_icpu
-          , cs_tmem = x_tmem + Node.t_mem node
-          , cs_tdsk = x_tdsk + Node.t_dsk node
-          , cs_tcpu = x_tcpu + Node.t_cpu node
-          , cs_xmem = x_xmem + Node.x_mem node
-          , cs_nmem = x_nmem + Node.n_mem node
-          , cs_ninst = x_ninst + length (Node.plist node)
+          , cs_tmem = x_tmem + Node.tMem node
+          , cs_tdsk = x_tdsk + Node.tDsk node
+          , cs_tcpu = x_tcpu + Node.tCpu node
+          , cs_xmem = x_xmem + Node.xMem node
+          , cs_nmem = x_nmem + Node.nMem node
+          , cs_ninst = x_ninst + length (Node.pList node)
           }
 
 -- | Compute the total free disk and memory in the cluster.
@@ -204,24 +204,24 @@ compDetailedCV nl =
     let
         all_nodes = Container.elems nl
         (offline, nodes) = partition Node.offline all_nodes
-        mem_l = map Node.p_mem nodes
-        dsk_l = map Node.p_dsk nodes
+        mem_l = map Node.pMem nodes
+        dsk_l = map Node.pDsk nodes
         mem_cv = varianceCoeff mem_l
         dsk_cv = varianceCoeff dsk_l
         n1_l = length $ filter Node.failN1 nodes
         n1_score = fromIntegral n1_l /
                    fromIntegral (length nodes)::Double
-        res_l = map Node.p_rem nodes
+        res_l = map Node.pRem nodes
         res_cv = varianceCoeff res_l
-        offline_inst = sum . map (\n -> (length . Node.plist $ n) +
-                                        (length . Node.slist $ n)) $ offline
-        online_inst = sum . map (\n -> (length . Node.plist $ n) +
-                                       (length . Node.slist $ n)) $ nodes
+        offline_inst = sum . map (\n -> (length . Node.pList $ n) +
+                                        (length . Node.sList $ n)) $ offline
+        online_inst = sum . map (\n -> (length . Node.pList $ n) +
+                                       (length . Node.sList $ n)) $ nodes
         off_score = if offline_inst == 0
                     then 0::Double
                     else fromIntegral offline_inst /
                          fromIntegral (offline_inst + online_inst)::Double
-        cpu_l = map Node.p_cpu nodes
+        cpu_l = map Node.pCpu nodes
         cpu_cv = varianceCoeff cpu_l
     in [mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv]
 
@@ -245,8 +245,8 @@ applyMove :: Node.List -> Instance.Instance
           -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
 applyMove nl inst Failover =
-    let old_pdx = Instance.pnode inst
-        old_sdx = Instance.snode inst
+    let old_pdx = Instance.pNode inst
+        old_sdx = Instance.sNode inst
         old_p = Container.find old_pdx nl
         old_s = Container.find old_sdx nl
         int_p = Node.removePri old_p inst
@@ -261,8 +261,8 @@ applyMove nl inst Failover =
 
 -- Replace the primary (f:, r:np, f)
 applyMove nl inst (ReplacePrimary new_pdx) =
-    let old_pdx = Instance.pnode inst
-        old_sdx = Instance.snode inst
+    let old_pdx = Instance.pNode inst
+        old_sdx = Instance.sNode inst
         old_p = Container.find old_pdx nl
         old_s = Container.find old_sdx nl
         tgt_n = Container.find new_pdx nl
@@ -283,8 +283,8 @@ applyMove nl inst (ReplacePrimary new_pdx) =
 
 -- Replace the secondary (r:ns)
 applyMove nl inst (ReplaceSecondary new_sdx) =
-    let old_pdx = Instance.pnode inst
-        old_sdx = Instance.snode inst
+    let old_pdx = Instance.pNode inst
+        old_sdx = Instance.sNode inst
         old_s = Container.find old_sdx nl
         tgt_n = Container.find new_sdx nl
         int_s = Node.removeSec old_s inst
@@ -297,8 +297,8 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
 
 -- Replace the secondary and failover (r:np, f)
 applyMove nl inst (ReplaceAndFailover new_pdx) =
-    let old_pdx = Instance.pnode inst
-        old_sdx = Instance.snode inst
+    let old_pdx = Instance.pNode inst
+        old_sdx = Instance.sNode inst
         old_p = Container.find old_pdx nl
         old_s = Container.find old_sdx nl
         tgt_n = Container.find new_pdx nl
@@ -315,8 +315,8 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
 
 -- Failver and replace the secondary (f, r:ns)
 applyMove nl inst (FailoverAndReplace new_sdx) =
-    let old_pdx = Instance.pnode inst
-        old_sdx = Instance.snode inst
+    let old_pdx = Instance.pNode inst
+        old_sdx = Instance.sNode inst
         old_p = Container.find old_pdx nl
         old_s = Container.find old_sdx nl
         tgt_n = Container.find new_sdx nl
@@ -402,8 +402,8 @@ checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
                   -> Table             -- ^ Best new table for this instance
 checkInstanceMove nodes_idx disk_moves ini_tbl target =
     let
-        opdx = Instance.pnode target
-        osdx = Instance.snode target
+        opdx = Instance.pNode target
+        osdx = Instance.sNode target
         nodes = filter (\idx -> idx /= opdx && idx /= osdx) nodes_idx
         use_secondary = elem osdx nodes_idx
         aft_failover = if use_secondary -- if allowed to failover
@@ -428,7 +428,7 @@ checkMove nodes_idx disk_moves ini_tbl victims =
         best_tbl =
             foldl'
             (\ step_tbl em ->
-                 if Instance.snode em == Node.noSecondary then step_tbl
+                 if Instance.sNode em == Node.noSecondary then step_tbl
                     else compareTables step_tbl $
                          checkInstanceMove nodes_idx disk_moves ini_tbl em)
             ini_tbl victims
@@ -531,7 +531,7 @@ tryReloc :: (Monad m) =>
 tryReloc nl il xid 1 ex_idx =
     let all_nodes = getOnline nl
         inst = Container.find xid il
-        ex_idx' = Instance.pnode inst:ex_idx
+        ex_idx' = Instance.pNode inst:ex_idx
         valid_nodes = filter (not . flip elem ex_idx' . Node.idx) all_nodes
         valid_idxes = map Node.idx valid_nodes
         sols1 = foldl' (\cstate x ->
@@ -603,8 +603,8 @@ printSolutionLine nl il nmlen imlen plc pos =
         inam = Instance.name inst
         npri = Container.nameOf nl p
         nsec = Container.nameOf nl s
-        opri = Container.nameOf nl $ Instance.pnode inst
-        osec = Container.nameOf nl $ Instance.snode inst
+        opri = Container.nameOf nl $ Instance.pNode inst
+        osec = Container.nameOf nl $ Instance.sNode inst
         (moves, cmds) =  computeMoves inst inam opri osec npri nsec
         ostr = printf "%s:%s" opri osec::String
         nstr = printf "%s:%s" npri nsec::String
@@ -619,8 +619,8 @@ involvedNodes :: Instance.List -> Placement -> [Ndx]
 involvedNodes il plc =
     let (i, np, ns, _, _) = plc
         inst = Container.find i il
-        op = Instance.pnode inst
-        os = Instance.snode inst
+        op = Instance.pNode inst
+        os = Instance.sNode inst
     in nub [np, ns, op, os]
 
 -- | Inner function for splitJobs, that either appends the next job to

@@ -154,27 +154,27 @@ prop_Instance_setName inst name =
     where _types = (inst::Instance.Instance, name::String)
 
 prop_Instance_setPri inst pdx =
-    Instance.pnode (Instance.setPri inst pdx) == pdx
+    Instance.pNode (Instance.setPri inst pdx) == pdx
     where _types = (inst::Instance.Instance, pdx::Types.Ndx)
 
 prop_Instance_setSec inst sdx =
-    Instance.snode (Instance.setSec inst sdx) == sdx
+    Instance.sNode (Instance.setSec inst sdx) == sdx
     where _types = (inst::Instance.Instance, sdx::Types.Ndx)
 
 prop_Instance_setBoth inst pdx sdx =
-    Instance.pnode si == pdx && Instance.snode si == sdx
+    Instance.pNode si == pdx && Instance.sNode si == sdx
     where _types = (inst::Instance.Instance, pdx::Types.Ndx, sdx::Types.Ndx)
           si = Instance.setBoth inst pdx sdx
 
 prop_Instance_runStatus_True inst =
     let run_st = Instance.running inst
-        run_tx = Instance.run_st inst
+        run_tx = Instance.runSt inst
     in
       run_tx == "running" || run_tx == "ERROR_up" ==> run_st == True
 
 prop_Instance_runStatus_False inst =
     let run_st = Instance.running inst
-        run_tx = Instance.run_st inst
+        run_tx = Instance.runSt inst
     in
       run_tx /= "running" && run_tx /= "ERROR_up" ==> run_st == False
 
@@ -213,8 +213,8 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
             (Instance.name i == name &&
              Instance.vcpus i == vcpus &&
              Instance.mem i == mem &&
-             Instance.pnode i == pdx &&
-             Instance.snode i == rsdx)
+             Instance.pNode i == pdx &&
+             Instance.sNode i == rsdx)
 
 test_Text =
     [ run prop_Text_Load_Instance
@@ -223,8 +223,8 @@ test_Text =
 -- Node tests
 
 -- | Check that an instance add with too high memory or disk will be rejected
-prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
-                              Instance.dsk inst >= Node.f_dsk node) &&
+prop_Node_addPri node inst = (Instance.mem inst >= Node.fMem node ||
+                              Instance.dsk inst >= Node.fDsk node) &&
                              not (Node.failN1 node)
                              ==>
                              isFailure (Node.addPri node inst)
@@ -233,8 +233,8 @@ prop_Node_addPri node inst = (Instance.mem inst >= Node.f_mem node ||
 
 -- | Check that an instance add with too high memory or disk will be rejected
 prop_Node_addSec node inst pdx =
-    (Instance.mem inst >= (Node.f_mem node - Node.r_mem node) ||
-     Instance.dsk inst >= Node.f_dsk node) &&
+    (Instance.mem inst >= (Node.fMem node - Node.rMem node) ||
+     Instance.dsk inst >= Node.fDsk node) &&
     not (Node.failN1 node)
     ==> isFailure (Node.addSec node inst pdx)
         where _types = (node::Node.Node, inst::Instance.Instance, pdx::Int)
@@ -250,7 +250,7 @@ test_Node =
 -- | Check that the cluster score is close to zero for a homogeneous cluster
 prop_Score_Zero node count =
     ((not $ Node.offline node) && (not $ Node.failN1 node) && (count > 0) &&
-     (Node.t_dsk node > 0) && (Node.t_mem node > 0)) ==>
+     (Node.tDsk node > 0) && (Node.tMem node > 0)) ==>
     let fn = Node.buildPeers node Container.empty
         nlst = (zip [1..] $ replicate count fn)::[(Types.Ndx, Node.Node)]
         nl = Container.fromAssocList nlst

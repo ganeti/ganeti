@@ -100,8 +100,8 @@ fixNodes :: [(Ndx, Node.Node)]
          -> [(Ndx, Node.Node)]
 fixNodes accu (idx, inst) =
     let
-        pdx = Instance.pnode inst
-        sdx = Instance.snode inst
+        pdx = Instance.pNode inst
+        sdx = Instance.sNode inst
         pold = fromJust $ lookup pdx accu
         pnew = Node.setPri pold idx
         pnew' = Node.addCpus pnew (Instance.vcpus inst)
@@ -156,19 +156,19 @@ checkData nl il =
     Container.mapAccum
         (\ msgs node ->
              let nname = Node.name node
-                 nilst = map (flip Container.find il) (Node.plist node)
+                 nilst = map (flip Container.find il) (Node.pList node)
                  dilst = filter (not . Instance.running) nilst
                  adj_mem = sum . map Instance.mem $ dilst
-                 delta_mem = truncate (Node.t_mem node)
-                             - Node.n_mem node
-                             - Node.f_mem node
+                 delta_mem = truncate (Node.tMem node)
+                             - Node.nMem node
+                             - Node.fMem node
                              - nodeImem node il
                              + adj_mem
-                 delta_dsk = truncate (Node.t_dsk node)
-                             - Node.f_dsk node
+                 delta_dsk = truncate (Node.tDsk node)
+                             - Node.fDsk node
                              - nodeIdsk node il
                  newn = Node.setFmem (Node.setXmem node delta_mem)
-                        (Node.f_mem node - adj_mem)
+                        (Node.fMem node - adj_mem)
                  umsg1 = [printf "node %s is missing %d MB ram \
                                  \and %d GB disk"
                                  nname delta_mem (delta_dsk `div` 1024) |
@@ -181,7 +181,7 @@ nodeImem :: Node.Node -> Instance.List -> Int
 nodeImem node il =
     let rfind = flip Container.find il
     in sum . map (Instance.mem . rfind)
-           $ Node.plist node
+           $ Node.pList node
 
 -- | Compute the amount of disk used by instances on a node (either primary
 -- or secondary).
@@ -189,4 +189,4 @@ nodeIdsk :: Node.Node -> Instance.List -> Int
 nodeIdsk node il =
     let rfind = flip Container.find il
     in sum . map (Instance.dsk . rfind)
-           $ Node.plist node ++ Node.slist node
+           $ Node.pList node ++ Node.sList node

@@ -60,8 +60,8 @@ options =
 serializeNode :: String -> Node.Node -> String
 serializeNode csf node =
     printf "%s|%.0f|%d|%d|%.0f|%d|%.0f|%c" (Node.name node ++ csf)
-               (Node.t_mem node) (Node.n_mem node) (Node.f_mem node)
-               (Node.t_dsk node) (Node.f_dsk node) (Node.t_cpu node)
+               (Node.tMem node) (Node.nMem node) (Node.fMem node)
+               (Node.tDsk node) (Node.fDsk node) (Node.tCpu node)
                (if Node.offline node then 'Y' else 'N')
 
 -- | Generate node file data from node objects
@@ -74,15 +74,15 @@ serializeInstance :: String -> Node.List -> Instance.Instance -> String
 serializeInstance csf nl inst =
     let
         iname = Instance.name inst ++ csf
-        pnode = Container.nameOf nl (Instance.pnode inst) ++ csf
-        sidx = Instance.snode inst
+        pnode = Container.nameOf nl (Instance.pNode inst) ++ csf
+        sidx = Instance.sNode inst
         snode = (if sidx == Node.noSecondary
                     then ""
                     else Container.nameOf nl sidx ++ csf)
     in
       printf "%s|%d|%d|%d|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
-             (Instance.vcpus inst) (Instance.run_st inst)
+             (Instance.vcpus inst) (Instance.runSt inst)
              pnode snode
 
 -- | Generate instance file data from instance objects
@@ -98,10 +98,10 @@ printCluster nl il =
         ccv = Cluster.compCV nl
         nodes = Container.elems nl
         insts = Container.elems il
-        t_ram = sum . map Node.t_mem $ nodes
-        t_dsk = sum . map Node.t_dsk $ nodes
-        f_ram = sum . map Node.f_mem $ nodes
-        f_dsk = sum . map Node.f_dsk $ nodes
+        t_ram = sum . map Node.tMem $ nodes
+        t_dsk = sum . map Node.tDsk $ nodes
+        f_ram = sum . map Node.fMem $ nodes
+        f_dsk = sum . map Node.fDsk $ nodes
     in
       printf "%5d %5d %5d %5d %6.0f %6d %6.0f %6d %.8f"
                  (length nodes) (length insts)
