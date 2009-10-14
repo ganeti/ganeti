@@ -306,8 +306,8 @@ main = do
          when (verbose > 3) $
               do
                 printf "Original: mem=%d disk=%d\n"
-                       (Cluster.cs_fmem ini_cs) (Cluster.cs_fdsk ini_cs)
+                       (Cluster.csFmem ini_cs) (Cluster.csFdsk ini_cs)
                 printf "Final:    mem=%d disk=%d\n"
-                       (Cluster.cs_fmem fin_cs) (Cluster.cs_fdsk fin_cs)
+                       (Cluster.csFmem fin_cs) (Cluster.csFdsk fin_cs)
   when oneline $
          putStrLn $ formatOneline ini_cv (length ord_plc) fin_cv

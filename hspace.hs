@@ -70,32 +70,32 @@ options =
 data Phase = PInitial | PFinal
 
 statsData :: [(String, Cluster.CStats -> String)]
-statsData = [ ("SCORE", printf "%.8f" . Cluster.cs_score)
-            , ("INST_CNT", printf "%d" . Cluster.cs_ninst)
-            , ("MEM_FREE", printf "%d" . Cluster.cs_fmem)
-            , ("MEM_AVAIL", printf "%d" . Cluster.cs_amem)
+statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
+            , ("INST_CNT", printf "%d" . Cluster.csNinst)
+            , ("MEM_FREE", printf "%d" . Cluster.csFmem)
+            , ("MEM_AVAIL", printf "%d" . Cluster.csAmem)
             , ("MEM_RESVD",
-               \cs -> printf "%d" (Cluster.cs_fmem cs - Cluster.cs_amem cs))
-            , ("MEM_INST", printf "%d" . Cluster.cs_imem)
+               \cs -> printf "%d" (Cluster.csFmem cs - Cluster.csAmem cs))
+            , ("MEM_INST", printf "%d" . Cluster.csImem)
             , ("MEM_OVERHEAD",
-               \cs -> printf "%d" (Cluster.cs_xmem cs + Cluster.cs_nmem cs))
+               \cs -> printf "%d" (Cluster.csXmem cs + Cluster.csNmem cs))
             , ("MEM_EFF",
-               \cs -> printf "%.8f" (fromIntegral (Cluster.cs_imem cs) /
-                                     Cluster.cs_tmem cs))
-            , ("DSK_FREE", printf "%d" . Cluster.cs_fdsk)
-            , ("DSK_AVAIL", printf "%d ". Cluster.cs_adsk)
+               \cs -> printf "%.8f" (fromIntegral (Cluster.csImem cs) /
+                                     Cluster.csTmem cs))
+            , ("DSK_FREE", printf "%d" . Cluster.csFdsk)
+            , ("DSK_AVAIL", printf "%d ". Cluster.csAdsk)
             , ("DSK_RESVD",
-               \cs -> printf "%d" (Cluster.cs_fdsk cs - Cluster.cs_adsk cs))
-            , ("DSK_INST", printf "%d" . Cluster.cs_idsk)
+               \cs -> printf "%d" (Cluster.csFdsk cs - Cluster.csAdsk cs))
+            , ("DSK_INST", printf "%d" . Cluster.csIdsk)
             , ("DSK_EFF",
-               \cs -> printf "%.8f" (fromIntegral (Cluster.cs_idsk cs) /
-                                    Cluster.cs_tdsk cs))
-            , ("CPU_INST", printf "%d" . Cluster.cs_icpu)
+               \cs -> printf "%.8f" (fromIntegral (Cluster.csIdsk cs) /
+                                    Cluster.csTdsk cs))
+            , ("CPU_INST", printf "%d" . Cluster.csIcpu)
             , ("CPU_EFF",
-               \cs -> printf "%.8f" (fromIntegral (Cluster.cs_icpu cs) /
-                                     Cluster.cs_tcpu cs))
-            , ("MNODE_MEM_AVAIL", printf "%d" . Cluster.cs_mmem)
-            , ("MNODE_DSK_AVAIL", printf "%d" . Cluster.cs_mdsk)
+               \cs -> printf "%.8f" (fromIntegral (Cluster.csIcpu cs) /
+                                     Cluster.csTcpu cs))
+            , ("MNODE_MEM_AVAIL", printf "%d" . Cluster.csMmem)
+            , ("MNODE_DSK_AVAIL", printf "%d" . Cluster.csMdsk)
             ]
 
 specData :: [(String, Options -> String)]
@@ -106,9 +106,9 @@ specData = [ ("MEM", printf "%d" . optIMem)
            ]
 
 clusterData :: [(String, Cluster.CStats -> String)]
-clusterData = [ ("MEM", printf "%.0f" . Cluster.cs_tmem)
-              , ("DSK", printf "%.0f" . Cluster.cs_tdsk)
-              , ("CPU", printf "%.0f" . Cluster.cs_tcpu)
+clusterData = [ ("MEM", printf "%.0f" . Cluster.csTmem)
+              , ("DSK", printf "%.0f" . Cluster.csTdsk)
+              , ("CPU", printf "%.0f" . Cluster.csTcpu)
               ]
 
 -- | Recursively place instances on the cluster until we're out of space
@@ -145,11 +145,11 @@ printResults fin_nl num_instances allocs sreason = do
   let fin_stats = Cluster.totalResources fin_nl
       fin_instances = num_instances + allocs
 
-  when (num_instances + allocs /= Cluster.cs_ninst fin_stats) $
+  when (num_instances + allocs /= Cluster.csNinst fin_stats) $
        do
          hPrintf stderr "ERROR: internal inconsistency, allocated (%d)\
                         \ != counted (%d)\n" (num_instances + allocs)
-                                 (Cluster.cs_ninst fin_stats)
+                                 (Cluster.csNinst fin_stats)
          exitWith $ ExitFailure 1
 
   printKeys $ printStats PFinal fin_stats

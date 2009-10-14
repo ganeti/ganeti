@@ -81,24 +81,24 @@ type AllocElement = (Node.List, Instance.Instance, [Node.Node])
 data Table = Table Node.List Instance.List Score [Placement]
              deriving (Show)
 
-data CStats = CStats { cs_fmem :: Int    -- ^ Cluster free mem
-                     , cs_fdsk :: Int    -- ^ Cluster free disk
-                     , cs_amem :: Int    -- ^ Cluster allocatable mem
-                     , cs_adsk :: Int    -- ^ Cluster allocatable disk
-                     , cs_acpu :: Int    -- ^ Cluster allocatable cpus
-                     , cs_mmem :: Int    -- ^ Max node allocatable mem
-                     , cs_mdsk :: Int    -- ^ Max node allocatable disk
-                     , cs_mcpu :: Int    -- ^ Max node allocatable cpu
-                     , cs_imem :: Int    -- ^ Instance used mem
-                     , cs_idsk :: Int    -- ^ Instance used disk
-                     , cs_icpu :: Int    -- ^ Instance used cpu
-                     , cs_tmem :: Double -- ^ Cluster total mem
-                     , cs_tdsk :: Double -- ^ Cluster total disk
-                     , cs_tcpu :: Double -- ^ Cluster total cpus
-                     , cs_xmem :: Int    -- ^ Unnacounted for mem
-                     , cs_nmem :: Int    -- ^ Node own memory
-                     , cs_score :: Score -- ^ The cluster score
-                     , cs_ninst :: Int   -- ^ The total number of instances
+data CStats = CStats { csFmem :: Int    -- ^ Cluster free mem
+                     , csFdsk :: Int    -- ^ Cluster free disk
+                     , csAmem :: Int    -- ^ Cluster allocatable mem
+                     , csAdsk :: Int    -- ^ Cluster allocatable disk
+                     , csAcpu :: Int    -- ^ Cluster allocatable cpus
+                     , csMmem :: Int    -- ^ Max node allocatable mem
+                     , csMdsk :: Int    -- ^ Max node allocatable disk
+                     , csMcpu :: Int    -- ^ Max node allocatable cpu
+                     , csImem :: Int    -- ^ Instance used mem
+                     , csIdsk :: Int    -- ^ Instance used disk
+                     , csIcpu :: Int    -- ^ Instance used cpu
+                     , csTmem :: Double -- ^ Cluster total mem
+                     , csTdsk :: Double -- ^ Cluster total disk
+                     , csTcpu :: Double -- ^ Cluster total cpus
+                     , csXmem :: Int    -- ^ Unnacounted for mem
+                     , csNmem :: Int    -- ^ Node own memory
+                     , csScore :: Score -- ^ The cluster score
+                     , csNinst :: Int   -- ^ The total number of instances
                      }
 
 -- * Utility functions
@@ -125,34 +125,34 @@ computeBadItems nl il =
     (bad_nodes, bad_instances)
 
 emptyCStats :: CStats
-emptyCStats = CStats { cs_fmem = 0
-                     , cs_fdsk = 0
-                     , cs_amem = 0
-                     , cs_adsk = 0
-                     , cs_acpu = 0
-                     , cs_mmem = 0
-                     , cs_mdsk = 0
-                     , cs_mcpu = 0
-                     , cs_imem = 0
-                     , cs_idsk = 0
-                     , cs_icpu = 0
-                     , cs_tmem = 0
-                     , cs_tdsk = 0
-                     , cs_tcpu = 0
-                     , cs_xmem = 0
-                     , cs_nmem = 0
-                     , cs_score = 0
-                     , cs_ninst = 0
+emptyCStats = CStats { csFmem = 0
+                     , csFdsk = 0
+                     , csAmem = 0
+                     , csAdsk = 0
+                     , csAcpu = 0
+                     , csMmem = 0
+                     , csMdsk = 0
+                     , csMcpu = 0
+                     , csImem = 0
+                     , csIdsk = 0
+                     , csIcpu = 0
+                     , csTmem = 0
+                     , csTdsk = 0
+                     , csTcpu = 0
+                     , csXmem = 0
+                     , csNmem = 0
+                     , csScore = 0
+                     , csNinst = 0
                      }
 
 updateCStats :: CStats -> Node.Node -> CStats
 updateCStats cs node =
-    let CStats { cs_fmem = x_fmem, cs_fdsk = x_fdsk,
-                 cs_amem = x_amem, cs_acpu = x_acpu, cs_adsk = x_adsk,
-                 cs_mmem = x_mmem, cs_mdsk = x_mdsk, cs_mcpu = x_mcpu,
-                 cs_imem = x_imem, cs_idsk = x_idsk, cs_icpu = x_icpu,
-                 cs_tmem = x_tmem, cs_tdsk = x_tdsk, cs_tcpu = x_tcpu,
-                 cs_xmem = x_xmem, cs_nmem = x_nmem, cs_ninst = x_ninst
+    let CStats { csFmem = x_fmem, csFdsk = x_fdsk,
+                 csAmem = x_amem, csAcpu = x_acpu, csAdsk = x_adsk,
+                 csMmem = x_mmem, csMdsk = x_mdsk, csMcpu = x_mcpu,
+                 csImem = x_imem, csIdsk = x_idsk, csIcpu = x_icpu,
+                 csTmem = x_tmem, csTdsk = x_tdsk, csTcpu = x_tcpu,
+                 csXmem = x_xmem, csNmem = x_nmem, csNinst = x_ninst
                }
             = cs
         inc_amem = Node.fMem node - Node.rMem node
@@ -163,30 +163,30 @@ updateCStats cs node =
         inc_icpu = Node.uCpu node
         inc_idsk = truncate (Node.tDsk node) - Node.fDsk node
 
-    in cs { cs_fmem = x_fmem + Node.fMem node
-          , cs_fdsk = x_fdsk + Node.fDsk node
-          , cs_amem = x_amem + inc_amem'
-          , cs_adsk = x_adsk + inc_adsk
-          , cs_acpu = x_acpu
-          , cs_mmem = max x_mmem inc_amem'
-          , cs_mdsk = max x_mdsk inc_adsk
-          , cs_mcpu = x_mcpu
-          , cs_imem = x_imem + inc_imem
-          , cs_idsk = x_idsk + inc_idsk
-          , cs_icpu = x_icpu + inc_icpu
-          , cs_tmem = x_tmem + Node.tMem node
-          , cs_tdsk = x_tdsk + Node.tDsk node
-          , cs_tcpu = x_tcpu + Node.tCpu node
-          , cs_xmem = x_xmem + Node.xMem node
-          , cs_nmem = x_nmem + Node.nMem node
-          , cs_ninst = x_ninst + length (Node.pList node)
+    in cs { csFmem = x_fmem + Node.fMem node
+          , csFdsk = x_fdsk + Node.fDsk node
+          , csAmem = x_amem + inc_amem'
+          , csAdsk = x_adsk + inc_adsk
+          , csAcpu = x_acpu
+          , csMmem = max x_mmem inc_amem'
+          , csMdsk = max x_mdsk inc_adsk
+          , csMcpu = x_mcpu
+          , csImem = x_imem + inc_imem
+          , csIdsk = x_idsk + inc_idsk
+          , csIcpu = x_icpu + inc_icpu
+          , csTmem = x_tmem + Node.tMem node
+          , csTdsk = x_tdsk + Node.tDsk node
+          , csTcpu = x_tcpu + Node.tCpu node
+          , csXmem = x_xmem + Node.xMem node
+          , csNmem = x_nmem + Node.nMem node
+          , csNinst = x_ninst + length (Node.pList node)
           }
 
 -- | Compute the total free disk and memory in the cluster.
 totalResources :: Node.List -> CStats
 totalResources nl =
     let cs = foldl' updateCStats emptyCStats . Container.elems $ nl
-    in cs { cs_score = compCV nl }
+    in cs { csScore = compCV nl }
 
 -- | The names of the individual elements in the CV list
 detailedCVNames :: [String]
