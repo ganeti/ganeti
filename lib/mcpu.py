@@ -81,6 +81,7 @@ class _LockAttemptTimeoutStrategy(object):
     "_random_fn",
     "_start_time",
     "_time_fn",
+    "_running_timeout",
     ]
 
   _TIMEOUT_PER_ATTEMPT = _CalculateLockAttemptTimeouts()
@@ -103,7 +104,14 @@ class _LockAttemptTimeoutStrategy(object):
     self._time_fn = _time_fn
     self._random_fn = _random_fn
 
-    self._start_time = None
+    try:
+      timeout = self._TIMEOUT_PER_ATTEMPT[attempt]
+    except IndexError:
+      # No more timeouts, do blocking acquire
+      timeout = None
+
+    self._running_timeout = locking.RunningTimeout(timeout, False,
+                                                   _time_fn=_time_fn)
 
   def NextAttempt(self):
     """Returns the strategy for the next attempt.
@@ -117,29 +125,16 @@ class _LockAttemptTimeoutStrategy(object):
     """Returns the remaining timeout.
 
     """
-    try:
-      timeout = self._TIMEOUT_PER_ATTEMPT[self._attempt]
-    except IndexError:
-      # No more timeouts, do blocking acquire
-      return None
+    timeout = self._running_timeout.Remaining()
 
-    # Get start time on first calculation
-    if self._start_time is None:
-      self._start_time = self._time_fn()
+    if timeout is not None:
+      # Add a small variation (-/+ 5%) to timeout. This helps in situations
+      # where two or more jobs are fighting for the same lock(s).
+      variation_range = timeout * 0.1
+      timeout += ((self._random_fn() * variation_range) -
+                  (variation_range * 0.5))
 
-    # Calculate remaining time for this attempt
-    remaining_timeout = self._start_time + timeout - self._time_fn()
-
-    # Add a small variation (-/+ 5%) to timeouts. This helps in situations
-    # where two or more jobs are fighting for the same lock(s).
-    variation_range = remaining_timeout * 0.1
-    remaining_timeout += ((self._random_fn() * variation_range) -
-                          (variation_range * 0.5))
-
-    # Make sure timeout is >= 0
-    remaining_timeout = max(0.0, remaining_timeout)
-
-    return remaining_timeout
+    return timeout
 
 
 class OpExecCbBase:

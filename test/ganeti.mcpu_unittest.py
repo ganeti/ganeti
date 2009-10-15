@@ -40,18 +40,21 @@ class TestLockAttemptTimeoutStrategy(unittest.TestCase):
     self.assertEqual(strat._attempt, 0)
 
     prev = None
-    for _ in range(len(mcpu._LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT)):
+    for i in range(len(mcpu._LockAttemptTimeoutStrategy._TIMEOUT_PER_ATTEMPT)):
       timeout = strat.CalcRemainingTimeout()
       self.assert_(timeout is not None)
 
       self.assert_(timeout <= 10.0)
+      self.assert_(timeout >= 0.0)
       self.assert_(prev is None or timeout >= prev)
 
       strat = strat.NextAttempt()
+      self.assertEqual(strat._attempt, i + 1)
 
       prev = timeout
 
-    self.assert_(strat.CalcRemainingTimeout() is None)
+    for _ in range(10):
+      self.assert_(strat.CalcRemainingTimeout() is None)
 
 
 if __name__ == "__main__":
