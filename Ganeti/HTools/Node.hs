@@ -103,7 +103,9 @@ data Node = Node { name  :: String -- ^ The node name
                  , offline :: Bool -- ^ Whether the node should not be used
                                    -- for allocations and skipped from
                                    -- score computations
-  } deriving (Show)
+                 , utilPool :: T.DynUtil -- ^ Total utilisation capacity
+                 , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
+                 } deriving (Show)
 
 instance T.Element Node where
     nameOf = name
@@ -139,33 +141,33 @@ create :: String -> Double -> Int -> Int -> Double
        -> Int -> Double -> Bool -> Node
 create name_init mem_t_init mem_n_init mem_f_init
        dsk_t_init dsk_f_init cpu_t_init offline_init =
-    Node
-    {
-      name  = name_init,
-      tMem = mem_t_init,
-      nMem = mem_n_init,
-      fMem = mem_f_init,
-      tDsk = dsk_t_init,
-      fDsk = dsk_f_init,
-      tCpu = cpu_t_init,
-      uCpu = 0,
-      pList = [],
-      sList = [],
-      failN1 = True,
-      idx = -1,
-      peers = PeerMap.empty,
-      rMem = 0,
-      pMem = fromIntegral mem_f_init / mem_t_init,
-      pDsk = fromIntegral dsk_f_init / dsk_t_init,
-      pRem = 0,
-      pCpu = 0,
-      offline = offline_init,
-      xMem = 0,
-      mDsk = noLimit,
-      mCpu = noLimit,
-      loDsk = noLimitInt,
-      hiCpu = noLimitInt
-    }
+    Node { name  = name_init
+         , tMem = mem_t_init
+         , nMem = mem_n_init
+         , fMem = mem_f_init
+         , tDsk = dsk_t_init
+         , fDsk = dsk_f_init
+         , tCpu = cpu_t_init
+         , uCpu = 0
+         , pList = []
+         , sList = []
+         , failN1 = True
+         , idx = -1
+         , peers = PeerMap.empty
+         , rMem = 0
+         , pMem = fromIntegral mem_f_init / mem_t_init
+         , pDsk = fromIntegral dsk_f_init / dsk_t_init
+         , pRem = 0
+         , pCpu = 0
+         , offline = offline_init
+         , xMem = 0
+         , mDsk = noLimit
+         , mCpu = noLimit
+         , loDsk = noLimitInt
+         , hiCpu = noLimitInt
+         , utilPool = T.zeroUtil
+         , utilLoad = T.zeroUtil
+         }
 
 -- | Changes the index.
 --

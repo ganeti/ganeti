@@ -44,17 +44,18 @@ import qualified Ganeti.HTools.Container as Container
 -- * Type declarations
 
 -- | The instance type
-data Instance = Instance { name :: String   -- ^ The instance name
-                         , mem :: Int       -- ^ Memory of the instance
-                         , dsk :: Int       -- ^ Disk size of instance
-                         , vcpus :: Int     -- ^ Number of VCPUs
-                         , running :: Bool  -- ^ Whether the instance
-                                            -- is running
-                         , runSt :: String  -- ^ Original (text) run status
-                         , pNode :: T.Ndx   -- ^ Original primary node
-                         , sNode :: T.Ndx   -- ^ Original secondary node
-                         , idx :: T.Idx     -- ^ Internal index for
-                                            -- book-keeping
+data Instance = Instance { name :: String    -- ^ The instance name
+                         , mem :: Int        -- ^ Memory of the instance
+                         , dsk :: Int        -- ^ Disk size of instance
+                         , vcpus :: Int      -- ^ Number of VCPUs
+                         , running :: Bool   -- ^ Whether the instance
+                                             -- is running
+                         , runSt :: String   -- ^ Original (text) run status
+                         , pNode :: T.Ndx    -- ^ Original primary node
+                         , sNode :: T.Ndx    -- ^ Original secondary node
+                         , idx :: T.Idx      -- ^ Internal index for
+                                             -- book-keeping
+                         , util :: T.DynUtil -- ^ Dynamic resource usage
                          } deriving (Show)
 
 instance T.Element Instance where
@@ -77,20 +78,20 @@ type List = Container.Container Instance
 -- later (via 'setIdx' for example).
 create :: String -> Int -> Int -> Int -> String -> T.Ndx -> T.Ndx -> Instance
 create name_init mem_init dsk_init vcpus_init run_init pn sn =
-    Instance {
-          name = name_init,
-          mem = mem_init,
-          dsk = dsk_init,
-          vcpus = vcpus_init,
-          running = case run_init of
-                      "running" -> True
-                      "ERROR_up" -> True
-                      _ -> False,
-          runSt = run_init,
-          pNode = pn,
-          sNode = sn,
-          idx = -1
-        }
+    Instance { name = name_init
+             , mem = mem_init
+             , dsk = dsk_init
+             , vcpus = vcpus_init
+             , running = case run_init of
+                           "running" -> True
+                           "ERROR_up" -> True
+                           _ -> False
+             , runSt = run_init
+             , pNode = pn
+             , sNode = sn
+             , idx = -1
+             , util = T.zeroUtil
+             }
 
 -- | Changes the index.
 --

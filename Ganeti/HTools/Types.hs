@@ -28,6 +28,11 @@ module Ganeti.HTools.Types
     , Ndx
     , NameAssoc
     , Score
+    , Weight
+    , DynUtil(..)
+    , zeroUtil
+    , addUtil
+    , subUtil
     , Placement
     , IMove(..)
     , MoveJob
@@ -52,6 +57,31 @@ type NameAssoc = [(String, Int)]
 
 -- | A separate name for the cluster score type.
 type Score = Double
+
+-- | A separate name for a weight metric.
+type Weight = Double
+
+-- | The dynamic resource specs of a machine (i.e. load or load
+-- capacity, as opposed to size).
+data DynUtil = DynUtil
+    { cpuWeight :: Weight -- ^ Standardised CPU usage
+    , memWeight :: Weight -- ^ Standardised memory load
+    , dskWeight :: Weight -- ^ Standardised disk I/O usage
+    , netWeight :: Weight -- ^ Standardised network usage
+    } deriving (Show)
+
+-- | Initial empty utilisation
+zeroUtil :: DynUtil
+zeroUtil = DynUtil { cpuWeight = 0, memWeight = 0
+                   , dskWeight = 0, netWeight = 0 }
+
+addUtil :: DynUtil -> DynUtil -> DynUtil
+addUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
+    DynUtil (a1+b1) (a2+b2) (a3+b3) (a4+b4)
+
+subUtil :: DynUtil -> DynUtil -> DynUtil
+subUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
+    DynUtil (a1-b1) (a2-b2) (a3-b3) (a4-b4)
 
 -- | The description of an instance placement. It contains the
 -- instance index, the new primary and secondary node, the move being
