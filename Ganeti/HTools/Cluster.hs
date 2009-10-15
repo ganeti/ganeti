@@ -41,9 +41,11 @@ module Ganeti.HTools.Cluster
     , printSolution
     , printSolutionLine
     , formatCmds
-    , printNodes
     , involvedNodes
     , splitJobs
+    -- * Display functions
+    , printNodes
+    , printInsts
     -- * Balacing functions
     , checkMove
     , tryBalance
@@ -683,6 +685,20 @@ printNodes nl =
                  "t_dsk" "f_dsk" "pcpu" "vcpu"
                  "pri" "sec" "p_fmem" "p_fdsk" "r_cpu"::String
     in unlines (header:map helper snl)
+
+-- | Print the instance list.
+printInsts :: Node.List -> Instance.List -> String
+printInsts nl il =
+    let sil = sortBy (compare `on` Instance.idx) (Container.elems il)
+        m_name = maximum . map (length . Instance.name) $ sil
+        m_nnm  = maximum . map (length . Node.name) $ Container.elems nl
+        helper inst = printf "%2s %-*s %-*s %-*s"
+                      "  " m_name (Instance.name inst)
+                      m_nnm (Container.nameOf nl (Instance.pNode inst))
+                      m_nnm (Container.nameOf nl (Instance.sNode inst))
+        header = printf "%2s %-*s %-*s %-*s"
+                 "  " m_name "Name" m_nnm "Pri_node" m_nnm "Sec_node"::String
+    in unlines (header:map helper sil)
 
 -- | Shows statistics for a given node list.
 printStats :: Node.List -> String

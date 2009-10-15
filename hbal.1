@@ -33,6 +33,7 @@ Algorithm options:
 Reporting options:
 .BI "[ -C[" file "] ]"
 .B "[ -p ]"
+.B "[ --print-instances ]"
 .B "[ -o ]"
 .B "[ -v... | -q ]"
 
@@ -193,6 +194,11 @@ resource allocation in Ganeti) and thus we start a new jobset.
 .B -p, --print-nodes
 Prints the before and after node status, in a format designed to allow
 the user to understand the node's most important parameters.
+
+.TP
+.B --print-instances
+Prints the before and after instance map. This is less useful as the
+node status, but it can help in understanding instance moves.
 
 The node list will contain these informations:
 .RS

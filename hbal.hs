@@ -56,6 +56,7 @@ import Ganeti.Jobs
 options :: [OptType]
 options =
     [ oPrintNodes
+    , oPrintInsts
     , oPrintCommands
     , oOneline
     , oNodeFile
@@ -227,6 +228,11 @@ main = do
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
 
+  when (optShowInsts opts) $ do
+         putStrLn ""
+         putStrLn "Initial instance map:"
+         putStrLn $ Cluster.printInsts nl il
+
   when (optShowNodes opts) $
        do
          putStrLn "Initial cluster status:"
@@ -257,7 +263,7 @@ main = do
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
                          nmlen imlen [] oneline min_cv
-  let (Cluster.Table fin_nl _ fin_cv fin_plc) = fin_tbl
+  let (Cluster.Table fin_nl fin_il fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
       sol_msg = if null fin_plc
                 then printf "No solution found\n"
@@ -295,6 +301,11 @@ main = do
                 hPutStrLn stderr "Execution of commands possible only on LUXI"
                 exitWith $ ExitFailure 1
               Just master -> execJobSet master csf fin_nl il cmd_jobs)
+
+  when (optShowInsts opts) $ do
+         putStrLn ""
+         putStrLn "Final instance map:"
+         putStr $ Cluster.printInsts fin_nl fin_il
 
   when (optShowNodes opts) $
        do

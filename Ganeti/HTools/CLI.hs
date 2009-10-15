@@ -34,6 +34,7 @@ module Ganeti.HTools.CLI
     , shTemplate
     -- * The options
     , oPrintNodes
+    , oPrintInsts
     , oPrintCommands
     , oOneline
     , oNoHeaders
@@ -79,6 +80,7 @@ defaultLuxiSocket = "/var/run/ganeti/socket/ganeti-master"
 -- | Command line options structure.
 data Options = Options
     { optShowNodes :: Bool           -- ^ Whether to show node status
+    , optShowInsts :: Bool           -- ^ Whether to show the instance map
     , optShowCmds  :: Maybe FilePath -- ^ Whether to show the command list
     , optOneline   :: Bool           -- ^ Switch output to a single line
     , optOutPath   :: FilePath       -- ^ Path to the output directory
@@ -110,6 +112,7 @@ data Options = Options
 defaultOptions :: Options
 defaultOptions  = Options
  { optShowNodes = False
+ , optShowInsts = False
  , optShowCmds  = Nothing
  , optOneline   = False
  , optNoHeaders = False
@@ -144,6 +147,11 @@ oPrintNodes :: OptType
 oPrintNodes = Option "p" ["print-nodes"]
               (NoArg (\ opts -> opts { optShowNodes = True }))
               "print the final node list"
+
+oPrintInsts :: OptType
+oPrintInsts = Option "" ["print-instances"]
+              (NoArg (\ opts -> opts { optShowInsts = True }))
+              "print the final instance map"
 
 oPrintCommands :: OptType
 oPrintCommands = Option "C" ["print-commands"]
