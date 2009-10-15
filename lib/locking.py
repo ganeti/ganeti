@@ -134,10 +134,14 @@ class _SingleNotifyPipeConditionWaiter(object):
     @param timeout: Timeout for waiting (can be None)
 
     """
-    start_time = time.time()
-    remaining_time = timeout
+    running_timeout = RunningTimeout(timeout, True)
 
-    while timeout is None or remaining_time > 0:
+    while True:
+      remaining_time = running_timeout.Remaining()
+
+      if remaining_time is not None and remaining_time < 0.0:
+        break
+
       try:
         result = self._poller.poll(remaining_time)
       except EnvironmentError, err:
@@ -148,10 +152,6 @@ class _SingleNotifyPipeConditionWaiter(object):
       # Check whether we were notified
       if result and result[0][0] == self._fd:
         break
-
-      # Re-calculate timeout if necessary
-      if timeout is not None:
-        remaining_time = start_time + timeout - time.time()
 
 
 class _BaseCondition(object):
