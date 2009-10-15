@@ -52,6 +52,59 @@ def ssynchronized(lock, shared=0):
   return wrap
 
 
+class RunningTimeout(object):
+  """Class to calculate remaining timeout when doing several operations.
+
+  """
+  __slots__ = [
+    "_allow_negative",
+    "_start_time",
+    "_time_fn",
+    "_timeout",
+    ]
+
+  def __init__(self, timeout, allow_negative, _time_fn=time.time):
+    """Initializes this class.
+
+    @type timeout: float
+    @param timeout: Timeout duration
+    @type allow_negative: bool
+    @param allow_negative: Whether to return values below zero
+    @param _time_fn: Time function for unittests
+
+    """
+    object.__init__(self)
+
+    if timeout is not None and timeout < 0.0:
+      raise ValueError("Timeout must not be negative")
+
+    self._timeout = timeout
+    self._allow_negative = allow_negative
+    self._time_fn = _time_fn
+
+    self._start_time = None
+
+  def Remaining(self):
+    """Returns the remaining timeout.
+
+    """
+    if self._timeout is None:
+      return None
+
+    # Get start time on first calculation
+    if self._start_time is None:
+      self._start_time = self._time_fn()
+
+    # Calculate remaining time
+    remaining_timeout = self._start_time + self._timeout - self._time_fn()
+
+    if not self._allow_negative:
+      # Ensure timeout is always >= 0
+      return max(0.0, remaining_timeout)
+
+    return remaining_timeout
+
+
 class _SingleNotifyPipeConditionWaiter(object):
   """Helper class for SingleNotifyPipeCondition
 
@@ -777,13 +830,7 @@ class LockSet:
 
     # We need to keep track of how long we spent waiting for a lock. The
     # timeout passed to this function is over all lock acquires.
-    remaining_timeout = timeout
-    if timeout is None:
-      start = None
-      calc_remaining_timeout = lambda: None
-    else:
-      start = time.time()
-      calc_remaining_timeout = lambda: max(0.0, (start + timeout) - time.time())
+    running_timeout = RunningTimeout(timeout, False)
 
     try:
       if names is not None:
@@ -794,7 +841,7 @@ class LockSet:
           names = sorted(names)
 
         return self.__acquire_inner(names, False, shared,
-                                    calc_remaining_timeout, test_notify)
+                                    running_timeout.Remaining, test_notify)
 
       else:
         # If no names are given acquire the whole set by not letting new names
@@ -807,14 +854,14 @@ class LockSet:
         # anyway, though, so we'll get the list lock exclusively as well in
         # order to be able to do add() on the set while owning it.
         if not self.__lock.acquire(shared=shared,
-                                   timeout=calc_remaining_timeout()):
+                                   timeout=running_timeout.Remaining()):
           raise _AcquireTimeout()
         try:
           # note we own the set-lock
           self._add_owned()
 
           return self.__acquire_inner(self.__names(), True, shared,
-                                      calc_remaining_timeout, test_notify)
+                                      running_timeout.Remaining, test_notify)
         except:
           # We shouldn't have problems adding the lock to the owners list, but
           # if we did we'll try to release this lock and re-raise exception.
@@ -827,7 +874,13 @@ class LockSet:
       return None
 
   def __acquire_inner(self, names, want_all, shared, timeout_fn, test_notify):
-    """
+    """Inner logic for acquiring a number of locks.
+
+    @param names: Names of the locks to be acquired
+    @param want_all: Whether all locks in the set should be acquired
+    @param shared: Whether to acquire in shared mode
+    @param timeout_fn: Function returning remaining timeout
+    @param test_notify: Special callback function for unittesting
 
     """
     acquire_list = []
@@ -863,8 +916,6 @@ class LockSet:
           test_notify_fn = None
 
         timeout = timeout_fn()
-        if timeout is not None and timeout < 0:
-          raise _AcquireTimeout()
 
         try:
           # raises LockError if the lock was deleted
