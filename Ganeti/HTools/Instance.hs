@@ -26,7 +26,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.HTools.Instance where
+module Ganeti.HTools.Instance
+    ( Instance(..)
+    , AssocList
+    , List
+    , create
+    , setIdx
+    , setName
+    , setPri
+    , setSec
+    , setBoth
+    ) where
 
 import qualified Ganeti.HTools.Types as T
 import qualified Ganeti.HTools.Container as Container
