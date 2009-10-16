@@ -31,7 +31,6 @@ import os
 import os.path
 import sys
 import optparse
-import tempfile
 import logging
 import errno
 
@@ -45,9 +44,6 @@ from ganeti import config
 
 options = None
 args = None
-
-# Unique object to identify calls without default value
-NoDefault = object()
 
 # Dictionary with instance old keys, and new hypervisor keys
 INST_HV_CHG = {
@@ -78,57 +74,6 @@ class Error(Exception):
   pass
 
 
-def SsconfName(key):
-  """Returns the file name of an (old) ssconf key.
-
-  """
-  return "%s/ssconf_%s" % (options.data_dir, key)
-
-
-def ReadFile(file_name, default=NoDefault):
-  """Reads a file.
-
-  """
-  logging.debug("Reading %s", file_name)
-  try:
-    fh = open(file_name, 'r')
-  except IOError, err:
-    if default is not NoDefault and err.errno == errno.ENOENT:
-      return default
-    raise
-
-  try:
-    return fh.read()
-  finally:
-    fh.close()
-
-
-def WriteFile(file_name, data):
-  """Writes a configuration file.
-
-  """
-  logging.debug("Writing %s", file_name)
-  utils.WriteFile(file_name=file_name, data=data, mode=0600,
-                  dry_run=options.dry_run, backup=True)
-
-
-def GenerateSecret(all_secrets):
-  """Generate an unique DRBD secret.
-
-  This is a copy from ConfigWriter.
-
-  """
-  retries = 64
-  while retries > 0:
-    secret = utils.GenerateSecret()
-    if secret not in all_secrets:
-      break
-    retries -= 1
-  else:
-    raise Error("Can't generate unique DRBD secret")
-  return secret
-
-
 def SetupLogging():
   """Configures the logging module.
 
@@ -147,128 +92,6 @@ def SetupLogging():
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(stderr_handler)
-
-
-def Cluster12To20(cluster):
-  """Upgrades the cluster object from 1.2 to 2.0.
-
-  """
-  logging.info("Upgrading the cluster object")
-  # Upgrade the configuration version
-  if 'config_version' in cluster:
-    del cluster['config_version']
-
-  # Add old ssconf keys back to config
-  logging.info(" - importing ssconf keys")
-  for key in ('master_node', 'master_ip', 'master_netdev', 'cluster_name'):
-    if key not in cluster:
-      cluster[key] = ReadFile(SsconfName(key)).strip()
-
-  if 'default_hypervisor' not in cluster:
-    old_hyp = ReadFile(SsconfName('hypervisor')).strip()
-    if old_hyp == "xen-3.0":
-      hyp = "xen-pvm"
-    elif old_hyp == "xen-hvm-3.1":
-      hyp = "xen-hvm"
-    elif old_hyp == "fake":
-      hyp = "fake"
-    else:
-      raise Error("Unknown old hypervisor name '%s'" % old_hyp)
-
-    logging.info("Setting the default and enabled hypervisor")
-    cluster['default_hypervisor'] = hyp
-    cluster['enabled_hypervisors'] = [hyp]
-
-  # hv/be params
-  if 'hvparams' not in cluster:
-    logging.info(" - adding hvparams")
-    cluster['hvparams'] = constants.HVC_DEFAULTS
-  if 'beparams' not in cluster:
-    logging.info(" - adding beparams")
-    cluster['beparams'] = {constants.PP_DEFAULT: constants.BEC_DEFAULTS}
-
-  # file storage
-  if 'file_storage_dir' not in cluster:
-    cluster['file_storage_dir'] = constants.DEFAULT_FILE_STORAGE_DIR
-
-  # candidate pool size
-  if 'candidate_pool_size' not in cluster:
-    cluster['candidate_pool_size'] = constants.MASTER_POOL_SIZE_DEFAULT
-
-
-def Node12To20(node):
-  """Upgrades a node from 1.2 to 2.0.
-
-  """
-  logging.info("Upgrading node %s" % node['name'])
-  if F_SERIAL not in node:
-    node[F_SERIAL] = 1
-  if 'master_candidate' not in node:
-    node['master_candidate'] = True
-  for key in 'offline', 'drained':
-    if key not in node:
-      node[key] = False
-
-
-def Instance12To20(drbd_minors, secrets, hypervisor, instance):
-  """Upgrades an instance from 1.2 to 2.0.
-
-  """
-  if F_SERIAL not in instance:
-    instance[F_SERIAL] = 1
-
-  if 'hypervisor' not in instance:
-    instance['hypervisor'] = hypervisor
-
-  # hvparams changes
-  if 'hvparams' not in instance:
-    instance['hvparams'] = hvp = {}
-  for old, new in INST_HV_CHG.items():
-    if old in instance:
-      if (instance[old] is not None and
-          instance[old] != constants.VALUE_DEFAULT and # no longer valid in 2.0
-          new in constants.HVC_DEFAULTS[hypervisor]):
-        hvp[new] = instance[old]
-      del instance[old]
-
-  # beparams changes
-  if 'beparams' not in instance:
-    instance['beparams'] = bep = {}
-  for old, new in INST_BE_CHG.items():
-    if old in instance:
-      if instance[old] is not None:
-        bep[new] = instance[old]
-      del instance[old]
-
-  # disk changes
-  for disk in instance['disks']:
-    Disk12To20(drbd_minors, secrets, disk)
-
-  # other instance changes
-  if 'status' in instance:
-    instance['admin_up'] = instance['status'] == 'up'
-    del instance['status']
-
-
-def Disk12To20(drbd_minors, secrets, disk):
-  """Upgrades a disk from 1.2 to 2.0.
-
-  """
-  if 'mode' not in disk:
-    disk['mode'] = constants.DISK_RDWR
-  if disk['dev_type'] == constants.LD_DRBD8:
-    old_lid = disk['logical_id']
-    for node in old_lid[:2]:
-      if node not in drbd_minors:
-        raise Error("Can't find node '%s' while upgrading disk" % node)
-      drbd_minors[node] += 1
-      minor = drbd_minors[node]
-      old_lid.append(minor)
-    old_lid.append(GenerateSecret(secrets))
-    del disk['physical_id']
-  if disk['children']:
-    for child in disk['children']:
-      Disk12To20(drbd_minors, secrets, child)
 
 
 def main():
@@ -319,83 +142,38 @@ def main():
     raise Error(("%s does not seem to be a known Ganeti configuration"
                  " directory") % options.data_dir)
 
-  config_version = ReadFile(SsconfName('config_version'), "1.2").strip()
-  logging.info("Found configuration version %s", config_version)
-
-  config_data = serializer.LoadJson(ReadFile(options.CONFIG_DATA_PATH))
-
-  # Ganeti 1.2?
-  if config_version == "1.2":
-    logging.info("Found a Ganeti 1.2 configuration")
-
-    cluster = config_data["cluster"]
-
-    old_config_version = cluster.get("config_version", None)
-    logging.info("Found old configuration version %s", old_config_version)
-    if old_config_version not in (3, ):
-      raise Error("Unsupported configuration version: %s" %
-                  old_config_version)
-    if 'version' not in config_data:
-      config_data['version'] = constants.BuildVersion(2, 0, 0)
-    if F_SERIAL not in config_data:
-      config_data[F_SERIAL] = 1
-
-    # Make sure no instance uses remote_raid1 anymore
-    remote_raid1_instances = []
-    for instance in config_data["instances"].values():
-      if instance["disk_template"] == "remote_raid1":
-        remote_raid1_instances.append(instance["name"])
-    if remote_raid1_instances:
-      for name in remote_raid1_instances:
-        logging.error("Instance %s still using remote_raid1 disk template")
-      raise Error("Unable to convert configuration as long as there are"
-                  " instances using remote_raid1 disk template")
-
-    # Build content of new known_hosts file
-    cluster_name = ReadFile(SsconfName('cluster_name')).rstrip()
-    cluster_key = cluster['rsahostkeypub']
-    known_hosts = "%s ssh-rsa %s\n" % (cluster_name, cluster_key)
-
-    Cluster12To20(cluster)
-
-    # Add node attributes
-    logging.info("Upgrading nodes")
-    # stable-sort the names to have repeatable runs
-    for node_name in utils.NiceSort(config_data['nodes'].keys()):
-      Node12To20(config_data['nodes'][node_name])
-
-    # Instance changes
-    logging.info("Upgrading instances")
-    drbd_minors = dict.fromkeys(config_data['nodes'], 0)
-    secrets = set()
-    # stable-sort the names to have repeatable runs
-    for instance_name in utils.NiceSort(config_data['instances'].keys()):
-      Instance12To20(drbd_minors, secrets, cluster['default_hypervisor'],
-                     config_data['instances'][instance_name])
-
-  else:
-    logging.info("Found a Ganeti 2.0 configuration")
-
-    if "config_version" in config_data["cluster"]:
-      raise Error("Inconsistent configuration: found config_data in"
-                  " configuration file")
-
-    known_hosts = None
+  config_data = serializer.LoadJson(utils.ReadFile(options.CONFIG_DATA_PATH))
 
   try:
-    logging.info("Writing configuration file")
-    WriteFile(options.CONFIG_DATA_PATH, serializer.DumpJson(config_data))
+    config_version = config_data["version"]
+  except KeyError:
+    raise Error("Unable to determine configuration version")
 
-    if known_hosts is not None:
-      logging.info("Writing SSH known_hosts file (%s)", known_hosts.strip())
-      WriteFile(options.KNOWN_HOSTS_PATH, known_hosts)
+  (config_major, config_minor, config_revision) = \
+    constants.SplitVersion(config_version)
+
+  logging.info("Found configuration version %s (%d.%d.%d)",
+               config_version, config_major, config_minor, config_revision)
+
+  if "config_version" in config_data["cluster"]:
+    raise Error("Inconsistent configuration: found config_version in"
+                " configuration file")
+
+  try:
+    logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
+    utils.WriteFile(file_name=options.CONFIG_DATA_PATH,
+                    data=serializer.DumpJson(config_data),
+                    mode=0600,
+                    dry_run=options.dry_run,
+                    backup=True)
 
     if not options.dry_run:
       if not os.path.exists(options.RAPI_CERT_FILE):
+        logging.debug("Writing RAPI certificate to %s", options.RAPI_CERT_FILE)
         bootstrap._GenerateSelfSignedSslCert(options.RAPI_CERT_FILE)
 
   except:
-    logging.critical("Writing configuration failed. It is proably in an"
+    logging.critical("Writing configuration failed. It is probably in an"
                      " inconsistent state and needs manual intervention.")
     raise
 
