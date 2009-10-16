@@ -75,6 +75,16 @@ class GanetiTestCase(unittest.TestCase):
     actual_mode = stat.S_IMODE(st.st_mode)
     self.assertEqual(actual_mode, expected_mode)
 
+  def assertEqualValues(self, first, second, msg=None):
+    """Compares two values whether they're equal.
+
+    Tuples are automatically converted to lists before comparing.
+
+    """
+    return self.assertEqual(UnifyValueType(first),
+                            UnifyValueType(second),
+                            msg=msg)
+
   @staticmethod
   def _TestDataFilename(name):
     """Returns the filename of a given test data file.
@@ -97,7 +107,6 @@ class GanetiTestCase(unittest.TestCase):
     proper test file name.
 
     """
-
     return utils.ReadFile(cls._TestDataFilename(name))
 
   def _CreateTempFile(self):
@@ -111,3 +120,19 @@ class GanetiTestCase(unittest.TestCase):
     os.close(fh)
     self._temp_files.append(fname)
     return fname
+
+
+def UnifyValueType(data):
+  """Converts all tuples into lists.
+
+  This is useful for unittests where an external library doesn't keep types.
+
+  """
+  if isinstance(data, (tuple, list)):
+    return [UnifyValueType(i) for i in data]
+
+  elif isinstance(data, dict):
+    return dict([(UnifyValueType(key), UnifyValueType(value))
+                 for (key, value) in data.iteritems()])
+
+  return data

@@ -36,14 +36,39 @@ try:
 except ImportError:
   import sha as sha1
 
-# Check whether the simplejson module supports indentation
+
 _JSON_INDENT = 2
-try:
-  simplejson.dumps(1, indent=_JSON_INDENT)
-except TypeError:
-  _JSON_INDENT = None
 
 _RE_EOLSP = re.compile('[ \t]+$', re.MULTILINE)
+
+
+def _GetJsonDumpers():
+  """Returns two JSON functions to serialize data.
+
+  @rtype: (callable, callable)
+  @return: The function to generate a compact form of JSON and another one to
+           generate a more readable, indented form of JSON (if supported)
+
+  """
+  plain_dump = simplejson.dumps
+
+  # Check whether the simplejson module supports indentation
+  try:
+    simplejson.dumps(1, indent=_JSON_INDENT)
+  except TypeError:
+    # Indentation not supported
+    indent_dump = plain_dump
+  else:
+    # Indentation supported
+    indent_dump = lambda data: simplejson.dumps(data, indent=_JSON_INDENT)
+
+  assert callable(plain_dump)
+  assert callable(indent_dump)
+
+  return (plain_dump, indent_dump)
+
+
+(_DumpJson, _DumpJsonIndent) = _GetJsonDumpers()
 
 
 def DumpJson(data, indent=True):
@@ -55,14 +80,15 @@ def DumpJson(data, indent=True):
   @return: the string representation of data
 
   """
-  if not indent or _JSON_INDENT is None:
-    txt = simplejson.dumps(data)
+  if indent:
+    fn = _DumpJsonIndent
   else:
-    txt = simplejson.dumps(data, indent=_JSON_INDENT, sort_keys=True)
+    fn = _DumpJson
 
-  txt = _RE_EOLSP.sub("", txt)
+  txt = _RE_EOLSP.sub("", fn(data))
   if not txt.endswith('\n'):
     txt += '\n'
+
   return txt
 
 

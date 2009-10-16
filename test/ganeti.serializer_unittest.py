@@ -27,16 +27,10 @@ import unittest
 from ganeti import serializer
 from ganeti import errors
 
-
-class SimplejsonMock(object):
-  def dumps(self, data, indent=None):
-    return repr(data)
-
-  def loads(self, data):
-    return eval(data)
+import testutils
 
 
-class TestSerializer(unittest.TestCase):
+class TestSerializer(testutils.GanetiTestCase):
   """Serializer tests"""
 
   _TESTDATA = [
@@ -44,15 +38,23 @@ class TestSerializer(unittest.TestCase):
     255,
     [1, 2, 3],
     (1, 2, 3),
-    { 1: 2, "foo": "bar", },
+    { "1": 2, "foo": "bar", },
+    ["abc", 1, 2, 3, 999,
+      {
+        "a1": ("Hello", "World"),
+        "a2": "This is only a test",
+        "a3": None,
+        },
+      {
+        "foo": "bar",
+        },
+      ]
     ]
 
-  def setUp(self):
-    self._orig_simplejson = serializer.simplejson
-    serializer.simplejson = SimplejsonMock()
-
-  def tearDown(self):
-    serializer.simplejson = self._orig_simplejson
+  def _TestSerializer(self, dump_fn, load_fn):
+    for data in self._TESTDATA:
+      self.failUnless(dump_fn(data).endswith("\n"))
+      self.assertEqualValues(load_fn(dump_fn(data)), data)
 
   def testGeneric(self):
     return self._TestSerializer(serializer.Dump, serializer.Load)
@@ -65,19 +67,16 @@ class TestSerializer(unittest.TestCase):
     DumpSigned = serializer.DumpSigned
 
     for data in self._TESTDATA:
-      self.assertEqual(LoadSigned(DumpSigned(data, "mykey"), "mykey"),
-                       (data, ''))
-      self.assertEqual(LoadSigned(
-                         DumpSigned(data, "myprivatekey", "mysalt"),
-                         "myprivatekey"), (data, "mysalt"))
+      self.assertEqualValues(LoadSigned(DumpSigned(data, "mykey"), "mykey"),
+                             (data, ''))
+      self.assertEqualValues(LoadSigned(DumpSigned(data, "myprivatekey",
+                                                   "mysalt"),
+                                        "myprivatekey"),
+                             (data, "mysalt"))
+
     self.assertRaises(errors.SignatureError, serializer.LoadSigned,
                       serializer.DumpSigned("test", "myprivatekey"),
                       "myotherkey")
-
-  def _TestSerializer(self, dump_fn, load_fn):
-    for data in self._TESTDATA:
-      self.failUnless(dump_fn(data).endswith("\n"))
-      self.failUnlessEqual(load_fn(dump_fn(data)), data)
 
 
 if __name__ == '__main__':
