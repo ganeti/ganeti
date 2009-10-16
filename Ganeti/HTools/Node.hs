@@ -356,6 +356,9 @@ list mname t =
         xmem = xMem t
         fmem = fMem t
         imem = truncate tmem - nmem - xmem - fmem
+        T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
+                    T.dskWeight = uD, T.netWeight = uN } = utilLoad t
+        wstr = printf " %5.3f %5.3f %5.3f %5.3f" uC uM uD uN::String
     in
       if off
          then printf " - %-*s %57s %3d %3d"
@@ -367,4 +370,4 @@ list mname t =
                  mname (name t) tmem nmem imem xmem fmem (rMem t)
                  (tDsk t / 1024) (fDsk t `div` 1024)
                  (tCpu t) (uCpu t)
-                 pl sl mp dp cp
+                 pl sl mp dp cp ++ wstr

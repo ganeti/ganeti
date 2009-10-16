@@ -677,6 +677,7 @@ printNodes nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
         m_name = maximum . map (length . Node.name) $ snl
         helper = Node.list m_name
+        h2 = printf " %5s %5s %5s %5s" "lCpu" "lMem" "lDsk" "lNet"::String
         header = printf
                  "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %4s %4s \
                  \%3s %3s %6s %6s %5s"
@@ -684,7 +685,7 @@ printNodes nl =
                  "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
                  "t_dsk" "f_dsk" "pcpu" "vcpu"
                  "pri" "sec" "p_fmem" "p_fdsk" "r_cpu"::String
-    in unlines (header:map helper snl)
+    in unlines ((header++h2):map helper snl)
 
 -- | Print the instance list.
 printInsts :: Node.List -> Instance.List -> String
