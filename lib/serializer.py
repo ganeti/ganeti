@@ -58,7 +58,7 @@ def DumpJson(data, indent=True):
   if not indent or _JSON_INDENT is None:
     txt = simplejson.dumps(data)
   else:
-    txt = simplejson.dumps(data, indent=_JSON_INDENT)
+    txt = simplejson.dumps(data, indent=_JSON_INDENT, sort_keys=True)
 
   txt = _RE_EOLSP.sub("", txt)
   if not txt.endswith('\n'):
