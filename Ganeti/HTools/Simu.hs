@@ -38,18 +38,6 @@ import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
--- | Parse results from readsPrec
-parseChoices :: (Monad m, Read a) => String -> String -> [(a, String)] -> m a
-parseChoices _ _ ((v, ""):[]) = return v
-parseChoices name s ((_, e):[]) =
-    fail $ name ++ ": leftover characters when parsing '"
-           ++ s ++ "': '" ++ e ++ "'"
-parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
-
--- | Safe 'read' function returning data encapsulated in a Result.
-tryRead :: (Monad m, Read a) => String -> String -> m a
-tryRead name s = parseChoices name s $ reads s
-
 -- | Parse the string description into nodes
 parseDesc :: String -> Result (Int, Int, Int, Int)
 parseDesc desc =

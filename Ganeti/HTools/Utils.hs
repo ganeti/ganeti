@@ -34,6 +34,7 @@ module Ganeti.HTools.Utils
     , asJSObject
     , asObjectList
     , fromJResult
+    , tryRead
     ) where
 
 import Data.List
@@ -125,3 +126,17 @@ asJSObject _ = fail "not an object"
 -- | Coneverts a list of JSON values into a list of JSON objects.
 asObjectList :: (Monad m) => [J.JSValue] -> m [J.JSObject J.JSValue]
 asObjectList = mapM asJSObject
+
+-- * Parsing utility functions
+
+-- | Parse results from readsPrec
+parseChoices :: (Monad m, Read a) => String -> String -> [(a, String)] -> m a
+parseChoices _ _ ((v, ""):[]) = return v
+parseChoices name s ((_, e):[]) =
+    fail $ name ++ ": leftover characters when parsing '"
+           ++ s ++ "': '" ++ e ++ "'"
+parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
+
+-- | Safe 'read' function returning data encapsulated in a Result.
+tryRead :: (Monad m, Read a) => String -> String -> m a
+tryRead name s = parseChoices name s $ reads s
