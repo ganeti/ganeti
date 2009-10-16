@@ -122,6 +122,7 @@ def main():
   options.SERVER_PEM_PATH = options.data_dir + "/server.pem"
   options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"
   options.RAPI_CERT_FILE = options.data_dir + "/rapi.pem"
+  options.HMAC_CLUSTER_KEY = options.data_dir + "/hmac.key"
 
   SetupLogging()
 
@@ -159,6 +160,12 @@ def main():
     raise Error("Inconsistent configuration: found config_version in"
                 " configuration file")
 
+  if config_major == 2 and config_minor == 0:
+    if config_revision != 0:
+      logging.warning("Config revision is not 0")
+
+    config_data["version"] = constants.BuildVersion(2, 1, 0)
+
   try:
     logging.info("Writing configuration file to %s", options.CONFIG_DATA_PATH)
     utils.WriteFile(file_name=options.CONFIG_DATA_PATH,
@@ -171,6 +178,10 @@ def main():
       if not os.path.exists(options.RAPI_CERT_FILE):
         logging.debug("Writing RAPI certificate to %s", options.RAPI_CERT_FILE)
         bootstrap.GenerateSelfSignedSslCert(options.RAPI_CERT_FILE)
+
+      if not os.path.exists(options.HMAC_CLUSTER_KEY):
+        logging.debug("Writing HMAC key to %s", options.HMAC_CLUSTER_KEY)
+        bootstrap.GenerateHmacKey(options.HMAC_CLUSTER_KEY)
 
   except:
     logging.critical("Writing configuration failed. It is probably in an"
