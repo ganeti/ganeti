@@ -198,6 +198,10 @@ detailedCVNames = [ "free_mem_cv"
                   , "reserved_mem_cv"
                   , "offline_score"
                   , "vcpu_ratio_cv"
+                  , "cpu_load_cv"
+                  , "mem_load_cv"
+                  , "disk_load_cv"
+                  , "net_load_cv"
                   ]
 
 -- | Compute the mem and disk covariance.
@@ -225,7 +229,15 @@ compDetailedCV nl =
                          fromIntegral (offline_inst + online_inst)::Double
         cpu_l = map Node.pCpu nodes
         cpu_cv = varianceCoeff cpu_l
-    in [mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv]
+        (c_load, m_load, d_load, n_load) = unzip4 $
+            map (\n ->
+                     let DynUtil c1 m1 d1 n1 = Node.utilLoad n
+                         DynUtil c2 m2 d2 n2 = Node.utilPool n
+                     in (c1/c2, m1/m2, d1/d2, n1/n2)
+                ) nodes
+    in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv
+       , varianceCoeff c_load, varianceCoeff m_load
+       , varianceCoeff d_load, varianceCoeff n_load]
 
 -- | Compute the /total/ variance.
 compCV :: Node.List -> Double

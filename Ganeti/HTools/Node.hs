@@ -158,7 +158,7 @@ create name_init mem_t_init mem_n_init mem_f_init
          , mCpu = noLimit
          , loDsk = noLimitInt
          , hiCpu = noLimitInt
-         , utilPool = T.zeroUtil
+         , utilPool = T.baseUtil
          , utilLoad = T.zeroUtil
          }
 

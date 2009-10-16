@@ -31,6 +31,7 @@ module Ganeti.HTools.Types
     , Weight
     , DynUtil(..)
     , zeroUtil
+    , baseUtil
     , addUtil
     , subUtil
     , Placement
@@ -74,6 +75,10 @@ data DynUtil = DynUtil
 zeroUtil :: DynUtil
 zeroUtil = DynUtil { cpuWeight = 0, memWeight = 0
                    , dskWeight = 0, netWeight = 0 }
+
+baseUtil :: DynUtil
+baseUtil = DynUtil { cpuWeight = 1, memWeight = 1
+                   , dskWeight = 1, netWeight = 1 }
 
 addUtil :: DynUtil -> DynUtil -> DynUtil
 addUtil (DynUtil a1 a2 a3 a4) (DynUtil b1 b2 b3 b4) =
