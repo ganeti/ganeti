@@ -67,7 +67,7 @@ type Weight = Double
 data DynUtil = DynUtil
     { cpuWeight :: Weight -- ^ Standardised CPU usage
     , memWeight :: Weight -- ^ Standardised memory load
-    , dskWeight :: Weight -- ^ Standardised disk I/O usage
+    , dskWeight :: Weight -- ^ Standardised disk I\/O usage
     , netWeight :: Weight -- ^ Standardised network usage
     } deriving (Show)
 

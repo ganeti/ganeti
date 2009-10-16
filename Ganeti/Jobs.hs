@@ -31,7 +31,7 @@ import Text.JSON (readJSON, showJSON, JSON)
 import qualified Text.JSON as J
 
 -- | The JobStatus data type. Note that this is ordered especially
--- such that greater/lesser comparison on values of this type makes
+-- such that greater\/lesser comparison on values of this type makes
 -- sense.
 data JobStatus = JobQueued
                | JobWaitLock
