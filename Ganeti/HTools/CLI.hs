@@ -57,6 +57,7 @@ module Ganeti.HTools.CLI
     , oMaxCpu
     , oMinDisk
     , oDiskMoves
+    , oDynuFile
     , oShowVer
     , oShowHelp
     ) where
@@ -103,6 +104,7 @@ data Options = Options
     , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
     , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
     , optDiskMoves :: Bool           -- ^ Allow disk moves
+    , optDynuFile  :: Maybe FilePath -- ^ Optional file with dynamic use data
     , optVerbose   :: Int            -- ^ Verbosity level
     , optShowVer   :: Bool           -- ^ Just show the program version
     , optShowHelp  :: Bool           -- ^ Just show the help
@@ -135,6 +137,7 @@ defaultOptions  = Options
  , optMcpu      = -1
  , optMdsk      = -1
  , optDiskMoves = True
+ , optDynuFile  = Nothing
  , optVerbose   = 1
  , optShowVer   = False
  , optShowHelp  = False
@@ -270,6 +273,11 @@ oDiskMoves = Option "" ["no-disk-moves"]
              (NoArg (\ opts -> opts { optDiskMoves = False}))
              "disallow disk moves from the list of allowed instance changes,\
              \ thus allowing only the 'cheap' failover/migrate operations"
+
+oDynuFile :: OptType
+oDynuFile = Option "U" ["dynu-file"]
+            (ReqArg (\ f opts -> opts { optDynuFile = Just f }) "FILE")
+            "Import dynamic utilisation data from the given FILE"
 
 oShowVer :: OptType
 oShowVer = Option "V" ["version"]
