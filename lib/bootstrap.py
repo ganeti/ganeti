@@ -66,7 +66,7 @@ def _InitSSHSetup():
   utils.AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
 
-def _GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
+def GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
   """Generates a self-signed SSL certificate.
 
   @type file_name: str
@@ -107,11 +107,11 @@ def _InitGanetiServerSetup():
   the cluster and also generates the SSL certificate.
 
   """
-  _GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
+  GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
 
   # Don't overwrite existing file
   if not os.path.exists(constants.RAPI_CERT_FILE):
-    _GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
+    GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
 
   if not os.path.exists(constants.HMAC_CLUSTER_KEY):
     utils.WriteFile(constants.HMAC_CLUSTER_KEY,

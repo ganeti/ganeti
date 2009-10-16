@@ -1211,7 +1211,7 @@ class ConfigWriter:
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
-        result = rpc.RpcRunner.call_write_ssconf_files(\
+        result = rpc.RpcRunner.call_write_ssconf_files(
           self._UnlockedGetNodeList(),
           self._UnlockedGetSsconfValues())
         for nname, nresu in result.items():
