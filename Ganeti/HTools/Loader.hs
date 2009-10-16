@@ -98,19 +98,18 @@ assocEqual = (==) `on` fst
 fixNodes :: [(Ndx, Node.Node)]
          -> (Idx, Instance.Instance)
          -> [(Ndx, Node.Node)]
-fixNodes accu (idx, inst) =
+fixNodes accu (_, inst) =
     let
         pdx = Instance.pNode inst
         sdx = Instance.sNode inst
         pold = fromJust $ lookup pdx accu
-        pnew = Node.setPri pold idx
-        pnew' = Node.addCpus pnew (Instance.vcpus inst)
+        pnew = Node.setPri pold inst
         ac1 = deleteBy assocEqual (pdx, pold) accu
-        ac2 = (pdx, pnew'):ac1
+        ac2 = (pdx, pnew):ac1
     in
       if sdx /= Node.noSecondary
       then let sold = fromJust $ lookup sdx accu
-               snew = Node.setSec sold idx
+               snew = Node.setSec sold inst
                ac3 = deleteBy assocEqual (sdx, sold) ac2
            in (sdx, snew):ac3
       else ac2

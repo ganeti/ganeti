@@ -47,7 +47,6 @@ module Ganeti.HTools.Node
     , setSec
     , setMdsk
     , setMcpu
-    , addCpus
     -- * Instance (re)location
     , removePri
     , removeSec
@@ -217,19 +216,17 @@ buildPeers t il =
         new_prem = fromIntegral new_rmem / tMem t
     in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
--- | Assigns an instance to a node as primary without other updates.
-setPri :: Node -> T.Idx -> Node
-setPri t ix = t { pList = ix:pList t }
+-- | Assigns an instance to a node as primary and update the used VCPU
+-- count.
+setPri :: Node -> Instance.Instance -> Node
+setPri t inst = t { pList = (Instance.idx inst):pList t
+                  , uCpu = new_count
+                  , pCpu = fromIntegral new_count / tCpu t }
+    where new_count = uCpu t + Instance.vcpus inst
 
 -- | Assigns an instance to a node as secondary without other updates.
-setSec :: Node -> T.Idx -> Node
-setSec t ix = t { sList = ix:sList t }
-
--- | Add primary cpus to a node
-addCpus :: Node -> Int -> Node
-addCpus t count =
-    let new_count = uCpu t + count
-    in t { uCpu = new_count, pCpu = fromIntegral new_count / tCpu t }
+setSec :: Node -> Instance.Instance -> Node
+setSec t inst = t { sList = (Instance.idx inst):sList t }
 
 -- * Update functions
 
