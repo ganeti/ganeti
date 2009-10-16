@@ -100,6 +100,16 @@ def GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
     os.close(fd)
 
 
+def GenerateHmacKey(file_name):
+  """Writes a new HMAC key.
+
+  @type file_name: str
+  @param file_name: Path to output file
+
+  """
+  utils.WriteFile(file_name, data=utils.GenerateSecret(), mode=0400)
+
+
 def _InitGanetiServerSetup():
   """Setup the necessary configuration for the initial node daemon.
 
@@ -114,9 +124,7 @@ def _InitGanetiServerSetup():
     GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
 
   if not os.path.exists(constants.HMAC_CLUSTER_KEY):
-    utils.WriteFile(constants.HMAC_CLUSTER_KEY,
-                    data=utils.GenerateSecret(),
-                    mode=0400)
+    GenerateHmacKey(constants.HMAC_CLUSTER_KEY)
 
   result = utils.RunCmd([constants.NODE_INITD_SCRIPT, "restart"])
 
