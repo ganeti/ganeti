@@ -72,6 +72,7 @@ options =
     , oMaxCpu
     , oMinDisk
     , oDiskMoves
+    , oDynuFile
     , oShowVer
     , oShowHelp
     ]

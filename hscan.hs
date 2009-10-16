@@ -135,7 +135,7 @@ main = do
               printf "%-*s " nlen name
               hFlush stdout
               input_data <- Rapi.loadData name
-              let ldresult = input_data >>= Loader.mergeData
+              let ldresult = input_data >>= Loader.mergeData []
               (case ldresult of
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err

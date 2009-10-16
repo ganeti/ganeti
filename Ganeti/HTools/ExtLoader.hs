@@ -52,6 +52,7 @@ import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
+import Ganeti.HTools.Utils (sepSplit, tryRead)
 
 -- | Parse the environment and return the node\/instance names.
 --
@@ -65,6 +66,20 @@ parseEnv () = do
 -- | Error beautifier
 wrapIO :: IO (Result a) -> IO (Result a)
 wrapIO = flip catch (return . Bad . show)
+
+parseUtilisation :: String -> Result (String, DynUtil)
+parseUtilisation line =
+    let columns = sepSplit ' ' line
+    in case columns of
+         [name, cpu, mem, dsk, net] -> do
+                      rcpu <- tryRead name cpu
+                      rmem <- tryRead name mem
+                      rdsk <- tryRead name dsk
+                      rnet <- tryRead name net
+                      let du = DynUtil { cpuWeight = rcpu, memWeight = rmem
+                                       , dskWeight = rdsk, netWeight = rnet }
+                      return (name, du)
+         _ -> Bad $ "Cannot parse line " ++ line
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
@@ -89,6 +104,16 @@ loadExternalData opts = do
                            " files options should be given.")
          exitWith $ ExitFailure 1
 
+  util_contents <- (case optDynuFile opts of
+                      Just path -> readFile path
+                      Nothing -> return "")
+  let util_data = mapM parseUtilisation $ lines util_contents
+  util_data' <- (case util_data of
+                   Ok x -> return x
+                   Bad y -> do
+                     hPutStrLn stderr ("Error: can't parse utilisation" ++
+                                       " data: " ++ show y)
+                     exitWith $ ExitFailure 1)
   input_data <-
       case () of
         _ | setRapi ->
@@ -101,7 +126,7 @@ loadExternalData opts = do
           | setSim -> Simu.loadData $ fromJust simdata
           | otherwise -> wrapIO $ Text.loadData nodef instf
 
-  let ldresult = input_data >>= Loader.mergeData
+  let ldresult = input_data >>= Loader.mergeData util_data'
   (loaded_nl, il, csf) <-
       (case ldresult of
          Ok x -> return x

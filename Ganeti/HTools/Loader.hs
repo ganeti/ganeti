@@ -37,6 +37,7 @@ module Ganeti.HTools.Loader
     , Request(..)
     ) where
 
+import Control.Monad (foldM)
 import Data.Function (on)
 import Data.List
 import Data.Maybe (fromJust)
@@ -96,9 +97,9 @@ assocEqual = (==) `on` fst
 
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: [(Ndx, Node.Node)]
-         -> (Idx, Instance.Instance)
+         -> Instance.Instance
          -> [(Ndx, Node.Node)]
-fixNodes accu (_, inst) =
+fixNodes accu inst =
     let
         pdx = Instance.pNode inst
         sdx = Instance.sNode inst
@@ -130,15 +131,21 @@ stripSuffix sflen name = take (length name - sflen) name
 
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
-mergeData :: (Node.AssocList,
+mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
+          -> (Node.AssocList,
               Instance.AssocList) -- ^ Data from either Text.loadData
                                   -- or Rapi.loadData
           -> Result (Node.List, Instance.List, String)
-mergeData (nl, il) = do
-  let
-      nl2 = foldl' fixNodes nl il
-      il3 = Container.fromAssocList il
-      nl3 = Container.fromAssocList
+mergeData um (nl, il) = do
+  let il2 = Container.fromAssocList il
+  il3 <- foldM (\im (name, n_util) -> do
+                  idx <- Container.findByName im name
+                  let inst = Container.find idx im
+                      new_i = inst { Instance.util = n_util }
+                  return $ Container.add idx new_i im
+               ) il2 um
+  let nl2 = foldl' fixNodes nl (Container.elems il3)
+  let nl3 = Container.fromAssocList
             (map (\ (k, v) -> (k, Node.buildPeers v il3)) nl2)
       node_names = map Node.name $ Container.elems nl3
       inst_names = map Instance.name $ Container.elems il3

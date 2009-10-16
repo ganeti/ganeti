@@ -26,13 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.HTools.Node
-    ( Node(failN1, name, idx,
-           tMem, nMem, fMem, rMem, xMem,
-           tDsk, fDsk,
-           tCpu, uCpu,
-           pMem, pDsk, pRem, pCpu,
-           mDsk, mCpu, loDsk, hiCpu,
-           pList, sList, offline)
+    ( Node(..)
     , List
     -- * Constructor
     , create
@@ -217,16 +211,22 @@ buildPeers t il =
     in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
 -- | Assigns an instance to a node as primary and update the used VCPU
--- count.
+-- count and utilisation data.
 setPri :: Node -> Instance.Instance -> Node
-setPri t inst = t { pList = (Instance.idx inst):pList t
+setPri t inst = t { pList = Instance.idx inst:pList t
                   , uCpu = new_count
-                  , pCpu = fromIntegral new_count / tCpu t }
+                  , pCpu = fromIntegral new_count / tCpu t
+                  , utilLoad = utilLoad t `T.addUtil` Instance.util inst
+                  }
     where new_count = uCpu t + Instance.vcpus inst
 
 -- | Assigns an instance to a node as secondary without other updates.
 setSec :: Node -> Instance.Instance -> Node
-setSec t inst = t { sList = (Instance.idx inst):sList t }
+setSec t inst = t { sList = Instance.idx inst:sList t
+                  , utilLoad = old_load { T.dskWeight = T.dskWeight old_load +
+                                          T.dskWeight (Instance.util inst) }
+                  }
+    where old_load = utilLoad t
 
 -- * Update functions
 
@@ -250,9 +250,10 @@ removePri t inst =
         new_failn1 = new_mem <= rMem t
         new_ucpu = uCpu t - Instance.vcpus inst
         new_rcpu = fromIntegral new_ucpu / tCpu t
+        new_load = utilLoad t `T.subUtil` Instance.util inst
     in t {pList = new_plist, fMem = new_mem, fDsk = new_dsk,
           failN1 = new_failn1, pMem = new_mp, pDsk = new_dp,
-          uCpu = new_ucpu, pCpu = new_rcpu}
+          uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load}
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
@@ -273,9 +274,12 @@ removeSec t inst =
         new_prem = fromIntegral new_rmem / tMem t
         new_failn1 = fMem t <= new_rmem
         new_dp = fromIntegral new_dsk / tDsk t
+        old_load = utilLoad t
+        new_load = old_load { T.dskWeight = T.dskWeight old_load -
+                                            T.dskWeight (Instance.util inst) }
     in t {sList = new_slist, fDsk = new_dsk, peers = new_peers,
           failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp,
-          pRem = new_prem}
+          pRem = new_prem, utilLoad = new_load}
 
 -- | Adds a primary instance.
 addPri :: Node -> Instance.Instance -> T.OpResult Node
@@ -288,6 +292,7 @@ addPri t inst =
         new_pcpu = fromIntegral new_ucpu / tCpu t
         new_dp = fromIntegral new_dsk / tDsk t
         l_cpu = mCpu t
+        new_load = utilLoad t `T.addUtil` Instance.util inst
     in if new_mem <= 0 then T.OpFail T.FailMem
        else if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
        else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
@@ -297,7 +302,7 @@ addPri t inst =
                new_mp = fromIntegral new_mem / tMem t
                r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk,
                        failN1 = new_failn1, pMem = new_mp, pDsk = new_dp,
-                       uCpu = new_ucpu, pCpu = new_pcpu }
+                       uCpu = new_ucpu, pCpu = new_pcpu, utilLoad = new_load }
            in T.OpGood r
 
 -- | Adds a secondary instance.
@@ -313,13 +318,16 @@ addSec t inst pdx =
         new_prem = fromIntegral new_rmem / tMem t
         new_failn1 = old_mem <= new_rmem
         new_dp = fromIntegral new_dsk / tDsk t
+        old_load = utilLoad t
+        new_load = old_load { T.dskWeight = T.dskWeight old_load +
+                                            T.dskWeight (Instance.util inst) }
     in if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
        else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
        else let new_slist = iname:sList t
                 r = t { sList = new_slist, fDsk = new_dsk,
                         peers = new_peers, failN1 = new_failn1,
                         rMem = new_rmem, pDsk = new_dp,
-                        pRem = new_prem }
+                        pRem = new_prem, utilLoad = new_load }
            in T.OpGood r
 
 -- * Stats functions
