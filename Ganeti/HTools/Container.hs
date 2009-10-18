@@ -105,14 +105,10 @@ maxNameLen = maximum . map (length . T.nameOf) . elems
 
 -- | Find an element by name in a Container; this is a very slow function.
 findByName :: (T.Element a, Monad m) =>
-              Container a -> String -> m Key
+              Container a -> String -> m a
 findByName c n =
     let all_elems = elems c
         result = filter ((== n) . T.nameOf) all_elems
-        nems = length result
-    in
-      if nems /= 1 then
-          fail $ "Wrong number of elems (" ++ show nems ++
-                   ") found with name " ++ n
-      else
-          return $ T.idxOf $ head result
+    in case result of
+         [item] -> return item
+         _ -> fail $ "Wrong number of elems found with name " ++ n

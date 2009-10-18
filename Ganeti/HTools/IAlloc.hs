@@ -126,7 +126,7 @@ parseData body = do
               ex_nodes <- fromObj "relocate_from" request
               let ex_nodes' = map (stripSuffix $ length csf) ex_nodes
               ex_idex <- mapM (Container.findByName map_n) ex_nodes'
-              return $ Relocate ridx req_nodes ex_idex
+              return $ Relocate ridx req_nodes (map Node.idx ex_idex)
         other -> fail ("Invalid request type '" ++ other ++ "'")
   return $ Request rqtype map_n map_i csf
 

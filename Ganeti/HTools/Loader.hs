@@ -139,10 +139,9 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
 mergeData um (nl, il) = do
   let il2 = Container.fromAssocList il
   il3 <- foldM (\im (name, n_util) -> do
-                  idx <- Container.findByName im name
-                  let inst = Container.find idx im
-                      new_i = inst { Instance.util = n_util }
-                  return $ Container.add idx new_i im
+                  inst <- Container.findByName im name
+                  let new_i = inst { Instance.util = n_util }
+                  return $ Container.add (Instance.idx inst) new_i im
                ) il2 um
   let nl2 = foldl' fixNodes nl (Container.elems il3)
   let nl3 = Container.fromAssocList
