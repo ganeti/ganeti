@@ -125,27 +125,11 @@ computeBadItems nl il =
   in
     (bad_nodes, bad_instances)
 
+-- | Zero-initializer for the CStats type
 emptyCStats :: CStats
-emptyCStats = CStats { csFmem = 0
-                     , csFdsk = 0
-                     , csAmem = 0
-                     , csAdsk = 0
-                     , csAcpu = 0
-                     , csMmem = 0
-                     , csMdsk = 0
-                     , csMcpu = 0
-                     , csImem = 0
-                     , csIdsk = 0
-                     , csIcpu = 0
-                     , csTmem = 0
-                     , csTdsk = 0
-                     , csTcpu = 0
-                     , csXmem = 0
-                     , csNmem = 0
-                     , csScore = 0
-                     , csNinst = 0
-                     }
+emptyCStats = CStats 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
+-- | Update stats with data from a new node
 updateCStats :: CStats -> Node.Node -> CStats
 updateCStats cs node =
     let CStats { csFmem = x_fmem, csFdsk = x_fdsk,
