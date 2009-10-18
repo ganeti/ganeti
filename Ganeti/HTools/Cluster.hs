@@ -708,7 +708,10 @@ printInsts nl il =
         helper inst = printf "%2s %-*s %-*s %-*s"
                       "  " m_name (Instance.name inst)
                       m_nnm (Container.nameOf nl (Instance.pNode inst))
-                      m_nnm (Container.nameOf nl (Instance.sNode inst))
+                      m_nnm (let sdx = Instance.sNode inst
+                             in if sdx == Node.noSecondary
+                                then  ""
+                                else Container.nameOf nl sdx)
         header = printf "%2s %-*s %-*s %-*s"
                  "  " m_name "Name" m_nnm "Pri_node" m_nnm "Sec_node"::String
     in unlines (header:map helper sil)
