@@ -565,8 +565,7 @@ tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
 -- | Given the original and final nodes, computes the relocation description.
 computeMoves :: Instance.Instance -- ^ The instance to be moved
              -> String -- ^ The instance name
-             -> String -- ^ Original primary
-             -> String -- ^ Original secondary
+             -> IMove  -- ^ The move being performed
              -> String -- ^ New primary
              -> String -- ^ New secondary
              -> (String, [String])
@@ -574,27 +573,13 @@ computeMoves :: Instance.Instance -- ^ The instance to be moved
                 -- either @/f/@ for failover or @/r:name/@ for replace
                 -- secondary, while the command list holds gnt-instance
                 -- commands (without that prefix), e.g \"@failover instance1@\"
-computeMoves i inam a b c d
-    -- same primary
-    | c == a =
-        if d == b
-        then {- Same sec??! -} ("-", [])
-        else {- Change of secondary -}
-            (printf "r:%s" d, [rep d])
-    -- failover and ...
-    | c == b =
-        if d == a
-        then {- that's all -} ("f", [mig])
-        else (printf "f r:%s" d, [mig, rep d])
-    -- ... and keep primary as secondary
-    | d == a =
-        (printf "r:%s f" c, [rep c, mig])
-    -- ... keep same secondary
-    | d == b =
-        (printf "f r:%s f" c, [mig, rep c, mig])
-    -- nothing in common -
-    | otherwise =
-        (printf "r:%s f r:%s" c d, [rep c, mig, rep d])
+computeMoves i inam mv c d =
+    case mv of
+      Failover -> ("f", [mig])
+      FailoverAndReplace _ -> (printf "f r:%s" d, [mig, rep d])
+      ReplaceSecondary _ -> (printf "r:%s" d, [rep d])
+      ReplaceAndFailover _ -> (printf "r:%s f" c, [rep c, mig])
+      ReplacePrimary _ -> (printf "f r:%s f" c, [mig, rep c, mig])
     where morf = if Instance.running i then "migrate" else "failover"
           mig = printf "%s -f %s" morf inam::String
           rep n = printf "replace-disks -n %s %s" n inam
@@ -611,14 +596,14 @@ printSolutionLine :: Node.List     -- ^ The node list
 printSolutionLine nl il nmlen imlen plc pos =
     let
         pmlen = (2*nmlen + 1)
-        (i, p, s, _, c) = plc
+        (i, p, s, mv, c) = plc
         inst = Container.find i il
         inam = Instance.name inst
         npri = Container.nameOf nl p
         nsec = Container.nameOf nl s
         opri = Container.nameOf nl $ Instance.pNode inst
         osec = Container.nameOf nl $ Instance.sNode inst
-        (moves, cmds) =  computeMoves inst inam opri osec npri nsec
+        (moves, cmds) =  computeMoves inst inam mv npri nsec
         ostr = printf "%s:%s" opri osec::String
         nstr = printf "%s:%s" npri nsec::String
     in
