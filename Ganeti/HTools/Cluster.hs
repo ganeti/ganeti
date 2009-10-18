@@ -29,8 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Cluster
     (
      -- * Types
-      Placement
-    , AllocSolution
+      AllocSolution
     , Table(..)
     , CStats(..)
     -- * Generic functions
