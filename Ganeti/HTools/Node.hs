@@ -346,33 +346,42 @@ availDisk t =
 
 -- * Display functions
 
+showField :: Node -> String -> String
+showField t field =
+    case field of
+      "name" -> name t
+      "status" -> if offline t then "-"
+                  else if failN1 t then "*" else " "
+      "tmem" -> printf "%5.0f" $ tMem t
+      "nmem" -> printf "%5d" $ nMem t
+      "xmem" -> printf "%5d" $ xMem t
+      "fmem" -> printf "%5d" $ fMem t
+      "imem" -> printf "%5d" imem
+      "rmem" -> printf "%5d" $ rMem t
+      "tdsk" -> printf "%5.0f" $ tDsk t / 1024
+      "fdsk" -> printf "%5d" $ fDsk t `div` 1024
+      "tcpu" -> printf "%4.0f" $ tCpu t
+      "ucpu" -> printf "%4d" $ uCpu t
+      "plist" -> printf "%3d" $ length (pList t)
+      "slist" -> printf "%3d" $ length (sList t)
+      "pfmem" -> printf "%6.4f" $ pMem t
+      "pfdsk" -> printf "%6.4f" $ pDsk t
+      "rcpu"  -> printf "%5.2f" $ pCpu t
+      "cload" -> printf "%5.3f" uC
+      "mload" -> printf "%5.3f" uM
+      "dload" -> printf "%5.3f" uD
+      "nload" -> printf "%5.3f" uN
+      _ -> printf "<unknown field>"
+    where
+      T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
+                  T.dskWeight = uD, T.netWeight = uN } = utilLoad t
+      imem = truncate (tMem t) - nMem t - xMem t - fMem t
+
+
 -- | String converter for the node list functionality.
-list :: Int -> Node -> String
-list mname t =
-    let pl = length $ pList t
-        sl = length $ sList t
-        mp = pMem t
-        dp = pDsk t
-        cp = pCpu t
-        off = offline t
-        fn = failN1 t
-        tmem = tMem t
-        nmem = nMem t
-        xmem = xMem t
-        fmem = fMem t
-        imem = truncate tmem - nmem - xmem - fmem
-        T.DynUtil { T.cpuWeight = uC, T.memWeight = uM,
-                    T.dskWeight = uD, T.netWeight = uN } = utilLoad t
-        wstr = printf " %5.3f %5.3f %5.3f %5.3f" uC uM uD uN::String
-    in
-      if off
-         then printf " - %-*s %57s %3d %3d"
-              mname (name t) "" pl sl
-         else
-             printf " %c %-*s %5.0f %5d %5d %5d %5d %5d %5.0f %5d\
-                    \ %4.0f %4d %3d %3d %6.4f %6.4f %5.2f"
-                 (if off then '-' else if fn then '*' else ' ')
-                 mname (name t) tmem nmem imem xmem fmem (rMem t)
-                 (tDsk t / 1024) (fDsk t `div` 1024)
-                 (tCpu t) (uCpu t)
-                 pl sl mp dp cp ++ wstr
+list :: Node -> [String]
+list t = map (showField t)
+         [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
+         , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "plist", "slist"
+         , "pfmem", "pfdsk", "rcpu"
+         , "cload", "mload", "dload", "nload" ]

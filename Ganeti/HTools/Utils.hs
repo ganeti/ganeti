@@ -35,6 +35,7 @@ module Ganeti.HTools.Utils
     , asObjectList
     , fromJResult
     , tryRead
+    , formatTable
     ) where
 
 import Data.List
@@ -140,3 +141,22 @@ parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
 -- | Safe 'read' function returning data encapsulated in a Result.
 tryRead :: (Monad m, Read a) => String -> String -> m a
 tryRead name s = parseChoices name s $ reads s
+
+-- | Format a table of strings to maintain consistent length
+formatTable :: [[String]] -> [Bool] -> [[String]]
+formatTable vals numpos =
+    let vtrans = transpose vals  -- transpose, so that we work on rows
+                                 -- rather than columns
+        mlens = map (maximum . map length) vtrans
+        expnd = map (\(flds, isnum, ml) ->
+                         map (\val ->
+                                  let delta = ml - length val
+                                      filler = replicate delta ' '
+                                  in if delta > 0
+                                     then if isnum
+                                          then filler ++ val
+                                          else val ++ filler
+                                     else val
+                             ) flds
+                    ) (zip3 vtrans numpos mlens)
+   in transpose expnd

@@ -687,34 +687,29 @@ printSolution nl il sol =
 printNodes :: Node.List -> String
 printNodes nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
-        m_name = maximum . map (length . Node.name) $ snl
-        helper = Node.list m_name
-        h2 = printf " %5s %5s %5s %5s" "lCpu" "lMem" "lDsk" "lNet"::String
-        header = printf
-                 "%2s %-*s %5s %5s %5s %5s %5s %5s %5s %5s %4s %4s \
-                 \%3s %3s %6s %6s %5s"
-                 " F" m_name "Name"
-                 "t_mem" "n_mem" "i_mem" "x_mem" "f_mem" "r_mem"
-                 "t_dsk" "f_dsk" "pcpu" "vcpu"
-                 "pri" "sec" "p_fmem" "p_fdsk" "r_cpu"::String
-    in unlines ((header++h2):map helper snl)
+        header = ["F", "Name"
+                 , "t_mem", "n_mem", "i_mem", "x_mem", "f_mem", "r_mem"
+                 , "t_dsk", "f_dsk", "pcpu", "vcpu", "pri",  "sec"
+                 , "p_fmem", "p_fdsk", "r_cpu"
+                 , "lCpu", "lMem", "lDsk", "lNet" ]
+        isnum = False:False:repeat True
+    in unlines . map ((:) ' ' .  intercalate " ") $
+       formatTable (header:map Node.list snl) isnum
 
 -- | Print the instance list.
 printInsts :: Node.List -> Instance.List -> String
 printInsts nl il =
     let sil = sortBy (compare `on` Instance.idx) (Container.elems il)
-        m_name = maximum . map (length . Instance.name) $ sil
-        m_nnm  = maximum . map (length . Node.name) $ Container.elems nl
-        helper inst = printf "%2s %-*s %-*s %-*s"
-                      "  " m_name (Instance.name inst)
-                      m_nnm (Container.nameOf nl (Instance.pNode inst))
-                      m_nnm (let sdx = Instance.sNode inst
-                             in if sdx == Node.noSecondary
-                                then  ""
-                                else Container.nameOf nl sdx)
-        header = printf "%2s %-*s %-*s %-*s"
-                 "  " m_name "Name" m_nnm "Pri_node" m_nnm "Sec_node"::String
-    in unlines (header:map helper sil)
+        helper inst = [ (Instance.name inst)
+                      , (Container.nameOf nl (Instance.pNode inst))
+                      , (let sdx = Instance.sNode inst
+                         in if sdx == Node.noSecondary
+                            then  ""
+                            else Container.nameOf nl sdx) ]
+        header = ["Name", "Pri_node", "Sec_node"]
+        isnum = repeat False
+    in unlines . map ((:) ' ' . intercalate " ") $
+       formatTable (header:map helper sil) isnum
 
 -- | Shows statistics for a given node list.
 printStats :: Node.List -> String
