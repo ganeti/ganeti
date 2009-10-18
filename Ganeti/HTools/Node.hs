@@ -67,7 +67,7 @@ import qualified Ganeti.HTools.Types as T
 -- * Type declarations
 
 -- | The node type.
-data Node = Node { name  :: String -- ^ The node name
+data Node = Node { name :: String  -- ^ The node name
                  , tMem :: Double  -- ^ Total memory (MiB)
                  , nMem :: Int     -- ^ Node memory (MiB)
                  , fMem :: Int     -- ^ Free memory (MiB)
@@ -80,7 +80,7 @@ data Node = Node { name  :: String -- ^ The node name
                  , sList :: [T.Idx]-- ^ List of secondary instance indices
                  , idx :: T.Ndx    -- ^ Internal index for book-keeping
                  , peers :: PeerMap.PeerMap -- ^ Pnode to instance mapping
-                 , failN1:: Bool   -- ^ Whether the node has failed n1
+                 , failN1 :: Bool  -- ^ Whether the node has failed n1
                  , rMem :: Int     -- ^ Maximum memory needed for
                                    -- failover by primaries of this node
                  , pMem :: Double  -- ^ Percent of free memory
@@ -235,8 +235,7 @@ setFmem :: Node -> Int -> Node
 setFmem t new_mem =
     let new_n1 = new_mem <= rMem t
         new_mp = fromIntegral new_mem / tMem t
-    in
-      t { fMem = new_mem, failN1 = new_n1, pMem = new_mp }
+    in t { fMem = new_mem, failN1 = new_n1, pMem = new_mp }
 
 -- | Removes a primary instance.
 removePri :: Node -> Instance.Instance -> Node
@@ -251,9 +250,9 @@ removePri t inst =
         new_ucpu = uCpu t - Instance.vcpus inst
         new_rcpu = fromIntegral new_ucpu / tCpu t
         new_load = utilLoad t `T.subUtil` Instance.util inst
-    in t {pList = new_plist, fMem = new_mem, fDsk = new_dsk,
-          failN1 = new_failn1, pMem = new_mp, pDsk = new_dp,
-          uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load}
+    in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
+         , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
+         , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load }
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
@@ -267,19 +266,18 @@ removeSec t inst =
         new_peem =  old_peem - Instance.mem inst
         new_peers = PeerMap.add pnode new_peem old_peers
         old_rmem = rMem t
-        new_rmem = if old_peem < old_rmem then
-                       old_rmem
-                   else
-                       computeMaxRes new_peers
+        new_rmem = if old_peem < old_rmem
+                   then old_rmem
+                   else computeMaxRes new_peers
         new_prem = fromIntegral new_rmem / tMem t
         new_failn1 = fMem t <= new_rmem
         new_dp = fromIntegral new_dsk / tDsk t
         old_load = utilLoad t
         new_load = old_load { T.dskWeight = T.dskWeight old_load -
                                             T.dskWeight (Instance.util inst) }
-    in t {sList = new_slist, fDsk = new_dsk, peers = new_peers,
-          failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp,
-          pRem = new_prem, utilLoad = new_load}
+    in t { sList = new_slist, fDsk = new_dsk, peers = new_peers
+         , failN1 = new_failn1, rMem = new_rmem, pDsk = new_dp
+         , pRem = new_prem, utilLoad = new_load }
 
 -- | Adds a primary instance.
 addPri :: Node -> Instance.Instance -> T.OpResult Node
@@ -300,9 +298,9 @@ addPri t inst =
        else
            let new_plist = iname:pList t
                new_mp = fromIntegral new_mem / tMem t
-               r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk,
-                       failN1 = new_failn1, pMem = new_mp, pDsk = new_dp,
-                       uCpu = new_ucpu, pCpu = new_pcpu, utilLoad = new_load }
+               r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
+                     , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
+                     , uCpu = new_ucpu, pCpu = new_pcpu, utilLoad = new_load }
            in T.OpGood r
 
 -- | Adds a secondary instance.
@@ -324,11 +322,11 @@ addSec t inst pdx =
     in if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
        else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
        else let new_slist = iname:sList t
-                r = t { sList = new_slist, fDsk = new_dsk,
-                        peers = new_peers, failN1 = new_failn1,
-                        rMem = new_rmem, pDsk = new_dp,
-                        pRem = new_prem, utilLoad = new_load }
-           in T.OpGood r
+                r = t { sList = new_slist, fDsk = new_dsk
+                      , peers = new_peers, failN1 = new_failn1
+                      , rMem = new_rmem, pDsk = new_dp
+                      , pRem = new_prem, utilLoad = new_load }
+            in T.OpGood r
 
 -- * Stats functions
 

@@ -64,20 +64,16 @@ pmCompare a b = (compare `on` snd) b a
 -- | Add or update (via a custom function) an element.
 addWith :: (Elem -> Elem -> Elem) -> Key -> Elem -> PeerMap -> PeerMap
 addWith fn k v lst =
-    let r = lookup k lst
-    in
-      case r of
-        Nothing -> insertBy pmCompare (k, v) lst
-        Just o -> insertBy pmCompare (k, fn o v) (remove k lst)
+    case lookup k lst of
+      Nothing -> insertBy pmCompare (k, v) lst
+      Just o -> insertBy pmCompare (k, fn o v) (remove k lst)
 
 -- | Create a PeerMap from an association list, with possible duplicates
 accumArray :: (Elem -> Elem -> Elem) -- ^ function used to merge the elements
               -> [(Key, Elem)]       -- ^ source data
               -> PeerMap             -- ^ results
-accumArray fn lst =
-    case lst of
-      [] -> empty
-      (k, v):xs -> addWith fn k v $ accumArray fn xs
+accumArray _  [] = empty
+accumArray fn ((k, v):xs) = addWith fn k v $ accumArray fn xs
 
 -- * Basic operations
 
@@ -91,9 +87,9 @@ add = addWith (flip const)
 
 -- | Remove an element from a peermap
 remove :: Key -> PeerMap -> PeerMap
-remove k c = case c of
-               [] -> []
-               (x@(x', _)):xs -> if k == x' then xs
+remove _ [] = []
+remove k ((x@(x', _)):xs) = if k == x'
+                            then xs
                             else x:remove k xs
 
 -- | Find the maximum element.
@@ -101,4 +97,5 @@ remove k c = case c of
 -- Since this is a sorted list, we just get the value at the head of
 -- the list, or zero for a null list
 maxElem :: PeerMap -> Elem
-maxElem c = if null c then 0 else snd . head $ c
+maxElem (x:_) = snd x
+maxElem _ = 0
