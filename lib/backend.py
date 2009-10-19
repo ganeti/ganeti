@@ -522,6 +522,17 @@ def VerifyNode(what, cluster_name):
       used_minors = str(err)
     result[constants.NV_DRBDLIST] = used_minors
 
+  if constants.NV_NODESETUP in what:
+    result[constants.NV_NODESETUP] = tmpr = []
+    if not os.path.isdir("/sys/block") or not os.path.isdir("/sys/class/net"):
+      tmpr.append("The sysfs filesytem doesn't seem to be mounted"
+                  " under /sys, missing required directories /sys/block"
+                  " and /sys/class/net")
+    if (not os.path.isdir("/proc/sys") or
+        not os.path.isfile("/proc/sysrq-trigger")):
+      tmpr.append("The procfs filesystem doesn't seem to be mounted"
+                  " under /proc, missing required directory /proc/sys and"
+                  " the file /proc/sysrq-trigger")
   return result
 
 

@@ -518,6 +518,7 @@ NV_NODENETTEST = "node-net-test"
 NV_VERSION = "version"
 NV_VGLIST = "vglist"
 NV_DRBDLIST = "drbd-list"
+NV_NODESETUP = "nodesetup"
 
 # Allocator framework constants
 IALLOCATOR_VERSION = 2

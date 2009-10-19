@@ -915,6 +915,7 @@ class LUVerifyCluster(LogicalUnit):
   ENODERPC = (TNODE, "ENODERPC")
   ENODESSH = (TNODE, "ENODESSH")
   ENODEVERSION = (TNODE, "ENODEVERSION")
+  ENODESETUP = (TNODE, "ENODESETUP")
 
   ETYPE_FIELD = "code"
   ETYPE_ERROR = "ERROR"
@@ -1108,6 +1109,10 @@ class LUVerifyCluster(LogicalUnit):
           test = minor not in drbd_map
           _ErrorIf(test, self.ENODEDRBD, node,
                    "unallocated drbd minor %d is in use", minor)
+    test = node_result.get(constants.NV_NODESETUP,
+                           ["Missing NODESETUP results"])
+    _ErrorIf(test, self.ENODESETUP, node, "node setup error: %s",
+             "; ".join(test))
 
   def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
                       node_instance, n_offline):
@@ -1277,6 +1282,7 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_INSTANCELIST: hypervisors,
       constants.NV_VERSION: None,
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
+      constants.NV_NODESETUP: None,
       }
     if vg_name is not None:
       node_verify_param[constants.NV_VGLIST] = None
