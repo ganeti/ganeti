@@ -1,3 +1,6 @@
+Version 0.1.8 (Tue, 29 Sep 2009):
+  - Brown-paper-bag release fixing haddock issues
+
 Version 0.1.7 (Mon, 28 Sep 2009):
   - Fixed a bug in the Luxi backend for big responses
   - Fixed test suite exit code in presence of test failures
