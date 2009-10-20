@@ -97,6 +97,7 @@ class RpcResult(object):
     self.offline = offline
     self.call = call
     self.node = node
+
     if offline:
       self.fail_msg = "Node is marked offline"
       self.data = self.payload = None
@@ -108,15 +109,25 @@ class RpcResult(object):
       if not isinstance(self.data, (tuple, list)):
         self.fail_msg = ("RPC layer error: invalid result type (%s)" %
                          type(self.data))
+        self.payload = None
       elif len(data) != 2:
         self.fail_msg = ("RPC layer error: invalid result length (%d), "
                          "expected 2" % len(self.data))
+        self.payload = None
       elif not self.data[0]:
         self.fail_msg = self._EnsureErr(self.data[1])
+        self.payload = None
       else:
         # finally success
         self.fail_msg = None
         self.payload = data[1]
+
+    assert hasattr(self, "call")
+    assert hasattr(self, "data")
+    assert hasattr(self, "fail_msg")
+    assert hasattr(self, "node")
+    assert hasattr(self, "offline")
+    assert hasattr(self, "payload")
 
   @staticmethod
   def _EnsureErr(val):
