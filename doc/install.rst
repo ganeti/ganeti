@@ -173,6 +173,18 @@ machines at system shutdown and subsequent restore of them at reboot.
 To obtain this make sure the variable ``XENDOMAINS_SAVE`` in the file
 ``/etc/default/xendomains`` is set to an empty value.
 
+If you want to use live migration make sure you edit have, in the xen
+config file, something that allows the nodes to migrate instances
+between each other. For example::
+
+  (xend-relocation-server yes)
+  (xend-relocation-port 8002)
+  (xend-relocation-address '')
+  (xend-relocation-hosts-allow '^192\\.168\\.3\\.[0-9]+$')
+
+The last line assumes that all your nodes have secondary IPs in the
+192.168.3.0/24 network, adjust it accordingly to your setup.
+
 .. admonition:: Debian
 
    Besides the ballooning change which you need to set in
