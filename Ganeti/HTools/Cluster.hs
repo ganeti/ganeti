@@ -668,14 +668,25 @@ printNodes nl =
 printInsts :: Node.List -> Instance.List -> String
 printInsts nl il =
     let sil = sortBy (compare `on` Instance.idx) (Container.elems il)
-        helper inst = [ (Instance.name inst)
-                      , (Container.nameOf nl (Instance.pNode inst))
+        helper inst = [ if Instance.running inst then "R" else " "
+                      , Instance.name inst
+                      , Container.nameOf nl (Instance.pNode inst)
                       , (let sdx = Instance.sNode inst
                          in if sdx == Node.noSecondary
                             then  ""
-                            else Container.nameOf nl sdx) ]
-        header = ["Name", "Pri_node", "Sec_node"]
-        isnum = repeat False
+                            else Container.nameOf nl sdx)
+                      , printf "%3d" $ Instance.vcpus inst
+                      , printf "%5d" $ Instance.mem inst
+                      , printf "%5d" $ Instance.dsk inst `div` 1024
+                      , printf "%5.3f" lC
+                      , printf "%5.3f" lM
+                      , printf "%5.3f" lD
+                      , printf "%5.3f" lN
+                      ]
+            where DynUtil lC lM lD lN = Instance.util inst
+        header = [ "F", "Name", "Pri_node", "Sec_node", "vcpu", "mem"
+                 , "dsk", "lCpu", "lMem", "lDsk", "lNet" ]
+        isnum = False:False:False:False:repeat True
     in unlines . map ((:) ' ' . intercalate " ") $
        formatTable (header:map helper sil) isnum
 
