@@ -214,11 +214,6 @@ resource allocation in Ganeti) and thus we start a new jobset.
 Prints the before and after node status, in a format designed to allow
 the user to understand the node's most important parameters.
 
-.TP
-.B --print-instances
-Prints the before and after instance map. This is less useful as the
-node status, but it can help in understanding instance moves.
-
 The node list will contain these informations:
 .RS
 .TP
@@ -289,6 +284,11 @@ the dynamic disk load (if the information is available)
 .B lNet
 the dynamic net load (if the information is available)
 .RE
+
+.TP
+.B --print-instances
+Prints the before and after instance map. This is less useful as the
+node status, but it can help in understanding instance moves.
 
 .TP
 .B -o, --oneline
