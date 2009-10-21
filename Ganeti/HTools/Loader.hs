@@ -135,7 +135,7 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
               Instance.AssocList) -- ^ Data from either Text.loadData
                                   -- or Rapi.loadData
           -> Result (Node.List, Instance.List, String)
-mergeData um (nl, il) = do
+mergeData um (nl, il) =
   let il2 = Container.fromAssocList il
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
@@ -144,16 +144,16 @@ mergeData um (nl, il) = do
                               let new_i = inst { Instance.util = n_util }
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
-  let nl2 = foldl' fixNodes nl (Container.elems il3)
-  let nl3 = Container.fromAssocList
+      nl2 = foldl' fixNodes nl (Container.elems il3)
+      nl3 = Container.fromAssocList
             (map (\ (k, v) -> (k, Node.buildPeers v il3)) nl2)
-      node_names = map Node.name $ Container.elems nl3
-      inst_names = map Instance.name $ Container.elems il3
+      node_names = map (Node.name . snd) nl
+      inst_names = map (Instance.name . snd) il
       common_suffix = longestDomain (node_names ++ inst_names)
       csl = length common_suffix
       snl = Container.map (\n -> setName n (stripSuffix csl $ nameOf n)) nl3
       sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il3
-  return (snl, sil, common_suffix)
+  in Ok (snl, sil, common_suffix)
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List
