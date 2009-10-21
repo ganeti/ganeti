@@ -139,34 +139,55 @@ class NodeRoleQuery(ConfdQuery):
 
 
 class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
-  """A query for the location of an instance's ip.
+  """A query for the location of one or more instance's ips.
 
-  It returns the primary ip of the node hosting the instance having the
-  requested ip address, or an error if no such address is known.
+  Given a list of instance IPs, returns an ordered list with the same
+  number of elements as the input. Each element of the list is a tuple
+  containing the status (success or failure) and the content of the
+  query (IP of the primary node if successful, error constant if not).
+
+  If a string (instance's IP) is given instead of a list it will return
+  a single tuple, as opposed to a 1-element list containing that tuple.
 
   """
   def Exec(self, query):
     """InstanceIpToNodePrimaryIpQuery main execution.
 
     """
-    instance_ip = query
-    instance = self.reader.GetInstanceByIp(instance_ip)
-    if instance is None:
-      return QUERY_UNKNOWN_ENTRY_ERROR
+    if isinstance(query, list):
+      instances_list = query
+    else:
+      instances_list = [query]
+    pnodes_list = []
 
-    pnode = self.reader.GetInstancePrimaryNode(instance)
-    if pnode is None:
-      # this shouldn't happen
-      logging.error("Internal configuration inconsistent (instance-to-pnode)")
-      return QUERY_INTERNAL_ERROR
+    for instance_ip in instances_list:
+      instance = self.reader.GetInstanceByIp(instance_ip)
+      if not instance:
+        logging.debug("Invalid instance IP: %s" % instance)
+        pnodes_list.append(QUERY_UNKNOWN_ENTRY_ERROR)
+        continue
 
-    pnode_primary_ip = self.reader.GetNodePrimaryIp(pnode)
-    if pnode_primary_ip is None:
-      # this shouldn't happen
-      logging.error("Internal configuration inconsistent (node-to-primary-ip)")
-      return QUERY_INTERNAL_ERROR
+      pnode = self.reader.GetInstancePrimaryNode(instance)
+      if not pnode:
+        logging.error("Instance '%s' doesn't have an associated primary"
+                      " node" % instance)
+        pnodes_list.append(QUERY_INTERNAL_ERROR)
+        continue
 
-    return constants.CONFD_REPL_STATUS_OK, pnode_primary_ip
+      pnode_primary_ip = self.reader.GetNodePrimaryIp(pnode)
+      if not pnode_primary_ip:
+        logging.error("Primary node '%s' doesn't have an associated"
+                      " primary IP" % pnode)
+        pnodes_list.append(QUERY_INTERNAL_ERROR)
+        continue
+
+      pnodes_list.append((constants.CONFD_REPL_STATUS_OK, pnode_primary_ip))
+
+    # If input was a string, return a tuple instead of a 1-element list
+    if isinstance(query, basestring):
+      return pnodes_list[0]
+
+    return constants.CONFD_REPL_STATUS_OK, pnodes_list
 
 
 class NodesPipsQuery(ConfdQuery):
@@ -225,4 +246,3 @@ class InstancesIpsQuery(ConfdQuery):
     answer = self.reader.GetInstancesIps(link)
 
     return status, answer
-
