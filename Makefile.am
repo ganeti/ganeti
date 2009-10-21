@@ -236,6 +236,7 @@ EXTRA_DIST = \
 man_MANS = \
 	man/ganeti.7 \
 	man/ganeti-cleaner.8 \
+	man/ganeti-confd.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
