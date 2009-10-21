@@ -37,7 +37,6 @@ module Ganeti.HTools.Loader
     , Request(..)
     ) where
 
-import Control.Monad (foldM)
 import Data.Function (on)
 import Data.List
 import Data.Maybe (fromJust)
@@ -138,11 +137,13 @@ mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> Result (Node.List, Instance.List, String)
 mergeData um (nl, il) = do
   let il2 = Container.fromAssocList il
-  il3 <- foldM (\im (name, n_util) -> do
-                  inst <- Container.findByName im name
-                  let new_i = inst { Instance.util = n_util }
-                  return $ Container.add (Instance.idx inst) new_i im
-               ) il2 um
+      il3 = foldl' (\im (name, n_util) ->
+                        case Container.findByName im name of
+                          Nothing -> im -- skipping unknown instance
+                          Just inst ->
+                              let new_i = inst { Instance.util = n_util }
+                              in Container.add (Instance.idx inst) new_i im
+                   ) il2 um
   let nl2 = foldl' fixNodes nl (Container.elems il3)
   let nl3 = Container.fromAssocList
             (map (\ (k, v) -> (k, Node.buildPeers v il3)) nl2)
