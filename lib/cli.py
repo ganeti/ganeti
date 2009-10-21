@@ -84,6 +84,7 @@ __all__ = [
   "NOIPCHECK_OPT",
   "NOLVM_STORAGE_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
+  "NOMODIFY_SSH_SETUP_OPT",
   "NONICS_OPT",
   "NONLIVE_OPT",
   "NONPLUS1_OPT",
@@ -793,6 +794,10 @@ GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify /etc/hosts",
                                    action="store_false", default=True)
+
+NOMODIFY_SSH_SETUP_OPT = cli_option("--no-ssh-init", dest="modify_ssh_setup",
+                                    help="Don't initialize SSH keys",
+                                    action="store_false", default=True)
 
 ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
                              help="Enable parseable error messages",

@@ -593,7 +593,7 @@ class NodeHttpServer(http.server.HttpServer):
     """Cleanup after leaving a cluster.
 
     """
-    return backend.LeaveCluster()
+    return backend.LeaveCluster(params[0])
 
   @staticmethod
   def perspective_node_volumes(params):

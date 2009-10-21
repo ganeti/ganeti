@@ -138,7 +138,7 @@ def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
                 secondary_ip=None, vg_name=None, beparams=None,
                 nicparams=None, hvparams=None, enabled_hypervisors=None,
-                modify_etc_hosts=True):
+                modify_etc_hosts=True, modify_ssh_setup=True):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -250,7 +250,8 @@ def InitCluster(cluster_name, mac_prefix,
   if modify_etc_hosts:
     utils.AddHostToEtcHosts(hostname.name)
 
-  _InitSSHSetup()
+  if modify_ssh_setup:
+    _InitSSHSetup()
 
   now = time.time()
 
@@ -273,6 +274,7 @@ def InitCluster(cluster_name, mac_prefix,
     hvparams=hvparams,
     candidate_pool_size=candidate_pool_size,
     modify_etc_hosts=modify_etc_hosts,
+    modify_ssh_setup=modify_ssh_setup,
     ctime=now,
     mtime=now,
     uuid=utils.NewUUID(),
@@ -335,11 +337,13 @@ def FinalizeClusterDestroy(master):
   begun in cmdlib.LUDestroyOpcode.
 
   """
+  cfg = config.ConfigWriter()
+  modify_ssh_setup = cfg.GetClusterInfo().modify_ssh_setup
   result = rpc.RpcRunner.call_node_stop_master(master, True)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not disable the master role: %s" % msg)
-  result = rpc.RpcRunner.call_node_leave_cluster(master)
+  result = rpc.RpcRunner.call_node_leave_cluster(master, modify_ssh_setup)
   msg = result.fail_msg
   if msg:
     logging.warning("Could not shutdown the node daemon and cleanup"

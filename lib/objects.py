@@ -825,6 +825,7 @@ class Cluster(TaggableObject):
     "nicparams",
     "candidate_pool_size",
     "modify_etc_hosts",
+    "modify_ssh_setup",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -849,6 +850,9 @@ class Cluster(TaggableObject):
 
     if self.modify_etc_hosts is None:
       self.modify_etc_hosts = True
+
+    if self.modify_ssh_setup is None:
+      self.modify_ssh_setup = True
 
     # default_bridge is no longer used it 2.1. The slot is left there to
     # support auto-upgrading, but will be removed in 2.2

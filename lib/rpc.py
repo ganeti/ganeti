@@ -1044,7 +1044,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "export_remove", [export])
 
   @classmethod
-  def call_node_leave_cluster(cls, node):
+  def call_node_leave_cluster(cls, node, modify_ssh_setup):
     """Requests a node to clean the cluster information it has.
 
     This will remove the configuration information from the ganeti data
@@ -1053,7 +1053,8 @@ class RpcRunner(object):
     This is a single-node call.
 
     """
-    return cls._StaticSingleNodeCall(node, "node_leave_cluster", [])
+    return cls._StaticSingleNodeCall(node, "node_leave_cluster",
+                                     [modify_ssh_setup])
 
   def call_node_volumes(self, node_list):
     """Gets all volumes on node(s).

@@ -221,6 +221,10 @@
         <sbr>
         <arg>--no-lvm-storage</arg>
         <sbr>
+        <arg>--no-etc-hosts</arg>
+        <sbr>
+        <arg>--no-ssh-init</arg>
+        <sbr>
         <arg>--file-storage-dir <replaceable>dir</replaceable></arg>
         <sbr>
         <arg>--enabled-hypervisors <replaceable>hypervisors</replaceable></arg>
@@ -296,11 +300,21 @@
       </para>
 
       <para>
-        The <option>--no-lvm-storage</option> allows you to initialize the
-        cluster without lvm support. This means that only instances using
+        The <option>--no-lvm-storage</option> option allows you to initialize
+        the cluster without lvm support. This means that only instances using
         files as storage backend will be possible to create. Once the cluster
         is initialized you can change this setup with the
         <command>modify</command> command.
+      </para>
+
+      <para>
+        The <option>--no-etc-hosts</option> option allows you to initialize the
+        cluster without modifying the <filename>/etc/hosts</filename> file.
+      </para>
+
+      <para>
+        The <option>--no-ssh-init</option> option allows you to initialize the
+        cluster without creating or distributing SSH key pairs.
       </para>
 
       <para>

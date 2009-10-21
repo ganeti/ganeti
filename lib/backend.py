@@ -351,7 +351,7 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
   utils.RunCmd([constants.SSH_INITD_SCRIPT, "restart"])
 
 
-def LeaveCluster():
+def LeaveCluster(modify_ssh_setup):
   """Cleans up and remove the current node.
 
   This function cleans up and prepares the current node to be removed
@@ -361,19 +361,22 @@ def LeaveCluster():
   L{errors.QuitGanetiException} which is used as a special case to
   shutdown the node daemon.
 
+  @param modify_ssh_setup: boolean
+
   """
   _CleanDirectory(constants.DATA_DIR)
   JobQueuePurge()
 
-  try:
-    priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
+  if modify_ssh_setup:
+    try:
+      priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.GANETI_RUNAS)
 
-    utils.RemoveAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
+      utils.RemoveAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
-    utils.RemoveFile(priv_key)
-    utils.RemoveFile(pub_key)
-  except errors.OpExecError:
-    logging.exception("Error while processing ssh files")
+      utils.RemoveFile(priv_key)
+      utils.RemoveFile(pub_key)
+    except errors.OpExecError:
+      logging.exception("Error while processing ssh files")
 
   try:
     utils.RemoveFile(constants.HMAC_CLUSTER_KEY)
