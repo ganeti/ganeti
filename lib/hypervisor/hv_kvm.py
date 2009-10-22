@@ -173,10 +173,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if nic.nicparams[constants.NIC_LINK]:
         script.write("  while /sbin/ip rule del dev $INTERFACE; do :; done\n")
         script.write("  /sbin/ip rule add dev $INTERFACE table $LINK\n")
-        script.write("  /sbin/ip route replace $IP/32 table $LINK"
+        script.write("  /sbin/ip route replace $IP table $LINK proto static"
                      " dev $INTERFACE\n")
       else:
-        script.write("  /sbin/ip route replace $IP/32 dev $INTERFACE\n")
+        script.write("  /sbin/ip route replace $IP proto static"
+                     " dev $INTERFACE\n")
       interface_v4_conf = "/proc/sys/net/ipv4/conf/$INTERFACE"
       interface_v6_conf = "/proc/sys/net/ipv6/conf/$INTERFACE"
       script.write("  if [ -d %s ]; then\n" % interface_v4_conf)
