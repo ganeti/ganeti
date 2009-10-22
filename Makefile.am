@@ -152,7 +152,7 @@ doc/html: $(docrst) $(docpng) doc/conf.py configure.ac
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
 	mkdir -p doc/build/doctrees
-	PYTHONPATH=.:$(top_builddir) sphinx-build -q -b html \
+	PYTHONPATH=.:$(top_builddir) $(SPHINX) -q -b html \
 	    -d doc/build/doctrees \
 	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
 	    -D release="$(PACKAGE_VERSION)" \
