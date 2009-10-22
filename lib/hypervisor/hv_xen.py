@@ -182,8 +182,6 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Stop an instance.
 
     """
-    if retry:
-      return
     self._RemoveConfigFile(instance.name)
     if force:
       command = ["xm", "destroy", instance.name]
