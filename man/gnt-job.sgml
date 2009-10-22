@@ -222,13 +222,7 @@
           <varlistentry>
             <term>lock_status</term>
             <listitem>
-              <simpara>the lock status (useful for debugging) formatted as
-              <quote>[waiting|acquiring]/[locklevel]/[lockname]/[shared|exclusive]</quote>.
-              Locklevel describes the type of lock (either
-              <quote>instance</quote>, <quote>node</quote> or
-              <quote>cluster</quote>). Lockname is a list of names or
-              <quote>ALL</quote> to describe all entities of the lock type.
-              </simpara>
+              <simpara>the lock status (useful for debugging)</simpara>
             </listitem>
           </varlistentry>
         </variablelist>
