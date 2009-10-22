@@ -994,10 +994,10 @@ def InstanceShutdown(instance, timeout):
 
   start = time.time()
   end = start + timeout
-  sleep_time = 1
+  sleep_time = 5
 
   tried_once = False
-  while not tried_once and time.time() < end:
+  while time.time() < end:
     try:
       hyper.StopInstance(instance, retry=tried_once)
     except errors.HypervisorError, err:
@@ -1006,10 +1006,6 @@ def InstanceShutdown(instance, timeout):
     time.sleep(sleep_time)
     if instance.name not in hyper.ListInstances():
       break
-    if sleep_time < 5:
-      # 1.2 behaves particularly good for our case:
-      # it gives us 10 increasing steps and caps just slightly above 5 seconds
-      sleep_time *= 1.2
   else:
     # the shutdown did not succeed
     logging.error("Shutdown of '%s' unsuccessful, forcing", iname)
