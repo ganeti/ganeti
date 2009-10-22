@@ -99,6 +99,7 @@ maybe_do() {
 
 if [ -n "$2" -a \
     "$2" != "$NODED" -a \
+    "$2" != "$CONFD" -a \
     "$2" != "$MASTERD" -a \
     "$2" != "$RAPI" ]; then
     log_failure_msg "Unknown daemon '$2' requested"
