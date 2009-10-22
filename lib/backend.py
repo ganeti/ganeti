@@ -1001,6 +1001,10 @@ def InstanceShutdown(instance, timeout):
     try:
       hyper.StopInstance(instance, retry=tried_once)
     except errors.HypervisorError, err:
+      if instance.name not in hyper.ListInstances():
+        # if the instance is no longer existing, consider this a
+        # success and go to cleanup
+        break
       _Fail("Failed to stop instance %s: %s", iname, err)
     tried_once = True
     time.sleep(sleep_time)
@@ -1013,7 +1017,10 @@ def InstanceShutdown(instance, timeout):
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      _Fail("Failed to force stop instance %s: %s", iname, err)
+      if instance.name in hyper.ListInstances():
+        # only raise an error if the instance still exists, otherwise
+        # the error could simply be "instance ... unknown"!
+        _Fail("Failed to force stop instance %s: %s", iname, err)
 
     time.sleep(1)
     if instance.name in GetInstanceList([hv_name]):
