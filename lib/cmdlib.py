@@ -3352,6 +3352,8 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
 
   # 2nd pass, do only the primary node
   for inst_disk in instance.disks:
+    dev_path = None
+
     for node, node_disk in inst_disk.ComputeNodeTree(instance.primary_node):
       if node != instance.primary_node:
         continue
@@ -3366,8 +3368,10 @@ def _AssembleInstanceDisks(lu, instance, ignore_secondaries=False,
                            " (is_primary=True, pass=2): %s",
                            inst_disk.iv_name, node, msg)
         disks_ok = False
-    device_info.append((instance.primary_node, inst_disk.iv_name,
-                        result.payload))
+      else:
+        dev_path = result.payload
+
+    device_info.append((instance.primary_node, inst_disk.iv_name, dev_path))
 
   # leave the disks configured for the primary node
   # this is a workaround that would be fixed better by
