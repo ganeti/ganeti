@@ -23,6 +23,7 @@
 /configure
 /ganeti
 /stamp-directories
+/stamp-srclinks
 /*.patch
 /*.tar.bz2
 /*.tar.gz

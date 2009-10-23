@@ -68,11 +68,12 @@ CLEANFILES = \
 	qa/*.py[co] \
 	test/*.py[co] \
 	stamp-directories \
+	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON)
 
 BUILT_SOURCES = \
 	ganeti \
-	srclinks \
+	stamp-srclinks \
 	stamp-directories \
 	lib/_autoconf.py
 
@@ -410,13 +411,14 @@ $(REPLACE_VARS_SED): Makefile
 
 # We need to create symlinks because "make distcheck" will not install Python
 # files when building.
-srclinks: stamp-directories
+stamp-srclinks: Makefile stamp-directories
 	set -e; \
 	for i in $(srclink_files); do \
 		if test ! -f $$i -a -f $(abs_top_srcdir)/$$i; then \
 			$(LN_S) $(abs_top_srcdir)/$$i $$i; \
 		fi; \
 	done
+	touch $@
 
 .PHONY: ganeti
 ganeti:
