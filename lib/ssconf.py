@@ -162,6 +162,12 @@ class SimpleConfigReader(object):
   def GetClusterSerialNo(self):
     return self._config_data["cluster"]["serial_no"]
 
+  def GetDefaultNicParams(self):
+    return self._config_data["cluster"]["nicparams"][constants.PP_DEFAULT]
+
+  def GetDefaultNicLink(self):
+    return self.GetDefaultNicParams()[constants.NIC_LINK]
+
   def GetNodeStatusFlags(self, node):
     """Get a node's status flags
 
