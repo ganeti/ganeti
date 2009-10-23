@@ -73,6 +73,7 @@ CLEANFILES = \
 BUILT_SOURCES = \
 	ganeti \
 	srclinks \
+	stamp-directories \
 	lib/_autoconf.py
 
 nodist_pkgpython_PYTHON = \
@@ -308,25 +309,25 @@ srclink_files = \
 check_python_code = \
 	$(all_python_code)
 
-all-local: stamp-directories devel/upload \
+all-local: devel/upload \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd doc/examples/ganeti.cron \
 	doc/examples/hooks/ipsec
 
-devel/upload: devel/upload.in stamp-directories $(REPLACE_VARS_SED)
+devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod u+x $@
 
-daemons/ganeti-cleaner: daemons/ganeti-cleaner.in stamp-directories \
+daemons/ganeti-cleaner: daemons/ganeti-cleaner.in \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
-doc/examples/%: doc/examples/%.in stamp-directories \
+doc/examples/%: doc/examples/%.in \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-doc/examples/hooks/%: doc/examples/hooks/%.in stamp-directories \
+doc/examples/hooks/%: doc/examples/hooks/%.in \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
@@ -346,13 +347,13 @@ man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2HTML)" || { echo 'docbook2html' not found during configure; exit 1; }
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $(notdir $(@:.in=)) $@
 
-man/%.7: man/%.7.in stamp-directories $(REPLACE_VARS_SED)
+man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-man/%.8: man/%.8.in stamp-directories $(REPLACE_VARS_SED)
+man/%.8: man/%.8.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
-man/%.html: man/%.html.in stamp-directories $(REPLACE_VARS_SED)
+man/%.html: man/%.html.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 
 lib/_autoconf.py: Makefile stamp-directories
@@ -392,7 +393,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
 	} > $@
 
-$(REPLACE_VARS_SED): Makefile stamp-directories
+$(REPLACE_VARS_SED): Makefile
 	set -e; \
 	{ echo 's#@PREFIX@#$(prefix)#g'; \
 	  echo 's#@SYSCONFDIR@#$(sysconfdir)#g'; \
