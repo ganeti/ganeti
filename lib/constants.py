@@ -664,6 +664,13 @@ CONFD_REQ_NODE_PIP_LIST = 4
 CONFD_REQ_MC_PIP_LIST = 5
 CONFD_REQ_INSTANCES_IPS_LIST = 6
 
+# Confd request query fields. These are used to narrow down queries.
+# These must be strings rather than integers, because json-encoding
+# converts them to strings anyway, as they're used as dict-keys.
+CONFD_REQQ_LINK = "0"
+CONFD_REQQ_IP = "1"
+CONFD_REQQ_IPLIST = "2"
+
 CONFD_REQS = frozenset([
   CONFD_REQ_PING,
   CONFD_REQ_NODE_ROLE_BYNAME,
@@ -694,6 +701,7 @@ CONFD_REPL_STATUSES = frozenset([
 # A few common errors for confd
 CONFD_ERROR_UNKNOWN_ENTRY = 1
 CONFD_ERROR_INTERNAL = 2
+CONFD_ERROR_ARGUMENT = 3
 
 # Each request is "salted" by the current timestamp.
 # This constants decides how many seconds of skew to accept.

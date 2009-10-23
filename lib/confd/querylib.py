@@ -33,6 +33,8 @@ QUERY_UNKNOWN_ENTRY_ERROR = (constants.CONFD_REPL_STATUS_ERROR,
                              constants.CONFD_ERROR_UNKNOWN_ENTRY)
 QUERY_INTERNAL_ERROR = (constants.CONFD_REPL_STATUS_ERROR,
                         constants.CONFD_ERROR_INTERNAL)
+QUERY_ARGUMENT_ERROR = (constants.CONFD_REPL_STATUS_ERROR,
+                        constants.CONFD_ERROR_ARGUMENT)
 
 
 class ConfdQuery(object):
@@ -141,29 +143,55 @@ class NodeRoleQuery(ConfdQuery):
 class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
   """A query for the location of one or more instance's ips.
 
-  Given a list of instance IPs, returns an ordered list with the same
-  number of elements as the input. Each element of the list is a tuple
-  containing the status (success or failure) and the content of the
-  query (IP of the primary node if successful, error constant if not).
-
-  If a string (instance's IP) is given instead of a list it will return
-  a single tuple, as opposed to a 1-element list containing that tuple.
+  @type query: string or dict
+  @param query: instance ip or dict containing:
+                constants.CONFD_REQQ_LINK: nic link (optional)
+                constants.CONFD_REQQ_IPLIST: list of ips
+                constants.CONFD_REQQ_IP: single ip
+                (one IP type request is mandatory)
+  @rtype: (integer, ...)
+  @return: ((status, answer) or (success, [(status, answer)...])
 
   """
   def Exec(self, query):
     """InstanceIpToNodePrimaryIpQuery main execution.
 
     """
-    if isinstance(query, list):
-      instances_list = query
-    else:
+    if isinstance(query, dict):
+      if constants.CONFD_REQQ_IP in query:
+        instances_list = [query[constants.CONFD_REQQ_IP]]
+        mode = constants.CONFD_REQQ_IP
+      elif constants.CONFD_REQQ_IPLIST in query:
+        instances_list = query[constants.CONFD_REQQ_IPLIST]
+        mode = constants.CONFD_REQQ_IPLIST
+      else:
+        status = constants.CONFD_REPL_STATUS_ERROR
+        logging.debug("missing IP or IPLIST in query dict")
+        return QUERY_ARGUMENT_ERROR
+
+      if constants.CONFD_REQQ_LINK in query:
+        network_link = query[constants.CONFD_REQQ_LINK]
+      else:
+        network_link = None # default will be used
+    elif isinstance(query, basestring):
+      # 2.1 beta1 and beta2 mode, to be deprecated for 2.2
       instances_list = [query]
+      network_link = None
+      mode = constants.CONFD_REQQ_IP
+    else:
+      logging.debug("Invalid query argument type for: %s" % query)
+      return QUERY_ARGUMENT_ERROR
+
     pnodes_list = []
 
     for instance_ip in instances_list:
-      instance = self.reader.GetInstanceByLinkIp(instance_ip, None)
+      if not isinstance(instance_ip, basestring):
+        logging.debug("Invalid IP type for: %s" % instance_ip)
+        return QUERY_ARGUMENT_ERROR
+
+      instance = self.reader.GetInstanceByLinkIp(instance_ip, network_link)
       if not instance:
-        logging.debug("Invalid instance IP: %s" % instance)
+        logging.debug("Unknown instance IP: %s" % instance_ip)
         pnodes_list.append(QUERY_UNKNOWN_ENTRY_ERROR)
         continue
 
@@ -183,8 +211,9 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
 
       pnodes_list.append((constants.CONFD_REPL_STATUS_OK, pnode_primary_ip))
 
-    # If input was a string, return a tuple instead of a 1-element list
-    if isinstance(query, basestring):
+    # If a single ip was requested, return a single answer, otherwise the whole
+    # list, with a success status (since each entry has its own success/failure)
+    if mode == constants.CONFD_REQQ_IP:
       return pnodes_list[0]
 
     return constants.CONFD_REPL_STATUS_OK, pnodes_list
