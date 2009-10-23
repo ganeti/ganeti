@@ -59,9 +59,8 @@ class SimpleConfigReader(object):
     self._last_size = None
 
     self._config_data = None
-    self._instances_ips = None
     self._inst_ips_by_link = None
-    self._ip_to_instance = None
+    self._ip_to_inst_by_link = None
     self._mc_primary_ips = None
     self._nodes_primary_ips = None
 
@@ -106,7 +105,7 @@ class SimpleConfigReader(object):
       raise errors.ConfigurationError("Cannot load config file %s: %s" %
                                       (self._file_name, err))
 
-    self._ip_to_instance = {}
+    self._ip_to_inst_by_link = {}
     self._instances_ips = []
     self._inst_ips_by_link = {}
     c_nparams = self._config_data['cluster']['nicparams'][constants.PP_DEFAULT]
@@ -114,11 +113,11 @@ class SimpleConfigReader(object):
       instance = self._config_data['instances'][iname]
       for nic in instance['nics']:
         if 'ip' in nic and nic['ip']:
-          self._instances_ips.append(nic['ip'])
-          self._ip_to_instance[nic['ip']] = iname
           params = objects.FillDict(c_nparams, nic['nicparams'])
           if not params['link'] in self._inst_ips_by_link:
             self._inst_ips_by_link[params['link']] = []
+            self._ip_to_inst_by_link[params['link']] = {}
+          self._ip_to_inst_by_link[params['link']][nic['ip']] = iname
           self._inst_ips_by_link[params['link']].append(nic['ip'])
 
     self._nodes_primary_ips = []
@@ -185,10 +184,14 @@ class SimpleConfigReader(object):
     offline = self._config_data["nodes"][node]["offline"]
     return master_candidate, drained, offline
 
-  def GetInstanceByIp(self, ip):
-    if ip not in self._ip_to_instance:
+  def GetInstanceByLinkIp(self, ip, link):
+    if not link:
+      link = self.GetDefaultNicLink()
+    if not link in self._ip_to_inst_by_link:
       return None
-    return self._ip_to_instance[ip]
+    if not ip in self._ip_to_inst_by_link[link]:
+      return None
+    return self._ip_to_inst_by_link[link][ip]
 
   def GetNodePrimaryIp(self, node):
     """Get a node's primary ip
@@ -223,8 +226,9 @@ class SimpleConfigReader(object):
     return self._mc_primary_ips
 
   def GetInstancesIps(self, link):
-    if link is None:
-      return self._instances_ips
+    if not link:
+      link = self.GetDefaultNicLink()
+
     if link in self._inst_ips_by_link:
       return self._inst_ips_by_link[link]
     else:

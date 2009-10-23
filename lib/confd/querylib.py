@@ -161,7 +161,7 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
     pnodes_list = []
 
     for instance_ip in instances_list:
-      instance = self.reader.GetInstanceByIp(instance_ip)
+      instance = self.reader.GetInstanceByLinkIp(instance_ip, None)
       if not instance:
         logging.debug("Invalid instance IP: %s" % instance)
         pnodes_list.append(QUERY_UNKNOWN_ENTRY_ERROR)
