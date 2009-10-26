@@ -45,7 +45,8 @@ DIRS = \
 
 MAINTAINERCLEANFILES = \
 	$(docpng) \
-	$(maninput)
+	$(maninput) \
+	doc/news.rst
 
 maintainer-clean-local:
 	rm -rf doc/api doc/html
@@ -148,7 +149,8 @@ docrst = \
 	doc/install.rst \
 	doc/locking.rst \
 	doc/rapi.rst \
-	doc/security.rst
+	doc/security.rst \
+	doc/news.rst
 
 doc/html/.stamp: $(docrst) $(docpng) doc/conf.py configure.ac
 	@test -n "$(SPHINX)" || \
@@ -162,6 +164,14 @@ doc/html/.stamp: $(docrst) $(docpng) doc/conf.py configure.ac
 	touch $@
 
 doc/html: doc/html/.stamp
+
+doc/news.rst: NEWS
+	set -e; \
+	{ echo '.. This file is automatically updated at build time from $<.'; \
+	  echo '.. Do not edit.'; \
+	  echo; \
+	  cat $<; \
+	} > $@
 
 docdot = \
 	doc/arch-2.0.dot \
