@@ -170,7 +170,16 @@ docdot = \
 
 docpng = $(patsubst %.dot,%.png,$(docdot))
 
-noinst_DATA = $(manhtml) doc/html
+# Things to build but not to install (add it to EXTRA_DIST if it should be
+# distributed)
+noinst_DATA = \
+	devel/upload \
+	doc/html \
+	doc/examples/bash_completion \
+	doc/examples/ganeti.cron \
+	doc/examples/ganeti.initd \
+	doc/examples/hooks/ipsec \
+	$(manhtml)
 
 gnt_scripts = \
 	scripts/gnt-backup \
@@ -311,11 +320,6 @@ srclink_files = \
 
 check_python_code = \
 	$(all_python_code)
-
-all-local: devel/upload \
-	doc/examples/bash_completion \
-	doc/examples/ganeti.initd doc/examples/ganeti.cron \
-	doc/examples/hooks/ipsec
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
