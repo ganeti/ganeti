@@ -276,7 +276,9 @@ man_MANS = \
 
 mansgml = $(patsubst %.7,%.sgml,$(patsubst %.8,%.sgml,$(man_MANS)))
 manhtml = $(patsubst %.sgml,%.html,$(mansgml))
-maninput = $(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) $(patsubst %.html,%.html.in,$(manhtml))
+maninput = \
+	$(patsubst %.7,%.7.in,$(patsubst %.8,%.8.in,$(man_MANS))) \
+	$(patsubst %.html,%.html.in,$(manhtml))
 
 TEST_FILES = \
 	test/data/bdev-both.txt \
@@ -358,11 +360,13 @@ doc/%.png: doc/%.dot
 	$(DOT) -Tpng -o $@ $<
 
 man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
-	@test -n "$(DOCBOOK2MAN)" || { echo 'docbook2man' not found during configure; exit 1; }
+	@test -n "$(DOCBOOK2MAN)" || \
+	  { echo 'docbook2man' not found during configure; exit 1; }
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $(notdir $(@:.in=)) $@
 
 man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
-	@test -n "$(DOCBOOK2HTML)" || { echo 'docbook2html' not found during configure; exit 1; }
+	@test -n "$(DOCBOOK2HTML)" || \
+	  { echo 'docbook2html' not found during configure; exit 1; }
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $(notdir $(@:.in=)) $@
 
 man/%.7: man/%.7.in $(REPLACE_VARS_SED)
