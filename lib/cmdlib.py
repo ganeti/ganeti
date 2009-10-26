@@ -6361,26 +6361,26 @@ class TLReplaceDisks(Tasklet):
     This checks that the instance is in the cluster.
 
     """
-    self.instance = self.cfg.GetInstanceInfo(self.instance_name)
-    assert self.instance is not None, \
-      "Cannot retrieve locked instance %s" % self.instance_name
+    self.instance = instance = self.cfg.GetInstanceInfo(self.instance_name)
+    assert instance is not None, \
+      "Cannot retrieve locked instance %s" % instance_name
 
-    if self.instance.disk_template != constants.DT_DRBD8:
+    if instance.disk_template != constants.DT_DRBD8:
       raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
                                  " instances")
 
-    if len(self.instance.secondary_nodes) != 1:
+    if len(instance.secondary_nodes) != 1:
       raise errors.OpPrereqError("The instance has a strange layout,"
                                  " expected one secondary but found %d" %
-                                 len(self.instance.secondary_nodes))
+                                 len(instance.secondary_nodes))
 
-    secondary_node = self.instance.secondary_nodes[0]
+    secondary_node = instance.secondary_nodes[0]
 
     if self.iallocator_name is None:
       remote_node = self.remote_node
     else:
       remote_node = self._RunAllocator(self.lu, self.iallocator_name,
-                                       self.instance.name, secondary_node)
+                                       instance.name, instance.secondary_nodes)
 
     if remote_node is not None:
       self.remote_node_info = self.cfg.GetNodeInfo(remote_node)
@@ -6402,7 +6402,7 @@ class TLReplaceDisks(Tasklet):
       raise errors.OpPrereqError("Cannot specify disks to be replaced")
 
     if self.mode == constants.REPLACE_DISK_AUTO:
-      faulty_primary = self._FindFaultyDisks(self.instance.primary_node)
+      faulty_primary = self._FindFaultyDisks(instance.primary_node)
       faulty_secondary = self._FindFaultyDisks(secondary_node)
 
       if faulty_primary and faulty_secondary:
@@ -6412,13 +6412,13 @@ class TLReplaceDisks(Tasklet):
 
       if faulty_primary:
         self.disks = faulty_primary
-        self.target_node = self.instance.primary_node
+        self.target_node = instance.primary_node
         self.other_node = secondary_node
         check_nodes = [self.target_node, self.other_node]
       elif faulty_secondary:
         self.disks = faulty_secondary
         self.target_node = secondary_node
-        self.other_node = self.instance.primary_node
+        self.other_node = instance.primary_node
         check_nodes = [self.target_node, self.other_node]
       else:
         self.disks = []
@@ -6427,18 +6427,18 @@ class TLReplaceDisks(Tasklet):
     else:
       # Non-automatic modes
       if self.mode == constants.REPLACE_DISK_PRI:
-        self.target_node = self.instance.primary_node
+        self.target_node = instance.primary_node
         self.other_node = secondary_node
         check_nodes = [self.target_node, self.other_node]
 
       elif self.mode == constants.REPLACE_DISK_SEC:
         self.target_node = secondary_node
-        self.other_node = self.instance.primary_node
+        self.other_node = instance.primary_node
         check_nodes = [self.target_node, self.other_node]
 
       elif self.mode == constants.REPLACE_DISK_CHG:
         self.new_node = remote_node
-        self.other_node = self.instance.primary_node
+        self.other_node = instance.primary_node
         self.target_node = secondary_node
         check_nodes = [self.new_node, self.other_node]
 
@@ -6457,7 +6457,7 @@ class TLReplaceDisks(Tasklet):
 
     # Check whether disks are valid
     for disk_idx in self.disks:
-      self.instance.FindDisk(disk_idx)
+      instance.FindDisk(disk_idx)
 
     # Get secondary node IP addresses
     node_2nd_ip = {}
