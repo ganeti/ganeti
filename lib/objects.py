@@ -210,9 +210,10 @@ class TaggableObject(ConfigObject):
 
   """
   __slots__ = ConfigObject.__slots__ + ["tags"]
+  VALID_TAG_RE = re.compile("^[\w.+*/:@-]+$")
 
-  @staticmethod
-  def ValidateTag(tag):
+  @classmethod
+  def ValidateTag(cls, tag):
     """Check if a tag is valid.
 
     If the tag is invalid, an errors.TagError will be raised. The
@@ -226,7 +227,7 @@ class TaggableObject(ConfigObject):
                             constants.MAX_TAG_LEN)
     if not tag:
       raise errors.TagError("Tags cannot be empty")
-    if not re.match("^[\w.+*/:-]+$", tag):
+    if not cls.VALID_TAG_RE.match(tag):
       raise errors.TagError("Tag contains invalid characters")
 
   def GetTags(self):
