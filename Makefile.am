@@ -208,7 +208,6 @@ dist_tools_SCRIPTS = \
 	tools/lvmstrap
 
 EXTRA_DIST = \
-	$(MAINTAINERCLEANFILES) \
 	NEWS \
 	pylintrc \
 	autotools/build-bash-completion \
@@ -218,6 +217,7 @@ EXTRA_DIST = \
 	daemons/ganeti-cleaner.in \
 	devel/upload.in \
 	$(docdot) \
+	$(docpng) \
 	$(docrst) \
 	doc/conf.py \
 	doc/html \
@@ -231,7 +231,8 @@ EXTRA_DIST = \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	man/footer.sgml \
-	$(mansgml) $(maninput) \
+	$(mansgml) \
+	$(maninput) \
 	qa/ganeti-qa.py \
 	qa/qa-sample.json \
 	qa/qa_cluster.py \
