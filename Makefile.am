@@ -48,7 +48,7 @@ MAINTAINERCLEANFILES = \
 	$(maninput)
 
 maintainer-clean-local:
-	-rm -rf doc/api doc/build doc/html
+	rm -rf doc/api doc/html
 
 CLEANFILES = \
 	autotools/replace_vars.sed \
@@ -150,16 +150,18 @@ docrst = \
 	doc/rapi.rst \
 	doc/security.rst
 
-doc/html: $(docrst) $(docpng) doc/conf.py configure.ac
+doc/html/.stamp: $(docrst) $(docpng) doc/conf.py configure.ac
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
-	mkdir -p doc/build/doctrees
-	PYTHONPATH=.:$(top_builddir) $(SPHINX) -q -b html \
-	    -d doc/build/doctrees \
+	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(SPHINX) -q -b html \
+	    -d . \
 	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
 	    -D release="$(PACKAGE_VERSION)" \
-	    $(top_srcdir)/doc doc/html
-	touch "$@"
+	    $(abs_top_srcdir)/doc $(CURDIR)/doc/html
+	rm -f doc/html/.buildinfo doc/html/objects.inv
+	touch $@
+
+doc/html: doc/html/.stamp
 
 docdot = \
 	doc/arch-2.0.dot \
