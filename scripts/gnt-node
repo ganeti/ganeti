@@ -67,7 +67,7 @@ _USER_STORAGE_TYPE = {
   }
 
 _STORAGE_TYPE_OPT = \
-  cli_option("--storage-type",
+  cli_option("-t", "--storage-type",
              dest="user_storage_type",
              choices=_USER_STORAGE_TYPE.keys(),
              default=None,
