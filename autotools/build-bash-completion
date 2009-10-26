@@ -236,10 +236,20 @@ def WritePreamble(sw):
     sw.DecIndent()
   sw.Write("}")
 
+  # Params: <compgen options>
+  # Result variable: $COMPREPLY
+  sw.Write("_ganeti_compgen() {")
+  sw.IncIndent()
+  try:
+    sw.Write("""COMPREPLY=( $(compgen "$@") )""")
+    sw.Write("_ganeti_dbglog COMPREPLY=\"${COMPREPLY[@]}\"")
+  finally:
+    sw.DecIndent()
+  sw.Write("}")
+
 
 def WriteCompReply(sw, args, cur="\"$cur\""):
-  sw.Write("""COMPREPLY=( $(compgen %s -- %s) )""", args, cur)
-  sw.Write("_ganeti_dbglog COMPREPLY=\"${COMPREPLY[@]}\"")
+  sw.Write("_ganeti_compgen %s -- %s", args, cur)
   sw.Write("return")
 
 
