@@ -142,11 +142,11 @@ def TestAllocator(opts, args):
                                disks=disks,
                                disk_template=opts.disk_template,
                                nics=nic_dict,
-                               os=opts.os_type,
+                               os=opts.os,
                                vcpus=opts.vcpus,
                                tags=opts.tags,
                                direction=opts.direction,
-                               allocator=opts.allocator,
+                               allocator=opts.iallocator,
                                )
   result = SubmitOpCode(op)
   ToStdout("%s" % result)
