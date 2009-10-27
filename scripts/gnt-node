@@ -114,7 +114,8 @@ def ConvertStorageType(user_storage_type):
   try:
     return _USER_STORAGE_TYPE[user_storage_type]
   except KeyError:
-    raise errors.OpPrereqError("Unknown storage type: %s" % user_storage_type)
+    raise errors.OpPrereqError("Unknown storage type: %s" % user_storage_type,
+                               errors.ECODE_INVAL)
 
 
 @UsesRPC
@@ -249,7 +250,7 @@ def EvacuateNode(opts, args):
   cnt = [dst_node, iallocator].count(None)
   if cnt != 1:
     raise errors.OpPrereqError("One and only one of the -n and -I"
-                               " options must be passed")
+                               " options must be passed", errors.ECODE_INVAL)
 
   selected_fields = ["name", "sinst_list"]
   src_node = args[0]
@@ -270,7 +271,7 @@ def EvacuateNode(opts, args):
     if src_node == dst_node:
       raise errors.OpPrereqError("Evacuate node needs different source and"
                                  " target nodes (node %s given twice)" %
-                                 src_node)
+                                 src_node, errors.ECODE_INVAL)
     txt_msg = "to node %s" % dst_node
   else:
     txt_msg = "using iallocator %s" % iallocator

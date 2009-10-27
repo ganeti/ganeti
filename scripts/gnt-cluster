@@ -280,7 +280,8 @@ def ClusterCopyFile(opts, args):
   """
   filename = args[0]
   if not os.path.exists(filename):
-    raise errors.OpPrereqError("No such filename '%s'" % filename)
+    raise errors.OpPrereqError("No such filename '%s'" % filename,
+                               errors.ECODE_INVAL)
 
   cl = GetClient()
 
@@ -550,7 +551,8 @@ def QueueOps(opts, args):
       val = "unset"
     ToStdout("The drain flag is %s" % val)
   else:
-    raise errors.OpPrereqError("Command '%s' is not valid." % command)
+    raise errors.OpPrereqError("Command '%s' is not valid." % command,
+                               errors.ECODE_INVAL)
 
   return 0
 
@@ -581,7 +583,7 @@ def WatcherOps(opts, args):
 
   elif command == "pause":
     if len(args) < 2:
-      raise errors.OpPrereqError("Missing pause duration")
+      raise errors.OpPrereqError("Missing pause duration", errors.ECODE_INVAL)
 
     result = client.SetWatcherPause(time.time() + ParseTimespec(args[1]))
     _ShowWatcherPause(result)
@@ -591,7 +593,8 @@ def WatcherOps(opts, args):
     _ShowWatcherPause(result)
 
   else:
-    raise errors.OpPrereqError("Command '%s' is not valid." % command)
+    raise errors.OpPrereqError("Command '%s' is not valid." % command,
+                               errors.ECODE_INVAL)
 
   return 0
 

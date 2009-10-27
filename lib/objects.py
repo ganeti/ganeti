@@ -734,10 +734,12 @@ class Instance(TaggableObject):
       idx = int(idx)
       return self.disks[idx]
     except ValueError, err:
-      raise errors.OpPrereqError("Invalid disk index: '%s'" % str(err))
+      raise errors.OpPrereqError("Invalid disk index: '%s'" % str(err),
+                                 errors.ECODE_INVAL)
     except IndexError:
       raise errors.OpPrereqError("Invalid disk index: %d (instace has disks"
-                                 " 0 to %d" % (idx, len(self.disks)))
+                                 " 0 to %d" % (idx, len(self.disks)),
+                                 errors.ECODE_INVAL)
 
   def ToDict(self):
     """Instance-specific conversion to standard python types.

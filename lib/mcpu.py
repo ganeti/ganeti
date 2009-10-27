@@ -387,7 +387,8 @@ class Processor(object):
           except errors.LockError:
             raise errors.OpPrereqError(
               "Couldn't add locks (%s), probably because of a race condition"
-              " with another job, who added them first" % add_locks)
+              " with another job, who added them first" % add_locks,
+              errors.ECODE_FAULT)
 
           acquired = add_locks
 

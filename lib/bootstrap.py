@@ -160,43 +160,48 @@ def InitCluster(cluster_name, mac_prefix,
   """
   # TODO: complete the docstring
   if config.ConfigWriter.IsCluster():
-    raise errors.OpPrereqError("Cluster is already initialised")
+    raise errors.OpPrereqError("Cluster is already initialised",
+                               errors.ECODE_STATE)
 
   if not enabled_hypervisors:
     raise errors.OpPrereqError("Enabled hypervisors list must contain at"
-                               " least one member")
+                               " least one member", errors.ECODE_INVAL)
   invalid_hvs = set(enabled_hypervisors) - constants.HYPER_TYPES
   if invalid_hvs:
     raise errors.OpPrereqError("Enabled hypervisors contains invalid"
-                               " entries: %s" % invalid_hvs)
+                               " entries: %s" % invalid_hvs,
+                               errors.ECODE_INVAL)
 
   hostname = utils.HostInfo()
 
   if hostname.ip.startswith("127."):
     raise errors.OpPrereqError("This host's IP resolves to the private"
                                " range (%s). Please fix DNS or %s." %
-                               (hostname.ip, constants.ETC_HOSTS))
+                               (hostname.ip, constants.ETC_HOSTS),
+                               errors.ECODE_ENVIRON)
 
   if not utils.OwnIpAddress(hostname.ip):
     raise errors.OpPrereqError("Inconsistency: this host's name resolves"
                                " to %s,\nbut this ip address does not"
-                               " belong to this host."
-                               " Aborting." % hostname.ip)
+                               " belong to this host. Aborting." %
+                               hostname.ip, errors.ECODE_ENVIRON)
 
   clustername = utils.HostInfo(cluster_name)
 
   if utils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
                    timeout=5):
-    raise errors.OpPrereqError("Cluster IP already active. Aborting.")
+    raise errors.OpPrereqError("Cluster IP already active. Aborting.",
+                               errors.ECODE_NOTUNIQUE)
 
   if secondary_ip:
     if not utils.IsValidIP(secondary_ip):
-      raise errors.OpPrereqError("Invalid secondary ip given")
+      raise errors.OpPrereqError("Invalid secondary ip given",
+                                 errors.ECODE_INVAL)
     if (secondary_ip != hostname.ip and
         not utils.OwnIpAddress(secondary_ip)):
       raise errors.OpPrereqError("You gave %s as secondary IP,"
                                  " but it does not belong to this host." %
-                                 secondary_ip)
+                                 secondary_ip, errors.ECODE_ENVIRON)
   else:
     secondary_ip = hostname.ip
 
@@ -206,39 +211,43 @@ def InitCluster(cluster_name, mac_prefix,
                                           constants.MIN_VG_SIZE)
     if vgstatus:
       raise errors.OpPrereqError("Error: %s\nspecify --no-lvm-storage if"
-                                 " you are not using lvm" % vgstatus)
+                                 " you are not using lvm" % vgstatus,
+                                 errors.ECODE_INVAL)
 
   file_storage_dir = os.path.normpath(file_storage_dir)
 
   if not os.path.isabs(file_storage_dir):
     raise errors.OpPrereqError("The file storage directory you passed is"
-                               " not an absolute path.")
+                               " not an absolute path.", errors.ECODE_INVAL)
 
   if not os.path.exists(file_storage_dir):
     try:
       os.makedirs(file_storage_dir, 0750)
     except OSError, err:
       raise errors.OpPrereqError("Cannot create file storage directory"
-                                 " '%s': %s" %
-                                 (file_storage_dir, err))
+                                 " '%s': %s" % (file_storage_dir, err),
+                                 errors.ECODE_ENVIRON)
 
   if not os.path.isdir(file_storage_dir):
     raise errors.OpPrereqError("The file storage directory '%s' is not"
-                               " a directory." % file_storage_dir)
+                               " a directory." % file_storage_dir,
+                               errors.ECODE_ENVIRON)
 
   if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$", mac_prefix):
-    raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix)
+    raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,
+                               errors.ECODE_INVAL)
 
   result = utils.RunCmd(["ip", "link", "show", "dev", master_netdev])
   if result.failed:
     raise errors.OpPrereqError("Invalid master netdev given (%s): '%s'" %
                                (master_netdev,
-                                result.output.strip()))
+                                result.output.strip()), errors.ECODE_INVAL)
 
   if not (os.path.isfile(constants.NODE_INITD_SCRIPT) and
           os.access(constants.NODE_INITD_SCRIPT, os.X_OK)):
     raise errors.OpPrereqError("Init.d script '%s' missing or not"
-                               " executable." % constants.NODE_INITD_SCRIPT)
+                               " executable." % constants.NODE_INITD_SCRIPT,
+                               errors.ECODE_ENVIRON)
 
   dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE)]
   utils.EnsureDirs(dirs)
@@ -449,7 +458,7 @@ def MasterFailover(no_voting=False):
     raise errors.OpPrereqError("This commands must be run on the node"
                                " where you want the new master to be."
                                " %s is already the master" %
-                               old_master)
+                               old_master, errors.ECODE_INVAL)
 
   if new_master not in mc_list:
     mc_no_master = [name for name in mc_list if name != old_master]
@@ -457,7 +466,8 @@ def MasterFailover(no_voting=False):
                                " as master candidates. Only these nodes"
                                " can become masters. Current list of"
                                " master candidates is:\n"
-                               "%s" % ('\n'.join(mc_no_master)))
+                               "%s" % ('\n'.join(mc_no_master)),
+                               errors.ECODE_STATE)
 
   if not no_voting:
     vote_list = GatherMasterVotes(node_list)
@@ -466,13 +476,14 @@ def MasterFailover(no_voting=False):
       voted_master = vote_list[0][0]
       if voted_master is None:
         raise errors.OpPrereqError("Cluster is inconsistent, most nodes did"
-                                   " not respond.")
+                                   " not respond.", errors.ECODE_ENVIRON)
       elif voted_master != old_master:
         raise errors.OpPrereqError("I have a wrong configuration, I believe"
                                    " the master is %s but the other nodes"
                                    " voted %s. Please resync the configuration"
                                    " of this node." %
-                                   (old_master, voted_master))
+                                   (old_master, voted_master),
+                                   errors.ECODE_STATE)
   # end checks
 
   rcode = 0

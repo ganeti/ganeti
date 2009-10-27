@@ -79,7 +79,8 @@ def _ExpandMultiNames(mode, names, client=None):
     client = GetClient()
   if mode == _SHUTDOWN_CLUSTER:
     if names:
-      raise errors.OpPrereqError("Cluster filter mode takes no arguments")
+      raise errors.OpPrereqError("Cluster filter mode takes no arguments",
+                                 errors.ECODE_INVAL)
     idata = client.QueryInstances([], ["name"], False)
     inames = [row[0] for row in idata]
 
@@ -87,7 +88,7 @@ def _ExpandMultiNames(mode, names, client=None):
                 _SHUTDOWN_NODES_PRI,
                 _SHUTDOWN_NODES_SEC):
     if not names:
-      raise errors.OpPrereqError("No node names passed")
+      raise errors.OpPrereqError("No node names passed", errors.ECODE_INVAL)
     ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"],
                               False)
     ipri = [row[1] for row in ndata]
@@ -105,12 +106,13 @@ def _ExpandMultiNames(mode, names, client=None):
 
   elif mode == _SHUTDOWN_INSTANCES:
     if not names:
-      raise errors.OpPrereqError("No instance names passed")
+      raise errors.OpPrereqError("No instance names passed",
+                                 errors.ECODE_INVAL)
     idata = client.QueryInstances(names, ["name"], False)
     inames = [row[0] for row in idata]
 
   else:
-    raise errors.OpPrereqError("Unknown mode '%s'" % mode)
+    raise errors.OpPrereqError("Unknown mode '%s'" % mode, errors.ECODE_INVAL)
 
   return inames
 
@@ -171,7 +173,8 @@ def _EnsureInstancesExist(client, names):
   result = client.QueryInstances(names, ["name"], False)
   for orig_name, row in zip(names, result):
     if row[0] is None:
-      raise errors.OpPrereqError("Instance '%s' does not exist" % orig_name)
+      raise errors.OpPrereqError("Instance '%s' does not exist" % orig_name,
+                                 errors.ECODE_NOENT)
 
 
 def GenericManyOps(operation, fn):
@@ -190,7 +193,7 @@ def GenericManyOps(operation, fn):
     inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
     if not inames:
       raise errors.OpPrereqError("Selection filter does not match"
-                                 " any instances")
+                                 " any instances", errors.ECODE_INVAL)
     multi_on = opts.multi_mode != _SHUTDOWN_INSTANCES or len(inames) > 1
     if not (opts.force_multi or not multi_on
             or _ConfirmOperation(inames, operation)):
@@ -371,20 +374,23 @@ def BatchCreate(opts, args):
     for required_field in ('os', 'template'):
       if required_field not in spec:
         raise errors.OpPrereqError('Required field "%s" is missing.' %
-                                   required_field)
+                                   required_field, errors.ECODE_INVAL)
     # Validate special fields
     if spec['primary_node'] is not None:
       if (spec['template'] in constants.DTS_NET_MIRROR and
           spec['secondary_node'] is None):
         raise errors.OpPrereqError('Template requires secondary node, but'
-                                   ' there was no secondary provided.')
+                                   ' there was no secondary provided.',
+                                   errors.ECODE_INVAL)
     elif spec['iallocator'] is None:
       raise errors.OpPrereqError('You have to provide at least a primary_node'
-                                 ' or an iallocator.')
+                                 ' or an iallocator.',
+                                 errors.ECODE_INVAL)
 
     if (spec['hvparams'] and
         not isinstance(spec['hvparams'], dict)):
-      raise errors.OpPrereqError('Hypervisor parameters must be a dict.')
+      raise errors.OpPrereqError('Hypervisor parameters must be a dict.',
+                                 errors.ECODE_INVAL)
 
   json_filename = args[0]
   try:
@@ -414,7 +420,7 @@ def BatchCreate(opts, args):
       except ValueError, err:
         raise errors.OpPrereqError("Invalid disk size '%s' for"
                                    " instance %s: %s" %
-                                   (elem, name, err))
+                                   (elem, name, err), errors.ECODE_INVAL)
       disks.append({"size": size})
 
     utils.ForceDictType(specs['backend'], constants.BES_PARAMETER_TYPES)
@@ -429,7 +435,8 @@ def BatchCreate(opts, args):
 
     if specs['nics'] is not None and tmp_nics:
       raise errors.OpPrereqError("'nics' list incompatible with using"
-                                 " individual nic fields as well")
+                                 " individual nic fields as well",
+                                 errors.ECODE_INVAL)
     elif specs['nics'] is not None:
       tmp_nics = specs['nics']
     elif not tmp_nics:
@@ -478,7 +485,8 @@ def ReinstallInstance(opts, args):
 
   inames = _ExpandMultiNames(opts.multi_mode, args)
   if not inames:
-    raise errors.OpPrereqError("Selection filter does not match any instances")
+    raise errors.OpPrereqError("Selection filter does not match any instances",
+                               errors.ECODE_INVAL)
 
   # second, if requested, ask for an OS
   if opts.select_os is True:
@@ -672,7 +680,8 @@ def GrowDisk(opts, args):
   try:
     disk = int(disk)
   except ValueError, err:
-    raise errors.OpPrereqError("Invalid disk index: %s" % str(err))
+    raise errors.OpPrereqError("Invalid disk index: %s" % str(err),
+                               errors.ECODE_INVAL)
   amount = utils.ParseUnit(args[2])
   op = opcodes.OpGrowDisk(instance_name=instance, disk=disk, amount=amount,
                           wait_for_sync=opts.wait_for_sync)
@@ -752,12 +761,13 @@ def ReplaceDisks(opts, args):
     try:
       disks = [int(i) for i in opts.disks.split(",")]
     except ValueError, err:
-      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
+      raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err),
+                                 errors.ECODE_INVAL)
   cnt = [opts.on_primary, opts.on_secondary, opts.auto,
          new_2ndary is not None, iallocator is not None].count(True)
   if cnt != 1:
     raise errors.OpPrereqError("One and only one of the -p, -s, -a, -n and -i"
-                               " options must be passed")
+                               " options must be passed", errors.ECODE_INVAL)
   elif opts.on_primary:
     mode = constants.REPLACE_DISK_PRI
   elif opts.on_secondary:
@@ -766,7 +776,7 @@ def ReplaceDisks(opts, args):
     mode = constants.REPLACE_DISK_AUTO
     if disks:
       raise errors.OpPrereqError("Cannot specify disks when using automatic"
-                                 " mode")
+                                 " mode", errors.ECODE_INVAL)
   elif new_2ndary is not None or iallocator is not None:
     # replace secondary
     mode = constants.REPLACE_DISK_CHG
@@ -1208,7 +1218,8 @@ def SetInstanceParams(opts, args):
       pass
     if disk_op == constants.DDM_ADD:
       if 'size' not in disk_dict:
-        raise errors.OpPrereqError("Missing required parameter 'size'")
+        raise errors.OpPrereqError("Missing required parameter 'size'",
+                                   errors.ECODE_INVAL)
       disk_dict['size'] = utils.ParseUnit(disk_dict['size'])
 
   op = opcodes.OpSetInstanceParams(instance_name=args[0],
