@@ -110,6 +110,12 @@ class ConfigurationError(GenericError):
   pass
 
 
+class ReservationError(GenericError):
+  """Errors reserving a resource.
+
+  """
+
+
 class RemoteError(GenericError):
   """Programming-related error on remote call.
 
