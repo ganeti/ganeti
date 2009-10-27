@@ -289,7 +289,7 @@ def InitCluster(cluster_name, mac_prefix,
   InitConfig(constants.CONFIG_VERSION, cluster_config, master_node_config)
   cfg = config.ConfigWriter()
   ssh.WriteKnownHostsFile(cfg, constants.SSH_KNOWN_HOSTS_FILE)
-  cfg.Update(cfg.GetClusterInfo())
+  cfg.Update(cfg.GetClusterInfo(), logging.error)
 
   # start the master ip
   # TODO: Review rpc call from bootstrap
@@ -482,7 +482,7 @@ def MasterFailover(no_voting=False):
   cluster_info.master_node = new_master
   # this will also regenerate the ssconf files, since we updated the
   # cluster info
-  cfg.Update(cluster_info)
+  cfg.Update(cluster_info, logging.error)
 
   result = rpc.RpcRunner.call_node_start_master(new_master, True, no_voting)
   msg = result.fail_msg

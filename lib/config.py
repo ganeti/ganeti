@@ -1145,7 +1145,7 @@ class ConfigWriter:
     if modified:
       self._WriteConfig()
 
-  def _DistributeConfig(self):
+  def _DistributeConfig(self, feedback_fn):
     """Distribute the configuration to the other nodes.
 
     Currently, this only copies the configuration file. In the future,
@@ -1154,6 +1154,7 @@ class ConfigWriter:
     """
     if self._offline:
       return True
+
     bad = False
 
     node_list = []
@@ -1180,13 +1181,20 @@ class ConfigWriter:
         msg = ("Copy of file %s to node %s failed: %s" %
                (self._cfg_file, to_node, msg))
         logging.error(msg)
+
+        if feedback_fn:
+          feedback_fn(msg)
+
         bad = True
+
     return not bad
 
-  def _WriteConfig(self, destination=None):
+  def _WriteConfig(self, destination=None, feedback_fn=None):
     """Write the configuration data to persistent storage.
 
     """
+    assert feedback_fn is None or callable(feedback_fn)
+
     # first, cleanup the _temporary_ids set, if an ID is now in the
     # other objects it should be discarded to prevent unbounded growth
     # of that structure
@@ -1206,7 +1214,7 @@ class ConfigWriter:
     self.write_count += 1
 
     # and redistribute the config file to master candidates
-    self._DistributeConfig()
+    self._DistributeConfig(feedback_fn)
 
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
@@ -1214,11 +1222,17 @@ class ConfigWriter:
         result = rpc.RpcRunner.call_write_ssconf_files(
           self._UnlockedGetNodeList(),
           self._UnlockedGetSsconfValues())
+
         for nname, nresu in result.items():
           msg = nresu.fail_msg
           if msg:
-            logging.warning("Error while uploading ssconf files to"
-                            " node %s: %s", nname, msg)
+            errmsg = ("Error while uploading ssconf files to"
+                      " node %s: %s" % (nname, msg))
+            logging.warning(errmsg)
+
+            if feedback_fn:
+              feedback_fn(errmsg)
+
       self._last_cluster_serial = self._config_data.cluster.serial_no
 
   def _UnlockedGetSsconfValues(self):
@@ -1302,7 +1316,7 @@ class ConfigWriter:
     return self._config_data.cluster
 
   @locking.ssynchronized(_config_lock)
-  def Update(self, target):
+  def Update(self, target, feedback_fn):
     """Notify function to be called after updates.
 
     This function must be called when an object (as returned by
@@ -1314,6 +1328,7 @@ class ConfigWriter:
     @param target: an instance of either L{objects.Cluster},
         L{objects.Node} or L{objects.Instance} which is existing in
         the cluster
+    @param feedback_fn: Callable feedback function
 
     """
     if self._config_data is None:
@@ -1346,4 +1361,4 @@ class ConfigWriter:
       for nic in target.nics:
         self._temporary_macs.discard(nic.mac)
 
-    self._WriteConfig()
+    self._WriteConfig(feedback_fn=feedback_fn)

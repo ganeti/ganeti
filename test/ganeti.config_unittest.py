@@ -108,15 +108,15 @@ class TestConfigRunner(unittest.TestCase):
     # construct a fake cluster object
     fake_cl = objects.Cluster()
     # fail if we didn't read the config
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl, None)
 
     cl = cfg.GetClusterInfo()
     # first pass, must not fail
-    cfg.Update(cl)
+    cfg.Update(cl, None)
     # second pass, also must not fail (after the config has been written)
-    cfg.Update(cl)
+    cfg.Update(cl, None)
     # but the fake_cl update should still fail
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl, None)
 
   def testUpdateNode(self):
     """Test updates on one node object"""
@@ -124,15 +124,17 @@ class TestConfigRunner(unittest.TestCase):
     # construct a fake node
     fake_node = objects.Node()
     # fail if we didn't read the config
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node,
+                          None)
 
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
     # first pass, must not fail
-    cfg.Update(node)
+    cfg.Update(node, None)
     # second pass, also must not fail (after the config has been written)
-    cfg.Update(node)
+    cfg.Update(node, None)
     # but the fake_node update should still fail
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node,
+                          None)
 
   def testUpdateInstance(self):
     """Test updates on one instance object"""
@@ -141,16 +143,18 @@ class TestConfigRunner(unittest.TestCase):
     inst = self._create_instance()
     fake_instance = objects.Instance()
     # fail if we didn't read the config
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
+                          None)
 
     cfg.AddInstance(inst)
     instance = cfg.GetInstanceInfo(cfg.GetInstanceList()[0])
     # first pass, must not fail
-    cfg.Update(instance)
+    cfg.Update(instance, None)
     # second pass, also must not fail (after the config has been written)
-    cfg.Update(instance)
+    cfg.Update(instance, None)
     # but the fake_instance update should still fail
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance)
+    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
+                          None)
 
   def testNICParameterSyntaxCheck(self):
     """Test the NIC's CheckParameterSyntax function"""
