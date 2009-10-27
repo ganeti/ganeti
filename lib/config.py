@@ -137,7 +137,7 @@ class ConfigWriter:
       self._cfg_file = cfg_file
     self._temporary_ids = TemporaryReservationManager()
     self._temporary_drbds = {}
-    self._temporary_macs = set()
+    self._temporary_macs = TemporaryReservationManager()
     # Note: in order to prevent errors when resolving our name in
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
@@ -154,39 +154,40 @@ class ConfigWriter:
     """
     return os.path.exists(constants.CLUSTER_CONF_FILE)
 
+  def _GenerateOneMAC(self):
+    """Generate one mac address
+
+    """
+    prefix = self._config_data.cluster.mac_prefix
+    byte1 = random.randrange(0, 256)
+    byte2 = random.randrange(0, 256)
+    byte3 = random.randrange(0, 256)
+    mac = "%s:%02x:%02x:%02x" % (prefix, byte1, byte2, byte3)
+    return mac
+
   @locking.ssynchronized(_config_lock, shared=1)
-  def GenerateMAC(self):
+  def GenerateMAC(self, ec_id):
     """Generate a MAC for an instance.
 
     This should check the current instances for duplicates.
 
     """
-    prefix = self._config_data.cluster.mac_prefix
-    all_macs = self._AllMACs()
-    retries = 64
-    while retries > 0:
-      byte1 = random.randrange(0, 256)
-      byte2 = random.randrange(0, 256)
-      byte3 = random.randrange(0, 256)
-      mac = "%s:%02x:%02x:%02x" % (prefix, byte1, byte2, byte3)
-      if mac not in all_macs and mac not in self._temporary_macs:
-        break
-      retries -= 1
-    else:
-      raise errors.ConfigurationError("Can't generate unique MAC")
-    self._temporary_macs.add(mac)
-    return mac
+    existing = self._AllMACs()
+    return self._temporary_ids.Generate(existing, self._GenerateOneMAC, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def IsMacInUse(self, mac):
-    """Predicate: check if the specified MAC is in use in the Ganeti cluster.
+  def ReserveMAC(self, mac, ec_id):
+    """Reserve a MAC for an instance.
 
     This only checks instances managed by this cluster, it does not
     check for potential collisions elsewhere.
 
     """
     all_macs = self._AllMACs()
-    return mac in all_macs or mac in self._temporary_macs
+    if mac in all_macs:
+      raise errors.ReservationError("mac already in use")
+    else:
+      self._temporary_macs.Reserve(mac, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GenerateDRBDSecret(self):
@@ -799,8 +800,6 @@ class ConfigWriter:
     self._config_data.instances[instance.name] = instance
     self._config_data.cluster.serial_no += 1
     self._UnlockedReleaseDRBDMinors(instance.name)
-    for nic in instance.nics:
-      self._temporary_macs.discard(nic.mac)
     self._WriteConfig()
 
   def _EnsureUUID(self, item, ec_id):
@@ -1420,8 +1419,6 @@ class ConfigWriter:
 
     if isinstance(target, objects.Instance):
       self._UnlockedReleaseDRBDMinors(target.name)
-      for nic in target.nics:
-        self._temporary_macs.discard(nic.mac)
 
     self._WriteConfig(feedback_fn=feedback_fn)
 
@@ -1431,4 +1428,5 @@ class ConfigWriter:
 
     """
     self._temporary_ids.DropECReservations(ec_id)
+    self._temporary_macs.DropECReservations(ec_id)
 

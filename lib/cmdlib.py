@@ -5677,8 +5677,9 @@ class LUCreateInstance(LogicalUnit):
           raise errors.OpPrereqError("Invalid MAC address specified: %s" %
                                      mac, errors.ECODE_INVAL)
         else:
-          # or validate/reserve the current one
-          if self.cfg.IsMacInUse(mac):
+          try:
+            self.cfg.ReserveMAC(mac, self.proc.GetECId())
+          except errors.ReservationError:
             raise errors.OpPrereqError("MAC address %s already in use"
                                        " in cluster" % mac,
                                        errors.ECODE_NOTUNIQUE)
@@ -5958,7 +5959,7 @@ class LUCreateInstance(LogicalUnit):
     # creation job will fail.
     for nic in self.nics:
       if nic.mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-        nic.mac = self.cfg.GenerateMAC()
+        nic.mac = self.cfg.GenerateMAC(self.proc.GetECId())
 
     #### allocator run
 
@@ -7698,10 +7699,12 @@ class LUSetInstanceParams(LogicalUnit):
                                      errors.ECODE_INVAL)
         elif nic_mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
           # otherwise generate the mac
-          nic_dict['mac'] = self.cfg.GenerateMAC()
+          nic_dict['mac'] = self.cfg.GenerateMAC(self.proc.GetECId())
         else:
           # or validate/reserve the current one
-          if self.cfg.IsMacInUse(nic_mac):
+          try:
+            self.cfg.ReserveMAC(nic_mac, self.proc.GetECId())
+          except errors.ReservationError:
             raise errors.OpPrereqError("MAC address %s already in use"
                                        " in cluster" % nic_mac,
                                        errors.ECODE_NOTUNIQUE)
