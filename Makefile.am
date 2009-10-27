@@ -451,8 +451,16 @@ check-local:
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:
-	if find $(top_distdir) | grep -F -e '.svn' -e '.git'; then \
-		echo "Found revision control files in final archive" 1>&2 ; \
+	if find $(top_distdir) -name .svn -or -name .git | grep .; then \
+		echo "Found revision control files in final archive." 1>&2; \
+		exit 1; \
+	fi
+	if find $(top_distdir) -name '*.py[co]' | grep .; then \
+		echo "Found Python byte code in final archive." 1>&2; \
+		exit 1; \
+	fi
+	if find $(top_distdir) -name '*~' | grep .; then \
+		echo "Found backup files in final archive." 1>&2; \
 		exit 1; \
 	fi
 
