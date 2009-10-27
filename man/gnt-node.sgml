@@ -889,9 +889,9 @@ node2 lvm-pv /dev/sdb1 698.6G   0M 698.6G Y
         <command>modify-storage</command>
         <arg><option>--allocatable=yes|no</option></arg>
         <sbr>
-        <arg><replaceable>node</replaceable></arg>
-        <arg><replaceable>storage-type</replaceable></arg>
-        <arg><replaceable>volume-name</replaceable></arg>
+        <arg choice="req"><replaceable>node</replaceable></arg>
+        <arg choice="req"><replaceable>storage-type</replaceable></arg>
+        <arg choice="req"><replaceable>volume-name</replaceable></arg>
       </cmdsynopsis>
 
       <para>
@@ -913,9 +913,10 @@ node2 lvm-pv /dev/sdb1 698.6G   0M 698.6G Y
 
       <cmdsynopsis>
         <command>repair-storage</command>
-        <arg><replaceable>node</replaceable></arg>
-        <arg><replaceable>storage-type</replaceable></arg>
-        <arg><replaceable>volume-name</replaceable></arg>
+        <arg>--ignore-consistency</arg>
+        <arg choice="req"><replaceable>node</replaceable></arg>
+        <arg choice="req"><replaceable>storage-type</replaceable></arg>
+        <arg choice="req"><replaceable>volume-name</replaceable></arg>
       </cmdsynopsis>
 
       <para>
@@ -934,6 +935,12 @@ node2 lvm-pv /dev/sdb1 698.6G   0M 698.6G Y
           Running this command can lead to data loss. Use it with care.
         </para>
       </caution>
+
+      <para>
+        The <option>--ignore-consistency</option> option will ignore
+        any inconsistent disks (on the nodes paired with this
+        one). Use of this option is most likely to lead to data-loss.
+      </para>
 
       <para>
         Example:

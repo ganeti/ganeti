@@ -390,6 +390,7 @@ class OpRepairNodeStorage(OpCode):
     "node_name",
     "storage_type",
     "name",
+    "ignore_consistency",
     ]
 
 

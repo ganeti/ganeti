@@ -6989,11 +6989,18 @@ class LURepairNodeStorage(NoHooksLU):
       }
 
   def _CheckFaultyDisks(self, instance, node_name):
-    if _FindFaultyInstanceDisks(self.cfg, self.rpc, instance,
-                                node_name, True):
-      raise errors.OpPrereqError("Instance '%s' has faulty disks on"
-                                 " node '%s'" % (instance.name, node_name),
-                                 errors.ECODE_STATE)
+    """Ensure faulty disks abort the opcode or at least warn."""
+    try:
+      if _FindFaultyInstanceDisks(self.cfg, self.rpc, instance,
+                                  node_name, True):
+        raise errors.OpPrereqError("Instance '%s' has faulty disks on"
+                                   " node '%s'" % (instance.name, node_name),
+                                   errors.ECODE_STATE)
+    except errors.OpPrereqError, err:
+      if self.op.ignore_consistency:
+        self.proc.LogWarning(str(err.args[0]))
+      else:
+        raise
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -7009,6 +7016,8 @@ class LURepairNodeStorage(NoHooksLU):
 
     # Check whether any instance on this node has faulty disks
     for inst in _GetNodeInstances(self.cfg, self.op.node_name):
+      if not inst.admin_up:
+        continue
       check_nodes = set(inst.all_nodes)
       check_nodes.discard(self.op.node_name)
       for inst_node_name in check_nodes:
