@@ -177,24 +177,17 @@ class ConfigWriter:
     existing.update([i.uuid for i in self._AllUUIDObjects() if i.uuid])
     return existing
 
-  def _GenerateUniqueID(self, exceptions=None):
+  def _GenerateUniqueID(self):
     """Generate an unique UUID.
 
     This checks the current node, instances and disk names for
     duplicates.
-
-    @param exceptions: a list with some other names which should be
-        checked for uniqueness (used for example when you want to get
-        more than one id at one time without adding each one in turn
-        to the config file)
 
     @rtype: string
     @return: the unique id
 
     """
     existing = self._AllIDs(include_temporary=True)
-    if exceptions is not None:
-      existing.update(exceptions)
     retries = 64
     while retries > 0:
       unique_id = utils.NewUUID()
@@ -207,13 +200,13 @@ class ConfigWriter:
     return unique_id
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GenerateUniqueID(self, exceptions=None):
+  def GenerateUniqueID(self):
     """Generate an unique ID.
 
     This is just a wrapper over the unlocked version.
 
     """
-    return self._GenerateUniqueID(exceptions=exceptions)
+    return self._GenerateUniqueID()
 
   def _CleanupTemporaryIDs(self):
     """Cleanups the _temporary_ids structure.
