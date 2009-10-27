@@ -137,7 +137,7 @@ class RpcResult(object):
     else:
       return "No error information"
 
-  def Raise(self, msg, prereq=False):
+  def Raise(self, msg, prereq=False, ecode=None):
     """If the result has failed, raise an OpExecError.
 
     This is used so that LU code doesn't have to check for each
@@ -156,7 +156,11 @@ class RpcResult(object):
       ec = errors.OpPrereqError
     else:
       ec = errors.OpExecError
-    raise ec(msg)
+    if ecode is not None:
+      args = (msg, prereq)
+    else:
+      args = (msg, )
+    raise ec(*args)
 
 
 class Client:

@@ -716,7 +716,7 @@ def _CheckNicsBridgesExist(lu, target_nics, target_node,
   if brlist:
     result = lu.rpc.call_bridges_exist(target_node, brlist)
     result.Raise("Error checking bridges on destination node '%s'" %
-                 target_node, prereq=True)
+                 target_node, prereq=True, ecode=errors.ECODE_ENVIRON)
 
 
 def _CheckInstanceBridgesExist(lu, instance, node=None):
@@ -797,7 +797,7 @@ def _FindFaultyInstanceDisks(cfg, rpc, instance, node_name, prereq):
 
   result = rpc.call_blockdev_getmirrorstatus(node_name, instance.disks)
   result.Raise("Failed to get disk status from node %s" % node_name,
-               prereq=prereq)
+               prereq=prereq, ecode=errors.ECODE_ENVIRON)
 
   for idx, bdev_status in enumerate(result.payload):
     if bdev_status and bdev_status.ldisk_status == constants.LDS_FAULTY:
@@ -2967,7 +2967,7 @@ class LUAddNode(LogicalUnit):
       result = self.rpc.call_node_has_ip_address(new_node.name,
                                                  new_node.secondary_ip)
       result.Raise("Failure checking secondary ip on node %s" % new_node.name,
-                   prereq=True)
+                   prereq=True, ecode=errors.ECODE_ENVIRON)
       if not result.payload:
         raise errors.OpExecError("Node claims it doesn't have the secondary ip"
                                  " you gave (%s). Please fix and re-run this"
@@ -3539,7 +3539,8 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
 
   """
   nodeinfo = lu.rpc.call_node_info([node], lu.cfg.GetVGName(), hypervisor_name)
-  nodeinfo[node].Raise("Can't get data from node %s" % node, prereq=True)
+  nodeinfo[node].Raise("Can't get data from node %s" % node,
+                       prereq=True, ecode=errors.ECODE_ENVIRON)
   free_mem = nodeinfo[node].payload.get('memory_free', None)
   if not isinstance(free_mem, int):
     raise errors.OpPrereqError("Can't compute free memory on node %s, result"
@@ -3627,7 +3628,7 @@ class LUStartupInstance(LogicalUnit):
                                               instance.name,
                                               instance.hypervisor)
     remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True)
+                      prereq=True, ecode=errors.ECODE_ENVIRON)
     if not remote_info.payload: # not running already
       _CheckNodeFreeMemory(self, instance.primary_node,
                            "starting instance %s" % instance.name,
@@ -3846,7 +3847,7 @@ class LUReinstallInstance(LogicalUnit):
                                               instance.name,
                                               instance.hypervisor)
     remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True)
+                      prereq=True, ecode=errors.ECODE_ENVIRON)
     if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
@@ -3864,7 +3865,8 @@ class LUReinstallInstance(LogicalUnit):
                                    self.op.pnode, errors.ECODE_NOENT)
       result = self.rpc.call_os_get(pnode.name, self.op.os_type)
       result.Raise("OS '%s' not in supported OS list for primary node %s" %
-                   (self.op.os_type, pnode.name), prereq=True)
+                   (self.op.os_type, pnode.name),
+                   prereq=True, ecode=errors.ECODE_INVAL)
       if not self.op.force_variant:
         _CheckOSVariant(result.payload, self.op.os_type)
 
@@ -3946,7 +3948,7 @@ class LURecreateInstanceDisks(LogicalUnit):
                                               instance.name,
                                               instance.hypervisor)
     remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True)
+                      prereq=True, ecode=errors.ECODE_ENVIRON)
     if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
@@ -4014,7 +4016,7 @@ class LURenameInstance(LogicalUnit):
                                               instance.name,
                                               instance.hypervisor)
     remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True)
+                      prereq=True, ecode=errors.ECODE_ENVIRON)
     if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
@@ -4910,7 +4912,8 @@ class TLMigrateInstance(Tasklet):
       _CheckNodeNotDrained(self, target_node)
       result = self.rpc.call_instance_migratable(instance.primary_node,
                                                  instance)
-      result.Raise("Can't migrate, please use failover", prereq=True)
+      result.Raise("Can't migrate, please use failover",
+                   prereq=True, ecode=errors.ECODE_STATE)
 
     self.instance = instance
 
@@ -5979,7 +5982,8 @@ class LUCreateInstance(LogicalUnit):
     # os verification
     result = self.rpc.call_os_get(pnode.name, self.op.os_type)
     result.Raise("OS '%s' not in supported os list for primary node %s" %
-                 (self.op.os_type, pnode.name), prereq=True)
+                 (self.op.os_type, pnode.name),
+                 prereq=True, ecode=errors.ECODE_INVAL)
     if not self.op.force_variant:
       _CheckOSVariant(result.payload, self.op.os_type)
 
