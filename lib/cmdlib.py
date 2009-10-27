@@ -5311,7 +5311,7 @@ def _GenerateUniqueNames(lu, exts):
   """
   results = []
   for val in exts:
-    new_id = lu.cfg.GenerateUniqueID()
+    new_id = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
     results.append("%s%s" % (new_id, val))
   return results
 

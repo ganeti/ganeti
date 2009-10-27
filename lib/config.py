@@ -47,6 +47,9 @@ from ganeti import serializer
 
 _config_lock = locking.SharedLock()
 
+# job id used for resource management at config upgrade time
+_UPGRADE_CONFIG_JID="jid-cfg-upgrade"
+
 
 def _ValidateConfig(data):
   """Verifies that a configuration objects looks valid.
@@ -132,7 +135,7 @@ class ConfigWriter:
       self._cfg_file = constants.CLUSTER_CONF_FILE
     else:
       self._cfg_file = cfg_file
-    self._temporary_ids = set()
+    self._temporary_ids = TemporaryReservationManager()
     self._temporary_drbds = {}
     self._temporary_macs = set()
     # Note: in order to prevent errors when resolving our name in
@@ -225,14 +228,14 @@ class ConfigWriter:
     """
     existing = set()
     if include_temporary:
-      existing.update(self._temporary_ids)
+      existing.update(self._temporary_ids.GetReserved())
     existing.update(self._AllLVs())
     existing.update(self._config_data.instances.keys())
     existing.update(self._config_data.nodes.keys())
     existing.update([i.uuid for i in self._AllUUIDObjects() if i.uuid])
     return existing
 
-  def _GenerateUniqueID(self):
+  def _GenerateUniqueID(self, ec_id):
     """Generate an unique UUID.
 
     This checks the current node, instances and disk names for
@@ -242,33 +245,20 @@ class ConfigWriter:
     @return: the unique id
 
     """
-    existing = self._AllIDs(include_temporary=True)
-    retries = 64
-    while retries > 0:
-      unique_id = utils.NewUUID()
-      if unique_id not in existing and unique_id is not None:
-        break
-    else:
-      raise errors.ConfigurationError("Not able generate an unique ID"
-                                      " (last tried ID: %s" % unique_id)
-    self._temporary_ids.add(unique_id)
-    return unique_id
+    existing = self._AllIDs(include_temporary=False)
+    return self._temporary_ids.Generate(existing, utils.NewUUID, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GenerateUniqueID(self):
+  def GenerateUniqueID(self, ec_id):
     """Generate an unique ID.
 
     This is just a wrapper over the unlocked version.
 
-    """
-    return self._GenerateUniqueID()
-
-  def _CleanupTemporaryIDs(self):
-    """Cleanups the _temporary_ids structure.
+    @type ec_id: string
+    @param ec_id: unique id for the job to reserve the id to
 
     """
-    existing = self._AllIDs(include_temporary=False)
-    self._temporary_ids = self._temporary_ids - existing
+    return self._GenerateUniqueID(ec_id)
 
   def _AllMACs(self):
     """Return all MACs present in the config.
@@ -821,7 +811,7 @@ class ConfigWriter:
 
     """
     if not item.uuid:
-      item.uuid = self._GenerateUniqueID()
+      item.uuid = self._GenerateUniqueID(ec_id)
     elif item.uuid in self._AllIDs(temporary=True):
       raise errors.ConfigurationError("Cannot add '%s': UUID already in use" %
                                       (item.name, item.uuid))
@@ -1205,10 +1195,14 @@ class ConfigWriter:
     modified = False
     for item in self._AllUUIDObjects():
       if item.uuid is None:
-        item.uuid = self._GenerateUniqueID()
+        item.uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
         modified = True
     if modified:
       self._WriteConfig()
+      # This is ok even if it acquires the internal lock, as _UpgradeConfig is
+      # only called at config init time, without the lock held
+      self.DropECReservations(_UPGRADE_CONFIG_JID)
+
 
   def _DistributeConfig(self, feedback_fn):
     """Distribute the configuration to the other nodes.
@@ -1259,11 +1253,6 @@ class ConfigWriter:
 
     """
     assert feedback_fn is None or callable(feedback_fn)
-
-    # First, cleanup the _temporary_ids set, if an ID is now in the
-    # other objects it should be discarded to prevent unbounded growth
-    # of that structure
-    self._CleanupTemporaryIDs()
 
     # Warn on config errors, but don't abort the save - the
     # configuration has already been modified, and we can't revert;
@@ -1441,5 +1430,5 @@ class ConfigWriter:
     """Drop per-execution-context reservations
 
     """
-    pass
+    self._temporary_ids.DropECReservations(ec_id)
 
