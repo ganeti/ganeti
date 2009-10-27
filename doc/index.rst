@@ -11,6 +11,7 @@ Contents:
 
    install.rst
    admin.rst
+   walkthrough.rst
    security.rst
    design-2.0.rst
    design-2.1.rst

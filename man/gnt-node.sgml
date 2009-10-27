@@ -907,7 +907,7 @@ node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
       </para>
 
       <para>
-        On LVM volume groups, <command>repair-volume</command> runs
+        On LVM volume groups, <command>repair-storage</command> runs
         <quote>vgreduce --removemissing</quote>.
       </para>
 

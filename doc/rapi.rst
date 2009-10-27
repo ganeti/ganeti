@@ -34,11 +34,11 @@ it.
 ``bulk``
 ++++++++
 
-Bulk-mode means that for the resources which usually return just a
-list of child resources (e.g. ``/2/instances`` which returns just
-instance names), the output will instead contain detailed data for all
-these subresources. This is more efficient than query-ing the
-sub-resources themselves.
+Bulk-mode means that for the resources which usually return just a list
+of child resources (e.g. ``/2/instances`` which returns just instance
+names), the output will instead contain detailed data for all these
+subresources. This is more efficient than query-ing the sub-resources
+themselves.
 
 ``dry-run``
 +++++++++++
@@ -47,9 +47,9 @@ The optional *dry-run* argument, if provided and set to a positive
 integer value (e.g. ``?dry-run=1``), signals to Ganeti that the job
 should not be executed, only the pre-execution checks will be done.
 
-This is useful in trying to determine (without guarantees though, as
-in the meantime the cluster state could have changed) if the operation
-is likely to succeed or at least start executing.
+This is useful in trying to determine (without guarantees though, as in
+the meantime the cluster state could have changed) if the operation is
+likely to succeed or at least start executing.
 
 ``force``
 +++++++++++
@@ -60,8 +60,8 @@ inconsistent (e.g. because there are not enough master candidates).
 Usage examples
 --------------
 
-You can access the API using your favorite programming language as
-long as it supports network connections.
+You can access the API using your favorite programming language as long
+as it supports network connections.
 
 Shell
 +++++
@@ -80,7 +80,9 @@ or curl::
 Python
 ++++++
 
-.. highlight: python
+.. highlight:: python
+
+::
 
   import urllib2
   f = urllib2.urlopen('https://CLUSTERNAME:5080/2/info')
@@ -91,9 +93,9 @@ JavaScript
 ++++++++++
 
 .. warning:: While it's possible to use JavaScript, it poses several
-  potential problems, including browser blocking request due to
-  non-standard ports or different domain names. Fetching the data on
-  the webserver is easier.
+   potential problems, including browser blocking request due to
+   non-standard ports or different domain names. Fetching the data on
+   the webserver is easier.
 
 .. highlight:: javascript
 
@@ -230,9 +232,9 @@ Example::
       }
     ]
 
-If the optional *bulk* argument is provided and set to a true value
-(i.e ``?bulk=1``), the output contains detailed information about
-instances as a list.
+If the optional *bulk* argument is provided and set to a true value (i.e
+``?bulk=1``), the output contains detailed information about instances
+as a list.
 
 Example::
 
@@ -271,9 +273,9 @@ Creates an instance.
 
 If the optional *dry-run* argument is provided and set to a positive
 integer valu (e.g. ``?dry-run=1``), the job will not be actually
-executed, only the pre-execution checks will be done. Query-ing the
-job result will return, in both dry-run and normal case, the list of
-nodes selected for the instance.
+executed, only the pre-execution checks will be done. Query-ing the job
+result will return, in both dry-run and normal case, the list of nodes
+selected for the instance.
 
 Returns: a job ID that can be used later for polling.
 
@@ -423,8 +425,8 @@ It supports the ``dry-run`` argument.
 
 Delete a tag.
 
-In order to delete a set of tags, the DELETE request should be
-addressed to URI like::
+In order to delete a set of tags, the DELETE request should be addressed
+to URI like::
 
     /tags?tag=[tag]&tag=[tag]
 
@@ -464,8 +466,8 @@ The result includes:
 
 - id: job ID as a number
 - status: current job status as a string
-- ops: involved OpCodes as a list of dictionaries for each
-  opcodes in the job
+- ops: involved OpCodes as a list of dictionaries for each opcodes in
+  the job
 - opstatus: OpCodes status as a list
 - opresult: OpCodes results as a list of lists
 
@@ -499,9 +501,9 @@ Example::
       }
     ]
 
-If the optional 'bulk' argument is provided and set to 'true' value
-(i.e '?bulk=1'), the output contains detailed information about nodes
-as a list.
+If the optional 'bulk' argument is provided and set to 'true' value (i.e
+'?bulk=1'), the output contains detailed information about nodes as a
+list.
 
 Example::
 
@@ -662,8 +664,8 @@ It supports the ``dry-run`` argument.
 
 Deletes tags.
 
-In order to delete a set of tags, the DELETE request should be
-addressed to URI like::
+In order to delete a set of tags, the DELETE request should be addressed
+to URI like::
 
     /tags?tag=[tag]&tag=[tag]
 
@@ -683,8 +685,7 @@ It supports the following commands: ``GET``.
 Return a list of all OSes.
 
 Can return error 500 in case of a problem. Since this is a costly
-operation for Ganeti 2.0, it is not recommended to execute it too
-often.
+operation for Ganeti 2.0, it is not recommended to execute it too often.
 
 Example::
 
@@ -722,8 +723,8 @@ It supports the ``dry-run`` argument.
 
 Deletes tags.
 
-In order to delete a set of tags, the DELETE request should be
-addressed to URI like::
+In order to delete a set of tags, the DELETE request should be addressed
+to URI like::
 
     /tags?tag=[tag]&tag=[tag]
 
@@ -735,15 +736,19 @@ It supports the ``dry-run`` argument.
 
 The version resource.
 
-This resource should be used to determine the remote API version and
-to adapt clients accordingly.
+This resource should be used to determine the remote API version and to
+adapt clients accordingly.
 
 It supports the following commands: ``GET``.
 
 ``GET``
 ~~~~~~~
 
-Returns the remote API version. Ganeti 1.2 returned ``1`` and Ganeti
-2.0 returns ``2``.
+Returns the remote API version. Ganeti 1.2 returned ``1`` and Ganeti 2.0
+returns ``2``.
 
 .. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

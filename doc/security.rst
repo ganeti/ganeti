@@ -100,3 +100,7 @@ will be set at source configure time. Symlinks or command line
 parameters may be used to use different files.
 
 .. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

@@ -148,9 +148,10 @@ docrst = \
 	doc/index.rst \
 	doc/install.rst \
 	doc/locking.rst \
+	doc/news.rst \
 	doc/rapi.rst \
 	doc/security.rst \
-	doc/news.rst
+	doc/walkthrough.rst
 
 doc/html/.stamp: $(docrst) $(docpng) doc/conf.py configure.ac
 	@test -n "$(SPHINX)" || \
