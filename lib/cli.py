@@ -1266,8 +1266,13 @@ def FormatError(err):
       msg = "Failure: can't resolve hostname '%s'"
     obuf.write(msg % err.args[0])
   elif isinstance(err, errors.OpPrereqError):
-    obuf.write("Failure: prerequisites not met for this"
-               " operation:\n%s" % msg)
+    if len(err.args) == 2:
+      obuf.write("Failure: prerequisites not met for this"
+               " operation:\nerror type: %s, error details:\n%s" %
+                 (err.args[1], err.args[0]))
+    else:
+      obuf.write("Failure: prerequisites not met for this"
+                 " operation:\n%s" % msg)
   elif isinstance(err, errors.OpExecError):
     obuf.write("Failure: command execution error:\n%s" % msg)
   elif isinstance(err, errors.TagError):

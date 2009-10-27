@@ -22,6 +22,26 @@
 """Ganeti exception handling"""
 
 
+# OpPrereqError failure types
+
+# not enough resources (iallocator failure, disk space, memory, etc.)
+ECODE_NORES = "insufficient_resources"
+# wrong arguments (at syntax level)
+ECODE_INVAL = "wrong_input"
+# wrong entity state
+ECODE_STATE = "wrong_state"
+# entity not found
+ECODE_NOENT = "unknown_entity"
+# entity already exists
+ECODE_EXISTS = "already_exists"
+# resource not unique (e.g. MAC or IP duplication)
+ECODE_NOTUNIQUE = "resource_not_unique"
+# internal cluster error
+ECODE_FAULT = "internal_error"
+# environment error (e.g. node disk error)
+ECODE_ENVIRON = "environment_error"
+
+
 class GenericError(Exception):
   """Base exception for Ganeti.
 
@@ -124,6 +144,10 @@ class ParameterError(GenericError):
 
 class OpPrereqError(GenericError):
   """Prerequisites for the OpCode are not fulfilled.
+
+  This exception will have either one or two arguments. For the
+  two-argument construction, the second argument should be one of the
+  ECODE_* codes.
 
   """
 

@@ -100,7 +100,7 @@ class LogicalUnit(object):
       attr_val = getattr(op, attr_name, None)
       if attr_val is None:
         raise errors.OpPrereqError("Required parameter '%s' missing" %
-                                   attr_name)
+                                   attr_name, errors.ECODE_INVAL)
 
     self.CheckArguments()
 
@@ -297,7 +297,7 @@ class LogicalUnit(object):
     expanded_name = self.cfg.ExpandInstanceName(self.op.instance_name)
     if expanded_name is None:
       raise errors.OpPrereqError("Instance '%s' not known" %
-                                  self.op.instance_name)
+                                 self.op.instance_name, errors.ECODE_NOENT)
     self.needed_locks[locking.LEVEL_INSTANCE] = expanded_name
     self.op.instance_name = expanded_name
 
@@ -417,7 +417,8 @@ def _GetWantedNodes(lu, nodes):
 
   """
   if not isinstance(nodes, list):
-    raise errors.OpPrereqError("Invalid argument type 'nodes'")
+    raise errors.OpPrereqError("Invalid argument type 'nodes'",
+                               errors.ECODE_INVAL)
 
   if not nodes:
     raise errors.ProgrammerError("_GetWantedNodes should only be called with a"
@@ -427,7 +428,8 @@ def _GetWantedNodes(lu, nodes):
   for name in nodes:
     node = lu.cfg.ExpandNodeName(name)
     if node is None:
-      raise errors.OpPrereqError("No such node name '%s'" % name)
+      raise errors.OpPrereqError("No such node name '%s'" % name,
+                                 errors.ECODE_NOENT)
     wanted.append(node)
 
   return utils.NiceSort(wanted)
@@ -447,7 +449,8 @@ def _GetWantedInstances(lu, instances):
 
   """
   if not isinstance(instances, list):
-    raise errors.OpPrereqError("Invalid argument type 'instances'")
+    raise errors.OpPrereqError("Invalid argument type 'instances'",
+                               errors.ECODE_INVAL)
 
   if instances:
     wanted = []
@@ -455,7 +458,8 @@ def _GetWantedInstances(lu, instances):
     for name in instances:
       instance = lu.cfg.ExpandInstanceName(name)
       if instance is None:
-        raise errors.OpPrereqError("No such instance name '%s'" % name)
+        raise errors.OpPrereqError("No such instance name '%s'" % name,
+                                   errors.ECODE_NOENT)
       wanted.append(instance)
 
   else:
@@ -479,7 +483,7 @@ def _CheckOutputFields(static, dynamic, selected):
   delta = f.NonMatching(selected)
   if delta:
     raise errors.OpPrereqError("Unknown output fields selected: %s"
-                               % ",".join(delta))
+                               % ",".join(delta), errors.ECODE_INVAL)
 
 
 def _CheckBooleanOpField(op, name):
@@ -492,7 +496,7 @@ def _CheckBooleanOpField(op, name):
   val = getattr(op, name, None)
   if not (val is None or isinstance(val, bool)):
     raise errors.OpPrereqError("Invalid boolean parameter '%s' (%s)" %
-                               (name, str(val)))
+                               (name, str(val)), errors.ECODE_INVAL)
   setattr(op, name, val)
 
 
@@ -505,7 +509,8 @@ def _CheckNodeOnline(lu, node):
 
   """
   if lu.cfg.GetNodeInfo(node).offline:
-    raise errors.OpPrereqError("Can't use offline node %s" % node)
+    raise errors.OpPrereqError("Can't use offline node %s" % node,
+                               errors.ECODE_INVAL)
 
 
 def _CheckNodeNotDrained(lu, node):
@@ -517,7 +522,8 @@ def _CheckNodeNotDrained(lu, node):
 
   """
   if lu.cfg.GetNodeInfo(node).drained:
-    raise errors.OpPrereqError("Can't use drained node %s" % node)
+    raise errors.OpPrereqError("Can't use drained node %s" % node,
+                               errors.ECODE_INVAL)
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
@@ -736,10 +742,11 @@ def _CheckOSVariant(os_obj, name):
   try:
     variant = name.split("+", 1)[1]
   except IndexError:
-    raise errors.OpPrereqError("OS name must include a variant")
+    raise errors.OpPrereqError("OS name must include a variant",
+                               errors.ECODE_INVAL)
 
   if variant not in os_obj.supported_variants:
-    raise errors.OpPrereqError("Unsupported OS variant")
+    raise errors.OpPrereqError("Unsupported OS variant", errors.ECODE_INVAL)
 
 
 def _GetNodeInstancesInner(cfg, fn):
@@ -856,11 +863,13 @@ class LUDestroyCluster(LogicalUnit):
     nodelist = self.cfg.GetNodeList()
     if len(nodelist) != 1 or nodelist[0] != master:
       raise errors.OpPrereqError("There are still %d node(s) in"
-                                 " this cluster." % (len(nodelist) - 1))
+                                 " this cluster." % (len(nodelist) - 1),
+                                 errors.ECODE_INVAL)
     instancelist = self.cfg.GetInstanceList()
     if instancelist:
       raise errors.OpPrereqError("There are still %d instance(s) in"
-                                 " this cluster." % len(instancelist))
+                                 " this cluster." % len(instancelist),
+                                 errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Destroys the cluster.
@@ -1217,7 +1226,8 @@ class LUVerifyCluster(LogicalUnit):
     """
     self.skip_set = frozenset(self.op.skip_checks)
     if not constants.VERIFY_OPTIONAL_CHECKS.issuperset(self.skip_set):
-      raise errors.OpPrereqError("Invalid checks to be skipped specified")
+      raise errors.OpPrereqError("Invalid checks to be skipped specified",
+                                 errors.ECODE_INVAL)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -1626,14 +1636,16 @@ class LURepairDiskSizes(NoHooksLU):
 
   def ExpandNames(self):
     if not isinstance(self.op.instances, list):
-      raise errors.OpPrereqError("Invalid argument type 'instances'")
+      raise errors.OpPrereqError("Invalid argument type 'instances'",
+                                 errors.ECODE_INVAL)
 
     if self.op.instances:
       self.wanted_names = []
       for name in self.op.instances:
         full_name = self.cfg.ExpandInstanceName(name)
         if full_name is None:
-          raise errors.OpPrereqError("Instance '%s' not known" % name)
+          raise errors.OpPrereqError("Instance '%s' not known" % name,
+                                     errors.ECODE_NOENT)
         self.wanted_names.append(full_name)
       self.needed_locks = {
         locking.LEVEL_NODE: [],
@@ -1769,12 +1781,13 @@ class LURenameCluster(LogicalUnit):
     old_ip = self.cfg.GetMasterIP()
     if new_name == old_name and new_ip == old_ip:
       raise errors.OpPrereqError("Neither the name nor the IP address of the"
-                                 " cluster has changed")
+                                 " cluster has changed",
+                                 errors.ECODE_INVAL)
     if new_ip != old_ip:
       if utils.TcpPing(new_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("The given cluster IP address (%s) is"
                                    " reachable on the network. Aborting." %
-                                   new_ip)
+                                   new_ip, errors.ECODE_NOTUNIQUE)
 
     self.op.name = new_name
 
@@ -1856,9 +1869,10 @@ class LUSetClusterParams(LogicalUnit):
         self.op.candidate_pool_size = int(self.op.candidate_pool_size)
       except (ValueError, TypeError), err:
         raise errors.OpPrereqError("Invalid candidate_pool_size value: %s" %
-                                   str(err))
+                                   str(err), errors.ECODE_INVAL)
       if self.op.candidate_pool_size < 1:
-        raise errors.OpPrereqError("At least one master candidate needed")
+        raise errors.OpPrereqError("At least one master candidate needed",
+                                   errors.ECODE_INVAL)
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -1892,7 +1906,8 @@ class LUSetClusterParams(LogicalUnit):
         for disk in inst.disks:
           if _RecursiveCheckIfLVMBased(disk):
             raise errors.OpPrereqError("Cannot disable lvm storage while"
-                                       " lvm-based instances exist")
+                                       " lvm-based instances exist",
+                                       errors.ECODE_INVAL)
 
     node_list = self.acquired_locks[locking.LEVEL_NODE]
 
@@ -1911,7 +1926,7 @@ class LUSetClusterParams(LogicalUnit):
                                               constants.MIN_VG_SIZE)
         if vgstatus:
           raise errors.OpPrereqError("Error on node '%s': %s" %
-                                     (node, vgstatus))
+                                     (node, vgstatus), errors.ECODE_ENVIRON)
 
     self.cluster = cluster = self.cfg.GetClusterInfo()
     # validate params changes
@@ -1930,7 +1945,8 @@ class LUSetClusterParams(LogicalUnit):
     self.new_hvparams = objects.FillDict(cluster.hvparams, {})
     if self.op.hvparams:
       if not isinstance(self.op.hvparams, dict):
-        raise errors.OpPrereqError("Invalid 'hvparams' parameter on input")
+        raise errors.OpPrereqError("Invalid 'hvparams' parameter on input",
+                                   errors.ECODE_INVAL)
       for hv_name, hv_dict in self.op.hvparams.items():
         if hv_name not in self.new_hvparams:
           self.new_hvparams[hv_name] = hv_dict
@@ -1941,11 +1957,13 @@ class LUSetClusterParams(LogicalUnit):
       self.hv_list = self.op.enabled_hypervisors
       if not self.hv_list:
         raise errors.OpPrereqError("Enabled hypervisors list must contain at"
-                                   " least one member")
+                                   " least one member",
+                                   errors.ECODE_INVAL)
       invalid_hvs = set(self.hv_list) - constants.HYPER_TYPES
       if invalid_hvs:
         raise errors.OpPrereqError("Enabled hypervisors contains invalid"
-                                   " entries: %s" % " ,".join(invalid_hvs))
+                                   " entries: %s" % " ,".join(invalid_hvs),
+                                   errors.ECODE_INVAL)
     else:
       self.hv_list = cluster.enabled_hypervisors
 
@@ -2181,7 +2199,8 @@ class LUDiagnoseOS(NoHooksLU):
 
   def ExpandNames(self):
     if self.op.names:
-      raise errors.OpPrereqError("Selective OS query not supported")
+      raise errors.OpPrereqError("Selective OS query not supported",
+                                 errors.ECODE_INVAL)
 
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=self._FIELDS_DYNAMIC,
@@ -2320,20 +2339,23 @@ class LURemoveNode(LogicalUnit):
     """
     node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.node_name))
     if node is None:
-      raise errors.OpPrereqError, ("Node '%s' is unknown." % self.op.node_name)
+      raise errors.OpPrereqError("Node '%s' is unknown." % self.op.node_name,
+                                 errors.ECODE_NOENT)
 
     instance_list = self.cfg.GetInstanceList()
 
     masternode = self.cfg.GetMasterNode()
     if node.name == masternode:
       raise errors.OpPrereqError("Node is the master node,"
-                                 " you need to failover first.")
+                                 " you need to failover first.",
+                                 errors.ECODE_INVAL)
 
     for instance_name in instance_list:
       instance = self.cfg.GetInstanceInfo(instance_name)
       if node.name in instance.all_nodes:
         raise errors.OpPrereqError("Instance %s is still running on the node,"
-                                   " please remove first." % instance_name)
+                                   " please remove first." % instance_name,
+                                   errors.ECODE_INVAL)
     self.op.node_name = node.name
     self.node = node
 
@@ -2624,7 +2646,8 @@ class LUQueryNodeStorage(NoHooksLU):
     storage_type = self.op.storage_type
 
     if storage_type not in constants.VALID_STORAGE_TYPES:
-      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type)
+      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
+                                 errors.ECODE_INVAL)
 
     _CheckOutputFields(static=self._FIELDS_STATIC,
                        dynamic=utils.FieldSet(*constants.VALID_STORAGE_FIELDS),
@@ -2718,13 +2741,15 @@ class LUModifyNodeStorage(NoHooksLU):
   def CheckArguments(self):
     node_name = self.cfg.ExpandNodeName(self.op.node_name)
     if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
+                                 errors.ECODE_NOENT)
 
     self.op.node_name = node_name
 
     storage_type = self.op.storage_type
     if storage_type not in constants.VALID_STORAGE_TYPES:
-      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type)
+      raise errors.OpPrereqError("Unknown storage type: %s" % storage_type,
+                                 errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self.needed_locks = {
@@ -2741,13 +2766,15 @@ class LUModifyNodeStorage(NoHooksLU):
       modifiable = constants.MODIFIABLE_STORAGE_FIELDS[storage_type]
     except KeyError:
       raise errors.OpPrereqError("Storage units of type '%s' can not be"
-                                 " modified" % storage_type)
+                                 " modified" % storage_type,
+                                 errors.ECODE_INVAL)
 
     diff = set(self.op.changes.keys()) - modifiable
     if diff:
       raise errors.OpPrereqError("The following fields can not be modified for"
                                  " storage units of type '%s': %r" %
-                                 (storage_type, list(diff)))
+                                 (storage_type, list(diff)),
+                                 errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Computes the list of nodes and their attributes.
@@ -2807,15 +2834,17 @@ class LUAddNode(LogicalUnit):
     if secondary_ip is None:
       secondary_ip = primary_ip
     if not utils.IsValidIP(secondary_ip):
-      raise errors.OpPrereqError("Invalid secondary IP given")
+      raise errors.OpPrereqError("Invalid secondary IP given",
+                                 errors.ECODE_INVAL)
     self.op.secondary_ip = secondary_ip
 
     node_list = cfg.GetNodeList()
     if not self.op.readd and node in node_list:
       raise errors.OpPrereqError("Node %s is already in the configuration" %
-                                 node)
+                                 node, errors.ECODE_EXISTS)
     elif self.op.readd and node not in node_list:
-      raise errors.OpPrereqError("Node %s is not in the configuration" % node)
+      raise errors.OpPrereqError("Node %s is not in the configuration" % node,
+                                 errors.ECODE_NOENT)
 
     for existing_node_name in node_list:
       existing_node = cfg.GetNodeInfo(existing_node_name)
@@ -2824,7 +2853,8 @@ class LUAddNode(LogicalUnit):
         if (existing_node.primary_ip != primary_ip or
             existing_node.secondary_ip != secondary_ip):
           raise errors.OpPrereqError("Readded node doesn't have the same IP"
-                                     " address configuration as before")
+                                     " address configuration as before",
+                                     errors.ECODE_INVAL)
         continue
 
       if (existing_node.primary_ip == primary_ip or
@@ -2832,7 +2862,8 @@ class LUAddNode(LogicalUnit):
           existing_node.primary_ip == secondary_ip or
           existing_node.secondary_ip == secondary_ip):
         raise errors.OpPrereqError("New node ip address(es) conflict with"
-                                   " existing node %s" % existing_node.name)
+                                   " existing node %s" % existing_node.name,
+                                   errors.ECODE_NOTUNIQUE)
 
     # check that the type of the node (single versus dual homed) is the
     # same as for the master
@@ -2842,21 +2873,25 @@ class LUAddNode(LogicalUnit):
     if master_singlehomed != newbie_singlehomed:
       if master_singlehomed:
         raise errors.OpPrereqError("The master has no private ip but the"
-                                   " new node has one")
+                                   " new node has one",
+                                   errors.ECODE_INVAL)
       else:
         raise errors.OpPrereqError("The master has a private ip but the"
-                                   " new node doesn't have one")
+                                   " new node doesn't have one",
+                                   errors.ECODE_INVAL)
 
     # checks reachability
     if not utils.TcpPing(primary_ip, constants.DEFAULT_NODED_PORT):
-      raise errors.OpPrereqError("Node not reachable by ping")
+      raise errors.OpPrereqError("Node not reachable by ping",
+                                 errors.ECODE_ENVIRON)
 
     if not newbie_singlehomed:
       # check reachability from my secondary ip to newbie's secondary ip
       if not utils.TcpPing(secondary_ip, constants.DEFAULT_NODED_PORT,
                            source=myself.secondary_ip):
         raise errors.OpPrereqError("Node secondary ip not reachable by TCP"
-                                   " based ping to noded port")
+                                   " based ping to noded port",
+                                   errors.ECODE_ENVIRON)
 
     if self.op.readd:
       exceptions = [node]
@@ -2985,17 +3020,20 @@ class LUSetNodeParams(LogicalUnit):
   def CheckArguments(self):
     node_name = self.cfg.ExpandNodeName(self.op.node_name)
     if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
+                                 errors.ECODE_INVAL)
     self.op.node_name = node_name
     _CheckBooleanOpField(self.op, 'master_candidate')
     _CheckBooleanOpField(self.op, 'offline')
     _CheckBooleanOpField(self.op, 'drained')
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained]
     if all_mods.count(None) == 3:
-      raise errors.OpPrereqError("Please pass at least one modification")
+      raise errors.OpPrereqError("Please pass at least one modification",
+                                 errors.ECODE_INVAL)
     if all_mods.count(True) > 1:
       raise errors.OpPrereqError("Can't set the node into more than one"
-                                 " state at the same time")
+                                 " state at the same time",
+                                 errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
@@ -3030,7 +3068,8 @@ class LUSetNodeParams(LogicalUnit):
       # we can't change the master's node flags
       if self.op.node_name == self.cfg.GetMasterNode():
         raise errors.OpPrereqError("The master role can be changed"
-                                   " only via masterfailover")
+                                   " only via masterfailover",
+                                   errors.ECODE_INVAL)
 
     # Boolean value that tells us whether we're offlining or draining the node
     offline_or_drain = self.op.offline == True or self.op.drained == True
@@ -3050,13 +3089,14 @@ class LUSetNodeParams(LogicalUnit):
         if self.op.force and offline_or_drain and mc_should == mc_max:
           self.LogWarning(msg)
         else:
-          raise errors.OpPrereqError(msg)
+          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
     if (self.op.master_candidate == True and
         ((node.offline and not self.op.offline == False) or
          (node.drained and not self.op.drained == False))):
       raise errors.OpPrereqError("Node '%s' is offline or drained, can't set"
-                                 " to master_candidate" % node.name)
+                                 " to master_candidate" % node.name,
+                                 errors.ECODE_INVAL)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
     if (deoffline_or_drain and not offline_or_drain and not
@@ -3133,11 +3173,13 @@ class LUPowercycleNode(NoHooksLU):
   def CheckArguments(self):
     node_name = self.cfg.ExpandNodeName(self.op.node_name)
     if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
+                                 errors.ECODE_NOENT)
     self.op.node_name = node_name
     if node_name == self.cfg.GetMasterNode() and not self.op.force:
       raise errors.OpPrereqError("The node is the master and the force"
-                                 " parameter was not set")
+                                 " parameter was not set",
+                                 errors.ECODE_INVAL)
 
   def ExpandNames(self):
     """Locking for PowercycleNode.
@@ -3501,11 +3543,13 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
   free_mem = nodeinfo[node].payload.get('memory_free', None)
   if not isinstance(free_mem, int):
     raise errors.OpPrereqError("Can't compute free memory on node %s, result"
-                               " was '%s'" % (node, free_mem))
+                               " was '%s'" % (node, free_mem),
+                               errors.ECODE_ENVIRON)
   if requested > free_mem:
     raise errors.OpPrereqError("Not enough memory on node %s for %s:"
                                " needed %s MiB, available %s MiB" %
-                               (node, reason, requested, free_mem))
+                               (node, reason, requested, free_mem),
+                               errors.ECODE_NORES)
 
 
 class LUStartupInstance(LogicalUnit):
@@ -3548,7 +3592,8 @@ class LUStartupInstance(LogicalUnit):
     if self.beparams:
       if not isinstance(self.beparams, dict):
         raise errors.OpPrereqError("Invalid beparams passed: %s, expected"
-                                   " dict" % (type(self.beparams), ))
+                                   " dict" % (type(self.beparams), ),
+                                   errors.ECODE_INVAL)
       # fill the beparams dict
       utils.ForceDictType(self.beparams, constants.BES_PARAMETER_TYPES)
       self.op.beparams = self.beparams
@@ -3558,7 +3603,8 @@ class LUStartupInstance(LogicalUnit):
     if self.hvparams:
       if not isinstance(self.hvparams, dict):
         raise errors.OpPrereqError("Invalid hvparams passed: %s, expected"
-                                   " dict" % (type(self.hvparams), ))
+                                   " dict" % (type(self.hvparams), ),
+                                   errors.ECODE_INVAL)
 
       # check hypervisor parameter syntax (locally)
       cluster = self.cfg.GetClusterInfo()
@@ -3790,10 +3836,12 @@ class LUReinstallInstance(LogicalUnit):
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
-                                 self.op.instance_name)
+                                 self.op.instance_name,
+                                 errors.ECODE_INVAL)
     if instance.admin_up:
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
-                                 self.op.instance_name)
+                                 self.op.instance_name,
+                                 errors.ECODE_STATE)
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
                                               instance.hypervisor)
@@ -3802,7 +3850,8 @@ class LUReinstallInstance(LogicalUnit):
     if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
-                                  instance.primary_node))
+                                  instance.primary_node),
+                                 errors.ECODE_STATE)
 
     self.op.os_type = getattr(self.op, "os_type", None)
     self.op.force_variant = getattr(self.op, "force_variant", False)
@@ -3812,7 +3861,7 @@ class LUReinstallInstance(LogicalUnit):
         self.cfg.ExpandNodeName(instance.primary_node))
       if pnode is None:
         raise errors.OpPrereqError("Primary node '%s' is unknown" %
-                                   self.op.pnode)
+                                   self.op.pnode, errors.ECODE_NOENT)
       result = self.rpc.call_os_get(pnode.name, self.op.os_type)
       result.Raise("OS '%s' not in supported OS list for primary node %s" %
                    (self.op.os_type, pnode.name), prereq=True)
@@ -3856,12 +3905,12 @@ class LURecreateInstanceDisks(LogicalUnit):
 
     """
     if not isinstance(self.op.disks, list):
-      raise errors.OpPrereqError("Invalid disks parameter")
+      raise errors.OpPrereqError("Invalid disks parameter", errors.ECODE_INVAL)
     for item in self.op.disks:
       if (not isinstance(item, int) or
           item < 0):
         raise errors.OpPrereqError("Invalid disk specification '%s'" %
-                                   str(item))
+                                   str(item), errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -3889,10 +3938,10 @@ class LURecreateInstanceDisks(LogicalUnit):
 
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
-                                 self.op.instance_name)
+                                 self.op.instance_name, errors.ECODE_INVAL)
     if instance.admin_up:
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
-                                 self.op.instance_name)
+                                 self.op.instance_name, errors.ECODE_STATE)
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
                                               instance.hypervisor)
@@ -3901,14 +3950,15 @@ class LURecreateInstanceDisks(LogicalUnit):
     if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
-                                  instance.primary_node))
+                                  instance.primary_node), errors.ECODE_STATE)
 
     if not self.op.disks:
       self.op.disks = range(len(instance.disks))
     else:
       for idx in self.op.disks:
         if idx >= len(instance.disks):
-          raise errors.OpPrereqError("Invalid disk index passed '%s'" % idx)
+          raise errors.OpPrereqError("Invalid disk index passed '%s'" % idx,
+                                     errors.ECODE_INVAL)
 
     self.instance = instance
 
@@ -3954,12 +4004,12 @@ class LURenameInstance(LogicalUnit):
       self.cfg.ExpandInstanceName(self.op.instance_name))
     if instance is None:
       raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name)
+                                 self.op.instance_name, errors.ECODE_NOENT)
     _CheckNodeOnline(self, instance.primary_node)
 
     if instance.admin_up:
       raise errors.OpPrereqError("Instance '%s' is marked to be up" %
-                                 self.op.instance_name)
+                                 self.op.instance_name, errors.ECODE_STATE)
     remote_info = self.rpc.call_instance_info(instance.primary_node,
                                               instance.name,
                                               instance.hypervisor)
@@ -3968,7 +4018,7 @@ class LURenameInstance(LogicalUnit):
     if remote_info.payload:
       raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
                                  (self.op.instance_name,
-                                  instance.primary_node))
+                                  instance.primary_node), errors.ECODE_STATE)
     self.instance = instance
 
     # new name verification
@@ -3978,12 +4028,13 @@ class LURenameInstance(LogicalUnit):
     instance_list = self.cfg.GetInstanceList()
     if new_name in instance_list:
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 new_name)
+                                 new_name, errors.ECODE_EXISTS)
 
     if not getattr(self.op, "ignore_ip", False):
       if utils.TcpPing(name_info.ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (name_info.ip, new_name))
+                                   (name_info.ip, new_name),
+                                   errors.ECODE_NOTUNIQUE)
 
 
   def Exec(self, feedback_fn):
@@ -4437,7 +4488,8 @@ class LUFailoverInstance(LogicalUnit):
     bep = self.cfg.GetClusterInfo().FillBE(instance)
     if instance.disk_template not in constants.DTS_NET_MIRROR:
       raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " network mirrored, cannot failover.")
+                                 " network mirrored, cannot failover.",
+                                 errors.ECODE_STATE)
 
     secondary_nodes = instance.secondary_nodes
     if not secondary_nodes:
@@ -4591,7 +4643,7 @@ class LUMoveInstance(LogicalUnit):
     target_node = self.cfg.ExpandNodeName(self.op.target_node)
     if target_node is None:
       raise errors.OpPrereqError("Node '%s' not known" %
-                                  self.op.target_node)
+                                  self.op.target_node, errors.ECODE_NOENT)
     self.op.target_node = target_node
     self.needed_locks[locking.LEVEL_NODE] = [target_node]
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
@@ -4633,14 +4685,15 @@ class LUMoveInstance(LogicalUnit):
 
     if target_node == instance.primary_node:
       raise errors.OpPrereqError("Instance %s is already on the node %s" %
-                                 (instance.name, target_node))
+                                 (instance.name, target_node),
+                                 errors.ECODE_STATE)
 
     bep = self.cfg.GetClusterInfo().FillBE(instance)
 
     for idx, dsk in enumerate(instance.disks):
       if dsk.dev_type not in (constants.LD_LV, constants.LD_FILE):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
-                                   " cannot copy")
+                                   " cannot copy", errors.ECODE_STATE)
 
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
@@ -4766,7 +4819,8 @@ class LUMigrateNode(LogicalUnit):
   def ExpandNames(self):
     self.op.node_name = self.cfg.ExpandNodeName(self.op.node_name)
     if self.op.node_name is None:
-      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name)
+      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name,
+                                 errors.ECODE_NOENT)
 
     self.needed_locks = {
       locking.LEVEL_NODE: [self.op.node_name],
@@ -4830,11 +4884,11 @@ class TLMigrateInstance(Tasklet):
       self.cfg.ExpandInstanceName(self.instance_name))
     if instance is None:
       raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.instance_name)
+                                 self.instance_name, errors.ECODE_NOENT)
 
     if instance.disk_template != constants.DT_DRBD8:
       raise errors.OpPrereqError("Instance's disk layout is not"
-                                 " drbd8, cannot migrate.")
+                                 " drbd8, cannot migrate.", errors.ECODE_STATE)
 
     secondary_nodes = instance.secondary_nodes
     if not secondary_nodes:
@@ -5476,7 +5530,7 @@ class LUCreateInstance(LogicalUnit):
     """
     node_full = self.cfg.ExpandNodeName(node)
     if node_full is None:
-      raise errors.OpPrereqError("Unknown node %s" % node)
+      raise errors.OpPrereqError("Unknown node %s" % node, errors.ECODE_NOENT)
     return node_full
 
   def ExpandNames(self):
@@ -5498,11 +5552,12 @@ class LUCreateInstance(LogicalUnit):
     if self.op.mode not in (constants.INSTANCE_CREATE,
                             constants.INSTANCE_IMPORT):
       raise errors.OpPrereqError("Invalid instance creation mode '%s'" %
-                                 self.op.mode)
+                                 self.op.mode, errors.ECODE_INVAL)
 
     # disk template and mirror node verification
     if self.op.disk_template not in constants.DISK_TEMPLATES:
-      raise errors.OpPrereqError("Invalid disk template name")
+      raise errors.OpPrereqError("Invalid disk template name",
+                                 errors.ECODE_INVAL)
 
     if self.op.hypervisor is None:
       self.op.hypervisor = self.cfg.GetHypervisorType()
@@ -5512,7 +5567,8 @@ class LUCreateInstance(LogicalUnit):
     if self.op.hypervisor not in enabled_hvs:
       raise errors.OpPrereqError("Selected hypervisor (%s) not enabled in the"
                                  " cluster (%s)" % (self.op.hypervisor,
-                                  ",".join(enabled_hvs)))
+                                  ",".join(enabled_hvs)),
+                                 errors.ECODE_STATE)
 
     # check hypervisor parameter syntax (locally)
     utils.ForceDictType(self.op.hvparams, constants.HVS_PARAMETER_TYPES)
@@ -5537,7 +5593,7 @@ class LUCreateInstance(LogicalUnit):
     # instance in the meantime, and creation will fail at lock-add time
     if instance_name in self.cfg.GetInstanceList():
       raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 instance_name)
+                                 instance_name, errors.ECODE_EXISTS)
 
     self.add_locks[locking.LEVEL_INSTANCE] = instance_name
 
@@ -5564,33 +5620,37 @@ class LUCreateInstance(LogicalUnit):
       else:
         if not utils.IsValidIP(ip):
           raise errors.OpPrereqError("Given IP address '%s' doesn't look"
-                                     " like a valid IP" % ip)
+                                     " like a valid IP" % ip,
+                                     errors.ECODE_INVAL)
         nic_ip = ip
 
       # TODO: check the ip for uniqueness !!
       if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
-        raise errors.OpPrereqError("Routed nic mode requires an ip address")
+        raise errors.OpPrereqError("Routed nic mode requires an ip address",
+                                   errors.ECODE_INVAL)
 
       # MAC address verification
       mac = nic.get("mac", constants.VALUE_AUTO)
       if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
         if not utils.IsValidMac(mac.lower()):
           raise errors.OpPrereqError("Invalid MAC address specified: %s" %
-                                     mac)
+                                     mac, errors.ECODE_INVAL)
         else:
           # or validate/reserve the current one
           if self.cfg.IsMacInUse(mac):
             raise errors.OpPrereqError("MAC address %s already in use"
-                                       " in cluster" % mac)
+                                       " in cluster" % mac,
+                                       errors.ECODE_NOTUNIQUE)
 
       # bridge verification
       bridge = nic.get("bridge", None)
       link = nic.get("link", None)
       if bridge and link:
         raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
-                                   " at the same time")
+                                   " at the same time", errors.ECODE_INVAL)
       elif bridge and nic_mode == constants.NIC_MODE_ROUTED:
-        raise errors.OpPrereqError("Cannot pass 'bridge' on a routed nic")
+        raise errors.OpPrereqError("Cannot pass 'bridge' on a routed nic",
+                                   errors.ECODE_INVAL)
       elif bridge:
         link = bridge
 
@@ -5611,14 +5671,15 @@ class LUCreateInstance(LogicalUnit):
       mode = disk.get("mode", constants.DISK_RDWR)
       if mode not in constants.DISK_ACCESS_SET:
         raise errors.OpPrereqError("Invalid disk access mode '%s'" %
-                                   mode)
+                                   mode, errors.ECODE_INVAL)
       size = disk.get("size", None)
       if size is None:
-        raise errors.OpPrereqError("Missing disk size")
+        raise errors.OpPrereqError("Missing disk size", errors.ECODE_INVAL)
       try:
         size = int(size)
       except ValueError:
-        raise errors.OpPrereqError("Invalid disk size '%s'" % size)
+        raise errors.OpPrereqError("Invalid disk size '%s'" % size,
+                                   errors.ECODE_INVAL)
       self.disks.append({"size": size, "mode": mode})
 
     # used in CheckPrereq for ip ping check
@@ -5628,15 +5689,17 @@ class LUCreateInstance(LogicalUnit):
     if (self.op.file_driver and
         not self.op.file_driver in constants.FILE_DRIVER):
       raise errors.OpPrereqError("Invalid file driver name '%s'" %
-                                 self.op.file_driver)
+                                 self.op.file_driver, errors.ECODE_INVAL)
 
     if self.op.file_storage_dir and os.path.isabs(self.op.file_storage_dir):
-      raise errors.OpPrereqError("File storage directory path not absolute")
+      raise errors.OpPrereqError("File storage directory path not absolute",
+                                 errors.ECODE_INVAL)
 
     ### Node/iallocator related checks
     if [self.op.iallocator, self.op.pnode].count(None) != 1:
       raise errors.OpPrereqError("One and only one of iallocator and primary"
-                                 " node must be given")
+                                 " node must be given",
+                                 errors.ECODE_INVAL)
 
     if self.op.iallocator:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
@@ -5661,7 +5724,8 @@ class LUCreateInstance(LogicalUnit):
         self.op.src_node = None
         if os.path.isabs(src_path):
           raise errors.OpPrereqError("Importing an instance from an absolute"
-                                     " path requires a source node option.")
+                                     " path requires a source node option.",
+                                     errors.ECODE_INVAL)
       else:
         self.op.src_node = src_node = self._ExpandNode(src_node)
         if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
@@ -5677,7 +5741,8 @@ class LUCreateInstance(LogicalUnit):
 
     else: # INSTANCE_CREATE
       if getattr(self.op, "os_type", None) is None:
-        raise errors.OpPrereqError("No guest OS specified")
+        raise errors.OpPrereqError("No guest OS specified",
+                                   errors.ECODE_INVAL)
       self.op.force_variant = getattr(self.op, "force_variant", False)
 
   def _RunAllocator(self):
@@ -5702,13 +5767,14 @@ class LUCreateInstance(LogicalUnit):
 
     if not ial.success:
       raise errors.OpPrereqError("Can't compute nodes using"
-                                 " iallocator '%s': %s" % (self.op.iallocator,
-                                                           ial.info))
+                                 " iallocator '%s': %s" %
+                                 (self.op.iallocator, ial.info),
+                                 errors.ECODE_NORES)
     if len(ial.nodes) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
                                  (self.op.iallocator, len(ial.nodes),
-                                  ial.required_nodes))
+                                  ial.required_nodes), errors.ECODE_FAULT)
     self.op.pnode = ial.nodes[0]
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                  self.op.instance_name, self.op.iallocator,
@@ -5758,7 +5824,7 @@ class LUCreateInstance(LogicalUnit):
     if (not self.cfg.GetVGName() and
         self.op.disk_template not in constants.DTS_NOT_LVM):
       raise errors.OpPrereqError("Cluster does not support lvm-based"
-                                 " instances")
+                                 " instances", errors.ECODE_STATE)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       src_node = self.op.src_node
@@ -5779,7 +5845,7 @@ class LUCreateInstance(LogicalUnit):
             break
         if not found:
           raise errors.OpPrereqError("No export found for relative path %s" %
-                                      src_path)
+                                      src_path, errors.ECODE_INVAL)
 
       _CheckNodeOnline(self, src_node)
       result = self.rpc.call_export_info(src_node, src_path)
@@ -5787,12 +5853,14 @@ class LUCreateInstance(LogicalUnit):
 
       export_info = objects.SerializableConfigParser.Loads(str(result.payload))
       if not export_info.has_section(constants.INISECT_EXP):
-        raise errors.ProgrammerError("Corrupted export config")
+        raise errors.ProgrammerError("Corrupted export config",
+                                     errors.ECODE_ENVIRON)
 
       ei_version = export_info.get(constants.INISECT_EXP, 'version')
       if (int(ei_version) != constants.EXPORT_VERSION):
         raise errors.OpPrereqError("Wrong export version %s (wanted %d)" %
-                                   (ei_version, constants.EXPORT_VERSION))
+                                   (ei_version, constants.EXPORT_VERSION),
+                                   errors.ECODE_ENVIRON)
 
       # Check that the new instance doesn't have less disks than the export
       instance_disks = len(self.disks)
@@ -5800,7 +5868,8 @@ class LUCreateInstance(LogicalUnit):
       if instance_disks < export_disks:
         raise errors.OpPrereqError("Not enough disks to import."
                                    " (instance: %d, export: %d)" %
-                                   (instance_disks, export_disks))
+                                   (instance_disks, export_disks),
+                                   errors.ECODE_INVAL)
 
       self.op.os_type = export_info.get(constants.INISECT_EXP, 'os')
       disk_images = []
@@ -5829,12 +5898,14 @@ class LUCreateInstance(LogicalUnit):
     # ip ping checks (we use the same ip that was resolved in ExpandNames)
     if self.op.start and not self.op.ip_check:
       raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
-                                 " adding an instance in start mode")
+                                 " adding an instance in start mode",
+                                 errors.ECODE_INVAL)
 
     if self.op.ip_check:
       if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (self.check_ip, self.op.instance_name))
+                                   (self.check_ip, self.op.instance_name),
+                                   errors.ECODE_NOTUNIQUE)
 
     #### mac address generation
     # By generating here the mac address both the allocator and the hooks get
@@ -5861,10 +5932,10 @@ class LUCreateInstance(LogicalUnit):
       "Cannot retrieve locked node %s" % self.op.pnode
     if pnode.offline:
       raise errors.OpPrereqError("Cannot use offline primary node '%s'" %
-                                 pnode.name)
+                                 pnode.name, errors.ECODE_STATE)
     if pnode.drained:
       raise errors.OpPrereqError("Cannot use drained primary node '%s'" %
-                                 pnode.name)
+                                 pnode.name, errors.ECODE_STATE)
 
     self.secondaries = []
 
@@ -5872,10 +5943,10 @@ class LUCreateInstance(LogicalUnit):
     if self.op.disk_template in constants.DTS_NET_MIRROR:
       if self.op.snode is None:
         raise errors.OpPrereqError("The networked disk templates need"
-                                   " a mirror node")
+                                   " a mirror node", errors.ECODE_INVAL)
       if self.op.snode == pnode.name:
-        raise errors.OpPrereqError("The secondary node cannot be"
-                                   " the primary node.")
+        raise errors.OpPrereqError("The secondary node cannot be the"
+                                   " primary node.", errors.ECODE_INVAL)
       _CheckNodeOnline(self, self.op.snode)
       _CheckNodeNotDrained(self, self.op.snode)
       self.secondaries.append(self.op.snode)
@@ -5896,11 +5967,12 @@ class LUCreateInstance(LogicalUnit):
         vg_free = info.get('vg_free', None)
         if not isinstance(vg_free, int):
           raise errors.OpPrereqError("Can't compute free disk space on"
-                                     " node %s" % node)
+                                     " node %s" % node, errors.ECODE_ENVIRON)
         if req_size > vg_free:
           raise errors.OpPrereqError("Not enough disk space on target node %s."
                                      " %d MB available, %d MB required" %
-                                     (node, vg_free, req_size))
+                                     (node, vg_free, req_size),
+                                     errors.ECODE_NORES)
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
@@ -6135,7 +6207,7 @@ class LUReplaceDisks(LogicalUnit):
       remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
       if remote_node is None:
         raise errors.OpPrereqError("Node '%s' not known" %
-                                   self.op.remote_node)
+                                   self.op.remote_node, errors.ECODE_NOENT)
 
       self.op.remote_node = remote_node
 
@@ -6207,7 +6279,8 @@ class LUEvacuateNode(LogicalUnit):
   def ExpandNames(self):
     self.op.node_name = self.cfg.ExpandNodeName(self.op.node_name)
     if self.op.node_name is None:
-      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name)
+      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name,
+                                 errors.ECODE_NOENT)
 
     self.needed_locks = {}
 
@@ -6219,7 +6292,7 @@ class LUEvacuateNode(LogicalUnit):
       remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
       if remote_node is None:
         raise errors.OpPrereqError("Node '%s' not known" %
-                                   self.op.remote_node)
+                                   self.op.remote_node, errors.ECODE_NOENT)
 
       self.op.remote_node = remote_node
 
@@ -6231,7 +6304,7 @@ class LUEvacuateNode(LogicalUnit):
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
 
     else:
-      raise errors.OpPrereqError("Invalid parameters")
+      raise errors.OpPrereqError("Invalid parameters", errors.ECODE_INVAL)
 
     # Create tasklets for replacing disks for all secondary instances on this
     # node
@@ -6316,17 +6389,17 @@ class TLReplaceDisks(Tasklet):
       if remote_node is None and iallocator is None:
         raise errors.OpPrereqError("When changing the secondary either an"
                                    " iallocator script must be used or the"
-                                   " new node given")
+                                   " new node given", errors.ECODE_INVAL)
 
       if remote_node is not None and iallocator is not None:
         raise errors.OpPrereqError("Give either the iallocator or the new"
-                                   " secondary, not both")
+                                   " secondary, not both", errors.ECODE_INVAL)
 
     elif remote_node is not None or iallocator is not None:
       # Not replacing the secondary
       raise errors.OpPrereqError("The iallocator and new node options can"
                                  " only be used when changing the"
-                                 " secondary node")
+                                 " secondary node", errors.ECODE_INVAL)
 
   @staticmethod
   def _RunAllocator(lu, iallocator_name, instance_name, relocate_from):
@@ -6342,12 +6415,14 @@ class TLReplaceDisks(Tasklet):
 
     if not ial.success:
       raise errors.OpPrereqError("Can't compute nodes using iallocator '%s':"
-                                 " %s" % (iallocator_name, ial.info))
+                                 " %s" % (iallocator_name, ial.info),
+                                 errors.ECODE_NORES)
 
     if len(ial.nodes) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (len(ial.nodes), ial.required_nodes))
+                                 (len(ial.nodes), ial.required_nodes),
+                                 errors.ECODE_FAULT)
 
     remote_node_name = ial.nodes[0]
 
@@ -6372,12 +6447,13 @@ class TLReplaceDisks(Tasklet):
 
     if instance.disk_template != constants.DT_DRBD8:
       raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
-                                 " instances")
+                                 " instances", errors.ECODE_INVAL)
 
     if len(instance.secondary_nodes) != 1:
       raise errors.OpPrereqError("The instance has a strange layout,"
                                  " expected one secondary but found %d" %
-                                 len(instance.secondary_nodes))
+                                 len(instance.secondary_nodes),
+                                 errors.ECODE_FAULT)
 
     secondary_node = instance.secondary_nodes[0]
 
@@ -6396,15 +6472,17 @@ class TLReplaceDisks(Tasklet):
 
     if remote_node == self.instance.primary_node:
       raise errors.OpPrereqError("The specified node is the primary node of"
-                                 " the instance.")
+                                 " the instance.", errors.ECODE_INVAL)
 
     if remote_node == secondary_node:
       raise errors.OpPrereqError("The specified node is already the"
-                                 " secondary node of the instance.")
+                                 " secondary node of the instance.",
+                                 errors.ECODE_INVAL)
 
     if self.disks and self.mode in (constants.REPLACE_DISK_AUTO,
                                     constants.REPLACE_DISK_CHG):
-      raise errors.OpPrereqError("Cannot specify disks to be replaced")
+      raise errors.OpPrereqError("Cannot specify disks to be replaced",
+                                 errors.ECODE_INVAL)
 
     if self.mode == constants.REPLACE_DISK_AUTO:
       faulty_primary = self._FindFaultyDisks(instance.primary_node)
@@ -6413,7 +6491,8 @@ class TLReplaceDisks(Tasklet):
       if faulty_primary and faulty_secondary:
         raise errors.OpPrereqError("Instance %s has faulty disks on more than"
                                    " one node and can not be repaired"
-                                   " automatically" % self.instance_name)
+                                   " automatically" % self.instance_name,
+                                   errors.ECODE_STATE)
 
       if faulty_primary:
         self.disks = faulty_primary
@@ -6502,7 +6581,8 @@ class TLReplaceDisks(Tasklet):
       return fn(feedback_fn)
 
     finally:
-      # Deactivate the instance disks if we're replacing them on a down instance
+      # Deactivate the instance disks if we're replacing them on a
+      # down instance
       if activate_disks:
         _SafeShutdownInstanceDisks(self.lu, self.instance)
 
@@ -6894,7 +6974,8 @@ class LURepairNodeStorage(NoHooksLU):
   def CheckArguments(self):
     node_name = self.cfg.ExpandNodeName(self.op.node_name)
     if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name)
+      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
+                                 errors.ECODE_NOENT)
 
     self.op.node_name = node_name
 
@@ -6907,7 +6988,8 @@ class LURepairNodeStorage(NoHooksLU):
     if _FindFaultyInstanceDisks(self.cfg, self.rpc, instance,
                                 node_name, True):
       raise errors.OpPrereqError("Instance '%s' has faulty disks on"
-                                 " node '%s'" % (instance.name, node_name))
+                                 " node '%s'" % (instance.name, node_name),
+                                 errors.ECODE_STATE)
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -6918,7 +7000,8 @@ class LURepairNodeStorage(NoHooksLU):
     if (constants.SO_FIX_CONSISTENCY not in
         constants.VALID_STORAGE_OPERATIONS.get(storage_type, [])):
       raise errors.OpPrereqError("Storage units of type '%s' can not be"
-                                 " repaired" % storage_type)
+                                 " repaired" % storage_type,
+                                 errors.ECODE_INVAL)
 
     # Check whether any instance on this node has faulty disks
     for inst in _GetNodeInstances(self.cfg, self.op.node_name):
@@ -6993,7 +7076,7 @@ class LUGrowDisk(LogicalUnit):
 
     if instance.disk_template not in (constants.DT_PLAIN, constants.DT_DRBD8):
       raise errors.OpPrereqError("Instance's disk layout does not support"
-                                 " growing.")
+                                 " growing.", errors.ECODE_INVAL)
 
     self.disk = instance.FindDisk(self.op.disk)
 
@@ -7005,11 +7088,12 @@ class LUGrowDisk(LogicalUnit):
       vg_free = info.payload.get('vg_free', None)
       if not isinstance(vg_free, int):
         raise errors.OpPrereqError("Can't compute free disk space on"
-                                   " node %s" % node)
+                                   " node %s" % node, errors.ECODE_ENVIRON)
       if self.op.amount > vg_free:
         raise errors.OpPrereqError("Not enough disk space on target node %s:"
                                    " %d MiB available, %d MiB required" %
-                                   (node, vg_free, self.op.amount))
+                                   (node, vg_free, self.op.amount),
+                                   errors.ECODE_NORES)
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
@@ -7042,14 +7126,16 @@ class LUQueryInstanceData(NoHooksLU):
     self.share_locks = dict.fromkeys(locking.LEVELS, 1)
 
     if not isinstance(self.op.instances, list):
-      raise errors.OpPrereqError("Invalid argument type 'instances'")
+      raise errors.OpPrereqError("Invalid argument type 'instances'",
+                                 errors.ECODE_INVAL)
 
     if self.op.instances:
       self.wanted_names = []
       for name in self.op.instances:
         full_name = self.cfg.ExpandInstanceName(name)
         if full_name is None:
-          raise errors.OpPrereqError("Instance '%s' not known" % name)
+          raise errors.OpPrereqError("Instance '%s' not known" % name,
+                                     errors.ECODE_NOENT)
         self.wanted_names.append(full_name)
       self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
     else:
@@ -7209,7 +7295,7 @@ class LUSetInstanceParams(LogicalUnit):
     self.op.force = getattr(self.op, "force", False)
     if not (self.op.nics or self.op.disks or
             self.op.hvparams or self.op.beparams):
-      raise errors.OpPrereqError("No changes submitted")
+      raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     # Disk validation
     disk_addremove = 0
@@ -7221,33 +7307,35 @@ class LUSetInstanceParams(LogicalUnit):
         disk_addremove += 1
       else:
         if not isinstance(disk_op, int):
-          raise errors.OpPrereqError("Invalid disk index")
+          raise errors.OpPrereqError("Invalid disk index", errors.ECODE_INVAL)
         if not isinstance(disk_dict, dict):
           msg = "Invalid disk value: expected dict, got '%s'" % disk_dict
-          raise errors.OpPrereqError(msg)
+          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
       if disk_op == constants.DDM_ADD:
         mode = disk_dict.setdefault('mode', constants.DISK_RDWR)
         if mode not in constants.DISK_ACCESS_SET:
-          raise errors.OpPrereqError("Invalid disk access mode '%s'" % mode)
+          raise errors.OpPrereqError("Invalid disk access mode '%s'" % mode,
+                                     errors.ECODE_INVAL)
         size = disk_dict.get('size', None)
         if size is None:
-          raise errors.OpPrereqError("Required disk parameter size missing")
+          raise errors.OpPrereqError("Required disk parameter size missing",
+                                     errors.ECODE_INVAL)
         try:
           size = int(size)
         except ValueError, err:
           raise errors.OpPrereqError("Invalid disk size parameter: %s" %
-                                     str(err))
+                                     str(err), errors.ECODE_INVAL)
         disk_dict['size'] = size
       else:
         # modification of disk
         if 'size' in disk_dict:
           raise errors.OpPrereqError("Disk size change not possible, use"
-                                     " grow-disk")
+                                     " grow-disk", errors.ECODE_INVAL)
 
     if disk_addremove > 1:
       raise errors.OpPrereqError("Only one disk add or remove operation"
-                                 " supported at a time")
+                                 " supported at a time", errors.ECODE_INVAL)
 
     # NIC validation
     nic_addremove = 0
@@ -7259,10 +7347,10 @@ class LUSetInstanceParams(LogicalUnit):
         nic_addremove += 1
       else:
         if not isinstance(nic_op, int):
-          raise errors.OpPrereqError("Invalid nic index")
+          raise errors.OpPrereqError("Invalid nic index", errors.ECODE_INVAL)
         if not isinstance(nic_dict, dict):
           msg = "Invalid nic value: expected dict, got '%s'" % nic_dict
-          raise errors.OpPrereqError(msg)
+          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
       # nic_dict should be a dict
       nic_ip = nic_dict.get('ip', None)
@@ -7271,13 +7359,14 @@ class LUSetInstanceParams(LogicalUnit):
           nic_dict['ip'] = None
         else:
           if not utils.IsValidIP(nic_ip):
-            raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip)
+            raise errors.OpPrereqError("Invalid IP address '%s'" % nic_ip,
+                                       errors.ECODE_INVAL)
 
       nic_bridge = nic_dict.get('bridge', None)
       nic_link = nic_dict.get('link', None)
       if nic_bridge and nic_link:
         raise errors.OpPrereqError("Cannot pass 'bridge' and 'link'"
-                                   " at the same time")
+                                   " at the same time", errors.ECODE_INVAL)
       elif nic_bridge and nic_bridge.lower() == constants.VALUE_NONE:
         nic_dict['bridge'] = None
       elif nic_link and nic_link.lower() == constants.VALUE_NONE:
@@ -7292,14 +7381,16 @@ class LUSetInstanceParams(LogicalUnit):
         nic_mac = nic_dict['mac']
         if nic_mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
           if not utils.IsValidMac(nic_mac):
-            raise errors.OpPrereqError("Invalid MAC address %s" % nic_mac)
+            raise errors.OpPrereqError("Invalid MAC address %s" % nic_mac,
+                                       errors.ECODE_INVAL)
         if nic_op != constants.DDM_ADD and nic_mac == constants.VALUE_AUTO:
           raise errors.OpPrereqError("'auto' is not a valid MAC address when"
-                                     " modifying an existing nic")
+                                     " modifying an existing nic",
+                                     errors.ECODE_INVAL)
 
     if nic_addremove > 1:
       raise errors.OpPrereqError("Only one NIC add or remove operation"
-                                 " supported at a time")
+                                 " supported at a time", errors.ECODE_INVAL)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
@@ -7472,7 +7563,8 @@ class LUSetInstanceParams(LogicalUnit):
         if miss_mem > 0:
           raise errors.OpPrereqError("This change will prevent the instance"
                                      " from starting, due to %d MB of memory"
-                                     " missing on its primary node" % miss_mem)
+                                     " missing on its primary node" % miss_mem,
+                                     errors.ECODE_NORES)
 
       if be_new[constants.BE_AUTO_BALANCE]:
         for node, nres in nodeinfo.items():
@@ -7495,14 +7587,16 @@ class LUSetInstanceParams(LogicalUnit):
     for nic_op, nic_dict in self.op.nics:
       if nic_op == constants.DDM_REMOVE:
         if not instance.nics:
-          raise errors.OpPrereqError("Instance has no NICs, cannot remove")
+          raise errors.OpPrereqError("Instance has no NICs, cannot remove",
+                                     errors.ECODE_INVAL)
         continue
       if nic_op != constants.DDM_ADD:
         # an existing nic
         if nic_op < 0 or nic_op >= len(instance.nics):
           raise errors.OpPrereqError("Invalid NIC index %s, valid values"
                                      " are 0 to %d" %
-                                     (nic_op, len(instance.nics)))
+                                     (nic_op, len(instance.nics)),
+                                     errors.ECODE_INVAL)
         old_nic_params = instance.nics[nic_op].nicparams
         old_nic_ip = instance.nics[nic_op].ip
       else:
@@ -7533,7 +7627,7 @@ class LUSetInstanceParams(LogicalUnit):
           if self.force:
             self.warn.append(msg)
           else:
-            raise errors.OpPrereqError(msg)
+            raise errors.OpPrereqError(msg, errors.ECODE_ENVIRON)
       if new_nic_mode == constants.NIC_MODE_ROUTED:
         if 'ip' in nic_dict:
           nic_ip = nic_dict['ip']
@@ -7541,11 +7635,12 @@ class LUSetInstanceParams(LogicalUnit):
           nic_ip = old_nic_ip
         if nic_ip is None:
           raise errors.OpPrereqError('Cannot set the nic ip to None'
-                                     ' on a routed nic')
+                                     ' on a routed nic', errors.ECODE_INVAL)
       if 'mac' in nic_dict:
         nic_mac = nic_dict['mac']
         if nic_mac is None:
-          raise errors.OpPrereqError('Cannot set the nic mac to None')
+          raise errors.OpPrereqError('Cannot set the nic mac to None',
+                                     errors.ECODE_INVAL)
         elif nic_mac in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
           # otherwise generate the mac
           nic_dict['mac'] = self.cfg.GenerateMAC()
@@ -7553,37 +7648,42 @@ class LUSetInstanceParams(LogicalUnit):
           # or validate/reserve the current one
           if self.cfg.IsMacInUse(nic_mac):
             raise errors.OpPrereqError("MAC address %s already in use"
-                                       " in cluster" % nic_mac)
+                                       " in cluster" % nic_mac,
+                                       errors.ECODE_NOTUNIQUE)
 
     # DISK processing
     if self.op.disks and instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Disk operations not supported for"
-                                 " diskless instances")
+                                 " diskless instances",
+                                 errors.ECODE_INVAL)
     for disk_op, disk_dict in self.op.disks:
       if disk_op == constants.DDM_REMOVE:
         if len(instance.disks) == 1:
           raise errors.OpPrereqError("Cannot remove the last disk of"
-                                     " an instance")
+                                     " an instance",
+                                     errors.ECODE_INVAL)
         ins_l = self.rpc.call_instance_list([pnode], [instance.hypervisor])
         ins_l = ins_l[pnode]
         msg = ins_l.fail_msg
         if msg:
           raise errors.OpPrereqError("Can't contact node %s: %s" %
-                                     (pnode, msg))
+                                     (pnode, msg), errors.ECODE_ENVIRON)
         if instance.name in ins_l.payload:
           raise errors.OpPrereqError("Instance is running, can't remove"
-                                     " disks.")
+                                     " disks.", errors.ECODE_STATE)
 
       if (disk_op == constants.DDM_ADD and
           len(instance.nics) >= constants.MAX_DISKS):
         raise errors.OpPrereqError("Instance has too many disks (%d), cannot"
-                                   " add more" % constants.MAX_DISKS)
+                                   " add more" % constants.MAX_DISKS,
+                                   errors.ECODE_STATE)
       if disk_op not in (constants.DDM_ADD, constants.DDM_REMOVE):
         # an existing disk
         if disk_op < 0 or disk_op >= len(instance.disks):
           raise errors.OpPrereqError("Invalid disk index %s, valid values"
                                      " are 0 to %d" %
-                                     (disk_op, len(instance.disks)))
+                                     (disk_op, len(instance.disks)),
+                                     errors.ECODE_INVAL)
 
     return
 
@@ -7804,7 +7904,8 @@ class LUExportInstance(LogicalUnit):
 
     if self.dst_node is None:
       # This is wrong node name, not a non-locked node
-      raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node)
+      raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node,
+                                 errors.ECODE_NOENT)
     _CheckNodeOnline(self, self.dst_node.name)
     _CheckNodeNotDrained(self, self.dst_node.name)
 
@@ -7812,7 +7913,7 @@ class LUExportInstance(LogicalUnit):
     for disk in self.instance.disks:
       if disk.dev_type == constants.LD_FILE:
         raise errors.OpPrereqError("Export not supported for instances with"
-                                   " file-based disks")
+                                   " file-based disks", errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Export an instance to an image in the cluster.
@@ -8003,14 +8104,14 @@ class TagsLU(NoHooksLU):
       name = self.cfg.ExpandNodeName(self.op.name)
       if name is None:
         raise errors.OpPrereqError("Invalid node name (%s)" %
-                                   (self.op.name,))
+                                   (self.op.name,), errors.ECODE_NOENT)
       self.op.name = name
       self.needed_locks[locking.LEVEL_NODE] = name
     elif self.op.kind == constants.TAG_INSTANCE:
       name = self.cfg.ExpandInstanceName(self.op.name)
       if name is None:
         raise errors.OpPrereqError("Invalid instance name (%s)" %
-                                   (self.op.name,))
+                                   (self.op.name,), errors.ECODE_NOENT)
       self.op.name = name
       self.needed_locks[locking.LEVEL_INSTANCE] = name
 
@@ -8026,7 +8127,7 @@ class TagsLU(NoHooksLU):
       self.target = self.cfg.GetInstanceInfo(self.op.name)
     else:
       raise errors.OpPrereqError("Wrong tag type requested (%s)" %
-                                 str(self.op.kind))
+                                 str(self.op.kind), errors.ECODE_INVAL)
 
 
 class LUGetTags(TagsLU):
@@ -8063,7 +8164,7 @@ class LUSearchTags(NoHooksLU):
       self.re = re.compile(self.op.pattern)
     except re.error, err:
       raise errors.OpPrereqError("Invalid search pattern '%s': %s" %
-                                 (self.op.pattern, err))
+                                 (self.op.pattern, err), errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Returns the tag list.
@@ -8135,7 +8236,7 @@ class LUDelTags(TagsLU):
       diff_names = ["'%s'" % tag for tag in diff_tags]
       diff_names.sort()
       raise errors.OpPrereqError("Tag(s) %s not found" %
-                                 (",".join(diff_names)))
+                                 (",".join(diff_names)), errors.ECODE_NOENT)
 
   def Exec(self, feedback_fn):
     """Remove the tag from the object.
@@ -8419,10 +8520,12 @@ class IAllocator(object):
                                    " IAllocator" % self.name)
 
     if instance.disk_template not in constants.DTS_NET_MIRROR:
-      raise errors.OpPrereqError("Can't relocate non-mirrored instances")
+      raise errors.OpPrereqError("Can't relocate non-mirrored instances",
+                                 errors.ECODE_INVAL)
 
     if len(instance.secondary_nodes) != 1:
-      raise errors.OpPrereqError("Instance has not exactly one secondary node")
+      raise errors.OpPrereqError("Instance has not exactly one secondary node",
+                                 errors.ECODE_STATE)
 
     self.required_nodes = 1
     disk_sizes = [{'size': disk.size} for disk in instance.disks]
@@ -8510,51 +8613,55 @@ class LUTestAllocator(NoHooksLU):
                    "os", "tags", "nics", "vcpus"]:
         if not hasattr(self.op, attr):
           raise errors.OpPrereqError("Missing attribute '%s' on opcode input" %
-                                     attr)
+                                     attr, errors.ECODE_INVAL)
       iname = self.cfg.ExpandInstanceName(self.op.name)
       if iname is not None:
         raise errors.OpPrereqError("Instance '%s' already in the cluster" %
-                                   iname)
+                                   iname, errors.ECODE_EXISTS)
       if not isinstance(self.op.nics, list):
-        raise errors.OpPrereqError("Invalid parameter 'nics'")
+        raise errors.OpPrereqError("Invalid parameter 'nics'",
+                                   errors.ECODE_INVAL)
       for row in self.op.nics:
         if (not isinstance(row, dict) or
             "mac" not in row or
             "ip" not in row or
             "bridge" not in row):
-          raise errors.OpPrereqError("Invalid contents of the"
-                                     " 'nics' parameter")
+          raise errors.OpPrereqError("Invalid contents of the 'nics'"
+                                     " parameter", errors.ECODE_INVAL)
       if not isinstance(self.op.disks, list):
-        raise errors.OpPrereqError("Invalid parameter 'disks'")
+        raise errors.OpPrereqError("Invalid parameter 'disks'",
+                                   errors.ECODE_INVAL)
       for row in self.op.disks:
         if (not isinstance(row, dict) or
             "size" not in row or
             not isinstance(row["size"], int) or
             "mode" not in row or
             row["mode"] not in ['r', 'w']):
-          raise errors.OpPrereqError("Invalid contents of the"
-                                     " 'disks' parameter")
+          raise errors.OpPrereqError("Invalid contents of the 'disks'"
+                                     " parameter", errors.ECODE_INVAL)
       if not hasattr(self.op, "hypervisor") or self.op.hypervisor is None:
         self.op.hypervisor = self.cfg.GetHypervisorType()
     elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       if not hasattr(self.op, "name"):
-        raise errors.OpPrereqError("Missing attribute 'name' on opcode input")
+        raise errors.OpPrereqError("Missing attribute 'name' on opcode input",
+                                   errors.ECODE_INVAL)
       fname = self.cfg.ExpandInstanceName(self.op.name)
       if fname is None:
         raise errors.OpPrereqError("Instance '%s' not found for relocation" %
-                                   self.op.name)
+                                   self.op.name, errors.ECODE_NOENT)
       self.op.name = fname
       self.relocate_from = self.cfg.GetInstanceInfo(fname).secondary_nodes
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
-                                 self.op.mode)
+                                 self.op.mode, errors.ECODE_INVAL)
 
     if self.op.direction == constants.IALLOCATOR_DIR_OUT:
       if not hasattr(self.op, "allocator") or self.op.allocator is None:
-        raise errors.OpPrereqError("Missing allocator name")
+        raise errors.OpPrereqError("Missing allocator name",
+                                   errors.ECODE_INVAL)
     elif self.op.direction != constants.IALLOCATOR_DIR_IN:
       raise errors.OpPrereqError("Wrong allocator test '%s'" %
-                                 self.op.direction)
+                                 self.op.direction, errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Run the allocator test.
