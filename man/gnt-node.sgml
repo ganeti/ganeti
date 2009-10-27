@@ -756,10 +756,10 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
     </refsect2>
 
     <refsect2>
-      <title>PHYSICAL-VOLUMES</title>
+      <title>LIST-STORAGE</title>
 
       <cmdsynopsis>
-        <command>physical-volumes</command>
+        <command>list-storage</command>
         <arg>--no-headers</arg>
         <arg>--human-readable</arg>
         <arg>--separator=<replaceable>SEPARATOR</replaceable></arg>
@@ -770,7 +770,8 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
       </cmdsynopsis>
 
       <para>
-        Lists all physical volumes and their details from the node(s) provided.
+        Lists the available storage units and their details for the
+        given node(s).
       </para>
 
       <para>
@@ -855,7 +856,7 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
       <para>
         Example:
         <screen>
-# gnt-node physical-volumes node5.example.com
+# gnt-node list-storage node5.example.com
 Node              Name        Size Used   Free
 node5.example.com /dev/sda7 673.8G   0M 673.8G
 node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
@@ -864,10 +865,10 @@ node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
     </refsect2>
 
     <refsect2>
-      <title>MODIFY-VOLUME</title>
+      <title>MODIFY-STORAGE</title>
 
       <cmdsynopsis>
-        <command>modify-volume</command>
+        <command>modify-storage</command>
         <arg><option>--allocatable=yes|no</option></arg>
         <sbr>
         <arg><replaceable>node</replaceable></arg>
@@ -876,31 +877,32 @@ node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
       </cmdsynopsis>
 
       <para>
-        Modifies storage volumes on a node. Only LVM physical volumes can be
-        modified at the moment. They have a storage type of <quote>lvm-pv</quote>.
+        Modifies storage volumes on a node. Only LVM physical volumes
+        can be modified at the moment. They have a storage type
+        of <quote>lvm-pv</quote>.
       </para>
 
       <para>
         Example:
         <screen>
-# gnt-node modify-volume --allocatable no node5.example.com lvm-pv /dev/sdb1
+# gnt-node modify-storage --allocatable no node5.example.com lvm-pv /dev/sdb1
         </screen>
       </para>
     </refsect2>
 
     <refsect2>
-      <title>REPAIR-VOLUME</title>
+      <title>REPAIR-STORAGE</title>
 
       <cmdsynopsis>
-        <command>repair-volume</command>
+        <command>repair-storage</command>
         <arg><replaceable>node</replaceable></arg>
         <arg><replaceable>storage-type</replaceable></arg>
         <arg><replaceable>volume-name</replaceable></arg>
       </cmdsynopsis>
 
       <para>
-        Repairs a storage volume on a node. Only LVM volume groups can be
-        repaired at this time. They have the storage type
+        Repairs a storage volume on a node. Only LVM volume groups can
+        be repaired at this time. They have the storage type
         <quote>lvm-vg</quote>.
       </para>
 
@@ -918,7 +920,7 @@ node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
       <para>
         Example:
         <screen>
-# gnt-node repair-volume node5.example.com lvm-vg xenvg
+# gnt-node repair-storage node5.example.com lvm-vg xenvg
         </screen>
       </para>
     </refsect2>

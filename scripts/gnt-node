@@ -458,7 +458,7 @@ def ListVolumes(opts, args):
   return 0
 
 
-def ListPhysicalVolumes(opts, args):
+def ListStorage(opts, args):
   """List physical volumes on node(s).
 
   @param opts: the command line options selected by the user
@@ -530,7 +530,7 @@ def ListPhysicalVolumes(opts, args):
   return 0
 
 
-def ModifyVolume(opts, args):
+def ModifyStorage(opts, args):
   """Modify storage volume on a node.
 
   @param opts: the command line options selected by the user
@@ -557,7 +557,7 @@ def ModifyVolume(opts, args):
     SubmitOpCode(op)
 
 
-def RepairVolume(opts, args):
+def RepairStorage(opts, args):
   """Repairs a storage volume on a node.
 
   @param opts: the command line options selected by the user
@@ -667,19 +667,19 @@ commands = {
     ListVolumes, [ArgNode()],
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT],
     "[<node_name>...]", "List logical volumes on node(s)"),
-  'physical-volumes': (
-    ListPhysicalVolumes, ARGS_MANY_NODES,
+  'list-storage': (
+    ListStorage, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, _STORAGE_TYPE_OPT],
     "[<node_name>...]", "List physical volumes on node(s)"),
-  'modify-volume': (
-    ModifyVolume,
+  'modify-storage': (
+    ModifyStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_MODIFIABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],
     [ALLOCATABLE_OPT],
     "<node_name> <storage_type> <name>", "Modify storage volume on a node"),
-  'repair-volume': (
-    RepairVolume,
+  'repair-storage': (
+    RepairStorage,
     [ArgNode(min=1, max=1),
      ArgChoice(min=1, max=1, choices=_REPAIRABLE_STORAGE_TYPES),
      ArgFile(min=1, max=1)],

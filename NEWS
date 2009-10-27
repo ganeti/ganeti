@@ -43,8 +43,8 @@ Details
   - ``/2/nodes/[node_name]/storage/repair``
 
 - Added OpCodes to evacuate or migrate all instances on a node
-- Added new command to list physical volumes on nodes (``gnt-node
-  physical-volumes``) and to modify them (``gnt-node modify-volume``)
+- Added new command to list storage elements on nodes (``gnt-node
+  list-storage``) and modify them (``gnt-node modify-storage``)
 - Added new ssconf files with master candidate IP address
   (``ssconf_master_candidates_ips``), node primary IP address
   (``ssconf_node_primary_ips``) and node secondary IP address
@@ -57,7 +57,7 @@ Details
   --auto``)
 - Added ``gnt-instance recreate-disks`` to re-create (empty) disks
   after catastrophic data-loss
-- Added ``gnt-node repair-volume`` command to repair damanged LVM volume
+- Added ``gnt-node repair-storage`` command to repair damaged LVM volume
   groups
 - Added ``gnt-instance move`` command to move instances
 - Added ``gnt-cluster watcher`` command to control watcher
@@ -522,3 +522,7 @@ Version 1.2b2
 - Other small bugfixes
 
 .. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:
