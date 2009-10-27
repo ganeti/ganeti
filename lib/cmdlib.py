@@ -6364,7 +6364,7 @@ class TLReplaceDisks(Tasklet):
     """
     self.instance = instance = self.cfg.GetInstanceInfo(self.instance_name)
     assert instance is not None, \
-      "Cannot retrieve locked instance %s" % instance_name
+      "Cannot retrieve locked instance %s" % self.instance_name
 
     if instance.disk_template != constants.DT_DRBD8:
       raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
