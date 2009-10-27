@@ -724,7 +724,7 @@ class ConfigWriter:
     return self._config_data.cluster.rsahostkeypub
 
   @locking.ssynchronized(_config_lock)
-  def AddInstance(self, instance):
+  def AddInstance(self, instance, ec_id):
     """Add an instance to the config.
 
     This should be used after creating a new instance.
@@ -747,7 +747,7 @@ class ConfigWriter:
                                         " MAC address '%s' already in use." %
                                         (instance.name, nic.mac))
 
-    self._EnsureUUID(instance)
+    self._EnsureUUID(instance, ec_id)
 
     instance.serial_no = 1
     instance.ctime = instance.mtime = time.time()
@@ -758,10 +758,11 @@ class ConfigWriter:
       self._temporary_macs.discard(nic.mac)
     self._WriteConfig()
 
-  def _EnsureUUID(self, item):
+  def _EnsureUUID(self, item, ec_id):
     """Ensures a given object has a valid UUID.
 
     @param item: the instance or node to be checked
+    @param ec_id: the execution context id for the uuid reservation
 
     """
     if not item.uuid:
@@ -907,7 +908,7 @@ class ConfigWriter:
     return my_dict
 
   @locking.ssynchronized(_config_lock)
-  def AddNode(self, node):
+  def AddNode(self, node, ec_id):
     """Add a node to the configuration.
 
     @type node: L{objects.Node}
@@ -916,7 +917,7 @@ class ConfigWriter:
     """
     logging.info("Adding node %s to configuration", node.name)
 
-    self._EnsureUUID(node)
+    self._EnsureUUID(node, ec_id)
 
     node.serial_no = 1
     node.ctime = node.mtime = time.time()

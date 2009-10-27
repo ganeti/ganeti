@@ -3037,7 +3037,7 @@ class LUAddNode(LogicalUnit):
                           " candidate status: %s" % msg)
     else:
       _RedistributeAncillaryFiles(self, additional_nodes=[node])
-      self.context.AddNode(new_node)
+      self.context.AddNode(new_node, self.proc.GetECId())
 
 
 class LUSetNodeParams(LogicalUnit):
@@ -6097,7 +6097,8 @@ class LUCreateInstance(LogicalUnit):
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
-    self.cfg.AddInstance(iobj)
+    self.cfg.AddInstance(iobj, self.proc.GetECId())
+
     # Declare that we don't want to remove the instance lock anymore, as we've
     # added the instance to the config
     del self.remove_locks[locking.LEVEL_INSTANCE]

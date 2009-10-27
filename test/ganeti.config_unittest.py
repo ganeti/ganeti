@@ -148,7 +148,7 @@ class TestConfigRunner(unittest.TestCase):
     self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
                           None)
 
-    cfg.AddInstance(inst)
+    cfg.AddInstance(inst, "my-job")
     instance = cfg.GetInstanceInfo(cfg.GetInstanceList()[0])
     # first pass, must not fail
     cfg.Update(instance, None)
