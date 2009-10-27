@@ -2618,18 +2618,16 @@ class LUQueryNodeStorage(NoHooksLU):
   """
   _OP_REQP = ["nodes", "storage_type", "output_fields"]
   REQ_BGL = False
-  _FIELDS_STATIC = utils.FieldSet("node")
+  _FIELDS_STATIC = utils.FieldSet(constants.SF_NODE)
 
   def ExpandNames(self):
     storage_type = self.op.storage_type
 
-    if storage_type not in constants.VALID_STORAGE_FIELDS:
+    if storage_type not in constants.VALID_STORAGE_TYPES:
       raise errors.OpPrereqError("Unknown storage type: %s" % storage_type)
 
-    dynamic_fields = constants.VALID_STORAGE_FIELDS[storage_type]
-
     _CheckOutputFields(static=self._FIELDS_STATIC,
-                       dynamic=utils.FieldSet(*dynamic_fields),
+                       dynamic=utils.FieldSet(*constants.VALID_STORAGE_FIELDS),
                        selected=self.op.output_fields)
 
     self.needed_locks = {}
@@ -2661,9 +2659,10 @@ class LUQueryNodeStorage(NoHooksLU):
     else:
       fields = [constants.SF_NAME] + self.op.output_fields
 
-    # Never ask for node as it's only known to the LU
-    while "node" in fields:
-      fields.remove("node")
+    # Never ask for node or type as it's only known to the LU
+    for extra in [constants.SF_NODE, constants.SF_TYPE]:
+      while extra in fields:
+        fields.remove(extra)
 
     field_idx = dict([(name, idx) for (idx, name) in enumerate(fields)])
     name_idx = field_idx[constants.SF_NAME]
@@ -2693,8 +2692,10 @@ class LUQueryNodeStorage(NoHooksLU):
         out = []
 
         for field in self.op.output_fields:
-          if field == "node":
+          if field == constants.SF_NODE:
             val = node
+          elif field == constants.SF_TYPE:
+            val = self.op.storage_type
           elif field in field_idx:
             val = row[field_idx[field]]
           else:
@@ -2722,7 +2723,7 @@ class LUModifyNodeStorage(NoHooksLU):
     self.op.node_name = node_name
 
     storage_type = self.op.storage_type
-    if storage_type not in constants.VALID_STORAGE_FIELDS:
+    if storage_type not in constants.VALID_STORAGE_TYPES:
       raise errors.OpPrereqError("Unknown storage type: %s" % storage_type)
 
   def ExpandNames(self):

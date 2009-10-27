@@ -41,6 +41,19 @@ _LIST_DEF_FIELDS = [
   "pinst_cnt", "sinst_cnt",
   ]
 
+
+#: default list of field for L{ListStorage}
+_LIST_STOR_DEF_FIELDS = [
+  constants.SF_NODE,
+  constants.SF_TYPE,
+  constants.SF_NAME,
+  constants.SF_SIZE,
+  constants.SF_USED,
+  constants.SF_FREE,
+  constants.SF_ALLOCATABLE,
+  ]
+
+
 #: headers (and full field list for L{ListNodes}
 _LIST_HEADERS = {
   "name": "Node", "pinst_cnt": "Pinst", "sinst_cnt": "Sinst",
@@ -58,6 +71,19 @@ _LIST_HEADERS = {
   "role": "Role",
   "ctime": "CTime", "mtime": "MTime", "uuid": "UUID"
   }
+
+
+#: headers (and full field list for L{ListStorage}
+_LIST_STOR_HEADERS = {
+  constants.SF_NODE: "Node",
+  constants.SF_TYPE: "Type",
+  constants.SF_NAME: "Name",
+  constants.SF_SIZE: "Size",
+  constants.SF_USED: "Used",
+  constants.SF_FREE: "Free",
+  constants.SF_ALLOCATABLE: "Allocatable",
+  }
+
 
 #: User-facing storage unit types
 _USER_STORAGE_TYPE = {
@@ -476,29 +502,10 @@ def ListStorage(opts, args):
 
   storage_type = ConvertStorageType(opts.user_storage_type)
 
-  default_fields = {
-    constants.ST_FILE: [
-      constants.SF_NAME,
-      constants.SF_USED,
-      constants.SF_FREE,
-      ],
-    constants.ST_LVM_PV: [
-      constants.SF_NAME,
-      constants.SF_SIZE,
-      constants.SF_USED,
-      constants.SF_FREE,
-      ],
-    constants.ST_LVM_VG: [
-      constants.SF_NAME,
-      constants.SF_SIZE,
-      ],
-  }
-
-  def_fields = ["node"] + default_fields[storage_type]
   if opts.output is None:
-    selected_fields = def_fields
+    selected_fields = _LIST_STOR_DEF_FIELDS
   elif opts.output.startswith("+"):
-    selected_fields = def_fields + opts.output[1:].split(",")
+    selected_fields = _LIST_STOR_DEF_FIELDS + opts.output[1:].split(",")
   else:
     selected_fields = opts.output.split(",")
 
@@ -509,7 +516,8 @@ def ListStorage(opts, args):
 
   if not opts.no_headers:
     headers = {
-      "node": "Node",
+      constants.SF_NODE: "Node",
+      constants.SF_TYPE: "Type",
       constants.SF_NAME: "Name",
       constants.SF_SIZE: "Size",
       constants.SF_USED: "Used",
@@ -568,6 +576,8 @@ def ModifyStorage(opts, args):
                                      name=volume_name,
                                      changes=changes)
     SubmitOpCode(op)
+  else:
+    ToStderr("No changes to perform, exiting.")
 
 
 def RepairStorage(opts, args):
@@ -683,7 +693,9 @@ commands = {
   'list-storage': (
     ListStorage, ARGS_MANY_NODES,
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, _STORAGE_TYPE_OPT],
-    "[<node_name>...]", "List physical volumes on node(s)"),
+    "[<node_name>...]", "List physical volumes on node(s). The available"
+    " fields are (see the man page for details): %s." %
+    (", ".join(_LIST_STOR_HEADERS))),
   'modify-storage': (
     ModifyStorage,
     [ArgNode(min=1, max=1),

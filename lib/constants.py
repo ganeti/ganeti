@@ -196,6 +196,10 @@ ST_LVM_PV = "lvm-pv"
 ST_LVM_VG = "lvm-vg"
 
 # Storage fields
+# first two are valid in LU context only, not passed to backend
+SF_NODE = "node"
+SF_TYPE = "type"
+# and the rest are valid in backend
 SF_NAME = "name"
 SF_SIZE = "size"
 SF_FREE = "free"
@@ -206,11 +210,10 @@ SF_ALLOCATABLE = "allocatable"
 SO_FIX_CONSISTENCY = "fix-consistency"
 
 # Available fields per storage type
-VALID_STORAGE_FIELDS = {
-  ST_FILE: frozenset([SF_NAME, SF_USED, SF_FREE]),
-  ST_LVM_PV: frozenset([SF_NAME, SF_SIZE, SF_USED, SF_FREE, SF_ALLOCATABLE]),
-  ST_LVM_VG: frozenset([SF_NAME, SF_SIZE]),
-  }
+VALID_STORAGE_FIELDS = frozenset([SF_NAME, SF_TYPE, SF_SIZE,
+                                  SF_USED, SF_FREE, SF_ALLOCATABLE])
+
+VALID_STORAGE_TYPES = frozenset([ST_FILE, ST_LVM_PV, ST_LVM_VG])
 
 MODIFIABLE_STORAGE_FIELDS = {
   ST_LVM_PV: frozenset([SF_ALLOCATABLE]),

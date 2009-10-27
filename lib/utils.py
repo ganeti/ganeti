@@ -1890,18 +1890,20 @@ def CalculateDirectorySize(path):
   return BytesToMebibyte(size)
 
 
-def GetFreeFilesystemSpace(path):
-  """Returns the free space on a filesystem.
+def GetFilesystemStats(path):
+  """Returns the total and free space on a filesystem.
 
   @type path: string
   @param path: Path on filesystem to be examined
   @rtype: int
-  @return: Free space in mebibytes
+  @return: tuple of (Total space, Free space) in mebibytes
 
   """
   st = os.statvfs(path)
 
-  return BytesToMebibyte(st.f_bavail * st.f_frsize)
+  fsize = BytesToMebibyte(st.f_bavail * st.f_frsize)
+  tsize = BytesToMebibyte(st.f_blocks * st.f_frsize)
+  return (tsize, fsize)
 
 
 def LockedMethod(fn):

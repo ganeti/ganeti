@@ -794,8 +794,7 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
       <para>
         The <option>--storage-type</option> option can be used to choose a
         storage unit type. Possible choices are <literal>lvm-pv</literal>,
-        <literal>lvm-vg</literal> or <literal>file</literal>. Depending on the
-        storage type, the available output fields change.
+        <literal>lvm-vg</literal> or <literal>file</literal>.
       </para>
 
       <para>
@@ -809,17 +808,24 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
             </listitem>
           </varlistentry>
           <varlistentry>
+            <term>type</term>
+            <listitem>
+              <simpara>the type of the storage unit (currently just
+              what is passed in via
+              <option>--storage-type</option>)</simpara>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
             <term>name</term>
             <listitem>
-              <simpara>the physical drive name</simpara>
+              <simpara>the path/identifier of the storage unit</simpara>
             </listitem>
           </varlistentry>
           <varlistentry>
             <term>size</term>
             <listitem>
               <simpara>
-                the physical drive size
-                (<literal>lvm-pv</literal> and <literal>lvm-vg</literal> only)
+                total size of the unit; for the file type see a note below
               </simpara>
             </listitem>
           </varlistentry>
@@ -827,8 +833,7 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
             <term>used</term>
             <listitem>
               <simpara>
-                used disk space
-                (<literal>lvm-pv</literal> and <literal>file</literal> only)
+                used space in the unit; for the file type see a note below
               </simpara>
             </listitem>
           </varlistentry>
@@ -837,7 +842,6 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
             <listitem>
               <simpara>
                 available disk space
-                (<literal>lvm-pv</literal> and <literal>file</literal> only)
               </simpara>
             </listitem>
           </varlistentry>
@@ -845,8 +849,9 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
             <term>allocatable</term>
             <listitem>
               <simpara>
-                whether physical volume is allocatable
-                (<literal>lvm-pv</literal> only)
+                whether we the unit is available for allocation
+                (only <literal>lvm-pv</literal> can change this
+                setting, the other types always report true)
               </simpara>
             </listitem>
           </varlistentry>
@@ -854,12 +859,25 @@ node1.example.com /dev/hdc1 xenvg instance1.example.com-sda_11001.data 256  inst
       </para>
 
       <para>
+        Note that for the <quote>file</quote> type, the total disk
+        space might not equal to the sum of used and free, due to the
+        method Ganeti uses to compute each of them. The total and free
+        values are computed as the total and free space values for the
+        filesystem to which the directory belongs, but the used space
+        is computed from the used space under that directory
+        <emphasis>only</emphasis>, which might not be necessarily the
+        root of the filesystem, and as such there could be files
+        outside the file storage directory using disk space and
+        causing a mismatch in the values.
+      </para>
+
+      <para>
         Example:
         <screen>
-# gnt-node list-storage node5.example.com
-Node              Name        Size Used   Free
-node5.example.com /dev/sda7 673.8G   0M 673.8G
-node5.example.com /dev/sdb1 698.6G 1.3G 697.4G
+node1# gnt-node list-storage node2
+Node  Type   Name        Size Used   Free Allocatable
+node2 lvm-pv /dev/sda7 673.8G 1.5G 672.3G Y
+node2 lvm-pv /dev/sdb1 698.6G   0M 698.6G Y
         </screen>
       </para>
     </refsect2>

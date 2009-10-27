@@ -125,10 +125,10 @@ class FileStorage(_Base):
     else:
       dirsize = None
 
-    if constants.SF_FREE in fields:
-      fsfree = utils.GetFreeFilesystemSpace(path)
+    if constants.SF_FREE in fields or constants.SF_SIZE in fields:
+      fsstats = utils.GetFilesystemStats(path)
     else:
-      fsfree = None
+      fsstats = None
 
     # Make sure to update constants.VALID_STORAGE_FIELDS when changing fields.
     for field_name in fields:
@@ -139,7 +139,13 @@ class FileStorage(_Base):
         values.append(dirsize)
 
       elif field_name == constants.SF_FREE:
-        values.append(fsfree)
+        values.append(fsstats[1])
+
+      elif field_name == constants.SF_SIZE:
+        values.append(fsstats[0])
+
+      elif field_name == constants.SF_ALLOCATABLE:
+        values.append(True)
 
       else:
         raise errors.StorageError("Unknown field: %r" % field_name)
@@ -149,6 +155,11 @@ class FileStorage(_Base):
 
 class _LvmBase(_Base):
   """Base class for LVM storage containers.
+
+  @cvar LIST_FIELDS: list of tuples consisting of three elements: SF_*
+      constants, lvm command output fields (list), and conversion
+      function or static value (for static value, the lvm output field
+      can be an empty list)
 
   """
   LIST_SEP = "|"
@@ -200,9 +211,9 @@ class _LvmBase(_Base):
       except IndexError:
         raise errors.StorageError("Unknown field: %r" % field_name)
 
-      (_, lvm_name, _) = fields_def[idx]
+      (_, lvm_names, _) = fields_def[idx]
 
-      lvm_fields.append(lvm_name)
+      lvm_fields.extend(lvm_names)
 
     return utils.UniqueSequence(lvm_fields)
 
@@ -231,14 +242,24 @@ class _LvmBase(_Base):
       row = []
 
       for field_name in wanted_field_names:
-        (_, lvm_name, convert_fn) = fields_def[field_to_idx[field_name]]
+        (_, lvm_names, mapper) = fields_def[field_to_idx[field_name]]
 
-        value = raw_data[lvm_name_to_idx[lvm_name]]
+        values = [raw_data[lvm_name_to_idx[i]] for i in lvm_names]
 
-        if convert_fn:
-          value = convert_fn(value)
+        if callable(mapper):
+          # we got a function, call it with all the declared fields
+          val = mapper(*values)
+        elif len(values) == 1:
+          # we don't have a function, but we had a single field
+          # declared, pass it unchanged
+          val = values[0]
+        else:
+          # let's make sure there are no fields declared (cannot map >
+          # 1 field without a function)
+          assert not values, "LVM storage has multi-fields without a function"
+          val = mapper
 
-        row.append(value)
+        row.append(val)
 
       data.append(row)
 
@@ -297,6 +318,7 @@ class _LvmBase(_Base):
       fields = line.strip().split(sep)
 
       if len(fields) != fieldcount:
+        logging.warning("Invalid line returned from lvm command: %s", line)
         continue
 
       yield fields
@@ -318,11 +340,11 @@ class LvmPvStorage(_LvmBase):
   # Make sure to update constants.VALID_STORAGE_FIELDS when changing field
   # definitions.
   LIST_FIELDS = [
-    (constants.SF_NAME, "pv_name", None),
-    (constants.SF_SIZE, "pv_size", _ParseSize),
-    (constants.SF_USED, "pv_used", _ParseSize),
-    (constants.SF_FREE, "pv_free", _ParseSize),
-    (constants.SF_ALLOCATABLE, "pv_attr", _GetAllocatable),
+    (constants.SF_NAME, ["pv_name"], None),
+    (constants.SF_SIZE, ["pv_size"], _ParseSize),
+    (constants.SF_USED, ["pv_used"], _ParseSize),
+    (constants.SF_FREE, ["pv_free"], _ParseSize),
+    (constants.SF_ALLOCATABLE, ["pv_attr"], _GetAllocatable),
     ]
 
   def _SetAllocatable(self, name, allocatable):
@@ -372,8 +394,12 @@ class LvmVgStorage(_LvmBase):
   # Make sure to update constants.VALID_STORAGE_FIELDS when changing field
   # definitions.
   LIST_FIELDS = [
-    (constants.SF_NAME, "vg_name", None),
-    (constants.SF_SIZE, "vg_size", _ParseSize),
+    (constants.SF_NAME, ["vg_name"], None),
+    (constants.SF_SIZE, ["vg_size"], _ParseSize),
+    (constants.SF_FREE, ["vg_free"], _ParseSize),
+    (constants.SF_USED, ["vg_size", "vg_free"],
+     lambda x, y: _ParseSize(x) - _ParseSize(y)),
+    (constants.SF_ALLOCATABLE, [], True),
     ]
 
   def _RemoveMissing(self, name):
