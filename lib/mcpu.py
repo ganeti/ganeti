@@ -222,11 +222,17 @@ class Processor(object):
     opcodes.OpTestAllocator: cmdlib.LUTestAllocator,
     }
 
-  def __init__(self, context):
+  def __init__(self, context, ec_id):
     """Constructor for Processor
+
+    @type context: GanetiContext
+    @param context: global Ganeti context
+    @type ec_id: string
+    @param ec_id: execution context identifier
 
     """
     self.context = context
+    self._ec_id = ec_id
     self._cbs = None
     self.rpc = rpc.RpcRunner(context.cfg)
     self.hmclass = HooksMaster
@@ -500,6 +506,11 @@ class Processor(object):
       message = message % tuple(args)
     logging.info(message)
     self._Feedback(" - INFO: %s" % message)
+
+  def GetECId(self):
+    if not self._ec_id:
+      errors.ProgrammerError("Tried to use execution context id when not set")
+    return self._ec_id
 
 
 class HooksMaster(object):

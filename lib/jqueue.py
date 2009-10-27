@@ -431,7 +431,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
     """
     logging.info("Worker %s processing job %s",
                   self.worker_id, job.id)
-    proc = mcpu.Processor(self.pool.queue.context)
+    proc = mcpu.Processor(self.pool.queue.context, job.id)
     queue = job.queue
     try:
       try:

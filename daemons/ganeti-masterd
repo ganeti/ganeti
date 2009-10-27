@@ -322,7 +322,8 @@ class ClientOps:
     """Runs the specified opcode and returns the result.
 
     """
-    proc = mcpu.Processor(self.server.context)
+    # Queries don't have a job id
+    proc = mcpu.Processor(self.server.context, None)
     return proc.ExecOpCode(op, None)
 
 
