@@ -1379,3 +1379,11 @@ class ConfigWriter:
         self._temporary_macs.discard(nic.mac)
 
     self._WriteConfig(feedback_fn=feedback_fn)
+
+  @locking.ssynchronized(_config_lock)
+  def DropECReservations(self, ec_id):
+    """Drop per-execution-context reservations
+
+    """
+    pass
+

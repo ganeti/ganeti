@@ -451,8 +451,13 @@ class Processor(object):
             lu.ExpandNames()
             assert lu.needed_locks is not None, "needed_locks not set by LU"
 
-            return self._LockAndExecLU(lu, locking.LEVEL_INSTANCE,
-                                       timeout_strategy.CalcRemainingTimeout)
+            try:
+              return self._LockAndExecLU(lu, locking.LEVEL_INSTANCE,
+                                         timeout_strategy.CalcRemainingTimeout)
+            finally:
+              if self._ec_id:
+                self.context.cfg.DropECReservations(self._ec_id)
+
           finally:
             self.context.glm.release(locking.LEVEL_CLUSTER)
 
