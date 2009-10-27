@@ -5323,7 +5323,7 @@ def _GenerateDRBD8Branch(lu, primary, secondary, size, names, iv_name,
   """
   port = lu.cfg.AllocatePort()
   vgname = lu.cfg.GetVGName()
-  shared_secret = lu.cfg.GenerateDRBDSecret()
+  shared_secret = lu.cfg.GenerateDRBDSecret(lu.proc.GetECId())
   dev_data = objects.Disk(dev_type=constants.LD_LV, size=size,
                           logical_id=(vgname, names[0]))
   dev_meta = objects.Disk(dev_type=constants.LD_LV, size=128,

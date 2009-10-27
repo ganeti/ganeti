@@ -138,6 +138,7 @@ class ConfigWriter:
     self._temporary_ids = TemporaryReservationManager()
     self._temporary_drbds = {}
     self._temporary_macs = TemporaryReservationManager()
+    self._temporary_secrets = TemporaryReservationManager()
     # Note: in order to prevent errors when resolving our name in
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
@@ -190,23 +191,15 @@ class ConfigWriter:
       self._temporary_macs.Reserve(mac, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def GenerateDRBDSecret(self):
+  def GenerateDRBDSecret(self, ec_id):
     """Generate a DRBD secret.
 
     This checks the current disks for duplicates.
 
     """
-    all_secrets = self._AllDRBDSecrets()
-    retries = 64
-    while retries > 0:
-      secret = utils.GenerateSecret()
-      if secret not in all_secrets:
-        break
-      retries -= 1
-    else:
-      raise errors.ConfigurationError("Can't generate unique DRBD secret")
-    return secret
-
+    return self._temporary_secrets.Generate(self._AllDRBDSecrets(),
+                                            utils.GenerateSecret,
+                                            ec_id)
   def _AllLVs(self):
     """Compute the list of all LVs.
 
@@ -1429,4 +1422,5 @@ class ConfigWriter:
     """
     self._temporary_ids.DropECReservations(ec_id)
     self._temporary_macs.DropECReservations(ec_id)
+    self._temporary_secrets.DropECReservations(ec_id)
 
