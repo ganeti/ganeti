@@ -722,23 +722,23 @@ def _CheckInstanceBridgesExist(lu, instance, node=None):
   _CheckNicsBridgesExist(lu, instance.nics, node)
 
 
-def _CheckOSVariant(os, name):
+def _CheckOSVariant(os_obj, name):
   """Check whether an OS name conforms to the os variants specification.
 
-  @type os: L{objects.OS}
-  @param os: OS object to check
+  @type os_obj: L{objects.OS}
+  @param os_obj: OS object to check
   @type name: string
   @param name: OS name passed by the user, to check for validity
 
   """
-  if not os.supported_variants:
+  if not os_obj.supported_variants:
     return
   try:
     variant = name.split("+", 1)[1]
   except IndexError:
     raise errors.OpPrereqError("OS name must include a variant")
 
-  if variant not in os.supported_variants:
+  if variant not in os_obj.supported_variants:
     raise errors.OpPrereqError("Unsupported OS variant")
 
 
