@@ -494,9 +494,11 @@ def ListStorage(opts, args):
       ],
   }
 
+  def_fields = ["node"] + default_fields[storage_type]
   if opts.output is None:
-    selected_fields = ["node"]
-    selected_fields.extend(default_fields[storage_type])
+    selected_fields = def_fields
+  elif opts.output.startswith("+"):
+    selected_fields = def_fields + opts.output[1:].split(",")
   else:
     selected_fields = opts.output.split(",")
 
@@ -519,6 +521,17 @@ def ListStorage(opts, args):
 
   unitfields = [constants.SF_SIZE, constants.SF_USED, constants.SF_FREE]
   numfields = [constants.SF_SIZE, constants.SF_USED, constants.SF_FREE]
+
+  # change raw values to nicer strings
+  for row in output:
+    for idx, field in enumerate(selected_fields):
+      val = row[idx]
+      if field == constants.SF_ALLOCATABLE:
+        if val:
+          val = "Y"
+        else:
+          val = "N"
+      row[idx] = str(val)
 
   data = GenerateTable(separator=opts.separator, headers=headers,
                        fields=selected_fields, unitfields=unitfields,
