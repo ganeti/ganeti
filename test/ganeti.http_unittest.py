@@ -30,6 +30,7 @@ from ganeti import http
 
 import ganeti.http.server
 import ganeti.http.client
+import ganeti.http.auth
 
 
 class TestStartLines(unittest.TestCase):
@@ -91,6 +92,74 @@ class TestMisc(unittest.TestCase):
     message_reader_class = http.client._HttpServerToClientMessageReader
     self.assert_(message_reader_class.START_LINE_LENGTH_MAX > 0)
     self.assert_(message_reader_class.HEADER_LENGTH_MAX > 0)
+
+
+class _FakeRequestAuth(http.auth.HttpServerRequestAuthentication):
+  def __init__(self, realm):
+    http.auth.HttpServerRequestAuthentication.__init__(self)
+
+    self.realm = realm
+
+  def GetAuthRealm(self, req):
+    return self.realm
+
+
+class TestAuth(unittest.TestCase):
+  """Authentication tests"""
+
+  hsra = http.auth.HttpServerRequestAuthentication
+
+  def testConstants(self):
+    self.assertEqual(self.hsra._CLEARTEXT_SCHEME,
+                     self.hsra._CLEARTEXT_SCHEME.upper())
+    self.assertEqual(self.hsra._HA1_SCHEME,
+                     self.hsra._HA1_SCHEME.upper())
+
+  def _testVerifyBasicAuthPassword(self, realm, user, password, expected):
+    ra = _FakeRequestAuth(realm)
+
+    return ra.VerifyBasicAuthPassword(None, user, password, expected)
+
+
+  def testVerifyBasicAuthPassword(self):
+    tvbap = self._testVerifyBasicAuthPassword
+
+    good_pws = ["pw", "pw{", "pw}", "pw{}", "pw{x}y", "}pw",
+                "0", "123", "foo...:xyz", "TeST"]
+
+    for pw in good_pws:
+      # Try cleartext passwords
+      self.assert_(tvbap("abc", "user", pw, pw))
+      self.assert_(tvbap("abc", "user", pw, "{cleartext}" + pw))
+      self.assert_(tvbap("abc", "user", pw, "{ClearText}" + pw))
+      self.assert_(tvbap("abc", "user", pw, "{CLEARTEXT}" + pw))
+
+      # Try with invalid password
+      self.failIf(tvbap("abc", "user", pw, "something"))
+
+      # Try with invalid scheme
+      self.failIf(tvbap("abc", "user", pw, "{000}" + pw))
+      self.failIf(tvbap("abc", "user", pw, "{unk}" + pw))
+      self.failIf(tvbap("abc", "user", pw, "{Unk}" + pw))
+      self.failIf(tvbap("abc", "user", pw, "{UNK}" + pw))
+
+    # Try with invalid scheme format
+    self.failIf(tvbap("abc", "user", "pw", "{something"))
+
+    # Hash is MD5("user:This is only a test:pw")
+    self.assert_(tvbap("This is only a test", "user", "pw",
+                       "{ha1}92ea58ae804481498c257b2f65561a17"))
+    self.assert_(tvbap("This is only a test", "user", "pw",
+                       "{HA1}92ea58ae804481498c257b2f65561a17"))
+
+    self.failIf(tvbap(None, "user", "pw",
+                      "{HA1}92ea58ae804481498c257b2f65561a17"))
+    self.failIf(tvbap("Admin area", "user", "pw",
+                      "{HA1}92ea58ae804481498c257b2f65561a17"))
+    self.failIf(tvbap("This is only a test", "someone", "pw",
+                      "{HA1}92ea58ae804481498c257b2f65561a17"))
+    self.failIf(tvbap("This is only a test", "user", "something",
+                      "{HA1}92ea58ae804481498c257b2f65561a17"))
 
 
 if __name__ == '__main__':

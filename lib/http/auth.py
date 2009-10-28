@@ -32,6 +32,11 @@ from ganeti import http
 
 from cStringIO import StringIO
 
+try:
+  from hashlib import md5
+except ImportError:
+  from md5 import new as md5
+
 
 # Digest types from RFC2617
 HTTP_BASIC_AUTH = "Basic"
@@ -74,6 +79,10 @@ def _FormatAuthHeader(scheme, params):
 class HttpServerRequestAuthentication(object):
   # Default authentication realm
   AUTH_REALM = None
+
+  # Schemes for passwords
+  _CLEARTEXT_SCHEME = "{CLEARTEXT}"
+  _HA1_SCHEME = "{HA1}"
 
   def GetAuthRealm(self, req):
     """Returns the authentication realm for a request.
@@ -197,6 +206,63 @@ class HttpServerRequestAuthentication(object):
 
     """
     raise NotImplementedError()
+
+  def VerifyBasicAuthPassword(self, req, username, password, expected):
+    """Checks the password for basic authentication.
+
+    As long as they don't start with an opening brace ("{"), old passwords are
+    supported. A new scheme uses H(A1) from RFC2617, where H is MD5 and A1
+    consists of the username, the authentication realm and the actual password.
+
+    @type req: L{http.server._HttpServerRequest}
+    @param req: HTTP request context
+    @type username: string
+    @param username: Username from HTTP headers
+    @type password: string
+    @param password: Password from HTTP headers
+    @type expected: string
+    @param expected: Expected password with optional scheme prefix (e.g. from
+                     users file)
+
+    """
+    # Backwards compatibility for old-style passwords without a scheme
+    if not expected.startswith("{"):
+      expected = self._CLEARTEXT_SCHEME + expected
+
+    # Check again, just to be sure
+    if not expected.startswith("{"):
+      raise AssertionError("Invalid scheme")
+
+    scheme_end_idx = expected.find("}", 1)
+
+    # Ensure scheme has a length of at least one character
+    if scheme_end_idx <= 1:
+      logging.warning("Invalid scheme in password for user '%s'", username)
+      return False
+
+    scheme = expected[:scheme_end_idx + 1].upper()
+    expected_password = expected[scheme_end_idx + 1:]
+
+    # Good old plain text password
+    if scheme == self._CLEARTEXT_SCHEME:
+      return password == expected_password
+
+    # H(A1) as described in RFC2617
+    if scheme == self._HA1_SCHEME:
+      realm = self.GetAuthRealm(req)
+      if not realm:
+        # There can not be a valid password for this case
+        return False
+
+      expha1 = md5()
+      expha1.update("%s:%s:%s" % (username, realm, password))
+
+      return (expected_password.lower() == expha1.hexdigest().lower())
+
+    logging.warning("Unknown scheme '%s' in password for user '%s'",
+                    scheme, username)
+
+    return False
 
 
 class PasswordFileUser(object):
