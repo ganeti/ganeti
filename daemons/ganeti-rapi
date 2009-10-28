@@ -139,7 +139,8 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
     valid_user = False
     if self._users:
       user = self._users.get(username, None)
-      if user and user.password == password:
+      if user and self.VerifyBasicAuthPassword(req, username, password,
+                                               user.password):
         valid_user = True
 
     if not valid_user:
