@@ -16,14 +16,60 @@ it runs on TCP port 5080, but this can be changed either in
 which is used by default, can also be disabled by passing command line
 parameters.
 
+
+Users and passwords
+-------------------
+
+``ganeti-rapi`` reads users and passwords from a file (usually
+``/var/lib/ganeti/rapi_users``) on startup. After modifying the password
+file, ``ganeti-rapi`` must be restarted.
+
+Each line consists of two or three fields separated by whitespace. The
+first two fields are for username and password. The third field is
+optional and can be used to specify per-user options. Currently,
+``write`` is the only option supported and enables the user to execute
+operations modifying the cluster. Lines starting with the hash sign (#)
+are treated as comments.
+
+Passwords can either be written in clear text or as a hash. Clear text
+passwords may not start with an opening brace (``{``) or they must be
+prefixed with ``{cleartext}``. To use the hashed form, get the MD5 hash
+of the string ``$username:Ganeti Remote API:$password`` (e.g. ``echo -n
+'jack:Ganeti Remote API:abc123' | openssl md5``) [#pwhash]_. Using the
+scheme prefix for all passwords is recommended. Scheme prefixes are not
+case sensitive.
+
+Example::
+
+  # Give Jack and Fred read-only access
+  jack abc123
+  fred {cleartext}foo555
+
+  # Give write access to an imaginary instance creation script
+  autocreator xyz789 write
+
+  # Hashed password for Jessica
+  jessica {HA1}7046452df2cbb530877058712cf17bd4 write
+
+
+.. [#pwhash] Using the MD5 hash of username, realm and password is
+   described in RFC2617_ ("HTTP Authentication"), sections 3.2.2.2 and
+   3.3. The reason for using it over another algorithm is forward
+   compatibility. If ``ganeti-rapi`` were to implement HTTP Digest
+   authentication in the future, the same hash could be used.
+   In the current version ``ganeti-rapi``'s realm, ``Ganeti Remote
+   API``, can only be changed by modifying the source code.
+
+
 Protocol
 --------
 
-The protocol used is JSON_ over HTTP designed after the REST_
-principle.
+The protocol used is JSON_ over HTTP designed after the REST_ principle.
+HTTP Basic authentication as per RFC2617_ is supported.
 
 .. _JSON: http://www.json.org/
 .. _REST: http://en.wikipedia.org/wiki/Representational_State_Transfer
+.. _RFC2617: http://tools.ietf.org/rfc/rfc2617.txt
 
 Generic parameters
 ------------------
