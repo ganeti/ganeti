@@ -730,13 +730,14 @@ class RpcRunner(object):
     # TODO: should this method query down nodes?
     return cls._StaticMultiNodeCall(node_list, "master_info", [])
 
-  def call_version(self, node_list):
+  @classmethod
+  def call_version(cls, node_list):
     """Query node version.
 
     This is a multi-node call.
 
     """
-    return self._MultiNodeCall(node_list, "version", [])
+    return cls._StaticMultiNodeCall(node_list, "version", [])
 
   def call_blockdev_create(self, node, bdev, size, owner, on_primary, info):
     """Request creation of a given block device.

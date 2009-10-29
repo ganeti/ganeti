@@ -110,7 +110,7 @@ def GenerateHmacKey(file_name):
   utils.WriteFile(file_name, data=utils.GenerateSecret(), mode=0400)
 
 
-def _InitGanetiServerSetup():
+def _InitGanetiServerSetup(master_name):
   """Setup the necessary configuration for the initial node daemon.
 
   This creates the nodepass file containing the shared password for
@@ -132,6 +132,19 @@ def _InitGanetiServerSetup():
     raise errors.OpExecError("Could not start the node daemon, command %s"
                              " had exitcode %s and error %s" %
                              (result.cmd, result.exit_code, result.output))
+
+  # Wait for node daemon to become responsive
+  end_time = time.time() + 10.0
+  while True:
+    result = rpc.RpcRunner.call_version([master_name])[master_name]
+    if not result.fail_msg:
+      break
+
+    if time.time() > end_time:
+      raise errors.OpExecError("Node daemon didn't answer queries within"
+                               " 10 seconds")
+
+    time.sleep(1)
 
 
 def InitCluster(cluster_name, mac_prefix,
@@ -241,7 +254,7 @@ def InitCluster(cluster_name, mac_prefix,
     hv_class.CheckParameterSyntax(hv_params)
 
   # set up the inter-node password and certificate
-  _InitGanetiServerSetup()
+  _InitGanetiServerSetup(hostname.name)
 
   # set up ssh config and /etc/hosts
   sshline = utils.ReadFile(constants.SSH_HOST_RSA_PUB)
