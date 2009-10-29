@@ -68,11 +68,15 @@ Details
   ``--verbose`` to restore previous behaviour)
 - Added UUIDs to the main config entities (cluster, nodes, instances)
 - Added support for OS variants
+- Added support for hashed passwords in the Ganeti remote API users file
+  (``rapi_users``)
+- Added option to specify maximum timeout on instance shutdown
+- Added ``--no-ssh-init`` option to ``gnt-cluster init``
 - Added more unittests
 - Fixed critical bug in ganeti-masterd startup
 - Pass ``INSTANCE_REINSTALL`` variable to OS installation script when
   reinstalling an instance
-- Converted to Sphinx (http://sphinx.pocoo.org/) for documentation
+- Migrated to Sphinx (http://sphinx.pocoo.org/) for documentation
 - Many documentation updates
 - Distribute hypervisor files on ``gnt-cluster redist-conf``
 - ``gnt-instance reinstall`` can now reinstall multiple instances
@@ -84,8 +88,6 @@ Details
 - Match instance and node names case insensitively
 - Reimplemented bash completion script to be more complete
 - Improved burnin
-- Added option to specify maximum timeout on instance shutdown
-- Added ``--no-ssh-init`` option to ``gnt-cluster init``
 
 
 Version 2.0.4
