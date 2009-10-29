@@ -7839,67 +7839,82 @@ class LUExportInstance(LogicalUnit):
     for disk in instance.disks:
       self.cfg.SetDiskID(disk, src_node)
 
-    # per-disk results
-    dresults = []
-    try:
-      for idx, disk in enumerate(instance.disks):
-        feedback_fn("Creating a snapshot of disk/%s on node %s" %
-                    (idx, src_node))
+    activate_disks = (not instance.admin_up)
 
-        # result.payload will be a snapshot of an lvm leaf of the one we passed
-        result = self.rpc.call_blockdev_snapshot(src_node, disk)
-        msg = result.fail_msg
-        if msg:
-          self.LogWarning("Could not snapshot disk/%s on node %s: %s",
-                          idx, src_node, msg)
-          snap_disks.append(False)
+    if activate_disks:
+      # Activate the instance disks if we'exporting a stopped instance
+      feedback_fn("Activating disks for %s" % instance.name)
+      _StartInstanceDisks(self, instance, None)
+
+    try:
+      # per-disk results
+      dresults = []
+      try:
+        for idx, disk in enumerate(instance.disks):
+          feedback_fn("Creating a snapshot of disk/%s on node %s" %
+                      (idx, src_node))
+
+          # result.payload will be a snapshot of an lvm leaf of the one we
+          # passed
+          result = self.rpc.call_blockdev_snapshot(src_node, disk)
+          msg = result.fail_msg
+          if msg:
+            self.LogWarning("Could not snapshot disk/%s on node %s: %s",
+                            idx, src_node, msg)
+            snap_disks.append(False)
+          else:
+            disk_id = (vgname, result.payload)
+            new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
+                                   logical_id=disk_id, physical_id=disk_id,
+                                   iv_name=disk.iv_name)
+            snap_disks.append(new_dev)
+
+      finally:
+        if self.op.shutdown and instance.admin_up:
+          feedback_fn("Starting instance %s" % instance.name)
+          result = self.rpc.call_instance_start(src_node, instance, None, None)
+          msg = result.fail_msg
+          if msg:
+            _ShutdownInstanceDisks(self, instance)
+            raise errors.OpExecError("Could not start instance: %s" % msg)
+
+      # TODO: check for size
+
+      cluster_name = self.cfg.GetClusterName()
+      for idx, dev in enumerate(snap_disks):
+        feedback_fn("Exporting snapshot %s from %s to %s" %
+                    (idx, src_node, dst_node.name))
+        if dev:
+          result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
+                                                 instance, cluster_name, idx)
+          msg = result.fail_msg
+          if msg:
+            self.LogWarning("Could not export disk/%s from node %s to"
+                            " node %s: %s", idx, src_node, dst_node.name, msg)
+            dresults.append(False)
+          else:
+            dresults.append(True)
+          msg = self.rpc.call_blockdev_remove(src_node, dev).fail_msg
+          if msg:
+            self.LogWarning("Could not remove snapshot for disk/%d from node"
+                            " %s: %s", idx, src_node, msg)
         else:
-          disk_id = (vgname, result.payload)
-          new_dev = objects.Disk(dev_type=constants.LD_LV, size=disk.size,
-                                 logical_id=disk_id, physical_id=disk_id,
-                                 iv_name=disk.iv_name)
-          snap_disks.append(new_dev)
+          dresults.append(False)
+
+      feedback_fn("Finalizing export on %s" % dst_node.name)
+      result = self.rpc.call_finalize_export(dst_node.name, instance,
+                                             snap_disks)
+      fin_resu = True
+      msg = result.fail_msg
+      if msg:
+        self.LogWarning("Could not finalize export for instance %s"
+                        " on node %s: %s", instance.name, dst_node.name, msg)
+        fin_resu = False
 
     finally:
-      if self.op.shutdown and instance.admin_up:
-        feedback_fn("Starting instance %s" % instance.name)
-        result = self.rpc.call_instance_start(src_node, instance, None, None)
-        msg = result.fail_msg
-        if msg:
-          _ShutdownInstanceDisks(self, instance)
-          raise errors.OpExecError("Could not start instance: %s" % msg)
-
-    # TODO: check for size
-
-    cluster_name = self.cfg.GetClusterName()
-    for idx, dev in enumerate(snap_disks):
-      feedback_fn("Exporting snapshot %s from %s to %s" %
-                  (idx, src_node, dst_node.name))
-      if dev:
-        result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
-                                               instance, cluster_name, idx)
-        msg = result.fail_msg
-        if msg:
-          self.LogWarning("Could not export disk/%s from node %s to"
-                          " node %s: %s", idx, src_node, dst_node.name, msg)
-          dresults.append(False)
-        else:
-          dresults.append(True)
-        msg = self.rpc.call_blockdev_remove(src_node, dev).fail_msg
-        if msg:
-          self.LogWarning("Could not remove snapshot for disk/%d from node"
-                          " %s: %s", idx, src_node, msg)
-      else:
-        dresults.append(False)
-
-    feedback_fn("Finalizing export on %s" % dst_node.name)
-    result = self.rpc.call_finalize_export(dst_node.name, instance, snap_disks)
-    fin_resu = True
-    msg = result.fail_msg
-    if msg:
-      self.LogWarning("Could not finalize export for instance %s"
-                      " on node %s: %s", instance.name, dst_node.name, msg)
-      fin_resu = False
+      if activate_disks:
+        feedback_fn("Deactivating disks for %s" % instance.name)
+        _ShutdownInstanceDisks(self, instance)
 
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(dst_node.name)
