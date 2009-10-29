@@ -160,6 +160,9 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled('node-volumes'):
     RunTest(qa_node.TestNodeVolumes)
 
+  if qa_config.TestEnabled("node-storage"):
+    RunTest(qa_node.TestNodeStorage)
+
   if qa_rapi.Enabled():
     RunTest(qa_rapi.TestInstance, instance)
 

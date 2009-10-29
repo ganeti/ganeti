@@ -20,12 +20,13 @@
 
 
 from ganeti import utils
+from ganeti import constants
 
 import qa_config
 import qa_error
 import qa_utils
 
-from qa_utils import AssertEqual, StartSSH
+from qa_utils import AssertEqual, AssertNotEqual, StartSSH
 
 
 def _NodeAdd(node, readd=False):
@@ -94,6 +95,72 @@ def TestNodeVolumes():
   cmd = ['gnt-node', 'volumes']
   AssertEqual(StartSSH(master['primary'],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestNodeStorage():
+  """gnt-node storage"""
+  master = qa_config.GetMasterNode()
+
+  for storage_type in constants.VALID_STORAGE_TYPES:
+    # Test simple list
+    cmd = ["gnt-node", "list-storage", "--storage-type", storage_type]
+    AssertEqual(StartSSH(master["primary"],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    # Test all storage fields
+    cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
+           "--output=%s" % ",".join(list(constants.VALID_STORAGE_FIELDS) +
+                                    [constants.SF_NODE, constants.SF_TYPE])]
+    AssertEqual(StartSSH(master["primary"],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+    # Get list of valid storage devices
+    cmd = ["gnt-node", "list-storage", "--storage-type", storage_type,
+           "--output=node,name,allocatable", "--separator=|",
+           "--no-headers"]
+    output = qa_utils.GetCommandOutput(master["primary"],
+                                       utils.ShellQuoteArgs(cmd))
+
+    # Test with up to two devices
+    testdevcount = 2
+
+    for line in output.splitlines()[:testdevcount]:
+      (node_name, st_name, st_allocatable) = line.split("|")
+
+      # Dummy modification without any changes
+      cmd = ["gnt-node", "modify-storage", node_name, storage_type, st_name]
+      AssertEqual(StartSSH(master["primary"],
+                           utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+      # Make sure we end up with the same value as before
+      if st_allocatable.lower() == "y":
+        test_allocatable = ["no", "yes"]
+      else:
+        test_allocatable = ["yes", "no"]
+
+      if (constants.SF_ALLOCATABLE in
+          constants.MODIFIABLE_STORAGE_FIELDS.get(storage_type, [])):
+        assert_fn = AssertEqual
+      else:
+        assert_fn = AssertNotEqual
+
+      for i in test_allocatable:
+        cmd = ["gnt-node", "modify-storage", "--allocatable", i,
+               node_name, storage_type, st_name]
+        assert_fn(StartSSH(master["primary"],
+                  utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+      # Test repair functionality
+      cmd = ["gnt-node", "repair-storage", node_name, storage_type, st_name]
+
+      if (constants.SO_FIX_CONSISTENCY in
+          constants.VALID_STORAGE_OPERATIONS.get(storage_type, [])):
+        assert_fn = AssertEqual
+      else:
+        assert_fn = AssertNotEqual
+
+      assert_fn(StartSSH(master["primary"],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
 def TestNodeFailover(node, node2):

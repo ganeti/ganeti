@@ -51,6 +51,7 @@
     "node-info": true,
     "node-volumes": true,
     "node-readd": true,
+    "node-storage": true,
 
     "# This test needs at least three nodes": null,
     "node-evacuate": false,
@@ -73,16 +74,16 @@
     "instance-automatic-restart": false,
     "instance-consecutive-failures": false,
 
-    "# This test might fail with certain hypervisor types, depending on whether": null,
-    "# they support the `gnt-instance console' command.": null,
+    "# This test might fail with certain hypervisor types, depending": null,
+    "# on whether they support the `gnt-instance console' command.": null,
     "instance-console": false,
 
     "# Disabled by default because it takes rather long": null,
     "instance-replace-disks": false,
 
-    "# Make sure not to include the disk(s) required for Dom0 to be included in": null,
-    "# the volume group used for instances. Otherwise the whole system may stop": null,
-    "# working until restarted.": null,
+    "# Make sure not to include the disk(s) required for Dom0 to be": null,
+    "# included in the volume group used for instances. Otherwise": null,
+    "# whole system may stop working until restarted.": null,
     "instance-disk-failure": false
   },
 
