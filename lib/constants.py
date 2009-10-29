@@ -165,6 +165,8 @@ XEN_INITRD = _autoconf.XEN_INITRD
 
 KVM_PATH = _autoconf.KVM_PATH
 SOCAT_PATH = _autoconf.SOCAT_PATH
+SOCAT_ESCAPE = _autoconf.SOCAT_ESCAPE
+SOCAT_ESCAPE_CODE = "0x1d"
 
 VALUE_DEFAULT = "default"
 VALUE_AUTO = "auto"
