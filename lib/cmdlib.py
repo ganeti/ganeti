@@ -4470,13 +4470,16 @@ class LUFailoverInstance(LogicalUnit):
     source_node = instance.primary_node
     target_node = instance.secondary_nodes[0]
 
-    feedback_fn("* checking disk consistency between source and target")
-    for dev in instance.disks:
-      # for drbd, these are drbd over lvm
-      if not _CheckDiskConsistency(self, dev, target_node, False):
-        if instance.admin_up and not self.op.ignore_consistency:
-          raise errors.OpExecError("Disk %s is degraded on target node,"
-                                   " aborting failover." % dev.iv_name)
+    if instance.admin_up:
+      feedback_fn("* checking disk consistency between source and target")
+      for dev in instance.disks:
+        # for drbd, these are drbd over lvm
+        if not _CheckDiskConsistency(self, dev, target_node, False):
+          if not self.op.ignore_consistency:
+            raise errors.OpExecError("Disk %s is degraded on target node,"
+                                     " aborting failover." % dev.iv_name)
+    else:
+      feedback_fn("* not checking disk consistency as instance is not running")
 
     feedback_fn("* shutting down instance on source node")
     logging.info("Shutting down instance %s on node %s",
