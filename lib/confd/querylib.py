@@ -143,18 +143,18 @@ class NodeRoleQuery(ConfdQuery):
 class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
   """A query for the location of one or more instance's ips.
 
-  @type query: string or dict
-  @param query: instance ip or dict containing:
-                constants.CONFD_REQQ_LINK: nic link (optional)
-                constants.CONFD_REQQ_IPLIST: list of ips
-                constants.CONFD_REQQ_IP: single ip
-                (one IP type request is mandatory)
-  @rtype: (integer, ...)
-  @return: ((status, answer) or (success, [(status, answer)...])
-
   """
   def Exec(self, query):
     """InstanceIpToNodePrimaryIpQuery main execution.
+
+    @type query: string or dict
+    @param query: instance ip or dict containing:
+                  constants.CONFD_REQQ_LINK: nic link (optional)
+                  constants.CONFD_REQQ_IPLIST: list of ips
+                  constants.CONFD_REQQ_IP: single ip
+                  (one IP type request is mandatory)
+    @rtype: (integer, ...)
+    @return: ((status, answer) or (success, [(status, answer)...])
 
     """
     if isinstance(query, dict):

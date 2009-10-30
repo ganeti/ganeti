@@ -1048,8 +1048,8 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout):
         not accepted here, since that mode is handled differently, in
         cmdlib, and translates into full stop and start of the
         instance (instead of a call_instance_reboot RPC)
-  @type timeout: integer
-  @param timeout: maximum timeout for soft shutdown
+  @type shutdown_timeout: integer
+  @param shutdown_timeout: maximum timeout for soft shutdown
   @rtype: None
 
   """

@@ -210,8 +210,8 @@ class HttpServerRequestAuthentication(object):
   def VerifyBasicAuthPassword(self, req, username, password, expected):
     """Checks the password for basic authentication.
 
-    As long as they don't start with an opening brace ("{"), old passwords are
-    supported. A new scheme uses H(A1) from RFC2617, where H is MD5 and A1
+    As long as they don't start with an opening brace ("E{lb}"), old passwords
+    are supported. A new scheme uses H(A1) from RFC2617, where H is MD5 and A1
     consists of the username, the authentication realm and the actual password.
 
     @type req: L{http.server._HttpServerRequest}
