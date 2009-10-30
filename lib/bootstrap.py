@@ -134,18 +134,16 @@ def _InitGanetiServerSetup(master_name):
                              (result.cmd, result.exit_code, result.output))
 
   # Wait for node daemon to become responsive
-  end_time = time.time() + 10.0
-  while True:
+  def _CheckNodeDaemon():
     result = rpc.RpcRunner.call_version([master_name])[master_name]
-    if not result.fail_msg:
-      break
+    if result.fail_msg:
+      raise utils.RetryAgain()
 
-    if time.time() > end_time:
-      raise errors.OpExecError("Node daemon didn't answer queries within"
-                               " 10 seconds")
-
-    time.sleep(1)
-
+  try:
+    utils.Retry(_CheckNodeDaemon, 1.0, 10.0)
+  except utils.RetryTimeout:
+    raise errors.OpExecError("Node daemon didn't answer queries within"
+                             " 10 seconds")
 
 def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
