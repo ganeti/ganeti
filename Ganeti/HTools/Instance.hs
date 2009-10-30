@@ -36,6 +36,7 @@ module Ganeti.HTools.Instance
     , setPri
     , setSec
     , setBoth
+    , shrinkByType
     ) where
 
 import qualified Ganeti.HTools.Types as T
@@ -61,6 +62,16 @@ instance T.Element Instance where
     idxOf   = idx
     setName = setName
     setIdx  = setIdx
+
+-- | Base memory unit.
+unitMem :: Int
+unitMem = 64
+-- | Base disk unit.
+unitDsk :: Int
+unitDsk = 256
+-- | Base vcpus unit.
+unitCpu :: Int
+unitCpu = 1
 
 -- | A simple name for the int, instance association list.
 type AssocList = [(T.Idx, Instance)]
@@ -124,3 +135,20 @@ setBoth :: Instance  -- ^ the original instance
          -> T.Ndx    -- ^ new secondary node index
          -> Instance -- ^ the modified instance
 setBoth t p s = t { pNode = p, sNode = s }
+
+-- | Try to shrink the instance based on the reason why we can't
+-- allocate it.
+shrinkByType :: Instance -> T.FailMode -> T.Result Instance
+shrinkByType inst T.FailMem = let v = mem inst - unitMem
+                              in if v < unitMem
+                                 then T.Bad "out of memory"
+                                 else T.Ok inst { mem = v }
+shrinkByType inst T.FailDisk = let v = dsk inst - unitDsk
+                               in if v < unitDsk
+                                  then T.Bad "out of disk"
+                                  else T.Ok inst { dsk = v }
+shrinkByType inst T.FailCPU = let v = vcpus inst - unitCpu
+                              in if v < unitCpu
+                                 then T.Bad "out of vcpus"
+                                 else T.Ok inst { vcpus = v }
+shrinkByType _ f = T.Bad $ "Unhandled failure mode " ++ show f
