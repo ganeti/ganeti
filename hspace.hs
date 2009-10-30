@@ -68,7 +68,11 @@ options =
     , oShowHelp
     ]
 
-data Phase = PInitial | PFinal
+-- | The allocation phase we're in (initial, after tiered allocs, or
+-- after regular allocation).
+data Phase = PInitial
+           | PFinal
+           | PTiered
 
 statsData :: [(String, Cluster.CStats -> String)]
 statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
@@ -131,6 +135,23 @@ iterateDepth nl il newinst nreq ixes =
                  Just (_, (xnl, xi, _)) ->
                      iterateDepth xnl il newinst nreq $! (xi:ixes)
 
+tieredAlloc :: Node.List
+            -> Instance.List
+            -> Instance.Instance
+            -> Int
+            -> [Instance.Instance]
+            -> Result (FailStats, Node.List, [Instance.Instance])
+tieredAlloc nl il newinst nreq ixes =
+    case iterateDepth nl il newinst nreq ixes of
+      Bad s -> Bad s
+      Ok (errs, nl', ixes') ->
+          case Instance.shrinkByType newinst . fst . last $
+               sortBy (compare `on` snd) errs of
+            Bad _ -> Ok (errs, nl', ixes')
+            Ok newinst' ->
+                tieredAlloc nl' il newinst' nreq ixes'
+
+
 -- | Function to print stats for a given phase
 printStats :: Phase -> Cluster.CStats -> [(String, String)]
 printStats ph cs =
@@ -138,6 +159,7 @@ printStats ph cs =
   where kind = case ph of
                  PInitial -> "INI"
                  PFinal -> "FIN"
+                 PTiered -> "TRL"
 
 -- | Print final stats and related metrics
 printResults :: Node.List -> Int -> Int -> [(FailMode, Int)] -> IO ()
@@ -251,15 +273,44 @@ main = do
          printResults nl num_instances 0 [(FailN1, 1)]
          exitWith ExitSuccess
 
-  let reqinst = Instance.create "new" (rspecMem ispec) (rspecDsk ispec)
-                (rspecCpu ispec) "ADMIN_down" (-1) (-1)
+  -- utility functions
+  let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
+                    (rspecCpu spx) "ADMIN_down" (-1) (-1)
+      exitifbad val = (case val of
+                         Bad s -> do
+                           hPrintf stderr "Failure: %s\n" s
+                           exitWith $ ExitFailure 1
+                         Ok x -> return x)
+
+
+  let reqinst = iofspec ispec
+
+  -- Run the tiered allocation, if enabled
+
+  (case optTieredSpec opts of
+     Nothing -> return ()
+     Just tspec -> do
+       let tresu = tieredAlloc nl il (iofspec tspec) req_nodes []
+       (_, trl_nl, trl_ixes) <- exitifbad tresu
+       let fin_trl_ixes = reverse trl_ixes
+
+       when (verbose > 1) $ do
+         hPutStrLn stderr "Tiered allocation map"
+         hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
+                 formatTable (map (printInstance trl_nl) fin_trl_ixes)
+                                 [False, False, False, True, True, True]
+       when (optShowNodes opts) $ do
+         hPutStrLn stderr ""
+         hPutStrLn stderr "Tiered allocation status:"
+         hPutStrLn stderr $ Cluster.printNodes trl_nl
+
+         printKeys $ printStats PTiered (Cluster.totalResources trl_nl))
+
+  -- Run the standard (avg-mode) allocation
 
   let result = iterateDepth nl il reqinst req_nodes []
-  (ereason, fin_nl, ixes) <- (case result of
-                                Bad s -> do
-                                  hPrintf stderr "Failure: %s\n" s
-                                  exitWith $ ExitFailure 1
-                                Ok x -> return x)
+  (ereason, fin_nl, ixes) <- exitifbad result
+
   let allocs = length ixes
       fin_ixes = reverse ixes
       sreason = reverse $ sortBy (compare `on` snd) ereason
