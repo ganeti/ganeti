@@ -988,45 +988,51 @@ def InstanceShutdown(instance, timeout):
   """
   hv_name = instance.hypervisor
   hyper = hypervisor.GetHypervisor(hv_name)
-  running_instances = hyper.ListInstances()
   iname = instance.name
 
-  if iname not in running_instances:
+  if instance.name not in hyper.ListInstances():
     logging.info("Instance %s not running, doing nothing", iname)
     return
 
-  start = time.time()
-  end = start + timeout
-  sleep_time = 5
+  class _TryShutdown:
+    def __init__(self):
+      self.tried_once = False
 
-  tried_once = False
-  while time.time() < end:
-    try:
-      hyper.StopInstance(instance, retry=tried_once)
-    except errors.HypervisorError, err:
-      if instance.name not in hyper.ListInstances():
-        # if the instance is no longer existing, consider this a
-        # success and go to cleanup
-        break
-      _Fail("Failed to stop instance %s: %s", iname, err)
-    tried_once = True
-    time.sleep(sleep_time)
-    if instance.name not in hyper.ListInstances():
-      break
-  else:
+    def __call__(self):
+      if iname not in hyper.ListInstances():
+        return
+
+      try:
+        hyper.StopInstance(instance, retry=self.tried_once)
+      except errors.HypervisorError, err:
+        if iname not in hyper.ListInstances():
+          # if the instance is no longer existing, consider this a
+          # success and go to cleanup
+          return
+
+        _Fail("Failed to stop instance %s: %s", iname, err)
+
+      self.tried_once = True
+
+      raise utils.RetryAgain()
+
+  try:
+    utils.Retry(_TryShutdown(), 5, timeout)
+  except utils.RetryTimeout:
     # the shutdown did not succeed
     logging.error("Shutdown of '%s' unsuccessful, forcing", iname)
 
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      if instance.name in hyper.ListInstances():
+      if iname in hyper.ListInstances():
         # only raise an error if the instance still exists, otherwise
         # the error could simply be "instance ... unknown"!
         _Fail("Failed to force stop instance %s: %s", iname, err)
 
     time.sleep(1)
-    if instance.name in GetInstanceList([hv_name]):
+
+    if iname in hyper.ListInstances():
       _Fail("Could not shutdown instance %s even by destroy", iname)
 
   _RemoveBlockDevLinks(iname, instance.disks)
@@ -2488,20 +2494,22 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
       rd.AttachNet(multimaster)
     except errors.BlockDeviceError, err:
       _Fail("Can't change network configuration: %s", err)
+
   # wait until the disks are connected; we need to retry the re-attach
   # if the device becomes standalone, as this might happen if the one
   # node disconnects and reconnects in a different mode before the
   # other node reconnects; in this case, one or both of the nodes will
   # decide it has wrong configuration and switch to standalone
-  RECONNECT_TIMEOUT = 2 * 60
-  sleep_time = 0.100 # start with 100 miliseconds
-  timeout_limit = time.time() + RECONNECT_TIMEOUT
-  while time.time() < timeout_limit:
+
+  def _Attach():
     all_connected = True
+
     for rd in bdevs:
       stats = rd.GetProcStatus()
-      if not (stats.is_connected or stats.is_in_resync):
-        all_connected = False
+
+      all_connected = (all_connected and
+                       (stats.is_connected or stats.is_in_resync))
+
       if stats.is_standalone:
         # peer had different config info and this node became
         # standalone, even though this should not happen with the
@@ -2510,12 +2518,16 @@ def DrbdAttachNet(nodes_ip, disks, instance_name, multimaster):
           rd.AttachNet(multimaster)
         except errors.BlockDeviceError, err:
           _Fail("Can't change network configuration: %s", err)
-    if all_connected:
-      break
-    time.sleep(sleep_time)
-    sleep_time = min(5, sleep_time * 1.5)
-  if not all_connected:
+
+    if not all_connected:
+      raise utils.RetryAgain()
+
+  try:
+    # Start with a delay of 100 miliseconds and go up to 5 seconds
+    utils.Retry(_Attach, (0.1, 1.5, 5.0), 2 * 60)
+  except utils.RetryTimeout:
     _Fail("Timeout in disk reconnecting")
+
   if multimaster:
     # change to primary mode
     for rd in bdevs:
