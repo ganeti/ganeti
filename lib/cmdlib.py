@@ -2096,6 +2096,8 @@ def _WaitForSync(lu, instance, oneshot=False, unlock=False):
   for dev in instance.disks:
     lu.cfg.SetDiskID(dev, node)
 
+  # TODO: Convert to utils.Retry
+
   retries = 0
   degr_retries = 10 # in seconds, as we sleep 1 second each time
   while True:
