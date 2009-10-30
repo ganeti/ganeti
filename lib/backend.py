@@ -1730,23 +1730,23 @@ def _TryOSFromDisk(name, base_dir=None):
   if max(api_versions) >= constants.OS_API_V15:
     os_files[constants.OS_VARIANTS_FILE] = ''
 
-  for name in os_files:
-    os_files[name] = os.path.sep.join([os_dir, name])
+  for filename in os_files:
+    os_files[filename] = os.path.sep.join([os_dir, filename])
 
     try:
-      st = os.stat(os_files[name])
+      st = os.stat(os_files[filename])
     except EnvironmentError, err:
       return False, ("File '%s' under path '%s' is missing (%s)" %
-                     (name, os_dir, _ErrnoOrStr(err)))
+                     (filename, os_dir, _ErrnoOrStr(err)))
 
     if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
       return False, ("File '%s' under path '%s' is not a regular file" %
-                     (name, os_dir))
+                     (filename, os_dir))
 
-    if name in constants.OS_SCRIPTS:
+    if filename in constants.OS_SCRIPTS:
       if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
         return False, ("File '%s' under path '%s' is not executable" %
-                       (name, os_dir))
+                       (filename, os_dir))
 
   variants = None
   if constants.OS_VARIANTS_FILE in os_files:
