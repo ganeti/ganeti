@@ -63,6 +63,7 @@ options =
     , oINodes
     , oMaxCpu
     , oMinDisk
+    , oTieredSpec
     , oShowVer
     , oShowHelp
     ]
@@ -98,11 +99,10 @@ statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
             , ("MNODE_DSK_AVAIL", printf "%d" . Cluster.csMdsk)
             ]
 
-specData :: [(String, Options -> String)]
-specData = [ ("MEM", printf "%d" . optIMem)
-           , ("DSK", printf "%d" . optIDsk)
-           , ("CPU", printf "%d" . optIVCPUs)
-           , ("RQN", printf "%d" . optINodes)
+specData :: [(String, RSpec -> String)]
+specData = [ ("MEM", printf "%d" . rspecMem)
+           , ("DSK", printf "%d" . rspecDsk)
+           , ("CPU", printf "%d" . rspecCpu)
            ]
 
 clusterData :: [(String, Cluster.CStats -> String)]
@@ -179,10 +179,12 @@ main = do
          exitWith $ ExitFailure 1
 
   let verbose = optVerbose opts
+      ispec = optISpec opts
 
   (fixed_nl, il, csf) <- loadExternalData opts
 
-  printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn opts)) specData
+  printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
+  printKeys [ ("SPEC_RQN", printf "%d" (optINodes opts)) ]
 
   let num_instances = length $ Container.elems il
 
@@ -239,10 +241,10 @@ main = do
          exitWith ExitSuccess
 
   let nmlen = Container.maxNameLen nl
-      newinst = Instance.create "new" (optIMem opts) (optIDsk opts)
-                (optIVCPUs opts) "ADMIN_down" (-1) (-1)
+      reqinst = Instance.create "new" (rspecMem ispec) (rspecDsk ispec)
+                (rspecCpu ispec) "ADMIN_down" (-1) (-1)
 
-  let result = iterateDepth nl il newinst req_nodes []
+  let result = iterateDepth nl il reqinst req_nodes []
   (ereason, fin_nl, ixes) <- (case result of
                                 Bad s -> do
                                   hPrintf stderr "Failure: %s\n" s

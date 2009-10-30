@@ -58,6 +58,7 @@ module Ganeti.HTools.CLI
     , oMinDisk
     , oDiskMoves
     , oDynuFile
+    , oTieredSpec
     , oShowVer
     , oShowHelp
     ) where
@@ -73,6 +74,7 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Version as Version(version)
 import Ganeti.HTools.Types
+import Ganeti.HTools.Utils
 
 -- | The default value for the luxi socket
 defaultLuxiSocket :: FilePath
@@ -80,67 +82,65 @@ defaultLuxiSocket = "/var/run/ganeti/socket/ganeti-master"
 
 -- | Command line options structure.
 data Options = Options
-    { optShowNodes :: Bool           -- ^ Whether to show node status
-    , optShowInsts :: Bool           -- ^ Whether to show the instance map
-    , optShowCmds  :: Maybe FilePath -- ^ Whether to show the command list
-    , optOneline   :: Bool           -- ^ Switch output to a single line
-    , optOutPath   :: FilePath       -- ^ Path to the output directory
-    , optNoHeaders :: Bool           -- ^ Do not show a header line
-    , optNodeFile  :: FilePath       -- ^ Path to the nodes file
-    , optNodeSet   :: Bool           -- ^ The nodes have been set by options
-    , optInstFile  :: FilePath       -- ^ Path to the instances file
-    , optInstSet   :: Bool           -- ^ The insts have been set by options
-    , optNodeSim   :: Maybe String   -- ^ Cluster simulation mode
-    , optMaxLength :: Int            -- ^ Stop after this many steps
-    , optMaster    :: String         -- ^ Collect data from RAPI
-    , optLuxi      :: Maybe FilePath -- ^ Collect data from Luxi
-    , optExecJobs  :: Bool           -- ^ Execute the commands via Luxi
-    , optOffline   :: [String]       -- ^ Names of offline nodes
-    , optIMem      :: Int            -- ^ Instance memory
-    , optIDsk      :: Int            -- ^ Instance disk
-    , optIVCPUs    :: Int            -- ^ Instance VCPUs
-    , optINodes    :: Int            -- ^ Nodes required for an instance
-    , optMinScore  :: Score          -- ^ The minimum score we aim for
-    , optMcpu      :: Double         -- ^ Max cpu ratio for nodes
-    , optMdsk      :: Double         -- ^ Max disk usage ratio for nodes
-    , optDiskMoves :: Bool           -- ^ Allow disk moves
-    , optDynuFile  :: Maybe FilePath -- ^ Optional file with dynamic use data
-    , optVerbose   :: Int            -- ^ Verbosity level
-    , optShowVer   :: Bool           -- ^ Just show the program version
-    , optShowHelp  :: Bool           -- ^ Just show the help
+    { optShowNodes   :: Bool           -- ^ Whether to show node status
+    , optShowInsts   :: Bool           -- ^ Whether to show the instance map
+    , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
+    , optOneline     :: Bool           -- ^ Switch output to a single line
+    , optOutPath     :: FilePath       -- ^ Path to the output directory
+    , optNoHeaders   :: Bool           -- ^ Do not show a header line
+    , optNodeFile    :: FilePath       -- ^ Path to the nodes file
+    , optNodeSet     :: Bool           -- ^ The nodes have been set by options
+    , optInstFile    :: FilePath       -- ^ Path to the instances file
+    , optInstSet     :: Bool           -- ^ The insts have been set by options
+    , optNodeSim     :: Maybe String   -- ^ Cluster simulation mode
+    , optMaxLength   :: Int            -- ^ Stop after this many steps
+    , optMaster      :: String         -- ^ Collect data from RAPI
+    , optLuxi        :: Maybe FilePath -- ^ Collect data from Luxi
+    , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
+    , optOffline     :: [String]       -- ^ Names of offline nodes
+    , optINodes      :: Int            -- ^ Nodes required for an instance
+    , optISpec       :: RSpec          -- ^ Requested instance specs
+    , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
+    , optMinScore    :: Score          -- ^ The minimum score we aim for
+    , optMcpu        :: Double         -- ^ Max cpu ratio for nodes
+    , optMdsk        :: Double         -- ^ Max disk usage ratio for nodes
+    , optDiskMoves   :: Bool           -- ^ Allow disk moves
+    , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
+    , optVerbose     :: Int            -- ^ Verbosity level
+    , optShowVer     :: Bool           -- ^ Just show the program version
+    , optShowHelp    :: Bool           -- ^ Just show the help
     } deriving Show
 
 -- | Default values for the command line options.
 defaultOptions :: Options
 defaultOptions  = Options
- { optShowNodes = False
- , optShowInsts = False
- , optShowCmds  = Nothing
- , optOneline   = False
- , optNoHeaders = False
- , optOutPath   = "."
- , optNodeFile  = "nodes"
- , optNodeSet   = False
- , optInstFile  = "instances"
- , optInstSet   = False
- , optNodeSim   = Nothing
- , optMaxLength = -1
- , optMaster    = ""
- , optLuxi      = Nothing
- , optExecJobs  = False
- , optOffline   = []
- , optIMem      = 4096
- , optIDsk      = 102400
- , optIVCPUs    = 1
- , optINodes    = 2
- , optMinScore  = 1e-9
- , optMcpu      = -1
- , optMdsk      = -1
- , optDiskMoves = True
- , optDynuFile  = Nothing
- , optVerbose   = 1
- , optShowVer   = False
- , optShowHelp  = False
+ { optShowNodes   = False
+ , optShowInsts   = False
+ , optShowCmds    = Nothing
+ , optOneline     = False
+ , optNoHeaders   = False
+ , optOutPath     = "."
+ , optNodeFile    = "nodes"
+ , optNodeSet     = False
+ , optInstFile    = "instances"
+ , optInstSet     = False
+ , optNodeSim     = Nothing
+ , optMaxLength   = -1
+ , optMaster      = ""
+ , optLuxi        = Nothing
+ , optExecJobs    = False
+ , optOffline     = []
+ , optINodes      = 2
+ , optISpec       = RSpec 1 4096 102400
+ , optTieredSpec  = Nothing
+ , optMinScore    = 1e-9
+ , optMcpu        = -1
+ , optMdsk        = -1
+ , optDiskMoves   = True
+ , optDynuFile    = Nothing
+ , optVerbose     = 1
+ , optShowVer     = False
+ , optShowHelp    = False
  }
 
 -- | Abrreviation for the option type
@@ -242,17 +242,26 @@ oMinScore = Option "e" ["min-score"]
 
 oIMem :: OptType
 oIMem = Option "" ["memory"]
-        (ReqArg (\ m opts -> Ok opts { optIMem = read m }) "MEMORY")
+        (ReqArg (\ m opts ->
+                     let ospec = optISpec opts
+                         nspec = ospec { rspecMem = read m }
+                     in Ok opts { optISpec = nspec }) "MEMORY")
         "memory size for instances"
 
 oIDisk :: OptType
 oIDisk = Option "" ["disk"]
-         (ReqArg (\ d opts -> Ok opts { optIDsk = read d }) "DISK")
+         (ReqArg (\ d opts ->
+                     let ospec = optISpec opts
+                         nspec = ospec { rspecDsk = read d }
+                     in Ok opts { optISpec = nspec }) "DISK")
          "disk size for instances"
 
 oIVcpus :: OptType
 oIVcpus = Option "" ["vcpus"]
-          (ReqArg (\ p opts -> Ok opts { optIVCPUs = read p }) "NUM")
+          (ReqArg (\ p opts ->
+                       let ospec = optISpec opts
+                           nspec = ospec { rspecCpu = read p }
+                       in Ok opts { optISpec = nspec }) "NUM")
           "number of virtual cpus for instances"
 
 oINodes :: OptType
@@ -280,6 +289,20 @@ oDynuFile :: OptType
 oDynuFile = Option "U" ["dynu-file"]
             (ReqArg (\ f opts -> Ok opts { optDynuFile = Just f }) "FILE")
             "Import dynamic utilisation data from the given FILE"
+
+oTieredSpec :: OptType
+oTieredSpec = Option "" ["tiered-alloc"]
+             (ReqArg (\ inp opts -> do
+                          let sp = sepSplit ',' inp
+                          prs <- mapM (tryRead "tiered specs") sp
+                          tspec <-
+                              case prs of
+                                [cpu, ram, dsk] -> return $ RSpec cpu ram dsk
+                                _ -> Bad $ "Invalid specification: " ++ inp
+                          return $ opts { optTieredSpec = Just tspec } )
+              "TSPEC")
+             "enable tiered specs allocation, where we decrease the instance\
+             \ spec on failure to allocate and restart the allocation process"
 
 oShowVer :: OptType
 oShowVer = Option "V" ["version"]

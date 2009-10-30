@@ -29,6 +29,7 @@ module Ganeti.HTools.Types
     , NameAssoc
     , Score
     , Weight
+    , RSpec(..)
     , DynUtil(..)
     , zeroUtil
     , baseUtil
@@ -61,6 +62,13 @@ type Score = Double
 
 -- | A separate name for a weight metric.
 type Weight = Double
+
+-- | The resource spec type.
+data RSpec = RSpec
+    { rspecCpu  :: Int  -- ^ Requested VCPUs
+    , rspecMem  :: Int  -- ^ Requested memory
+    , rspecDsk  :: Int  -- ^ Requested disk
+    } deriving (Show)
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).
