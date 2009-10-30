@@ -168,6 +168,17 @@ printResults fin_nl num_instances allocs sreason = do
 printKeys :: [(String, String)] -> IO ()
 printKeys = mapM_ (\(k, v) -> printf "HTS_%s=%s\n" (map toUpper k) v)
 
+printInstance :: Node.List -> Instance.Instance -> [String]
+printInstance nl i = [ Instance.name i
+                     , (Container.nameOf nl $ Instance.pNode i)
+                     , (let sdx = Instance.sNode i
+                        in if sdx == Node.noSecondary then ""
+                           else Container.nameOf nl sdx)
+                     , show (Instance.mem i)
+                     , show (Instance.dsk i)
+                     , show (Instance.vcpus i)
+                     ]
+
 -- | Main function.
 main :: IO ()
 main = do
@@ -240,8 +251,7 @@ main = do
          printResults nl num_instances 0 [(FailN1, 1)]
          exitWith ExitSuccess
 
-  let nmlen = Container.maxNameLen nl
-      reqinst = Instance.create "new" (rspecMem ispec) (rspecDsk ispec)
+  let reqinst = Instance.create "new" (rspecMem ispec) (rspecDsk ispec)
                 (rspecCpu ispec) "ADMIN_down" (-1) (-1)
 
   let result = iterateDepth nl il reqinst req_nodes []
@@ -252,19 +262,13 @@ main = do
                                 Ok x -> return x)
   let allocs = length ixes
       fin_ixes = reverse ixes
-      ix_namelen = maximum . map (length . Instance.name) $ fin_ixes
       sreason = reverse $ sortBy (compare `on` snd) ereason
 
-  when (verbose > 1) $
-         hPutStr stderr . unlines $
-         map (\i -> printf "Inst: %*s %-*s %-*s"
-                    ix_namelen (Instance.name i)
-                    nmlen (Container.nameOf fin_nl $ Instance.pNode i)
-                    nmlen (let sdx = Instance.sNode i
-                           in if sdx == Node.noSecondary then ""
-                              else Container.nameOf fin_nl sdx)
-             ) fin_ixes
-
+  when (verbose > 1) $ do
+         hPutStrLn stderr "Instance map"
+         hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
+                 formatTable (map (printInstance fin_nl) fin_ixes)
+                                 [False, False, False, True, True, True]
   when (optShowNodes opts) $
        do
          hPutStrLn stderr ""
