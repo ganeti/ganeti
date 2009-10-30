@@ -25,7 +25,6 @@
 
 import os
 import os.path
-import time
 import logging
 from cStringIO import StringIO
 
@@ -85,7 +84,22 @@ class XenHypervisor(hv_base.BaseHypervisor):
     utils.RemoveFile("/etc/xen/%s" % instance_name)
 
   @staticmethod
-  def _GetXMList(include_node):
+  def _RunXmList(xmlist_errors):
+    """Helper function for L{_GetXMList} to run "xm list".
+
+    """
+    result = utils.RunCmd(["xm", "list"])
+    if result.failed:
+      logging.error("xm list failed (%s): %s", result.fail_reason,
+                    result.output)
+      xmlist_errors.append(result)
+      raise utils.RetryAgain()
+
+    # skip over the heading
+    return result.stdout.splitlines()[1:]
+
+  @classmethod
+  def _GetXMList(cls, include_node):
     """Return the list of running instances.
 
     If the include_node argument is True, then we return information
@@ -94,21 +108,20 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @return: list of (name, id, memory, vcpus, state, time spent)
 
     """
-    for _ in range(5):
-      result = utils.RunCmd(["xm", "list"])
-      if not result.failed:
-        break
-      logging.error("xm list failed (%s): %s", result.fail_reason,
-                    result.output)
-      time.sleep(1)
+    xmlist_errors = []
+    try:
+      lines = utils.Retry(cls._RunXmList, 1, 5, args=(xmlist_errors, ))
+    except utils.RetryTimeout:
+      if xmlist_errors:
+        xmlist_result = xmlist_errors.pop()
 
-    if result.failed:
-      raise errors.HypervisorError("xm list failed, retries"
-                                   " exceeded (%s): %s" %
-                                   (result.fail_reason, result.output))
+        errmsg = ("xm list failed, timeout exceeded (%s): %s" %
+                  (xmlist_result.fail_reason, xmlist_result.output))
+      else:
+        errmsg = "xm list failed"
 
-    # skip over the heading
-    lines = result.stdout.splitlines()[1:]
+      raise errors.HypervisorError(errmsg)
+
     result = []
     for line in lines:
       # The format of lines is:
@@ -199,25 +212,26 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     ini_info = self.GetInstanceInfo(instance.name)
-    result = utils.RunCmd(["xm", "reboot", instance.name])
 
+    result = utils.RunCmd(["xm", "reboot", instance.name])
     if result.failed:
       raise errors.HypervisorError("Failed to reboot instance %s: %s, %s" %
                                    (instance.name, result.fail_reason,
                                     result.output))
-    done = False
-    retries = self.REBOOT_RETRY_COUNT
-    while retries > 0:
-      new_info = self.GetInstanceInfo(instance.name)
-      # check if the domain ID has changed or the run time has
-      # decreased
-      if new_info[1] != ini_info[1] or new_info[5] < ini_info[5]:
-        done = True
-        break
-      time.sleep(self.REBOOT_RETRY_INTERVAL)
-      retries -= 1
 
-    if not done:
+    def _CheckInstance():
+      new_info = self.GetInstanceInfo(instance.name)
+
+      # check if the domain ID has changed or the run time has decreased
+      if new_info[1] != ini_info[1] or new_info[5] < ini_info[5]:
+        return
+
+      raise utils.RetryAgain()
+
+    try:
+      utils.Retry(_CheckInstance, self.REBOOT_RETRY_INTERVAL,
+                  self.REBOOT_RETRY_INTERVAL * self.REBOOT_RETRY_COUNT)
+    except utils.RetryTimeout:
       raise errors.HypervisorError("Failed to reboot instance %s: instance"
                                    " did not reboot in the expected interval" %
                                    (instance.name, ))
