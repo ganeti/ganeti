@@ -1225,20 +1225,18 @@ class DRBD8(BaseDRBD):
       _ThrowError("drbd%d: can't setup network: %s - %s",
                   minor, result.fail_reason, result.output)
 
-    timeout = time.time() + 10
-    ok = False
-    while time.time() < timeout:
+    def _CheckNetworkConfig():
       info = cls._GetDevInfo(cls._GetShowData(minor))
       if not "local_addr" in info or not "remote_addr" in info:
-        time.sleep(1)
-        continue
+        raise utils.RetryAgain()
+
       if (info["local_addr"] != (lhost, lport) or
           info["remote_addr"] != (rhost, rport)):
-        time.sleep(1)
-        continue
-      ok = True
-      break
-    if not ok:
+        raise utils.RetryAgain()
+
+    try:
+      utils.Retry(_CheckNetworkConfig, 1.0, 10.0)
+    except utils.RetryTimeout:
       _ThrowError("drbd%d: timeout while configuring network", minor)
 
   def AddChildren(self, devices):
@@ -1431,31 +1429,42 @@ class DRBD8(BaseDRBD):
       _ThrowError("drbd%d: DRBD disk missing network info in"
                   " DisconnectNet()", self.minor)
 
-    ever_disconnected = _IgnoreError(self._ShutdownNet, self.minor)
-    timeout_limit = time.time() + self._NET_RECONFIG_TIMEOUT
-    sleep_time = 0.100 # we start the retry time at 100 milliseconds
-    while time.time() < timeout_limit:
-      status = self.GetProcStatus()
-      if status.is_standalone:
-        break
-      # retry the disconnect, it seems possible that due to a
-      # well-time disconnect on the peer, my disconnect command might
-      # be ignored and forgotten
-      ever_disconnected = _IgnoreError(self._ShutdownNet, self.minor) or \
-                          ever_disconnected
-      time.sleep(sleep_time)
-      sleep_time = min(2, sleep_time * 1.5)
+    class _DisconnectStatus:
+      def __init__(self, ever_disconnected):
+        self.ever_disconnected = ever_disconnected
 
-    if not status.is_standalone:
-      if ever_disconnected:
+    dstatus = _DisconnectStatus(_IgnoreError(self._ShutdownNet, self.minor))
+
+    def _WaitForDisconnect():
+      if self.GetProcStatus().is_standalone:
+        return
+
+      # retry the disconnect, it seems possible that due to a well-time
+      # disconnect on the peer, my disconnect command might be ignored and
+      # forgotten
+      dstatus.ever_disconnected = \
+        _IgnoreError(self._ShutdownNet, self.minor) or dstatus.ever_disconnected
+
+      raise utils.RetryAgain()
+
+    # Keep start time
+    start_time = time.time()
+
+    try:
+      # Start delay at 100 milliseconds and grow up to 2 seconds
+      utils.Retry(_WaitForDisconnect, (0.1, 1.5, 2.0),
+                  self._NET_RECONFIG_TIMEOUT)
+    except utils.RetryTimeout:
+      if dstatus.ever_disconnected:
         msg = ("drbd%d: device did not react to the"
                " 'disconnect' command in a timely manner")
       else:
         msg = "drbd%d: can't shutdown network, even after multiple retries"
+
       _ThrowError(msg, self.minor)
 
-    reconfig_time = time.time() - timeout_limit + self._NET_RECONFIG_TIMEOUT
-    if reconfig_time > 15: # hardcoded alert limit
+    reconfig_time = time.time() - start_time
+    if reconfig_time > (self._NET_RECONFIG_TIMEOUT * 0.25):
       logging.info("drbd%d: DisconnectNet: detach took %.3f seconds",
                    self.minor, reconfig_time)
 
