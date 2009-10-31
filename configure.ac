@@ -122,11 +122,16 @@ AC_SUBST(KVM_MIGRATION_PORT, $kvm_migration_port)
 AC_ARG_WITH([socat-path],
   [AS_HELP_STRING([--with-socat-path=PATH],
     [absolute path to the socat binary]
-    [ (default is /usr/bin/socat)]
+    [ (default is to let configure search for it)]
   )],
-  [socat_path="$withval"],
-  [socat_path="/usr/bin/socat"])
-AC_SUBST(SOCAT_PATH, $socat_path)
+  [SOCAT="$withval"],
+  [])
+
+AC_ARG_WITH([socat-escape],
+  [AS_HELP_STRING([--with-socat-escape],
+    [enable escape functionality found in newer socat])],
+  [],
+  [check_socat_escape=yes])
 
 # ---with-lvm-stripecount=...
 AC_ARG_WITH([lvm-stripecount],
@@ -171,6 +176,32 @@ AC_PATH_PROG(DOT, [dot], [])
 if test -z "$DOT"
 then
   AC_MSG_WARN([dot (from the graphviz suite) not found, documentation rebuild not possible])
+fi
+
+if test -z "$SOCAT" -a -n "$check_socat_escape"
+then
+AC_CACHE_CHECK([for socat with the escape feature], [ac_cv_path_SOCAT],
+  [AC_PATH_PROGS_FEATURE_CHECK(SOCAT, [socat],
+            [[$ac_path_SOCAT -hh | grep -q escape \
+              && ac_cv_path_SOCAT=$ac_path_SOCAT \
+                 SOCAT=$ac_cv_path_SOCAT \
+                 with_socat_escape=yes ac_path_SOCAT_found=:]],
+            [AC_MSG_WARN([no escape feature found])])])
+fi
+
+if test -z "$SOCAT"
+then
+AC_CACHE_CHECK([for socat], [ac_cv_path_SOCAT],
+  [AC_PATH_PROGS_FEATURE_CHECK(SOCAT, [socat],
+            [[ac_cv_path_SOCAT=$ac_path_SOCAT \
+              SOCAT=$ac_cv_path_SOCAT ac_path_SOCAT_found=:]],
+            [AC_MSG_ERROR([socat not found])])])
+fi
+
+AC_SUBST([SOCAT_PATH], [$SOCAT])
+if test "x$with_socat_escape" = xyes
+then
+  AC_SUBST([SOCAT_ESCAPE], [1])
 fi
 
 # Check for Python
