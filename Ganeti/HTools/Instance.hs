@@ -36,6 +36,7 @@ module Ganeti.HTools.Instance
     , setPri
     , setSec
     , setBoth
+    , specOf
     , shrinkByType
     ) where
 
@@ -152,3 +153,8 @@ shrinkByType inst T.FailCPU = let v = vcpus inst - unitCpu
                                  then T.Bad "out of vcpus"
                                  else T.Ok inst { vcpus = v }
 shrinkByType _ f = T.Bad $ "Unhandled failure mode " ++ show f
+
+-- | Return the spec of an instance.
+specOf :: Instance -> T.RSpec
+specOf Instance { mem = m, dsk = d, vcpus = c } =
+    T.RSpec { T.rspecCpu = c, T.rspecMem = m, T.rspecDsk = d }

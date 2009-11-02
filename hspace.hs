@@ -293,18 +293,27 @@ main = do
        let tresu = tieredAlloc nl il (iofspec tspec) req_nodes []
        (_, trl_nl, trl_ixes) <- exitifbad tresu
        let fin_trl_ixes = reverse trl_ixes
+           ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
+           spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
+                      ix_byspec::[(RSpec, Int)]
+           spec_map' = map (\(idx, (spec, cnt)) ->
+                                printf "%dx%dx%dx%d=%d" idx (rspecCpu spec)
+                                       (rspecMem spec) (rspecDsk spec) cnt)
+                       $ zip ([1..]::[Int]) spec_map::[String]
 
        when (verbose > 1) $ do
          hPutStrLn stderr "Tiered allocation map"
          hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
                  formatTable (map (printInstance trl_nl) fin_trl_ixes)
                                  [False, False, False, True, True, True]
+
        when (optShowNodes opts) $ do
          hPutStrLn stderr ""
          hPutStrLn stderr "Tiered allocation status:"
          hPutStrLn stderr $ Cluster.printNodes trl_nl
 
-       printKeys $ printStats PTiered (Cluster.totalResources trl_nl))
+       printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
+       printKeys [("TSPEC", intercalate " " spec_map')])
 
   -- Run the standard (avg-mode) allocation
 

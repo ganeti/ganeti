@@ -68,7 +68,7 @@ data RSpec = RSpec
     { rspecCpu  :: Int  -- ^ Requested VCPUs
     , rspecMem  :: Int  -- ^ Requested memory
     , rspecDsk  :: Int  -- ^ Requested disk
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 -- | The dynamic resource specs of a machine (i.e. load or load
 -- capacity, as opposed to size).
