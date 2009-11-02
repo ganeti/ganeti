@@ -304,7 +304,7 @@ main = do
          hPutStrLn stderr "Tiered allocation status:"
          hPutStrLn stderr $ Cluster.printNodes trl_nl
 
-         printKeys $ printStats PTiered (Cluster.totalResources trl_nl))
+       printKeys $ printStats PTiered (Cluster.totalResources trl_nl))
 
   -- Run the standard (avg-mode) allocation
 
