@@ -195,7 +195,7 @@ oInstFile = Option "i" ["instances"]
 oNodeSim :: OptType
 oNodeSim = Option "" ["simulate"]
             (ReqArg (\ f o -> Ok o { optNodeSim = Just f }) "SPEC")
-            "simulate an empty cluster, given as 'num_nodes,disk,memory,cpus'"
+            "simulate an empty cluster, given as 'num_nodes,disk,ram,cpu'"
 
 oRapiMaster :: OptType
 oRapiMaster = Option "m" ["master"]
@@ -297,12 +297,11 @@ oTieredSpec = Option "" ["tiered-alloc"]
                           prs <- mapM (tryRead "tiered specs") sp
                           tspec <-
                               case prs of
-                                [cpu, ram, dsk] -> return $ RSpec cpu ram dsk
+                                [dsk, ram, cpu] -> return $ RSpec cpu ram dsk
                                 _ -> Bad $ "Invalid specification: " ++ inp
                           return $ opts { optTieredSpec = Just tspec } )
               "TSPEC")
-             "enable tiered specs allocation, where we decrease the instance\
-             \ spec on failure to allocate and restart the allocation process"
+             "enable tiered specs allocation, given as 'disk,ram,cpu'"
 
 oShowVer :: OptType
 oShowVer = Option "V" ["version"]

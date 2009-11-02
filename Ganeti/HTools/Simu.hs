@@ -42,7 +42,7 @@ import qualified Ganeti.HTools.Instance as Instance
 parseDesc :: String -> Result (Int, Int, Int, Int)
 parseDesc desc =
     case sepSplit ',' desc of
-      n:d:m:c:[] -> do
+      [n, d, m, c] -> do
         ncount <- tryRead "node count" n
         disk <- tryRead "disk size" d
         mem <- tryRead "memory size" m
