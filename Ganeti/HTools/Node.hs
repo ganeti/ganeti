@@ -60,45 +60,46 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
-import qualified Ganeti.HTools.PeerMap as PeerMap
+import qualified Ganeti.HTools.PeerMap as P
 
 import qualified Ganeti.HTools.Types as T
 
 -- * Type declarations
 
 -- | The node type.
-data Node = Node { name :: String  -- ^ The node name
-                 , tMem :: Double  -- ^ Total memory (MiB)
-                 , nMem :: Int     -- ^ Node memory (MiB)
-                 , fMem :: Int     -- ^ Free memory (MiB)
-                 , xMem :: Int     -- ^ Unaccounted memory (MiB)
-                 , tDsk :: Double  -- ^ Total disk space (MiB)
-                 , fDsk :: Int     -- ^ Free disk space (MiB)
-                 , tCpu :: Double  -- ^ Total CPU count
-                 , uCpu :: Int     -- ^ Used VCPU count
-                 , pList :: [T.Idx]-- ^ List of primary instance indices
-                 , sList :: [T.Idx]-- ^ List of secondary instance indices
-                 , idx :: T.Ndx    -- ^ Internal index for book-keeping
-                 , peers :: PeerMap.PeerMap -- ^ Pnode to instance mapping
-                 , failN1 :: Bool  -- ^ Whether the node has failed n1
-                 , rMem :: Int     -- ^ Maximum memory needed for
-                                   -- failover by primaries of this node
-                 , pMem :: Double  -- ^ Percent of free memory
-                 , pDsk :: Double  -- ^ Percent of free disk
-                 , pRem :: Double  -- ^ Percent of reserved memory
-                 , pCpu :: Double  -- ^ Ratio of virtual to physical CPUs
-                 , mDsk :: Double  -- ^ Minimum free disk ratio
-                 , mCpu :: Double  -- ^ Max ratio of virt-to-phys CPUs
-                 , loDsk :: Int    -- ^ Autocomputed from mDsk low disk
-                                   -- threshold
-                 , hiCpu :: Int    -- ^ Autocomputed from mCpu high cpu
-                                   -- threshold
-                 , offline :: Bool -- ^ Whether the node should not be used
-                                   -- for allocations and skipped from
-                                   -- score computations
-                 , utilPool :: T.DynUtil -- ^ Total utilisation capacity
-                 , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
-                 } deriving (Show)
+data Node = Node
+    { name     :: String    -- ^ The node name
+    , tMem     :: Double    -- ^ Total memory (MiB)
+    , nMem     :: Int       -- ^ Node memory (MiB)
+    , fMem     :: Int       -- ^ Free memory (MiB)
+    , xMem     :: Int       -- ^ Unaccounted memory (MiB)
+    , tDsk     :: Double    -- ^ Total disk space (MiB)
+    , fDsk     :: Int       -- ^ Free disk space (MiB)
+    , tCpu     :: Double    -- ^ Total CPU count
+    , uCpu     :: Int       -- ^ Used VCPU count
+    , pList    :: [T.Idx]   -- ^ List of primary instance indices
+    , sList    :: [T.Idx]   -- ^ List of secondary instance indices
+    , idx      :: T.Ndx     -- ^ Internal index for book-keeping
+    , peers    :: P.PeerMap -- ^ Pnode to instance mapping
+    , failN1   :: Bool      -- ^ Whether the node has failed n1
+    , rMem     :: Int       -- ^ Maximum memory needed for failover by
+                            -- primaries of this node
+    , pMem     :: Double    -- ^ Percent of free memory
+    , pDsk     :: Double    -- ^ Percent of free disk
+    , pRem     :: Double    -- ^ Percent of reserved memory
+    , pCpu     :: Double    -- ^ Ratio of virtual to physical CPUs
+    , mDsk     :: Double    -- ^ Minimum free disk ratio
+    , mCpu     :: Double    -- ^ Max ratio of virt-to-phys CPUs
+    , loDsk    :: Int       -- ^ Autocomputed from mDsk low disk
+                            -- threshold
+    , hiCpu    :: Int       -- ^ Autocomputed from mCpu high cpu
+                            -- threshold
+    , offline  :: Bool      -- ^ Whether the node should not be used
+                            -- for allocations and skipped from score
+                            -- computations
+    , utilPool :: T.DynUtil -- ^ Total utilisation capacity
+    , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
+    } deriving (Show)
 
 instance T.Element Node where
     nameOf = name
@@ -146,7 +147,7 @@ create name_init mem_t_init mem_n_init mem_f_init
          , sList = []
          , failN1 = True
          , idx = -1
-         , peers = PeerMap.empty
+         , peers = P.empty
          , rMem = 0
          , pMem = fromIntegral mem_f_init / mem_t_init
          , pDsk = fromIntegral dsk_f_init / dsk_t_init
@@ -194,8 +195,8 @@ setMcpu :: Node -> Double -> Node
 setMcpu t val = t { mCpu = val, hiCpu = floor (val * tCpu t) }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
-computeMaxRes :: PeerMap.PeerMap -> PeerMap.Elem
-computeMaxRes = PeerMap.maxElem
+computeMaxRes :: P.PeerMap -> P.Elem
+computeMaxRes = P.maxElem
 
 -- | Builds the peer map for a given node.
 buildPeers :: Node -> Instance.List -> Node
@@ -204,7 +205,7 @@ buildPeers t il =
                 (\i_idx -> let inst = Container.find i_idx il
                            in (Instance.pNode inst, Instance.mem inst))
                 (sList t)
-        pmap = PeerMap.accumArray (+) mdata
+        pmap = P.accumArray (+) mdata
         new_rmem = computeMaxRes pmap
         new_failN1 = fMem t <= new_rmem
         new_prem = fromIntegral new_rmem / tMem t
@@ -262,9 +263,9 @@ removeSec t inst =
         new_slist = delete iname (sList t)
         new_dsk = fDsk t + Instance.dsk inst
         old_peers = peers t
-        old_peem = PeerMap.find pnode old_peers
+        old_peem = P.find pnode old_peers
         new_peem =  old_peem - Instance.mem inst
-        new_peers = PeerMap.add pnode new_peem old_peers
+        new_peers = P.add pnode new_peem old_peers
         old_rmem = rMem t
         new_rmem = if old_peem < old_rmem
                    then old_rmem
@@ -310,8 +311,8 @@ addSec t inst pdx =
         old_peers = peers t
         old_mem = fMem t
         new_dsk = fDsk t - Instance.dsk inst
-        new_peem = PeerMap.find pdx old_peers + Instance.mem inst
-        new_peers = PeerMap.add pdx new_peem old_peers
+        new_peem = P.find pdx old_peers + Instance.mem inst
+        new_peers = P.add pdx new_peem old_peers
         new_rmem = max (rMem t) new_peem
         new_prem = fromIntegral new_rmem / tMem t
         new_failn1 = old_mem <= new_rmem
