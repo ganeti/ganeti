@@ -8109,12 +8109,7 @@ class LUAddTags(TagsLU):
         self.target.AddTag(tag)
     except errors.TagError, err:
       raise errors.OpExecError("Error while setting tag: %s" % str(err))
-    try:
-      self.cfg.Update(self.target, feedback_fn)
-    except errors.ConfigurationError:
-      raise errors.OpRetryError("There has been a modification to the"
-                                " config file and the operation has been"
-                                " aborted. Please retry.")
+    self.cfg.Update(self.target, feedback_fn)
 
 
 class LUDelTags(TagsLU):
@@ -8148,12 +8143,7 @@ class LUDelTags(TagsLU):
     """
     for tag in self.op.tags:
       self.target.RemoveTag(tag)
-    try:
-      self.cfg.Update(self.target, feedback_fn)
-    except errors.ConfigurationError:
-      raise errors.OpRetryError("There has been a modification to the"
-                                " config file and the operation has been"
-                                " aborted. Please retry.")
+    self.cfg.Update(self.target, feedback_fn)
 
 
 class LUTestDelay(NoHooksLU):

@@ -134,12 +134,6 @@ class OpExecError(GenericError):
   """
 
 
-class OpRetryError(OpExecError):
-  """Error during OpCode execution, action can be retried.
-
-  """
-
-
 class OpCodeUnknown(GenericError):
   """Unknown opcode submitted.
 
