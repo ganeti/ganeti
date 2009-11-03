@@ -509,6 +509,11 @@ def VerifyNode(what, cluster_name):
   if constants.NV_VGLIST in what:
     result[constants.NV_VGLIST] = utils.ListVolumeGroups()
 
+  if constants.NV_PVLIST in what:
+    result[constants.NV_PVLIST] = \
+      bdev.LogicalVolume.GetPVInfo(what[constants.NV_PVLIST],
+                                   filter_allocatable=False)
+
   if constants.NV_VERSION in what:
     result[constants.NV_VERSION] = (constants.PROTOCOL_VERSION,
                                     constants.RELEASE_VERSION)

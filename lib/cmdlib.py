@@ -1127,6 +1127,20 @@ class LUVerifyCluster(LogicalUnit):
     _ErrorIf(test, self.ENODESETUP, node, "node setup error: %s",
              "; ".join(test))
 
+    # check pv names
+    if vg_name is not None:
+      pvlist = node_result.get(constants.NV_PVLIST, None)
+      test = pvlist is None
+      _ErrorIf(test, self.ENODELVM, node, "Can't get PV list from node")
+      if not test:
+        # check that ':' is not present in PV names, since it's a
+        # special character for lvcreate (denotes the range of PEs to
+        # use on the PV)
+        for size, pvname, owner_vg in pvlist:
+          test = ":" in pvname
+          _ErrorIf(test, self.ENODELVM, node, "Invalid character ':' in PV"
+                   " '%s' of VG '%s'", pvname, owner_vg)
+
   def _VerifyInstance(self, instance, instanceconfig, node_vol_is,
                       node_instance, n_offline):
     """Verify an instance.
@@ -1301,6 +1315,7 @@ class LUVerifyCluster(LogicalUnit):
     if vg_name is not None:
       node_verify_param[constants.NV_VGLIST] = None
       node_verify_param[constants.NV_LVLIST] = vg_name
+      node_verify_param[constants.NV_PVLIST] = [vg_name]
       node_verify_param[constants.NV_DRBDLIST] = None
     all_nvinfo = self.rpc.call_node_verify(nodelist, node_verify_param,
                                            self.cfg.GetClusterName())
