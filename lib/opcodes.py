@@ -372,7 +372,7 @@ class OpQueryNodeStorage(OpCode):
 
 
 class OpModifyNodeStorage(OpCode):
-  """"""
+  """Modifies the properies of a storage unit"""
   OP_ID = "OP_NODE_MODIFY_STORAGE"
   __slots__ = OpCode.__slots__ + [
     "node_name",

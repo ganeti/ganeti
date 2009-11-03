@@ -32,7 +32,6 @@ much memory.
 """
 
 import os
-import tempfile
 import random
 import logging
 import time
@@ -905,7 +904,7 @@ class ConfigWriter:
     @param node: a Node instance
 
     """
-    logging.info("Adding node %s to configuration" % node.name)
+    logging.info("Adding node %s to configuration", node.name)
 
     self._EnsureUUID(node)
 
@@ -920,7 +919,7 @@ class ConfigWriter:
     """Remove a node from the configuration.
 
     """
-    logging.info("Removing node %s from configuration" % node_name)
+    logging.info("Removing node %s from configuration", node_name)
 
     if node_name not in self._config_data.nodes:
       raise errors.ConfigurationError("Unknown node '%s'" % node_name)

@@ -5092,8 +5092,8 @@ class TLMigrateInstance(Tasklet):
                                                     False)
     abort_msg = abort_result.fail_msg
     if abort_msg:
-      logging.error("Aborting migration failed on target node %s: %s" %
-                    (target_node, abort_msg))
+      logging.error("Aborting migration failed on target node %s: %s",
+                    target_node, abort_msg)
       # Don't raise an exception here, as we stil have to try to revert the
       # disk status, even if this step failed.
 
@@ -5178,7 +5178,7 @@ class TLMigrateInstance(Tasklet):
     msg = result.fail_msg
     if msg:
       logging.error("Instance migration succeeded, but finalization failed:"
-                    " %s" % msg)
+                    " %s", msg)
       raise errors.OpExecError("Could not finalize instance migration: %s" %
                                msg)
 
@@ -6886,7 +6886,7 @@ class TLReplaceDisks(Tasklet):
     minors = self.cfg.AllocateDRBDMinor([self.new_node
                                          for dev in self.instance.disks],
                                         self.instance.name)
-    logging.debug("Allocated minors %r" % (minors,))
+    logging.debug("Allocated minors %r", minors)
 
     iv_names = {}
     for idx, (dev, new_minor) in enumerate(zip(self.instance.disks, minors)):

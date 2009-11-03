@@ -297,7 +297,7 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
                        debug=options.debug,
                        stderr_logging=not options.fork,
                        multithreaded=multithread)
-    logging.info("%s daemon startup" % daemon_name)
+    logging.info("%s daemon startup", daemon_name)
     exec_fn(options, args)
   finally:
     utils.RemovePidFile(daemon_name)

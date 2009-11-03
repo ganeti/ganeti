@@ -42,7 +42,6 @@ import fcntl
 import resource
 import logging
 import signal
-import string
 
 from cStringIO import StringIO
 
@@ -519,14 +518,14 @@ def MatchNameComponent(key, name_list, case_sensitive=True):
   re_flags = 0
   if not case_sensitive:
     re_flags |= re.IGNORECASE
-    key = string.upper(key)
+    key = key.upper()
   mo = re.compile("^%s(\..*)?$" % re.escape(key), re_flags)
   names_filtered = []
   string_matches = []
   for name in name_list:
     if mo.match(name) is not None:
       names_filtered.append(name)
-      if not case_sensitive and key == string.upper(name):
+      if not case_sensitive and key == name.upper():
         string_matches.append(name)
 
   if len(string_matches) == 1:
@@ -1107,7 +1106,7 @@ def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
     success = True
   except socket.timeout:
     success = False
-  except socket.error, (errcode, errstring):
+  except socket.error, (errcode, _):
     success = (not live_port_needed) and (errcode == errno.ECONNREFUSED)
 
   return success

@@ -1807,13 +1807,13 @@ def OSFromDisk(name, base_dir=None):
   return payload
 
 
-def OSEnvironment(instance, os, debug=0):
+def OSEnvironment(instance, inst_os, debug=0):
   """Calculate the environment for an os script.
 
   @type instance: L{objects.Instance}
   @param instance: target instance for the os script run
-  @type os: L{objects.OS}
-  @param os: operating system for which the environment is being built
+  @type inst_os: L{objects.OS}
+  @param inst_os: operating system for which the environment is being built
   @type debug: integer
   @param debug: debug level (0 or 1, for OS Api 10)
   @rtype: dict
@@ -1823,7 +1823,8 @@ def OSEnvironment(instance, os, debug=0):
 
   """
   result = {}
-  api_version = max(constants.OS_API_VERSIONS.intersection(os.api_versions))
+  api_version = \
+    max(constants.OS_API_VERSIONS.intersection(inst_os.api_versions))
   result['OS_API_VERSION'] = '%d' % api_version
   result['INSTANCE_NAME'] = instance.name
   result['INSTANCE_OS'] = instance.os
@@ -1835,7 +1836,7 @@ def OSEnvironment(instance, os, debug=0):
     try:
       variant = instance.os.split('+', 1)[1]
     except IndexError:
-      variant = os.supported_variants[0]
+      variant = inst_os.supported_variants[0]
     result['OS_VARIANT'] = variant
   for idx, disk in enumerate(instance.disks):
     real_disk = _RecursiveFindBD(disk)

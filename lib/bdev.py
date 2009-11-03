@@ -48,7 +48,7 @@ def _IgnoreError(fn, *args, **kwargs):
     fn(*args, **kwargs)
     return True
   except errors.BlockDeviceError, err:
-    logging.warning("Caught BlockDeviceError but ignoring: %s" % str(err))
+    logging.warning("Caught BlockDeviceError but ignoring: %s", str(err))
     return False
 
 

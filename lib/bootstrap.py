@@ -362,7 +362,7 @@ def FinalizeClusterDestroy(master):
   result = rpc.RpcRunner.call_node_stop_master(master, True)
   msg = result.fail_msg
   if msg:
-    logging.warning("Could not disable the master role: %s" % msg)
+    logging.warning("Could not disable the master role: %s", msg)
   result = rpc.RpcRunner.call_node_leave_cluster(master, modify_ssh_setup)
   msg = result.fail_msg
   if msg:

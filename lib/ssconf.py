@@ -61,6 +61,7 @@ class SimpleConfigReader(object):
     self._config_data = None
     self._inst_ips_by_link = None
     self._ip_to_inst_by_link = None
+    self._instances_ips = None
     self._mc_primary_ips = None
     self._nodes_primary_ips = None
 
@@ -470,4 +471,3 @@ def CheckMasterCandidate(debug, ss=None):
     if debug:
       sys.stderr.write("Not master candidate, exiting.\n")
     sys.exit(constants.EXIT_NOTCANDIDATE)
-
