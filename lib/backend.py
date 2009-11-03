@@ -2547,14 +2547,25 @@ def DrbdWaitSync(nodes_ip, disks):
   """Wait until DRBDs have synchronized.
 
   """
+  def _helper(rd):
+    stats = rd.GetProcStatus()
+    if not (stats.is_connected or stats.is_in_resync):
+      raise utils.RetryAgain()
+    return stats
+
   bdevs = _FindDisks(nodes_ip, disks)
 
   min_resync = 100
   alldone = True
   for rd in bdevs:
-    stats = rd.GetProcStatus()
-    if not (stats.is_connected or stats.is_in_resync):
-      _Fail("DRBD device %s is not in sync: stats=%s", rd, stats)
+    try:
+      # poll each second for 15 seconds
+      stats = utils.Retry(_helper, 1, 15, args=[rd])
+    except utils.RetryTimeout:
+      stats = rd.GetProcStatus()
+      # last check
+      if not (stats.is_connected or stats.is_in_resync):
+        _Fail("DRBD device %s is not in sync: stats=%s", rd, stats)
     alldone = alldone and (not stats.is_in_resync)
     if stats.sync_percent is not None:
       min_resync = min(min_resync, stats.sync_percent)
