@@ -255,21 +255,20 @@ def StartMaster(start_daemons, no_voting):
 
   # and now start the master and rapi daemons
   if start_daemons:
-    daemons_params = {
-        'ganeti-masterd': [],
-        'ganeti-rapi': [],
-        }
     if no_voting:
-      daemons_params['ganeti-masterd'].append('--no-voting')
-      daemons_params['ganeti-masterd'].append('--yes-do-it')
-    for daemon in daemons_params:
-      cmd = [daemon]
-      cmd.extend(daemons_params[daemon])
-      result = utils.RunCmd(cmd)
-      if result.failed:
-        msg = "Can't start daemon %s: %s" % (daemon, result.output)
-        logging.error(msg)
-        err_msgs.append(msg)
+      masterd_args = "--no-voting --yes-do-it"
+    else:
+      masterd_args = ""
+
+    env = {
+      "EXTRA_MASTERD_ARGS": masterd_args,
+      }
+
+    result = utils.RunCmd([constants.DAEMON_UTIL, "start-master"], env=env)
+    if result.failed:
+      msg = "Can't start Ganeti master: %s" % result.output
+      logging.error(msg)
+      err_msgs.append(msg)
 
   if err_msgs:
     _Fail("; ".join(err_msgs))
@@ -301,9 +300,11 @@ def StopMaster(stop_daemons):
     # but otherwise ignore the failure
 
   if stop_daemons:
-    # stop/kill the rapi and the master daemon
-    for daemon in constants.RAPI, constants.MASTERD:
-      utils.KillProcess(utils.ReadPidFile(utils.DaemonPidFileName(daemon)))
+    result = utils.RunCmd([constants.DAEMON_UTIL, "stop-master"])
+    if result.failed:
+      logging.error("Could not stop Ganeti master, command %s had exitcode %s"
+                    " and error %s",
+                    result.cmd, result.exit_code, result.output)
 
 
 def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
@@ -385,10 +386,10 @@ def LeaveCluster(modify_ssh_setup):
   except:
     logging.exception("Error while removing cluster secrets")
 
-  confd_pid = utils.ReadPidFile(utils.DaemonPidFileName(constants.CONFD))
-
-  if confd_pid:
-    utils.KillProcess(confd_pid, timeout=2)
+  result = utils.RunCmd([constants.DAEMON_UTIL, "stop", constants.CONFD])
+  if result.failed:
+    logging.error("Command %s failed with exitcode %s and error %s",
+                  result.cmd, result.exit_code, result.output)
 
   # Raise a custom exception (handled in ganeti-noded)
   raise errors.QuitGanetiException(True, 'Shutdown scheduled')
@@ -2435,15 +2436,18 @@ def DemoteFromMC():
   master, myself = ssconf.GetMasterAndMyself()
   if master == myself:
     _Fail("ssconf status shows I'm the master node, will not demote")
-  pid_file = utils.DaemonPidFileName(constants.MASTERD)
-  if utils.IsProcessAlive(utils.ReadPidFile(pid_file)):
+
+  result = utils.RunCmd([constants.DAEMON_UTIL, "check", constants.MASTERD])
+  if not result.failed:
     _Fail("The master daemon is running, will not demote")
+
   try:
     if os.path.isfile(constants.CLUSTER_CONF_FILE):
       utils.CreateBackup(constants.CLUSTER_CONF_FILE)
   except EnvironmentError, err:
     if err.errno != errno.ENOENT:
       _Fail("Error while backing up cluster file: %s", err, exc=True)
+
   utils.RemoveFile(constants.CLUSTER_CONF_FILE)
 
 

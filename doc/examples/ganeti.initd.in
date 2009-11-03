@@ -14,31 +14,18 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 DESC="Ganeti cluster"
 
-GANETIRUNDIR="@LOCALSTATEDIR@/run/ganeti"
-
-GANETI_DEFAULTS_FILE="@SYSCONFDIR@/default/ganeti"
-
 NODED="ganeti-noded"
-NODED_ARGS=""
-
 MASTERD="ganeti-masterd"
-MASTERD_ARGS=""
-
 CONFD="ganeti-confd"
-CONFD_ARGS=""
-
 RAPI="ganeti-rapi"
-RAPI_ARGS=""
+
+DAEMON_UTIL=@PKGLIBDIR@/daemon-util
 
 SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 
 test -f "@PREFIX@/sbin/$NODED" || exit 0
 
 . /lib/lsb/init-functions
-
-if [ -s $GANETI_DEFAULTS_FILE ]; then
-    . $GANETI_DEFAULTS_FILE
-fi
 
 check_config() {
     for fname in \
@@ -69,13 +56,9 @@ check_exitcode() {
 
 start_action() {
     # called as start_action daemon-name
-    local daemon="$1"; shift
+    local daemon="$1"
     log_action_begin_msg "$daemon"
-    start-stop-daemon --start --quiet \
-        --pidfile "${GANETIRUNDIR}/${daemon}.pid" \
-        --startas "@PREFIX@/sbin/$daemon" \
-        --oknodo \
-        -- "$@"
+    $DAEMON_UTIL start "$@"
     check_exitcode $?
 }
 
@@ -83,8 +66,7 @@ stop_action() {
     # called as stop_action daemon-name
     local daemon="$1"
     log_action_begin_msg "$daemon"
-    start-stop-daemon --stop --quiet --oknodo \
-        --retry 30 --pidfile "${GANETIRUNDIR}/${daemon}.pid"
+    $DAEMON_UTIL stop "$@"
     check_exitcode $?
 }
 
@@ -95,6 +77,19 @@ maybe_do() {
     if [ -z "$requested" -o "$requested" = "$target" ]; then
         $action "$@"
     fi
+}
+
+start_all() {
+    check_config
+    for i in $NODED $MASTERD $CONFD $RAPI; do \
+        maybe_do "$1" stop_action $i
+    done
+}
+
+stop_all() {
+    for i in $RAPI $CONFD $MASTERD $NODED; do \
+        maybe_do "$1" stop_action $i
+    done
 }
 
 if [ -n "$2" -a \
@@ -109,29 +104,15 @@ fi
 case "$1" in
     start)
         log_daemon_msg "Starting $DESC" "$2"
-        check_config
-        maybe_do "$2" start_action $NODED $NODED_ARGS
-        maybe_do "$2" start_action $MASTERD $MASTERD_ARGS
-        maybe_do "$2" start_action $CONFD $CONFD_ARGS
-        maybe_do "$2" start_action $RAPI $RAPI_ARGS
+        start_all "$2"
         ;;
     stop)
         log_daemon_msg "Stopping $DESC" "$2"
-        maybe_do "$2" stop_action $RAPI
-        maybe_do "$2" stop_action $CONFD
-        maybe_do "$2" stop_action $MASTERD
-        maybe_do "$2" stop_action $NODED
+        stop_all "$2"
         ;;
     restart|force-reload)
-        maybe_do "$2" stop_action $RAPI
-        maybe_do "$2" stop_action $CONFD
-        maybe_do "$2" stop_action $MASTERD
-        maybe_do "$2" stop_action $NODED
-        check_config
-        maybe_do "$2" start_action $NODED $NODED_ARGS
-        maybe_do "$2" start_action $MASTERD $MASTERD_ARGS
-        maybe_do "$2" start_action $CONFD $CONFD_ARGS
-        maybe_do "$2" start_action $RAPI $RAPI_ARGS
+        stop_all "$2"
+        start_all "$2"
         ;;
     *)
         log_success_msg "Usage: $SCRIPTNAME {start|stop|force-reload|restart}"

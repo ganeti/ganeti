@@ -72,6 +72,10 @@ Details
   (``rapi_users``)
 - Added option to specify maximum timeout on instance shutdown
 - Added ``--no-ssh-init`` option to ``gnt-cluster init``
+- Added new helper script to start and stop Ganeti daemons
+  (``daemon-util``), with the intent to reduce the work necessary to
+  adjust Ganeti for non-Debian distributions and to start/stop daemons
+  from one place
 - Added more unittests
 - Fixed critical bug in ganeti-masterd startup
 - Pass ``INSTANCE_REINSTALL`` variable to OS installation script when

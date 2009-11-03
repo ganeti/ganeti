@@ -78,28 +78,17 @@ def ShouldPause():
   return bool(utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE))
 
 
-def StartMaster():
-  """Try to start the master daemon.
-
-  """
-  result = utils.RunCmd(['ganeti-masterd'])
-  if result.failed:
-    logging.error("Can't start the master daemon: output '%s'", result.output)
-  return not result.failed
-
-
-def EnsureDaemon(daemon):
+def EnsureDaemon(name):
   """Check for and start daemon if not alive.
 
   """
-  pidfile = utils.DaemonPidFileName(daemon)
-  pid = utils.ReadPidFile(pidfile)
-  if pid == 0 or not utils.IsProcessAlive(pid): # no file or dead pid
-    logging.debug("Daemon '%s' not alive, trying to restart", daemon)
-    result = utils.RunCmd([daemon])
-    if not result:
-      logging.error("Can't start daemon '%s', failure %s, output: %s",
-                    daemon, result.fail_reason, result.output)
+  result = utils.RunCmd([constants.DAEMON_UTIL, "check-and-start", name])
+  if result.failed:
+    logging.error("Can't start daemon '%s', failure %s, output: %s",
+                  name, result.fail_reason, result.output)
+    return False
+
+  return True
 
 
 class WatcherState(object):
@@ -503,7 +492,7 @@ def main():
       except luxi.NoMasterError, err:
         logging.warning("Master seems to be down (%s), trying to restart",
                         str(err))
-        if not StartMaster():
+        if not EnsureDaemon(constants.MASTERD):
           logging.critical("Can't start the master, exiting")
           sys.exit(constants.EXIT_FAILURE)
         # else retry the connection

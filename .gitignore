@@ -31,6 +31,7 @@
 /ganeti-[0-9]*.[0-9]*.[0-9]*
 
 # daemons
+/daemons/daemon-util
 /daemons/ganeti-cleaner
 
 # devel

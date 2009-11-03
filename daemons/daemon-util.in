@@ -1,0 +1,124 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+set -e
+
+defaults_file=@SYSCONFDIR@/default/ganeti
+
+NODED_ARGS=
+MASTERD_ARGS=
+CONFD_ARGS=
+RAPI_ARGS=
+
+# Read defaults file if it exists
+if [[ -s $defaults_file ]]; then
+  . $defaults_file
+fi
+
+_daemon_pidfile() {
+  echo "@LOCALSTATEDIR@/run/ganeti/$1.pid"
+}
+
+# Checks whether daemon is running
+check() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing daemon name.' >&2
+    exit 1
+  fi
+
+  local name="$1"; shift
+
+  start-stop-daemon --stop --signal 0 --quiet \
+    --pidfile $(_daemon_pidfile $name)
+}
+
+# Starts a daemon
+start() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing daemon name.' >&2
+    exit 1
+  fi
+
+  local name="$1"; shift
+
+  # Convert daemon name to uppercase after removing "ganeti-" prefix
+  local ucname=$(tr a-z A-Z <<< ${name#ganeti-})
+
+  # Read $<daemon>_ARGS and $EXTRA_<daemon>_ARGS
+  eval local args="\$${ucname}_ARGS \$EXTRA_${ucname}_ARGS"
+
+  start-stop-daemon --start --quiet --oknodo \
+    --pidfile $(_daemon_pidfile $name) \
+    --startas "@PREFIX@/sbin/$name" \
+    -- $args "$@"
+}
+
+# Stops a daemon
+stop() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing daemon name.' >&2
+    exit 1
+  fi
+
+  local name="$1"; shift
+
+  start-stop-daemon --stop --quiet --oknodo --retry 30 \
+    --pidfile $(_daemon_pidfile $name)
+}
+
+# Starts a daemon if it's not yet running
+check_and_start() {
+  local name="$1"
+
+  if ! check $name; then
+    start $name
+  fi
+}
+
+# Starts the master role
+start_master() {
+  start ganeti-masterd
+  start ganeti-rapi
+}
+
+# Stops the master role
+stop_master() {
+  stop ganeti-rapi
+  stop ganeti-masterd
+}
+
+if [[ "$#" -lt 1 ]]; then
+  echo "Usage: $0 <action>" >&2
+  exit 1
+fi
+
+orig_action=$1; shift
+
+# Replace all dashes (-) with underlines (_)
+action=${orig_action//-/_}
+
+# Is it a known function?
+if ! declare -F "$action" >/dev/null 2>&1; then
+  echo "Unknown command: $orig_action" >&2
+  exit 1
+fi
+
+# Call handler function
+$action "$@"

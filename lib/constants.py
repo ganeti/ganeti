@@ -104,6 +104,7 @@ INSTANCE_UPFILE = RUN_GANETI_DIR + "/instance-status"
 SSH_KNOWN_HOSTS_FILE = DATA_DIR + "/known_hosts"
 RAPI_USERS_FILE = DATA_DIR + "/rapi_users"
 QUEUE_DIR = DATA_DIR + "/queue"
+DAEMON_UTIL = _autoconf.PKGLIBDIR + "/daemon-util"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 SYSCONFDIR = _autoconf.SYSCONFDIR
@@ -111,8 +112,6 @@ TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
-
-NODE_INITD_SCRIPT = SYSCONFDIR + "/init.d/ganeti"
 
 NODED = "ganeti-noded"
 CONFD = "ganeti-confd"

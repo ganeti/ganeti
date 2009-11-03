@@ -126,8 +126,7 @@ def _InitGanetiServerSetup(master_name):
   if not os.path.exists(constants.HMAC_CLUSTER_KEY):
     GenerateHmacKey(constants.HMAC_CLUSTER_KEY)
 
-  result = utils.RunCmd([constants.NODE_INITD_SCRIPT, "restart"])
-
+  result = utils.RunCmd([constants.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
     raise errors.OpExecError("Could not start the node daemon, command %s"
                              " had exitcode %s and error %s" %
@@ -240,12 +239,6 @@ def InitCluster(cluster_name, mac_prefix,
     raise errors.OpPrereqError("Invalid master netdev given (%s): '%s'" %
                                (master_netdev,
                                 result.output.strip()), errors.ECODE_INVAL)
-
-  if not (os.path.isfile(constants.NODE_INITD_SCRIPT) and
-          os.access(constants.NODE_INITD_SCRIPT, os.X_OK)):
-    raise errors.OpPrereqError("Init.d script '%s' missing or not"
-                               " executable." % constants.NODE_INITD_SCRIPT,
-                               errors.ECODE_ENVIRON)
 
   dirs = [(constants.RUN_GANETI_DIR, constants.RUN_DIRS_MODE)]
   utils.EnsureDirs(dirs)
@@ -416,13 +409,13 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n"
                "chmod 0400 %s %s %s && "
-               "%s restart" %
+               "%s start %s" %
                (constants.SSL_CERT_FILE, noded_cert,
                 constants.RAPI_CERT_FILE, rapi_cert,
                 constants.HMAC_CLUSTER_KEY, hmac_key,
                 constants.SSL_CERT_FILE, constants.RAPI_CERT_FILE,
                 constants.HMAC_CLUSTER_KEY,
-                constants.NODE_INITD_SCRIPT))
+                constants.DAEMON_UTIL, constants.NODED))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,
                          ask_key=ssh_key_check,

@@ -53,6 +53,7 @@ maintainer-clean-local:
 
 CLEANFILES = \
 	autotools/replace_vars.sed \
+	daemons/daemon-util \
 	daemons/ganeti-cleaner \
 	devel/upload \
 	doc/examples/bash_completion \
@@ -220,6 +221,9 @@ dist_tools_SCRIPTS = \
 	tools/cfgupgrade \
 	tools/lvmstrap
 
+pkglib_SCRIPTS = \
+	daemons/daemon-util
+
 EXTRA_DIST = \
 	NEWS \
 	pylintrc \
@@ -227,6 +231,7 @@ EXTRA_DIST = \
 	autotools/check-python-code \
 	autotools/docbook-wrapper \
 	$(RUN_IN_TEMPDIR) \
+	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
 	devel/upload.in \
 	$(docdot) \
@@ -342,7 +347,7 @@ devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod u+x $@
 
-daemons/ganeti-cleaner: daemons/ganeti-cleaner.in \
+daemons/%: daemons/%.in \
 		$(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
@@ -418,6 +423,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "LVM_STRIPECOUNT = $(LVM_STRIPECOUNT)"; \
 	  echo "TOOLSDIR = '$(toolsdir)'"; \
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
+	  echo "PKGLIBDIR = '$(pkglibdir)'"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile
