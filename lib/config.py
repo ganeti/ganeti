@@ -1195,15 +1195,23 @@ class ConfigWriter:
     """
     assert feedback_fn is None or callable(feedback_fn)
 
-    # first, cleanup the _temporary_ids set, if an ID is now in the
+    # First, cleanup the _temporary_ids set, if an ID is now in the
     # other objects it should be discarded to prevent unbounded growth
     # of that structure
     self._CleanupTemporaryIDs()
+
+    # Warn on config errors, but don't abort the save - the
+    # configuration has already been modified, and we can't revert;
+    # the best we can do is to warn the user and save as is, leaving
+    # recovery to the user
     config_errors = self._UnlockedVerifyConfig()
     if config_errors:
-      raise errors.ConfigurationError("Configuration data is not"
-                                      " consistent: %s" %
-                                      (", ".join(config_errors)))
+      errmsg = ("Configuration data is not consistent: %s" %
+                (", ".join(config_errors)))
+      logging.critical(errmsg)
+      if feedback_fn:
+        feedback_fn(errmsg)
+
     if destination is None:
       destination = self._cfg_file
     self._BumpSerialNo()
