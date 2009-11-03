@@ -1589,24 +1589,31 @@ def KillProcess(pid, signal_=signal.SIGTERM, timeout=30,
 
   if not IsProcessAlive(pid):
     return
+
   _helper(pid, signal_, waitpid)
+
   if timeout <= 0:
     return
 
-  # Wait up to $timeout seconds
-  end = time.time() + timeout
-  wait = 0.01
-  while time.time() < end and IsProcessAlive(pid):
+  def _CheckProcess():
+    if not IsProcessAlive(pid):
+      return
+
     try:
       (result_pid, _) = os.waitpid(pid, os.WNOHANG)
-      if result_pid > 0:
-        break
     except OSError:
-      pass
-    time.sleep(wait)
-    # Make wait time longer for next try
-    if wait < 0.1:
-      wait *= 1.5
+      raise RetryAgain()
+
+    if result_pid > 0:
+      return
+
+    raise RetryAgain()
+
+  try:
+    # Wait up to $timeout seconds
+    Retry(_CheckProcess, (0.01, 1.5, 0.1), timeout)
+  except RetryTimeout:
+    pass
 
   if IsProcessAlive(pid):
     # Kill process if it's still alive
@@ -2196,6 +2203,8 @@ class FileLock(object):
     elif not blocking:
       flag |= fcntl.LOCK_NB
       timeout_end = None
+
+    # TODO: Convert to utils.Retry
 
     retry = True
     while retry:
