@@ -114,18 +114,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     return '%s/%s.serial' % (cls._CTRL_DIR, instance_name)
 
-  @staticmethod
-  def _SocatUnixConsoleParams():
-    """Returns the correct parameters for socat
-
-    If we have a new-enough socat we can use raw mode with an escape character.
-
-    """
-    if constants.SOCAT_ESCAPE:
-      return "raw,echo=0,escape=%s" % constants.SOCAT_ESCAPE_CODE
-    else:
-      return "echo=0,icanon=0"
-
   @classmethod
   def _InstanceKVMRuntime(cls, instance_name):
     """Returns the instance KVM runtime filename
@@ -690,8 +678,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if hvparams[constants.HV_SERIAL_CONSOLE]:
-      shell_command = ("%s STDIO,%s UNIX-CONNECT:%s" %
-                       (constants.SOCAT_PATH, cls._SocatUnixConsoleParams(),
+      # FIXME: The socat shell is not perfect. In particular the way we start
+      # it ctrl+c will close it, rather than being passed to the other end.
+      # On the other hand if we pass the option 'raw' (or ignbrk=1) there
+      # will be no way of exiting socat (except killing it from another shell)
+      # and ctrl+c doesn't work anyway, printing ^C rather than being
+      # interpreted by kvm. For now we'll leave it this way, which at least
+      # allows a minimal interaction and changes on the machine.
+      shell_command = ("%s STDIO,echo=0,icanon=0 UNIX-CONNECT:%s" %
+                       (constants.SOCAT_PATH,
                         utils.ShellQuote(cls._InstanceSerial(instance.name))))
     else:
       shell_command = "echo 'No serial shell for instance %s'" % instance.name
