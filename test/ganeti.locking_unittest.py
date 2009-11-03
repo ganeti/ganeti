@@ -31,6 +31,8 @@ import threading
 from ganeti import locking
 from ganeti import errors
 
+import testutils
+
 
 # This is used to test the ssynchronize decorator.
 # Since it's passed as input to a decorator it must be declared as a global.
@@ -1405,6 +1407,4 @@ class TestGanetiLockManager(_ThreadedTestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
-  #suite = unittest.TestLoader().loadTestsFromTestCase(TestSharedLock)
-  #unittest.TextTestRunner(verbosity=2).run(suite)
+  testutils.GanetiTestProgram()

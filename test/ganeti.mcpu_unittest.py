@@ -26,6 +26,8 @@ import unittest
 
 from ganeti import mcpu
 
+import testutils
+
 
 class TestLockAttemptTimeoutStrategy(unittest.TestCase):
   def testConstants(self):
@@ -58,4 +60,4 @@ class TestLockAttemptTimeoutStrategy(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  testutils.GanetiTestProgram()

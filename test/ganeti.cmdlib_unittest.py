@@ -30,6 +30,8 @@ import Queue
 from ganeti import cmdlib
 from ganeti import errors
 
+import testutils
+
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

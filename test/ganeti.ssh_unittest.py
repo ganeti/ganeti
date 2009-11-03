@@ -49,4 +49,4 @@ class TestKnownHosts(testutils.GanetiTestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

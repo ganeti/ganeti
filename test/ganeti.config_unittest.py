@@ -36,6 +36,8 @@ from ganeti import errors
 from ganeti import objects
 from ganeti import utils
 
+import testutils
+
 
 class TestConfigRunner(unittest.TestCase):
   """Testing case for HooksRunner"""
@@ -176,4 +178,4 @@ class TestConfigRunner(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

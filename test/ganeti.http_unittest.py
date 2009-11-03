@@ -32,6 +32,8 @@ import ganeti.http.server
 import ganeti.http.client
 import ganeti.http.auth
 
+import testutils
+
 
 class TestStartLines(unittest.TestCase):
   """Test cases for start line classes"""
@@ -163,4 +165,4 @@ class TestAuth(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

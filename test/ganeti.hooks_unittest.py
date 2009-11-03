@@ -39,10 +39,14 @@ from ganeti.constants import HKR_SUCCESS, HKR_FAIL, HKR_SKIP
 
 from mocks import FakeConfig, FakeProc, FakeContext
 
+import testutils
+
+
 class FakeLU(cmdlib.LogicalUnit):
   HPATH = "test"
   def BuildHooksEnv(self):
     return {}, ["localhost"], ["localhost"]
+
 
 class TestHooksRunner(unittest.TestCase):
   """Testing case for HooksRunner"""
@@ -266,5 +270,6 @@ class TestHooksMaster(unittest.TestCase):
     for phase in (constants.HOOKS_PHASE_PRE, constants.HOOKS_PHASE_POST):
       hm.RunPhase(phase)
 
+
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

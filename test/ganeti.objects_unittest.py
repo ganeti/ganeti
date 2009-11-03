@@ -26,8 +26,12 @@ import unittest
 
 from ganeti import objects
 
+import testutils
+
+
 class SimpleObject(objects.ConfigObject):
   __slots__ = ['a', 'b']
+
 
 class TestDictState(unittest.TestCase):
   """Simple dict tansformation tests"""
@@ -45,4 +49,4 @@ class TestDictState(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

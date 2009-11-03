@@ -29,6 +29,8 @@ import zlib
 
 from ganeti import workerpool
 
+import testutils
+
 
 class DummyBaseWorker(workerpool.BaseWorker):
   def RunTask(self, text):
@@ -136,4 +138,4 @@ class TestWorkerpool(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

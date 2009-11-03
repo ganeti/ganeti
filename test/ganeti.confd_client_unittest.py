@@ -30,6 +30,8 @@ from ganeti import errors
 
 import ganeti.confd.client
 
+import testutils
+
 
 class ResettableMock(object):
   def __init__(self, *args, **kwargs):
@@ -182,4 +184,4 @@ class TestClient(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

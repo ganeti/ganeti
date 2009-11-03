@@ -80,4 +80,4 @@ class TestSerializer(testutils.GanetiTestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

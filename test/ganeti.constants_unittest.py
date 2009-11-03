@@ -27,6 +27,8 @@ import re
 
 from ganeti import constants
 
+import testutils
+
 
 class TestConstants(unittest.TestCase):
   """Constants tests"""
@@ -99,4 +101,4 @@ class TestConfdConstants(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

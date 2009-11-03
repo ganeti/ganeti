@@ -25,9 +25,10 @@
 import os
 import unittest
 
-import testutils
 from ganeti import bdev
 from ganeti import errors
+
+import testutils
 
 
 class TestDRBD8Runner(testutils.GanetiTestCase):
@@ -189,4 +190,4 @@ class TestDRBD8Status(testutils.GanetiTestCase):
                       stats.is_disk_uptodate)
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

@@ -31,6 +31,8 @@ from ganeti import http
 from ganeti.rapi import connector
 from ganeti.rapi import rlib2
 
+import testutils
+
 
 class MapperTests(unittest.TestCase):
   """Tests for remote API URI mapper."""
@@ -82,4 +84,4 @@ class R_RootTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

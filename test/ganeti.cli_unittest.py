@@ -26,9 +26,11 @@ from cStringIO import StringIO
 
 import ganeti
 import testutils
+
 from ganeti import constants
 from ganeti import cli
 from ganeti.errors import OpPrereqError, ParameterError
+
 
 class TestParseTimespec(unittest.TestCase):
   """Testing case for ParseTimespec"""
@@ -123,4 +125,4 @@ class TestToStream(unittest.TestCase):
       self.failUnlessEqual(buf.getvalue(), "foo a b\n")
 
 if __name__ == '__main__':
-  unittest.main()
+  testutils.GanetiTestProgram()

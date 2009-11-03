@@ -149,4 +149,4 @@ class TestManpages(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  testutils.GanetiTestProgram()

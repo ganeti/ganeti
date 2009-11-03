@@ -25,12 +25,22 @@ import os
 import stat
 import tempfile
 import unittest
+import logging
 
 from ganeti import utils
 
 
 def GetSourceDir():
   return os.environ.get("TOP_SRCDIR", ".")
+
+
+class GanetiTestProgram(unittest.TestProgram):
+  def runTests(self):
+    """
+
+    """
+    logging.basicConfig(filename=os.devnull)
+    return unittest.TestProgram.runTests(self)
 
 
 class GanetiTestCase(unittest.TestCase):
