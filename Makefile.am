@@ -58,6 +58,7 @@ CLEANFILES = \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.initd \
 	doc/examples/ganeti.cron \
+	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec \
 	lib/*.py[co] \
 	lib/build/*.py[co] \
@@ -189,6 +190,7 @@ noinst_DATA = \
 	doc/examples/bash_completion \
 	doc/examples/ganeti.cron \
 	doc/examples/ganeti.initd \
+	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec \
 	$(manhtml)
 
@@ -234,6 +236,7 @@ EXTRA_DIST = \
 	doc/html \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
+	doc/examples/gnt-config-backup.in \
 	doc/examples/dumb-allocator \
 	doc/examples/hooks/ethers \
 	doc/examples/hooks/ipsec.in \

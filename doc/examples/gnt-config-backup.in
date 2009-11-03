@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Copyright (C) 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+# This is an example ganeti script that should be run from cron on all
+# nodes; it will archive the ganeti configuration into a separate
+# directory tree via GIT, so that it is possible to restore the
+# history of cluster configuration changes if needed
+
+# The script requires the lockfile-progs package and the git software
+
+# Note that since Ganeti 2.0, config.data is the authoritative source
+# of configuration; as such, we don't need to backup the ssconf files,
+# and the other files (server.pem, rapi.pem, hmac.key, known_hosts,
+# etc.) do no hold critical data (they can be regenerated at will, as
+# long as they are synchronised).
+
+set -e
+
+LOCALSTATEDIR=@LOCALSTATEDIR@
+SYSCONFDIR=@SYSCONFDIR@
+
+GANETIDIR=${LOCALSTATEDIR}/lib/ganeti
+CONFIGDATA=${GANETIDIR}/config.data
+
+GNTBKDIR=${LOCALSTATEDIR}/lib/gnt-config-backup
+LOCKFILE=${LOCALSTATEDIR}/lock/gnt-config-backup
+
+# exit if no ganeti config file (no cluster configured, or not M/MC)
+test -f $CONFIGDATA || exit 0
+
+# We use a simple lock method, since our script should be fast enough
+# (no network, not talking to ganeti-masterd) that we don't expect to
+# run over 5 minutes if the system is healthy
+lockfile-create "$LOCKFILE" || exit 1
+trap 'lockfile-remove $LOCKFILE' EXIT
+
+test -d $GNTBKDIR || mkdir $GNTBKDIR
+
+cd $GNTBKDIR
+
+test -d .git || git init
+
+cp -f $CONFIGDATA config.data
+git add config.data
+git commit -q -m "Automatic commit by gnt-config-backup"
+
+touch last_run
