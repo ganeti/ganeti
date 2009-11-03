@@ -355,7 +355,7 @@ class LogicalVolume(BlockDev):
       raise errors.ProgrammerError("Invalid configuration data %s" %
                                    str(unique_id))
     vg_name, lv_name = unique_id
-    pvs_info = cls.GetPVInfo(vg_name)
+    pvs_info = cls.GetPVInfo([vg_name])
     if not pvs_info:
       _ThrowError("Can't compute PV info for vg %s", vg_name)
     pvs_info.sort()
@@ -389,10 +389,11 @@ class LogicalVolume(BlockDev):
     return LogicalVolume(unique_id, children, size)
 
   @staticmethod
-  def GetPVInfo(vg_name):
+  def GetPVInfo(vg_names, filter_allocatable=True):
     """Get the free space info for PVs in a volume group.
 
-    @param vg_name: the volume group name
+    @param vg_names: list of volume group names, if empty all will be returned
+    @param filter_allocatable: whether to skip over unallocatable PVs
 
     @rtype: list
     @return: list of tuples (free_space, name) with free_space in mebibytes
@@ -413,10 +414,13 @@ class LogicalVolume(BlockDev):
       if len(fields) != 4:
         logging.error("Can't parse pvs output: line '%s'", line)
         return None
-      # skip over pvs from another vg or ones which are not allocatable
-      if fields[1] != vg_name or fields[3][0] != 'a':
+      # (possibly) skip over pvs which are not allocatable
+      if filter_allocatable and fields[3][0] != 'a':
         continue
-      data.append((float(fields[2]), fields[0]))
+      # (possibly) skip over pvs which are not in the right volume group(s)
+      if vg_names and fields[1] not in vg_names:
+        continue
+      data.append((float(fields[2]), fields[0], fields[1]))
 
     return data
 
@@ -596,12 +600,12 @@ class LogicalVolume(BlockDev):
     snap = LogicalVolume((self._vg_name, snap_name), None, size)
     _IgnoreError(snap.Remove)
 
-    pvs_info = self.GetPVInfo(self._vg_name)
+    pvs_info = self.GetPVInfo([self._vg_name])
     if not pvs_info:
       _ThrowError("Can't compute PV info for vg %s", self._vg_name)
     pvs_info.sort()
     pvs_info.reverse()
-    free_size, pv_name = pvs_info[0]
+    free_size, pv_name, _ = pvs_info[0]
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)
