@@ -592,7 +592,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
-    incoming_address = (target, constants.KVM_MIGRATION_PORT)
+    incoming_address = (target, instance.hvparams[constants.HV_MIGRATION_PORT])
     self._ExecuteKVMRuntime(instance, kvm_runtime, incoming=incoming_address)
 
   def FinalizeMigration(self, instance, info, success):
@@ -631,8 +631,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not live:
       self._CallMonitorCommand(instance_name, 'stop')
 
-    migrate_command = ('migrate -d tcp:%s:%s' %
-                       (target, constants.KVM_MIGRATION_PORT))
+    port = instance.hvparams[constants.HV_MIGRATION_PORT]
+    migrate_command = 'migrate -d tcp:%s:%s' % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
     info_command = 'info migrate'

@@ -402,7 +402,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     if self.GetInstanceInfo(instance.name) is None:
       raise errors.HypervisorError("Instance not running, cannot migrate")
-    args = ["xm", "migrate"]
+    port = instance.hvparams[constants.HV_MIGRATION_PORT]
+    args = ["xm", "migrate", "-p", "%d" % port]
     if live:
       args.append("-l")
     args.extend([instance.name, target])

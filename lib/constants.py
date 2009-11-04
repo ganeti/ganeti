@@ -165,7 +165,6 @@ XEN_INITRD = _autoconf.XEN_INITRD
 
 KVM_PATH = _autoconf.KVM_PATH
 SOCAT_PATH = _autoconf.SOCAT_PATH
-KVM_MIGRATION_PORT = _autoconf.KVM_MIGRATION_PORT
 
 VALUE_DEFAULT = "default"
 VALUE_AUTO = "auto"
