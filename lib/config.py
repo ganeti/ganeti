@@ -408,10 +408,6 @@ class ConfigWriter:
       _helper(node.primary_ip, "node:%s/primary" % node.name)
       if node.secondary_ip != node.primary_ip:
         _helper(node.secondary_ip, "node:%s/secondary" % node.name)
-    for instance in data.instances.values():
-      for idx, nic in enumerate(instance.nics):
-        if nic.ip is not None:
-          _helper(nic.ip, "instance:%s/nic:%d" % (instance.name, idx))
 
     for ip, owners in ips.items():
       if len(owners) > 1:
