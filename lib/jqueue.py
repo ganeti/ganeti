@@ -509,6 +509,30 @@ class _JobQueueWorkerPool(workerpool.WorkerPool):
     self.queue = queue
 
 
+def _RequireOpenQueue(fn):
+  """Decorator for "public" functions.
+
+  This function should be used for all 'public' functions. That is,
+  functions usually called from other classes. Note that this should
+  be applied only to methods (not plain functions), since it expects
+  that the decorated function is called with a first argument that has
+  a '_queue_lock' argument.
+
+  @warning: Use this decorator only after utils.LockedMethod!
+
+  Example::
+    @utils.LockedMethod
+    @_RequireOpenQueue
+    def Example(self):
+      pass
+
+  """
+  def wrapper(self, *args, **kwargs):
+    assert self._queue_lock is not None, "Queue should be open"
+    return fn(self, *args, **kwargs)
+  return wrapper
+
+
 class JobQueue(object):
   """Queue used to manage the jobs.
 
@@ -516,26 +540,6 @@ class JobQueue(object):
 
   """
   _RE_JOB_FILE = re.compile(r"^job-(%s)$" % constants.JOB_ID_TEMPLATE)
-
-  def _RequireOpenQueue(fn):
-    """Decorator for "public" functions.
-
-    This function should be used for all 'public' functions. That is,
-    functions usually called from other classes.
-
-    @warning: Use this decorator only after utils.LockedMethod!
-
-    Example::
-      @utils.LockedMethod
-      @_RequireOpenQueue
-      def Example(self):
-        pass
-
-    """
-    def wrapper(self, *args, **kwargs):
-      assert self._queue_lock is not None, "Queue should be open"
-      return fn(self, *args, **kwargs)
-    return wrapper
 
   def __init__(self, context):
     """Constructor for JobQueue.
