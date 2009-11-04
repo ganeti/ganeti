@@ -181,7 +181,10 @@ other. For example::
   (xend-relocation-address '')
   (xend-relocation-hosts-allow '^192\\.168\\.3\\.[0-9]+$')
 
-The last line assumes that all your nodes have secondary IPs in the
+
+The second line assumess that the hypervisor parameter
+``migration_port`` is set 8002, otherwise modify it to match. The last
+line assumes that all your nodes have secondary IPs in the
 192.168.3.0/24 network, adjust it accordingly to your setup.
 
 .. admonition:: Debian

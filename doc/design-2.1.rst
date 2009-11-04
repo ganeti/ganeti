@@ -544,6 +544,36 @@ category, which will allow us to expand on by creating instance
 "classes" in the future.  Instance classes is not a feature we plan
 implementing in 2.1, though.
 
+
+Global hypervisor parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Current State and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently all hypervisor parameters are modifiable both globally
+(cluster level) and at instance level. However, there is no other
+framework to held hypervisor-specific parameters, so if we want to add
+a new class of hypervisor parameters that only makes sense on a global
+level, we have to change the hvparams framework.
+
+Proposed changes
+++++++++++++++++
+
+We add a new (global, not per-hypervisor) list of parameters which are
+not changeable on a per-instance level. The create, modify and query
+instance operations are changed to not allow/show these parameters.
+
+Furthermore, to allow transition of parameters to the global list, and
+to allow cleanup of inadverdently-customised parameters, the
+``UpgradeConfig()`` method of instances will drop any such parameters
+from their list of hvparams, such that a restart of the master daemon
+is all that is needed for cleaning these up.
+
+Also, the framework is simple enough that if we need to replicate it
+at beparams level we can do so easily.
+
+
 Non bridged instances support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

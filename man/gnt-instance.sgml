@@ -505,25 +505,8 @@
               </listitem>
             </varlistentry>
 
-            <varlistentry>
-              <term>migration_port</term>
-              <listitem>
-                <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
-
-                <para>
-                  This options specifies the TCP port to use for
-                  live-migration. Note that this shouldn't (usually)
-                  be changed at the instance level, but only at
-                  cluster-level.
-                </para>
-              </listitem>
-            </varlistentry>
-
           </variablelist>
 
-        </para>
-
-        <para>
         </para>
 
         <para>

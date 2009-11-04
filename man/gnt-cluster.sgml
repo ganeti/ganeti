@@ -359,6 +359,13 @@
             </listitem>
           </varlistentry>
           <varlistentry>
+            <term>chroot</term>
+            <listitem>
+              <para>
+                a simple chroot manager that starts chroot based on a
+                script at the root of the filesystem holding the
+                chroot
+          <varlistentry>
             <term>fake</term>
             <listitem>
               <para>
@@ -373,6 +380,38 @@
         Either a single hypervisor name or a comma-separated list of
         hypervisor names can be specified. If this option is not
         specified, only the xen-pvm hypervisor is enabled by default.
+      </para>
+
+      <para>
+        The <option>--hypervisor-parameters</option> option allows you
+        to set default hypervisor specific parameters for the
+        cluster. The format of this option is the name of the
+        hypervisor, followed by a colon and a comma-separated list of
+        key=value pairs. The keys available for each hypervisors are
+        detailed in the <citerefentry>
+        <refentrytitle>gnt-instance</refentrytitle>
+        <manvolnum>8</manvolnum> </citerefentry> man page, in the
+        <command>add</command> command plus the following parameters
+        which are only configurable globally (at cluster level):
+
+        <variablelist>
+          <varlistentry>
+            <term>migration_port</term>
+            <listitem>
+              <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
+
+              <para>
+                This options specifies the TCP port to use for
+                live-migration. For Xen, the same port should be
+                configured on all nodes in
+                the <filename>/etc/xen/xend-config.sxp</filename>
+                file, under the
+                key <quote>xend-relocation-port</quote>.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+
       </para>
 
       <para>
@@ -414,18 +453,6 @@
             </listitem>
           </varlistentry>
         </variablelist>
-      </para>
-
-      <para>
-        The <option>--hypervisor-parameters</option> option allows you
-        to set default hypervisor specific parameters for the
-        cluster. The format of this option is the name of the
-        hypervisor, followed by a colon and a comma-separated list of
-        key=value pairs. The keys available for each hypervisors are
-        detailed int the <citerefentry>
-        <refentrytitle>gnt-instance</refentrytitle>
-        <manvolnum>8</manvolnum> </citerefentry> man page, in the
-        <command>add</command> command.
       </para>
 
       <para>
