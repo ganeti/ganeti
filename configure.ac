@@ -108,16 +108,6 @@ AC_ARG_WITH([kvm-path],
   [kvm_path="/usr/bin/kvm"])
 AC_SUBST(KVM_PATH, $kvm_path)
 
-# --with-kvm-migration-port=...
-AC_ARG_WITH([kvm-migration-port],
-  [AS_HELP_STRING([--with-kvm-migration-port=PORT],
-    [tcp port used for kvm instance live migration]
-    [ (default is 8102)]
-  )],
-  [kvm_migration_port="$withval"],
-  [kvm_migration_port="8102"])
-AC_SUBST(KVM_MIGRATION_PORT, $kvm_migration_port)
-
 # --with-socat-path=...
 AC_ARG_WITH([socat-path],
   [AS_HELP_STRING([--with-socat-path=PATH],
