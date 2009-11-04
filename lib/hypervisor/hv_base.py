@@ -232,11 +232,11 @@ class BaseHypervisor(object):
     """
     pass
 
-  def MigrateInstance(self, name, target, live):
+  def MigrateInstance(self, instance, target, live):
     """Migrate an instance.
 
-    @type name: string
-    @param name: name of the instance to be migrated
+    @type instance: L{object.Instance}
+    @param name: the instance to be migrated
     @type target: string
     @param target: hostname (usually ip) of the target node
     @type live: boolean

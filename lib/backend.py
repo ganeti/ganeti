@@ -1155,7 +1155,7 @@ def MigrateInstance(instance, target, live):
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
 
   try:
-    hyper.MigrateInstance(instance.name, target, live)
+    hyper.MigrateInstance(instance, target, live)
   except errors.HypervisorError, err:
     _Fail("Failed to migrate instance: %s", err, exc=True)
 

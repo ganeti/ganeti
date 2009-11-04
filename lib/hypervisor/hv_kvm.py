@@ -608,20 +608,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       self.StopInstance(instance, force=True)
 
-  def MigrateInstance(self, instance_name, target, live):
+  def MigrateInstance(self, instance, target, live):
     """Migrate an instance to a target node.
 
     The migration will not be attempted if the instance is not
     currently running.
 
-    @type instance_name: string
-    @param instance_name: name of the instance to be migrated
+    @type instance: L{objects.Instance}
+    @param instance: the instance to be migrated
     @type target: string
     @param target: ip address of the target node
     @type live: boolean
     @param live: perform a live migration
 
     """
+    instance_name = instance.name
     pidfile, pid, alive = self._InstancePidAlive(instance_name)
     if not alive:
       raise errors.HypervisorError("Instance not running, cannot migrate")

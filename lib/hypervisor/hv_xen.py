@@ -392,27 +392,27 @@ class XenHypervisor(hv_base.BaseHypervisor):
     The migration will not be attempted if the instance is not
     currently running.
 
-    @type instance: string
-    @param instance: instance name
+    @type instance: L{objects.Instance}
+    @param instance: the instance to be migrated
     @type target: string
     @param target: ip address of the target node
     @type live: boolean
     @param live: perform a live migration
 
     """
-    if self.GetInstanceInfo(instance) is None:
+    if self.GetInstanceInfo(instance.name) is None:
       raise errors.HypervisorError("Instance not running, cannot migrate")
     args = ["xm", "migrate"]
     if live:
       args.append("-l")
-    args.extend([instance, target])
+    args.extend([instance.name, target])
     result = utils.RunCmd(args)
     if result.failed:
       raise errors.HypervisorError("Failed to migrate instance %s: %s" %
-                                   (instance, result.output))
+                                   (instance.name, result.output))
     # remove old xen file after migration succeeded
     try:
-      self._RemoveConfigFile(instance)
+      self._RemoveConfigFile(instance.name)
     except EnvironmentError:
       logging.exception("Failure while removing instance config file")
 
