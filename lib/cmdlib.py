@@ -500,6 +500,21 @@ def _CheckBooleanOpField(op, name):
   setattr(op, name, val)
 
 
+def _CheckGlobalHvParams(params):
+  """Validates that given hypervisor params are not global ones.
+
+  This will ensure that instances don't get customised versions of
+  global params.
+
+  """
+  used_globals = constants.HVC_GLOBALS.intersection(params)
+  if used_globals:
+    msg = ("The following hypervisor parameters are global and cannot"
+           " be customized at instance level, please modify them at"
+           " cluster level: %s" % ", ".join(used_globals))
+    raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+
+
 def _CheckNodeOnline(lu, node):
   """Ensure that a given node is online.
 
@@ -4200,7 +4215,8 @@ class LUQueryInstances(NoHooksLU):
                                     "hvparams",
                                     ] + _SIMPLE_FIELDS +
                                   ["hv/%s" % name
-                                   for name in constants.HVS_PARAMETERS] +
+                                   for name in constants.HVS_PARAMETERS
+                                   if name not in constants.HVC_GLOBALS] +
                                   ["be/%s" % name
                                    for name in constants.BES_PARAMETERS])
   _FIELDS_DYNAMIC = utils.FieldSet("oper_state", "oper_ram", "status")
@@ -4295,7 +4311,7 @@ class LUQueryInstances(NoHooksLU):
     cluster = self.cfg.GetClusterInfo()
     for instance in instance_list:
       iout = []
-      i_hv = cluster.FillHV(instance)
+      i_hv = cluster.FillHV(instance, skip_globals=True)
       i_be = cluster.FillBE(instance)
       i_nicp = [objects.FillDict(cluster.nicparams[constants.PP_DEFAULT],
                                  nic.nicparams) for nic in instance.nics]
@@ -4382,7 +4398,8 @@ class LUQueryInstances(NoHooksLU):
         elif field == "hvparams":
           val = i_hv
         elif (field.startswith(HVPREFIX) and
-              field[len(HVPREFIX):] in constants.HVS_PARAMETERS):
+              field[len(HVPREFIX):] in constants.HVS_PARAMETERS and
+              field[len(HVPREFIX):] not in constants.HVC_GLOBALS):
           val = i_hv.get(field[len(HVPREFIX):], None)
         elif field == "beparams":
           val = i_be
@@ -5599,6 +5616,8 @@ class LUCreateInstance(LogicalUnit):
     hv_type = hypervisor.GetHypervisor(self.op.hypervisor)
     hv_type.CheckParameterSyntax(filled_hvp)
     self.hv_full = filled_hvp
+    # check that we don't specify global parameters on an instance
+    _CheckGlobalHvParams(self.op.hvparams)
 
     # fill and remember the beparams dict
     utils.ForceDictType(self.op.beparams, constants.BES_PARAMETER_TYPES)
@@ -7292,7 +7311,7 @@ class LUQueryInstanceData(NoHooksLU):
         "hypervisor": instance.hypervisor,
         "network_port": instance.network_port,
         "hv_instance": instance.hvparams,
-        "hv_actual": cluster.FillHV(instance),
+        "hv_actual": cluster.FillHV(instance, skip_globals=True),
         "be_instance": instance.beparams,
         "be_actual": cluster.FillBE(instance),
         "serial_no": instance.serial_no,
@@ -7328,6 +7347,9 @@ class LUSetInstanceParams(LogicalUnit):
     if not (self.op.nics or self.op.disks or
             self.op.hvparams or self.op.beparams):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
+
+    if self.op.hvparams:
+      _CheckGlobalHvParams(self.op.hvparams)
 
     # Disk validation
     disk_addremove = 0

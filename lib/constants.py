@@ -650,6 +650,10 @@ HVC_DEFAULTS = {
     },
   }
 
+HVC_GLOBALS = frozenset([
+  HV_MIGRATION_PORT,
+  ])
+
 BEC_DEFAULTS = {
   BE_MEMORY: 128,
   BE_VCPUS: 1,

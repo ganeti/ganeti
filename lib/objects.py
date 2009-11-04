@@ -42,19 +42,26 @@ __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
 
-def FillDict(defaults_dict, custom_dict):
+def FillDict(defaults_dict, custom_dict, skip_keys=[]):
   """Basic function to apply settings on top a default dict.
 
   @type defaults_dict: dict
   @param defaults_dict: dictionary holding the default values
   @type custom_dict: dict
   @param custom_dict: dictionary holding customized value
+  @type skip_keys: list
+  @param skip_keys: which keys not to fill
   @rtype: dict
   @return: dict with the 'full' values
 
   """
   ret_dict = copy.deepcopy(defaults_dict)
   ret_dict.update(custom_dict)
+  for k in skip_keys:
+    try:
+      del ret_dict[k]
+    except KeyError:
+      pass
   return ret_dict
 
 
@@ -777,6 +784,12 @@ class Instance(TaggableObject):
       nic.UpgradeConfig()
     for disk in self.disks:
       disk.UpgradeConfig()
+    if self.hvparams:
+      for key in constants.HVC_GLOBALS:
+        try:
+          del self.hvparams[key]
+        except KeyError:
+          pass
 
 
 class OS(ConfigObject):
@@ -887,18 +900,25 @@ class Cluster(TaggableObject):
       obj.tcpudp_port_pool = set(obj.tcpudp_port_pool)
     return obj
 
-  def FillHV(self, instance):
+  def FillHV(self, instance, skip_globals=False):
     """Fill an instance's hvparams dict.
 
     @type instance: L{objects.Instance}
     @param instance: the instance parameter to fill
+    @type skip_globals: boolean
+    @param skip_globals: if True, the global hypervisor parameters will
+        not be filled
     @rtype: dict
     @return: a copy of the instance's hvparams with missing keys filled from
         the cluster defaults
 
     """
+    if skip_globals:
+      skip_keys = constants.HVC_GLOBALS
+    else:
+      skip_keys = []
     return FillDict(self.hvparams.get(instance.hypervisor, {}),
-                         instance.hvparams)
+                    instance.hvparams, skip_keys=skip_keys)
 
   def FillBE(self, instance):
     """Fill an instance's beparams dict.
@@ -911,7 +931,7 @@ class Cluster(TaggableObject):
 
     """
     return FillDict(self.beparams.get(constants.PP_DEFAULT, {}),
-                          instance.beparams)
+                    instance.beparams)
 
 
 class BlockDevStatus(ConfigObject):
