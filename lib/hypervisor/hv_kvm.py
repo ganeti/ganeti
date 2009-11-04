@@ -624,14 +624,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     instance_name = instance.name
+    port = instance.hvparams[constants.HV_MIGRATION_PORT]
     pidfile, pid, alive = self._InstancePidAlive(instance_name)
     if not alive:
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
+    if not utils.TcpPing(target, port, live_port_needed=True):
+      raise errors.HypervisorError("Remote host %s not listening on port"
+                                   " %s, cannot migrate" % (target, port))
+
     if not live:
       self._CallMonitorCommand(instance_name, 'stop')
 
-    port = instance.hvparams[constants.HV_MIGRATION_PORT]
     migrate_command = 'migrate -d tcp:%s:%s' % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
