@@ -22,6 +22,13 @@
 
 """
 
+# pylint: disable-msg=E1103
+
+# # E1103: %s %r has no %r member (but some types could not be
+# inferred), since _socketobject could be ssl or not and pylint
+# doesn't parse that
+
+
 import os
 import select
 import socket

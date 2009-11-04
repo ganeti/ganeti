@@ -26,6 +26,12 @@
 
 """
 
+# pylint: disable-msg=E1103
+
+# E1103: %s %r has no %r member (but some types could not be
+# inferred), because the _TryOSFromDisk returns either (True, os_obj)
+# or (False, "string") which confuses pylint
+
 
 import os
 import os.path

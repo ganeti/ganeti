@@ -328,6 +328,7 @@ class LvmPvStorage(_LvmBase):
   """LVM Physical Volume storage unit.
 
   """
+  @staticmethod
   def _GetAllocatable(attr):
     if attr:
       return (attr[0] == "a")

@@ -26,6 +26,11 @@ pass to and from external parties.
 
 """
 
+# pylint: disable-msg=E0203
+
+# E0203: Access to member %r before its definition, since we use
+# objects.py which doesn't explicitely initialise its members
+
 
 import ConfigParser
 import re
