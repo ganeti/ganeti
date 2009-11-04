@@ -170,7 +170,7 @@ def InitCluster(cluster_name, mac_prefix,
                                " entries: %s" % invalid_hvs,
                                errors.ECODE_INVAL)
 
-  hostname = utils.HostInfo()
+  hostname = utils.GetHostInfo()
 
   if hostname.ip.startswith("127."):
     raise errors.OpPrereqError("This host's IP resolves to the private"
@@ -184,7 +184,7 @@ def InitCluster(cluster_name, mac_prefix,
                                " belong to this host. Aborting." %
                                hostname.ip, errors.ECODE_ENVIRON)
 
-  clustername = utils.HostInfo(cluster_name)
+  clustername = utils.GetHostInfo(cluster_name)
 
   if utils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
                    timeout=5):

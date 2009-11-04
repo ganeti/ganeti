@@ -24,6 +24,8 @@
 
 # OpPrereqError failure types
 
+# resolver errors
+ECODE_RESOLVER = "resolver_error"
 # not enough resources (iallocator failure, disk space, memory, etc.)
 ECODE_NORES = "insufficient_resources"
 # wrong arguments (at syntax level)

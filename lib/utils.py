@@ -590,6 +590,16 @@ class HostInfo:
     return result
 
 
+def GetHostInfo(name=None):
+  """Lookup host name and raise an OpPrereqError for failures"""
+
+  try:
+    return HostInfo(name)
+  except errors.ResolverError, err:
+    raise errors.OpPrereqError("The given name (%s) does not resolve: %s" %
+                               (err[0], err[2]), errors.ECODE_RESOLVER)
+
+
 def ListVolumeGroups():
   """List volume groups and their size
 

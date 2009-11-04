@@ -1788,7 +1788,7 @@ class LURenameCluster(LogicalUnit):
     """Verify that the passed name is a valid one.
 
     """
-    hostname = utils.HostInfo(self.op.name)
+    hostname = utils.GetHostInfo(self.op.name)
 
     new_name = hostname.name
     self.ip = new_ip = hostname.ip
@@ -2843,7 +2843,7 @@ class LUAddNode(LogicalUnit):
     node_name = self.op.node_name
     cfg = self.cfg
 
-    dns_data = utils.HostInfo(node_name)
+    dns_data = utils.GetHostInfo(node_name)
 
     node = dns_data.name
     primary_ip = self.op.primary_ip = dns_data.ip
@@ -4041,7 +4041,7 @@ class LURenameInstance(LogicalUnit):
     self.instance = instance
 
     # new name verification
-    name_info = utils.HostInfo(self.op.new_name)
+    name_info = utils.GetHostInfo(self.op.new_name)
 
     self.op.new_name = new_name = name_info.name
     instance_list = self.cfg.GetInstanceList()
@@ -5606,7 +5606,7 @@ class LUCreateInstance(LogicalUnit):
     #### instance parameters check
 
     # instance name verification
-    hostname1 = utils.HostInfo(self.op.instance_name)
+    hostname1 = utils.GetHostInfo(self.op.instance_name)
     self.op.instance_name = instance_name = hostname1.name
 
     # this is just a preventive check, but someone might still add this

@@ -285,7 +285,7 @@ def ClusterCopyFile(opts, args):
 
   cl = GetClient()
 
-  myname = utils.HostInfo().name
+  myname = utils.GetHostInfo().name
 
   cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
 
