@@ -62,6 +62,8 @@ REQ_FILE_CHECK = (True, ) + _FILE_CHECK
 OPT_FILE_CHECK = (False, ) + _FILE_CHECK
 REQ_DIR_CHECK = (True, ) + _DIR_CHECK
 OPT_DIR_CHECK = (False, ) + _DIR_CHECK
+NET_PORT_CHECK = (True, lambda x: x > 0 and x < 65535, "invalid port number",
+                  None, None)
 
 # no checks at all
 NO_CHECK = (False, None, None, None, None)

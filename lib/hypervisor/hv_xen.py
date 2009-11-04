@@ -445,6 +445,7 @@ class XenPvmHypervisor(XenHypervisor):
     constants.HV_INITRD_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_ROOT_PATH: hv_base.REQUIRED_CHECK,
     constants.HV_KERNEL_ARGS: hv_base.NO_CHECK,
+    constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     }
 
   @classmethod
@@ -542,6 +543,7 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_KERNEL_PATH: hv_base.REQ_FILE_CHECK,
     constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,
     constants.HV_VNC_PASSWORD_FILE: hv_base.REQ_FILE_CHECK,
+    constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     }
 
   @classmethod

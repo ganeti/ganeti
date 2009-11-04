@@ -72,6 +72,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_USB_MOUSE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
+    constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -556,8 +557,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # to shutdown and restart.
     pidfile, pid, alive = self._InstancePidAlive(instance.name)
     if not alive:
-      raise errors.HypervisorError("Failed to reboot instance %s: not running" %
-                                             (instance.name))
+      raise errors.HypervisorError("Failed to reboot instance %s:"
+                                   " not running" % instance.name)
     # StopInstance will delete the saved KVM runtime so:
     # ...first load it...
     kvm_runtime = self._LoadKVMRuntime(instance)
