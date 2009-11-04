@@ -396,6 +396,27 @@ class ConfigWriter:
       result.append("DRBD minor %d on node %s is assigned twice to instances"
                     " %s and %s" % (minor, node, instance_a, instance_b))
 
+    # IP checks
+    ips = { data.cluster.master_ip: ["cluster_ip"] }
+    def _helper(ip, name):
+      if ip in ips:
+        ips[ip].append(name)
+      else:
+        ips[ip] = [name]
+
+    for node in data.nodes.values():
+      _helper(node.primary_ip, "node:%s/primary" % node.name)
+      if node.secondary_ip != node.primary_ip:
+        _helper(node.secondary_ip, "node:%s/secondary" % node.name)
+    for instance in data.instances.values():
+      for idx, nic in enumerate(instance.nics):
+        if nic.ip is not None:
+          _helper(nic.ip, "instance:%s/nic:%d" % (instance.name, idx))
+
+    for ip, owners in ips.items():
+      if len(owners) > 1:
+        result.append("IP address %s is used by multiple owners: %s" %
+                      (ip, ", ".join(owners)))
     return result
 
   @locking.ssynchronized(_config_lock, shared=1)
