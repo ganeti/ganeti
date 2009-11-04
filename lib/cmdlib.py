@@ -5147,6 +5147,7 @@ class TLMigrateInstance(Tasklet):
     if msg:
       logging.error("Instance pre-migration failed, trying to revert"
                     " disk status: %s", msg)
+      self.feedback_fn("Pre-migration failed, aborting")
       self._AbortMigration()
       self._RevertDiskStatus()
       raise errors.OpExecError("Could not pre-migrate instance %s: %s" %
@@ -5161,6 +5162,7 @@ class TLMigrateInstance(Tasklet):
     if msg:
       logging.error("Instance migration failed, trying to revert"
                     " disk status: %s", msg)
+      self.feedback_fn("Migration failed, aborting")
       self._AbortMigration()
       self._RevertDiskStatus()
       raise errors.OpExecError("Could not migrate instance %s: %s" %
