@@ -73,6 +73,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_USB_MOUSE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
+    constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -401,6 +402,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_cmd.extend(['-serial', serial_dev])
     else:
       kvm_cmd.extend(['-serial', 'none'])
+
+    if hvp[constants.HV_USE_LOCALTIME]:
+      kvm_cmd.extend(['-localtime'])
 
     # Save the current instance nics, but defer their expansion as parameters,
     # as we'll need to generate executable temp files for them.

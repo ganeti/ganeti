@@ -551,6 +551,7 @@ class XenHvmHypervisor(XenHypervisor):
     constants.HV_DEVICE_MODEL: hv_base.REQ_FILE_CHECK,
     constants.HV_VNC_PASSWORD_FILE: hv_base.REQ_FILE_CHECK,
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
+    constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     }
 
   @classmethod
@@ -609,7 +610,8 @@ class XenHvmHypervisor(XenHypervisor):
     config.write("vncpasswd = '%s'\n" % password.rstrip())
 
     config.write("serial = 'pty'\n")
-    config.write("localtime = 1\n")
+    if hvp[constants.HV_USE_LOCALTIME]:
+      config.write("localtime = 1\n")
 
     vif_data = []
     nic_type = hvp[constants.HV_NIC_TYPE]

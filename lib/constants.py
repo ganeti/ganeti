@@ -391,6 +391,7 @@ HV_USB_MOUSE = "usb_mouse"
 HV_DEVICE_MODEL = "device_model"
 HV_INIT_SCRIPT = "init_script"
 HV_MIGRATION_PORT = "migration_port"
+HV_USE_LOCALTIME = "use_localtime"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -416,6 +417,7 @@ HVS_PARAMETER_TYPES = {
   HV_DEVICE_MODEL: VTYPE_STRING,
   HV_INIT_SCRIPT: VTYPE_STRING,
   HV_MIGRATION_PORT: VTYPE_INT,
+  HV_USE_LOCALTIME: VTYPE_BOOL,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -623,6 +625,7 @@ HVC_DEFAULTS = {
     HV_KERNEL_PATH: "/usr/lib/xen/boot/hvmloader",
     HV_DEVICE_MODEL: "/usr/lib/xen/bin/qemu-dm",
     HV_MIGRATION_PORT: 8002,
+    HV_USE_LOCALTIME: False,
     },
   HT_KVM: {
     HV_KERNEL_PATH: "/boot/vmlinuz-2.6-kvmU",
@@ -642,6 +645,7 @@ HVC_DEFAULTS = {
     HV_DISK_TYPE: HT_DISK_PARAVIRTUAL,
     HV_USB_MOUSE: '',
     HV_MIGRATION_PORT: 8102,
+    HV_USE_LOCALTIME: False,
     },
   HT_FAKE: {
     },
