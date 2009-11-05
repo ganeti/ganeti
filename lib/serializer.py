@@ -42,7 +42,7 @@ _JSON_INDENT = 2
 _RE_EOLSP = re.compile('[ \t]+$', re.MULTILINE)
 
 
-def _GetJsonDumpers():
+def _GetJsonDumpers(_encoder_class=simplejson.JSONEncoder):
   """Returns two JSON functions to serialize data.
 
   @rtype: (callable, callable)
@@ -50,22 +50,16 @@ def _GetJsonDumpers():
            generate a more readable, indented form of JSON (if supported)
 
   """
-  plain_dump = simplejson.dumps
+  plain_encoder = _encoder_class(sort_keys=True)
 
   # Check whether the simplejson module supports indentation
   try:
-    simplejson.dumps(1, indent=_JSON_INDENT)
+    indent_encoder = _encoder_class(indent=_JSON_INDENT, sort_keys=True)
   except TypeError:
     # Indentation not supported
-    indent_dump = plain_dump
-  else:
-    # Indentation supported
-    indent_dump = lambda data: simplejson.dumps(data, indent=_JSON_INDENT)
+    indent_encoder = plain_encoder
 
-  assert callable(plain_dump)
-  assert callable(indent_dump)
-
-  return (plain_dump, indent_dump)
+  return (plain_encoder.encode, indent_encoder.encode)
 
 
 (_DumpJson, _DumpJsonIndent) = _GetJsonDumpers()
