@@ -104,6 +104,11 @@ stop_master() {
   stop ganeti-masterd
 }
 
+# Reloads the SSH keys
+reload_ssh_keys() {
+  @RPL_SSH_INITD_SCRIPT@ restart
+}
+
 if [[ "$#" -lt 1 ]]; then
   echo "Usage: $0 <action>" >&2
   exit 1

@@ -408,7 +408,6 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "VERSION_FULL = '$(VERSION_FULL)'"; \
 	  echo "LOCALSTATEDIR = '$(localstatedir)'"; \
 	  echo "SYSCONFDIR = '$(sysconfdir)'"; \
-	  echo "SSH_INITD_SCRIPT = '$(SSH_INITD_SCRIPT)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
 	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \
@@ -437,6 +436,7 @@ $(REPLACE_VARS_SED): Makefile
 	  echo 's#@CUSTOM_XEN_KERNEL@#$(XEN_KERNEL)#g'; \
 	  echo 's#@CUSTOM_XEN_INITRD@#$(XEN_INITRD)#g'; \
 	  echo 's#@RPL_FILE_STORAGE_DIR@#$(FILE_STORAGE_DIR)#g'; \
+	  echo 's#@RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
 	  echo 's#@PKGLIBDIR@#$(pkglibdir)#g'; \
 	} > $@
 

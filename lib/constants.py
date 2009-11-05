@@ -338,7 +338,6 @@ OS_API_FILE = 'ganeti_api_version'
 OS_VARIANTS_FILE = 'variants.list'
 
 # ssh constants
-SSH_INITD_SCRIPT = _autoconf.SSH_INITD_SCRIPT
 SSH_CONFIG_DIR = "/etc/ssh/"
 SSH_HOST_DSA_PRIV = SSH_CONFIG_DIR + "ssh_host_dsa_key"
 SSH_HOST_DSA_PUB = SSH_HOST_DSA_PRIV + ".pub"

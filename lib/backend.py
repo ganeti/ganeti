@@ -355,7 +355,10 @@ def AddNode(dsa, dsapub, rsa, rsapub, sshkey, sshpub):
 
   utils.AddAuthorizedKey(auth_keys, sshpub)
 
-  utils.RunCmd([constants.SSH_INITD_SCRIPT, "restart"])
+  result = utils.RunCmd([constants.DAEMON_UTIL, "reload-ssh-keys"])
+  if result.failed:
+    _Fail("Unable to reload SSH keys (command %r, exit code %s, output %r)",
+          result.cmd, result.exit_code, result.output)
 
 
 def LeaveCluster(modify_ssh_setup):
