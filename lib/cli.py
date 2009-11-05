@@ -1219,13 +1219,21 @@ def GetClient():
   try:
     client = luxi.Client()
   except luxi.NoMasterError:
-    master, myself = ssconf.GetMasterAndMyself()
+    ss = ssconf.SimpleStore()
+
+    # Try to read ssconf file
+    try:
+      ss.GetMasterNode()
+    except errors.ConfigurationError:
+      raise errors.OpPrereqError("Cluster not initialized or this machine is"
+                                 " not part of a cluster")
+
+    master, myself = ssconf.GetMasterAndMyself(ss=ss)
     if master != myself:
       raise errors.OpPrereqError("This is not the master node, please connect"
                                  " to node '%s' and rerun the command" %
                                  master)
-    else:
-      raise
+    raise
   return client
 
 
