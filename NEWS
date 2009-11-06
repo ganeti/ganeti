@@ -15,7 +15,7 @@ Ganeti 2.1 brings many improvements with it. Major changes:
 - Improved job locking logic to reduce impact of jobs acquiring multiple
   locks waiting for other long-running jobs
 
-Detailed implementation details can be found in the Ganeti 2.1 design
+In-depth implementation details can be found in the Ganeti 2.1 design
 document.
 
 Details
@@ -26,8 +26,11 @@ Details
   ``device_model``)
 - Added more options to xen-pvm hypervisor (``use_bootloader``,
   ``bootloader_path`` and ``bootloader_args``)
+- Added the ``use_localtime`` option for the xen-hvm and kvm
+  hypervisors, and the default value for this has changed to false (in
+  2.0 xen-hvm always enabled it)
 - Added luxi call to submit multiple jobs in one go
-- Added cluster initialization time option to not modify ``/etc/hosts``
+- Added cluster initialization option to not modify ``/etc/hosts``
   file on nodes
 - Added network interface parameters
 - Added dry run mode to some LUs
@@ -78,6 +81,9 @@ Details
   from one place
 - Added more unittests
 - Fixed critical bug in ganeti-masterd startup
+- Removed the configure-time ``kvm-migration-port`` parameter, this is
+  now customisable at the cluster level for both the KVM and Xen
+  hypervisors using the new ``migration_port`` parameter
 - Pass ``INSTANCE_REINSTALL`` variable to OS installation script when
   reinstalling an instance
 - Migrated to Sphinx (http://sphinx.pocoo.org/) for documentation

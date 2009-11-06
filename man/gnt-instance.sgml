@@ -425,6 +425,22 @@
             </varlistentry>
 
             <varlistentry>
+              <term>use_localtime</term>
+              <listitem>
+                <simpara>Valid for the Xen HVM and KVM hypervisors.</simpara>
+
+                <para>
+                  A boolean option that specifies if the instance
+                  should be started with its clock set to the
+                  localtime of the machine (when true) or to the UTC
+                  (When false). The default is false, which is useful
+                  for Linux/Unix machines; for Windows OSes, it is
+                  recommended to enable this parameter.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term>kernel_path</term>
               <listitem>
                 <simpara>Valid for the Xen PVM and KVM hypervisors.</simpara>
