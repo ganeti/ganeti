@@ -8,7 +8,6 @@ fi
 set -e
 
 rm -rf config.cache autom4te.cache
-mkdir -p autotools
 
 ${ACLOCAL:-aclocal} -I autotools
 ${AUTOCONF:-autoconf}
