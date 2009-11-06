@@ -31,11 +31,14 @@ module Ganeti.HTools.Utils
     , readEitherString
     , loadJSArray
     , fromObj
+    , tryFromObj
+    , fromJVal
     , asJSObject
     , asObjectList
     , fromJResult
     , tryRead
     , formatTable
+    , annotateResult
     ) where
 
 import Data.List
@@ -44,6 +47,8 @@ import qualified Text.JSON as J
 import Text.Printf (printf)
 
 import Debug.Trace
+
+import Ganeti.HTools.Types
 
 -- * Debug functions
 
@@ -118,6 +123,24 @@ fromObj k o =
     case lookup k o of
       Nothing -> fail $ printf "key '%s' not found in %s" k (show o)
       Just val -> fromJResult $ J.readJSON val
+
+-- | Annotate a Result with an ownership information
+annotateResult :: String -> Result a -> Result a
+annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
+annotateResult _ v = v
+
+-- | Try to extract a key from a object with better error reporting
+-- than fromObj
+tryFromObj :: (J.JSON a) =>
+              String -> [(String, J.JSValue)] -> String -> Result a
+tryFromObj t o k = annotateResult (t ++ " key '" ++ k ++ "'") (fromObj k o)
+
+-- | Small wrapper over readJSON.
+fromJVal :: (Monad m, J.JSON a) => J.JSValue -> m a
+fromJVal v =
+    case J.readJSON v of
+      J.Error s -> fail ("Cannot convert value " ++ show v ++ ", error: " ++ s)
+      J.Ok x -> return x
 
 -- | Converts a JSON value into a JSON object.
 asJSObject :: (Monad m) => J.JSValue -> m (J.JSObject J.JSValue)

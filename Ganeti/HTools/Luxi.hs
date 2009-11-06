@@ -31,8 +31,6 @@ module Ganeti.HTools.Luxi
 import Data.List
 import qualified Control.Exception as E
 import Control.Monad
-import Text.JSON (JSValue, readJSON, JSON)
-import qualified Text.JSON as J
 import Text.JSON.Types
 
 import qualified Ganeti.Luxi as L
@@ -40,15 +38,9 @@ import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+import Ganeti.HTools.Utils (fromJVal, annotateResult)
 
 -- * Utility functions
-
--- | Small wrapper over readJSON.
-fromJVal :: (Monad m, JSON a) => JSValue -> m a
-fromJVal v =
-    case readJSON v of
-      J.Error s -> fail ("Cannot convert value " ++ show v ++ ", error: " ++ s)
-      J.Ok x -> return x
 
 -- | Ensure a given JSValue is actually a JSArray.
 toArray :: (Monad m) => JSValue -> m [JSValue]
@@ -102,15 +94,16 @@ parseInstance :: [(String, Ndx)]
               -> JSValue
               -> Result (String, Instance.Instance)
 parseInstance ktn (JSArray (name:disk:mem:vcpus:status:pnode:snodes:[])) = do
-  xname <- fromJVal name
-  xdisk <- fromJVal disk
-  xmem <- fromJVal mem
-  xvcpus <- fromJVal vcpus
-  xpnode <- fromJVal pnode >>= lookupNode ktn xname
-  xsnodes <- fromJVal snodes::Result [JSString]
+  xname <- annotateResult "Parsing new instance" (fromJVal name)
+  let convert v = annotateResult ("Instance '" ++ xname ++ "'") (fromJVal v)
+  xdisk <- convert disk
+  xmem <- convert mem
+  xvcpus <- convert vcpus
+  xpnode <- convert pnode >>= lookupNode ktn xname
+  xsnodes <- convert snodes::Result [JSString]
   snode <- (if null xsnodes then return Node.noSecondary
             else lookupNode ktn xname (fromJSString $ head xsnodes))
-  xrunning <- fromJVal status
+  xrunning <- convert status
   let inst = Instance.create xname xmem xdisk xvcpus xrunning xpnode snode
   return (xname, inst)
 
@@ -125,18 +118,19 @@ parseNode :: JSValue -> Result (String, Node.Node)
 parseNode (JSArray
            (name:mtotal:mnode:mfree:dtotal:dfree:ctotal:offline:drained:[]))
     = do
-  xname <- fromJVal name
-  xoffline <- fromJVal offline
+  xname <- annotateResult "Parsing new node" (fromJVal name)
+  let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
+  xoffline <- convert offline
   node <- (if xoffline
            then return $ Node.create xname 0 0 0 0 0 0 True
            else do
-             xdrained <- fromJVal drained
-             xmtotal  <- fromJVal mtotal
-             xmnode   <- fromJVal mnode
-             xmfree   <- fromJVal mfree
-             xdtotal  <- fromJVal dtotal
-             xdfree   <- fromJVal dfree
-             xctotal  <- fromJVal ctotal
+             xdrained <- convert drained
+             xmtotal  <- convert mtotal
+             xmnode   <- convert mnode
+             xmfree   <- convert mfree
+             xdtotal  <- convert dtotal
+             xdfree   <- convert dfree
+             xctotal  <- convert ctotal
              return $ Node.create xname xmtotal xmnode xmfree
                     xdtotal xdfree xctotal (xoffline || xdrained))
   return (xname, node)

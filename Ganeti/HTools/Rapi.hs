@@ -77,33 +77,36 @@ parseInstance :: [(String, Ndx)]
               -> [(String, JSValue)]
               -> Result (String, Instance.Instance)
 parseInstance ktn a = do
-  name <- fromObj "name" a
-  disk <- fromObj "disk_usage" a
-  mem <- fromObj "beparams" a >>= fromObj "memory" . fromJSObject
-  vcpus <- fromObj "beparams" a >>= fromObj "vcpus" . fromJSObject
-  pnode <- fromObj "pnode" a >>= lookupNode ktn name
-  snodes <- fromObj "snodes" a
+  name <- tryFromObj "Parsing new instance" a "name"
+  let extract s x = tryFromObj ("Instance '" ++ name ++ "'") x s
+  disk <- extract "disk_usage" a
+  beparams <- liftM fromJSObject (extract "beparams" a)
+  mem <- extract "memory" beparams
+  vcpus <- extract "vcpus" beparams
+  pnode <- extract "pnode" a >>= lookupNode ktn name
+  snodes <- extract "snodes" a
   snode <- (if null snodes then return Node.noSecondary
             else readEitherString (head snodes) >>= lookupNode ktn name)
-  running <- fromObj "status" a
+  running <- extract "status" a
   let inst = Instance.create name mem disk vcpus running pnode snode
   return (name, inst)
 
 -- | Construct a node from a JSON object.
 parseNode :: [(String, JSValue)] -> Result (String, Node.Node)
 parseNode a = do
-  name <- fromObj "name" a
-  offline <- fromObj "offline" a
+  name <- tryFromObj "Parsing new node" a "name"
+  let extract s = tryFromObj ("Node '" ++ name ++ "'") a s
+  offline <- extract "offline"
   node <- (if offline
            then return $ Node.create name 0 0 0 0 0 0 True
            else do
-             drained <- fromObj "drained" a
-             mtotal  <- fromObj "mtotal"  a
-             mnode   <- fromObj "mnode"   a
-             mfree   <- fromObj "mfree"   a
-             dtotal  <- fromObj "dtotal"  a
-             dfree   <- fromObj "dfree"   a
-             ctotal  <- fromObj "ctotal"  a
+             drained <- extract "drained"
+             mtotal  <- extract "mtotal"
+             mnode   <- extract "mnode"
+             mfree   <- extract "mfree"
+             dtotal  <- extract "dtotal"
+             dfree   <- extract "dfree"
+             ctotal  <- extract "ctotal"
              return $ Node.create name mtotal mnode mfree
                     dtotal dfree ctotal (offline || drained))
   return (name, node)
