@@ -82,7 +82,7 @@ maybe_do() {
 start_all() {
     check_config
     for i in $NODED $MASTERD $CONFD $RAPI; do \
-        maybe_do "$1" stop_action $i
+        maybe_do "$1" start_action $i
     done
 }
 
