@@ -33,7 +33,7 @@ import Network.Curl.Types ()
 import Network.Curl.Code
 import Data.List
 import Control.Monad
-import Text.JSON (JSObject, JSValue)
+import Text.JSON (JSObject, JSValue, fromJSObject)
 import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
@@ -65,21 +65,22 @@ formatHost master =
 getInstances :: NameAssoc
              -> String
              -> Result [(String, Instance.Instance)]
-getInstances ktn body = loadJSArray body >>= mapM (parseInstance ktn)
+getInstances ktn body =
+    loadJSArray body >>= mapM (parseInstance ktn . fromJSObject)
 
 -- | Parse a node list in JSON format.
 getNodes :: String -> Result [(String, Node.Node)]
-getNodes body = loadJSArray body >>= mapM parseNode
+getNodes body = loadJSArray body >>= mapM (parseNode . fromJSObject)
 
 -- | Construct an instance from a JSON object.
 parseInstance :: [(String, Ndx)]
-              -> JSObject JSValue
+              -> [(String, JSValue)]
               -> Result (String, Instance.Instance)
 parseInstance ktn a = do
   name <- fromObj "name" a
   disk <- fromObj "disk_usage" a
-  mem <- fromObj "beparams" a >>= fromObj "memory"
-  vcpus <- fromObj "beparams" a >>= fromObj "vcpus"
+  mem <- fromObj "beparams" a >>= fromObj "memory" . fromJSObject
+  vcpus <- fromObj "beparams" a >>= fromObj "vcpus" . fromJSObject
   pnode <- fromObj "pnode" a >>= lookupNode ktn name
   snodes <- fromObj "snodes" a
   snode <- (if null snodes then return Node.noSecondary
@@ -89,23 +90,23 @@ parseInstance ktn a = do
   return (name, inst)
 
 -- | Construct a node from a JSON object.
-parseNode :: JSObject JSValue -> Result (String, Node.Node)
+parseNode :: [(String, JSValue)] -> Result (String, Node.Node)
 parseNode a = do
-    name <- fromObj "name" a
-    offline <- fromObj "offline" a
-    node <- (if offline
-             then return $ Node.create name 0 0 0 0 0 0 True
-             else do
-               drained <- fromObj "drained" a
-               mtotal  <- fromObj "mtotal"  a
-               mnode   <- fromObj "mnode"   a
-               mfree   <- fromObj "mfree"   a
-               dtotal  <- fromObj "dtotal"  a
-               dfree   <- fromObj "dfree"   a
-               ctotal  <- fromObj "ctotal"  a
-               return $ Node.create name mtotal mnode mfree
-                      dtotal dfree ctotal (offline || drained))
-    return (name, node)
+  name <- fromObj "name" a
+  offline <- fromObj "offline" a
+  node <- (if offline
+           then return $ Node.create name 0 0 0 0 0 0 True
+           else do
+             drained <- fromObj "drained" a
+             mtotal  <- fromObj "mtotal"  a
+             mnode   <- fromObj "mnode"   a
+             mfree   <- fromObj "mfree"   a
+             dtotal  <- fromObj "dtotal"  a
+             dfree   <- fromObj "dfree"   a
+             ctotal  <- fromObj "ctotal"  a
+             return $ Node.create name mtotal mnode mfree
+                    dtotal dfree ctotal (offline || drained))
+  return (name, node)
 
 -- | Builds the cluster data from an URL.
 loadData :: String -- ^ Cluster or URL to use as source

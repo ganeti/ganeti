@@ -46,7 +46,7 @@ import Ganeti.HTools.Types
 -- 'Allocate' request share some common properties, which are read by
 -- this function.
 parseBaseInstance :: String
-                  -> JSObject JSValue
+                  -> [(String, JSValue)]
                   -> Result (String, Instance.Instance)
 parseBaseInstance n a = do
   disk <- fromObj "disk_space_total" a
@@ -55,60 +55,59 @@ parseBaseInstance n a = do
   let running = "running"
   return (n, Instance.create n mem disk vcpus running 0 0)
 
--- | Parses an instance as found in the cluster instance list.
+-- | Parses an instance as found in the cluster instance listg.
 parseInstance :: NameAssoc        -- ^ The node name-to-index association list
               -> String           -- ^ The name of the instance
-              -> JSObject JSValue -- ^ The JSON object
+              -> [(String, JSValue)] -- ^ The JSON object
               -> Result (String, Instance.Instance)
 parseInstance ktn n a = do
-    base <- parseBaseInstance n a
-    nodes <- fromObj "nodes" a
-    pnode <- readEitherString $ head nodes
-    pidx <- lookupNode ktn n pnode
-    let snodes = tail nodes
-    sidx <- (if null snodes then return Node.noSecondary
-             else readEitherString (head snodes) >>= lookupNode ktn n)
-    return (n, Instance.setBoth (snd base) pidx sidx)
+  base <- parseBaseInstance n a
+  nodes <- fromObj "nodes" a
+  pnode <- readEitherString $ head nodes
+  pidx <- lookupNode ktn n pnode
+  let snodes = tail nodes
+  sidx <- (if null snodes then return Node.noSecondary
+           else readEitherString (head snodes) >>= lookupNode ktn n)
+  return (n, Instance.setBoth (snd base) pidx sidx)
 
 -- | Parses a node as found in the cluster node list.
 parseNode :: String           -- ^ The node's name
-          -> JSObject JSValue -- ^ The JSON object
+          -> [(String, JSValue)] -- ^ The JSON object
           -> Result (String, Node.Node)
 parseNode n a = do
-    let name = n
-    offline <- fromObj "offline" a
-    drained <- fromObj "drained" a
-    node <- (if offline || drained
-             then return $ Node.create name 0 0 0 0 0 0 True
-             else do
-               mtotal <- fromObj "total_memory" a
-               mnode  <- fromObj "reserved_memory" a
-               mfree  <- fromObj "free_memory"  a
-               dtotal <- fromObj "total_disk"   a
-               dfree  <- fromObj "free_disk"    a
-               ctotal <- fromObj "total_cpus"   a
-               return $ Node.create n mtotal mnode mfree
-                      dtotal dfree ctotal False)
-    return (name, node)
+  offline <- fromObj "offline" a
+  drained <- fromObj "drained" a
+  node <- (if offline || drained
+           then return $ Node.create n 0 0 0 0 0 0 True
+           else do
+             mtotal <- fromObj "total_memory" a
+             mnode  <- fromObj "reserved_memory" a
+             mfree  <- fromObj "free_memory"  a
+             dtotal <- fromObj "total_disk"   a
+             dfree  <- fromObj "free_disk"    a
+             ctotal <- fromObj "total_cpus"   a
+             return $ Node.create n mtotal mnode mfree
+                    dtotal dfree ctotal False)
+  return (n, node)
 
 -- | Top-level parser.
 parseData :: String         -- ^ The JSON message as received from Ganeti
           -> Result Request -- ^ A (possible valid) request
 parseData body = do
   decoded <- fromJResult $ decodeStrict body
-  let obj = decoded
+  let obj = fromJSObject decoded
   -- request parser
-  request <- fromObj "request" obj
+  request <- liftM fromJSObject (fromObj "request" obj)
   rname <- fromObj "name" request
   -- existing node parsing
-  nlist <- fromObj "nodes" obj
-  let ndata = fromJSObject nlist
-  nobj <- mapM (\(x,y) -> asJSObject y >>= parseNode x) ndata
+  nlist <- liftM fromJSObject (fromObj "nodes" obj)
+  nobj <- mapM (\(x,y) -> asJSObject y >>= parseNode x . fromJSObject) nlist
   let (ktn, nl) = assignIndices nobj
   -- existing instance parsing
   ilist <- fromObj "instances" obj
   let idata = fromJSObject ilist
-  iobj <- mapM (\(x,y) -> asJSObject y >>= parseInstance ktn x) idata
+  iobj <- mapM (\(x,y) ->
+                    asJSObject y >>= parseInstance ktn x . fromJSObject) idata
   let (kti, il) = assignIndices iobj
   (map_n, map_i, csf) <- mergeData [] (nl, il)
   req_nodes <- fromObj "required_nodes" request

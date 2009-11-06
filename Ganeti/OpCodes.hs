@@ -72,7 +72,7 @@ opID (OpMigrateInstance _ _ _) = "OP_INSTANCE_MIGRATE"
 
 loadOpCode :: JSValue -> J.Result OpCode
 loadOpCode v = do
-  o <- readJSON v::J.Result (JSObject JSValue)
+  o <- liftM J.fromJSObject (readJSON v)
   op_id <- fromObj "OP_ID" o
   case op_id of
     "OP_TEST_DELAY" -> do
