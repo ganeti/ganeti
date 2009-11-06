@@ -296,10 +296,10 @@ main = do
            ix_byspec = groupBy ((==) `on` Instance.specOf) fin_trl_ixes
            spec_map = map (\ixs -> (Instance.specOf $ head ixs, length ixs))
                       ix_byspec::[(RSpec, Int)]
-           spec_map' = map (\(idx, (spec, cnt)) ->
-                                printf "%dx%dx%dx%d=%d" idx (rspecCpu spec)
-                                       (rspecMem spec) (rspecDsk spec) cnt)
-                       $ zip ([1..]::[Int]) spec_map::[String]
+           spec_map' = map (\(spec, cnt) ->
+                                printf "%d,%d,%d=%d" (rspecMem spec)
+                                       (rspecDsk spec) (rspecCpu spec) cnt)
+                       spec_map::[String]
 
        when (verbose > 1) $ do
          hPutStrLn stderr "Tiered allocation map"
