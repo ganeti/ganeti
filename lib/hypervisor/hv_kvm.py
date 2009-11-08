@@ -506,7 +506,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                     result.output))
 
     if not utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
-      raise errors.HypervisorError("Failed to start instance %s: %s" %
+      raise errors.HypervisorError("Failed to start instance %s" %
                                    (instance.name))
 
     if vnc_pwd:
