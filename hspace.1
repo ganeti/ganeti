@@ -15,12 +15,14 @@ hspace \- Cluster space analyzer for Ganeti
 
 .TP
 Backend options:
-.BI "[ -m " cluster " ]"
+.BI " -m " cluster
 |
-.BI "[ -L[" path "]]"
+.BI " -L[" path "]"
 |
-.BI "[ -n " nodes-file " ]"
-.BI "[ -i " instances-file " ]"
+.BI " -n " nodes-file
+.BI " -i " instances-file
+|
+.BI " --simulate " spec
 
 .TP
 Algorithm options:
@@ -34,6 +36,7 @@ Request options:
 .BI "[--disk " disk "]"
 .BI "[--req-nodes " req-nodes "]"
 .BI "[--vcpus " vcpus "]"
+.BI "[--tiered-alloc " spec "]"
 
 
 .SH DESCRIPTION
@@ -131,6 +134,17 @@ size that can be still created on the cluster.
 Like the above but for disk.
 
 .TP
+.I TSPEC
+If the tiered allocation mode has been enabled, this parameter holds
+the pairs of specifications and counts of instances that can be
+created in this mode. The value of the key is a space-separated list
+of values; each value is of the form \fImemory,disk,vcpu=count\fR
+where the memory, disk and vcpu are the values for the current spec,
+and count is how many instances of this spec can be created. A
+complete value for this variable could be: \fB4096,102400,2=225
+2560,102400,2=20 512,102400,2=21\fR.
+
+.TP
 .I ALLOC_USAGE
 The current usage represented as initial number of instances divided
 per final number of instances.
@@ -160,6 +174,12 @@ A marker representing the successful end of the computation, and
 having value "1". If this key is not present in the output it means
 that the computation failed and any values present should not be
 relied upon.
+
+.PP
+
+If the tiered allocation mode is enabled, then many of the INI_/FIN_
+metrics will be also displayed with a TRL_ prefix, and denote the
+cluster status at the end of the tiered allocation run.
 
 .SH OPTIONS
 The options that can be passed to the program are as follows:
@@ -314,7 +334,7 @@ used by ganeti when installed with "--localstatedir=/var" is used.
 .TP
 .BI "--simulate " description
 Instead of using actual data, build an empty cluster given a node
-description. The \fIdescription\fR parameter must be a comma-separate
+description. The \fIdescription\fR parameter must be a comma-separated
 list of four elements, describing in order:
 
 .RS
@@ -338,6 +358,41 @@ An example description would be \fB20,102400,16384,4\fR describing a
 20-node cluster where each node has 100GiB of disk space, 16GiB of
 memory and 4 CPU cores. Note that all nodes must have the same specs
 currently.
+
+.RE
+
+.TP
+.BI "--tiered-alloc " spec
+Beside the standard, fixed-size allocation, also do a tiered
+allocation scheme where the algorithm starts from the given
+specification and allocates until there is no more space; then it
+decreases the specification and tries the allocation again. The
+decrease is done on the matric that last failed during allocation. The
+specification given is similar to the "--simulate" option and it
+holds:
+
+.RS
+
+.RS
+
+.TP
+the disk size of the instance
+
+.TP
+the memory size of the instance
+
+.TP
+the vcpu count for the insance
+
+.RE
+
+An example description would be \fB10240,8192,2\fR describing an
+initial starting specification of 10GiB of disk space, 4GiB of memory
+and 2 VCPUs.
+
+Also note that the normal allocation and the tiered allocation are
+independent, and both start from the initial cluster state; as such,
+the instance count for these two modes are not related one to another.
 
 .RE
 
@@ -378,7 +433,7 @@ taking into consideration the impact on future placements.
 If the variables \fBHTOOLS_NODES\fR and \fBHTOOLS_INSTANCES\fR are
 present in the environment, they will override the default names for
 the nodes and instances files. These will have of course no effect
-when RAPI is used.
+when the RAPI or Luxi backends are used.
 
 .SH SEE ALSO
 .BR hbal "(1), " hscan "(1), " ganeti "(7), " gnt-instance "(8), "
