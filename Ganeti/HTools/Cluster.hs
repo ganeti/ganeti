@@ -662,14 +662,9 @@ printSolution nl il sol =
 printNodes :: Node.List -> String
 printNodes nl =
     let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
-        header = ["F", "Name"
-                 , "t_mem", "n_mem", "i_mem", "x_mem", "f_mem", "r_mem"
-                 , "t_dsk", "f_dsk", "pcpu", "vcpu", "pri",  "sec"
-                 , "p_fmem", "p_fdsk", "r_cpu"
-                 , "lCpu", "lMem", "lDsk", "lNet" ]
-        isnum = False:False:repeat True
+        (header, isnum) = unzip $ map Node.showHeader Node.defaultFields
     in unlines . map ((:) ' ' .  intercalate " ") $
-       formatTable (header:map Node.list snl) isnum
+       formatTable (header:map (Node.list Node.defaultFields) snl) isnum
 
 -- | Print the instance list.
 printInsts :: Node.List -> Instance.List -> String

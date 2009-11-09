@@ -49,6 +49,9 @@ module Ganeti.HTools.Node
     -- * Stats
     , availDisk
     -- * Formatting
+    , defaultFields
+    , showHeader
+    , showField
     , list
     -- * Misc stuff
     , AssocList
@@ -357,6 +360,7 @@ showField t field =
       "fmem" -> printf "%5d" $ fMem t
       "imem" -> printf "%5d" imem
       "rmem" -> printf "%5d" $ rMem t
+      "amem" -> printf "%5d" $ fMem t - rMem t
       "tdsk" -> printf "%5.0f" $ tDsk t / 1024
       "fdsk" -> printf "%5d" $ fDsk t `div` 1024
       "tcpu" -> printf "%4.0f" $ tCpu t
@@ -376,11 +380,42 @@ showField t field =
                   T.dskWeight = uD, T.netWeight = uN } = utilLoad t
       imem = truncate (tMem t) - nMem t - xMem t - fMem t
 
+-- | Returns the header and numeric propery of a field
+showHeader :: String -> (String, Bool)
+showHeader field =
+    case field of
+      "name" -> ("Name", False)
+      "status" -> ("F", False)
+      "tmem" -> ("t_mem", True)
+      "nmem" -> ("n_mem", True)
+      "xmem" -> ("x_mem", True)
+      "fmem" -> ("f_mem", True)
+      "imem" -> ("i_mem", True)
+      "rmem" -> ("r_mem", True)
+      "amem" -> ("a_mem", True)
+      "tdsk" -> ("t_dsk", True)
+      "fdsk" -> ("f_dsk", True)
+      "tcpu" -> ("pcpu", True)
+      "ucpu" -> ("vcpu", True)
+      "plist" -> ("pri", True)
+      "slist" -> ("sec", True)
+      "pfmem" -> ("p_fmem", True)
+      "pfdsk" -> ("p_fdsk", True)
+      "rcpu"  -> ("r_cpu", True)
+      "cload" -> ("lCpu", True)
+      "mload" -> ("lMem", True)
+      "dload" -> ("lDsk", True)
+      "nload" -> ("lNet", True)
+      _ -> ("<unknown field>", False)
 
 -- | String converter for the node list functionality.
-list :: Node -> [String]
-list t = map (showField t)
-         [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
-         , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "plist", "slist"
-         , "pfmem", "pfdsk", "rcpu"
-         , "cload", "mload", "dload", "nload" ]
+list :: [String] -> Node -> [String]
+list fields t = map (showField t) fields
+
+
+defaultFields :: [String]
+defaultFields =
+    [ "status", "name", "tmem", "nmem", "imem", "xmem", "fmem"
+    , "rmem", "tdsk", "fdsk", "tcpu", "ucpu", "plist", "slist"
+    , "pfmem", "pfdsk", "rcpu"
+    , "cload", "mload", "dload", "nload" ]
