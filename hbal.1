@@ -156,14 +156,17 @@ read load), and sum of primary instance network load. An example of
 how to generate these values for input to hbal would be to track "xm
 list" for instance over a day and by computing the delta of the cpu
 values, and feed that via the \fI-U\fR option for all instances (and
-keep the other metrics as zero). For the algorithm to work, all that
-is needed is that the values are consistent for a metric across all
+keep the other metrics as one). For the algorithm to work, all that is
+needed is that the values are consistent for a metric across all
 instances (e.g. all instances use cpu% to report cpu usage, but they
-could represent network bandwith in Gbps).
+could represent network bandwith in Gbps). Note that it's recommended
+to not have zero as the load value for any instance metric since then
+secondary instances are not well balanced.
 
 On a perfectly balanced cluster (all nodes the same size, all
-instances the same size and spread across the nodes equally), all
-values would be zero. This doesn't happen too often in practice :)
+instances the same size and spread across the nodes equally), the
+values for all metrics would be zero. This doesn't happen too often in
+practice :)
 
 .SS OFFLINE INSTANCES
 
@@ -371,8 +374,15 @@ net_util" where the "_util" parameters are interpreted as numbers and
 the instance name must match exactly the instance as read from
 Ganeti. In case of unknown instance names, the program will abort.
 
-If not given, the default values are zero for all metrics and thus
-dynamic utilisation has no effect on the balancing algorithm.
+If not given, the default values are one for all metrics and thus
+dynamic utilisation has only one effect on the algorithm: the
+equalisation of the secondary instances across nodes (this is the only
+metric that is not tracked by another, dedicated value, and thus the
+disk load of instances will cause secondary instance
+equalisation). Note that value of one will also influence slightly the
+primary instance count, but that is already tracked via other metrics
+and thus the influence of the dynamic utilisation will be practically
+insignificant.
 
 .TP
 .BI "-n" nodefile ", --nodes=" nodefile

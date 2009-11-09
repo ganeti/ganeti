@@ -97,7 +97,7 @@ create name_init mem_init dsk_init vcpus_init run_init pn sn =
              , pNode = pn
              , sNode = sn
              , idx = -1
-             , util = T.zeroUtil
+             , util = T.baseUtil
              }
 
 -- | Changes the index.
