@@ -195,23 +195,30 @@ compDetailedCV nl =
         (offline, nodes) = partition Node.offline all_nodes
         mem_l = map Node.pMem nodes
         dsk_l = map Node.pDsk nodes
+        -- metric: memory covariance
         mem_cv = varianceCoeff mem_l
+        -- metric: disk covariance
         dsk_cv = varianceCoeff dsk_l
         n1_l = length $ filter Node.failN1 nodes
+        -- metric: ratio of failN1 nodes
         n1_score = fromIntegral n1_l /
                    fromIntegral (length nodes)::Double
         res_l = map Node.pRem nodes
+        -- metric: reserved memory covariance
         res_cv = varianceCoeff res_l
         offline_inst = sum . map (\n -> (length . Node.pList $ n) +
                                         (length . Node.sList $ n)) $ offline
         online_inst = sum . map (\n -> (length . Node.pList $ n) +
                                        (length . Node.sList $ n)) $ nodes
+        -- metric: ratio of instances on offline nodes
         off_score = if offline_inst == 0
                     then 0::Double
                     else fromIntegral offline_inst /
                          fromIntegral (offline_inst + online_inst)::Double
         cpu_l = map Node.pCpu nodes
+        -- metric: covariance of vcpu/pcpu ratio
         cpu_cv = varianceCoeff cpu_l
+        -- metrics: covariance of cpu, memory, disk and network load
         (c_load, m_load, d_load, n_load) = unzip4 $
             map (\n ->
                      let DynUtil c1 m1 d1 n1 = Node.utilLoad n
