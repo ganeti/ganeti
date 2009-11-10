@@ -1,6 +1,40 @@
 Ganeti-htools release notes
 ===========================
 
+Version 0.2.0 (Tue, 10 Nov 2009)
+--------------------------------
+
+A significant release, with a few new major features:
+
+- Added direct execution of the hbal solution when using the Luxi
+  backend; the steps for each instance moves are submitted as a single
+  jobs, and the different jobs are submitted as groups in order to
+  parallelise the execution of moves
+- Added support for balancing based on dynamic utilisation data for
+  instances, fed in via a text file; by default, all instances are
+  considered equal and this change also improves the equalisation of
+  secondary instances per node
+- Added support for tiered capacity calculation in hspace, where we
+  start from a maximum instance spec and decrease the spec when we run
+  out of resources; this should give a better measure of available
+  capacity on 'fragmented' clusters; this is done separately from the
+  current fixed-mode computation
+
+Also there have been many minor improvements:
+
+- Added option for showing instances (“--print-instances”), similar to
+  the print nodes option
+- Added support for customising the node list via an argument to the
+  print nodes option in the form of a comma-separated list of field
+  names; currently the field names are not documented, expecting further
+  changes in a next release
+- Enhanced the error reporting in the Luxi and Rapi backends
+- Changed the handling of drained nodes, now being treated the same as
+  offline nodes, for Ganeti 2.0.4+ compatibility
+- A number of internal changes, simplifying code and merging some
+  disparate functions
+- Simplify the build system in relation to creation of archives
+
 Version 0.1.8 (Tue, 29 Sep 2009)
 --------------------------------
 
