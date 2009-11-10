@@ -14,8 +14,8 @@ hail is a Ganeti IAllocator plugin that allows automatic instance
 placement and automatic instance secondary node replacement using the
 same algorithm as \fBhbal\fR(1).
 
-The program takes input via a JSON-file containing current cluster
-state and the request details, and output (on stdout) a JSON-formatted
+The program takes input via a JSON\(hyfile containing current cluster
+state and the request details, and output (on stdout) a JSON\(hyformatted
 response. In case of critical failures, the error message is printed
 on stderr and the exit code is changed to show failure.
 
@@ -27,11 +27,12 @@ For relocations, we try to change the secondary node of the instance
 to all the valid other nodes; the node which results in the best
 cluster score is chosen.
 
-For single-node allocations (non-mirrored instances), again we select
-the node which, when chosen as the primary node, gives the best score.
+For single\(hynode allocations (non\(hymirrored instances), again we
+select the node which, when chosen as the primary node, gives the best
+score.
 
-For dual-node allocations (mirrored instances), we chose the best
-pair; this is the only choice where the algoritm is non-trivial
+For dual\(hynode allocations (mirrored instances), we chose the best
+pair; this is the only choice where the algoritm is non\(hytrivial
 with regard to cluster size.
 
 For all choices, the cluster scoring is identical to the hbal
