@@ -28,6 +28,7 @@ module Main (main) where
 import Data.Char (toUpper)
 import Data.List
 import Data.Function
+import Data.Maybe (isJust, fromJust)
 import Monad
 import System
 import System.IO
@@ -213,6 +214,7 @@ main = do
 
   let verbose = optVerbose opts
       ispec = optISpec opts
+      shownodes = optShowNodes opts
 
   (fixed_nl, il, csf) <- loadExternalData opts
 
@@ -250,10 +252,10 @@ main = do
   when (length csf > 0 && verbose > 1) $
        hPrintf stderr "Note: Stripping common suffix of '%s' from names\n" csf
 
-  when (optShowNodes opts) $
+  when (isJust shownodes) $
        do
          hPutStrLn stderr "Initial cluster status:"
-         hPutStrLn stderr $ Cluster.printNodes nl
+         hPutStrLn stderr $ Cluster.printNodes nl (fromJust shownodes)
 
   let ini_cv = Cluster.compCV nl
       ini_stats = Cluster.totalResources nl
@@ -307,10 +309,10 @@ main = do
                  formatTable (map (printInstance trl_nl) fin_trl_ixes)
                                  [False, False, False, True, True, True]
 
-       when (optShowNodes opts) $ do
+       when (isJust shownodes) $ do
          hPutStrLn stderr ""
          hPutStrLn stderr "Tiered allocation status:"
-         hPutStrLn stderr $ Cluster.printNodes trl_nl
+         hPutStrLn stderr $ Cluster.printNodes trl_nl (fromJust shownodes)
 
        printKeys $ printStats PTiered (Cluster.totalResources trl_nl)
        printKeys [("TSPEC", intercalate " " spec_map')])
@@ -329,10 +331,10 @@ main = do
          hPutStr stderr . unlines . map ((:) ' ' .  intercalate " ") $
                  formatTable (map (printInstance fin_nl) fin_ixes)
                                  [False, False, False, True, True, True]
-  when (optShowNodes opts) $
+  when (isJust shownodes) $
        do
          hPutStrLn stderr ""
          hPutStrLn stderr "Final cluster status:"
-         hPutStrLn stderr $ Cluster.printNodes fin_nl
+         hPutStrLn stderr $ Cluster.printNodes fin_nl (fromJust shownodes)
 
   printResults fin_nl num_instances allocs sreason

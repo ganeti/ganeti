@@ -82,7 +82,7 @@ defaultLuxiSocket = "/var/run/ganeti/socket/ganeti-master"
 
 -- | Command line options structure.
 data Options = Options
-    { optShowNodes   :: Bool           -- ^ Whether to show node status
+    { optShowNodes   :: Maybe [String] -- ^ Whether to show node status
     , optShowInsts   :: Bool           -- ^ Whether to show the instance map
     , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
     , optOneline     :: Bool           -- ^ Switch output to a single line
@@ -114,7 +114,7 @@ data Options = Options
 -- | Default values for the command line options.
 defaultOptions :: Options
 defaultOptions  = Options
- { optShowNodes   = False
+ { optShowNodes   = Nothing
  , optShowInsts   = False
  , optShowCmds    = Nothing
  , optOneline     = False
@@ -148,7 +148,10 @@ type OptType = OptDescr (Options -> Result Options)
 
 oPrintNodes :: OptType
 oPrintNodes = Option "p" ["print-nodes"]
-              (NoArg (\ opts -> Ok opts { optShowNodes = True }))
+              (OptArg ((\ f opts ->
+                            let splitted = sepSplit ',' f
+                            in Ok opts { optShowNodes = Just splitted }) .
+                       fromMaybe []) "FIELDS")
               "print the final node list"
 
 oPrintInsts :: OptType

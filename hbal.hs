@@ -184,6 +184,7 @@ main = do
 
   let oneline = optOneline opts
       verbose = optVerbose opts
+      shownodes = optShowNodes opts
 
   (fixed_nl, il, csf) <- loadExternalData opts
 
@@ -234,10 +235,10 @@ main = do
          putStrLn "Initial instance map:"
          putStrLn $ Cluster.printInsts nl il
 
-  when (optShowNodes opts) $
+  when (isJust shownodes) $
        do
          putStrLn "Initial cluster status:"
-         putStrLn $ Cluster.printNodes nl
+         putStrLn $ Cluster.printNodes nl (fromJust shownodes)
 
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
@@ -308,13 +309,13 @@ main = do
          putStrLn "Final instance map:"
          putStr $ Cluster.printInsts fin_nl fin_il
 
-  when (optShowNodes opts) $
+  when (isJust shownodes) $
        do
          let ini_cs = Cluster.totalResources nl
              fin_cs = Cluster.totalResources fin_nl
          putStrLn ""
          putStrLn "Final cluster status:"
-         putStrLn $ Cluster.printNodes fin_nl
+         putStrLn $ Cluster.printNodes fin_nl (fromJust shownodes)
          when (verbose > 3) $
               do
                 printf "Original: mem=%d disk=%d\n"

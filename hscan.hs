@@ -27,6 +27,7 @@ module Main (main) where
 
 import Data.List
 import Data.Function
+import Data.Maybe (isJust, fromJust)
 import Monad
 import System
 import System.IO
@@ -124,6 +125,7 @@ main = do
 
   let odir = optOutPath opts
       nlen = maximum . map length $ clusters
+      shownodes = optShowNodes opts
 
   unless (optNoHeaders opts) $
          printf "%-*s %5s %5s %5s %5s %6s %6s %6s %6s %10s\n" nlen
@@ -143,8 +145,8 @@ main = do
                    let (nl, il, csf) = x
                        (_, fix_nl) = Loader.checkData nl il
                    putStrLn $ printCluster fix_nl il
-                   when (optShowNodes opts) $
-                        putStr $ Cluster.printNodes fix_nl
+                   when (isJust shownodes) $
+                        putStr $ Cluster.printNodes fix_nl (fromJust shownodes)
                    let ndata = serializeNodes csf nl
                        idata = serializeInstances csf nl il
                        oname = odir </> fixSlash name

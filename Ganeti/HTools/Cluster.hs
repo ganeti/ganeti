@@ -659,12 +659,15 @@ printSolution nl il sol =
       unzip $ zipWith (printSolutionLine nl il nmlen imlen) sol [1..]
 
 -- | Print the node list.
-printNodes :: Node.List -> String
-printNodes nl =
-    let snl = sortBy (compare `on` Node.idx) (Container.elems nl)
-        (header, isnum) = unzip $ map Node.showHeader Node.defaultFields
+printNodes :: Node.List -> [String] -> String
+printNodes nl fs =
+    let fields = if null fs
+                 then Node.defaultFields
+                 else fs
+        snl = sortBy (compare `on` Node.idx) (Container.elems nl)
+        (header, isnum) = unzip $ map Node.showHeader fields
     in unlines . map ((:) ' ' .  intercalate " ") $
-       formatTable (header:map (Node.list Node.defaultFields) snl) isnum
+       formatTable (header:map (Node.list fields) snl) isnum
 
 -- | Print the instance list.
 printInsts :: Node.List -> Instance.List -> String

@@ -33,7 +33,7 @@ Algorithm options:
 .TP
 Reporting options:
 .BI "[ -C[" file "] ]"
-.B "[ -p ]"
+.BI "[ -p[" fields "] ]"
 .B "[ --print-instances ]"
 .B "[ -o ]"
 .B "[ -v... | -q ]"
@@ -217,7 +217,10 @@ resource allocation in Ganeti) and thus we start a new jobset.
 Prints the before and after node status, in a format designed to allow
 the user to understand the node's most important parameters.
 
-The node list will contain these informations:
+It is possible to customise the listed information by passing a
+comma-separated list of field names to this option (the field list is
+currently undocumented). By default, the node list will contain these
+informations:
 .RS
 .TP
 .B F
