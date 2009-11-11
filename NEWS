@@ -86,6 +86,7 @@ Details
   hypervisors using the new ``migration_port`` parameter
 - Pass ``INSTANCE_REINSTALL`` variable to OS installation script when
   reinstalling an instance
+- Allowed ``@`` in tag names
 - Migrated to Sphinx (http://sphinx.pocoo.org/) for documentation
 - Many documentation updates
 - Distribute hypervisor files on ``gnt-cluster redist-conf``
