@@ -1,62 +1,78 @@
-Documentation
-=============
+Ganeti quick installation guide
+===============================
 
-Please note that a more detailed installation procedure is described in the
-doc/install.html file. A glossary of terms can be found in the doc/admin.html
-file.
+Please note that a more detailed installation procedure is described in
+the :doc:`install`. A glossary of terms can be found in the
+:doc:`glossary`.
 
 
 Software Requirements
-=====================
+---------------------
 
 Before installing, please verify that you have the following programs:
-  - Xen virtualization (version 3.0.x or 3.1)
-    http://xen.xensource.com/
-  - DRBD (kernel module and userspace utils), version 8.0.7+
-    http://www.drbd.org/
-  - LVM2
-    http://sourceware.org/lvm2/
-  - OpenSSL
-    http://www.openssl.org/
-  - OpenSSH
-    http://www.openssh.com/portable.html
-  - bridge utilities
-    http://bridge.sourceforge.net/
-  - iproute2
-    http://developer.osdl.org/dev/iproute2
-  - arping (part of iputils package)
-    ftp://ftp.inr.ac.ru/ip-routing/iputils-current.tar.gz
-  - Python 2.4
-    http://www.python.org
-  - Python OpenSSL bindings
-    http://pyopenssl.sourceforge.net/
-  - simplejson Python module
-    http://www.undefined.org/python/#simplejson
-  - pyparsing Python module
-    http://pyparsing.wikispaces.com/
 
-For building from source, you also need tar, gzip or bzip2 and make.
+- `Xen Hypervisor <http://www.xen.org/>`_, version 3.0.x or 3.1
+- `DRBD <http://www.drbd.org/>`_, kernel module and userspace utils,
+  version 8.0.7 or above
+- `LVM2 <http://sourceware.org/lvm2/>`_
+- `OpenSSL <http://www.openssl.org/>`_
+- `OpenSSH <http://www.openssh.com/portable.html>`_
+- `bridge utilities <http://www.linuxfoundation.org/en/Net:Bridge>`_
+- `iproute2 <http://www.linuxfoundation.org/en/Net:Iproute2>`_
+- `arping <http://www.skbuff.net/iputils/>`_ (part of iputils)
+- `Python <http://www.python.org/>`_, version 2.4 or above, not 3.0
+- `Python OpenSSL bindings <http://pyopenssl.sourceforge.net/>`_
+- `simplejson Python module <http://code.google.com/p/simplejson/>`_
+- `pyparsing Python module <http://pyparsing.wikispaces.com/>`_
+- `pyinotify Python module <http://trac.dbzteam.org/pyinotify/>`_
+- `socat <http://www.dest-unreach.org/socat/>`_
+
+These programs are supplied as part of most Linux distributions, so
+usually they can be installed via the standard package manager. Also
+many of them will already be installed on a standard machine. On
+Debian/Ubuntu, you can use this command line to install all required
+packages, except for DRBD and Xen::
+
+  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
+                    python python-pyopenssl openssl python-pyparsing \
+                    python-simplejson python-pyinotify socat
+
+If you want to build from source, please see doc/devnotes.rst for more
+dependencies.
 
 
 Installation of the software
-============================
+----------------------------
 
-To install, simply do ``./configure --localstatedir=/var --sysconfdir=/etc && \
-make && make install``
+To install, simply run the following command::
 
-This will install the software under /usr/local. You then need to copy
-ganeti.init to /etc/init.d/ganeti and integrate it into your boot sequence
-(``chkconfig``, ``update-rc.d``, etc.).
+  ./configure --localstatedir=/var --sysconfdir=/etc && \
+  make && \
+  make install
+
+This will install the software under ``/usr/local``. You then need to
+copy ``doc/examples/ganeti.initd`` to ``/etc/init.d/ganeti`` and
+integrate it into your boot sequence (``chkconfig``, ``update-rc.d``,
+etc.).
 
 
 Cluster initialisation
-======================
+----------------------
 
-Before initialising the cluster, on each node you need to create the following
-directories:
+Before initialising the cluster, on each node you need to create the
+following directories:
 
-  - /etc/ganeti
-  - /var/lib/ganeti, /var/log/ganeti
-  - /srv/ganeti, /srv/ganeti/os, /srv/ganeti/export
+- ``/etc/ganeti``
+- ``/var/lib/ganeti``
+- ``/var/log/ganeti``
+- ``/srv/ganeti``
+- ``/srv/ganeti/os``
+- ``/srv/ganeti/export``
 
 After this, use ``gnt-cluster init``.
+
+.. vim: set textwidth=72 syntax=rst :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:
