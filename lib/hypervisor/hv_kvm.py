@@ -123,7 +123,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     If we have a new-enough socat we can use raw mode with an escape character.
 
     """
-    if constants.SOCAT_ESCAPE:
+    if constants.SOCAT_USE_ESCAPE:
       return "raw,echo=0,escape=%s" % constants.SOCAT_ESCAPE_CODE
     else:
       return "echo=0,icanon=0"

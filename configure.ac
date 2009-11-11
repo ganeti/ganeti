@@ -108,21 +108,6 @@ AC_ARG_WITH([kvm-path],
   [kvm_path="/usr/bin/kvm"])
 AC_SUBST(KVM_PATH, $kvm_path)
 
-# --with-socat-path=...
-AC_ARG_WITH([socat-path],
-  [AS_HELP_STRING([--with-socat-path=PATH],
-    [absolute path to the socat binary]
-    [ (default is to let configure search for it)]
-  )],
-  [SOCAT="$withval"],
-  [])
-
-AC_ARG_WITH([socat-escape],
-  [AS_HELP_STRING([--with-socat-escape],
-    [enable escape functionality found in newer socat])],
-  [],
-  [check_socat_escape=yes])
-
 # ---with-lvm-stripecount=...
 AC_ARG_WITH([lvm-stripecount],
   [AS_HELP_STRING([--with-lvm-stripecount=NUM],
@@ -168,31 +153,36 @@ then
   AC_MSG_WARN([dot (from the graphviz suite) not found, documentation rebuild not possible])
 fi
 
-if test -z "$SOCAT" -a -n "$check_socat_escape"
-then
-AC_CACHE_CHECK([for socat with the escape feature], [ac_cv_path_SOCAT],
-  [AC_PATH_PROGS_FEATURE_CHECK(SOCAT, [socat],
-            [[$ac_path_SOCAT -hh | grep -q escape \
-              && ac_cv_path_SOCAT=$ac_path_SOCAT \
-                 SOCAT=$ac_cv_path_SOCAT \
-                 with_socat_escape=yes ac_path_SOCAT_found=:]],
-            [AC_MSG_WARN([no escape feature found])])])
-fi
-
+# Check for socat
+AC_ARG_VAR(SOCAT, [socat path])
+AC_PATH_PROG(SOCAT, [socat], [])
 if test -z "$SOCAT"
 then
-AC_CACHE_CHECK([for socat], [ac_cv_path_SOCAT],
-  [AC_PATH_PROGS_FEATURE_CHECK(SOCAT, [socat],
-            [[ac_cv_path_SOCAT=$ac_path_SOCAT \
-              SOCAT=$ac_cv_path_SOCAT ac_path_SOCAT_found=:]],
-            [AC_MSG_ERROR([socat not found])])])
+  AC_MSG_ERROR([socat not found])
 fi
 
-AC_SUBST([SOCAT_PATH], [$SOCAT])
-if test "x$with_socat_escape" = xyes
+SOCAT_USE_ESCAPE=
+AC_ARG_ENABLE([socat-escape],
+  [AS_HELP_STRING([--enable-socat-escape],
+    [use escape functionality available in socat >= 1.7 (default: detect
+     automatically)])],
+  [[if test "$enableval" = yes; then
+      SOCAT_USE_ESCAPE=True
+    else
+      SOCAT_USE_ESCAPE=False
+    fi
+  ]])
+
+if test -z "$SOCAT_USE_ESCAPE"
 then
-  AC_SUBST([SOCAT_ESCAPE], [1])
+  if $SOCAT -hh | grep -w -q escape; then
+    SOCAT_USE_ESCAPE=True
+  else
+    SOCAT_USE_ESCAPE=False
+  fi
 fi
+
+AC_SUBST(SOCAT_USE_ESCAPE)
 
 # Check for Python
 AM_PATH_PYTHON(2.4)

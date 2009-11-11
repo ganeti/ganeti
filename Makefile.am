@@ -416,8 +416,8 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "FILE_STORAGE_DIR = '$(FILE_STORAGE_DIR)'"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
-	  echo "SOCAT_PATH = '$(SOCAT_PATH)'"; \
-	  echo "SOCAT_ESCAPE = '$(SOCAT_ESCAPE)'"; \
+	  echo "SOCAT_PATH = '$(SOCAT)'"; \
+	  echo "SOCAT_USE_ESCAPE = $(SOCAT_USE_ESCAPE)"; \
 	  echo "LVM_STRIPECOUNT = $(LVM_STRIPECOUNT)"; \
 	  echo "TOOLSDIR = '$(toolsdir)'"; \
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
