@@ -59,6 +59,7 @@ module Ganeti.HTools.Node
     ) where
 
 import Data.List
+import qualified Data.Map as Map
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
@@ -68,6 +69,9 @@ import qualified Ganeti.HTools.PeerMap as P
 import qualified Ganeti.HTools.Types as T
 
 -- * Type declarations
+
+-- | The tag map type
+type TagMap = Map.Map String Int
 
 -- | The node type.
 data Node = Node
@@ -102,6 +106,7 @@ data Node = Node
                             -- computations
     , utilPool :: T.DynUtil -- ^ Total utilisation capacity
     , utilLoad :: T.DynUtil -- ^ Sum of instance utilisation
+    , pTags    :: TagMap    -- ^ Map of primary instance tags and their count
     } deriving (Show)
 
 instance T.Element Node where
@@ -127,6 +132,31 @@ noLimit = -1
 -- | No limit int value
 noLimitInt :: Int
 noLimitInt = -1
+
+-- * Helper functions
+
+-- | Add a tag to a tagmap
+addTag :: TagMap -> String -> TagMap
+addTag t s = Map.insertWith (+) s 1 t
+
+-- | Add multiple tags
+addTags :: TagMap -> [String] -> TagMap
+addTags = foldl' addTag
+
+-- | Adjust or delete a tag from a tagmap
+delTag :: TagMap -> String -> TagMap
+delTag t s = Map.update (\v -> if v > 1
+                               then Just (v-1)
+                               else Nothing)
+             s t
+
+-- | Remove multiple tags
+delTags :: TagMap -> [String] -> TagMap
+delTags = foldl' delTag
+
+-- | Check if we can add a list of tags to a tagmap
+rejectAddTags :: TagMap -> [String] -> Bool
+rejectAddTags t = any (flip Map.member t)
 
 -- * Initialization functions
 
@@ -164,6 +194,7 @@ create name_init mem_t_init mem_n_init mem_f_init
          , hiCpu = noLimitInt
          , utilPool = T.baseUtil
          , utilLoad = T.zeroUtil
+         , pTags = Map.empty
          }
 
 -- | Changes the index.
@@ -215,12 +246,13 @@ buildPeers t il =
     in t {peers=pmap, failN1 = new_failN1, rMem = new_rmem, pRem = new_prem}
 
 -- | Assigns an instance to a node as primary and update the used VCPU
--- count and utilisation data.
+-- count, utilisation data and tags map.
 setPri :: Node -> Instance.Instance -> Node
 setPri t inst = t { pList = Instance.idx inst:pList t
                   , uCpu = new_count
                   , pCpu = fromIntegral new_count / tCpu t
                   , utilLoad = utilLoad t `T.addUtil` Instance.util inst
+                  , pTags = addTags (pTags t) (Instance.tags inst)
                   }
     where new_count = uCpu t + Instance.vcpus inst
 
@@ -256,7 +288,8 @@ removePri t inst =
         new_load = utilLoad t `T.subUtil` Instance.util inst
     in t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
          , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
-         , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load }
+         , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
+         , pTags = delTags (pTags t) (Instance.tags inst) }
 
 -- | Removes a secondary instance.
 removeSec :: Node -> Instance.Instance -> Node
@@ -295,16 +328,21 @@ addPri t inst =
         new_dp = fromIntegral new_dsk / tDsk t
         l_cpu = mCpu t
         new_load = utilLoad t `T.addUtil` Instance.util inst
+        inst_tags = Instance.tags inst
+        old_tags = pTags t
     in if new_mem <= 0 then T.OpFail T.FailMem
        else if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
        else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
        else if l_cpu >= 0 && l_cpu < new_pcpu then T.OpFail T.FailCPU
+       else if rejectAddTags old_tags inst_tags
+            then T.OpFail T.FailTags
        else
            let new_plist = iname:pList t
                new_mp = fromIntegral new_mem / tMem t
                r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
                      , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
-                     , uCpu = new_ucpu, pCpu = new_pcpu, utilLoad = new_load }
+                     , uCpu = new_ucpu, pCpu = new_pcpu, utilLoad = new_load
+                     , pTags = addTags old_tags inst_tags }
            in T.OpGood r
 
 -- | Adds a secondary instance.
