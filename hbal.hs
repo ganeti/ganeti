@@ -73,6 +73,7 @@ options =
     , oMinDisk
     , oDiskMoves
     , oDynuFile
+    , oExTags
     , oShowVer
     , oShowHelp
     ]

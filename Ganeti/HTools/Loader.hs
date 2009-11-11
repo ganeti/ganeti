@@ -114,6 +114,14 @@ fixNodes accu inst =
            in (sdx, snew):ac3
       else ac2
 
+-- | Remove non-selected tags from the exclusion list
+filterExTags :: [String] -> Instance.Instance -> Instance.Instance
+filterExTags tl inst =
+    let old_tags = Instance.tags inst
+        new_tags = filter (\tag -> any (\extag -> isPrefixOf extag tag) tl)
+                   old_tags
+    in inst { Instance.tags = new_tags }
+
 -- | Compute the longest common suffix of a list of strings that
 -- | starts with a dot.
 longestDomain :: [String] -> String
@@ -131,11 +139,12 @@ stripSuffix sflen name = take (length name - sflen) name
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
+          -> [String]             -- ^ Exclusion tags
           -> (Node.AssocList,
               Instance.AssocList) -- ^ Data from either Text.loadData
                                   -- or Rapi.loadData
           -> Result (Node.List, Instance.List, String)
-mergeData um (nl, il) =
+mergeData um extags (nl, il) =
   let il2 = Container.fromAssocList il
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
@@ -144,15 +153,16 @@ mergeData um (nl, il) =
                               let new_i = inst { Instance.util = n_util }
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
-      nl2 = foldl' fixNodes nl (Container.elems il3)
+      il4 = Container.map (filterExTags extags) il3
+      nl2 = foldl' fixNodes nl (Container.elems il4)
       nl3 = Container.fromAssocList
-            (map (\ (k, v) -> (k, Node.buildPeers v il3)) nl2)
+            (map (\ (k, v) -> (k, Node.buildPeers v il4)) nl2)
       node_names = map (Node.name . snd) nl
       inst_names = map (Instance.name . snd) il
       common_suffix = longestDomain (node_names ++ inst_names)
       csl = length common_suffix
       snl = Container.map (\n -> setName n (stripSuffix csl $ nameOf n)) nl3
-      sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il3
+      sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il4
   in Ok (snl, sil, common_suffix)
 
 -- | Checks the cluster data for consistency.

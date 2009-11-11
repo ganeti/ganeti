@@ -110,7 +110,7 @@ parseData body = do
   iobj <- mapM (\(x,y) ->
                     asJSObject y >>= parseInstance ktn x . fromJSObject) idata
   let (kti, il) = assignIndices iobj
-  (map_n, map_i, csf) <- mergeData [] (nl, il)
+  (map_n, map_i, csf) <- mergeData [] [] (nl, il)
   req_nodes <- fromObj "required_nodes" request
   optype <- fromObj "type" request
   rqtype <-

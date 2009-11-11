@@ -98,6 +98,10 @@ loadExternalData opts = do
       setSim = isJust simdata
       setFiles = optNodeSet opts || optInstSet opts
       allSet = filter id [setRapi, setLuxi, setFiles]
+      exTags = case optExTags opts of
+                 Nothing -> []
+                 Just etl -> map (++ ":") etl
+
   when (length allSet > 1) $
        do
          hPutStrLn stderr ("Error: Only one of the rapi, luxi, and data" ++
@@ -126,7 +130,7 @@ loadExternalData opts = do
           | setSim -> Simu.loadData $ fromJust simdata
           | otherwise -> wrapIO $ Text.loadData nodef instf
 
-  let ldresult = input_data >>= Loader.mergeData util_data'
+  let ldresult = input_data >>= Loader.mergeData util_data' exTags
   (loaded_nl, il, csf) <-
       (case ldresult of
          Ok x -> return x
