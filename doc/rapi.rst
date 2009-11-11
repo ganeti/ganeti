@@ -515,7 +515,67 @@ The result includes:
 - ops: involved OpCodes as a list of dictionaries for each opcodes in
   the job
 - opstatus: OpCodes status as a list
-- opresult: OpCodes results as a list of lists
+- opresult: OpCodes results as a list
+
+For a successful opcode, the ``opresult`` field corresponding to it will
+contain the raw result from its :term:`LogicalUnit`. In case an opcode
+has failed, its element in the opresult list will be a list of two
+elements:
+
+- first element the error type (the Ganeti internal error name)
+- second element a list of either one or two elements:
+
+  - the first element is the textual error description
+  - the second element, if any, will hold an error classification
+
+The error classification is most useful for the ``OpPrereqError``
+error type - these errors happen before the OpCode has started
+executing, so it's possible to retry the OpCode without side
+effects. But whether it make sense to retry depends on the error
+classification:
+
+``resolver_error``
+  Resolver errors. This usually means that a name doesn't exist in DNS,
+  so if it's a case of slow DNS propagation the operation can be retried
+  later.
+
+``insufficient_resources``
+  Not enough resources (iallocator failure, disk space, memory,
+  etc.). If the resources on the cluster increase, the operation might
+  succeed.
+
+``wrong_input``
+  Wrong arguments (at syntax level). The operation will not ever be
+  accepted unless the arguments change.
+
+``wrong_state``
+  Wrong entity state. For example, live migration has been requested for
+  a down instance, or instance creation on an offline node. The
+  operation can be retried once the resource has changed state.
+
+``unknown_entity``
+  Entity not found. For example, information has been requested for an
+  unknown instance.
+
+``already_exists``
+  Entity already exists. For example, instance creation has been
+  requested for an already-existing instance.
+
+``resource_not_unique``
+  Resource not unique (e.g. MAC or IP duplication).
+
+``internal_error``
+  Internal cluster error. For example, a node is unreachable but not set
+  offline, or the ganeti node daemons are not working, etc. A
+  ``gnt-cluster verify`` should be run.
+
+``environment_error``
+  Environment error (e.g. node disk error). A ``gnt-cluster verify``
+  should be run.
+
+Note that in the above list, by entity we refer to a node or instance,
+while by a resource we refer to an instance's disk, or NIC, etc.
+
 
 ``DELETE``
 ~~~~~~~~~~
