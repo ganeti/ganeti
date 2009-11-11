@@ -52,8 +52,9 @@ parseBaseInstance n a = do
   disk <- fromObj "disk_space_total" a
   mem <- fromObj "memory" a
   vcpus <- fromObj "vcpus" a
+  tags <- fromObj "tags" a
   let running = "running"
-  return (n, Instance.create n mem disk vcpus running 0 0)
+  return (n, Instance.create n mem disk vcpus running tags 0 0)
 
 -- | Parses an instance as found in the cluster instance listg.
 parseInstance :: NameAssoc        -- ^ The node name-to-index association list

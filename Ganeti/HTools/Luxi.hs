@@ -70,7 +70,7 @@ queryInstancesMsg =
     let nnames = JSArray []
         fnames = ["name",
                   "disk_usage", "be/memory", "be/vcpus",
-                  "status", "pnode", "snodes"]
+                  "status", "pnode", "snodes", "tags"]
         fields = JSArray $ map (JSString . toJSString) fnames
         use_locking = JSBool False
     in JSArray [nnames, fields, use_locking]
@@ -94,7 +94,7 @@ parseInstance :: [(String, Ndx)]
               -> JSValue
               -> Result (String, Instance.Instance)
 parseInstance ktn (JSArray [ name, disk, mem, vcpus
-                           , status, pnode, snodes ]) = do
+                           , status, pnode, snodes, tags ]) = do
   xname <- annotateResult "Parsing new instance" (fromJVal name)
   let convert v = annotateResult ("Instance '" ++ xname ++ "'") (fromJVal v)
   xdisk <- convert disk
@@ -105,7 +105,9 @@ parseInstance ktn (JSArray [ name, disk, mem, vcpus
   snode <- (if null xsnodes then return Node.noSecondary
             else lookupNode ktn xname (fromJSString $ head xsnodes))
   xrunning <- convert status
-  let inst = Instance.create xname xmem xdisk xvcpus xrunning xpnode snode
+  xtags <- convert tags
+  let inst = Instance.create xname xmem xdisk xvcpus
+             xrunning xtags xpnode snode
   return (xname, inst)
 
 parseInstance _ v = fail ("Invalid instance query result: " ++ show v)

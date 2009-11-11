@@ -81,10 +81,10 @@ serializeInstance csf nl inst =
                     then ""
                     else Container.nameOf nl sidx ++ csf)
     in
-      printf "%s|%d|%d|%d|%s|%s|%s"
+      printf "%s|%d|%d|%d|%s|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
              (Instance.vcpus inst) (Instance.runSt inst)
-             pnode snode
+             pnode snode (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects
 serializeInstances :: String -> Node.List -> Instance.List -> String
