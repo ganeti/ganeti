@@ -93,7 +93,8 @@ getInstances ktn arr = toArray arr >>= mapM (parseInstance ktn)
 parseInstance :: [(String, Ndx)]
               -> JSValue
               -> Result (String, Instance.Instance)
-parseInstance ktn (JSArray (name:disk:mem:vcpus:status:pnode:snodes:[])) = do
+parseInstance ktn (JSArray [ name, disk, mem, vcpus
+                           , status, pnode, snodes ]) = do
   xname <- annotateResult "Parsing new instance" (fromJVal name)
   let convert v = annotateResult ("Instance '" ++ xname ++ "'") (fromJVal v)
   xdisk <- convert disk
@@ -115,8 +116,8 @@ getNodes arr = toArray arr >>= mapM parseNode
 
 -- | Construct a node from a JSON object.
 parseNode :: JSValue -> Result (String, Node.Node)
-parseNode (JSArray
-           (name:mtotal:mnode:mfree:dtotal:dfree:ctotal:offline:drained:[]))
+parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
+                   , ctotal, offline, drained ])
     = do
   xname <- annotateResult "Parsing new node" (fromJVal name)
   let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)

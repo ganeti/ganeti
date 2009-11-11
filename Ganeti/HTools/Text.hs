@@ -42,7 +42,7 @@ import qualified Ganeti.HTools.Instance as Instance
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
-loadNode (name:tm:nm:fm:td:fd:tc:fo:[]) = do
+loadNode [name, tm, nm, fm, td, fd, tc, fo] = do
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
           return $ Node.create name 0 0 0 0 0 0 True
@@ -60,7 +60,7 @@ loadNode s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
             [(String, Ndx)] -> [String] -> m (String, Instance.Instance)
-loadInst ktn (name:mem:dsk:vcpus:status:pnode:snode:[]) = do
+loadInst ktn [name, mem, dsk, vcpus, status, pnode, snode] = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary
            else lookupNode ktn name snode)
