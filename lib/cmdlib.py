@@ -1970,6 +1970,29 @@ class LUSetClusterParams(LogicalUnit):
       self.new_nicparams = objects.FillDict(
         cluster.nicparams[constants.PP_DEFAULT], self.op.nicparams)
       objects.NIC.CheckParameterSyntax(self.new_nicparams)
+      nic_errors = []
+
+      # check all instances for consistency
+      for instance in self.cfg.GetAllInstancesInfo().values():
+        for nic_idx, nic in enumerate(instance.nics):
+          params_copy = copy.deepcopy(nic.nicparams)
+          params_filled = objects.FillDict(self.new_nicparams, params_copy)
+
+          # check parameter syntax
+          try:
+            objects.NIC.CheckParameterSyntax(params_filled)
+          except errors.ConfigurationError, err:
+            nic_errors.append("Instance %s, nic/%d: %s" %
+                              (instance.name, nic_idx, err))
+
+          # if we're moving instances to routed, check that they have an ip
+          target_mode = params_filled[constants.NIC_MODE]
+          if target_mode == constants.NIC_MODE_ROUTED and not nic.ip:
+            nic_errors.append("Instance %s, nic/%d: routed nick with no ip" %
+                              (instance.name, nic_idx))
+      if nic_errors:
+        raise errors.OpPrereqError("Cannot apply the change, errors:\n%s" %
+                                   "\n".join(nic_errors))
 
     # hypervisor list/parameters
     self.new_hvparams = objects.FillDict(cluster.hvparams, {})
