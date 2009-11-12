@@ -7833,8 +7833,8 @@ class LUSetInstanceParams(LogicalUnit):
         for key in 'mac', 'ip':
           if key in nic_dict:
             setattr(instance.nics[nic_op], key, nic_dict[key])
-        if nic_op in self.nic_pnew:
-          instance.nics[nic_op].nicparams = self.nic_pnew[nic_op]
+        if nic_op in self.nic_pinst:
+          instance.nics[nic_op].nicparams = self.nic_pinst[nic_op]
         for key, val in nic_dict.iteritems():
           result.append(("nic.%s/%d" % (key, nic_op), val))
 
