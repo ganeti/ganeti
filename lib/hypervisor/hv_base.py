@@ -238,7 +238,7 @@ class BaseHypervisor(object):
     """Migrate an instance.
 
     @type instance: L{object.Instance}
-    @param name: the instance to be migrated
+    @param instance: the instance to be migrated
     @type target: string
     @param target: hostname (usually ip) of the target node
     @type live: boolean
