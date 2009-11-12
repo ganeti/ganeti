@@ -299,44 +299,7 @@ instances on a node.
 Other required software
 +++++++++++++++++++++++
 
-Besides Xen and DRBD, you will need to install the following (on all
-nodes):
-
-- LVM version 2, `<http://sourceware.org/lvm2/>`_
-
-- OpenSSL, `<http://www.openssl.org/>`_
-
-- OpenSSH, `<http://www.openssh.com/portable.html>`_
-
-- bridge utilities, `<http://bridge.sourceforge.net/>`_
-
-- iproute2, `<http://developer.osdl.org/dev/iproute2>`_
-
-- arping (part of iputils package),
-  `<ftp://ftp.inr.ac.ru/ip-routing/iputils-current.tar.gz>`_
-
-- Python version 2.4 or 2.5, `<http://www.python.org>`_
-
-- Python OpenSSL bindings, `<http://pyopenssl.sourceforge.net/>`_
-
-- simplejson Python module, `<http://www.undefined.org/python/#simplejson>`_
-
-- pyparsing Python module, `<http://pyparsing.wikispaces.com/>`_
-
-- pyinotify Python module, `<http://trac.dbzteam.org/pyinotify>`_
-
-These programs are supplied as part of most Linux distributions, so
-usually they can be installed via apt or similar methods. Also many of
-them will already be installed on a standard machine.
-
-
-.. admonition:: Debian
-
-   You can use this command line to install all needed packages::
-
-     # apt-get install lvm2 ssh bridge-utils iproute iputils-arping \
-     python python-pyopenssl openssl python-pyparsing \
-     python-simplejson python-pyinotify
+See :doc:`install-quick`.
 
 Setting up the environment for Ganeti
 -------------------------------------

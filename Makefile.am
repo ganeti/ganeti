@@ -46,6 +46,7 @@ DIRS = \
 MAINTAINERCLEANFILES = \
 	$(docpng) \
 	$(maninput) \
+	doc/install-quick.rst \
 	doc/news.rst
 
 maintainer-clean-local:
@@ -148,6 +149,7 @@ docrst = \
 	doc/hooks.rst \
 	doc/iallocator.rst \
 	doc/index.rst \
+	doc/install-quick.rst \
 	doc/install.rst \
 	doc/locking.rst \
 	doc/news.rst \
@@ -169,6 +171,14 @@ doc/html/.stamp: $(docrst) $(docpng) doc/conf.py configure.ac
 doc/html: doc/html/.stamp
 
 doc/news.rst: NEWS
+	set -e; \
+	{ echo '.. This file is automatically updated at build time from $<.'; \
+	  echo '.. Do not edit.'; \
+	  echo; \
+	  cat $<; \
+	} > $@
+
+doc/install-quick.rst: INSTALL
 	set -e; \
 	{ echo '.. This file is automatically updated at build time from $<.'; \
 	  echo '.. Do not edit.'; \

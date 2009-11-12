@@ -42,6 +42,7 @@
 /doc/api
 /doc/build
 /doc/html
+/doc/install-quick.rst
 /doc/news.rst
 /doc/*.in
 /doc/*.png

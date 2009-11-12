@@ -9,6 +9,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   install-quick.rst
    install.rst
    admin.rst
    walkthrough.rst

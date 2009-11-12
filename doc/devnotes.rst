@@ -4,7 +4,8 @@ Developer notes
 Build dependencies
 ------------------
 
-Most dependencies from INSTALL, plus:
+Most dependencies from :doc:`install-quick`, plus:
+
 - `GNU make <http://www.gnu.org/software/make/>`_
 - `GNU tar <http://www.gnu.org/software/tar/>`_
 - `Gzip <http://www.gnu.org/software/gzip/>`_
