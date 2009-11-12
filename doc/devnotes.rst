@@ -28,4 +28,34 @@ different python version)::
   ./configure PYTHON=python2.4 \
     --prefix=/usr/local --sysconfdir=/etc --localstatedir=/var
 
+
+Packaging notes
+===============
+
+Ganeti is mostly developped and tested on `Debian
+<http://www.debian.org/>`_-based distributions, while still keeping
+adoptability to other Linux distributions in mind.
+
+The ``doc/examples/`` directory contains a number of potentially useful
+scripts and configuration files. Some of them might need adjustment
+before use.
+
+``daemon-util``
+---------------
+
+This script, in the source code as ``daemons/daemon-util.in``, is used
+to start/stop Ganeti and do a few other things related to system
+daemons. Is is recommended to use ``daemon-util`` also from the system's
+init scripts. That way the code starting and stopping daemons is shared
+and future changes have to be made in only one place.
+
+``daemon-util`` reads extra arguments from variables (``*_ARGS``) in
+``/etc/default/ganeti``. When modifying ``daemon-util``, keep in mind to
+not remove support for the ``EXTRA_*_ARGS`` variables for starting
+daemons. Some parts of Ganeti use them to pass additional arguments when
+starting a daemon.
+
+The ``reload_ssh_keys`` function can be adjusted to use another command
+for reloading the OpenSSH daemon's host keys.
+
 .. vim: set textwidth=72 :
