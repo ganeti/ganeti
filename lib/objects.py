@@ -354,7 +354,7 @@ class NIC(ConfigObject):
       err = "Invalid nic mode: %s" % nicparams[constants.NIC_MODE]
       raise errors.ConfigurationError(err)
 
-    if (nicparams[constants.NIC_MODE] is constants.NIC_MODE_BRIDGED and
+    if (nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED and
         not nicparams[constants.NIC_LINK]):
       err = "Missing bridged nic link"
       raise errors.ConfigurationError(err)
