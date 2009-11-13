@@ -48,7 +48,7 @@ from ganeti import serializer
 _config_lock = locking.SharedLock()
 
 # job id used for resource management at config upgrade time
-_UPGRADE_CONFIG_JID="jid-cfg-upgrade"
+_UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
 
 
 def _ValidateConfig(data):
@@ -200,6 +200,7 @@ class ConfigWriter:
     return self._temporary_secrets.Generate(self._AllDRBDSecrets(),
                                             utils.GenerateSecret,
                                             ec_id)
+
   def _AllLVs(self):
     """Compute the list of all LVs.
 
@@ -1002,7 +1003,6 @@ class ConfigWriter:
 
     return self._config_data.nodes[node_name]
 
-
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeInfo(self, node_name):
     """Get the configuration of a node, as stored in the config.
@@ -1027,7 +1027,6 @@ class ConfigWriter:
 
     """
     return self._config_data.nodes.keys()
-
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeList(self):
@@ -1194,7 +1193,6 @@ class ConfigWriter:
       # This is ok even if it acquires the internal lock, as _UpgradeConfig is
       # only called at config init time, without the lock held
       self.DropECReservations(_UPGRADE_CONFIG_JID)
-
 
   def _DistributeConfig(self, feedback_fn):
     """Distribute the configuration to the other nodes.
