@@ -48,6 +48,7 @@ module Ganeti.HTools.Node
     , addSec
     -- * Stats
     , availDisk
+    , conflictingPrimaries
     -- * Formatting
     , defaultFields
     , showHeader
@@ -60,6 +61,7 @@ module Ganeti.HTools.Node
 
 import Data.List
 import qualified Data.Map as Map
+import qualified Data.Foldable as Foldable
 import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
@@ -157,6 +159,14 @@ delTags = foldl' delTag
 -- | Check if we can add a list of tags to a tagmap
 rejectAddTags :: TagMap -> [String] -> Bool
 rejectAddTags t = any (flip Map.member t)
+
+-- | Check how many primary instances have conflicting tags. The
+-- algorithm to compute this is to sum the count of all tags, then
+-- subtract the size of the tag map (since each tag has at least one,
+-- non-conflicting instance); this is equivalent to summing the
+-- values in the tag map minus one.
+conflictingPrimaries :: Node -> Int
+conflictingPrimaries (Node { pTags = t }) = Foldable.sum t - Map.size t
 
 -- * Initialization functions
 
