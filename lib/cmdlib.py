@@ -5688,7 +5688,7 @@ class LUCreateInstance(LogicalUnit):
                                      errors.ECODE_INVAL)
         nic_ip = ip
 
-      # TODO: check the ip for uniqueness !!
+      # TODO: check the ip address for uniqueness
       if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
         raise errors.OpPrereqError("Routed nic mode requires an ip address",
                                    errors.ECODE_INVAL)

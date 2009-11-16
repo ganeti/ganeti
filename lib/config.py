@@ -430,22 +430,43 @@ class ConfigWriter:
                     " %s and %s" % (minor, node, instance_a, instance_b))
 
     # IP checks
-    ips = { data.cluster.master_ip: ["cluster_ip"] }
-    def _helper(ip, name):
-      if ip in ips:
-        ips[ip].append(name)
-      else:
-        ips[ip] = [name]
+    default_nicparams = data.cluster.nicparams[constants.PP_DEFAULT]
+    ips = {}
+
+    def _AddIpAddress(ip, name):
+      ips.setdefault(ip, []).append(name)
+
+    _AddIpAddress(data.cluster.master_ip, "cluster_ip")
 
     for node in data.nodes.values():
-      _helper(node.primary_ip, "node:%s/primary" % node.name)
+      _AddIpAddress(node.primary_ip, "node:%s/primary" % node.name)
       if node.secondary_ip != node.primary_ip:
-        _helper(node.secondary_ip, "node:%s/secondary" % node.name)
+        _AddIpAddress(node.secondary_ip, "node:%s/secondary" % node.name)
+
+    for instance in data.instances.values():
+      for idx, nic in enumerate(instance.nics):
+        if nic.ip is None:
+          continue
+
+        nicparams = objects.FillDict(default_nicparams, nic.nicparams)
+        nic_mode = nicparams[constants.NIC_MODE]
+        nic_link = nicparams[constants.NIC_LINK]
+
+        if nic_mode == constants.NIC_MODE_BRIDGED:
+          link = "bridge:%s" % nic_link
+        elif nic_mode == constants.NIC_MODE_ROUTED:
+          link = "route:%s" % nic_link
+        else:
+          raise errors.ProgrammerError("NIC mode '%s' not handled" % nic_mode)
+
+        _AddIpAddress("%s/%s" % (link, nic.ip),
+                      "instance:%s/nic:%d" % (instance.name, idx))
 
     for ip, owners in ips.items():
       if len(owners) > 1:
         result.append("IP address %s is used by multiple owners: %s" %
                       (ip, ", ".join(owners)))
+
     return result
 
   @locking.ssynchronized(_config_lock, shared=1)
