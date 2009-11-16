@@ -7671,10 +7671,14 @@ class LUSetInstanceParams(LogicalUnit):
         continue
       if nic_op != constants.DDM_ADD:
         # an existing nic
+        if not instance.nics:
+          raise errors.OpPrereqError("Invalid NIC index %s, instance has"
+                                     " no NICs" % nic_op,
+                                     errors.ECODE_INVAL)
         if nic_op < 0 or nic_op >= len(instance.nics):
           raise errors.OpPrereqError("Invalid NIC index %s, valid values"
                                      " are 0 to %d" %
-                                     (nic_op, len(instance.nics)),
+                                     (nic_op, len(instance.nics) - 1),
                                      errors.ECODE_INVAL)
         old_nic_params = instance.nics[nic_op].nicparams
         old_nic_ip = instance.nics[nic_op].ip

@@ -1396,7 +1396,7 @@ def GenericInstanceCreate(mode, opts, args):
 
   if opts.nics:
     try:
-      nic_max = max(int(nidx[0])+1 for nidx in opts.nics)
+      nic_max = max(int(nidx[0]) + 1 for nidx in opts.nics)
     except ValueError, err:
       raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
     nics = [{}] * nic_max
@@ -1427,7 +1427,7 @@ def GenericInstanceCreate(mode, opts, args):
     if opts.sd_size is not None:
       opts.disks = [(0, {"size": opts.sd_size})]
     try:
-      disk_max = max(int(didx[0])+1 for didx in opts.disks)
+      disk_max = max(int(didx[0]) + 1 for didx in opts.disks)
     except ValueError, err:
       raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
     disks = [{}] * disk_max
