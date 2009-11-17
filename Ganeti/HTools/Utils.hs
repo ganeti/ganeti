@@ -78,23 +78,18 @@ fst3 (a, _, _) = a
 
 -- * Mathematical functions
 
--- Simple and slow statistical functions, please replace with better versions
+-- Simple and slow statistical functions, please replace with better
+-- versions
 
--- | Mean value of a list.
-meanValue :: [Double] -> Double
-meanValue lst = sum lst / fromIntegral (length lst)
-
--- | Standard deviation.
-stdDev :: [Double] -> Double
-stdDev lst =
-    let mv = meanValue lst
-        av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
-        bv = sqrt (av / fromIntegral (length lst))
-    in bv
-
--- | Coefficient of variation.
+-- | The covariance of the list
 varianceCoeff :: [Double] -> Double
-varianceCoeff lst = stdDev lst / fromIntegral (length lst)
+varianceCoeff lst =
+    let ll = fromIntegral (length lst)::Double -- length of list
+        mv = sum lst / ll   -- mean value
+        av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
+        bv = sqrt (av / ll) -- stddev
+        cv = bv / ll        -- covariance
+    in cv
 
 -- * JSON-related functions
 
