@@ -81,11 +81,11 @@ fst3 (a, _, _) = a
 -- Simple and slow statistical functions, please replace with better versions
 
 -- | Mean value of a list.
-meanValue :: Floating a => [a] -> a
+meanValue :: [Double] -> Double
 meanValue lst = sum lst / fromIntegral (length lst)
 
 -- | Standard deviation.
-stdDev :: Floating a => [a] -> a
+stdDev :: [Double] -> Double
 stdDev lst =
     let mv = meanValue lst
         av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
@@ -93,7 +93,7 @@ stdDev lst =
     in bv
 
 -- | Coefficient of variation.
-varianceCoeff :: Floating a => [a] -> a
+varianceCoeff :: [Double] -> Double
 varianceCoeff lst = stdDev lst / fromIntegral (length lst)
 
 -- * JSON-related functions
