@@ -319,8 +319,17 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
     # as efficient.
     if mkdir and err.errno == errno.ENOENT:
       # Create directory and try again
-      os.makedirs(os.path.dirname(new), mkdir_mode)
+      dirname = os.path.dirname(new)
+      try:
+        os.makedirs(dirname, mode=mkdir_mode)
+      except OSError, err:
+        # Ignore EEXIST. This is only handled in os.makedirs as included in
+        # Python 2.5 and above.
+        if err.errno != errno.EEXIST or not os.path.exists(dirname):
+          raise
+
       return os.rename(old, new)
+
     raise
 
 

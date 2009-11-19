@@ -295,16 +295,27 @@ class TestRename(unittest.TestCase):
   def testSimpleRename1(self):
     """Simple rename 1"""
     utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "xyz"))
+    self.assert_(os.path.isfile(os.path.join(self.tmpdir, "xyz")))
 
   def testSimpleRename2(self):
     """Simple rename 2"""
     utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "xyz"),
                      mkdir=True)
+    self.assert_(os.path.isfile(os.path.join(self.tmpdir, "xyz")))
 
   def testRenameMkdir(self):
     """Rename with mkdir"""
     utils.RenameFile(self.tmpfile, os.path.join(self.tmpdir, "test/xyz"),
                      mkdir=True)
+    self.assert_(os.path.isdir(os.path.join(self.tmpdir, "test")))
+    self.assert_(os.path.isfile(os.path.join(self.tmpdir, "test/xyz")))
+
+    utils.RenameFile(os.path.join(self.tmpdir, "test/xyz"),
+                     os.path.join(self.tmpdir, "test/foo/bar/baz"),
+                     mkdir=True)
+    self.assert_(os.path.isdir(os.path.join(self.tmpdir, "test")))
+    self.assert_(os.path.isdir(os.path.join(self.tmpdir, "test/foo/bar")))
+    self.assert_(os.path.isfile(os.path.join(self.tmpdir, "test/foo/bar/baz")))
 
 
 class TestMatchNameComponent(unittest.TestCase):
