@@ -2134,7 +2134,7 @@ class LURedistributeConfig(NoHooksLU):
     _RedistributeAncillaryFiles(self)
 
 
-def _WaitForSync(lu, instance, oneshot=False, unlock=False):
+def _WaitForSync(lu, instance, oneshot=False):
   """Sleep and poll for an instance's disk to sync.
 
   """
@@ -6876,7 +6876,7 @@ class TLReplaceDisks(Tasklet):
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
     self.lu.LogStep(5, steps_total, "Sync devices")
-    _WaitForSync(self.lu, self.instance, unlock=True)
+    _WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)
@@ -7021,7 +7021,7 @@ class TLReplaceDisks(Tasklet):
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
     self.lu.LogStep(5, steps_total, "Sync devices")
-    _WaitForSync(self.lu, self.instance, unlock=True)
+    _WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)
