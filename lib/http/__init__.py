@@ -545,6 +545,19 @@ def Handshake(sock, write_timeout):
     raise HttpError("Error in SSL handshake: %s" % err)
 
 
+def InitSsl():
+  """Initializes the SSL infrastructure.
+
+  This function is idempotent.
+
+  """
+  if not OpenSSL.rand.status():
+    raise EnvironmentError("OpenSSL could not collect enough entropy"
+                           " for the PRNG")
+
+  # TODO: Maybe add some additional seeding for OpenSSL's PRNG
+
+
 class HttpSslParams(object):
   """Data class for SSL key and certificate.
 

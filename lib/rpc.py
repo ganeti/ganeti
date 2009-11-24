@@ -59,6 +59,8 @@ def Init():
 
   assert not _http_manager, "RPC module initialized more than once"
 
+  http.InitSsl()
+
   _http_manager = http.client.HttpClientManager()
 
 
