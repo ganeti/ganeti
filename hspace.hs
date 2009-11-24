@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Main (main) where
 
-import Data.Char (toUpper)
+import Data.Char (toUpper, isAlphaNum)
 import Data.List
 import Data.Function
 import Data.Maybe (isJust, fromJust)
@@ -89,7 +89,7 @@ statsData = [ ("SCORE", printf "%.8f" . Cluster.csScore)
                \cs -> printf "%.8f" (fromIntegral (Cluster.csImem cs) /
                                      Cluster.csTmem cs))
             , ("DSK_FREE", printf "%d" . Cluster.csFdsk)
-            , ("DSK_AVAIL", printf "%d ". Cluster.csAdsk)
+            , ("DSK_AVAIL", printf "%d". Cluster.csAdsk)
             , ("DSK_RESVD",
                \cs -> printf "%d" (Cluster.csFdsk cs - Cluster.csAdsk cs))
             , ("DSK_INST", printf "%d" . Cluster.csIdsk)
@@ -187,9 +187,16 @@ printResults fin_nl num_instances allocs sreason = do
   -- this should be the final entry
   printKeys [("OK", "1")]
 
+-- | Ensure a value is quoted if needed
+ensureQuoted :: String -> String
+ensureQuoted v = if not (all (\c -> (isAlphaNum c || c == '.')) v)
+                 then '\'':v ++ "'"
+                 else v
+
 -- | Format a list of key/values as a shell fragment
 printKeys :: [(String, String)] -> IO ()
-printKeys = mapM_ (\(k, v) -> printf "HTS_%s=%s\n" (map toUpper k) v)
+printKeys = mapM_ (\(k, v) ->
+                   printf "HTS_%s=%s\n" (map toUpper k) (ensureQuoted v))
 
 printInstance :: Node.List -> Instance.Instance -> [String]
 printInstance nl i = [ Instance.name i
