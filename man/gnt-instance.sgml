@@ -1511,10 +1511,10 @@ instance5: 11225
 
         <para>
           The <option>-H</option> and <option>-B</option> options
-          specify extra, temporary hypervisor and backend parameters
-          that can be used to start an instance with modified
-          parameters. They can be useful for quick testing without
-          having to modify an instance back and forth, e.g.:
+          specify temporary hypervisor and backend parameters that can
+          be used to start an instance with modified parameters. They
+          can be useful for quick testing without having to modify an
+          instance back and forth, e.g.:
           <screen>
 # gnt-instance start -H root_args="single" instance1
 # gnt-instance start -B memory=2048 instance2
@@ -1523,7 +1523,11 @@ instance5: 11225
           <userinput>instance1</userinput> in single-user mode, and
           the instance <userinput>instance2</userinput> with 2GB of
           RAM (this time only, unless that is the actual instance
-          memory size already).
+          memory size already). Note that the values override the
+          instance parameters (and not extend them): an instance with
+          "root_args=ro" when started with <userinput>-H
+          root_args=single</userinput> will result in "single", not
+          "ro single".
         </para>
 
         <para>

@@ -599,11 +599,11 @@ Example::
     [
       {
         "id": "node1.example.com",
-        "uri": "\/instances\/node1.example.com"
+        "uri": "\/nodes\/node1.example.com"
       },
       {
         "id": "node2.example.com",
-        "uri": "\/instances\/node2.example.com"
+        "uri": "\/nodes\/node2.example.com"
       }
     ]
 
