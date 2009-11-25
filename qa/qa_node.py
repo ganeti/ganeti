@@ -66,6 +66,18 @@ def TestNodeAddAll():
       _NodeAdd(node, readd=False)
 
 
+def MarkNodeAddedAll():
+  """Mark all nodes as added.
+
+  This is useful if we don't create the cluster ourselves (in qa).
+
+  """
+  master = qa_config.GetMasterNode()
+  for node in qa_config.get('nodes'):
+    if node != master:
+      node['_added'] = True
+
+
 def TestNodeRemoveAll():
   """Removing all nodes from cluster."""
   master = qa_config.GetMasterNode()

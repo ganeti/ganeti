@@ -77,6 +77,9 @@ def SetupCluster():
   if qa_config.TestEnabled('create-cluster'):
     RunTest(qa_cluster.TestClusterInit)
     RunTest(qa_node.TestNodeAddAll)
+  else:
+    # consider the nodes are already there
+    qa_node.MarkNodeAddedAll()
   if qa_config.TestEnabled('node-info'):
     RunTest(qa_node.TestNodeInfo)
 
