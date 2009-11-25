@@ -63,14 +63,6 @@ class TestSerializer(testutils.GanetiTestCase):
   def testJson(self):
     self._TestSerializer(serializer.DumpJson, serializer.LoadJson)
 
-  def testJsonIndent(self):
-    data = {
-      "k1": 1,
-      "k2": 3,
-      "k3": 4,
-      }
-    self.assert_(len(serializer.DumpJson(data, indent=True).splitlines()) > 3)
-
   def testSignedMessage(self):
     LoadSigned = serializer.LoadSigned
     DumpSigned = serializer.DumpSigned
