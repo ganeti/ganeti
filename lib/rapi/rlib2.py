@@ -35,7 +35,7 @@ _COMMON_FIELDS = ["ctime", "mtime", "uuid", "serial_no", "tags"]
 I_FIELDS = ["name", "admin_state", "os",
             "pnode", "snodes",
             "disk_template",
-            "nic.ips", "nic.macs", "nic.modes", "nic.links",
+            "nic.ips", "nic.macs", "nic.modes", "nic.links", "nic.bridges",
             "network_port",
             "disk.sizes", "disk_usage",
             "beparams", "hvparams",
