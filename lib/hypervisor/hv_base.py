@@ -82,7 +82,7 @@ def ParamInSet(required, my_set):
 
   """
   fn = lambda x: x in my_set
-  err = ("The value must be one of: %s" % " ,".join(my_set))
+  err = ("The value must be one of: %s" % utils.CommaJoin(my_set))
   return (required, fn, err, None, None)
 
 
