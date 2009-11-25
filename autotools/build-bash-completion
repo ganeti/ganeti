@@ -465,11 +465,11 @@ class CompletionWriter:
 
         if arg.min == 1 and arg.max == 1:
           cmpcode = """"$arg_idx" == %d""" % (last_arg_end)
+        elif arg.max is None:
+          cmpcode = """"$arg_idx" -ge %d""" % (last_arg_end)
         elif arg.min <= arg.max:
           cmpcode = (""""$arg_idx" -ge %d && "$arg_idx" -lt %d""" %
                      (last_arg_end, last_arg_end + arg.max))
-        elif arg.max is None:
-          cmpcode = """"$arg_idx" -ge %d""" % (last_arg_end)
         else:
           raise Exception("Unable to generate argument position condition")
 
@@ -487,7 +487,8 @@ class CompletionWriter:
             if choices:
               sw.Write("""choices="$choices "%s""", choices)
             if compgenargs:
-              sw.Write("compgenargs=%s", utils.ShellQuote(" ".join(compgenargs)))
+              sw.Write("compgenargs=%s",
+                       utils.ShellQuote(" ".join(compgenargs)))
           finally:
             sw.DecIndent()
 

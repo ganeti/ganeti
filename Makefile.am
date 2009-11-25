@@ -351,6 +351,7 @@ srclink_files = \
 	$(all_python_code)
 
 check_python_code = \
+	autotools/build-bash-completion \
 	$(all_python_code)
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
