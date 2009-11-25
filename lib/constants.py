@@ -391,6 +391,7 @@ HV_DEVICE_MODEL = "device_model"
 HV_INIT_SCRIPT = "init_script"
 HV_MIGRATION_PORT = "migration_port"
 HV_USE_LOCALTIME = "use_localtime"
+HV_DISK_CACHE = "disk_cache"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -417,6 +418,7 @@ HVS_PARAMETER_TYPES = {
   HV_INIT_SCRIPT: VTYPE_STRING,
   HV_MIGRATION_PORT: VTYPE_INT,
   HV_USE_LOCALTIME: VTYPE_BOOL,
+  HV_DISK_CACHE: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -490,6 +492,15 @@ HT_DISK_SCSI = "scsi"
 HT_DISK_SD = "sd"
 HT_DISK_MTD = "mtd"
 HT_DISK_PFLASH = "pflash"
+
+HT_CACHE_DEFAULT = "default"
+HT_CACHE_NONE = "none"
+HT_CACHE_WTHROUGH = "writethrough"
+HT_CACHE_WBACK = "writeback"
+HT_VALID_CACHE_TYPES = frozenset([HT_CACHE_DEFAULT,
+                                  HT_CACHE_NONE,
+                                  HT_CACHE_WTHROUGH,
+                                  HT_CACHE_WBACK])
 
 HT_HVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IOEMU])
 HT_KVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IDE,
@@ -646,6 +657,7 @@ HVC_DEFAULTS = {
     HV_USB_MOUSE: '',
     HV_MIGRATION_PORT: 8102,
     HV_USE_LOCALTIME: False,
+    HV_DISK_CACHE: HT_CACHE_DEFAULT,
     },
   HT_FAKE: {
     },

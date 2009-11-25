@@ -74,6 +74,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_MOUSE_TYPES),
     constants.HV_MIGRATION_PORT: hv_base.NET_PORT_CHECK,
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
+    constants.HV_DISK_CACHE:
+      hv_base.ParamInSet(True, constants.HT_VALID_CACHE_TYPES),
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -312,6 +314,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if_val = ',if=virtio'
     else:
       if_val = ',if=%s' % disk_type
+    # Cache mode
+    disk_cache = hvp[constants.HV_DISK_CACHE]
+    if disk_cache != constants.HT_CACHE_DEFAULT:
+      cache_val = ",cache=%s" % disk_cache
+    else:
+      cache_val = ""
     for cfdev, dev_path in block_devices:
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
@@ -325,7 +333,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         boot_val = ''
 
-      drive_val = 'file=%s,format=raw%s%s' % (dev_path, if_val, boot_val)
+      drive_val = 'file=%s,format=raw%s%s%s' % (dev_path, if_val, boot_val,
+                                                cache_val)
       kvm_cmd.extend(['-drive', drive_val])
 
     iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
