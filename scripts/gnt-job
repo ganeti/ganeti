@@ -203,7 +203,7 @@ def ShowJobs(opts, args):
   def result_helper(value):
     """Format a result field in a nice way."""
     if isinstance(value, (tuple, list)):
-      return "[%s]" % (", ".join(str(elem) for elem in value))
+      return "[%s]" % utils.CommaJoin(value)
     else:
       return str(value)
 
@@ -351,7 +351,7 @@ commands = {
     " (see the man page for details): id, status, op_list,"
     " op_status, op_result."
     " The default field"
-    " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS)),
+    " list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS)),
   'archive': (
     ArchiveJobs, [ArgJobId(min=1)], [],
     "<job-id> [<job-id> ...]", "Archive specified jobs"),

@@ -666,7 +666,7 @@ def BridgesExist(bridges_list):
       missing.append(bridge)
 
   if missing:
-    _Fail("Missing bridges %s", ", ".join(missing))
+    _Fail("Missing bridges %s", utils.CommaJoin(missing))
 
 
 def GetInstanceList(hypervisor_list):

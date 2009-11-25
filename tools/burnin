@@ -336,7 +336,7 @@ class Burner(object):
     """
     self.ClearFeedbackBuf()
     job_ids = [cli.SendJob(row[0], cl=self.cl) for row in jobs]
-    Log("Submitted job ID(s) %s" % ", ".join(job_ids), indent=1)
+    Log("Submitted job ID(s) %s" % utils.CommaJoin(job_ids), indent=1)
     results = []
     for jid, (_, iname) in zip(job_ids, jobs):
       Log("waiting for job %s for %s" % (jid, iname), indent=2)

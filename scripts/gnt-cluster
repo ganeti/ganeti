@@ -240,14 +240,15 @@ def ShowClusterConfig(opts, args):
            result["architecture"][0], result["architecture"][1])
 
   if result["tags"]:
-    tags = ", ".join(utils.NiceSort(result["tags"]))
+    tags = utils.CommaJoin(utils.NiceSort(result["tags"]))
   else:
     tags = "(none)"
 
   ToStdout("Tags: %s", tags)
 
   ToStdout("Default hypervisor: %s", result["default_hypervisor"])
-  ToStdout("Enabled hypervisors: %s", ", ".join(result["enabled_hypervisors"]))
+  ToStdout("Enabled hypervisors: %s",
+           utils.CommaJoin(result["enabled_hypervisors"]))
 
   ToStdout("Hypervisor parameters:")
   _PrintGroupedParams(result["hvparams"])

@@ -246,7 +246,7 @@ class ClientOps:
     elif method == luxi.REQ_QUERY_JOBS:
       (job_ids, fields) = args
       if isinstance(job_ids, (tuple, list)) and job_ids:
-        msg = ", ".join(job_ids)
+        msg = utils.CommaJoin(job_ids)
       else:
         msg = str(job_ids)
       logging.info("Received job query request for %s", msg)

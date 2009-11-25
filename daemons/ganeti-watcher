@@ -430,7 +430,7 @@ class Watcher(object):
       # nothing to do
       return
     logging.debug("Will activate disks for instances %s",
-                  ", ".join(offline_disk_instances))
+                  utils.CommaJoin(offline_disk_instances))
     # we submit only one job, and wait for it. not optimal, but spams
     # less the job queue
     job = [opcodes.OpActivateInstanceDisks(instance_name=name)

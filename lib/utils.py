@@ -1891,7 +1891,7 @@ def CommaJoin(names):
   @return: a string with the formatted results
 
   """
-  return ", ".join(["'%s'" % val for val in names])
+  return ", ".join([str(val) for val in names])
 
 
 def BytesToMebibyte(value):

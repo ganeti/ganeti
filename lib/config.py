@@ -397,7 +397,7 @@ class ConfigWriter:
     for pnum in keys:
       pdata = ports[pnum]
       if len(pdata) > 1:
-        txt = ", ".join(["%s/%s" % val for val in pdata])
+        txt = utils.CommaJoin(["%s/%s" % val for val in pdata])
         result.append("tcp/udp port %s has duplicates: %s" % (pnum, txt))
 
     # highest used tcp port check
@@ -465,7 +465,7 @@ class ConfigWriter:
     for ip, owners in ips.items():
       if len(owners) > 1:
         result.append("IP address %s is used by multiple owners: %s" %
-                      (ip, ", ".join(owners)))
+                      (ip, utils.CommaJoin(owners)))
 
     return result
 
@@ -1272,7 +1272,7 @@ class ConfigWriter:
     config_errors = self._UnlockedVerifyConfig()
     if config_errors:
       errmsg = ("Configuration data is not consistent: %s" %
-                (", ".join(config_errors)))
+                (utils.CommaJoin(config_errors)))
       logging.critical(errmsg)
       if feedback_fn:
         feedback_fn(errmsg)
@@ -1442,4 +1442,3 @@ class ConfigWriter:
     self._temporary_ids.DropECReservations(ec_id)
     self._temporary_macs.DropECReservations(ec_id)
     self._temporary_secrets.DropECReservations(ec_id)
-

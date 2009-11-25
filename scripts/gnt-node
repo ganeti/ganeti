@@ -677,7 +677,7 @@ commands = {
     "[nodes...]",
     "Lists the nodes in the cluster. The available fields are (see the man"
     " page for details): %s. The default field list is (in order): %s." %
-    (", ".join(_LIST_HEADERS), ", ".join(_LIST_DEF_FIELDS))),
+    (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
   'modify': (
     SetNodeParams, ARGS_ONE_NODE,
     [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT],
@@ -698,7 +698,7 @@ commands = {
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, _STORAGE_TYPE_OPT],
     "[<node_name>...]", "List physical volumes on node(s). The available"
     " fields are (see the man page for details): %s." %
-    (", ".join(_LIST_STOR_HEADERS))),
+    (utils.CommaJoin(_LIST_STOR_HEADERS))),
   'modify-storage': (
     ModifyStorage,
     [ArgNode(min=1, max=1),

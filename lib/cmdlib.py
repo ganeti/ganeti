@@ -511,7 +511,7 @@ def _CheckGlobalHvParams(params):
   if used_globals:
     msg = ("The following hypervisor parameters are global and cannot"
            " be customized at instance level, please modify them at"
-           " cluster level: %s" % ", ".join(used_globals))
+           " cluster level: %s" % utils.CommaJoin(used_globals))
     raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
 
@@ -698,7 +698,7 @@ def _AdjustCandidatePool(lu, exceptions):
   mod_list = lu.cfg.MaintainCandidatePool(exceptions)
   if mod_list:
     lu.LogInfo("Promoted nodes to master candidate role: %s",
-               ", ".join(node.name for node in mod_list))
+               utils.CommaJoin(node.name for node in mod_list))
     for name in mod_list:
       lu.context.ReaddNode(name)
   mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats(exceptions)
@@ -1498,7 +1498,7 @@ class LUVerifyCluster(LogicalUnit):
       # warn that the instance lives on offline nodes
       _ErrorIf(inst_nodes_offline, self.EINSTANCEBADNODE, instance,
                "instance lives on offline node(s) %s",
-               ", ".join(inst_nodes_offline))
+               utils.CommaJoin(inst_nodes_offline))
 
     feedback_fn("* Verifying orphan volumes")
     self._VerifyOrphanVolumes(node_vol_should, node_volume)
@@ -5844,7 +5844,7 @@ class LUCreateInstance(LogicalUnit):
     self.op.pnode = ial.nodes[0]
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                  self.op.instance_name, self.op.iallocator,
-                 ", ".join(ial.nodes))
+                 utils.CommaJoin(ial.nodes))
     if ial.required_nodes == 2:
       self.op.snode = ial.nodes[1]
 
@@ -6631,7 +6631,7 @@ class TLReplaceDisks(Tasklet):
       return
 
     feedback_fn("Replacing disk(s) %s for %s" %
-                (", ".join([str(i) for i in self.disks]), self.instance.name))
+                (utils.CommaJoin(self.disks), self.instance.name))
 
     activate_disks = (not self.instance.admin_up)
 

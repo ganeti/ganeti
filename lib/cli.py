@@ -1666,7 +1666,7 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False):
                          use_locking=False)
   offline = [row[0] for row in result if row[1]]
   if offline and not nowarn:
-    ToStderr("Note: skipping offline node(s): %s" % ", ".join(offline))
+    ToStderr("Note: skipping offline node(s): %s" % utils.CommaJoin(offline))
   return [row[0] for row in result if not row[1]]
 
 
@@ -1758,7 +1758,7 @@ class JobExecutor(object):
     if self.verbose:
       ok_jobs = [row[1] for row in self.jobs if row[0]]
       if ok_jobs:
-        ToStdout("Submitted jobs %s", ", ".join(ok_jobs))
+        ToStdout("Submitted jobs %s", utils.CommaJoin(ok_jobs))
     for submit_status, jid, name in self.jobs:
       if not submit_status:
         ToStderr("Failed to submit job for %s: %s", name, jid)

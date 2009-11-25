@@ -1267,8 +1267,8 @@ class GanetiLockManager:
             not self._upper_owned(LEVEL_CLUSTER)), (
             "Cannot release the Big Ganeti Lock while holding something"
             " at upper levels (%r)" %
-            (", ".join(["%s=%r" % (LEVEL_NAMES[i], self._list_owned(i))
-                        for i in self.__keyring.keys()]), ))
+            (utils.CommaJoin(["%s=%r" % (LEVEL_NAMES[i], self._list_owned(i))
+                              for i in self.__keyring.keys()]), ))
 
     # Release will complain if we don't own the locks already
     return self.__keyring[level].release(names)

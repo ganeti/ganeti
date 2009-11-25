@@ -117,7 +117,7 @@ def DiagnoseOS(opts, args):
           first_os_variants = []
         first_os_msg = ("%s (path: %s) [variants: %s]" %
                         (_OsStatus(first_os_status, first_os_msg),
-                         first_os_path, ', '.join(first_os_variants)))
+                         first_os_path, utils.CommaJoin(first_os_variants)))
         if first_os_status:
           nodes_valid[node_name] = first_os_msg
         else:
@@ -146,7 +146,7 @@ def DiagnoseOS(opts, args):
 
     ToStdout("OS: %s [global status: %s]", os_name, status)
     if os_variants:
-      ToStdout("  Variants: [%s]" % ', '.join(os_variants))
+      ToStdout("  Variants: [%s]" % utils.CommaJoin(os_variants))
     _OutputPerNodeOSStatus(nodes_valid)
     _OutputPerNodeOSStatus(nodes_bad)
     ToStdout("")

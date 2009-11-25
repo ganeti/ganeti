@@ -1120,7 +1120,7 @@ def ShowInstanceConfig(opts, args):
     ##          instance["auto_balance"])
     buf.write("  Nodes:\n")
     buf.write("    - primary: %s\n" % instance["pnode"])
-    buf.write("    - secondaries: %s\n" % ", ".join(instance["snodes"]))
+    buf.write("    - secondaries: %s\n" % utils.CommaJoin(instance["snodes"]))
     buf.write("  Operating system: %s\n" % instance["os"])
     if instance.has_key("network_port"):
       buf.write("  Allocated network port: %s\n" % instance["network_port"])
@@ -1336,7 +1336,7 @@ commands = {
     " hv/NAME, be/memory, be/vcpus, be/auto_balance,"
     " hypervisor."
     " The default field"
-    " list is (in order): %s." % ", ".join(_LIST_DEF_FIELDS),
+    " list is (in order): %s." % utils.CommaJoin(_LIST_DEF_FIELDS),
     ),
   'reinstall': (
     ReinstallInstance, [ArgInstance()],
