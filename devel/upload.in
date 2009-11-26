@@ -100,7 +100,9 @@ echo ---
 # and now put it under $prefix on the target node(s)
 for host; do
   echo Uploading code to ${host}...
-  rsync -v -rlDc --exclude="*.py[oc]" --exclude="*.pdf" --exclude="*.html" \
+  rsync -v -rlDc \
+    -e "ssh -oBatchMode=yes" \
+    --exclude="*.py[oc]" --exclude="*.pdf" --exclude="*.html" \
     "$TXD/" \
     root@${host}:/ &
 done
@@ -109,7 +111,7 @@ wait
 if test -z "${NO_RESTART}"; then
   for host; do
     echo Restarting ganeti-noded on ${host}...
-    ssh root@${host} /etc/init.d/ganeti restart &
+    ssh -oBatchMode=yes root@${host} /etc/init.d/ganeti restart &
   done
   wait
 fi
