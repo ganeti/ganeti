@@ -7182,6 +7182,14 @@ class LUGrowDisk(LogicalUnit):
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, disk, self.op.amount)
       result.Raise("Grow request failed to node %s" % node)
+
+      # TODO: Rewrite code to work properly
+      # DRBD goes into sync mode for a short amount of time after executing the
+      # "resize" command. DRBD 8.x below version 8.0.13 contains a bug whereby
+      # calling "resize" in sync mode fails. Sleeping for a short amount of
+      # time is a work-around.
+      time.sleep(5)
+
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance, feedback_fn)
     if self.op.wait_for_sync:
