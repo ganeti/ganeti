@@ -83,7 +83,7 @@ parseUtilisation line =
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
-                 -> IO (Node.List, Instance.List, String)
+                 -> IO (Node.List, Instance.List, [String], String)
 loadExternalData opts = do
   (env_node, env_inst) <- parseEnv ()
   let nodef = if optNodeSet opts then optNodeFile opts
@@ -131,7 +131,7 @@ loadExternalData opts = do
           | otherwise -> wrapIO $ Text.loadData nodef instf
 
   let ldresult = input_data >>= Loader.mergeData util_data' exTags
-  (loaded_nl, il, csf) <-
+  (loaded_nl, il, tags, csf) <-
       (case ldresult of
          Ok x -> return x
          Bad s -> do
@@ -144,4 +144,4 @@ loadExternalData opts = do
          hPutStrLn stderr "Warning: cluster has inconsistent data:"
          hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
-  return (fixed_nl, il, csf)
+  return (fixed_nl, il, tags, csf)

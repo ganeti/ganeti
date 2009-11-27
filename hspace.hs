@@ -216,7 +216,7 @@ main = do
       ispec = optISpec opts
       shownodes = optShowNodes opts
 
-  (fixed_nl, il, csf) <- loadExternalData opts
+  (fixed_nl, il, _, csf) <- loadExternalData opts
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
   printKeys [ ("SPEC_RQN", printf "%d" (optINodes opts)) ]

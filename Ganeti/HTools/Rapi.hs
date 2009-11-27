@@ -114,7 +114,7 @@ parseNode a = do
 
 -- | Builds the cluster data from an URL.
 loadData :: String -- ^ Cluster or URL to use as source
-         -> IO (Result (Node.AssocList, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
 loadData master = do -- IO monad
   let url = formatHost master
   node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
@@ -124,4 +124,4 @@ loadData master = do -- IO monad
     let (node_names, node_idx) = assignIndices node_data
     inst_data <- inst_body >>= getInstances node_names
     let (_, inst_idx) = assignIndices inst_data
-    return (node_idx, inst_idx)
+    return (node_idx, inst_idx, [])

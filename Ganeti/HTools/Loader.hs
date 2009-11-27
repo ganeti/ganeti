@@ -140,11 +140,10 @@ stripSuffix sflen name = take (length name - sflen) name
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
-          -> (Node.AssocList,
-              Instance.AssocList) -- ^ Data from either Text.loadData
-                                  -- or Rapi.loadData
-          -> Result (Node.List, Instance.List, String)
-mergeData um extags (nl, il) =
+          -> (Node.AssocList, Instance.AssocList, [String])
+          -- ^ Data from backends
+          -> Result (Node.List, Instance.List, [String], String)
+mergeData um extags (nl, il, tags) =
   let il2 = Container.fromAssocList il
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
@@ -163,7 +162,7 @@ mergeData um extags (nl, il) =
       csl = length common_suffix
       snl = Container.map (\n -> setName n (stripSuffix csl $ nameOf n)) nl3
       sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il4
-  in Ok (snl, sil, common_suffix)
+  in Ok (snl, sil, tags, common_suffix)
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List

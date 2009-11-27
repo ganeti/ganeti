@@ -91,7 +91,7 @@ loadTabular text_data convert_fn = do
 -- | Builds the cluster data from node\/instance files.
 loadData :: String -- ^ Node data in string format
          -> String -- ^ Instance data in string format
-         -> IO (Result (Node.AssocList, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
 loadData nfile ifile = do -- IO monad
   ndata <- readFile nfile
   idata <- readFile ifile
@@ -100,4 +100,4 @@ loadData nfile ifile = do -- IO monad
     (ktn, nl) <- loadTabular ndata loadNode
     {- instance file: name mem disk status pnode snode -}
     (_, il) <- loadTabular idata (loadInst ktn)
-    return (nl, il)
+    return (nl, il, [])

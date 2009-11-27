@@ -142,7 +142,7 @@ main = do
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err
                  Ok x -> do
-                   let (nl, il, csf) = x
+                   let (nl, il, _, csf) = x
                        (_, fix_nl) = Loader.checkData nl il
                    putStrLn $ printCluster fix_nl il
                    when (isJust shownodes) $

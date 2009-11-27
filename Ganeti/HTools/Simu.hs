@@ -52,7 +52,7 @@ parseDesc desc =
 
 -- | Builds the cluster data from node\/instance files.
 loadData :: String -- ^ Cluster description in text format
-         -> IO (Result (Node.AssocList, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
 loadData ndata = -- IO monad, just for consistency with the other loaders
   return $ do
     (cnt, disk, mem, cpu) <- parseDesc ndata
@@ -63,4 +63,4 @@ loadData ndata = -- IO monad, just for consistency with the other loaders
                                  (fromIntegral cpu) False
                          in (idx, Node.setIdx n idx)
                     ) [1..cnt]
-    return (nodes, [])
+    return (nodes, [], [])

@@ -144,7 +144,7 @@ parseNode v = fail ("Invalid node query result: " ++ show v)
 
 -- | Builds the cluster data from an URL.
 loadData :: String -- ^ Unix socket to use as source
-         -> IO (Result (Node.AssocList, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
 loadData master =
   E.bracket
        (L.getClient master)
@@ -157,5 +157,5 @@ loadData master =
             let (node_names, node_idx) = assignIndices node_data
             inst_data <- instances >>= getInstances node_names
             let (_, inst_idx) = assignIndices inst_data
-            return (node_idx, inst_idx)
+            return (node_idx, inst_idx, [])
        )
