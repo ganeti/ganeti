@@ -222,7 +222,8 @@ class Mainloop(object):
 
 
 def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
-                multithreaded=False):
+                multithreaded=False,
+                default_ssl_cert=None, default_ssl_key=None):
   """Shared main function for daemons.
 
   @type daemon_name: string
@@ -240,6 +241,10 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
                   runs the daemon itself.
   @type multithreaded: bool
   @param multithreaded: Whether the daemon uses threads
+  @type default_ssl_cert: string
+  @param default_ssl_cert: Default SSL certificate path
+  @type default_ssl_key: string
+  @param default_ssl_key: Default SSL key path
 
   """
   optionparser.add_option("-f", "--foreground", dest="fork",
@@ -262,31 +267,40 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
                                   default_bind_address),
                             default=default_bind_address, metavar="ADDRESS")
 
-  if daemon_name in constants.DAEMONS_SSL:
-    default_cert, default_key = constants.DAEMONS_SSL[daemon_name]
+  if default_ssl_key is not None and default_ssl_cert is not None:
     optionparser.add_option("--no-ssl", dest="ssl",
                             help="Do not secure HTTP protocol with SSL",
                             default=True, action="store_false")
     optionparser.add_option("-K", "--ssl-key", dest="ssl_key",
-                            help="SSL key",
-                            default=default_key, type="string")
+                            help=("SSL key path (default: %s)" %
+                                  default_ssl_key),
+                            default=default_ssl_key, type="string",
+                            metavar="SSL_KEY_PATH")
     optionparser.add_option("-C", "--ssl-cert", dest="ssl_cert",
-                            help="SSL certificate",
-                            default=default_cert, type="string")
+                            help=("SSL certificate path (default: %s)" %
+                                  default_ssl_cert),
+                            default=default_ssl_cert, type="string",
+                            metavar="SSL_CERT_PATH")
 
   # Disable the use of fork(2) if the daemon uses threads
   utils.no_fork = multithreaded
 
   options, args = optionparser.parse_args()
 
-  if hasattr(options, 'ssl') and options.ssl:
-    if not (options.ssl_cert and options.ssl_key):
-      print >> sys.stderr, "Need key and certificate to use ssl"
-      sys.exit(constants.EXIT_FAILURE)
-    for fname in (options.ssl_cert, options.ssl_key):
-      if not os.path.isfile(fname):
-        print >> sys.stderr, "Need ssl file %s to run" % fname
+  if getattr(options, "ssl", False):
+    ssl_paths = {
+      "certificate": options.ssl_cert,
+      "key": options.ssl_key,
+      }
+
+    for name, path in ssl_paths.iteritems():
+      if not os.path.isfile(path):
+        print >> sys.stderr, "SSL %s file '%s' was not found" % (name, path)
         sys.exit(constants.EXIT_FAILURE)
+
+    # TODO: By initiating http.HttpSslParams here we would only read the files
+    # once and have a proper validation (isfile returns False on directories)
+    # at the same time.
 
   if check_fn is not None:
     check_fn(options, args)

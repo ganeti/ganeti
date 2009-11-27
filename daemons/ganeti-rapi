@@ -222,7 +222,9 @@ def main():
 
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
-  daemon.GenericMain(constants.RAPI, parser, dirs, CheckRapi, ExecRapi)
+  daemon.GenericMain(constants.RAPI, parser, dirs, CheckRapi, ExecRapi,
+                     default_ssl_cert=constants.RAPI_CERT_FILE,
+                     default_ssl_key=constants.RAPI_CERT_FILE)
 
 
 if __name__ == "__main__":

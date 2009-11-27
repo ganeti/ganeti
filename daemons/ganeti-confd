@@ -40,6 +40,7 @@ from ganeti.confd import server as confd_server
 from ganeti import constants
 from ganeti import errors
 from ganeti import daemon
+from ganeti import utils
 from ganeti import ssconf
 
 
