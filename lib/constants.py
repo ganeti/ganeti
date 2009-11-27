@@ -124,14 +124,15 @@ DAEMONS_SSL = {
   # daemon-name: (default-cert-path, default-key-path)
   NODED: (SSL_CERT_FILE, SSL_CERT_FILE),
   RAPI: (RAPI_CERT_FILE, RAPI_CERT_FILE),
-}
+  }
 
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
   NODED: ("tcp", 1811),
   CONFD: ("udp", 1814),
   RAPI: ("tcp", 5080),
-}
+  }
+
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
 DEFAULT_CONFD_PORT = DAEMONS_PORTS[CONFD][1]
 DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
@@ -148,6 +149,7 @@ DAEMONS_LOGFILES = {
   RAPI: LOG_DIR + "rapi-daemon.log",
   MASTERD: LOG_DIR + "master-daemon.log",
   }
+
 LOG_OS_DIR = LOG_DIR + "os"
 LOG_WATCHER = LOG_DIR + "watcher.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"

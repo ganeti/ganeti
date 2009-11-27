@@ -416,6 +416,7 @@ class HttpServerRequestExecutor(object):
     """
     return self.error_message_format % values
 
+
 class HttpServer(http.HttpBase, asyncore.dispatcher):
   """Generic HTTP server class
 

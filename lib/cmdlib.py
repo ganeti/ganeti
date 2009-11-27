@@ -6074,9 +6074,6 @@ class LUCreateInstance(LogicalUnit):
     else:
       network_port = None
 
-    ##if self.op.vnc_bind_address is None:
-    ##  self.op.vnc_bind_address = constants.VNC_DEFAULT_BIND_ADDRESS
-
     # this is needed because os.path.join does not accept None arguments
     if self.op.file_storage_dir is None:
       string_file_storage_dir = ""
