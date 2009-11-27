@@ -245,17 +245,19 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
   optionparser.add_option("-d", "--debug", dest="debug",
                           help="Enable some debug messages",
                           default=False, action="store_true")
+
   if daemon_name in constants.DAEMONS_PORTS:
-    # for networked daemons we also allow choosing the bind port and address.
-    # by default we use the port provided by utils.GetDaemonPort, and bind to
-    # 0.0.0.0 (which is represented by and empty bind address.
-    port = utils.GetDaemonPort(daemon_name)
+    default_bind_address = "0.0.0.0"
+    default_port = utils.GetDaemonPort(daemon_name)
+
+    # For networked daemons we allow choosing the port and bind address
     optionparser.add_option("-p", "--port", dest="port",
-                            help="Network port (%s default)." % port,
-                            default=port, type="int")
+                            help="Network port (default: %s)" % default_port,
+                            default=default_port, type="int")
     optionparser.add_option("-b", "--bind", dest="bind_address",
-                            help="Bind address",
-                            default="", metavar="ADDRESS")
+                            help=("Bind address (default: %s)" %
+                                  default_bind_address),
+                            default=default_bind_address, metavar="ADDRESS")
 
   if daemon_name in constants.DAEMONS_SSL:
     default_cert, default_key = constants.DAEMONS_SSL[daemon_name]
