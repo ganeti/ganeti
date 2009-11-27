@@ -221,7 +221,8 @@ class Mainloop(object):
     self._signal_wait.append(owner)
 
 
-def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
+def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn,
+                multithreaded=False):
   """Shared main function for daemons.
 
   @type daemon_name: string
@@ -237,6 +238,8 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
   @type exec_fn: function which accepts (options, args)
   @param exec_fn: function that's executed with the daemon's pid file held, and
                   runs the daemon itself.
+  @type multithreaded: bool
+  @param multithreaded: Whether the daemon uses threads
 
   """
   optionparser.add_option("-f", "--foreground", dest="fork",
@@ -271,7 +274,8 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
                             help="SSL certificate",
                             default=default_cert, type="string")
 
-  multithread = utils.no_fork = daemon_name in constants.MULTITHREADED_DAEMONS
+  # Disable the use of fork(2) if the daemon uses threads
+  utils.no_fork = multithreaded
 
   options, args = optionparser.parse_args()
 
@@ -298,7 +302,7 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
     utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
                        debug=options.debug,
                        stderr_logging=not options.fork,
-                       multithreaded=multithread)
+                       multithreaded=multithreaded)
     logging.info("%s daemon startup", daemon_name)
     exec_fn(options, args)
   finally:

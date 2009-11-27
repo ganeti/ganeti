@@ -118,8 +118,6 @@ CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
 
-MULTITHREADED_DAEMONS = frozenset([MASTERD])
-
 DAEMONS_SSL = {
   # daemon-name: (default-cert-path, default-key-path)
   NODED: (SSL_CERT_FILE, SSL_CERT_FILE),
