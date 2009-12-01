@@ -1658,10 +1658,11 @@ def OSFromDisk(name, base_dir=None):
   """
   if base_dir is None:
     os_dir = utils.FindFile(name, constants.OS_SEARCH_PATH, os.path.isdir)
-    if os_dir is None:
-      raise errors.InvalidOS(name, None, "OS dir not found in search path")
   else:
-    os_dir = os.path.sep.join([base_dir, name])
+    os_dir = utils.FindFile(name, [base_dir], os.path.isdir)
+
+  if os_dir is None:
+    raise errors.InvalidOS(name, None, "OS dir not found in search path")
 
   api_versions = _OSOndiskVersion(name, os_dir)
 

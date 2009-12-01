@@ -1633,9 +1633,17 @@ def FindFile(name, search_path, test=os.path.exists):
   @return: full path to the object if found, None otherwise
 
   """
+  # validate the filename mask
+  if constants.EXT_PLUGIN_MASK.match(name) is None:
+    logging.critical("Invalid value passed for external script name: '%s'",
+                     name)
+    return None
+
   for dir_name in search_path:
     item_name = os.path.sep.join([dir_name, name])
-    if test(item_name):
+    # check the user test and that we're indeed resolving to the given
+    # basename
+    if test(item_name) and os.path.basename(item_name) == name:
       return item_name
   return None
 
