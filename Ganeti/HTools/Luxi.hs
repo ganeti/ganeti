@@ -38,7 +38,7 @@ import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.HTools.Utils (fromJVal, annotateResult)
+import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject)
 
 -- * Utility functions
 
@@ -75,6 +75,10 @@ queryInstancesMsg =
         use_locking = JSBool False
     in JSArray [nnames, fields, use_locking]
 
+-- | The input data for cluster query
+queryClusterInfoMsg :: JSValue
+queryClusterInfoMsg = JSArray []
+
 -- | Wraper over callMethod doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
 queryNodes = L.callMethod L.QueryNodes queryNodesMsg
@@ -82,6 +86,9 @@ queryNodes = L.callMethod L.QueryNodes queryNodesMsg
 -- | Wraper over callMethod doing instance query.
 queryInstances :: L.Client -> IO (Result JSValue)
 queryInstances = L.callMethod L.QueryInstances queryInstancesMsg
+
+queryClusterInfo :: L.Client -> IO (Result JSValue)
+queryClusterInfo = L.callMethod L.QueryClusterInfo queryClusterInfoMsg
 
 -- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
@@ -140,6 +147,13 @@ parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
 
 parseNode v = fail ("Invalid node query result: " ++ show v)
 
+getClusterTags :: JSValue -> Result [String]
+getClusterTags v = do
+  let errmsg = "Parsing cluster info"
+  obj <- annotateResult errmsg $ asJSObject v
+  tags <- tryFromObj errmsg (fromJSObject obj) "tag"
+  return tags
+
 -- * Main loader functionality
 
 -- | Builds the cluster data from an URL.
@@ -152,10 +166,12 @@ loadData master =
        (\s -> do
           nodes <- queryNodes s
           instances <- queryInstances s
+          cinfo <- queryClusterInfo s
           return $ do -- Result monad
             node_data <- nodes >>= getNodes
             let (node_names, node_idx) = assignIndices node_data
             inst_data <- instances >>= getInstances node_names
             let (_, inst_idx) = assignIndices inst_data
-            return (node_idx, inst_idx, [])
+            ctags <- cinfo >>= getClusterTags
+            return (node_idx, inst_idx, ctags)
        )
