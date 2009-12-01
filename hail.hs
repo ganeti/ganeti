@@ -27,6 +27,7 @@ module Main (main) where
 
 import Data.List
 import Data.Function
+import Data.Maybe (isJust, fromJust)
 import Monad
 import System
 import System.IO
@@ -44,7 +45,7 @@ import Ganeti.HTools.Loader (RqType(..), Request(..))
 
 -- | Options list and functions
 options :: [OptType]
-options = [oShowVer, oShowHelp]
+options = [oPrintNodes, oShowVer, oShowHelp]
 
 processResults :: (Monad m) => Cluster.AllocSolution -> m (String, [Node.Node])
 processResults (fstats, successes, sols) =
@@ -71,13 +72,14 @@ processRequest request =
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
-  (_, args) <- parseOpts cmd_args "hail" options
+  (opts, args) <- parseOpts cmd_args "hail" options
 
   when (null args) $ do
          hPutStrLn stderr "Error: this program needs an input file."
          exitWith $ ExitFailure 1
 
   let input_file = head args
+      shownodes = optShowNodes opts
   input_data <- readFile input_file
 
   request <- case (parseData input_data) of
@@ -86,8 +88,13 @@ main = do
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
-  let Request _ _ _ _ csf = request
-      sols = processRequest request >>= processResults
+  let Request _ nl _ _ csf = request
+
+  when (isJust shownodes) $ do
+         hPutStrLn stderr "Initial cluster status:"
+         hPutStrLn stderr $ Cluster.printNodes nl (fromJust shownodes)
+
+  let sols = processRequest request >>= processResults
   let (ok, info, rn) =
           case sols of
             Ok (ginfo, sn) -> (True, "Request successful: " ++ ginfo,
