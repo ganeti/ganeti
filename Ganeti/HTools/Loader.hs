@@ -48,6 +48,12 @@ import qualified Ganeti.HTools.Node as Node
 
 import Ganeti.HTools.Types
 
+-- * Constants
+
+-- | The exclusion tag prefix
+exTagsPrefix :: String
+exTagsPrefix = "htools:iextags:"
+
 -- * Types
 
 {-| The request type.
@@ -136,6 +142,12 @@ longestDomain (x:xs) =
 stripSuffix :: Int -> String -> String
 stripSuffix sflen name = take (length name - sflen) name
 
+-- | Extracts the exclusion tags from the cluster configuration
+extractExTags :: [String] -> [String]
+extractExTags =
+    map (drop (length exTagsPrefix)) .
+    filter (isPrefixOf exTagsPrefix)
+
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
@@ -152,7 +164,8 @@ mergeData um extags (nl, il, tags) =
                               let new_i = inst { Instance.util = n_util }
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
-      il4 = Container.map (filterExTags extags) il3
+      allextags = extags ++ extractExTags tags
+      il4 = Container.map (filterExTags allextags) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
       nl3 = Container.fromAssocList
             (map (\ (k, v) -> (k, Node.buildPeers v il4)) nl2)
