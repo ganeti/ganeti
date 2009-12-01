@@ -1761,8 +1761,6 @@ class HooksRunner(object):
   the master side.
 
   """
-  RE_MASK = re.compile("^[a-zA-Z0-9_-]+$")
-
   def __init__(self, hooks_base_dir=None):
     """Constructor for hooks runner.
 
@@ -1847,7 +1845,7 @@ class HooksRunner(object):
     for relname in dir_contents:
       fname = os.path.join(dir_name, relname)
       if not (os.path.isfile(fname) and os.access(fname, os.X_OK) and
-          self.RE_MASK.match(relname) is not None):
+              constants.EXT_PLUGIN_MASK.match(relname) is not None):
         rrval = constants.HKR_SKIP
         output = ""
       else:
