@@ -63,7 +63,7 @@ data RqType
     deriving (Show)
 
 -- | A complete request, as received from Ganeti.
-data Request = Request RqType Node.List Instance.List String
+data Request = Request RqType Node.List Instance.List [String] String
     deriving (Show)
 
 -- * Functions

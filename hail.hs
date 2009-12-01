@@ -62,7 +62,7 @@ processResults (fstats, successes, sols) =
 processRequest :: Request
                -> Result Cluster.AllocSolution
 processRequest request =
-  let Request rqtype nl il _ = request
+  let Request rqtype nl il _ _ = request
   in case rqtype of
        Allocate xi reqn -> Cluster.tryAlloc nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
@@ -86,7 +86,7 @@ main = do
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
-  let Request _ _ _ csf = request
+  let Request _ _ _ _ csf = request
       sols = processRequest request >>= processResults
   let (ok, info, rn) =
           case sols of

@@ -110,7 +110,9 @@ parseData body = do
   iobj <- mapM (\(x,y) ->
                     asJSObject y >>= parseInstance ktn x . fromJSObject) idata
   let (kti, il) = assignIndices iobj
-  (map_n, map_i, _, csf) <- mergeData [] [] (nl, il, [])
+  -- cluster tags
+  ctags <- fromObj "cluster_tags" obj
+  (map_n, map_i, ptags, csf) <- mergeData [] [] (nl, il, ctags)
   req_nodes <- fromObj "required_nodes" request
   optype <- fromObj "type" request
   rqtype <-
@@ -128,7 +130,7 @@ parseData body = do
               ex_idex <- mapM (Container.findByName map_n) ex_nodes'
               return $ Relocate ridx req_nodes (map Node.idx ex_idex)
         other -> fail ("Invalid request type '" ++ other ++ "'")
-  return $ Request rqtype map_n map_i csf
+  return $ Request rqtype map_n map_i ptags csf
 
 -- | Formats the response into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
