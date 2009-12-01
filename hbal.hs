@@ -187,7 +187,7 @@ main = do
       verbose = optVerbose opts
       shownodes = optShowNodes opts
 
-  (fixed_nl, il, _, csf) <- loadExternalData opts
+  (fixed_nl, il, ctags, csf) <- loadExternalData opts
 
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
@@ -209,6 +209,9 @@ main = do
                                 else n) fixed_nl
       nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
            nm
+
+  when (not oneline && verbose > 1) $
+       putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
 
   when (Container.size il == 0) $ do
          (if oneline then putStrLn $ formatOneline 0 0 0

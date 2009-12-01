@@ -33,7 +33,7 @@ import Network.Curl.Types ()
 import Network.Curl.Code
 import Data.List
 import Control.Monad
-import Text.JSON (JSObject, JSValue, fromJSObject)
+import Text.JSON (JSObject, JSValue, fromJSObject, decodeStrict)
 import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
@@ -119,9 +119,11 @@ loadData master = do -- IO monad
   let url = formatHost master
   node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
   inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
+  tags_body <- getUrl $ printf "%s/2/tags" url
   return $ do -- Result monad
     node_data <- node_body >>= getNodes
     let (node_names, node_idx) = assignIndices node_data
     inst_data <- inst_body >>= getInstances node_names
     let (_, inst_idx) = assignIndices inst_data
-    return (node_idx, inst_idx, [])
+    tags_data <- tags_body >>= (fromJResult . decodeStrict)
+    return (node_idx, inst_idx, tags_data)
