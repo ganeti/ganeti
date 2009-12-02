@@ -69,7 +69,7 @@ instance Arbitrary Instance.Instance where
       pn <- arbitrary
       sn <- arbitrary
       vcpus <- arbitrary
-      return $ Instance.create name mem dsk vcpus run_st pn sn
+      return $ Instance.create name mem dsk vcpus run_st [] pn sn
 
 -- and a random node
 instance Arbitrary Node.Node where
@@ -199,8 +199,9 @@ prop_Text_Load_Instance name mem dsk vcpus status pnode snode pdx sdx =
                then sdx + 1
                else sdx
         ndx = [(pnode, pdx), (rsnode, rsdx)]
+        tags = ""
         inst = Text.loadInst ndx
-               [name, mem_s, dsk_s, vcpus_s, status, pnode, rsnode]::
+               [name, mem_s, dsk_s, vcpus_s, status, pnode, rsnode, tags]::
                Maybe (String, Instance.Instance)
         _types = ( name::String, mem::Int, dsk::Int
                  , vcpus::Int, status::String
