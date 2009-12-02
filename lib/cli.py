@@ -1302,8 +1302,6 @@ def FormatError(err):
     obuf.write("Parameter Error: %s" % msg)
   elif isinstance(err, errors.ParameterError):
     obuf.write("Failure: unknown/wrong parameter name '%s'" % msg)
-  elif isinstance(err, errors.GenericError):
-    obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, luxi.NoMasterError):
     obuf.write("Cannot communicate with the master daemon.\nIs it running"
                " and listening for connections?")
@@ -1313,6 +1311,8 @@ def FormatError(err):
   elif isinstance(err, luxi.ProtocolError):
     obuf.write("Unhandled protocol error while talking to the master daemon:\n"
                "%s" % msg)
+  elif isinstance(err, errors.GenericError):
+    obuf.write("Unhandled Ganeti error: %s" % msg)
   elif isinstance(err, JobSubmittedException):
     obuf.write("JobID: %s\n" % err.args[0])
     retcode = 0

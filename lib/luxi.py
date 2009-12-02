@@ -63,8 +63,8 @@ DEF_CTMO = 10
 DEF_RWTO = 60
 
 
-class ProtocolError(Exception):
-  """Denotes an error in the server communication"""
+class ProtocolError(errors.GenericError):
+  """Denotes an error in the LUXI protocol"""
 
 
 class ConnectionClosedError(ProtocolError):
@@ -73,14 +73,6 @@ class ConnectionClosedError(ProtocolError):
 
 class TimeoutError(ProtocolError):
   """Operation timeout error"""
-
-
-class EncodingError(ProtocolError):
-  """Encoding failure on the sending side"""
-
-
-class DecodingError(ProtocolError):
-  """Decoding failure on the receiving side"""
 
 
 class RequestError(ProtocolError):
@@ -185,7 +177,8 @@ class Transport:
 
     """
     if self.eom in msg:
-      raise EncodingError("Message terminator found in payload")
+      raise ProtocolError("Message terminator found in payload")
+
     self._CheckSocket()
     try:
       # TODO: sendall is not guaranteed to send everything
@@ -320,7 +313,7 @@ class Client(object):
     if (not isinstance(data, dict) or
         KEY_SUCCESS not in data or
         KEY_RESULT not in data):
-      raise DecodingError("Invalid response from server: %s" % str(data))
+      raise ProtocolError("Invalid response from server: %s" % str(data))
 
     result = data[KEY_RESULT]
 
