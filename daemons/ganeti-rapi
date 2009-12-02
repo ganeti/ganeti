@@ -59,7 +59,7 @@ class JsonErrorRequestExecutor(http.server.HttpServerRequestExecutor):
   """Custom Request Executor class that formats HTTP errors in JSON.
 
   """
-  error_content_type = http.HttpJsonConverter.CONTENT_TYPE
+  error_content_type = http.HTTP_APP_JSON
 
   def _FormatErrorMessage(self, values):
     """Formats the body of an error message.
@@ -174,8 +174,7 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
       # treat it as type "application/octet-stream".
       req_content_type = req.request_headers.get(http.HTTP_CONTENT_TYPE,
                                                  http.HTTP_APP_OCTET_STREAM)
-      if (req_content_type.lower() !=
-          http.HttpJsonConverter.CONTENT_TYPE.lower()):
+      if req_content_type.lower() != http.HTTP_APP_JSON.lower():
         raise http.HttpUnsupportedMediaType()
 
       try:
@@ -196,8 +195,7 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
       logging.exception("Error while handling the %s request", method)
       raise
 
-    req.resp_headers[http.HTTP_CONTENT_TYPE] = \
-      http.HttpJsonConverter.CONTENT_TYPE
+    req.resp_headers[http.HTTP_CONTENT_TYPE] = http.HTTP_APP_JSON
 
     return serializer.DumpJson(result)
 

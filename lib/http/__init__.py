@@ -32,7 +32,6 @@ import errno
 from cStringIO import StringIO
 
 from ganeti import constants
-from ganeti import serializer
 from ganeti import utils
 
 
@@ -67,6 +66,7 @@ HTTP_AUTHENTICATION_INFO = "Authentication-Info"
 HTTP_ALLOW = "Allow"
 
 HTTP_APP_OCTET_STREAM = "application/octet-stream"
+HTTP_APP_JSON = "application/json"
 
 _SSL_UNEXPECTED_EOF = "Unexpected EOF"
 
@@ -321,18 +321,6 @@ class HttpVersionNotSupported(HttpException):
 
   """
   code = 505
-
-
-class HttpJsonConverter: # pylint: disable-msg=W0232
-  CONTENT_TYPE = "application/json"
-
-  @staticmethod
-  def Encode(data):
-    return serializer.DumpJson(data)
-
-  @staticmethod
-  def Decode(data):
-    return serializer.LoadJson(data)
 
 
 def WaitForSocketCondition(sock, event, timeout):
