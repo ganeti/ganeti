@@ -1,6 +1,12 @@
 Ganeti-htools release notes
 ===========================
 
+Version 0.2.1 (Wed,  2 Dec 2009)
+--------------------------------
+
+- Added instance exclusion defined via instance tags
+- Fixed the output of hspace to be again parseable from the shell
+
 Version 0.2.0 (Tue, 10 Nov 2009)
 --------------------------------
 
