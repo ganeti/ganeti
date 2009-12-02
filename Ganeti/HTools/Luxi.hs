@@ -38,7 +38,7 @@ import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.HTools.Utils (fromJVal, annotateResult)
+import Ganeti.HTools.Utils (fromJVal, annotateResult, tryFromObj, asJSObject)
 
 -- * Utility functions
 
@@ -70,10 +70,14 @@ queryInstancesMsg =
     let nnames = JSArray []
         fnames = ["name",
                   "disk_usage", "be/memory", "be/vcpus",
-                  "status", "pnode", "snodes"]
+                  "status", "pnode", "snodes", "tags"]
         fields = JSArray $ map (JSString . toJSString) fnames
         use_locking = JSBool False
     in JSArray [nnames, fields, use_locking]
+
+-- | The input data for cluster query
+queryClusterInfoMsg :: JSValue
+queryClusterInfoMsg = JSArray []
 
 -- | Wraper over callMethod doing node query.
 queryNodes :: L.Client -> IO (Result JSValue)
@@ -82,6 +86,9 @@ queryNodes = L.callMethod L.QueryNodes queryNodesMsg
 -- | Wraper over callMethod doing instance query.
 queryInstances :: L.Client -> IO (Result JSValue)
 queryInstances = L.callMethod L.QueryInstances queryInstancesMsg
+
+queryClusterInfo :: L.Client -> IO (Result JSValue)
+queryClusterInfo = L.callMethod L.QueryClusterInfo queryClusterInfoMsg
 
 -- | Parse a instance list in JSON format.
 getInstances :: NameAssoc
@@ -93,7 +100,8 @@ getInstances ktn arr = toArray arr >>= mapM (parseInstance ktn)
 parseInstance :: [(String, Ndx)]
               -> JSValue
               -> Result (String, Instance.Instance)
-parseInstance ktn (JSArray (name:disk:mem:vcpus:status:pnode:snodes:[])) = do
+parseInstance ktn (JSArray [ name, disk, mem, vcpus
+                           , status, pnode, snodes, tags ]) = do
   xname <- annotateResult "Parsing new instance" (fromJVal name)
   let convert v = annotateResult ("Instance '" ++ xname ++ "'") (fromJVal v)
   xdisk <- convert disk
@@ -104,7 +112,9 @@ parseInstance ktn (JSArray (name:disk:mem:vcpus:status:pnode:snodes:[])) = do
   snode <- (if null xsnodes then return Node.noSecondary
             else lookupNode ktn xname (fromJSString $ head xsnodes))
   xrunning <- convert status
-  let inst = Instance.create xname xmem xdisk xvcpus xrunning xpnode snode
+  xtags <- convert tags
+  let inst = Instance.create xname xmem xdisk xvcpus
+             xrunning xtags xpnode snode
   return (xname, inst)
 
 parseInstance _ v = fail ("Invalid instance query result: " ++ show v)
@@ -115,8 +125,8 @@ getNodes arr = toArray arr >>= mapM parseNode
 
 -- | Construct a node from a JSON object.
 parseNode :: JSValue -> Result (String, Node.Node)
-parseNode (JSArray
-           (name:mtotal:mnode:mfree:dtotal:dfree:ctotal:offline:drained:[]))
+parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
+                   , ctotal, offline, drained ])
     = do
   xname <- annotateResult "Parsing new node" (fromJVal name)
   let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
@@ -137,11 +147,18 @@ parseNode (JSArray
 
 parseNode v = fail ("Invalid node query result: " ++ show v)
 
+getClusterTags :: JSValue -> Result [String]
+getClusterTags v = do
+  let errmsg = "Parsing cluster info"
+  obj <- annotateResult errmsg $ asJSObject v
+  tags <- tryFromObj errmsg (fromJSObject obj) "tag"
+  return tags
+
 -- * Main loader functionality
 
 -- | Builds the cluster data from an URL.
 loadData :: String -- ^ Unix socket to use as source
-         -> IO (Result (Node.AssocList, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
 loadData master =
   E.bracket
        (L.getClient master)
@@ -149,10 +166,12 @@ loadData master =
        (\s -> do
           nodes <- queryNodes s
           instances <- queryInstances s
+          cinfo <- queryClusterInfo s
           return $ do -- Result monad
             node_data <- nodes >>= getNodes
             let (node_names, node_idx) = assignIndices node_data
             inst_data <- instances >>= getInstances node_names
             let (_, inst_idx) = assignIndices inst_data
-            return (node_idx, inst_idx)
+            ctags <- cinfo >>= getClusterTags
+            return (node_idx, inst_idx, ctags)
        )

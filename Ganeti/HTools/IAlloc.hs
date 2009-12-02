@@ -52,8 +52,9 @@ parseBaseInstance n a = do
   disk <- fromObj "disk_space_total" a
   mem <- fromObj "memory" a
   vcpus <- fromObj "vcpus" a
+  tags <- fromObj "tags" a
   let running = "running"
-  return (n, Instance.create n mem disk vcpus running 0 0)
+  return (n, Instance.create n mem disk vcpus running tags 0 0)
 
 -- | Parses an instance as found in the cluster instance listg.
 parseInstance :: NameAssoc        -- ^ The node name-to-index association list
@@ -109,7 +110,9 @@ parseData body = do
   iobj <- mapM (\(x,y) ->
                     asJSObject y >>= parseInstance ktn x . fromJSObject) idata
   let (kti, il) = assignIndices iobj
-  (map_n, map_i, csf) <- mergeData [] (nl, il)
+  -- cluster tags
+  ctags <- fromObj "cluster_tags" obj
+  (map_n, map_i, ptags, csf) <- mergeData [] [] (nl, il, ctags)
   req_nodes <- fromObj "required_nodes" request
   optype <- fromObj "type" request
   rqtype <-
@@ -127,7 +130,7 @@ parseData body = do
               ex_idex <- mapM (Container.findByName map_n) ex_nodes'
               return $ Relocate ridx req_nodes (map Node.idx ex_idex)
         other -> fail ("Invalid request type '" ++ other ++ "'")
-  return $ Request rqtype map_n map_i csf
+  return $ Request rqtype map_n map_i ptags csf
 
 -- | Formats the response into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful

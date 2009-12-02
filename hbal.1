@@ -45,11 +45,11 @@ cluster (nodes with their total and free disk, memory, etc.) and
 instance placement and computes a series of steps designed to bring
 the cluster into a better state.
 
-The algorithm to do so is designed to be stable (i.e. it will give you
-the same results when restarting it from the middle of the solution)
-and reasonably fast. It is not, however, designed to be a perfect
-algorithm - it is possible to make it go into a corner from which it
-can find no improvement, because it only look one "step" ahead.
+The algorithm used is designed to be stable (i.e. it will give you the
+same results when restarting it from the middle of the solution) and
+reasonably fast. It is not, however, designed to be a perfect
+algorithm \(em it is possible to make it go into a corner from which
+it can find no improvement, because it looks only one "step" ahead.
 
 By default, the program will show the solution incrementally as it is
 computed, in a somewhat cryptic format; for getting the actual Ganeti
@@ -87,6 +87,30 @@ We don't do the only remaining possibility of replacing both nodes
 exhaustive search over both candidate primary and secondary nodes, and
 is O(n*n) in the number of nodes. Furthermore, it doesn't seems to
 give better scores but will result in more disk replacements.
+
+.SS PLACEMENT RESTRICTIONS
+
+At each step, we prevent an instance move if it would cause:
+
+.RS 4
+.TP 3
+\(em
+a node to go into N+1 failure state
+.TP
+\(em
+an instance to move onto an offline node (offline nodes are either
+read from the cluster or declared with \fI-O\fR)
+.TP
+\(em
+an exclusion-tag based conflict (exclusion tags are read from the
+cluster and/or defined via the \fI--exclusion-tags\fR option)
+.TP
+\(em
+a max vcpu/pcpu ratio to be exceeded (configured via \fI--max-cpu\fR)
+.TP
+\(em
+min disk free percentage to go below the configured limit (configured
+via \fI--min-disk\fR)
 
 .SS CLUSTER SCORING
 
@@ -176,21 +200,32 @@ wrong calculations. For this reason, the algorithm subtracts the
 memory size of down instances from the free node memory of their
 primary node, in effect simulating the startup of such instances.
 
-.SS OTHER POSSIBLE METRICS
+.SS EXCLUSION TAGS
 
-It would be desirable to add more metrics to the algorithm, especially
-dynamically-computed metrics, such as:
-.RS 4
-.TP 3
-\(em
-CPU usage of instances
+The exclusion tags mecanism is designed to prevent instances which run
+the same workload (e.g. two DNS servers) to land on the same node,
+which would make the respective node a SPOF for the given service.
+
+It works by tagging instances with certain tags and then building
+exclusion maps based on these. Which tags are actually used is
+configured either via the command line (option \fI--exclusion-tags\fR)
+or via adding them to the cluster tags:
+
 .TP
-\(em
-Disk IO usage
+.B --exclusion-tags=a,b
+This will make all instance tags of the form \fIa:*\fR, \fIb:*\fR be
+considered for the exclusion map
+
 .TP
-\(em
-Network IO
-.RE
+cluster tags \fBhtools:iextags:a\fR, \fBhtools:iextags:b\fR
+This will make instance tags \fIa:*\fR, \fIb:*\fR be considered for
+the exclusion map. More precisely, the suffix of cluster tags starting
+with \fBhtools:iextags:\fR will become the prefix of the exclusion
+tags.
+
+.P
+Both the above forms mean that two instances both having (e.g.) the
+tag \fIa:foo\fR or \fIb:bar\fR won't end on the same node.
 
 .SH OPTIONS
 The options that can be passed to the program are as follows:
@@ -203,7 +238,7 @@ Note that the moves list will be split into independent steps, called
 "jobsets", but only for visual inspection, not for actually
 parallelisation. It is not possible to parallelise these directly when
 executed via "gnt-instance" commands, since a compound command
-(e.g. failover and replace-disks) must be executed serially. Parallel
+(e.g. failover and replace\-disks) must be executed serially. Parallel
 execution is only possible when using the Luxi backend and the
 \fI-L\fR option.
 
@@ -218,13 +253,13 @@ Prints the before and after node status, in a format designed to allow
 the user to understand the node's most important parameters.
 
 It is possible to customise the listed information by passing a
-comma-separated list of field names to this option (the field list is
+comma\(hyseparated list of field names to this option (the field list is
 currently undocumented). By default, the node list will contain these
 informations:
 .RS
 .TP
 .B F
-a character denoting the status of the node, with '-' meaning an
+a character denoting the status of the node, with '\-' meaning an
 offline node, '*' meaning N+1 failure and blank meaning a good node
 .TP
 .B Name
@@ -298,7 +333,7 @@ node status, but it can help in understanding instance moves.
 
 .TP
 .B -o, --oneline
-Only shows a one-line output from the program, designed for the case
+Only shows a one\(hyline output from the program, designed for the case
 when one wants to look at multiple clusters at once and check their
 status.
 
@@ -337,7 +372,7 @@ these nodes will not be included in the score calculation (except for
 the percentage of instances on offline nodes)
 .RE
 Note that hbal will also mark as offline any nodes which are reported
-by RAPI as such, or that have "?" in file-based input in any numeric
+by RAPI as such, or that have "?" in file\(hybased input in any numeric
 fields.
 .RE
 
@@ -362,8 +397,8 @@ empirically).
 
 .TP
 .BI "--no-disk-moves"
-This parameter prevents hbal from using disk move (i.e. "gnt-instance
-replace-disks") operations. This will result in a much quicker
+This parameter prevents hbal from using disk move (i.e. "gnt\-instance
+replace\-disks") operations. This will result in a much quicker
 balancing, but of course the improvements are limited. It is up to the
 user to decide when to use one or another.
 
@@ -404,9 +439,9 @@ how to customize the default value via the environment).
 Collect data not from files but directly from the
 .I cluster
 given as an argument via RAPI. If the argument doesn't contain a colon
-(:), then it is converted into a fully-built URL via prepending
+(:), then it is converted into a fully\(hybuilt URL via prepending
 https:// and appending the default RAPI port, otherwise it's
-considered a fully-specified URL and is used as-is.
+considered a fully\(hyspecified URL and is used as\(hyis.
 
 .TP
 .BI "-L[" path "]"
@@ -414,7 +449,7 @@ Collect data not from files but directly from the master daemon, which
 is to be contacted via the luxi (an internal Ganeti protocol). An
 optional \fIpath\fR argument is interpreted as the path to the unix
 socket on which the master daemon listens; otherwise, the default path
-used by ganeti when installed with "--localstatedir=/var" is used.
+used by ganeti when installed with \fI--localstatedir=/var\fR is used.
 
 .TP
 .B "-X"
@@ -434,12 +469,12 @@ automate the execution of the balancing.
 
 .TP
 .BI "--max-cpu " cpu-ratio
-The maximum virtual-to-physical cpu ratio, as a floating point number
-between zero and one. For example, specifying \fIcpu-ratio\fR as
-\fB2.5\fR means that, for a 4-cpu machine, a maximum of 10 virtual
-cpus should be allowed to be in use for primary instances. A value of
-one doesn't make sense though, as that means no disk space can be used
-on it.
+The maximum virtual\(hyto\(hyphysical cpu ratio, as a floating point
+number between zero and one. For example, specifying \fIcpu-ratio\fR
+as \fB2.5\fR means that, for a 4\(hycpu machine, a maximum of 10
+virtual cpus should be allowed to be in use for primary instances. A
+value of one doesn't make sense though, as that means no disk space
+can be used on it.
 
 .TP
 .BI "--min-disk " disk-ratio
@@ -483,7 +518,7 @@ with cryptic errors messages in this case.
 The algorithm is not perfect.
 
 The output format is not easily scriptable, and the program should
-feed moves directly into Ganeti (either via RAPI or via a gnt-debug
+feed moves directly into Ganeti (either via RAPI or via a gnt\-debug
 input file).
 
 .SH EXAMPLE
@@ -586,46 +621,46 @@ Cluster score improved from 0.52329131 to 0.00252594
 
 Commands to run to reach the above solution:
   echo step 1
-  echo gnt-instance migrate instance14
-  echo gnt-instance replace-disks -n node16 instance14
-  echo gnt-instance migrate instance14
+  echo gnt\-instance migrate instance14
+  echo gnt\-instance replace\-disks \-n node16 instance14
+  echo gnt\-instance migrate instance14
   echo step 2
-  echo gnt-instance migrate instance54
-  echo gnt-instance replace-disks -n node16 instance54
-  echo gnt-instance migrate instance54
+  echo gnt\-instance migrate instance54
+  echo gnt\-instance replace\-disks \-n node16 instance54
+  echo gnt\-instance migrate instance54
   echo step 3
-  echo gnt-instance migrate instance4
-  echo gnt-instance replace-disks -n node16 instance4
+  echo gnt\-instance migrate instance4
+  echo gnt\-instance replace\-disks \-n node16 instance4
   echo step 4
-  echo gnt-instance replace-disks -n node2 instance48
-  echo gnt-instance migrate instance48
+  echo gnt\-instance replace\-disks \-n node2 instance48
+  echo gnt\-instance migrate instance48
   echo step 5
-  echo gnt-instance replace-disks -n node16 instance93
-  echo gnt-instance migrate instance93
+  echo gnt\-instance replace\-disks \-n node16 instance93
+  echo gnt\-instance migrate instance93
   echo step 6
-  echo gnt-instance replace-disks -n node2 instance89
-  echo gnt-instance migrate instance89
+  echo gnt\-instance replace\-disks \-n node2 instance89
+  echo gnt\-instance migrate instance89
   echo step 7
-  echo gnt-instance replace-disks -n node16 instance5
-  echo gnt-instance migrate instance5
+  echo gnt\-instance replace\-disks \-n node16 instance5
+  echo gnt\-instance migrate instance5
   echo step 8
-  echo gnt-instance migrate instance94
-  echo gnt-instance replace-disks -n node16 instance94
+  echo gnt\-instance migrate instance94
+  echo gnt\-instance replace\-disks \-n node16 instance94
   echo step 9
-  echo gnt-instance migrate instance44
-  echo gnt-instance replace-disks -n node15 instance44
+  echo gnt\-instance migrate instance44
+  echo gnt\-instance replace\-disks \-n node15 instance44
   echo step 10
-  echo gnt-instance replace-disks -n node16 instance62
+  echo gnt\-instance replace\-disks \-n node16 instance62
   echo step 11
-  echo gnt-instance replace-disks -n node16 instance13
+  echo gnt\-instance replace\-disks \-n node16 instance13
   echo step 12
-  echo gnt-instance replace-disks -n node7 instance19
+  echo gnt\-instance replace\-disks \-n node7 instance19
   echo step 13
-  echo gnt-instance replace-disks -n node1 instance43
+  echo gnt\-instance replace\-disks \-n node1 instance43
   echo step 14
-  echo gnt-instance replace-disks -n node4 instance1
+  echo gnt\-instance replace\-disks \-n node4 instance1
   echo step 15
-  echo gnt-instance replace-disks -n node17 instance58
+  echo gnt\-instance replace\-disks \-n node17 instance58
 
 Final cluster status:
 N1 Name   t_mem f_mem r_mem t_dsk f_dsk pri sec  p_fmem  p_fdsk
@@ -659,7 +694,7 @@ the command list to reach the final solution. In the initial listing,
 we see which nodes are not N+1 compliant.
 
 The algorithm is stable as long as each step above is fully completed,
-e.g. in step 8, both the migrate and the replace-disks are
+e.g. in step 8, both the migrate and the replace\-disks are
 done. Otherwise, if only the migrate is done, the input data is
 changed in a way that the program will output a different solution
 list (but hopefully will end in the same state).

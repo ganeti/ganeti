@@ -16,7 +16,7 @@ hscan \- Scan clusters via RAPI and save node/instance data
 hscan is a tool for scanning clusters via RAPI and saving their data
 in the input format used by
 .BR hbal "(1) and " hspace "(1)."
-It will also show a one-line score for each cluster scanned or, if
+It will also show a one\(hyline score for each cluster scanned or, if
 desired, the cluster state as show by the \fB-p\fR option to the other
 tools.
 
@@ -27,7 +27,7 @@ via the \fB-i\fR and \fB-n\fR options. In case the cluster name
 contains slashes (as it can happen when the cluster is a
 fully-specified URL), these will be replaced with underscores.
 
-The one-line output for each cluster will show the following:
+The one\(hyline output for each cluster will show the following:
 .RS
 .TP
 .B Name
@@ -43,7 +43,7 @@ The number of instances in the cluster
 The number of nodes failing N+1
 .TP
 .B BInst
-The number of instances living on N+1-failed nodes
+The number of instances living on N+1\(hyfailed nodes
 .TP
 .B t_mem
 Total memory in the cluster
@@ -75,7 +75,7 @@ The options that can be passed to the program are as follows:
 
 .TP
 .B -p, --print-nodes
-Prints the node status for each cluster after the cluster's one-line
+Prints the node status for each cluster after the cluster's one\(hyline
 status display, in a format designed to allow the user to understand
 the node's most important parameters. For details, see the man page
 for \fBhbal\fR(1).
@@ -100,7 +100,7 @@ data).
 The program does not check its input data for consistency, and aborts
 with cryptic errors messages in this case.
 
-The RAPI collection doesn't deal with non-\fBdrbd\fR instances, and
+The RAPI collection doesn't deal with non\(hy\fBdrbd\fR instances, and
 chokes on input data which has such instances.
 
 .SH EXAMPLE
@@ -111,8 +111,8 @@ chokes on input data which has such instances.
 Name     Nodes  Inst BNode BInst  t_mem  f_mem t_disk f_disk      Score
 cluster1     2     2     0     0   1008    652    255    253 0.24404762
 .RB "$ " "ls -l cluster1.*"
--rw-r--r-- 1 root root 163 2009-03-23 07:26 cluster1.instances
--rw-r--r-- 1 root root  90 2009-03-23 07:26 cluster1.nodes
+\-rw\-r\-\-r\-\- 1 root root 163 2009\-03\-23 07:26 cluster1.instances
+\-rw\-r\-\-r\-\- 1 root root  90 2009\-03\-23 07:26 cluster1.nodes
 .fi
 .in
 

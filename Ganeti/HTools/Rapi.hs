@@ -33,7 +33,7 @@ import Network.Curl.Types ()
 import Network.Curl.Code
 import Data.List
 import Control.Monad
-import Text.JSON (JSObject, JSValue, fromJSObject)
+import Text.JSON (JSObject, JSValue, fromJSObject, decodeStrict)
 import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
@@ -88,7 +88,8 @@ parseInstance ktn a = do
   snode <- (if null snodes then return Node.noSecondary
             else readEitherString (head snodes) >>= lookupNode ktn name)
   running <- extract "status" a
-  let inst = Instance.create name mem disk vcpus running pnode snode
+  tags <- extract "tags" a
+  let inst = Instance.create name mem disk vcpus running tags pnode snode
   return (name, inst)
 
 -- | Construct a node from a JSON object.
@@ -113,14 +114,16 @@ parseNode a = do
 
 -- | Builds the cluster data from an URL.
 loadData :: String -- ^ Cluster or URL to use as source
-         -> IO (Result (Node.AssocList, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
 loadData master = do -- IO monad
   let url = formatHost master
   node_body <- getUrl $ printf "%s/2/nodes?bulk=1" url
   inst_body <- getUrl $ printf "%s/2/instances?bulk=1" url
+  tags_body <- getUrl $ printf "%s/2/tags" url
   return $ do -- Result monad
     node_data <- node_body >>= getNodes
     let (node_names, node_idx) = assignIndices node_data
     inst_data <- inst_body >>= getInstances node_names
     let (_, inst_idx) = assignIndices inst_data
-    return (node_idx, inst_idx)
+    tags_data <- tags_body >>= (fromJResult . decodeStrict)
+    return (node_idx, inst_idx, tags_data)

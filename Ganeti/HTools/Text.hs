@@ -42,7 +42,7 @@ import qualified Ganeti.HTools.Instance as Instance
 
 -- | Load a node from a field list.
 loadNode :: (Monad m) => [String] -> m (String, Node.Node)
-loadNode (name:tm:nm:fm:td:fd:tc:fo:[]) = do
+loadNode [name, tm, nm, fm, td, fd, tc, fo] = do
   new_node <-
       if any (== "?") [tm,nm,fm,td,fd,tc] || fo == "Y" then
           return $ Node.create name 0 0 0 0 0 0 True
@@ -60,7 +60,7 @@ loadNode s = fail $ "Invalid/incomplete node data: '" ++ show s ++ "'"
 -- | Load an instance from a field list.
 loadInst :: (Monad m) =>
             [(String, Ndx)] -> [String] -> m (String, Instance.Instance)
-loadInst ktn (name:mem:dsk:vcpus:status:pnode:snode:[]) = do
+loadInst ktn [name, mem, dsk, vcpus, status, pnode, snode, tags] = do
   pidx <- lookupNode ktn name pnode
   sidx <- (if null snode then return Node.noSecondary
            else lookupNode ktn name snode)
@@ -69,7 +69,8 @@ loadInst ktn (name:mem:dsk:vcpus:status:pnode:snode:[]) = do
   vvcpus <- tryRead name vcpus
   when (sidx == pidx) $ fail $ "Instance " ++ name ++
            " has same primary and secondary node - " ++ pnode
-  let newinst = Instance.create name vmem vdsk vvcpus status pidx sidx
+  let vtags = sepSplit ',' tags
+      newinst = Instance.create name vmem vdsk vvcpus status vtags pidx sidx
   return (name, newinst)
 loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
@@ -90,7 +91,7 @@ loadTabular text_data convert_fn = do
 -- | Builds the cluster data from node\/instance files.
 loadData :: String -- ^ Node data in string format
          -> String -- ^ Instance data in string format
-         -> IO (Result (Node.AssocList, Instance.AssocList))
+         -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
 loadData nfile ifile = do -- IO monad
   ndata <- readFile nfile
   idata <- readFile ifile
@@ -99,4 +100,4 @@ loadData nfile ifile = do -- IO monad
     (ktn, nl) <- loadTabular ndata loadNode
     {- instance file: name mem disk status pnode snode -}
     (_, il) <- loadTabular idata (loadInst ktn)
-    return (nl, il)
+    return (nl, il, [])

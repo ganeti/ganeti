@@ -185,6 +185,7 @@ detailedCVNames = [ "free_mem_cv"
                   , "mem_load_cv"
                   , "disk_load_cv"
                   , "net_load_cv"
+                  , "pri_tags_score"
                   ]
 
 -- | Compute the mem and disk covariance.
@@ -225,9 +226,13 @@ compDetailedCV nl =
                          DynUtil c2 m2 d2 n2 = Node.utilPool n
                      in (c1/c2, m1/m2, d1/d2, n1/n2)
                 ) nodes
+        -- metric: conflicting instance count
+        pri_tags_inst = sum $ map Node.conflictingPrimaries nodes
+        pri_tags_score = fromIntegral pri_tags_inst::Double
     in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv
        , varianceCoeff c_load, varianceCoeff m_load
-       , varianceCoeff d_load, varianceCoeff n_load]
+       , varianceCoeff d_load, varianceCoeff n_load
+       , pri_tags_score ]
 
 -- | Compute the /total/ variance.
 compCV :: Node.List -> Double

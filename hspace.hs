@@ -223,7 +223,7 @@ main = do
       ispec = optISpec opts
       shownodes = optShowNodes opts
 
-  (fixed_nl, il, csf) <- loadExternalData opts
+  (fixed_nl, il, _, csf) <- loadExternalData opts
 
   printKeys $ map (\(a, fn) -> ("SPEC_" ++ a, fn ispec)) specData
   printKeys [ ("SPEC_RQN", printf "%d" (optINodes opts)) ]
@@ -284,7 +284,7 @@ main = do
 
   -- utility functions
   let iofspec spx = Instance.create "new" (rspecMem spx) (rspecDsk spx)
-                    (rspecCpu spx) "ADMIN_down" (-1) (-1)
+                    (rspecCpu spx) "ADMIN_down" [] (-1) (-1)
       exitifbad val = (case val of
                          Bad s -> do
                            hPrintf stderr "Failure: %s\n" s

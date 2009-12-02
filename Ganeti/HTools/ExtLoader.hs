@@ -83,7 +83,7 @@ parseUtilisation line =
 
 -- | External tool data loader from a variety of sources.
 loadExternalData :: Options
-                 -> IO (Node.List, Instance.List, String)
+                 -> IO (Node.List, Instance.List, [String], String)
 loadExternalData opts = do
   (env_node, env_inst) <- parseEnv ()
   let nodef = if optNodeSet opts then optNodeFile opts
@@ -98,6 +98,10 @@ loadExternalData opts = do
       setSim = isJust simdata
       setFiles = optNodeSet opts || optInstSet opts
       allSet = filter id [setRapi, setLuxi, setFiles]
+      exTags = case optExTags opts of
+                 Nothing -> []
+                 Just etl -> map (++ ":") etl
+
   when (length allSet > 1) $
        do
          hPutStrLn stderr ("Error: Only one of the rapi, luxi, and data" ++
@@ -126,8 +130,8 @@ loadExternalData opts = do
           | setSim -> Simu.loadData $ fromJust simdata
           | otherwise -> wrapIO $ Text.loadData nodef instf
 
-  let ldresult = input_data >>= Loader.mergeData util_data'
-  (loaded_nl, il, csf) <-
+  let ldresult = input_data >>= Loader.mergeData util_data' exTags
+  (loaded_nl, il, tags, csf) <-
       (case ldresult of
          Ok x -> return x
          Bad s -> do
@@ -140,4 +144,4 @@ loadExternalData opts = do
          hPutStrLn stderr "Warning: cluster has inconsistent data:"
          hPutStrLn stderr . unlines . map (printf "  - %s") $ fix_msgs
 
-  return (fixed_nl, il, csf)
+  return (fixed_nl, il, tags, csf)

@@ -59,6 +59,7 @@ module Ganeti.HTools.CLI
     , oDiskMoves
     , oDynuFile
     , oTieredSpec
+    , oExTags
     , oShowVer
     , oShowHelp
     ) where
@@ -106,6 +107,7 @@ data Options = Options
     , optMdsk        :: Double         -- ^ Max disk usage ratio for nodes
     , optDiskMoves   :: Bool           -- ^ Allow disk moves
     , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
+    , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
     , optVerbose     :: Int            -- ^ Verbosity level
     , optShowVer     :: Bool           -- ^ Just show the program version
     , optShowHelp    :: Bool           -- ^ Just show the help
@@ -138,6 +140,7 @@ defaultOptions  = Options
  , optMdsk        = -1
  , optDiskMoves   = True
  , optDynuFile    = Nothing
+ , optExTags      = Nothing
  , optVerbose     = 1
  , optShowVer     = False
  , optShowHelp    = False
@@ -292,6 +295,11 @@ oDynuFile :: OptType
 oDynuFile = Option "U" ["dynu-file"]
             (ReqArg (\ f opts -> Ok opts { optDynuFile = Just f }) "FILE")
             "Import dynamic utilisation data from the given FILE"
+
+oExTags :: OptType
+oExTags = Option "" ["exclusion-tags"]
+            (ReqArg (\ f opts -> Ok opts { optExTags = Just $ sepSplit ',' f })
+             "TAG,...") "Enable instance exclusion based on given tag prefix"
 
 oTieredSpec :: OptType
 oTieredSpec = Option "" ["tiered-alloc"]

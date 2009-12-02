@@ -63,6 +63,7 @@ withTimeout secs descr action = do
 data LuxiOp = QueryInstances
             | QueryNodes
             | QueryJobs
+            | QueryClusterInfo
             | SubmitManyJobs
 
 -- | The serialisation of LuxiOps into strings in messages.
@@ -70,6 +71,7 @@ strOfOp :: LuxiOp -> String
 strOfOp QueryNodes = "QueryNodes"
 strOfOp QueryInstances = "QueryInstances"
 strOfOp QueryJobs = "QueryJobs"
+strOfOp QueryClusterInfo = "QueryClusterInfo"
 strOfOp SubmitManyJobs = "SubmitManyJobs"
 
 -- | The end-of-message separator.

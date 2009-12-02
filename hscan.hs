@@ -81,10 +81,10 @@ serializeInstance csf nl inst =
                     then ""
                     else Container.nameOf nl sidx ++ csf)
     in
-      printf "%s|%d|%d|%d|%s|%s|%s"
+      printf "%s|%d|%d|%d|%s|%s|%s|%s"
              iname (Instance.mem inst) (Instance.dsk inst)
              (Instance.vcpus inst) (Instance.runSt inst)
-             pnode snode
+             pnode snode (intercalate "," (Instance.tags inst))
 
 -- | Generate instance file data from instance objects
 serializeInstances :: String -> Node.List -> Instance.List -> String
@@ -137,12 +137,12 @@ main = do
               printf "%-*s " nlen name
               hFlush stdout
               input_data <- Rapi.loadData name
-              let ldresult = input_data >>= Loader.mergeData []
+              let ldresult = input_data >>= Loader.mergeData [] []
               (case ldresult of
                  Bad err -> printf "\nError: failed to load data. \
                                    \Details:\n%s\n" err
                  Ok x -> do
-                   let (nl, il, csf) = x
+                   let (nl, il, _, csf) = x
                        (_, fix_nl) = Loader.checkData nl il
                    putStrLn $ printCluster fix_nl il
                    when (isJust shownodes) $

@@ -56,6 +56,7 @@ data Instance = Instance { name :: String    -- ^ The instance name
                          , sNode :: T.Ndx    -- ^ Original secondary node
                          , idx :: T.Idx      -- ^ Internal index
                          , util :: T.DynUtil -- ^ Dynamic resource usage
+                         , tags :: [String]  -- ^ List of instance tags
                          } deriving (Show)
 
 instance T.Element Instance where
@@ -86,8 +87,9 @@ type List = Container.Container Instance
 --
 -- Some parameters are not initialized by function, and must be set
 -- later (via 'setIdx' for example).
-create :: String -> Int -> Int -> Int -> String -> T.Ndx -> T.Ndx -> Instance
-create name_init mem_init dsk_init vcpus_init run_init pn sn =
+create :: String -> Int -> Int -> Int -> String
+       -> [String] -> T.Ndx -> T.Ndx -> Instance
+create name_init mem_init dsk_init vcpus_init run_init tags_init pn sn =
     Instance { name = name_init
              , mem = mem_init
              , dsk = dsk_init
@@ -98,6 +100,7 @@ create name_init mem_init dsk_init vcpus_init run_init pn sn =
              , sNode = sn
              , idx = -1
              , util = T.baseUtil
+             , tags = tags_init
              }
 
 -- | Changes the index.

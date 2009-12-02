@@ -147,6 +147,7 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailDisk -- ^ Failed due to not enough disk
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
+              | FailTags -- ^ Failed due to tag exclusion
                 deriving (Eq, Enum, Bounded, Show)
 
 -- | List with failure statistics
