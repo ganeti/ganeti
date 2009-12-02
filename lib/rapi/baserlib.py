@@ -233,13 +233,6 @@ class R_Generic(object):
     self.items = items
     self.queryargs = queryargs
     self.req = req
-    self.sn = None
-
-  def getSerialNumber(self):
-    """Get Serial Number.
-
-    """
-    return self.sn
 
   def _checkIntVariable(self, name, default=0):
     """Return the parsed value of an int argument.

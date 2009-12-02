@@ -164,9 +164,6 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
 
     try:
       result = ctx.handler_fn()
-      sn = ctx.handler.getSerialNumber()
-      if sn:
-        req.response_headers[http.HTTP_ETAG] = str(sn)
     except luxi.TimeoutError:
       raise http.HttpGatewayTimeout()
     except luxi.ProtocolError, err:
