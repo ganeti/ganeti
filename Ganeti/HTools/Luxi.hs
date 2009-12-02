@@ -151,7 +151,7 @@ getClusterTags :: JSValue -> Result [String]
 getClusterTags v = do
   let errmsg = "Parsing cluster info"
   obj <- annotateResult errmsg $ asJSObject v
-  tags <- tryFromObj errmsg (fromJSObject obj) "tag"
+  tags <- tryFromObj errmsg (fromJSObject obj) "tags"
   return tags
 
 -- * Main loader functionality
