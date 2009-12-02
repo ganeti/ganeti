@@ -88,6 +88,30 @@ exhaustive search over both candidate primary and secondary nodes, and
 is O(n*n) in the number of nodes. Furthermore, it doesn't seems to
 give better scores but will result in more disk replacements.
 
+.SS PLACEMENT RESTRICTIONS
+
+At each step, we prevent an instance move if it would cause:
+
+.RS 4
+.TP 3
+\(em
+a node to go into N+1 failure state
+.TP
+\(em
+an instance to move onto an offline node (offline nodes are either
+read from the cluster or declared with \fI-O\fR)
+.TP
+\(em
+an exclusion-tag based conflict (exclusion tags are read from the
+cluster and/or defined via the \fI--exclusion-tags\fR option)
+.TP
+\(em
+a max vcpu/pcpu ratio to be exceeded (configured via \fI--max-cpu\fR)
+.TP
+\(em
+min disk free percentage to go below the configured limit (configured
+via \fI--min-disk\fR)
+
 .SS CLUSTER SCORING
 
 As said before, the algorithm tries to minimise the cluster score at
@@ -176,21 +200,32 @@ wrong calculations. For this reason, the algorithm subtracts the
 memory size of down instances from the free node memory of their
 primary node, in effect simulating the startup of such instances.
 
-.SS OTHER POSSIBLE METRICS
+.SS EXCLUSION TAGS
 
-It would be desirable to add more metrics to the algorithm, especially
-dynamically\(hycomputed metrics, such as:
-.RS 4
-.TP 3
-\(em
-CPU usage of instances
+The exclusion tags mecanism is designed to prevent instances which run
+the same workload (e.g. two DNS servers) to land on the same node,
+which would make the respective node a SPOF for the given service.
+
+It works by tagging instances with certain tags and then building
+exclusion maps based on these. Which tags are actually used is
+configured either via the command line (option \fI--exclusion-tags\fR)
+or via adding them to the cluster tags:
+
 .TP
-\(em
-Disk IO usage
+.B --exclusion-tags=a,b
+This will make all instance tags of the form \fIa:*\fR, \fIb:*\fR be
+considered for the exclusion map
+
 .TP
-\(em
-Network IO
-.RE
+cluster tags \fBhtools:iextags:a\fR, \fBhtools:iextags:b\fR
+This will make instance tags \fIa:*\fR, \fIb:*\fR be considered for
+the exclusion map. More precisely, the suffix of cluster tags starting
+with \fBhtools:iextags:\fR will become the prefix of the exclusion
+tags.
+
+.P
+Both the above forms mean that two instances both having (e.g.) the
+tag \fIa:foo\fR or \fIb:bar\fR won't end on the same node.
 
 .SH OPTIONS
 The options that can be passed to the program are as follows:

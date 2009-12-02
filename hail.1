@@ -38,6 +38,21 @@ with regard to cluster size.
 For all choices, the cluster scoring is identical to the hbal
 algorithm.
 
+.SH CONFIGURATION
+
+For the tag-exclusion configuration (see the manpage of hbal for more
+details), the list of which instance tags to consider as exclusion
+tags will be read from the cluster tags, configured as follows:
+
+- get all cluster tags starting with \fBhtools:iextags:\fR
+
+- use their suffix as the prefix for exclusion tags
+
+For example, given a cluster tag like \fBhtools:iextags:service\fR,
+all instance tags of the form \fBservice:X\fR will be confidered as
+exclusion tags, meaning that (e.g.) two instances which both have a
+tag \fBservice:foo\fR will not be placed on the same primary node.
+
 .SH EXIT STATUS
 
 The exist status of the command will be zero, unless for some reason
