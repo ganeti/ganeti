@@ -256,11 +256,11 @@ class R_2_nodes_name_role(baserlib.R_Generic):
     @return: a job id
 
     """
-    if not isinstance(self.req.request_body, basestring):
+    if not isinstance(self.req.private.body_data, basestring):
       raise http.HttpBadRequest("Invalid body contents, not a string")
 
     node_name = self.items[0]
-    role = self.req.request_body
+    role = self.req.private.body_data
 
     if role == _NR_REGULAR:
       candidate = False
@@ -431,12 +431,12 @@ class R_2_instances(baserlib.R_Generic):
     @return: a job id
 
     """
-    if not isinstance(self.req.request_body, dict):
+    if not isinstance(self.req.private.body_data, dict):
       raise http.HttpBadRequest("Invalid body contents, not a dictionary")
 
-    beparams = baserlib.MakeParamsDict(self.req.request_body,
+    beparams = baserlib.MakeParamsDict(self.req.private.body_data,
                                        constants.BES_PARAMETERS)
-    hvparams = baserlib.MakeParamsDict(self.req.request_body,
+    hvparams = baserlib.MakeParamsDict(self.req.private.body_data,
                                        constants.HVS_PARAMETERS)
     fn = self.getBodyParameter
 

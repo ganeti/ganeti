@@ -680,7 +680,6 @@ class HttpMessage(object):
     self.start_line = None
     self.headers = None
     self.body = None
-    self.decoded_body = None
 
 
 class HttpClientToServerStartLine(object):
@@ -851,16 +850,8 @@ class HttpMessageReader(object):
     assert self.parser_status == self.PS_COMPLETE
     assert not buf, "Parser didn't read full response"
 
+    # Body is complete
     msg.body = self.body_buffer.getvalue()
-
-    # TODO: Content-type, error handling
-    if msg.body:
-      msg.decoded_body = HttpJsonConverter().Decode(msg.body)
-    else:
-      msg.decoded_body = None
-
-    if msg.decoded_body:
-      logging.debug("Message body: %s", msg.decoded_body)
 
   def _ContinueParsing(self, buf, eof):
     """Main function for HTTP message state machine.

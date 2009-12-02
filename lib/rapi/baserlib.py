@@ -272,13 +272,13 @@ class R_Generic(object):
     @param name: the required parameter
 
     """
-    if name in self.req.request_body:
-      return self.req.request_body[name]
-    elif args:
-      return args[0]
-    else:
-      raise http.HttpBadRequest("Required parameter '%s' is missing" %
-                                name)
+    try:
+      return self.req.private.body_data[name]
+    except KeyError:
+      if args:
+        return args[0]
+
+    raise http.HttpBadRequest("Required parameter '%s' is missing" % name)
 
   def useLocking(self):
     """Check if the request specifies locking.

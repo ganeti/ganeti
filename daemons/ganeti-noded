@@ -45,6 +45,7 @@ from ganeti import daemon
 from ganeti import http
 from ganeti import utils
 from ganeti import storage
+from ganeti import serializer
 
 import ganeti.http.server # pylint: disable-msg=W0611
 
@@ -99,14 +100,13 @@ class NodeHttpServer(http.server.HttpServer):
       raise http.HttpNotFound()
 
     try:
-      rvalue = method(req.request_body)
-      return True, rvalue
+      result = (True, method(serializer.LoadJson(req.request_body)))
 
     except backend.RPCFail, err:
       # our custom failure exception; str(err) works fine if the
       # exception was constructed with a single argument, and in
       # this case, err.message == err.args[0] == str(err)
-      return (False, str(err))
+      result = (False, str(err))
     except errors.QuitGanetiException, err:
       # Tell parent to quit
       logging.info("Shutting down the node daemon, arguments: %s",
@@ -114,10 +114,12 @@ class NodeHttpServer(http.server.HttpServer):
       os.kill(self.noded_pid, signal.SIGTERM)
       # And return the error's arguments, which must be already in
       # correct tuple format
-      return err.args
+      result = err.args
     except Exception, err:
       logging.exception("Error in RPC call")
-      return False, "Error while executing backend function: %s" % str(err)
+      result = (False, "Error while executing backend function: %s" % str(err))
+
+    return serializer.DumpJson(result, indent=False)
 
   # the new block devices  --------------------------
 

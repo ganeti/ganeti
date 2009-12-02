@@ -1,6 +1,13 @@
 News
 ====
 
+Version 2.2.0
+-------------
+
+- RAPI now requires a Content-Type header for requests with a body (e.g.
+  ``PUT`` or ``POST``) which must be set to ``application/json`` (see
+  RFC2616 (HTTP/1.1), section 7.2.1)
+
 
 Version 2.1.0
 -------------

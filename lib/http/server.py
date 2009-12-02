@@ -78,7 +78,7 @@ class _HttpServerRequest(object):
     self.request_method = request_msg.start_line.method
     self.request_path = request_msg.start_line.path
     self.request_headers = request_msg.headers
-    self.request_body = request_msg.decoded_body
+    self.request_body = request_msg.body
 
     # Response attributes
     self.resp_headers = {}
@@ -333,12 +333,12 @@ class HttpServerRequestExecutor(object):
         logging.exception("Unknown exception")
         raise http.HttpInternalServerError(message="Unknown error")
 
-      # TODO: Content-type
-      encoder = http.HttpJsonConverter()
+      if not isinstance(result, basestring):
+        raise http.HttpError("Handler function didn't return string type")
+
       self.response_msg.start_line.code = http.HTTP_OK
-      self.response_msg.body = encoder.Encode(result)
       self.response_msg.headers = handler_context.resp_headers
-      self.response_msg.headers[http.HTTP_CONTENT_TYPE] = encoder.CONTENT_TYPE
+      self.response_msg.body = result
     finally:
       # No reason to keep this any longer, even for exceptions
       handler_context.private = None
