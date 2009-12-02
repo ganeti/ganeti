@@ -94,6 +94,9 @@ class ClusterMasterQuery(ConfdQuery):
   It accepts no arguments, and returns the current cluster master.
 
   """
+  def _GetMasterNode(self):
+    return self.reader.GetMasterNode()
+
   def Exec(self, query):
     """ClusterMasterQuery main execution
 
@@ -109,9 +112,11 @@ class ClusterMasterQuery(ConfdQuery):
         answer = []
         for field in req_fields:
           if field == constants.CONFD_REQFIELD_NAME:
-            answer.append(self.reader.GetMasterNode())
+            answer.append(self._GetMasterNode())
           elif field == constants.CONFD_REQFIELD_IP:
             answer.append(self.reader.GetMasterIP())
+          elif field == constants.CONFD_REQFIELD_MNODE_PIP:
+            answer.append(self.reader.GetNodePrimaryIp(self._GetMasterNode()))
       else:
         logging.debug("missing FIELDS in query dict")
         return QUERY_ARGUMENT_ERROR
