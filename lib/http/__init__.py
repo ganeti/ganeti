@@ -66,6 +66,8 @@ HTTP_AUTHORIZATION = "Authorization"
 HTTP_AUTHENTICATION_INFO = "Authentication-Info"
 HTTP_ALLOW = "Allow"
 
+HTTP_APP_OCTET_STREAM = "application/octet-stream"
+
 _SSL_UNEXPECTED_EOF = "Unexpected EOF"
 
 # Socket operations
@@ -178,6 +180,17 @@ class HttpMethodNotAllowed(HttpException):
   code = 405
 
 
+class HttpNotAcceptable(HttpException):
+  """406 Not Acceptable
+
+  RFC2616, 10.4.7: The resource identified by the request is only capable of
+  generating response entities which have content characteristics not
+  acceptable according to the accept headers sent in the request.
+
+  """
+  code = 406
+
+
 class HttpRequestTimeout(HttpException):
   """408 Request Timeout
 
@@ -233,6 +246,17 @@ class HttpPreconditionFailed(HttpException):
 
   """
   code = 412
+
+
+class HttpUnsupportedMediaType(HttpException):
+  """415 Unsupported Media Type
+
+  RFC2616, 10.4.16: The server is refusing to service the request because the
+  entity of the request is in a format not supported by the requested resource
+  for the requested method.
+
+  """
+  code = 415
 
 
 class HttpInternalServerError(HttpException):
