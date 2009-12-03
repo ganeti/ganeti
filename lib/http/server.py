@@ -268,6 +268,14 @@ class HttpServerRequestExecutor(object):
         try:
           try:
             request_msg_reader = self._ReadRequest()
+
+            # RFC2616, 14.23: All Internet-based HTTP/1.1 servers MUST respond
+            # with a 400 (Bad Request) status code to any HTTP/1.1 request
+            # message which lacks a Host header field.
+            if (self.request_msg.start_line.version == http.HTTP_1_1 and
+                http.HTTP_HOST not in self.request_msg.headers):
+              raise http.HttpBadRequest(message="Missing Host header")
+
             self._HandleRequest()
 
             # Only wait for client to close if we didn't have any exception.
