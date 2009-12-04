@@ -116,6 +116,7 @@ docrst = \
 	doc/hooks.rst \
 	doc/iallocator.rst \
 	doc/install.rst \
+	doc/rapi.rst \
 	doc/security.rst
 
 dochtml = $(patsubst %.rst,%.html,$(docrst))
@@ -160,6 +161,7 @@ EXTRA_DIST = \
 	$(docrst) \
 	$(docdot) \
 	doc/build-rapi-resources-doc \
+	doc/rapi-resources.gen \
 	doc/examples/bash_completion.in \
 	doc/examples/ganeti.initd.in \
 	doc/examples/ganeti.cron.in \
