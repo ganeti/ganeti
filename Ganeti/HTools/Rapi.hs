@@ -98,10 +98,10 @@ parseNode a = do
   name <- tryFromObj "Parsing new node" a "name"
   let extract s = tryFromObj ("Node '" ++ name ++ "'") a s
   offline <- extract "offline"
-  node <- (if offline
+  drained <- extract "drained"
+  node <- (if offline || drained
            then return $ Node.create name 0 0 0 0 0 0 True
            else do
-             drained <- extract "drained"
              mtotal  <- extract "mtotal"
              mnode   <- extract "mnode"
              mfree   <- extract "mfree"
@@ -109,7 +109,7 @@ parseNode a = do
              dfree   <- extract "dfree"
              ctotal  <- extract "ctotal"
              return $ Node.create name mtotal mnode mfree
-                    dtotal dfree ctotal (offline || drained))
+                    dtotal dfree ctotal False)
   return (name, node)
 
 -- | Builds the cluster data from an URL.

@@ -131,10 +131,10 @@ parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
   xname <- annotateResult "Parsing new node" (fromJVal name)
   let convert v = annotateResult ("Node '" ++ xname ++ "'") (fromJVal v)
   xoffline <- convert offline
-  node <- (if xoffline
+  xdrained <- convert drained
+  node <- (if xoffline || xdrained
            then return $ Node.create xname 0 0 0 0 0 0 True
            else do
-             xdrained <- convert drained
              xmtotal  <- convert mtotal
              xmnode   <- convert mnode
              xmfree   <- convert mfree
@@ -142,7 +142,7 @@ parseNode (JSArray [ name, mtotal, mnode, mfree, dtotal, dfree
              xdfree   <- convert dfree
              xctotal  <- convert ctotal
              return $ Node.create xname xmtotal xmnode xmfree
-                    xdtotal xdfree xctotal (xoffline || xdrained))
+                    xdtotal xdfree xctotal False)
   return (xname, node)
 
 parseNode v = fail ("Invalid node query result: " ++ show v)
