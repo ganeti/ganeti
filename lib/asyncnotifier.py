@@ -22,8 +22,12 @@
 """Asynchronous pyinotify implementation"""
 
 
-import pyinotify
 import asyncore
+
+try:
+    from pyinotify import pyinotify
+except ImportError:
+    import pyinotify
 
 
 class AsyncNotifier(asyncore.file_dispatcher):

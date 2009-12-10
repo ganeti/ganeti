@@ -29,8 +29,12 @@ It uses UDP+HMAC for authentication with a global cluster key.
 import os
 import sys
 import logging
-import pyinotify
 import time
+
+try:
+  from pyinotify import pyinotify
+except ImportError:
+  import pyinotify
 
 from optparse import OptionParser
 
