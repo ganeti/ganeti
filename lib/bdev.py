@@ -34,6 +34,10 @@ from ganeti import constants
 from ganeti import objects
 
 
+# Size of reads in _CanReadDevice
+_DEVICE_READ_SIZE = 128 * 1024
+
+
 def _IgnoreError(fn, *args, **kwargs):
   """Executes the given function, ignoring BlockDeviceErrors.
 
@@ -64,6 +68,20 @@ def _ThrowError(msg, *args):
     msg = msg % args
   logging.error(msg)
   raise errors.BlockDeviceError(msg)
+
+
+def _CanReadDevice(path):
+  """Check if we can read from the given device.
+
+  This tries to read the first 128k of the device.
+
+  """
+  try:
+    utils.ReadFile(path, size=_DEVICE_READ_SIZE)
+    return True
+  except EnvironmentError, err:
+    logging.warning("Can't read from device %s", path, exc_info=True)
+    return False
 
 
 class BlockDev(object):
@@ -960,6 +978,17 @@ class DRBD8(BaseDRBD):
   def __init__(self, unique_id, children, size):
     if children and children.count(None) > 0:
       children = []
+    if len(children) not in (0, 2):
+      raise ValueError("Invalid configuration data %s" % str(children))
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 6:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    (self._lhost, self._lport,
+     self._rhost, self._rport,
+     self._aminor, self._secret) = unique_id
+    if children:
+      if not _CanReadDevice(children[1].dev_path):
+        logging.info("drbd%s: Ignoring unreadable meta device", self._aminor)
+        children = []
     super(DRBD8, self).__init__(unique_id, children, size)
     self.major = self._DRBD_MAJOR
     version = self._GetVersion()
@@ -968,13 +997,6 @@ class DRBD8(BaseDRBD):
                   " usage: kernel is %s.%s, ganeti wants 8.x",
                   version['k_major'], version['k_minor'])
 
-    if len(children) not in (0, 2):
-      raise ValueError("Invalid configuration data %s" % str(children))
-    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 6:
-      raise ValueError("Invalid configuration data %s" % str(unique_id))
-    (self._lhost, self._lport,
-     self._rhost, self._rport,
-     self._aminor, self._secret) = unique_id
     if (self._lhost is not None and self._lhost == self._rhost and
         self._lport == self._rport):
       raise ValueError("Invalid configuration data, same local/remote %s" %

@@ -551,6 +551,10 @@ def VerifyNode(what, cluster_name):
       tmpr.append("The procfs filesystem doesn't seem to be mounted"
                   " under /proc, missing required directory /proc/sys and"
                   " the file /proc/sysrq-trigger")
+
+  if constants.NV_TIME in what:
+    result[constants.NV_TIME] = utils.SplitTime(time.time())
+
   return result
 
 

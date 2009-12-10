@@ -944,6 +944,7 @@ class LUVerifyCluster(LogicalUnit):
   ENODESSH = (TNODE, "ENODESSH")
   ENODEVERSION = (TNODE, "ENODEVERSION")
   ENODESETUP = (TNODE, "ENODESETUP")
+  ENODETIME = (TNODE, "ENODETIME")
 
   ETYPE_FIELD = "code"
   ETYPE_ERROR = "ERROR"
@@ -1326,14 +1327,23 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_VERSION: None,
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
       constants.NV_NODESETUP: None,
+      constants.NV_TIME: None,
       }
+
     if vg_name is not None:
       node_verify_param[constants.NV_VGLIST] = None
       node_verify_param[constants.NV_LVLIST] = vg_name
       node_verify_param[constants.NV_PVLIST] = [vg_name]
       node_verify_param[constants.NV_DRBDLIST] = None
+
+    # Due to the way our RPC system works, exact response times cannot be
+    # guaranteed (e.g. a broken node could run into a timeout). By keeping the
+    # time before and after executing the request, we can at least have a time
+    # window.
+    nvinfo_starttime = time.time()
     all_nvinfo = self.rpc.call_node_verify(nodelist, node_verify_param,
                                            self.cfg.GetClusterName())
+    nvinfo_endtime = time.time()
 
     cluster = self.cfg.GetClusterInfo()
     master_node = self.cfg.GetMasterNode()
@@ -1380,6 +1390,7 @@ class LUVerifyCluster(LogicalUnit):
         else:
           instance = instanceinfo[instance]
           node_drbd[minor] = (instance.name, instance.admin_up)
+
       self._VerifyNode(node_i, file_names, local_checksums,
                        nresult, master_files, node_drbd, vg_name)
 
@@ -1411,6 +1422,27 @@ class LUVerifyCluster(LogicalUnit):
       test = not isinstance(nodeinfo, dict)
       _ErrorIf(test, self.ENODEHV, node, "rpc call to node failed (hvinfo)")
       if test:
+        continue
+
+      # Node time
+      ntime = nresult.get(constants.NV_TIME, None)
+      try:
+        ntime_merged = utils.MergeTime(ntime)
+      except (ValueError, TypeError):
+        _ErrorIf(test, self.ENODETIME, node, "Node returned invalid time")
+
+      if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
+        ntime_diff = abs(nvinfo_starttime - ntime_merged)
+      elif ntime_merged > (nvinfo_endtime + constants.NODE_MAX_CLOCK_SKEW):
+        ntime_diff = abs(ntime_merged - nvinfo_endtime)
+      else:
+        ntime_diff = None
+
+      _ErrorIf(ntime_diff is not None, self.ENODETIME, node,
+               "Node time diverges by at least %0.1fs from master node time",
+               ntime_diff)
+
+      if ntime_diff is not None:
         continue
 
       try:
@@ -7179,6 +7211,14 @@ class LUGrowDisk(LogicalUnit):
       self.cfg.SetDiskID(disk, node)
       result = self.rpc.call_blockdev_grow(node, disk, self.op.amount)
       result.Raise("Grow request failed to node %s" % node)
+
+      # TODO: Rewrite code to work properly
+      # DRBD goes into sync mode for a short amount of time after executing the
+      # "resize" command. DRBD 8.x below version 8.0.13 contains a bug whereby
+      # calling "resize" in sync mode fails. Sleeping for a short amount of
+      # time is a work-around.
+      time.sleep(5)
+
     disk.RecordGrow(self.op.amount)
     self.cfg.Update(instance, feedback_fn)
     if self.op.wait_for_sync:

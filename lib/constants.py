@@ -314,7 +314,7 @@ DEFAULT_MAC_PREFIX = "aa:00:00"
 LVM_STRIPECOUNT = _autoconf.LVM_STRIPECOUNT
 # default maximum instance wait time, in seconds.
 DEFAULT_SHUTDOWN_TIMEOUT = 120
-
+NODE_MAX_CLOCK_SKEW = 150
 
 # RPC constants
 (RPC_ENCODING_NONE,
@@ -531,6 +531,7 @@ NV_LVLIST = "lvlist"
 NV_PVLIST = "pvlist"
 NV_DRBDLIST = "drbd-list"
 NV_NODESETUP = "nodesetup"
+NV_TIME = "time"
 
 # Allocator framework constants
 IALLOCATOR_VERSION = 2
@@ -692,6 +693,11 @@ CONFD_REQ_INSTANCES_IPS_LIST = 6
 CONFD_REQQ_LINK = "0"
 CONFD_REQQ_IP = "1"
 CONFD_REQQ_IPLIST = "2"
+CONFD_REQQ_FIELDS = "3"
+
+CONFD_REQFIELD_NAME = "0"
+CONFD_REQFIELD_IP = "1"
+CONFD_REQFIELD_MNODE_PIP = "2"
 
 CONFD_REQS = frozenset([
   CONFD_REQ_PING,
@@ -728,7 +734,7 @@ CONFD_ERROR_ARGUMENT = 3
 # Each request is "salted" by the current timestamp.
 # This constants decides how many seconds of skew to accept.
 # TODO: make this a default and allow the value to be more configurable
-CONFD_MAX_CLOCK_SKEW = 300
+CONFD_MAX_CLOCK_SKEW = 2 * NODE_MAX_CLOCK_SKEW
 
 # When we haven't reloaded the config for more than this amount of seconds, we
 # force a test to see if inotify is betraying us.

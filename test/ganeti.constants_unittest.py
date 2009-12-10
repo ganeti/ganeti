@@ -60,6 +60,10 @@ class TestConstants(unittest.TestCase):
     self.failUnless(constants.LDS_OKAY < constants.LDS_UNKNOWN)
     self.failUnless(constants.LDS_UNKNOWN < constants.LDS_FAULTY)
 
+  def testClockSkew(self):
+    self.failUnless(constants.NODE_MAX_CLOCK_SKEW <
+                    (0.8 * constants.CONFD_MAX_CLOCK_SKEW))
+
 
 class TestParameterNames(unittest.TestCase):
   """HV/BE parameter tests"""
@@ -81,7 +85,7 @@ class TestConfdConstants(unittest.TestCase):
 
   def testFourCc(self):
     self.failUnlessEqual(len(constants.CONFD_MAGIC_FOURCC), 4,
-                    "Invalid fourcc len, should be 4")
+                         "Invalid fourcc len, should be 4")
 
   def _IsUniqueSequence(self, sequence):
     seen = set()

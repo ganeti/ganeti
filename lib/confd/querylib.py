@@ -94,16 +94,38 @@ class ClusterMasterQuery(ConfdQuery):
   It accepts no arguments, and returns the current cluster master.
 
   """
+  def _GetMasterNode(self):
+    return self.reader.GetMasterNode()
+
   def Exec(self, query):
     """ClusterMasterQuery main execution
 
     """
-    if query is None:
+    if isinstance(query, dict):
+      if constants.CONFD_REQQ_FIELDS in query:
+        status = constants.CONFD_REPL_STATUS_OK
+        req_fields = query[constants.CONFD_REQQ_FIELDS]
+        if not isinstance(req_fields, (list, tuple)):
+          logging.debug("FIELDS request should be a list")
+          return QUERY_ARGUMENT_ERROR
+
+        answer = []
+        for field in req_fields:
+          if field == constants.CONFD_REQFIELD_NAME:
+            answer.append(self._GetMasterNode())
+          elif field == constants.CONFD_REQFIELD_IP:
+            answer.append(self.reader.GetMasterIP())
+          elif field == constants.CONFD_REQFIELD_MNODE_PIP:
+            answer.append(self.reader.GetNodePrimaryIp(self._GetMasterNode()))
+      else:
+        logging.debug("missing FIELDS in query dict")
+        return QUERY_ARGUMENT_ERROR
+    elif not query:
       status = constants.CONFD_REPL_STATUS_OK
       answer = self.reader.GetMasterNode()
     else:
-      status = constants.CONFD_REPL_STATUS_ERROR
-      answer = 'master query accepts no query argument'
+      logging.debug("Invalid master query argument: not dict or empty")
+      return QUERY_ARGUMENT_ERROR
 
     return status, answer
 

@@ -185,6 +185,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       script.write("  # Connect the interface to the bridge\n")
       script.write("  /usr/sbin/brctl addif $BRIDGE $INTERFACE\n")
     elif nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_ROUTED:
+      if not nic.ip:
+        raise errors.HypervisorError("nic/%d is routed, but has no ip." % seq)
       script.write("  # Route traffic targeted at the IP to the interface\n")
       if nic.nicparams[constants.NIC_LINK]:
         script.write("  while /sbin/ip rule del dev $INTERFACE; do :; done\n")

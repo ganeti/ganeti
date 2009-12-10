@@ -1226,21 +1226,18 @@ def EnsureDirs(dirs):
       raise errors.GenericError("%s is not a directory" % dir_name)
 
 
-def ReadFile(file_name, size=None):
+def ReadFile(file_name, size=-1):
   """Reads a file.
 
-  @type size: None or int
-  @param size: Read at most size bytes
+  @type size: int
+  @param size: Read at most size bytes (if negative, entire file)
   @rtype: str
   @return: the (possibly partial) content of the file
 
   """
   f = open(file_name, "r")
   try:
-    if size is None:
-      return f.read()
-    else:
-      return f.read(size)
+    return f.read(size)
   finally:
     f.close()
 
