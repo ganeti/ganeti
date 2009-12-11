@@ -179,7 +179,7 @@ detailedCVNames = [ "free_mem_cv"
                   , "free_disk_cv"
                   , "n1_score"
                   , "reserved_mem_cv"
-                  , "offline_score"
+                  , "offline_all_cnt"
                   , "vcpu_ratio_cv"
                   , "cpu_load_cv"
                   , "mem_load_cv"
@@ -207,15 +207,11 @@ compDetailedCV nl =
         res_l = map Node.pRem nodes
         -- metric: reserved memory covariance
         res_cv = varianceCoeff res_l
-        offline_inst = sum . map (\n -> (length . Node.pList $ n) +
-                                        (length . Node.sList $ n)) $ offline
-        online_inst = sum . map (\n -> (length . Node.pList $ n) +
-                                       (length . Node.sList $ n)) $ nodes
-        -- metric: ratio of instances on offline nodes
-        off_score = if offline_inst == 0
-                    then 0::Double
-                    else fromIntegral offline_inst /
-                         fromIntegral (offline_inst + online_inst)::Double
+        -- offline instances metrics
+        offline_ipri = sum . map (length . Node.pList) $ offline
+        offline_isec = sum . map (length . Node.sList) $ offline
+        -- metric: count of instances on offline nodes
+        off_score = fromIntegral (offline_ipri + offline_isec)::Double
         cpu_l = map Node.pCpu nodes
         -- metric: covariance of vcpu/pcpu ratio
         cpu_cv = varianceCoeff cpu_l
