@@ -177,7 +177,7 @@ totalResources nl =
 detailedCVNames :: [String]
 detailedCVNames = [ "free_mem_cv"
                   , "free_disk_cv"
-                  , "n1_score"
+                  , "n1_cnt"
                   , "reserved_mem_cv"
                   , "offline_all_cnt"
                   , "offline_pri_cnt"
@@ -202,9 +202,8 @@ compDetailedCV nl =
         -- metric: disk covariance
         dsk_cv = varianceCoeff dsk_l
         n1_l = length $ filter Node.failN1 nodes
-        -- metric: ratio of failN1 nodes
-        n1_score = fromIntegral n1_l /
-                   fromIntegral (length nodes)::Double
+        -- metric: count of failN1 nodes
+        n1_score = fromIntegral n1_l::Double
         res_l = map Node.pRem nodes
         -- metric: reserved memory covariance
         res_cv = varianceCoeff res_l
