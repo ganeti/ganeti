@@ -180,6 +180,7 @@ detailedCVNames = [ "free_mem_cv"
                   , "n1_score"
                   , "reserved_mem_cv"
                   , "offline_all_cnt"
+                  , "offline_pri_cnt"
                   , "vcpu_ratio_cv"
                   , "cpu_load_cv"
                   , "mem_load_cv"
@@ -212,6 +213,10 @@ compDetailedCV nl =
         offline_isec = sum . map (length . Node.sList) $ offline
         -- metric: count of instances on offline nodes
         off_score = fromIntegral (offline_ipri + offline_isec)::Double
+        -- metric: count of primary instances on offline nodes (this
+        -- helps with evacuation/failover of primary instances on
+        -- 2-node clusters with one node offline)
+        off_pri_score = fromIntegral offline_ipri::Double
         cpu_l = map Node.pCpu nodes
         -- metric: covariance of vcpu/pcpu ratio
         cpu_cv = varianceCoeff cpu_l
@@ -225,7 +230,7 @@ compDetailedCV nl =
         -- metric: conflicting instance count
         pri_tags_inst = sum $ map Node.conflictingPrimaries nodes
         pri_tags_score = fromIntegral pri_tags_inst::Double
-    in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, cpu_cv
+    in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, off_pri_score, cpu_cv
        , varianceCoeff c_load, varianceCoeff m_load
        , varianceCoeff d_load, varianceCoeff n_load
        , pri_tags_score ]
