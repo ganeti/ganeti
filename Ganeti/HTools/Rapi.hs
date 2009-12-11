@@ -34,6 +34,7 @@ import Network.Curl.Code
 import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue, fromJSObject, decodeStrict)
+import Text.JSON.Types (JSValue(..))
 import Text.Printf (printf)
 
 import Ganeti.HTools.Utils
@@ -78,10 +79,14 @@ parseInstance :: [(String, Ndx)]
               -> Result (String, Instance.Instance)
 parseInstance ktn a = do
   name <- tryFromObj "Parsing new instance" a "name"
-  let extract s x = tryFromObj ("Instance '" ++ name ++ "'") x s
+  let owner_name = "Instance '" ++ name ++ "'"
+  let extract s x = tryFromObj owner_name x s
   disk <- extract "disk_usage" a
   beparams <- liftM fromJSObject (extract "beparams" a)
-  mem <- extract "memory" beparams
+  omem <- extract "oper_ram" a
+  mem <- (case omem of
+            JSRational _ _ -> annotateResult owner_name (fromJVal omem)
+            _ -> extract "memory" beparams)
   vcpus <- extract "vcpus" beparams
   pnode <- extract "pnode" a >>= lookupNode ktn name
   snodes <- extract "snodes" a
@@ -98,10 +103,10 @@ parseNode a = do
   name <- tryFromObj "Parsing new node" a "name"
   let extract s = tryFromObj ("Node '" ++ name ++ "'") a s
   offline <- extract "offline"
-  node <- (if offline
+  drained <- extract "drained"
+  node <- (if offline || drained
            then return $ Node.create name 0 0 0 0 0 0 True
            else do
-             drained <- extract "drained"
              mtotal  <- extract "mtotal"
              mnode   <- extract "mnode"
              mfree   <- extract "mfree"
@@ -109,7 +114,7 @@ parseNode a = do
              dfree   <- extract "dfree"
              ctotal  <- extract "ctotal"
              return $ Node.create name mtotal mnode mfree
-                    dtotal dfree ctotal (offline || drained))
+                    dtotal dfree ctotal False)
   return (name, node)
 
 -- | Builds the cluster data from an URL.
