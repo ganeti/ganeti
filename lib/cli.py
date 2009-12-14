@@ -82,6 +82,7 @@ __all__ = [
   "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
+  "NONAMECHECK_OPT",
   "NOLVM_STORAGE_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
   "NOMODIFY_SSH_SETUP_OPT",
@@ -596,6 +597,11 @@ NOIPCHECK_OPT = cli_option("--no-ip-check", dest="ip_check", default=True,
                            action="store_false",
                            help="Don't check that the instance's IP"
                            " is alive")
+
+NONAMECHECK_OPT = cli_option("--no-name-check", dest="name_check",
+                             default=True, action="store_false",
+                             help="Don't check that the instance's name"
+                             " is resolvable")
 
 NET_OPT = cli_option("--net",
                      help="NIC parameters", default=[],
@@ -1467,6 +1473,7 @@ def GenericInstanceCreate(mode, opts, args):
                                 nics=nics,
                                 pnode=pnode, snode=snode,
                                 ip_check=opts.ip_check,
+                                name_check=opts.name_check,
                                 wait_for_sync=opts.wait_for_sync,
                                 file_storage_dir=opts.file_storage_dir,
                                 file_driver=opts.file_driver,

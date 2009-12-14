@@ -464,6 +464,7 @@ class R_2_instances(baserlib.R_Generic):
       nics=nics,
       start=fn('start', True),
       ip_check=fn('ip_check', True),
+      name_check=fn('name_check', True),
       wait_for_sync=True,
       hypervisor=fn('hypervisor', None),
       hvparams=hvparams,
