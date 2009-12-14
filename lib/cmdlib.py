@@ -6013,12 +6013,8 @@ class LUCreateInstance(LogicalUnit):
             nic.mac = export_info.get(constants.INISECT_INS, nic_mac_ini)
 
     # ENDIF: self.op.mode == constants.INSTANCE_IMPORT
-    # ip ping checks (we use the same ip that was resolved in ExpandNames)
-    if self.op.start and not self.op.ip_check:
-      raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
-                                 " adding an instance in start mode",
-                                 errors.ECODE_INVAL)
 
+    # ip ping checks (we use the same ip that was resolved in ExpandNames)
     if self.op.ip_check:
       if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
