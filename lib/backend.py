@@ -1731,10 +1731,11 @@ def _TryOSFromDisk(name, base_dir=None):
   """
   if base_dir is None:
     os_dir = utils.FindFile(name, constants.OS_SEARCH_PATH, os.path.isdir)
-    if os_dir is None:
-      return False, "Directory for OS %s not found in search path" % name
   else:
-    os_dir = os.path.sep.join([base_dir, name])
+    os_dir = utils.FindFile(name, [base_dir], os.path.isdir)
+
+  if os_dir is None:
+    return False, "Directory for OS %s not found in search path" % name
 
   status, api_versions = _OSOndiskAPIVersion(name, os_dir)
   if not status:
@@ -2612,8 +2613,6 @@ class HooksRunner(object):
   on the master side.
 
   """
-  RE_MASK = re.compile("^[a-zA-Z0-9_-]+$")
-
   def __init__(self, hooks_base_dir=None):
     """Constructor for hooks runner.
 
@@ -2721,7 +2720,7 @@ class HooksRunner(object):
     for relname in dir_contents:
       fname = os.path.join(dir_name, relname)
       if not (os.path.isfile(fname) and os.access(fname, os.X_OK) and
-          self.RE_MASK.match(relname) is not None):
+              constants.EXT_PLUGIN_MASK.match(relname) is not None):
         rrval = constants.HKR_SKIP
         output = ""
       else:
