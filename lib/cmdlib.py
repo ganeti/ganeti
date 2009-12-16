@@ -2579,10 +2579,9 @@ class LUQueryNodes(NoHooksLU):
     inst_fields = frozenset(("pinst_cnt", "pinst_list",
                              "sinst_cnt", "sinst_list"))
     if inst_fields & frozenset(self.op.output_fields):
-      instancelist = self.cfg.GetInstanceList()
+      inst_data = self.cfg.GetAllInstancesInfo()
 
-      for instance_name in instancelist:
-        inst = self.cfg.GetInstanceInfo(instance_name)
+      for instance_name, inst in inst_data.items():
         if inst.primary_node in node_to_primary:
           node_to_primary[inst.primary_node].add(inst.name)
         for secnode in inst.secondary_nodes:

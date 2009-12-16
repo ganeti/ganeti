@@ -101,6 +101,15 @@ Details
 - Improved burnin
 
 
+Version 2.0.5
+-------------
+
+- Fix security issue due to missing validation of iallocator names; this
+  allows local and remote execution of arbitrary executables
+- Fix failure of gnt-node list during instance removal
+- Ship the RAPI documentation in the archive
+
+
 Version 2.0.4
 -------------
 
