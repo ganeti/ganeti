@@ -1,3 +1,7 @@
+Version 1.2.9
+  - Fix security issue due to missing validation of iallocator names;
+    this allows execution of arbitrary executables
+
 Version 1.2.8
   - Fix a potential bug in export instance
   - Fix compatibility with Twisted 8.x
