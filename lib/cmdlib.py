@@ -2579,10 +2579,9 @@ class LUQueryNodes(NoHooksLU):
     inst_fields = frozenset(("pinst_cnt", "pinst_list",
                              "sinst_cnt", "sinst_list"))
     if inst_fields & frozenset(self.op.output_fields):
-      instancelist = self.cfg.GetInstanceList()
+      inst_data = self.cfg.GetAllInstancesInfo()
 
-      for instance_name in instancelist:
-        inst = self.cfg.GetInstanceInfo(instance_name)
+      for instance_name, inst in inst_data.items():
         if inst.primary_node in node_to_primary:
           node_to_primary[inst.primary_node].add(inst.name)
         for secnode in inst.secondary_nodes:
@@ -5619,6 +5618,19 @@ class LUCreateInstance(LogicalUnit):
               "hvparams", "beparams"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check arguments.
+
+    """
+    # do not require name_check to ease forward/backward compatibility
+    # for tools
+    if not hasattr(self.op, "name_check"):
+      self.op.name_check = True
+    if self.op.ip_check and not self.op.name_check:
+      # TODO: make the ip check more flexible and not depend on the name check
+      raise errors.OpPrereqError("Cannot do ip checks without a name check",
+                                 errors.ECODE_INVAL)
+
   def _ExpandNode(self, node):
     """Expands and checks one node name.
 
@@ -5683,8 +5695,14 @@ class LUCreateInstance(LogicalUnit):
     #### instance parameters check
 
     # instance name verification
-    hostname1 = utils.GetHostInfo(self.op.instance_name)
-    self.op.instance_name = instance_name = hostname1.name
+    if self.op.name_check:
+      hostname1 = utils.GetHostInfo(self.op.instance_name)
+      self.op.instance_name = instance_name = hostname1.name
+      # used in CheckPrereq for ip ping check
+      self.check_ip = hostname1.ip
+    else:
+      instance_name = self.op.instance_name
+      self.check_ip = None
 
     # this is just a preventive check, but someone might still add this
     # instance in the meantime, and creation will fail at lock-add time
@@ -5713,6 +5731,10 @@ class LUCreateInstance(LogicalUnit):
       if ip is None or ip.lower() == constants.VALUE_NONE:
         nic_ip = None
       elif ip.lower() == constants.VALUE_AUTO:
+        if not self.op.name_check:
+          raise errors.OpPrereqError("IP address set to auto but name checks"
+                                     " have been skipped. Aborting.",
+                                     errors.ECODE_INVAL)
         nic_ip = hostname1.ip
       else:
         if not utils.IsValidIP(ip):
@@ -5779,9 +5801,6 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
       self.disks.append({"size": size, "mode": mode})
-
-    # used in CheckPrereq for ip ping check
-    self.check_ip = hostname1.ip
 
     # file storage checks
     if (self.op.file_driver and
@@ -5993,12 +6012,8 @@ class LUCreateInstance(LogicalUnit):
             nic.mac = export_info.get(constants.INISECT_INS, nic_mac_ini)
 
     # ENDIF: self.op.mode == constants.INSTANCE_IMPORT
-    # ip ping checks (we use the same ip that was resolved in ExpandNames)
-    if self.op.start and not self.op.ip_check:
-      raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
-                                 " adding an instance in start mode",
-                                 errors.ECODE_INVAL)
 
+    # ip ping checks (we use the same ip that was resolved in ExpandNames)
     if self.op.ip_check:
       if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %

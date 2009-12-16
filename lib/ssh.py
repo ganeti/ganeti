@@ -212,7 +212,7 @@ class SshRunner:
         - detail: string with details
 
     """
-    retval = self.Run(node, 'root', 'hostname')
+    retval = self.Run(node, 'root', 'hostname --fqdn')
 
     if retval.failed:
       msg = "ssh problem"

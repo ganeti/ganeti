@@ -78,6 +78,10 @@
             <arg>-s <replaceable>SIZE</replaceable></arg>
           </group>
           <sbr>
+          <arg>--no-ip-check</arg>
+          <arg>--no-name-check</arg>
+          <arg>--no-start</arg>
+          <sbr>
           <group>
             <arg rep="repeat">--net=<replaceable>N</replaceable><arg rep="repeat">:options</arg></arg>
             <arg>--no-nics</arg>
@@ -144,6 +148,28 @@
           and a three-disk instance can be specified as
           <userinput>--disk 0:size=20G --disk 1:size=4G --disk
           2:size=100G</userinput>.
+        </para>
+
+        <para>
+          The <option>--no-ip-check</option> skips the checks that are
+          done to see if the instance's IP is not already alive
+          (i.e. reachable from the master node).
+        </para>
+
+        <para>
+          The <option>--no-name-check</option> skips the check for the
+          instance name via the resolver (e.g. in DNS or /etc/hosts,
+          depending on your setup). Since the name check is used to
+          compute the IP address, if you pass this option you must
+          also pass the <option>--no-ip-check</option> option.
+        </para>
+
+        <para>
+          If you don't wat the instance to automatically start after
+          creation, this is possible via the
+          <option>--no-start</option> option. This will leave the
+          instance down until a subsequent <command>gnt-instance
+          start</command> command.
         </para>
 
         <para>
@@ -765,6 +791,14 @@
               <term>ip_check</term>
               <listitem>
                 <simpara>Skip the check for already-in-use instance;
+                see the description in the <command>add</command>
+                command for details.</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>name_check</term>
+              <listitem>
+                <simpara>Skip the name check for instances;
                 see the description in the <command>add</command>
                 command for details.</simpara>
               </listitem>

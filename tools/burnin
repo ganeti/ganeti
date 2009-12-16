@@ -115,6 +115,8 @@ OPTIONS = [
                  completion_suggest=("128M 256M 512M 1G 4G 8G"
                                      " 12G 16G").split()),
   cli.VERBOSE_OPT,
+  cli.NOIPCHECK_OPT,
+  cli.NONAMECHECK_OPT,
   cli.cli_option("--no-replace1", dest="do_replace1",
                  help="Skip disk replacement with the same secondary",
                  action="store_false", default=True),
@@ -422,6 +424,9 @@ class Burner(object):
     if options.nodes and options.iallocator:
       Err("Give either the nodes option or the iallocator option, not both")
 
+    if options.http_check and not options.name_check:
+      Err("Can't enable HTTP checks without name checks")
+
     self.opts = options
     self.instances = args
     self.bep = {
@@ -498,7 +503,8 @@ class Burner(object):
                                     pnode=pnode,
                                     snode=snode,
                                     start=True,
-                                    ip_check=True,
+                                    ip_check=self.opts.ip_check,
+                                    name_check=self.opts.name_check,
                                     wait_for_sync=True,
                                     file_driver="loop",
                                     file_storage_dir=None,
@@ -648,7 +654,8 @@ class Burner(object):
                                         pnode=pnode,
                                         snode=snode,
                                         start=True,
-                                        ip_check=True,
+                                        ip_check=self.opts.ip_check,
+                                        name_check=self.opts.name_check,
                                         wait_for_sync=True,
                                         file_storage_dir=None,
                                         file_driver="loop",

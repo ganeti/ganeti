@@ -21,6 +21,8 @@
 
 """Module holding different constants."""
 
+import re
+
 from ganeti import _autoconf
 
 # various versions
@@ -167,6 +169,9 @@ VALUE_GENERATE = "generate"
 VALUE_NONE = "none"
 VALUE_TRUE = "true"
 VALUE_FALSE = "false"
+
+# External script validation mask
+EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
 
 # hooks-related constants
 HOOKS_BASE_DIR = CONF_DIR + "/hooks"

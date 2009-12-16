@@ -318,7 +318,6 @@ def AddInstance(opts, args):
 
   """
   return GenericInstanceCreate(constants.INSTANCE_CREATE, opts, args)
-  return 0
 
 
 def BatchCreate(opts, args):
@@ -357,6 +356,7 @@ def BatchCreate(opts, args):
                     "nics": None,
                     "start": True,
                     "ip_check": True,
+                    "name_check": True,
                     "hypervisor": None,
                     "hvparams": {},
                     "file_storage_dir": None,
@@ -453,6 +453,7 @@ def BatchCreate(opts, args):
                                   nics=tmp_nics,
                                   start=specs['start'],
                                   ip_check=specs['ip_check'],
+                                  name_check=specs['name_check'],
                                   wait_for_sync=True,
                                   iallocator=specs['iallocator'],
                                   hypervisor=hypervisor,
@@ -1280,6 +1281,7 @@ add_opts = [
   NET_OPT,
   NODE_PLACEMENT_OPT,
   NOIPCHECK_OPT,
+  NONAMECHECK_OPT,
   NONICS_OPT,
   NOSTART_OPT,
   NWSYNC_OPT,
