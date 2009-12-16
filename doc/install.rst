@@ -549,6 +549,21 @@ pass ``--enabled-hypervisors=kvm`` to the init command.
 You can also invoke the command with the ``--help`` option in order to
 see all the possibilities.
 
+Hypervisor/Network/Cluster parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Please note that the default hypervisor/network/cluster parameters may
+not be the correct one for your environment. Carefully check them, and
+change them at cluster init time, or later with ``gnt-cluster modify``.
+
+Your instance types, networking environment, hypervisor type and version
+may all affect what kind of parameters should be used on your cluster.
+
+For example kvm instances are by default configured to use a host
+kernel, and to be reached via serial console, which works nice for linux
+paravirtualized instances. If you want fully virtualized instances you
+may want to handle their kernel inside the instance, and to use VNC.
+
 Joining the nodes to the cluster
 ++++++++++++++++++++++++++++++++
 
