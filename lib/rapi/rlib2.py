@@ -23,12 +23,15 @@
 
 """
 
+# pylint: disable-msg=C0103
+
+# C0103: Invalid name, since the R_* names are not conforming
+
 from ganeti import opcodes
 from ganeti import http
 from ganeti import constants
 from ganeti import cli
 from ganeti.rapi import baserlib
-
 
 
 I_FIELDS = ["name", "admin_state", "os",

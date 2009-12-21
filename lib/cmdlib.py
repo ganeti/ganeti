@@ -84,8 +84,8 @@ class LogicalUnit(object):
     self.recalculate_locks = {}
     self.__ssh = None
     # logging
-    self.LogWarning = processor.LogWarning
-    self.LogInfo = processor.LogInfo
+    self.LogWarning = processor.LogWarning # pylint: disable-msg=C0103
+    self.LogInfo = processor.LogInfo # pylint: disable-msg=C0103
 
     for attr_name in self._OP_REQP:
       attr_val = getattr(op, attr_name, None)
@@ -322,7 +322,7 @@ class LogicalUnit(object):
     del self.recalculate_locks[locking.LEVEL_NODE]
 
 
-class NoHooksLU(LogicalUnit):
+class NoHooksLU(LogicalUnit): # pylint: disable-msg=W0223
   """Simple LU which runs no hooks.
 
   This LU is intended as a parent for other LogicalUnits which will
@@ -6635,7 +6635,7 @@ class LURemoveExport(NoHooksLU):
                   " Domain Name.")
 
 
-class TagsLU(NoHooksLU):
+class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   """Generic tags LU.
 
   This is an abstract class which is the parent of all the other tags LUs.

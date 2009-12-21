@@ -720,7 +720,7 @@ class DRBD8Status(object):
       self.est_time = None
 
 
-class BaseDRBD(BlockDev):
+class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
   """Base DRBD class.
 
   This class contains a few bits of common functionality between the

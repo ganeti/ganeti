@@ -100,7 +100,7 @@ class Processor(object):
     """
     self.context = context
     self._feedback_fn = None
-    self.exclusive_BGL = False
+    self.exclusive_BGL = False # pylint: disable-msg=C0103
     self.rpc = rpc.RpcRunner(context.cfg)
 
   def _ExecLU(self, lu):

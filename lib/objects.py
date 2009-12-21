@@ -786,6 +786,8 @@ class Cluster(TaggableObject):
     """Fill defaults for missing configuration values.
 
     """
+    # pylint: disable-msg=E0203
+    # because these are "defined" via slots, not manually
     if self.hvparams is None:
       self.hvparams = constants.HVC_DEFAULTS
     else:

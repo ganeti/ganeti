@@ -42,7 +42,8 @@ from ganeti import serializer
 from ganeti import constants
 from ganeti import errors
 
-import ganeti.http.client
+# pylint has a bug here, doesn't see this import
+import ganeti.http.client  # pylint: disable-msg=W0611
 
 
 # Module level variable
@@ -55,7 +56,7 @@ def Init():
   Must be called before using any RPC function.
 
   """
-  global _http_manager
+  global _http_manager # pylint: disable-msg=W0603
 
   assert not _http_manager, "RPC module initialized more than once"
 
@@ -68,7 +69,7 @@ def Shutdown():
   Must be called before quitting the program.
 
   """
-  global _http_manager
+  global _http_manager # pylint: disable-msg=W0603
 
   if _http_manager:
     _http_manager.Shutdown()

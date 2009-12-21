@@ -24,6 +24,10 @@ This module introduces a simple abstraction over the serialization
 backend (currently json).
 
 """
+# pylint: disable-msg=C0103
+
+# C0103: Invalid name, since pylint doesn't see that Dump points to a
+# function and not a constant
 
 import simplejson
 import re

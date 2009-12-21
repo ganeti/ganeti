@@ -198,12 +198,12 @@ SYNC_OPT = make_option("--sync", dest="do_locking",
                        " in order to ensure more consistent results")
 
 
-def ARGS_FIXED(val):
+def ARGS_FIXED(val): # pylint: disable-msg=C0103
   """Macro-like function denoting a fixed number of arguments"""
   return -val
 
 
-def ARGS_ATLEAST(val):
+def ARGS_ATLEAST(val): # pylint: disable-msg=C0103
   """Macro-like function denoting a minimum number of arguments"""
   return val
 
@@ -797,8 +797,8 @@ def GenerateTable(headers, fields, separator, data,
   if unitfields is None:
     unitfields = []
 
-  numfields = utils.FieldSet(*numfields)
-  unitfields = utils.FieldSet(*unitfields)
+  numfields = utils.FieldSet(*numfields)   # pylint: disable-msg=W0142
+  unitfields = utils.FieldSet(*unitfields) # pylint: disable-msg=W0142
 
   format_fields = []
   for field in fields:

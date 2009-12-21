@@ -130,11 +130,12 @@ def InitAndVerifyQueue(must_lock):
 
       if serial is None:
         # There must be a serious problem
-        raise errors.JobQueueError("Can't read/parse the job queue serial file")
+        raise errors.JobQueueError("Can't read/parse the job queue"
+                                   " serial file")
 
       if not must_lock:
-        # There's no need for more error handling. Closing the lock file below in
-        # case of an error will unlock it anyway.
+        # There's no need for more error handling. Closing the lock
+        # file below in case of an error will unlock it anyway.
         queue_lock.Unlock()
 
   except:
