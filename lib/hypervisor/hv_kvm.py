@@ -707,10 +707,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                        vnc_bind_address)
 
     if hvparams[constants.HV_VNC_X509_VERIFY] and \
-      not hvparams[constants.HV_VNC_X509]:
-        raise errors.HypervisorError("%s must be defined, if %s is" %
-                                     (constants.HV_VNC_X509,
-                                      constants.HV_VNC_X509_VERIFY))
+           not hvparams[constants.HV_VNC_X509]:
+      raise errors.HypervisorError("%s must be defined, if %s is" %
+                                   (constants.HV_VNC_X509,
+                                    constants.HV_VNC_X509_VERIFY))
 
     if hvparams[constants.HV_VNC_X509]:
       if not os.path.isabs(hvparams[constants.HV_VNC_X509]):
@@ -777,9 +777,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     vnc_bind_address = hvparams[constants.HV_VNC_BIND_ADDRESS]
     if vnc_bind_address and not utils.IsValidIP(vnc_bind_address) and \
-       not os.path.isdir(vnc_bind_address):
-       raise errors.HypervisorError("Instance vnc bind address must be either"
-                                    " an ip address or an existing directory")
+           not os.path.isdir(vnc_bind_address):
+      raise errors.HypervisorError("Instance vnc bind address must be either"
+                                   " an ip address or an existing directory")
 
     vnc_x509 = hvparams[constants.HV_VNC_X509]
     if vnc_x509 and not os.path.isdir(vnc_x509):
