@@ -5218,7 +5218,8 @@ class LUReplaceDisks(LogicalUnit):
     if len(ial.nodes) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (len(ial.nodes), ial.required_nodes))
+                                 (self.op.iallocator,
+                                  len(ial.nodes), ial.required_nodes))
     self.op.remote_node = ial.nodes[0]
     self.LogInfo("Selected new secondary for the instance: %s",
                  self.op.remote_node)

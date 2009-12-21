@@ -68,7 +68,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       try:
         inst_id = fh.readline().strip()
         memory = utils.TryConvert(int, fh.readline().strip())
-        vcpus = utils.TryConvert(fh.readline().strip())
+        vcpus = utils.TryConvert(int, fh.readline().strip())
         stat = "---b-"
         times = "0"
         return (instance_name, inst_id, memory, vcpus, stat, times)
