@@ -21,7 +21,10 @@
 
 """Module implementing the master-side code."""
 
-# pylint: disable-msg=W0613,W0201
+# pylint: disable-msg=W0201
+
+# W0201 since most LU attributes are defined in CheckPrereq or similar
+# functions
 
 import os
 import os.path
