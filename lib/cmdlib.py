@@ -335,6 +335,14 @@ class NoHooksLU(LogicalUnit): # pylint: disable-msg=W0223
   HPATH = None
   HTYPE = None
 
+  def BuildHooksEnv(self):
+    """Empty BuildHooksEnv for NoHooksLu.
+
+    This just raises an error.
+
+    """
+    assert False, "BuildHooksEnv called for NoHooksLUs"
+
 
 def _GetWantedNodes(lu, nodes):
   """Returns list of checked and expanded node names.
