@@ -62,4 +62,4 @@ instance JSON JobStatus where
                    J.Ok "success" -> J.Ok JobSuccess
                    J.Ok "canceled" -> J.Ok JobCanceled
                    J.Ok "error" -> J.Ok JobError
-                   _ -> J.Error ("Unkown job status " ++ show s)
+                   _ -> J.Error ("Unknown job status " ++ show s)
