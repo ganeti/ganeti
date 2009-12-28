@@ -62,6 +62,7 @@ Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
 	sed -e "s/%ver%/$$(cat version)/" < $< > $@
 
 dist: regen-version Ganeti/HTools/Version.hs doc
+	set -e ; \
 	VN=$$(cat version|sed 's/^v//') ; \
 	PFX="ganeti-htools-$$VN" ; \
 	ANAME="$$PFX.tar" ; \
@@ -70,7 +71,13 @@ dist: regen-version Ganeti/HTools/Version.hs doc
 	tar -r -f $$ANAME --owner root --group root \
 	    --transform="s,^,$$PFX/," version apidoc $(DOCS) ; \
 	gzip -v9 $$ANAME ; \
-	tar tzvf $$ANAME.gz
+	TMPDIR=$$(mktemp -d) ; \
+	tar xzf $$ANAME.gz -C $$TMPDIR; \
+	(cd $$TMPDIR/$$PFX; make; make clean; make check); \
+	rm -rf $$TMPDIR ; \
+	tar tzvf $$ANAME.gz ; \
+	sha1sum $$ANAME.gz ; \
+	echo "Archive $$ANAME.gz created."
 
 check: test
 	rm -f *.tix *.mix
