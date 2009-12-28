@@ -1206,6 +1206,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
         # we need the children open in case the device itself has to
         # be assembled
         try:
+          # pylint: disable-msg=E1103
           crdev.Open()
         except errors.BlockDeviceError, err:
           _Fail("Can't make child '%s' read-write: %s", child, err)
@@ -1340,6 +1341,7 @@ def BlockdevAssemble(disk, owner, as_primary):
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, bdev.BlockDev):
+      # pylint: disable-msg=E1103
       result = result.dev_path
   except errors.BlockDeviceError, err:
     _Fail("Error while assembling disk: %s", err, exc=True)
@@ -2627,7 +2629,9 @@ class HooksRunner(object):
     """
     if hooks_base_dir is None:
       hooks_base_dir = constants.HOOKS_BASE_DIR
-    self._BASE_DIR = hooks_base_dir
+    # yeah, _BASE_DIR is not valid for attributes, we use it like a
+    # constant
+    self._BASE_DIR = hooks_base_dir # pylint: disable-msg=C0103
 
   @staticmethod
   def ExecHook(script, env):

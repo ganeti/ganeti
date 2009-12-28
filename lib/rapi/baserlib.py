@@ -23,6 +23,10 @@
 
 """
 
+# pylint: disable-msg=C0103
+
+# C0103: Invalid name, since the R_* names are not conforming
+
 import logging
 
 from ganeti import luxi

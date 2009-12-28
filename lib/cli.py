@@ -1531,8 +1531,8 @@ def GenerateTable(headers, fields, separator, data,
   if unitfields is None:
     unitfields = []
 
-  numfields = utils.FieldSet(*numfields)
-  unitfields = utils.FieldSet(*unitfields)
+  numfields = utils.FieldSet(*numfields)   # pylint: disable-msg=W0142
+  unitfields = utils.FieldSet(*unitfields) # pylint: disable-msg=W0142
 
   format_fields = []
   for field in fields:
