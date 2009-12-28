@@ -826,9 +826,9 @@ class ConfigWriter:
     """
     if not item.uuid:
       item.uuid = self._GenerateUniqueID(ec_id)
-    elif item.uuid in self._AllIDs(temporary=True):
-      raise errors.ConfigurationError("Cannot add '%s': UUID already in use" %
-                                      (item.name, item.uuid))
+    elif item.uuid in self._AllIDs(include_temporary=True):
+      raise errors.ConfigurationError("Cannot add '%s': UUID %s already"
+                                      " in use" % (item.name, item.uuid))
 
   def _SetInstanceStatus(self, instance_name, status):
     """Set the instance's status to a given value.
