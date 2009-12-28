@@ -4794,7 +4794,7 @@ class LUMoveInstance(LogicalUnit):
     for idx, dsk in enumerate(instance.disks):
       if dsk.dev_type not in (constants.LD_LV, constants.LD_FILE):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
-                                   " cannot copy", errors.ECODE_STATE)
+                                   " cannot copy" % idx, errors.ECODE_STATE)
 
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
