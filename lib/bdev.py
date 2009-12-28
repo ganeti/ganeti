@@ -1820,6 +1820,22 @@ class FileStorage(BlockDev):
       if err.errno != errno.ENOENT:
         _ThrowError("Can't remove file '%s': %s", self.dev_path, err)
 
+  def Rename(self, new_id):
+    """Renames the file.
+
+    """
+    # TODO: implement rename for file-based storage
+    _ThrowError("Rename is not supported for file-based storage")
+
+  def Grow(self, amount):
+    """Grow the file
+
+    @param amount: the amount (in mebibytes) to grow with
+
+    """
+    # TODO: implement grow for file-based storage
+    _ThrowError("Grow not supported for file-based storage")
+
   def Attach(self):
     """Attach to an existing file.
 
