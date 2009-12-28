@@ -198,7 +198,7 @@ def main():
     if vrfy:
       logging.error("Errors after conversion:")
       for item in vrfy:
-        logging.error(" - %s" % item)
+        logging.error(" - %s", item)
     del cfg
     logging.info("File loaded successfully")
 

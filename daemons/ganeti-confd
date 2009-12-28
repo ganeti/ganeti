@@ -67,7 +67,7 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
     self.port = port
     self.processor = processor
     self.bind((bind_address, port))
-    logging.debug("listening on ('%s':%d)" % (bind_address, port))
+    logging.debug("listening on ('%s':%d)", bind_address, port)
 
   # this method is overriding a daemon.AsyncUDPSocket method
   def handle_datagram(self, payload_in, ip, port):
@@ -134,7 +134,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     # IN_IGNORED event from inotify, because of the file removal (which is
     # contextual with the replacement). In such a case we need to create
     # another watcher for the "new" file.
-    logging.debug("Received 'ignored' inotify event for %s" % event.path)
+    logging.debug("Received 'ignored' inotify event for %s", event.path)
     self.watch_handle = None
 
     try:
@@ -144,7 +144,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
       # going to realod the file after setting up the new watch.
       self.callback(False)
     except errors.ConfdFatalError, err:
-      logging.critical("Critical error, shutting down: %s" % err)
+      logging.critical("Critical error, shutting down: %s", err)
       sys.exit(constants.EXIT_FAILURE)
     except:
       # we need to catch any exception here, log it, but proceed, because even
@@ -157,12 +157,12 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     # usually happen in Ganeti, as the config file is normally replaced by a
     # new one, at filesystem level, rather than actually modified (see
     # utils.WriteFile)
-    logging.debug("Received 'modify' inotify event for %s" % event.path)
+    logging.debug("Received 'modify' inotify event for %s", event.path)
 
     try:
       self.callback(True)
     except errors.ConfdFatalError, err:
-      logging.critical("Critical error, shutting down: %s" % err)
+      logging.critical("Critical error, shutting down: %s", err)
       sys.exit(constants.EXIT_FAILURE)
     except:
       # we need to catch any exception here, log it, but proceed, because even
@@ -171,7 +171,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
       logging.error("Unexpected exception", exc_info=True)
 
   def process_default(self, event):
-    logging.error("Received unhandled inotify event: %s" % event)
+    logging.error("Received unhandled inotify event: %s", event)
 
 
 class ConfdConfigurationReloader(object):

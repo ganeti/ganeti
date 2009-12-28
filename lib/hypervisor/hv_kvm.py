@@ -376,9 +376,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
             vnc_arg = '%s:%d' % (vnc_bind_address, display)
         else:
           logging.error("Network port is not a valid VNC display (%d < %d)."
-                        " Not starting VNC" %
-                        (instance.network_port,
-                         constants.VNC_BASE_PORT))
+                        " Not starting VNC", instance.network_port,
+                        constants.VNC_BASE_PORT)
           vnc_arg = 'none'
 
         # Only allow tls and other option when not binding to a file, for now.
@@ -686,7 +685,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           raise errors.HypervisorError("Migration %s at the kvm level" %
                                        status)
         else:
-          logging.info("KVM: unknown migration status '%s'" % status)
+          logging.info("KVM: unknown migration status '%s'", status)
           time.sleep(2)
 
     utils.KillProcess(pid)
