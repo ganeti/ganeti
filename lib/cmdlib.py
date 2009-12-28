@@ -1163,7 +1163,7 @@ class LUVerifyCluster(LogicalUnit):
         # check that ':' is not present in PV names, since it's a
         # special character for lvcreate (denotes the range of PEs to
         # use on the PV)
-        for size, pvname, owner_vg in pvlist:
+        for _, pvname, owner_vg in pvlist:
           test = ":" in pvname
           _ErrorIf(test, self.ENODELVM, node, "Invalid character ':' in PV"
                    " '%s' of VG '%s'", pvname, owner_vg)
@@ -1594,7 +1594,6 @@ class LUVerifyCluster(LogicalUnit):
       assert hooks_results, "invalid result from hooks"
 
       for node_name in hooks_results:
-        show_node_header = True
         res = hooks_results[node_name]
         msg = res.fail_msg
         test = msg and not res.offline
@@ -1684,7 +1683,7 @@ class LUVerifyDisks(NoHooksLU):
         continue
 
       lvs = node_res.payload
-      for lv_name, (_, lv_inactive, lv_online) in lvs.items():
+      for lv_name, (_, _, lv_online) in lvs.items():
         inst = nv_dict.pop((node, lv_name), None)
         if (not lv_online and inst is not None
             and inst.name not in res_instances):
@@ -2475,7 +2474,7 @@ class LURemoveNode(LogicalUnit):
     # Run post hooks on the node before it's removed
     hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
     try:
-      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
+      hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
     except:
       self.LogWarning("Errors occurred running hooks on %s" % node.name)
 
@@ -2592,7 +2591,7 @@ class LUQueryNodes(NoHooksLU):
     if inst_fields & frozenset(self.op.output_fields):
       inst_data = self.cfg.GetAllInstancesInfo()
 
-      for instance_name, inst in inst_data.items():
+      for inst in inst_data.values():
         if inst.primary_node in node_to_primary:
           node_to_primary[inst.primary_node].add(inst.name)
         for secnode in inst.secondary_nodes:
@@ -4067,7 +4066,7 @@ class LURecreateInstanceDisks(LogicalUnit):
 
     """
     to_skip = []
-    for idx, disk in enumerate(self.instance.disks):
+    for idx, _ in enumerate(self.instance.disks):
       if idx not in self.op.disks: # disk idx has not been passed in
         to_skip.append(idx)
         continue
@@ -6795,7 +6794,7 @@ class TLReplaceDisks(Tasklet):
     return iv_names
 
   def _CheckDevices(self, node_name, iv_names):
-    for name, (dev, old_lvs, new_lvs) in iv_names.iteritems():
+    for name, (dev, _, _) in iv_names.iteritems():
       self.cfg.SetDiskID(dev, node_name)
 
       result = self.rpc.call_blockdev_find(node_name, dev)
@@ -6811,7 +6810,7 @@ class TLReplaceDisks(Tasklet):
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
   def _RemoveOldStorage(self, node_name, iv_names):
-    for name, (dev, old_lvs, _) in iv_names.iteritems():
+    for name, (_, old_lvs, _) in iv_names.iteritems():
       self.lu.LogInfo("Remove logical volumes for %s" % name)
 
       for lv in old_lvs:
@@ -7006,6 +7005,7 @@ class TLReplaceDisks(Tasklet):
       if self.instance.primary_node == o_node1:
         p_minor = o_minor1
       else:
+        assert self.instance.primary_node == o_node2, "Three-node instance?"
         p_minor = o_minor2
 
       new_alone_id = (self.instance.primary_node, self.new_node, None,
@@ -7809,7 +7809,7 @@ class LUSetInstanceParams(LogicalUnit):
       raise errors.OpPrereqError("Disk operations not supported for"
                                  " diskless instances",
                                  errors.ECODE_INVAL)
-    for disk_op, disk_dict in self.op.disks:
+    for disk_op, _ in self.op.disks:
       if disk_op == constants.DDM_REMOVE:
         if len(instance.disks) == 1:
           raise errors.OpPrereqError("Cannot remove the last disk of"
@@ -7853,7 +7853,6 @@ class LUSetInstanceParams(LogicalUnit):
 
     result = []
     instance = self.instance
-    cluster = self.cluster
     # disk changes
     for disk_op, disk_dict in self.op.disks:
       if disk_op == constants.DDM_REMOVE:

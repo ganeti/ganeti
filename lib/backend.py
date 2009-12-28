@@ -1516,7 +1516,7 @@ def BlockdevGetsize(disks):
   for cf in disks:
     try:
       rbd = _RecursiveFindBD(cf)
-    except errors.BlockDeviceError, err:
+    except errors.BlockDeviceError:
       result.append(None)
       continue
     if rbd is None:

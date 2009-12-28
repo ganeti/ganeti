@@ -340,7 +340,7 @@ def WaitForSocketCondition(sock, event, timeout):
       if not io_events:
         # Timeout
         return None
-      for (evfd, evcond) in io_events:
+      for (_, evcond) in io_events:
         if evcond & check:
           return evcond
   finally:

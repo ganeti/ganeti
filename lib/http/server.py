@@ -504,7 +504,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
 
     for child in self._children:
       try:
-        pid, status = os.waitpid(child, os.WNOHANG)
+        pid, _ = os.waitpid(child, os.WNOHANG)
       except os.error:
         pid = None
       if pid and pid in self._children:

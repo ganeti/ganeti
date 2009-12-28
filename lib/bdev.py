@@ -79,7 +79,7 @@ def _CanReadDevice(path):
   try:
     utils.ReadFile(path, size=_DEVICE_READ_SIZE)
     return True
-  except EnvironmentError, err:
+  except EnvironmentError:
     logging.warning("Can't read from device %s", path, exc_info=True)
     return False
 
@@ -623,7 +623,7 @@ class LogicalVolume(BlockDev):
       _ThrowError("Can't compute PV info for vg %s", self._vg_name)
     pvs_info.sort()
     pvs_info.reverse()
-    free_size, pv_name, _ = pvs_info[0]
+    free_size, _, _ = pvs_info[0]
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)

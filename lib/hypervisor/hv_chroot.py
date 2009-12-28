@@ -97,7 +97,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     fh = open("/proc/mounts", "r")
     try:
       for line in fh:
-        fstype, mountpoint, rest = line.split(" ", 2)
+        _, mountpoint, _ = line.split(" ", 2)
         if (mountpoint.startswith(path) and
             mountpoint != path):
           data.append(mountpoint)

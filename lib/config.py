@@ -424,7 +424,7 @@ class ConfigWriter:
                        node.offline))
 
     # drbd minors check
-    d_map, duplicates = self._UnlockedComputeDRBDMap()
+    _, duplicates = self._UnlockedComputeDRBDMap()
     for node, minor, instance_a, instance_b in duplicates:
       result.append("DRBD minor %d on node %s is assigned twice to instances"
                     " %s and %s" % (minor, node, instance_a, instance_b))

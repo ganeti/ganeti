@@ -240,7 +240,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance_name)
+    _, pid, alive = self._InstancePidAlive(instance_name)
     if not alive:
       return None
 
@@ -278,7 +278,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if utils.IsProcessAlive(utils.ReadPidFile(filename)):
         try:
           info = self.GetInstanceInfo(name)
-        except errors.HypervisorError, err:
+        except errors.HypervisorError:
           continue
         if info:
           data.append(info)
@@ -470,7 +470,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param incoming: (target_host_ip, port)
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    pidfile, _, alive = self._InstancePidAlive(instance.name)
     hvp = instance.hvparams
     if alive:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
@@ -581,7 +581,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # For some reason if we do a 'send-key ctrl-alt-delete' to the control
     # socket the instance will stop, but now power up again. So we'll resort
     # to shutdown and restart.
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    _, _, alive = self._InstancePidAlive(instance.name)
     if not alive:
       raise errors.HypervisorError("Failed to reboot instance %s:"
                                    " not running" % instance.name)

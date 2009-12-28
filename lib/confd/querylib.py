@@ -187,7 +187,6 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
         instances_list = query[constants.CONFD_REQQ_IPLIST]
         mode = constants.CONFD_REQQ_IPLIST
       else:
-        status = constants.CONFD_REPL_STATUS_ERROR
         logging.debug("missing IP or IPLIST in query dict")
         return QUERY_ARGUMENT_ERROR
 
