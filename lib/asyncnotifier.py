@@ -25,9 +25,9 @@
 import asyncore
 
 try:
-    from pyinotify import pyinotify
+  from pyinotify import pyinotify
 except ImportError:
-    import pyinotify
+  import pyinotify
 
 
 class AsyncNotifier(asyncore.file_dispatcher):
