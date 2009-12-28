@@ -94,11 +94,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     dirs = [(dname, constants.RUN_DIRS_MODE) for dname in self._DIRS]
     utils.EnsureDirs(dirs)
 
+  def _InstancePidFile(self, instance_name):
+    """Returns the instance pidfile.
+
+    """
+    pidfile = "%s/%s" % (self._PIDS_DIR, instance_name)
+    return pidfile
+
   def _InstancePidAlive(self, instance_name):
     """Returns the instance pid and pidfile
 
     """
-    pidfile = "%s/%s" % (self._PIDS_DIR, instance_name)
+    pidfile = self._InstancePidFile(instance_name)
     pid = utils.ReadPidFile(pidfile)
     alive = utils.IsProcessAlive(pid)
 
@@ -289,7 +296,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    pidfile  = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
     kvm_cmd.extend(['-m', instance.beparams[constants.BE_MEMORY]])
