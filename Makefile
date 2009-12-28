@@ -43,6 +43,7 @@ maintainer-clean:
 clean:
 	rm -f $(HALLPROGS)
 	rm -f *.o *.prof *.ps *.stat *.aux *.hi
+	rm -f Ganeti/HTools/Version.hs
 	cd Ganeti && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 	cd Ganeti/HTools && rm -f *.o *.prof *.ps *.stat *.aux *.hi
 
