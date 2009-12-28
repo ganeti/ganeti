@@ -111,6 +111,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return (pidfile, pid, alive)
 
+  def _CheckDown(self, instance_name):
+    """Raises an error unless the given instance is down.
+
+    """
+    alive = self._InstancePidAlive(instance_name)[2]
+    if alive:
+      raise errors.HypervisorError("Failed to start instance %s: %s" %
+                                   (instance_name, "already running"))
+
   @classmethod
   def _InstanceMonitor(cls, instance_name):
     """Returns the instance monitor socket name
@@ -477,11 +486,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param incoming: (target_host_ip, port)
 
     """
-    pidfile, _, alive = self._InstancePidAlive(instance.name)
     hvp = instance.hvparams
-    if alive:
-      raise errors.HypervisorError("Failed to start instance %s: %s" %
-                                   (instance.name, "already running"))
+    name = instance.name
+    self._CheckDown(name)
 
     temp_files = []
 
@@ -519,12 +526,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd(kvm_cmd)
     if result.failed:
       raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
-                                   (instance.name, result.fail_reason,
-                                    result.output))
+                                   (name, result.fail_reason, result.output))
 
-    if not utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
-      raise errors.HypervisorError("Failed to start instance %s" %
-                                   (instance.name))
+    if not self._InstancePidAlive(name)[2]:
+      raise errors.HypervisorError("Failed to start instance %s" % name)
 
     if vnc_pwd:
       change_cmd = 'change vnc password %s' % vnc_pwd
@@ -537,11 +542,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Start an instance.
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
-    if alive:
-      raise errors.HypervisorError("Failed to start instance %s: %s" %
-                                   (instance.name, "already running"))
-
+    self._CheckDown(instance.name)
     kvm_runtime = self._GenerateKVMRuntime(instance, block_devices)
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
