@@ -2320,10 +2320,9 @@ class LUDiagnoseOS(NoHooksLU):
     """
 
   @staticmethod
-  def _DiagnoseByOS(node_list, rlist):
+  def _DiagnoseByOS(rlist):
     """Remaps a per-node return list into an a per-os per-node dictionary
 
-    @param node_list: a list with the names of all nodes
     @param rlist: a map with node names as keys and OS objects as values
 
     @rtype: dict
@@ -2361,7 +2360,7 @@ class LUDiagnoseOS(NoHooksLU):
     """
     valid_nodes = [node for node in self.cfg.GetOnlineNodeList()]
     node_data = self.rpc.call_os_diagnose(valid_nodes)
-    pol = self._DiagnoseByOS(valid_nodes, node_data)
+    pol = self._DiagnoseByOS(node_data)
     output = []
     calc_valid = self._FIELDS_NEEDVALID.intersection(self.op.output_fields)
     calc_variants = "variants" in self.op.output_fields
