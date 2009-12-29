@@ -26,11 +26,12 @@ pass to and from external parties.
 
 """
 
-# pylint: disable-msg=E0203
+# pylint: disable-msg=E0203,W0201
 
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitely initialise its members
 
+# W0201: Attribute '%s' defined outside __init__
 
 import ConfigParser
 import re
@@ -153,7 +154,7 @@ class ConfigObject(object):
       raise errors.ConfigurationError("Invalid object passed to FromDict:"
                                       " expected dict, got %s" % type(val))
     val_str = dict([(str(k), v) for k, v in val.iteritems()])
-    obj = cls(**val_str)
+    obj = cls(**val_str) # pylint: disable-msg=W0142
     return obj
 
   @staticmethod

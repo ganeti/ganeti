@@ -18,8 +18,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-""" Ganeti Remote API master script.
+"""Ganeti Remote API master script.
+
 """
+
+# pylint: disable-msg=C0103,W0142
+
+# C0103: Invalid name ganeti-watcher
 
 import glob
 import logging

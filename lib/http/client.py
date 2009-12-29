@@ -333,7 +333,7 @@ class HttpClientWorker(workerpool.BaseWorker):
   """HTTP client worker class.
 
   """
-  def RunTask(self, pend_req):
+  def RunTask(self, pend_req): # pylint: disable-msg=W0221
     try:
       HttpClientRequestExecutor(pend_req.request)
     finally:

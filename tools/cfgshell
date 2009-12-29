@@ -152,7 +152,7 @@ class ConfigShell(cmd.Cmd):
       arg = None
     try:
       self.cfg = config.ConfigWriter(cfg_file=arg, offline=True)
-      self.parents = [self.cfg._config_data]
+      self.parents = [self.cfg._config_data] # pylint: disable-msg=W0212
       self.path = []
     except errors.ConfigurationError, err:
       print "Error: %s" % str(err)
@@ -284,7 +284,7 @@ class ConfigShell(cmd.Cmd):
     if self.cfg.VerifyConfig():
       print "Config data does not validate, refusing to save."
       return False
-    self.cfg._WriteConfig()
+    self.cfg._WriteConfig() # pylint: disable-msg=W0212
 
   def do_rm(self, line):
     """Removes an instance or a node.
@@ -294,7 +294,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    data = self.cfg._config_data
+    data = self.cfg._config_data  # pylint: disable-msg=W0212
     if pointer not in (data.instances, data.nodes):
       print "Can only delete instances and nodes"
       return False

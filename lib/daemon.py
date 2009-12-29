@@ -105,7 +105,7 @@ class AsyncUDPSocket(asyncore.dispatcher):
           raise
       ip, port = address
       self.handle_datagram(payload, ip, port)
-    except:
+    except: # pylint: disable-msg=W0702
       # we need to catch any exception here, log it, but proceed, because even
       # if we failed handling a single request, we still want to continue.
       logging.error("Unexpected exception", exc_info=True)
@@ -139,7 +139,7 @@ class AsyncUDPSocket(asyncore.dispatcher):
         else:
           raise
       self._out_queue.pop(0)
-    except:
+    except: # pylint: disable-msg=W0702
       # we need to catch any exception here, log it, but proceed, because even
       # if we failed sending a single datagram we still want to continue.
       logging.error("Unexpected exception", exc_info=True)

@@ -392,7 +392,7 @@ def LeaveCluster(modify_ssh_setup):
     utils.RemoveFile(constants.HMAC_CLUSTER_KEY)
     utils.RemoveFile(constants.RAPI_CERT_FILE)
     utils.RemoveFile(constants.SSL_CERT_FILE)
-  except:
+  except: # pylint: disable-msg=W0702
     logging.exception("Error while removing cluster secrets")
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "stop", constants.CONFD])
@@ -1195,6 +1195,8 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       it's not required to return anything.
 
   """
+  # TODO: remove the obsolete 'size' argument
+  # pylint: disable-msg=W0613
   clist = []
   if disk.children:
     for child in disk.children:

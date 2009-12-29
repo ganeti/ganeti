@@ -261,6 +261,8 @@ class LogicalUnit(object):
     """
     raise NotImplementedError
 
+  # this is valid in this entire class even if added here
+  # pylint: disable-msg=R0201
   def HooksCallBack(self, phase, hook_results, feedback_fn, lu_result):
     """Notify the LU about the results of its hooks.
 
@@ -699,7 +701,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   }
   if override:
     args.update(override)
-  return _BuildInstanceHookEnv(**args)
+  return _BuildInstanceHookEnv(**args) # pylint: disable-msg=W0142
 
 
 def _AdjustCandidatePool(lu, exceptions):
@@ -909,6 +911,7 @@ class LUDestroyCluster(LogicalUnit):
     try:
       hm.RunPhase(constants.HOOKS_PHASE_POST, [master])
     except:
+      # pylint: disable-msg=W0702
       self.LogWarning("Errors occurred running hooks on %s" % master)
 
     result = self.rpc.call_node_stop_master(master, False)
@@ -1029,7 +1032,7 @@ class LUVerifyCluster(LogicalUnit):
 
     """
     node = nodeinfo.name
-    _ErrorIf = self._ErrorIf
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
 
     # main result, node_result should be a non-empty dict
     test = not node_result or not isinstance(node_result, dict)
@@ -1176,7 +1179,7 @@ class LUVerifyCluster(LogicalUnit):
     available on the instance's node.
 
     """
-    _ErrorIf = self._ErrorIf
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
     node_current = instanceconfig.primary_node
 
     node_vol_should = {}
@@ -1291,7 +1294,7 @@ class LUVerifyCluster(LogicalUnit):
 
     """
     self.bad = False
-    _ErrorIf = self._ErrorIf
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
     verbose = self.op.verbose
     self._feedback_fn = feedback_fn
     feedback_fn("* Verifying global settings")
@@ -2476,6 +2479,7 @@ class LURemoveNode(LogicalUnit):
     try:
       hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
     except:
+      # pylint: disable-msg=W0702
       self.LogWarning("Errors occurred running hooks on %s" % node.name)
 
     result = self.rpc.call_node_leave_cluster(node.name, modify_ssh_setup)
@@ -2489,6 +2493,7 @@ class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
 
   """
+  # pylint: disable-msg=W0142
   _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
 
@@ -3019,7 +3024,7 @@ class LUAddNode(LogicalUnit):
     # later in the procedure; this also means that if the re-add
     # fails, we are left with a non-offlined, broken node
     if self.op.readd:
-      new_node.drained = new_node.offline = False
+      new_node.drained = new_node.offline = False # pylint: disable-msg=W0201
       self.LogInfo("Readding a node, the offline/drained flags were reset")
       # if we demote the node, we do cleanup later in the procedure
       new_node.master_candidate = self.master_candidate
@@ -4261,6 +4266,7 @@ class LUQueryInstances(NoHooksLU):
   """Logical unit for querying instances.
 
   """
+  # pylint: disable-msg=W0142
   _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
   _SIMPLE_FIELDS = ["name", "os", "network_port", "hypervisor",
@@ -4322,6 +4328,8 @@ class LUQueryInstances(NoHooksLU):
     """Computes the list of nodes and their attributes.
 
     """
+    # pylint: disable-msg=R0912
+    # way too many branches here
     all_info = self.cfg.GetAllInstancesInfo()
     if self.wanted == locking.ALL_SET:
       # caller didn't specify instance names, so ordering is not important
@@ -8454,6 +8462,8 @@ class IAllocator(object):
       easy usage
 
   """
+  # pylint: disable-msg=R0902
+  # lots of instance attributes
   _ALLO_KEYS = [
     "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",

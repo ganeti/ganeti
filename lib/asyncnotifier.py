@@ -25,6 +25,7 @@
 import asyncore
 
 try:
+  # pylint: disable-msg=E0611
   from pyinotify import pyinotify
 except ImportError:
   import pyinotify
@@ -34,7 +35,7 @@ class AsyncNotifier(asyncore.file_dispatcher):
   """An asyncore dispatcher for inotify events.
 
   """
-
+  # pylint: disable-msg=W0622,W0212
   def __init__(self, watch_manager, default_proc_fun=None, map=None):
     """Initializes this class.
 

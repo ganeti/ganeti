@@ -1369,14 +1369,14 @@ def FirstFree(seq, base=0):
   return None
 
 
-def all(seq, pred=bool):
+def all(seq, pred=bool): # pylint: disable-msg=W0622
   "Returns True if pred(x) is True for every element in the iterable"
   for _ in itertools.ifilterfalse(pred, seq):
     return False
   return True
 
 
-def any(seq, pred=bool):
+def any(seq, pred=bool): # pylint: disable-msg=W0622
   "Returns True if pred(x) is True for at least one element in the iterable"
   for _ in itertools.ifilter(pred, seq):
     return True
@@ -1493,6 +1493,8 @@ def Daemonize(logfile):
   @return: the value zero
 
   """
+  # pylint: disable-msg=W0212
+  # yes, we really want os._exit
   UMASK = 077
   WORKDIR = "/"
 
@@ -1567,7 +1569,7 @@ def RemovePidFile(name):
   # TODO: we could check here that the file contains our pid
   try:
     RemoveFile(pidfilename)
-  except:
+  except: # pylint: disable-msg=W0702
     pass
 
 
@@ -1958,6 +1960,7 @@ def LockedMethod(fn):
       logging.debug(*args, **kwargs)
 
   def wrapper(self, *args, **kwargs):
+    # pylint: disable-msg=W0212
     assert hasattr(self, '_lock')
     lock = self._lock
     _LockDebug("Waiting for %s", lock)
@@ -2164,6 +2167,7 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
 
   while True:
     try:
+      # pylint: disable-msg=W0142
       return fn(*args)
     except RetryAgain:
       pass

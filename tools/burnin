@@ -83,8 +83,9 @@ def Err(msg, exit_code=1):
 
 class SimpleOpener(urllib.FancyURLopener):
   """A simple url opener"""
+  # pylint: disable-msg=W0221
 
-  def prompt_user_passwd(self, host, realm, clear_cache = 0):
+  def prompt_user_passwd(self, host, realm, clear_cache=0):
     """No-interaction version of prompt_user_passwd."""
     return None, None
 
@@ -208,7 +209,7 @@ def _DoCheckInstances(fn):
   def wrapper(self, *args, **kwargs):
     val = fn(self, *args, **kwargs)
     for instance in self.instances:
-      self._CheckInstanceAlive(instance)
+      self._CheckInstanceAlive(instance) # pylint: disable-msg=W0212
     return val
 
   return wrapper
@@ -289,7 +290,7 @@ class Burner(object):
         Log("Idempotent %s succeeded after %d retries" %
             (msg, MAX_RETRIES - retry_count))
       return val
-    except Exception, err:
+    except Exception, err: # pylint: disable-msg=W0703
       if retry_count == 0:
         Log("Non-idempotent %s failed, aborting" % (msg, ))
         raise
@@ -377,7 +378,7 @@ class Burner(object):
       Log("waiting for job %s for %s" % (jid, iname), indent=2)
       try:
         results.append(cli.PollJob(jid, cl=self.cl, feedback_fn=self.Feedback))
-      except Exception, err:
+      except Exception, err: # pylint: disable-msg=W0703
         Log("Job for %s failed: %s" % (iname, err))
     if len(results) != len(jobs):
       raise BurninFailure()
@@ -544,7 +545,7 @@ class Burner(object):
                                     disks=[i for i in range(self.disk_count)])
         Log("run %s" % mode, indent=2)
         ops.append(op)
-      self.ExecOrQueue(instance, *ops)
+      self.ExecOrQueue(instance, *ops) # pylint: disable-msg=W0142
 
   @_DoBatch(True)
   def BurnReplaceDisks2(self):
@@ -760,7 +761,7 @@ class Burner(object):
                                       ignore_secondaries=False)
         Log("reboot with type '%s'" % reboot_type, indent=2)
         ops.append(op)
-      self.ExecOrQueue(instance, *ops)
+      self.ExecOrQueue(instance, *ops) # pylint: disable-msg=W0142
 
   @_DoCheckInstances
   @_DoBatch(True)
@@ -913,7 +914,7 @@ class Burner(object):
       if not self.opts.keep_instances:
         try:
           self.BurnRemove()
-        except Exception, err:
+        except Exception, err:  # pylint: disable-msg=W0703
           if has_err: # already detected errors, so errors in removal
                       # are quite expected
             Log("Note: error detected during instance remove: %s" % str(err))

@@ -672,6 +672,7 @@ class _R_Tags(baserlib.R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
+    # pylint: disable-msg=W0212
     return baserlib._Tags_GET(self.TAG_LEVEL, name=self.name)
 
   def PUT(self):
@@ -681,6 +682,7 @@ class _R_Tags(baserlib.R_Generic):
     you'll have back a job id.
 
     """
+    # pylint: disable-msg=W0212
     if 'tag' not in self.queryargs:
       raise http.HttpBadRequest("Please specify tag(s) to add using the"
                                 " the 'tag' parameter")
@@ -696,6 +698,7 @@ class _R_Tags(baserlib.R_Generic):
     /tags?tag=[tag]&tag=[tag]
 
     """
+    # pylint: disable-msg=W0212
     if 'tag' not in self.queryargs:
       # no we not gonna delete all tags
       raise http.HttpBadRequest("Cannot delete all tags - please specify"

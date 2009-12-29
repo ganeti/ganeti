@@ -98,7 +98,7 @@ def main():
   """Main program.
 
   """
-  global options, args
+  global options, args # pylint: disable-msg=W0603
 
   program = os.path.basename(sys.argv[0])
 

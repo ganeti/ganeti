@@ -299,7 +299,7 @@ class HttpVersionNotSupported(HttpException):
   code = 505
 
 
-class HttpJsonConverter:
+class HttpJsonConverter: # pylint: disable-msg=W0232
   CONTENT_TYPE = "application/json"
 
   def Encode(self, data):

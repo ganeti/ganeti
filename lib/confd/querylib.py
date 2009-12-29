@@ -50,7 +50,7 @@ class ConfdQuery(object):
     """
     self.reader = reader
 
-  def Exec(self, query):
+  def Exec(self, query): # pylint: disable-msg=R0201
     """Process a single UDP request from a client.
 
     Different queries should override this function, which by defaults returns

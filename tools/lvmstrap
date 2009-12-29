@@ -130,7 +130,7 @@ def ParseOptions():
   Returns:
     (options, args), as returned by OptionParser.parse_args
   """
-  global verbose_flag
+  global verbose_flag # pylint: disable-msg=W0603
 
   parser = optparse.OptionParser(usage="\n%s" % USAGE,
                                  version="%%prog (ganeti) %s" %

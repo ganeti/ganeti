@@ -21,8 +21,13 @@
 
 """Ganeti node daemon"""
 
-# functions in this module need to have a given name structure, so:
-# pylint: disable-msg=C0103
+# pylint: disable-msg=C0103,W0142
+
+# C0103: Functions in this module need to have a given name structure,
+# and the name of the daemon doesn't match
+
+# W0142: Used * or ** magic, since we do use it extensively in this
+# module
 
 import os
 import sys
@@ -66,7 +71,7 @@ def _RequireJobQueueLock(fn):
   return wrapper
 
 
-class NodeHttpServer(http.server.HttpServer):
+class NodeHttpServer(http.server.HttpServer): # pylint: disable-msg=R0904
   """The server implementation.
 
   This class holds all methods exposed over the RPC interface.
@@ -786,7 +791,7 @@ def ExecNoded(options, args):
   """Main node daemon function, executed with the PID file held.
 
   """
-  global queue_lock
+  global queue_lock # pylint: disable-msg=W0603
 
   # Read SSL certificate
   if options.ssl:

@@ -163,7 +163,7 @@ class RpcResult(object):
       args = (msg, prereq)
     else:
       args = (msg, )
-    raise ec(*args)
+    raise ec(*args) # pylint: disable-msg=W0142
 
 
 class Client:

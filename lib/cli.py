@@ -170,7 +170,7 @@ UN_PREFIX = "-"
 
 
 class _Argument:
-  def __init__(self, min=0, max=None):
+  def __init__(self, min=0, max=None): # pylint: disable-msg=W0622
     self.min = min
     self.max = max
 
@@ -185,6 +185,7 @@ class ArgSuggest(_Argument):
   Value can be any of the ones passed to the constructor.
 
   """
+  # pylint: disable-msg=W0622
   def __init__(self, min=0, max=None, choices=None):
     _Argument.__init__(self, min=min, max=max)
     self.choices = choices
