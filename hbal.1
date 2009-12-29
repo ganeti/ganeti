@@ -120,27 +120,32 @@ components:
 .RS 4
 .TP 3
 \(em
-coefficient of variance of the percent of free memory
+standard deviation of the percent of free memory
 .TP
 \(em
-coefficient of variance of the percent of reserved memory
+standard deviation of the percent of reserved memory
 .TP
 \(em
-coefficient of variance of the percent of free disk
+standard deviation of the percent of free disk
 .TP
 \(em
-percentage of nodes failing N+1 check
+count of nodes failing N+1 check
 .TP
 \(em
-percentage of instances living (either as primary or secondary) on
+count of instances living (either as primary or secondary) on
 offline nodes
 .TP
 \(em
-coefficent of variance of the ratio of virtual-to-physical cpus (for
-primary instaces of the node)
+count of instances living (as primary) on offline nodes; this differs
+from the above metric by helping failover of such instances in 2-node
+clusters
 .TP
 \(em
-coefficients of variance of the dynamic load on the nodes, for cpus,
+standard deviation of the ratio of virtual-to-physical cpus (for
+primary instances of the node)
+.TP
+\(em
+standard deviation of the dynamic load on the nodes, for cpus,
 memory, disk and network
 .RE
 
@@ -151,25 +156,18 @@ instances, and that no node keeps too much memory reserved for
 N+1. And finally, the N+1 percentage helps guide the algorithm towards
 eliminating N+1 failures, if possible.
 
-Except for the N+1 failures and offline instances percentage, we use
-the coefficient of variance since this brings the values into the same
-unit so to speak, and with a restrict domain of values (between zero
-and one). The percentage of N+1 failures, while also in this numeric
-range, doesn't actually has the same meaning, but it has shown to work
-well.
-
-The other alternative, using for N+1 checks the coefficient of
-variance of (N+1 fail=1, N+1 pass=0) across nodes could hint the
-algorithm to make more N+1 failures if most nodes are N+1 fail
-already. Since this (making N+1 failures) is not allowed by other
-rules of the algorithm, so the N+1 checks would simply not work
-anymore in this case.
-
-The offline instances percentage (meaning the percentage of instances
-living on offline nodes) will cause the algorithm to actively move
-instances away from offline nodes. This, coupled with the restriction
-on placement given by offline nodes, will cause evacuation of such
-nodes.
+Except for the N+1 failures and offline instances counts, we use the
+standard deviation since when used with values within a fixed range
+(we use percents expressed as values between zero and one) it gives
+consistent results across all metrics (there are some small issues
+related to different means, but it works generally well). The 'count'
+type values will have higher score and thus will matter more for
+balancing; thus these are better for hard constraints (like evacuating
+nodes and fixing N+1 failures). For example, the offline instances
+count (i.e. the number of instances living on offline nodes) will
+cause the algorithm to actively move instances away from offline
+nodes. This, coupled with the restriction on placement given by
+offline nodes, will cause evacuation of such nodes.
 
 The dynamic load values need to be read from an external file (Ganeti
 doesn't supply them), and are computed for each node as: sum of
@@ -182,10 +180,11 @@ list" for instance over a day and by computing the delta of the cpu
 values, and feed that via the \fI-U\fR option for all instances (and
 keep the other metrics as one). For the algorithm to work, all that is
 needed is that the values are consistent for a metric across all
-instances (e.g. all instances use cpu% to report cpu usage, but they
-could represent network bandwith in Gbps). Note that it's recommended
-to not have zero as the load value for any instance metric since then
-secondary instances are not well balanced.
+instances (e.g. all instances use cpu% to report cpu usage, and not
+something related to number of CPU seconds used if the CPUs are
+different), and that they are normalised to between zero and one. Note
+that it's recommended to not have zero as the load value for any
+instance metric since then secondary instances are not well balanced.
 
 On a perfectly balanced cluster (all nodes the same size, all
 instances the same size and spread across the nodes equally), the
@@ -202,8 +201,8 @@ primary node, in effect simulating the startup of such instances.
 
 .SS EXCLUSION TAGS
 
-The exclusion tags mecanism is designed to prevent instances which run
-the same workload (e.g. two DNS servers) to land on the same node,
+The exclusion tags mechanism is designed to prevent instances which
+run the same workload (e.g. two DNS servers) to land on the same node,
 which would make the respective node a SPOF for the given service.
 
 It works by tagging instances with certain tags and then building
