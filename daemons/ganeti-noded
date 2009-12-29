@@ -787,6 +787,16 @@ class NodeHttpServer(http.server.HttpServer): # pylint: disable-msg=R0904
     return backend.ValidateHVParams(hvname, hvparams)
 
 
+def CheckNoded(_, args):
+  """Initial checks whether to run or exit with a failure.
+
+  """
+  if args: # noded doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+
+
 def ExecNoded(options, args):
   """Main node daemon function, executed with the PID file held.
 
@@ -824,7 +834,7 @@ def main():
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
-  daemon.GenericMain(constants.NODED, parser, dirs, None, ExecNoded)
+  daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded)
 
 
 if __name__ == '__main__':

@@ -329,6 +329,10 @@ def CheckConfd(options, args):
   """Initial checks whether to run exit with a failure.
 
   """
+  if args: # confd doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] [-d] [-b ADDRESS]" % sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+
   # TODO: collapse HMAC daemons handling in daemons GenericMain, when we'll
   # have more than one.
   if not os.path.isfile(constants.HMAC_CLUSTER_KEY):

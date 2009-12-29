@@ -187,9 +187,9 @@ def CheckRapi(options, args):
   """Initial checks whether to run or exit with a failure.
 
   """
-  if len(args) != 0:
-    print >> sys.stderr, "Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" % \
-        sys.argv[0]
+  if args: # rapi doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0])
     sys.exit(constants.EXIT_FAILURE)
 
   ssconf.CheckMaster(options.debug)

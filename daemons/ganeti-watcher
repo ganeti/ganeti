@@ -470,7 +470,11 @@ def main():
   """
   global client # pylint: disable-msg=W0603
 
-  options, _ = ParseOptions()
+  options, args = ParseOptions()
+
+  if args: # watcher doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] " % sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
 
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)

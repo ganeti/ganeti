@@ -538,6 +538,10 @@ def CheckMasterd(options, args):
   """Initial checks whether to run or exit with a failure.
 
   """
+  if args: # masterd doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] [-d]" % sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+
   ssconf.CheckMaster(options.debug)
 
   # If CheckMaster didn't fail we believe we are the master, but we have to
