@@ -20,7 +20,8 @@
 # This is a live-testing script for most/all of the htools
 # programs. It needs either to run on a live cluster or access to a
 # cluster via ssh and an exported LUXI interface (via socat, for
-# example).
+# example). The cluster must not be empty (otherwise the hail relocate
+# test will fail).
 
 # Use: if running on a cluster master, just running it should be
 # enough. If running remotely, set env vars as follows: LUXI to the
