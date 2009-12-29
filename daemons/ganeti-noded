@@ -71,12 +71,15 @@ def _RequireJobQueueLock(fn):
   return wrapper
 
 
-class NodeHttpServer(http.server.HttpServer): # pylint: disable-msg=R0904
+class NodeHttpServer(http.server.HttpServer):
   """The server implementation.
 
   This class holds all methods exposed over the RPC interface.
 
   """
+  # too many public methods, and unused args - all methods get params
+  # due to the API
+  # pylint: disable-msg=R0904,W0613
   def __init__(self, *args, **kwargs):
     http.server.HttpServer.__init__(self, *args, **kwargs)
     self.noded_pid = os.getpid()
@@ -797,7 +800,7 @@ def CheckNoded(_, args):
     sys.exit(constants.EXIT_FAILURE)
 
 
-def ExecNoded(options, args):
+def ExecNoded(options, _):
   """Main node daemon function, executed with the PID file held.
 
   """

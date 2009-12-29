@@ -53,6 +53,8 @@ class ConfigShell(cmd.Cmd):
   responsibility to know what they're doing.
 
   """
+  # all do_/complete_* functions follow the same API
+  # pylint: disable-msg=W0613
   prompt = "(/) "
 
   def __init__(self, cfg_file=None):

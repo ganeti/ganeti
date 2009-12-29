@@ -640,6 +640,8 @@ class HttpBase(object):
     we do on our side.
 
     """
+    # some parameters are unused, but this is the API
+    # pylint: disable-msg=W0613
     assert self._ssl_params, "SSL not initialized"
 
     return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and

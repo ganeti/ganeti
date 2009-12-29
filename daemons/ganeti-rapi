@@ -195,7 +195,7 @@ def CheckRapi(options, args):
   ssconf.CheckMaster(options.debug)
 
 
-def ExecRapi(options, args):
+def ExecRapi(options, _):
   """Main remote API function, executed with the PID file held.
 
   """

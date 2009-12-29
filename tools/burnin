@@ -87,6 +87,8 @@ class SimpleOpener(urllib.FancyURLopener):
 
   def prompt_user_passwd(self, host, realm, clear_cache=0):
     """No-interaction version of prompt_user_passwd."""
+    # we follow parent class' API
+    # pylint: disable-msg=W0613
     return None, None
 
   def http_error_default(self, url, fp, errcode, errmsg, headers):

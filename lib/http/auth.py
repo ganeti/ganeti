@@ -97,6 +97,9 @@ class HttpServerRequestAuthentication(object):
     @return: Authentication realm
 
     """
+    # today we don't have per-request filtering, but we might want to
+    # add it in the future
+    # pylint: disable-msg=W0613
     return self.AUTH_REALM
 
   def PreHandleRequest(self, req):

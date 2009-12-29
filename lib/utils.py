@@ -2409,7 +2409,8 @@ class SignalHandler(object):
     """
     self.called = False
 
-  def _HandleSignal(self, signum, frame):
+  # we don't care about arguments, but we leave them named for the future
+  def _HandleSignal(self, signum, frame): # pylint: disable-msg=W0613
     """Actual signal handling function.
 
     """

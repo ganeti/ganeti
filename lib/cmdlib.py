@@ -261,8 +261,6 @@ class LogicalUnit(object):
     """
     raise NotImplementedError
 
-  # this is valid in this entire class even if added here
-  # pylint: disable-msg=R0201
   def HooksCallBack(self, phase, hook_results, feedback_fn, lu_result):
     """Notify the LU about the results of its hooks.
 
@@ -282,6 +280,9 @@ class LogicalUnit(object):
         and hook results
 
     """
+    # API must be kept, thus we ignore the unused argument and could
+    # be a function warnings
+    # pylint: disable-msg=W0613,R0201
     return lu_result
 
   def _ExpandAndLockInstance(self):
