@@ -7607,7 +7607,8 @@ class LUSetInstanceParams(LogicalUnit):
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
-  def _GetUpdatedParams(self, old_params, update_dict,
+  @staticmethod
+  def _GetUpdatedParams(old_params, update_dict,
                         default_values, parameter_types):
     """Return the new params dict for the given params.
 

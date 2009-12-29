@@ -2751,7 +2751,8 @@ class IAllocatorRunner(object):
   the master side.
 
   """
-  def Run(self, name, idata):
+  @staticmethod
+  def Run(name, idata):
     """Run an iallocator script.
 
     @type name: str

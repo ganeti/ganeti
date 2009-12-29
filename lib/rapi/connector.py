@@ -99,7 +99,8 @@ class R_root(baserlib.R_Generic):
   """/ resource.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Show the list of mapped resources.
 
     @return: a dictionary with 'name' and 'uri' keys for each of them.
@@ -142,7 +143,8 @@ class R_2(baserlib.R_Generic):
   """ /2 resource, the root of the version 2 API.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Show the list of mapped resources.
 
     @return: a dictionary with 'name' and 'uri' keys for each of them.

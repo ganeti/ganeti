@@ -309,14 +309,16 @@ class ConfigShell(cmd.Cmd):
       else:
         print "Invalid node name"
 
-  def do_EOF(self, line):
+  @staticmethod
+  def do_EOF(line):
     """Exit the application.
 
     """
     print
     return True
 
-  def do_quit(self, line):
+  @staticmethod
+  def do_quit(line):
     """Exit the application.
 
     """

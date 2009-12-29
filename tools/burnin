@@ -675,15 +675,18 @@ class Burner(object):
       Log("remove export", indent=2)
       self.ExecOrQueue(instance, exp_op, rem_op, imp_op, erem_op)
 
-  def StopInstanceOp(self, instance):
+  @staticmethod
+  def StopInstanceOp(instance):
     """Stop given instance."""
     return opcodes.OpShutdownInstance(instance_name=instance)
 
-  def StartInstanceOp(self, instance):
+  @staticmethod
+  def StartInstanceOp(instance):
     """Start given instance."""
     return opcodes.OpStartupInstance(instance_name=instance, force=False)
 
-  def RenameInstanceOp(self, instance, instance_new):
+  @staticmethod
+  def RenameInstanceOp(instance, instance_new):
     """Rename instance."""
     return opcodes.OpRenameInstance(instance_name=instance,
                                     new_name=instance_new)

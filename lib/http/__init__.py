@@ -302,10 +302,12 @@ class HttpVersionNotSupported(HttpException):
 class HttpJsonConverter: # pylint: disable-msg=W0232
   CONTENT_TYPE = "application/json"
 
-  def Encode(self, data):
+  @staticmethod
+  def Encode(data):
     return serializer.DumpJson(data)
 
-  def Decode(self, data):
+  @staticmethod
+  def Decode(data):
     return serializer.LoadJson(data)
 
 
