@@ -355,7 +355,7 @@ def RemoveTags(opts, args):
   SubmitOpCode(op)
 
 
-def check_unit(option, opt, value):
+def check_unit(option, opt, value): # pylint: disable-msg=W0613
   """OptParsers custom converter for units.
 
   """
@@ -402,7 +402,7 @@ def _SplitKeyVal(opt, data):
   return kv_dict
 
 
-def check_ident_key_val(option, opt, value):
+def check_ident_key_val(option, opt, value):  # pylint: disable-msg=W0613
   """Custom parser for ident:key=val,key=val options.
 
   This will store the parsed values as a tuple (ident, {key: val}). As such,
@@ -430,7 +430,7 @@ def check_ident_key_val(option, opt, value):
   return retval
 
 
-def check_key_val(option, opt, value):
+def check_key_val(option, opt, value):  # pylint: disable-msg=W0613
   """Custom parser class for key=val,key=val options.
 
   This will store the parsed values as a dict {key: val}.
