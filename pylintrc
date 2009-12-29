@@ -93,6 +93,7 @@ ignore-docstrings = yes
 # Enable all checker(s) except those with the given id(s). This option
 # conflicts with the enable-checker option
 #disable-checker=
+disable-checker=similarities
 
 # Enable all messages in the listed categories (IRCWEF).
 #enable-msg-cat=
