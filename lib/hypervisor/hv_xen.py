@@ -306,13 +306,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
       return "'xm info' failed: %s, %s" % (result.fail_reason, result.output)
 
   @staticmethod
-  def _GetConfigFileDiskData(disk_template, block_devices):
+  def _GetConfigFileDiskData(block_devices):
     """Get disk directive for xen config file.
 
     This method builds the xen config disk directive according to the
     given disk_template and block_devices.
 
-    @param disk_template: string containing instance disk template
     @param block_devices: list of tuples (cfdev, rldev):
         - cfdev: dict containing ganeti config disk part
         - rldev: ganeti.bdev.BlockDev object
@@ -503,10 +502,10 @@ class XenPvmHypervisor(XenHypervisor):
       if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
         nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
 
+    disk_data = cls._GetConfigFileDiskData(block_devices)
+
     config.write("vif = [%s]\n" % ",".join(vif_data))
-    config.write("disk = [%s]\n" % ",".join(
-                 cls._GetConfigFileDiskData(instance.disk_template,
-                                            block_devices)))
+    config.write("disk = [%s]\n" % ",".join(disk_data))
 
     config.write("root = '%s'\n" % hvp[constants.HV_ROOT_PATH])
     config.write("on_poweroff = 'destroy'\n")
@@ -632,8 +631,7 @@ class XenHvmHypervisor(XenHypervisor):
         nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
-    disk_data = cls._GetConfigFileDiskData(instance.disk_template,
-                                            block_devices)
+    disk_data = cls._GetConfigFileDiskData(block_devices)
     disk_type = hvp[constants.HV_DISK_TYPE]
     if disk_type in (None, constants.HT_DISK_IOEMU):
       replacement = ",ioemu:hd"
