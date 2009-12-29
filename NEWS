@@ -1,6 +1,22 @@
 Ganeti-htools release notes
 ===========================
 
+Version 0.2.2 (Tue, 29 Dec 2009)
+--------------------------------
+
+Small release, 0.2.1 was broken and thus this was released earlier:
+
+- Release 0.2.1 broke the LUXI backend due to a typo, fixed
+- Added a live-test script that should catch errors like the above one
+  in the future (needs a working, non-empty cluster)
+- Changed RAPI and LUXI backends to treat drained nodes as offline,
+  similar to the IAllocator backend change in 0.2.0 (which was wrongly
+  marked as affecting all backends)
+- Changed the metrics for offline instances and N1 score from percent to
+  count, in order to increase the priority of evacuations
+- Added a new metric (offline primary instances) which should fix the
+  evacuation of a offline node in a 2-node cluster
+
 Version 0.2.1 (Wed,  2 Dec 2009)
 --------------------------------
 
