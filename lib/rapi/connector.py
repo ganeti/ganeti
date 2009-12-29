@@ -46,12 +46,14 @@ class Mapper:
   """Map resource to method.
 
   """
-  def __init__(self, connector=CONNECTOR):
+  def __init__(self, connector=None):
     """Resource mapper constructor.
 
     @param connector: a dictionary, mapping method name with URL path regexp
 
     """
+    if connector is None:
+      connector = CONNECTOR
     self._connector = connector
 
   def getController(self, uri):

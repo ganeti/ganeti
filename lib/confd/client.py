@@ -130,6 +130,8 @@ class ConfdClient:
     @param peers: list of peer nodes
 
     """
+    # we are actually called from init, so:
+    # pylint: disable-msg=W0201
     if not isinstance(peers, list):
       raise errors.ProgrammerError("peers must be a list")
     self._peers = peers

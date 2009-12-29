@@ -48,7 +48,7 @@ __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
 
-def FillDict(defaults_dict, custom_dict, skip_keys=[]):
+def FillDict(defaults_dict, custom_dict, skip_keys=None):
   """Basic function to apply settings on top a default dict.
 
   @type defaults_dict: dict
@@ -63,11 +63,12 @@ def FillDict(defaults_dict, custom_dict, skip_keys=[]):
   """
   ret_dict = copy.deepcopy(defaults_dict)
   ret_dict.update(custom_dict)
-  for k in skip_keys:
-    try:
-      del ret_dict[k]
-    except KeyError:
-      pass
+  if skip_keys:
+    for k in skip_keys:
+      try:
+        del ret_dict[k]
+      except KeyError:
+        pass
   return ret_dict
 
 
