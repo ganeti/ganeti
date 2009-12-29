@@ -310,8 +310,8 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
-
-  def GetLinuxNodeInfo(self):
+  @staticmethod
+  def GetLinuxNodeInfo():
     """For linux systems, return actual OS information.
 
     This is an abstraction for all non-hypervisor-based classes, where
