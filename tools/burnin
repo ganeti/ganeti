@@ -201,6 +201,39 @@ OPTIONS = [
 ARGUMENTS = [cli.ArgInstance(min=1)]
 
 
+def _DoCheckInstances(fn):
+  """Decorator for checking instances.
+
+  """
+  def wrapper(self, *args, **kwargs):
+    val = fn(self, *args, **kwargs)
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance)
+    return val
+
+  return wrapper
+
+
+def _DoBatch(retry):
+  """Decorator for possible batch operations.
+
+  Must come after the _DoCheckInstances decorator (if any).
+
+  @param retry: whether this is a retryable batch, will be
+      passed to StartBatch
+
+  """
+  def wrap(fn):
+    def batched(self, *args, **kwargs):
+      self.StartBatch(retry)
+      val = fn(self, *args, **kwargs)
+      self.CommitQueue()
+      return val
+    return batched
+
+  return wrap
+
+
 class Burner(object):
   """Burner class."""
 
@@ -349,37 +382,6 @@ class Burner(object):
     if len(results) != len(jobs):
       raise BurninFailure()
     return results
-
-  def _DoCheckInstances(fn):
-    """Decorator for checking instances.
-
-    """
-    def wrapper(self, *args, **kwargs):
-      val = fn(self, *args, **kwargs)
-      for instance in self.instances:
-        self._CheckInstanceAlive(instance)
-      return val
-
-    return wrapper
-
-  def _DoBatch(retry):
-    """Decorator for possible batch operations.
-
-    Must come after the _DoCheckInstances decorator (if any).
-
-    @param retry: whether this is a retryable batch, will be
-        passed to StartBatch
-
-    """
-    def wrap(fn):
-      def batched(self, *args, **kwargs):
-        self.StartBatch(retry)
-        val = fn(self, *args, **kwargs)
-        self.CommitQueue()
-        return val
-      return batched
-
-    return wrap
 
   def ParseOptions(self):
     """Parses the command line options.
