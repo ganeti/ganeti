@@ -81,7 +81,6 @@ def ExportInstance(opts, args):
   if not isinstance(dlist, list):
     ToStderr("Cannot parse execution results")
     return 1
-  tot_dsk = len(dlist)
   # TODO: handle diskless instances
   if dlist.count(False) == 0:
     # all OK
@@ -119,7 +118,6 @@ def RemoveExport(opts, args):
   @return: the desired exit code
 
   """
-  instance = args[0]
   op = opcodes.OpRemoveExport(instance_name=args[0])
 
   SubmitOpCode(op)

@@ -177,7 +177,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    dirs, _ = self._get_entries(pointer)
     matches = [str(name) for name in dirs if name.startswith(text)]
     return matches
 
@@ -202,7 +202,7 @@ class ConfigShell(cmd.Cmd):
       return False
 
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    dirs, _ = self._get_entries(pointer)
 
     if line not in dirs:
       print "No such child"
@@ -232,7 +232,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    _, entries = self._get_entries(pointer)
     matches = [name for name in entries if name.startswith(text)]
     return matches
 
@@ -244,7 +244,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    _, entries = self._get_entries(pointer)
     if line not in entries:
       print "No such entry"
       return False
@@ -351,7 +351,7 @@ def main():
 
   This is just a wrapper over BootStrap, to handle our own exceptions.
   """
-  options, args = ParseOptions()
+  _, args = ParseOptions()
   if args:
     cfg_file = args[0]
   else:

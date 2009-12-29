@@ -106,7 +106,7 @@ def DiagnoseOS(opts, args):
 
   has_bad = False
 
-  for os_name, os_valid, os_variants, node_data in result:
+  for os_name, _, os_variants, node_data in result:
     nodes_valid = {}
     nodes_bad = {}
     nodes_hidden = {}

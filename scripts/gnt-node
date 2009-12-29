@@ -356,8 +356,6 @@ def MigrateNode(opts, args):
 
   pinst = utils.NiceSort(pinst)
 
-  retcode = 0
-
   if not force and not AskUser("Migrate instance(s) %s?" %
                                (",".join("'%s'" % name for name in pinst))):
     return 2

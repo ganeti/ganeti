@@ -470,7 +470,7 @@ def main():
   """
   global client # pylint: disable-msg=W0603
 
-  options, args = ParseOptions()
+  options, _ = ParseOptions()
 
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)

@@ -756,7 +756,6 @@ def ReplaceDisks(opts, args):
   @return: the desired exit code
 
   """
-  instance_name = args[0]
   new_2ndary = opts.dst_node
   iallocator = opts.iallocator
   if opts.disks is None:

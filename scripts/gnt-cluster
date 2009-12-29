@@ -512,7 +512,7 @@ def SetClusterParams(opts, args):
 
   # a list of (name, dict) we can pass directly to dict() (or [])
   hvparams = dict(opts.hvparams)
-  for hv, hv_params in hvparams.iteritems():
+  for hv_params in hvparams.values():
     utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
 
   beparams = opts.beparams
