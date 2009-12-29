@@ -31,7 +31,6 @@ import sys
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import utils
-from ganeti import constants
 
 
 def ListOS(opts, args):

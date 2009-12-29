@@ -26,7 +26,6 @@ import BaseHTTPServer
 import cgi
 import logging
 import os
-import select
 import socket
 import time
 import signal

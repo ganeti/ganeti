@@ -50,7 +50,6 @@ confirming what you already got.
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitely initialise its members
 
-import socket
 import time
 import random
 

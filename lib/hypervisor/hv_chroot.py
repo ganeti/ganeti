@@ -27,10 +27,9 @@ import os
 import os.path
 import time
 import logging
-from cStringIO import StringIO
 
 from ganeti import constants
-from ganeti import errors
+from ganeti import errors # pylint: disable-msg=W0611
 from ganeti import utils
 from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError

@@ -29,7 +29,6 @@
 import sys
 
 from ganeti.cli import *
-from ganeti import cli
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import constants

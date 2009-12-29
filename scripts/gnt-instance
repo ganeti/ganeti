@@ -29,7 +29,6 @@ import sys
 import os
 import itertools
 import simplejson
-import time
 from cStringIO import StringIO
 
 from ganeti.cli import *

@@ -26,25 +26,21 @@
 
 # C0103: Invalid name ganeti-watcher
 
-import glob
 import logging
 import optparse
 import sys
 import os
 import os.path
-import signal
 
 from ganeti import constants
-from ganeti import errors
 from ganeti import http
 from ganeti import daemon
 from ganeti import ssconf
-from ganeti import utils
 from ganeti import luxi
 from ganeti import serializer
 from ganeti.rapi import connector
 
-import ganeti.http.auth
+import ganeti.http.auth   # pylint: disable-msg=W0611
 import ganeti.http.server
 
 

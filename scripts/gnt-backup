@@ -31,8 +31,6 @@ import sys
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
-from ganeti import errors
-from ganeti import utils
 
 
 _VALUE_TRUE = "true"

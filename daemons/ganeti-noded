@@ -31,7 +31,6 @@
 
 import os
 import sys
-import SocketServer
 import logging
 import signal
 
@@ -47,7 +46,7 @@ from ganeti import http
 from ganeti import utils
 from ganeti import storage
 
-import ganeti.http.server
+import ganeti.http.server # pylint: disable-msg=W0611
 
 
 queue_lock = None

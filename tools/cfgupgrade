@@ -32,7 +32,6 @@ import os.path
 import sys
 import optparse
 import logging
-import errno
 
 from ganeti import constants
 from ganeti import serializer
