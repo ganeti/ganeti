@@ -1639,16 +1639,14 @@ def _ErrnoOrStr(err):
   return detail
 
 
-def _OSOndiskAPIVersion(name, os_dir):
+def _OSOndiskAPIVersion(os_dir):
   """Compute and return the API version of a given OS.
 
-  This function will try to read the API version of the OS given by
-  the 'name' parameter and residing in the 'os_dir' directory.
+  This function will try to read the API version of the OS residing in
+  the 'os_dir' directory.
 
-  @type name: str
-  @param name: the OS name we should look for
   @type os_dir: str
-  @param os_dir: the directory inwhich we should look for the OS
+  @param os_dir: the directory in which we should look for the OS
   @rtype: tuple
   @return: tuple (status, data) with status denoting the validity and
       data holding either the vaid versions or an error message
@@ -1745,7 +1743,7 @@ def _TryOSFromDisk(name, base_dir=None):
   if os_dir is None:
     return False, "Directory for OS %s not found in search path" % name
 
-  status, api_versions = _OSOndiskAPIVersion(name, os_dir)
+  status, api_versions = _OSOndiskAPIVersion(os_dir)
   if not status:
     # push the error up
     return status, api_versions
