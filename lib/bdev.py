@@ -1573,6 +1573,8 @@ class DRBD8(BaseDRBD):
     the attach if can return success.
 
     """
+    # TODO: Rewrite to not use a for loop just because there is 'break'
+    # pylint: disable-msg=W0631
     net_data = (self._lhost, self._lport, self._rhost, self._rport)
     for minor in (self._aminor,):
       info = self._GetDevInfo(self._GetShowData(minor))
