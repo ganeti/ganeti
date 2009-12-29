@@ -344,6 +344,9 @@ def ExecConfd(options, _):
   """Main confd function, executed with PID file held
 
   """
+  # TODO: clarify how the server and reloader variables work (they are
+  # not used)
+  # pylint: disable-msg=W0612
   mainloop = daemon.Mainloop()
 
   # Asyncronous confd UDP server
