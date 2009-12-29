@@ -473,6 +473,10 @@ ganeti:
 check-local:
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 
+.PHONY: lint
+lint: ganeti
+	pylint ganeti $(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS)
+
 # a dist hook rule for catching revision control directories
 distcheck-hook:
 	if find $(top_distdir) -name .svn -or -name .git | grep .; then \
