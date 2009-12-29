@@ -88,15 +88,15 @@ class ConfdAsyncUDPServer(daemon.AsyncUDPSocket):
 class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
 
   def __init__(self, watch_manager, callback,
-               file=constants.CLUSTER_CONF_FILE):
+               filename=constants.CLUSTER_CONF_FILE):
     """Constructor for ConfdInotifyEventHandler
 
     @type watch_manager: L{pyinotify.WatchManager}
     @param watch_manager: ganeti-confd inotify watch manager
     @type callback: function accepting a boolean
     @param callback: function to call when an inotify event happens
-    @type file: string
-    @param file: config file to watch
+    @type filename: string
+    @param filename: config file to watch
 
     """
     # no need to call the parent's constructor
@@ -104,7 +104,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     self.callback = callback
     self.mask = pyinotify.EventsCodes.IN_IGNORED | \
                 pyinotify.EventsCodes.IN_MODIFY
-    self.file = file
+    self.file = filename
     self.watch_handle = None
 
   def enable(self):
