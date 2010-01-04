@@ -26,11 +26,12 @@ pass to and from external parties.
 
 """
 
-# pylint: disable-msg=E0203
+# pylint: disable-msg=E0203,W0201
 
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitely initialise its members
 
+# W0201: Attribute '%s' defined outside __init__
 
 import ConfigParser
 import re
@@ -47,7 +48,7 @@ __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
 
-def FillDict(defaults_dict, custom_dict, skip_keys=[]):
+def FillDict(defaults_dict, custom_dict, skip_keys=None):
   """Basic function to apply settings on top a default dict.
 
   @type defaults_dict: dict
@@ -62,11 +63,12 @@ def FillDict(defaults_dict, custom_dict, skip_keys=[]):
   """
   ret_dict = copy.deepcopy(defaults_dict)
   ret_dict.update(custom_dict)
-  for k in skip_keys:
-    try:
-      del ret_dict[k]
-    except KeyError:
-      pass
+  if skip_keys:
+    for k in skip_keys:
+      try:
+        del ret_dict[k]
+      except KeyError:
+        pass
   return ret_dict
 
 
@@ -153,7 +155,7 @@ class ConfigObject(object):
       raise errors.ConfigurationError("Invalid object passed to FromDict:"
                                       " expected dict, got %s" % type(val))
     val_str = dict([(str(k), v) for k, v in val.iteritems()])
-    obj = cls(**val_str)
+    obj = cls(**val_str) # pylint: disable-msg=W0142
     return obj
 
   @staticmethod
@@ -853,6 +855,8 @@ class Cluster(TaggableObject):
     """Fill defaults for missing configuration values.
 
     """
+    # pylint: disable-msg=E0203
+    # because these are "defined" via slots, not manually
     if self.hvparams is None:
       self.hvparams = constants.HVC_DEFAULTS
     else:

@@ -18,18 +18,19 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+"""Backup related commands"""
 
-# pylint: disable-msg=W0401,W0614
+# pylint: disable-msg=W0401,W0613,W0614,C0103
 # W0401: Wildcard import ganeti.cli
+# W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)
+# C0103: Invalid name gnt-backup
 
 import sys
 
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import constants
-from ganeti import errors
-from ganeti import utils
 
 
 _VALUE_TRUE = "true"
@@ -79,7 +80,6 @@ def ExportInstance(opts, args):
   if not isinstance(dlist, list):
     ToStderr("Cannot parse execution results")
     return 1
-  tot_dsk = len(dlist)
   # TODO: handle diskless instances
   if dlist.count(False) == 0:
     # all OK
@@ -117,7 +117,6 @@ def RemoveExport(opts, args):
   @return: the desired exit code
 
   """
-  instance = args[0]
   op = opcodes.OpRemoveExport(instance_name=args[0])
 
   SubmitOpCode(op)

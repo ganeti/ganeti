@@ -18,28 +18,29 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-""" Ganeti Remote API master script.
+"""Ganeti Remote API master script.
+
 """
 
-import glob
+# pylint: disable-msg=C0103,W0142
+
+# C0103: Invalid name ganeti-watcher
+
 import logging
 import optparse
 import sys
 import os
 import os.path
-import signal
 
 from ganeti import constants
-from ganeti import errors
 from ganeti import http
 from ganeti import daemon
 from ganeti import ssconf
-from ganeti import utils
 from ganeti import luxi
 from ganeti import serializer
 from ganeti.rapi import connector
 
-import ganeti.http.auth
+import ganeti.http.auth   # pylint: disable-msg=W0611
 import ganeti.http.server
 
 
@@ -105,7 +106,7 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
       method = req.request_method.upper()
       try:
         ctx.handler_fn = getattr(ctx.handler, method)
-      except AttributeError, err:
+      except AttributeError:
         raise http.HttpBadRequest("Method %s is unsupported for path %s" %
                                   (method, req.request_path))
 
@@ -182,15 +183,15 @@ def CheckRapi(options, args):
   """Initial checks whether to run or exit with a failure.
 
   """
-  if len(args) != 0:
-    print >> sys.stderr, "Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" % \
-        sys.argv[0]
+  if args: # rapi doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0])
     sys.exit(constants.EXIT_FAILURE)
 
   ssconf.CheckMaster(options.debug)
 
 
-def ExecRapi(options, args):
+def ExecRapi(options, _):
   """Main remote API function, executed with the PID file held.
 
   """

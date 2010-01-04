@@ -21,12 +21,16 @@
 
 """Ganeti node daemon"""
 
-# functions in this module need to have a given name structure, so:
-# pylint: disable-msg=C0103
+# pylint: disable-msg=C0103,W0142
+
+# C0103: Functions in this module need to have a given name structure,
+# and the name of the daemon doesn't match
+
+# W0142: Used * or ** magic, since we do use it extensively in this
+# module
 
 import os
 import sys
-import SocketServer
 import logging
 import signal
 
@@ -42,7 +46,7 @@ from ganeti import http
 from ganeti import utils
 from ganeti import storage
 
-import ganeti.http.server
+import ganeti.http.server # pylint: disable-msg=W0611
 
 
 queue_lock = None
@@ -72,6 +76,9 @@ class NodeHttpServer(http.server.HttpServer):
   This class holds all methods exposed over the RPC interface.
 
   """
+  # too many public methods, and unused args - all methods get params
+  # due to the API
+  # pylint: disable-msg=R0904,W0613
   def __init__(self, *args, **kwargs):
     http.server.HttpServer.__init__(self, *args, **kwargs)
     self.noded_pid = os.getpid()
@@ -782,11 +789,21 @@ class NodeHttpServer(http.server.HttpServer):
     return backend.ValidateHVParams(hvname, hvparams)
 
 
-def ExecNoded(options, args):
+def CheckNoded(_, args):
+  """Initial checks whether to run or exit with a failure.
+
+  """
+  if args: # noded doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] [-d] [-p port] [-b ADDRESS]" %
+                          sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+
+
+def ExecNoded(options, _):
   """Main node daemon function, executed with the PID file held.
 
   """
-  global queue_lock
+  global queue_lock # pylint: disable-msg=W0603
 
   # Read SSL certificate
   if options.ssl:
@@ -819,7 +836,7 @@ def main():
   dirs = [(val, constants.RUN_DIRS_MODE) for val in constants.SUB_RUN_DIRS]
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
-  daemon.GenericMain(constants.NODED, parser, dirs, None, ExecNoded,
+  daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded,
                      default_ssl_cert=constants.SSL_CERT_FILE,
                      default_ssl_key=constants.SSL_CERT_FILE)
 

@@ -18,5 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+"""Ganeti RAPI module"""
 
 RAPI_ACCESS_WRITE = "write"

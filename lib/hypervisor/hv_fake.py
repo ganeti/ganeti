@@ -25,6 +25,7 @@
 
 import os
 import os.path
+import logging
 
 from ganeti import utils
 from ganeti import constants
@@ -68,7 +69,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       try:
         inst_id = fh.readline().strip()
         memory = utils.TryConvert(int, fh.readline().strip())
-        vcpus = utils.TryConvert(fh.readline().strip())
+        vcpus = utils.TryConvert(int, fh.readline().strip())
         stat = "---b-"
         times = "0"
         return (instance_name, inst_id, memory, vcpus, stat, times)
@@ -106,6 +107,44 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Failed to list instances: %s" % err)
     return data
 
+
+  def _InstanceFile(self, instance_name):
+    """Compute the instance file for an instance name.
+
+    """
+    return self._ROOT_DIR + "/%s" % instance_name
+
+  def _IsAlive(self, instance_name):
+    """Checks if an instance is alive.
+
+    """
+    file_name = self._InstanceFile(instance_name)
+    return os.path.exists(file_name)
+
+  def _MarkUp(self, instance):
+    """Mark the instance as running.
+
+    This does no checks, which should be done by its callers.
+
+    """
+    file_name = self._InstanceFile(instance.name)
+    fh = file(file_name, "w")
+    try:
+      fh.write("0\n%d\n%d\n" %
+               (instance.beparams[constants.BE_MEMORY],
+                instance.beparams[constants.BE_VCPUS]))
+    finally:
+      fh.close()
+
+  def _MarkDown(self, instance):
+    """Mark the instance as running.
+
+    This does no checks, which should be done by its callers.
+
+    """
+    file_name = self._InstanceFile(instance.name)
+    utils.RemoveFile(file_name)
+
   def StartInstance(self, instance, block_devices):
     """Start an instance.
 
@@ -114,18 +153,11 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     handle race conditions properly, since these are *FAKE* instances.
 
     """
-    file_name = self._ROOT_DIR + "/%s" % instance.name
-    if os.path.exists(file_name):
+    if self._IsAlive(instance.name):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, "already running"))
     try:
-      fh = file(file_name, "w")
-      try:
-        fh.write("0\n%d\n%d\n" %
-                 (instance.beparams[constants.BE_MEMORY],
-                  instance.beparams[constants.BE_VCPUS]))
-      finally:
-        fh.close()
+      self._MarkUp(instance)
     except IOError, err:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, err))
@@ -137,11 +169,10 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     dir, if it exist, otherwise we raise an exception.
 
     """
-    file_name = self._ROOT_DIR + "/%s" % instance.name
-    if not os.path.exists(file_name):
+    if not self._IsAlive(instance.name):
       raise errors.HypervisorError("Failed to stop instance %s: %s" %
                                    (instance.name, "not running"))
-    utils.RemoveFile(file_name)
+    self._MarkDown(instance)
 
   def RebootInstance(self, instance):
     """Reboot an instance.
@@ -192,3 +223,48 @@ class FakeHypervisor(hv_base.BaseHypervisor):
 
     """
     cls.LinuxPowercycle()
+
+  def AcceptInstance(self, instance, info, target):
+    """Prepare to accept an instance.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to be accepted
+    @type info: string
+    @param info: instance info, not used
+    @type target: string
+    @param target: target host (usually ip), on this node
+
+    """
+    if self._IsAlive(instance.name):
+      raise errors.HypervisorError("Can't accept instance, already running")
+
+  def MigrateInstance(self, instance, target, live):
+    """Migrate an instance.
+
+    @type instance: L{object.Instance}
+    @param instance: the instance to be migrated
+    @type target: string
+    @param target: hostname (usually ip) of the target node
+    @type live: boolean
+    @param live: whether to do a live or non-live migration
+
+    """
+    logging.debug("Fake hypervisor migrating %s to %s (live=%s)",
+                  instance, target, live)
+
+    self._MarkDown(instance)
+
+  def FinalizeMigration(self, instance, info, success):
+    """Finalize an instance migration.
+
+    For the fake hv, this just marks the instance up.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance whose migration is being finalized
+
+    """
+    if success:
+      self._MarkUp(instance)
+    else:
+      # ensure it's down
+      self._MarkDown(instance)

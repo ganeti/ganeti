@@ -94,15 +94,31 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     dirs = [(dname, constants.RUN_DIRS_MODE) for dname in self._DIRS]
     utils.EnsureDirs(dirs)
 
+  def _InstancePidFile(self, instance_name):
+    """Returns the instance pidfile.
+
+    """
+    pidfile = "%s/%s" % (self._PIDS_DIR, instance_name)
+    return pidfile
+
   def _InstancePidAlive(self, instance_name):
     """Returns the instance pid and pidfile
 
     """
-    pidfile = "%s/%s" % (self._PIDS_DIR, instance_name)
+    pidfile = self._InstancePidFile(instance_name)
     pid = utils.ReadPidFile(pidfile)
     alive = utils.IsProcessAlive(pid)
 
     return (pidfile, pid, alive)
+
+  def _CheckDown(self, instance_name):
+    """Raises an error unless the given instance is down.
+
+    """
+    alive = self._InstancePidAlive(instance_name)[2]
+    if alive:
+      raise errors.HypervisorError("Failed to start instance %s: %s" %
+                                   (instance_name, "already running"))
 
   @classmethod
   def _InstanceMonitor(cls, instance_name):
@@ -240,7 +256,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: tuple (name, id, memory, vcpus, stat, times)
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance_name)
+    _, pid, alive = self._InstancePidAlive(instance_name)
     if not alive:
       return None
 
@@ -278,7 +294,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if utils.IsProcessAlive(utils.ReadPidFile(filename)):
         try:
           info = self.GetInstanceInfo(name)
-        except errors.HypervisorError, err:
+        except errors.HypervisorError:
           continue
         if info:
           data.append(info)
@@ -289,7 +305,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Generate KVM information to start an instance.
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    pidfile  = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
     kvm_cmd.extend(['-m', instance.beparams[constants.BE_MEMORY]])
@@ -376,9 +392,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
             vnc_arg = '%s:%d' % (vnc_bind_address, display)
         else:
           logging.error("Network port is not a valid VNC display (%d < %d)."
-                        " Not starting VNC" %
-                        (instance.network_port,
-                         constants.VNC_BASE_PORT))
+                        " Not starting VNC", instance.network_port,
+                        constants.VNC_BASE_PORT)
           vnc_arg = 'none'
 
         # Only allow tls and other option when not binding to a file, for now.
@@ -471,11 +486,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param incoming: (target_host_ip, port)
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
     hvp = instance.hvparams
-    if alive:
-      raise errors.HypervisorError("Failed to start instance %s: %s" %
-                                   (instance.name, "already running"))
+    name = instance.name
+    self._CheckDown(name)
 
     temp_files = []
 
@@ -513,12 +526,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd(kvm_cmd)
     if result.failed:
       raise errors.HypervisorError("Failed to start instance %s: %s (%s)" %
-                                   (instance.name, result.fail_reason,
-                                    result.output))
+                                   (name, result.fail_reason, result.output))
 
-    if not utils.IsProcessAlive(utils.ReadPidFile(pidfile)):
-      raise errors.HypervisorError("Failed to start instance %s" %
-                                   (instance.name))
+    if not self._InstancePidAlive(name)[2]:
+      raise errors.HypervisorError("Failed to start instance %s" % name)
 
     if vnc_pwd:
       change_cmd = 'change vnc password %s' % vnc_pwd
@@ -531,11 +542,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Start an instance.
 
     """
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
-    if alive:
-      raise errors.HypervisorError("Failed to start instance %s: %s" %
-                                   (instance.name, "already running"))
-
+    self._CheckDown(instance.name)
     kvm_runtime = self._GenerateKVMRuntime(instance, block_devices)
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime)
@@ -582,7 +589,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # For some reason if we do a 'send-key ctrl-alt-delete' to the control
     # socket the instance will stop, but now power up again. So we'll resort
     # to shutdown and restart.
-    pidfile, pid, alive = self._InstancePidAlive(instance.name)
+    _, _, alive = self._InstancePidAlive(instance.name)
     if not alive:
       raise errors.HypervisorError("Failed to reboot instance %s:"
                                    " not running" % instance.name)
@@ -686,7 +693,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           raise errors.HypervisorError("Migration %s at the kvm level" %
                                        status)
         else:
-          logging.info("KVM: unknown migration status '%s'" % status)
+          logging.info("KVM: unknown migration status '%s'", status)
           time.sleep(2)
 
     utils.KillProcess(pid)

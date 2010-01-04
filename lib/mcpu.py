@@ -50,7 +50,6 @@ def _CalculateLockAttemptTimeouts():
   """Calculate timeouts for lock attempts.
 
   """
-  running_sum = 0
   result = [1.0]
 
   # Wait for a total of at least 150s before doing a blocking acquire
@@ -137,7 +136,7 @@ class _LockAttemptTimeoutStrategy(object):
     return timeout
 
 
-class OpExecCbBase:
+class OpExecCbBase: # pylint: disable-msg=W0232
   """Base class for OpCode execution callbacks.
 
   """

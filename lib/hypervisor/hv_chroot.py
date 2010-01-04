@@ -27,10 +27,9 @@ import os
 import os.path
 import time
 import logging
-from cStringIO import StringIO
 
 from ganeti import constants
-from ganeti import errors
+from ganeti import errors # pylint: disable-msg=W0611
 from ganeti import utils
 from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError
@@ -97,7 +96,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     fh = open("/proc/mounts", "r")
     try:
       for line in fh:
-        fstype, mountpoint, rest = line.split(" ", 2)
+        _, mountpoint, _ = line.split(" ", 2)
         if (mountpoint.startswith(path) and
             mountpoint != path):
           data.append(mountpoint)
@@ -255,3 +254,23 @@ class ChrootManager(hv_base.BaseHypervisor):
     """
     if not os.path.exists(self._ROOT_DIR):
       return "The required directory '%s' does not exist." % self._ROOT_DIR
+
+  @classmethod
+  def PowercycleNode(cls):
+    """Chroot powercycle, just a wrapper over Linux powercycle.
+
+    """
+    cls.LinuxPowercycle()
+
+  def MigrateInstance(self, instance, target, live):
+    """Migrate an instance.
+
+    @type instance: L{object.Instance}
+    @param instance: the instance to be migrated
+    @type target: string
+    @param target: hostname (usually ip) of the target node
+    @type live: boolean
+    @param live: whether to do a live or non-live migration
+
+    """
+    raise HypervisorError("Migration not supported by the chroot hypervisor")

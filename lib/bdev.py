@@ -79,7 +79,7 @@ def _CanReadDevice(path):
   try:
     utils.ReadFile(path, size=_DEVICE_READ_SIZE)
     return True
-  except EnvironmentError, err:
+  except EnvironmentError:
     logging.warning("Can't read from device %s", path, exc_info=True)
     return False
 
@@ -623,7 +623,7 @@ class LogicalVolume(BlockDev):
       _ThrowError("Can't compute PV info for vg %s", self._vg_name)
     pvs_info.sort()
     pvs_info.reverse()
-    free_size, pv_name, _ = pvs_info[0]
+    free_size, _, _ = pvs_info[0]
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)
@@ -783,7 +783,7 @@ class DRBD8Status(object):
       self.est_time = None
 
 
-class BaseDRBD(BlockDev):
+class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
   """Base DRBD class.
 
   This class contains a few bits of common functionality between the
@@ -1573,6 +1573,8 @@ class DRBD8(BaseDRBD):
     the attach if can return success.
 
     """
+    # TODO: Rewrite to not use a for loop just because there is 'break'
+    # pylint: disable-msg=W0631
     net_data = (self._lhost, self._lport, self._rhost, self._rport)
     for minor in (self._aminor,):
       info = self._GetDevInfo(self._GetShowData(minor))
@@ -1819,6 +1821,22 @@ class FileStorage(BlockDev):
     except OSError, err:
       if err.errno != errno.ENOENT:
         _ThrowError("Can't remove file '%s': %s", self.dev_path, err)
+
+  def Rename(self, new_id):
+    """Renames the file.
+
+    """
+    # TODO: implement rename for file-based storage
+    _ThrowError("Rename is not supported for file-based storage")
+
+  def Grow(self, amount):
+    """Grow the file
+
+    @param amount: the amount (in mebibytes) to grow with
+
+    """
+    # TODO: implement grow for file-based storage
+    _ThrowError("Grow not supported for file-based storage")
 
   def Attach(self):
     """Attach to an existing file.

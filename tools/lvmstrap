@@ -130,7 +130,7 @@ def ParseOptions():
   Returns:
     (options, args), as returned by OptionParser.parse_args
   """
-  global verbose_flag
+  global verbose_flag # pylint: disable-msg=W0603
 
   parser = optparse.OptionParser(usage="\n%s" % USAGE,
                                  version="%%prog (ganeti) %s" %
@@ -192,7 +192,7 @@ def CheckPrereq():
   if os.getuid() != 0:
     raise PrereqError("This tool runs as root only. Really.")
 
-  osname, nodename, release, version, arch = os.uname()
+  osname, _, release, _, _ = os.uname()
   if osname != 'Linux':
     raise PrereqError("This tool only runs on Linux"
                       " (detected OS: %s)." % osname)
@@ -271,7 +271,7 @@ def CheckSysDev(name, devnum):
   """
 
   path = "/dev/%s" % name
-  for retries in range(40):
+  for _ in range(40):
     if os.path.exists(path):
       break
     time.sleep(0.250)
@@ -426,7 +426,7 @@ def GetMountInfo():
   mountlines = ReadFile("/proc/mounts").splitlines()
   mounts = {}
   for line in mountlines:
-    device, mountpoint, fstype, rest = line.split(None, 3)
+    _, mountpoint, fstype, _ = line.split(None, 3)
     # fs type blacklist
     if fstype in ["nfs", "nfs4", "autofs", "tmpfs", "proc", "sysfs"]:
       continue
@@ -542,7 +542,7 @@ def CheckReread(name):
     boolean, the in-use status of the device
   """
 
-  for retries in range(3):
+  for _ in range(3):
     result = ExecCommand("blockdev --rereadpt /dev/%s" % name)
     if not result.failed:
       break
@@ -672,7 +672,7 @@ def ValidateDiskList(options):
                       " non-removable block devices).")
   sysd_free = []
   sysd_used = []
-  for name, size, dev, part, used in sysdisks:
+  for name, _, _, _, used in sysdisks:
     if used:
       sysd_used.append(name)
     else:
@@ -726,7 +726,7 @@ def BootStrap():
     CreatePVOnDisk(disk)
   CreateVG(vgname, disklist)
 
-  status, lv_count, size, free = CheckVGExists(vgname)
+  status, lv_count, size, _ = CheckVGExists(vgname)
   if status:
     print "Done! %s: size %s GiB, disks: %s" % (vgname, size,
                                               ",".join(disklist))

@@ -23,6 +23,10 @@
 
 """
 
+# pylint: disable-msg=C0103
+
+# C0103: Invalid name, since the R_* names are not conforming
+
 from ganeti import opcodes
 from ganeti import http
 from ganeti import constants
@@ -73,7 +77,8 @@ class R_version(baserlib.R_Generic):
   to adapt clients accordingly.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Returns the remote API version.
 
     """
@@ -84,7 +89,8 @@ class R_2_info(baserlib.R_Generic):
   """Cluster info.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Returns cluster information.
 
     """
@@ -96,7 +102,8 @@ class R_2_os(baserlib.R_Generic):
   """/2/os resource.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Return a list of all OSes.
 
     Can return error 500 in case of a problem.
@@ -127,7 +134,8 @@ class R_2_redist_config(baserlib.R_Generic):
   """/2/redistribute-config resource.
 
   """
-  def PUT(self):
+  @staticmethod
+  def PUT():
     """Redistribute configuration to all nodes.
 
     """
@@ -138,7 +146,8 @@ class R_2_jobs(baserlib.R_Generic):
   """/2/jobs resource.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Returns a dictionary of jobs.
 
     @return: a dictionary with jobs id and uri.
@@ -668,6 +677,7 @@ class _R_Tags(baserlib.R_Generic):
     Example: ["tag1", "tag2", "tag3"]
 
     """
+    # pylint: disable-msg=W0212
     return baserlib._Tags_GET(self.TAG_LEVEL, name=self.name)
 
   def PUT(self):
@@ -677,6 +687,7 @@ class _R_Tags(baserlib.R_Generic):
     you'll have back a job id.
 
     """
+    # pylint: disable-msg=W0212
     if 'tag' not in self.queryargs:
       raise http.HttpBadRequest("Please specify tag(s) to add using the"
                                 " the 'tag' parameter")
@@ -692,6 +703,7 @@ class _R_Tags(baserlib.R_Generic):
     /tags?tag=[tag]&tag=[tag]
 
     """
+    # pylint: disable-msg=W0212
     if 'tag' not in self.queryargs:
       # no we not gonna delete all tags
       raise http.HttpBadRequest("Cannot delete all tags - please specify"

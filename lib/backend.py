@@ -392,7 +392,7 @@ def LeaveCluster(modify_ssh_setup):
     utils.RemoveFile(constants.HMAC_CLUSTER_KEY)
     utils.RemoveFile(constants.RAPI_CERT_FILE)
     utils.RemoveFile(constants.SSL_CERT_FILE)
-  except:
+  except: # pylint: disable-msg=W0702
     logging.exception("Error while removing cluster secrets")
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "stop", constants.CONFD])
@@ -1195,6 +1195,8 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
       it's not required to return anything.
 
   """
+  # TODO: remove the obsolete 'size' argument
+  # pylint: disable-msg=W0613
   clist = []
   if disk.children:
     for child in disk.children:
@@ -1206,6 +1208,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info):
         # we need the children open in case the device itself has to
         # be assembled
         try:
+          # pylint: disable-msg=E1103
           crdev.Open()
         except errors.BlockDeviceError, err:
           _Fail("Can't make child '%s' read-write: %s", child, err)
@@ -1340,6 +1343,7 @@ def BlockdevAssemble(disk, owner, as_primary):
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, bdev.BlockDev):
+      # pylint: disable-msg=E1103
       result = result.dev_path
   except errors.BlockDeviceError, err:
     _Fail("Error while assembling disk: %s", err, exc=True)
@@ -1514,7 +1518,7 @@ def BlockdevGetsize(disks):
   for cf in disks:
     try:
       rbd = _RecursiveFindBD(cf)
-    except errors.BlockDeviceError, err:
+    except errors.BlockDeviceError:
       result.append(None)
       continue
     if rbd is None:
@@ -1635,16 +1639,14 @@ def _ErrnoOrStr(err):
   return detail
 
 
-def _OSOndiskAPIVersion(name, os_dir):
+def _OSOndiskAPIVersion(os_dir):
   """Compute and return the API version of a given OS.
 
-  This function will try to read the API version of the OS given by
-  the 'name' parameter and residing in the 'os_dir' directory.
+  This function will try to read the API version of the OS residing in
+  the 'os_dir' directory.
 
-  @type name: str
-  @param name: the OS name we should look for
   @type os_dir: str
-  @param os_dir: the directory inwhich we should look for the OS
+  @param os_dir: the directory in which we should look for the OS
   @rtype: tuple
   @return: tuple (status, data) with status denoting the validity and
       data holding either the vaid versions or an error message
@@ -1741,7 +1743,7 @@ def _TryOSFromDisk(name, base_dir=None):
   if os_dir is None:
     return False, "Directory for OS %s not found in search path" % name
 
-  status, api_versions = _OSOndiskAPIVersion(name, os_dir)
+  status, api_versions = _OSOndiskAPIVersion(os_dir)
   if not status:
     # push the error up
     return status, api_versions
@@ -2627,7 +2629,9 @@ class HooksRunner(object):
     """
     if hooks_base_dir is None:
       hooks_base_dir = constants.HOOKS_BASE_DIR
-    self._BASE_DIR = hooks_base_dir
+    # yeah, _BASE_DIR is not valid for attributes, we use it like a
+    # constant
+    self._BASE_DIR = hooks_base_dir # pylint: disable-msg=C0103
 
   @staticmethod
   def ExecHook(script, env):
@@ -2745,7 +2749,8 @@ class IAllocatorRunner(object):
   the master side.
 
   """
-  def Run(self, name, idata):
+  @staticmethod
+  def Run(name, idata):
     """Run an iallocator script.
 
     @type name: str

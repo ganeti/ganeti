@@ -261,7 +261,7 @@ class HttpClientRequestExecutor(http.HttpBase):
 
     # Do the secret SSL handshake
     if self.using_ssl:
-      self.sock.set_connect_state()
+      self.sock.set_connect_state() # pylint: disable-msg=E1103
       try:
         http.Handshake(self.sock, self.WRITE_TIMEOUT)
       except http.HttpSessionHandshakeUnexpectedEOF:
@@ -333,7 +333,7 @@ class HttpClientWorker(workerpool.BaseWorker):
   """HTTP client worker class.
 
   """
-  def RunTask(self, pend_req):
+  def RunTask(self, pend_req): # pylint: disable-msg=W0221
     try:
       HttpClientRequestExecutor(pend_req.request)
     finally:

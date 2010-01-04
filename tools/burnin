@@ -83,9 +83,12 @@ def Err(msg, exit_code=1):
 
 class SimpleOpener(urllib.FancyURLopener):
   """A simple url opener"""
+  # pylint: disable-msg=W0221
 
-  def prompt_user_passwd(self, host, realm, clear_cache = 0):
+  def prompt_user_passwd(self, host, realm, clear_cache=0):
     """No-interaction version of prompt_user_passwd."""
+    # we follow parent class' API
+    # pylint: disable-msg=W0613
     return None, None
 
   def http_error_default(self, url, fp, errcode, errmsg, headers):
@@ -201,6 +204,39 @@ OPTIONS = [
 ARGUMENTS = [cli.ArgInstance(min=1)]
 
 
+def _DoCheckInstances(fn):
+  """Decorator for checking instances.
+
+  """
+  def wrapper(self, *args, **kwargs):
+    val = fn(self, *args, **kwargs)
+    for instance in self.instances:
+      self._CheckInstanceAlive(instance) # pylint: disable-msg=W0212
+    return val
+
+  return wrapper
+
+
+def _DoBatch(retry):
+  """Decorator for possible batch operations.
+
+  Must come after the _DoCheckInstances decorator (if any).
+
+  @param retry: whether this is a retryable batch, will be
+      passed to StartBatch
+
+  """
+  def wrap(fn):
+    def batched(self, *args, **kwargs):
+      self.StartBatch(retry)
+      val = fn(self, *args, **kwargs)
+      self.CommitQueue()
+      return val
+    return batched
+
+  return wrap
+
+
 class Burner(object):
   """Burner class."""
 
@@ -256,7 +292,7 @@ class Burner(object):
         Log("Idempotent %s succeeded after %d retries" %
             (msg, MAX_RETRIES - retry_count))
       return val
-    except Exception, err:
+    except Exception, err: # pylint: disable-msg=W0703
       if retry_count == 0:
         Log("Non-idempotent %s failed, aborting" % (msg, ))
         raise
@@ -344,42 +380,11 @@ class Burner(object):
       Log("waiting for job %s for %s" % (jid, iname), indent=2)
       try:
         results.append(cli.PollJob(jid, cl=self.cl, feedback_fn=self.Feedback))
-      except Exception, err:
+      except Exception, err: # pylint: disable-msg=W0703
         Log("Job for %s failed: %s" % (iname, err))
     if len(results) != len(jobs):
       raise BurninFailure()
     return results
-
-  def _DoCheckInstances(fn):
-    """Decorator for checking instances.
-
-    """
-    def wrapper(self, *args, **kwargs):
-      val = fn(self, *args, **kwargs)
-      for instance in self.instances:
-        self._CheckInstanceAlive(instance)
-      return val
-
-    return wrapper
-
-  def _DoBatch(retry):
-    """Decorator for possible batch operations.
-
-    Must come after the _DoCheckInstances decorator (if any).
-
-    @param retry: whether this is a retryable batch, will be
-        passed to StartBatch
-
-    """
-    def wrap(fn):
-      def batched(self, *args, **kwargs):
-        self.StartBatch(retry)
-        val = fn(self, *args, **kwargs)
-        self.CommitQueue()
-        return val
-      return batched
-
-    return wrap
 
   def ParseOptions(self):
     """Parses the command line options.
@@ -542,7 +547,7 @@ class Burner(object):
                                     disks=[i for i in range(self.disk_count)])
         Log("run %s" % mode, indent=2)
         ops.append(op)
-      self.ExecOrQueue(instance, *ops)
+      self.ExecOrQueue(instance, *ops) # pylint: disable-msg=W0142
 
   @_DoBatch(True)
   def BurnReplaceDisks2(self):
@@ -672,15 +677,18 @@ class Burner(object):
       Log("remove export", indent=2)
       self.ExecOrQueue(instance, exp_op, rem_op, imp_op, erem_op)
 
-  def StopInstanceOp(self, instance):
+  @staticmethod
+  def StopInstanceOp(instance):
     """Stop given instance."""
     return opcodes.OpShutdownInstance(instance_name=instance)
 
-  def StartInstanceOp(self, instance):
+  @staticmethod
+  def StartInstanceOp(instance):
     """Start given instance."""
     return opcodes.OpStartupInstance(instance_name=instance, force=False)
 
-  def RenameInstanceOp(self, instance, instance_new):
+  @staticmethod
+  def RenameInstanceOp(instance, instance_new):
     """Rename instance."""
     return opcodes.OpRenameInstance(instance_name=instance,
                                     new_name=instance_new)
@@ -758,7 +766,7 @@ class Burner(object):
                                       ignore_secondaries=False)
         Log("reboot with type '%s'" % reboot_type, indent=2)
         ops.append(op)
-      self.ExecOrQueue(instance, *ops)
+      self.ExecOrQueue(instance, *ops) # pylint: disable-msg=W0142
 
   @_DoCheckInstances
   @_DoBatch(True)
@@ -911,7 +919,7 @@ class Burner(object):
       if not self.opts.keep_instances:
         try:
           self.BurnRemove()
-        except Exception, err:
+        except Exception, err:  # pylint: disable-msg=W0703
           if has_err: # already detected errors, so errors in removal
                       # are quite expected
             Log("Note: error detected during instance remove: %s" % str(err))

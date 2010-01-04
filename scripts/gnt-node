@@ -18,15 +18,17 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+"""Node related commands"""
 
-# pylint: disable-msg=W0401,W0614
+# pylint: disable-msg=W0401,W0613,W0614,C0103
 # W0401: Wildcard import ganeti.cli
+# W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)
+# C0103: Invalid name gnt-node
 
 import sys
 
 from ganeti.cli import *
-from ganeti import cli
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import constants
@@ -353,8 +355,6 @@ def MigrateNode(opts, args):
     return 0
 
   pinst = utils.NiceSort(pinst)
-
-  retcode = 0
 
   if not force and not AskUser("Migrate instance(s) %s?" %
                                (",".join("'%s'" % name for name in pinst))):

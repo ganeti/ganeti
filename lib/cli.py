@@ -170,7 +170,7 @@ UN_PREFIX = "-"
 
 
 class _Argument:
-  def __init__(self, min=0, max=None):
+  def __init__(self, min=0, max=None): # pylint: disable-msg=W0622
     self.min = min
     self.max = max
 
@@ -185,6 +185,7 @@ class ArgSuggest(_Argument):
   Value can be any of the ones passed to the constructor.
 
   """
+  # pylint: disable-msg=W0622
   def __init__(self, min=0, max=None, choices=None):
     _Argument.__init__(self, min=min, max=max)
     self.choices = choices
@@ -354,7 +355,7 @@ def RemoveTags(opts, args):
   SubmitOpCode(op)
 
 
-def check_unit(option, opt, value):
+def check_unit(option, opt, value): # pylint: disable-msg=W0613
   """OptParsers custom converter for units.
 
   """
@@ -401,7 +402,7 @@ def _SplitKeyVal(opt, data):
   return kv_dict
 
 
-def check_ident_key_val(option, opt, value):
+def check_ident_key_val(option, opt, value):  # pylint: disable-msg=W0613
   """Custom parser for ident:key=val,key=val options.
 
   This will store the parsed values as a tuple (ident, {key: val}). As such,
@@ -429,7 +430,7 @@ def check_ident_key_val(option, opt, value):
   return retval
 
 
-def check_key_val(option, opt, value):
+def check_key_val(option, opt, value):  # pylint: disable-msg=W0613
   """Custom parser class for key=val,key=val options.
 
   This will store the parsed values as a dict {key: val}.
@@ -1531,8 +1532,8 @@ def GenerateTable(headers, fields, separator, data,
   if unitfields is None:
     unitfields = []
 
-  numfields = utils.FieldSet(*numfields)
-  unitfields = utils.FieldSet(*unitfields)
+  numfields = utils.FieldSet(*numfields)   # pylint: disable-msg=W0142
+  unitfields = utils.FieldSet(*unitfields) # pylint: disable-msg=W0142
 
   format_fields = []
   for field in fields:

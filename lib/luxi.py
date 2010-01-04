@@ -286,7 +286,7 @@ class Client(object):
       old_transp = self.transport
       self.transport = None
       old_transp.Close()
-    except Exception:
+    except Exception: # pylint: disable-msg=W0703
       pass
 
   def CallMethod(self, method, args):

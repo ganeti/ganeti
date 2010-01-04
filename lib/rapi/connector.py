@@ -22,6 +22,10 @@
 
 """
 
+# pylint: disable-msg=C0103
+
+# C0103: Invalid name, since the R_* names are not conforming
+
 import cgi
 import re
 
@@ -42,12 +46,14 @@ class Mapper:
   """Map resource to method.
 
   """
-  def __init__(self, connector=CONNECTOR):
+  def __init__(self, connector=None):
     """Resource mapper constructor.
 
     @param connector: a dictionary, mapping method name with URL path regexp
 
     """
+    if connector is None:
+      connector = CONNECTOR
     self._connector = connector
 
   def getController(self, uri):
@@ -95,7 +101,8 @@ class R_root(baserlib.R_Generic):
   """/ resource.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Show the list of mapped resources.
 
     @return: a dictionary with 'name' and 'uri' keys for each of them.
@@ -138,7 +145,8 @@ class R_2(baserlib.R_Generic):
   """ /2 resource, the root of the version 2 API.
 
   """
-  def GET(self):
+  @staticmethod
+  def GET():
     """Show the list of mapped resources.
 
     @return: a dictionary with 'name' and 'uri' keys for each of them.

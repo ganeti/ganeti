@@ -26,7 +26,6 @@ import BaseHTTPServer
 import cgi
 import logging
 import os
-import select
 import socket
 import time
 import signal
@@ -505,7 +504,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
 
     for child in self._children:
       try:
-        pid, status = os.waitpid(child, os.WNOHANG)
+        pid, _ = os.waitpid(child, os.WNOHANG)
       except os.error:
         pid = None
       if pid and pid in self._children:
@@ -515,6 +514,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     """Called for each incoming connection
 
     """
+    # pylint: disable-msg=W0212
     (connection, client_addr) = self.socket.accept()
 
     self._CollectChildren(False)
@@ -534,7 +534,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
         self.socket = None
 
         self.request_executor(self, connection, client_addr)
-      except Exception:
+      except Exception: # pylint: disable-msg=W0703
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])
         os._exit(1)

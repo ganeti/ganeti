@@ -23,6 +23,10 @@
 
 """
 
+# pylint: disable-msg=C0103
+
+# C0103: Invalid name, since the R_* names are not conforming
+
 import logging
 
 from ganeti import luxi
@@ -197,11 +201,13 @@ def GetClient():
     raise http.HttpBadGateway("Master seems to unreachable: %s" % str(err))
 
 
-def FeedbackFn(ts, log_type, log_msg):
+def FeedbackFn(ts, log_type, log_msg): # pylint: disable-msg=W0613
   """Feedback logging function for http case.
 
   We don't have a stdout for printing log messages, so log them to the
   http log at least.
+
+  @param ts: the timestamp (unused)
 
   """
   logging.info("%s: %s", log_type, log_msg)

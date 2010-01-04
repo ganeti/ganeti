@@ -18,10 +18,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+"""Debugging commands"""
 
-# pylint: disable-msg=W0401,W0614
+# pylint: disable-msg=W0401,W0614,C0103
 # W0401: Wildcard import ganeti.cli
 # W0614: Unused import %s from wildcard import (since we need cli)
+# C0103: Invalid name gnt-backup
 
 import sys
 import simplejson
@@ -30,7 +32,6 @@ import time
 from ganeti.cli import *
 from ganeti import cli
 from ganeti import opcodes
-from ganeti import constants
 from ganeti import utils
 from ganeti import errors
 
@@ -77,6 +78,7 @@ def GenericOpCodes(opts, args):
     ToStdout("Loading...")
   for job_idx in range(opts.rep_job):
     for fname in args:
+      # pylint: disable-msg=W0142
       op_data = simplejson.loads(utils.ReadFile(fname))
       op_list = [opcodes.OpCode.LoadOpCode(val) for val in op_data]
       op_list = op_list * opts.rep_op

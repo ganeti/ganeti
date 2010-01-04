@@ -50,7 +50,6 @@ confirming what you already got.
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitely initialise its members
 
-import socket
 import time
 import random
 
@@ -130,6 +129,8 @@ class ConfdClient:
     @param peers: list of peer nodes
 
     """
+    # we are actually called from init, so:
+    # pylint: disable-msg=W0201
     if not isinstance(peers, list):
       raise errors.ProgrammerError("peers must be a list")
     self._peers = peers

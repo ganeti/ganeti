@@ -299,13 +299,15 @@ class HttpVersionNotSupported(HttpException):
   code = 505
 
 
-class HttpJsonConverter:
+class HttpJsonConverter: # pylint: disable-msg=W0232
   CONTENT_TYPE = "application/json"
 
-  def Encode(self, data):
+  @staticmethod
+  def Encode(data):
     return serializer.DumpJson(data)
 
-  def Decode(self, data):
+  @staticmethod
+  def Decode(data):
     return serializer.LoadJson(data)
 
 
@@ -340,7 +342,7 @@ def WaitForSocketCondition(sock, event, timeout):
       if not io_events:
         # Timeout
         return None
-      for (evfd, evcond) in io_events:
+      for (_, evcond) in io_events:
         if evcond & check:
           return evcond
   finally:
@@ -638,6 +640,8 @@ class HttpBase(object):
     we do on our side.
 
     """
+    # some parameters are unused, but this is the API
+    # pylint: disable-msg=W0613
     assert self._ssl_params, "SSL not initialized"
 
     return (self._ssl_cert.digest("sha1") == cert.digest("sha1") and

@@ -18,10 +18,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+"""Job related commands"""
 
-# pylint: disable-msg=W0401,W0614
+# pylint: disable-msg=W0401,W0613,W0614,C0103
 # W0401: Wildcard import ganeti.cli
+# W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)
+# C0103: Invalid name gnt-job
 
 import sys
 
@@ -179,7 +182,7 @@ def CancelJobs(opts, args):
   client = GetClient()
 
   for job_id in args:
-    (success, msg) = client.CancelJob(job_id)
+    (_, msg) = client.CancelJob(job_id)
     ToStdout(msg)
 
   # TODO: Different exit value if not all jobs were canceled?
