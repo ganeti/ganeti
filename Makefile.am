@@ -475,7 +475,7 @@ check-local:
 
 .PHONY: lint
 lint: ganeti
-	pylint ganeti $(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS)
+	pylint $(LINT_OPTS) ganeti $(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS)
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:
