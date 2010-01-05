@@ -1843,7 +1843,8 @@ class LURenameCluster(LogicalUnit):
       "NEW_NAME": self.op.name,
       }
     mn = self.cfg.GetMasterNode()
-    return env, [mn], [mn]
+    all_nodes = self.cfg.GetNodeList()
+    return env, [mn], all_nodes
 
   def CheckPrereq(self):
     """Verify that the passed name is a valid one.
