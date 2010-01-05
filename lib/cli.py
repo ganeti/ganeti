@@ -252,7 +252,6 @@ ARGS_ONE_INSTANCE = [ArgInstance(min=1, max=1)]
 ARGS_ONE_NODE = [ArgNode(min=1, max=1)]
 
 
-
 def _ExtractTagsObject(opts, args):
   """Extract the tag type object.
 
@@ -313,8 +312,8 @@ def ListTags(opts, args):
 
   """
   kind, name = _ExtractTagsObject(opts, args)
-  op = opcodes.OpGetTags(kind=kind, name=name)
-  result = SubmitOpCode(op)
+  cl = GetClient()
+  result = cl.QueryTags(kind, name)
   result = list(result)
   result.sort()
   for tag in result:
