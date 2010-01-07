@@ -42,7 +42,7 @@ echo Testing hbal/luxi
 echo Testing hbal/rapi
 ./hbal -m$RAPI
 echo Testing hbal/text
-./hbal -n$T/$RAPI.nodes -i $T/$RAPI.instances
+./hbal -t$T/$RAPI.data
 
 echo Getting data files for hail
 IR=`$CLUSTER head -n1 /var/lib/ganeti/ssconf_instance_list`
@@ -75,7 +75,7 @@ echo Testing hspace/rapi
 ./hspace -m$RAPI $TIER > $HOUT
 ( check_hspace_out ) || exit 1
 echo Testing hspace/text
-./hspace -n$T/$RAPI.nodes -i $T/$RAPI.instances $TIER > $HOUT
+./hspace -t$T/$RAPI.data $TIER > $HOUT
 ( check_hspace_out ) || exit 1
 echo Testing hspace/simu
 # ~6T disk space, 32G ram, 4 VCPUs
