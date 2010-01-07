@@ -80,11 +80,10 @@ loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 -- @gnt-instance list@ and @gnt-node list@ to a list of objects using
 -- a supplied conversion function.
 loadTabular :: (Monad m, Element a) =>
-               String -> ([String] -> m (String, a))
+               [String] -> ([String] -> m (String, a))
             -> m ([(String, Int)], [(Int, a)])
-loadTabular text_data convert_fn = do
-  let lines_data = lines text_data
-      rows = map (sepSplit '|') lines_data
+loadTabular lines_data convert_fn = do
+  let rows = map (sepSplit '|') lines_data
   kerows <- mapM convert_fn rows
   return $ assignIndices kerows
 
@@ -97,7 +96,7 @@ loadData nfile ifile = do -- IO monad
   idata <- readFile ifile
   return $ do
     {- node file: name t_mem n_mem f_mem t_disk f_disk -}
-    (ktn, nl) <- loadTabular ndata loadNode
+    (ktn, nl) <- loadTabular (lines ndata) loadNode
     {- instance file: name mem disk status pnode snode -}
-    (_, il) <- loadTabular idata (loadInst ktn)
+    (_, il) <- loadTabular (lines idata) (loadInst ktn)
     return (nl, il, [])
