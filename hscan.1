@@ -20,11 +20,10 @@ It will also show a one\(hyline score for each cluster scanned or, if
 desired, the cluster state as show by the \fB-p\fR option to the other
 tools.
 
-For each cluster, two files named \fIcluster\fB.instances\fR and
-\fIcluster\fB.nodes\fR will be generated holding the instance and node
-data. These files can then be used in \fBhbal\fR(1) or \fBhspace\fR(1)
-via the \fB-i\fR and \fB-n\fR options. In case the cluster name
-contains slashes (as it can happen when the cluster is a
+For each cluster, one file named \fIcluster\fB.data\ will be generated
+holding the node and instance data. This file can then be used in
+\fBhbal\fR(1) or \fBhspace\fR(1) via the \fB-t\fR option. In case the
+cluster name contains slashes (as it can happen when the cluster is a
 fully-specified URL), these will be replaced with underscores.
 
 The one\(hyline output for each cluster will show the following:
@@ -58,7 +57,7 @@ Total disk in the cluster
 Free disk space in the cluster
 .TP
 .B Score
-The score of the cluster, as would be reported by \fBhscan\fR(1) if
+The score of the cluster, as would be reported by \fBhbal\fR(1) if
 run on the generated data files.
 
 .RE
@@ -100,9 +99,6 @@ data).
 The program does not check its input data for consistency, and aborts
 with cryptic errors messages in this case.
 
-The RAPI collection doesn't deal with non\(hy\fBdrbd\fR instances, and
-chokes on input data which has such instances.
-
 .SH EXAMPLE
 
 .in +4n
@@ -110,9 +106,8 @@ chokes on input data which has such instances.
 .RB "$ " "hscan cluster1"
 Name     Nodes  Inst BNode BInst  t_mem  f_mem t_disk f_disk      Score
 cluster1     2     2     0     0   1008    652    255    253 0.24404762
-.RB "$ " "ls -l cluster1.*"
-\-rw\-r\-\-r\-\- 1 root root 163 2009\-03\-23 07:26 cluster1.instances
-\-rw\-r\-\-r\-\- 1 root root  90 2009\-03\-23 07:26 cluster1.nodes
+.RB "$ " "ls -l cluster1.data"
+\-rw\-r\-\-r\-\- 1 root root 364 2009\-03\-23 07:26 cluster1.data
 .fi
 .in
 

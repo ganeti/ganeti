@@ -150,6 +150,6 @@ main = do
                    let ndata = serializeNodes csf nl
                        idata = serializeInstances csf nl il
                        oname = odir </> fixSlash name
-                   writeFile (oname <.> "nodes") ndata
-                   writeFile (oname <.> "instances") idata)
-       ) clusters
+                       adata = ndata ++ ['\n'] ++ idata
+                   writeFile (oname <.> "data") adata)
+        ) clusters
