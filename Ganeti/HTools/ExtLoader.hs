@@ -35,7 +35,6 @@ module Ganeti.HTools.ExtLoader
 
 import Data.Maybe (isJust, fromJust)
 import Monad
-import System.Posix.Env
 import System.IO
 import System
 import Text.Printf (printf, hPrintf)
@@ -53,15 +52,6 @@ import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Utils (sepSplit, tryRead)
-
--- | Parse the environment and return the node\/instance names.
---
--- This also hardcodes here the default node\/instance file names.
-parseEnv :: () -> IO (String, String)
-parseEnv () = do
-  a <- getEnvDefault "HTOOLS_NODES" "nodes"
-  b <- getEnvDefault "HTOOLS_INSTANCES" "instances"
-  return (a, b)
 
 -- | Error beautifier
 wrapIO :: IO (Result a) -> IO (Result a)
@@ -85,19 +75,15 @@ parseUtilisation line =
 loadExternalData :: Options
                  -> IO (Node.List, Instance.List, [String], String)
 loadExternalData opts = do
-  (env_node, env_inst) <- parseEnv ()
-  let nodef = if optNodeSet opts then optNodeFile opts
-              else env_node
-      instf = if optInstSet opts then optInstFile opts
-              else env_inst
-      mhost = optMaster opts
+  let mhost = optMaster opts
       lsock = optLuxi opts
+      tfile = optDataFile opts
       simdata = optNodeSim opts
       setRapi = mhost /= ""
       setLuxi = isJust lsock
       setSim = isJust simdata
-      setFiles = optNodeSet opts || optInstSet opts
-      allSet = filter id [setRapi, setLuxi, setFiles]
+      setFile = isJust tfile
+      allSet = filter id [setRapi, setLuxi, setFile]
       exTags = case optExTags opts of
                  Nothing -> []
                  Just etl -> map (++ ":") etl
@@ -128,7 +114,8 @@ loadExternalData opts = do
 #endif
           | setLuxi -> wrapIO $ Luxi.loadData $ fromJust lsock
           | setSim -> Simu.loadData $ fromJust simdata
-          | otherwise -> wrapIO $ Text.loadData nodef instf
+          | setFile -> wrapIO $ Text.loadData $ fromJust tfile
+          | otherwise -> return $ Bad "No backend selected! Exiting."
 
   let ldresult = input_data >>= Loader.mergeData util_data' exTags
   (loaded_nl, il, tags, csf) <-

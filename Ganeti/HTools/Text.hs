@@ -87,16 +87,19 @@ loadTabular lines_data convert_fn = do
   kerows <- mapM convert_fn rows
   return $ assignIndices kerows
 
--- | Builds the cluster data from node\/instance files.
-loadData :: String -- ^ Node data in string format
-         -> String -- ^ Instance data in string format
+-- | Builds the cluster data from text input.
+loadData :: String -- ^ Path to the text file
          -> IO (Result (Node.AssocList, Instance.AssocList, [String]))
-loadData nfile ifile = do -- IO monad
-  ndata <- readFile nfile
-  idata <- readFile ifile
+loadData afile = do -- IO monad
+  fdata <- readFile afile
+  let flines = lines fdata
+      (nlines, ilines) = break null flines
   return $ do
+    ifixed <- case ilines of
+                [] -> Bad "Invalid format of the input file (no instance data)"
+                _:xs -> Ok xs
     {- node file: name t_mem n_mem f_mem t_disk f_disk -}
-    (ktn, nl) <- loadTabular (lines ndata) loadNode
+    (ktn, nl) <- loadTabular nlines loadNode
     {- instance file: name mem disk status pnode snode -}
-    (_, il) <- loadTabular (lines idata) (loadInst ktn)
+    (_, il) <- loadTabular ifixed (loadInst ktn)
     return (nl, il, [])

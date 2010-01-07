@@ -39,8 +39,7 @@ module Ganeti.HTools.CLI
     , oOneline
     , oNoHeaders
     , oOutputDir
-    , oNodeFile
-    , oInstFile
+    , oDataFile
     , oNodeSim
     , oRapiMaster
     , oLuxiSocket
@@ -89,10 +88,7 @@ data Options = Options
     , optOneline     :: Bool           -- ^ Switch output to a single line
     , optOutPath     :: FilePath       -- ^ Path to the output directory
     , optNoHeaders   :: Bool           -- ^ Do not show a header line
-    , optNodeFile    :: FilePath       -- ^ Path to the nodes file
-    , optNodeSet     :: Bool           -- ^ The nodes have been set by options
-    , optInstFile    :: FilePath       -- ^ Path to the instances file
-    , optInstSet     :: Bool           -- ^ The insts have been set by options
+    , optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
     , optNodeSim     :: Maybe String   -- ^ Cluster simulation mode
     , optMaxLength   :: Int            -- ^ Stop after this many steps
     , optMaster      :: String         -- ^ Collect data from RAPI
@@ -122,10 +118,7 @@ defaultOptions  = Options
  , optOneline     = False
  , optNoHeaders   = False
  , optOutPath     = "."
- , optNodeFile    = "nodes"
- , optNodeSet     = False
- , optInstFile    = "instances"
- , optInstSet     = False
+ , optDataFile    = Nothing
  , optNodeSim     = Nothing
  , optMaxLength   = -1
  , optMaster      = ""
@@ -186,17 +179,10 @@ oOutputDir = Option "d" ["output-dir"]
              (ReqArg (\ d opts -> Ok opts { optOutPath = d }) "PATH")
              "directory in which to write output files"
 
-oNodeFile :: OptType
-oNodeFile = Option "n" ["nodes"]
-            (ReqArg (\ f o -> Ok o { optNodeFile = f,
-                                     optNodeSet = True }) "FILE")
-            "the node list FILE"
-
-oInstFile :: OptType
-oInstFile = Option "i" ["instances"]
-            (ReqArg (\ f o -> Ok o { optInstFile = f,
-                                     optInstSet = True }) "FILE")
-            "the instance list FILE"
+oDataFile :: OptType
+oDataFile = Option "t" ["text-data"]
+            (ReqArg (\ f o -> Ok o { optDataFile = Just f }) "FILE")
+            "the cluster data FILE"
 
 oNodeSim :: OptType
 oNodeSim = Option "" ["simulate"]

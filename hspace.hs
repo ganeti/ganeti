@@ -50,8 +50,7 @@ import Ganeti.HTools.ExtLoader
 options :: [OptType]
 options =
     [ oPrintNodes
-    , oNodeFile
-    , oInstFile
+    , oDataFile
     , oNodeSim
     , oRapiMaster
     , oLuxiSocket

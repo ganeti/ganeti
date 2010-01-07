@@ -59,8 +59,7 @@ options =
     , oPrintInsts
     , oPrintCommands
     , oOneline
-    , oNodeFile
-    , oInstFile
+    , oDataFile
     , oRapiMaster
     , oLuxiSocket
     , oExecJobs
