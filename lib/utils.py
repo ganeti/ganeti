@@ -1398,20 +1398,26 @@ def UniqueSequence(seq):
   return [i for i in seq if i not in seen and not seen.add(i)]
 
 
-def IsValidMac(mac):
-  """Predicate to check if a MAC address is valid.
+def NormalizeAndValidateMac(mac):
+  """Normalizes and check if a MAC address is valid.
 
   Checks whether the supplied MAC address is formally correct, only
-  accepts colon separated format.
+  accepts colon separated format. Normalize it to all lower.
 
   @type mac: str
   @param mac: the MAC to be validated
-  @rtype: boolean
-  @return: True is the MAC seems valid
+  @rtype: str
+  @return: returns the normalized and validated MAC.
+
+  @raise errors.OpPrereqError: If the MAC isn't valid
 
   """
-  mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$")
-  return mac_check.match(mac) is not None
+  mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$", re.I)
+  if not mac_check.match(mac):
+    raise errors.OpPrereqError("Invalid MAC address specified: %s" %
+                               mac, errors.ECODE_INVAL)
+
+  return mac.lower()
 
 
 def TestDelay(duration):

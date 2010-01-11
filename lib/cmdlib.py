@@ -5770,16 +5770,14 @@ class LUCreateInstance(LogicalUnit):
       # MAC address verification
       mac = nic.get("mac", constants.VALUE_AUTO)
       if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-        if not utils.IsValidMac(mac.lower()):
-          raise errors.OpPrereqError("Invalid MAC address specified: %s" %
-                                     mac, errors.ECODE_INVAL)
-        else:
-          try:
-            self.cfg.ReserveMAC(mac, self.proc.GetECId())
-          except errors.ReservationError:
-            raise errors.OpPrereqError("MAC address %s already in use"
-                                       " in cluster" % mac,
-                                       errors.ECODE_NOTUNIQUE)
+        mac = utils.NormalizeAndValidateMac(mac)
+
+        try:
+          self.cfg.ReserveMAC(mac, self.proc.GetECId())
+        except errors.ReservationError:
+          raise errors.OpPrereqError("MAC address %s already in use"
+                                     " in cluster" % mac,
+                                     errors.ECODE_NOTUNIQUE)
 
       # bridge verification
       bridge = nic.get("bridge", None)
@@ -7536,9 +7534,8 @@ class LUSetInstanceParams(LogicalUnit):
       if 'mac' in nic_dict:
         nic_mac = nic_dict['mac']
         if nic_mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-          if not utils.IsValidMac(nic_mac):
-            raise errors.OpPrereqError("Invalid MAC address %s" % nic_mac,
-                                       errors.ECODE_INVAL)
+          nic_mac = utils.NormalizeAndValidateMac(nic_mac)
+
         if nic_op != constants.DDM_ADD and nic_mac == constants.VALUE_AUTO:
           raise errors.OpPrereqError("'auto' is not a valid MAC address when"
                                      " modifying an existing nic",
