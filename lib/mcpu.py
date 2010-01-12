@@ -275,7 +275,7 @@ class Processor(object):
     elif isinstance(names, basestring):
       parts.append(names)
     else:
-      parts.append(",".join(names))
+      parts.append(",".join(sorted(names)))
 
     if shared:
       parts.append("shared")
