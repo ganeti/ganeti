@@ -204,7 +204,7 @@ oExecJobs :: OptType
 oExecJobs = Option "X" ["exec"]
              (NoArg (\ opts -> Ok opts { optExecJobs = True}))
              "execute the suggested moves via Luxi (only available when using\
-             \ it for data gathering"
+             \ it for data gathering)"
 
 oVerbose :: OptType
 oVerbose = Option "v" ["verbose"]
