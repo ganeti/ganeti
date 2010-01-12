@@ -1226,21 +1226,18 @@ def EnsureDirs(dirs):
       raise errors.GenericError("%s is not a directory" % dir_name)
 
 
-def ReadFile(file_name, size=None):
+def ReadFile(file_name, size=-1):
   """Reads a file.
 
-  @type size: None or int
-  @param size: Read at most size bytes
+  @type size: int
+  @param size: Read at most size bytes (if negative, entire file)
   @rtype: str
   @return: the (possibly partial) content of the file
 
   """
   f = open(file_name, "r")
   try:
-    if size is None:
-      return f.read()
-    else:
-      return f.read(size)
+    return f.read(size)
   finally:
     f.close()
 
@@ -1372,14 +1369,14 @@ def FirstFree(seq, base=0):
   return None
 
 
-def all(seq, pred=bool):
+def all(seq, pred=bool): # pylint: disable-msg=W0622
   "Returns True if pred(x) is True for every element in the iterable"
   for _ in itertools.ifilterfalse(pred, seq):
     return False
   return True
 
 
-def any(seq, pred=bool):
+def any(seq, pred=bool): # pylint: disable-msg=W0622
   "Returns True if pred(x) is True for at least one element in the iterable"
   for _ in itertools.ifilter(pred, seq):
     return True
@@ -1401,20 +1398,26 @@ def UniqueSequence(seq):
   return [i for i in seq if i not in seen and not seen.add(i)]
 
 
-def IsValidMac(mac):
-  """Predicate to check if a MAC address is valid.
+def NormalizeAndValidateMac(mac):
+  """Normalizes and check if a MAC address is valid.
 
   Checks whether the supplied MAC address is formally correct, only
-  accepts colon separated format.
+  accepts colon separated format. Normalize it to all lower.
 
   @type mac: str
   @param mac: the MAC to be validated
-  @rtype: boolean
-  @return: True is the MAC seems valid
+  @rtype: str
+  @return: returns the normalized and validated MAC.
+
+  @raise errors.OpPrereqError: If the MAC isn't valid
 
   """
-  mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$")
-  return mac_check.match(mac) is not None
+  mac_check = re.compile("^([0-9a-f]{2}(:|$)){6}$", re.I)
+  if not mac_check.match(mac):
+    raise errors.OpPrereqError("Invalid MAC address specified: %s" %
+                               mac, errors.ECODE_INVAL)
+
+  return mac.lower()
 
 
 def TestDelay(duration):
@@ -1496,6 +1499,8 @@ def Daemonize(logfile):
   @return: the value zero
 
   """
+  # pylint: disable-msg=W0212
+  # yes, we really want os._exit
   UMASK = 077
   WORKDIR = "/"
 
@@ -1570,7 +1575,7 @@ def RemovePidFile(name):
   # TODO: we could check here that the file contains our pid
   try:
     RemoveFile(pidfilename)
-  except:
+  except: # pylint: disable-msg=W0702
     pass
 
 
@@ -1961,6 +1966,7 @@ def LockedMethod(fn):
       logging.debug(*args, **kwargs)
 
   def wrapper(self, *args, **kwargs):
+    # pylint: disable-msg=W0212
     assert hasattr(self, '_lock')
     lock = self._lock
     _LockDebug("Waiting for %s", lock)
@@ -2167,6 +2173,7 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
 
   while True:
     try:
+      # pylint: disable-msg=W0142
       return fn(*args)
     except RetryAgain:
       pass
@@ -2408,7 +2415,8 @@ class SignalHandler(object):
     """
     self.called = False
 
-  def _HandleSignal(self, signum, frame):
+  # we don't care about arguments, but we leave them named for the future
+  def _HandleSignal(self, signum, frame): # pylint: disable-msg=W0613
     """Actual signal handling function.
 
     """

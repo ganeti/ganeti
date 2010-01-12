@@ -20,3 +20,5 @@
 
 
 # empty file for package definition
+
+"""Ganeti python modules"""

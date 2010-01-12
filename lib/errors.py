@@ -384,7 +384,7 @@ def EncodeException(err):
 
 
 def MaybeRaise(result):
-  """Is this looks like an encoded Ganeti exception, raise it.
+  """If this looks like an encoded Ganeti exception, raise it.
 
   This function tries to parse the passed argument and if it looks
   like an encoding done by EncodeException, it will re-raise it.

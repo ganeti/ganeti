@@ -23,6 +23,14 @@
 
 """
 
+# pylint: disable-msg=W0232,R0201
+
+# W0232, since we use these as singletons rather than object holding
+# data
+
+# R0201, for the same reason
+
+# TODO: FileStorage initialised with paths whereas the others not
 
 import logging
 
@@ -50,7 +58,7 @@ class _Base:
     """
     raise NotImplementedError()
 
-  def Modify(self, name, changes):
+  def Modify(self, name, changes): # pylint: disable-msg=W0613
     """Modifies an entity within the storage unit.
 
     @type name: string
@@ -76,7 +84,7 @@ class _Base:
     raise NotImplementedError()
 
 
-class FileStorage(_Base):
+class FileStorage(_Base): # pylint: disable-msg=W0223
   """File storage unit.
 
   """
@@ -153,7 +161,7 @@ class FileStorage(_Base):
     return values
 
 
-class _LvmBase(_Base):
+class _LvmBase(_Base): # pylint: disable-msg=W0223
   """Base class for LVM storage containers.
 
   @cvar LIST_FIELDS: list of tuples consisting of three elements: SF_*
@@ -248,7 +256,7 @@ class _LvmBase(_Base):
 
         if callable(mapper):
           # we got a function, call it with all the declared fields
-          val = mapper(*values)
+          val = mapper(*values) # pylint: disable-msg=W0142
         elif len(values) == 1:
           # we don't have a function, but we had a single field
           # declared, pass it unchanged
@@ -324,7 +332,7 @@ class _LvmBase(_Base):
       yield fields
 
 
-class LvmPvStorage(_LvmBase):
+class LvmPvStorage(_LvmBase): # pylint: disable-msg=W0223
   """LVM Physical Volume storage unit.
 
   """

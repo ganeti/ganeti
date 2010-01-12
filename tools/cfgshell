@@ -53,6 +53,8 @@ class ConfigShell(cmd.Cmd):
   responsibility to know what they're doing.
 
   """
+  # all do_/complete_* functions follow the same API
+  # pylint: disable-msg=W0613
   prompt = "(/) "
 
   def __init__(self, cfg_file=None):
@@ -152,7 +154,7 @@ class ConfigShell(cmd.Cmd):
       arg = None
     try:
       self.cfg = config.ConfigWriter(cfg_file=arg, offline=True)
-      self.parents = [self.cfg._config_data]
+      self.parents = [self.cfg._config_data] # pylint: disable-msg=W0212
       self.path = []
     except errors.ConfigurationError, err:
       print "Error: %s" % str(err)
@@ -177,7 +179,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    dirs, _ = self._get_entries(pointer)
     matches = [str(name) for name in dirs if name.startswith(text)]
     return matches
 
@@ -202,7 +204,7 @@ class ConfigShell(cmd.Cmd):
       return False
 
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    dirs, _ = self._get_entries(pointer)
 
     if line not in dirs:
       print "No such child"
@@ -232,7 +234,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    _, entries = self._get_entries(pointer)
     matches = [name for name in entries if name.startswith(text)]
     return matches
 
@@ -244,7 +246,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    dirs, entries = self._get_entries(pointer)
+    _, entries = self._get_entries(pointer)
     if line not in entries:
       print "No such entry"
       return False
@@ -284,7 +286,7 @@ class ConfigShell(cmd.Cmd):
     if self.cfg.VerifyConfig():
       print "Config data does not validate, refusing to save."
       return False
-    self.cfg._WriteConfig()
+    self.cfg._WriteConfig() # pylint: disable-msg=W0212
 
   def do_rm(self, line):
     """Removes an instance or a node.
@@ -294,7 +296,7 @@ class ConfigShell(cmd.Cmd):
 
     """
     pointer = self.parents[-1]
-    data = self.cfg._config_data
+    data = self.cfg._config_data  # pylint: disable-msg=W0212
     if pointer not in (data.instances, data.nodes):
       print "Can only delete instances and nodes"
       return False
@@ -309,14 +311,16 @@ class ConfigShell(cmd.Cmd):
       else:
         print "Invalid node name"
 
-  def do_EOF(self, line):
+  @staticmethod
+  def do_EOF(line):
     """Exit the application.
 
     """
     print
     return True
 
-  def do_quit(self, line):
+  @staticmethod
+  def do_quit(line):
     """Exit the application.
 
     """
@@ -351,7 +355,7 @@ def main():
 
   This is just a wrapper over BootStrap, to handle our own exceptions.
   """
-  options, args = ParseOptions()
+  _, args = ParseOptions()
   if args:
     cfg_file = args[0]
   else:

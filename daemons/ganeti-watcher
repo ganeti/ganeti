@@ -27,11 +27,14 @@ by a node reboot.  Run from cron or similar.
 
 """
 
+# pylint: disable-msg=C0103,W0142
+
+# C0103: Invalid name ganeti-watcher
+
 import os
 import sys
 import time
 import logging
-import errno
 from optparse import OptionParser
 
 from ganeti import utils
@@ -115,7 +118,7 @@ class WatcherState(object):
         self._data = {}
       else:
         self._data = serializer.Load(state_data)
-    except Exception, msg:
+    except Exception, msg: # pylint: disable-msg=W0703
       # Ignore errors while loading the file and treat it as empty
       self._data = {}
       logging.warning(("Invalid state file. Using defaults."
@@ -331,7 +334,7 @@ class Watcher(object):
 
     """
     arch_count, left_count = client.AutoArchiveJobs(age)
-    logging.debug("Archived %s jobs, left %s" % (arch_count, left_count))
+    logging.debug("Archived %s jobs, left %s", arch_count, left_count)
 
   def CheckDisks(self, notepad):
     """Check all nodes for restarted ones.
@@ -369,7 +372,7 @@ class Watcher(object):
           try:
             logging.info("Activating disks for instance %s", instance.name)
             instance.ActivateDisks()
-          except Exception:
+          except Exception: # pylint: disable-msg=W0703
             logging.exception("Error while activating disks for instance %s",
                               instance.name)
 
@@ -400,7 +403,7 @@ class Watcher(object):
                         instance.name, last)
           instance.Restart()
           self.started_instances.add(instance.name)
-        except Exception:
+        except Exception: # pylint: disable-msg=W0703
           logging.exception("Error while restarting instance %s",
                             instance.name)
 
@@ -464,9 +467,13 @@ def main():
   """Main function.
 
   """
-  global client
+  global client # pylint: disable-msg=W0603
 
   options, args = ParseOptions()
+
+  if args: # watcher doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] " % sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
 
   utils.SetupLogging(constants.LOG_WATCHER, debug=options.debug,
                      stderr_logging=options.debug)

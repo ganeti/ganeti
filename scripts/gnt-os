@@ -18,17 +18,19 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+"""OS scripts related commands"""
 
-# pylint: disable-msg=W0401,W0614
+# pylint: disable-msg=W0401,W0613,W0614,C0103
 # W0401: Wildcard import ganeti.cli
+# W0613: Unused argument, since all functions follow the same API
 # W0614: Unused import %s from wildcard import (since we need cli)
+# C0103: Invalid name gnt-os
 
 import sys
 
 from ganeti.cli import *
 from ganeti import opcodes
 from ganeti import utils
-from ganeti import constants
 
 
 def ListOS(opts, args):
@@ -104,7 +106,7 @@ def DiagnoseOS(opts, args):
 
   has_bad = False
 
-  for os_name, os_valid, os_variants, node_data in result:
+  for os_name, _, os_variants, node_data in result:
     nodes_valid = {}
     nodes_bad = {}
     nodes_hidden = {}

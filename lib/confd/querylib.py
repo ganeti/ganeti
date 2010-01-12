@@ -50,7 +50,7 @@ class ConfdQuery(object):
     """
     self.reader = reader
 
-  def Exec(self, query):
+  def Exec(self, query): # pylint: disable-msg=R0201,W0613
     """Process a single UDP request from a client.
 
     Different queries should override this function, which by defaults returns
@@ -94,16 +94,38 @@ class ClusterMasterQuery(ConfdQuery):
   It accepts no arguments, and returns the current cluster master.
 
   """
+  def _GetMasterNode(self):
+    return self.reader.GetMasterNode()
+
   def Exec(self, query):
     """ClusterMasterQuery main execution
 
     """
-    if query is None:
+    if isinstance(query, dict):
+      if constants.CONFD_REQQ_FIELDS in query:
+        status = constants.CONFD_REPL_STATUS_OK
+        req_fields = query[constants.CONFD_REQQ_FIELDS]
+        if not isinstance(req_fields, (list, tuple)):
+          logging.debug("FIELDS request should be a list")
+          return QUERY_ARGUMENT_ERROR
+
+        answer = []
+        for field in req_fields:
+          if field == constants.CONFD_REQFIELD_NAME:
+            answer.append(self._GetMasterNode())
+          elif field == constants.CONFD_REQFIELD_IP:
+            answer.append(self.reader.GetMasterIP())
+          elif field == constants.CONFD_REQFIELD_MNODE_PIP:
+            answer.append(self.reader.GetNodePrimaryIp(self._GetMasterNode()))
+      else:
+        logging.debug("missing FIELDS in query dict")
+        return QUERY_ARGUMENT_ERROR
+    elif not query:
       status = constants.CONFD_REPL_STATUS_OK
       answer = self.reader.GetMasterNode()
     else:
-      status = constants.CONFD_REPL_STATUS_ERROR
-      answer = 'master query accepts no query argument'
+      logging.debug("Invalid master query argument: not dict or empty")
+      return QUERY_ARGUMENT_ERROR
 
     return status, answer
 
@@ -165,7 +187,6 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
         instances_list = query[constants.CONFD_REQQ_IPLIST]
         mode = constants.CONFD_REQQ_IPLIST
       else:
-        status = constants.CONFD_REPL_STATUS_ERROR
         logging.debug("missing IP or IPLIST in query dict")
         return QUERY_ARGUMENT_ERROR
 
@@ -179,40 +200,41 @@ class InstanceIpToNodePrimaryIpQuery(ConfdQuery):
       network_link = None
       mode = constants.CONFD_REQQ_IP
     else:
-      logging.debug("Invalid query argument type for: %s" % query)
+      logging.debug("Invalid query argument type for: %s", query)
       return QUERY_ARGUMENT_ERROR
 
     pnodes_list = []
 
     for instance_ip in instances_list:
       if not isinstance(instance_ip, basestring):
-        logging.debug("Invalid IP type for: %s" % instance_ip)
+        logging.debug("Invalid IP type for: %s", instance_ip)
         return QUERY_ARGUMENT_ERROR
 
       instance = self.reader.GetInstanceByLinkIp(instance_ip, network_link)
       if not instance:
-        logging.debug("Unknown instance IP: %s" % instance_ip)
+        logging.debug("Unknown instance IP: %s", instance_ip)
         pnodes_list.append(QUERY_UNKNOWN_ENTRY_ERROR)
         continue
 
       pnode = self.reader.GetInstancePrimaryNode(instance)
       if not pnode:
         logging.error("Instance '%s' doesn't have an associated primary"
-                      " node" % instance)
+                      " node", instance)
         pnodes_list.append(QUERY_INTERNAL_ERROR)
         continue
 
       pnode_primary_ip = self.reader.GetNodePrimaryIp(pnode)
       if not pnode_primary_ip:
         logging.error("Primary node '%s' doesn't have an associated"
-                      " primary IP" % pnode)
+                      " primary IP", pnode)
         pnodes_list.append(QUERY_INTERNAL_ERROR)
         continue
 
       pnodes_list.append((constants.CONFD_REPL_STATUS_OK, pnode_primary_ip))
 
-    # If a single ip was requested, return a single answer, otherwise the whole
-    # list, with a success status (since each entry has its own success/failure)
+    # If a single ip was requested, return a single answer, otherwise
+    # the whole list, with a success status (since each entry has its
+    # own success/failure)
     if mode == constants.CONFD_REQQ_IP:
       return pnodes_list[0]
 

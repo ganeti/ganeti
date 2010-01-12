@@ -18,10 +18,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-# Disable "Invalid name ..." message
-# pylint: disable-msg=C0103
-
 """Module implementing the Ganeti locking code."""
+
+# pylint: disable-msg=W0212
+
+# W0212 since e.g. LockSet methods use (a lot) the internals of
+# SharedLock
 
 import os
 import select
@@ -285,7 +287,7 @@ class SingleNotifyPipeCondition(_BaseCondition):
       if self._nwaiters == 0:
         self._Cleanup()
 
-  def notifyAll(self):
+  def notifyAll(self): # pylint: disable-msg=C0103
     """Close the writing side of the pipe to notify all waiters.
 
     """
@@ -343,7 +345,7 @@ class PipeCondition(_BaseCondition):
       assert self._nwaiters > 0
       self._nwaiters -= 1
 
-  def notifyAll(self):
+  def notifyAll(self): # pylint: disable-msg=C0103
     """Notify all currently waiting threads.
 
     """
@@ -380,7 +382,7 @@ class _CountingCondition(object):
     self._cond = threading.Condition(lock=lock)
     self._nwaiters = 0
 
-  def notifyAll(self):
+  def notifyAll(self): # pylint: disable-msg=C0103
     """Notifies the condition.
 
     """
@@ -1202,7 +1204,7 @@ class GanetiLockManager:
     # the test cases.
     return utils.any((self._is_owned(l) for l in LEVELS[level + 1:]))
 
-  def _BGL_owned(self):
+  def _BGL_owned(self): # pylint: disable-msg=C0103
     """Check if the current thread owns the BGL.
 
     Both an exclusive or a shared acquisition work.
@@ -1210,7 +1212,8 @@ class GanetiLockManager:
     """
     return BGL in self.__keyring[LEVEL_CLUSTER]._list_owned()
 
-  def _contains_BGL(self, level, names):
+  @staticmethod
+  def _contains_BGL(level, names): # pylint: disable-msg=C0103
     """Check if the level contains the BGL.
 
     Check if acting on the given level and set of names will change

@@ -325,7 +325,7 @@ DEFAULT_MAC_PREFIX = "aa:00:00"
 LVM_STRIPECOUNT = _autoconf.LVM_STRIPECOUNT
 # default maximum instance wait time, in seconds.
 DEFAULT_SHUTDOWN_TIMEOUT = 120
-
+NODE_MAX_CLOCK_SKEW = 150
 
 # RPC constants
 (RPC_ENCODING_NONE,
@@ -396,6 +396,7 @@ HV_DEVICE_MODEL = "device_model"
 HV_INIT_SCRIPT = "init_script"
 HV_MIGRATION_PORT = "migration_port"
 HV_USE_LOCALTIME = "use_localtime"
+HV_DISK_CACHE = "disk_cache"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -422,6 +423,7 @@ HVS_PARAMETER_TYPES = {
   HV_INIT_SCRIPT: VTYPE_STRING,
   HV_MIGRATION_PORT: VTYPE_INT,
   HV_USE_LOCALTIME: VTYPE_BOOL,
+  HV_DISK_CACHE: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -496,6 +498,15 @@ HT_DISK_SD = "sd"
 HT_DISK_MTD = "mtd"
 HT_DISK_PFLASH = "pflash"
 
+HT_CACHE_DEFAULT = "default"
+HT_CACHE_NONE = "none"
+HT_CACHE_WTHROUGH = "writethrough"
+HT_CACHE_WBACK = "writeback"
+HT_VALID_CACHE_TYPES = frozenset([HT_CACHE_DEFAULT,
+                                  HT_CACHE_NONE,
+                                  HT_CACHE_WTHROUGH,
+                                  HT_CACHE_WBACK])
+
 HT_HVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IOEMU])
 HT_KVM_VALID_DISK_TYPES = frozenset([HT_DISK_PARAVIRTUAL, HT_DISK_IDE,
                                      HT_DISK_SCSI, HT_DISK_SD, HT_DISK_MTD,
@@ -531,6 +542,7 @@ NV_LVLIST = "lvlist"
 NV_PVLIST = "pvlist"
 NV_DRBDLIST = "drbd-list"
 NV_NODESETUP = "nodesetup"
+NV_TIME = "time"
 
 # Allocator framework constants
 IALLOCATOR_VERSION = 2
@@ -650,6 +662,7 @@ HVC_DEFAULTS = {
     HV_USB_MOUSE: '',
     HV_MIGRATION_PORT: 8102,
     HV_USE_LOCALTIME: False,
+    HV_DISK_CACHE: HT_CACHE_DEFAULT,
     },
   HT_FAKE: {
     },
@@ -691,6 +704,11 @@ CONFD_REQ_INSTANCES_IPS_LIST = 6
 CONFD_REQQ_LINK = "0"
 CONFD_REQQ_IP = "1"
 CONFD_REQQ_IPLIST = "2"
+CONFD_REQQ_FIELDS = "3"
+
+CONFD_REQFIELD_NAME = "0"
+CONFD_REQFIELD_IP = "1"
+CONFD_REQFIELD_MNODE_PIP = "2"
 
 CONFD_REQS = frozenset([
   CONFD_REQ_PING,
@@ -727,7 +745,7 @@ CONFD_ERROR_ARGUMENT = 3
 # Each request is "salted" by the current timestamp.
 # This constants decides how many seconds of skew to accept.
 # TODO: make this a default and allow the value to be more configurable
-CONFD_MAX_CLOCK_SKEW = 300
+CONFD_MAX_CLOCK_SKEW = 2 * NODE_MAX_CLOCK_SKEW
 
 # When we haven't reloaded the config for more than this amount of seconds, we
 # force a test to see if inotify is betraying us.

@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Copyright (C) 2009 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# This is a test script to ease development and testing on test clusters.
+# It should not be used to update production environments.
+
+# Usage: release v2.0.5
+# Alternative: URL=file:///my/git/repo release e5823b7e2cd8a3...
+# It will clone the given repository from the default or passed URL,
+# checkout the given reference (a tag or branch) and then create a
+# release archive; you will need to copy the archive and delete the
+# temporary directory at the end
+
+set -e
+
+: ${URL:=git://git.ganeti.org/ganeti.git}
+TAG="$1"
+
+TMPDIR=`mktemp -d`
+cd $TMPDIR
+echo "Cloning the repository under $TMPDIR ..."
+git clone -q "$URL" dist
+cd dist
+git checkout $TAG
+./autogen.sh
+./configure
+VERSION=$(sed -n -e '/^PACKAGE_VERSION =/ s/^PACKAGE_VERSION = // p' Makefile)
+make distcheck
+fakeroot make dist
+tar tzvf ganeti-$VERSION.tar.gz
+sha1sum ganeti-$VERSION.tar.gz
+echo "The archive is at $PWD/ganeti-$VERSION.tar.gz"
+echo "Please copy it and remove the temporary directory when done."

@@ -32,7 +32,6 @@ import os.path
 import sys
 import optparse
 import logging
-import errno
 
 from ganeti import constants
 from ganeti import serializer
@@ -98,7 +97,7 @@ def main():
   """Main program.
 
   """
-  global options, args
+  global options, args # pylint: disable-msg=W0603
 
   program = os.path.basename(sys.argv[0])
 
@@ -198,7 +197,7 @@ def main():
     if vrfy:
       logging.error("Errors after conversion:")
       for item in vrfy:
-        logging.error(" - %s" % item)
+        logging.error(" - %s", item)
     del cfg
     logging.info("File loaded successfully")
 

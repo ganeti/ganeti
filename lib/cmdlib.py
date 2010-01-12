@@ -21,7 +21,10 @@
 
 """Module implementing the master-side code."""
 
-# pylint: disable-msg=W0613,W0201
+# pylint: disable-msg=W0201
+
+# W0201 since most LU attributes are defined in CheckPrereq or similar
+# functions
 
 import os
 import os.path
@@ -87,9 +90,9 @@ class LogicalUnit(object):
     self.recalculate_locks = {}
     self.__ssh = None
     # logging
-    self.LogWarning = processor.LogWarning
-    self.LogInfo = processor.LogInfo
-    self.LogStep = processor.LogStep
+    self.LogWarning = processor.LogWarning # pylint: disable-msg=C0103
+    self.LogInfo = processor.LogInfo # pylint: disable-msg=C0103
+    self.LogStep = processor.LogStep # pylint: disable-msg=C0103
     # support for dry-run
     self.dry_run_result = None
 
@@ -277,6 +280,9 @@ class LogicalUnit(object):
         and hook results
 
     """
+    # API must be kept, thus we ignore the unused argument and could
+    # be a function warnings
+    # pylint: disable-msg=W0613,R0201
     return lu_result
 
   def _ExpandAndLockInstance(self):
@@ -347,7 +353,7 @@ class LogicalUnit(object):
     del self.recalculate_locks[locking.LEVEL_NODE]
 
 
-class NoHooksLU(LogicalUnit):
+class NoHooksLU(LogicalUnit): # pylint: disable-msg=W0223
   """Simple LU which runs no hooks.
 
   This LU is intended as a parent for other LogicalUnits which will
@@ -356,6 +362,14 @@ class NoHooksLU(LogicalUnit):
   """
   HPATH = None
   HTYPE = None
+
+  def BuildHooksEnv(self):
+    """Empty BuildHooksEnv for NoHooksLu.
+
+    This just raises an error.
+
+    """
+    assert False, "BuildHooksEnv called for NoHooksLUs"
 
 
 class Tasklet:
@@ -688,7 +702,7 @@ def _BuildInstanceHookEnvByObject(lu, instance, override=None):
   }
   if override:
     args.update(override)
-  return _BuildInstanceHookEnv(**args)
+  return _BuildInstanceHookEnv(**args) # pylint: disable-msg=W0142
 
 
 def _AdjustCandidatePool(lu, exceptions):
@@ -898,6 +912,7 @@ class LUDestroyCluster(LogicalUnit):
     try:
       hm.RunPhase(constants.HOOKS_PHASE_POST, [master])
     except:
+      # pylint: disable-msg=W0702
       self.LogWarning("Errors occurred running hooks on %s" % master)
 
     result = self.rpc.call_node_stop_master(master, False)
@@ -944,6 +959,7 @@ class LUVerifyCluster(LogicalUnit):
   ENODESSH = (TNODE, "ENODESSH")
   ENODEVERSION = (TNODE, "ENODEVERSION")
   ENODESETUP = (TNODE, "ENODESETUP")
+  ENODETIME = (TNODE, "ENODETIME")
 
   ETYPE_FIELD = "code"
   ETYPE_ERROR = "ERROR"
@@ -1017,7 +1033,7 @@ class LUVerifyCluster(LogicalUnit):
 
     """
     node = nodeinfo.name
-    _ErrorIf = self._ErrorIf
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
 
     # main result, node_result should be a non-empty dict
     test = not node_result or not isinstance(node_result, dict)
@@ -1151,7 +1167,7 @@ class LUVerifyCluster(LogicalUnit):
         # check that ':' is not present in PV names, since it's a
         # special character for lvcreate (denotes the range of PEs to
         # use on the PV)
-        for size, pvname, owner_vg in pvlist:
+        for _, pvname, owner_vg in pvlist:
           test = ":" in pvname
           _ErrorIf(test, self.ENODELVM, node, "Invalid character ':' in PV"
                    " '%s' of VG '%s'", pvname, owner_vg)
@@ -1164,7 +1180,7 @@ class LUVerifyCluster(LogicalUnit):
     available on the instance's node.
 
     """
-    _ErrorIf = self._ErrorIf
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
     node_current = instanceconfig.primary_node
 
     node_vol_should = {}
@@ -1279,7 +1295,7 @@ class LUVerifyCluster(LogicalUnit):
 
     """
     self.bad = False
-    _ErrorIf = self._ErrorIf
+    _ErrorIf = self._ErrorIf # pylint: disable-msg=C0103
     verbose = self.op.verbose
     self._feedback_fn = feedback_fn
     feedback_fn("* Verifying global settings")
@@ -1326,14 +1342,23 @@ class LUVerifyCluster(LogicalUnit):
       constants.NV_VERSION: None,
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
       constants.NV_NODESETUP: None,
+      constants.NV_TIME: None,
       }
+
     if vg_name is not None:
       node_verify_param[constants.NV_VGLIST] = None
       node_verify_param[constants.NV_LVLIST] = vg_name
       node_verify_param[constants.NV_PVLIST] = [vg_name]
       node_verify_param[constants.NV_DRBDLIST] = None
+
+    # Due to the way our RPC system works, exact response times cannot be
+    # guaranteed (e.g. a broken node could run into a timeout). By keeping the
+    # time before and after executing the request, we can at least have a time
+    # window.
+    nvinfo_starttime = time.time()
     all_nvinfo = self.rpc.call_node_verify(nodelist, node_verify_param,
                                            self.cfg.GetClusterName())
+    nvinfo_endtime = time.time()
 
     cluster = self.cfg.GetClusterInfo()
     master_node = self.cfg.GetMasterNode()
@@ -1380,6 +1405,7 @@ class LUVerifyCluster(LogicalUnit):
         else:
           instance = instanceinfo[instance]
           node_drbd[minor] = (instance.name, instance.admin_up)
+
       self._VerifyNode(node_i, file_names, local_checksums,
                        nresult, master_files, node_drbd, vg_name)
 
@@ -1411,6 +1437,27 @@ class LUVerifyCluster(LogicalUnit):
       test = not isinstance(nodeinfo, dict)
       _ErrorIf(test, self.ENODEHV, node, "rpc call to node failed (hvinfo)")
       if test:
+        continue
+
+      # Node time
+      ntime = nresult.get(constants.NV_TIME, None)
+      try:
+        ntime_merged = utils.MergeTime(ntime)
+      except (ValueError, TypeError):
+        _ErrorIf(test, self.ENODETIME, node, "Node returned invalid time")
+
+      if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
+        ntime_diff = abs(nvinfo_starttime - ntime_merged)
+      elif ntime_merged > (nvinfo_endtime + constants.NODE_MAX_CLOCK_SKEW):
+        ntime_diff = abs(ntime_merged - nvinfo_endtime)
+      else:
+        ntime_diff = None
+
+      _ErrorIf(ntime_diff is not None, self.ENODETIME, node,
+               "Node time diverges by at least %0.1fs from master node time",
+               ntime_diff)
+
+      if ntime_diff is not None:
         continue
 
       try:
@@ -1551,7 +1598,6 @@ class LUVerifyCluster(LogicalUnit):
       assert hooks_results, "invalid result from hooks"
 
       for node_name in hooks_results:
-        show_node_header = True
         res = hooks_results[node_name]
         msg = res.fail_msg
         test = msg and not res.offline
@@ -1641,7 +1687,7 @@ class LUVerifyDisks(NoHooksLU):
         continue
 
       lvs = node_res.payload
-      for lv_name, (_, lv_inactive, lv_online) in lvs.items():
+      for lv_name, (_, _, lv_online) in lvs.items():
         inst = nv_dict.pop((node, lv_name), None)
         if (not lv_online and inst is not None
             and inst.name not in res_instances):
@@ -1797,7 +1843,8 @@ class LURenameCluster(LogicalUnit):
       "NEW_NAME": self.op.name,
       }
     mn = self.cfg.GetMasterNode()
-    return env, [mn], [mn]
+    all_nodes = self.cfg.GetNodeList()
+    return env, [mn], all_nodes
 
   def CheckPrereq(self):
     """Verify that the passed name is a valid one.
@@ -2275,10 +2322,9 @@ class LUDiagnoseOS(NoHooksLU):
     """
 
   @staticmethod
-  def _DiagnoseByOS(node_list, rlist):
+  def _DiagnoseByOS(rlist):
     """Remaps a per-node return list into an a per-os per-node dictionary
 
-    @param node_list: a list with the names of all nodes
     @param rlist: a map with node names as keys and OS objects as values
 
     @rtype: dict
@@ -2316,7 +2362,7 @@ class LUDiagnoseOS(NoHooksLU):
     """
     valid_nodes = [node for node in self.cfg.GetOnlineNodeList()]
     node_data = self.rpc.call_os_diagnose(valid_nodes)
-    pol = self._DiagnoseByOS(valid_nodes, node_data)
+    pol = self._DiagnoseByOS(node_data)
     output = []
     calc_valid = self._FIELDS_NEEDVALID.intersection(self.op.output_fields)
     calc_variants = "variants" in self.op.output_fields
@@ -2432,8 +2478,9 @@ class LURemoveNode(LogicalUnit):
     # Run post hooks on the node before it's removed
     hm = self.proc.hmclass(self.rpc.call_hooks_runner, self)
     try:
-      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
+      hm.RunPhase(constants.HOOKS_PHASE_POST, [node.name])
     except:
+      # pylint: disable-msg=W0702
       self.LogWarning("Errors occurred running hooks on %s" % node.name)
 
     result = self.rpc.call_node_leave_cluster(node.name, modify_ssh_setup)
@@ -2447,6 +2494,7 @@ class LUQueryNodes(NoHooksLU):
   """Logical unit for querying nodes.
 
   """
+  # pylint: disable-msg=W0142
   _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
 
@@ -2549,7 +2597,7 @@ class LUQueryNodes(NoHooksLU):
     if inst_fields & frozenset(self.op.output_fields):
       inst_data = self.cfg.GetAllInstancesInfo()
 
-      for instance_name, inst in inst_data.items():
+      for inst in inst_data.values():
         if inst.primary_node in node_to_primary:
           node_to_primary[inst.primary_node].add(inst.name)
         for secnode in inst.secondary_nodes:
@@ -2977,7 +3025,7 @@ class LUAddNode(LogicalUnit):
     # later in the procedure; this also means that if the re-add
     # fails, we are left with a non-offlined, broken node
     if self.op.readd:
-      new_node.drained = new_node.offline = False
+      new_node.drained = new_node.offline = False # pylint: disable-msg=W0201
       self.LogInfo("Readding a node, the offline/drained flags were reset")
       # if we demote the node, we do cleanup later in the procedure
       new_node.master_candidate = self.master_candidate
@@ -4024,7 +4072,7 @@ class LURecreateInstanceDisks(LogicalUnit):
 
     """
     to_skip = []
-    for idx, disk in enumerate(self.instance.disks):
+    for idx, _ in enumerate(self.instance.disks):
       if idx not in self.op.disks: # disk idx has not been passed in
         to_skip.append(idx)
         continue
@@ -4219,6 +4267,7 @@ class LUQueryInstances(NoHooksLU):
   """Logical unit for querying instances.
 
   """
+  # pylint: disable-msg=W0142
   _OP_REQP = ["output_fields", "names", "use_locking"]
   REQ_BGL = False
   _SIMPLE_FIELDS = ["name", "os", "network_port", "hypervisor",
@@ -4280,6 +4329,8 @@ class LUQueryInstances(NoHooksLU):
     """Computes the list of nodes and their attributes.
 
     """
+    # pylint: disable-msg=R0912
+    # way too many branches here
     all_info = self.cfg.GetAllInstancesInfo()
     if self.wanted == locking.ALL_SET:
       # caller didn't specify instance names, so ordering is not important
@@ -4752,7 +4803,7 @@ class LUMoveInstance(LogicalUnit):
     for idx, dsk in enumerate(instance.disks):
       if dsk.dev_type not in (constants.LD_LV, constants.LD_FILE):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
-                                   " cannot copy", errors.ECODE_STATE)
+                                   " cannot copy" % idx, errors.ECODE_STATE)
 
     _CheckNodeOnline(self, target_node)
     _CheckNodeNotDrained(self, target_node)
@@ -5586,6 +5637,19 @@ class LUCreateInstance(LogicalUnit):
               "hvparams", "beparams"]
   REQ_BGL = False
 
+  def CheckArguments(self):
+    """Check arguments.
+
+    """
+    # do not require name_check to ease forward/backward compatibility
+    # for tools
+    if not hasattr(self.op, "name_check"):
+      self.op.name_check = True
+    if self.op.ip_check and not self.op.name_check:
+      # TODO: make the ip check more flexible and not depend on the name check
+      raise errors.OpPrereqError("Cannot do ip checks without a name check",
+                                 errors.ECODE_INVAL)
+
   def _ExpandNode(self, node):
     """Expands and checks one node name.
 
@@ -5650,8 +5714,14 @@ class LUCreateInstance(LogicalUnit):
     #### instance parameters check
 
     # instance name verification
-    hostname1 = utils.GetHostInfo(self.op.instance_name)
-    self.op.instance_name = instance_name = hostname1.name
+    if self.op.name_check:
+      hostname1 = utils.GetHostInfo(self.op.instance_name)
+      self.op.instance_name = instance_name = hostname1.name
+      # used in CheckPrereq for ip ping check
+      self.check_ip = hostname1.ip
+    else:
+      instance_name = self.op.instance_name
+      self.check_ip = None
 
     # this is just a preventive check, but someone might still add this
     # instance in the meantime, and creation will fail at lock-add time
@@ -5680,6 +5750,10 @@ class LUCreateInstance(LogicalUnit):
       if ip is None or ip.lower() == constants.VALUE_NONE:
         nic_ip = None
       elif ip.lower() == constants.VALUE_AUTO:
+        if not self.op.name_check:
+          raise errors.OpPrereqError("IP address set to auto but name checks"
+                                     " have been skipped. Aborting.",
+                                     errors.ECODE_INVAL)
         nic_ip = hostname1.ip
       else:
         if not utils.IsValidIP(ip):
@@ -5696,16 +5770,14 @@ class LUCreateInstance(LogicalUnit):
       # MAC address verification
       mac = nic.get("mac", constants.VALUE_AUTO)
       if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-        if not utils.IsValidMac(mac.lower()):
-          raise errors.OpPrereqError("Invalid MAC address specified: %s" %
-                                     mac, errors.ECODE_INVAL)
-        else:
-          try:
-            self.cfg.ReserveMAC(mac, self.proc.GetECId())
-          except errors.ReservationError:
-            raise errors.OpPrereqError("MAC address %s already in use"
-                                       " in cluster" % mac,
-                                       errors.ECODE_NOTUNIQUE)
+        mac = utils.NormalizeAndValidateMac(mac)
+
+        try:
+          self.cfg.ReserveMAC(mac, self.proc.GetECId())
+        except errors.ReservationError:
+          raise errors.OpPrereqError("MAC address %s already in use"
+                                     " in cluster" % mac,
+                                     errors.ECODE_NOTUNIQUE)
 
       # bridge verification
       bridge = nic.get("bridge", None)
@@ -5746,9 +5818,6 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
       self.disks.append({"size": size, "mode": mode})
-
-    # used in CheckPrereq for ip ping check
-    self.check_ip = hostname1.ip
 
     # file storage checks
     if (self.op.file_driver and
@@ -5960,12 +6029,8 @@ class LUCreateInstance(LogicalUnit):
             nic.mac = export_info.get(constants.INISECT_INS, nic_mac_ini)
 
     # ENDIF: self.op.mode == constants.INSTANCE_IMPORT
-    # ip ping checks (we use the same ip that was resolved in ExpandNames)
-    if self.op.start and not self.op.ip_check:
-      raise errors.OpPrereqError("Cannot ignore IP address conflicts when"
-                                 " adding an instance in start mode",
-                                 errors.ECODE_INVAL)
 
+    # ip ping checks (we use the same ip that was resolved in ExpandNames)
     if self.op.ip_check:
       if utils.TcpPing(self.check_ip, constants.DEFAULT_NODED_PORT):
         raise errors.OpPrereqError("IP %s of instance %s already in use" %
@@ -6488,7 +6553,8 @@ class TLReplaceDisks(Tasklet):
     if len(ial.nodes) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (len(ial.nodes), ial.required_nodes),
+                                 (iallocator_name,
+                                  len(ial.nodes), ial.required_nodes),
                                  errors.ECODE_FAULT)
 
     remote_node_name = ial.nodes[0]
@@ -6735,7 +6801,7 @@ class TLReplaceDisks(Tasklet):
     return iv_names
 
   def _CheckDevices(self, node_name, iv_names):
-    for name, (dev, old_lvs, new_lvs) in iv_names.iteritems():
+    for name, (dev, _, _) in iv_names.iteritems():
       self.cfg.SetDiskID(dev, node_name)
 
       result = self.rpc.call_blockdev_find(node_name, dev)
@@ -6751,7 +6817,7 @@ class TLReplaceDisks(Tasklet):
         raise errors.OpExecError("DRBD device %s is degraded!" % name)
 
   def _RemoveOldStorage(self, node_name, iv_names):
-    for name, (dev, old_lvs, _) in iv_names.iteritems():
+    for name, (_, old_lvs, _) in iv_names.iteritems():
       self.lu.LogInfo("Remove logical volumes for %s" % name)
 
       for lv in old_lvs:
@@ -6946,6 +7012,7 @@ class TLReplaceDisks(Tasklet):
       if self.instance.primary_node == o_node1:
         p_minor = o_minor1
       else:
+        assert self.instance.primary_node == o_node2, "Three-node instance?"
         p_minor = o_minor2
 
       new_alone_id = (self.instance.primary_node, self.new_node, None,
@@ -7467,9 +7534,8 @@ class LUSetInstanceParams(LogicalUnit):
       if 'mac' in nic_dict:
         nic_mac = nic_dict['mac']
         if nic_mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
-          if not utils.IsValidMac(nic_mac):
-            raise errors.OpPrereqError("Invalid MAC address %s" % nic_mac,
-                                       errors.ECODE_INVAL)
+          nic_mac = utils.NormalizeAndValidateMac(nic_mac)
+
         if nic_op != constants.DDM_ADD and nic_mac == constants.VALUE_AUTO:
           raise errors.OpPrereqError("'auto' is not a valid MAC address when"
                                      " modifying an existing nic",
@@ -7539,7 +7605,8 @@ class LUSetInstanceParams(LogicalUnit):
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
-  def _GetUpdatedParams(self, old_params, update_dict,
+  @staticmethod
+  def _GetUpdatedParams(old_params, update_dict,
                         default_values, parameter_types):
     """Return the new params dict for the given params.
 
@@ -7749,7 +7816,7 @@ class LUSetInstanceParams(LogicalUnit):
       raise errors.OpPrereqError("Disk operations not supported for"
                                  " diskless instances",
                                  errors.ECODE_INVAL)
-    for disk_op, disk_dict in self.op.disks:
+    for disk_op, _ in self.op.disks:
       if disk_op == constants.DDM_REMOVE:
         if len(instance.disks) == 1:
           raise errors.OpPrereqError("Cannot remove the last disk of"
@@ -7793,7 +7860,6 @@ class LUSetInstanceParams(LogicalUnit):
 
     result = []
     instance = self.instance
-    cluster = self.cluster
     # disk changes
     for disk_op, disk_dict in self.op.disks:
       if disk_op == constants.DDM_REMOVE:
@@ -8184,7 +8250,7 @@ class LURemoveExport(NoHooksLU):
                   " Domain Name.")
 
 
-class TagsLU(NoHooksLU):
+class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   """Generic tags LU.
 
   This is an abstract class which is the parent of all the other tags LUs.
@@ -8395,6 +8461,8 @@ class IAllocator(object):
       easy usage
 
   """
+  # pylint: disable-msg=R0902
+  # lots of instance attributes
   _ALLO_KEYS = [
     "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",

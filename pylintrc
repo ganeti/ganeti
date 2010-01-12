@@ -11,7 +11,7 @@ load-plugins =
 
 [REPORTS]
 output-format = colorized
-include-ids = no
+include-ids = yes
 files-output = no
 reports = no
 evaluation = 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
@@ -19,15 +19,21 @@ comment = yes
 
 [BASIC]
 required-attributes =
-no-docstring-rgx = __.*__
+# disabling docstring checks since we have way too many without (complex
+# inheritance hierarchies)
+#no-docstring-rgx = __.*__
+no-docstring-rgx = .*
 module-rgx = (([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
-const-rgx = ((_{0,2}[A-Z][A-Z0-9_]*)|(__.*__))$
+# added lower-case names
+const-rgx = ((_{0,2}[A-Z][A-Z0-9_]*)|(__.*__)|(_?[a-z_][a-z0-9_]*))$
 class-rgx = _?[A-Z][a-zA-Z0-9]+$
-function-rgx = (_?([A-Z]+[a-z0-9]+([A-Z]+[a-z0-9]*)*)|main)$
-method-rgx = (_{0,2}[A-Z]+[a-z0-9]+([A-Z]+[a-z0-9]*)*|__.*__)$
+# added lower-case names
+function-rgx = (_?([A-Z]+[a-z0-9]+([A-Z]+[a-z0-9]*)*)|main|([a-z_][a-z0-9_]*))$
+# add lower-case names, since derived classes must obey method names
+method-rgx = (_{0,2}[A-Z]+[a-z0-9]+([A-Z]+[a-z0-9]*)*|__.*__|([a-z_][a-z0-9_]*))$
 attr-rgx = [a-z_][a-z0-9_]{1,30}$
 argument-rgx = [a-z_][a-z0-9_]*$
-variable-rgx = (_?([a-z_][a-z0-9_]*)|([A-Z0-9_]+))$
+variable-rgx = (_?([a-z_][a-z0-9_]*)|(_?[A-Z0-9_]+))$
 inlinevar-rgx = [A-Za-z_][A-Za-z0-9_]*$
 good-names = i,j,k,_
 bad-names = foo,bar,baz,toto,tutu,tata
@@ -48,15 +54,16 @@ ignore-iface-methods =
 defining-attr-methods = __init__,__new__,setUp
 
 [DESIGN]
-max-args = 6
-max-locals = 15
-max-returns = 6
-max-branchs = 12
-max-statements = 50
+max-args = 15
+max-locals = 50
+max-returns = 10
+max-branchs = 80
+max-statements = 200
 max-parents = 7
-max-attributes = 7
-min-public-methods = 2
-max-public-methods = 20
+max-attributes = 20
+# zero as struct-like (PODS) classes don't export any methods
+min-public-methods = 0
+max-public-methods = 50
 
 [IMPORTS]
 deprecated-modules = regsub,string,TERMIOS,Bastion,rexec
@@ -66,7 +73,7 @@ int-import-graph =
 
 [FORMAT]
 max-line-length = 80
-max-module-lines = 1000
+max-module-lines = 10000
 indent-string = "  "
 
 [MISCELLANEOUS]
@@ -76,3 +83,26 @@ notes = FIXME,XXX,TODO
 min-similarity-lines = 4
 ignore-comments = yes
 ignore-docstrings = yes
+
+[MESSAGES CONTROL]
+
+# Enable only checker(s) with the given id(s). This option conflicts with the
+# disable-checker option
+#enable-checker=
+
+# Enable all checker(s) except those with the given id(s). This option
+# conflicts with the enable-checker option
+#disable-checker=
+disable-checker=similarities
+
+# Enable all messages in the listed categories (IRCWEF).
+#enable-msg-cat=
+
+# Disable all messages in the listed categories (IRCWEF).
+disable-msg-cat=
+
+# Enable the message(s) with the given id(s).
+#enable-msg=
+
+# Disable the message(s) with the given id(s).
+disable-msg=W0511,R0922,W0201

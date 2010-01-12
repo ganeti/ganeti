@@ -190,7 +190,7 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
-  def MigrationInfo(self, instance):
+  def MigrationInfo(self, instance): # pylint: disable-msg=R0201,W0613
     """Get instance information to perform a migration.
 
     By default assume no information is needed.
@@ -310,8 +310,8 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
-
-  def GetLinuxNodeInfo(self):
+  @staticmethod
+  def GetLinuxNodeInfo():
     """For linux systems, return actual OS information.
 
     This is an abstraction for all non-hypervisor-based classes, where

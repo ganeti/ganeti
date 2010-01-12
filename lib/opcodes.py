@@ -447,7 +447,7 @@ class OpCreateInstance(OpCode):
     "pnode", "disk_template", "snode", "mode",
     "disks", "nics",
     "src_node", "src_path", "start",
-    "wait_for_sync", "ip_check",
+    "wait_for_sync", "ip_check", "name_check",
     "file_storage_dir", "file_driver",
     "iallocator",
     "hypervisor", "hvparams", "beparams",

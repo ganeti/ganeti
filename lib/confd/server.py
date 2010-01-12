@@ -100,7 +100,7 @@ class ConfdProcessor(object):
       payload_out = self.PackReply(reply, rsalt)
       return payload_out
     except errors.ConfdRequestError, err:
-      logging.info('Ignoring broken query from %s:%d: %s' % (ip, port, err))
+      logging.info('Ignoring broken query from %s:%d: %s', ip, port, err)
       return None
 
   def ExtractRequest(self, payload):
@@ -110,7 +110,7 @@ class ConfdProcessor(object):
 
     """
     current_time = time.time()
-    logging.debug("Extracting request with size: %d" % (len(payload)))
+    logging.debug("Extracting request with size: %d", len(payload))
     try:
       (message, salt) = serializer.LoadSigned(payload, self.hmac_key)
     except errors.SignatureError, err:
@@ -142,7 +142,7 @@ class ConfdProcessor(object):
     @return: tuple of reply and salt to add to the signature
 
     """
-    logging.debug("Processing request: %s" % request)
+    logging.debug("Processing request: %s", request)
     if request.protocol != constants.CONFD_PROTOCOL_VERSION:
       msg = "wrong protocol version %d" % request.protocol
       raise errors.ConfdRequestError(msg)
@@ -165,7 +165,7 @@ class ConfdProcessor(object):
               serial=self.reader.GetConfigSerialNo(),
               )
 
-    logging.debug("Sending reply: %s" % reply)
+    logging.debug("Sending reply: %s", reply)
 
     return (reply, rsalt)
 

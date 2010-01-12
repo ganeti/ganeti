@@ -26,6 +26,8 @@ inheritance from parent classes requires it.
 
 """
 
+# pylint: disable-msg=C0103
+# C0103: Invalid name ganeti-masterd
 
 import os
 import sys
@@ -61,6 +63,7 @@ EXIT_NODESETUP_ERROR = constants.EXIT_NODESETUP_ERROR
 
 
 class ClientRequestWorker(workerpool.BaseWorker):
+   # pylint: disable-msg=W0221
   def RunTask(self, server, request, client_address):
     """Process the request.
 
@@ -70,7 +73,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
     try:
       server.finish_request(request, client_address)
       server.close_request(request)
-    except:
+    except: # pylint: disable-msg=W0702
       server.handle_error(request, client_address)
       server.close_request(request)
 
@@ -108,7 +111,7 @@ class IOServer(SocketServer.UnixStreamServer):
     self.request_workers.AddTask(self, request, client_address)
 
   @utils.SignalHandled([signal.SIGINT, signal.SIGTERM])
-  def serve_forever(self, signal_handlers=None):
+  def serve_forever(self, signal_handlers=None): # pylint: disable-msg=W0221
     """Handle one request at a time until told to quit."""
     assert isinstance(signal_handlers, dict) and \
            len(signal_handlers) > 0, \
@@ -141,6 +144,8 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
   READ_SIZE = 4096
 
   def setup(self):
+    # pylint: disable-msg=W0201
+    # setup() is the api for initialising for this class
     self._buffer = ""
     self._msgs = collections.deque()
     self._ops = ClientOps(self.server)
@@ -204,10 +209,12 @@ class ClientOps:
   def __init__(self, server):
     self.server = server
 
-  def handle_request(self, method, args):
+  def handle_request(self, method, args): # pylint: disable-msg=R0911
     queue = self.server.context.jobqueue
 
     # TODO: Parameter validation
+
+    # TODO: Rewrite to not exit in each 'if/elif' branch
 
     if method == luxi.REQ_SUBMIT_JOB:
       logging.info("Received new job")
@@ -292,6 +299,12 @@ class ClientOps:
       op = opcodes.OpQueryClusterInfo()
       return self._Query(op)
 
+    elif method == luxi.REQ_QUERY_TAGS:
+      kind, name = args
+      logging.info("Received tags query request")
+      op = opcodes.OpGetTags(kind=kind, name=name)
+      return self._Query(op)
+
     elif method == luxi.REQ_QUEUE_SET_DRAIN_FLAG:
       drain_flag = args
       logging.info("Received queue drain flag change request to %s",
@@ -333,6 +346,8 @@ class GanetiContext(object):
   This class creates and holds common objects shared by all threads.
 
   """
+  # pylint: disable-msg=W0212
+  # we do want to ensure a singleton here
   _instance = None
 
   def __init__(self):
@@ -498,12 +513,12 @@ def _RunInSeparateProcess(fn):
       # Call function
       result = int(bool(fn()))
       assert result in (0, 1)
-    except:
+    except: # pylint: disable-msg=W0702
       logging.exception("Error while calling function in separate process")
       # 0 and 1 are reserved for the return value
       result = 33
 
-    os._exit(result)
+    os._exit(result) # pylint: disable-msg=W0212
 
   # Parent process
 
@@ -529,6 +544,10 @@ def CheckMasterd(options, args):
   """Initial checks whether to run or exit with a failure.
 
   """
+  if args: # masterd doesn't take any arguments
+    print >> sys.stderr, ("Usage: %s [-f] [-d]" % sys.argv[0])
+    sys.exit(constants.EXIT_FAILURE)
+
   ssconf.CheckMaster(options.debug)
 
   # If CheckMaster didn't fail we believe we are the master, but we have to
@@ -544,7 +563,7 @@ def CheckMasterd(options, args):
 
     confirmation = sys.stdin.readline().strip()
     if confirmation != "YES":
-      print >>sys.stderr, "Aborting."
+      print >> sys.stderr, "Aborting."
       sys.exit(constants.EXIT_FAILURE)
 
     return
@@ -555,7 +574,7 @@ def CheckMasterd(options, args):
     sys.exit(constants.EXIT_FAILURE)
 
 
-def ExecMasterd (options, args):
+def ExecMasterd (options, args): # pylint: disable-msg=W0613
   """Main master daemon function, executed with the PID file held.
 
   """

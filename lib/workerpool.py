@@ -34,6 +34,7 @@ class BaseWorker(threading.Thread, object):
   Users of a worker pool must override RunTask in a subclass.
 
   """
+  # pylint: disable-msg=W0212
   def __init__(self, pool, worker_id):
     """Constructor for BaseWorker thread.
 
@@ -118,7 +119,7 @@ class BaseWorker(threading.Thread, object):
           self.RunTask(*self._current_task)
           logging.debug("Worker %s: done with task %r",
                         self.worker_id, self._current_task)
-        except:
+        except: # pylint: disable-msg=W0702
           logging.error("Worker %s: Caught unhandled exception",
                         self.worker_id, exc_info=True)
       finally:
@@ -223,7 +224,7 @@ class WorkerPool(object):
 
     """
     for worker in self._workers + self._termworkers:
-      if worker._HasRunningTaskUnlocked():
+      if worker._HasRunningTaskUnlocked(): # pylint: disable-msg=W0212
         return True
     return False
 

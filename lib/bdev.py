@@ -34,6 +34,10 @@ from ganeti import constants
 from ganeti import objects
 
 
+# Size of reads in _CanReadDevice
+_DEVICE_READ_SIZE = 128 * 1024
+
+
 def _IgnoreError(fn, *args, **kwargs):
   """Executes the given function, ignoring BlockDeviceErrors.
 
@@ -64,6 +68,20 @@ def _ThrowError(msg, *args):
     msg = msg % args
   logging.error(msg)
   raise errors.BlockDeviceError(msg)
+
+
+def _CanReadDevice(path):
+  """Check if we can read from the given device.
+
+  This tries to read the first 128k of the device.
+
+  """
+  try:
+    utils.ReadFile(path, size=_DEVICE_READ_SIZE)
+    return True
+  except EnvironmentError:
+    logging.warning("Can't read from device %s", path, exc_info=True)
+    return False
 
 
 class BlockDev(object):
@@ -605,7 +623,7 @@ class LogicalVolume(BlockDev):
       _ThrowError("Can't compute PV info for vg %s", self._vg_name)
     pvs_info.sort()
     pvs_info.reverse()
-    free_size, pv_name, _ = pvs_info[0]
+    free_size, _, _ = pvs_info[0]
     if free_size < size:
       _ThrowError("Not enough free space: required %s,"
                   " available %s", size, free_size)
@@ -765,7 +783,7 @@ class DRBD8Status(object):
       self.est_time = None
 
 
-class BaseDRBD(BlockDev):
+class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
   """Base DRBD class.
 
   This class contains a few bits of common functionality between the
@@ -960,6 +978,17 @@ class DRBD8(BaseDRBD):
   def __init__(self, unique_id, children, size):
     if children and children.count(None) > 0:
       children = []
+    if len(children) not in (0, 2):
+      raise ValueError("Invalid configuration data %s" % str(children))
+    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 6:
+      raise ValueError("Invalid configuration data %s" % str(unique_id))
+    (self._lhost, self._lport,
+     self._rhost, self._rport,
+     self._aminor, self._secret) = unique_id
+    if children:
+      if not _CanReadDevice(children[1].dev_path):
+        logging.info("drbd%s: Ignoring unreadable meta device", self._aminor)
+        children = []
     super(DRBD8, self).__init__(unique_id, children, size)
     self.major = self._DRBD_MAJOR
     version = self._GetVersion()
@@ -968,13 +997,6 @@ class DRBD8(BaseDRBD):
                   " usage: kernel is %s.%s, ganeti wants 8.x",
                   version['k_major'], version['k_minor'])
 
-    if len(children) not in (0, 2):
-      raise ValueError("Invalid configuration data %s" % str(children))
-    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 6:
-      raise ValueError("Invalid configuration data %s" % str(unique_id))
-    (self._lhost, self._lport,
-     self._rhost, self._rport,
-     self._aminor, self._secret) = unique_id
     if (self._lhost is not None and self._lhost == self._rhost and
         self._lport == self._rport):
       raise ValueError("Invalid configuration data, same local/remote %s" %
@@ -1551,6 +1573,8 @@ class DRBD8(BaseDRBD):
     the attach if can return success.
 
     """
+    # TODO: Rewrite to not use a for loop just because there is 'break'
+    # pylint: disable-msg=W0631
     net_data = (self._lhost, self._lport, self._rhost, self._rport)
     for minor in (self._aminor,):
       info = self._GetDevInfo(self._GetShowData(minor))
@@ -1797,6 +1821,22 @@ class FileStorage(BlockDev):
     except OSError, err:
       if err.errno != errno.ENOENT:
         _ThrowError("Can't remove file '%s': %s", self.dev_path, err)
+
+  def Rename(self, new_id):
+    """Renames the file.
+
+    """
+    # TODO: implement rename for file-based storage
+    _ThrowError("Rename is not supported for file-based storage")
+
+  def Grow(self, amount):
+    """Grow the file
+
+    @param amount: the amount (in mebibytes) to grow with
+
+    """
+    # TODO: implement grow for file-based storage
+    _ThrowError("Grow not supported for file-based storage")
 
   def Attach(self):
     """Attach to an existing file.
