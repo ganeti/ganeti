@@ -253,6 +253,8 @@ EXTRA_DIST = \
 	doc/examples/ganeti.cron.in \
 	doc/examples/gnt-config-backup.in \
 	doc/examples/dumb-allocator \
+	doc/examples/ganeti.default \
+	doc/examples/ganeti.default-debug \
 	doc/examples/hooks/ethers \
 	doc/examples/hooks/ipsec.in \
 	test/testutils.py \
