@@ -775,7 +775,9 @@ class LockSet:
   def _release_and_delete_owned(self):
     """Release and delete all resources owned by the current thread"""
     for lname in self._list_owned():
-      self.__lockdict[lname].release()
+      lock = self.__lockdict[lname]
+      if lock._is_owned():
+        lock.release()
       self._del_owned(name=lname)
 
   def __names(self):
