@@ -895,7 +895,6 @@ class LockSet:
     for lname in utils.UniqueSequence(names):
       try:
         lock = self.__lockdict[lname] # raises KeyError if lock is not there
-        acquire_list.append((lname, lock))
       except KeyError:
         if want_all:
           # We are acquiring all the set, it doesn't matter if this particular
@@ -903,6 +902,8 @@ class LockSet:
           continue
 
         raise errors.LockError("Non-existing lock in set (%s)" % lname)
+
+      acquire_list.append((lname, lock))
 
     # This will hold the locknames we effectively acquired.
     acquired = set()
