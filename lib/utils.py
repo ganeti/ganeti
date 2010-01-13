@@ -1897,6 +1897,48 @@ def SafeEncode(text):
   return resu
 
 
+def UnescapeAndSplit(text, sep=","):
+  """Split and unescape a string based on a given separator.
+
+  This function splits a string based on a separator where the
+  separator itself can be escape in order to be an element of the
+  elements. The escaping rules are (assuming coma being the
+  separator):
+    - a plain , separates the elements
+    - a sequence \\\\, (double backslash plus comma) is handled as a
+      backslash plus a separator comma
+    - a sequence \, (backslash plus comma) is handled as a
+      non-separator comma
+
+  @type text: string
+  @param text: the string to split
+  @type sep: string
+  @param text: the separator
+  @rtype: string
+  @return: a list of strings
+
+  """
+  # we split the list by sep (with no escaping at this stage)
+  slist = text.split(sep)
+  # next, we revisit the elements and if any of them ended with an odd
+  # number of backslashes, then we join it with the next
+  rlist = []
+  while slist:
+    e1 = slist.pop(0)
+    if e1.endswith("\\"):
+      num_b = len(e1) - len(e1.rstrip("\\"))
+      if num_b % 2 == 1:
+        e2 = slist.pop(0)
+        # here the backslashes remain (all), and will be reduced in
+        # the next step
+        rlist.append(e1 + sep + e2)
+        continue
+    rlist.append(e1)
+  # finally, replace backslash-something with something
+  rlist = [re.sub(r"\\(.)", r"\1", v) for v in rlist]
+  return rlist
+
+
 def CommaJoin(names):
   """Nicely join a set of identifiers.
 
