@@ -342,7 +342,8 @@ class HttpClientWorker(workerpool.BaseWorker):
 
 class HttpClientWorkerPool(workerpool.WorkerPool):
   def __init__(self, manager):
-    workerpool.WorkerPool.__init__(self, HTTP_CLIENT_THREADS,
+    workerpool.WorkerPool.__init__(self, "HttpClient",
+                                   HTTP_CLIENT_THREADS,
                                    HttpClientWorker)
     self.manager = manager
 

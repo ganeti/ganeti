@@ -153,7 +153,7 @@ class WorkerPool(object):
   guaranteed to finish in the same order.
 
   """
-  def __init__(self, num_workers, worker_class):
+  def __init__(self, name, num_workers, worker_class):
     """Constructor for worker pool.
 
     @param num_workers: number of workers to be started
@@ -168,6 +168,7 @@ class WorkerPool(object):
     self._pool_to_worker = threading.Condition(self._lock)
     self._worker_to_pool = threading.Condition(self._lock)
     self._worker_class = worker_class
+    self._name = name
     self._last_worker_id = 0
     self._workers = []
     self._quiescing = False
@@ -253,7 +254,8 @@ class WorkerPool(object):
 
     """
     self._last_worker_id += 1
-    return self._last_worker_id
+
+    return "%s%d" % (self._name, self._last_worker_id)
 
   def _ResizeUnlocked(self, num_workers):
     """Changes the number of workers.
