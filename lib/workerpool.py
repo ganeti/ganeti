@@ -42,7 +42,7 @@ class BaseWorker(threading.Thread, object):
     @param worker_id: identifier for this worker
 
     """
-    super(BaseWorker, self).__init__()
+    super(BaseWorker, self).__init__(name=worker_id)
     self.pool = pool
     self.worker_id = worker_id
     self._current_task = None
