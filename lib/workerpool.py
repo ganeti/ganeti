@@ -44,7 +44,6 @@ class BaseWorker(threading.Thread, object):
     """
     super(BaseWorker, self).__init__(name=worker_id)
     self.pool = pool
-    self.worker_id = worker_id
     self._current_task = None
 
   def ShouldTerminate(self):
@@ -89,12 +88,12 @@ class BaseWorker(threading.Thread, object):
 
           # We only wait if there's no task for us.
           if not pool._tasks:
-            logging.debug("Worker %s: waiting for tasks", self.worker_id)
+            logging.debug("Waiting for tasks")
 
             # wait() releases the lock and sleeps until notified
             pool._pool_to_worker.wait()
 
-            logging.debug("Worker %s: notified while waiting", self.worker_id)
+            logging.debug("Notified while waiting")
 
             # Were we woken up in order to terminate?
             if pool._ShouldWorkerTerminateUnlocked(self):
@@ -114,14 +113,11 @@ class BaseWorker(threading.Thread, object):
 
         # Run the actual task
         try:
-          logging.debug("Worker %s: starting task %r",
-                        self.worker_id, self._current_task)
+          logging.debug("Starting task %r", self._current_task)
           self.RunTask(*self._current_task)
-          logging.debug("Worker %s: done with task %r",
-                        self.worker_id, self._current_task)
+          logging.debug("Done with task %r", self._current_task)
         except: # pylint: disable-msg=W0702
-          logging.error("Worker %s: Caught unhandled exception",
-                        self.worker_id, exc_info=True)
+          logging.exception("Caught unhandled exception")
       finally:
         # Notify pool
         pool._lock.acquire()
@@ -132,7 +128,7 @@ class BaseWorker(threading.Thread, object):
         finally:
           pool._lock.release()
 
-    logging.debug("Worker %s: terminates", self.worker_id)
+    logging.debug("Terminates")
 
   def RunTask(self, *args):
     """Function called to start a task.

@@ -430,8 +430,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
     @param job: the job to be processed
 
     """
-    logging.info("Worker %s processing job %s",
-                  self.worker_id, job.id)
+    logging.info("Processing job %s", job.id)
     proc = mcpu.Processor(self.pool.queue.context, job.id)
     queue = job.queue
     try:
@@ -527,8 +526,7 @@ class _JobQueueWorker(workerpool.BaseWorker):
       finally:
         queue.release()
 
-      logging.info("Worker %s finished job %s, status = %s",
-                   self.worker_id, job_id, status)
+      logging.info("Finished job %s, status = %s", job_id, status)
 
 
 class _JobQueueWorkerPool(workerpool.WorkerPool):
