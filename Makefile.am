@@ -340,7 +340,6 @@ TESTS_ENVIRONMENT = \
 all_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
-	$(dist_TESTS) \
 	$(pkgpython_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(rapi_PYTHON) \
@@ -348,12 +347,20 @@ all_python_code = \
 	$(confd_PYTHON) \
 	$(noinst_PYTHON)
 
+all_python_code_with_tests = \
+	$(all_python_code) \
+	$(dist_TESTS)
+
 srclink_files = \
 	man/footer.sgml \
-	$(all_python_code)
+	$(all_python_code_with_tests)
 
 check_python_code = \
-	autotools/build-bash-completion \
+	$(BUILD_BASH_COMPLETION) \
+	$(all_python_code_with_tests)
+
+lint_python_code = \
+	$(BUILD_BASH_COMPLETION) \
 	$(all_python_code)
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
@@ -477,7 +484,7 @@ check-local:
 
 .PHONY: lint
 lint: ganeti
-	pylint $(LINT_OPTS) ganeti $(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS)
+	pylint $(LINT_OPTS) $(lint_python_code)
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:
