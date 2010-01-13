@@ -841,8 +841,6 @@ class LockSet:
         # Support passing in a single resource to acquire rather than many
         if isinstance(names, basestring):
           names = [names]
-        else:
-          names = sorted(names)
 
         return self.__acquire_inner(names, False, shared,
                                     running_timeout.Remaining, test_notify)
@@ -891,8 +889,9 @@ class LockSet:
 
     # First we look the locks up on __lockdict. We have no way of being sure
     # they will still be there after, but this makes it a lot faster should
-    # just one of them be the already wrong
-    for lname in utils.UniqueSequence(names):
+    # just one of them be the already wrong. Using a sorted sequence to prevent
+    # deadlocks.
+    for lname in sorted(utils.UniqueSequence(names)):
       try:
         lock = self.__lockdict[lname] # raises KeyError if lock is not there
       except KeyError:
