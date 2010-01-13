@@ -18,7 +18,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-let problems=0
+set -e
+
+# "[...] If the last ARG evaluates to 0, let returns 1; 0 is returned
+# otherwise.", hence ignoring the return value.
+let problems=0 || :
 
 for script; do
   if grep -n -H -F $'\t' "$script"; then
