@@ -19,9 +19,7 @@
 # 02110-1301, USA.
 
 
-import optparse
 import os
-import sys
 import re
 from cStringIO import StringIO
 
@@ -263,6 +261,8 @@ class CompletionWriter:
     self.args = args
 
     for opt in opts:
+      # While documented, these variables aren't seen as public attributes by
+      # pylint. pylint: disable-msg=W0212
       opt.all_names = sorted(opt._short_opts + opt._long_opts)
 
   def _FindFirstArgument(self, sw):
@@ -591,7 +591,7 @@ def GetCommands(filename, module):
   """
   try:
     commands = getattr(module, "commands")
-  except AttributeError, err:
+  except AttributeError:
     raise Exception("Script %s doesn't have 'commands' attribute" %
                     filename)
 
