@@ -19,6 +19,13 @@
 # 02110-1301, USA.
 
 
+"""Script to generate bash_completion script for Ganeti.
+
+"""
+
+# pylint: disable-msg=C0103
+# [C0103] Invalid name build-bash-completion
+
 import os
 import re
 from cStringIO import StringIO
