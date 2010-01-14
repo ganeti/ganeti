@@ -73,7 +73,9 @@ dist: regen-version Ganeti/HTools/Version.hs doc
 	gzip -v9 $$ANAME ; \
 	TMPDIR=$$(mktemp -d) ; \
 	tar xzf $$ANAME.gz -C $$TMPDIR; \
-	(cd $$TMPDIR/$$PFX; make; make clean; make check); \
+	$(MAKE) -C $$TMPDIR/$$PFX; \
+	$(MAKE) -C $$TMPDIR/$$PFX clean; \
+	$(MAKE) -C $$TMPDIR/$$PFX check; \
 	rm -rf $$TMPDIR ; \
 	tar tzvf $$ANAME.gz ; \
 	sha1sum $$ANAME.gz ; \
