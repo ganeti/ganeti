@@ -63,7 +63,7 @@ Ganeti/HTools/Version.hs: Ganeti/HTools/Version.hs.in version
 
 dist: regen-version Ganeti/HTools/Version.hs doc
 	set -e ; \
-	VN=$$(cat version|sed 's/^v//') ; \
+	VN=$$(sed 's/^v//' < version) ; \
 	PFX="ganeti-htools-$$VN" ; \
 	ANAME="$$PFX.tar" ; \
 	rm -f $$ANAME $$ANAME.gz ; \
