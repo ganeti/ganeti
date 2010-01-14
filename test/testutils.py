@@ -22,6 +22,7 @@
 """Utilities for unit testing"""
 
 import os
+import sys
 import stat
 import tempfile
 import unittest
@@ -40,6 +41,10 @@ class GanetiTestProgram(unittest.TestProgram):
 
     """
     logging.basicConfig(filename=os.devnull)
+
+    sys.stderr.write("Running %s\n" % self.progName)
+    sys.stderr.flush()
+
     return unittest.TestProgram.runTests(self)
 
 
