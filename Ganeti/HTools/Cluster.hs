@@ -437,16 +437,13 @@ checkMove nodes_idx disk_moves ini_tbl victims =
         best_tbl =
             foldl'
             (\ step_tbl em ->
-                 if Instance.sNode em == Node.noSecondary then step_tbl
-                    else compareTables step_tbl $
-                         checkInstanceMove nodes_idx disk_moves ini_tbl em)
+                 compareTables step_tbl $
+                 checkInstanceMove nodes_idx disk_moves ini_tbl em)
             ini_tbl victims
         Table _ _ _ best_plc = best_tbl
-    in
-      if length best_plc == length ini_plc then -- no advancement
-          ini_tbl
-      else
-          best_tbl
+    in if length best_plc == length ini_plc
+       then ini_tbl -- no advancement
+       else best_tbl
 
 -- | Check if we are allowed to go deeper in the balancing
 
@@ -467,9 +464,11 @@ tryBalance :: Table       -- ^ The starting table
 tryBalance ini_tbl disk_moves =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
+        reloc_inst = filter (\e -> Instance.sNode e /= Node.noSecondary)
+                     all_inst
         node_idx = map Node.idx . filter (not . Node.offline) $
                    Container.elems ini_nl
-        fin_tbl = checkMove node_idx disk_moves ini_tbl all_inst
+        fin_tbl = checkMove node_idx disk_moves ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
       if fin_cv < ini_cv
