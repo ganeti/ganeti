@@ -47,6 +47,7 @@ module Ganeti.HTools.Cluster
     , printInsts
     -- * Balacing functions
     , checkMove
+    , doNextBalance
     , tryBalance
     , compCV
     , printStats
@@ -76,7 +77,6 @@ type AllocSolution = ([FailMode], Int, Maybe (Score, AllocElement))
 
 -- | Allocation\/relocation element.
 type AllocElement = (Node.List, Instance.Instance, [Node.Node])
-
 
 -- | The complete state for the balancing solution
 data Table = Table Node.List Instance.List Score [Placement]
@@ -448,29 +448,32 @@ checkMove nodes_idx disk_moves ini_tbl victims =
       else
           best_tbl
 
+-- | Check if we are allowed to go deeper in the balancing
+
+doNextBalance :: Table       -- ^ The starting table
+              -> Int         -- ^ Remaining length
+              -> Score       -- ^ Score at which to stop
+              -> Bool -- ^ The resulting table and commands
+doNextBalance ini_tbl max_rounds min_score =
+    let Table _ _ ini_cv ini_plc = ini_tbl
+        ini_plc_len = length ini_plc
+    in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
+
 -- | Run a balance move
 
 tryBalance :: Table       -- ^ The starting table
-           -> Int         -- ^ Remaining length
            -> Bool        -- ^ Allow disk moves
-           -> Score       -- ^ Score at which to stop
            -> Maybe Table -- ^ The resulting table and commands
-tryBalance ini_tbl max_rounds disk_moves min_score =
-    let Table ini_nl ini_il ini_cv ini_plc = ini_tbl
-        ini_plc_len = length ini_plc
-        allowed_next = (max_rounds < 0 || ini_plc_len < max_rounds) &&
-                       ini_cv > min_score
+tryBalance ini_tbl disk_moves =
+    let Table ini_nl ini_il ini_cv _ = ini_tbl
+        all_inst = Container.elems ini_il
+        node_idx = map Node.idx . filter (not . Node.offline) $
+                   Container.elems ini_nl
+        fin_tbl = checkMove node_idx disk_moves ini_tbl all_inst
+        (Table _ _ fin_cv _) = fin_tbl
     in
-      if allowed_next
-      then let all_inst = Container.elems ini_il
-               node_idx = map Node.idx . filter (not . Node.offline) $
-                          Container.elems ini_nl
-               fin_tbl = checkMove node_idx disk_moves ini_tbl all_inst
-               (Table _ _ fin_cv _) = fin_tbl
-           in
-             if fin_cv < ini_cv
-             then Just fin_tbl -- this round made success, try deeper
-             else Nothing
+      if fin_cv < ini_cv
+      then Just fin_tbl -- this round made success, return the new table
       else Nothing
 
 -- * Allocation functions

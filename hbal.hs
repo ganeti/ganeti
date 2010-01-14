@@ -94,7 +94,10 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
 iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
              cmd_strs oneline min_score =
     let Cluster.Table ini_nl ini_il _ _ = ini_tbl
-        m_fin_tbl = Cluster.tryBalance ini_tbl max_rounds disk_moves min_score
+        allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
+        m_fin_tbl = if allowed_next
+                    then Cluster.tryBalance ini_tbl disk_moves
+                    else Nothing
     in
       case m_fin_tbl of
         Just fin_tbl ->
