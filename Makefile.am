@@ -483,7 +483,8 @@ check-local:
 
 .PHONY: lint
 lint: ganeti
-	pylint $(LINT_OPTS) $(lint_python_code)
+	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
+	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:

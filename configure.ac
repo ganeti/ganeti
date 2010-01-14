@@ -153,6 +153,14 @@ then
   AC_MSG_WARN([dot (from the graphviz suite) not found, documentation rebuild not possible])
 fi
 
+# Check for pylint
+AC_ARG_VAR(PYLINT, [pylint path])
+AC_PATH_PROG(PYLINT, [pylint], [])
+if test -z "$PYLINT"
+then
+  AC_MSG_WARN([pylint not found, checking code will not be possible])
+fi
+
 # Check for socat
 AC_ARG_VAR(SOCAT, [socat path])
 AC_PATH_PROG(SOCAT, [socat], [])
