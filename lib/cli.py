@@ -384,7 +384,7 @@ def _SplitKeyVal(opt, data):
   """
   kv_dict = {}
   if data:
-    for elem in data.split(","):
+    for elem in utils.UnescapeAndSplit(data, sep=","):
       if "=" in elem:
         key, val = elem.split("=", 1)
       else:
