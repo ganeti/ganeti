@@ -107,7 +107,7 @@ def GenerateHmacKey(file_name):
   @param file_name: Path to output file
 
   """
-  utils.WriteFile(file_name, data=utils.GenerateSecret(), mode=0400)
+  utils.WriteFile(file_name, data="%s\n" % utils.GenerateSecret(), mode=0400)
 
 
 def _InitGanetiServerSetup(master_name):

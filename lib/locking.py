@@ -775,7 +775,9 @@ class LockSet:
   def _release_and_delete_owned(self):
     """Release and delete all resources owned by the current thread"""
     for lname in self._list_owned():
-      self.__lockdict[lname].release()
+      lock = self.__lockdict[lname]
+      if lock._is_owned():
+        lock.release()
       self._del_owned(name=lname)
 
   def __names(self):
@@ -839,8 +841,6 @@ class LockSet:
         # Support passing in a single resource to acquire rather than many
         if isinstance(names, basestring):
           names = [names]
-        else:
-          names = sorted(names)
 
         return self.__acquire_inner(names, False, shared,
                                     running_timeout.Remaining, test_notify)
@@ -889,11 +889,11 @@ class LockSet:
 
     # First we look the locks up on __lockdict. We have no way of being sure
     # they will still be there after, but this makes it a lot faster should
-    # just one of them be the already wrong
-    for lname in utils.UniqueSequence(names):
+    # just one of them be the already wrong. Using a sorted sequence to prevent
+    # deadlocks.
+    for lname in sorted(utils.UniqueSequence(names)):
       try:
         lock = self.__lockdict[lname] # raises KeyError if lock is not there
-        acquire_list.append((lname, lock))
       except KeyError:
         if want_all:
           # We are acquiring all the set, it doesn't matter if this particular
@@ -901,6 +901,8 @@ class LockSet:
           continue
 
         raise errors.LockError("Non-existing lock in set (%s)" % lname)
+
+      acquire_list.append((lname, lock))
 
     # This will hold the locknames we effectively acquired.
     acquired = set()

@@ -1575,7 +1575,10 @@ def GenerateTable(headers, fields, separator, data,
     for idx, name in enumerate(fields):
       hdr = headers[name]
       if separator is None:
-        mlens[idx] = max(mlens[idx], len(hdr))
+        if idx == len(fields) - 1 and not numfields.Matches(name):
+          mlens[idx] = 0
+        else:
+          mlens[idx] = max(mlens[idx], len(hdr))
         args.append(mlens[idx])
       args.append(hdr)
     result.append(format % tuple(args))

@@ -32,18 +32,35 @@ set -e
 : ${URL:=git://git.ganeti.org/ganeti.git}
 TAG="$1"
 
-TMPDIR=`mktemp -d`
+if [[ -z "$TAG" ]]; then
+  echo "Usage: $0 <tree-ish>" >&2
+  exit 1
+fi
+
+echo "Using Git repository $URL"
+
+TMPDIR=$(mktemp -d -t gntrelease.XXXXXXXXXX)
 cd $TMPDIR
+
 echo "Cloning the repository under $TMPDIR ..."
 git clone -q "$URL" dist
 cd dist
 git checkout $TAG
 ./autogen.sh
 ./configure
+
 VERSION=$(sed -n -e '/^PACKAGE_VERSION =/ s/^PACKAGE_VERSION = // p' Makefile)
+
 make distcheck
 fakeroot make dist
 tar tzvf ganeti-$VERSION.tar.gz
+
+echo
+echo 'MD5:'
+md5sum ganeti-$VERSION.tar.gz
+echo
+echo 'SHA1:'
 sha1sum ganeti-$VERSION.tar.gz
+echo
 echo "The archive is at $PWD/ganeti-$VERSION.tar.gz"
 echo "Please copy it and remove the temporary directory when done."

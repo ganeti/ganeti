@@ -1,0 +1,5 @@
+# Default arguments for Ganeti daemons (debug mode)
+NODED_ARGS="-d"
+MASTERD_ARGS="-d"
+RAPI_ARGS="-d"
+CONFD_ARGS="-d"

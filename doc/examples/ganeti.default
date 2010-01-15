@@ -1,0 +1,5 @@
+# Default arguments for Ganeti daemons
+NODED_ARGS=""
+MASTERD_ARGS=""
+RAPI_ARGS=""
+CONFD_ARGS=""

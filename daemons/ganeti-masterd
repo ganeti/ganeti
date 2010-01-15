@@ -101,7 +101,8 @@ class IOServer(SocketServer.UnixStreamServer):
 
   def setup_queue(self):
     self.context = GanetiContext()
-    self.request_workers = workerpool.WorkerPool(CLIENT_REQUEST_WORKERS,
+    self.request_workers = workerpool.WorkerPool("ClientReq",
+                                                 CLIENT_REQUEST_WORKERS,
                                                  ClientRequestWorker)
 
   def process_request(self, request, client_address):

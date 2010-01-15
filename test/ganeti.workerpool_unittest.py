@@ -62,7 +62,7 @@ class TestWorkerpool(unittest.TestCase):
   """Workerpool tests"""
 
   def testDummy(self):
-    wp = workerpool.WorkerPool(3, DummyBaseWorker)
+    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
     try:
       self._CheckWorkerCount(wp, 3)
 
@@ -75,7 +75,7 @@ class TestWorkerpool(unittest.TestCase):
       self._CheckWorkerCount(wp, 0)
 
   def testNoTasks(self):
-    wp = workerpool.WorkerPool(3, DummyBaseWorker)
+    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
     try:
       self._CheckWorkerCount(wp, 3)
       self._CheckNoTasks(wp)
@@ -84,7 +84,7 @@ class TestWorkerpool(unittest.TestCase):
       self._CheckWorkerCount(wp, 0)
 
   def testNoTasksQuiesce(self):
-    wp = workerpool.WorkerPool(3, DummyBaseWorker)
+    wp = workerpool.WorkerPool("Test", 3, DummyBaseWorker)
     try:
       self._CheckWorkerCount(wp, 3)
       self._CheckNoTasks(wp)
@@ -97,7 +97,7 @@ class TestWorkerpool(unittest.TestCase):
   def testChecksum(self):
     # Tests whether all tasks are run and, since we're only using a single
     # thread, whether everything is started in order.
-    wp = workerpool.WorkerPool(1, ChecksumBaseWorker)
+    wp = workerpool.WorkerPool("Test", 1, ChecksumBaseWorker)
     try:
       self._CheckWorkerCount(wp, 1)
 

@@ -95,6 +95,14 @@ class HttpClientRequest(object):
     self.resp_headers = None
     self.resp_body = None
 
+  def __repr__(self):
+    status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
+              "%s:%s" % (self.host, self.port),
+              self.method,
+              self.path]
+
+    return "<%s at %#x>" % (" ".join(status), id(self))
+
 
 class _HttpClientToServerMessageWriter(http.HttpMessageWriter):
   pass
@@ -328,6 +336,12 @@ class _HttpClientPendingRequest(object):
     # Thread synchronization
     self.done = threading.Event()
 
+  def __repr__(self):
+    status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
+              "req=%r" % self.request]
+
+    return "<%s at %#x>" % (" ".join(status), id(self))
+
 
 class HttpClientWorker(workerpool.BaseWorker):
   """HTTP client worker class.
@@ -342,7 +356,8 @@ class HttpClientWorker(workerpool.BaseWorker):
 
 class HttpClientWorkerPool(workerpool.WorkerPool):
   def __init__(self, manager):
-    workerpool.WorkerPool.__init__(self, HTTP_CLIENT_THREADS,
+    workerpool.WorkerPool.__init__(self, "HttpClient",
+                                   HTTP_CLIENT_THREADS,
                                    HttpClientWorker)
     self.manager = manager
 
