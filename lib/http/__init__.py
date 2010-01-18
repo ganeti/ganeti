@@ -815,7 +815,7 @@ class HttpMessageReader(object):
       buf = self._ContinueParsing(buf, eof)
 
       # Must be done only after the buffer has been evaluated
-      # TODO: Connection-length < len(data read) and connection closed
+      # TODO: Content-Length < len(data read) and connection closed
       if (eof and
           self.parser_status in (self.PS_START_LINE,
                                  self.PS_HEADERS)):

@@ -157,36 +157,19 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
         logging.debug("client closed connection")
         break
 
-      request = serializer.LoadJson(msg)
-      logging.debug("request: %s", request)
-      if not isinstance(request, dict):
-        logging.error("wrong request received: %s", msg)
-        break
-
-      method = request.get(luxi.KEY_METHOD, None)
-      args = request.get(luxi.KEY_ARGS, None)
-      if method is None or args is None:
-        logging.error("no method or args in request")
-        break
+      (method, args) = luxi.ParseRequest(msg)
 
       success = False
       try:
         result = self._ops.handle_request(method, args)
         success = True
       except errors.GenericError, err:
-        success = False
         result = errors.EncodeException(err)
       except:
         logging.error("Unexpected exception", exc_info=True)
-        err = sys.exc_info()
-        result = "Caught exception: %s" % str(err[1])
+        result = "Caught exception: %s" % str(sys.exc_info()[1])
 
-      response = {
-        luxi.KEY_SUCCESS: success,
-        luxi.KEY_RESULT: result,
-        }
-      logging.debug("response: %s", response)
-      self.send_message(serializer.DumpJson(response))
+      self.send_message(luxi.FormatResponse(success, result))
 
   def read_message(self):
     while not self._msgs:
@@ -199,7 +182,6 @@ class ClientRqHandler(SocketServer.BaseRequestHandler):
     return self._msgs.popleft()
 
   def send_message(self, msg):
-    #print "sending", msg
     # TODO: sendall is not guaranteed to send everything
     self.request.sendall(msg + self.EOM)
 
