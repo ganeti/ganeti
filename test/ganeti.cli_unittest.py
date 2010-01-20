@@ -124,5 +124,127 @@ class TestToStream(unittest.TestCase):
       cli._ToStream(buf, "foo %s %s", "a", "b")
       self.failUnlessEqual(buf.getvalue(), "foo a b\n")
 
+
+class TestGenerateTable(unittest.TestCase):
+  HEADERS = dict([("f%s" % i, "Field%s" % i) for i in range(5)])
+
+  FIELDS1 = ["f1", "f2"]
+  DATA1 = [
+    ["abc", 1234],
+    ["foobar", 56],
+    ["b", -14],
+    ]
+
+  def _test(self, headers, fields, separator, data,
+            numfields, unitfields, units, expected):
+    table = cli.GenerateTable(headers, fields, separator, data,
+                              numfields=numfields, unitfields=unitfields,
+                              units=units)
+    self.assertEqual(table, expected)
+
+  def testPlain(self):
+    exp = [
+      "Field1 Field2",
+      "abc    1234",
+      "foobar 56",
+      "b      -14",
+      ]
+    self._test(self.HEADERS, self.FIELDS1, None, self.DATA1,
+               None, None, "m", exp)
+
+  def testNoFields(self):
+    self._test(self.HEADERS, [], None, [[], []],
+               None, None, "m", ["", "", ""])
+    self._test(None, [], None, [[], []],
+               None, None, "m", ["", ""])
+
+  def testSeparator(self):
+    for sep in ["#", ":", ",", "^", "!", "%", "|", "###", "%%", "!!!", "||"]:
+      exp = [
+        "Field1%sField2" % sep,
+        "abc%s1234" % sep,
+        "foobar%s56" % sep,
+        "b%s-14" % sep,
+        ]
+      self._test(self.HEADERS, self.FIELDS1, sep, self.DATA1,
+                 None, None, "m", exp)
+
+  def testNoHeader(self):
+    exp = [
+      "abc    1234",
+      "foobar 56",
+      "b      -14",
+      ]
+    self._test(None, self.FIELDS1, None, self.DATA1,
+               None, None, "m", exp)
+
+  def testUnknownField(self):
+    headers = {
+      "f1": "Field1",
+      }
+    exp = [
+      "Field1 UNKNOWN",
+      "abc    1234",
+      "foobar 56",
+      "b      -14",
+      ]
+    self._test(headers, ["f1", "UNKNOWN"], None, self.DATA1,
+               None, None, "m", exp)
+
+  def testNumfields(self):
+    fields = ["f1", "f2", "f3"]
+    data = [
+      ["abc", 1234, 0],
+      ["foobar", 56, 3],
+      ["b", -14, "-"],
+      ]
+    exp = [
+      "Field1 Field2 Field3",
+      "abc      1234      0",
+      "foobar     56      3",
+      "b         -14      -",
+      ]
+    self._test(self.HEADERS, fields, None, data,
+               ["f2", "f3"], None, "m", exp)
+
+  def testUnitfields(self):
+    expnosep = [
+      "Field1 Field2 Field3",
+      "abc      1234     0M",
+      "foobar     56     3M",
+      "b         -14      -",
+      ]
+
+    expsep = [
+      "Field1:Field2:Field3",
+      "abc:1234:0M",
+      "foobar:56:3M",
+      "b:-14:-",
+      ]
+
+    for sep, expected in [(None, expnosep), (":", expsep)]:
+      fields = ["f1", "f2", "f3"]
+      data = [
+        ["abc", 1234, 0],
+        ["foobar", 56, 3],
+        ["b", -14, "-"],
+        ]
+      self._test(self.HEADERS, fields, sep, data,
+                 ["f2", "f3"], ["f3"], "h", expected)
+
+  def testUnusual(self):
+    data = [
+      ["%", "xyz"],
+      ["%%", "abc"],
+      ]
+    exp = [
+      "Field1 Field2",
+      "%      xyz",
+      "%%     abc",
+      ]
+    self._test(self.HEADERS, ["f1", "f2"], None, data,
+               None, None, "m", exp)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()
