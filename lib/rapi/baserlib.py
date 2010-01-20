@@ -232,7 +232,9 @@ class R_Generic(object):
     """
     self.items = items
     self.queryargs = queryargs
-    self.req = req
+    self._req = req
+
+  request_body = property(fget=lambda self: self._req.private.body_data)
 
   def _checkIntVariable(self, name, default=0):
     """Return the parsed value of an int argument.
@@ -273,7 +275,7 @@ class R_Generic(object):
 
     """
     try:
-      return self.req.private.body_data[name]
+      return self.request_body[name]
     except KeyError:
       if args:
         return args[0]
