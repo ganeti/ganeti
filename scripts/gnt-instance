@@ -42,7 +42,16 @@ _SHUTDOWN_CLUSTER = "cluster"
 _SHUTDOWN_NODES_BOTH = "nodes"
 _SHUTDOWN_NODES_PRI = "nodes-pri"
 _SHUTDOWN_NODES_SEC = "nodes-sec"
+_SHUTDOWN_NODES_BOTH_BY_TAGS = "nodes-by-tags"
+_SHUTDOWN_NODES_PRI_BY_TAGS = "nodes-pri-by-tags"
+_SHUTDOWN_NODES_SEC_BY_TAGS = "nodes-sec-by-tags"
 _SHUTDOWN_INSTANCES = "instances"
+_SHUTDOWN_INSTANCES_BY_TAGS = "instances-by-tags"
+
+_SHUTDOWN_NODES_TAGS_MODES = (
+    _SHUTDOWN_NODES_BOTH_BY_TAGS,
+    _SHUTDOWN_NODES_PRI_BY_TAGS,
+    _SHUTDOWN_NODES_SEC_BY_TAGS)
 
 
 _VALUE_TRUE = "true"
@@ -77,6 +86,7 @@ def _ExpandMultiNames(mode, names, client=None):
 
   """
   # pylint: disable-msg=W0142
+
   if client is None:
     client = GetClient()
   if mode == _SHUTDOWN_CLUSTER:
@@ -88,31 +98,43 @@ def _ExpandMultiNames(mode, names, client=None):
 
   elif mode in (_SHUTDOWN_NODES_BOTH,
                 _SHUTDOWN_NODES_PRI,
-                _SHUTDOWN_NODES_SEC):
-    if not names:
-      raise errors.OpPrereqError("No node names passed", errors.ECODE_INVAL)
-    ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"],
+                _SHUTDOWN_NODES_SEC) + _SHUTDOWN_NODES_TAGS_MODES:
+    if mode in _SHUTDOWN_NODES_TAGS_MODES:
+      if not names:
+        raise errors.OpPrereqError("No node tags passed", errors.ECODE_INVAL)
+      ndata = client.QueryNodes([], ["name", "pinst_list",
+                                     "sinst_list", "tags"], False)
+      ndata = [row for row in ndata if set(row[3]).intersection(names)]
+    else:
+      if not names:
+        raise errors.OpPrereqError("No node names passed", errors.ECODE_INVAL)
+      ndata = client.QueryNodes(names, ["name", "pinst_list", "sinst_list"],
                               False)
+
     ipri = [row[1] for row in ndata]
     pri_names = list(itertools.chain(*ipri))
     isec = [row[2] for row in ndata]
     sec_names = list(itertools.chain(*isec))
-    if mode == _SHUTDOWN_NODES_BOTH:
+    if mode in (_SHUTDOWN_NODES_BOTH, _SHUTDOWN_NODES_BOTH_BY_TAGS):
       inames = pri_names + sec_names
-    elif mode == _SHUTDOWN_NODES_PRI:
+    elif mode in (_SHUTDOWN_NODES_PRI, _SHUTDOWN_NODES_PRI_BY_TAGS):
       inames = pri_names
-    elif mode == _SHUTDOWN_NODES_SEC:
+    elif mode in (_SHUTDOWN_NODES_SEC, _SHUTDOWN_NODES_SEC_BY_TAGS):
       inames = sec_names
     else:
       raise errors.ProgrammerError("Unhandled shutdown type")
-
   elif mode == _SHUTDOWN_INSTANCES:
     if not names:
       raise errors.OpPrereqError("No instance names passed",
                                  errors.ECODE_INVAL)
     idata = client.QueryInstances(names, ["name"], False)
     inames = [row[0] for row in idata]
-
+  elif mode == _SHUTDOWN_INSTANCES_BY_TAGS:
+    if not names:
+      raise errors.OpPrereqError("No instance tags passed",
+                                 errors.ECODE_INVAL)
+    idata = client.QueryInstances([], ["name", "tags"], False)
+    inames = [row[0] for row in idata if set(row[1]).intersection(names)]
   else:
     raise errors.OpPrereqError("Unknown mode '%s'" % mode, errors.ECODE_INVAL)
 
@@ -1269,6 +1291,25 @@ m_inst_opt = cli_option("--instance", dest="multi_mode",
                         help="Filter by instance name [default]",
                         const=_SHUTDOWN_INSTANCES, action="store_const")
 
+m_node_tags_opt = cli_option("--node-tags", dest="multi_mode",
+                             help="Filter by node tag",
+                             const=_SHUTDOWN_NODES_BOTH_BY_TAGS,
+                             action="store_const")
+
+m_pri_node_tags_opt = cli_option("--pri-node-tags", dest="multi_mode",
+                                 help="Filter by primary node tag",
+                                 const=_SHUTDOWN_NODES_PRI_BY_TAGS,
+                                 action="store_const")
+
+m_sec_node_tags_opt = cli_option("--sec-node-tags", dest="multi_mode",
+                                 help="Filter by secondary node tag",
+                                 const=_SHUTDOWN_NODES_SEC_BY_TAGS,
+                                 action="store_const")
+
+m_inst_tags_opt = cli_option("--tags", dest="multi_mode",
+                             help="Filter by instance tag",
+                             const=_SHUTDOWN_INSTANCES_BY_TAGS,
+                             action="store_const")
 
 # this is defined separately due to readability only
 add_opts = [
@@ -1344,7 +1385,8 @@ commands = {
   'reinstall': (
     ReinstallInstance, [ArgInstance()],
     [FORCE_OPT, OS_OPT, FORCE_VARIANT_OPT, m_force_multi, m_node_opt,
-     m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, SELECT_OS_OPT,
+     m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
+     m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT,
      SUBMIT_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   'remove': (
@@ -1369,19 +1411,22 @@ commands = {
   'shutdown': (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
     [m_node_opt, m_pri_node_opt, m_sec_node_opt, m_clust_opt,
-     m_inst_opt, m_force_multi, TIMEOUT_OPT, SUBMIT_OPT],
+     m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
+     m_inst_tags_opt, m_inst_opt, m_force_multi, TIMEOUT_OPT, SUBMIT_OPT],
     "<instance>", "Stops an instance"),
   'startup': (
     GenericManyOps("startup", _StartupInstance), [ArgInstance()],
-    [FORCE_OPT, m_force_multi, m_node_opt, m_pri_node_opt,
-     m_sec_node_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT, HVOPTS_OPT,
+    [FORCE_OPT, m_force_multi, m_node_opt, m_pri_node_opt, m_sec_node_opt,
+     m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
+     m_inst_tags_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT, HVOPTS_OPT,
      BACKEND_OPT],
     "<instance>", "Starts an instance"),
   'reboot': (
     GenericManyOps("reboot", _RebootInstance), [ArgInstance()],
     [m_force_multi, REBOOT_TYPE_OPT, IGNORE_SECONDARIES_OPT, m_node_opt,
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, SUBMIT_OPT,
-     SHUTDOWN_TIMEOUT_OPT],
+     m_node_tags_opt, m_pri_node_tags_opt, m_sec_node_tags_opt,
+     m_inst_tags_opt, SHUTDOWN_TIMEOUT_OPT],
     "<instance>", "Reboots an instance"),
   'activate-disks': (
     ActivateDisks, ARGS_ONE_INSTANCE, [SUBMIT_OPT, IGNORE_SIZE_OPT],
