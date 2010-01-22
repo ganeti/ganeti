@@ -2,7 +2,7 @@
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>February 11, 2009</date>">
+  <!ENTITY dhdate      "<date>January 22, 2010</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>8</manvolnum>">
@@ -22,6 +22,7 @@
       <year>2007</year>
       <year>2008</year>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -1491,6 +1492,10 @@ instance5: 11225
             <arg>--primary</arg>
             <arg>--secondary</arg>
             <arg>--all</arg>
+            <arg>--tags</arg>
+            <arg>--node-tags</arg>
+            <arg>--pri-node-tags</arg>
+            <arg>--sec-node-tags</arg>
           </group>
           <sbr>
           <arg>-H <option>key=value...</option></arg>
@@ -1542,6 +1547,36 @@ instance5: 11225
               <listitem>
                 <simpara>will start all instances in the cluster (no
                 arguments accepted)</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>--tags</term>
+              <listitem>
+                <simpara>will start all instances in the cluster with
+                the tags given as arguments</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>--node-tags</term>
+              <listitem>
+                <simpara>will start all instances in the cluster on
+                nodes with the tags given as arguments</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>--pri-node-tags</term>
+              <listitem>
+                <simpara>will start all instances in the cluster on
+                primary nodes with the tags given as
+                arguments</simpara>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term>--sec-node-tags</term>
+              <listitem>
+                <simpara>will start all instances in the cluster on
+                secondary nodes with the tags given as
+                arguments</simpara>
               </listitem>
             </varlistentry>
           </variablelist>
@@ -1618,6 +1653,10 @@ instance5: 11225
             <arg>--primary</arg>
             <arg>--secondary</arg>
             <arg>--all</arg>
+            <arg>--tags</arg>
+            <arg>--node-tags</arg>
+            <arg>--pri-node-tags</arg>
+            <arg>--sec-node-tags</arg>
           </group>
           <sbr>
           <arg>--submit</arg>
@@ -1642,8 +1681,10 @@ instance5: 11225
 
         <para>
           The <option>--instance</option>, <option>--node</option>,
-          <option>--primary</option>, <option>--secondary</option> and
-          <option>--all</option> options are similar as for the
+          <option>--primary</option>, <option>--secondary</option>,
+          <option>--all</option>, <option>--tags</option>,
+          <option>--node-tags</option>, <option>--pri-node-tags</option> and
+          <option>--sec-node-tags</option> options are similar as for the
           <command>startup</command> command and they influence the
           actual instances being shutdown.
         </para>
@@ -1685,6 +1726,10 @@ instance5: 11225
             <arg>--primary</arg>
             <arg>--secondary</arg>
             <arg>--all</arg>
+            <arg>--tags</arg>
+            <arg>--node-tags</arg>
+            <arg>--pri-node-tags</arg>
+            <arg>--sec-node-tags</arg>
           </group>
           <sbr>
           <arg>--submit</arg>
@@ -1711,8 +1756,10 @@ instance5: 11225
 
         <para>
           The <option>--instance</option>, <option>--node</option>,
-          <option>--primary</option>, <option>--secondary</option> and
-          <option>--all</option> options are similar as for the
+          <option>--primary</option>, <option>--secondary</option>,
+          <option>--all</option>, <option>--tags</option>,
+          <option>--node-tags</option>, <option>--pri-node-tags</option> and
+          <option>--sec-node-tags</option> options are similar as for the
           <command>startup</command> command and they influence the
           actual instances being rebooted.
         </para>
