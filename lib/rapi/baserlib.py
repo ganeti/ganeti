@@ -234,7 +234,13 @@ class R_Generic(object):
     self.queryargs = queryargs
     self._req = req
 
-  request_body = property(fget=lambda self: self._req.private.body_data)
+  def _GetRequestBody(self):
+    """Returns the body data.
+
+    """
+    return self._req.private.body_data
+
+  request_body = property(fget=_GetRequestBody)
 
   def _checkIntVariable(self, name, default=0):
     """Return the parsed value of an int argument.
