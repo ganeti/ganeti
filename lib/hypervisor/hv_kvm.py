@@ -686,7 +686,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if not result.stdout:
           logging.info("KVM: empty 'info migrate' result")
         else:
-          logging.warning("KVM: unknown 'info migrate' result: %s" %
+          logging.warning("KVM: unknown 'info migrate' result: %s",
                           result.stdout)
         time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
       else:
