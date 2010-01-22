@@ -254,6 +254,8 @@ EXTRA_DIST = \
 	doc/examples/ganeti.cron.in \
 	doc/examples/gnt-config-backup.in \
 	doc/examples/dumb-allocator \
+	doc/examples/ganeti.default \
+	doc/examples/ganeti.default-debug \
 	doc/examples/hooks/ethers \
 	doc/examples/hooks/ipsec.in \
 	test/testutils.py \
@@ -353,8 +355,14 @@ srclink_files = \
 	$(all_python_code)
 
 check_python_code = \
-	autotools/build-bash-completion \
+	$(BUILD_BASH_COMPLETION) \
 	$(all_python_code)
+
+lint_python_code = \
+	ganeti \
+	$(dist_sbin_SCRIPTS) \
+	$(dist_tools_SCRIPTS) \
+	$(BUILD_BASH_COMPLETION)
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
@@ -477,7 +485,8 @@ check-local:
 
 .PHONY: lint
 lint: ganeti
-	pylint ganeti $(dist_sbin_SCRIPTS) $(dist_tools_SCRIPTS)
+	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
+	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
 
 # a dist hook rule for catching revision control directories
 distcheck-hook:

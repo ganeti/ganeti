@@ -2,7 +2,7 @@
 m4_define([gnt_version_major], [2])
 m4_define([gnt_version_minor], [1])
 m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~rc2])
+m4_define([gnt_version_suffix], [~rc4])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -151,6 +151,14 @@ AC_PATH_PROG(DOT, [dot], [])
 if test -z "$DOT"
 then
   AC_MSG_WARN([dot (from the graphviz suite) not found, documentation rebuild not possible])
+fi
+
+# Check for pylint
+AC_ARG_VAR(PYLINT, [pylint path])
+AC_PATH_PROG(PYLINT, [pylint], [])
+if test -z "$PYLINT"
+then
+  AC_MSG_WARN([pylint not found, checking code will not be possible])
 fi
 
 # Check for socat

@@ -604,7 +604,7 @@ class TestSharedLock(_ThreadedTestCase):
 
   @_Repeat
   def testMixedAcquireTimeout(self):
-    sync = threading.Condition()
+    sync = threading.Event()
 
     def _AcquireShared(ev):
       if not self.sl.acquire(shared=1, timeout=None):
@@ -615,12 +615,8 @@ class TestSharedLock(_ThreadedTestCase):
       # Notify main thread
       ev.set()
 
-      # Wait for notification
-      sync.acquire()
-      try:
-        sync.wait()
-      finally:
-        sync.release()
+      # Wait for notification from main thread
+      sync.wait()
 
       # Release lock
       self.sl.release()
@@ -641,7 +637,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.failIf(self.sl.acquire(shared=0, timeout=0.02))
 
     # Acquire exclusive without timeout
-    exclsync = threading.Condition()
+    exclsync = threading.Event()
     exclev = threading.Event()
 
     def _AcquireExclusive():
@@ -653,11 +649,8 @@ class TestSharedLock(_ThreadedTestCase):
       # Notify main thread
       exclev.set()
 
-      exclsync.acquire()
-      try:
-        exclsync.wait()
-      finally:
-        exclsync.release()
+      # Wait for notification from main thread
+      exclsync.wait()
 
       self.sl.release()
 
@@ -667,11 +660,7 @@ class TestSharedLock(_ThreadedTestCase):
     self.failIf(self.sl.acquire(shared=0, timeout=0.02))
 
     # Make all shared holders release their locks
-    sync.acquire()
-    try:
-      sync.notifyAll()
-    finally:
-      sync.release()
+    sync.set()
 
     # Wait for exclusive acquire to succeed
     exclev.wait()
@@ -690,11 +679,7 @@ class TestSharedLock(_ThreadedTestCase):
       self._addThread(target=_AcquireSharedSimple)
 
     # Tell exclusive lock to release
-    exclsync.acquire()
-    try:
-      exclsync.notifyAll()
-    finally:
-      exclsync.release()
+    exclsync.set()
 
     # Wait for everything to finish
     self._waitThreads()

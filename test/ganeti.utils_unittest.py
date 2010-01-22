@@ -45,7 +45,8 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ParseUnit, AddAuthorizedKey, RemoveAuthorizedKey, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
-     TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime
+     TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime, \
+     UnescapeAndSplit
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -1051,6 +1052,37 @@ class TestFormatTime(unittest.TestCase):
     FormatTime(time.time())
     # tests that we accept int input
     FormatTime(int(time.time()))
+
+
+class TestUnescapeAndSplit(unittest.TestCase):
+  """Testing case for UnescapeAndSplit"""
+
+  def setUp(self):
+    # testing more that one separator for regexp safety
+    self._seps = [",", "+", "."]
+
+  def testSimple(self):
+    a = ["a", "b", "c", "d"]
+    for sep in self._seps:
+      self.failUnlessEqual(UnescapeAndSplit(sep.join(a), sep=sep), a)
+
+  def testEscape(self):
+    for sep in self._seps:
+      a = ["a", "b\\" + sep + "c", "d"]
+      b = ["a", "b" + sep + "c", "d"]
+      self.failUnlessEqual(UnescapeAndSplit(sep.join(a), sep=sep), b)
+
+  def testDoubleEscape(self):
+    for sep in self._seps:
+      a = ["a", "b\\\\", "c", "d"]
+      b = ["a", "b\\", "c", "d"]
+      self.failUnlessEqual(UnescapeAndSplit(sep.join(a), sep=sep), b)
+
+  def testThreeEscape(self):
+    for sep in self._seps:
+      a = ["a", "b\\\\\\" + sep + "c", "d"]
+      b = ["a", "b\\" + sep + "c", "d"]
+      self.failUnlessEqual(UnescapeAndSplit(sep.join(a), sep=sep), b)
 
 
 if __name__ == '__main__':

@@ -252,7 +252,6 @@ ARGS_ONE_INSTANCE = [ArgInstance(min=1, max=1)]
 ARGS_ONE_NODE = [ArgNode(min=1, max=1)]
 
 
-
 def _ExtractTagsObject(opts, args):
   """Extract the tag type object.
 
@@ -313,8 +312,8 @@ def ListTags(opts, args):
 
   """
   kind, name = _ExtractTagsObject(opts, args)
-  op = opcodes.OpGetTags(kind=kind, name=name)
-  result = SubmitOpCode(op)
+  cl = GetClient()
+  result = cl.QueryTags(kind, name)
   result = list(result)
   result.sort()
   for tag in result:
@@ -385,7 +384,7 @@ def _SplitKeyVal(opt, data):
   """
   kv_dict = {}
   if data:
-    for elem in data.split(","):
+    for elem in utils.UnescapeAndSplit(data, sep=","):
       if "=" in elem:
         key, val = elem.split("=", 1)
       else:
@@ -1580,6 +1579,12 @@ def GenerateTable(headers, fields, separator, data,
         args.append(mlens[idx])
       args.append(hdr)
     result.append(format % tuple(args))
+
+  if separator is None:
+    assert len(mlens) == len(fields)
+
+    if fields and not numfields.Matches(fields[-1]):
+      mlens[-1] = 0
 
   for line in data:
     args = []
