@@ -80,6 +80,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
                                     re.M | re.I)
+  _MIGRATION_INFO_MAX_BAD_ANSWERS = 5
+  _MIGRATION_INFO_RETRY_DELAY = 2
 
   _KVM_NETWORK_SCRIPT = constants.SYSCONFDIR + "/ganeti/kvm-vif-bridge"
 
@@ -675,26 +677,37 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     info_command = 'info migrate'
     done = False
+    broken_answers = 0
     while not done:
       result = self._CallMonitorCommand(instance_name, info_command)
       match = self._MIGRATION_STATUS_RE.search(result.stdout)
       if not match:
-        raise errors.HypervisorError("Unknown 'info migrate' result: %s" %
-                                     result.stdout)
+        broken_answers += 1
+        if not result.stdout:
+          logging.info("KVM: empty 'info migrate' result")
+        else:
+          logging.warning("KVM: unknown 'info migrate' result: %s" %
+                          result.stdout)
+        time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
       else:
         status = match.group(1)
         if status == 'completed':
           done = True
         elif status == 'active':
-          time.sleep(2)
+          # reset the broken answers count
+          broken_answers = 0
+          time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
         elif status == 'failed' or status == 'cancelled':
           if not live:
             self._CallMonitorCommand(instance_name, 'cont')
           raise errors.HypervisorError("Migration %s at the kvm level" %
                                        status)
         else:
-          logging.info("KVM: unknown migration status '%s'", status)
-          time.sleep(2)
+          logging.warning("KVM: unknown migration status '%s'", status)
+          broken_answers += 1
+          time.sleep(self._MIGRATION_INFO_RETRY_DELAY)
+      if broken_answers >= self._MIGRATION_INFO_MAX_BAD_ANSWERS:
+        raise errors.HypervisorError("Too many 'info migrate' broken answers")
 
     utils.KillProcess(pid)
     self._RemoveInstanceRuntimeFiles(pidfile, instance_name)
