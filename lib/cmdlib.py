@@ -4655,7 +4655,7 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("Missing disk size")
       try:
         size = int(size)
-      except ValueError:
+      except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size)
       self.disks.append({"size": size, "mode": mode})
 
@@ -6012,7 +6012,7 @@ class LUSetInstanceParams(LogicalUnit):
           raise errors.OpPrereqError("Required disk parameter size missing")
         try:
           size = int(size)
-        except ValueError, err:
+        except (TypeError, ValueError), err:
           raise errors.OpPrereqError("Invalid disk size parameter: %s" %
                                      str(err))
         disk_dict['size'] = size
@@ -6970,7 +6970,7 @@ class IAllocator(object):
                                      " '%s'" % (nname, attr))
           try:
             remote_info[attr] = int(remote_info[attr])
-          except ValueError, err:
+          except (TypeError, ValueError), err:
             raise errors.OpExecError("Node '%s' returned invalid value"
                                      " for '%s': %s" % (nname, attr, err))
         # compute memory used by primary instances

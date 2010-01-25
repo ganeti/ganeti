@@ -1002,7 +1002,7 @@ class HttpMessageReader(object):
     if hdr_content_length:
       try:
         self.content_length = int(hdr_content_length)
-      except ValueError:
+      except (TypeError, ValueError):
         self.content_length = None
       if self.content_length is not None and self.content_length < 0:
         self.content_length = None

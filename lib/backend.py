@@ -811,7 +811,7 @@ def _GetVGInfo(vg_name):
         "vg_free": int(round(float(valarr[1]), 0)),
         "pv_count": int(valarr[2]),
         }
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       logging.exception("Fail to parse vgs output")
   else:
     logging.error("vgs output has the wrong number of fields (expected"

@@ -118,7 +118,7 @@ def ImportInstance(opts, args):
   if opts.nics:
     try:
       nic_max = max(int(nidx[0])+1 for nidx in opts.nics)
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       raise errors.OpPrereqError("Invalid NIC index passed: %s" % str(err))
     nics = [{}] * nic_max
     for nidx, ndict in opts.nics:
@@ -146,7 +146,7 @@ def ImportInstance(opts, args):
       opts.disks = [(0, {"size": opts.sd_size})]
     try:
       disk_max = max(int(didx[0])+1 for didx in opts.disks)
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err))
     disks = [{}] * disk_max
     for didx, ddict in opts.disks:
@@ -155,7 +155,7 @@ def ImportInstance(opts, args):
         raise errors.OpPrereqError("Missing size for disk %d" % didx)
       try:
         ddict["size"] = utils.ParseUnit(ddict["size"])
-      except ValueError, err:
+      except (TypeError, ValueError), err:
         raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
                                    (didx, err))
       disks[didx] = ddict
