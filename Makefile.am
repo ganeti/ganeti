@@ -445,6 +445,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "TOOLSDIR = '$(toolsdir)'"; \
 	  echo "GNT_SCRIPTS = [$(foreach i,$(notdir $(gnt_scripts)),'$(i)',)]"; \
 	  echo "PKGLIBDIR = '$(pkglibdir)'"; \
+	  echo "DRBD_BARRIERS = $(DRBD_BARRIERS)"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile

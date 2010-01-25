@@ -108,7 +108,7 @@ AC_ARG_WITH([kvm-path],
   [kvm_path="/usr/bin/kvm"])
 AC_SUBST(KVM_PATH, $kvm_path)
 
-# ---with-lvm-stripecount=...
+# --with-lvm-stripecount=...
 AC_ARG_WITH([lvm-stripecount],
   [AS_HELP_STRING([--with-lvm-stripecount=NUM],
     [the number of stripes to use for LVM volumes]
@@ -117,6 +117,19 @@ AC_ARG_WITH([lvm-stripecount],
   [lvm_stripecount="$withval"],
   [lvm_stripecount="1"])
 AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
+
+# --enable-drbd-barriers
+AC_ARG_ENABLE([drbd-barriers],
+  [AS_HELP_STRING([--enable-drbd-barriers],
+    [enable the DRBD barrier functionality (>= 8.0.12) (default: enabled)])],
+  [[if test "$enableval" != no; then
+      DRBD_BARRIERS=True
+    else
+      DRBD_BARRIERS=False
+    fi
+  ]],
+  [DRBD_BARRIERS=True])
+AC_SUBST(DRBD_BARRIERS, $DRBD_BARRIERS)
 
 # Check common programs
 AC_PROG_INSTALL

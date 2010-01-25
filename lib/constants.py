@@ -255,6 +255,7 @@ LDS_BLOCK = frozenset([LD_LV, LD_DRBD8])
 # drbd constants
 DRBD_HMAC_ALG = "md5"
 DRBD_NET_PROTOCOL = "C"
+DRBD_BARRIERS = _autoconf.DRBD_BARRIERS
 
 # file backend driver
 FD_LOOP = "loop"
