@@ -1940,7 +1940,11 @@ class LURemoveNode(LogicalUnit):
       "NODE_NAME": self.op.node_name,
       }
     all_nodes = self.cfg.GetNodeList()
-    all_nodes.remove(self.op.node_name)
+    try:
+      all_nodes.remove(self.op.node_name)
+    except ValueError:
+      logging.warning("Node %s which is about to be removed not found"
+                      " in the all nodes list", self.op.node_name)
     return env, all_nodes, all_nodes
 
   def CheckPrereq(self):
