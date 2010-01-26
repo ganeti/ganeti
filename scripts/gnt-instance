@@ -441,7 +441,7 @@ def BatchCreate(opts, args):
     for elem in specs['disk_size']:
       try:
         size = utils.ParseUnit(elem)
-      except ValueError, err:
+      except (TypeError, ValueError), err:
         raise errors.OpPrereqError("Invalid disk size '%s' for"
                                    " instance %s: %s" %
                                    (elem, name, err), errors.ECODE_INVAL)
@@ -704,7 +704,7 @@ def GrowDisk(opts, args):
   disk = args[1]
   try:
     disk = int(disk)
-  except ValueError, err:
+  except (TypeError, ValueError), err:
     raise errors.OpPrereqError("Invalid disk index: %s" % str(err),
                                errors.ECODE_INVAL)
   amount = utils.ParseUnit(args[2])
@@ -784,7 +784,7 @@ def ReplaceDisks(opts, args):
   else:
     try:
       disks = [int(i) for i in opts.disks.split(",")]
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       raise errors.OpPrereqError("Invalid disk index passed: %s" % str(err),
                                  errors.ECODE_INVAL)
   cnt = [opts.on_primary, opts.on_secondary, opts.auto,
@@ -1231,14 +1231,14 @@ def SetInstanceParams(opts, args):
     try:
       nic_op = int(nic_op)
       opts.nics[idx] = (nic_op, nic_dict)
-    except ValueError:
+    except (TypeError, ValueError):
       pass
 
   for idx, (disk_op, disk_dict) in enumerate(opts.disks):
     try:
       disk_op = int(disk_op)
       opts.disks[idx] = (disk_op, disk_dict)
-    except ValueError:
+    except (TypeError, ValueError):
       pass
     if disk_op == constants.DDM_ADD:
       if 'size' not in disk_dict:

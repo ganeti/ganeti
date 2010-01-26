@@ -512,7 +512,7 @@ class LogicalVolume(BlockDev):
     try:
       major = int(major)
       minor = int(minor)
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       logging.error("lvs major/minor cannot be parsed: %s", str(err))
 
     try:
@@ -933,7 +933,7 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
                   result.fail_reason, result.output)
     try:
       sectors = int(result.stdout)
-    except ValueError:
+    except (TypeError, ValueError):
       _ThrowError("Invalid output from blockdev: '%s'", result.stdout)
     bytes = sectors * 512
     if bytes < 128 * 1024 * 1024: # less than 128MiB

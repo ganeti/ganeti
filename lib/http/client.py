@@ -137,7 +137,7 @@ class _HttpServerToClientMessageReader(http.HttpMessageReader):
       status = int(status)
       if status < 100 or status > 999:
         status = -1
-    except ValueError:
+    except (TypeError, ValueError):
       status = -1
 
     if status == -1:

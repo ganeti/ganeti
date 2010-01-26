@@ -491,7 +491,7 @@ def ReadPidFile(pidfile):
 
   try:
     pid = int(raw_data)
-  except ValueError, err:
+  except (TypeError, ValueError), err:
     logging.info("Can't parse pid file contents", exc_info=True)
     return 0
 

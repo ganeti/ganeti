@@ -134,7 +134,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
         data[2] = int(data[2])
         data[3] = int(data[3])
         data[5] = float(data[5])
-      except ValueError, err:
+      except (TypeError, ValueError), err:
         raise errors.HypervisorError("Can't parse output of xm list,"
                                      " line: %s, error: %s" % (line, err))
 

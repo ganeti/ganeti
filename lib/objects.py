@@ -747,7 +747,7 @@ class Instance(TaggableObject):
     try:
       idx = int(idx)
       return self.disks[idx]
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       raise errors.OpPrereqError("Invalid disk index: '%s'" % str(err),
                                  errors.ECODE_INVAL)
     except IndexError:

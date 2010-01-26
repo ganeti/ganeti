@@ -1561,7 +1561,7 @@ def GenerateTable(headers, fields, separator, data,
       if unitfields.Matches(fields[idx]):
         try:
           val = int(val)
-        except ValueError:
+        except (TypeError, ValueError):
           pass
         else:
           val = row[idx] = utils.FormatUnit(val, units)
@@ -1642,7 +1642,7 @@ def ParseTimespec(value):
   if value[-1] not in suffix_map:
     try:
       value = int(value)
-    except ValueError:
+    except (TypeError, ValueError):
       raise errors.OpPrereqError("Invalid time specification '%s'" % value)
   else:
     multiplier = suffix_map[value[-1]]
@@ -1652,7 +1652,7 @@ def ParseTimespec(value):
                                  " suffix passed)")
     try:
       value = int(value) * multiplier
-    except ValueError:
+    except (TypeError, ValueError):
       raise errors.OpPrereqError("Invalid time specification '%s'" % value)
   return value
 
