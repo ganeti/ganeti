@@ -179,6 +179,125 @@ function processes and wait for all of them to terminate.
 Feature changes
 ---------------
 
+KVM Security
+~~~~~~~~~~~~
+
+Current state and shortcomings
+++++++++++++++++++++++++++++++
+
+Currently all kvm processes run as root. Taking ownership of the
+hypervisor process, from inside a virtual machine, would mean a full
+compromise of the whole Ganeti cluster, knowledge of all Ganeti
+authentication secrets, full access to all running instances, and the
+option of subverting other basic services on the cluster (eg: ssh).
+
+Proposed changes
+++++++++++++++++
+
+We would like to decrease the surface of attack available if an
+hypervisor is compromised. We can do so adding different features to
+Ganeti, which will allow restricting the broken hypervisor
+possibilities, in the absence of a local privilege escalation attack, to
+subvert the node.
+
+Dropping privileges in kvm to a single user (easy)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By passing the ``-runas`` option to kvm, we can make it drop privileges.
+The user can be chosen by an hypervisor parameter, so that each instance
+can have its own user, but by default they will all run under the same
+one. It should be very easy to implement, and can easily be backported
+to 2.1.X.
+
+This mode protects the Ganeti cluster from a subverted hypervisor, but
+doesn't protect the instances between each other, unless care is taken
+to specify a different user for each. This would prevent the worst
+attacks, including:
+
+- logging in to other nodes
+- administering the Ganeti cluster
+- subverting other services
+
+But the following would remain an option:
+
+- terminate other VMs (but not start them again, as that requires root
+  privileges to set up networking) (unless different users are used)
+- trace other VMs, and probably subvert them and access their data
+  (unless different users are used)
+- send network traffic from the node
+- read unprotected data on the node filesystem
+
+Running kvm in a chroot (slightly harder)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By passing the ``-chroot`` option to kvm, we can restrict the kvm
+process in its own (possibly empty) root directory. We need to set this
+area up so that the instance disks and control sockets are accessible,
+so it would require slightly more work at the Ganeti level.
+
+Breaking out in a chroot would mean:
+
+- a lot less options to find a local privilege escalation vector
+- the impossibility to write local data, if the chroot is set up
+  correctly
+- the impossibility to read filesystem data on the host
+
+It would still be possible though to:
+
+- terminate other VMs
+- trace other VMs, and possibly subvert them (if a tracer can be
+  installed in the chroot)
+- send network traffic from the node
+
+
+Running kvm with a pool of users (slightly harder)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If rather than passing a single user as an hypervisor parameter, we have
+a pool of useable ones, we can dynamically choose a free one to use and
+thus guarantee that each machine will be separate from the others,
+without putting the burden of this on the cluster administrator.
+
+This would mean interfering between machines would be impossible, and
+can still be combined with the chroot benefits.
+
+Running iptables rules to limit network interaction (easy)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These don't need to be handled by Ganeti, but we can ship examples. If
+the users used to run VMs would be blocked from sending some or all
+network traffic, it would become impossible for a broken into hypervisor
+to send arbitrary data on the node network, which is especially useful
+when the instance and the node network are separated (using ganeti-nbma
+or a separate set of network interfaces), or when a separate replication
+network is maintained. We need to experiment to see how much restriction
+we can properly apply, without limiting the instance legitimate traffic.
+
+
+Running kvm inside a container (even harder)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Recent linux kernels support different process namespaces through
+control groups. PIDs, users, filesystems and even network interfaces can
+be separated. If we can set up ganeti to run kvm in a separate container
+we could insulate all the host process from being even visible if the
+hypervisor gets broken into. Most probably separating the network
+namespace would require one extra hop in the host, through a veth
+interface, thus reducing performance, so we may want to avoid that, and
+just rely on iptables.
+
+Implementation plan
++++++++++++++++++++
+
+We will first implement dropping privileges for kvm processes as a
+single user, and most probably backport it to 2.1. Then we'll ship
+example iptables rules to show how the user can be limited in its
+network activities.  After that we'll implement chroot restriction for
+kvm processes, and extend the user limitation to use a user pool.
+
+Finally we'll look into namespaces and containers, although that might
+slip after the 2.2 release.
+
 External interface changes
 --------------------------
 
