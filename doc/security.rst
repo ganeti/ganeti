@@ -99,6 +99,16 @@ Paths for certificate, private key and CA files required for SSL/TLS
 will be set at source configure time. Symlinks or command line
 parameters may be used to use different files.
 
+Inter-cluster instance moves
+----------------------------
+
+To move instances between clusters, different clusters must be able to
+communicate with each other over a secure channel. Up to and including
+Ganeti 2.1, clusters were self-contained entities and had no knowledge
+of other clusters. With Ganeti 2.2, clusters can exchange data if tokens
+(an encryption certificate) was exchanged by a trusted third party
+before.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst

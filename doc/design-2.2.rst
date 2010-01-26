@@ -176,6 +176,140 @@ On process termination (e.g. after having been sent a ``SIGTERM`` or
 function processes and wait for all of them to terminate.
 
 
+Inter-cluster instance moves
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Current state and shortcomings
+++++++++++++++++++++++++++++++
+
+With the current design of Ganeti, moving whole instances between
+different clusters involves a lot of manual work. There are several ways
+to move instances, one of them being to export the instance, manually
+copying all data to the new cluster before importing it again. Manual
+changes to the instances configuration, such as the IP address, may be
+necessary in the new environment. The goal is to improve and automate
+this process in Ganeti 2.2.
+
+Proposed changes
+++++++++++++++++
+
+Authorization, Authentication and Security
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Until now, each Ganeti cluster was a self-contained entity and wouldn't
+talk to other Ganeti clusters. Nodes within clusters only had to trust
+the other nodes in the same cluster and the network used for replication
+was trusted, too (hence the ability the use a separate, local network
+for replication).
+
+For inter-cluster instance transfers this model must be weakened. Nodes
+in one cluster will have to talk to nodes in other clusters, sometimes
+in other locations and, very important, via untrusted network
+connections.
+
+Various option have been considered for securing and authenticating the
+data transfer from one machine to another. To reduce the risk of
+accidentally overwriting data due to software bugs, authenticating the
+arriving data was considered critical. Eventually we decided to use
+socat's OpenSSL options (``OPENSSL:``, ``OPENSSL-LISTEN:`` et al), which
+provide us with encryption, authentication and authorization when used
+with separate keys and certificates.
+
+Combinations of OpenSSH, GnuPG and Netcat were deemed too complex to set
+up from within Ganeti. Any solution involving OpenSSH would require a
+dedicated user with a home directory and likely automated modifications
+to the user's ``$HOME/.ssh/authorized_keys`` file. When using Netcat,
+GnuPG or another encryption method would be necessary to transfer the
+data over an untrusted network. socat combines both in one program and
+is already a dependency.
+
+Each of the two clusters will have to generate an RSA key. The public
+parts are exchanged between the clusters by a third party, such as an
+administrator or a system interacting with Ganeti via the remote API
+("third party" from here on). After receiving each other's public key,
+the clusters can start talking to each other.
+
+All encrypted connections must be verified on both sides. Neither side
+may accept unverified certificates. The generated certificate should
+only be valid for the time necessary to move the instance.
+
+On the web, the destination cluster would be equivalent to an HTTPS
+server requiring verifiable client certificates. The browser would be
+equivalent to the source cluster and must verify the server's
+certificate while providing a client certificate to the server.
+
+Copying data
+^^^^^^^^^^^^
+
+To simplify the implementation, we decided to operate at a block-device
+level only, allowing us to easily support non-DRBD instance moves.
+
+Intra-cluster instance moves will re-use the existing export and import
+scripts supplied by instance OS definitions. Unlike simply copying the
+raw data, this allows to use filesystem-specific utilities to dump only
+used parts of the disk and to exclude certain disks from the move.
+Compression should be used to further reduce the amount of data
+transferred.
+
+The export scripts writes all data to stdout and the import script reads
+it from stdin again. To avoid copying data and reduce disk space
+consumption, everything is read from the disk and sent over the network
+directly, where it'll be written to the new block device directly again.
+
+Workflow
+^^^^^^^^
+
+#. Third party tells source cluster to shut down instance, asks for the
+   instance specification and for the public part of an encryption key
+#. Third party tells destination cluster to create an instance with the
+   same specifications as on source cluster and to prepare for an
+   instance move with the key received from the source cluster and
+   receives the public part of the destination's encryption key
+#. Third party hands public part of the destination's encryption key
+   together with all necessary information to source cluster and tells
+   it to start the move
+#. Source cluster connects to destination cluster for each disk and
+   transfers its data using the instance OS definition's export and
+   import scripts
+#. Due to the asynchronous nature of the whole process, the destination
+   cluster checks whether all disks have been transferred every time
+   after transfering a single disk; if so, it destroys the encryption
+   key
+#. After sending all disks, the source cluster destroys its key
+#. Destination cluster runs OS definition's rename script to adjust
+   instance settings if needed (e.g. IP address)
+#. Destination cluster starts the instance if requested at the beginning
+   by the third party
+#. Source cluster removes the instance if requested
+
+Miscellaneous notes
+^^^^^^^^^^^^^^^^^^^
+
+- A very similar system could also be used for instance exports within
+  the same cluster. Currently OpenSSH is being used, but could be
+  replaced by socat and SSL/TLS.
+- During the design of intra-cluster instance moves we also discussed
+  encrypting instance exports using GnuPG.
+- While most instances should have exactly the same configuration as
+  on the source cluster, setting them up with a different disk layout
+  might be helpful in some use-cases.
+- A cleanup operation, similar to the one available for failed instance
+  migrations, should be provided.
+- ``ganeti-watcher`` should remove instances pending a move from another
+  cluster after a certain amount of time. This takes care of failures
+  somewhere in the process.
+- RSA keys can be generated using the existing
+  ``bootstrap.GenerateSelfSignedSslCert`` function, though it might be
+  useful to not write both parts into a single file, requiring small
+  changes to the function. The public part always starts with
+  ``-----BEGIN CERTIFICATE-----`` and ends with ``-----END
+  CERTIFICATE-----``.
+- The source and destination cluster might be different when it comes
+  to available hypervisors, kernels, etc. The destination cluster should
+  refuse to accept an instance move if it can't fulfill an instance's
+  requirements.
+
+
 Feature changes
 ---------------
 
