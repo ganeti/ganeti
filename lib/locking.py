@@ -216,7 +216,7 @@ class SingleNotifyPipeCondition(_BaseCondition):
 
   """
 
-  __slots__ = _BaseCondition.__slots__ + [
+  __slots__ = [
     "_poller",
     "_read_fd",
     "_write_fd",
@@ -309,7 +309,7 @@ class PipeCondition(_BaseCondition):
   there are any waiting threads.
 
   """
-  __slots__ = _BaseCondition.__slots__ + [
+  __slots__ = [
     "_nwaiters",
     "_single_condition",
     ]

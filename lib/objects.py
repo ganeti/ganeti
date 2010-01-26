@@ -223,7 +223,7 @@ class TaggableObject(ConfigObject):
   """An generic class supporting tags.
 
   """
-  __slots__ = ConfigObject.__slots__ + ["tags"]
+  __slots__ = ["tags"]
   VALID_TAG_RE = re.compile("^[\w.+*/:@-]+$")
 
   @classmethod
@@ -635,7 +635,7 @@ class Disk(ConfigObject):
 
 class Instance(TaggableObject):
   """Config object representing an instance."""
-  __slots__ = TaggableObject.__slots__ + [
+  __slots__ = [
     "name",
     "primary_node",
     "os",
@@ -815,7 +815,7 @@ class OS(ConfigObject):
 
 class Node(TaggableObject):
   """Config object representing a node."""
-  __slots__ = TaggableObject.__slots__ + [
+  __slots__ = [
     "name",
     "primary_ip",
     "secondary_ip",
@@ -828,7 +828,7 @@ class Node(TaggableObject):
 
 class Cluster(TaggableObject):
   """Config object representing the cluster."""
-  __slots__ = TaggableObject.__slots__ + [
+  __slots__ = [
     "serial_no",
     "rsahostkeypub",
     "highest_used_port",
