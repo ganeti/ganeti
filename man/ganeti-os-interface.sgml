@@ -22,6 +22,7 @@
       <year>2007</year>
       <year>2008</year>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -273,7 +274,7 @@
 
       <para>
         The difference in variables is that the current disk is called
-        by <envar>IMPORT_DEVICE</envar> and <envar>IMPORT_IDX</envar>
+        by <envar>IMPORT_DEVICE</envar> and <envar>IMPORT_INDEX</envar>
         (instead of <emphasis>EXPORT_</emphasis>).
       </para>
 
