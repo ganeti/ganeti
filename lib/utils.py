@@ -2258,7 +2258,7 @@ class FileLock(object):
     """Close the file and release the lock.
 
     """
-    if self.fd:
+    if hasattr(self, "fd") and self.fd:
       self.fd.close()
       self.fd = None
 
