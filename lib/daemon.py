@@ -245,6 +245,12 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
   optionparser.add_option("-d", "--debug", dest="debug",
                           help="Enable some debug messages",
                           default=False, action="store_true")
+  optionparser.add_option("--syslog", dest="syslog",
+                          help="Enable logging to syslog (except debug"
+                          " messages); one of 'no', 'yes' or 'only' [%s]" %
+                          constants.SYSLOG_USAGE,
+                          default=constants.SYSLOG_USAGE,
+                          choices=["no", "yes", "only"])
   if daemon_name in constants.DAEMONS_PORTS:
     # for networked daemons we also allow choosing the bind port and address.
     # by default we use the port provided by utils.GetDaemonPort, and bind to
@@ -296,7 +302,9 @@ def GenericMain(daemon_name, optionparser, dirs, check_fn, exec_fn):
     utils.SetupLogging(logfile=constants.DAEMONS_LOGFILES[daemon_name],
                        debug=options.debug,
                        stderr_logging=not options.fork,
-                       multithreaded=multithread)
+                       multithreaded=multithread,
+                       program=daemon_name,
+                       syslog=options.syslog)
     logging.info("%s daemon startup", daemon_name)
     exec_fn(options, args)
   finally:

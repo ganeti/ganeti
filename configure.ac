@@ -131,6 +131,33 @@ AC_ARG_ENABLE([drbd-barriers],
   [DRBD_BARRIERS=True])
 AC_SUBST(DRBD_BARRIERS, $DRBD_BARRIERS)
 
+# --enable-syslog[=no/yes/only]
+AC_ARG_ENABLE([syslog],
+  [AS_HELP_STRING([--enable-syslog],
+    [enable use of syslog (default: disabled), one of no/yes/only])],
+  [[case "$enableval" in
+      no)
+        SYSLOG=no
+        ;;
+      yes)
+        SYSLOG=yes
+        ;;
+      only)
+        SYSLOG=only
+        ;;
+      *)
+        SYSLOG=
+        ;;
+    esac
+  ]],
+  [SYSLOG=no])
+
+if test -z "$SYSLOG"
+then
+  AC_MSG_ERROR([invalid value for syslog, choose one of no/yes/only])
+fi
+AC_SUBST(SYSLOG_USAGE, $SYSLOG)
+
 # Check common programs
 AC_PROG_INSTALL
 AC_PROG_LN_S

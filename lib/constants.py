@@ -155,6 +155,13 @@ LOG_WATCHER = LOG_DIR + "watcher.log"
 LOG_COMMANDS = LOG_DIR + "commands.log"
 LOG_BURNIN = LOG_DIR + "burnin.log"
 
+# one of 'no', 'yes', 'only'
+SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
+SYSLOG_NO = "no"
+SYSLOG_YES = "yes"
+SYSLOG_ONLY = "only"
+SYSLOG_SOCKET = "/dev/log"
+
 OS_SEARCH_PATH = _autoconf.OS_SEARCH_PATH
 EXPORT_DIR = _autoconf.EXPORT_DIR
 
