@@ -484,7 +484,7 @@ check-local:
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 
 .PHONY: lint
-lint: ganeti
+lint: ganeti $(BUILT_SOURCES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
 
@@ -513,14 +513,14 @@ stamp-directories: Makefile
 	touch $@
 
 .PHONY: apidoc
-apidoc: epydoc.conf $(RUN_IN_TEMPDIR)
+apidoc: epydoc.conf $(RUN_IN_TEMPDIR) $(BUILT_SOURCES)
 	test -e doc/api || mkdir doc/api
 	$(RUN_IN_TEMPDIR) epydoc -v \
 		--conf $(CURDIR)/epydoc.conf \
 		--output $(CURDIR)/doc/api
 
 .PHONY: TAGS
-TAGS:
+TAGS: $(BUILT_SOURCES)
 	rm -f TAGS
 	find . -path './lib/*.py' -o -path 'scripts/gnt-*' -o \
 	  -path 'daemons/ganeti-*' -o -path 'tools/*' | \
