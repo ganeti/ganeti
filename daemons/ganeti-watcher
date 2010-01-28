@@ -486,6 +486,8 @@ def main():
   try:
     # on master or not, try to start the node dameon
     EnsureDaemon(constants.NODED)
+    # start confd as well. On non candidates it will be in disabled mode.
+    EnsureDaemon(constants.CONFD)
 
     notepad = WatcherState()
     try:
