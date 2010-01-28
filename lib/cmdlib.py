@@ -3203,7 +3203,7 @@ class LUSetNodeParams(LogicalUnit):
 
     # If we're being deofflined/drained, we'll MC ourself if needed
     if (deoffline_or_drain and not offline_or_drain and not
-        self.op.master_candidate == True):
+        self.op.master_candidate == True and not node.master_candidate):
       self.op.master_candidate = _DecideSelfPromotion(self)
       if self.op.master_candidate:
         self.LogInfo("Autopromoting node to master candidate")
