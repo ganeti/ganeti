@@ -1085,5 +1085,33 @@ class TestUnescapeAndSplit(unittest.TestCase):
       self.failUnlessEqual(UnescapeAndSplit(sep.join(a), sep=sep), b)
 
 
+class TestGenerateSelfSignedSslCert(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def _checkPrivateRsaKey(self, key):
+    lines = key.splitlines()
+    self.assert_("-----BEGIN RSA PRIVATE KEY-----" in lines)
+    self.assert_("-----END RSA PRIVATE KEY-----" in lines)
+
+  def _checkRsaCertificate(self, cert):
+    lines = cert.splitlines()
+    self.assert_("-----BEGIN CERTIFICATE-----" in lines)
+    self.assert_("-----END CERTIFICATE-----" in lines)
+
+  def testSingleFile(self):
+    cert1_filename = os.path.join(self.tmpdir, "cert1.pem")
+
+    utils.GenerateSelfSignedSslCert(cert1_filename, validity=1)
+
+    cert1 = utils.ReadFile(cert1_filename)
+
+    self._checkPrivateRsaKey(cert1)
+    self._checkRsaCertificate(cert1)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

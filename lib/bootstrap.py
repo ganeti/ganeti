@@ -27,7 +27,6 @@ import os
 import os.path
 import re
 import logging
-import tempfile
 import time
 
 from ganeti import rpc
@@ -66,40 +65,6 @@ def _InitSSHSetup():
   utils.AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
 
-def GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
-  """Generates a self-signed SSL certificate.
-
-  @type file_name: str
-  @param file_name: Path to output file
-  @type validity: int
-  @param validity: Validity for certificate in days
-
-  """
-  (fd, tmp_file_name) = tempfile.mkstemp(dir=os.path.dirname(file_name))
-  try:
-    try:
-      # Set permissions before writing key
-      os.chmod(tmp_file_name, 0600)
-
-      result = utils.RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
-                             "-days", str(validity), "-nodes", "-x509",
-                             "-keyout", tmp_file_name, "-out", tmp_file_name,
-                             "-batch"])
-      if result.failed:
-        raise errors.OpExecError("Could not generate SSL certificate, command"
-                                 " %s had exitcode %s and error message %s" %
-                                 (result.cmd, result.exit_code, result.output))
-
-      # Make read-only
-      os.chmod(tmp_file_name, 0400)
-
-      os.rename(tmp_file_name, file_name)
-    finally:
-      utils.RemoveFile(tmp_file_name)
-  finally:
-    os.close(fd)
-
-
 def GenerateHmacKey(file_name):
   """Writes a new HMAC key.
 
@@ -117,11 +82,11 @@ def _InitGanetiServerSetup(master_name):
   the cluster and also generates the SSL certificate.
 
   """
-  GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
+  utils.GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
 
   # Don't overwrite existing file
   if not os.path.exists(constants.RAPI_CERT_FILE):
-    GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
+    utils.GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
 
   if not os.path.exists(constants.HMAC_CLUSTER_KEY):
     GenerateHmacKey(constants.HMAC_CLUSTER_KEY)

@@ -2258,6 +2258,40 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
         wait_fn(current_delay)
 
 
+def GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
+  """Generates a self-signed SSL certificate.
+
+  @type file_name: str
+  @param file_name: Path to output file
+  @type validity: int
+  @param validity: Validity for certificate in days
+
+  """
+  (fd, tmp_file_name) = tempfile.mkstemp(dir=os.path.dirname(file_name))
+  try:
+    try:
+      # Set permissions before writing key
+      os.chmod(tmp_file_name, 0600)
+
+      result = RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
+                       "-days", str(validity), "-nodes", "-x509",
+                       "-keyout", tmp_file_name, "-out", tmp_file_name,
+                       "-batch"])
+      if result.failed:
+        raise errors.OpExecError("Could not generate SSL certificate, command"
+                                 " %s had exitcode %s and error message %s" %
+                                 (result.cmd, result.exit_code, result.output))
+
+      # Make read-only
+      os.chmod(tmp_file_name, 0400)
+
+      os.rename(tmp_file_name, file_name)
+    finally:
+      RemoveFile(tmp_file_name)
+  finally:
+    os.close(fd)
+
+
 class FileLock(object):
   """Utility class for file locks.
 
