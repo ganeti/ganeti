@@ -2273,7 +2273,8 @@ def GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
       # Set permissions before writing key
       os.chmod(tmp_file_name, 0600)
 
-      result = RunCmd(["openssl", "req", "-new", "-newkey", "rsa:1024",
+      result = RunCmd([constants.OPENSSL_PATH, "req",
+                       "-new", "-newkey", "rsa:1024",
                        "-days", str(validity), "-nodes", "-x509",
                        "-keyout", tmp_file_name, "-out", tmp_file_name,
                        "-batch"])
