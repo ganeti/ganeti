@@ -496,9 +496,9 @@ class XenPvmHypervisor(XenHypervisor):
       ip = getattr(nic, "ip", None)
       if ip is not None:
         nic_str += ", ip=%s" % ip
-      vif_data.append("'%s'" % nic_str)
       if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
         nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
+      vif_data.append("'%s'" % nic_str)
 
     disk_data = cls._GetConfigFileDiskData(block_devices)
 
@@ -624,9 +624,9 @@ class XenHvmHypervisor(XenHypervisor):
       ip = getattr(nic, "ip", None)
       if ip is not None:
         nic_str += ", ip=%s" % ip
-      vif_data.append("'%s'" % nic_str)
       if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
         nic_str += ", bridge=%s" % nic.nicparams[constants.NIC_LINK]
+      vif_data.append("'%s'" % nic_str)
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
     disk_data = cls._GetConfigFileDiskData(block_devices)
