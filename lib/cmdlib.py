@@ -6391,8 +6391,12 @@ class LUCreateInstance(LogicalUnit):
       self.src_images = disk_images
 
       old_name = export_info.get(constants.INISECT_INS, 'name')
-      # FIXME: int() here could throw a ValueError on broken exports
-      exp_nic_count = int(export_info.get(constants.INISECT_INS, 'nic_count'))
+      try:
+        exp_nic_count = export_info.getint(constants.INISECT_INS, 'nic_count')
+      except (TypeError, ValueError), err:
+        raise errors.OpPrereqError("Invalid export file, nic_count is not"
+                                   " an integer: %s" % str(err),
+                                   errors.ECODE_STATE)
       if self.op.instance_name == old_name:
         for idx, nic in enumerate(self.nics):
           if nic.mac == constants.VALUE_AUTO and exp_nic_count >= idx:
