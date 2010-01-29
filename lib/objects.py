@@ -48,6 +48,7 @@ __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
 
+
 def FillDict(defaults_dict, custom_dict, skip_keys=None):
   """Basic function to apply settings on top a default dict.
 

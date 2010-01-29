@@ -249,6 +249,16 @@ def TestInstanceExport(instance, node):
   return qa_utils.ResolveInstanceName(instance)
 
 
+def TestInstanceExportWithRemove(instance, node):
+  """gnt-backup export --remove-instance"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-backup', 'export', '-n', node['primary'], "--remove-instance",
+         instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 def TestInstanceImport(node, newinst, expnode, name):
   """gnt-backup import"""
   master = qa_config.GetMasterNode()

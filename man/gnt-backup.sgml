@@ -65,6 +65,8 @@
         <arg choice="req">-n <replaceable>node</replaceable></arg>
         <arg>--shutdown-timeout=<replaceable>N</replaceable></arg>
         <arg>--noshutdown</arg>
+        <arg>--remove-instance</arg>
+        <arg>--ignore-remove-failures</arg>
         <arg choice="req"><replaceable>instance</replaceable></arg>
 
       </cmdsynopsis>
@@ -89,6 +91,12 @@
         While this is faster and involves no downtime, it cannot be
         guaranteed that the instance data will be in a consistent state
         in the exported dump.
+      </para>
+
+      <para>
+        The <option>--remove</option> option can be used to remove the
+        instance after it was exported. This is useful to make one last
+        backup before removing the instance.
       </para>
 
       <para>

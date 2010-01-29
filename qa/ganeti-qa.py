@@ -169,6 +169,7 @@ def RunCommonInstanceTests(instance):
   if qa_rapi.Enabled():
     RunTest(qa_rapi.TestInstance, instance)
 
+
 def RunExportImportTests(instance, pnode):
   """Tries to export and import the instance.
 
@@ -311,6 +312,18 @@ def main():
           del instance
         finally:
           qa_config.ReleaseNode(snode)
+
+    if (qa_config.TestEnabled('instance-add-plain-disk') and
+        qa_config.TestEnabled("instance-export")):
+      instance = RunTest(qa_instance.TestInstanceAddWithPlainDisk, pnode)
+      expnode = qa_config.AcquireNode(exclude=pnode)
+      try:
+        RunTest(qa_instance.TestInstanceExportWithRemove, instance, expnode)
+        RunTest(qa_instance.TestBackupList, expnode)
+      finally:
+        qa_config.ReleaseNode(expnode)
+      del expnode
+      del instance
 
   finally:
     qa_config.ReleaseNode(pnode)

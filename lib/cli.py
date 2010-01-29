@@ -70,6 +70,7 @@ __all__ = [
   "IALLOCATOR_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_FAILURES_OPT",
+  "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
   "IGNORE_SIZE_OPT",
   "MAC_PREFIX_OPT",
@@ -101,6 +102,7 @@ __all__ = [
   "OS_SIZE_OPT",
   "READD_OPT",
   "REBOOT_TYPE_OPT",
+  "REMOVE_INSTANCE_OPT",
   "SECONDARY_IP_OPT",
   "SELECT_OS_OPT",
   "SEP_OPT",
@@ -683,6 +685,18 @@ IGNORE_FAILURES_OPT = cli_option("--ignore-failures", dest="ignore_failures",
                                  help="Remove the instance from the cluster"
                                  " configuration even if there are failures"
                                  " during the removal process")
+
+IGNORE_REMOVE_FAILURES_OPT = cli_option("--ignore-remove-failures",
+                                        dest="ignore_remove_failures",
+                                        action="store_true", default=False,
+                                        help="Remove the instance from the"
+                                        " cluster configuration even if there"
+                                        " are failures during the removal"
+                                        " process")
+
+REMOVE_INSTANCE_OPT = cli_option("--remove-instance", dest="remove_instance",
+                                 action="store_true", default=False,
+                                 help="Remove the instance from the cluster")
 
 NEW_SECONDARY_OPT = cli_option("-n", "--new-secondary", dest="dst_node",
                                help="Specifies the new secondary node",
