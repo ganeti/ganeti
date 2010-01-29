@@ -632,6 +632,8 @@ class OpExportInstance(OpCode):
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
     "instance_name", "target_node", "shutdown", "shutdown_timeout",
+    "remove_instance",
+    "ignore_remove_failures",
     ]
 
 

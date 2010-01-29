@@ -4252,18 +4252,29 @@ class LURemoveInstance(LogicalUnit):
                                  " node %s: %s" %
                                  (instance.name, instance.primary_node, msg))
 
-    logging.info("Removing block devices for instance %s", instance.name)
+    _RemoveInstance(self, feedback_fn, instance, self.op.ignore_failures)
 
-    if not _RemoveDisks(self, instance):
-      if self.op.ignore_failures:
-        feedback_fn("Warning: can't remove instance's disks")
-      else:
-        raise errors.OpExecError("Can't remove instance's disks")
 
-    logging.info("Removing instance %s out of cluster config", instance.name)
+def _RemoveInstance(lu, feedback_fn, instance, ignore_failures):
+  """Utility function to remove an instance.
 
-    self.cfg.RemoveInstance(instance.name)
-    self.remove_locks[locking.LEVEL_INSTANCE] = instance.name
+  """
+  logging.info("Removing block devices for instance %s", instance.name)
+
+  if not _RemoveDisks(lu, instance):
+    if not ignore_failures:
+      raise errors.OpExecError("Can't remove instance's disks")
+    feedback_fn("Warning: can't remove instance's disks")
+
+  logging.info("Removing instance %s out of cluster config", instance.name)
+
+  lu.cfg.RemoveInstance(instance.name)
+
+  assert not lu.remove_locks.get(locking.LEVEL_INSTANCE), \
+    "Instance lock removal conflict"
+
+  # Remove lock for the instance
+  lu.remove_locks[locking.LEVEL_INSTANCE] = instance.name
 
 
 class LUQueryInstances(NoHooksLU):
@@ -5953,7 +5964,6 @@ class LUCreateInstance(LogicalUnit):
           self.secondaries)
     return env, nl, nl
 
-
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -6151,7 +6161,6 @@ class LUCreateInstance(LogicalUnit):
     file_storage_dir = os.path.normpath(os.path.join(
                                         self.cfg.GetFileStorageDir(),
                                         string_file_storage_dir, instance))
-
 
     disks = _GenerateDiskTemplate(self,
                                   self.op.disk_template,
@@ -8011,11 +8020,22 @@ class LUExportInstance(LogicalUnit):
     """Check the arguments.
 
     """
+    _CheckBooleanOpField(self.op, "remove_instance")
+    _CheckBooleanOpField(self.op, "ignore_remove_failures")
+
     self.shutdown_timeout = getattr(self.op, "shutdown_timeout",
                                     constants.DEFAULT_SHUTDOWN_TIMEOUT)
+    self.remove_instance = getattr(self.op, "remove_instance", False)
+    self.ignore_remove_failures = getattr(self.op, "ignore_remove_failures",
+                                          False)
+
+    if self.remove_instance and not self.op.shutdown:
+      raise errors.OpPrereqError("Can not remove instance without shutting it"
+                                 " down before")
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+
     # FIXME: lock only instance primary and destination node
     #
     # Sad but true, for now we have do lock all nodes, as we don't know where
@@ -8040,6 +8060,7 @@ class LUExportInstance(LogicalUnit):
       "EXPORT_NODE": self.op.target_node,
       "EXPORT_DO_SHUTDOWN": self.op.shutdown,
       "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
+      "REMOVE_INSTANCE": int(self.remove_instance),
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
     nl = [self.cfg.GetMasterNode(), self.instance.primary_node,
@@ -8065,10 +8086,12 @@ class LUExportInstance(LogicalUnit):
       # This is wrong node name, not a non-locked node
       raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node,
                                  errors.ECODE_NOENT)
+
     _CheckNodeOnline(self, self.dst_node.name)
     _CheckNodeNotDrained(self, self.dst_node.name)
 
     # instance disk type verification
+    # TODO: Implement export support for file-based disks
     for disk in self.instance.disks:
       if disk.dev_type == constants.LD_FILE:
         raise errors.OpPrereqError("Export not supported for instances with"
@@ -8087,6 +8110,7 @@ class LUExportInstance(LogicalUnit):
       feedback_fn("Shutting down instance %s" % instance.name)
       result = self.rpc.call_instance_shutdown(src_node, instance,
                                                self.shutdown_timeout)
+      # TODO: Maybe ignore failures if ignore_remove_failures is set
       result.Raise("Could not shutdown instance %s on"
                    " node %s" % (instance.name, src_node))
 
@@ -8130,7 +8154,7 @@ class LUExportInstance(LogicalUnit):
             snap_disks.append(new_dev)
 
       finally:
-        if self.op.shutdown and instance.admin_up:
+        if self.op.shutdown and instance.admin_up and not self.remove_instance:
           feedback_fn("Starting instance %s" % instance.name)
           result = self.rpc.call_instance_start(src_node, instance, None, None)
           msg = result.fail_msg
@@ -8176,6 +8200,11 @@ class LUExportInstance(LogicalUnit):
         feedback_fn("Deactivating disks for %s" % instance.name)
         _ShutdownInstanceDisks(self, instance)
 
+    # Remove instance if requested
+    if self.remove_instance:
+      feedback_fn("Removing instance %s" % instance.name)
+      _RemoveInstance(self, feedback_fn, instance, self.ignore_remove_failures)
+
     nodelist = self.cfg.GetNodeList()
     nodelist.remove(dst_node.name)
 
@@ -8194,6 +8223,7 @@ class LUExportInstance(LogicalUnit):
           if msg:
             self.LogWarning("Could not remove older export for instance %s"
                             " on node %s: %s", iname, node, msg)
+
     return fin_resu, dresults
 
 
