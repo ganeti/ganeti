@@ -512,7 +512,7 @@ class LogicalVolume(BlockDev):
     try:
       major = int(major)
       minor = int(minor)
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       logging.error("lvs major/minor cannot be parsed: %s", str(err))
 
     try:
@@ -933,7 +933,7 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
                   result.fail_reason, result.output)
     try:
       sectors = int(result.stdout)
-    except ValueError:
+    except (TypeError, ValueError):
       _ThrowError("Invalid output from blockdev: '%s'", result.stdout)
     bytes = sectors * 512
     if bytes < 128 * 1024 * 1024: # less than 128MiB
@@ -1215,6 +1215,24 @@ class DRBD8(BaseDRBD):
             "--create-device"]
     if size:
       args.extend(["-d", "%sm" % size])
+    if not constants.DRBD_BARRIERS: # disable barriers, if configured so
+      version = cls._GetVersion()
+      # various DRBD versions support different disk barrier options;
+      # what we aim here is to revert back to the 'drain' method of
+      # disk flushes and to disable metadata barriers, in effect going
+      # back to pre-8.0.7 behaviour
+      vmaj = version['k_major']
+      vmin = version['k_minor']
+      vrel = version['k_point']
+      assert vmaj == 8
+      if vmin == 0: # 8.0.x
+        if vrel >= 12:
+          args.extend(['-i', '-m'])
+      elif vmin == 2: # 8.2.x
+        if vrel >= 7:
+          args.extend(['-i', '-m'])
+      elif vmaj >= 3: # 8.3.x or newer
+        args.extend(['-i', '-a', 'm'])
     result = utils.RunCmd(args)
     if result.failed:
       _ThrowError("drbd%d: can't attach local disk: %s", minor, result.output)

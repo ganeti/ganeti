@@ -41,6 +41,7 @@ import select
 import fcntl
 import resource
 import logging
+import logging.handlers
 import signal
 
 from cStringIO import StringIO
@@ -491,7 +492,7 @@ def ReadPidFile(pidfile):
 
   try:
     pid = int(raw_data)
-  except ValueError, err:
+  except (TypeError, ValueError), err:
     logging.info("Can't parse pid file contents", exc_info=True)
     return 0
 
@@ -1762,7 +1763,7 @@ def GetDaemonPort(daemon_name):
 
 
 def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
-                 multithreaded=False):
+                 multithreaded=False, syslog=constants.SYSLOG_USAGE):
   """Configures the logging module.
 
   @type logfile: str
@@ -1776,17 +1777,29 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
   @param program: the name under which we should log messages
   @type multithreaded: boolean
   @param multithreaded: if True, will add the thread name to the log file
+  @type syslog: string
+  @param syslog: one of 'no', 'yes', 'only':
+      - if no, syslog is not used
+      - if yes, syslog is used (in addition to file-logging)
+      - if only, only syslog is used
   @raise EnvironmentError: if we can't open the log file and
-      stderr logging is disabled
+      syslog/stderr logging is disabled
 
   """
   fmt = "%(asctime)s: " + program + " pid=%(process)d"
+  sft = program + "[%(process)d]:"
   if multithreaded:
     fmt += "/%(threadName)s"
+    sft += " (%(threadName)s)"
   if debug:
     fmt += " %(module)s:%(lineno)s"
+    # no debug info for syslog loggers
   fmt += " %(levelname)s %(message)s"
+  # yes, we do want the textual level, as remote syslog will probably
+  # lose the error level, and it's easier to grep for it
+  sft += " %(levelname)s %(message)s"
   formatter = logging.Formatter(fmt)
+  sys_fmt = logging.Formatter(sft)
 
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
@@ -1805,24 +1818,34 @@ def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
       stderr_handler.setLevel(logging.CRITICAL)
     root_logger.addHandler(stderr_handler)
 
-  # this can fail, if the logging directories are not setup or we have
-  # a permisssion problem; in this case, it's best to log but ignore
-  # the error if stderr_logging is True, and if false we re-raise the
-  # exception since otherwise we could run but without any logs at all
-  try:
-    logfile_handler = logging.FileHandler(logfile)
-    logfile_handler.setFormatter(formatter)
-    if debug:
-      logfile_handler.setLevel(logging.DEBUG)
-    else:
-      logfile_handler.setLevel(logging.INFO)
-    root_logger.addHandler(logfile_handler)
-  except EnvironmentError:
-    if stderr_logging:
-      logging.exception("Failed to enable logging to file '%s'", logfile)
-    else:
-      # we need to re-raise the exception
-      raise
+  if syslog in (constants.SYSLOG_YES, constants.SYSLOG_ONLY):
+    facility = logging.handlers.SysLogHandler.LOG_DAEMON
+    syslog_handler = logging.handlers.SysLogHandler(constants.SYSLOG_SOCKET,
+                                                    facility)
+    syslog_handler.setFormatter(sys_fmt)
+    # Never enable debug over syslog
+    syslog_handler.setLevel(logging.INFO)
+    root_logger.addHandler(syslog_handler)
+
+  if syslog != constants.SYSLOG_ONLY:
+    # this can fail, if the logging directories are not setup or we have
+    # a permisssion problem; in this case, it's best to log but ignore
+    # the error if stderr_logging is True, and if false we re-raise the
+    # exception since otherwise we could run but without any logs at all
+    try:
+      logfile_handler = logging.FileHandler(logfile)
+      logfile_handler.setFormatter(formatter)
+      if debug:
+        logfile_handler.setLevel(logging.DEBUG)
+      else:
+        logfile_handler.setLevel(logging.INFO)
+      root_logger.addHandler(logfile_handler)
+    except EnvironmentError:
+      if stderr_logging or syslog == constants.SYSLOG_YES:
+        logging.exception("Failed to enable logging to file '%s'", logfile)
+      else:
+        # we need to re-raise the exception
+        raise
 
 
 def IsNormAbsPath(path):
@@ -2258,7 +2281,7 @@ class FileLock(object):
     """Close the file and release the lock.
 
     """
-    if self.fd:
+    if hasattr(self, "fd") and self.fd:
       self.fd.close()
       self.fd = None
 

@@ -884,7 +884,7 @@ def _GetVGInfo(vg_name):
         "vg_free": int(round(float(valarr[1]), 0)),
         "pv_count": int(valarr[2]),
         }
-    except ValueError, err:
+    except (TypeError, ValueError), err:
       logging.exception("Fail to parse vgs output: %s", err)
   else:
     logging.error("vgs output has the wrong number of fields (expected"
@@ -1926,19 +1926,15 @@ def BlockdevSnapshot(disk):
   @return: snapshot disk path
 
   """
-  if disk.children:
-    if len(disk.children) == 1:
-      # only one child, let's recurse on it
-      return BlockdevSnapshot(disk.children[0])
-    else:
-      # more than one child, choose one that matches
-      for child in disk.children:
-        if child.size == disk.size:
-          # return implies breaking the loop
-          return BlockdevSnapshot(child)
+  if disk.dev_type == constants.LD_DRBD8:
+    if not disk.children:
+      _Fail("DRBD device '%s' without backing storage cannot be snapshotted",
+            disk.unique_id)
+    return BlockdevSnapshot(disk.children[0])
   elif disk.dev_type == constants.LD_LV:
     r_dev = _RecursiveFindBD(disk)
     if r_dev is not None:
+      # FIXME: choose a saner value for the snapshot size
       # let's stay on the safe side and ask for the full size, for now
       return r_dev.Snapshot(disk.size)
     else:

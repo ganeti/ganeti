@@ -1303,7 +1303,7 @@ instance5: 11225
 
         <para>
           Use the <option>--all</option> to get info about all instances,
-          rather than explicitely passing the ones you're interested in.
+          rather than explicitly passing the ones you're interested in.
         </para>
       </refsect3>
 

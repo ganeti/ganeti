@@ -2424,8 +2424,11 @@ class LURemoveNode(LogicalUnit):
       "NODE_NAME": self.op.node_name,
       }
     all_nodes = self.cfg.GetNodeList()
-    if self.op.node_name in all_nodes:
+    try:
       all_nodes.remove(self.op.node_name)
+    except ValueError:
+      logging.warning("Node %s which is about to be removed not found"
+                      " in the all nodes list", self.op.node_name)
     return env, all_nodes, all_nodes
 
   def CheckPrereq(self):
@@ -3203,7 +3206,7 @@ class LUSetNodeParams(LogicalUnit):
 
     # If we're being deofflined/drained, we'll MC ourself if needed
     if (deoffline_or_drain and not offline_or_drain and not
-        self.op.master_candidate == True):
+        self.op.master_candidate == True and not node.master_candidate):
       self.op.master_candidate = _DecideSelfPromotion(self)
       if self.op.master_candidate:
         self.LogInfo("Autopromoting node to master candidate")
@@ -5814,7 +5817,7 @@ class LUCreateInstance(LogicalUnit):
         raise errors.OpPrereqError("Missing disk size", errors.ECODE_INVAL)
       try:
         size = int(size)
-      except ValueError:
+      except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
       self.disks.append({"size": size, "mode": mode})
@@ -7474,7 +7477,7 @@ class LUSetInstanceParams(LogicalUnit):
                                      errors.ECODE_INVAL)
         try:
           size = int(size)
-        except ValueError, err:
+        except (TypeError, ValueError), err:
           raise errors.OpPrereqError("Invalid disk size parameter: %s" %
                                      str(err), errors.ECODE_INVAL)
         disk_dict['size'] = size

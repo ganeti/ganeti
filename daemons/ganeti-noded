@@ -53,6 +53,25 @@ import ganeti.http.server # pylint: disable-msg=W0611
 queue_lock = None
 
 
+def _PrepareQueueLock():
+  """Try to prepare the queue lock.
+
+  @return: None for success, otherwise an exception object
+
+  """
+  global queue_lock # pylint: disable-msg=W0603
+
+  if queue_lock is not None:
+    return None
+
+  # Prepare job queue
+  try:
+    queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
+    return None
+  except EnvironmentError, err:
+    return err
+
+
 def _RequireJobQueueLock(fn):
   """Decorator for job queue manipulating functions.
 
@@ -62,6 +81,9 @@ def _RequireJobQueueLock(fn):
   def wrapper(*args, **kwargs):
     # Locking in exclusive, blocking mode because there could be several
     # children running at the same time. Waiting up to 10 seconds.
+    if _PrepareQueueLock() is not None:
+      raise errors.JobQueueError("Job queue failed initialization,"
+                                 " cannot update jobs")
     queue_lock.Exclusive(blocking=True, timeout=QUEUE_LOCK_TIMEOUT)
     try:
       return fn(*args, **kwargs)
@@ -805,8 +827,6 @@ def ExecNoded(options, _):
   """Main node daemon function, executed with the PID file held.
 
   """
-  global queue_lock # pylint: disable-msg=W0603
-
   # Read SSL certificate
   if options.ssl:
     ssl_params = http.HttpSslParams(ssl_key_path=options.ssl_key,
@@ -814,8 +834,12 @@ def ExecNoded(options, _):
   else:
     ssl_params = None
 
-  # Prepare job queue
-  queue_lock = jstore.InitAndVerifyQueue(must_lock=False)
+  err = _PrepareQueueLock()
+  if err is not None:
+    # this might be some kind of file-system/permission error; while
+    # this breaks the job queue functionality, we shouldn't prevent
+    # startup of the whole node daemon because of this
+    logging.critical("Can't init/verify the queue, proceeding anyway: %s", err)
 
   mainloop = daemon.Mainloop()
   server = NodeHttpServer(mainloop, options.bind_address, options.port,

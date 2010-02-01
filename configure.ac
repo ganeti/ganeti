@@ -2,7 +2,7 @@
 m4_define([gnt_version_major], [2])
 m4_define([gnt_version_minor], [1])
 m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~rc4])
+m4_define([gnt_version_suffix], [~rc5])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -108,7 +108,7 @@ AC_ARG_WITH([kvm-path],
   [kvm_path="/usr/bin/kvm"])
 AC_SUBST(KVM_PATH, $kvm_path)
 
-# ---with-lvm-stripecount=...
+# --with-lvm-stripecount=...
 AC_ARG_WITH([lvm-stripecount],
   [AS_HELP_STRING([--with-lvm-stripecount=NUM],
     [the number of stripes to use for LVM volumes]
@@ -117,6 +117,46 @@ AC_ARG_WITH([lvm-stripecount],
   [lvm_stripecount="$withval"],
   [lvm_stripecount="1"])
 AC_SUBST(LVM_STRIPECOUNT, $lvm_stripecount)
+
+# --enable-drbd-barriers
+AC_ARG_ENABLE([drbd-barriers],
+  [AS_HELP_STRING([--enable-drbd-barriers],
+    [enable the DRBD barrier functionality (>= 8.0.12) (default: enabled)])],
+  [[if test "$enableval" != no; then
+      DRBD_BARRIERS=True
+    else
+      DRBD_BARRIERS=False
+    fi
+  ]],
+  [DRBD_BARRIERS=True])
+AC_SUBST(DRBD_BARRIERS, $DRBD_BARRIERS)
+
+# --enable-syslog[=no/yes/only]
+AC_ARG_ENABLE([syslog],
+  [AS_HELP_STRING([--enable-syslog],
+    [enable use of syslog (default: disabled), one of no/yes/only])],
+  [[case "$enableval" in
+      no)
+        SYSLOG=no
+        ;;
+      yes)
+        SYSLOG=yes
+        ;;
+      only)
+        SYSLOG=only
+        ;;
+      *)
+        SYSLOG=
+        ;;
+    esac
+  ]],
+  [SYSLOG=no])
+
+if test -z "$SYSLOG"
+then
+  AC_MSG_ERROR([invalid value for syslog, choose one of no/yes/only])
+fi
+AC_SUBST(SYSLOG_USAGE, $SYSLOG)
 
 # Check common programs
 AC_PROG_INSTALL
