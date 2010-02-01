@@ -194,7 +194,7 @@
             <term>canceling</term>
             <listitem>
               <para>The jos is waiting for locks, but is has been
-              marked for cancelation. It will not transition to
+              marked for cancellation. It will not transition to
               <emphasis>running</emphasis>, but to
               <emphasis>canceled</emphasis>.
               </para>

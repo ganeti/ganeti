@@ -326,7 +326,7 @@
       <para>
         The <option>--enabled-hypervisors</option> option allows you
         to set the list of hypervisors that will be enabled for
-        this cluster. Instance hypervisors can only be choosen from
+        this cluster. Instance hypervisors can only be chosen from
         the list of enabled hypervisors, and the first entry of this list
         will be used by default. Currently, the following hypervisors are
         available:
