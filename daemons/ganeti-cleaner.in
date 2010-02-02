@@ -27,7 +27,7 @@ QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
 REMOVE_AFTER=21
 
 # Exit if machine is not part of a cluster
-[[ -e $DATA_DIR/ssconf_master_node ]] || echo 0
+[[ -e $DATA_DIR/ssconf_master_node ]] || exit 0
 
 # Exit if queue archive directory doesn't exist
 [[ -d $QUEUE_ARCHIVE_DIR ]] || exit 0
