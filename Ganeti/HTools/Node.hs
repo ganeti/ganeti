@@ -340,20 +340,21 @@ addPri t inst =
         new_load = utilLoad t `T.addUtil` Instance.util inst
         inst_tags = Instance.tags inst
         old_tags = pTags t
-    in if new_mem <= 0 then T.OpFail T.FailMem
-       else if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
-       else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
-       else if l_cpu >= 0 && l_cpu < new_pcpu then T.OpFail T.FailCPU
-       else if rejectAddTags old_tags inst_tags
-            then T.OpFail T.FailTags
-       else
-           let new_plist = iname:pList t
-               new_mp = fromIntegral new_mem / tMem t
-               r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
-                     , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
-                     , uCpu = new_ucpu, pCpu = new_pcpu, utilLoad = new_load
-                     , pTags = addTags old_tags inst_tags }
-           in T.OpGood r
+    in case () of
+         _ | new_mem <= 0 -> T.OpFail T.FailMem
+           | new_dsk <= 0 || mDsk t > new_dp -> T.OpFail T.FailDisk
+           | new_failn1 && not (failN1 t) -> T.OpFail T.FailMem
+           | l_cpu >= 0 && l_cpu < new_pcpu -> T.OpFail T.FailCPU
+           | rejectAddTags old_tags inst_tags -> T.OpFail T.FailTags
+           | otherwise ->
+               let new_plist = iname:pList t
+                   new_mp = fromIntegral new_mem / tMem t
+                   r = t { pList = new_plist, fMem = new_mem, fDsk = new_dsk
+                         , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
+                         , uCpu = new_ucpu, pCpu = new_pcpu
+                         , utilLoad = new_load
+                         , pTags = addTags old_tags inst_tags }
+               in T.OpGood r
 
 -- | Adds a secondary instance.
 addSec :: Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
@@ -371,14 +372,16 @@ addSec t inst pdx =
         old_load = utilLoad t
         new_load = old_load { T.dskWeight = T.dskWeight old_load +
                                             T.dskWeight (Instance.util inst) }
-    in if new_dsk <= 0 || mDsk t > new_dp then T.OpFail T.FailDisk
-       else if new_failn1 && not (failN1 t) then T.OpFail T.FailMem
-       else let new_slist = iname:sList t
-                r = t { sList = new_slist, fDsk = new_dsk
-                      , peers = new_peers, failN1 = new_failn1
-                      , rMem = new_rmem, pDsk = new_dp
-                      , pRem = new_prem, utilLoad = new_load }
-            in T.OpGood r
+    in case () of
+         _ | new_dsk <= 0 || mDsk t > new_dp -> T.OpFail T.FailDisk
+           | new_failn1 && not (failN1 t) -> T.OpFail T.FailMem
+           | otherwise ->
+               let new_slist = iname:sList t
+                   r = t { sList = new_slist, fDsk = new_dsk
+                         , peers = new_peers, failN1 = new_failn1
+                         , rMem = new_rmem, pDsk = new_dp
+                         , pRem = new_prem, utilLoad = new_load }
+               in T.OpGood r
 
 -- * Stats functions
 
