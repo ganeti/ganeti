@@ -374,6 +374,7 @@ addSec t inst pdx =
                                             T.dskWeight (Instance.util inst) }
     in case () of
          _ | new_dsk <= 0 || mDsk t > new_dp -> T.OpFail T.FailDisk
+           | Instance.mem inst >= old_mem -> T.OpFail T.FailMem
            | new_failn1 && not (failN1 t) -> T.OpFail T.FailMem
            | otherwise ->
                let new_slist = iname:sList t
