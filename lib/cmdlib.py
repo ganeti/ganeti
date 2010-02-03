@@ -1603,8 +1603,8 @@ class LUVerifyCluster(LogicalUnit):
         test = msg and not res.offline
         self._ErrorIf(test, self.ENODEHOOKS, node_name,
                       "Communication failure in hooks execution: %s", msg)
-        if res.offline:
-          # No need to investigate payload if node is offline.
+        if res.offline or msg:
+          # No need to investigate payload if node is offline or gave an error.
           # override manually lu_result here as _ErrorIf only
           # overrides self.bad
           lu_result = 1
