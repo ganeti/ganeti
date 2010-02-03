@@ -789,19 +789,21 @@ def GetAllInstancesInfo(hypervisor_list):
   return output
 
 
-def InstanceOsAdd(instance, reinstall):
+def InstanceOsAdd(instance, reinstall, debug):
   """Add an OS to an instance.
 
   @type instance: L{objects.Instance}
   @param instance: Instance whose OS is to be installed
   @type reinstall: boolean
   @param reinstall: whether this is an instance reinstall
+  @type debug: integer
+  @param debug: debug level, passed to the OS scripts
   @rtype: None
 
   """
   inst_os = OSFromDisk(instance.os)
 
-  create_env = OSEnvironment(instance, inst_os)
+  create_env = OSEnvironment(instance, inst_os, debug)
   if reinstall:
     create_env['INSTANCE_REINSTALL'] = "1"
 
@@ -820,20 +822,22 @@ def InstanceOsAdd(instance, reinstall):
           " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
 
 
-def RunRenameInstance(instance, old_name):
+def RunRenameInstance(instance, old_name, debug):
   """Run the OS rename script for an instance.
 
   @type instance: L{objects.Instance}
   @param instance: Instance whose OS is to be installed
   @type old_name: string
   @param old_name: previous instance name
+  @type debug: integer
+  @param debug: debug level, passed to the OS scripts
   @rtype: boolean
   @return: the success of the operation
 
   """
   inst_os = OSFromDisk(instance.os)
 
-  rename_env = OSEnvironment(instance, inst_os)
+  rename_env = OSEnvironment(instance, inst_os, debug)
   rename_env['OLD_INSTANCE_NAME'] = old_name
 
   logfile = "%s/rename-%s-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
@@ -1948,7 +1952,7 @@ def BlockdevSnapshot(disk):
           disk.unique_id, disk.dev_type)
 
 
-def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
+def ExportSnapshot(disk, dest_node, instance, cluster_name, idx, debug):
   """Export a block device snapshot to a remote node.
 
   @type disk: L{objects.Disk}
@@ -1962,11 +1966,13 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx):
   @type idx: int
   @param idx: the index of the disk in the instance's disk list,
       used to export to the OS scripts environment
+  @type debug: integer
+  @param debug: debug level, passed to the OS scripts
   @rtype: None
 
   """
   inst_os = OSFromDisk(instance.os)
-  export_env = OSEnvironment(instance, inst_os)
+  export_env = OSEnvironment(instance, inst_os, debug)
 
   export_script = inst_os.export_script
 
@@ -2096,7 +2102,7 @@ def ExportInfo(dest):
   return config.Dumps()
 
 
-def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
+def ImportOSIntoInstance(instance, src_node, src_images, cluster_name, debug):
   """Import an os image into an instance.
 
   @type instance: L{objects.Instance}
@@ -2105,12 +2111,14 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name):
   @param src_node: source node for the disk images
   @type src_images: list of string
   @param src_images: absolute paths of the disk images
+  @type debug: integer
+  @param debug: debug level, passed to the OS scripts
   @rtype: list of boolean
   @return: each boolean represent the success of importing the n-th disk
 
   """
   inst_os = OSFromDisk(instance.os)
-  import_env = OSEnvironment(instance, inst_os)
+  import_env = OSEnvironment(instance, inst_os, debug)
   import_script = inst_os.import_script
 
   logfile = "%s/import-%s-%s-%s.log" % (constants.LOG_OS_DIR, instance.os,

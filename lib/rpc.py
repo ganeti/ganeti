@@ -576,23 +576,23 @@ class RpcRunner(object):
                                 [self._InstDict(inst), reboot_type,
                                  shutdown_timeout])
 
-  def call_instance_os_add(self, node, inst, reinstall):
+  def call_instance_os_add(self, node, inst, reinstall, debug):
     """Installs an OS on the given instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_os_add",
-                                [self._InstDict(inst), reinstall])
+                                [self._InstDict(inst), reinstall, debug])
 
-  def call_instance_run_rename(self, node, inst, old_name):
+  def call_instance_run_rename(self, node, inst, old_name, debug):
     """Run the OS rename script for an instance.
 
     This is a single-node call.
 
     """
     return self._SingleNodeCall(node, "instance_run_rename",
-                                [self._InstDict(inst), old_name])
+                                [self._InstDict(inst), old_name, debug])
 
   def call_instance_info(self, node, instance, hname):
     """Returns information about a single instance.
@@ -988,7 +988,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "blockdev_snapshot", [cf_bdev.ToDict()])
 
   def call_snapshot_export(self, node, snap_bdev, dest_node, instance,
-                           cluster_name, idx):
+                           cluster_name, idx, debug):
     """Request the export of a given snapshot.
 
     This is a single-node call.
@@ -996,7 +996,8 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "snapshot_export",
                                 [snap_bdev.ToDict(), dest_node,
-                                 self._InstDict(instance), cluster_name, idx])
+                                 self._InstDict(instance), cluster_name,
+                                 idx, debug])
 
   def call_finalize_export(self, node, instance, snap_disks):
     """Request the completion of an export operation.
@@ -1025,7 +1026,7 @@ class RpcRunner(object):
     return self._SingleNodeCall(node, "export_info", [path])
 
   def call_instance_os_import(self, node, inst, src_node, src_images,
-                              cluster_name):
+                              cluster_name, debug):
     """Request the import of a backup into an instance.
 
     This is a single-node call.
@@ -1033,7 +1034,7 @@ class RpcRunner(object):
     """
     return self._SingleNodeCall(node, "instance_os_import",
                                 [self._InstDict(inst), src_node, src_images,
-                                 cluster_name])
+                                 cluster_name, debug])
 
   def call_export_list(self, node_list):
     """Gets the stored exports list.
