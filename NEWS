@@ -1,6 +1,22 @@
 Ganeti-htools release notes
 ===========================
 
+Version 0.2.3 (Thu,  4 Feb 2010)
+--------------------------------
+
+A small release:
+
+- Fixes selection of secondary node: previously, if the cluster had
+  many N+1 failures, a N+1 failed node could be selected as secondary
+  even if it did not have enough memory to allow the instance to be
+  migrated/failed over to it; this is bad for automated tools, since
+  we can get the cluster in an unhealthy state
+- Switch the text backend to a single input file, that is generated
+  now by hscan and shouldn't be generated manually via
+  gnt-node/instance list anymore; this allows richer information to be
+  kept in the file, and simplifies a little the internals of the text
+  backend
+
 Version 0.2.2 (Tue, 29 Dec 2009)
 --------------------------------
 
