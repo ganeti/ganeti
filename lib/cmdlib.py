@@ -6360,7 +6360,7 @@ class LUReplaceDisks(LogicalUnit):
 
     self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node,
-                                   self.op.disks)
+                                   self.op.disks, False)
 
     self.tasklets = [self.replacer]
 
@@ -6452,7 +6452,8 @@ class LUEvacuateNode(LogicalUnit):
       names.append(inst.name)
 
       replacer = TLReplaceDisks(self, inst.name, constants.REPLACE_DISK_CHG,
-                                self.op.iallocator, self.op.remote_node, [])
+                                self.op.iallocator, self.op.remote_node, [],
+                                True)
       tasklets.append(replacer)
 
     self.tasklets = tasklets
@@ -6494,7 +6495,7 @@ class TLReplaceDisks(Tasklet):
 
   """
   def __init__(self, lu, instance_name, mode, iallocator_name, remote_node,
-               disks):
+               disks, delay_iallocator):
     """Initializes this class.
 
     """
@@ -6506,6 +6507,7 @@ class TLReplaceDisks(Tasklet):
     self.iallocator_name = iallocator_name
     self.remote_node = remote_node
     self.disks = disks
+    self.delay_iallocator = delay_iallocator
 
     # Runtime data
     self.instance = None
@@ -6592,6 +6594,19 @@ class TLReplaceDisks(Tasklet):
                                  len(instance.secondary_nodes),
                                  errors.ECODE_FAULT)
 
+    if not self.delay_iallocator:
+      self._CheckPrereq2()
+
+  def _CheckPrereq2(self):
+    """Check prerequisites, second part.
+
+    This function should always be part of CheckPrereq. It was separated and is
+    now called from Exec because during node evacuation iallocator was only
+    called with an unmodified cluster model, not taking planned changes into
+    account.
+
+    """
+    instance = self.instance
     secondary_node = instance.secondary_nodes[0]
 
     if self.iallocator_name is None:
@@ -6695,6 +6710,9 @@ class TLReplaceDisks(Tasklet):
     This dispatches the disk replacement to the appropriate handler.
 
     """
+    if self.delay_iallocator:
+      self._CheckPrereq2()
+
     if not self.disks:
       feedback_fn("No disks need replacement")
       return
