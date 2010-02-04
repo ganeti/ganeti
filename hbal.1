@@ -17,8 +17,7 @@ Backend options:
 |
 .BI "[ -L[" path "] [-X]]"
 |
-.BI "[ -n " nodes-file " ]"
-.BI "[ -i " instances-file " ]"
+.BI "[ -t " data-file " ]"
 
 .TP
 Algorithm options:
@@ -422,20 +421,14 @@ and thus the influence of the dynamic utilisation will be practically
 insignificant.
 
 .TP
-.BI "-n" nodefile ", --nodes=" nodefile
-The name of the file holding node information (if not collecting via
-RAPI), instead of the default \fInodes\fR file (but see below how to
-customize the default value via the environment).
-
-.TP
-.BI "-i" instancefile ", --instances=" instancefile
-The name of the file holding instance information (if not collecting
-via RAPI), instead of the default \fIinstances\fR file (but see below
-how to customize the default value via the environment).
+.BI "-t" datafile ", --text-data=" datafile
+The name of the file holding node and instance information (if not
+collecting via RAPI or LUXI). This or one of the other backends must
+be selected.
 
 .TP
 .BI "-m" cluster
-Collect data not from files but directly from the
+Collect data directly from the
 .I cluster
 given as an argument via RAPI. If the argument doesn't contain a colon
 (:), then it is converted into a fully\(hybuilt URL via prepending
@@ -444,11 +437,11 @@ considered a fully\(hyspecified URL and is used as\(hyis.
 
 .TP
 .BI "-L[" path "]"
-Collect data not from files but directly from the master daemon, which
-is to be contacted via the luxi (an internal Ganeti protocol). An
-optional \fIpath\fR argument is interpreted as the path to the unix
-socket on which the master daemon listens; otherwise, the default path
-used by ganeti when installed with \fI--localstatedir=/var\fR is used.
+Collect data directly from the master daemon, which is to be contacted
+via the luxi (an internal Ganeti protocol). An optional \fIpath\fR
+argument is interpreted as the path to the unix socket on which the
+master daemon listens; otherwise, the default path used by ganeti when
+installed with \fI--localstatedir=/var\fR is used.
 
 .TP
 .B "-X"
