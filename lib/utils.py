@@ -2172,7 +2172,7 @@ class _RetryDelayCalculator(object):
 
     # Update for next run
     if self._limit is None or self._next < self._limit:
-      self._next = max(self._limit, self._next * self._factor)
+      self._next = min(self._limit, self._next * self._factor)
 
     return current
 
