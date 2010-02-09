@@ -117,6 +117,7 @@ OPTIONS = [
                  default=128, type="unit", metavar="<size>",
                  completion_suggest=("128M 256M 512M 1G 4G 8G"
                                      " 12G 16G").split()),
+  cli.DEBUG_OPT,
   cli.VERBOSE_OPT,
   cli.NOIPCHECK_OPT,
   cli.NONAMECHECK_OPT,
@@ -305,6 +306,11 @@ class Burner(object):
             (msg, MAX_RETRIES - retry_count + 1, MAX_RETRIES, err))
         self.MaybeRetry(retry_count - 1, msg, fn, *args)
 
+  def _SetDebug(self, ops):
+    """Set the debug value on the given opcodes"""
+    for op in ops:
+      op.debug_level = self.opts.debug
+
   def _ExecOp(self, *ops):
     """Execute one or more opcodes and manage the exec buffer.
 
@@ -330,11 +336,13 @@ class Burner(object):
       rval = MAX_RETRIES
     else:
       rval = 0
+    self._SetDebug(ops)
     return self.MaybeRetry(rval, "opcode", self._ExecOp, *ops)
 
   def ExecOrQueue(self, name, *ops):
     """Execute an opcode and manage the exec buffer."""
     if self.opts.parallel:
+      self._SetDebug(ops)
       self.queued_ops.append((ops, name))
     else:
       return self.ExecOp(self.queue_retry, *ops)
