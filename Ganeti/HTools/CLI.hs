@@ -36,6 +36,7 @@ module Ganeti.HTools.CLI
     , oDataFile
     , oDiskMoves
     , oDynuFile
+    , oEvacMode
     , oExTags
     , oExecJobs
     , oIDisk
@@ -85,6 +86,7 @@ data Options = Options
     { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
     , optDiskMoves   :: Bool           -- ^ Allow disk moves
     , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
+    , optEvacMode    :: Bool           -- ^ Enable evacuation mode
     , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
     , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
     , optINodes      :: Int            -- ^ Nodes required for an instance
@@ -115,6 +117,7 @@ defaultOptions  = Options
  { optDataFile    = Nothing
  , optDiskMoves   = True
  , optDynuFile    = Nothing
+ , optEvacMode    = False
  , optExTags      = Nothing
  , optExecJobs    = False
  , optINodes      = 2
@@ -157,6 +160,12 @@ oDynuFile :: OptType
 oDynuFile = Option "U" ["dynu-file"]
             (ReqArg (\ f opts -> Ok opts { optDynuFile = Just f }) "FILE")
             "Import dynamic utilisation data from the given FILE"
+
+oEvacMode :: OptType
+oEvacMode = Option "E" ["evac-mode"]
+            (NoArg (\opts -> Ok opts { optEvacMode = True }))
+            "enable evacuation mode, where the algorithm only moves \
+            \ instances away from offline and drained nodes"
 
 oExTags :: OptType
 oExTags = Option "" ["exclusion-tags"]
