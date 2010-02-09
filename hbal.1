@@ -28,6 +28,7 @@ Algorithm options:
 .BI "[ -O " name... " ]"
 .B "[ --no-disk-moves ]"
 .BI "[ -U " util-file " ]"
+.B "[ --evac-mode ]"
 
 .TP
 Reporting options:
@@ -399,6 +400,13 @@ This parameter prevents hbal from using disk move (i.e. "gnt\-instance
 replace\-disks") operations. This will result in a much quicker
 balancing, but of course the improvements are limited. It is up to the
 user to decide when to use one or another.
+
+.TP
+.B "--evac-mode"
+This parameter restricts the list of instances considered for moving
+to the ones living on offline/drained nodes. It can be used as a
+(bulk) replacement for Ganeti's own \fIgnt-node evacuate\fR, with the
+note that it doesn't guarantee full evacuation.
 
 .TP
 .BI "-U" util-file
