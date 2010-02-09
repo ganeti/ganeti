@@ -60,6 +60,7 @@ options =
     , oPrintCommands
     , oOneline
     , oDataFile
+    , oEvacMode
     , oRapiMaster
     , oLuxiSocket
     , oExecJobs
@@ -89,14 +90,15 @@ iterateDepth :: Cluster.Table    -- ^ The starting table
              -> [MoveJob]        -- ^ Current command list
              -> Bool             -- ^ Whether to be silent
              -> Score            -- ^ Score at which to stop
+             -> Bool             -- ^ Enable evacuation mode
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
 iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
-             cmd_strs oneline min_score =
+             cmd_strs oneline min_score evac_mode =
     let Cluster.Table ini_nl ini_il _ _ = ini_tbl
         allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
         m_fin_tbl = if allowed_next
-                    then Cluster.tryBalance ini_tbl disk_moves
+                    then Cluster.tryBalance ini_tbl disk_moves evac_mode
                     else Nothing
     in
       case m_fin_tbl of
@@ -115,6 +117,7 @@ iterateDepth ini_tbl max_rounds disk_moves nmlen imlen
                        hFlush stdout
               iterateDepth fin_tbl max_rounds disk_moves
                            nmlen imlen upd_cmd_strs oneline min_score
+                           evac_mode
         Nothing -> return (ini_tbl, cmd_strs)
 
 -- | Formats the solution for the oneline display
@@ -270,7 +273,7 @@ main = do
 
   (fin_tbl, cmd_strs) <- iterateDepth ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
-                         nmlen imlen [] oneline min_cv
+                         nmlen imlen [] oneline min_cv (optEvacMode opts)
   let (Cluster.Table fin_nl fin_il fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
       sol_msg = if null fin_plc

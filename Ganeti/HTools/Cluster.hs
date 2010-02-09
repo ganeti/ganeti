@@ -460,12 +460,20 @@ doNextBalance ini_tbl max_rounds min_score =
 
 tryBalance :: Table       -- ^ The starting table
            -> Bool        -- ^ Allow disk moves
+           -> Bool        -- ^ Only evacuate moves
            -> Maybe Table -- ^ The resulting table and commands
-tryBalance ini_tbl disk_moves =
+tryBalance ini_tbl disk_moves evac_mode =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
+        all_inst' = if evac_mode
+                    then let bad_nodes = map Node.idx . filter Node.offline $
+                                         Container.elems ini_nl
+                         in filter (\e -> Instance.sNode e `elem` bad_nodes ||
+                                          Instance.pNode e `elem` bad_nodes)
+                            all_inst
+                    else all_inst
         reloc_inst = filter (\e -> Instance.sNode e /= Node.noSecondary)
-                     all_inst
+                     all_inst'
         node_idx = map Node.idx . filter (not . Node.offline) $
                    Container.elems ini_nl
         fin_tbl = checkMove node_idx disk_moves ini_tbl reloc_inst
