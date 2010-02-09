@@ -593,7 +593,7 @@ def RenameInstance(opts, args):
   """
   op = opcodes.OpRenameInstance(instance_name=args[0],
                                 new_name=args[1],
-                                ignore_ip=opts.ignore_ip)
+                                ignore_ip=not opts.ip_check)
   SubmitOrSend(op, opts)
   return 0
 
