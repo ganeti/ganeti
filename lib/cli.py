@@ -56,6 +56,7 @@ __all__ = [
   "DISK_OPT",
   "DISK_TEMPLATE_OPT",
   "DRAINED_OPT",
+  "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
   "ERROR_CODES_OPT",
   "FIELDS_OPT",
@@ -836,6 +837,12 @@ SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                          dest="shutdown_timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait for instance shutdown")
+
+EARLY_RELEASE_OPT = cli_option("--early-release",
+                               dest="early_release", default=False,
+                               action="store_true",
+                               help="Release the locks on the secondary"
+                               " node(s) early")
 
 
 def _ParseArgs(argv, commands, aliases):

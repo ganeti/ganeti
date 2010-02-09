@@ -419,7 +419,7 @@ class OpEvacuateNode(OpCode):
   OP_ID = "OP_NODE_EVACUATE"
   OP_DSC_FIELD = "node_name"
   __slots__ = [
-    "node_name", "remote_node", "iallocator",
+    "node_name", "remote_node", "iallocator", "early_release",
     ]
 
 
@@ -509,6 +509,7 @@ class OpReplaceDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
     "instance_name", "remote_node", "mode", "disks", "iallocator",
+    "early_release",
     ]
 
 

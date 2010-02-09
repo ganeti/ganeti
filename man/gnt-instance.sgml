@@ -1828,6 +1828,7 @@ instance5: 11225
         <cmdsynopsis>
           <command>replace-disks</command>
           <arg>--submit</arg>
+          <arg>--early-release</arg>
           <arg choice="req">-p</arg>
           <arg>--disks <replaceable>idx</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
@@ -1836,6 +1837,7 @@ instance5: 11225
         <cmdsynopsis>
           <command>replace-disks</command>
           <arg>--submit</arg>
+          <arg>--early-release</arg>
           <arg choice="req">-s</arg>
           <arg>--disks <replaceable>idx</replaceable></arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
@@ -1844,6 +1846,7 @@ instance5: 11225
         <cmdsynopsis>
           <command>replace-disks</command>
           <arg>--submit</arg>
+          <arg>--early-release</arg>
           <group choice="req">
             <arg>--iallocator <replaceable>name</replaceable></arg>
             <arg>--new-secondary <replaceable>NODE</replaceable></arg>
@@ -1855,6 +1858,7 @@ instance5: 11225
         <cmdsynopsis>
           <command>replace-disks</command>
           <arg>--submit</arg>
+          <arg>--early-release</arg>
           <arg choice="req">--auto</arg>
           <arg choice="req"><replaceable>instance</replaceable></arg>
         </cmdsynopsis>
@@ -1903,6 +1907,19 @@ instance5: 11225
           the master daemon but not wait for its completion. The job
           ID will be shown so that it can be examined via
           <command>gnt-job info</command>.
+        </para>
+
+        <para>
+          The <option>--early-release</option> changes the code so
+          that the old storage on secondary node(s) is removed early
+          (before the resync is completed) and the internal Ganeti
+          locks for the current (and new, if any) secondary node are
+          also released, thus allowing more parallelism in the cluster
+          operation. This should be used only when recovering from a
+          disk failure on the current secondary (thus the old storage
+          is already broken) or when the storage on the primary node
+          is known to be fine (thus we won't need the old storage for
+          potential recovery).
         </para>
 
         <para>

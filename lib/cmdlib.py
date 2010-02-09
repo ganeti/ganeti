@@ -6332,6 +6332,8 @@ class LUReplaceDisks(LogicalUnit):
       self.op.remote_node = None
     if not hasattr(self.op, "iallocator"):
       self.op.iallocator = None
+    if not hasattr(self.op, "early_release"):
+      self.op.early_release = False
 
     TLReplaceDisks.CheckArguments(self.op.mode, self.op.remote_node,
                                   self.op.iallocator)
@@ -6363,7 +6365,7 @@ class LUReplaceDisks(LogicalUnit):
 
     self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node,
-                                   self.op.disks, False)
+                                   self.op.disks, False, self.op.early_release)
 
     self.tasklets = [self.replacer]
 
@@ -6410,6 +6412,8 @@ class LUEvacuateNode(LogicalUnit):
       self.op.remote_node = None
     if not hasattr(self.op, "iallocator"):
       self.op.iallocator = None
+    if not hasattr(self.op, "early_release"):
+      self.op.early_release = False
 
     TLReplaceDisks.CheckArguments(constants.REPLACE_DISK_CHG,
                                   self.op.remote_node,
@@ -6456,7 +6460,7 @@ class LUEvacuateNode(LogicalUnit):
 
       replacer = TLReplaceDisks(self, inst.name, constants.REPLACE_DISK_CHG,
                                 self.op.iallocator, self.op.remote_node, [],
-                                True)
+                                True, self.op.early_release)
       tasklets.append(replacer)
 
     self.tasklets = tasklets
@@ -6498,7 +6502,7 @@ class TLReplaceDisks(Tasklet):
 
   """
   def __init__(self, lu, instance_name, mode, iallocator_name, remote_node,
-               disks, delay_iallocator):
+               disks, delay_iallocator, early_release):
     """Initializes this class.
 
     """
@@ -6511,6 +6515,7 @@ class TLReplaceDisks(Tasklet):
     self.remote_node = remote_node
     self.disks = disks
     self.delay_iallocator = delay_iallocator
+    self.early_release = early_release
 
     # Runtime data
     self.instance = None
@@ -6853,6 +6858,10 @@ class TLReplaceDisks(Tasklet):
           self.lu.LogWarning("Can't remove old LV: %s" % msg,
                              hint="remove unused LVs manually")
 
+  def _ReleaseNodeLock(self, node_name):
+    """Releases the lock for a given node."""
+    self.lu.context.glm.release(locking.LEVEL_NODE, node_name)
+
   def _ExecDrbd8DiskOnly(self, feedback_fn):
     """Replace a disk on the primary or secondary for DRBD 8.
 
@@ -6963,18 +6972,31 @@ class TLReplaceDisks(Tasklet):
 
       self.cfg.Update(self.instance, feedback_fn)
 
+    cstep = 5
+    if self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      cstep += 1
+      self._RemoveOldStorage(self.target_node, iv_names)
+      # only release the lock if we're doing secondary replace, since
+      # we use the primary node later
+      if self.target_node != self.instance.primary_node:
+        self._ReleaseNodeLock(self.target_node)
+
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(5, steps_total, "Sync devices")
+    self.lu.LogStep(cstep, steps_total, "Sync devices")
+    cstep += 1
     _WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)
 
     # Step: remove old storage
-    self.lu.LogStep(6, steps_total, "Removing old storage")
-    self._RemoveOldStorage(self.target_node, iv_names)
+    if not self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      cstep += 1
+      self._RemoveOldStorage(self.target_node, iv_names)
 
   def _ExecDrbd8Secondary(self, feedback_fn):
     """Replace the secondary node for DRBD 8.
@@ -7108,19 +7130,27 @@ class TLReplaceDisks(Tasklet):
                            to_node, msg,
                            hint=("please do a gnt-instance info to see the"
                                  " status of disks"))
+    cstep = 5
+    if self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      cstep += 1
+      self._RemoveOldStorage(self.target_node, iv_names)
+      self._ReleaseNodeLock([self.target_node, self.new_node])
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(5, steps_total, "Sync devices")
+    self.lu.LogStep(cstep, steps_total, "Sync devices")
+    cstep += 1
     _WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)
 
     # Step: remove old storage
-    self.lu.LogStep(6, steps_total, "Removing old storage")
-    self._RemoveOldStorage(self.target_node, iv_names)
+    if not self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      self._RemoveOldStorage(self.target_node, iv_names)
 
 
 class LURepairNodeStorage(NoHooksLU):

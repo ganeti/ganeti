@@ -120,6 +120,7 @@ OPTIONS = [
   cli.VERBOSE_OPT,
   cli.NOIPCHECK_OPT,
   cli.NONAMECHECK_OPT,
+  cli.EARLY_RELEASE_OPT,
   cli.cli_option("--no-replace1", dest="do_replace1",
                  help="Skip disk replacement with the same secondary",
                  action="store_false", default=True),
@@ -544,7 +545,8 @@ class Burner(object):
       for mode in constants.REPLACE_DISK_SEC, constants.REPLACE_DISK_PRI:
         op = opcodes.OpReplaceDisks(instance_name=instance,
                                     mode=mode,
-                                    disks=[i for i in range(self.disk_count)])
+                                    disks=[i for i in range(self.disk_count)],
+                                    early_release=self.opts.early_release)
         Log("run %s" % mode, indent=2)
         ops.append(op)
       self.ExecOrQueue(instance, *ops) # pylint: disable-msg=W0142
@@ -568,7 +570,8 @@ class Burner(object):
                                   mode=mode,
                                   remote_node=tnode,
                                   iallocator=self.opts.iallocator,
-                                  disks=[])
+                                  disks=[],
+                                  early_release=self.opts.early_release)
       Log("run %s %s" % (mode, msg), indent=2)
       self.ExecOrQueue(instance, op)
 
