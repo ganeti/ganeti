@@ -1759,13 +1759,14 @@ class JobExecutor(object):
   GetResults() calls.
 
   """
-  def __init__(self, cl=None, verbose=True):
+  def __init__(self, cl=None, verbose=True, opts=None):
     self.queue = []
     if cl is None:
       cl = GetClient()
     self.cl = cl
     self.verbose = verbose
     self.jobs = []
+    self.opts = opts
 
   def QueueJob(self, name, *ops):
     """Record a job for later submit.
@@ -1773,6 +1774,7 @@ class JobExecutor(object):
     @type name: string
     @param name: a description of the job, will be used in WaitJobSet
     """
+    SetGenericOpcodeOpts(ops, self.opts)
     self.queue.append((name, ops))
 
   def SubmitPending(self):
