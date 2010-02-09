@@ -45,7 +45,7 @@ def ListOS(opts, args):
   """
   op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants"],
                             names=[])
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, opts=opts)
 
   if not result:
     ToStderr("Can't get the OS list")
@@ -98,7 +98,7 @@ def DiagnoseOS(opts, args):
   """
   op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants",
                                            "node_status"], names=[])
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, opts=opts)
 
   if not result:
     ToStderr("Can't get the OS list")

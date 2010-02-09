@@ -517,7 +517,7 @@ def ReinstallInstance(opts, args):
   if opts.select_os is True:
     op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants"],
                               names=[])
-    result = SubmitOpCode(op)
+    result = SubmitOpCode(op, opts=opts)
 
     if not result:
       ToStdout("Can't get the OS list")
@@ -880,7 +880,7 @@ def MigrateInstance(opts, args):
 
   op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live,
                                  cleanup=opts.cleanup)
-  SubmitOpCode(op, cl=cl)
+  SubmitOpCode(op, cl=cl, opts=opts)
   return 0
 
 
@@ -925,7 +925,7 @@ def ConnectToInstanceConsole(opts, args):
   instance_name = args[0]
 
   op = opcodes.OpConnectConsole(instance_name=instance_name)
-  cmd = SubmitOpCode(op)
+  cmd = SubmitOpCode(op, opts=opts)
 
   if opts.show_command:
     ToStdout("%s", utils.ShellQuoteArgs(cmd))
@@ -1123,7 +1123,7 @@ def ShowInstanceConfig(opts, args):
 
   retcode = 0
   op = opcodes.OpQueryInstanceData(instances=args, static=opts.static)
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, opts=opts)
   if not result:
     ToStdout("No instances.")
     return 1
