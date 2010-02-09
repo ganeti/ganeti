@@ -120,7 +120,7 @@ class OpCode(BaseOpCode):
 
   """
   OP_ID = "OP_ABSTRACT"
-  __slots__ = ["dry_run"]
+  __slots__ = ["dry_run", "debug_level"]
 
   def __getstate__(self):
     """Specialized getstate for opcodes.

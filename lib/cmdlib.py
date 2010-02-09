@@ -95,6 +95,10 @@ class LogicalUnit(object):
     self.LogStep = processor.LogStep # pylint: disable-msg=C0103
     # support for dry-run
     self.dry_run_result = None
+    # support for generic debug attribute
+    if (not hasattr(self.op, "debug_level") or
+        not isinstance(self.op.debug_level, int)):
+      self.op.debug_level = 0
 
     # Tasklets
     self.tasklets = None
