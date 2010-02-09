@@ -1188,7 +1188,7 @@ def PollJob(job_id, cl=None, feedback_fn=None):
     raise errors.OpExecError(result)
 
 
-def SubmitOpCode(op, cl=None, feedback_fn=None):
+def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None):
   """Legacy function to submit an opcode.
 
   This is just a simple wrapper over the construction of the processor
@@ -1198,6 +1198,8 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
   """
   if cl is None:
     cl = GetClient()
+
+  SetGenericOpcodeOpts([op], opts)
 
   job_id = SendJob([op], cl)
 
@@ -1214,16 +1216,35 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
   whether to just send the job and print its identifier. It is used in
   order to simplify the implementation of the '--submit' option.
 
-  It will also add the dry-run parameter from the options passed, if true.
+  It will also process the opcodes if we're sending the via SendJob
+  (otherwise SubmitOpCode does it).
 
   """
-  if opts and opts.dry_run:
-    op.dry_run = opts.dry_run
   if opts and opts.submit_only:
-    job_id = SendJob([op], cl=cl)
+    job = [op]
+    SetGenericOpcodeOpts(job, opts)
+    job_id = SendJob(job, cl=cl)
     raise JobSubmittedException(job_id)
   else:
-    return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn)
+    return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn, opts=opts)
+
+
+def SetGenericOpcodeOpts(opcode_list, options):
+  """Processor for generic options.
+
+  This function updates the given opcodes based on generic command
+  line options (like debug, dry-run, etc.).
+
+  @param opcode_list: list of opcodes
+  @param options: command line options or None
+  @return: None (in-place modification)
+
+  """
+  if not options:
+    return
+  for op in opcode_list:
+    op.dry_run = options.dry_run
+    op.debug_level = options.debug
 
 
 def GetClient():
