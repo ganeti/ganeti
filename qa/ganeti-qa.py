@@ -157,6 +157,11 @@ def RunCommonInstanceTests(instance):
   if qa_config.TestEnabled('instance-reboot'):
     RunTest(qa_instance.TestInstanceReboot, instance)
 
+  if qa_config.TestEnabled('instance-rename'):
+    RunTest(qa_instance.TestInstanceShutdown, instance)
+    RunTest(qa_instance.TestInstanceRename, instance)
+    RunTest(qa_instance.TestInstanceStartup, instance)
+
   if qa_config.TestEnabled('tags'):
     RunTest(qa_tags.TestInstanceTags, instance)
 
