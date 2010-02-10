@@ -145,7 +145,8 @@ class _SingleNotifyPipeConditionWaiter(object):
         break
 
       try:
-        result = self._poller.poll(remaining_time)
+        # Our calculation uses seconds, poll() wants milliseconds
+        result = self._poller.poll(1000 * remaining_time)
       except EnvironmentError, err:
         if err.errno != errno.EINTR:
           raise
