@@ -483,9 +483,8 @@ cli_option = CliOption
 _YESNO = ("yes", "no")
 _YORNO = "yes|no"
 
-DEBUG_OPT = cli_option("-d", "--debug", default=False,
-                       action="store_true",
-                       help="Turn debugging on")
+DEBUG_OPT = cli_option("-d", "--debug", default=0, action="count",
+                       help="Increase debugging level")
 
 NOHDR_OPT = cli_option("--no-headers", default=False,
                        action="store_true", dest="no_headers",

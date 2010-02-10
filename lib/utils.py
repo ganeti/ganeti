@@ -1762,14 +1762,14 @@ def GetDaemonPort(daemon_name):
   return port
 
 
-def SetupLogging(logfile, debug=False, stderr_logging=False, program="",
+def SetupLogging(logfile, debug=0, stderr_logging=False, program="",
                  multithreaded=False, syslog=constants.SYSLOG_USAGE):
   """Configures the logging module.
 
   @type logfile: str
   @param logfile: the filename to which we should log
-  @type debug: boolean
-  @param debug: whether to enable debug messages too or
+  @type debug: integer
+  @param debug: if greater than zero, enable debug messages, otherwise
       only those at C{INFO} and above level
   @type stderr_logging: boolean
   @param stderr_logging: whether we should also log to the standard error
