@@ -70,7 +70,7 @@ def GenericOpCodes(opts, args):
 
   """
   cl = cli.GetClient()
-  jex = cli.JobExecutor(cl=cl, verbose=opts.verbose)
+  jex = cli.JobExecutor(cl=cl, verbose=opts.verbose, opts=opts)
 
   job_cnt = 0
   op_cnt = 0

@@ -222,7 +222,7 @@ def GenericManyOps(operation, fn):
     if not (opts.force_multi or not multi_on
             or _ConfirmOperation(inames, operation)):
       return 1
-    jex = JobExecutor(verbose=multi_on, cl=cl)
+    jex = JobExecutor(verbose=multi_on, cl=cl, opts=opts)
     for name in inames:
       op = fn(name, opts)
       jex.QueueJob(name, op)
@@ -423,7 +423,7 @@ def BatchCreate(opts, args):
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
-  jex = JobExecutor()
+  jex = JobExecutor(opts=opts)
 
   # Iterate over the instances and do:
   #  * Populate the specs with default value
@@ -560,7 +560,7 @@ def ReinstallInstance(opts, args):
       if not AskUser(usertext):
         return 1
 
-  jex = JobExecutor(verbose=multi_on)
+  jex = JobExecutor(verbose=multi_on, opts=opts)
   for instance_name in inames:
     op = opcodes.OpReinstallInstance(instance_name=instance_name,
                                      os_type=os_name,
