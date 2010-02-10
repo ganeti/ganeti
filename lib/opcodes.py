@@ -52,8 +52,9 @@ class BaseOpCode(object):
     __slots__ attribute for this class.
 
     """
+    slots = self._all_slots()
     for key in kwargs:
-      if key not in self.__slots__:
+      if key not in slots:
         raise TypeError("Object %s doesn't support the parameter '%s'" %
                         (self.__class__.__name__, key))
       setattr(self, key, kwargs[key])
@@ -69,7 +70,7 @@ class BaseOpCode(object):
 
     """
     state = {}
-    for name in self.__slots__:
+    for name in self._all_slots():
       if hasattr(self, name):
         state[name] = getattr(self, name)
     return state
@@ -88,12 +89,22 @@ class BaseOpCode(object):
       raise ValueError("Invalid data to __setstate__: expected dict, got %s" %
                        type(state))
 
-    for name in self.__slots__:
+    for name in self._all_slots():
       if name not in state:
         delattr(self, name)
 
     for name in state:
       setattr(self, name, state[name])
+
+  @classmethod
+  def _all_slots(cls):
+    """Compute the list of all declared slots for a class.
+
+    """
+    slots = []
+    for parent in cls.__mro__:
+      slots.extend(getattr(parent, "__slots__", []))
+    return slots
 
 
 class OpCode(BaseOpCode):
