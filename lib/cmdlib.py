@@ -3998,7 +3998,8 @@ class LUReinstallInstance(LogicalUnit):
     try:
       feedback_fn("Running the instance OS create scripts...")
       # FIXME: pass debug option from opcode to backend
-      result = self.rpc.call_instance_os_add(inst.primary_node, inst, True, 0)
+      result = self.rpc.call_instance_os_add(inst.primary_node, inst, True,
+                                             self.op.debug_level)
       result.Raise("Could not install OS for instance %s on node %s" %
                    (inst.name, inst.primary_node))
     finally:
@@ -4182,7 +4183,7 @@ class LURenameInstance(LogicalUnit):
     _StartInstanceDisks(self, inst, None)
     try:
       result = self.rpc.call_instance_run_rename(inst.primary_node, inst,
-                                                 old_name, 0)
+                                                 old_name, self.op.debug_level)
       msg = result.fail_msg
       if msg:
         msg = ("Could not run OS rename script for instance %s on node %s"
@@ -6236,7 +6237,8 @@ class LUCreateInstance(LogicalUnit):
       if self.op.mode == constants.INSTANCE_CREATE:
         feedback_fn("* running the instance OS create scripts...")
         # FIXME: pass debug option from opcode to backend
-        result = self.rpc.call_instance_os_add(pnode_name, iobj, False, 0)
+        result = self.rpc.call_instance_os_add(pnode_name, iobj, False,
+                                               self.op.debug_level)
         result.Raise("Could not add os for instance %s"
                      " on node %s" % (instance, pnode_name))
 
@@ -6248,7 +6250,8 @@ class LUCreateInstance(LogicalUnit):
         # FIXME: pass debug option from opcode to backend
         import_result = self.rpc.call_instance_os_import(pnode_name, iobj,
                                                          src_node, src_images,
-                                                         cluster_name, 0)
+                                                         cluster_name,
+                                                         self.op.debug_level)
         msg = import_result.fail_msg
         if msg:
           self.LogWarning("Error while importing the disk images for instance"
@@ -8207,7 +8210,7 @@ class LUExportInstance(LogicalUnit):
           # FIXME: pass debug from opcode to backend
           result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
                                                  instance, cluster_name,
-                                                 idx, 0)
+                                                 idx, self.op.debug_level)
           msg = result.fail_msg
           if msg:
             self.LogWarning("Could not export disk/%s from node %s to"
