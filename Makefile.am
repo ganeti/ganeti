@@ -14,6 +14,7 @@ DOCBOOK_WRAPPER = $(top_srcdir)/autotools/docbook-wrapper
 BUILD_BASH_COMPLETION = $(top_srcdir)/autotools/build-bash-completion
 RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
+CHECK_MAN = $(top_srcdir)/autotools/check-man
 REPLACE_VARS_SED = autotools/replace_vars.sed
 
 hypervisordir = $(pkgpythondir)/hypervisor
@@ -22,6 +23,9 @@ confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
 toolsdir = $(pkglibdir)/tools
 docdir = $(datadir)/doc/$(PACKAGE)
+
+# Delete output file if an error occurred while building it
+.DELETE_ON_ERROR:
 
 DIRS = \
 	autotools \
@@ -239,6 +243,7 @@ EXTRA_DIST = \
 	pylintrc \
 	autotools/build-bash-completion \
 	autotools/check-python-code \
+	autotools/check-man \
 	autotools/docbook-wrapper \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
@@ -399,9 +404,11 @@ man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 
 man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
+	$(CHECK_MAN) $@
 
 man/%.8: man/%.8.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
+	$(CHECK_MAN) $@
 
 man/%.html: man/%.html.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
