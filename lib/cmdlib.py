@@ -4587,12 +4587,19 @@ class LUFailoverInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
+    instance = self.instance
+    source_node = instance.primary_node
+    target_node = instance.secondary_nodes[0]
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
+      "OLD_PRIMARY": source_node,
+      "OLD_SECONDARY": target_node,
+      "NEW_PRIMARY": target_node,
+      "NEW_SECONDARY": source_node,
       }
-    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
+    env.update(_BuildInstanceHookEnvByObject(self, instance))
+    nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -4735,9 +4742,17 @@ class LUMigrateInstance(LogicalUnit):
 
     """
     instance = self._migrater.instance
+    source_node = instance.primary_node
+    target_node = instance.secondary_nodes[0]
     env = _BuildInstanceHookEnvByObject(self, instance)
     env["MIGRATE_LIVE"] = self.op.live
     env["MIGRATE_CLEANUP"] = self.op.cleanup
+    env.update({
+        "OLD_PRIMARY": source_node,
+        "OLD_SECONDARY": target_node,
+        "NEW_PRIMARY": target_node,
+        "NEW_SECONDARY": source_node,
+        })
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
     return env, nl, nl
 
