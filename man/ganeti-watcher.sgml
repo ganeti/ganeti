@@ -66,21 +66,17 @@
     <para>
       The watcher does synchronous queries but will submit jobs for
       executing the changes. Due to locking, it could be that the jobs
-      execute much later than the watcher schedules them.
+      execute much later than the watcher executes them.
     </para>
 
-    <para>The command has a state file located at</para>
-
-    <literallayout>@LOCALSTATEDIR@/lib/ganeti/watcher.data</literallayout>
-
-    <para>and a log file at</para>
-
-    <literallayout>@LOCALSTATEDIR@/log/ganeti/watcher.log</literallayout>
-
     <para>
-      Removal of either file will not affect correct operation; the
-      removal of the state file will just cause the restart counters
-      for the instances to reset to zero.
+      The command has a state file located at
+      <filename>@LOCALSTATEDIR@/lib/ganeti/watcher.data</filename> and a log
+      file at
+      <filename>@LOCALSTATEDIR@/log/ganeti/watcher.log</filename>. Removal of
+      either file will not affect correct operation; the removal of
+      the state file will just cause the restart counters for the
+      instances to reset to zero.
     </para>
 
   </refsect1>
