@@ -49,10 +49,11 @@
     </para>
 
     <para>
-      <command>&dhpackage;</command> automatically removes all files older than
-      21 days from
-      <filename>@LOCALSTATEDIR@/lib/ganeti/queue/archive</filename>.
+      <command>&dhpackage;</command> automatically removes all files
+      older than 21 days from the archive located at:
     </para>
+
+    <literallayout>@LOCALSTATEDIR@/lib/ganeti/queue/archive</literallayout>
 
   </refsect1>
 

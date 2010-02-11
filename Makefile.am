@@ -16,6 +16,7 @@ RUN_IN_TEMPDIR = $(top_srcdir)/autotools/run-in-tempdir
 CHECK_PYTHON_CODE = $(top_srcdir)/autotools/check-python-code
 CHECK_MAN = $(top_srcdir)/autotools/check-man
 REPLACE_VARS_SED = autotools/replace_vars.sed
+REPLACE_VARS_MAN = autotools/replace_vars.man
 
 hypervisordir = $(pkgpythondir)/hypervisor
 httpdir = $(pkgpythondir)/http
@@ -57,7 +58,8 @@ maintainer-clean-local:
 	rm -rf doc/api doc/html
 
 CLEANFILES = \
-	autotools/replace_vars.sed \
+	$(REPLACE_VARS_SED) \
+	$(REPLACE_VARS_MAN) \
 	daemons/daemon-util \
 	daemons/ganeti-cleaner \
 	devel/upload \
@@ -402,12 +404,12 @@ man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	  { echo 'docbook2html' not found during configure; exit 1; }
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2HTML) --nochunks" $< $(notdir $(@:.in=)) $@
 
-man/%.7: man/%.7.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
+man/%.7: man/%.7.in $(REPLACE_VARS_MAN)
+	sed -f $(REPLACE_VARS_MAN) < $< > $@
 	$(CHECK_MAN) $@
 
-man/%.8: man/%.8.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
+man/%.8: man/%.8.in $(REPLACE_VARS_MAN)
+	sed -f $(REPLACE_VARS_MAN) < $< > $@
 	$(CHECK_MAN) $@
 
 man/%.html: man/%.html.in $(REPLACE_VARS_SED)
@@ -471,6 +473,9 @@ $(REPLACE_VARS_SED): Makefile
 	  echo 's#@RPL_SSH_INITD_SCRIPT@#$(SSH_INITD_SCRIPT)#g'; \
 	  echo 's#@PKGLIBDIR@#$(pkglibdir)#g'; \
 	} > $@
+
+$(REPLACE_VARS_MAN): $(REPLACE_VARS_SED)
+	sed -e 's^/^\0\\\\:^g' < $^ >$@
 
 # We need to create symlinks because "make distcheck" will not install Python
 # files when building.
