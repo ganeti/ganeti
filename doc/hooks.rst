@@ -262,7 +262,7 @@ and secondary before failover.
 :directory: instance-failover
 :env. vars: IGNORE_CONSISTENCY, OLD_SECONDARY, OLD_PRIMARY, NEW_SECONDARY, NEW_PRIMARY
 :pre-execution: master node, secondary node
-:post-execution: master node, secondary node
+:post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_MIGRATE
 ++++++++++++++++++++
@@ -274,7 +274,7 @@ and secondary before migration.
 :directory: instance-migrate
 :env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP, OLD_SECONDARY, OLD_PRIMARY, NEW_SECONDARY, NEW_PRIMARY
 :pre-execution: master node, secondary node
-:post-execution: master node, secondary node
+:post-execution: master node, primary and secondary nodes
 
 
 OP_INSTANCE_REMOVE
@@ -285,7 +285,7 @@ Remove an instance.
 :directory: instance-remove
 :env. vars: only the standard instance vars
 :pre-execution: master node
-:post-execution: master node
+:post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_REPLACE_DISKS
 +++++++++++++++++++++++++
@@ -304,8 +304,8 @@ Grows the disk of an instance.
 
 :directory: disk-grow
 :env. vars: DISK, AMOUNT
-:pre-execution: master node, primary node
-:post-execution: master node, primary node
+:pre-execution: master node, primary and secondary nodes
+:post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_RENAME
 ++++++++++++++++++

@@ -4228,7 +4228,8 @@ class LURemoveInstance(LogicalUnit):
     env = _BuildInstanceHookEnvByObject(self, self.instance)
     env["SHUTDOWN_TIMEOUT"] = self.shutdown_timeout
     nl = [self.cfg.GetMasterNode()]
-    return env, nl, nl
+    nl_post = list(self.instance.all_nodes) + nl
+    return env, nl, nl_post
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4600,7 +4601,9 @@ class LUFailoverInstance(LogicalUnit):
       }
     env.update(_BuildInstanceHookEnvByObject(self, instance))
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
-    return env, nl, nl
+    nl_post = list(nl)
+    nl_post.append(source_node)
+    return env, nl, nl_post
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4754,7 +4757,9 @@ class LUMigrateInstance(LogicalUnit):
         "NEW_SECONDARY": source_node,
         })
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
-    return env, nl, nl
+    nl_post = list(nl)
+    nl_post.append(source_node)
+    return env, nl, nl_post
 
 
 class LUMoveInstance(LogicalUnit):
@@ -7272,10 +7277,7 @@ class LUGrowDisk(LogicalUnit):
       "AMOUNT": self.op.amount,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = [
-      self.cfg.GetMasterNode(),
-      self.instance.primary_node,
-      ]
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
