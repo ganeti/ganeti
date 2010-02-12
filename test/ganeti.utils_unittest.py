@@ -34,6 +34,7 @@ import shutil
 import re
 import select
 import string
+import fcntl
 
 import ganeti
 import testutils
@@ -232,6 +233,23 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.failUnlessEqual(RunCmd(["pwd"], cwd=cwd).stdout.strip(), cwd)
 
 
+class TestSetCloseOnExecFlag(unittest.TestCase):
+  """Tests for SetCloseOnExecFlag"""
+
+  def setUp(self):
+    self.tmpfile = tempfile.TemporaryFile()
+
+  def testEnable(self):
+    utils.SetCloseOnExecFlag(self.tmpfile.fileno(), True)
+    self.failUnless(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFD) &
+                    fcntl.FD_CLOEXEC)
+
+  def testDisable(self):
+    utils.SetCloseOnExecFlag(self.tmpfile.fileno(), False)
+    self.failIf(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFD) &
+                fcntl.FD_CLOEXEC)
+
+
 class TestRemoveFile(unittest.TestCase):
   """Test case for the RemoveFile function"""
 
@@ -246,24 +264,20 @@ class TestRemoveFile(unittest.TestCase):
       os.unlink(self.tmpfile)
     os.rmdir(self.tmpdir)
 
-
   def testIgnoreDirs(self):
     """Test that RemoveFile() ignores directories"""
     self.assertEqual(None, RemoveFile(self.tmpdir))
-
 
   def testIgnoreNotExisting(self):
     """Test that RemoveFile() ignores non-existing files"""
     RemoveFile(self.tmpfile)
     RemoveFile(self.tmpfile)
 
-
   def testRemoveFile(self):
     """Test that RemoveFile does remove a file"""
     RemoveFile(self.tmpfile)
     if os.path.exists(self.tmpfile):
       self.fail("File '%s' not removed" % self.tmpfile)
-
 
   def testRemoveSymlink(self):
     """Test that RemoveFile does remove symlinks"""

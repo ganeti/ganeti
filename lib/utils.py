@@ -273,6 +273,25 @@ def _RunCmdFile(cmd, env, via_shell, output, cwd):
   return status
 
 
+def SetCloseOnExecFlag(fd, enable):
+  """Sets or unsets the close-on-exec flag on a file descriptor.
+
+  @type fd: int
+  @param fd: File descriptor
+  @type enable: bool
+  @param enable: Whether to set or unset it.
+
+  """
+  flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+
+  if enable:
+    flags |= fcntl.FD_CLOEXEC
+  else:
+    flags &= ~fcntl.FD_CLOEXEC
+
+  fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+
+
 def RetryOnSignal(fn, *args, **kwargs):
   """Calls a function again if it failed due to EINTR.
 
