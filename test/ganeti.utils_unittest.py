@@ -250,6 +250,21 @@ class TestSetCloseOnExecFlag(unittest.TestCase):
                 fcntl.FD_CLOEXEC)
 
 
+class TestSetNonblockFlag(unittest.TestCase):
+  def setUp(self):
+    self.tmpfile = tempfile.TemporaryFile()
+
+  def testEnable(self):
+    utils.SetNonblockFlag(self.tmpfile.fileno(), True)
+    self.failUnless(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFL) &
+                    os.O_NONBLOCK)
+
+  def testDisable(self):
+    utils.SetNonblockFlag(self.tmpfile.fileno(), False)
+    self.failIf(fcntl.fcntl(self.tmpfile.fileno(), fcntl.F_GETFL) &
+                os.O_NONBLOCK)
+
+
 class TestRemoveFile(unittest.TestCase):
   """Test case for the RemoveFile function"""
 

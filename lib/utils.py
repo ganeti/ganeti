@@ -213,8 +213,7 @@ def _RunCmdPipe(cmd, env, via_shell, cwd):
     child.stderr.fileno(): (err, child.stderr),
     }
   for fd in fdmap:
-    status = fcntl.fcntl(fd, fcntl.F_GETFL)
-    fcntl.fcntl(fd, fcntl.F_SETFL, status | os.O_NONBLOCK)
+    SetNonblockFlag(fd, True)
 
   while fdmap:
     pollresult = RetryOnSignal(poller.poll)
@@ -290,6 +289,25 @@ def SetCloseOnExecFlag(fd, enable):
     flags &= ~fcntl.FD_CLOEXEC
 
   fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+
+
+def SetNonblockFlag(fd, enable):
+  """Sets or unsets the O_NONBLOCK flag on on a file descriptor.
+
+  @type fd: int
+  @param fd: File descriptor
+  @type enable: bool
+  @param enable: Whether to set or unset it
+
+  """
+  flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+
+  if enable:
+    flags |= os.O_NONBLOCK
+  else:
+    flags &= ~os.O_NONBLOCK
+
+  fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
 
 def RetryOnSignal(fn, *args, **kwargs):
