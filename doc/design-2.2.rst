@@ -233,6 +233,15 @@ All encrypted connections must be verified on both sides. Neither side
 may accept unverified certificates. The generated certificate should
 only be valid for the time necessary to move the instance.
 
+For additional protection of the instance data, the two clusters can
+verify the certificates exchanged via the third party by signing them
+using HMAC with a key shared among the involved clusters. If the third
+party does not know this secret, it can't forge the certificates and
+redirect the data. Unless disabled by a new cluster parameter, verifying
+the HMAC must be mandatory. The HMAC will be prepended to the
+certificate and only covers the certificate (from ``-----BEGIN
+CERTIFICATE-----`` to ``-----END CERTIFICATE-----``).
+
 On the web, the destination cluster would be equivalent to an HTTPS
 server requiring verifiable client certificates. The browser would be
 equivalent to the source cluster and must verify the server's
