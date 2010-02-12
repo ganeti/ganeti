@@ -28,6 +28,7 @@ the command line scripts.
 
 
 import os
+import sys
 import time
 import subprocess
 import re
@@ -119,16 +120,27 @@ class RunResult(object):
   output = property(_GetOutput, None, None, "Return full output")
 
 
-def RunCmd(cmd, env=None, output=None, cwd='/'):
+def _BuildCmdEnvironment(env):
+  """Builds the environment for an external program.
+
+  """
+  cmd_env = os.environ.copy()
+  cmd_env["LC_ALL"] = "C"
+  if env is not None:
+    cmd_env.update(env)
+  return cmd_env
+
+
+def RunCmd(cmd, env=None, output=None, cwd="/"):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
   closed.
 
-  @type  cmd: string or list
+  @type cmd: string or list
   @param cmd: Command to run
   @type env: dict
-  @param env: Additional environment
+  @param env: Additional environment variables
   @type output: str
   @param output: if desired, the output of the command can be
       saved in a file instead of the RunResult instance; this
@@ -144,19 +156,20 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
   if no_fork:
     raise errors.ProgrammerError("utils.RunCmd() called with fork() disabled")
 
-  if isinstance(cmd, list):
-    cmd = [str(val) for val in cmd]
-    strcmd = " ".join(cmd)
-    shell = False
-  else:
+  if isinstance(cmd, basestring):
     strcmd = cmd
     shell = True
-  logging.debug("RunCmd '%s'", strcmd)
+  else:
+    cmd = [str(val) for val in cmd]
+    strcmd = ShellQuoteArgs(cmd)
+    shell = False
 
-  cmd_env = os.environ.copy()
-  cmd_env["LC_ALL"] = "C"
-  if env is not None:
-    cmd_env.update(env)
+  if output:
+    logging.debug("RunCmd %s, output file '%s'", strcmd, output)
+  else:
+    logging.debug("RunCmd %s", strcmd)
+
+  cmd_env = _BuildCmdEnvironment(env)
 
   try:
     if output is None:
@@ -179,6 +192,201 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
     signal_ = -status
 
   return RunResult(exitcode, signal_, out, err, strcmd)
+
+
+def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
+                pidfile=None):
+  """Start a daemon process after forking twice.
+
+  @type cmd: string or list
+  @param cmd: Command to run
+  @type env: dict
+  @param env: Additional environment variables
+  @type cwd: string
+  @param cwd: Working directory for the program
+  @type output: string
+  @param output: Path to file in which to save the output
+  @type output_fd: int
+  @param output_fd: File descriptor for output
+  @type pidfile: string
+  @param pidfile: Process ID file
+  @rtype: int
+  @return: Daemon process ID
+  @raise errors.ProgrammerError: if we call this when forks are disabled
+
+  """
+  if no_fork:
+    raise errors.ProgrammerError("utils.StartDaemon() called with fork()"
+                                 " disabled")
+
+  if output and not (bool(output) ^ (output_fd is not None)):
+    raise errors.ProgrammerError("Only one of 'output' and 'output_fd' can be"
+                                 " specified")
+
+  if isinstance(cmd, basestring):
+    cmd = ["/bin/sh", "-c", cmd]
+
+  strcmd = ShellQuoteArgs(cmd)
+
+  if output:
+    logging.debug("StartDaemon %s, output file '%s'", strcmd, output)
+  else:
+    logging.debug("StartDaemon %s", strcmd)
+
+  cmd_env = _BuildCmdEnvironment(env)
+
+  # Create pipe for sending PID back
+  (pidpipe_read, pidpipe_write) = os.pipe()
+  try:
+    try:
+      # Create pipe for sending error messages
+      (errpipe_read, errpipe_write) = os.pipe()
+      try:
+        try:
+          # First fork
+          pid = os.fork()
+          if pid == 0:
+            try:
+              # Child process, won't return
+              _RunCmdDaemonChild(errpipe_read, errpipe_write,
+                                 pidpipe_read, pidpipe_write,
+                                 cmd, cmd_env, cwd,
+                                 output, output_fd, pidfile)
+            finally:
+              # Well, maybe child process failed
+              os._exit(1)
+        finally:
+          _CloseFDNoErr(errpipe_write)
+
+        # Wait for daemon to be started (or an error message to arrive) and read
+        # up to 100 KB as an error message
+        errormsg = RetryOnSignal(os.read, errpipe_read, 100 * 1024)
+      finally:
+        _CloseFDNoErr(errpipe_read)
+    finally:
+      _CloseFDNoErr(pidpipe_write)
+
+    # Read up to 128 bytes for PID
+    pidtext = RetryOnSignal(os.read, pidpipe_read, 128)
+  finally:
+    _CloseFDNoErr(pidpipe_read)
+
+  # Try to avoid zombies by waiting for child process
+  try:
+    os.waitpid(pid, 0)
+  except OSError:
+    pass
+
+  if errormsg:
+    raise errors.OpExecError("Error when starting daemon process: %r" %
+                             errormsg)
+
+  try:
+    return int(pidtext)
+  except (ValueError, TypeError), err:
+    raise errors.OpExecError("Error while trying to parse PID %r: %s" %
+                             (pidtext, err))
+
+
+def _RunCmdDaemonChild(errpipe_read, errpipe_write,
+                       pidpipe_read, pidpipe_write,
+                       args, env, cwd,
+                       output, fd_output, pidfile):
+  """Child process for starting daemon.
+
+  """
+  try:
+    # Close parent's side
+    _CloseFDNoErr(errpipe_read)
+    _CloseFDNoErr(pidpipe_read)
+
+    # First child process
+    os.chdir("/")
+    os.umask(077)
+    os.setsid()
+
+    # And fork for the second time
+    pid = os.fork()
+    if pid != 0:
+      # Exit first child process
+      os._exit(0) # pylint: disable-msg=W0212
+
+    # Make sure pipe is closed on execv* (and thereby notifies original process)
+    SetCloseOnExecFlag(errpipe_write, True)
+
+    # List of file descriptors to be left open
+    noclose_fds = [errpipe_write]
+
+    # Open PID file
+    if pidfile:
+      try:
+        # TODO: Atomic replace with another locked file instead of writing into
+        # it after creating
+        fd_pidfile = os.open(pidfile, os.O_WRONLY | os.O_CREAT, 0600)
+
+        # Lock the PID file (and fail if not possible to do so). Any code
+        # wanting to send a signal to the daemon should try to lock the PID
+        # file before reading it. If acquiring the lock succeeds, the daemon is
+        # no longer running and the signal should not be sent.
+        LockFile(fd_pidfile)
+
+        os.write(fd_pidfile, "%d\n" % os.getpid())
+      except Exception, err:
+        raise Exception("Creating and locking PID file failed: %s" % err)
+
+      # Keeping the file open to hold the lock
+      noclose_fds.append(fd_pidfile)
+
+      SetCloseOnExecFlag(fd_pidfile, False)
+    else:
+      fd_pidfile = None
+
+    # Open /dev/null
+    fd_devnull = os.open(os.devnull, os.O_RDWR)
+
+    assert not output or (bool(output) ^ (fd_output is not None))
+
+    if fd_output is not None:
+      pass
+    elif output:
+      # Open output file
+      try:
+        # TODO: Implement flag to set append=yes/no
+        fd_output = os.open(output, os.O_WRONLY | os.O_CREAT, 0600)
+      except EnvironmentError, err:
+        raise Exception("Opening output file failed: %s" % err)
+    else:
+      fd_output = fd_devnull
+
+    # Redirect standard I/O
+    os.dup2(fd_devnull, 0)
+    os.dup2(fd_output, 1)
+    os.dup2(fd_output, 2)
+
+    # Send daemon PID to parent
+    RetryOnSignal(os.write, pidpipe_write, str(os.getpid()))
+
+    # Close all file descriptors except stdio and error message pipe
+    CloseFDs(noclose_fds=noclose_fds)
+
+    # Change working directory
+    os.chdir(cwd)
+
+    if env is None:
+      os.execvp(args[0], args)
+    else:
+      os.execvpe(args[0], args, env)
+  except: # pylint: disable-msg=W0702
+    try:
+      # Report errors to original process
+      buf = str(sys.exc_info()[1])
+
+      RetryOnSignal(os.write, errpipe_write, buf)
+    except: # pylint: disable-msg=W0702
+      # Ignore errors in error handling
+      pass
+
+  os._exit(1) # pylint: disable-msg=W0212
 
 
 def _RunCmdPipe(cmd, env, via_shell, cwd):
