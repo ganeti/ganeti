@@ -2578,15 +2578,21 @@ class SignalHandler(object):
   @ivar called: tracks whether any of the signals have been raised
 
   """
-  def __init__(self, signum):
+  def __init__(self, signum, handler_fn=None):
     """Constructs a new SignalHandler instance.
 
     @type signum: int or list of ints
     @param signum: Single signal number or set of signal numbers
+    @type handler_fn: callable
+    @param handler_fn: Signal handling function
 
     """
+    assert handler_fn is None or callable(handler_fn)
+
     self.signum = set(signum)
     self.called = False
+
+    self._handler_fn = handler_fn
 
     self._previous = {}
     try:
@@ -2628,14 +2634,16 @@ class SignalHandler(object):
     """
     self.called = False
 
-  # we don't care about arguments, but we leave them named for the future
-  def _HandleSignal(self, signum, frame): # pylint: disable-msg=W0613
+  def _HandleSignal(self, signum, frame):
     """Actual signal handling function.
 
     """
     # This is not nice and not absolutely atomic, but it appears to be the only
     # solution in Python -- there are no atomic types.
     self.called = True
+
+    if self._handler_fn:
+      self._handler_fn(signum, frame)
 
 
 class FieldSet(object):
