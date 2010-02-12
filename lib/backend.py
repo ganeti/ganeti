@@ -2666,14 +2666,7 @@ class HooksRunner(object):
       except EnvironmentError, err:
         output += "Hook script error: %s" % str(err)
 
-      while True:
-        try:
-          result = child.wait()
-          break
-        except EnvironmentError, err:
-          if err.errno == errno.EINTR:
-            continue
-          raise
+      result = utils.RetryOnSignal(child.wait)
     finally:
       # try not to leak fds
       for fd in (fdstdin, ):

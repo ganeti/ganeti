@@ -217,16 +217,7 @@ def _RunCmdPipe(cmd, env, via_shell, cwd):
     fcntl.fcntl(fd, fcntl.F_SETFL, status | os.O_NONBLOCK)
 
   while fdmap:
-    try:
-      pollresult = poller.poll()
-    except EnvironmentError, eerr:
-      if eerr.errno == errno.EINTR:
-        continue
-      raise
-    except select.error, serr:
-      if serr[0] == errno.EINTR:
-        continue
-      raise
+    pollresult = RetryOnSignal(poller.poll)
 
     for fd, event in pollresult:
       if event & select.POLLIN or event & select.POLLPRI:
@@ -280,6 +271,21 @@ def _RunCmdFile(cmd, env, via_shell, output, cwd):
   finally:
     fh.close()
   return status
+
+
+def RetryOnSignal(fn, *args, **kwargs):
+  """Calls a function again if it failed due to EINTR.
+
+  """
+  while True:
+    try:
+      return fn(*args, **kwargs)
+    except EnvironmentError, err:
+      if err.errno != errno.EINTR:
+        raise
+    except select.error, err:
+      if not (err.args and err.args[0] == errno.EINTR):
+        raise
 
 
 def RemoveFile(filename):
