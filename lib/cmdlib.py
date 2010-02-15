@@ -8520,8 +8520,10 @@ class IAllocator(object):
     self.success = self.info = self.nodes = None
     if self.mode == constants.IALLOCATOR_MODE_ALLOC:
       keyset = self._ALLO_KEYS
+      fn = self._AddNewInstance
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       keyset = self._RELO_KEYS
+      fn = self._AddRelocateInstance
     else:
       raise errors.ProgrammerError("Unknown mode '%s' passed to the"
                                    " IAllocator" % self.mode)
@@ -8534,7 +8536,7 @@ class IAllocator(object):
       if key not in kwargs:
         raise errors.ProgrammerError("Missing input parameter '%s' to"
                                      " IAllocator" % key)
-    self._BuildInputData()
+    self._BuildInputData(fn)
 
   def _ComputeClusterData(self):
     """Compute the generic allocator input data.
@@ -8673,8 +8675,6 @@ class IAllocator(object):
     done.
 
     """
-    data = self.in_data
-
     disk_space = _ComputeDiskSize(self.disk_template, self.disks)
 
     if self.disk_template in constants.DTS_NET_MIRROR:
@@ -8682,7 +8682,6 @@ class IAllocator(object):
     else:
       self.required_nodes = 1
     request = {
-      "type": "allocate",
       "name": self.name,
       "disk_template": self.disk_template,
       "tags": self.tags,
@@ -8694,7 +8693,7 @@ class IAllocator(object):
       "nics": self.nics,
       "required_nodes": self.required_nodes,
       }
-    data["request"] = request
+    return request
 
   def _AddRelocateInstance(self):
     """Add relocate instance data to allocator structure.
@@ -8724,24 +8723,22 @@ class IAllocator(object):
     disk_space = _ComputeDiskSize(instance.disk_template, disk_sizes)
 
     request = {
-      "type": "relocate",
       "name": self.name,
       "disk_space_total": disk_space,
       "required_nodes": self.required_nodes,
       "relocate_from": self.relocate_from,
       }
-    self.in_data["request"] = request
+    return request
 
-  def _BuildInputData(self):
+  def _BuildInputData(self, fn):
     """Build input data structures.
 
     """
     self._ComputeClusterData()
 
-    if self.mode == constants.IALLOCATOR_MODE_ALLOC:
-      self._AddNewInstance()
-    else:
-      self._AddRelocateInstance()
+    request = fn()
+    request["type"] = self.mode
+    self.in_data["request"] = request
 
     self.in_text = serializer.Dump(self.in_data)
 
