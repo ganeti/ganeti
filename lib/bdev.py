@@ -792,6 +792,8 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
   """
   _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)"
                            r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
+  _VALID_LINE_RE = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
+  _UNUSED_LINE_RE = re.compile("^ *([0-9]+): cs:Unconfigured$")
 
   _DRBD_MAJOR = 147
   _ST_UNCONFIGURED = "Unconfigured"
@@ -817,21 +819,20 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
       _ThrowError("Can't read any data from %s", filename)
     return data
 
-  @staticmethod
-  def _MassageProcData(data):
+  @classmethod
+  def _MassageProcData(cls, data):
     """Transform the output of _GetProdData into a nicer form.
 
     @return: a dictionary of minor: joined lines from /proc/drbd
         for that minor
 
     """
-    lmatch = re.compile("^ *([0-9]+):.*$")
     results = {}
     old_minor = old_line = None
     for line in data:
       if not line: # completely empty lines, as can be returned by drbd8.0+
         continue
-      lresult = lmatch.match(line)
+      lresult = cls._VALID_LINE_RE.match(line)
       if lresult is not None:
         if old_minor is not None:
           results[old_minor] = old_line
@@ -892,9 +893,8 @@ class BaseDRBD(BlockDev): # pylint: disable-msg=W0223
     data = cls._GetProcData()
 
     used_devs = {}
-    valid_line = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
     for line in data:
-      match = valid_line.match(line)
+      match = cls._VALID_LINE_RE.match(line)
       if not match:
         continue
       minor = int(match.group(1))
@@ -1025,14 +1025,12 @@ class DRBD8(BaseDRBD):
     """
     data = cls._GetProcData()
 
-    unused_line = re.compile("^ *([0-9]+): cs:Unconfigured$")
-    used_line = re.compile("^ *([0-9]+): cs:")
     highest = None
     for line in data:
-      match = unused_line.match(line)
+      match = cls._UNUSED_LINE_RE.match(line)
       if match:
         return int(match.group(1))
-      match = used_line.match(line)
+      match = cls._VALID_LINE_RE.match(line)
       if match:
         minor = int(match.group(1))
         highest = max(highest, minor)
