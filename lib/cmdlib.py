@@ -7012,10 +7012,9 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogStep(cstep, steps_total, "Removing old storage")
       cstep += 1
       self._RemoveOldStorage(self.target_node, iv_names)
-      # only release the lock if we're doing secondary replace, since
-      # we use the primary node later
-      if self.target_node != self.instance.primary_node:
-        self._ReleaseNodeLock(self.target_node)
+      # WARNING: we release both node locks here, do not do other RPCs
+      # than WaitForSync to the primary node
+      self._ReleaseNodeLock([self.target_node, self.other_node])
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
@@ -7170,7 +7169,11 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogStep(cstep, steps_total, "Removing old storage")
       cstep += 1
       self._RemoveOldStorage(self.target_node, iv_names)
-      self._ReleaseNodeLock([self.target_node, self.new_node])
+      # WARNING: we release all node locks here, do not do other RPCs
+      # than WaitForSync to the primary node
+      self._ReleaseNodeLock([self.instance.primary_node,
+                             self.target_node,
+                             self.new_node])
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
