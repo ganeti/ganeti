@@ -141,8 +141,12 @@ class _SingleNotifyPipeConditionWaiter(object):
     while True:
       remaining_time = running_timeout.Remaining()
 
-      if remaining_time is not None and remaining_time < 0.0:
-        break
+      if remaining_time is not None:
+        if remaining_time < 0.0:
+          break
+
+        # Our calculation uses seconds, poll() wants milliseconds
+        remaining_time *= 1000
 
       try:
         result = self._poller.poll(remaining_time)

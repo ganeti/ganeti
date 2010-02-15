@@ -361,7 +361,7 @@ Wire protocol
 
 A confd query will look like this, on the wire::
 
-  {
+  plj0{
     "msg": "{\"type\": 1,
              \"rsalt\": \"9aa6ce92-8336-11de-af38-001d093e835f\",
              \"protocol\": 1,
@@ -370,7 +370,10 @@ A confd query will look like this, on the wire::
     "hmac": "4a4139b2c3c5921f7e439469a0a45ad200aead0f"
   }
 
-Detailed explanation of the various fields:
+"plj0" is a fourcc that details the message content. It stands for plain
+json 0, and can be changed as we move on to different type of protocols
+(for example protocol buffers, or encrypted json). What follows is a
+json encoded string, with the following fields:
 
 - 'msg' contains a JSON-encoded query, its fields are:
 
@@ -392,7 +395,7 @@ Detailed explanation of the various fields:
 If an answer comes back (which is optional, since confd works over UDP)
 it will be in this format::
 
-  {
+  plj0{
     "msg": "{\"status\": 0,
              \"answer\": 0,
              \"serial\": 42,
@@ -403,6 +406,7 @@ it will be in this format::
 
 Where:
 
+- 'plj0' the message type magic fourcc, as discussed above
 - 'msg' contains a JSON-encoded answer, its fields are:
 
   - 'protocol', integer, is the confd protocol version (initially just
