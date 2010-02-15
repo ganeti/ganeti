@@ -6715,6 +6715,14 @@ class TLReplaceDisks(Tasklet):
 
         _CheckNodeNotDrained(self.lu, remote_node)
 
+        old_node_info = self.cfg.GetNodeInfo(secondary_node)
+        assert old_node_info is not None
+        if old_node_info.offline and not self.early_release:
+          # doesn't make sense to delay the release
+          self.early_release = True
+          self.lu.LogInfo("Old secondary %s is offline, automatically enabling"
+                          " early-release mode", secondary_node)
+
       else:
         raise errors.ProgrammerError("Unhandled disk replace mode (%s)" %
                                      self.mode)
