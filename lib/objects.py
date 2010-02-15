@@ -110,15 +110,26 @@ class ConfigObject(object):
       setattr(self, k, v)
 
   def __getattr__(self, name):
-    if name not in self.__slots__:
+    if name not in self._all_slots():
       raise AttributeError("Invalid object attribute %s.%s" %
                            (type(self).__name__, name))
     return None
 
   def __setstate__(self, state):
+    slots = self._all_slots()
     for name in state:
-      if name in self.__slots__:
+      if name in slots:
         setattr(self, name, state[name])
+
+  @classmethod
+  def _all_slots(cls):
+    """Compute the list of all declared slots for a class.
+
+    """
+    slots = []
+    for parent in cls.__mro__:
+      slots.extend(getattr(parent, "__slots__", []))
+    return slots
 
   def ToDict(self):
     """Convert to a dict holding only standard python types.
@@ -131,7 +142,7 @@ class ConfigObject(object):
 
     """
     result = {}
-    for name in self.__slots__:
+    for name in self._all_slots():
       value = getattr(self, name, None)
       if value is not None:
         result[name] = value

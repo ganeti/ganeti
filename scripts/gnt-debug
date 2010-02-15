@@ -51,7 +51,7 @@ def Delay(opts, args):
   op = opcodes.OpTestDelay(duration=delay,
                            on_master=opts.on_master,
                            on_nodes=opts.on_nodes)
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
 
   return 0
 
@@ -70,7 +70,7 @@ def GenericOpCodes(opts, args):
 
   """
   cl = cli.GetClient()
-  jex = cli.JobExecutor(cl=cl, verbose=opts.verbose)
+  jex = cli.JobExecutor(cl=cl, verbose=opts.verbose, opts=opts)
 
   job_cnt = 0
   op_cnt = 0
@@ -150,7 +150,7 @@ def TestAllocator(opts, args):
                                direction=opts.direction,
                                allocator=opts.iallocator,
                                )
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, opts=opts)
   ToStdout("%s" % result)
   return 0
 

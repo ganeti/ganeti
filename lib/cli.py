@@ -56,6 +56,7 @@ __all__ = [
   "DISK_OPT",
   "DISK_TEMPLATE_OPT",
   "DRAINED_OPT",
+  "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
   "ERROR_CODES_OPT",
   "FIELDS_OPT",
@@ -484,9 +485,8 @@ cli_option = CliOption
 _YESNO = ("yes", "no")
 _YORNO = "yes|no"
 
-DEBUG_OPT = cli_option("-d", "--debug", default=False,
-                       action="store_true",
-                       help="Turn debugging on")
+DEBUG_OPT = cli_option("-d", "--debug", default=0, action="count",
+                       help="Increase debugging level")
 
 NOHDR_OPT = cli_option("--no-headers", default=False,
                        action="store_true", dest="no_headers",
@@ -851,6 +851,12 @@ SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait for instance shutdown")
 
+EARLY_RELEASE_OPT = cli_option("--early-release",
+                               dest="early_release", default=False,
+                               action="store_true",
+                               help="Release the locks on the secondary"
+                               " node(s) early")
+
 
 def _ParseArgs(argv, commands, aliases):
   """Parser for the command line arguments.
@@ -1196,7 +1202,7 @@ def PollJob(job_id, cl=None, feedback_fn=None):
     raise errors.OpExecError(result)
 
 
-def SubmitOpCode(op, cl=None, feedback_fn=None):
+def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None):
   """Legacy function to submit an opcode.
 
   This is just a simple wrapper over the construction of the processor
@@ -1206,6 +1212,8 @@ def SubmitOpCode(op, cl=None, feedback_fn=None):
   """
   if cl is None:
     cl = GetClient()
+
+  SetGenericOpcodeOpts([op], opts)
 
   job_id = SendJob([op], cl)
 
@@ -1222,16 +1230,35 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
   whether to just send the job and print its identifier. It is used in
   order to simplify the implementation of the '--submit' option.
 
-  It will also add the dry-run parameter from the options passed, if true.
+  It will also process the opcodes if we're sending the via SendJob
+  (otherwise SubmitOpCode does it).
 
   """
-  if opts and opts.dry_run:
-    op.dry_run = opts.dry_run
   if opts and opts.submit_only:
-    job_id = SendJob([op], cl=cl)
+    job = [op]
+    SetGenericOpcodeOpts(job, opts)
+    job_id = SendJob(job, cl=cl)
     raise JobSubmittedException(job_id)
   else:
-    return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn)
+    return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn, opts=opts)
+
+
+def SetGenericOpcodeOpts(opcode_list, options):
+  """Processor for generic options.
+
+  This function updates the given opcodes based on generic command
+  line options (like debug, dry-run, etc.).
+
+  @param opcode_list: list of opcodes
+  @param options: command line options or None
+  @return: None (in-place modification)
+
+  """
+  if not options:
+    return
+  for op in opcode_list:
+    op.dry_run = options.dry_run
+    op.debug_level = options.debug
 
 
 def GetClient():
@@ -1746,13 +1773,14 @@ class JobExecutor(object):
   GetResults() calls.
 
   """
-  def __init__(self, cl=None, verbose=True):
+  def __init__(self, cl=None, verbose=True, opts=None):
     self.queue = []
     if cl is None:
       cl = GetClient()
     self.cl = cl
     self.verbose = verbose
     self.jobs = []
+    self.opts = opts
 
   def QueueJob(self, name, *ops):
     """Record a job for later submit.
@@ -1760,6 +1788,7 @@ class JobExecutor(object):
     @type name: string
     @param name: a description of the job, will be used in WaitJobSet
     """
+    SetGenericOpcodeOpts(ops, self.opts)
     self.queue.append((name, ops))
 
   def SubmitPending(self):

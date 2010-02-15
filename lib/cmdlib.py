@@ -95,6 +95,10 @@ class LogicalUnit(object):
     self.LogStep = processor.LogStep # pylint: disable-msg=C0103
     # support for dry-run
     self.dry_run_result = None
+    # support for generic debug attribute
+    if (not hasattr(self.op, "debug_level") or
+        not isinstance(self.op.debug_level, int)):
+      self.op.debug_level = 0
 
     # Tasklets
     self.tasklets = None
@@ -1603,7 +1607,8 @@ class LUVerifyCluster(LogicalUnit):
         test = msg and not res.offline
         self._ErrorIf(test, self.ENODEHOOKS, node_name,
                       "Communication failure in hooks execution: %s", msg)
-        if test:
+        if res.offline or msg:
+          # No need to investigate payload if node is offline or gave an error.
           # override manually lu_result here as _ErrorIf only
           # overrides self.bad
           lu_result = 1
@@ -3992,7 +3997,9 @@ class LUReinstallInstance(LogicalUnit):
     _StartInstanceDisks(self, inst, None)
     try:
       feedback_fn("Running the instance OS create scripts...")
-      result = self.rpc.call_instance_os_add(inst.primary_node, inst, True)
+      # FIXME: pass debug option from opcode to backend
+      result = self.rpc.call_instance_os_add(inst.primary_node, inst, True,
+                                             self.op.debug_level)
       result.Raise("Could not install OS for instance %s on node %s" %
                    (inst.name, inst.primary_node))
     finally:
@@ -4176,7 +4183,7 @@ class LURenameInstance(LogicalUnit):
     _StartInstanceDisks(self, inst, None)
     try:
       result = self.rpc.call_instance_run_rename(inst.primary_node, inst,
-                                                 old_name)
+                                                 old_name, self.op.debug_level)
       msg = result.fail_msg
       if msg:
         msg = ("Could not run OS rename script for instance %s on node %s"
@@ -4221,7 +4228,8 @@ class LURemoveInstance(LogicalUnit):
     env = _BuildInstanceHookEnvByObject(self, self.instance)
     env["SHUTDOWN_TIMEOUT"] = self.shutdown_timeout
     nl = [self.cfg.GetMasterNode()]
-    return env, nl, nl
+    nl_post = list(self.instance.all_nodes) + nl
+    return env, nl, nl_post
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4591,13 +4599,22 @@ class LUFailoverInstance(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
+    instance = self.instance
+    source_node = instance.primary_node
+    target_node = instance.secondary_nodes[0]
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       "SHUTDOWN_TIMEOUT": self.shutdown_timeout,
+      "OLD_PRIMARY": source_node,
+      "OLD_SECONDARY": target_node,
+      "NEW_PRIMARY": target_node,
+      "NEW_SECONDARY": source_node,
       }
-    env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.secondary_nodes)
-    return env, nl, nl
+    env.update(_BuildInstanceHookEnvByObject(self, instance))
+    nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
+    nl_post = list(nl)
+    nl_post.append(source_node)
+    return env, nl, nl_post
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -4739,11 +4756,21 @@ class LUMigrateInstance(LogicalUnit):
 
     """
     instance = self._migrater.instance
+    source_node = instance.primary_node
+    target_node = instance.secondary_nodes[0]
     env = _BuildInstanceHookEnvByObject(self, instance)
     env["MIGRATE_LIVE"] = self.op.live
     env["MIGRATE_CLEANUP"] = self.op.cleanup
+    env.update({
+        "OLD_PRIMARY": source_node,
+        "OLD_SECONDARY": target_node,
+        "NEW_PRIMARY": target_node,
+        "NEW_SECONDARY": source_node,
+        })
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
-    return env, nl, nl
+    nl_post = list(nl)
+    nl_post.append(source_node)
+    return env, nl, nl_post
 
 
 class LUMoveInstance(LogicalUnit):
@@ -6235,7 +6262,9 @@ class LUCreateInstance(LogicalUnit):
     if iobj.disk_template != constants.DT_DISKLESS:
       if self.op.mode == constants.INSTANCE_CREATE:
         feedback_fn("* running the instance OS create scripts...")
-        result = self.rpc.call_instance_os_add(pnode_name, iobj, False)
+        # FIXME: pass debug option from opcode to backend
+        result = self.rpc.call_instance_os_add(pnode_name, iobj, False,
+                                               self.op.debug_level)
         result.Raise("Could not add os for instance %s"
                      " on node %s" % (instance, pnode_name))
 
@@ -6244,9 +6273,11 @@ class LUCreateInstance(LogicalUnit):
         src_node = self.op.src_node
         src_images = self.src_images
         cluster_name = self.cfg.GetClusterName()
+        # FIXME: pass debug option from opcode to backend
         import_result = self.rpc.call_instance_os_import(pnode_name, iobj,
                                                          src_node, src_images,
-                                                         cluster_name)
+                                                         cluster_name,
+                                                         self.op.debug_level)
         msg = import_result.fail_msg
         if msg:
           self.LogWarning("Error while importing the disk images for instance"
@@ -6334,6 +6365,8 @@ class LUReplaceDisks(LogicalUnit):
       self.op.remote_node = None
     if not hasattr(self.op, "iallocator"):
       self.op.iallocator = None
+    if not hasattr(self.op, "early_release"):
+      self.op.early_release = False
 
     TLReplaceDisks.CheckArguments(self.op.mode, self.op.remote_node,
                                   self.op.iallocator)
@@ -6365,7 +6398,7 @@ class LUReplaceDisks(LogicalUnit):
 
     self.replacer = TLReplaceDisks(self, self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node,
-                                   self.op.disks)
+                                   self.op.disks, False, self.op.early_release)
 
     self.tasklets = [self.replacer]
 
@@ -6412,6 +6445,8 @@ class LUEvacuateNode(LogicalUnit):
       self.op.remote_node = None
     if not hasattr(self.op, "iallocator"):
       self.op.iallocator = None
+    if not hasattr(self.op, "early_release"):
+      self.op.early_release = False
 
     TLReplaceDisks.CheckArguments(constants.REPLACE_DISK_CHG,
                                   self.op.remote_node,
@@ -6457,7 +6492,8 @@ class LUEvacuateNode(LogicalUnit):
       names.append(inst.name)
 
       replacer = TLReplaceDisks(self, inst.name, constants.REPLACE_DISK_CHG,
-                                self.op.iallocator, self.op.remote_node, [])
+                                self.op.iallocator, self.op.remote_node, [],
+                                True, self.op.early_release)
       tasklets.append(replacer)
 
     self.tasklets = tasklets
@@ -6499,7 +6535,7 @@ class TLReplaceDisks(Tasklet):
 
   """
   def __init__(self, lu, instance_name, mode, iallocator_name, remote_node,
-               disks):
+               disks, delay_iallocator, early_release):
     """Initializes this class.
 
     """
@@ -6511,6 +6547,8 @@ class TLReplaceDisks(Tasklet):
     self.iallocator_name = iallocator_name
     self.remote_node = remote_node
     self.disks = disks
+    self.delay_iallocator = delay_iallocator
+    self.early_release = early_release
 
     # Runtime data
     self.instance = None
@@ -6597,6 +6635,19 @@ class TLReplaceDisks(Tasklet):
                                  len(instance.secondary_nodes),
                                  errors.ECODE_FAULT)
 
+    if not self.delay_iallocator:
+      self._CheckPrereq2()
+
+  def _CheckPrereq2(self):
+    """Check prerequisites, second part.
+
+    This function should always be part of CheckPrereq. It was separated and is
+    now called from Exec because during node evacuation iallocator was only
+    called with an unmodified cluster model, not taking planned changes into
+    account.
+
+    """
+    instance = self.instance
     secondary_node = instance.secondary_nodes[0]
 
     if self.iallocator_name is None:
@@ -6670,6 +6721,14 @@ class TLReplaceDisks(Tasklet):
 
         _CheckNodeNotDrained(self.lu, remote_node)
 
+        old_node_info = self.cfg.GetNodeInfo(secondary_node)
+        assert old_node_info is not None
+        if old_node_info.offline and not self.early_release:
+          # doesn't make sense to delay the release
+          self.early_release = True
+          self.lu.LogInfo("Old secondary %s is offline, automatically enabling"
+                          " early-release mode", secondary_node)
+
       else:
         raise errors.ProgrammerError("Unhandled disk replace mode (%s)" %
                                      self.mode)
@@ -6700,6 +6759,9 @@ class TLReplaceDisks(Tasklet):
     This dispatches the disk replacement to the appropriate handler.
 
     """
+    if self.delay_iallocator:
+      self._CheckPrereq2()
+
     if not self.disks:
       feedback_fn("No disks need replacement")
       return
@@ -6837,6 +6899,10 @@ class TLReplaceDisks(Tasklet):
           self.lu.LogWarning("Can't remove old LV: %s" % msg,
                              hint="remove unused LVs manually")
 
+  def _ReleaseNodeLock(self, node_name):
+    """Releases the lock for a given node."""
+    self.lu.context.glm.release(locking.LEVEL_NODE, node_name)
+
   def _ExecDrbd8DiskOnly(self, feedback_fn):
     """Replace a disk on the primary or secondary for DRBD 8.
 
@@ -6947,18 +7013,30 @@ class TLReplaceDisks(Tasklet):
 
       self.cfg.Update(self.instance, feedback_fn)
 
+    cstep = 5
+    if self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      cstep += 1
+      self._RemoveOldStorage(self.target_node, iv_names)
+      # WARNING: we release both node locks here, do not do other RPCs
+      # than WaitForSync to the primary node
+      self._ReleaseNodeLock([self.target_node, self.other_node])
+
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(5, steps_total, "Sync devices")
+    self.lu.LogStep(cstep, steps_total, "Sync devices")
+    cstep += 1
     _WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)
 
     # Step: remove old storage
-    self.lu.LogStep(6, steps_total, "Removing old storage")
-    self._RemoveOldStorage(self.target_node, iv_names)
+    if not self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      cstep += 1
+      self._RemoveOldStorage(self.target_node, iv_names)
 
   def _ExecDrbd8Secondary(self, feedback_fn):
     """Replace the secondary node for DRBD 8.
@@ -7092,19 +7170,31 @@ class TLReplaceDisks(Tasklet):
                            to_node, msg,
                            hint=("please do a gnt-instance info to see the"
                                  " status of disks"))
+    cstep = 5
+    if self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      cstep += 1
+      self._RemoveOldStorage(self.target_node, iv_names)
+      # WARNING: we release all node locks here, do not do other RPCs
+      # than WaitForSync to the primary node
+      self._ReleaseNodeLock([self.instance.primary_node,
+                             self.target_node,
+                             self.new_node])
 
     # Wait for sync
     # This can fail as the old devices are degraded and _WaitForSync
     # does a combined result over all disks, so we don't check its return value
-    self.lu.LogStep(5, steps_total, "Sync devices")
+    self.lu.LogStep(cstep, steps_total, "Sync devices")
+    cstep += 1
     _WaitForSync(self.lu, self.instance)
 
     # Check all devices manually
     self._CheckDevices(self.instance.primary_node, iv_names)
 
     # Step: remove old storage
-    self.lu.LogStep(6, steps_total, "Removing old storage")
-    self._RemoveOldStorage(self.target_node, iv_names)
+    if not self.early_release:
+      self.lu.LogStep(cstep, steps_total, "Removing old storage")
+      self._RemoveOldStorage(self.target_node, iv_names)
 
 
 class LURepairNodeStorage(NoHooksLU):
@@ -7204,10 +7294,7 @@ class LUGrowDisk(LogicalUnit):
       "AMOUNT": self.op.amount,
       }
     env.update(_BuildInstanceHookEnvByObject(self, self.instance))
-    nl = [
-      self.cfg.GetMasterNode(),
-      self.instance.primary_node,
-      ]
+    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
   def CheckPrereq(self):
@@ -8169,8 +8256,10 @@ class LUExportInstance(LogicalUnit):
         feedback_fn("Exporting snapshot %s from %s to %s" %
                     (idx, src_node, dst_node.name))
         if dev:
+          # FIXME: pass debug from opcode to backend
           result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
-                                                 instance, cluster_name, idx)
+                                                 instance, cluster_name,
+                                                 idx, self.op.debug_level)
           msg = result.fail_msg
           if msg:
             self.LogWarning("Could not export disk/%s from node %s to"

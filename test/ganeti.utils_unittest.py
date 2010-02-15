@@ -1054,6 +1054,19 @@ class TestFormatTime(unittest.TestCase):
     FormatTime(int(time.time()))
 
 
+class TestFingerprintFile(unittest.TestCase):
+  def setUp(self):
+    self.tmpfile = tempfile.NamedTemporaryFile()
+
+  def test(self):
+    self.assertEqual(utils._FingerprintFile(self.tmpfile.name),
+                     "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+
+    utils.WriteFile(self.tmpfile.name, data="Hello World\n")
+    self.assertEqual(utils._FingerprintFile(self.tmpfile.name),
+                     "648a6a6ffffdaa0badb23b8baf90b6168dd16b3a")
+
+
 class TestUnescapeAndSplit(unittest.TestCase):
   """Testing case for UnescapeAndSplit"""
 

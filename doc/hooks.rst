@@ -260,9 +260,9 @@ INSTANCE_SECONDARIES refer to the nodes that were repectively primary
 and secondary before failover.
 
 :directory: instance-failover
-:env. vars: IGNORE_CONSISTENCY
+:env. vars: IGNORE_CONSISTENCY, OLD_SECONDARY, OLD_PRIMARY, NEW_SECONDARY, NEW_PRIMARY
 :pre-execution: master node, secondary node
-:post-execution: master node, secondary node
+:post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_MIGRATE
 ++++++++++++++++++++
@@ -272,9 +272,9 @@ INSTANCE_SECONDARIES refer to the nodes that were repectively primary
 and secondary before migration.
 
 :directory: instance-migrate
-:env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP
+:env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP, OLD_SECONDARY, OLD_PRIMARY, NEW_SECONDARY, NEW_PRIMARY
 :pre-execution: master node, secondary node
-:post-execution: master node, secondary node
+:post-execution: master node, primary and secondary nodes
 
 
 OP_INSTANCE_REMOVE
@@ -285,7 +285,7 @@ Remove an instance.
 :directory: instance-remove
 :env. vars: only the standard instance vars
 :pre-execution: master node
-:post-execution: master node
+:post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_REPLACE_DISKS
 +++++++++++++++++++++++++
@@ -304,8 +304,8 @@ Grows the disk of an instance.
 
 :directory: disk-grow
 :env. vars: DISK, AMOUNT
-:pre-execution: master node, primary node
-:post-execution: master node, primary node
+:pre-execution: master node, primary and secondary nodes
+:post-execution: master node, primary and secondary nodes
 
 OP_INSTANCE_RENAME
 ++++++++++++++++++
@@ -492,10 +492,16 @@ INSTANCE_OS_TYPE
   The name of the instance OS.
 
 INSTANCE_PRIMARY
-  The name of the node which is the primary for the instance.
+  The name of the node which is the primary for the instance. Note that
+  for migrations/failovers, you shouldn't rely on this variable since
+  the nodes change during the exectution, but on the
+  OLD_PRIMARY/NEW_PRIMARY values.
 
 INSTANCE_SECONDARIES
-  Space-separated list of secondary nodes for the instance.
+  Space-separated list of secondary nodes for the instance. Note that
+  for migrations/failovers, you shouldn't rely on this variable since
+  the nodes change during the exectution, but on the
+  OLD_SECONDARY/NEW_SECONDARY values.
 
 INSTANCE_MEMORY
   The memory size (in MiBs) of the instance.
@@ -538,13 +544,19 @@ SRC_NODE, SRC_PATH, SRC_IMAGE
 
 NEW_SECONDARY
   The name of the node on which the new mirror component is being
-  added. This can be the name of the current secondary, if the new
-  mirror is on the same secondary.
+  added (for replace disk). This can be the name of the current
+  secondary, if the new mirror is on the same secondary. For
+  migrations/failovers, this is the old primary node.
 
 OLD_SECONDARY
-  The name of the old secondary in the replace-disks command Note that
+  The name of the old secondary in the replace-disks command. Note that
   this can be equal to the new secondary if the secondary node hasn't
-  actually changed.
+  actually changed. For migrations/failovers, this is the new primary
+  node.
+
+OLD_PRIMARY, NEW_PRIMARY
+  For migrations/failovers, the old and respectively new primary
+  nodes. These two mirror the NEW_SECONDARY/OLD_SECONDARY variables
 
 EXPORT_NODE
   The node on which the exported image of the instance was done.
@@ -595,3 +607,7 @@ script::
   GANETI_OP_TARGET=instance2.example.com
 
 .. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

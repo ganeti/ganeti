@@ -143,6 +143,7 @@
       <cmdsynopsis>
         <command>evacuate</command>
         <arg>-f</arg>
+        <arg>--early-release</arg>
         <group>
           <arg>--iallocator <replaceable>NAME</replaceable></arg>
           <arg>--new-secondary <replaceable>destination_node</replaceable></arg>
@@ -170,6 +171,19 @@
             node</simpara>
           </listitem>
         </itemizedlist>
+      </para>
+
+      <para>
+        The <option>--early-release</option> changes the code so that
+        the old storage on node being evacuated is removed early
+        (before the resync is completed) and the internal Ganeti locks
+        are also released for both the current secondary and the new
+        secondary, thus allowing more parallelism in the cluster
+        operation. This should be used only when recovering from a
+        disk failure on the current secondary (thus the old storage is
+        already broken) or when the storage on the primary node is
+        known to be fine (thus we won't need the old storage for
+        potential recovery).
       </para>
 
       <para>

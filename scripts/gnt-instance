@@ -222,7 +222,7 @@ def GenericManyOps(operation, fn):
     if not (opts.force_multi or not multi_on
             or _ConfirmOperation(inames, operation)):
       return 1
-    jex = JobExecutor(verbose=multi_on, cl=cl)
+    jex = JobExecutor(verbose=multi_on, cl=cl, opts=opts)
     for name in inames:
       op = fn(name, opts)
       jex.QueueJob(name, op)
@@ -423,7 +423,7 @@ def BatchCreate(opts, args):
     ToStderr("Can't parse the instance definition file: %s" % str(err))
     return 1
 
-  jex = JobExecutor()
+  jex = JobExecutor(opts=opts)
 
   # Iterate over the instances and do:
   #  * Populate the specs with default value
@@ -517,7 +517,7 @@ def ReinstallInstance(opts, args):
   if opts.select_os is True:
     op = opcodes.OpDiagnoseOS(output_fields=["name", "valid", "variants"],
                               names=[])
-    result = SubmitOpCode(op)
+    result = SubmitOpCode(op, opts=opts)
 
     if not result:
       ToStdout("Can't get the OS list")
@@ -560,7 +560,7 @@ def ReinstallInstance(opts, args):
       if not AskUser(usertext):
         return 1
 
-  jex = JobExecutor(verbose=multi_on)
+  jex = JobExecutor(verbose=multi_on, opts=opts)
   for instance_name in inames:
     op = opcodes.OpReinstallInstance(instance_name=instance_name,
                                      os_type=os_name,
@@ -615,7 +615,7 @@ def RenameInstance(opts, args):
   """
   op = opcodes.OpRenameInstance(instance_name=args[0],
                                 new_name=args[1],
-                                ignore_ip=opts.ignore_ip)
+                                ignore_ip=not opts.ip_check)
   SubmitOrSend(op, opts)
   return 0
 
@@ -807,7 +807,8 @@ def ReplaceDisks(opts, args):
 
   op = opcodes.OpReplaceDisks(instance_name=args[0], disks=disks,
                               remote_node=new_2ndary, mode=mode,
-                              iallocator=iallocator)
+                              iallocator=iallocator,
+                              early_release=opts.early_release)
   SubmitOrSend(op, opts)
   return 0
 
@@ -879,7 +880,7 @@ def MigrateInstance(opts, args):
 
   op = opcodes.OpMigrateInstance(instance_name=instance_name, live=opts.live,
                                  cleanup=opts.cleanup)
-  SubmitOpCode(op, cl=cl)
+  SubmitOpCode(op, cl=cl, opts=opts)
   return 0
 
 
@@ -924,7 +925,7 @@ def ConnectToInstanceConsole(opts, args):
   instance_name = args[0]
 
   op = opcodes.OpConnectConsole(instance_name=instance_name)
-  cmd = SubmitOpCode(op)
+  cmd = SubmitOpCode(op, opts=opts)
 
   if opts.show_command:
     ToStdout("%s", utils.ShellQuoteArgs(cmd))
@@ -1122,7 +1123,7 @@ def ShowInstanceConfig(opts, args):
 
   retcode = 0
   op = opcodes.OpQueryInstanceData(instances=args, static=opts.static)
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, opts=opts)
   if not result:
     ToStdout("No instances.")
     return 1
@@ -1400,7 +1401,7 @@ commands = {
     "<instance> <new_name>", "Rename the instance"),
   'replace-disks': (
     ReplaceDisks, ARGS_ONE_INSTANCE,
-    [AUTO_REPLACE_OPT, DISKIDX_OPT, IALLOCATOR_OPT,
+    [AUTO_REPLACE_OPT, DISKIDX_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT,
      NEW_SECONDARY_OPT, ON_PRIMARY_OPT, ON_SECONDARY_OPT, SUBMIT_OPT],
     "[-s|-p|-n NODE|-I NAME] <instance>",
     "Replaces all disks for the instance"),

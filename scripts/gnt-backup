@@ -80,7 +80,7 @@ def ExportInstance(opts, args):
                                 remove_instance=opts.remove_instance,
                                 ignore_remove_failures=ignore_remove_failures)
 
-  fin_resu, dlist = SubmitOpCode(op)
+  fin_resu, dlist = SubmitOpCode(op, opts=opts)
   if not isinstance(dlist, list):
     ToStderr("Cannot parse execution results")
     return 1
@@ -124,7 +124,7 @@ def RemoveExport(opts, args):
   """
   op = opcodes.OpRemoveExport(instance_name=args[0])
 
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
   return 0
 
 

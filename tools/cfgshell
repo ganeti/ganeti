@@ -93,7 +93,9 @@ class ConfigShell(cmd.Cmd):
     dirs = []
     entries = []
     if isinstance(obj, objects.ConfigObject):
-      for name in obj.__slots__:
+      # pylint: disable-msg=W0212
+      # yes, we're using a protected member
+      for name in obj._all_slots():
         child = getattr(obj, name, None)
         if isinstance(child, (list, dict, tuple, objects.ConfigObject)):
           dirs.append(name)

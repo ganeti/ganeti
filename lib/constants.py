@@ -26,7 +26,7 @@ import re
 from ganeti import _autoconf
 
 # various versions
-PROTOCOL_VERSION = 20
+PROTOCOL_VERSION = 30
 RELEASE_VERSION = _autoconf.PACKAGE_VERSION
 OS_API_V10 = 10
 OS_API_V15 = 15

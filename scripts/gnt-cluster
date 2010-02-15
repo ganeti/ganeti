@@ -105,7 +105,7 @@ def InitCluster(opts, args):
                         modify_ssh_setup=opts.modify_ssh_setup,
                         )
   op = opcodes.OpPostInitCluster()
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
   return 0
 
 
@@ -126,7 +126,7 @@ def DestroyCluster(opts, args):
     return 1
 
   op = opcodes.OpDestroyCluster()
-  master = SubmitOpCode(op)
+  master = SubmitOpCode(op, opts=opts)
   # if we reached this, the opcode didn't fail; we can proceed to
   # shutdown all the daemons
   bootstrap.FinalizeClusterDestroy(master)
@@ -153,7 +153,7 @@ def RenameCluster(opts, args):
       return 1
 
   op = opcodes.OpRenameCluster(name=name)
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
   return 0
 
 
@@ -357,7 +357,7 @@ def VerifyCluster(opts, args):
                                verbose=opts.verbose,
                                error_codes=opts.error_codes,
                                debug_simulate_errors=opts.simulate_errors)
-  if SubmitOpCode(op):
+  if SubmitOpCode(op, opts=opts):
     return 0
   else:
     return 1
@@ -374,7 +374,7 @@ def VerifyDisks(opts, args):
 
   """
   op = opcodes.OpVerifyDisks()
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, opts=opts)
   if not isinstance(result, (list, tuple)) or len(result) != 3:
     raise errors.ProgrammerError("Unknown result type for OpVerifyDisks")
 
@@ -396,7 +396,7 @@ def VerifyDisks(opts, args):
       op = opcodes.OpActivateInstanceDisks(instance_name=iname)
       try:
         ToStdout("Activating disks for instance '%s'", iname)
-        SubmitOpCode(op)
+        SubmitOpCode(op, opts=opts)
       except errors.GenericError, err:
         nret, msg = FormatError(err)
         retcode |= nret
@@ -434,7 +434,7 @@ def RepairDiskSizes(opts, args):
 
   """
   op = opcodes.OpRepairDiskSizes(instances=args)
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
 
 
 @UsesRPC
@@ -474,7 +474,7 @@ def SearchTags(opts, args):
 
   """
   op = opcodes.OpSearchTags(pattern=args[0])
-  result = SubmitOpCode(op)
+  result = SubmitOpCode(op, opts=opts)
   if not result:
     return 1
   result = list(result)
@@ -528,7 +528,7 @@ def SetClusterParams(opts, args):
                                   beparams=beparams,
                                   nicparams=nicparams,
                                   candidate_pool_size=opts.candidate_pool_size)
-  SubmitOpCode(op)
+  SubmitOpCode(op, opts=opts)
   return 0
 
 

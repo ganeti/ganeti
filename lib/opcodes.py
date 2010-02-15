@@ -52,8 +52,9 @@ class BaseOpCode(object):
     __slots__ attribute for this class.
 
     """
+    slots = self._all_slots()
     for key in kwargs:
-      if key not in self.__slots__:
+      if key not in slots:
         raise TypeError("Object %s doesn't support the parameter '%s'" %
                         (self.__class__.__name__, key))
       setattr(self, key, kwargs[key])
@@ -69,7 +70,7 @@ class BaseOpCode(object):
 
     """
     state = {}
-    for name in self.__slots__:
+    for name in self._all_slots():
       if hasattr(self, name):
         state[name] = getattr(self, name)
     return state
@@ -88,12 +89,22 @@ class BaseOpCode(object):
       raise ValueError("Invalid data to __setstate__: expected dict, got %s" %
                        type(state))
 
-    for name in self.__slots__:
+    for name in self._all_slots():
       if name not in state:
         delattr(self, name)
 
     for name in state:
       setattr(self, name, state[name])
+
+  @classmethod
+  def _all_slots(cls):
+    """Compute the list of all declared slots for a class.
+
+    """
+    slots = []
+    for parent in cls.__mro__:
+      slots.extend(getattr(parent, "__slots__", []))
+    return slots
 
 
 class OpCode(BaseOpCode):
@@ -109,7 +120,7 @@ class OpCode(BaseOpCode):
 
   """
   OP_ID = "OP_ABSTRACT"
-  __slots__ = ["dry_run"]
+  __slots__ = ["dry_run", "debug_level"]
 
   def __getstate__(self):
     """Specialized getstate for opcodes.
@@ -419,7 +430,7 @@ class OpEvacuateNode(OpCode):
   OP_ID = "OP_NODE_EVACUATE"
   OP_DSC_FIELD = "node_name"
   __slots__ = [
-    "node_name", "remote_node", "iallocator",
+    "node_name", "remote_node", "iallocator", "early_release",
     ]
 
 
@@ -509,6 +520,7 @@ class OpReplaceDisks(OpCode):
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
     "instance_name", "remote_node", "mode", "disks", "iallocator",
+    "early_release",
     ]
 
 
