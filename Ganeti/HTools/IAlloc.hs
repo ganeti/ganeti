@@ -99,7 +99,6 @@ parseData body = do
   let obj = fromJSObject decoded
   -- request parser
   request <- liftM fromJSObject (fromObj "request" obj)
-  rname <- fromObj "name" request
   -- existing node parsing
   nlist <- liftM fromJSObject (fromObj "nodes" obj)
   nobj <- mapM (\(x,y) -> asJSObject y >>= parseNode x . fromJSObject) nlist
@@ -113,18 +112,21 @@ parseData body = do
   -- cluster tags
   ctags <- fromObj "cluster_tags" obj
   (map_n, map_i, ptags, csf) <- mergeData [] [] (nl, il, ctags)
-  req_nodes <- fromObj "required_nodes" request
   optype <- fromObj "type" request
   rqtype <-
       case optype of
         "allocate" ->
             do
+              rname <- fromObj "name" request
+              req_nodes <- fromObj "required_nodes" request
               inew <- parseBaseInstance rname request
               let io = snd inew
               return $ Allocate io req_nodes
         "relocate" ->
             do
+              rname <- fromObj "name" request
               ridx <- lookupInstance kti rname
+              req_nodes <- fromObj "required_nodes" request
               ex_nodes <- fromObj "relocate_from" request
               let ex_nodes' = map (stripSuffix $ length csf) ex_nodes
               ex_idex <- mapM (Container.findByName map_n) ex_nodes'
