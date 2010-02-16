@@ -8495,25 +8495,25 @@ class IAllocator(object):
   # pylint: disable-msg=R0902
   # lots of instance attributes
   _ALLO_KEYS = [
-    "mem_size", "disks", "disk_template",
+    "name", "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",
     ]
   _RELO_KEYS = [
-    "relocate_from",
+    "name", "relocate_from",
     ]
 
-  def __init__(self, cfg, rpc, mode, name, **kwargs):
+  def __init__(self, cfg, rpc, mode, **kwargs):
     self.cfg = cfg
     self.rpc = rpc
     # init buffer variables
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
     self.mode = mode
-    self.name = name
     self.mem_size = self.disks = self.disk_template = None
     self.os = self.tags = self.nics = self.vcpus = None
     self.hypervisor = None
     self.relocate_from = None
+    self.name = None
     # computed fields
     self.required_nodes = None
     # init result fields
