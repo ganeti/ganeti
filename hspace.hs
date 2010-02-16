@@ -131,9 +131,11 @@ iterateDepth nl il newinst nreq ixes =
            Bad s -> Bad s
            Ok (errs, _, sols3) ->
                case sols3 of
-                 Nothing -> Ok (Cluster.collapseFailures errs, nl, ixes)
-                 Just (_, (xnl, xi, _)) ->
+                 [] -> Ok (Cluster.collapseFailures errs, nl, ixes)
+                 (_, (xnl, xi, _)):[] ->
                      iterateDepth xnl il newinst nreq $! (xi:ixes)
+                 _ -> Bad "Internal error: multiple solutions for single\
+                          \ allocation"
 
 tieredAlloc :: Node.List
             -> Instance.List

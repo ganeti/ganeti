@@ -73,7 +73,7 @@ import qualified Ganeti.OpCodes as OpCodes
 -- * Types
 
 -- | Allocation\/relocation solution.
-type AllocSolution = ([FailMode], Int, Maybe (Score, AllocElement))
+type AllocSolution = ([FailMode], Int, [(Score, AllocElement)])
 
 -- | Allocation\/relocation element.
 type AllocElement = (Node.List, Instance.Instance, [Node.Node])
@@ -499,11 +499,15 @@ concatAllocs (flst, cntok, osols) (OpGood ns@(nl, _, _)) =
     let nscore = compCV nl
         -- Choose the old or new solution, based on the cluster score
         nsols = case osols of
-                  Nothing -> Just (nscore, ns)
-                  Just (oscore, _) ->
+                  [] -> [(nscore, ns)]
+                  (oscore, _):[] ->
                       if oscore < nscore
                       then osols
-                      else Just (nscore, ns)
+                      else [(nscore, ns)]
+                  -- FIXME: here we simply concat to lists with more
+                  -- than one element; we should instead abort, since
+                  -- this is not a valid usage of this function
+                  xs -> (nscore, ns):xs
         nsuc = cntok + 1
     -- Note: we force evaluation of nsols here in order to keep the
     -- memory profile low - we know that we will need nsols for sure
@@ -525,14 +529,14 @@ tryAlloc nl _ inst 2 =
         ok_pairs = filter (\(x, y) -> Node.idx x /= Node.idx y) all_pairs
         sols = foldl' (\cstate (p, s) ->
                            concatAllocs cstate $ allocateOnPair nl inst p s
-                      ) ([], 0, Nothing) ok_pairs
+                      ) ([], 0, []) ok_pairs
     in return sols
 
 tryAlloc nl _ inst 1 =
     let all_nodes = getOnline nl
         sols = foldl' (\cstate ->
                            concatAllocs cstate . allocateOnSingle nl inst
-                      ) ([], 0, Nothing) all_nodes
+                      ) ([], 0, []) all_nodes
     in return sols
 
 tryAlloc _ _ _ reqn = fail $ "Unsupported number of allocation \
@@ -559,7 +563,7 @@ tryReloc nl il xid 1 ex_idx =
                                       applyMove nl inst (ReplaceSecondary x)
                                   return (mnl, i, [Container.find x mnl])
                             in concatAllocs cstate em
-                       ) ([], 0, Nothing) valid_idxes
+                       ) ([], 0, []) valid_idxes
     in return sols1
 
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \

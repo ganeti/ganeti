@@ -50,14 +50,15 @@ options = [oPrintNodes, oShowVer, oShowHelp]
 processResults :: (Monad m) => Cluster.AllocSolution -> m (String, [Node.Node])
 processResults (fstats, successes, sols) =
     case sols of
-      Nothing -> fail "No valid allocation solutions"
-      Just (best, (_, _, w)) ->
+      [] -> fail "No valid allocation solutions"
+      (best, (_, _, w)):[] ->
           let tfails = length fstats
               info = printf "successes %d, failures %d,\
                             \ best score: %.8f for node(s) %s"
                             successes tfails
                             best (intercalate "/" . map Node.name $ w)::String
           in return (info, w)
+      _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Process a request and return new node lists
 processRequest :: Request
