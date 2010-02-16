@@ -355,8 +355,14 @@ class NodeHttpServer(http.server.HttpServer):
 
     """
     instance = objects.Instance.FromDict(params[0])
-    snap_disks = [objects.Disk.FromDict(str_data)
-                  for str_data in params[1]]
+
+    snap_disks = []
+    for disk in params[1]:
+      if isinstance(disk, bool):
+        snap_disks.append(disk)
+      else:
+        snap_disks.append(objects.Disk.FromDict(disk))
+
     return backend.FinalizeExport(instance, snap_disks)
 
   @staticmethod
