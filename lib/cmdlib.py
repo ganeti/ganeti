@@ -46,6 +46,9 @@ from ganeti import serializer
 from ganeti import ssconf
 from ganeti import uidpool
 from ganeti import compat
+from ganeti import masterd
+
+import ganeti.masterd.instance # pylint: disable-msg=W0611
 
 
 class LogicalUnit(object):
@@ -9015,7 +9018,6 @@ class LUExportInstance(LogicalUnit):
 
     try:
       # per-disk results
-      dresults = []
       removed_snaps = [False] * len(instance.disks)
 
       snap_disks = None
@@ -9038,28 +9040,36 @@ class LUExportInstance(LogicalUnit):
 
         # TODO: check for size
 
-        cluster_name = self.cfg.GetClusterName()
-        for idx, dev in enumerate(snap_disks):
-          feedback_fn("Exporting snapshot %s from %s to %s" %
-                      (idx, src_node, dst_node.name))
-          if dev:
-            # FIXME: pass debug from opcode to backend
-            result = self.rpc.call_snapshot_export(src_node, dev, dst_node.name,
-                                                   instance, cluster_name,
-                                                   idx, self.op.debug_level)
-            msg = result.fail_msg
-            if msg:
-              self.LogWarning("Could not export disk/%s from node %s to"
-                              " node %s: %s", idx, src_node, dst_node.name, msg)
-              dresults.append(False)
-            else:
-              dresults.append(True)
+        def _TransferFinished(idx):
+          logging.debug("Transfer %s finished", idx)
+          if self._RemoveSnapshot(feedback_fn, snap_disks, idx):
+            removed_snaps[idx] = True
 
-            # Remove snapshot
-            if self._RemoveSnapshot(feedback_fn, snap_disks, idx):
-              removed_snaps[idx] = True
-          else:
-            dresults.append(False)
+        transfers = []
+
+        for idx, dev in enumerate(snap_disks):
+          if not dev:
+            transfers.append(None)
+            continue
+
+          path = utils.PathJoin(constants.EXPORT_DIR, "%s.new" % instance.name,
+                                dev.physical_id[1])
+
+          finished_fn = compat.partial(_TransferFinished, idx)
+
+          # FIXME: pass debug option from opcode to backend
+          dt = masterd.instance.DiskTransfer("snapshot/%s" % idx,
+                                             constants.IEIO_SCRIPT, (dev, idx),
+                                             constants.IEIO_FILE, (path, ),
+                                             finished_fn)
+          transfers.append(dt)
+
+        # Actually export data
+        dresults = \
+          masterd.instance.TransferInstanceData(self, feedback_fn,
+                                                src_node, dst_node.name,
+                                                dst_node.secondary_ip,
+                                                instance, transfers)
 
         assert len(dresults) == len(instance.disks)
 
