@@ -47,17 +47,26 @@ import Ganeti.HTools.Loader (RqType(..), Request(..))
 options :: [OptType]
 options = [oPrintNodes, oShowVer, oShowHelp]
 
-processResults :: (Monad m) => Cluster.AllocSolution -> m (String, [Node.Node])
-processResults (fstats, successes, sols) =
+processResults :: (Monad m) =>
+                  RqType -> Cluster.AllocSolution
+               -> m (String, Cluster.AllocSolution)
+processResults _ (_, _, []) = fail "No valid allocation solutions"
+processResults (Evacuate _) as@(fstats, successes, sols) =
+    let best = fst $ head sols
+        tfails = length fstats
+        info = printf "for last allocation, successes %d, failures %d,\
+                      \ best score: %.8f" successes tfails best::String
+    in return (info, as)
+
+processResults _ as@(fstats, successes, sols) =
     case sols of
-      [] -> fail "No valid allocation solutions"
       (best, (_, _, w)):[] ->
           let tfails = length fstats
               info = printf "successes %d, failures %d,\
                             \ best score: %.8f for node(s) %s"
                             successes tfails
                             best (intercalate "/" . map Node.name $ w)::String
-          in return (info, w)
+          in return (info, as)
       _ -> fail "Internal error: multiple allocation solutions"
 
 -- | Process a request and return new node lists
@@ -68,6 +77,7 @@ processRequest request =
   in case rqtype of
        Allocate xi reqn -> Cluster.tryAlloc nl il xi reqn
        Relocate idx reqn exnodes -> Cluster.tryReloc nl il idx reqn exnodes
+       Evacuate exnodes -> Cluster.tryEvac nl il exnodes
 
 -- | Main function.
 main :: IO ()
@@ -89,17 +99,17 @@ main = do
                  exitWith $ ExitFailure 1
                Ok rq -> return rq
 
-  let Request _ nl _ _ csf = request
+  let Request rq nl _ _ csf = request
 
   when (isJust shownodes) $ do
          hPutStrLn stderr "Initial cluster status:"
          hPutStrLn stderr $ Cluster.printNodes nl (fromJust shownodes)
 
-  let sols = processRequest request >>= processResults
+  let sols = processRequest request >>= processResults rq
   let (ok, info, rn) =
           case sols of
-            Ok (ginfo, sn) -> (True, "Request successful: " ++ ginfo,
-                                   map ((++ csf) . Node.name) sn)
+            Ok (ginfo, (_, _, sn)) -> (True, "Request successful: " ++ ginfo,
+                                       map snd sn)
             Bad s -> (False, "Request failed: " ++ s, [])
-      resp = formatResponse ok info rn
+      resp = formatResponse ok info csf rq rn
   putStrLn resp

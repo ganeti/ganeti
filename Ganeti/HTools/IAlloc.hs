@@ -131,17 +131,40 @@ parseData body = do
               let ex_nodes' = map (stripSuffix $ length csf) ex_nodes
               ex_idex <- mapM (Container.findByName map_n) ex_nodes'
               return $ Relocate ridx req_nodes (map Node.idx ex_idex)
+        "multi-evacuate" ->
+            do
+              ex_names <- fromObj "evac_nodes" request
+              ex_nodes <- mapM (Container.findByName map_n) ex_names
+              let ex_ndx = map Node.idx ex_nodes
+              return $ Evacuate ex_ndx
         other -> fail ("Invalid request type '" ++ other ++ "'")
   return $ Request rqtype map_n map_i ptags csf
+
+formatRVal :: String -> RqType
+           -> [Node.AllocElement] -> JSValue
+formatRVal csf (Evacuate _) elems =
+    let sols = map (\(_, inst, nl) ->
+                        let names = Instance.name inst : map Node.name nl
+                        in map (++ csf) names) elems
+        jsols = map (JSArray . map (JSString . toJSString)) sols
+    in JSArray jsols
+
+formatRVal csf _ elems =
+    let (_, _, nodes) = head elems
+        nodes' = map ((++ csf) . Node.name) nodes
+    in JSArray $ map (JSString . toJSString) nodes'
+
 
 -- | Formats the response into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
                -> String   -- ^ Information text
-               -> [String] -- ^ The list of chosen nodes
+               -> String   -- ^ Suffix for nodes/instances
+               -> RqType   -- ^ Request type
+               -> [Node.AllocElement] -- ^ The resulting allocations
                -> String   -- ^ The JSON-formatted message
-formatResponse success info nodes =
+formatResponse success info csf rq elems =
     let
         e_success = ("success", JSBool success)
         e_info = ("info", JSString . toJSString $ info)
-        e_nodes = ("nodes", JSArray $ map (JSString . toJSString) nodes)
+        e_nodes = ("nodes", formatRVal csf rq elems)
     in encodeStrict $ makeObj [e_success, e_info, e_nodes]

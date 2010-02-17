@@ -56,7 +56,7 @@ exTagsPrefix = "htools:iextags:"
 
 -- * Types
 
-{-| The request type.
+{-| The iallocator request type.
 
 This type denotes what request we got from Ganeti and also holds
 request-specific fields.
@@ -66,6 +66,7 @@ data RqType
     = Allocate Instance.Instance Int -- ^ A new instance allocation
     | Relocate Idx Int [Ndx]         -- ^ Move an instance to a new
                                      -- secondary node
+    | Evacuate [Ndx]                 -- ^ Evacuate nodes
     deriving (Show)
 
 -- | A complete request, as received from Ganeti.
