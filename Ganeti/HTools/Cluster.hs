@@ -73,10 +73,7 @@ import qualified Ganeti.OpCodes as OpCodes
 -- * Types
 
 -- | Allocation\/relocation solution.
-type AllocSolution = ([FailMode], Int, [(Score, AllocElement)])
-
--- | Allocation\/relocation element.
-type AllocElement = (Node.List, Instance.Instance, [Node.Node])
+type AllocSolution = ([FailMode], Int, [(Score, Node.AllocElement)])
 
 -- | The complete state for the balancing solution
 data Table = Table Node.List Instance.List Score [Placement]
@@ -342,7 +339,7 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Node.Node
-                 -> OpResult AllocElement
+                 -> OpResult Node.AllocElement
 allocateOnSingle nl inst p =
     let new_pdx = Node.idx p
         new_inst = Instance.setBoth inst new_pdx Node.noSecondary
@@ -352,7 +349,7 @@ allocateOnSingle nl inst p =
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: Node.List -> Instance.Instance -> Node.Node -> Node.Node
-               -> OpResult AllocElement
+               -> OpResult Node.AllocElement
 allocateOnPair nl inst tgt_p tgt_s =
     let new_pdx = Node.idx tgt_p
         new_sdx = Node.idx tgt_s
@@ -492,7 +489,7 @@ collapseFailures flst =
 
 -- | Update current Allocation solution and failure stats with new
 -- elements
-concatAllocs :: AllocSolution -> OpResult AllocElement -> AllocSolution
+concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
 concatAllocs (flst, cntok, sols) (OpFail reason) = (reason:flst, cntok, sols)
 
 concatAllocs (flst, cntok, osols) (OpGood ns@(nl, _, _)) =

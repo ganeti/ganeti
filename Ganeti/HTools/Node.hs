@@ -56,6 +56,7 @@ module Ganeti.HTools.Node
     , list
     -- * Misc stuff
     , AssocList
+    , AllocElement
     , noSecondary
     ) where
 
@@ -122,6 +123,10 @@ type AssocList = [(T.Ndx, Node)]
 
 -- | A simple name for a node map.
 type List = Container.Container Node
+
+-- | A simple name for an allocation element (here just for logistic
+-- reasons)
+type AllocElement = (List, Instance.Instance, [Node])
 
 -- | Constant node index for a non-moveable instance.
 noSecondary :: T.Ndx
