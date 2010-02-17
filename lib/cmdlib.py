@@ -439,11 +439,7 @@ def _GetWantedNodes(lu, nodes):
     raise errors.ProgrammerError("_GetWantedNodes should only be called with a"
       " non-empty list of nodes whose name is to be expanded.")
 
-  wanted = []
-  for name in nodes:
-    node = _ExpandNodeName(lu.cfg, name)
-    wanted.append(node)
-
+  wanted = [_ExpandNodeName(lu.cfg, name) for name in nodes]
   return utils.NiceSort(wanted)
 
 
