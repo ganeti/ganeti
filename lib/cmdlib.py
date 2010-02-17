@@ -7212,6 +7212,60 @@ class LURepairNodeStorage(NoHooksLU):
                  (self.op.name, self.op.node_name))
 
 
+class LUNodeEvacuationStrategy(NoHooksLU):
+  """Computes the node evacuation strategy.
+
+  """
+  _OP_REQP = ["nodes"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
+    if not hasattr(self.op, "iallocator"):
+      self.op.iallocator = None
+    if self.op.remote_node is not None and self.op.iallocator is not None:
+      raise errors.OpPrereqError("Give either the iallocator or the new"
+                                 " secondary, not both", errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    self.op.nodes = _GetWantedNodes(self, self.op.nodes)
+    self.needed_locks = locks = {}
+    if self.op.remote_node is None:
+      locks[locking.LEVEL_NODE] = locking.ALL_SET
+    else:
+      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
+      locks[locking.LEVEL_NODE] = self.op.nodes + [self.op.remote_node]
+
+  def CheckPrereq(self):
+    pass
+
+  def Exec(self, feedback_fn):
+    if self.op.remote_node is not None:
+      instances = []
+      for node in self.op.nodes:
+        instances.extend(_GetNodeSecondaryInstances(self.cfg, node))
+      result = []
+      for i in instances:
+        if i.primary_node == self.op.remote_node:
+          raise errors.OpPrereqError("Node %s is the primary node of"
+                                     " instance %s, cannot use it as"
+                                     " secondary" %
+                                     (self.op.remote_node, i.name),
+                                     errors.ECODE_INVAL)
+        result.append([i.name, self.op.remote_node])
+    else:
+      ial = IAllocator(self.cfg, self.rpc,
+                       mode=constants.IALLOCATOR_MODE_MEVAC,
+                       evac_nodes=self.op.nodes)
+      ial.Run(self.op.iallocator, validate=True)
+      if not ial.success:
+        raise errors.OpExecError("No valid evacuation solution: %s" % ial.info,
+                                 errors.ECODE_NORES)
+      result = ial.result
+    return result
+
+
 class LUGrowDisk(LogicalUnit):
   """Grow a disk of an instance.
 
