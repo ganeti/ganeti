@@ -8501,6 +8501,9 @@ class IAllocator(object):
   _RELO_KEYS = [
     "name", "relocate_from",
     ]
+  _EVAC_KEYS = [
+    "evac_nodes",
+    ]
 
   def __init__(self, cfg, rpc, mode, **kwargs):
     self.cfg = cfg
@@ -8514,6 +8517,7 @@ class IAllocator(object):
     self.hypervisor = None
     self.relocate_from = None
     self.name = None
+    self.evac_nodes = None
     # computed fields
     self.required_nodes = None
     # init result fields
@@ -8524,6 +8528,9 @@ class IAllocator(object):
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       keyset = self._RELO_KEYS
       fn = self._AddRelocateInstance
+    elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
+      keyset = self._EVAC_KEYS
+      fn = self._AddEvacuateNodes
     else:
       raise errors.ProgrammerError("Unknown mode '%s' passed to the"
                                    " IAllocator" % self.mode)
@@ -8532,6 +8539,7 @@ class IAllocator(object):
         raise errors.ProgrammerError("Invalid input parameter '%s' to"
                                      " IAllocator" % key)
       setattr(self, key, kwargs[key])
+
     for key in keyset:
       if key not in kwargs:
         raise errors.ProgrammerError("Missing input parameter '%s' to"
@@ -8565,6 +8573,8 @@ class IAllocator(object):
       hypervisor_name = self.hypervisor
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       hypervisor_name = cfg.GetInstanceInfo(self.name).hypervisor
+    elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
+      hypervisor_name = cluster_info.enabled_hypervisors[0]
 
     node_data = self.rpc.call_node_info(node_list, cfg.GetVGName(),
                                         hypervisor_name)
@@ -8727,6 +8737,15 @@ class IAllocator(object):
       "disk_space_total": disk_space,
       "required_nodes": self.required_nodes,
       "relocate_from": self.relocate_from,
+      }
+    return request
+
+  def _AddEvacuateNodes(self):
+    """Add evacuate nodes data to allocator structure.
+
+    """
+    request = {
+      "evac_nodes": self.evac_nodes
       }
     return request
 
