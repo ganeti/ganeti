@@ -428,7 +428,7 @@ def _GetWantedNodes(lu, nodes):
   @param nodes: list of node names or None for all nodes
   @rtype: list
   @return: the list of nodes, sorted
-  @raise errors.OpProgrammerError: if the nodes parameter is wrong type
+  @raise errors.ProgrammerError: if the nodes parameter is wrong type
 
   """
   if not isinstance(nodes, list):
