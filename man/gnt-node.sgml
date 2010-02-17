@@ -148,12 +148,12 @@
           <arg>--iallocator <replaceable>NAME</replaceable></arg>
           <arg>--new-secondary <replaceable>destination_node</replaceable></arg>
         </group>
-        <arg choice="req"><replaceable>node</replaceable></arg>
+        <arg choice="req" rep="repeat"><replaceable>node</replaceable></arg>
       </cmdsynopsis>
 
       <para>
         This command will move all secondary instances away from the
-        given node. It works only for instances having a drbd disk
+        given node(s). It works only for instances having a drbd disk
         template.
       </para>
 
