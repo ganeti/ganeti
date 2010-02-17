@@ -2057,6 +2057,9 @@ def RunInSeparateProcess(fn):
   if pid == 0:
     # Child process
     try:
+      # In case the function uses temporary files
+      ResetTempfileModule()
+
       # Call function
       result = int(bool(fn()))
       assert result in (0, 1)

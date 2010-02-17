@@ -32,6 +32,7 @@ import signal
 import asyncore
 
 from ganeti import http
+from ganeti import utils
 
 
 WEEKDAYNAME = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -531,6 +532,9 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
         except socket.error:
           pass
         self.socket = None
+
+        # In case the handler code uses temporary files
+        utils.ResetTempfileModule()
 
         self.request_executor(self, connection, client_addr)
       except Exception: # pylint: disable-msg=W0703
