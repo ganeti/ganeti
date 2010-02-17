@@ -8861,6 +8861,10 @@ class LUTestAllocator(NoHooksLU):
       fname = _ExpandInstanceName(self.cfg, self.op.name)
       self.op.name = fname
       self.relocate_from = self.cfg.GetInstanceInfo(fname).secondary_nodes
+    elif self.op.mode == constants.IALLOCATOR_MODE_MEVAC:
+      if not hasattr(self.op, "evac_nodes"):
+        raise errors.OpPrereqError("Missing attribute 'evac_nodes' on"
+                                   " opcode input", errors.ECODE_INVAL)
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
@@ -8890,12 +8894,19 @@ class LUTestAllocator(NoHooksLU):
                        vcpus=self.op.vcpus,
                        hypervisor=self.op.hypervisor,
                        )
-    else:
+    elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        name=self.op.name,
                        relocate_from=list(self.relocate_from),
                        )
+    elif self.op.mode == constants.IALLOCATOR_MODE_MEVAC:
+      ial = IAllocator(self.cfg, self.rpc,
+                       mode=self.op.mode,
+                       evac_nodes=self.op.evac_nodes)
+    else:
+      raise errors.ProgrammerError("Uncatched mode %s in"
+                                   " LUTestAllocator.Exec", self.op.mode)
 
     if self.op.direction == constants.IALLOCATOR_DIR_IN:
       result = ial.in_text

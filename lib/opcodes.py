@@ -725,6 +725,7 @@ class OpTestAllocator(OpCode):
     "direction", "mode", "allocator", "name",
     "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",
+    "evac_nodes",
     ]
 
 
