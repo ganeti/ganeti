@@ -1054,6 +1054,37 @@ class TestFormatTime(unittest.TestCase):
     FormatTime(int(time.time()))
 
 
+class RunInSeparateProcess(unittest.TestCase):
+  def test(self):
+    for exp in [True, False]:
+      def _child():
+        return exp
+
+      self.assertEqual(exp, utils.RunInSeparateProcess(_child))
+
+  def testPid(self):
+    parent_pid = os.getpid()
+
+    def _check():
+      return os.getpid() == parent_pid
+
+    self.failIf(utils.RunInSeparateProcess(_check))
+
+  def testSignal(self):
+    def _kill():
+      os.kill(os.getpid(), signal.SIGTERM)
+
+    self.assertRaises(errors.GenericError,
+                      utils.RunInSeparateProcess, _kill)
+
+  def testException(self):
+    def _exc():
+      raise errors.GenericError("This is a test")
+
+    self.assertRaises(errors.GenericError,
+                      utils.RunInSeparateProcess, _exc)
+
+
 class TestFingerprintFile(unittest.TestCase):
   def setUp(self):
     self.tmpfile = tempfile.NamedTemporaryFile()

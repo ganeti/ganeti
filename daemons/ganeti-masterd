@@ -29,7 +29,6 @@ inheritance from parent classes requires it.
 # pylint: disable-msg=C0103
 # C0103: Invalid name ganeti-masterd
 
-import os
 import sys
 import SocketServer
 import time
@@ -497,50 +496,6 @@ def CheckAgreementWithRpc():
     rpc.Shutdown()
 
 
-def _RunInSeparateProcess(fn):
-  """Runs a function in a separate process.
-
-  Note: Only boolean return values are supported.
-
-  @type fn: callable
-  @param fn: Function to be called
-  @rtype: bool
-
-  """
-  pid = os.fork()
-  if pid == 0:
-    # Child process
-    try:
-      # Call function
-      result = int(bool(fn()))
-      assert result in (0, 1)
-    except: # pylint: disable-msg=W0702
-      logging.exception("Error while calling function in separate process")
-      # 0 and 1 are reserved for the return value
-      result = 33
-
-    os._exit(result) # pylint: disable-msg=W0212
-
-  # Parent process
-
-  # Avoid zombies and check exit code
-  (_, status) = os.waitpid(pid, 0)
-
-  if os.WIFSIGNALED(status):
-    signum = os.WTERMSIG(status)
-    exitcode = None
-  else:
-    signum = None
-    exitcode = os.WEXITSTATUS(status)
-
-  if not (exitcode in (0, 1) and signum is None):
-    logging.error("Child program failed (code=%s, signal=%s)",
-                  exitcode, signum)
-    sys.exit(constants.EXIT_FAILURE)
-
-  return bool(exitcode)
-
-
 def CheckMasterd(options, args):
   """Initial checks whether to run or exit with a failure.
 
@@ -571,7 +526,7 @@ def CheckMasterd(options, args):
 
   # CheckAgreement uses RPC and threads, hence it needs to be run in a separate
   # process before we call utils.Daemonize in the current process.
-  if not _RunInSeparateProcess(CheckAgreementWithRpc):
+  if not utils.RunInSeparateProcess(CheckAgreementWithRpc):
     sys.exit(constants.EXIT_FAILURE)
 
 

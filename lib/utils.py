@@ -2042,6 +2042,50 @@ def GetFilesystemStats(path):
   return (tsize, fsize)
 
 
+def RunInSeparateProcess(fn):
+  """Runs a function in a separate process.
+
+  Note: Only boolean return values are supported.
+
+  @type fn: callable
+  @param fn: Function to be called
+  @rtype: tuple of (int/None, int/None)
+  @return: Exit code and signal number
+
+  """
+  pid = os.fork()
+  if pid == 0:
+    # Child process
+    try:
+      # Call function
+      result = int(bool(fn()))
+      assert result in (0, 1)
+    except: # pylint: disable-msg=W0702
+      logging.exception("Error while calling function in separate process")
+      # 0 and 1 are reserved for the return value
+      result = 33
+
+    os._exit(result) # pylint: disable-msg=W0212
+
+  # Parent process
+
+  # Avoid zombies and check exit code
+  (_, status) = os.waitpid(pid, 0)
+
+  if os.WIFSIGNALED(status):
+    exitcode = None
+    signum = os.WTERMSIG(status)
+  else:
+    exitcode = os.WEXITSTATUS(status)
+    signum = None
+
+  if not (exitcode in (0, 1) and signum is None):
+    raise errors.GenericError("Child program failed (code=%s, signal=%s)" %
+                              (exitcode, signum))
+
+  return bool(exitcode)
+
+
 def LockedMethod(fn):
   """Synchronized object access decorator.
 
