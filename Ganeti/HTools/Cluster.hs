@@ -55,6 +55,7 @@ module Ganeti.HTools.Cluster
     -- * IAllocator functions
     , tryAlloc
     , tryReloc
+    , tryEvac
     , collapseFailures
     ) where
 
@@ -566,6 +567,27 @@ tryReloc nl il xid 1 ex_idx =
 tryReloc _ _ _ reqn _  = fail $ "Unsupported number of relocation \
                                 \destinations required (" ++ show reqn ++
                                                   "), only one supported"
+
+-- | Try to allocate an instance on the cluster.
+tryEvac :: (Monad m) =>
+            Node.List       -- ^ The node list
+         -> Instance.List   -- ^ The instance list
+         -> [Ndx]           -- ^ Nodes to be evacuated
+         -> m AllocSolution -- ^ Solution list
+tryEvac nl il ex_ndx =
+    let ex_nodes = map (flip Container.find nl) ex_ndx
+        all_insts = nub . concat . map Node.sList $ ex_nodes
+    in do
+      (_, sol) <- foldM (\(nl', (_, _, rsols)) idx -> do
+                           -- FIXME: hardcoded one node here
+                           (fm, cs, aes) <- tryReloc nl' il idx 1 ex_ndx
+                           case aes of
+                             csol@(_, (nl'', _, _)):_ ->
+                                 return (nl'', (fm, cs, csol:rsols))
+                             _ -> fail $ "Can't evacuate instance " ++
+                                  show idx
+                        ) (nl, ([], 0, [])) all_insts
+      return sol
 
 -- * Formatting functions
 
