@@ -5904,17 +5904,17 @@ class LUCreateInstance(LogicalUnit):
                                  " iallocator '%s': %s" %
                                  (self.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
-    if len(ial.nodes) != ial.required_nodes:
+    if len(ial.result) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (self.op.iallocator, len(ial.nodes),
+                                 (self.op.iallocator, len(ial.result),
                                   ial.required_nodes), errors.ECODE_FAULT)
-    self.op.pnode = ial.nodes[0]
+    self.op.pnode = ial.result[0]
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                  self.op.instance_name, self.op.iallocator,
-                 utils.CommaJoin(ial.nodes))
+                 utils.CommaJoin(ial.result))
     if ial.required_nodes == 2:
-      self.op.snode = ial.nodes[1]
+      self.op.snode = ial.result[1]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -6549,14 +6549,14 @@ class TLReplaceDisks(Tasklet):
                                  " %s" % (iallocator_name, ial.info),
                                  errors.ECODE_NORES)
 
-    if len(ial.nodes) != ial.required_nodes:
+    if len(ial.result) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
                                  (iallocator_name,
-                                  len(ial.nodes), ial.required_nodes),
+                                  len(ial.result), ial.required_nodes),
                                  errors.ECODE_FAULT)
 
-    remote_node_name = ial.nodes[0]
+    remote_node_name = ial.result[0]
 
     lu.LogInfo("Selected new secondary for instance '%s': %s",
                instance_name, remote_node_name)
@@ -8517,7 +8517,7 @@ class IAllocator(object):
     # computed fields
     self.required_nodes = None
     # init result fields
-    self.success = self.info = self.nodes = None
+    self.success = self.info = self.result = None
     if self.mode == constants.IALLOCATOR_MODE_ALLOC:
       keyset = self._ALLO_KEYS
       fn = self._AddNewInstance
@@ -8771,14 +8771,19 @@ class IAllocator(object):
     if not isinstance(rdict, dict):
       raise errors.OpExecError("Can't parse iallocator results: not a dict")
 
-    for key in "success", "info", "nodes":
+    # TODO: remove backwards compatiblity in later versions
+    if "nodes" in rdict and "result" not in rdict:
+      rdict["result"] = rdict["nodes"]
+      del rdict["nodes"]
+
+    for key in "success", "info", "result":
       if key not in rdict:
         raise errors.OpExecError("Can't parse iallocator results:"
                                  " missing key '%s'" % key)
       setattr(self, key, rdict[key])
 
-    if not isinstance(rdict["nodes"], list):
-      raise errors.OpExecError("Can't parse iallocator results: 'nodes' key"
+    if not isinstance(rdict["result"], list):
+      raise errors.OpExecError("Can't parse iallocator results: 'result' key"
                                " is not a list")
     self.out_data = rdict
 
