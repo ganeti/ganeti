@@ -132,17 +132,24 @@ def _InitGanetiServerSetup(master_name):
                              " had exitcode %s and error %s" %
                              (result.cmd, result.exit_code, result.output))
 
-  # Wait for node daemon to become responsive
+  _WaitForNodeDaemon(master_name)
+
+
+def _WaitForNodeDaemon(node_name):
+  """Wait for node daemon to become responsive.
+
+  """
   def _CheckNodeDaemon():
-    result = rpc.RpcRunner.call_version([master_name])[master_name]
+    result = rpc.RpcRunner.call_version([node_name])[node_name]
     if result.fail_msg:
       raise utils.RetryAgain()
 
   try:
     utils.Retry(_CheckNodeDaemon, 1.0, 10.0)
   except utils.RetryTimeout:
-    raise errors.OpExecError("Node daemon didn't answer queries within"
-                             " 10 seconds")
+    raise errors.OpExecError("Node daemon on %s didn't answer queries within"
+                             " 10 seconds" % node_name)
+
 
 def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
@@ -425,6 +432,8 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
     raise errors.OpExecError("Remote command on node %s, error: %s,"
                              " output: %s" %
                              (node, result.fail_reason, result.output))
+
+  _WaitForNodeDaemon(node)
 
 
 def MasterFailover(no_voting=False):
