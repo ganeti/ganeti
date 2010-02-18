@@ -112,7 +112,6 @@ DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
 SYSCONFDIR = _autoconf.SYSCONFDIR
 TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
-OPENSSL_PATH = _autoconf.OPENSSL_PATH
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
@@ -170,6 +169,14 @@ KVM_PATH = _autoconf.KVM_PATH
 SOCAT_PATH = _autoconf.SOCAT_PATH
 SOCAT_USE_ESCAPE = _autoconf.SOCAT_USE_ESCAPE
 SOCAT_ESCAPE_CODE = "0x1d"
+
+# For RSA keys more bits are better, but they also make operations more
+# expensive. NIST SP 800-131 recommends a minimum of 2048 bits from the year
+# 2010 on.
+RSA_KEY_BITS = 2048
+
+# Digest used to sign certificates ("openssl x509" uses SHA1 by default)
+X509_CERT_SIGN_DIGEST = "SHA1"
 
 VALUE_DEFAULT = "default"
 VALUE_AUTO = "auto"

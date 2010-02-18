@@ -43,6 +43,7 @@ import resource
 import logging
 import logging.handlers
 import signal
+import OpenSSL
 
 from cStringIO import StringIO
 
@@ -2371,39 +2372,53 @@ def Retry(fn, delay, timeout, args=None, wait_fn=time.sleep,
         wait_fn(current_delay)
 
 
-def GenerateSelfSignedSslCert(file_name, validity=(365 * 5)):
-  """Generates a self-signed SSL certificate.
-
-  @type file_name: str
-  @param file_name: Path to output file
-  @type validity: int
-  @param validity: Validity for certificate in days
+def GetClosedTempfile(*args, **kwargs):
+  """Creates a temporary file and returns its path.
 
   """
-  (fd, tmp_file_name) = tempfile.mkstemp(dir=os.path.dirname(file_name))
-  try:
-    try:
-      # Set permissions before writing key
-      os.chmod(tmp_file_name, 0600)
+  (fd, path) = tempfile.mkstemp(*args, **kwargs)
+  _CloseFDNoErr(fd)
+  return path
 
-      result = RunCmd([constants.OPENSSL_PATH, "req",
-                       "-new", "-newkey", "rsa:1024",
-                       "-days", str(validity), "-nodes", "-x509",
-                       "-keyout", tmp_file_name, "-out", tmp_file_name,
-                       "-batch"])
-      if result.failed:
-        raise errors.OpExecError("Could not generate SSL certificate, command"
-                                 " %s had exitcode %s and error message %s" %
-                                 (result.cmd, result.exit_code, result.output))
 
-      # Make read-only
-      os.chmod(tmp_file_name, 0400)
+def GenerateSelfSignedX509Cert(common_name, validity):
+  """Generates a self-signed X509 certificate.
 
-      os.rename(tmp_file_name, file_name)
-    finally:
-      RemoveFile(tmp_file_name)
-  finally:
-    os.close(fd)
+  @type common_name: string
+  @param common_name: commonName value
+  @type validity: int
+  @param validity: Validity for certificate in seconds
+
+  """
+  # Create private and public key
+  key = OpenSSL.crypto.PKey()
+  key.generate_key(OpenSSL.crypto.TYPE_RSA, constants.RSA_KEY_BITS)
+
+  # Create self-signed certificate
+  cert = OpenSSL.crypto.X509()
+  if common_name:
+    cert.get_subject().CN = common_name
+  cert.set_serial_number(1)
+  cert.gmtime_adj_notBefore(0)
+  cert.gmtime_adj_notAfter(validity)
+  cert.set_issuer(cert.get_subject())
+  cert.set_pubkey(key)
+  cert.sign(key, constants.X509_CERT_SIGN_DIGEST)
+
+  key_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key)
+  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+
+  return (key_pem, cert_pem)
+
+
+def GenerateSelfSignedSslCert(filename, validity=(5 * 365)):
+  """Legacy function to generate self-signed X509 certificate.
+
+  """
+  (key_pem, cert_pem) = GenerateSelfSignedX509Cert(None,
+                                                   validity * 24 * 60 * 60)
+
+  WriteFile(filename, mode=0400, data=key_pem + cert_pem)
 
 
 class FileLock(object):

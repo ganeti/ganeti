@@ -201,14 +201,6 @@ then
   AC_MSG_WARN([pylint not found, checking code will not be possible])
 fi
 
-# Check for openssl
-AC_ARG_VAR(OPENSSL, [openssl path])
-AC_PATH_PROG(OPENSSL, [openssl], [])
-if test -z "$OPENSSL"
-then
-  AC_MSG_ERROR([openssl not found])
-fi
-
 # Check for socat
 AC_ARG_VAR(SOCAT, [socat path])
 AC_PATH_PROG(SOCAT, [socat], [])

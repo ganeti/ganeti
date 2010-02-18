@@ -35,6 +35,7 @@ import re
 import select
 import string
 import fcntl
+import OpenSSL
 
 import ganeti
 import testutils
@@ -1158,32 +1159,51 @@ class TestUnescapeAndSplit(unittest.TestCase):
       self.failUnlessEqual(UnescapeAndSplit(sep.join(a), sep=sep), b)
 
 
-class TestGenerateSelfSignedSslCert(unittest.TestCase):
+class TestGenerateSelfSignedX509Cert(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
 
-  def _checkPrivateRsaKey(self, key):
+  def _checkRsaPrivateKey(self, key):
     lines = key.splitlines()
-    self.assert_("-----BEGIN RSA PRIVATE KEY-----" in lines)
-    self.assert_("-----END RSA PRIVATE KEY-----" in lines)
+    return ("-----BEGIN RSA PRIVATE KEY-----" in lines and
+            "-----END RSA PRIVATE KEY-----" in lines)
 
-  def _checkRsaCertificate(self, cert):
+  def _checkCertificate(self, cert):
     lines = cert.splitlines()
-    self.assert_("-----BEGIN CERTIFICATE-----" in lines)
-    self.assert_("-----END CERTIFICATE-----" in lines)
+    return ("-----BEGIN CERTIFICATE-----" in lines and
+            "-----END CERTIFICATE-----" in lines)
 
-  def testSingleFile(self):
+  def test(self):
+    for common_name in [None, ".", "Ganeti", "node1.example.com"]:
+      (key_pem, cert_pem) = utils.GenerateSelfSignedX509Cert(common_name, 300)
+      self._checkRsaPrivateKey(key_pem)
+      self._checkCertificate(cert_pem)
+
+      key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
+                                           key_pem)
+      self.assert_(key.bits() >= 1024)
+      self.assertEqual(key.bits(), constants.RSA_KEY_BITS)
+      self.assertEqual(key.type(), OpenSSL.crypto.TYPE_RSA)
+
+      x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                             cert_pem)
+      self.failIf(x509.has_expired())
+      self.assertEqual(x509.get_issuer().CN, common_name)
+      self.assertEqual(x509.get_subject().CN, common_name)
+      self.assertEqual(x509.get_pubkey().bits(), constants.RSA_KEY_BITS)
+
+  def testLegacy(self):
     cert1_filename = os.path.join(self.tmpdir, "cert1.pem")
 
     utils.GenerateSelfSignedSslCert(cert1_filename, validity=1)
 
     cert1 = utils.ReadFile(cert1_filename)
 
-    self._checkPrivateRsaKey(cert1)
-    self._checkRsaCertificate(cert1)
+    self.assert_(self._checkRsaPrivateKey(cert1))
+    self.assert_(self._checkCertificate(cert1))
 
 
 if __name__ == '__main__':

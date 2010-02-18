@@ -458,7 +458,6 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "PKGLIBDIR = '$(pkglibdir)'"; \
 	  echo "DRBD_BARRIERS = $(DRBD_BARRIERS)"; \
 	  echo "SYSLOG_USAGE = '$(SYSLOG_USAGE)'"; \
-	  echo "OPENSSL_PATH = '$(OPENSSL)'"; \
 	} > $@
 
 $(REPLACE_VARS_SED): Makefile
