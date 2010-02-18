@@ -71,8 +71,16 @@ class TestSerializer(testutils.GanetiTestCase):
       self.assertEqualValues(LoadSigned(DumpSigned(data, "mykey"), "mykey"),
                              (data, ''))
       self.assertEqualValues(LoadSigned(DumpSigned(data, "myprivatekey",
-                                                   "mysalt"),
+                                                   salt="mysalt"),
                                         "myprivatekey"),
+                             (data, "mysalt"))
+
+      keydict = {"mykey_id": "myprivatekey"}
+      self.assertEqualValues(LoadSigned(DumpSigned(data,
+                                                   "myprivatekey",
+                                                   salt="mysalt",
+                                                   key_selector="mykey_id"),
+                                        keydict.get),
                              (data, "mysalt"))
 
     self.assertRaises(errors.SignatureError, serializer.LoadSigned,
