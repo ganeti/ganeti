@@ -114,10 +114,15 @@ class SshRunner:
       else:
         options.append("-oStrictHostKeyChecking=no")
 
-    elif ask_key:
-      options.extend([
-        "-oStrictHostKeyChecking=ask",
-        ])
+    else:
+      # non-batch mode
+
+      if ask_key:
+        options.append("-oStrictHostKeyChecking=ask")
+      elif strict_host_check:
+        options.append("-oStrictHostKeyChecking=yes")
+      else:
+        options.append("-oStrictHostKeyChecking=no")
 
     return options
 
