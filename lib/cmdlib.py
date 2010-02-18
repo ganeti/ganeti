@@ -304,12 +304,9 @@ class LogicalUnit(object):
     else:
       assert locking.LEVEL_INSTANCE not in self.needed_locks, \
         "_ExpandAndLockInstance called with instance-level locks set"
-    expanded_name = self.cfg.ExpandInstanceName(self.op.instance_name)
-    if expanded_name is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name, errors.ECODE_NOENT)
-    self.needed_locks[locking.LEVEL_INSTANCE] = expanded_name
-    self.op.instance_name = expanded_name
+    self.op.instance_name = _ExpandInstanceName(self.cfg,
+                                                self.op.instance_name)
+    self.needed_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
 
   def _LockInstancesNodes(self, primary_only=False):
     """Helper function to declare instances' nodes for locking.
@@ -431,7 +428,7 @@ def _GetWantedNodes(lu, nodes):
   @param nodes: list of node names or None for all nodes
   @rtype: list
   @return: the list of nodes, sorted
-  @raise errors.OpProgrammerError: if the nodes parameter is wrong type
+  @raise errors.ProgrammerError: if the nodes parameter is wrong type
 
   """
   if not isinstance(nodes, list):
@@ -442,14 +439,7 @@ def _GetWantedNodes(lu, nodes):
     raise errors.ProgrammerError("_GetWantedNodes should only be called with a"
       " non-empty list of nodes whose name is to be expanded.")
 
-  wanted = []
-  for name in nodes:
-    node = lu.cfg.ExpandNodeName(name)
-    if node is None:
-      raise errors.OpPrereqError("No such node name '%s'" % name,
-                                 errors.ECODE_NOENT)
-    wanted.append(node)
-
+  wanted = [_ExpandNodeName(lu.cfg, name) for name in nodes]
   return utils.NiceSort(wanted)
 
 
@@ -471,15 +461,7 @@ def _GetWantedInstances(lu, instances):
                                errors.ECODE_INVAL)
 
   if instances:
-    wanted = []
-
-    for name in instances:
-      instance = lu.cfg.ExpandInstanceName(name)
-      if instance is None:
-        raise errors.OpPrereqError("No such instance name '%s'" % name,
-                                   errors.ECODE_NOENT)
-      wanted.append(instance)
-
+    wanted = [_ExpandInstanceName(lu.cfg, name) for name in instances]
   else:
     wanted = utils.NiceSort(lu.cfg.GetInstanceList())
   return wanted
@@ -557,6 +539,33 @@ def _CheckNodeNotDrained(lu, node):
   if lu.cfg.GetNodeInfo(node).drained:
     raise errors.OpPrereqError("Can't use drained node %s" % node,
                                errors.ECODE_INVAL)
+
+
+def _ExpandItemName(fn, name, kind):
+  """Expand an item name.
+
+  @param fn: the function to use for expansion
+  @param name: requested item name
+  @param kind: text description ('Node' or 'Instance')
+  @return: the resolved (full) name
+  @raise errors.OpPrereqError: if the item is not found
+
+  """
+  full_name = fn(name)
+  if full_name is None:
+    raise errors.OpPrereqError("%s '%s' not known" % (kind, name),
+                               errors.ECODE_NOENT)
+  return full_name
+
+
+def _ExpandNodeName(cfg, name):
+  """Wrapper over L{_ExpandItemName} for nodes."""
+  return _ExpandItemName(cfg.ExpandNodeName, name, "Node")
+
+
+def _ExpandInstanceName(cfg, name):
+  """Wrapper over L{_ExpandItemName} for instance."""
+  return _ExpandItemName(cfg.ExpandInstanceName, name, "Instance")
 
 
 def _BuildInstanceHookEnv(name, primary_node, secondary_nodes, os_type, status,
@@ -1723,10 +1732,7 @@ class LURepairDiskSizes(NoHooksLU):
     if self.op.instances:
       self.wanted_names = []
       for name in self.op.instances:
-        full_name = self.cfg.ExpandInstanceName(name)
-        if full_name is None:
-          raise errors.OpPrereqError("Instance '%s' not known" % name,
-                                     errors.ECODE_NOENT)
+        full_name = _ExpandInstanceName(self.cfg, name)
         self.wanted_names.append(full_name)
       self.needed_locks = {
         locking.LEVEL_NODE: [],
@@ -2447,10 +2453,9 @@ class LURemoveNode(LogicalUnit):
     Any errors are signaled by raising errors.OpPrereqError.
 
     """
-    node = self.cfg.GetNodeInfo(self.cfg.ExpandNodeName(self.op.node_name))
-    if node is None:
-      raise errors.OpPrereqError("Node '%s' is unknown." % self.op.node_name,
-                                 errors.ECODE_NOENT)
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    node = self.cfg.GetNodeInfo(self.op.node_name)
+    assert node is not None
 
     instance_list = self.cfg.GetInstanceList()
 
@@ -2850,12 +2855,7 @@ class LUModifyNodeStorage(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    node_name = self.cfg.ExpandNodeName(self.op.node_name)
-    if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
-                                 errors.ECODE_NOENT)
-
-    self.op.node_name = node_name
+    self.opnode_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
     storage_type = self.op.storage_type
     if storage_type not in constants.VALID_STORAGE_TYPES:
@@ -3129,11 +3129,7 @@ class LUSetNodeParams(LogicalUnit):
   REQ_BGL = False
 
   def CheckArguments(self):
-    node_name = self.cfg.ExpandNodeName(self.op.node_name)
-    if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
-                                 errors.ECODE_INVAL)
-    self.op.node_name = node_name
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
     _CheckBooleanOpField(self.op, 'master_candidate')
     _CheckBooleanOpField(self.op, 'offline')
     _CheckBooleanOpField(self.op, 'drained')
@@ -3282,12 +3278,8 @@ class LUPowercycleNode(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    node_name = self.cfg.ExpandNodeName(self.op.node_name)
-    if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
-                                 errors.ECODE_NOENT)
-    self.op.node_name = node_name
-    if node_name == self.cfg.GetMasterNode() and not self.op.force:
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
+    if self.op.node_name == self.cfg.GetMasterNode() and not self.op.force:
       raise errors.OpPrereqError("The node is the master and the force"
                                  " parameter was not set",
                                  errors.ECODE_INVAL)
@@ -3969,14 +3961,10 @@ class LUReinstallInstance(LogicalUnit):
     self.op.force_variant = getattr(self.op, "force_variant", False)
     if self.op.os_type is not None:
       # OS verification
-      pnode = self.cfg.GetNodeInfo(
-        self.cfg.ExpandNodeName(instance.primary_node))
-      if pnode is None:
-        raise errors.OpPrereqError("Primary node '%s' is unknown" %
-                                   self.op.pnode, errors.ECODE_NOENT)
-      result = self.rpc.call_os_get(pnode.name, self.op.os_type)
+      pnode = _ExpandNodeName(self.cfg, instance.primary_node)
+      result = self.rpc.call_os_get(pnode, self.op.os_type)
       result.Raise("OS '%s' not in supported OS list for primary node %s" %
-                   (self.op.os_type, pnode.name),
+                   (self.op.os_type, pnode),
                    prereq=True, ecode=errors.ECODE_INVAL)
       if not self.op.force_variant:
         _CheckOSVariant(result.payload, self.op.os_type)
@@ -4115,11 +4103,10 @@ class LURenameInstance(LogicalUnit):
     This checks that the instance is in the cluster and is not running.
 
     """
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.op.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.op.instance_name, errors.ECODE_NOENT)
+    self.op.instance_name = _ExpandInstanceName(self.cfg,
+                                                self.op.instance_name)
+    instance = self.cfg.GetInstanceInfo(self.op.instance_name)
+    assert instance is not None
     _CheckNodeOnline(self, instance.primary_node)
 
     if instance.admin_up:
@@ -4791,10 +4778,7 @@ class LUMoveInstance(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
-    target_node = self.cfg.ExpandNodeName(self.op.target_node)
-    if target_node is None:
-      raise errors.OpPrereqError("Node '%s' not known" %
-                                  self.op.target_node, errors.ECODE_NOENT)
+    target_node = _ExpandNodeName(self.cfg, self.op.target_node)
     self.op.target_node = target_node
     self.needed_locks[locking.LEVEL_NODE] = [target_node]
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
@@ -4968,10 +4952,7 @@ class LUMigrateNode(LogicalUnit):
   REQ_BGL = False
 
   def ExpandNames(self):
-    self.op.node_name = self.cfg.ExpandNodeName(self.op.node_name)
-    if self.op.node_name is None:
-      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name,
-                                 errors.ECODE_NOENT)
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
     self.needed_locks = {
       locking.LEVEL_NODE: [self.op.node_name],
@@ -5031,11 +5012,9 @@ class TLMigrateInstance(Tasklet):
     This checks that the instance is in the cluster.
 
     """
-    instance = self.cfg.GetInstanceInfo(
-      self.cfg.ExpandInstanceName(self.instance_name))
-    if instance is None:
-      raise errors.OpPrereqError("Instance '%s' not known" %
-                                 self.instance_name, errors.ECODE_NOENT)
+    instance_name = _ExpandInstanceName(self.lu.cfg, self.instance_name)
+    instance = self.cfg.GetInstanceInfo(instance_name)
+    assert instance is not None
 
     if instance.disk_template != constants.DT_DRBD8:
       raise errors.OpPrereqError("Instance's disk layout is not"
@@ -5691,15 +5670,6 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
                                  errors.ECODE_INVAL)
 
-  def _ExpandNode(self, node):
-    """Expands and checks one node name.
-
-    """
-    node_full = self.cfg.ExpandNodeName(node)
-    if node_full is None:
-      raise errors.OpPrereqError("Unknown node %s" % node, errors.ECODE_NOENT)
-    return node_full
-
   def ExpandNames(self):
     """ExpandNames for CreateInstance.
 
@@ -5879,10 +5849,10 @@ class LUCreateInstance(LogicalUnit):
     if self.op.iallocator:
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
     else:
-      self.op.pnode = self._ExpandNode(self.op.pnode)
+      self.op.pnode = _ExpandNodeName(self.cfg, self.op.pnode)
       nodelist = [self.op.pnode]
       if self.op.snode is not None:
-        self.op.snode = self._ExpandNode(self.op.snode)
+        self.op.snode = _ExpandNodeName(self.cfg, self.op.snode)
         nodelist.append(self.op.snode)
       self.needed_locks[locking.LEVEL_NODE] = nodelist
 
@@ -5902,7 +5872,7 @@ class LUCreateInstance(LogicalUnit):
                                      " path requires a source node option.",
                                      errors.ECODE_INVAL)
       else:
-        self.op.src_node = src_node = self._ExpandNode(src_node)
+        self.op.src_node = src_node = _ExpandNodeName(self.cfg, src_node)
         if self.needed_locks[locking.LEVEL_NODE] is not locking.ALL_SET:
           self.needed_locks[locking.LEVEL_NODE].append(src_node)
         if not os.path.isabs(src_path):
@@ -6378,11 +6348,7 @@ class LUReplaceDisks(LogicalUnit):
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
     elif self.op.remote_node is not None:
-      remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
-      if remote_node is None:
-        raise errors.OpPrereqError("Node '%s' not known" %
-                                   self.op.remote_node, errors.ECODE_NOENT)
-
+      remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
       self.op.remote_node = remote_node
 
       # Warning: do not remove the locking of the new secondary here
@@ -6453,10 +6419,7 @@ class LUEvacuateNode(LogicalUnit):
                                   self.op.iallocator)
 
   def ExpandNames(self):
-    self.op.node_name = self.cfg.ExpandNodeName(self.op.node_name)
-    if self.op.node_name is None:
-      raise errors.OpPrereqError("Node '%s' not known" % self.op.node_name,
-                                 errors.ECODE_NOENT)
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
     self.needed_locks = {}
 
@@ -6465,18 +6428,13 @@ class LUEvacuateNode(LogicalUnit):
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
 
     elif self.op.remote_node is not None:
-      remote_node = self.cfg.ExpandNodeName(self.op.remote_node)
-      if remote_node is None:
-        raise errors.OpPrereqError("Node '%s' not known" %
-                                   self.op.remote_node, errors.ECODE_NOENT)
-
-      self.op.remote_node = remote_node
+      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
 
       # Warning: do not remove the locking of the new secondary here
       # unless DRBD8.AddChildren is changed to work in parallel;
       # currently it doesn't since parallel invocations of
       # FindUnusedMinor will conflict
-      self.needed_locks[locking.LEVEL_NODE] = [remote_node]
+      self.needed_locks[locking.LEVEL_NODE] = [self.op.remote_node]
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_APPEND
 
     else:
@@ -7205,12 +7163,7 @@ class LURepairNodeStorage(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    node_name = self.cfg.ExpandNodeName(self.op.node_name)
-    if node_name is None:
-      raise errors.OpPrereqError("Invalid node name '%s'" % self.op.node_name,
-                                 errors.ECODE_NOENT)
-
-    self.op.node_name = node_name
+    self.op.node_name = _ExpandNodeName(self.cfg, self.op.node_name)
 
   def ExpandNames(self):
     self.needed_locks = {
@@ -7379,10 +7332,7 @@ class LUQueryInstanceData(NoHooksLU):
     if self.op.instances:
       self.wanted_names = []
       for name in self.op.instances:
-        full_name = self.cfg.ExpandInstanceName(name)
-        if full_name is None:
-          raise errors.OpPrereqError("Instance '%s' not known" % name,
-                                     errors.ECODE_NOENT)
+        full_name = _ExpandInstanceName(self.cfg, name)
         self.wanted_names.append(full_name)
       self.needed_locks[locking.LEVEL_INSTANCE] = self.wanted_names
     else:
@@ -8166,13 +8116,9 @@ class LUExportInstance(LogicalUnit):
           "Cannot retrieve locked instance %s" % self.op.instance_name
     _CheckNodeOnline(self, self.instance.primary_node)
 
-    self.dst_node = self.cfg.GetNodeInfo(
-      self.cfg.ExpandNodeName(self.op.target_node))
-
-    if self.dst_node is None:
-      # This is wrong node name, not a non-locked node
-      raise errors.OpPrereqError("Wrong node name %s" % self.op.target_node,
-                                 errors.ECODE_NOENT)
+    self.op.target_node = _ExpandNodeName(self.cfg, self.op.target_node)
+    self.dst_node = self.cfg.GetNodeInfo(self.op.target_node)
+    assert self.dst_node is not None
 
     _CheckNodeOnline(self, self.dst_node.name)
     _CheckNodeNotDrained(self, self.dst_node.name)
@@ -8379,19 +8325,11 @@ class TagsLU(NoHooksLU): # pylint: disable-msg=W0223
   def ExpandNames(self):
     self.needed_locks = {}
     if self.op.kind == constants.TAG_NODE:
-      name = self.cfg.ExpandNodeName(self.op.name)
-      if name is None:
-        raise errors.OpPrereqError("Invalid node name (%s)" %
-                                   (self.op.name,), errors.ECODE_NOENT)
-      self.op.name = name
-      self.needed_locks[locking.LEVEL_NODE] = name
+      self.op.name = _ExpandNodeName(self.cfg, self.op.name)
+      self.needed_locks[locking.LEVEL_NODE] = self.op.name
     elif self.op.kind == constants.TAG_INSTANCE:
-      name = self.cfg.ExpandInstanceName(self.op.name)
-      if name is None:
-        raise errors.OpPrereqError("Invalid instance name (%s)" %
-                                   (self.op.name,), errors.ECODE_NOENT)
-      self.op.name = name
-      self.needed_locks[locking.LEVEL_INSTANCE] = name
+      self.op.name = _ExpandInstanceName(self.cfg, self.op.name)
+      self.needed_locks[locking.LEVEL_INSTANCE] = self.op.name
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -8925,10 +8863,7 @@ class LUTestAllocator(NoHooksLU):
       if not hasattr(self.op, "name"):
         raise errors.OpPrereqError("Missing attribute 'name' on opcode input",
                                    errors.ECODE_INVAL)
-      fname = self.cfg.ExpandInstanceName(self.op.name)
-      if fname is None:
-        raise errors.OpPrereqError("Instance '%s' not found for relocation" %
-                                   self.op.name, errors.ECODE_NOENT)
+      fname = _ExpandInstanceName(self.cfg, self.op.name)
       self.op.name = fname
       self.relocate_from = self.cfg.GetInstanceInfo(fname).secondary_nodes
     else:

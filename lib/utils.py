@@ -334,6 +334,29 @@ def RenameFile(old, new, mkdir=False, mkdir_mode=0750):
     raise
 
 
+def ResetTempfileModule():
+  """Resets the random name generator of the tempfile module.
+
+  This function should be called after C{os.fork} in the child process to
+  ensure it creates a newly seeded random generator. Otherwise it would
+  generate the same random parts as the parent process. If several processes
+  race for the creation of a temporary file, this could lead to one not getting
+  a temporary name.
+
+  """
+  # pylint: disable-msg=W0212
+  if hasattr(tempfile, "_once_lock") and hasattr(tempfile, "_name_sequence"):
+    tempfile._once_lock.acquire()
+    try:
+      # Reset random name generator
+      tempfile._name_sequence = None
+    finally:
+      tempfile._once_lock.release()
+  else:
+    logging.critical("The tempfile module misses at least one of the"
+                     " '_once_lock' and '_name_sequence' attributes")
+
+
 def _FingerprintFile(filename):
   """Compute the fingerprint of a file.
 
@@ -2017,6 +2040,53 @@ def GetFilesystemStats(path):
   fsize = BytesToMebibyte(st.f_bavail * st.f_frsize)
   tsize = BytesToMebibyte(st.f_blocks * st.f_frsize)
   return (tsize, fsize)
+
+
+def RunInSeparateProcess(fn):
+  """Runs a function in a separate process.
+
+  Note: Only boolean return values are supported.
+
+  @type fn: callable
+  @param fn: Function to be called
+  @rtype: tuple of (int/None, int/None)
+  @return: Exit code and signal number
+
+  """
+  pid = os.fork()
+  if pid == 0:
+    # Child process
+    try:
+      # In case the function uses temporary files
+      ResetTempfileModule()
+
+      # Call function
+      result = int(bool(fn()))
+      assert result in (0, 1)
+    except: # pylint: disable-msg=W0702
+      logging.exception("Error while calling function in separate process")
+      # 0 and 1 are reserved for the return value
+      result = 33
+
+    os._exit(result) # pylint: disable-msg=W0212
+
+  # Parent process
+
+  # Avoid zombies and check exit code
+  (_, status) = os.waitpid(pid, 0)
+
+  if os.WIFSIGNALED(status):
+    exitcode = None
+    signum = os.WTERMSIG(status)
+  else:
+    exitcode = os.WEXITSTATUS(status)
+    signum = None
+
+  if not (exitcode in (0, 1) and signum is None):
+    raise errors.GenericError("Child program failed (code=%s, signal=%s)" %
+                              (exitcode, signum))
+
+  return bool(exitcode)
 
 
 def LockedMethod(fn):
