@@ -2637,56 +2637,6 @@ class HooksRunner(object):
     # constant
     self._BASE_DIR = hooks_base_dir # pylint: disable-msg=C0103
 
-  @staticmethod
-  def ExecHook(script, env):
-    """Exec one hook script.
-
-    @type script: str
-    @param script: the full path to the script
-    @type env: dict
-    @param env: the environment with which to exec the script
-    @rtype: tuple (success, message)
-    @return: a tuple of success and message, where success
-        indicates the succes of the operation, and message
-        which will contain the error details in case we
-        failed
-
-    """
-    # exec the process using subprocess and log the output
-    fdstdin = None
-    try:
-      fdstdin = open("/dev/null", "r")
-      child = subprocess.Popen([script], stdin=fdstdin, stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT, close_fds=True,
-                               shell=False, cwd="/", env=env)
-      output = ""
-      try:
-        output = child.stdout.read(4096)
-        child.stdout.close()
-      except EnvironmentError, err:
-        output += "Hook script error: %s" % str(err)
-
-      while True:
-        try:
-          result = child.wait()
-          break
-        except EnvironmentError, err:
-          if err.errno == errno.EINTR:
-            continue
-          raise
-    finally:
-      # try not to leak fds
-      for fd in (fdstdin, ):
-        if fd is not None:
-          try:
-            fd.close()
-          except EnvironmentError, err:
-            # just log the error
-            #logging.exception("Error while closing fd %s", fd)
-            pass
-
-    return result == 0, utils.SafeEncode(output.strip())
-
   def RunHooks(self, hpath, phase, env):
     """Run the scripts in the hooks directory.
 
@@ -2736,11 +2686,17 @@ class HooksRunner(object):
         rrval = constants.HKR_SKIP
         output = ""
       else:
-        result, output = self.ExecHook(fname, env)
-        if not result:
+        try:
+          result = utils.RunCmd([fname], env=env, reset_env=True)
+        except (OpExecError, EnvironmentError), err:
           rrval = constants.HKR_FAIL
+          output = "Hook script error: %s" % str(err)
         else:
-          rrval = constants.HKR_SUCCESS
+          if result.failed:
+            rrval = constants.HKR_FAIL
+          else:
+            rrval = constants.HKR_SUCCESS
+        output = utils.SafeEncode(result.output.strip())
       rr.append(("%s/%s" % (subdir, relname), rrval, output))
 
     return rr
