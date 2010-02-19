@@ -327,6 +327,7 @@ dist_TESTS = \
 	test/ganeti.locking_unittest.py \
 	test/ganeti.mcpu_unittest.py \
 	test/ganeti.objects_unittest.py \
+	test/ganeti.opcodes_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
