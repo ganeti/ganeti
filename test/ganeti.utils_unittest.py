@@ -27,6 +27,7 @@ import time
 import tempfile
 import os.path
 import os
+import stat
 import md5
 import signal
 import socket
@@ -46,7 +47,7 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
      TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime, \
-     UnescapeAndSplit
+     UnescapeAndSplit, RunParts
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -234,6 +235,132 @@ class TestRunCmd(testutils.GanetiTestCase):
   def testResetEnv(self):
     """Test environment reset functionality"""
     self.failUnlessEqual(RunCmd(["env"], reset_env=True).stdout.strip(), "")
+
+
+class TestRunParts(unittest.TestCase):
+  """Testing case for the RunParts function"""
+
+  def setUp(self):
+    self.rundir = tempfile.mkdtemp(prefix="ganeti-test", suffix=".tmp")
+
+  def tearDown(self):
+    shutil.rmtree(self.rundir)
+
+  def testEmpty(self):
+    """Test on an empty dir"""
+    self.failUnlessEqual(RunParts(self.rundir, reset_env=True), [])
+
+  def testSkipWrongName(self):
+    """Test that wrong files are skipped"""
+    fname = os.path.join(self.rundir, "00test.dot")
+    utils.WriteFile(fname, data="")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    relname = os.path.basename(fname)
+    self.failUnlessEqual(RunParts(self.rundir, reset_env=True),
+                         [(relname, constants.RUNPARTS_SKIP, None)])
+
+  def testSkipNonExec(self):
+    """Test that non executable files are skipped"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="")
+    relname = os.path.basename(fname)
+    self.failUnlessEqual(RunParts(self.rundir, reset_env=True),
+                         [(relname, constants.RUNPARTS_SKIP, None)])
+
+  def testError(self):
+    """Test error on a broken executable"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    (relname, status, error) = RunParts(self.rundir, reset_env=True)[0]
+    self.failUnlessEqual(relname, os.path.basename(fname))
+    self.failUnlessEqual(status, constants.RUNPARTS_ERR)
+    self.failUnless(error)
+
+  def testSorted(self):
+    """Test executions are sorted"""
+    files = []
+    files.append(os.path.join(self.rundir, "64test"))
+    files.append(os.path.join(self.rundir, "00test"))
+    files.append(os.path.join(self.rundir, "42test"))
+
+    for fname in files:
+      utils.WriteFile(fname, data="")
+
+    results = RunParts(self.rundir, reset_env=True)
+
+    for fname in sorted(files):
+      self.failUnlessEqual(os.path.basename(fname), results.pop(0)[0])
+
+  def testOk(self):
+    """Test correct execution"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="#!/bin/sh\n\necho -n ciao")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    (relname, status, runresult) = RunParts(self.rundir, reset_env=True)[0]
+    self.failUnlessEqual(relname, os.path.basename(fname))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.stdout, "ciao")
+
+  def testRunFail(self):
+    """Test correct execution, with run failure"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="#!/bin/sh\n\nexit 1")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    (relname, status, runresult) = RunParts(self.rundir, reset_env=True)[0]
+    self.failUnlessEqual(relname, os.path.basename(fname))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.exit_code, 1)
+    self.failUnless(runresult.failed)
+
+  def testRunMix(self):
+    files = []
+    files.append(os.path.join(self.rundir, "00test"))
+    files.append(os.path.join(self.rundir, "42test"))
+    files.append(os.path.join(self.rundir, "64test"))
+    files.append(os.path.join(self.rundir, "99test"))
+
+    files.sort()
+
+    # 1st has errors in execution
+    utils.WriteFile(files[0], data="#!/bin/sh\n\nexit 1")
+    os.chmod(files[0], stat.S_IREAD | stat.S_IEXEC)
+
+    # 2nd is skipped
+    utils.WriteFile(files[1], data="")
+
+    # 3rd cannot execute properly
+    utils.WriteFile(files[2], data="")
+    os.chmod(files[2], stat.S_IREAD | stat.S_IEXEC)
+
+    # 4th execs
+    utils.WriteFile(files[3], data="#!/bin/sh\n\necho -n ciao")
+    os.chmod(files[3], stat.S_IREAD | stat.S_IEXEC)
+
+    results = RunParts(self.rundir, reset_env=True)
+
+    (relname, status, runresult) = results[0]
+    self.failUnlessEqual(relname, os.path.basename(files[0]))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.exit_code, 1)
+    self.failUnless(runresult.failed)
+
+    (relname, status, runresult) = results[1]
+    self.failUnlessEqual(relname, os.path.basename(files[1]))
+    self.failUnlessEqual(status, constants.RUNPARTS_SKIP)
+    self.failUnlessEqual(runresult, None)
+
+    (relname, status, runresult) = results[2]
+    self.failUnlessEqual(relname, os.path.basename(files[2]))
+    self.failUnlessEqual(status, constants.RUNPARTS_ERR)
+    self.failUnless(runresult)
+
+    (relname, status, runresult) = results[3]
+    self.failUnlessEqual(relname, os.path.basename(files[3]))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.output, "ciao")
+    self.failUnlessEqual(runresult.exit_code, 0)
+    self.failUnless(not runresult.failed)
 
 
 class TestRemoveFile(unittest.TestCase):

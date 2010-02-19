@@ -40,7 +40,6 @@ import time
 import stat
 import errno
 import re
-import subprocess
 import random
 import logging
 import tempfile
@@ -2666,40 +2665,28 @@ class HooksRunner(object):
     else:
       _Fail("Unknown hooks phase '%s'", phase)
 
-    rr = []
 
     subdir = "%s-%s.d" % (hpath, suffix)
     dir_name = "%s/%s" % (self._BASE_DIR, subdir)
-    try:
-      dir_contents = utils.ListVisibleFiles(dir_name)
-    except OSError:
-      # FIXME: must log output in case of failures
-      return rr
+    runparts_results = utils.RunParts(dir_name, env=env, reset_env=True)
 
-    # we use the standard python sort order,
-    # so 00name is the recommended naming scheme
-    dir_contents.sort()
-    for relname in dir_contents:
-      fname = os.path.join(dir_name, relname)
-      if not (os.path.isfile(fname) and os.access(fname, os.X_OK) and
-              constants.EXT_PLUGIN_MASK.match(relname) is not None):
+    results = []
+    for (relname, relstatus, runresult)  in runparts_results:
+      if relstatus == constants.RUNPARTS_SKIP:
         rrval = constants.HKR_SKIP
         output = ""
-      else:
-        try:
-          result = utils.RunCmd([fname], env=env, reset_env=True)
-        except (OpExecError, EnvironmentError), err:
+      elif relstatus == constants.RUNPARTS_ERR:
+        rrval = constants.HKR_FAIL
+        output = "Hook script execution error: %s" % runresult
+      elif relstatus == constants.RUNPARTS_RUN:
+        if runresult.failed:
           rrval = constants.HKR_FAIL
-          output = "Hook script error: %s" % str(err)
         else:
-          if result.failed:
-            rrval = constants.HKR_FAIL
-          else:
-            rrval = constants.HKR_SUCCESS
-        output = utils.SafeEncode(result.output.strip())
-      rr.append(("%s/%s" % (subdir, relname), rrval, output))
+          rrval = constants.HKR_SUCCESS
+        output = utils.SafeEncode(runresult.output.strip())
+      results.append(("%s/%s" % (subdir, relname), rrval, output))
 
-    return rr
+    return results
 
 
 class IAllocatorRunner(object):

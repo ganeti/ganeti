@@ -288,6 +288,43 @@ def _RunCmdFile(cmd, env, via_shell, output, cwd):
   return status
 
 
+def RunParts(dir_name, env=None, reset_env=False):
+  """Run Scripts or programs in a directory
+
+  @type dir_name: string
+  @param dir_name: absolute path to a directory
+  @type env: dict
+  @param env: The environment to use
+  @type reset_env: boolean
+  @param reset_env: whether to reset or keep the default os environment
+  @rtype: list of tuples
+  @return: list of (name, (one of RUNDIR_STATUS), RunResult)
+
+  """
+  rr = []
+
+  try:
+    dir_contents = ListVisibleFiles(dir_name)
+  except OSError, err:
+    logging.warning("RunParts: skipping %s (cannot list: %s)", dir_name, err)
+    return rr
+
+  for relname in sorted(dir_contents):
+    fname = os.path.join(dir_name, relname)
+    if not (os.path.isfile(fname) and os.access(fname, os.X_OK) and
+            constants.EXT_PLUGIN_MASK.match(relname) is not None):
+      rr.append((relname, constants.RUNPARTS_SKIP, None))
+    else:
+      try:
+        result = RunCmd([fname], env=env, reset_env=reset_env)
+      except Exception, err: # pylint: disable-msg=W0703
+        rr.append((relname, constants.RUNPARTS_ERR, str(err)))
+      else:
+        rr.append((relname, constants.RUNPARTS_RUN, result))
+
+  return rr
+
+
 def RemoveFile(filename):
   """Remove a file ignoring some errors.
 
