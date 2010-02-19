@@ -64,16 +64,6 @@ class NotMasterError(errors.GenericError):
   """Exception raised when this host is not the master."""
 
 
-def Indent(s, prefix='| '):
-  """Indent a piece of text with a given prefix before each line.
-
-  @param s: the string to indent
-  @param prefix: the string to prepend each line
-
-  """
-  return "%s%s\n" % (prefix, ('\n' + prefix).join(s.splitlines()))
-
-
 def ShouldPause():
   """Check whether we should pause.
 
