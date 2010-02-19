@@ -102,6 +102,7 @@ class ConfdInotifyEventHandler(pyinotify.ProcessEvent):
     @param filename: config file to watch
 
     """
+    # pylint: disable-msg=W0231
     # no need to call the parent's constructor
     self.watch_manager = watch_manager
     self.callback = callback
