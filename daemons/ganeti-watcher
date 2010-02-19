@@ -84,6 +84,16 @@ def EnsureDaemon(name):
   return True
 
 
+def StartNodeDaemons():
+  """Start all the daemons that should be running on all nodes.
+
+  """
+  # on master or not, try to start the node dameon
+  EnsureDaemon(constants.NODED)
+  # start confd as well. On non candidates it will be in disabled mode.
+  EnsureDaemon(constants.CONFD)
+
+
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
@@ -477,10 +487,7 @@ def main():
 
   update_file = False
   try:
-    # on master or not, try to start the node dameon
-    EnsureDaemon(constants.NODED)
-    # start confd as well. On non candidates it will be in disabled mode.
-    EnsureDaemon(constants.CONFD)
+    StartNodeDaemons()
 
     notepad = WatcherState()
     try:
