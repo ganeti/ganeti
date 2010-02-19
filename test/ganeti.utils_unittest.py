@@ -231,6 +231,10 @@ class TestRunCmd(testutils.GanetiTestCase):
     cwd = os.getcwd()
     self.failUnlessEqual(RunCmd(["pwd"], cwd=cwd).stdout.strip(), cwd)
 
+  def testResetEnv(self):
+    """Test environment reset functionality"""
+    self.failUnlessEqual(RunCmd(["env"], reset_env=True).stdout.strip(), "")
+
 
 class TestRemoveFile(unittest.TestCase):
   """Test case for the RemoveFile function"""

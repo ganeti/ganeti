@@ -118,13 +118,13 @@ class RunResult(object):
   output = property(_GetOutput, None, None, "Return full output")
 
 
-def RunCmd(cmd, env=None, output=None, cwd='/'):
+def RunCmd(cmd, env=None, output=None, cwd='/', reset_env=False):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
   closed.
 
-  @type  cmd: string or list
+  @type cmd: string or list
   @param cmd: Command to run
   @type env: dict
   @param env: Additional environment
@@ -135,6 +135,8 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
   @type cwd: string
   @param cwd: if specified, will be used as the working
       directory for the command; the default will be /
+  @type reset_env: boolean
+  @param reset_env: whether to reset or keep the default os environment
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise errors.ProgrammerError: if we call this when forks are disabled
@@ -152,8 +154,12 @@ def RunCmd(cmd, env=None, output=None, cwd='/'):
     shell = True
   logging.debug("RunCmd '%s'", strcmd)
 
-  cmd_env = os.environ.copy()
-  cmd_env["LC_ALL"] = "C"
+  if not reset_env:
+    cmd_env = os.environ.copy()
+    cmd_env["LC_ALL"] = "C"
+  else:
+    cmd_env = {}
+
   if env is not None:
     cmd_env.update(env)
 
