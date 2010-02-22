@@ -248,13 +248,13 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
           if pid == 0:
             try:
               # Child process, won't return
-              _RunCmdDaemonChild(errpipe_read, errpipe_write,
-                                 pidpipe_read, pidpipe_write,
-                                 cmd, cmd_env, cwd,
-                                 output, output_fd, pidfile)
+              _StartDaemonChild(errpipe_read, errpipe_write,
+                                pidpipe_read, pidpipe_write,
+                                cmd, cmd_env, cwd,
+                                output, output_fd, pidfile)
             finally:
               # Well, maybe child process failed
-              os._exit(1)
+              os._exit(1) # pylint: disable-msg=W0212
         finally:
           _CloseFDNoErr(errpipe_write)
 
@@ -288,10 +288,10 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
                              (pidtext, err))
 
 
-def _RunCmdDaemonChild(errpipe_read, errpipe_write,
-                       pidpipe_read, pidpipe_write,
-                       args, env, cwd,
-                       output, fd_output, pidfile):
+def _StartDaemonChild(errpipe_read, errpipe_write,
+                      pidpipe_read, pidpipe_write,
+                      args, env, cwd,
+                      output, fd_output, pidfile):
   """Child process for starting daemon.
 
   """
