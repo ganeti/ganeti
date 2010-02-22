@@ -1,6 +1,18 @@
 Ganeti-htools release notes
 ===========================
 
+Version 0.2.4 (Mon, 22 Feb 2010)
+--------------------------------
+
+Two improvements for node evacuation:
+
+- hbal takes a new parameter ``--evac-mode`` that restricts the
+  instances to be moved to the ones on offline/drained nodes, which
+  should reduce the work done
+- hail supports the new ``multi-evacuate`` mode of the IAllocator
+  protocol, that will be released in a minor release on the Ganeti 2.1
+  branch
+
 Version 0.2.3 (Thu,  4 Feb 2010)
 --------------------------------
 
