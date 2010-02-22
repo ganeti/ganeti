@@ -35,8 +35,11 @@ For dual\(hynode allocations (mirrored instances), we chose the best
 pair; this is the only choice where the algoritm is non\(hytrivial
 with regard to cluster size.
 
-For all choices, the cluster scoring is identical to the hbal
-algorithm.
+For node evacuations (\fImulti-evacuate\fR mode), we iterate over all
+instances which live as secondaries on those nodes and try to relocate
+them using the single-instance relocation algorithm.
+
+In all cases, the cluster scoring is identical to the hbal algorithm.
 
 .SH CONFIGURATION
 
