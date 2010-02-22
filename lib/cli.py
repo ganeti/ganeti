@@ -1132,12 +1132,28 @@ def PollJob(job_id, cl=None, feedback_fn=None):
   prev_job_info = None
   prev_logmsg_serial = None
 
+  status = None
+
+  notified_queued = False
+  notified_waitlock = False
+
   while True:
-    result = cl.WaitForJobChange(job_id, ["status"], prev_job_info,
-                                 prev_logmsg_serial)
+    result = cl.WaitForJobChangeOnce(job_id, ["status"], prev_job_info,
+                                     prev_logmsg_serial)
     if not result:
       # job not found, go away!
       raise errors.JobLost("Job with id %s lost" % job_id)
+    elif result == constants.JOB_NOTCHANGED:
+      if status is not None and not callable(feedback_fn):
+        if status == constants.JOB_STATUS_QUEUED and not notified_queued:
+          ToStderr("Job %s is waiting in queue", job_id)
+          notified_queued = True
+        elif status == constants.JOB_STATUS_WAITLOCK and not notified_waitlock:
+          ToStderr("Job %s is trying to acquire all necessary locks", job_id)
+          notified_waitlock = True
+
+      # Wait again
+      continue
 
     # Split result, a tuple of (field values, log entries)
     (job_info, log_entries) = result

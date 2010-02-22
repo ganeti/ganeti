@@ -372,12 +372,17 @@ class Client(object):
     timeout = (DEF_RWTO - 1) / 2
     return self.CallMethod(REQ_AUTOARCHIVE_JOBS, (age, timeout))
 
-  def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
+  def WaitForJobChangeOnce(self, job_id, fields,
+                           prev_job_info, prev_log_serial):
     timeout = (DEF_RWTO - 1) / 2
+    return self.CallMethod(REQ_WAIT_FOR_JOB_CHANGE,
+                           (job_id, fields, prev_job_info,
+                            prev_log_serial, timeout))
+
+  def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
     while True:
-      result = self.CallMethod(REQ_WAIT_FOR_JOB_CHANGE,
-                               (job_id, fields, prev_job_info,
-                                prev_log_serial, timeout))
+      result = self.WaitForJobChangeOnce(job_id, fields,
+                                         prev_job_info, prev_log_serial)
       if result != constants.JOB_NOTCHANGED:
         break
     return result
@@ -402,6 +407,3 @@ class Client(object):
 
   def QueryTags(self, kind, name):
     return self.CallMethod(REQ_QUERY_TAGS, (kind, name))
-
-
-# TODO: class Server(object)
