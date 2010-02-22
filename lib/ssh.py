@@ -75,7 +75,7 @@ class SshRunner:
     self.cluster_name = cluster_name
 
   def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
-                       strict_host_check):
+                       strict_host_check, private_key=None):
     """Builds a list with needed SSH options.
 
     @param batch: same as ssh's batch option
@@ -84,6 +84,7 @@ class SshRunner:
     @param use_cluster_key: if True, use the cluster name as the
         HostKeyAlias name
     @param strict_host_check: this makes the host key checking strict
+    @param private_key: use this private key instead of the default
 
     @rtype: list
     @return: the list of options ready to use in L{utils.RunCmd}
@@ -98,6 +99,9 @@ class SshRunner:
 
     if use_cluster_key:
       options.append("-oHostKeyAlias=%s" % self.cluster_name)
+
+    if private_key:
+      options.append("-i%s" % private_key)
 
     # TODO: Too many boolean options, maybe convert them to more descriptive
     # constants.
@@ -127,7 +131,8 @@ class SshRunner:
     return options
 
   def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
-               tty=False, use_cluster_key=True, strict_host_check=True):
+               tty=False, use_cluster_key=True, strict_host_check=True,
+               private_key=None):
     """Build an ssh command to execute a command on a remote node.
 
     @param hostname: the target host, string
@@ -140,13 +145,14 @@ class SshRunner:
     @param use_cluster_key: whether to expect and use the
         cluster-global SSH key
     @param strict_host_check: whether to check the host's SSH key at all
+    @param private_key: use this private key instead of the default
 
     @return: the ssh call to run 'command' on the remote host.
 
     """
     argv = [constants.SSH, "-q"]
     argv.extend(self._BuildSshOptions(batch, ask_key, use_cluster_key,
-                                      strict_host_check))
+                                      strict_host_check, private_key))
     if tty:
       argv.append("-t")
     argv.extend(["%s@%s" % (user, hostname), command])
