@@ -440,7 +440,10 @@ class Watcher(object):
            for name in offline_disk_instances]
     job_id = cli.SendJob(job, cl=client)
 
-    cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)
+    try:
+      cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)
+    except Exception: # pylint: disable-msg=W0703
+      logging.exception("Error while activating disks")
 
 
 def ParseOptions():
