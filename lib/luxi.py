@@ -37,6 +37,7 @@ import errno
 from ganeti import serializer
 from ganeti import constants
 from ganeti import errors
+from ganeti import utils
 
 
 KEY_METHOD = 'method'
@@ -156,20 +157,34 @@ class Transport:
 
     try:
       self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-      self.socket.settimeout(self._ctimeout)
+
+      # Try to connect
       try:
-        self.socket.connect(address)
-      except socket.timeout, err:
-        raise TimeoutError("Connect timed out: %s" % str(err))
-      except socket.error, err:
-        if err.args[0] in (errno.ENOENT, errno.ECONNREFUSED):
-          raise NoMasterError(address)
-        raise
+        utils.Retry(self._Connect, 1.0, self._ctimeout,
+                    args=(self.socket, address, self._ctimeout))
+      except utils.RetryTimeout:
+        raise TimeoutError("Connect timed out")
+
       self.socket.settimeout(self._rwtimeout)
     except (socket.error, NoMasterError):
       if self.socket is not None:
         self.socket.close()
       self.socket = None
+      raise
+
+  @staticmethod
+  def _Connect(sock, address, timeout):
+    sock.settimeout(timeout)
+    try:
+      sock.connect(address)
+    except socket.timeout, err:
+      raise TimeoutError("Connect timed out: %s" % str(err))
+    except socket.error, err:
+      if err.args[0] in (errno.ENOENT, errno.ECONNREFUSED):
+        raise NoMasterError(address)
+      if err.args[0] == errno.EAGAIN:
+        # Server's socket backlog is full at the moment
+        raise utils.RetryAgain()
       raise
 
   def _CheckSocket(self):
