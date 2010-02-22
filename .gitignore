@@ -41,6 +41,7 @@
 # doc
 /doc/api
 /doc/build
+/doc/coverage
 /doc/html
 /doc/install-quick.rst
 /doc/news.rst

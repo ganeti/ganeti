@@ -54,7 +54,7 @@ MAINTAINERCLEANFILES = \
 	doc/news.rst
 
 maintainer-clean-local:
-	rm -rf doc/api doc/html
+	rm -rf doc/api doc/html doc/coverage
 
 CLEANFILES = \
 	autotools/replace_vars.sed \
@@ -245,6 +245,7 @@ EXTRA_DIST = \
 	autotools/check-python-code \
 	autotools/check-man \
 	autotools/docbook-wrapper \
+	autotools/gen-coverage \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -340,9 +341,12 @@ nodist_TESTS =
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
-TESTS_ENVIRONMENT = \
-	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) \
-	$(RUN_IN_TEMPDIR) $(PYTHON)
+# Environment for all tests
+PLAIN_TESTS_ENVIRONMENT = \
+	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) PYTHON=$(PYTHON) $(RUN_IN_TEMPDIR)
+
+# Environment for tests run by automake
+TESTS_ENVIRONMENT = $(PLAIN_TESTS_ENVIRONMENT) $(PYTHON)
 
 all_python_code = \
 	$(dist_sbin_SCRIPTS) \
@@ -534,5 +538,14 @@ TAGS: $(BUILT_SOURCES)
 	find . -path './lib/*.py' -o -path 'scripts/gnt-*' -o \
 	  -path 'daemons/ganeti-*' -o -path 'tools/*' | \
 	  etags -
+
+.PHONY: coverage
+coverage: $(BUILT_SOURCES) $(TESTS)
+	set -e; \
+	mkdir -p doc/coverage; \
+	COVERAGE_FILE=$(CURDIR)/doc/coverage/data \
+	TEXT_COVERAGE=$(CURDIR)/doc/coverage/report.txt \
+	HTML_COVERAGE=$(CURDIR)/doc/coverage \
+	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage $(TESTS)
 
 # vim: set noet :

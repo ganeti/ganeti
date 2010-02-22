@@ -15,6 +15,9 @@ Most dependencies from :doc:`install-quick`, plus:
   (tested with version 0.6.1)
 - `graphviz <http://www.graphviz.org/>`_
 
+To generate unittest coverage reports (``make coverage``), `coverage
+<http://pypi.python.org/pypi/coverage>`_ needs to be installed.
+
 
 Configuring for development
 ---------------------------
