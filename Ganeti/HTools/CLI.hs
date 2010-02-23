@@ -32,6 +32,7 @@ module Ganeti.HTools.CLI
     , OptType
     , parseOpts
     , shTemplate
+    , defaultLuxiSocket
     -- * The options
     , oDataFile
     , oDiskMoves

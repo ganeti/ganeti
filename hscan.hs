@@ -1,4 +1,6 @@
-{-| Scan clusters via RAPI and write instance/node data files.
+{-# LANGUAGE CPP #-}
+
+{-| Scan clusters via RAPI or LUXI and write state data files.
 
 -}
 
@@ -40,7 +42,10 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
+#ifndef NO_CURL
 import qualified Ganeti.HTools.Rapi as Rapi
+#endif
+import qualified Ganeti.HTools.Luxi as Luxi
 import qualified Ganeti.HTools.Loader as Loader
 
 import Ganeti.HTools.CLI
@@ -51,6 +56,7 @@ options :: [OptType]
 options =
     [ oPrintNodes
     , oOutputDir
+    , oLuxiSocket
     , oVerbose
     , oNoHeaders
     , oShowVer
@@ -113,43 +119,75 @@ printCluster nl il =
 
 
 -- | Replace slashes with underscore for saving to filesystem
-
 fixSlash :: String -> String
 fixSlash = map (\x -> if x == '/' then '_' else x)
+
+
+-- | Generates serialized data from loader input
+processData :: Result (Node.AssocList, Instance.AssocList, [String])
+            -> Result (Node.List, Instance.List, String)
+processData input_data = do
+  (nl, il, _, csf) <- input_data >>= Loader.mergeData [] [] []
+  let (_, fix_nl) = Loader.checkData nl il
+  let ndata = serializeNodes csf nl
+      idata = serializeInstances csf nl il
+      adata = ndata ++ ['\n'] ++ idata
+  return (fix_nl, il, adata)
+
+-- | Writes cluster data out
+writeData :: Int
+          -> String
+          -> Options
+          -> Result (Node.List, Instance.List, String)
+          -> IO ()
+writeData _ name _ (Bad err) =
+    printf "\nError for %s: failed to load data. Details:\n%s\n" name err
+
+writeData nlen name opts (Ok (nl, il, adata)) = do
+  printf "%-*s " nlen name
+  hFlush stdout
+  let shownodes = optShowNodes opts
+      odir = optOutPath opts
+      oname = odir </> fixSlash name
+  putStrLn $ printCluster nl il
+  hFlush stdout
+  when (isJust shownodes) $
+       putStr $ Cluster.printNodes nl (fromJust shownodes)
+  writeFile (oname <.> "data") adata
+
 
 -- | Main function.
 main :: IO ()
 main = do
   cmd_args <- System.getArgs
   (opts, clusters) <- parseOpts cmd_args "hscan" options
+  let local = "LOCAL"
 
-  let odir = optOutPath opts
-      nlen = maximum . map length $ clusters
-      shownodes = optShowNodes opts
+  let nlen = if null clusters
+             then length local
+             else maximum . map length $ clusters
 
   unless (optNoHeaders opts) $
          printf "%-*s %5s %5s %5s %5s %6s %6s %6s %6s %10s\n" nlen
                 "Name" "Nodes" "Inst" "BNode" "BInst" "t_mem" "f_mem"
                 "t_disk" "f_disk" "Score"
 
+  when (null clusters) $ do
+         let lsock = case optLuxi opts of
+                       Just s -> s
+                       Nothing -> defaultLuxiSocket
+         let name = local
+         input_data <- Luxi.loadData lsock
+         writeData nlen name opts (processData input_data)
+
+#ifndef NO_CURL
   mapM_ (\ name ->
             do
-              printf "%-*s " nlen name
-              hFlush stdout
               input_data <- Rapi.loadData name
-              let ldresult = input_data >>= Loader.mergeData [] [] []
-              (case ldresult of
-                 Bad err -> printf "\nError: failed to load data. \
-                                   \Details:\n%s\n" err
-                 Ok x -> do
-                   let (nl, il, _, csf) = x
-                       (_, fix_nl) = Loader.checkData nl il
-                   putStrLn $ printCluster fix_nl il
-                   when (isJust shownodes) $
-                        putStr $ Cluster.printNodes fix_nl (fromJust shownodes)
-                   let ndata = serializeNodes csf nl
-                       idata = serializeInstances csf nl il
-                       oname = odir </> fixSlash name
-                       adata = ndata ++ ['\n'] ++ idata
-                   writeFile (oname <.> "data") adata)
+              writeData nlen name opts (processData input_data)
         ) clusters
+#else
+  when (not $ null clusters) $ do
+    putStrLn "RAPI/curl backend disabled at compile time, cannot scan clusters"
+    exitWith $ ExitFailure 1
+#endif
