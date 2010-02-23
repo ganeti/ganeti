@@ -1444,7 +1444,7 @@ class LUVerifyCluster(LogicalUnit):
       try:
         ntime_merged = utils.MergeTime(ntime)
       except (ValueError, TypeError):
-        _ErrorIf(test, self.ENODETIME, node, "Node returned invalid time")
+        _ErrorIf(True, self.ENODETIME, node, "Node returned invalid time")
 
       if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
         ntime_diff = abs(nvinfo_starttime - ntime_merged)
