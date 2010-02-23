@@ -111,7 +111,7 @@ parseData body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- fromObj "cluster_tags" obj
-  (map_n, map_i, ptags, csf) <- mergeData [] [] (nl, il, ctags)
+  (map_n, map_i, ptags, csf) <- mergeData [] [] [] (nl, il, ctags)
   optype <- fromObj "type" request
   rqtype <-
       case optype of

@@ -129,6 +129,14 @@ filterExTags tl inst =
                    old_tags
     in inst { Instance.tags = new_tags }
 
+-- | Update the movable attribute
+updateMovable :: [String] -> Instance.Instance -> Instance.Instance
+updateMovable exinst inst =
+    if Instance.sNode inst == Node.noSecondary ||
+       Instance.name inst `elem` exinst
+    then Instance.setMovable inst False
+    else inst
+
 -- | Compute the longest common suffix of a list of strings that
 -- | starts with a dot.
 longestDomain :: [String] -> String
@@ -153,10 +161,11 @@ extractExTags =
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
           -> [String]             -- ^ Exclusion tags
+          -> [String]             -- ^ Untouchable instances
           -> (Node.AssocList, Instance.AssocList, [String])
           -- ^ Data from backends
           -> Result (Node.List, Instance.List, [String], String)
-mergeData um extags (nl, il, tags) =
+mergeData um extags exinsts (nl, il, tags) =
   let il2 = Container.fromAssocList il
       il3 = foldl' (\im (name, n_util) ->
                         case Container.findByName im name of
@@ -166,7 +175,8 @@ mergeData um extags (nl, il, tags) =
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
       allextags = extags ++ extractExTags tags
-      il4 = Container.map (filterExTags allextags) il3
+      il4 = Container.map (filterExTags allextags .
+                           updateMovable exinsts) il3
       nl2 = foldl' fixNodes nl (Container.elems il4)
       nl3 = Container.fromAssocList
             (map (\ (k, v) -> (k, Node.buildPeers v il4)) nl2)
