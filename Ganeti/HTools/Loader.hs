@@ -186,7 +186,10 @@ mergeData um extags exinsts (nl, il, tags) =
       csl = length common_suffix
       snl = Container.map (\n -> setName n (stripSuffix csl $ nameOf n)) nl3
       sil = Container.map (\i -> setName i (stripSuffix csl $ nameOf i)) il4
-  in Ok (snl, sil, tags, common_suffix)
+  in if not $ all (`elem` inst_names) exinsts
+     then Bad $ "Some of the excluded instances are unknown: " ++
+          show (exinsts \\ inst_names)
+     else Ok (snl, sil, tags, common_suffix)
 
 -- | Checks the cluster data for consistency.
 checkData :: Node.List -> Instance.List
