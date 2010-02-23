@@ -36,6 +36,7 @@ module Ganeti.HTools.Instance
     , setPri
     , setSec
     , setBoth
+    , setMovable
     , specOf
     , shrinkByType
     ) where
@@ -56,6 +57,7 @@ data Instance = Instance { name :: String    -- ^ The instance name
                          , sNode :: T.Ndx    -- ^ Original secondary node
                          , idx :: T.Idx      -- ^ Internal index
                          , util :: T.DynUtil -- ^ Dynamic resource usage
+                         , movable :: Bool   -- ^ Can the instance be moved?
                          , tags :: [String]  -- ^ List of instance tags
                          } deriving (Show)
 
@@ -101,6 +103,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init pn sn =
              , idx = -1
              , util = T.baseUtil
              , tags = tags_init
+             , movable = True
              }
 
 -- | Changes the index.
@@ -139,6 +142,11 @@ setBoth :: Instance  -- ^ the original instance
          -> T.Ndx    -- ^ new secondary node index
          -> Instance -- ^ the modified instance
 setBoth t p s = t { pNode = p, sNode = s }
+
+setMovable :: Instance -- ^ The original instance
+           -> Bool     -- ^ New movable flag
+           -> Instance -- ^ The modified instance
+setMovable t m = t { movable = m }
 
 -- | Try to shrink the instance based on the reason why we can't
 -- allocate it.
