@@ -35,6 +35,9 @@ import shutil
 import re
 import select
 import string
+import OpenSSL
+import warnings
+import distutils.version
 
 import ganeti
 import testutils
@@ -1386,6 +1389,68 @@ class TestHostInfo(unittest.TestCase):
     for value in data:
       HostInfo.NormalizeName(value)
 
+
+class TestParseAsn1Generalizedtime(unittest.TestCase):
+  def test(self):
+    # UTC
+    self.assertEqual(utils._ParseAsn1Generalizedtime("19700101000000Z"), 0)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100222174152Z"),
+                     1266860512)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20380119031407Z"),
+                     (2**31) - 1)
+
+    # With offset
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100222174152+0000"),
+                     1266860512)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100223131652+0000"),
+                     1266931012)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100223051808-0800"),
+                     1266931088)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100224002135+1100"),
+                     1266931295)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("19700101000000-0100"),
+                     3600)
+
+    # Leap seconds are not supported by datetime.datetime
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "19841231235960+0000")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "19920630235960+0000")
+
+    # Errors
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime, "")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime, "invalid")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "20100222174152")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "Mon Feb 22 17:47:02 UTC 2010")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "2010-02-22 17:42:02")
+
+
+class TestGetX509CertValidity(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    pyopenssl_version = distutils.version.LooseVersion(OpenSSL.__version__)
+
+    # Test whether we have pyOpenSSL 0.7 or above
+    self.pyopenssl0_7 = (pyopenssl_version >= "0.7")
+
+    if not self.pyopenssl0_7:
+      warnings.warn("This test requires pyOpenSSL 0.7 or above to"
+                    " function correctly")
+
+  def _LoadCert(self, name):
+    return OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           self._ReadTestData(name))
+
+  def test(self):
+    validity = utils.GetX509CertValidity(self._LoadCert("cert1.pem"))
+    if self.pyopenssl0_7:
+      self.assertEqual(validity, (1266919967, 1267524767))
+    else:
+      self.assertEqual(validity, (None, None))
 
 
 if __name__ == '__main__':

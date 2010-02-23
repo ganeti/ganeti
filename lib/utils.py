@@ -43,6 +43,8 @@ import resource
 import logging
 import logging.handlers
 import signal
+import datetime
+import calendar
 
 from cStringIO import StringIO
 
@@ -2024,6 +2026,69 @@ def TailFile(fname, lines=20):
 
   rows = raw_data.splitlines()
   return rows[-lines:]
+
+
+def _ParseAsn1Generalizedtime(value):
+  """Parses an ASN1 GENERALIZEDTIME timestamp as used by pyOpenSSL.
+
+  @type value: string
+  @param value: ASN1 GENERALIZEDTIME timestamp
+
+  """
+  m = re.match(r"^(\d+)([-+]\d\d)(\d\d)$", value)
+  if m:
+    # We have an offset
+    asn1time = m.group(1)
+    hours = int(m.group(2))
+    minutes = int(m.group(3))
+    utcoffset = (60 * hours) + minutes
+  else:
+    if not value.endswith("Z"):
+      raise ValueError("Missing timezone")
+    asn1time = value[:-1]
+    utcoffset = 0
+
+  parsed = time.strptime(asn1time, "%Y%m%d%H%M%S")
+
+  tt = datetime.datetime(*(parsed[:7])) - datetime.timedelta(minutes=utcoffset)
+
+  return calendar.timegm(tt.utctimetuple())
+
+
+def GetX509CertValidity(cert):
+  """Returns the validity period of the certificate.
+
+  @type cert: OpenSSL.crypto.X509
+  @param cert: X509 certificate object
+
+  """
+  # The get_notBefore and get_notAfter functions are only supported in
+  # pyOpenSSL 0.7 and above.
+  try:
+    get_notbefore_fn = cert.get_notBefore
+  except AttributeError:
+    not_before = None
+  else:
+    not_before_asn1 = get_notbefore_fn()
+
+    if not_before_asn1 is None:
+      not_before = None
+    else:
+      not_before = _ParseAsn1Generalizedtime(not_before_asn1)
+
+  try:
+    get_notafter_fn = cert.get_notAfter
+  except AttributeError:
+    not_after = None
+  else:
+    not_after_asn1 = get_notafter_fn()
+
+    if not_after_asn1 is None:
+      not_after = None
+    else:
+      not_after = _ParseAsn1Generalizedtime(not_after_asn1)
+
+  return (not_before, not_after)
 
 
 def SafeEncode(text):

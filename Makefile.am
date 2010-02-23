@@ -313,6 +313,7 @@ TEST_FILES = \
 	test/data/bdev-8.3-both.txt \
 	test/data/bdev-disk.txt \
 	test/data/bdev-net.txt \
+	test/data/cert1.pem \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd83.txt
