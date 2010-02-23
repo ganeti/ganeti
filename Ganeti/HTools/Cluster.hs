@@ -470,8 +470,7 @@ tryBalance ini_tbl disk_moves evac_mode =
                                           Instance.pNode e `elem` bad_nodes)
                             all_inst
                     else all_inst
-        reloc_inst = filter (\e -> Instance.sNode e /= Node.noSecondary)
-                     all_inst'
+        reloc_inst = filter Instance.movable all_inst'
         node_idx = map Node.idx . filter (not . Node.offline) $
                    Container.elems ini_nl
         fin_tbl = checkMove node_idx disk_moves ini_tbl reloc_inst
