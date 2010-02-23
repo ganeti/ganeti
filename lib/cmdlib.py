@@ -33,6 +33,7 @@ import re
 import platform
 import logging
 import copy
+import OpenSSL
 
 from ganeti import ssh
 from ganeti import utils
@@ -848,6 +849,13 @@ def _FindFaultyInstanceDisks(cfg, rpc, instance, node_name, prereq):
   return faulty
 
 
+def _FormatTimestamp(secs):
+  """Formats a Unix timestamp with the local timezone.
+
+  """
+  return time.strftime("%F %T %Z", time.gmtime(secs))
+
+
 class LUPostInitCluster(LogicalUnit):
   """Logical unit for running hooks after cluster initialization.
 
@@ -939,6 +947,66 @@ class LUDestroyCluster(LogicalUnit):
     return master
 
 
+def _VerifyCertificateInner(filename, expired, not_before, not_after, now,
+                            warn_days=constants.SSL_CERT_EXPIRATION_WARN,
+                            error_days=constants.SSL_CERT_EXPIRATION_ERROR):
+  """Verifies certificate details for LUVerifyCluster.
+
+  """
+  if expired:
+    msg = "Certificate %s is expired" % filename
+
+    if not_before is not None and not_after is not None:
+      msg += (" (valid from %s to %s)" %
+              (_FormatTimestamp(not_before),
+               _FormatTimestamp(not_after)))
+    elif not_before is not None:
+      msg += " (valid from %s)" % _FormatTimestamp(not_before)
+    elif not_after is not None:
+      msg += " (valid until %s)" % _FormatTimestamp(not_after)
+
+    return (LUVerifyCluster.ETYPE_ERROR, msg)
+
+  elif not_before is not None and not_before > now:
+    return (LUVerifyCluster.ETYPE_WARNING,
+            "Certificate %s not yet valid (valid from %s)" %
+            (filename, _FormatTimestamp(not_before)))
+
+  elif not_after is not None:
+    remaining_days = int((not_after - now) / (24 * 3600))
+
+    msg = ("Certificate %s expires in %d days" % (filename, remaining_days))
+
+    if remaining_days <= error_days:
+      return (LUVerifyCluster.ETYPE_ERROR, msg)
+
+    if remaining_days <= warn_days:
+      return (LUVerifyCluster.ETYPE_WARNING, msg)
+
+  return (None, None)
+
+
+def _VerifyCertificate(filename):
+  """Verifies a certificate for LUVerifyCluster.
+
+  @type filename: string
+  @param filename: Path to PEM file
+
+  """
+  try:
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           utils.ReadFile(filename))
+  except Exception, err: # pylint: disable-msg=W0703
+    return (LUVerifyCluster.ETYPE_ERROR,
+            "Failed to load X509 certificate %s: %s" % (filename, err))
+
+  # Depending on the pyOpenSSL version, this can just return (None, None)
+  (not_before, not_after) = utils.GetX509CertValidity(cert)
+
+  return _VerifyCertificateInner(filename, cert.has_expired(),
+                                 not_before, not_after, time.time())
+
+
 class LUVerifyCluster(LogicalUnit):
   """Verifies the cluster status.
 
@@ -953,6 +1021,7 @@ class LUVerifyCluster(LogicalUnit):
   TINSTANCE = "instance"
 
   ECLUSTERCFG = (TCLUSTER, "ECLUSTERCFG")
+  ECLUSTERCERT = (TCLUSTER, "ECLUSTERCERT")
   EINSTANCEBADNODE = (TINSTANCE, "EINSTANCEBADNODE")
   EINSTANCEDOWN = (TINSTANCE, "EINSTANCEDOWN")
   EINSTANCELAYOUT = (TINSTANCE, "EINSTANCELAYOUT")
@@ -1314,6 +1383,11 @@ class LUVerifyCluster(LogicalUnit):
     feedback_fn("* Verifying global settings")
     for msg in self.cfg.VerifyConfig():
       _ErrorIf(True, self.ECLUSTERCFG, None, msg)
+
+    # Check the cluster certificates
+    for cert_filename in constants.ALL_CERT_FILES:
+      (errcode, msg) = _VerifyCertificate(cert_filename)
+      _ErrorIf(errcode, self.ECLUSTERCERT, None, msg, code=errcode)
 
     vg_name = self.cfg.GetVGName()
     hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors

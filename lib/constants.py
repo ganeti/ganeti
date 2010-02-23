@@ -582,6 +582,10 @@ NV_DRBDLIST = "drbd-list"
 NV_NODESETUP = "nodesetup"
 NV_TIME = "time"
 
+# SSL certificate check constants (in days)
+SSL_CERT_EXPIRATION_WARN = 30
+SSL_CERT_EXPIRATION_ERROR = 7
+
 # Allocator framework constants
 IALLOCATOR_VERSION = 2
 IALLOCATOR_DIR_IN = "in"

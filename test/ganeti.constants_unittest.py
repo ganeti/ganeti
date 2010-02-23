@@ -64,6 +64,10 @@ class TestConstants(unittest.TestCase):
     self.failUnless(constants.NODE_MAX_CLOCK_SKEW <
                     (0.8 * constants.CONFD_MAX_CLOCK_SKEW))
 
+  def testSslCertExpiration(self):
+    self.failUnless(constants.SSL_CERT_EXPIRATION_ERROR <
+                    constants.SSL_CERT_EXPIRATION_WARN)
+
 
 class TestParameterNames(unittest.TestCase):
   """HV/BE parameter tests"""
