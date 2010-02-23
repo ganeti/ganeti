@@ -74,6 +74,7 @@ options =
     , oDiskMoves
     , oDynuFile
     , oExTags
+    , oExInst
     , oShowVer
     , oShowHelp
     ]
