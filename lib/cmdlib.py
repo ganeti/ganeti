@@ -1336,8 +1336,7 @@ class LUVerifyCluster(LogicalUnit):
     master_files = [constants.CLUSTER_CONF_FILE]
 
     file_names = ssconf.SimpleStore().GetFileList()
-    file_names.append(constants.SSL_CERT_FILE)
-    file_names.append(constants.RAPI_CERT_FILE)
+    file_names.extend(constants.ALL_CERT_FILES)
     file_names.extend(master_files)
 
     local_checksums = utils.FingerprintFiles(file_names)

@@ -114,6 +114,8 @@ SYSCONFDIR = _autoconf.SYSCONFDIR
 TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
 
+ALL_CERT_FILES = frozenset([SSL_CERT_FILE, RAPI_CERT_FILE])
+
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
 NODED = "ganeti-noded"
