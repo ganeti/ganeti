@@ -2,6 +2,7 @@ HPROGS = hbal hscan hail hspace
 HALLPROGS = $(HPROGS) test
 HSRCS := $(wildcard Ganeti/HTools/*.hs) $(wildcard Ganeti/*.hs)
 HDDIR = apidoc
+GHC := ghc
 
 DOCS = README.html NEWS.html
 
@@ -15,7 +16,7 @@ HPCEXCL = --exclude Main --exclude Ganeti.HTools.QC
 all: $(HPROGS)
 
 $(HALLPROGS): %: %.hs Ganeti/HTools/Version.hs $(HSRCS) Makefile
-	ghc --make $(HFLAGS) $(HEXTRA) $@
+	$(GHC) --make $(HFLAGS) $(HEXTRA) $@
 
 test: HEXTRA=-fhpc -Wwarn
 
