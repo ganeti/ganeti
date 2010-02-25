@@ -43,7 +43,6 @@ module Ganeti.HTools.PeerMap
 import Data.Maybe (fromMaybe)
 import Data.List
 import Data.Function
-import Data.Ord
 
 import Ganeti.HTools.Types
 

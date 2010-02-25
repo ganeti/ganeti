@@ -30,8 +30,6 @@ module Ganeti.HTools.Rapi
 
 import Network.Curl
 import Network.Curl.Types ()
-import Network.Curl.Code
-import Data.List
 import Control.Monad
 import Text.JSON (JSObject, JSValue, fromJSObject, decodeStrict)
 import Text.JSON.Types (JSValue(..))

@@ -28,9 +28,7 @@ module Ganeti.HTools.Luxi
       loadData
     ) where
 
-import Data.List
 import qualified Control.Exception as E
-import Control.Monad
 import Text.JSON.Types
 
 import qualified Ganeti.Luxi as L

@@ -30,7 +30,6 @@ module Ganeti.HTools.Simu
       loadData
     ) where
 
-import Control.Monad
 import Text.Printf (printf)
 
 import Ganeti.HTools.Utils

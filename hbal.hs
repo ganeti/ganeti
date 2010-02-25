@@ -28,10 +28,9 @@ module Main (main) where
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Data.List
-import Data.Function
 import Data.Maybe (isJust, fromJust)
 import Monad
-import System
+import System (exitWith, ExitCode(..))
 import System.IO
 import qualified System
 

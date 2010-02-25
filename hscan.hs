@@ -28,10 +28,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Main (main) where
 
 import Data.List
-import Data.Function
 import Data.Maybe (isJust, fromJust)
 import Monad
-import System
+#ifdef NO_CURL
+import System (exitWith, ExitCode(..))
+#endif
 import System.IO
 import System.FilePath
 import qualified System

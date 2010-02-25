@@ -42,7 +42,6 @@ module Ganeti.HTools.Utils
     ) where
 
 import Data.List
-import Control.Monad
 import qualified Text.JSON as J
 import Text.Printf (printf)
 

@@ -29,9 +29,8 @@ module Ganeti.OpCodes
     , opID
     ) where
 
-import Data.List
 import Control.Monad
-import Text.JSON (JSObject, JSValue, readJSON, showJSON, makeObj, JSON)
+import Text.JSON (readJSON, showJSON, makeObj, JSON)
 import qualified Text.JSON as J
 import Text.JSON.Types
 

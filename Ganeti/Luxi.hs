@@ -33,10 +33,9 @@ module Ganeti.Luxi
     , queryJobsStatus
     ) where
 
-import Data.List
 import Data.IORef
 import Control.Monad
-import Text.JSON (JSObject, JSValue, toJSObject, encodeStrict, decodeStrict)
+import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
 import Text.JSON.Types
 import System.Timeout
