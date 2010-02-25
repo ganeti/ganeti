@@ -39,6 +39,16 @@ AC_ARG_WITH([export-dir],
   [export_dir="/srv/ganeti/export"])
 AC_SUBST(EXPORT_DIR, $export_dir)
 
+# --with-ssh-config-dir=...
+AC_ARG_WITH([ssh-config-dir],
+  [AS_HELP_STRING([--with-ssh-config-dir=DIR],
+    [ directory with ssh host keys ]
+    [ (default is /etc/ssh)]
+  )],
+  [ssh_config_dir="$withval"],
+  [ssh_config_dir="/etc/ssh"])
+AC_SUBST(SSH_CONFIG_DIR, $ssh_config_dir)
+
 # --with-os-search-path=...
 # do a bit of black sed magic to for quoting of the strings in the list
 AC_ARG_WITH([os-search-path],

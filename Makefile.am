@@ -445,6 +445,7 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "VERSION_FULL = '$(VERSION_FULL)'"; \
 	  echo "LOCALSTATEDIR = '$(localstatedir)'"; \
 	  echo "SYSCONFDIR = '$(sysconfdir)'"; \
+	  echo "SSH_CONFIG_DIR = '$(SSH_CONFIG_DIR)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
 	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \
