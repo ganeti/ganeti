@@ -197,9 +197,9 @@ main = do
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
       all_names = map Node.name all_nodes
-      offline_wrong = filter (flip notElem all_names) offline_names
+      offline_wrong = filter (`notElem` all_names) offline_names
       offline_indices = map Node.idx $
-                        filter (\n -> elem (Node.name n) offline_names)
+                        filter (\n -> Node.name n `elem` offline_names)
                                all_nodes
       m_cpu = optMcpu opts
       m_dsk = optMdsk opts
@@ -209,7 +209,7 @@ main = do
                      (commaJoin offline_wrong) :: IO ()
          exitWith $ ExitFailure 1
 
-  let nm = Container.map (\n -> if elem (Node.idx n) offline_indices
+  let nm = Container.map (\n -> if Node.idx n `elem` offline_indices
                                 then Node.setOffline n True
                                 else n) fixed_nl
       nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)

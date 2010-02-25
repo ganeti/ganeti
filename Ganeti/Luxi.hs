@@ -124,7 +124,7 @@ recvMsg s = do
   let _recv obuf = do
               nbuf <- withTimeout queryTimeout "reading luxi response" $
                       S.recv (socket s) 4096
-              let (msg, remaining) = break ((==) eOM) (obuf ++ nbuf)
+              let (msg, remaining) = break (eOM ==) (obuf ++ nbuf)
               (if null remaining
                then _recv msg
                else return (msg, tail remaining))

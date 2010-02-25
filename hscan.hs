@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Main (main) where
 
 import Data.List
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import Monad
 #ifdef NO_CURL
 import System (exitWith, ExitCode(..))
@@ -174,9 +174,7 @@ main = do
                 "t_disk" "f_disk" "Score"
 
   when (null clusters) $ do
-         let lsock = case optLuxi opts of
-                       Just s -> s
-                       Nothing -> defaultLuxiSocket
+         let lsock = fromMaybe defaultLuxiSocket (optLuxi opts)
          let name = local
          input_data <- Luxi.loadData lsock
          writeData nlen name opts (processData input_data)

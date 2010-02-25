@@ -29,6 +29,7 @@ import Data.Char (toUpper, isAlphaNum)
 import Data.List
 import Data.Function
 import Data.Maybe (isJust, fromJust)
+import Data.Ord (comparing)
 import Monad
 import System (exitWith, ExitCode(..))
 import System.IO
@@ -148,7 +149,7 @@ tieredAlloc nl il newinst nreq ixes =
       Bad s -> Bad s
       Ok (errs, nl', ixes') ->
           case Instance.shrinkByType newinst . fst . last $
-               sortBy (compare `on` snd) errs of
+               sortBy (comparing snd) errs of
             Bad _ -> Ok (errs, nl', ixes')
             Ok newinst' ->
                 tieredAlloc nl' il newinst' nreq ixes'
@@ -201,10 +202,10 @@ printKeys = mapM_ (\(k, v) ->
 
 printInstance :: Node.List -> Instance.Instance -> [String]
 printInstance nl i = [ Instance.name i
-                     , (Container.nameOf nl $ Instance.pNode i)
-                     , (let sdx = Instance.sNode i
-                        in if sdx == Node.noSecondary then ""
-                           else Container.nameOf nl sdx)
+                     , Container.nameOf nl $ Instance.pNode i
+                     , let sdx = Instance.sNode i
+                       in if sdx == Node.noSecondary then ""
+                          else Container.nameOf nl sdx
                      , show (Instance.mem i)
                      , show (Instance.dsk i)
                      , show (Instance.vcpus i)
@@ -234,9 +235,9 @@ main = do
   let offline_names = optOffline opts
       all_nodes = Container.elems fixed_nl
       all_names = map Node.name all_nodes
-      offline_wrong = filter (flip notElem all_names) offline_names
+      offline_wrong = filter (`notElem` all_names) offline_names
       offline_indices = map Node.idx $
-                        filter (\n -> elem (Node.name n) offline_names)
+                        filter (\n -> Node.name n `elem` offline_names)
                                all_nodes
       req_nodes = optINodes opts
       m_cpu = optMcpu opts
@@ -252,7 +253,7 @@ main = do
                                             req_nodes :: IO ()
          exitWith $ ExitFailure 1
 
-  let nm = Container.map (\n -> if elem (Node.idx n) offline_indices
+  let nm = Container.map (\n -> if Node.idx n `elem` offline_indices
                                 then Node.setOffline n True
                                 else n) fixed_nl
       nl = Container.map (flip Node.setMdsk m_dsk . flip Node.setMcpu m_cpu)
@@ -333,7 +334,7 @@ main = do
 
   let allocs = length ixes
       fin_ixes = reverse ixes
-      sreason = reverse $ sortBy (compare `on` snd) ereason
+      sreason = reverse $ sortBy (comparing snd) ereason
 
   when (verbose > 1) $ do
          hPutStrLn stderr "Instance map"

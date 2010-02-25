@@ -42,7 +42,7 @@ module Ganeti.HTools.PeerMap
 
 import Data.Maybe (fromMaybe)
 import Data.List
-import Data.Function
+import Data.Ord (comparing)
 
 import Ganeti.HTools.Types
 
@@ -58,7 +58,7 @@ empty = []
 
 -- | Our reverse-compare function.
 pmCompare :: (Key, Elem) -> (Key, Elem) -> Ordering
-pmCompare a b = (compare `on` snd) b a
+pmCompare a b = comparing snd b a
 
 -- | Add or update (via a custom function) an element.
 addWith :: (Elem -> Elem -> Elem) -> Key -> Elem -> PeerMap -> PeerMap

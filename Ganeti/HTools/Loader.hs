@@ -125,7 +125,7 @@ fixNodes accu inst =
 filterExTags :: [String] -> Instance.Instance -> Instance.Instance
 filterExTags tl inst =
     let old_tags = Instance.tags inst
-        new_tags = filter (\tag -> any (\extag -> isPrefixOf extag tag) tl)
+        new_tags = filter (\tag -> any (`isPrefixOf` tag) tl)
                    old_tags
     in inst { Instance.tags = new_tags }
 
@@ -198,7 +198,7 @@ checkData nl il =
     Container.mapAccum
         (\ msgs node ->
              let nname = Node.name node
-                 nilst = map (flip Container.find il) (Node.pList node)
+                 nilst = map (`Container.find` il) (Node.pList node)
                  dilst = filter (not . Instance.running) nilst
                  adj_mem = sum . map Instance.mem $ dilst
                  delta_mem = truncate (Node.tMem node)

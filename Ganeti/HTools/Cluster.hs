@@ -60,8 +60,8 @@ module Ganeti.HTools.Cluster
     ) where
 
 import Data.List
+import Data.Ord (comparing)
 import Text.Printf (printf)
-import Data.Function
 import Control.Monad
 
 import qualified Ganeti.HTools.Container as Container
@@ -117,7 +117,7 @@ computeBadItems :: Node.List -> Instance.List ->
                    ([Node.Node], [Instance.Instance])
 computeBadItems nl il =
   let bad_nodes = verifyN1 $ getOnline nl
-      bad_instances = map (\idx -> Container.find idx il) .
+      bad_instances = map (`Container.find` il) .
                       sort . nub $
                       concatMap (\ n -> Node.sList n ++ Node.pList n) bad_nodes
   in
@@ -485,7 +485,7 @@ tryBalance ini_tbl disk_moves evac_mode =
 -- | Build failure stats out of a list of failures
 collapseFailures :: [FailMode] -> FailStats
 collapseFailures flst =
-    map (\k -> (k, length $ filter ((==) k) flst)) [minBound..maxBound]
+    map (\k -> (k, length $ filter (k ==) flst)) [minBound..maxBound]
 
 -- | Update current Allocation solution and failure stats with new
 -- elements
@@ -574,8 +574,8 @@ tryEvac :: (Monad m) =>
          -> [Ndx]           -- ^ Nodes to be evacuated
          -> m AllocSolution -- ^ Solution list
 tryEvac nl il ex_ndx =
-    let ex_nodes = map (flip Container.find nl) ex_ndx
-        all_insts = nub . concat . map Node.sList $ ex_nodes
+    let ex_nodes = map (`Container.find` nl) ex_ndx
+        all_insts = nub . concatMap Node.sList $ ex_nodes
     in do
       (_, sol) <- foldM (\(nl', (_, _, rsols)) idx -> do
                            -- FIXME: hardcoded one node here
@@ -701,7 +701,7 @@ printNodes nl fs =
     let fields = if null fs
                  then Node.defaultFields
                  else fs
-        snl = sortBy (compare `on` Node.idx) (Container.elems nl)
+        snl = sortBy (comparing Node.idx) (Container.elems nl)
         (header, isnum) = unzip $ map Node.showHeader fields
     in unlines . map ((:) ' ' .  intercalate " ") $
        formatTable (header:map (Node.list fields) snl) isnum
@@ -709,14 +709,14 @@ printNodes nl fs =
 -- | Print the instance list.
 printInsts :: Node.List -> Instance.List -> String
 printInsts nl il =
-    let sil = sortBy (compare `on` Instance.idx) (Container.elems il)
+    let sil = sortBy (comparing Instance.idx) (Container.elems il)
         helper inst = [ if Instance.running inst then "R" else " "
                       , Instance.name inst
                       , Container.nameOf nl (Instance.pNode inst)
-                      , (let sdx = Instance.sNode inst
-                         in if sdx == Node.noSecondary
-                            then  ""
-                            else Container.nameOf nl sdx)
+                      , let sdx = Instance.sNode inst
+                        in if sdx == Node.noSecondary
+                           then  ""
+                           else Container.nameOf nl sdx
                       , printf "%3d" $ Instance.vcpus inst
                       , printf "%5d" $ Instance.mem inst
                       , printf "%5d" $ Instance.dsk inst `div` 1024

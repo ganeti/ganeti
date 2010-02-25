@@ -57,7 +57,7 @@ getUrl url = do
 -- | Append the default port if not passed in.
 formatHost :: String -> String
 formatHost master =
-    if elem ':' master then  master
+    if ':' `elem` master then  master
     else "https://" ++ master ++ ":5080"
 
 -- | Parse a instance list in JSON format.

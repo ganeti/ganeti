@@ -163,7 +163,7 @@ delTags = foldl' delTag
 
 -- | Check if we can add a list of tags to a tagmap
 rejectAddTags :: TagMap -> [String] -> Bool
-rejectAddTags t = any (flip Map.member t)
+rejectAddTags t = any (`Map.member` t)
 
 -- | Check how many primary instances have conflicting tags. The
 -- algorithm to compute this is to sum the count of all tags, then
