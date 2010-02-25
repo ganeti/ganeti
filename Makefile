@@ -95,4 +95,7 @@ endif
 tags:
 	find -name '*.hs' | xargs hasktags -e
 
+lint:
+	hlint -r -u .
+
 .PHONY : all doc maintainer-clean clean dist check tags regen-version
