@@ -145,7 +145,7 @@ writeData _ name _ (Bad err) =
     printf "\nError for %s: failed to load data. Details:\n%s\n" name err
 
 writeData nlen name opts (Ok (nl, il, adata)) = do
-  printf "%-*s " nlen name
+  printf "%-*s " nlen name :: IO ()
   hFlush stdout
   let shownodes = optShowNodes opts
       odir = optOutPath opts

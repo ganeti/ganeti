@@ -124,6 +124,7 @@ loadExternalData opts = do
          Ok x -> return x
          Bad s -> do
            hPrintf stderr "Error: failed to load data. Details:\n%s\n" s
+               :: IO ()
            exitWith $ ExitFailure 1
       )
   let (fix_msgs, fixed_nl) = Loader.checkData loaded_nl il

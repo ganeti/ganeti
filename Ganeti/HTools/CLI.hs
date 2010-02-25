@@ -359,7 +359,7 @@ parseOpts argv progname options =
               printf "%s %s\ncompiled with %s %s\nrunning on %s %s\n"
                      progname Version.version
                      compilerName (Data.Version.showVersion compilerVersion)
-                     os arch
+                     os arch :: IO ()
               exitWith ExitSuccess
             return (po, args)
       (_, _, errs) -> do

@@ -173,7 +173,7 @@ printResults fin_nl num_instances allocs sreason = do
        do
          hPrintf stderr "ERROR: internal inconsistency, allocated (%d)\
                         \ != counted (%d)\n" (num_instances + allocs)
-                                 (Cluster.csNinst fin_stats)
+                                 (Cluster.csNinst fin_stats) :: IO ()
          exitWith $ ExitFailure 1
 
   printKeys $ printStats PFinal fin_stats
@@ -244,11 +244,12 @@ main = do
 
   when (length offline_wrong > 0) $ do
          hPrintf stderr "Error: Wrong node name(s) set as offline: %s\n"
-                     (commaJoin offline_wrong)
+                     (commaJoin offline_wrong) :: IO ()
          exitWith $ ExitFailure 1
 
   when (req_nodes /= 1 && req_nodes /= 2) $ do
-         hPrintf stderr "Error: Invalid required nodes (%d)\n" req_nodes
+         hPrintf stderr "Error: Invalid required nodes (%d)\n"
+                                            req_nodes :: IO ()
          exitWith $ ExitFailure 1
 
   let nm = Container.map (\n -> if elem (Node.idx n) offline_indices
@@ -288,7 +289,7 @@ main = do
                     (rspecCpu spx) "ADMIN_down" [] (-1) (-1)
       exitifbad val = (case val of
                          Bad s -> do
-                           hPrintf stderr "Failure: %s\n" s
+                           hPrintf stderr "Failure: %s\n" s :: IO ()
                            exitWith $ ExitFailure 1
                          Ok x -> return x)
 

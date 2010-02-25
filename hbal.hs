@@ -206,7 +206,7 @@ main = do
 
   when (length offline_wrong > 0) $ do
          hPrintf stderr "Wrong node name(s) set as offline: %s\n"
-                     (commaJoin offline_wrong)
+                     (commaJoin offline_wrong) :: IO ()
          exitWith $ ExitFailure 1
 
   let nm = Container.map (\n -> if elem (Node.idx n) offline_indices
@@ -328,7 +328,7 @@ main = do
          when (verbose > 3) $
               do
                 printf "Original: mem=%d disk=%d\n"
-                       (Cluster.csFmem ini_cs) (Cluster.csFdsk ini_cs)
+                       (Cluster.csFmem ini_cs) (Cluster.csFdsk ini_cs) :: IO ()
                 printf "Final:    mem=%d disk=%d\n"
                        (Cluster.csFmem fin_cs) (Cluster.csFdsk fin_cs)
   when oneline $
