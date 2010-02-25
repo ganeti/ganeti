@@ -170,13 +170,13 @@ prop_Instance_runStatus_True inst =
     let run_st = Instance.running inst
         run_tx = Instance.runSt inst
     in
-      run_tx == "running" || run_tx == "ERROR_up" ==> run_st
+      run_tx `elem` Instance.runningStates ==> run_st
 
 prop_Instance_runStatus_False inst =
     let run_st = Instance.running inst
         run_tx = Instance.runSt inst
     in
-      run_tx /= "running" && run_tx /= "ERROR_up" ==> not run_st
+      run_tx `notElem` Instance.runningStates ==> not run_st
 
 testInstance =
     [ run prop_Instance_setIdx

@@ -39,6 +39,7 @@ module Ganeti.HTools.Instance
     , setMovable
     , specOf
     , shrinkByType
+    , runningStates
     ) where
 
 import qualified Ganeti.HTools.Types as T
@@ -77,6 +78,10 @@ unitDsk = 256
 unitCpu :: Int
 unitCpu = 1
 
+-- | Running instance states.
+runningStates :: [String]
+runningStates = ["running", "ERROR_up"]
+
 -- | A simple name for the int, instance association list.
 type AssocList = [(T.Idx, Instance)]
 
@@ -96,7 +101,7 @@ create name_init mem_init dsk_init vcpus_init run_init tags_init pn sn =
              , mem = mem_init
              , dsk = dsk_init
              , vcpus = vcpus_init
-             , running = run_init == "running" || run_init == "ERROR_up"
+             , running = run_init `elem` runningStates
              , runSt = run_init
              , pNode = pn
              , sNode = sn
