@@ -218,8 +218,7 @@ class Merger(object):
 
     if result.failed:
       logging.warning("Unable to continue watcher. Fail reason: %s;"
-                      " output: %s" % (result.fail_reason,
-                                       result.output))
+                      " output: %s", result.fail_reason, result.output)
 
   def _StopDaemons(self):
     """Stop all daemons on merging nodes.
@@ -433,7 +432,7 @@ class Merger(object):
           }
         logging.critical("In order to rollback do the following:")
         for step in rbsteps:
-          logging.critical("  * %s" % (step % info))
+          logging.critical("  * %s", step % info)
       else:
         logging.critical("Nothing to rollback.")
 
