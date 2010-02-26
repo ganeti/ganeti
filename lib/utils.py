@@ -2446,17 +2446,31 @@ class FileLock(object):
   """Utility class for file locks.
 
   """
-  def __init__(self, filename):
+  def __init__(self, fd, filename):
     """Constructor for FileLock.
 
-    This will open the file denoted by the I{filename} argument.
-
+    @type fd: file
+    @param fd: File object
     @type filename: str
+    @param filename: Path of the file opened at I{fd}
+
+    """
+    self.fd = fd
+    self.filename = filename
+
+  @classmethod
+  def Open(cls, filename):
+    """Creates and opens a file to be used as a file-based lock.
+
+    @type filename: string
     @param filename: path to the file to be locked
 
     """
-    self.filename = filename
-    self.fd = open(self.filename, "w")
+    # Using "os.open" is necessary to allow both opening existing file
+    # read/write and creating if not existing. Vanilla "open" will truncate an
+    # existing file -or- allow creating if not existing.
+    return cls(os.fdopen(os.open(filename, os.O_RDWR | os.O_CREAT), "w+"),
+               filename)
 
   def __del__(self):
     self.Close()

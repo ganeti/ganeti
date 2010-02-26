@@ -992,12 +992,8 @@ class TestTailFile(testutils.GanetiTestCase):
       self.failUnlessEqual(TailFile(fname, lines=i), data[-i:])
 
 
-class TestFileLock(unittest.TestCase):
+class _BaseFileLockTest:
   """Test case for the FileLock class"""
-
-  def setUp(self):
-    self.tmpfile = tempfile.NamedTemporaryFile()
-    self.lock = utils.FileLock(self.tmpfile.name)
 
   def testSharedNonblocking(self):
     self.lock.Shared(blocking=False)
@@ -1035,6 +1031,45 @@ class TestFileLock(unittest.TestCase):
     self.lock.Unlock(blocking=False)
     self.lock.Close()
 
+  def testSimpleTimeout(self):
+    # These will succeed on the first attempt, hence a short timeout
+    self.lock.Shared(blocking=True, timeout=10.0)
+    self.lock.Exclusive(blocking=False, timeout=10.0)
+    self.lock.Unlock(blocking=True, timeout=10.0)
+    self.lock.Close()
+
+  @staticmethod
+  def _TryLockInner(filename, shared, blocking):
+    lock = utils.FileLock.Open(filename)
+
+    if shared:
+      fn = lock.Shared
+    else:
+      fn = lock.Exclusive
+
+    try:
+      # The timeout doesn't really matter as the parent process waits for us to
+      # finish anyway.
+      fn(blocking=blocking, timeout=0.01)
+    except errors.LockError, err:
+      return False
+
+    return True
+
+  def _TryLock(self, *args):
+    return utils.RunInSeparateProcess(self._TryLockInner, self.tmpfile.name,
+                                      *args)
+
+  def testTimeout(self):
+    for blocking in [True, False]:
+      self.lock.Exclusive(blocking=True)
+      self.failIf(self._TryLock(False, blocking))
+      self.failIf(self._TryLock(True, blocking))
+
+      self.lock.Shared(blocking=True)
+      self.assert_(self._TryLock(True, blocking))
+      self.failIf(self._TryLock(False, blocking))
+
   def testCloseShared(self):
     self.lock.Close()
     self.assertRaises(AssertionError, self.lock.Shared, blocking=False)
@@ -1046,6 +1081,31 @@ class TestFileLock(unittest.TestCase):
   def testCloseUnlock(self):
     self.lock.Close()
     self.assertRaises(AssertionError, self.lock.Unlock, blocking=False)
+
+
+class TestFileLockWithFilename(testutils.GanetiTestCase, _BaseFileLockTest):
+  TESTDATA = "Hello World\n" * 10
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.tmpfile = tempfile.NamedTemporaryFile()
+    utils.WriteFile(self.tmpfile.name, data=self.TESTDATA)
+    self.lock = utils.FileLock.Open(self.tmpfile.name)
+
+    # Ensure "Open" didn't truncate file
+    self.assertFileContent(self.tmpfile.name, self.TESTDATA)
+
+  def tearDown(self):
+    self.assertFileContent(self.tmpfile.name, self.TESTDATA)
+
+    testutils.GanetiTestCase.tearDown(self)
+
+
+class TestFileLockWithFileObject(unittest.TestCase, _BaseFileLockTest):
+  def setUp(self):
+    self.tmpfile = tempfile.NamedTemporaryFile()
+    self.lock = utils.FileLock(open(self.tmpfile.name, "w"), self.tmpfile.name)
 
 
 class TestTimeFunctions(unittest.TestCase):

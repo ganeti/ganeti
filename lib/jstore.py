@@ -88,7 +88,7 @@ def InitAndVerifyQueue(must_lock):
         raise
 
   # Lock queue
-  queue_lock = utils.FileLock(constants.JOB_QUEUE_LOCK_FILE)
+  queue_lock = utils.FileLock.Open(constants.JOB_QUEUE_LOCK_FILE)
   try:
     # The queue needs to be locked in exclusive mode to write to the serial and
     # version files.
