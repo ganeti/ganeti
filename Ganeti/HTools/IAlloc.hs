@@ -158,7 +158,7 @@ formatRVal csf _ elems =
 -- | Formats the response into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
                -> String   -- ^ Information text
-               -> String   -- ^ Suffix for nodes/instances
+               -> String   -- ^ Suffix for nodes and instances
                -> RqType   -- ^ Request type
                -> [Node.AllocElement] -- ^ The resulting allocations
                -> String   -- ^ The JSON-formatted message
