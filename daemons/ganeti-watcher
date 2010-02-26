@@ -94,6 +94,31 @@ def StartNodeDaemons():
   EnsureDaemon(constants.CONFD)
 
 
+def RunWatcherHooks():
+  """Run the watcher hooks.
+
+  """
+  hooks_dir = os.path.join(constants.HOOKS_BASE_DIR,
+                           constants.HOOKS_NAME_WATCHER)
+
+  try:
+    results = utils.RunParts(hooks_dir)
+  except Exception, msg: # pylint: disable-msg=W0703
+    logging.critical("RunParts %s failed: %s", hooks_dir, msg)
+
+  for (relname, status, runresult) in results:
+    if status == constants.RUNPARTS_SKIP:
+      logging.debug("Watcher hook %s: skipped", relname)
+    elif status == constants.RUNPARTS_ERR:
+      logging.warning("Watcher hook %s: error (%s)", relname, runresult)
+    elif status == constants.RUNPARTS_RUN:
+      if runresult.failed:
+        logging.warning("Watcher hook %s: failed (exit: %d) (output: %s)",
+                        relname, runresult.exit_code, runresult.output)
+      else:
+        logging.debug("Watcher hook %s: success (output: %s)", relname,
+                      runresult.output)
+
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
@@ -488,6 +513,7 @@ def main():
   update_file = False
   try:
     StartNodeDaemons()
+    RunWatcherHooks()
 
     notepad = WatcherState()
     try:

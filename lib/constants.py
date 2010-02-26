@@ -191,6 +191,7 @@ HOOKS_BASE_DIR = CONF_DIR + "/hooks"
 HOOKS_PHASE_PRE = "pre"
 HOOKS_PHASE_POST = "post"
 HOOKS_NAME_CFGUPDATE = "config-update"
+HOOKS_NAME_WATCHER = "watcher"
 HOOKS_VERSION = 2
 
 # hooks subject type (what object type does the LU deal with)
