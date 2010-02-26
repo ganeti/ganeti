@@ -1200,6 +1200,13 @@ class RunInSeparateProcess(unittest.TestCase):
 
       self.assertEqual(exp, utils.RunInSeparateProcess(_child))
 
+  def testArgs(self):
+    for arg in [0, 1, 999, "Hello World", (1, 2, 3)]:
+      def _child(carg1, carg2):
+        return carg1 == "Foo" and carg2 == arg
+
+      self.assert_(utils.RunInSeparateProcess(_child, "Foo", arg))
+
   def testPid(self):
     parent_pid = os.getpid()
 

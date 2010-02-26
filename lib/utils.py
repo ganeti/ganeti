@@ -2156,15 +2156,15 @@ def GetFilesystemStats(path):
   return (tsize, fsize)
 
 
-def RunInSeparateProcess(fn):
+def RunInSeparateProcess(fn, *args):
   """Runs a function in a separate process.
 
   Note: Only boolean return values are supported.
 
   @type fn: callable
   @param fn: Function to be called
-  @rtype: tuple of (int/None, int/None)
-  @return: Exit code and signal number
+  @rtype: bool
+  @return: Function's result
 
   """
   pid = os.fork()
@@ -2175,7 +2175,7 @@ def RunInSeparateProcess(fn):
       ResetTempfileModule()
 
       # Call function
-      result = int(bool(fn()))
+      result = int(bool(fn(*args)))
       assert result in (0, 1)
     except: # pylint: disable-msg=W0702
       logging.exception("Error while calling function in separate process")
