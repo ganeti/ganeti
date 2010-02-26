@@ -2486,33 +2486,31 @@ class FileLock(object):
     assert self.fd, "Lock was closed"
     assert timeout is None or timeout >= 0, \
       "If specified, timeout must be positive"
+    assert not (flag & fcntl.LOCK_NB), "LOCK_NB must not be set"
 
-    if timeout is not None:
+    # When a timeout is used, LOCK_NB must always be set
+    if not (timeout is None and blocking):
       flag |= fcntl.LOCK_NB
-      timeout_end = time.time() + timeout
 
-    # Blocking doesn't have effect with timeout
-    elif not blocking:
-      flag |= fcntl.LOCK_NB
-      timeout_end = None
-
-    # TODO: Convert to utils.Retry
-
-    retry = True
-    while retry:
+    if timeout is None:
+      self._Lock(self.fd, flag, timeout)
+    else:
       try:
-        fcntl.flock(self.fd, flag)
-        retry = False
-      except IOError, err:
-        if err.errno in (errno.EAGAIN, ):
-          if timeout_end is not None and time.time() < timeout_end:
-            # Wait before trying again
-            time.sleep(max(0.1, min(1.0, timeout)))
-          else:
-            raise errors.LockError(errmsg)
-        else:
-          logging.exception("fcntl.flock failed")
-          raise
+        Retry(self._Lock, (0.1, 1.2, 1.0), timeout,
+              args=(self.fd, flag, timeout))
+      except RetryTimeout:
+        raise errors.LockError(errmsg)
+
+  @staticmethod
+  def _Lock(fd, flag, timeout):
+    try:
+      fcntl.flock(fd, flag)
+    except IOError, err:
+      if timeout is not None and err.errno == errno.EAGAIN:
+        raise RetryAgain()
+
+      logging.exception("fcntl.flock failed")
+      raise
 
   def Exclusive(self, blocking=False, timeout=None):
     """Locks the file in exclusive mode.
