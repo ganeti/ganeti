@@ -101,6 +101,15 @@ Details
 - Improved burnin
 
 
+Version 2.0.6
+-------------
+
+- Fix cleaner behaviour on nodes not in a cluster (Debian bug 568105)
+- Fix a string formatting bug
+- Improve safety of the code in some error paths
+- Improve data validation in the master of values returned from nodes
+
+
 Version 2.0.5
 -------------
 
