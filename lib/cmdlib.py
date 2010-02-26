@@ -3397,7 +3397,7 @@ class LUQueryConfigValues(NoHooksLU):
       elif field == "drain_flag":
         entry = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
       elif field == "watcher_pause":
-        return utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
+        entry = utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
       else:
         raise errors.ParameterError(field)
       values.append(entry)
