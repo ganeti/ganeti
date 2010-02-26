@@ -206,6 +206,7 @@ def ShowClusterMaster(opts, args):
   ToStdout(master)
   return 0
 
+
 def _PrintGroupedParams(paramsdict):
   """Print Grouped parameters (be, nic, disk) by group.
 
@@ -217,6 +218,7 @@ def _PrintGroupedParams(paramsdict):
     ToStdout("  - %s:", gr_name)
     for item, val in gr_dict.iteritems():
       ToStdout("      %s: %s", item, val)
+
 
 def ShowClusterConfig(opts, args):
   """Shows cluster information.
@@ -594,7 +596,7 @@ def WatcherOps(opts, args):
 
   elif command == "info":
     result = client.QueryConfigValues(["watcher_pause"])
-    _ShowWatcherPause(result)
+    _ShowWatcherPause(result[0])
 
   else:
     raise errors.OpPrereqError("Command '%s' is not valid." % command,
