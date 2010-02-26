@@ -119,6 +119,8 @@ NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
+# used in the ganeti-nbma project
+NLD = "ganeti-nld"
 
 MULTITHREADED_DAEMONS = frozenset([MASTERD])
 
@@ -133,10 +135,14 @@ DAEMONS_PORTS = {
   NODED: ("tcp", 1811),
   CONFD: ("udp", 1814),
   RAPI: ("tcp", 5080),
+  # used in the ganeti-nbma project
+  NLD: ("udp", 1816),
 }
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
 DEFAULT_CONFD_PORT = DAEMONS_PORTS[CONFD][1]
 DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
+# used in the ganeti-nbma project
+DEFAULT_NLD_PORT = DAEMONS_PORTS[NLD][1]
 
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
@@ -149,6 +155,8 @@ DAEMONS_LOGFILES = {
   CONFD: LOG_DIR + "conf-daemon.log",
   RAPI: LOG_DIR + "rapi-daemon.log",
   MASTERD: LOG_DIR + "master-daemon.log",
+  # used in the ganeti-nbma project
+  NLD: LOG_DIR + "nl-daemon.log",
   }
 LOG_OS_DIR = LOG_DIR + "os"
 LOG_WATCHER = LOG_DIR + "watcher.log"
