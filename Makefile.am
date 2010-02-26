@@ -233,6 +233,7 @@ dist_tools_SCRIPTS = \
 	tools/burnin \
 	tools/cfgshell \
 	tools/cfgupgrade \
+	tools/cluster-merge \
 	tools/lvmstrap
 
 pkglib_SCRIPTS = \
