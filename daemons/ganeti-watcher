@@ -71,27 +71,14 @@ def ShouldPause():
   return bool(utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE))
 
 
-def EnsureDaemon(name):
-  """Check for and start daemon if not alive.
-
-  """
-  result = utils.RunCmd([constants.DAEMON_UTIL, "check-and-start", name])
-  if result.failed:
-    logging.error("Can't start daemon '%s', failure %s, output: %s",
-                  name, result.fail_reason, result.output)
-    return False
-
-  return True
-
-
 def StartNodeDaemons():
   """Start all the daemons that should be running on all nodes.
 
   """
   # on master or not, try to start the node dameon
-  EnsureDaemon(constants.NODED)
+  utils.EnsureDaemon(constants.NODED)
   # start confd as well. On non candidates it will be in disabled mode.
-  EnsureDaemon(constants.CONFD)
+  utils.EnsureDaemon(constants.CONFD)
 
 
 def RunWatcherHooks():
@@ -527,14 +514,14 @@ def main():
       except luxi.NoMasterError, err:
         logging.warning("Master seems to be down (%s), trying to restart",
                         str(err))
-        if not EnsureDaemon(constants.MASTERD):
+        if not utils.EnsureDaemon(constants.MASTERD):
           logging.critical("Can't start the master, exiting")
           sys.exit(constants.EXIT_FAILURE)
         # else retry the connection
         client = cli.GetClient()
 
       # we are on master now
-      EnsureDaemon(constants.RAPI)
+      utils.EnsureDaemon(constants.RAPI)
 
       try:
         watcher = Watcher(options, notepad)

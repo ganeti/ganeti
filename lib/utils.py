@@ -1610,6 +1610,19 @@ def DaemonPidFileName(name):
   return os.path.join(constants.RUN_GANETI_DIR, "%s.pid" % name)
 
 
+def EnsureDaemon(name):
+  """Check for and start daemon if not alive.
+
+  """
+  result = RunCmd([constants.DAEMON_UTIL, "check-and-start", name])
+  if result.failed:
+    logging.error("Can't start daemon '%s', failure %s, output: %s",
+                  name, result.fail_reason, result.output)
+    return False
+
+  return True
+
+
 def WritePidFile(name):
   """Write the current process pidfile.
 
