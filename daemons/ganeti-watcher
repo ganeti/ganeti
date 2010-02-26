@@ -106,23 +106,19 @@ def RunWatcherHooks():
         logging.debug("Watcher hook %s: success (output: %s)", relname,
                       runresult.output)
 
+
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
   """
-  def __init__(self):
+  def __init__(self, statefile):
     """Open, lock, read and parse the file.
 
-    Raises exception on lock contention.
+    @type statefile: file
+    @param statefile: State file object
 
     """
-    # The two-step dance below is necessary to allow both opening existing
-    # file read/write and creating if not existing.  Vanilla open will truncate
-    # an existing file -or- allow creating if not existing.
-    fd = os.open(constants.WATCHER_STATEFILE, os.O_RDWR | os.O_CREAT)
-    self.statefile = os.fdopen(fd, 'w+')
-
-    utils.LockFile(self.statefile.fileno())
+    self.statefile = statefile
 
     try:
       state_data = self.statefile.read()
@@ -458,6 +454,30 @@ class Watcher(object):
       logging.exception("Error while activating disks")
 
 
+def OpenStateFile(path):
+  """Opens the state file and acquires a lock on it.
+
+  @type path: string
+  @param path: Path to state file
+
+  """
+  # The two-step dance below is necessary to allow both opening existing
+  # file read/write and creating if not existing. Vanilla open will truncate
+  # an existing file -or- allow creating if not existing.
+  statefile_fd = os.open(path, os.O_RDWR | os.O_CREAT)
+
+  # Try to acquire lock on state file. If this fails, another watcher instance
+  # might already be running or another program is temporarily blocking the
+  # watcher from running.
+  try:
+    utils.LockFile(statefile_fd)
+  except errors.LockError, err:
+    logging.error("Can't acquire lock on state file %s: %s", path, err)
+    return None
+
+  return os.fdopen(statefile_fd, "w+")
+
+
 def ParseOptions():
   """Parse the command line options.
 
@@ -497,12 +517,16 @@ def main():
     logging.debug("Pause has been set, exiting")
     sys.exit(constants.EXIT_SUCCESS)
 
+  statefile = OpenStateFile(constants.WATCHER_STATEFILE)
+  if not statefile:
+    sys.exit(constants.EXIT_FAILURE)
+
   update_file = False
   try:
     StartNodeDaemons()
     RunWatcherHooks()
 
-    notepad = WatcherState()
+    notepad = WatcherState(statefile)
     try:
       try:
         client = cli.GetClient()
@@ -551,7 +575,7 @@ def main():
   except errors.JobQueueDrainError:
     logging.error("Job queue is drained, can't maintain cluster state")
   except Exception, err:
-    logging.error(str(err), exc_info=True)
+    logging.exception(str(err))
     sys.exit(constants.EXIT_FAILURE)
 
 
