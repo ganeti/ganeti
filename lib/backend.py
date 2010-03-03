@@ -23,6 +23,8 @@
 
 @var _ALLOWED_UPLOAD_FILES: denotes which files are accepted in
      the L{UploadFile} function
+@var _ALLOWED_CLEAN_DIRS: denotes which directories are accepted
+     in the L{_CleanDirectory} function
 
 """
 
@@ -57,6 +59,11 @@ from ganeti import ssconf
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
+_ALLOWED_CLEAN_DIRS = frozenset([
+  constants.DATA_DIR,
+  constants.JOB_QUEUE_ARCHIVE_DIR,
+  constants.QUEUE_DIR,
+  ])
 
 
 class RPCFail(Exception):
@@ -143,6 +150,10 @@ def _CleanDirectory(path, exclude=None):
       to the empty list
 
   """
+  if path not in _ALLOWED_CLEAN_DIRS:
+    _Fail("Path passed to _CleanDirectory not in allowed clean targets: '%s'",
+          path)
+
   if not os.path.isdir(path):
     return
   if exclude is None:
