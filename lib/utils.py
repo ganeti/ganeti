@@ -1748,6 +1748,7 @@ def FindFile(name, search_path, test=os.path.exists):
     return None
 
   for dir_name in search_path:
+    # FIXME: investigate switch to PathJoin
     item_name = os.path.sep.join([dir_name, name])
     # check the user test and that we're indeed resolving to the given
     # basename

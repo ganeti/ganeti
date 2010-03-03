@@ -1682,7 +1682,7 @@ def _OSOndiskAPIVersion(os_dir):
       data holding either the vaid versions or an error message
 
   """
-  api_file = os.path.sep.join([os_dir, constants.OS_API_FILE])
+  api_file = utils.PathJoin(os_dir, constants.OS_API_FILE)
 
   try:
     st = os.stat(api_file)
@@ -1738,7 +1738,7 @@ def DiagnoseOS(top_dirs=None):
         logging.exception("Can't list the OS directory %s: %s", dir_name, err)
         break
       for name in f_names:
-        os_path = os.path.sep.join([dir_name, name])
+        os_path = utils.PathJoin(dir_name, name)
         status, os_inst = _TryOSFromDisk(name, base_dir=dir_name)
         if status:
           diagnose = ""
@@ -1789,7 +1789,7 @@ def _TryOSFromDisk(name, base_dir=None):
     os_files[constants.OS_VARIANTS_FILE] = ''
 
   for filename in os_files:
-    os_files[filename] = os.path.sep.join([os_dir, filename])
+    os_files[filename] = utils.PathJoin(os_dir, filename)
 
     try:
       st = os.stat(os_files[filename])
