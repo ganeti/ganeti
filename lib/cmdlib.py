@@ -5866,7 +5866,7 @@ class LUCreateInstance(LogicalUnit):
           self.needed_locks[locking.LEVEL_NODE].append(src_node)
         if not os.path.isabs(src_path):
           self.op.src_path = src_path = \
-            os.path.join(constants.EXPORT_DIR, src_path)
+            utils.PathJoin(constants.EXPORT_DIR, src_path)
 
       # On import force_variant must be True, because if we forced it at
       # initial install, our only chance when importing it back is that it
@@ -5974,8 +5974,8 @@ class LUCreateInstance(LogicalUnit):
           if src_path in exp_list[node].payload:
             found = True
             self.op.src_node = src_node = node
-            self.op.src_path = src_path = os.path.join(constants.EXPORT_DIR,
-                                                       src_path)
+            self.op.src_path = src_path = utils.PathJoin(constants.EXPORT_DIR,
+                                                         src_path)
             break
         if not found:
           raise errors.OpPrereqError("No export found for relative path %s" %
@@ -6012,7 +6012,7 @@ class LUCreateInstance(LogicalUnit):
         if export_info.has_option(constants.INISECT_INS, option):
           # FIXME: are the old os-es, disk sizes, etc. useful?
           export_name = export_info.get(constants.INISECT_INS, option)
-          image = os.path.join(src_path, export_name)
+          image = utils.PathJoin(src_path, export_name)
           disk_images.append(image)
         else:
           disk_images.append(False)
@@ -6148,9 +6148,8 @@ class LUCreateInstance(LogicalUnit):
       string_file_storage_dir = self.op.file_storage_dir
 
     # build the full file storage dir path
-    file_storage_dir = os.path.normpath(os.path.join(
-                                        self.cfg.GetFileStorageDir(),
-                                        string_file_storage_dir, instance))
+    file_storage_dir = utils.PathJoin(self.cfg.GetFileStorageDir(),
+                                      string_file_storage_dir, instance)
 
 
     disks = _GenerateDiskTemplate(self,

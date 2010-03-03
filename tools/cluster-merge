@@ -125,7 +125,7 @@ class Merger(object):
                                  " key from %s. Fail reason: %s; output: %s" %
                                  (cluster, result.fail_reason, result.output))
 
-      key_path = os.path.join(self.work_dir, cluster)
+      key_path = utils.PathJoin(self.work_dir, cluster)
       utils.WriteFile(key_path, mode=0600, data=result.stdout)
 
       result = self._RunCmd(cluster, "gnt-node list -o name --no-header",
@@ -254,8 +254,8 @@ class Merger(object):
                                  (data.cluster, result.fail_reason,
                                   result.output))
 
-      data.config_path = os.path.join(self.work_dir, "%s_config.data" %
-                                                     data.cluster)
+      data.config_path = utils.PathJoin(self.work_dir, "%s_config.data" %
+                                        data.cluster)
       utils.WriteFile(data.config_path, data=result.stdout)
 
   # R0201: Method could be a function

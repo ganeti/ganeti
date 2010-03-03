@@ -163,7 +163,7 @@ def _CleanDirectory(path, exclude=None):
     exclude = [os.path.normpath(i) for i in exclude]
 
   for rel_name in utils.ListVisibleFiles(path):
-    full_name = os.path.normpath(os.path.join(path, rel_name))
+    full_name = utils.PathJoin(path, rel_name)
     if full_name in exclude:
       continue
     if os.path.isfile(full_name) and not os.path.islink(full_name):
@@ -907,8 +907,8 @@ def _GetVGInfo(vg_name):
 
 
 def _GetBlockDevSymlinkPath(instance_name, idx):
-  return os.path.join(constants.DISK_LINKS_DIR,
-                      "%s:%d" % (instance_name, idx))
+  return utils.PathJoin(constants.DISK_LINKS_DIR,
+                        "%s:%d" % (instance_name, idx))
 
 
 def _SymlinkBlockDev(instance_name, device_path, idx):
@@ -1995,7 +1995,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx, debug):
   export_env['EXPORT_DEVICE'] = real_disk.dev_path
   export_env['EXPORT_INDEX'] = str(idx)
 
-  destdir = os.path.join(constants.EXPORT_DIR, instance.name + ".new")
+  destdir = utils.PathJoin(constants.EXPORT_DIR, instance.name + ".new")
   destfile = disk.physical_id[1]
 
   # the target command is built out of three individual commands,
@@ -2035,8 +2035,8 @@ def FinalizeExport(instance, snap_disks):
   @rtype: None
 
   """
-  destdir = os.path.join(constants.EXPORT_DIR, instance.name + ".new")
-  finaldestdir = os.path.join(constants.EXPORT_DIR, instance.name)
+  destdir = utils.PathJoin(constants.EXPORT_DIR, instance.name + ".new")
+  finaldestdir = utils.PathJoin(constants.EXPORT_DIR, instance.name)
 
   config = objects.SerializableConfigParser()
 
@@ -2079,7 +2079,7 @@ def FinalizeExport(instance, snap_disks):
 
   config.set(constants.INISECT_INS, 'disk_count' , '%d' % disk_total)
 
-  utils.WriteFile(os.path.join(destdir, constants.EXPORT_CONF_FILE),
+  utils.WriteFile(utils.PathJoin(destdir, constants.EXPORT_CONF_FILE),
                   data=config.Dumps())
   shutil.rmtree(finaldestdir, True)
   shutil.move(destdir, finaldestdir)
@@ -2096,7 +2096,7 @@ def ExportInfo(dest):
       export info
 
   """
-  cff = os.path.join(dest, constants.EXPORT_CONF_FILE)
+  cff = utils.PathJoin(dest, constants.EXPORT_CONF_FILE)
 
   config = objects.SerializableConfigParser()
   config.read(cff)
@@ -2179,7 +2179,7 @@ def RemoveExport(export):
   @rtype: None
 
   """
-  target = os.path.join(constants.EXPORT_DIR, export)
+  target = utils.PathJoin(constants.EXPORT_DIR, export)
 
   try:
     shutil.rmtree(target)

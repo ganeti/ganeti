@@ -110,7 +110,7 @@ class ChrootManager(hv_base.BaseHypervisor):
 
     """
     return [name for name in os.listdir(self._ROOT_DIR)
-            if self._IsDirLive(os.path.join(self._ROOT_DIR, name))]
+            if self._IsDirLive(utils.PathJoin(self._ROOT_DIR, name))]
 
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
@@ -134,7 +134,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     """
     data = []
     for file_name in os.listdir(self._ROOT_DIR):
-      path = os.path.join(self._ROOT_DIR, file_name)
+      path = utils.PathJoin(self._ROOT_DIR, file_name)
       if self._IsDirLive(path):
         data.append((file_name, 0, 0, 0, 0, 0))
     return data

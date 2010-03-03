@@ -85,8 +85,8 @@ def RunWatcherHooks():
   """Run the watcher hooks.
 
   """
-  hooks_dir = os.path.join(constants.HOOKS_BASE_DIR,
-                           constants.HOOKS_NAME_WATCHER)
+  hooks_dir = utils.PathJoin(constants.HOOKS_BASE_DIR,
+                             constants.HOOKS_NAME_WATCHER)
 
   try:
     results = utils.RunParts(hooks_dir)

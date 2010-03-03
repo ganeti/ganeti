@@ -310,7 +310,7 @@ def RunParts(dir_name, env=None, reset_env=False):
     return rr
 
   for relname in sorted(dir_contents):
-    fname = os.path.join(dir_name, relname)
+    fname = PathJoin(dir_name, relname)
     if not (os.path.isfile(fname) and os.access(fname, os.X_OK) and
             constants.EXT_PLUGIN_MASK.match(relname) is not None):
       rr.append((relname, constants.RUNPARTS_SKIP, None))
@@ -1607,7 +1607,7 @@ def DaemonPidFileName(name):
       daemon name
 
   """
-  return os.path.join(constants.RUN_GANETI_DIR, "%s.pid" % name)
+  return PathJoin(constants.RUN_GANETI_DIR, "%s.pid" % name)
 
 
 def EnsureDaemon(name):
@@ -2106,7 +2106,7 @@ def CalculateDirectorySize(path):
 
   for (curpath, _, files) in os.walk(path):
     for filename in files:
-      st = os.lstat(os.path.join(curpath, filename))
+      st = os.lstat(PathJoin(curpath, filename))
       size += st.st_size
 
   return BytesToMebibyte(size)

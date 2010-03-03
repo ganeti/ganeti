@@ -23,7 +23,6 @@
 
 """
 
-import os
 import sys
 import optparse
 import time
@@ -658,7 +657,7 @@ class Burner(object):
                                            shutdown=True)
       rem_op = opcodes.OpRemoveInstance(instance_name=instance,
                                         ignore_failures=True)
-      imp_dir = os.path.join(constants.EXPORT_DIR, full_name)
+      imp_dir = utils.PathJoin(constants.EXPORT_DIR, full_name)
       imp_op = opcodes.OpCreateInstance(instance_name=instance,
                                         disks = [ {"size": size}
                                                   for size in self.disk_size],

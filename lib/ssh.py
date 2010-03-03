@@ -52,7 +52,7 @@ def GetUserFiles(user, mkdir=False):
   if not user_dir:
     raise errors.OpExecError("Cannot resolve home of user %s" % user)
 
-  ssh_dir = os.path.join(user_dir, ".ssh")
+  ssh_dir = utils.PathJoin(user_dir, ".ssh")
   if not os.path.lexists(ssh_dir):
     if mkdir:
       try:
@@ -63,7 +63,7 @@ def GetUserFiles(user, mkdir=False):
   elif not os.path.isdir(ssh_dir):
     raise errors.OpExecError("path ~%s/.ssh is not a directory" % user)
 
-  return [os.path.join(ssh_dir, base)
+  return [utils.PathJoin(ssh_dir, base)
           for base in ["id_dsa", "id_dsa.pub", "authorized_keys"]]
 
 
