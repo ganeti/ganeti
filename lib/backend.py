@@ -799,6 +799,24 @@ def GetAllInstancesInfo(hypervisor_list):
   return output
 
 
+def _InstanceLogName(kind, os_name, instance):
+  """Compute the OS log filename for a given instance and operation.
+
+  The instance name and os name are passed in as strings since not all
+  operations have these as part of an instance object.
+
+  @type kind: string
+  @param kind: the operation type (e.g. add, import, etc.)
+  @type os_name: string
+  @param os_name: the os name
+  @type instance: string
+  @param instance: the name of the instance being imported/added/etc.
+
+  """
+  base = "%s-%s-%s-%d.log" % (kind, os_name, instance, int(time.time()))
+  return utils.PathJoin(constants.LOG_OS_DIR, base)
+
+
 def InstanceOsAdd(instance, reinstall, debug):
   """Add an OS to an instance.
 
@@ -817,8 +835,7 @@ def InstanceOsAdd(instance, reinstall, debug):
   if reinstall:
     create_env['INSTANCE_REINSTALL'] = "1"
 
-  logfile = "%s/add-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
-                                     instance.name, int(time.time()))
+  logfile = _InstanceLogName("add", instance.os, instance.name)
 
   result = utils.RunCmd([inst_os.create_script], env=create_env,
                         cwd=inst_os.path, output=logfile,)
@@ -850,9 +867,8 @@ def RunRenameInstance(instance, old_name, debug):
   rename_env = OSEnvironment(instance, inst_os, debug)
   rename_env['OLD_INSTANCE_NAME'] = old_name
 
-  logfile = "%s/rename-%s-%s-%s-%d.log" % (constants.LOG_OS_DIR, instance.os,
-                                           old_name,
-                                           instance.name, int(time.time()))
+  logfile = _InstanceLogName("rename", instance.os,
+                             "%s-%s" % (old_name, instance.name))
 
   result = utils.RunCmd([inst_os.rename_script], env=rename_env,
                         cwd=inst_os.path, output=logfile)
@@ -1982,8 +1998,7 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx, debug):
 
   export_script = inst_os.export_script
 
-  logfile = "%s/exp-%s-%s-%s.log" % (constants.LOG_OS_DIR, inst_os.name,
-                                     instance.name, int(time.time()))
+  logfile = _InstanceLogName("export", inst_os.name, instance.name)
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
   real_disk = _RecursiveFindBD(disk)
@@ -2127,8 +2142,7 @@ def ImportOSIntoInstance(instance, src_node, src_images, cluster_name, debug):
   import_env = OSEnvironment(instance, inst_os, debug)
   import_script = inst_os.import_script
 
-  logfile = "%s/import-%s-%s-%s.log" % (constants.LOG_OS_DIR, instance.os,
-                                        instance.name, int(time.time()))
+  logfile = _InstanceLogName("import", instance.os, instance.name)
   if not os.path.exists(constants.LOG_OS_DIR):
     os.mkdir(constants.LOG_OS_DIR, 0750)
 
