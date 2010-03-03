@@ -1936,6 +1936,36 @@ def IsNormAbsPath(path):
   return os.path.normpath(path) == path and os.path.isabs(path)
 
 
+def PathJoin(*args):
+  """Safe-join a list of path components.
+
+  Requirements:
+      - the first argument must be an absolute path
+      - no component in the path must have backtracking (e.g. /../),
+        since we check for normalization at the end
+
+  @param args: the path components to be joined
+  @raise ValueError: for invalid paths
+
+  """
+  # ensure we're having at least one path passed in
+  assert args
+  # ensure the first component is an absolute and normalized path name
+  root = args[0]
+  if not IsNormAbsPath(root):
+    raise ValueError("Invalid parameter to PathJoin: '%s'" % str(args[0]))
+  result = os.path.join(*args)
+  # ensure that the whole path is normalized
+  if not IsNormAbsPath(result):
+    raise ValueError("Invalid parameters to PathJoin: '%s'" % str(args))
+  # check that we're still under the original prefix
+  prefix = os.path.commonprefix([root, result])
+  if prefix != root:
+    raise ValueError("Error: path joining resulted in different prefix"
+                     " (%s != %s)" % (prefix, root))
+  return result
+
+
 def TailFile(fname, lines=20):
   """Return the last lines from a file.
 

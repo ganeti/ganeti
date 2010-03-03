@@ -47,7 +47,7 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
      TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime, \
-     UnescapeAndSplit, RunParts
+     UnescapeAndSplit, RunParts, PathJoin
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
      ProgrammerError
@@ -1258,6 +1258,23 @@ class TestUnescapeAndSplit(unittest.TestCase):
       a = ["a", "b\\\\\\" + sep + "c", "d"]
       b = ["a", "b\\" + sep + "c", "d"]
       self.failUnlessEqual(UnescapeAndSplit(sep.join(a), sep=sep), b)
+
+
+class TestPathJoin(unittest.TestCase):
+  """Testing case for PathJoin"""
+
+  def testBasicItems(self):
+    mlist = ["/a", "b", "c"]
+    self.failUnlessEqual(PathJoin(*mlist), "/".join(mlist))
+
+  def testNonAbsPrefix(self):
+    self.failUnlessRaises(ValueError, PathJoin, "a", "b")
+
+  def testBackTrack(self):
+    self.failUnlessRaises(ValueError, PathJoin, "/a", "b/../c")
+
+  def testMultiAbs(self):
+    self.failUnlessRaises(ValueError, PathJoin, "/a", "/b")
 
 
 if __name__ == '__main__':
