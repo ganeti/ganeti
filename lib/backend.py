@@ -2679,9 +2679,16 @@ class HooksRunner(object):
 
     subdir = "%s-%s.d" % (hpath, suffix)
     dir_name = "%s/%s" % (self._BASE_DIR, subdir)
-    runparts_results = utils.RunParts(dir_name, env=env, reset_env=True)
 
     results = []
+
+    if not os.path.isdir(dir_name):
+      # for non-existing/non-dirs, we simply exit instead of logging a
+      # warning at every operation
+      return results
+
+    runparts_results = utils.RunParts(dir_name, env=env, reset_env=True)
+
     for (relname, relstatus, runresult)  in runparts_results:
       if relstatus == constants.RUNPARTS_SKIP:
         rrval = constants.HKR_SKIP
