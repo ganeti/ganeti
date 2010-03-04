@@ -349,6 +349,10 @@ class LogicalVolume(BlockDev):
   """Logical Volume block device.
 
   """
+  _VALID_NAME_RE = re.compile("^[a-zA-Z0-9+_.-]*$")
+  _INVALID_NAMES = frozenset([".", "..", "snapshot", "pvmove"])
+  _INVALID_SUBSTRINGS = frozenset(["_mlog", "_mimage"])
+
   def __init__(self, unique_id, children, size):
     """Attaches to a LV device.
 
@@ -359,7 +363,9 @@ class LogicalVolume(BlockDev):
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
-    self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
+    self._ValidateName(self._vg_name)
+    self._ValidateName(self._lv_name)
+    self.dev_path = utils.PathJoin("/dev", self._vg_name, self._lv_name)
     self._degraded = True
     self.major = self.minor = self.pe_size = self.stripe_count = None
     self.Attach()
@@ -373,6 +379,8 @@ class LogicalVolume(BlockDev):
       raise errors.ProgrammerError("Invalid configuration data %s" %
                                    str(unique_id))
     vg_name, lv_name = unique_id
+    cls._ValidateName(vg_name)
+    cls._ValidateName(lv_name)
     pvs_info = cls.GetPVInfo([vg_name])
     if not pvs_info:
       _ThrowError("Can't compute PV info for vg %s", vg_name)
@@ -442,6 +450,20 @@ class LogicalVolume(BlockDev):
 
     return data
 
+  @classmethod
+  def _ValidateName(cls, name):
+    """Validates that a given name is valid as VG or LV name.
+
+    The list of valid characters and restricted names is taken out of
+    the lvm(8) manpage, with the simplification that we enforce both
+    VG and LV restrictions on the names.
+
+    """
+    if (not cls._VALID_NAME_RE.match(name) or
+        name in cls._INVALID_NAMES or
+        utils.any(cls._INVALID_SUBSTRINGS, lambda x: x in name)):
+      _ThrowError("Invalid LVM name '%s'", name)
+
   def Remove(self):
     """Remove this logical volume.
 
@@ -469,7 +491,7 @@ class LogicalVolume(BlockDev):
     if result.failed:
       _ThrowError("Failed to rename the logical volume: %s", result.output)
     self._lv_name = new_name
-    self.dev_path = "/dev/%s/%s" % (self._vg_name, self._lv_name)
+    self.dev_path = utils.PathJoin("/dev", self._vg_name, self._lv_name)
 
   def Attach(self):
     """Attach to an existing LV.
