@@ -2255,6 +2255,8 @@ def _TransformFileStorageDir(file_storage_dir):
   @return: the normalized path if valid, None otherwise
 
   """
+  if not constants.ENABLE_FILE_STORAGE:
+    _Fail("File storage disabled at configure time")
   cfg = _GetConfig()
   file_storage_dir = os.path.normpath(file_storage_dir)
   base_file_storage_dir = cfg.GetFileStorageDir()

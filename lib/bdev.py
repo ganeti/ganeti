@@ -1907,8 +1907,10 @@ class FileStorage(BlockDev):
 DEV_MAP = {
   constants.LD_LV: LogicalVolume,
   constants.LD_DRBD8: DRBD8,
-  constants.LD_FILE: FileStorage,
   }
+
+if constants.ENABLE_FILE_STORAGE:
+  DEV_MAP[constants.LD_FILE] = FileStorage
 
 
 def FindDevice(dev_type, unique_id, children, size):

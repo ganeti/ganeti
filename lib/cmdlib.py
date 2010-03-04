@@ -5658,6 +5658,10 @@ class LUCreateInstance(LogicalUnit):
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
                                  errors.ECODE_INVAL)
+    if (self.op.disk_template == constants.DT_FILE and
+        not constants.ENABLE_FILE_STORAGE):
+      raise errors.OpPrereqError("File storage disabled at configure time",
+                                 errors.ECODE_INVAL)
 
   def ExpandNames(self):
     """ExpandNames for CreateInstance.
