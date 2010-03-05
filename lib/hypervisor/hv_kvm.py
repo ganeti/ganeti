@@ -96,12 +96,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     dirs = [(dname, constants.RUN_DIRS_MODE) for dname in self._DIRS]
     utils.EnsureDirs(dirs)
 
-  def _InstancePidFile(self, instance_name):
+  @classmethod
+  def _InstancePidFile(cls, instance_name):
     """Returns the instance pidfile.
 
     """
-    pidfile = "%s/%s" % (self._PIDS_DIR, instance_name)
-    return pidfile
+    return utils.PathJoin(cls._PIDS_DIR, instance_name)
 
   def _InstancePidAlive(self, instance_name):
     """Returns the instance pid and pidfile
@@ -127,14 +127,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Returns the instance monitor socket name
 
     """
-    return '%s/%s.monitor' % (cls._CTRL_DIR, instance_name)
+    return utils.PathJoin(cls._CTRL_DIR, "%s.monitor" % instance_name)
 
   @classmethod
   def _InstanceSerial(cls, instance_name):
     """Returns the instance serial socket name
 
     """
-    return '%s/%s.serial' % (cls._CTRL_DIR, instance_name)
+    return utils.PathJoin(cls._CTRL_DIR, "%s.serial" % instance_name)
 
   @staticmethod
   def _SocatUnixConsoleParams():
@@ -153,7 +153,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Returns the instance KVM runtime filename
 
     """
-    return '%s/%s.runtime' % (cls._CONF_DIR, instance_name)
+    return utils.PathJoin(cls._CONF_DIR, "%s.runtime" % instance_name)
 
   @classmethod
   def _RemoveInstanceRuntimeFiles(cls, pidfile, instance_name):
@@ -246,7 +246,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     result = []
     for name in os.listdir(self._PIDS_DIR):
-      filename = "%s/%s" % (self._PIDS_DIR, name)
+      filename = utils.PathJoin(self._PIDS_DIR, name)
       if utils.IsProcessAlive(utils.ReadPidFile(filename)):
         result.append(name)
     return result
@@ -263,7 +263,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not alive:
       return None
 
-    cmdline_file = "/proc/%s/cmdline" % pid
+    cmdline_file = utils.PathJoin("/proc", str(pid), "cmdline")
     try:
       cmdline = utils.ReadFile(cmdline_file)
     except EnvironmentError, err:
@@ -293,7 +293,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     data = []
     for name in os.listdir(self._PIDS_DIR):
-      filename = "%s/%s" % (self._PIDS_DIR, name)
+      filename = utils.PathJoin(self._PIDS_DIR, name)
       if utils.IsProcessAlive(utils.ReadPidFile(filename)):
         try:
           info = self.GetInstanceInfo(name)
