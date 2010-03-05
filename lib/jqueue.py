@@ -894,8 +894,8 @@ class JobQueue(object):
     @return: the path to the archived job file
 
     """
-    path = "%s/job-%s" % (cls._GetArchiveDirectory(job_id), job_id)
-    return utils.PathJoin(constants.JOB_QUEUE_ARCHIVE_DIR, path)
+    return utils.PathJoin(constants.JOB_QUEUE_ARCHIVE_DIR,
+                          cls._GetArchiveDirectory(job_id), "job-%s" % job_id)
 
   @classmethod
   def _ExtractJobID(cls, name):

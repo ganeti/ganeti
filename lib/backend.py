@@ -2023,8 +2023,8 @@ def ExportSnapshot(disk, dest_node, instance, cluster_name, idx, debug):
 
   comprcmd = "gzip"
 
-  destcmd = utils.BuildShellCmd("mkdir -p %s && cat > %s/%s",
-                                destdir, destdir, destfile)
+  destcmd = utils.BuildShellCmd("mkdir -p %s && cat > %s",
+                                destdir, utils.PathJoin(destdir, destfile))
   remotecmd = _GetSshRunner(cluster_name).BuildCmd(dest_node,
                                                    constants.GANETI_RUNAS,
                                                    destcmd)
@@ -2696,7 +2696,7 @@ class HooksRunner(object):
 
 
     subdir = "%s-%s.d" % (hpath, suffix)
-    dir_name = "%s/%s" % (self._BASE_DIR, subdir)
+    dir_name = utils.PathJoin(self._BASE_DIR, subdir)
 
     results = []
 
@@ -2789,7 +2789,7 @@ class DevCacheManager(object):
     if dev_path.startswith(cls._DEV_PREFIX):
       dev_path = dev_path[len(cls._DEV_PREFIX):]
     dev_path = dev_path.replace("/", "_")
-    fpath = "%s/bdev_%s" % (cls._ROOT_DIR, dev_path)
+    fpath = utils.PathJoin(cls._ROOT_DIR, "bdev_%s" % dev_path)
     return fpath
 
   @classmethod
