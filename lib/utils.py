@@ -1221,8 +1221,12 @@ def ListVisibleFiles(path):
   @param path: the directory to enumerate
   @rtype: list
   @return: the list of all files not starting with a dot
+  @raise ProgrammerError: if L{path} is not an absolue and normalized path
 
   """
+  if not IsNormAbsPath(path):
+    raise errors.ProgrammerError("Path passed to ListVisibleFiles is not"
+                                 " absolute/normalized: '%s'" % path)
   files = [i for i in os.listdir(path) if not i.startswith(".")]
   files.sort()
   return files

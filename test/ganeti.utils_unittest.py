@@ -897,6 +897,13 @@ class TestListVisibleFiles(unittest.TestCase):
     expected = ["a", "b"]
     self._test(files, expected)
 
+  def testNonAbsolutePath(self):
+    self.failUnlessRaises(errors.ProgrammerError, ListVisibleFiles, "abc")
+
+  def testNonNormalizedPath(self):
+    self.failUnlessRaises(errors.ProgrammerError, ListVisibleFiles,
+                          "/bin/../tmp")
+
 
 class TestNewUUID(unittest.TestCase):
   """Test case for NewUUID"""
