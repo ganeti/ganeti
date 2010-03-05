@@ -1461,6 +1461,8 @@ def BlockdevRemovechildren(parent_cdev, new_cdevs):
       else:
         devs.append(bd.dev_path)
     else:
+      if not utils.IsNormAbsPath(rpath):
+        _Fail("Strange path returned from StaticDevPath: '%s'", rpath)
       devs.append(rpath)
   parent_bdev.RemoveChildren(devs)
 

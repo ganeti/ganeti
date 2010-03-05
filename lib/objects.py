@@ -411,6 +411,9 @@ class Disk(ConfigObject):
     irrespective of their status. For such devices, we return this
     path, for others we return None.
 
+    @warning: The path returned is not a normalized pathname; callers
+        should check that it is a valid path.
+
     """
     if self.dev_type == constants.LD_LV:
       return "/dev/%s/%s" % (self.logical_id[0], self.logical_id[1])
