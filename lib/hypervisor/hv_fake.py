@@ -61,7 +61,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     @return: tuple of (name, id, memory, vcpus, stat, times)
 
     """
-    file_name = "%s/%s" % (self._ROOT_DIR, instance_name)
+    file_name = self._InstanceFile(instance_name)
     if not os.path.exists(file_name):
       return None
     try:
@@ -88,7 +88,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     data = []
     for file_name in os.listdir(self._ROOT_DIR):
       try:
-        fh = open(self._ROOT_DIR + "/" + file_name, "r")
+        fh = open(utils.PathJoin(self._ROOT_DIR, file_name), "r")
         inst_id = "-1"
         memory = 0
         vcpus = 1
@@ -107,12 +107,12 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         raise errors.HypervisorError("Failed to list instances: %s" % err)
     return data
 
-
-  def _InstanceFile(self, instance_name):
+  @classmethod
+  def _InstanceFile(cls, instance_name):
     """Compute the instance file for an instance name.
 
     """
-    return self._ROOT_DIR + "/%s" % instance_name
+    return utils.PathJoin(cls._ROOT_DIR, instance_name)
 
   def _IsAlive(self, instance_name):
     """Checks if an instance is alive.
