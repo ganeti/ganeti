@@ -615,6 +615,8 @@ class HostInfo:
   """Class implementing resolver and hostname functionality
 
   """
+  _VALID_NAME_RE = re.compile("^[a-z0-9._-]{1,255}$")
+
   def __init__(self, name=None):
     """Initialize the host name object.
 
@@ -664,6 +666,27 @@ class HostInfo:
       raise errors.ResolverError(hostname, err.args[0], err.args[1])
 
     return result
+
+  @classmethod
+  def NormalizeName(cls, hostname):
+    """Validate and normalize the given hostname.
+
+    @attention: the validation is a bit more relaxed than the standards
+        require; most importantly, we allow underscores in names
+    @raise errors.OpPrereqError: when the name is not valid
+
+    """
+    hostname = hostname.lower()
+    if (not cls._VALID_NAME_RE.match(hostname) or
+        # double-dots, meaning empty label
+        ".." in hostname or
+        # empty initial label
+        hostname.startswith(".")):
+      raise errors.OpPrereqError("Invalid hostname '%s'" % hostname,
+                                 errors.ECODE_INVAL)
+    if hostname.endswith("."):
+      hostname = hostname.rstrip(".")
+    return hostname
 
 
 def GetHostInfo(name=None):

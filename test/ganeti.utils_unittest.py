@@ -47,10 +47,10 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
      TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime, \
-     UnescapeAndSplit, RunParts, PathJoin
+     UnescapeAndSplit, RunParts, PathJoin, HostInfo
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
-     ProgrammerError
+     ProgrammerError, OpPrereqError
 
 
 class TestIsProcessAlive(unittest.TestCase):
@@ -1282,6 +1282,43 @@ class TestPathJoin(unittest.TestCase):
 
   def testMultiAbs(self):
     self.failUnlessRaises(ValueError, PathJoin, "/a", "/b")
+
+
+class TestHostInfo(unittest.TestCase):
+  """Testing case for HostInfo"""
+
+  def testUppercase(self):
+    data = "AbC.example.com"
+    self.failUnlessEqual(HostInfo.NormalizeName(data), data.lower())
+
+  def testTooLongName(self):
+    data = "a.b." + "c" * 255
+    self.failUnlessRaises(OpPrereqError, HostInfo.NormalizeName, data)
+
+  def testTrailingDot(self):
+    data = "a.b.c"
+    self.failUnlessEqual(HostInfo.NormalizeName(data + "."), data)
+
+  def testInvalidName(self):
+    data = [
+      "a b",
+      "a/b",
+      ".a.b",
+      "a..b",
+      ]
+    for value in data:
+      self.failUnlessRaises(OpPrereqError, HostInfo.NormalizeName, value)
+
+  def testValidName(self):
+    data = [
+      "a.b",
+      "a-b",
+      "a_b",
+      "a.b.c",
+      ]
+    for value in data:
+      HostInfo.NormalizeName(value)
+
 
 
 if __name__ == '__main__':
