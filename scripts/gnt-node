@@ -133,7 +133,7 @@ def AddNode(opts, args):
 
   """
   cl = GetClient()
-  dns_data = utils.GetHostInfo(args[0])
+  dns_data = utils.GetHostInfo(utils.HostInfo.NormalizeName(args[0]))
   node = dns_data.name
   readd = opts.readd
 

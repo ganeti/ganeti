@@ -190,7 +190,7 @@ def InitCluster(cluster_name, mac_prefix,
                                " belong to this host. Aborting." %
                                hostname.ip, errors.ECODE_ENVIRON)
 
-  clustername = utils.GetHostInfo(cluster_name)
+  clustername = utils.GetHostInfo(utils.HostInfo.NormalizeName(cluster_name))
 
   if utils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
                    timeout=5):

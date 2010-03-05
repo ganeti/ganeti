@@ -2907,6 +2907,10 @@ class LUAddNode(LogicalUnit):
   HTYPE = constants.HTYPE_NODE
   _OP_REQP = ["node_name"]
 
+  def CheckArguments(self):
+    # validate/normalize the node name
+    self.op.node_name = utils.HostInfo.NormalizeName(self.op.node_name)
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -5654,6 +5658,8 @@ class LUCreateInstance(LogicalUnit):
     # for tools
     if not hasattr(self.op, "name_check"):
       self.op.name_check = True
+    # validate/normalize the instance name
+    self.op.instance_name = utils.HostInfo.NormalizeName(self.op.instance_name)
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
