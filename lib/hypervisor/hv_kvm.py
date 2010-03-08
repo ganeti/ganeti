@@ -507,10 +507,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         nic_model = "model=%s" % nic_type
 
       for nic_seq, nic in enumerate(kvm_nics):
-        nic_val = "nic,macaddr=%s,%s" % (nic.mac, nic_model)
+        nic_val = "nic,vlan=%s,macaddr=%s,%s" % (nic_seq, nic.mac, nic_model)
         script = self._WriteNetScript(instance, nic_seq, nic)
         kvm_cmd.extend(['-net', nic_val])
-        kvm_cmd.extend(['-net', 'tap,script=%s' % script])
+        kvm_cmd.extend(['-net', 'tap,vlan=%s,script=%s' % (nic_seq, script)])
         temp_files.append(script)
 
     if incoming:
