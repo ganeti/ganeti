@@ -527,6 +527,7 @@ def SetClusterParams(opts, args):
   op = opcodes.OpSetClusterParams(vg_name=vg_name,
                                   enabled_hypervisors=hvlist,
                                   hvparams=hvparams,
+                                  os_hvp=None,
                                   beparams=beparams,
                                   nicparams=nicparams,
                                   candidate_pool_size=opts.candidate_pool_size)

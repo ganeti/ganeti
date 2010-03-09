@@ -301,6 +301,7 @@ class OpSetClusterParams(OpCode):
     "vg_name",
     "enabled_hypervisors",
     "hvparams",
+    "os_hvp",
     "beparams",
     "nicparams",
     "candidate_pool_size",

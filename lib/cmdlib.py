@@ -2064,6 +2064,25 @@ class LUSetClusterParams(LogicalUnit):
         else:
           self.new_hvparams[hv_name].update(hv_dict)
 
+    # os hypervisor parameters
+    self.new_os_hvp = objects.FillDict(cluster.os_hvp, {})
+    if self.op.os_hvp:
+      if not isinstance(self.op.os_hvp, dict):
+        raise errors.OpPrereqError("Invalid 'os_hvp' parameter on input",
+                                   errors.ECODE_INVAL)
+      for os_name, hvs in self.op.os_hvp.items():
+        if not isinstance(hvs, dict):
+          raise errors.OpPrereqError(("Invalid 'os_hvp' parameter on"
+                                      " input"), errors.ECODE_INVAL)
+        if os_name not in self.new_os_hvp:
+          self.new_os_hvp[os_name] = hvs
+        else:
+          for hv_name, hv_dict in hvs.items():
+            if hv_name not in self.new_os_hvp[os_name]:
+              self.new_os_hvp[os_name][hv_name] = hv_dict
+            else:
+              self.new_os_hvp[os_name][hv_name].update(hv_dict)
+
     if self.op.enabled_hypervisors is not None:
       self.hv_list = self.op.enabled_hypervisors
       if not self.hv_list:
@@ -2106,6 +2125,8 @@ class LUSetClusterParams(LogicalUnit):
                     " state, not changing")
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
+    if self.op.os_hvp:
+      self.cluster.os_hvp = self.new_os_hvp
     if self.op.enabled_hypervisors is not None:
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
     if self.op.beparams:
@@ -3336,6 +3357,15 @@ class LUQueryClusterInfo(NoHooksLU):
 
     """
     cluster = self.cfg.GetClusterInfo()
+    os_hvp = {}
+
+    # Filter just for enabled hypervisors
+    for os_name, hv_dict in cluster.os_hvp.items():
+      os_hvp[os_name] = {}
+      for hv_name, hv_params in hv_dict.items():
+        if hv_name in cluster.enabled_hypervisors:
+          os_hvp[os_name][hv_name] = hv_params
+
     result = {
       "software_version": constants.RELEASE_VERSION,
       "protocol_version": constants.PROTOCOL_VERSION,
@@ -3349,6 +3379,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "enabled_hypervisors": cluster.enabled_hypervisors,
       "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor_name])
                         for hypervisor_name in cluster.enabled_hypervisors]),
+      "os_hvp": os_hvp,
       "beparams": cluster.beparams,
       "nicparams": cluster.nicparams,
       "candidate_pool_size": cluster.candidate_pool_size,
