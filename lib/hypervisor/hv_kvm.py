@@ -29,6 +29,7 @@ import re
 import tempfile
 import time
 import logging
+import pwd
 from cStringIO import StringIO
 
 from ganeti import utils
@@ -76,6 +77,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     constants.HV_DISK_CACHE:
       hv_base.ParamInSet(True, constants.HT_VALID_CACHE_TYPES),
+    constants.HV_SECURITY_MODEL:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_SM_TYPES),
+    constants.HV_SECURITY_DOMAIN: hv_base.NO_CHECK,
     }
 
   _MIGRATION_STATUS_RE = re.compile('Migration\s+status:\s+(\w+)',
@@ -324,6 +328,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
     boot_cdrom = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_CDROM
     boot_network = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_NETWORK
+
+    security_model = hvp[constants.HV_SECURITY_MODEL]
+    if security_model == constants.HT_SM_USER:
+      kvm_cmd.extend(['-runas', hvp[constants.HV_SECURITY_DOMAIN]])
 
     if boot_network:
       kvm_cmd.extend(['-boot', 'n'])
@@ -790,6 +798,39 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         not hvparams[constants.HV_CDROM_IMAGE_PATH]):
       raise errors.HypervisorError("Cannot boot from cdrom without an"
                                    " ISO path")
+
+    security_model = hvparams[constants.HV_SECURITY_MODEL]
+    if security_model == constants.HT_SM_USER:
+      if not hvparams[constants.HV_SECURITY_DOMAIN]:
+        raise errors.HypervisorError("A security domain (user to run kvm as)"
+                                     " must be specified")
+    elif (security_model == constants.HT_SM_NONE or
+          security_model == constants.HT_SM_POOL):
+      if hvparams[constants.HV_SECURITY_DOMAIN]:
+        raise errors.HypervisorError("Cannot have a security domain when the"
+                                     " security model is 'none' or 'pool'")
+    if security_model == constants.HT_SM_POOL:
+      raise errors.HypervisorError("Security model pool is not supported yet")
+
+  @classmethod
+  def ValidateParameters(cls, hvparams):
+    """Check the given parameters for validity.
+
+    @type hvparams:  dict
+    @param hvparams: dictionary with parameter names/value
+    @raise errors.HypervisorError: when a parameter is not valid
+
+    """
+    super(KVMHypervisor, cls).ValidateParameters(hvparams)
+
+    security_model = hvparams[constants.HV_SECURITY_MODEL]
+    if security_model == constants.HT_SM_USER:
+      username = hvparams[constants.HV_SECURITY_DOMAIN]
+      try:
+        pwdentry = pwd.getpwnam(username)
+      except KeyError:
+        raise errors.HypervisorError("Unknown security domain user %s"
+                                     % username)
 
   @classmethod
   def PowercycleNode(cls):
