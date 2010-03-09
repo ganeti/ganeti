@@ -413,6 +413,7 @@ class OpSetNodeParams(OpCode):
     "master_candidate",
     "offline",
     "drained",
+    "auto_promote",
     ]
 
 

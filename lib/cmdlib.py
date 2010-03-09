@@ -3158,6 +3158,7 @@ class LUSetNodeParams(LogicalUnit):
     _CheckBooleanOpField(self.op, 'master_candidate')
     _CheckBooleanOpField(self.op, 'offline')
     _CheckBooleanOpField(self.op, 'drained')
+    _CheckBooleanOpField(self.op, 'auto_promote')
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained]
     if all_mods.count(None) == 3:
       raise errors.OpPrereqError("Please pass at least one modification",
@@ -3167,8 +3168,22 @@ class LUSetNodeParams(LogicalUnit):
                                  " state at the same time",
                                  errors.ECODE_INVAL)
 
+    # Boolean value that tells us whether we're offlining or draining the node
+    self.offline_or_drain = (self.op.offline == True or
+                             self.op.drained == True)
+    self.deoffline_or_drain = (self.op.offline == False or
+                               self.op.drained == False)
+    self.might_demote = (self.op.master_candidate == False or
+                         self.offline_or_drain)
+
+    self.lock_all = self.op.auto_promote and self.might_demote
+
+
   def ExpandNames(self):
-    self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
+    if self.lock_all:
+      self.needed_locks = {locking.LEVEL_NODE: locking.ALL_SET}
+    else:
+      self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3203,25 +3218,17 @@ class LUSetNodeParams(LogicalUnit):
                                    " only via masterfailover",
                                    errors.ECODE_INVAL)
 
-    # Boolean value that tells us whether we're offlining or draining the node
-    offline_or_drain = self.op.offline == True or self.op.drained == True
-    deoffline_or_drain = self.op.offline == False or self.op.drained == False
 
-    if (node.master_candidate and
-        (self.op.master_candidate == False or offline_or_drain)):
-      cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-      mc_now, mc_should, mc_max = self.cfg.GetMasterCandidateStats()
-      if mc_now <= cp_size:
-        msg = ("Not enough master candidates (desired"
-               " %d, new value will be %d)" % (cp_size, mc_now-1))
-        # Only allow forcing the operation if it's an offline/drain operation,
-        # and we could not possibly promote more nodes.
-        # FIXME: this can still lead to issues if in any way another node which
-        # could be promoted appears in the meantime.
-        if self.op.force and offline_or_drain and mc_should == mc_max:
-          self.LogWarning(msg)
-        else:
-          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+    if node.master_candidate and self.might_demote and not self.lock_all:
+      assert not self.op.auto_promote, "auto-promote set but lock_all not"
+      # check if after removing the current node, we're missing master
+      # candidates
+      (mc_remaining, mc_should, _) = \
+          self.cfg.GetMasterCandidateStats(exceptions=[node.name])
+      if mc_remaining != mc_should:
+        raise errors.OpPrereqError("Not enough master candidates, please"
+                                   " pass auto_promote to allow promotion",
+                                   errors.ECODE_INVAL)
 
     if (self.op.master_candidate == True and
         ((node.offline and not self.op.offline == False) or
@@ -3231,7 +3238,7 @@ class LUSetNodeParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
-    if (deoffline_or_drain and not offline_or_drain and not
+    if (self.deoffline_or_drain and not self.offline_or_drain and not
         self.op.master_candidate == True and not node.master_candidate):
       self.op.master_candidate = _DecideSelfPromotion(self)
       if self.op.master_candidate:
@@ -3286,8 +3293,13 @@ class LUSetNodeParams(LogicalUnit):
           node.offline = False
           result.append(("offline", "clear offline status due to drain"))
 
+    # we locked all nodes, we adjust the CP before updating this node
+    if self.lock_all:
+      _AdjustCandidatePool(self, [node.name])
+
     # this will trigger configuration file update, if needed
     self.cfg.Update(node, feedback_fn)
+
     # this will trigger job queue propagation or cleanup
     if changed_mc:
       self.context.ReaddNode(node)
