@@ -596,6 +596,7 @@
         <arg>--master-candidate=<option>yes|no</option></arg>
         <arg>--drained=<option>yes|no</option></arg>
         <arg>--offline=<option>yes|no</option></arg>
+        <arg>--auto-promote</arg>
         <arg choice="req"><replaceable>node</replaceable></arg>
       </cmdsynopsis>
 
@@ -610,10 +611,15 @@
       </para>
 
       <para>
-        In case a node is demoted from the master candidate role, but
-        there are not enough new nodes for this case, the operation
-        will be refused. To override this check, pass the
-        <option>--force</option> option.
+        In case a node is demoted from the master candidate role, the
+        operation will be refused unless you pass
+        the <option>--auto-promote</option> option. This option will
+        cause the operation to lock all cluster nodes (thus it will
+        not be able to run in parallel with most other jobs), but it
+        allows automated maintenance of the cluster candidate pool. If
+        locking all cluster node is too expensive, another option is
+        to promote manually another node to master candidate before
+        demoting the current one.
       </para>
 
       <para>

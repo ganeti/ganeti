@@ -635,7 +635,8 @@ def SetNodeParams(opts, args):
                                master_candidate=candidate,
                                offline=offline,
                                drained=drained,
-                               force=opts.force)
+                               force=opts.force,
+                               auto_promote=opts.auto_promote)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -681,7 +682,8 @@ commands = {
     (utils.CommaJoin(_LIST_HEADERS), utils.CommaJoin(_LIST_DEF_FIELDS))),
   'modify': (
     SetNodeParams, ARGS_ONE_NODE,
-    [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT],
+    [FORCE_OPT, SUBMIT_OPT, MC_OPT, DRAINED_OPT, OFFLINE_OPT,
+     AUTO_PROMOTE_OPT],
     "<node_name>", "Alters the parameters of a node"),
   'powercycle': (
     PowercycleNode, ARGS_ONE_NODE,
