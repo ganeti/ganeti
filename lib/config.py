@@ -1056,14 +1056,20 @@ class ConfigWriter:
     """
     return self._UnlockedGetNodeList()
 
-  @locking.ssynchronized(_config_lock, shared=1)
-  def GetOnlineNodeList(self):
+  def _UnlockedGetOnlineNodeList(self):
     """Return the list of nodes which are online.
 
     """
     all_nodes = [self._UnlockedGetNodeInfo(node)
                  for node in self._UnlockedGetNodeList()]
     return [node.name for node in all_nodes if not node.offline]
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetOnlineNodeList(self):
+    """Return the list of nodes which are online.
+
+    """
+    return self._UnlockedGetOnlineNodeList()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodesInfo(self):
@@ -1293,7 +1299,7 @@ class ConfigWriter:
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
         result = rpc.RpcRunner.call_write_ssconf_files(
-          self._UnlockedGetNodeList(),
+          self._UnlockedGetOnlineNodeList(),
           self._UnlockedGetSsconfValues())
 
         for nname, nresu in result.items():

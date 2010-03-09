@@ -2155,7 +2155,7 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
   """
   # 1. Gather target nodes
   myself = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
-  dist_nodes = lu.cfg.GetNodeList()
+  dist_nodes = lu.cfg.GetOnlineNodeList()
   if additional_nodes is not None:
     dist_nodes.extend(additional_nodes)
   if myself.name in dist_nodes:
