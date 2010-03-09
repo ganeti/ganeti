@@ -22,6 +22,7 @@
       <year>2007</year>
       <year>2008</year>
       <year>2009</year>
+      <year>2010</year>
       <holder>Google Inc.</holder>
     </copyright>
     &dhdate;
@@ -79,6 +80,28 @@
       nodes. It could be that some OS is missing from a node, or is
       only partially installed, and this command will show the details
       of all the OSes and the reasons they are or are not valid.
+    </para>
+
+    <cmdsynopsis>
+      <command>modify</command>
+      <arg>-H <replaceable>HYPERVISOR</replaceable><arg>:<arg choice="plain" rep="repeat">option=<replaceable>value</replaceable></arg></arg></arg>
+      <arg choice="req"><replaceable>OS</replaceable></arg>
+    </cmdsynopsis>
+
+    <para>
+      This command will allow you to modify OS parameters. At the moment
+      we just support per-os-hypervisor settings. You can run modify
+      <option>-H</option> with the same syntax as in
+      <command>gnt-cluster init</command> to override default hypervisor
+      parameters of the cluster for specified
+      <replaceable>OS</replaceable> argument.
+    </para>
+
+    <para>
+      Note: The <replaceable>OS</replaceable> doesn't have to exists.
+      This allows preseeding the settings for
+      <replaceable>OS</replaceable>es not yet known to
+      <command>gnt-os</command>.
     </para>
 
   </refsect1>
