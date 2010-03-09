@@ -650,21 +650,23 @@ def NodeVolumes():
           result.output)
 
   def parse_dev(dev):
-    if '(' in dev:
-      return dev.split('(')[0]
-    else:
-      return dev
+    return dev.split('(')[0]
+
+  def handle_dev(dev):
+    return [parse_dev(x) for x in dev.split(",")]
 
   def map_line(line):
-    return {
-      'name': line[0].strip(),
-      'size': line[1].strip(),
-      'dev': parse_dev(line[2].strip()),
-      'vg': line[3].strip(),
-    }
+    line = [v.strip() for v in line]
+    return [{'name': line[0], 'size': line[1],
+             'dev': dev, 'vg': line[3]} for dev in handle_dev(line[2])]
 
-  return [map_line(line.split('|')) for line in result.stdout.splitlines()
-          if line.count('|') >= 3]
+  all_devs = []
+  for line in result.stdout.splitlines():
+    if line.count('|') >= 3:
+      all_devs.extend(map_line(line.split('|')))
+    else:
+      logging.warning("Strange line in the output from lvs: '%s'", line)
+  return all_devs
 
 
 def BridgesExist(bridges_list):
