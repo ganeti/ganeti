@@ -88,6 +88,14 @@ class _HttpServerRequest(object):
     # authentication)
     self.private = None
 
+  def __repr__(self):
+    status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
+              self.request_method, self.request_path,
+              "headers=%r" % str(self.request_headers),
+              "body=%r" % (self.request_body, )]
+
+    return "<%s at %#x>" % (" ".join(status), id(self))
+
 
 class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
   """Writes an HTTP response to client.
@@ -312,6 +320,8 @@ class HttpServerRequestExecutor(object):
                                          self.request_msg.start_line.path,
                                          self.request_msg.headers,
                                          self.request_msg.decoded_body)
+
+    logging.debug("Handling request %r", handler_context)
 
     try:
       try:
