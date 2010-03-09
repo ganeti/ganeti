@@ -64,7 +64,9 @@ parseInstance :: NameAssoc        -- ^ The node name-to-index association list
 parseInstance ktn n a = do
   base <- parseBaseInstance n a
   nodes <- fromObj "nodes" a
-  pnode <- readEitherString $ head nodes
+  pnode <- if null nodes
+           then Bad $ "empty node list for instance " ++ n
+           else readEitherString $ head nodes
   pidx <- lookupNode ktn n pnode
   let snodes = tail nodes
   sidx <- (if null snodes then return Node.noSecondary
@@ -140,8 +142,10 @@ parseData body = do
         other -> fail ("Invalid request type '" ++ other ++ "'")
   return $ Request rqtype map_n map_i ptags csf
 
-formatRVal :: String -> RqType
-           -> [Node.AllocElement] -> JSValue
+-- | Format the result
+formatRVal :: String -> RqType -> [Node.AllocElement] -> JSValue
+formatRVal _ _ [] = JSArray []
+
 formatRVal csf (Evacuate _) elems =
     let sols = map (\(_, inst, nl) ->
                         let names = Instance.name inst : map Node.name nl
@@ -153,7 +157,6 @@ formatRVal csf _ elems =
     let (_, _, nodes) = head elems
         nodes' = map ((++ csf) . Node.name) nodes
     in JSArray $ map (JSString . toJSString) nodes'
-
 
 -- | Formats the response into a valid IAllocator response message.
 formatResponse :: Bool     -- ^ Whether the request was successful
