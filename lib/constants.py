@@ -422,6 +422,8 @@ HV_INIT_SCRIPT = "init_script"
 HV_MIGRATION_PORT = "migration_port"
 HV_USE_LOCALTIME = "use_localtime"
 HV_DISK_CACHE = "disk_cache"
+HV_SECURITY_MODEL = "security_model"
+HV_SECURITY_DOMAIN = "security_domain"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -449,6 +451,8 @@ HVS_PARAMETER_TYPES = {
   HV_MIGRATION_PORT: VTYPE_INT,
   HV_USE_LOCALTIME: VTYPE_BOOL,
   HV_DISK_CACHE: VTYPE_STRING,
+  HV_SECURITY_MODEL: VTYPE_STRING,
+  HV_SECURITY_DOMAIN: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -549,6 +553,13 @@ HT_BO_DISK = "disk"
 HT_BO_NETWORK = "network"
 
 HT_KVM_VALID_BO_TYPES = frozenset([HT_BO_CDROM, HT_BO_DISK, HT_BO_NETWORK])
+
+# Security models
+HT_SM_NONE = "none"
+HT_SM_USER = "user"
+HT_SM_POOL = "pool"
+
+HT_KVM_VALID_SM_TYPES = frozenset([HT_SM_NONE, HT_SM_USER, HT_SM_POOL])
 
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
