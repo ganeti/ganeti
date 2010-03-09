@@ -156,11 +156,39 @@ def DiagnoseOS(opts, args):
   return int(has_bad)
 
 
+def ModifyOS(opts, args):
+  """Modify OS parameters for one OS.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: should be a list with one entry
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  os = args[0]
+
+  op = opcodes.OpSetClusterParams(vg_name=None,
+                                  enabled_hypervisors=None,
+                                  hvparams=None,
+                                  beparams=None,
+                                  nicparams=None,
+                                  candidate_pool_size=None,
+                                  os_hvp={
+                                    os: dict(opts.hvparams)
+                                    })
+  SubmitOpCode(op)
+
+  return 0
+
+
 commands = {
   'list': (
     ListOS, ARGS_NONE, [NOHDR_OPT], "", "Lists all valid OSes on the master"),
   'diagnose': (
     DiagnoseOS, ARGS_NONE, [], "", "Diagnose all OSes"),
+  'modify': (
+    ModifyOS, ARGS_ONE_OS, [HVLIST_OPT], "", "Modify os parameters"),
   }
 
 if __name__ == '__main__':
