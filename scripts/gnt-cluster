@@ -207,17 +207,22 @@ def ShowClusterMaster(opts, args):
   return 0
 
 
-def _PrintGroupedParams(paramsdict):
+def _PrintGroupedParams(paramsdict, level=1):
   """Print Grouped parameters (be, nic, disk) by group.
 
   @type paramsdict: dict of dicts
   @param paramsdict: {group: {param: value, ...}, ...}
+  @type level: int
+  @param level: Level of indention
 
   """
-  for gr_name, gr_dict in paramsdict.items():
-    ToStdout("  - %s:", gr_name)
-    for item, val in gr_dict.iteritems():
-      ToStdout("      %s: %s", item, val)
+  indent = "  " * level
+  for item, val in paramsdict.items():
+    if isinstance(val, dict):
+      ToStdout("%s- %s:", indent, item)
+      _PrintGroupedParams(val, level=level + 1)
+    else:
+      ToStdout("%s  %s: %s", indent, item, val)
 
 
 def ShowClusterConfig(opts, args):
@@ -257,6 +262,9 @@ def ShowClusterConfig(opts, args):
 
   ToStdout("Hypervisor parameters:")
   _PrintGroupedParams(result["hvparams"])
+
+  ToStdout("OS specific hypervisor parameters:")
+  _PrintGroupedParams(result["os_hvp"])
 
   ToStdout("Cluster parameters:")
   ToStdout("  - candidate pool size: %s", result["candidate_pool_size"])
