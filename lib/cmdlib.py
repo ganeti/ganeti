@@ -1629,7 +1629,7 @@ class LUVerifyCluster(LogicalUnit):
           if test:
             output = indent_re.sub('      ', output)
             feedback_fn("%s" % output)
-            lu_result = 1
+            lu_result = 0
 
       return lu_result
 
