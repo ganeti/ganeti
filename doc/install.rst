@@ -317,16 +317,11 @@ way to do things, and you'll definitely need to manually set it up under
 KVM.
 
 Beware that the default name Ganeti uses is ``xen-br0`` (which was used
-in Xen 2.0) while Xen 3.0 uses ``xenbr0`` by default. The default bridge
-your Ganeti cluster will use for new instances can be specified at
-cluster initialization time.
+in Xen 2.0) while Xen 3.0 uses ``xenbr0`` by default. See the
+`Initializing the cluster`_ section to learn how to choose a different
+bridge, or not to use one at all and use "routed mode".
 
-If you want to run in "routing mode" you need to specify that at cluster
-init time (using the --nicparam option), and then no bridge will be
-needed. In this mode instance traffic will be routed by dom0, instead of
-bridged.
-
-In order to use "routing mode" under Xen, you'll need to change the
+In order to use "routed mode" under Xen, you'll need to change the
 relevant parameters in the Xen config file. Under KVM instead, no config
 change is necessary, but you still need to set up your network
 interfaces correctly.
@@ -524,12 +519,18 @@ hostname used for this must resolve to an IP address reserved
 (master) node.
 
 If you want to use a bridge which is not ``xen-br0``, or no bridge at
-all, use ``--nicparams``.
+all, change it with the ``--nic-parameters`` option. For example to
+bridge on br0 you can say::
 
-If the bridge name you are using is not ``xen-br0``, use the *-b
-<BRIDGENAME>* option to specify the bridge name. In this case, you
-should also use the *--master-netdev <BRIDGENAME>* option with the same
-BRIDGENAME argument.
+  --nic-parameters link=br0
+
+Or to not bridge at all, and use a separate routing table::
+
+  --nic-parameters mode=routed,link=100
+
+If you don't have a xen-br0 interface you also have to specify a
+different network interface which will get the cluster ip, on the master
+node, by using the ``--master-netdev <device>`` option.
 
 You can use a different name than ``xenvg`` for the volume group (but
 note that the name must be identical on all nodes). In this case you
