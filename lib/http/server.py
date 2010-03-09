@@ -74,12 +74,12 @@ class _HttpServerRequest(object):
   """Data structure for HTTP request on server side.
 
   """
-  def __init__(self, request_msg):
+  def __init__(self, method, path, headers, body):
     # Request attributes
-    self.request_method = request_msg.start_line.method
-    self.request_path = request_msg.start_line.path
-    self.request_headers = request_msg.headers
-    self.request_body = request_msg.decoded_body
+    self.request_method = method
+    self.request_path = path
+    self.request_headers = headers
+    self.request_body = body
 
     # Response attributes
     self.resp_headers = {}
@@ -308,7 +308,10 @@ class HttpServerRequestExecutor(object):
     """Calls the handler function for the current request.
 
     """
-    handler_context = _HttpServerRequest(self.request_msg)
+    handler_context = _HttpServerRequest(self.request_msg.start_line.method,
+                                         self.request_msg.start_line.path,
+                                         self.request_msg.headers,
+                                         self.request_msg.decoded_body)
 
     try:
       try:
