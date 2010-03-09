@@ -78,7 +78,7 @@ def _FormatAuthHeader(scheme, params):
 
 class HttpServerRequestAuthentication(object):
   # Default authentication realm
-  AUTH_REALM = None
+  AUTH_REALM = "Unspecified"
 
   # Schemes for passwords
   _CLEARTEXT_SCHEME = "{CLEARTEXT}"
@@ -87,13 +87,12 @@ class HttpServerRequestAuthentication(object):
   def GetAuthRealm(self, req):
     """Returns the authentication realm for a request.
 
-    MAY be overridden by a subclass, which then can return different realms for
-    different paths. Returning "None" means no authentication is needed for a
-    request.
+    May be overridden by a subclass, which then can return different realms for
+    different paths.
 
     @type req: L{http.server._HttpServerRequest}
     @param req: HTTP request context
-    @rtype: str or None
+    @rtype: string
     @return: Authentication realm
 
     """
@@ -102,6 +101,18 @@ class HttpServerRequestAuthentication(object):
     # pylint: disable-msg=W0613
     return self.AUTH_REALM
 
+  def AuthenticationRequired(self, req):
+    """Determines whether authentication is required for a request.
+
+    To enable authentication, override this function in a subclass and return
+    C{True}. L{AUTH_REALM} must be set.
+
+    @type req: L{http.server._HttpServerRequest}
+    @param req: HTTP request context
+
+    """
+    return False
+
   def PreHandleRequest(self, req):
     """Called before a request is handled.
 
@@ -109,15 +120,16 @@ class HttpServerRequestAuthentication(object):
     @param req: HTTP request context
 
     """
-    realm = self.GetAuthRealm(req)
-
     # Authentication not required, and no credentials given?
-    if realm is None and http.HTTP_AUTHORIZATION not in req.request_headers:
+    if not (self.AuthenticationRequired(req) or
+            (req.request_headers and
+             http.HTTP_AUTHORIZATION in req.request_headers)):
       return
 
-    if realm is None: # in case we don't require auth but someone
-                      # passed the crendentials anyway
-      realm = "Unspecified"
+    realm = self.GetAuthRealm(req)
+
+    if not realm:
+      raise AssertionError("No authentication realm")
 
     # Check "Authorization" header
     if self._CheckAuthorization(req):
@@ -255,7 +267,7 @@ class HttpServerRequestAuthentication(object):
       realm = self.GetAuthRealm(req)
       if not realm:
         # There can not be a valid password for this case
-        return False
+        raise AssertionError("No authentication realm")
 
       expha1 = md5()
       expha1.update("%s:%s:%s" % (username, realm, password))

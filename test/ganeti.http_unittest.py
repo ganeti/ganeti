@@ -154,8 +154,8 @@ class TestAuth(unittest.TestCase):
     self.assert_(tvbap("This is only a test", "user", "pw",
                        "{HA1}92ea58ae804481498c257b2f65561a17"))
 
-    self.failIf(tvbap(None, "user", "pw",
-                      "{HA1}92ea58ae804481498c257b2f65561a17"))
+    self.failUnlessRaises(AssertionError, tvbap, None, "user", "pw",
+                          "{HA1}92ea58ae804481498c257b2f65561a17")
     self.failIf(tvbap("Admin area", "user", "pw",
                       "{HA1}92ea58ae804481498c257b2f65561a17"))
     self.failIf(tvbap("This is only a test", "someone", "pw",
