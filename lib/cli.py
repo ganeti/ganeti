@@ -146,6 +146,7 @@ __all__ = [
   "ARGS_NONE",
   "ARGS_ONE_INSTANCE",
   "ARGS_ONE_NODE",
+  "ARGS_ONE_OS",
   "ArgChoice",
   "ArgCommand",
   "ArgFile",
@@ -153,6 +154,7 @@ __all__ = [
   "ArgInstance",
   "ArgJobId",
   "ArgNode",
+  "ArgOs",
   "ArgSuggest",
   "ArgUnknown",
   "OPT_COMPL_INST_ADD_NODES",
@@ -246,11 +248,18 @@ class ArgHost(_Argument):
   """
 
 
+class ArgOs(_Argument):
+  """OS argument.
+
+  """
+
+
 ARGS_NONE = []
 ARGS_MANY_INSTANCES = [ArgInstance()]
 ARGS_MANY_NODES = [ArgNode()]
 ARGS_ONE_INSTANCE = [ArgInstance(min=1, max=1)]
 ARGS_ONE_NODE = [ArgNode(min=1, max=1)]
+ARGS_ONE_OS = [ArgOs(min=1, max=1)]
 
 
 def _ExtractTagsObject(opts, args):
