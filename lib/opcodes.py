@@ -90,7 +90,7 @@ class BaseOpCode(object):
                        type(state))
 
     for name in self._all_slots():
-      if name not in state:
+      if name not in state and hasattr(self, name):
         delattr(self, name)
 
     for name in state:
