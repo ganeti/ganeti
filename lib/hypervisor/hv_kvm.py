@@ -786,15 +786,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                     constants.HV_VNC_X509_VERIFY))
 
     boot_order = hvparams[constants.HV_BOOT_ORDER]
-
     if (boot_order == constants.HT_BO_CDROM and
         not hvparams[constants.HV_CDROM_IMAGE_PATH]):
       raise errors.HypervisorError("Cannot boot from cdrom without an"
                                    " ISO path")
-    if (boot_order == constants.HT_BO_NETWORK and
-        hvparams[constants.HV_NIC_TYPE] == constants.HT_NIC_PARAVIRTUAL):
-      raise errors.HypervisorError("Cannot boot from a paravirtual NIC. Please"
-                                   " change the NIC type.")
 
   @classmethod
   def PowercycleNode(cls):
