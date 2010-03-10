@@ -127,6 +127,8 @@ def RunOsTests():
   RunTest(qa_os.TestOsValid)
   RunTest(qa_os.TestOsInvalid)
   RunTest(qa_os.TestOsPartiallyValid)
+  RunTest(qa_os.TestOsModifyValid)
+  RunTest(qa_os.TestOsModifyInvalid)
 
 
 def RunCommonInstanceTests(instance):
