@@ -330,6 +330,14 @@
                   interpreted as 'dc'.
                 </simpara>
 
+                <simpara>
+                  For KVM the boot order is either 'cdrom' 'disk' or
+                  'network'. Please note that older versions of KVM
+                  couldn't netboot from virtio interfaces. This has
+                  been fixed in more recent versions and is confirmed
+                  to work at least with qemu-kvm 0.11.1.
+                </simpara>
+
               </listitem>
             </varlistentry>
             <varlistentry>
