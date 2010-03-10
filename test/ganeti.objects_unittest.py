@@ -24,6 +24,7 @@
 
 import unittest
 
+from ganeti import constants
 from ganeti import objects
 
 import testutils
@@ -46,6 +47,89 @@ class TestDictState(unittest.TestCase):
     self.assertEquals(o1.ToDict(), {'a': 2, 'b': 5})
     o2 = SimpleObject.FromDict(o1.ToDict())
     self.assertEquals(o1.ToDict(), {'a': 2, 'b': 5})
+
+
+class TestClusterObject(unittest.TestCase):
+  """Tests done on a L{objects.Cluster}"""
+
+  def setUp(self):
+    hvparams = {
+      constants.HT_FAKE: {
+        "foo": "bar",
+        "bar": "foo",
+        "foobar": "barfoo",
+        },
+      }
+    os_hvp = {
+      "lenny-image": {
+        constants.HT_FAKE: {
+          "foo": "baz",
+          "foobar": "foobar",
+          "blah": "blibb",
+          "blubb": "blah",
+          },
+        constants.HT_XEN_PVM: {
+          "root_path": "/dev/sda5",
+          "foo": "foobar",
+          },
+        },
+      "ubuntu-hardy": {
+        },
+      }
+    self.fake_cl = objects.Cluster(hvparams=hvparams, os_hvp=os_hvp)
+    self.fake_cl.UpgradeConfig()
+
+  def testFillHvFullMerge(self):
+    inst_hvparams = {
+      "blah": "blubb",
+      }
+
+    fake_dict = {
+      "foo": "baz",
+      "bar": "foo",
+      "foobar": "foobar",
+      "blah": "blubb",
+      "blubb": "blah",
+      }
+    fake_inst = objects.Instance(name="foobar",
+                                 os="lenny-image",
+                                 hypervisor=constants.HT_FAKE,
+                                 hvparams=inst_hvparams)
+    self.assertEqual(fake_dict, self.fake_cl.FillHV(fake_inst))
+
+  def testFillHvGlobalParams(self):
+    fake_inst = objects.Instance(name="foobar",
+                                 os="ubuntu-hardy",
+                                 hypervisor=constants.HT_FAKE,
+                                 hvparams={})
+    self.assertEqual(self.fake_cl.hvparams[constants.HT_FAKE],
+                     self.fake_cl.FillHV(fake_inst))
+
+  def testFillHvInstParams(self):
+    inst_hvparams = {
+      "blah": "blubb",
+      }
+    fake_inst = objects.Instance(name="foobar",
+                                 os="ubuntu-hardy",
+                                 hypervisor=constants.HT_XEN_PVM,
+                                 hvparams=inst_hvparams)
+    self.assertEqual(inst_hvparams, self.fake_cl.FillHV(fake_inst))
+
+  def testFillHvEmptyParams(self):
+    fake_inst = objects.Instance(name="foobar",
+                                 os="ubuntu-hardy",
+                                 hypervisor=constants.HT_XEN_PVM,
+                                 hvparams={})
+    self.assertEqual({}, self.fake_cl.FillHV(fake_inst))
+
+  def testFillHvPartialParams(self):
+    os = "lenny-image"
+    fake_inst = objects.Instance(name="foobar",
+                                 os=os,
+                                 hypervisor=constants.HT_XEN_PVM,
+                                 hvparams={})
+    self.assertEqual(self.fake_cl.os_hvp[os][constants.HT_XEN_PVM],
+                     self.fake_cl.FillHV(fake_inst))
 
 
 if __name__ == '__main__':
