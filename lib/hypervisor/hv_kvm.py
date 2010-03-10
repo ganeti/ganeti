@@ -311,11 +311,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     pidfile  = self._InstancePidFile(instance.name)
     kvm = constants.KVM_PATH
     kvm_cmd = [kvm]
+    # used just by the vnc server, if enabled
+    kvm_cmd.extend(['-name', instance.name])
     kvm_cmd.extend(['-m', instance.beparams[constants.BE_MEMORY]])
     kvm_cmd.extend(['-smp', instance.beparams[constants.BE_VCPUS]])
     kvm_cmd.extend(['-pidfile', pidfile])
-    # used just by the vnc server, if enabled
-    kvm_cmd.extend(['-name', instance.name])
     kvm_cmd.extend(['-daemonize'])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(['-no-acpi'])
