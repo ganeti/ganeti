@@ -325,6 +325,7 @@ dist_TESTS = \
 	test/ganeti.confd_client_unittest.py \
 	test/ganeti.config_unittest.py \
 	test/ganeti.constants_unittest.py \
+	test/ganeti.errors_unittest.py \
 	test/ganeti.hooks_unittest.py \
 	test/ganeti.http_unittest.py \
 	test/ganeti.locking_unittest.py \
