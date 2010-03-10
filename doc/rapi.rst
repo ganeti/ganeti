@@ -28,16 +28,16 @@ Each line consists of two or three fields separated by whitespace. The
 first two fields are for username and password. The third field is
 optional and can be used to specify per-user options. Currently,
 ``write`` is the only option supported and enables the user to execute
-operations modifying the cluster. Lines starting with the hash sign (#)
-are treated as comments.
+operations modifying the cluster. Lines starting with the hash sign
+(``#``) are treated as comments.
 
 Passwords can either be written in clear text or as a hash. Clear text
 passwords may not start with an opening brace (``{``) or they must be
 prefixed with ``{cleartext}``. To use the hashed form, get the MD5 hash
 of the string ``$username:Ganeti Remote API:$password`` (e.g. ``echo -n
-'jack:Ganeti Remote API:abc123' | openssl md5``) [#pwhash]_. Using the
-scheme prefix for all passwords is recommended. Scheme prefixes are not
-case sensitive.
+'jack:Ganeti Remote API:abc123' | openssl md5``) [#pwhash]_ and prefix
+it with ``{ha1}``. Using the scheme prefix for all passwords is
+recommended. Scheme prefixes are not case sensitive.
 
 Example::
 
