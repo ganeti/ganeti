@@ -579,6 +579,48 @@
               </listitem>
             </varlistentry>
 
+            <varlistentry>
+              <term>security_model</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>The security model for kvm. Currently one of
+                <quote>none</quote>, <quote>user</quote> or
+                <quote>pool</quote>. Under <quote>none</quote>, the
+                default, nothing is done and instances are run as
+                the ganeti daemon user (normally root).
+                </simpara>
+
+                <simpara>Under <quote>user</quote> kvm will drop
+                privileges and become the user specified by the
+                security_domain parameter.
+                </simpara>
+
+                <simpara>Under <quote>pool</quote> a global cluster
+                pool of users will be used, making sure no two
+                instances share the same user on the same node.
+                (this mode is not implemented yet)
+                </simpara>
+
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>security_domain</term>
+              <listitem>
+                <simpara>Valid for the KVM hypervisor.</simpara>
+
+                <simpara>Under security model <quote>user</quote> the username to
+                run the instance under. It must be a valid username
+                existing on the host.
+                </simpara>
+                <simpara>Cannot be set under security model <quote>none</quote>
+                or <quote>pool</quote>.
+                </simpara>
+
+              </listitem>
+            </varlistentry>
+
           </variablelist>
 
         </para>
