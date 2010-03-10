@@ -351,6 +351,9 @@ class ConfigWriter:
     # per-instance checks
     for instance_name in data.instances:
       instance = data.instances[instance_name]
+      if instance.name != instance_name:
+        result.append("instance '%s' is indexed by wrong name '%s'" %
+                      (instance.name, instance_name))
       if instance.primary_node not in data.nodes:
         result.append("instance '%s' has invalid primary node '%s'" %
                       (instance_name, instance.primary_node))
@@ -416,7 +419,10 @@ class ConfigWriter:
                     (mc_now, mc_max))
 
     # node checks
-    for node in data.nodes.values():
+    for node_name, node in data.nodes.items():
+      if node.name != node_name:
+        result.append("Node '%s' is indexed by wrong name '%s'" %
+                      (node.name, node_name))
       if [node.master_candidate, node.drained, node.offline].count(True) > 1:
         result.append("Node %s state is invalid: master_candidate=%s,"
                       " drain=%s, offline=%s" %
