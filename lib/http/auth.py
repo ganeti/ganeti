@@ -111,6 +111,8 @@ class HttpServerRequestAuthentication(object):
     @param req: HTTP request context
 
     """
+    # Unused argument, method could be a function
+    # pylint: disable-msg=W0613,R0201
     return False
 
   def PreHandleRequest(self, req):
