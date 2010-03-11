@@ -1460,14 +1460,14 @@ class LUVerifyCluster(LogicalUnit):
         _ErrorIf(True, self.ENODETIME, node, "Node returned invalid time")
 
       if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
-        ntime_diff = abs(nvinfo_starttime - ntime_merged)
+        ntime_diff = "%.01fs" % abs(nvinfo_starttime - ntime_merged)
       elif ntime_merged > (nvinfo_endtime + constants.NODE_MAX_CLOCK_SKEW):
-        ntime_diff = abs(ntime_merged - nvinfo_endtime)
+        ntime_diff = "%.01fs" % abs(ntime_merged - nvinfo_endtime)
       else:
         ntime_diff = None
 
       _ErrorIf(ntime_diff is not None, self.ENODETIME, node,
-               "Node time diverges by at least %0.1fs from master node time",
+               "Node time diverges by at least %s from master node time",
                ntime_diff)
 
       if ntime_diff is not None:
