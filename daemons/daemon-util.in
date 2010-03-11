@@ -46,6 +46,10 @@ _daemon_pidfile() {
   echo "@LOCALSTATEDIR@/run/ganeti/$1.pid"
 }
 
+_daemon_executable() {
+  echo "@PREFIX@/sbin/$1"
+}
+
 # Checks whether the local machine is part of a cluster
 check_config() {
   local server_pem=@LOCALSTATEDIR@/lib/ganeti/server.pem
@@ -147,7 +151,7 @@ start() {
 
   start-stop-daemon --start --quiet --oknodo \
     --pidfile $(_daemon_pidfile $name) \
-    --startas "@PREFIX@/sbin/$name" \
+    --startas $(_daemon_executable $name) \
     -- $args "$@"
 }
 
