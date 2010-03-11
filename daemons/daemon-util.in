@@ -121,7 +121,7 @@ is_daemon_name() {
 check() {
   if [[ "$#" -lt 1 ]]; then
     echo 'Missing daemon name.' >&2
-    exit 1
+    return 1
   fi
 
   local name="$1"; shift
@@ -134,7 +134,7 @@ check() {
 start() {
   if [[ "$#" -lt 1 ]]; then
     echo 'Missing daemon name.' >&2
-    exit 1
+    return 1
   fi
 
   local name="$1"; shift
@@ -155,7 +155,7 @@ start() {
 stop() {
   if [[ "$#" -lt 1 ]]; then
     echo 'Missing daemon name.' >&2
-    exit 1
+    return 1
   fi
 
   local name="$1"; shift
