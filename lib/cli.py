@@ -1790,7 +1790,7 @@ class JobExecutor(object):
   GetResults() calls.
 
   """
-  def __init__(self, cl=None, verbose=True, opts=None):
+  def __init__(self, cl=None, verbose=True, opts=None, feedback_fn=None):
     self.queue = []
     if cl is None:
       cl = GetClient()
@@ -1798,6 +1798,7 @@ class JobExecutor(object):
     self.verbose = verbose
     self.jobs = []
     self.opts = opts
+    self.feedback_fn = feedback_fn
 
   def QueueJob(self, name, *ops):
     """Record a job for later submit.
@@ -1866,7 +1867,7 @@ class JobExecutor(object):
       (idx, _, jid, name) = self._ChooseJob()
       ToStdout("Waiting for job %s for %s...", jid, name)
       try:
-        job_result = PollJob(jid, cl=self.cl)
+        job_result = PollJob(jid, cl=self.cl, feedback_fn=self.feedback_fn)
         success = True
       except (errors.GenericError, luxi.ProtocolError), err:
         _, job_result = FormatError(err)
