@@ -1860,8 +1860,8 @@ class JobExecutor(object):
     # first, remove any non-submitted jobs
     self.jobs, failures = utils.partition(self.jobs, lambda x: x[1])
     for idx, _, jid, name in failures:
-        ToStderr("Failed to submit job for %s: %s", name, jid)
-        results.append((idx, False, jid))
+      ToStderr("Failed to submit job for %s: %s", name, jid)
+      results.append((idx, False, jid))
 
     while self.jobs:
       (idx, _, jid, name) = self._ChooseJob()
