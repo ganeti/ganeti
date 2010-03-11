@@ -342,6 +342,7 @@ python_tests = \
 	test/tempfile_fork_unittest.py
 
 dist_TESTS = \
+	test/daemon-util_unittest.bash \
 	$(python_tests)
 
 nodist_TESTS =
@@ -369,6 +370,7 @@ all_python_code = \
 
 srclink_files = \
 	man/footer.sgml \
+	test/daemon-util_unittest.bash \
 	$(all_python_code)
 
 check_python_code = \
@@ -380,6 +382,8 @@ lint_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
 	$(BUILD_BASH_COMPLETION)
+
+test/daemon-util_unittest.bash: daemons/daemon-util
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
