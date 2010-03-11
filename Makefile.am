@@ -247,6 +247,7 @@ EXTRA_DIST = \
 	autotools/check-man \
 	autotools/docbook-wrapper \
 	autotools/gen-coverage \
+	autotools/testrunner \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -318,7 +319,7 @@ TEST_FILES = \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd83.txt
 
-dist_TESTS = \
+python_tests = \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
@@ -340,6 +341,9 @@ dist_TESTS = \
 	test/docs_unittest.py \
 	test/tempfile_fork_unittest.py
 
+dist_TESTS = \
+	$(python_tests)
+
 nodist_TESTS =
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
@@ -349,12 +353,13 @@ PLAIN_TESTS_ENVIRONMENT = \
 	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) PYTHON=$(PYTHON) $(RUN_IN_TEMPDIR)
 
 # Environment for tests run by automake
-TESTS_ENVIRONMENT = $(PLAIN_TESTS_ENVIRONMENT) $(PYTHON)
+TESTS_ENVIRONMENT = \
+	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/testrunner
 
 all_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
-	$(dist_TESTS) \
+	$(python_tests) \
 	$(pkgpython_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(rapi_PYTHON) \
@@ -545,12 +550,13 @@ TAGS: $(BUILT_SOURCES)
 	  etags -
 
 .PHONY: coverage
-coverage: $(BUILT_SOURCES) $(TESTS)
+coverage: $(BUILT_SOURCES) $(python_tests)
 	set -e; \
 	mkdir -p doc/coverage; \
 	COVERAGE_FILE=$(CURDIR)/doc/coverage/data \
 	TEXT_COVERAGE=$(CURDIR)/doc/coverage/report.txt \
 	HTML_COVERAGE=$(CURDIR)/doc/coverage \
-	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage $(TESTS)
+	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage \
+	$(python_tests)
 
 # vim: set noet :
