@@ -22,6 +22,16 @@ set -e
 
 defaults_file=@SYSCONFDIR@/default/ganeti
 
+# This is a list of all daemons and the order in which they're started. The
+# order is important as there are dependencies between them. On shutdown,
+# they're stopped in reverse order.
+DAEMONS=(
+  ganeti-noded
+  ganeti-masterd
+  ganeti-rapi
+  ganeti-confd
+  )
+
 NODED_ARGS=
 MASTERD_ARGS=
 CONFD_ARGS=
@@ -72,6 +82,39 @@ check_exitcode() {
   esac
 
   return 0
+}
+
+# Prints a list of all daemons in the order in which they should be started
+list_start_daemons() {
+  local name
+
+  for name in "${DAEMONS[@]}"; do
+    echo "$name"
+  done
+}
+
+# Prints a list of all daemons in the order in which they should be stopped
+list_stop_daemons() {
+  list_start_daemons | tac
+}
+
+# Checks whether a daemon name is known
+is_daemon_name() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing daemon name.' >&2
+    return 1
+  fi
+
+  local name="$1"; shift
+
+  for i in "${DAEMONS[@]}"; do
+    if [[ "$i" == "$name" ]]; then
+      return 0
+    fi
+  done
+
+  echo "Unknown daemon name '$name'" >&2
+  return 1
 }
 
 # Checks whether daemon is running
