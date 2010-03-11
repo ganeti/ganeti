@@ -185,6 +185,30 @@ stop_master() {
   stop ganeti-masterd
 }
 
+# Start all daemons
+start_all() {
+  for i in $(list_start_daemons); do
+    local rc=0
+
+    # Try to start daemon
+    start $i || rc=$?
+
+    if ! errmsg=$(check_exitcode $rc); then
+      echo "$errmsg" >&2
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# Stop all daemons
+stop_all() {
+  for i in $(list_stop_daemons); do
+    stop $i
+  done
+}
+
 # Reloads the SSH keys
 reload_ssh_keys() {
   @RPL_SSH_INITD_SCRIPT@ restart
