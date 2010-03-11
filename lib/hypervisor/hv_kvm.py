@@ -827,7 +827,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if security_model == constants.HT_SM_USER:
       username = hvparams[constants.HV_SECURITY_DOMAIN]
       try:
-        pwdentry = pwd.getpwnam(username)
+        pwd.getpwnam(username)
       except KeyError:
         raise errors.HypervisorError("Unknown security domain user %s"
                                      % username)
