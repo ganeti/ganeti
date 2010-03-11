@@ -1477,6 +1477,12 @@ def any(seq, pred=bool): # pylint: disable-msg=W0622
   return False
 
 
+def partition(seq, pred=bool): # # pylint: disable-msg=W0622
+  "Partition a list in two, based on the given predicate"
+  return (list(itertools.ifilter(pred, seq)),
+          list(itertools.ifilterfalse(pred, seq)))
+
+
 def UniqueSequence(seq):
   """Returns a list with unique elements.
 
