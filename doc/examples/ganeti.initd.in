@@ -29,17 +29,13 @@ test -f "@PREFIX@/sbin/$NODED" || exit 0
 
 check_exitcode() {
     RC=$1
-    case $RC in
-        0)
-            log_action_end_msg 0
-            ;;
-        11)
-            log_action_end_msg 0 "not master"
-            ;;
-        *)
-            log_action_end_msg 1 "exit code $RC"
-            ;;
-    esac
+
+    if errmsg=$($DAEMON_UTIL check-exitcode $RC)
+    then
+        log_action_end_msg 0 "$errmsg"
+    else
+        log_action_end_msg 1 "$errmsg"
+    fi
 }
 
 start_action() {

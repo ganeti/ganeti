@@ -51,6 +51,29 @@ check_config() {
   return 0
 }
 
+# Checks the exit code of a daemon
+check_exitcode() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing exit code.' >&2
+    return 1
+  fi
+
+  local rc="$1"; shift
+
+  case "$rc" in
+    0) ;;
+    11)
+      echo "not master"
+    ;;
+    *)
+      echo "exit code $rc"
+      return 1
+    ;;
+  esac
+
+  return 0
+}
+
 # Checks whether daemon is running
 check() {
   if [[ "$#" -lt 1 ]]; then
