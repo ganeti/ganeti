@@ -116,6 +116,11 @@ fi
 
 orig_action=$1; shift
 
+if [[ "$orig_action" == *_* ]]; then
+  echo "Command must not contain underscores" >&2
+  exit 1
+fi
+
 # Replace all dashes (-) with underlines (_)
 action=${orig_action//-/_}
 
