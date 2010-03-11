@@ -385,18 +385,19 @@ class Burner(object):
 
     """
     self.ClearFeedbackBuf()
-    job_ids = [cli.SendJob(row[0], cl=self.cl) for row in jobs]
-    Log("Submitted job ID(s) %s", utils.CommaJoin(job_ids), indent=1)
-    results = []
-    for jid, (_, iname) in zip(job_ids, jobs):
-      Log("waiting for job %s for %s", jid, iname, indent=2)
-      try:
-        results.append(cli.PollJob(jid, cl=self.cl, feedback_fn=self.Feedback))
-      except Exception, err: # pylint: disable-msg=W0703
-        Log("Job for %s failed: %s", iname, err)
-    if len(results) != len(jobs):
+    jex = cli.JobExecutor(cl=self.cl, feedback_fn=self.Feedback)
+    for ops, name in jobs:
+      jex.QueueJob(name, *ops) # pylint: disable-msg=W0142
+    try:
+      results = jex.GetResults()
+    except Exception, err: # pylint: disable-msg=W0703
+      Log("Jobs failed: %s", err)
       raise BurninFailure()
-    return results
+
+    if utils.any(results, lambda x: not x[0]):
+      raise BurninFailure()
+
+    return [i[1] for i in results]
 
   def ParseOptions(self):
     """Parses the command line options.
