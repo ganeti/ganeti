@@ -456,7 +456,7 @@ class Burner(object):
     socket.setdefaulttimeout(options.net_timeout)
 
   def GetState(self):
-    """Read the cluster state from the config."""
+    """Read the cluster state from the master daemon."""
     if self.opts.nodes:
       names = self.opts.nodes.split(",")
     else:
@@ -485,6 +485,14 @@ class Burner(object):
 
     if not found:
       Err("OS '%s' not found" % self.opts.os)
+
+    cluster_info = self.cl.QueryClusterInfo()
+    self.cluster_info = cluster_info
+    if not self.cluster_info:
+      Err("Can't get cluster info")
+
+    default_nic_params = self.cluster_info["nicparams"][constants.PP_DEFAULT]
+    self.cluster_default_nicparams = default_nic_params
 
   @_DoCheckInstances
   @_DoBatch(False)
@@ -913,8 +921,14 @@ class Burner(object):
       if opts.do_addremove_disks:
         self.BurnAddRemoveDisks()
 
+      default_nic_mode = self.cluster_default_nicparams[constants.NIC_MODE]
+      # Don't add/remove nics in routed mode, as we would need an ip to add
+      # them with
       if opts.do_addremove_nics:
-        self.BurnAddRemoveNICs()
+        if default_nic_mode == constants.NIC_MODE_BRIDGED:
+          self.BurnAddRemoveNICs()
+        else:
+          Log("Skipping nic add/remove as the cluster is not in bridged mode")
 
       if opts.do_activate_disks:
         self.BurnActivateDisks()
