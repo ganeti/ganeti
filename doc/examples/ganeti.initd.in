@@ -27,18 +27,6 @@ test -f "@PREFIX@/sbin/$NODED" || exit 0
 
 . /lib/lsb/init-functions
 
-check_config() {
-    for fname in \
-        "@LOCALSTATEDIR@/lib/ganeti/server.pem"
-    do
-        if ! [ -f "$fname" ]; then
-            log_end_msg 0
-            log_warning_msg "Config $fname not there, will not run."
-            exit 0
-        fi
-    done
-}
-
 check_exitcode() {
     RC=$1
     case $RC in
@@ -80,7 +68,11 @@ maybe_do() {
 }
 
 start_all() {
-    check_config
+    if ! $DAEMON_UTIL check-config; then
+        log_warning_msg "Incomplete configuration, will not run."
+        exit 0
+    fi
+
     for i in $NODED $MASTERD $CONFD $RAPI; do \
         maybe_do "$1" start_action $i
     done
@@ -111,6 +103,7 @@ case "$1" in
         stop_all "$2"
         ;;
     restart|force-reload)
+        log_daemon_msg "Restarting $DESC" "$2"
         stop_all "$2"
         start_all "$2"
         ;;
