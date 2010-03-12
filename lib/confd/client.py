@@ -102,9 +102,9 @@ class ConfdClient:
     @type callback: f(L{ConfdUpcallPayload})
     @param callback: function to call when getting answers
     @type port: integer
-    @keyword port: confd port (default: use GetDaemonPort)
+    @param port: confd port (default: use GetDaemonPort)
     @type logger: logging.Logger
-    @keyword logger: optional logger for internal conditions
+    @param logger: optional logger for internal conditions
 
     """
     if not callable(callback):
@@ -176,15 +176,15 @@ class ConfdClient:
       else:
         break
 
-  def SendRequest(self, request, args=None, coverage=None):
+  def SendRequest(self, request, args=None, coverage=None, async=True):
     """Send a confd request to some MCs
 
     @type request: L{objects.ConfdRequest}
     @param request: the request to send
     @type args: tuple
-    @keyword args: additional callback arguments
+    @param args: additional callback arguments
     @type coverage: integer
-    @keyword coverage: number of remote nodes to contact
+    @param coverage: number of remote nodes to contact
 
     """
     if coverage is None:
@@ -328,7 +328,7 @@ class ConfdFilterCallback:
     @type callback: f(L{ConfdUpcallPayload})
     @param callback: function to call when getting answers
     @type logger: logging.Logger
-    @keyword logger: optional logger for internal conditions
+    @param logger: optional logger for internal conditions
 
     """
     if not callable(callback):
