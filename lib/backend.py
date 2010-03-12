@@ -823,7 +823,8 @@ def _InstanceLogName(kind, os_name, instance):
   @param instance: the name of the instance being imported/added/etc.
 
   """
-  base = "%s-%s-%s-%d.log" % (kind, os_name, instance, int(time.time()))
+  base = ("%s-%s-%s-%s.log" %
+          (kind, os_name, instance, utils.TimestampForFilename()))
   return utils.PathJoin(constants.LOG_OS_DIR, base)
 
 

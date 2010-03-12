@@ -1119,6 +1119,16 @@ def RemoveHostFromEtcHosts(hostname):
   RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName())
 
 
+def TimestampForFilename():
+  """Returns the current time formatted for filenames.
+
+  The format doesn't contain colons as some shells and applications them as
+  separators.
+
+  """
+  return time.strftime("%Y-%m-%d_%H_%M_%S")
+
+
 def CreateBackup(file_name):
   """Creates a backup of a file.
 
@@ -1133,7 +1143,8 @@ def CreateBackup(file_name):
     raise errors.ProgrammerError("Can't make a backup of a non-file '%s'" %
                                 file_name)
 
-  prefix = '%s.backup-%d.' % (os.path.basename(file_name), int(time.time()))
+  prefix = ("%s.backup-%s." %
+            (os.path.basename(file_name), TimestampForFilename()))
   dir_name = os.path.dirname(file_name)
 
   fsrc = open(file_name, 'rb')
@@ -1141,6 +1152,7 @@ def CreateBackup(file_name):
     (fd, backup_name) = tempfile.mkstemp(prefix=prefix, dir=dir_name)
     fdst = os.fdopen(fd, 'wb')
     try:
+      logging.debug("Backing up %s at %s", file_name, backup_name)
       shutil.copyfileobj(fsrc, fdst)
     finally:
       fdst.close()

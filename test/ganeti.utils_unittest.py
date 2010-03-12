@@ -38,6 +38,7 @@ import string
 import OpenSSL
 import warnings
 import distutils.version
+import glob
 
 import ganeti
 import testutils
@@ -511,6 +512,55 @@ class TestMatchNameComponent(unittest.TestCase):
                      "Ts2.ex")
     self.assertEqual(MatchNameComponent("TS2.ex", mlist, case_sensitive=False),
                      None)
+
+
+class TestTimestampForFilename(unittest.TestCase):
+  def test(self):
+    self.assert_("." not in utils.TimestampForFilename())
+    self.assert_(":" not in utils.TimestampForFilename())
+
+
+class TestCreateBackup(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
+
+    shutil.rmtree(self.tmpdir)
+
+  def testEmpty(self):
+    filename = utils.PathJoin(self.tmpdir, "config.data")
+    utils.WriteFile(filename, data="")
+    bname = utils.CreateBackup(filename)
+    self.assertFileContent(bname, "")
+    self.assertEqual(len(glob.glob("%s*" % filename)), 2)
+    utils.CreateBackup(filename)
+    self.assertEqual(len(glob.glob("%s*" % filename)), 3)
+    utils.CreateBackup(filename)
+    self.assertEqual(len(glob.glob("%s*" % filename)), 4)
+
+    fifoname = utils.PathJoin(self.tmpdir, "fifo")
+    os.mkfifo(fifoname)
+    self.assertRaises(errors.ProgrammerError, utils.CreateBackup, fifoname)
+
+  def testContent(self):
+    bkpcount = 0
+    for data in ["", "X", "Hello World!\n" * 100, "Binary data\0\x01\x02\n"]:
+      for rep in [1, 2, 10, 127]:
+        testdata = data * rep
+
+        filename = utils.PathJoin(self.tmpdir, "test.data_")
+        utils.WriteFile(filename, data=testdata)
+        self.assertFileContent(filename, testdata)
+
+        for _ in range(3):
+          bname = utils.CreateBackup(filename)
+          bkpcount += 1
+          self.assertFileContent(bname, testdata)
+          self.assertEqual(len(glob.glob("%s*" % filename)), 1 + bkpcount)
 
 
 class TestFormatUnit(unittest.TestCase):
