@@ -29,6 +29,7 @@
 import sys
 import os.path
 import time
+import OpenSSL
 
 from ganeti.cli import *
 from ganeti import opcodes
@@ -493,6 +494,100 @@ def SearchTags(opts, args):
     ToStdout("%s %s", path, tag)
 
 
+def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
+                 new_hmac_key, force):
+  """Renews cluster certificates, keys and secrets.
+
+  @type new_cluster_cert: bool
+  @param new_cluster_cert: Whether to generate a new cluster certificate
+  @type new_rapi_cert: bool
+  @param new_rapi_cert: Whether to generate a new RAPI certificate
+  @type rapi_cert_filename: string
+  @param rapi_cert_filename: Path to file containing new RAPI certificate
+  @type new_hmac_key: bool
+  @param new_hmac_key: Whether to generate a new HMAC key
+  @type force: bool
+  @param force: Whether to ask user for confirmation
+
+  """
+  assert new_cluster_cert or new_rapi_cert or rapi_cert_filename or new_hmac_key
+
+  if new_rapi_cert and rapi_cert_filename:
+    ToStderr("Only one of the --new-rapi-certficate and --rapi-certificate"
+             " options can be specified at the same time.")
+    return 1
+
+  if rapi_cert_filename:
+    # Read and verify new certificate
+    try:
+      rapi_cert_pem = utils.ReadFile(rapi_cert_filename)
+
+      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                      rapi_cert_pem)
+    except Exception, err: # pylint: disable-msg=W0703
+      ToStderr("Can't load new RAPI certificate from %s: %s" %
+               (rapi_cert_filename, str(err)))
+      return 1
+
+    try:
+      OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, rapi_cert_pem)
+    except Exception, err: # pylint: disable-msg=W0703
+      ToStderr("Can't load new RAPI private key from %s: %s" %
+               (rapi_cert_filename, str(err)))
+      return 1
+
+  else:
+    rapi_cert_pem = None
+
+  if not force:
+    usertext = ("This requires all daemons on all nodes to be restarted and"
+                " may take some time. Continue?")
+    if not AskUser(usertext):
+      return 1
+
+  def _RenewCryptoInner(ctx):
+    ctx.feedback_fn("Updating certificates and keys")
+    bootstrap.GenerateClusterCrypto(new_cluster_cert, new_rapi_cert,
+                                    new_hmac_key,
+                                    rapi_cert_pem=rapi_cert_pem)
+
+    files_to_copy = []
+
+    if new_cluster_cert:
+      files_to_copy.append(constants.SSL_CERT_FILE)
+
+    if new_rapi_cert or rapi_cert_pem:
+      files_to_copy.append(constants.RAPI_CERT_FILE)
+
+    if new_hmac_key:
+      files_to_copy.append(constants.HMAC_CLUSTER_KEY)
+
+    if files_to_copy:
+      for node_name in ctx.nonmaster_nodes:
+        ctx.feedback_fn("Copying %s to %s" %
+                        (", ".join(files_to_copy), node_name))
+        for file_name in files_to_copy:
+          ctx.ssh.CopyFileToNode(node_name, file_name)
+
+  RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
+
+  ToStdout("All requested certificates and keys have been replaced."
+           " Running \"gnt-cluster verify\" now is recommended.")
+
+  return 0
+
+
+def RenewCrypto(opts, args):
+  """Renews cluster certificates, keys and secrets.
+
+  """
+  return _RenewCrypto(opts.new_cluster_cert,
+                      opts.new_rapi_cert,
+                      opts.rapi_cert,
+                      opts.new_hmac_key,
+                      opts.force)
+
+
 def SetClusterParams(opts, args):
   """Modify the cluster.
 
@@ -512,10 +607,11 @@ def SetClusterParams(opts, args):
 
   vg_name = opts.vg_name
   if not opts.lvm_storage and opts.vg_name:
-    ToStdout("Options --no-lvm-storage and --vg-name conflict.")
+    ToStderr("Options --no-lvm-storage and --vg-name conflict.")
     return 1
-  elif not opts.lvm_storage:
-    vg_name = ''
+
+  if not opts.lvm_storage:
+    vg_name = ""
 
   hvlist = opts.enabled_hypervisors
   if hvlist is not None:
@@ -692,7 +788,14 @@ commands = {
      NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
+  "renew-crypto": (
+    RenewCrypto, ARGS_NONE,
+    [NEW_CLUSTER_CERT_OPT, NEW_RAPI_CERT_OPT, RAPI_CERT_OPT, NEW_HMAC_KEY_OPT,
+     FORCE_OPT],
+    "[opts...]",
+    "Renews cluster certificates, keys and secrets"),
   }
+
 
 if __name__ == '__main__':
   sys.exit(GenericMain(commands, override={"tag_type": constants.TAG_CLUSTER}))

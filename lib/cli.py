@@ -79,6 +79,9 @@ __all__ = [
   "MASTER_NETDEV_OPT",
   "MC_OPT",
   "NET_OPT",
+  "NEW_CLUSTER_CERT_OPT",
+  "NEW_HMAC_KEY_OPT",
+  "NEW_RAPI_CERT_OPT",
   "NEW_SECONDARY_OPT",
   "NIC_PARAMS_OPT",
   "NODE_LIST_OPT",
@@ -102,6 +105,7 @@ __all__ = [
   "OFFLINE_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
+  "RAPI_CERT_OPT",
   "READD_OPT",
   "REBOOT_TYPE_OPT",
   "SECONDARY_IP_OPT",
@@ -859,6 +863,24 @@ EARLY_RELEASE_OPT = cli_option("--early-release",
                                action="store_true",
                                help="Release the locks on the secondary"
                                " node(s) early")
+
+NEW_CLUSTER_CERT_OPT = cli_option("--new-cluster-certificate",
+                                  dest="new_cluster_cert",
+                                  default=False, action="store_true",
+                                  help="Generate a new cluster certificate")
+
+RAPI_CERT_OPT = cli_option("--rapi-certificate", dest="rapi_cert",
+                           default=None,
+                           help="File containing new RAPI certificate")
+
+NEW_RAPI_CERT_OPT = cli_option("--new-rapi-certificate", dest="new_rapi_cert",
+                               default=None, action="store_true",
+                               help=("Generate a new self-signed RAPI"
+                                     " certificate"))
+
+NEW_HMAC_KEY_OPT = cli_option("--new-hmac-key", dest="new_hmac_key",
+                              default=False, action="store_true",
+                              help="Create a new HMAC key")
 
 
 def _ParseArgs(argv, commands, aliases):

@@ -45,6 +45,7 @@
     "cluster-command": true,
     "cluster-copyfile": true,
     "cluster-master-failover": true,
+    "cluster-renew-crypto": true,
     "cluster-destroy": true,
     "cluster-rename": true,
 

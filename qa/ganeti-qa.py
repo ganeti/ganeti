@@ -88,6 +88,9 @@ def RunClusterTests():
   """Runs tests related to gnt-cluster.
 
   """
+  if qa_config.TestEnabled("cluster-renew-crypto"):
+    RunTest(qa_cluster.TestClusterRenewCrypto)
+
   if qa_config.TestEnabled('cluster-verify'):
     RunTest(qa_cluster.TestClusterVerify)
 
@@ -114,6 +117,7 @@ def RunClusterTests():
   if qa_rapi.Enabled():
     RunTest(qa_rapi.TestVersion)
     RunTest(qa_rapi.TestEmptyCluster)
+
 
 def RunOsTests():
   """Runs all tests related to gnt-os.
@@ -175,6 +179,7 @@ def RunCommonInstanceTests(instance):
 
   if qa_rapi.Enabled():
     RunTest(qa_rapi.TestInstance, instance)
+
 
 def RunExportImportTests(instance, pnode):
   """Tries to export and import the instance.
