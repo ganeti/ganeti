@@ -1439,7 +1439,8 @@ class LUVerifyCluster(LogicalUnit):
       idata = nresult.get(constants.NV_INSTANCELIST, None)
       test = not isinstance(idata, list)
       _ErrorIf(test, self.ENODEHV, node,
-               "rpc call to node failed (instancelist)")
+               "rpc call to node failed (instancelist): %s",
+               utils.SafeEncode(str(idata)))
       if test:
         continue
 
@@ -1544,7 +1545,7 @@ class LUVerifyCluster(LogicalUnit):
         _ErrorIf(snode not in node_info and snode not in n_offline,
                  self.ENODERPC, snode,
                  "instance %s, connection to secondary node"
-                 "failed", instance)
+                 " failed", instance)
 
         if snode in node_info:
           node_info[snode]['sinst'].append(instance)

@@ -480,7 +480,11 @@ def VerifyNode(what, cluster_name):
   if constants.NV_HYPERVISOR in what:
     result[constants.NV_HYPERVISOR] = tmp = {}
     for hv_name in what[constants.NV_HYPERVISOR]:
-      tmp[hv_name] = hypervisor.GetHypervisor(hv_name).Verify()
+      try:
+        val = hypervisor.GetHypervisor(hv_name).Verify()
+      except errors.HypervisorError, err:
+        val = "Error while checking hypervisor: %s" % str(err)
+      tmp[hv_name] = val
 
   if constants.NV_FILELIST in what:
     result[constants.NV_FILELIST] = utils.FingerprintFiles(
@@ -523,8 +527,12 @@ def VerifyNode(what, cluster_name):
     result[constants.NV_LVLIST] = GetVolumeList(what[constants.NV_LVLIST])
 
   if constants.NV_INSTANCELIST in what:
-    result[constants.NV_INSTANCELIST] = GetInstanceList(
-      what[constants.NV_INSTANCELIST])
+    # GetInstanceList can fail
+    try:
+      val = GetInstanceList(what[constants.NV_INSTANCELIST])
+    except RPCFail, err:
+      val = str(err)
+    result[constants.NV_INSTANCELIST] = val
 
   if constants.NV_VGLIST in what:
     result[constants.NV_VGLIST] = utils.ListVolumeGroups()
