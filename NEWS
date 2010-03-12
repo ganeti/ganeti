@@ -2,6 +2,120 @@ News
 ====
 
 
+Version 2.1.1
+-------------
+
+During the 2.1.0 long release candidate cycle, a lot of improvements and
+changes have accumulated with were released later as 2.1.1.
+
+Major changes
+~~~~~~~~~~~~~
+
+The node evacuate command (``gnt-node evacuate``) was significantly
+rewritten, and as such the IAllocator protocol was changed - a new
+request type has been added. This unfortunate change during a stable
+series is designed to improve performance of node evacuations; on
+clusters with more than about five nodes and which are well-balanced,
+evacuation should proceed in parallel for all instances of the node
+being evacuated. As such, any existing IAllocator scripts need to be
+updated, otherwise the above command will fail due to the unknown
+request. The provided "dumb" allocator has not been updated; but the
+ganeti-htools package supports the new protocol since version 0.2.4.
+
+Another important change is increased validation of node and instance
+names. This might create problems in special cases, if invalid host
+names are being used.
+
+Also, a new layer of hypervisor parameters has been added, that sits at
+OS level between the cluster defaults and the instance ones. This allows
+customisation of virtualization parameters depending on the installed
+OS. For example instances with OS 'X' may have a different KVM kernel
+(or any other parameter) than the cluster defaults. This is intended to
+help managing a multiple OSes on the same cluster, without manual
+modification of each instance's parameters.
+
+A tool for merging clusters, ``cluster-merge``, has been added in the
+tools sub-directory.
+
+Bug fixes
+~~~~~~~~~
+
+- Improved the int/float conversions that should make the code more
+  robust in face of errors from the node daemons
+- Fixed the remove node code in case of internal configuration errors
+- Fixed the node daemon behaviour in face of inconsistent queue
+  directory (e.g. read-only file-system where we can't open the files
+  read-write, etc.)
+- Fixed the behaviour of gnt-node modify for master candidate demotion;
+  now it either aborts cleanly or, if given the new “auto_promote”
+  parameter, will automatically promote other nodes as needed
+- Fixed compatibility with (unreleased yet) Python 2.6.5 that would
+  completely prevent Ganeti from working
+- Fixed bug for instance export when not all disks were successfully
+  exported
+- Fixed behaviour of node add when the new node is slow in starting up
+  the node daemon
+- Fixed handling of signals in the LUXI client, which should improve
+  behaviour of command-line scripts
+- Added checks for invalid node/instance names in the configuration (now
+  flagged during cluster verify)
+- Fixed watcher behaviour for disk activation errors
+- Fixed two potentially endless loops in http library, which led to the
+  RAPI daemon hanging and consuming 100% CPU in some cases
+- Fixed bug in RAPI daemon related to hashed passwords
+- Fixed bug for unintended qemu-level bridging of multi-NIC KVM
+  instances
+- Enhanced compatibility with non-Debian OSes, but not using absolute
+  path in some commands and allowing customisation of the ssh
+  configuration directory
+- Fixed possible future issue with new Python versions by abiding to the
+  proper use of ``__slots__`` attribute on classes
+- Added checks that should prevent directory traversal attacks
+- Many documentation fixes based on feedback from users
+
+New features
+~~~~~~~~~~~~
+
+- Added an “early_release” more for instance replace disks and node
+  evacuate, where we release locks earlier and thus allow higher
+  parallelism within the cluster
+- Added watcher hooks, intended to allow the watcher to restart other
+  daemons (e.g. from the ganeti-nbma project), but they can be used of
+  course for any other purpose
+- Added a compile-time disable for DRBD barriers, to increase
+  performance if the administrator trusts the power supply or the
+  storage system to not lose writes
+- Added the option of using syslog for logging instead of, or in
+  addition to, Ganeti's own log files
+- Removed boot restriction for paravirtual NICs for KVM, recent versions
+  can indeed boot from a paravirtual NIC
+- Added a generic debug level for many operations; while this is not
+  used widely yet, it allows one to pass the debug value all the way to
+  the OS scripts
+- Enhanced the hooks environment for instance moves (failovers,
+  migrations) where the primary/secondary nodes changed during the
+  operation, by adding {NEW,OLD}_{PRIMARY,SECONDARY} vars
+- Enhanced data validations for many user-supplied values; one important
+  item is the restrictions imposed on instance and node names, which
+  might reject some (invalid) host names
+- Add a configure-time option to disable file-based storage, if it's not
+  needed; this allows greater security separation between the master
+  node and the other nodes from the point of view of the inter-node RPC
+  protocol
+- Added user notification in interactive tools if job is waiting in the
+  job queue or trying to acquire locks
+- Added log messages when a job is waiting for locks
+- Added filtering by node tags in instance operations which admit
+  multiple instances (start, stop, reboot, reinstall)
+- Added a new tool for cluster mergers, ``cluster-merge``
+- Parameters from command line which are of the form ``a=b,c=d`` can now
+  use backslash escapes to pass in values which contain commas,
+  e.g. ``a=b\\c,d=e`` where the 'a' parameter would get the value
+  ``b,c``
+- For KVM, the instance name is the first parameter passed to KVM, so
+  that it's more visible in the process list
+
+
 Version 2.1.0
 -------------
 
