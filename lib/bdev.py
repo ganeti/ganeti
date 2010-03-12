@@ -335,6 +335,9 @@ class LogicalVolume(BlockDev):
     pvs_info.reverse()
 
     pvlist = [ pv[1] for pv in pvs_info ]
+    if utils.any(pvlist, lambda v: ":" in v):
+      _ThrowError("Some of your PVs have invalid character ':'"
+                  " in their name")
     free_size = sum([ pv[0] for pv in pvs_info ])
     current_pvs = len(pvlist)
     stripes = min(current_pvs, constants.LVM_STRIPECOUNT)
@@ -368,9 +371,10 @@ class LogicalVolume(BlockDev):
     @return: list of tuples (free_space, name) with free_space in mebibytes
 
     """
+    sep = "|"
     command = ["pvs", "--noheadings", "--nosuffix", "--units=m",
                "-opv_name,vg_name,pv_free,pv_attr", "--unbuffered",
-               "--separator=:"]
+               "--separator=%s" % sep ]
     result = utils.RunCmd(command)
     if result.failed:
       logging.error("Can't get the PV information: %s - %s",
@@ -378,7 +382,7 @@ class LogicalVolume(BlockDev):
       return None
     data = []
     for line in result.stdout.splitlines():
-      fields = line.strip().split(':')
+      fields = line.strip().split(sep)
       if len(fields) != 4:
         logging.error("Can't parse pvs output: line '%s'", line)
         return None
