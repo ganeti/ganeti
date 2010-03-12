@@ -107,7 +107,55 @@ def GenerateHmacKey(file_name):
   @param file_name: Path to output file
 
   """
-  utils.WriteFile(file_name, data="%s\n" % utils.GenerateSecret(), mode=0400)
+  utils.WriteFile(file_name, data="%s\n" % utils.GenerateSecret(), mode=0400,
+                  backup=True)
+
+
+def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_hmac_key,
+                          rapi_cert_pem=None):
+  """Updates the cluster certificates, keys and secrets.
+
+  @type new_cluster_cert: bool
+  @param new_cluster_cert: Whether to generate a new cluster certificate
+  @type new_rapi_cert: bool
+  @param new_rapi_cert: Whether to generate a new RAPI certificate
+  @type new_hmac_key: bool
+  @param new_hmac_key: Whether to generate a new HMAC key
+  @type rapi_cert_pem: string
+  @param rapi_cert_pem: New RAPI certificate in PEM format
+
+  """
+  # SSL certificate
+  cluster_cert_exists = os.path.exists(constants.SSL_CERT_FILE)
+  if new_cluster_cert or not cluster_cert_exists:
+    if cluster_cert_exists:
+      utils.CreateBackup(constants.SSL_CERT_FILE)
+
+    logging.debug("Generating new cluster certificate at %s",
+                  constants.SSL_CERT_FILE)
+    GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
+
+  # HMAC key
+  if new_hmac_key or not os.path.exists(constants.HMAC_CLUSTER_KEY):
+    logging.debug("Writing new HMAC key to %s", constants.HMAC_CLUSTER_KEY)
+    GenerateHmacKey(constants.HMAC_CLUSTER_KEY)
+
+  # RAPI
+  rapi_cert_exists = os.path.exists(constants.RAPI_CERT_FILE)
+
+  if rapi_cert_pem:
+    # Assume rapi_pem contains a valid PEM-formatted certificate and key
+    logging.debug("Writing RAPI certificate at %s",
+                  constants.RAPI_CERT_FILE)
+    utils.WriteFile(constants.RAPI_CERT_FILE, data=rapi_cert_pem, backup=True)
+
+  elif new_rapi_cert or not rapi_cert_exists:
+    if rapi_cert_exists:
+      utils.CreateBackup(constants.RAPI_CERT_FILE)
+
+    logging.debug("Generating new RAPI certificate at %s",
+                  constants.RAPI_CERT_FILE)
+    GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
 
 
 def _InitGanetiServerSetup(master_name):
@@ -117,14 +165,8 @@ def _InitGanetiServerSetup(master_name):
   the cluster and also generates the SSL certificate.
 
   """
-  GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
-
-  # Don't overwrite existing file
-  if not os.path.exists(constants.RAPI_CERT_FILE):
-    GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
-
-  if not os.path.exists(constants.HMAC_CLUSTER_KEY):
-    GenerateHmacKey(constants.HMAC_CLUSTER_KEY)
+  # Generate cluster secrets
+  GenerateClusterCrypto(True, False, False)
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
