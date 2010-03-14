@@ -326,6 +326,27 @@ one must specify the location of the snapshot. The command is::
 Most of the options available for the command :command:`gnt-instance
 add` are supported here too.
 
+Import of foreign instances
++++++++++++++++++++++++++++
+
+There is a possibility to import a foreign instance whose disk data is
+already stored as LVM volumes without going through copying it: the disk
+adoption mode.
+
+For this, ensure that the original, non-managed instance is stopped,
+then create a Ganeti instance in the usual way, except that instead of
+passing the disk information you specify the current volumes::
+
+  gnt-instance add -t plain -n HOME_NODE ... \
+    --disk 0:adopt=lv_name INSTANCE_NAME
+
+This will take over the given logical volumes, rename them to the Ganeti
+standard (UUID-based), and without installing the OS on them start
+directly the instance. If you configure the hypervisor similar to the
+non-managed configuration that the instance had, the transition should
+be seamless for the instance. For more than one disk, just pass another
+disk parameter (e.g. ``--disk 1:adopt=...``).
+
 Instance HA features
 --------------------
 

@@ -75,7 +75,10 @@
           <sbr>
 
           <group choice="req">
-            <arg rep="repeat">--disk=<replaceable>N</replaceable>:size=<replaceable>VAL</replaceable><arg>,mode=<replaceable>ro|rw</replaceable></arg></arg>
+            <arg rep="repeat">--disk=<replaceable>N</replaceable>:<group choice="req">
+                <arg>size=<replaceable>VAL</replaceable></arg>
+                <arg>adopt=<replaceable>LV</replaceable></arg>
+              </group>,mode=<replaceable>ro|rw</replaceable></arg>
             <arg>-s <replaceable>SIZE</replaceable></arg>
           </group>
           <sbr>
@@ -126,13 +129,26 @@
           The <option>disk</option> option specifies the parameters
           for the disks of the instance. The numbering of disks starts
           at zero, and at least one disk needs to be passed. For each
-          disk, at least the size needs to be given, and optionally
-          the access mode (read-only or the default of read-write) can
-          also be specified.  The size is interpreted (when no unit is
-          given) in mebibytes. You can also use one of the suffixes
+          disk, either the size or the adoption source needs to be
+          given, and optionally the access mode (read-only or the
+          default of read-write) can also be specified.  The size is
+          interpreted (when no unit is given) in mebibytes. You can
+          also use one of the suffixes
           <literal>m</literal>, <literal>g</literal> or
           <literal>t</literal> to specificy the exact the units used;
           these suffixes map to mebibytes, gibibytes and tebibytes.
+        </para>
+
+        <para>
+          When using the <option>adopt</option> key in the disk
+          definition, Ganeti will reuse those volumes (instead of
+          creating new ones) as the instance's disks. Ganeti will
+          rename these volumes to the standard format, and (without
+          installing the OS) will use them as-is for the
+          instance. This allows migrating instances from non-managed
+          mode (e.q. plain KVM with LVM) to being managed via
+          Ganeti. Note that this works only for the `plain' disk
+          template (see below for template details).
         </para>
 
         <para>
