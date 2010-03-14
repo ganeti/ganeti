@@ -1524,13 +1524,23 @@ def GenericInstanceCreate(mode, opts, args):
       if not isinstance(ddict, dict):
         msg = "Invalid disk/%d value: expected dict, got %s" % (didx, ddict)
         raise errors.OpPrereqError(msg)
-      elif "size" not in ddict:
-        raise errors.OpPrereqError("Missing size for disk %d" % didx)
-      try:
-        ddict["size"] = utils.ParseUnit(ddict["size"])
-      except ValueError, err:
-        raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
-                                   (didx, err))
+      elif "size" in ddict:
+        if "adopt" in ddict:
+          raise errors.OpPrereqError("Only one of 'size' and 'adopt' allowed"
+                                     " (disk %d)" % didx)
+        try:
+          ddict["size"] = utils.ParseUnit(ddict["size"])
+        except ValueError, err:
+          raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
+                                     (didx, err))
+      elif "adopt" in ddict:
+        if mode == constants.INSTANCE_IMPORT:
+          raise errors.OpPrereqError("Disk adoption not allowed for instance"
+                                     " import")
+        ddict["size"] = 0
+      else:
+        raise errors.OpPrereqError("Missing size or adoption source for"
+                                   " disk %d" % didx)
       disks[didx] = ddict
 
   utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_TYPES)
