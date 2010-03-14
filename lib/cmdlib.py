@@ -8218,6 +8218,47 @@ class LUSetInstanceParams(LogicalUnit):
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance, please cleanup manually")
 
+  def _ConvertDrbdToPlain(self, feedback_fn):
+    """Converts an instance from drbd to plain.
+
+    """
+    instance = self.instance
+    assert len(instance.secondary_nodes) == 1
+    pnode = instance.primary_node
+    snode = instance.secondary_nodes[0]
+    feedback_fn("Converting template to plain")
+
+    old_disks = instance.disks
+    new_disks = [d.children[0] for d in old_disks]
+
+    # copy over size and mode
+    for parent, child in zip(old_disks, new_disks):
+      child.size = parent.size
+      child.mode = parent.mode
+
+    # update instance structure
+    instance.disks = new_disks
+    instance.disk_template = constants.DT_PLAIN
+    self.cfg.Update(instance, feedback_fn)
+
+    feedback_fn("Removing volumes on the secondary node...")
+    for disk in old_disks:
+      self.cfg.SetDiskID(disk, snode)
+      msg = self.rpc.call_blockdev_remove(snode, disk).fail_msg
+      if msg:
+        self.LogWarning("Could not remove block device %s on node %s,"
+                        " continuing anyway: %s", disk.iv_name, snode, msg)
+
+    feedback_fn("Removing unneeded volumes on the primary node...")
+    for idx, disk in enumerate(old_disks):
+      meta = disk.children[1]
+      self.cfg.SetDiskID(meta, pnode)
+      msg = self.rpc.call_blockdev_remove(pnode, meta).fail_msg
+      if msg:
+        self.LogWarning("Could not remove metadata for disk %d on node %s,"
+                        " continuing anyway: %s", idx, pnode, msg)
+
+
   def Exec(self, feedback_fn):
     """Modifies an instance.
 
@@ -8342,6 +8383,7 @@ class LUSetInstanceParams(LogicalUnit):
 
   _DISK_CONVERSIONS = {
     (constants.DT_PLAIN, constants.DT_DRBD8): _ConvertPlainToDrbd,
+    (constants.DT_DRBD8, constants.DT_PLAIN): _ConvertDrbdToPlain,
     }
 
 class LUQueryExports(NoHooksLU):
