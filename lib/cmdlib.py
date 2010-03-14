@@ -5804,6 +5804,29 @@ class LUCreateInstance(LogicalUnit):
         not constants.ENABLE_FILE_STORAGE):
       raise errors.OpPrereqError("File storage disabled at configure time",
                                  errors.ECODE_INVAL)
+    # check disk information: either all adopt, or no adopt
+    has_adopt = has_no_adopt = False
+    for disk in self.op.disks:
+      if "adopt" in disk:
+        has_adopt = True
+      else:
+        has_no_adopt = True
+    if has_adopt and has_no_adopt:
+      raise errors.OpPrereqError("Either all disks have are adoped or none is",
+                                 errors.ECODE_INVAL)
+    if has_adopt:
+      if self.op.disk_template != constants.DT_PLAIN:
+        raise errors.OpPrereqError("Disk adoption is only supported for the"
+                                   " 'plain' disk template",
+                                   errors.ECODE_INVAL)
+      if self.op.iallocator is not None:
+        raise errors.OpPrereqError("Disk adoption not allowed with an"
+                                   " iallocator script", errors.ECODE_INVAL)
+      if self.op.mode == constants.INSTANCE_IMPORT:
+        raise errors.OpPrereqError("Disk adoption not allowed for"
+                                   " instance import", errors.ECODE_INVAL)
+
+    self.adopt_disks = has_adopt
 
   def ExpandNames(self):
     """ExpandNames for CreateInstance.
@@ -5958,7 +5981,10 @@ class LUCreateInstance(LogicalUnit):
       except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
-      self.disks.append({"size": size, "mode": mode})
+      new_disk = {"size": size, "mode": mode}
+      if "adopt" in disk:
+        new_disk["adopt"] = disk["adopt"]
+      self.disks.append(new_disk)
 
     # file storage checks
     if (self.op.file_driver and
@@ -6227,8 +6253,8 @@ class LUCreateInstance(LogicalUnit):
     req_size = _ComputeDiskSize(self.op.disk_template,
                                 self.disks)
 
-    # Check lv size requirements
-    if req_size is not None:
+    # Check lv size requirements, if not adopting
+    if req_size is not None and not self.adopt_disks:
       nodeinfo = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
                                          self.op.hypervisor)
       for node in nodenames:
@@ -6244,6 +6270,36 @@ class LUCreateInstance(LogicalUnit):
                                      " %d MB available, %d MB required" %
                                      (node, vg_free, req_size),
                                      errors.ECODE_NORES)
+
+    if self.adopt_disks: # instead, we must check the adoption data
+      all_lvs = set([i["adopt"] for i in self.disks])
+      if len(all_lvs) != len(self.disks):
+        raise errors.OpPrereqError("Duplicate volume names given for adoption",
+                                   errors.ECODE_INVAL)
+      for lv_name in all_lvs:
+        try:
+          self.cfg.ReserveLV(lv_name, self.proc.GetECId())
+        except errors.ReservationError:
+          raise errors.OpPrereqError("LV named %s used by another instance" %
+                                     lv_name, errors.ECODE_NOTUNIQUE)
+
+      node_lvs = self.rpc.call_lv_list([pnode.name],
+                                       self.cfg.GetVGName())[pnode.name]
+      node_lvs.Raise("Cannot get LV information from node %s" % pnode.name)
+      node_lvs = node_lvs.payload
+      delta = all_lvs.difference(node_lvs.keys())
+      if delta:
+        raise errors.OpPrereqError("Missing logical volume(s): %s" %
+                                   utils.CommaJoin(delta),
+                                   errors.ECODE_INVAL)
+      online_lvs = [lv for lv in all_lvs if node_lvs[lv][2]]
+      if online_lvs:
+        raise errors.OpPrereqError("Online logical volumes found, cannot"
+                                   " adopt: %s" % utils.CommaJoin(online_lvs),
+                                   errors.ECODE_STATE)
+      # update the size of disk based on what is found
+      for dsk in self.disks:
+        dsk["size"] = int(float(node_lvs[dsk["adopt"]][0]))
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
@@ -6313,16 +6369,29 @@ class LUCreateInstance(LogicalUnit):
                             hypervisor=self.op.hypervisor,
                             )
 
-    feedback_fn("* creating instance disks...")
-    try:
-      _CreateDisks(self, iobj)
-    except errors.OpExecError:
-      self.LogWarning("Device creation failed, reverting...")
+    if self.adopt_disks:
+      # rename LVs to the newly-generated names; we need to construct
+      # 'fake' LV disks with the old data, plus the new unique_id
+      tmp_disks = [objects.Disk.FromDict(v.ToDict()) for v in disks]
+      rename_to = []
+      for t_dsk, a_dsk in zip (tmp_disks, self.disks):
+        rename_to.append(t_dsk.logical_id)
+        t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk["adopt"])
+        self.cfg.SetDiskID(t_dsk, pnode_name)
+      result = self.rpc.call_blockdev_rename(pnode_name,
+                                             zip(tmp_disks, rename_to))
+      result.Raise("Failed to rename adoped LVs")
+    else:
+      feedback_fn("* creating instance disks...")
       try:
-        _RemoveDisks(self, iobj)
-      finally:
-        self.cfg.ReleaseDRBDMinors(instance)
-        raise
+        _CreateDisks(self, iobj)
+      except errors.OpExecError:
+        self.LogWarning("Device creation failed, reverting...")
+        try:
+          _RemoveDisks(self, iobj)
+        finally:
+          self.cfg.ReleaseDRBDMinors(instance)
+          raise
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
@@ -6360,10 +6429,7 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
 
-    feedback_fn("creating os for instance %s on node %s" %
-                (instance, pnode_name))
-
-    if iobj.disk_template != constants.DT_DISKLESS:
+    if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
       if self.op.mode == constants.INSTANCE_CREATE:
         feedback_fn("* running the instance OS create scripts...")
         # FIXME: pass debug option from opcode to backend
