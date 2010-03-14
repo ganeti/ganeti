@@ -542,6 +542,16 @@ def _CheckNodeNotDrained(lu, node):
                                errors.ECODE_INVAL)
 
 
+def _CheckDiskTemplate(template):
+  """Ensure a given disk template is valid.
+
+  """
+  if template not in constants.DISK_TEMPLATES:
+    msg = ("Invalid disk template name '%s', valid templates are: %s" %
+           (template, utils.CommaJoin(constants.DISK_TEMPLATES)))
+    raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+
+
 def _ExpandItemName(fn, name, kind):
   """Expand an item name.
 
@@ -5845,9 +5855,7 @@ class LUCreateInstance(LogicalUnit):
                                  self.op.mode, errors.ECODE_INVAL)
 
     # disk template and mirror node verification
-    if self.op.disk_template not in constants.DISK_TEMPLATES:
-      raise errors.OpPrereqError("Invalid disk template name",
-                                 errors.ECODE_INVAL)
+    _CheckDiskTemplate(self.op.disk_template)
 
     if self.op.hypervisor is None:
       self.op.hypervisor = self.cfg.GetHypervisorType()
