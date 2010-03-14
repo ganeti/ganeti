@@ -620,7 +620,8 @@ class OpSetInstanceParams(OpCode):
   __slots__ = [
     "instance_name",
     "hvparams", "beparams", "force",
-    "nics", "disks",
+    "nics", "disks", "disk_template",
+    "remote_node",
     ]
 
 

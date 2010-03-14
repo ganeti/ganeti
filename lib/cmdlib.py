@@ -7733,8 +7733,12 @@ class LUSetInstanceParams(LogicalUnit):
       self.op.beparams = {}
     if not hasattr(self.op, 'hvparams'):
       self.op.hvparams = {}
+    if not hasattr(self.op, "disk_template"):
+      self.op.disk_template = None
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
     self.op.force = getattr(self.op, "force", False)
-    if not (self.op.nics or self.op.disks or
+    if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
@@ -7780,6 +7784,19 @@ class LUSetInstanceParams(LogicalUnit):
     if disk_addremove > 1:
       raise errors.OpPrereqError("Only one disk add or remove operation"
                                  " supported at a time", errors.ECODE_INVAL)
+
+    if self.op.disks and self.op.disk_template is not None:
+      raise errors.OpPrereqError("Disk template conversion and other disk"
+                                 " changes not supported at the same time",
+                                 errors.ECODE_INVAL)
+
+    if self.op.disk_template:
+      _CheckDiskTemplate(self.op.disk_template)
+      if (self.op.disk_template in constants.DTS_NET_MIRROR and
+          self.op.remote_node is None):
+        raise errors.OpPrereqError("Changing the disk template to a mirrored"
+                                   " one requires specifying a secondary node",
+                                   errors.ECODE_INVAL)
 
     # NIC validation
     nic_addremove = 0
@@ -7843,6 +7860,9 @@ class LUSetInstanceParams(LogicalUnit):
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
+      if self.op.disk_template and self.op.remote_node:
+        self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
+        self.needed_locks[locking.LEVEL_NODE].append(self.op.remote_node)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7892,6 +7912,8 @@ class LUSetInstanceParams(LogicalUnit):
         del args['nics'][-1]
 
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
+    if self.op.disk_template:
+      env["NEW_DISK_TEMPLATE"] = self.op.disk_template
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
@@ -7944,6 +7966,25 @@ class LUSetInstanceParams(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     pnode = instance.primary_node
     nodelist = list(instance.all_nodes)
+
+    if self.op.disk_template:
+      if instance.disk_template == self.op.disk_template:
+        raise errors.OpPrereqError("Instance already has disk template %s" %
+                                   instance.disk_template, errors.ECODE_INVAL)
+
+      if (instance.disk_template,
+          self.op.disk_template) not in self._DISK_CONVERSIONS:
+        raise errors.OpPrereqError("Unsupported disk template conversion from"
+                                   " %s to %s" % (instance.disk_template,
+                                                  self.op.disk_template),
+                                   errors.ECODE_INVAL)
+      if self.op.disk_template in constants.DTS_NET_MIRROR:
+        _CheckNodeOnline(self, self.op.remote_node)
+        _CheckNodeNotDrained(self, self.op.remote_node)
+        disks = [{"size": d.size} for d in instance.disks]
+        required = _ComputeDiskSize(self.op.disk_template, disks)
+        _CheckNodesFreeDisk(self, [self.op.remote_node], required)
+        _CheckInstanceDown(self, instance, "cannot change disk template")
 
     # hvparams processing
     if self.op.hvparams:
@@ -8128,6 +8169,55 @@ class LUSetInstanceParams(LogicalUnit):
 
     return
 
+  def _ConvertPlainToDrbd(self, feedback_fn):
+    """Converts an instance from plain to drbd.
+
+    """
+    feedback_fn("Converting template to drbd")
+    instance = self.instance
+    pnode = instance.primary_node
+    snode = self.op.remote_node
+
+    # create a fake disk info for _GenerateDiskTemplate
+    disk_info = [{"size": d.size, "mode": d.mode} for d in instance.disks]
+    new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
+                                      instance.name, pnode, [snode],
+                                      disk_info, None, None, 0)
+    info = _GetInstanceInfoText(instance)
+    feedback_fn("Creating aditional volumes...")
+    # first, create the missing data and meta devices
+    for disk in new_disks:
+      # unfortunately this is... not too nice
+      _CreateSingleBlockDev(self, pnode, instance, disk.children[1],
+                            info, True)
+      for child in disk.children:
+        _CreateSingleBlockDev(self, snode, instance, child, info, True)
+    # at this stage, all new LVs have been created, we can rename the
+    # old ones
+    feedback_fn("Renaming original volumes...")
+    rename_list = [(o, n.children[0].logical_id)
+                   for (o, n) in zip(instance.disks, new_disks)]
+    result = self.rpc.call_blockdev_rename(pnode, rename_list)
+    result.Raise("Failed to rename original LVs")
+
+    feedback_fn("Initializing DRBD devices...")
+    # all child devices are in place, we can now create the DRBD devices
+    for disk in new_disks:
+      for node in [pnode, snode]:
+        f_create = node == pnode
+        _CreateSingleBlockDev(self, node, instance, disk, info, f_create)
+
+    # at this point, the instance has been modified
+    instance.disk_template = constants.DT_DRBD8
+    instance.disks = new_disks
+    self.cfg.Update(instance, feedback_fn)
+
+    # disks are created, waiting for sync
+    disk_abort = not _WaitForSync(self, instance)
+    if disk_abort:
+      raise errors.OpExecError("There are some degraded disks for"
+                               " this instance, please cleanup manually")
+
   def Exec(self, feedback_fn):
     """Modifies an instance.
 
@@ -8192,6 +8282,20 @@ class LUSetInstanceParams(LogicalUnit):
         # change a given disk
         instance.disks[disk_op].mode = disk_dict['mode']
         result.append(("disk.mode/%d" % disk_op, disk_dict['mode']))
+
+    if self.op.disk_template:
+      r_shut = _ShutdownInstanceDisks(self, instance)
+      if not r_shut:
+        raise errors.OpExecError("Cannot shutdow instance disks, unable to"
+                                 " proceed with disk template conversion")
+      mode = (instance.disk_template, self.op.disk_template)
+      try:
+        self._DISK_CONVERSIONS[mode](self, feedback_fn)
+      except:
+        self.cfg.ReleaseDRBDMinors(instance.name)
+        raise
+      result.append(("disk_template", self.op.disk_template))
+
     # NIC changes
     for nic_op, nic_dict in self.op.nics:
       if nic_op == constants.DDM_REMOVE:
@@ -8236,6 +8340,9 @@ class LUSetInstanceParams(LogicalUnit):
 
     return result
 
+  _DISK_CONVERSIONS = {
+    (constants.DT_PLAIN, constants.DT_DRBD8): _ConvertPlainToDrbd,
+    }
 
 class LUQueryExports(NoHooksLU):
   """Query the exports list

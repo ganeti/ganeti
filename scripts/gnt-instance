@@ -1207,7 +1207,7 @@ def SetInstanceParams(opts, args):
   @return: the desired exit code
 
   """
-  if not (opts.nics or opts.disks or
+  if not (opts.nics or opts.disks or opts.disk_template or
           opts.hvparams or opts.beparams):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -1247,9 +1247,18 @@ def SetInstanceParams(opts, args):
                                    errors.ECODE_INVAL)
       disk_dict['size'] = utils.ParseUnit(disk_dict['size'])
 
+  if (opts.disk_template and
+      opts.disk_template in constants.DTS_NET_MIRROR and
+      not opts.node):
+    ToStderr("Changing the disk template to a mirrored one requires"
+             " specifying a secondary node")
+    return 1
+
   op = opcodes.OpSetInstanceParams(instance_name=args[0],
                                    nics=opts.nics,
                                    disks=opts.disks,
+                                   disk_template=opts.disk_template,
+                                   remote_node=opts.node,
                                    hvparams=opts.hvparams,
                                    beparams=opts.beparams,
                                    force=opts.force)
@@ -1261,7 +1270,7 @@ def SetInstanceParams(opts, args):
     ToStdout("Modified instance %s", args[0])
     for param, data in result:
       ToStdout(" - %-5s -> %s", param, data)
-    ToStdout("Please don't forget that these parameters take effect"
+    ToStdout("Please don't forget that most parameters take effect"
              " only at the next start of the instance.")
   return 0
 
@@ -1407,7 +1416,8 @@ commands = {
     "Replaces all disks for the instance"),
   'modify': (
     SetInstanceParams, ARGS_ONE_INSTANCE,
-    [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT],
+    [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,
+     DISK_TEMPLATE_OPT, SINGLE_NODE_OPT],
     "<instance>", "Alters the parameters of an instance"),
   'shutdown': (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],
