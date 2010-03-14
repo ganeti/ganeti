@@ -1398,6 +1398,13 @@ instance5: 11225
           </group>
 
           <sbr>
+          <arg>-t<group choice="req">
+              <arg>plain</arg>
+              <arg>drbd</arg>
+            </group></arg>
+
+
+          <sbr>
           <arg>--submit</arg>
           <sbr>
           <arg choice="req"><replaceable>instance</replaceable></arg>
@@ -1414,6 +1421,13 @@ instance5: 11225
         <para>
           The <option>-H</option> option specifies hypervisor options
           in the form of <userinput>name=value[,...]</userinput>. For details which options can be specified, see the <command>add</command> command.
+        </para>
+
+        <para>
+          The <option>-t</option> option will change the disk template
+          of the instance. Currently only conversions between the
+          plain and drbd disk templates are supported, and the
+          instance must be stopped before attempting the conversion.
         </para>
 
         <para>

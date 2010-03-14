@@ -512,6 +512,33 @@ command::
 
 Note that this will fail if the disks already exists.
 
+Conversion of an instance's disk type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to convert between a non-redundant instance of type
+``plain`` (LVM storage) and redundant ``drbd`` via the ``gnt-instance
+modify`` command::
+
+  # start with a non-redundant instance
+  gnt-instance add -t plain ... INSTANCE
+
+  # later convert it to redundant
+  gnt-instance stop INSTANCE
+  gnt-instance modify -t drbd INSTANCE
+  gnt-instance start INSTANCE
+
+  # and convert it back
+  gnt-instance stop INSTANCE
+  gnt-instance modify -t plain INSTANCE
+  gnt-instance start INSTANCE
+
+The conversion must be done while the instance is stopped, and
+converting from plain to drbd template presents a small risk, especially
+if the instance has multiple disks and/or if one node fails during the
+conversion procedure). As such, it's recommended (as always) to make
+sure that downtime for manual recovery is acceptable and that the
+instance has up-to-date backups.
+
 Debugging instances
 +++++++++++++++++++
 
