@@ -5785,6 +5785,11 @@ class LUCreateInstance(LogicalUnit):
     """Check arguments.
 
     """
+    # set optional parameters to none if they don't exist
+    for attr in ["pnode", "snode", "iallocator", "hypervisor"]:
+      if not hasattr(self.op, attr):
+        setattr(self.op, attr, None)
+
     # do not require name_check to ease forward/backward compatibility
     # for tools
     if not hasattr(self.op, "name_check"):
@@ -5807,11 +5812,6 @@ class LUCreateInstance(LogicalUnit):
 
     """
     self.needed_locks = {}
-
-    # set optional parameters to none if they don't exist
-    for attr in ["pnode", "snode", "iallocator", "hypervisor"]:
-      if not hasattr(self.op, attr):
-        setattr(self.op, attr, None)
 
     # cheap checks, mostly valid constants given
 
