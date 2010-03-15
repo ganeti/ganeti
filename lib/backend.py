@@ -401,7 +401,7 @@ def LeaveCluster(modify_ssh_setup):
   try:
     utils.RemoveFile(constants.HMAC_CLUSTER_KEY)
     utils.RemoveFile(constants.RAPI_CERT_FILE)
-    utils.RemoveFile(constants.SSL_CERT_FILE)
+    utils.RemoveFile(constants.NODED_CERT_FILE)
   except: # pylint: disable-msg=W0702
     logging.exception("Error while removing cluster secrets")
 

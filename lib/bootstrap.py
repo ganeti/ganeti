@@ -125,15 +125,15 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_hmac_key,
   @param rapi_cert_pem: New RAPI certificate in PEM format
 
   """
-  # SSL certificate
-  cluster_cert_exists = os.path.exists(constants.SSL_CERT_FILE)
+  # noded SSL certificate
+  cluster_cert_exists = os.path.exists(constants.NODED_CERT_FILE)
   if new_cluster_cert or not cluster_cert_exists:
     if cluster_cert_exists:
-      utils.CreateBackup(constants.SSL_CERT_FILE)
+      utils.CreateBackup(constants.NODED_CERT_FILE)
 
     logging.debug("Generating new cluster certificate at %s",
-                  constants.SSL_CERT_FILE)
-    GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
+                  constants.NODED_CERT_FILE)
+    GenerateSelfSignedSslCert(constants.NODED_CERT_FILE)
 
   # HMAC key
   if new_hmac_key or not os.path.exists(constants.HMAC_CLUSTER_KEY):
@@ -426,7 +426,7 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   """
   sshrunner = ssh.SshRunner(cluster_name)
 
-  noded_cert = utils.ReadFile(constants.SSL_CERT_FILE)
+  noded_cert = utils.ReadFile(constants.NODED_CERT_FILE)
   rapi_cert = utils.ReadFile(constants.RAPI_CERT_FILE)
   hmac_key = utils.ReadFile(constants.HMAC_CLUSTER_KEY)
 
@@ -459,10 +459,10 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                "%s!EOF.\n"
                "chmod 0400 %s %s %s && "
                "%s start %s" %
-               (constants.SSL_CERT_FILE, noded_cert,
+               (constants.NODED_CERT_FILE, noded_cert,
                 constants.RAPI_CERT_FILE, rapi_cert,
                 constants.HMAC_CLUSTER_KEY, hmac_key,
-                constants.SSL_CERT_FILE, constants.RAPI_CERT_FILE,
+                constants.NODED_CERT_FILE, constants.RAPI_CERT_FILE,
                 constants.HMAC_CLUSTER_KEY,
                 constants.DAEMON_UTIL, constants.NODED))
 

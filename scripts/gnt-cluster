@@ -554,7 +554,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
     files_to_copy = []
 
     if new_cluster_cert:
-      files_to_copy.append(constants.SSL_CERT_FILE)
+      files_to_copy.append(constants.NODED_CERT_FILE)
 
     if new_rapi_cert or rapi_cert_pem:
       files_to_copy.append(constants.RAPI_CERT_FILE)
