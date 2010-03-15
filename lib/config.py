@@ -125,6 +125,9 @@ class TemporaryReservationManager:
 class ConfigWriter:
   """The interface to the cluster configuration.
 
+  @ivar _temporary_lvs: reservation manager for temporary LVs
+  @ivar _all_rms: a list of all temporary reservation managers
+
   """
   def __init__(self, cfg_file=None, offline=False):
     self.write_count = 0
@@ -139,6 +142,9 @@ class ConfigWriter:
     self._temporary_drbds = {}
     self._temporary_macs = TemporaryReservationManager()
     self._temporary_secrets = TemporaryReservationManager()
+    self._temporary_lvs = TemporaryReservationManager()
+    self._all_rms = [self._temporary_ids, self._temporary_macs,
+                     self._temporary_secrets, self._temporary_lvs]
     # Note: in order to prevent errors when resolving our name in
     # _DistributeConfig, we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
@@ -189,6 +195,20 @@ class ConfigWriter:
       raise errors.ReservationError("mac already in use")
     else:
       self._temporary_macs.Reserve(mac, ec_id)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def ReserveLV(self, lv_name, ec_id):
+    """Reserve an VG/LV pair for an instance.
+
+    @type lv_name: string
+    @param lv_name: the logical volume name to reserve
+
+    """
+    all_lvs = self._AllLVs()
+    if lv_name in all_lvs:
+      raise errors.ReservationError("LV already in use")
+    else:
+      self._temporary_lvs.Reserve(lv_name, ec_id)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GenerateDRBDSecret(self, ec_id):
@@ -1451,6 +1471,5 @@ class ConfigWriter:
     """Drop per-execution-context reservations
 
     """
-    self._temporary_ids.DropECReservations(ec_id)
-    self._temporary_macs.DropECReservations(ec_id)
-    self._temporary_secrets.DropECReservations(ec_id)
+    for rm in self._all_rms:
+      rm.DropECReservations(ec_id)

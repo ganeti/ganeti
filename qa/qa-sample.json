@@ -62,6 +62,7 @@
 
     "instance-add-plain-disk": true,
     "instance-add-drbd-disk": true,
+    "instance-convert-disk": true,
 
     "instance-automatic-restart": false,
     "instance-consecutive-failures": false,

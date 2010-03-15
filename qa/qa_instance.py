@@ -209,6 +209,17 @@ def TestInstanceModify(instance):
                           utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+def TestInstanceConvertDisk(instance, snode):
+  """gnt-instance modify -t"""
+  master = qa_config.GetMasterNode()
+  cmd = ['gnt-instance', 'modify', '-t', 'plain', instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+  cmd = ['gnt-instance', 'modify', '-t', 'drbd', '-n', snode, instance['name']]
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
 def TestInstanceList():
   """gnt-instance list"""
   master = qa_config.GetMasterNode()

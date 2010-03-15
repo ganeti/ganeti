@@ -542,6 +542,32 @@ def _CheckNodeNotDrained(lu, node):
                                errors.ECODE_INVAL)
 
 
+def _CheckDiskTemplate(template):
+  """Ensure a given disk template is valid.
+
+  """
+  if template not in constants.DISK_TEMPLATES:
+    msg = ("Invalid disk template name '%s', valid templates are: %s" %
+           (template, utils.CommaJoin(constants.DISK_TEMPLATES)))
+    raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+
+
+def _CheckInstanceDown(lu, instance, reason):
+  """Ensure that an instance is not running."""
+  if instance.admin_up:
+    raise errors.OpPrereqError("Instance %s is marked to be up, %s" %
+                               (instance.name, reason), errors.ECODE_STATE)
+
+  pnode = instance.primary_node
+  ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
+  ins_l.Raise("Can't contact node %s for instance information" % pnode,
+              prereq=True, ecode=errors.ECODE_ENVIRON)
+
+  if instance.name in ins_l.payload:
+    raise errors.OpPrereqError("Instance %s is running, %s" %
+                               (instance.name, reason), errors.ECODE_STATE)
+
+
 def _ExpandItemName(fn, name, kind):
   """Expand an item name.
 
@@ -3720,14 +3746,7 @@ def _SafeShutdownInstanceDisks(lu, instance):
   _ShutdownInstanceDisks.
 
   """
-  pnode = instance.primary_node
-  ins_l = lu.rpc.call_instance_list([pnode], [instance.hypervisor])[pnode]
-  ins_l.Raise("Can't contact node %s" % pnode)
-
-  if instance.name in ins_l.payload:
-    raise errors.OpExecError("Instance is running, can't shutdown"
-                             " block devices.")
-
+  _CheckInstanceDown(lu, instance, "cannot shutdown disks")
   _ShutdownInstanceDisks(lu, instance)
 
 
@@ -3789,6 +3808,42 @@ def _CheckNodeFreeMemory(lu, node, reason, requested, hypervisor_name):
                                " needed %s MiB, available %s MiB" %
                                (node, reason, requested, free_mem),
                                errors.ECODE_NORES)
+
+
+def _CheckNodesFreeDisk(lu, nodenames, requested):
+  """Checks if nodes have enough free disk space in the default VG.
+
+  This function check if all given nodes have the needed amount of
+  free disk. In case any node has less disk or we cannot get the
+  information from the node, this function raise an OpPrereqError
+  exception.
+
+  @type lu: C{LogicalUnit}
+  @param lu: a logical unit from which we get configuration data
+  @type nodenames: C{list}
+  @param node: the list of node names to check
+  @type requested: C{int}
+  @param requested: the amount of disk in MiB to check for
+  @raise errors.OpPrereqError: if the node doesn't have enough disk, or
+      we cannot check the node
+
+  """
+  nodeinfo = lu.rpc.call_node_info(nodenames, lu.cfg.GetVGName(),
+                                   lu.cfg.GetHypervisorType())
+  for node in nodenames:
+    info = nodeinfo[node]
+    info.Raise("Cannot get current information from node %s" % node,
+               prereq=True, ecode=errors.ECODE_ENVIRON)
+    vg_free = info.payload.get("vg_free", None)
+    if not isinstance(vg_free, int):
+      raise errors.OpPrereqError("Can't compute free disk space on node %s,"
+                                 " result was '%s'" % (node, vg_free),
+                                 errors.ECODE_ENVIRON)
+    if requested > vg_free:
+      raise errors.OpPrereqError("Not enough disk space on target node %s:"
+                                 " required %d MiB, available %d MiB" %
+                                 (node, requested, vg_free),
+                                 errors.ECODE_NORES)
 
 
 class LUStartupInstance(LogicalUnit):
@@ -4077,20 +4132,7 @@ class LUReinstallInstance(LogicalUnit):
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name,
                                  errors.ECODE_INVAL)
-    if instance.admin_up:
-      raise errors.OpPrereqError("Instance '%s' is marked to be up" %
-                                 self.op.instance_name,
-                                 errors.ECODE_STATE)
-    remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                              instance.name,
-                                              instance.hypervisor)
-    remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True, ecode=errors.ECODE_ENVIRON)
-    if remote_info.payload:
-      raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
-                                 (self.op.instance_name,
-                                  instance.primary_node),
-                                 errors.ECODE_STATE)
+    _CheckInstanceDown(self, instance, "cannot reinstall")
 
     self.op.os_type = getattr(self.op, "os_type", None)
     self.op.force_variant = getattr(self.op, "force_variant", False)
@@ -4177,18 +4219,7 @@ class LURecreateInstanceDisks(LogicalUnit):
     if instance.disk_template == constants.DT_DISKLESS:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name, errors.ECODE_INVAL)
-    if instance.admin_up:
-      raise errors.OpPrereqError("Instance '%s' is marked to be up" %
-                                 self.op.instance_name, errors.ECODE_STATE)
-    remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                              instance.name,
-                                              instance.hypervisor)
-    remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True, ecode=errors.ECODE_ENVIRON)
-    if remote_info.payload:
-      raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
-                                 (self.op.instance_name,
-                                  instance.primary_node), errors.ECODE_STATE)
+    _CheckInstanceDown(self, instance, "cannot recreate disks")
 
     if not self.op.disks:
       self.op.disks = range(len(instance.disks))
@@ -4243,19 +4274,7 @@ class LURenameInstance(LogicalUnit):
     instance = self.cfg.GetInstanceInfo(self.op.instance_name)
     assert instance is not None
     _CheckNodeOnline(self, instance.primary_node)
-
-    if instance.admin_up:
-      raise errors.OpPrereqError("Instance '%s' is marked to be up" %
-                                 self.op.instance_name, errors.ECODE_STATE)
-    remote_info = self.rpc.call_instance_info(instance.primary_node,
-                                              instance.name,
-                                              instance.hypervisor)
-    remote_info.Raise("Error checking node %s" % instance.primary_node,
-                      prereq=True, ecode=errors.ECODE_ENVIRON)
-    if remote_info.payload:
-      raise errors.OpPrereqError("Instance '%s' is running on the node %s" %
-                                 (self.op.instance_name,
-                                  instance.primary_node), errors.ECODE_STATE)
+    _CheckInstanceDown(self, instance, "cannot rename")
     self.instance = instance
 
     # new name verification
@@ -5796,6 +5815,11 @@ class LUCreateInstance(LogicalUnit):
     """Check arguments.
 
     """
+    # set optional parameters to none if they don't exist
+    for attr in ["pnode", "snode", "iallocator", "hypervisor"]:
+      if not hasattr(self.op, attr):
+        setattr(self.op, attr, None)
+
     # do not require name_check to ease forward/backward compatibility
     # for tools
     if not hasattr(self.op, "name_check"):
@@ -5810,6 +5834,29 @@ class LUCreateInstance(LogicalUnit):
         not constants.ENABLE_FILE_STORAGE):
       raise errors.OpPrereqError("File storage disabled at configure time",
                                  errors.ECODE_INVAL)
+    # check disk information: either all adopt, or no adopt
+    has_adopt = has_no_adopt = False
+    for disk in self.op.disks:
+      if "adopt" in disk:
+        has_adopt = True
+      else:
+        has_no_adopt = True
+    if has_adopt and has_no_adopt:
+      raise errors.OpPrereqError("Either all disks have are adoped or none is",
+                                 errors.ECODE_INVAL)
+    if has_adopt:
+      if self.op.disk_template != constants.DT_PLAIN:
+        raise errors.OpPrereqError("Disk adoption is only supported for the"
+                                   " 'plain' disk template",
+                                   errors.ECODE_INVAL)
+      if self.op.iallocator is not None:
+        raise errors.OpPrereqError("Disk adoption not allowed with an"
+                                   " iallocator script", errors.ECODE_INVAL)
+      if self.op.mode == constants.INSTANCE_IMPORT:
+        raise errors.OpPrereqError("Disk adoption not allowed for"
+                                   " instance import", errors.ECODE_INVAL)
+
+    self.adopt_disks = has_adopt
 
   def ExpandNames(self):
     """ExpandNames for CreateInstance.
@@ -5818,11 +5865,6 @@ class LUCreateInstance(LogicalUnit):
 
     """
     self.needed_locks = {}
-
-    # set optional parameters to none if they don't exist
-    for attr in ["pnode", "snode", "iallocator", "hypervisor"]:
-      if not hasattr(self.op, attr):
-        setattr(self.op, attr, None)
 
     # cheap checks, mostly valid constants given
 
@@ -5833,9 +5875,7 @@ class LUCreateInstance(LogicalUnit):
                                  self.op.mode, errors.ECODE_INVAL)
 
     # disk template and mirror node verification
-    if self.op.disk_template not in constants.DISK_TEMPLATES:
-      raise errors.OpPrereqError("Invalid disk template name",
-                                 errors.ECODE_INVAL)
+    _CheckDiskTemplate(self.op.disk_template)
 
     if self.op.hypervisor is None:
       self.op.hypervisor = self.cfg.GetHypervisorType()
@@ -5969,7 +6009,10 @@ class LUCreateInstance(LogicalUnit):
       except (TypeError, ValueError):
         raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                    errors.ECODE_INVAL)
-      self.disks.append({"size": size, "mode": mode})
+      new_disk = {"size": size, "mode": mode}
+      if "adopt" in disk:
+        new_disk["adopt"] = disk["adopt"]
+      self.disks.append(new_disk)
 
     # file storage checks
     if (self.op.file_driver and
@@ -6237,23 +6280,39 @@ class LUCreateInstance(LogicalUnit):
     req_size = _ComputeDiskSize(self.op.disk_template,
                                 self.disks)
 
-    # Check lv size requirements
-    if req_size is not None:
-      nodeinfo = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
-                                         self.op.hypervisor)
-      for node in nodenames:
-        info = nodeinfo[node]
-        info.Raise("Cannot get current information from node %s" % node)
-        info = info.payload
-        vg_free = info.get('vg_free', None)
-        if not isinstance(vg_free, int):
-          raise errors.OpPrereqError("Can't compute free disk space on"
-                                     " node %s" % node, errors.ECODE_ENVIRON)
-        if req_size > vg_free:
-          raise errors.OpPrereqError("Not enough disk space on target node %s."
-                                     " %d MB available, %d MB required" %
-                                     (node, vg_free, req_size),
-                                     errors.ECODE_NORES)
+    # Check lv size requirements, if not adopting
+    if req_size is not None and not self.adopt_disks:
+      _CheckNodesFreeDisk(self, nodenames, req_size)
+
+    if self.adopt_disks: # instead, we must check the adoption data
+      all_lvs = set([i["adopt"] for i in self.disks])
+      if len(all_lvs) != len(self.disks):
+        raise errors.OpPrereqError("Duplicate volume names given for adoption",
+                                   errors.ECODE_INVAL)
+      for lv_name in all_lvs:
+        try:
+          self.cfg.ReserveLV(lv_name, self.proc.GetECId())
+        except errors.ReservationError:
+          raise errors.OpPrereqError("LV named %s used by another instance" %
+                                     lv_name, errors.ECODE_NOTUNIQUE)
+
+      node_lvs = self.rpc.call_lv_list([pnode.name],
+                                       self.cfg.GetVGName())[pnode.name]
+      node_lvs.Raise("Cannot get LV information from node %s" % pnode.name)
+      node_lvs = node_lvs.payload
+      delta = all_lvs.difference(node_lvs.keys())
+      if delta:
+        raise errors.OpPrereqError("Missing logical volume(s): %s" %
+                                   utils.CommaJoin(delta),
+                                   errors.ECODE_INVAL)
+      online_lvs = [lv for lv in all_lvs if node_lvs[lv][2]]
+      if online_lvs:
+        raise errors.OpPrereqError("Online logical volumes found, cannot"
+                                   " adopt: %s" % utils.CommaJoin(online_lvs),
+                                   errors.ECODE_STATE)
+      # update the size of disk based on what is found
+      for dsk in self.disks:
+        dsk["size"] = int(float(node_lvs[dsk["adopt"]][0]))
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
@@ -6319,16 +6378,29 @@ class LUCreateInstance(LogicalUnit):
                             hypervisor=self.op.hypervisor,
                             )
 
-    feedback_fn("* creating instance disks...")
-    try:
-      _CreateDisks(self, iobj)
-    except errors.OpExecError:
-      self.LogWarning("Device creation failed, reverting...")
+    if self.adopt_disks:
+      # rename LVs to the newly-generated names; we need to construct
+      # 'fake' LV disks with the old data, plus the new unique_id
+      tmp_disks = [objects.Disk.FromDict(v.ToDict()) for v in disks]
+      rename_to = []
+      for t_dsk, a_dsk in zip (tmp_disks, self.disks):
+        rename_to.append(t_dsk.logical_id)
+        t_dsk.logical_id = (t_dsk.logical_id[0], a_dsk["adopt"])
+        self.cfg.SetDiskID(t_dsk, pnode_name)
+      result = self.rpc.call_blockdev_rename(pnode_name,
+                                             zip(tmp_disks, rename_to))
+      result.Raise("Failed to rename adoped LVs")
+    else:
+      feedback_fn("* creating instance disks...")
       try:
-        _RemoveDisks(self, iobj)
-      finally:
-        self.cfg.ReleaseDRBDMinors(instance)
-        raise
+        _CreateDisks(self, iobj)
+      except errors.OpExecError:
+        self.LogWarning("Device creation failed, reverting...")
+        try:
+          _RemoveDisks(self, iobj)
+        finally:
+          self.cfg.ReleaseDRBDMinors(instance)
+          raise
 
     feedback_fn("adding instance %s to cluster config" % instance)
 
@@ -6366,10 +6438,7 @@ class LUCreateInstance(LogicalUnit):
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
 
-    feedback_fn("creating os for instance %s on node %s" %
-                (instance, pnode_name))
-
-    if iobj.disk_template != constants.DT_DISKLESS:
+    if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
       if self.op.mode == constants.INSTANCE_CREATE:
         feedback_fn("* running the instance OS create scripts...")
         # FIXME: pass debug option from opcode to backend
@@ -7466,20 +7535,7 @@ class LUGrowDisk(LogicalUnit):
 
     self.disk = instance.FindDisk(self.op.disk)
 
-    nodeinfo = self.rpc.call_node_info(nodenames, self.cfg.GetVGName(),
-                                       instance.hypervisor)
-    for node in nodenames:
-      info = nodeinfo[node]
-      info.Raise("Cannot get current information from node %s" % node)
-      vg_free = info.payload.get('vg_free', None)
-      if not isinstance(vg_free, int):
-        raise errors.OpPrereqError("Can't compute free disk space on"
-                                   " node %s" % node, errors.ECODE_ENVIRON)
-      if self.op.amount > vg_free:
-        raise errors.OpPrereqError("Not enough disk space on target node %s:"
-                                   " %d MiB available, %d MiB required" %
-                                   (node, vg_free, self.op.amount),
-                                   errors.ECODE_NORES)
+    _CheckNodesFreeDisk(self, nodenames, self.op.amount)
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
@@ -7683,8 +7739,12 @@ class LUSetInstanceParams(LogicalUnit):
       self.op.beparams = {}
     if not hasattr(self.op, 'hvparams'):
       self.op.hvparams = {}
+    if not hasattr(self.op, "disk_template"):
+      self.op.disk_template = None
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
     self.op.force = getattr(self.op, "force", False)
-    if not (self.op.nics or self.op.disks or
+    if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
@@ -7730,6 +7790,19 @@ class LUSetInstanceParams(LogicalUnit):
     if disk_addremove > 1:
       raise errors.OpPrereqError("Only one disk add or remove operation"
                                  " supported at a time", errors.ECODE_INVAL)
+
+    if self.op.disks and self.op.disk_template is not None:
+      raise errors.OpPrereqError("Disk template conversion and other disk"
+                                 " changes not supported at the same time",
+                                 errors.ECODE_INVAL)
+
+    if self.op.disk_template:
+      _CheckDiskTemplate(self.op.disk_template)
+      if (self.op.disk_template in constants.DTS_NET_MIRROR and
+          self.op.remote_node is None):
+        raise errors.OpPrereqError("Changing the disk template to a mirrored"
+                                   " one requires specifying a secondary node",
+                                   errors.ECODE_INVAL)
 
     # NIC validation
     nic_addremove = 0
@@ -7793,6 +7866,9 @@ class LUSetInstanceParams(LogicalUnit):
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
       self._LockInstancesNodes()
+      if self.op.disk_template and self.op.remote_node:
+        self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
+        self.needed_locks[locking.LEVEL_NODE].append(self.op.remote_node)
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -7842,6 +7918,8 @@ class LUSetInstanceParams(LogicalUnit):
         del args['nics'][-1]
 
     env = _BuildInstanceHookEnvByObject(self, self.instance, override=args)
+    if self.op.disk_template:
+      env["NEW_DISK_TEMPLATE"] = self.op.disk_template
     nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
     return env, nl, nl
 
@@ -7894,6 +7972,25 @@ class LUSetInstanceParams(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     pnode = instance.primary_node
     nodelist = list(instance.all_nodes)
+
+    if self.op.disk_template:
+      if instance.disk_template == self.op.disk_template:
+        raise errors.OpPrereqError("Instance already has disk template %s" %
+                                   instance.disk_template, errors.ECODE_INVAL)
+
+      if (instance.disk_template,
+          self.op.disk_template) not in self._DISK_CONVERSIONS:
+        raise errors.OpPrereqError("Unsupported disk template conversion from"
+                                   " %s to %s" % (instance.disk_template,
+                                                  self.op.disk_template),
+                                   errors.ECODE_INVAL)
+      if self.op.disk_template in constants.DTS_NET_MIRROR:
+        _CheckNodeOnline(self, self.op.remote_node)
+        _CheckNodeNotDrained(self, self.op.remote_node)
+        disks = [{"size": d.size} for d in instance.disks]
+        required = _ComputeDiskSize(self.op.disk_template, disks)
+        _CheckNodesFreeDisk(self, [self.op.remote_node], required)
+        _CheckInstanceDown(self, instance, "cannot change disk template")
 
     # hvparams processing
     if self.op.hvparams:
@@ -8060,17 +8157,8 @@ class LUSetInstanceParams(LogicalUnit):
       if disk_op == constants.DDM_REMOVE:
         if len(instance.disks) == 1:
           raise errors.OpPrereqError("Cannot remove the last disk of"
-                                     " an instance",
-                                     errors.ECODE_INVAL)
-        ins_l = self.rpc.call_instance_list([pnode], [instance.hypervisor])
-        ins_l = ins_l[pnode]
-        msg = ins_l.fail_msg
-        if msg:
-          raise errors.OpPrereqError("Can't contact node %s: %s" %
-                                     (pnode, msg), errors.ECODE_ENVIRON)
-        if instance.name in ins_l.payload:
-          raise errors.OpPrereqError("Instance is running, can't remove"
-                                     " disks.", errors.ECODE_STATE)
+                                     " an instance", errors.ECODE_INVAL)
+        _CheckInstanceDown(self, instance, "cannot remove disks")
 
       if (disk_op == constants.DDM_ADD and
           len(instance.nics) >= constants.MAX_DISKS):
@@ -8086,6 +8174,96 @@ class LUSetInstanceParams(LogicalUnit):
                                      errors.ECODE_INVAL)
 
     return
+
+  def _ConvertPlainToDrbd(self, feedback_fn):
+    """Converts an instance from plain to drbd.
+
+    """
+    feedback_fn("Converting template to drbd")
+    instance = self.instance
+    pnode = instance.primary_node
+    snode = self.op.remote_node
+
+    # create a fake disk info for _GenerateDiskTemplate
+    disk_info = [{"size": d.size, "mode": d.mode} for d in instance.disks]
+    new_disks = _GenerateDiskTemplate(self, self.op.disk_template,
+                                      instance.name, pnode, [snode],
+                                      disk_info, None, None, 0)
+    info = _GetInstanceInfoText(instance)
+    feedback_fn("Creating aditional volumes...")
+    # first, create the missing data and meta devices
+    for disk in new_disks:
+      # unfortunately this is... not too nice
+      _CreateSingleBlockDev(self, pnode, instance, disk.children[1],
+                            info, True)
+      for child in disk.children:
+        _CreateSingleBlockDev(self, snode, instance, child, info, True)
+    # at this stage, all new LVs have been created, we can rename the
+    # old ones
+    feedback_fn("Renaming original volumes...")
+    rename_list = [(o, n.children[0].logical_id)
+                   for (o, n) in zip(instance.disks, new_disks)]
+    result = self.rpc.call_blockdev_rename(pnode, rename_list)
+    result.Raise("Failed to rename original LVs")
+
+    feedback_fn("Initializing DRBD devices...")
+    # all child devices are in place, we can now create the DRBD devices
+    for disk in new_disks:
+      for node in [pnode, snode]:
+        f_create = node == pnode
+        _CreateSingleBlockDev(self, node, instance, disk, info, f_create)
+
+    # at this point, the instance has been modified
+    instance.disk_template = constants.DT_DRBD8
+    instance.disks = new_disks
+    self.cfg.Update(instance, feedback_fn)
+
+    # disks are created, waiting for sync
+    disk_abort = not _WaitForSync(self, instance)
+    if disk_abort:
+      raise errors.OpExecError("There are some degraded disks for"
+                               " this instance, please cleanup manually")
+
+  def _ConvertDrbdToPlain(self, feedback_fn):
+    """Converts an instance from drbd to plain.
+
+    """
+    instance = self.instance
+    assert len(instance.secondary_nodes) == 1
+    pnode = instance.primary_node
+    snode = instance.secondary_nodes[0]
+    feedback_fn("Converting template to plain")
+
+    old_disks = instance.disks
+    new_disks = [d.children[0] for d in old_disks]
+
+    # copy over size and mode
+    for parent, child in zip(old_disks, new_disks):
+      child.size = parent.size
+      child.mode = parent.mode
+
+    # update instance structure
+    instance.disks = new_disks
+    instance.disk_template = constants.DT_PLAIN
+    self.cfg.Update(instance, feedback_fn)
+
+    feedback_fn("Removing volumes on the secondary node...")
+    for disk in old_disks:
+      self.cfg.SetDiskID(disk, snode)
+      msg = self.rpc.call_blockdev_remove(snode, disk).fail_msg
+      if msg:
+        self.LogWarning("Could not remove block device %s on node %s,"
+                        " continuing anyway: %s", disk.iv_name, snode, msg)
+
+    feedback_fn("Removing unneeded volumes on the primary node...")
+    for idx, disk in enumerate(old_disks):
+      meta = disk.children[1]
+      self.cfg.SetDiskID(meta, pnode)
+      msg = self.rpc.call_blockdev_remove(pnode, meta).fail_msg
+      if msg:
+        self.LogWarning("Could not remove metadata for disk %d on node %s,"
+                        " continuing anyway: %s", idx, pnode, msg)
+
 
   def Exec(self, feedback_fn):
     """Modifies an instance.
@@ -8151,6 +8329,20 @@ class LUSetInstanceParams(LogicalUnit):
         # change a given disk
         instance.disks[disk_op].mode = disk_dict['mode']
         result.append(("disk.mode/%d" % disk_op, disk_dict['mode']))
+
+    if self.op.disk_template:
+      r_shut = _ShutdownInstanceDisks(self, instance)
+      if not r_shut:
+        raise errors.OpExecError("Cannot shutdow instance disks, unable to"
+                                 " proceed with disk template conversion")
+      mode = (instance.disk_template, self.op.disk_template)
+      try:
+        self._DISK_CONVERSIONS[mode](self, feedback_fn)
+      except:
+        self.cfg.ReleaseDRBDMinors(instance.name)
+        raise
+      result.append(("disk_template", self.op.disk_template))
+
     # NIC changes
     for nic_op, nic_dict in self.op.nics:
       if nic_op == constants.DDM_REMOVE:
@@ -8195,6 +8387,10 @@ class LUSetInstanceParams(LogicalUnit):
 
     return result
 
+  _DISK_CONVERSIONS = {
+    (constants.DT_PLAIN, constants.DT_DRBD8): _ConvertPlainToDrbd,
+    (constants.DT_DRBD8, constants.DT_PLAIN): _ConvertDrbdToPlain,
+    }
 
 class LUQueryExports(NoHooksLU):
   """Query the exports list

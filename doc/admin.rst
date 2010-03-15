@@ -326,6 +326,27 @@ one must specify the location of the snapshot. The command is::
 Most of the options available for the command :command:`gnt-instance
 add` are supported here too.
 
+Import of foreign instances
++++++++++++++++++++++++++++
+
+There is a possibility to import a foreign instance whose disk data is
+already stored as LVM volumes without going through copying it: the disk
+adoption mode.
+
+For this, ensure that the original, non-managed instance is stopped,
+then create a Ganeti instance in the usual way, except that instead of
+passing the disk information you specify the current volumes::
+
+  gnt-instance add -t plain -n HOME_NODE ... \
+    --disk 0:adopt=lv_name INSTANCE_NAME
+
+This will take over the given logical volumes, rename them to the Ganeti
+standard (UUID-based), and without installing the OS on them start
+directly the instance. If you configure the hypervisor similar to the
+non-managed configuration that the instance had, the transition should
+be seamless for the instance. For more than one disk, just pass another
+disk parameter (e.g. ``--disk 1:adopt=...``).
+
 Instance HA features
 --------------------
 
@@ -490,6 +511,33 @@ command::
   gnt-instance recreate-disks INSTANCE
 
 Note that this will fail if the disks already exists.
+
+Conversion of an instance's disk type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to convert between a non-redundant instance of type
+``plain`` (LVM storage) and redundant ``drbd`` via the ``gnt-instance
+modify`` command::
+
+  # start with a non-redundant instance
+  gnt-instance add -t plain ... INSTANCE
+
+  # later convert it to redundant
+  gnt-instance stop INSTANCE
+  gnt-instance modify -t drbd INSTANCE
+  gnt-instance start INSTANCE
+
+  # and convert it back
+  gnt-instance stop INSTANCE
+  gnt-instance modify -t plain INSTANCE
+  gnt-instance start INSTANCE
+
+The conversion must be done while the instance is stopped, and
+converting from plain to drbd template presents a small risk, especially
+if the instance has multiple disks and/or if one node fails during the
+conversion procedure). As such, it's recommended (as always) to make
+sure that downtime for manual recovery is acceptable and that the
+instance has up-to-date backups.
 
 Debugging instances
 +++++++++++++++++++
