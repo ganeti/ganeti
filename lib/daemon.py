@@ -30,6 +30,7 @@ import logging
 import sched
 import time
 import socket
+import select
 import sys
 
 from ganeti import utils
@@ -155,6 +156,21 @@ class AsyncUDPSocket(asyncore.dispatcher):
       raise errors.UdpDataSizeError('Packet too big: %s > %s' % (len(payload),
                                     constants.MAX_UDP_DATA_SIZE))
     self._out_queue.append((ip, port, payload))
+
+  def process_next_packet(self, timeout=0):
+    """Process the next datagram, waiting for it if necessary.
+
+    @type timeout: float
+    @param timeout: how long to wait for data
+    @rtype: boolean
+    @return: True if some data has been handled, False otherwise
+
+    """
+    if utils.WaitForFdCondition(self, select.POLLIN, timeout) & select.POLLIN:
+      self.do_read()
+      return True
+    else:
+      return False
 
 
 class Mainloop(object):
