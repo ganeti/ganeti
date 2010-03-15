@@ -239,6 +239,8 @@ class TestRunCmd(testutils.GanetiTestCase):
   def testResetEnv(self):
     """Test environment reset functionality"""
     self.failUnlessEqual(RunCmd(["env"], reset_env=True).stdout.strip(), "")
+    self.failUnlessEqual(RunCmd(["env"], reset_env=True,
+                                env={"FOO": "bar",}).stdout.strip(), "FOO=bar")
 
 
 class TestRunParts(unittest.TestCase):
