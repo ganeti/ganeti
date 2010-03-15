@@ -111,7 +111,7 @@ def GenerateHmacKey(file_name):
                   backup=True)
 
 
-def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_hmac_key,
+def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
                           rapi_cert_pem=None):
   """Updates the cluster certificates, keys and secrets.
 
@@ -119,8 +119,8 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_hmac_key,
   @param new_cluster_cert: Whether to generate a new cluster certificate
   @type new_rapi_cert: bool
   @param new_rapi_cert: Whether to generate a new RAPI certificate
-  @type new_hmac_key: bool
-  @param new_hmac_key: Whether to generate a new HMAC key
+  @type new_confd_hmac_key: bool
+  @param new_confd_hmac_key: Whether to generate a new HMAC key
   @type rapi_cert_pem: string
   @param rapi_cert_pem: New RAPI certificate in PEM format
 
@@ -135,10 +135,10 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_hmac_key,
                   constants.NODED_CERT_FILE)
     GenerateSelfSignedSslCert(constants.NODED_CERT_FILE)
 
-  # HMAC key
-  if new_hmac_key or not os.path.exists(constants.HMAC_CLUSTER_KEY):
-    logging.debug("Writing new HMAC key to %s", constants.HMAC_CLUSTER_KEY)
-    GenerateHmacKey(constants.HMAC_CLUSTER_KEY)
+  # confd HMAC key
+  if new_confd_hmac_key or not os.path.exists(constants.CONFD_HMAC_KEY):
+    logging.debug("Writing new confd HMAC key to %s", constants.CONFD_HMAC_KEY)
+    GenerateHmacKey(constants.CONFD_HMAC_KEY)
 
   # RAPI
   rapi_cert_exists = os.path.exists(constants.RAPI_CERT_FILE)
@@ -428,14 +428,14 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
 
   noded_cert = utils.ReadFile(constants.NODED_CERT_FILE)
   rapi_cert = utils.ReadFile(constants.RAPI_CERT_FILE)
-  hmac_key = utils.ReadFile(constants.HMAC_CLUSTER_KEY)
+  confd_hmac_key = utils.ReadFile(constants.CONFD_HMAC_KEY)
 
   # in the base64 pem encoding, neither '!' nor '.' are valid chars,
   # so we use this to detect an invalid certificate; as long as the
   # cert doesn't contain this, the here-document will be correctly
   # parsed by the shell sequence below. HMAC keys are hexadecimal strings,
   # so the same restrictions apply.
-  for content in (noded_cert, rapi_cert, hmac_key):
+  for content in (noded_cert, rapi_cert, confd_hmac_key):
     if re.search('^!EOF\.', content, re.MULTILINE):
       raise errors.OpExecError("invalid SSL certificate or HMAC key")
 
@@ -443,8 +443,8 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
     noded_cert += "\n"
   if not rapi_cert.endswith("\n"):
     rapi_cert += "\n"
-  if not hmac_key.endswith("\n"):
-    hmac_key += "\n"
+  if not confd_hmac_key.endswith("\n"):
+    confd_hmac_key += "\n"
 
   # set up inter-node password and certificate and restarts the node daemon
   # and then connect with ssh to set password and start ganeti-noded
@@ -461,9 +461,9 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
                "%s start %s" %
                (constants.NODED_CERT_FILE, noded_cert,
                 constants.RAPI_CERT_FILE, rapi_cert,
-                constants.HMAC_CLUSTER_KEY, hmac_key,
+                constants.CONFD_HMAC_KEY, confd_hmac_key,
                 constants.NODED_CERT_FILE, constants.RAPI_CERT_FILE,
-                constants.HMAC_CLUSTER_KEY,
+                constants.CONFD_HMAC_KEY,
                 constants.DAEMON_UTIL, constants.NODED))
 
   result = sshrunner.Run(node, 'root', mycommand, batch=False,

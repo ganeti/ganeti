@@ -711,7 +711,7 @@
         <arg>-f</arg>
         <sbr>
         <arg choice="opt">--new-cluster-certificate</arg>
-        <arg choice="opt">--new-hmac-key</arg>
+        <arg choice="opt">--new-confd-hmac-key</arg>
         <sbr>
         <arg choice="opt">--new-rapi-certificate</arg>
         <arg choice="opt">--rapi-certificate <replaceable>rapi-cert</replaceable></arg>
@@ -722,7 +722,7 @@
         Ganeti daemons in the cluster and start them again once the new
         certificates and keys are replicated. The options
         <option>--new-cluster-certificate</option> and
-        <option>--new-hmac-key</option> can be used to regenerate the
+        <option>--new-confd-hmac-key</option> can be used to regenerate the
         cluster-internal SSL certificate respective the HMAC key used by
         <citerefentry>
         <refentrytitle>ganeti-confd</refentrytitle><manvolnum>8</manvolnum>

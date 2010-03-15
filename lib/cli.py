@@ -80,7 +80,7 @@ __all__ = [
   "MC_OPT",
   "NET_OPT",
   "NEW_CLUSTER_CERT_OPT",
-  "NEW_HMAC_KEY_OPT",
+  "NEW_CONFD_HMAC_KEY_OPT",
   "NEW_RAPI_CERT_OPT",
   "NEW_SECONDARY_OPT",
   "NIC_PARAMS_OPT",
@@ -878,9 +878,11 @@ NEW_RAPI_CERT_OPT = cli_option("--new-rapi-certificate", dest="new_rapi_cert",
                                help=("Generate a new self-signed RAPI"
                                      " certificate"))
 
-NEW_HMAC_KEY_OPT = cli_option("--new-hmac-key", dest="new_hmac_key",
-                              default=False, action="store_true",
-                              help="Create a new HMAC key")
+NEW_CONFD_HMAC_KEY_OPT = cli_option("--new-confd-hmac-key",
+                                    dest="new_confd_hmac_key",
+                                    default=False, action="store_true",
+                                    help=("Create a new HMAC key for %s" %
+                                          constants.CONFD))
 
 
 def _ParseArgs(argv, commands, aliases):

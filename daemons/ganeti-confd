@@ -335,8 +335,8 @@ def CheckConfd(_, args):
 
   # TODO: collapse HMAC daemons handling in daemons GenericMain, when we'll
   # have more than one.
-  if not os.path.isfile(constants.HMAC_CLUSTER_KEY):
-    print >> sys.stderr, "Need HMAC key %s to run" % constants.HMAC_CLUSTER_KEY
+  if not os.path.isfile(constants.CONFD_HMAC_KEY):
+    print >> sys.stderr, "Need HMAC key %s to run" % constants.CONFD_HMAC_KEY
     sys.exit(constants.EXIT_FAILURE)
 
 

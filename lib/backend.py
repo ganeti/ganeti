@@ -183,7 +183,7 @@ def _BuildUploadFileList():
     constants.VNC_PASSWORD_FILE,
     constants.RAPI_CERT_FILE,
     constants.RAPI_USERS_FILE,
-    constants.HMAC_CLUSTER_KEY,
+    constants.CONFD_HMAC_KEY,
     ])
 
   for hv_name in constants.HYPER_TYPES:
@@ -399,7 +399,7 @@ def LeaveCluster(modify_ssh_setup):
       logging.exception("Error while processing ssh files")
 
   try:
-    utils.RemoveFile(constants.HMAC_CLUSTER_KEY)
+    utils.RemoveFile(constants.CONFD_HMAC_KEY)
     utils.RemoveFile(constants.RAPI_CERT_FILE)
     utils.RemoveFile(constants.NODED_CERT_FILE)
   except: # pylint: disable-msg=W0702

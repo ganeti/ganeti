@@ -121,7 +121,7 @@ def main():
   options.SERVER_PEM_PATH = options.data_dir + "/server.pem"
   options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"
   options.RAPI_CERT_FILE = options.data_dir + "/rapi.pem"
-  options.HMAC_CLUSTER_KEY = options.data_dir + "/hmac.key"
+  options.CONFD_HMAC_KEY = options.data_dir + "/hmac.key"
 
   SetupLogging()
 
