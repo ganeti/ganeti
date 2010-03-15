@@ -414,6 +414,7 @@ man/%.7.in man/%.8.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2MAN)" || \
 	  { echo 'docbook2man' not found during configure; exit 1; }
 	$(DOCBOOK_WRAPPER) "$(DOCBOOK2MAN)" $< $(notdir $(@:.in=)) $@
+	$(CHECK_MAN) $@
 
 man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 	@test -n "$(DOCBOOK2HTML)" || \
@@ -422,7 +423,6 @@ man/%.html.in: man/%.sgml man/footer.sgml $(DOCBOOK_WRAPPER)
 
 man/%.7: man/%.7.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
-	$(CHECK_MAN) $@
 
 man/%.8: man/%.8.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
