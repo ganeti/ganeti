@@ -871,8 +871,8 @@ def main():
   dirs.append((constants.LOG_OS_DIR, 0750))
   dirs.append((constants.LOCK_DIR, 1777))
   daemon.GenericMain(constants.NODED, parser, dirs, CheckNoded, ExecNoded,
-                     default_ssl_cert=constants.SSL_CERT_FILE,
-                     default_ssl_key=constants.SSL_CERT_FILE)
+                     default_ssl_cert=constants.NODED_CERT_FILE,
+                     default_ssl_key=constants.NODED_CERT_FILE)
 
 
 if __name__ == '__main__':

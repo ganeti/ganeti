@@ -185,8 +185,8 @@ class Client:
     self.nc = {}
 
     self._ssl_params = \
-      http.HttpSslParams(ssl_key_path=constants.SSL_CERT_FILE,
-                         ssl_cert_path=constants.SSL_CERT_FILE)
+      http.HttpSslParams(ssl_key_path=constants.NODED_CERT_FILE,
+                         ssl_cert_path=constants.NODED_CERT_FILE)
 
   def ConnectList(self, node_list, address_list=None):
     """Add a list of nodes to the target nodes.

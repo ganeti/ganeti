@@ -495,7 +495,7 @@ def SearchTags(opts, args):
 
 
 def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
-                 new_hmac_key, force):
+                 new_confd_hmac_key, force):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -504,13 +504,14 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
   @param new_rapi_cert: Whether to generate a new RAPI certificate
   @type rapi_cert_filename: string
   @param rapi_cert_filename: Path to file containing new RAPI certificate
-  @type new_hmac_key: bool
-  @param new_hmac_key: Whether to generate a new HMAC key
+  @type new_confd_hmac_key: bool
+  @param new_confd_hmac_key: Whether to generate a new HMAC key
   @type force: bool
   @param force: Whether to ask user for confirmation
 
   """
-  assert new_cluster_cert or new_rapi_cert or rapi_cert_filename or new_hmac_key
+  assert (new_cluster_cert or new_rapi_cert or rapi_cert_filename or
+          new_confd_hmac_key)
 
   if new_rapi_cert and rapi_cert_filename:
     ToStderr("Only one of the --new-rapi-certficate and --rapi-certificate"
@@ -548,19 +549,19 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, rapi_cert_filename,
   def _RenewCryptoInner(ctx):
     ctx.feedback_fn("Updating certificates and keys")
     bootstrap.GenerateClusterCrypto(new_cluster_cert, new_rapi_cert,
-                                    new_hmac_key,
+                                    new_confd_hmac_key,
                                     rapi_cert_pem=rapi_cert_pem)
 
     files_to_copy = []
 
     if new_cluster_cert:
-      files_to_copy.append(constants.SSL_CERT_FILE)
+      files_to_copy.append(constants.NODED_CERT_FILE)
 
     if new_rapi_cert or rapi_cert_pem:
       files_to_copy.append(constants.RAPI_CERT_FILE)
 
-    if new_hmac_key:
-      files_to_copy.append(constants.HMAC_CLUSTER_KEY)
+    if new_confd_hmac_key:
+      files_to_copy.append(constants.CONFD_HMAC_KEY)
 
     if files_to_copy:
       for node_name in ctx.nonmaster_nodes:
@@ -584,7 +585,7 @@ def RenewCrypto(opts, args):
   return _RenewCrypto(opts.new_cluster_cert,
                       opts.new_rapi_cert,
                       opts.rapi_cert,
-                      opts.new_hmac_key,
+                      opts.new_confd_hmac_key,
                       opts.force)
 
 
@@ -790,8 +791,8 @@ commands = {
     "Alters the parameters of the cluster"),
   "renew-crypto": (
     RenewCrypto, ARGS_NONE,
-    [NEW_CLUSTER_CERT_OPT, NEW_RAPI_CERT_OPT, RAPI_CERT_OPT, NEW_HMAC_KEY_OPT,
-     FORCE_OPT],
+    [NEW_CLUSTER_CERT_OPT, NEW_RAPI_CERT_OPT, RAPI_CERT_OPT,
+     NEW_CONFD_HMAC_KEY_OPT, FORCE_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
   }

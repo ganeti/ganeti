@@ -151,7 +151,7 @@ def TestClusterRenewCrypto():
 
   # Conflicting options
   cmd = ["gnt-cluster", "renew-crypto", "--force",
-         "--new-cluster-certificate", "--new-hmac-key",
+         "--new-cluster-certificate", "--new-confd-hmac-key",
          "--new-rapi-certificate", "--rapi-certificate=/dev/null"]
   AssertNotEqual(StartSSH(master["primary"],
                           utils.ShellQuoteArgs(cmd)).wait(), 0)
@@ -183,7 +183,7 @@ def TestClusterRenewCrypto():
 
   # Normal case
   cmd = ["gnt-cluster", "renew-crypto", "--force",
-         "--new-cluster-certificate", "--new-hmac-key",
+         "--new-cluster-certificate", "--new-confd-hmac-key",
          "--new-rapi-certificate"]
   AssertEqual(StartSSH(master["primary"],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)

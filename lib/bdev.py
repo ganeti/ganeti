@@ -389,8 +389,9 @@ class LogicalVolume(BlockDev):
 
     pvlist = [ pv[1] for pv in pvs_info ]
     if utils.any(pvlist, lambda v: ":" in v):
-      _ThrowError("Some of your PVs have invalid character ':'"
-                  " in their name")
+      _ThrowError("Some of your PVs have the invalid character ':' in their"
+                  " name, this is not supported - please filter them out"
+                  " in lvm.conf using either 'filter' or 'preferred_names'")
     free_size = sum([ pv[0] for pv in pvs_info ])
     current_pvs = len(pvlist)
     stripes = min(current_pvs, constants.LVM_STRIPECOUNT)

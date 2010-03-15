@@ -97,9 +97,9 @@ SUB_RUN_DIRS = [ RUN_GANETI_DIR, BDEV_CACHE_DIR, DISK_LINKS_DIR ]
 LOCK_DIR = _autoconf.LOCALSTATEDIR + "/lock"
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 CLUSTER_CONF_FILE = DATA_DIR + "/config.data"
-SSL_CERT_FILE = DATA_DIR + "/server.pem"
+NODED_CERT_FILE = DATA_DIR + "/server.pem"
 RAPI_CERT_FILE = DATA_DIR + "/rapi.pem"
-HMAC_CLUSTER_KEY = DATA_DIR + "/hmac.key"
+CONFD_HMAC_KEY = DATA_DIR + "/hmac.key"
 WATCHER_STATEFILE = DATA_DIR + "/watcher.data"
 WATCHER_PAUSEFILE = DATA_DIR + "/watcher.pause"
 INSTANCE_UPFILE = RUN_GANETI_DIR + "/instance-status"
@@ -114,7 +114,7 @@ SYSCONFDIR = _autoconf.SYSCONFDIR
 TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
 
-ALL_CERT_FILES = frozenset([SSL_CERT_FILE, RAPI_CERT_FILE])
+ALL_CERT_FILES = frozenset([NODED_CERT_FILE, RAPI_CERT_FILE])
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 

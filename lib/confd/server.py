@@ -62,7 +62,7 @@ class ConfdProcessor(object):
 
     """
     self.disabled = True
-    self.hmac_key = utils.ReadFile(constants.HMAC_CLUSTER_KEY)
+    self.hmac_key = utils.ReadFile(constants.CONFD_HMAC_KEY)
     self.reader = None
     assert \
       not constants.CONFD_REQS.symmetric_difference(self.DISPATCH_TABLE), \
