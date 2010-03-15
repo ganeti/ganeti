@@ -1,7 +1,7 @@
 Ganeti automatic instance allocation
 ====================================
 
-Documents Ganeti version 2.0
+Documents Ganeti version 2.1
 
 .. contents::
 
@@ -87,15 +87,20 @@ request
   a dictionary containing the request data:
 
   type
-    the request type; this can be either ``allocate`` or ``relocate``;
-    the ``allocate`` request is used when a new instance needs to be
-    placed on the cluster, while the ``relocate`` request is used when
-    an existing instance needs to be moved within the cluster
+    the request type; this can be either ``allocate``, ``relocate`` or
+    ``multi-evacuate``; the ``allocate`` request is used when a new
+    instance needs to be placed on the cluster, while the ``relocate``
+    request is used when an existing instance needs to be moved within
+    the cluster; the ``multi-evacuate`` protocol requests that the
+    script computes the optimal relocate solution for all secondary
+    instances of the given nodes
+
+  The following keys are needed in allocate/relocate mode:
 
   name
-    the name of the instance; if the request is a realocation, then
-    this name will be found in the list of instances (see below),
-    otherwise is the FQDN of the new instance
+    the name of the instance; if the request is a realocation, then this
+    name will be found in the list of instances (see below), otherwise
+    is the FQDN of the new instance
 
   required_nodes
     how many nodes should the algorithm return; while this information
@@ -160,6 +165,11 @@ request
   list of nodes to move the instance away from; note that with Ganeti
   2.0, this list will always contain a single node, the current
   secondary of the instance.
+
+  The multi-evacuate mode has instead a single request argument:
+
+  nodes
+    the names of the nodes to be evacuated
 
 instances
   a dictionary with the data for the current existing instance on the
@@ -244,12 +254,21 @@ info
   a string with information from the scripts; if the allocation fails,
   this will be shown to the user
 
-nodes
-  the list of nodes computed by the algorithm; even if the algorithm
-  failed (i.e. success is false), this must be returned as an empty
-  list; also note that the length of this list must equal the
-  ``requested_nodes`` entry in the input message, otherwise Ganeti
-  will consider the result as failed
+result
+  the output of the algorithm; even if the algorithm failed
+  (i.e. success is false), this must be returned as an empty list
+
+  for allocate/relocate, this is the list of node(s) for the instance;
+  note that the length of this list must equal the ``requested_nodes``
+  entry in the input message, otherwise Ganeti will consider the result
+  as failed
+
+  for multi-evacuation mode, this is a list of lists; each element of
+  the list is a list of instance name and the new secondary node
+
+.. note:: Current Ganeti version accepts either ``result`` or ``nodes``
+   as a backwards-compatibility measure (older versions only supported
+   ``nodes``)
 
 Examples
 --------
@@ -398,13 +417,23 @@ message is changed, we show only this changed entry::
   },
 
 
+Input message, node evacuation::
+
+  "request": {
+    "evac_nodes": [
+      "node2"
+    ],
+    "type": "multi-evacuate"
+  },
+
+
 Response messages
 ~~~~~~~~~~~~~~~~~
 Successful response message::
 
   {
     "info": "Allocation successful",
-    "nodes": [
+    "result": [
       "node2.example.com",
       "node1.example.com"
     ],
@@ -415,9 +444,27 @@ Failed response message::
 
   {
     "info": "Can't find a suitable node for position 2 (already selected: node2.example.com)",
-    "nodes": [],
+    "result": [],
     "success": false
   }
+
+Successful node evacuation message::
+
+  {
+    "info": "Request successful",
+    "result": [
+      [
+        "instance1",
+        "node3"
+      ],
+      [
+        "instance2",
+        "node1"
+      ]
+    ],
+    "success": true
+  }
+
 
 Command line messages
 ~~~~~~~~~~~~~~~~~~~~~
@@ -437,3 +484,7 @@ Command line messages
   Can't compute nodes using iallocator 'dumb-allocator': Can't find a suitable node for position 2 (already selected: node1.example.com)
 
 .. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

@@ -140,6 +140,7 @@ def TestAllocator(opts, args):
 
   op = opcodes.OpTestAllocator(mode=opts.mode,
                                name=args[0],
+                               evac_nodes=args,
                                mem_size=opts.mem,
                                disks=disks,
                                disk_template=opts.disk_template,
@@ -177,14 +178,14 @@ commands = {
     "<op_list_file...>", "Submits jobs built from json files"
     " containing a list of serialized opcodes"),
   'allocator': (
-    TestAllocator, ARGS_ONE_INSTANCE,
+    TestAllocator, [ArgUnknown(min=1)],
     [cli_option("--dir", dest="direction",
                 default="in", choices=["in", "out"],
                 help="Show allocator input (in) or allocator"
                 " results (out)"),
      IALLOCATOR_OPT,
      cli_option("-m", "--mode", default="relocate",
-                choices=["relocate", "allocate"],
+                choices=["relocate", "allocate", "multi-evacuate"],
                 help="Request mode, either allocate or relocate"),
      cli_option("--mem", default=128, type="unit",
                 help="Memory size for the instance (MiB)"),

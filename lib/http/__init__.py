@@ -415,9 +415,9 @@ def SocketOperation(sock, op, arg1, timeout):
       if event is None:
         raise HttpSocketTimeout()
 
-      if (op == SOCKOP_RECV and
-          event & (select.POLLNVAL | select.POLLHUP | select.POLLERR)):
-        return ""
+      if event & (select.POLLNVAL | select.POLLHUP | select.POLLERR):
+        # Let the socket functions handle these
+        break
 
       if not event & wait_for_event:
         continue
@@ -865,7 +865,7 @@ class HttpMessageReader(object):
         # the CRLF."
         if idx == 0:
           # TODO: Limit number of CRLFs/empty lines for safety?
-          buf = buf[:2]
+          buf = buf[2:]
           continue
 
         if idx > 0:

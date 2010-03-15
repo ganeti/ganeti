@@ -60,24 +60,51 @@ class TestSerializer(testutils.GanetiTestCase):
   def testGeneric(self):
     self._TestSerializer(serializer.Dump, serializer.Load)
 
+  def testSignedGeneric(self):
+    self._TestSigned(serializer.DumpSigned, serializer.LoadSigned)
+
   def testJson(self):
     self._TestSerializer(serializer.DumpJson, serializer.LoadJson)
 
-  def testSignedMessage(self):
-    LoadSigned = serializer.LoadSigned
-    DumpSigned = serializer.DumpSigned
+  def testSignedJson(self):
+    self._TestSigned(serializer.DumpSignedJson, serializer.LoadSignedJson)
 
+  def _TestSigned(self, dump_fn, load_fn):
     for data in self._TESTDATA:
-      self.assertEqualValues(LoadSigned(DumpSigned(data, "mykey"), "mykey"),
+      self.assertEqualValues(load_fn(dump_fn(data, "mykey"), "mykey"),
                              (data, ''))
-      self.assertEqualValues(LoadSigned(DumpSigned(data, "myprivatekey",
-                                                   "mysalt"),
-                                        "myprivatekey"),
+      self.assertEqualValues(load_fn(dump_fn(data, "myprivatekey",
+                                             salt="mysalt"),
+                                     "myprivatekey"),
                              (data, "mysalt"))
 
-    self.assertRaises(errors.SignatureError, serializer.LoadSigned,
-                      serializer.DumpSigned("test", "myprivatekey"),
+      keydict = {
+        "mykey_id": "myprivatekey",
+        }
+      self.assertEqualValues(load_fn(dump_fn(data, "myprivatekey",
+                                             salt="mysalt",
+                                             key_selector="mykey_id"),
+                                     keydict.get),
+                             (data, "mysalt"))
+      self.assertRaises(errors.SignatureError, load_fn,
+                        dump_fn(data, "myprivatekey",
+                                salt="mysalt",
+                                key_selector="mykey_id"),
+                        {}.get)
+
+    self.assertRaises(errors.SignatureError, load_fn,
+                      dump_fn("test", "myprivatekey"),
                       "myotherkey")
+
+    self.assertRaises(errors.SignatureError, load_fn,
+                      serializer.DumpJson("This is a test"), "mykey")
+    self.assertRaises(errors.SignatureError, load_fn,
+                      serializer.DumpJson({}), "mykey")
+
+    # Message missing salt and HMAC
+    tdata = { "msg": "Foo", }
+    self.assertRaises(errors.SignatureError, load_fn,
+                      serializer.DumpJson(tdata), "mykey")
 
 
 if __name__ == '__main__':

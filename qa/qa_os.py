@@ -57,6 +57,24 @@ def TestOsDiagnose():
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 
+def _TestOsModify(hvp_dict, expected_result=0):
+  """gnt-os modify"""
+  master = qa_config.GetMasterNode()
+
+  cmd = ['gnt-os', 'modify']
+
+  for hv_name, hv_params in hvp_dict.items():
+    cmd.append('-H')
+    options = []
+    for key, value in hv_params.items():
+      options.append("%s=%s" % (key, value))
+    cmd.append('%s:%s' % (hv_name, ','.join(options)))
+
+  cmd.append(_TEMP_OS_NAME)
+  AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), expected_result)
+
+
 def _SetupTempOs(node, dir, valid):
   """Creates a temporary OS definition on the given node.
 
@@ -139,3 +157,27 @@ def TestOsInvalid():
 def TestOsPartiallyValid():
   """Testing partially valid OS definition"""
   return _TestOs(2)
+
+
+def TestOsModifyValid():
+  """Testing a valid os modify invocation"""
+  hv_dict = {
+    constants.HT_XEN_PVM: {
+      constants.HV_ROOT_PATH: "/dev/sda5",
+      },
+    constants.HT_XEN_HVM: {
+      constants.HV_ACPI: False,
+      constants.HV_PAE: True,
+      },
+    }
+
+  return _TestOsModify(hv_dict)
+
+
+def TestOsModifyInvalid():
+  """Testing an invalid os modify invocation"""
+  hv_dict = {
+    "blahblahblubb": {"bar": ""},
+    }
+
+  return _TestOsModify(hv_dict, 1)

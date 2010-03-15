@@ -122,17 +122,18 @@ class RemoteApiHttpServer(http.auth.HttpServerRequestAuthentication,
 
       req.private = ctx
 
+    # Check for expected attributes
+    assert req.private.handler
+    assert req.private.handler_fn
+    assert req.private.handler_access is not None
+
     return req.private
 
-  def GetAuthRealm(self, req):
-    """Override the auth realm for queries.
+  def AuthenticationRequired(self, req):
+    """Determine whether authentication is required.
 
     """
-    ctx = self._GetRequestContext(req)
-    if ctx.handler_access:
-      return self.AUTH_REALM
-    else:
-      return None
+    return bool(self._GetRequestContext(req).handler_access)
 
   def Authenticate(self, req, username, password):
     """Checks whether a user can access a resource.

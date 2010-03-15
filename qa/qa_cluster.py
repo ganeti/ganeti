@@ -25,13 +25,14 @@
 
 import tempfile
 
+from ganeti import constants
 from ganeti import utils
 
 import qa_config
 import qa_utils
 import qa_error
 
-from qa_utils import AssertEqual, StartSSH
+from qa_utils import AssertEqual, AssertNotEqual, StartSSH
 
 
 def _RemoveFileFromAllNodes(filename):
@@ -141,6 +142,50 @@ def TestClusterVersion():
 
   cmd = ['gnt-cluster', 'version']
   AssertEqual(StartSSH(master['primary'],
+                       utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+
+def TestClusterRenewCrypto():
+  """gnt-cluster renew-crypto"""
+  master = qa_config.GetMasterNode()
+
+  # Conflicting options
+  cmd = ["gnt-cluster", "renew-crypto", "--force",
+         "--new-cluster-certificate", "--new-hmac-key",
+         "--new-rapi-certificate", "--rapi-certificate=/dev/null"]
+  AssertNotEqual(StartSSH(master["primary"],
+                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # Invalid RAPI certificate
+  cmd = ["gnt-cluster", "renew-crypto", "--force",
+         "--rapi-certificate=/dev/null"]
+  AssertNotEqual(StartSSH(master["primary"],
+                          utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # Custom RAPI certificate
+  fh = tempfile.NamedTemporaryFile()
+
+  # Ensure certificate doesn't cause "gnt-cluster verify" to complain
+  validity = constants.SSL_CERT_EXPIRATION_WARN * 3
+
+  utils.GenerateSelfSignedSslCert(fh.name, validity=validity)
+
+  tmpcert = qa_utils.UploadFile(master["primary"], fh.name)
+  try:
+    cmd = ["gnt-cluster", "renew-crypto", "--force",
+           "--rapi-certificate=%s" % tmpcert]
+    AssertEqual(StartSSH(master["primary"],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+  finally:
+    cmd = ["rm", "-f", tmpcert]
+    AssertEqual(StartSSH(master["primary"],
+                         utils.ShellQuoteArgs(cmd)).wait(), 0)
+
+  # Normal case
+  cmd = ["gnt-cluster", "renew-crypto", "--force",
+         "--new-cluster-certificate", "--new-hmac-key",
+         "--new-rapi-certificate"]
+  AssertEqual(StartSSH(master["primary"],
                        utils.ShellQuoteArgs(cmd)).wait(), 0)
 
 

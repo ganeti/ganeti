@@ -101,11 +101,13 @@ def LoadJson(txt):
   return simplejson.loads(txt)
 
 
-def DumpSignedJson(data, key, salt=None):
+def DumpSignedJson(data, key, salt=None, key_selector=None):
   """Serialize a given object and authenticate it.
 
   @param data: the data to serialize
   @param key: shared hmac key
+  @param key_selector: name/id that identifies the key (in case there are
+    multiple keys in use, e.g. in a multi-cluster environment)
   @return: the string representation of data signed by the hmac key
 
   """
@@ -115,8 +117,15 @@ def DumpSignedJson(data, key, salt=None):
   signed_dict = {
     'msg': txt,
     'salt': salt,
-    'hmac': hmac.new(key, salt + txt, sha1).hexdigest(),
   }
+  if key_selector:
+    signed_dict["key_selector"] = key_selector
+    message = salt + key_selector + txt
+  else:
+    message = salt + txt
+  signed_dict["hmac"] = hmac.new(key, message,
+                                 sha1).hexdigest()
+
   return DumpJson(signed_dict, indent=False)
 
 
@@ -124,7 +133,9 @@ def LoadSignedJson(txt, key):
   """Verify that a given message was signed with the given key, and load it.
 
   @param txt: json-encoded hmac-signed message
-  @param key: shared hmac key
+  @param key: the shared hmac key or a callable taking one argument (the key
+    selector), which returns the hmac key belonging to the key selector.
+    Typical usage is to pass a reference to the get method of a dict.
   @rtype: tuple of original data, string
   @return: original data, salt
   @raises errors.SignatureError: if the message signature doesn't verify
@@ -140,7 +151,18 @@ def LoadSignedJson(txt, key):
   except KeyError:
     raise errors.SignatureError('Invalid external message')
 
-  if hmac.new(key, salt + msg, sha1).hexdigest() != hmac_sign:
+  if callable(key):
+    key_selector = signed_dict.get("key_selector", None)
+    hmac_key = key(key_selector)
+    if not hmac_key:
+      raise errors.SignatureError("No key with key selector '%s' found" %
+                                  key_selector)
+  else:
+    key_selector = ""
+    hmac_key = key
+
+  if hmac.new(hmac_key, salt + key_selector + msg,
+              sha1).hexdigest() != hmac_sign:
     raise errors.SignatureError('Invalid Signature')
 
   return LoadJson(msg), salt

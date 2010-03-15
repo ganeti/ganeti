@@ -14,44 +14,23 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 DESC="Ganeti cluster"
 
-NODED="ganeti-noded"
-MASTERD="ganeti-masterd"
-CONFD="ganeti-confd"
-RAPI="ganeti-rapi"
-
 DAEMON_UTIL=@PKGLIBDIR@/daemon-util
 
 SCRIPTNAME="@SYSCONFDIR@/init.d/ganeti"
 
-test -f "@PREFIX@/sbin/$NODED" || exit 0
+test -f "$DAEMON_UTIL" || exit 0
 
 . /lib/lsb/init-functions
 
-check_config() {
-    for fname in \
-        "@LOCALSTATEDIR@/lib/ganeti/server.pem"
-    do
-        if ! [ -f "$fname" ]; then
-            log_end_msg 0
-            log_warning_msg "Config $fname not there, will not run."
-            exit 0
-        fi
-    done
-}
-
 check_exitcode() {
     RC=$1
-    case $RC in
-        0)
-            log_action_end_msg 0
-            ;;
-        11)
-            log_action_end_msg 0 "not master"
-            ;;
-        *)
-            log_action_end_msg 1 "exit code $RC"
-            ;;
-    esac
+
+    if errmsg=$($DAEMON_UTIL check-exitcode $RC)
+    then
+        log_action_end_msg 0 "$errmsg"
+    else
+        log_action_end_msg 1 "$errmsg"
+    fi
 }
 
 start_action() {
@@ -80,24 +59,24 @@ maybe_do() {
 }
 
 start_all() {
-    check_config
-    for i in $NODED $MASTERD $CONFD $RAPI; do \
+    if ! $DAEMON_UTIL check-config; then
+        log_warning_msg "Incomplete configuration, will not run."
+        exit 0
+    fi
+
+    for i in $($DAEMON_UTIL list-start-daemons); do
         maybe_do "$1" start_action $i
     done
 }
 
 stop_all() {
-    for i in $RAPI $CONFD $MASTERD $NODED; do \
+    for i in $($DAEMON_UTIL list-stop-daemons); do
         maybe_do "$1" stop_action $i
     done
 }
 
-if [ -n "$2" -a \
-    "$2" != "$NODED" -a \
-    "$2" != "$CONFD" -a \
-    "$2" != "$MASTERD" -a \
-    "$2" != "$RAPI" ]; then
-    log_failure_msg "Unknown daemon '$2' requested"
+if [ -n "$2" ] && ! errmsg=$($DAEMON_UTIL is-daemon-name "$2" 2>&1); then
+    log_failure_msg "$errmsg"
     exit 1
 fi
 
@@ -111,6 +90,7 @@ case "$1" in
         stop_all "$2"
         ;;
     restart|force-reload)
+        log_daemon_msg "Restarting $DESC" "$2"
         stop_all "$2"
         start_all "$2"
         ;;

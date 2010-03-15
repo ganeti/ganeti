@@ -45,6 +45,8 @@ import logging
 import logging.handlers
 import signal
 import OpenSSL
+import datetime
+import calendar
 
 from cStringIO import StringIO
 
@@ -120,18 +122,23 @@ class RunResult(object):
   output = property(_GetOutput, None, None, "Return full output")
 
 
-def _BuildCmdEnvironment(env):
+def _BuildCmdEnvironment(env, reset):
   """Builds the environment for an external program.
 
   """
-  cmd_env = os.environ.copy()
-  cmd_env["LC_ALL"] = "C"
+  if reset:
+    cmd_env = {}
+  else:
+    cmd_env = os.environ.copy()
+    cmd_env["LC_ALL"] = "C"
+
   if env is not None:
     cmd_env.update(env)
+
   return cmd_env
 
 
-def RunCmd(cmd, env=None, output=None, cwd="/"):
+def RunCmd(cmd, env=None, output=None, cwd="/", reset_env=False):
   """Execute a (shell) command.
 
   The command should not read from its standard input, as it will be
@@ -148,6 +155,8 @@ def RunCmd(cmd, env=None, output=None, cwd="/"):
   @type cwd: string
   @param cwd: if specified, will be used as the working
       directory for the command; the default will be /
+  @type reset_env: boolean
+  @param reset_env: whether to reset or keep the default os environment
   @rtype: L{RunResult}
   @return: RunResult instance
   @raise errors.ProgrammerError: if we call this when forks are disabled
@@ -169,7 +178,7 @@ def RunCmd(cmd, env=None, output=None, cwd="/"):
   else:
     logging.debug("RunCmd %s", strcmd)
 
-  cmd_env = _BuildCmdEnvironment(env)
+  cmd_env = _BuildCmdEnvironment(env, reset_env)
 
   try:
     if output is None:
@@ -233,7 +242,7 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
   else:
     logging.debug("StartDaemon %s", strcmd)
 
-  cmd_env = _BuildCmdEnvironment(env)
+  cmd_env = _BuildCmdEnvironment(env, False)
 
   # Create pipe for sending PID back
   (pidpipe_read, pidpipe_write) = os.pipe()
@@ -534,6 +543,43 @@ def RetryOnSignal(fn, *args, **kwargs):
         raise
 
 
+def RunParts(dir_name, env=None, reset_env=False):
+  """Run Scripts or programs in a directory
+
+  @type dir_name: string
+  @param dir_name: absolute path to a directory
+  @type env: dict
+  @param env: The environment to use
+  @type reset_env: boolean
+  @param reset_env: whether to reset or keep the default os environment
+  @rtype: list of tuples
+  @return: list of (name, (one of RUNDIR_STATUS), RunResult)
+
+  """
+  rr = []
+
+  try:
+    dir_contents = ListVisibleFiles(dir_name)
+  except OSError, err:
+    logging.warning("RunParts: skipping %s (cannot list: %s)", dir_name, err)
+    return rr
+
+  for relname in sorted(dir_contents):
+    fname = PathJoin(dir_name, relname)
+    if not (os.path.isfile(fname) and os.access(fname, os.X_OK) and
+            constants.EXT_PLUGIN_MASK.match(relname) is not None):
+      rr.append((relname, constants.RUNPARTS_SKIP, None))
+    else:
+      try:
+        result = RunCmd([fname], env=env, reset_env=reset_env)
+      except Exception, err: # pylint: disable-msg=W0703
+        rr.append((relname, constants.RUNPARTS_ERR, str(err)))
+      else:
+        rr.append((relname, constants.RUNPARTS_RUN, result))
+
+  return rr
+
+
 def RemoveFile(filename):
   """Remove a file ignoring some errors.
 
@@ -824,6 +870,8 @@ class HostInfo:
   """Class implementing resolver and hostname functionality
 
   """
+  _VALID_NAME_RE = re.compile("^[a-z0-9._-]{1,255}$")
+
   def __init__(self, name=None):
     """Initialize the host name object.
 
@@ -873,6 +921,27 @@ class HostInfo:
       raise errors.ResolverError(hostname, err.args[0], err.args[1])
 
     return result
+
+  @classmethod
+  def NormalizeName(cls, hostname):
+    """Validate and normalize the given hostname.
+
+    @attention: the validation is a bit more relaxed than the standards
+        require; most importantly, we allow underscores in names
+    @raise errors.OpPrereqError: when the name is not valid
+
+    """
+    hostname = hostname.lower()
+    if (not cls._VALID_NAME_RE.match(hostname) or
+        # double-dots, meaning empty label
+        ".." in hostname or
+        # empty initial label
+        hostname.startswith(".")):
+      raise errors.OpPrereqError("Invalid hostname '%s'" % hostname,
+                                 errors.ECODE_INVAL)
+    if hostname.endswith("."):
+      hostname = hostname.rstrip(".")
+    return hostname
 
 
 def GetHostInfo(name=None):
@@ -1303,6 +1372,16 @@ def RemoveHostFromEtcHosts(hostname):
   RemoveEtcHostsEntry(constants.ETC_HOSTS, hi.ShortName())
 
 
+def TimestampForFilename():
+  """Returns the current time formatted for filenames.
+
+  The format doesn't contain colons as some shells and applications them as
+  separators.
+
+  """
+  return time.strftime("%Y-%m-%d_%H_%M_%S")
+
+
 def CreateBackup(file_name):
   """Creates a backup of a file.
 
@@ -1317,7 +1396,8 @@ def CreateBackup(file_name):
     raise errors.ProgrammerError("Can't make a backup of a non-file '%s'" %
                                 file_name)
 
-  prefix = '%s.backup-%d.' % (os.path.basename(file_name), int(time.time()))
+  prefix = ("%s.backup-%s." %
+            (os.path.basename(file_name), TimestampForFilename()))
   dir_name = os.path.dirname(file_name)
 
   fsrc = open(file_name, 'rb')
@@ -1325,6 +1405,7 @@ def CreateBackup(file_name):
     (fd, backup_name) = tempfile.mkstemp(prefix=prefix, dir=dir_name)
     fdst = os.fdopen(fd, 'wb')
     try:
+      logging.debug("Backing up %s at %s", file_name, backup_name)
       shutil.copyfileobj(fsrc, fdst)
     finally:
       fdst.close()
@@ -1430,8 +1511,12 @@ def ListVisibleFiles(path):
   @param path: the directory to enumerate
   @rtype: list
   @return: the list of all files not starting with a dot
+  @raise ProgrammerError: if L{path} is not an absolue and normalized path
 
   """
+  if not IsNormAbsPath(path):
+    raise errors.ProgrammerError("Path passed to ListVisibleFiles is not"
+                                 " absolute/normalized: '%s'" % path)
   files = [i for i in os.listdir(path) if not i.startswith(".")]
   files.sort()
   return files
@@ -1659,6 +1744,12 @@ def any(seq, pred=bool): # pylint: disable-msg=W0622
   return False
 
 
+def partition(seq, pred=bool): # # pylint: disable-msg=W0622
+  "Partition a list in two, based on the given predicate"
+  return (list(itertools.ifilter(pred, seq)),
+          list(itertools.ifilterfalse(pred, seq)))
+
+
 def UniqueSequence(seq):
   """Returns a list with unique elements.
 
@@ -1816,7 +1907,20 @@ def DaemonPidFileName(name):
       daemon name
 
   """
-  return os.path.join(constants.RUN_GANETI_DIR, "%s.pid" % name)
+  return PathJoin(constants.RUN_GANETI_DIR, "%s.pid" % name)
+
+
+def EnsureDaemon(name):
+  """Check for and start daemon if not alive.
+
+  """
+  result = RunCmd([constants.DAEMON_UTIL, "check-and-start", name])
+  if result.failed:
+    logging.error("Can't start daemon '%s', failure %s, output: %s",
+                  name, result.fail_reason, result.output)
+    return False
+
+  return True
 
 
 def WritePidFile(name):
@@ -1944,6 +2048,7 @@ def FindFile(name, search_path, test=os.path.exists):
     return None
 
   for dir_name in search_path:
+    # FIXME: investigate switch to PathJoin
     item_name = os.path.sep.join([dir_name, name])
     # check the user test and that we're indeed resolving to the given
     # basename
@@ -2132,6 +2237,36 @@ def IsNormAbsPath(path):
   return os.path.normpath(path) == path and os.path.isabs(path)
 
 
+def PathJoin(*args):
+  """Safe-join a list of path components.
+
+  Requirements:
+      - the first argument must be an absolute path
+      - no component in the path must have backtracking (e.g. /../),
+        since we check for normalization at the end
+
+  @param args: the path components to be joined
+  @raise ValueError: for invalid paths
+
+  """
+  # ensure we're having at least one path passed in
+  assert args
+  # ensure the first component is an absolute and normalized path name
+  root = args[0]
+  if not IsNormAbsPath(root):
+    raise ValueError("Invalid parameter to PathJoin: '%s'" % str(args[0]))
+  result = os.path.join(*args)
+  # ensure that the whole path is normalized
+  if not IsNormAbsPath(result):
+    raise ValueError("Invalid parameters to PathJoin: '%s'" % str(args))
+  # check that we're still under the original prefix
+  prefix = os.path.commonprefix([root, result])
+  if prefix != root:
+    raise ValueError("Error: path joining resulted in different prefix"
+                     " (%s != %s)" % (prefix, root))
+  return result
+
+
 def TailFile(fname, lines=20):
   """Return the last lines from a file.
 
@@ -2156,6 +2291,69 @@ def TailFile(fname, lines=20):
 
   rows = raw_data.splitlines()
   return rows[-lines:]
+
+
+def _ParseAsn1Generalizedtime(value):
+  """Parses an ASN1 GENERALIZEDTIME timestamp as used by pyOpenSSL.
+
+  @type value: string
+  @param value: ASN1 GENERALIZEDTIME timestamp
+
+  """
+  m = re.match(r"^(\d+)([-+]\d\d)(\d\d)$", value)
+  if m:
+    # We have an offset
+    asn1time = m.group(1)
+    hours = int(m.group(2))
+    minutes = int(m.group(3))
+    utcoffset = (60 * hours) + minutes
+  else:
+    if not value.endswith("Z"):
+      raise ValueError("Missing timezone")
+    asn1time = value[:-1]
+    utcoffset = 0
+
+  parsed = time.strptime(asn1time, "%Y%m%d%H%M%S")
+
+  tt = datetime.datetime(*(parsed[:7])) - datetime.timedelta(minutes=utcoffset)
+
+  return calendar.timegm(tt.utctimetuple())
+
+
+def GetX509CertValidity(cert):
+  """Returns the validity period of the certificate.
+
+  @type cert: OpenSSL.crypto.X509
+  @param cert: X509 certificate object
+
+  """
+  # The get_notBefore and get_notAfter functions are only supported in
+  # pyOpenSSL 0.7 and above.
+  try:
+    get_notbefore_fn = cert.get_notBefore
+  except AttributeError:
+    not_before = None
+  else:
+    not_before_asn1 = get_notbefore_fn()
+
+    if not_before_asn1 is None:
+      not_before = None
+    else:
+      not_before = _ParseAsn1Generalizedtime(not_before_asn1)
+
+  try:
+    get_notafter_fn = cert.get_notAfter
+  except AttributeError:
+    not_after = None
+  else:
+    not_after_asn1 = get_notafter_fn()
+
+    if not_after_asn1 is None:
+      not_after = None
+    else:
+      not_after = _ParseAsn1Generalizedtime(not_after_asn1)
+
+  return (not_before, not_after)
 
 
 def SafeEncode(text):
@@ -2272,7 +2470,7 @@ def CalculateDirectorySize(path):
 
   for (curpath, _, files) in os.walk(path):
     for filename in files:
-      st = os.lstat(os.path.join(curpath, filename))
+      st = os.lstat(PathJoin(curpath, filename))
       size += st.st_size
 
   return BytesToMebibyte(size)
@@ -2294,15 +2492,15 @@ def GetFilesystemStats(path):
   return (tsize, fsize)
 
 
-def RunInSeparateProcess(fn):
+def RunInSeparateProcess(fn, *args):
   """Runs a function in a separate process.
 
   Note: Only boolean return values are supported.
 
   @type fn: callable
   @param fn: Function to be called
-  @rtype: tuple of (int/None, int/None)
-  @return: Exit code and signal number
+  @rtype: bool
+  @return: Function's result
 
   """
   pid = os.fork()
@@ -2313,7 +2511,7 @@ def RunInSeparateProcess(fn):
       ResetTempfileModule()
 
       # Call function
-      result = int(bool(fn()))
+      result = int(bool(fn(*args)))
       assert result in (0, 1)
     except: # pylint: disable-msg=W0702
       logging.exception("Error while calling function in separate process")
@@ -2633,17 +2831,31 @@ class FileLock(object):
   """Utility class for file locks.
 
   """
-  def __init__(self, filename):
+  def __init__(self, fd, filename):
     """Constructor for FileLock.
 
-    This will open the file denoted by the I{filename} argument.
-
+    @type fd: file
+    @param fd: File object
     @type filename: str
+    @param filename: Path of the file opened at I{fd}
+
+    """
+    self.fd = fd
+    self.filename = filename
+
+  @classmethod
+  def Open(cls, filename):
+    """Creates and opens a file to be used as a file-based lock.
+
+    @type filename: string
     @param filename: path to the file to be locked
 
     """
-    self.filename = filename
-    self.fd = open(self.filename, "w")
+    # Using "os.open" is necessary to allow both opening existing file
+    # read/write and creating if not existing. Vanilla "open" will truncate an
+    # existing file -or- allow creating if not existing.
+    return cls(os.fdopen(os.open(filename, os.O_RDWR | os.O_CREAT), "w+"),
+               filename)
 
   def __del__(self):
     self.Close()
@@ -2673,33 +2885,31 @@ class FileLock(object):
     assert self.fd, "Lock was closed"
     assert timeout is None or timeout >= 0, \
       "If specified, timeout must be positive"
+    assert not (flag & fcntl.LOCK_NB), "LOCK_NB must not be set"
 
-    if timeout is not None:
+    # When a timeout is used, LOCK_NB must always be set
+    if not (timeout is None and blocking):
       flag |= fcntl.LOCK_NB
-      timeout_end = time.time() + timeout
 
-    # Blocking doesn't have effect with timeout
-    elif not blocking:
-      flag |= fcntl.LOCK_NB
-      timeout_end = None
-
-    # TODO: Convert to utils.Retry
-
-    retry = True
-    while retry:
+    if timeout is None:
+      self._Lock(self.fd, flag, timeout)
+    else:
       try:
-        fcntl.flock(self.fd, flag)
-        retry = False
-      except IOError, err:
-        if err.errno in (errno.EAGAIN, ):
-          if timeout_end is not None and time.time() < timeout_end:
-            # Wait before trying again
-            time.sleep(max(0.1, min(1.0, timeout)))
-          else:
-            raise errors.LockError(errmsg)
-        else:
-          logging.exception("fcntl.flock failed")
-          raise
+        Retry(self._Lock, (0.1, 1.2, 1.0), timeout,
+              args=(self.fd, flag, timeout))
+      except RetryTimeout:
+        raise errors.LockError(errmsg)
+
+  @staticmethod
+  def _Lock(fd, flag, timeout):
+    try:
+      fcntl.flock(fd, flag)
+    except IOError, err:
+      if timeout is not None and err.errno == errno.EAGAIN:
+        raise RetryAgain()
+
+      logging.exception("fcntl.flock failed")
+      raise
 
   def Exclusive(self, blocking=False, timeout=None):
     """Locks the file in exclusive mode.

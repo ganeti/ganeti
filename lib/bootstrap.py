@@ -72,7 +72,55 @@ def GenerateHmacKey(file_name):
   @param file_name: Path to output file
 
   """
-  utils.WriteFile(file_name, data="%s\n" % utils.GenerateSecret(), mode=0400)
+  utils.WriteFile(file_name, data="%s\n" % utils.GenerateSecret(), mode=0400,
+                  backup=True)
+
+
+def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_hmac_key,
+                          rapi_cert_pem=None):
+  """Updates the cluster certificates, keys and secrets.
+
+  @type new_cluster_cert: bool
+  @param new_cluster_cert: Whether to generate a new cluster certificate
+  @type new_rapi_cert: bool
+  @param new_rapi_cert: Whether to generate a new RAPI certificate
+  @type new_hmac_key: bool
+  @param new_hmac_key: Whether to generate a new HMAC key
+  @type rapi_cert_pem: string
+  @param rapi_cert_pem: New RAPI certificate in PEM format
+
+  """
+  # SSL certificate
+  cluster_cert_exists = os.path.exists(constants.SSL_CERT_FILE)
+  if new_cluster_cert or not cluster_cert_exists:
+    if cluster_cert_exists:
+      utils.CreateBackup(constants.SSL_CERT_FILE)
+
+    logging.debug("Generating new cluster certificate at %s",
+                  constants.SSL_CERT_FILE)
+    utils.GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
+
+  # HMAC key
+  if new_hmac_key or not os.path.exists(constants.HMAC_CLUSTER_KEY):
+    logging.debug("Writing new HMAC key to %s", constants.HMAC_CLUSTER_KEY)
+    GenerateHmacKey(constants.HMAC_CLUSTER_KEY)
+
+  # RAPI
+  rapi_cert_exists = os.path.exists(constants.RAPI_CERT_FILE)
+
+  if rapi_cert_pem:
+    # Assume rapi_pem contains a valid PEM-formatted certificate and key
+    logging.debug("Writing RAPI certificate at %s",
+                  constants.RAPI_CERT_FILE)
+    utils.WriteFile(constants.RAPI_CERT_FILE, data=rapi_cert_pem, backup=True)
+
+  elif new_rapi_cert or not rapi_cert_exists:
+    if rapi_cert_exists:
+      utils.CreateBackup(constants.RAPI_CERT_FILE)
+
+    logging.debug("Generating new RAPI certificate at %s",
+                  constants.RAPI_CERT_FILE)
+    utils.GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
 
 
 def _InitGanetiServerSetup(master_name):
@@ -82,14 +130,8 @@ def _InitGanetiServerSetup(master_name):
   the cluster and also generates the SSL certificate.
 
   """
-  utils.GenerateSelfSignedSslCert(constants.SSL_CERT_FILE)
-
-  # Don't overwrite existing file
-  if not os.path.exists(constants.RAPI_CERT_FILE):
-    utils.GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
-
-  if not os.path.exists(constants.HMAC_CLUSTER_KEY):
-    GenerateHmacKey(constants.HMAC_CLUSTER_KEY)
+  # Generate cluster secrets
+  GenerateClusterCrypto(True, False, False)
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
@@ -97,17 +139,24 @@ def _InitGanetiServerSetup(master_name):
                              " had exitcode %s and error %s" %
                              (result.cmd, result.exit_code, result.output))
 
-  # Wait for node daemon to become responsive
+  _WaitForNodeDaemon(master_name)
+
+
+def _WaitForNodeDaemon(node_name):
+  """Wait for node daemon to become responsive.
+
+  """
   def _CheckNodeDaemon():
-    result = rpc.RpcRunner.call_version([master_name])[master_name]
+    result = rpc.RpcRunner.call_version([node_name])[node_name]
     if result.fail_msg:
       raise utils.RetryAgain()
 
   try:
     utils.Retry(_CheckNodeDaemon, 1.0, 10.0)
   except utils.RetryTimeout:
-    raise errors.OpExecError("Node daemon didn't answer queries within"
-                             " 10 seconds")
+    raise errors.OpExecError("Node daemon on %s didn't answer queries within"
+                             " 10 seconds" % node_name)
+
 
 def InitCluster(cluster_name, mac_prefix,
                 master_netdev, file_storage_dir, candidate_pool_size,
@@ -148,7 +197,7 @@ def InitCluster(cluster_name, mac_prefix,
                                " belong to this host. Aborting." %
                                hostname.ip, errors.ECODE_ENVIRON)
 
-  clustername = utils.GetHostInfo(cluster_name)
+  clustername = utils.GetHostInfo(utils.HostInfo.NormalizeName(cluster_name))
 
   if utils.TcpPing(clustername.ip, constants.DEFAULT_NODED_PORT,
                    timeout=5):
@@ -390,6 +439,8 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
     raise errors.OpExecError("Remote command on node %s, error: %s,"
                              " output: %s" %
                              (node, result.fail_reason, result.output))
+
+  _WaitForNodeDaemon(node)
 
 
 def MasterFailover(no_voting=False):

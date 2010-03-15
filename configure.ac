@@ -1,8 +1,8 @@
 # Configure script for Ganeti
 m4_define([gnt_version_major], [2])
 m4_define([gnt_version_minor], [1])
-m4_define([gnt_version_revision], [0])
-m4_define([gnt_version_suffix], [~rc5])
+m4_define([gnt_version_revision], [1])
+m4_define([gnt_version_suffix], [])
 m4_define([gnt_version_full],
           m4_format([%d.%d.%d%s],
                     gnt_version_major, gnt_version_minor,
@@ -38,6 +38,16 @@ AC_ARG_WITH([export-dir],
   [export_dir="$withval"],
   [export_dir="/srv/ganeti/export"])
 AC_SUBST(EXPORT_DIR, $export_dir)
+
+# --with-ssh-config-dir=...
+AC_ARG_WITH([ssh-config-dir],
+  [AS_HELP_STRING([--with-ssh-config-dir=DIR],
+    [ directory with ssh host keys ]
+    [ (default is /etc/ssh)]
+  )],
+  [ssh_config_dir="$withval"],
+  [ssh_config_dir="/etc/ssh"])
+AC_SUBST(SSH_CONFIG_DIR, $ssh_config_dir)
 
 # --with-os-search-path=...
 # do a bit of black sed magic to for quoting of the strings in the list
@@ -94,9 +104,16 @@ AC_ARG_WITH([file-storage-dir],
     [directory to store files for file-based backend]
     [ (default is /srv/ganeti/file-storage)]
   )],
-  [file_storage_dir="$withval"],
-  [file_storage_dir="/srv/ganeti/file-storage"])
+  [[file_storage_dir="$withval";
+    if test "$withval" != no; then
+      enable_file_storage=True
+    else
+      enable_file_storage=False
+    fi
+  ]],
+  [[file_storage_dir="/srv/ganeti/file-storage"; enable_file_storage="True"]])
 AC_SUBST(FILE_STORAGE_DIR, $file_storage_dir)
+AC_SUBST(ENABLE_FILE_STORAGE, $enable_file_storage)
 
 # --with-kvm-path=...
 AC_ARG_WITH([kvm-path],

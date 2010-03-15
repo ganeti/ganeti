@@ -307,7 +307,7 @@ class SimpleStore(object):
     @param values: Dictionary of (name, value)
 
     """
-    ssconf_lock = utils.FileLock(constants.SSCONF_LOCK_FILE)
+    ssconf_lock = utils.FileLock.Open(constants.SSCONF_LOCK_FILE)
 
     # Get lock while writing files
     ssconf_lock.Exclusive(blocking=True, timeout=SSCONF_LOCK_TIMEOUT)

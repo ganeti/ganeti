@@ -27,6 +27,7 @@ import time
 import tempfile
 import os.path
 import os
+import stat
 import md5
 import signal
 import socket
@@ -36,6 +37,9 @@ import select
 import string
 import fcntl
 import OpenSSL
+import warnings
+import distutils.version
+import glob
 
 import ganeti
 import testutils
@@ -48,10 +52,10 @@ from ganeti.utils import IsProcessAlive, RunCmd, \
      ShellQuote, ShellQuoteArgs, TcpPing, ListVisibleFiles, \
      SetEtcHostsEntry, RemoveEtcHostsEntry, FirstFree, OwnIpAddress, \
      TailFile, ForceDictType, SafeEncode, IsNormAbsPath, FormatTime, \
-     UnescapeAndSplit
+     UnescapeAndSplit, RunParts, PathJoin, HostInfo
 
 from ganeti.errors import LockError, UnitParseError, GenericError, \
-     ProgrammerError
+     ProgrammerError, OpPrereqError
 
 
 class TestIsProcessAlive(unittest.TestCase):
@@ -232,6 +236,136 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.failUnlessEqual(RunCmd(["pwd"], cwd="/tmp").stdout.strip(), "/tmp")
     cwd = os.getcwd()
     self.failUnlessEqual(RunCmd(["pwd"], cwd=cwd).stdout.strip(), cwd)
+
+  def testResetEnv(self):
+    """Test environment reset functionality"""
+    self.failUnlessEqual(RunCmd(["env"], reset_env=True).stdout.strip(), "")
+
+
+class TestRunParts(unittest.TestCase):
+  """Testing case for the RunParts function"""
+
+  def setUp(self):
+    self.rundir = tempfile.mkdtemp(prefix="ganeti-test", suffix=".tmp")
+
+  def tearDown(self):
+    shutil.rmtree(self.rundir)
+
+  def testEmpty(self):
+    """Test on an empty dir"""
+    self.failUnlessEqual(RunParts(self.rundir, reset_env=True), [])
+
+  def testSkipWrongName(self):
+    """Test that wrong files are skipped"""
+    fname = os.path.join(self.rundir, "00test.dot")
+    utils.WriteFile(fname, data="")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    relname = os.path.basename(fname)
+    self.failUnlessEqual(RunParts(self.rundir, reset_env=True),
+                         [(relname, constants.RUNPARTS_SKIP, None)])
+
+  def testSkipNonExec(self):
+    """Test that non executable files are skipped"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="")
+    relname = os.path.basename(fname)
+    self.failUnlessEqual(RunParts(self.rundir, reset_env=True),
+                         [(relname, constants.RUNPARTS_SKIP, None)])
+
+  def testError(self):
+    """Test error on a broken executable"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    (relname, status, error) = RunParts(self.rundir, reset_env=True)[0]
+    self.failUnlessEqual(relname, os.path.basename(fname))
+    self.failUnlessEqual(status, constants.RUNPARTS_ERR)
+    self.failUnless(error)
+
+  def testSorted(self):
+    """Test executions are sorted"""
+    files = []
+    files.append(os.path.join(self.rundir, "64test"))
+    files.append(os.path.join(self.rundir, "00test"))
+    files.append(os.path.join(self.rundir, "42test"))
+
+    for fname in files:
+      utils.WriteFile(fname, data="")
+
+    results = RunParts(self.rundir, reset_env=True)
+
+    for fname in sorted(files):
+      self.failUnlessEqual(os.path.basename(fname), results.pop(0)[0])
+
+  def testOk(self):
+    """Test correct execution"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="#!/bin/sh\n\necho -n ciao")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    (relname, status, runresult) = RunParts(self.rundir, reset_env=True)[0]
+    self.failUnlessEqual(relname, os.path.basename(fname))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.stdout, "ciao")
+
+  def testRunFail(self):
+    """Test correct execution, with run failure"""
+    fname = os.path.join(self.rundir, "00test")
+    utils.WriteFile(fname, data="#!/bin/sh\n\nexit 1")
+    os.chmod(fname, stat.S_IREAD | stat.S_IEXEC)
+    (relname, status, runresult) = RunParts(self.rundir, reset_env=True)[0]
+    self.failUnlessEqual(relname, os.path.basename(fname))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.exit_code, 1)
+    self.failUnless(runresult.failed)
+
+  def testRunMix(self):
+    files = []
+    files.append(os.path.join(self.rundir, "00test"))
+    files.append(os.path.join(self.rundir, "42test"))
+    files.append(os.path.join(self.rundir, "64test"))
+    files.append(os.path.join(self.rundir, "99test"))
+
+    files.sort()
+
+    # 1st has errors in execution
+    utils.WriteFile(files[0], data="#!/bin/sh\n\nexit 1")
+    os.chmod(files[0], stat.S_IREAD | stat.S_IEXEC)
+
+    # 2nd is skipped
+    utils.WriteFile(files[1], data="")
+
+    # 3rd cannot execute properly
+    utils.WriteFile(files[2], data="")
+    os.chmod(files[2], stat.S_IREAD | stat.S_IEXEC)
+
+    # 4th execs
+    utils.WriteFile(files[3], data="#!/bin/sh\n\necho -n ciao")
+    os.chmod(files[3], stat.S_IREAD | stat.S_IEXEC)
+
+    results = RunParts(self.rundir, reset_env=True)
+
+    (relname, status, runresult) = results[0]
+    self.failUnlessEqual(relname, os.path.basename(files[0]))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.exit_code, 1)
+    self.failUnless(runresult.failed)
+
+    (relname, status, runresult) = results[1]
+    self.failUnlessEqual(relname, os.path.basename(files[1]))
+    self.failUnlessEqual(status, constants.RUNPARTS_SKIP)
+    self.failUnlessEqual(runresult, None)
+
+    (relname, status, runresult) = results[2]
+    self.failUnlessEqual(relname, os.path.basename(files[2]))
+    self.failUnlessEqual(status, constants.RUNPARTS_ERR)
+    self.failUnless(runresult)
+
+    (relname, status, runresult) = results[3]
+    self.failUnlessEqual(relname, os.path.basename(files[3]))
+    self.failUnlessEqual(status, constants.RUNPARTS_RUN)
+    self.failUnlessEqual(runresult.output, "ciao")
+    self.failUnlessEqual(runresult.exit_code, 0)
+    self.failUnless(not runresult.failed)
 
 
 class TestStartDaemon(testutils.GanetiTestCase):
@@ -524,6 +658,55 @@ class TestMatchNameComponent(unittest.TestCase):
                      "Ts2.ex")
     self.assertEqual(MatchNameComponent("TS2.ex", mlist, case_sensitive=False),
                      None)
+
+
+class TestTimestampForFilename(unittest.TestCase):
+  def test(self):
+    self.assert_("." not in utils.TimestampForFilename())
+    self.assert_(":" not in utils.TimestampForFilename())
+
+
+class TestCreateBackup(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
+
+    shutil.rmtree(self.tmpdir)
+
+  def testEmpty(self):
+    filename = utils.PathJoin(self.tmpdir, "config.data")
+    utils.WriteFile(filename, data="")
+    bname = utils.CreateBackup(filename)
+    self.assertFileContent(bname, "")
+    self.assertEqual(len(glob.glob("%s*" % filename)), 2)
+    utils.CreateBackup(filename)
+    self.assertEqual(len(glob.glob("%s*" % filename)), 3)
+    utils.CreateBackup(filename)
+    self.assertEqual(len(glob.glob("%s*" % filename)), 4)
+
+    fifoname = utils.PathJoin(self.tmpdir, "fifo")
+    os.mkfifo(fifoname)
+    self.assertRaises(errors.ProgrammerError, utils.CreateBackup, fifoname)
+
+  def testContent(self):
+    bkpcount = 0
+    for data in ["", "X", "Hello World!\n" * 100, "Binary data\0\x01\x02\n"]:
+      for rep in [1, 2, 10, 127]:
+        testdata = data * rep
+
+        filename = utils.PathJoin(self.tmpdir, "test.data_")
+        utils.WriteFile(filename, data=testdata)
+        self.assertFileContent(filename, testdata)
+
+        for _ in range(3):
+          bname = utils.CreateBackup(filename)
+          bkpcount += 1
+          self.assertFileContent(bname, testdata)
+          self.assertEqual(len(glob.glob("%s*" % filename)), 1 + bkpcount)
 
 
 class TestFormatUnit(unittest.TestCase):
@@ -913,6 +1096,13 @@ class TestListVisibleFiles(unittest.TestCase):
     expected = ["a", "b"]
     self._test(files, expected)
 
+  def testNonAbsolutePath(self):
+    self.failUnlessRaises(errors.ProgrammerError, ListVisibleFiles, "abc")
+
+  def testNonNormalizedPath(self):
+    self.failUnlessRaises(errors.ProgrammerError, ListVisibleFiles,
+                          "/bin/../tmp")
+
 
 class TestNewUUID(unittest.TestCase):
   """Test case for NewUUID"""
@@ -1001,12 +1191,8 @@ class TestTailFile(testutils.GanetiTestCase):
       self.failUnlessEqual(TailFile(fname, lines=i), data[-i:])
 
 
-class TestFileLock(unittest.TestCase):
+class _BaseFileLockTest:
   """Test case for the FileLock class"""
-
-  def setUp(self):
-    self.tmpfile = tempfile.NamedTemporaryFile()
-    self.lock = utils.FileLock(self.tmpfile.name)
 
   def testSharedNonblocking(self):
     self.lock.Shared(blocking=False)
@@ -1044,6 +1230,45 @@ class TestFileLock(unittest.TestCase):
     self.lock.Unlock(blocking=False)
     self.lock.Close()
 
+  def testSimpleTimeout(self):
+    # These will succeed on the first attempt, hence a short timeout
+    self.lock.Shared(blocking=True, timeout=10.0)
+    self.lock.Exclusive(blocking=False, timeout=10.0)
+    self.lock.Unlock(blocking=True, timeout=10.0)
+    self.lock.Close()
+
+  @staticmethod
+  def _TryLockInner(filename, shared, blocking):
+    lock = utils.FileLock.Open(filename)
+
+    if shared:
+      fn = lock.Shared
+    else:
+      fn = lock.Exclusive
+
+    try:
+      # The timeout doesn't really matter as the parent process waits for us to
+      # finish anyway.
+      fn(blocking=blocking, timeout=0.01)
+    except errors.LockError, err:
+      return False
+
+    return True
+
+  def _TryLock(self, *args):
+    return utils.RunInSeparateProcess(self._TryLockInner, self.tmpfile.name,
+                                      *args)
+
+  def testTimeout(self):
+    for blocking in [True, False]:
+      self.lock.Exclusive(blocking=True)
+      self.failIf(self._TryLock(False, blocking))
+      self.failIf(self._TryLock(True, blocking))
+
+      self.lock.Shared(blocking=True)
+      self.assert_(self._TryLock(True, blocking))
+      self.failIf(self._TryLock(False, blocking))
+
   def testCloseShared(self):
     self.lock.Close()
     self.assertRaises(AssertionError, self.lock.Shared, blocking=False)
@@ -1055,6 +1280,31 @@ class TestFileLock(unittest.TestCase):
   def testCloseUnlock(self):
     self.lock.Close()
     self.assertRaises(AssertionError, self.lock.Unlock, blocking=False)
+
+
+class TestFileLockWithFilename(testutils.GanetiTestCase, _BaseFileLockTest):
+  TESTDATA = "Hello World\n" * 10
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.tmpfile = tempfile.NamedTemporaryFile()
+    utils.WriteFile(self.tmpfile.name, data=self.TESTDATA)
+    self.lock = utils.FileLock.Open(self.tmpfile.name)
+
+    # Ensure "Open" didn't truncate file
+    self.assertFileContent(self.tmpfile.name, self.TESTDATA)
+
+  def tearDown(self):
+    self.assertFileContent(self.tmpfile.name, self.TESTDATA)
+
+    testutils.GanetiTestCase.tearDown(self)
+
+
+class TestFileLockWithFileObject(unittest.TestCase, _BaseFileLockTest):
+  def setUp(self):
+    self.tmpfile = tempfile.NamedTemporaryFile()
+    self.lock = utils.FileLock(open(self.tmpfile.name, "w"), self.tmpfile.name)
 
 
 class TestTimeFunctions(unittest.TestCase):
@@ -1209,6 +1459,13 @@ class RunInSeparateProcess(unittest.TestCase):
 
       self.assertEqual(exp, utils.RunInSeparateProcess(_child))
 
+  def testArgs(self):
+    for arg in [0, 1, 999, "Hello World", (1, 2, 3)]:
+      def _child(carg1, carg2):
+        return carg1 == "Foo" and carg2 == arg
+
+      self.assert_(utils.RunInSeparateProcess(_child, "Foo", arg))
+
   def testPid(self):
     parent_pid = os.getpid()
 
@@ -1321,6 +1578,122 @@ class TestGenerateSelfSignedX509Cert(unittest.TestCase):
 
     self.assert_(self._checkRsaPrivateKey(cert1))
     self.assert_(self._checkCertificate(cert1))
+
+
+class TestPathJoin(unittest.TestCase):
+  """Testing case for PathJoin"""
+
+  def testBasicItems(self):
+    mlist = ["/a", "b", "c"]
+    self.failUnlessEqual(PathJoin(*mlist), "/".join(mlist))
+
+  def testNonAbsPrefix(self):
+    self.failUnlessRaises(ValueError, PathJoin, "a", "b")
+
+  def testBackTrack(self):
+    self.failUnlessRaises(ValueError, PathJoin, "/a", "b/../c")
+
+  def testMultiAbs(self):
+    self.failUnlessRaises(ValueError, PathJoin, "/a", "/b")
+
+
+class TestHostInfo(unittest.TestCase):
+  """Testing case for HostInfo"""
+
+  def testUppercase(self):
+    data = "AbC.example.com"
+    self.failUnlessEqual(HostInfo.NormalizeName(data), data.lower())
+
+  def testTooLongName(self):
+    data = "a.b." + "c" * 255
+    self.failUnlessRaises(OpPrereqError, HostInfo.NormalizeName, data)
+
+  def testTrailingDot(self):
+    data = "a.b.c"
+    self.failUnlessEqual(HostInfo.NormalizeName(data + "."), data)
+
+  def testInvalidName(self):
+    data = [
+      "a b",
+      "a/b",
+      ".a.b",
+      "a..b",
+      ]
+    for value in data:
+      self.failUnlessRaises(OpPrereqError, HostInfo.NormalizeName, value)
+
+  def testValidName(self):
+    data = [
+      "a.b",
+      "a-b",
+      "a_b",
+      "a.b.c",
+      ]
+    for value in data:
+      HostInfo.NormalizeName(value)
+
+
+class TestParseAsn1Generalizedtime(unittest.TestCase):
+  def test(self):
+    # UTC
+    self.assertEqual(utils._ParseAsn1Generalizedtime("19700101000000Z"), 0)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100222174152Z"),
+                     1266860512)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20380119031407Z"),
+                     (2**31) - 1)
+
+    # With offset
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100222174152+0000"),
+                     1266860512)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100223131652+0000"),
+                     1266931012)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100223051808-0800"),
+                     1266931088)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("20100224002135+1100"),
+                     1266931295)
+    self.assertEqual(utils._ParseAsn1Generalizedtime("19700101000000-0100"),
+                     3600)
+
+    # Leap seconds are not supported by datetime.datetime
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "19841231235960+0000")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "19920630235960+0000")
+
+    # Errors
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime, "")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime, "invalid")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "20100222174152")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "Mon Feb 22 17:47:02 UTC 2010")
+    self.assertRaises(ValueError, utils._ParseAsn1Generalizedtime,
+                      "2010-02-22 17:42:02")
+
+
+class TestGetX509CertValidity(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    pyopenssl_version = distutils.version.LooseVersion(OpenSSL.__version__)
+
+    # Test whether we have pyOpenSSL 0.7 or above
+    self.pyopenssl0_7 = (pyopenssl_version >= "0.7")
+
+    if not self.pyopenssl0_7:
+      warnings.warn("This test requires pyOpenSSL 0.7 or above to"
+                    " function correctly")
+
+  def _LoadCert(self, name):
+    return OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           self._ReadTestData(name))
+
+  def test(self):
+    validity = utils.GetX509CertValidity(self._LoadCert("cert1.pem"))
+    if self.pyopenssl0_7:
+      self.assertEqual(validity, (1266919967, 1267524767))
+    else:
+      self.assertEqual(validity, (None, None))
 
 
 if __name__ == '__main__':

@@ -540,7 +540,7 @@
         <sbr>
         <arg choice="opt">--nic-parameters <replaceable>nic-param</replaceable>=<replaceable>value</replaceable><arg rep="repeat" choice="opt">,<replaceable>nic-param</replaceable>=<replaceable>value</replaceable></arg></arg>
         <sbr>
-        <arg>-C <replaceable>candidate_pool_size</replaceable></arg>
+        <arg choice="opt">-C <replaceable>candidate_pool_size</replaceable></arg>
 
       </cmdsynopsis>
 
@@ -558,7 +558,7 @@
         </para>
 
       <para>
-        The <option>-C</option> options specifies the
+        The <option>-C</option> option specifies the
         <varname>candidate_pool_size</varname> cluster parameter. This
         is the number of nodes that the master will try to keep as
         <literal>master_candidates</literal>. For more details about
@@ -700,6 +700,39 @@
         Note that since this command can be dangerous (especially when
         run over SSH), the command will require confirmation unless
         run with the <option>-f</option> option.
+      </para>
+    </refsect2>
+
+    <refsect2>
+      <title>RENEW-CRYPTO</title>
+
+      <cmdsynopsis>
+        <command>renew-crypto</command>
+        <arg>-f</arg>
+        <sbr>
+        <arg choice="opt">--new-cluster-certificate</arg>
+        <arg choice="opt">--new-hmac-key</arg>
+        <sbr>
+        <arg choice="opt">--new-rapi-certificate</arg>
+        <arg choice="opt">--rapi-certificate <replaceable>rapi-cert</replaceable></arg>
+      </cmdsynopsis>
+
+      <para>
+        This command will stop all
+        Ganeti daemons in the cluster and start them again once the new
+        certificates and keys are replicated. The options
+        <option>--new-cluster-certificate</option> and
+        <option>--new-hmac-key</option> can be used to regenerate the
+        cluster-internal SSL certificate respective the HMAC key used by
+        <citerefentry>
+        <refentrytitle>ganeti-confd</refentrytitle><manvolnum>8</manvolnum>
+        </citerefentry>. To generate a new self-signed RAPI certificate (used
+        by <citerefentry>
+        <refentrytitle>ganeti-rapi</refentrytitle><manvolnum>8</manvolnum>
+        </citerefentry>) specify <option>--new-rapi-certificate</option>. If
+        you want to use your own certificate, e.g. one signed by a certificate
+        authority (CA), pass its filename to
+        <option>--rapi-certificate</option>.
       </para>
     </refsect2>
 

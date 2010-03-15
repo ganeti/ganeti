@@ -90,7 +90,7 @@ class BaseOpCode(object):
                        type(state))
 
     for name in self._all_slots():
-      if name not in state:
+      if name not in state and hasattr(self, name):
         delattr(self, name)
 
     for name in state:
@@ -301,6 +301,7 @@ class OpSetClusterParams(OpCode):
     "vg_name",
     "enabled_hypervisors",
     "hvparams",
+    "os_hvp",
     "beparams",
     "nicparams",
     "candidate_pool_size",
@@ -412,6 +413,7 @@ class OpSetNodeParams(OpCode):
     "master_candidate",
     "offline",
     "drained",
+    "auto_promote",
     ]
 
 
@@ -442,6 +444,13 @@ class OpMigrateNode(OpCode):
     "node_name",
     "live",
     ]
+
+
+class OpNodeEvacuationStrategy(OpCode):
+  """Compute the evacuation strategy for a list of nodes."""
+  OP_ID = "OP_NODE_EVAC_STRATEGY"
+  OP_DSC_FIELD = "nodes"
+  __slots__ = ["nodes", "iallocator", "remote_node"]
 
 
 # instance opcodes
@@ -727,6 +736,7 @@ class OpTestAllocator(OpCode):
     "direction", "mode", "allocator", "name",
     "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",
+    "evac_nodes",
     ]
 
 

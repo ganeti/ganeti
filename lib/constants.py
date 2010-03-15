@@ -109,9 +109,12 @@ QUEUE_DIR = DATA_DIR + "/queue"
 DAEMON_UTIL = _autoconf.PKGLIBDIR + "/daemon-util"
 ETC_HOSTS = "/etc/hosts"
 DEFAULT_FILE_STORAGE_DIR = _autoconf.FILE_STORAGE_DIR
+ENABLE_FILE_STORAGE = _autoconf.ENABLE_FILE_STORAGE
 SYSCONFDIR = _autoconf.SYSCONFDIR
 TOOLSDIR = _autoconf.TOOLSDIR
 CONF_DIR = SYSCONFDIR + "/ganeti"
+
+ALL_CERT_FILES = frozenset([SSL_CERT_FILE, RAPI_CERT_FILE])
 
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 
@@ -119,17 +122,22 @@ NODED = "ganeti-noded"
 CONFD = "ganeti-confd"
 RAPI = "ganeti-rapi"
 MASTERD = "ganeti-masterd"
+# used in the ganeti-nbma project
+NLD = "ganeti-nld"
 
 DAEMONS_PORTS = {
   # daemon-name: ("proto", "default-port")
   NODED: ("tcp", 1811),
   CONFD: ("udp", 1814),
   RAPI: ("tcp", 5080),
-  }
-
+  # used in the ganeti-nbma project
+  NLD: ("udp", 1816),
+}
 DEFAULT_NODED_PORT = DAEMONS_PORTS[NODED][1]
 DEFAULT_CONFD_PORT = DAEMONS_PORTS[CONFD][1]
 DEFAULT_RAPI_PORT = DAEMONS_PORTS[RAPI][1]
+# used in the ganeti-nbma project
+DEFAULT_NLD_PORT = DAEMONS_PORTS[NLD][1]
 
 FIRST_DRBD_PORT = 11000
 LAST_DRBD_PORT = 14999
@@ -142,6 +150,8 @@ DAEMONS_LOGFILES = {
   CONFD: LOG_DIR + "conf-daemon.log",
   RAPI: LOG_DIR + "rapi-daemon.log",
   MASTERD: LOG_DIR + "master-daemon.log",
+  # used in the ganeti-nbma project
+  NLD: LOG_DIR + "nl-daemon.log",
   }
 
 LOG_OS_DIR = LOG_DIR + "os"
@@ -193,6 +203,7 @@ HOOKS_BASE_DIR = CONF_DIR + "/hooks"
 HOOKS_PHASE_PRE = "pre"
 HOOKS_PHASE_POST = "post"
 HOOKS_NAME_CFGUPDATE = "config-update"
+HOOKS_NAME_WATCHER = "watcher"
 HOOKS_VERSION = 2
 
 # hooks subject type (what object type does the LU deal with)
@@ -337,6 +348,13 @@ LVM_STRIPECOUNT = _autoconf.LVM_STRIPECOUNT
 DEFAULT_SHUTDOWN_TIMEOUT = 120
 NODE_MAX_CLOCK_SKEW = 150
 
+# runparts results
+(RUNPARTS_SKIP,
+ RUNPARTS_RUN,
+ RUNPARTS_ERR) = range(3)
+
+RUNPARTS_STATUS = frozenset([RUNPARTS_SKIP, RUNPARTS_RUN, RUNPARTS_ERR])
+
 # RPC constants
 (RPC_ENCODING_NONE,
  RPC_ENCODING_ZLIB_BASE64) = range(2)
@@ -353,10 +371,10 @@ OS_API_FILE = 'ganeti_api_version'
 OS_VARIANTS_FILE = 'variants.list'
 
 # ssh constants
-SSH_CONFIG_DIR = "/etc/ssh/"
-SSH_HOST_DSA_PRIV = SSH_CONFIG_DIR + "ssh_host_dsa_key"
+SSH_CONFIG_DIR = _autoconf.SSH_CONFIG_DIR
+SSH_HOST_DSA_PRIV = SSH_CONFIG_DIR + "/ssh_host_dsa_key"
 SSH_HOST_DSA_PUB = SSH_HOST_DSA_PRIV + ".pub"
-SSH_HOST_RSA_PRIV = SSH_CONFIG_DIR + "ssh_host_rsa_key"
+SSH_HOST_RSA_PRIV = SSH_CONFIG_DIR + "/ssh_host_rsa_key"
 SSH_HOST_RSA_PUB = SSH_HOST_RSA_PRIV + ".pub"
 SSH = "ssh"
 SCP = "scp"
@@ -407,6 +425,8 @@ HV_INIT_SCRIPT = "init_script"
 HV_MIGRATION_PORT = "migration_port"
 HV_USE_LOCALTIME = "use_localtime"
 HV_DISK_CACHE = "disk_cache"
+HV_SECURITY_MODEL = "security_model"
+HV_SECURITY_DOMAIN = "security_domain"
 
 HVS_PARAMETER_TYPES = {
   HV_BOOT_ORDER: VTYPE_STRING,
@@ -434,6 +454,8 @@ HVS_PARAMETER_TYPES = {
   HV_MIGRATION_PORT: VTYPE_INT,
   HV_USE_LOCALTIME: VTYPE_BOOL,
   HV_DISK_CACHE: VTYPE_STRING,
+  HV_SECURITY_MODEL: VTYPE_STRING,
+  HV_SECURITY_DOMAIN: VTYPE_STRING,
   }
 
 HVS_PARAMETERS = frozenset(HVS_PARAMETER_TYPES.keys())
@@ -535,6 +557,13 @@ HT_BO_NETWORK = "network"
 
 HT_KVM_VALID_BO_TYPES = frozenset([HT_BO_CDROM, HT_BO_DISK, HT_BO_NETWORK])
 
+# Security models
+HT_SM_NONE = "none"
+HT_SM_USER = "user"
+HT_SM_POOL = "pool"
+
+HT_KVM_VALID_SM_TYPES = frozenset([HT_SM_NONE, HT_SM_USER, HT_SM_POOL])
+
 # Cluster Verify steps
 VERIFY_NPLUSONE_MEM = 'nplusone_mem'
 VERIFY_OPTIONAL_CHECKS = frozenset([VERIFY_NPLUSONE_MEM])
@@ -554,12 +583,17 @@ NV_DRBDLIST = "drbd-list"
 NV_NODESETUP = "nodesetup"
 NV_TIME = "time"
 
+# SSL certificate check constants (in days)
+SSL_CERT_EXPIRATION_WARN = 30
+SSL_CERT_EXPIRATION_ERROR = 7
+
 # Allocator framework constants
 IALLOCATOR_VERSION = 2
 IALLOCATOR_DIR_IN = "in"
 IALLOCATOR_DIR_OUT = "out"
 IALLOCATOR_MODE_ALLOC = "allocate"
 IALLOCATOR_MODE_RELOC = "relocate"
+IALLOCATOR_MODE_MEVAC = "multi-evacuate"
 IALLOCATOR_SEARCH_PATH = _autoconf.IALLOCATOR_SEARCH_PATH
 
 # Job queue
@@ -673,6 +707,8 @@ HVC_DEFAULTS = {
     HV_MIGRATION_PORT: 8102,
     HV_USE_LOCALTIME: False,
     HV_DISK_CACHE: HT_CACHE_DEFAULT,
+    HV_SECURITY_MODEL: HT_SM_NONE,
+    HV_SECURITY_DOMAIN: '',
     },
   HT_FAKE: {
     },

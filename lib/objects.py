@@ -412,6 +412,9 @@ class Disk(ConfigObject):
     irrespective of their status. For such devices, we return this
     path, for others we return None.
 
+    @warning: The path returned is not a normalized pathname; callers
+        should check that it is a valid path.
+
     """
     if self.dev_type == constants.LD_LV:
       return "/dev/%s/%s" % (self.logical_id[0], self.logical_id[1])
@@ -856,6 +859,7 @@ class Cluster(TaggableObject):
     "file_storage_dir",
     "enabled_hypervisors",
     "hvparams",
+    "os_hvp",
     "beparams",
     "nicparams",
     "candidate_pool_size",
@@ -875,6 +879,10 @@ class Cluster(TaggableObject):
       for hypervisor in self.hvparams:
         self.hvparams[hypervisor] = FillDict(
             constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
+
+    # TODO: Figure out if it's better to put this into OS than Cluster
+    if self.os_hvp is None:
+      self.os_hvp = {}
 
     self.beparams = UpgradeGroupedParams(self.beparams,
                                          constants.BEC_DEFAULTS)
@@ -938,8 +946,19 @@ class Cluster(TaggableObject):
       skip_keys = constants.HVC_GLOBALS
     else:
       skip_keys = []
-    return FillDict(self.hvparams.get(instance.hypervisor, {}),
-                    instance.hvparams, skip_keys=skip_keys)
+
+    # We fill the list from least to most important override
+    fill_stack = [
+      self.hvparams.get(instance.hypervisor, {}),
+      self.os_hvp.get(instance.os, {}).get(instance.hypervisor, {}),
+      instance.hvparams,
+      ]
+
+    ret_dict = {}
+    for o_dict in fill_stack:
+      ret_dict = FillDict(ret_dict, o_dict, skip_keys=skip_keys)
+
+    return ret_dict
 
   def FillBE(self, instance):
     """Fill an instance's beparams dict.

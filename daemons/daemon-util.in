@@ -22,6 +22,16 @@ set -e
 
 defaults_file=@SYSCONFDIR@/default/ganeti
 
+# This is a list of all daemons and the order in which they're started. The
+# order is important as there are dependencies between them. On shutdown,
+# they're stopped in reverse order.
+DAEMONS=(
+  ganeti-noded
+  ganeti-masterd
+  ganeti-rapi
+  ganeti-confd
+  )
+
 NODED_ARGS=
 MASTERD_ARGS=
 CONFD_ARGS=
@@ -36,11 +46,86 @@ _daemon_pidfile() {
   echo "@LOCALSTATEDIR@/run/ganeti/$1.pid"
 }
 
+_daemon_executable() {
+  echo "@PREFIX@/sbin/$1"
+}
+
+# Checks whether the local machine is part of a cluster
+check_config() {
+  local server_pem=@LOCALSTATEDIR@/lib/ganeti/server.pem
+  local fname
+
+  for fname in $server_pem; do
+    if [[ ! -f $fname ]]; then
+      echo "Missing configuration file $fname" >&2
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# Checks the exit code of a daemon
+check_exitcode() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing exit code.' >&2
+    return 1
+  fi
+
+  local rc="$1"; shift
+
+  case "$rc" in
+    0) ;;
+    11)
+      echo "not master"
+    ;;
+    *)
+      echo "exit code $rc"
+      return 1
+    ;;
+  esac
+
+  return 0
+}
+
+# Prints a list of all daemons in the order in which they should be started
+list_start_daemons() {
+  local name
+
+  for name in "${DAEMONS[@]}"; do
+    echo "$name"
+  done
+}
+
+# Prints a list of all daemons in the order in which they should be stopped
+list_stop_daemons() {
+  list_start_daemons | tac
+}
+
+# Checks whether a daemon name is known
+is_daemon_name() {
+  if [[ "$#" -lt 1 ]]; then
+    echo 'Missing daemon name.' >&2
+    return 1
+  fi
+
+  local name="$1"; shift
+
+  for i in "${DAEMONS[@]}"; do
+    if [[ "$i" == "$name" ]]; then
+      return 0
+    fi
+  done
+
+  echo "Unknown daemon name '$name'" >&2
+  return 1
+}
+
 # Checks whether daemon is running
 check() {
   if [[ "$#" -lt 1 ]]; then
     echo 'Missing daemon name.' >&2
-    exit 1
+    return 1
   fi
 
   local name="$1"; shift
@@ -53,7 +138,7 @@ check() {
 start() {
   if [[ "$#" -lt 1 ]]; then
     echo 'Missing daemon name.' >&2
-    exit 1
+    return 1
   fi
 
   local name="$1"; shift
@@ -66,7 +151,7 @@ start() {
 
   start-stop-daemon --start --quiet --oknodo \
     --pidfile $(_daemon_pidfile $name) \
-    --startas "@PREFIX@/sbin/$name" \
+    --startas $(_daemon_executable $name) \
     -- $args "$@"
 }
 
@@ -74,7 +159,7 @@ start() {
 stop() {
   if [[ "$#" -lt 1 ]]; then
     echo 'Missing daemon name.' >&2
-    exit 1
+    return 1
   fi
 
   local name="$1"; shift
@@ -104,6 +189,30 @@ stop_master() {
   stop ganeti-masterd
 }
 
+# Start all daemons
+start_all() {
+  for i in $(list_start_daemons); do
+    local rc=0
+
+    # Try to start daemon
+    start $i || rc=$?
+
+    if ! errmsg=$(check_exitcode $rc); then
+      echo "$errmsg" >&2
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# Stop all daemons
+stop_all() {
+  for i in $(list_stop_daemons); do
+    stop $i
+  done
+}
+
 # Reloads the SSH keys
 reload_ssh_keys() {
   @RPL_SSH_INITD_SCRIPT@ restart
@@ -115,6 +224,11 @@ if [[ "$#" -lt 1 ]]; then
 fi
 
 orig_action=$1; shift
+
+if [[ "$orig_action" == *_* ]]; then
+  echo "Command must not contain underscores" >&2
+  exit 1
+fi
 
 # Replace all dashes (-) with underlines (_)
 action=${orig_action//-/_}

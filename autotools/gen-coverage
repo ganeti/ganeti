@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,20 +20,25 @@
 
 set -e
 
-DATA_DIR=@LOCALSTATEDIR@/lib/ganeti
-QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
+: ${COVERAGE:=coverage}
+: ${PYTHON:=python}
+: ${COVERAGE_FILE:?}
+: ${TEXT_COVERAGE:?}
 
-# Define how many days archived jobs should be left alone
-REMOVE_AFTER=21
+omit=$($PYTHON -c 'import sys;
+print " ".join(["--omit=%s/" % i for i in
+                set([sys.prefix, sys.exec_prefix])])')
 
-# Exit if machine is not part of a cluster
-[[ -e $DATA_DIR/ssconf_master_node ]] || exit 0
+$COVERAGE erase
 
-# Exit if queue archive directory doesn't exist
-[[ -d $QUEUE_ARCHIVE_DIR ]] || exit 0
+for script; do
+  $COVERAGE run --branch --append $script
+done
 
-# Remove old jobs
-find $QUEUE_ARCHIVE_DIR -mindepth 2 -type f -mtime +$REMOVE_AFTER -print0 | \
-xargs -r0 rm -f
+echo "Writing text report to $TEXT_COVERAGE ..." >&2
+$COVERAGE report $omit | tee "$TEXT_COVERAGE"
 
-exit 0
+if [[ -n "$HTML_COVERAGE" ]]; then
+  echo "Generating HTML report in $HTML_COVERAGE ..." >&2
+  $COVERAGE html $omit -d "$HTML_COVERAGE"
+fi

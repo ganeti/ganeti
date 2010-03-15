@@ -105,12 +105,19 @@ class ChrootManager(hv_base.BaseHypervisor):
     data.sort(key=lambda x: x.count("/"), reverse=True)
     return data
 
+  @classmethod
+  def _InstanceDir(cls, instance_name):
+    """Return the root directory for an instance.
+
+    """
+    return utils.PathJoin(cls._ROOT_DIR, instance_name)
+
   def ListInstances(self):
     """Get the list of running instances.
 
     """
     return [name for name in os.listdir(self._ROOT_DIR)
-            if self._IsDirLive(os.path.join(self._ROOT_DIR, name))]
+            if self._IsDirLive(utils.PathJoin(self._ROOT_DIR, name))]
 
   def GetInstanceInfo(self, instance_name):
     """Get instance properties.
@@ -121,7 +128,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     @return: (name, id, memory, vcpus, stat, times)
 
     """
-    dir_name = "%s/%s" % (self._ROOT_DIR, instance_name)
+    dir_name = self._InstanceDir(instance_name)
     if not self._IsDirLive(dir_name):
       raise HypervisorError("Instance %s is not running" % instance_name)
     return (instance_name, 0, 0, 0, 0, 0)
@@ -134,7 +141,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     """
     data = []
     for file_name in os.listdir(self._ROOT_DIR):
-      path = os.path.join(self._ROOT_DIR, file_name)
+      path = utils.PathJoin(self._ROOT_DIR, file_name)
       if self._IsDirLive(path):
         data.append((file_name, 0, 0, 0, 0, 0))
     return data
@@ -146,7 +153,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     execute '/ganeti-chroot start'.
 
     """
-    root_dir = "%s/%s" % (self._ROOT_DIR, instance.name)
+    root_dir = self._InstanceDir(instance.name)
     if not os.path.exists(root_dir):
       try:
         os.mkdir(root_dir)
@@ -179,7 +186,7 @@ class ChrootManager(hv_base.BaseHypervisor):
       - finally unmount the instance dir
 
     """
-    root_dir = "%s/%s" % (self._ROOT_DIR, instance.name)
+    root_dir = self._InstanceDir(instance.name)
     if not os.path.exists(root_dir) or not self._IsDirLive(root_dir):
       return
 
@@ -240,7 +247,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     """Return a command for connecting to the console of an instance.
 
     """
-    root_dir = "%s/%s" % (cls._ROOT_DIR, instance.name)
+    root_dir = cls._InstanceDir(instance.name)
     if not os.path.ismount(root_dir):
       raise HypervisorError("Instance %s is not running" % instance.name)
 

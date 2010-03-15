@@ -351,6 +351,9 @@ class ConfigWriter:
     # per-instance checks
     for instance_name in data.instances:
       instance = data.instances[instance_name]
+      if instance.name != instance_name:
+        result.append("instance '%s' is indexed by wrong name '%s'" %
+                      (instance.name, instance_name))
       if instance.primary_node not in data.nodes:
         result.append("instance '%s' has invalid primary node '%s'" %
                       (instance_name, instance.primary_node))
@@ -416,7 +419,10 @@ class ConfigWriter:
                     (mc_now, mc_max))
 
     # node checks
-    for node in data.nodes.values():
+    for node_name, node in data.nodes.items():
+      if node.name != node_name:
+        result.append("Node '%s' is indexed by wrong name '%s'" %
+                      (node.name, node_name))
       if [node.master_candidate, node.drained, node.offline].count(True) > 1:
         result.append("Node %s state is invalid: master_candidate=%s,"
                       " drain=%s, offline=%s" %
@@ -885,9 +891,9 @@ class ConfigWriter:
         # rename the file paths in logical and physical id
         file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
         disk.physical_id = disk.logical_id = (disk.logical_id[0],
-                                              os.path.join(file_storage_dir,
-                                                           inst.name,
-                                                           disk.iv_name))
+                                              utils.PathJoin(file_storage_dir,
+                                                             inst.name,
+                                                             disk.iv_name))
 
     self._config_data.instances[inst.name] = inst
     self._WriteConfig()
@@ -1056,14 +1062,20 @@ class ConfigWriter:
     """
     return self._UnlockedGetNodeList()
 
-  @locking.ssynchronized(_config_lock, shared=1)
-  def GetOnlineNodeList(self):
+  def _UnlockedGetOnlineNodeList(self):
     """Return the list of nodes which are online.
 
     """
     all_nodes = [self._UnlockedGetNodeInfo(node)
                  for node in self._UnlockedGetNodeList()]
     return [node.name for node in all_nodes if not node.offline]
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetOnlineNodeList(self):
+    """Return the list of nodes which are online.
+
+    """
+    return self._UnlockedGetOnlineNodeList()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodesInfo(self):
@@ -1293,7 +1305,7 @@ class ConfigWriter:
     if self._last_cluster_serial < self._config_data.cluster.serial_no:
       if not self._offline:
         result = rpc.RpcRunner.call_write_ssconf_files(
-          self._UnlockedGetNodeList(),
+          self._UnlockedGetOnlineNodeList(),
           self._UnlockedGetSsconfValues())
 
         for nname, nresu in result.items():

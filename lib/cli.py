@@ -36,6 +36,7 @@ from ganeti import opcodes
 from ganeti import luxi
 from ganeti import ssconf
 from ganeti import rpc
+from ganeti import ssh
 
 from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -45,6 +46,7 @@ __all__ = [
   # Command line options
   "ALLOCATABLE_OPT",
   "ALL_OPT",
+  "AUTO_PROMOTE_OPT",
   "AUTO_REPLACE_OPT",
   "BACKEND_OPT",
   "CLEANUP_OPT",
@@ -78,6 +80,9 @@ __all__ = [
   "MASTER_NETDEV_OPT",
   "MC_OPT",
   "NET_OPT",
+  "NEW_CLUSTER_CERT_OPT",
+  "NEW_HMAC_KEY_OPT",
+  "NEW_RAPI_CERT_OPT",
   "NEW_SECONDARY_OPT",
   "NIC_PARAMS_OPT",
   "NODE_LIST_OPT",
@@ -101,6 +106,7 @@ __all__ = [
   "OFFLINE_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
+  "RAPI_CERT_OPT",
   "READD_OPT",
   "REBOOT_TYPE_OPT",
   "REMOVE_INSTANCE_OPT",
@@ -129,6 +135,7 @@ __all__ = [
   "JobExecutor",
   "JobSubmittedException",
   "ParseTimespec",
+  "RunWhileClusterStopped",
   "SubmitOpCode",
   "SubmitOrSend",
   "UsesRPC",
@@ -148,6 +155,7 @@ __all__ = [
   "ARGS_NONE",
   "ARGS_ONE_INSTANCE",
   "ARGS_ONE_NODE",
+  "ARGS_ONE_OS",
   "ArgChoice",
   "ArgCommand",
   "ArgFile",
@@ -155,6 +163,7 @@ __all__ = [
   "ArgInstance",
   "ArgJobId",
   "ArgNode",
+  "ArgOs",
   "ArgSuggest",
   "ArgUnknown",
   "OPT_COMPL_INST_ADD_NODES",
@@ -248,11 +257,18 @@ class ArgHost(_Argument):
   """
 
 
+class ArgOs(_Argument):
+  """OS argument.
+
+  """
+
+
 ARGS_NONE = []
 ARGS_MANY_INSTANCES = [ArgInstance()]
 ARGS_MANY_NODES = [ArgNode()]
 ARGS_ONE_INSTANCE = [ArgInstance(min=1, max=1)]
 ARGS_ONE_NODE = [ArgNode(min=1, max=1)]
+ARGS_ONE_OS = [ArgOs(min=1, max=1)]
 
 
 def _ExtractTagsObject(opts, args):
@@ -713,6 +729,11 @@ ON_SECONDARY_OPT = cli_option("-s", "--on-secondary", dest="on_secondary",
                               help="Replace the disk(s) on the secondary"
                               " node (only for the drbd template)")
 
+AUTO_PROMOTE_OPT = cli_option("--auto-promote", dest="auto_promote",
+                              default=False, action="store_true",
+                              help="Lock all nodes and auto-promote as needed"
+                              " to MC status")
+
 AUTO_REPLACE_OPT = cli_option("-a", "--auto", dest="auto",
                               default=False, action="store_true",
                               help="Automatically replace faulty disks"
@@ -856,6 +877,24 @@ EARLY_RELEASE_OPT = cli_option("--early-release",
                                action="store_true",
                                help="Release the locks on the secondary"
                                " node(s) early")
+
+NEW_CLUSTER_CERT_OPT = cli_option("--new-cluster-certificate",
+                                  dest="new_cluster_cert",
+                                  default=False, action="store_true",
+                                  help="Generate a new cluster certificate")
+
+RAPI_CERT_OPT = cli_option("--rapi-certificate", dest="rapi_cert",
+                           default=None,
+                           help="File containing new RAPI certificate")
+
+NEW_RAPI_CERT_OPT = cli_option("--new-rapi-certificate", dest="new_rapi_cert",
+                               default=None, action="store_true",
+                               help=("Generate a new self-signed RAPI"
+                                     " certificate"))
+
+NEW_HMAC_KEY_OPT = cli_option("--new-hmac-key", dest="new_hmac_key",
+                              default=False, action="store_true",
+                              help="Create a new HMAC key")
 
 
 def _ParseArgs(argv, commands, aliases):
@@ -1146,12 +1185,28 @@ def PollJob(job_id, cl=None, feedback_fn=None):
   prev_job_info = None
   prev_logmsg_serial = None
 
+  status = None
+
+  notified_queued = False
+  notified_waitlock = False
+
   while True:
-    result = cl.WaitForJobChange(job_id, ["status"], prev_job_info,
-                                 prev_logmsg_serial)
+    result = cl.WaitForJobChangeOnce(job_id, ["status"], prev_job_info,
+                                     prev_logmsg_serial)
     if not result:
       # job not found, go away!
       raise errors.JobLost("Job with id %s lost" % job_id)
+    elif result == constants.JOB_NOTCHANGED:
+      if status is not None and not callable(feedback_fn):
+        if status == constants.JOB_STATUS_QUEUED and not notified_queued:
+          ToStderr("Job %s is waiting in queue", job_id)
+          notified_queued = True
+        elif status == constants.JOB_STATUS_WAITLOCK and not notified_waitlock:
+          ToStderr("Job %s is trying to acquire all necessary locks", job_id)
+          notified_waitlock = True
+
+      # Wait again
+      continue
 
     # Split result, a tuple of (field values, log entries)
     (job_info, log_entries) = result
@@ -1532,6 +1587,127 @@ def GenericInstanceCreate(mode, opts, args):
   return 0
 
 
+class _RunWhileClusterStoppedHelper:
+  """Helper class for L{RunWhileClusterStopped} to simplify state management
+
+  """
+  def __init__(self, feedback_fn, cluster_name, master_node, online_nodes):
+    """Initializes this class.
+
+    @type feedback_fn: callable
+    @param feedback_fn: Feedback function
+    @type cluster_name: string
+    @param cluster_name: Cluster name
+    @type master_node: string
+    @param master_node Master node name
+    @type online_nodes: list
+    @param online_nodes: List of names of online nodes
+
+    """
+    self.feedback_fn = feedback_fn
+    self.cluster_name = cluster_name
+    self.master_node = master_node
+    self.online_nodes = online_nodes
+
+    self.ssh = ssh.SshRunner(self.cluster_name)
+
+    self.nonmaster_nodes = [name for name in online_nodes
+                            if name != master_node]
+
+    assert self.master_node not in self.nonmaster_nodes
+
+  def _RunCmd(self, node_name, cmd):
+    """Runs a command on the local or a remote machine.
+
+    @type node_name: string
+    @param node_name: Machine name
+    @type cmd: list
+    @param cmd: Command
+
+    """
+    if node_name is None or node_name == self.master_node:
+      # No need to use SSH
+      result = utils.RunCmd(cmd)
+    else:
+      result = self.ssh.Run(node_name, "root", utils.ShellQuoteArgs(cmd))
+
+    if result.failed:
+      errmsg = ["Failed to run command %s" % result.cmd]
+      if node_name:
+        errmsg.append("on node %s" % node_name)
+      errmsg.append(": exitcode %s and error %s" %
+                    (result.exit_code, result.output))
+      raise errors.OpExecError(" ".join(errmsg))
+
+  def Call(self, fn, *args):
+    """Call function while all daemons are stopped.
+
+    @type fn: callable
+    @param fn: Function to be called
+
+    """
+    # Pause watcher by acquiring an exclusive lock on watcher state file
+    self.feedback_fn("Blocking watcher")
+    watcher_block = utils.FileLock.Open(constants.WATCHER_STATEFILE)
+    try:
+      # TODO: Currently, this just blocks. There's no timeout.
+      # TODO: Should it be a shared lock?
+      watcher_block.Exclusive(blocking=True)
+
+      # Stop master daemons, so that no new jobs can come in and all running
+      # ones are finished
+      self.feedback_fn("Stopping master daemons")
+      self._RunCmd(None, [constants.DAEMON_UTIL, "stop-master"])
+      try:
+        # Stop daemons on all nodes
+        for node_name in self.online_nodes:
+          self.feedback_fn("Stopping daemons on %s" % node_name)
+          self._RunCmd(node_name, [constants.DAEMON_UTIL, "stop-all"])
+
+        # All daemons are shut down now
+        try:
+          return fn(self, *args)
+        except Exception:
+          logging.exception("Caught exception")
+          raise
+      finally:
+        # Start cluster again, master node last
+        for node_name in self.nonmaster_nodes + [self.master_node]:
+          self.feedback_fn("Starting daemons on %s" % node_name)
+          self._RunCmd(node_name, [constants.DAEMON_UTIL, "start-all"])
+    finally:
+      # Resume watcher
+      watcher_block.Close()
+
+
+def RunWhileClusterStopped(feedback_fn, fn, *args):
+  """Calls a function while all cluster daemons are stopped.
+
+  @type feedback_fn: callable
+  @param feedback_fn: Feedback function
+  @type fn: callable
+  @param fn: Function to be called when daemons are stopped
+
+  """
+  feedback_fn("Gathering cluster information")
+
+  # This ensures we're running on the master daemon
+  cl = GetClient()
+
+  (cluster_name, master_node) = \
+    cl.QueryConfigValues(["cluster_name", "master_node"])
+
+  online_nodes = GetOnlineNodes([], cl=cl)
+
+  # Don't keep a reference to the client. The master daemon will go away.
+  del cl
+
+  assert master_node in online_nodes
+
+  return _RunWhileClusterStoppedHelper(feedback_fn, cluster_name, master_node,
+                                       online_nodes).Call(fn, *args)
+
+
 def GenerateTable(headers, fields, separator, data,
                   numfields=None, unitfields=None,
                   units=None):
@@ -1773,7 +1949,7 @@ class JobExecutor(object):
   GetResults() calls.
 
   """
-  def __init__(self, cl=None, verbose=True, opts=None):
+  def __init__(self, cl=None, verbose=True, opts=None, feedback_fn=None):
     self.queue = []
     if cl is None:
       cl = GetClient()
@@ -1781,6 +1957,7 @@ class JobExecutor(object):
     self.verbose = verbose
     self.jobs = []
     self.opts = opts
+    self.feedback_fn = feedback_fn
 
   def QueueJob(self, name, *ops):
     """Record a job for later submit.
@@ -1796,8 +1973,31 @@ class JobExecutor(object):
 
     """
     results = self.cl.SubmitManyJobs([row[1] for row in self.queue])
-    for ((status, data), (name, _)) in zip(results, self.queue):
-      self.jobs.append((status, data, name))
+    for (idx, ((status, data), (name, _))) in enumerate(zip(results,
+                                                            self.queue)):
+      self.jobs.append((idx, status, data, name))
+
+  def _ChooseJob(self):
+    """Choose a non-waiting/queued job to poll next.
+
+    """
+    assert self.jobs, "_ChooseJob called with empty job list"
+
+    result = self.cl.QueryJobs([i[2] for i in self.jobs], ["status"])
+    assert result
+
+    for job_data, status in zip(self.jobs, result):
+      if status[0] in (constants.JOB_STATUS_QUEUED,
+                    constants.JOB_STATUS_WAITLOCK,
+                    constants.JOB_STATUS_CANCELING):
+        # job is still waiting
+        continue
+      # good candidate found
+      self.jobs.remove(job_data)
+      return job_data
+
+    # no job found
+    return self.jobs.pop(0)
 
   def GetResults(self):
     """Wait for and return the results of all jobs.
@@ -1812,18 +2012,21 @@ class JobExecutor(object):
       self.SubmitPending()
     results = []
     if self.verbose:
-      ok_jobs = [row[1] for row in self.jobs if row[0]]
+      ok_jobs = [row[2] for row in self.jobs if row[1]]
       if ok_jobs:
         ToStdout("Submitted jobs %s", utils.CommaJoin(ok_jobs))
-    for submit_status, jid, name in self.jobs:
-      if not submit_status:
-        ToStderr("Failed to submit job for %s: %s", name, jid)
-        results.append((False, jid))
-        continue
-      if self.verbose:
-        ToStdout("Waiting for job %s for %s...", jid, name)
+
+    # first, remove any non-submitted jobs
+    self.jobs, failures = utils.partition(self.jobs, lambda x: x[1])
+    for idx, _, jid, name in failures:
+      ToStderr("Failed to submit job for %s: %s", name, jid)
+      results.append((idx, False, jid))
+
+    while self.jobs:
+      (idx, _, jid, name) = self._ChooseJob()
+      ToStdout("Waiting for job %s for %s...", jid, name)
       try:
-        job_result = PollJob(jid, cl=self.cl)
+        job_result = PollJob(jid, cl=self.cl, feedback_fn=self.feedback_fn)
         success = True
       except (errors.GenericError, luxi.ProtocolError), err:
         _, job_result = FormatError(err)
@@ -1831,7 +2034,12 @@ class JobExecutor(object):
         # the error message will always be shown, verbose or not
         ToStderr("Job %s for %s has failed: %s", jid, name, job_result)
 
-      results.append((success, job_result))
+      results.append((idx, success, job_result))
+
+    # sort based on the index, then drop it
+    results.sort()
+    results = [i[1:] for i in results]
+
     return results
 
   def WaitOrShow(self, wait):

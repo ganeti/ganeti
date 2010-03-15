@@ -64,16 +64,6 @@ class NotMasterError(errors.GenericError):
   """Exception raised when this host is not the master."""
 
 
-def Indent(s, prefix='| '):
-  """Indent a piece of text with a given prefix before each line.
-
-  @param s: the string to indent
-  @param prefix: the string to prepend each line
-
-  """
-  return "%s%s\n" % (prefix, ('\n' + prefix).join(s.splitlines()))
-
-
 def ShouldPause():
   """Check whether we should pause.
 
@@ -81,36 +71,54 @@ def ShouldPause():
   return bool(utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE))
 
 
-def EnsureDaemon(name):
-  """Check for and start daemon if not alive.
+def StartNodeDaemons():
+  """Start all the daemons that should be running on all nodes.
 
   """
-  result = utils.RunCmd([constants.DAEMON_UTIL, "check-and-start", name])
-  if result.failed:
-    logging.error("Can't start daemon '%s', failure %s, output: %s",
-                  name, result.fail_reason, result.output)
-    return False
+  # on master or not, try to start the node dameon
+  utils.EnsureDaemon(constants.NODED)
+  # start confd as well. On non candidates it will be in disabled mode.
+  utils.EnsureDaemon(constants.CONFD)
 
-  return True
+
+def RunWatcherHooks():
+  """Run the watcher hooks.
+
+  """
+  hooks_dir = utils.PathJoin(constants.HOOKS_BASE_DIR,
+                             constants.HOOKS_NAME_WATCHER)
+
+  try:
+    results = utils.RunParts(hooks_dir)
+  except Exception, msg: # pylint: disable-msg=W0703
+    logging.critical("RunParts %s failed: %s", hooks_dir, msg)
+
+  for (relname, status, runresult) in results:
+    if status == constants.RUNPARTS_SKIP:
+      logging.debug("Watcher hook %s: skipped", relname)
+    elif status == constants.RUNPARTS_ERR:
+      logging.warning("Watcher hook %s: error (%s)", relname, runresult)
+    elif status == constants.RUNPARTS_RUN:
+      if runresult.failed:
+        logging.warning("Watcher hook %s: failed (exit: %d) (output: %s)",
+                        relname, runresult.exit_code, runresult.output)
+      else:
+        logging.debug("Watcher hook %s: success (output: %s)", relname,
+                      runresult.output)
 
 
 class WatcherState(object):
   """Interface to a state file recording restart attempts.
 
   """
-  def __init__(self):
+  def __init__(self, statefile):
     """Open, lock, read and parse the file.
 
-    Raises exception on lock contention.
+    @type statefile: file
+    @param statefile: State file object
 
     """
-    # The two-step dance below is necessary to allow both opening existing
-    # file read/write and creating if not existing.  Vanilla open will truncate
-    # an existing file -or- allow creating if not existing.
-    fd = os.open(constants.WATCHER_STATEFILE, os.O_RDWR | os.O_CREAT)
-    self.statefile = os.fdopen(fd, 'w+')
-
-    utils.LockFile(self.statefile.fileno())
+    self.statefile = statefile
 
     try:
       state_data = self.statefile.read()
@@ -440,7 +448,34 @@ class Watcher(object):
            for name in offline_disk_instances]
     job_id = cli.SendJob(job, cl=client)
 
-    cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)
+    try:
+      cli.PollJob(job_id, cl=client, feedback_fn=logging.debug)
+    except Exception: # pylint: disable-msg=W0703
+      logging.exception("Error while activating disks")
+
+
+def OpenStateFile(path):
+  """Opens the state file and acquires a lock on it.
+
+  @type path: string
+  @param path: Path to state file
+
+  """
+  # The two-step dance below is necessary to allow both opening existing
+  # file read/write and creating if not existing. Vanilla open will truncate
+  # an existing file -or- allow creating if not existing.
+  statefile_fd = os.open(path, os.O_RDWR | os.O_CREAT)
+
+  # Try to acquire lock on state file. If this fails, another watcher instance
+  # might already be running or another program is temporarily blocking the
+  # watcher from running.
+  try:
+    utils.LockFile(statefile_fd)
+  except errors.LockError, err:
+    logging.error("Can't acquire lock on state file %s: %s", path, err)
+    return None
+
+  return os.fdopen(statefile_fd, "w+")
 
 
 def ParseOptions():
@@ -482,14 +517,16 @@ def main():
     logging.debug("Pause has been set, exiting")
     sys.exit(constants.EXIT_SUCCESS)
 
+  statefile = OpenStateFile(constants.WATCHER_STATEFILE)
+  if not statefile:
+    sys.exit(constants.EXIT_FAILURE)
+
   update_file = False
   try:
-    # on master or not, try to start the node dameon
-    EnsureDaemon(constants.NODED)
-    # start confd as well. On non candidates it will be in disabled mode.
-    EnsureDaemon(constants.CONFD)
+    StartNodeDaemons()
+    RunWatcherHooks()
 
-    notepad = WatcherState()
+    notepad = WatcherState(statefile)
     try:
       try:
         client = cli.GetClient()
@@ -501,14 +538,14 @@ def main():
       except luxi.NoMasterError, err:
         logging.warning("Master seems to be down (%s), trying to restart",
                         str(err))
-        if not EnsureDaemon(constants.MASTERD):
+        if not utils.EnsureDaemon(constants.MASTERD):
           logging.critical("Can't start the master, exiting")
           sys.exit(constants.EXIT_FAILURE)
         # else retry the connection
         client = cli.GetClient()
 
       # we are on master now
-      EnsureDaemon(constants.RAPI)
+      utils.EnsureDaemon(constants.RAPI)
 
       try:
         watcher = Watcher(options, notepad)
@@ -538,7 +575,7 @@ def main():
   except errors.JobQueueDrainError:
     logging.error("Job queue is drained, can't maintain cluster state")
   except Exception, err:
-    logging.error(str(err), exc_info=True)
+    logging.exception(str(err))
     sys.exit(constants.EXIT_FAILURE)
 
 

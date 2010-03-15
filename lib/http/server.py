@@ -74,12 +74,12 @@ class _HttpServerRequest(object):
   """Data structure for HTTP request on server side.
 
   """
-  def __init__(self, request_msg):
+  def __init__(self, method, path, headers, body):
     # Request attributes
-    self.request_method = request_msg.start_line.method
-    self.request_path = request_msg.start_line.path
-    self.request_headers = request_msg.headers
-    self.request_body = request_msg.body
+    self.request_method = method
+    self.request_path = path
+    self.request_headers = headers
+    self.request_body = body
 
     # Response attributes
     self.resp_headers = {}
@@ -87,6 +87,14 @@ class _HttpServerRequest(object):
     # Private data for request handler (useful in combination with
     # authentication)
     self.private = None
+
+  def __repr__(self):
+    status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
+              self.request_method, self.request_path,
+              "headers=%r" % str(self.request_headers),
+              "body=%r" % (self.request_body, )]
+
+    return "<%s at %#x>" % (" ".join(status), id(self))
 
 
 class _HttpServerToClientMessageWriter(http.HttpMessageWriter):
@@ -316,7 +324,12 @@ class HttpServerRequestExecutor(object):
     """Calls the handler function for the current request.
 
     """
-    handler_context = _HttpServerRequest(self.request_msg)
+    handler_context = _HttpServerRequest(self.request_msg.start_line.method,
+                                         self.request_msg.start_line.path,
+                                         self.request_msg.headers,
+                                         self.request_msg.body)
+
+    logging.debug("Handling request %r", handler_context)
 
     try:
       try:

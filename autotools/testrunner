@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2009 Google Inc.
+# Copyright (C) 2010 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,20 +20,9 @@
 
 set -e
 
-DATA_DIR=@LOCALSTATEDIR@/lib/ganeti
-QUEUE_ARCHIVE_DIR=$DATA_DIR/queue/archive
+filename=$1
 
-# Define how many days archived jobs should be left alone
-REMOVE_AFTER=21
-
-# Exit if machine is not part of a cluster
-[[ -e $DATA_DIR/ssconf_master_node ]] || exit 0
-
-# Exit if queue archive directory doesn't exist
-[[ -d $QUEUE_ARCHIVE_DIR ]] || exit 0
-
-# Remove old jobs
-find $QUEUE_ARCHIVE_DIR -mindepth 2 -type f -mtime +$REMOVE_AFTER -print0 | \
-xargs -r0 rm -f
-
-exit 0
+case "$filename" in
+  *.py) exec $PYTHON "$@" ;;
+  *) exec "$@" ;;
+esac

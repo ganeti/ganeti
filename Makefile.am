@@ -54,7 +54,7 @@ MAINTAINERCLEANFILES = \
 	doc/news.rst
 
 maintainer-clean-local:
-	rm -rf doc/api doc/html
+	rm -rf doc/api doc/html doc/coverage
 
 CLEANFILES = \
 	autotools/replace_vars.sed \
@@ -235,6 +235,7 @@ dist_tools_SCRIPTS = \
 	tools/burnin \
 	tools/cfgshell \
 	tools/cfgupgrade \
+	tools/cluster-merge \
 	tools/lvmstrap
 
 pkglib_SCRIPTS = \
@@ -247,6 +248,8 @@ EXTRA_DIST = \
 	autotools/check-python-code \
 	autotools/check-man \
 	autotools/docbook-wrapper \
+	autotools/gen-coverage \
+	autotools/testrunner \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -313,23 +316,26 @@ TEST_FILES = \
 	test/data/bdev-8.3-both.txt \
 	test/data/bdev-disk.txt \
 	test/data/bdev-net.txt \
+	test/data/cert1.pem \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd83.txt
 
-dist_TESTS = \
+python_tests = \
 	test/ganeti.bdev_unittest.py \
 	test/ganeti.cli_unittest.py \
 	test/ganeti.cmdlib_unittest.py \
 	test/ganeti.confd_client_unittest.py \
 	test/ganeti.config_unittest.py \
 	test/ganeti.constants_unittest.py \
+	test/ganeti.errors_unittest.py \
 	test/ganeti.hooks_unittest.py \
 	test/ganeti.http_unittest.py \
 	test/ganeti.locking_unittest.py \
 	test/ganeti.luxi_unittest.py \
 	test/ganeti.mcpu_unittest.py \
 	test/ganeti.objects_unittest.py \
+	test/ganeti.opcodes_unittest.py \
 	test/ganeti.rapi.resources_unittest.py \
 	test/ganeti.serializer_unittest.py \
 	test/ganeti.ssh_unittest.py \
@@ -338,18 +344,26 @@ dist_TESTS = \
 	test/docs_unittest.py \
 	test/tempfile_fork_unittest.py
 
+dist_TESTS = \
+	test/daemon-util_unittest.bash \
+	$(python_tests)
+
 nodist_TESTS =
 
 TESTS = $(dist_TESTS) $(nodist_TESTS)
 
+# Environment for all tests
+PLAIN_TESTS_ENVIRONMENT = \
+	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) PYTHON=$(PYTHON) $(RUN_IN_TEMPDIR)
+
+# Environment for tests run by automake
 TESTS_ENVIRONMENT = \
-	PYTHONPATH=. TOP_SRCDIR=$(abs_top_srcdir) \
-	$(RUN_IN_TEMPDIR) $(PYTHON)
+	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/testrunner
 
 all_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
-	$(dist_TESTS) \
+	$(python_tests) \
 	$(pkgpython_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(rapi_PYTHON) \
@@ -359,6 +373,7 @@ all_python_code = \
 
 srclink_files = \
 	man/footer.sgml \
+	test/daemon-util_unittest.bash \
 	$(all_python_code)
 
 check_python_code = \
@@ -370,6 +385,8 @@ lint_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
 	$(BUILD_BASH_COMPLETION)
+
+test/daemon-util_unittest.bash: daemons/daemon-util
 
 devel/upload: devel/upload.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
@@ -442,12 +459,14 @@ lib/_autoconf.py: Makefile stamp-directories
 	  echo "VERSION_FULL = '$(VERSION_FULL)'"; \
 	  echo "LOCALSTATEDIR = '$(localstatedir)'"; \
 	  echo "SYSCONFDIR = '$(sysconfdir)'"; \
+	  echo "SSH_CONFIG_DIR = '$(SSH_CONFIG_DIR)'"; \
 	  echo "EXPORT_DIR = '$(EXPORT_DIR)'"; \
 	  echo "OS_SEARCH_PATH = [$(OS_SEARCH_PATH)]"; \
 	  echo "XEN_BOOTLOADER = '$(XEN_BOOTLOADER)'"; \
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "FILE_STORAGE_DIR = '$(FILE_STORAGE_DIR)'"; \
+	  echo "ENABLE_FILE_STORAGE = $(ENABLE_FILE_STORAGE)"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
 	  echo "SOCAT_PATH = '$(SOCAT)'"; \
@@ -536,5 +555,15 @@ TAGS: $(BUILT_SOURCES)
 	find . -path './lib/*.py' -o -path 'scripts/gnt-*' -o \
 	  -path 'daemons/ganeti-*' -o -path 'tools/*' | \
 	  etags -
+
+.PHONY: coverage
+coverage: $(BUILT_SOURCES) $(python_tests)
+	set -e; \
+	mkdir -p doc/coverage; \
+	COVERAGE_FILE=$(CURDIR)/doc/coverage/data \
+	TEXT_COVERAGE=$(CURDIR)/doc/coverage/report.txt \
+	HTML_COVERAGE=$(CURDIR)/doc/coverage \
+	$(PLAIN_TESTS_ENVIRONMENT) $(abs_top_srcdir)/autotools/gen-coverage \
+	$(python_tests)
 
 # vim: set noet :

@@ -33,6 +33,7 @@ import re
 import platform
 import logging
 import copy
+import OpenSSL
 
 from ganeti import ssh
 from ganeti import utils
@@ -848,6 +849,13 @@ def _FindFaultyInstanceDisks(cfg, rpc, instance, node_name, prereq):
   return faulty
 
 
+def _FormatTimestamp(secs):
+  """Formats a Unix timestamp with the local timezone.
+
+  """
+  return time.strftime("%F %T %Z", time.gmtime(secs))
+
+
 class LUPostInitCluster(LogicalUnit):
   """Logical unit for running hooks after cluster initialization.
 
@@ -939,6 +947,66 @@ class LUDestroyCluster(LogicalUnit):
     return master
 
 
+def _VerifyCertificateInner(filename, expired, not_before, not_after, now,
+                            warn_days=constants.SSL_CERT_EXPIRATION_WARN,
+                            error_days=constants.SSL_CERT_EXPIRATION_ERROR):
+  """Verifies certificate details for LUVerifyCluster.
+
+  """
+  if expired:
+    msg = "Certificate %s is expired" % filename
+
+    if not_before is not None and not_after is not None:
+      msg += (" (valid from %s to %s)" %
+              (_FormatTimestamp(not_before),
+               _FormatTimestamp(not_after)))
+    elif not_before is not None:
+      msg += " (valid from %s)" % _FormatTimestamp(not_before)
+    elif not_after is not None:
+      msg += " (valid until %s)" % _FormatTimestamp(not_after)
+
+    return (LUVerifyCluster.ETYPE_ERROR, msg)
+
+  elif not_before is not None and not_before > now:
+    return (LUVerifyCluster.ETYPE_WARNING,
+            "Certificate %s not yet valid (valid from %s)" %
+            (filename, _FormatTimestamp(not_before)))
+
+  elif not_after is not None:
+    remaining_days = int((not_after - now) / (24 * 3600))
+
+    msg = ("Certificate %s expires in %d days" % (filename, remaining_days))
+
+    if remaining_days <= error_days:
+      return (LUVerifyCluster.ETYPE_ERROR, msg)
+
+    if remaining_days <= warn_days:
+      return (LUVerifyCluster.ETYPE_WARNING, msg)
+
+  return (None, None)
+
+
+def _VerifyCertificate(filename):
+  """Verifies a certificate for LUVerifyCluster.
+
+  @type filename: string
+  @param filename: Path to PEM file
+
+  """
+  try:
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           utils.ReadFile(filename))
+  except Exception, err: # pylint: disable-msg=W0703
+    return (LUVerifyCluster.ETYPE_ERROR,
+            "Failed to load X509 certificate %s: %s" % (filename, err))
+
+  # Depending on the pyOpenSSL version, this can just return (None, None)
+  (not_before, not_after) = utils.GetX509CertValidity(cert)
+
+  return _VerifyCertificateInner(filename, cert.has_expired(),
+                                 not_before, not_after, time.time())
+
+
 class LUVerifyCluster(LogicalUnit):
   """Verifies the cluster status.
 
@@ -953,6 +1021,7 @@ class LUVerifyCluster(LogicalUnit):
   TINSTANCE = "instance"
 
   ECLUSTERCFG = (TCLUSTER, "ECLUSTERCFG")
+  ECLUSTERCERT = (TCLUSTER, "ECLUSTERCERT")
   EINSTANCEBADNODE = (TINSTANCE, "EINSTANCEBADNODE")
   EINSTANCEDOWN = (TINSTANCE, "EINSTANCEDOWN")
   EINSTANCELAYOUT = (TINSTANCE, "EINSTANCELAYOUT")
@@ -1315,6 +1384,11 @@ class LUVerifyCluster(LogicalUnit):
     for msg in self.cfg.VerifyConfig():
       _ErrorIf(True, self.ECLUSTERCFG, None, msg)
 
+    # Check the cluster certificates
+    for cert_filename in constants.ALL_CERT_FILES:
+      (errcode, msg) = _VerifyCertificate(cert_filename)
+      _ErrorIf(errcode, self.ECLUSTERCERT, None, msg, code=errcode)
+
     vg_name = self.cfg.GetVGName()
     hypervisors = self.cfg.GetClusterInfo().enabled_hypervisors
     nodelist = utils.NiceSort(self.cfg.GetNodeList())
@@ -1336,8 +1410,7 @@ class LUVerifyCluster(LogicalUnit):
     master_files = [constants.CLUSTER_CONF_FILE]
 
     file_names = ssconf.SimpleStore().GetFileList()
-    file_names.append(constants.SSL_CERT_FILE)
-    file_names.append(constants.RAPI_CERT_FILE)
+    file_names.extend(constants.ALL_CERT_FILES)
     file_names.extend(master_files)
 
     local_checksums = utils.FingerprintFiles(file_names)
@@ -1439,7 +1512,8 @@ class LUVerifyCluster(LogicalUnit):
       idata = nresult.get(constants.NV_INSTANCELIST, None)
       test = not isinstance(idata, list)
       _ErrorIf(test, self.ENODEHV, node,
-               "rpc call to node failed (instancelist)")
+               "rpc call to node failed (instancelist): %s",
+               utils.SafeEncode(str(idata)))
       if test:
         continue
 
@@ -1457,17 +1531,17 @@ class LUVerifyCluster(LogicalUnit):
       try:
         ntime_merged = utils.MergeTime(ntime)
       except (ValueError, TypeError):
-        _ErrorIf(test, self.ENODETIME, node, "Node returned invalid time")
+        _ErrorIf(True, self.ENODETIME, node, "Node returned invalid time")
 
       if ntime_merged < (nvinfo_starttime - constants.NODE_MAX_CLOCK_SKEW):
-        ntime_diff = abs(nvinfo_starttime - ntime_merged)
+        ntime_diff = "%.01fs" % abs(nvinfo_starttime - ntime_merged)
       elif ntime_merged > (nvinfo_endtime + constants.NODE_MAX_CLOCK_SKEW):
-        ntime_diff = abs(ntime_merged - nvinfo_endtime)
+        ntime_diff = "%.01fs" % abs(ntime_merged - nvinfo_endtime)
       else:
         ntime_diff = None
 
       _ErrorIf(ntime_diff is not None, self.ENODETIME, node,
-               "Node time diverges by at least %0.1fs from master node time",
+               "Node time diverges by at least %s from master node time",
                ntime_diff)
 
       if ntime_diff is not None:
@@ -1544,7 +1618,7 @@ class LUVerifyCluster(LogicalUnit):
         _ErrorIf(snode not in node_info and snode not in n_offline,
                  self.ENODERPC, snode,
                  "instance %s, connection to secondary node"
-                 "failed", instance)
+                 " failed", instance)
 
         if snode in node_info:
           node_info[snode]['sinst'].append(instance)
@@ -1629,7 +1703,7 @@ class LUVerifyCluster(LogicalUnit):
           if test:
             output = indent_re.sub('      ', output)
             feedback_fn("%s" % output)
-            lu_result = 1
+            lu_result = 0
 
       return lu_result
 
@@ -2064,6 +2138,25 @@ class LUSetClusterParams(LogicalUnit):
         else:
           self.new_hvparams[hv_name].update(hv_dict)
 
+    # os hypervisor parameters
+    self.new_os_hvp = objects.FillDict(cluster.os_hvp, {})
+    if self.op.os_hvp:
+      if not isinstance(self.op.os_hvp, dict):
+        raise errors.OpPrereqError("Invalid 'os_hvp' parameter on input",
+                                   errors.ECODE_INVAL)
+      for os_name, hvs in self.op.os_hvp.items():
+        if not isinstance(hvs, dict):
+          raise errors.OpPrereqError(("Invalid 'os_hvp' parameter on"
+                                      " input"), errors.ECODE_INVAL)
+        if os_name not in self.new_os_hvp:
+          self.new_os_hvp[os_name] = hvs
+        else:
+          for hv_name, hv_dict in hvs.items():
+            if hv_name not in self.new_os_hvp[os_name]:
+              self.new_os_hvp[os_name][hv_name] = hv_dict
+            else:
+              self.new_os_hvp[os_name][hv_name].update(hv_dict)
+
     if self.op.enabled_hypervisors is not None:
       self.hv_list = self.op.enabled_hypervisors
       if not self.hv_list:
@@ -2091,6 +2184,20 @@ class LUSetClusterParams(LogicalUnit):
           hv_class.CheckParameterSyntax(hv_params)
           _CheckHVParams(self, node_list, hv_name, hv_params)
 
+    if self.op.os_hvp:
+      # no need to check any newly-enabled hypervisors, since the
+      # defaults have already been checked in the above code-block
+      for os_name, os_hvp in self.new_os_hvp.items():
+        for hv_name, hv_params in os_hvp.items():
+          utils.ForceDictType(hv_params, constants.HVS_PARAMETER_TYPES)
+          # we need to fill in the new os_hvp on top of the actual hv_p
+          cluster_defaults = self.new_hvparams.get(hv_name, {})
+          new_osp = objects.FillDict(cluster_defaults, hv_params)
+          hv_class = hypervisor.GetHypervisor(hv_name)
+          hv_class.CheckParameterSyntax(new_osp)
+          _CheckHVParams(self, node_list, hv_name, new_osp)
+
+
   def Exec(self, feedback_fn):
     """Change the parameters of the cluster.
 
@@ -2106,6 +2213,8 @@ class LUSetClusterParams(LogicalUnit):
                     " state, not changing")
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
+    if self.op.os_hvp:
+      self.cluster.os_hvp = self.new_os_hvp
     if self.op.enabled_hypervisors is not None:
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
     if self.op.beparams:
@@ -2134,7 +2243,7 @@ def _RedistributeAncillaryFiles(lu, additional_nodes=None):
   """
   # 1. Gather target nodes
   myself = lu.cfg.GetNodeInfo(lu.cfg.GetMasterNode())
-  dist_nodes = lu.cfg.GetNodeList()
+  dist_nodes = lu.cfg.GetOnlineNodeList()
   if additional_nodes is not None:
     dist_nodes.extend(additional_nodes)
   if myself.name in dist_nodes:
@@ -2907,6 +3016,10 @@ class LUAddNode(LogicalUnit):
   HTYPE = constants.HTYPE_NODE
   _OP_REQP = ["node_name"]
 
+  def CheckArguments(self):
+    # validate/normalize the node name
+    self.op.node_name = utils.HostInfo.NormalizeName(self.op.node_name)
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -3133,6 +3246,7 @@ class LUSetNodeParams(LogicalUnit):
     _CheckBooleanOpField(self.op, 'master_candidate')
     _CheckBooleanOpField(self.op, 'offline')
     _CheckBooleanOpField(self.op, 'drained')
+    _CheckBooleanOpField(self.op, 'auto_promote')
     all_mods = [self.op.offline, self.op.master_candidate, self.op.drained]
     if all_mods.count(None) == 3:
       raise errors.OpPrereqError("Please pass at least one modification",
@@ -3142,8 +3256,22 @@ class LUSetNodeParams(LogicalUnit):
                                  " state at the same time",
                                  errors.ECODE_INVAL)
 
+    # Boolean value that tells us whether we're offlining or draining the node
+    self.offline_or_drain = (self.op.offline == True or
+                             self.op.drained == True)
+    self.deoffline_or_drain = (self.op.offline == False or
+                               self.op.drained == False)
+    self.might_demote = (self.op.master_candidate == False or
+                         self.offline_or_drain)
+
+    self.lock_all = self.op.auto_promote and self.might_demote
+
+
   def ExpandNames(self):
-    self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
+    if self.lock_all:
+      self.needed_locks = {locking.LEVEL_NODE: locking.ALL_SET}
+    else:
+      self.needed_locks = {locking.LEVEL_NODE: self.op.node_name}
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3178,25 +3306,17 @@ class LUSetNodeParams(LogicalUnit):
                                    " only via masterfailover",
                                    errors.ECODE_INVAL)
 
-    # Boolean value that tells us whether we're offlining or draining the node
-    offline_or_drain = self.op.offline == True or self.op.drained == True
-    deoffline_or_drain = self.op.offline == False or self.op.drained == False
 
-    if (node.master_candidate and
-        (self.op.master_candidate == False or offline_or_drain)):
-      cp_size = self.cfg.GetClusterInfo().candidate_pool_size
-      mc_now, mc_should, mc_max = self.cfg.GetMasterCandidateStats()
-      if mc_now <= cp_size:
-        msg = ("Not enough master candidates (desired"
-               " %d, new value will be %d)" % (cp_size, mc_now-1))
-        # Only allow forcing the operation if it's an offline/drain operation,
-        # and we could not possibly promote more nodes.
-        # FIXME: this can still lead to issues if in any way another node which
-        # could be promoted appears in the meantime.
-        if self.op.force and offline_or_drain and mc_should == mc_max:
-          self.LogWarning(msg)
-        else:
-          raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
+    if node.master_candidate and self.might_demote and not self.lock_all:
+      assert not self.op.auto_promote, "auto-promote set but lock_all not"
+      # check if after removing the current node, we're missing master
+      # candidates
+      (mc_remaining, mc_should, _) = \
+          self.cfg.GetMasterCandidateStats(exceptions=[node.name])
+      if mc_remaining != mc_should:
+        raise errors.OpPrereqError("Not enough master candidates, please"
+                                   " pass auto_promote to allow promotion",
+                                   errors.ECODE_INVAL)
 
     if (self.op.master_candidate == True and
         ((node.offline and not self.op.offline == False) or
@@ -3206,7 +3326,7 @@ class LUSetNodeParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     # If we're being deofflined/drained, we'll MC ourself if needed
-    if (deoffline_or_drain and not offline_or_drain and not
+    if (self.deoffline_or_drain and not self.offline_or_drain and not
         self.op.master_candidate == True and not node.master_candidate):
       self.op.master_candidate = _DecideSelfPromotion(self)
       if self.op.master_candidate:
@@ -3261,8 +3381,13 @@ class LUSetNodeParams(LogicalUnit):
           node.offline = False
           result.append(("offline", "clear offline status due to drain"))
 
+    # we locked all nodes, we adjust the CP before updating this node
+    if self.lock_all:
+      _AdjustCandidatePool(self, [node.name])
+
     # this will trigger configuration file update, if needed
     self.cfg.Update(node, feedback_fn)
+
     # this will trigger job queue propagation or cleanup
     if changed_mc:
       self.context.ReaddNode(node)
@@ -3332,6 +3457,15 @@ class LUQueryClusterInfo(NoHooksLU):
 
     """
     cluster = self.cfg.GetClusterInfo()
+    os_hvp = {}
+
+    # Filter just for enabled hypervisors
+    for os_name, hv_dict in cluster.os_hvp.items():
+      os_hvp[os_name] = {}
+      for hv_name, hv_params in hv_dict.items():
+        if hv_name in cluster.enabled_hypervisors:
+          os_hvp[os_name][hv_name] = hv_params
+
     result = {
       "software_version": constants.RELEASE_VERSION,
       "protocol_version": constants.PROTOCOL_VERSION,
@@ -3345,6 +3479,7 @@ class LUQueryClusterInfo(NoHooksLU):
       "enabled_hypervisors": cluster.enabled_hypervisors,
       "hvparams": dict([(hypervisor_name, cluster.hvparams[hypervisor_name])
                         for hypervisor_name in cluster.enabled_hypervisors]),
+      "os_hvp": os_hvp,
       "beparams": cluster.beparams,
       "nicparams": cluster.nicparams,
       "candidate_pool_size": cluster.candidate_pool_size,
@@ -3396,7 +3531,7 @@ class LUQueryConfigValues(NoHooksLU):
       elif field == "drain_flag":
         entry = os.path.exists(constants.JOB_QUEUE_DRAIN_FILE)
       elif field == "watcher_pause":
-        return utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
+        entry = utils.ReadWatcherPauseFile(constants.WATCHER_PAUSEFILE)
       else:
         raise errors.ParameterError(field)
       values.append(entry)
@@ -5665,9 +5800,15 @@ class LUCreateInstance(LogicalUnit):
     # for tools
     if not hasattr(self.op, "name_check"):
       self.op.name_check = True
+    # validate/normalize the instance name
+    self.op.instance_name = utils.HostInfo.NormalizeName(self.op.instance_name)
     if self.op.ip_check and not self.op.name_check:
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do ip checks without a name check",
+                                 errors.ECODE_INVAL)
+    if (self.op.disk_template == constants.DT_FILE and
+        not constants.ENABLE_FILE_STORAGE):
+      raise errors.OpPrereqError("File storage disabled at configure time",
                                  errors.ECODE_INVAL)
 
   def ExpandNames(self):
@@ -5877,7 +6018,7 @@ class LUCreateInstance(LogicalUnit):
           self.needed_locks[locking.LEVEL_NODE].append(src_node)
         if not os.path.isabs(src_path):
           self.op.src_path = src_path = \
-            os.path.join(constants.EXPORT_DIR, src_path)
+            utils.PathJoin(constants.EXPORT_DIR, src_path)
 
       # On import force_variant must be True, because if we forced it at
       # initial install, our only chance when importing it back is that it
@@ -5915,17 +6056,17 @@ class LUCreateInstance(LogicalUnit):
                                  " iallocator '%s': %s" %
                                  (self.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
-    if len(ial.nodes) != ial.required_nodes:
+    if len(ial.result) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
-                                 (self.op.iallocator, len(ial.nodes),
+                                 (self.op.iallocator, len(ial.result),
                                   ial.required_nodes), errors.ECODE_FAULT)
-    self.op.pnode = ial.nodes[0]
+    self.op.pnode = ial.result[0]
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                  self.op.instance_name, self.op.iallocator,
-                 utils.CommaJoin(ial.nodes))
+                 utils.CommaJoin(ial.result))
     if ial.required_nodes == 2:
-      self.op.snode = ial.nodes[1]
+      self.op.snode = ial.result[1]
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -5984,8 +6125,8 @@ class LUCreateInstance(LogicalUnit):
           if src_path in exp_list[node].payload:
             found = True
             self.op.src_node = src_node = node
-            self.op.src_path = src_path = os.path.join(constants.EXPORT_DIR,
-                                                       src_path)
+            self.op.src_path = src_path = utils.PathJoin(constants.EXPORT_DIR,
+                                                         src_path)
             break
         if not found:
           raise errors.OpPrereqError("No export found for relative path %s" %
@@ -6022,7 +6163,7 @@ class LUCreateInstance(LogicalUnit):
         if export_info.has_option(constants.INISECT_INS, option):
           # FIXME: are the old os-es, disk sizes, etc. useful?
           export_name = export_info.get(constants.INISECT_INS, option)
-          image = os.path.join(src_path, export_name)
+          image = utils.PathJoin(src_path, export_name)
           disk_images.append(image)
         else:
           disk_images.append(False)
@@ -6155,9 +6296,8 @@ class LUCreateInstance(LogicalUnit):
       string_file_storage_dir = self.op.file_storage_dir
 
     # build the full file storage dir path
-    file_storage_dir = os.path.normpath(os.path.join(
-                                        self.cfg.GetFileStorageDir(),
-                                        string_file_storage_dir, instance))
+    file_storage_dir = utils.PathJoin(self.cfg.GetFileStorageDir(),
+                                      string_file_storage_dir, instance)
 
     disks = _GenerateDiskTemplate(self,
                                   self.op.disk_template,
@@ -6555,14 +6695,14 @@ class TLReplaceDisks(Tasklet):
                                  " %s" % (iallocator_name, ial.info),
                                  errors.ECODE_NORES)
 
-    if len(ial.nodes) != ial.required_nodes:
+    if len(ial.result) != ial.required_nodes:
       raise errors.OpPrereqError("iallocator '%s' returned invalid number"
                                  " of nodes (%s), required %s" %
                                  (iallocator_name,
-                                  len(ial.nodes), ial.required_nodes),
+                                  len(ial.result), ial.required_nodes),
                                  errors.ECODE_FAULT)
 
-    remote_node_name = ial.nodes[0]
+    remote_node_name = ial.result[0]
 
     lu.LogInfo("Selected new secondary for instance '%s': %s",
                instance_name, remote_node_name)
@@ -7216,6 +7356,60 @@ class LURepairNodeStorage(NoHooksLU):
                                            constants.SO_FIX_CONSISTENCY)
     result.Raise("Failed to repair storage unit '%s' on %s" %
                  (self.op.name, self.op.node_name))
+
+
+class LUNodeEvacuationStrategy(NoHooksLU):
+  """Computes the node evacuation strategy.
+
+  """
+  _OP_REQP = ["nodes"]
+  REQ_BGL = False
+
+  def CheckArguments(self):
+    if not hasattr(self.op, "remote_node"):
+      self.op.remote_node = None
+    if not hasattr(self.op, "iallocator"):
+      self.op.iallocator = None
+    if self.op.remote_node is not None and self.op.iallocator is not None:
+      raise errors.OpPrereqError("Give either the iallocator or the new"
+                                 " secondary, not both", errors.ECODE_INVAL)
+
+  def ExpandNames(self):
+    self.op.nodes = _GetWantedNodes(self, self.op.nodes)
+    self.needed_locks = locks = {}
+    if self.op.remote_node is None:
+      locks[locking.LEVEL_NODE] = locking.ALL_SET
+    else:
+      self.op.remote_node = _ExpandNodeName(self.cfg, self.op.remote_node)
+      locks[locking.LEVEL_NODE] = self.op.nodes + [self.op.remote_node]
+
+  def CheckPrereq(self):
+    pass
+
+  def Exec(self, feedback_fn):
+    if self.op.remote_node is not None:
+      instances = []
+      for node in self.op.nodes:
+        instances.extend(_GetNodeSecondaryInstances(self.cfg, node))
+      result = []
+      for i in instances:
+        if i.primary_node == self.op.remote_node:
+          raise errors.OpPrereqError("Node %s is the primary node of"
+                                     " instance %s, cannot use it as"
+                                     " secondary" %
+                                     (self.op.remote_node, i.name),
+                                     errors.ECODE_INVAL)
+        result.append([i.name, self.op.remote_node])
+    else:
+      ial = IAllocator(self.cfg, self.rpc,
+                       mode=constants.IALLOCATOR_MODE_MEVAC,
+                       evac_nodes=self.op.nodes)
+      ial.Run(self.op.iallocator, validate=True)
+      if not ial.success:
+        raise errors.OpExecError("No valid evacuation solution: %s" % ial.info,
+                                 errors.ECODE_NORES)
+      result = ial.result
+    return result
 
 
 class LUGrowDisk(LogicalUnit):
@@ -8522,33 +8716,42 @@ class IAllocator(object):
   # pylint: disable-msg=R0902
   # lots of instance attributes
   _ALLO_KEYS = [
-    "mem_size", "disks", "disk_template",
+    "name", "mem_size", "disks", "disk_template",
     "os", "tags", "nics", "vcpus", "hypervisor",
     ]
   _RELO_KEYS = [
-    "relocate_from",
+    "name", "relocate_from",
+    ]
+  _EVAC_KEYS = [
+    "evac_nodes",
     ]
 
-  def __init__(self, cfg, rpc, mode, name, **kwargs):
+  def __init__(self, cfg, rpc, mode, **kwargs):
     self.cfg = cfg
     self.rpc = rpc
     # init buffer variables
     self.in_text = self.out_text = self.in_data = self.out_data = None
     # init all input fields so that pylint is happy
     self.mode = mode
-    self.name = name
     self.mem_size = self.disks = self.disk_template = None
     self.os = self.tags = self.nics = self.vcpus = None
     self.hypervisor = None
     self.relocate_from = None
+    self.name = None
+    self.evac_nodes = None
     # computed fields
     self.required_nodes = None
     # init result fields
-    self.success = self.info = self.nodes = None
+    self.success = self.info = self.result = None
     if self.mode == constants.IALLOCATOR_MODE_ALLOC:
       keyset = self._ALLO_KEYS
+      fn = self._AddNewInstance
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       keyset = self._RELO_KEYS
+      fn = self._AddRelocateInstance
+    elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
+      keyset = self._EVAC_KEYS
+      fn = self._AddEvacuateNodes
     else:
       raise errors.ProgrammerError("Unknown mode '%s' passed to the"
                                    " IAllocator" % self.mode)
@@ -8557,11 +8760,12 @@ class IAllocator(object):
         raise errors.ProgrammerError("Invalid input parameter '%s' to"
                                      " IAllocator" % key)
       setattr(self, key, kwargs[key])
+
     for key in keyset:
       if key not in kwargs:
         raise errors.ProgrammerError("Missing input parameter '%s' to"
                                      " IAllocator" % key)
-    self._BuildInputData()
+    self._BuildInputData(fn)
 
   def _ComputeClusterData(self):
     """Compute the generic allocator input data.
@@ -8590,6 +8794,8 @@ class IAllocator(object):
       hypervisor_name = self.hypervisor
     elif self.mode == constants.IALLOCATOR_MODE_RELOC:
       hypervisor_name = cfg.GetInstanceInfo(self.name).hypervisor
+    elif self.mode == constants.IALLOCATOR_MODE_MEVAC:
+      hypervisor_name = cluster_info.enabled_hypervisors[0]
 
     node_data = self.rpc.call_node_info(node_list, cfg.GetVGName(),
                                         hypervisor_name)
@@ -8700,8 +8906,6 @@ class IAllocator(object):
     done.
 
     """
-    data = self.in_data
-
     disk_space = _ComputeDiskSize(self.disk_template, self.disks)
 
     if self.disk_template in constants.DTS_NET_MIRROR:
@@ -8709,7 +8913,6 @@ class IAllocator(object):
     else:
       self.required_nodes = 1
     request = {
-      "type": "allocate",
       "name": self.name,
       "disk_template": self.disk_template,
       "tags": self.tags,
@@ -8721,7 +8924,7 @@ class IAllocator(object):
       "nics": self.nics,
       "required_nodes": self.required_nodes,
       }
-    data["request"] = request
+    return request
 
   def _AddRelocateInstance(self):
     """Add relocate instance data to allocator structure.
@@ -8751,24 +8954,31 @@ class IAllocator(object):
     disk_space = _ComputeDiskSize(instance.disk_template, disk_sizes)
 
     request = {
-      "type": "relocate",
       "name": self.name,
       "disk_space_total": disk_space,
       "required_nodes": self.required_nodes,
       "relocate_from": self.relocate_from,
       }
-    self.in_data["request"] = request
+    return request
 
-  def _BuildInputData(self):
+  def _AddEvacuateNodes(self):
+    """Add evacuate nodes data to allocator structure.
+
+    """
+    request = {
+      "evac_nodes": self.evac_nodes
+      }
+    return request
+
+  def _BuildInputData(self, fn):
     """Build input data structures.
 
     """
     self._ComputeClusterData()
 
-    if self.mode == constants.IALLOCATOR_MODE_ALLOC:
-      self._AddNewInstance()
-    else:
-      self._AddRelocateInstance()
+    request = fn()
+    request["type"] = self.mode
+    self.in_data["request"] = request
 
     self.in_text = serializer.Dump(self.in_data)
 
@@ -8801,14 +9011,19 @@ class IAllocator(object):
     if not isinstance(rdict, dict):
       raise errors.OpExecError("Can't parse iallocator results: not a dict")
 
-    for key in "success", "info", "nodes":
+    # TODO: remove backwards compatiblity in later versions
+    if "nodes" in rdict and "result" not in rdict:
+      rdict["result"] = rdict["nodes"]
+      del rdict["nodes"]
+
+    for key in "success", "info", "result":
       if key not in rdict:
         raise errors.OpExecError("Can't parse iallocator results:"
                                  " missing key '%s'" % key)
       setattr(self, key, rdict[key])
 
-    if not isinstance(rdict["nodes"], list):
-      raise errors.OpExecError("Can't parse iallocator results: 'nodes' key"
+    if not isinstance(rdict["result"], list):
+      raise errors.OpExecError("Can't parse iallocator results: 'result' key"
                                " is not a list")
     self.out_data = rdict
 
@@ -8867,6 +9082,10 @@ class LUTestAllocator(NoHooksLU):
       fname = _ExpandInstanceName(self.cfg, self.op.name)
       self.op.name = fname
       self.relocate_from = self.cfg.GetInstanceInfo(fname).secondary_nodes
+    elif self.op.mode == constants.IALLOCATOR_MODE_MEVAC:
+      if not hasattr(self.op, "evac_nodes"):
+        raise errors.OpPrereqError("Missing attribute 'evac_nodes' on"
+                                   " opcode input", errors.ECODE_INVAL)
     else:
       raise errors.OpPrereqError("Invalid test allocator mode '%s'" %
                                  self.op.mode, errors.ECODE_INVAL)
@@ -8896,12 +9115,19 @@ class LUTestAllocator(NoHooksLU):
                        vcpus=self.op.vcpus,
                        hypervisor=self.op.hypervisor,
                        )
-    else:
+    elif self.op.mode == constants.IALLOCATOR_MODE_RELOC:
       ial = IAllocator(self.cfg, self.rpc,
                        mode=self.op.mode,
                        name=self.op.name,
                        relocate_from=list(self.relocate_from),
                        )
+    elif self.op.mode == constants.IALLOCATOR_MODE_MEVAC:
+      ial = IAllocator(self.cfg, self.rpc,
+                       mode=self.op.mode,
+                       evac_nodes=self.op.evac_nodes)
+    else:
+      raise errors.ProgrammerError("Uncatched mode %s in"
+                                   " LUTestAllocator.Exec", self.op.mode)
 
     if self.op.direction == constants.IALLOCATOR_DIR_IN:
       result = ial.in_text
