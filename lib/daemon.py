@@ -91,20 +91,23 @@ class AsyncUDPSocket(asyncore.dispatcher):
     # differ and treat all messages equally.
     pass
 
+  def do_read(self):
+    try:
+      payload, address = self.recvfrom(constants.MAX_UDP_DATA_SIZE)
+    except socket.error, err:
+      if err.errno == errno.EINTR:
+        # we got a signal while trying to read. no need to do anything,
+        # handle_read will be called again if there is data on the socket.
+        return
+      else:
+        raise
+    ip, port = address
+    self.handle_datagram(payload, ip, port)
+
   # this method is overriding an asyncore.dispatcher method
   def handle_read(self):
     try:
-      try:
-        payload, address = self.recvfrom(constants.MAX_UDP_DATA_SIZE)
-      except socket.error, err:
-        if err.errno == errno.EINTR:
-          # we got a signal while trying to read. no need to do anything,
-          # handle_read will be called again if there is data on the socket.
-          return
-        else:
-          raise
-      ip, port = address
-      self.handle_datagram(payload, ip, port)
+      self.do_read()
     except: # pylint: disable-msg=W0702
       # we need to catch any exception here, log it, but proceed, because even
       # if we failed handling a single request, we still want to continue.
