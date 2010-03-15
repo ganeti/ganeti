@@ -185,6 +185,8 @@ class ConfdClient:
     @param args: additional callback arguments
     @type coverage: integer
     @param coverage: number of remote nodes to contact
+    @type async: boolean
+    @param async: handle the write asynchronously
 
     """
     if coverage is None:
@@ -220,6 +222,9 @@ class ConfdClient:
     expire_time = now + constants.CONFD_CLIENT_EXPIRE_TIMEOUT
     self._expire_requests.append((expire_time, request.rsalt))
 
+    if not async:
+      self.FlushSendQueue()
+
   def HandleResponse(self, payload, ip, port):
     """Asynchronous handler for a confd reply
 
@@ -254,6 +259,26 @@ class ConfdClient:
 
     finally:
       self.ExpireRequests()
+
+  def FlushSendQueue(self):
+    """Send out all pending requests.
+
+    Can be used for synchronous client use.
+
+    """
+    while self._socket.writable():
+      self._socket.handle_write()
+
+  def ReceiveReply(self, timeout=1):
+    """Receive one reply.
+
+    @type timeout: float
+    @param timeout: how long to wait for the reply
+    @rtype: boolean
+    @return: True if some data has been handled, False otherwise
+
+    """
+    return self._socket.process_next_packet(timeout=timeout)
 
 
 # UPCALL_REPLY: server reply upcall
