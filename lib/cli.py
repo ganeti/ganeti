@@ -1679,8 +1679,10 @@ class _RunWhileClusterStoppedHelper:
         # All daemons are shut down now
         try:
           return fn(self, *args)
-        except Exception:
+        except Exception, err:
+          _, errmsg = FormatError(err)
           logging.exception("Caught exception")
+          self.feedback_fn(errmsg)
           raise
       finally:
         # Start cluster again, master node last

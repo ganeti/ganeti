@@ -3339,7 +3339,7 @@ class LUSetNodeParams(LogicalUnit):
       # candidates
       (mc_remaining, mc_should, _) = \
           self.cfg.GetMasterCandidateStats(exceptions=[node.name])
-      if mc_remaining != mc_should:
+      if mc_remaining < mc_should:
         raise errors.OpPrereqError("Not enough master candidates, please"
                                    " pass auto_promote to allow promotion",
                                    errors.ECODE_INVAL)
