@@ -37,6 +37,7 @@ import threading
 
 from ganeti import workerpool
 from ganeti import http
+from ganeti import utils
 
 
 HTTP_CLIENT_THREADS = 10
@@ -249,8 +250,8 @@ class HttpClientRequestExecutor(http.HttpBase):
 
     if not connected:
       # Wait for connection
-      event = http.WaitForSocketCondition(self.sock, select.POLLOUT,
-                                          self.CONNECT_TIMEOUT)
+      event = utils.WaitForSocketCondition(self.sock, select.POLLOUT,
+                                           self.CONNECT_TIMEOUT)
       if event is None:
         raise http.HttpError("Timeout while connecting to server")
 

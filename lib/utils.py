@@ -1497,6 +1497,44 @@ except NameError:
     return False
 
 
+def WaitForSocketCondition(sock, event, timeout):
+  """Waits for a condition to occur on the socket.
+
+  @type sock: socket
+  @param sock: Wait for events on this socket
+  @type event: int
+  @param event: ORed condition (see select module)
+  @type timeout: float or None
+  @param timeout: Timeout in seconds
+  @rtype: int or None
+  @return: None for timeout, otherwise occured conditions
+
+  """
+  check = (event | select.POLLPRI |
+           select.POLLNVAL | select.POLLHUP | select.POLLERR)
+
+  if timeout is not None:
+    # Poller object expects milliseconds
+    timeout *= 1000
+
+  poller = select.poll()
+  poller.register(sock, event)
+  try:
+    while True:
+      # TODO: If the main thread receives a signal and we have no timeout, we
+      # could wait forever. This should check a global "quit" flag or
+      # something every so often.
+      io_events = poller.poll(timeout)
+      if not io_events:
+        # Timeout
+        return None
+      for (_, evcond) in io_events:
+        if evcond & check:
+          return evcond
+  finally:
+    poller.unregister(sock)
+
+
 def partition(seq, pred=bool): # # pylint: disable-msg=W0622
   "Partition a list in two, based on the given predicate"
   return (list(itertools.ifilter(pred, seq)),
