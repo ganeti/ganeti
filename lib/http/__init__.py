@@ -361,7 +361,7 @@ def SocketOperation(sock, op, arg1, timeout):
       else:
         wait_for_event = event_poll
 
-      event = utils.WaitForSocketCondition(sock, wait_for_event, timeout)
+      event = utils.WaitForFdCondition(sock, wait_for_event, timeout)
       if event is None:
         raise HttpSocketTimeout()
 

@@ -250,8 +250,8 @@ class HttpClientRequestExecutor(http.HttpBase):
 
     if not connected:
       # Wait for connection
-      event = utils.WaitForSocketCondition(self.sock, select.POLLOUT,
-                                           self.CONNECT_TIMEOUT)
+      event = utils.WaitForFdCondition(self.sock, select.POLLOUT,
+                                       self.CONNECT_TIMEOUT)
       if event is None:
         raise http.HttpError("Timeout while connecting to server")
 

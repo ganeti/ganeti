@@ -1497,12 +1497,14 @@ except NameError:
     return False
 
 
-def WaitForSocketCondition(sock, event, timeout):
+def SingleWaitForFdCondition(fdobj, event, timeout):
   """Waits for a condition to occur on the socket.
 
-  @type sock: socket
-  @param sock: Wait for events on this socket
-  @type event: int
+  Immediately returns at the first interruption.
+
+  @type fdobj: integer or object supporting a fileno() method
+  @param fdobj: entity to wait for events on
+  @type event: integer
   @param event: ORed condition (see select module)
   @type timeout: float or None
   @param timeout: Timeout in seconds
@@ -1518,21 +1520,69 @@ def WaitForSocketCondition(sock, event, timeout):
     timeout *= 1000
 
   poller = select.poll()
-  poller.register(sock, event)
+  poller.register(fdobj, event)
   try:
-    while True:
-      # TODO: If the main thread receives a signal and we have no timeout, we
-      # could wait forever. This should check a global "quit" flag or
-      # something every so often.
-      io_events = poller.poll(timeout)
-      if not io_events:
-        # Timeout
-        return None
-      for (_, evcond) in io_events:
-        if evcond & check:
-          return evcond
-  finally:
-    poller.unregister(sock)
+    # TODO: If the main thread receives a signal and we have no timeout, we
+    # could wait forever. This should check a global "quit" flag or something
+    # every so often.
+    io_events = poller.poll(timeout)
+  except select.error, err:
+    if err[0] != errno.EINTR:
+      raise
+    io_events = []
+  if io_events and io_events[0][1] & check:
+    return io_events[0][1]
+  else:
+    return None
+
+
+class FdConditionWaiterHelper(object):
+  """Retry helper for WaitForFdCondition.
+
+  This class contains the retried and wait functions that make sure
+  WaitForFdCondition can continue waiting until the timeout is actually
+  expired.
+
+  """
+
+  def __init__(self, timeout):
+    self.timeout = timeout
+
+  def Poll(self, fdobj, event):
+    result = SingleWaitForFdCondition(fdobj, event, self.timeout)
+    if result is None:
+      raise RetryAgain()
+    else:
+      return result
+
+  def UpdateTimeout(self, timeout):
+    self.timeout = timeout
+
+
+def WaitForFdCondition(fdobj, event, timeout):
+  """Waits for a condition to occur on the socket.
+
+  Retries until the timeout is expired, even if interrupted.
+
+  @type fdobj: integer or object supporting a fileno() method
+  @param fdobj: entity to wait for events on
+  @type event: integer
+  @param event: ORed condition (see select module)
+  @type timeout: float or None
+  @param timeout: Timeout in seconds
+  @rtype: int or None
+  @return: None for timeout, otherwise occured conditions
+
+  """
+  if timeout is not None:
+    retrywaiter = FdConditionWaiterHelper(timeout)
+    result = Retry(retrywaiter.Poll, RETRY_REMAINING_TIME, timeout,
+                   args=(fdobj, event), wait_fn=retrywaiter.UpdateTimeout)
+  else:
+    result = None
+    while result is None:
+      result = SingleWaitForFdCondition(fdobj, event, timeout)
+  return result
 
 
 def partition(seq, pred=bool): # # pylint: disable-msg=W0622
