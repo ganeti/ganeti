@@ -715,6 +715,9 @@
         <sbr>
         <arg choice="opt">--new-rapi-certificate</arg>
         <arg choice="opt">--rapi-certificate <replaceable>rapi-cert</replaceable></arg>
+        <sbr>
+        <arg choice="opt">--new-cluster-domain-secret</arg>
+        <arg choice="opt">--cluster-domain-secret <replaceable>filename</replaceable></arg>
       </cmdsynopsis>
 
       <para>
@@ -726,13 +729,23 @@
         cluster-internal SSL certificate respective the HMAC key used by
         <citerefentry>
         <refentrytitle>ganeti-confd</refentrytitle><manvolnum>8</manvolnum>
-        </citerefentry>. To generate a new self-signed RAPI certificate (used
-        by <citerefentry>
+        </citerefentry>.
+      </para>
+
+      <para>
+        To generate a new self-signed RAPI certificate (used by <citerefentry>
         <refentrytitle>ganeti-rapi</refentrytitle><manvolnum>8</manvolnum>
         </citerefentry>) specify <option>--new-rapi-certificate</option>. If
         you want to use your own certificate, e.g. one signed by a certificate
         authority (CA), pass its filename to
         <option>--rapi-certificate</option>.
+      </para>
+
+      <para>
+        <option>--new-cluster-domain-secret</option> generates a new, random
+        cluster domain secret. <option>--cluster-domain-secret</option> reads
+        the secret from a file. The cluster domain secret is used to sign
+        information exchanged between separate clusters via a third party.
       </para>
     </refsect2>
 

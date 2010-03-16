@@ -50,6 +50,7 @@ __all__ = [
   "AUTO_REPLACE_OPT",
   "BACKEND_OPT",
   "CLEANUP_OPT",
+  "CLUSTER_DOMAIN_SECRET_OPT",
   "CONFIRM_OPT",
   "CP_SIZE_OPT",
   "DEBUG_OPT",
@@ -81,6 +82,7 @@ __all__ = [
   "MC_OPT",
   "NET_OPT",
   "NEW_CLUSTER_CERT_OPT",
+  "NEW_CLUSTER_DOMAIN_SECRET_OPT",
   "NEW_CONFD_HMAC_KEY_OPT",
   "NEW_RAPI_CERT_OPT",
   "NEW_SECONDARY_OPT",
@@ -824,7 +826,6 @@ MASTER_NETDEV_OPT = cli_option("--master-netdev", dest="master_netdev",
                                metavar="NETDEV",
                                default=constants.DEFAULT_BRIDGE)
 
-
 GLOBAL_FILEDIR_OPT = cli_option("--file-storage-dir", dest="file_storage_dir",
                                 help="Specify the default directory (cluster-"
                                 "wide) for storing the file-based disks [%s]" %
@@ -897,6 +898,18 @@ NEW_CONFD_HMAC_KEY_OPT = cli_option("--new-confd-hmac-key",
                                     default=False, action="store_true",
                                     help=("Create a new HMAC key for %s" %
                                           constants.CONFD))
+
+CLUSTER_DOMAIN_SECRET_OPT = cli_option("--cluster-domain-secret",
+                                       dest="cluster_domain_secret",
+                                       default=None,
+                                       help=("Load new new cluster domain"
+                                             " secret from file"))
+
+NEW_CLUSTER_DOMAIN_SECRET_OPT = cli_option("--new-cluster-domain-secret",
+                                           dest="new_cluster_domain_secret",
+                                           default=False, action="store_true",
+                                           help=("Create a new cluster domain"
+                                                 " secret"))
 
 
 def _ParseArgs(argv, commands, aliases):

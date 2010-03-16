@@ -77,7 +77,7 @@ def GenerateHmacKey(file_name):
 
 
 def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
-                          rapi_cert_pem=None):
+                          new_cds, rapi_cert_pem=None, cds=None):
   """Updates the cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -86,8 +86,12 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
   @param new_rapi_cert: Whether to generate a new RAPI certificate
   @type new_confd_hmac_key: bool
   @param new_confd_hmac_key: Whether to generate a new HMAC key
+  @type new_cds: bool
+  @param new_cds: Whether to generate a new cluster domain secret
   @type rapi_cert_pem: string
   @param rapi_cert_pem: New RAPI certificate in PEM format
+  @type cds: string
+  @param cds: New cluster domain secret
 
   """
   # noded SSL certificate
@@ -122,6 +126,18 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_confd_hmac_key,
                   constants.RAPI_CERT_FILE)
     utils.GenerateSelfSignedSslCert(constants.RAPI_CERT_FILE)
 
+  # Cluster domain secret
+  if cds:
+    logging.debug("Writing cluster domain secret to %s",
+                  constants.CLUSTER_DOMAIN_SECRET_FILE)
+    utils.WriteFile(constants.CLUSTER_DOMAIN_SECRET_FILE,
+                    data=cds, backup=True)
+
+  elif new_cds or not os.path.exists(constants.CLUSTER_DOMAIN_SECRET_FILE):
+    logging.debug("Generating new cluster domain secret at %s",
+                  constants.CLUSTER_DOMAIN_SECRET_FILE)
+    GenerateHmacKey(constants.CLUSTER_DOMAIN_SECRET_FILE)
+
 
 def _InitGanetiServerSetup(master_name):
   """Setup the necessary configuration for the initial node daemon.
@@ -131,7 +147,7 @@ def _InitGanetiServerSetup(master_name):
 
   """
   # Generate cluster secrets
-  GenerateClusterCrypto(True, False, False)
+  GenerateClusterCrypto(True, False, False, False)
 
   result = utils.RunCmd([constants.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
@@ -415,6 +431,7 @@ def SetupNodeDaemon(cluster_name, node, ssh_key_check):
   # and then connect with ssh to set password and start ganeti-noded
   # note that all the below variables are sanitized at this point,
   # either by being constants or by the checks above
+  # TODO: Could this command exceed a shell's maximum command length?
   mycommand = ("umask 077 && "
                "cat > '%s' << '!EOF.' && \n"
                "%s!EOF.\n"
