@@ -2109,7 +2109,7 @@ def FinalizeExport(instance, snap_disks):
 
   utils.WriteFile(utils.PathJoin(destdir, constants.EXPORT_CONF_FILE),
                   data=config.Dumps())
-  shutil.rmtree(finaldestdir, True)
+  shutil.rmtree(finaldestdir, ignore_errors=True)
   shutil.move(destdir, finaldestdir)
 
 
@@ -2273,7 +2273,7 @@ def _TransformFileStorageDir(file_storage_dir):
   cfg = _GetConfig()
   file_storage_dir = os.path.normpath(file_storage_dir)
   base_file_storage_dir = cfg.GetFileStorageDir()
-  if (not os.path.commonprefix([file_storage_dir, base_file_storage_dir]) ==
+  if (os.path.commonprefix([file_storage_dir, base_file_storage_dir]) !=
       base_file_storage_dir):
     _Fail("File storage directory '%s' is not under base file"
           " storage directory '%s'", file_storage_dir, base_file_storage_dir)
