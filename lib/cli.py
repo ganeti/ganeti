@@ -123,6 +123,7 @@ __all__ = [
   "TAG_SRC_OPT",
   "TIMEOUT_OPT",
   "USEUNITS_OPT",
+  "USE_REPL_NET_OPT",
   "VERBOSE_OPT",
   "VG_NAME_OPT",
   "YES_DOIT_OPT",
@@ -889,6 +890,12 @@ NEW_CONFD_HMAC_KEY_OPT = cli_option("--new-confd-hmac-key",
                                     default=False, action="store_true",
                                     help=("Create a new HMAC key for %s" %
                                           constants.CONFD))
+
+USE_REPL_NET_OPT = cli_option("--use-replication-network",
+                              dest="use_replication_network",
+                              help="Whether to use the replication network"
+                              " for talking to the nodes",
+                              action="store_true", default=False)
 
 
 def _ParseArgs(argv, commands, aliases):
