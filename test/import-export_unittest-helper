@@ -1,0 +1,77 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2010 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Helpers for testing import-export daemon"""
+
+import os
+import sys
+import errno
+
+from ganeti import constants
+from ganeti import utils
+from ganeti import objects
+from ganeti import serializer
+
+
+RETRY_INTERVAL = 0.1
+TIMEOUT = int(os.getenv("TIMEOUT", 10))
+
+
+def _GetImportExportData(filename):
+  try:
+    data = utils.ReadFile(filename)
+  except EnvironmentError, err:
+    if err.errno != errno.ENOENT:
+      raise
+    raise utils.RetryAgain()
+
+  return objects.ImportExportStatus.FromDict(serializer.LoadJson(data))
+
+
+def _CheckConnected(filename):
+  if not _GetImportExportData(filename).connected:
+    raise utils.RetryAgain()
+
+
+def WaitForListenPort(filename):
+  return utils.Retry(lambda: _GetImportExportData(filename).listen_port,
+                     RETRY_INTERVAL, TIMEOUT)
+
+
+def WaitForConnected(filename):
+  utils.Retry(_CheckConnected, RETRY_INTERVAL, TIMEOUT, args=(filename, ))
+
+
+def main():
+  (filename, what) = sys.argv[1:]
+
+  if what == "listen-port":
+    print WaitForListenPort(filename)
+  elif what == "connected":
+    WaitForConnected(filename)
+  elif what == "gencert":
+    utils.GenerateSelfSignedSslCert(filename, validity=1)
+  else:
+    raise Exception("Unknown command '%s'" % what)
+
+
+if __name__ == "__main__":
+  main()

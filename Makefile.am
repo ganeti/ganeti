@@ -241,8 +241,12 @@ dist_tools_SCRIPTS = \
 	tools/lvmstrap \
 	tools/sanitize-config
 
+pkglib_python_scripts = \
+	daemons/import-export
+
 pkglib_SCRIPTS = \
-	daemons/daemon-util
+	daemons/daemon-util \
+	$(pkglib_python_scripts)
 
 EXTRA_DIST = \
 	NEWS \
@@ -256,6 +260,7 @@ EXTRA_DIST = \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
+	$(pkglib_python_scripts) \
 	devel/upload.in \
 	$(docdot) \
 	$(docpng) \
@@ -322,7 +327,8 @@ TEST_FILES = \
 	test/data/cert1.pem \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
-	test/data/proc_drbd83.txt
+	test/data/proc_drbd83.txt \
+	test/import-export_unittest-helper
 
 python_tests = \
 	test/ganeti.backend_unittest.py \
@@ -351,6 +357,7 @@ python_tests = \
 
 dist_TESTS = \
 	test/daemon-util_unittest.bash \
+	test/import-export_unittest.bash \
 	$(python_tests)
 
 nodist_TESTS =
@@ -368,6 +375,7 @@ TESTS_ENVIRONMENT = \
 all_python_code = \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
+	$(pkglib_python_scripts) \
 	$(python_tests) \
 	$(pkgpython_PYTHON) \
 	$(hypervisor_PYTHON) \
@@ -379,6 +387,7 @@ all_python_code = \
 srclink_files = \
 	man/footer.sgml \
 	test/daemon-util_unittest.bash \
+	test/import-export_unittest.bash \
 	$(all_python_code)
 
 check_python_code = \
@@ -389,6 +398,7 @@ lint_python_code = \
 	ganeti \
 	$(dist_sbin_SCRIPTS) \
 	$(dist_tools_SCRIPTS) \
+	$(pkglib_python_scripts) \
 	$(BUILD_BASH_COMPLETION)
 
 test/daemon-util_unittest.bash: daemons/daemon-util

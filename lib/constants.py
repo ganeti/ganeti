@@ -193,6 +193,12 @@ X509_CERT_SIGN_DIGEST = "SHA1"
 
 X509_CERT_SIGNATURE_HEADER = "X-Ganeti-Signature"
 
+IMPORT_EXPORT_DAEMON = _autoconf.PKGLIBDIR + "/import-export"
+
+# Import/export daemon mode
+IEM_IMPORT = "import"
+IEM_EXPORT = "export"
+
 VALUE_DEFAULT = "default"
 VALUE_AUTO = "auto"
 VALUE_GENERATE = "generate"

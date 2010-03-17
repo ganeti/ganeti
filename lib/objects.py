@@ -1007,6 +1007,17 @@ class BlockDevStatus(ConfigObject):
     ]
 
 
+class ImportExportStatus(ConfigObject):
+  """Config object representing the status of an import or export."""
+  __slots__ = [
+    "recent_output",
+    "listen_port",
+    "connected",
+    "exit_status",
+    "error_message",
+    ] + _TIMESTAMPS
+
+
 class ConfdRequest(ConfigObject):
   """Object holding a confd request.
 
