@@ -1883,7 +1883,8 @@ def ParseTimespec(value):
   return value
 
 
-def GetOnlineNodes(nodes, cl=None, nowarn=False):
+def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
+                   filter_master=False):
   """Returns the names of online nodes.
 
   This function will also log a warning on stderr with the names of
@@ -1896,17 +1897,36 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False):
   @param nowarn: by default, this function will output a note with the
       offline nodes that are skipped; if this parameter is True the
       note is not displayed
+  @type secondary_ips: boolean
+  @param secondary_ips: if True, return the secondary IPs instead of the
+      names, useful for doing network traffic over the replication interface
+      (if any)
+  @type filter_master: boolean
+  @param filter_master: if True, do not return the master node in the list
+      (useful in coordination with secondary_ips where we cannot check our
+      node name against the list)
 
   """
   if cl is None:
     cl = GetClient()
 
-  result = cl.QueryNodes(names=nodes, fields=["name", "offline"],
+  if secondary_ips:
+    name_idx = 2
+  else:
+    name_idx = 0
+
+  if filter_master:
+    master_node = cl.QueryConfigValues(["master_node"])[0]
+    filter_fn = lambda x: x != master_node
+  else:
+    filter_fn = lambda _: True
+
+  result = cl.QueryNodes(names=nodes, fields=["name", "offline", "sip"],
                          use_locking=False)
   offline = [row[0] for row in result if row[1]]
   if offline and not nowarn:
     ToStderr("Note: skipping offline node(s): %s" % utils.CommaJoin(offline))
-  return [row[0] for row in result if not row[1]]
+  return [row[name_idx] for row in result if not row[1] and filter_fn(row[0])]
 
 
 def _ToStream(stream, txt, *args):
