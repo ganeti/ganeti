@@ -1208,7 +1208,7 @@ def SetInstanceParams(opts, args):
 
   """
   if not (opts.nics or opts.disks or opts.disk_template or
-          opts.hvparams or opts.beparams):
+          opts.hvparams or opts.beparams or opts.os):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1261,6 +1261,8 @@ def SetInstanceParams(opts, args):
                                    remote_node=opts.node,
                                    hvparams=opts.hvparams,
                                    beparams=opts.beparams,
+                                   os_name=opts.os,
+                                   force_variant=opts.force_variant,
                                    force=opts.force)
 
   # even if here we process the result, we allow submit only
@@ -1417,7 +1419,7 @@ commands = {
   'modify': (
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT, SUBMIT_OPT,
-     DISK_TEMPLATE_OPT, SINGLE_NODE_OPT],
+     DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT],
     "<instance>", "Alters the parameters of an instance"),
   'shutdown': (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

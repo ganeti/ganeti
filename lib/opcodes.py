@@ -621,7 +621,7 @@ class OpSetInstanceParams(OpCode):
     "instance_name",
     "hvparams", "beparams", "force",
     "nics", "disks", "disk_template",
-    "remote_node",
+    "remote_node", "os_name", "force_variant",
     ]
 
 

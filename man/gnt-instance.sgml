@@ -1403,6 +1403,8 @@ instance5: 11225
               <arg>drbd</arg>
             </group></arg>
 
+          <sbr>
+            <arg>--os-name=<replaceable>OS</replaceable> <arg>--force-variant</arg></arg>
 
           <sbr>
           <arg>--submit</arg>
@@ -1451,6 +1453,16 @@ instance5: 11225
           last NIC of the instance, while the <option>--net
           <replaceable>N</replaceable>:<replaceable>options</replaceable></option>
           option will change the parameters of the Nth instance NIC.
+        </para>
+
+        <para>
+          The option <option>--os-name</option> will change the OS
+          name for the instance (without reinstallation). In case an
+          OS variant is specified that is not found, then by default
+          the modification is refused,
+          unless <option>--force-variant</option> is passed. An
+          invalid OS will also be refused, unless
+          the <option>--force</option> option is given.
         </para>
 
         <para>

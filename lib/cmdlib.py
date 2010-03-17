@@ -7744,9 +7744,13 @@ class LUSetInstanceParams(LogicalUnit):
       self.op.disk_template = None
     if not hasattr(self.op, "remote_node"):
       self.op.remote_node = None
+    if not hasattr(self.op, "os_name"):
+      self.op.os_name = None
+    if not hasattr(self.op, "force_variant"):
+      self.op.force_variant = False
     self.op.force = getattr(self.op, "force", False)
     if not (self.op.nics or self.op.disks or self.op.disk_template or
-            self.op.hvparams or self.op.beparams):
+            self.op.hvparams or self.op.beparams or self.op.os_name):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
@@ -8174,6 +8178,11 @@ class LUSetInstanceParams(LogicalUnit):
                                      (disk_op, len(instance.disks)),
                                      errors.ECODE_INVAL)
 
+    # OS change
+    if self.op.os_name and not self.op.force:
+      _CheckNodeHasOS(self, instance.primary_node, self.op.os_name,
+                      self.op.force_variant)
+
     return
 
   def _ConvertPlainToDrbd(self, feedback_fn):
@@ -8383,6 +8392,10 @@ class LUSetInstanceParams(LogicalUnit):
       instance.beparams = self.be_inst
       for key, val in self.op.beparams.iteritems():
         result.append(("be/%s" % key, val))
+
+    # OS change
+    if self.op.os_name:
+      instance.os = self.op.os_name
 
     self.cfg.Update(instance, feedback_fn)
 
