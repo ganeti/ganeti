@@ -542,6 +542,24 @@ def _CheckNodeNotDrained(lu, node):
                                errors.ECODE_INVAL)
 
 
+def _CheckNodeHasOS(lu, node, os_name, force_variant):
+  """Ensure that a node supports a given OS.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @param os_name: the OS to query about
+  @param force_variant: whether to ignore variant errors
+  @raise errors.OpPrereqError: if the node is not supporting the OS
+
+  """
+  result = lu.rpc.call_os_get(node, os_name)
+  result.Raise("OS '%s' not in supported OS list for node %s" %
+               (os_name, node),
+               prereq=True, ecode=errors.ECODE_INVAL)
+  if not force_variant:
+    _CheckOSVariant(result.payload, os_name)
+
+
 def _CheckDiskTemplate(template):
   """Ensure a given disk template is valid.
 
@@ -4139,12 +4157,7 @@ class LUReinstallInstance(LogicalUnit):
     if self.op.os_type is not None:
       # OS verification
       pnode = _ExpandNodeName(self.cfg, instance.primary_node)
-      result = self.rpc.call_os_get(pnode, self.op.os_type)
-      result.Raise("OS '%s' not in supported OS list for primary node %s" %
-                   (self.op.os_type, pnode),
-                   prereq=True, ecode=errors.ECODE_INVAL)
-      if not self.op.force_variant:
-        _CheckOSVariant(result.payload, self.op.os_type)
+      _CheckNodeHasOS(self, pnode, self.op.os_type, self.op.force_variant)
 
     self.instance = instance
 
@@ -6306,13 +6319,7 @@ class LUCreateInstance(LogicalUnit):
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
-    # os verification
-    result = self.rpc.call_os_get(pnode.name, self.op.os_type)
-    result.Raise("OS '%s' not in supported os list for primary node %s" %
-                 (self.op.os_type, pnode.name),
-                 prereq=True, ecode=errors.ECODE_INVAL)
-    if not self.op.force_variant:
-      _CheckOSVariant(result.payload, self.op.os_type)
+    _CheckNodeHasOS(self, pnode.name, self.op.os_type, self.op.force_variant)
 
     _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
 
