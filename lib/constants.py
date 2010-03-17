@@ -189,6 +189,8 @@ RSA_KEY_BITS = 2048
 # Digest used to sign certificates ("openssl x509" uses SHA1 by default)
 X509_CERT_SIGN_DIGEST = "SHA1"
 
+X509_CERT_SIGNATURE_HEADER = "X-Ganeti-Signature"
+
 VALUE_DEFAULT = "default"
 VALUE_AUTO = "auto"
 VALUE_GENERATE = "generate"

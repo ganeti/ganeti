@@ -1698,5 +1698,60 @@ class TestGetX509CertValidity(testutils.GanetiTestCase):
       self.assertEqual(validity, (None, None))
 
 
+class TestSignX509Certificate(unittest.TestCase):
+  KEY = "My private key!"
+  KEY_OTHER = "Another key"
+
+  def test(self):
+    # Generate certificate valid for 5 minutes
+    (_, cert_pem) = utils.GenerateSelfSignedX509Cert(None, 300)
+
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           cert_pem)
+
+    # No signature at all
+    self.assertRaises(errors.GenericError,
+                      utils.LoadSignedX509Certificate, cert_pem, self.KEY)
+
+    # Invalid input
+    self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
+                      "", self.KEY)
+    self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
+                      "X-Ganeti-Signature: \n", self.KEY)
+    self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
+                      "X-Ganeti-Sign: $1234$abcdef\n", self.KEY)
+    self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
+                      "X-Ganeti-Signature: $1234567890$abcdef\n", self.KEY)
+    self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
+                      "X-Ganeti-Signature: $1234$abc\n\n" + cert_pem, self.KEY)
+
+    # Invalid salt
+    for salt in list("-_@$,:;/\\ \t\n"):
+      self.assertRaises(errors.GenericError, utils.SignX509Certificate,
+                        cert_pem, self.KEY, "foo%sbar" % salt)
+
+    for salt in ["HelloWorld", "salt", string.letters, string.digits,
+                 utils.GenerateSecret(numbytes=4),
+                 utils.GenerateSecret(numbytes=16),
+                 "{123:456}".encode("hex")]:
+      signed_pem = utils.SignX509Certificate(cert, self.KEY, salt)
+
+      self._Check(cert, salt, signed_pem)
+
+      self._Check(cert, salt, "X-Another-Header: with a value\n" + signed_pem)
+      self._Check(cert, salt, (10 * "Hello World!\n") + signed_pem)
+      self._Check(cert, salt, (signed_pem + "\n\na few more\n"
+                               "lines----\n------ at\nthe end!"))
+
+  def _Check(self, cert, salt, pem):
+    (cert2, salt2) = utils.LoadSignedX509Certificate(pem, self.KEY)
+    self.assertEqual(salt, salt2)
+    self.assertEqual(cert.digest("sha1"), cert2.digest("sha1"))
+
+    # Other key
+    self.assertRaises(errors.GenericError, utils.LoadSignedX509Certificate,
+                      pem, self.KEY_OTHER)
+
+
 if __name__ == '__main__':
   testutils.GanetiTestProgram()

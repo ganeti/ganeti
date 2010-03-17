@@ -47,14 +47,14 @@ import signal
 import OpenSSL
 import datetime
 import calendar
+import hmac
 
 from cStringIO import StringIO
 
 try:
   from hashlib import sha1
 except ImportError:
-  import sha
-  sha1 = sha.new
+  import sha as sha1
 
 from ganeti import errors
 from ganeti import constants
@@ -69,6 +69,13 @@ debug_locks = False
 no_fork = False
 
 _RANDOM_UUID_FILE = "/proc/sys/kernel/random/uuid"
+
+HEX_CHAR_RE = r"[a-zA-Z0-9]"
+VALID_X509_SIGNATURE_SALT = re.compile("^%s+$" % HEX_CHAR_RE, re.S)
+X509_SIGNATURE = re.compile(r"^%s:\s*(?P<salt>%s+)/(?P<sign>%s+)$" %
+                            (re.escape(constants.X509_CERT_SIGNATURE_HEADER),
+                             HEX_CHAR_RE, HEX_CHAR_RE),
+                            re.S | re.I)
 
 
 class RunResult(object):
@@ -673,7 +680,10 @@ def _FingerprintFile(filename):
 
   f = open(filename)
 
-  fp = sha1()
+  if callable(sha1):
+    fp = sha1()
+  else:
+    fp = sha1.new()
   while True:
     data = f.read(4096)
     if not data:
@@ -2354,6 +2364,74 @@ def GetX509CertValidity(cert):
       not_after = _ParseAsn1Generalizedtime(not_after_asn1)
 
   return (not_before, not_after)
+
+
+def SignX509Certificate(cert, key, salt):
+  """Sign a X509 certificate.
+
+  An RFC822-like signature header is added in front of the certificate.
+
+  @type cert: OpenSSL.crypto.X509
+  @param cert: X509 certificate object
+  @type key: string
+  @param key: Key for HMAC
+  @type salt: string
+  @param salt: Salt for HMAC
+  @rtype: string
+  @return: Serialized and signed certificate in PEM format
+
+  """
+  if not VALID_X509_SIGNATURE_SALT.match(salt):
+    raise errors.GenericError("Invalid salt: %r" % salt)
+
+  # Dumping as PEM here ensures the certificate is in a sane format
+  cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+
+  return ("%s: %s/%s\n\n%s" %
+          (constants.X509_CERT_SIGNATURE_HEADER, salt,
+           hmac.new(key, salt + cert_pem, sha1).hexdigest(),
+           cert_pem))
+
+
+def _ExtractX509CertificateSignature(cert_pem):
+  """Helper function to extract signature from X509 certificate.
+
+  """
+  # Extract signature from original PEM data
+  for line in cert_pem.splitlines():
+    if line.startswith("---"):
+      break
+
+    m = X509_SIGNATURE.match(line.strip())
+    if m:
+      return (m.group("salt"), m.group("sign"))
+
+  raise errors.GenericError("X509 certificate signature is missing")
+
+
+def LoadSignedX509Certificate(cert_pem, key):
+  """Verifies a signed X509 certificate.
+
+  @type cert_pem: string
+  @param cert_pem: Certificate in PEM format and with signature header
+  @type key: string
+  @param key: Key for HMAC
+  @rtype: tuple; (OpenSSL.crypto.X509, string)
+  @return: X509 certificate object and salt
+
+  """
+  (salt, signature) = _ExtractX509CertificateSignature(cert_pem)
+
+  # Load certificate
+  cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
+
+  # Dump again to ensure it's in a sane format
+  sane_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+
+  if signature != hmac.new(key, salt + sane_pem, sha1).hexdigest():
+    raise errors.GenericError("X509 certificate signature is invalid")
+
+  return (cert, salt)
 
 
 def SafeEncode(text):

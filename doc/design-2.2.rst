@@ -246,7 +246,9 @@ signatures must be mandatory. The HMAC signature for X509 certificates
 will be prepended to the certificate similar to an RFC822 header and
 only covers the certificate (from ``-----BEGIN CERTIFICATE-----`` to
 ``-----END CERTIFICATE-----``). The header name will be
-``X-Ganeti-Signature``.
+``X-Ganeti-Signature`` and its value will have the format
+``$salt/$hash`` (salt and hash separated by slash). The salt may only
+contain characters in the range ``[a-zA-Z0-9]``.
 
 On the web, the destination cluster would be equivalent to an HTTPS
 server requiring verifiable client certificates. The browser would be
