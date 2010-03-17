@@ -85,6 +85,7 @@
           <arg>--no-ip-check</arg>
           <arg>--no-name-check</arg>
           <arg>--no-start</arg>
+          <arg>--no-install</arg>
           <sbr>
           <group>
             <arg rep="repeat">--net=<replaceable>N</replaceable><arg rep="repeat">:options</arg></arg>
@@ -243,7 +244,13 @@
         <para>
           The <option>-o</option> options specifies the operating
           system to be installed. The available operating systems can
-          be listed with <command>gnt-os list</command>.
+          be listed with <command>gnt-os
+          list</command>. Passing <option>--no-install</option> will
+          however skip the OS installation, allowing a manual import
+          if so desired. Note that the no-installation mode will
+          automatically disable the start-up of the instance (without
+          an OS, it most likely won't be able to start-up
+          successfully).
         </para>
 
         <para>
@@ -1403,6 +1410,8 @@ instance5: 11225
               <arg>drbd</arg>
             </group></arg>
 
+          <sbr>
+            <arg>--os-name=<replaceable>OS</replaceable> <arg>--force-variant</arg></arg>
 
           <sbr>
           <arg>--submit</arg>
@@ -1451,6 +1460,16 @@ instance5: 11225
           last NIC of the instance, while the <option>--net
           <replaceable>N</replaceable>:<replaceable>options</replaceable></option>
           option will change the parameters of the Nth instance NIC.
+        </para>
+
+        <para>
+          The option <option>--os-name</option> will change the OS
+          name for the instance (without reinstallation). In case an
+          OS variant is specified that is not found, then by default
+          the modification is refused,
+          unless <option>--force-variant</option> is passed. An
+          invalid OS will also be refused, unless
+          the <option>--force</option> option is given.
         </para>
 
         <para>

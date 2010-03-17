@@ -138,6 +138,7 @@
 
       <cmdsynopsis>
         <command>copyfile</command>
+        <arg>--use-replication-network</arg>
         <arg>-n <replaceable>node</replaceable></arg>
         <arg choice="req"><replaceable>file</replaceable></arg>
       </cmdsynopsis>
@@ -149,6 +150,10 @@
         nodes if the option is given multiple times. If
         <option>-n</option> is not given at all, the file will be
         copied to all nodes.
+
+        Passing the <option>--use-replication-network</option> option
+        will cause the copy to be done over the replication network
+        (only matters if the primary/secondary IPs are different).
 
         Example:
         <screen>

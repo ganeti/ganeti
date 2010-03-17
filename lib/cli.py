@@ -91,6 +91,7 @@ __all__ = [
   "NODE_PLACEMENT_OPT",
   "NOHDR_OPT",
   "NOIPCHECK_OPT",
+  "NO_INSTALL_OPT",
   "NONAMECHECK_OPT",
   "NOLVM_STORAGE_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
@@ -126,6 +127,7 @@ __all__ = [
   "TAG_SRC_OPT",
   "TIMEOUT_OPT",
   "USEUNITS_OPT",
+  "USE_REPL_NET_OPT",
   "VERBOSE_OPT",
   "VG_NAME_OPT",
   "YES_DOIT_OPT",
@@ -595,6 +597,11 @@ FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,
                                help="Force an unknown variant")
 
+NO_INSTALL_OPT = cli_option("--no-install", dest="no_install",
+                            action="store_true", default=False,
+                            help="Do not install the OS (will"
+                            " enable no-start)")
+
 BACKEND_OPT = cli_option("-B", "--backend-parameters", dest="beparams",
                          type="keyval", default={},
                          help="Backend parameters")
@@ -910,6 +917,12 @@ NEW_CLUSTER_DOMAIN_SECRET_OPT = cli_option("--new-cluster-domain-secret",
                                            default=False, action="store_true",
                                            help=("Create a new cluster domain"
                                                  " secret"))
+
+USE_REPL_NET_OPT = cli_option("--use-replication-network",
+                              dest="use_replication_network",
+                              help="Whether to use the replication network"
+                              " for talking to the nodes",
+                              action="store_true", default=False)
 
 
 def _ParseArgs(argv, commands, aliases):
@@ -1580,11 +1593,13 @@ def GenericInstanceCreate(mode, opts, args):
     os_type = opts.os
     src_node = None
     src_path = None
+    no_install = opts.no_install
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None
     src_node = opts.src_node
     src_path = opts.src_dir
+    no_install = None
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
@@ -1606,7 +1621,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 start=start,
                                 os_type=os_type,
                                 src_node=src_node,
-                                src_path=src_path)
+                                src_path=src_path,
+                                no_install=no_install)
 
   SubmitOrSend(op, opts)
   return 0
@@ -1901,7 +1917,8 @@ def ParseTimespec(value):
   return value
 
 
-def GetOnlineNodes(nodes, cl=None, nowarn=False):
+def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
+                   filter_master=False):
   """Returns the names of online nodes.
 
   This function will also log a warning on stderr with the names of
@@ -1914,17 +1931,36 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False):
   @param nowarn: by default, this function will output a note with the
       offline nodes that are skipped; if this parameter is True the
       note is not displayed
+  @type secondary_ips: boolean
+  @param secondary_ips: if True, return the secondary IPs instead of the
+      names, useful for doing network traffic over the replication interface
+      (if any)
+  @type filter_master: boolean
+  @param filter_master: if True, do not return the master node in the list
+      (useful in coordination with secondary_ips where we cannot check our
+      node name against the list)
 
   """
   if cl is None:
     cl = GetClient()
 
-  result = cl.QueryNodes(names=nodes, fields=["name", "offline"],
+  if secondary_ips:
+    name_idx = 2
+  else:
+    name_idx = 0
+
+  if filter_master:
+    master_node = cl.QueryConfigValues(["master_node"])[0]
+    filter_fn = lambda x: x != master_node
+  else:
+    filter_fn = lambda _: True
+
+  result = cl.QueryNodes(names=nodes, fields=["name", "offline", "sip"],
                          use_locking=False)
   offline = [row[0] for row in result if row[1]]
   if offline and not nowarn:
     ToStderr("Note: skipping offline node(s): %s" % utils.CommaJoin(offline))
-  return [row[0] for row in result if not row[1]]
+  return [row[name_idx] for row in result if not row[1] and filter_fn(row[0])]
 
 
 def _ToStream(stream, txt, *args):

@@ -542,6 +542,24 @@ def _CheckNodeNotDrained(lu, node):
                                errors.ECODE_INVAL)
 
 
+def _CheckNodeHasOS(lu, node, os_name, force_variant):
+  """Ensure that a node supports a given OS.
+
+  @param lu: the LU on behalf of which we make the check
+  @param node: the node to check
+  @param os_name: the OS to query about
+  @param force_variant: whether to ignore variant errors
+  @raise errors.OpPrereqError: if the node is not supporting the OS
+
+  """
+  result = lu.rpc.call_os_get(node, os_name)
+  result.Raise("OS '%s' not in supported OS list for node %s" %
+               (os_name, node),
+               prereq=True, ecode=errors.ECODE_INVAL)
+  if not force_variant:
+    _CheckOSVariant(result.payload, os_name)
+
+
 def _CheckDiskTemplate(template):
   """Ensure a given disk template is valid.
 
@@ -4139,12 +4157,7 @@ class LUReinstallInstance(LogicalUnit):
     if self.op.os_type is not None:
       # OS verification
       pnode = _ExpandNodeName(self.cfg, instance.primary_node)
-      result = self.rpc.call_os_get(pnode, self.op.os_type)
-      result.Raise("OS '%s' not in supported OS list for primary node %s" %
-                   (self.op.os_type, pnode),
-                   prereq=True, ecode=errors.ECODE_INVAL)
-      if not self.op.force_variant:
-        _CheckOSVariant(result.payload, self.op.os_type)
+      _CheckNodeHasOS(self, pnode, self.op.os_type, self.op.force_variant)
 
     self.instance = instance
 
@@ -5824,6 +5837,11 @@ class LUCreateInstance(LogicalUnit):
     # for tools
     if not hasattr(self.op, "name_check"):
       self.op.name_check = True
+    if not hasattr(self.op, "no_install"):
+      self.op.no_install = False
+    if self.op.no_install and self.op.start:
+      self.LogInfo("No-installation mode selected, disabling startup")
+      self.op.start = False
     # validate/normalize the instance name
     self.op.instance_name = utils.HostInfo.NormalizeName(self.op.instance_name)
     if self.op.ip_check and not self.op.name_check:
@@ -6067,6 +6085,9 @@ class LUCreateInstance(LogicalUnit):
       # initial install, our only chance when importing it back is that it
       # works again!
       self.op.force_variant = True
+
+      if self.op.no_install:
+        self.LogInfo("No-installation mode has no effect during import")
 
     else: # INSTANCE_CREATE
       if getattr(self.op, "os_type", None) is None:
@@ -6316,13 +6337,7 @@ class LUCreateInstance(LogicalUnit):
 
     _CheckHVParams(self, nodenames, self.op.hypervisor, self.op.hvparams)
 
-    # os verification
-    result = self.rpc.call_os_get(pnode.name, self.op.os_type)
-    result.Raise("OS '%s' not in supported os list for primary node %s" %
-                 (self.op.os_type, pnode.name),
-                 prereq=True, ecode=errors.ECODE_INVAL)
-    if not self.op.force_variant:
-      _CheckOSVariant(result.payload, self.op.os_type)
+    _CheckNodeHasOS(self, pnode.name, self.op.os_type, self.op.force_variant)
 
     _CheckNicsBridgesExist(self, self.nics, self.pnode.name)
 
@@ -6440,12 +6455,13 @@ class LUCreateInstance(LogicalUnit):
 
     if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
       if self.op.mode == constants.INSTANCE_CREATE:
-        feedback_fn("* running the instance OS create scripts...")
-        # FIXME: pass debug option from opcode to backend
-        result = self.rpc.call_instance_os_add(pnode_name, iobj, False,
-                                               self.op.debug_level)
-        result.Raise("Could not add os for instance %s"
-                     " on node %s" % (instance, pnode_name))
+        if not self.op.no_install:
+          feedback_fn("* running the instance OS create scripts...")
+          # FIXME: pass debug option from opcode to backend
+          result = self.rpc.call_instance_os_add(pnode_name, iobj, False,
+                                                 self.op.debug_level)
+          result.Raise("Could not add os for instance %s"
+                       " on node %s" % (instance, pnode_name))
 
       elif self.op.mode == constants.INSTANCE_IMPORT:
         feedback_fn("* running the instance OS import scripts...")
@@ -7743,9 +7759,13 @@ class LUSetInstanceParams(LogicalUnit):
       self.op.disk_template = None
     if not hasattr(self.op, "remote_node"):
       self.op.remote_node = None
+    if not hasattr(self.op, "os_name"):
+      self.op.os_name = None
+    if not hasattr(self.op, "force_variant"):
+      self.op.force_variant = False
     self.op.force = getattr(self.op, "force", False)
     if not (self.op.nics or self.op.disks or self.op.disk_template or
-            self.op.hvparams or self.op.beparams):
+            self.op.hvparams or self.op.beparams or self.op.os_name):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
@@ -8173,6 +8193,11 @@ class LUSetInstanceParams(LogicalUnit):
                                      (disk_op, len(instance.disks)),
                                      errors.ECODE_INVAL)
 
+    # OS change
+    if self.op.os_name and not self.op.force:
+      _CheckNodeHasOS(self, instance.primary_node, self.op.os_name,
+                      self.op.force_variant)
+
     return
 
   def _ConvertPlainToDrbd(self, feedback_fn):
@@ -8382,6 +8407,10 @@ class LUSetInstanceParams(LogicalUnit):
       instance.beparams = self.be_inst
       for key, val in self.op.beparams.iteritems():
         result.append(("be/%s" % key, val))
+
+    # OS change
+    if self.op.os_name:
+      instance.os = self.op.os_name
 
     self.cfg.Update(instance, feedback_fn)
 

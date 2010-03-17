@@ -460,7 +460,8 @@ class OpCreateInstance(OpCode):
   OP_ID = "OP_INSTANCE_CREATE"
   OP_DSC_FIELD = "instance_name"
   __slots__ = [
-    "instance_name", "os_type", "force_variant",
+    "instance_name",
+    "os_type", "force_variant", "no_install",
     "pnode", "disk_template", "snode", "mode",
     "disks", "nics",
     "src_node", "src_path", "start",
@@ -621,7 +622,7 @@ class OpSetInstanceParams(OpCode):
     "instance_name",
     "hvparams", "beparams", "force",
     "nics", "disks", "disk_template",
-    "remote_node",
+    "remote_node", "os_name", "force_variant",
     ]
 
 
